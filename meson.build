@@ -253,5 +253,5 @@ endif
 pkgconfig = find_program('pkg-config', required: false)
 if pkgconfig.found()
   pkg = import('pkgconfig')
-  pkg.generate(gaollib, extra_cflags: '-std=c++11', name: 'gaol')
+  pkg.generate(gaollib, name: 'gaol')
 endif
