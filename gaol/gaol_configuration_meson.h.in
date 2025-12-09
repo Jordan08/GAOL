@@ -1,0 +1,286 @@
+/* gaol/gaol_configuration_meson.h.in. */
+
+/* Define this if the system is an AARCH64-based computer */
+#mesondefine AARCH64
+
+/* Define this if the system is a X86 32 bits one */
+#mesondefine IX86
+
+/* Define this if the system is a X86 64 bits one */
+#mesondefine X86_64BITS
+
+/* Define this if your system is under Linux */
+#mesondefine OS_LINUX
+
+/* Define this if your system is under Apple MacOS */
+#mesondefine OS_DARWIN
+
+/* Define this if your system is under Microsoft Windows */
+#mesondefine OS_WINDOWS
+
+/* Define this if your system is under Microsoft Windows */
+#mesondefine OS_CYGWIN
+
+
+/* Define this if your system is an AARCH64-based computer under Linux */
+#define AARCH64_LINUX (AARCH64 & OS_LINUX)
+
+/* Define this if your system is a cygwin-based ix86 or compatible */
+#define IX86_CYGWIN (IX86 & OS_CYGWIN)
+
+/* Define this if your system is a Linux-based ix86 or compatible */
+#define IX86_LINUX (IX86 & OS_LINUX)
+
+/* Define this if your system is a Linux-based ix86 or compatible */
+#define X86_64_LINUX (X86_64BITS & OS_LINUX)
+
+/* Define this if your system is a Darwin-based ix86 or compatible */
+#define IX86_MACOSX (IX86 & OS_DARWIN)
+
+/* Define this if your system is a Darwin-based ARM or compatible */
+#define ARM_MACOSX (AARCH64 & OS_DARWIN)
+
+
+/* Define if building universal (internal helper macro) */
+#mesondefine AC_APPLE_UNIVERSAL_BUILD
+
+/* Define this to 1 if function clock() is declared in time.h */
+#mesondefine CLOCK_IN_HEADER
+
+/* Define this if relation symbols should stand for \"certainly relations\" */
+#mesondefine GAOL_CERTAINLY_RELATIONS
+
+/* define this if you want debugging facilities */
+#mesondefine GAOL_DEBUGGING
+
+/* Define this to 1 to allow raising exceptions instead of simply aborting */
+#mesondefine GAOL_EXCEPTIONS_ENABLED
+
+/* Major version for gaol */
+#mesondefine GAOL_MAJOR_VERSION
+
+/* Micro version for gaol */
+#mesondefine GAOL_MICRO_VERSION
+
+/* Minor version for gaol */
+#mesondefine GAOL_MINOR_VERSION
+
+/* Define this if relation symbols should stand for \"possibly relations\" */
+#mesondefine GAOL_POSSIBLY_RELATIONS
+
+/* define this to 1 if rounding direction should be preserved */
+#mesondefine GAOL_PRESERVE_ROUNDING
+
+/* Define this if relation symbols should stand for \"set relations\" */
+#mesondefine GAOL_SET_RELATIONS
+
+/* Define this to 1 if using the IBM APMathlib library */
+#mesondefine GAOL_USING_APMATHLIB
+
+/* define this to 1 if you want to allow ASM support */
+#mesondefine GAOL_USING_ASM
+
+/* Define this to 1 if using the CRLibm Mathematical library */
+#mesondefine GAOL_USING_CRLIBM
+
+/* Define this to 1 to enable verbose mode */
+#mesondefine GAOL_VERBOSE_MODE
+
+/* Version number for gaol */
+#define GAOL_VERSION "@version@"
+
+/* Define this to 1 if function getrusage() is declared in sys/resource.h */
+#undef GETRUSAGE_IN_HEADER
+
+/* Define to 1 if you have the <cassert> header file. */
+#mesondefine HAVE_CASSERT
+
+/* Define to 1 if you have the `clock' function. */
+#mesondefine HAVE_CLOCK
+
+/* Define to 1 if you have the <crlibm.h> header file. */
+#mesondefine HAVE_CRLIBM_H
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#mesondefine HAVE_DLFCN_H
+
+/* Define to 1 if you have the <fenv.h> header file. */
+#mesondefine HAVE_FENV_H
+
+/* Define to 1 if you have the `fesetround' function. */
+#mesondefine HAVE_FESETROUND
+
+/* Define to 1 if you have the `finite' function. */
+#mesondefine HAVE_FINITE
+
+/* Define to 1 if you have the <float.h> header file. */
+#mesondefine HAVE_FLOAT_H
+
+/* Define to 1 if you have the `floor' function. */
+#mesondefine HAVE_FLOOR
+
+/* Define to 1 if you have the `getrusage' function. */
+#mesondefine HAVE_GETRUSAGE
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#mesondefine HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <limits> header file. */
+#mesondefine HAVE_LIMITS
+
+/* Define to 1 if you have the `localeconv' function. */
+#mesondefine HAVE_LOCALECONV
+
+/* Define to 1 if your system has a GNU libc compatible `malloc' function, and
+   to 0 otherwise. */
+#mesondefine HAVE_MALLOC
+
+/* Define to 1 if you have the <MathLib.h> header file. */
+#mesondefine HAVE_MATHLIB_H
+
+/* Define to 1 if you have the `memset' function. */
+#mesondefine HAVE_MEMSET
+
+/* Define to 1 if you have the `nextafter' function. */
+#mesondefine HAVE_NEXTAFTER
+
+/* Define to 1 if you have the `pow' function. */
+#mesondefine HAVE_POW
+
+/* Define to 1 if your system has a GNU libc compatible `realloc' function,
+   and to 0 otherwise. */
+#mesondefine HAVE_REALLOC
+
+/* Define to 1 if you have the `rint' function. */
+#mesondefine HAVE_RINT
+
+/* Define to 1 if you have the `round' function. */
+#mesondefine HAVE_ROUND
+
+/* Define this to 1 if the compiler supports the "-frounding-math" option */
+#mesondefine HAVE_ROUNDING_MATH_OPTION
+
+/* Define to 1 if you have the `sqrt' function. */
+#mesondefine HAVE_SQRT
+
+/* Define to 1 if stdbool.h conforms to C99. */
+#mesondefine HAVE_STDBOOL_H
+
+/* Define to 1 if you have the <stddef.h> header file. */
+#mesondefine HAVE_STDDEF_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#mesondefine HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#mesondefine HAVE_STDIO_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#mesondefine HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#mesondefine HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#mesondefine HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/resource.h> header file. */
+#mesondefine HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#mesondefine HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#mesondefine HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#mesondefine HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <time.h> header file. */
+#mesondefine HAVE_TIME_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#mesondefine HAVE_UNISTD_H
+
+/* Define this to 1 if the compiler supports the "-fvisibility" option */
+#mesondefine HAVE_VISIBILITY_OPTIONS
+
+/* Define to 1 if the system has the type `_Bool'. */
+#mesondefine HAVE__BOOL
+
+/* Define to 1 if you have the `__signbit' function. */
+#mesondefine HAVE___SIGNBIT
+
+/* Name of package */
+#mesondefine PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#mesondefine PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#mesondefine PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#mesondefine PACKAGE_STRING
+
+/* Define to the home page for this package. */
+#mesondefine PACKAGE_URL
+
+/* Define to the version of this package. */
+#mesondefine PACKAGE_VERSION
+
+/* Define this if your system is a PowerPc under MacOs X */
+#mesondefine POWERPC_UNIX
+
+/* The size of `int', as computed by sizeof. */
+#mesondefine SIZEOF_INT
+
+/* The size of `long', as computed by sizeof. */
+#mesondefine SIZEOF_LONG
+
+/* The size of `long long int', as computed by sizeof. */
+#mesondefine SIZEOF_LONG_LONG_INT
+
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
+#mesondefine STDC_HEADERS
+
+/* Define this to 1 if SSE2 instructions are to be used */
+#mesondefine USING_SSE2_INSTRUCTIONS
+
+/* Define this to 1 if SSE3 instructions are to be used */
+#mesondefine USING_SSE3_INSTRUCTIONS
+
+/* Version number of package */
+#mesondefine VERSION
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
+
+/* Define to empty if `const' does not conform to ANSI C. */
+#mesondefine const
+
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
+#undef inline
+#endif
+
+/* Define to rpl_malloc if the replacement function should be used. */
+#mesondefine malloc
+
+/* Define to rpl_realloc if the replacement function should be used. */
+#mesondefine realloc
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#mesondefine size_t
