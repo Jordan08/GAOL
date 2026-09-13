@@ -335,116 +335,29 @@ namespace gaol {
     return f;
   }
 
-  INLINE double cosh_dn(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = previous_float(cosh(x)); // From libm, not libultim
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
-  INLINE double cosh_up(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = next_float(cosh(x)); // From libm, not libultim
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
-  INLINE double sinh_dn(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = previous_float(sinh(x)); // From libm, not libultim
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
-  INLINE double sinh_up(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = next_float(sinh(x)); // From libm, not libultim
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
-  INLINE double tanh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(tanh(x)); // From libm, not libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double tanh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(tanh(x)); // From libm, not libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-
-
-
-  INLINE double acosh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(acosh(x)); // acosh() not from libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double acosh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(acosh(x)); // acosh() not from libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double asinh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(asinh(x)); // asinh() not from libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double asinh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(asinh(x)); // asinh() not from libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double atanh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(atanh(x)); // atanh() not from libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double atanh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(atanh(x)); // atanh() not from libultim
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
+  /*
+    The hyperbolic functions, which mathlib does not have, are bounded with
+    exp_dn(), exp_up(), log_dn() and log_up() in interval arithmetic, in
+    gaol_interval.cpp (fork of GAOL). GAOL took them from the libm of the
+    system, rounded to nearest, and moved them one float outward, which only
+    encloses the exact values when the libm is within one float of them: on
+    2000 random arguments of each function, the libms of glibc 2.31, musl and
+    MinGW-w64 returned doubles beyond the two around the exact value for sinh,
+    cosh, tanh, acosh and atanh (86 times for tanh), and GAOL's asinh() did not
+    enclose asinh(-0x1.ee84df02a8766p-4) nor its acosh() acosh(0x1.01fd62fff333fp+0).
+  */
+  extern __GAOL_PUBLIC__ double cosh_dn(double x);
+  extern __GAOL_PUBLIC__ double cosh_up(double x);
+  extern __GAOL_PUBLIC__ double sinh_dn(double x);
+  extern __GAOL_PUBLIC__ double sinh_up(double x);
+  extern __GAOL_PUBLIC__ double tanh_dn(double x);
+  extern __GAOL_PUBLIC__ double tanh_up(double x);
+  extern __GAOL_PUBLIC__ double acosh_dn(double x);
+  extern __GAOL_PUBLIC__ double acosh_up(double x);
+  extern __GAOL_PUBLIC__ double asinh_dn(double x);
+  extern __GAOL_PUBLIC__ double asinh_up(double x);
+  extern __GAOL_PUBLIC__ double atanh_dn(double x);
+  extern __GAOL_PUBLIC__ double atanh_up(double x);
 
 
 
