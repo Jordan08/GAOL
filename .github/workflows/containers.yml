@@ -1,0 +1,86 @@
+# Builds GAOL with CMake and runs its tests in containers of official images:
+# Debian (amd64, arm64, armhf, i386), manylinux_2_28, Alpine (musl), and under
+# qemu on s390x (big-endian), ppc64le and riscv64. Checks that Clang is refused
+# for 32-bit ARM processors.
+
+name: Linux containers
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:trixie',   tools: apt, desc: 'Debian 13 Trixie amd64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:trixie',   tools: apt, desc: 'Debian 13 Trixie arm64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, desc: 'Debian 13 Trixie armhf' }
+          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm amd64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm arm64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm armhf' }
+          - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm i386' }
+          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:bullseye', tools: apt, desc: 'Debian 11 Bullseye amd64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:bullseye', tools: apt, desc: 'Debian 11 Bullseye arm64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:bullseye', tools: apt, desc: 'Debian 11 Bullseye armhf' }
+          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'quay.io/pypa/manylinux_2_28_x86_64',  tools: none, desc: 'manylinux_2_28 x86_64' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'quay.io/pypa/manylinux_2_28_aarch64', tools: none, desc: 'manylinux_2_28 aarch64' }
+          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'alpine:3.22',     tools: apk, desc: 'Alpine 3.22 x86_64 (musl)' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'alpine:3.22',     tools: apk, desc: 'Alpine 3.22 aarch64 (musl)' }
+          - { os: ubuntu-24.04,     platform: linux/s390x,   image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie s390x (qemu)' }
+          - { os: ubuntu-24.04,     platform: linux/ppc64le, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie ppc64le (qemu)' }
+          - { os: ubuntu-24.04,     platform: linux/riscv64, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie riscv64 (qemu)' }
+    steps:
+      - uses: actions/checkout@v7
+      - if: matrix.cfg.qemu
+        uses: docker/setup-qemu-action@v4
+      - name: Build and tests
+        run: |
+          case "${{ matrix.cfg.tools }}" in
+            apt) tools='apt-get update -qq && apt-get install -y -qq g++ cmake make ca-certificates > /dev/null' ;;
+            apk) tools='apk add --no-cache build-base cmake linux-headers ca-certificates > /dev/null' ;;
+            *) tools='true' ;;
+          esac
+          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
+            set -e
+            $tools
+            uname -m
+            c++ --version
+            cmake --version
+            cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release
+            cmake --build /tmp/build -j 4
+            cd /tmp/build
+            ctest -j 4 --output-on-failure"
+
+  clang-arm32:
+    name: Debian 13 Trixie armhf, Clang refused
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure with Clang, which has to fail
+        run: |
+          docker run --rm --platform linux/arm/v7 -v "$PWD:/gaol" -w /gaol debian:trixie sh -c '
+            apt-get update -qq && apt-get install -y -qq clang cmake make ca-certificates > /dev/null
+            clang++ --version
+            if cmake -S . -B /tmp/build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ > /tmp/configure.log 2>&1; then
+              cat /tmp/configure.log
+              echo "Clang was not refused for a 32-bit ARM processor"
+              exit 1
+            fi
+            cat /tmp/configure.log
+            grep -q "GAOL cannot be built with Clang for a 32-bit ARM processor" /tmp/configure.log'

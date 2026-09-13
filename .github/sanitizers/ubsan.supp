@@ -1,0 +1,6 @@
+# Undefined behaviour UndefinedBehaviorSanitizer does not report in the tests of
+# GAOL
+
+# mathlib 2.1.1 (IBM Accurate Mathematical Library), src/halfulp.c: left shift
+# of a positive int into its sign bit, which Clang reports
+shift-base:halfulp.c

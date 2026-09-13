@@ -1,0 +1,123 @@
+# Checks that GAOL still builds the ways it did before the CMake build of this
+# fork: with autotools and with meson, against a mathlib installed from
+# Frederic Goualard's archive; and the CMake build finding that installed
+# mathlib (MATHLIB_DIR). The tests are built with each installed GAOL.
+
+name: Autotools and meson
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The flags code using GAOL is compiled with (see CMakeLists.txt)
+  TEST_FLAGS: -std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off
+
+jobs:
+  autotools:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04,     desc: 'Autotools, Ubuntu 24.04 x86_64' }
+          - { os: ubuntu-24.04-arm, desc: 'Autotools, Ubuntu 24.04 arm64' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ cmake make
+      - name: mathlib
+        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+      - name: Configure, build and install
+        run: |
+          # The same date on every file, as in a release archive: make then
+          # does not regenerate configure, the Makefile.in or the lexer
+          find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+          ./configure --prefix="$RUNNER_TEMP/gaol" --with-mathlib-include="$RUNNER_TEMP/mathlib/include" --with-mathlib-lib="$RUNNER_TEMP/mathlib/lib"
+          make -j 4
+          make install
+      - name: Tests built with the installed GAOL
+        # rounding_direction.cpp is left out: configure preserves the rounding
+        # direction after each operation by default (--enable-preserve-rounding),
+        # rather than keeping it upward
+        run: |
+          for test in arithmetic elementary numbers other_functions; do
+            g++ $TEST_FLAGS -ffloat-store -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
+              "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o $test
+            ./$test | tail -3
+          done
+
+  meson:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04, desc: 'Meson, Ubuntu 24.04 x86_64' }
+          - { os: macos-15,     desc: 'Meson, macOS 15 arm64' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q g++ cmake flex bison pipx
+          else
+            brew install flex bison pipx
+            echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
+            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          fi
+          pipx install meson
+          pipx install ninja
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: mathlib
+        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+      - name: Configure, build and install
+        run: |
+          export CPATH="$RUNNER_TEMP/mathlib/include" LIBRARY_PATH="$RUNNER_TEMP/mathlib/lib"
+          meson --version
+          meson setup build-meson -Dwith-mathlib=apmathlib --prefix="$RUNNER_TEMP/gaol" --libdir=lib
+          meson compile -C build-meson
+          meson install -C build-meson
+      - name: Tests built with the installed GAOL
+        # rounding_direction.cpp is left out: the meson build preserves the
+        # rounding direction after each operation by default
+        # (enable-preserve-rounding), rather than keeping it upward
+        run: |
+          for test in arithmetic elementary numbers other_functions; do
+            c++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
+              -L"$RUNNER_TEMP/gaol/lib" -lgaol "$RUNNER_TEMP/mathlib/lib/libultim.a" -Wl,-rpath,"$RUNNER_TEMP/gaol/lib" -o $test
+            ./$test | tail -3
+          done
+
+  cmake-installed-mathlib:
+    name: CMake with an installed mathlib, Ubuntu 24.04 x86_64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: mathlib
+        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_MATHLIB=OFF -DMATHLIB_DIR="$RUNNER_TEMP/mathlib" | tee configure.log
+          grep -q "Found mathlib: $RUNNER_TEMP/mathlib" configure.log
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Tests
+        run: cd build && ctest -j 4 --output-on-failure

@@ -1,0 +1,5 @@
+# Leaks LeakSanitizer does not report in the tests of GAOL
+
+# The nodes of the expressions GAOL's parser reads (gaol_interval_parser.ypp),
+# which it does not free: a few dozen bytes for each interval("...")
+leak:gaol_parse
