@@ -75,7 +75,10 @@ namespace gaol {
             save_fpu_state_crlibm = ::crlibm_init();
 #endif
 #if !GAOL_PRESERVE_ROUNDING
-            reset_fpu_cw(GAOL_FPU_MASK); // 53 bits precision, all exceptions masked, rounding to +oo
+	fesetenv(FE_DFL_ENV);
+	round_upward();
+	// next instruction crashes on MacOS ARM64 platform
+	//reset_fpu_cw(GAOL_FPU_MASK); // 53 bits precision, all exceptions masked, rounding to +oo
 #   if USING_SSE2_INSTRUCTIONS
             round_upward_sse();
 #   endif

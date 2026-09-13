@@ -243,7 +243,8 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
-    GAOL_RND_ENTER();
+    GAOL_RND_PRESERVE();
+	round_upward();
 
     double l = I.left(), r = I.right();
 
@@ -366,7 +367,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 				}
       }
     }
-    GAOL_RND_LEAVE();
+    GAOL_RND_RESTORE();
     return os;
   }
 
@@ -1105,7 +1106,7 @@ interval nth_root(const interval& I, unsigned int n)
   }
 
 
-  interval::operator string() const
+  interval::operator std::string() const
   {
     std::ostringstream output;
     output.precision(interval::precision());
@@ -1143,12 +1144,13 @@ interval nth_root(const interval& I, unsigned int n)
       return std::numeric_limits<double>::max();
     }
 
-    unsigned short int _save_state=get_fpu_cw(); round_nearest();
+    GAOL_RND_PRESERVE();
+    round_nearest();
     double middle = 0.5*(left()+right());
 	 if (std::isinf(middle)) {
 		middle = 0.5*left() + 0.5*right();
 	 }
-    GAOL_RND_LEAVE();
+    GAOL_RND_RESTORE();
     return middle;
   }
 
