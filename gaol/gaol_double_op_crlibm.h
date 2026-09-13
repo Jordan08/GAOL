@@ -348,78 +348,21 @@ namespace gaol {
 	return f;
   }
 
-  INLINE double tanh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(tanh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double tanh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(tanh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-
-  INLINE double acosh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(acosh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double acosh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(acosh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double asinh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(asinh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double asinh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(asinh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double atanh_dn(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = previous_float(atanh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
-
-  INLINE double atanh_up(double x)
-  {
-	  GAOL_RND_PRESERVE();
-	  round_nearest();
-	  double f = next_float(atanh(x)); // From libm, not crlibm
-	  GAOL_RND_RESTORE();
-	  return f;
-  }
+  /*
+    tanh, acosh, asinh and atanh, which crlibm does not have, are bounded with
+    exp_dn(), exp_up(), log_dn() and log_up() in interval arithmetic, in
+    gaol_interval.cpp, rather than taken from the libm of the system and moved
+    one float outward, which does not always enclose their exact values (fork
+    of GAOL, see gaol_double_op_apmathlib.h).
+  */
+  extern __GAOL_PUBLIC__ double tanh_dn(double x);
+  extern __GAOL_PUBLIC__ double tanh_up(double x);
+  extern __GAOL_PUBLIC__ double acosh_dn(double x);
+  extern __GAOL_PUBLIC__ double acosh_up(double x);
+  extern __GAOL_PUBLIC__ double asinh_dn(double x);
+  extern __GAOL_PUBLIC__ double asinh_up(double x);
+  extern __GAOL_PUBLIC__ double atanh_dn(double x);
+  extern __GAOL_PUBLIC__ double atanh_up(double x);
 
 
 

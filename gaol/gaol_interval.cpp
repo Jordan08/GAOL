@@ -747,6 +747,302 @@ interval nth_root(const interval& I, unsigned int n)
     return interval::emptyset();
   }
 
+#if GAOL_USING_APMATHLIB || GAOL_USING_CRLIBM
+  /*
+    Hyperbolic functions (fork of GAOL)
+
+    Bounded without the libm of the system, whose values are not always within
+    one float of the exact ones (see gaol_double_op_apmathlib.h), with
+    exp_dn(), exp_up(), log_dn() and log_up(), which the mathematical library
+    bounds, in interval arithmetic:
+    - sinh, cosh and tanh with their Taylor series below 1, the terms after the
+      tenth being bounded, and with the exponential from 1 on;
+    - asinh, acosh and atanh as the doubles nearest the value of the libm that
+      the enclosures of sinh, cosh - 1 and tanh prove to be bounds, found
+      double by double, the libm giving the start only; when it is more than 16
+      doubles away, bounds computed with the logarithm are taken, which are
+      looser near 0.
+    Near 0 and for large arguments, the first terms of the series and of the
+    asymptotic expansions bound them within a float.
+  */
+  namespace {
+
+    const double gaol_two_pow_minus_26 = 1.4901161193847656e-08; // 2^-26
+    const double gaol_two_pow_30 = 1073741824.0;
+
+    interval gaol_log2()
+    {
+      return interval(std::ldexp(6243314768165359.0, -53), std::ldexp(6243314768165360.0, -53));
+    }
+
+    double gaol_next(double x)
+    {
+      GAOL_RND_PRESERVE();
+      round_nearest();
+      const double y = next_float(x);
+      GAOL_RND_RESTORE();
+      return y;
+    }
+
+    double gaol_previous(double x)
+    {
+      GAOL_RND_PRESERVE();
+      round_nearest();
+      const double y = previous_float(x);
+      GAOL_RND_RESTORE();
+      return y;
+    }
+
+    // e^x/2, for x >= 20, computed as e^(x/2) (e^(x/2)/2) where e^x overflows
+    // before e^x/2 does
+    interval gaol_half_exp(double x)
+    {
+      if (x < 709.0) {
+        return interval(exp_dn(x), exp_up(x))/2.0;
+      }
+      const interval H(exp_dn(x/2.0), exp_up(x/2.0));
+      return H*(H/2.0);
+    }
+
+    interval gaol_sinh(double x)
+    {
+      if (x < 0.0) {
+        return -gaol_sinh(-x);
+      }
+      if (x == 0.0 || x == GAOL_INFINITY) {
+        return interval(x);
+      }
+      const interval X(x);
+      if (x < gaol_two_pow_minus_26) {
+        // x <= sinh(x) <= x + x^3/5
+        return interval(x, (X + X*sqr(X)/5.0).right());
+      }
+      if (x < 1.0) {
+        // x + x^3/3! (1 + x^2/(4.5) (1 + x^2/(6.7) (... (1 + x^2/(20.21) T)))),
+        // T in [1, 1.01] bounding the terms after
+        const interval X2 = sqr(X);
+        interval t(1.0, 1.01);
+        for (int k = 10; k >= 2; --k) {
+          t = 1.0 + X2*t/((2.0*k)*(2.0*k + 1.0));
+        }
+        return X + X*X2*t/6.0;
+      }
+      if (x < 20.0) {
+        // (e^x - e^-x)/2
+        const interval E(exp_dn(x), exp_up(x));
+        return (E - 1.0/E)/2.0;
+      }
+      // e^x/2 - e^-x/2, e^-x/2 being less than half a float of e^x/2
+      const interval E = gaol_half_exp(x);
+      return interval(gaol_previous(E.left()), E.right());
+    }
+
+    interval gaol_cosh(double x)
+    {
+      x = std::fabs(x);
+      if (x == 0.0) {
+        return interval(1.0);
+      }
+      if (x == GAOL_INFINITY) {
+        return interval(x);
+      }
+      if (x < gaol_two_pow_minus_26) {
+        // 1 <= cosh(x) <= 1 + x^2 < 1 + 2^-52
+        return interval(1.0, 1.0 + std::ldexp(1.0, -52));
+      }
+      const interval X(x);
+      if (x < 1.0) {
+        // 1 + x^2/2! (1 + x^2/(3.4) (... (1 + x^2/(19.20) T))), T in [1, 1.01]
+        // bounding the terms after
+        const interval X2 = sqr(X);
+        interval t(1.0, 1.01);
+        for (int k = 10; k >= 2; --k) {
+          t = 1.0 + X2*t/((2.0*k - 1.0)*(2.0*k));
+        }
+        return 1.0 + X2*t/2.0;
+      }
+      if (x < 20.0) {
+        // (e^x + e^-x)/2
+        const interval E(exp_dn(x), exp_up(x));
+        return (E + 1.0/E)/2.0;
+      }
+      // e^x/2 + e^-x/2, e^-x/2 being less than half a float of e^x/2
+      const interval E = gaol_half_exp(x);
+      return interval(E.left(), gaol_next(E.right()));
+    }
+
+    interval gaol_tanh(double x)
+    {
+      if (x < 0.0) {
+        return -gaol_tanh(-x);
+      }
+      if (x == 0.0) {
+        return interval(x);
+      }
+      if (x == GAOL_INFINITY) {
+        return interval(1.0);
+      }
+      const interval X(x);
+      if (x < gaol_two_pow_minus_26) {
+        // x - x^3/3 <= tanh(x) <= x
+        return interval((X - X*sqr(X)/3.0).left(), x);
+      }
+      if (x < 1.0) {
+        return gaol_sinh(x)/gaol_cosh(x);
+      }
+      // 1 - 2/(e^2x + 1), e^2x overflowing into [max, +oo] from 354.9 on
+      const interval E2(exp_dn(2.0*x), exp_up(2.0*x));
+      return 1.0 - 2.0/(E2 + 1.0);
+    }
+
+    // cosh(y) - 1 = 2 sinh(y/2)^2
+    interval gaol_cosh_minus_one(double y)
+    {
+      return 2.0*sqr(gaol_sinh(y/2.0));
+    }
+
+    typedef interval (*gaol_enclosure)(double);
+
+    // A bound y of the preimage of t by an increasing function whose enclosure
+    // is g: the greatest double whose image lies below t, or the least whose
+    // image lies above t when upper is true, found from y0 within 16 doubles.
+    // Returns false when not found.
+    bool gaol_preimage(gaol_enclosure g, double t, double y0, bool upper, double& y)
+    {
+      y = y0;
+      for (int i = 0; !(upper ? g(y).left() >= t : g(y).right() <= t); ++i) {
+        if (i == 16) {
+          return false;
+        }
+        y = upper ? gaol_next(y) : gaol_previous(y);
+      }
+      for (int i = 0; i < 16; ++i) {
+        const double z = upper ? gaol_previous(y) : gaol_next(y);
+        if (!(upper ? g(z).left() >= t : g(z).right() <= t)) {
+          break;
+        }
+        y = z;
+      }
+      return true;
+    }
+
+    // The value of the libm, rounded to nearest, to start from
+    double gaol_libm(double (*f)(double), double x)
+    {
+      GAOL_RND_PRESERVE();
+      round_nearest();
+      const double y = f(x);
+      GAOL_RND_RESTORE();
+      return y;
+    }
+
+    double gaol_libm_asinh(double x) { return ::asinh(x); }
+    double gaol_libm_acosh(double x) { return ::acosh(x); }
+    double gaol_libm_atanh(double x) { return ::atanh(x); }
+
+    // The lower bound of asinh(x), or the upper one when upper is true
+    double gaol_asinh(double x, bool upper)
+    {
+      if (x < 0.0) {
+        return -gaol_asinh(-x, !upper);
+      }
+      if (x == 0.0 || x == GAOL_INFINITY) {
+        return x;
+      }
+      const interval X(x);
+      if (x < gaol_two_pow_minus_26) {
+        // x - x^3/6 <= asinh(x) <= x
+        return upper ? x : (X - X*sqr(X)/6.0).left();
+      }
+      if (x > gaol_two_pow_30) {
+        // log(2x) <= asinh(x) <= log(2x) + 1/(4x^2), 1/(4x^2) < 2^-62 being less
+        // than a float of log(2x) > 21
+        const interval L = interval(log_dn(x), log_up(x)) + gaol_log2();
+        return upper ? gaol_next(L.right()) : L.left();
+      }
+      double y;
+      if (gaol_preimage(gaol_sinh, x, gaol_libm(gaol_libm_asinh, x), upper, y)) {
+        return y;
+      }
+      // log(x + sqrt(x^2 + 1))
+      const interval A = X + sqrt(sqr(X) + 1.0);
+      return upper ? log_up(A.right()) : log_dn(A.left());
+    }
+
+    // The lower bound of acosh(x), or the upper one when upper is true, for
+    // x >= 1
+    double gaol_acosh(double x, bool upper)
+    {
+      if (x <= 1.0) {
+        return 0.0;
+      }
+      if (x == GAOL_INFINITY) {
+        return x;
+      }
+      if (x > gaol_two_pow_30) {
+        // log(2x) - 1/x^2 <= acosh(x) <= log(2x), 1/x^2 < 2^-60 being less than a
+        // float of log(2x) > 21
+        const interval L = interval(log_dn(x), log_up(x)) + gaol_log2();
+        return upper ? L.right() : gaol_previous(L.left());
+      }
+      // Checked with cosh - 1 against x - 1, which is exact below 2, rather than
+      // with cosh against x, whose floats are too coarse near 1
+      const interval X(x), Xm1 = X - 1.0;
+      double y;
+      if (gaol_preimage(gaol_cosh_minus_one, upper ? Xm1.right() : Xm1.left(), gaol_libm(gaol_libm_acosh, x), upper, y)) {
+        return y;
+      }
+      // log(x + sqrt((x - 1)(x + 1)))
+      const interval A = X + sqrt(Xm1*(X + 1.0));
+      return upper ? log_up(A.right()) : log_dn(A.left());
+    }
+
+    // The lower bound of atanh(x), or the upper one when upper is true, for
+    // -1 <= x <= 1
+    double gaol_atanh(double x, bool upper)
+    {
+      if (x < 0.0) {
+        return -gaol_atanh(-x, !upper);
+      }
+      if (x == 0.0) {
+        return x;
+      }
+      if (x >= 1.0) {
+        return GAOL_INFINITY;
+      }
+      const interval X(x);
+      if (x < gaol_two_pow_minus_26) {
+        // x <= atanh(x) <= x + x^3/2
+        return upper ? (X + X*sqr(X)/2.0).right() : x;
+      }
+      double y;
+      if (x < 0.5 && gaol_preimage(gaol_tanh, x, gaol_libm(gaol_libm_atanh, x), upper, y)) {
+        return y;
+      }
+      // log((1 + x)/(1 - x))/2, 1 - x being exact from 1/2 on, where it is
+      // tighter than checking with tanh, which is flat
+      const interval Q = (1.0 + X)/(1.0 - X);
+      return upper ? log_up(Q.right())/2.0 : log_dn(Q.left())/2.0;
+    }
+
+  } // namespace
+
+#  if GAOL_USING_APMATHLIB
+  double cosh_dn(double x) { return gaol_cosh(x).left(); }
+  double cosh_up(double x) { return gaol_cosh(x).right(); }
+  double sinh_dn(double x) { return gaol_sinh(x).left(); }
+  double sinh_up(double x) { return gaol_sinh(x).right(); }
+#  endif
+  double tanh_dn(double x) { return gaol_tanh(x).left(); }
+  double tanh_up(double x) { return gaol_tanh(x).right(); }
+  double acosh_dn(double x) { return gaol_acosh(x, false); }
+  double acosh_up(double x) { return gaol_acosh(x, true); }
+  double asinh_dn(double x) { return gaol_asinh(x, false); }
+  double asinh_up(double x) { return gaol_asinh(x, true); }
+  double atanh_dn(double x) { return gaol_atanh(x, false); }
+  double atanh_up(double x) { return gaol_atanh(x, true); }
+#endif // GAOL_USING_APMATHLIB || GAOL_USING_CRLIBM
+
   interval cosh(const interval& I)
   {
 	if (I.is_empty()) {
