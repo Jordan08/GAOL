@@ -111,6 +111,7 @@ round_nearest(void)
   fesetround(FE_TONEAREST);
 }
 
+#ifdef CTRLWORD
 INLINE unsigned short int get_fpu_cw()
 {
   fenv_t tmp;
@@ -125,6 +126,21 @@ INLINE void reset_fpu_cw(unsigned short int st)
   CTRLWORD(tmp) = st;
   fesetenv(&tmp);
 }
+#else
+/* Where the name of the control word in fenv_t is not known (Visual C++,
+   MinGW, Linux on 32-bit ARM, the BSDs...), the rounding direction, which is
+   all GAOL saves and restores with these functions, is saved and restored
+   instead, with the functions of <fenv.h>. */
+INLINE unsigned short int get_fpu_cw()
+{
+  return (unsigned short int)fegetround();
+}
+
+INLINE void reset_fpu_cw(unsigned short int st)
+{
+  fesetround(st);
+}
+#endif
 
   /*!
     \brief Returns the opposite of the argument

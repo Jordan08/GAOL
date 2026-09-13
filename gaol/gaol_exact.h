@@ -52,4 +52,12 @@ void clear_inexact(void);
 #endif
    
     
+/* For Visual C++, the <fenv.h> version of get_inexact() and clear_inexact(),
+   defined in the lexer that uses them: gaol_exact.c would include their 32-bit
+   x86 assembly version, and the CMake build does not compile it for Visual C++.
+   As in the fork of GAOL by Fabrice Le Bars. */
+#if defined (_MSC_VER) && HAVE_FENV_H
+#  include "gaol/sysdeps/gaol_exact_c99.h"
+#endif
+
 #endif /* __gaol_exact_h__ */

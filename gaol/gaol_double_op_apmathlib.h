@@ -39,6 +39,9 @@
 #include "gaol/gaol_assert.h"
 #include "gaol/gaol_common.h"
 
+/* Unless already defined, as the configuration does for a static mathlib with
+   Visual C++, from the fork of GAOL by Fabrice Le Bars */
+#ifndef _MATHLIB_DLL_
 #if defined (_MSC_VER)
 # define _MATHLIB_DLL_ extern "C" __declspec(dllimport)
 #elif defined (__GNUC__)
@@ -46,6 +49,7 @@
 #else
 # define _MATHLIB_DLL_ extern "C"
 #endif
+#endif // _MATHLIB_DLL_
 
 _MATHLIB_DLL_ unsigned short Init_Lib();
 _MATHLIB_DLL_ void Exit_Lib(unsigned short);

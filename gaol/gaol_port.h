@@ -51,10 +51,14 @@
 
 // Allocation of 'size' bytes on 'boundary' bytes.
 // NOTE: MEMALIGN() must return null value if no allocation error
-#if defined (__MINGW32__)
+#if defined (__MINGW32__) || defined (_MSC_VER)
+/* malloc(), whose memory free() releases, as GAOL releases what MEMALIGN()
+   allocates (gaol_allocator.h, gaol_interval_sse.cpp): the memory of
+   _mm_malloc() needs _mm_free(). GAOL's SSE2 intervals, which need memory
+   aligned on 16 bytes, are not used on Windows. As in the fork of GAOL by
+   Fabrice Le Bars (https://github.com/lebarsfa/GAOL). */
 #  include <stdlib.h>
-#  include <malloc.h>
-#  define MEMALIGN(buf,boundary,size) (!(buf=_mm_malloc(size,boundary)))
+#  define MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))
 #elif defined(IX86_LINUX) || defined(AARCH64_LINUX)
 #  undef _XOPEN_SOURCE
 #  define _XOPEN_SOURCE 600
@@ -64,7 +68,9 @@
 // According to man page, Intel/MacOSX's malloc aligns correctly for SSE-related types
 #  define MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))
 #else
-#  error "Don't know how to allocate memory aligned on a boundary"
+/* Any other POSIX system, as Linux */
+#  include <stdlib.h>
+#  define MEMALIGN(buf,boundary,size) posix_memalign(&buf,boundary,size)
 #endif
 
 
