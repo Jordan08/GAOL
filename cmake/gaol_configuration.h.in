@@ -1,0 +1,153 @@
+/* gaol/gaol_configuration.h -- written by CMake from cmake/gaol_configuration.h.in.
+
+   The header GAOL's configure script writes, for every compiler: for Visual
+   C++ and MinGW, gaol/gaol_config.h and gaol/gaol_version.h include
+   gaol/gaol_config_msvc.h, gaol/gaol_config_mingw.h and
+   gaol/gaol_version_msvc.h, which include this one.
+
+   Origin: the version of gaol/gaol_configuration.h.in with which IBEX builds
+   GAOL with CMake (https://github.com/ibex-team/ibex-lib,
+   interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/, Cyril Bouvier and Gilles
+   Chabert), itself generated from GAOL's configure.ac. Only the macros GAOL's
+   sources read are kept, and those describing the target are set by the
+   preprocessor below rather than by the build system. */
+
+#ifndef __gaol_configuration_h__
+#define __gaol_configuration_h__
+
+/* Version for gaol */
+#define GAOL_MAJOR_VERSION @PROJECT_VERSION_MAJOR@
+#define GAOL_MINOR_VERSION @PROJECT_VERSION_MINOR@
+#define GAOL_MICRO_VERSION @PROJECT_VERSION_PATCH@
+#define GAOL_VERSION "@PROJECT_VERSION@"
+
+
+/* ---------------------------------------------------------------------------
+   Options: those IBEX configures GAOL with (--disable-preserve-rounding
+   --enable-optimize --disable-verbose-mode, the defaults otherwise)
+   --------------------------------------------------------------------------- */
+
+/* Define this to 1 if using the IBM APMathlib library */
+#define GAOL_USING_APMATHLIB 1
+
+/* Define this if relation symbols should stand for "certainly relations" */
+#define GAOL_CERTAINLY_RELATIONS 1
+
+/* Define this to 1 to allow raising exceptions instead of simply aborting */
+#define GAOL_EXCEPTIONS_ENABLED 1
+
+/* define this to 1 if rounding direction should be preserved
+
+   Left undefined: GAOL then sets the rounding direction to +oo once, at its
+   initialisation, and leaves it so after its operations rather than restoring
+   the one it found. Code using GAOL calls gaol::round_upward() after the few
+   operations that change it, as Codac and IBEX do. */
+/* #undef GAOL_PRESERVE_ROUNDING */
+
+/* define this to 1 if you want to allow ASM support
+
+   Left undefined, as gaol/meson.build does by default: GAOL's assembly only
+   compiles for 32-bit x86, and has C equivalents. */
+/* #undef GAOL_USING_ASM */
+
+
+/* ---------------------------------------------------------------------------
+   What the compiler provides
+   --------------------------------------------------------------------------- */
+
+/* Define to 1 if you have the <fenv.h> header file. */
+#cmakedefine HAVE_FENV_H 1
+
+/* Define to 1 if you have the <limits> header file. */
+#define HAVE_LIMITS 1
+
+/* Define to 1 if you have the <cassert> header file. */
+#define HAVE_CASSERT 1
+
+/* Define to 1 if you have the `clock' function. */
+#define HAVE_CLOCK 1
+
+/* Define to 1 if you have the `getrusage' function. */
+#cmakedefine HAVE_GETRUSAGE 1
+
+/* Define this to 1 if function getrusage() is declared in sys/resource.h */
+#cmakedefine GETRUSAGE_IN_HEADER 1
+
+/* Define this to 1 if the compiler supports the "-frounding-math" option */
+#cmakedefine HAVE_ROUNDING_MATH_OPTION 1
+
+/* Define this to 1 if SSE2 instructions are to be used */
+#cmakedefine USING_SSE2_INSTRUCTIONS 1
+
+/* USING_SSE3_INSTRUCTIONS is left undefined: see CMakeLists.txt. */
+
+/* HAVE_FINITE is left undefined: gaol::is_finite() then uses comparisons, as
+   exact as finite(), which Visual C++ does not provide and recent C++ libraries
+   do not always declare. */
+
+/* The sizes of `int', `long' and `long long int', from <limits.h> rather than
+   measured by the build system, so that they follow the target of the
+   compiler. */
+#include <limits.h>
+#if UINT_MAX == 0xFFFFFFFFu
+#  define SIZEOF_INT 4
+#elif UINT_MAX == 0xFFFFFFFFFFFFFFFFu
+#  define SIZEOF_INT 8
+#endif
+#if ULONG_MAX == 0xFFFFFFFFul
+#  define SIZEOF_LONG 4
+#elif ULONG_MAX == 0xFFFFFFFFFFFFFFFFul
+#  define SIZEOF_LONG 8
+#endif
+#if ULLONG_MAX == 0xFFFFFFFFFFFFFFFFull
+#  define SIZEOF_LONG_LONG_INT 8
+#endif
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first. The test on __BYTE_ORDER__, which GCC and Clang
+   define, is the one of the fork of mathlib by Fabrice Le Bars
+   (https://github.com/lebarsfa/mathlib, src/mathlib_endian.h); Visual C++ only
+   targets little-endian processors. */
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#  define WORDS_BIGENDIAN 1
+#endif
+
+
+/* ---------------------------------------------------------------------------
+   The target, with the names configure.ac gives it. GAOL reads them to name
+   the control word in fenv_t (gaol/gaol_fpu_fenv.h) and to allocate aligned
+   memory (gaol/gaol_port.h); both have a fallback for the other systems.
+   --------------------------------------------------------------------------- */
+
+#if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
+/* Define this if your system is a Linux-based ix86 or compatible */
+#  define IX86_LINUX 1
+#elif defined(__linux__) && defined(__aarch64__)
+/* Define this if your system is an AARCH64-based computer under Linux */
+#  define AARCH64_LINUX 1
+#elif defined(__APPLE__) && (defined(__i386__) || defined(__x86_64__))
+/* Define this if your system is a ix86 running MacOSX */
+#  define IX86_MACOSX 1
+#elif defined(__APPLE__) && (defined(__aarch64__) || defined(__arm__))
+/* Define this if your system is an ARM running MacOSX */
+#  define ARM_MACOSX 1
+#endif
+
+
+/* ---------------------------------------------------------------------------
+   Visual C++, as in the former gaol/gaol_config_msvc.h where it still applies
+   --------------------------------------------------------------------------- */
+
+#if defined(_MSC_VER)
+/* nextafter() and isnan() are standard since Visual Studio 2013 */
+#  define HAVE_NEXTAFTER 1
+#  define HAVE_ISNAN 1
+#  ifdef __cplusplus
+/* mathlib is a static library: GAOL declares its functions without
+   __declspec(dllimport) (see the #ifndef around the definition of
+   _MATHLIB_DLL_ in gaol/gaol_double_op_apmathlib.h). */
+#    define _MATHLIB_DLL_ extern "C"
+#  endif
+#endif
+
+#endif /* __gaol_configuration_h__ */
