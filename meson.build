@@ -209,6 +209,10 @@ foreach f : check_functions
   endif
 endforeach
 
+# As configure.ac does: gaol_profile.cpp declares getrusage() itself when
+# sys/resource.h does not, which conflicts with the declaration of glibc
+conf_data.set10('GETRUSAGE_IN_HEADER', cpp_comp.has_header_symbol('sys/resource.h', 'getrusage'))
+
 conf_data.set('HAVE__BOOL', cpp_comp.has_type('_Bool'))
 conf_data.set('SIZEOF_INT', cpp_comp.sizeof('int'))
 conf_data.set('SIZEOF_LONG', cpp_comp.sizeof('long'))

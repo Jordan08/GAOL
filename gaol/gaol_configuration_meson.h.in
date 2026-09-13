@@ -90,7 +90,7 @@
 #define GAOL_VERSION "@version@"
 
 /* Define this to 1 if function getrusage() is declared in sys/resource.h */
-#undef GETRUSAGE_IN_HEADER
+#mesondefine GETRUSAGE_IN_HEADER
 
 /* Define to 1 if you have the <cassert> header file. */
 #mesondefine HAVE_CASSERT
