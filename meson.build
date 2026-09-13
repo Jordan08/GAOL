@@ -235,7 +235,9 @@ if cpp_comp.has_argument('-msse2')
   add_global_arguments(['-msse2'], language: 'c')
 endif
 
-if cpp_comp.has_argument('-msse3')
+# Only with enable-simd, which builds and installs gaol_interval2f.h, as
+# configure.ac does: gaol/gaol includes it when USING_SSE3_INSTRUCTIONS is set
+if simd and cpp_comp.has_argument('-msse3')
   conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
   add_global_arguments(['-msse3'], language: 'c')
   add_global_arguments(['-msse3'], language: 'c')
