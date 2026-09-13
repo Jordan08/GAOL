@@ -142,11 +142,19 @@ namespace
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
       // pow(a,b) = exp(b log(a)): the relative width of log(a), a few 2^-52,
       // is multiplied by b log(a) in exp()
-      RoundingToNearest nearest;
-      const double relative = std::ldexp(std::max(1.0, std::fabs(v.b*std::log(v.a))), -49);
-      expect_within(name, "2^-49 max(1,|b log(a)|) relatively", r, v.below, v.above,
-                    relative*std::max(std::fabs(v.below), std::fabs(v.above)), [&] {
+      double relative;
+      {
+        RoundingToNearest nearest;
+        relative = std::ldexp(std::max(1.0, std::fabs(v.b*std::log(v.a))), -49);
+      }
+      const double slack = relative*std::max(std::fabs(v.below), std::fabs(v.above));
+      expect_within(name, "2^-49 max(1,|b log(a)|) relatively", r, v.below, v.above, slack, [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
+      });
+      // The same with the exponent as a double
+      const interval rd = evaluate("pow([a],b)", [&] { return pow(interval(v.a), v.b); }, arguments);
+      expect_within("pow([a],b)", "2^-49 max(1,|b log(a)|) relatively", rd, v.below, v.above, slack, [&] {
+        return arguments() + " = " + hex(rd) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       });
     }
   }
@@ -255,12 +263,96 @@ namespace
   }
 }
 
+namespace
+{
+  // pow() with a floating-point exponent, and with negative bases, after the
+  // tests of Codac for the fix ported to GAOL
+  // (tests/core/domains/interval/codac2_tests_Interval_operations.cpp)
+  void powers()
+  {
+    struct Close
+    {
+      const char *name;
+      interval (*f)();
+      double below, above;
+    };
+    const Close close[] = {
+      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
+      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
+      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
+      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
+      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
+      { "pow([0,4],0.5)", [] { return pow(interval(0., 4.), 0.5); }, 0., 2. },
+      { "pow([-4,9],0.5), whose negative part is out of the domain", [] { return pow(interval(-4., 9.), 0.5); }, 0., 3. },
+      { "pow([-2,3],[1,2]), whose negative part is out of the domain", [] { return pow(interval(-2., 3.), interval(1., 2.)); }, 0., 9. },
+      { "pow([-10,10],-2.0)", [] { return pow(interval(-10., 10.), -2.0); }, previous_double(0.01), inf },
+    };
+    for (const Close& c : close) {
+      const interval r = evaluate(c.name, c.f, [] { return std::string(); });
+      expect_close(c.name, r, c.below, c.above, [&] { return hex(r); });
+    }
+
+    struct Equal
+    {
+      const char *name;
+      interval (*f)();
+      double lo, hi;
+    };
+    const Equal equal[] = {
+      { "pow([-2,3],3.0), with a negative base and an integer exponent", [] { return pow(interval(-2., 3.), 3.0); }, -8., 27. },
+      { "pow([-2],2.0)", [] { return pow(interval(-2.), 2.0); }, 4., 4. },
+      { "pow([2,3],4.0)", [] { return pow(interval(2., 3.), 4.0); }, 16., 81. },
+      { "pow([4],0.0)", [] { return pow(interval(4.), 0.0); }, 1., 1. },
+      { "pow([-2,3],[3]), with a negative base and an integer exponent", [] { return pow(interval(-2., 3.), interval(3.)); }, -8., 27. },
+      { "pow([-2,3],[2])", [] { return pow(interval(-2., 3.), interval(2.)); }, 0., 9. },
+    };
+    for (const Equal& e : equal) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": exact", r.left() == e.lo && r.right() == e.hi, [&] { return hex(r); });
+    }
+
+    const interval x(2., 3.);
+    const interval with_double = pow(x, 1.5), with_interval = pow(x, interval(1.5));
+    check("pow([2,3],1.5) = pow([2,3],[1.5])", with_double.left() == with_interval.left() && with_double.right() == with_interval.right(),
+          [&] { return hex(with_double) + " and " + hex(with_interval); });
+
+    struct Empty
+    {
+      const char *name;
+      interval (*f)();
+    };
+    const Empty empty[] = {
+      { "pow([-4,-1],0.5)", [] { return pow(interval(-4., -1.), 0.5); } },
+      { "pow([-4,-1],[0.5])", [] { return pow(interval(-4., -1.), interval(0.5)); } },
+      { "pow([4],+oo)", [] { return pow(interval(4.), inf); } },
+      { "pow([4],-oo)", [] { return pow(interval(4.), -inf); } },
+      { "pow([4],NaN)", [] { return pow(interval(4.), std::numeric_limits<double>::quiet_NaN()); } },
+      { "pow(empty,1.5)", [] { return pow(interval::emptyset(), 1.5); } },
+      { "pow([4],empty)", [] { return pow(interval(4.), interval::emptyset()); } },
+    };
+    for (const Empty& e : empty) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": empty", r.is_empty(), [&] { return hex(r); });
+    }
+
+    // Integer exponents beyond the ints, with negative bases: (-2)^(10^10) is
+    // beyond the largest double, and (-1)^(2^32+1) is -1
+    const interval even = pow(interval(-2., -1.), interval(1e10));
+    check("pow([-2,-1],[1e10]): encloses the values beyond the largest double", !even.is_empty() && even.right() == inf,
+          [&] { return hex(even); });
+    const interval odd = pow(interval(-1., -0.5), interval(4294967297.0));
+    check("pow([-1,-0.5],[2^32+1]): encloses -1 and the values near 0", !odd.is_empty() && odd.left() <= -1. && odd.right() >= 0.,
+          [&] { return hex(odd); });
+  }
+}
+
 int main()
 {
   gaol::init();
   at_doubles();
   at_intervals();
   at_known_intervals();
+  powers();
   const int status = summary();
   gaol::cleanup();
   return status;

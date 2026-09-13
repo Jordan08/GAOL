@@ -100,6 +100,8 @@ int main()
     { "pow(x,int)", [](const interval&, const interval& y) { (void)pow(y, 3); } },
     { "pow(x,-int)", [](const interval&, const interval& y) { (void)pow(y, -3); } },
     { "pow(x,interval)", [](const interval& x, const interval& y) { (void)pow(y, x); } },
+    { "pow(x,double)", [](const interval&, const interval& y) { (void)pow(y, 2.5); } },
+    { "pow(x,interval) with a negative base", [](const interval&, const interval&) { (void)pow(interval(-4., 9.), interval(0.5)); } },
     { "sqrt", [](const interval& x, const interval&) { (void)sqrt(x); } },
     { "nth_root", [](const interval&, const interval& y) { (void)nth_root(y, 3); } },
     { "exp", [](const interval& x, const interval&) { (void)exp(x); } },
