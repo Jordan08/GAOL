@@ -69,6 +69,45 @@ set(CMAKE_C_STANDARD 99)
 # mathlib, and to the targets linking gaol::gaol, GAOL's headers being full of
 # inline interval operations.
 
+# Clang does not honour the rounding direction on 32-bit ARM processors: it
+# does not support -frounding-math there ("overriding currently unsupported
+# rounding mode on this target") and optimizes floating-point operations as if
+# they were always rounded to nearest. Built by Clang 21 for 32-bit ARM, 4556 of
+# 16000 random products, squares and cubes computed by GAOL did not enclose
+# their exact value; built by GCC 15, none. GAOL is not built with it there.
+check_cxx_source_compiles("
+  #if !(defined(__arm__) || defined(_M_ARM)) || defined(__aarch64__)
+  #error not a 32-bit ARM target
+  #endif
+  int main() { return 0; }"
+  GAOL_TARGET_IS_ARM32)
+if(GAOL_TARGET_IS_ARM32)
+  set(_clang_compilers "")
+  foreach(lang C CXX)
+    if(CMAKE_${lang}_COMPILER_ID MATCHES "Clang")
+      list(APPEND _clang_compilers "${CMAKE_${lang}_COMPILER} (${CMAKE_${lang}_COMPILER_ID} ${CMAKE_${lang}_COMPILER_VERSION})")
+    endif()
+  endforeach()
+  if(_clang_compilers)
+    string(REPLACE ";" "\n  " _clang_compilers "${_clang_compilers}")
+    message(FATAL_ERROR
+      "GAOL cannot be built with Clang for a 32-bit ARM processor, and this build uses\n"
+      "  ${_clang_compilers}\n"
+      "Clang does not honour the rounding direction on 32-bit ARM processors: it does not support "
+      "-frounding-math there (\"overriding currently unsupported rounding mode on this target\") and "
+      "optimizes floating-point operations as if they were always rounded to nearest. GAOL computes "
+      "with the rounding direction set upward, so that the intervals it computes would not enclose the "
+      "values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not).\n"
+      "Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors, for "
+      "instance:\n"
+      "  cmake -S . -B build -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++\n"
+      "on a 32-bit ARM system (package g++ of Debian, Ubuntu or Raspberry Pi OS), or\n"
+      "  cmake -S . -B build -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++\n"
+      "to cross-compile (package g++-arm-linux-gnueabihf of Debian and Ubuntu), in a new build "
+      "directory.")
+  endif()
+endif()
+
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
   list(APPEND GAOL_INTERVAL_FLAGS /fp:strict)
