@@ -790,6 +790,11 @@ char *yytext;
 
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <vector>
+#include <stdint.h>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_expression.h"
@@ -810,8 +815,200 @@ using namespace gaol;
 
 
 extern int gaol_error(char *s ...);
-#line 814 "lex.gaol_.c"
-#line 815 "lex.gaol_.c"
+
+/*
+  Numbers are read exactly, whatever the C library. A number no double is
+  exactly is represented by the tightest interval of doubles enclosing it.
+  GAOL read it with strtod() rounding downward then upward, and told it from a
+  double by the inexact flag strtod() raised; it read integers rounded to
+  nearest. Not every C library rounds strtod() in the rounding direction and
+  raises the flag: the C runtime of Windows, with Visual C++ or MinGW, and musl
+  on 64-bit ARM processors round to nearest whatever the direction and raise no
+  flag, so that "0.1" was read as the double nearest to 1/10, which does not
+  enclose it. strtod() now gives a double near the number, which the number is
+  compared with exactly, as integers, to find the doubles on each side of it.
+*/
+namespace {
+
+  // A natural number, as digits in base 2^32, least significant first, with no
+  // leading zero digit (0 has no digit)
+  typedef std::vector<uint32_t> gaol_natural;
+
+  // n = n*m + a, with m > 0
+  void gaol_natural_mul_add(gaol_natural& n, uint32_t m, uint32_t a)
+  {
+    uint64_t carry = a;
+    for (std::size_t i = 0; i < n.size(); ++i) {
+      const uint64_t t = static_cast<uint64_t>(n[i])*m + carry;
+      n[i] = static_cast<uint32_t>(t);
+      carry = t >> 32;
+    }
+    if (carry != 0) {
+      n.push_back(static_cast<uint32_t>(carry));
+    }
+  }
+
+  // n = n*5^e, with e >= 0
+  void gaol_natural_mul_pow5(gaol_natural& n, long e)
+  {
+    for (; e >= 13; e -= 13) {
+      gaol_natural_mul_add(n, 1220703125u, 0); // 5^13
+    }
+    uint32_t m = 1;
+    for (; e > 0; --e) {
+      m *= 5;
+    }
+    gaol_natural_mul_add(n, m, 0);
+  }
+
+  // n = n*2^e, with e >= 0
+  void gaol_natural_shift_left(gaol_natural& n, long e)
+  {
+    if (n.empty()) {
+      return;
+    }
+    const unsigned int bits = static_cast<unsigned int>(e % 32);
+    if (bits != 0) {
+      uint32_t carry = 0;
+      for (std::size_t i = 0; i < n.size(); ++i) {
+        const uint32_t d = n[i];
+        n[i] = (d << bits) | carry;
+        carry = d >> (32 - bits);
+      }
+      if (carry != 0) {
+        n.push_back(carry);
+      }
+    }
+    n.insert(n.begin(), static_cast<std::size_t>(e / 32), 0u);
+  }
+
+  // The sign of a - b
+  int gaol_natural_compare(const gaol_natural& a, const gaol_natural& b)
+  {
+    if (a.size() != b.size()) {
+      return (a.size() < b.size()) ? -1 : 1;
+    }
+    for (std::size_t i = a.size(); i-- > 0; ) {
+      if (a[i] != b[i]) {
+        return (a[i] < b[i]) ? -1 : 1;
+      }
+    }
+    return 0;
+  }
+
+  // The sign of v - x, v being the number s writes, as the rules below match
+  // numbers (decimal digits with an optional point and exponent), and x a
+  // double
+  int gaol_compare_number(const char *s, double x)
+  {
+    // v = N*10^k, N being written with ndigits digits
+    gaol_natural N;
+    long k = 0, ndigits = 0;
+    bool fraction = false;
+    for (; *s != '\0' && *s != 'e' && *s != 'E'; ++s) {
+      if (*s == '.') {
+        fraction = true;
+        continue;
+      }
+      if (ndigits != 0 || *s != '0') {
+        gaol_natural_mul_add(N, 10, static_cast<uint32_t>(*s - '0'));
+        ++ndigits;
+      }
+      if (fraction) {
+        --k;
+      }
+    }
+    if (*s != '\0') { // Exponent
+      ++s;
+      const bool negative = (*s == '-');
+      if (*s == '-' || *s == '+') {
+        ++s;
+      }
+      long e = 0;
+      for (; *s != '\0'; ++s) {
+        if (e < 100000) { // Far beyond the doubles already
+          e = 10*e + (*s - '0');
+        }
+      }
+      k += negative ? -e : e;
+    }
+
+    if (N.empty()) { // v = 0
+      return (x < 0.0) ? 1 : ((x > 0.0) ? -1 : 0);
+    }
+    if (!(x > 0.0)) {
+      return 1;
+    }
+    if (x > std::numeric_limits<double>::max()) {
+      return -1;
+    }
+    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), far above the largest double or
+    // below the least positive one
+    if (k + ndigits - 1 > 310) {
+      return 1;
+    }
+    if (k + ndigits < -330) {
+      return -1;
+    }
+
+    // x = M*2^e, M being an integer of 53 bits
+    int ex;
+    const double f = std::frexp(x, &ex);
+    const uint64_t M = static_cast<uint64_t>(std::ldexp(f, 53));
+    const long e = static_cast<long>(ex) - 53;
+
+    // N*5^k*2^k compared with M*2^e
+    gaol_natural A(N), B;
+    B.push_back(static_cast<uint32_t>(M));
+    B.push_back(static_cast<uint32_t>(M >> 32));
+    if (k >= 0) {
+      gaol_natural_mul_pow5(A, k);
+    } else {
+      gaol_natural_mul_pow5(B, -k);
+    }
+    if (k >= e) {
+      gaol_natural_shift_left(A, k - e);
+    } else {
+      gaol_natural_shift_left(B, e - k);
+    }
+    return gaol_natural_compare(A, B);
+  }
+
+  // Reads the number s: returns NUMBER, with gaol_lval.d set to it, if it is a
+  // double, and INTERVAL_CST, with gaol_lval.itv set to the tightest interval
+  // of doubles enclosing it, otherwise
+  int gaol_read_number(const char *s)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double l = strtod(s,NULL);
+    // l is moved to the greatest double below the number
+    int sign = gaol_compare_number(s, l);
+    while (sign < 0) {
+      l = previous_float(l);
+      sign = gaol_compare_number(s, l);
+    }
+    for (;;) {
+      const double r = next_float(l);
+      const int sign_r = gaol_compare_number(s, r);
+      if (sign_r < 0) {
+        GAOL_RND_RESTORE();
+        if (sign == 0) {
+          gaol_lval.d = l;
+          return NUMBER;
+        }
+        (gaol_lval.itv).l = l;
+        (gaol_lval.itv).r = r;
+        return INTERVAL_CST;
+      }
+      l = r;
+      sign = sign_r;
+    }
+  }
+
+}
+#line 1011 "lex.gaol_.c"
+#line 1012 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1028,10 +1225,10 @@ YY_DECL
 		}
 
 	{
-#line 51 "gaol_interval_lexer.lpp"
+#line 248 "gaol_interval_lexer.lpp"
 
 
-#line 1035 "lex.gaol_.c"
+#line 1232 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1090,224 +1287,201 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 53 "gaol_interval_lexer.lpp"
+#line 250 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 54 "gaol_interval_lexer.lpp"
+#line 251 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 55 "gaol_interval_lexer.lpp"
+#line 252 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 56 "gaol_interval_lexer.lpp"
+#line 253 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 57 "gaol_interval_lexer.lpp"
+#line 254 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 58 "gaol_interval_lexer.lpp"
+#line 255 "gaol_interval_lexer.lpp"
 { return EXP_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 59 "gaol_interval_lexer.lpp"
+#line 256 "gaol_interval_lexer.lpp"
 { return LOG_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 60 "gaol_interval_lexer.lpp"
+#line 257 "gaol_interval_lexer.lpp"
 { return POW_STR; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 61 "gaol_interval_lexer.lpp"
+#line 258 "gaol_interval_lexer.lpp"
 { return NTH_ROOT_STR; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 62 "gaol_interval_lexer.lpp"
+#line 259 "gaol_interval_lexer.lpp"
 { return SQRT_STR; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 63 "gaol_interval_lexer.lpp"
+#line 260 "gaol_interval_lexer.lpp"
 { return COS_STR; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 64 "gaol_interval_lexer.lpp"
+#line 261 "gaol_interval_lexer.lpp"
 { return SIN_STR; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 65 "gaol_interval_lexer.lpp"
+#line 262 "gaol_interval_lexer.lpp"
 { return TAN_STR; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 66 "gaol_interval_lexer.lpp"
+#line 263 "gaol_interval_lexer.lpp"
 { return ATAN2_STR; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 67 "gaol_interval_lexer.lpp"
+#line 264 "gaol_interval_lexer.lpp"
 { return COSH_STR; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 68 "gaol_interval_lexer.lpp"
+#line 265 "gaol_interval_lexer.lpp"
 { return SINH_STR; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 69 "gaol_interval_lexer.lpp"
+#line 266 "gaol_interval_lexer.lpp"
 { return TANH_STR; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 70 "gaol_interval_lexer.lpp"
+#line 267 "gaol_interval_lexer.lpp"
 { return ACOS_STR; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 71 "gaol_interval_lexer.lpp"
+#line 268 "gaol_interval_lexer.lpp"
 { return ASIN_STR; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 72 "gaol_interval_lexer.lpp"
+#line 269 "gaol_interval_lexer.lpp"
 { return ATAN_STR; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 73 "gaol_interval_lexer.lpp"
+#line 270 "gaol_interval_lexer.lpp"
 { return ACOSH_STR; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 74 "gaol_interval_lexer.lpp"
+#line 271 "gaol_interval_lexer.lpp"
 { return ASINH_STR; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 75 "gaol_interval_lexer.lpp"
+#line 272 "gaol_interval_lexer.lpp"
 { return ATANH_STR; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 76 "gaol_interval_lexer.lpp"
+#line 273 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 77 "gaol_interval_lexer.lpp"
+#line 274 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 78 "gaol_interval_lexer.lpp"
+#line 275 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 79 "gaol_interval_lexer.lpp"
+#line 276 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 80 "gaol_interval_lexer.lpp"
+#line 277 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 81 "gaol_interval_lexer.lpp"
+#line 278 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 82 "gaol_interval_lexer.lpp"
+#line 279 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 83 "gaol_interval_lexer.lpp"
+#line 280 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 84 "gaol_interval_lexer.lpp"
+#line 281 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 85 "gaol_interval_lexer.lpp"
+#line 282 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 86 "gaol_interval_lexer.lpp"
+#line 283 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 35:
-YY_RULE_SETUP
-#line 88 "gaol_interval_lexer.lpp"
-{       GAOL_RND_PRESERVE();
-                round_nearest();
-                gaol_lval.d = strtod(gaol_text,NULL);
-                GAOL_RND_RESTORE();
-                return NUMBER;
-            }
-	YY_BREAK
+#line 286 "gaol_interval_lexer.lpp"
 case 36:
-#line 96 "gaol_interval_lexer.lpp"
+#line 287 "gaol_interval_lexer.lpp"
 case 37:
-#line 97 "gaol_interval_lexer.lpp"
+#line 288 "gaol_interval_lexer.lpp"
 case 38:
 YY_RULE_SETUP
-#line 97 "gaol_interval_lexer.lpp"
-{
-                GAOL_RND_PRESERVE();
-                round_downward();
-                clear_inexact();
-                gaol_lval.d = strtod(gaol_text,NULL);
-                if (get_inexact()) {  // The number has been rounded?
-                                      // Then we will represent it with an interval
-                    (gaol_lval.itv).l = gaol_lval.d;
-										round_upward();
-                    (gaol_lval.itv).r = strtod(gaol_text,NULL);
-                    GAOL_RND_RESTORE();
-                    return INTERVAL_CST;
-                }
-                GAOL_RND_RESTORE();
-                return NUMBER;
-            }
+#line 288 "gaol_interval_lexer.lpp"
+{ return gaol_read_number(gaol_text); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 113 "gaol_interval_lexer.lpp"
+#line 289 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 114 "gaol_interval_lexer.lpp"
+#line 290 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 115 "gaol_interval_lexer.lpp"
+#line 291 "gaol_interval_lexer.lpp"
 ECHO;
 	YY_BREAK
-#line 1311 "lex.gaol_.c"
+#line 1485 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2312,7 +2486,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 115 "gaol_interval_lexer.lpp"
+#line 291 "gaol_interval_lexer.lpp"
 
 
 YY_BUFFER_STATE gaol_interval_parsing_buffer;

@@ -21,6 +21,11 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <vector>
+#include <stdint.h>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_expression.h"
@@ -41,6 +46,198 @@ using namespace gaol;
 
 
 extern int gaol_error(char *s ...);
+
+/*
+  Numbers are read exactly, whatever the C library. A number no double is
+  exactly is represented by the tightest interval of doubles enclosing it.
+  GAOL read it with strtod() rounding downward then upward, and told it from a
+  double by the inexact flag strtod() raised; it read integers rounded to
+  nearest. Not every C library rounds strtod() in the rounding direction and
+  raises the flag: the C runtime of Windows, with Visual C++ or MinGW, and musl
+  on 64-bit ARM processors round to nearest whatever the direction and raise no
+  flag, so that "0.1" was read as the double nearest to 1/10, which does not
+  enclose it. strtod() now gives a double near the number, which the number is
+  compared with exactly, as integers, to find the doubles on each side of it.
+*/
+namespace {
+
+  // A natural number, as digits in base 2^32, least significant first, with no
+  // leading zero digit (0 has no digit)
+  typedef std::vector<uint32_t> gaol_natural;
+
+  // n = n*m + a, with m > 0
+  void gaol_natural_mul_add(gaol_natural& n, uint32_t m, uint32_t a)
+  {
+    uint64_t carry = a;
+    for (std::size_t i = 0; i < n.size(); ++i) {
+      const uint64_t t = static_cast<uint64_t>(n[i])*m + carry;
+      n[i] = static_cast<uint32_t>(t);
+      carry = t >> 32;
+    }
+    if (carry != 0) {
+      n.push_back(static_cast<uint32_t>(carry));
+    }
+  }
+
+  // n = n*5^e, with e >= 0
+  void gaol_natural_mul_pow5(gaol_natural& n, long e)
+  {
+    for (; e >= 13; e -= 13) {
+      gaol_natural_mul_add(n, 1220703125u, 0); // 5^13
+    }
+    uint32_t m = 1;
+    for (; e > 0; --e) {
+      m *= 5;
+    }
+    gaol_natural_mul_add(n, m, 0);
+  }
+
+  // n = n*2^e, with e >= 0
+  void gaol_natural_shift_left(gaol_natural& n, long e)
+  {
+    if (n.empty()) {
+      return;
+    }
+    const unsigned int bits = static_cast<unsigned int>(e % 32);
+    if (bits != 0) {
+      uint32_t carry = 0;
+      for (std::size_t i = 0; i < n.size(); ++i) {
+        const uint32_t d = n[i];
+        n[i] = (d << bits) | carry;
+        carry = d >> (32 - bits);
+      }
+      if (carry != 0) {
+        n.push_back(carry);
+      }
+    }
+    n.insert(n.begin(), static_cast<std::size_t>(e / 32), 0u);
+  }
+
+  // The sign of a - b
+  int gaol_natural_compare(const gaol_natural& a, const gaol_natural& b)
+  {
+    if (a.size() != b.size()) {
+      return (a.size() < b.size()) ? -1 : 1;
+    }
+    for (std::size_t i = a.size(); i-- > 0; ) {
+      if (a[i] != b[i]) {
+        return (a[i] < b[i]) ? -1 : 1;
+      }
+    }
+    return 0;
+  }
+
+  // The sign of v - x, v being the number s writes, as the rules below match
+  // numbers (decimal digits with an optional point and exponent), and x a
+  // double
+  int gaol_compare_number(const char *s, double x)
+  {
+    // v = N*10^k, N being written with ndigits digits
+    gaol_natural N;
+    long k = 0, ndigits = 0;
+    bool fraction = false;
+    for (; *s != '\0' && *s != 'e' && *s != 'E'; ++s) {
+      if (*s == '.') {
+        fraction = true;
+        continue;
+      }
+      if (ndigits != 0 || *s != '0') {
+        gaol_natural_mul_add(N, 10, static_cast<uint32_t>(*s - '0'));
+        ++ndigits;
+      }
+      if (fraction) {
+        --k;
+      }
+    }
+    if (*s != '\0') { // Exponent
+      ++s;
+      const bool negative = (*s == '-');
+      if (*s == '-' || *s == '+') {
+        ++s;
+      }
+      long e = 0;
+      for (; *s != '\0'; ++s) {
+        if (e < 100000) { // Far beyond the doubles already
+          e = 10*e + (*s - '0');
+        }
+      }
+      k += negative ? -e : e;
+    }
+
+    if (N.empty()) { // v = 0
+      return (x < 0.0) ? 1 : ((x > 0.0) ? -1 : 0);
+    }
+    if (!(x > 0.0)) {
+      return 1;
+    }
+    if (x > std::numeric_limits<double>::max()) {
+      return -1;
+    }
+    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), far above the largest double or
+    // below the least positive one
+    if (k + ndigits - 1 > 310) {
+      return 1;
+    }
+    if (k + ndigits < -330) {
+      return -1;
+    }
+
+    // x = M*2^e, M being an integer of 53 bits
+    int ex;
+    const double f = std::frexp(x, &ex);
+    const uint64_t M = static_cast<uint64_t>(std::ldexp(f, 53));
+    const long e = static_cast<long>(ex) - 53;
+
+    // N*5^k*2^k compared with M*2^e
+    gaol_natural A(N), B;
+    B.push_back(static_cast<uint32_t>(M));
+    B.push_back(static_cast<uint32_t>(M >> 32));
+    if (k >= 0) {
+      gaol_natural_mul_pow5(A, k);
+    } else {
+      gaol_natural_mul_pow5(B, -k);
+    }
+    if (k >= e) {
+      gaol_natural_shift_left(A, k - e);
+    } else {
+      gaol_natural_shift_left(B, e - k);
+    }
+    return gaol_natural_compare(A, B);
+  }
+
+  // Reads the number s: returns NUMBER, with gaol_lval.d set to it, if it is a
+  // double, and INTERVAL_CST, with gaol_lval.itv set to the tightest interval
+  // of doubles enclosing it, otherwise
+  int gaol_read_number(const char *s)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double l = strtod(s,NULL);
+    // l is moved to the greatest double below the number
+    int sign = gaol_compare_number(s, l);
+    while (sign < 0) {
+      l = previous_float(l);
+      sign = gaol_compare_number(s, l);
+    }
+    for (;;) {
+      const double r = next_float(l);
+      const int sign_r = gaol_compare_number(s, r);
+      if (sign_r < 0) {
+        GAOL_RND_RESTORE();
+        if (sign == 0) {
+          gaol_lval.d = l;
+          return NUMBER;
+        }
+        (gaol_lval.itv).l = l;
+        (gaol_lval.itv).r = r;
+        return INTERVAL_CST;
+      }
+      l = r;
+      sign = sign_r;
+    }
+  }
+
+}
 %}
 
 DIGIT		[0-9]
@@ -85,31 +282,10 @@ SPACE		[ \t\r]+
 "*"		{ return '*'; }
 "/"		{ return '/'; }
 
-{INT}		{       GAOL_RND_PRESERVE();
-                round_nearest();
-                gaol_lval.d = strtod(gaol_text,NULL);
-                GAOL_RND_RESTORE();
-                return NUMBER;
-            }
-
+{INT} |
 {DIGIT}+{E} |
 {DIGIT}*"."{DIGIT}+({E})? |
-{DIGIT}+"."{DIGIT}*({E})?	{
-                GAOL_RND_PRESERVE();
-                round_downward();
-                clear_inexact();
-                gaol_lval.d = strtod(gaol_text,NULL);
-                if (get_inexact()) {  // The number has been rounded?
-                                      // Then we will represent it with an interval
-                    (gaol_lval.itv).l = gaol_lval.d;
-										round_upward();
-                    (gaol_lval.itv).r = strtod(gaol_text,NULL);
-                    GAOL_RND_RESTORE();
-                    return INTERVAL_CST;
-                }
-                GAOL_RND_RESTORE();
-                return NUMBER;
-            }
+{DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(gaol_text); }
 {SPACE}		{  }
 .		{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 %%
