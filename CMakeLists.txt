@@ -109,6 +109,36 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
+# The math library of mingw-w64 before its version 12, which MinGW-w64 GCC 11 to
+# 13 come with (MinGW-Builds with rt_v10 and rt_v11, WinLibs), is not accurate
+# enough for the hyperbolic functions GAOL takes from it: acosh() near 1 was up
+# to 25 million floats away from the exact value, and asinh() of large negative
+# numbers NaN, so that GAOL's bounds did not enclose the exact values
+# (tests/elementary.cpp, in the continuous integration, with the MinGW-w64 GCC
+# 11.2.0, 12.2.0 and 13.2.0 of Chocolatey, while 14.2.0, with rt_v12, and 15.2.0
+# passed). Computed without the libm, acosh() still gave an inverted interval
+# there, which tracing its computation made disappear. GAOL is not built with
+# it.
+check_cxx_source_compiles("
+  #include <stdlib.h>
+  #if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 12
+  #error mingw-w64 before version 12
+  #endif
+  int main() { return 0; }"
+  GAOL_MINGW_W64_RECENT_ENOUGH)
+if(NOT GAOL_MINGW_W64_RECENT_ENOUGH)
+  message(FATAL_ERROR
+    "GAOL cannot be built with ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}), "
+    "whose mingw-w64 is older than version 12.\n"
+    "The math library of mingw-w64 before version 12 is not accurate enough for the hyperbolic functions GAOL "
+    "takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large "
+    "negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the "
+    "MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).\n"
+    "Build GAOL with a MinGW-w64 of version 12 or later, such as the MinGW-w64 GCC 14.2.0 (rt_v12) or 15.2.0 "
+    "(rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of "
+    "MSYS2, or with Visual Studio, in a new build directory.")
+endif()
+
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
   list(APPEND GAOL_INTERVAL_FLAGS /fp:strict)

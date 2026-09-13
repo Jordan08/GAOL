@@ -72,9 +72,11 @@ Both libraries are static. CMake 3.14 or later is needed.
 
 GAOL cannot be built with a compiler that does not honour the rounding direction
 on the target: Clang for 32-bit ARM processors, and compilers that say so of
-`-frounding-math`, such as Clang 14 for 64-bit ARM processors. The
-configuration stops with a message naming the compilers to use instead (GCC, or
-a later Clang).
+`-frounding-math`, such as Clang 14 for 64-bit ARM processors. Nor with a
+MinGW-w64 older than version 12 (MinGW-w64 GCC 11 to 13), whose math library
+gave hyperbolic functions far from their exact values. The configuration stops
+with a message naming the compilers to use instead (GCC, a later Clang, a later
+MinGW-w64).
 
 ### Using GAOL from CMake
 
@@ -222,11 +224,11 @@ CMake and runs the tests on:
   with the sanitizers with AppleClang, LLVM's Clang and GCC.
 - **Windows:**
   - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug;
-  - MinGW-w64 11 to 15, on x86 and x64;
+  - MinGW-w64 14 and 15, on x86 and x64;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
-It also checks that Clang is refused on 32-bit ARM and Clang 14 on 64-bit ARM,
-and builds GAOL with autotools and meson.
+It also checks that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and
+MinGW-w64 11 to 13, and builds GAOL with autotools and meson.
 
 ### Licences
 
