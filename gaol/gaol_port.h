@@ -89,9 +89,9 @@ namespace gaol {
 
 #if HAVE_ROUNDING_MATH_OPTION
   INLINE double f_negate_simple(double x) { return -x; }
-#  define opposite(x) f_negate_simple(x)
+#  define gaol_opposite(x) f_negate_simple(x)
 #else
-#  define opposite(x) f_negate(x)
+#  define gaol_opposite(x) f_negate(x)
 #endif // HAVE_ROUNDING_MATH_OPTION
 
   /*!

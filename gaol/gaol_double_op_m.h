@@ -115,7 +115,7 @@ namespace gaol {
     	for (;;) {
       	if (odd(n)) {
 				n >>= 1;
-				y = opposite(opposite(y)*z);
+				y = gaol_opposite(gaol_opposite(y)*z);
 				if (n == 0) {
 	  				GAOL_RND_LEAVE();
 	  				return y;
@@ -123,7 +123,7 @@ namespace gaol {
       	} else {
 				n>>=1;
       	}
-      	z = opposite(opposite(z)*z);
+      	z = gaol_opposite(gaol_opposite(z)*z);
     	}
 	}
 
@@ -137,9 +137,9 @@ namespace gaol {
 	return ipow_dn(d,e);
       } else { // d < 0
 	if (even(e)) {
-	  return ipow_dn(opposite(d),e);
+	  return ipow_dn(gaol_opposite(d),e);
 	} else { // odd(e)
-	  return opposite(ipow_up(opposite(d),e));
+	  return gaol_opposite(ipow_up(gaol_opposite(d),e));
 	}
       }
     }
@@ -154,9 +154,9 @@ namespace gaol {
 	return ipow_up(d,e);
       } else { // d < 0
 	if (even(e)) {
-	  return ipow_up(opposite(d),e);
+	  return ipow_up(gaol_opposite(d),e);
 	} else { // odd(e)
-	  return opposite(ipow_dn(opposite(d),e));
+	  return gaol_opposite(ipow_dn(gaol_opposite(d),e));
 	}
       }
     }
