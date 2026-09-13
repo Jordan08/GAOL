@@ -335,11 +335,36 @@ namespace gaol {
     return f;
   }
 
+  /*
+    The hyperbolic functions below come from the libm of the system, rounded to
+    nearest, mathlib having none. GAOL moved their values one float outward,
+    which only encloses the exact values when the libm is within one float of
+    them, and it is not always (fork of GAOL): on 2000 random arguments of each
+    function, the libms of glibc 2.31, musl and MinGW-w64 returned doubles
+    beyond the two around the exact value for sinh, cosh, tanh, acosh and atanh
+    (86 times for tanh), and GAOL's asinh() did not enclose
+    asinh(-0x1.ee84df02a8766p-4), nor its acosh() acosh(0x1.01fd62fff333fp+0).
+    The values are moved three floats outward instead, which encloses the exact
+    values as long as the libm is within two floats of them: none of the libms
+    tested was further than one float beyond the two around the exact value,
+    and tests/elementary.cpp checks them on each platform of the continuous
+    integration.
+  */
+  INLINE double gaol_libm_dn(double f)
+  {
+    return previous_float(previous_float(previous_float(f)));
+  }
+
+  INLINE double gaol_libm_up(double f)
+  {
+    return next_float(next_float(next_float(f)));
+  }
+
   INLINE double cosh_dn(double x)
   {
 	GAOL_RND_PRESERVE();
 	round_nearest();
-	double f = previous_float(cosh(x)); // From libm, not libultim
+	double f = gaol_libm_dn(cosh(x)); // From libm, not libultim
 	GAOL_RND_RESTORE();
 	return f;
   }
@@ -348,7 +373,7 @@ namespace gaol {
   {
 	GAOL_RND_PRESERVE();
 	round_nearest();
-	double f = next_float(cosh(x)); // From libm, not libultim
+	double f = gaol_libm_up(cosh(x)); // From libm, not libultim
 	GAOL_RND_RESTORE();
 	return f;
   }
@@ -357,7 +382,7 @@ namespace gaol {
   {
 	GAOL_RND_PRESERVE();
 	round_nearest();
-	double f = previous_float(sinh(x)); // From libm, not libultim
+	double f = gaol_libm_dn(sinh(x)); // From libm, not libultim
 	GAOL_RND_RESTORE();
 	return f;
   }
@@ -366,7 +391,7 @@ namespace gaol {
   {
 	GAOL_RND_PRESERVE();
 	round_nearest();
-	double f = next_float(sinh(x)); // From libm, not libultim
+	double f = gaol_libm_up(sinh(x)); // From libm, not libultim
 	GAOL_RND_RESTORE();
 	return f;
   }
@@ -375,7 +400,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = previous_float(tanh(x)); // From libm, not libultim
+	  double f = gaol_libm_dn(tanh(x)); // From libm, not libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -384,7 +409,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = next_float(tanh(x)); // From libm, not libultim
+	  double f = gaol_libm_up(tanh(x)); // From libm, not libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -396,7 +421,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = previous_float(acosh(x)); // acosh() not from libultim
+	  double f = gaol_libm_dn(acosh(x)); // acosh() not from libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -405,7 +430,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = next_float(acosh(x)); // acosh() not from libultim
+	  double f = gaol_libm_up(acosh(x)); // acosh() not from libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -414,7 +439,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = previous_float(asinh(x)); // asinh() not from libultim
+	  double f = gaol_libm_dn(asinh(x)); // asinh() not from libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -423,7 +448,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = next_float(asinh(x)); // asinh() not from libultim
+	  double f = gaol_libm_up(asinh(x)); // asinh() not from libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -432,7 +457,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = previous_float(atanh(x)); // atanh() not from libultim
+	  double f = gaol_libm_dn(atanh(x)); // atanh() not from libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -441,7 +466,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = next_float(atanh(x)); // atanh() not from libultim
+	  double f = gaol_libm_up(atanh(x)); // atanh() not from libultim
 	  GAOL_RND_RESTORE();
 	  return f;
   }
