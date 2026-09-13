@@ -93,6 +93,35 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   double inv_dn(double);
   double inv_up(double);
 
+  /* Square roots rounded upward and downward, whatever the rounding of ::sqrt.
+     IEEE 754 requires a square root to be rounded in the rounding direction in
+     effect, but the C library of Visual C++ for 32-bit x86 rounds it to nearest
+     in every direction. The result of ::sqrt, correctly rounded in some
+     direction and thus within one float of the exact root, is checked with a
+     division rounded in the direction wanted, and moved to the next float on
+     the other side when it is not a bound yet; where ::sqrt rounds as it should,
+     it is left unchanged. The next float is reached by adding the smallest
+     denormal, rather than with nextafter(), which IBEX found to crash on ARM64
+     macOS when not rounding to nearest. To be called with the rounding
+     direction set upward, respectively downward. */
+  static double gaol_sqrt_up(double x)
+  {
+    double s = ::sqrt(x);
+    if (s < x/s) { // x/s rounded upward: s >= x/s proves s >= sqrt(x)
+      s += std::numeric_limits<double>::denorm_min();
+    }
+    return s;
+  }
+
+  static double gaol_sqrt_down(double x)
+  {
+    double s = ::sqrt(x);
+    if (s > x/s) { // x/s rounded downward: s <= x/s proves s <= sqrt(x)
+      s -= std::numeric_limits<double>::denorm_min();
+    }
+    return s;
+  }
+
   /*
     \brief test for evenness
     \warning d should not be +/-oo
@@ -1165,13 +1194,13 @@ interval nth_root(const interval& I, unsigned int n)
 
     if (Ipos.left() == 0.0) {
 			GAOL_RND_ENTER();
-			interval tmp = interval(0.0,::sqrt(Ipos.right()));
+			interval tmp = interval(0.0,gaol_sqrt_up(Ipos.right()));
       GAOL_RND_LEAVE();
       return tmp;
     } else {
 			GAOL_RND_ENTER();
-			double l = Ipos.left_internal()/::sqrt(Ipos.left());
-			double r = ::sqrt(Ipos.right());
+			double l = Ipos.left_internal()/gaol_sqrt_up(Ipos.left());
+			double r = gaol_sqrt_up(Ipos.right());
       GAOL_RND_LEAVE();
       return interval(-l,r);
     }
@@ -1191,12 +1220,12 @@ interval nth_root(const interval& I, unsigned int n)
     GAOL_RND_ENTER();
     if (Jpos.left() == 0.0) {
       l = 0.0;
-      r = ::sqrt(Jpos.right());
+      r = gaol_sqrt_up(Jpos.right());
     } else {
       round_downward();
-			l = ::sqrt(Jpos.left());
+			l = gaol_sqrt_down(Jpos.left());
       round_upward();
-			r = ::sqrt(Jpos.right());
+			r = gaol_sqrt_up(Jpos.right());
     }
     GAOL_RND_LEAVE();
 
