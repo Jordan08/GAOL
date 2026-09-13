@@ -34,9 +34,9 @@ jobs:
           - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm arm64' }
           - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm armhf' }
           - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm i386' }
-          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:bullseye', tools: apt, desc: 'Debian 11 Bullseye amd64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:bullseye', tools: apt, desc: 'Debian 11 Bullseye arm64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:bullseye', tools: apt, desc: 'Debian 11 Bullseye armhf' }
+          # Not Debian 11 Bullseye, out of support since August 2026: its
+          # security repository lists packages that are no longer downloadable
+          # (libc-dev-bin 2.31-13+deb11u14...), so that g++ cannot be installed
           - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'quay.io/pypa/manylinux_2_28_x86_64',  tools: none, desc: 'manylinux_2_28 x86_64' }
           - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'quay.io/pypa/manylinux_2_28_aarch64', tools: none, desc: 'manylinux_2_28 aarch64' }
           - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'alpine:3.22',     tools: apk, desc: 'Alpine 3.22 x86_64 (musl)' }

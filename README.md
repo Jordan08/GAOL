@@ -70,9 +70,11 @@ build of `cmake/mathlib/`, and installs it along with GAOL.
 
 Both libraries are static. CMake 3.14 or later is needed.
 
-GAOL cannot be built with Clang for 32-bit ARM processors: Clang does not honour
-the rounding direction there, and the configuration stops with a message
-naming the compilers to use instead (GCC).
+GAOL cannot be built with a compiler that does not honour the rounding direction
+on the target: Clang for 32-bit ARM processors, and compilers that say so of
+`-frounding-math`, such as Clang 14 for 64-bit ARM processors. The
+configuration stops with a message naming the compilers to use instead (GCC, or
+a later Clang).
 
 ### Using GAOL from CMake
 
@@ -83,6 +85,7 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 
 `gaol::gaol` carries the include directory, mathlib, and the compilation flags
 interval arithmetic needs:
+
 - `-frounding-math -ffloat-store -fno-fast-math -ffp-contract=off` with GCC and
   Clang (the ones each compiler takes);
 - `-msse2 -mfpmath=sse` on 32-bit x86;
@@ -102,6 +105,7 @@ of the operations, independently of GAOL and of the floating-point environment.
 The exact results are computed with integers, or were computed with 2000 bits of
 precision by [mpmath](https://mpmath.org). They follow the rounding tests of
 Codac.
+
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
@@ -125,6 +129,7 @@ Codac.
 `tests/find_package` builds the same tests with an installed GAOL.
 
 What they show of GAOL, beyond the fixes below:
+
 - `atan2()` is not implemented: it throws `unavailable_feature_error`.
 - `sin`, `cos` and `tan` reduce their argument modulo an interval enclosing π.
   Their bounds take on its width for each multiple of π subtracted, about
@@ -197,11 +202,12 @@ direction after each operation by default (`--enable-preserve-rounding`,
 
 The continuous integration of this fork (`.github/workflows/`) builds GAOL with
 CMake and runs the tests on:
+
 - **Linux:** Ubuntu 22.04, 24.04 and 26.04 on x86_64 and arm64, with GCC and
   Clang, also with the address and undefined behaviour sanitizers, and with
   CMake 3.14.
 - **Linux containers:**
-  - Debian 11, 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
+  - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;
   - Alpine (musl) on x86_64 and aarch64;
   - Debian 13 under qemu on s390x, ppc64le and riscv64.
@@ -212,8 +218,8 @@ CMake and runs the tests on:
   - MinGW-w64 11 to 15, on x86 and x64;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
-It also checks that Clang is refused on 32-bit ARM, and builds GAOL with
-autotools and meson.
+It also checks that Clang is refused on 32-bit ARM and Clang 14 on 64-bit ARM,
+and builds GAOL with autotools and meson.
 
 ### Licences
 

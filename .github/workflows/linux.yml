@@ -37,7 +37,6 @@ jobs:
           - { os: ubuntu-22.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 x86_64 GCC' }
           - { os: ubuntu-22.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 22.04 x86_64 Clang' }
           - { os: ubuntu-22.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 arm64 GCC' }
-          - { os: ubuntu-22.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 22.04 arm64 Clang' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -59,6 +58,25 @@ jobs:
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
           cd build-find-package && ctest -j 4 --output-on-failure
+
+  clang-14-arm64:
+    name: Ubuntu 22.04 arm64 Clang 14, refused
+    runs-on: ubuntu-22.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure with Clang 14, which does not honour the rounding direction on 64-bit ARM and has to be refused
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang cmake make
+          clang++ --version
+          if cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ > configure.log 2>&1; then
+            cat configure.log
+            echo "Clang 14 was not refused"
+            exit 1
+          fi
+          cat configure.log
+          grep -q "GAOL cannot be built with" configure.log
 
   sanitizers:
     name: ${{ matrix.cfg.desc }}
