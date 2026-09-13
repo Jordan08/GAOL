@@ -144,20 +144,27 @@ else()
   endif()
 
   # A compiler may take -frounding-math and still not honour the rounding
-  # direction on the target, and says so, as Clang does for 32-bit ARM
-  # processors ("overriding currently unsupported rounding mode on this
-  # target"): built by Clang 21 for 32-bit ARM, 4556 of 16000 random products,
-  # squares and cubes computed by GAOL did not enclose their exact value; built
-  # by GCC 15, none.
+  # direction on the target, and say so ("overriding currently unsupported
+  # rounding mode on this target"), as Clang 14 does for 64-bit ARM processors:
+  # built by it, GAOL gave bounds of pow() and nth_root() that did not enclose
+  # the exact values (tests/elementary.cpp and tests/arithmetic.cpp), which
+  # Clang 18 did not. GAOL is not built with such a compiler, as with Clang for
+  # 32-bit ARM processors above.
   if(GAOL_COMPILER_SUPPORTS_FROUNDING_MATH)
     set(CMAKE_REQUIRED_FLAGS "-frounding-math")
     check_cxx_source_compiles("int main() { return 0; }" GAOL_COMPILER_HONOURS_ROUNDING_MATH
                               FAIL_REGEX "unsupported rounding mode")
     unset(CMAKE_REQUIRED_FLAGS)
     if(NOT GAOL_COMPILER_HONOURS_ROUNDING_MATH)
-      message(WARNING "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} does not honour the rounding "
-                      "direction on this target (-frounding-math): the intervals computed by GAOL may not "
-                      "enclose the values they should. Use a compiler that does, such as GCC.")
+      message(FATAL_ERROR
+        "GAOL cannot be built with ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}) "
+        "for this target.\n"
+        "This compiler does not honour the rounding direction on this target, and says so of -frounding-math "
+        "(\"overriding currently unsupported rounding mode on this target\"). GAOL computes with the rounding "
+        "direction set upward, so that the intervals it computes would not enclose the values they should "
+        "(built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not).\n"
+        "Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later "
+        "version of Clang (Clang 18 does on 64-bit ARM processors), in a new build directory.")
     endif()
   endif()
 endif()
