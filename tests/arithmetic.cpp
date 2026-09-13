@@ -26,9 +26,19 @@ namespace
 {
   const int nb_random_values = 5000;
 
-  // The largest distance from the tightest bounds allowed for integer powers
-  // and roots
-  const int power_limit = 1000;
+  // The largest distances from the tightest bounds allowed, in doubles, about
+  // twice those found on the platforms tested: GAOL computes integer powers by
+  // repeated rounded products, at most n+1 doubles away for x^n, 4 for x^-n
+  // and 1 for square roots; and n-th roots as powers with a rounded exponent,
+  // whose error grows with |log x|, up to 8 doubles between 2^-30 and 2^30 and
+  // 234 over all the doubles
+  int power_limit(int n)
+  {
+    return 2*n;
+  }
+
+  const int negative_power_limit = 8;
+  const int square_root_limit = 2;
 
   std::string operands(const interval& x, const interval& y)
   {
@@ -101,9 +111,10 @@ namespace
     }
   }
 
-  // Operations on doubles, drawn by draw
+  // Operations on doubles, drawn by draw, root_limit being the largest distance
+  // from the tightest bounds allowed for n-th roots
   template<class Draw>
-  void operations_on_doubles(const std::string& range, Draw draw)
+  void operations_on_doubles(const std::string& range, Draw draw, int root_limit)
   {
     const std::string in = " (" + range + ")";
     for (int i = 0; i < nb_random_values; ++i) {
@@ -155,7 +166,7 @@ namespace
       for (int n = 2; n <= 7; ++n) {
         const Exact p = power(a, n);
         const interval N(n);
-        expect_close("pow([a],n) for n=" + std::to_string(n) + in, pow(A, n), p, p, power_limit, A, N);
+        expect_close("pow([a],n) for n=" + std::to_string(n) + in, pow(A, n), p, p, power_limit(n), A, N);
       }
       if (a != 0.0) {
         for (int n = 1; n <= 3; ++n) {
@@ -168,15 +179,15 @@ namespace
             // by [max, +oo], whose inverse, [0, 1/max], is wide at that scale
             check(name + ": encloses", is_enclosure(r, p), [&] { return operands(A, interval(-n)) + ": " + hex(r); });
           } else {
-            expect_close(name, r, p, p, power_limit, A, interval(-n));
+            expect_close(name, r, p, p, negative_power_limit, A, interval(-n));
           }
         }
       }
 
       const double m = std::fabs(a);
-      expect_root("sqrt([|a|])" + in, sqrt(interval(m)), m, 2, power_limit);
+      expect_root("sqrt([|a|])" + in, sqrt(interval(m)), m, 2, square_root_limit);
       for (int n = 2; n <= 7; ++n) {
-        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), n), m, n, power_limit);
+        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), n), m, n, root_limit);
       }
     }
   }
@@ -216,7 +227,7 @@ namespace
         const std::vector<Exact> powers = { power(X.left(), n), power(X.right(), n) };
         const Exact lo = (n % 2 == 1) ? powers[0] : (x_has_zero ? zero : min(powers));
         const Exact hi = (n % 2 == 1) ? powers[1] : max(powers);
-        expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit, X, interval(n));
+        expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit(n), X, interval(n));
       }
 
       const std::vector<Exact> magnitudes = { exact(std::fabs(X.left())), exact(std::fabs(X.right())) };
@@ -293,8 +304,8 @@ int main()
 {
   gaol::init();
   Random random;
-  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); });
-  operations_on_doubles("any doubles", [&] { return random.any(); });
+  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); }, 16);
+  operations_on_doubles("any doubles", [&] { return random.any(); }, 512);
   operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); });
   operations_on_intervals("any doubles", [&] { return random.any(); });
   divisions_by_zero();

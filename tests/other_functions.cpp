@@ -23,8 +23,10 @@ namespace
 {
   const int nb_random_values = 5000;
 
-  // The largest distance from the tightest bounds allowed
-  const int limit = 1000;
+  // The largest distance from the tightest bounds allowed, in doubles, about
+  // twice the 26 found on the platforms tested: the relational functions bound
+  // the preimage of an enclosure of the image, as tightly as it allows
+  const int limit = 64;
 
   template<class Draw>
   void measures(const std::string& range, Draw draw)

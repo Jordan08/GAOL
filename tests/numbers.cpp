@@ -89,15 +89,17 @@ namespace
       expect_number("interval(number): the tightest enclosure of the number", s);
     }
 
-    // Doubles written with 17 significant digits, and exactly
+    // Doubles written with 17 significant digits, and exactly, with up to 1100
+    // digits after the point (fewer of those, which take longer)
     Random random;
     for (int i = 0; i < nb_random_values; ++i) {
-      const double x = std::fabs(random.any());
+      const double x = std::fabs(random.any()), y = random.positive(-30, 30);
       expect_number("interval(number) for numbers of 17 significant digits", format("%.16e", x));
-      expect_number("interval(number) for the decimal expansions of doubles", format("%.1100f", x));
-      const double y = random.positive(-30, 30);
       expect_number("interval(number) for numbers of 17 significant digits", format("%.16e", y));
-      expect_number("interval(number) for the decimal expansions of doubles", format("%.1100f", y));
+      if (i % 10 == 0) {
+        expect_number("interval(number) for the decimal expansions of doubles", format("%.1100f", x));
+        expect_number("interval(number) for the decimal expansions of doubles", format("%.1100f", y));
+      }
     }
 
     // Numbers in intervals and expressions

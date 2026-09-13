@@ -24,8 +24,10 @@ using namespace gaol_tests;
 
 namespace
 {
-  // The largest distance from the tightest bounds allowed
-  const int limit = 1000;
+  // The largest distance from the tightest bounds allowed, in doubles: twice
+  // the 4 found on the platforms tested, which the hyperbolic functions reach,
+  // their values from the libm being moved three floats outward
+  const int limit = 8;
 
   typedef interval (*Unary)(const interval&);
 
