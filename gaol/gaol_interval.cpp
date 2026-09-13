@@ -421,6 +421,9 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   interval pow(const interval &I, const interval &J)
   {
 	// FIXME: this function is not fully tested yet. Use with care
+    if (I.is_empty() || J.is_empty()) {
+      return interval::emptyset();
+    }
     if (J.is_an_int()) { // Degenerate case
       return pow(I,int(J.left()));
     }
@@ -429,13 +432,25 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       return exp(J*log(I));
     }
 
-    if (I.certainly_negative()) {
-      interval tmp = exp(J*log(abs(I)));
-      return interval(-tmp.left(),tmp.right());
+    /*
+      x^y is only real for a negative x when y is an integer (fork of GAOL,
+      ported from the fix of Codac, commit 74086ccb, Jordan Ninin). GAOL
+      computed the powers of the negative part of I on its magnitude, and
+      pow([-4,-1],[0.5,0.5]) returned [-1,2] where sqrt([-4,-1]) is empty.
+    */
+    if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
+      // An integer beyond the ints, for which pow(I,int) cannot be called: the
+      // powers of the negative part of I have the magnitude of those of |I|,
+      // whatever their sign
+      const double m = exp(J*log(abs(I))).right();
+      return interval(-m,m);
     }
-
-    // I.strictly_straddles_zero()
-    return pow(interval(I.left(),0),J) | pow(interval(0,I.right()),J);
+    // For any other exponent, the negative part of I is out of the domain
+    const interval base = I & interval::positive();
+    if (base.is_empty()) {
+      return interval::emptyset();
+    }
+    return exp(J*log(base));
   }
 
   /*

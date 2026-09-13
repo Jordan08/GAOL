@@ -178,6 +178,13 @@ Each change is a commit of its own, and says where it comes from.
   the exact values. The branch `hyperbolic-rigorous` bounds them without the
   libm instead; [issue #1](https://github.com/Jordan08/GAOL/issues/1) compares
   the two.
+- **Powers with a real exponent**, ported from the fix of Codac:
+  - `pow(I, e)` for a floating-point `e` called `pow(I, int)`, which truncated
+    the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`
+    with `pow(I, int)` and any other `e` with `pow(I, J)`.
+  - `pow(I, J)` computed the powers of the negative part of `I` on its
+    magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It now keeps the
+    negative part of `I` only for an integer exponent.
 - **Clang is refused for 32-bit ARM processors**, where it does not honour the
   rounding direction: built by Clang 21, 4556 of 16000 random products, squares
   and cubes did not enclose their exact values.

@@ -22,7 +22,7 @@
   \file   gaol_interval.h
   \brief  The interval class and operators
 
-  \author Goualard Frédéric
+  \author Goualard Frï¿½dï¿½ric
   \date   2001-09-28
 */
 
@@ -35,6 +35,7 @@
 #include <ios>
 #include <string>
 #include <limits>
+#include <type_traits>
 #include "gaol/gaol_config.h"
 #if defined (_MSC_VER) || defined (__MINGW32__)
 #	include "gaol/gaol_double_op_apmathlib.h"
@@ -631,6 +632,36 @@ namespace gaol {
 
   /// I^J
   extern __GAOL_PUBLIC__   interval pow(const interval &I, const interval &J);
+
+  /*!
+    \brief I^e for a floating-point e (fork of GAOL)
+
+    Without it, pow(I,2.5) called pow(const interval&, int), converting a
+    double to an int being a standard conversion and converting it to an
+    interval a user-defined one: the exponent was truncated, and pow([4],0.5)
+    returned [1]. An integer e within the ints is computed by
+    pow(const interval&, int), which is defined for negative bases too, any
+    other e by pow(const interval&, const interval&), and an infinite or NaN e
+    gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
+    Ninin). A template, so that the other integer types still call
+    pow(const interval&, int), and that a long double exponent, which a double
+    may not represent, does not compile rather than being rounded.
+  */
+  template<class T>
+  INLINE typename std::enable_if<std::is_floating_point<T>::value, interval>::type
+  pow(const interval& I, T e)
+  {
+    static_assert(std::numeric_limits<T>::digits <= std::numeric_limits<double>::digits,
+                  "gaol::pow(): give the exponent as a double, or as an interval enclosing it");
+    const double p = static_cast<double>(e);
+    if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
+      return interval::emptyset();
+    }
+    if (std::floor(p) == p && p >= (std::numeric_limits<int>::min)() && p <= (std::numeric_limits<int>::max)()) {
+      return pow(I, static_cast<int>(p));
+    }
+    return pow(I, interval(p));
+  }
   /*!
     \brief relational square root of J w.r.t. I
     \f$sqrt_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^2}\f$
