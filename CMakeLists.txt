@@ -51,6 +51,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 option(GAOL_BUILD_MATHLIB "Download and build mathlib when no installed mathlib is found" ON)
+option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest" ${GAOL_IS_TOP_LEVEL})
 set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library)")
 
 # As gaol/meson.build asks: cpp_std=c++11, c_std=c99
@@ -325,3 +326,13 @@ write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/gaolConfigVersion.
   VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaolConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/gaolConfigVersion.cmake"
   DESTINATION ${GAOL_INSTALL_CMAKEDIR})
+
+
+################################################################################
+# Tests
+################################################################################
+
+if(GAOL_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
