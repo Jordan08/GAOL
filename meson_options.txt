@@ -2,7 +2,7 @@ option('enable-optimize', type : 'boolean', value : true, description : 'Add the
 option('enable-debug', type : 'boolean', value : false, description : 'Activate debugging messages')
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3 [default=yes, as configure]')
 option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
-option('enable-verbose-mode', type : 'boolean', value : true, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=yes, as configure]')
+option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
 option('enable-relations', type: 'string', value:'certainly', description: 'use KIND symbols of relations, with KIND being "set", "certainly" or "possibly" [default=certainly]')
 option('enable-exception', type: 'boolean', value: true, description: 'raise exceptions to signal errors [default=yes]')

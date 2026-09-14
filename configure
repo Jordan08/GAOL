@@ -1467,7 +1467,8 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-simd           use SIMD instructions to implement arithmetic
                           operations
-  --enable-verbose-mode   enable display of information
+  --enable-verbose-mode   write a line on the standard error when GAOL
+                          initializes and cleans up [default=no]
   --enable-optimize       compile gaol with full optimization [default=yes]
   --enable-debug          compile gaol with debugging info [default=no]
   --enable-preserve-rounding
@@ -16987,9 +16988,9 @@ ac_config_links="$ac_config_links gaol/gaol_double_op.h:gaol/gaol_double_op_${us
 # --enable-verbose-mode
 # Check whether --enable-verbose-mode was given.
 if test "${enable_verbose_mode+set}" = set; then :
-  enableval=$enable_verbose_mode; verbose=${enable_verbose}
+  enableval=$enable_verbose_mode; verbose=${enable_verbose_mode}
 else
-  verbose="yes"
+  verbose="no"
 fi
 
 if test "$verbose" = yes; then

@@ -86,8 +86,8 @@
 #cmakedefine USING_SSE3_INSTRUCTIONS 1
 
 /* Define this to 1 to enable verbose mode: GAOL then writes a line on the
-   standard error when it initializes and cleans up (GAOL_VERBOSE_MODE, on by
-   default as with configure) */
+   standard error when it initializes and cleans up (GAOL_VERBOSE_MODE, off by
+   default: GAOL is silent, with the three builds) */
 #cmakedefine GAOL_VERBOSE_MODE 1
 
 /* Define this to 1 if the compiler supports the "-fvisibility" option, with

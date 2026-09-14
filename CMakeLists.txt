@@ -56,10 +56,10 @@ option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each o
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest" ${GAOL_IS_TOP_LEVEL})
 set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library)")
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
-# with its defaults
+# with its defaults, but for the verbose mode: GAOL is silent by default
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
-option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" ON)
+option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
 
 # As configure.ac and meson.build ask: -std=c++11; C99 with the GNU extensions,
 # which mathlib's DPChange.c needs on 32-bit x86 (asm)

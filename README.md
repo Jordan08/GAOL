@@ -77,7 +77,7 @@ The build type is Release unless another is given.
 | `GAOL_BUILD_TESTS` | `ON` when GAOL is the main project | Build the tests of `tests/`, which `ctest` runs |
 | `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors, and `gaol::interval2f` with SSE3 (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
-| `GAOL_VERBOSE_MODE` | `ON` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`) |
+| `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](#the-rounding-direction)) |
 
 ### With autotools
@@ -100,7 +100,7 @@ dates of the checkout. The options, with their defaults:
 | `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
 | `--enable-simd` | `yes` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
-| `--enable-verbose-mode` | `yes` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
 | `--enable-relations=set\|certainly\|possibly` | `certainly` | What the relation symbols (`<`, `==`...) mean on intervals |
 | `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
@@ -125,7 +125,7 @@ The options (`-D<option>=<value>`), with their defaults:
 | `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
 | `enable-simd` | `true` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
-| `enable-verbose-mode` | `true` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
 | `enable-relations` | `certainly` | `set`, `certainly` or `possibly`, as configure |
 | `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
@@ -169,7 +169,6 @@ A project can also build GAOL for itself, with the options it wants:
 include(FetchContent)
 FetchContent_Declare(gaol GIT_REPOSITORY https://github.com/Jordan08/GAOL.git GIT_TAG master)
 set(GAOL_FIND_MATHLIB OFF)   # mathlib downloaded and built along, whatever the machine has
-set(GAOL_VERBOSE_MODE OFF)   # no line on the standard error at initialization
 FetchContent_MakeAvailable(gaol)
 target_link_libraries(my_target PUBLIC gaol::gaol)
 ```
@@ -215,15 +214,18 @@ build, and the CMake build follows them, apart from the errors corrected (see
 - GAOL is compiled in release: `-O3` and the optimizations configure adds
   (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
   the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
-  (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`;
+  (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
+  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included;
 - with the flags of interval arithmetic of [Using GAOL](#using-gaol);
 - on x86 processors, the intervals are computed with SSE2 instructions and
   `gaol::interval2f` with SSE3, except with Visual C++ and on 32-bit Windows,
   where a `std::vector` of SSE2 intervals crashes: GCC takes the memory of
   `new` to be aligned on 16 bytes there, while the C runtime aligns it on 8;
 - with mathlib, exceptions, the "certainly" relations, GAOL's assembly
-  (`GAOL_USING_ASM`), its verbose mode (`GAOL_VERBOSE_MODE`), and the rounding
-  direction left upward;
+  (`GAOL_USING_ASM`), the rounding direction left upward, and silent: no line
+  on the standard error when GAOL initializes and cleans up, unless
+  `GAOL_VERBOSE_MODE` (`--enable-verbose-mode`, `-Denable-verbose-mode=true`)
+  is asked for, where configure wrote it by default;
 - the processor and the system (`IX86_LINUX`, `AARCH64_LINUX`...), the sizes
   of the integer types and the byte order are read from the macros of the
   compiler, in `gaol/gaol_config.h`, rather than from the machine building.

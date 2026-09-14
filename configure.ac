@@ -321,9 +321,9 @@ AC_CONFIG_LINKS([gaol/gaol_double_op.h:gaol/gaol_double_op_${use_mathlib}.h])
 # --enable-verbose-mode
 AC_ARG_ENABLE(verbose-mode,
                   [AS_HELP_STRING([--enable-verbose-mode],
-                         [enable display of information])],
-                 [verbose=${enable_verbose}],
-                 [verbose="yes"])
+                         [write a line on the standard error when GAOL initializes and cleans up @<:@default=no@:>@])],
+                 [verbose=${enable_verbose_mode}],
+                 [verbose="no"])
 if test "$verbose" = yes; then
   AC_DEFINE(GAOL_VERBOSE_MODE,1,
         [Define this to 1 to enable verbose mode])
