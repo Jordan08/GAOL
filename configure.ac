@@ -99,6 +99,35 @@ CXXFLAGS="${CXXFLAGS} -std=c++11 -I.."
 AC_PROG_CC([gcc])
 AC_PROG_CXX
 
+# The mingw-w64 CMakeLists.txt refuses: before version 12, whose math library is
+# not accurate enough for the hyperbolic functions GAOL takes from it, and
+# version 12, whose fesetround() runs the instruction cpuid at each call (see
+# CMakeLists.txt)
+AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([whether mingw-w64, if used, is of version 12 or later])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>
+#if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 12
+#error mingw-w64 before version 12
+#endif]], [[]])],[mingw_w64_recent_enough=yes],[mingw_w64_recent_enough=no])
+AC_MSG_RESULT(${mingw_w64_recent_enough})
+if test "${mingw_w64_recent_enough}" = no; then
+    AC_MSG_ERROR([GAOL cannot be built with $CXX, whose mingw-w64 is older than version 12.
+The math library of mingw-w64 before version 12 is not accurate enough for the hyperbolic functions GAOL takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).
+Build GAOL with a MinGW-w64 of version 13 or later (version 12 is refused too, its fesetround() being slow), such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with CMake and Visual Studio.])
+fi
+AC_MSG_CHECKING([whether mingw-w64, if used, is of version 13 or later])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>
+#if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 13
+#error mingw-w64 before version 13
+#endif]], [[]])],[mingw_w64_fast_enough=yes],[mingw_w64_fast_enough=no])
+AC_MSG_RESULT(${mingw_w64_fast_enough})
+if test "${mingw_w64_fast_enough}" = no; then
+    AC_MSG_ERROR([GAOL cannot be built with $CXX, whose mingw-w64 is version 12.
+fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which takes microseconds in a virtual machine: 3.5 microseconds per call in GitHub Actions, against 130 nanoseconds with mingw-w64 13. GAOL changes the rounding direction four times for each exp(), log(), sin() or cos() of an interval, which then took 10.6 to 13.8 microseconds rather than 0.5 to 0.7 (with the MinGW-w64 GCC 14.2.0 of Chocolatey, rt_v12): the intervals GAOL computes are right, but some 20 times slower.
+Build GAOL with a MinGW-w64 of version 13 or later, such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with CMake and Visual Studio.])
+fi
+AC_LANG_POP([C++])
+
 # --enable-simd
 AC_ARG_ENABLE(simd,
                 [AS_HELP_STRING([--enable-simd],

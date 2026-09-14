@@ -136,9 +136,9 @@ if(NOT GAOL_MINGW_W64_RECENT_ENOUGH)
     "takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large "
     "negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the "
     "MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).\n"
-    "Build GAOL with a MinGW-w64 of version 13 or later (see below for version 12), such as the MinGW-w64 GCC "
-    "15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one "
-    "of MSYS2, or with Visual Studio, in a new build directory.")
+    "Build GAOL with a MinGW-w64 of version 13 or later (version 12 is refused too, its fesetround() being slow), "
+    "such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw "
+    "--version=15.2.0), or the one of MSYS2, or with Visual Studio, in a new build directory.")
 endif()
 
 # fesetround() of mingw-w64 12 on x86 and x64 processors (MinGW-Builds with

@@ -336,7 +336,8 @@ a mathlib installed from
 and the tests are built
 with the GAOL they install. As the CMake build, both leave the rounding
 direction upward by default; `--enable-preserve-rounding` and
-`-Denable-preserve-rounding=true` restore it after each operation.
+`-Denable-preserve-rounding=true` restore it after each operation. Both refuse
+the MinGW-w64 the CMake build refuses, whose mingw-w64 is older than version 13.
 
 ### Platforms
 
@@ -359,7 +360,8 @@ CMake and runs the tests on:
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
 It also checks that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and
-MinGW-w64 11 to 14, and builds GAOL with autotools and meson. Jobs of each build
+MinGW-w64 11 to 14 (13 and 14 with autotools and meson too), and builds GAOL
+with autotools and meson. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and
 arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
 meson. The jobs built in Release print the time per operation in their summary.

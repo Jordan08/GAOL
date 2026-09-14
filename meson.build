@@ -16,6 +16,34 @@ micro_version = 3
 cpp_comp = meson.get_compiler('cpp')
 c_comp = meson.get_compiler('c')
 
+# The mingw-w64 CMakeLists.txt refuses: before version 12, whose math library is
+# not accurate enough for the hyperbolic functions GAOL takes from it, and
+# version 12, whose fesetround() runs the instruction cpuid at each call (see
+# CMakeLists.txt)
+gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
+if not cpp_comp.compiles('''
+#include <stdlib.h>
+#if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 12
+#error mingw-w64 before version 12
+#endif
+int main() { return 0; }
+''', name: 'mingw-w64, if used, is of version 12 or later')
+  error('GAOL cannot be built with '
+    + gaol_compiler
+    + ', whose mingw-w64 is older than version 12.\nThe math library of mingw-w64 before version 12 is not accurate enough for the hyperbolic functions GAOL takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).\nBuild GAOL with a MinGW-w64 of version 13 or later (version 12 is refused too, its fesetround() being slow), such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with CMake and Visual Studio.')
+endif
+if not cpp_comp.compiles('''
+#include <stdlib.h>
+#if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 13
+#error mingw-w64 before version 13
+#endif
+int main() { return 0; }
+''', name: 'mingw-w64, if used, is of version 13 or later')
+  error('GAOL cannot be built with '
+    + gaol_compiler
+    + ', whose mingw-w64 is version 12.\nfesetround() of mingw-w64 12 runs the instruction cpuid at each call, which takes microseconds in a virtual machine: 3.5 microseconds per call in GitHub Actions, against 130 nanoseconds with mingw-w64 13. GAOL changes the rounding direction four times for each exp(), log(), sin() or cos() of an interval, which then took 10.6 to 13.8 microseconds rather than 0.5 to 0.7 (with the MinGW-w64 GCC 14.2.0 of Chocolatey, rt_v12): the intervals GAOL computes are right, but some 20 times slower.\nBuild GAOL with a MinGW-w64 of version 13 or later, such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with CMake and Visual Studio.')
+endif
+
 # Options
 debug = get_option('enable-debug')
 simd = get_option('enable-simd')
