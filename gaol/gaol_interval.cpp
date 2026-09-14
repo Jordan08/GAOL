@@ -410,10 +410,10 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 			return I;
 		}
 		if (n < 0) {
-			return inverse(uipow(I,-n)); // 1/uipow(I,-n)
+			return inverse(uipow(I,0u - static_cast<unsigned int>(n))); // 1/uipow(I,0u - static_cast<unsigned int>(n))
 		} else {
 			if (n > 0) {
-				return uipow(I,n);
+				return uipow(I,static_cast<unsigned int>(n));
 			} else {
 				return interval(1.0);
 			}
@@ -689,7 +689,7 @@ interval nth_root(const interval& I, unsigned int n)
     interval kr = floor(I.right()/interval::pi());
     k_left  = kl.left();
     k_right = kr.right();
-    return (unsigned short int)(kl.is_a_double() << 1) + (unsigned short int)kr.is_a_double();
+    return static_cast<unsigned short int>((kl.is_a_double() ? 2 : 0) + (kr.is_a_double() ? 1 : 0));
   }
 
 

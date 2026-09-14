@@ -51,7 +51,7 @@ namespace gaol {
 
   // Saves the state of the FPU at init time to be restored at the end.
 #if GAOL_USING_APMATHLIB
-  static short save_fpu_state;
+  static unsigned short save_fpu_state; // What Init_Lib() returns and Exit_Lib() takes
 #elif GAOL_USING_CRLIBM
   static unsigned long long save_fpu_state_crlibm;
 #endif

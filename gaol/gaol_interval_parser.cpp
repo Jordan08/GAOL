@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.5.1.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,11 +41,14 @@
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
+
 /* Identify Bison output.  */
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.4"
+#define YYBISON_VERSION "3.5.1"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -65,12 +69,11 @@
 #define yyerror         gaol_error
 #define yydebug         gaol_debug
 #define yynerrs         gaol_nerrs
-
 #define yylval          gaol_lval
 #define yychar          gaol_char
 
-/* Copy the first part of user declarations.  */
-#line 1 "gaol_interval_parser.ypp" /* yacc.c:339  */
+/* First part of user prologue.  */
+#line 1 "gaol_interval_parser.ypp"
 
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
@@ -113,13 +116,26 @@ extern interval *gaol_result_of_parsing;
 extern interval gaol_tmp_itv;
 extern bool gaol_global_parsing_flag;
 
-#line 117 "y.tab.c" /* yacc.c:339  */
+#line 120 "y.tab.c"
 
-# ifndef YY_NULLPTR
-#  if defined __cplusplus && 201103L <= __cplusplus
-#   define YY_NULLPTR nullptr
+# ifndef YY_CAST
+#  ifdef __cplusplus
+#   define YY_CAST(Type, Val) static_cast<Type> (Val)
+#   define YY_REINTERPRET_CAST(Type, Val) reinterpret_cast<Type> (Val)
 #  else
-#   define YY_NULLPTR 0
+#   define YY_CAST(Type, Val) ((Type) (Val))
+#   define YY_REINTERPRET_CAST(Type, Val) ((Type) (Val))
+#  endif
+# endif
+# ifndef YY_NULLPTR
+#  if defined __cplusplus
+#   if 201103L <= __cplusplus
+#    define YY_NULLPTR nullptr
+#   else
+#    define YY_NULLPTR 0
+#   endif
+#  else
+#   define YY_NULLPTR ((void*)0)
 #  endif
 # endif
 
@@ -131,8 +147,8 @@ extern bool gaol_global_parsing_flag;
 # define YYERROR_VERBOSE 0
 #endif
 
-/* In a future release of Bison, this section will be replaced
-   by #include "y.tab.h".  */
+/* Use api.header.include to #include this header
+   instead of duplicating it here.  */
 #ifndef YY_GAOL_Y_TAB_H_INCLUDED
 # define YY_GAOL_Y_TAB_H_INCLUDED
 /* Debug traces.  */
@@ -210,19 +226,18 @@ extern int gaol_debug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
 union YYSTYPE
 {
-#line 44 "gaol_interval_parser.ypp" /* yacc.c:355  */
+#line 44 "gaol_interval_parser.ypp"
 
   int i;
   double d;
   Interval_struct itv;
   expr_node* expr;
 
-#line 224 "y.tab.c" /* yacc.c:355  */
-};
+#line 239 "y.tab.c"
 
+};
 typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
@@ -235,36 +250,81 @@ int gaol_parse (void);
 
 #endif /* !YY_GAOL_Y_TAB_H_INCLUDED  */
 
-/* Copy the second part of user declarations.  */
 
-#line 241 "y.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
 #endif
 
-#ifdef YYTYPE_UINT8
-typedef YYTYPE_UINT8 yytype_uint8;
-#else
-typedef unsigned char yytype_uint8;
+/* On compilers that do not define __PTRDIFF_MAX__ etc., make sure
+   <limits.h> and (if available) <stdint.h> are included
+   so that the code can choose integer types of a good width.  */
+
+#ifndef __PTRDIFF_MAX__
+# include <limits.h> /* INFRINGES ON USER NAME SPACE */
+# if defined __STDC_VERSION__ && 199901 <= __STDC_VERSION__
+#  include <stdint.h> /* INFRINGES ON USER NAME SPACE */
+#  define YY_STDINT_H
+# endif
 #endif
 
-#ifdef YYTYPE_INT8
-typedef YYTYPE_INT8 yytype_int8;
+/* Narrow types that promote to a signed type and that can represent a
+   signed or unsigned integer of at least N bits.  In tables they can
+   save space and decrease cache pressure.  Promoting to a signed type
+   helps avoid bugs in integer arithmetic.  */
+
+#ifdef __INT_LEAST8_MAX__
+typedef __INT_LEAST8_TYPE__ yytype_int8;
+#elif defined YY_STDINT_H
+typedef int_least8_t yytype_int8;
 #else
 typedef signed char yytype_int8;
 #endif
 
-#ifdef YYTYPE_UINT16
-typedef YYTYPE_UINT16 yytype_uint16;
+#ifdef __INT_LEAST16_MAX__
+typedef __INT_LEAST16_TYPE__ yytype_int16;
+#elif defined YY_STDINT_H
+typedef int_least16_t yytype_int16;
 #else
-typedef unsigned short int yytype_uint16;
+typedef short yytype_int16;
 #endif
 
-#ifdef YYTYPE_INT16
-typedef YYTYPE_INT16 yytype_int16;
+#if defined __UINT_LEAST8_MAX__ && __UINT_LEAST8_MAX__ <= __INT_MAX__
+typedef __UINT_LEAST8_TYPE__ yytype_uint8;
+#elif (!defined __UINT_LEAST8_MAX__ && defined YY_STDINT_H \
+       && UINT_LEAST8_MAX <= INT_MAX)
+typedef uint_least8_t yytype_uint8;
+#elif !defined __UINT_LEAST8_MAX__ && UCHAR_MAX <= INT_MAX
+typedef unsigned char yytype_uint8;
 #else
-typedef short int yytype_int16;
+typedef short yytype_uint8;
+#endif
+
+#if defined __UINT_LEAST16_MAX__ && __UINT_LEAST16_MAX__ <= __INT_MAX__
+typedef __UINT_LEAST16_TYPE__ yytype_uint16;
+#elif (!defined __UINT_LEAST16_MAX__ && defined YY_STDINT_H \
+       && UINT_LEAST16_MAX <= INT_MAX)
+typedef uint_least16_t yytype_uint16;
+#elif !defined __UINT_LEAST16_MAX__ && USHRT_MAX <= INT_MAX
+typedef unsigned short yytype_uint16;
+#else
+typedef int yytype_uint16;
+#endif
+
+#ifndef YYPTRDIFF_T
+# if defined __PTRDIFF_TYPE__ && defined __PTRDIFF_MAX__
+#  define YYPTRDIFF_T __PTRDIFF_TYPE__
+#  define YYPTRDIFF_MAXIMUM __PTRDIFF_MAX__
+# elif defined PTRDIFF_MAX
+#  ifndef ptrdiff_t
+#   include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+#  endif
+#  define YYPTRDIFF_T ptrdiff_t
+#  define YYPTRDIFF_MAXIMUM PTRDIFF_MAX
+# else
+#  define YYPTRDIFF_T long
+#  define YYPTRDIFF_MAXIMUM LONG_MAX
+# endif
 #endif
 
 #ifndef YYSIZE_T
@@ -272,15 +332,27 @@ typedef short int yytype_int16;
 #  define YYSIZE_T __SIZE_TYPE__
 # elif defined size_t
 #  define YYSIZE_T size_t
-# elif ! defined YYSIZE_T
+# elif defined __STDC_VERSION__ && 199901 <= __STDC_VERSION__
 #  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
 #  define YYSIZE_T size_t
 # else
-#  define YYSIZE_T unsigned int
+#  define YYSIZE_T unsigned
 # endif
 #endif
 
-#define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
+#define YYSIZE_MAXIMUM                                  \
+  YY_CAST (YYPTRDIFF_T,                                 \
+           (YYPTRDIFF_MAXIMUM < YY_CAST (YYSIZE_T, -1)  \
+            ? YYPTRDIFF_MAXIMUM                         \
+            : YY_CAST (YYSIZE_T, -1)))
+
+#define YYSIZEOF(X) YY_CAST (YYPTRDIFF_T, sizeof (X))
+
+/* Stored state numbers (used for stacks). */
+typedef yytype_uint8 yy_state_t;
+
+/* State numbers in computations.  */
+typedef int yy_state_fast_t;
 
 #ifndef YY_
 # if defined YYENABLE_NLS && YYENABLE_NLS
@@ -294,30 +366,19 @@ typedef short int yytype_int16;
 # endif
 #endif
 
-#ifndef YY_ATTRIBUTE
-# if (defined __GNUC__                                               \
-      && (2 < __GNUC__ || (__GNUC__ == 2 && 96 <= __GNUC_MINOR__)))  \
-     || defined __SUNPRO_C && 0x5110 <= __SUNPRO_C
-#  define YY_ATTRIBUTE(Spec) __attribute__(Spec)
+#ifndef YY_ATTRIBUTE_PURE
+# if defined __GNUC__ && 2 < __GNUC__ + (96 <= __GNUC_MINOR__)
+#  define YY_ATTRIBUTE_PURE __attribute__ ((__pure__))
 # else
-#  define YY_ATTRIBUTE(Spec) /* empty */
+#  define YY_ATTRIBUTE_PURE
 # endif
 #endif
 
-#ifndef YY_ATTRIBUTE_PURE
-# define YY_ATTRIBUTE_PURE   YY_ATTRIBUTE ((__pure__))
-#endif
-
 #ifndef YY_ATTRIBUTE_UNUSED
-# define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
-#endif
-
-#if !defined _Noreturn \
-     && (!defined __STDC_VERSION__ || __STDC_VERSION__ < 201112)
-# if defined _MSC_VER && 1200 <= _MSC_VER
-#  define _Noreturn __declspec (noreturn)
+# if defined __GNUC__ && 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
+#  define YY_ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 # else
-#  define _Noreturn YY_ATTRIBUTE ((__noreturn__))
+#  define YY_ATTRIBUTE_UNUSED
 # endif
 #endif
 
@@ -328,13 +389,13 @@ typedef short int yytype_int16;
 # define YYUSE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
+#if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
-    _Pragma ("GCC diagnostic push") \
-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
+# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                            \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
+# define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
     _Pragma ("GCC diagnostic pop")
 #else
 # define YY_INITIAL_VALUE(Value) Value
@@ -347,6 +408,20 @@ typedef short int yytype_int16;
 # define YY_INITIAL_VALUE(Value) /* Nothing. */
 #endif
 
+#if defined __cplusplus && defined __GNUC__ && ! defined __ICC && 6 <= __GNUC__
+# define YY_IGNORE_USELESS_CAST_BEGIN                          \
+    _Pragma ("GCC diagnostic push")                            \
+    _Pragma ("GCC diagnostic ignored \"-Wuseless-cast\"")
+# define YY_IGNORE_USELESS_CAST_END            \
+    _Pragma ("GCC diagnostic pop")
+#endif
+#ifndef YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_END
+#endif
+
+
+#define YY_ASSERT(E) ((void) (0 && (E)))
 
 #if ! defined yyoverflow || YYERROR_VERBOSE
 
@@ -423,17 +498,17 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 /* A type that is properly aligned for any stack member.  */
 union yyalloc
 {
-  yytype_int16 yyss_alloc;
+  yy_state_t yyss_alloc;
   YYSTYPE yyvs_alloc;
 };
 
 /* The size of the maximum gap between one aligned stack and the next.  */
-# define YYSTACK_GAP_MAXIMUM (sizeof (union yyalloc) - 1)
+# define YYSTACK_GAP_MAXIMUM (YYSIZEOF (union yyalloc) - 1)
 
 /* The size of an array large to enough to hold all stacks, each with
    N elements.  */
 # define YYSTACK_BYTES(N) \
-     ((N) * (sizeof (yytype_int16) + sizeof (YYSTYPE)) \
+     ((N) * (YYSIZEOF (yy_state_t) + YYSIZEOF (YYSTYPE)) \
       + YYSTACK_GAP_MAXIMUM)
 
 # define YYCOPY_NEEDED 1
@@ -446,11 +521,11 @@ union yyalloc
 # define YYSTACK_RELOCATE(Stack_alloc, Stack)                           \
     do                                                                  \
       {                                                                 \
-        YYSIZE_T yynewbytes;                                            \
+        YYPTRDIFF_T yynewbytes;                                         \
         YYCOPY (&yyptr->Stack_alloc, Stack, yysize);                    \
         Stack = &yyptr->Stack_alloc;                                    \
-        yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
-        yyptr += yynewbytes / sizeof (*yyptr);                          \
+        yynewbytes = yystacksize * YYSIZEOF (*Stack) + YYSTACK_GAP_MAXIMUM; \
+        yyptr += yynewbytes / YYSIZEOF (*yyptr);                        \
       }                                                                 \
     while (0)
 
@@ -462,12 +537,12 @@ union yyalloc
 # ifndef YYCOPY
 #  if defined __GNUC__ && 1 < __GNUC__
 #   define YYCOPY(Dst, Src, Count) \
-      __builtin_memcpy (Dst, Src, (Count) * sizeof (*(Src)))
+      __builtin_memcpy (Dst, Src, YY_CAST (YYSIZE_T, (Count)) * sizeof (*(Src)))
 #  else
 #   define YYCOPY(Dst, Src, Count)              \
       do                                        \
         {                                       \
-          YYSIZE_T yyi;                         \
+          YYPTRDIFF_T yyi;                      \
           for (yyi = 0; yyi < (Count); yyi++)   \
             (Dst)[yyi] = (Src)[yyi];            \
         }                                       \
@@ -490,17 +565,18 @@ union yyalloc
 /* YYNSTATES -- Number of states.  */
 #define YYNSTATES  235
 
-/* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
-   by yylex, with out-of-bounds checking.  */
 #define YYUNDEFTOK  2
 #define YYMAXUTOK   285
 
+
+/* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
+   as returned by yylex, with out-of-bounds checking.  */
 #define YYTRANSLATE(YYX)                                                \
-  ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+  (0 <= (YYX) && (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
 
 /* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
-   as returned by yylex, without out-of-bounds checking.  */
-static const yytype_uint8 yytranslate[] =
+   as returned by yylex.  */
+static const yytype_int8 yytranslate[] =
 {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -535,7 +611,7 @@ static const yytype_uint8 yytranslate[] =
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_uint16 yyrline[] =
+static const yytype_int16 yyrline[] =
 {
        0,    74,    74,    78,    79,    81,    83,    85,    87,    89,
       90,    91,    96,    98,   100,   102,   105,   107,   109,   111,
@@ -566,7 +642,7 @@ static const char *const yytname[] =
 # ifdef YYPRINT
 /* YYTOKNUM[NUM] -- (External) token number corresponding to the
    (internal) symbol number NUM (which must be that of a token).  */
-static const yytype_uint16 yytoknum[] =
+static const yytype_int16 yytoknum[] =
 {
        0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
@@ -576,14 +652,14 @@ static const yytype_uint16 yytoknum[] =
 };
 # endif
 
-#define YYPACT_NINF -27
+#define YYPACT_NINF (-27)
 
-#define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-27)))
+#define yypact_value_is_default(Yyn) \
+  ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF -1
+#define YYTABLE_NINF (-1)
 
-#define yytable_value_is_error(Yytable_value) \
+#define yytable_value_is_error(Yyn) \
   0
 
   /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
@@ -619,7 +695,7 @@ static const yytype_int16 yypact[] =
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
      Performed when YYTABLE does not specify something else to do.  Zero
      means the default is an error.  */
-static const yytype_uint8 yydefact[] =
+static const yytype_int8 yydefact[] =
 {
        0,    31,    41,    37,    38,    39,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
@@ -788,7 +864,7 @@ static const yytype_int16 yycheck[] =
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
-static const yytype_uint8 yystos[] =
+static const yytype_int8 yystos[] =
 {
        0,     3,     4,     5,     6,     7,     8,     9,    10,    11,
       12,    13,    14,    15,    16,    17,    18,    19,    20,    21,
@@ -817,7 +893,7 @@ static const yytype_uint8 yystos[] =
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
-static const yytype_uint8 yyr1[] =
+static const yytype_int8 yyr1[] =
 {
        0,    42,    43,    44,    44,    44,    44,    44,    44,    44,
       44,    44,    45,    45,    45,    45,    45,    45,    45,    45,
@@ -829,7 +905,7 @@ static const yytype_uint8 yyr1[] =
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
-static const yytype_uint8 yyr2[] =
+static const yytype_int8 yyr2[] =
 {
        0,     2,     1,     1,     3,     3,     3,     3,     2,     2,
        1,     3,     4,     4,     4,     6,     4,     4,     4,     4,
@@ -853,22 +929,22 @@ static const yytype_uint8 yyr2[] =
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
-#define YYBACKUP(Token, Value)                                  \
-do                                                              \
-  if (yychar == YYEMPTY)                                        \
-    {                                                           \
-      yychar = (Token);                                         \
-      yylval = (Value);                                         \
-      YYPOPSTACK (yylen);                                       \
-      yystate = *yyssp;                                         \
-      goto yybackup;                                            \
-    }                                                           \
-  else                                                          \
-    {                                                           \
-      yyerror (YY_("syntax error: cannot back up")); \
-      YYERROR;                                                  \
-    }                                                           \
-while (0)
+#define YYBACKUP(Token, Value)                                    \
+  do                                                              \
+    if (yychar == YYEMPTY)                                        \
+      {                                                           \
+        yychar = (Token);                                         \
+        yylval = (Value);                                         \
+        YYPOPSTACK (yylen);                                       \
+        yystate = *yyssp;                                         \
+        goto yybackup;                                            \
+      }                                                           \
+    else                                                          \
+      {                                                           \
+        yyerror (YY_("syntax error: cannot back up")); \
+        YYERROR;                                                  \
+      }                                                           \
+  while (0)
 
 /* Error token number */
 #define YYTERROR        1
@@ -908,37 +984,39 @@ do {                                                                      \
 } while (0)
 
 
-/*----------------------------------------.
-| Print this symbol's value on YYOUTPUT.  |
-`----------------------------------------*/
+/*-----------------------------------.
+| Print this symbol's value on YYO.  |
+`-----------------------------------*/
 
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+yy_symbol_value_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
 {
-  FILE *yyo = yyoutput;
-  YYUSE (yyo);
+  FILE *yyoutput = yyo;
+  YYUSE (yyoutput);
   if (!yyvaluep)
     return;
 # ifdef YYPRINT
   if (yytype < YYNTOKENS)
-    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+    YYPRINT (yyo, yytoknum[yytype], *yyvaluep);
 # endif
+  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   YYUSE (yytype);
+  YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
 
-/*--------------------------------.
-| Print this symbol on YYOUTPUT.  |
-`--------------------------------*/
+/*---------------------------.
+| Print this symbol on YYO.  |
+`---------------------------*/
 
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+yy_symbol_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
 {
-  YYFPRINTF (yyoutput, "%s %s (",
+  YYFPRINTF (yyo, "%s %s (",
              yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
 
-  yy_symbol_value_print (yyoutput, yytype, yyvaluep);
-  YYFPRINTF (yyoutput, ")");
+  yy_symbol_value_print (yyo, yytype, yyvaluep);
+  YYFPRINTF (yyo, ")");
 }
 
 /*------------------------------------------------------------------.
@@ -947,7 +1025,7 @@ yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
 `------------------------------------------------------------------*/
 
 static void
-yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
+yy_stack_print (yy_state_t *yybottom, yy_state_t *yytop)
 {
   YYFPRINTF (stderr, "Stack now");
   for (; yybottom <= yytop; yybottom++)
@@ -970,20 +1048,20 @@ do {                                                            \
 `------------------------------------------------*/
 
 static void
-yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule)
+yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp, int yyrule)
 {
-  unsigned long int yylno = yyrline[yyrule];
+  int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
   int yyi;
-  YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
+  YYFPRINTF (stderr, "Reducing stack by rule %d (line %d):\n",
              yyrule - 1, yylno);
   /* The symbols being reduced.  */
   for (yyi = 0; yyi < yynrhs; yyi++)
     {
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
-                       yystos[yyssp[yyi + 1 - yynrhs]],
-                       &(yyvsp[(yyi + 1) - (yynrhs)])
+                       yystos[+yyssp[yyi + 1 - yynrhs]],
+                       &yyvsp[(yyi + 1) - (yynrhs)]
                                               );
       YYFPRINTF (stderr, "\n");
     }
@@ -1027,13 +1105,13 @@ int yydebug;
 
 # ifndef yystrlen
 #  if defined __GLIBC__ && defined _STRING_H
-#   define yystrlen strlen
+#   define yystrlen(S) (YY_CAST (YYPTRDIFF_T, strlen (S)))
 #  else
 /* Return the length of YYSTR.  */
-static YYSIZE_T
+static YYPTRDIFF_T
 yystrlen (const char *yystr)
 {
-  YYSIZE_T yylen;
+  YYPTRDIFF_T yylen;
   for (yylen = 0; yystr[yylen]; yylen++)
     continue;
   return yylen;
@@ -1069,12 +1147,12 @@ yystpcpy (char *yydest, const char *yysrc)
    backslash-backslash).  YYSTR is taken from yytname.  If YYRES is
    null, do not copy; instead, return the length of what the result
    would have been.  */
-static YYSIZE_T
+static YYPTRDIFF_T
 yytnamerr (char *yyres, const char *yystr)
 {
   if (*yystr == '"')
     {
-      YYSIZE_T yyn = 0;
+      YYPTRDIFF_T yyn = 0;
       char const *yyp = yystr;
 
       for (;;)
@@ -1087,7 +1165,10 @@ yytnamerr (char *yyres, const char *yystr)
           case '\\':
             if (*++yyp != '\\')
               goto do_not_strip_quotes;
-            /* Fall through.  */
+            else
+              goto append;
+
+          append:
           default:
             if (yyres)
               yyres[yyn] = *yyp;
@@ -1102,10 +1183,10 @@ yytnamerr (char *yyres, const char *yystr)
     do_not_strip_quotes: ;
     }
 
-  if (! yyres)
+  if (yyres)
+    return yystpcpy (yyres, yystr) - yyres;
+  else
     return yystrlen (yystr);
-
-  return yystpcpy (yyres, yystr) - yyres;
 }
 # endif
 
@@ -1118,19 +1199,19 @@ yytnamerr (char *yyres, const char *yystr)
    *YYMSG_ALLOC to the required number of bytes.  Return 2 if the
    required number of bytes is too large to store.  */
 static int
-yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
-                yytype_int16 *yyssp, int yytoken)
+yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
+                yy_state_t *yyssp, int yytoken)
 {
-  YYSIZE_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
-  YYSIZE_T yysize = yysize0;
   enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
   /* Internationalized format string. */
   const char *yyformat = YY_NULLPTR;
-  /* Arguments of yyformat. */
+  /* Arguments of yyformat: reported tokens (one for the "unexpected",
+     one per "expected"). */
   char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  /* Number of reported tokens (one for the "unexpected", one per
-     "expected"). */
+  /* Actual size of YYARG. */
   int yycount = 0;
+  /* Cumulated lengths of YYARG.  */
+  YYPTRDIFF_T yysize = 0;
 
   /* There are many possibilities here to consider:
      - If this state is a consistent state with a default action, then
@@ -1157,7 +1238,9 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
   */
   if (yytoken != YYEMPTY)
     {
-      int yyn = yypact[*yyssp];
+      int yyn = yypact[+*yyssp];
+      YYPTRDIFF_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
+      yysize = yysize0;
       yyarg[yycount++] = yytname[yytoken];
       if (!yypact_value_is_default (yyn))
         {
@@ -1182,11 +1265,12 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
                   }
                 yyarg[yycount++] = yytname[yyx];
                 {
-                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
-                  if (! (yysize <= yysize1
-                         && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+                  YYPTRDIFF_T yysize1
+                    = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
+                  if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+                    yysize = yysize1;
+                  else
                     return 2;
-                  yysize = yysize1;
                 }
               }
         }
@@ -1198,6 +1282,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
       case N:                               \
         yyformat = S;                       \
       break
+    default: /* Avoid compiler warnings. */
       YYCASE_(0, YY_("syntax error"));
       YYCASE_(1, YY_("syntax error, unexpected %s"));
       YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
@@ -1208,10 +1293,13 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
     }
 
   {
-    YYSIZE_T yysize1 = yysize + yystrlen (yyformat);
-    if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+    /* Don't count the "%s"s in the final size, but reserve room for
+       the terminator.  */
+    YYPTRDIFF_T yysize1 = yysize + (yystrlen (yyformat) - 2 * yycount) + 1;
+    if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+      yysize = yysize1;
+    else
       return 2;
-    yysize = yysize1;
   }
 
   if (*yymsg_alloc < yysize)
@@ -1237,8 +1325,8 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
         }
       else
         {
-          yyp++;
-          yyformat++;
+          ++yyp;
+          ++yyformat;
         }
   }
   return 0;
@@ -1281,7 +1369,7 @@ int yynerrs;
 int
 yyparse (void)
 {
-    int yystate;
+    yy_state_fast_t yystate;
     /* Number of tokens to shift before error messages enabled.  */
     int yyerrstatus;
 
@@ -1293,16 +1381,16 @@ yyparse (void)
        to reallocate them elsewhere.  */
 
     /* The state stack.  */
-    yytype_int16 yyssa[YYINITDEPTH];
-    yytype_int16 *yyss;
-    yytype_int16 *yyssp;
+    yy_state_t yyssa[YYINITDEPTH];
+    yy_state_t *yyss;
+    yy_state_t *yyssp;
 
     /* The semantic value stack.  */
     YYSTYPE yyvsa[YYINITDEPTH];
     YYSTYPE *yyvs;
     YYSTYPE *yyvsp;
 
-    YYSIZE_T yystacksize;
+    YYPTRDIFF_T yystacksize;
 
   int yyn;
   int yyresult;
@@ -1316,7 +1404,7 @@ yyparse (void)
   /* Buffer for error messages, and its allocated size.  */
   char yymsgbuf[128];
   char *yymsg = yymsgbuf;
-  YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
+  YYPTRDIFF_T yymsg_alloc = sizeof yymsgbuf;
 #endif
 
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
@@ -1337,46 +1425,54 @@ yyparse (void)
   yychar = YYEMPTY; /* Cause a token to be read.  */
   goto yysetstate;
 
+
 /*------------------------------------------------------------.
-| yynewstate -- Push a new state, which is found in yystate.  |
+| yynewstate -- push a new state, which is found in yystate.  |
 `------------------------------------------------------------*/
- yynewstate:
+yynewstate:
   /* In all cases, when you get here, the value and location stacks
      have just been pushed.  So pushing a state here evens the stacks.  */
   yyssp++;
 
- yysetstate:
-  *yyssp = yystate;
+
+/*--------------------------------------------------------------------.
+| yysetstate -- set current state (the top of the stack) to yystate.  |
+`--------------------------------------------------------------------*/
+yysetstate:
+  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+  YY_ASSERT (0 <= yystate && yystate < YYNSTATES);
+  YY_IGNORE_USELESS_CAST_BEGIN
+  *yyssp = YY_CAST (yy_state_t, yystate);
+  YY_IGNORE_USELESS_CAST_END
 
   if (yyss + yystacksize - 1 <= yyssp)
+#if !defined yyoverflow && !defined YYSTACK_RELOCATE
+    goto yyexhaustedlab;
+#else
     {
       /* Get the current used size of the three stacks, in elements.  */
-      YYSIZE_T yysize = yyssp - yyss + 1;
+      YYPTRDIFF_T yysize = yyssp - yyss + 1;
 
-#ifdef yyoverflow
+# if defined yyoverflow
       {
         /* Give user a chance to reallocate the stack.  Use copies of
            these so that the &'s don't force the real ones into
            memory.  */
+        yy_state_t *yyss1 = yyss;
         YYSTYPE *yyvs1 = yyvs;
-        yytype_int16 *yyss1 = yyss;
 
         /* Each stack pointer address is followed by the size of the
            data in use in that stack, in bytes.  This used to be a
            conditional around just the two extra args, but that might
            be undefined if yyoverflow is a macro.  */
         yyoverflow (YY_("memory exhausted"),
-                    &yyss1, yysize * sizeof (*yyssp),
-                    &yyvs1, yysize * sizeof (*yyvsp),
+                    &yyss1, yysize * YYSIZEOF (*yyssp),
+                    &yyvs1, yysize * YYSIZEOF (*yyvsp),
                     &yystacksize);
-
         yyss = yyss1;
         yyvs = yyvs1;
       }
-#else /* no yyoverflow */
-# ifndef YYSTACK_RELOCATE
-      goto yyexhaustedlab;
-# else
+# else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
         goto yyexhaustedlab;
@@ -1385,42 +1481,43 @@ yyparse (void)
         yystacksize = YYMAXDEPTH;
 
       {
-        yytype_int16 *yyss1 = yyss;
+        yy_state_t *yyss1 = yyss;
         union yyalloc *yyptr =
-          (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+          YY_CAST (union yyalloc *,
+                   YYSTACK_ALLOC (YY_CAST (YYSIZE_T, YYSTACK_BYTES (yystacksize))));
         if (! yyptr)
           goto yyexhaustedlab;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
-#  undef YYSTACK_RELOCATE
+# undef YYSTACK_RELOCATE
         if (yyss1 != yyssa)
           YYSTACK_FREE (yyss1);
       }
 # endif
-#endif /* no yyoverflow */
 
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
 
-      YYDPRINTF ((stderr, "Stack size increased to %lu\n",
-                  (unsigned long int) yystacksize));
+      YY_IGNORE_USELESS_CAST_BEGIN
+      YYDPRINTF ((stderr, "Stack size increased to %ld\n",
+                  YY_CAST (long, yystacksize)));
+      YY_IGNORE_USELESS_CAST_END
 
       if (yyss + yystacksize - 1 <= yyssp)
         YYABORT;
     }
-
-  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+#endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
 
   if (yystate == YYFINAL)
     YYACCEPT;
 
   goto yybackup;
 
+
 /*-----------.
 | yybackup.  |
 `-----------*/
 yybackup:
-
   /* Do appropriate processing given the current state.  Read a
      lookahead token if we need one and don't already have one.  */
 
@@ -1470,15 +1567,13 @@ yybackup:
 
   /* Shift the lookahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
-
-  /* Discard the shifted token.  */
-  yychar = YYEMPTY;
-
   yystate = yyn;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 
+  /* Discard the shifted token.  */
+  yychar = YYEMPTY;
   goto yynewstate;
 
 
@@ -1493,7 +1588,7 @@ yydefault:
 
 
 /*-----------------------------.
-| yyreduce -- Do a reduction.  |
+| yyreduce -- do a reduction.  |
 `-----------------------------*/
 yyreduce:
   /* yyn is the number of a rule to reduce with.  */
@@ -1513,242 +1608,242 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 2:
-#line 74 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { *gaol_result_of_parsing = interval((yyvsp[0].itv).l,(yyvsp[0].itv).r); }
-#line 1520 "y.tab.c" /* yacc.c:1646  */
+  case 2:
+#line 74 "gaol_interval_parser.ypp"
+                                                { *gaol_result_of_parsing = interval((yyvsp[0].itv).l,(yyvsp[0].itv).r); }
+#line 1615 "y.tab.c"
     break;
 
   case 3:
-#line 78 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.itv) = (yyvsp[0].itv); }
-#line 1526 "y.tab.c" /* yacc.c:1646  */
+#line 78 "gaol_interval_parser.ypp"
+                                                                { (yyval.itv) = (yyvsp[0].itv); }
+#line 1621 "y.tab.c"
     break;
 
   case 4:
-#line 79 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)+interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
+#line 79 "gaol_interval_parser.ypp"
+                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)+interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
 						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1533 "y.tab.c" /* yacc.c:1646  */
+#line 1628 "y.tab.c"
     break;
 
   case 5:
-#line 81 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)-interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
+#line 81 "gaol_interval_parser.ypp"
+                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)-interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
 						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1540 "y.tab.c" /* yacc.c:1646  */
+#line 1635 "y.tab.c"
     break;
 
   case 6:
-#line 83 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)*interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
+#line 83 "gaol_interval_parser.ypp"
+                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)*interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
 						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1547 "y.tab.c" /* yacc.c:1646  */
+#line 1642 "y.tab.c"
     break;
 
   case 7:
-#line 85 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)/interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
+#line 85 "gaol_interval_parser.ypp"
+                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)/interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
 						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1554 "y.tab.c" /* yacc.c:1646  */
+#line 1649 "y.tab.c"
     break;
 
   case 8:
-#line 87 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv= -interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
+#line 87 "gaol_interval_parser.ypp"
+                                                { gaol_tmp_itv= -interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
 						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1561 "y.tab.c" /* yacc.c:1646  */
+#line 1656 "y.tab.c"
     break;
 
   case 9:
-#line 89 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.itv) = (yyvsp[0].itv); }
-#line 1567 "y.tab.c" /* yacc.c:1646  */
+#line 89 "gaol_interval_parser.ypp"
+                                                { (yyval.itv) = (yyvsp[0].itv); }
+#line 1662 "y.tab.c"
     break;
 
   case 10:
-#line 90 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.itv) = (yyvsp[0].itv); }
-#line 1573 "y.tab.c" /* yacc.c:1646  */
+#line 90 "gaol_interval_parser.ypp"
+                                                                { (yyval.itv) = (yyvsp[0].itv); }
+#line 1668 "y.tab.c"
     break;
 
   case 11:
-#line 91 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.itv) = (yyvsp[-1].itv); }
-#line 1579 "y.tab.c" /* yacc.c:1646  */
+#line 91 "gaol_interval_parser.ypp"
+                                                        { (yyval.itv) = (yyvsp[-1].itv); }
+#line 1674 "y.tab.c"
     break;
 
   case 12:
-#line 96 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=cos(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 96 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=cos(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1586 "y.tab.c" /* yacc.c:1646  */
+#line 1681 "y.tab.c"
     break;
 
   case 13:
-#line 98 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=sin(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 98 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=sin(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1593 "y.tab.c" /* yacc.c:1646  */
+#line 1688 "y.tab.c"
     break;
 
   case 14:
-#line 100 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=tan(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 100 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=tan(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1600 "y.tab.c" /* yacc.c:1646  */
+#line 1695 "y.tab.c"
     break;
 
   case 15:
-#line 102 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=atan2(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),
+#line 102 "gaol_interval_parser.ypp"
+                                                                { gaol_tmp_itv=atan2(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),
 							          						interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						    								(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1608 "y.tab.c" /* yacc.c:1646  */
+#line 1703 "y.tab.c"
     break;
 
   case 16:
-#line 105 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=acos(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 105 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=acos(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1615 "y.tab.c" /* yacc.c:1646  */
+#line 1710 "y.tab.c"
     break;
 
   case 17:
-#line 107 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=asin(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 107 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=asin(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1622 "y.tab.c" /* yacc.c:1646  */
+#line 1717 "y.tab.c"
     break;
 
   case 18:
-#line 109 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=atan(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 109 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=atan(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1629 "y.tab.c" /* yacc.c:1646  */
+#line 1724 "y.tab.c"
     break;
 
   case 19:
-#line 111 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=cosh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 111 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=cosh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1636 "y.tab.c" /* yacc.c:1646  */
+#line 1731 "y.tab.c"
     break;
 
   case 20:
-#line 113 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=sinh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 113 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=sinh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1643 "y.tab.c" /* yacc.c:1646  */
+#line 1738 "y.tab.c"
     break;
 
   case 21:
-#line 115 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=tanh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 115 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=tanh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1650 "y.tab.c" /* yacc.c:1646  */
+#line 1745 "y.tab.c"
     break;
 
   case 22:
-#line 117 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=acosh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 117 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=acosh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1657 "y.tab.c" /* yacc.c:1646  */
+#line 1752 "y.tab.c"
     break;
 
   case 23:
-#line 119 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=asinh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 119 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=asinh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1664 "y.tab.c" /* yacc.c:1646  */
+#line 1759 "y.tab.c"
     break;
 
   case 24:
-#line 121 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=atanh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 121 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=atanh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1671 "y.tab.c" /* yacc.c:1646  */
+#line 1766 "y.tab.c"
     break;
 
   case 25:
-#line 123 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=exp(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 123 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=exp(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1678 "y.tab.c" /* yacc.c:1646  */
+#line 1773 "y.tab.c"
     break;
 
   case 26:
-#line 125 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=log(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 125 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=log(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1685 "y.tab.c" /* yacc.c:1646  */
+#line 1780 "y.tab.c"
     break;
 
   case 27:
-#line 127 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=
+#line 127 "gaol_interval_parser.ypp"
+                                                                { gaol_tmp_itv=
 						   									pow(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						   									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1693 "y.tab.c" /* yacc.c:1646  */
+#line 1788 "y.tab.c"
     break;
 
   case 28:
-#line 130 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { gaol_tmp_itv=sqrt(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
+#line 130 "gaol_interval_parser.ypp"
+                                                                                { gaol_tmp_itv=sqrt(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
 						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1700 "y.tab.c" /* yacc.c:1646  */
+#line 1795 "y.tab.c"
     break;
 
   case 29:
-#line 132 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { interval tmp((yyvsp[-1].itv).l,(yyvsp[-1].itv).r);
+#line 132 "gaol_interval_parser.ypp"
+                                                             { interval tmp((yyvsp[-1].itv).l,(yyvsp[-1].itv).r);
 														   if (!tmp.is_an_int()) {
 					                                       		// not an int?
 																(yyval.itv).l=1; (yyval.itv).r=-1;
 																gaol_ERROR(invalid_action_error,
 																	"nth_root used with non integral 2nd arg.");
 														    } else {
-					     										gaol_tmp_itv=nth_root(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),int((yyvsp[-1].itv).l));
+					     										gaol_tmp_itv=nth_root(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),static_cast<unsigned int>((yyvsp[-1].itv).l));
 						       										(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
 														    }
-#line 1715 "y.tab.c" /* yacc.c:1646  */
+#line 1810 "y.tab.c"
     break;
 
   case 30:
-#line 145 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[0].expr)),
+#line 145 "gaol_interval_parser.ypp"
+                                                                { 	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[0].expr)),
 																gaol_result_of_parsing);
 											delete (yyvsp[0].expr);
 							  				(yyval.itv).l=gaol_result_of_parsing->left();
 					          				(yyval.itv).r=gaol_result_of_parsing->right();
 										}
-#line 1726 "y.tab.c" /* yacc.c:1646  */
+#line 1821 "y.tab.c"
     break;
 
   case 31:
-#line 152 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	*gaol_result_of_parsing = interval::emptyset();
+#line 152 "gaol_interval_parser.ypp"
+                                                                        { 	*gaol_result_of_parsing = interval::emptyset();
 					  						gaol_global_parsing_flag = true;
 											(yyval.itv).l=gaol_result_of_parsing->left();
 					  						(yyval.itv).r=gaol_result_of_parsing->right();
 										}
-#line 1736 "y.tab.c" /* yacc.c:1646  */
+#line 1831 "y.tab.c"
     break;
 
   case 32:
-#line 158 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    {	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[-1].expr)),
+#line 158 "gaol_interval_parser.ypp"
+                                                        {	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[-1].expr)),
 																gaol_result_of_parsing);
 					  						delete (yyvsp[-1].expr);
 											(yyval.itv).l=gaol_result_of_parsing->left();
 					  						(yyval.itv).r=gaol_result_of_parsing->right();
 										}
-#line 1747 "y.tab.c" /* yacc.c:1646  */
+#line 1842 "y.tab.c"
     break;
 
   case 33:
-#line 164 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[-3].expr)),
+#line 164 "gaol_interval_parser.ypp"
+                                                { 	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[-3].expr)),
 																			expression(*(yyvsp[-1].expr)),
 																			gaol_result_of_parsing);
 					  						delete (yyvsp[-3].expr);
@@ -1756,22 +1851,22 @@ yyreduce:
                                           	(yyval.itv).l=gaol_result_of_parsing->left();
 					  						(yyval.itv).r=gaol_result_of_parsing->right();
 										}
-#line 1760 "y.tab.c" /* yacc.c:1646  */
+#line 1855 "y.tab.c"
     break;
 
   case 34:
-#line 172 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	*gaol_result_of_parsing = interval::emptyset();
+#line 172 "gaol_interval_parser.ypp"
+                                                                { 	*gaol_result_of_parsing = interval::emptyset();
 					  						gaol_global_parsing_flag = true;
                                           	(yyval.itv).l=gaol_result_of_parsing->left();
 					  						(yyval.itv).r=gaol_result_of_parsing->right();
 										}
-#line 1770 "y.tab.c" /* yacc.c:1646  */
+#line 1865 "y.tab.c"
     break;
 
   case 35:
-#line 177 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[-3].expr)),
+#line 177 "gaol_interval_parser.ypp"
+                                            { 	gaol_global_parsing_flag = evaluate_left_right(expression(*(yyvsp[-3].expr)),
 																							expression(*(yyvsp[-1].expr)),
 																							gaol_result_of_parsing);
 											delete (yyvsp[-3].expr);
@@ -1782,212 +1877,212 @@ yyreduce:
 												gaol_ERROR(input_format_error, std::string("bounds of degenerate interval do not evaluate to the same value"));
 											}
 										}
-#line 1786 "y.tab.c" /* yacc.c:1646  */
+#line 1881 "y.tab.c"
     break;
 
   case 36:
-#line 191 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new double_node((yyvsp[0].d));
+#line 191 "gaol_interval_parser.ypp"
+                                                        { 	(yyval.expr) = new double_node((yyvsp[0].d));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1793 "y.tab.c" /* yacc.c:1646  */
+#line 1888 "y.tab.c"
     break;
 
   case 37:
-#line 193 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new double_node(std::numeric_limits<double>::min());
+#line 193 "gaol_interval_parser.ypp"
+                                                        { 	(yyval.expr) = new double_node(std::numeric_limits<double>::min());
 					  				(yyval.expr)->inc_refcount(); }
-#line 1800 "y.tab.c" /* yacc.c:1646  */
+#line 1895 "y.tab.c"
     break;
 
   case 38:
-#line 195 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new double_node(std::numeric_limits<double>::max());
+#line 195 "gaol_interval_parser.ypp"
+                                                        { 	(yyval.expr) = new double_node(std::numeric_limits<double>::max());
 					  				(yyval.expr)->inc_refcount(); }
-#line 1807 "y.tab.c" /* yacc.c:1646  */
+#line 1902 "y.tab.c"
     break;
 
   case 39:
-#line 197 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new interval_node(interval::pi());
+#line 197 "gaol_interval_parser.ypp"
+                                                        { 	(yyval.expr) = new interval_node(interval::pi());
 	                                (yyval.expr)->inc_refcount(); }
-#line 1814 "y.tab.c" /* yacc.c:1646  */
+#line 1909 "y.tab.c"
     break;
 
   case 40:
-#line 199 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new interval_node(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r));
+#line 199 "gaol_interval_parser.ypp"
+                                    { 	(yyval.expr) = new interval_node(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1821 "y.tab.c" /* yacc.c:1646  */
+#line 1916 "y.tab.c"
     break;
 
   case 41:
-#line 201 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new double_node(GAOL_INFINITY);
+#line 201 "gaol_interval_parser.ypp"
+                                                { 	(yyval.expr) = new double_node(GAOL_INFINITY);
 					  				(yyval.expr)->inc_refcount(); }
-#line 1828 "y.tab.c" /* yacc.c:1646  */
+#line 1923 "y.tab.c"
     break;
 
   case 42:
-#line 203 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new add_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
+#line 203 "gaol_interval_parser.ypp"
+                                        { 	(yyval.expr) = new add_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1835 "y.tab.c" /* yacc.c:1646  */
+#line 1930 "y.tab.c"
     break;
 
   case 43:
-#line 205 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new sub_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
+#line 205 "gaol_interval_parser.ypp"
+                                        { 	(yyval.expr) = new sub_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1842 "y.tab.c" /* yacc.c:1646  */
+#line 1937 "y.tab.c"
     break;
 
   case 44:
-#line 207 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new mult_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
+#line 207 "gaol_interval_parser.ypp"
+                                    { 	(yyval.expr) = new mult_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1849 "y.tab.c" /* yacc.c:1646  */
+#line 1944 "y.tab.c"
     break;
 
   case 45:
-#line 209 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    {	(yyval.expr) = new div_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
+#line 209 "gaol_interval_parser.ypp"
+                                    {	(yyval.expr) = new div_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1856 "y.tab.c" /* yacc.c:1646  */
+#line 1951 "y.tab.c"
     break;
 
   case 46:
-#line 211 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.expr) = new unary_minus_node(*(yyvsp[0].expr));
+#line 211 "gaol_interval_parser.ypp"
+                                      { (yyval.expr) = new unary_minus_node(*(yyvsp[0].expr));
 					  				(yyval.expr)->inc_refcount(); }
-#line 1863 "y.tab.c" /* yacc.c:1646  */
+#line 1958 "y.tab.c"
     break;
 
   case 47:
-#line 213 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.expr) = (yyvsp[0].expr); }
-#line 1869 "y.tab.c" /* yacc.c:1646  */
+#line 213 "gaol_interval_parser.ypp"
+                                      { (yyval.expr) = (yyvsp[0].expr); }
+#line 1964 "y.tab.c"
     break;
 
   case 48:
-#line 214 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.expr) = (yyvsp[0].expr); }
-#line 1875 "y.tab.c" /* yacc.c:1646  */
+#line 214 "gaol_interval_parser.ypp"
+                                                { (yyval.expr) = (yyvsp[0].expr); }
+#line 1970 "y.tab.c"
     break;
 
   case 49:
-#line 215 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { (yyval.expr) = (yyvsp[-1].expr); }
-#line 1881 "y.tab.c" /* yacc.c:1646  */
+#line 215 "gaol_interval_parser.ypp"
+                                        { (yyval.expr) = (yyvsp[-1].expr); }
+#line 1976 "y.tab.c"
     break;
 
   case 50:
-#line 219 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new cos_node(*(yyvsp[-1].expr));
+#line 219 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new cos_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1888 "y.tab.c" /* yacc.c:1646  */
+#line 1983 "y.tab.c"
     break;
 
   case 51:
-#line 221 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new sin_node(*(yyvsp[-1].expr));
+#line 221 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new sin_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1895 "y.tab.c" /* yacc.c:1646  */
+#line 1990 "y.tab.c"
     break;
 
   case 52:
-#line 223 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new tan_node(*(yyvsp[-1].expr));
+#line 223 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new tan_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1902 "y.tab.c" /* yacc.c:1646  */
+#line 1997 "y.tab.c"
     break;
 
   case 53:
-#line 225 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new atan2_node(*(yyvsp[-3].expr), *(yyvsp[-1].expr));
+#line 225 "gaol_interval_parser.ypp"
+                                                        { 	(yyval.expr) = new atan2_node(*(yyvsp[-3].expr), *(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1909 "y.tab.c" /* yacc.c:1646  */
+#line 2004 "y.tab.c"
     break;
 
   case 54:
-#line 227 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new acos_node(*(yyvsp[-1].expr));
+#line 227 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new acos_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1916 "y.tab.c" /* yacc.c:1646  */
+#line 2011 "y.tab.c"
     break;
 
   case 55:
-#line 229 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new asin_node(*(yyvsp[-1].expr));
+#line 229 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new asin_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1923 "y.tab.c" /* yacc.c:1646  */
+#line 2018 "y.tab.c"
     break;
 
   case 56:
-#line 231 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new atan_node(*(yyvsp[-1].expr));
+#line 231 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new atan_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1930 "y.tab.c" /* yacc.c:1646  */
+#line 2025 "y.tab.c"
     break;
 
   case 57:
-#line 233 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new cosh_node(*(yyvsp[-1].expr));
+#line 233 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new cosh_node(*(yyvsp[-1].expr));
 														(yyval.expr)->inc_refcount(); }
-#line 1937 "y.tab.c" /* yacc.c:1646  */
+#line 2032 "y.tab.c"
     break;
 
   case 58:
-#line 235 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new sinh_node(*(yyvsp[-1].expr));
+#line 235 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new sinh_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1944 "y.tab.c" /* yacc.c:1646  */
+#line 2039 "y.tab.c"
     break;
 
   case 59:
-#line 237 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new tanh_node(*(yyvsp[-1].expr));
+#line 237 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new tanh_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1951 "y.tab.c" /* yacc.c:1646  */
+#line 2046 "y.tab.c"
     break;
 
   case 60:
-#line 239 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new acosh_node(*(yyvsp[-1].expr));
+#line 239 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new acosh_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1958 "y.tab.c" /* yacc.c:1646  */
+#line 2053 "y.tab.c"
     break;
 
   case 61:
-#line 241 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new asinh_node(*(yyvsp[-1].expr));
+#line 241 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new asinh_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1965 "y.tab.c" /* yacc.c:1646  */
+#line 2060 "y.tab.c"
     break;
 
   case 62:
-#line 243 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new atanh_node(*(yyvsp[-1].expr));
+#line 243 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new atanh_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1972 "y.tab.c" /* yacc.c:1646  */
+#line 2067 "y.tab.c"
     break;
 
   case 63:
-#line 245 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new exp_node(*(yyvsp[-1].expr));
+#line 245 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new exp_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1979 "y.tab.c" /* yacc.c:1646  */
+#line 2074 "y.tab.c"
     break;
 
   case 64:
-#line 247 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	(yyval.expr) = new log_node(*(yyvsp[-1].expr));
+#line 247 "gaol_interval_parser.ypp"
+                                                                        { 	(yyval.expr) = new log_node(*(yyvsp[-1].expr));
 					  									(yyval.expr)->inc_refcount(); }
-#line 1986 "y.tab.c" /* yacc.c:1646  */
+#line 2081 "y.tab.c"
     break;
 
   case 65:
-#line 249 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	interval tmp;
+#line 249 "gaol_interval_parser.ypp"
+                                                        { 	interval tmp;
 					  									gaol_global_parsing_flag =
 					    									evaluate_expr(expression(*(yyvsp[-1].expr)),tmp);
 														if (!gaol_global_parsing_flag) { // Error?
@@ -2000,7 +2095,7 @@ yyreduce:
 																(yyval.expr)->inc_refcount();
        					     								} else {
 					        									if (tmp.left() > 0) {
-					           										(yyval.expr) = new pow_node(*(yyvsp[-3].expr),(unsigned int)(tmp.left()));
+					           										(yyval.expr) = new pow_node(*(yyvsp[-3].expr),static_cast<int>(tmp.left()));
 	 				           										(yyval.expr)->inc_refcount();
                                                					} else {
 						  											expr_node *one = new double_node(1.0);
@@ -2008,7 +2103,7 @@ yyreduce:
 						  											if (tmp.left() < 0) {
 					           											// translating x^(-a) into 1/(x^a)
 						     											expr_node *e = new pow_node(*(yyvsp[-3].expr),
-																							(unsigned int)(-tmp.left()));
+																							static_cast<int>(-tmp.left()));
 						     											e->inc_refcount();
 						     											(yyval.expr) = new div_node(*one,*e);
 						     											(yyval.expr)->inc_refcount();
@@ -2019,20 +2114,20 @@ yyreduce:
 					     									}
                                           				}
                                         			}
-#line 2023 "y.tab.c" /* yacc.c:1646  */
+#line 2118 "y.tab.c"
     break;
 
   case 66:
-#line 281 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    {	(yyval.expr) = new nth_root_node(*(yyvsp[-1].expr),2);
+#line 281 "gaol_interval_parser.ypp"
+                                                                        {	(yyval.expr) = new nth_root_node(*(yyvsp[-1].expr),2);
 					  									(yyval.expr)->inc_refcount();
 													}
-#line 2031 "y.tab.c" /* yacc.c:1646  */
+#line 2126 "y.tab.c"
     break;
 
   case 67:
-#line 284 "gaol_interval_parser.ypp" /* yacc.c:1646  */
-    { 	interval tmp;
+#line 284 "gaol_interval_parser.ypp"
+                                                         { 	interval tmp;
 					  									gaol_global_parsing_flag =
 					    									evaluate_expr(expression(*(yyvsp[-1].expr)),tmp);
 														if (!tmp.is_an_int() || !gaol_global_parsing_flag) {
@@ -2040,15 +2135,16 @@ yyreduce:
 															(yyval.expr) = the_null_expr;
 															(yyval.expr)->inc_refcount();
        					  								} else {
-					     									(yyval.expr) = new nth_root_node(*(yyvsp[-3].expr),int(tmp.left()));
+					     									(yyval.expr) = new nth_root_node(*(yyvsp[-3].expr),static_cast<unsigned int>(tmp.left()));
 					     									(yyval.expr)->inc_refcount();
 					 									}
 													  }
-#line 2048 "y.tab.c" /* yacc.c:1646  */
+#line 2143 "y.tab.c"
     break;
 
 
-#line 2052 "y.tab.c" /* yacc.c:1646  */
+#line 2147 "y.tab.c"
+
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2073,14 +2169,13 @@ yyreduce:
   /* Now 'shift' the result of the reduction.  Determine what state
      that goes to, based on the state we popped back to and the rule
      number reduced by.  */
-
-  yyn = yyr1[yyn];
-
-  yystate = yypgoto[yyn - YYNTOKENS] + *yyssp;
-  if (0 <= yystate && yystate <= YYLAST && yycheck[yystate] == *yyssp)
-    yystate = yytable[yystate];
-  else
-    yystate = yydefgoto[yyn - YYNTOKENS];
+  {
+    const int yylhs = yyr1[yyn] - YYNTOKENS;
+    const int yyi = yypgoto[yylhs] + *yyssp;
+    yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == *yyssp
+               ? yytable[yyi]
+               : yydefgoto[yylhs]);
+  }
 
   goto yynewstate;
 
@@ -2112,7 +2207,7 @@ yyerrlab:
           {
             if (yymsg != yymsgbuf)
               YYSTACK_FREE (yymsg);
-            yymsg = (char *) YYSTACK_ALLOC (yymsg_alloc);
+            yymsg = YY_CAST (char *, YYSTACK_ALLOC (YY_CAST (YYSIZE_T, yymsg_alloc)));
             if (!yymsg)
               {
                 yymsg = yymsgbuf;
@@ -2163,12 +2258,10 @@ yyerrlab:
 | yyerrorlab -- error raised explicitly by YYERROR.  |
 `---------------------------------------------------*/
 yyerrorlab:
-
-  /* Pacify compilers like GCC when the user code never invokes
-     YYERROR and the label yyerrorlab therefore never appears in user
-     code.  */
-  if (/*CONSTCOND*/ 0)
-     goto yyerrorlab;
+  /* Pacify compilers when the user code never invokes YYERROR and the
+     label yyerrorlab therefore never appears in user code.  */
+  if (0)
+    YYERROR;
 
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYERROR.  */
@@ -2230,12 +2323,14 @@ yyacceptlab:
   yyresult = 0;
   goto yyreturn;
 
+
 /*-----------------------------------.
 | yyabortlab -- YYABORT comes here.  |
 `-----------------------------------*/
 yyabortlab:
   yyresult = 1;
   goto yyreturn;
+
 
 #if !defined yyoverflow || YYERROR_VERBOSE
 /*-------------------------------------------------.
@@ -2247,6 +2342,10 @@ yyexhaustedlab:
   /* Fall through.  */
 #endif
 
+
+/*-----------------------------------------------------.
+| yyreturn -- parsing is finished, return the result.  |
+`-----------------------------------------------------*/
 yyreturn:
   if (yychar != YYEMPTY)
     {
@@ -2263,7 +2362,7 @@ yyreturn:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  yystos[*yyssp], yyvsp);
+                  yystos[+*yyssp], yyvsp);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -2276,7 +2375,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 298 "gaol_interval_parser.ypp" /* yacc.c:1906  */
+#line 298 "gaol_interval_parser.ypp"
 
 
 int gaol_error_bison(const char *s ...)

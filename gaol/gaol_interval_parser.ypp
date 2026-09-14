@@ -136,7 +136,7 @@ itv_function_call
 																gaol_ERROR(invalid_action_error,
 																	"nth_root used with non integral 2nd arg.");
 														    } else {
-					     										gaol_tmp_itv=nth_root(interval($3.l,$3.r),int($5.l));
+					     										gaol_tmp_itv=nth_root(interval($3.l,$3.r),static_cast<unsigned int>($5.l));
 						       										$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
 														    }
 	;
@@ -259,7 +259,7 @@ function_call
 																$$->inc_refcount();
        					     								} else {
 					        									if (tmp.left() > 0) {
-					           										$$ = new pow_node(*$3,(unsigned int)(tmp.left()));
+					           										$$ = new pow_node(*$3,static_cast<int>(tmp.left()));
 	 				           										$$->inc_refcount();
                                                					} else {
 						  											expr_node *one = new double_node(1.0);
@@ -267,7 +267,7 @@ function_call
 						  											if (tmp.left() < 0) {
 					           											// translating x^(-a) into 1/(x^a)
 						     											expr_node *e = new pow_node(*$3,
-																							(unsigned int)(-tmp.left()));
+																							static_cast<int>(-tmp.left()));
 						     											e->inc_refcount();
 						     											$$ = new div_node(*one,*e);
 						     											$$->inc_refcount();
@@ -289,7 +289,7 @@ function_call
 															$$ = the_null_expr;
 															$$->inc_refcount();
        					  								} else {
-					     									$$ = new nth_root_node(*$3,int(tmp.left()));
+					     									$$ = new nth_root_node(*$3,static_cast<unsigned int>(tmp.left()));
 					     									$$->inc_refcount();
 					 									}
 													  }

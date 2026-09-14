@@ -413,10 +413,10 @@ namespace gaol {
 			return I;
 		}
 		if (n < 0) {
-			return uipow(I,-n).inverse(); 
+			return uipow(I,0u - static_cast<unsigned int>(n)).inverse(); 
 		} else {
 			if (n > 0) {
-				return uipow(I,n);
+				return uipow(I,static_cast<unsigned int>(n));
 			} else {
 				return intervalf(1.0);
 			}

@@ -3085,10 +3085,10 @@ interval2f interval2f::inverse() const
 	{
 		// FIXME: handle empty input
 		if (n < 0) {
-			return inverse(uipow(I,-n));
+			return inverse(uipow(I,0u - static_cast<unsigned int>(n)));
 		} else {
 			if (n > 0) {
-				return uipow(I,n);
+				return uipow(I,static_cast<unsigned int>(n));
 			} else {
 				return interval2f(1.0);
 			}

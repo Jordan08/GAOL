@@ -441,10 +441,10 @@ INLINE uint32_t reverse_bits(uint32_t v)
      20, 8, 19, 18
     };
 
-    uint32_t res =  (reverse_lookup[v & 0xff] << 24) |
-                    (reverse_lookup[(v >> 8) & 0xff] << 16) |
-                    (reverse_lookup[(v >> 16) & 0xff] << 8) |
-                    (reverse_lookup[(v >> 24) & 0xff]);
+    uint32_t res =  (static_cast<uint32_t>(reverse_lookup[v & 0xff]) << 24) |
+                    (static_cast<uint32_t>(reverse_lookup[(v >> 8) & 0xff]) << 16) |
+                    (static_cast<uint32_t>(reverse_lookup[(v >> 16) & 0xff]) << 8) |
+                    static_cast<uint32_t>(reverse_lookup[(v >> 24) & 0xff]);
 
     return res >> Mod37BitPosition[(-res & res) % 37];
 }

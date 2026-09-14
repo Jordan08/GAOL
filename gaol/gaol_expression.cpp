@@ -1204,7 +1204,7 @@ namespace gaol {
 
   const expression pow(const expression& e, unsigned int n)
   {
-    return *(new pow_node(e,n));
+    return *(new pow_node(e,static_cast<int>(n)));
   }
 
   const expression pow(const expression& e1, const expression &e2)
