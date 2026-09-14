@@ -125,8 +125,11 @@ operations being inline.
 
 Each operation of GAOL sets the rounding direction upward when it is not, and
 leaves it upward, whichever way GAOL is built (CMake, autotools or meson). The
-bounds are then right whatever rounding direction the calling code left, and
-the check costs about a nanosecond. Code that needs its own rounding direction
+bounds are then right whatever rounding direction the calling code left. The
+check is an addition, 1 + 2^-60, above 1 only when rounded upward, rather than
+a reading of the rounding direction, which cost far more under Rosetta 2 and
+with 32-bit Visual C++ (see [What differs from GAOL](#what-differs-from-gaol)).
+Code that needs its own rounding direction
 after GAOL's operations builds GAOL with `GAOL_PRESERVE_ROUNDING` `ON`
 (`--enable-preserve-rounding` with autotools, `-Denable-preserve-rounding=true`
 with meson): each operation then also restores the rounding direction it found,
@@ -155,7 +158,8 @@ Codac.
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
-  have to be the tightest enclosures.
+  have to be the tightest enclosures, also when computed in a loop that changes
+  the rounding direction before each of them.
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
   be the tightest enclosures of π, 2π and π/2.
@@ -222,6 +226,14 @@ Each change is a commit of its own, and says where it comes from.
   variable: GCC does not implement `#pragma STDC FENV_ACCESS`, and moved the
   computation of the midpoint after `fesetround()`
   ([GCC bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)).
+  Whether the direction is upward is shown by an addition, 1 + 2^-60 with
+  2^-60 read from `volatile` memory, wherever doubles are computed in double
+  precision.
+  Reading it instead, with the SSE register and `fegetround()`, made `x + y`
+  take 800 ns rather than 2.8 ns under Rosetta 2, 82 to 98 ns rather than 2.6
+  to 4 ns with 32-bit Visual C++, and 48 ns rather than 6.4 ns with 32-bit
+  MinGW-w64 15.2; and Clang 18 read MXCSR once for a whole loop that changed
+  the rounding direction.
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.

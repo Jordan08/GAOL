@@ -31,6 +31,7 @@
 #ifndef __gaol_fpu_h__
 #define __gaol_fpu_h__
 
+#include <cfloat>
 #include <cmath>
 #include <cstddef>
 #include "gaol/gaol_config.h"
@@ -43,6 +44,13 @@
 #  define GAOL_RND_SSE_REGISTER 1
 #endif
 
+// Doubles computed in double precision, whose rounding direction an addition
+// shows (see round_upward_if_needed())
+#if (defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0) || defined(_M_X64) || defined(_M_ARM64) \
+    || defined(_M_ARM) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  define GAOL_RND_PROBE 1
+#endif
+
 /*
   The rounding direction of GAOL's operations
 
@@ -53,7 +61,7 @@
   By default (GAOL_PRESERVE_ROUNDING undefined), GAOL_RND_ENTER() sets the
   rounding direction upward when it is not, and the operations leave it
   upward: their bounds are right whatever direction the code using GAOL set,
-  for the cost of reading the direction (one instruction on x86-64).
+  for the cost of an addition that shows the direction.
   GAOL_RND_PRESERVE() and GAOL_RND_RESTORE() frame the computations made in
   another direction, after which the direction is set upward again.
 
@@ -135,18 +143,25 @@ namespace gaol {
 #endif
   }
 
-  //! Sets the rounding direction upward, unless it already is
+  /*!
+    \brief Sets the rounding direction upward, unless it already is
+
+    Where doubles are computed in double precision (GAOL_RND_PROBE), the
+    direction is shown by 1 + 2^-60, above 1 only when rounded upward, in the
+    unit computing GAOL's doubles. 2^-60 is read from volatile memory: no
+    compiler can compute the sum at compile time, or reuse the one of another
+    call, and no rewriting of 1 + x != 1 is valid with doubles. Reading the
+    direction cost more: reading MXCSR about 800 ns under Rosetta 2,
+    fegetround() and MXCSR about 80 ns with 32-bit Visual C++, and Clang 18
+    reused a single read of MXCSR in a loop that changed the rounding
+    direction. The C library computes in the direction GAOL sets before
+    calling it (round_nearest()), whatever the x87 unit had.
+  */
   INLINE void round_upward_if_needed()
   {
-#if defined(__x86_64__) || defined(_M_X64)
-    // GAOL's doubles are computed with SSE instructions
-    if ((_mm_getcsr() & _MM_ROUND_MASK) != _MM_ROUND_UP) {
-      round_upward();
-    }
-#elif GAOL_RND_SSE_REGISTER
-    // 32-bit x86: SSE instructions for GAOL's doubles, the x87 unit for the C
-    // library
-    if ((_mm_getcsr() & _MM_ROUND_MASK) != _MM_ROUND_UP || fegetround() != FE_UPWARD) {
+#if GAOL_RND_PROBE
+    static const volatile double tiny = 1.0/1152921504606846976.0; // 2^-60
+    if (1.0 + tiny == 1.0) {
       round_upward();
     }
 #else

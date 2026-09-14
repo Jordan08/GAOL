@@ -127,6 +127,21 @@ namespace
     return "fegetround() " + std::to_string(s.fenv) + ", SSE rounding bits " + std::to_string(s.sse);
   }
 
+  // Products and sums computed in a loop that changes the rounding direction
+  // before each of them. A compiler may read the rounding direction once for
+  // the whole loop, when it does not know that fesetround() changes it: Clang 18
+  // did so with a read of MXCSR. GAOL would then not set the direction upward.
+  void products_and_sums_in_a_loop(const std::vector<double>& a, const std::vector<double>& b,
+                                   std::vector<interval>& p, std::vector<interval>& s)
+  {
+    const std::size_t nb_directions = sizeof(directions)/sizeof(directions[0]);
+    for (std::size_t i = 0; i < a.size(); ++i) {
+      set(directions[i % nb_directions]);
+      p[i] = interval(a[i]) * interval(b[i]);
+      s[i] = interval(a[i]) + interval(b[i]);
+    }
+  }
+
   std::string run(const Operation& op, const interval& x, const interval& y)
   {
     try {
@@ -290,6 +305,27 @@ int main()
         check("[a]+[b] the tightest enclosure after " + name, is_tightest_enclosure(s, exact(dyadic(a) + dyadic(b))),
               [&] { return describe() + ", a=" + hex(a) + " b=" + hex(b) + ": " + hex(s); });
       }
+    }
+  }
+
+  // Products and sums in a loop changing the rounding direction before each
+  {
+    const std::size_t n = 600, nb_directions = sizeof(directions)/sizeof(directions[0]);
+    std::vector<double> a(n), b(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      a[i] = random(-30, 30);
+      b[i] = random(-30, 30);
+    }
+    std::vector<interval> p(n), s(n);
+    products_and_sums_in_a_loop(a, b, p, s);
+    set(directions[0]);
+    for (std::size_t i = 0; i < n; ++i) {
+      const auto describe = [&] { return std::string("rounding direction ") + directions[i % nb_directions].name
+                                         + ", a=" + hex(a[i]) + " b=" + hex(b[i]); };
+      check("[a]*[b] the tightest enclosure in a loop changing the rounding direction",
+            is_tightest_enclosure(p[i], exact(dyadic(a[i])*dyadic(b[i]))), [&] { return describe() + ": " + hex(p[i]); });
+      check("[a]+[b] the tightest enclosure in a loop changing the rounding direction",
+            is_tightest_enclosure(s[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(s[i]); });
     }
   }
 
