@@ -281,20 +281,6 @@ endif
 if c_comp.has_argument('-Wconversion')
   add_global_arguments(['-Wconversion'], language: 'c')
 endif
-# -ffloat-store only where doubles are still computed on the x87 unit
-# (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
-# double (as CMakeLists.txt)
-float_store_needed = cpp_comp.compiles('''
-  #include <cfloat>
-  #if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
-  #error doubles are computed in double precision
-  #endif
-  int main() { return 0; }
-''', name: 'doubles computed in extended precision')
-if float_store_needed and cpp_comp.has_argument('-ffloat-store')
-  add_global_arguments(['-ffloat-store'], language: 'c')
-  add_global_arguments(['-ffloat-store'], language: 'cpp')
-endif
 # enable-optimize: the optimizations configure adds for g++, where the compiler
 # takes them, on top of the build type
 if get_option('enable-optimize')
@@ -317,6 +303,7 @@ endif
 # Windows, where a std::vector of them crashes (see CMakeLists.txt).
 use_sse2 = false
 use_sse3 = false
+x86_args = []
 target_x86 = cpp_comp.compiles('''
 #if !(defined(__i386__) || defined(__x86_64__))
 #error not an x86 processor
@@ -331,8 +318,9 @@ int main() { return 0; }
 ''', name: 'the target is a 32-bit x86 processor')
 if target_x86
   if target_x86_32 and cpp_comp.has_multi_arguments('-msse2', '-mfpmath=sse')
-    add_global_arguments(['-msse2', '-mfpmath=sse'], language: 'cpp')
-    add_global_arguments(['-msse2', '-mfpmath=sse'], language: 'c')
+    x86_args = ['-msse2', '-mfpmath=sse']
+    add_global_arguments(x86_args, language: 'cpp')
+    add_global_arguments(x86_args, language: 'c')
   endif
   if simd and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
@@ -344,6 +332,22 @@ if target_x86
       add_global_arguments(['-msse3'], language: 'cpp')
     endif
   endif
+endif
+
+# -ffloat-store only where doubles are still computed on the x87 unit
+# (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
+# double (as CMakeLists.txt): checked with the flags of 32-bit x86 above, which
+# the checks of the compiler do not get from add_global_arguments()
+float_store_needed = cpp_comp.compiles('''
+  #include <cfloat>
+  #if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
+  #error doubles are computed in double precision
+  #endif
+  int main() { return 0; }
+''', args: x86_args, name: 'doubles computed in extended precision')
+if float_store_needed and cpp_comp.has_argument('-ffloat-store')
+  add_global_arguments(['-ffloat-store'], language: 'c')
+  add_global_arguments(['-ffloat-store'], language: 'cpp')
 endif
 
 flex = find_program('flex', required: true)
