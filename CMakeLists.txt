@@ -51,6 +51,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 option(GAOL_BUILD_MATHLIB "Download and build mathlib when no installed mathlib is found" ON)
+option(GAOL_FIND_MATHLIB "Look for an installed mathlib before building one" ON)
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest" ${GAOL_IS_TOP_LEVEL})
 set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library)")
 
@@ -208,16 +209,30 @@ message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
 #
 # libgaol, a static library, does not link mathlib itself, but whatever links
 # GAOL has to: gaol::gaol links it.
+#
+# With GAOL_FIND_MATHLIB OFF, no installed mathlib is looked for, and the one
+# built here is the one GAOL links and installs: a project building GAOL for
+# itself (as Codac does, with ExternalProject) can then count on finding
+# libultim and MathLib.h under the installation prefix it gave, whatever
+# mathlib the machine has. GAOL_FIND_MATHLIB is tested after the search too, so
+# that a mathlib found by an earlier configuration, kept in the cache, is not
+# used either.
 
-find_path(MATHLIB_INCDIR MathLib.h HINTS "${MATHLIB_DIR}" PATH_SUFFIXES include)
-find_library(MATHLIB_LIB ultim HINTS "${MATHLIB_DIR}" PATH_SUFFIXES lib)
+if(GAOL_FIND_MATHLIB)
+  find_path(MATHLIB_INCDIR MathLib.h HINTS "${MATHLIB_DIR}" PATH_SUFFIXES include)
+  find_library(MATHLIB_LIB ultim HINTS "${MATHLIB_DIR}" PATH_SUFFIXES lib)
+endif()
 
 set(GAOL_MATHLIB "")
-if(MATHLIB_INCDIR AND MATHLIB_LIB)
+if(GAOL_FIND_MATHLIB AND MATHLIB_INCDIR AND MATHLIB_LIB)
   message(STATUS "Found mathlib: ${MATHLIB_LIB}")
   set(GAOL_MATHLIB "${MATHLIB_LIB}")
 elseif(GAOL_BUILD_MATHLIB)
-  message(STATUS "mathlib not found: it will be downloaded and built")
+  if(GAOL_FIND_MATHLIB)
+    message(STATUS "mathlib not found: it will be downloaded and built")
+  else()
+    message(STATUS "GAOL_FIND_MATHLIB is OFF: mathlib will be downloaded and built")
+  endif()
   include(FetchContent)
   # The CMake build of cmake/mathlib/ exports libultim along with libgaol
   set(MATHLIB_EXPORT_NAME gaolTargets)
@@ -243,8 +258,10 @@ elseif(GAOL_BUILD_MATHLIB)
   FetchContent_MakeAvailable(mathlib)
   target_compile_options(ultim PRIVATE ${GAOL_INTERVAL_FLAGS})
   set(GAOL_MATHLIB ultim)
-else()
+elseif(GAOL_FIND_MATHLIB)
   message(WARNING "mathlib not found and GAOL_BUILD_MATHLIB is OFF: link the ultim library along with GAOL.")
+else()
+  message(WARNING "GAOL_FIND_MATHLIB and GAOL_BUILD_MATHLIB are OFF: link the ultim library along with GAOL.")
 endif()
 
 

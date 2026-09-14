@@ -76,17 +76,21 @@ cmake --install build --config Release
 
 GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
 Mathematical Library (libultim). The build looks for an installed mathlib
-(`MathLib.h` and the `ultim` library, under `MATHLIB_DIR` or the usual paths).
-When there is none, it downloads mathlib 2.1.1 from
+(`MathLib.h` and the `ultim` library, under `MATHLIB_DIR` or the usual paths),
+unless `GAOL_FIND_MATHLIB` is `OFF`. When there is none, or none is looked for,
+it downloads mathlib 2.1.1 from
 [Frédéric Goualard's site](https://frederic.goualard.net/)
 (`mathlib-2.1.1.tar.gz`, checked against its SHA256), fixes bugs of it (see
 [What differs from GAOL](#what-differs-from-gaol)), builds it with the CMake
 build of `cmake/mathlib/`, and installs it along with GAOL. An installed mathlib
-is used as it is.
+is used as it is. A project building GAOL for itself, as Codac does, sets
+`GAOL_FIND_MATHLIB` to `OFF` to find mathlib under the installation prefix it
+gives, whatever mathlib the machine has.
 
 | Option | Default | |
 |---|---|---|
 | `GAOL_BUILD_MATHLIB` | `ON` | Download and build mathlib when no installed mathlib is found |
+| `GAOL_FIND_MATHLIB` | `ON` | Look for an installed mathlib before building one; `OFF` builds mathlib even where one is installed |
 | `MATHLIB_DIR` | | Installation prefix of an installed mathlib |
 | `GAOL_BUILD_TESTS` | `ON` when GAOL is the main project | Build the tests, which `ctest` runs |
 
