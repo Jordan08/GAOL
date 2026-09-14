@@ -79,8 +79,10 @@ Mathematical Library (libultim). The build looks for an installed mathlib
 (`MathLib.h` and the `ultim` library, under `MATHLIB_DIR` or the usual paths).
 When there is none, it downloads mathlib 2.1.1 from
 [Frédéric Goualard's site](https://frederic.goualard.net/)
-(`mathlib-2.1.1.tar.gz`, checked against its SHA256), builds it with the CMake
-build of `cmake/mathlib/`, and installs it along with GAOL.
+(`mathlib-2.1.1.tar.gz`, checked against its SHA256), fixes its cosine (see
+[What differs from GAOL](#what-differs-from-gaol)), builds it with the CMake
+build of `cmake/mathlib/`, and installs it along with GAOL. An installed mathlib
+is used as it is.
 
 | Option | Default | |
 |---|---|---|
@@ -207,6 +209,15 @@ Each change is a commit of its own, and says where it comes from.
   - `pow(I, J)` computed the powers of the negative part of `I` on its
     magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It now keeps the
     negative part of `I` only for an integer exponent.
+- **The cosine of mathlib** (`cmake/mathlib/prepare.cmake`): for the arguments
+  hardest to round, mathlib computes cos(x) with multiple-precision numbers, as
+  sin(π/2 − x) when x > 0.8, and `mpcos()` returned the cosine of π/2 − x
+  instead, which is sin(x). `cos()` then gave bounds not enclosing cos(x), off
+  by up to 9%, at 54 of the hard-to-round arguments of cos of
+  [CORE-MATH](https://gitlab.inria.fr/core-math/core-math), all between 0.80
+  and 0.853 ([dreal-deps/mathlib#2](https://github.com/dreal-deps/mathlib/issues/2)).
+  The CMake build fixes the call to `c32()` in `mpcos()` in the sources it
+  downloads, the line glibc fixed in its copy of the same code in 2003.
 - **Clang is refused for 32-bit ARM processors**, where it does not honour the
   rounding direction: built by Clang 21, 4556 of 16000 random products, squares
   and cubes did not enclose their exact values.

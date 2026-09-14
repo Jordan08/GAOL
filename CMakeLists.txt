@@ -226,12 +226,19 @@ elseif(GAOL_BUILD_MATHLIB)
     list(APPEND _download_options DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
   endif()
   # mathlib 2.1.1, as Frederic Goualard distributes it (GNU GPL v2 or later),
-  # the archive GAOL's README points to; its checksum is checked.
+  # the archive GAOL's README points to; its checksum is checked. prepare.cmake
+  # adds the CMake build and fixes the cosine of mathlib. It is given its own
+  # checksum: the patch step runs again when its command changes, not when the
+  # script does, and a new prepare.cmake then reaches the mathlib already
+  # downloaded in a build directory.
+  set(_prepare "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mathlib/prepare.cmake")
+  file(SHA256 "${_prepare}" _prepare_sha256)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_prepare}")
   FetchContent_Declare(mathlib
     URL https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz
     URL_HASH SHA256=f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281
     ${_download_options}
-    PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mathlib/prepare.cmake"
+    PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -DPREPARE_SHA256=${_prepare_sha256} -P "${_prepare}"
   )
   FetchContent_MakeAvailable(mathlib)
   target_compile_options(ultim PRIVATE ${GAOL_INTERVAL_FLAGS})

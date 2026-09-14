@@ -81,6 +81,28 @@ def exponents(emin, emax, n, signed=True):
     return [random_double(emin, emax, signed) for _ in range(n)]
 
 
+# The hard-to-round arguments of cos of CORE-MATH
+# (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) at
+# which mathlib 2.1.1 returned sin(x), before cmake/mathlib/prepare.cmake fixed
+# its multiple-precision cosine
+MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
+    0x1.9a25c721c7bfep-1 0x1.9a27a4b746fa2p-1 0x1.9a92cdb25a2e1p-1 0x1.9c3503f763063p-1
+    0x1.9c445d0ecfbabp-1 0x1.9cd9b3bb42eeep-1 0x1.9e2eb96bbac15p-1 0x1.9efb0f4c665a3p-1
+    0x1.9f1dca15e3c4fp-1 0x1.a037deedfef12p-1 0x1.a068fc11563cbp-1 0x1.a2ccde767b5bep-1
+    0x1.a2d818554d9a2p-1 0x1.a2daa4715c263p-1 0x1.a2db798a76d51p-1 0x1.a3610c3b3512ep-1
+    0x1.a40ac59889006p-1 0x1.a462b4eca016ap-1 0x1.a48078b5c8f6bp-1 0x1.a4b9b157b1341p-1
+    0x1.a5ac57997209cp-1 0x1.a6a427a473eecp-1 0x1.a786eb7b48cf6p-1 0x1.a79c90f186829p-1
+    0x1.a856249377deep-1 0x1.a8959110068fbp-1 0x1.a8d0c37d76c3dp-1 0x1.a90e5135be748p-1
+    0x1.a96a3ee46bc45p-1 0x1.a9a75acc14c7bp-1 0x1.aa456f9d3af6ap-1 0x1.ab9aa131593adp-1
+    0x1.abf74e0d821acp-1 0x1.ac758888bce59p-1 0x1.ad4eede693814p-1 0x1.ae17031f15ce4p-1
+    0x1.ae3b990616ccfp-1 0x1.ae7472140f83dp-1 0x1.af4c1166abe16p-1 0x1.af89eeff8224p-1
+    0x1.afacecdc00157p-1 0x1.aff1137dbb9f2p-1 0x1.b003f98660f2cp-1 0x1.b08ec50bdce6bp-1
+    0x1.b1452182b7e85p-1 0x1.b31cef6342dd8p-1 0x1.b33ae70065978p-1 0x1.b35d8c88afcdp-1
+    0x1.b3abae24db453p-1 0x1.b3c84d585eb78p-1 0x1.b3df954783e23p-1 0x1.b4287fe717028p-1
+    0x1.b434e9418d78dp-1 0x1.b4b54238060cbp-1
+""".split()]
+
+
 m = mpmath.mpf
 unary = [
     ("exp", mpmath.exp,
@@ -98,7 +120,7 @@ unary = [
     ("cos", mpmath.cos,
      [0.0, 1.0, 0.5, 3.0, 4.0, 5.0, -2.0, 7.0, 100.0, 355.0, 710.0, 1e-3, PI, PI / 2, 2 * PI, 1e22,
       2.0**60, 1e-300, TINY, 1e300, MAX]
-     + uniform(-10, 10, 30) + exponents(10, 80, 10)),
+     + uniform(-10, 10, 30) + exponents(10, 80, 10) + MPCOS_ARGUMENTS),
     ("tan", mpmath.tan,
      [0.0, 1.0, -1.0, 0.5, 3.0, -2.0, 7.0, 100.0, 355.0, 1e-3, PI, PI / 2, next_down(PI / 2),
       -PI / 2, 1e22, 2.0**60, 1e-300, TINY, 1e300]
