@@ -48,7 +48,7 @@ for kind in ('cmake', 'autotools', 'meson'):
     entry['flags'] = [t for t in args if not t.startswith(('-I', '-L', '-isystem'))]
     p = subprocess.run([tokens[0]] + args + ['-E', '-P', probe], cwd=cwd, capture_output=True, text=True)
     if p.returncode != 0:
-        entry['error'] = 'probe: ' + p.stderr.strip().splitlines()[-1][:300] if p.stderr.strip() else 'probe failed'
+        entry['error'] = 'probe: ' + ' | '.join(l.strip()[:200] for l in p.stderr.strip().splitlines()[-4:]) if p.stderr.strip() else 'probe failed'
     macros, ifs = {}, {}
     for l in p.stdout.splitlines():
         m = re.match(r'\s*GAOLPROBE_(\w+) (?:= (.*)|undefined)\s*$', l)

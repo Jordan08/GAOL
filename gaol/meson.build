@@ -33,7 +33,9 @@ if mathlib == 'apmathlib'
     'gen-math-header',
     input: 'gaol_double_op_apmathlib.h',
     output: 'gaol_double_op.h',
-    command: ['ln', '-f', '@INPUT@', '@OUTPUT@'],
+    # A copy rather than a hard link, which fails across file systems (a build
+    # directory outside a bind mount in a container)
+    command: ['cp', '@INPUT@', '@OUTPUT@'],
     install: true,
     install_dir: 'include/gaol',
   )
@@ -42,7 +44,9 @@ elif mathlib == 'crlibm'
     'gen-math-header',
     input: 'gaol_double_op_crlibm.h',
     output: 'gaol_double_op.h',
-    command: ['ln', '-f', '@INPUT@', '@OUTPUT@'],
+    # A copy rather than a hard link, which fails across file systems (a build
+    # directory outside a bind mount in a container)
+    command: ['cp', '@INPUT@', '@OUTPUT@'],
     install: true,
     install_dir: 'include/gaol',
   )
@@ -51,7 +55,9 @@ else
     'gen-math-header',
     input: 'gaol_double_op_m.h',
     output: 'gaol_double_op.h',
-    command: ['ln', '-f', '@INPUT@', '@OUTPUT@'],
+    # A copy rather than a hard link, which fails across file systems (a build
+    # directory outside a bind mount in a container)
+    command: ['cp', '@INPUT@', '@OUTPUT@'],
     install: true,
     install_dir: 'include/gaol',
   )
