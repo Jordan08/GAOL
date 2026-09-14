@@ -240,6 +240,17 @@ namespace {
 }
 %}
 
+%top{
+/* <stdint.h> before the code of flex, which defines INT8_MIN and the other
+   limits of integer types where <stdint.h> has not defined them: the
+   <stdint.h> of Visual C++, which the prologue includes after that code,
+   redefined them (warning C4005). */
+#include <stdint.h>
+}
+
+/* yyunput() and yyinput() are not used */
+%option nounput noinput
+
 DIGIT		[0-9]
 INT		{DIGIT}+
 E 		[eE][+-]?{DIGIT}+
