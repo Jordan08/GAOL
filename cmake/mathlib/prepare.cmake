@@ -99,3 +99,32 @@ fix_source(src/mpsqrt.c
 fix_source(src/ulog.c "double dbl_n,u,p0,q,r0,w," "double x0,dbl_n,u,p0,q,r0,w,")
 fix_source(src/ulog.c "  n=0;\n  if (ux < 0x00100000) {" "  n=0;  x0 = x;\n  if (ux < 0x00100000) {")
 fix_source(src/ulog.c "dbl_mp(x,&mpx,p);" "dbl_mp(x0,&mpx,p);")
+
+# The tangent of mathlib. In 7 of the tests with which utan() in src/utan.c
+# decides whether its result is rounded right, the error bound t4 was assigned
+# in one operand of == and read in the other, with no sequence point between
+# them: undefined behaviour, which Clang warns about (-Wunsequenced). GCC and
+# Clang 18, from -O0 to -O3, gave the same results as with t4 assigned before
+# the test, at the 1077348 hard-to-round arguments of tan of CORE-MATH
+# (https://gitlab.inria.fr/core-math/core-math) and 10 million others. t4 is
+# assigned before the test, as glibc did in 2009 (Ulrich Drepper, "Fix
+# -Wsequence-point warnings",
+# https://sourceware.org/git/?p=glibc.git;a=commit;h=82a1a4dae1b699a394e213866e789eacef1728fc)
+# and Fabrice Le Bars in his fork of mathlib
+# (https://github.com/lebarsfa/mathlib/commit/04a3dfe75cd3f0e49e22bca9ed688462d18c6c52).
+foreach(case IN ITEMS "fi + 3" "gi - 10" "fi + 9" "gi - 18" "fi + 17" "gi - 26" "fi + 25")
+  separate_arguments(case)
+  list(GET case 0 f)
+  list(GET case 1 op)
+  list(GET case 2 i)
+  set(bound "${f}*ua${i}.d+t3*ub${i}.d")
+  fix_source(src/utan.c
+    "if ((y=${f}${op}(t2-(t4=${bound})))==${f}${op}(t2+t4))"
+    "t4=${bound};  if ((y=${f}${op}(t2-t4))==${f}${op}(t2+t4))")
+endforeach()
+
+# The include guard of src/sincos32.h tested SINCOS32_H but defined
+# SINCCOS32_H, which Clang warns about (-Wheader-guard), as Fabrice Le Bars
+# fixed in his fork of mathlib
+# (https://github.com/lebarsfa/mathlib/commit/ad40312506d2297c75e3169816d1878b791d74a6).
+fix_source(src/sincos32.h "#define SINCCOS32_H" "#define SINCOS32_H")
