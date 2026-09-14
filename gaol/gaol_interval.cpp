@@ -952,7 +952,9 @@ interval nth_root(const interval& I, unsigned int n)
       return interval::emptyset();
     }
     GAOL_RND_ENTER();
-    double kl, kr;
+    // kl is not computed when I.left() is too large for a reliable range
+    // reduction, but compared with kr below: Iright is then Ileft, which is I
+    double kl = 0.0, kr = 0.0;
     interval atanJ = atan(J);
 
     interval Ileft;
