@@ -513,6 +513,22 @@ write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/gaolConfigVersion.
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaolConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/gaolConfigVersion.cmake"
   DESTINATION ${GAOL_INSTALL_CMAKEDIR})
 
+# The pkg-config file, for the builds that are not CMake (pkg-config --cflags
+# --libs gaol): the flags of interval arithmetic and mathlib, as gaol::gaol
+# carries them. Not with Visual C++, whose libraries pkg-config does not name.
+if(NOT MSVC)
+  if(GAOL_MATHLIB STREQUAL "ultim")
+    set(GAOL_PC_MATHLIB "-lultim")
+  elseif(GAOL_MATHLIB)
+    get_filename_component(_mathlib_libdir "${GAOL_MATHLIB}" DIRECTORY)
+    set(GAOL_PC_MATHLIB "-L${_mathlib_libdir} -lultim")
+  else()
+    set(GAOL_PC_MATHLIB "-lultim")
+  endif()
+  configure_file(cmake/gaol.pc.in "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" @ONLY)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
+
 
 ################################################################################
 # Tests

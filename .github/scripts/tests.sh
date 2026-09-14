@@ -35,4 +35,20 @@ for test in arithmetic elementary numbers other_functions rounding_direction; do
   fi
 done
 ${CXX:-c++} $flags -I"$prefix/include" tests/performance.cpp $libs -o performance
+# The same test built with the flags and libraries of gaol.pc alone, where
+# pkg-config exists (its Cflags carry the flags of interval arithmetic)
+if command -v pkg-config > /dev/null; then
+  export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
+  echo "pkg-config --cflags --libs gaol: $(pkg-config --cflags --libs gaol)"
+  ${CXX:-c++} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
+    -Wl,-rpath,"$prefix/lib" -o rounding_direction_pc
+  if ./rounding_direction_pc > rounding_direction_pc.log 2>&1; then
+    echo "with pkg-config: $(tail -1 rounding_direction_pc.log)"
+  else
+    grep -E "checks, [1-9][0-9]* failed|^FAILED" rounding_direction_pc.log | head -20
+    status=1
+  fi
+else
+  echo "pkg-config not found: gaol.pc not checked"
+fi
 exit $status

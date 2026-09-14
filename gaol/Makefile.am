@@ -86,6 +86,8 @@ TAGS: $(gaol_HEADERS) $(libgaol_la_SOURCES)
 
 
 install-data-local:
-	$(mkinstalldirs) $(includedir)/gaol/sysdeps
-	$(INSTALL_DATA) $(srcdir)/sysdeps/*.h $(includedir)/gaol/sysdeps
+	$(mkinstalldirs) $(DESTDIR)$(includedir)/gaol/sysdeps
+	$(INSTALL_DATA) $(srcdir)/sysdeps/*.h $(DESTDIR)$(includedir)/gaol/sysdeps
+	$(mkinstalldirs) $(DESTDIR)$(libdir)/pkgconfig
+	$(INSTALL_DATA) ../gaol.pc $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
 

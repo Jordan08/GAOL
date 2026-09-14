@@ -7,6 +7,8 @@ option('enable-preserve-rounding', type : 'boolean', value : false, description 
 option('enable-relations', type: 'string', value:'certainly', description: 'use KIND symbols of relations, with KIND being "set", "certainly" or "possibly" [default=certainly]')
 option('enable-exception', type: 'boolean', value: true, description: 'raise exceptions to signal errors [default=yes]')
 option('with-mathlib', type: 'string', value: 'apmathlib', description: 'Specify the mathematical library to use between default math, apmathlib and crlibm [default=apmathlib, as configure]')
+option('with-mathlib-include', type: 'string', value: '', description: 'The directory of the header of the mathematical library (MathLib.h, crlibm.h), as --with-mathlib-include of configure')
+option('with-mathlib-lib', type: 'string', value: '', description: 'The directory of the mathematical library (libultim, libcrlibm), as --with-mathlib-lib of configure')
 option('with-test', type: 'boolean', value: false, description: 'Specify if test are built [default=no]')
 option('check-perf', type : 'boolean', value : false, description : 'Run test performances')
 option('with-doc', type: 'boolean', value: false, description: 'Build the documentation')

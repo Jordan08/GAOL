@@ -122,7 +122,8 @@ AC_MSG_RESULT([${$2}])
 CFLAGS=$gaol_save_CFLAGS
 AC_LANG_POP([C])])
 # GAOL_ADD_FLAG(flag): adds flag to CXXFLAGS and CFLAGS where each compiler
-# accepts it
+# accepts it. GAOL_ADD_INTERVAL_FLAG(flag) also adds it to GAOL_PC_CFLAGS, the
+# flags of interval arithmetic gaol.pc gives the code using GAOL.
 AC_DEFUN([GAOL_ADD_FLAG],
 [GAOL_CHECK_CXX_FLAG([$1], [gaol_cxx_takes])
 if test "${gaol_cxx_takes}" = yes; then
@@ -132,6 +133,12 @@ GAOL_CHECK_C_FLAG([$1], [gaol_c_takes])
 if test "${gaol_c_takes}" = yes; then
     CFLAGS="${CFLAGS} $1"
 fi])
+AC_DEFUN([GAOL_ADD_INTERVAL_FLAG],
+[GAOL_ADD_FLAG([$1])
+if test "${gaol_cxx_takes}" = yes; then
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} $1"
+fi])
+GAOL_PC_CFLAGS=""
 
 # The compilers CMakeLists.txt refuses, for the same reasons (see there):
 # - Clang for 32-bit ARM processors, which does not honour the rounding
@@ -231,18 +238,20 @@ AC_MSG_RESULT(${target_win32})
 AC_LANG_POP([C++])
 if test "${target_x86}" = yes; then
     if test "${target_x86_32}" = yes; then
-        GAOL_ADD_FLAG([-msse2 -mfpmath=sse])
+        GAOL_ADD_INTERVAL_FLAG([-msse2 -mfpmath=sse])
     fi
     if test "$simd" = yes && test "${target_win32}" = no; then
         GAOL_CHECK_CXX_FLAG([-msse2], [has_sse2])
         if test "${has_sse2}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
+            GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
             AC_DEFINE([USING_SSE2_INSTRUCTIONS],1,
                 [Define this to 1 if SSE2 instructions are to be used])
             GAOL_CHECK_CXX_FLAG([-msse3], [has_sse3])
             if test "${has_sse3}" = yes; then
                 CXXFLAGS="${CXXFLAGS} -msse3"
+                GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse3"
                 AC_DEFINE([USING_SSE3_INSTRUCTIONS],1,
                     [Define this to 1 if SSE3 instructions are to be used])
             fi
@@ -365,6 +374,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <cfloat>
 AC_MSG_RESULT(${float_store_needed})
 if test "${float_store_needed}" = no; then
     CXXFLAGS=${OLD_CXXFLAGS}
+else
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -ffloat-store"
 fi
 AC_LANG_POP([C++])
 
@@ -578,8 +589,14 @@ if test "${has_rounding_math_opt}" = yes; then
         [Define this to 1 if the compiler supports the "-frounding-math" option])
 fi
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
-    GAOL_ADD_FLAG([${gaol_flag}])
+    GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
+AC_SUBST([GAOL_PC_CFLAGS])
+# The version for gaol.pc, without the quotes VERSION carries
+GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
+AC_SUBST([GAOL_PC_VERSION])
+# mathlib in gaol.pc: -lultim or -lcrlibm, with its directory when given
+AC_SUBST([GAOL_PC_MATHLIB], ["${mathlib_libpath} ${MATHLIB}"])
 
 
 # Checks for library functions.
@@ -617,7 +634,8 @@ AC_SUBST(CXX)
 AC_SUBST(CC)
 AC_SUBST(LDFLAGS)
 
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([gaol.pc
+                 Makefile
         check/Makefile
 		  doc/gaol_doxygen.cfg
         doc/Makefile

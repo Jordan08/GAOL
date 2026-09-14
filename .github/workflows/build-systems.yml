@@ -99,9 +99,9 @@ jobs:
         run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure, build and install
         run: |
-          export CPATH="$RUNNER_TEMP/mathlib/include" LIBRARY_PATH="$RUNNER_TEMP/mathlib/lib"
           meson --version
-          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib ${{ matrix.cfg.options }}
+          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib \
+            -Dwith-mathlib-include="$RUNNER_TEMP/mathlib/include" -Dwith-mathlib-lib="$RUNNER_TEMP/mathlib/lib" ${{ matrix.cfg.options }}
           meson compile -C build-meson
           meson install -C build-meson
       - name: Tests built with the installed GAOL
@@ -137,8 +137,7 @@ jobs:
               make -j 4 && make install
               sh .github/scripts/tests.sh /tmp/gaol /tmp/mathlib static
             else
-              export CPATH=/tmp/mathlib/include LIBRARY_PATH=/tmp/mathlib/lib
-              meson setup build-meson --prefix=/tmp/gaol --libdir=lib
+              meson setup build-meson --prefix=/tmp/gaol --libdir=lib -Dwith-mathlib-include=/tmp/mathlib/include -Dwith-mathlib-lib=/tmp/mathlib/lib
               meson compile -C build-meson && meson install -C build-meson
               sh .github/scripts/tests.sh /tmp/gaol /tmp/mathlib shared
             fi
@@ -175,8 +174,7 @@ jobs:
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
             make -j 4 && make install
           else
-            export CPATH="$mathlib/include" LIBRARY_PATH="$mathlib/lib"
-            meson setup build-meson --prefix="$prefix" --libdir=lib
+            meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-mathlib-include="$mathlib/include" -Dwith-mathlib-lib="$mathlib/lib"
             meson compile -C build-meson && meson install -C build-meson
           fi
       - name: Tests built with the installed GAOL

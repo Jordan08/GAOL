@@ -1,0 +1,14 @@
+# pkg-config file of GAOL, installed by the CMake build of GAOL (CMakeLists.txt):
+#   pkg-config --cflags --libs gaol
+# Cflags carries the flags interval arithmetic needs (see the README), which
+# the code including GAOL's headers has to be compiled with, and Libs mathlib.
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: gaol
+Description: GAOL, Not Just Another Interval Library
+URL: https://github.com/Jordan08/GAOL
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir} @GAOL_INTERVAL_FLAGS_STRING@
+Libs: -L${libdir} -lgaol @GAOL_PC_MATHLIB@ -lm

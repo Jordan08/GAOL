@@ -59,6 +59,11 @@ jobs:
         run: cmake --install build
       - name: Tests built with the installed GAOL
         run: |
+          # With the flags and libraries of gaol.pc alone, then with find_package()
+          export PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig"
+          pkg-config --cflags --libs gaol
+          ${{ matrix.cfg.cxx }} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) -o rounding_direction_pc
+          ./rounding_direction_pc | tail -1
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
           cd build-find-package && ctest -j 4 --output-on-failure

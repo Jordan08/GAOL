@@ -639,6 +639,9 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+GAOL_PC_MATHLIB
+GAOL_PC_VERSION
+GAOL_PC_CFLAGS
 DOT
 DOXYGEN_FALSE
 DOXYGEN_TRUE
@@ -16339,8 +16342,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 # GAOL_ADD_FLAG(flag): adds flag to CXXFLAGS and CFLAGS where each compiler
-# accepts it
+# accepts it. GAOL_ADD_INTERVAL_FLAG(flag) also adds it to GAOL_PC_CFLAGS, the
+# flags of interval arithmetic gaol.pc gives the code using GAOL.
 
+
+GAOL_PC_CFLAGS=""
 
 # The compilers CMakeLists.txt refuses, for the same reasons (see there):
 # - Clang for 32-bit ARM processors, which does not honour the rounding
@@ -16691,6 +16697,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test "${gaol_c_takes}" = yes; then
     CFLAGS="${CFLAGS} -msse2 -mfpmath=sse"
 fi
+if test "${gaol_cxx_takes}" = yes; then
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2 -mfpmath=sse"
+fi
     fi
     if test "$simd" = yes && test "${target_win32}" = no; then
         ac_ext=cpp
@@ -16732,6 +16741,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
         if test "${has_sse2}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
+            GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
 
 $as_echo "#define USING_SSE2_INSTRUCTIONS 1" >>confdefs.h
 
@@ -16773,6 +16783,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
             if test "${has_sse3}" = yes; then
                 CXXFLAGS="${CXXFLAGS} -msse3"
+                GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse3"
 
 $as_echo "#define USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
 
@@ -17170,6 +17181,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 $as_echo "${float_store_needed}" >&6; }
 if test "${float_store_needed}" = no; then
     CXXFLAGS=${OLD_CXXFLAGS}
+else
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -ffloat-store"
 fi
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -18594,7 +18607,17 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test "${gaol_c_takes}" = yes; then
     CFLAGS="${CFLAGS} ${gaol_flag}"
 fi
+if test "${gaol_cxx_takes}" = yes; then
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} ${gaol_flag}"
+fi
 done
+
+# The version for gaol.pc, without the quotes VERSION carries
+GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
+
+# mathlib in gaol.pc: -lultim or -lcrlibm, with its directory when given
+GAOL_PC_MATHLIB="${mathlib_libpath} ${MATHLIB}"
+
 
 
 # Checks for library functions.
@@ -18841,7 +18864,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile check/Makefile doc/gaol_doxygen.cfg doc/Makefile doc/gaol_version.tex gaol.spec gaol/Makefile examples/Makefile"
+ac_config_files="$ac_config_files gaol.pc Makefile check/Makefile doc/gaol_doxygen.cfg doc/Makefile doc/gaol_version.tex gaol.spec gaol/Makefile examples/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -19997,6 +20020,7 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "gaol/gaol_double_op.h") CONFIG_LINKS="$CONFIG_LINKS gaol/gaol_double_op.h:gaol/gaol_double_op_${use_mathlib}.h" ;;
+    "gaol.pc") CONFIG_FILES="$CONFIG_FILES gaol.pc" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "check/Makefile") CONFIG_FILES="$CONFIG_FILES check/Makefile" ;;
     "doc/gaol_doxygen.cfg") CONFIG_FILES="$CONFIG_FILES doc/gaol_doxygen.cfg" ;;

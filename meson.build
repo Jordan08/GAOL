@@ -65,11 +65,29 @@ build_tests = get_option('with-test')
 #elif not apmathlib_dep.found() and not crlibm_dep.found()
 #  error('Missing Mathematical library! Expecting APMathlib or Crlibm')
 #endif
+# Where the mathematical library is, when it is not in the usual paths (or on
+# CPATH and LIBRARY_PATH): with-mathlib-include and with-mathlib-lib, as
+# --with-mathlib-include and --with-mathlib-lib of configure. Its directory
+# then goes into gaol.pc too.
+mathlib_include = get_option('with-mathlib-include')
+mathlib_libdir = get_option('with-mathlib-lib')
+mathlib_dirs = []
+mathlib_pc_libs = []
+if mathlib_include != ''
+  add_global_arguments(['-I' + mathlib_include], language: 'cpp')
+  add_global_arguments(['-I' + mathlib_include], language: 'c')
+endif
+if mathlib_libdir != ''
+  mathlib_dirs = [mathlib_libdir]
+  mathlib_pc_libs = ['-L' + mathlib_libdir]
+endif
 mathlib_dep = dependency('', required: false)
 if mathlib == 'apmathlib'
-  mathlib_dep = cpp_comp.find_library('ultim', required: true)
+  mathlib_dep = cpp_comp.find_library('ultim', required: true, dirs: mathlib_dirs)
+  mathlib_pc_libs += ['-lultim']
 elif mathlib == 'crlibm'
-  mathlib_dep = cpp_comp.find_library('crlibm', required: true)
+  mathlib_dep = cpp_comp.find_library('crlibm', required: true, dirs: mathlib_dirs)
+  mathlib_pc_libs += ['-lcrlibm']
   # else
   #   mathlib_dep = cpp_comp.find_library('m', required: true)
 endif
@@ -261,9 +279,11 @@ endif
 # (without it, compilers contract a multiplication and an addition into a fused
 # one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
 # both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
+pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
     add_global_arguments([flag], language: 'cpp')
+    pc_cflags += [flag]
   endif
   if c_comp.has_argument(flag)
     add_global_arguments([flag], language: 'c')
@@ -321,15 +341,18 @@ if target_x86
     x86_args = ['-msse2', '-mfpmath=sse']
     add_global_arguments(x86_args, language: 'cpp')
     add_global_arguments(x86_args, language: 'c')
+    pc_cflags += x86_args
   endif
   if simd and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
     conf_data.set('USING_SSE2_INSTRUCTIONS', 1)
     add_global_arguments(['-msse2'], language: 'cpp')
+    pc_cflags += ['-msse2']
     if cpp_comp.has_argument('-msse3')
       use_sse3 = true
       conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
       add_global_arguments(['-msse3'], language: 'cpp')
+      pc_cflags += ['-msse3']
     endif
   endif
 endif
@@ -348,6 +371,7 @@ float_store_needed = cpp_comp.compiles('''
 if float_store_needed and cpp_comp.has_argument('-ffloat-store')
   add_global_arguments(['-ffloat-store'], language: 'c')
   add_global_arguments(['-ffloat-store'], language: 'cpp')
+  pc_cflags += ['-ffloat-store']
 endif
 
 flex = find_program('flex', required: true)
@@ -361,10 +385,14 @@ if doc
   subdir('doc')
 endif
 
-## Generation of pkg-config file to ease dependency detection when using realpaver as a library
-## In your meson project, just add: rp_lib = dependency('realpaver')
-pkgconfig = find_program('pkg-config', required: false)
-if pkgconfig.found()
-  pkg = import('pkgconfig')
-  pkg.generate(gaollib, name: 'gaol')
-endif
+## The pkg-config file (pkg-config --cflags --libs gaol): the flags of interval
+## arithmetic, which the code including GAOL's headers has to be compiled with,
+## and mathlib. In a meson project: gaol_dep = dependency('gaol')
+pkg = import('pkgconfig')
+pkg.generate(
+  libraries: [gaollib] + mathlib_pc_libs + ['-lm'],
+  name: 'gaol',
+  description: 'GAOL, Not Just Another Interval Library',
+  url: 'https://github.com/Jordan08/GAOL',
+  extra_cflags: pc_cflags,
+)
