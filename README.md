@@ -228,6 +228,16 @@ Each change is a commit of its own, and says where it comes from.
   build makes them `int`s, as glibc did in 2003
   ([commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5));
   [Debian bug 210613](https://bugs.debian.org/210613) is the same bug on Alpha.
+- **The logarithm of mathlib at subnormal arguments**
+  (`cmake/mathlib/prepare.cmake`): `ulog()` scales a subnormal argument by 2^54,
+  but its last, multiple-precision stage computed the logarithm from the scaled
+  argument and from an approximation of the logarithm of the unscaled one.
+  `log()` returned about 2^54 at 26 of the 53 subnormal hard-to-round arguments
+  of log of CORE-MATH: `log(0x0.8819864d7985dp-1022)` was 1.8e16 instead of
+  −709.03. The CMake build gives that stage the unscaled argument. glibc had
+  the same code until it
+  [removed that stage](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)
+  in 2018.
 - **Clang is refused for 32-bit ARM processors**, where it does not honour the
   rounding direction: built by Clang 21, 4556 of 16000 random products, squares
   and cubes did not enclose their exact values.

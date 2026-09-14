@@ -120,6 +120,22 @@ MPSQRT_ARGUMENTS = [0.062510113344606447, 1.016527294692847, 1.9966212994203429]
     0x1.378fb8f1087cfp+41 0x1.49ff16b9c1e3ep+52
 """.split()]
 
+# The subnormal hard-to-round arguments of log of CORE-MATH
+# (https://gitlab.inria.fr/core-math/core-math, src/binary64/log/log.wc) at
+# which mathlib 2.1.1 returned about 2^54, before cmake/mathlib/prepare.cmake
+# gave the last, multiple-precision stage of ulog() the argument it had not
+# scaled by 2^54. glibc had the same code until it removed that stage in 2018
+# (https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97).
+ULOG_ARGUMENTS = [float.fromhex(x) for x in """
+    0x0.8819864d7985dp-1022 0x0.8e26ace5de305p-1022 0x0.a39291c8ef4a7p-1022 0x0.abae673b61d1dp-1022
+    0x0.b3974779bda24p-1022 0x0.b3fd99be2faf7p-1022 0x0.b194cc6373ac4p-1022 0x0.c24fffdba64fep-1022
+    0x0.e9fcf1c18a54cp-1022 0x0.ee0f1d6e3d717p-1022 0x0.47609196c917bp-1022 0x0.55a71a1f01e0dp-1022
+    0x0.57f11408b2353p-1022 0x0.5f94a9574427bp-1022 0x0.61dcf2ed723c4p-1022 0x0.671349642929ep-1022
+    0x0.72131e05b2645p-1022 0x0.2483e71c48997p-1022 0x0.29d204655850ap-1022 0x0.1104d89f02ap-1022
+    0x0.11b74c68c438ep-1022 0x0.133789cb86cd6p-1022 0x0.1549018654431p-1022 0x0.19b99592dfc98p-1022
+    0x0.087b50e3c0a7fp-1022 0x0.00b7751dfaafap-1022
+""".split()]
+
 
 m = mpmath.mpf
 unary = [
@@ -130,7 +146,7 @@ unary = [
     ("log", mpmath.log,
      [1.0, 2.0, 10.0, 0.1, 1.5, 3.0, 0.5, 1.0 + 2.0**-52, 1.0 - 2.0**-53, 2.0**-1022, TINY, MAX,
       1e300, 1e-300]
-     + exponents(-1074, 1023, 25, signed=False) + uniform(0.5, 2.0, 10)),
+     + exponents(-1074, 1023, 25, signed=False) + uniform(0.5, 2.0, 10) + ULOG_ARGUMENTS),
     ("sin", mpmath.sin,
      [0.0, 1.0, 0.5, 3.0, 4.0, 5.0, -2.0, 7.0, 100.0, 355.0, 710.0, 1e-3, PI, PI / 2, 2 * PI, 1e22,
       2.0**60, 1e-300, TINY, 1e300, MAX]

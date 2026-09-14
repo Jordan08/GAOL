@@ -84,3 +84,18 @@ fix_source(src/sincos32.c "c32(&b,&a,&c,p);" "c32(&b,&c,&a,p);")
 fix_source(src/mpsqrt.c
   "union {long i[2]; double d;} p,q;\n  double y,z, t;\n  long n;"
   "union {int i[2]; double d;} p,q;\n  double y,z, t;\n  int n;")
+
+# The logarithm of mathlib at subnormal arguments. ulog() in src/ulog.c scales
+# a subnormal x by 2^54, which its exponent n accounts for, but its last,
+# multiple-precision stage computed the logarithm from the scaled x and from an
+# approximation y of the logarithm of the unscaled one: ulog() returned about
+# 2^54 at 26 of the 53 subnormal hard-to-round arguments of log of CORE-MATH
+# (https://gitlab.inria.fr/core-math/core-math) on x86_64:
+# log(0x0.8819864d7985dp-1022) was 1.8e16 instead of -709.03. That stage is
+# given the unscaled x, kept in x0. glibc, which took the same code from IBM,
+# kept it in __ieee754_log until it removed the multiple-precision stages in
+# 2018 (Wilco Dijkstra, "Remove slow paths from log",
+# https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97).
+fix_source(src/ulog.c "double dbl_n,u,p0,q,r0,w," "double x0,dbl_n,u,p0,q,r0,w,")
+fix_source(src/ulog.c "  n=0;\n  if (ux < 0x00100000) {" "  n=0;  x0 = x;\n  if (ux < 0x00100000) {")
+fix_source(src/ulog.c "dbl_mp(x,&mpx,p);" "dbl_mp(x0,&mpx,p);")
