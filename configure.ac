@@ -467,6 +467,8 @@ if test "${have_dl}" = no; then
 else
    dllib="-ldl"
 fi
+# The check programs link it where it exists: Windows has none
+AC_SUBST([DLLIB], [${dllib}])
 
 # Checking for cppunit
 AC_LANG_PUSH([C++])

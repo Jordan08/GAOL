@@ -58,7 +58,7 @@ TESTS = $(check_PROGRAMS)
 if IS_CYGWIN_COND
 LDADD = -lgaol -lm @MATHLIB@ $(CPPUNIT_LIB)
 else
-LDADD = -lm -lgaol $(CPPUNIT_LIB) -ldl @MATHLIB@
+LDADD = -lm -lgaol $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
 endif
 AM_LDFLAGS = -L../gaol/.libs 
 

@@ -673,7 +673,7 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 @CPPUNIT_COND_TRUE@CPPUNIT_LIB = -lcppunit
 EXTRA_DIST = gaolcc.in tests.h
 TESTS = $(check_PROGRAMS)
-@IS_CYGWIN_COND_FALSE@LDADD = -lm -lgaol $(CPPUNIT_LIB) -ldl @MATHLIB@
+@IS_CYGWIN_COND_FALSE@LDADD = -lm -lgaol $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
 
 #// TODO (goualard#4#): Handle cppunit under Windows
 @IS_CYGWIN_COND_TRUE@LDADD = -lgaol -lm @MATHLIB@ $(CPPUNIT_LIB)

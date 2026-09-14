@@ -650,6 +650,7 @@ BIBTEX
 PDFLATEX
 CPPUNIT_COND_FALSE
 CPPUNIT_COND_TRUE
+DLLIB
 IS_CYGWIN_COND_FALSE
 IS_CYGWIN_COND_TRUE
 MATHLIB
@@ -17351,6 +17352,9 @@ if test "${have_dl}" = no; then
 else
    dllib="-ldl"
 fi
+# The check programs link it where it exists: Windows has none
+DLLIB=${dllib}
+
 
 # Checking for cppunit
 ac_ext=cpp
