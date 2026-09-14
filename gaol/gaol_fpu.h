@@ -32,42 +32,164 @@
 #define __gaol_fpu_h__
 
 #include <cmath>
+#include <cstddef>
 #include "gaol/gaol_config.h"
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+   // The rounding direction of the SSE instructions, which compute the doubles
+   // there, is read and written through their control register: fegetround()
+   // may only read the one of the x87 unit (glibc on x86-64)
+#  define GAOL_RND_SSE_REGISTER 1
+#endif
 
-#if GAOL_PRESERVE_ROUNDING
 /*
-  Beware: GAOL_RND_ENTER() should always be called at the very
-  beginning of a function to avoid
-  problems with it being expanded to multiple statements.
-  The same hold for GAOL_RND_ENTER_SSE()
+  The rounding direction of GAOL's operations
+
+  GAOL computes its bounds with the rounding direction upward. Its operations
+  start with GAOL_RND_ENTER(), or GAOL_RND_ENTER_SSE() for the ones computed
+  with SSE instructions only.
+
+  By default (GAOL_PRESERVE_ROUNDING undefined), GAOL_RND_ENTER() sets the
+  rounding direction upward when it is not, and the operations leave it
+  upward: their bounds are right whatever direction the code using GAOL set,
+  for the cost of reading the direction (one instruction on x86-64).
+  GAOL_RND_PRESERVE() and GAOL_RND_RESTORE() frame the computations made in
+  another direction, after which the direction is set upward again.
+
+  With GAOL_PRESERVE_ROUNDING defined, the operations also restore the
+  direction they found, which makes the arithmetic operations several times
+  slower.
+
+  GCC does not honour #pragma STDC FENV_ACCESS ON, even with -frounding-math
+  (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678): it may compute a
+  result after a change of rounding direction that the source code writes
+  after the computation, when the result is only used after the change, and
+  then in the wrong direction. Such a result goes through rnd_keep() before
+  the change, which writes it to volatile memory: the writes to volatile
+  memory are made where the source code makes them. GAOL_RND_KEEP() does so
+  before GAOL_RND_LEAVE() and GAOL_RND_RESTORE(), which only change the
+  direction when it is preserved.
 */
-#  define GAOL_RND_ENTER()      unsigned short int _save_state=get_fpu_cw(); round_upward()
-#  define GAOL_RND_LEAVE()      reset_fpu_cw(_save_state)
-#  define GAOL_RND_PRESERVE()   unsigned short int _save_state=get_fpu_cw()
-#  define GAOL_RND_RESTORE()    reset_fpu_cw(_save_state)
+#if GAOL_PRESERVE_ROUNDING
+#  define GAOL_RND_ENTER()      const gaol::rounding_state _save_state = gaol::get_rounding(); gaol::round_upward_if_needed()
+#  define GAOL_RND_LEAVE()      gaol::set_rounding(_save_state)
+#  define GAOL_RND_PRESERVE()   const gaol::rounding_state _save_state = gaol::get_rounding()
+#  define GAOL_RND_RESTORE()    gaol::set_rounding(_save_state)
+#  define GAOL_RND_KEEP(x)      ((x) = gaol::rnd_keep(x))
 #  if USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() 	unsigned int _save_state_sse = _mm_getcsr(); round_upward_sse()
-#     define GAOL_RND_LEAVE_SSE()	_mm_setcsr(_save_state_sse)
+#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & _MM_ROUND_MASK; gaol::round_upward_sse()
+#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | _save_state_sse)
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
-#  define GAOL_RND_ENTER()
+#  define GAOL_RND_ENTER()      gaol::round_upward_if_needed()
 #  define GAOL_RND_LEAVE()
+#  define GAOL_RND_PRESERVE()
+#  define GAOL_RND_RESTORE()    gaol::round_upward()
+#  define GAOL_RND_KEEP(x)
 #  if USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE()
+#     define GAOL_RND_ENTER_SSE() gaol::round_upward_if_needed()
 #     define GAOL_RND_LEAVE_SSE()
 #  endif
-#  define GAOL_RND_PRESERVE()
-#  define GAOL_RND_RESTORE() round_upward()
 #endif // GAOL_PRESERVE_ROUNDING
 
 
 #if HAVE_FENV_H
 #  include "gaol/gaol_fpu_fenv.h"
 #elif defined (_MSC_VER)
+#  include <fenv.h>
 #  include "gaol/gaol_fpu_msvc.h"
 #else
 #  error "Don't know how to define FPU manipulation functions"
 #endif // HAVE_FENV_H
+
+namespace gaol {
+
+  /*!
+    \brief The rounding direction GAOL_RND_ENTER() and GAOL_RND_PRESERVE()
+    find, which GAOL_RND_LEAVE() and GAOL_RND_RESTORE() restore
+  */
+  struct rounding_state
+  {
+    int direction; // fegetround()
+#if GAOL_RND_SSE_REGISTER
+    unsigned int sse; // The rounding bits of the SSE control register
+#endif
+  };
+
+  INLINE rounding_state get_rounding()
+  {
+    rounding_state s;
+    s.direction = fegetround();
+#if GAOL_RND_SSE_REGISTER
+    s.sse = _mm_getcsr() & _MM_ROUND_MASK;
+#endif
+    return s;
+  }
+
+  INLINE void set_rounding(const rounding_state& s)
+  {
+    fesetround(s.direction);
+#if GAOL_RND_SSE_REGISTER
+    _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | s.sse);
+#endif
+  }
+
+  //! Sets the rounding direction upward, unless it already is
+  INLINE void round_upward_if_needed()
+  {
+#if defined(__x86_64__) || defined(_M_X64)
+    // GAOL's doubles are computed with SSE instructions
+    if ((_mm_getcsr() & _MM_ROUND_MASK) != _MM_ROUND_UP) {
+      round_upward();
+    }
+#elif GAOL_RND_SSE_REGISTER
+    // 32-bit x86: SSE instructions for GAOL's doubles, the x87 unit for the C
+    // library
+    if ((_mm_getcsr() & _MM_ROUND_MASK) != _MM_ROUND_UP || fegetround() != FE_UPWARD) {
+      round_upward();
+    }
+#else
+    if (fegetround() != FE_UPWARD) {
+      round_upward();
+    }
+#endif
+  }
+
+  /*!
+    \brief Returns x, having written it to volatile memory
+
+    x is then computed before the change of rounding direction that follows
+    (see above).
+  */
+  template<class T>
+  T rnd_keep(const T& x)
+  {
+    volatile unsigned char bytes[sizeof(T)];
+    const unsigned char *from = reinterpret_cast<const unsigned char *>(&x);
+    for (std::size_t i = 0; i < sizeof(T); ++i) {
+      bytes[i] = from[i];
+    }
+    T y(x);
+    unsigned char *to = reinterpret_cast<unsigned char *>(&y);
+    for (std::size_t i = 0; i < sizeof(T); ++i) {
+      to[i] = bytes[i];
+    }
+    return y;
+  }
+
+  INLINE double rnd_keep(double x)
+  {
+    volatile double kept = x;
+    return kept;
+  }
+
+  INLINE float rnd_keep(float x)
+  {
+    volatile float kept = x;
+    return kept;
+  }
+
+} // namespace gaol
 
 #endif /* __gaol_fpu_h__ */

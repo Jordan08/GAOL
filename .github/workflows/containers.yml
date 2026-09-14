@@ -44,6 +44,8 @@ jobs:
           - { os: ubuntu-24.04,     platform: linux/s390x,   image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie s390x (qemu)' }
           - { os: ubuntu-24.04,     platform: linux/ppc64le, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie ppc64le (qemu)' }
           - { os: ubuntu-24.04,     platform: linux/riscv64, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie riscv64 (qemu)' }
+          - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 12 Bookworm i386, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 13 Trixie armhf, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - if: matrix.cfg.qemu
@@ -61,7 +63,7 @@ jobs:
             uname -m
             c++ --version
             cmake --version
-            cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.opts }}
             cmake --build /tmp/build -j 4
             cd /tmp/build
             ctest -j 4 --output-on-failure"

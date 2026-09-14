@@ -37,6 +37,8 @@ jobs:
           - { os: ubuntu-22.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 x86_64 GCC' }
           - { os: ubuntu-22.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 22.04 x86_64 Clang' }
           - { os: ubuntu-22.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 arm64 GCC' }
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -46,7 +48,7 @@ jobs:
           ${{ matrix.cfg.cxx }} --version
           cmake --version
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
       - name: Tests

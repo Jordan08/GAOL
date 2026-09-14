@@ -32,6 +32,7 @@ jobs:
           - { os: macos-15-intel, arch: x86_64, desc: 'macOS 15 x86_64' }
           - { os: macos-14,       arch: arm64,  desc: 'macOS 14 arm64' }
           - { os: macos-14,       arch: x86_64, desc: 'macOS 14 x86_64 (Rosetta)' }
+          - { os: macos-15,       arch: arm64,  opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'macOS 15 arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Rosetta, to run x86_64 programs on arm64
@@ -40,7 +41,7 @@ jobs:
       - name: Configure
         run: |
           c++ --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
       - name: Tests

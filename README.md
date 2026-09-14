@@ -93,6 +93,7 @@ gives, whatever mathlib the machine has.
 | `GAOL_FIND_MATHLIB` | `ON` | Look for an installed mathlib before building one; `OFF` builds mathlib even where one is installed |
 | `MATHLIB_DIR` | | Installation prefix of an installed mathlib |
 | `GAOL_BUILD_TESTS` | `ON` when GAOL is the main project | Build the tests, which `ctest` runs |
+| `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [Using GAOL from CMake](#using-gaol-from-cmake)) |
 
 Both libraries are static. CMake 3.14 or later is needed.
 
@@ -122,9 +123,14 @@ interval arithmetic needs:
 Code including GAOL's headers has to be compiled with them, GAOL's interval
 operations being inline.
 
-GAOL is configured the way IBEX configures it: the rounding direction is set
-upward once, by `gaol::init()`, and not restored after each operation
-(`GAOL_PRESERVE_ROUNDING` undefined).
+Each operation of GAOL sets the rounding direction upward when it is not, and
+leaves it upward, whichever way GAOL is built (CMake, autotools or meson). The
+bounds are then right whatever rounding direction the calling code left, and
+the check costs about a nanosecond. Code that needs its own rounding direction
+after GAOL's operations builds GAOL with `GAOL_PRESERVE_ROUNDING` `ON`
+(`--enable-preserve-rounding` with autotools, `-Denable-preserve-rounding=true`
+with meson): each operation then also restores the rounding direction it found,
+which makes the arithmetic operations several times slower.
 
 ### Tests
 
@@ -144,9 +150,12 @@ Codac.
   at intervals, and at intervals whose images are known exactly (extrema,
   poles, domains). The values are in `elementary_values.h`, which
   `elementary_values.py` generates.
-- **`rounding_direction`:** after each operation of GAOL's interface, the
-  rounding direction has to be upward still, and the bounds of a product and a
-  sum the tightest ones.
+- **`rounding_direction`:** about 95 operations of GAOL's interface, called
+  with the rounding direction upward, to nearest, downward and toward zero (and
+  on x86, with the x87 and SSE directions differing), have to give the results
+  they give when called rounding upward, and leave the rounding direction
+  upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
+  have to be the tightest enclosures.
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
   be the tightest enclosures of π, 2π and π/2.
@@ -192,6 +201,22 @@ Each change is a commit of its own, and says where it comes from.
     `<fenv.h>` where the control word of `fenv_t` is not known.
   - `_MATHLIB_DLL_` is only defined when not already, and Visual C++ gets the
     `<fenv.h>` version of `get_inexact()` and `clear_inexact()`.
+- **The rounding direction** is set upward by each operation when it is not,
+  in every build. Built with CMake, GAOL set it once, in `gaol::init()`, and
+  computed in the direction the calling code left: rounding to nearest,
+  downward or toward zero, 30 operations gave other bounds, and sums and
+  products did not enclose their exact values (3199 of the 13825 checks of
+  `rounding_direction` failed with GCC 9.4 on x86-64). Built with autotools or
+  meson, GAOL restored the rounding direction after each operation, but only
+  the x87 control word on x86-64, where GAOL computes with SSE (43 operations
+  left the SSE instructions rounding to nearest or upward, whatever direction
+  they found), and without the rounding bits of the FPCR register on arm64.
+  `GAOL_PRESERVE_ROUNDING`, now an option, saves and restores the direction with
+  `fegetround()` and `fesetround()` and the SSE register. Each value computed
+  before the rounding direction changes is then written to a `volatile`
+  variable: GCC does not implement `#pragma STDC FENV_ACCESS`, and moved the
+  computation of the midpoint after `fesetround()`
+  ([GCC bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)).
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.
@@ -263,9 +288,9 @@ described above are kept. They are built by the continuous integration against
 a mathlib installed from
 [Frédéric Goualard's archive](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz),
 and the tests are built
-with the GAOL they install. Unlike the CMake build, both preserve the rounding
-direction after each operation by default (`--enable-preserve-rounding`,
-`enable-preserve-rounding`).
+with the GAOL they install. As the CMake build, both leave the rounding
+direction upward by default; `--enable-preserve-rounding` and
+`-Denable-preserve-rounding=true` restore it after each operation.
 
 ### Platforms
 
@@ -288,7 +313,10 @@ CMake and runs the tests on:
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
 It also checks that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and
-MinGW-w64 11 to 13, and builds GAOL with autotools and meson.
+MinGW-w64 11 to 13, and builds GAOL with autotools and meson. Jobs of each build
+restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and
+arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
+meson.
 
 ### Licences
 

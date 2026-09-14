@@ -50,6 +50,7 @@
 	GAOL_RND_ENTER();
 	double d = maximum(maximum(I1.left()-I2.left(),I2.left()-I1.left()),
 	                   maximum(I1.right()-I2.right(),I2.right()-I1.right()));
+	GAOL_RND_KEEP(d);
 	GAOL_RND_LEAVE();
 	return d;
       }
@@ -132,6 +133,7 @@
 			// No other meaningful cases
 		}
 
+		GAOL_RND_KEEP(res);
 		GAOL_RND_LEAVE();
 		return res;
 	}
@@ -391,6 +393,7 @@
         }
       }
     }
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
@@ -807,6 +810,7 @@
 	// I & [K.r/J.l, K.l/J.r]
 	GAOL_RND_ENTER();
 	interval tmp(-(K.rb_/J.lb_),K.lb_/(-J.rb_));
+	GAOL_RND_KEEP(tmp);
 	GAOL_RND_LEAVE();
 	return I & tmp; // N1 N1
       } else { // [J] P or Z
@@ -817,6 +821,7 @@
 	  // I & [K.r/J.l,+oo]
 	  GAOL_RND_ENTER();
 	  interval tmp(-(K.rb_/J.lb_),GAOL_INFINITY);
+	  GAOL_RND_KEEP(tmp);
 	  GAOL_RND_LEAVE();
 	  return I & tmp; // N1 N0
 	} else { // [I] P or M
@@ -824,17 +829,20 @@
 	    GAOL_RND_ENTER();
 	    interval tmp(-GAOL_INFINITY,K.rb_/J.rb_);
 	    interval tmp2(K.rb_/(-J.lb_),GAOL_INFINITY);
+	    GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
 	    GAOL_RND_LEAVE();
 	    return (I&tmp) | (I&tmp2); // N1 M
 	  } else { // [J] P0 or P1
 	    if (J.left() == 0.0) { // [J] P0
 	      GAOL_RND_ENTER();
 	      interval tmp2 = I & interval(-GAOL_INFINITY,K.right()/J.right()); // N1 P0
+	      GAOL_RND_KEEP(tmp2);
 	      GAOL_RND_LEAVE();
 	      return tmp2; // N1 P0
 	    } else { // [J] P1
 	      GAOL_RND_ENTER();
 	      interval tmp(-(K.lb_/(-J.lb_)),K.rb_/J.rb_);
+	      GAOL_RND_KEEP(tmp);
 	      GAOL_RND_LEAVE();
 	      return I & tmp; // N1 P1
 	    }
@@ -853,6 +861,7 @@
 	  if (J.right() < 0.0) { // [J] N1
 	    GAOL_RND_ENTER();
 	    interval tmp2 = I & interval(0.0,K.left()/J.right()); // N0 N1
+	    GAOL_RND_KEEP(tmp2);
 	    GAOL_RND_LEAVE();
 	    return tmp2;
 	  } else { // [J] P or Z
@@ -870,6 +879,7 @@
 		} else { // [J] P1
 		  GAOL_RND_ENTER();
 		  interval tmp(-(K.lb_/(-J.lb_)),0.0);
+		  GAOL_RND_KEEP(tmp);
 		  GAOL_RND_LEAVE();
 		  return I & tmp; // N0 P1
 		}
@@ -882,6 +892,7 @@
 	  if (J.right() < 0.0) { // [J] N1
 	    GAOL_RND_ENTER();
 	    interval tmp(-(K.rb_/(-J.rb_)),K.lb_/(-J.rb_));
+	    GAOL_RND_KEEP(tmp);
 	    GAOL_RND_LEAVE();
 	    return I & tmp; // M N1
 	  } else { // [J] P or Z
@@ -896,6 +907,7 @@
 		} else { // [J] P1
 		  GAOL_RND_ENTER();
 		  interval tmp(-(K.lb_/(-J.lb_)),K.rb_/(-J.lb_));
+		  GAOL_RND_KEEP(tmp);
 		  GAOL_RND_LEAVE();
 		  return I & tmp; // M P1
 		}
@@ -907,6 +919,7 @@
 	    if (J.right() < 0.0) { // [J] N1
 	      GAOL_RND_ENTER();
 	      interval tmp(-(K.rb_/(-J.rb_)),0.0);
+	      GAOL_RND_KEEP(tmp);
 	      GAOL_RND_LEAVE();
 	      return I & tmp; // P0 N1
 	    } else { // [J] P or Z
@@ -921,6 +934,7 @@
 		  } else { // [J] P1
 		    GAOL_RND_ENTER();
 		    interval tmp2 = I & interval(0.0,K.right()/J.left()); // P0 P1
+		    GAOL_RND_KEEP(tmp2);
 		    GAOL_RND_LEAVE();
 		    return tmp2;
 		  }
@@ -931,6 +945,7 @@
 	    if (J.right() < 0.0) { // [J] N1
 	      GAOL_RND_ENTER();
 	      interval tmp(-(K.rb_/(-J.rb_)),K.lb_/J.lb_);
+	      GAOL_RND_KEEP(tmp);
 	      GAOL_RND_LEAVE();
 	      return I & tmp; // P1 N1
 	    } else { // [J] P or Z
@@ -940,6 +955,7 @@
 		}
 		GAOL_RND_ENTER();
 		interval tmp2 = I & interval(-GAOL_INFINITY,K.lb_/J.lb_); // P1 N0
+		GAOL_RND_KEEP(tmp2);
 		GAOL_RND_LEAVE();
 		return tmp2;
 	      } else { // [J] P or M
@@ -947,17 +963,20 @@
 		  GAOL_RND_ENTER();
 		  interval tmp(-GAOL_INFINITY,K.lb_/J.lb_);
 		  interval tmp2 = interval(-(K.lb_/J.rb_),GAOL_INFINITY);
+		  GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
 		  GAOL_RND_LEAVE();
 		  return (I&tmp) | (I&tmp2); // P1 M
 		} else { // [J] P0 or P1
 		  if (J.left() == 0.0) { // [J] P0
 		    GAOL_RND_ENTER();
 		    interval tmp(-(K.lb_/J.rb_),GAOL_INFINITY);
+		    GAOL_RND_KEEP(tmp);
 		    GAOL_RND_LEAVE();
 		    return I & tmp; // P1 P0
 		  } else { // [J] P1
 		    GAOL_RND_ENTER();
 		    interval tmp(-(K.lb_/J.rb_),K.rb_/(-J.lb_));
+		    GAOL_RND_KEEP(tmp);
 		    GAOL_RND_LEAVE();
 		    return I & tmp; // P1 P1
 		  }
@@ -981,6 +1000,7 @@
 		GAOL_RND_ENTER();
 		double l = I.lb_*(-I.lb_);
 		double r = I.rb_*I.rb_;
+      	GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
       	GAOL_RND_LEAVE();
         return interval(-l,r);
     }
@@ -989,6 +1009,7 @@
 		GAOL_RND_ENTER();
 		double l = I.rb_*(-I.rb_);
 		double r = I.lb_*I.lb_;
+      	GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
       	GAOL_RND_LEAVE();
         return interval(-l,r);
     }
@@ -996,11 +1017,13 @@
     if (fabs(I.left()) >= fabs(I.right())) {
 		GAOL_RND_ENTER();
 		interval tmp = interval(0.0,I.left()*I.left());
+        GAOL_RND_KEEP(tmp);
         GAOL_RND_LEAVE();
         return tmp;
     } else {
 		GAOL_RND_ENTER();
 		interval tmp = interval(0.0,I.right()*I.right());
+        GAOL_RND_KEEP(tmp);
         GAOL_RND_LEAVE();
         return tmp;
     }
@@ -1024,6 +1047,7 @@
     GAOL_RND_ENTER();
     double mid_left  = -(.5*lb_ - .5*rb_);
     double mid_right = (-.5*lb_) + .5*rb_;
+    GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);
     GAOL_RND_LEAVE();
     return interval(mid_left,mid_right);
   }

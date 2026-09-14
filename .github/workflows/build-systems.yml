@@ -31,8 +31,10 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { os: ubuntu-24.04,     desc: 'Autotools, Ubuntu 24.04 x86_64' }
-          - { os: ubuntu-24.04-arm, desc: 'Autotools, Ubuntu 24.04 arm64' }
+          - { os: ubuntu-24.04,     configure: '',                           desc: 'Autotools, Ubuntu 24.04 x86_64' }
+          - { os: ubuntu-24.04-arm, configure: '',                           desc: 'Autotools, Ubuntu 24.04 arm64' }
+          - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -46,15 +48,14 @@ jobs:
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-          ./configure --prefix="$RUNNER_TEMP/gaol" --with-mathlib-include="$RUNNER_TEMP/mathlib/include" --with-mathlib-lib="$RUNNER_TEMP/mathlib/lib"
+          ./configure --prefix="$RUNNER_TEMP/gaol" --with-mathlib-include="$RUNNER_TEMP/mathlib/include" --with-mathlib-lib="$RUNNER_TEMP/mathlib/lib" ${{ matrix.cfg.configure }}
           make -j 4
           make install
       - name: Tests built with the installed GAOL
-        # rounding_direction.cpp is left out: configure preserves the rounding
-        # direction after each operation by default (--enable-preserve-rounding),
-        # rather than keeping it upward
         run: |
-          for test in arithmetic elementary numbers other_functions; do
+          set -o pipefail
+          grep -H GAOL_PRESERVE_ROUNDING "$RUNNER_TEMP/gaol/include/gaol/gaol_configuration.h"
+          for test in arithmetic elementary numbers other_functions rounding_direction; do
             g++ $TEST_FLAGS -ffloat-store -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
               "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o $test
             ./$test | tail -3
@@ -68,8 +69,10 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { os: ubuntu-24.04, desc: 'Meson, Ubuntu 24.04 x86_64' }
-          - { os: macos-15,     desc: 'Meson, macOS 15 arm64' }
+          - { os: ubuntu-24.04, options: '',                                desc: 'Meson, Ubuntu 24.04 x86_64' }
+          - { os: macos-15,     options: '',                                desc: 'Meson, macOS 15 arm64' }
+          - { os: ubuntu-24.04, options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
+          - { os: macos-15,     options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -91,15 +94,14 @@ jobs:
         run: |
           export CPATH="$RUNNER_TEMP/mathlib/include" LIBRARY_PATH="$RUNNER_TEMP/mathlib/lib"
           meson --version
-          meson setup build-meson -Dwith-mathlib=apmathlib --prefix="$RUNNER_TEMP/gaol" --libdir=lib
+          meson setup build-meson -Dwith-mathlib=apmathlib --prefix="$RUNNER_TEMP/gaol" --libdir=lib ${{ matrix.cfg.options }}
           meson compile -C build-meson
           meson install -C build-meson
       - name: Tests built with the installed GAOL
-        # rounding_direction.cpp is left out: the meson build preserves the
-        # rounding direction after each operation by default
-        # (enable-preserve-rounding), rather than keeping it upward
         run: |
-          for test in arithmetic elementary numbers other_functions; do
+          set -o pipefail
+          grep -rH GAOL_PRESERVE_ROUNDING "$RUNNER_TEMP/gaol/include/gaol/" || true
+          for test in arithmetic elementary numbers other_functions rounding_direction; do
             c++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
               -L"$RUNNER_TEMP/gaol/lib" -lgaol "$RUNNER_TEMP/mathlib/lib/libultim.a" -Wl,-rpath,"$RUNNER_TEMP/gaol/lib" -o $test
             ./$test | tail -3

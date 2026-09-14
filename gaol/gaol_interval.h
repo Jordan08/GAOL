@@ -869,6 +869,7 @@ INLINE double interval::width(void) const
     } else {
         GAOL_RND_ENTER();
         double res = right() - left();
+        GAOL_RND_KEEP(res);
         GAOL_RND_LEAVE();
         return res;
     }

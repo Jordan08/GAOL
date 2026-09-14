@@ -284,6 +284,7 @@ namespace gaol {
         }
       }
     }
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
@@ -401,6 +402,7 @@ namespace gaol {
 			// No other meaningful cases
 		}
 
+		GAOL_RND_KEEP(res);
 		GAOL_RND_LEAVE();
 		return res;
 	}
@@ -444,6 +446,7 @@ namespace gaol {
 
     GAOL_RND_ENTER();
     float middle = static_cast<float>(left()+(.5*right() - .5*left()));
+    GAOL_RND_KEEP(middle);
     GAOL_RND_LEAVE();
     return middle;
   }

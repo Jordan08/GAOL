@@ -42,16 +42,6 @@
 // FIXME: Using an hexadecimal constant is not portable!
 #define GAOL_FPU_MASK 0x0a3f
 
-#if ARM_MACOSX
-#   define CTRLWORD(v) (v).__fpcr
-#elif __APPLE__
-#   define CTRLWORD(v) (v).__control
-#elif IX86_LINUX
-#   define CTRLWORD(v) (v).__control_word
-#elif AARCH64_LINUX
-#   define CTRLWORD(v) (v).__fpcr
-#endif 
-
 #if USING_SSE2_INSTRUCTIONS
 #  include <xmmintrin.h>
    // Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
@@ -111,26 +101,13 @@ round_nearest(void)
   fesetround(FE_TONEAREST);
 }
 
-#ifdef CTRLWORD
-INLINE unsigned short int get_fpu_cw()
-{
-  fenv_t tmp;
-  fegetenv(&tmp);
-  return CTRLWORD(tmp);
-}
-
-INLINE void reset_fpu_cw(unsigned short int st)
-{
-  fenv_t tmp;
-  fegetenv(&tmp);
-  CTRLWORD(tmp) = st;
-  fesetenv(&tmp);
-}
-#else
-/* Where the name of the control word in fenv_t is not known (Visual C++,
-   MinGW, Linux on 32-bit ARM, the BSDs...), the rounding direction, which is
-   all GAOL saves and restores with these functions, is saved and restored
-   instead, with the functions of <fenv.h>. */
+/* The rounding direction, with the functions of <fenv.h>. GAOL's operations
+   save and restore it with get_rounding() and set_rounding() (gaol_fpu.h),
+   which also read and write the one of the SSE instructions: these functions
+   are kept for the code using them. They read and wrote the control word of
+   the x87 unit on x86 Linux and macOS, which left the direction of the SSE
+   instructions unrestored, and 16 bits of the FPCR on 64-bit ARM, which left
+   out its rounding bits. */
 INLINE unsigned short int get_fpu_cw()
 {
   return (unsigned short int)fegetround();
@@ -140,7 +117,6 @@ INLINE void reset_fpu_cw(unsigned short int st)
 {
   fesetround(st);
 }
-#endif
 
   /*!
     \brief Returns the opposite of the argument

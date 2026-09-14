@@ -279,9 +279,9 @@ fi
 # --enable-preserve-rounding
 AC_ARG_ENABLE(preserve-rounding,
             [AS_HELP_STRING([--enable-preserve-rounding],
-                            [transparently manipulates the FPU control flags @<:@default=yes@:>@])],
+                            [restore the rounding direction after each operation, rather than leaving it upward @<:@default=no@:>@])],
             [preserve_rounding=${enable_preserve_rounding}],
-            [preserve_rounding="yes"])
+            [preserve_rounding="no"])
 if test "${preserve_rounding}" = yes; then
    AC_DEFINE(GAOL_PRESERVE_ROUNDING,1,[define this to 1 if rounding direction should be preserved])
 fi

@@ -2,7 +2,7 @@ option('enable-optimize', type : 'boolean', value : true, description : 'Activat
 option('enable-debug', type : 'boolean', value : false, description : 'Activate debugging messages')
 option('enable-simd', type : 'boolean', value : false, description : 'Activate SIMD instructions')
 option('enable-asm', type : 'boolean', value : false, description : 'Activate ASM instructions')
-option('enable-preserve-rounding', type : 'boolean', value : true, description : 'Activate preserve rounding mode')
+option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
 option('enable-relations', type: 'string', value:'certainly', description: 'use KIND symbols of relations, with KIND being "set", "certainly" or "possibly" [default=certainly]')
 option('enable-exception', type: 'boolean', value: true, description: 'raise exceptions to signal errors [default=yes]')
 option('with-mathlib', type: 'string', value: 'crlibm', description: 'Specify the mathematical library to use between default math, apmathlib and crlibm [default=default]')

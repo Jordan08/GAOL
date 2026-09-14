@@ -1479,8 +1479,9 @@ Optional Features:
   --enable-optimize       compile gaol with full optimization [default=yes]
   --enable-debug          compile gaol with debugging info [default=no]
   --enable-preserve-rounding
-                          transparently manipulates the FPU control flags
-                          [default=yes]
+                          restore the rounding direction after each
+                          operation, rather than leaving it upward
+                          [default=no]
   --enable-relations=KIND use KIND symbols of relations, with KIND being
                           "set", "certainly" or "possibly" [default=certainly]
   --enable-exceptions     raise exceptions to signal errors [default=yes]
@@ -16741,7 +16742,7 @@ fi
 if test "${enable_preserve_rounding+set}" = set; then :
   enableval=$enable_preserve_rounding; preserve_rounding=${enable_preserve_rounding}
 else
-  preserve_rounding="yes"
+  preserve_rounding="no"
 fi
 
 if test "${preserve_rounding}" = yes; then

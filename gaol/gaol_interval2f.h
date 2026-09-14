@@ -307,6 +307,7 @@ namespace gaol {
 	{
 		GAOL_RND_ENTER_SSE();
 		__m128 tmp = _mm_add_ps(xmmbounds,I.xmmbounds);
+		GAOL_RND_KEEP(tmp);
 		GAOL_RND_LEAVE_SSE();
 		return interval2f(tmp);
 	}
@@ -315,6 +316,7 @@ namespace gaol {
 	{
 		GAOL_RND_ENTER_SSE();
 		__m128 tmp = _mm_add_ps(xmmbounds,_mm_shuffle_ps(I.xmmbounds,I.xmmbounds,_MM_SHUFFLE(2,3,0,1)));
+		GAOL_RND_KEEP(tmp);
 		GAOL_RND_LEAVE_SSE();
 		return interval2f(tmp);
 	}

@@ -38,11 +38,13 @@
 
 /* define this to 1 if rounding direction should be preserved
 
-   Left undefined: GAOL then sets the rounding direction to +oo once, at its
-   initialisation, and leaves it so after its operations rather than restoring
-   the one it found. Code using GAOL calls gaol::round_upward() after the few
-   operations that change it, as Codac and IBEX do. */
-/* #undef GAOL_PRESERVE_ROUNDING */
+   GAOL_PRESERVE_ROUNDING OFF, the default, leaves it undefined: each operation
+   sets the rounding direction upward when it is not, and leaves it upward, so
+   that its bounds are right whatever direction the code using GAOL set.
+   GAOL_PRESERVE_ROUNDING ON defines it: the operations also restore the
+   direction they found, which makes the arithmetic operations several times
+   slower (see gaol/gaol_fpu.h). */
+#cmakedefine GAOL_PRESERVE_ROUNDING 1
 
 /* define this to 1 if you want to allow ASM support
 

@@ -142,6 +142,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   {
     GAOL_RND_ENTER();
     double tmp = 1.0/a;
+    GAOL_RND_KEEP(tmp);
     GAOL_RND_LEAVE();
     return tmp;
   }
@@ -154,6 +155,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   {
     GAOL_RND_ENTER();
     double res = f_negate(1/(-a));
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
@@ -894,6 +896,8 @@ interval nth_root(const interval& I, unsigned int n)
 	  kl = 0;
 	}
       }
+      // Computed rounding downward: kept before the direction changes (see gaol_fpu.h)
+      kl = gaol::rnd_keep(kl);
       round_upward();
       // From here, kl is at most off by 1 less than the true value
       Ileft = acos_k(kl,Jacos) & I;
@@ -926,6 +930,7 @@ interval nth_root(const interval& I, unsigned int n)
 	}
       }
     }
+    GAOL_RND_KEEP(Ileft); GAOL_RND_KEEP(Iright);
     GAOL_RND_LEAVE();
     return interval(Ileft.left(),Iright.right());
   }
@@ -973,6 +978,8 @@ interval nth_root(const interval& I, unsigned int n)
 	  kl = 0;
 	}
       }
+      // Computed rounding downward: kept before the direction changes (see gaol_fpu.h)
+      kl = gaol::rnd_keep(kl);
       round_upward();
       // From here, kl is at most off by 1 less than the true value
       interval tmp = atanJ + kl*interval::pi();
@@ -1007,6 +1014,7 @@ interval nth_root(const interval& I, unsigned int n)
 	}
       }
     }
+    GAOL_RND_KEEP(Ileft); GAOL_RND_KEEP(Iright);
     GAOL_RND_LEAVE();
     return interval(Ileft.left(),Iright.right());
   }
@@ -1092,6 +1100,8 @@ interval nth_root(const interval& I, unsigned int n)
 	} else {
 	  res = I.right() / I.left();
 	}
+	// Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
+	res = gaol::rnd_keep(res);
 	GAOL_RND_RESTORE();
 	return res;
       }
@@ -1196,6 +1206,8 @@ interval nth_root(const interval& I, unsigned int n)
 	 if (std::isinf(middle)) {
 		middle = 0.5*left() + 0.5*right();
 	 }
+    // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
+    middle = gaol::rnd_keep(middle);
     GAOL_RND_RESTORE();
     return middle;
   }
@@ -1212,12 +1224,14 @@ interval nth_root(const interval& I, unsigned int n)
     if (Ipos.left() == 0.0) {
 			GAOL_RND_ENTER();
 			interval tmp = interval(0.0,gaol_sqrt_up(Ipos.right()));
+      GAOL_RND_KEEP(tmp);
       GAOL_RND_LEAVE();
       return tmp;
     } else {
 			GAOL_RND_ENTER();
 			double l = Ipos.left_internal()/gaol_sqrt_up(Ipos.left());
 			double r = gaol_sqrt_up(Ipos.right());
+      GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
       GAOL_RND_LEAVE();
       return interval(-l,r);
     }
@@ -1241,9 +1255,12 @@ interval nth_root(const interval& I, unsigned int n)
     } else {
       round_downward();
 			l = gaol_sqrt_down(Jpos.left());
+      // Computed rounding downward: kept before the direction changes (see gaol_fpu.h)
+      l = gaol::rnd_keep(l);
       round_upward();
 			r = gaol_sqrt_up(Jpos.right());
     }
+    GAOL_RND_KEEP(r);
     GAOL_RND_LEAVE();
 
 	interval Res(l,r);
@@ -1319,6 +1336,7 @@ interval nth_root(const interval& I, unsigned int n)
 	return interval::minus_one_plus_one();
       }
     }
+    GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
     GAOL_RND_LEAVE();
     return interval(u,v);
   }

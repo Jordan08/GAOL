@@ -3072,6 +3072,7 @@ interval2f interval2f::inverse() const
 			  res = _mm_set_ps(-1.0f,1.0f,-1.0f,1.0f); // Just ot keep the compiler happy
  		}
 
+		GAOL_RND_KEEP(res);
 		GAOL_RND_LEAVE_SSE();
 		return interval2f(res);
 	}

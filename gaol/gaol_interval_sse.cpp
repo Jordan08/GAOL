@@ -112,6 +112,7 @@
 				GAOL_RND_ENTER();
 				double d = fmax(fmax(I1.left()-I2.left(),I2.left()-I1.left()),
 				                fmax(I1.right()-I2.right(),I2.right()-I1.right()));
+				GAOL_RND_KEEP(d);
 				GAOL_RND_LEAVE();
 				return d;
 			}
@@ -135,6 +136,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       GAOL_RND_ENTER_SSE();
       __m128d r = _mm_xor_pd(K.xmmbounds,interval::lbsignmask);
       __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r,r,1),J.xmmbounds);
+      GAOL_RND_KEEP(r2);
       GAOL_RND_LEAVE_SSE();
       return I & interval(r2); // N1 N1
     } else { // [J] P or Z
@@ -144,6 +146,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         } else {
           GAOL_RND_ENTER_SSE();
           __m128d r = _mm_move_sd(interval::m128_infinf,_mm_div_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),J.xmmbounds)); 
+          GAOL_RND_KEEP(r);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r); // N1 N0
         }
@@ -152,17 +155,20 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			GAOL_RND_ENTER_SSE();
 			interval tmp(-GAOL_INFINITY,K.right()/J.right());
 			interval tmp2(K.right()/(J.left()),GAOL_INFINITY);
+	    	GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
 	    	GAOL_RND_LEAVE_SSE();
 	    	return (I&tmp) | (I&tmp2); // N1 M
         } else { // [J] P0 or P1
           if ( J.left() == 0.0 ) { // [I] P0
             GAOL_RND_ENTER_SSE();
             __m128d r = _mm_move_sd(_mm_div_pd(K.xmmbounds,J.xmmbounds),interval::m128_infinf);// N1 P0
+            GAOL_RND_KEEP(r);
             GAOL_RND_LEAVE_SSE();
             return I & interval(r);
           } else { // [J] P1
             GAOL_RND_ENTER_SSE();
             __m128d r = _mm_div_pd(K.xmmbounds,_mm_xor_pd(J.xmmbounds,interval::lbsignmask)); // N1 P1
+            GAOL_RND_KEEP(r);
             GAOL_RND_LEAVE_SSE();
             return I & interval(r);
           }
@@ -182,6 +188,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			GAOL_RND_ENTER_SSE();
 			__m128d r1 = _mm_xor_pd(K.xmmbounds,interval::lbsignmask);
 			__m128d r2 = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),J.xmmbounds),interval::m128_zero);	// N0 N1
+			GAOL_RND_KEEP(r2);
 			GAOL_RND_LEAVE_SSE();
 			return I & interval(r2);
 		} else { // [J] P or Z
@@ -200,6 +207,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			  } else { // [J] P1
           GAOL_RND_ENTER_SSE();
           __m128d r = _mm_move_sd(interval::m128_zero,_mm_div_pd(K.xmmbounds,_mm_xor_pd(J.xmmbounds,interval::lbsignmask))); 
+          GAOL_RND_KEEP(r);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r); // N0 P1
 			  }
@@ -213,6 +221,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       GAOL_RND_ENTER_SSE();
 		  __m128d r1 = _mm_xor_pd(K.xmmbounds,interval::lbrbsignmask);
 		  __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(J.xmmbounds,J.xmmbounds));
+      GAOL_RND_KEEP(r2);
       GAOL_RND_LEAVE_SSE();
       return I & interval(r2); // M N1
 		} else { // [J] P or Z
@@ -228,6 +237,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           GAOL_RND_ENTER_SSE();
           __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
           __m128d r2 = _mm_div_pd(K.xmmbounds,_mm_unpacklo_pd(r1,r1)); 
+          GAOL_RND_KEEP(r2);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r2); // M P1
 			  }
@@ -241,6 +251,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),interval::lbsignmask);
         __m128d r2 = _mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1);
         __m128d r3 = _mm_move_sd(interval::m128_zero,_mm_div_pd(r1,r2));
+        GAOL_RND_KEEP(r3);
         GAOL_RND_LEAVE_SSE();
         return I & interval(r3); // P0 N1
 		  } else { // [J] P or Z
@@ -257,6 +268,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 				  __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
 				  __m128d r2 = _mm_shuffle_pd(r1,r1,1);
 				  __m128d r3 = _mm_move_sd(_mm_div_pd(K.xmmbounds,r2),interval::m128_zero);// P0 P1
+          GAOL_RND_KEEP(r3);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r3);
 				}
@@ -269,6 +281,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),interval::lbrbsignmask);
         __m128d r2 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
         __m128d r3 = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); 
+        GAOL_RND_KEEP(r3);
         GAOL_RND_LEAVE_SSE();
         return I & interval(r3); // P1 N1
       } else { // [J] P or Z
@@ -280,6 +293,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           __m128d r = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),
                             _mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1)),
                                 interval::m128_infinf); 
+          GAOL_RND_KEEP(r);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r); // P1 N0
 			  }
@@ -292,6 +306,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 				  __m128d r2 = _mm_move_sd(interval::m128_infinf,
                         _mm_div_pd(K.xmmbounds,
 												_mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1))); // P1 P0
+          GAOL_RND_KEEP(r); GAOL_RND_KEEP(r2);
           GAOL_RND_LEAVE_SSE();
           return (I & interval(r)) | (I & interval(r2)); // P1 M
 			  } else { // [J] P0 or P1
@@ -300,12 +315,14 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 				  __m128d r = _mm_move_sd(interval::m128_infinf,
                         _mm_div_pd(K.xmmbounds,
 												_mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1))); // P1 P0
+          GAOL_RND_KEEP(r);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r);
 				} else { // [J] P1
           GAOL_RND_ENTER_SSE();
 				  __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
 				  __m128d r2 = _mm_div_pd(K.xmmbounds,_mm_shuffle_pd(r1,r1,1));
+          GAOL_RND_KEEP(r2);
           GAOL_RND_LEAVE_SSE();
           return I & interval(r2); // P1 P1
 				}
@@ -520,6 +537,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
       
       }
 
+      GAOL_RND_KEEP(res);
       GAOL_RND_LEAVE_SSE();
       return interval(res);
     }
@@ -612,6 +630,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
     // FIXME: check formulas below in case of underflow (cf. midpoint())
     double mid_left  = -(.5*l - .5*r);
     double mid_right = (-.5*l) + .5*r;
+    GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);
     GAOL_RND_LEAVE();
     return interval(mid_left,mid_right);
   }
@@ -1064,6 +1083,7 @@ interval interval::inverse() const
   __m128d r16 = _mm_and_pd(r15, interval::m128_infinf); // r14 == < ((-c)>0 && d>0) ? inf : 0, ((-c)>0 && d>0) ? inf : 0 >
   __m128d r17 = _mm_andnot_pd(r15, r12); // r17 ==  < ((-c)<=0 || d<=0) ? hi(r12) : 0, ((-c)<=0 || d<=0) ? lo(r12) : 0 >
   __m128d r18 = _mm_or_pd(r16,r17); // < ((-c)>0 && d>0) ? inf : hi(r12), ((-c)>0 && d>0) ? inf : lo(r12) >
+  GAOL_RND_KEEP(r18);
   GAOL_RND_LEAVE_SSE();
   return interval(r18);
 }
@@ -1110,6 +1130,7 @@ interval interval::inverse() const
         }
       }
     }
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return res;
   }
