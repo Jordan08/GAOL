@@ -136,9 +136,39 @@ if(NOT GAOL_MINGW_W64_RECENT_ENOUGH)
     "takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large "
     "negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the "
     "MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).\n"
-    "Build GAOL with a MinGW-w64 of version 12 or later, such as the MinGW-w64 GCC 14.2.0 (rt_v12) or 15.2.0 "
-    "(rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of "
-    "MSYS2, or with Visual Studio, in a new build directory.")
+    "Build GAOL with a MinGW-w64 of version 13 or later (see below for version 12), such as the MinGW-w64 GCC "
+    "15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one "
+    "of MSYS2, or with Visual Studio, in a new build directory.")
+endif()
+
+# fesetround() of mingw-w64 12 on x86 and x64 processors (MinGW-Builds with
+# rt_v12, as the MinGW-w64 GCC 14.2.0 of Chocolatey) runs the instruction cpuid
+# at each call, to know whether the processor has SSE (__mingw_has_sse(), whose
+# result mingw-w64 13 keeps). cpuid exits to the hypervisor in a virtual
+# machine: in the continuous integration, fesetround() took 3.5 microseconds per
+# call, against 130 nanoseconds with mingw-w64 13. GAOL changes the rounding
+# direction four times for each exp(), log(), sin() or cos() of an interval,
+# which took 10.6 to 13.8 microseconds rather than 0.5 to 0.7. GAOL's bounds were
+# right, but GAOL is not built with it.
+check_cxx_source_compiles("
+  #include <stdlib.h>
+  #if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 13
+  #error mingw-w64 before version 13
+  #endif
+  int main() { return 0; }"
+  GAOL_MINGW_W64_FAST_ENOUGH)
+if(NOT GAOL_MINGW_W64_FAST_ENOUGH)
+  message(FATAL_ERROR
+    "GAOL cannot be built with ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}), "
+    "whose mingw-w64 is version 12.\n"
+    "fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which takes microseconds in a virtual "
+    "machine: 3.5 microseconds per call in GitHub Actions, against 130 nanoseconds with mingw-w64 13. GAOL changes "
+    "the rounding direction four times for each exp(), log(), sin() or cos() of an interval, which then took 10.6 "
+    "to 13.8 microseconds rather than 0.5 to 0.7 (with the MinGW-w64 GCC 14.2.0 of Chocolatey, rt_v12): the "
+    "intervals GAOL computes are right, but some 20 times slower.\n"
+    "Build GAOL with a MinGW-w64 of version 13 or later, such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, "
+    "which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with Visual Studio, "
+    "in a new build directory.")
 endif()
 
 set(GAOL_INTERVAL_FLAGS "")

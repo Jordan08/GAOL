@@ -104,7 +104,11 @@ GAOL cannot be built with a compiler that does not honour the rounding direction
 on the target: Clang for 32-bit ARM processors, and compilers that say so of
 `-frounding-math`, such as Clang 14 for 64-bit ARM processors. Nor with a
 MinGW-w64 older than version 12 (MinGW-w64 GCC 11 to 13), whose math library
-gave hyperbolic functions far from their exact values. The configuration stops
+gave hyperbolic functions far from their exact values, nor with mingw-w64 12
+(MinGW-w64 GCC 14.2, rt_v12), whose `fesetround()` runs the instruction `cpuid`
+at each call: in a virtual machine, `exp()`, `log()`, `sin()` and `cos()` took
+10.6 to 13.8 microseconds rather than 0.5 to 0.7 with mingw-w64 13, the bounds
+being right. The configuration stops
 with a message naming the compilers to use instead (GCC, a later Clang, a later
 MinGW-w64).
 
@@ -351,11 +355,11 @@ CMake and runs the tests on:
   with the sanitizers with AppleClang, LLVM's Clang and GCC.
 - **Windows:**
   - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug;
-  - MinGW-w64 14 and 15, on x86 and x64;
+  - MinGW-w64 15, on x86 and x64;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
 It also checks that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and
-MinGW-w64 11 to 13, and builds GAOL with autotools and meson. Jobs of each build
+MinGW-w64 11 to 14, and builds GAOL with autotools and meson. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and
 arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
 meson. The jobs built in Release print the time per operation in their summary.

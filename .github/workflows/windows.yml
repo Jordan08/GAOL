@@ -1,8 +1,8 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
-# arm64; Release and Debug), MinGW-w64 14 and 15 (x86, x64) and MSYS2 (UCRT64
+# arm64; Release and Debug), MinGW-w64 15 (x86, x64) and MSYS2 (UCRT64
 # GCC, CLANG64 Clang), runs its tests, installs it, and builds the tests again
-# with the installed GAOL. Checks that MinGW-w64 11 to 13, whose mingw-w64 is
-# older than version 12, are refused.
+# with the installed GAOL. Checks that MinGW-w64 11 to 14, whose mingw-w64 is
+# older than version 13, are refused.
 
 name: Windows
 
@@ -78,8 +78,6 @@ jobs:
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 15.2.0 x86 Release' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Debug,   desc: 'MinGW-w64 15.2.0 x64 Debug' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Debug,   desc: 'MinGW-w64 15.2.0 x86 Debug' }
-          - { version: '14.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 14.2.0 x64 Release' }
-          - { version: '14.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 14.2.0 x86 Release' }
     steps:
       - uses: actions/checkout@v7
       - name: MinGW-w64, from Chocolatey
@@ -118,6 +116,8 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
+          - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      desc: 'MinGW-w64 14.2.0 x64, refused' }
+          - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', desc: 'MinGW-w64 14.2.0 x86, refused' }
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      desc: 'MinGW-w64 13.2.0 x64, refused' }
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', desc: 'MinGW-w64 13.2.0 x86, refused' }
           - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      desc: 'MinGW-w64 12.2.0 x64, refused' }
@@ -130,7 +130,7 @@ jobs:
         run: |
           choco install -y -r --no-progress mingw --version=${{ matrix.cfg.version }} --force ${{ matrix.cfg.choco_flags }}
           echo '${{ matrix.cfg.bin }}' >> "$GITHUB_PATH"
-      - name: Configure, which has to fail, mingw-w64 being older than version 12
+      - name: Configure, which has to fail, mingw-w64 being older than version 13
         run: |
           g++ --version
           echo '#include <stdlib.h>' | g++ -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) ' || true
