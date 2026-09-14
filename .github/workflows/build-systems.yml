@@ -121,3 +121,17 @@ jobs:
         run: cmake --build build -j 4
       - name: Tests
         run: cd build && ctest -j 4 --output-on-failure
+      - name: Configure with GAOL_FIND_MATHLIB OFF, the installed mathlib on CMAKE_PREFIX_PATH
+        # As Codac builds GAOL for itself: mathlib is downloaded, built and
+        # installed with GAOL, even where CMake would find an installed one
+        run: |
+          cmake -S . -B build-own-mathlib -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=OFF -DGAOL_FIND_MATHLIB=OFF \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/mathlib" -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/gaol-own-mathlib" | tee configure-own-mathlib.log
+          grep -q "GAOL_FIND_MATHLIB is OFF: mathlib will be downloaded and built" configure-own-mathlib.log
+      - name: Build and install with GAOL_FIND_MATHLIB OFF
+        run: |
+          cmake --build build-own-mathlib -j 4
+          cmake --install build-own-mathlib
+          for file in lib/libgaol.a lib/libultim.a include/MathLib.h include/gaol/gaol.h; do
+            test -f "$RUNNER_TEMP/gaol-own-mathlib/$file" || { echo "$file is not installed"; exit 1; }
+          done
