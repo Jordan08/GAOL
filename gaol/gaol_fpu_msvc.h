@@ -83,6 +83,51 @@ INLINE double next_float(double d)
 #endif // USING_SSE2_INSTRUCTIONS
 
 
+/*
+  The rounding direction of the doubles computed from here on (see
+  gaol_fpu_fenv.h). With Visual C++ for x64, the doubles are computed with
+  SSE2 instructions and the x87 unit is not used: the rounding bits of MXCSR
+  are written directly (_mm_setcsr), where _control87() cost some 60 ns per
+  call. For x86, the x87 control word too, in assembly. For ARM, _control87().
+*/
+#if defined(_M_X64)
+#  include <xmmintrin.h>
+INLINE void gaol_set_rounding_msvc(unsigned int x87_rc, unsigned int sse_rc)
+{
+	(void)x87_rc;
+	_mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
+}
+#elif defined(_M_IX86)
+#  include <xmmintrin.h>
+INLINE void gaol_set_rounding_msvc(unsigned int x87_rc, unsigned int sse_rc)
+{
+	unsigned short cw;
+	__asm fnstcw cw
+	cw = (unsigned short)((cw & (unsigned short)~0x0C00u) | (unsigned short)x87_rc);
+	__asm fldcw cw
+	_mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
+}
+#endif
+
+#if defined(_M_X64) || defined(_M_IX86)
+INLINE  void
+round_downward(void)
+{
+	gaol_set_rounding_msvc(0x0400, _MM_ROUND_DOWN);
+}
+
+INLINE  void
+round_upward(void)
+{
+	gaol_set_rounding_msvc(0x0800, _MM_ROUND_UP);
+}
+
+INLINE  void
+round_nearest(void)
+{
+	gaol_set_rounding_msvc(0x0000, _MM_ROUND_NEAREST);
+}
+#else
 INLINE  void
 round_downward(void)
 {
@@ -100,6 +145,7 @@ round_nearest(void)
 {
 	_control87(_RC_NEAR,_MCW_RC);
 }
+#endif
 
 INLINE unsigned short int get_fpu_cw()
 {

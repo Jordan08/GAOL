@@ -83,6 +83,58 @@ INLINE double next_float(double d)
 #endif // USING_SSE2_INSTRUCTIONS
 
 
+/*
+  The rounding direction of the doubles computed from here on.
+
+  On x86 processors, the control registers of the two floating-point units
+  are written directly: the rounding bits of the x87 control word (fnstcw,
+  fldcw) and of the SSE control register MXCSR (stmxcsr, ldmxcsr), what
+  fesetround() does after checking its argument, through a call. GAOL changes
+  the direction four times for each exp(), log(), sin() or cos() of an
+  interval (to nearest before mathlib, upward after, for each bound), and
+  fesetround() cost 130 ns per call with mingw-w64 13, 8.5 ns with glibc.
+  The doubles of GAOL and of mathlib are computed with SSE2 instructions
+  (MXCSR); the x87 unit serves the C library's long doubles and, with
+  MinGW-w64, some of its functions, whose results GAOL widens (the hyperbolic
+  functions) or bounds whatever their rounding (sqrt). Both are set, as
+  fesetround() sets them, so that fegetround() reads the direction set.
+  Elsewhere, fesetround(), which the C library implements for the processor.
+
+  The asm statements are volatile, with memory clobbered: the compiler keeps
+  them where they are written and does not move loads and stores across them.
+  As with fesetround(), the values computed before a change of direction go
+  through rnd_keep() (gaol_fpu.h): GCC does not model the rounding direction.
+*/
+#if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))
+#  define GAOL_RND_X86_REGISTERS 1
+#  include <xmmintrin.h>
+INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+{
+  unsigned short cw;
+  __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+  cw = (unsigned short)((cw & (unsigned short)~0x0C00u) | x87_rc);
+  __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
+  _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
+}
+
+INLINE  void
+round_downward(void)
+{
+  gaol_set_rounding_x86(0x0400, _MM_ROUND_DOWN);
+}
+
+INLINE  void
+round_upward(void)
+{
+  gaol_set_rounding_x86(0x0800, _MM_ROUND_UP);
+}
+
+INLINE  void
+round_nearest(void)
+{
+  gaol_set_rounding_x86(0x0000, _MM_ROUND_NEAREST);
+}
+#else
 INLINE  void
 round_downward(void)
 {
@@ -100,6 +152,7 @@ round_nearest(void)
 {
   fesetround(FE_TONEAREST);
 }
+#endif
 
 /* The rounding direction, with the functions of <fenv.h>. GAOL's operations
    save and restore it with get_rounding() and set_rounding() (gaol_fpu.h),

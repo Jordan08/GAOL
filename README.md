@@ -349,6 +349,16 @@ Each change is a commit of its own, and says where it comes from.
   to 4 ns with 32-bit Visual C++, and 48 ns rather than 6.4 ns with 32-bit
   MinGW-w64 15.2; and Clang 18 read MXCSR once for a whole loop that changed
   the rounding direction.
+- **The rounding direction is set on x86 processors by writing the control
+  registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
+  rather than through `fesetround()` or `_control87()`, which cost 130 ns per
+  call with mingw-w64 13, some 60 ns with the C runtime of Visual C++ for x64,
+  8.5 ns with glibc. GAOL changes the direction four times for each
+  elementary function of an interval (to nearest before mathlib and upward
+  after, for each bound): `exp()`, `log()`, `sin()` and `cos()` took 420 to
+  550 ns on 64-bit Windows, where mathlib itself takes about 10 ns. Both
+  registers are set, as `fesetround()` sets them, and `fegetround()` reads the
+  direction set. Elsewhere (ARM, POWER, s390x, RISC-V), `fesetround()` still.
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.
