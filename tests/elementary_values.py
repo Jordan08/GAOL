@@ -84,7 +84,9 @@ def exponents(emin, emax, n, signed=True):
 # The hard-to-round arguments of cos of CORE-MATH
 # (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) at
 # which mathlib 2.1.1 returned sin(x), before cmake/mathlib/prepare.cmake fixed
-# its multiple-precision cosine
+# its multiple-precision cosine, mpcos(), as glibc did in 2003
+# (https://sourceware.org/git/?p=glibc.git;a=commit;h=86583139a4d746743ccffcd72e25d96c5fb8d488).
+# Reported to mathlib in https://github.com/dreal-deps/mathlib/issues/2.
 MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.9a25c721c7bfep-1 0x1.9a27a4b746fa2p-1 0x1.9a92cdb25a2e1p-1 0x1.9c3503f763063p-1
     0x1.9c445d0ecfbabp-1 0x1.9cd9b3bb42eeep-1 0x1.9e2eb96bbac15p-1 0x1.9efb0f4c665a3p-1
@@ -100,6 +102,22 @@ MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.b1452182b7e85p-1 0x1.b31cef6342dd8p-1 0x1.b33ae70065978p-1 0x1.b35d8c88afcdp-1
     0x1.b3abae24db453p-1 0x1.b3c84d585eb78p-1 0x1.b3df954783e23p-1 0x1.b4287fe717028p-1
     0x1.b434e9418d78dp-1 0x1.b4b54238060cbp-1
+""".split()]
+
+# Arguments of atan at which mathlib 2.1.1 returned values far from atan(x)
+# where long has 64 bits, before cmake/mathlib/prepare.cmake fixed fastiroot(),
+# which starts its multiple-precision square roots, as glibc did in 2003
+# (https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5):
+# the three of Debian bug 210613 (https://bugs.debian.org/210613), on Alpha,
+# and 14 of the 12003 hard-to-round arguments of atan of CORE-MATH
+# (https://gitlab.inria.fr/core-math/core-math, src/binary64/atan/atan.wc) at
+# which it did so on x86_64, spread over them. The 3967 at which atan() had not
+# returned after 20 ms are left out, so that the tests fail rather than hang.
+MPSQRT_ARGUMENTS = [0.062510113344606447, 1.016527294692847, 1.9966212994203429] + [float.fromhex(x) for x in """
+    0x1.93cc5e08a67d8p-7 0x1.6eee0a3c0ab5ep-5 0x1.282a13c03fbfdp-3 0x1.f02aafdb4b606p-2
+    0x1.97487d43cc91ep+0 0x1.72825238b729fp+2 0x1.1cf5d00ba6d37p+4 0x1.48e290e0b7cb9p+12
+    0x1.bd3853630e373p+20 0x1.45e0b26d83c92p+24 0x1.051a9259b3d12p+28 0x1.c7a2c1d987b90p+37
+    0x1.378fb8f1087cfp+41 0x1.49ff16b9c1e3ep+52
 """.split()]
 
 
@@ -135,7 +153,7 @@ unary = [
      + uniform(-1, 1, 25)),
     ("atan", mpmath.atan,
      [0.0, 1.0, 0.5, -2.0, 1000.0, 1e300, -1e300, 1e-300, MAX, TINY, 2.0**53]
-     + exponents(-1074, 1023, 20) + uniform(-10, 10, 10)),
+     + exponents(-1074, 1023, 20) + uniform(-10, 10, 10) + MPSQRT_ARGUMENTS),
     ("sinh", mpmath.sinh,
      [0.0, 1.0, -1.0, 0.5, 10.0, -20.0, 1e-10, 700.0, 710.0, 710.47, 710.5, -711.0, TINY, 1e-300]
      + uniform(-30, 30, 25) + uniform(-700, 700, 10)),

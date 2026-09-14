@@ -79,7 +79,7 @@ Mathematical Library (libultim). The build looks for an installed mathlib
 (`MathLib.h` and the `ultim` library, under `MATHLIB_DIR` or the usual paths).
 When there is none, it downloads mathlib 2.1.1 from
 [Frédéric Goualard's site](https://frederic.goualard.net/)
-(`mathlib-2.1.1.tar.gz`, checked against its SHA256), fixes its cosine (see
+(`mathlib-2.1.1.tar.gz`, checked against its SHA256), fixes bugs of it (see
 [What differs from GAOL](#what-differs-from-gaol)), builds it with the CMake
 build of `cmake/mathlib/`, and installs it along with GAOL. An installed mathlib
 is used as it is.
@@ -218,6 +218,16 @@ Each change is a commit of its own, and says where it comes from.
   and 0.853 ([dreal-deps/mathlib#2](https://github.com/dreal-deps/mathlib/issues/2)).
   The CMake build fixes the call to `c32()` in `mpcos()` in the sources it
   downloads, the line glibc fixed in its copy of the same code in 2003.
+- **The arctangent of mathlib** (`cmake/mathlib/prepare.cmake`): `fastiroot()`,
+  which starts the multiple-precision square roots mathlib computes the
+  arctangent with at the arguments hardest to round, read the halves of a double
+  through `long`s. Where `long` has 64 bits (Linux and macOS on 64-bit
+  processors), `atan()` returned values far from atan(x), or had not returned
+  after 20 ms, at 15970 of the 55190 hard-to-round arguments of atan of
+  CORE-MATH: `atan(1.016527294692847)` was 0.082 instead of 0.794. The CMake
+  build makes them `int`s, as glibc did in 2003
+  ([commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5));
+  [Debian bug 210613](https://bugs.debian.org/210613) is the same bug on Alpha.
 - **Clang is refused for 32-bit ARM processors**, where it does not honour the
   rounding direction: built by Clang 21, 4556 of 16000 random products, squares
   and cubes did not enclose their exact values.

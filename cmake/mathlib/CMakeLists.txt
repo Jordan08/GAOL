@@ -8,8 +8,8 @@
 # (GNU GPL v2 or later). It comes with an autotools build and a batch file for
 # Visual C++, but no CMake build: the CMake build of GAOL downloads it, and
 # prepare.cmake copies this file and mathlib_configuration.h.in into it. The
-# sources of mathlib themselves are only modified to fix its cosine, which
-# returned sin(x) for some arguments (see prepare.cmake).
+# sources of mathlib themselves are only modified to fix bugs of it (see
+# prepare.cmake).
 #
 # Origin
 # ------

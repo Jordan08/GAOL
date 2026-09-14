@@ -227,7 +227,7 @@ elseif(GAOL_BUILD_MATHLIB)
   endif()
   # mathlib 2.1.1, as Frederic Goualard distributes it (GNU GPL v2 or later),
   # the archive GAOL's README points to; its checksum is checked. prepare.cmake
-  # adds the CMake build and fixes the cosine of mathlib. It is given its own
+  # adds the CMake build and fixes bugs of mathlib. It is given its own
   # checksum: the patch step runs again when its command changes, not when the
   # script does, and a new prepare.cmake then reaches the mathlib already
   # downloaded in a build directory.
