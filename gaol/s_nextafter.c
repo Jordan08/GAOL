@@ -5,7 +5,7 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  */
@@ -17,11 +17,18 @@
  *   Special cases:
  */
 
-//#include "fdlibm.h"
-#define __HI(x) *(1+(int*)&x)
-#define __LO(x) *(int*)&x
-#define __HIp(x) *(1+(int*)x)
-#define __LOp(x) *(int*)x
+/*
+ * Fork of GAOL: the words of the doubles are read and written through
+ * memcpy() and a 64-bit integer, rather than through int pointers, which broke
+ * the strict aliasing rules and took the low word first whatever the byte
+ * order. The cases, the results and the exceptions raised are those of fdlibm.
+ * GAOL only uses s_nextafter() with a Visual C++ lacking nextafter().
+ */
+
+#include <string.h>
+
+#define SIGN_BIT      0x8000000000000000ULL
+#define EXPONENT_BITS 0x7ff0000000000000ULL
 
 #if defined (_MSC_VER)
 __declspec(dllexport)
@@ -31,52 +38,38 @@ __attribute__ ((visibility("default")))
 double s_nextafter(double x, double y)
 
 {
-	int	hx,hy,ix,iy;
-	unsigned lx,ly;
+	unsigned long long ux,uy,ax,ay;
+	/* volatile: the product x*x stored in it only raises the underflow flag,
+	   and GCC would drop it, both branches returning the same double */
+	volatile double t;
 
-	hx = __HI(x);		/* high word of x */
-	lx = __LO(x);		/* low  word of x */
-	hy = __HI(y);		/* high word of y */
-	ly = __LO(y);		/* low  word of y */
-	ix = hx&0x7fffffff;		/* |x| */
-	iy = hy&0x7fffffff;		/* |y| */
+	memcpy(&ux,&x,sizeof ux);
+	memcpy(&uy,&y,sizeof uy);
+	ax = ux&~SIGN_BIT;		/* |x| */
+	ay = uy&~SIGN_BIT;		/* |y| */
 
-	if(((ix>=0x7ff00000)&&((ix-0x7ff00000)|lx)!=0) ||   /* x is nan */ 
-	   ((iy>=0x7ff00000)&&((iy-0x7ff00000)|ly)!=0))     /* y is nan */ 
-	   return x+y;				
+	if(ax>EXPONENT_BITS ||		/* x is nan */
+	   ay>EXPONENT_BITS)		/* y is nan */
+	   return x+y;
 	if(x==y) return x;		/* x=y, return x */
-	if((ix|lx)==0) {			/* x == 0 */
-	    __HI(x) = hy&0x80000000;	/* return +-minsubnormal */
-	    __LO(x) = 1;
-	    y = x*x;
-	    if(y==x) return y; else return x;	/* raise underflow flag */
-	} 
-	if(hx>=0) {				/* x > 0 */
-	    if(hx>hy||((hx==hy)&&(lx>ly))) {	/* x > y, x -= ulp */
-		if(lx==0) hx -= 1;
-		lx -= 1;
-	    } else {				/* x < y, x += ulp */
-		lx += 1;
-		if(lx==0) hx += 1;
-	    }
-	} else {				/* x < 0 */
-	    if(hy>=0||hx>hy||((hx==hy)&&(lx>ly))){/* x < y, x -= ulp */
-		if(lx==0) hx -= 1;
-		lx -= 1;
-	    } else {				/* x > y, x += ulp */
-		lx += 1;
-		if(lx==0) hx += 1;
-	    }
+	if(ax==0) {			/* x == 0 */
+	    ux = (uy&SIGN_BIT)|1;	/* return +-minsubnormal */
+	    memcpy(&x,&ux,sizeof x);
+	    t = x*x;
+	    if(t==x) return t; else return x;	/* raise underflow flag */
 	}
-	hy = hx&0x7ff00000;
-	if(hy>=0x7ff00000) return x+x;	/* overflow  */
-	if(hy<0x00100000) {		/* underflow */
-	    y = x*x;
-	    if(y!=x) {		/* raise underflow flag */
-		__HI(y) = hx; __LO(y) = lx;
+	if((x>y)==((ux&SIGN_BIT)==0))	/* |x| decreases toward y */
+	    ux -= 1;
+	else				/* |x| increases toward y */
+	    ux += 1;
+	if((ux&EXPONENT_BITS)==EXPONENT_BITS) return x+x;	/* overflow  */
+	if((ux&EXPONENT_BITS)==0) {	/* underflow */
+	    t = x*x;
+	    if(t!=x) {		/* raise underflow flag */
+		memcpy(&y,&ux,sizeof y);
 		return y;
 	    }
 	}
-	__HI(x) = hx; __LO(x) = lx;
+	memcpy(&x,&ux,sizeof x);
 	return x;
 }
