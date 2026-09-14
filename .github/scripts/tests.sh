@@ -1,0 +1,38 @@
+#!/bin/sh
+# Builds the tests of tests/ and tests/performance.cpp with a GAOL installed by
+# the autotools or the meson build, and runs the tests, as the continuous
+# integration does. To be run from the root of GAOL's sources:
+#
+#   sh .github/scripts/tests.sh <prefix of GAOL> <prefix of mathlib> static|shared
+#
+# static links libgaol.a, shared links libgaol.so (or .dylib) with an rpath. The
+# flags of the tests are those of TEST_FLAGS, with which the code using GAOL is
+# compiled (see CMakeLists.txt); on a 32-bit x86 processor, -msse2 -mfpmath=sse
+# too, without which gaol/gaol_config.h refuses to compile.
+set -e
+prefix=$1
+mathlib=$2
+linking=$3
+flags="${TEST_FLAGS:--std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off}"
+case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
+  i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
+esac
+if [ "$linking" = shared ]; then
+  libs="-L$prefix/lib -lgaol $mathlib/lib/libultim.a -Wl,-rpath,$prefix/lib"
+else
+  libs="$prefix/lib/libgaol.a $mathlib/lib/libultim.a"
+fi
+grep -H -E "GAOL_PRESERVE_ROUNDING|USING_SSE2_INSTRUCTIONS|USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
+status=0
+for test in arithmetic elementary numbers other_functions rounding_direction; do
+  ${CXX:-c++} $flags -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
+  # The checks that failed, which the last lines do not show
+  if ./$test > $test.log 2>&1; then
+    tail -1 $test.log
+  else
+    grep -E "checks, [1-9][0-9]* failed|^FAILED" $test.log | head -60
+    status=1
+  fi
+done
+${CXX:-c++} $flags -I"$prefix/include" tests/performance.cpp $libs -o performance
+exit $status

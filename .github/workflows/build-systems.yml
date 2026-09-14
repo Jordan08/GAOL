@@ -1,9 +1,11 @@
 # Checks that GAOL still builds the ways it did before the CMake build of this
 # fork: with autotools and with meson, against a mathlib installed from
 # Frederic Goualard's archive; and the CMake build finding that installed
-# mathlib (MATHLIB_DIR). The tests are built with each installed GAOL. Checks
-# that autotools and meson refuse the MinGW-w64 CMake refuses (mingw-w64 older
-# than version 13).
+# mathlib (MATHLIB_DIR). The tests are built with each installed GAOL, on
+# Linux (x86_64, arm64, and i386 and armhf in containers), macOS (arm64,
+# x86_64) and Windows (MSYS2). Checks that the three builds give GAOL the same
+# configuration on each kind of machine (.github/audit), and that autotools and
+# meson refuse the MinGW-w64 CMake refuses (mingw-w64 older than version 13).
 
 name: Autotools and meson
 
@@ -21,7 +23,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The flags code using GAOL is compiled with (see CMakeLists.txt)
+  # The flags code using GAOL is compiled with (see CMakeLists.txt); on a
+  # 32-bit x86 processor, tests.sh adds -msse2 -mfpmath=sse
   TEST_FLAGS: -std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off
 
 jobs:
@@ -35,14 +38,18 @@ jobs:
         cfg:
           - { os: ubuntu-24.04,     configure: '',                           desc: 'Autotools, Ubuntu 24.04 x86_64' }
           - { os: ubuntu-24.04-arm, configure: '',                           desc: 'Autotools, Ubuntu 24.04 arm64' }
+          - { os: macos-15,         configure: '',                           desc: 'Autotools, macOS 15 arm64' }
+          - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ cmake make
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q g++ cmake make
+          fi
       - name: mathlib
         run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure, build and install
@@ -51,24 +58,13 @@ jobs:
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
           ./configure --prefix="$RUNNER_TEMP/gaol" --with-mathlib-include="$RUNNER_TEMP/mathlib/include" --with-mathlib-lib="$RUNNER_TEMP/mathlib/lib" ${{ matrix.cfg.configure }}
+          grep -E "^(CXXFLAGS|CPPFLAGS) =" gaol/Makefile
           make -j 4
           make install
       - name: Tests built with the installed GAOL
-        run: |
-          set -o pipefail
-          grep -H GAOL_PRESERVE_ROUNDING "$RUNNER_TEMP/gaol/include/gaol/gaol_configuration.h"
-          for test in arithmetic elementary numbers other_functions rounding_direction; do
-            g++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
-              "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o $test
-            # The checks that failed, which the last lines do not show
-            ./$test > $test.log || { grep -E "checks, [1-9][0-9]* failed|^FAILED" $test.log | head -60; exit 1; }
-            tail -1 $test.log
-          done
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/mathlib" static
       - name: Performance
-        run: |
-          g++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" tests/performance.cpp \
-            "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o performance
-          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   meson:
     name: ${{ matrix.cfg.desc }}
@@ -78,10 +74,12 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { os: ubuntu-24.04, options: '',                                desc: 'Meson, Ubuntu 24.04 x86_64' }
-          - { os: macos-15,     options: '',                                desc: 'Meson, macOS 15 arm64' }
-          - { os: ubuntu-24.04, options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
-          - { os: macos-15,     options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04,     options: '',                                desc: 'Meson, Ubuntu 24.04 x86_64' }
+          - { os: ubuntu-24.04-arm, options: '',                                desc: 'Meson, Ubuntu 24.04 arm64' }
+          - { os: macos-15,         options: '',                                desc: 'Meson, macOS 15 arm64' }
+          - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
+          - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
+          - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -103,25 +101,169 @@ jobs:
         run: |
           export CPATH="$RUNNER_TEMP/mathlib/include" LIBRARY_PATH="$RUNNER_TEMP/mathlib/lib"
           meson --version
-          meson setup build-meson -Dwith-mathlib=apmathlib --prefix="$RUNNER_TEMP/gaol" --libdir=lib ${{ matrix.cfg.options }}
+          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib ${{ matrix.cfg.options }}
           meson compile -C build-meson
           meson install -C build-meson
       - name: Tests built with the installed GAOL
-        run: |
-          set -o pipefail
-          grep -rH GAOL_PRESERVE_ROUNDING "$RUNNER_TEMP/gaol/include/gaol/" || true
-          for test in arithmetic elementary numbers other_functions rounding_direction; do
-            c++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
-              -L"$RUNNER_TEMP/gaol/lib" -lgaol "$RUNNER_TEMP/mathlib/lib/libultim.a" -Wl,-rpath,"$RUNNER_TEMP/gaol/lib" -o $test
-            # The checks that failed, which the last lines do not show
-            ./$test > $test.log || { grep -E "checks, [1-9][0-9]* failed|^FAILED" $test.log | head -60; exit 1; }
-            tail -1 $test.log
-          done
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/mathlib" shared
       - name: Performance
+        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  container:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04,     platform: linux/386,    image: 'debian:bookworm', build: autotools, desc: 'Autotools, Debian 12 Bookworm i386' }
+          - { os: ubuntu-24.04,     platform: linux/386,    image: 'debian:bookworm', build: meson,     desc: 'Meson, Debian 12 Bookworm i386' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7, image: 'debian:trixie',   build: autotools, desc: 'Autotools, Debian 13 Trixie armhf' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7, image: 'debian:trixie',   build: meson,     desc: 'Meson, Debian 13 Trixie armhf' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and tests
         run: |
-          c++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" tests/performance.cpp \
-            -L"$RUNNER_TEMP/gaol/lib" -lgaol "$RUNNER_TEMP/mathlib/lib/libultim.a" -Wl,-rpath,"$RUNNER_TEMP/gaol/lib" -o performance
-          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS ${{ matrix.cfg.image }} sh -c "
+            set -e
+            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build ca-certificates > /dev/null
+            uname -m && c++ --version | head -1
+            sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
+            if [ ${{ matrix.cfg.build }} = autotools ]; then
+              find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+              ./configure --prefix=/tmp/gaol --with-mathlib-include=/tmp/mathlib/include --with-mathlib-lib=/tmp/mathlib/lib
+              grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+              make -j 4 && make install
+              sh .github/scripts/tests.sh /tmp/gaol /tmp/mathlib static
+            else
+              export CPATH=/tmp/mathlib/include LIBRARY_PATH=/tmp/mathlib/lib
+              meson setup build-meson --prefix=/tmp/gaol --libdir=lib
+              meson compile -C build-meson && meson install -C build-meson
+              sh .github/scripts/tests.sh /tmp/gaol /tmp/mathlib shared
+            fi
+            ./performance | tee /gaol/performance.md"
+          cat performance.md >> "$GITHUB_STEP_SUMMARY"
+
+  msys2:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { build: autotools, desc: 'Autotools, MSYS2 UCRT64 GCC x64' }
+          - { build: meson,     desc: 'Meson, MSYS2 UCRT64 GCC x64' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson flex bison make libtool
+      - name: mathlib
+        run: CMAKE_GENERATOR=Ninja sh .github/scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
+      - name: Configure, build and install
+        run: |
+          prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"; mathlib="$(cygpath -m "$RUNNER_TEMP")/mathlib"
+          if [ ${{ matrix.cfg.build }} = autotools ]; then
+            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+            ./configure --prefix="$prefix" --with-mathlib-include="$mathlib/include" --with-mathlib-lib="$mathlib/lib"
+            grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            make -j 4 && make install
+          else
+            export CPATH="$mathlib/include" LIBRARY_PATH="$mathlib/lib"
+            meson setup build-meson --prefix="$prefix" --libdir=lib
+            meson compile -C build-meson && meson install -C build-meson
+          fi
+      - name: Tests built with the installed GAOL
+        run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" "$(cygpath -m "$RUNNER_TEMP")/mathlib" static
+      - name: Performance
+        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # The three builds give GAOL the same configuration (.github/audit)
+  agree:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC' }
+          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, desc: 'The builds agree, Ubuntu 24.04 x86_64 Clang' }
+          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     desc: 'The builds agree, Ubuntu 24.04 arm64 GCC' }
+          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, desc: 'The builds agree, Ubuntu 24.04 arm64 Clang' }
+          - { os: macos-15,         cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 arm64' }
+          - { os: macos-15-intel,   cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 x86_64' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q g++ clang cmake flex bison make pipx
+          else
+            brew install flex bison pipx
+            echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
+            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          fi
+          pipx install meson
+          pipx install ninja
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: mathlib
+        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+      - name: Configure with the three builds and compare
+        run: |
+          sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$RUNNER_TEMP/mathlib" "$RUNNER_TEMP/audit" meson
+          python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  agree-container:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04,     platform: linux/386,    image: 'debian:bookworm', desc: 'The builds agree, Debian 12 Bookworm i386' }
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7, image: 'debian:trixie',   desc: 'The builds agree, Debian 13 Trixie armhf' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure with the three builds and compare
+        run: |
+          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
+            set -e
+            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 ca-certificates > /dev/null
+            sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
+            sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/mathlib /tmp/audit meson
+            python3 .github/audit/compare.py --check /tmp/audit/audit.json | tee /gaol/agree.md"
+          cat agree.md >> "$GITHUB_STEP_SUMMARY"
+
+  agree-msys2:
+    name: The builds agree, MSYS2 UCRT64 GCC x64
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python flex bison make libtool
+      - name: mathlib
+        run: CMAKE_GENERATOR=Ninja sh .github/scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
+      - name: Configure with the three builds and compare
+        run: |
+          export CMAKE_GENERATOR=Ninja
+          out="$(cygpath -m "$RUNNER_TEMP")/audit"
+          sh .github/audit/audit.sh audit gcc g++ . "$(cygpath -m "$RUNNER_TEMP")/mathlib" "$out" meson
+          python3 .github/audit/compare.py --check "$out/audit.json" | tee -a "$GITHUB_STEP_SUMMARY"
 
   mingw-refused:
     name: ${{ matrix.cfg.desc }}

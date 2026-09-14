@@ -22,9 +22,14 @@ tar xzf mathlib-2.1.1.tar.gz
 cd - > /dev/null
 
 cmake -DSOURCE_DIR="$work/mathlib-2.1.1" -P cmake/mathlib/prepare.cmake
-# The flags GAOL builds mathlib with, CMakeLists.txt giving them to it
+# The flags GAOL builds mathlib with, CMakeLists.txt giving them to it: on a
+# 32-bit x86 processor, the doubles computed with SSE2 rather than on the x87
+flags="-frounding-math -fno-fast-math -ffp-contract=off"
+case "$(${CC:-cc} -dumpmachine 2>/dev/null)" in
+  i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
+esac
 cmake -S "$work/mathlib-2.1.1" -B "$work/build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-  "-DCMAKE_C_FLAGS=-frounding-math -fno-fast-math -ffp-contract=off" \
+  "-DCMAKE_C_FLAGS=$flags" \
   -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_INSTALL_LIBDIR=lib
 cmake --build "$work/build" -j 4
 cmake --build "$work/build" --target install
