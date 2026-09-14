@@ -23,54 +23,34 @@ Publications of Frédéric Goualard related to GAOL (see the
 - [How do you compute the midpoint of an interval?](https://hal.archives-ouvertes.fr/hal-00576641v2).
   ACM Transactions on Mathematical Software 40(2), 2014.
 
+## This fork
+
+This fork of [GAOL](https://github.com/goualard-f/GAOL) adds a CMake build,
+tests of the bounds GAOL computes, and the changes GAOL needs to compile and
+compute right on every system it can: Linux, macOS and Windows, on x86, x86_64,
+ARM, arm64 and the other processors of Debian. It was written for
+[Codac](https://github.com/codac-team/codac), whose intervals are built upon
+GAOL. The autotools and meson builds of GAOL are kept, and the three builds
+configure GAOL the same way (see [The three builds](#the-three-builds)).
+
+Contents: [Building GAOL](#building-gaol) (the three builds and their options)
+· [Using GAOL](#using-gaol) (CMake, pkg-config, the flags)
+· [The three builds](#the-three-builds) (what they agree on, the refused
+compilers) · [Tests](#tests) · [What differs from GAOL](#what-differs-from-gaol)
+· [Continuous integration](#continuous-integration) · [Licences](#licences).
+
 ## Building GAOL
 
-### Pre-requisites
+GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
+Mathematical Library (libultim):
+[mathlib-2.1.1.tar.gz](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
+on Frédéric Goualard's site. The CMake build downloads and builds it itself;
+the two others need it installed (`MathLib.h` and the `ultim` library), which
+`.github/scripts/install-mathlib.sh <prefix>` does with the fixes of
+`cmake/mathlib/prepare.cmake`. GAOL can also be built with
+[CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`).
 
-A supported math library: [apmathlib](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz) or [crlibm](https://github.com/taschini/crlibm) (since crlibm github repo seems to have missing files, you can take get it here: [pycrlibm](https://github.com/taschini/pycrlibm))
-
-### Linux users
-
-Look at INSTALL file to use autotools
-
-### MacOS ARM users
-
-[Meson build system](https://mesonbuild.com/index.html) can be used:
-
-```bash
-meson setup build
-cd build
-meson compile
-```
-
-GAOL is built with mathlib (`-Dwith-mathlib=apmathlib`, the default, as with
-configure; `crlibm` for CRlibm), optimized (`buildtype=release`; `meson setup
-build --buildtype=debug` builds it for debugging), and configured as configure
-and CMake configure it (see [The three builds agree](#the-three-builds-agree)).
-
-If you want to run tests setup the build folder with option `with-test` to `true`
-
-If you want to install gaol to a specify folder use the meson argument `--prefix`
-
-For instance you can run:
-
-```bash
-meson setup build --prefix=/opt/homebrew/Cellar/gaol/4.2.2 -Dwith-mathlib=apmathlib -Dwith-test=true
-```
-
----
-
-## This fork: CMake build, tests and fixes
-
-This fork of [GAOL](https://github.com/goualard-f/GAOL), the interval arithmetic
-library written by [Frédéric Goualard](https://frederic.goualard.net/), adds a
-CMake build, tests of the bounds GAOL computes, and the changes GAOL needs to
-compile and compute right with Visual C++, MinGW, 32-bit ARM and other systems.
-It was written for [Codac](https://github.com/codac-team/codac), whose intervals
-are built upon GAOL. The autotools and meson builds above are kept, and still
-work (see [Other builds](#other-builds)).
-
-### Building and installing with CMake
+### With CMake
 
 ```bash
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix>
@@ -79,81 +59,196 @@ ctest --test-dir build -C Release
 cmake --install build --config Release
 ```
 
-GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
-Mathematical Library (libultim). The build looks for an installed mathlib
-(`MathLib.h` and the `ultim` library, under `MATHLIB_DIR` or the usual paths),
-unless `GAOL_FIND_MATHLIB` is `OFF`. When there is none, or none is looked for,
-it downloads mathlib 2.1.1 from
-[Frédéric Goualard's site](https://frederic.goualard.net/)
-(`mathlib-2.1.1.tar.gz`, checked against its SHA256), fixes bugs of it (see
-[What differs from GAOL](#what-differs-from-gaol)), builds it with the CMake
-build of `cmake/mathlib/`, and installs it along with GAOL. An installed mathlib
-is used as it is. A project building GAOL for itself, as Codac does, sets
-`GAOL_FIND_MATHLIB` to `OFF` to find mathlib under the installation prefix it
-gives, whatever mathlib the machine has.
+CMake 3.14 or later. The build looks for an installed mathlib (under
+`MATHLIB_DIR` or the usual paths) unless `GAOL_FIND_MATHLIB` is `OFF`; when
+there is none, or none is looked for, it downloads mathlib 2.1.1 (checked
+against its SHA256), fixes bugs of it (see
+[What differs from GAOL](#what-differs-from-gaol)), builds it with
+`cmake/mathlib/` and installs it along with GAOL. Both libraries are static.
+The build type is Release unless another is given.
 
 | Option | Default | |
 |---|---|---|
+| `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information |
+| `CMAKE_INSTALL_PREFIX` | the system's | Where `cmake --install` puts GAOL |
 | `GAOL_BUILD_MATHLIB` | `ON` | Download and build mathlib when no installed mathlib is found |
-| `GAOL_FIND_MATHLIB` | `ON` | Look for an installed mathlib before building one; `OFF` builds mathlib even where one is installed |
+| `GAOL_FIND_MATHLIB` | `ON` | Look for an installed mathlib before building one; `OFF` builds mathlib even where one is installed, as a project building GAOL for itself does |
 | `MATHLIB_DIR` | | Installation prefix of an installed mathlib |
-| `GAOL_BUILD_TESTS` | `ON` when GAOL is the main project | Build the tests, which `ctest` runs |
-| `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [Using GAOL from CMake](#using-gaol-from-cmake)) |
-| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors, and `gaol::interval2f` with SSE3 (`--enable-simd` of configure) |
-| `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`--enable-asm`) |
-| `GAOL_VERBOSE_MODE` | `ON` | Write a line on the standard error when GAOL initializes and cleans up (`--enable-verbose-mode`) |
+| `GAOL_BUILD_TESTS` | `ON` when GAOL is the main project | Build the tests of `tests/`, which `ctest` runs |
+| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors, and `gaol::interval2f` with SSE3 (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
+| `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
+| `GAOL_VERBOSE_MODE` | `ON` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`) |
+| `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](#the-rounding-direction)) |
 
-Both libraries are static. CMake 3.14 or later is needed.
+### With autotools
 
-GAOL cannot be built with a compiler that does not honour the rounding direction
-on the target: Clang for 32-bit ARM processors, and compilers that say so of
-`-frounding-math`, such as Clang 14 for 64-bit ARM processors. Nor with a
-MinGW-w64 older than version 12 (MinGW-w64 GCC 11 to 13), whose math library
-gave hyperbolic functions far from their exact values, nor with mingw-w64 12
-(MinGW-w64 GCC 14.2, rt_v12), whose `fesetround()` runs the instruction `cpuid`
-at each call: in a virtual machine, `exp()`, `log()`, `sin()` and `cos()` took
-10.6 to 13.8 microseconds rather than 0.5 to 0.7 with mingw-w64 13, the bounds
-being right. The configuration stops
-with a message naming the compilers to use instead (GCC, a later Clang, a later
-MinGW-w64), with CMake, configure and meson alike. `gaol/gaol_config.h` refuses
-them again at compile time, as it refuses `-ffast-math` (`-Ofast`, `/fp:fast`)
-and doubles computed on the x87 unit of 32-bit x86 processors (without
-`-msse2 -mfpmath=sse`, or `/arch:SSE2`), for the code including GAOL's headers
-too: each of them gave bounds not enclosing the exact results.
+```bash
+./configure --prefix=<prefix> --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib
+make
+make install
+```
 
-### Using GAOL from CMake
+See also `INSTALL`. `configure` is committed, generated by autoconf 2.69 from
+`configure.ac`; `make` does not regenerate it as long as the files keep the
+dates of the checkout. The options, with their defaults:
+
+| Option | Default | |
+|---|---|---|
+| `--with-mathlib=apmathlib\|crlibm` | `apmathlib` | The mathematical library, mathlib (`ultim`) or CRlibm |
+| `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where its header and its library are, when not in the usual paths |
+| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`; `--disable-optimize` compiles with `-O` |
+| `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
+| `--enable-simd` | `yes` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
+| `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
+| `--enable-verbose-mode` | `yes` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
+| `--enable-relations=set\|certainly\|possibly` | `certainly` | What the relation symbols (`<`, `==`...) mean on intervals |
+| `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
+| `--with-cppunit-include=DIR`, `--with-cppunit-lib=DIR` | | CppUnit, for GAOL's own check programs (`make check`) |
+
+### With meson
+
+```bash
+meson setup build --prefix=<prefix> -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib
+meson compile -C build
+meson install -C build
+```
+
+The options (`-D<option>=<value>`), with their defaults:
+
+| Option | Default | |
+|---|---|---|
+| `buildtype` | `release` | `-O3` and `NDEBUG`; `debug` builds GAOL without optimization, with debugging information |
+| `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default` for the math library of the system |
+| `with-mathlib-include`, `with-mathlib-lib` | | Where its header and its library are, when not in the usual paths, as with configure |
+| `enable-optimize` | `true` | `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as configure |
+| `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
+| `enable-simd` | `true` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
+| `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
+| `enable-verbose-mode` | `true` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
+| `enable-relations` | `certainly` | `set`, `certainly` or `possibly`, as configure |
+| `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
+| `with-test` | `false` | Build GAOL's own check programs, which need CppUnit |
+| `check-perf`, `with-doc` | `false` | GAOL's performance programs, the documentation |
+
+## Using GAOL
+
+GAOL's interval operations are inline: the code that includes GAOL's headers
+has to be compiled with the flags of interval arithmetic, not only GAOL
+itself. With GCC and Clang, each where the compiler takes it:
+
+- `-frounding-math -fno-fast-math -ffp-contract=off`, so that the compiler
+  rounds each operation in the direction in effect, as written, and neither
+  evaluates it at compile time in the default rounding nor contracts a
+  multiplication and an addition into a fused one;
+- `-msse2 -mfpmath=sse` on 32-bit x86, so that doubles are computed in double
+  precision rather than on the x87 unit;
+- `-msse2 -msse3` on x86 processors with the SSE2 intervals (`GAOL_SIMD`);
+- `-ffloat-store` where doubles are still computed on the x87 unit.
+
+With Visual C++, `/fp:strict`. Each build installs them with GAOL, and
+`gaol/gaol_config.h` refuses to compile without them (see
+[Compilers and options refused](#compilers-and-options-refused)).
+
+### From CMake
 
 ```cmake
 find_package(gaol REQUIRED)
 target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
-`gaol::gaol` carries the include directory, mathlib, and the compilation flags
-interval arithmetic needs:
+`gaol::gaol` carries the include directory, the flags above and mathlib
+(`gaol::ultim` when it was built along with GAOL). A library whose headers
+include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
+get the flags, and its CMake package finds GAOL again (`find_dependency(gaol)`).
 
-- `-frounding-math -fno-fast-math -ffp-contract=off` with GCC and Clang (the
-  ones each compiler takes), and `-ffloat-store` where doubles are still
-  computed on the x87 unit (32-bit x86 without SSE2);
-- `-msse2 -mfpmath=sse` on 32-bit x86, and `-msse2 -msse3` on x86 processors
-  with `GAOL_SIMD`;
-- `/fp:strict` with Visual C++.
+A project can also build GAOL for itself, with the options it wants:
 
-Code including GAOL's headers has to be compiled with them, GAOL's interval
-operations being inline.
+```cmake
+include(FetchContent)
+FetchContent_Declare(gaol GIT_REPOSITORY https://github.com/Jordan08/GAOL.git GIT_TAG master)
+set(GAOL_FIND_MATHLIB OFF)   # mathlib downloaded and built along, whatever the machine has
+set(GAOL_VERBOSE_MODE OFF)   # no line on the standard error at initialization
+FetchContent_MakeAvailable(gaol)
+target_link_libraries(my_target PUBLIC gaol::gaol)
+```
+
+The tests are then not built (`GAOL_BUILD_TESTS` is `OFF` when GAOL is not the
+main project), and `cmake --install` of the project installs GAOL and mathlib
+with it. `tests/find_package` is a project using an installed GAOL this way.
+
+### From pkg-config
+
+Each build installs `<prefix>/lib/pkgconfig/gaol.pc`, whose `Cflags` carries
+the flags above with the include directory, and `Libs` GAOL and mathlib:
+
+```bash
+export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig
+c++ -std=c++17 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs gaol)
+```
+
+In a meson project, `dependency('gaol')`.
+
+### The rounding direction
 
 Each operation of GAOL sets the rounding direction upward when it is not, and
-leaves it upward, whichever way GAOL is built (CMake, autotools or meson). The
-bounds are then right whatever rounding direction the calling code left. The
-check is an addition, 1 + 2^-60, above 1 only when rounded upward, rather than
-a reading of the rounding direction, which cost far more under Rosetta 2 and
-with 32-bit Visual C++ (see [What differs from GAOL](#what-differs-from-gaol)).
-Code that needs its own rounding direction
-after GAOL's operations builds GAOL with `GAOL_PRESERVE_ROUNDING` `ON`
-(`--enable-preserve-rounding` with autotools, `-Denable-preserve-rounding=true`
-with meson): each operation then also restores the rounding direction it found,
-which makes the arithmetic operations several times slower.
+leaves it upward, whichever way GAOL is built. The bounds are then right
+whatever rounding direction the calling code left. The check is an addition,
+1 + 2^-60, above 1 only when rounded upward, rather than a reading of the
+rounding direction, which cost far more under Rosetta 2 and with 32-bit Visual
+C++ (see [What differs from GAOL](#what-differs-from-gaol)). Code that needs
+its own rounding direction after GAOL's operations builds GAOL with
+`GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
+`-Denable-preserve-rounding=true`): each operation then also restores the
+rounding direction it found, which makes the arithmetic operations several
+times slower.
 
-### Tests
+## The three builds
+
+On a given machine with a given compiler, GAOL behaves the same whichever
+build configured it: CMake, configure and meson give it the same macros and the
+same flags. The reference is the autotools build of GAOL, then its meson
+build, and the CMake build follows them, apart from the errors corrected (see
+[What differs from GAOL](#what-differs-from-gaol)). In every build, by default:
+
+- GAOL is compiled in release: `-O3` and the optimizations configure adds
+  (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
+  the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
+  (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`;
+- with the flags of interval arithmetic of [Using GAOL](#using-gaol);
+- on x86 processors, the intervals are computed with SSE2 instructions and
+  `gaol::interval2f` with SSE3, except with Visual C++ and on 32-bit Windows,
+  where a `std::vector` of SSE2 intervals crashes: GCC takes the memory of
+  `new` to be aligned on 16 bytes there, while the C runtime aligns it on 8;
+- with mathlib, exceptions, the "certainly" relations, GAOL's assembly
+  (`GAOL_USING_ASM`), its verbose mode (`GAOL_VERBOSE_MODE`), and the rounding
+  direction left upward;
+- the processor and the system (`IX86_LINUX`, `AARCH64_LINUX`...), the sizes
+  of the integer types and the byte order are read from the macros of the
+  compiler, in `gaol/gaol_config.h`, rather than from the machine building.
+
+`.github/audit/` configures the three builds and compares the macros GAOL
+sees and the flags it is compiled with (`compare.py --check`); the continuous
+integration runs it on each kind of machine.
+
+### Compilers and options refused
+
+Each of these gave bounds not enclosing the exact results, or worse. The three
+builds stop with a message naming what to use instead, and
+`gaol/gaol_config.h` refuses them again at compile time, for the code including
+GAOL's headers too:
+
+| Refused | Because |
+|---|---|
+| Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
+| A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
+| mingw-w64 older than version 12 (MinGW-w64 GCC 11 to 13) | Its math library gave `acosh()` near 1 up to 25 million floats away from the exact value, and `asinh()` of large negative numbers NaN. |
+| mingw-w64 12 (MinGW-w64 GCC 14.2, rt_v12) | Its `fesetround()` runs the instruction `cpuid` at each call: in a virtual machine, `exp()`, `log()`, `sin()` and `cos()` took 10.6 to 13.8 microseconds rather than 0.5 to 0.7 with mingw-w64 13 (MinGW-w64 GCC 15.2, MSYS2). |
+| `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. |
+| Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | In extended precision, GAOL's bounds and mathlib's results are wrong: built for an i686 computing on the x87, `exp`, `sin` and `cos` missed the exact value for most arguments. |
+
+## Tests
 
 The programs of `tests/` compare the bounds GAOL computes with the exact results
 of the operations, independently of GAOL and of the floating-point environment.
@@ -185,7 +280,8 @@ Codac.
   distances, splitting, integer parts, and the relational functions
   (`sqrt_rel`, `div_rel`...).
 
-`tests/find_package` builds the same tests with an installed GAOL.
+`tests/find_package` builds the same tests with an installed GAOL, and
+`.github/scripts/tests.sh` with a GAOL installed by configure or meson.
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, and of the same operations on
@@ -206,7 +302,7 @@ What they show of GAOL, beyond the fixes below:
 - GAOL's parser does not free the nodes of the expressions it reads, a few dozen
   bytes for each `interval("...")`.
 
-### What differs from GAOL
+## What differs from GAOL
 
 Each change is a commit of its own, and says where it comes from.
 
@@ -223,7 +319,6 @@ Each change is a commit of its own, and says where it comes from.
   following the fork of GAOL by [Fabrice Le Bars](https://github.com/lebarsfa/GAOL):
   - `gaol/gaol_config_msvc.h`, `gaol/gaol_config_mingw.h` and
     `gaol/gaol_version_msvc.h` include the generated configuration.
-  - Memory allocated by `MEMALIGN()` can be freed by `free()`, as GAOL frees it.
   - `get_fpu_cw()` and `reset_fpu_cw()` save the rounding direction with
     `<fenv.h>` where the control word of `fenv_t` is not known.
   - `_MATHLIB_DLL_` is only defined when not already, and Visual C++ gets the
@@ -305,38 +400,24 @@ Each change is a commit of its own, and says where it comes from.
   the same code until it
   [removed that stage](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)
   in 2018.
-- **Clang is refused for 32-bit ARM processors**, where it does not honour the
-  rounding direction: built by Clang 21, 4556 of 16000 random products, squares
-  and cubes did not enclose their exact values.
-- **The three builds agree**: on a given machine with a given compiler, CMake,
-  configure and meson give GAOL the same macros and the same flags (see
-  [The three builds agree](#the-three-builds-agree)). Before, each had its own
-  idea: configure optimized only when the compiler was named `g++` exactly
-  (`clang++` compiled without optimization), computed the doubles of 32-bit x86
-  on the x87 unit, read the processor of the machine building rather than the
-  target of the compiler (SSE with `cpuid`, the system with `uname`: an armhf
-  container was an `AARCH64_LINUX`), and refused macOS, Windows, s390x and
-  riscv64; meson did not optimize, compiled with the assertions of libstdc++,
-  refused i686 and armv7l, linked CRlibm by default, and its `enable-optimize`
-  did nothing; CMake left out `-msse3` and `gaol::interval2f`, the assembly,
-  the verbose mode and the hidden visibility of configure, and `-Wconversion`.
-  `-fno-fast-math`, `-ffp-contract=off` and the refusals were in CMake only.
-- **The autotools and meson builds** compile GAOL with `-ffp-contract=off`, as
-  the CMake build does, and `configure` checks `-frounding-math` with any
-  compiler, not only `g++`. Without `-ffp-contract=off`, the compilers fused
-  the multiplications and additions of `mid()`, whose two bounds were then
-  computed alike: `mid()` returned a single double, not enclosing the midpoint
-  of 9735 of the 10000 random intervals of `other_functions`, with meson on
-  macOS arm64 (Apple Clang) and with autotools on Ubuntu arm64 (GCC 13,
-  rounding direction preserved). Without `-frounding-math`, GAOL built by
-  `clang++` at `-O2` without SSE2 intervals (`--disable-simd`) gave integer
-  powers not enclosing their exact values.
-- **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
-  which it did not compile on Linux. It defines `USING_SSE3_INSTRUCTIONS` only
-  with `enable-simd`, which installs the header `gaol/gaol` then includes. It
-  builds GAOL in release by default, where meson's own default, debug, compiled
-  it without optimization, and `enable-optimize`, which did nothing, adds the
-  optimization flags of configure where the compiler takes them.
+- **The three builds agree** (see [The three builds](#the-three-builds)).
+  Before, each had its own idea: configure optimized only when the compiler
+  was named `g++` exactly (`clang++` compiled without optimization), computed
+  the doubles of 32-bit x86 on the x87 unit, read the processor of the machine
+  building rather than the target of the compiler (SSE with `cpuid`, the
+  system with `uname`: an armhf container was an `AARCH64_LINUX`), and refused
+  macOS, Windows, s390x and riscv64; meson did not optimize, compiled with the
+  assertions of libstdc++, refused i686 and armv7l, linked CRlibm by default,
+  and its `enable-optimize` did nothing; CMake left out `-msse3` and
+  `gaol::interval2f`, the assembly, the verbose mode and the hidden visibility
+  of configure, and `-Wconversion`. `-fno-fast-math`, `-ffp-contract=off` and
+  the refused compilers were in CMake only. Without `-ffp-contract=off`, the
+  compilers fused the multiplications and additions of `mid()`, whose two
+  bounds were then computed alike: `mid()` returned a single double, not
+  enclosing the midpoint of 9735 of the 10000 random intervals of
+  `other_functions`, with meson on macOS arm64 and with autotools on Ubuntu
+  arm64. Without `-frounding-math`, GAOL built by `clang++` at `-O2` without
+  SSE2 intervals gave integer powers not enclosing their exact values.
 - **`-ffloat-store`** is added only where doubles are still computed on the x87
   unit (`FLT_EVAL_METHOD` not 0), whose 80-bit registers keep more digits than
   a double. CMake gave it to GCC on every target, and configure wherever SSE2
@@ -355,55 +436,20 @@ Each change is a commit of its own, and says where it comes from.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
+- **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
+  which it did not compile on Linux, and installs `gaol/gaol_interval2f.h` and
+  the headers for MinGW and Visual C++, as configure now does too. Both install
+  a `gaol.pc` carrying the flags of interval arithmetic, and meson takes
+  `with-mathlib-include` and `with-mathlib-lib` as configure does.
 - **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.
 - **The tests** of `tests/`, after the rounding tests of Codac.
 
-### Other builds
+## Continuous integration
 
-The autotools build (`./configure && make`, see `INSTALL`) and the meson build
-described above are kept. They are built by the continuous integration against
-a mathlib installed from
-[Frédéric Goualard's archive](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz),
-on Linux (x86_64, arm64, i386, armhf), macOS (arm64, x86_64) and Windows
-(MSYS2), and the tests are built with the GAOL they install.
-
-### The three builds agree
-
-On a given machine with a given compiler, GAOL has to behave the same whichever
-build configured it. The reference is the autotools build of GAOL, then the
-meson build, and the CMake build follows them, apart from the errors corrected
-above. In every build, by default:
-
-- GAOL is compiled in release, with `-O3` and the optimizations configure adds
-  (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
-  the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
-  (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`;
-- with `-frounding-math -ffp-contract=off -fno-fast-math`, `-ffloat-store` where
-  doubles are computed on the x87 unit, and `-msse2 -mfpmath=sse` on 32-bit x86;
-- on x86 processors, the intervals are computed with SSE2 instructions and
-  `gaol::interval2f` with SSE3 (`-msse2 -msse3`), except with Visual C++ and on
-  32-bit Windows, where a `std::vector` of SSE2 intervals crashes: GCC takes
-  the memory of `new` to be aligned on 16 bytes there, while the C runtime
-  aligns it on 8;
-- with mathlib (apmathlib), exceptions, the "certainly" relations, GAOL's
-  assembly (`GAOL_USING_ASM`) and its verbose mode (`GAOL_VERBOSE_MODE`), and
-  the rounding direction left upward (`GAOL_PRESERVE_ROUNDING` off:
-  `--enable-preserve-rounding` and `-Denable-preserve-rounding=true` restore it
-  after each operation);
-- the processor and the system are read from the macros of the compiler
-  (`gaol/gaol_config.h`), which also refuses the compilers and the options that
-  gave wrong bounds (see [Building and installing with CMake](#building-and-installing-with-cmake)).
-
-`.github/audit/` configures the three builds and compares the macros GAOL sees
-and the flags it is compiled with; the continuous integration runs it on each
-kind of machine (`compare.py --check`).
-
-### Platforms
-
-The continuous integration of this fork (`.github/workflows/`) builds GAOL with
-CMake and runs the tests on:
+The workflows of `.github/workflows/` build GAOL with CMake and run the tests
+on:
 
 - **Linux:** Ubuntu 22.04, 24.04 and 26.04 on x86_64 and arm64, with GCC and
   Clang, also with the address and undefined behaviour sanitizers, and with
@@ -420,16 +466,17 @@ CMake and runs the tests on:
   - MinGW-w64 15, on x86 and x64;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
-It also checks that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and
-MinGW-w64 11 to 14 (13 and 14 with autotools and meson too), builds GAOL with
-autotools and meson on Ubuntu (x86_64, arm64), Debian (i386, armhf), macOS
-(arm64, x86_64) and MSYS2, and checks that the three builds agree on each of
-them. Jobs of each build
-restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and
-arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
+They also build GAOL with autotools and meson, against a mathlib installed by
+`.github/scripts/install-mathlib.sh`, on Ubuntu (x86_64, arm64), Debian (i386,
+armhf), macOS (arm64, x86_64) and MSYS2, and the tests with the GAOL they
+install; check that the three builds agree on each of these machines; check
+that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and MinGW-w64 11
+to 14 (13 and 14 with autotools and meson too). Jobs of each build restore the
+rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and arm64
+Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
 meson. The jobs built in Release print the time per operation in their summary.
 
-### Licences
+## Licences
 
 GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
 under the GNU LGPL v2 (`COPYING.LIB`). mathlib, which the
