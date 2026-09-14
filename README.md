@@ -44,11 +44,23 @@ compilers) · [Tests](#tests) · [What differs from GAOL](#what-differs-from-gao
 GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
 Mathematical Library (libultim):
 [mathlib-2.1.1.tar.gz](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
-on Frédéric Goualard's site. The CMake build downloads and builds it itself;
-the two others need it installed (`MathLib.h` and the `ultim` library), which
-`.github/scripts/install-mathlib.sh <prefix>` does with the fixes of
-`cmake/mathlib/prepare.cmake`. GAOL can also be built with
-[CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`).
+on Frédéric Goualard's site. The CMake build downloads, fixes, builds and
+installs it itself. The two others need it installed beforehand (`MathLib.h`
+and `libultim.a`), and to be told where it is (`--with-mathlib-include`,
+`--with-mathlib-lib`; `-Dwith-mathlib-include`, `-Dwith-mathlib-lib`):
+
+```bash
+sh .github/scripts/install-mathlib.sh <mathlib>
+```
+
+downloads mathlib 2.1.1 (checked against its SHA256), applies the fixes of
+`cmake/mathlib/prepare.cmake` (see [What differs from GAOL](#what-differs-from-gaol):
+without them, `cos()`, `atan()` and `log()` of mathlib are wrong at some
+arguments), builds it with the flags of interval arithmetic and installs it
+under `<mathlib>`, as the continuous integration does. A GAOL installed by the
+CMake build provides mathlib the same way, under its own prefix. The math
+library of the system (`-lm`) needs no installation. GAOL can also be built
+with [CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`).
 
 ### With CMake
 
