@@ -1,48 +1,8 @@
 /* gaol/gaol_configuration_meson.h.in. */
 
-/* Define this if the system is an AARCH64-based computer */
-#mesondefine AARCH64
-
-/* Define this if the system is a X86 32 bits one */
-#mesondefine IX86
-
-/* Define this if the system is a X86 64 bits one */
-#mesondefine X86_64BITS
-
-/* Define this if your system is under Linux */
-#mesondefine OS_LINUX
-
-/* Define this if your system is under Apple MacOS */
-#mesondefine OS_DARWIN
-
-/* Define this if your system is under Microsoft Windows */
-#mesondefine OS_WINDOWS
-
-/* Define this if your system is under Microsoft Windows */
-#mesondefine OS_CYGWIN
-
-
-/* Define this if your system is an AARCH64-based computer under Linux */
-#define AARCH64_LINUX (AARCH64 & OS_LINUX)
-
-/* Define this if your system is a cygwin-based ix86 or compatible */
-#define IX86_CYGWIN (IX86 & OS_CYGWIN)
-
-/* Define this if your system is a Linux-based ix86 or compatible */
-#define IX86_LINUX (IX86 & OS_LINUX)
-
-/* Define this if your system is a Linux-based ix86 or compatible */
-#define X86_64_LINUX (X86_64BITS & OS_LINUX)
-
-/* Define this if your system is a Darwin-based ix86 or compatible */
-#define IX86_MACOSX (IX86 & OS_DARWIN)
-
-/* Define this if your system is a Darwin-based ARM or compatible */
-#define ARM_MACOSX (AARCH64 & OS_DARWIN)
-
-
-/* Define if building universal (internal helper macro) */
-#mesondefine AC_APPLE_UNIVERSAL_BUILD
+/* The processor and the system (IX86_LINUX, AARCH64_LINUX, IX86_MACOSX,
+   ARM_MACOSX), and the sizes of the integer types where they are not below:
+   gaol/gaol_config.h names them from the macros of the compiler. */
 
 /* Define this to 1 if function clock() is declared in time.h */
 #mesondefine CLOCK_IN_HEADER
@@ -229,9 +189,6 @@
 /* Define to the version of this package. */
 #mesondefine PACKAGE_VERSION
 
-/* Define this if your system is a PowerPc under MacOs X */
-#mesondefine POWERPC_UNIX
-
 /* The size of `int', as computed by sizeof. */
 #mesondefine SIZEOF_INT
 
@@ -257,15 +214,7 @@
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
-#  undef WORDS_BIGENDIAN
-# endif
-#endif
+#mesondefine WORDS_BIGENDIAN
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #mesondefine const

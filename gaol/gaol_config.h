@@ -89,4 +89,93 @@
 # include "gaol/gaol_configuration.h"
 #endif
 
+
+/* ---------------------------------------------------------------------------
+   The target, from the macros of the compiler
+
+   What GAOL needs to know of the processor and the system comes from the
+   compiler rather than from the build system, so that the CMake, autotools
+   and meson builds agree, and cross-compilation and containers (an armhf
+   container on an arm64 machine) get the target rather than the machine
+   building. GAOL reads the names of the system to allocate aligned memory
+   (gaol/gaol_port.h) and to negate a double (gaol/gaol_fpu_fenv.h); both have
+   a fallback for the other systems. The sizes of the integer types come from
+   <limits.h> where the build system did not measure them.
+   --------------------------------------------------------------------------- */
+
+#include <limits.h>
+
+#if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
+/* Define this if your system is a Linux-based ix86 or compatible */
+#  define IX86_LINUX 1
+#elif defined(__linux__) && defined(__aarch64__)
+/* Define this if your system is an AARCH64-based computer under Linux */
+#  define AARCH64_LINUX 1
+#elif defined(__APPLE__) && (defined(__i386__) || defined(__x86_64__))
+/* Define this if your system is a ix86 running MacOSX */
+#  define IX86_MACOSX 1
+#elif defined(__APPLE__) && (defined(__aarch64__) || defined(__arm__))
+/* Define this if your system is an ARM running MacOSX */
+#  define ARM_MACOSX 1
+#endif
+
+#ifndef SIZEOF_INT
+#  if UINT_MAX == 0xFFFFFFFFu
+#    define SIZEOF_INT 4
+#  elif UINT_MAX == 0xFFFFFFFFFFFFFFFFu
+#    define SIZEOF_INT 8
+#  endif
+#endif
+#ifndef SIZEOF_LONG
+#  if ULONG_MAX == 0xFFFFFFFFul
+#    define SIZEOF_LONG 4
+#  elif ULONG_MAX == 0xFFFFFFFFFFFFFFFFul
+#    define SIZEOF_LONG 8
+#  endif
+#endif
+#ifndef SIZEOF_LONG_LONG_INT
+#  if ULLONG_MAX == 0xFFFFFFFFFFFFFFFFull
+#    define SIZEOF_LONG_LONG_INT 8
+#  endif
+#endif
+
+/* WORDS_BIGENDIAN: the processor stores words with the most significant byte
+   first. The test on __BYTE_ORDER__, which GCC and Clang define, is the one of
+   the fork of mathlib by Fabrice Le Bars (https://github.com/lebarsfa/mathlib,
+   src/mathlib_endian.h); Visual C++ only targets little-endian processors. */
+#if !defined(WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
+    && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#  define WORDS_BIGENDIAN 1
+#endif
+
+
+/* ---------------------------------------------------------------------------
+   What GAOL requires of the compiler and the target
+
+   The CMake, autotools and meson builds refuse these first, with messages
+   naming what to use instead; checked here again for the code that includes
+   GAOL's headers, whose interval operations are inline. Each of them made
+   GAOL compute bounds not enclosing the exact results, or worse (see the
+   README and CMakeLists.txt).
+   --------------------------------------------------------------------------- */
+
+#if defined(__FAST_MATH__)
+#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results"
+#endif
+#if defined(_M_FP_FAST)
+#  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
+#endif
+#if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__) && !defined(__SSE2_MATH__)
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, its bounds and the results of mathlib are wrong"
+#endif
+#if defined(_M_IX86_FP) && (_M_IX86_FP < 2)
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, its bounds and the results of mathlib are wrong"
+#endif
+#if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
+#  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
+#endif
+#if defined(__MINGW64_VERSION_MAJOR) && (__MINGW64_VERSION_MAJOR < 13)
+#  error "GAOL cannot be compiled with a mingw-w64 older than version 13: before 12, its math library gave hyperbolic functions far from their exact values; in 12, fesetround() runs the instruction cpuid at each call (see CMakeLists.txt)"
+#endif
+
 #endif /* __gaol_config_h__ */

@@ -4,8 +4,9 @@ project(
   'cpp',
   version: '4.2.3',
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
-  # does not optimize): meson setup --buildtype=debug builds it for debugging
-  default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release'],
+  # does not optimize), with NDEBUG as configure and the Release build of CMake
+  # define it: meson setup --buildtype=debug builds it for debugging
+  default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release', 'b_ndebug=if-release'],
 )
 major_version = 4
 minor_version = 2
@@ -99,23 +100,13 @@ else
 endif
 os_unix = not os_win
 
-arm64 = false
-x86 = false
-x86_64 = false
-if host_machine.cpu() == 'aarch64'
-  arm64 = true
-elif host_machine.cpu() == 'x86'
-  x86 = true
-elif host_machine.cpu() == 'x86_64'
-  x86_64 = true
-endif
-
-message('CPU: ' + host_machine.cpu())
+message('CPU: ' + host_machine.cpu_family() + ' (' + host_machine.cpu() + ')')
 message('OS: ' + host_machine.system())
 
-if not (arm64 or x86 or x86_64)
-  error('Unsupported cpu arch: ' + host_machine.cpu())
-endif
+# The processor and the system: gaol/gaol_config.h names them from the macros
+# of the compiler, for the three builds alike, and every processor is accepted
+# (meson.build refused every cpu() other than aarch64, x86 and x86_64, i686
+# and armv7l included)
 
 conf_data = configuration_data()
 conf_data.set('version', meson.project_version())
@@ -158,21 +149,13 @@ endif
 if asm
   conf_data.set('GAOL_USING_ASM', 1)
 endif
+if get_option('enable-verbose-mode')
+  conf_data.set('GAOL_VERBOSE_MODE', 1)
+endif
 
-conf_data.set('AARCH64', arm64.to_int())
-conf_data.set('IX86', x86.to_int())
-conf_data.set('X86_64BITS', x86_64.to_int())
-conf_data.set('OS_LINUX', os_linux.to_int())
-conf_data.set('OS_DARWIN', os_darwin.to_int())
-conf_data.set('OS_WINDOWS', os_win.to_int())
-conf_data.set('OS_CYGWIN', os_cygwin.to_int())
-
-# conf_data.set('AARCH64_LINUX', (arm64 and (os_linux or os_darwin)).to_int())
-conf_data.set('AC_APPLE_UNIVERSAL_BUILD', (os_darwin and not arm64).to_int())
-# conf_data.set('IX86_CYGWIN', (os_cygwin and (x86 or x86_64)).to_int())
-# conf_data.set('IX86_MACOSX', ((x86 or x86_64) and os_darwin).to_int())
-# conf_data.set('IX86_LINUX', (x86 and os_linux).to_int())
-# conf_data.set('X86_64BITS', (arm64 or x86_64).to_int())
+if host_machine.endian() == 'big'
+  conf_data.set('WORDS_BIGENDIAN', 1)
+endif
 
 conf_data.set('STDC_HEADERS', 1)
 #conf_data.set('const',0)
@@ -248,23 +231,55 @@ conf_data.set('SIZEOF_INT', cpp_comp.sizeof('int'))
 conf_data.set('SIZEOF_LONG', cpp_comp.sizeof('long'))
 conf_data.set('SIZEOF_LONG_LONG_INT', cpp_comp.sizeof('long long int'))
 
-if cpp_comp.has_argument('-fvisibility')
-  conf_data.set('HAVE_VISIBILITY_OPTIONS', 1)
-  add_global_arguments(['-fvisibility'], language: 'c')
-  add_global_arguments(['-fvisibility'], language: 'cpp')
+# The compilers CMakeLists.txt and configure refuse, for the same reasons (see
+# CMakeLists.txt): Clang for 32-bit ARM processors, which does not honour the
+# rounding direction, and a compiler that takes -frounding-math and says it
+# does not honour the rounding direction on the target ("overriding currently
+# unsupported rounding mode on this target"), as Clang 14 for 64-bit ARM
+if not cpp_comp.compiles('''
+#if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
+#error Clang for a 32-bit ARM processor
+#endif
+int main() { return 0; }
+''', name: 'the C++ compiler is not Clang for a 32-bit ARM processor')
+  error('GAOL cannot be built with ' + gaol_compiler + ', Clang for a 32-bit ARM processor.\n'
+    + 'Clang does not honour the rounding direction on 32-bit ARM processors: it does not support -frounding-math there (overriding currently unsupported rounding mode on this target) and optimizes floating-point operations as if they were always rounded to nearest. GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not).\n'
+    + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
 endif
 if cpp_comp.has_argument('-frounding-math')
   conf_data.set('HAVE_ROUNDING_MATH_OPTION', 1)
-  add_global_arguments(['-frounding-math'], language: 'c')
-  add_global_arguments(['-frounding-math'], language: 'cpp')
+  if not cpp_comp.compiles('int main() { return 0; }', args: ['-frounding-math', '-Werror'],
+                           name: 'the C++ compiler honours the rounding direction on this target')
+    error('GAOL cannot be built with ' + gaol_compiler + ' for this target.\n'
+      + 'This compiler does not honour the rounding direction on this target, and says so of -frounding-math (overriding currently unsupported rounding mode on this target). GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not).\n'
+      + 'Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later version of Clang (Clang 18 does on 64-bit ARM processors).')
+  endif
 endif
-# No contraction of a multiplication and an addition into a fused one, which
-# compilers rewrite as if rounding to nearest: contracted on 64-bit ARM (GCC in
-# its GNU dialects, Clang), -(.5*l - .5*r) and -.5*l + .5*r both became
-# fnma(.5, l, .5*r), and mid() a single double (as CMakeLists.txt)
-if cpp_comp.has_argument('-ffp-contract=off')
-  add_global_arguments(['-ffp-contract=off'], language: 'c')
-  add_global_arguments(['-ffp-contract=off'], language: 'cpp')
+
+# The flags of interval arithmetic, each where the compiler accepts it, as
+# CMakeLists.txt and configure give them: -frounding-math; -ffp-contract=off
+# (without it, compilers contract a multiplication and an addition into a fused
+# one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
+# both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
+foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
+  if cpp_comp.has_argument(flag)
+    add_global_arguments([flag], language: 'cpp')
+  endif
+  if c_comp.has_argument(flag)
+    add_global_arguments([flag], language: 'c')
+  endif
+endforeach
+# The library compiled with hidden visibility, as configure builds it: GAOL's
+# public declarations carry __attribute__ ((visibility("default")))
+if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
+  conf_data.set('HAVE_VISIBILITY_OPTIONS', 1)
+  add_global_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
+endif
+if cpp_comp.has_argument('-Wconversion')
+  add_global_arguments(['-Wconversion'], language: 'cpp')
+endif
+if c_comp.has_argument('-Wconversion')
+  add_global_arguments(['-Wconversion'], language: 'c')
 endif
 # -ffloat-store only where doubles are still computed on the x87 unit
 # (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
@@ -293,18 +308,42 @@ if get_option('enable-optimize')
   endforeach
 endif
 
-if cpp_comp.has_argument('-msse2')
-  conf_data.set('USING_SSE2_INSTRUCTIONS', 1)
-  add_global_arguments(['-msse2'], language: 'c')
-  add_global_arguments(['-msse2'], language: 'c')
-endif
-
-# Only with enable-simd, which builds and installs gaol_interval2f.h, as
-# configure.ac does: gaol/gaol includes it when USING_SSE3_INSTRUCTIONS is set
-if simd and cpp_comp.has_argument('-msse3')
-  conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
-  add_global_arguments(['-msse3'], language: 'c')
-  add_global_arguments(['-msse3'], language: 'c')
+# On x86 processors (the target of the compiler, as CMakeLists.txt and
+# configure): the intervals are computed with SSE2 instructions
+# (gaol_interval_sse.cpp), SSE3 instructions serve gaol::interval2f
+# (gaol_interval2f.cpp), and on 32-bit x86 the doubles are computed with SSE2
+# (-mfpmath=sse) rather than on the x87 unit, where GAOL's bounds and mathlib's
+# results are wrong (see gaol/gaol_config.h). Not the SSE2 intervals on 32-bit
+# Windows, where they crashed (see CMakeLists.txt).
+use_sse2 = false
+use_sse3 = false
+target_x86 = cpp_comp.compiles('''
+#if !(defined(__i386__) || defined(__x86_64__))
+#error not an x86 processor
+#endif
+int main() { return 0; }
+''', name: 'the target is an x86 processor')
+target_x86_32 = cpp_comp.compiles('''
+#if !defined(__i386__)
+#error not a 32-bit x86 processor
+#endif
+int main() { return 0; }
+''', name: 'the target is a 32-bit x86 processor')
+if target_x86
+  if target_x86_32 and cpp_comp.has_multi_arguments('-msse2', '-mfpmath=sse')
+    add_global_arguments(['-msse2', '-mfpmath=sse'], language: 'cpp')
+    add_global_arguments(['-msse2', '-mfpmath=sse'], language: 'c')
+  endif
+  if simd and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
+    use_sse2 = true
+    conf_data.set('USING_SSE2_INSTRUCTIONS', 1)
+    add_global_arguments(['-msse2'], language: 'cpp')
+    if cpp_comp.has_argument('-msse3')
+      use_sse3 = true
+      conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
+      add_global_arguments(['-msse3'], language: 'cpp')
+    endif
+  endif
 endif
 
 flex = find_program('flex', required: true)

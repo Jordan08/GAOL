@@ -768,7 +768,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -868,7 +867,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1121,15 +1119,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1267,7 +1256,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1420,7 +1409,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1479,9 +1467,8 @@ Optional Features:
   --enable-optimize       compile gaol with full optimization [default=yes]
   --enable-debug          compile gaol with debugging info [default=no]
   --enable-preserve-rounding
-                          restore the rounding direction after each
-                          operation, rather than leaving it upward
-                          [default=no]
+                          restore the rounding direction after each operation,
+                          rather than leaving it upward [default=no]
   --enable-relations=KIND use KIND symbols of relations, with KIND being
                           "set", "certainly" or "possibly" [default=certainly]
   --enable-exceptions     raise exceptions to signal errors [default=yes]
@@ -12222,7 +12209,7 @@ test -n "$YACC" || YACC="yacc"
 
 
 CFLAGS="${CFLAGS} -I.."
-CXXFLAGS="${CXXFLAGS} -I.."
+CXXFLAGS="${CXXFLAGS} -std=c++11 -I.."
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -16343,16 +16330,114 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-# The mingw-w64 CMakeLists.txt refuses: before version 12, whose math library is
-# not accurate enough for the hyperbolic functions GAOL takes from it, and
-# version 12, whose fesetround() runs the instruction cpuid at each call (see
-# CMakeLists.txt)
+
+# GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,
+# with -Werror, so that a flag it only warns about (Clang and
+# -fexpensive-optimizations) counts as refused. GAOL_CHECK_C_FLAG likewise for
+# the C compiler.
+
+
+# GAOL_ADD_FLAG(flag): adds flag to CXXFLAGS and CFLAGS where each compiler
+# accepts it
+
+
+# The compilers CMakeLists.txt refuses, for the same reasons (see there):
+# - Clang for 32-bit ARM processors, which does not honour the rounding
+#   direction: built by Clang 21, 4556 of 16000 random products, squares and
+#   cubes did not enclose their exact values;
+# - a compiler that takes -frounding-math and says it does not honour the
+#   rounding direction on the target ("overriding currently unsupported
+#   rounding mode on this target"), as Clang 14 for 64-bit ARM processors;
+# - mingw-w64 before version 12, whose math library is not accurate enough for
+#   the hyperbolic functions GAOL takes from it, and version 12, whose
+#   fesetround() runs the instruction cpuid at each call.
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler is Clang for a 32-bit ARM processor" >&5
+$as_echo_n "checking whether the C++ compiler is Clang for a 32-bit ARM processor... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
+#error Clang for a 32-bit ARM processor
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  clang_arm32=no
+else
+  clang_arm32=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${clang_arm32}" >&5
+$as_echo "${clang_arm32}" >&6; }
+if test "${clang_arm32}" = yes; then
+    as_fn_error $? "GAOL cannot be built with $CXX, Clang for a 32-bit ARM processor.
+Clang does not honour the rounding direction on 32-bit ARM processors: it does not support -frounding-math there (overriding currently unsupported rounding mode on this target) and optimizes floating-point operations as if they were always rounded to nearest. GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not).
+Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc ./configure, or CXX=arm-linux-gnueabihf-g++ to cross-compile." "$LINENO" 5
+fi
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-frounding-math"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -frounding-math" >&5
+$as_echo_n "checking whether the C++ compiler accepts -frounding-math... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  has_rounding_math_opt=yes
+else
+  has_rounding_math_opt=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_rounding_math_opt}" >&5
+$as_echo "${has_rounding_math_opt}" >&6; }
+if test "${has_rounding_math_opt}" = yes; then
+    CXXFLAGS="-Werror -frounding-math"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler honours the rounding direction on this target" >&5
+$as_echo_n "checking whether the C++ compiler honours the rounding direction on this target... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  honours_rounding=yes
+else
+  honours_rounding=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${honours_rounding}" >&5
+$as_echo "${honours_rounding}" >&6; }
+    if test "${honours_rounding}" = no; then
+        as_fn_error $? "GAOL cannot be built with $CXX for this target.
+This compiler does not honour the rounding direction on this target, and says so of -frounding-math (overriding currently unsupported rounding mode on this target). GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not).
+Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later version of Clang (Clang 18 does on 64-bit ARM processors)." "$LINENO" 5
+    fi
+fi
+CXXFLAGS=$gaol_save_CXXFLAGS
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether mingw-w64, if used, is of version 12 or later" >&5
 $as_echo_n "checking whether mingw-w64, if used, is of version 12 or later... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -16434,73 +16519,238 @@ else
   SIMD_COND_FALSE=
 fi
 
+# On x86 processors (the target of the compiler, rather than the processor of
+# the machine building, as CMakeLists.txt): the intervals are computed with
+# SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
+# gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
+# computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where GAOL's
+# bounds and mathlib's results are wrong (see gaol/gaol_config.h).
 using_sse2=no
 has_sse3=no
-if test "$simd" = yes; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether SSE2 features are available" >&5
-$as_echo_n "checking whether SSE2 features are available... " >&6; }
-    if test "$cross_compiling" = yes; then :
-  :
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the target is an x86 processor" >&5
+$as_echo_n "checking whether the target is an x86 processor... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-int main(void) {unsigned int a, b, c, d; __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (0)); if (a >= 1) {
-        __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (1)); return (d & 0x04000000) == 0; } else {
-            return 1; } }
+#if !(defined(__i386__) || defined(__x86_64__))
+#error not an x86 processor
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
 _ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  target_x86=yes
+else
+  target_x86=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${target_x86}" >&5
+$as_echo "${target_x86}" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the target is a 32-bit x86 processor" >&5
+$as_echo_n "checking whether the target is a 32-bit x86 processor... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__i386__)
+#error not a 32-bit x86 processor
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  target_x86_32=yes
+else
+  target_x86_32=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${target_x86_32}" >&5
+$as_echo "${target_x86_32}" >&6; }
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${target_x86}" = yes; then
+    if test "${target_x86_32}" = yes; then
+        ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -msse2 -mfpmath=sse"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -msse2 -mfpmath=sse" >&5
+$as_echo_n "checking whether the C++ compiler accepts -msse2 -mfpmath=sse... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  gaol_cxx_takes=yes
+else
+  gaol_cxx_takes=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_cxx_takes}" >&5
+$as_echo "${gaol_cxx_takes}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_cxx_takes}" = yes; then
+    CXXFLAGS="${CXXFLAGS} -msse2 -mfpmath=sse"
+fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror -msse2 -mfpmath=sse"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -msse2 -mfpmath=sse" >&5
+$as_echo_n "checking whether the C compiler accepts -msse2 -mfpmath=sse... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gaol_c_takes=yes
+else
+  gaol_c_takes=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_c_takes}" >&5
+$as_echo "${gaol_c_takes}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_c_takes}" = yes; then
+    CFLAGS="${CFLAGS} -msse2 -mfpmath=sse"
+fi
+    fi
+    if test "$simd" = yes; then
+        ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -msse2"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -msse2" >&5
+$as_echo_n "checking whether the C++ compiler accepts -msse2... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
   has_sse2=yes
 else
   has_sse2=no
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_sse2}" >&5
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_sse2}" >&5
 $as_echo "${has_sse2}" >&6; }
-    if test ${has_sse2} = yes; then
-        using_sse2=yes
-        case $CXX in
-        icpc)
-            CXXFLAGS="${CXXFLAGS} -xP -mtune=pentium4"
-            ;;
-        g++)
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+        if test "${has_sse2}" = yes; then
+            using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
-            ;;
-        esac
 
 $as_echo "#define USING_SSE2_INSTRUCTIONS 1" >>confdefs.h
 
-    fi
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether SSE3 features are available" >&5
-$as_echo_n "checking whether SSE3 features are available... " >&6; }
-    if test "$cross_compiling" = yes; then :
-  :
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+            ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -msse3"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -msse3" >&5
+$as_echo_n "checking whether the C++ compiler accepts -msse3... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-int main(void) {unsigned int a, b, c, d; __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (0)); if (a >= 1) {
-        __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (1)); return (c & 0x00000001) == 0; } else {
-            return 1; } }
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
 _ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
+if ac_fn_cxx_try_compile "$LINENO"; then :
   has_sse3=yes
 else
   has_sse3=no
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_sse3}" >&5
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_sse3}" >&5
 $as_echo "${has_sse3}" >&6; }
-    if test ${has_sse3} = yes; then
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+            if test "${has_sse3}" = yes; then
+                CXXFLAGS="${CXXFLAGS} -msse3"
 
 $as_echo "#define USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
 
-        if test $CXX = g++; then
-            CXXFLAGS="${CXXFLAGS} -msse3"
+            fi
         fi
     fi
 fi
@@ -16719,24 +16969,107 @@ else
   optimize="yes"
 fi
 
+# With any compiler, each flag where the compiler accepts it (they were added
+# when the compiler was named g++ exactly, and clang++ or g++-13 compiled
+# without any optimization), and NDEBUG, as the Release build of CMake and
+# meson define it
 if test $optimize = yes; then
-    case $CXX in
-    icpc)
-        CXXFLAGS="${CXXFLAGS} -O3"
-        ;;
-    g++)
-        CXXFLAGS="${CXXFLAGS} -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations"
+    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-        OLD_CXXFLAGS=$CXXFLAGS
-        CXXFLAGS="-fvisibility-inlines-hidden -fvisibility=hidden"
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -fvisibility-inlines-hidden and -fvisibility" >&5
-$as_echo_n "checking whether the C++ compiler accepts -fvisibility-inlines-hidden and -fvisibility... " >&6; }
-        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror ${gaol_flag}"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts ${gaol_flag}" >&5
+$as_echo_n "checking whether the C++ compiler accepts ${gaol_flag}... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  gaol_cxx_takes=yes
+else
+  gaol_cxx_takes=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_cxx_takes}" >&5
+$as_echo "${gaol_cxx_takes}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_cxx_takes}" = yes; then
+    CXXFLAGS="${CXXFLAGS} ${gaol_flag}"
+fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror ${gaol_flag}"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts ${gaol_flag}" >&5
+$as_echo_n "checking whether the C compiler accepts ${gaol_flag}... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gaol_c_takes=yes
+else
+  gaol_c_takes=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_c_takes}" >&5
+$as_echo "${gaol_c_takes}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_c_takes}" = yes; then
+    CFLAGS="${CFLAGS} ${gaol_flag}"
+fi
+    done
+    CPPFLAGS="${CPPFLAGS} -DNDEBUG"
+else
+   CXXFLAGS="${CXXFLAGS} -O"
+   CFLAGS="${CFLAGS} -O"
+fi
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -fvisibility-inlines-hidden -fvisibility=hidden"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -fvisibility-inlines-hidden -fvisibility=hidden" >&5
+$as_echo_n "checking whether the C++ compiler accepts -fvisibility-inlines-hidden -fvisibility=hidden... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 int
@@ -16753,28 +17086,23 @@ else
   has_visibility_opt=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_visibility_opt}" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_visibility_opt}" >&5
 $as_echo "${has_visibility_opt}" >&6; }
-        CXXFLAGS=${OLD_CXXFLAGS}
-        if test "${has_visibility_opt}" = yes; then
-            CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
-
-$as_echo "#define HAVE_VISIBILITY_OPTIONS 1" >>confdefs.h
-
-        fi
-        ac_ext=c
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-        ;;
-    esac
-else
-   CXXFLAGS="${CXXFLAGS} -O"
+if test "${has_visibility_opt}" = yes; then
+    CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
+
+$as_echo "#define HAVE_VISIBILITY_OPTIONS 1" >>confdefs.h
+
 fi
 
-CFLAGS="${CFLAGS} -O2 -Wall -Wconversion"
+CFLAGS="${CFLAGS} -Wall -Wconversion"
 CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
 
 
@@ -16790,8 +17118,8 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 OLD_CXXFLAGS=$CXXFLAGS
 CXXFLAGS="${CXXFLAGS} -ffloat-store"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether doubles are computed in extended precision, with -ffloat-store accepted" >&5
-$as_echo_n "checking whether doubles are computed in extended precision, with -ffloat-store accepted... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether doubles are computed in extended precision" >&5
+$as_echo_n "checking whether doubles are computed in extended precision... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <cfloat>
@@ -16920,43 +17248,13 @@ $as_echo "#define GAOL_USING_ASM 1" >>confdefs.h
 fi
 
 
-# Determines the kind of architecture to use
-
+# The processor and the system: gaol/gaol_config.h names them from the macros
+# of the compiler, for the three builds alike (configure defined IX86_LINUX,
+# AARCH64_LINUX, IX86_MACOSX and ARM_MACOSX from $host, and refused the other
+# systems: macOS on Apple silicon was arm-apple-* and x86_64-apple-* neither)
 
 case $host in
-i?86-*-linux*)
-
-$as_echo "#define IX86_LINUX 1" >>confdefs.h
-
-	 if false; then
-  IS_CYGWIN_COND_TRUE=
-  IS_CYGWIN_COND_FALSE='#'
-else
-  IS_CYGWIN_COND_TRUE='#'
-  IS_CYGWIN_COND_FALSE=
-fi
-
-	;;
-*86_64-*-linux*)
-
-$as_echo "#define IX86_LINUX 1" >>confdefs.h
-
-	 if false; then
-  IS_CYGWIN_COND_TRUE=
-  IS_CYGWIN_COND_FALSE='#'
-else
-  IS_CYGWIN_COND_TRUE='#'
-  IS_CYGWIN_COND_FALSE=
-fi
-
-
-$as_echo "#define X86_64BITS 1" >>confdefs.h
-
-	;;
-i?86-*-cygwin*)
-
-$as_echo "#define IX86_CYGWIN 1" >>confdefs.h
-
+*-cygwin*)
 	 if true; then
   IS_CYGWIN_COND_TRUE=
   IS_CYGWIN_COND_FALSE='#'
@@ -16966,61 +17264,18 @@ else
 fi
 
 	;;
-i?86-apple-*)
-
-$as_echo "#define IX86_MACOSX 1" >>confdefs.h
-
-	 if false; then
-  IS_CYGWIN_COND_TRUE=
-  IS_CYGWIN_COND_FALSE='#'
-else
-  IS_CYGWIN_COND_TRUE='#'
-  IS_CYGWIN_COND_FALSE=
-fi
-
-	;;
-sparc*-solaris*)
-
-$as_echo "#define SPARC_SOLARIS 1" >>confdefs.h
-
-	 if false; then
-  IS_CYGWIN_COND_TRUE=
-  IS_CYGWIN_COND_FALSE='#'
-else
-  IS_CYGWIN_COND_TRUE='#'
-  IS_CYGWIN_COND_FALSE=
-fi
-
-	;;
-powerpc*)
-
-$as_echo "#define POWERPC_UNIX 1" >>confdefs.h
-
-	 if false; then
-  IS_CYGWIN_COND_TRUE=
-  IS_CYGWIN_COND_FALSE='#'
-else
-  IS_CYGWIN_COND_TRUE='#'
-  IS_CYGWIN_COND_FALSE=
-fi
-
-	;;
-aarch64-*-linux-*)
-
-$as_echo "#define AARCH64_LINUX 1" >>confdefs.h
-
-	 if false; then
-  IS_CYGWIN_COND_TRUE=
-  IS_CYGWIN_COND_FALSE='#'
-else
-  IS_CYGWIN_COND_TRUE='#'
-  IS_CYGWIN_COND_FALSE=
-fi
-
-	;;
 *)
-	as_fn_error $? "Sorry, this system is not yet supported by gaol" "$LINENO" 5
+	 if false; then
+  IS_CYGWIN_COND_TRUE=
+  IS_CYGWIN_COND_FALSE='#'
+else
+  IS_CYGWIN_COND_TRUE='#'
+  IS_CYGWIN_COND_FALSE=
+fi
+
+	;;
 esac
+
 
 
 # Checking for dl library
@@ -18211,67 +18466,37 @@ _ACEOF
 
 
 
-# Checking for availability of -frounding-math, with any compiler: configure
-# checked it for g++ only. Built by clang++ -O2 without it and without SSE2
-# intervals (--disable-simd), GAOL gave integer powers not enclosing their
-# exact values
-ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-    OLD_CXXFLAGS=$CXXFLAGS
-    CXXFLAGS="-frounding-math"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -frounding-math" >&5
-$as_echo_n "checking whether the C++ compiler accepts -frounding-math... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  has_rounding_math_opt=yes
-else
-  has_rounding_math_opt=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_rounding_math_opt}" >&5
-$as_echo "${has_rounding_math_opt}" >&6; }
-    CXXFLAGS=${OLD_CXXFLAGS}
-    ac_ext=c
+# The flags of interval arithmetic, for the C++ and the C compiler, each where
+# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math (GAOL
+# then negates a double with the minus sign, HAVE_ROUNDING_MATH_OPTION),
+# -ffp-contract=off (without it, compilers contract a multiplication and an
+# addition into a fused one as if rounding to nearest: on 64-bit ARM,
+# -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
+# single double), -fno-fast-math (the fast-math optimizations would round to
+# nearest and drop the checks of NaN and infinities)
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-    if test "${has_rounding_math_opt}" = yes; then
-        CXXFLAGS="${CXXFLAGS} -frounding-math"
+if test "${has_rounding_math_opt}" = yes; then
 
 $as_echo "#define HAVE_ROUNDING_MATH_OPTION 1" >>confdefs.h
 
-    fi
-
-# Checking for availability of -ffp-contract=off, with any compiler: without it,
-# compilers contract a multiplication and an addition into a fused one as if
-# rounding to nearest. On 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r both
-# became fnma(.5, l, .5*r), and mid() a single double (CMakeLists.txt passes it)
-ac_ext=cpp
+fi
+for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
+    ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-OLD_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-ffp-contract=off"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -ffp-contract=off" >&5
-$as_echo_n "checking whether the C++ compiler accepts -ffp-contract=off... " >&6; }
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror ${gaol_flag}"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts ${gaol_flag}" >&5
+$as_echo_n "checking whether the C++ compiler accepts ${gaol_flag}... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -18284,24 +18509,63 @@ main ()
 }
 _ACEOF
 if ac_fn_cxx_try_compile "$LINENO"; then :
-  has_fp_contract_opt=yes
+  gaol_cxx_takes=yes
 else
-  has_fp_contract_opt=no
+  gaol_cxx_takes=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_fp_contract_opt}" >&5
-$as_echo "${has_fp_contract_opt}" >&6; }
-CXXFLAGS=${OLD_CXXFLAGS}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_cxx_takes}" >&5
+$as_echo "${gaol_cxx_takes}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-if test "${has_fp_contract_opt}" = yes; then
-    CFLAGS="${CFLAGS} -ffp-contract=off"
-    CXXFLAGS="${CXXFLAGS} -ffp-contract=off"
+if test "${gaol_cxx_takes}" = yes; then
+    CXXFLAGS="${CXXFLAGS} ${gaol_flag}"
 fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror ${gaol_flag}"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts ${gaol_flag}" >&5
+$as_echo_n "checking whether the C compiler accepts ${gaol_flag}... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gaol_c_takes=yes
+else
+  gaol_c_takes=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_c_takes}" >&5
+$as_echo "${gaol_c_takes}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_c_takes}" = yes; then
+    CFLAGS="${CFLAGS} ${gaol_flag}"
+fi
+done
 
 
 # Checks for library functions.
@@ -18702,26 +18966,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_INTERVAL2_TRUE}" && test -z "${COMPILE_INTERVAL2_FALSE}"; then
   as_fn_error $? "conditional \"COMPILE_INTERVAL2\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
-  as_fn_error $? "conditional \"IS_CYGWIN_COND\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
-  as_fn_error $? "conditional \"IS_CYGWIN_COND\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
-  as_fn_error $? "conditional \"IS_CYGWIN_COND\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
-  as_fn_error $? "conditional \"IS_CYGWIN_COND\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
-  as_fn_error $? "conditional \"IS_CYGWIN_COND\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then

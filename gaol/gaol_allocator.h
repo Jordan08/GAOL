@@ -116,8 +116,8 @@ class aligned_allocator
 		// deallocate storage p of deleted elements
 		void deallocate ( pointer p, size_type num )
 		{
-			// print message and deallocate memory with global delete
-			free((void*)p);
+			// The memory MEMALIGN() allocated
+			MEMFREE((void*)p);
 		}
 };
 

@@ -37,9 +37,7 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_limits.h"
 
-//#if HAVE_FINITE
-#  include <cmath>
-//#endif
+#include <cmath>
 
 // Alignment on an 'nbytes' bytes boundary
 #if defined(_MSC_VER)
@@ -51,26 +49,31 @@
 
 // Allocation of 'size' bytes on 'boundary' bytes.
 // NOTE: MEMALIGN() must return null value if no allocation error
+// MEMFREE() releases the memory MEMALIGN() allocated (gaol_allocator.h,
+// gaol_interval_sse.cpp): the two have to match.
 #if defined (__MINGW32__) || defined (_MSC_VER)
-/* malloc(), whose memory free() releases, as GAOL releases what MEMALIGN()
-   allocates (gaol_allocator.h, gaol_interval_sse.cpp): the memory of
-   _mm_malloc() needs _mm_free(). GAOL's SSE2 intervals, which need memory
-   aligned on 16 bytes, are not used on Windows. As in the fork of GAOL by
-   Fabrice Le Bars (https://github.com/lebarsfa/GAOL). */
-#  include <stdlib.h>
-#  define MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))
+/* _aligned_malloc() and _aligned_free(), of the C runtime of Windows: malloc()
+   aligns on 8 bytes only on 32-bit Windows, and GAOL's SSE2 intervals need
+   memory aligned on 16 bytes. */
+#  include <malloc.h>
+#  define MEMALIGN(buf,boundary,size) (!(buf=_aligned_malloc(size,boundary)))
+#  define MEMFREE(buf) _aligned_free(buf)
 #elif defined(IX86_LINUX) || defined(AARCH64_LINUX)
 #  undef _XOPEN_SOURCE
 #  define _XOPEN_SOURCE 600
 #  include <stdlib.h>
 #  define MEMALIGN(buf,boundary,size) posix_memalign(&buf,boundary,size)
+#  define MEMFREE(buf) free(buf)
 #elif defined(IX86_MACOSX) || defined(ARM_MACOSX)
 // According to man page, Intel/MacOSX's malloc aligns correctly for SSE-related types
+#  include <stdlib.h>
 #  define MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))
+#  define MEMFREE(buf) free(buf)
 #else
 /* Any other POSIX system, as Linux */
 #  include <stdlib.h>
 #  define MEMALIGN(buf,boundary,size) posix_memalign(&buf,boundary,size)
+#  define MEMFREE(buf) free(buf)
 #endif
 
 
@@ -196,14 +199,14 @@ namespace gaol {
 
   /*!
     \brief Returns 1 if d is neither a NaN nor an infinity
+
+    std::isfinite() of C++11, the same in every build: finite() of the C
+    library was used where the build system found it, and is not declared by
+    every C library (Visual C++, recent C++ libraries with -std=c++11).
    */
   INLINE int is_finite(double d)
   {
-#if HAVE_FINITE
-    return finite(d);
-#else
-    return (d==d && d!=GAOL_INFINITY && d!=-GAOL_INFINITY);
-#endif
+    return std::isfinite(d);
   }
 
 

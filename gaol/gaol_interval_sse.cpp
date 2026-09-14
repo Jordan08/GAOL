@@ -46,7 +46,7 @@
 
     void interval::operator delete(void *p)
     {
-        free(p);
+        MEMFREE(p);
     }
 
 	void* interval::operator new[](size_t sz)
@@ -62,7 +62,7 @@
 
     void interval::operator delete[](void *p)
     {
-        free(p);
+        MEMFREE(p);
     }
 
 	void* interval::operator new(size_t sz, void *p)
@@ -73,9 +73,11 @@
 		return p;
 	}
 
-    void interval::operator delete(void *p, void *place)
+    // The placement delete, called when the constructor of an interval built
+    // by the placement new above throws: the memory is the caller's, and was
+    // freed with free(), which it may not have come from
+    void interval::operator delete(void *, void *)
     {
-        free(p);
     }
 
 	double hausdorff(const interval &I1, const interval &I2)

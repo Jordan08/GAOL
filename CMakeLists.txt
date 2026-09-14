@@ -55,10 +55,17 @@ option(GAOL_FIND_MATHLIB "Look for an installed mathlib before building one" ON)
 option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each operation, rather than leaving it upward" OFF)
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest" ${GAOL_IS_TOP_LEVEL})
 set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library)")
+# The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
+# with its defaults
+option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3" ON)
+option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
+option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" ON)
 
-# As gaol/meson.build asks: cpp_std=c++11, c_std=c99
+# As configure.ac and meson.build ask: -std=c++11 and -std=c99
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_EXTENSIONS OFF)
 
 
 ################################################################################
@@ -204,6 +211,8 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
+  # GAOL refuses -ffast-math and doubles computed on the x87 unit at compile
+  # time (gaol/gaol_config.h): the flags above keep both away.
 
   # -ffloat-store only where doubles are still computed on the x87 unit
   # (FLT_EVAL_METHOD not 0: a 32-bit x86 target without SSE2), whose 80-bit
@@ -252,7 +261,6 @@ else()
   endif()
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
-message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
 
 
 ################################################################################
@@ -336,21 +344,79 @@ set(GETRUSAGE_IN_HEADER ${HAVE_GETRUSAGE})
 # flipping its sign bit (gaol_opposite() in gaol/gaol_port.h)
 set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 
-# On x86 processors, the intervals of GAOL are computed with SSE2 instructions
-# (gaol/gaol_interval_sse.h), except on Windows: IBEX builds GAOL there without
-# them ("it can generate failures during execution"), and so does the fork of
-# Fabrice Le Bars. GAOL's SSE3 instructions are left out: they only serve
-# gaol::interval2f, intervals of floats, and without them the processor needs
-# no more than SSE2, which every x86_64 processor has.
-set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
-check_cxx_source_compiles("
-  #if !(defined(__x86_64__) || defined(__i386__)) || defined(_WIN32)
-  #error GAOL computes its intervals with SSE2 on x86 processors outside Windows only
-  #endif
-  #include <emmintrin.h>
-  int main() { return _mm_movemask_pd(_mm_set1_pd(-1.0)); }"
-  USING_SSE2_INSTRUCTIONS)
-unset(CMAKE_REQUIRED_FLAGS)
+# On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
+# of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
+# SSE3 instructions serve gaol::interval2f (gaol/gaol_interval2f.h), as the
+# autotools build on a processor with SSE3. Not with Visual C++, which IBEX and
+# the fork of Fabrice Le Bars build GAOL without them, nor on 32-bit Windows,
+# where the tests crashed (MinGW-w64 15.2 for x86: rounding_direction); on
+# 64-bit Windows (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
+set(USING_SSE2_INSTRUCTIONS OFF)
+set(USING_SSE3_INSTRUCTIONS OFF)
+if(GAOL_SIMD AND NOT MSVC)
+  set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
+  check_cxx_source_compiles("
+    #if !(defined(__x86_64__) || defined(__i386__))
+    #error GAOL computes its intervals with SSE2 on x86 processors only
+    #endif
+    #if defined(_WIN32) && !defined(_WIN64)
+    #error not on 32-bit Windows
+    #endif
+    #include <emmintrin.h>
+    int main() { return _mm_movemask_pd(_mm_set1_pd(-1.0)); }"
+    GAOL_SSE2_INTERVALS)
+  unset(CMAKE_REQUIRED_FLAGS)
+  if(GAOL_SSE2_INTERVALS)
+    check_cxx_compiler_flag(-msse2 GAOL_COMPILER_SUPPORTS_MSSE2)
+    if(GAOL_COMPILER_SUPPORTS_MSSE2)
+      set(USING_SSE2_INSTRUCTIONS ON)
+      list(APPEND GAOL_INTERVAL_FLAGS -msse2)
+      check_cxx_compiler_flag(-msse3 GAOL_COMPILER_SUPPORTS_MSSE3)
+      if(GAOL_COMPILER_SUPPORTS_MSSE3)
+        set(USING_SSE3_INSTRUCTIONS ON)
+        list(APPEND GAOL_INTERVAL_FLAGS -msse3)
+      endif()
+    endif()
+  endif()
+endif()
+string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
+message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
+message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3 (interval2f): ${USING_SSE3_INSTRUCTIONS}")
+
+# GAOL_USING_ASM, as configure defines it by default: the assembly of
+# gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
+# only compiles for 32-bit x86, and is left out
+if(GAOL_ASM AND NOT MSVC)
+  set(GAOL_USING_ASM ON)
+endif()
+
+# The library compiled with hidden visibility, as configure builds it, and with
+# the warnings of configure; GAOL's public declarations carry
+# __attribute__ ((visibility("default"))) (HAVE_VISIBILITY_OPTIONS)
+set(GAOL_LIBRARY_FLAGS "")
+if(NOT MSVC)
+  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" HAVE_VISIBILITY_OPTIONS)
+  if(HAVE_VISIBILITY_OPTIONS)
+    list(APPEND GAOL_LIBRARY_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>" -fvisibility=hidden)
+  endif()
+  foreach(flag -Wall -Wconversion)
+    string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
+    string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
+    check_cxx_compiler_flag("${flag}" ${_flag_var})
+    if(${_flag_var})
+      list(APPEND GAOL_LIBRARY_FLAGS ${flag})
+    endif()
+  endforeach()
+  # The optimizations configure adds to -O3, in the Release configuration
+  foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations)
+    string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
+    string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
+    check_cxx_compiler_flag("${flag}" ${_flag_var})
+    if(${_flag_var})
+      list(APPEND GAOL_LIBRARY_FLAGS "$<$<CONFIG:Release>:${flag}>")
+    endif()
+  endforeach()
+endif()
 
 configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h")
 # The double operations of the mathematical library GAOL is built with, mathlib
@@ -376,6 +442,9 @@ set(GAOL_SOURCES
   s_nextafter.c gaol_intervalf.cpp gaol_interval_lexer.cpp
   gaol_interval_parser.cpp
 )
+if(USING_SSE3_INSTRUCTIONS)
+  list(APPEND GAOL_SOURCES gaol_interval2f.cpp)
+endif()
 if(NOT MSVC)
   list(APPEND GAOL_SOURCES gaol_exact.c)
 endif()
@@ -391,6 +460,7 @@ target_include_directories(gaol PUBLIC
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS})
+target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")

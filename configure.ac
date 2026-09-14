@@ -99,11 +99,78 @@ CXXFLAGS="${CXXFLAGS} -std=c++11 -I.."
 AC_PROG_CC([gcc])
 AC_PROG_CXX
 
-# The mingw-w64 CMakeLists.txt refuses: before version 12, whose math library is
-# not accurate enough for the hyperbolic functions GAOL takes from it, and
-# version 12, whose fesetround() runs the instruction cpuid at each call (see
-# CMakeLists.txt)
+# GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,
+# with -Werror, so that a flag it only warns about (Clang and
+# -fexpensive-optimizations) counts as refused. GAOL_CHECK_C_FLAG likewise for
+# the C compiler.
+AC_DEFUN([GAOL_CHECK_CXX_FLAG],
+[AC_LANG_PUSH([C++])
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror $1"
+AC_MSG_CHECKING([whether the C++ compiler accepts $1])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[$2=yes],[$2=no])
+AC_MSG_RESULT([${$2}])
+CXXFLAGS=$gaol_save_CXXFLAGS
+AC_LANG_POP([C++])])
+AC_DEFUN([GAOL_CHECK_C_FLAG],
+[AC_LANG_PUSH([C])
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror $1"
+AC_MSG_CHECKING([whether the C compiler accepts $1])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[$2=yes],[$2=no])
+AC_MSG_RESULT([${$2}])
+CFLAGS=$gaol_save_CFLAGS
+AC_LANG_POP([C])])
+# GAOL_ADD_FLAG(flag): adds flag to CXXFLAGS and CFLAGS where each compiler
+# accepts it
+AC_DEFUN([GAOL_ADD_FLAG],
+[GAOL_CHECK_CXX_FLAG([$1], [gaol_cxx_takes])
+if test "${gaol_cxx_takes}" = yes; then
+    CXXFLAGS="${CXXFLAGS} $1"
+fi
+GAOL_CHECK_C_FLAG([$1], [gaol_c_takes])
+if test "${gaol_c_takes}" = yes; then
+    CFLAGS="${CFLAGS} $1"
+fi])
+
+# The compilers CMakeLists.txt refuses, for the same reasons (see there):
+# - Clang for 32-bit ARM processors, which does not honour the rounding
+#   direction: built by Clang 21, 4556 of 16000 random products, squares and
+#   cubes did not enclose their exact values;
+# - a compiler that takes -frounding-math and says it does not honour the
+#   rounding direction on the target ("overriding currently unsupported
+#   rounding mode on this target"), as Clang 14 for 64-bit ARM processors;
+# - mingw-w64 before version 12, whose math library is not accurate enough for
+#   the hyperbolic functions GAOL takes from it, and version 12, whose
+#   fesetround() runs the instruction cpuid at each call.
 AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([whether the C++ compiler is Clang for a 32-bit ARM processor])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
+#error Clang for a 32-bit ARM processor
+#endif]], [[]])],[clang_arm32=no],[clang_arm32=yes])
+AC_MSG_RESULT(${clang_arm32})
+if test "${clang_arm32}" = yes; then
+    AC_MSG_ERROR([GAOL cannot be built with $CXX, Clang for a 32-bit ARM processor.
+Clang does not honour the rounding direction on 32-bit ARM processors: it does not support -frounding-math there (overriding currently unsupported rounding mode on this target) and optimizes floating-point operations as if they were always rounded to nearest. GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not).
+Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc ./configure, or CXX=arm-linux-gnueabihf-g++ to cross-compile.])
+fi
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-frounding-math"
+AC_MSG_CHECKING([whether the C++ compiler accepts -frounding-math])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_rounding_math_opt=yes],[has_rounding_math_opt=no])
+AC_MSG_RESULT(${has_rounding_math_opt})
+if test "${has_rounding_math_opt}" = yes; then
+    CXXFLAGS="-Werror -frounding-math"
+    AC_MSG_CHECKING([whether the C++ compiler honours the rounding direction on this target])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[honours_rounding=yes],[honours_rounding=no])
+    AC_MSG_RESULT(${honours_rounding})
+    if test "${honours_rounding}" = no; then
+        AC_MSG_ERROR([GAOL cannot be built with $CXX for this target.
+This compiler does not honour the rounding direction on this target, and says so of -frounding-math (overriding currently unsupported rounding mode on this target). GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not).
+Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later version of Clang (Clang 18 does on 64-bit ARM processors).])
+    fi
+fi
+CXXFLAGS=$gaol_save_CXXFLAGS
 AC_MSG_CHECKING([whether mingw-w64, if used, is of version 12 or later])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>
 #if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 12
@@ -135,37 +202,43 @@ AC_ARG_ENABLE(simd,
                 [simd=${enable_simd}],
                 [simd="yes"])
 AM_CONDITIONAL([SIMD_COND],[test "$simd" == "yes"])
+# On x86 processors (the target of the compiler, rather than the processor of
+# the machine building, as CMakeLists.txt): the intervals are computed with
+# SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
+# gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
+# computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where GAOL's
+# bounds and mathlib's results are wrong (see gaol/gaol_config.h).
 using_sse2=no
 has_sse3=no
-if test "$simd" = yes; then
-    AC_MSG_CHECKING([whether SSE2 features are available])
-    AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(void) {unsigned int a, b, c, d; __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (0)); if (a >= 1) {
-        __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (1)); return (d & 0x04000000) == 0; } else {
-            return 1; } }]])],[has_sse2=yes],[has_sse2=no],[:])
-    AC_MSG_RESULT(${has_sse2})
-    if test ${has_sse2} = yes; then
-        using_sse2=yes
-        case $CXX in
-        icpc)
-            CXXFLAGS="${CXXFLAGS} -xP -mtune=pentium4"
-            ;;
-        g++)
-            CXXFLAGS="${CXXFLAGS} -msse2"
-            ;;
-        esac
-        AC_DEFINE([USING_SSE2_INSTRUCTIONS],1,
-            [Define this to 1 if SSE2 instructions are to be used])
+AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([whether the target is an x86 processor])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !(defined(__i386__) || defined(__x86_64__))
+#error not an x86 processor
+#endif]], [[]])],[target_x86=yes],[target_x86=no])
+AC_MSG_RESULT(${target_x86})
+AC_MSG_CHECKING([whether the target is a 32-bit x86 processor])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !defined(__i386__)
+#error not a 32-bit x86 processor
+#endif]], [[]])],[target_x86_32=yes],[target_x86_32=no])
+AC_MSG_RESULT(${target_x86_32})
+AC_LANG_POP([C++])
+if test "${target_x86}" = yes; then
+    if test "${target_x86_32}" = yes; then
+        GAOL_ADD_FLAG([-msse2 -mfpmath=sse])
     fi
-    AC_MSG_CHECKING([whether SSE3 features are available])
-    AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(void) {unsigned int a, b, c, d; __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (0)); if (a >= 1) {
-        __asm__ __volatile__ ("cpuid":"=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (1)); return (c & 0x00000001) == 0; } else {
-            return 1; } }]])],[has_sse3=yes],[has_sse3=no],[:])
-    AC_MSG_RESULT(${has_sse3})
-    if test ${has_sse3} = yes; then
-        AC_DEFINE([USING_SSE3_INSTRUCTIONS],1,
-            [Define this to 1 if SSE3 instructions are to be used])
-        if test $CXX = g++; then
-            CXXFLAGS="${CXXFLAGS} -msse3"
+    if test "$simd" = yes; then
+        GAOL_CHECK_CXX_FLAG([-msse2], [has_sse2])
+        if test "${has_sse2}" = yes; then
+            using_sse2=yes
+            CXXFLAGS="${CXXFLAGS} -msse2"
+            AC_DEFINE([USING_SSE2_INSTRUCTIONS],1,
+                [Define this to 1 if SSE2 instructions are to be used])
+            GAOL_CHECK_CXX_FLAG([-msse3], [has_sse3])
+            if test "${has_sse3}" = yes; then
+                CXXFLAGS="${CXXFLAGS} -msse3"
+                AC_DEFINE([USING_SSE3_INSTRUCTIONS],1,
+                    [Define this to 1 if SSE3 instructions are to be used])
+            fi
         fi
     fi
 fi
@@ -246,33 +319,27 @@ AC_ARG_ENABLE(optimize,
                             [compile gaol with full optimization @<:@default=yes@:>@])],
             [optimize=${enable_optimize}],
             [optimize="yes"])
+# With any compiler, each flag where the compiler accepts it (they were added
+# when the compiler was named g++ exactly, and clang++ or g++-13 compiled
+# without any optimization), and NDEBUG, as the Release build of CMake and
+# meson define it
 if test $optimize = yes; then
-    case $CXX in
-    icpc)
-        CXXFLAGS="${CXXFLAGS} -O3"
-        ;;
-    g++)
-        CXXFLAGS="${CXXFLAGS} -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations"
-        AC_LANG_PUSH([C++])
-        OLD_CXXFLAGS=$CXXFLAGS
-        CXXFLAGS="-fvisibility-inlines-hidden -fvisibility=hidden"
-        AC_MSG_CHECKING(whether the C++ compiler accepts -fvisibility-inlines-hidden and -fvisibility)
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_visibility_opt=yes],[has_visibility_opt=no])
-        AC_MSG_RESULT(${has_visibility_opt})
-        CXXFLAGS=${OLD_CXXFLAGS}
-        if test "${has_visibility_opt}" = yes; then
-            CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
-            AC_DEFINE(HAVE_VISIBILITY_OPTIONS,1,
-                        [Define this to 1 if the compiler supports the "-fvisibility" option])
-        fi
-        AC_LANG_POP([C++])
-        ;;
-    esac
+    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
+        GAOL_ADD_FLAG([${gaol_flag}])
+    done
+    CPPFLAGS="${CPPFLAGS} -DNDEBUG"
 else
    CXXFLAGS="${CXXFLAGS} -O"
+   CFLAGS="${CFLAGS} -O"
+fi
+GAOL_CHECK_CXX_FLAG([-fvisibility-inlines-hidden -fvisibility=hidden], [has_visibility_opt])
+if test "${has_visibility_opt}" = yes; then
+    CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
+    AC_DEFINE(HAVE_VISIBILITY_OPTIONS,1,
+                [Define this to 1 if the compiler supports the "-fvisibility" option])
 fi
 
-CFLAGS="${CFLAGS} -O2 -Wall -Wconversion"
+CFLAGS="${CFLAGS} -Wall -Wconversion"
 CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
 
 
@@ -370,55 +437,20 @@ if test "${using_asm}" = yes; then
 fi
 
 
-# Determines the kind of architecture to use
+# The processor and the system: gaol/gaol_config.h names them from the macros
+# of the compiler, for the three builds alike (configure defined IX86_LINUX,
+# AARCH64_LINUX, IX86_MACOSX and ARM_MACOSX from $host, and refused the other
+# systems: macOS on Apple silicon was arm-apple-* and x86_64-apple-* neither)
 AC_CANONICAL_HOST
-
 case $host in
-i?86-*-linux*)
-	AC_DEFINE(IX86_LINUX,1,
-          [Define this if your system is a Linux-based ix86 or compatible])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
-*86_64-*-linux*)
-	AC_DEFINE(IX86_LINUX,1,
-          [Define this if your system is a Linux-based ix86 or compatible])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	AC_DEFINE(X86_64BITS,1,
-		  [Define this if the OS is a 64 bits one])
-	;;
-i?86-*-cygwin*)
-	AC_DEFINE(IX86_CYGWIN,1,
-          [Define this if your system is a cygwin-based ix86 or compatible])
+*-cygwin*)
 	AM_CONDITIONAL([IS_CYGWIN_COND],[true])
 	;;
-arm-apple-*)
-	AC_DEFINE(ARM_MACOSX,1,
-          [Define this if your system is a Linux-based ix86 or compatible])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
-i?86-apple-*)
-	AC_DEFINE(IX86_MACOSX,1,
-          [Define this if your system is a Linux-based ix86 or compatible])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
-sparc*-solaris*)
-	AC_DEFINE(SPARC_SOLARIS,1,
-	  [Define this if your system is a SUN Sparc computer under Solaris])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
-powerpc*)
-	AC_DEFINE(POWERPC_UNIX,1,
-	  [Define this if your system is a PowerPc under MacOs X])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
-aarch64-*-linux-*)
-	AC_DEFINE(AARCH64_LINUX,1,
-		[Define this if your system is an AARCH64-based computer under Linux])
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
 *)
-	AC_MSG_ERROR([Sorry, this system is not yet supported by gaol])
+	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
+	;;
 esac
+
 
 
 # Checking for dl library
@@ -522,40 +554,23 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(long long int,8)
 
 
-# Checking for availability of -frounding-math, with any compiler: configure
-# checked it for g++ only. Built by clang++ -O2 without it and without SSE2
-# intervals (--disable-simd), GAOL gave integer powers not enclosing their
-# exact values
-AC_LANG([C++])
-OLD_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-frounding-math"
-AC_MSG_CHECKING(whether the C++ compiler accepts -frounding-math)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_rounding_math_opt=yes],[has_rounding_math_opt=no])
-AC_MSG_RESULT(${has_rounding_math_opt})
-CXXFLAGS=${OLD_CXXFLAGS}
+
+# The flags of interval arithmetic, for the C++ and the C compiler, each where
+# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math (GAOL
+# then negates a double with the minus sign, HAVE_ROUNDING_MATH_OPTION),
+# -ffp-contract=off (without it, compilers contract a multiplication and an
+# addition into a fused one as if rounding to nearest: on 64-bit ARM,
+# -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
+# single double), -fno-fast-math (the fast-math optimizations would round to
+# nearest and drop the checks of NaN and infinities)
 AC_LANG([C])
 if test "${has_rounding_math_opt}" = yes; then
-    CXXFLAGS="${CXXFLAGS} -frounding-math"
     AC_DEFINE(HAVE_ROUNDING_MATH_OPTION,1,
         [Define this to 1 if the compiler supports the "-frounding-math" option])
 fi
-
-# Checking for availability of -ffp-contract=off, with any compiler: without it,
-# compilers contract a multiplication and an addition into a fused one as if
-# rounding to nearest. On 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r both
-# became fnma(.5, l, .5*r), and mid() a single double (CMakeLists.txt passes it)
-AC_LANG_PUSH([C++])
-OLD_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-ffp-contract=off"
-AC_MSG_CHECKING(whether the C++ compiler accepts -ffp-contract=off)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_fp_contract_opt=yes],[has_fp_contract_opt=no])
-AC_MSG_RESULT(${has_fp_contract_opt})
-CXXFLAGS=${OLD_CXXFLAGS}
-AC_LANG_POP([C++])
-if test "${has_fp_contract_opt}" = yes; then
-    CFLAGS="${CFLAGS} -ffp-contract=off"
-    CXXFLAGS="${CXXFLAGS} -ffp-contract=off"
-fi
+for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
+    GAOL_ADD_FLAG([${gaol_flag}])
+done
 
 
 # Checks for library functions.

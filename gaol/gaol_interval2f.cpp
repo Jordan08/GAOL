@@ -51,7 +51,7 @@ namespace gaol {
 
     void interval2f::operator delete(void *p)
     {
-        free(p);
+        MEMFREE(p);
     }
 
 	void* interval2f::operator new[](size_t sz)
@@ -67,7 +67,7 @@ namespace gaol {
 
     void interval2f::operator delete[](void *p)
     {
-        free(p);
+        MEMFREE(p);
     }
 
 	void* interval2f::operator new(size_t sz, void *p)
@@ -78,9 +78,9 @@ namespace gaol {
 		return p;
 	}
 
-    void interval2f::operator delete(void *p, void *place)
+    // The placement delete: the memory is the caller's (see gaol_interval_sse.cpp)
+    void interval2f::operator delete(void *, void *)
     {
-        free(p);
     }
 
 

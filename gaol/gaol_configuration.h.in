@@ -1,7 +1,8 @@
 /* gaol/gaol_configuration.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Define this if your system is an AARCH64-based computer under Linux */
-#undef AARCH64_LINUX
+/* The processor and the system (IX86_LINUX, AARCH64_LINUX, IX86_MACOSX,
+   ARM_MACOSX): gaol/gaol_config.h names them from the macros of the
+   compiler, for the three builds alike. */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
@@ -173,15 +174,6 @@
 /* Define to 1 if you have the `__signbit' function. */
 #undef HAVE___SIGNBIT
 
-/* Define this if your system is a cygwin-based ix86 or compatible */
-#undef IX86_CYGWIN
-
-/* Define this if your system is a Linux-based ix86 or compatible */
-#undef IX86_LINUX
-
-/* Define this if your system is a Linux-based ix86 or compatible */
-#undef IX86_MACOSX
-
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #undef LT_OBJDIR
@@ -207,9 +199,6 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define this if your system is a PowerPc under MacOs X */
-#undef POWERPC_UNIX
-
 /* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
@@ -218,9 +207,6 @@
 
 /* The size of `long long int', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG_INT
-
-/* Define this if your system is a SUN Sparc computer under Solaris */
-#undef SPARC_SOLARIS
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
@@ -245,9 +231,6 @@
 #  undef WORDS_BIGENDIAN
 # endif
 #endif
-
-/* Define this if the OS is a 64 bits one */
-#undef X86_64BITS
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

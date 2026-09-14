@@ -23,7 +23,7 @@ parser_files = ['gaol_interval_parser.cpp', 'gaol_interval_parser.h']
 
 INTERVAL2_SOURCE = []
 INTERVAL2_HEADER = []
-if simd
+if use_sse3
   INTERVAL2_SOURCE += ['gaol_interval2f.cpp']
   INTERVAL2_HEADER += ['gaol_interval2f.h']
 endif
@@ -58,7 +58,7 @@ else
 endif
 
 fpu_source = 'gaol_interval_fpu.cpp'
-if simd
+if use_sse2
   fpu_source = 'gaol_interval_sse.cpp'
 endif
 fpu_target = custom_target(
@@ -161,4 +161,4 @@ gaollib = both_libraries(
   include_directories: incdir,
 )
 
-install_headers(gaol_HEADERS, subdir: 'gaol')
+install_headers(gaol_HEADERS + INTERVAL2_HEADER, subdir: 'gaol')
