@@ -278,6 +278,16 @@ Each change is a commit of its own, and says where it comes from.
 - **Clang is refused for 32-bit ARM processors**, where it does not honour the
   rounding direction: built by Clang 21, 4556 of 16000 random products, squares
   and cubes did not enclose their exact values.
+- **The autotools and meson builds** compile GAOL with `-ffp-contract=off`, as
+  the CMake build does, and `configure` checks `-frounding-math` with any
+  compiler, not only `g++`. Without `-ffp-contract=off`, the compilers fused
+  the multiplications and additions of `mid()`, whose two bounds were then
+  computed alike: `mid()` returned a single double, not enclosing the midpoint
+  of 9735 of the 10000 random intervals of `other_functions`, with meson on
+  macOS arm64 (Apple Clang) and with autotools on Ubuntu arm64 (GCC 13,
+  rounding direction preserved). Without `-frounding-math`, GAOL built by
+  `clang++` at `-O2` without SSE2 intervals (`--disable-simd`) gave integer
+  powers not enclosing their exact values.
 - **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
   which it did not compile on Linux. It defines `USING_SSE3_INSTRUCTIONS` only
   with `enable-simd`, which installs the header `gaol/gaol` then includes.

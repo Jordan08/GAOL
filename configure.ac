@@ -485,21 +485,39 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(long long int,8)
 
 
-# Checking for availability of -frounding-math
+# Checking for availability of -frounding-math, with any compiler: configure
+# checked it for g++ only. Built by clang++ -O2 without it and without SSE2
+# intervals (--disable-simd), GAOL gave integer powers not enclosing their
+# exact values
 AC_LANG([C++])
-if test "$CXX" = "g++"; then
-    OLD_CXXFLAGS=$CXXFLAGS
-    CXXFLAGS="-frounding-math"
-    AC_MSG_CHECKING(whether the C++ compiler accepts -frounding-math)
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_rounding_math_opt=yes],[has_rounding_math_opt=no])
-    AC_MSG_RESULT(${has_rounding_math_opt})
-    CXXFLAGS=${OLD_CXXFLAGS}
-    AC_LANG([C])
-    if test "${has_rounding_math_opt}" = yes; then
-        CXXFLAGS="${CXXFLAGS} -frounding-math"
-        AC_DEFINE(HAVE_ROUNDING_MATH_OPTION,1,
-            [Define this to 1 if the compiler supports the "-frounding-math" option])
-    fi
+OLD_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-frounding-math"
+AC_MSG_CHECKING(whether the C++ compiler accepts -frounding-math)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_rounding_math_opt=yes],[has_rounding_math_opt=no])
+AC_MSG_RESULT(${has_rounding_math_opt})
+CXXFLAGS=${OLD_CXXFLAGS}
+AC_LANG([C])
+if test "${has_rounding_math_opt}" = yes; then
+    CXXFLAGS="${CXXFLAGS} -frounding-math"
+    AC_DEFINE(HAVE_ROUNDING_MATH_OPTION,1,
+        [Define this to 1 if the compiler supports the "-frounding-math" option])
+fi
+
+# Checking for availability of -ffp-contract=off, with any compiler: without it,
+# compilers contract a multiplication and an addition into a fused one as if
+# rounding to nearest. On 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r both
+# became fnma(.5, l, .5*r), and mid() a single double (CMakeLists.txt passes it)
+AC_LANG_PUSH([C++])
+OLD_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-ffp-contract=off"
+AC_MSG_CHECKING(whether the C++ compiler accepts -ffp-contract=off)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_fp_contract_opt=yes],[has_fp_contract_opt=no])
+AC_MSG_RESULT(${has_fp_contract_opt})
+CXXFLAGS=${OLD_CXXFLAGS}
+AC_LANG_POP([C++])
+if test "${has_fp_contract_opt}" = yes; then
+    CFLAGS="${CFLAGS} -ffp-contract=off"
+    CXXFLAGS="${CXXFLAGS} -ffp-contract=off"
 fi
 
 

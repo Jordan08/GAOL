@@ -228,6 +228,14 @@ if cpp_comp.has_argument('-frounding-math')
   add_global_arguments(['-frounding-math'], language: 'c')
   add_global_arguments(['-frounding-math'], language: 'cpp')
 endif
+# No contraction of a multiplication and an addition into a fused one, which
+# compilers rewrite as if rounding to nearest: contracted on 64-bit ARM (GCC in
+# its GNU dialects, Clang), -(.5*l - .5*r) and -.5*l + .5*r both became
+# fnma(.5, l, .5*r), and mid() a single double (as CMakeLists.txt)
+if cpp_comp.has_argument('-ffp-contract=off')
+  add_global_arguments(['-ffp-contract=off'], language: 'c')
+  add_global_arguments(['-ffp-contract=off'], language: 'cpp')
+endif
 
 if cpp_comp.has_argument('-msse2')
   conf_data.set('USING_SSE2_INSTRUCTIONS', 1)

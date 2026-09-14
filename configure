@@ -18101,14 +18101,16 @@ _ACEOF
 
 
 
-# Checking for availability of -frounding-math
+# Checking for availability of -frounding-math, with any compiler: configure
+# checked it for g++ only. Built by clang++ -O2 without it and without SSE2
+# intervals (--disable-simd), GAOL gave integer powers not enclosing their
+# exact values
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-if test "$CXX" = "g++"; then
     OLD_CXXFLAGS=$CXXFLAGS
     CXXFLAGS="-frounding-math"
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -frounding-math" >&5
@@ -18145,6 +18147,50 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 $as_echo "#define HAVE_ROUNDING_MATH_OPTION 1" >>confdefs.h
 
     fi
+
+# Checking for availability of -ffp-contract=off, with any compiler: without it,
+# compilers contract a multiplication and an addition into a fused one as if
+# rounding to nearest. On 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r both
+# became fnma(.5, l, .5*r), and mid() a single double (CMakeLists.txt passes it)
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+OLD_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-ffp-contract=off"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -ffp-contract=off" >&5
+$as_echo_n "checking whether the C++ compiler accepts -ffp-contract=off... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  has_fp_contract_opt=yes
+else
+  has_fp_contract_opt=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${has_fp_contract_opt}" >&5
+$as_echo "${has_fp_contract_opt}" >&6; }
+CXXFLAGS=${OLD_CXXFLAGS}
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${has_fp_contract_opt}" = yes; then
+    CFLAGS="${CFLAGS} -ffp-contract=off"
+    CXXFLAGS="${CXXFLAGS} -ffp-contract=off"
 fi
 
 
