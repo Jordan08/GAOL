@@ -165,6 +165,11 @@ Codac.
 
 `tests/find_package` builds the same tests with an installed GAOL.
 
+`tests/performance.cpp` (`gaol_performance`) measures the time per operation of
+GAOL's arithmetic and elementary functions, and of the same operations on
+doubles. It is not a test: the continuous integration prints its table in the
+summary of the jobs.
+
 What they show of GAOL, beyond the fixes below:
 
 - `atan2()` is not implemented: it throws `unavailable_feature_error`.
@@ -316,7 +321,7 @@ It also checks that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and
 MinGW-w64 11 to 13, and builds GAOL with autotools and meson. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and
 arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
-meson.
+meson. The jobs built in Release print the time per operation in their summary.
 
 ### Licences
 

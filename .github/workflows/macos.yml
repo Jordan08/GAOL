@@ -48,6 +48,8 @@ jobs:
         run: |
           file build/tests/gaol_test_arithmetic
           cd build && ctest -j 4 --output-on-failure
+      - name: Performance
+        run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build
       - name: Tests built with the installed GAOL

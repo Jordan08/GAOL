@@ -52,6 +52,9 @@ jobs:
         run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
       - name: Tests
         run: ctest --test-dir build -C ${{ matrix.cfg.config }} -j 4 --output-on-failure
+      - name: Performance
+        if: matrix.cfg.config == 'Release'
+        run: build/tests/${{ matrix.cfg.config }}/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build --config ${{ matrix.cfg.config }}
       - name: Tests built with the installed GAOL
@@ -93,6 +96,9 @@ jobs:
         run: cmake --build build -j 4
       - name: Tests
         run: cd build && ctest -j 4 --output-on-failure
+      - name: Performance
+        if: matrix.cfg.config == 'Release'
+        run: build/tests/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build
       - name: Tests built with the installed GAOL
@@ -163,3 +169,5 @@ jobs:
         run: cmake --build build -j 4
       - name: Tests
         run: cd build && ctest -j 4 --output-on-failure
+      - name: Performance
+        run: build/tests/gaol_performance.exe

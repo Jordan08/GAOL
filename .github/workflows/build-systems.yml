@@ -60,6 +60,11 @@ jobs:
               "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o $test
             ./$test | tail -3
           done
+      - name: Performance
+        run: |
+          g++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" tests/performance.cpp \
+            "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o performance
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   meson:
     name: ${{ matrix.cfg.desc }}
@@ -106,6 +111,11 @@ jobs:
               -L"$RUNNER_TEMP/gaol/lib" -lgaol "$RUNNER_TEMP/mathlib/lib/libultim.a" -Wl,-rpath,"$RUNNER_TEMP/gaol/lib" -o $test
             ./$test | tail -3
           done
+      - name: Performance
+        run: |
+          c++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" tests/performance.cpp \
+            -L"$RUNNER_TEMP/gaol/lib" -lgaol "$RUNNER_TEMP/mathlib/lib/libultim.a" -Wl,-rpath,"$RUNNER_TEMP/gaol/lib" -o performance
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   cmake-installed-mathlib:
     name: CMake with an installed mathlib, Ubuntu 24.04 x86_64

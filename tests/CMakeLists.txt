@@ -25,3 +25,9 @@ foreach(test ${GAOL_TESTS})
   endif()
   add_test(NAME ${test} COMMAND gaol_test_${test})
 endforeach()
+
+# The time per operation of GAOL and of the same operation on doubles, which
+# the continuous integration prints: not a test ctest runs
+add_executable(gaol_performance performance.cpp)
+target_link_libraries(gaol_performance PRIVATE gaol::gaol)
+set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
