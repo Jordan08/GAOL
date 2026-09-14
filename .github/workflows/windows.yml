@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Configure
-        run: cmake -S . -B build -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+        run: cmake -S . -B build -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DGAOL_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
       - name: Tests
@@ -89,7 +89,7 @@ jobs:
           which gcc g++ mingw32-make
           g++ --version
           g++ -dumpmachine
-          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
       - name: Build
         run: cmake --build build -j 4
       - name: Tests
@@ -164,7 +164,7 @@ jobs:
       - name: Configure
         run: |
           ${{ matrix.cfg.cxx }} --version
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }}
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }}
       - name: Build
         run: cmake --build build -j 4
       - name: Tests

@@ -123,7 +123,7 @@ host_triplet = @host@
 @CPPUNIT_COND_TRUE@	reverse_mappings$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) intervalf$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	essai$(EXEEXT) $(am__EXEEXT_1)
-noinst_PROGRAMS = performances$(EXEEXT)
+EXTRA_PROGRAMS = performances$(EXEEXT)
 subdir = check
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -138,7 +138,7 @@ CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__EXEEXT_1 =
-PROGRAMS = $(noinst_PROGRAMS)
+PROGRAMS =
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)

@@ -47,7 +47,8 @@ else
 CPPUNIT_LIB = 
 endif
 
-noinst_PROGRAMS = performances
+# Built by make performances only, as the tests: not by make
+EXTRA_PROGRAMS = performances
 
 
 EXTRA_DIST = gaolcc.in tests.h

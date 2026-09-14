@@ -48,7 +48,7 @@ jobs:
           ${{ matrix.cfg.cxx }} --version
           cmake --version
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
       - name: Tests
@@ -116,7 +116,7 @@ jobs:
           # behaviour of mathlib that ubsan.supp lists; halt_on_error stops on
           # the others
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
             "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
       - name: Build
         run: cmake --build build -j 4
@@ -136,7 +136,7 @@ jobs:
       - name: Configure
         run: |
           cmake --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
       - name: Build
         run: cmake --build build -j 4
       - name: Tests

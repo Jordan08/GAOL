@@ -320,7 +320,7 @@ jobs:
         run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_MATHLIB=OFF -DMATHLIB_DIR="$RUNNER_TEMP/mathlib" | tee configure.log
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DGAOL_BUILD_MATHLIB=OFF -DMATHLIB_DIR="$RUNNER_TEMP/mathlib" | tee configure.log
           grep -q "Found mathlib: $RUNNER_TEMP/mathlib" configure.log
       - name: Build
         run: cmake --build build -j 4

@@ -53,7 +53,7 @@ the two others need it installed (`MathLib.h` and the `ultim` library), which
 ### With CMake
 
 ```bash
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix>
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DGAOL_BUILD_TESTS=ON
 cmake --build build --config Release
 ctest --test-dir build -C Release
 cmake --install build --config Release
@@ -74,7 +74,7 @@ The build type is Release unless another is given.
 | `GAOL_BUILD_MATHLIB` | `ON` | Download and build mathlib when no installed mathlib is found |
 | `GAOL_FIND_MATHLIB` | `ON` | Look for an installed mathlib before building one; `OFF` builds mathlib even where one is installed, as a project building GAOL for itself does |
 | `MATHLIB_DIR` | | Installation prefix of an installed mathlib |
-| `GAOL_BUILD_TESTS` | `ON` when GAOL is the main project | Build the tests of `tests/`, which `ctest` runs |
+| `GAOL_BUILD_TESTS` | `OFF` | Build the tests of `tests/`, which `ctest` runs; no build compiles tests by default |
 | `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors, and `gaol::interval2f` with SSE3 (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
@@ -173,9 +173,8 @@ FetchContent_MakeAvailable(gaol)
 target_link_libraries(my_target PUBLIC gaol::gaol)
 ```
 
-The tests are then not built (`GAOL_BUILD_TESTS` is `OFF` when GAOL is not the
-main project), and `cmake --install` of the project installs GAOL and mathlib
-with it. `tests/find_package` is a project using an installed GAOL this way.
+`cmake --install` of the project then installs GAOL and mathlib with it.
+`tests/find_package` is a project using an installed GAOL this way.
 
 ### From pkg-config
 
@@ -282,8 +281,11 @@ Codac.
   distances, splitting, integer parts, and the relational functions
   (`sqrt_rel`, `div_rel`...).
 
-`tests/find_package` builds the same tests with an installed GAOL, and
-`.github/scripts/tests.sh` with a GAOL installed by configure or meson.
+The CMake build compiles them with `GAOL_BUILD_TESTS` (`OFF` by default: no
+build compiles tests unless asked to, as `make check` and `with-test` for
+GAOL's own check programs). `tests/find_package` builds the same tests with
+an installed GAOL, and `.github/scripts/tests.sh` with a GAOL installed by
+configure or meson.
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, and of the same operations on

@@ -53,7 +53,7 @@ endif()
 option(GAOL_BUILD_MATHLIB "Download and build mathlib when no installed mathlib is found" ON)
 option(GAOL_FIND_MATHLIB "Look for an installed mathlib before building one" ON)
 option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each operation, rather than leaving it upward" OFF)
-option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest" ${GAOL_IS_TOP_LEVEL})
+option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest (OFF: the tests are not built by default, with the three builds)" OFF)
 set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library)")
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
 # with its defaults, but for the verbose mode: GAOL is silent by default
