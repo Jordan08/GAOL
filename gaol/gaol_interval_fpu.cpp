@@ -45,7 +45,13 @@
 	  return GAOL_INFINITY;
 	}
       } else {
-	return maximum(std::fabs(I1.left()-I2.left()),std::fabs(I1.right()-I2.right()));
+	// The tightest upper bound of the distance, whatever the rounding direction
+	// of the caller: each difference is rounded upward both ways
+	GAOL_RND_ENTER();
+	double d = maximum(maximum(I1.left()-I2.left(),I2.left()-I1.left()),
+	                   maximum(I1.right()-I2.right(),I2.right()-I1.right()));
+	GAOL_RND_LEAVE();
+	return d;
       }
     }
   }

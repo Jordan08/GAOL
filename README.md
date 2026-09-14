@@ -192,6 +192,9 @@ Each change is a commit of its own, and says where it comes from.
     `<fenv.h>` where the control word of `fenv_t` is not known.
   - `_MATHLIB_DLL_` is only defined when not already, and Visual C++ gets the
     `<fenv.h>` version of `get_inexact()` and `clear_inexact()`.
+- **`hausdorff()`** returns the tightest upper bound of the distance. It computed
+  `fabs(a - c)` in the rounding direction of the caller, below the exact
+  distance when rounded upward with a < c.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.

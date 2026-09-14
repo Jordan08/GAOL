@@ -106,8 +106,15 @@
 				1111 : [-oo, +oo] [-oo, +oo]
 			*/
 			switch (cmpinf) {
-			case 0: // 0000
-				return fmax(std::fabs(I1.left()-I2.left()),std::fabs(I1.right()-I2.right()));
+			case 0: { // 0000
+				// The tightest upper bound of the distance, whatever the rounding
+				// direction of the caller: each difference is rounded upward both ways
+				GAOL_RND_ENTER();
+				double d = fmax(fmax(I1.left()-I2.left(),I2.left()-I1.left()),
+				                fmax(I1.right()-I2.right(),I2.right()-I1.right()));
+				GAOL_RND_LEAVE();
+				return d;
+			}
 			case 15: // 1111
 				return 0.0;
 			default:

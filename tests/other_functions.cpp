@@ -64,13 +64,14 @@ namespace
       check("mig()" + in, X.mig() == (has_zero ? 0.0 : std::min(ml, mr)), describe);
       check("smig()" + in, X.smig() == (has_zero ? 0.0 : (l > 0.0 ? l : r)), describe);
 
-      // The Hausdorff distance, computed in the rounding direction in effect:
-      // one of the doubles on each side of the exact distance
+      // The Hausdorff distance, rounded upward: GAOL computed it in the rounding
+      // direction in effect, and |a - c| rounded upward below the exact distance
+      // when a - c < 0
       const double h = hausdorff(X, Y);
       const Exact dleft = exact(dyadic(l) - dyadic(Y.left())), dright = exact(dyadic(r) - dyadic(Y.right()));
       const std::vector<Exact> distances = { dleft, -dleft, dright, -dright };
-      check("hausdorff() next to the exact distance" + in,
-            is_tightest_lower_bound(h, max(distances)) || is_tightest_upper_bound(h, max(distances)),
+      check("hausdorff() the tightest upper bound of the exact distance" + in,
+            is_tightest_upper_bound(h, max(distances)),
             [&] { return describe() + ": " + hex(h); });
 
       // Splitting at the midpoint
