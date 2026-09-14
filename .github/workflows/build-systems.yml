@@ -219,7 +219,7 @@ jobs:
       - name: Configure with the three builds and compare
         run: |
           sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$RUNNER_TEMP/mathlib" "$RUNNER_TEMP/audit" meson
-          python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md; status=$?
+          status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$RUNNER_TEMP/audit/audit" $status
 
@@ -242,7 +242,7 @@ jobs:
             apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 curl ca-certificates > /dev/null
             sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
             sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/mathlib /tmp/audit meson
-            python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md; status=\$?
+            status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
             cat /gaol/agree.md
             sh .github/audit/logs.sh /tmp/audit/audit \$status"
           cat agree.md >> "$GITHUB_STEP_SUMMARY"
@@ -267,7 +267,7 @@ jobs:
           export CMAKE_GENERATOR=Ninja
           out="$(cygpath -m "$RUNNER_TEMP")/audit"
           sh .github/audit/audit.sh audit gcc g++ . "$(cygpath -m "$RUNNER_TEMP")/mathlib" "$out" meson
-          python3 .github/audit/compare.py --check "$out/audit.json" > agree.md; status=$?
+          status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$out/audit" $status
 
