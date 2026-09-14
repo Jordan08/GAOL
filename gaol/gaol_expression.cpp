@@ -27,8 +27,6 @@
   \date   2001-09-28
 */
 
-static const char *CVSid="@(#) $Id: gaol_expression.cpp 191 2012-03-06 17:08:58Z goualard $";
-
 #include <iostream>
 #include <cmath>
 

@@ -28,8 +28,6 @@
   \date   2001-10-02
 */
 
-static const char *CVSid="@(#) $Id: gaol_profile.cpp 191 2012-03-06 17:08:58Z goualard $";
-
 // To overcome problems with old versions of autoconf
 #undef PACKAGE
 #include "gaol/gaol_profile.h"

@@ -32,8 +32,6 @@
 
 #if GAOL_EXCEPTIONS_ENABLED
 
-static const char *CVSid="@(#) $Id: gaol_exceptions.cpp 54 2009-03-01 13:53:01Z goualard $";
-
 #include <iostream>
 
 #include "gaol/gaol_exceptions.h"

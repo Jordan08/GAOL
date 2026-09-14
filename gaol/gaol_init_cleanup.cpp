@@ -34,8 +34,6 @@ using std::cout;
 using std::endl;
 
 
-static const char *CVSid="@(#) $Id: gaol_init_cleanup.cpp 54 2009-03-01 13:53:01Z goualard $";
-
 namespace gaol {
 
   /**
