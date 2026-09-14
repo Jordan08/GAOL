@@ -3,7 +3,9 @@ project(
   'c',
   'cpp',
   version: '4.2.3',
-  default_options: ['cpp_std=c++11', 'c_std=c99'],
+  # Optimized by default, as configure builds GAOL (meson's own default, debug,
+  # does not optimize): meson setup --buildtype=debug builds it for debugging
+  default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release'],
 )
 major_version = 4
 minor_version = 2
@@ -235,6 +237,18 @@ endif
 if cpp_comp.has_argument('-ffp-contract=off')
   add_global_arguments(['-ffp-contract=off'], language: 'c')
   add_global_arguments(['-ffp-contract=off'], language: 'cpp')
+endif
+# enable-optimize: the optimizations configure adds for g++, where the compiler
+# takes them, on top of the build type
+if get_option('enable-optimize')
+  foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
+    if cpp_comp.has_argument(flag)
+      add_global_arguments([flag], language: 'cpp')
+    endif
+    if c_comp.has_argument(flag)
+      add_global_arguments([flag], language: 'c')
+    endif
+  endforeach
 endif
 
 if cpp_comp.has_argument('-msse2')

@@ -43,6 +43,9 @@ cd build
 meson compile
 ```
 
+GAOL is built optimized by default (`buildtype=release`); `meson setup build
+--buildtype=debug` builds it for debugging.
+
 If you want to run tests setup the build folder with option `with-test` to `true`
 
 If you want to install gaol to a specify folder use the meson argument `--prefix`
@@ -302,7 +305,10 @@ Each change is a commit of its own, and says where it comes from.
   powers not enclosing their exact values.
 - **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
   which it did not compile on Linux. It defines `USING_SSE3_INSTRUCTIONS` only
-  with `enable-simd`, which installs the header `gaol/gaol` then includes.
+  with `enable-simd`, which installs the header `gaol/gaol` then includes. It
+  builds GAOL in release by default, where meson's own default, debug, compiled
+  it without optimization, and `enable-optimize`, which did nothing, adds the
+  optimization flags of configure where the compiler takes them.
 - **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.
