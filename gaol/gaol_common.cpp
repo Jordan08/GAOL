@@ -22,7 +22,7 @@
   \file   gaol_common.cpp
   \brief  Implementation for functions of common use
 
-  \author Frédéric Goualard
+  \author Frï¿½dï¿½ric Goualard
   \date   2001-10-03
 */
 
@@ -50,8 +50,11 @@ namespace gaol {
   extern void gaol_init_lib(void);
 
   // Saves the state of the FPU at init time to be restored at the end.
+#if GAOL_USING_APMATHLIB
   static short save_fpu_state;
+#elif GAOL_USING_CRLIBM
   static unsigned long long save_fpu_state_crlibm;
+#endif
 
   static bool _already_cleaned = false;
   static bool _already_initialized = false;
@@ -189,7 +192,7 @@ namespace gaol {
 /**
  * \mainpage gaol (Just Another Interval Library)
  * \section authors Authors
- * Frédéric Goualard    \<Frederic.Goualard@irin.univ-nantes.fr\> <P>
+ * Frï¿½dï¿½ric Goualard    \<Frederic.Goualard@irin.univ-nantes.fr\> <P>
  * \section copyright Copyright Notice
  * <tt>
  <hr>

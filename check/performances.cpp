@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 
 	string fun(argv[1]);
 
-	srand(seed);
+	srand(static_cast<unsigned int>(seed));
 	srand48(seed);
 
 	double prob[4] = { pdenorm, // denormal

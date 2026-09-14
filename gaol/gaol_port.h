@@ -24,7 +24,7 @@
 
   <long description>
 
-  \author Frédéric Goualard
+  \author Frï¿½dï¿½ric Goualard
   \date   2001-10-03
 */
 
@@ -151,7 +151,7 @@ namespace gaol {
 #endif
 
 #ifndef GAOL_NAN
-  static uintdouble NaN_val = {{IFBIGENDIAN(0x7ff80000, 0x0)}};
+  static const uintdouble NaN_val = {{IFBIGENDIAN(0x7ff80000, 0x0)}};
 #define GAOL_NAN (gaol::NaN_val.d)
 #endif
 
