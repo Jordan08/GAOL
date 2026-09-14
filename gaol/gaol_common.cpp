@@ -93,6 +93,12 @@ namespace gaol {
 	  		return true;
       	} else {
 	  		debug_level = dbg_lvl;
+#if !GAOL_PRESERVE_ROUNDING
+			// The rounding direction may have changed since the automatic
+			// initialization: the C runtime of Windows resets it when the
+			// program starts, after the constructor of GAOL's DLL ran
+			round_upward();
+#endif
 	  		return false;
       	}
 	}
