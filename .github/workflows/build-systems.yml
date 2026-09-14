@@ -127,7 +127,7 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build ca-certificates > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build curl ca-certificates > /dev/null
             uname -m && c++ --version | head -1
             sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
             if [ ${{ matrix.cfg.build }} = autotools ]; then
@@ -237,7 +237,7 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 ca-certificates > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 curl ca-certificates > /dev/null
             sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
             sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/mathlib /tmp/audit meson
             python3 .github/audit/compare.py --check /tmp/audit/audit.json | tee /gaol/agree.md"
