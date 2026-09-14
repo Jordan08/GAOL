@@ -40,14 +40,20 @@ ${CXX:-c++} $flags -I"$prefix/include" tests/performance.cpp $libs -o performanc
 if command -v pkg-config > /dev/null; then
   export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
   # -lgaol takes the shared library where there is one: on Windows, its DLL
-  # has to be on the PATH (meson installs it in bin)
-  export PATH="$prefix/bin:$prefix/lib:$PATH"
+  # has to be on the PATH (meson installs it in bin), as a Unix path under
+  # MSYS2, where the colon of a Windows path breaks the PATH
+  if command -v cygpath > /dev/null; then
+    export PATH="$(cygpath -u "$prefix")/bin:$(cygpath -u "$prefix")/lib:$PATH"
+  else
+    export PATH="$prefix/bin:$prefix/lib:$PATH"
+  fi
   echo "pkg-config --cflags --libs gaol: $(pkg-config --cflags --libs gaol)"
   ${CXX:-c++} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
     -Wl,-rpath,"$prefix/lib" -o rounding_direction_pc
   if ./rounding_direction_pc > rounding_direction_pc.log 2>&1; then
     echo "with pkg-config: $(tail -1 rounding_direction_pc.log)"
   else
+    echo "with pkg-config: rounding_direction failed (exit code $?)"
     grep -E "checks, [1-9][0-9]* failed|^FAILED" rounding_direction_pc.log | head -20
     status=1
   fi
