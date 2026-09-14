@@ -92,13 +92,17 @@ INLINE double next_float(double d)
   fesetround() does after checking its argument, through a call. GAOL changes
   the direction four times for each exp(), log(), sin() or cos() of an
   interval (to nearest before mathlib, upward after, for each bound), and
-  fesetround() cost 130 ns per call with mingw-w64 13, 8.5 ns with glibc.
+  fesetround() cost 130 ns per call with mingw-w64 13, 50 ns with the C
+  runtime of Visual C++ for x64 and 250 ns for x86, 8.5 ns with glibc.
   The doubles of GAOL and of mathlib are computed with SSE2 instructions
   (MXCSR); the x87 unit serves the C library's long doubles and, with
   MinGW-w64, some of its functions, whose results GAOL widens (the hyperbolic
   functions) or bounds whatever their rounding (sqrt). Both are set, as
-  fesetround() sets them, so that fegetround() reads the direction set.
-  Elsewhere, fesetround(), which the C library implements for the processor.
+  fesetround() sets them, so that fegetround() reads the direction set (with
+  Visual C++ for x86, fegetround() returns -1 when the two differ). With
+  Visual C++ for x64, MXCSR only: the x87 unit is not used there, and Visual
+  C++ has no inline assembly for x64. Elsewhere, fesetround(), which the C
+  library implements for the processor.
 
   The asm statements are volatile, with memory clobbered: the compiler keeps
   them where they are written and does not move loads and stores across them.
@@ -116,7 +120,24 @@ INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
   __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
   _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
 }
+#elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+#  define GAOL_RND_X86_REGISTERS 1
+#  include <xmmintrin.h>
+INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+{
+#  if defined(_M_IX86)
+  unsigned short cw;
+  __asm fnstcw cw
+  cw = (unsigned short)((cw & (unsigned short)~0x0C00u) | x87_rc);
+  __asm fldcw cw
+#  else
+  (void)x87_rc;
+#  endif
+  _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
+}
+#endif
 
+#if GAOL_RND_X86_REGISTERS
 INLINE  void
 round_downward(void)
 {

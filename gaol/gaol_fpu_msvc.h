@@ -85,11 +85,9 @@ INLINE double next_float(double d)
 
 /*
   The rounding direction of the doubles computed from here on, with
-  _control87() of the C runtime, which writes the rounding bits of the x87
-  control word and of MXCSR. Writing MXCSR directly with _mm_setcsr(), as
-  gaol_fpu_fenv.h does with GCC and Clang, made the elementary functions of an
-  interval three times slower with Visual C++ 2022 and 2026 for x64 (exp()
-  76 -> 252 ns) and x86, in the continuous integration: kept as it was.
+  _control87() of the C runtime. This header serves a Visual C++ without
+  <fenv.h> only (gaol_fpu.h): with <fenv.h>, which Visual C++ has had since
+  2013, gaol_fpu_fenv.h is used, and writes the control registers itself.
 */
 INLINE  void
 round_downward(void)

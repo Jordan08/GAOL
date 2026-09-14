@@ -365,18 +365,18 @@ Each change is a commit of its own, and says where it comes from.
   to 4 ns with 32-bit Visual C++, and 48 ns rather than 6.4 ns with 32-bit
   MinGW-w64 15.2; and Clang 18 read MXCSR once for a whole loop that changed
   the rounding direction.
-- **The rounding direction is set on x86 processors, with GCC and Clang, by
-  writing the control registers** of the x87 and SSE units (`fnstcw`/`fldcw`,
-  `stmxcsr`/`ldmxcsr`) rather than through `fesetround()`, which cost 130 ns
-  per call with mingw-w64 13 and 8.5 ns with glibc. GAOL changes the direction
-  four times for each elementary function of an interval (to nearest before
-  mathlib and upward after, for each bound): `exp()`, `log()`, `sin()` and
-  `cos()` took 540 to 630 ns with MinGW-w64 and MSYS2, where mathlib itself
-  takes about 10 ns, and take 76 to 206 ns. Both registers are set, as
-  `fesetround()` sets them, and `fegetround()` reads the direction set.
-  Elsewhere (ARM, POWER, s390x, RISC-V), `fesetround()` still; with Visual
-  C++, `_control87()` still, writing MXCSR directly having made the same
-  functions three times slower there.
+- **The rounding direction is set on x86 processors by writing the control
+  registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
+  rather than through `fesetround()`, which cost 130 ns per call with
+  mingw-w64 13, 50 ns with the C runtime of Visual C++ for x64 and 250 ns for
+  x86, 8.5 ns with glibc. GAOL changes the direction four times for each
+  elementary function of an interval (to nearest before mathlib and upward
+  after, for each bound): `exp()`, `log()`, `sin()` and `cos()` took 540 to
+  630 ns with MinGW-w64 and MSYS2, where mathlib itself takes about 10 ns,
+  and take 76 to 206 ns. Both registers are set, as `fesetround()` sets them,
+  and `fegetround()` reads the direction set; with Visual C++ for x64, MXCSR
+  only, the x87 unit being unused there. Elsewhere (ARM, POWER, s390x,
+  RISC-V), `fesetround()` still.
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.
