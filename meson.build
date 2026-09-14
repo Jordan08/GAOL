@@ -238,6 +238,20 @@ if cpp_comp.has_argument('-ffp-contract=off')
   add_global_arguments(['-ffp-contract=off'], language: 'c')
   add_global_arguments(['-ffp-contract=off'], language: 'cpp')
 endif
+# -ffloat-store only where doubles are still computed on the x87 unit
+# (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
+# double (as CMakeLists.txt)
+float_store_needed = cpp_comp.compiles('''
+  #include <cfloat>
+  #if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
+  #error doubles are computed in double precision
+  #endif
+  int main() { return 0; }
+''', name: 'doubles computed in extended precision')
+if float_store_needed and cpp_comp.has_argument('-ffloat-store')
+  add_global_arguments(['-ffloat-store'], language: 'c')
+  add_global_arguments(['-ffloat-store'], language: 'cpp')
+endif
 # enable-optimize: the optimizations configure adds for g++, where the compiler
 # takes them, on top of the build type
 if get_option('enable-optimize')

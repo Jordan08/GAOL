@@ -146,7 +146,7 @@ if(MSVC)
   list(APPEND GAOL_INTERVAL_FLAGS /fp:strict)
 else()
   # From ibex_init_common(): each flag is kept where the compiler takes it
-  foreach(flag -frounding-math -ffloat-store -fno-fast-math -ffp-contract=off)
+  foreach(flag -frounding-math -fno-fast-math -ffp-contract=off)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
     string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
     check_cxx_compiler_flag("${flag}" ${_flag_var})
@@ -172,6 +172,27 @@ else()
     check_cxx_compiler_flag("-msse2 -mfpmath=sse" GAOL_COMPILER_SUPPORTS_MSSE2_MFPMATH_SSE)
     if(GAOL_COMPILER_SUPPORTS_MSSE2_MFPMATH_SSE)
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
+    endif()
+  endif()
+
+  # -ffloat-store only where doubles are still computed on the x87 unit
+  # (FLT_EVAL_METHOD not 0: a 32-bit x86 target without SSE2), whose 80-bit
+  # registers keep more digits than a double. Computed in double precision
+  # (SSE2, ARM, and the other processors), doubles gain nothing from it, and
+  # GCC stored every double variable in memory rather than in a register.
+  string(REPLACE ";" " " CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS}")
+  check_cxx_source_compiles("
+    #include <cfloat>
+    #if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
+    #error doubles are computed in double precision
+    #endif
+    int main() { return 0; }"
+    GAOL_DOUBLES_IN_EXTENDED_PRECISION)
+  unset(CMAKE_REQUIRED_FLAGS)
+  if(GAOL_DOUBLES_IN_EXTENDED_PRECISION)
+    check_cxx_compiler_flag(-ffloat-store GAOL_COMPILER_SUPPORTS_FFLOAT_STORE)
+    if(GAOL_COMPILER_SUPPORTS_FFLOAT_STORE)
+      list(APPEND GAOL_INTERVAL_FLAGS -ffloat-store)
     endif()
   endif()
 

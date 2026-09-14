@@ -118,8 +118,9 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 `gaol::gaol` carries the include directory, mathlib, and the compilation flags
 interval arithmetic needs:
 
-- `-frounding-math -ffloat-store -fno-fast-math -ffp-contract=off` with GCC and
-  Clang (the ones each compiler takes);
+- `-frounding-math -fno-fast-math -ffp-contract=off` with GCC and Clang (the
+  ones each compiler takes), and `-ffloat-store` where doubles are still
+  computed on the x87 unit (32-bit x86 without SSE2);
 - `-msse2 -mfpmath=sse` on 32-bit x86;
 - `/fp:strict` with Visual C++.
 
@@ -309,6 +310,14 @@ Each change is a commit of its own, and says where it comes from.
   builds GAOL in release by default, where meson's own default, debug, compiled
   it without optimization, and `enable-optimize`, which did nothing, adds the
   optimization flags of configure where the compiler takes them.
+- **`-ffloat-store`** is added only where doubles are still computed on the x87
+  unit (`FLT_EVAL_METHOD` not 0), whose 80-bit registers keep more digits than
+  a double. CMake gave it to GCC on every target, and configure wherever SSE2
+  was not used, 64-bit ARM included: GCC then stored every double variable in
+  memory rather than in a register. On an Intel i7-1185G7 (GCC 9.4, CMake
+  Release), `x + y` takes 3.2 ns rather than 8.9 ns, `x * y` 4.6 ns rather than
+  17.9 ns, `sqrt(x)` 8.5 ns rather than 40.6 ns, and `exp(x)` 58 ns rather than
+  107 ns.
 - **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.

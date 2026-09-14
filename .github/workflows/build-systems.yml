@@ -56,7 +56,7 @@ jobs:
           set -o pipefail
           grep -H GAOL_PRESERVE_ROUNDING "$RUNNER_TEMP/gaol/include/gaol/gaol_configuration.h"
           for test in arithmetic elementary numbers other_functions rounding_direction; do
-            g++ $TEST_FLAGS -ffloat-store -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
+            g++ $TEST_FLAGS -I"$RUNNER_TEMP/gaol/include" -Itests tests/$test.cpp \
               "$RUNNER_TEMP/gaol/lib/libgaol.a" "$RUNNER_TEMP/mathlib/lib/libultim.a" -o $test
             # The checks that failed, which the last lines do not show
             ./$test > $test.log || { grep -E "checks, [1-9][0-9]* failed|^FAILED" $test.log | head -60; exit 1; }

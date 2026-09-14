@@ -247,15 +247,23 @@ CFLAGS="${CFLAGS} -O2 -Wall -Wconversion"
 CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
 
 
-if test ${using_sse2} = no; then
-    case $CXX in
-    icpc)
-        ;;
-    g++)
-        CXXFLAGS="${CXXFLAGS} -ffloat-store"
-    ;;
-    esac
+# -ffloat-store only where doubles are still computed on the x87 unit
+# (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
+# double. It was added wherever SSE2 was not used, 64-bit ARM included, where
+# doubles gain nothing from it (as CMakeLists.txt)
+AC_LANG_PUSH([C++])
+OLD_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="${CXXFLAGS} -ffloat-store"
+AC_MSG_CHECKING(whether doubles are computed in extended precision, with -ffloat-store accepted)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <cfloat>
+#if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
+#error doubles are computed in double precision
+#endif]], [[]])],[float_store_needed=yes],[float_store_needed=no])
+AC_MSG_RESULT(${float_store_needed})
+if test "${float_store_needed}" = no; then
+    CXXFLAGS=${OLD_CXXFLAGS}
 fi
+AC_LANG_POP([C++])
 
 # --enable-debug
 AC_ARG_ENABLE(debug,

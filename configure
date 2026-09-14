@@ -16704,15 +16704,51 @@ CFLAGS="${CFLAGS} -O2 -Wall -Wconversion"
 CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
 
 
-if test ${using_sse2} = no; then
-    case $CXX in
-    icpc)
-        ;;
-    g++)
-        CXXFLAGS="${CXXFLAGS} -ffloat-store"
-    ;;
-    esac
+# -ffloat-store only where doubles are still computed on the x87 unit
+# (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
+# double. It was added wherever SSE2 was not used, 64-bit ARM included, where
+# doubles gain nothing from it (as CMakeLists.txt)
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+OLD_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="${CXXFLAGS} -ffloat-store"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether doubles are computed in extended precision, with -ffloat-store accepted" >&5
+$as_echo_n "checking whether doubles are computed in extended precision, with -ffloat-store accepted... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <cfloat>
+#if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
+#error doubles are computed in double precision
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  float_store_needed=yes
+else
+  float_store_needed=no
 fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${float_store_needed}" >&5
+$as_echo "${float_store_needed}" >&6; }
+if test "${float_store_needed}" = no; then
+    CXXFLAGS=${OLD_CXXFLAGS}
+fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
 # --enable-debug
 # Check whether --enable-debug was given.
