@@ -4,6 +4,25 @@
 
 GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic) library that strives to offer fast and reliable operators for constraint solvers. 
 
+## Author
+
+GAOL is written by [Frédéric Goualard](https://frederic.goualard.net/), Associate
+Professor in Computing Science at Nantes Université (LS2N, UMR CNRS 6004), who
+has been its main developer since 2001. Its page is the
+[GAOL section](https://frederic.goualard.net/#research-software-gaol) of
+Frédéric Goualard's site, and its original repository is
+[goualard-f/GAOL](https://github.com/goualard-f/GAOL).
+
+Publications of Frédéric Goualard related to GAOL (see the
+[full list](https://frederic.goualard.net/#Publications)):
+
+- [Fast and Correct SIMD Algorithms for Interval Arithmetic](https://frederic.goualard.net/publications/interval-sse2_goualard_para08.pdf).
+  PARA '08, Lecture Notes in Computer Science 6126–6127, Springer, 2012.
+- [Interval Extensions of Multivalued Inverse Functions](https://hal.archives-ouvertes.fr/hal-00288457v1).
+  Research report hal-00288457, 2008.
+- [How do you compute the midpoint of an interval?](https://hal.archives-ouvertes.fr/hal-00576641v2).
+  ACM Transactions on Mathematical Software 40(2), 2014.
+
 ## Building GAOL
 
 ### Pre-requisites
@@ -39,7 +58,7 @@ meson setup build --prefix=/opt/homebrew/Cellar/gaol/4.2.2 -Dwith-mathlib=apmath
 ## This fork: CMake build, tests and fixes
 
 This fork of [GAOL](https://github.com/goualard-f/GAOL), the interval arithmetic
-library written by [Frédéric Goualard](https://frederic.goualard.net), adds a
+library written by [Frédéric Goualard](https://frederic.goualard.net/), adds a
 CMake build, tests of the bounds GAOL computes, and the changes GAOL needs to
 compile and compute right with Visual C++, MinGW, 32-bit ARM and other systems.
 It was written for [Codac](https://github.com/codac-team/codac), whose intervals
@@ -58,7 +77,8 @@ cmake --install build --config Release
 GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
 Mathematical Library (libultim). The build looks for an installed mathlib
 (`MathLib.h` and the `ultim` library, under `MATHLIB_DIR` or the usual paths).
-When there is none, it downloads mathlib 2.1.1 from Frédéric Goualard's site
+When there is none, it downloads mathlib 2.1.1 from
+[Frédéric Goualard's site](https://frederic.goualard.net/)
 (`mathlib-2.1.1.tar.gz`, checked against its SHA256), builds it with the CMake
 build of `cmake/mathlib/`, and installs it along with GAOL.
 
@@ -202,7 +222,9 @@ Each change is a commit of its own, and says where it comes from.
 
 The autotools build (`./configure && make`, see `INSTALL`) and the meson build
 described above are kept. They are built by the continuous integration against
-a mathlib installed from Frédéric Goualard's archive, and the tests are built
+a mathlib installed from
+[Frédéric Goualard's archive](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz),
+and the tests are built
 with the GAOL they install. Unlike the CMake build, both preserve the rounding
 direction after each operation by default (`--enable-preserve-rounding`,
 `enable-preserve-rounding`).
@@ -232,5 +254,6 @@ MinGW-w64 11 to 13, and builds GAOL with autotools and meson.
 
 ### Licences
 
-GAOL is distributed under the GNU LGPL v2 (`COPYING.LIB`). mathlib, which the
+GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
+under the GNU LGPL v2 (`COPYING.LIB`). mathlib, which the
 build downloads, is distributed under the GNU GPL v2 or later.
