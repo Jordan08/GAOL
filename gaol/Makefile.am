@@ -56,6 +56,10 @@ libgaol_la_SOURCES = \
 YFLAGS = -d -p gaol_
 LFLAGS = -Pgaol_
 libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
+# The shared library links the mathematical library: without it, libtool
+# linked libgaol.dylib on macOS with -undefined suppress, and a program linking
+# libgaol.dylib without mathlib crashed at the first elementary function
+libgaol_la_LIBADD = @MATHLIB@ -lm
 
 library_includedir=$(includedir)/gaol
 

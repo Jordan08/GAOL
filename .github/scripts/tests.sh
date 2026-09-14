@@ -39,6 +39,9 @@ ${CXX:-c++} $flags -I"$prefix/include" tests/performance.cpp $libs -o performanc
 # pkg-config exists (its Cflags carry the flags of interval arithmetic)
 if command -v pkg-config > /dev/null; then
   export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
+  # -lgaol takes the shared library where there is one: on Windows, its DLL
+  # has to be on the PATH (meson installs it in bin)
+  export PATH="$prefix/bin:$prefix/lib:$PATH"
   echo "pkg-config --cflags --libs gaol: $(pkg-config --cflags --libs gaol)"
   ${CXX:-c++} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
     -Wl,-rpath,"$prefix/lib" -o rounding_direction_pc

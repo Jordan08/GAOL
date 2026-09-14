@@ -157,7 +157,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)" \
 	"$(DESTDIR)$(library_includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libgaol_la_LIBADD =
+libgaol_la_LIBADD = @MATHLIB@ -lm
 am__libgaol_la_SOURCES_DIST = gaol_interval.cpp gaol_profile.cpp \
 	gaol_common.cpp gaol_parser.cpp gaol_expression.cpp \
 	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
@@ -431,6 +431,9 @@ libgaol_la_SOURCES = \
 
 LFLAGS = -Pgaol_
 libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
+# The shared library links the mathematical library: without it, libtool
+# linked libgaol.dylib on macOS with -undefined suppress, and a program linking
+# libgaol.dylib without mathlib crashed at the first elementary function
 library_includedir = $(includedir)/gaol
 library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_interval.h gaol_common.h gaol_exceptions.h \
 	gaol_interval_parser.h gaol_config.h gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h \
