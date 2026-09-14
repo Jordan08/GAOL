@@ -65,7 +65,7 @@ elif host_machine.system() == 'cygwin'
 elif host_machine.system() == 'sunos'
   os_sun = true
 else
-  warning('Unkown host system!')
+  warning('Unknown host system!')
 endif
 os_unix = not os_win
 
@@ -80,8 +80,8 @@ elif host_machine.cpu() == 'x86_64'
   x86_64 = true
 endif
 
-warning('CPU: ' + host_machine.cpu())
-warning('OS: ' + host_machine.system())
+message('CPU: ' + host_machine.cpu())
+message('OS: ' + host_machine.system())
 
 if not (arm64 or x86 or x86_64)
   error('Unsupported cpu arch: ' + host_machine.cpu())
