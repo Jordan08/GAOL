@@ -330,7 +330,8 @@ namespace gaol {
 	{
 		xmm4 tmp;
 		_mm_store_ps(tmp,xmmbounds);
-		return ((((-tmp[0])<=v) && tmp[1]>=v)) << 1 || (((-tmp[2])<=v) && tmp[3]>=v);
+		// Bit 1 for the first interval, bit 0 for the second
+		return ((((-tmp[0])<=v) && tmp[1]>=v)) << 1 | (((-tmp[2])<=v) && tmp[3]>=v);
 	}
 
 
