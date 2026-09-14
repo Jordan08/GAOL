@@ -384,7 +384,9 @@ above. In every build, by default:
   doubles are computed on the x87 unit, and `-msse2 -mfpmath=sse` on 32-bit x86;
 - on x86 processors, the intervals are computed with SSE2 instructions and
   `gaol::interval2f` with SSE3 (`-msse2 -msse3`), except with Visual C++ and on
-  32-bit Windows, where the tests crashed;
+  32-bit Windows, where a `std::vector` of SSE2 intervals crashes: GCC takes
+  the memory of `new` to be aligned on 16 bytes there, while the C runtime
+  aligns it on 8;
 - with mathlib (apmathlib), exceptions, the "certainly" relations, GAOL's
   assembly (`GAOL_USING_ASM`) and its verbose mode (`GAOL_VERBOSE_MODE`), and
   the rounding direction left upward (`GAOL_PRESERVE_ROUNDING` off:

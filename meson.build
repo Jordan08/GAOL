@@ -314,7 +314,7 @@ endif
 # (gaol_interval2f.cpp), and on 32-bit x86 the doubles are computed with SSE2
 # (-mfpmath=sse) rather than on the x87 unit, where GAOL's bounds and mathlib's
 # results are wrong (see gaol/gaol_config.h). Not the SSE2 intervals on 32-bit
-# Windows, where they crashed (see CMakeLists.txt).
+# Windows, where a std::vector of them crashes (see CMakeLists.txt).
 use_sse2 = false
 use_sse3 = false
 target_x86 = cpp_comp.compiles('''

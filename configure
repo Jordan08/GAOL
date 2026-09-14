@@ -16524,7 +16524,9 @@ fi
 # SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
 # gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
 # computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where GAOL's
-# bounds and mathlib's results are wrong (see gaol/gaol_config.h).
+# bounds and mathlib's results are wrong (see gaol/gaol_config.h). Not the SSE2
+# intervals on 32-bit Windows, where a std::vector of them crashes (see
+# CMakeLists.txt).
 using_sse2=no
 has_sse3=no
 ac_ext=cpp
@@ -16579,6 +16581,29 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${target_x86_32}" >&5
 $as_echo "${target_x86_32}" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the target is 32-bit Windows" >&5
+$as_echo_n "checking whether the target is 32-bit Windows... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !(defined(_WIN32) && !defined(_WIN64))
+#error not 32-bit Windows
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  target_win32=yes
+else
+  target_win32=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${target_win32}" >&5
+$as_echo "${target_win32}" >&6; }
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -16666,7 +16691,7 @@ if test "${gaol_c_takes}" = yes; then
     CFLAGS="${CFLAGS} -msse2 -mfpmath=sse"
 fi
     fi
-    if test "$simd" = yes; then
+    if test "$simd" = yes && test "${target_win32}" = no; then
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'

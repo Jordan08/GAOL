@@ -61,11 +61,11 @@ option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" ON)
 
-# As configure.ac and meson.build ask: -std=c++11 and -std=c99
+# As configure.ac and meson.build ask: -std=c++11; C99 with the GNU extensions,
+# which mathlib's DPChange.c needs on 32-bit x86 (asm)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_EXTENSIONS OFF)
 
 
 ################################################################################
@@ -348,9 +348,12 @@ set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
 # SSE3 instructions serve gaol::interval2f (gaol/gaol_interval2f.h), as the
 # autotools build on a processor with SSE3. Not with Visual C++, which IBEX and
-# the fork of Fabrice Le Bars build GAOL without them, nor on 32-bit Windows,
-# where the tests crashed (MinGW-w64 15.2 for x86: rounding_direction); on
-# 64-bit Windows (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
+# the fork of Fabrice Le Bars build GAOL without them, nor on 32-bit Windows:
+# there, GCC takes the memory of new to be aligned on 16 bytes
+# (__STDCPP_DEFAULT_NEW_ALIGNMENT__), while the C runtime aligns it on 8, so
+# that a std::vector of SSE2 intervals, aligned on 16 bytes, crashes on its
+# first movaps (MinGW-w64 15.2 for x86, rounding_direction). On 64-bit Windows
+# (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
 set(USING_SSE2_INSTRUCTIONS OFF)
 set(USING_SSE3_INSTRUCTIONS OFF)
 if(GAOL_SIMD AND NOT MSVC)

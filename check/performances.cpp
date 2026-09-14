@@ -30,6 +30,12 @@ using std::string;
 #include "../gaol/gaol_allocator.h"
 #include "performance_test_set.h"
 
+// drand48() and srand48() are not in the C runtime of Windows
+#if defined(__MINGW32__) || defined(_MSC_VER)
+inline double drand48() { return std::rand() / (RAND_MAX + 1.0); }
+inline void srand48(long seed) { std::srand(static_cast<unsigned>(seed)); }
+#endif
+
 
 using namespace std;
 using namespace gaol;

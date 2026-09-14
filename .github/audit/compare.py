@@ -29,8 +29,7 @@ FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-stor
 
 
 def truth(entry, name):
-    if entry['macros'].get(name) is None:
-        return 'undefined'
+    # As GAOL reads them, with #if: undefined and 0 are both false
     return 'true' if entry['ifs'].get(name) else 'false'
 
 

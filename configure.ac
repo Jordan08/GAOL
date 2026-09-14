@@ -207,7 +207,9 @@ AM_CONDITIONAL([SIMD_COND],[test "$simd" == "yes"])
 # SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
 # gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
 # computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where GAOL's
-# bounds and mathlib's results are wrong (see gaol/gaol_config.h).
+# bounds and mathlib's results are wrong (see gaol/gaol_config.h). Not the SSE2
+# intervals on 32-bit Windows, where a std::vector of them crashes (see
+# CMakeLists.txt).
 using_sse2=no
 has_sse3=no
 AC_LANG_PUSH([C++])
@@ -221,12 +223,17 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !defined(__i386__)
 #error not a 32-bit x86 processor
 #endif]], [[]])],[target_x86_32=yes],[target_x86_32=no])
 AC_MSG_RESULT(${target_x86_32})
+AC_MSG_CHECKING([whether the target is 32-bit Windows])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !(defined(_WIN32) && !defined(_WIN64))
+#error not 32-bit Windows
+#endif]], [[]])],[target_win32=yes],[target_win32=no])
+AC_MSG_RESULT(${target_win32})
 AC_LANG_POP([C++])
 if test "${target_x86}" = yes; then
     if test "${target_x86_32}" = yes; then
         GAOL_ADD_FLAG([-msse2 -mfpmath=sse])
     fi
-    if test "$simd" = yes; then
+    if test "$simd" = yes && test "${target_win32}" = no; then
         GAOL_CHECK_CXX_FLAG([-msse2], [has_sse2])
         if test "${has_sse2}" = yes; then
             using_sse2=yes
