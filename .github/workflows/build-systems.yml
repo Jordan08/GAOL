@@ -51,7 +51,7 @@ jobs:
             sudo apt-get install -y -q g++ cmake make
           fi
       - name: mathlib
-        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure, build and install
         run: |
           # The same date on every file, as in a release archive: make then
@@ -96,7 +96,7 @@ jobs:
           pipx install ninja
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: mathlib
-        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure, build and install
         run: |
           meson --version
@@ -129,7 +129,7 @@ jobs:
             set -e
             apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build curl ca-certificates > /dev/null
             uname -m && c++ --version | head -1
-            sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
+            sh scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
             if [ ${{ matrix.cfg.build }} = autotools ]; then
               find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
               ./configure --prefix=/tmp/gaol --with-mathlib-include=/tmp/mathlib/include --with-mathlib-lib=/tmp/mathlib/lib
@@ -164,7 +164,7 @@ jobs:
           msystem: UCRT64
           install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson flex bison make libtool
       - name: mathlib
-        run: CMAKE_GENERATOR=Ninja sh .github/scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
+        run: CMAKE_GENERATOR=Ninja sh scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
       - name: Configure, build and install
         run: |
           prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"; mathlib="$(cygpath -m "$RUNNER_TEMP")/mathlib"
@@ -213,7 +213,7 @@ jobs:
           pipx install ninja
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: mathlib
-        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure with the three builds and compare
         run: |
           sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$RUNNER_TEMP/mathlib" "$RUNNER_TEMP/audit" meson
@@ -238,7 +238,7 @@ jobs:
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
             set -e
             apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 curl ca-certificates > /dev/null
-            sh .github/scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
+            sh scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
             sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/mathlib /tmp/audit meson
             status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
             cat /gaol/agree.md
@@ -259,7 +259,7 @@ jobs:
           msystem: UCRT64
           install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python flex bison make libtool
       - name: mathlib
-        run: CMAKE_GENERATOR=Ninja sh .github/scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
+        run: CMAKE_GENERATOR=Ninja sh scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
       - name: Configure with the three builds and compare
         run: |
           export CMAKE_GENERATOR=Ninja
@@ -317,7 +317,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: mathlib
-        run: sh .github/scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
+        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DGAOL_BUILD_MATHLIB=OFF -DMATHLIB_DIR="$RUNNER_TEMP/mathlib" | tee configure.log

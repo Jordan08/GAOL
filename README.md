@@ -50,9 +50,10 @@ and `libultim.a`), and to be told where it is (`--with-mathlib-include`,
 `--with-mathlib-lib`; `-Dwith-mathlib-include`, `-Dwith-mathlib-lib`):
 
 ```bash
-sh .github/scripts/install-mathlib.sh <mathlib>
+sh scripts/install-mathlib.sh <mathlib>
 ```
 
+(`scripts/install-mathlib.sh`, which needs cmake, a C compiler, curl and tar)
 downloads mathlib 2.1.1 (checked against its SHA256), applies the fixes of
 `cmake/mathlib/prepare.cmake` (see [What differs from GAOL](#what-differs-from-gaol):
 without them, `cos()`, `atan()` and `log()` of mathlib are wrong at some
@@ -95,6 +96,7 @@ The build type is Release unless another is given.
 ### With autotools
 
 ```bash
+sh scripts/install-mathlib.sh <mathlib>   # unless mathlib is installed already
 ./configure --prefix=<prefix> --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib
 make
 make install
@@ -121,6 +123,7 @@ dates of the checkout. The options, with their defaults:
 ### With meson
 
 ```bash
+sh scripts/install-mathlib.sh <mathlib>   # unless mathlib is installed already
 meson setup build --prefix=<prefix> -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib
 meson compile -C build
 meson install -C build
@@ -493,7 +496,7 @@ on:
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
 They also build GAOL with autotools and meson, against a mathlib installed by
-`.github/scripts/install-mathlib.sh`, on Ubuntu (x86_64, arm64), Debian (i386,
+`scripts/install-mathlib.sh`, on Ubuntu (x86_64, arm64), Debian (i386,
 armhf), macOS (arm64, x86_64) and MSYS2, and the tests with the GAOL they
 install; check that the three builds agree on each of these machines; check
 that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and MinGW-w64 11

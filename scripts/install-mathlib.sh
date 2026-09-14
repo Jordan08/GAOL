@@ -1,9 +1,16 @@
 #!/bin/sh
 # Downloads mathlib 2.1.1 from Frederic Goualard's site, checks its checksum,
-# and installs it in the directory given, with the CMake build of cmake/mathlib
-# (the one CMakeLists.txt uses when it builds mathlib itself). For the builds
-# of GAOL that do not build mathlib: autotools, meson, and CMake with
-# MATHLIB_DIR. To be run from the root of GAOL's sources.
+# applies the fixes of cmake/mathlib/prepare.cmake, builds it with the flags of
+# interval arithmetic (the CMake build of cmake/mathlib, the one CMakeLists.txt
+# uses when it builds mathlib itself) and installs it under the prefix given:
+#
+#   sh scripts/install-mathlib.sh <prefix>
+#
+# For the builds of GAOL that do not build mathlib themselves: configure
+# (--with-mathlib-include=<prefix>/include --with-mathlib-lib=<prefix>/lib),
+# meson (-Dwith-mathlib-include, -Dwith-mathlib-lib) and CMake with
+# MATHLIB_DIR=<prefix>. Needs cmake, a C compiler, curl and tar. To be run
+# from the root of GAOL's sources.
 set -e
 
 prefix=$1
