@@ -105,7 +105,7 @@
 #undef yyerror
 #define yyerror gaol_error_bison
 
-int gaol_error_bison(char *s ...);
+int gaol_error_bison(const char *s ...);
 int gaol_lex(void);
 
 using namespace gaol;
@@ -2279,7 +2279,7 @@ yyreturn:
 #line 298 "gaol_interval_parser.ypp" /* yacc.c:1906  */
 
 
-int gaol_error_bison(char *s ...)
+int gaol_error_bison(const char *s ...)
 {
   gaol_global_parsing_flag = false;
   return 0; // An error occurred
