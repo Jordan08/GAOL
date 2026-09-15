@@ -426,12 +426,25 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (I.is_empty() || J.is_empty()) {
       return interval::emptyset();
     }
-    if (J.is_an_int()) { // Degenerate case
-      return pow(I,int(J.left()));
+    // [+oo] and [-oo] contain no real number: numsToInterval(l,u) of IEEE 1788
+    // has no value for l = +oo or u = -oo (10.5.8)
+    if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {
+      return interval::emptyset();
     }
 
-    if (I.certainly_positive()) {
-      return exp(J*log(I));
+    /*
+      Hybrid semantics (fork of GAOL): a degenerate integer exponent always
+      takes the integer power, pown of IEEE 1788, which is defined for a
+      negative base too, is 1 at p = 0 for any x, 0 included, and has no value
+      at x = 0 for p < 0 (Table 9.1, footnote b), and any other exponent the
+      pow of IEEE 1788, defined for x > 0, and for x = 0 when y > 0.
+    */
+    if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
+      if (J.is_an_int()) {
+        return pow(I,int(J.left()));
+      }
+      // An integer beyond the ints, for which pow(I,int) cannot be called
+      return interval::universe();
     }
 
     /*
@@ -440,17 +453,14 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       computed the powers of the negative part of I on its magnitude, and
       pow([-4,-1],[0.5,0.5]) returned [-1,2] where sqrt([-4,-1]) is empty.
     */
-    if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
-      // An integer beyond the ints, for which pow(I,int) cannot be called: the
-      // powers of the negative part of I have the magnitude of those of |I|,
-      // whatever their sign
-      const double m = exp(J*log(abs(I))).right();
-      return interval(-m,m);
-    }
-    // For any other exponent, the negative part of I is out of the domain
     const interval base = I & interval::positive();
     if (base.is_empty()) {
       return interval::emptyset();
+    }
+    // pow(0,y) is 0 for y > 0, and has no value for y <= 0 (Table 9.1, footnote
+    // c), which exp(J*log([0])) does not give, log([0]) being [-oo,-MAX]
+    if (base.right() == 0.0) {
+      return J.right() > 0.0 ? interval::zero() : interval::emptyset();
     }
     return exp(J*log(base));
   }

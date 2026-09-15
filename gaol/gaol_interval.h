@@ -630,7 +630,21 @@ namespace gaol {
   //! I^e for an integer e.
   extern __GAOL_PUBLIC__   interval pow(const interval& I, int e);
 
-  /// I^J
+  /*!
+    \brief I^J (fork of GAOL)
+
+    A degenerate integer exponent J = [n] always takes the integer power
+    pow(const interval&, int), the pown of IEEE 1788, which is defined for a
+    negative base too, gives x^0 = 1 for any x, 0 included, and has no value
+    at 0 for n < 0; for an n beyond the ints, the result is [-oo,+oo]. Any
+    other exponent takes the pow of IEEE 1788, exp(J log(I)) on the part of I
+    in [0,+oo], where 0^y is 0 for y > 0 and has no value for y <= 0:
+    pow([-4,9],[0.5]) is [0,3], pow([0],[0,1]) is [0], and
+    pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5]) are empty. An exponent [+oo] or
+    [-oo] contains no real number, and gives the empty set. The result is thus
+    not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
+    pow([0],[0]) is [1].
+  */
   extern __GAOL_PUBLIC__   interval pow(const interval &I, const interval &J);
 
   /*!

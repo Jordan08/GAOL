@@ -427,8 +427,14 @@ Each change is a commit of its own, and says where it comes from.
     the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`
     with `pow(I, int)` and any other `e` with `pow(I, J)`.
   - `pow(I, J)` computed the powers of the negative part of `I` on its
-    magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It now keeps the
-    negative part of `I` only for an integer exponent.
+    magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It is now hybrid: a
+    degenerate integer exponent `[n]` always takes `pow(I, int)`, the `pown` of
+    IEEE 1788, which keeps the negative part of `I` and gives `0^0 = 1`, and
+    `[-oo, +oo]` for an `n` beyond the ints; any other exponent takes the `pow`
+    of IEEE 1788, on the part of `I` in `[0, +oo]`, where `0^y` is `0` for
+    `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
+    `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
+    `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
 - **The cosine of mathlib** (`cmake/mathlib/prepare.cmake`): for the arguments
   hardest to round, mathlib computes cos(x) with multiple-precision numbers, as
   sin(π/2 − x) when x > 0.8, and `mpcos()` returned the cosine of π/2 − x

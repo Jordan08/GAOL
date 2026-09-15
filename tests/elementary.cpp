@@ -335,14 +335,63 @@ namespace
       check(std::string(e.name) + ": empty", r.is_empty(), [&] { return hex(r); });
     }
 
-    // Integer exponents beyond the ints, with negative bases: (-2)^(10^10) is
-    // beyond the largest double, and (-1)^(2^32+1) is -1
-    const interval even = pow(interval(-2., -1.), interval(1e10));
-    check("pow([-2,-1],[1e10]): encloses the values beyond the largest double", !even.is_empty() && even.right() == inf,
-          [&] { return hex(even); });
-    const interval odd = pow(interval(-1., -0.5), interval(4294967297.0));
-    check("pow([-1,-0.5],[2^32+1]): encloses -1 and the values near 0", !odd.is_empty() && odd.left() <= -1. && odd.right() >= 0.,
-          [&] { return hex(odd); });
+    // An integer exponent beyond the ints, for which pow(const interval&, int)
+    // cannot be called, still takes the integer power rather than the real
+    // one, and gives [-oo,+oo] whatever the base
+    const Empty universe[] = {
+      { "pow([-2,-1],[1e10])", [] { return pow(interval(-2., -1.), interval(1e10)); } },
+      { "pow([-1,-0.5],[2^32+1])", [] { return pow(interval(-1., -0.5), interval(4294967297.0)); } },
+      { "pow([2,3],[2^31]), with a positive base", [] { return pow(interval(2., 3.), interval(2147483648.0)); } },
+      { "pow([0.25,0.5],[-2^31-1]), with a positive base", [] { return pow(interval(0.25, 0.5), interval(-2147483649.0)); } },
+      { "pow([-2,3],1e10)", [] { return pow(interval(-2., 3.), 1e10); } },
+      { "pow([2,3],2^31)", [] { return pow(interval(2., 3.), 2147483648.0); } },
+    };
+    for (const Empty& u : universe) {
+      const interval r = evaluate(u.name, u.f, [] { return std::string(); });
+      check(std::string(u.name) + ": [-oo,+oo]", r.left() == -inf && r.right() == inf, [&] { return hex(r); });
+    }
+    const interval beyond_empty = pow(interval::emptyset(), interval(1e10));
+    check("pow(empty,[1e10]): empty", beyond_empty.is_empty(), [&] { return hex(beyond_empty); });
+
+    // The bounds of the ints still take the integer power
+    const interval largest = pow(interval(-1.), interval(2147483647.0)), smallest = pow(interval(-1.), interval(-2147483648.0));
+    check("pow([-1],[2^31-1]) and pow([-1],[-2^31]), at the bounds of the ints: exact",
+          largest.left() == -1. && largest.right() == -1. && smallest.left() == 1. && smallest.right() == 1.,
+          [&] { return hex(largest) + " and " + hex(smallest); });
+
+    // Special cases of IEEE 1788-2015 (Table 9.1, footnotes b and c): pown(x,0)
+    // is 1 for any x, 0 included, and pown(0,p) has no value for p < 0; pow(0,y)
+    // is 0 for y > 0, and has no value for y <= 0; [+oo] and [-oo] contain no
+    // real number (10.5.8)
+    const Equal special[] = {
+      { "pow([0],[0]), pown(0,0) = 1", [] { return pow(interval(0.), interval(0.)); }, 1., 1. },
+      { "pow([0],0.0)", [] { return pow(interval(0.), 0.0); }, 1., 1. },
+      { "pow([-oo,+oo],[0])", [] { return pow(interval::universe(), interval(0.)); }, 1., 1. },
+      { "pow([0,2],[-1]), without x = 0", [] { return pow(interval(0., 2.), interval(-1.)); }, 0.5, inf },
+      { "pow([-2,0],[-1]), without x = 0", [] { return pow(interval(-2., 0.), interval(-1.)); }, -inf, -0.5 },
+      { "pow([0],[0.5]), pow(0,y) = 0 for y > 0", [] { return pow(interval(0.), interval(0.5)); }, 0., 0. },
+      { "pow([0],0.5)", [] { return pow(interval(0.), 0.5); }, 0., 0. },
+      { "pow([-2,0],[2.5])", [] { return pow(interval(-2., 0.), interval(2.5)); }, 0., 0. },
+      { "pow([0],[0,1]), without y = 0", [] { return pow(interval(0.), interval(0., 1.)); }, 0., 0. },
+      { "pow([0],[-1,1]), without y <= 0", [] { return pow(interval(0.), interval(-1., 1.)); }, 0., 0. },
+    };
+    for (const Equal& e : special) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": exact", r.left() == e.lo && r.right() == e.hi, [&] { return hex(r); });
+    }
+    const Empty no_value[] = {
+      { "pow([0],[-1]), pown(0,p) for p < 0", [] { return pow(interval(0.), interval(-1.)); } },
+      { "pow([0],[-0.5]), pow(0,y) for y < 0", [] { return pow(interval(0.), interval(-0.5)); } },
+      { "pow([0],-0.5)", [] { return pow(interval(0.), -0.5); } },
+      { "pow([-2,0],[-0.5])", [] { return pow(interval(-2., 0.), interval(-0.5)); } },
+      { "pow([0],[-1,0]), pow(0,y) for y <= 0", [] { return pow(interval(0.), interval(-1., 0.)); } },
+      { "pow([4],[+oo]), [+oo] containing no real number", [] { return pow(interval(4.), interval(inf)); } },
+      { "pow([4],[-oo])", [] { return pow(interval(4.), interval(-inf)); } },
+    };
+    for (const Empty& e : no_value) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": empty", r.is_empty(), [&] { return hex(r); });
+    }
   }
 }
 
