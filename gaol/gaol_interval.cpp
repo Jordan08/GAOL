@@ -455,6 +455,29 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     return exp(J*log(base));
   }
 
+  /*!
+    \brief I^p for a floating-point p (fork of GAOL)
+
+    Without it, pow(I,2.5) called pow(const interval&, int), converting a
+    double to an int being a standard conversion and converting it to an
+    interval a user-defined one: the exponent was truncated, and pow([4],0.5)
+    returned [1]. An integer p within the ints is computed by
+    pow(const interval&, int), which is defined for negative bases too, any
+    other p by pow(const interval&, const interval&), and an infinite or NaN p
+    gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
+    Ninin).
+  */
+  interval  pow(const interval& I, double p)
+  {
+    if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
+      return interval::emptyset();
+    }
+    if (std::floor(p) == p && p >= (std::numeric_limits<int>::min)() && p <= (std::numeric_limits<int>::max)()) {
+      return pow(I, static_cast<int>(p));
+    }
+    return pow(I, interval(p));
+  }
+
   /*
     Code inspired by ia_math code by Timothy Hickey
   */
