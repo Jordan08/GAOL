@@ -48,8 +48,9 @@
 
 /* define this to 1 if you want to allow ASM support
 
-   Left undefined, as gaol/meson.build does by default: GAOL's assembly only
-   compiles for 32-bit x86, and has C equivalents. */
+   GAOL_ASM ON, the default, defines it, as configure and meson do by default.
+   GAOL's assembly (f_negate() in gaol/gaol_fpu_fenv.h) serves 32-bit x86 Linux
+   and macOS only; elsewhere the code is the same with or without it. */
 #cmakedefine GAOL_USING_ASM 1
 
 
@@ -95,9 +96,9 @@
    __attribute__ ((visibility("default"))) (gaol/gaol_config.h) */
 #cmakedefine HAVE_VISIBILITY_OPTIONS 1
 
-/* HAVE_FINITE is left undefined: gaol::is_finite() then uses comparisons, as
-   exact as finite(), which Visual C++ does not provide and recent C++ libraries
-   do not always declare. */
+/* HAVE_FINITE is left undefined: gaol::is_finite() is std::isfinite() in every
+   build (gaol/gaol_port.h), finite() being neither provided by Visual C++ nor
+   declared by every C library. */
 
 /* ---------------------------------------------------------------------------
    Visual C++, as in the former gaol/gaol_config_msvc.h where it still applies
