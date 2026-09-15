@@ -3,10 +3,11 @@
  *--------------------------------------------------------------------------
  * Tests of this fork of GAOL: the other functions on intervals.
  *
- * On random intervals, compared exactly with the exact results: midpoints,
- * widths, magnitudes and mignitudes, Hausdorff distances, splitting, integer
- * parts; and the relational functions (sqrt_rel, div_rel...), which have to
- * keep the values they are given and bound them within a few doubles.
+ * On random intervals, and for the midpoints on intervals of subnormal bounds,
+ * compared exactly with the exact results: midpoints, widths, magnitudes and
+ * mignitudes, Hausdorff distances, splitting, integer parts; and the relational
+ * functions (sqrt_rel, div_rel...), which have to keep the values they are
+ * given and bound them within a few doubles.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -28,6 +29,22 @@ namespace
   // the preimage of an enclosure of the image, as tightly as it allows
   const int limit = 64;
 
+  // The midpoint, rounded to nearest: within the interval, and one of the
+  // doubles on each side of the exact midpoint; and mid(), the tightest interval
+  // enclosing it
+  void midpoints(const interval& X, const std::string& in)
+  {
+    const double l = X.left(), r = X.right(), m = X.midpoint();
+    const Exact middle = quotient(dyadic(l) + dyadic(r), dyadic(2.0));
+    check("midpoint() within [x]" + in, l <= m && m <= r, [&] { return hex(X) + ": " + hex(m); });
+    check("midpoint() next to the exact midpoint" + in,
+          is_tightest_lower_bound(m, middle) || is_tightest_upper_bound(m, middle),
+          [&] { return hex(X) + ": " + hex(m); });
+    const interval mid = X.mid();
+    check("mid() the tightest enclosure of the exact midpoint" + in, is_tightest_enclosure(mid, middle),
+          [&] { return hex(X) + ": " + hex(mid); });
+  }
+
   template<class Draw>
   void measures(const std::string& range, Draw draw)
   {
@@ -38,19 +55,8 @@ namespace
       const Dyadic dl = dyadic(l), dr = dyadic(r);
       const auto describe = [&] { return "x=" + hex(X) + " y=" + hex(Y); };
 
-      // The midpoint, rounded to nearest: within the interval, and one of the
-      // doubles on each side of the exact midpoint
+      midpoints(X, in);
       const double m = X.midpoint();
-      const Exact middle = quotient(dl + dr, dyadic(2.0));
-      check("midpoint() within [x]" + in, l <= m && m <= r, [&] { return describe() + ": " + hex(m); });
-      check("midpoint() next to the exact midpoint" + in,
-            is_tightest_lower_bound(m, middle) || is_tightest_upper_bound(m, middle),
-            [&] { return describe() + ": " + hex(m); });
-      const interval mid = X.mid();
-      check("mid() encloses the exact midpoint" + in, is_enclosure(mid, middle), [&] { return describe() + ": " + hex(mid); });
-      check_distance("mid()" + in, std::max(doubles_below_tightest(mid.left(), middle, limit),
-                                            doubles_above_tightest(mid.right(), middle, limit)), limit,
-                     [&] { return describe() + ": " + hex(mid); });
 
       // The width, rounded upward
       const double w = X.width();
@@ -105,6 +111,30 @@ namespace
                             && !interval(a, next_double(next_double(a))).is_canonical());
     check("nb_fp_numbers()", nb_fp_numbers(a, a) == 1 && nb_fp_numbers(a, next_double(a)) == 2
                              && nb_fp_numbers(1.0, 2.0) == 4503599627370497ull);
+  }
+
+  // Midpoints of intervals whose bounds are multiples of the smallest subnormal
+  // double, around 0 and below 2^-1021, where halving a bound is not exact, which
+  // the random draws almost never give: mid() subtracted the half of the upper
+  // bound rounded upward, and did not enclose the midpoint of [0, 2^-1074]
+  void subnormal_bounds()
+  {
+    const long long below = (1LL << 53) - 1; // 2^-1021 - 2^-1074, in units of 2^-1074
+    const long long firsts[] = { -64, below - 128, -below };
+    for (long long first : firsts) {
+      for (long long i = first; i <= first + 128; ++i) {
+        for (long long j = i; j <= first + 128; ++j) {
+          midpoints(interval(std::ldexp(static_cast<double>(i), -1074), std::ldexp(static_cast<double>(j), -1074)),
+                    " (subnormal bounds)");
+        }
+      }
+    }
+    const double tiny = std::numeric_limits<double>::denorm_min(), huge = std::numeric_limits<double>::max();
+    const interval mixed[] = { interval(-huge, -tiny), interval(tiny, huge), interval(-tiny, huge),
+                               interval(huge / 2, huge), interval(huge, huge) };
+    for (const interval& X : mixed) {
+      midpoints(X, " (subnormal and huge bounds)");
+    }
   }
 
   // Checks that r contains v, and is no more than limit doubles away from it,
@@ -169,6 +199,7 @@ int main()
   Random random;
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
+  subnormal_bounds();
   relations();
   const int status = summary();
   gaol::cleanup();

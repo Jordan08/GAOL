@@ -629,9 +629,19 @@ INLINE uint32_t reverse_bits(uint32_t v)
     GAOL_RND_ENTER();
     double l = left_internal();
     double r = right_internal();
-    // FIXME: check formulas below in case of underflow (cf. midpoint())
-    double mid_left  = -(.5*l - .5*r);
-    double mid_right = (-.5*l) + .5*r;
+    // As midpoint(), rounded outward: the half of the sum of the bounds, or the
+    // sum of their halves when it overflows, each half rounded outward too
+    // (halving a bound below 2^-1021 is not exact)
+    double sum = r - l;     // a+b, rounded upward
+    double opp_sum = l - r; // -(a+b), rounded upward
+    double mid_left, mid_right;
+    if (std::isinf(sum) || std::isinf(opp_sum)) {
+      mid_left  = -(.5*l + (-.5)*r);
+      mid_right = (-.5)*l + .5*r;
+    } else {
+      mid_left  = -(.5*opp_sum);
+      mid_right = .5*sum;
+    }
     GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);
     GAOL_RND_LEAVE();
     return interval(mid_left,mid_right);

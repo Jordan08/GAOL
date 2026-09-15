@@ -1045,8 +1045,19 @@
       return interval(std::numeric_limits<double>::max());
     }
     GAOL_RND_ENTER();
-    double mid_left  = -(.5*lb_ - .5*rb_);
-    double mid_right = (-.5*lb_) + .5*rb_;
+    // As midpoint(), rounded outward: the half of the sum of the bounds, or the
+    // sum of their halves when it overflows, each half rounded outward too
+    // (halving a bound below 2^-1021 is not exact)
+    double sum = rb_ - lb_;     // a+b, rounded upward
+    double opp_sum = lb_ - rb_; // -(a+b), rounded upward
+    double mid_left, mid_right;
+    if (std::isinf(sum) || std::isinf(opp_sum)) {
+      mid_left  = -(.5*lb_ + (-.5)*rb_);
+      mid_right = (-.5)*lb_ + .5*rb_;
+    } else {
+      mid_left  = -(.5*opp_sum);
+      mid_right = .5*sum;
+    }
     GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);
     GAOL_RND_LEAVE();
     return interval(mid_left,mid_right);

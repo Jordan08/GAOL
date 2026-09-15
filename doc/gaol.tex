@@ -1973,8 +1973,8 @@ cout << hausdorff(interval(4,8),interval(5,10))
 \end{defmethod}
 
 \begin{defmethod}{interval}{interval}{mid}{(void) const}
-  Returns an interval enclosing the midpoint of \code{self}. The result is not
-  guaranteed to be canonical though it is always included in \code{self}.
+  Returns the tightest interval enclosing the midpoint of \code{self}, which is
+  included in \code{self}.
   With the same notations as for \code{midpoint()}, we have the cases:
 \begin{equation*}
 \left\{\begin{array}{ll}

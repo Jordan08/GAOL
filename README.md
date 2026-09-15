@@ -312,9 +312,9 @@ Codac.
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
   be the tightest enclosures of π, 2π and π/2.
-- **`other_functions`:** midpoints, widths, magnitudes, mignitudes, Hausdorff
-  distances, splitting, integer parts, and the relational functions
-  (`sqrt_rel`, `div_rel`...).
+- **`other_functions`:** midpoints (of subnormal bounds too), widths,
+  magnitudes, mignitudes, Hausdorff distances, splitting, integer parts, and the
+  relational functions (`sqrt_rel`, `div_rel`...).
 
 The CMake build compiles them with `GAOL_BUILD_TESTS` (`OFF` by default: no
 build compiles tests unless asked to, as `make check` and `with-test` for
@@ -403,6 +403,15 @@ Each change is a commit of its own, and says where it comes from.
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.
+- **`mid()`** returns the tightest interval enclosing the midpoint, computed as
+  `midpoint()` computes it with the rounding outward: the half of the sum of the
+  bounds, or the sum of their halves when the sum overflows (F. Goualard, *How
+  do you compute the midpoint of an interval?*). It computed `a/2 + b/2` rounded
+  upward, and for its lower bound subtracted the half of b rounded upward, which
+  is not exact when |b| < 2^-1021: `mid([0, 2^-1074])` was `[2^-1074, 2^-1074]`,
+  and 45150 of the 180901 intervals whose bounds are multiples of 2^-1074 from
+  -300·2^-1074 to 300·2^-1074 did not enclose their midpoints;
+  `mid([2^-1074, 2^-1074])` was `[2^-1074, 2^-1073]`, beyond the interval.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.

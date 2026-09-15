@@ -152,11 +152,12 @@ namespace gaol {
     /*!
       \brief Midpoint enclosing interval.
 
-     Returns an interval enclosing the midpoint of '*this'. The returned
-     interval is not guaranteed to be canonical.
-     - mid([a,b])     = [(a+b)/2, (a+b)/2]
-     - mid([-oo,b])   = mid([-MAXREAL,b])
-     - mid([a,+oo])   = mid([a,+MAXREAL])
+     Returns the tightest interval enclosing the midpoint of '*this', which is
+     included in '*this'.
+     - mid(\emptyset) = \emptyset
+     - mid([a,b])     = the tightest interval enclosing (a+b)/2
+     - mid([-oo,b])   = [-MAXREAL,-MAXREAL]
+     - mid([a,+oo])   = [MAXREAL,MAXREAL]
      - mid([-oo,+oo]) = [0,0]
     */
     interval mid(void) const;
