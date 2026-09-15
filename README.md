@@ -404,7 +404,12 @@ Each change is a commit of its own, and says where it comes from.
   and MinGW-w64 are sometimes a float further, which gave bounds not enclosing
   the exact values. The branch `hyperbolic-rigorous` bounds them without the
   libm instead; [issue #1](https://github.com/Jordan08/GAOL/issues/1) compares
-  the two.
+  the two. At the overflow, the bounds are then two floats wider than the
+  tightest, which three assertions of GAOL's own check `trigonometric`
+  (`make check`) want: `cosh([MAX, +inf])` is `[0x1.ffffffffffffdp+1023, +inf]`
+  rather than `[MAX, +inf]`, likewise `sinh([-inf, -MAX])`, and
+  `tanh([MAX, +inf])` has `0x1.ffffffffffffdp-1` for left bound rather than
+  `previous_float(1)`.
 - **Powers with a real exponent**, ported from the fix of Codac:
   - `pow(I, e)` for a floating-point `e` called `pow(I, int)`, which truncated
     the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`
