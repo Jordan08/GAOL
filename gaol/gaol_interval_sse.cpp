@@ -576,39 +576,82 @@ INLINE uint32_t reverse_bits(uint32_t v)
       return *this;
     }
 
-   interval& interval::operator+=(double v)
+  interval& interval::operator+=(double d)
     {
-        // FIXME: optimize the code
-        *this += interval(v);
-        return *this;
+      GAOL_RND_ENTER_SSE();
+      xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
+      GAOL_RND_LEAVE_SSE();
+      return *this;
     }
 
-    interval& interval::operator-=(double v)
+  interval& interval::operator-=(double d)
     {
-        // FIXME: optimize the code
-        *this -= interval(v);
-        return *this;
+      GAOL_RND_ENTER_SSE();
+      xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
+      GAOL_RND_LEAVE_SSE();
+      return *this;
     }
 
-    interval& interval::operator*=(double v)
+  interval& interval::operator*=(double d)
     {
-        // FIXME: optimize the code
-        *this *= interval(v);
+      if (is_empty() || d != d) { // d != d: d is NaN
+        *this = interval::emptyset();
         return *this;
+      }
+      if (d == 0.0) {
+        xmmbounds = interval::m128_zero;
+        return *this;
+      }
+
+      GAOL_RND_ENTER_SSE();
+      if (d > 0.0) {
+        xmmbounds = _mm_mul_pd(xmmbounds, _mm_set1_pd(d)); // <-l*d, r*d>
+      } else { // d < 0.0
+        xmmbounds = _mm_mul_pd(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), _mm_set1_pd(-d)); // <r*(-d), -l*(-d)>
+      }
+      // A bound 0 times an infinite d gives a NaN, which is 0, as in
+      // operator*=(const interval&)
+      xmmbounds = _mm_and_pd(xmmbounds, _mm_cmpord_pd(xmmbounds, xmmbounds));
+      GAOL_RND_LEAVE_SSE();
+      return *this;
     }
 
-    interval& interval::operator/=(double v)
+  interval& interval::operator/=(double d)
     {
-        // FIXME: optimize the code
-        *this /= interval(v);
+      if (is_empty() || d == 0.0) {
+        *this = interval::emptyset();
         return *this;
+      }
+
+      GAOL_RND_ENTER_SSE();
+      if (d > 0.0) {
+        xmmbounds = _mm_div_pd(xmmbounds, _mm_set1_pd(d)); // <-l/d, r/d>
+      } else { // d < 0.0, or NaN, which gives the empty set
+        xmmbounds = _mm_div_pd(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), _mm_set1_pd(-d)); // <r/(-d), -l/(-d)>
+      }
+      GAOL_RND_LEAVE_SSE();
+      return *this;
     }
 
-    interval& interval::operator%=(double v)
+  interval& interval::operator%=(double d)
     {
-        // FIXME: optimize the code
-        *this %= interval(v);
+      if (is_empty()) {
+        *this = interval::emptyset();
         return *this;
+      }
+      if (d == 0.0) { // x*0 is in [this] for any x when [this] contains 0
+        *this = straddles_zero() ? interval::universe() : interval::emptyset();
+        return *this;
+      }
+
+      GAOL_RND_ENTER_SSE();
+      if (d > 0.0) {
+        xmmbounds = _mm_div_pd(xmmbounds, _mm_set1_pd(d)); // <-l/d, r/d>
+      } else { // d < 0.0, or NaN, which gives the empty set
+        xmmbounds = _mm_div_pd(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), _mm_set1_pd(-d)); // <r/(-d), -l/(-d)>
+      }
+      GAOL_RND_LEAVE_SSE();
+      return *this;
     }
 
 

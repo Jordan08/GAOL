@@ -9,7 +9,10 @@
  * the rounding direction set upward; integer powers and roots, which GAOL
  * computes in several rounded operations, to be enclosed within a few
  * doubles. Doubles of every magnitude are drawn, subnormal ones and results
- * beyond the largest double included.
+ * beyond the largest double included. The operators of an interval with a
+ * double are also compared with the operators with the degenerate interval of
+ * the double, on bounds and doubles of special values: zeros of both signs,
+ * infinities and NaN.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -221,6 +224,20 @@ namespace
         expect_tightest("inverse([y])" + in, inverse(Y), quotient(dyadic(1.0), yh), quotient(dyadic(1.0), yl), X, Y);
       }
 
+      // With a double of either sign, a bound of [y]
+      const double d = (i % 2 == 0) ? Y.left() : Y.right();
+      const interval D(d);
+      const Dyadic dd = dyadic(d);
+      { interval r(X); r += d; expect_tightest("[x]+=d" + in, r, exact(xl + dd), exact(xh + dd), X, D); }
+      { interval r(X); r -= d; expect_tightest("[x]-=d" + in, r, exact(xl - dd), exact(xh - dd), X, D); }
+      const std::vector<Exact> products_by_d = { exact(xl*dd), exact(xh*dd) };
+      { interval r(X); r *= d; expect_tightest("[x]*=d" + in, r, min(products_by_d), max(products_by_d), X, D); }
+      if (d != 0.0) {
+        const std::vector<Exact> quotients_by_d = { quotient(xl, dd), quotient(xh, dd) };
+        { interval r(X); r /= d; expect_tightest("[x]/=d" + in, r, min(quotients_by_d), max(quotients_by_d), X, D); }
+        { interval r(X); r %= d; expect_tightest("[x]%=d" + in, r, min(quotients_by_d), max(quotients_by_d), X, D); }
+      }
+
       const std::vector<Exact> squares = { exact(xl*xl), exact(xh*xh) };
       expect_tightest("sqr([x])" + in, sqr(X), x_has_zero ? zero : min(squares), max(squares), X, Y);
       for (int n = 2; n <= 5; ++n) {
@@ -298,6 +315,42 @@ namespace
       }
     }
   }
+
+  // The operators of an interval with a double d, on bounds and doubles of
+  // special values, which have no exact result to compare with: the same set
+  // as the operators with interval(d), which the operations above and
+  // divisions_by_zero() check
+  void operations_with_special_doubles()
+  {
+    const double subnormal = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double bounds[] = { -inf, -largest, -2., -1., -subnormal, -0., 0., subnormal, 1., 3., largest, inf };
+    const double doubles[] = { -inf, -largest, -3., -1., -0.1, -subnormal, -0., 0., subnormal, 0.1, 1., 3., largest, inf,
+                               std::numeric_limits<double>::quiet_NaN() };
+    std::vector<interval> xs = { interval::emptyset() };
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u) {
+          xs.push_back(interval(l, u));
+        }
+      }
+    }
+    for (const interval& x : xs) {
+      for (double d : doubles) {
+        const interval D(d);
+        const auto expect_same = [&](const std::string& op, const interval& r, const interval& expected) {
+          check("[x]" + op + "d for special values: as [x]" + op + "interval(d)",
+                r.is_empty() ? expected.is_empty()
+                             : !expected.is_empty() && r.left() == expected.left() && r.right() == expected.right(),
+                [&] { return operands(x, D) + ": " + hex(r) + " rather than " + hex(expected); });
+        };
+        { interval r(x), e(x); r += d; e += D; expect_same("+=", r, e); }
+        { interval r(x), e(x); r -= d; e -= D; expect_same("-=", r, e); }
+        { interval r(x), e(x); r *= d; e *= D; expect_same("*=", r, e); }
+        { interval r(x), e(x); r /= d; e /= D; expect_same("/=", r, e); }
+        { interval r(x), e(x); r %= d; e %= D; expect_same("%=", r, e); }
+      }
+    }
+  }
 }
 
 int main()
@@ -309,6 +362,7 @@ int main()
   operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); });
   operations_on_intervals("any doubles", [&] { return random.any(); });
   divisions_by_zero();
+  operations_with_special_doubles();
   const int status = summary();
   gaol::cleanup();
   return status;

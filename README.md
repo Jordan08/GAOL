@@ -296,7 +296,9 @@ Codac.
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
   be the tightest enclosures. Integer powers, square roots and n-th roots have
-  to be enclosures, within a few doubles.
+  to be enclosures, within a few doubles. The operators of an interval with a
+  double have to give, on bounds and doubles of special values (zeros of both
+  signs, infinities, NaN), the sets the operators with `interval(d)` give.
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
@@ -417,6 +419,15 @@ Each change is a commit of its own, and says where it comes from.
   `a + (b/2 - a/2)` rounded upward: the midpoint of `[1, 1 + 2^-23]` was
   `1 + 2^-23` rather than 1. The comments of both `midpoint()` gave a formula
   that neither computed.
+- **The operators of an SSE2 interval with a double** (`+=`, `-=`, `*=`, `/=`,
+  `%=`, and `+`, `-`, `*`, `/`, `%` of an interval and a double, which call
+  them) compute as the FPU intervals do, by the sign of the double, rather than
+  through `interval(d)` and the operators between intervals. On an Intel
+  i7-1185G7 (GCC 9.4, CMake Release), `x += d` takes 3.9 ns rather than
+  13.6 ns, `x *= d` 6.3 ns rather than 25.2 ns and `x /= d` 4.1 ns rather than
+  18.0 ns, giving the same sets. `operator*=(double)` of the FPU intervals gave
+  the empty set for `[0, 0]` times an infinite double, where the product with
+  `interval(d)` gives `[0, 0]`; it now gives `[0, 0]` too.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.

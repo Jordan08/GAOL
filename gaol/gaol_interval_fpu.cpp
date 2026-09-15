@@ -194,6 +194,9 @@
       *this=interval::zero();
       return *this;
     }
+    if (std::fabs(d)==GAOL_INFINITY && is_zero()) { // [0, 0] rather than 0*oo, as in operator*=(const interval&)
+      return *this;
+    }
 
     if (d>0.0) {
 			GAOL_RND_ENTER();
