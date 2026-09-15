@@ -54,20 +54,9 @@ namespace gaol {
     gaol_parse();
     bool parsing_ok = gaol_cleanup_parsing();
     if (parsing_ok) {
+      // The infinities read give [dmax, +oo] and [-oo, -dmax] already
+      // (gaol_expr_eval.h): interval(+oo) and interval(-oo) are the empty set
       out = itv;
-      // Handling cases "-inf" and "+inf" to avoid them
-      // leading to <-inf, -inf> and <inf, inf>
-      if (out.right()==-GAOL_INFINITY) {
-        if (out.left()==-GAOL_INFINITY) {
-          out = interval(-GAOL_INFINITY,-std::numeric_limits<double>::max());
-        }
-      } else {
-        if (out.left() == GAOL_INFINITY) {
-          if (out.right() == GAOL_INFINITY) {
-            out = interval(std::numeric_limits<double>::max(),GAOL_INFINITY);
-          }
-        }
-      }
     }
     return parsing_ok;
   }

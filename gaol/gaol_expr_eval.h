@@ -35,6 +35,8 @@
 #include "gaol/gaol_eval_stack.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_expression.h"
+
+#include <limits>
 #include "gaol/gaol_expr_visitor.h"
 
 namespace gaol {
@@ -53,7 +55,17 @@ namespace gaol {
       error = true;
     }
     virtual void visit(double_node* node) {
-      stack.push(node->get_val());
+      const double v = node->get_val();
+      // interval(+oo) and interval(-oo) are the empty set: an infinity read in
+      // an expression is the largest interval reaching it, so that "[dmax, inf]"
+      // is [dmax, +oo] and "inf" is [dmax, +oo]
+      if (v == GAOL_INFINITY) {
+        stack.push(interval(std::numeric_limits<double>::max(), GAOL_INFINITY));
+      } else if (v == -GAOL_INFINITY) {
+        stack.push(interval(-GAOL_INFINITY, -std::numeric_limits<double>::max()));
+      } else {
+        stack.push(interval(v));
+      }
     }
     virtual void visit(interval_node* node) {
       stack.push(node->get_val());

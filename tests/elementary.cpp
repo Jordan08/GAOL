@@ -385,8 +385,8 @@ namespace
       { "pow([0],-0.5)", [] { return pow(interval(0.), -0.5); } },
       { "pow([-2,0],[-0.5])", [] { return pow(interval(-2., 0.), interval(-0.5)); } },
       { "pow([0],[-1,0]), pow(0,y) for y <= 0", [] { return pow(interval(0.), interval(-1., 0.)); } },
-      { "pow([4],[+oo]), [+oo] containing no real number", [] { return pow(interval(4.), interval(inf)); } },
-      { "pow([4],[-oo])", [] { return pow(interval(4.), interval(-inf)); } },
+      { "pow([4],[+oo]), interval(+oo) being the empty set", [] { return pow(interval(4.), interval(inf)); } },
+      { "pow([4],[-oo]), interval(-oo) being the empty set", [] { return pow(interval(4.), interval(-inf)); } },
     };
     for (const Empty& e : no_value) {
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });

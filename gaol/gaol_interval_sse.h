@@ -64,16 +64,28 @@
       return interval(-std::numeric_limits<double>::infinity(),0.0);
     }
 
+  // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
+  // interval [+oo, +oo] nor [-oo, -oo] (10.5.8)
   INLINE interval::interval(double v)
     {
-      xmm2d tmp = {-v, v};
-      xmmbounds = _mm_load_pd(tmp);
+      // The bounds are set in a register: written to a pair in memory, their
+      // 16-byte load stalls on the two 8-byte stores, which costs several ns
+      if (-GAOL_INFINITY < v && v < GAOL_INFINITY) { // false for a NaN
+        xmmbounds = _mm_set_pd(v, -v);
+      } else {
+        xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+      }
     }
 
+  // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
+  // the wrong order and NaN bounds, as in IBEX
   INLINE interval::interval(double l, double r)
     {
-      xmm2d tmp = {-l, r};
-      xmmbounds = _mm_load_pd(tmp);
+      if (l <= r && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
+        xmmbounds = _mm_set_pd(r, -l);
+      } else {
+        xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+      }
     }
 
   INLINE interval::interval()

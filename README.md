@@ -314,9 +314,10 @@ Codac.
   to be enclosures, within a few doubles. The operators of an interval with a
   double have to give, on bounds and doubles of special values (zeros of both
   signs, infinities, NaN), the sets the operators with `interval(d)` give.
-  Products of intervals with zero and infinite bounds, `[+oo, +oo]` and
-  `[-oo, -oo]` included, have to be the hull of the products of the bounds, a
-  zero bound times an infinite one counting as 0.
+  Products of intervals with zero and infinite bounds have to be the hull of
+  the products of the bounds, a zero bound times an infinite one counting as 0.
+  The constructors have to give the empty set for a lower bound of `+oo`, an
+  upper bound of `-oo`, bounds in the wrong order and NaN bounds.
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
@@ -444,13 +445,28 @@ Each change is a commit of its own, and says where it comes from.
   i7-1185G7 (GCC 9.4, CMake Release), `x += d` takes 3.9 ns rather than
   13.6 ns, `x *= d` 6.3 ns rather than 25.2 ns and `x /= d` 4.1 ns rather than
   18.0 ns, giving the same sets.
+- **The constructors give the empty set** where their arguments are not an
+  interval, as IBEX does: `interval(+oo)`, `interval(-oo)`,
+  `interval(+oo, +oo)`, `interval(-oo, -oo)`, `interval(2, 1)` and bounds that
+  are NaN are all the empty set, and assigning `+oo` to an interval empties it.
+  IEEE 1788-2015 has no interval `[+oo, +oo]` nor `[-oo, -oo]`: its constructor
+  fails there, and gives the empty set (10.5.8, 12.12.7). GAOL built them as
+  intervals of one infinite point, whose midpoint, `realmax`, was outside them.
+  The intervals with one infinite bound are unchanged, `[a, +oo]` among them,
+  and their midpoint is still `realmax`. On an Intel i7-1185G7 (GCC 9.4, CMake
+  Release), `interval(a, b)` takes 1.28 ns rather than 1.24 ns. Its bounds are
+  set in a register and behind a branch: written to a pair in memory, their
+  16-byte load stalls on the two 8-byte stores, and conditional moves make them
+  depend on the comparison, which lengthens the loops accumulating intervals;
+  either one costs several nanoseconds per construction.
 - **A zero bound times an infinite bound** counts as 0 in the products of the
-  FPU intervals, as in those of the SSE2 intervals: `[0, 1] * interval(+inf)`
-  is `[0, +oo]`, `[-1, 0] * interval(+inf)` is `[-oo, 0]` and
-  `[0, 0] * interval(+inf)` is `[0, 0]` in every build, with the operators of an
-  interval and of a double. The FPU intervals gave NaN bounds there, the empty
-  set. IEEE 1788-2015 has no interval `[+oo, +oo]`: its constructor fails, and
-  gives the empty set (10.5.8, 12.12.7).
+  FPU intervals, as in those of the SSE2 intervals: `[0, 1] * [1, +oo]` is
+  `[0, +oo]`, `[-1, 0] * [1, +oo]` is `[-oo, 0]` and `[0, 0] * [1, +oo]` is
+  `[0, 0]` in every build, with the operators of an interval and of a double.
+  The FPU intervals gave NaN bounds there, the empty set. The operators of a
+  double give the empty set for an infinite double, as `interval(d)` is empty:
+  they no longer repair NaN bounds, and `x *= d` takes 3.6 ns rather than
+  4.8 ns.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.

@@ -166,6 +166,10 @@
 
   interval& interval::operator+=(double d)
   {
+    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+      *this = interval::emptyset();
+      return *this;
+    }
     GAOL_RND_ENTER();
 		lb_ = lb_-d;
 		rb_ += d;
@@ -176,6 +180,10 @@
 
   interval& interval::operator-=(double d)
   {
+    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+      *this = interval::emptyset();
+      return *this;
+    }
     GAOL_RND_ENTER();
 		lb_ += d;
 		rb_ -= d;
@@ -186,8 +194,8 @@
 
   interval& interval::operator*=(double d)
   {
-    if (is_empty()) {
-      *this=interval::emptyset();
+    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+      *this = interval::emptyset();
       return *this;
     }
     if (d==0.0) {
@@ -207,21 +215,13 @@
 			lb_ = tmp;
       GAOL_RND_LEAVE();
     }
-    if (std::fabs(d)==GAOL_INFINITY) { // A bound 0 times an infinite d gives a NaN, which is 0, as in operator*=(const interval&)
-      if (lb_!=lb_) {
-        lb_ = 0.0;
-      }
-      if (rb_!=rb_) {
-        rb_ = 0.0;
-      }
-    }
     return *this;
   }
 
 
   interval& interval::operator/=(double d)
   {
-    if (is_empty()) {
+    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -249,7 +249,7 @@
 
   interval& interval::operator%=(double d)
   {
-    if (is_empty()) {
+    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }

@@ -12,9 +12,10 @@
  * beyond the largest double included. The operators of an interval with a
  * double are also compared with the operators with the degenerate interval of
  * the double, on bounds and doubles of special values: zeros of both signs,
- * infinities and NaN. Products of intervals with zero and infinite bounds,
- * [+oo, +oo] and [-oo, -oo] included, have to be the hull of the products of
- * the bounds, a zero bound times an infinite one counting as 0.
+ * infinities and NaN. Products of intervals with zero and infinite bounds have
+ * to be the hull of the products of the bounds, a zero bound times an infinite
+ * one counting as 0, the pairs of bounds that are not an interval being the
+ * empty set.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -354,11 +355,11 @@ namespace
     }
   }
 
-  // Products of intervals whose bounds are zeros, infinities or small
-  // integers, [+oo, +oo] and [-oo, -oo] included, which IEEE 1788-2015 does not
-  // have: the hull of the products of the bounds, a zero bound times an
-  // infinite bound counting as 0, so that [0, 1]*[+oo, +oo] is [0, +oo] and
-  // [0, 0]*[+oo, +oo] is [0, 0]
+  // Products of intervals whose bounds are zeros, infinities or small integers:
+  // the hull of the products of the bounds, a zero bound times an infinite
+  // bound counting as 0, so that [0, 1]*[1, +oo] is [0, +oo] and [0, 0]*[1, +oo]
+  // is [0, 0]. The pairs of bounds that are not an interval, [+oo, +oo] among
+  // them, are the empty set: the constructors give it there
   void products_with_infinite_bounds()
   {
     const double bounds[] = { -inf, -2., -1., -0., 0., 1., 3., inf };

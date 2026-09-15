@@ -87,8 +87,18 @@ namespace gaol {
 
   class __GAOL_PUBLIC__ interval {
   public:
+    //! Creates [-oo, +oo]
     interval(void);
+    /*!
+      \brief Creates [a, b], and the empty set when [a, b] is not an interval
+
+      The empty set is the result for a lower bound of +oo, an upper bound of
+      -oo, bounds in the wrong order and NaN bounds, as in IBEX: IEEE 1788-2015
+      has no interval [+oo, +oo] nor [-oo, -oo] (10.5.8), and its constructor
+      gives the empty set there (12.12.7).
+    */
     interval(double a, double b);
+    //! Creates [a, a], and the empty set for an infinite a or a NaN
     interval(double a);
     interval(const interval& I);
 #if USING_SSE2_INSTRUCTIONS

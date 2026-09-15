@@ -67,18 +67,32 @@
     rb_ = GAOL_INFINITY;
   }
 
+  // An infinite a gives the empty set, as in IBEX: IEEE 1788-2015 has no
+  // interval [+oo, +oo] nor [-oo, -oo] (10.5.8)
   INLINE
   interval::interval(double a)
   {
-	lb_ = -a;
-	rb_ = a;
+    // A branch rather than two conditional moves, which would make the bounds
+    // depend on the comparison and lengthen the loops accumulating intervals
+    if (-GAOL_INFINITY < a && a < GAOL_INFINITY) { // false for a NaN
+      lb_ = -a;
+      rb_ = a;
+    } else {
+      lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
+    }
   }
 
+  // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
+  // the wrong order and NaN bounds, as in IBEX
   INLINE
   interval::interval(double a, double b)
   {
-    lb_ = -a;
-    rb_ = b;
+    if (a <= b && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
+      lb_ = -a;
+      rb_ = b;
+    } else {
+      lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
+    }
   }
 
     INLINE

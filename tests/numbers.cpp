@@ -1,13 +1,16 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: numbers and constants.
+ * Tests of this fork of GAOL: numbers, constants and constructors.
  *
  * An interval read from a number, interval("0.1"), has to be the tightest
  * interval of doubles enclosing it, and the double itself when the number is
  * one, whatever the C library. Each number is compared exactly with the
  * bounds read. The constants have to be the tightest intervals enclosing pi,
  * 2pi and pi/2, and the hexadecimal output to give the bounds bit for bit.
+ * The constructors have to give the empty set where their arguments are not
+ * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
+ * in the wrong order, and NaN bounds.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -111,13 +114,16 @@ namespace
       { "-0.1", -tenth, -tenth },
       { "[-0.3, -0.1]", -three_tenths, -tenth },
       { "1/3", third, third },
-      { "[1/3, 0.3]", third, three_tenths },
+      { "[0.3, 1/3]", three_tenths, third },
     };
     for (const auto& e : expressions) {
       const interval r(e.s);
       check("interval(expression): the tightest enclosure", is_tightest_enclosure(r, e.lo, e.hi),
             [&] { return std::string("\"") + e.s + "\": " + hex(r); });
     }
+    // Bounds in the wrong order: the empty set, as interval(2, 1) is
+    check("interval(\"[1/3, 0.3]\"): empty", interval("[1/3, 0.3]").is_empty(),
+          [&] { return hex(interval("[1/3, 0.3]")); });
     const interval two(".1", "0.3");
     check("interval(number, number): the tightest enclosure", is_tightest_enclosure(two, tenth, three_tenths),
           [&] { return hex(two); });
@@ -147,6 +153,51 @@ namespace
             [&] { return hex(c.r); });
     }
     check("interval::emptyset(): empty", interval::emptyset().is_empty());
+  }
+
+  // The constructors: the empty set where their arguments are not an interval,
+  // as in IBEX, IEEE 1788-2015 having no interval [+oo, +oo] nor [-oo, -oo]
+  void constructors()
+  {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double largest = std::numeric_limits<double>::max();
+    const struct { const char *name; interval r; } empty[] = {
+      { "interval(+oo)", interval(inf) },
+      { "interval(-oo)", interval(-inf) },
+      { "interval(+oo, +oo)", interval(inf, inf) },
+      { "interval(-oo, -oo)", interval(-inf, -inf) },
+      { "interval(+oo, 1)", interval(inf, 1.) },
+      { "interval(1, -oo)", interval(1., -inf) },
+      { "interval(2, 1)", interval(2., 1.) },
+      { "interval(NaN)", interval(nan) },
+      { "interval(NaN, 1)", interval(nan, 1.) },
+      { "interval(1, NaN)", interval(1., nan) },
+    };
+    for (const auto& c : empty) {
+      check(std::string(c.name) + ": empty", c.r.is_empty(), [&] { return hex(c.r); });
+    }
+    interval to_infinity(1., 2.);
+    to_infinity = inf;
+    check("[x] = +oo: empty", to_infinity.is_empty(), [&] { return hex(to_infinity); });
+    interval to_minus_infinity(1., 2.);
+    to_minus_infinity = -inf;
+    check("[x] = -oo: empty", to_minus_infinity.is_empty(), [&] { return hex(to_minus_infinity); });
+
+    // The intervals with one infinite bound are unchanged
+    const struct { const char *name; interval r; double lo, hi; } kept[] = {
+      { "interval(-oo, 1)", interval(-inf, 1.), -inf, 1. },
+      { "interval(1, +oo)", interval(1., inf), 1., inf },
+      { "interval(-oo, +oo)", interval(-inf, inf), -inf, inf },
+      { "interval(1)", interval(1.), 1., 1. },
+      { "interval(-0., 0.)", interval(-0., 0.), -0., 0. },
+      { "interval(-dmax, dmax)", interval(-largest, largest), -largest, largest },
+    };
+    for (const auto& c : kept) {
+      check(std::string(c.name) + ": kept", !c.r.is_empty() && c.r.left() == c.lo && c.r.right() == c.hi,
+            [&] { return hex(c.r); });
+    }
+    check("midpoint([1, +oo])", interval(1., inf).midpoint() == largest);
+    check("midpoint([-oo, 1])", interval(-inf, 1.).midpoint() == -largest);
   }
 
   // The hexadecimal output gives the bits of the bounds
@@ -179,6 +230,7 @@ int main()
   gaol::init();
   numbers();
   constants();
+  constructors();
   hexadecimal_output();
   const int status = summary();
   gaol::cleanup();
