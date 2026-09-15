@@ -160,7 +160,12 @@ namespace gaol {
   INLINE void round_upward_if_needed()
   {
 #if GAOL_RND_PROBE
-    static const volatile double tiny = 1.0/1152921504606846976.0; // 2^-60
+    // 2^-60, as a literal rather than 1.0/2^60: Visual C++ 2022 computed the
+    // quotient when the function first ran with /fp:strict, writing it into
+    // tiny, and at compile time otherwise, putting tiny in read-only memory;
+    // a program compiled with both, which the linker gives one tiny, crashed
+    // writing it. A literal is converted at compile time in every model.
+    static const volatile double tiny = 8.67361737988403547205962240695953369140625e-19;
     if (1.0 + tiny == 1.0) {
       round_upward();
     }
