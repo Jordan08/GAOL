@@ -136,6 +136,25 @@ ULOG_ARGUMENTS = [float.fromhex(x) for x in """
     0x0.087b50e3c0a7fp-1022 0x0.00b7751dfaafap-1022
 """.split()]
 
+# Arguments of sin and cos at which mathlib 2.1.1 returned values far from
+# sin(x) and cos(x) when compiled with contraction into fused multiply-adds,
+# which GCC does by default (-ffp-contract=fast) wherever the processor has
+# them, 64-bit ARM processors included: branred(), which reduces x modulo pi/2
+# for |x| > 2^48, relies on its operations being computed as written. The CMake
+# build and scripts/install-mathlib.sh compile mathlib with -ffp-contract=off;
+# a mathlib installed otherwise may not have been. Compiled so on x86_64 (-mfma
+# -ffp-contract=fast), mathlib did so at 96 of 20080 random positive arguments
+# from 2^20 to 2^1024 for cos and 11 for sin, all from 2^48 to 2^54, which the
+# random arguments below seldom reach (and at 491 for tan, from 2^26, which
+# they already catch). These are some of them, with the bounds of
+# [2^52 - 1, 2^52 - 1/2], at which acos_rel() failed in
+# check/reverse_mappings.cpp, and 2^52.
+BRANRED_ARGUMENTS = [float.fromhex(x) for x in """
+    0x1.3e0d1243f671p+48 0x1.725c21a6d255p+49 0x1.90e0714ad979p+50 0x1.01a738a1847ep+51
+    0x1.c301e5b5cfddp+51 0x1.fc2ed99efd87p+51 0x1.ffffffffffffep+51 0x1.fffffffffffffp+51
+    0x1p+52 0x1.3cb0df6eb796p+52 0x1.9709330eb981p+52 0x1.a16e1de6acdp+53
+""".split()]
+
 
 m = mpmath.mpf
 unary = [
@@ -150,11 +169,11 @@ unary = [
     ("sin", mpmath.sin,
      [0.0, 1.0, 0.5, 3.0, 4.0, 5.0, -2.0, 7.0, 100.0, 355.0, 710.0, 1e-3, PI, PI / 2, 2 * PI, 1e22,
       2.0**60, 1e-300, TINY, 1e300, MAX]
-     + uniform(-10, 10, 30) + exponents(10, 80, 10)),
+     + uniform(-10, 10, 30) + exponents(10, 80, 10) + BRANRED_ARGUMENTS),
     ("cos", mpmath.cos,
      [0.0, 1.0, 0.5, 3.0, 4.0, 5.0, -2.0, 7.0, 100.0, 355.0, 710.0, 1e-3, PI, PI / 2, 2 * PI, 1e22,
       2.0**60, 1e-300, TINY, 1e300, MAX]
-     + uniform(-10, 10, 30) + exponents(10, 80, 10) + MPCOS_ARGUMENTS),
+     + uniform(-10, 10, 30) + exponents(10, 80, 10) + MPCOS_ARGUMENTS + BRANRED_ARGUMENTS),
     ("tan", mpmath.tan,
      [0.0, 1.0, -1.0, 0.5, 3.0, -2.0, 7.0, 100.0, 355.0, 1e-3, PI, PI / 2, next_down(PI / 2),
       -PI / 2, 1e22, 2.0**60, 1e-300, TINY, 1e300]

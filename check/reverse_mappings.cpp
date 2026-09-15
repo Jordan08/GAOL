@@ -54,9 +54,12 @@ class reverse_mappings_test : public CppUnit::TestFixture {
 	  I = interval(previous_float(two_power_52),two_power_52);
 	  J = cos(I);
 	  TEST_EQ(acos_rel(J,I),I);
+	  // Fails with a mathlib compiled with contraction into fused multiply-adds,
+	  // as GCC compiles it by default on AArch64: cos(I) is then far from its
+	  // value (see BRANRED_ARGUMENTS in tests/elementary_values.py)
 	  I = interval(previous_float(previous_float(two_power_52)),previous_float(two_power_52));
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I); // TODO: pb here under AARCH64. Investigate!
+	  TEST_EQ(acos_rel(J,I),I);
 	  TEST_EQ(acos_rel(interval(.25,.5),interval("[1.02,1.32]")),interval("[1.047197551196,1.31811607165282]"));
 	  I = interval(-1e8,next_float(-1e8));
 	  J = cos(I);
