@@ -45,6 +45,12 @@ INTERVAL2_SOURCE=
 INTERVAL2_HEADER=
 endif
 
+# GAOL's own directories before those configure adds to CPPFLAGS
+# (--with-mathlib-include), which come first otherwise: a prefix holding
+# mathlib may hold an installed GAOL too, whose headers were then included
+# rather than those of the sources
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+
 libgaol_la_SOURCES = \
 	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \
 	gaol_parser.cpp gaol_expression.cpp \

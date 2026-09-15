@@ -55,13 +55,21 @@ EXTRA_DIST = gaolcc.in tests.h
 
 TESTS = $(check_PROGRAMS)
 
+# GAOL's own directories before those configure adds to CPPFLAGS
+# (--with-mathlib-include), which come first otherwise: a prefix holding
+# mathlib may hold an installed GAOL too, whose headers were then included
+# rather than those of the sources
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+
 #// TODO (goualard#4#): Handle cppunit under Windows
+# The library just built, by its libtool archive, rather than -lgaol with
+# -L../gaol/.libs, which came after the -L of --with-mathlib-lib: a prefix
+# holding mathlib may hold an installed GAOL too, which was then linked
 if IS_CYGWIN_COND
-LDADD = -lgaol -lm @MATHLIB@ $(CPPUNIT_LIB)
+LDADD = $(top_builddir)/gaol/libgaol.la -lm @MATHLIB@ $(CPPUNIT_LIB)
 else
-LDADD = -lm -lgaol $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
+LDADD = -lm $(top_builddir)/gaol/libgaol.la $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
 endif
-AM_LDFLAGS = -L../gaol/.libs 
 
 
 

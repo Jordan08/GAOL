@@ -37,7 +37,6 @@
 # Last modified: Wed Mar 22 09:55:09 2006 on pc-dubreil-123.irin.sciences.univ-nantes.prive
 # By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
 #------------------------------------------------------------------------------
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -138,13 +137,16 @@ CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__EXEEXT_1 =
-PROGRAMS =
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)
 am__DEPENDENCIES_1 =
-@IS_CYGWIN_COND_FALSE@arithmetic_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@arithmetic_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@arithmetic_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@arithmetic_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -152,100 +154,147 @@ am__v_lt_1 =
 assignment_SOURCES = assignment.cpp
 assignment_OBJECTS = assignment.$(OBJEXT)
 assignment_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@assignment_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@assignment_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@assignment_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@assignment_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 constants_SOURCES = constants.cpp
 constants_OBJECTS = constants.$(OBJEXT)
 constants_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@constants_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@constants_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@constants_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@constants_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 constructor_SOURCES = constructor.cpp
 constructor_OBJECTS = constructor.$(OBJEXT)
 constructor_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@constructor_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@constructor_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@constructor_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 essai_SOURCES = essai.cpp
 essai_OBJECTS = essai.$(OBJEXT)
 essai_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@essai_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@essai_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@essai_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@essai_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 float_functions_SOURCES = float_functions.cpp
 float_functions_OBJECTS = float_functions.$(OBJEXT)
 float_functions_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@float_functions_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@float_functions_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 fpu_SOURCES = fpu.cpp
 fpu_OBJECTS = fpu.$(OBJEXT)
 fpu_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@fpu_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@fpu_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@fpu_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@fpu_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 generic_functions_SOURCES = generic_functions.cpp
 generic_functions_OBJECTS = generic_functions.$(OBJEXT)
 generic_functions_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@generic_functions_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@generic_functions_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 input_output_SOURCES = input_output.cpp
 input_output_OBJECTS = input_output.$(OBJEXT)
 input_output_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@input_output_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@input_output_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 interval_functions_SOURCES = interval_functions.cpp
 interval_functions_OBJECTS = interval_functions.$(OBJEXT)
 interval_functions_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@interval_functions_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@interval_functions_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 intervalf_SOURCES = intervalf.cpp
 intervalf_OBJECTS = intervalf.$(OBJEXT)
 intervalf_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@intervalf_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@intervalf_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@intervalf_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@intervalf_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 misc_SOURCES = misc.cpp
 misc_OBJECTS = misc.$(OBJEXT)
 misc_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@misc_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@misc_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@misc_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@misc_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 non_arithmetic_SOURCES = non_arithmetic.cpp
 non_arithmetic_OBJECTS = non_arithmetic.$(OBJEXT)
 non_arithmetic_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@non_arithmetic_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@non_arithmetic_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 am_performances_OBJECTS = performance_test_set.$(OBJEXT) \
 	performances.$(OBJEXT)
 performances_OBJECTS = $(am_performances_OBJECTS)
 performances_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@performances_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@performances_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 relations_SOURCES = relations.cpp
 relations_OBJECTS = relations.$(OBJEXT)
 relations_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@relations_DEPENDENCIES = $(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@relations_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_FALSE@relations_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
+@IS_CYGWIN_COND_TRUE@relations_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
+@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 reverse_mappings_SOURCES = reverse_mappings.cpp
 reverse_mappings_OBJECTS = reverse_mappings.$(OBJEXT)
 reverse_mappings_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@reverse_mappings_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@reverse_mappings_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 trigonometric_SOURCES = trigonometric.cpp
 trigonometric_OBJECTS = trigonometric.$(OBJEXT)
 trigonometric_LDADD = $(LDADD)
 @IS_CYGWIN_COND_FALSE@trigonometric_DEPENDENCIES =  \
+@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
 @IS_CYGWIN_COND_TRUE@trigonometric_DEPENDENCIES =  \
+@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -544,6 +593,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DLLIB = @DLLIB@
 DLLTOOL = @DLLTOOL@
 DOT = @DOT@
 DOXYGEN = @DOXYGEN@
@@ -556,6 +606,9 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GAOL_EDITION = @GAOL_EDITION@
+GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
+GAOL_PC_MATHLIB = @GAOL_PC_MATHLIB@
+GAOL_PC_VERSION = @GAOL_PC_VERSION@
 GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_VERSION = @GAOL_VERSION@
@@ -649,7 +702,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -673,11 +725,19 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 @CPPUNIT_COND_TRUE@CPPUNIT_LIB = -lcppunit
 EXTRA_DIST = gaolcc.in tests.h
 TESTS = $(check_PROGRAMS)
-@IS_CYGWIN_COND_FALSE@LDADD = -lm -lgaol $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
+
+# GAOL's own directories before those configure adds to CPPFLAGS
+# (--with-mathlib-include), which come first otherwise: a prefix holding
+# mathlib may hold an installed GAOL too, whose headers were then included
+# rather than those of the sources
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+@IS_CYGWIN_COND_FALSE@LDADD = -lm $(top_builddir)/gaol/libgaol.la $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
 
 #// TODO (goualard#4#): Handle cppunit under Windows
-@IS_CYGWIN_COND_TRUE@LDADD = -lgaol -lm @MATHLIB@ $(CPPUNIT_LIB)
-AM_LDFLAGS = -L../gaol/.libs 
+# The library just built, by its libtool archive, rather than -lgaol with
+# -L../gaol/.libs, which came after the -L of --with-mathlib-lib: a prefix
+# holding mathlib may hold an installed GAOL too, which was then linked
+@IS_CYGWIN_COND_TRUE@LDADD = $(top_builddir)/gaol/libgaol.la -lm @MATHLIB@ $(CPPUNIT_LIB)
 performances_SOURCES = performance_test_set.cpp performances.cpp
 PROBABILITIES = .05 .1 .1 .75
 all: all-am
@@ -716,15 +776,6 @@ $(am__aclocal_m4_deps):
 
 clean-checkPROGRAMS:
 	@list='$(check_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
-
-clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
 	echo " rm -f" $$list; \
 	rm -f $$list || exit $$?; \
 	test -n "$(EXEEXT)" || exit 0; \
@@ -1209,7 +1260,7 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -1249,7 +1300,7 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
-	clean-noinstPROGRAMS mostlyclean-am
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -1320,19 +1371,18 @@ uninstall-am:
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-TESTS check-am clean \
-	clean-checkPROGRAMS clean-generic clean-libtool \
-	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am recheck tags tags-am uninstall \
-	uninstall-am
+	clean-checkPROGRAMS clean-generic clean-libtool cscopelist-am \
+	ctags ctags-am distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	recheck tags tags-am uninstall uninstall-am
 
 .PRECIOUS: Makefile
 

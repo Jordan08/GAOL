@@ -459,6 +459,11 @@ Each change is a commit of its own, and says where it comes from.
   `other_functions`, with meson on macOS arm64 and with autotools on Ubuntu
   arm64. Without `-frounding-math`, GAOL built by `clang++` at `-O2` without
   SSE2 intervals gave integer powers not enclosing their exact values.
+  configure also put the directories of `--with-mathlib-include` and
+  `--with-mathlib-lib` before those of GAOL's sources and of the library just
+  built: with mathlib in a prefix holding an installed GAOL, as the prefix of a
+  GAOL installed by CMake, the sources included the headers installed, and
+  `make check` and the examples linked the library installed.
 - **`-ffloat-store`** is added only where doubles are still computed on the x87
   unit (`FLT_EVAL_METHOD` not 0), whose 80-bit registers keep more digits than
   a double. CMake gave it to GCC on every target, and configure wherever SSE2

@@ -20,8 +20,16 @@
 # SVN: $Id$
 #------------------------------------------------------------------------------
 
-LDADD = -lm -lgaol @MATHLIB@
-AM_LDFLAGS = -L../gaol/.libs 
+# GAOL's own directories before those configure adds to CPPFLAGS
+# (--with-mathlib-include), which come first otherwise: a prefix holding
+# mathlib may hold an installed GAOL too, whose headers were then included
+# rather than those of the sources
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+
+# The library just built, by its libtool archive, rather than -lgaol with
+# -L../gaol/.libs, which came after the -L of --with-mathlib-lib: a prefix
+# holding mathlib may hold an installed GAOL too, which was then linked
+LDADD = -lm $(top_builddir)/gaol/libgaol.la @MATHLIB@
 
 noinst_PROGRAMS = Goldstein_Price
 

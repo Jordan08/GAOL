@@ -157,7 +157,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)" \
 	"$(DESTDIR)$(library_includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libgaol_la_LIBADD = @MATHLIB@ -lm
+libgaol_la_DEPENDENCIES =
 am__libgaol_la_SOURCES_DIST = gaol_interval.cpp gaol_profile.cpp \
 	gaol_common.cpp gaol_parser.cpp gaol_expression.cpp \
 	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
@@ -237,9 +237,9 @@ am__can_run_installinfo = \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
 am__library_include_HEADERS_DIST = gaol gaol_assert.h gaol_exact.h \
-	gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h \
 	gaol_interval.h gaol_common.h gaol_exceptions.h \
-	gaol_interval_parser.h gaol_config.h gaol_configuration.h \
+	gaol_interval_parser.h gaol_config.h gaol_config_mingw.h \
+	gaol_config_msvc.h gaol_version_msvc.h gaol_configuration.h \
 	gaol_expression.h gaol_limits.h gaol_expr_eval.h \
 	gaol_expr_visitor.h gaol_parameters.h \
 	gaol_double_op_apmathlib.h gaol_double_op_crlibm.h \
@@ -294,6 +294,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DLLIB = @DLLIB@
 DLLTOOL = @DLLTOOL@
 DOT = @DOT@
 DOXYGEN = @DOXYGEN@
@@ -306,6 +307,9 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GAOL_EDITION = @GAOL_EDITION@
+GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
+GAOL_PC_MATHLIB = @GAOL_PC_MATHLIB@
+GAOL_PC_VERSION = @GAOL_PC_VERSION@
 GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_VERSION = @GAOL_VERSION@
@@ -399,7 +403,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -422,6 +425,12 @@ MAINTAINERCLEANFILES = *.~* *.obj gaol_interval_lexer.cpp gaol_interval_parser.c
 @COMPILE_INTERVAL2_TRUE@INTERVAL2_SOURCE = gaol_interval2f.cpp
 @COMPILE_INTERVAL2_FALSE@INTERVAL2_HEADER = 
 @COMPILE_INTERVAL2_TRUE@INTERVAL2_HEADER = gaol_interval2f.h
+
+# GAOL's own directories before those configure adds to CPPFLAGS
+# (--with-mathlib-include), which come first otherwise: a prefix holding
+# mathlib may hold an installed GAOL too, whose headers were then included
+# rather than those of the sources
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 libgaol_la_SOURCES = \
 	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \
 	gaol_parser.cpp gaol_expression.cpp \
@@ -434,6 +443,7 @@ libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
 # The shared library links the mathematical library: without it, libtool
 # linked libgaol.dylib on macOS with -undefined suppress, and a program linking
 # libgaol.dylib without mathlib crashed at the first elementary function
+libgaol_la_LIBADD = @MATHLIB@ -lm
 library_includedir = $(includedir)/gaol
 library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_interval.h gaol_common.h gaol_exceptions.h \
 	gaol_interval_parser.h gaol_config.h gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h \
