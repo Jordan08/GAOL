@@ -59,6 +59,7 @@ namespace gaol {
 		
     return ((d<0.0) ? small_quantity_pos*d-std::numeric_limits<double>::min() 
 	    : small_quantity_neg*d-std::numeric_limits<double>::min());
+	}
   }
 
   /*
@@ -172,7 +173,7 @@ namespace gaol {
     {
       GAOL_RND_ENTER();
       round_nearest();
-      double f=round_down(pow(d,e));
+      double f=round_down(std::pow(d,e));
       GAOL_RND_LEAVE();
       return f;
     }
@@ -188,7 +189,7 @@ namespace gaol {
     {
       GAOL_RND_ENTER();
       round_nearest();
-      double f=round_up(pow(d,e));
+      double f=round_up(std::pow(d,e));
       GAOL_RND_LEAVE();
       return f;
     }
