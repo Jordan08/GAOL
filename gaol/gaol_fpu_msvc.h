@@ -34,8 +34,13 @@
 
 #include <float.h>
 
-//  Mask 0x0a7f: 53 bits precision, all exceptions masked, rounding to +oo
-// FIXME: Using an hexadecimal constant is not portable!
+// The control word of the x87 unit of gaol_fpu_fenv.h: 53 bits of precision
+// (0x0200), all exceptions masked (0x003f), rounding upward (0x0800). No
+// longer used (see gaol_fpu_fenv.h), and kept for the code using it. The
+// original GAOL noted that the hexadecimal constant was not portable; here it
+// would not even mean the same: reset_fpu_cw() below gives its argument to
+// _control87(), which takes the flags of <float.h> (_RC_UP, _PC_53...), not
+// the bits of the register.
 #define GAOL_FPU_MASK 0x0a3f
 
 

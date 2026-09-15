@@ -26,10 +26,36 @@
   \date   2010-04-22
 */
 
-/* FIXME: fesetenv() does not seem to work correctly on Linux at present. 
-          It is not a problem as long as proper restriction to 64 bits
-          for floatint-point operands has been selected beforehand 
-          (e.g., through Mathlib's Init_Lib()).
+/* fesetenv() on Linux
+
+   The original GAOL noted here that fesetenv() did not seem to work
+   correctly on Linux, which did not matter once mathlib's Init_Lib() had set
+   the precision of the x87 unit to 53 bits. fesetenv() was not at fault, but
+   what GAOL gave it: reset_fpu_cw() wrote GAOL_FPU_MASK into the control word
+   of fenv_t with fegetenv() and fesetenv(), the control word of the x87 unit
+   on x86 Linux and macOS, whereas GAOL's doubles are computed with SSE2
+   instructions, under MXCSR, which kept rounding to nearest. With glibc 2.31
+   on x86-64, the x87 control word then read 0x0a7f and fegetround(), which
+   reads it, returned FE_UPWARD, while MXCSR was 0x1f80 and 1 + 2^-60 was 1.
+   Only the x87 unit has a precision to set, and it computes none of GAOL's
+   doubles: gaol_config.h refuses doubles computed on it, and the three builds
+   give -msse2 -mfpmath=sse on 32-bit x86.
+
+   Since then:
+   - get_fpu_cw() and reset_fpu_cw() (below) read and write the rounding
+     direction with fegetround() and fesetround(), and get_rounding() and
+     set_rounding() (gaol_fpu.h) the rounding bits of MXCSR as well.
+   - gaol::init() calls fesetenv(FE_DFL_ENV), then round_upward(), which sets
+     both units: with glibc 2.31 on x86-64, the x87 control word is then
+     0x0b7f and MXCSR 0x5f80, and 1 + 2^-60 is above 1. FE_DFL_ENV sets the
+     precision of the x87 unit back to 64 bits (control word 0x037f),
+     whatever Init_Lib() set: doubles computed on the x87 unit would be
+     wrong, which is why gaol_config.h refuses them.
+   - GAOL's bounds do not depend on the direction gaol::init() leaves: each
+     operation sets it upward when it is not (round_upward_if_needed() in
+     gaol_fpu.h), which tests/rounding_direction checks on each platform of
+     the continuous integration, on x86 with the x87 and SSE directions
+     differing too.
 */
 
 #ifndef __gaol_fpu_fenv_h__
@@ -38,8 +64,20 @@
 #include "gaol/gaol_port.h"
 #include <fenv.h>
 
-//  Mask 0x0a7f: 53 bits precision, all exceptions masked, rounding to +oo
-// FIXME: Using an hexadecimal constant is not portable!
+// The control word of the x87 unit that reset_fpu_cw() of the original GAOL
+// wrote: 53 bits of precision (0x0200), all exceptions masked (0x003f),
+// rounding upward (0x0800), read back as 0x0a7f, bit 6 being reserved and set.
+// No longer used, and kept for the code using it. The original GAOL noted that
+// the hexadecimal constant was not portable: its fields are those of the x87
+// unit only. Written into the FPCR of 64-bit ARM Linux, the control word of
+// fenv_t there, it leaves the rounding to nearest (bits 22 and 23 clear) and
+// enables the traps of division by zero and of underflow (bits 9 and 11); the
+// patch IBEX applies to GAOL removed the call, which crashed an ARM64 Mac.
+// The rounding direction is now written with fesetround(), or with the
+// constants of <xmmintrin.h> for MXCSR. The rounding bits of the x87 control
+// word are written in hexadecimal in gaol_set_rounding_x86() below, compiled
+// for x86 processors only: glibc names them in <fpu_control.h> (_FPU_RC_UP is
+// 0x800), not every C library.
 #define GAOL_FPU_MASK 0x0a3f
 
 #if USING_SSE2_INSTRUCTIONS
