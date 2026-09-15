@@ -2079,6 +2079,48 @@ fi
 
 } # ac_fn_c_check_header_mongrel
 
+# ac_fn_cxx_try_run LINENO
+# ------------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
+# that executables *can* be run.
+ac_fn_cxx_try_run ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && { ac_try='./conftest$ac_exeext'
+  { { case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_try") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: program exited with status $ac_status" >&5
+       $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+       ac_retval=$ac_status
+fi
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_cxx_try_run
+
 # ac_fn_cxx_check_header_mongrel LINENO HEADER VAR INCLUDES
 # ---------------------------------------------------------
 # Tests whether HEADER exists, giving a warning if it cannot be compiled using
@@ -2223,48 +2265,6 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_cxx_check_type
-
-# ac_fn_cxx_try_run LINENO
-# ------------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
-# that executables *can* be run.
-ac_fn_cxx_try_run ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && { ac_try='./conftest$ac_exeext'
-  { { case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_try") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: program exited with status $ac_status" >&5
-       $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-       ac_retval=$ac_status
-fi
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_cxx_try_run
 
 # ac_fn_cxx_compute_int LINENO EXPR VAR INCLUDES
 # ----------------------------------------------
@@ -16942,6 +16942,99 @@ done
    if test "${mathlib_h}" = "no"; then
       as_fn_error $? "Header MathLib.h not found" "$LINENO" 5
    fi
+   # A mathlib whose cosine of 2^52 - 1 is wrong is refused, as CMakeLists.txt
+   # refuses it (see there): mathlib compiled with the contraction of
+   # multiplications and additions into fused multiply-adds reduces large
+   # arguments modulo pi/2 wrongly. The program checking it writes the cosine to
+   # conftest.cos, which tells a wrong cosine from a program that did not run;
+   # it cannot run when cross-compiling, and configure then only warns.
+   ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+   OLD_LIBS=$LIBS
+   OLD_LDFLAGS=$LDFLAGS
+   LDFLAGS="$LDFLAGS ${mathlib_libpath}"
+   LIBS="-lultim -lm $LIBS"
+   rm -f conftest.cos
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the cosine of mathlib is right at 2^52 - 1" >&5
+$as_echo_n "checking whether the cosine of mathlib is right at 2^52 - 1... " >&6; }
+   if test "$cross_compiling" = yes; then :
+  mathlib_cosine=cross
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern "C" unsigned short Init_Lib();
+extern "C" void Exit_Lib(unsigned short);
+extern "C" double ucos(double);
+#include <cmath>
+#include <cstdio>
+int main()
+{
+  unsigned short state = Init_Lib();
+  double c = ucos(4503599627370495.0); // 2^52 - 1
+  Exit_Lib(state);
+  std::FILE *f = std::fopen("conftest.cos", "w");
+  if (f) {
+    std::fprintf(f, "%.17g", c);
+    std::fclose(f);
+  }
+  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
+}
+_ACEOF
+if ac_fn_cxx_try_run "$LINENO"; then :
+  mathlib_cosine=yes
+else
+  if test -s conftest.cos; then :
+  mathlib_cosine=no
+else
+  mathlib_cosine=unknown
+fi
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+   case ${mathlib_cosine} in #(
+  yes) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; } ;; #(
+  no) :
+    mathlib_cosine_value=`cat conftest.cos`
+             { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, ${mathlib_cosine_value}" >&5
+$as_echo "no, ${mathlib_cosine_value}" >&6; } ;; #(
+  cross) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not checked, cross-compiling" >&5
+$as_echo "not checked, cross-compiling" >&6; } ;; #(
+  *) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not checked, the program did not run" >&5
+$as_echo "not checked, the program did not run" >&6; } ;;
+esac
+   rm -f conftest.cos
+   LIBS=${OLD_LIBS}
+   LDFLAGS=${OLD_LDFLAGS}
+   ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+   case ${mathlib_cosine} in #(
+  no) :
+    as_fn_error $? "GAOL cannot use the mathlib found (-lultim ${mathlib_libpath}): its cosine of 2^52 - 1 is ${mathlib_cosine_value}, rather than 0.47329288595430913.
+Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).
+Install the mathlib GAOL is tested with: sh scripts/install-mathlib.sh <mathlib> downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval arithmetic; then ./configure --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib. Or build GAOL with CMake, which builds that mathlib itself." "$LINENO" 5 ;; #(
+  cross) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: install the mathlib GAOL is tested with, with sh scripts/install-mathlib.sh <mathlib>." >&5
+$as_echo "$as_me: WARNING: Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: install the mathlib GAOL is tested with, with sh scripts/install-mathlib.sh <mathlib>." >&2;} ;; #(
+  unknown) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1." >&5
+$as_echo "$as_me: WARNING: A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1." >&2;} ;; #(
+  *) :
+     ;;
+esac
 
 $as_echo "#define GAOL_USING_APMATHLIB 1" >>confdefs.h
 

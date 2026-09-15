@@ -286,6 +286,43 @@ if cpp_comp.has_argument('-frounding-math')
   endif
 endif
 
+# A mathlib whose cosine of 2^52 - 1 is wrong is refused, as CMakeLists.txt and
+# configure refuse it (see CMakeLists.txt): mathlib compiled with the
+# contraction of multiplications and additions into fused multiply-adds reduces
+# large arguments modulo pi/2 wrongly. The program checking it cannot run when
+# cross-compiling without an exe_wrapper: meson then only warns. After the
+# refused compilers, whose messages come first
+if mathlib == 'apmathlib'
+  mathlib_where = mathlib_libdir != '' ? mathlib_libdir : 'the usual paths'
+  if meson.can_run_host_binaries()
+    mathlib_cosine = cpp_comp.run('''
+extern "C" unsigned short Init_Lib();
+extern "C" void Exit_Lib(unsigned short);
+extern "C" double ucos(double);
+#include <cmath>
+#include <cstdio>
+int main()
+{
+  unsigned short state = Init_Lib();
+  double c = ucos(4503599627370495.0); // 2^52 - 1
+  Exit_Lib(state);
+  std::printf("%.17g\n", c);
+  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
+}
+''', dependencies: [mathlib_dep, m_dep], name: 'the cosine of mathlib is right at 2^52 - 1')
+    if mathlib_cosine.compiled() and mathlib_cosine.returncode() == 1
+      error('GAOL cannot use the mathlib found (ultim, in ' + mathlib_where + '): its cosine of 2^52 - 1 is '
+        + mathlib_cosine.stdout().strip() + ', rather than 0.47329288595430913.\n'
+        + 'Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).\n'
+        + 'Install the mathlib GAOL is tested with: sh scripts/install-mathlib.sh <mathlib> downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval arithmetic; then meson setup ... -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib. Or build GAOL with CMake, which builds that mathlib itself.')
+    elif not mathlib_cosine.compiled() or mathlib_cosine.returncode() != 0
+      warning('A program linked with the mathlib found (ultim, in ' + mathlib_where + ') could not be built or run: its cosine is not checked at 2^52 - 1.')
+    endif
+  else
+    warning('Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: install the mathlib GAOL is tested with, with sh scripts/install-mathlib.sh <mathlib>.')
+  endif
+endif
+
 # The flags of interval arithmetic, each where the compiler accepts it, as
 # CMakeLists.txt and configure give them: -frounding-math; -ffp-contract=off
 # (without it, compilers contract a multiplication and an addition into a fused

@@ -325,6 +325,71 @@ else()
   message(WARNING "GAOL_FIND_MATHLIB and GAOL_BUILD_MATHLIB are OFF: link the ultim library along with GAOL.")
 endif()
 
+# A mathlib found installed is refused when its cosine of 2^52 - 1 is wrong.
+# mathlib compiled with the contraction of multiplications and additions into
+# fused multiply-adds, which GCC does by default wherever the processor has them
+# (64-bit ARM processors among them) unless given -ffp-contract=off, reduces
+# large arguments modulo pi/2 wrongly (branred()): compiled so on x86_64, it gave
+# about -0.4855 rather than 0.4733 at 2^52 - 1, and sin, cos and tan far from
+# their values at 534 of 20080 random arguments from 2^26 to 2^54, which GAOL's
+# bounds did not enclose (see BRANRED_ARGUMENTS in tests/elementary_values.py).
+# The mathlib built here, as the one scripts/install-mathlib.sh installs, is
+# compiled with -ffp-contract=off. The program checking it cannot run when
+# cross-compiling without an emulator: the builds then only warn.
+if(GAOL_FIND_MATHLIB AND MATHLIB_INCDIR AND MATHLIB_LIB)
+  if(CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
+    message(WARNING
+      "Cross-compiling: the cosine of the mathlib found (${MATHLIB_LIB}) is not checked at 2^52 - 1. A mathlib "
+      "compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and "
+      "tan of large arguments far from their values, which the intervals GAOL computes would not enclose: "
+      "configure with -DGAOL_FIND_MATHLIB=OFF to build the mathlib GAOL is tested with.")
+  else()
+    set(_mathlib_check_dir "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/gaol_mathlib_cosine")
+    file(WRITE "${_mathlib_check_dir}/cosine.cpp" [=[
+extern "C" unsigned short Init_Lib();
+extern "C" void Exit_Lib(unsigned short);
+extern "C" double ucos(double);
+#include <cmath>
+#include <cstdio>
+int main()
+{
+  unsigned short state = Init_Lib();
+  double c = ucos(4503599627370495.0); // 2^52 - 1
+  Exit_Lib(state);
+  std::printf("%.17g\n", c);
+  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
+}
+]=])
+    unset(GAOL_MATHLIB_COSINE_RUNS CACHE)
+    unset(GAOL_MATHLIB_COSINE_COMPILES CACHE)
+    try_run(GAOL_MATHLIB_COSINE_RUNS GAOL_MATHLIB_COSINE_COMPILES
+      "${_mathlib_check_dir}" "${_mathlib_check_dir}/cosine.cpp"
+      LINK_LIBRARIES "${MATHLIB_LIB}"
+      RUN_OUTPUT_VARIABLE _mathlib_cosine)
+    string(STRIP "${_mathlib_cosine}" _mathlib_cosine)
+    if(GAOL_MATHLIB_COSINE_COMPILES AND GAOL_MATHLIB_COSINE_RUNS STREQUAL "0")
+      message(STATUS "Cosine of mathlib at 2^52 - 1: ${_mathlib_cosine}, right")
+    elseif(GAOL_MATHLIB_COSINE_COMPILES AND GAOL_MATHLIB_COSINE_RUNS STREQUAL "1")
+      message(FATAL_ERROR
+        "GAOL cannot use the mathlib found (${MATHLIB_LIB}): its cosine of 2^52 - 1 is ${_mathlib_cosine}, rather "
+        "than 0.47329288595430913.\n"
+        "Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of "
+        "multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor "
+        "has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with "
+        "sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far "
+        "from them at 534 of 20080 random arguments, from 2^26 to 2^54).\n"
+        "Let GAOL build the mathlib it is tested with: configure again with -DGAOL_FIND_MATHLIB=OFF, and CMake "
+        "downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval "
+        "arithmetic; or install it so with sh scripts/install-mathlib.sh <prefix> and give -DMATHLIB_DIR=<prefix>, "
+        "in a new build directory.")
+    else()
+      message(WARNING
+        "A program linked with the mathlib found (${MATHLIB_LIB}) could not be built or run "
+        "(${GAOL_MATHLIB_COSINE_RUNS}): its cosine is not checked at 2^52 - 1.")
+    endif()
+  endif()
+endif()
+
 
 ################################################################################
 # What the compiler provides

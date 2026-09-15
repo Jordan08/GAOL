@@ -308,6 +308,55 @@ if test "${use_mathlib}" = "apmathlib"; then
    if test "${mathlib_h}" = "no"; then
       AC_MSG_ERROR([Header MathLib.h not found])
    fi
+   # A mathlib whose cosine of 2^52 - 1 is wrong is refused, as CMakeLists.txt
+   # refuses it (see there): mathlib compiled with the contraction of
+   # multiplications and additions into fused multiply-adds reduces large
+   # arguments modulo pi/2 wrongly. The program checking it writes the cosine to
+   # conftest.cos, which tells a wrong cosine from a program that did not run;
+   # it cannot run when cross-compiling, and configure then only warns.
+   AC_LANG_PUSH([C++])
+   OLD_LIBS=$LIBS
+   OLD_LDFLAGS=$LDFLAGS
+   LDFLAGS="$LDFLAGS ${mathlib_libpath}"
+   LIBS="-lultim -lm $LIBS"
+   rm -f conftest.cos
+   AC_MSG_CHECKING([whether the cosine of mathlib is right at 2^52 - 1])
+   AC_RUN_IFELSE([AC_LANG_SOURCE([[extern "C" unsigned short Init_Lib();
+extern "C" void Exit_Lib(unsigned short);
+extern "C" double ucos(double);
+#include <cmath>
+#include <cstdio>
+int main()
+{
+  unsigned short state = Init_Lib();
+  double c = ucos(4503599627370495.0); // 2^52 - 1
+  Exit_Lib(state);
+  std::FILE *f = std::fopen("conftest.cos", "w");
+  if (f) {
+    std::fprintf(f, "%.17g", c);
+    std::fclose(f);
+  }
+  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
+}]])],
+      [mathlib_cosine=yes],
+      [AS_IF([test -s conftest.cos], [mathlib_cosine=no], [mathlib_cosine=unknown])],
+      [mathlib_cosine=cross])
+   AS_CASE([${mathlib_cosine}],
+      [yes], [AC_MSG_RESULT([yes])],
+      [no], [mathlib_cosine_value=`cat conftest.cos`
+             AC_MSG_RESULT([no, ${mathlib_cosine_value}])],
+      [cross], [AC_MSG_RESULT([not checked, cross-compiling])],
+      [AC_MSG_RESULT([not checked, the program did not run])])
+   rm -f conftest.cos
+   LIBS=${OLD_LIBS}
+   LDFLAGS=${OLD_LDFLAGS}
+   AC_LANG_POP([C++])
+   AS_CASE([${mathlib_cosine}],
+      [no], [AC_MSG_ERROR([GAOL cannot use the mathlib found (-lultim ${mathlib_libpath}): its cosine of 2^52 - 1 is ${mathlib_cosine_value}, rather than 0.47329288595430913.
+Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).
+Install the mathlib GAOL is tested with: sh scripts/install-mathlib.sh <mathlib> downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval arithmetic; then ./configure --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib. Or build GAOL with CMake, which builds that mathlib itself.])],
+      [cross], [AC_MSG_WARN([Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: install the mathlib GAOL is tested with, with sh scripts/install-mathlib.sh <mathlib>.])],
+      [unknown], [AC_MSG_WARN([A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1.])])
    AC_DEFINE(GAOL_USING_APMATHLIB,1,
       [Define this to 1 if using the IBM APMathlib library])
    MATHLIB="-lultim"

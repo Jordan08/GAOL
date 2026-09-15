@@ -64,7 +64,9 @@ cmake --install build --config Release
 ```
 
 CMake 3.14 or later. The build looks for an installed mathlib (under
-`MATHLIB_DIR` or the usual paths) unless `GAOL_FIND_MATHLIB` is `OFF`; when
+`MATHLIB_DIR` or the usual paths) unless `GAOL_FIND_MATHLIB` is `OFF`, and
+refuses one whose cosine is wrong (see
+[Compilers and options refused](#compilers-and-options-refused)); when
 there is none, or none is looked for, it downloads mathlib 2.1.1 (checked
 against its SHA256), fixes bugs of it (see
 [What differs from GAOL](#what-differs-from-gaol)), builds it with
@@ -284,6 +286,19 @@ all but the second row, which no macro of the compiler shows:
 | Visual C++ without `/fp:strict` (`/fp:precise`, its default) | Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly: no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](#what-differs-from-gaol)). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | In extended precision, GAOL's bounds and mathlib's results are wrong: built for an i686 computing on the x87, `exp`, `sin` and `cos` missed the exact value for most arguments. |
 
+The three builds also refuse a mathlib they find installed whose cosine of
+2^52 − 1 is wrong, running a program linked with it. mathlib compiled with the
+contraction of multiplications and additions into fused multiply-adds, which
+GCC does by default wherever the processor has them, 64-bit ARM processors
+included, unless given `-ffp-contract=off`, reduces large arguments modulo π/2
+wrongly (`branred()`): compiled so on x86_64, it gave cos(2^52 − 1) about
+−0.4855 rather than 0.4733, and sin, cos and tan far from their values at 534 of
+20080 random arguments from 2^26 to 2^54, which GAOL's bounds did not enclose.
+The message says to let CMake build mathlib (`-DGAOL_FIND_MATHLIB=OFF`) or to
+install it with `scripts/install-mathlib.sh`, both of which compile it with
+`-ffp-contract=off`. When the program cannot run, cross-compiling without an
+emulator, the builds only warn.
+
 ## Tests
 
 The programs of `tests/` compare the bounds GAOL computes with the exact results
@@ -489,6 +504,14 @@ Each change is a commit of its own, and says where it comes from.
   the same code until it
   [removed that stage](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)
   in 2018.
+- **A mathlib found installed whose cosine of 2^52 − 1 is wrong** is refused by
+  the three builds (see
+  [Compilers and options refused](#compilers-and-options-refused)). A TODO of
+  GAOL's check `reverse_mappings` said that `acos_rel()` failed at
+  [2^52 − 1, 2^52 − 1/2] under AArch64: mathlib compiled there without
+  `-ffp-contract=off`, as its own configure compiles it, gives that cosine far
+  from its value. `tests/elementary.cpp` checks sin and cos at arguments where
+  such a mathlib fails.
 - **The three builds agree** (see [The three builds](#the-three-builds)).
   Before, each had its own idea: configure optimized only when the compiler
   was named `g++` exactly (`clang++` compiled without optimization), computed
