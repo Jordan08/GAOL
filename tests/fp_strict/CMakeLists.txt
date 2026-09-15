@@ -23,18 +23,23 @@ get_target_property(_gaol_include gaol::gaol INTERFACE_INCLUDE_DIRECTORIES)
 set(_source "${CMAKE_CURRENT_BINARY_DIR}/uses_gaol.cpp")
 file(WRITE "${_source}" "#include <gaol/gaol>\nint main() { gaol::interval x(0.1); return x.is_empty() ? 1 : 0; }\n")
 
-# Compiled, not linked: gaol::gaol, which the library comes with, gives /fp:strict
+# Compiled, not linked: gaol::gaol, which the library comes with, gives /fp:strict.
+# try_compile() takes the flags from CMAKE_CXX_FLAGS of this project, not from
+# a CMAKE_CXX_FLAGS given in CMAKE_FLAGS.
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(_cxx_flags "${CMAKE_CXX_FLAGS}")
 foreach(model strict precise default)
   if(model STREQUAL "default")
     set(_fp "")
   else()
     set(_fp "/fp:${model}")
   endif()
+  set(CMAKE_CXX_FLAGS "${_cxx_flags} /D__GAOL_PUBLIC__= ${_fp}")
   try_compile(_compiled_${model} "${CMAKE_CURRENT_BINARY_DIR}/${model}" SOURCES "${_source}"
-    CMAKE_FLAGS "-DCMAKE_CXX_FLAGS=/EHsc /D__GAOL_PUBLIC__= ${_fp}" "-DINCLUDE_DIRECTORIES=${_gaol_include}"
+    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${_gaol_include}"
     OUTPUT_VARIABLE _output_${model})
 endforeach()
+set(CMAKE_CXX_FLAGS "${_cxx_flags}")
 
 if(NOT _compiled_strict)
   message(FATAL_ERROR "GAOL's headers do not compile with /fp:strict:\n${_output_strict}")
