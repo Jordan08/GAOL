@@ -62,6 +62,8 @@ jobs:
           cmake -S tests/find_package -B build-find-package -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package --config ${{ matrix.cfg.config }} -j 4
           ctest --test-dir build-find-package -C ${{ matrix.cfg.config }} -j 4 --output-on-failure
+      - name: GAOL's headers refused without /fp:strict
+        run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
 
   mingw:
     name: ${{ matrix.cfg.desc }}

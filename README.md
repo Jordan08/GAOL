@@ -173,10 +173,10 @@ itself. With GCC and Clang, each where the compiler takes it:
 - `-ffloat-store` where doubles are still computed on the x87 unit.
 
 With Visual C++, `/fp:strict`. Each build installs them with GAOL, in
-`gaol::gaol` and `gaol.pc` (below). GCC and Clang do not tell the code whether
-`-frounding-math` and `-ffp-contract=off` were given: `gaol/gaol_config.h`
-only refuses what contradicts them, `-ffast-math`, `/fp:fast` and doubles
-computed on the x87 unit (see
+`gaol::gaol` and `gaol.pc` (below). `gaol/gaol_config.h` refuses code compiled
+by Visual C++ without `/fp:strict`. GCC and Clang do not tell the code whether
+`-frounding-math` and `-ffp-contract=off` were given: there, it only refuses
+what contradicts them, `-ffast-math` and doubles computed on the x87 unit (see
 [Compilers and options refused](#compilers-and-options-refused)).
 
 ### From CMake
@@ -269,7 +269,7 @@ integration runs it on each kind of machine.
 
 Each of these gave bounds not enclosing the exact results, or worse. The three
 builds refuse the compilers of the first four rows when configuring, with a
-message naming what to use instead, and keep the options of the last two away
+message naming what to use instead, and keep the options of the last three away
 by giving GAOL the flags of [Using GAOL](#using-gaol). `gaol/gaol_config.h`
 refuses them again at compile time, for the code including GAOL's headers too,
 all but the second row, which no macro of the compiler shows:
@@ -281,6 +281,7 @@ all but the second row, which no macro of the compiler shows:
 | mingw-w64 older than version 12 (MinGW-w64 GCC 11 to 13) | Its math library gave `acosh()` near 1 up to 25 million floats away from the exact value, and `asinh()` of large negative numbers NaN. |
 | mingw-w64 12 (MinGW-w64 GCC 14.2, rt_v12) | Its `fesetround()` runs the instruction `cpuid` at each call: in a virtual machine, `exp()`, `log()`, `sin()` and `cos()` took 10.6 to 13.8 microseconds rather than 0.5 to 0.7 with mingw-w64 13 (MinGW-w64 GCC 15.2, MSYS2). |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. |
+| Visual C++ without `/fp:strict` (`/fp:precise`, its default) | Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly: no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](#what-differs-from-gaol)). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | In extended precision, GAOL's bounds and mathlib's results are wrong: built for an i686 computing on the x87, `exp`, `sin` and `cos` missed the exact value for most arguments. |
 
 ## Tests
@@ -495,6 +496,15 @@ Each change is a commit of its own, and says where it comes from.
   MinGW-w64 and MSYS2 on x64. The placement `delete` of `interval` and
   `interval2f`, called when a constructor throws (`interval("1/0")`), freed
   the caller's memory; it now leaves it alone.
+- **Visual C++ without `/fp:strict`** is refused by `gaol/gaol_config.h`, as
+  `/fp:fast` was. Built with `/fp:strict` for GAOL and without it for the tests,
+  `rounding_direction` and `other_functions` crashed with Visual Studio 2022 on
+  x86 and x64: `round_upward_if_needed()` initialized its 2^-60 as `1.0/2^60`,
+  which Visual C++ computed when the function first ran with `/fp:strict`, and
+  at compile time, in read-only memory, without; the linker kept one copy, and
+  GAOL wrote into it. 2^-60 is now a literal, and the tests pass so. Built
+  without `/fp:strict` everywhere, they passed too, but Visual C++ then assumes
+  rounding to nearest, and nothing certifies the bounds.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
@@ -534,7 +544,8 @@ armhf), macOS (arm64, x86_64) and MSYS2, and the tests with the GAOL they
 install; check that the three builds agree on each of these machines; build
 GAOL with CMake against an installed mathlib (`MATHLIB_DIR`); check
 that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and MinGW-w64 11
-to 14 (13 and 14 with autotools and meson too). Jobs of each build restore the
+to 14 (13 and 14 with autotools and meson too), and Visual C++ without
+`/fp:strict`. Jobs of each build restore the
 rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and arm64
 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
 meson. The jobs built in Release print the time per operation in their summary.

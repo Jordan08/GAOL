@@ -297,6 +297,12 @@ foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
     add_global_arguments([flag], language: 'c')
   endif
 endforeach
+# Visual C++: /fp:strict, as CMakeLists.txt gives it, without which
+# gaol/gaol_config.h refuses to compile
+if cpp_comp.get_argument_syntax() == 'msvc'
+  add_global_arguments(['/fp:strict'], language: 'cpp')
+endif
+
 # The library compiled with hidden visibility, as configure builds it: GAOL's
 # public declarations carry __attribute__ ((visibility("default")))
 if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
