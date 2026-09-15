@@ -12,7 +12,9 @@
  * beyond the largest double included. The operators of an interval with a
  * double are also compared with the operators with the degenerate interval of
  * the double, on bounds and doubles of special values: zeros of both signs,
- * infinities and NaN.
+ * infinities and NaN. Products of intervals with zero and infinite bounds,
+ * [+oo, +oo] and [-oo, -oo] included, have to be the hull of the products of
+ * the bounds, a zero bound times an infinite one counting as 0.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -351,6 +353,52 @@ namespace
       }
     }
   }
+
+  // Products of intervals whose bounds are zeros, infinities or small
+  // integers, [+oo, +oo] and [-oo, -oo] included, which IEEE 1788-2015 does not
+  // have: the hull of the products of the bounds, a zero bound times an
+  // infinite bound counting as 0, so that [0, 1]*[+oo, +oo] is [0, +oo] and
+  // [0, 0]*[+oo, +oo] is [0, 0]
+  void products_with_infinite_bounds()
+  {
+    const double bounds[] = { -inf, -2., -1., -0., 0., 1., 3., inf };
+    std::vector<interval> xs = { interval::emptyset() };
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u) {
+          xs.push_back(interval(l, u));
+        }
+      }
+    }
+    const auto product = [](double a, double b) {
+      return ((a == 0.0 && std::isinf(b)) || (b == 0.0 && std::isinf(a))) ? 0.0 : a*b;
+    };
+    for (const interval& x : xs) {
+      for (const interval& y : xs) {
+        const bool empty = x.is_empty() || y.is_empty();
+        double lo = 0.0, hi = 0.0;
+        if (!empty) {
+          const double p[] = { product(x.left(), y.left()), product(x.left(), y.right()),
+                               product(x.right(), y.left()), product(x.right(), y.right()) };
+          lo = *std::min_element(p, p + 4);
+          hi = *std::max_element(p, p + 4);
+        }
+        const auto expect = [&](const std::string& name, const interval& r) {
+          check(name + " with zero and infinite bounds",
+                empty ? r.is_empty() : !r.is_empty() && r.left() == lo && r.right() == hi,
+                [&] { return operands(x, y) + ": " + hex(r); });
+        };
+        expect("[x]*[y]", x * y);
+        { interval r(x); r *= y; expect("[x]*=[y]", r); }
+        if (!y.is_empty() && y.left() == y.right()) {
+          const double d = y.left();
+          expect("[x]*d", x * d);
+          expect("d*[x]", d * x);
+          { interval r(x); r *= d; expect("[x]*=d", r); }
+        }
+      }
+    }
+  }
 }
 
 int main()
@@ -363,6 +411,7 @@ int main()
   operations_on_intervals("any doubles", [&] { return random.any(); });
   divisions_by_zero();
   operations_with_special_doubles();
+  products_with_infinite_bounds();
   const int status = summary();
   gaol::cleanup();
   return status;

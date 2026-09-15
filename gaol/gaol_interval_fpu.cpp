@@ -194,24 +194,28 @@
       *this=interval::zero();
       return *this;
     }
-    if (std::fabs(d)==GAOL_INFINITY && is_zero()) { // [0, 0] rather than 0*oo, as in operator*=(const interval&)
-      return *this;
-    }
 
     if (d>0.0) {
 			GAOL_RND_ENTER();
 			lb_ *= d;
 			rb_ *= d;
       GAOL_RND_LEAVE();
-      return *this;
     } else {
 			GAOL_RND_ENTER();
 			double tmp = (-d)*rb_;
 			rb_ = (-d)*lb_;
 			lb_ = tmp;
       GAOL_RND_LEAVE();
-      return *this;
     }
+    if (std::fabs(d)==GAOL_INFINITY) { // A bound 0 times an infinite d gives a NaN, which is 0, as in operator*=(const interval&)
+      if (lb_!=lb_) {
+        lb_ = 0.0;
+      }
+      if (rb_!=rb_) {
+        rb_ = 0.0;
+      }
+    }
+    return *this;
   }
 
 
@@ -357,6 +361,14 @@
 	  			}
 				}
       }
+    }
+    // A bound 0 times an infinite bound gives a NaN, which is 0, as in the SSE2
+    // intervals: [0, 1]*[+oo, +oo] is [0, +oo]
+    if (lb_!=lb_) {
+      lb_ = 0.0;
+    }
+    if (rb_!=rb_) {
+      rb_ = 0.0;
     }
     GAOL_RND_LEAVE();
     return *this;

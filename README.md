@@ -314,6 +314,9 @@ Codac.
   to be enclosures, within a few doubles. The operators of an interval with a
   double have to give, on bounds and doubles of special values (zeros of both
   signs, infinities, NaN), the sets the operators with `interval(d)` give.
+  Products of intervals with zero and infinite bounds, `[+oo, +oo]` and
+  `[-oo, -oo]` included, have to be the hull of the products of the bounds, a
+  zero bound times an infinite one counting as 0.
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
@@ -440,9 +443,14 @@ Each change is a commit of its own, and says where it comes from.
   through `interval(d)` and the operators between intervals. On an Intel
   i7-1185G7 (GCC 9.4, CMake Release), `x += d` takes 3.9 ns rather than
   13.6 ns, `x *= d` 6.3 ns rather than 25.2 ns and `x /= d` 4.1 ns rather than
-  18.0 ns, giving the same sets. `operator*=(double)` of the FPU intervals gave
-  the empty set for `[0, 0]` times an infinite double, where the product with
-  `interval(d)` gives `[0, 0]`; it now gives `[0, 0]` too.
+  18.0 ns, giving the same sets.
+- **A zero bound times an infinite bound** counts as 0 in the products of the
+  FPU intervals, as in those of the SSE2 intervals: `[0, 1] * interval(+inf)`
+  is `[0, +oo]`, `[-1, 0] * interval(+inf)` is `[-oo, 0]` and
+  `[0, 0] * interval(+inf)` is `[0, 0]` in every build, with the operators of an
+  interval and of a double. The FPU intervals gave NaN bounds there, the empty
+  set. IEEE 1788-2015 has no interval `[+oo, +oo]`: its constructor fails, and
+  gives the empty set (10.5.8, 12.12.7).
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.
