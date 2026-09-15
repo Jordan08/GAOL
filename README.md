@@ -51,8 +51,8 @@ arguments), builds it with the flags of interval arithmetic and installs it
 along with GAOL. The autotools and meson builds of GAOL are kept for those
 who use them; they need mathlib installed beforehand (`MathLib.h` and
 `libultim.a`). The math library of the system (`-lm`) needs no installation.
-GAOL can also be built with [CRlibm](https://github.com/taschini/crlibm)
-instead (`crlibm`).
+The autotools and meson builds can also build GAOL with
+[CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`).
 
 ### With CMake
 
@@ -133,7 +133,7 @@ With mathlib installed under `<mathlib>`, as for autotools above. The options
 | Option | Default | |
 |---|---|---|
 | `buildtype` | `release` | `-O3` and `NDEBUG`; `debug` builds GAOL without optimization, with debugging information |
-| `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default` for the math library of the system |
+| `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default` for the math library of the system, whose results GAOL moves one float outward only: the bounds are then right only where that library is within one float of the exact values, which neither the tests nor the continuous integration check |
 | `with-mathlib-include`, `with-mathlib-lib` | | Where its header and its library are, when not in the usual paths, as with configure |
 | `enable-optimize` | `true` | `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as configure |
 | `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
@@ -161,8 +161,11 @@ itself. With GCC and Clang, each where the compiler takes it:
 - `-msse2 -msse3` on x86 processors with the SSE2 intervals (`GAOL_SIMD`);
 - `-ffloat-store` where doubles are still computed on the x87 unit.
 
-With Visual C++, `/fp:strict`. Each build installs them with GAOL, and
-`gaol/gaol_config.h` refuses to compile without them (see
+With Visual C++, `/fp:strict`. Each build installs them with GAOL, in
+`gaol::gaol` and `gaol.pc` (below). GCC and Clang do not tell the code whether
+`-frounding-math` and `-ffp-contract=off` were given: `gaol/gaol_config.h`
+only refuses what contradicts them, `-ffast-math`, `/fp:fast` and doubles
+computed on the x87 unit (see
 [Compilers and options refused](#compilers-and-options-refused)).
 
 ### From CMake
@@ -172,10 +175,12 @@ find_package(gaol REQUIRED)
 target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
-`gaol::gaol` carries the include directory, the flags above and mathlib
-(`gaol::ultim` when it was built along with GAOL). A library whose headers
+`gaol::gaol` carries the include directory, the flags above, mathlib
+(`gaol::ultim` when it was built along with GAOL) and, for Visual C++,
+`__GAOL_PUBLIC__=`, GAOL being a static library. A library whose headers
 include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
 get the flags, and its CMake package finds GAOL again (`find_dependency(gaol)`).
+`tests/find_package` is a project using an installed GAOL this way.
 
 A project can also build GAOL for itself, with the options it wants:
 
@@ -188,12 +193,14 @@ target_link_libraries(my_target PUBLIC gaol::gaol)
 ```
 
 `cmake --install` of the project then installs GAOL and mathlib with it.
-`tests/find_package` is a project using an installed GAOL this way.
 
 ### From pkg-config
 
-Each build installs `<prefix>/lib/pkgconfig/gaol.pc`, whose `Cflags` carries
-the flags above with the include directory, and `Libs` GAOL and mathlib:
+Each build installs `gaol.pc` in the `pkgconfig` directory of its library
+directory (`<prefix>/lib/pkgconfig`, or `lib64` or `lib/<multiarch>` rather
+than `lib` on the systems whose libraries go there), except the CMake build
+with Visual C++. Its `Cflags` carries the flags above with the include
+directory, and `Libs` GAOL and mathlib:
 
 ```bash
 export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig
@@ -250,9 +257,11 @@ integration runs it on each kind of machine.
 ### Compilers and options refused
 
 Each of these gave bounds not enclosing the exact results, or worse. The three
-builds stop with a message naming what to use instead, and
-`gaol/gaol_config.h` refuses them again at compile time, for the code including
-GAOL's headers too:
+builds refuse the compilers of the first four rows when configuring, with a
+message naming what to use instead, and keep the options of the last two away
+by giving GAOL the flags of [Using GAOL](#using-gaol). `gaol/gaol_config.h`
+refuses them again at compile time, for the code including GAOL's headers too,
+all but the second row, which no macro of the compiler shows:
 
 | Refused | Because |
 |---|---|
@@ -371,12 +380,14 @@ Each change is a commit of its own, and says where it comes from.
   mingw-w64 13, 50 ns with the C runtime of Visual C++ for x64 and 250 ns for
   x86, 8.5 ns with glibc. GAOL changes the direction four times for each
   elementary function of an interval (to nearest before mathlib and upward
-  after, for each bound): `exp()`, `log()`, `sin()` and `cos()` took 540 to
-  630 ns with MinGW-w64 and MSYS2, where mathlib itself takes about 10 ns,
-  and take 76 to 206 ns. Both registers are set, as `fesetround()` sets them,
-  and `fegetround()` reads the direction set; with Visual C++ for x64, MXCSR
-  only, the x87 unit being unused there. Elsewhere (ARM, POWER, s390x,
-  RISC-V), `fesetround()` still.
+  after, for each bound), where mathlib itself takes about 10 ns. On the
+  runners of the continuous integration, `exp()`, `log()`, `sin()` and `cos()`
+  of an interval took 535 to 630 ns with MinGW-w64 and MSYS2, and take 48 to
+  209 ns; 250 to 340 ns with Visual C++ for x64, and 45 to 160 ns; 1050 to
+  1750 ns with Visual C++ for x86, and 150 to 650 ns. Both registers are set,
+  as `fesetround()` sets them, and `fegetround()` reads the direction set;
+  with Visual C++ for x64, MXCSR only, the x87 unit being unused there.
+  Elsewhere (ARM, POWER, s390x, RISC-V), `fesetround()` still.
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.
@@ -453,9 +464,9 @@ Each change is a commit of its own, and says where it comes from.
   a double. CMake gave it to GCC on every target, and configure wherever SSE2
   was not used, 64-bit ARM included: GCC then stored every double variable in
   memory rather than in a register. On an Intel i7-1185G7 (GCC 9.4, CMake
-  Release), `x + y` takes 3.2 ns rather than 8.9 ns, `x * y` 4.6 ns rather than
-  17.9 ns, `sqrt(x)` 8.5 ns rather than 40.6 ns, and `exp(x)` 58 ns rather than
-  107 ns.
+  Release), `x + y` takes 3.0 ns rather than 9.1 ns, `x * y` 4.9 ns rather than
+  18.3 ns, `sqrt(x)` 8.3 ns rather than 41.3 ns, and `log(x)` 73 ns rather than
+  110 ns.
 - **The memory of GAOL's SSE2 intervals** is released with the function
   matching the one that allocated it (`MEMFREE()` in `gaol/gaol_port.h`):
   `_aligned_malloc()` and `_aligned_free()` on Windows, where `malloc()` aligns
@@ -499,7 +510,8 @@ on:
 They also build GAOL with autotools and meson, against an installed mathlib,
 on Ubuntu (x86_64, arm64), Debian (i386,
 armhf), macOS (arm64, x86_64) and MSYS2, and the tests with the GAOL they
-install; check that the three builds agree on each of these machines; check
+install; check that the three builds agree on each of these machines; build
+GAOL with CMake against an installed mathlib (`MATHLIB_DIR`); check
 that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and MinGW-w64 11
 to 14 (13 and 14 with autotools and meson too). Jobs of each build restore the
 rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and arm64
@@ -510,4 +522,5 @@ meson. The jobs built in Release print the time per operation in their summary.
 
 GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
 under the GNU LGPL v2 (`COPYING.LIB`). mathlib, which the
-build downloads, is distributed under the GNU GPL v2 or later.
+CMake build downloads, is distributed under the GNU LGPL v2 or later, as the
+headers of its sources state (its archive carries the text of the GNU GPL v2).
