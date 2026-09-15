@@ -25,7 +25,7 @@
   Fast version using standard arithmetic operations and the default mathematical 
 	library (libm)
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2006-02-21
 */
 

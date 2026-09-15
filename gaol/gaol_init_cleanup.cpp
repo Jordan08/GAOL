@@ -22,7 +22,7 @@
   \file   gaol_init_cleanup.cpp
   \brief  
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2005-05-10
 */
 

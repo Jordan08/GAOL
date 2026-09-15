@@ -25,7 +25,7 @@
   An eval_stack is a stack for which underflow is supposed never to occur,
   since the arity of the operators is known in advance.
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2001-10-20
 */
 

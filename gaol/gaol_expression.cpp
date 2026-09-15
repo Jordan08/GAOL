@@ -23,7 +23,7 @@
   \brief
 
 
-  \author Goualard Frédéric
+  \author Goualard Frederic
   \date   2001-09-28
 */
 

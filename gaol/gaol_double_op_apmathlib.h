@@ -24,7 +24,7 @@
 
   Fast version using standard arithmetic operations and the IBM APMathlib library
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2006-02-21
 */
 

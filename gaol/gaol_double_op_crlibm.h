@@ -25,7 +25,7 @@
   Fast version using standard arithmetic operations and the Correctly
 	Rounded Mathematical Library (crlibm)
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2009-02-25
 */
 

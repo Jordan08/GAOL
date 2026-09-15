@@ -22,7 +22,7 @@
   \file   gaol_common.cpp
   \brief  Implementation for functions of common use
 
-  \author Fr�d�ric Goualard
+  \author Frederic Goualard
   \date   2001-10-03
 */
 
@@ -198,7 +198,7 @@ namespace gaol {
 /**
  * \mainpage gaol (Just Another Interval Library)
  * \section authors Authors
- * Fr�d�ric Goualard    \<Frederic.Goualard@irin.univ-nantes.fr\> <P>
+ * Frederic Goualard    \<Frederic.Goualard@irin.univ-nantes.fr\> <P>
  * \section copyright Copyright Notice
  * <tt>
  <hr>

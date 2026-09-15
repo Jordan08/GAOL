@@ -22,7 +22,7 @@
 
   FPU handling through C99 fenv.h facilities
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2010-04-22
 */
 

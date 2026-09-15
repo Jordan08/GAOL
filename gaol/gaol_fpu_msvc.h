@@ -22,7 +22,7 @@
 
   FPU Handling when compiling with Microsoft Visual C++
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2001-10-01
 */
 

@@ -1,4 +1,4 @@
-/*-*-C++-*------------------------------------------------------------------
+Frederic/*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
  * This file is part of the gaol distribution. Gaol was primarily
@@ -25,7 +25,7 @@
   These classes are used to construct an internal representation of an interval
   obtained from a parsed string.
 
-  \author Goualard Frédéric
+  \author Goualard Frederic
   \date   2001-09-28
 */
 
@@ -103,14 +103,14 @@ typedef struct {
       Used to increment refcount of an object "a" from an object "b"
       whose type, though deriving also from expr_node, is not necessarily
       the same as "a".
-      \see The C++ programming language, B. Stroustrup, 3rd ed. §15.3.1
+      \see The C++ programming language, B. Stroustrup, 3rd ed. ï¿½15.3.1
     */
     unsigned int inc_refcount();
     /*!
       Used to decrement refcount of an object "a" from an object "b"
       whose type, though deriving also from expr_node, is not necessarily
       the same as "a".
-      \see The C++ programming language, B. Stroustrup, 3rd ed. §15.3.1
+      \see The C++ programming language, B. Stroustrup, 3rd ed. ï¿½15.3.1
     */
     unsigned int dec_refcount();
     /*!

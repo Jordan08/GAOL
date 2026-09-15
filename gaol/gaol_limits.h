@@ -24,7 +24,7 @@
 
   <long description>
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2001-10-01
 */
 

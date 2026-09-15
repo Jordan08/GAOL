@@ -22,7 +22,7 @@
   \file   gaol_interval.h
   \brief  The interval class and operators
 
-  \author Goualard Fr�d�ric
+  \author Goualard Frederic
   \date   2001-09-28
 */
 

@@ -23,7 +23,7 @@
   \brief  Base classes to represent visitors manipulating interval expressions
 
 
-  \author Frédéric Goualard
+  \author Frederic Goualard
   \date   2001-10-30
 */
 
