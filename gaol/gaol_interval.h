@@ -145,8 +145,7 @@ namespace gaol {
      - [-oo, +oo] -> midP = 0.0
      - [-oo, b]   -> midP = -MAXREAL
      - [a, +oo]   -> midP = MAXREAL
-     - [a, b]     -> midP = a + .5*(b-a) with + and * rounded toward
-                            nearest and - rounded downward.
+     - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even
     */
     double midpoint(void) const;
     /*!

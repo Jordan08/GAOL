@@ -72,8 +72,7 @@ namespace gaol {
      - [-oo, +oo] -> midP = 0.0
      - [-oo, b]   -> midP = -MAXREAL
      - [a, +oo]   -> midP = MAXREAL
-     - [a, b]     -> midP = a + .5*(b-a) with + and * rounded toward
-                            nearest and - rounded downward.
+     - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even
     		*/
     		__GAOL_PUBLIC__ float midpoint(void) const;
     		void split(intervalf &I1, intervalf &I2) const;

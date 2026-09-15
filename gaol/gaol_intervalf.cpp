@@ -444,10 +444,15 @@ namespace gaol {
       return std::numeric_limits<float>::max();
     }
 
-    GAOL_RND_ENTER();
-    float middle = static_cast<float>(left()+(.5*right() - .5*left()));
-    GAOL_RND_KEEP(middle);
-    GAOL_RND_LEAVE();
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    // Rounded to nearest, as interval::midpoint(). The sum of the bounds is exact
+    // in double unless one of them is below 2^-29 times the other, too small for
+    // the rounding of the sum to change the float nearest; its half is exact
+    float middle = static_cast<float>(0.5*(static_cast<double>(left()) + static_cast<double>(right())));
+    // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
+    middle = gaol::rnd_keep(middle);
+    GAOL_RND_RESTORE();
     return middle;
   }
 

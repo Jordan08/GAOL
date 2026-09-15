@@ -4,10 +4,10 @@
  * Tests of this fork of GAOL: the other functions on intervals.
  *
  * On random intervals, and for the midpoints on intervals of subnormal bounds,
- * compared exactly with the exact results: midpoints, widths, magnitudes and
- * mignitudes, Hausdorff distances, splitting, integer parts; and the relational
- * functions (sqrt_rel, div_rel...), which have to keep the values they are
- * given and bound them within a few doubles.
+ * compared exactly with the exact results: midpoints (of gaol::intervalf too),
+ * widths, magnitudes and mignitudes, Hausdorff distances, splitting, integer
+ * parts; and the relational functions (sqrt_rel, div_rel...), which have to
+ * keep the values they are given and bound them within a few doubles.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -137,6 +137,55 @@ namespace
     }
   }
 
+  // |x - v|, exactly
+  Exact distance(double x, const Exact& v)
+  {
+    const Exact d = exact(x) + -v;
+    return (compare(d, exact(0.0)) < 0) ? -d : d;
+  }
+
+  // The midpoint of a gaol::intervalf, rounded to the nearest float, ties to
+  // even: it was rounded upward
+  void float_midpoint(const intervalf& X, const std::string& in)
+  {
+    const float finf = std::numeric_limits<float>::infinity();
+    const float l = X.left(), r = X.right(), m = X.midpoint();
+    const Exact middle = quotient(dyadic(l) + dyadic(r), dyadic(2.0));
+    const Exact d = distance(m, middle);
+    const int to_below = compare(d, distance(std::nextafter(m, -finf), middle));
+    const int to_above = compare(d, distance(std::nextafter(m, finf), middle));
+    std::uint32_t bits;
+    std::memcpy(&bits, &m, sizeof bits);
+    const auto describe = [&] { return "[" + hex(l) + ", " + hex(r) + "]: " + hex(m); };
+    check("intervalf::midpoint() within [x]" + in, l <= m && m <= r, describe);
+    check("intervalf::midpoint() the float nearest the exact midpoint, ties to even" + in,
+          to_below <= 0 && to_above <= 0 && ((to_below < 0 && to_above < 0) || (bits & 1u) == 0), describe);
+  }
+
+  template<class Draw>
+  void float_midpoints(const std::string& range, Draw draw)
+  {
+    for (int i = 0; i < nb_random_values; ++i) {
+      const float a = draw(), b = draw();
+      float_midpoint(intervalf(std::min(a, b), std::max(a, b)), " (" + range + ")");
+    }
+  }
+
+  void float_midpoints()
+  {
+    const float finf = std::numeric_limits<float>::infinity(), fmax = std::numeric_limits<float>::max();
+    const float one = 1.0f, after_one = std::nextafter(one, finf), tiny = std::numeric_limits<float>::denorm_min();
+    for (const intervalf& X : { intervalf(one, after_one), intervalf(after_one, std::nextafter(after_one, finf)),
+                                intervalf(0.0f, tiny), intervalf(tiny, 2.0f*tiny), intervalf(fmax / 2.0f, fmax),
+                                intervalf(-fmax, fmax / 4.0f) }) {
+      float_midpoint(X, " (ties, subnormal and huge bounds)");
+    }
+    check("intervalf::midpoint() of unbounded intervals",
+          intervalf(-finf, finf).midpoint() == 0.0f && intervalf(-finf, one).midpoint() == -fmax
+          && intervalf(one, finf).midpoint() == fmax);
+    check("intervalf::midpoint() of the empty set", std::isnan(intervalf::emptyset().midpoint()));
+  }
+
   // Checks that r contains v, and is no more than limit doubles away from it,
   // or no more than slack when slack is given
   void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands, double slack = 0.0)
@@ -200,6 +249,9 @@ int main()
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
   subnormal_bounds();
+  float_midpoints("floats of exponents from -30 to 30", [&] { return static_cast<float>(random(-30, 30)); });
+  float_midpoints("any floats", [&] { return static_cast<float>(random(-149, 126)); });
+  float_midpoints();
   relations();
   const int status = summary();
   gaol::cleanup();
