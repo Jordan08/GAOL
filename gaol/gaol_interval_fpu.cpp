@@ -1055,8 +1055,12 @@
     double opp_sum = lb_ - rb_; // -(a+b), rounded upward
     double mid_left, mid_right;
     if (std::isinf(sum) || std::isinf(opp_sum)) {
-      mid_left  = -(.5*lb_ + (-.5)*rb_);
-      mid_right = (-.5)*lb_ + .5*rb_;
+      // Each half with a negated factor goes through rnd_keep(), whose volatile
+      // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
+      // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
+      // direction when it is inexact, and mid([2^-1074, MAX]) was [MAX/2, MAX/2]
+      mid_left  = -(.5*lb_ + gaol::rnd_keep((-.5)*rb_));
+      mid_right = gaol::rnd_keep((-.5)*lb_) + .5*rb_;
     } else {
       mid_left  = -(.5*opp_sum);
       mid_right = .5*sum;
