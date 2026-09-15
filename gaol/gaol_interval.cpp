@@ -422,7 +422,6 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
   interval pow(const interval &I, const interval &J)
   {
-	// FIXME: this function is not fully tested yet. Use with care
     if (I.is_empty() || J.is_empty()) {
       return interval::emptyset();
     }
