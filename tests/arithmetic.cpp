@@ -187,7 +187,7 @@ namespace
       const double m = std::fabs(a);
       expect_root("sqrt([|a|])" + in, sqrt(interval(m)), m, 2, square_root_limit);
       for (int n = 2; n <= 7; ++n) {
-        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), n), m, n, root_limit);
+        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, root_limit);
       }
     }
   }

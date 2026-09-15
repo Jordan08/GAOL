@@ -118,7 +118,7 @@ INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
   __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
   cw = (unsigned short)((cw & (unsigned short)~0x0C00u) | x87_rc);
   __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
-  _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
+  _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | sse_rc);
 }
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
 #  define GAOL_RND_X86_REGISTERS 1
@@ -133,7 +133,7 @@ INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
 #  else
   (void)x87_rc;
 #  endif
-  _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | sse_rc);
+  _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | sse_rc);
 }
 #endif
 

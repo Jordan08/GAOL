@@ -87,7 +87,7 @@
 #  define GAOL_RND_KEEP(x)      ((x) = gaol::rnd_keep(x))
 #  if USING_SSE2_INSTRUCTIONS
 #     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & _MM_ROUND_MASK; gaol::round_upward_sse()
-#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | _save_state_sse)
+#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | _save_state_sse)
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
 #  define GAOL_RND_ENTER()      gaol::round_upward_if_needed()
@@ -139,7 +139,7 @@ namespace gaol {
   {
     fesetround(s.direction);
 #if GAOL_RND_SSE_REGISTER
-    _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | s.sse);
+    _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | s.sse);
 #endif
   }
 

@@ -97,7 +97,7 @@ namespace
   {
     std::fesetround(d.fenv);
 #if GAOL_TESTS_SSE
-    _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | d.sse);
+    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | d.sse);
 #endif
   }
 
