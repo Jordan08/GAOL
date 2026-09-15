@@ -49,6 +49,7 @@ endif
 debug = get_option('enable-debug')
 simd = get_option('enable-simd')
 asm = get_option('enable-asm')
+float_intervals = get_option('enable-float-intervals')
 preserve_rounding = get_option('enable-preserve-rounding')
 relations = get_option('enable-relations')
 exception = get_option('enable-exception')
@@ -174,6 +175,9 @@ if preserve_rounding
 endif
 if asm
   conf_data.set('GAOL_USING_ASM', 1)
+endif
+if float_intervals
+  conf_data.set('GAOL_FLOAT_INTERVALS', 1)
 endif
 if get_option('enable-verbose-mode')
   conf_data.set('GAOL_VERBOSE_MODE', 1)

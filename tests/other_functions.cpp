@@ -137,6 +137,7 @@ namespace
     }
   }
 
+#if GAOL_FLOAT_INTERVALS
   // |x - v|, exactly
   Exact distance(double x, const Exact& v)
   {
@@ -185,6 +186,7 @@ namespace
           && intervalf(one, finf).midpoint() == fmax);
     check("intervalf::midpoint() of the empty set", std::isnan(intervalf::emptyset().midpoint()));
   }
+#endif // GAOL_FLOAT_INTERVALS
 
   // Checks that r contains v, and is no more than limit doubles away from it,
   // or no more than slack when slack is given
@@ -249,9 +251,11 @@ int main()
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
   subnormal_bounds();
+#if GAOL_FLOAT_INTERVALS
   float_midpoints("floats of exponents from -30 to 30", [&] { return static_cast<float>(random(-30, 30)); });
   float_midpoints("any floats", [&] { return static_cast<float>(random(-149, 126)); });
   float_midpoints();
+#endif // GAOL_FLOAT_INTERVALS
   relations();
   const int status = summary();
   gaol::cleanup();

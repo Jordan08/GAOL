@@ -93,14 +93,16 @@ if build_tests
   )
   test('Test of interval_functions', test_interval_functions)
 
-  test_intervalf = executable(
-    'intervalf',
-    sources: ['tests.h', 'intervalf.cpp'],
-    link_with: gaollib,
-    dependencies: deps + [cppunit],
-    include_directories: '../',
-  )
-  test('Test of intervalf', test_intervalf)
+  if float_intervals
+    test_intervalf = executable(
+      'intervalf',
+      sources: ['tests.h', 'intervalf.cpp'],
+      link_with: gaollib,
+      dependencies: deps + [cppunit],
+      include_directories: '../',
+    )
+    test('Test of intervalf', test_intervalf)
+  endif
 
   test_misc = executable(
     'misc',
@@ -147,7 +149,7 @@ if build_tests
   )
   test('Test of trigonometric', test_trigonometric)
 
-  if simd
+  if float_intervals and use_sse3
     test_interval2f = executable(
       'interval2f',
       sources: ['tests.h', 'interval2f.cpp'],

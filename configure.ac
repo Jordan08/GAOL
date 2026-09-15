@@ -258,7 +258,17 @@ if test "${target_x86}" = yes; then
         fi
     fi
 fi
-AM_CONDITIONAL([COMPILE_INTERVAL2],[test ${has_sse3} = yes])
+# --enable-float-intervals
+AC_ARG_ENABLE(float-intervals,
+              [AS_HELP_STRING([--enable-float-intervals],
+                              [compile gaol::intervalf, and gaol::interval2f with SSE3 @<:@default=no@:>@])],
+              [float_intervals=${enable_float_intervals}],
+              [float_intervals="no"])
+if test "${float_intervals}" = yes; then
+   AC_DEFINE(GAOL_FLOAT_INTERVALS,1,[Define this to 1 to compile gaol::intervalf and gaol::interval2f])
+fi
+AM_CONDITIONAL([FLOAT_INTERVALS_COND],[test "${float_intervals}" = yes])
+AM_CONDITIONAL([COMPILE_INTERVAL2],[test ${has_sse3} = yes && test "${float_intervals}" = yes])
 
 
 
@@ -668,6 +678,7 @@ printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
+printf "float intervals\t\t= ${float_intervals}\n"
 printf "doxygen\t\t\t= ${DOXYGEN}\n"
 printf "dot\t\t\t= ${DOT}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"

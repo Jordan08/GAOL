@@ -659,6 +659,8 @@ IS_CYGWIN_COND_TRUE
 MATHLIB
 COMPILE_INTERVAL2_FALSE
 COMPILE_INTERVAL2_TRUE
+FLOAT_INTERVALS_COND_FALSE
+FLOAT_INTERVALS_COND_TRUE
 SIMD_COND_FALSE
 SIMD_COND_TRUE
 CXXCPP
@@ -805,6 +807,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_simd
+enable_float_intervals
 with_mathlib_include
 with_mathlib_lib
 with_mathlib
@@ -1467,6 +1470,9 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-simd           use SIMD instructions to implement arithmetic
                           operations
+  --enable-float-intervals
+                          compile gaol::intervalf, and gaol::interval2f with
+                          SSE3 [default=no]
   --enable-verbose-mode   write a line on the standard error when GAOL
                           initializes and cleans up [default=no]
   --enable-optimize       compile gaol with full optimization [default=yes]
@@ -16794,7 +16800,28 @@ $as_echo "#define USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
         fi
     fi
 fi
- if test ${has_sse3} = yes; then
+# --enable-float-intervals
+# Check whether --enable-float-intervals was given.
+if test "${enable_float_intervals+set}" = set; then :
+  enableval=$enable_float_intervals; float_intervals=${enable_float_intervals}
+else
+  float_intervals="no"
+fi
+
+if test "${float_intervals}" = yes; then
+
+$as_echo "#define GAOL_FLOAT_INTERVALS 1" >>confdefs.h
+
+fi
+ if test "${float_intervals}" = yes; then
+  FLOAT_INTERVALS_COND_TRUE=
+  FLOAT_INTERVALS_COND_FALSE='#'
+else
+  FLOAT_INTERVALS_COND_TRUE='#'
+  FLOAT_INTERVALS_COND_FALSE=
+fi
+
+ if test ${has_sse3} = yes && test "${float_intervals}" = yes; then
   COMPILE_INTERVAL2_TRUE=
   COMPILE_INTERVAL2_FALSE='#'
 else
@@ -19030,6 +19057,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${SIMD_COND_TRUE}" && test -z "${SIMD_COND_FALSE}"; then
   as_fn_error $? "conditional \"SIMD_COND\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${FLOAT_INTERVALS_COND_TRUE}" && test -z "${FLOAT_INTERVALS_COND_FALSE}"; then
+  as_fn_error $? "conditional \"FLOAT_INTERVALS_COND\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_INTERVAL2_TRUE}" && test -z "${COMPILE_INTERVAL2_FALSE}"; then
@@ -21615,6 +21646,7 @@ printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
+printf "float intervals\t\t= ${float_intervals}\n"
 printf "doxygen\t\t\t= ${DOXYGEN}\n"
 printf "dot\t\t\t= ${DOT}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"

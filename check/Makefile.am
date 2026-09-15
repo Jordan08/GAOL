@@ -37,11 +37,17 @@ else
 SIMD_FILES = 
 endif
 
+if FLOAT_INTERVALS_COND
+FLOAT_FILES = intervalf
+else
+FLOAT_FILES =
+endif
+
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 if CPPUNIT_COND
 check_PROGRAMS = arithmetic assignment constants constructor float_functions fpu generic_functions input_output \
-	interval_functions misc non_arithmetic relations reverse_mappings trigonometric intervalf essai $(SIMD_FILES)
+	interval_functions misc non_arithmetic relations reverse_mappings trigonometric essai $(FLOAT_FILES) $(SIMD_FILES)
 CPPUNIT_LIB = -lcppunit
 else
 CPPUNIT_LIB = 

@@ -53,6 +53,9 @@
    and macOS only; elsewhere the code is the same with or without it. */
 #cmakedefine GAOL_USING_ASM 1
 
+/* Define this to 1 to compile gaol::intervalf and gaol::interval2f */
+#cmakedefine GAOL_FLOAT_INTERVALS 1
+
 
 /* ---------------------------------------------------------------------------
    What the compiler provides

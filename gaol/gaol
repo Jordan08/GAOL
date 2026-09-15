@@ -38,10 +38,14 @@
 #include "gaol/gaol_profile.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_exceptions.h"
-#include "gaol/gaol_intervalf.h"
+#if GAOL_FLOAT_INTERVALS
+#  include "gaol/gaol_intervalf.h"
+#endif // GAOL_FLOAT_INTERVALS
 
 #if USING_SSE3_INSTRUCTIONS
-#  include "gaol/gaol_interval2f.h"
+#  if GAOL_FLOAT_INTERVALS
+#    include "gaol/gaol_interval2f.h"
+#  endif // GAOL_FLOAT_INTERVALS
 #include "gaol/gaol_allocator.h"
 #endif // USING_SSE3_INSTRUCTIONS
 

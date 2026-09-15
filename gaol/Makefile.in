@@ -163,12 +163,13 @@ am__libgaol_la_SOURCES_DIST = gaol_interval.cpp gaol_profile.cpp \
 	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
 	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
 	gaol_exact.c gaol_intervalf.cpp gaol_interval2f.cpp
-@COMPILE_INTERVAL2_TRUE@am__objects_1 = gaol_interval2f.lo
+@FLOAT_INTERVALS_COND_TRUE@am__objects_1 = gaol_intervalf.lo
+@COMPILE_INTERVAL2_TRUE@am__objects_2 = gaol_interval2f.lo
 am_libgaol_la_OBJECTS = gaol_interval.lo gaol_profile.lo \
 	gaol_common.lo gaol_parser.lo gaol_expression.lo \
 	gaol_interval_parser.lo gaol_interval_lexer.lo gaol_port.lo \
 	gaol_exceptions.lo gaol_init_cleanup.lo s_nextafter.lo \
-	gaol_exact.lo gaol_intervalf.lo $(am__objects_1)
+	gaol_exact.lo $(am__objects_1) $(am__objects_2)
 libgaol_la_OBJECTS = $(am_libgaol_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -421,6 +422,10 @@ DISTCLEANFILES = *.~* *.obj TAGS
 MAINTAINERCLEANFILES = *.~* *.obj gaol_interval_lexer.cpp gaol_interval_parser.cpp \
 	gaol_interval_parser.h TAGS
 
+@FLOAT_INTERVALS_COND_FALSE@FLOAT_INTERVALS_SOURCE = 
+@FLOAT_INTERVALS_COND_TRUE@FLOAT_INTERVALS_SOURCE = gaol_intervalf.cpp
+@FLOAT_INTERVALS_COND_FALSE@FLOAT_INTERVALS_HEADER = 
+@FLOAT_INTERVALS_COND_TRUE@FLOAT_INTERVALS_HEADER = gaol_intervalf.h
 @COMPILE_INTERVAL2_FALSE@INTERVAL2_SOURCE = 
 @COMPILE_INTERVAL2_TRUE@INTERVAL2_SOURCE = gaol_interval2f.cpp
 @COMPILE_INTERVAL2_FALSE@INTERVAL2_HEADER = 
@@ -436,7 +441,7 @@ libgaol_la_SOURCES = \
 	gaol_parser.cpp gaol_expression.cpp \
 	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
 	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
-    gaol_exact.c gaol_intervalf.cpp $(INTERVAL2_SOURCE)
+    gaol_exact.c $(FLOAT_INTERVALS_SOURCE) $(INTERVAL2_SOURCE)
 
 LFLAGS = -Pgaol_
 libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
@@ -452,7 +457,7 @@ library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_interval.h gaol_c
 	gaol_double_op_apmathlib.h gaol_double_op_crlibm.h gaol_flags.h gaol_parser.h gaol_double_op.h \
 	gaol_port.h gaol_fpu.h gaol_fpu_fenv.h gaol_profile.h gaol.h \
 	gaol_eval_stack.h gaol_init_cleanup.h gaol_version.h gaol_allocator.h \
-	gaol_interval_fpu.h gaol_interval_sse.h gaol_intervalf.h $(INTERVAL2_HEADER)
+	gaol_interval_fpu.h gaol_interval_sse.h $(FLOAT_INTERVALS_HEADER) $(INTERVAL2_HEADER)
 
 LDADD = -lm @MATHLIB@
 all: gaol_configuration.h

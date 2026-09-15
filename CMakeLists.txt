@@ -60,6 +60,7 @@ set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (Math
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
+option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with SSE3" OFF)
 
 # As configure.ac and meson.build ask: -std=c++11; C99 with the GNU extensions,
 # which mathlib's DPChange.c needs on 32-bit x86 (asm)
@@ -442,11 +443,14 @@ configure_file(gaol/gaol_double_op_apmathlib.h "${CMAKE_CURRENT_BINARY_DIR}/gaol
 set(GAOL_SOURCES
   gaol_interval.cpp gaol_profile.cpp gaol_common.cpp gaol_parser.cpp
   gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
-  s_nextafter.c gaol_intervalf.cpp gaol_interval_lexer.cpp
+  s_nextafter.c gaol_interval_lexer.cpp
   gaol_interval_parser.cpp
 )
-if(USING_SSE3_INSTRUCTIONS)
-  list(APPEND GAOL_SOURCES gaol_interval2f.cpp)
+if(GAOL_FLOAT_INTERVALS)
+  list(APPEND GAOL_SOURCES gaol_intervalf.cpp)
+  if(USING_SSE3_INSTRUCTIONS)
+    list(APPEND GAOL_SOURCES gaol_interval2f.cpp)
+  endif()
 endif()
 if(NOT MSVC)
   list(APPEND GAOL_SOURCES gaol_exact.c)
@@ -495,6 +499,10 @@ install(TARGETS gaol EXPORT gaolTargets
 # GAOL's headers, including those gaol/gaol_config.h includes for Visual C++
 # and MinGW, which gaol/meson.build does not install
 file(GLOB GAOL_HEADERS gaol/*.h)
+if(NOT GAOL_FLOAT_INTERVALS)
+  list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
+endif()
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}

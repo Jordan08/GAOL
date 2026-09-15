@@ -21,11 +21,15 @@ endif
 lexer_files = ['gaol_interval_lexer.cpp']
 parser_files = ['gaol_interval_parser.cpp', 'gaol_interval_parser.h']
 
-INTERVAL2_SOURCE = []
-INTERVAL2_HEADER = []
-if use_sse3
-  INTERVAL2_SOURCE += ['gaol_interval2f.cpp']
-  INTERVAL2_HEADER += ['gaol_interval2f.h']
+FLOAT_INTERVALS_SOURCE = []
+FLOAT_INTERVALS_HEADER = []
+if float_intervals
+  FLOAT_INTERVALS_SOURCE += ['gaol_intervalf.cpp']
+  FLOAT_INTERVALS_HEADER += ['gaol_intervalf.h']
+  if use_sse3
+    FLOAT_INTERVALS_SOURCE += ['gaol_interval2f.cpp']
+    FLOAT_INTERVALS_HEADER += ['gaol_interval2f.h']
+  endif
 endif
 
 if mathlib == 'apmathlib'
@@ -88,8 +92,8 @@ gaol_SOURCES += [
   'gaol_init_cleanup.cpp',
   's_nextafter.c',
   'gaol_exact.c',
-  'gaol_intervalf.cpp',
 ]
+gaol_SOURCES += FLOAT_INTERVALS_SOURCE
 foreach f : lexer_files
   if f.endswith('.cpp')
     gaol_SOURCES += [f]
@@ -133,7 +137,6 @@ gaol_HEADERS += [
   'gaol_allocator.h',
   'gaol_interval_fpu.h',
   'gaol_interval_sse.h',
-  'gaol_intervalf.h',
 ]
 foreach f : lexer_files
   if f.endswith('.h')
@@ -170,4 +173,4 @@ gaollib = both_libraries(
   include_directories: incdir,
 )
 
-install_headers(gaol_HEADERS + INTERVAL2_HEADER, subdir: 'gaol')
+install_headers(gaol_HEADERS + FLOAT_INTERVALS_HEADER, subdir: 'gaol')

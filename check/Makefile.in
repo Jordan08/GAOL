@@ -120,8 +120,8 @@ host_triplet = @host@
 @CPPUNIT_COND_TRUE@	interval_functions$(EXEEXT) misc$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	non_arithmetic$(EXEEXT) relations$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	reverse_mappings$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) intervalf$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	essai$(EXEEXT) $(am__EXEEXT_1)
+@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) essai$(EXEEXT) \
+@CPPUNIT_COND_TRUE@	$(am__EXEEXT_1) $(am__EXEEXT_2)
 EXTRA_PROGRAMS = performances$(EXEEXT)
 subdir = check
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -136,7 +136,8 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__EXEEXT_1 =
+@FLOAT_INTERVALS_COND_TRUE@am__EXEEXT_1 = intervalf$(EXEEXT)
+am__EXEEXT_2 =
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)
@@ -720,6 +721,8 @@ DISTCLEANFILES = gaolcc
 MAINTAINERCLEANFILES = gaolcc
 @SIMD_COND_TRUE@OBSIMD_FILES = interval2f
 @SIMD_COND_FALSE@SIMD_FILES = 
+@FLOAT_INTERVALS_COND_FALSE@FLOAT_FILES = 
+@FLOAT_INTERVALS_COND_TRUE@FLOAT_FILES = intervalf
 AM_DEFAULT_SOURCE_EXT = .cpp
 @CPPUNIT_COND_FALSE@CPPUNIT_LIB = 
 @CPPUNIT_COND_TRUE@CPPUNIT_LIB = -lcppunit
@@ -1197,16 +1200,16 @@ trigonometric.log: trigonometric$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
-intervalf.log: intervalf$(EXEEXT)
-	@p='intervalf$(EXEEXT)'; \
-	b='intervalf'; \
+essai.log: essai$(EXEEXT)
+	@p='essai$(EXEEXT)'; \
+	b='essai'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
-essai.log: essai$(EXEEXT)
-	@p='essai$(EXEEXT)'; \
-	b='essai'; \
+intervalf.log: intervalf$(EXEEXT)
+	@p='intervalf$(EXEEXT)'; \
+	b='intervalf'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

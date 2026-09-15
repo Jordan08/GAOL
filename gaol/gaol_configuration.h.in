@@ -19,6 +19,9 @@
 /* Define this to 1 to allow raising exceptions instead of simply aborting */
 #undef GAOL_EXCEPTIONS_ENABLED
 
+/* Define this to 1 to compile gaol::intervalf and gaol::interval2f */
+#undef GAOL_FLOAT_INTERVALS
+
 /* Major version for gaol */
 #undef GAOL_MAJOR_VERSION
 
