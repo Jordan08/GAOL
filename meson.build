@@ -53,6 +53,14 @@ preserve_rounding = get_option('enable-preserve-rounding')
 relations = get_option('enable-relations')
 exception = get_option('enable-exception')
 mathlib = get_option('with-mathlib')
+# The math library of the system, whose results GAOL widens slightly
+# (gaol/gaol_double_op_m.h) without certifying its bounds: a choice left to
+# the user, who is warned
+if mathlib == 'default'
+  warning('with-mathlib=default: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: '
+    + 'its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). '
+    + 'Use with-mathlib=apmathlib (the default) or crlibm for certified bounds.')
+endif
 doc = get_option('with-doc')
 build_tests = get_option('with-test')
 

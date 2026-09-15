@@ -107,7 +107,7 @@ dates of the checkout. The options, with their defaults:
 
 | Option | Default | |
 |---|---|---|
-| `--with-mathlib=apmathlib\|crlibm` | `apmathlib` | The mathematical library, mathlib (`ultim`) or CRlibm |
+| `--with-mathlib=apmathlib\|crlibm\|m` | `apmathlib` | The mathematical library: mathlib (`ultim`) or CRlibm, whose bounds are certified, or `m`, the math library of the system, whose bounds are not (below) |
 | `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where its header and its library are, when not in the usual paths |
 | `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`; `--disable-optimize` compiles with `-O` |
 | `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
@@ -118,6 +118,17 @@ dates of the checkout. The options, with their defaults:
 | `--enable-relations=set\|certainly\|possibly` | `certainly` | What the relation symbols (`<`, `==`...) mean on intervals |
 | `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
 | `--with-cppunit-include=DIR`, `--with-cppunit-lib=DIR` | | CppUnit, for GAOL's own check programs (`make check`) |
+
+With `--with-mathlib=m` (`-Dwith-mathlib=default` for meson), GAOL computes its
+elementary functions with the math library of the system, whose results it
+widens slightly, and configure and meson warn that the bounds are not
+certified. Built so with glibc 2.31 on x86-64, 11 of the 2993 checks of
+`elementary` gave bounds not enclosing the exact values, near the overflow of
+`exp`, `sinh` and `cosh`; 1144 of the checks of `other_functions` failed,
+`acos_rel`, `asin_rel` and `atan_rel` not containing the values they had to;
+and 630 checks of `rounding_direction`, the elementary functions, `pow` and
+`nth_root` leaving the rounding direction to nearest. mathlib, the default of
+every build, and CRlibm give certified bounds.
 
 ### With meson
 
@@ -133,7 +144,7 @@ With mathlib installed under `<mathlib>`, as for autotools above. The options
 | Option | Default | |
 |---|---|---|
 | `buildtype` | `release` | `-O3` and `NDEBUG`; `debug` builds GAOL without optimization, with debugging information |
-| `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default` for the math library of the system, whose results GAOL moves one float outward only: the bounds are then right only where that library is within one float of the exact values, which neither the tests nor the continuous integration check |
+| `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default`, the math library of the system, whose bounds are not certified (see `--with-mathlib=m` above) |
 | `with-mathlib-include`, `with-mathlib-lib` | | Where its header and its library are, when not in the usual paths, as with configure |
 | `enable-optimize` | `true` | `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as configure |
 | `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |

@@ -1491,9 +1491,11 @@ Optional Packages:
                           library
   --with-mathlib-lib      Specify the library path for the mathematical
                           library
-  --with-mathlib=(apmathlib,crlibm)
-                          Specify the mathematical library to use
-                          [default=apmathlib]
+  --with-mathlib=(apmathlib,crlibm,m)
+                          Specify the mathematical library to use: apmathlib
+                          (mathlib) or crlibm, or m, the math library of the
+                          system, with which the bounds of the elementary
+                          functions are not certified [default=apmathlib]
   --with-cppunit-include  Specify the include path for cppunit
   --with-cppunit-lib      Specify the library path for cppunit
 
@@ -16831,6 +16833,19 @@ else
   use_mathlib="apmathlib"
 fi
 
+# The math library of the system, whose results GAOL widens slightly
+# (gaol/gaol_double_op_m.h) without certifying its bounds: a choice left to
+# the user, who is warned. Any other name was only refused by
+# config.status, missing gaol_double_op_<name>.h
+case ${use_mathlib} in #(
+  apmathlib|crlibm) :
+     ;; #(
+  m) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: --with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds." >&5
+$as_echo "$as_me: WARNING: --with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds." >&2;} ;; #(
+  *) :
+    as_fn_error $? "--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m" "$LINENO" 5 ;;
+esac
 if test "${use_mathlib}" = "apmathlib"; then
    OLD_LIBS=$LIBS
    OLD_LDFLAGS=$LDFLAGS

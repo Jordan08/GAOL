@@ -273,8 +273,16 @@ AC_ARG_WITH([mathlib-lib],
 CXXFLAGS="$CXXFLAGS ${mathlib_libpath}"
 CPPFLAGS="$CPPFLAGS ${mathlib_incpath}"
 AC_ARG_WITH([mathlib],
-    [AS_HELP_STRING([--with-mathlib=(apmathlib,crlibm)],[Specify the mathematical library to use @<:@default=apmathlib@:>@])],
+    [AS_HELP_STRING([--with-mathlib=(apmathlib,crlibm,m)],[Specify the mathematical library to use: apmathlib (mathlib) or crlibm, or m, the math library of the system, with which the bounds of the elementary functions are not certified @<:@default=apmathlib@:>@])],
     use_mathlib="${with_mathlib}",use_mathlib="apmathlib")
+# The math library of the system, whose results GAOL widens slightly
+# (gaol/gaol_double_op_m.h) without certifying its bounds: a choice left to
+# the user, who is warned. Any other name was only refused by
+# config.status, missing gaol_double_op_<name>.h
+AS_CASE([${use_mathlib}],
+  [apmathlib|crlibm], [],
+  [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
+  [AC_MSG_ERROR([--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m])])
 if test "${use_mathlib}" = "apmathlib"; then
    OLD_LIBS=$LIBS
    OLD_LDFLAGS=$LDFLAGS
