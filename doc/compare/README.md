@@ -30,8 +30,8 @@ reports.
 
 | | GAOL | libieeep1788 | filib++ | Solaris Studio |
 |---|---|---|---|---|
-| Special cases with IEEE 1788's result | 226 of 257 | 250 of 250 | 126 of 243 | 129 of 232 |
-| … or an interval enclosing it | 25 | 0 | 50 | 36 |
+| Special cases with IEEE 1788's result | 231 of 257 | 250 of 250 | 126 of 243 | 129 of 232 |
+| … or an interval enclosing it | 20 | 0 | 50 | 36 |
 | … or another result | 6 | 0 | 67 | 67 |
 | Cases it has no operation for | 0 | 11 | 15 | 26 |
 | `x + y` | 3.7 ns | 212 ns | 7.4 ns | 25 ns |

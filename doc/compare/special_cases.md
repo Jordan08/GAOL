@@ -57,13 +57,13 @@ exponent, where IEEE 1788's `pow` only takes the part of x in [0, +∞] (see
 161, 174 to 176). GAOL reads a bare number, `interval("0.1")`, as the interval
 enclosing it, an extension of the literals IEEE 1788 allows (19).
 
-Its wider results are a few doubles off: sin, cos and tan by one double, acos,
-the integer powers, `pow(x, y)`, which is exp(y log x), and the odd n-th
-roots, computed as powers with a rounded exponent (`nth_root([−8, 27], 3)` is
-[−2.0000000000000004, 3.000000000000001]); `acos([1, 3])` is
-[−2^-1074, 2^-1074] and `acosh([0, 1])` [−3·2^-1074, 3·2^-1074] rather than
-[0], and `pow([10], −400)` is [0, 5.6e−309] rather than [0, 2^-1074]
-([accuracy](../accuracy.md) gives the tightness of each operation).
+Its wider results are a few doubles off: sin, cos and tan by one double, as
+`pow([−15], 17)`, whose products are rounded one by one, `pow(x, y)`, which is
+exp(y log x), and the odd n-th roots, computed as powers with a rounded
+exponent (`nth_root([−8, 27], 3)` is [−2.0000000000000004, 3.000000000000001])
+([accuracy](../accuracy.md) gives the tightness of each operation). acos,
+acosh and the negative integer powers are the tightest: `acos([1, 3])` and
+`acosh([0, 1])` are [0], and `pow([10], −400)` is [0, 2^-1074].
 
 **filib++** gives the result of IEEE 1788, or an interval enclosing it, in
 176 cases out of 243, and something else in 67. Its extended mode takes the
@@ -151,8 +151,8 @@ give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
 
 | | GAOL | libieeep1788 | filib++ | Solaris Studio |
 |---|---|---|---|---|
-| ✓ the result of IEEE 1788 | 226 | 250 | 126 | 129 |
-| ⊃ encloses it, wider | 25 | 0 | 50 | 36 |
+| ✓ the result of IEEE 1788 | 231 | 250 | 126 | 129 |
+| ⊃ encloses it, wider | 20 | 0 | 50 | 36 |
 | ✗ differs | 6 | 0 | 67 | 67 |
 | n/a no such operation | 0 | 11 | 15 | 26 |
 
@@ -316,16 +316,16 @@ From tests/elementary.cpp (at_known_intervals), check/.
 | 110 | `sqr([−∞, −MAX])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
 | 111 | `asin([−2, 2])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.570796326794901, 1.570796326794901] ⊃ | [−1.5707963267948968, 1.5707963267948968] ✓ |  |
 | 112 | `asin([2, 3])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ |  |
-| 113 | `acos([−2, 2])` | [0, 3.1415926535897936] | [−2^-1074, 3.1415926535897936] ⊃ | [−0, 3.1415926535897936] ✓ | [0, 3.141592653589802] ⊃ | [−0, 3.1415926535897936] ✓ |  |
-| 114 | `acos([1, 3])` | [0] | [−2^-1074, 2^-1074] ⊃ | [−0] ✓ | [0] ✓ | [−0] ✓ |  |
-| 115 | `acos([−3, −1])` | [3.141592653589793, 3.1415926535897936] | [3.1415926535897927, 3.1415926535897936] ⊃ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589785, 3.141592653589802] ⊃ | [3.141592653589793, 3.1415926535897936] ✓ |  |
+| 113 | `acos([−2, 2])` | [0, 3.1415926535897936] | [0, 3.1415926535897936] ✓ | [−0, 3.1415926535897936] ✓ | [0, 3.141592653589802] ⊃ | [−0, 3.1415926535897936] ✓ |  |
+| 114 | `acos([1, 3])` | [0] | [0] ✓ | [−0] ✓ | [0] ✓ | [−0] ✓ |  |
+| 115 | `acos([−3, −1])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589785, 3.141592653589802] ⊃ | [3.141592653589793, 3.1415926535897936] ✓ |  |
 | 116 | `acos([−3, −2])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ |  |
 | 117 | `atan([−∞, +∞])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267949, 1.5707963267949] ⊃ | [−1.5707963267948968, 1.5707963267948968] ✓ |  |
 | 118 | `sinh([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
 | 119 | `cosh([−∞, +∞])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
 | 120 | `tanh([−∞, +∞])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
 | 121 | `asinh([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | Solaris Studio has no asinh, acosh, atanh |
-| 122 | `acosh([0, 1])` | [0] | [−3·2^-1074, 3·2^-1074] ⊃ | [−0] ✓ | [0] ✓ | n/a |  |
+| 122 | `acosh([0, 1])` | [0] | [0] ✓ | [−0] ✓ | [0] ✓ | n/a |  |
 | 123 | `acosh([−1, 0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
 | 124 | `atanh([−1, 1])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a |  |
 | 125 | `atanh([2, 3])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
@@ -358,7 +358,7 @@ From check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
 | 145 | `pow([MAX, +∞], 3)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
 | 146 | `pow([−15], 17)` | [−9.852612533569336e+19, −9.852612533569334e+19] | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569336e+19, −9.852612533569334e+19] ✓ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ |  |
 | 147 | `pow([10], 400)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
-| 148 | `pow([10], −400)` | [0, 2^-1074] | [0, 5.56268464626801e−309] ⊃ | [−0, 2^-1074] ✓ | [0, 5.56268464626801e−309] ⊃ | [−0, 2^-1074] ✓ |  |
+| 148 | `pow([10], −400)` | [0, 2^-1074] | [0, 2^-1074] ✓ | [−0, 2^-1074] ✓ | [0, 5.56268464626801e−309] ⊃ | [−0, 2^-1074] ✓ |  |
 
 ### 9. Real powers (GAOL's pow(x, d) and pow(x, y), pow of IEEE 1788 and of filib++, x**y of Fortran)
 
@@ -425,7 +425,7 @@ From check/non_arithmetic.cpp, tests/arithmetic.cpp.
 | 198 | `nth_root([−8, 27], 3)` | [−2, 3] | [−2.0000000000000004, 3.000000000000001] ⊃ | n/a | n/a | n/a | libieeep1788, filib++ and Solaris Studio have no rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3] |
 | 199 | `nth_root([−4, 9], 2)` | [0, 3] | [0, 3] ✓ | n/a | n/a | n/a |  |
 | 200 | `nth_root([−4, −1], 2)` | ∅ | ∅ ✓ | n/a | n/a | n/a |  |
-| 201 | `nth_root([−8, −1], 3)` | [−2, −1] | [−2.0000000000000004, −0.9999999999999999] ⊃ | n/a | n/a | n/a |  |
+| 201 | `nth_root([−8, −1], 3)` | [−2, −1] | [−2.0000000000000004, −1] ⊃ | n/a | n/a | n/a |  |
 | 202 | `nth_root([0], 5)` | [0] | [0] ✓ | n/a | n/a | n/a |  |
 | 203 | `nth_root([−∞, +∞], 3)` | [−∞, +∞] | [−∞, +∞] ✓ | n/a | n/a | n/a |  |
 | 204 | `nth_root([−∞, +∞], 0)` | — | ∅ | n/a | n/a | n/a | rootn(x, q) is for q ≠ 0 only (Table 10.5) |
