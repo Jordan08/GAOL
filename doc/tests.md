@@ -67,7 +67,7 @@ What they show of GAOL, beyond the fixes below:
   by dividing it by an interval enclosing π: beyond 2^25, an argument within
   about 2^-51·|x| of an extremum may be taken as reaching it. `tan` adds an
   interval enclosing π/2 to its argument to tell its branch, and gives
-  [-oo, +oo] when it cannot.
+  [-oo, +oo] when it cannot. (See [Accuracy of the operations](accuracy.md).)
 - `pow(x, y)` is `exp(y log x)`, whose relative width grows with `|y log x|`.
 - The decimal output of intervals (`interval_format::bounds`) relies on the C
   library to round the bounds outward, which the C runtime of Windows and musl

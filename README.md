@@ -66,6 +66,9 @@ arithmetic that the code including GAOL's headers has to be compiled with.
   agree on, and the compilers and options they refuse.
 - [Tests](doc/tests.md): what the programs of `tests/` check, and what they
   show of GAOL.
+- [Accuracy of the operations](doc/accuracy.md): the tightness of each
+  operation, from its algorithm, as IEEE 1788-2015 requires it to be
+  documented (12.10.3).
 - [What differs from GAOL](doc/differences.md): each change of this fork, and
   where it comes from.
 - [Continuous integration](doc/continuous-integration.md): the systems,
