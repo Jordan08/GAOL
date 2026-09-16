@@ -33,6 +33,15 @@ ARM, arm64 and the other processors of Debian. It was written for
 GAOL. The autotools and meson builds of GAOL are kept, and the three builds
 configure GAOL the same way (see [The three builds](doc/three-builds.md)).
 
+This fork follows [IEEE 1788-2015](https://doi.org/10.1109/IEEESTD.2015.7140721),
+the standard for interval arithmetic, in the operations GAOL provides: the
+empty set, infinite bounds, the domains of the functions, the comparisons,
+the interval literals, and the accuracy of each operation, which
+[Accuracy of the operations](doc/accuracy.md) documents. The few cases where
+it differs, mostly `pow(x, y)`, which takes the integer power `pown` for an
+integer exponent, are listed in
+[the special cases](doc/compare/special_cases.md#what-the-cases-show).
+
 ## Quick start
 
 ```bash
