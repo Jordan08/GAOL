@@ -437,7 +437,7 @@ subdir('gaol')
 subdir('check')
 subdir('examples')
 if doc
-  subdir('doc')
+  subdir('manual')
 endif
 
 ## The pkg-config file (pkg-config --cflags --libs gaol): the flags of interval

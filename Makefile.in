@@ -368,7 +368,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 EXTRA_DIST = BUGS
 SUBDIRS = gaol check examples
-DIST_SUBDIRS = gaol check doc examples
+DIST_SUBDIRS = gaol check manual examples
 ACLOCAL_AMFLAGS = -I m4
 
 # Requires automake 1.4

@@ -704,9 +704,9 @@ AC_SUBST(LDFLAGS)
 AC_CONFIG_FILES([gaol.pc
                  Makefile
         check/Makefile
-		  doc/gaol_doxygen.cfg
-        doc/Makefile
-        doc/gaol_version.tex
+		  manual/gaol_doxygen.cfg
+        manual/Makefile
+        manual/gaol_version.tex
 		  gaol.spec
 		  gaol/Makefile
 		  examples/Makefile])
