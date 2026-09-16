@@ -169,6 +169,9 @@ Each change is a commit of its own, and says where it comes from.
   `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
   the empty set themselves before calling it. `log([0, 1])` is still
   `[-oo, 2^-1074]`.
+- **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
+  the radius, the smallest double r such that the interval is in
+  `[m - r, m + r]`, m being `midpoint()`, and both at once.
 - **The comparisons with the empty set and the infinities** follow IEEE
   1788-2015 (Tables 10.3 and 10.4). `certainly_leq()` and `certainly_le()`,
   `precedes` and `strictPrecedes`, and `certainly_geq()` and

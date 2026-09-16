@@ -6,9 +6,9 @@
  * On random intervals, and for the midpoints on intervals of subnormal bounds,
  * compared exactly with the exact results: midpoints (of gaol::intervalf too),
  * widths, magnitudes and mignitudes, Hausdorff distances, splitting, integer
- * parts; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and the
- * relational functions (sqrt_rel, div_rel...), which have to keep the values
- * they are given and bound them within a few doubles.
+ * parts, radii; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
+ * the relational functions (sqrt_rel, div_rel...), which have to keep the
+ * values they are given and bound them within a few doubles.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -30,6 +30,23 @@ namespace
   // the preimage of an enclosure of the image, as tightly as it allows
   const int limit = 64;
 
+  // The radius, rad of IEEE 1788-2015 (12.12.8): the smallest double r such
+  // that [x] is in [m - r, m + r], m being the midpoint; mid_rad() gives both
+  void radius(const interval& X, const std::string& in)
+  {
+    const double l = X.left(), u = X.right(), m = X.midpoint(), r = X.rad();
+    const auto describe = [&] { return hex(X) + ": " + hex(r); };
+    const auto covers = [&](double t) {
+      return compare(dyadic(m) - dyadic(t), dyadic(l)) <= 0 && compare(dyadic(m) + dyadic(t), dyadic(u)) >= 0;
+    };
+    if (check("rad() encloses [x] around the midpoint" + in, r >= 0.0 && covers(r), describe)) {
+      check("rad() the smallest such radius" + in, r == 0.0 || !covers(previous_double(r)), describe);
+    }
+    double mm, rr;
+    X.mid_rad(mm, rr);
+    check("mid_rad() the midpoint and the radius" + in, mm == m && rr == r, describe);
+  }
+
   // The midpoint, rounded to nearest: within the interval, and one of the
   // doubles on each side of the exact midpoint; and mid(), the tightest interval
   // enclosing it
@@ -44,6 +61,7 @@ namespace
     const interval mid = X.mid();
     check("mid() the tightest enclosure of the exact midpoint" + in, is_tightest_enclosure(mid, middle),
           [&] { return hex(X) + ": " + hex(mid); });
+    radius(X, in);
   }
 
   template<class Draw>
@@ -107,6 +125,16 @@ namespace
     }
     check("width() of unbounded intervals", interval(-inf, 1.).width() == inf);
     check("midpoint() of the empty set", std::isnan(interval::emptyset().midpoint()));
+    check("rad() of the empty set", std::isnan(interval::emptyset().rad()));
+    check("rad() of unbounded intervals", interval::universe().rad() == inf && interval(-inf, 1.).rad() == inf
+                                          && interval(1., inf).rad() == inf);
+    check("rad() of [-MAX, MAX]", interval(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max()).rad()
+                                  == std::numeric_limits<double>::max());
+    {
+      double m, r;
+      interval::emptyset().mid_rad(m, r);
+      check("mid_rad() of the empty set", std::isnan(m) && std::isnan(r));
+    }
     // NaN, as wid of IEEE 1788-2015 (12.12.8): GAOL returned -1
     check("width() of the empty set", std::isnan(interval::emptyset().width()));
     const double a = 0.1;

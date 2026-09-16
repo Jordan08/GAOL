@@ -205,6 +205,8 @@ int main()
     { "midpoint()", [](const interval& x, const interval&) { return S(x.midpoint()); } },
     { "mid()", [](const interval& x, const interval&) { return S(x.mid()); } },
     { "width()", [](const interval& x, const interval&) { return S(x.width()); } },
+    { "rad()", [](const interval& x, const interval&) { return S(x.rad()); } },
+    { "mid_rad()", [](const interval& x, const interval&) { double m, r; x.mid_rad(m, r); return S(m) + " " + S(r); } },
     { "mig()", [](const interval& x, const interval&) { return S(x.mig()); } },
     { "mag()", [](const interval& x, const interval&) { return S(x.mag()); } },
     { "smig()", [](const interval& x, const interval&) { return S(x.smig()); } },

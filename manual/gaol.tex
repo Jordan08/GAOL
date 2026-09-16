@@ -1886,6 +1886,20 @@ relational hyperbolic arcsine is identical to the hyperbolic arcsine, which shou
 \chapter{Interval functions}
 %%==========================
 
+\begin{defmethod}{interval}{double}{rad}{(void) const}
+  \begin{operation}
+    \op{$\code{rad}(\itv{a}{b})=\min\{r\mid [m-r,m+r]\supseteq\itv{a}{b}\}$}
+  \end{operation}
+Returns the radius of \code{self}, the smallest double $r$ such that
+$[m-r,m+r]$ contains \code{self}, $m$ being \code{self.midpoint()}: $+\infty$
+for an unbounded interval, NaN for the empty set (\code{rad} of IEEE 1788-2015).
+\end{defmethod}
+
+\begin{defmethod}{interval}{void}{mid\_rad}{(double\& \var{m}, double\& \var{r}) const}
+Sets \var{m} to \code{self.midpoint()} and \var{r} to \code{self.rad()}
+(\code{midRad} of IEEE 1788-2015).
+\end{defmethod}
+
 \begin{defmethod}{interval}{double}{width}{(void) const}
   \begin{operation}
     \op{$\code{width}(\itv{a}{b})=\roundUp{b-a}$}

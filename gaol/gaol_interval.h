@@ -170,6 +170,19 @@ namespace gaol {
      - mid([-oo,+oo]) = [0,0]
     */
     interval mid(void) const;
+    /*!
+      \brief Radius of an interval, rad of IEEE 1788-2015 (12.12.8)
+
+      The smallest double r such that '*this' is included in [m-r, m+r], m
+      being midpoint(): NaN for the empty set, +oo for an unbounded interval.
+    */
+    double rad(void) const;
+    /*!
+      \brief Midpoint and radius at once, midRad of IEEE 1788-2015 (12.12.8)
+
+      Sets m to midpoint() and r to rad().
+    */
+    void mid_rad(double& m, double& r) const;
 
 
     bool certainly_positive(void) const;
@@ -912,6 +925,36 @@ INLINE double interval::width(void) const
         GAOL_RND_LEAVE();
         return res;
     }
+}
+
+ /*!
+    \brief Midpoint and radius (fork of GAOL)
+
+    The radius is the smallest double r such that m-r <= left() and
+    m+r >= right(), m being the midpoint: the greater of m-left() and
+    right()-m, rounded upward.
+   */
+INLINE void interval::mid_rad(double& m, double& r) const
+{
+    m = midpoint();
+    if (is_empty()) {
+        r = GAOL_NAN;
+        return;
+    }
+    GAOL_RND_ENTER();
+    double below = m - left();
+    double above = right() - m;
+    double res = (below > above) ? below : above;
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    r = res;
+}
+
+INLINE double interval::rad(void) const
+{
+    double m, r;
+    mid_rad(m, r);
+    return r;
 }
 
   //! Relations
