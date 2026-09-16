@@ -120,13 +120,15 @@ public:
       instr >> I;
       CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
       instr.clear();
+      // A lower bound +oo or an upper bound -oo leaves no interval, as
+      // numsToInterval of IEEE 1788-2015 (10.5.8)
       instr.str("[-inf, -inf]");
       instr >> I;
-      CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+      TEST_EMPTY(I);
       instr.clear();
       instr.str("[-inf]");
       instr >> I;
-      CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+      TEST_EMPTY(I);
       instr.clear();
       instr.str("inf");
       instr >> I;
@@ -134,11 +136,11 @@ public:
       instr.clear();
       instr.str("[inf]");
       instr >> I;
-      CPPUNIT_ASSERT(I.left()==std::numeric_limits<double>::max() && I.right()==GAOL_INFINITY);
+      TEST_EMPTY(I);
       instr.clear();
       instr.str("[inf,inf]");
       instr >> I;
-      CPPUNIT_ASSERT(I.left()==std::numeric_limits<double>::max() && I.right()==GAOL_INFINITY);
+      TEST_EMPTY(I);
       instr.clear();
       instr.str("<inf,inf>");
       instr >> I;

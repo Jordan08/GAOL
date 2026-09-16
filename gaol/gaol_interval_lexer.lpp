@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <string>
 #include <vector>
 #include <stdint.h>
 #include "gaol/gaol_config.h"
@@ -128,25 +129,37 @@ namespace {
   }
 
   // The sign of v - x, v being the number s writes, as the rules below match
-  // numbers (decimal digits with an optional point and exponent), and x a
-  // double
+  // numbers (decimal digits with an optional point and exponent, or, after
+  // 0x, hexadecimal digits with an optional point and a binary exponent), and
+  // x a double
   int gaol_compare_number(const char *s, double x)
   {
-    // v = N*10^k, N being written with ndigits digits
+    // v = N*10^k*2^k2, N being written with ndigits digits
     gaol_natural N;
-    long k = 0, ndigits = 0;
+    long k = 0, k2 = 0, ndigits = 0;
+    const bool hexadecimal = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'));
+    const uint32_t base = hexadecimal ? 16 : 10;
+    if (hexadecimal) {
+      s += 2;
+    }
     bool fraction = false;
-    for (; *s != '\0' && *s != 'e' && *s != 'E'; ++s) {
+    for (; *s != '\0' && (hexadecimal ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
       if (*s == '.') {
         fraction = true;
         continue;
       }
-      if (ndigits != 0 || *s != '0') {
-        gaol_natural_mul_add(N, 10, static_cast<uint32_t>(*s - '0'));
+      const uint32_t digit = static_cast<uint32_t>((*s >= '0' && *s <= '9') ? *s - '0'
+                                                   : ((*s | 0x20) - 'a' + 10));
+      if (ndigits != 0 || digit != 0) {
+        gaol_natural_mul_add(N, base, digit);
         ++ndigits;
       }
       if (fraction) {
-        --k;
+        if (hexadecimal) {
+          k2 -= 4;
+        } else {
+          --k;
+        }
       }
     }
     if (*s != '\0') { // Exponent
@@ -161,7 +174,7 @@ namespace {
           e = 10*e + (*s - '0');
         }
       }
-      k += negative ? -e : e;
+      (hexadecimal ? k2 : k) += negative ? -e : e;
     }
 
     if (N.empty()) { // v = 0
@@ -173,12 +186,13 @@ namespace {
     if (x > std::numeric_limits<double>::max()) {
       return -1;
     }
-    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), far above the largest double or
-    // below the least positive one
-    if (k + ndigits - 1 > 310) {
+    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), respectively
+    // 2^(k2+4(ndigits-1)) <= v < 2^(k2+4 ndigits), far above the largest
+    // double or below the least positive one
+    if (hexadecimal ? k2 + 4*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
       return 1;
     }
-    if (k + ndigits < -330) {
+    if (hexadecimal ? k2 + 4*ndigits < -1080 : k + ndigits < -330) {
       return -1;
     }
 
@@ -188,7 +202,7 @@ namespace {
     const uint64_t M = static_cast<uint64_t>(std::ldexp(f, 53));
     const long e = static_cast<long>(ex) - 53;
 
-    // N*5^k*2^k compared with M*2^e
+    // N*5^k*2^(k+k2) compared with M*2^e
     gaol_natural A(N), B;
     B.push_back(static_cast<uint32_t>(M));
     B.push_back(static_cast<uint32_t>(M >> 32));
@@ -197,12 +211,40 @@ namespace {
     } else {
       gaol_natural_mul_pow5(B, -k);
     }
-    if (k >= e) {
-      gaol_natural_shift_left(A, k - e);
+    const long kb = k + k2;
+    if (kb >= e) {
+      gaol_natural_shift_left(A, kb - e);
     } else {
-      gaol_natural_shift_left(B, e - k);
+      gaol_natural_shift_left(B, e - kb);
     }
     return gaol_natural_compare(A, B);
+  }
+
+  // The tightest interval of doubles [l, r] enclosing the number s, with no
+  // sign; returns whether s is a double, l and r being it
+  bool gaol_enclose_number(const char *s, double& l, double& r)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double lo = strtod(s,NULL);
+    // lo is moved to the greatest double below the number
+    int sign = gaol_compare_number(s, lo);
+    while (sign < 0) {
+      lo = previous_float(lo);
+      sign = gaol_compare_number(s, lo);
+    }
+    for (;;) {
+      const double hi = next_float(lo);
+      const int sign_hi = gaol_compare_number(s, hi);
+      if (sign_hi < 0) {
+        GAOL_RND_RESTORE();
+        l = lo;
+        r = (sign == 0) ? lo : hi;
+        return sign == 0;
+      }
+      lo = hi;
+      sign = sign_hi;
+    }
   }
 
   // Reads the number s: returns NUMBER, with gaol_lval.d set to it, if it is a
@@ -210,31 +252,180 @@ namespace {
   // of doubles enclosing it, otherwise
   int gaol_read_number(const char *s)
   {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double l = strtod(s,NULL);
-    // l is moved to the greatest double below the number
-    int sign = gaol_compare_number(s, l);
-    while (sign < 0) {
-      l = previous_float(l);
-      sign = gaol_compare_number(s, l);
+    double l, r;
+    if (gaol_enclose_number(s, l, r)) {
+      gaol_lval.d = l;
+      return NUMBER;
     }
-    for (;;) {
-      const double r = next_float(l);
-      const int sign_r = gaol_compare_number(s, r);
-      if (sign_r < 0) {
-        GAOL_RND_RESTORE();
-        if (sign == 0) {
-          gaol_lval.d = l;
-          return NUMBER;
-        }
-        (gaol_lval.itv).l = l;
-        (gaol_lval.itv).r = r;
-        return INTERVAL_CST;
+    (gaol_lval.itv).l = l;
+    (gaol_lval.itv).r = r;
+    return INTERVAL_CST;
+  }
+
+  // Natural numbers written in decimal, most significant digit first
+  std::string gaol_decimal_strip(const std::string& a)
+  {
+    const std::size_t i = a.find_first_not_of('0');
+    return (i == std::string::npos) ? std::string("0") : a.substr(i);
+  }
+
+  // The sign of a - b
+  int gaol_decimal_compare(const std::string& a, const std::string& b)
+  {
+    const std::string sa = gaol_decimal_strip(a), sb = gaol_decimal_strip(b);
+    if (sa.size() != sb.size()) {
+      return (sa.size() < sb.size()) ? -1 : 1;
+    }
+    return (sa < sb) ? -1 : ((sa > sb) ? 1 : 0);
+  }
+
+  // a + b, or a - b with a >= b
+  std::string gaol_decimal_add_sub(const std::string& a, const std::string& b, bool subtract)
+  {
+    std::string res;
+    int carry = 0;
+    for (std::size_t i = 0; i < a.size() || i < b.size() || carry != 0; ++i) {
+      const int da = (i < a.size()) ? a[a.size() - 1 - i] - '0' : 0;
+      const int db = (i < b.size()) ? b[b.size() - 1 - i] - '0' : 0;
+      int d = subtract ? da - db - carry : da + db + carry;
+      carry = 0;
+      if (d < 0) {
+        d += 10;
+        carry = 1;
+      } else if (d > 9) {
+        d -= 10;
+        carry = 1;
       }
-      l = r;
-      sign = sign_r;
+      res.insert(res.begin(), static_cast<char>('0' + d));
     }
+    return gaol_decimal_strip(res);
+  }
+
+  // A signed decimal integer: its sign and its magnitude
+  struct gaol_decimal
+  {
+    bool negative;
+    std::string magnitude;
+  };
+
+  // a + b, for signed decimal integers
+  gaol_decimal gaol_decimal_add(const gaol_decimal& a, const gaol_decimal& b)
+  {
+    gaol_decimal res;
+    if (a.negative == b.negative) {
+      res.negative = a.negative;
+      res.magnitude = gaol_decimal_add_sub(a.magnitude, b.magnitude, false);
+    } else if (gaol_decimal_compare(a.magnitude, b.magnitude) >= 0) {
+      res.negative = a.negative;
+      res.magnitude = gaol_decimal_add_sub(a.magnitude, b.magnitude, true);
+    } else {
+      res.negative = b.negative;
+      res.magnitude = gaol_decimal_add_sub(b.magnitude, a.magnitude, true);
+    }
+    return res;
+  }
+
+  // The tightest interval of doubles [l, r] enclosing a*10^q
+  void gaol_enclose_decimal(const gaol_decimal& a, long q, double& l, double& r)
+  {
+    const std::string s = a.magnitude + "e" + std::to_string(q);
+    double lo, hi;
+    gaol_enclose_number(s.c_str(), lo, hi);
+    if (a.negative) {
+      l = -hi;
+      r = -lo;
+    } else {
+      l = lo;
+      r = hi;
+    }
+  }
+
+  /*
+    Reads a number in the uncertain form of IEEE 1788-2015 (9.7.4, 12.11.3,
+    fork of GAOL): m?rve, m being a decimal number with an optional sign, r a
+    natural number of units of the last place of m (half a unit when absent)
+    or ?, for an infinite radius, v the direction d or u, and e an exponent
+    written as e and an integer. Returns UNCERTAIN_CST, with gaol_lval.itv set
+    to the tightest interval of doubles enclosing the interval the number
+    denotes: [m-r, m+r] times 10^e, [m-r, m] for d, [m, m+r] for u.
+  */
+  int gaol_read_uncertain(const char *s)
+  {
+    gaol_decimal m;
+    m.negative = (*s == '-');
+    if (*s == '-' || *s == '+') {
+      ++s;
+    }
+    long places = 0; // Digits after the point
+    bool fraction = false;
+    for (; *s != '?'; ++s) {
+      if (*s == '.') {
+        fraction = true;
+        continue;
+      }
+      m.magnitude += *s;
+      if (fraction) {
+        ++places;
+      }
+    }
+    ++s; // '?'
+    bool infinite = false;
+    std::string radius;
+    if (*s == '?') {
+      infinite = true;
+      ++s;
+    } else {
+      for (; *s >= '0' && *s <= '9'; ++s) {
+        radius += *s;
+      }
+    }
+    char direction = 0;
+    if (*s == 'd' || *s == 'D' || *s == 'u' || *s == 'U') {
+      direction = static_cast<char>(*s | 0x20);
+      ++s;
+    }
+    long exponent = 0;
+    if (*s == 'e' || *s == 'E') {
+      ++s;
+      const bool negative = (*s == '-');
+      if (*s == '-' || *s == '+') {
+        ++s;
+      }
+      for (; *s != '\0'; ++s) {
+        if (exponent < 100000) { // Far beyond the doubles already
+          exponent = 10*exponent + (*s - '0');
+        }
+      }
+      if (negative) {
+        exponent = -exponent;
+      }
+    }
+    m.magnitude = gaol_decimal_strip(m.magnitude);
+
+    double l, r;
+    if (infinite) {
+      // m??d is [-oo, m], m??u is [m, +oo], m?? is [-oo, +oo]
+      double ml, mr;
+      gaol_enclose_decimal(m, exponent - places, ml, mr);
+      l = (direction == 'u') ? ml : -GAOL_INFINITY;
+      r = (direction == 'd') ? mr : GAOL_INFINITY;
+    } else {
+      // With one more decimal place, m and the radius are integers: 10m and
+      // 10r, or 5 for half a unit
+      gaol_decimal m10 = m, r10, minus_r10;
+      m10.magnitude += "0";
+      r10.negative = false;
+      r10.magnitude = radius.empty() ? std::string("5") : radius + "0";
+      minus_r10.negative = true;
+      minus_r10.magnitude = r10.magnitude;
+      const long q = exponent - places - 1;
+      double lo, hi;
+      gaol_enclose_decimal((direction == 'u') ? m10 : gaol_decimal_add(m10, minus_r10), q, l, hi);
+      gaol_enclose_decimal((direction == 'd') ? m10 : gaol_decimal_add(m10, r10), q, lo, r);
+    }
+    (gaol_lval.itv).l = l;
+    (gaol_lval.itv).r = r;
+    return UNCERTAIN_CST;
   }
 
 }
@@ -248,18 +439,24 @@ namespace {
 #include <stdint.h>
 }
 
-/* yyunput() and yyinput() are not used */
-%option nounput noinput
+/* yyunput() and yyinput() are not used. The case of letters is ignored, as
+   IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
+   read (fork of GAOL) */
+%option nounput noinput caseless
 
 DIGIT		[0-9]
+HEXDIGIT	[0-9a-f]
 INT		{DIGIT}+
-E 		[eE][+-]?{DIGIT}+
+E 		e[+-]?{DIGIT}+
+DECSIGNIFICAND	{DIGIT}*"."{DIGIT}+|{DIGIT}+"."?
 SPACE		[ \t\r]+
 
 %%
 
 "empty"		{ return EMPTY_STR; }
+"entire"	{ return ENTIRE_STR; }
 "inf"		{ return INFINITY_STR; }
+"infinity"	{ return INFINITY_STR; }
 "pi"		{ return PI_STR; }
 "dmin"                     { return DMIN_STR; }
 "dmax"                    { return DMAX_STR; }
@@ -297,6 +494,8 @@ SPACE		[ \t\r]+
 {DIGIT}+{E} |
 {DIGIT}*"."{DIGIT}+({E})? |
 {DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(gaol_text); }
+0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)p[+-]?{DIGIT}+	{ return gaol_read_number(gaol_text); }
+[+-]?({DECSIGNIFICAND})"?"({DIGIT}+|"?")?[du]?({E})?	{ return gaol_read_uncertain(gaol_text); }
 {SPACE}		{  }
 .		{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 %%

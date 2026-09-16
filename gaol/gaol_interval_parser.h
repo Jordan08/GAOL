@@ -50,77 +50,81 @@ extern int gaol_debug;
   enum yytokentype
   {
     EMPTY_STR = 258,
-    INFINITY_STR = 259,
-    DMIN_STR = 260,
-    DMAX_STR = 261,
-    PI_STR = 262,
-    EXP_STR = 263,
-    LOG_STR = 264,
-    POW_STR = 265,
-    NTH_ROOT_STR = 266,
-    SQRT_STR = 267,
-    COS_STR = 268,
-    SIN_STR = 269,
-    TAN_STR = 270,
-    ATAN2_STR = 271,
-    COSH_STR = 272,
-    SINH_STR = 273,
-    TANH_STR = 274,
-    ACOS_STR = 275,
-    ASIN_STR = 276,
-    ATAN_STR = 277,
-    ACOSH_STR = 278,
-    ASINH_STR = 279,
-    ATANH_STR = 280,
-    UNEXPECTED_CHAR = 281,
-    NUMBER = 282,
-    INTERVAL_CST = 283,
-    UMINUS = 284,
-    UPLUS = 285
+    ENTIRE_STR = 259,
+    INFINITY_STR = 260,
+    DMIN_STR = 261,
+    DMAX_STR = 262,
+    PI_STR = 263,
+    EXP_STR = 264,
+    LOG_STR = 265,
+    POW_STR = 266,
+    NTH_ROOT_STR = 267,
+    SQRT_STR = 268,
+    COS_STR = 269,
+    SIN_STR = 270,
+    TAN_STR = 271,
+    ATAN2_STR = 272,
+    COSH_STR = 273,
+    SINH_STR = 274,
+    TANH_STR = 275,
+    ACOS_STR = 276,
+    ASIN_STR = 277,
+    ATAN_STR = 278,
+    ACOSH_STR = 279,
+    ASINH_STR = 280,
+    ATANH_STR = 281,
+    UNEXPECTED_CHAR = 282,
+    NUMBER = 283,
+    INTERVAL_CST = 284,
+    UNCERTAIN_CST = 285,
+    UMINUS = 286,
+    UPLUS = 287
   };
 #endif
 /* Tokens.  */
 #define EMPTY_STR 258
-#define INFINITY_STR 259
-#define DMIN_STR 260
-#define DMAX_STR 261
-#define PI_STR 262
-#define EXP_STR 263
-#define LOG_STR 264
-#define POW_STR 265
-#define NTH_ROOT_STR 266
-#define SQRT_STR 267
-#define COS_STR 268
-#define SIN_STR 269
-#define TAN_STR 270
-#define ATAN2_STR 271
-#define COSH_STR 272
-#define SINH_STR 273
-#define TANH_STR 274
-#define ACOS_STR 275
-#define ASIN_STR 276
-#define ATAN_STR 277
-#define ACOSH_STR 278
-#define ASINH_STR 279
-#define ATANH_STR 280
-#define UNEXPECTED_CHAR 281
-#define NUMBER 282
-#define INTERVAL_CST 283
-#define UMINUS 284
-#define UPLUS 285
+#define ENTIRE_STR 259
+#define INFINITY_STR 260
+#define DMIN_STR 261
+#define DMAX_STR 262
+#define PI_STR 263
+#define EXP_STR 264
+#define LOG_STR 265
+#define POW_STR 266
+#define NTH_ROOT_STR 267
+#define SQRT_STR 268
+#define COS_STR 269
+#define SIN_STR 270
+#define TAN_STR 271
+#define ATAN2_STR 272
+#define COSH_STR 273
+#define SINH_STR 274
+#define TANH_STR 275
+#define ACOS_STR 276
+#define ASIN_STR 277
+#define ATAN_STR 278
+#define ACOSH_STR 279
+#define ASINH_STR 280
+#define ATANH_STR 281
+#define UNEXPECTED_CHAR 282
+#define NUMBER 283
+#define INTERVAL_CST 284
+#define UNCERTAIN_CST 285
+#define UMINUS 286
+#define UPLUS 287
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 44 "gaol_interval_parser.ypp"
+#line 62 "gaol_interval_parser.ypp"
 
   int i;
   double d;
   Interval_struct itv;
   expr_node* expr;
 
-#line 124 "y.tab.h"
+#line 128 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

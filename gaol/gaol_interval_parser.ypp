@@ -39,6 +39,24 @@ using namespace gaol;
 extern interval *gaol_result_of_parsing;
 extern interval gaol_tmp_itv;
 extern bool gaol_global_parsing_flag;
+
+/*
+  1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (fork of
+  GAOL). An infinity read in an expression is [dmax, +oo] or [-oo, -dmax] (see
+  gaol_expr_eval.h), but a lower bound written inf, or an upper bound written
+  -inf, leaves no interval, as numsToInterval of IEEE 1788-2015 (10.5.8): [inf],
+  [inf, inf] and [inf,] are the empty set.
+*/
+static int gaol_literal_infinity(expr_node *e)
+{
+  if (double_node *d = dynamic_cast<double_node*>(e)) {
+    return (d->get_val() == GAOL_INFINITY) ? 1 : ((d->get_val() == -GAOL_INFINITY) ? -1 : 0);
+  }
+  if (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    return -gaol_literal_infinity(m->get_subexpr());
+  }
+  return 0;
+}
 %}
 
 %union {
@@ -49,7 +67,7 @@ extern bool gaol_global_parsing_flag;
 }
 
 
-%token EMPTY_STR INFINITY_STR DMIN_STR DMAX_STR PI_STR
+%token EMPTY_STR ENTIRE_STR INFINITY_STR DMIN_STR DMAX_STR PI_STR
 %token EXP_STR LOG_STR POW_STR NTH_ROOT_STR SQRT_STR
 %token COS_STR SIN_STR TAN_STR ATAN2_STR
 %token COSH_STR SINH_STR TANH_STR
@@ -57,7 +75,7 @@ extern bool gaol_global_parsing_flag;
 %token ACOSH_STR ASINH_STR ATANH_STR
 %token UNEXPECTED_CHAR
 %token<d> NUMBER
-%token<itv> INTERVAL_CST
+%token<itv> INTERVAL_CST UNCERTAIN_CST
 
 %type<expr> expression function_call
 %type<itv> parsed_interval itv_expr_aux itv_function_call
@@ -157,6 +175,9 @@ parsed_interval
 
 	| '[' expression ']'    			{	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
 																gaol_result_of_parsing);
+					  						if (gaol_literal_infinity($2) != 0) {
+					  							*gaol_result_of_parsing = interval::emptyset();
+					  						}
 					  						delete $2;
 											$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
@@ -164,12 +185,54 @@ parsed_interval
 	| '[' expression ',' expression ']'	{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
 																			expression(*$4),
 																			gaol_result_of_parsing);
+					  						if (gaol_literal_infinity($2) > 0 || gaol_literal_infinity($4) < 0) {
+					  							*gaol_result_of_parsing = interval::emptyset();
+					  						}
 					  						delete $2;
 					  						delete $4;
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
 	| '[' EMPTY_STR ']'					{ 	*gaol_result_of_parsing = interval::emptyset();
+					  						gaol_global_parsing_flag = true;
+                                          	$$.l=gaol_result_of_parsing->left();
+					  						$$.r=gaol_result_of_parsing->right();
+										}
+	/* The literals of IEEE 1788-2015 GAOL did not read (12.11.3, fork of
+	   GAOL): [ ] is the empty set, [entire] and [,] are [-oo, +oo], a bound
+	   left out is infinite, and the uncertain form 3.56?1 is [3.55, 3.57] */
+	| '[' ']'							{ 	*gaol_result_of_parsing = interval::emptyset();
+					  						gaol_global_parsing_flag = true;
+                                          	$$.l=gaol_result_of_parsing->left();
+					  						$$.r=gaol_result_of_parsing->right();
+										}
+	| '[' ENTIRE_STR ']'				{ 	*gaol_result_of_parsing = interval::universe();
+					  						gaol_global_parsing_flag = true;
+                                          	$$.l=gaol_result_of_parsing->left();
+					  						$$.r=gaol_result_of_parsing->right();
+										}
+	| '[' ',' ']'						{ 	*gaol_result_of_parsing = interval::universe();
+					  						gaol_global_parsing_flag = true;
+                                          	$$.l=gaol_result_of_parsing->left();
+					  						$$.r=gaol_result_of_parsing->right();
+										}
+	| '[' expression ',' ']'			{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
+																gaol_result_of_parsing);
+					  						*gaol_result_of_parsing = (gaol_literal_infinity($2) > 0) ? interval::emptyset()
+					  							: interval(gaol_result_of_parsing->left(), GAOL_INFINITY);
+					  						delete $2;
+                                          	$$.l=gaol_result_of_parsing->left();
+					  						$$.r=gaol_result_of_parsing->right();
+										}
+	| '[' ',' expression ']'			{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$3),
+																gaol_result_of_parsing);
+					  						*gaol_result_of_parsing = (gaol_literal_infinity($3) < 0) ? interval::emptyset()
+					  							: interval(-GAOL_INFINITY, gaol_result_of_parsing->right());
+					  						delete $3;
+                                          	$$.l=gaol_result_of_parsing->left();
+					  						$$.r=gaol_result_of_parsing->right();
+										}
+	| UNCERTAIN_CST						{ 	*gaol_result_of_parsing = interval($1.l,$1.r);
 					  						gaol_global_parsing_flag = true;
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();

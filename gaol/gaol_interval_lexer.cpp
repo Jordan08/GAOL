@@ -615,8 +615,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 41
-#define YY_END_OF_BUFFER 42
+#define YY_NUM_RULES 45
+#define YY_END_OF_BUFFER 46
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -624,19 +624,22 @@ struct yy_trans_info
 	flex_int32_t yy_verify;
 	flex_int32_t yy_nxt;
 	};
-static const flex_int16_t yy_accept[98] =
+static const flex_int16_t yy_accept[128] =
     {   0,
-        0,    0,   42,   40,   39,   41,   28,   29,   33,   31,
-       30,   32,   40,   34,   35,   26,   27,   24,   25,   40,
-       40,   40,   40,   40,   40,   40,   40,   40,   40,   39,
-       37,   38,   35,    0,    0,    0,    0,    0,    0,    0,
-        0,    0,    0,    0,    3,    0,    0,    0,    0,    0,
-       37,    0,    0,   36,    0,    0,    0,   11,    0,    0,
-        0,    6,    2,    7,    0,    8,   12,    0,   13,    0,
-       37,    0,    0,   38,   18,   19,   20,   15,    5,    4,
-        0,    0,   16,   10,   17,    0,   37,   21,   22,   14,
-       23,    1,    0,    0,    0,    9,    0
+        0,    0,   46,   44,   43,   45,   30,   31,   35,   33,
+       32,   34,   44,   36,   37,   37,   28,   29,   44,   44,
+       44,   44,   44,   44,   44,   44,   44,   44,   26,   27,
+       43,    0,    0,   39,   40,   37,   42,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        5,    0,    0,    0,    0,    0,    0,    0,   39,    0,
+       42,   42,   42,    0,    0,   38,    0,    0,    0,    0,
+        0,   13,    0,    0,    0,    0,    8,    3,    9,    0,
+       10,   14,    0,   15,    0,   39,    0,    0,   40,    0,
+       42,    0,    0,    0,   20,   21,   22,   17,    7,    6,
 
+        0,    0,    0,    0,   18,   12,   19,    0,   39,    0,
+       41,   23,   24,   16,   25,    1,    0,    0,    0,    2,
+        0,    0,    0,    0,    4,   11,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -645,16 +648,16 @@ static const YY_CHAR yy_ec[256] =
         1,    1,    2,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    2,    1,    1,    1,    1,    1,    1,    1,    4,
-        5,    6,    7,    8,    9,   10,   11,   12,   12,   13,
-       12,   12,   12,   12,   12,   12,   12,    1,    1,   14,
-        1,   15,    1,    1,    1,    1,    1,    1,   16,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-       17,    1,   18,    1,   19,    1,   20,    1,   21,   22,
+        5,    6,    7,    8,    9,   10,   11,   12,   13,   14,
+       13,   13,   13,   13,   13,   13,   13,    1,    1,   15,
+        1,   16,   17,    1,   18,   19,   20,   21,   22,   23,
+       24,   25,   26,    1,    1,   27,   28,   29,   30,   31,
+       32,   33,   34,   35,   36,    1,   37,   38,   39,    1,
+       40,    1,   41,    1,   42,    1,   43,   19,   44,   45,
 
-       23,   24,   25,   26,   27,    1,    1,   28,   29,   30,
-       31,   32,   33,   34,   35,   36,    1,    1,   37,   38,
-       39,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+       46,   47,   48,   49,   50,    1,    1,   51,   52,   53,
+       54,   55,   56,   57,   58,   59,   36,    1,   60,   61,
+       62,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
@@ -671,90 +674,157 @@ static const YY_CHAR yy_ec[256] =
         1,    1,    1,    1,    1
     } ;
 
-static const YY_CHAR yy_meta[40] =
+static const YY_CHAR yy_meta[63] =
     {   0,
+        1,    1,    1,    1,    1,    1,    1,    1,    1,    2,
+        1,    3,    3,    3,    1,    1,    1,    3,    3,    3,
+        3,    3,    3,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+        1,    1,    3,    3,    3,    3,    3,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1
+        1,    1
     } ;
 
-static const flex_int16_t yy_base[98] =
+static const flex_int16_t yy_base[130] =
     {   0,
-        0,    0,  148,  149,  145,  149,  149,  149,  149,  149,
-      149,  149,   28,  149,   32,  149,  149,  149,  149,   22,
-      115,  116,   18,  114,  112,  106,   19,   26,  121,  138,
-       48,   50,   62,   70,  108,  111,  117,  101,   49,  103,
-      102,  109,  107,  105,  149,   93,   99,   94,   97,   77,
-       75,   87,   39,   55,   91,   95,   94,   97,   84,   91,
-       84,  149,  149,  149,  100,  149,   92,   81,   90,   68,
-       80,   94,   92,   96,   89,   76,   84,  149,  149,  149,
-       56,   36,  149,  149,  149,   99,  101,  149,  149,  149,
-      149,  149,   34,   23,   13,  149,  149
+        0,    0,  153,  379,  141,  379,  379,  379,  379,   53,
+      379,   58,   61,  379,   66,   72,  379,  379,   57,   39,
+       53,   68,   58,   60,   60,   72,   81,   81,  379,  379,
+      131,   96,  122,  128,  134,  145,  151,  169,  107,   95,
+      102,  126,   96,  159,  129,  131,  139,  148,  151,  154,
+      379,   63,  157,  155,  160,  194,  202,  211,  214,  225,
+      228,  208,  171,  249,  233,  253,    0,  238,  164,  204,
+      206,  226,  100,  223,  220,  242,  379,  244,  379,   61,
+      379,  246,  237,  252,  268,  271,  290,  274,  277,  293,
+      296,  267,  269,  304,  287,  289,  301,  379,  379,  379,
 
+      280,  287,  292,  290,  379,  379,  379,  315,  318,  321,
+      327,  379,  379,  379,  379,  379,  303,  311,  313,  379,
+      311,  318,  312,  317,  379,  379,  379,  375,   61
     } ;
 
-static const flex_int16_t yy_def[98] =
+static const flex_int16_t yy_def[130] =
     {   0,
-       97,    1,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,    0
+      127,    1,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  128,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  129,  128,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  129,  129,  127,  127,  127,  127,  127,  127,  127,
 
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,    0,  127,  127
     } ;
 
-static const flex_int16_t yy_nxt[189] =
+static const flex_int16_t yy_nxt[442] =
     {   0,
         4,    5,    6,    7,    8,    9,   10,   11,   12,   13,
-       14,   15,   15,   16,   17,    4,   18,   19,    4,   20,
-       21,   22,   23,    4,    4,    4,   24,   25,    4,   26,
-        4,   27,    4,    4,   28,   29,    4,    4,    4,   31,
-       31,   32,   35,   33,   33,   45,   40,   34,   96,   46,
-       54,   54,   47,   95,   34,   41,   36,   37,   48,   31,
-       31,   51,   51,   50,   94,   52,   54,   54,   59,   93,
-       50,   32,   52,   33,   33,   60,   53,   34,   53,   71,
-       71,   54,   54,   70,   34,   70,   51,   51,   71,   71,
-       72,   71,   71,   73,   92,   73,   90,   72,   74,   74,
+       14,   15,   16,   16,   17,   18,    4,   19,    4,   20,
+       21,   22,    4,    4,    4,   23,   24,    4,   25,    4,
+       26,    4,    4,   27,   28,    4,    4,    4,    4,   29,
+       30,    4,   19,   20,   21,   22,    4,    4,    4,   23,
+       24,    4,   25,    4,   26,    4,    4,   27,   28,    4,
+        4,    4,   32,   92,   33,   33,   33,   32,   43,   33,
+       33,   33,   34,   34,   34,   35,   40,   36,   36,   36,
+       44,   35,   37,   36,   36,   36,   48,   38,   37,   49,
+       41,   42,   43,   38,   50,   45,   46,   51,   55,   81,
 
-       86,   89,   86,   74,   74,   87,   87,   74,   74,   91,
-       87,   87,   87,   87,   88,   85,   84,   83,   82,   81,
-       80,   79,   78,   77,   76,   75,   69,   68,   67,   66,
-       65,   64,   63,   62,   61,   58,   57,   56,   55,   30,
-       49,   44,   43,   42,   39,   38,   30,   97,    3,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97
+       40,   52,  104,   39,   44,   47,   53,   56,   56,   56,
+       48,   38,   54,   49,   41,   42,   67,   38,   50,   45,
+       46,   51,   81,   55,   69,   52,   39,   70,   47,   72,
+       53,   57,   31,   33,   33,   33,   54,   99,   37,   34,
+       34,   34,   31,   71,   37,   59,   59,   59,   69,   58,
+       37,   70,  127,   72,   35,   60,   36,   36,   36,   75,
+       99,   37,   61,   61,   61,   76,   38,   62,   71,   77,
+       78,   63,   64,   58,   79,   65,   73,   65,   80,   60,
+       66,   66,   66,   75,   74,   82,   63,   83,   84,   76,
+       38,  127,   64,   77,   78,   63,   64,   95,   79,  127,
+
+      127,   73,   80,  127,  127,   56,   56,   56,   74,   82,
+       37,   83,   84,   56,   56,   56,   64,   85,   37,   85,
+      127,   95,   86,   86,   86,   59,   59,   59,   63,   64,
+       37,   88,   96,   88,   97,   87,   89,   89,   89,   61,
+       61,   61,  127,   63,   66,   66,   66,   93,   63,   64,
+       98,  100,   63,   64,  101,   90,   96,   90,   97,   87,
+       91,   91,   91,   63,   66,   66,   66,  102,   94,  103,
+      105,  106,   63,   64,   98,  100,  107,  127,  101,   86,
+       86,   86,   86,   86,   86,   89,   89,   89,   89,   89,
+       89,  102,   94,  103,  105,  106,  108,   94,  108,   94,
+
+      107,  109,  109,  109,   91,   91,   91,   91,   91,   91,
+      110,  112,  110,  113,  114,  111,  111,  111,  116,  117,
+      118,   94,  119,   94,  120,  115,  109,  109,  109,  109,
+      109,  109,  111,  111,  111,  112,  121,  113,  111,  111,
+      111,  116,  122,  117,  118,  123,  119,  124,  120,  115,
+      125,  126,  127,  127,  127,  127,  127,  127,  127,  127,
+      121,  127,  127,  127,  127,  127,  122,  127,  127,  123,
+      127,  124,  127,  125,  127,  126,   68,   68,    3,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127
     } ;
 
-static const flex_int16_t yy_chk[189] =
+static const flex_int16_t yy_chk[442] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,   13,
-       13,   15,   20,   15,   15,   27,   23,   15,   95,   27,
-       53,   53,   28,   94,   15,   23,   20,   20,   28,   31,
-       31,   32,   32,   31,   93,   32,   54,   54,   39,   82,
-       31,   33,   32,   33,   33,   39,   34,   33,   34,   70,
-       70,   34,   34,   50,   33,   50,   51,   51,   50,   50,
-       51,   71,   71,   52,   81,   52,   77,   51,   52,   52,
+        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+        1,    1,   10,  129,   10,   10,   10,   12,   20,   12,
+       12,   12,   13,   13,   13,   15,   19,   15,   15,   15,
+       21,   16,   15,   16,   16,   16,   23,   15,   16,   24,
+       19,   19,   20,   16,   25,   22,   22,   26,   28,   52,
 
-       72,   76,   72,   73,   73,   72,   72,   74,   74,   77,
-       86,   86,   87,   87,   75,   69,   68,   67,   65,   61,
-       60,   59,   58,   57,   56,   55,   49,   48,   47,   46,
-       44,   43,   42,   41,   40,   38,   37,   36,   35,   30,
-       29,   26,   25,   24,   22,   21,    5,    3,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97,   97,   97,
-       97,   97,   97,   97,   97,   97,   97,   97
+       19,   26,   80,   15,   21,   22,   27,   32,   32,   32,
+       23,   15,   27,   24,   19,   19,   39,   16,   25,   22,
+       22,   26,   52,   28,   40,   26,   15,   41,   22,   43,
+       27,   33,   31,   33,   33,   33,   27,   73,   33,   34,
+       34,   34,    5,   42,   34,   35,   35,   35,   40,   34,
+       35,   41,    3,   43,   36,   35,   36,   36,   36,   45,
+       73,   36,   37,   37,   37,   46,   36,   37,   42,   47,
+       48,   37,   37,   34,   49,   38,   44,   38,   50,   35,
+       38,   38,   38,   45,   44,   53,   37,   54,   55,   46,
+       36,    0,   63,   47,   48,   37,   37,   69,   49,    0,
+
+        0,   44,   50,    0,    0,   56,   56,   56,   44,   53,
+       56,   54,   55,   57,   57,   57,   63,   58,   57,   58,
+        0,   69,   58,   58,   58,   59,   59,   59,   62,   62,
+       59,   60,   70,   60,   71,   59,   60,   60,   60,   61,
+       61,   61,    0,   62,   65,   65,   65,   68,   61,   61,
+       72,   74,   62,   62,   75,   64,   70,   64,   71,   59,
+       64,   64,   64,   61,   66,   66,   66,   76,   68,   78,
+       82,   83,   61,   61,   72,   74,   84,    0,   75,   85,
+       85,   85,   86,   86,   86,   88,   88,   88,   89,   89,
+       89,   76,   68,   78,   82,   83,   87,   92,   87,   93,
+
+       84,   87,   87,   87,   90,   90,   90,   91,   91,   91,
+       94,   95,   94,   96,   97,   94,   94,   94,  101,  102,
+      103,   92,  104,   93,  117,   97,  108,  108,  108,  109,
+      109,  109,  110,  110,  110,   95,  118,   96,  111,  111,
+      111,  101,  119,  102,  103,  121,  104,  122,  117,   97,
+      123,  124,    0,    0,    0,    0,    0,    0,    0,    0,
+      118,    0,    0,    0,    0,    0,  119,    0,    0,  121,
+        0,  122,    0,  123,    0,  124,  128,  128,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127,  127,  127,  127,  127,  127,  127,  127,  127,  127,
+      127
     } ;
 
 static yy_state_type yy_last_accepting_state;
@@ -798,6 +868,7 @@ char *yytext;
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <string>
 #include <vector>
 #include <stdint.h>
 #include "gaol/gaol_config.h"
@@ -902,25 +973,37 @@ namespace {
   }
 
   // The sign of v - x, v being the number s writes, as the rules below match
-  // numbers (decimal digits with an optional point and exponent), and x a
-  // double
+  // numbers (decimal digits with an optional point and exponent, or, after
+  // 0x, hexadecimal digits with an optional point and a binary exponent), and
+  // x a double
   int gaol_compare_number(const char *s, double x)
   {
-    // v = N*10^k, N being written with ndigits digits
+    // v = N*10^k*2^k2, N being written with ndigits digits
     gaol_natural N;
-    long k = 0, ndigits = 0;
+    long k = 0, k2 = 0, ndigits = 0;
+    const bool hexadecimal = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'));
+    const uint32_t base = hexadecimal ? 16 : 10;
+    if (hexadecimal) {
+      s += 2;
+    }
     bool fraction = false;
-    for (; *s != '\0' && *s != 'e' && *s != 'E'; ++s) {
+    for (; *s != '\0' && (hexadecimal ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
       if (*s == '.') {
         fraction = true;
         continue;
       }
-      if (ndigits != 0 || *s != '0') {
-        gaol_natural_mul_add(N, 10, static_cast<uint32_t>(*s - '0'));
+      const uint32_t digit = static_cast<uint32_t>((*s >= '0' && *s <= '9') ? *s - '0'
+                                                   : ((*s | 0x20) - 'a' + 10));
+      if (ndigits != 0 || digit != 0) {
+        gaol_natural_mul_add(N, base, digit);
         ++ndigits;
       }
       if (fraction) {
-        --k;
+        if (hexadecimal) {
+          k2 -= 4;
+        } else {
+          --k;
+        }
       }
     }
     if (*s != '\0') { // Exponent
@@ -935,7 +1018,7 @@ namespace {
           e = 10*e + (*s - '0');
         }
       }
-      k += negative ? -e : e;
+      (hexadecimal ? k2 : k) += negative ? -e : e;
     }
 
     if (N.empty()) { // v = 0
@@ -947,12 +1030,13 @@ namespace {
     if (x > std::numeric_limits<double>::max()) {
       return -1;
     }
-    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), far above the largest double or
-    // below the least positive one
-    if (k + ndigits - 1 > 310) {
+    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), respectively
+    // 2^(k2+4(ndigits-1)) <= v < 2^(k2+4 ndigits), far above the largest
+    // double or below the least positive one
+    if (hexadecimal ? k2 + 4*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
       return 1;
     }
-    if (k + ndigits < -330) {
+    if (hexadecimal ? k2 + 4*ndigits < -1080 : k + ndigits < -330) {
       return -1;
     }
 
@@ -962,7 +1046,7 @@ namespace {
     const uint64_t M = static_cast<uint64_t>(std::ldexp(f, 53));
     const long e = static_cast<long>(ex) - 53;
 
-    // N*5^k*2^k compared with M*2^e
+    // N*5^k*2^(k+k2) compared with M*2^e
     gaol_natural A(N), B;
     B.push_back(static_cast<uint32_t>(M));
     B.push_back(static_cast<uint32_t>(M >> 32));
@@ -971,12 +1055,40 @@ namespace {
     } else {
       gaol_natural_mul_pow5(B, -k);
     }
-    if (k >= e) {
-      gaol_natural_shift_left(A, k - e);
+    const long kb = k + k2;
+    if (kb >= e) {
+      gaol_natural_shift_left(A, kb - e);
     } else {
-      gaol_natural_shift_left(B, e - k);
+      gaol_natural_shift_left(B, e - kb);
     }
     return gaol_natural_compare(A, B);
+  }
+
+  // The tightest interval of doubles [l, r] enclosing the number s, with no
+  // sign; returns whether s is a double, l and r being it
+  bool gaol_enclose_number(const char *s, double& l, double& r)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double lo = strtod(s,NULL);
+    // lo is moved to the greatest double below the number
+    int sign = gaol_compare_number(s, lo);
+    while (sign < 0) {
+      lo = previous_float(lo);
+      sign = gaol_compare_number(s, lo);
+    }
+    for (;;) {
+      const double hi = next_float(lo);
+      const int sign_hi = gaol_compare_number(s, hi);
+      if (sign_hi < 0) {
+        GAOL_RND_RESTORE();
+        l = lo;
+        r = (sign == 0) ? lo : hi;
+        return sign == 0;
+      }
+      lo = hi;
+      sign = sign_hi;
+    }
   }
 
   // Reads the number s: returns NUMBER, with gaol_lval.d set to it, if it is a
@@ -984,39 +1096,190 @@ namespace {
   // of doubles enclosing it, otherwise
   int gaol_read_number(const char *s)
   {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double l = strtod(s,NULL);
-    // l is moved to the greatest double below the number
-    int sign = gaol_compare_number(s, l);
-    while (sign < 0) {
-      l = previous_float(l);
-      sign = gaol_compare_number(s, l);
+    double l, r;
+    if (gaol_enclose_number(s, l, r)) {
+      gaol_lval.d = l;
+      return NUMBER;
     }
-    for (;;) {
-      const double r = next_float(l);
-      const int sign_r = gaol_compare_number(s, r);
-      if (sign_r < 0) {
-        GAOL_RND_RESTORE();
-        if (sign == 0) {
-          gaol_lval.d = l;
-          return NUMBER;
-        }
-        (gaol_lval.itv).l = l;
-        (gaol_lval.itv).r = r;
-        return INTERVAL_CST;
+    (gaol_lval.itv).l = l;
+    (gaol_lval.itv).r = r;
+    return INTERVAL_CST;
+  }
+
+  // Natural numbers written in decimal, most significant digit first
+  std::string gaol_decimal_strip(const std::string& a)
+  {
+    const std::size_t i = a.find_first_not_of('0');
+    return (i == std::string::npos) ? std::string("0") : a.substr(i);
+  }
+
+  // The sign of a - b
+  int gaol_decimal_compare(const std::string& a, const std::string& b)
+  {
+    const std::string sa = gaol_decimal_strip(a), sb = gaol_decimal_strip(b);
+    if (sa.size() != sb.size()) {
+      return (sa.size() < sb.size()) ? -1 : 1;
+    }
+    return (sa < sb) ? -1 : ((sa > sb) ? 1 : 0);
+  }
+
+  // a + b, or a - b with a >= b
+  std::string gaol_decimal_add_sub(const std::string& a, const std::string& b, bool subtract)
+  {
+    std::string res;
+    int carry = 0;
+    for (std::size_t i = 0; i < a.size() || i < b.size() || carry != 0; ++i) {
+      const int da = (i < a.size()) ? a[a.size() - 1 - i] - '0' : 0;
+      const int db = (i < b.size()) ? b[b.size() - 1 - i] - '0' : 0;
+      int d = subtract ? da - db - carry : da + db + carry;
+      carry = 0;
+      if (d < 0) {
+        d += 10;
+        carry = 1;
+      } else if (d > 9) {
+        d -= 10;
+        carry = 1;
       }
-      l = r;
-      sign = sign_r;
+      res.insert(res.begin(), static_cast<char>('0' + d));
+    }
+    return gaol_decimal_strip(res);
+  }
+
+  // A signed decimal integer: its sign and its magnitude
+  struct gaol_decimal
+  {
+    bool negative;
+    std::string magnitude;
+  };
+
+  // a + b, for signed decimal integers
+  gaol_decimal gaol_decimal_add(const gaol_decimal& a, const gaol_decimal& b)
+  {
+    gaol_decimal res;
+    if (a.negative == b.negative) {
+      res.negative = a.negative;
+      res.magnitude = gaol_decimal_add_sub(a.magnitude, b.magnitude, false);
+    } else if (gaol_decimal_compare(a.magnitude, b.magnitude) >= 0) {
+      res.negative = a.negative;
+      res.magnitude = gaol_decimal_add_sub(a.magnitude, b.magnitude, true);
+    } else {
+      res.negative = b.negative;
+      res.magnitude = gaol_decimal_add_sub(b.magnitude, a.magnitude, true);
+    }
+    return res;
+  }
+
+  // The tightest interval of doubles [l, r] enclosing a*10^q
+  void gaol_enclose_decimal(const gaol_decimal& a, long q, double& l, double& r)
+  {
+    const std::string s = a.magnitude + "e" + std::to_string(q);
+    double lo, hi;
+    gaol_enclose_number(s.c_str(), lo, hi);
+    if (a.negative) {
+      l = -hi;
+      r = -lo;
+    } else {
+      l = lo;
+      r = hi;
     }
   }
 
-}
-#line 1016 "lex.gaol_.c"
+  /*
+    Reads a number in the uncertain form of IEEE 1788-2015 (9.7.4, 12.11.3,
+    fork of GAOL): m?rve, m being a decimal number with an optional sign, r a
+    natural number of units of the last place of m (half a unit when absent)
+    or ?, for an infinite radius, v the direction d or u, and e an exponent
+    written as e and an integer. Returns UNCERTAIN_CST, with gaol_lval.itv set
+    to the tightest interval of doubles enclosing the interval the number
+    denotes: [m-r, m+r] times 10^e, [m-r, m] for d, [m, m+r] for u.
+  */
+  int gaol_read_uncertain(const char *s)
+  {
+    gaol_decimal m;
+    m.negative = (*s == '-');
+    if (*s == '-' || *s == '+') {
+      ++s;
+    }
+    long places = 0; // Digits after the point
+    bool fraction = false;
+    for (; *s != '?'; ++s) {
+      if (*s == '.') {
+        fraction = true;
+        continue;
+      }
+      m.magnitude += *s;
+      if (fraction) {
+        ++places;
+      }
+    }
+    ++s; // '?'
+    bool infinite = false;
+    std::string radius;
+    if (*s == '?') {
+      infinite = true;
+      ++s;
+    } else {
+      for (; *s >= '0' && *s <= '9'; ++s) {
+        radius += *s;
+      }
+    }
+    char direction = 0;
+    if (*s == 'd' || *s == 'D' || *s == 'u' || *s == 'U') {
+      direction = static_cast<char>(*s | 0x20);
+      ++s;
+    }
+    long exponent = 0;
+    if (*s == 'e' || *s == 'E') {
+      ++s;
+      const bool negative = (*s == '-');
+      if (*s == '-' || *s == '+') {
+        ++s;
+      }
+      for (; *s != '\0'; ++s) {
+        if (exponent < 100000) { // Far beyond the doubles already
+          exponent = 10*exponent + (*s - '0');
+        }
+      }
+      if (negative) {
+        exponent = -exponent;
+      }
+    }
+    m.magnitude = gaol_decimal_strip(m.magnitude);
 
-/* yyunput() and yyinput() are not used */
+    double l, r;
+    if (infinite) {
+      // m??d is [-oo, m], m??u is [m, +oo], m?? is [-oo, +oo]
+      double ml, mr;
+      gaol_enclose_decimal(m, exponent - places, ml, mr);
+      l = (direction == 'u') ? ml : -GAOL_INFINITY;
+      r = (direction == 'd') ? mr : GAOL_INFINITY;
+    } else {
+      // With one more decimal place, m and the radius are integers: 10m and
+      // 10r, or 5 for half a unit
+      gaol_decimal m10 = m, r10, minus_r10;
+      m10.magnitude += "0";
+      r10.negative = false;
+      r10.magnitude = radius.empty() ? std::string("5") : radius + "0";
+      minus_r10.negative = true;
+      minus_r10.magnitude = r10.magnitude;
+      const long q = exponent - places - 1;
+      double lo, hi;
+      gaol_enclose_decimal((direction == 'u') ? m10 : gaol_decimal_add(m10, minus_r10), q, l, hi);
+      gaol_enclose_decimal((direction == 'd') ? m10 : gaol_decimal_add(m10, r10), q, lo, r);
+    }
+    (gaol_lval.itv).l = l;
+    (gaol_lval.itv).r = r;
+    return UNCERTAIN_CST;
+  }
+
+}
+#line 1277 "lex.gaol_.c"
+
+/* yyunput() and yyinput() are not used. The case of letters is ignored, as
+   IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
+   read (fork of GAOL) */
 #define YY_NO_INPUT 1
-#line 1020 "lex.gaol_.c"
+#line 1283 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1231,10 +1494,10 @@ YY_DECL
 		}
 
 	{
-#line 259 "gaol_interval_lexer.lpp"
+#line 454 "gaol_interval_lexer.lpp"
 
 
-#line 1238 "lex.gaol_.c"
+#line 1501 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1261,13 +1524,13 @@ yy_match:
 			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 				{
 				yy_current_state = (int) yy_def[yy_current_state];
-				if ( yy_current_state >= 98 )
+				if ( yy_current_state >= 128 )
 					yy_c = yy_meta[yy_c];
 				}
 			yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
 			++yy_cp;
 			}
-		while ( yy_base[yy_current_state] != 149 );
+		while ( yy_base[yy_current_state] != 379 );
 
 yy_find_action:
 		yy_act = yy_accept[yy_current_state];
@@ -1293,201 +1556,221 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 261 "gaol_interval_lexer.lpp"
+#line 456 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 262 "gaol_interval_lexer.lpp"
-{ return INFINITY_STR; }
+#line 457 "gaol_interval_lexer.lpp"
+{ return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 263 "gaol_interval_lexer.lpp"
-{ return PI_STR; }
+#line 458 "gaol_interval_lexer.lpp"
+{ return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 264 "gaol_interval_lexer.lpp"
-{ return DMIN_STR; }
+#line 459 "gaol_interval_lexer.lpp"
+{ return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 265 "gaol_interval_lexer.lpp"
-{ return DMAX_STR; }
+#line 460 "gaol_interval_lexer.lpp"
+{ return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 266 "gaol_interval_lexer.lpp"
-{ return EXP_STR; }
+#line 461 "gaol_interval_lexer.lpp"
+{ return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 267 "gaol_interval_lexer.lpp"
-{ return LOG_STR; }
+#line 462 "gaol_interval_lexer.lpp"
+{ return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 268 "gaol_interval_lexer.lpp"
-{ return POW_STR; }
+#line 463 "gaol_interval_lexer.lpp"
+{ return EXP_STR; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 269 "gaol_interval_lexer.lpp"
-{ return NTH_ROOT_STR; }
+#line 464 "gaol_interval_lexer.lpp"
+{ return LOG_STR; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 270 "gaol_interval_lexer.lpp"
-{ return SQRT_STR; }
+#line 465 "gaol_interval_lexer.lpp"
+{ return POW_STR; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 271 "gaol_interval_lexer.lpp"
-{ return COS_STR; }
+#line 466 "gaol_interval_lexer.lpp"
+{ return NTH_ROOT_STR; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 272 "gaol_interval_lexer.lpp"
-{ return SIN_STR; }
+#line 467 "gaol_interval_lexer.lpp"
+{ return SQRT_STR; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 273 "gaol_interval_lexer.lpp"
-{ return TAN_STR; }
+#line 468 "gaol_interval_lexer.lpp"
+{ return COS_STR; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 274 "gaol_interval_lexer.lpp"
-{ return ATAN2_STR; }
+#line 469 "gaol_interval_lexer.lpp"
+{ return SIN_STR; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 275 "gaol_interval_lexer.lpp"
-{ return COSH_STR; }
+#line 470 "gaol_interval_lexer.lpp"
+{ return TAN_STR; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 276 "gaol_interval_lexer.lpp"
-{ return SINH_STR; }
+#line 471 "gaol_interval_lexer.lpp"
+{ return ATAN2_STR; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 277 "gaol_interval_lexer.lpp"
-{ return TANH_STR; }
+#line 472 "gaol_interval_lexer.lpp"
+{ return COSH_STR; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 278 "gaol_interval_lexer.lpp"
-{ return ACOS_STR; }
+#line 473 "gaol_interval_lexer.lpp"
+{ return SINH_STR; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 279 "gaol_interval_lexer.lpp"
-{ return ASIN_STR; }
+#line 474 "gaol_interval_lexer.lpp"
+{ return TANH_STR; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 280 "gaol_interval_lexer.lpp"
-{ return ATAN_STR; }
+#line 475 "gaol_interval_lexer.lpp"
+{ return ACOS_STR; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 281 "gaol_interval_lexer.lpp"
-{ return ACOSH_STR; }
+#line 476 "gaol_interval_lexer.lpp"
+{ return ASIN_STR; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 282 "gaol_interval_lexer.lpp"
-{ return ASINH_STR; }
+#line 477 "gaol_interval_lexer.lpp"
+{ return ATAN_STR; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 283 "gaol_interval_lexer.lpp"
-{ return ATANH_STR; }
+#line 478 "gaol_interval_lexer.lpp"
+{ return ACOSH_STR; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 284 "gaol_interval_lexer.lpp"
-{ return '['; }
+#line 479 "gaol_interval_lexer.lpp"
+{ return ASINH_STR; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 285 "gaol_interval_lexer.lpp"
-{ return ']'; }
+#line 480 "gaol_interval_lexer.lpp"
+{ return ATANH_STR; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 286 "gaol_interval_lexer.lpp"
-{ return '<'; }
+#line 481 "gaol_interval_lexer.lpp"
+{ return '['; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 287 "gaol_interval_lexer.lpp"
-{ return '>'; }
+#line 482 "gaol_interval_lexer.lpp"
+{ return ']'; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 288 "gaol_interval_lexer.lpp"
-{ return '('; }
+#line 483 "gaol_interval_lexer.lpp"
+{ return '<'; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 289 "gaol_interval_lexer.lpp"
-{ return ')'; }
+#line 484 "gaol_interval_lexer.lpp"
+{ return '>'; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 290 "gaol_interval_lexer.lpp"
-{ return ','; }
+#line 485 "gaol_interval_lexer.lpp"
+{ return '('; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 291 "gaol_interval_lexer.lpp"
-{ return '+'; }
+#line 486 "gaol_interval_lexer.lpp"
+{ return ')'; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 292 "gaol_interval_lexer.lpp"
-{ return '-'; }
+#line 487 "gaol_interval_lexer.lpp"
+{ return ','; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 293 "gaol_interval_lexer.lpp"
-{ return '*'; }
+#line 488 "gaol_interval_lexer.lpp"
+{ return '+'; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 294 "gaol_interval_lexer.lpp"
-{ return '/'; }
+#line 489 "gaol_interval_lexer.lpp"
+{ return '-'; }
 	YY_BREAK
 case 35:
-#line 297 "gaol_interval_lexer.lpp"
+YY_RULE_SETUP
+#line 490 "gaol_interval_lexer.lpp"
+{ return '*'; }
+	YY_BREAK
 case 36:
-#line 298 "gaol_interval_lexer.lpp"
+YY_RULE_SETUP
+#line 491 "gaol_interval_lexer.lpp"
+{ return '/'; }
+	YY_BREAK
 case 37:
-#line 299 "gaol_interval_lexer.lpp"
+#line 494 "gaol_interval_lexer.lpp"
 case 38:
-YY_RULE_SETUP
-#line 299 "gaol_interval_lexer.lpp"
-{ return gaol_read_number(gaol_text); }
-	YY_BREAK
+#line 495 "gaol_interval_lexer.lpp"
 case 39:
-YY_RULE_SETUP
-#line 300 "gaol_interval_lexer.lpp"
-{  }
-	YY_BREAK
+#line 496 "gaol_interval_lexer.lpp"
 case 40:
 YY_RULE_SETUP
-#line 301 "gaol_interval_lexer.lpp"
-{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
+#line 496 "gaol_interval_lexer.lpp"
+{ return gaol_read_number(gaol_text); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 302 "gaol_interval_lexer.lpp"
+#line 497 "gaol_interval_lexer.lpp"
+{ return gaol_read_number(gaol_text); }
+	YY_BREAK
+case 42:
+YY_RULE_SETUP
+#line 498 "gaol_interval_lexer.lpp"
+{ return gaol_read_uncertain(gaol_text); }
+	YY_BREAK
+case 43:
+YY_RULE_SETUP
+#line 499 "gaol_interval_lexer.lpp"
+{  }
+	YY_BREAK
+case 44:
+YY_RULE_SETUP
+#line 500 "gaol_interval_lexer.lpp"
+{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
+	YY_BREAK
+case 45:
+YY_RULE_SETUP
+#line 501 "gaol_interval_lexer.lpp"
 ECHO;
 	YY_BREAK
-#line 1491 "lex.gaol_.c"
+#line 1774 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1784,7 +2067,7 @@ static int yy_get_next_buffer (void)
 		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 			{
 			yy_current_state = (int) yy_def[yy_current_state];
-			if ( yy_current_state >= 98 )
+			if ( yy_current_state >= 128 )
 				yy_c = yy_meta[yy_c];
 			}
 		yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
@@ -1812,11 +2095,11 @@ static int yy_get_next_buffer (void)
 	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 		{
 		yy_current_state = (int) yy_def[yy_current_state];
-		if ( yy_current_state >= 98 )
+		if ( yy_current_state >= 128 )
 			yy_c = yy_meta[yy_c];
 		}
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
-	yy_is_jam = (yy_current_state == 97);
+	yy_is_jam = (yy_current_state == 127);
 
 		return yy_is_jam ? 0 : yy_current_state;
 }
@@ -2455,7 +2738,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 302 "gaol_interval_lexer.lpp"
+#line 501 "gaol_interval_lexer.lpp"
 
 
 YY_BUFFER_STATE gaol_interval_parsing_buffer;

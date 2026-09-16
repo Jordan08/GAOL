@@ -10,7 +10,10 @@
  * 2pi and pi/2, and the hexadecimal output to give the bounds bit for bit.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
- * in the wrong order, and NaN bounds.
+ * in the wrong order, and NaN bounds. The interval literals of IEEE 1788-2015
+ * (9.7, 12.11) have to be read, whatever the case of their letters: [ ],
+ * [empty], [entire], bounds left out or infinite, hexadecimal numbers and the
+ * uncertain form 3.56?1.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -200,6 +203,114 @@ namespace
     check("midpoint([-oo, 1])", interval(-inf, 1.).midpoint() == -largest);
   }
 
+  // The interval literals of IEEE 1788-2015 (9.7, 12.11): GAOL read neither
+  // [entire], [ ], the bounds left out, infinity, the hexadecimal numbers nor
+  // the uncertain form, and the case of the letters mattered
+  void ieee_literals()
+  {
+    const Exact third = quotient(dyadic(1.0), dyadic(3.0));
+    // The examples of Tables 9.4 and 12.1, and others
+    const struct { const char *s; Exact lo, hi; } tightest[] = {
+      { "[1.e-3, 1.1e-3]", decimal("1.e-3"), decimal("1.1e-3") },
+      { "[-0x1.3p-1, 2/3]", exact(-0x1.3p-1), quotient(dyadic(2.0), dyadic(3.0)) },
+      { "[3.56]", decimal("3.56"), decimal("3.56") },
+      { "3.56?1", decimal("3.55"), decimal("3.57") },
+      { "3.56?1e2", decimal("355"), decimal("357") },
+      { "3.560?2", decimal("3.558"), decimal("3.562") },
+      { "3.56?", decimal("3.555"), decimal("3.565") },
+      { "3.560?2u", decimal("3.560"), decimal("3.562") },
+      { "-10?", -decimal("10.5"), -decimal("9.5") },
+      { "-10?u", -decimal("10.0"), -decimal("9.5") },
+      { "-10?12", -decimal("22"), decimal("2") },
+      { "0.1?1", decimal("0"), decimal("0.2") },
+      { "+.5?D", decimal(".45"), decimal(".5") },
+      { "1.?3E-400", -decimal("2e-400"), decimal("4e-400") },
+      { "1?e400", decimal("0.5e400"), decimal("1.5e400") },
+      { "[0x1.00000000000001p0]", exact(dyadic(1.0) + dyadic(0x1p-56)), exact(dyadic(1.0) + dyadic(0x1p-56)) },
+      { "[0X.8P1, 0xAp-1]", exact(1.0), exact(5.0) },
+      { "[0x.2P0, 1/3]", exact(0.125), third },
+    };
+    for (const auto& c : tightest) {
+      const interval r = evaluate(std::string("interval(\"") + c.s + "\")", [&] { return interval(c.s); },
+                                  [] { return std::string(); });
+      check("IEEE 1788 literals: the tightest enclosure", !r.is_empty() && is_tightest_enclosure(r, c.lo, c.hi),
+            [&] { return std::string("\"") + c.s + "\": " + hex(r); });
+    }
+
+    const double largest = std::numeric_limits<double>::max();
+    const struct { const char *s; double lo, hi; bool empty; } exactly[] = {
+      { "[ ]", 0., 0., true },
+      { "[]", 0., 0., true },
+      { "[empty]", 0., 0., true },
+      { "[ Empty ]", 0., 0., true },
+      { "[EMPTY]", 0., 0., true },
+      { "[entire]", -inf, inf, false },
+      { "[ Entire ]", -inf, inf, false },
+      { "[,]", -inf, inf, false },
+      { "[1,]", 1., inf, false },
+      { "[, 2]", -inf, 2., false },
+      { "[0x1.3p-1,]", 0x1.3p-1, inf, false },
+      { "[1, inf]", 1., inf, false },
+      { "[1,Inf]", 1., inf, false },
+      { "[-INFINITY, +infinity]", -inf, inf, false },
+      { "[-Inf, 2]", -inf, 2., false },
+      { "[1e309, inf]", largest, inf, false },
+      { "-10??u", -10., inf, false },
+      { "-10??d", -inf, -10., false },
+      { "-10??", -inf, inf, false },
+      { "[0x1p-1074]", 0x1p-1074, 0x1p-1074, false },
+      { "[0x1.fffffffffffffp1023]", largest, largest, false },
+      { "[0x1.fffffffffffff8p1023]", largest, inf, false },
+      // numsToInterval has no value for a lower bound +oo nor an upper bound
+      // -oo (10.5.8): these are the empty set
+      { "[inf]", 0., 0., true },
+      { "[-inf]", 0., 0., true },
+      { "[inf, inf]", 0., 0., true },
+      { "[-inf, -inf]", 0., 0., true },
+      { "[+inf,]", 0., 0., true },
+      { "[, -Infinity]", 0., 0., true },
+      { "[2, 1]", 0., 0., true },
+      { "[0x2p0, 1/1]", 0., 0., true },
+    };
+    for (const auto& c : exactly) {
+      const interval r = evaluate(std::string("interval(\"") + c.s + "\")", [&] { return interval(c.s); },
+                                  [] { return std::string(); });
+      check("IEEE 1788 literals: exact", c.empty ? r.is_empty() : (!r.is_empty() && r.left() == c.lo && r.right() == c.hi),
+            [&] { return std::string("\"") + c.s + "\": " + hex(r); });
+    }
+
+    // Not literals of IEEE 1788 (12.11.3): input_format_error
+    const char *const invalid[] = { "[5?1]", "[1 000 000]", "[ganz]", "[entire!comment]", "5???u", "[1,2,3]", "3.56?1?" };
+    for (const char *s : invalid) {
+      bool threw = false;
+      try {
+        interval x(s);
+      } catch (input_format_error&) {
+        threw = true;
+      } catch (...) {
+      }
+      check("IEEE 1788 literals: input_format_error for what is not one", threw, [&] { return std::string(s); });
+    }
+
+    // Doubles written in hexadecimal, with 13 digits after the point, are read
+    // exactly; with a 14th digit 8, half a unit above them, as the tightest
+    // interval
+    Random random;
+    for (int i = 0; i < nb_random_values; ++i) {
+      const double x = random(-1000, 1000);
+      const std::string s = format("%.13a", x);
+      const interval r(("[" + s + "]").c_str());
+      check("interval(\"[hexadecimal double]\"): the double", r.left() == x && r.right() == x,
+            [&] { return s + ": " + hex(r); });
+      std::string t = s;
+      t.insert(t.find_first_of("pP"), "8");
+      const Dyadic half_unit = dyadic(std::ldexp(x < 0.0 ? -1.0 : 1.0, std::ilogb(x) - 53));
+      const interval u(("[" + t + "]").c_str());
+      check("interval(\"[hexadecimal number]\"): the tightest enclosure",
+            is_tightest_enclosure(u, exact(dyadic(x) + half_unit)), [&] { return t + ": " + hex(u); });
+    }
+  }
+
   // The hexadecimal output gives the bits of the bounds
   void hexadecimal_output()
   {
@@ -231,6 +342,7 @@ int main()
   numbers();
   constants();
   constructors();
+  ieee_literals();
   hexadecimal_output();
   const int status = summary();
   gaol::cleanup();

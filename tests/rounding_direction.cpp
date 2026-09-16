@@ -177,6 +177,8 @@ int main()
     { "interval(const char*)", [](const interval&, const interval&) { return S(interval("[0.1, 1/3]")); } },
     { "interval(const char*, const char*)", [](const interval&, const interval&) { return S(interval("0.1", "0.3")); } },
     { "interval(\"sin(1)+exp(0.1)\")", [](const interval&, const interval&) { return S(interval("sin(1)+exp(0.1)")); } },
+    { "interval(\"3.56?1e-2\")", [](const interval&, const interval&) { return S(interval("3.56?1e-2")); } },
+    { "interval(\"[-0x1.00000000000001p0, 2/3]\")", [](const interval&, const interval&) { return S(interval("[-0x1.00000000000001p0, 2/3]")); } },
     { "operator+", [](const interval& x, const interval& y) { return S(x + y); } },
     { "operator-", [](const interval& x, const interval& y) { return S(x - y); } },
     { "operator*", [](const interval& x, const interval& y) { return S(x * y); } },

@@ -154,6 +154,16 @@ Each change is a commit of its own, and says where it comes from.
   `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
   the empty set themselves before calling it. `log([0, 1])` is still
   `[-oo, 2^-1074]`.
+- **The interval literals of IEEE 1788-2015** are read (9.7, 12.11), whatever
+  the case of their letters (`[Empty]`, `[1, Inf]`): `[ ]`, `[entire]`, the
+  bounds left out (`[1,]`, `[,]`), `infinity`, the hexadecimal numbers
+  (`[0x1.3p-1, 2/3]`) and the uncertain form (`3.56?1`, `-10??u`), all as the
+  tightest intervals of doubles enclosing them. A lower bound written `inf`,
+  or an upper bound written `-inf`, leaves no interval, as `numsToInterval`
+  has it: `[inf]` and `[inf, inf]` are the empty set, where GAOL gave
+  `[MAX, +oo]`, which `check/input_output.cpp` wanted; `inf` alone, an
+  expression, is still `[MAX, +oo]`. The lexer and the parser are regenerated
+  with flex 2.6.4 and bison 3.5.1.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
   Codac's `diam()` returned NaN for the empty set without calling `width()`;

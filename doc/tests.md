@@ -37,7 +37,10 @@ Codac.
   the rounding direction before each of them.
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
-  be the tightest enclosures of π, 2π and π/2.
+  be the tightest enclosures of π, 2π and π/2. The literals of IEEE 1788-2015
+  (`[entire]`, `[ ]`, `[1,]`, `3.56?1`, hexadecimal numbers...) have to be read
+  as the tightest intervals enclosing them, whatever the case of their letters,
+  and `[inf]` and the like as the empty set.
 - **`other_functions`:** midpoints (of subnormal bounds and of `intervalf`
   too), widths, magnitudes, mignitudes, Hausdorff distances, splitting, integer
   parts, and the relational functions (`sqrt_rel`, `div_rel`...).
