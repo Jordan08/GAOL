@@ -35,7 +35,8 @@ public:
     TEST_TRUE(interval::universe().set_neq(interval::emptyset()));
     TEST_TRUE(interval(4,5).set_le(interval(-3,12)));
     TEST_TRUE(interval::emptyset().set_le(interval(3.0)));
-    TEST_FALSE(interval::emptyset().set_le(interval::emptyset()));
+    // interior(Empty, Empty) is true in IEEE 1788-2015 (Table 10.4)
+    TEST_TRUE(interval::emptyset().set_le(interval::emptyset()));
     TEST_FALSE(interval(-6,4).set_le(interval(3,7)));
     TEST_TRUE(interval(4.5,6).set_leq(interval(4.5,6)));
     TEST_FALSE(interval(3.5,9).set_leq(interval(2,6)));
@@ -59,17 +60,20 @@ public:
       TEST_FALSE(interval(5,9).certainly_leq(interval(4,5)));
       TEST_FALSE(interval(4,8).certainly_leq(interval(5,9)));
       TEST_TRUE(interval::emptyset().certainly_leq(interval(4,6)));
+      // precedes(a, Empty) is true in IEEE 1788-2015 (Table 10.4)
+      TEST_TRUE(interval(4,6).certainly_leq(interval::emptyset()));
+      TEST_TRUE(interval(4,6).certainly_le(interval::emptyset()));
 
       TEST_TRUE(interval(8,10).certainly_geq(interval(4,8)));
       TEST_TRUE(interval(9,10).certainly_geq(interval(4,8)));
       TEST_TRUE(interval::emptyset().certainly_geq(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().certainly_geq(interval(3,5)));
+      TEST_TRUE(interval::emptyset().certainly_geq(interval(3,5)));
       TEST_TRUE(interval(4,8).certainly_geq(interval::emptyset()));
 
       TEST_FALSE(interval(8,10).certainly_ge(interval(4,8)));
       TEST_TRUE(interval(9,10).certainly_ge(interval(4,8)));
       TEST_TRUE(interval::emptyset().certainly_ge(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().certainly_ge(interval(3,5)));
+      TEST_TRUE(interval::emptyset().certainly_ge(interval(3,5)));
       TEST_TRUE(interval(4,8).certainly_ge(interval::emptyset()));
 
       TEST_TRUE(interval::emptyset().certainly_positive());

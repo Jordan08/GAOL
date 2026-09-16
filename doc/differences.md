@@ -169,6 +169,18 @@ Each change is a commit of its own, and says where it comes from.
   `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
   the empty set themselves before calling it. `log([0, 1])` is still
   `[-oo, 2^-1074]`.
+- **The comparisons with the empty set and the infinities** follow IEEE
+  1788-2015 (Tables 10.3 and 10.4). `certainly_leq()` and `certainly_le()`,
+  `precedes` and `strictPrecedes`, and `certainly_geq()` and
+  `certainly_ge()`, are true when either interval is empty: GAOL gave false
+  when the second one only was. `set_strictly_contains()` and `set_le()`,
+  `interior`, take an infinite bound as beyond the same infinite bound:
+  `interior(Entire, Entire)` and `[2, +oo]` interior to `[1, +oo]` were
+  false, as `set_le()` of the empty set in the empty set.
+  `certainly_eq()`, true for two intervals that are the same double, or both
+  empty, ignored the lower bound of its argument: `[2] == [1, 2]` was true
+  with the certainly relations, the default of every build.
+  `check/relations.cpp` wanted the former results.
 - **The interval literals of IEEE 1788-2015** are read (9.7, 12.11), whatever
   the case of their letters (`[Empty]`, `[1, Inf]`): `[ ]`, `[entire]`, the
   bounds left out (`[1,]`, `[,]`), `infinity`, the hexadecimal numbers

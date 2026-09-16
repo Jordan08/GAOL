@@ -428,30 +428,43 @@ namespace gaol {
     return is_empty() || (right() < 0.0);
   }
 
+  /*
+    certainly_le() and certainly_leq() are strictPrecedes and precedes of IEEE
+    1788-2015 (Table 10.3): for all x in *this and all y in I, x < y (x <= y),
+    which is true when either interval is empty (Table 10.4), as for
+    certainly_ge() and certainly_geq(). GAOL gave false when only I was empty,
+    respectively only *this (fork of GAOL).
+  */
   INLINE bool interval::certainly_ge(const interval &I) const
   {
-    return I.is_empty() || (left() > I.right());
+    return is_empty() || I.is_empty() || (left() > I.right());
   }
 
   INLINE bool interval::certainly_geq(const interval &I) const
   {
-    return I.is_empty() || (left() >= I.right());
+    return is_empty() || I.is_empty() || (left() >= I.right());
   }
 
   INLINE bool interval::certainly_le(const interval &I) const
   {
-    return is_empty() || (right() < I.left());
+    return is_empty() || I.is_empty() || (right() < I.left());
   }
 
   INLINE bool interval::certainly_leq(const interval &I) const
   {
-      return is_empty() || (right() <= I.left());
+    return is_empty() || I.is_empty() || (right() <= I.left());
   }
 
 
+  /*
+    For all x in *this and all y in I, x = y: both intervals are the same
+    double, or both are empty. GAOL did not look at the lower bound of I, and
+    [2] was certainly equal to [1,2] (fork of GAOL).
+  */
   INLINE bool interval::certainly_eq(const interval &I) const
   {
-    return (is_empty() && I.is_empty()) || (right()<=I.right() && left() >= I.right());
+    return (is_empty() && I.is_empty())
+      || (left() == right() && I.left() == I.right() && left() == I.left());
   }
 
   INLINE bool interval::certainly_neq(const interval &I) const
@@ -538,9 +551,19 @@ namespace gaol {
     return ((left()<=d)&&(right()>=d));
   }
 
+  /*
+    I is interior to *this: interior of IEEE 1788-2015 (Table 10.3), where an
+    infinite bound of *this is beyond the same infinite bound of I, and the
+    empty set is interior to any interval, itself included. GAOL gave false for
+    set_strictly_contains(I) when both had the same infinite bound, as
+    interior(Entire, Entire), which is true (fork of GAOL).
+  */
   INLINE bool interval::set_strictly_contains(const interval& I) const
   {
-    return (I.is_empty() || ((left()<I.left()) && (right()>I.right())));
+    return I.is_empty()
+      || (!is_empty()
+          && (left() < I.left() || left() == -GAOL_INFINITY)
+          && (right() > I.right() || right() == GAOL_INFINITY));
   }
 
   /**
@@ -567,9 +590,11 @@ namespace gaol {
     return !set_eq(I);
   }
 
+   // *this is interior to I (see set_strictly_contains()): GAOL gave false
+   // for the empty set in the empty set (fork of GAOL)
    INLINE bool interval::set_le(const interval& I) const
    {
-       return (is_empty() && !I.is_empty()) || (left()>I.left() && right()<I.right());
+       return I.set_strictly_contains(*this);
    }
 
    INLINE bool interval::set_leq(const interval& I) const

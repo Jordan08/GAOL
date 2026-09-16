@@ -43,7 +43,10 @@ Codac.
   and `[inf]` and the like as the empty set.
 - **`other_functions`:** midpoints (of subnormal bounds and of `intervalf`
   too), widths, magnitudes, mignitudes, Hausdorff distances, splitting, integer
-  parts, and the relational functions (`sqrt_rel`, `div_rel`...).
+  parts, the comparisons of IEEE 1788-2015 (`precedes`, `interior`, `subset`,
+  `equal`, `disjoint`, from Tables 10.3 and 10.4, on intervals of zero,
+  infinite and small bounds and the empty set), and the relational functions
+  (`sqrt_rel`, `div_rel`...).
 
 The CMake build compiles them with `GAOL_BUILD_TESTS` (`OFF` by default: no
 build compiles tests unless asked to, as `make check` and `with-test` for

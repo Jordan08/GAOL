@@ -6,8 +6,9 @@
  * On random intervals, and for the midpoints on intervals of subnormal bounds,
  * compared exactly with the exact results: midpoints (of gaol::intervalf too),
  * widths, magnitudes and mignitudes, Hausdorff distances, splitting, integer
- * parts; and the relational functions (sqrt_rel, div_rel...), which have to
- * keep the values they are given and bound them within a few doubles.
+ * parts; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and the
+ * relational functions (sqrt_rel, div_rel...), which have to keep the values
+ * they are given and bound them within a few doubles.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -190,6 +191,89 @@ namespace
   }
 #endif // GAOL_FLOAT_INTERVALS
 
+  // The comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4), from the bounds:
+  // x <0 y is x < y, or x = y infinite
+  bool less0(double x, double y)
+  {
+    return x < y || (x == y && std::isinf(x));
+  }
+
+  bool ieee_precedes(const interval& a, const interval& b)
+  {
+    return a.is_empty() || b.is_empty() || a.right() <= b.left();
+  }
+
+  bool ieee_strictly_precedes(const interval& a, const interval& b)
+  {
+    return a.is_empty() || b.is_empty() || a.right() < b.left();
+  }
+
+  bool ieee_interior(const interval& a, const interval& b)
+  {
+    return a.is_empty() || (!b.is_empty() && less0(b.left(), a.left()) && less0(a.right(), b.right()));
+  }
+
+  bool ieee_subset(const interval& a, const interval& b)
+  {
+    return a.is_empty() || (!b.is_empty() && b.left() <= a.left() && a.right() <= b.right());
+  }
+
+  bool ieee_equal(const interval& a, const interval& b)
+  {
+    return (a.is_empty() && b.is_empty())
+      || (!a.is_empty() && !b.is_empty() && a.left() == b.left() && a.right() == b.right());
+  }
+
+  bool ieee_disjoint(const interval& a, const interval& b)
+  {
+    return a.is_empty() || b.is_empty() || a.right() < b.left() || b.right() < a.left();
+  }
+
+  // For all x in a and y in b, x = y: both are the same double, or both are
+  // empty, as equal() for the empty set
+  bool certainly_equal(const interval& a, const interval& b)
+  {
+    return (a.is_empty() && b.is_empty())
+      || (!a.is_empty() && !b.is_empty() && a.left() == a.right() && b.left() == b.right() && a.left() == b.left());
+  }
+
+  // GAOL's relations, on the intervals whose bounds are zeros, infinities or
+  // small integers, and the empty set: certainly_le() and certainly_leq() are
+  // strictPrecedes and precedes, set_strictly_contains() and set_le() interior,
+  // set_contains() and set_leq() subset, set_eq() equal, set_disjoint()
+  // disjoint. GAOL did not give precedes(a, Empty), interior(Empty, Empty) nor
+  // interior(Entire, Entire), and [2] was certainly equal to [1, 2]
+  void comparisons()
+  {
+    const double bounds[] = { -inf, -2., -1., 0., 1., 2., inf };
+    std::vector<interval> xs = { interval::emptyset() };
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u && l < inf && u > -inf) {
+          xs.push_back(interval(l, u));
+        }
+      }
+    }
+    for (const interval& a : xs) {
+      for (const interval& b : xs) {
+        const auto describe = [&] { return "a=" + hex(a) + " b=" + hex(b); };
+        const bool p = ieee_precedes(a, b), sp = ieee_strictly_precedes(a, b), in = ieee_interior(a, b),
+          sub = ieee_subset(a, b);
+        check("a.certainly_leq(b) and b.certainly_geq(a): precedes(a, b)",
+              a.certainly_leq(b) == p && b.certainly_geq(a) == p, describe);
+        check("a.certainly_le(b) and b.certainly_ge(a): strictPrecedes(a, b)",
+              a.certainly_le(b) == sp && b.certainly_ge(a) == sp, describe);
+        check("b.set_strictly_contains(a), a.set_le(b), b.set_ge(a): interior(a, b)",
+              b.set_strictly_contains(a) == in && a.set_le(b) == in && b.set_ge(a) == in, describe);
+        check("b.set_contains(a), a.set_leq(b), b.set_geq(a): subset(a, b)",
+              b.set_contains(a) == sub && a.set_leq(b) == sub && b.set_geq(a) == sub, describe);
+        check("a.set_eq(b): equal(a, b)", a.set_eq(b) == ieee_equal(a, b), describe);
+        check("a.set_disjoint(b): disjoint(a, b)", a.set_disjoint(b) == ieee_disjoint(a, b), describe);
+        check("a.certainly_eq(b): the same double, or both empty", a.certainly_eq(b) == certainly_equal(a, b), describe);
+      }
+    }
+  }
+
   // Checks that r contains v, and is no more than limit doubles away from it,
   // or no more than slack when slack is given
   void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands, double slack = 0.0)
@@ -253,6 +337,7 @@ int main()
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
   subnormal_bounds();
+  comparisons();
 #if GAOL_FLOAT_INTERVALS
   float_midpoints("floats of exponents from -30 to 30", [&] { return static_cast<float>(random(-30, 30)); });
   float_midpoints("any floats", [&] { return static_cast<float>(random(-149, 126)); });
