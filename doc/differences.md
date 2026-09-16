@@ -156,6 +156,16 @@ Each change is a commit of its own, and says where it comes from.
   get the same intervals as before. `check/non_arithmetic.cpp` wanted
   `[0, 1.2457]` for `nth_root([-4, 3], 5)`, and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
+- **`sin()`** is computed as `cos()` is: the bounds of the interval divided by
+  an enclosure of π, minus 1/2, tell the pieces where the sine is monotonic,
+  and mathlib's sine is taken at the bounds, moved one double outward. GAOL
+  computed `cos(x - [pi/2])`, whose subtraction widened the argument by about
+  2^-52 max(2, |x|): `sin([1e-10])` was 4.4e-16 wide, billions of doubles,
+  `sin([1, 2])` two doubles wider than the tightest, and `sin()` was not
+  accurate in the sense of IEEE 1788-2015 (12.10.1). The bounds of `sin()` and
+  `cos()` are now within one double of the tightest up to 2^25, and kept
+  within [-1, 1]. On an Intel i7-1185G7 (GCC 9.4), `sin()` takes 121 ns rather
+  than 130.
 - **`exp(0)` = 1 and `log(1)` = 0 exactly**, the bounds of mathlib moved one
   double outward giving `exp([0])` and `log([1])` a width: `log([0, 1])` was
   `[-oo, 2^-1074]`, and `pow([1], [-oo, +oo])`, exp(y log 1), was `[0, +oo]`

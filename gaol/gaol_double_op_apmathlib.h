@@ -244,6 +244,25 @@ namespace gaol {
     return f;
   }
 
+  // sin, as cos (fork of GAOL: GAOL computed sin(x) as cos(x - pi/2))
+  INLINE double sin_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=previous_float(usin(d));
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double sin_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=next_float(usin(d));
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
   INLINE double tan_dn(double d)
   {
     GAOL_RND_PRESERVE();

@@ -72,13 +72,15 @@ namespace
     return n;
   }
 
-  // Checks that r encloses [below, above], with bounds no more than limit
+  // Checks that r encloses [below, above], with bounds no more than max_doubles
   // doubles away from them
   template<class Describe>
-  void expect_close(const std::string& name, const interval& r, double below, double above, const Describe& describe)
+  void expect_close(const std::string& name, const interval& r, double below, double above, const Describe& describe,
+                    int max_doubles = limit)
   {
     if (check(name + ": encloses", !r.is_empty() && r.left() <= below && r.right() >= above, describe)) {
-      check_distance(name, std::max(doubles_between(r.left(), below), doubles_between(above, r.right())), limit, describe);
+      check_distance(name, std::max(doubles_between(r.left(), below), doubles_between(above, r.right())), max_doubles,
+                     describe);
     }
   }
 
@@ -115,18 +117,22 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if (f == "sin" || f == "cos" || f == "tan") {
-        // GAOL reduces the argument modulo an interval enclosing pi, whose
-        // width, 2^-51, the bounds take on for each multiple of pi subtracted:
-        // they are checked to within 2^-49 max(1,|x|), times the derivative
-        // for tan, where that tells something (below 1)
+      if ((f == "sin" || f == "cos") && std::fabs(v.x) <= 0x1p25) {
+        // mathlib's values at the argument, moved one double outward: within
+        // one double of the tightest bounds
+        expect_close(name, r, v.below, v.above, describe, 1);
+      } else if (f == "sin" || f == "cos" || f == "tan") {
+        // Beyond 2^25, sin and cos may take an argument within |x| 2^-51 of an
+        // extremum as reaching it, |x|^2 2^-103 away. tan tells its branch
+        // adding an interval enclosing pi/2, whose width, 2^-52, the argument
+        // takes on: checked to within 2^-49 max(1,|x|) times the derivative,
+        // where that tells something (below 1)
         RoundingToNearest nearest;
-        double slack = std::ldexp(std::max(1.0, std::fabs(v.x)), -49);
-        if (f == "tan") {
-          slack *= 1.0 + v.above*v.above;
-        }
+        double slack = (f == "tan") ? std::ldexp(std::max(1.0, std::fabs(v.x)), -49) * (1.0 + v.above*v.above)
+                                    : std::ldexp(v.x*v.x, -103) + std::ldexp(1.0, -51);
         if (slack < 1.0) {
-          expect_within(name, "2^-49 max(1,|x|)", r, v.below, v.above, slack, describe);
+          expect_within(name, (f == "tan") ? "2^-49 max(1,|x|) (1+tan^2)" : "x^2 2^-103 + 2^-51", r, v.below, v.above,
+                        slack, describe);
         } else {
           check(name + ": encloses", !r.is_empty() && r.left() <= v.below && r.right() >= v.above, describe);
         }
@@ -216,6 +222,11 @@ namespace
       { "cos([3,4]), which contains pi", [] { return cos(interval(3., 4.)); }, -1., value("cos", 4.).above },
       { "cos([-1,1]), which contains 0", [] { return cos(interval(-1., 1.)); }, value("cos", 1.).below, 1. },
       { "cos([0,7]), wider than a period", [] { return cos(interval(0., 7.)); }, -1., 1. },
+      // sin(x) and cos(x) of a small x: GAOL computed sin(x) as cos(x - [pi/2]),
+      // 4.4e-16 wide
+      { "sin([1e-10])", [] { return sin(interval(1e-10)); }, previous_double(1e-10), 1e-10 },
+      { "sin([-1e-300, 1e-300])", [] { return sin(interval(-1e-300, 1e-300)); }, -1e-300, 1e-300 },
+      { "cos([1e-10])", [] { return cos(interval(1e-10)); }, previous_double(1.), 1. },
       { "tan([1,2]), which contains pi/2", [] { return tan(interval(1., 2.)); }, -inf, inf },
       { "tan([-1,1])", [] { return tan(interval(-1., 1.)); }, value("tan", -1.).below, value("tan", 1.).above },
       { "log([-1,1])", [] { return log(interval(-1., 1.)); }, -inf, 0. },
@@ -234,7 +245,8 @@ namespace
     };
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
-      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
+      const bool trigonometric = std::strncmp(k.name, "sin(", 4) == 0 || std::strncmp(k.name, "cos(", 4) == 0;
+      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); }, trigonometric ? 1 : limit);
     }
 
     struct Empty

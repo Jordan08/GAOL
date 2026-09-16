@@ -359,6 +359,7 @@ namespace gaol {
     friend __GAOL_PUBLIC__ interval uipow_dnup(const interval& I, unsigned int n);
     friend __GAOL_PUBLIC__ interval sqr(const interval& I);
     friend __GAOL_PUBLIC__ interval cos(const interval& I);
+    friend __GAOL_PUBLIC__ interval sin(const interval& I);
     friend __GAOL_PUBLIC__ interval sqrt(const interval& I);
     friend __GAOL_PUBLIC__ interval sqrt_rel(const interval& J, const interval& I);
     friend __GAOL_PUBLIC__ interval div_rel(const interval &K, const interval &J, const interval &I);
@@ -762,6 +763,7 @@ extern __GAOL_PUBLIC__   interval exp(const interval& I);
 extern __GAOL_PUBLIC__   interval log(const interval& I);
 
 extern __GAOL_PUBLIC__   interval cos(const interval& I);
+extern __GAOL_PUBLIC__   interval sin(const interval& I);
 extern __GAOL_PUBLIC__   interval tan(const interval& I);
 
 extern __GAOL_PUBLIC__   interval acos(const interval& I);
@@ -899,11 +901,6 @@ INLINE interval operator&(const interval& I1, const interval& I2)
 INLINE interval operator|(const interval& I1, const interval& I2)
   {
     return interval(I1) |= I2;
-  }
-
-INLINE interval sin(const interval& I)
-  {
-    return cos(I-interval::half_pi());
   }
 
   //@}

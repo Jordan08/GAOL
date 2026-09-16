@@ -1391,12 +1391,100 @@ interval nth_root(const interval& I, unsigned int n)
 	return interval::minus_one_plus_one();
       }
     }
+    // The values of the mathematical library moved outward may leave [-1,1]
+    // (fork of GAOL)
+    if (u < -1.0) {
+      u = -1.0;
+    }
+    if (v > 1.0) {
+      v = 1.0;
+    }
     GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
     GAOL_RND_LEAVE();
     return interval(u,v);
   }
 
+  /*
+    sin(I), as cos(I): the bounds of I divided by an enclosure of pi, minus 1/2,
+    rounded outward, give the pieces of I on which sin is monotonic, sin(x)
+    being cos(x - pi/2); sin is computed by the mathematical library at the
+    bounds of I (fork of GAOL). GAOL computed cos(I - [pi/2]), whose
+    subtraction widened I by about 2^-52 max(2, |x|): sin([1e-10]) was
+    4.4e-16 wide.
+  */
+  interval sin(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
 
+    GAOL_RND_ENTER();
+    double a,b, Il, Ir;
+    Il = I.left_internal();
+    Ir = I.right_internal();
+    double Ileft = -Il;
+    double Iright = Ir;
+
+    // a <= Ileft/pi, b >= Iright/pi, as in cos()
+    if (Ileft >= 0) {
+      a = -(Il/pi_up);
+      b = Ir/pi_dn;
+    } else {
+      a = -(Il/pi_dn);
+      if (Iright > 0) {
+	b = Ir/pi_dn;
+      } else {
+	b = Ir/pi_up;
+      }
+    }
+    // a <= (Ileft - pi/2)/pi, b >= (Iright - pi/2)/pi, rounded upward
+    a = -((-a) + 0.5);
+    b = b - 0.5;
+
+    double m=std::floor(a),
+      n=std::ceil(b),
+      u, v;
+
+    double nm = (n-m); // Rounded upward
+
+    if (nm < 2.0) {
+      if (feven(m)) { // sin decreasing, as cos on [m pi, (m+1) pi]
+	u=sin_dn(Iright);
+	v=sin_up(Ileft);
+      } else { // sin increasing
+	u=sin_dn(Ileft);
+	v=sin_up(Iright);
+      }
+    } else {
+      if (nm == 2.0) {
+	if (feven(m)) { // A minimum, -1, within I
+	  double
+	    u1=sin_up(Ileft),
+	    u2=sin_up(Iright);
+	  u= -1.0;
+	  v= ((u1 > u2) ? u1 : u2);
+	} else { // A maximum, 1, within I
+	  double
+	    u1=sin_dn(Ileft),
+	    u2=sin_dn(Iright);
+	  u= ((u1 < u2) ? u1 : u2);
+	  v= 1.0;
+	}
+      } else {
+	GAOL_RND_LEAVE();
+	return interval::minus_one_plus_one();
+      }
+    }
+    if (u < -1.0) {
+      u = -1.0;
+    }
+    if (v > 1.0) {
+      v = 1.0;
+    }
+    GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
+    GAOL_RND_LEAVE();
+    return interval(u,v);
+  }
 
 
 } // namespace gaol

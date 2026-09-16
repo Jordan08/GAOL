@@ -26,8 +26,9 @@ Codac.
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
   poles, domains, `log` of intervals holding no positive number being empty,
-  `exp(0)`, `log(1)` and `1^y` exact). The values are in `elementary_values.h`,
-  which `elementary_values.py` generates.
+  `exp(0)`, `log(1)` and `1^y` exact). sin and cos have to be within one
+  double of the tightest bounds up to 2^25, `sin([1e-10])` included. The
+  values are in `elementary_values.h`, which `elementary_values.py` generates.
 - **`rounding_direction`:** about 95 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
@@ -62,9 +63,11 @@ summary of the jobs.
 What they show of GAOL, beyond the fixes below:
 
 - `atan2()` is not implemented: it throws `unavailable_feature_error`.
-- `sin`, `cos` and `tan` reduce their argument modulo an interval enclosing π.
-  Their bounds take on its width for each multiple of π subtracted, about
-  2^-52·|x|.
+- `sin` and `cos` tell the pieces of their argument where they are monotonic
+  by dividing it by an interval enclosing π: beyond 2^25, an argument within
+  about 2^-51·|x| of an extremum may be taken as reaching it. `tan` adds an
+  interval enclosing π/2 to its argument to tell its branch, and gives
+  [-oo, +oo] when it cannot.
 - `pow(x, y)` is `exp(y log x)`, whose relative width grows with `|y log x|`.
 - The decimal output of intervals (`interval_format::bounds`) relies on the C
   library to round the bounds outward, which the C runtime of Windows and musl
