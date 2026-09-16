@@ -8,16 +8,17 @@ integer powers) are computed by the four libraries: zeros, infinities and NaN
 as bounds or operands, empty sets, divisions by intervals containing zero,
 arguments at the edges of the domains, the powers `pow` and `pown`, the
 operators `+=`, `-=`, `*=`, `/=` with special doubles, the reading of
-intervals from text and the numeric functions of intervals. Each result is
+intervals from text, the numeric functions of intervals and the comparisons.
+Each result is
 compared with the result IEEE 1788-2015 defines for the set-based flavor, the
 tightest interval of doubles, computed with mpmath:
 
 - ✓ the result of IEEE 1788;
 - ⊃ an interval enclosing it, wider;
 - ✗ another result: a set not enclosing it, a set where IEEE 1788 has the empty
-  set, or an exception;
+  set, another boolean, or an exception;
 - n/a: the library has no such operation;
-- no mark: IEEE 1788 defines no result (two cases).
+- no mark: IEEE 1788 defines no result (five cases).
 
 Signed zeros are not told apart. The bounds are written with the shortest
 decimal that reads back as the same double, MAX being the largest double and
@@ -34,44 +35,38 @@ Each case is written once, in [code/cases.py](code/cases.py), and translated
 for each library: libieeep1788 has no operators of an interval and a double
 nor compound assignments, which are computed with `II(d, d)` there; Solaris
 Studio's are written `x = x + d`; filib++ reads intervals from text with its
-`operator>>`. [code/README.md](code/README.md) says how
-to run the comparison again.
+`operator>>`. [code/README.md](code/README.md) says how to run the comparison
+again.
 
 ## What the cases show
 
-**libieeep1788** gives the result of IEEE 1788 in each of the 217 cases
+**libieeep1788** gives the result of IEEE 1788 in each of the 250 cases
 where IEEE 1788 defines one and libieeep1788 has the operation: it computes
 every bound with MPFR, correctly rounded. It has no n-th root (`rootn`), no
 operators with doubles and no compound assignments.
 
-**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 216
-cases out of 224, and something else in 8:
+**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 251
+cases out of 257, and something else in 6, all from the hybrid `pow(x, y)` of
+this fork, which takes the integer power `pown` for a degenerate integer
+exponent, where IEEE 1788's `pow` only takes the part of x in [0, +∞] (see
+[What differs from GAOL](../differences.md)): `pow([−2], 2.0)` is [4],
+`pow([0], [0])` is [1], `pow([−1], [2^31−1])` is [−1] and
+`pow([−2, 0], [−1])` is [−∞, −0.5], where IEEE 1788 has ∅ (cases 158, 178 to
+180, 183); `pow([−2, −1], [1e10])`, an integer beyond the ints, is [−∞, +∞]
+(173). Five more cases enclose IEEE 1788's result for the same reason (157,
+161, 174 to 176). GAOL reads a bare number, `interval("0.1")`, as the interval
+enclosing it, an extension of the literals IEEE 1788 allows (19).
 
-- The hybrid `pow(x, y)` of this fork takes the integer power `pown` for a
-  degenerate integer exponent, where IEEE 1788's `pow` only takes the part of
-  x in [0, +∞] (see [What differs from GAOL](../differences.md)):
-  `pow([−2], 2.0)` is [4], `pow([0], [0])` is [1], `pow([−1], [2^31−1])` is
-  [−1] and `pow([−2, 0], [−1])` is [−∞, −0.5], where IEEE 1788 has ∅
-  (cases 158, 178 to 180, 183); `pow([−2, −1], [1e10])`, an integer beyond the
-  ints, is [−∞, +∞] (173). Five more cases enclose IEEE 1788's result for the
-  same reason (157, 161, 174 to 176).
-- `interval("[entire]")` and the uncertain form `interval("3.56?1")` throw
-  `input_format_error`: GAOL's parser reads `[empty]`, but neither
-  `[entire]` nor the uncertain form of IEEE 1788 (28, 29). GAOL reads a bare
-  number, `interval("0.1")`, as the interval enclosing it, an extension of the
-  literals IEEE 1788 allows (19).
-
-Its wider results are a few doubles off (sin, cos, tan, acos, `pow(x, y)`,
-which is exp(y log x), and the n-th roots, computed as powers with a rounded
-exponent: `nth_root([−8, 27], 3)` is [−2.0000000000000004, 3.000000000000001]),
-or a subnormal bound where IEEE 1788 has 0:
-`log([0, 1])` is [−∞, 2^-1074], `acosh([0, 1])` is [−3·2^-1074, 3·2^-1074].
-`pow([1], [−∞, +∞])` is [0, +∞] rather than [1], `pow([0, 1], [1, +∞])`
-[0, +∞] rather than [0, 1], and `pow([10], −400)` [0, 5.6e−309] rather than
-[0, 2^-1074].
+Its wider results are a few doubles off: sin, cos and tan by one double, acos,
+the integer powers, `pow(x, y)`, which is exp(y log x), and the odd n-th
+roots, computed as powers with a rounded exponent (`nth_root([−8, 27], 3)` is
+[−2.0000000000000004, 3.000000000000001]); `acos([1, 3])` is
+[−2^-1074, 2^-1074] and `acosh([0, 1])` [−3·2^-1074, 3·2^-1074] rather than
+[0], and `pow([10], −400)` is [0, 5.6e−309] rather than [0, 2^-1074]
+([accuracy](../accuracy.md) gives the tightness of each operation).
 
 **filib++** gives the result of IEEE 1788, or an interval enclosing it, in
-161 cases out of 210, and something else in 49. Its extended mode takes the
+176 cases out of 243, and something else in 67. Its extended mode takes the
 infinities much as Solaris Studio does:
 
 - The intervals built from an infinity are not empty: `interval(+∞)`,
@@ -85,16 +80,24 @@ infinities much as Solaris Studio does:
 - `log([−4, 0])` and `log([0])` are [−∞, −MAX] (97, 98). `pow(x, y)`, which is
   exp(y log x), follows: `pow([0], [0])` is [0, +∞], `pow([0], [−1])` is
   [MAX, +∞], `pow([0], [0.5])` is [0, 2.2e−308], and `pow([4], [+∞])` is
-  [MAX, +∞] (166, 167, 169, 170, 179 to 193). The integer power `power([0], −1)` is [MAX, +∞]
-  (138), and `power([−3, 2], −2)` is [0, +∞] rather than [1/9, +∞] (134, 141).
+  [MAX, +∞] (166, 167, 169, 170, 179 to 193). The integer power
+  `power([0], −1)` is [MAX, +∞] (138), and `power([−3, 2], −2)` is [0, +∞]
+  rather than [1/9, +∞] (134, 141).
 - `mid([−∞, 1])` is −∞ and `mid([1, +∞])` is +∞, as in Solaris Studio (207,
   208), and `imax([1, 2], ∅)` is [1, 2] rather than ∅ (225).
-- Its `operator>>` reads only the form `[l, u]`, and rounds the bounds to
-  nearest: `[0.1, 0.3]` gives the doubles nearest 0.1 and 0.3, which do not
-  enclose [0.1, 0.3] (21), and `[0.1]`, `[1e309]`, `[empty]`, `[entire]` and
-  the others throw `interval_io_exception` (20, 22, 24, 25, 27 to 29). Its
-  constructor from two strings, `interval("0.1", "0.1")`, rounds them
-  outward, one double wider than the tightest.
+- Its `operator>>` reads only the form `[l, u]`, with finite or infinite
+  bounds, and rounds the bounds to nearest: `[0.1, 0.3]` gives the doubles
+  nearest 0.1 and 0.3, which do not enclose [0.1, 0.3] (21); `[0.1]`,
+  `[1e309]`, `[ ]`, `[empty]`, `[entire]`, the hexadecimal numbers, the
+  uncertain form and the others throw `interval_io_exception` (20, 22, 24,
+  25, 27 to 29, 233, 234, 237 to 242), `[,]` is [0] and `[1,]` ∅ (235, 236),
+  and `[inf, inf]` is [MAX, +∞] (243). It reads `[ EMPTY ]`. Its constructor
+  from two strings, `interval("0.1", "0.1")`, rounds them outward, one double
+  wider than the tightest.
+- Its certainly-less comparisons `cle` and `clt` are false when an interval is
+  empty, where `precedes` and `strictPrecedes` are true (245, 246, 248);
+  `interior` is false for the same infinite bound (251, 252); `ceq` is false
+  for two empty intervals (262).
 - It has no n-th root and no relational division.
 
 Its elementary functions are wider than the tightest by up to 25 doubles (6 to
@@ -102,13 +105,16 @@ Its elementary functions are wider than the tightest by up to 25 doubles (6 to
 powers by up to 36, `cos([2^52 − 1])` is [−1, 1], `exp([−800])` is
 [0, 2.2e−308] and `sqrt([−4, 4])` has −2^-1074 for lower bound.
 
-**Solaris Studio** follows the containment sets of Sun's interval arithmetic
-(G. W. Walster), whose values include the infinities: 1/0 is {−∞, +∞}, 0 × ∞
-is every extended real, and +∞ is a point. So:
+**Solaris Studio** gives the result of IEEE 1788, or an interval enclosing it,
+in 165 cases out of 232, and something else in 67. It follows the containment
+sets of Sun's interval arithmetic (G. W. Walster), whose values include the
+infinities: 1/0 is {−∞, +∞}, 0 × ∞ is every extended real, and +∞ is a point.
+So:
 
 - The intervals built from an infinity are not empty: `interval(+∞)` is
   [MAX, +∞], `x + ∞` and `x = +∞` give [MAX, +∞], and `[1, 2] / ∞` gives
-  [0, 1.1e−308] (1 to 4, 11, 12, 61 to 64, 79, 80).
+  [0, 1.1e−308] (1 to 4, 11, 12, 61 to 64, 79, 80); `[inf]` and `[inf, inf]`
+  are read as [MAX, +∞] (242, 243).
 - The arguments that are not an interval give [−∞, +∞] rather than ∅:
   `interval(2, 1)`, NaN bounds, `x + NaN` (5 to 10, 67).
 - A division by an interval containing zero is [−∞, +∞], a division by [0]
@@ -124,10 +130,14 @@ is every extended real, and +∞ is a point. So:
 - Reading `0.1` gives [0, 0.2]: a single number read as an interval carries an
   uncertainty of one unit of its last digit, as the uncertain form `0.1?1` of
   IEEE 1788 would. Bounds in the wrong order are a read error rather than ∅,
-  and neither a rational bound (`1/3`), `[entire]` nor `3.56?1` are read (19,
-  22, 23, 28, 29).
+  and neither a rational bound (`1/3`), `[entire]`, `[ ]`, bounds left out,
+  hexadecimal numbers nor the uncertain form are read (19, 22, 23, 28, 29,
+  233, 235 to 241).
+- Its certainly-less operators `.cle.` and `.clt.` are false when an interval
+  is empty (245, 246, 248), `.int.` is false for the same infinite bound (251,
+  252), and `.ceq.` false for two empty intervals (262).
 - It has no `asinh`, `acosh`, `atanh`, n-th root, relational division
-  (`mul_rev`), nor `sqr`, computed as `x**2`.
+  (`mul_rev`), radius (`rad`), nor `sqr`, computed as `x**2`.
 
 Its elementary functions are the tightest intervals, or one double wider, and
 give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
@@ -137,14 +147,14 @@ give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
 
 <!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->
 
-226 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
+262 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
 
 | | GAOL | libieeep1788 | filib++ | Solaris Studio |
 |---|---|---|---|---|
-| ✓ the result of IEEE 1788 | 185 | 217 | 111 | 117 |
-| ⊃ encloses it, wider | 31 | 0 | 50 | 36 |
-| ✗ differs | 8 | 0 | 49 | 52 |
-| n/a no such operation | 0 | 8 | 15 | 20 |
+| ✓ the result of IEEE 1788 | 226 | 250 | 126 | 129 |
+| ⊃ encloses it, wider | 25 | 0 | 50 | 36 |
+| ✗ differs | 6 | 0 | 67 | 67 |
+| n/a no such operation | 0 | 11 | 15 | 26 |
 
 ### 1. Constructors and assignment
 
@@ -186,8 +196,8 @@ From tests/numbers.cpp (numbers).
 | 025 | `interval("[1e-400]")` | [0, 2^-1074] | [0, 2^-1074] ✓ | [−0, 2^-1074] ✓ | exception interval_io_exception ✗ | [0, 2^-1074] ✓ |  |
 | 026 | `interval("[1, inf]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | a literal of the set-based flavor (10.5.1) |
 | 027 | `interval("[empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | a literal of the set-based flavor (10.5.1); filib++ reads [ EMPTY ] |
-| 028 | `interval("[entire]")` | [−∞, +∞] | exception input_format_error ✗ | [−∞, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ |  |
-| 029 | `interval("3.56?1")` | [3.55, 3.5700000000000003] | exception input_format_error ✗ | [3.55, 3.5700000000000003] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | uncertain form (9.7.4) |
+| 028 | `interval("[entire]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ |  |
+| 029 | `interval("3.56?1")` | [3.55, 3.5700000000000003] | [3.55, 3.5700000000000003] ✓ | [3.55, 3.5700000000000003] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | uncertain form (9.7.4) |
 
 ### 3. Division by an interval containing zero
 
@@ -277,8 +287,8 @@ From tests/elementary.cpp (at_known_intervals), check/.
 
 | # | Operation | IEEE 1788 | GAOL | libieeep1788 | filib++ | Solaris Studio | Notes |
 |---|---|---|---|---|---|---|---|
-| 084 | `sin([1, 2])` | [0.8414709848078965, 1] | [0.8414709848078963, 1] ⊃ | [0.8414709848078965, 1] ✓ | [0.8414709848078953, 1] ⊃ | [0.8414709848078964, 1] ⊃ |  |
-| 085 | `sin([4, 5])` | [−1, −0.7568024953079282] | [−1, −0.7568024953079279] ⊃ | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079271] ⊃ | [−1, −0.7568024953079282] ✓ |  |
+| 084 | `sin([1, 2])` | [0.8414709848078965, 1] | [0.8414709848078964, 1] ⊃ | [0.8414709848078965, 1] ✓ | [0.8414709848078953, 1] ⊃ | [0.8414709848078964, 1] ⊃ |  |
+| 085 | `sin([4, 5])` | [−1, −0.7568024953079282] | [−1, −0.7568024953079281] ⊃ | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079271] ⊃ | [−1, −0.7568024953079282] ✓ |  |
 | 086 | `sin([0, 7])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
 | 087 | `sin([−∞, +∞])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
 | 088 | `cos([3, 4])` | [−1, −0.6536436208636118] | [−1, −0.6536436208636118] ✓ | [−1, −0.6536436208636118] ✓ | [−1, −0.653643620863611] ⊃ | [−1, −0.6536436208636118] ✓ |  |
@@ -288,13 +298,13 @@ From tests/elementary.cpp (at_known_intervals), check/.
 | 092 | `tan([1, 2])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
 | 093 | `tan([−1, 1])` | [−1.5574077246549023, 1.5574077246549023] | [−1.5574077246549025, 1.5574077246549025] ⊃ | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549078, 1.5574077246549078] ⊃ | [−1.5574077246549023, 1.5574077246549023] ✓ |  |
 | 094 | `tan([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
-| 095 | `log([−1, 1])` | [−∞, 0] | [−∞, 2^-1074] ⊃ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ |  |
-| 096 | `log([0, 1])` | [−∞, 0] | [−∞, 2^-1074] ⊃ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ |  |
+| 095 | `log([−1, 1])` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ |  |
+| 096 | `log([0, 1])` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ |  |
 | 097 | `log([−4, 0])` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | no x > 0 in [−4, 0]: Solaris Studio takes log(0) = −∞ |
 | 098 | `log([0])` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ |  |
 | 099 | `log([−2, −1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ |  |
-| 100 | `log([1, +∞])` | [0, +∞] | [−2^-1074, +∞] ⊃ | [−0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ |  |
-| 101 | `exp([−∞, 0])` | [0, 1] | [0, 1.0000000000000002] ⊃ | [−0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ |  |
+| 100 | `log([1, +∞])` | [0, +∞] | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ |  |
+| 101 | `exp([−∞, 0])` | [0, 1] | [0, 1] ✓ | [−0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ |  |
 | 102 | `exp([740])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
 | 103 | `exp([−800])` | [0, 2^-1074] | [0, 2^-1074] ✓ | [−0, 2^-1074] ✓ | [0, 2.2250738585072014e−308] ⊃ | [0, 2^-1074] ✓ |  |
 | 104 | `exp([−∞, +∞])` | [0, +∞] | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ |  |
@@ -402,8 +412,8 @@ From tests/elementary.cpp (powers).
 | 192 | `pow([−2, 0], [−0.5])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ |  |
 | 193 | `pow([0], [−1, 0])` | ∅ | ∅ ✓ | ∅ ✓ | [0, +∞] ✗ | [−0, +∞] ✗ |  |
 | 194 | `pow([0.5], [−∞, +∞])` | [0, +∞] | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ |  |
-| 195 | `pow([1], [−∞, +∞])` | [1] | [0, +∞] ⊃ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ |  |
-| 196 | `pow([0, 1], [1, +∞])` | [0, 1] | [0, +∞] ⊃ | [−0, 1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ |  |
+| 195 | `pow([1], [−∞, +∞])` | [1] | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ |  |
+| 196 | `pow([0, 1], [1, +∞])` | [0, 1] | [0, 1] ✓ | [−0, 1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ |  |
 | 197 | `pow([2, +∞], [−1, 1])` | [0, +∞] | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ |  |
 
 ### 10. n-th roots (GAOL's nth_root, rootn of IEEE 1788)
@@ -448,6 +458,56 @@ From tests/other_functions.cpp, tests/numbers.cpp.
 | 224 | `min([−∞, 1], [0, 2])` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | imin and imax in filib++ |
 | 225 | `max([1, 2], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | [1, 2] ✗ | ∅ ✓ |  |
 | 226 | `−[−∞, 1]` | [−1, +∞] | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ |  |
+| 227 | `[1, 2].rad()` | 0.5 | 0.5 ✓ | 0.5 ✓ | 0.5 ✓ | n/a | rad (12.12.8): the smallest r with x in [m − r, m + r]; Solaris Studio has none |
+| 228 | `[1, 1.0000000000000007].rad()` | 4.440892098500626e−16 | 4.440892098500626e−16 ✓ | 4.440892098500626e−16 ✓ | 3.3306690738754696e−16 ✗ | n/a | m = 1 + 2^-51, the tie rounded to even |
+| 229 | `[0, 2^-1074].rad()` | 2^-1074 | 2^-1074 ✓ | 2^-1074 ✓ | 0 ✗ | n/a |  |
+| 230 | `[−MAX, MAX].rad()` | MAX | MAX ✓ | MAX ✓ | MAX ✓ | n/a |  |
+| 231 | `[−∞, 1].rad()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | n/a |  |
+| 232 | `∅.rad()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | n/a |  |
+
+### 12. Interval literals of the set-based flavor
+
+From tests/numbers.cpp (ieee_literals).
+
+| # | Operation | IEEE 1788 | GAOL | libieeep1788 | filib++ | Solaris Studio | Notes |
+|---|---|---|---|---|---|---|---|
+| 233 | `interval("[ ]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat -1 ✗ | 12.11.3 |
+| 234 | `interval("[Empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | the case of the letters is ignored (9.7.1) |
+| 235 | `interval("[,]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [0] ✗ | read error, iostat 1210 ✗ | bounds left out are infinite |
+| 236 | `interval("[1,]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | ∅ ✗ | read error, iostat 1210 ✗ |  |
+| 237 | `interval("[-Inf, 2/3]")` | [−∞, 0.6666666666666667] | [−∞, 0.6666666666666667] ✓ | [−∞, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ |  |
+| 238 | `interval("[0x1.3p-1, 2/3]")` | [0.59375, 0.6666666666666667] | [0.59375, 0.6666666666666667] ✓ | [0.59375, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | hexadecimal number (9.7.2) |
+| 239 | `interval("[0x1.00000000000001p0]")` | [1, 1.0000000000000002] | [1, 1.0000000000000002] ✓ | [1, 1.0000000000000002] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ |  |
+| 240 | `interval("-10??u")` | [−10, +∞] | [−10, +∞] ✓ | [−10, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | uncertain form with an infinite radius |
+| 241 | `interval("-10?12")` | [−22, 2] | [−22, 2] ✓ | [−22, 2] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ |  |
+| 242 | `interval("[inf]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✗ | not a literal: numsToInterval(+∞, +∞) has no value |
+| 243 | `interval("[inf, inf]")` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ |  |
+
+### 13. Comparisons (Tables 10.3 and 10.4)
+
+From tests/other_functions.cpp (comparisons).
+
+| # | Operation | IEEE 1788 | GAOL | libieeep1788 | filib++ | Solaris Studio | Notes |
+|---|---|---|---|---|---|---|---|
+| 244 | `precedes([1, 2], [2, 3])` | true | true ✓ | true ✓ | true ✓ | true ✓ | GAOL: certainly_leq, certainly_le, set_strictly_contains, set_contains, set_eq, set_disjoint; filib++: cle, clt, interior, subset, seq, disjoint; Solaris Studio: .cle., .clt., .int., .sb., .seq., .dj. |
+| 245 | `precedes([1, 2], ∅)` | true | true ✓ | true ✓ | false ✗ | false ✗ | true when either interval is empty (Table 10.4) |
+| 246 | `precedes(∅, [1, 2])` | true | true ✓ | true ✓ | false ✗ | false ✗ |  |
+| 247 | `strictPrecedes([1, 2], [2, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ |  |
+| 248 | `strictPrecedes([1, 2], ∅)` | true | true ✓ | true ✓ | false ✗ | false ✗ |  |
+| 249 | `interior([1.5], [1, 2])` | true | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 250 | `interior([1, 2], [1, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ |  |
+| 251 | `interior([−∞, +∞], [−∞, +∞])` | true | true ✓ | true ✓ | false ✗ | false ✗ | −∞ <0 −∞ and +∞ <0 +∞ (Table 10.3) |
+| 252 | `interior([2, +∞], [1, +∞])` | true | true ✓ | true ✓ | false ✗ | false ✗ |  |
+| 253 | `interior(∅, ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 254 | `subset(∅, [1, 2])` | true | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 255 | `subset([1, 2], ∅)` | false | false ✓ | false ✓ | false ✓ | false ✓ |  |
+| 256 | `equal(∅, ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 257 | `equal([1, +∞], [1, +∞])` | true | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 258 | `disjoint([1, 2], ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 259 | `disjoint([1, 2], [2, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ |  |
+| 260 | `certainly_eq([2], [1, 2])` | — | false | n/a | false | false | not in IEEE 1788: for all x, y, x = y (false); filib++: ceq, Solaris Studio: .ceq. |
+| 261 | `certainly_eq([2], [2])` | — | true | n/a | true | true |  |
+| 262 | `certainly_eq(∅, ∅)` | — | true | n/a | false | false |  |
 
 <!-- END GENERATED TABLES -->
 ```plaintext

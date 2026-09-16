@@ -84,7 +84,7 @@ fi
 if [ -f "$PREFIX/include/gaol/gaol.h" ] && [ -z "${FORCE_GAOL:-}" ]; then
   echo "== GAOL: already in $PREFIX (FORCE_GAOL=1 to rebuild)"
 else
-  echo "== GAOL ($(git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || echo '?'))"
+  echo "== GAOL ($(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-build" -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
         -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" \

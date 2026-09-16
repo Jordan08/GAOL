@@ -21,6 +21,7 @@ Each program prints one line per case:
                  of the double in hexadecimal, prefixed by b:
     id|E         the empty set
     id|R|v       a number
+    id|B|b       a boolean, 0 or 1
     id|X|text    an exception, or a string the library could not read
     id|NA        the library has no such operation
 """
@@ -205,12 +206,34 @@ def cpp(n, lib):
     if n.op in ("min", "max"):
         name = "i" + n.op if lib == "filib" else n.op
         return f"{name}({cpp(a[0], lib)}, {cpp(a[1], lib)})"
-    if n.op in ("mid", "wid", "mag", "mig"):
+    if n.op in ("mid", "wid", "mag", "mig", "rad"):
         if lib == "p1788":
             return f"{n.op}({cpp(a[0], lib)})"
         methods = {"gaol": {"mid": "midpoint", "wid": "width"}, "filib": {"wid": "diam"}}[lib]
         return f"{cpp(a[0], lib)}.{methods.get(n.op, n.op)}()"
+    if n.op in RELATIONS:
+        x, y = cpp(a[0], lib), cpp(a[1], lib)
+        name = RELATIONS[n.op][lib]
+        if name is None:
+            raise NotAvailable
+        if lib == "gaol":
+            # GAOL's methods: x.certainly_leq(y), and y.set_contains(x) for subset
+            return f"{y}.{name[1:]}({x})" if name.startswith("~") else f"{x}.{name}({y})"
+        return f"{name}({x}, {y})"
     raise ValueError(n.op)
+
+
+# The comparisons of IEEE 1788-2015 (Table 10.3), in each library; ~ marks a
+# GAOL method called on the second interval
+RELATIONS = {
+    "precedes": {"gaol": "certainly_leq", "p1788": "precedes", "filib": "cle", "sun": ".cle."},
+    "strict_precedes": {"gaol": "certainly_le", "p1788": "strictly_precedes", "filib": "clt", "sun": ".clt."},
+    "interior": {"gaol": "~set_strictly_contains", "p1788": "interior", "filib": "interior", "sun": ".int."},
+    "subset": {"gaol": "~set_contains", "p1788": "subset", "filib": "subset", "sun": ".sb."},
+    "equal": {"gaol": "set_eq", "p1788": "equal", "filib": "seq", "sun": ".seq."},
+    "disjoint": {"gaol": "set_disjoint", "p1788": "disjoint", "filib": "disjoint", "sun": ".dj."},
+    "certainly_eq": {"gaol": "certainly_eq", "p1788": None, "filib": "ceq", "sun": ".ceq."},
+}
 
 
 def cpp_body(n, lib):
@@ -280,6 +303,10 @@ def f90(n):
         return f"({f90(a[0])} .ix. {f90(a[1])})"
     if n.op in ("min", "max", "mid", "wid", "mag", "mig"):
         return f"{n.op}({', '.join(f90(x) for x in a)})"
+    if n.op == "rad":
+        raise NotAvailable
+    if n.op in RELATIONS:
+        return f"({f90(a[0])} {RELATIONS[n.op]['sun']} {f90(a[1])})"
     raise ValueError(n.op)
 
 
@@ -303,6 +330,8 @@ def f90_statements(n, cid, kind):
         return [f"r = {f90(x)}", f"r = {f90_double(d)}", f"call showi('{cid}', r)"]
     if kind == "R":
         return [f"v = {f90(n)}", f"call showr('{cid}', v)"]
+    if kind == "B":
+        return [f"t = {f90(n)}", f"call showb('{cid}', t)"]
     return [f"r = {f90(n)}", f"call showi('{cid}', r)"]
 
 
@@ -347,9 +376,12 @@ def label(n):
         return f"{label(a[0])} | {label(a[1])}"
     if n.op == "inter":
         return f"{label(a[0])} & {label(a[1])}"
-    if n.op in ("mid", "wid", "mag", "mig"):
-        method = {"mid": "midpoint", "wid": "width", "mag": "mag", "mig": "mig"}[n.op]
+    if n.op in ("mid", "wid", "mag", "mig", "rad"):
+        method = {"mid": "midpoint", "wid": "width", "mag": "mag", "mig": "mig", "rad": "rad"}[n.op]
         return f"{label(a[0])}.{method}()"
+    if n.op in RELATIONS:
+        name = {"precedes": "precedes", "strict_precedes": "strictPrecedes"}.get(n.op, n.op)
+        return f"{name}({label(a[0])}, {label(a[1])})"
     return f"{n.op}({', '.join(label(x) for x in a)})"
 
 
@@ -369,6 +401,11 @@ class XR:
     def __init__(self, v, rounding="nearest"):
         self.v = v
         self.rounding = rounding
+
+
+class XB:
+    def __init__(self, v):
+        self.v = v
 
 
 EMPTYSET = "empty"
@@ -418,6 +455,8 @@ def expected(x):
         return None
     if x == EMPTYSET:
         return ("E",)
+    if isinstance(x, XB):
+        return ("B", 1 if x.v else 0)
     if isinstance(x, XR):
         if isinstance(x.v, float) and math.isnan(x.v):
             return ("R", NAN)
@@ -698,6 +737,50 @@ case(op("inter", I12, iv(2, 3)), X(2))
 case(op("min", iv(-INF, 1), iv(0, 2)), X("-inf", 1), "imin and imax in filib++")
 case(op("max", I12, EMPTY), EMPTYSET)
 case(op("neg", iv(-INF, 1)), X(-1, "inf"))
+case(op("rad", iv(1, 2)), XR(0.5), "rad (12.12.8): the smallest r with x in [m − r, m + r]; Solaris Studio has none",
+     kind="R")
+case(op("rad", iv(1, 1 + 3 * 2.0**-52)), XR(2 * 2.0**-52), "m = 1 + 2^-51, the tie rounded to even", kind="R")
+case(op("rad", iv(0, TINY)), XR(TINY), kind="R")
+case(op("rad", iv(-MAX, MAX)), XR(MAX), kind="R")
+case(op("rad", iv(-INF, 1)), XR(INF), kind="R")
+case(op("rad", EMPTY), XR(NAN), kind="R")
+
+group("Interval literals of the set-based flavor", "tests/numbers.cpp (ieee_literals)")
+case(text("[ ]"), EMPTYSET, "12.11.3")
+case(text("[Empty]"), EMPTYSET, "the case of the letters is ignored (9.7.1)")
+case(text("[,]"), X("-inf", "inf"), "bounds left out are infinite")
+case(text("[1,]"), X(1, "inf"))
+case(text("[-Inf, 2/3]"), X("-inf", "mpf(2)/3"))
+case(text("[0x1.3p-1, 2/3]"), X("mpf(19)/32", "mpf(2)/3"), "hexadecimal number (9.7.2)")
+case(text("[0x1.00000000000001p0]"), X("1 + mpf(2)**-56"))
+case(text("-10??u"), X(-10, "inf"), "uncertain form with an infinite radius")
+case(text("-10?12"), X(-22, 2))
+case(text("[inf]"), EMPTYSET, "not a literal: numsToInterval(+∞, +∞) has no value")
+case(text("[inf, inf]"), EMPTYSET)
+
+group("Comparisons (Tables 10.3 and 10.4)", "tests/other_functions.cpp (comparisons)")
+NOTE_REL = ("GAOL: certainly_leq, certainly_le, set_strictly_contains, set_contains, set_eq, set_disjoint; "
+            "filib++: cle, clt, interior, subset, seq, disjoint; Solaris Studio: .cle., .clt., .int., .sb., .seq., .dj.")
+case(op("precedes", I12, iv(2, 3)), XB(True), NOTE_REL, kind="B")
+case(op("precedes", I12, EMPTY), XB(True), "true when either interval is empty (Table 10.4)", kind="B")
+case(op("precedes", EMPTY, I12), XB(True), kind="B")
+case(op("strict_precedes", I12, iv(2, 3)), XB(False), kind="B")
+case(op("strict_precedes", I12, EMPTY), XB(True), kind="B")
+case(op("interior", iv(1.5), I12), XB(True), kind="B")
+case(op("interior", iv(1, 2), iv(1, 3)), XB(False), kind="B")
+case(op("interior", ENTIRE, ENTIRE), XB(True), "−∞ <0 −∞ and +∞ <0 +∞ (Table 10.3)", kind="B")
+case(op("interior", iv(2, INF), iv(1, INF)), XB(True), kind="B")
+case(op("interior", EMPTY, EMPTY), XB(True), kind="B")
+case(op("subset", EMPTY, I12), XB(True), kind="B")
+case(op("subset", I12, EMPTY), XB(False), kind="B")
+case(op("equal", EMPTY, EMPTY), XB(True), kind="B")
+case(op("equal", iv(1, INF), iv(1, INF)), XB(True), kind="B")
+case(op("disjoint", I12, EMPTY), XB(True), kind="B")
+case(op("disjoint", I12, iv(2, 3)), XB(False), kind="B")
+case(op("certainly_eq", iv(2), I12), None, "not in IEEE 1788: for all x, y, x = y (false); filib++: ceq, Solaris Studio: .ceq.",
+     kind="B")
+case(op("certainly_eq", iv(2), iv(2)), None, kind="B")
+case(op("certainly_eq", EMPTY, EMPTY), None, kind="B")
 
 
 for i, c in enumerate(CASES):
@@ -752,6 +835,16 @@ static void show_real(const char *id, F f)
   }
 }
 
+template<class F>
+static void show_bool(const char *id, F f)
+{
+  try {
+    std::printf("%s|B|%d\n", id, f() ? 1 : 0);
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
 int main()
 {
   gaol::init();
@@ -795,6 +888,16 @@ static void show_real(const char *id, F f)
 {
   try {
     std::printf("%s|R|%a\n", id, f());
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+template<class F>
+static void show_bool(const char *id, F f)
+{
+  try {
+    std::printf("%s|B|%d\n", id, f() ? 1 : 0);
   } catch (...) {
     std::printf("%s|X|exception\n", id);
   }
@@ -860,6 +963,16 @@ static void show_real(const char *id, F f)
   }
 }
 
+template<class F>
+static void show_bool(const char *id, F f)
+{
+  try {
+    std::printf("%s|B|%d\n", id, f() ? 1 : 0);
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
 int main()
 {
   filib::fp_traits<double, filib::native_switched>::setup();
@@ -896,6 +1009,16 @@ contains
     write(*, '(A,A,I0)') id, '|X|read error, iostat ', ios
   end subroutine showx
 
+  subroutine showb(id, t)
+    character(len=*), intent(in) :: id
+    logical, intent(in) :: t
+    if (t) then
+      write(*, '(A,A)') id, '|B|1'
+    else
+      write(*, '(A,A)') id, '|B|0'
+    end if
+  end subroutine showb
+
   subroutine showna(id)
     character(len=*), intent(in) :: id
     write(*, '(A,A)') id, '|NA'
@@ -907,6 +1030,7 @@ program cases
   implicit none
   interval(8) :: r, emptyi, onei
   real(8) :: v, pinf, ninf, qnan, dmax, dtiny, mzero
+  logical :: t
   integer :: ios
   character(len=64) :: s
 
@@ -941,8 +1065,8 @@ def generate(directory):
             except NotAvailable:
                 lines.append(f'  std::printf("{c.id}|NA\\n");\n')
                 continue
-            result = "double" if c.kind == "R" else CPP_TYPE[lib]
-            show = "show_real" if c.kind == "R" else "show"
+            result = {"R": "double", "B": "bool"}.get(c.kind, CPP_TYPE[lib])
+            show = {"R": "show_real", "B": "show_bool"}.get(c.kind, "show")
             lines.append(f'  {show}("{c.id}", []() -> {result} {{ {body} }});\n')
         lines.append(tail)
         with open(os.path.join(directory, name), "w") as f:
@@ -984,6 +1108,8 @@ def read_results(path):
                 results[cid] = ("I", parse_double(parts[2]), parse_double(parts[3]))
             elif kind == "R":
                 results[cid] = ("R", parse_double(parts[2]))
+            elif kind == "B":
+                results[cid] = ("B", int(parts[2]))
             elif kind == "X":
                 results[cid] = ("X", "|".join(parts[2:]))
             else:
@@ -1002,6 +1128,8 @@ def show_result(r):
         return r[1]
     if r[0] == "R":
         return readable_double(r[1])
+    if r[0] == "B":
+        return "true" if r[1] else "false"
     lo, hi = r[1], r[2]
     if lo == hi:
         return f"[{readable_double(lo)}]"
@@ -1022,6 +1150,8 @@ def verdict(r, e):
         return "=" if r[0] == "E" else "✗"
     if e[0] == "R":
         return "=" if r[0] == "R" and same_double(r[1], e[1]) else "✗"
+    if e[0] == "B":
+        return "=" if r[0] == "B" and r[1] == e[1] else "✗"
     if r[0] != "I":
         return "✗"
     if r[1] == e[1] and r[2] == e[2]:

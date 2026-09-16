@@ -13,11 +13,11 @@ Four implementations of interval arithmetic on doubles are compared:
 
 The comparison has two parts:
 
-- [Special cases](special_cases.md): 226 special cases taken from GAOL's tests
+- [Special cases](special_cases.md): 262 special cases taken from GAOL's tests
   (infinities, zeros, NaN, empty sets, divisions by zero, `pow` and `pown`,
-  `+=` and the other operators with doubles, reading from text, midpoints and
-  widths), computed by the four libraries and compared with the results of
-  IEEE 1788-2015.
+  `+=` and the other operators with doubles, reading from text, midpoints,
+  widths, radii and comparisons), computed by the four libraries and compared
+  with the results of IEEE 1788-2015.
 - [Performance](performance.md): the time of a million additions,
   subtractions, multiplications, divisions, sines, cosines, powers,
   one-line combinations, evaluations of Shekel 5 and five-line blocks.
@@ -30,29 +30,30 @@ reports.
 
 | | GAOL | libieeep1788 | filib++ | Solaris Studio |
 |---|---|---|---|---|
-| Special cases with IEEE 1788's result | 185 of 224 | 217 of 217 | 111 of 210 | 117 of 205 |
-| … or an interval enclosing it | 31 | 0 | 50 | 36 |
-| … or another result | 8 | 0 | 49 | 52 |
-| Cases it has no operation for | 0 | 8 | 15 | 20 |
-| `x + y` | 3.7 ns | 213 ns | 7.6 ns | 24 ns |
-| `x * y` | 16 ns | 262 ns | 17 ns | 29 ns |
-| `sin(x)` | 130 ns | 8.6 µs | 53 ns | 59 ns |
-| `pow(x, 3)` | 14 ns | 332 ns | 27 ns | 214 ns |
-| Shekel 5 | 334 ns | 14 µs | 584 ns | 2.4 µs |
+| Special cases with IEEE 1788's result | 226 of 257 | 250 of 250 | 126 of 243 | 129 of 232 |
+| … or an interval enclosing it | 25 | 0 | 50 | 36 |
+| … or another result | 6 | 0 | 67 | 67 |
+| Cases it has no operation for | 0 | 11 | 15 | 26 |
+| `x + y` | 3.7 ns | 212 ns | 7.4 ns | 25 ns |
+| `x * y` | 16 ns | 261 ns | 17 ns | 29 ns |
+| `sin(x)` | 121 ns | 8.3 µs | 53 ns | 59 ns |
+| `pow(x, 3)` | 14 ns | 330 ns | 27 ns | 213 ns |
+| Shekel 5 | 321 ns | 14 µs | 580 ns | 2.4 µs |
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
-  as tightly as possible, and is 13 to 73 times slower than GAOL.
+  as tightly as possible, and is 14 to 68 times slower than GAOL.
 - **GAOL** is the fastest on the arithmetic and on most formulas, and gives
-  IEEE 1788's result, or an interval enclosing it, in all but 8 special
-  cases: its hybrid `pow`, which takes `pown` for integer exponents, and two
-  forms of literals it does not read, `[entire]` and the uncertain form.
-- **filib++** is the fastest on the elementary functions, 2.3 to 2.5 times as
-  fast as GAOL on sin and cos, and as fast as GAOL on × and ÷, but twice as
-  slow on + and −, and its bounds of elementary functions and real powers are
-  up to 36 doubles wider than the tightest. Its extended mode gives other results than
+  IEEE 1788's result, or an interval enclosing it, in all but 6 special
+  cases, all from its hybrid `pow`, which takes `pown` for integer
+  exponents.
+- **filib++** is the fastest on the elementary functions, 2.3 times as fast as
+  GAOL on sin and cos, and as fast as GAOL on × and ÷, but twice as slow on +
+  and −, and its bounds of elementary functions and real powers are up to 36
+  doubles wider than the tightest. Its extended mode gives other results than
   IEEE 1788 wherever an infinity or a division by zero is involved, much as
   Solaris Studio: `interval(+∞)` is [MAX, +∞] and `[0] * [1, +∞]` is
-  [−∞, +∞]; its `operator>>` rounds the bounds it reads to nearest.
+  [−∞, +∞]; its `operator>>` rounds the bounds it reads to nearest, and its
+  comparisons with the empty set and the infinities differ from IEEE 1788's.
 - **Solaris Studio** is twice as fast as GAOL on sin and cos, but slow on
   integer powers and squares. Its containment sets give other results than
   IEEE 1788 wherever an infinity, a division by zero or an invalid argument is

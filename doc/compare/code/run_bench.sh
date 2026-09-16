@@ -73,7 +73,7 @@ done
   echo "C++ compiler:    $($CXX --version | head -1)"
   echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788 and filib++: $IA_CXXFLAGS)"
   echo "Fortran:         $("$F90" -V 2>&1 | head -1), flags: $F90FLAGS_BENCH"
-  echo "GAOL:            $(git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || echo '?'), CMake Release, mathlib 2.1.1"
+  echo "GAOL:            $(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"), CMake Release, mathlib 2.1.1"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION ($FILIB_DIR), interval<double, native_switched, i_mode_extended_flag>"
 } > "$OUT/machine.txt"
