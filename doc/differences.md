@@ -108,6 +108,14 @@ Each change is a commit of its own, and says where it comes from.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.
+- **Square roots are the tightest intervals**, as IEEE 1788-2015 requires of
+  its basic operations (12.10.2): the lower bound is the square root rounded
+  upward when its square is the argument, the double below it otherwise.
+  GAOL computed it as x/sqrt(x) rounded downward, one double below the
+  tightest bound for half of the doubles. The square roots of the C library
+  are checked with a product rounded the other way rather than a division,
+  and `sqrt()` takes the same time as before (9.0 ns on an Intel i7-1185G7,
+  GCC 9.4).
 - **Numbers are read exactly** (`gaol/gaol_interval_lexer.lpp`). GAOL read them
   with `strtod()` rounding downward and upward, and relied on the inexact flag.
   The C runtime of Windows and musl on 64-bit ARM processors round to nearest in

@@ -11,13 +11,13 @@ Codac.
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
-  be the tightest enclosures. Integer powers, square roots and n-th roots have
-  to be enclosures, within a few doubles, the odd roots of negative numbers
-  being the opposites of the roots of their magnitudes, and the n-th roots of
-  intervals the roots of their bounds (of their part in `[0, +oo]` for an even
-  n). The operators of an interval with a
-  double have to give, on bounds and doubles of special values (zeros of both
-  signs, infinities, NaN), the sets the operators with `interval(d)` give.
+  be the tightest enclosures, and so do square roots. Integer powers and n-th
+  roots have to be enclosures, within a few doubles, the odd roots of negative
+  numbers being the opposites of the roots of their magnitudes, and the n-th
+  roots of intervals the roots of their bounds (of their part in `[0, +oo]`
+  for an even n). The operators of an interval with a double have to give, on
+  bounds and doubles of special values (zeros of both signs, infinities, NaN),
+  the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
   the products of the bounds, a zero bound times an infinite one counting as 0.
   The constructors have to give the empty set for a lower bound of `+oo`, an

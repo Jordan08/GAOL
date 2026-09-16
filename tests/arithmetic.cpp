@@ -6,7 +6,8 @@
  * On random doubles and intervals, the bounds are compared exactly with the
  * exact results: sums, differences, products, quotients, squares and inverses
  * have to be enclosed as tightly as possible, which GAOL does computing with
- * the rounding direction set upward; integer powers and roots, which GAOL
+ * the rounding direction set upward, and so do square roots, which IEEE
+ * 1788-2015 requires (12.10.2); integer powers and n-th roots, which GAOL
  * computes in several rounded operations, to be enclosed within a few
  * doubles. Doubles of every magnitude are drawn, subnormal ones and results
  * beyond the largest double included. The operators of an interval with a
@@ -35,17 +36,18 @@ namespace
 
   // The largest distances from the tightest bounds allowed, in doubles, about
   // twice those found on the platforms tested: GAOL computes integer powers by
-  // repeated rounded products, at most n+1 doubles away for x^n, 4 for x^-n
-  // and 1 for square roots; and n-th roots as powers with a rounded exponent,
-  // whose error grows with |log x|, up to 8 doubles between 2^-30 and 2^30 and
-  // 234 over all the doubles
+  // repeated rounded products, at most n+1 doubles away for x^n and 4 for x^-n;
+  // and n-th roots as powers with a rounded exponent, whose error grows with
+  // |log x|, up to 8 doubles between 2^-30 and 2^30 and 234 over all the
+  // doubles. Square roots are the tightest (GAOL's lower bound was one double
+  // below it for half of the doubles)
   int power_limit(int n)
   {
     return 2*n;
   }
 
   const int negative_power_limit = 8;
-  const int square_root_limit = 2;
+  const int square_root_limit = 0;
 
   std::string operands(const interval& x, const interval& y)
   {
@@ -261,6 +263,21 @@ namespace
         const Exact lo = (n % 2 == 1) ? powers[0] : (x_has_zero ? zero : min(powers));
         const Exact hi = (n % 2 == 1) ? powers[1] : max(powers);
         expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit(n), X, interval(n));
+      }
+
+      // Square roots: the tightest roots of the bounds of [x] & [0, +oo]
+      {
+        const interval r = sqrt(X);
+        const auto describe = [&] { return "x=" + hex(X) + ": " + hex(r); };
+        if (X.right() < 0.0) {
+          check("sqrt([x])" + in + ": empty", r.is_empty(), describe);
+        } else {
+          const double lo = std::max(0.0, X.left());
+          check("sqrt([x])" + in + ": the roots of the bounds",
+                !r.is_empty() && r.left() == sqrt(interval(lo)).left() && r.right() == sqrt(interval(X.right())).right(),
+                describe);
+          expect_root("sqrt([x]) lower bound" + in, interval(r.left(), sqrt(interval(lo)).right()), lo, 2, 0);
+        }
       }
 
       // n-th roots: increasing, from the roots of the bounds, on the whole of

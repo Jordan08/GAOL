@@ -97,17 +97,22 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
      IEEE 754 requires a square root to be rounded in the rounding direction in
      effect, but the C library of Visual C++ for 32-bit x86 rounds it to nearest
      in every direction. The result of ::sqrt, correctly rounded in some
-     direction and thus within one float of the exact root, is checked with a
-     division rounded in the direction wanted, and moved to the next float on
-     the other side when it is not a bound yet; where ::sqrt rounds as it should,
-     it is left unchanged. The next float is reached by adding the smallest
-     denormal, rather than with nextafter(), which IBEX found to crash on ARM64
-     macOS when not rounding to nearest. To be called with the rounding
-     direction set upward, respectively downward. */
+     direction and thus within one float of the exact root, is compared with the
+     exact root through s*s rounded in the other direction, and moved to the next
+     float on the other side when it is not a bound yet; where ::sqrt rounds as
+     it should, it is left unchanged. The next float is reached by adding the
+     smallest denormal, rather than with nextafter(), which IBEX found to crash
+     on ARM64 macOS when not rounding to nearest. To be called with the rounding
+     direction set upward, respectively downward.
+
+     s*s rounded downward, -((-s)*s) when rounding upward, is below x exactly
+     when s*s is, x being a double, and s is then below sqrt(x) (fork of GAOL:
+     GAOL compared s with x/s, a division, several times slower than a
+     product). */
   static double gaol_sqrt_up(double x)
   {
     double s = ::sqrt(x);
-    if (s < x/s) { // x/s rounded upward: s >= x/s proves s >= sqrt(x)
+    if (-((-s)*s) < x) { // s*s rounded downward < x proves s < sqrt(x)
       s += std::numeric_limits<double>::denorm_min();
     }
     return s;
@@ -116,10 +121,22 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   static double gaol_sqrt_down(double x)
   {
     double s = ::sqrt(x);
-    if (s > x/s) { // x/s rounded downward: s <= x/s proves s <= sqrt(x)
+    if (-((-s)*s) > x) { // s*s rounded upward > x proves s > sqrt(x)
       s -= std::numeric_limits<double>::denorm_min();
     }
     return s;
+  }
+
+  /* The square root of x rounded downward, u being the square root rounded
+     upward, to be called with the rounding direction set upward: u when it is
+     the exact root, the double below u otherwise. u*u rounded upward is x
+     exactly when u is the exact root, u*u being above x otherwise. Returned
+     negated, as the SSE2 intervals store their lower bound (fork of GAOL: GAOL
+     computed x/u rounded downward, one double below the tightest bound for half
+     of the doubles). */
+  static double gaol_minus_sqrt_down(double x, double u)
+  {
+    return (u*u == x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
   }
 
   /*
@@ -1261,7 +1278,7 @@ interval nth_root(const interval& I, unsigned int n)
       return tmp;
     } else {
 			GAOL_RND_ENTER();
-			double l = Ipos.left_internal()/gaol_sqrt_up(Ipos.left());
+			double l = gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
 			double r = gaol_sqrt_up(Ipos.right());
       GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
       GAOL_RND_LEAVE();
