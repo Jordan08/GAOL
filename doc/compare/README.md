@@ -13,7 +13,7 @@ Three implementations of interval arithmetic on doubles are compared:
 
 The comparison has two parts:
 
-- [Special cases](special_cases.md): 223 special cases taken from GAOL's tests
+- [Special cases](special_cases.md): 226 special cases taken from GAOL's tests
   (infinities, zeros, NaN, empty sets, divisions by zero, `pow` and `pown`,
   `+=` and the other operators with doubles, reading from text, midpoints and
   widths), computed by the three libraries and compared with the results of
@@ -30,10 +30,10 @@ reports.
 
 | | GAOL | libieeep1788 | Solaris Studio |
 |---|---|---|---|
-| Special cases with IEEE 1788's result | 180 of 221 | 217 of 217 | 117 of 205 |
-| … or an interval enclosing it | 29 | 0 | 36 |
-| … or another result | 12 | 0 | 52 |
-| Cases it has no operation for | 0 | 5 | 17 |
+| Special cases with IEEE 1788's result | 185 of 224 | 217 of 217 | 117 of 205 |
+| … or an interval enclosing it | 31 | 0 | 36 |
+| … or another result | 8 | 0 | 52 |
+| Cases it has no operation for | 0 | 8 | 20 |
 | `x + y` | 3.8 ns | 211 ns | 24 ns |
 | `x * y` | 16 ns | 260 ns | 29 ns |
 | `sin(x)` | 129 ns | 9.8 µs | 59 ns |
@@ -43,10 +43,9 @@ reports.
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
   as tightly as possible, and is 13 to 90 times slower than GAOL.
 - **GAOL** is the fastest on the arithmetic and on most formulas, and gives
-  IEEE 1788's result, or an interval enclosing it, in all but 12 special
-  cases: its hybrid `pow`, which takes `pown` for integer exponents,
-  `log([0])`, `nth_root` of negative numbers, `width()` of the empty set, and
-  two forms of literals it does not read.
+  IEEE 1788's result, or an interval enclosing it, in all but 8 special
+  cases: its hybrid `pow`, which takes `pown` for integer exponents, and two
+  forms of literals it does not read, `[entire]` and the uncertain form.
 - **Solaris Studio** is the fastest on the elementary functions, twice as
   fast as GAOL on sin and cos, but slow on integer powers and squares. Its
   containment sets give other results than IEEE 1788 wherever an infinity, a

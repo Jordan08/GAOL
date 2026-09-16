@@ -1704,7 +1704,10 @@ both functional and relational versions of the main arithmetic operators.
   \begin{operation}
     \op{$^{b}\sqrt{I}$}
   \end{operation}
-  Computes the \var{b}th functional root of \var{I}.
+  Computes the \var{b}th functional root of \var{I}: for an odd \var{b}, the
+  root of a negative number is the opposite of the root of its magnitude; for an
+  even \var{b}, only the part of \var{I} in $[0,+\infty]$ is considered.
+  Returns the empty set for $\var{b}=0$.
 \end{deffun}
 
 
@@ -1887,13 +1890,13 @@ relational hyperbolic arcsine is identical to the hyperbolic arcsine, which shou
   \begin{operation}
     \op{$\code{width}(\itv{a}{b})=\roundUp{b-a}$}
   \end{operation}
-Returns the width of \code{self}. Returns \code{-1.0} whenever the interval is empty.
+Returns the width of \code{self}. Returns NaN whenever the interval is empty.
 \begin{example}
 cout << interval(4,6).width()
      << (interval(1,next_float(1)).width()
          == std::numeric_limits<double>::epsilon())
      << interval::emptyset.width();
-@outputs^2 true -1~
+@outputs^2 true nan~
 \end{example}
 \end{defmethod}
 

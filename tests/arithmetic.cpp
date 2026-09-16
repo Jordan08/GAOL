@@ -15,7 +15,8 @@
  * infinities and NaN. Products of intervals with zero and infinite bounds have
  * to be the hull of the products of the bounds, a zero bound times an infinite
  * one counting as 0, the pairs of bounds that are not an interval being the
- * empty set.
+ * empty set. The n-th roots are the rootn of IEEE 1788-2015: for an odd n,
+ * the root of a negative number is the opposite of the root of its magnitude.
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -195,6 +196,18 @@ namespace
       for (int n = 2; n <= 7; ++n) {
         expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, root_limit);
       }
+      // The odd roots of -|a|, the opposites of those of |a|, and the even
+      // roots of -|a|, which are empty unless a is 0
+      for (unsigned int n = 3; n <= 7; ++n) {
+        const interval pos = nth_root(interval(m), n), neg = nth_root(interval(-m), n);
+        const std::string name = "nth_root([-|a|],n) for n=" + std::to_string(n) + in;
+        const auto describe = [&] { return "x=" + hex(-m) + ": " + hex(neg); };
+        if (odd(n)) {
+          check(name + ": -nth_root([|a|],n)", !neg.is_empty() && neg.left() == -pos.right() && neg.right() == -pos.left(), describe);
+        } else {
+          check(name + ": empty unless a = 0", m == 0.0 ? (neg.left() == 0.0 && neg.right() == 0.0) : neg.is_empty(), describe);
+        }
+      }
     }
   }
 
@@ -248,6 +261,22 @@ namespace
         const Exact lo = (n % 2 == 1) ? powers[0] : (x_has_zero ? zero : min(powers));
         const Exact hi = (n % 2 == 1) ? powers[1] : max(powers);
         expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit(n), X, interval(n));
+      }
+
+      // n-th roots: increasing, from the roots of the bounds, on the whole of
+      // [x] for an odd n and on its part in [0, +oo] for an even n
+      for (unsigned int n = 3; n <= 6; ++n) {
+        const interval r = nth_root(X, n);
+        const std::string name = "nth_root([x],n) for n=" + std::to_string(n) + in;
+        const auto describe = [&] { return "x=" + hex(X) + ": " + hex(r); };
+        if (odd(n) || X.right() >= 0.0) {
+          const double lo = odd(n) ? X.left() : std::max(0.0, X.left());
+          check(name + ": the roots of the bounds",
+                !r.is_empty() && r.left() == nth_root(interval(lo), n).left() && r.right() == nth_root(interval(X.right()), n).right(),
+                describe);
+        } else {
+          check(name + ": empty", r.is_empty(), describe);
+        }
       }
 
       const std::vector<Exact> magnitudes = { exact(std::fabs(X.left())), exact(std::fabs(X.right())) };
@@ -400,6 +429,58 @@ namespace
       }
     }
   }
+
+  // The n-th roots at special values: the rootn of IEEE 1788-2015 (Table
+  // 10.5), defined on R for an odd n and on [0, +oo] for an even n, the root
+  // of 0 being 0. GAOL took the roots of the part of [x] in [0, +oo] for every
+  // n, and moved the root of 0 one double away
+  void roots_at_special_values()
+  {
+    const interval cube_root_8 = nth_root(interval(8.), 3), cube_root_27 = nth_root(interval(27.), 3);
+    const interval r = nth_root(interval(-8., 27.), 3);
+    check("nth_root([-8,27],3): [-2,3], from the roots of 8 and 27",
+          !r.is_empty() && r.left() <= -2. && r.right() >= 3. && r.left() == -cube_root_8.right()
+          && r.right() == cube_root_27.right(),
+          [&] { return hex(r); });
+
+    struct Case
+    {
+      const char *name;
+      interval x;
+      unsigned int n;
+      double lo, hi;
+      bool empty, exact;
+    };
+    const Case cases[] = {
+      { "nth_root([0],3)", interval(0.), 3, 0., 0., false, true },
+      { "nth_root([-0,0],4)", interval(-0., 0.), 4, 0., 0., false, true },
+      { "nth_root([-oo,+oo],3)", interval::universe(), 3, -inf, inf, false, true },
+      { "nth_root([-oo,+oo],4)", interval::universe(), 4, 0., inf, false, true },
+      { "nth_root([0,+oo],5)", interval(0., inf), 5, 0., inf, false, true },
+      { "nth_root([-oo,-1],3)", interval(-inf, -1.), 3, -inf, -1., false, false },
+      { "nth_root([-4,9],4)", interval(-4., 9.), 4, 0., std::sqrt(3.), false, false },
+      { "nth_root([-8,-1],3)", interval(-8., -1.), 3, -2., -1., false, false },
+      { "nth_root([-4,-1],4)", interval(-4., -1.), 4, 0., 0., true, false },
+      { "nth_root(empty,3)", interval::emptyset(), 3, 0., 0., true, false },
+      { "nth_root([-8,27],0)", interval(-8., 27.), 0, 0., 0., true, false },
+    };
+    for (const Case& c : cases) {
+      const interval x = nth_root(c.x, c.n);
+      const auto describe = [&] { return hex(x); };
+      if (c.empty) {
+        check(std::string(c.name) + ": empty", x.is_empty(), describe);
+      } else if (c.exact) {
+        check(std::string(c.name) + ": exact", !x.is_empty() && x.left() == c.lo && x.right() == c.hi, describe);
+      } else {
+        // An enclosure, within 4 doubles at the scale of these values
+        const double slack = 4 * std::ldexp(1.0, -52);
+        check(std::string(c.name) + ": encloses, within 4 doubles",
+              !x.is_empty() && x.left() <= c.lo && x.right() >= c.hi
+              && x.left() >= c.lo - slack * std::max(1.0, std::fabs(c.lo))
+              && x.right() <= c.hi + slack * std::max(1.0, std::fabs(c.hi)), describe);
+      }
+    }
+  }
 }
 
 int main()
@@ -413,6 +494,7 @@ int main()
   divisions_by_zero();
   operations_with_special_doubles();
   products_with_infinite_bounds();
+  roots_at_special_values();
   const int status = summary();
   gaol::cleanup();
   return status;

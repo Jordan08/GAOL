@@ -36,7 +36,7 @@ public:
   // --> Beginning of tests
   void test_properties() {
       TEST_TRUE(interval(4,5).width()==1);
-      TEST_TRUE(interval::emptyset().width()==-1);
+      TEST_TRUE(std::isnan(interval::emptyset().width()));
       TEST_TRUE(interval(1,1).width()==0);
       TEST_TRUE(interval(1.0,next_float(1.0)).width() == std::numeric_limits<double>::epsilon());
 

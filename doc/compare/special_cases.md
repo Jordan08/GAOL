@@ -42,8 +42,8 @@ where IEEE 1788 defines one and libieeep1788 has the operation: it computes
 every bound with MPFR, correctly rounded. It has no n-th root (`rootn`), no
 operators with doubles and no compound assignments.
 
-**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 209
-cases out of 221, and something else in 12:
+**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 216
+cases out of 224, and something else in 8:
 
 - The hybrid `pow(x, y)` of this fork takes the integer power `pown` for a
   degenerate integer exponent, where IEEE 1788's `pow` only takes the part of
@@ -53,22 +53,16 @@ cases out of 221, and something else in 12:
   (cases 158, 178 to 180, 183); `pow([−2, −1], [1e10])`, an integer beyond the
   ints, is [−∞, +∞] (173). Five more cases enclose IEEE 1788's result for the
   same reason (157, 161, 174 to 176).
-- `log([−4, 0])` and `log([0])` are [−∞, −MAX]: `log()` keeps the part of x
-  in [0, +∞], 0 included, and takes log(0) as −∞, where IEEE 1788, whose
-  `log` is defined on (0, +∞), has ∅ (97, 98).
-- `nth_root([−8, 27], 3)` is [−2^-1074, 3.000000000000001]: GAOL takes the
-  n-th roots of the part of x in [0, +∞], for odd n too, as GAOL's own checks
-  want (`check/non_arithmetic.cpp`), where the `rootn` of IEEE 1788 is
-  [−2, 3] (198).
 - `interval("[entire]")` and the uncertain form `interval("3.56?1")` throw
   `input_format_error`: GAOL's parser reads `[empty]`, but neither
   `[entire]` nor the uncertain form of IEEE 1788 (28, 29). GAOL reads a bare
   number, `interval("0.1")`, as the interval enclosing it, an extension of the
   literals IEEE 1788 allows (19).
-- `width()` of the empty set is −1, where IEEE 1788's `wid` is NaN (212).
 
 Its wider results are a few doubles off (sin, cos, tan, acos, `pow(x, y)`,
-which is exp(y log x)), or a subnormal bound where IEEE 1788 has 0:
+which is exp(y log x), and the n-th roots, computed as powers with a rounded
+exponent: `nth_root([−8, 27], 3)` is [−2.0000000000000004, 3.000000000000001]),
+or a subnormal bound where IEEE 1788 has 0:
 `log([0, 1])` is [−∞, 2^-1074], `acosh([0, 1])` is [−3·2^-1074, 3·2^-1074].
 `pow([1], [−∞, +∞])` is [0, +∞] rather than [1], `pow([0, 1], [1, +∞])`
 [0, +∞] rather than [0, 1], and `pow([10], −400)` [0, 5.6e−309] rather than
@@ -92,7 +86,7 @@ is every extended real, and +∞ is a point. So:
   are often one or two doubles wider than the tightest, `x**n` included (132,
   134, 136, 137, 141, 146, 150, 152, 157, 159, 161, 163).
 - `mid([−∞, 1])` is −∞ and `mid([1, +∞])` is +∞, rather than −MAX and MAX
-  (204, 205).
+  (207, 208).
 - Reading `0.1` gives [0, 0.2]: a single number read as an interval carries an
   uncertainty of one unit of its last digit, as the uncertain form `0.1?1` of
   IEEE 1788 would. Bounds in the wrong order are a read error rather than ∅,
@@ -103,20 +97,20 @@ is every extended real, and +∞ is a point. So:
 
 Its elementary functions are the tightest intervals, or one double wider, and
 give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
-`log([0])` aside, which are [−∞, −MAX] as in GAOL (97, 98).
+`log([0])` aside, which are [−∞, −MAX] (97, 98).
 
 ## The cases
 
 <!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->
 
-223 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
+226 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
 
 | | GAOL | libieeep1788 | Solaris Studio |
 |---|---|---|---|
-| ✓ the result of IEEE 1788 | 180 | 217 | 117 |
-| ⊃ encloses it, wider | 29 | 0 | 36 |
-| ✗ differs | 12 | 0 | 52 |
-| n/a no such operation | 0 | 5 | 17 |
+| ✓ the result of IEEE 1788 | 185 | 217 | 117 |
+| ⊃ encloses it, wider | 31 | 0 | 36 |
+| ✗ differs | 8 | 0 | 52 |
+| n/a no such operation | 0 | 8 | 20 |
 
 ### 1. Constructors and assignment
 
@@ -262,8 +256,8 @@ From tests/elementary.cpp (at_known_intervals), check/.
 | 094 | `tan([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
 | 095 | `log([−1, 1])` | [−∞, 0] | [−∞, 2^-1074] ⊃ | [−∞, 0] ✓ | [−∞, 0] ✓ |  |
 | 096 | `log([0, 1])` | [−∞, 0] | [−∞, 2^-1074] ⊃ | [−∞, 0] ✓ | [−∞, 0] ✓ |  |
-| 097 | `log([−4, 0])` | ∅ | [−∞, −MAX] ✗ | ∅ ✓ | [−∞, −MAX] ✗ | no x > 0 in [−4, 0]: GAOL and Solaris Studio take log(0) = −∞ |
-| 098 | `log([0])` | ∅ | [−∞, −MAX] ✗ | ∅ ✓ | [−∞, −MAX] ✗ |  |
+| 097 | `log([−4, 0])` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | no x > 0 in [−4, 0]: Solaris Studio takes log(0) = −∞ |
+| 098 | `log([0])` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ |  |
 | 099 | `log([−2, −1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ |  |
 | 100 | `log([1, +∞])` | [0, +∞] | [−2^-1074, +∞] ⊃ | [−0, +∞] ✓ | [−0, +∞] ✓ |  |
 | 101 | `exp([−∞, 0])` | [0, 1] | [0, 1.0000000000000002] ⊃ | [−0, 1] ✓ | [0, 1] ✓ |  |
@@ -384,11 +378,14 @@ From check/non_arithmetic.cpp, tests/arithmetic.cpp.
 
 | # | Operation | IEEE 1788 | GAOL | libieeep1788 | Solaris Studio | Notes |
 |---|---|---|---|---|---|---|
-| 198 | `nth_root([−8, 27], 3)` | [−2, 3] | [−2^-1074, 3.000000000000001] ✗ | n/a | n/a | neither libieeep1788 nor Solaris Studio has rootn; GAOL takes the roots of x ∩ [0, +∞] for every n (check/non_arithmetic.cpp) |
+| 198 | `nth_root([−8, 27], 3)` | [−2, 3] | [−2.0000000000000004, 3.000000000000001] ⊃ | n/a | n/a | neither libieeep1788 nor Solaris Studio has rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3] |
 | 199 | `nth_root([−4, 9], 2)` | [0, 3] | [0, 3] ✓ | n/a | n/a |  |
 | 200 | `nth_root([−4, −1], 2)` | ∅ | ∅ ✓ | n/a | n/a |  |
-| 201 | `nth_root([−∞, +∞], 0)` | — | ∅ | n/a | n/a | rootn(x, q) is for q ≠ 0 only (Table 10.5) |
-| 202 | `nth_root([0, +∞], 2)` | [0, +∞] | [0, +∞] ✓ | n/a | n/a |  |
+| 201 | `nth_root([−8, −1], 3)` | [−2, −1] | [−2.0000000000000004, −0.9999999999999999] ⊃ | n/a | n/a |  |
+| 202 | `nth_root([0], 5)` | [0] | [0] ✓ | n/a | n/a |  |
+| 203 | `nth_root([−∞, +∞], 3)` | [−∞, +∞] | [−∞, +∞] ✓ | n/a | n/a |  |
+| 204 | `nth_root([−∞, +∞], 0)` | — | ∅ | n/a | n/a | rootn(x, q) is for q ≠ 0 only (Table 10.5) |
+| 205 | `nth_root([0, +∞], 2)` | [0, +∞] | [0, +∞] ✓ | n/a | n/a |  |
 
 ### 11. Numeric and set functions
 
@@ -396,26 +393,26 @@ From tests/other_functions.cpp, tests/numbers.cpp.
 
 | # | Operation | IEEE 1788 | GAOL | libieeep1788 | Solaris Studio | Notes |
 |---|---|---|---|---|---|---|
-| 203 | `[−∞, +∞].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | mid (12.12.8) |
-| 204 | `[−∞, 1].midpoint()` | −MAX | −MAX ✓ | −MAX ✓ | −∞ ✗ |  |
-| 205 | `[1, +∞].midpoint()` | MAX | MAX ✓ | MAX ✓ | +∞ ✗ |  |
-| 206 | `∅.midpoint()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
-| 207 | `[MAX/2, MAX].midpoint()` | 1.3482698511467367e+308 | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ |  |
-| 208 | `[0, 2^-1074].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | the tie rounded to even |
-| 209 | `[−2^-1074, 4·2^-1074].midpoint()` | 2·2^-1074 | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 1.5·2^-1074, to even |
-| 210 | `[−∞, 1].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | wid (12.12.8) |
-| 211 | `[−MAX, MAX].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ |  |
-| 212 | `∅.width()` | NaN | −1 ✗ | NaN ✓ | NaN ✓ | GAOL returns −1 for the empty set |
-| 213 | `[−3, 2].mag()` | 3 | 3 ✓ | 3 ✓ | 3 ✓ |  |
-| 214 | `∅.mag()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
-| 215 | `[−3, 2].mig()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ |  |
-| 216 | `[−3, −2].mig()` | 2 | 2 ✓ | 2 ✓ | 2 ✓ |  |
-| 217 | `∅.mig()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
-| 218 | `[1, 2] \| ∅` | [1, 2] | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | convex_hull in libieeep1788, .ih. in Solaris Studio |
-| 219 | `[1, 2] & [3, 4]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | intersection in libieeep1788, .ix. in Solaris Studio |
-| 220 | `[1, 2] & [2, 3]` | [2] | [2] ✓ | [2] ✓ | [2] ✓ |  |
-| 221 | `min([−∞, 1], [0, 2])` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ |  |
-| 222 | `max([1, 2], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ |  |
-| 223 | `−[−∞, 1]` | [−1, +∞] | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ |  |
+| 206 | `[−∞, +∞].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | mid (12.12.8) |
+| 207 | `[−∞, 1].midpoint()` | −MAX | −MAX ✓ | −MAX ✓ | −∞ ✗ |  |
+| 208 | `[1, +∞].midpoint()` | MAX | MAX ✓ | MAX ✓ | +∞ ✗ |  |
+| 209 | `∅.midpoint()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
+| 210 | `[MAX/2, MAX].midpoint()` | 1.3482698511467367e+308 | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ |  |
+| 211 | `[0, 2^-1074].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | the tie rounded to even |
+| 212 | `[−2^-1074, 4·2^-1074].midpoint()` | 2·2^-1074 | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 1.5·2^-1074, to even |
+| 213 | `[−∞, 1].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | wid (12.12.8) |
+| 214 | `[−MAX, MAX].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ |  |
+| 215 | `∅.width()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
+| 216 | `[−3, 2].mag()` | 3 | 3 ✓ | 3 ✓ | 3 ✓ |  |
+| 217 | `∅.mag()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
+| 218 | `[−3, 2].mig()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ |  |
+| 219 | `[−3, −2].mig()` | 2 | 2 ✓ | 2 ✓ | 2 ✓ |  |
+| 220 | `∅.mig()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ |  |
+| 221 | `[1, 2] \| ∅` | [1, 2] | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | convex_hull in libieeep1788, .ih. in Solaris Studio |
+| 222 | `[1, 2] & [3, 4]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | intersection in libieeep1788, .ix. in Solaris Studio |
+| 223 | `[1, 2] & [2, 3]` | [2] | [2] ✓ | [2] ✓ | [2] ✓ |  |
+| 224 | `min([−∞, 1], [0, 2])` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ |  |
+| 225 | `max([1, 2], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ |  |
+| 226 | `−[−∞, 1]` | [−1, +∞] | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ |  |
 
 <!-- END GENERATED TABLES -->

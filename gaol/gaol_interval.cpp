@@ -457,7 +457,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       return interval::emptyset();
     }
     // pow(0,y) is 0 for y > 0, and has no value for y <= 0 (Table 9.1, footnote
-    // c), which exp(J*log([0])) does not give, log([0]) being [-oo,-MAX]
+    // c), which exp(J*log([0])) does not give, log([0]) being empty
     if (base.right() == 0.0) {
       return J.right() > 0.0 ? interval::zero() : interval::emptyset();
     }
@@ -576,7 +576,29 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   }
 
   /*
+    The n-th root of d >= 0 rounded downward and upward, n > 2, 1/n being
+    enclosed by [n_lo,n_hi]: d^e grows with e for d >= 1 and decreases for
+    d < 1. The root of 0 is 0, which nthroot_dn() and nthroot_up() move one
+    double away (fork of GAOL)
+  */
+  static double root_dn(double d, double n_lo, double n_hi)
+  {
+    return (d == 0.0) ? 0.0 : nthroot_dn(d,(d >= 1.0) ? n_lo : n_hi);
+  }
+
+  static double root_up(double d, double n_lo, double n_hi)
+  {
+    return (d == 0.0) ? 0.0 : nthroot_up(d,(d >= 1.0) ? n_hi : n_lo);
+  }
+
+  /*
     Code inspired from ia_math by Timothy Hickey
+
+    rootn of IEEE 1788-2015 (Table 10.5, fork of GAOL): defined on R for an odd
+    n, the root of x < 0 being -(-x)^(1/n), and on [0,+oo] for an even n. GAOL
+    took the roots of the part of I in [0,+oo] for every n: nth_root([-8,27],3)
+    was [0,3] rather than [-2,3]. rootn(x,0) is not defined, and gives the
+    empty set.
   */
 interval nth_root(const interval& I, unsigned int n)
 {
@@ -588,41 +610,18 @@ interval nth_root(const interval& I, unsigned int n)
 	case 2:
 		return sqrt(I);
 	default:
-		interval Ipos = interval(maximum(0.0,I.left()),I.right());
-		if (Ipos.is_empty()) {
-			return interval::emptyset();
-		}
-		interval inv_n = interval(1.0)/double(n);
-		double n_lo = inv_n.left();
-		double n_hi = inv_n.right();
-		double l, r;
-		if (odd(n)) {
-			if (Ipos.left() >= 1.0) {
-				l = nthroot_dn(Ipos.left(),n_lo);
-			} else {
-				l = nthroot_dn(Ipos.left(),n_hi);
-			}
-			if (I.right() >= 1.0) {
-				r = nthroot_up(I.right(),n_hi);
-			} else {
-				r = nthroot_up(I.right(),n_lo);
-			}
-			return interval(l,r);
-		}
-		// n is even
-		if (Ipos.left() >= 1.0) {
-			l = nthroot_dn(Ipos.left(),n_lo);
-		} else {
-			l = nthroot_dn(Ipos.left(),n_hi);
-		}
-
-		if (Ipos.right() >= 1.0) {
-			r = nthroot_up(Ipos.right(),n_hi);
-		} else {
-			r = nthroot_up(Ipos.right(),n_lo);
-		}
-		return interval(l,r);
+		break;
 	}
+	const interval J = odd(n) ? I : (I & interval::positive());
+	if (J.is_empty()) {
+		return interval::emptyset();
+	}
+	const interval inv_n = interval(1.0)/double(n);
+	const double n_lo = inv_n.left();
+	const double n_hi = inv_n.right();
+	const double l = (J.left() >= 0.0) ? root_dn(J.left(),n_lo,n_hi) : -root_up(-J.left(),n_lo,n_hi);
+	const double r = (J.right() >= 0.0) ? root_up(J.right(),n_lo,n_hi) : -root_dn(-J.right(),n_lo,n_hi);
+	return interval(l,r);
 }
 
   ULONGLONGINT nb_fp_numbers(double a, double b)
@@ -662,13 +661,14 @@ interval nth_root(const interval& I, unsigned int n)
 
   interval log(const interval& I)
   {
-    interval J = interval(maximum(0.0,I.left()), I.right());
-
-    if (J.is_empty()) {
+    // log is defined on (0,+oo) (IEEE 1788-2015, Table 9.1, fork of GAOL): I
+    // holding no positive number, as [-4,0] and [0], gives the empty set, where
+    // GAOL kept its part in [0,+oo] and gave [-oo,-MAX]
+    if (I.is_empty() || !(I.right() > 0.0)) {
       return interval::emptyset();
     }
 
-    return interval(log_dn(J.left()), log_up(J.right()));
+    return interval(log_dn(maximum(0.0,I.left())), log_up(I.right()));
   }
 
 

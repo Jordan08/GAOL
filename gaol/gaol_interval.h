@@ -697,6 +697,10 @@ extern __GAOL_PUBLIC__   interval nth_root_rel(const interval& J,
 					   unsigned int n, const interval& I);
   /*!
     \brief nth root of I for a positive n
+
+    rootn of IEEE 1788-2015: for an odd n, the root of a negative x is
+    -(-x)^(1/n), and nth_root([-8,27],3) encloses [-2,3]; for an even n, the
+    roots of the part of I in [0,+oo]. nth_root(I,0) is the empty set.
   */
 extern __GAOL_PUBLIC__   interval nth_root(const interval& I, unsigned int n);
 
@@ -869,12 +873,13 @@ INLINE interval sin(const interval& I)
  /*!
     \brief Diameter of an interval
     Returns the width of the interval (rounded upward).
-    \note Returns -1 if the interval is empty
+    \note Returns NaN if the interval is empty, as wid of IEEE 1788-2015
+    (12.12.8) does, rather than -1 (fork of GAOL)
    */
 INLINE double interval::width(void) const
 {
     if (is_empty()) {
-        return -1.0;
+        return GAOL_NAN;
     } else {
         GAOL_RND_ENTER();
         double res = right() - left();

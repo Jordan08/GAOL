@@ -113,7 +113,8 @@ public:
   }
 
   void test_log() {
-    TEST_SEQ(log(interval(-4.0,0.0)),interval(-GAOL_INFINITY,-std::numeric_limits<double>::max()));
+    TEST_EMPTY(log(interval(-4.0,0.0)));
+    TEST_EMPTY(log(interval::zero()));
     TEST_EMPTY(log(interval::emptyset()));
 	interval tmp = log(interval(-3,4));
 	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && (tmp.right()-1.386294361119891)<=1e-8);
@@ -143,7 +144,7 @@ public:
 		TEST_EMPTY(nth_root(interval::emptyset(),5));
 		TEST_EMPTY(nth_root(interval::emptyset(),4));
 		TEST_EQ(nth_root(interval(-4,3),4),interval(0,1.3160740129524));
-		TEST_EQ(nth_root(interval(-4,3),5),interval(0,1.24573093961));
+		TEST_EQ(nth_root(interval(-4,3),5),interval(-1.31950791077,1.24573093961));
 		TEST_EQ(nth_root(interval(0.5,2),4),interval(0.84089641525371,1.189207115002));
 		TEST_EQ(nth_root(interval(0.2,0.5),4),interval(0.668740304976422024,0.84089641525371454303));
 		TEST_EQ(nth_root(interval(0.5,2),5),interval(0.8705505632,1.14869835));

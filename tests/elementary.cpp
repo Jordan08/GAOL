@@ -244,6 +244,10 @@ namespace
     };
     const Empty empty[] = {
       { "log([-2,-1])", [] { return log(interval(-2., -1.)); } },
+      // log is defined on (0, +oo) (IEEE 1788-2015, Table 9.1): GAOL gave
+      // [-oo,-MAX] for these two
+      { "log([-4,0])", [] { return log(interval(-4., 0.)); } },
+      { "log([0])", [] { return log(interval(0.)); } },
       { "sqrt([-4,-1])", [] { return sqrt(interval(-4., -1.)); } },
       { "asin([2,3])", [] { return asin(interval(2., 3.)); } },
       { "acos([-3,-2])", [] { return acos(interval(-3., -2.)); } },

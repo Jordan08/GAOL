@@ -137,6 +137,28 @@ Each change is a commit of its own, and says where it comes from.
     `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
     `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
     `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
+- **`nth_root(I, n)`** is the `rootn` of IEEE 1788-2015 (Table 10.5): for an
+  odd `n`, it is defined on the whole real line, the root of a negative number
+  being the opposite of the root of its magnitude, and `nth_root([-8, 27], 3)`
+  encloses `[-2, 3]`; for an even `n`, it takes the roots of the part of `I` in
+  `[0, +oo]`, as before. GAOL took that part for every `n`, and gave
+  `[-2^-1074, 3.000000000000001]`, or the empty set for `nth_root([-8, -1], 3)`.
+  The root of 0 is 0, rather than `[-2^-1074, 2^-1074]`. IBEX and Codac, which
+  add the roots of the negative part themselves (`nth_root(x) | -nth_root(-x)`),
+  get the same intervals as before. `check/non_arithmetic.cpp` wanted
+  `[0, 1.2457]` for `nth_root([-4, 3], 5)`, and now wants `[-1.3195, 1.2457]`.
+  libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
+- **`log()`** gives the empty set for an interval holding no positive number:
+  `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
+  of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
+  `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
+  the empty set themselves before calling it. `log([0, 1])` is still
+  `[-oo, 2^-1074]`.
+- **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
+  rather than -1, which the manual and `check/interval_functions.cpp` gave.
+  Codac's `diam()` returned NaN for the empty set without calling `width()`;
+  IBEX's `diam()`, which its documentation says is 0 for the empty set, returns
+  what `width()` returns, NaN now.
 - **The cosine of mathlib** (`cmake/mathlib/prepare.cmake`): for the arguments
   hardest to round, mathlib computes cos(x) with multiple-precision numbers, as
   sin(π/2 − x) when x > 0.8, and `mpcos()` returned the cosine of π/2 − x

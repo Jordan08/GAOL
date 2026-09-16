@@ -106,6 +106,8 @@ namespace
     }
     check("width() of unbounded intervals", interval(-inf, 1.).width() == inf);
     check("midpoint() of the empty set", std::isnan(interval::emptyset().midpoint()));
+    // NaN, as wid of IEEE 1788-2015 (12.12.8): GAOL returned -1
+    check("width() of the empty set", std::isnan(interval::emptyset().width()));
     const double a = 0.1;
     check("is_canonical()", interval(a, next_double(a)).is_canonical() && interval(a).is_canonical()
                             && !interval(a, next_double(next_double(a))).is_canonical());
