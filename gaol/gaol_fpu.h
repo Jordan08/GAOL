@@ -101,6 +101,26 @@
 #  endif
 #endif // GAOL_PRESERVE_ROUNDING
 
+/*
+  GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
+  of the mathematical library of an operation, made with the functions of
+  gaol::nearest, which need the rounding direction to nearest (fork of GAOL):
+  the direction is set twice for both bounds of an interval rather than twice
+  for each bound, which cost 11 ns more in sin() and cos() on an Intel
+  i7-1185G7 with glibc. After GAOL_RND_NEAREST_LEAVE(), the direction is
+  upward, or the one GAOL_RND_NEAREST_ENTER() found with
+  GAOL_PRESERVE_ROUNDING. Between them, an operation only negates and compares
+  doubles, which the direction does not change: its computations rounded
+  upward precede GAOL_RND_NEAREST_ENTER().
+*/
+#if GAOL_PRESERVE_ROUNDING
+#  define GAOL_RND_NEAREST_ENTER() const gaol::rounding_state _save_state_nearest = gaol::get_rounding(); gaol::round_nearest()
+#  define GAOL_RND_NEAREST_LEAVE() gaol::set_rounding(_save_state_nearest)
+#else
+#  define GAOL_RND_NEAREST_ENTER() gaol::round_nearest()
+#  define GAOL_RND_NEAREST_LEAVE() gaol::round_upward()
+#endif
+
 
 #if HAVE_FENV_H
 #  include "gaol/gaol_fpu_fenv.h"

@@ -128,8 +128,8 @@ INLINE double next_float(double d)
   are written directly: the rounding bits of the x87 control word (fnstcw,
   fldcw) and of the SSE control register MXCSR (stmxcsr, ldmxcsr), what
   fesetround() does after checking its argument, through a call. GAOL changes
-  the direction four times for each exp(), log(), sin() or cos() of an
-  interval (to nearest before mathlib, upward after, for each bound), and
+  the direction twice for each exp(), log(), sin() or cos() of an interval
+  (to nearest before mathlib, upward after, see GAOL_RND_NEAREST_ENTER()), and
   fesetround() cost 130 ns per call with mingw-w64 13, 50 ns with the C
   runtime of Visual C++ for x64 and 250 ns for x86, 8.5 ns with glibc.
   The doubles of GAOL and of mathlib are computed with SSE2 instructions

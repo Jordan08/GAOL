@@ -134,239 +134,6 @@ namespace gaol {
       }
     }
 
-  /*!
-    \brief nthroot() correctly rounded down
-
-    Assumes a correctly rounded pow(double) when rounding direction
-    is to nearest (such as ensured by the IBM math library).
-    \caution The current rounding direction must be to nearest.
-  */
-  INLINE double nthroot_dn(double d, double e)
-    {
-      GAOL_RND_PRESERVE();
-      round_nearest();
-      double f=previous_float(pow_rn(d,e));
-      GAOL_RND_RESTORE();
-      return f;
-    }
-
-  /*!
-    \brief nthroot() correctly rounded up
-
-    Assumes a correctly rounded pow(double) when rounding direction
-    is to nearest (such as ensured by the IBM math library).
-    \caution The current rounding direction must be to nearest.
-  */
-   INLINE double nthroot_up(double d, double e)
-    {
-      GAOL_RND_PRESERVE();
-      round_nearest();
-      double f=next_float(pow_rn(d,e));
-      GAOL_RND_RESTORE();
-      return f;
-    }
-
-  /*!
-    \brief Exponential correctly rounded downward
-
-    Assumes a correctly rounded function exp(double) when rounding
-    direction is to nearest (such as ensured by the IBM math library).
-    \caution The current rounding direction must be to nearest.
-  */
-  INLINE double exp_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=exp_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  /*!
-    \brief Exponential correctly rounded upward
-
-    Assumes a correctly rounded function exp(double) when rounding
-    direction is to nearest (such as ensured by the IBM math library).
-    \caution The current rounding direction must be to nearest.
-  */
-  INLINE double exp_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=exp_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double cos_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=cos_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double cos_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=cos_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  // sin, as cos (fork of GAOL: GAOL computed sin(x) as cos(x - pi/2))
-  INLINE double sin_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=sin_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double sin_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=sin_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double tan_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=tan_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double tan_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=tan_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-   INLINE double log_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=log_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double log_up(double d)
-  {
-	if (d == 0.0) {
-		// Check this cas to avoid log([0,0]) == <-inf, -inf>
-		return -std::numeric_limits<double>::max();
-	} else {
-    	GAOL_RND_PRESERVE();
-    	round_nearest();
-    	double f=log_ru(d);
-    	GAOL_RND_RESTORE();
-    	return f;
-	}
-  }
-
-
-  INLINE double acos_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=acos_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double acos_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=acos_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double asin_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=asin_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double asin_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=asin_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double atan_dn(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=atan_rd(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double atan_up(double d)
-  {
-    GAOL_RND_PRESERVE();
-    round_nearest();
-    double f=atan_ru(d);
-    GAOL_RND_RESTORE();
-    return f;
-  }
-
-  INLINE double cosh_dn(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = cosh_rd(x);
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
-  INLINE double cosh_up(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = cosh_ru(x);
-	GAOL_RND_LEAVE();
-	return f;
-  }
-
-  INLINE double sinh_dn(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = sinh_rd(x);
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
-  INLINE double sinh_up(double x)
-  {
-	GAOL_RND_PRESERVE();
-	round_nearest();
-	double f = sinh_ru(x);
-	GAOL_RND_RESTORE();
-	return f;
-  }
-
   /*
     tanh, acosh, asinh and atanh come from the libm of the system, rounded to
     nearest, crlibm having none of tanh, acosh, asinh and atanh. GAOL moved their values one float outward,
@@ -392,11 +159,280 @@ namespace gaol {
     return next_float(next_float(next_float(f)));
   }
 
+  /*
+    The bounds of the functions below, computed in the rounding direction to
+    nearest, which the mathematical library needs, set beforehand
+    (GAOL_RND_NEAREST_ENTER()): an operation of GAOL sets the direction once
+    for both of its bounds, rather than twice for each (fork of GAOL). The
+    functions of the same names in gaol:: set it themselves.
+  */
+  namespace nearest {
+    INLINE double nthroot_dn(double d, double e) { return previous_float(pow_rn(d,e)); }
+    INLINE double nthroot_up(double d, double e) { return next_float(pow_rn(d,e)); }
+    INLINE double exp_dn(double d) { return exp_rd(d); }
+    INLINE double exp_up(double d) { return exp_ru(d); }
+    INLINE double cos_dn(double d) { return cos_rd(d); }
+    INLINE double cos_up(double d) { return cos_ru(d); }
+    INLINE double sin_dn(double d) { return sin_rd(d); }
+    INLINE double sin_up(double d) { return sin_ru(d); }
+    INLINE double tan_dn(double d) { return tan_rd(d); }
+    INLINE double tan_up(double d) { return tan_ru(d); }
+    INLINE double log_dn(double d) { return log_rd(d); }
+    // Checks 0 to avoid log([0,0]) == <-inf, -inf>
+    INLINE double log_up(double d) { return (d == 0.0) ? -std::numeric_limits<double>::max() : log_ru(d); }
+    INLINE double acos_dn(double d) { return acos_rd(d); }
+    INLINE double acos_up(double d) { return acos_ru(d); }
+    INLINE double asin_dn(double d) { return asin_rd(d); }
+    INLINE double asin_up(double d) { return asin_ru(d); }
+    INLINE double atan_dn(double d) { return atan_rd(d); }
+    INLINE double atan_up(double d) { return atan_ru(d); }
+    INLINE double cosh_dn(double x) { return cosh_rd(x); }
+    INLINE double cosh_up(double x) { return cosh_ru(x); }
+    INLINE double sinh_dn(double x) { return sinh_rd(x); }
+    INLINE double sinh_up(double x) { return sinh_ru(x); }
+    INLINE double tanh_dn(double x) { return gaol_libm_dn(tanh(x)); } // From libm, not crlibm
+    INLINE double tanh_up(double x) { return gaol_libm_up(tanh(x)); } // From libm, not crlibm
+    INLINE double acosh_dn(double x) { return gaol_libm_dn(acosh(x)); } // From libm, not crlibm
+    INLINE double acosh_up(double x) { return gaol_libm_up(acosh(x)); } // From libm, not crlibm
+    INLINE double asinh_dn(double x) { return gaol_libm_dn(asinh(x)); } // From libm, not crlibm
+    INLINE double asinh_up(double x) { return gaol_libm_up(asinh(x)); } // From libm, not crlibm
+    INLINE double atanh_dn(double x) { return gaol_libm_dn(atanh(x)); } // From libm, not crlibm
+    INLINE double atanh_up(double x) { return gaol_libm_up(atanh(x)); } // From libm, not crlibm
+  } // namespace nearest
+
+  /*!
+    \brief nthroot() correctly rounded down
+
+    Assumes a correctly rounded pow(double) when rounding direction
+    is to nearest (such as ensured by the IBM math library).
+    \caution The current rounding direction must be to nearest.
+  */
+  INLINE double nthroot_dn(double d, double e)
+    {
+      GAOL_RND_PRESERVE();
+      round_nearest();
+      double f=nearest::nthroot_dn(d,e);
+      GAOL_RND_RESTORE();
+      return f;
+    }
+
+  /*!
+    \brief nthroot() correctly rounded up
+
+    Assumes a correctly rounded pow(double) when rounding direction
+    is to nearest (such as ensured by the IBM math library).
+    \caution The current rounding direction must be to nearest.
+  */
+   INLINE double nthroot_up(double d, double e)
+    {
+      GAOL_RND_PRESERVE();
+      round_nearest();
+      double f=nearest::nthroot_up(d,e);
+      GAOL_RND_RESTORE();
+      return f;
+    }
+
+  /*!
+    \brief Exponential correctly rounded downward
+
+    Assumes a correctly rounded function exp(double) when rounding
+    direction is to nearest (such as ensured by the IBM math library).
+    \caution The current rounding direction must be to nearest.
+  */
+  INLINE double exp_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::exp_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  /*!
+    \brief Exponential correctly rounded upward
+
+    Assumes a correctly rounded function exp(double) when rounding
+    direction is to nearest (such as ensured by the IBM math library).
+    \caution The current rounding direction must be to nearest.
+  */
+  INLINE double exp_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::exp_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double cos_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::cos_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double cos_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::cos_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  // sin, as cos (fork of GAOL: GAOL computed sin(x) as cos(x - pi/2))
+  INLINE double sin_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::sin_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double sin_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::sin_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double tan_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::tan_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double tan_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::tan_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+   INLINE double log_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::log_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double log_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::log_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+
+  INLINE double acos_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::acos_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double acos_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::acos_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double asin_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::asin_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double asin_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::asin_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double atan_dn(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::atan_dn(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double atan_up(double d)
+  {
+    GAOL_RND_PRESERVE();
+    round_nearest();
+    double f=nearest::atan_up(d);
+    GAOL_RND_RESTORE();
+    return f;
+  }
+
+  INLINE double cosh_dn(double x)
+  {
+	GAOL_RND_PRESERVE();
+	round_nearest();
+	double f=nearest::cosh_dn(x);
+	GAOL_RND_RESTORE();
+	return f;
+  }
+
+  INLINE double cosh_up(double x)
+  {
+	GAOL_RND_PRESERVE();
+	round_nearest();
+	double f=nearest::cosh_up(x);
+	GAOL_RND_RESTORE();
+	return f;
+  }
+
+  INLINE double sinh_dn(double x)
+  {
+	GAOL_RND_PRESERVE();
+	round_nearest();
+	double f=nearest::sinh_dn(x);
+	GAOL_RND_RESTORE();
+	return f;
+  }
+
+  INLINE double sinh_up(double x)
+  {
+	GAOL_RND_PRESERVE();
+	round_nearest();
+	double f=nearest::sinh_up(x);
+	GAOL_RND_RESTORE();
+	return f;
+  }
+
   INLINE double tanh_dn(double x)
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_dn(tanh(x)); // From libm, not crlibm
+	  double f=nearest::tanh_dn(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -405,7 +441,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_up(tanh(x)); // From libm, not crlibm
+	  double f=nearest::tanh_up(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -415,7 +451,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_dn(acosh(x)); // From libm, not crlibm
+	  double f=nearest::acosh_dn(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -424,7 +460,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_up(acosh(x)); // From libm, not crlibm
+	  double f=nearest::acosh_up(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -433,7 +469,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_dn(asinh(x)); // From libm, not crlibm
+	  double f=nearest::asinh_dn(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -442,7 +478,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_up(asinh(x)); // From libm, not crlibm
+	  double f=nearest::asinh_up(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -451,7 +487,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_dn(atanh(x)); // From libm, not crlibm
+	  double f=nearest::atanh_dn(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }
@@ -460,7 +496,7 @@ namespace gaol {
   {
 	  GAOL_RND_PRESERVE();
 	  round_nearest();
-	  double f = gaol_libm_up(atanh(x)); // From libm, not crlibm
+	  double f=nearest::atanh_up(x);
 	  GAOL_RND_RESTORE();
 	  return f;
   }

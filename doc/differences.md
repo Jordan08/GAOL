@@ -49,9 +49,10 @@ Each change is a commit of its own, and says where it comes from.
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with
   mingw-w64 13, 50 ns with the C runtime of Visual C++ for x64 and 250 ns for
-  x86, 8.5 ns with glibc. GAOL changes the direction four times for each
+  x86, 8.5 ns with glibc. GAOL changed the direction four times for each
   elementary function of an interval (to nearest before mathlib and upward
-  after, for each bound), where mathlib itself takes about 10 ns. On the
+  after, for each bound; twice now, see below), where mathlib itself takes
+  about 10 ns. On the
   runners of the continuous integration, `exp()`, `log()`, `sin()` and `cos()`
   of an interval took 535 to 630 ns with MinGW-w64 and MSYS2, and take 48 to
   209 ns; 250 to 340 ns with Visual C++ for x64, and 45 to 160 ns; 1050 to
@@ -196,6 +197,20 @@ Each change is a commit of its own, and says where it comes from.
   `[2^-1050]`, and `pow([-2, 2], -1050)` `[0, +oo]` rather than
   `[2^-1050, +oo]`. Elsewhere `1/x^n` is kept, exact where `x^n` is exact, and
   `pow(x, -3)` takes 0.8 ns more (14.6 ns rather than 13.8).
+- **The rounding direction is set once for both bounds** of an elementary
+  function: `exp()`, `log()`, `sin()`, `cos()`, `tan()`, `asin()`, `acos()`,
+  `atan()`, the hyperbolic functions and `nth_root()` set it to nearest
+  before evaluating the mathematical library at both bounds, and upward
+  after (`GAOL_RND_NEAREST_ENTER()`, with the functions of `gaol::nearest`),
+  rather than around each bound. The bounds are the same, and `exp_dn()`,
+  `cos_up()` and the like still set the direction themselves. On an Intel
+  i7-1185G7 (GCC 9.4, glibc 2.31), `sin()` and `cos()` take 113 and 114 ns
+  rather than 124 and 126, `tan()` 106 ns rather than 120, the hyperbolic
+  functions 9 to 12 ns less, `exp()` 47 ns rather than 53, `log()` 69 ns
+  rather than 73, and `pow(x, y)` 129 ns rather than 147. With the math
+  library of the system (`--with-mathlib=m`), the elementary functions left
+  the direction to nearest, and so did `cosh_up()` with CRlibm, where GAOL
+  leaves it upward: they leave it upward too.
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
