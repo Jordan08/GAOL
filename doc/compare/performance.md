@@ -85,7 +85,7 @@ C++ flags:       -std=c++11 -O3 -DNDEBUG (GAOL: -frounding-math -fno-fast-math -
 Fortran:         f90: Sun Fortran 95 8.7 Linux_i386 2014/10/20, flags: -O3 -xia
 GAOL:            98055b6, CMake Release, mathlib 2.1.1
 libieeep1788:    1f10b89, MPFR 4.2.1, GMP 6.3.0
-filib++:         3.0.2.2 (/home/jninin/Logiciel/filib), interval<double, native_switched, i_mode_extended_flag>
+filib++:         3.0.2.2 , interval<double, native_switched, i_mode_extended_flag>
 ```
 
 1 000 000 operations of each kind, on the same intervals. Each time is the best of 3 rounds, each program being run in turn with the others: 15 runs for double (reference), 15 runs for GAOL, 3 runs for libieeep1788, 15 runs for filib++, 15 runs for Solaris Studio f90 in all.
