@@ -15,7 +15,8 @@ Codac.
   roots have to be enclosures, within a few doubles, the odd roots of negative
   numbers being the opposites of the roots of their magnitudes, and the n-th
   roots of intervals the roots of their bounds (of their part in `[0, +oo]`
-  for an even n). The operators of an interval with a double have to give, on
+  for an even n). The roots of 0, 1 and −1 have to be the tightest
+  enclosures. The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
@@ -26,7 +27,11 @@ Codac.
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
   poles, domains, `log` of intervals holding no positive number being empty,
-  `exp(0)`, `log(1)` and `1^y` exact). sin and cos have to be within one
+  `exp(0)`, `log(1)` and `1^y` exact). The functions have to be the tightest
+  enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
+  `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
+  `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
+  near 1. sin and cos have to be within one
   double of the tightest bounds up to 2^25, `sin([1e-10])` included. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
 - **`rounding_direction`:** about 95 operations of GAOL's interface, called

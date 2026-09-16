@@ -126,12 +126,10 @@ Each change is a commit of its own, and says where it comes from.
   and MinGW-w64 are sometimes a float further, which gave bounds not enclosing
   the exact values. The branch `hyperbolic-rigorous` bounds them without the
   libm instead; [issue #1](https://github.com/Jordan08/GAOL/issues/1) compares
-  the two. At the overflow, the bounds are then two floats wider than the
-  tightest, which three assertions of GAOL's own check `trigonometric`
-  (`make check`) want: `cosh([MAX, +inf])` is `[0x1.ffffffffffffdp+1023, +inf]`
-  rather than `[MAX, +inf]`, likewise `sinh([-inf, -MAX])`, and
-  `tanh([MAX, +inf])` has `0x1.ffffffffffffdp-1` for left bound rather than
-  `previous_float(1)`.
+  the two. At the overflow, the bounds were then two floats wider than the
+  tightest, against three assertions of GAOL's own check `trigonometric`
+  (`make check`); they are now the tightest there (see the exact values
+  below).
 - **Powers with a real exponent**, ported from the fix of Codac:
   - `pow(I, e)` for a floating-point `e` called `pow(I, int)`, which truncated
     the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`
@@ -173,12 +171,29 @@ Each change is a commit of its own, and says where it comes from.
   `[0, 1]`. On an Intel i7-1185G7 (GCC 9.4), `log()` takes 1.5 ns more
   (72.5 ns rather than 71) and `pow(x, y)` 2 ns more (145 ns rather than
   143); `exp()` takes the same time.
+- **The other elementary functions are exact where their value is a double**,
+  as `exp()` and `log()`, and the tightest where it is π/4, π/2 or π:
+  `sin(0)`, `tan(0)`, `asin(0)`, `atan(0)`, `sinh(0)`, `tanh(0)`, `asinh(0)`
+  and `atanh(0)` are 0, `cos(0)` and `cosh(0)` 1, `acos(1)` and `acosh(1)` 0,
+  the n-th roots of 0, 1 and −1 are themselves, and `asin(±1)`, `acos(0)`,
+  `acos(-1)`, `atan(±1)` and `atan(±oo)` are the tightest enclosures of ±π/2,
+  π and ±π/4, the constants of GAOL. The values of mathlib moved one double
+  outward gave these intervals a width: `acos([1, 3])` was
+  `[-2^-1074, 2^-1074]`, `acos(-1)` one double wider than the tightest, and
+  `nth_root([1], 3)` `[1 - 2^-53, 1 + 2^-52]`; those of the libm moved three
+  doubles, `acosh([1])` and `sinh([0])` `[-3·2^-1074, 3·2^-1074]`. `cosh()`
+  and `sinh()` are `[MAX, +oo]` from 711 on, and `tanh()` has the double
+  below 1 for lower bound from 20 on, as the three assertions of
+  `check/trigonometric.cpp` want: `cosh([MAX, +inf])` was
+  `[0x1.ffffffffffffdp+1023, +inf]`, likewise `sinh([-inf, -MAX])`, and
+  `tanh([MAX, +inf])` had `0x1.ffffffffffffdp-1` for left bound. `make check`
+  passes all its 15 checks. On an Intel i7-1185G7 (GCC 9.4), the functions
+  take the same time as before, within 1.5 ns (1 %).
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
   `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
-  the empty set themselves before calling it. `log([0, 1])` is still
-  `[-oo, 2^-1074]`.
+  the empty set themselves before calling it.
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.

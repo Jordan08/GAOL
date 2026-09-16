@@ -470,6 +470,9 @@ namespace
     };
     const Case cases[] = {
       { "nth_root([0],3)", interval(0.), 3, 0., 0., false, true },
+      { "nth_root([1],3)", interval(1.), 3, 1., 1., false, true },
+      { "nth_root([-1],5)", interval(-1.), 5, -1., -1., false, true },
+      { "nth_root([1],6)", interval(1.), 6, 1., 1., false, true },
       { "nth_root([-0,0],4)", interval(-0., 0.), 4, 0., 0., false, true },
       { "nth_root([-oo,+oo],3)", interval::universe(), 3, -inf, inf, false, true },
       { "nth_root([-oo,+oo],4)", interval::universe(), 4, 0., inf, false, true },

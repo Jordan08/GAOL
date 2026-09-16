@@ -207,7 +207,6 @@ namespace
   void at_known_intervals()
   {
     const double pi_below = 0x1.921fb54442d18p+1, pi_above = 0x1.921fb54442d19p+1;
-    const double half_pi_above = pi_above/2.0;
 
     struct Known
     {
@@ -233,13 +232,7 @@ namespace
       { "log([0,1])", [] { return log(interval(0., 1.)); }, -inf, 0. },
       { "exp([-inf,0])", [] { return exp(interval(-inf, 0.)); }, 0., 1. },
       { "sqrt([-4,4])", [] { return sqrt(interval(-4., 4.)); }, 0., 2. },
-      { "asin([-2,2])", [] { return asin(interval(-2., 2.)); }, -half_pi_above, half_pi_above },
-      { "acos([-2,2])", [] { return acos(interval(-2., 2.)); }, 0., pi_above },
-      { "acos([1,3])", [] { return acos(interval(1., 3.)); }, 0., 0. },
-      { "acos([-3,-1])", [] { return acos(interval(-3., -1.)); }, pi_below, pi_above },
-      { "atan([-inf,inf])", [] { return atan(interval::universe()); }, -half_pi_above, half_pi_above },
       { "tanh([-inf,inf])", [] { return tanh(interval::universe()); }, -1., 1. },
-      { "acosh([0,1])", [] { return acosh(interval(0., 1.)); }, 0., 0. },
       { "atanh([-1,1])", [] { return atanh(interval(-1., 1.)); }, -inf, inf },
       { "cosh([-inf,inf])", [] { return cosh(interval::universe()); }, 1., inf },
     };
@@ -247,6 +240,49 @@ namespace
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
       const bool trigonometric = std::strncmp(k.name, "sin(", 4) == 0 || std::strncmp(k.name, "cos(", 4) == 0;
       expect_close(k.name, r, k.below, k.above, [&] { return hex(r); }, trigonometric ? 1 : limit);
+    }
+
+    // The functions where their value is a double, pi, pi/2 or pi/4, sinh and
+    // cosh beyond the largest double, and tanh where it is closer to 1 than
+    // the double below 1: the tightest bounds, which the values of the
+    // mathematical library moved outward did not give
+    const double max_double = std::numeric_limits<double>::max(), below_one = 0x1.fffffffffffffp-1;
+    const Known exact[] = {
+      { "sin([0])", [] { return sin(interval(0.)); }, 0., 0. },
+      { "sin([-0,0])", [] { return sin(interval(-0., 0.)); }, 0., 0. },
+      { "cos([0])", [] { return cos(interval(0.)); }, 1., 1. },
+      { "tan([0])", [] { return tan(interval(0.)); }, 0., 0. },
+      { "asin([0])", [] { return asin(interval(0.)); }, 0., 0. },
+      { "asin([1])", [] { return asin(interval(1.)); }, pi_below/2, pi_above/2 },
+      { "asin([-1])", [] { return asin(interval(-1.)); }, -pi_above/2, -pi_below/2 },
+      { "asin([-2,2])", [] { return asin(interval(-2., 2.)); }, -pi_above/2, pi_above/2 },
+      { "acos([1])", [] { return acos(interval(1.)); }, 0., 0. },
+      { "acos([1,3])", [] { return acos(interval(1., 3.)); }, 0., 0. },
+      { "acos([0])", [] { return acos(interval(0.)); }, pi_below/2, pi_above/2 },
+      { "acos([-1])", [] { return acos(interval(-1.)); }, pi_below, pi_above },
+      { "acos([-3,-1])", [] { return acos(interval(-3., -1.)); }, pi_below, pi_above },
+      { "acos([-2,2])", [] { return acos(interval(-2., 2.)); }, 0., pi_above },
+      { "atan([0])", [] { return atan(interval(0.)); }, 0., 0. },
+      { "atan([1])", [] { return atan(interval(1.)); }, pi_below/4, pi_above/4 },
+      { "atan([-1])", [] { return atan(interval(-1.)); }, -pi_above/4, -pi_below/4 },
+      { "atan([-oo,+oo])", [] { return atan(interval::universe()); }, -pi_above/2, pi_above/2 },
+      { "sinh([0])", [] { return sinh(interval(0.)); }, 0., 0. },
+      { "sinh([711,+oo])", [] { return sinh(interval(711., inf)); }, max_double, inf },
+      { "sinh([-oo,-MAX])", [] { return sinh(interval(-inf, -std::numeric_limits<double>::max())); }, -inf, -max_double },
+      { "cosh([0])", [] { return cosh(interval(0.)); }, 1., 1. },
+      { "cosh([MAX,+oo])", [] { return cosh(interval(std::numeric_limits<double>::max(), inf)); }, max_double, inf },
+      { "cosh([-800,-711])", [] { return cosh(interval(-800., -711.)); }, max_double, inf },
+      { "tanh([0])", [] { return tanh(interval(0.)); }, 0., 0. },
+      { "tanh([MAX,+oo])", [] { return tanh(interval(std::numeric_limits<double>::max(), inf)); }, below_one, 1. },
+      { "tanh([-30,-20])", [] { return tanh(interval(-30., -20.)); }, -1., -below_one },
+      { "asinh([0])", [] { return asinh(interval(0.)); }, 0., 0. },
+      { "acosh([1])", [] { return acosh(interval(1.)); }, 0., 0. },
+      { "acosh([0,1])", [] { return acosh(interval(0., 1.)); }, 0., 0. },
+      { "atanh([0])", [] { return atanh(interval(0.)); }, 0., 0. },
+    };
+    for (const Known& e : exact) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": the tightest bounds", r.left() == e.below && r.right() == e.above, [&] { return hex(r); });
     }
 
     struct Empty
