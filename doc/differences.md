@@ -258,6 +258,16 @@ Each change is a commit of its own, and says where it comes from.
     `pow()` for an exponent it cannot use, which later expressions still
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
     Both now throw `input_format_error`.
+- **`uipow()`**, the `pown` of IEEE 1788-2015 for an unsigned exponent, is
+  declared in `gaol/gaol_interval.h` and exported with the SSE2 intervals too,
+  where it was `INLINE` ([issue #10](https://github.com/Jordan08/GAOL/issues/10)).
+  - **Before.** `gaol::uipow()` was not found, and `uipow()` did not link.
+  - **Now.** It gives `[1]` for an exponent 0, and the empty set for an empty
+    interval. `sqr()` and `pow()` inline the same code as before, and take the
+    same time.
+  - **Removed declarations.** `uipow_upup()` and `uipow_dnup()` computed parts
+    of it on the stored bounds, and the SSE2 intervals did not define them.
+    They are no longer declared.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
   Codac's `diam()` returned NaN for the empty set without calling `width()`;

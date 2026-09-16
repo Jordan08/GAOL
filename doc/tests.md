@@ -18,7 +18,8 @@ Codac.
   roots of intervals the roots of their bounds (of their part in `[0, +oo]`
   for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
   intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
-  enclosures. The operators of an interval with a double have to give, on
+  enclosures. `gaol::uipow(x, n)` has to give what `pow(x, n)` gives, `[1]`
+  for n = 0 and the empty set for an empty x. The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of

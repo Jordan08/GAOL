@@ -57,10 +57,16 @@
     }
   }
 
-	interval uipow_dnup(const interval& I, unsigned int n)
+	/*
+	  The n-th power, n > 0, of the interval of stored bounds lb (the opposite
+	  of its left bound) and rb, in [0, +oo] for uipow_dnup() and containing 0
+	  for uipow_upup(), as uipow() calls them: static, and no longer declared
+	  in gaol_interval.h (fork of GAOL)
+	*/
+	static interval uipow_dnup(double lb, double rb, unsigned int n)
 	{
 		double ly = 1.0, ry = 1.0;
-		double lz2 = I.lb_, rz2 = I.rb_;
+		double lz2 = lb, rz2 = rb;
 		double lz1 = -lz2;
 		for (;;) {
 			if (odd(n)) {
@@ -77,11 +83,11 @@
 		}
 	}
 
-	interval uipow_upup(const interval& I, unsigned int n)
+	static interval uipow_upup(double lb, double rb, unsigned int n)
 	{
 		double ly = 1.0, ry = 1.0;
 
-		double lz = I.lb_, rz = I.rb_;
+		double lz = lb, rz = rb;
 
 		for (;;) {
 			if (odd(n)) {
@@ -97,29 +103,36 @@
 		}
 	}
 
-	interval uipow(const interval& I, unsigned int e)
+	/*
+	  I^e for a non-empty I and e > 0, as pow() calls it: uipow(), public,
+	  calls it (fork of GAOL, see gaol_interval.h). The stored bounds are the
+	  opposite of the left bound and the right bound.
+	*/
+	static INLINE interval uipow_nonempty(const interval& I, unsigned int e)
 	{
 		GAOL_RND_ENTER();
 		interval res;
+		const double lb = -I.left(), rb = I.right();
 
-		int signI = ((I.rb_ < 0) << 1) |  (I.lb_ < 0);
+		int signI = ((rb < 0) << 1) |  (lb < 0);
 		switch (signI) { // Remember that the sign of the left bound is negated
 			case 0: // 00: I.straddles_zero()
 			{
-				res = uipow_upup(I,e);
+				res = uipow_upup(lb,rb,e);
 				if (!odd(e)) {
-					res = interval(0.0,fmax(res.lb_,res.rb_));
+					res = interval(0.0,fmax(-res.left(),res.right()));
 				}
 				break;
 			}
 			case 1: // 01: I.positive()
 			{
-				res = uipow_dnup(I,e);
+				res = uipow_dnup(lb,rb,e);
 				break;
 			}
 			case 2: // 10: I.negative()
 			{
-				res = uipow_dnup(-I,e);
+				const interval J = -I;
+				res = uipow_dnup(-J.left(),J.right(),e);
 				if (odd(e)) {
 					res = -res;
 				}
@@ -136,6 +149,17 @@
 		GAOL_RND_KEEP(res);
 		GAOL_RND_LEAVE();
 		return res;
+	}
+
+	interval uipow(const interval& I, unsigned int e)
+	{
+		if (I.is_empty()) {
+			return I;
+		}
+		if (e == 0) {
+			return interval(1.0);
+		}
+		return uipow_nonempty(I,e);
 	}
 
 

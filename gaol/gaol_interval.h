@@ -355,8 +355,6 @@ namespace gaol {
 
 
     friend __GAOL_PUBLIC__ interval uipow(const interval& I, unsigned int e);
-    friend __GAOL_PUBLIC__ interval uipow_upup(const interval& I, unsigned int n);
-    friend __GAOL_PUBLIC__ interval uipow_dnup(const interval& I, unsigned int n);
     friend __GAOL_PUBLIC__ interval sqr(const interval& I);
     friend __GAOL_PUBLIC__ interval cos(const interval& I);
     friend __GAOL_PUBLIC__ interval sin(const interval& I);
@@ -678,6 +676,14 @@ namespace gaol {
   extern __GAOL_PUBLIC__   interval sqr(const interval& I);
   //! I^e for an integer e.
   extern __GAOL_PUBLIC__   interval pow(const interval& I, int e);
+  /*
+    I^e for an unsigned e, the pown of IEEE 1788-2015: [1] for e = 0 and the
+    empty set for an empty I. Declared here too, and defined out of line with
+    the SSE2 intervals, where it was INLINE (fork of GAOL): gaol::uipow() was
+    not found, and uipow() did not link. uipow_upup() and uipow_dnup(), which
+    only computed parts of it on the stored bounds, are no longer declared.
+  */
+  extern __GAOL_PUBLIC__   interval uipow(const interval& I, unsigned int e);
 
   /*!
     \brief I^J (fork of GAOL)

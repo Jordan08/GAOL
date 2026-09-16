@@ -543,7 +543,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 			  x^-m is [-oo,+oo] for an odd m, and [mag(I)^-m,+oo] for an even m.
 			*/
 			const unsigned int m = 0u - static_cast<unsigned int>(n);
-			const interval p = uipow(I,m);
+			const interval p = uipow_nonempty(I,m);
 			const double largest = std::numeric_limits<double>::max();
 			if (p.left() >= -largest && p.right() <= largest) {
 				return inverse(p);
@@ -561,7 +561,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 			return uipow(inverse(I),m);
 		} else {
 			if (n > 0) {
-				return uipow(I,static_cast<unsigned int>(n));
+				return uipow_nonempty(I,static_cast<unsigned int>(n));
 			} else {
 				return interval(1.0);
 			}
