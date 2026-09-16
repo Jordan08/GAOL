@@ -22,6 +22,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <cmath>
+#include <exception>
 #include <string>
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
@@ -39,6 +40,42 @@ using namespace gaol;
 extern interval *gaol_result_of_parsing;
 extern interval gaol_tmp_itv;
 extern bool gaol_global_parsing_flag;
+
+/*
+  The parser holds one reference to each node it builds ($$->inc_refcount()),
+  which it gives up when the node goes into another node, which holds its own,
+  or into an expression (fork of GAOL): GAOL kept it, and the nodes of every
+  expression read were never freed. the_null_expr keeps the reference
+  init() gives it.
+*/
+static void gaol_release(expr_node *e)
+{
+  if (e->dec_refcount() == 0) {
+    delete e;
+  }
+}
+
+/*
+  The exception the evaluation of an exponent threw (fork of GAOL): the action
+  keeps it and aborts, the parser frees the nodes it holds, and
+  parse_interval() throws it again. Thrown through the parser, it left them.
+*/
+std::exception_ptr gaol_parsing_exception;
+
+/*
+  Evaluates e, the exponent of pow() or nth_root(), into v; aborted is set
+  when the evaluation throws, as atan2() does
+*/
+static bool gaol_evaluate_exponent(expr_node *e, interval& v, bool& aborted)
+{
+  try {
+    return evaluate_expr(expression(*e),v);
+  } catch (...) {
+    gaol_parsing_exception = std::current_exception();
+    aborted = true;
+    return false;
+  }
+}
 
 /*
   1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (fork of
@@ -79,6 +116,10 @@ static int gaol_literal_infinity(expr_node *e)
 
 %type<expr> expression function_call
 %type<itv> parsed_interval itv_expr_aux itv_function_call
+
+/* The nodes the parser discards on a syntax error (fork of GAOL). The symbols
+   are named, rather than <expr>, which Bison 2.3 of macOS does not read */
+%destructor { gaol_release($$); } expression function_call
 
 %left '+' '-'
 %left '*' '/'
@@ -160,9 +201,10 @@ itv_function_call
 	;
 
 parsed_interval
-	: expression						{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$1),
+	: expression						{ 	const expression e(*$1);
+											gaol_release($1);
+											gaol_global_parsing_flag = evaluate_left_right(e,
 																gaol_result_of_parsing);
-											delete $1;
 							  				$$.l=gaol_result_of_parsing->left();
 					          				$$.r=gaol_result_of_parsing->right();
 										}
@@ -173,23 +215,24 @@ parsed_interval
 					  						$$.r=gaol_result_of_parsing->right();
 										}
 
-	| '[' expression ']'    			{	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
+	| '[' expression ']'    			{	const expression e(*$2);
+											gaol_release($2);
+											gaol_global_parsing_flag = evaluate_left_right(e,
 																gaol_result_of_parsing);
-					  						if (gaol_literal_infinity($2) != 0) {
+					  						if (gaol_literal_infinity(e.get_root()) != 0) {
 					  							*gaol_result_of_parsing = interval::emptyset();
 					  						}
-					  						delete $2;
 											$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
-	| '[' expression ',' expression ']'	{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
-																			expression(*$4),
+	| '[' expression ',' expression ']'	{ 	const expression el(*$2), er(*$4);
+											gaol_release($2);
+											gaol_release($4);
+											gaol_global_parsing_flag = evaluate_left_right(el, er,
 																			gaol_result_of_parsing);
-					  						if (gaol_literal_infinity($2) > 0 || gaol_literal_infinity($4) < 0) {
+					  						if (gaol_literal_infinity(el.get_root()) > 0 || gaol_literal_infinity(er.get_root()) < 0) {
 					  							*gaol_result_of_parsing = interval::emptyset();
 					  						}
-					  						delete $2;
-					  						delete $4;
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
@@ -216,19 +259,21 @@ parsed_interval
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
-	| '[' expression ',' ']'			{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
+	| '[' expression ',' ']'			{ 	const expression e(*$2);
+											gaol_release($2);
+											gaol_global_parsing_flag = evaluate_left_right(e,
 																gaol_result_of_parsing);
-					  						*gaol_result_of_parsing = (gaol_literal_infinity($2) > 0) ? interval::emptyset()
+					  						*gaol_result_of_parsing = (gaol_literal_infinity(e.get_root()) > 0) ? interval::emptyset()
 					  							: interval(gaol_result_of_parsing->left(), GAOL_INFINITY);
-					  						delete $2;
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
-	| '[' ',' expression ']'			{ 	gaol_global_parsing_flag = evaluate_left_right(expression(*$3),
+	| '[' ',' expression ']'			{ 	const expression e(*$3);
+											gaol_release($3);
+											gaol_global_parsing_flag = evaluate_left_right(e,
 																gaol_result_of_parsing);
-					  						*gaol_result_of_parsing = (gaol_literal_infinity($3) < 0) ? interval::emptyset()
+					  						*gaol_result_of_parsing = (gaol_literal_infinity(e.get_root()) < 0) ? interval::emptyset()
 					  							: interval(-GAOL_INFINITY, gaol_result_of_parsing->right());
-					  						delete $3;
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
@@ -237,11 +282,11 @@ parsed_interval
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 										}
-	| '<' expression ',' expression '>' { 	gaol_global_parsing_flag = evaluate_left_right(expression(*$2),
-																							expression(*$4),
+	| '<' expression ',' expression '>' { 	const expression el(*$2), er(*$4);
+											gaol_release($2);
+											gaol_release($4);
+											gaol_global_parsing_flag = evaluate_left_right(el, er,
 																							gaol_result_of_parsing);
-											delete $2;
-											delete $4;
                                           	$$.l=gaol_result_of_parsing->left();
 					  						$$.r=gaol_result_of_parsing->right();
 											if ($$.l != $$.r) {
@@ -264,15 +309,20 @@ expression
 	| INFINITY_STR				{ 	$$ = new double_node(GAOL_INFINITY);
 					  				$$->inc_refcount(); }
 	| expression '+' expression	{ 	$$ = new add_node(*$1,*$3);
-					  				$$->inc_refcount(); }
+					  				$$->inc_refcount();
+					  				gaol_release($1); gaol_release($3); }
 	| expression '-' expression	{ 	$$ = new sub_node(*$1,*$3);
-					  				$$->inc_refcount(); }
+					  				$$->inc_refcount();
+					  				gaol_release($1); gaol_release($3); }
 	| expression '*' expression { 	$$ = new mult_node(*$1,*$3);
-					  				$$->inc_refcount(); }
-	| expression '/' expression {	$$ = new div_node(*$1,*$3);
-					  				$$->inc_refcount(); }
+					  				$$->inc_refcount();
+					  				gaol_release($1); gaol_release($3); }
+	| expression '/' expression { 	$$ = new div_node(*$1,*$3);
+					  				$$->inc_refcount();
+					  				gaol_release($1); gaol_release($3); }
 	| '-' expression %prec UMINUS { $$ = new unary_minus_node(*$2);
-					  				$$->inc_refcount(); }
+					  				$$->inc_refcount();
+					  				gaol_release($2); }
 	| '+' expression %prec UPLUS  { $$ = $2; }
 	| function_call				{ $$ = $1; }
 	| '(' expression ')'		{ $$ = $2; }
@@ -280,38 +330,59 @@ expression
 
 function_call
 	: COS_STR '(' expression ')'					{ 	$$ = new cos_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| SIN_STR '(' expression ')'  					{ 	$$ = new sin_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| TAN_STR '(' expression ')'  					{ 	$$ = new tan_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| ATAN2_STR '(' expression ',' expression ')'	{ 	$$ = new atan2_node(*$3, *$5);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); gaol_release($5); }
 	| ACOS_STR '(' expression ')'					{ 	$$ = new acos_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| ASIN_STR '(' expression ')'  					{ 	$$ = new asin_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| ATAN_STR '(' expression ')'  					{ 	$$ = new atan_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| COSH_STR '(' expression ')'					{ 	$$ = new cosh_node(*$3);
-														$$->inc_refcount(); }
+														$$->inc_refcount();
+														gaol_release($3); }
 	| SINH_STR '(' expression ')'  					{ 	$$ = new sinh_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| TANH_STR '(' expression ')'  					{ 	$$ = new tanh_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| ACOSH_STR '(' expression ')'					{ 	$$ = new acosh_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| ASINH_STR '(' expression ')'  				{ 	$$ = new asinh_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| ATANH_STR '(' expression ')'  				{ 	$$ = new atanh_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| EXP_STR '(' expression ')'   					{ 	$$ = new exp_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| LOG_STR '(' expression ')'   					{ 	$$ = new log_node(*$3);
-					  									$$->inc_refcount(); }
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| POW_STR '(' expression ',' expression ')'   	{ 	interval tmp;
+														bool aborted = false;
 					  									gaol_global_parsing_flag =
-					    									evaluate_expr(expression(*$5),tmp);
+					    									gaol_evaluate_exponent($5,tmp,aborted);
+														if (aborted) {
+															gaol_release($3);
+															gaol_release($5);
+															YYABORT;
+														}
 														if (!gaol_global_parsing_flag) { // Error?
 					     									$$ = the_null_expr;
 					     									$$->inc_refcount();
@@ -334,19 +405,30 @@ function_call
 						     											e->inc_refcount();
 						     											$$ = new div_node(*one,*e);
 						     											$$->inc_refcount();
+						     											gaol_release(one);
+						     											gaol_release(e);
 																	} else {  // tmp == 0.0
 						     											$$ = one;
 						 											}
                                                 				}
 					     									}
                                           				}
+														gaol_release($3);
+														gaol_release($5);
                                         			}
 	| SQRT_STR '(' expression ')'					{	$$ = new nth_root_node(*$3,2);
 					  									$$->inc_refcount();
+					  									gaol_release($3);
 													}
 	| NTH_ROOT_STR '(' expression ',' expression ')' { 	interval tmp;
+														bool aborted = false;
 					  									gaol_global_parsing_flag =
-					    									evaluate_expr(expression(*$5),tmp);
+					    									gaol_evaluate_exponent($5,tmp,aborted);
+														if (aborted) {
+															gaol_release($3);
+															gaol_release($5);
+															YYABORT;
+														}
 														if (!tmp.is_an_int() || !gaol_global_parsing_flag) {
 					     									// not an int?
 															$$ = the_null_expr;
@@ -355,6 +437,8 @@ function_call
 					     									$$ = new nth_root_node(*$3,static_cast<unsigned int>(tmp.left()));
 					     									$$->inc_refcount();
 					 									}
+														gaol_release($3);
+														gaol_release($5);
 													  }
 	;
 

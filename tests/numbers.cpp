@@ -312,6 +312,54 @@ namespace
   }
 
   // The hexadecimal output gives the bits of the bounds
+  // Expressions read again and again, and expressions GAOL cannot compute or
+  // read: GAOL's parser did not free their nodes, which LeakSanitizer reports
+  // in the tests built with it, and the null node it gives nth_root() and
+  // pow() for an exponent it cannot use was deleted with the expression
+  void expressions()
+  {
+    const char *const valid[] = { "sin(1)+cos(2)*2", "[-(1+2), exp(1)/3]", "(pi+1)*(pi-1)", "-[1,2]/tan(1)",
+                                  "pow(2, 3)+pow(2, -2)+pow(2, 0)+pow(2, 0.5)", "nth_root(8, 3)+sqrt(4)",
+                                  "[cosh(1), sinh(2)+tanh(1)]", "<1+1, 2>", "[1,]+[,2]", "[-inf, log(2)]" };
+    for (const char *s : valid) {
+      const interval first(s);
+      bool same = true;
+      for (int i = 0; i < 100; ++i) {
+        const interval r(s);
+        same = same && r.left() == first.left() && r.right() == first.right();
+      }
+      check("interval(expression) read again: the same interval", same, [&] { return std::string(s); });
+    }
+    const char *const invalid[] = { "nth_root(8, 1.5)", "nth_root(8, 1.5)+1", "[nth_root(8, 1.5), 2]",
+                                    "sin(1)+", "[sin(1), cos(", "(1+2", "[1, 2*(3+4]", "pow(2, 1)+*3",
+                                    "<1, 2>", "exp(1) exp(2)", "nth_root([1,2], 1.5)",
+                                    "1+pow(2, atan2(1,1))", "(1+2)*pow(1+2, atan2(1,1)+1)-3",
+                                    "[1+nth_root(8, atan2(1,1)), 2]" };
+    for (int i = 0; i < 10; ++i) {
+      for (const char *s : invalid) {
+        bool threw = false;
+        try {
+          interval x(s);
+        } catch (...) {
+          threw = true;
+        }
+        check("interval(expression) not computed: an exception", threw, [&] { return std::string(s); });
+      }
+    }
+    // The exception thrown in the exponent of pow() goes through the parser
+    bool unavailable = false;
+    try {
+      interval x("1+pow(2, atan2(1,1))");
+    } catch (unavailable_feature_error&) {
+      unavailable = true;
+    } catch (...) {
+    }
+    check("interval(\"1+pow(2, atan2(1,1))\"): unavailable_feature_error", unavailable);
+    const interval r("1+2");
+    check("interval(expression) after expressions not computed", r.left() == 3.0 && r.right() == 3.0,
+          [&] { return hex(r); });
+  }
+
   void hexadecimal_output()
   {
     const interval_format::format_t saved = interval::format();
@@ -343,6 +391,7 @@ int main()
   constants();
   constructors();
   ieee_literals();
+  expressions();
   hexadecimal_output();
   const int status = summary();
   gaol::cleanup();

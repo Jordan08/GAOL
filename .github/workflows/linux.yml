@@ -101,7 +101,6 @@ jobs:
           - { os: ubuntu-26.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan' }
     env:
       ASAN_OPTIONS: detect_leaks=1
-      LSAN_OPTIONS: suppressions=${{ github.workspace }}/.github/sanitizers/lsan.supp
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/.github/sanitizers/ubsan.supp
     steps:
       - uses: actions/checkout@v7

@@ -48,7 +48,12 @@ Codac.
   be the tightest enclosures of π, 2π and π/2. The literals of IEEE 1788-2015
   (`[entire]`, `[ ]`, `[1,]`, `3.56?1`, hexadecimal numbers...) have to be read
   as the tightest intervals enclosing them, whatever the case of their letters,
-  and `[inf]` and the like as the empty set.
+  and `[inf]` and the like as the empty set. Expressions read again and again
+  have to give the same interval, and those GAOL cannot read or compute
+  (`nth_root(8, 1.5)`, `sin(1)+`, `1+pow(2, atan2(1,1))`...) have to throw,
+  the exception of `atan2()` going through the parser. Built with
+  LeakSanitizer, the tests check that the parser frees the nodes of all of
+  them.
 - **`other_functions`:** midpoints (of subnormal bounds and of `intervalf`
   too), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015

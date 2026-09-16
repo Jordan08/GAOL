@@ -241,6 +241,23 @@ Each change is a commit of its own, and says where it comes from.
   `[MAX, +oo]`, which `check/input_output.cpp` wanted; `inf` alone, an
   expression, is still `[MAX, +oo]`. The lexer and the parser are regenerated
   with flex 2.6.4 and bison 3.5.1.
+- **The parser frees the nodes of the expressions it reads**
+  (`gaol/gaol_interval_parser.ypp`,
+  [issue #4](https://github.com/Jordan08/GAOL/issues/4)).
+  - **The leak.** The parser kept a reference to each node, which it did not
+    give up when the node went into another one. The nodes of every
+    `interval("...")` were therefore never freed: LeakSanitizer reported them
+    in the tests, and the continuous integration suppressed them
+    (`.github/sanitizers/lsan.supp`, now removed).
+  - **After an error.** The nodes left by a syntax error are freed too
+    (`%destructor`), and so are those of an expression whose exponent throws
+    (`1+pow(2, atan2(1, 1))`): the parser aborts, and `parse_interval()` throws
+    the exception again. `parse_interval()` also frees the lexer's buffer
+    whatever the parser throws.
+  - **A crash.** The parser deleted the null node it gives `nth_root()` and
+    `pow()` for an exponent it cannot use, which later expressions still
+    used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
+    Both now throw `input_format_error`.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
   Codac's `diam()` returned NaN for the empty set without calling `width()`;

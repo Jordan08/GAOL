@@ -31,6 +31,7 @@
 #include <iostream>
 #include <cstring>
 #include <cctype>
+#include <exception>
 
 using std::istream;
 
@@ -44,15 +45,30 @@ extern void gaol_initialize_parsing(const char* const str,
 				    gaol::interval* itv);
 extern bool gaol_cleanup_parsing(void);
 extern int gaol_parse(void);
+extern std::exception_ptr gaol_parsing_exception;
 
 namespace gaol {
 
   bool parse_interval(const char* const s, interval& out)
   {
     interval itv;
+    gaol_parsing_exception = nullptr;
     gaol_initialize_parsing(s,&itv);
-    gaol_parse();
+    try {
+      gaol_parse();
+    } catch (...) {
+      // The buffer of the lexer is freed whatever the parser throws, as
+      // gaol_ERROR() in its actions (fork of GAOL)
+      gaol_cleanup_parsing();
+      throw;
+    }
     bool parsing_ok = gaol_cleanup_parsing();
+    if (gaol_parsing_exception) {
+      // Thrown in the parser, which aborted to free its nodes
+      std::exception_ptr e = gaol_parsing_exception;
+      gaol_parsing_exception = nullptr;
+      std::rethrow_exception(e);
+    }
     if (parsing_ok) {
       // The infinities read give [dmax, +oo] and [-oo, -dmax] already
       // (gaol_expr_eval.h): interval(+oo) and interval(-oo) are the empty set
