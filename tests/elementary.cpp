@@ -368,6 +368,16 @@ namespace
     // is 0 for y > 0, and has no value for y <= 0; [+oo] and [-oo] contain no
     // real number (10.5.8)
     const Equal special[] = {
+      // exp(0) = 1 and log(1) = 0 exactly, which the bounds of the
+      // mathematical library moved outward did not give
+      { "exp([0])", [] { return exp(interval(0.)); }, 1., 1. },
+      { "exp([-oo,0])", [] { return exp(interval(-inf, 0.)); }, 0., 1. },
+      { "log([1])", [] { return log(interval(1.)); }, 0., 0. },
+      { "log([0,1])", [] { return log(interval(0., 1.)); }, -inf, 0. },
+      { "log([1,+oo])", [] { return log(interval(1., inf)); }, 0., inf },
+      { "pow([1],[-oo,+oo]), 1^y = 1", [] { return pow(interval(1.), interval::universe()); }, 1., 1. },
+      { "pow([1],[2.5])", [] { return pow(interval(1.), interval(2.5)); }, 1., 1. },
+      { "pow([0,1],[1,+oo])", [] { return pow(interval(0., 1.), interval(1., inf)); }, 0., 1. },
       { "pow([0],[0]), pown(0,0) = 1", [] { return pow(interval(0.), interval(0.)); }, 1., 1. },
       { "pow([0],0.0)", [] { return pow(interval(0.), 0.0); }, 1., 1. },
       { "pow([-oo,+oo],[0])", [] { return pow(interval::universe(), interval(0.)); }, 1., 1. },

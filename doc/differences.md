@@ -156,6 +156,13 @@ Each change is a commit of its own, and says where it comes from.
   get the same intervals as before. `check/non_arithmetic.cpp` wanted
   `[0, 1.2457]` for `nth_root([-4, 3], 5)`, and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
+- **`exp(0)` = 1 and `log(1)` = 0 exactly**, the bounds of mathlib moved one
+  double outward giving `exp([0])` and `log([1])` a width: `log([0, 1])` was
+  `[-oo, 2^-1074]`, and `pow([1], [-oo, +oo])`, exp(y log 1), was `[0, +oo]`
+  rather than `[1]`, and `pow([0, 1], [1, +oo])` `[0, +oo]` rather than
+  `[0, 1]`. On an Intel i7-1185G7 (GCC 9.4), `log()` takes 1.5 ns more
+  (72.5 ns rather than 71) and `pow(x, y)` 2 ns more (145 ns rather than
+  143); `exp()` takes the same time.
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and

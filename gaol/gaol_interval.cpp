@@ -673,7 +673,11 @@ interval nth_root(const interval& I, unsigned int n)
 	/* We intersect the result with [0, +oo] to ensure that the result is strictly positive
  		Otherwise, we might have: exp([-oo, -MAX] = [-v, +v] with v very small.
 	*/
-    return interval(maximum(0.0,exp_dn(I.left())),exp_up(I.right()));
+    // exp(0) = 1 exactly, where the value of the mathematical library moved
+    // outward gave exp([0]) a width, and pow([1], [-oo, +oo]) = [0, +oo]
+    // (fork of GAOL)
+    const double l = I.left(), r = I.right();
+    return interval((l == 0.0) ? 1.0 : maximum(0.0,exp_dn(l)), (r == 0.0) ? 1.0 : exp_up(r));
   }
 
   interval log(const interval& I)
@@ -685,7 +689,9 @@ interval nth_root(const interval& I, unsigned int n)
       return interval::emptyset();
     }
 
-    return interval(log_dn(maximum(0.0,I.left())), log_up(I.right()));
+    // log(1) = 0 exactly: log([1]) was [-2^-1074, 2^-1074] (fork of GAOL)
+    const double l = maximum(0.0,I.left()), r = I.right();
+    return interval((l == 1.0) ? 0.0 : log_dn(l), (r == 1.0) ? 0.0 : log_up(r));
   }
 
 

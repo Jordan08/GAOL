@@ -25,9 +25,9 @@ Codac.
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
-  poles, domains, `log` of intervals holding no positive number being empty).
-  The values are in `elementary_values.h`, which
-  `elementary_values.py` generates.
+  poles, domains, `log` of intervals holding no positive number being empty,
+  `exp(0)`, `log(1)` and `1^y` exact). The values are in `elementary_values.h`,
+  which `elementary_values.py` generates.
 - **`rounding_direction`:** about 95 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
