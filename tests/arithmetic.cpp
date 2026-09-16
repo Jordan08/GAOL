@@ -182,14 +182,9 @@ namespace
           const Dyadic an = dyadic_power(a, n);
           const Exact p = quotient(dyadic(1.0), an);
           const std::string name = "pow([a],-n) for n=" + std::to_string(n) + in;
-          const interval r = pow(A, -n);
-          if (compare(exact(an.sign < 0 ? -an : an), exact(std::numeric_limits<double>::max())) > 0) {
-            // GAOL computes 1/a^n, and a^n beyond the largest double is enclosed
-            // by [max, +oo], whose inverse, [0, 1/max], is wide at that scale
-            check(name + ": encloses", is_enclosure(r, p), [&] { return operands(A, interval(-n)) + ": " + hex(r); });
-          } else {
-            expect_close(name, r, p, p, negative_power_limit, A, interval(-n));
-          }
+          // (1/a)^n where a^n is beyond the largest double: GAOL computed
+          // 1/a^n, [0, 1/max], wide at that scale
+          expect_close(name, pow(A, -n), p, p, negative_power_limit, A, interval(-n));
         }
       }
 
@@ -447,6 +442,32 @@ namespace
     }
   }
 
+  // Negative integer powers whose x^n overflows: x^-n is (1/x)^n there. GAOL
+  // computed 1/x^n, and pow([10], -400) was [0, 5.6e-309]
+  void negative_powers_at_special_values()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const struct { const char *name; interval x; int n; double lo, hi; } cases[] = {
+      { "pow([10],-400)", interval(10.), -400, 0., tiny },
+      { "pow([2],-1050)", interval(2.), -1050, 0x1p-1050, 0x1p-1050 },
+      { "pow([-2],-1051)", interval(-2.), -1051, -0x1p-1051, -0x1p-1051 },
+      { "pow([0.5],-1050)", interval(0.5), -1050, largest, inf },
+      { "pow([2,4],-520)", interval(2., 4.), -520, 0x1p-1040, 0x1p-520 },
+      { "pow([-2,2],-1050)", interval(-2., 2.), -1050, 0x1p-1050, inf },
+      { "pow([-2,3],-1051)", interval(-2., 3.), -1051, -inf, inf },
+      { "pow([-10,10],-400)", interval(-10., 10.), -400, 0., inf },
+      { "pow([1,+oo],-3)", interval(1., inf), -3, 0., 1. },
+      { "pow([-oo,-1],-3)", interval(-inf, -1.), -3, -1., 0. },
+      { "pow([-oo,+oo],-2)", interval::universe(), -2, 0., inf },
+      { "pow([-3,2],-2)", interval(-3., 2.), -2, 0x1.c71c71c71c71cp-4, inf },
+    };
+    for (const auto& c : cases) {
+      const interval r = pow(c.x, c.n);
+      check(std::string(c.name) + ": exact", !r.is_empty() && r.left() == c.lo && r.right() == c.hi,
+            [&] { return hex(r); });
+    }
+  }
+
   // The n-th roots at special values: the rootn of IEEE 1788-2015 (Table
   // 10.5), defined on R for an odd n and on [0, +oo] for an even n, the root
   // of 0 being 0. GAOL took the roots of the part of [x] in [0, +oo] for every
@@ -514,6 +535,7 @@ int main()
   divisions_by_zero();
   operations_with_special_doubles();
   products_with_infinite_bounds();
+  negative_powers_at_special_values();
   roots_at_special_values();
   const int status = summary();
   gaol::cleanup();

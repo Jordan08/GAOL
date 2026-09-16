@@ -532,7 +532,31 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 			return I;
 		}
 		if (n < 0) {
-			return inverse(uipow(I,0u - static_cast<unsigned int>(n))); // 1/uipow(I,0u - static_cast<unsigned int>(n))
+			/*
+			  x^-m is 1/x^m, unless x^m overflows: then (1/x)^m (fork of GAOL).
+			  GAOL computed 1/x^m, whose x^m overflowed for some |x| > 1 before
+			  the inversion: pow([10],-400) was [0,5.6e-309] rather than
+			  [0,2^-1074], and pow([2],-1050) [0,2^-1024] rather than [2^-1050].
+			  1/x is an interval where I does not straddle 0; where it does,
+			  x^-m is [-oo,+oo] for an odd m, and [mag(I)^-m,+oo] for an even m.
+			*/
+			const unsigned int m = 0u - static_cast<unsigned int>(n);
+			const interval p = uipow(I,m);
+			const double largest = std::numeric_limits<double>::max();
+			if (p.left() >= -largest && p.right() <= largest) {
+				return inverse(p);
+			}
+			if (I.left() < 0.0 && I.right() > 0.0) {
+				if (odd(m)) {
+					return interval::universe();
+				}
+				const double g = I.mag();
+				if (g == GAOL_INFINITY) {
+					return interval::positive();
+				}
+				return interval(uipow(inverse(interval(g)),m).left(),GAOL_INFINITY);
+			}
+			return uipow(inverse(I),m);
 		} else {
 			if (n > 0) {
 				return uipow(I,static_cast<unsigned int>(n));

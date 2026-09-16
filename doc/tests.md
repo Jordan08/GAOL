@@ -12,10 +12,12 @@ Codac.
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
   be the tightest enclosures, and so do square roots. Integer powers and n-th
-  roots have to be enclosures, within a few doubles, the odd roots of negative
+  roots have to be enclosures, within a few doubles, negative powers whose
+  x^n is beyond the largest double included, the odd roots of negative
   numbers being the opposites of the roots of their magnitudes, and the n-th
   roots of intervals the roots of their bounds (of their part in `[0, +oo]`
-  for an even n). The roots of 0, 1 and −1 have to be the tightest
+  for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
+  intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
   enclosures. The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.

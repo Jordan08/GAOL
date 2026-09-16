@@ -189,6 +189,13 @@ Each change is a commit of its own, and says where it comes from.
   `tanh([MAX, +inf])` had `0x1.ffffffffffffdp-1` for left bound. `make check`
   passes all its 15 checks. On an Intel i7-1185G7 (GCC 9.4), the functions
   take the same time as before, within 1.5 ns (1 %).
+- **Negative integer powers** `pow(x, -n)` are computed as `(1/x)^n` where
+  `x^n` is beyond the largest double, rather than as `1/x^n`, whose `x^n`
+  overflowed before the inversion: `pow([10], -400)` was `[0, 5.6e-309]`
+  rather than `[0, 2^-1074]`, `pow([2], -1050)` `[0, 5.6e-309]` rather than
+  `[2^-1050]`, and `pow([-2, 2], -1050)` `[0, +oo]` rather than
+  `[2^-1050, +oo]`. Elsewhere `1/x^n` is kept, exact where `x^n` is exact, and
+  `pow(x, -3)` takes 0.8 ns more (14.6 ns rather than 13.8).
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
