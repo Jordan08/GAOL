@@ -1,8 +1,10 @@
 # Running the comparison again
 
 The scripts of this directory compare GAOL (this repository),
-[libieeep1788](https://github.com/nehmeier/libieeep1788) and the intervals of
-Solaris Studio's Fortran (`f90 -xia`), and write the tables of
+[libieeep1788](https://github.com/nehmeier/libieeep1788),
+[filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html) and
+the intervals of Solaris Studio's Fortran (`f90 -xia`), and write the tables
+of
 [special_cases.md](../special_cases.md) and
 [performance.md](../performance.md). They run on Linux x86-64.
 
@@ -15,15 +17,17 @@ Solaris Studio's Fortran (`f90 -xia`), and write the tables of
 
 `setup.sh` downloads and builds the rest under `work/`, which git ignores:
 GMP and MPFR (unless the system has their headers), libieeep1788 at its last
-commit (header-only, it needs MPFR), and GAOL from this repository, built
-with CMake in Release and installed with mathlib.
+commit (header-only, it needs MPFR), filib++ 3.0.2.2 from the archive IBEX
+distributes, unless `FILIB_DIR` gives an installed filib++, and GAOL from this
+repository, built with CMake in Release and installed with mathlib.
 
 ## Running
 
 ```bash
 cd doc/compare/code
 export PATH=/path/to/solarisstudio12.4/bin:$PATH
-./setup.sh              # once; FORCE_GAOL=1 ./setup.sh rebuilds GAOL after a change
+FILIB_DIR=/path/to/filib ./setup.sh   # once; without FILIB_DIR, it builds filib++
+                        # FORCE_GAOL=1 ./setup.sh rebuilds GAOL after a change
 ./run_cases.sh          # the special cases        -> ../special_cases.md
 CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance.md
 ```
@@ -42,27 +46,28 @@ variables:
 | `N` | `1000000` | Operations of each kind |
 | `ROUNDS` | `3` | Times each program is run, in turn with the others, the best time of all being kept |
 | `REPEATS` | `5` | Runs of each operation in a round |
-| `P1788_REPEATS` | `1` | The same for libieeep1788, 13 to 90 times slower than GAOL |
+| `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
-| `LIBS` | `double gaol sun p1788` | Libraries to run |
+| `LIBS` | `double gaol filib sun p1788` | Libraries to run |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
 | `WORK`, `PREFIX` | `work`, `work/prefix` | Where everything is built and installed |
+| `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
 
 ## The files
 
 | File | |
 |---|---|
 | `env.sh` | The variables shared by the scripts: directories, versions, compiler flags |
-| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788 and GAOL; checks `f90 -xia` |
+| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++ and GAOL; checks `f90 -xia` |
 | `cases.py` | The 226 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
-| `run_cases.sh` | Generates, compiles and runs the three programs of the special cases, and writes their table |
+| `run_cases.sh` | Generates, compiles and runs the four programs of the special cases, and writes their table |
 | `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) |
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations, written once for every C++ library |
-| `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_double.cpp` | The benchmark with GAOL, with libieeep1788, and on doubles for reference |
+| `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788 and filib++, and on doubles for reference |
 | `bench_sun.f90` | The same operations in Fortran, for Solaris Studio |
-| `run_bench.sh` | Draws the intervals, compiles and runs the four programs, and writes the tables |
+| `run_bench.sh` | Draws the intervals, compiles and runs the five programs, and writes the tables |
 | `run_all.sh` | `setup.sh`, `run_cases.sh` and `run_bench.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`
@@ -70,6 +75,15 @@ to its group in `cases.py` (the expressions are built with `iv`, `op` and
 `text`; see the ones there). To add an operation to the benchmark, add an
 `OP(...)` line to `bench_ops.h`, the same block to `bench_sun.f90`, and its
 description to `OPERATIONS` in `bench.py`.
+
+## filib++'s intervals
+
+The programs use `filib::interval<double, native_switched,
+i_mode_extended_flag>`, the intervals of IBEX built with filib++, and call
+`fp_traits<double, native_switched>::setup()` first. filib++'s headers declare
+`pow(x, int)` and `power(x, y)`, but define `power(x, int)` and `pow(x, y)`:
+the programs call the latter. Their dynamic exception specifications need
+C++11 or C++14 (`-std=c++11 -Wno-deprecated`).
 
 ## Solaris Studio's intervals
 

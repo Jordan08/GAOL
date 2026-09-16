@@ -70,9 +70,10 @@ arithmetic that the code including GAOL's headers has to be compiled with.
   where it comes from.
 - [Continuous integration](doc/continuous-integration.md): the systems,
   processors and compilers GAOL is built and tested on.
-- [Comparison with libieeep1788 and Solaris Studio](doc/compare/README.md): the
-  special cases of the three libraries against IEEE 1788-2015, and their
-  speed, with the scripts to run the comparison again.
+- [Comparison with libieeep1788, filib++ and Solaris Studio](doc/compare/README.md):
+  the [special cases](doc/compare/special_cases.md) of the four libraries
+  against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
+  with the scripts to run the comparison again.
 - The manual of GAOL, by Frédéric Goualard: `manual/gaol.pdf`, with its LaTeX
   sources in `manual/`.
 

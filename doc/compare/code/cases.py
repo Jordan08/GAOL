@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Special cases of interval arithmetic in GAOL, libieeep1788 and Solaris Studio.
+"""Special cases of interval arithmetic in GAOL, libieeep1788, filib++ and Solaris Studio.
 
 The cases come from the tests of GAOL (tests/*.cpp, and check/*.cpp for the
 integer powers). Each one is written once, below, as an expression, from which
@@ -8,11 +8,13 @@ print are then compared with the results IEEE 1788-2015 defines, computed here
 with mpmath and rounded outward.
 
     cases.py generate DIR
-        writes DIR/cases_gaol.cpp, DIR/cases_p1788.cpp and DIR/cases_sun.f90
-    cases.py report GAOL.txt P1788.txt SUN.txt REPORT.md
-        reads what the three programs printed, and writes the table of the
-        results between the markers of REPORT.md (the whole file when it does
-        not exist)
+        writes DIR/cases_gaol.cpp, DIR/cases_p1788.cpp, DIR/cases_filib.cpp
+        and DIR/cases_sun.f90
+    cases.py report DIR REPORT.md
+        reads what the four programs printed, DIR/gaol.txt, DIR/p1788.txt,
+        DIR/filib.txt and DIR/sun.txt, and writes the table of the results
+        between the markers of REPORT.md (the whole file when it does not
+        exist)
 
 Each program prints one line per case:
     id|I|lo|hi   an interval, the bounds in C hexadecimal (%a) or as the bits
@@ -119,7 +121,8 @@ def readable_double(x):
         return "−∞"
     if x < 0 or is_neg_zero(x):
         s = readable_double(-x)
-        return "−" + ("(" + s + ")" if "+" in s or "−" in s else s)
+        # −(2^31+1), but −9.852612533569336e+19
+        return "−" + ("(" + s + ")" if ("+" in s or "−" in s) and "e" not in s else s)
     names = {INF: "+∞", MAX: "MAX", MAX / 2: "MAX/2", 1e10: "1e10", 0.0: "0"}
     if x in names:
         return names[x]
@@ -139,84 +142,100 @@ FUNCTIONS = ["sin", "cos", "tan", "asin", "acos", "atan", "exp", "log", "sqrt", 
              "asinh", "acosh", "atanh", "abs", "sqr"]
 
 
+# The C++ libraries: the name of their interval type, and whether they have
+# operators of an interval and a double, and compound assignments
+CPP_TYPE = {"gaol": "interval", "p1788": "II", "filib": "FI"}
+MIXED = {"gaol": True, "p1788": False, "filib": True}
+
+
 def cpp(n, lib):
-    """The C++ expression of n; lib is 'gaol' or 'p1788'"""
-    g = lib == "gaol"
+    """The C++ expression of n; lib is 'gaol', 'p1788' or 'filib'"""
+    t = CPP_TYPE[lib]
     a = n.args
+
+    def point(d):  # the interval of a double
+        return f"{t}({cpp_double(d)})" if lib != "p1788" else f"II({cpp_double(d)}, {cpp_double(d)})"
+
     if n.op == "iv":
         lo, hi = a
-        if hi is None:
-            return f"interval({cpp_double(lo)})" if g else f"II({cpp_double(lo)}, {cpp_double(lo)})"
-        return f"{'interval' if g else 'II'}({cpp_double(lo)}, {cpp_double(hi)})"
+        return point(lo) if hi is None else f"{t}({cpp_double(lo)}, {cpp_double(hi)})"
     if n.op == "empty":
-        return "interval::emptyset()" if g else "II::empty()"
+        return {"gaol": "interval::emptyset()", "p1788": "II::empty()", "filib": "FI::EMPTY()"}[lib]
     if n.op == "entire":
-        return "interval::universe()" if g else "II::entire()"
+        return {"gaol": "interval::universe()", "p1788": "II::entire()", "filib": "FI::ENTIRE()"}[lib]
     if n.op == "text":
         s = a[0].replace("\\", "\\\\").replace('"', '\\"')
-        return f'interval("{s}")' if g else f'II(std::string("{s}"))'
+        return {"gaol": f'interval("{s}")', "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")'}[lib]
     if n.op in INFIX:
         return f"({cpp(a[0], lib)} {INFIX[n.op]} {cpp(a[1], lib)})"
     if n.op == "neg":
         return f"(-{cpp(a[0], lib)})"
     if n.op in ("addd", "subd", "muld", "divd"):  # interval op double
-        o = INFIX[n.op[:-1]]
-        return f"({cpp(a[0], lib)} {o} {cpp_double(a[1])})" if g else \
-               f"({cpp(a[0], lib)} {o} II({cpp_double(a[1])}, {cpp_double(a[1])}))"
+        d = cpp_double(a[1]) if MIXED[lib] else point(a[1])
+        return f"({cpp(a[0], lib)} {INFIX[n.op[:-1]]} {d})"
     if n.op == "dmul":  # double * interval
-        return f"({cpp_double(a[0])} * {cpp(a[1], lib)})" if g else \
-               f"(II({cpp_double(a[0])}, {cpp_double(a[0])}) * {cpp(a[1], lib)})"
+        d = cpp_double(a[0]) if MIXED[lib] else point(a[0])
+        return f"({d} * {cpp(a[1], lib)})"
     if n.op == "rdiv":  # GAOL's relational division x % y: mul_rev of IEEE 1788
-        return f"({cpp(a[0], lib)} % {cpp(a[1], lib)})" if g else f"mul_rev({cpp(a[1], lib)}, {cpp(a[0], lib)})"
+        if lib == "filib":
+            raise NotAvailable
+        return f"({cpp(a[0], lib)} % {cpp(a[1], lib)})" if lib == "gaol" else f"mul_rev({cpp(a[1], lib)}, {cpp(a[0], lib)})"
     if n.op in FUNCTIONS:
         return f"{n.op}({cpp(a[0], lib)})"
     if n.op == "inverse":
-        return f"inverse({cpp(a[0], lib)})" if g else f"recip({cpp(a[0], lib)})"
+        return {"gaol": "inverse({})", "p1788": "recip({})", "filib": "(1.0 / {})"}[lib].format(cpp(a[0], lib))
     if n.op == "powi":
-        return f"pow({cpp(a[0], lib)}, {a[1]})" if g else f"pown({cpp(a[0], lib)}, {a[1]})"
+        return {"gaol": "pow({}, {})", "p1788": "pown({}, {})", "filib": "power({}, {})"}[lib].format(cpp(a[0], lib), a[1])
     if n.op == "powd":
-        return f"pow({cpp(a[0], lib)}, {cpp_double(a[1])})" if g else \
-               f"pow({cpp(a[0], lib)}, II({cpp_double(a[1])}, {cpp_double(a[1])}))"
+        if lib == "gaol":
+            return f"pow({cpp(a[0], lib)}, {cpp_double(a[1])})"
+        return f"pow({cpp(a[0], lib)}, {point(a[1])})"
     if n.op == "pow":
         return f"pow({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op == "nth_root":
-        if not g:
+        if lib != "gaol":
             raise NotAvailable
         return f"nth_root({cpp(a[0], lib)}, {a[1]}u)"
     if n.op == "hull":
-        return f"({cpp(a[0], lib)} | {cpp(a[1], lib)})" if g else f"convex_hull({cpp(a[0], lib)}, {cpp(a[1], lib)})"
+        return {"gaol": "({} | {})", "p1788": "convex_hull({}, {})", "filib": "hull({}, {})"}[lib].format(
+            cpp(a[0], lib), cpp(a[1], lib))
     if n.op == "inter":
-        return f"({cpp(a[0], lib)} & {cpp(a[1], lib)})" if g else f"intersection({cpp(a[0], lib)}, {cpp(a[1], lib)})"
+        return {"gaol": "({} & {})", "p1788": "intersection({}, {})", "filib": "intersect({}, {})"}[lib].format(
+            cpp(a[0], lib), cpp(a[1], lib))
     if n.op in ("min", "max"):
-        return f"{n.op}({cpp(a[0], lib)}, {cpp(a[1], lib)})"
+        name = "i" + n.op if lib == "filib" else n.op
+        return f"{name}({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op in ("mid", "wid", "mag", "mig"):
-        method = {"mid": "midpoint", "wid": "width", "mag": "mag", "mig": "mig"}[n.op]
-        return f"{cpp(a[0], lib)}.{method}()" if g else f"{n.op}({cpp(a[0], lib)})"
+        if lib == "p1788":
+            return f"{n.op}({cpp(a[0], lib)})"
+        methods = {"gaol": {"mid": "midpoint", "wid": "width"}, "filib": {"wid": "diam"}}[lib]
+        return f"{cpp(a[0], lib)}.{methods.get(n.op, n.op)}()"
     raise ValueError(n.op)
 
 
 def cpp_body(n, lib):
     """The body of the lambda computing the case n"""
-    g = lib == "gaol"
+    t = CPP_TYPE[lib]
     a = n.args
     if n.op in ("iadd", "isub", "imul", "idiv", "irdiv"):  # x op= d
         x, d = a
-        if g:
+        if n.op == "irdiv" and lib == "filib":
+            raise NotAvailable
+        if MIXED[lib]:
             o = {"iadd": "+=", "isub": "-=", "imul": "*=", "idiv": "/=", "irdiv": "%="}[n.op]
-            return f"interval r = {cpp(x, lib)}; r {o} {cpp_double(d)}; return r;"
+            return f"{t} r = {cpp(x, lib)}; r {o} {cpp_double(d)}; return r;"
         if n.op == "irdiv":
             return f"return mul_rev(II({cpp_double(d)}, {cpp_double(d)}), {cpp(x, lib)});"
-        o = INFIX[n.op[1:]]
-        return f"return {cpp(x, lib)} {o} II({cpp_double(d)}, {cpp_double(d)});"
+        return f"return {cpp(x, lib)} {INFIX[n.op[1:]]} II({cpp_double(d)}, {cpp_double(d)});"
     if n.op == "iaddI":  # x += y
         x, y = a
-        if g:
-            return f"interval r = {cpp(x, lib)}; r += {cpp(y, lib)}; return r;"
+        if MIXED[lib]:
+            return f"{t} r = {cpp(x, lib)}; r += {cpp(y, lib)}; return r;"
         return f"return {cpp(x, lib)} + {cpp(y, lib)};"
     if n.op == "assign":  # x = d
         x, d = a
-        if g:
-            return f"interval r = {cpp(x, lib)}; r = {cpp_double(d)}; return r;"
+        if MIXED[lib]:
+            return f"{t} r = {cpp(x, lib)}; r = {cpp_double(d)}; return r;"
         return f"return II({cpp_double(d)}, {cpp_double(d)});"
     return f"return {cpp(n, lib)};"
 
@@ -458,14 +477,14 @@ case(EMPTY, EMPTYSET, "Solaris Studio has no empty constant: [1, 2] .ix. [3, 4]"
 group("Reading intervals from text", "tests/numbers.cpp (numbers)")
 case(text("0.1"), None, "not an interval literal (9.7.4): ∅, unless the implementation extends the literals "
      "(9.7.1), as GAOL does; Solaris Studio reads 0.1 ± 0.1")
-case(text("[0.1]"), X("mpf(1)/10"))
+case(text("[0.1]"), X("mpf(1)/10"), "filib++: operator>>, which reads [l, u] only, and rounds the bounds to nearest")
 case(text("[0.1, 0.3]"), X("mpf(1)/10", "mpf(3)/10"))
 case(text("[1/3, 0.3]"), EMPTYSET, "rational literal, l > u")
 case(text("[0.3, 0.1]"), EMPTYSET, "l > u")
 case(text("[1e309]"), X("MAX", "inf"), "the real number 1e309, beyond the doubles")
 case(text("[1e-400]"), X(0, "TINY"))
 case(text("[1, inf]"), X(1, "inf"), "a literal of the set-based flavor (10.5.1)")
-case(text("[empty]"), EMPTYSET, "a literal of the set-based flavor (10.5.1)")
+case(text("[empty]"), EMPTYSET, "a literal of the set-based flavor (10.5.1); filib++ reads [ EMPTY ]")
 case(text("[entire]"), X("-inf", "inf"))
 case(text("3.56?1"), X("mpf(355)/100", "mpf(357)/100"), "uncertain form (9.7.4)")
 
@@ -476,7 +495,7 @@ for x, y, ieee in [((1, 2), (0, 1), X(1, "inf")), ((1, 2), (-1, 0), X("-inf", -1
                    ((0, 2), (0, 1), X(0, "inf")), ((-2, 0), (0, 1), X("-inf", 0)),
                    ((0, 0), (-1, 1), X(0)), ((1, 2), (0, 0), EMPTYSET), ((0, 0), (0, 0), EMPTYSET)]:
     case(op("div", iv(*x), iv(*y)), ieee)
-case(op("inverse", iv(0, 1)), X(1, "inf"), "recip in IEEE 1788, 1/x in Solaris Studio")
+case(op("inverse", iv(0, 1)), X(1, "inf"), "recip in IEEE 1788, 1/x in filib++ and Solaris Studio")
 case(op("inverse", iv(0, 0)), EMPTYSET)
 case(op("inverse", iv(-1, 1)), X("-inf", "inf"))
 
@@ -569,7 +588,7 @@ case(op("atanh", iv(2, 3)), EMPTYSET)
 case(op("abs", iv(-INF, -1)), X(1, "inf"))
 case(op("abs", iv(-INF, 1)), X(0, "inf"))
 
-group("Integer powers (GAOL's pow(x, n), pown of IEEE 1788, x**n of Fortran)",
+group("Integer powers (GAOL's pow(x, n), pown of IEEE 1788, filib++'s power(x, n), x**n of Fortran)",
       "check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp")
 case(op("powi", iv(0), 0), X(1), "pown(x, 0) = 1 for every x (Table 9.1, b)")
 case(op("powi", EMPTY, 0), EMPTYSET)
@@ -593,10 +612,10 @@ case(op("powi", iv(-15), 17), X("-mpf(15)**17"))
 case(op("powi", iv(10), 400), X("MAX", "inf"))
 case(op("powi", iv(10), -400), X(0, "TINY"))
 
-group("Real powers (GAOL's pow(x, d) and pow(x, y), pow of IEEE 1788, x**y of Fortran)",
+group("Real powers (GAOL's pow(x, d) and pow(x, y), pow of IEEE 1788 and of filib++, x**y of Fortran)",
       "tests/elementary.cpp (powers)")
 NOTE_POWN = "GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only"
-case(op("powd", iv(4), 0.5), X(2), "libieeep1788: pow(x, II(d, d))")
+case(op("powd", iv(4), 0.5), X(2), "libieeep1788 and filib++: pow(x, [d])")
 case(op("powd", iv(4), 1.5), X(8))
 case(op("powd", iv(4, 9), 0.5), X(2, 3))
 case(op("powd", iv(4), -0.5), X(0.5))
@@ -647,7 +666,7 @@ case(op("pow", iv(0, 1), iv(1, INF)), X(0, 1))
 case(op("pow", iv(2, INF), iv(-1, 1)), X(0, "inf"))
 
 group("n-th roots (GAOL's nth_root, rootn of IEEE 1788)", "check/non_arithmetic.cpp, tests/arithmetic.cpp")
-NOTE_ROOT = "neither libieeep1788 nor Solaris Studio has rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3]"
+NOTE_ROOT = "libieeep1788, filib++ and Solaris Studio have no rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3]"
 case(op("nth_root", iv(-8, 27), 3), X(-2, 3), NOTE_ROOT)
 case(op("nth_root", iv(-4, 9), 2), X(0, 3))
 case(op("nth_root", iv(-4, -1), 2), EMPTYSET)
@@ -665,7 +684,7 @@ case(op("mid", EMPTY), XR(NAN), kind="R")
 case(op("mid", iv(MAX / 2, MAX)), XR("(MAX/2 + MAX)/2"), kind="R")
 case(op("mid", iv(0, TINY)), XR(0.0), "the tie rounded to even", kind="R")
 case(op("mid", iv(-TINY, TINY * 4)), XR(TINY * 2), "1.5·2^-1074, to even", kind="R")
-case(op("wid", iv(-INF, 1)), XR(INF), "wid (12.12.8)", kind="R")
+case(op("wid", iv(-INF, 1)), XR(INF), "wid (12.12.8), diam in filib++", kind="R")
 case(op("wid", iv(-MAX, MAX)), XR(INF), kind="R")
 case(op("wid", EMPTY), XR(NAN), kind="R")
 case(op("mag", iv(-3, 2)), XR(3.0), kind="R")
@@ -673,10 +692,10 @@ case(op("mag", EMPTY), XR(NAN), kind="R")
 case(op("mig", iv(-3, 2)), XR(0.0), kind="R")
 case(op("mig", iv(-3, -2)), XR(2.0), kind="R")
 case(op("mig", EMPTY), XR(NAN), kind="R")
-case(op("hull", I12, EMPTY), X(1, 2), "convex_hull in libieeep1788, .ih. in Solaris Studio")
-case(op("inter", I12, iv(3, 4)), EMPTYSET, "intersection in libieeep1788, .ix. in Solaris Studio")
+case(op("hull", I12, EMPTY), X(1, 2), "convex_hull in libieeep1788, hull in filib++, .ih. in Solaris Studio")
+case(op("inter", I12, iv(3, 4)), EMPTYSET, "intersection in libieeep1788, intersect in filib++, .ix. in Solaris Studio")
 case(op("inter", I12, iv(2, 3)), X(2))
-case(op("min", iv(-INF, 1), iv(0, 2)), X("-inf", 1))
+case(op("min", iv(-INF, 1), iv(0, 2)), X("-inf", 1), "imin and imax in filib++")
 case(op("max", I12, EMPTY), EMPTYSET)
 case(op("neg", iv(-INF, 1)), X(-1, "inf"))
 
@@ -789,6 +808,67 @@ P1788_TAIL = r'''  return 0;
 }
 '''
 
+FILIB_HEAD = r'''// Generated by doc/compare/code/cases.py: the special cases, computed by filib++
+#include <interval/interval.hpp>
+#include <cstdio>
+#include <exception>
+#include <limits>
+#include <sstream>
+#include <string>
+
+// The intervals IBEX computes with when it is built with filib++
+typedef filib::interval<double, filib::native_switched, filib::i_mode_extended_flag> FI;
+
+static const double pinf = std::numeric_limits<double>::infinity();
+static const double qnan = std::numeric_limits<double>::quiet_NaN();
+static const double dmax = std::numeric_limits<double>::max();
+static const double dtiny = std::numeric_limits<double>::denorm_min();
+
+// An interval read by operator>>, which reads [l, u] and throws otherwise
+static FI read_interval(const char *s)
+{
+  std::istringstream in(s);
+  FI x;
+  in >> x;
+  return x;
+}
+
+template<class F>
+static void show(const char *id, F f)
+{
+  try {
+    const FI r = f();
+    if (r.isEmpty()) {
+      std::printf("%s|E\n", id);
+    } else {
+      std::printf("%s|I|%a|%a\n", id, r.inf(), r.sup());
+    }
+  } catch (filib::interval_io_exception&) {
+    std::printf("%s|X|exception interval_io_exception\n", id);
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+template<class F>
+static void show_real(const char *id, F f)
+{
+  try {
+    std::printf("%s|R|%a\n", id, f());
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+int main()
+{
+  filib::fp_traits<double, filib::native_switched>::setup();
+'''
+
+FILIB_TAIL = r'''  return 0;
+}
+'''
+
 SUN_HEAD = '''! Generated by doc/compare/code/cases.py: the special cases, computed by the
 ! intervals of Solaris Studio's Fortran (f90 -xia)
 module show_results
@@ -851,7 +931,8 @@ def generate(directory):
     import os
     os.makedirs(directory, exist_ok=True)
     for lib, head, tail, name in (("gaol", GAOL_HEAD, GAOL_TAIL, "cases_gaol.cpp"),
-                                  ("p1788", P1788_HEAD, P1788_TAIL, "cases_p1788.cpp")):
+                                  ("p1788", P1788_HEAD, P1788_TAIL, "cases_p1788.cpp"),
+                                  ("filib", FILIB_HEAD, FILIB_TAIL, "cases_filib.cpp")):
         lines = [head]
         for c in CASES:
             lines.append(f"  // {c.name}\n")
@@ -860,7 +941,7 @@ def generate(directory):
             except NotAvailable:
                 lines.append(f'  std::printf("{c.id}|NA\\n");\n')
                 continue
-            result = "double" if c.kind == "R" else ("interval" if lib == "gaol" else "II")
+            result = "double" if c.kind == "R" else CPP_TYPE[lib]
             show = "show_real" if c.kind == "R" else "show"
             lines.append(f'  {show}("{c.id}", []() -> {result} {{ {body} }});\n')
         lines.append(tail)
@@ -954,16 +1035,20 @@ BEGIN = "<!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->"
 END = "<!-- END GENERATED TABLES -->"
 
 
-def report(paths, out):
-    names = ["GAOL", "libieeep1788", "Solaris Studio"]
-    results = [read_results(p) for p in paths]
+LIBRARIES = [("gaol", "GAOL"), ("p1788", "libieeep1788"), ("filib", "filib++"), ("sun", "Solaris Studio")]
+
+
+def report(directory, out):
+    import os
+    names = [name for _, name in LIBRARIES]
+    results = [read_results(os.path.join(directory, key + ".txt")) for key, _ in LIBRARIES]
     counts = [{"=": 0, "⊃": 0, "✗": 0, "n/a": 0} for _ in names]
     lines = []
     for g, (title, source) in enumerate(GROUPS):
         lines.append(f"### {g + 1}. {title}\n\n")
         lines.append(f"From {source}.\n\n")
-        lines.append("| # | Operation | IEEE 1788 | GAOL | libieeep1788 | Solaris Studio | Notes |\n")
-        lines.append("|---|---|---|---|---|---|---|\n")
+        lines.append("| # | Operation | IEEE 1788 | " + " | ".join(names) + " | Notes |\n")
+        lines.append("|---" * (len(names) + 4) + "|\n")
         for c in CASES:
             if c.group != g:
                 continue
@@ -1009,7 +1094,7 @@ def report(paths, out):
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "generate":
         generate(sys.argv[2])
-    elif len(sys.argv) == 6 and sys.argv[1] == "report":
-        report(sys.argv[2:5], sys.argv[5])
+    elif len(sys.argv) == 4 and sys.argv[1] == "report":
+        report(sys.argv[2], sys.argv[3])
     else:
         sys.exit(__doc__)

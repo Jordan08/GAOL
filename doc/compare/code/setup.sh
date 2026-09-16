@@ -2,6 +2,7 @@
 # Downloads and builds what the comparisons need, under $WORK (see env.sh):
 #   - GMP and MPFR (static), unless the system has their headers,
 #   - libieeep1788 (header only) at the commit P1788_COMMIT,
+#   - filib++ FILIB_VERSION, unless FILIB_DIR gives an installed one,
 #   - GAOL, this repository, built with CMake in Release and installed,
 # and checks that Solaris Studio's f90 compiles an interval program.
 # Each step is skipped when its result is already there.
@@ -58,6 +59,25 @@ else
   sed -e 's/@P1788_VERSION_MAJOR@/0/g' -e 's/@P1788_VERSION_MINOR@/1/g' \
       -e 's/@P1788_VERSION_PATCH@/5/g' \
       libieeep1788/p1788/version.hpp.in > "$PREFIX/include/p1788/version.hpp"
+fi
+
+## filib++: the one FILIB_DIR gives, or IBEX's archive, built with its configure
+if [ -n "$FILIB_DIR_GIVEN" ]; then
+  [ -f "$FILIB_DIR_GIVEN/include/interval/interval.hpp" ] && [ -f "$FILIB_DIR_GIVEN/lib/libprim.a" ] \
+    || die "no filib++ in $FILIB_DIR_GIVEN (include/interval/interval.hpp, lib/libprim.a)"
+  echo "== filib++: $FILIB_DIR_GIVEN"
+  echo "$FILIB_DIR_GIVEN" > "$WORK/filib-dir"
+elif [ -f "$FILIB_DIR/include/interval/interval.hpp" ]; then
+  echo "== filib++: already in $FILIB_DIR"
+else
+  echo "== filib++ $FILIB_VERSION"
+  fetch "$FILIB_URL" "filibsrc-$FILIB_VERSION.tar.gz" "$FILIB_SHA256"
+  rm -rf "filibsrc-$FILIB_VERSION" && tar xzf "filibsrc-$FILIB_VERSION.tar.gz"
+  (cd "filibsrc-$FILIB_VERSION" &&
+   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --disable-shared CXX="$CXX" CC="$CC" \
+               CXXFLAGS="-O2 -frounding-math -Wno-deprecated" > configure.log &&
+   make -j"$JOBS" > make.log && make install > install.log)
+  echo "$PREFIX" > "$WORK/filib-dir"
 fi
 
 ## GAOL, from this repository

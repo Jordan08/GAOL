@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The benchmark of GAOL, libieeep1788 and Solaris Studio.
+"""The benchmark of GAOL, libieeep1788, filib++ and Solaris Studio.
 
     bench.py data N FILE
         writes N random intervals of each kind the benchmark uses (see
@@ -28,7 +28,7 @@ OPERATIONS = [
     ("log", "log(p)"),
     ("sin", "sin(a)"),
     ("cos", "cos(a)"),
-    ("pow_int", "a³ (`pow(x, int)` in GAOL, `pown`, `x**3`)"),
+    ("pow_int", "a³ (`pow(x, int)` in GAOL, `pown`, `power(x, int)` in filib++, `x**3`)"),
     ("pow_real", "p^e (`pow(x, y)`, `x**y`)"),
     ("line_arith", "(a + b)(a − b) / p"),
     ("line_trig", "sin(a) cos(b) + a²"),
@@ -38,7 +38,7 @@ OPERATIONS = [
 ]
 
 LIBRARIES = [("double", "double (reference)"), ("gaol", "GAOL"), ("libieeep1788", "libieeep1788"),
-             ("solaris_f90", "Solaris Studio f90")]
+             ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90")]
 
 
 def data(n, path):
