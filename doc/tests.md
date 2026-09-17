@@ -34,7 +34,10 @@ Codac.
   enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
-  near 1. `atan2` has to be within one double of the tightest bounds at
+  near 1. `pow(x, y)` has to be within one double of the tightest bounds at
+  points, `pow([2], [1023.5])` among them, and over 385 boxes of bases and
+  exponents in every position about the base 1 and the exponent 0. `atan2`
+  has to be within one double of the tightest bounds at
   points of the four quadrants and over 324 boxes in every position about the
   axes, and the tightest over the boxes with infinite bounds or on an axis,
   `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin and cos have to be within one
@@ -87,4 +90,3 @@ What they show of GAOL, beyond the fixes below:
   about 2^-51·|x| of an extremum may be taken as reaching it. `tan` adds an
   interval enclosing π/2 to its argument to tell its branch, and gives
   [-oo, +oo] when it cannot. (See [Accuracy of the operations](accuracy.md).)
-- `pow(x, y)` is `exp(y log x)`, whose relative width grows with `|y log x|`.

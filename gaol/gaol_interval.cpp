@@ -250,6 +250,17 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     return minimum(nearest::atan2_up(y,x), pi_up);
   }
 
+  // x^y for x > 0: 1 for x = 1 or y = 0, and at least 0
+  static inline double pow_lo(double x, double y)
+  {
+    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(nearest::nthroot_dn(x,y), 0.0);
+  }
+
+  static inline double pow_hi(double x, double y)
+  {
+    return (x == 1.0 || y == 0.0) ? 1.0 : nearest::nthroot_up(x,y);
+  }
+
   static inline double sinh_lo(double x)
   {
     return (x == 0.0) ? 0.0 : ((x >= 711.0) ? std::numeric_limits<double>::max() : nearest::sinh_dn(x));
@@ -794,6 +805,41 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     // c), which exp(J*log([0])) does not give, log([0]) being empty
     if (base.right() == 0.0) {
       return J.right() > 0.0 ? interval::zero() : interval::emptyset();
+    }
+    /*
+      For a base above 0 and finite bounds, the pow of the mathematical library
+      at the corners of the box (fork of GAOL, issue #8): x^y increases with y
+      for x > 1 and decreases for x < 1, increases with x for y > 0 and
+      decreases for y < 0, so that its extrema over I x J are at corners, which
+      the places of the bounds about 1 and 0 give. mathlib's upow() is
+      correctly rounded, and each bound is one double from the tightest one at
+      most, where exp(J*log(I)) multiplied the relative width of log(I) by
+      |y log(x)|: pow([2], [1023.5]) was 1425 doubles below and 748 above.
+      A base from 0, whose powers are from 0 for exponents above 0, takes its
+      upper bound so. The other boxes (a base from 0 with an exponent that is
+      not above 0, an infinite bound) keep exp(J*log(I)), which gives their
+      limits.
+    */
+    const double xl = base.left(), xu = base.right(), yl = J.left(), yu = J.right();
+    const double dmax = (std::numeric_limits<double>::max)();
+    if (xu <= dmax && yl >= -dmax && yu <= dmax && (xl > 0.0 || yl > 0.0)) {
+      double l, r;
+      GAOL_RND_NEAREST_ENTER();
+      if (xl == 0.0) {
+        l = 0.0;
+        r = pow_hi(xu, (xu >= 1.0) ? yu : yl);
+      } else if (xl >= 1.0) {
+        l = pow_lo((yl >= 0.0) ? xl : xu, yl);
+        r = pow_hi((yu >= 0.0) ? xu : xl, yu);
+      } else if (xu <= 1.0) {
+        l = pow_lo((yu >= 0.0) ? xl : xu, yu);
+        r = pow_hi((yl >= 0.0) ? xu : xl, yl);
+      } else {
+        l = minimum(pow_lo(xl, yu), pow_lo(xu, yl));
+        r = maximum(pow_hi(xl, yl), pow_hi(xu, yu));
+      }
+      GAOL_RND_NEAREST_LEAVE();
+      return interval(l,r);
     }
     return exp(J*log(base));
   }

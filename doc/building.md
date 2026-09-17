@@ -86,12 +86,12 @@ dates of the checkout. The options, with their defaults:
 With `--with-mathlib=m` (`-Dwith-mathlib=default` for meson), GAOL computes its
 elementary functions with the math library of the system, whose results it
 widens slightly, and configure and meson warn that the bounds are not
-certified. Built so with glibc 2.31 on x86-64, 202 of the 3108 checks of
+certified. Built so with glibc 2.31 on x86-64, 852 of the 4725 checks of
 `elementary` fail: 10 give bounds not enclosing the exact values (NaN bounds
 at the overflow of `exp`, `sinh` and `cosh`, and `log([0, 1])` and
 `atanh([-1, 1])` stopping at -MAX rather than -oo), and the others bounds
-further from the tightest than the tests allow, `sin` and `cos` being up to 4
-doubles away where the tests want one; 960 of the checks of `other_functions`
+further from the tightest than the tests allow, `sin`, `cos`, `pow(x, y)` and
+`atan2` being up to 4 doubles away where the tests want one; 960 of the checks of `other_functions`
 fail, `acos_rel`, `asin_rel` and `atan_rel` keeping the values they had to
 but being further than 2^-49 from them. The checks of `arithmetic`, `numbers` and `rounding_direction`
 pass. mathlib, the default of every build, and CRlibm give certified bounds.

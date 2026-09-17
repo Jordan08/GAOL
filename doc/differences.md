@@ -161,6 +161,26 @@ Each change is a commit of its own, and says where it comes from.
     `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
     `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
     `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
+- **`pow(I, J)` with finite bounds is within one double of the tightest
+  bounds** ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y
+  increases with y for x > 1 and decreases for x < 1, increases with x for
+  y > 0 and decreases for y < 0: over a box of bases above 0 its extrema are
+  at corners, which the places of the bounds about 1 and 0 give, and the pow
+  of the mathematical library (mathlib's `upow()`, correctly rounded, which
+  `nth_root()` used already) is taken there and moved one double outward;
+  a base from 0 with exponents above 0 has 0 for lower bound.
+  - **Before.** `exp(J*log(I))` multiplied the relative width of `log(I)`, a
+    few 2^-52, by |y log x|: `pow([2], [1023.5])` was 1425 doubles below the
+    exact value and 748 above. It is kept where a bound is infinite, or for
+    a base from 0 with an exponent that is not above 0, whose limits it gives.
+  - **Time.** `pow(x, y)` takes 138 ns rather than 128 on an Intel i7-1185G7
+    (GCC 9.4), for bounds 16 times closer to the tightest: over the million
+    powers of the benchmark of `doc/compare`, its intervals are 3.6e-15 wider
+    than the tightest relatively, against 5.9e-14.
+  - **Checked.** `upow()` was compared with mpmath at 240000 arguments,
+    results near the overflow, subnormal results, bases next to 1 with large
+    exponents, and exact powers with their neighbouring doubles, which take
+    its slow path, included: all correctly rounded.
 - **`nth_root(I, n)`** is the `rootn` of IEEE 1788-2015 (Table 10.5): for an
   odd `n`, it is defined on the whole real line, the root of a negative number
   being the opposite of the root of its magnitude, and `nth_root([-8, 27], 3)`

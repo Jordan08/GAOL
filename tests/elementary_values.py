@@ -257,6 +257,27 @@ for _ in range(100):
     atan2_boxes.append((y[0], y[1], x[0], x[1]))
 
 
+def pow_hull(xl, xu, yl, yu):
+    """The least and the greatest x^y over [xl, xu] x [yl, yu], for xl > 0: x^y
+    is monotonic in x and in y, and its extrema are at the corners."""
+    values = [mpmath.power(m(x), m(y)) for x in (xl, xu) for y in (yl, yu)]
+    return min(values), max(values)
+
+
+# Boxes whose bases are about 1 and exponents about 0, the exponents that are
+# a single integer left out, which take the integer power; and random ones,
+# some with large exponents
+pow_bases = [0.25, 0.5, 1.0, 2.0, 3.0]
+pow_exponents = [-2.5, -0.5, 0.0, 0.5, 1.0, 2.5]
+pow_boxes = [(xl, xu, yl, yu) for xl in pow_bases for xu in pow_bases if xl <= xu
+             for yl in pow_exponents for yu in pow_exponents if yl <= yu and not (yl == yu and yl == int(yl))]
+for i in range(100):
+    x = sorted([rng.uniform(0.01, 20.0), rng.uniform(0.01, 20.0)])
+    scale = 200.0 if i % 4 == 0 else 5.0
+    y = sorted([rng.uniform(-scale, scale), rng.uniform(-scale, scale)])
+    pow_boxes.append((x[0], x[1], y[0], y[1]))
+
+
 def literal(x):
     if x == math.inf:
         return "gaol_tests::inf"
@@ -283,6 +304,16 @@ for name, f, abs_ in binary:
     for a, b in abs_:
         below, above = neighbours(f(m(a), m(b)))
         print('  { "%s", %s, %s, %s, %s },' % (name, literal(a), literal(b), literal(below), literal(above)))
+print("};")
+print()
+print("// The hull of x^y over [xl, xu] x [yl, yu], xl > 0: the doubles around its least value,")
+print("// and those around its greatest")
+print("struct PowBox { double xl, xu, yl, yu, least_below, least_above, greatest_below, greatest_above; };")
+print()
+print("const PowBox pow_boxes[] = {")
+for xl, xu, yl, yu in pow_boxes:
+    least, greatest = pow_hull(xl, xu, yl, yu)
+    print("  { %s }," % ", ".join(literal(v) for v in (xl, xu, yl, yu) + neighbours(least) + neighbours(greatest)))
 print("};")
 print()
 print("// The hull of atan2 over [yl, yu] x [xl, xu]: the doubles around its least angle,")

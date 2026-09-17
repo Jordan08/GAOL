@@ -153,22 +153,39 @@ namespace
         continue;
       }
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
-      // pow(a,b) = exp(b log(a)): the relative width of log(a), a few 2^-52,
-      // is multiplied by b log(a) in exp()
-      double relative;
-      {
-        RoundingToNearest nearest;
-        relative = std::ldexp(std::max(1.0, std::fabs(v.b*std::log(v.a))), -49);
-      }
-      const double slack = relative*std::max(std::fabs(v.below), std::fabs(v.above));
-      expect_within(name, "2^-49 max(1,|b log(a)|) relatively", r, v.below, v.above, slack, [&] {
+      // The pow of mathlib, correctly rounded, moved one double outward
+      expect_close(name, r, v.below, v.above, [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
-      });
+      }, 1);
       // The same with the exponent as a double
       const interval rd = evaluate("pow([a],b)", [&] { return pow(interval(v.a), v.b); }, arguments);
-      expect_within("pow([a],b)", "2^-49 max(1,|b log(a)|) relatively", rd, v.below, v.above, slack, [&] {
+      expect_close("pow([a],b)", rd, v.below, v.above, [&] {
         return arguments() + " = " + hex(rd) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
-      });
+      }, 1);
+    }
+  }
+
+  // pow over boxes [xl, xu] x [yl, yu] of bases above 0, in every position
+  // about the base 1 and the exponent 0, where its monotonicity changes
+  void pow_of_boxes()
+  {
+    for (const PowBox& b : pow_boxes) {
+      const interval X(b.xl, b.xu), Y(b.yl, b.yu);
+      const auto describe_box = [&] { return "pow(" + hex(X) + ", " + hex(Y) + ")"; };
+      const interval r = evaluate("pow([x],[y]) over boxes", [&] { return pow(X, Y); }, describe_box);
+      const auto describe = [&] {
+        return describe_box() + " = " + hex(r) + ", the hull of the powers being within ["
+          + hex(b.least_below) + ", " + hex(b.greatest_above) + "]";
+      };
+      if (check("pow([x],[y]) over boxes: encloses", !r.is_empty() && r.left() <= b.least_below
+                && r.right() >= b.greatest_above, describe)) {
+        // A bound that is 1 (a base 1 or an exponent 0 at its corner) has to be it
+        const int distance = std::max((b.least_below == 1.0 && b.least_above == 1.0) ? 2*doubles_between(r.left(), 1.0)
+                                      : doubles_between(r.left(), b.least_below),
+                                      (b.greatest_below == 1.0 && b.greatest_above == 1.0) ? 2*doubles_between(1.0, r.right())
+                                      : doubles_between(b.greatest_above, r.right()));
+        check_distance("pow([x],[y]) over boxes", distance, 1, describe);
+      }
     }
   }
 
@@ -531,6 +548,7 @@ int main()
   at_doubles();
   at_intervals();
   at_known_intervals();
+  pow_of_boxes();
   atan2_of_boxes();
   powers();
   const int status = summary();
