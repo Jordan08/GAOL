@@ -337,6 +337,15 @@ Each change is a commit of its own, and says where it comes from.
   changes no code: `libultim.a` is the same, byte for byte, with it and without
   it. The builds of GAOL compile mathlib with `-w` besides, whatever warning
   flags the project building GAOL gives.
+- **The shifts of mathlib's `halfulp()`** (`3rd/mathlib/src/halfulp.c`,
+  [issue #5](https://github.com/Jordan08/GAOL/issues/5)): `halfulp()`, which
+  `upow()` calls for the powers that may be exact, and so `nth_root()`,
+  shifted a positive `int` into its sign bit, undefined behaviour in C that
+  the UndefinedBehaviorSanitizer of Clang reports. It shifts an
+  `unsigned int`, and returns the same doubles (4 million arguments compared,
+  228644 of them exact powers). The continuous integration suppressed the
+  report (`.github/sanitizers/ubsan.supp`, now removed): it suppresses nothing
+  any more.
 - **`Init_Lib()` and `Exit_Lib()` of mathlib**
   (`3rd/mathlib/src/AARCH64_DPChange.c`,
   `3rd/mathlib/mathlib_configuration.h.in`): `Init_Lib()` sets the rounding

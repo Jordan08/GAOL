@@ -53,6 +53,7 @@ double halfulp(double x, double y)
   mynumber v;
   double z,u,uu,j1,j2,j3,j4,j5;
   int4 k,l,m,n;
+  unsigned int um;   /* shifted instead of m: shifting an int4 into its sign bit is undefined */
   if (y <= 0) {               /*if power is negative or zero */
     v.x = y;
     if (v.i[LOW_HALF] != 0) return -10.0;  
@@ -76,10 +77,10 @@ double halfulp(double x, double y)
   
   v.x = y;
   k = v.i[HIGH_HALF];
-  m = k<<12;
+  um = ((unsigned int) k)<<12;
   l = 0;
-  while (m) 
-    {m = m<<1; l++; }
+  while (um) 
+    {um = um<<1; l++; }
   n = (k&0x000fffff)|0x00100000;
   n = n>>(20-l);                       /*   n is the odd integer of y    */
   k = ((k>>20) -1023)-l;               /*   y = n*2**k                   */
@@ -104,9 +105,9 @@ double halfulp(double x, double y)
   v.x = x;
   if (v.i[LOW_HALF]) return -10.0;
   k = v.i[HIGH_HALF];
-  m = k<<12;
+  um = ((unsigned int) k)<<12;
   l = 0;
-  while (m) {m = m<<1; l++; }
+  while (um) {um = um<<1; l++; }
   m = (k&0x000fffff)|0x00100000;
   m = m>>(20-l);                       /*   m is the odd integer of x    */
   

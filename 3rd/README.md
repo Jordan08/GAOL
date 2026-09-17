@@ -109,6 +109,17 @@ of the fork.
   [commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=82a1a4dae1b699a394e213866e789eacef1728fc))
   and Fabrice Le Bars in his fork of mathlib
   ([commit](https://github.com/lebarsfa/mathlib/commit/04a3dfe75cd3f0e49e22bca9ed688462d18c6c52)).
+- **`src/halfulp.c`, the shifts.** `halfulp()`, which `upow()` calls for the
+  powers that may be exact, counts the significant bits of the high half of a
+  double by shifting it leftward until it is 0, as an `int`: shifting a
+  positive `int` into its sign bit is undefined behaviour in C, which the
+  UndefinedBehaviorSanitizer of Clang reports ("left shift of 1070596096 by
+  12 places cannot be represented in type 'int4'"), and which the continuous
+  integration suppressed
+  ([issue #5](https://github.com/Jordan08/GAOL/issues/5)). An `unsigned int`
+  is shifted instead, which gives the bits the compilers gave: `halfulp()`
+  returns the same doubles at 4 million arguments, 228644 of them exact
+  powers, and the tests pass with Clang 18 and no suppression.
 - **`src/sincos32.h`, the include guard**, which tested `SINCOS32_H` but
   defined `SINCCOS32_H`, which Clang warns about (`-Wheader-guard`): it
   defines `SINCOS32_H`, as Fabrice Le Bars fixed it

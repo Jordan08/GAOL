@@ -102,7 +102,7 @@ jobs:
           - { os: ubuntu-26.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan' }
     env:
       ASAN_OPTIONS: detect_leaks=1
-      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/.github/sanitizers/ubsan.supp
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -112,9 +112,8 @@ jobs:
           ${{ matrix.cfg.cxx }} --version
       - name: Configure
         run: |
-          # Not -fno-sanitize-recover: UBSan would then stop on the undefined
-          # behaviour of mathlib that ubsan.supp lists; halt_on_error stops on
-          # the others
+          # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
+          # behaviour; none is suppressed, mathlib's being fixed in 3rd/mathlib
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
             "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
