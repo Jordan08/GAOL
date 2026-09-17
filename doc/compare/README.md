@@ -34,14 +34,14 @@ reports.
 | … or an interval enclosing it | 20 | 0 | 50 | 36 |
 | … or another result | 6 | 0 | 67 | 67 |
 | Cases it has no operation for | 0 | 11 | 15 | 26 |
-| `x + y` | 3.7 ns | 213 ns | 7.6 ns | 24 ns |
-| `x * y` | 17 ns | 263 ns | 17 ns | 29 ns |
-| `sin(x)` | 112 ns | 8.7 µs | 53 ns | 59 ns |
-| `pow(x, 3)` | 14.5 ns | 330 ns | 27 ns | 214 ns |
-| Shekel 5 | 331 ns | 14 µs | 580 ns | 2.4 µs |
+| `x + y` | 3.7 ns | 213 ns | 7.5 ns | 24 ns |
+| `x * y` | 16 ns | 261 ns | 17 ns | 29 ns |
+| `sin(x)` | 111 ns | 8.1 µs | 53 ns | 59 ns |
+| `pow(x, 3)` | 14.3 ns | 329 ns | 27 ns | 214 ns |
+| Shekel 5 | 326 ns | 14 µs | 583 ns | 2.4 µs |
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
-  as tightly as possible, and is 13 to 78 times slower than GAOL.
+  as tightly as possible, and is 14 to 73 times slower than GAOL.
 - **GAOL** is the fastest on the arithmetic and on most formulas, and gives
   IEEE 1788's result, or an interval enclosing it, in all but 6 special
   cases, all from its hybrid `pow`, which takes `pown` for integer
