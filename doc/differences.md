@@ -199,6 +199,29 @@ Each change is a commit of its own, and says where it comes from.
   get the same intervals as before. `check/non_arithmetic.cpp` wanted
   `[0, 1.2457]` for `nth_root([-4, 3], 5)`, and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
+- **The n-th roots are proved with integer powers**, and are the tightest
+  bounds or one double beyond, for every n and every double (issue #7). GAOL
+  took the power of the mathematical library with the exponent 1/n rounded,
+  moved one double outward: the rounded exponent moves the root by
+  |log x|·2^-53/n relatively, and the bounds were up to 8 doubles from the
+  tightest between 2^-30 and 2^30, and 234 over all the doubles;
+  `nth_root([27], 3)` was `[0x1.7ffffffffffffp+1, 0x1.8000000000002p+1]`.
+  - **The proof.** l is below the root when l^n, rounded upward, is at most x,
+    and u above it when u^n, rounded downward, is at least x. The lower bound
+    is the largest double so proved, the upper bound the smallest one.
+  - **The search.** It starts from the power of the mathematical library,
+    brought next to the root by a step of Newton's method, r - r (r^n - x)/(n r^n),
+    and goes by steps that double until a proved and an unproved double are
+    found, then by bisection: two powers from a start next to the root. It ends
+    from any start, and its result is proved whatever the mathematical library
+    is: the roots are bounds with the math library of the system too.
+  - **Exact roots.** The root of a double that is the n-th power of a double is
+    that double: `nth_root([27], 3)` is `[3]`.
+  - **`nth_root_rel()`** takes the roots of `nth_root()`: it took the same
+    powers, and kept a value within 23 doubles, now 2.
+  - **Time.** A point interval takes 135 ns rather than 130, its only root
+    being looked for once; an interval 184 ns rather than 136 (Intel i7-1185G7,
+    GCC 9.4).
 - **`sin()`** is computed as `cos()` is: the bounds of the interval divided by
   an enclosure of π, minus 1/2, tell the pieces where the sine is monotonic,
   and mathlib's sine is taken at the bounds, moved one double outward. GAOL
