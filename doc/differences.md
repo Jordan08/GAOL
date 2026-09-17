@@ -146,15 +146,38 @@ Each change is a commit of its own, and says where it comes from.
   the right bound. They are written `1.25~[0, 67]` and `100.~[0, 47]`; the
   zeros ending an exponent are no longer dropped, and the search for the
   common characters stops at the end of the shorter text.
-- **Hyperbolic functions:** the values GAOL takes from the libm of the system
-  are moved three floats outward rather than one. The libms of glibc 2.31, musl
-  and MinGW-w64 are sometimes a float further, which gave bounds not enclosing
-  the exact values. The branch `hyperbolic-rigorous` bounds them without the
-  libm instead; [issue #1](https://github.com/Jordan08/GAOL/issues/1) compares
-  the two. At the overflow, the bounds were then two floats wider than the
-  tightest, against three assertions of GAOL's own check `trigonometric`
-  (`make check`); they are now the tightest there (see the exact values
-  below).
+- **Hyperbolic functions:** `sinh`, `cosh`, `tanh`, `asinh`, `acosh` and
+  `atanh` are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
+  correctly rounded, whose value rounded to nearest is moved one double
+  outward, as for the functions of mathlib
+  ([issue #1](https://github.com/Jordan08/GAOL/issues/1)): the bounds are
+  within one double of the tightest, on every system.
+  - **Before.** GAOL took them from the libm of the system, mathlib having
+    none, and moved their values one float outward. The libms of glibc 2.31,
+    musl and MinGW-w64 are sometimes a float further, which gave bounds not
+    enclosing the exact values. This fork first moved them three floats
+    outward, which holds as long as the libm is within two floats of the exact
+    value: the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
+    to 1, and its `asinh` NaN for large negative numbers. The branch
+    `hyperbolic-rigorous` bounded them without the libm, from `exp` and `log`,
+    6 to 45 times slower.
+  - **The sources** are `gaol/core_math_*.c`, one file for each function, as
+    CORE-MATH distributes them (MIT licence, [3rd/core-math](../3rd/core-math/README.md)),
+    compiled into GAOL's library under the names `gaol_cr_sinh()`...
+    (`gaol/gaol_core_math.h`). Two changes: `gaol/core_math_port.h` is included,
+    which gives Visual C++ the builtins of GCC they use; and `~0ul` is written
+    `~(u64)0` in three of them, `unsigned long` having 32 bits on Windows.
+  - **Tightness and time** (Intel i7-1185G7, GCC 9.4, glibc 2.31), per
+    interval: within 1 double rather than 3 or 4; `sinh()` 84 ns rather than
+    131, `cosh()` 76 rather than 77, `tanh()` 105 rather than 127, `asinh()`
+    86 rather than 108, `acosh()` 83 rather than 99, `atanh()` 86 rather than
+    128: three calls of `nextafter()` less for each bound.
+  - **Tests.** `tests/elementary.cpp` requires one double of every function,
+    rather than 8.
+  - At the overflow, the bounds were two floats wider than the
+    tightest, against three assertions of GAOL's own check `trigonometric`
+    (`make check`); they are the tightest there (see the exact values
+    below).
 - **Powers with a real exponent**, ported from the fix of Codac:
   - `pow(I, e)` for a floating-point `e` called `pow(I, int)`, which truncated
     the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`

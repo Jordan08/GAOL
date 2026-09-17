@@ -67,8 +67,8 @@ change with its measures.
 - **Bounds that were wrong on some platforms only.**
   - The hyperbolic functions, taken from the libm of the system: the libms
     of glibc 2.31, musl and MinGW-w64 are sometimes more than one double from
-    the exact value, and their values are moved three doubles outward
-    ([issue #1](https://github.com/Jordan08/GAOL/issues/1)).
+    the exact value. They are now those of CORE-MATH, correctly rounded, on
+    every platform ([issue #1](https://github.com/Jordan08/GAOL/issues/1)).
   - The numbers read from text: the C runtime of Windows and musl on 64-bit
     ARM round `strtod()` to nearest in every direction, and
     `interval("0.1")` did not enclose 1/10 there. Numbers are now read

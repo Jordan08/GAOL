@@ -90,13 +90,16 @@ off by default and unfinished, are not covered.
 | `asin`, `acos` | `asin(x)`, `acos(x)` | mathlib's asin and acos at the bounds of x ∩ [−1, 1], moved one double outward; at −1, 0 and 1, 0 exactly or the tightest bounds of ±π/2 and π | accurate: within one double; tightest at −1, 0 and 1 | within 1 double; tightest at −1, 0 and 1 |
 | `atan` | `atan(x)` | mathlib's atan at the bounds, moved one double outward; at 0, ±1 and ±∞, 0 exactly or the tightest bounds of ±π/4 and ±π/2 | accurate: within one double; tightest at 0, ±1 and ±∞ | within 1 double; tightest at 0, ±1 and ±∞ |
 | `atan2` | `atan2(y, x)` | mathlib's atan2, correctly rounded to nearest, at the corners of the box y × x where the angle is the least and the greatest, which the signs of the bounds give, moved one double outward; 0, ±π/4, ±π/2 and π where a corner is on an axis, on a diagonal of the right half-plane or at an infinity; [−π, π] when the box has points on the half-line y = 0, x < 0, where the angle is π, and points below it; ∅ for the box {(0, 0)} | accurate: within one double; tightest where a bound is 0, ±π/4, ±π/2 or ±π | within 1 double; tightest on the special cases |
-| `sinh`, `tanh`, `asinh` | `sinh(x)`, `tanh(x)`, `asinh(x)` | The libm of the system at the bounds (mathlib has none), rounded to nearest, moved three doubles outward; tanh within [−1, 1]. 0 at 0 exactly; sinh(x) beyond ±MAX for \|x\| ≥ 711, and tanh(x) beyond ±(1 − 2<sup>−53</sup>) for \|x\| ≥ 20, where 1 − \|tanh(x)\| < 2<sup>−54</sup> | valid as long as the libm is within two doubles of the exact value; bounds within 3 + e doubles, e being the error of the libm in doubles; tightest at 0 and at the bounds given | within 4 doubles; tightest at 0, and beyond 711 and 20 |
-| `cosh` | `cosh(x)` | As sinh, at the bound of largest magnitude; 1 when x contains 0, and at 0; beyond MAX for \|x\| ≥ 711 | valid as above; tightest at 0 and beyond 711 | within 3 doubles; tightest at 0 and beyond 711 |
-| `acosh`, `atanh` | `acosh(x)`, `atanh(x)` | As sinh, on x ∩ [1, +∞], respectively x ∩ [−1, 1]; acosh(1) = 0 and atanh(0) = 0 exactly | valid as above; tightest at 1, respectively 0 | within 4 and 3 doubles; tightest at 1 and 0 |
+| `sinh`, `tanh`, `asinh` | `sinh(x)`, `tanh(x)`, `asinh(x)` | CORE-MATH's functions at the bounds (mathlib has none), correctly rounded to nearest, moved one double outward; tanh within [−1, 1]. 0 at 0 exactly; sinh(x) beyond ±MAX for \|x\| ≥ 711, and tanh(x) beyond ±(1 − 2<sup>−53</sup>) for \|x\| ≥ 20, where 1 − \|tanh(x)\| < 2<sup>−54</sup> | accurate: within one double, whatever the math library of the system; tightest at 0 and at the bounds given | within 1 double; tightest at 0, and beyond 711 and 20 |
+| `cosh` | `cosh(x)` | As sinh, at the bound of largest magnitude; 1 when x contains 0, and at 0; beyond MAX for \|x\| ≥ 711 | accurate: within one double; tightest at 0 and beyond 711 | within 1 double; tightest at 0 and beyond 711 |
+| `acosh`, `atanh` | `acosh(x)`, `atanh(x)` | As sinh, on x ∩ [1, +∞], respectively x ∩ [−1, 1]; acosh(1) = 0 and atanh(0) = 0 exactly | accurate: within one double; tightest at 1, respectively 0 | within 1 double; tightest at 1 and 0 |
 
-The libms of glibc, musl, MinGW-w64, macOS and Visual C++ tested by the
-continuous integration were at most one double beyond the doubles around the
-exact values; `tests/elementary.cpp` checks the enclosures on each platform.
+The hyperbolic functions are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)
+(`gaol/core_math_*.c`, see [3rd/core-math](../3rd/core-math/README.md)),
+correctly rounded as mathlib's functions are: GAOL took them from the libm of
+the system, whose values are sometimes further than one double from the exact
+ones, and millions of doubles away for the `acosh` of some
+([issue #1](https://github.com/Jordan08/GAOL/issues/1)).
 
 ## Recommended functions (Table 10.5)
 
@@ -154,7 +157,7 @@ Built with CRlibm (`--with-mathlib=crlibm`, `-Dwith-mathlib=crlibm`), `exp`,
 functions rounded downward and upward, and `sin` too: their bounds are the
 tightest where the algorithms above evaluate the functions at the bounds. `pow`, and so `nth_root`, take CRlibm's
 pow rounded to nearest, moved one double outward, as with mathlib; `tanh`,
-`asinh`, `acosh` and `atanh` the libm, as above.
+`asinh`, `acosh` and `atanh` CORE-MATH's, as above.
 
 Built with the math library of the system (`--with-mathlib=m`,
 `-Dwith-mathlib=default`), every elementary function takes the libm's value
