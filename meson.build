@@ -59,7 +59,7 @@ mathlib = get_option('with-mathlib')
 # the user, who is warned
 if mathlib == 'default'
   warning('with-mathlib=default: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: '
-    + 'its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). '
+    + 'they are valid only where the math library is within about one double of the exact value. '
     + 'Use with-mathlib=apmathlib (the default) or crlibm for certified bounds.')
 endif
 doc = get_option('with-doc')
