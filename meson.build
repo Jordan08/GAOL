@@ -305,7 +305,14 @@ endif
 # compiled with -ffp-contract=off below.
 if mathlib == 'apmathlib' and not bundled_mathlib
   mathlib_where = mathlib_libdir != '' ? mathlib_libdir : 'the usual paths'
-  if meson.can_run_host_binaries()
+  # meson.can_run_host_binaries() is has_exe_wrapper() before meson 0.55, as
+  # the meson 0.53 of Ubuntu 20.04, which stopped here on an unknown method
+  if meson.version().version_compare('>= 0.55.0')
+    can_run_host_binaries = meson.can_run_host_binaries()
+  else
+    can_run_host_binaries = meson.has_exe_wrapper()
+  endif
+  if can_run_host_binaries
     mathlib_cosine = cpp_comp.run('''
 extern "C" unsigned short Init_Lib();
 extern "C" void Exit_Lib(unsigned short);
