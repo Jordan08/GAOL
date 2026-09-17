@@ -320,6 +320,21 @@ Each change is a commit of its own, and says where it comes from.
   for byte; Visual C++ is given `/fp:strict`, which its documentation says
   makes it behave as if `fenv_access(on)` were set, and reads the pragma for
   Visual C++ rather than the one of C99, which it does not know.
+- **The warnings of mathlib's tables** (`cmake/mathlib/prepare.cmake`): the
+  entries of the tables, of the union type `number`, are written
+  `{0x3ff6a13c, 0xd1537290 }` where the union holds an array, and GCC and Clang
+  warn about each of them with `-Wall` (`-Wmissing-braces`), 15777 times over
+  mathlib's sources. Printing them is slow enough to stop a build: compiling
+  `src/atnat.c`, which includes `src/uatan.tbl` and its 6027 of them, had not
+  finished after ten minutes, against 0.22 s without `-Wall`. The three tables
+  carrying 15165 of the 15777, `uatan.tbl`, `ulog.tbl` and `utan.tbl`, are
+  given the pragma that turns the warning off, as Fabrice Le Bars does in his
+  fork of mathlib
+  ([commit](https://github.com/lebarsfa/mathlib/commit/daa4f21874f76785988426f03a5f651ac5a6cf4e)):
+  434 warnings are left, from the tables of the other sources, which are kept
+  as they are, and `src/atnat.c` compiles in 0.22 s with `-Wall`. The pragma
+  changes no code: `libultim.a` is the same, byte for byte, with it and without
+  it. GAOL does not compile mathlib with `-Wall`, and did not see them.
 - **A mathlib found installed whose cosine of 2^52 − 1 is wrong** is refused by
   the three builds (see
   [Compilers and options refused](three-builds.md#compilers-and-options-refused)). A TODO of

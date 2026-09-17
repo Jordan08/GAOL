@@ -156,3 +156,27 @@ fix_source(src/mathlib_config.h
 #else
 #   pragma STDC FENV_ACCESS ON
 #endif")
+
+# The tables of mathlib. Their entries, of the union type "number", are written
+# {0x3ff6a13c, 0xd1537290 } where the union holds an array: GCC and Clang warn
+# about each of them with -Wall (-Wmissing-braces), 15777 times over mathlib's
+# sources, and printing them is slow enough to stop a build. Compiling
+# src/atnat.c with -Wall, which includes src/uatan.tbl and its 6027 of them,
+# had not finished after ten minutes here, against 0.22 s without -Wall.
+# src/uatan.tbl, src/ulog.tbl and src/utan.tbl carry 15165 of the 15777, and
+# are given the pragma that turns the warning off, as Fabrice Le Bars does in
+# his fork of mathlib
+# (https://github.com/lebarsfa/mathlib/commit/daa4f21874f76785988426f03a5f651ac5a6cf4e):
+# 434 warnings are left, from the tables of the other sources, which are kept
+# as they are, and src/atnat.c compiles in 0.22 s with -Wall. The pragma covers
+# what the source including one of the three tables writes after it as well,
+# the warning being turned off for the rest of the translation unit. It changes
+# no code: libultim.a is the same, byte for byte, with it and without it.
+set(no_missing_braces "
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored \"-Wmissing-braces\"
+#endif
+")
+foreach(table uatan ulog utan)
+  fix_source(src/${table}.tbl "#ifdef BIG_ENDI" "${no_missing_braces}#ifdef BIG_ENDI")
+endforeach()
