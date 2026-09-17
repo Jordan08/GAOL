@@ -2,6 +2,10 @@
 /* TABLES FOR THE ulog() FUNCTION                               */
 /****************************************************************/
 
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+#endif
 #ifdef BIG_ENDI
   static const number
            Iu[182] = {                            /* 1/ui   */

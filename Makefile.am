@@ -24,8 +24,12 @@
 
 
 EXTRA_DIST = BUGS
-SUBDIRS = gaol check examples
-DIST_SUBDIRS = gaol check manual examples
+# The mathlib of 3rd/mathlib, built before GAOL when GAOL uses it
+if BUNDLED_MATHLIB_COND
+MATHLIB_SUBDIR = 3rd
+endif
+SUBDIRS = $(MATHLIB_SUBDIR) gaol check examples
+DIST_SUBDIRS = 3rd gaol check manual examples
 ACLOCAL_AMFLAGS = -I m4
 
 # Requires automake 1.4

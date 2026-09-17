@@ -289,6 +289,7 @@ MAKEINDEX = @MAKEINDEX@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MATHLIB = @MATHLIB@
+MATHLIB_CFLAGS = @MATHLIB_CFLAGS@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -367,8 +368,10 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 EXTRA_DIST = BUGS
-SUBDIRS = gaol check examples
-DIST_SUBDIRS = gaol check manual examples
+# The mathlib of 3rd/mathlib, built before GAOL when GAOL uses it
+@BUNDLED_MATHLIB_COND_TRUE@MATHLIB_SUBDIR = 3rd
+SUBDIRS = $(MATHLIB_SUBDIR) gaol check examples
+DIST_SUBDIRS = 3rd gaol check manual examples
 ACLOCAL_AMFLAGS = -I m4
 
 # Requires automake 1.4

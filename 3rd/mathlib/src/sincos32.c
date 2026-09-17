@@ -201,7 +201,7 @@ double mpcos(double x, double dx) {
   add(&a,&b,&c,p);
   if (x>0.8) 
   { sub(&hp,&c,&b,p);
-    c32(&b,&a,&c,p);
+    c32(&b,&c,&a,p);
   }
   else c32(&c,&a,&b,p);     /* a = cos(x+dx)     */
   mp_dbl(&a,&y,p);

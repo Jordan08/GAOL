@@ -1,11 +1,5 @@
-/* -*-C-*- */
-#define HAVE_DLFCN_H 1
+/* Written for the builds of GAOL in place of the configuration file for this
+   compiler: they generate the configuration for every compiler, from
+   mathlib_configuration.h.in (see ../../README.md). */
 
-/* Name of package */
-#undef PACKAGE
-#define PACKAGE "mathlib"
-
-/* Version number of package */
-#define VERSION "0.0.1"
-
-#define MATHLIB_MSVC 1
+#include "mathlib_configuration.h"

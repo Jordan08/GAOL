@@ -1,11 +1,12 @@
 # Checks that GAOL still builds the ways it did before the CMake build of this
-# fork: with autotools and with meson, against a mathlib installed from
-# Frederic Goualard's archive; and the CMake build finding that installed
-# mathlib (MATHLIB_DIR). The tests are built with each installed GAOL, on
-# Linux (x86_64, arm64, and i386 and armhf in containers), macOS (arm64,
-# x86_64) and Windows (MSYS2). Checks that the three builds give GAOL the same
-# configuration on each kind of machine (.github/audit), and that autotools and
-# meson refuse the MinGW-w64 CMake refuses (mingw-w64 older than version 13).
+# fork: with autotools and with meson, with the mathlib of 3rd/mathlib they
+# build themselves, and on Ubuntu x86_64 against a mathlib installed apart
+# (scripts/install-mathlib.sh), as the CMake build (MATHLIB_DIR). The tests
+# are built with each installed GAOL, on Linux (x86_64, arm64, and i386 and
+# armhf in containers), macOS (arm64, x86_64) and Windows (MSYS2). Checks that
+# the three builds give GAOL the same configuration on each kind of machine
+# (.github/audit), and that autotools and meson refuse the MinGW-w64 CMake
+# refuses (mingw-w64 older than version 13).
 
 name: Autotools and meson
 
@@ -42,6 +43,7 @@ jobs:
           - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04,     configure: '', installed_mathlib: true,  desc: 'Autotools, Ubuntu 24.04 x86_64, installed mathlib' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -50,19 +52,35 @@ jobs:
             sudo apt-get update -q
             sudo apt-get install -y -q g++ cmake make
           fi
-      - name: mathlib
+      - name: mathlib installed apart, for the job using one rather than the mathlib of 3rd/mathlib
+        if: matrix.cfg.installed_mathlib
         run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure, build and install
         run: |
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-          ./configure --prefix="$RUNNER_TEMP/gaol" --with-mathlib-include="$RUNNER_TEMP/mathlib/include" --with-mathlib-lib="$RUNNER_TEMP/mathlib/lib" ${{ matrix.cfg.configure }}
+          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then
+            mathlib="--with-mathlib-include=$RUNNER_TEMP/mathlib/include --with-mathlib-lib=$RUNNER_TEMP/mathlib/lib"
+          else
+            mathlib=""
+          fi
+          ./configure --prefix="$RUNNER_TEMP/gaol" $mathlib ${{ matrix.cfg.configure }} | tee configure.log
           grep -E "^(CXXFLAGS|CPPFLAGS) =" gaol/Makefile
           make -j 4
           make install
+          # The mathlib of 3rd/mathlib is installed with GAOL; one installed apart is not
+          if [ -z "$mathlib" ]; then
+            grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure.log
+            test -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          else
+            test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          fi
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/mathlib" static
+        run: |
+          mathlib="$RUNNER_TEMP/gaol"
+          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
+          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$mathlib" static
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -80,6 +98,7 @@ jobs:
           - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04,     options: '', installed_mathlib: true,         desc: 'Meson, Ubuntu 24.04 x86_64, installed mathlib' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -95,17 +114,32 @@ jobs:
           pipx install meson
           pipx install ninja
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: mathlib
+      - name: mathlib installed apart, for the job using one rather than the mathlib of 3rd/mathlib
+        if: matrix.cfg.installed_mathlib
         run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure, build and install
         run: |
           meson --version
-          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib \
-            -Dwith-mathlib-include="$RUNNER_TEMP/mathlib/include" -Dwith-mathlib-lib="$RUNNER_TEMP/mathlib/lib" ${{ matrix.cfg.options }}
+          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then
+            mathlib="-Dwith-mathlib-include=$RUNNER_TEMP/mathlib/include -Dwith-mathlib-lib=$RUNNER_TEMP/mathlib/lib"
+          else
+            mathlib=""
+          fi
+          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib $mathlib ${{ matrix.cfg.options }} | tee configure.log
           meson compile -C build-meson
           meson install -C build-meson
+          # The mathlib of 3rd/mathlib is installed with GAOL; one installed apart is not
+          if [ -z "$mathlib" ]; then
+            grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure.log
+            test -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          else
+            test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          fi
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/mathlib" shared
+        run: |
+          mathlib="$RUNNER_TEMP/gaol"
+          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
+          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$mathlib" shared
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -127,19 +161,18 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build curl ca-certificates > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ make flex bison meson ninja-build > /dev/null
             uname -m && c++ --version | head -1
-            sh scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
             if [ ${{ matrix.cfg.build }} = autotools ]; then
               find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-              ./configure --prefix=/tmp/gaol --with-mathlib-include=/tmp/mathlib/include --with-mathlib-lib=/tmp/mathlib/lib
+              ./configure --prefix=/tmp/gaol
               grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
               make -j 4 && make install
-              sh .github/scripts/tests.sh /tmp/gaol /tmp/mathlib static
+              sh .github/scripts/tests.sh /tmp/gaol /tmp/gaol static
             else
-              meson setup build-meson --prefix=/tmp/gaol --libdir=lib -Dwith-mathlib-include=/tmp/mathlib/include -Dwith-mathlib-lib=/tmp/mathlib/lib
+              meson setup build-meson --prefix=/tmp/gaol --libdir=lib
               meson compile -C build-meson && meson install -C build-meson
-              sh .github/scripts/tests.sh /tmp/gaol /tmp/mathlib shared
+              sh .github/scripts/tests.sh /tmp/gaol /tmp/gaol shared
             fi
             ./performance | tee /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
@@ -163,22 +196,21 @@ jobs:
         with:
           msystem: UCRT64
           install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson flex bison make libtool
-      - name: mathlib
-        run: CMAKE_GENERATOR=Ninja sh scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
       - name: Configure, build and install
         run: |
-          prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"; mathlib="$(cygpath -m "$RUNNER_TEMP")/mathlib"
+          prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"
           if [ ${{ matrix.cfg.build }} = autotools ]; then
             find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-            ./configure --prefix="$prefix" --with-mathlib-include="$mathlib/include" --with-mathlib-lib="$mathlib/lib"
+            ./configure --prefix="$prefix"
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
             make -j 4 && make install
           else
-            meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-mathlib-include="$mathlib/include" -Dwith-mathlib-lib="$mathlib/lib"
+            meson setup build-meson --prefix="$prefix" --libdir=lib
             meson compile -C build-meson && meson install -C build-meson
           fi
+          test -f "$prefix/lib/libultim.a"
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" "$(cygpath -m "$RUNNER_TEMP")/mathlib" static
+        run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" "$(cygpath -m "$RUNNER_TEMP")/gaol" static
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -197,6 +229,7 @@ jobs:
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, desc: 'The builds agree, Ubuntu 24.04 arm64 Clang' }
           - { os: macos-15,         cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 arm64' }
           - { os: macos-15-intel,   cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 x86_64' }
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     installed_mathlib: true, desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC, installed mathlib' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -212,11 +245,14 @@ jobs:
           pipx install meson
           pipx install ninja
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: mathlib
+      - name: mathlib installed apart, for the job using one rather than the mathlib of 3rd/mathlib
+        if: matrix.cfg.installed_mathlib
         run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
       - name: Configure with the three builds and compare
         run: |
-          sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$RUNNER_TEMP/mathlib" "$RUNNER_TEMP/audit" meson
+          mathlib=-
+          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
+          sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$mathlib" "$RUNNER_TEMP/audit" meson
           status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$RUNNER_TEMP/audit/audit" $status
@@ -237,9 +273,8 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 curl ca-certificates > /dev/null
-            sh scripts/install-mathlib.sh /tmp/mathlib > /tmp/mathlib.log 2>&1 || { tail -20 /tmp/mathlib.log; exit 1; }
-            sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/mathlib /tmp/audit meson
+            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 > /dev/null
+            sh .github/audit/audit.sh audit gcc g++ /gaol - /tmp/audit meson
             status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
             cat /gaol/agree.md
             sh .github/audit/logs.sh /tmp/audit/audit \$status"
@@ -258,13 +293,11 @@ jobs:
         with:
           msystem: UCRT64
           install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python flex bison make libtool
-      - name: mathlib
-        run: CMAKE_GENERATOR=Ninja sh scripts/install-mathlib.sh "$(cygpath -m "$RUNNER_TEMP")/mathlib"
       - name: Configure with the three builds and compare
         run: |
           export CMAKE_GENERATOR=Ninja
           out="$(cygpath -m "$RUNNER_TEMP")/audit"
-          sh .github/audit/audit.sh audit gcc g++ . "$(cygpath -m "$RUNNER_TEMP")/mathlib" "$out" meson
+          sh .github/audit/audit.sh audit gcc g++ . - "$out" meson
           status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$out/audit" $status
@@ -326,14 +359,15 @@ jobs:
         run: cmake --build build -j 4
       - name: Tests
         run: cd build && ctest -j 4 --output-on-failure
-      - name: Configure with GAOL_FIND_MATHLIB OFF, the installed mathlib on CMAKE_PREFIX_PATH
-        # As Codac builds GAOL for itself: mathlib is downloaded, built and
-        # installed with GAOL, even where CMake would find an installed one
+      - name: Configure without MATHLIB_DIR, the installed mathlib on CMAKE_PREFIX_PATH
+        # As a project building GAOL for itself: the mathlib of 3rd/mathlib is
+        # built and installed with GAOL, even where CMake would find an
+        # installed one, GAOL_FIND_MATHLIB being OFF without MATHLIB_DIR
         run: |
-          cmake -S . -B build-own-mathlib -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=OFF -DGAOL_FIND_MATHLIB=OFF \
+          cmake -S . -B build-own-mathlib -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=OFF \
             -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/mathlib" -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/gaol-own-mathlib" | tee configure-own-mathlib.log
-          grep -q "GAOL_FIND_MATHLIB is OFF: mathlib will be downloaded and built" configure-own-mathlib.log
-      - name: Build and install with GAOL_FIND_MATHLIB OFF
+          grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure-own-mathlib.log
+      - name: Build and install with the mathlib of 3rd/mathlib
         run: |
           cmake --build build-own-mathlib -j 4
           cmake --install build-own-mathlib

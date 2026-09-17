@@ -41,12 +41,15 @@ A project can also build GAOL for itself, with the options it wants:
 ```cmake
 include(FetchContent)
 FetchContent_Declare(gaol GIT_REPOSITORY https://github.com/Jordan08/GAOL.git GIT_TAG master)
-set(GAOL_FIND_MATHLIB OFF)   # mathlib downloaded and built along, whatever the machine has
 FetchContent_MakeAvailable(gaol)
 target_link_libraries(my_target PUBLIC gaol::gaol)
 ```
 
-`cmake --install` of the project then installs GAOL and mathlib with it.
+GAOL and the mathlib of `3rd/mathlib` are then targets of the project
+(`gaol::gaol`, `gaol::ultim`), built with it, and `cmake --install` of the
+project installs them with it, CMake package and `gaol.pc` included; nothing
+is downloaded beyond GAOL's sources. `tests/fetch_content` is a project
+building GAOL this way.
 
 ## From pkg-config
 

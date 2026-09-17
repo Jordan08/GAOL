@@ -1,16 +1,15 @@
 #!/bin/sh
-# Downloads mathlib 2.1.1 from Frederic Goualard's site, checks its checksum,
-# applies the fixes of cmake/mathlib/prepare.cmake, builds it with the flags of
-# interval arithmetic (the CMake build of cmake/mathlib, the one CMakeLists.txt
-# uses when it builds mathlib itself) and installs it under the prefix given:
+# Builds the mathlib of 3rd/mathlib with the flags of interval arithmetic (the
+# CMake build of 3rd/mathlib, the one CMakeLists.txt uses when it builds mathlib
+# itself) and installs it under the prefix given:
 #
 #   sh scripts/install-mathlib.sh <prefix>
 #
-# For the builds of GAOL that do not build mathlib themselves: configure
-# (--with-mathlib-include=<prefix>/include --with-mathlib-lib=<prefix>/lib),
-# meson (-Dwith-mathlib-include, -Dwith-mathlib-lib) and CMake with
-# MATHLIB_DIR=<prefix>. Needs cmake, a C compiler, curl and tar. To be run
-# from the root of GAOL's sources.
+# For the builds of GAOL told to use an installed mathlib rather than the one
+# of 3rd/mathlib: configure (--with-mathlib-include=<prefix>/include
+# --with-mathlib-lib=<prefix>/lib), meson (-Dwith-mathlib-include,
+# -Dwith-mathlib-lib) and CMake with MATHLIB_DIR=<prefix>. Needs cmake and a C
+# compiler. To be run from the root of GAOL's sources.
 set -e
 
 prefix=$1
@@ -18,24 +17,13 @@ work=${RUNNER_TEMP:-/tmp}/mathlib-work
 rm -rf "$work"
 mkdir -p "$work"
 
-curl -sSL -o "$work/mathlib-2.1.1.tar.gz" https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz
-cd "$work"
-if command -v sha256sum > /dev/null; then
-  echo "f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281  mathlib-2.1.1.tar.gz" | sha256sum -c -
-else
-  echo "f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281  mathlib-2.1.1.tar.gz" | shasum -a 256 -c -
-fi
-tar xzf mathlib-2.1.1.tar.gz
-cd - > /dev/null
-
-cmake -DSOURCE_DIR="$work/mathlib-2.1.1" -P cmake/mathlib/prepare.cmake
 # The flags GAOL builds mathlib with, CMakeLists.txt giving them to it: on a
 # 32-bit x86 processor, the doubles computed with SSE2 rather than on the x87
 flags="-frounding-math -fno-fast-math -ffp-contract=off"
 case "$(${CC:-cc} -dumpmachine 2>/dev/null)" in
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
-cmake -S "$work/mathlib-2.1.1" -B "$work/build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+cmake -S 3rd/mathlib -B "$work/build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   "-DCMAKE_C_FLAGS=$flags" \
   -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_INSTALL_LIBDIR=lib
 cmake --build "$work/build" -j 4

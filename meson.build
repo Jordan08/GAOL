@@ -78,8 +78,13 @@ build_tests = get_option('with-test')
 # CPATH and LIBRARY_PATH): with-mathlib-include and with-mathlib-lib, as
 # --with-mathlib-include and --with-mathlib-lib of configure. Its directory
 # then goes into gaol.pc too.
+#
+# mathlib is the one of 3rd/mathlib, built and installed with GAOL (see
+# 3rd/mathlib/meson.build), unless with-mathlib-include or with-mathlib-lib
+# says where an installed one is, as with configure.
 mathlib_include = get_option('with-mathlib-include')
 mathlib_libdir = get_option('with-mathlib-lib')
+bundled_mathlib = mathlib == 'apmathlib' and mathlib_include == '' and mathlib_libdir == ''
 mathlib_dirs = []
 mathlib_pc_libs = []
 if mathlib_include != ''
@@ -91,7 +96,12 @@ if mathlib_libdir != ''
   mathlib_pc_libs = ['-L' + mathlib_libdir]
 endif
 mathlib_dep = dependency('', required: false)
-if mathlib == 'apmathlib'
+if bundled_mathlib
+  # Installed in the library directory of GAOL; mathlib_dep is set once the
+  # library is declared, below
+  message('mathlib: the one of 3rd/mathlib, built with GAOL')
+  mathlib_pc_libs += ['-lultim']
+elif mathlib == 'apmathlib'
   mathlib_dep = cpp_comp.find_library('ultim', required: true, dirs: mathlib_dirs)
   mathlib_pc_libs += ['-lultim']
 elif mathlib == 'crlibm'
@@ -219,7 +229,7 @@ foreach h : check_headers
 endforeach
 
 if mathlib == 'apmathlib'
-  if cpp_comp.has_header('MathLib.h')
+  if bundled_mathlib or cpp_comp.has_header('MathLib.h')
     conf_data.set('HAVE_' + 'MathLib.h'.underscorify().to_upper(), 1)
   endif
 elif mathlib == 'crlibm'
@@ -291,8 +301,9 @@ endif
 # contraction of multiplications and additions into fused multiply-adds reduces
 # large arguments modulo pi/2 wrongly. The program checking it cannot run when
 # cross-compiling without an exe_wrapper: meson then only warns. After the
-# refused compilers, whose messages come first
-if mathlib == 'apmathlib'
+# refused compilers, whose messages come first. The mathlib of 3rd/mathlib is
+# compiled with -ffp-contract=off below.
+if mathlib == 'apmathlib' and not bundled_mathlib
   mathlib_where = mathlib_libdir != '' ? mathlib_libdir : 'the usual paths'
   if meson.can_run_host_binaries()
     mathlib_cosine = cpp_comp.run('''
@@ -314,12 +325,12 @@ int main()
       error('GAOL cannot use the mathlib found (ultim, in ' + mathlib_where + '): its cosine of 2^52 - 1 is '
         + mathlib_cosine.stdout().strip() + ', rather than 0.47329288595430913.\n'
         + 'Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).\n'
-        + 'Install the mathlib GAOL is tested with: sh scripts/install-mathlib.sh <mathlib> downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval arithmetic; then meson setup ... -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib. Or build GAOL with CMake, which builds that mathlib itself.')
+        + 'Build GAOL with the mathlib it is tested with, the one of 3rd/mathlib: meson setup without with-mathlib-include and with-mathlib-lib compiles it with the flags of interval arithmetic, in a new build directory; or install that one with sh scripts/install-mathlib.sh <mathlib>, then meson setup ... -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib.')
     elif not mathlib_cosine.compiled() or mathlib_cosine.returncode() != 0
       warning('A program linked with the mathlib found (ultim, in ' + mathlib_where + ') could not be built or run: its cosine is not checked at 2^52 - 1.')
     endif
   else
-    warning('Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: install the mathlib GAOL is tested with, with sh scripts/install-mathlib.sh <mathlib>.')
+    warning('Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: build GAOL with the mathlib of 3rd/mathlib, without with-mathlib-include and with-mathlib-lib.')
   endif
 endif
 
@@ -431,6 +442,14 @@ endif
 
 flex = find_program('flex', required: true)
 bison = find_program('bison', required: true)
+
+# The mathlib of 3rd/mathlib, after the global arguments, which meson refuses
+# once a target is declared, and which the library is compiled with
+if bundled_mathlib
+  subdir('3rd/mathlib')
+  mathlib_dep = ultim_dep
+  deps = [mathlib_dep, m_dep]
+endif
 
 subdir('gaol')
 

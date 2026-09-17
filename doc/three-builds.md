@@ -58,7 +58,8 @@ included, unless given `-ffp-contract=off`, reduces large arguments modulo π/2
 wrongly (`branred()`): compiled so on x86_64, it gave cos(2^52 − 1) about
 −0.4855 rather than 0.4733, and sin, cos and tan far from their values at 534 of
 20080 random arguments from 2^26 to 2^54, which GAOL's bounds did not enclose.
-The message says to let CMake build mathlib (`-DGAOL_FIND_MATHLIB=OFF`) or to
-install it with `scripts/install-mathlib.sh`, both of which compile it with
-`-ffp-contract=off`. When the program cannot run, cross-compiling without an
-emulator, the builds only warn.
+The message says to build GAOL with the mathlib of `3rd/mathlib`, which the
+three builds compile with `-ffp-contract=off` unless told to use an installed
+one (`GAOL_FIND_MATHLIB`, `--with-mathlib-include`, `-Dwith-mathlib-include`),
+or to install that one with `scripts/install-mathlib.sh`. When the program
+cannot run, cross-compiling without an emulator, the builds only warn.

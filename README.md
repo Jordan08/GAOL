@@ -51,11 +51,10 @@ ctest --test-dir build -C Release
 cmake --install build --config Release
 ```
 
-The CMake build downloads mathlib, the mathematical library GAOL computes its
-elementary functions with, fixes it and installs it along with GAOL; the
-autotools and meson builds need it installed beforehand
-(`scripts/install-mathlib.sh`). A CMake project then uses the installed GAOL
-with:
+Each build compiles mathlib, the mathematical library GAOL computes its
+elementary functions with, from the sources of `3rd/mathlib`, with the fixes
+of this fork (see [3rd/README.md](3rd/README.md)), and installs it along with
+GAOL. A CMake project then uses the installed GAOL with:
 
 ```cmake
 find_package(gaol REQUIRED)
@@ -63,7 +62,9 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
 `gaol::gaol`, and `gaol.pc` for pkg-config, carry the flags of interval
-arithmetic that the code including GAOL's headers has to be compiled with.
+arithmetic that the code including GAOL's headers has to be compiled with. A
+project can also build GAOL for itself, with FetchContent (see
+[Using GAOL](doc/using.md#from-cmake)).
 
 ## Documentation
 
@@ -92,6 +93,6 @@ arithmetic that the code including GAOL's headers has to be compiled with.
 ## Licences
 
 GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
-under the GNU LGPL v2 (`COPYING.LIB`). mathlib, which the
-CMake build downloads, is distributed under the GNU LGPL v2 or later, as the
-headers of its sources state (its archive carries the text of the GNU GPL v2).
+under the GNU LGPL v2 (`COPYING.LIB`). mathlib, whose sources are in
+`3rd/mathlib`, is distributed under the GNU LGPL v2 or later, as the headers
+of its sources state (`3rd/mathlib/COPYING` is the text of the GNU GPL v2).

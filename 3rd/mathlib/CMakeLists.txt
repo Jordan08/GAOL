@@ -5,11 +5,11 @@
 # mathlib is the IBM Accurate Portable Mathematical Library (libultim), with
 # which GAOL computes its elementary functions, in the version Frederic Goualard
 # distributes along with GAOL, https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz
-# (GNU GPL v2 or later). It comes with an autotools build and a batch file for
-# Visual C++, but no CMake build: the CMake build of GAOL downloads it, and
-# prepare.cmake copies this file and mathlib_configuration.h.in into it. The
-# sources of mathlib themselves are only modified to fix bugs of it (see
-# prepare.cmake).
+# (GNU GPL v2 or later), whose sources this directory holds. It comes with an
+# autotools build and a batch file for Visual C++, but no CMake build: this file
+# and mathlib_configuration.h.in were added for the CMake build of GAOL, which
+# builds this directory with add_subdirectory(). The sources of mathlib
+# themselves are only modified to fix bugs of it (see ../README.md).
 #
 # Origin
 # ------
@@ -42,10 +42,7 @@ include(GNUInstallDirs)
 # no argument.
 set(CMAKE_C_STANDARD 99)
 
-include(CheckIncludeFile)
-check_include_file(fenv.h HAVE_FENV_H)
-
-configure_file(mathlib_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/mathlib_configuration.h")
+configure_file(mathlib_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/mathlib_configuration.h" COPYONLY)
 
 # The sources of libultim, as listed in src/Makefile.am
 set(MATHLIB_SOURCES
@@ -61,6 +58,15 @@ list(TRANSFORM MATHLIB_SOURCES PREPEND "src/")
 add_library(ultim STATIC ${MATHLIB_SOURCES})
 # For mathlib_configuration.h
 target_include_directories(ultim PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+# mathlib's warnings turned off, whatever flags the project building GAOL gives:
+# with -Wall -Wextra -Wconversion, GCC 9 printed 25255 of them over mathlib's
+# sources, 24612 of -Wsign-conversion. -w turns them all off, before or after
+# the -W options, with GCC, Clang and Visual C++ alike.
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-w MATHLIB_C_COMPILER_SUPPORTS_W)
+if(MATHLIB_C_COMPILER_SUPPORTS_W)
+  target_compile_options(ultim PRIVATE -w)
+endif()
 if(MSVC)
   # src/mathlib_config.h declares mathlib's functions __declspec(dllexport) for
   # Visual C++, as for a DLL. They would then be exported by every DLL linking

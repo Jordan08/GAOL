@@ -49,7 +49,7 @@ double ulog(double x) {
 #define M 4
   static const int pr[M]={8,10,18,32};
   int i,j,k,n,ux,dx,p;
-  double dbl_n,u,p0,q,r0,w,nln2a,luai,lubi,lvaj,lvbj,
+  double x0,dbl_n,u,p0,q,r0,w,nln2a,luai,lubi,lvaj,lvbj,
          sij,ssij,ttij,A,B,B0,y,y1,y2,polI,polII,sa,sb,
          t1,t2,t3,t4,t5,t6,t7,t8,t,ra,rb,ww,
          a0,aa0,s1,s2,ss2,s3,ss3,a1,aa1,a,aa,b,bb,c;
@@ -62,7 +62,7 @@ double ulog(double x) {
   /* Treating special values of x ( x<=0, x=INF, x=NaN etc.). */
 
   num.d = x;  ux = num.i[HIGH_HALF];  dx = num.i[LOW_HALF];
-  n=0;
+  n=0;  x0 = x;
   if (ux < 0x00100000) {
     if (((ux & 0x7fffffff) | dx) == 0)  return MHALF/ZERO; /* return -INF */
     if (ux < 0) return (x-x)/ZERO;                         /* return NaN  */
@@ -187,7 +187,7 @@ double ulog(double x) {
 
   for (i=0; i<M; i++) {
     p = pr[i];
-    dbl_mp(x,&mpx,p);  dbl_mp(y,&mpy,p);
+    dbl_mp(x0,&mpx,p);  dbl_mp(y,&mpy,p);
     mplog(&mpx,&mpy,p);
     dbl_mp(e[i].d,&mperr,p);
     add(&mpy,&mperr,&mpy1,p);  sub(&mpy,&mperr,&mpy2,p);

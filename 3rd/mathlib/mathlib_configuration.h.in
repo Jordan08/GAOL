@@ -1,10 +1,10 @@
-/* mathlib_configuration.h -- written by CMake from
-   cmake/mathlib/mathlib_configuration.h.in of the CMake build of GAOL.
+/* mathlib_configuration.h -- written from 3rd/mathlib/mathlib_configuration.h.in
+   by the CMake, meson and autotools builds of GAOL.
 
    This is the header that mathlib's configure script writes, for every
-   compiler: prepare.cmake replaces src/mathlib_config_msvc.h and
-   src/mathlib_config_mingw.h, the configuration files src/mathlib_config.h
-   includes instead for Visual C++ and MinGW, with files including this one.
+   compiler: src/mathlib_config_msvc.h and src/mathlib_config_mingw.h, the
+   configuration files src/mathlib_config.h includes instead for Visual C++ and
+   MinGW, were replaced with files including this one (see ../README.md).
 
    Origin: the version of src/mathlib_configuration.h.in with which IBEX builds
    mathlib with CMake (https://github.com/ibex-team/ibex-lib,
@@ -16,8 +16,11 @@
 #ifndef MATHLIB_CONFIGURATION_H
 #define MATHLIB_CONFIGURATION_H
 
-/* Define to 1 if you have the <fenv.h> header file. */
-#cmakedefine HAVE_FENV_H 1
+/* Define to 1 if you have the <fenv.h> header file: always, the builds of
+   GAOL copying this file as it is. src/AARCH64_DPChange.c sets the rounding
+   direction through <fenv.h>, and Init_Lib() does not compile without it
+   (#error); GAOL needs it as well (gaol/gaol_fpu_fenv.h). */
+#define HAVE_FENV_H 1
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first. Read by src/AARCH64_endian.h. The test on
@@ -36,7 +39,7 @@
 
 /* The implementation of Init_Lib() and Exit_Lib(), which src/DPChange.c
    includes according to the macros below: src/AARCH64_DPChange.c, for every
-   target, which prepare.cmake rewrites so that Init_Lib() sets the rounding
+   target, which was modified so that Init_Lib() sets the rounding
    direction to nearest, which mathlib's algorithms need, returns the one it
    found, and Exit_Lib() restores it. Nothing in it is specific to ARM64, and
    it goes through <fenv.h> alone.

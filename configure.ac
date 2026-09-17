@@ -293,7 +293,28 @@ AS_CASE([${use_mathlib}],
   [apmathlib|crlibm], [],
   [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
   [AC_MSG_ERROR([--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m])])
-if test "${use_mathlib}" = "apmathlib"; then
+# mathlib is the one of 3rd/mathlib, built and installed with GAOL
+# (3rd/Makefile.am), unless --with-mathlib-include or --with-mathlib-lib says
+# where an installed one is. It is compiled with the flags of GAOL's C code,
+# those of interval arithmetic included, and without warnings (-w, as the CMake
+# build gives it).
+bundled_mathlib=no
+if test "${use_mathlib}" = "apmathlib" && test -z "${with_mathlib_include}${with_mathlib_lib}"; then
+   bundled_mathlib=yes
+fi
+AM_CONDITIONAL([BUNDLED_MATHLIB_COND], [test "${bundled_mathlib}" = yes])
+MATHLIB_CFLAGS=""
+if test "${bundled_mathlib}" = yes; then
+   AC_MSG_NOTICE([mathlib: the one of 3rd/mathlib, built with GAOL])
+   GAOL_CHECK_C_FLAG([-w], [mathlib_c_takes_w])
+   if test "${mathlib_c_takes_w}" = yes; then
+      MATHLIB_CFLAGS="-w"
+   fi
+   AC_DEFINE(HAVE_MATHLIB_H,1,[Define to 1 if you have the <MathLib.h> header file.])
+   AC_DEFINE(GAOL_USING_APMATHLIB,1,
+      [Define this to 1 if using the IBM APMathlib library])
+   MATHLIB='$(top_builddir)/3rd/libultim.la'
+elif test "${use_mathlib}" = "apmathlib"; then
    OLD_LIBS=$LIBS
    OLD_LDFLAGS=$LDFLAGS
    LDFLAGS="${mathlib_libpath}"
@@ -354,8 +375,8 @@ int main()
    AS_CASE([${mathlib_cosine}],
       [no], [AC_MSG_ERROR([GAOL cannot use the mathlib found (-lultim ${mathlib_libpath}): its cosine of 2^52 - 1 is ${mathlib_cosine_value}, rather than 0.47329288595430913.
 Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).
-Install the mathlib GAOL is tested with: sh scripts/install-mathlib.sh <mathlib> downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval arithmetic; then ./configure --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib. Or build GAOL with CMake, which builds that mathlib itself.])],
-      [cross], [AC_MSG_WARN([Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: install the mathlib GAOL is tested with, with sh scripts/install-mathlib.sh <mathlib>.])],
+Build GAOL with the mathlib it is tested with, the one of 3rd/mathlib: ./configure without --with-mathlib-include and --with-mathlib-lib compiles it with the flags of interval arithmetic; or install that one with sh scripts/install-mathlib.sh <mathlib>, then ./configure --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib.])],
+      [cross], [AC_MSG_WARN([Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: build GAOL with the mathlib of 3rd/mathlib, without --with-mathlib-include and --with-mathlib-lib.])],
       [unknown], [AC_MSG_WARN([A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1.])])
    AC_DEFINE(GAOL_USING_APMATHLIB,1,
       [Define this to 1 if using the IBM APMathlib library])
@@ -381,6 +402,7 @@ if test "${use_mathlib}" = "crlibm"; then
    MATHLIB="-lcrlibm"
 fi
 AC_SUBST([MATHLIB])
+AC_SUBST([MATHLIB_CFLAGS])
 AC_CONFIG_LINKS([gaol/gaol_double_op.h:gaol/gaol_double_op_${use_mathlib}.h])
 
 
@@ -662,8 +684,14 @@ AC_SUBST([GAOL_PC_CFLAGS])
 # The version for gaol.pc, without the quotes VERSION carries
 GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
 AC_SUBST([GAOL_PC_VERSION])
-# mathlib in gaol.pc: -lultim or -lcrlibm, with its directory when given
-AC_SUBST([GAOL_PC_MATHLIB], ["${mathlib_libpath} ${MATHLIB}"])
+# mathlib in gaol.pc: -lultim or -lcrlibm, with its directory when given; the
+# mathlib of 3rd/mathlib is installed in the library directory of GAOL
+if test "${bundled_mathlib}" = yes; then
+   GAOL_PC_MATHLIB="-lultim"
+else
+   GAOL_PC_MATHLIB="${mathlib_libpath} ${MATHLIB}"
+fi
+AC_SUBST([GAOL_PC_MATHLIB])
 
 
 # Checks for library functions.
@@ -703,6 +731,7 @@ AC_SUBST(LDFLAGS)
 
 AC_CONFIG_FILES([gaol.pc
                  Makefile
+        3rd/Makefile
         check/Makefile
 		  manual/gaol_doxygen.cfg
         manual/Makefile
@@ -718,7 +747,11 @@ printf "CC\t\t\t= ${CC}\n"
 printf "CFLAGS\t\t\t= ${CFLAGS}\n"
 printf "CXX\t\t\t= ${CXX}\n"
 printf "CXXFLAGS\t\t= ${CXXFLAGS}\n"
-printf "mathlib\t\t\t= ${use_mathlib}\n"
+if test "${bundled_mathlib}" = yes; then
+   printf "mathlib\t\t\t= ${use_mathlib} (3rd/mathlib)\n"
+else
+   printf "mathlib\t\t\t= ${use_mathlib}\n"
+fi
 printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"

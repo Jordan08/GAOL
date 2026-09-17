@@ -83,7 +83,7 @@ def exponents(emin, emax, n, signed=True):
 
 # The hard-to-round arguments of cos of CORE-MATH
 # (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) at
-# which mathlib 2.1.1 returned sin(x), before cmake/mathlib/prepare.cmake fixed
+# which mathlib 2.1.1 returned sin(x), before 3rd/mathlib fixed
 # its multiple-precision cosine, mpcos(), as glibc did in 2003
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=86583139a4d746743ccffcd72e25d96c5fb8d488).
 # Reported to mathlib in https://github.com/dreal-deps/mathlib/issues/2.
@@ -105,7 +105,7 @@ MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
 """.split()]
 
 # Arguments of atan at which mathlib 2.1.1 returned values far from atan(x)
-# where long has 64 bits, before cmake/mathlib/prepare.cmake fixed fastiroot(),
+# where long has 64 bits, before 3rd/mathlib fixed fastiroot(),
 # which starts its multiple-precision square roots, as glibc did in 2003
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5):
 # the three of Debian bug 210613 (https://bugs.debian.org/210613), on Alpha,
@@ -122,7 +122,7 @@ MPSQRT_ARGUMENTS = [0.062510113344606447, 1.016527294692847, 1.9966212994203429]
 
 # The subnormal hard-to-round arguments of log of CORE-MATH
 # (https://gitlab.inria.fr/core-math/core-math, src/binary64/log/log.wc) at
-# which mathlib 2.1.1 returned about 2^54, before cmake/mathlib/prepare.cmake
+# which mathlib 2.1.1 returned about 2^54, before 3rd/mathlib
 # gave the last, multiple-precision stage of ulog() the argument it had not
 # scaled by 2^54. glibc had the same code until it removed that stage in 2018
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97).

@@ -37,9 +37,9 @@ means that each bound is at most k doubles beyond the tightest one.
 
 ## Conditions
 
-The statements hold for GAOL as the three builds make it: with mathlib 2.1.1
-as the CMake build and `scripts/install-mathlib.sh` fix and compile it (see
-[What differs from GAOL](differences.md)), and the code including GAOL's
+The statements hold for GAOL as the three builds make it: with the mathlib
+2.1.1 of `3rd/mathlib`, fixed and compiled as they do it (see
+[3rd/README.md](../3rd/README.md)), and the code including GAOL's
 headers compiled with the flags of interval arithmetic (see
 [Using GAOL](using.md)); for the SSE2 intervals and the FPU intervals alike;
 whatever the rounding direction the calling code left

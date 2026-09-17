@@ -44,8 +44,18 @@ unsigned  short NewDPStatus=0;
 unsigned short Init_Lib()
 {
 #if HAVE_FENV_H
-  FESETENV(FE_DFL_ENV); // round to nearest, all except. cleared, nonstop
-  return 0; // We do not try to save the fpu reg. before the call to Init_Lib()
+  /* The rounding direction found, which Exit_Lib() restores: as the comment
+     above says, in the two bits above the two of the precision mode, which is
+     not touched here (the doubles of 32-bit x86 are computed in SSE2). */
+  unsigned short round_control;
+  switch (fegetround()) {
+    case FE_DOWNWARD:   round_control = 0x01; break;
+    case FE_UPWARD:     round_control = 0x02; break;
+    case FE_TOWARDZERO: round_control = 0x03; break;
+    default:            round_control = 0x00; break; /* FE_TONEAREST */
+  }
+  fesetround(FE_TONEAREST); /* what mathlib's algorithms need */
+  return (unsigned short)(round_control << 2);
 #else 
 #   error "fenv.h not found and no replacement available to initialize the library"
 #endif /* HAVE_FENV_H */
@@ -60,6 +70,15 @@ unsigned short Init_Lib()
 void Exit_Lib(unsigned short status)
 {
 #if HAVE_FENV_H
+  /* The rounding direction Init_Lib() found, set again */
+  int round_mode;
+  switch ((status >> 2) & 0x03) {
+    case 0x01: round_mode = FE_DOWNWARD; break;
+    case 0x02: round_mode = FE_UPWARD; break;
+    case 0x03: round_mode = FE_TOWARDZERO; break;
+    default:   round_mode = FE_TONEAREST; break;
+  }
+  (void)fesetround(round_mode);
   	return;
 #else 
 #   error "fenv.h not found and no replacement available to deinitialize the library"

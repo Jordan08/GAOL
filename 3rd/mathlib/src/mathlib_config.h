@@ -19,3 +19,9 @@
 # endif
 # include "mathlib_configuration.h"
 #endif
+
+#if defined(_MSC_VER)
+#   pragma fenv_access(on)
+#else
+#   pragma STDC FENV_ACCESS ON
+#endif

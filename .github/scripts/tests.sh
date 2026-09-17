@@ -5,10 +5,12 @@
 #
 #   sh .github/scripts/tests.sh <prefix of GAOL> <prefix of mathlib> static|shared
 #
-# static links libgaol.a, shared links libgaol.so (or .dylib) with an rpath. The
-# flags of the tests are those of TEST_FLAGS, with which the code using GAOL is
-# compiled (see CMakeLists.txt); on a 32-bit x86 processor, -msse2 -mfpmath=sse
-# too, without which gaol/gaol_config.h refuses to compile.
+# The prefix of mathlib is the one of GAOL when the mathlib of 3rd/mathlib was
+# installed with it. static links libgaol.a, shared links libgaol.so (or
+# .dylib) with an rpath. The flags of the tests are those of TEST_FLAGS, with
+# which the code using GAOL is compiled (see CMakeLists.txt); on a 32-bit x86
+# processor, -msse2 -mfpmath=sse too, without which gaol/gaol_config.h refuses
+# to compile.
 set -e
 prefix=$1
 mathlib=$2

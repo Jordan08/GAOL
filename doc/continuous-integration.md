@@ -20,11 +20,14 @@ on:
   - MinGW-w64 15, on x86 and x64;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
-They also build GAOL with autotools and meson, against an installed mathlib,
-on Ubuntu (x86_64, arm64), Debian (i386,
-armhf), macOS (arm64, x86_64) and MSYS2, and the tests with the GAOL they
-install; check that the three builds agree on each of these machines; build
-GAOL with CMake against an installed mathlib (`MATHLIB_DIR`); check
+They also build GAOL with autotools and meson, with the mathlib of
+`3rd/mathlib`, on Ubuntu (x86_64, arm64), Debian (i386, armhf), macOS (arm64,
+x86_64) and MSYS2, and the tests with the GAOL they install; build GAOL with
+each of the three builds against a mathlib installed apart, on Ubuntu x86_64
+(`MATHLIB_DIR`, `--with-mathlib-include`, `-Dwith-mathlib-include`); build GAOL
+as a part of another project, brought in by FetchContent
+(`tests/fetch_content`), and the tests with the GAOL that project installs;
+check that the three builds agree on each of these machines; check
 that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and MinGW-w64 11
 to 14 (13 and 14 with autotools and meson too), and Visual C++ without
 `/fp:strict`. Jobs of each build restore the

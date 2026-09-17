@@ -3,6 +3,10 @@
 /****************************************************************/
 
 
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+#endif
 #ifdef BIG_ENDI
 static const number
       xfg[186][4] = {                             /* xi,Fi,Gi,FFi, i=16..201 */

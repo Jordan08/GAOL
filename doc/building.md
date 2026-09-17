@@ -3,16 +3,16 @@
 Part of the documentation of [this fork of GAOL](../README.md#documentation).
 
 GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
-Mathematical Library (libultim):
+Mathematical Library (libultim), whose sources are in `3rd/mathlib`:
 [mathlib-2.1.1.tar.gz](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
-on Frédéric Goualard's site. The CMake build is the one to use: it downloads
-mathlib, fixes it (see [What differs from GAOL](differences.md):
+of Frédéric Goualard's site, with the fixes of this fork (see
+[3rd/README.md](../3rd/README.md) and [What differs from GAOL](differences.md):
 as it is, `cos()`, `atan()` and `log()` of mathlib are wrong at some
-arguments), builds it with the flags of interval arithmetic and installs it
-along with GAOL. The autotools and meson builds of GAOL are kept for those
-who use them; they need mathlib installed beforehand (`MathLib.h` and
-`libultim.a`). The math library of the system (`-lm`) needs no installation.
-The autotools and meson builds can also build GAOL with
+arguments). Each build compiles it with the flags of interval arithmetic and
+installs it along with GAOL, unless told to use a mathlib installed already.
+The CMake build is the one to use; the autotools and meson builds of GAOL are
+kept for those who use them. The math library of the system (`-lm`) needs no
+installation. The autotools and meson builds can also build GAOL with
 [CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`).
 
 ## With CMake
@@ -24,23 +24,22 @@ ctest --test-dir build -C Release
 cmake --install build --config Release
 ```
 
-CMake 3.14 or later. The build looks for an installed mathlib (under
-`MATHLIB_DIR` or the usual paths) unless `GAOL_FIND_MATHLIB` is `OFF`, and
-refuses one whose cosine is wrong (see
-[Compilers and options refused](three-builds.md#compilers-and-options-refused)); when
-there is none, or none is looked for, it downloads mathlib 2.1.1 (checked
-against its SHA256), fixes bugs of it (see
-[What differs from GAOL](differences.md)), builds it with
-`cmake/mathlib/` and installs it along with GAOL. Both libraries are static.
-The build type is Release unless another is given.
+CMake 3.14 or later. The build compiles the mathlib of `3rd/mathlib`
+(`3rd/mathlib/CMakeLists.txt`) and installs it along with GAOL, unless
+`GAOL_FIND_MATHLIB` is `ON`, which giving `MATHLIB_DIR` makes it by default:
+it then looks for an installed mathlib, under `MATHLIB_DIR` and in the usual
+paths, refuses one whose cosine is wrong (see
+[Compilers and options refused](three-builds.md#compilers-and-options-refused)),
+and compiles the one of `3rd/mathlib` when none is found. Both libraries are
+static. The build type is Release unless another is given.
 
 | Option | Default | |
 |---|---|---|
 | `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information |
 | `CMAKE_INSTALL_PREFIX` | the system's | Where `cmake --install` puts GAOL |
-| `GAOL_BUILD_MATHLIB` | `ON` | Download and build mathlib when no installed mathlib is found |
-| `GAOL_FIND_MATHLIB` | `ON` | Look for an installed mathlib before building one; `OFF` builds mathlib even where one is installed, as a project building GAOL for itself does |
-| `MATHLIB_DIR` | | Installation prefix of an installed mathlib |
+| `MATHLIB_DIR` | | Installation prefix of an installed mathlib, which turns `GAOL_FIND_MATHLIB` on by default |
+| `GAOL_FIND_MATHLIB` | `OFF`; `ON` with `MATHLIB_DIR` | Use an installed mathlib, under `MATHLIB_DIR` or in the usual paths, rather than the one of `3rd/mathlib` |
+| `GAOL_BUILD_MATHLIB` | `ON` | Build the mathlib of `3rd/mathlib` when no installed mathlib is used; `OFF`, with `GAOL_FIND_MATHLIB` `OFF`, leaves mathlib to the code linking GAOL |
 | `GAOL_BUILD_TESTS` | `OFF` | Build the tests of `tests/`, which `ctest` runs; no build compiles tests by default |
 | `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors, and `gaol::interval2f` with SSE3 (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
@@ -50,19 +49,19 @@ The build type is Release unless another is given.
 ## With autotools
 
 ```bash
-sh scripts/install-mathlib.sh <mathlib>   # unless mathlib is installed already
-./configure --prefix=<prefix> --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib
+./configure --prefix=<prefix>
 make
 make install
 ```
 
-`scripts/install-mathlib.sh <mathlib>` installs mathlib as the CMake build
-does, for configure: it downloads mathlib 2.1.1 (checked against its SHA256),
-applies the fixes of `cmake/mathlib/prepare.cmake`, builds it with the flags
-of interval arithmetic and installs it under `<mathlib>`. It needs cmake, a C
-compiler, curl and tar. `--with-mathlib-include` and `--with-mathlib-lib` then
-tell configure where mathlib is (a GAOL installed by the CMake build provides
-it the same way, under its own prefix).
+configure builds the mathlib of `3rd/mathlib` (`3rd/Makefile.am`) with the
+flags it gives GAOL's C code and installs it along with GAOL, unless
+`--with-mathlib-include` or `--with-mathlib-lib` says where an installed
+mathlib is: `./configure --with-mathlib-include=<mathlib>/include
+--with-mathlib-lib=<mathlib>/lib` uses that one (a GAOL installed by any of
+the builds provides it so, under its own prefix), and refuses one whose cosine
+is wrong. `sh scripts/install-mathlib.sh <mathlib>` installs the mathlib of
+`3rd/mathlib` alone, under `<mathlib>`, with cmake and a C compiler.
 
 See also `INSTALL`. `configure` is committed, generated by autoconf 2.69 from
 `configure.ac`; `make` does not regenerate it as long as the files keep the
@@ -71,7 +70,7 @@ dates of the checkout. The options, with their defaults:
 | Option | Default | |
 |---|---|---|
 | `--with-mathlib=apmathlib\|crlibm\|m` | `apmathlib` | The mathematical library: mathlib (`ultim`) or CRlibm, whose bounds are certified, or `m`, the math library of the system, whose bounds are not (below) |
-| `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where its header and its library are, when not in the usual paths |
+| `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where the header and the library of an installed mathlib are, given to use it rather than the one of `3rd/mathlib`; for CRlibm, when not in the usual paths |
 | `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`; `--disable-optimize` compiles with `-O` |
 | `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
 | `--enable-simd` | `yes` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
@@ -96,19 +95,22 @@ every build, and CRlibm give certified bounds.
 ## With meson
 
 ```bash
-meson setup build --prefix=<prefix> -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib
+meson setup build --prefix=<prefix>
 meson compile -C build
 meson install -C build
 ```
 
-With mathlib installed under `<mathlib>`, as for autotools above. The options
+meson builds the mathlib of `3rd/mathlib` (`3rd/mathlib/meson.build`) and
+installs it along with GAOL, unless `with-mathlib-include` or
+`with-mathlib-lib` says where an installed mathlib is, as for autotools above.
+The options
 (`-D<option>=<value>`), with their defaults:
 
 | Option | Default | |
 |---|---|---|
 | `buildtype` | `release` | `-O3` and `NDEBUG`; `debug` builds GAOL without optimization, with debugging information |
 | `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default`, the math library of the system, whose bounds are not certified (see `--with-mathlib=m` above) |
-| `with-mathlib-include`, `with-mathlib-lib` | | Where its header and its library are, when not in the usual paths, as with configure |
+| `with-mathlib-include`, `with-mathlib-lib` | | Where the header and the library of an installed mathlib are, as with configure |
 | `enable-optimize` | `true` | `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as configure |
 | `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
 | `enable-simd` | `true` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |

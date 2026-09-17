@@ -273,37 +273,37 @@ Each change is a commit of its own, and says where it comes from.
   Codac's `diam()` returned NaN for the empty set without calling `width()`;
   IBEX's `diam()`, which its documentation says is 0 for the empty set, returns
   what `width()` returns, NaN now.
-- **The cosine of mathlib** (`cmake/mathlib/prepare.cmake`): for the arguments
+- **The cosine of mathlib** (`3rd/mathlib/src/sincos32.c`): for the arguments
   hardest to round, mathlib computes cos(x) with multiple-precision numbers, as
   sin(π/2 − x) when x > 0.8, and `mpcos()` returned the cosine of π/2 − x
   instead, which is sin(x). `cos()` then gave bounds not enclosing cos(x), off
   by up to 9%, at 54 of the hard-to-round arguments of cos of
   [CORE-MATH](https://gitlab.inria.fr/core-math/core-math), all between 0.80
   and 0.853 ([dreal-deps/mathlib#2](https://github.com/dreal-deps/mathlib/issues/2)).
-  The CMake build fixes the call to `c32()` in `mpcos()` in the sources it
-  downloads, the line glibc fixed in its copy of the same code in 2003.
-- **The arctangent of mathlib** (`cmake/mathlib/prepare.cmake`): `fastiroot()`,
+  The call to `c32()` in `mpcos()` is fixed, the line glibc fixed in its copy
+  of the same code in 2003.
+- **The arctangent of mathlib** (`3rd/mathlib/src/mpsqrt.c`): `fastiroot()`,
   which starts the multiple-precision square roots mathlib computes the
   arctangent with at the arguments hardest to round, read the halves of a double
   through `long`s. Where `long` has 64 bits (Linux and macOS on 64-bit
   processors), `atan()` returned values far from atan(x), or had not returned
   after 20 ms, at 15970 of the 55190 hard-to-round arguments of atan of
-  CORE-MATH: `atan(1.016527294692847)` was 0.082 instead of 0.794. The CMake
-  build makes them `int`s, as glibc did in 2003
+  CORE-MATH: `atan(1.016527294692847)` was 0.082 instead of 0.794. They are
+  `int`s, as glibc made them in 2003
   ([commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5));
   [Debian bug 210613](https://bugs.debian.org/210613) is the same bug on Alpha.
 - **The logarithm of mathlib at subnormal arguments**
-  (`cmake/mathlib/prepare.cmake`): `ulog()` scales a subnormal argument by 2^54,
+  (`3rd/mathlib/src/ulog.c`): `ulog()` scales a subnormal argument by 2^54,
   but its last, multiple-precision stage computed the logarithm from the scaled
   argument and from an approximation of the logarithm of the unscaled one.
   `log()` returned about 2^54 at 26 of the 53 subnormal hard-to-round arguments
   of log of CORE-MATH: `log(0x0.8819864d7985dp-1022)` was 1.8e16 instead of
-  −709.03. The CMake build gives that stage the unscaled argument. glibc had
+  −709.03. That stage is given the unscaled argument. glibc had
   the same code until it
   [removed that stage](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)
   in 2018.
 - **`#pragma STDC FENV_ACCESS ON` in mathlib's configuration**
-  (`cmake/mathlib/prepare.cmake`): the pragma of C99 (7.6.1) that tells the
+  (`3rd/mathlib/src/mathlib_config.h`): the pragma of C99 (7.6.1) that tells the
   compiler the code may be executed with a rounding direction other than the
   default, and that it must not fold nor reorder its floating-point operations
   as if the rounding were to nearest, is written at the end of
@@ -320,7 +320,8 @@ Each change is a commit of its own, and says where it comes from.
   for byte; Visual C++ is given `/fp:strict`, which its documentation says
   makes it behave as if `fenv_access(on)` were set, and reads the pragma for
   Visual C++ rather than the one of C99, which it does not know.
-- **The warnings of mathlib's tables** (`cmake/mathlib/prepare.cmake`): the
+- **The warnings of mathlib's tables** (`3rd/mathlib/src/uatan.tbl`,
+  `ulog.tbl` and `utan.tbl`): the
   entries of the tables, of the union type `number`, are written
   `{0x3ff6a13c, 0xd1537290 }` where the union holds an array, and GCC and Clang
   warn about each of them with `-Wall` (`-Wmissing-braces`), 15777 times over
@@ -334,9 +335,11 @@ Each change is a commit of its own, and says where it comes from.
   434 warnings are left, from the tables of the other sources, which are kept
   as they are, and `src/atnat.c` compiles in 0.22 s with `-Wall`. The pragma
   changes no code: `libultim.a` is the same, byte for byte, with it and without
-  it. GAOL does not compile mathlib with `-Wall`, and did not see them.
-- **`Init_Lib()` and `Exit_Lib()` of mathlib** (`cmake/mathlib/prepare.cmake`,
-  `cmake/mathlib/mathlib_configuration.h.in`): `Init_Lib()` sets the rounding
+  it. The builds of GAOL compile mathlib with `-w` besides, whatever warning
+  flags the project building GAOL gives.
+- **`Init_Lib()` and `Exit_Lib()` of mathlib**
+  (`3rd/mathlib/src/AARCH64_DPChange.c`,
+  `3rd/mathlib/mathlib_configuration.h.in`): `Init_Lib()` sets the rounding
   direction to nearest, which mathlib's algorithms need, returns the one it
   found, and `Exit_Lib()` sets that one back, from the fork of mathlib by
   Fabrice Le Bars
@@ -429,6 +432,16 @@ Each change is a commit of its own, and says where it comes from.
   the headers for MinGW and Visual C++, as configure now does too. Both install
   a `gaol.pc` carrying the flags of interval arithmetic, and meson takes
   `with-mathlib-include` and `with-mathlib-lib` as configure does.
+- **mathlib is in the sources** (`3rd/mathlib`, see
+  [3rd/README.md](../3rd/README.md)): the archive of mathlib 2.1.1, with the
+  fixes above. The three builds compile it themselves, with the flags of
+  interval arithmetic, and install it along with GAOL, unless told to use an
+  installed one. The CMake build downloaded the archive from Frédéric
+  Goualard's site in each new build directory and patched it; the autotools
+  and meson builds needed mathlib installed beforehand, with
+  `scripts/install-mathlib.sh`, which downloaded it too. GAOL can now be built
+  as a part of another project, brought in by FetchContent, with no network
+  access beyond its own sources (`tests/fetch_content`).
 - **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.

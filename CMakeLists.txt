@@ -24,8 +24,8 @@
 # rather than from CMAKE_SYSTEM_NAME and CMAKE_SYSTEM_PROCESSOR, which works the
 # same in a cross-compilation, in that it builds with Visual C++, and in that
 # it builds mathlib, the IBM Accurate Portable Mathematical Library GAOL
-# computes its elementary functions with, from Frederic Goualard's archive when
-# it is not installed (cmake/mathlib/).
+# computes its elementary functions with, from the sources of 3rd/mathlib. It
+# also builds as a part of another project, brought in with FetchContent.
 
 cmake_minimum_required(VERSION 3.14...3.25)
 
@@ -50,11 +50,18 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   endif()
 endif()
 
-option(GAOL_BUILD_MATHLIB "Download and build mathlib when no installed mathlib is found" ON)
-option(GAOL_FIND_MATHLIB "Look for an installed mathlib before building one" ON)
+# mathlib: the one of 3rd/mathlib unless an installed one is asked for, which
+# giving MATHLIB_DIR does by default (see below)
+set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library), which GAOL_FIND_MATHLIB is then ON by default to use")
+if(MATHLIB_DIR)
+  set(_gaol_find_mathlib_default ON)
+else()
+  set(_gaol_find_mathlib_default OFF)
+endif()
+option(GAOL_BUILD_MATHLIB "Build the mathlib of 3rd/mathlib when no installed mathlib is used" ON)
+option(GAOL_FIND_MATHLIB "Use an installed mathlib, under MATHLIB_DIR or in the usual paths, rather than the one of 3rd/mathlib" ${_gaol_find_mathlib_default})
 option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each operation, rather than leaving it upward" OFF)
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest (OFF: the tests are not built by default, with the three builds)" OFF)
-set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library)")
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
 # with its defaults, but for the verbose mode: GAOL is silent by default
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3" ON)
@@ -271,17 +278,25 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 # libgaol, a static library, does not link mathlib itself, but whatever links
 # GAOL has to: gaol::gaol links it.
 #
-# With GAOL_FIND_MATHLIB OFF, no installed mathlib is looked for, and the one
-# built here is the one GAOL links and installs: a project building GAOL for
-# itself (as Codac does, with ExternalProject) can then count on finding
-# libultim and MathLib.h under the installation prefix it gave, whatever
-# mathlib the machine has. GAOL_FIND_MATHLIB is tested after the search too, so
-# that a mathlib found by an earlier configuration, kept in the cache, is not
-# used either.
+# By default, the mathlib GAOL links and installs is the one of 3rd/mathlib,
+# built here with the CMake build of 3rd/mathlib/CMakeLists.txt, whatever
+# mathlib the machine has: mathlib 2.1.1, as Frederic Goualard distributes it,
+# with the fixes 3rd/README.md lists. A project building GAOL for itself, with
+# FetchContent or as Codac does, can then count on finding libultim and
+# MathLib.h under the installation prefix it gave.
+#
+# With GAOL_FIND_MATHLIB ON, which giving MATHLIB_DIR makes the default, an
+# installed mathlib is looked for, under MATHLIB_DIR and in the usual paths,
+# and the one of 3rd/mathlib is built only when none is found.
+# GAOL_FIND_MATHLIB is tested after the search too, so that a mathlib found by
+# an earlier configuration, kept in the cache, is not used once it is OFF.
 
 if(GAOL_FIND_MATHLIB)
   find_path(MATHLIB_INCDIR MathLib.h HINTS "${MATHLIB_DIR}" PATH_SUFFIXES include)
   find_library(MATHLIB_LIB ultim HINTS "${MATHLIB_DIR}" PATH_SUFFIXES lib)
+elseif(MATHLIB_DIR)
+  message(WARNING "MATHLIB_DIR (${MATHLIB_DIR}) is ignored, GAOL_FIND_MATHLIB being OFF: configure with "
+    "-DGAOL_FIND_MATHLIB=ON to use the mathlib installed there.")
 endif()
 
 set(GAOL_MATHLIB "")
@@ -290,34 +305,15 @@ if(GAOL_FIND_MATHLIB AND MATHLIB_INCDIR AND MATHLIB_LIB)
   set(GAOL_MATHLIB "${MATHLIB_LIB}")
 elseif(GAOL_BUILD_MATHLIB)
   if(GAOL_FIND_MATHLIB)
-    message(STATUS "mathlib not found: it will be downloaded and built")
+    message(STATUS "mathlib not found: the one of 3rd/mathlib is built with GAOL")
   else()
-    message(STATUS "GAOL_FIND_MATHLIB is OFF: mathlib will be downloaded and built")
+    message(STATUS "mathlib: the one of 3rd/mathlib, built with GAOL")
   endif()
-  include(FetchContent)
-  # The CMake build of cmake/mathlib/ exports libultim along with libgaol
+  # The CMake build of 3rd/mathlib exports libultim along with libgaol
   set(MATHLIB_EXPORT_NAME gaolTargets)
-  set(_download_options "")
-  if(NOT CMAKE_VERSION VERSION_LESS 3.24)
-    list(APPEND _download_options DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-  endif()
-  # mathlib 2.1.1, as Frederic Goualard distributes it (GNU GPL v2 or later),
-  # the archive GAOL's README points to; its checksum is checked. prepare.cmake
-  # adds the CMake build and fixes bugs of mathlib. It is given its own
-  # checksum: the patch step runs again when its command changes, not when the
-  # script does, and a new prepare.cmake then reaches the mathlib already
-  # downloaded in a build directory.
-  set(_prepare "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mathlib/prepare.cmake")
-  file(SHA256 "${_prepare}" _prepare_sha256)
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_prepare}")
-  FetchContent_Declare(mathlib
-    URL https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz
-    URL_HASH SHA256=f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281
-    ${_download_options}
-    PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -DPREPARE_SHA256=${_prepare_sha256} -P "${_prepare}"
-  )
-  FetchContent_MakeAvailable(mathlib)
+  add_subdirectory(3rd/mathlib)
   target_compile_options(ultim PRIVATE ${GAOL_INTERVAL_FLAGS})
+  add_library(gaol::ultim ALIAS ultim)
   set(GAOL_MATHLIB ultim)
 elseif(GAOL_FIND_MATHLIB)
   message(WARNING "mathlib not found and GAOL_BUILD_MATHLIB is OFF: link the ultim library along with GAOL.")
@@ -342,7 +338,7 @@ if(GAOL_FIND_MATHLIB AND MATHLIB_INCDIR AND MATHLIB_LIB)
       "Cross-compiling: the cosine of the mathlib found (${MATHLIB_LIB}) is not checked at 2^52 - 1. A mathlib "
       "compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and "
       "tan of large arguments far from their values, which the intervals GAOL computes would not enclose: "
-      "configure with -DGAOL_FIND_MATHLIB=OFF to build the mathlib GAOL is tested with.")
+      "configure with -DGAOL_FIND_MATHLIB=OFF to build the mathlib of 3rd/mathlib, which GAOL is tested with.")
   else()
     set(_mathlib_check_dir "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/gaol_mathlib_cosine")
     file(WRITE "${_mathlib_check_dir}/cosine.cpp" [=[
@@ -379,9 +375,8 @@ int main()
         "sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far "
         "from them at 534 of 20080 random arguments, from 2^26 to 2^54).\n"
         "Let GAOL build the mathlib it is tested with: configure again with -DGAOL_FIND_MATHLIB=OFF, and CMake "
-        "downloads mathlib 2.1.1, fixes it (cmake/mathlib/prepare.cmake) and compiles it with the flags of interval "
-        "arithmetic; or install it so with sh scripts/install-mathlib.sh <prefix> and give -DMATHLIB_DIR=<prefix>, "
-        "in a new build directory.")
+        "compiles the mathlib of 3rd/mathlib with the flags of interval arithmetic; or install that one with "
+        "sh scripts/install-mathlib.sh <prefix> and give -DMATHLIB_DIR=<prefix>, in a new build directory.")
     else()
       message(WARNING
         "A program linked with the mathlib found (${MATHLIB_LIB}) could not be built or run "
