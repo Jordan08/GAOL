@@ -51,6 +51,12 @@ project installs them with it, CMake package and `gaol.pc` included; nothing
 is downloaded beyond GAOL's sources. `tests/fetch_content` is a project
 building GAOL this way.
 
+GAOL and mathlib, static libraries, are compiled as position-independent code
+(`-fPIC`), so that `gaol::gaol` can be linked into a shared library, such as
+Python bindings. A project that sets `CMAKE_POSITION_INDEPENDENT_CODE`, `ON` or
+`OFF`, before `FetchContent_MakeAvailable(gaol)`, or on the command line, is
+followed instead.
+
 ## From pkg-config
 
 Each build installs `gaol.pc` in the `pkgconfig` directory of its library

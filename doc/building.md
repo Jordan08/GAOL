@@ -37,6 +37,7 @@ static. The build type is Release unless another is given.
 |---|---|---|
 | `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information |
 | `CMAKE_INSTALL_PREFIX` | the system's | Where `cmake --install` puts GAOL |
+| `CMAKE_POSITION_INDEPENDENT_CODE` | `ON` | Compile GAOL and mathlib as position-independent code (`-fPIC`), which linking them into a shared library needs; a project building GAOL with FetchContent that sets it is followed |
 | `MATHLIB_DIR` | | Installation prefix of an installed mathlib, which turns `GAOL_FIND_MATHLIB` on by default |
 | `GAOL_FIND_MATHLIB` | `OFF`; `ON` with `MATHLIB_DIR` | Use an installed mathlib, under `MATHLIB_DIR` or in the usual paths, rather than the one of `3rd/mathlib` |
 | `GAOL_BUILD_MATHLIB` | `ON` | Build the mathlib of `3rd/mathlib` when no installed mathlib is used; `OFF`, with `GAOL_FIND_MATHLIB` `OFF`, leaves mathlib to the code linking GAOL |

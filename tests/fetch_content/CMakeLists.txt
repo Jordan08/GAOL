@@ -34,6 +34,22 @@ foreach(target gaol::gaol gaol::ultim)
   endif()
 endforeach()
 
+# A shared library linking GAOL, as Python bindings do: this project does not
+# set CMAKE_POSITION_INDEPENDENT_CODE, and GAOL and mathlib, static libraries,
+# have to be position-independent code for it to link
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/gaol_shared.cpp" [=[
+#include <gaol/gaol.h>
+#if defined(_WIN32)
+__declspec(dllexport)
+#endif
+double gaol_shared_sin_upper(double x)
+{
+  return gaol::sin(gaol::interval(x)).right();
+}
+]=])
+add_library(gaol_test_shared SHARED "${CMAKE_CURRENT_BINARY_DIR}/gaol_shared.cpp")
+target_link_libraries(gaol_test_shared PRIVATE gaol::gaol)
+
 enable_testing()
 
 foreach(test arithmetic elementary rounding_direction numbers other_functions)

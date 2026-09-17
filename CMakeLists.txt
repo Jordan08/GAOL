@@ -44,10 +44,20 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
   endif()
-  # The static libraries can then be linked into shared libraries
-  if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-  endif()
+endif()
+
+# libgaol and libultim, static libraries, are compiled as position-independent
+# code, so that they can be linked into shared libraries (Python bindings,
+# plugins), unless the project building GAOL, or the command line, sets
+# CMAKE_POSITION_INDEPENDENT_CODE, which is then followed. Brought in by
+# FetchContent by a project that did not set it, GAOL was compiled without
+# -fPIC, and a shared library linking gaol::gaol failed to link ("relocation
+# R_X86_64_PC32 against symbol ... can not be used when making a shared object;
+# recompile with -fPIC"). On x86_64, where GCC compiles with -fPIE by default,
+# -fPIC changed the times of doc/compare by -5 to +2.4 %, the noise of the
+# measure. The variable is set for this directory and 3rd/mathlib only.
+if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # mathlib: the one of 3rd/mathlib unless an installed one is asked for, which
