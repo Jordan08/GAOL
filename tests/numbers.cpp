@@ -479,6 +479,47 @@ namespace
       check("interval(text written by operator<<): encloses the interval", back.set_contains(y),
             [&] { return hex(y) + " written " + os.str() + " read " + hex(back); });
     }
+
+    // The format writing once the digits both bounds start with, 1.25~[0, 67]
+    // being [1.250, 1.2567]: the two numbers it stands for have to enclose
+    // the interval too, the right bound keeping its digits when the left one
+    // ends with zeros
+    interval::format(interval_format::agreeing);
+    const auto expect_agreeing = [&](double l, double r, int p) {
+      std::ostringstream os;
+      interval::precision(p);
+      os << interval(l, r);
+      const std::string s = os.str();
+      const auto describe = [&] { return hex(interval(l, r)) + " with the precision " + std::to_string(p) + " written " + s; };
+      const std::size_t tilde = s.find("~[");
+      std::string sl = s, sr = s;
+      if (s[0] == '[' || s[0] == '<') { // As the format of the bounds, tested above
+        return;
+      }
+      if (tilde != std::string::npos) {
+        const std::size_t comma = s.find(", ", tilde);
+        if (!check("operator<< with agreeing digits: two bounds", comma != std::string::npos && s[s.size() - 1] == ']'
+                   && comma > tilde + 2 && s.size() > comma + 3, describe)) {
+          return;
+        }
+        sl = s.substr(0, tilde) + s.substr(tilde + 2, comma - tilde - 2);
+        sr = s.substr(0, tilde) + s.substr(comma + 2, s.size() - comma - 3);
+      }
+      check("operator<< with agreeing digits: encloses the interval", compare(l, written(sl)) >= 0
+            && compare(r, written(sr)) <= 0, describe);
+    };
+    expect_agreeing(1.25, 1.2567, 5);
+    expect_agreeing(100.0, 100.47, 5);
+    expect_agreeing(1.2340, 1.2399, 5);
+    expect_agreeing(1.5, 1.5078125, 16);
+    expect_agreeing(0.1, 0.1, 16);
+    expect_agreeing(1.5, 1.5, 6);
+    expect_agreeing(150000000.0, 150000010.0, 4);
+    expect_agreeing(1e-5, 2e-5, 5);
+    for (int i = 0; i < nb_random_values; ++i) {
+      const double a = random.positive(-30, 30), w = std::ldexp(random.uniform(0.0, 1.0), -(i % 40));
+      expect_agreeing(a, a*(1.0 + w), precisions[i % 8]);
+    }
     interval::precision(saved_precision);
     interval::format(saved_format);
   }

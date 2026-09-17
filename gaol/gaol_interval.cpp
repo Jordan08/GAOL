@@ -688,32 +688,31 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 	  			lbound << bound_to_text(I.left(), false, lbound);
 	  			rbound << bound_to_text(I.right(), true, rbound);
 
-				  unsigned int i = 0;
-	  			while (lbound.str()[i] == rbound.str()[i]) {
-	    			itv += lbound.str()[i];
+	  			// The characters both bounds start with, then what is left of
+	  			// each, without the zeros ending it (fork of GAOL: GAOL dropped
+	  			// from both bounds the characters after the last one of the left
+	  			// bound that is not a zero, and wrote [1.25, 1.2567] "1.25~[, ]";
+	  			// zeros ending an exponent are not dropped)
+	  			const std::string lb = lbound.str(), rb = rbound.str();
+	  			std::size_t i = 0;
+	  			while (i < lb.length() && i < rb.length() && lb[i] == rb[i]) {
+	    			itv += lb[i];
 	    			++i;
 	  			}
-	  			size_t lblen = lbound.str().length();
-	  			size_t rblen = rbound.str().length();
-
-	  			// Some digits not in common?
-	  			if (i < lblen || i < rblen) {
+	  			if (i < lb.length() || i < rb.length()) {
+	    			const std::string *bounds[2] = { &lb, &rb };
 	    			itv += "~[";
-	    			if (i >= lbound.str().length()) {
-	      			itv += "0";
-	    			} else {
-	      			// Removing trailing zeroes
-	      			size_t last_not_zero = lbound.str().find_last_not_of("0");
-	      			itv += lbound.str().substr(i,last_not_zero-i+1);
+	    			for (int k = 0; k < 2; ++k) {
+	      			const std::string& b = *bounds[k];
+	      			std::size_t end = b.length();
+	      			if (b.find_first_of("eE") == std::string::npos && b.find('.') != std::string::npos) {
+	        			while (end > i && end > b.find('.') + 1 && b[end - 1] == '0') {
+	          			--end;
+	        			}
+	      			}
+	      			itv += (end > i) ? b.substr(i, end - i) : std::string("0");
+	      			itv += (k == 0) ? ", " : "]";
 	    			}
-	    			itv += ", ";
-	    			if (i >= rbound.str().length()) {
-	      			itv += "0";
-	    			} else {
-	      			size_t last_not_zero = lbound.str().find_last_not_of("0");
-	      			itv += rbound.str().substr(i,last_not_zero-i+1);
-	    			}
-	    			itv += "]";
 	  			}
 	  			os << itv;
 				}

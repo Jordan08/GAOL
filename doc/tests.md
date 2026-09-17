@@ -63,7 +63,8 @@ Codac.
   general, scientific and fixed formats with 1 to 20 digits, have to enclose
   the intervals, each bound less than one unit of its last digit away, near
   the powers of ten too, where a digit moved outward changes the exponent;
-  read back, they have to enclose the intervals written. In hexadecimal, the
+  read back, they have to enclose the intervals written, and so do the two
+  numbers the format of the agreeing digits stands for. In hexadecimal, the
   bits of the bounds have to be written.
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   when GAOL is built with the float intervals), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff

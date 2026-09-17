@@ -139,6 +139,13 @@ Each change is a commit of its own, and says where it comes from.
   - **Same text with glibc**, which rounds as asked: 1077546 bounds written
     in the general, scientific and fixed formats with 1 to 18 digits were the
     same, character for character.
+- **The format of the agreeing digits** (`interval_format::agreeing`) keeps
+  the digits of each bound. GAOL dropped from both bounds what followed the
+  last character of the left one that is not a zero: `[1.25, 1.2567]` was
+  written `1.25~[, ]`, and `[100, 100.47]` `100.~[, ]`, which say nothing of
+  the right bound. They are written `1.25~[0, 67]` and `100.~[0, 47]`; the
+  zeros ending an exponent are no longer dropped, and the search for the
+  common characters stops at the end of the shorter text.
 - **Hyperbolic functions:** the values GAOL takes from the libm of the system
   are moved three floats outward rather than one. The libms of glibc 2.31, musl
   and MinGW-w64 are sometimes a float further, which gave bounds not enclosing
