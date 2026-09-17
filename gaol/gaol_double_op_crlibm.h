@@ -186,6 +186,8 @@ namespace gaol {
     INLINE double asin_up(double d) { return asin_ru(d); }
     INLINE double atan_dn(double d) { return atan_rd(d); }
     INLINE double atan_up(double d) { return atan_ru(d); }
+    INLINE double atan2_dn(double y, double x) { return gaol_libm_dn(atan2(y,x)); } // From libm, not crlibm
+    INLINE double atan2_up(double y, double x) { return gaol_libm_up(atan2(y,x)); } // From libm, not crlibm
     INLINE double cosh_dn(double x) { return cosh_rd(x); }
     INLINE double cosh_up(double x) { return cosh_ru(x); }
     INLINE double sinh_dn(double x) { return sinh_rd(x); }

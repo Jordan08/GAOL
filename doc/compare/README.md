@@ -13,10 +13,10 @@ Four implementations of interval arithmetic on doubles are compared:
 
 The comparison has two parts:
 
-- [Special cases](special_cases.md): 262 special cases taken from GAOL's tests
+- [Special cases](special_cases.md): 291 special cases taken from GAOL's tests
   (infinities, zeros, NaN, empty sets, divisions by zero, `pow` and `pown`,
   `+=` and the other operators with doubles, reading from text, midpoints,
-  widths, radii and comparisons), computed by the four libraries and compared
+  widths, radii, comparisons and `atan2`), computed by the four libraries and compared
   with the results of IEEE 1788-2015.
 - [Performance](performance.md): the time of a million additions,
   subtractions, multiplications, divisions, sines, cosines, powers,
@@ -30,10 +30,10 @@ reports.
 
 | | GAOL | libieeep1788 | filib++ | Solaris Studio |
 |---|---|---|---|---|
-| Special cases with IEEE 1788's result | 231 of 257 | 250 of 250 | 126 of 243 | 129 of 232 |
-| … or an interval enclosing it | 20 | 0 | 50 | 36 |
-| … or another result | 6 | 0 | 67 | 67 |
-| Cases it has no operation for | 0 | 11 | 15 | 26 |
+| Special cases with IEEE 1788's result | 255 of 286 | 279 of 279 | 126 of 243 | 150 of 261 |
+| … or an interval enclosing it | 25 | 0 | 50 | 41 |
+| … or another result | 6 | 0 | 67 | 70 |
+| Cases it has no operation for | 0 | 11 | 44 | 26 |
 | `x + y` | 3.7 ns | 213 ns | 7.5 ns | 24 ns |
 | `x * y` | 16 ns | 261 ns | 17 ns | 29 ns |
 | `sin(x)` | 111 ns | 8.1 µs | 53 ns | 59 ns |

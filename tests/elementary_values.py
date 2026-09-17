@@ -219,8 +219,42 @@ binary = [
       (3.0, 1.0 / 3.0), (7.0, 2.5), (1e-10, 0.3), (1e10, -0.3), (0.99, 1e5), (2.0, 1023.5),
       (0.5, 1100.0), (1.0, 12345.678)]
      + [(rng.uniform(0.0, 100.0), rng.uniform(-10.0, 10.0)) for _ in range(20)]),
-    # GAOL does not implement atan2(), which raises unavailable_feature_error
+    # atan2(a, b), the angle of the point of ordinate a and abscissa b, in the
+    # four quadrants, next to the axes and for ratios beyond the doubles
+    ("atan2", lambda a, b: mpmath.atan2(a, b),
+     [(1.0, 2.0), (2.0, 1.0), (1.0, -2.0), (2.0, -1.0), (-1.0, -2.0), (-2.0, -1.0), (-1.0, 2.0), (-2.0, 1.0),
+      (3.0, 3.0), (3.0, -3.0), (-3.0, -3.0), (-3.0, 3.0), (1e-300, 1.0), (1e-300, -1.0), (-1e-300, -1.0),
+      (-1e-300, 1.0), (1.0, 1e-300), (1.0, -1e-300), (-1.0, 1e-300), (1e300, 1e-300), (1e-300, 1e300),
+      (1e-300, -1e300), (-1e-300, -1e300), (5e-324, 1.0), (1.0, 5e-324), (0.1, 0.3), (0.3, -0.1)]
+     + [(rng.uniform(-100.0, 100.0), rng.uniform(-100.0, 100.0)) for _ in range(40)]
+     + [(rng.uniform(-1.0, 1.0) * 10.0 ** rng.randint(-200, 200), rng.uniform(-1.0, 1.0) * 10.0 ** rng.randint(-200, 200))
+        for _ in range(20)]),
 ]
+
+
+def atan2_hull(yl, yu, xl, xu):
+    """The least and the greatest angle of the points of [yl, yu] x [xl, xu]
+    other than (0, 0), ordinates first. In each quadrant the angle is monotonic
+    in y and in x: its extrema are at the corners of the box and where its
+    edges meet the axes; points below the half-line y = 0, x < 0 and next to
+    it have angles next to -pi."""
+    ys = {yl, yu} | ({0.0} if yl <= 0.0 <= yu else set())
+    xs = {xl, xu} | ({0.0} if xl <= 0.0 <= xu else set())
+    angles = [mpmath.atan2(m(y), m(x)) for y in ys for x in xs if (y, x) != (0.0, 0.0)]
+    if yl < 0.0 <= yu and xl < 0.0:
+        angles.append(-mpmath.pi)
+    return min(angles), max(angles)
+
+
+# Boxes whose bounds are in a few values, 0 among them, and random ones
+atan2_bounds = [-2.0, -1.0, 0.0, 1.0, 3.0]
+atan2_pairs = [(l, u) for l in atan2_bounds for u in atan2_bounds if l <= u]
+atan2_boxes = [(yl, yu, xl, xu) for (yl, yu) in atan2_pairs for (xl, xu) in atan2_pairs
+               if (yl, yu, xl, xu) != (0.0, 0.0, 0.0, 0.0)]
+for _ in range(100):
+    y = sorted([rng.uniform(-10.0, 10.0), rng.uniform(-10.0, 10.0)])
+    x = sorted([rng.uniform(-10.0, 10.0), rng.uniform(-10.0, 10.0)])
+    atan2_boxes.append((y[0], y[1], x[0], x[1]))
 
 
 def literal(x):
@@ -249,4 +283,14 @@ for name, f, abs_ in binary:
     for a, b in abs_:
         below, above = neighbours(f(m(a), m(b)))
         print('  { "%s", %s, %s, %s, %s },' % (name, literal(a), literal(b), literal(below), literal(above)))
+print("};")
+print()
+print("// The hull of atan2 over [yl, yu] x [xl, xu]: the doubles around its least angle,")
+print("// and those around its greatest")
+print("struct Atan2Box { double yl, yu, xl, xu, least_below, least_above, greatest_below, greatest_above; };")
+print()
+print("const Atan2Box atan2_boxes[] = {")
+for yl, yu, xl, xu in atan2_boxes:
+    least, greatest = atan2_hull(yl, yu, xl, xu)
+    print("  { %s }," % ", ".join(literal(v) for v in (yl, yu, xl, xu) + neighbours(least) + neighbours(greatest)))
 print("};")

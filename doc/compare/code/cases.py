@@ -193,6 +193,10 @@ def cpp(n, lib):
         return f"pow({cpp(a[0], lib)}, {point(a[1])})"
     if n.op == "pow":
         return f"pow({cpp(a[0], lib)}, {cpp(a[1], lib)})"
+    if n.op == "atan2":  # filib++ has none
+        if lib == "filib":
+            raise NotAvailable
+        return f"atan2({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op == "nth_root":
         if lib != "gaol":
             raise NotAvailable
@@ -297,6 +301,8 @@ def f90(n):
         return f"({f90(a[0])}**{f90_double(a[1])})"
     if n.op == "pow":
         return f"({f90(a[0])}**{f90(a[1])})"
+    if n.op == "atan2":
+        return f"atan2({f90(a[0])}, {f90(a[1])})"
     if n.op == "hull":
         return f"({f90(a[0])} .ih. {f90(a[1])})"
     if n.op == "inter":
@@ -413,7 +419,7 @@ EMPTYSET = "empty"
 mpmath.mp.prec = 400
 MP_NAMES = {name: getattr(mpmath, name) for name in
             ("sin", "cos", "tan", "asin", "acos", "atan", "exp", "log", "sqrt", "sinh", "cosh", "tanh",
-             "asinh", "acosh", "atanh", "pi", "mpf")}
+             "asinh", "acosh", "atanh", "atan2", "pi", "mpf")}
 MP_NAMES.update({"MAX": mpmath.mpf(MAX), "TINY": mpmath.mpf(TINY), "inf": mpmath.inf})
 
 
@@ -781,6 +787,40 @@ case(op("certainly_eq", iv(2), I12), None, "not in IEEE 1788: for all x, y, x = 
      kind="B")
 case(op("certainly_eq", iv(2), iv(2)), None, kind="B")
 case(op("certainly_eq", EMPTY, EMPTY), None, kind="B")
+
+# After the other groups, whose cases keep their numbers
+group("atan2(y, x), defined on the plane but (0, 0), with values in (−π, π] (Table 9.1)",
+      "tests/elementary.cpp (atan2_of_boxes)")
+NOTE_CUT = "points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π"
+case(op("atan2", iv(0), iv(0)), EMPTYSET, "atan2(0, 0) has no value; filib++ has no atan2")
+case(op("atan2", EMPTY, iv(1)), EMPTYSET)
+case(op("atan2", iv(1), EMPTY), EMPTYSET)
+case(op("atan2", iv(1), iv(1)), X("pi/4"))
+case(op("atan2", iv(1, 2), iv(1, 2)), X("atan2(1, 2)", "atan2(2, 1)"))
+case(op("atan2", iv(1, 2), iv(-2, -1)), X("atan2(2, -1)", "atan2(1, -2)"))
+case(op("atan2", iv(-2, -1), iv(-2, -1)), X("atan2(-1, -2)", "atan2(-2, -1)"))
+case(op("atan2", iv(-2, -1), iv(1, 2)), X("atan2(-2, 1)", "atan2(-1, 2)"))
+case(op("atan2", iv(1, 2), iv(-1, 1)), X("pi/4", "3*pi/4"))
+case(op("atan2", iv(-1, 1), iv(1, 2)), X("-pi/4", "pi/4"))
+case(op("atan2", iv(0), iv(1, 2)), X(0))
+case(op("atan2", iv(0), iv(-2, -1)), X("pi"))
+case(op("atan2", iv(0), iv(-1, 1)), X(0, "pi"))
+case(op("atan2", iv(0), iv(-1, 0)), X("pi"))
+case(op("atan2", iv(1, 2), iv(0)), X("pi/2"))
+case(op("atan2", iv(-2, -1), iv(0)), X("-pi/2"))
+case(op("atan2", iv(-1, 1), iv(0)), X("-pi/2", "pi/2"))
+case(op("atan2", iv(0, 1), iv(0)), X("pi/2"))
+case(op("atan2", iv(0, 1), iv(-2, -1)), X("atan2(1, -1)", "pi"))
+case(op("atan2", iv(-1, 0), iv(-2, -1)), X("-pi", "pi"), NOTE_CUT)
+case(op("atan2", iv(-1, 1), iv(-2, -1)), X("-pi", "pi"), NOTE_CUT)
+case(op("atan2", iv(-1, 0), iv(1, 2)), X("-pi/4", 0))
+case(op("atan2", iv(-1, 1), iv(-1, 1)), X("-pi", "pi"))
+case(op("atan2", ENTIRE, ENTIRE), X("-pi", "pi"))
+case(op("atan2", iv(1, INF), iv(1, INF)), X(0, "pi/2"))
+case(op("atan2", iv(1, INF), iv(-INF, -1)), X("pi/2", "pi"))
+case(op("atan2", iv(-INF, -1), iv(-INF, -1)), X("-pi", "-pi/2"))
+case(op("atan2", ENTIRE, iv(1, 2)), X("-pi/2", "pi/2"))
+case(op("atan2", iv(1, 2), ENTIRE), X(0, "pi"))
 
 
 for i, c in enumerate(CASES):

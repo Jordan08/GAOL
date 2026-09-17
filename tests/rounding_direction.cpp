@@ -243,6 +243,8 @@ int main()
     { "acos", [](const interval& x, const interval&) { return S(acos(x)); } },
     { "asin", [](const interval& x, const interval&) { return S(asin(x)); } },
     { "atan", [](const interval& x, const interval&) { return S(atan(x)); } },
+    { "atan2", [](const interval& x, const interval& y) { return S(atan2(x, y)); } },
+    { "atan2 across the half-line y = 0, x < 0", [](const interval& x, const interval&) { return S(atan2(x - x, -abs(x))); } },
     { "cosh", [](const interval& x, const interval&) { return S(cosh(x)); } },
     { "sinh", [](const interval& x, const interval&) { return S(sinh(x)); } },
     { "tanh", [](const interval& x, const interval&) { return S(tanh(x)); } },

@@ -34,7 +34,10 @@ Codac.
   enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
-  near 1. sin and cos have to be within one
+  near 1. `atan2` has to be within one double of the tightest bounds at
+  points of the four quadrants and over 324 boxes in every position about the
+  axes, and the tightest over the boxes with infinite bounds or on an axis,
+  `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin and cos have to be within one
   double of the tightest bounds up to 2^25, `sin([1e-10])` included. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
 - **`rounding_direction`:** about 100 operations of GAOL's interface, called
@@ -51,8 +54,7 @@ Codac.
   as the tightest intervals enclosing them, whatever the case of their letters,
   and `[inf]` and the like as the empty set. Expressions read again and again
   have to give the same interval, and those GAOL cannot read or compute
-  (`nth_root(8, 1.5)`, `sin(1)+`, `1+pow(2, atan2(1,1))`...) have to throw,
-  the exception of `atan2()` going through the parser. Built with
+  (`nth_root(8, 1.5)`, `sin(1)+`, `atan2(1)`...) have to throw. Built with
   LeakSanitizer, the tests check that the parser frees the nodes of all of
   them. The intervals written in decimal (`interval_format::bounds`), in the
   general, scientific and fixed formats with 1 to 20 digits, have to enclose
@@ -80,7 +82,6 @@ summary of the jobs.
 
 What they show of GAOL, beyond the fixes below:
 
-- `atan2()` is not implemented: it throws `unavailable_feature_error`.
 - `sin` and `cos` tell the pieces of their argument where they are monotonic
   by dividing it by an interval enclosing π: beyond 2^25, an argument within
   about 2^-51·|x| of an extremum may be taken as reaching it. `tan` adds an

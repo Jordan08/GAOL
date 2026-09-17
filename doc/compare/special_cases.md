@@ -8,8 +8,8 @@ integer powers) are computed by the four libraries: zeros, infinities and NaN
 as bounds or operands, empty sets, divisions by intervals containing zero,
 arguments at the edges of the domains, the powers `pow` and `pown`, the
 operators `+=`, `-=`, `*=`, `/=` with special doubles, the reading of
-intervals from text, the numeric functions of intervals and the comparisons.
-Each result is
+intervals from text, the numeric functions of intervals, the comparisons and
+`atan2`. Each result is
 compared with the result IEEE 1788-2015 defines for the set-based flavor, the
 tightest interval of doubles, computed with mpmath:
 
@@ -40,13 +40,13 @@ again.
 
 ## What the cases show
 
-**libieeep1788** gives the result of IEEE 1788 in each of the 250 cases
+**libieeep1788** gives the result of IEEE 1788 in each of the 279 cases
 where IEEE 1788 defines one and libieeep1788 has the operation: it computes
 every bound with MPFR, correctly rounded. It has no n-th root (`rootn`), no
 operators with doubles and no compound assignments.
 
-**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 251
-cases out of 257, and something else in 6, all from the hybrid `pow(x, y)` of
+**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 280
+cases out of 286, and something else in 6, all from the hybrid `pow(x, y)` of
 this fork, which takes the integer power `pown` for a degenerate integer
 exponent, where IEEE 1788's `pow` only takes the part of x in [0, +∞] (see
 [What differs from GAOL](../differences.md)): `pow([−2], 2.0)` is [4],
@@ -63,7 +63,10 @@ exp(y log x), and the odd n-th roots, computed as powers with a rounded
 exponent (`nth_root([−8, 27], 3)` is [−2.0000000000000004, 3.000000000000001])
 ([accuracy](../accuracy.md) gives the tightness of each operation). acos,
 acosh and the negative integer powers are the tightest: `acos([1, 3])` and
-`acosh([0, 1])` are [0], and `pow([10], −400)` is [0, 2^-1074].
+`acosh([0, 1])` are [0], and `pow([10], −400)` is [0, 2^-1074]. `atan2` is
+within one double of the tightest bounds, and the tightest where a bound is 0,
+±π/4, ±π/2 or ±π: across the half-line y = 0, x < 0, where the angle jumps
+from π to −π, it is [−π, π], as in libieeep1788 (263 to 291).
 
 **filib++** gives the result of IEEE 1788, or an interval enclosing it, in
 176 cases out of 243, and something else in 67. Its extended mode takes the
@@ -98,7 +101,7 @@ infinities much as Solaris Studio does:
   empty, where `precedes` and `strictPrecedes` are true (245, 246, 248);
   `interior` is false for the same infinite bound (251, 252); `ceq` is false
   for two empty intervals (262).
-- It has no n-th root and no relational division.
+- It has no n-th root, no relational division and no `atan2`.
 
 Its elementary functions are wider than the tightest by up to 25 doubles (6 to
 11 for sin and cos, 15 to 19 for asin, acos and atan, 25 for tan), its real
@@ -106,7 +109,7 @@ powers by up to 36, `cos([2^52 − 1])` is [−1, 1], `exp([−800])` is
 [0, 2.2e−308] and `sqrt([−4, 4])` has −2^-1074 for lower bound.
 
 **Solaris Studio** gives the result of IEEE 1788, or an interval enclosing it,
-in 165 cases out of 232, and something else in 67. It follows the containment
+in 191 cases out of 261, and something else in 70. It follows the containment
 sets of Sun's interval arithmetic (G. W. Walster), whose values include the
 infinities: 1/0 is {−∞, +∞}, 0 × ∞ is every extended real, and +∞ is a point.
 So:
@@ -136,6 +139,12 @@ So:
 - Its certainly-less operators `.cle.` and `.clt.` are false when an interval
   is empty (245, 246, 248), `.int.` is false for the same infinite bound (251,
   252), and `.ceq.` false for two empty intervals (262).
+- `atan2` is continued across the half-line y = 0, x < 0 rather than given
+  the hull of its values: `atan2([−1, 1], [−2, −1])` is [3π/4, 5π/4], beyond
+  π, `atan2([−1, 0], [−2, −1])` is [−π, −3π/4], without the angle π of its
+  points on the half-line, and `atan2([0], [0])` is [−π, π] (263, 282, 283).
+  Where a box touches an axis at (0, 0), it gives [−π, π] (275, 276, 279,
+  280).
 - It has no `asinh`, `acosh`, `atanh`, n-th root, relational division
   (`mul_rev`), radius (`rad`), nor `sqr`, computed as `x**2`.
 
@@ -147,14 +156,14 @@ give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
 
 <!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->
 
-262 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
+291 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
 
 | | GAOL | libieeep1788 | filib++ | Solaris Studio |
 |---|---|---|---|---|
-| ✓ the result of IEEE 1788 | 231 | 250 | 126 | 129 |
-| ⊃ encloses it, wider | 20 | 0 | 50 | 36 |
-| ✗ differs | 6 | 0 | 67 | 67 |
-| n/a no such operation | 0 | 11 | 15 | 26 |
+| ✓ the result of IEEE 1788 | 255 | 279 | 126 | 150 |
+| ⊃ encloses it, wider | 25 | 0 | 50 | 41 |
+| ✗ differs | 6 | 0 | 67 | 70 |
+| n/a no such operation | 0 | 11 | 44 | 26 |
 
 ### 1. Constructors and assignment
 
@@ -508,6 +517,42 @@ From tests/other_functions.cpp (comparisons).
 | 260 | `certainly_eq([2], [1, 2])` | — | false | n/a | false | false | not in IEEE 1788: for all x, y, x = y (false); filib++: ceq, Solaris Studio: .ceq. |
 | 261 | `certainly_eq([2], [2])` | — | true | n/a | true | true |  |
 | 262 | `certainly_eq(∅, ∅)` | — | true | n/a | false | false |  |
+
+### 14. atan2(y, x), defined on the plane but (0, 0), with values in (−π, π] (Table 9.1)
+
+From tests/elementary.cpp (atan2_of_boxes).
+
+| # | Operation | IEEE 1788 | GAOL | libieeep1788 | filib++ | Solaris Studio | Notes |
+|---|---|---|---|---|---|---|---|
+| 263 | `atan2([0], [0])` | ∅ | ∅ ✓ | ∅ ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✗ | atan2(0, 0) has no value; filib++ has no atan2 |
+| 264 | `atan2(∅, [1])` | ∅ | ∅ ✓ | ∅ ✓ | n/a | ∅ ✓ |  |
+| 265 | `atan2([1], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | n/a | ∅ ✓ |  |
+| 266 | `atan2([1], [1])` | [0.7853981633974483, 0.7853981633974484] | [0.7853981633974483, 0.7853981633974484] ✓ | [0.7853981633974483, 0.7853981633974484] ✓ | n/a | [0.7853981633974483, 0.7853981633974484] ✓ |  |
+| 267 | `atan2([1, 2], [1, 2])` | [0.4636476090008061, 1.1071487177940906] | [0.46364760900080604, 1.1071487177940906] ⊃ | [0.4636476090008061, 1.1071487177940906] ✓ | n/a | [0.4636476090008061, 1.1071487177940906] ✓ |  |
+| 268 | `atan2([1, 2], [−2, −1])` | [2.0344439357957027, 2.6779450445889874] | [2.0344439357957023, 2.6779450445889874] ⊃ | [2.0344439357957027, 2.6779450445889874] ✓ | n/a | [2.0344439357957027, 2.6779450445889874] ✓ |  |
+| 269 | `atan2([−2, −1], [−2, −1])` | [−2.6779450445889874, −2.0344439357957027] | [−2.6779450445889874, −2.0344439357957023] ⊃ | [−2.6779450445889874, −2.0344439357957027] ✓ | n/a | [−2.6779450445889874, −2.0344439357957027] ✓ |  |
+| 270 | `atan2([−2, −1], [1, 2])` | [−1.1071487177940906, −0.4636476090008061] | [−1.1071487177940906, −0.46364760900080604] ⊃ | [−1.1071487177940906, −0.4636476090008061] ✓ | n/a | [−1.1071487177940906, −0.4636476090008061] ✓ |  |
+| 271 | `atan2([1, 2], [−1, 1])` | [0.7853981633974483, 2.3561944901923453] | [0.7853981633974483, 2.3561944901923453] ✓ | [0.7853981633974483, 2.3561944901923453] ✓ | n/a | [0.7853981633974483, 2.3561944901923453] ✓ |  |
+| 272 | `atan2([−1, 1], [1, 2])` | [−0.7853981633974484, 0.7853981633974484] | [−0.7853981633974484, 0.7853981633974484] ✓ | [−0.7853981633974484, 0.7853981633974484] ✓ | n/a | [−0.7853981633974484, 0.7853981633974484] ✓ |  |
+| 273 | `atan2([0], [1, 2])` | [0] | [0] ✓ | [−0] ✓ | n/a | [−0] ✓ |  |
+| 274 | `atan2([0], [−2, −1])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | n/a | [3.141592653589793, 3.1415926535897936] ✓ |  |
+| 275 | `atan2([0], [−1, 1])` | [0, 3.1415926535897936] | [0, 3.1415926535897936] ✓ | [−0, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ |  |
+| 276 | `atan2([0], [−1, 0])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ |  |
+| 277 | `atan2([1, 2], [0])` | [1.5707963267948966, 1.5707963267948968] | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | [1.5707963267948966, 1.5707963267948968] ✓ |  |
+| 278 | `atan2([−2, −1], [0])` | [−1.5707963267948968, −1.5707963267948966] | [−1.5707963267948968, −1.5707963267948966] ✓ | [−1.5707963267948968, −1.5707963267948966] ✓ | n/a | [−1.5707963267948968, −1.5707963267948966] ✓ |  |
+| 279 | `atan2([−1, 1], [0])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ |  |
+| 280 | `atan2([0, 1], [0])` | [1.5707963267948966, 1.5707963267948968] | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ |  |
+| 281 | `atan2([0, 1], [−2, −1])` | [2.356194490192345, 3.1415926535897936] | [2.3561944901923444, 3.1415926535897936] ⊃ | [2.356194490192345, 3.1415926535897936] ✓ | n/a | [2.356194490192345, 3.141592653589794] ⊃ |  |
+| 282 | `atan2([−1, 0], [−2, −1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.141592653589794, −2.356194490192345] ✗ | points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π |
+| 283 | `atan2([−1, 1], [−2, −1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [2.356194490192345, 3.9269908169872423] ✗ | points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π |
+| 284 | `atan2([−1, 0], [1, 2])` | [−0.7853981633974484, 0] | [−0.7853981633974484, 0] ✓ | [−0.7853981633974484, 0] ✓ | n/a | [−0.7853981633974484, 0] ✓ |  |
+| 285 | `atan2([−1, 1], [−1, 1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✓ |  |
+| 286 | `atan2([−∞, +∞], [−∞, +∞])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✓ |  |
+| 287 | `atan2([1, +∞], [1, +∞])` | [0, 1.5707963267948968] | [0, 1.5707963267948968] ✓ | [−0, 1.5707963267948968] ✓ | n/a | [−0, 1.5707963267948968] ✓ |  |
+| 288 | `atan2([1, +∞], [−∞, −1])` | [1.5707963267948966, 3.1415926535897936] | [1.5707963267948966, 3.1415926535897936] ✓ | [1.5707963267948966, 3.1415926535897936] ✓ | n/a | [1.5707963267948966, 3.1415926535897936] ✓ |  |
+| 289 | `atan2([−∞, −1], [−∞, −1])` | [−3.1415926535897936, −1.5707963267948966] | [−3.1415926535897936, −1.5707963267948966] ✓ | [−3.1415926535897936, −1.5707963267948966] ✓ | n/a | [−3.1415926535897936, −1.5707963267948966] ✓ |  |
+| 290 | `atan2([−∞, +∞], [1, 2])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | [−1.5707963267948968, 1.5707963267948968] ✓ |  |
+| 291 | `atan2([1, 2], [−∞, +∞])` | [0, 3.1415926535897936] | [0, 3.1415926535897936] ✓ | [−0, 3.1415926535897936] ✓ | n/a | [−0, 3.1415926535897936] ✓ |  |
 
 <!-- END GENERATED TABLES -->
 ```plaintext

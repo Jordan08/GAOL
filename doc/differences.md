@@ -182,6 +182,25 @@ Each change is a commit of its own, and says where it comes from.
   `cos()` are now within one double of the tightest up to 2^25, and kept
   within [-1, 1]. On an Intel i7-1185G7 (GCC 9.4), `sin()` takes 121 ns rather
   than 130.
+- **`atan2(y, x)`** is implemented, as the `atan2` of IEEE 1788-2015
+  (Table 9.1), defined on the plane but (0, 0) with values in (−π, π]
+  ([issue #2](https://github.com/Jordan08/GAOL/issues/2)). GAOL declared it,
+  and its parser read it, but it raised `unavailable_feature_error`.
+  - **Algorithm.** In each quadrant the angle is monotonic in y and in x: its
+    least and greatest values over a box are at two of its corners, which the
+    signs of the bounds give, and mathlib's `uatan2()`, correctly rounded, is
+    taken there and moved one double outward. With CRlibm, which has no
+    atan2, and with the math library of the system, the `atan2()` of the
+    libm is taken, moved outward as the hyperbolic functions are.
+  - **Special cases.** A box with points on the half-line y = 0, x < 0, where
+    the angle is π, and points below it, whose angles are next to −π, gives
+    `[-pi, pi]`; `atan2([0], [0])` is empty; a corner on an axis, on a
+    diagonal of the right half-plane or at an infinity gives 0, ±π/4, ±π/2
+    or π as the tightest bounds GAOL knows of them:
+    `atan2([1, +oo], [1, +oo])` is `[0, pi/2]`.
+  - **Time.** 100 ns on an Intel i7-1185G7 (GCC 9.4) for boxes within a
+    quadrant, against 68 ns for `atan()`.
+  The manual still says that it is not implemented.
 - **`exp(0)` = 1 and `log(1)` = 0 exactly**, the bounds of mathlib moved one
   double outward giving `exp([0])` and `log([1])` a width: `log([0, 1])` was
   `[-oo, 2^-1074]`, and `pow([1], [-oo, +oo])`, exp(y log 1), was `[0, +oo]`
@@ -267,9 +286,9 @@ Each change is a commit of its own, and says where it comes from.
     in the tests, and the continuous integration suppressed them
     (`.github/sanitizers/lsan.supp`, now removed).
   - **After an error.** The nodes left by a syntax error are freed too
-    (`%destructor`), and so are those of an expression whose exponent throws
-    (`1+pow(2, atan2(1, 1))`): the parser aborts, and `parse_interval()` throws
-    the exception again. `parse_interval()` also frees the lexer's buffer
+    (`%destructor`), and so are those of an expression whose exponent throws,
+    as `1+pow(2, atan2(1, 1))` did before `atan2()` was implemented: the
+    parser aborts, and `parse_interval()` throws the exception again. `parse_interval()` also frees the lexer's buffer
     whatever the parser throws.
   - **A crash.** The parser deleted the null node it gives `nth_root()` and
     `pow()` for an exponent it cannot use, which later expressions still

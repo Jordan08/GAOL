@@ -320,7 +320,8 @@ namespace
   {
     const char *const valid[] = { "sin(1)+cos(2)*2", "[-(1+2), exp(1)/3]", "(pi+1)*(pi-1)", "-[1,2]/tan(1)",
                                   "pow(2, 3)+pow(2, -2)+pow(2, 0)+pow(2, 0.5)", "nth_root(8, 3)+sqrt(4)",
-                                  "[cosh(1), sinh(2)+tanh(1)]", "<1+1, 2>", "[1,]+[,2]", "[-inf, log(2)]" };
+                                  "[cosh(1), sinh(2)+tanh(1)]", "<1+1, 2>", "[1,]+[,2]", "[-inf, log(2)]",
+                                  "1+pow(2, atan2(1,1))", "(1+2)*pow(1+2, atan2(1,1)+1)-3" };
     for (const char *s : valid) {
       const interval first(s);
       bool same = true;
@@ -333,8 +334,7 @@ namespace
     const char *const invalid[] = { "nth_root(8, 1.5)", "nth_root(8, 1.5)+1", "[nth_root(8, 1.5), 2]",
                                     "sin(1)+", "[sin(1), cos(", "(1+2", "[1, 2*(3+4]", "pow(2, 1)+*3",
                                     "<1, 2>", "exp(1) exp(2)", "nth_root([1,2], 1.5)",
-                                    "1+pow(2, atan2(1,1))", "(1+2)*pow(1+2, atan2(1,1)+1)-3",
-                                    "[1+nth_root(8, atan2(1,1)), 2]" };
+                                    "[1+nth_root(8, atan2(1,1)), 2]", "atan2(1)", "atan2(1, 2, 3)" };
     for (int i = 0; i < 10; ++i) {
       for (const char *s : invalid) {
         bool threw = false;
@@ -346,15 +346,14 @@ namespace
         check("interval(expression) not computed: an exception", threw, [&] { return std::string(s); });
       }
     }
-    // The exception thrown in the exponent of pow() goes through the parser
-    bool unavailable = false;
-    try {
-      interval x("1+pow(2, atan2(1,1))");
-    } catch (unavailable_feature_error&) {
-      unavailable = true;
-    } catch (...) {
-    }
-    check("interval(\"1+pow(2, atan2(1,1))\"): unavailable_feature_error", unavailable);
+    // atan2(y, x) in expressions: 4 atan2(1, 1) is the tightest enclosure of
+    // pi, and atan2(0, 0), which has no value, is empty
+    const interval four_angles("4*atan2(1, 1)"), none("atan2(0, 0)"), cut("atan2([-1, 1], -1)");
+    check("interval(\"4*atan2(1, 1)\"): the tightest enclosure of pi", four_angles.set_eq(interval::pi()),
+          [&] { return hex(four_angles); });
+    check("interval(\"atan2(0, 0)\"): empty", none.is_empty(), [&] { return hex(none); });
+    check("interval(\"atan2([-1, 1], -1)\"): [-pi, pi]", cut.left() == -interval::pi().right()
+          && cut.right() == interval::pi().right(), [&] { return hex(cut); });
     const interval r("1+2");
     check("interval(expression) after expressions not computed", r.left() == 3.0 && r.right() == 3.0,
           [&] { return hex(r); });

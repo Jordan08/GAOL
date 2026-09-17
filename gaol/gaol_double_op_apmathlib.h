@@ -213,6 +213,8 @@ namespace gaol {
     INLINE double asin_up(double d) { return next_float(uasin(d)); }
     INLINE double atan_dn(double d) { return previous_float(uatan(d)); }
     INLINE double atan_up(double d) { return next_float(uatan(d)); }
+    INLINE double atan2_dn(double y, double x) { return previous_float(uatan2(y,x)); }
+    INLINE double atan2_up(double y, double x) { return next_float(uatan2(y,x)); }
     INLINE double cosh_dn(double x) { return gaol_libm_dn(cosh(x)); } // From libm, not libultim
     INLINE double cosh_up(double x) { return gaol_libm_up(cosh(x)); } // From libm, not libultim
     INLINE double sinh_dn(double x) { return gaol_libm_dn(sinh(x)); } // From libm, not libultim

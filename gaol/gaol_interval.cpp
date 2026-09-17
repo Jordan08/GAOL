@@ -209,6 +209,47 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     return nearest::atan_up(x);
   }
 
+  /*
+    Bounds of atan2(y, x) at a point other than (0, 0) (fork of GAOL): 0, pi/2,
+    pi, their opposites and pi/4 where the angle is one of them, a bound being
+    an infinity included, where atan2 has that limit; the value of the
+    mathematical library moved outward elsewhere, within [-pi, pi]. The sign of
+    a zero does not count: atan2(0, x) is pi for x < 0.
+  */
+  static double atan2_lo(double y, double x)
+  {
+    if (y == 0.0 || x == GAOL_INFINITY) {
+      return (x > 0.0) ? 0.0 : pi_dn;
+    }
+    if (x == 0.0 || std::fabs(y) == GAOL_INFINITY) {
+      return (y > 0.0) ? half_pi_dn : -half_pi_up;
+    }
+    if (x == -GAOL_INFINITY) {
+      return (y > 0.0) ? pi_dn : -pi_up;
+    }
+    if (x == std::fabs(y)) {
+      return (y > 0.0) ? half_pi_dn*0.5 : -half_pi_up*0.5;
+    }
+    return maximum(nearest::atan2_dn(y,x), -pi_up);
+  }
+
+  static double atan2_hi(double y, double x)
+  {
+    if (y == 0.0 || x == GAOL_INFINITY) {
+      return (x > 0.0) ? 0.0 : pi_up;
+    }
+    if (x == 0.0 || std::fabs(y) == GAOL_INFINITY) {
+      return (y > 0.0) ? half_pi_up : -half_pi_dn;
+    }
+    if (x == -GAOL_INFINITY) {
+      return (y > 0.0) ? pi_up : -pi_dn;
+    }
+    if (x == std::fabs(y)) {
+      return (y > 0.0) ? half_pi_up*0.5 : -half_pi_dn*0.5;
+    }
+    return minimum(nearest::atan2_up(y,x), pi_up);
+  }
+
   static inline double sinh_lo(double x)
   {
     return (x == 0.0) ? 0.0 : ((x >= 711.0) ? std::numeric_limits<double>::max() : nearest::sinh_dn(x));
@@ -1112,10 +1153,45 @@ interval nth_root(const interval& I, unsigned int n)
     return interval(l,r);
   }
 
+  /*
+    atan2 of IEEE 1788-2015 (Table 9.1), defined on the plane but (0, 0), with
+    values in (-pi, pi] (fork of GAOL; GAOL raised unavailable_feature_error).
+    The angle of a point of the box Y x X is monotonic in y and in x in each
+    quadrant, and its extrema are at corners of the box, which the signs of the
+    bounds give. It jumps from pi to -pi across the half-line y = 0, x < 0: a
+    box with points on that half-line and points below it has angles next to
+    -pi and the angle pi, and [-pi, pi] is the hull of its angles.
+  */
   interval atan2(const interval& Y, const interval& X)
   {
-    gaol_ERROR(unavailable_feature_error,"atan2 not yet implemented");
-    return interval::emptyset();
+    if (Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+    if (yl == 0.0 && yu == 0.0 && xl == 0.0 && xu == 0.0) {
+      return interval::emptyset();
+    }
+    if (yl < 0.0 && yu >= 0.0 && xl < 0.0) {
+      return interval(-pi_up, pi_up);
+    }
+    double l, r;
+    GAOL_RND_NEAREST_ENTER();
+    if (yl >= 0.0) { // Upper half-plane: the angle decreases with x
+      // The least angle is at the right of the box, at the bottom if x > 0
+      // there and at the top otherwise, and the greatest at the left. The box
+      // {0} x [xl, 0] has no other corner there than (0, 0): its angle is pi,
+      // and that of {0} x [0, xu] is 0
+      l = atan2_lo((xu > 0.0) ? yl : yu, xu);
+      r = (xl == 0.0 && yu == 0.0) ? 0.0 : atan2_hi((xl >= 0.0) ? yu : yl, xl);
+    } else if (yu < 0.0) { // Lower half-plane, y = 0 left out: the angle increases with x
+      l = atan2_lo((xl >= 0.0) ? yl : yu, xl);
+      r = atan2_hi((xu > 0.0) ? yu : yl, xu);
+    } else { // yl < 0 <= yu, in the right half-plane
+      l = atan2_lo(yl, xl);
+      r = (yu == 0.0) ? ((xu == 0.0) ? -half_pi_dn : 0.0) : atan2_hi(yu, xl);
+    }
+    GAOL_RND_NEAREST_LEAVE();
+    return interval(l,r);
   }
 
   interval cosh(const interval& I)

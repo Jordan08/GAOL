@@ -140,11 +140,18 @@ namespace
         expect_close(name, r, v.below, v.above, describe);
       }
     }
-    // pow(), the only function of two intervals in the table: GAOL does not
-    // implement atan2(), which raises unavailable_feature_error
+    // The functions of two intervals: pow() and atan2()
     for (const BinaryValue& v : binary_values) {
       const std::string name = std::string(v.function) + "([a],[b])";
       const auto arguments = [&] { return std::string(v.function) + "(" + hex(v.a) + ", " + hex(v.b) + ")"; };
+      if (std::strcmp(v.function, "atan2") == 0) {
+        // The value of mathlib moved one double outward
+        const interval angle = evaluate(name, [&] { return atan2(interval(v.a), interval(v.b)); }, arguments);
+        expect_close(name, angle, v.below, v.above, [&] {
+          return arguments() + " = " + hex(angle) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
+        }, 1);
+        continue;
+      }
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
       // pow(a,b) = exp(b log(a)): the relative width of log(a), a few 2^-52,
       // is multiplied by b log(a) in exp()
@@ -162,6 +169,67 @@ namespace
       expect_within("pow([a],b)", "2^-49 max(1,|b log(a)|) relatively", rd, v.below, v.above, slack, [&] {
         return arguments() + " = " + hex(rd) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       });
+    }
+  }
+
+  // atan2 of IEEE 1788-2015 over boxes [yl, yu] x [xl, xu] in every position
+  // about the axes and the half-line y = 0, x < 0, where the angle jumps from
+  // pi to -pi, and at the boxes whose hull is known: those with infinite
+  // bounds, and those reduced to a piece of an axis
+  void atan2_of_boxes()
+  {
+    for (const Atan2Box& b : atan2_boxes) {
+      const interval Y(b.yl, b.yu), X(b.xl, b.xu);
+      const auto describe_box = [&] { return "atan2(" + hex(Y) + ", " + hex(X) + ")"; };
+      const interval r = evaluate("atan2([y],[x]) over boxes", [&] { return atan2(Y, X); }, describe_box);
+      const auto describe = [&] {
+        return describe_box() + " = " + hex(r) + ", the hull of the angles being within ["
+          + hex(b.least_below) + ", " + hex(b.greatest_above) + "]";
+      };
+      if (check("atan2([y],[x]) over boxes: encloses", !r.is_empty() && r.left() <= b.least_below
+                && r.right() >= b.greatest_above, describe)) {
+        // A bound that is a double (0) has to be it
+        const int distance = std::max((b.least_below == b.least_above) ? 2*doubles_between(r.left(), b.least_below)
+                                      : doubles_between(r.left(), b.least_below),
+                                      (b.greatest_below == b.greatest_above) ? 2*doubles_between(b.greatest_above, r.right())
+                                      : doubles_between(b.greatest_above, r.right()));
+        check_distance("atan2([y],[x]) over boxes", distance, 1, describe);
+      }
+    }
+
+    const interval pi = interval::pi(), half_pi = interval::half_pi();
+    const double oo = gaol_tests::inf;
+    const struct { const char *name; interval Y, X; double l, r; } known[] = {
+      { "atan2([0],[0])", interval(0.0), interval(0.0), 1.0, -1.0 },
+      { "atan2([empty],[1])", interval::emptyset(), interval(1.0), 1.0, -1.0 },
+      { "atan2([1],[empty])", interval(1.0), interval::emptyset(), 1.0, -1.0 },
+      { "atan2([0],[1,2])", interval(0.0), interval(1.0, 2.0), 0.0, 0.0 },
+      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi.left(), pi.right() },
+      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi.left(), pi.right() },
+      { "atan2([0],[0,2])", interval(0.0), interval(0.0, 2.0), 0.0, 0.0 },
+      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi.right() },
+      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
+      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
+      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi.right(), -half_pi.left() },
+      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi.right(), -half_pi.left() },
+      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi.right(), half_pi.right() },
+      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
+      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
+      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi.right()*0.5, 0.0 },
+      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi.right(), pi.right() },
+      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi.right() },
+      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi.left(), pi.right() },
+      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi.right(), -half_pi.left() },
+      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi.right(), 0.0 },
+      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi.right(), half_pi.right() },
+      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi.right() },
+      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi.left()*0.5, half_pi.right()*0.5 },
+      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi.right()*0.5, -half_pi.left()*0.5 },
+    };
+    for (const auto& k : known) {
+      const interval r = evaluate(k.name, [&] { return atan2(k.Y, k.X); }, [&] { return std::string(k.name); });
+      const bool ok = (k.l > k.r) ? r.is_empty() : (!r.is_empty() && r.left() == k.l && r.right() == k.r);
+      check(std::string(k.name) + ": the tightest bounds", ok, [&] { return hex(r); });
     }
   }
 
@@ -463,6 +531,7 @@ int main()
   at_doubles();
   at_intervals();
   at_known_intervals();
+  atan2_of_boxes();
   powers();
   const int status = summary();
   gaol::cleanup();

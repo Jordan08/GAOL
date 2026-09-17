@@ -188,6 +188,8 @@ namespace gaol {
     INLINE double asin_up(double d) { return round_up(asin(d)); }
     INLINE double atan_dn(double d) { return round_down(atan(d)); }
     INLINE double atan_up(double d) { return round_up(atan(d)); }
+    INLINE double atan2_dn(double y, double x) { return round_down(atan2(y,x)); }
+    INLINE double atan2_up(double y, double x) { return round_up(atan2(y,x)); }
     INLINE double cosh_dn(double x) { return round_down(cosh(x)); } // From libm, not libultim
     INLINE double cosh_up(double x) { return round_up(cosh(x)); } // From libm, not libultim
     INLINE double sinh_dn(double x) { return round_down(sinh(x)); } // From libm, not libultim
