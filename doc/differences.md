@@ -302,6 +302,24 @@ Each change is a commit of its own, and says where it comes from.
   the same code until it
   [removed that stage](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)
   in 2018.
+- **`#pragma STDC FENV_ACCESS ON` in mathlib's configuration**
+  (`cmake/mathlib/prepare.cmake`): the pragma of C99 (7.6.1) that tells the
+  compiler the code may be executed with a rounding direction other than the
+  default, and that it must not fold nor reorder its floating-point operations
+  as if the rounding were to nearest, is written at the end of
+  `src/mathlib_config.h`, which every source of mathlib includes. GAOL calls
+  mathlib with the rounding direction set to nearest and sets it back upward
+  afterwards, and mathlib is compiled with the flags of interval arithmetic:
+  the pragma states for the compiler what those flags ask of it. It comes from
+  the fork of mathlib by Fabrice Le Bars
+  ([commit](https://github.com/lebarsfa/mathlib/commit/5ac52c2bd817e44d33d4f9af6c1045d4b8577449)),
+  with the uppercase `ON` that macOS warns about in the lowercase. Clang 18
+  honours it, and the elementary functions of an interval took the same time
+  with it as without (exp, log, sin and cos within 0.8%, below the dispersion
+  of the measures); GCC 13 ignores it and gave a `libultim.a` identical byte
+  for byte; Visual C++ is given `/fp:strict`, which its documentation says
+  makes it behave as if `fenv_access(on)` were set, and reads the pragma for
+  Visual C++ rather than the one of C99, which it does not know.
 - **A mathlib found installed whose cosine of 2^52 − 1 is wrong** is refused by
   the three builds (see
   [Compilers and options refused](three-builds.md#compilers-and-options-refused)). A TODO of

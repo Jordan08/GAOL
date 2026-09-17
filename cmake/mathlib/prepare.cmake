@@ -128,3 +128,31 @@ endforeach()
 # fixed in his fork of mathlib
 # (https://github.com/lebarsfa/mathlib/commit/ad40312506d2297c75e3169816d1878b791d74a6).
 fix_source(src/sincos32.h "#define SINCCOS32_H" "#define SINCOS32_H")
+
+# The pragma of C99 (7.6.1) that tells the compiler the code may be executed
+# with a rounding direction other than the default, and that it must not fold
+# nor reorder its floating-point operations as if the rounding were to nearest,
+# is written at the end of src/mathlib_config.h, which every source of mathlib
+# includes. GAOL sets the rounding direction to nearest before calling mathlib
+# and back upward afterwards, and mathlib is compiled with the flags of
+# interval arithmetic: the pragma states for the compiler what those flags ask
+# of it, as Fabrice Le Bars does in his fork of mathlib
+# (https://github.com/lebarsfa/mathlib/commit/5ac52c2bd817e44d33d4f9af6c1045d4b8577449),
+# with the uppercase ON that macOS warns about in the lowercase.
+#
+# What the compilers do with it, measured here: Clang 18 honours it, and the
+# elementary functions of an interval took the same time with it as without
+# (exp, log, sin and cos within 0.8%, below the dispersion of the measures);
+# GCC 13 ignores it and gave a libultim.a identical byte for byte; Visual C++
+# is given /fp:strict, which its documentation says makes it behave as if
+# fenv_access(on) were set, and reads the pragma for Visual C++ rather than the
+# one of C99, which it does not know.
+fix_source(src/mathlib_config.h
+  "# include \"mathlib_configuration.h\"\n#endif"
+  "# include \"mathlib_configuration.h\"\n#endif
+
+#if defined(_MSC_VER)
+#   pragma fenv_access(on)
+#else
+#   pragma STDC FENV_ACCESS ON
+#endif")
