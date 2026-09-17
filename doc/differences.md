@@ -206,9 +206,43 @@ Each change is a commit of its own, and says where it comes from.
   2^-52 max(2, |x|): `sin([1e-10])` was 4.4e-16 wide, billions of doubles,
   `sin([1, 2])` two doubles wider than the tightest, and `sin()` was not
   accurate in the sense of IEEE 1788-2015 (12.10.1). The bounds of `sin()` and
-  `cos()` are now within one double of the tightest up to 2^25, and kept
-  within [-1, 1]. On an Intel i7-1185G7 (GCC 9.4), `sin()` takes 121 ns rather
-  than 130.
+  `cos()` are kept within [-1, 1]. On an Intel i7-1185G7 (GCC 9.4), `sin()`
+  takes 121 ns rather than 130.
+- **`sin()`, `cos()` and `tan()` are within one double of the tightest bounds
+  at every magnitude** (issue #6). The bounds divided by an enclosure of π only
+  tell on which pieces the interval lies while the quotients are not within
+  their rounding errors of an integer: a bound within about |x|·2^-52 of an
+  extremum was taken as reaching it, up to |x|²·2^-103 from the tightest bound,
+  `cos([2^60])` was `[-1, 1]`, and `tan()` gave `[-oo, +oo]` next to a pole, as
+  for the double below π/2, whose tangent is `0x1.9153d9443ed0bp+51`, and
+  beyond 2^52.
+  - **The signs of the derivative.** mathlib being correctly rounded, and no
+    double but 0 being a multiple of π/2 (the closest has a cosine of 4.7e-19),
+    the signs of its sine and cosine are the exact ones. For an interval
+    narrower than 2π, the derivative has at most two zeros within it: signs
+    that differ at the bounds show one extremum, a minimum or a maximum
+    according to their order; the same signs show none below the width π, and
+    none or two beyond, which the sign at the middle tells. For `tan()`,
+    narrower than π, a pole is within the interval exactly when the signs of
+    the cosine at the bounds differ.
+  - **Only where the quotients cannot tell.** The quotients rounded outward
+    still tell the intervals on one piece, and rounded inward those that hold
+    an extremum or a pole for sure: the signs are only asked for next to an
+    extremum or a pole, and at the large magnitudes. `cos([2^60])` is
+    `[-0x1.1d146047d6948p-1, -0x1.1d146047d6946p-1]`.
+  - **Time** (Intel i7-1185G7, GCC 9.4): unchanged in the benchmark of
+    `doc/compare` (114 ns for `cos()`, 113.5 for `sin()`); 125 ns rather than
+    121 for intervals holding an extremum, 67 rather than 62 for those holding
+    both; `tan()` of a narrow interval 143 ns rather than 150. At magnitudes
+    from 1e8 to 1e15, `cos()` of a narrow interval takes 250 ns rather than
+    224, and `tan()` 260 rather than 217, where they gave `[-1, 1]` and
+    `[-oo, +oo]` more often.
+  - **Tests.** `tests/elementary.cpp` requires one double at every magnitude,
+    rather than |x|²·2^-103 + 2^-51 beyond 2^25 for `sin()` and `cos()` and
+    2^-49·max(1, |x|)·(1 + tan²) for `tan()`, and checks 649 intervals for
+    each function: a few doubles around the doubles nearest to kπ/2, k up to
+    2^55, widths about π and 2π from one extremum to the next, and consecutive
+    doubles up to the largest.
 - **`atan2(y, x)`** is implemented, as the `atan2` of IEEE 1788-2015
   (Table 9.1), defined on the plane but (0, 0) with values in (−π, π]
   ([issue #2](https://github.com/Jordan08/GAOL/issues/2)). GAOL declared it,
