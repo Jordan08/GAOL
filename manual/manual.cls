@@ -11,6 +11,10 @@
 
 \RequirePackage{wrapfig}
 \RequirePackage[T1]{fontenc}
+%% Latin Modern, the outlines of Computer Modern in the T1 encoding: without
+%% them, nor the cm-super fonts the PDF of 2009 was made with, pdfTeX embeds
+%% bitmaps
+\RequirePackage{lmodern}
 \RequirePackage{textcomp}
 
 %\RequirePackage[document]{ragged2e}
@@ -40,7 +44,12 @@
 \RequirePackage{color}
 
 \RequirePackage[a4paper,textheight=23cm,left=2cm,marginparwidth=6cm,marginparsep=.4cm,right=.7cm,includemp=true,twoside]{geometry}
-\RequirePackage[citeonce(chapter)]{marginbib}
+%% The references in the margin were those of marginbib, a package of 2000
+%% that patches the output routine of LaTeX and stops with the LaTeX of today
+%% ("the output routine of LaTeX changed"). bibentry (with natbib, in every
+%% TeX distribution) prints the entry of a reference where asked: see
+%% \margincite below
+\RequirePackage{bibentry}
 
 \setlength{\wrapoverhang}{\marginparwidth}
 \addtolength{\wrapoverhang}{\marginparsep}
@@ -50,8 +59,34 @@
 %% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %% This package should come last in the list of "\RequirePackage"
 %% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%% hyperref redefines \@bibitem in a way bibentry cannot read the entries
+%% with ("Lonely \item"): the definition bibentry relies on is put back
+\let\manual@bibitem\@bibitem
 \RequirePackage[breaklinks=true,colorlinks=true]{hyperref}
+\let\@bibitem\manual@bibitem
 \RequirePackage{nameref}
+
+%% The commands of marginbib the manual uses:
+%%   \margincite[note]{keys}   cites the references, and prints each of them in
+%%                             the margin, once in a chapter;
+%%   \margincite*[note]{keys}  only cites them, where no note can go in the
+%%                             margin (in the minipage of a definition);
+%%   \marginnocite{keys}       only prints them in the margin, before such a
+%%                             definition.
+%% The list of the references is at the end of the manual (\bibliography),
+%% whose entries \nobibliography* gives bibentry.
+\newcommand*{\margincite}{\@ifstar{\@margincitemark}{\@margincite}}
+\newcommand*{\@margincitemark}[2][]{%
+  \def\@tempa{#1}%
+  \ifx\@tempa\@empty\cite{#2}\else\cite[#1]{#2}\fi}
+\newcommand*{\@margincite}[2][]{\@margincitemark[#1]{#2}\marginnocite{#2}}
+\newcommand*{\marginnocite}[1]{%
+  \@for\@marginkey:=#1\do{%
+    \@ifundefined{margincited@\thechapter @\@marginkey}{%
+      \expandafter\gdef\csname margincited@\thechapter @\@marginkey\endcsname{}%
+      \edef\@tempb{\noexpand\@marginreference{\@marginkey}}\@tempb}{}}}
+\newcommand*{\@marginreference}[1]{%
+  \marginpar{\raggedright\footnotesize\cite{#1}~\bibentry{#1}.}}
 
 %% Information in the margin
 \newcommand*{\important}{\marginpar[~\hfill\textcolor{red}{\huge\Stopsign}]{\textcolor{red}{\huge\Stopsign}}}
