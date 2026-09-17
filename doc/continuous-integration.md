@@ -35,6 +35,10 @@ rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and arm64
 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
 meson. The jobs built in Release print the time per operation in their summary.
 
+The manual is built from `manual/gaol.tex` with the LaTeX of Ubuntu 24.04, by
+the autotools and the meson builds, when `manual/` changes (`manual.yml`); the
+PDF is an artifact of the run.
+
 ## Configurations refused or left out, and why
 
 Each of these was built by the continuous integration at first, or asked for,
