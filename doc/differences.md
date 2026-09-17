@@ -227,7 +227,6 @@ Each change is a commit of its own, and says where it comes from.
     `atan2([1, +oo], [1, +oo])` is `[0, pi/2]`.
   - **Time.** 100 ns on an Intel i7-1185G7 (GCC 9.4) for boxes within a
     quadrant, against 68 ns for `atan()`.
-  The manual still says that it is not implemented.
 - **`exp(0)` = 1 and `log(1)` = 0 exactly**, the bounds of mathlib moved one
   double outward giving `exp([0])` and `log([1])` a width: `log([0, 1])` was
   `[-oo, 2^-1074]`, and `pow([1], [-oo, +oo])`, exp(y log 1), was `[0, +oo]`

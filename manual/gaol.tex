@@ -327,7 +327,8 @@ are supported by the current platform;
 \item \loption{with-mathlib=\var{(apmathlib|crlibm)}}. Specifies which mathematical library to use.
   The following libraries are currently supported.
 \begin{description}
- \item[\cmd{apmathlib}.] The IBM APMathlib library. This library must be installed and available before configuring \emph{gaol};
+ \item[\cmd{apmathlib}.] The IBM APMathlib library, whose sources are in \code{3rd/mathlib}: it is built and installed along with \emph{gaol},
+   unless \loption{with-mathlib-include} or \loption{with-mathlib-lib} says where an installed one is;
  \item[\cmd{crlibm}.] The \emph{Correcty Rounded Mathematical library} available at \url{http://lipforge.ens-lyon.fr/www/crlibm/}.
 	This library should be installed and available before configuring \emph{gaol}.
 \end{description}
@@ -1746,6 +1747,13 @@ both functional and relational versions of the main arithmetic operators.
   Returns the arctangent of \var{I}.
 \end{deffun}
 
+\begin{deffun}{interval}{atan2}{(const interval\& \var{Y}, const interval\& \var{X})}
+  Returns the hull of the angles in $(-\pi,\pi]$ of the points of ordinate in \var{Y} and abscissa
+  in \var{X}, the point $(0,0)$ left out, as the \code{atan2} of IEEE~1788-2015:
+  \code{atan2([0],[0])} is empty, and the result is $[-\pi,\pi]$ whenever the box holds points of the
+  half-line $y=0$, $x<0$, where the angle is $\pi$, and points below it, where it is next to $-\pi$.
+\end{deffun}
+
 \subsection{Hyperbolic functions}
 %%...............................
 
@@ -2321,9 +2329,6 @@ guaranteed to be correct.
 
 Expressions in bounds are evaluated using interval arithmetic; the left (resp. right)
 bound is then used, depending on the side it appeared in.
-
-Note that, as of version~\version, the \code{atan2} operator is not yet implemented for interval
-expressions.
 
 Contrary to constructors that take numeric constants as parameters, expressions such as \element{"inf"} or \element{"<-inf, -inf>"} lead to legitimate intervals (see the note Page~\pageref{par:inf_inf_note}).
 
