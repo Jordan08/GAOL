@@ -180,3 +180,58 @@ set(no_missing_braces "
 foreach(table uatan ulog utan)
   fix_source(src/${table}.tbl "#ifdef BIG_ENDI" "${no_missing_braces}#ifdef BIG_ENDI")
 endforeach()
+
+# Init_Lib() and Exit_Lib() of src/AARCH64_DPChange.c, which
+# mathlib_configuration.h.in chooses for every target. Init_Lib() restored the
+# default floating-point environment (FESETENV(FE_DFL_ENV)) and returned 0, and
+# Exit_Lib() did nothing: the rounding direction the caller had set was lost,
+# where the comment of Init_Lib() says its result is what Exit_Lib() takes to
+# restore it. It sets the rounding direction to nearest instead, which is what
+# mathlib's algorithms need, returns the one it found, and Exit_Lib() sets that
+# one back, as the fork of mathlib by Fabrice Le Bars does
+# (https://github.com/lebarsfa/mathlib,
+# https://github.com/lebarsfa/mathlib/commit/40c8a25ad855830db7688ef7dd32bb667ff0eb25);
+# the rest of the floating-point environment, whose exception flags and masks
+# FE_DFL_ENV also reset, is left as it is. Nothing is kept in the global
+# variables of the file, which no longer has any use for them: two threads
+# calling gaol::init() no longer write the same variables.
+#
+# GAOL restores the default floating-point environment and sets the rounding
+# direction upward right after calling Init_Lib() (gaol/gaol_common.cpp), which
+# left nothing of what Init_Lib() had done; but not when GAOL_PRESERVE_ROUNDING
+# is ON, where every operation restores the rounding direction it found and
+# gaol::init() has no reason to lose it.
+fix_source(src/AARCH64_DPChange.c
+"  FESETENV(FE_DFL_ENV); // round to nearest, all except. cleared, nonstop
+  return 0; // We do not try to save the fpu reg. before the call to Init_Lib()"
+"  /* The rounding direction found, which Exit_Lib() restores: as the comment
+     above says, in the two bits above the two of the precision mode, which is
+     not touched here (the doubles of 32-bit x86 are computed in SSE2). */
+  unsigned short round_control;
+  switch (fegetround()) {
+    case FE_DOWNWARD:   round_control = 0x01; break;
+    case FE_UPWARD:     round_control = 0x02; break;
+    case FE_TOWARDZERO: round_control = 0x03; break;
+    default:            round_control = 0x00; break; /* FE_TONEAREST */
+  }
+  fesetround(FE_TONEAREST); /* what mathlib's algorithms need */
+  return (unsigned short)(round_control << 2);")
+
+fix_source(src/AARCH64_DPChange.c
+"void Exit_Lib(unsigned short status)
+{
+#if HAVE_FENV_H
+  \treturn;"
+"void Exit_Lib(unsigned short status)
+{
+#if HAVE_FENV_H
+  /* The rounding direction Init_Lib() found, set again */
+  int round_mode;
+  switch ((status >> 2) & 0x03) {
+    case 0x01: round_mode = FE_DOWNWARD; break;
+    case 0x02: round_mode = FE_UPWARD; break;
+    case 0x03: round_mode = FE_TOWARDZERO; break;
+    default:   round_mode = FE_TONEAREST; break;
+  }
+  (void)fesetround(round_mode);
+  \treturn;")

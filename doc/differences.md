@@ -335,6 +335,37 @@ Each change is a commit of its own, and says where it comes from.
   as they are, and `src/atnat.c` compiles in 0.22 s with `-Wall`. The pragma
   changes no code: `libultim.a` is the same, byte for byte, with it and without
   it. GAOL does not compile mathlib with `-Wall`, and did not see them.
+- **`Init_Lib()` and `Exit_Lib()` of mathlib** (`cmake/mathlib/prepare.cmake`,
+  `cmake/mathlib/mathlib_configuration.h.in`): `Init_Lib()` sets the rounding
+  direction to nearest, which mathlib's algorithms need, returns the one it
+  found, and `Exit_Lib()` sets that one back, from the fork of mathlib by
+  Fabrice Le Bars
+  ([commit](https://github.com/lebarsfa/mathlib/commit/40c8a25ad855830db7688ef7dd32bb667ff0eb25)).
+  `src/AARCH64_DPChange.c`, which does it through `<fenv.h>` alone, is the
+  implementation chosen for every target: the ones mathlib's own build chooses
+  on x86_64 Linux, on Intel Macs and on 32-bit x86 save the control word of the
+  x87 unit in global variables, which two threads calling `gaol::init()` would
+  write at once, to set a precision that GAOL loses right after by restoring
+  the default floating-point environment, and that the doubles of 32-bit x86,
+  computed in SSE2, do not depend on.
+  - **Before.** `Init_Lib()` of `src/AARCH64_DPChange.c` restored the default
+    floating-point environment and returned 0, and `Exit_Lib()` did nothing,
+    where the comment of `Init_Lib()` says its result is what `Exit_Lib()` takes
+    to restore what it found. On x86_64 Linux, `src/LINUX64_DPChange.c` wrote
+    back the control word of the x87 unit alone: after `gaol::cleanup()`, the
+    x87 unit rounded to nearest again, as `fegetround()` reported, while the
+    SSE unit, which computes the doubles there, was left rounding upward.
+  - **Now.** Both are set back, on every target. The rest of the floating-point
+    environment, whose exception flags and masks `FE_DFL_ENV` also reset, is
+    left as it is; with `GAOL_PRESERVE_ROUNDING`, where `gaol::init()` does not
+    restore the default environment itself, the rounding direction of the caller
+    is no longer lost either.
+  - **Not taken.** The same version of that fork also sets the precision of the
+    x87 unit to 53 bits on 32-bit Windows (`_controlfp(_PC_53, _MCW_PC)`).
+    Windows sets it already, 32-bit Visual C++ computes doubles in SSE2, and
+    `Init_Lib()` is called once, outside everything GAOL times: measured with
+    Visual C++ 2022 and 2026, in x86 and in x64, it changed neither the bounds
+    nor the time of an operation.
 - **A mathlib found installed whose cosine of 2^52 − 1 is wrong** is refused by
   the three builds (see
   [Compilers and options refused](three-builds.md#compilers-and-options-refused)). A TODO of
