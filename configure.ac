@@ -38,8 +38,8 @@ AC_PREREQ(2.61)
 # set gaol_binary_age and gaol_interface_age to 0.
 # Version information for gaol
 m4_define([gaol_major_version], [4])
-m4_define([gaol_minor_version], [2])
-m4_define([gaol_micro_version], [3])
+m4_define([gaol_minor_version], [3])
+m4_define([gaol_micro_version], [0])
 m4_define([gaol_version], ["gaol_major_version.gaol_minor_version.gaol_micro_version"])
 m4_define([gaol_release], [gaol_major_version.gaol_minor_version])
 m4_define([gaol_interface_age], [0])

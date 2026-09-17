@@ -29,7 +29,7 @@
 
 cmake_minimum_required(VERSION 3.14...3.25)
 
-project(gaol VERSION 4.2.3 LANGUAGES C CXX)
+project(gaol VERSION 4.3.0 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
