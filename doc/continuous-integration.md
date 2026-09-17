@@ -72,7 +72,8 @@ change with its measures.
   - The numbers read from text: the C runtime of Windows and musl on 64-bit
     ARM round `strtod()` to nearest in every direction, and
     `interval("0.1")` did not enclose 1/10 there. Numbers are now read
-    exactly. The decimal output still relies on the C library
+    exactly, and intervals written in decimal are rounded outward by GAOL
+    rather than by the C library
     ([issue #3](https://github.com/Jordan08/GAOL/issues/3)).
   - `mid()` with Visual C++ (`/O2 /fp:strict`), which rewrote
     `(-.5)*x + y` into `y - .5*x`: `mid([2^-1074, MAX])` was wrong in the

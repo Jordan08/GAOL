@@ -54,7 +54,12 @@ Codac.
   (`nth_root(8, 1.5)`, `sin(1)+`, `1+pow(2, atan2(1,1))`...) have to throw,
   the exception of `atan2()` going through the parser. Built with
   LeakSanitizer, the tests check that the parser frees the nodes of all of
-  them.
+  them. The intervals written in decimal (`interval_format::bounds`), in the
+  general, scientific and fixed formats with 1 to 20 digits, have to enclose
+  the intervals, each bound less than one unit of its last digit away, near
+  the powers of ten too, where a digit moved outward changes the exponent;
+  read back, they have to enclose the intervals written. In hexadecimal, the
+  bits of the bounds have to be written.
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   when GAOL is built with the float intervals), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
@@ -82,7 +87,3 @@ What they show of GAOL, beyond the fixes below:
   interval enclosing π/2 to its argument to tell its branch, and gives
   [-oo, +oo] when it cannot. (See [Accuracy of the operations](accuracy.md).)
 - `pow(x, y)` is `exp(y log x)`, whose relative width grows with `|y log x|`.
-- The decimal output of intervals (`interval_format::bounds`) relies on the C
-  library to round the bounds outward, which the C runtime of Windows and musl
-  on 64-bit ARM processors do not do. The hexadecimal format
-  (`interval_format::hexa`) gives the bounds exactly.

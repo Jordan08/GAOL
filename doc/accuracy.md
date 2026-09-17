@@ -145,7 +145,7 @@ provided.
 | `equal`, `subset`, `interior`, `disjoint` | `set_eq`, `set_contains` and `set_leq`, `set_strictly_contains` and `set_le`, `set_disjoint` | Of the bounds, as Tables 10.3 and 10.4 | exact | exact |
 | `precedes`, `strictPrecedes` | `certainly_leq`, `certainly_le` (and `certainly_geq`, `certainly_ge`) | Of the bounds, true when an interval is empty | exact | exact |
 | `isEntire`, `isCommonInterval`, `less`, `strictLess` | — | Not provided | | |
-| `intervalToText` | `operator<<` | Hexadecimal format: the bits of the bounds. Decimal formats: the bounds printed by the C library, the rounding direction set outward, which the C runtime of Windows and musl on 64-bit ARM processors ignore | hexadecimal: exact; decimal: valid where the C library rounds as asked | hexadecimal: exact |
+| `intervalToText` | `operator<<` | Hexadecimal format: the bits of the bounds. Decimal formats: each bound written to nearest by the C library with the digits asked for, compared exactly with the bound, and its last digit moved outward when it is on the wrong side | hexadecimal: exact; decimal: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should | hexadecimal: exact; decimal: less than one unit of the last digit |
 
 ## With CRlibm or the math library of the system
 

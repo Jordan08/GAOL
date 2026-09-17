@@ -38,6 +38,8 @@
 #include <cmath>
 #include <string>
 #include <cerrno>
+#include <locale>
+#include <cstdlib>
 #include <sstream>
 
 #if USING_SSE2_INSTRUCTIONS
@@ -368,27 +370,171 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     return is;
   }
 
+  // Defined in gaol_interval_lexer.lpp: the sign of v - x, v being the number s
+  // writes, with no sign, compared exactly with the double x
+  int compare_number_with_double(const char *s, double x);
+
+  /*
+    Moves the last digit of text by one unit, away from zero or toward it,
+    until the number it writes is on the side of the double `magnitude` asked
+    for: at least it if `away`, at most it otherwise. text is a positive
+    number written to nearest in the fixed format, or in the scientific one if
+    `scientific`: one digit, the others after a point, and an exponent with
+    its sign.
+  */
+  void move_to_side(std::string& text, double magnitude, bool away, bool scientific)
+  {
+    for (int moves = 0; moves < 4; ++moves) {
+      const std::size_t last = scientific ? text.find_first_of("eE") : text.size(); // One past the mantissa
+      const int sign = compare_number_with_double(text.c_str(), magnitude);
+      if (sign == 0 || (sign > 0) == away) {
+        return;
+      }
+      std::size_t i = last;
+      bool carry = true;
+      while (carry && i > 0) {
+        --i;
+        if (text[i] == '.') {
+          continue;
+        }
+        if (away) {
+          carry = (text[i] == '9');
+          text[i] = carry ? '0' : static_cast<char>(text[i] + 1);
+        } else {
+          carry = (text[i] == '0');
+          text[i] = carry ? '9' : static_cast<char>(text[i] - 1);
+        }
+      }
+      int exponent_move = 0;
+      if (away && carry) {
+        // 9.99 has become 0.00: 1.00 with the next exponent, or 10.00
+        if (scientific) {
+          text[0] = '1';
+          exponent_move = 1;
+        } else {
+          text.insert(0, 1, '1');
+        }
+      } else if (!away && scientific && text[0] == '0') {
+        // 1.00 has become 0.99: 9.99 with the previous exponent, which is
+        // below the magnitude as well, 1.00 being it rounded to nearest
+        text[0] = '9';
+        exponent_move = -1;
+      } else if (!away && text[0] == '0' && text.size() > 1 && text[1] != '.') {
+        text.erase(0, 1); // 0999.99
+      }
+      if (exponent_move != 0) {
+        const long e = std::strtol(text.c_str() + last + 1, NULL, 10) + exponent_move;
+        std::ostringstream exponent;
+        exponent << ((e < 0) ? '-' : '+') << std::setw(2) << std::setfill('0') << ((e < 0) ? -e : e);
+        text.replace(last + 1, std::string::npos, exponent.str());
+      }
+    }
+  }
+
+  /*
+    The text of the bound x of an interval, written as os would write it (its
+    precision, its flags), and rounded downward, or upward if `upward`,
+    whatever the C library does. GAOL set the rounding direction and let the C
+    library write x, but not every C library rounds its decimal conversions in
+    the rounding direction: the C runtime of Windows rounds the magnitude, so
+    that -2/3 rounded downward was written -0.6666, and musl on 64-bit ARM
+    processors rounds to nearest whatever the direction (issue #3). The
+    magnitude is now written rounding to nearest, in the fixed format or in
+    the scientific one, and compared exactly with x: when it is on the wrong
+    side of x, its last digit is moved by one. The general format is made from
+    the scientific one, by the rules of printf's %g, rather than asked of the
+    C library: glibc 2.31 writes 999999.5 with six digits and the zeros kept
+    "1.e+06", whose last digit is not the sixth.
+    Left to the C library, with the rounding direction set: what is not a
+    finite nonzero number, and the hexadecimal floating-point format.
+  */
+  std::string bound_to_text(double x, bool upward, const ostream& os)
+  {
+    const std::ios_base::fmtflags floatfield = os.flags() & std::ios_base::floatfield;
+    if (x == 0.0 || !is_finite(x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
+      std::ostringstream as_it_was;
+      as_it_was.copyfmt(os);
+      as_it_was.width(0);
+      if (!upward) {
+        round_downward();
+      }
+      as_it_was << x;
+      round_upward();
+      return as_it_was.str();
+    }
+
+    const bool fixed = (floatfield == std::ios_base::fixed);
+    const bool general = (floatfield == 0);
+    // %g takes a precision of 0 as 1, and writes that many significant digits
+    const std::streamsize digits = (general && os.precision() <= 0) ? 1 : os.precision();
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out.setf(fixed ? std::ios_base::fixed : std::ios_base::scientific, std::ios_base::floatfield);
+    out.precision(general ? digits - 1 : digits);
+    const double magnitude = std::fabs(x);
+    round_nearest();
+    out << magnitude;
+    round_upward();
+    std::string text = out.str();
+    // The magnitude written has to be at least that of x when rounding away
+    // from zero, and at most that of x otherwise
+    move_to_side(text, magnitude, upward == (x > 0.0), !fixed);
+
+    if (general) {
+      // d.ddde+XX as %g writes it: without an exponent when XX is from -4 to
+      // the precision, and without the zeros ending its fractional part,
+      // unless showpoint
+      const std::size_t e = text.find('e');
+      const long exponent = std::strtol(text.c_str() + e + 1, NULL, 10);
+      std::string mantissa = text.substr(0, e);
+      mantissa.erase(1, (mantissa.size() > 1) ? 1 : 0); // The digits
+      std::string tail;
+      if (exponent < -4 || exponent >= digits) {
+        tail = text.substr(e);
+        mantissa.insert(1, 1, '.');
+      } else if (exponent >= 0) {
+        mantissa.insert(static_cast<std::size_t>(exponent) + 1, 1, '.');
+      } else {
+        mantissa.insert(0, "0." + std::string(static_cast<std::size_t>(-exponent - 1), '0'));
+      }
+      if (!(os.flags() & std::ios_base::showpoint)) {
+        mantissa.erase(mantissa.find_last_not_of('0') + 1);
+        if (mantissa[mantissa.size() - 1] == '.') {
+          mantissa.erase(mantissa.size() - 1);
+        }
+      }
+      text = mantissa + tail;
+    } else if (os.precision() == 0 && (os.flags() & std::ios_base::showpoint)) {
+      text.insert(fixed ? text.size() : text.find('e'), 1, '.');
+    }
+
+    const char point = std::use_facet<std::numpunct<char> >(os.getloc()).decimal_point();
+    for (std::size_t i = 0; i < text.size(); ++i) {
+      if (text[i] == '.') {
+        text[i] = point;
+      } else if (text[i] == 'e' && (os.flags() & std::ios_base::uppercase)) {
+        text[i] = 'E';
+      }
+    }
+    if (x < 0.0) {
+      text.insert(0, 1, '-');
+    } else if (os.flags() & std::ios_base::showpos) {
+      text.insert(0, 1, '+');
+    }
+    return text;
+  }
+
   void display_bounds(double l, double r, ostream& os)
   {
     if (!(l <= r)) {
       os << "[empty]";
     } else {
+      const std::string left = bound_to_text(l, false, os);
+      const std::string right = bound_to_text(r, true, os);
       if (l == r) {
-				round_downward();
-				os << '<';
-				os << l; //dtoa_downward(l,os);
-				os << ", ";
-				round_upward();
-				os << r; //dtoa_upward(l,os);
-				os << '>';
+				os << '<' << left << ", " << right << '>';
       } else {
-				os << '[';
-				round_downward();
-				os << l; //dtoa_downward(l,os);
-				os << ", ";
-				round_upward();
-				os << r; //dtoa_upward(r,os);
-				os << ']';
+				os << '[' << left << ", " << right << ']';
       }
     }
   }
@@ -485,11 +631,10 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 	  			lbound.precision(interval::precision());
 	  			rbound.precision(interval::precision());
 
-				  round_downward();
-	  			lbound << std::showpoint << I.left();
-
-				  round_upward();
-	  			rbound << std::showpoint << I.right();
+	  			lbound << std::showpoint;
+	  			rbound << std::showpoint;
+	  			lbound << bound_to_text(I.left(), false, lbound);
+	  			rbound << bound_to_text(I.right(), true, rbound);
 
 				  unsigned int i = 0;
 	  			while (lbound.str()[i] == rbound.str()[i]) {

@@ -382,6 +382,107 @@ namespace
     }
     interval::format(saved);
   }
+
+  // The exact value of the bound s that operator<< wrote, with its sign
+  Exact written(const std::string& s)
+  {
+    return (s[0] == '-') ? -decimal(s.substr(1)) : decimal(s[0] == '+' ? s.substr(1) : s);
+  }
+
+  // The interval [l, r] written by operator<< with the flags and the precision
+  // given has to enclose [l, r], whatever the C library does of the rounding
+  // direction in its decimal conversions (issue #3), and each bound has to be
+  // less than one unit of its last digit away: 10^-precision in the fixed
+  // format, 10^-precision times the power of ten written in the scientific
+  // one, and at most 10^(1 - precision) times the bound in the general one
+  void expect_output(const std::string& name, double l, double r, std::ios_base::fmtflags flags, int precision)
+  {
+    std::ostringstream os;
+    os.flags(flags);
+    interval::precision(precision);
+    os << interval(l, r);
+    const std::string s = os.str();
+    const std::size_t comma = s.find(", ");
+    const auto describe = [&] { return hex(interval(l, r)) + " with the precision " + std::to_string(precision) + " written " + s; };
+    if (!check(name + ": two bounds", comma != std::string::npos && s.size() >= comma + 4, describe)) {
+      return;
+    }
+    const std::string sl = s.substr(1, comma - 1), sr = s.substr(comma + 2, s.size() - comma - 3);
+    const Exact vl = written(sl), vr = written(sr);
+    check(name + ": encloses the interval", compare(l, vl) >= 0 && compare(r, vr) <= 0, describe);
+
+    const std::ios_base::fmtflags floatfield = flags & std::ios_base::floatfield;
+    const std::string bounds[2] = { sl, sr };
+    const Exact values[2] = { vl, vr };
+    const double doubles[2] = { l, r };
+    for (int i = 0; i < 2; ++i) {
+      Exact unit = decimal("1e-" + std::to_string(precision));
+      if (floatfield == std::ios_base::scientific) {
+        unit = unit*decimal("1" + bounds[i].substr(bounds[i].find('e')));
+      } else if (floatfield != std::ios_base::fixed) {
+        const Exact magnitude = (compare(doubles[i], exact(0.0)) < 0) ? -exact(doubles[i]) : exact(doubles[i]);
+        unit = magnitude*decimal("1e" + std::to_string(1 - precision));
+      }
+      // vl + unit > l, and vr - unit < r
+      const bool tight = (doubles[i] == 0.0) ? compare(0.0, values[i]) == 0
+                         : ((i == 0) ? compare(l, vl + unit) < 0 : compare(r, vr + (-unit)) > 0);
+      check(name + ": less than one unit of the last digit away", tight, describe);
+    }
+  }
+
+  void decimal_output()
+  {
+    const interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    interval::format(interval_format::bounds);
+    const std::ios_base::fmtflags general = std::ios_base::fmtflags(), scientific = std::ios_base::scientific,
+      fixed = std::ios_base::fixed, showpoint = std::ios_base::showpoint;
+    const int precisions[] = { 1, 2, 4, 6, 15, 16, 17, 20 };
+
+    // Bounds a unit of the last digit from a power of ten, where a digit moved
+    // outward changes the number of digits or the exponent, and those of the
+    // issue
+    const double special[] = {
+      2.0/3.0, 123456.789, 0.1, 0.3, 1.0, 10.0, 1e6, 1e-5, 0.5, 9.5, 0.95, 99.5, 999999.5, 999999.7, 1000000.3,
+      9.9999995, 0.99999996, 0.000999999997, 0.0001, 0.00010000001, 99999.97, 1e22, 1e23, 9.999999999999999e22,
+      0x1.fffffffffffffp-1, 0x1.0000000000001p+0, 0x1.fffffffffffffp+1023, 0x1p-1022, 0x0.0000000000001p-1022,
+      123456789012345678.0, 0.001, 0.00099999999999999, 5e-324, 1.5, 2.5, 1e15, 1e16, 1e17, 9999999999999998.0,
+    };
+    for (double x : special) {
+      for (int p : precisions) {
+        for (std::ios_base::fmtflags flags : { general, general | showpoint, scientific, fixed }) {
+          if (flags == fixed && (std::fabs(x) > 1e30 || std::fabs(x) < 1e-30)) {
+            continue; // Hundreds of digits
+          }
+          expect_output("operator<< in decimal, near powers of ten", x, x, flags, p);
+          expect_output("operator<< in decimal, near powers of ten", -x, -x, flags, p);
+          expect_output("operator<< in decimal, near powers of ten", -x, x, flags, p);
+        }
+      }
+    }
+
+    Random random;
+    for (int i = 0; i < nb_random_values; ++i) {
+      const interval x = hull(random.any(), random.any());
+      const double a = random.uniform(-1000.0, 1000.0), b = random.uniform(-1.0, 1.0);
+      const interval y = hull(a, b);
+      const int p = precisions[i % 8];
+      expect_output("operator<< in decimal, general format", x.left(), x.right(), (i % 2 == 0) ? general : general | showpoint, p);
+      expect_output("operator<< in decimal, general format", y.left(), y.right(), general, p);
+      expect_output("operator<< in decimal, scientific format", x.left(), x.right(), scientific, p);
+      expect_output("operator<< in decimal, scientific format", y.left(), y.right(), scientific, p);
+      expect_output("operator<< in decimal, fixed format", y.left(), y.right(), fixed, p);
+      // What is written is read back as an interval enclosing the one written
+      std::ostringstream os;
+      interval::precision(p);
+      os << y;
+      const interval back(os.str().c_str());
+      check("interval(text written by operator<<): encloses the interval", back.set_contains(y),
+            [&] { return hex(y) + " written " + os.str() + " read " + hex(back); });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+  }
 }
 
 int main()
@@ -393,6 +494,7 @@ int main()
   ieee_literals();
   expressions();
   hexadecimal_output();
+  decimal_output();
   const int status = summary();
   gaol::cleanup();
   return status;

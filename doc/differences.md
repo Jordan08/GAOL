@@ -122,6 +122,23 @@ Each change is a commit of its own, and says where it comes from.
   The C runtime of Windows and musl on 64-bit ARM processors round to nearest in
   every direction and raise no flag, so `interval("0.1")` did not enclose 1/10
   there. Each number is now compared exactly with the doubles around it.
+- **Intervals are written in decimal rounded outward**, whatever the C
+  library ([issue #3](https://github.com/Jordan08/GAOL/issues/3)).
+  - **Before.** `operator<<` set the rounding direction downward, then upward,
+    and let the C library write each bound (formats `bounds` and `agreeing`).
+    The C runtime of Windows rounds the magnitude, and wrote -2/3 rounded
+    downward `-0.6666`; musl on 64-bit ARM processors rounds to nearest
+    whatever the direction, and wrote `1.235e+05` for the lower bound of
+    123456.789. Read back, such a text did not enclose the interval written.
+  - **Now.** The magnitude of each bound is written rounding to nearest,
+    compared exactly with the bound, as the numbers read are, and its last
+    digit is moved by one when it is on the wrong side. The general format is
+    made from the scientific one by the rules of `%g`, glibc 2.31 writing
+    999999.5 with six digits and `showpoint` `1.e+06`. The flags, the
+    precision and the decimal point of the stream are kept.
+  - **Same text with glibc**, which rounds as asked: 1077546 bounds written
+    in the general, scientific and fixed formats with 1 to 18 digits were the
+    same, character for character.
 - **Hyperbolic functions:** the values GAOL takes from the libm of the system
   are moved three floats outward rather than one. The libms of glibc 2.31, musl
   and MinGW-w64 are sometimes a float further, which gave bounds not enclosing
