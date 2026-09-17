@@ -37,7 +37,7 @@ Codac.
   near 1. sin and cos have to be within one
   double of the tightest bounds up to 2^25, `sin([1e-10])` included. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
-- **`rounding_direction`:** about 95 operations of GAOL's interface, called
+- **`rounding_direction`:** about 100 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
@@ -55,8 +55,8 @@ Codac.
   the exception of `atan2()` going through the parser. Built with
   LeakSanitizer, the tests check that the parser frees the nodes of all of
   them.
-- **`other_functions`:** midpoints (of subnormal bounds and of `intervalf`
-  too), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
+- **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
+  when GAOL is built with the float intervals), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
@@ -86,5 +86,3 @@ What they show of GAOL, beyond the fixes below:
   library to round the bounds outward, which the C runtime of Windows and musl
   on 64-bit ARM processors do not do. The hexadecimal format
   (`interval_format::hexa`) gives the bounds exactly.
-- GAOL's parser does not free the nodes of the expressions it reads, a few dozen
-  bytes for each `interval("...")`.

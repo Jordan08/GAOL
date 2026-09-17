@@ -14,10 +14,13 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
   which GAOL compiles without warnings, `-Wsign-conversion` of Clang included;
 - with the flags of interval arithmetic of [Using GAOL](using.md);
-- on x86 processors, the intervals are computed with SSE2 instructions and
-  `gaol::interval2f` with SSE3, except with Visual C++ and on 32-bit Windows,
-  where a `std::vector` of SSE2 intervals crashes: GCC takes the memory of
-  `new` to be aligned on 16 bytes there, while the C runtime aligns it on 8;
+- on x86 processors, the intervals are computed with SSE2 instructions
+  (`-msse2 -msse3`), except with Visual C++ and on 32-bit Windows, where a
+  `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
+  aligned on 16 bytes there, while the C runtime aligns it on 8;
+- without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
+  (SSE3), unfinished, which `GAOL_FLOAT_INTERVALS`
+  (`--enable-float-intervals`, `-Denable-float-intervals=true`) compiles;
 - with mathlib, exceptions, the "certainly" relations, GAOL's assembly
   (`GAOL_USING_ASM`), the rounding direction left upward, and silent: no line
   on the standard error when GAOL initializes and cleans up, unless

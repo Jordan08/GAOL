@@ -433,12 +433,24 @@ Each change is a commit of its own, and says where it comes from.
   GAOL wrote into it. 2^-60 is now a literal, and the tests pass so. Built
   without `/fp:strict` everywhere, they passed too, but Visual C++ then assumes
   rounding to nearest, and nothing certifies the bounds.
+- **The intervals of floats are compiled only when asked**, with
+  `GAOL_FLOAT_INTERVALS` (`--enable-float-intervals`,
+  `-Denable-float-intervals=true`), off by default in the three builds:
+  `gaol::intervalf`, intervals of floats computed on the x87 unit, and
+  `gaol::interval2f`, two of them in an SSE3 register, were compiled and
+  installed by every build, and `gaol/gaol` included their headers. Neither
+  IBEX nor Codac uses them, the manual leaves them undocumented, and they are
+  unfinished: `sqrt(intervalf)` returns its argument, `interval2f::inverse()`
+  aborts, and `pow(interval2f, int)` does not handle the empty set. Without
+  the option, their sources are not compiled, their headers are neither
+  installed nor included, and their check programs are not built.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
 - **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
-  which it did not compile on Linux, and installs `gaol/gaol_interval2f.h` and
-  the headers for MinGW and Visual C++, as configure now does too. Both install
+  which it did not compile on Linux, and installs the headers for MinGW and
+  Visual C++, as configure now does too (and `gaol/gaol_interval2f.h`, which
+  it left out, with the intervals of floats). Both install
   a `gaol.pc` carrying the flags of interval arithmetic, and meson takes
   `with-mathlib-include` and `with-mathlib-lib` as configure does.
 - **mathlib is in the sources** (`3rd/mathlib`, see

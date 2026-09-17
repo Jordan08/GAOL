@@ -41,7 +41,8 @@ static. The build type is Release unless another is given.
 | `GAOL_FIND_MATHLIB` | `OFF`; `ON` with `MATHLIB_DIR` | Use an installed mathlib, under `MATHLIB_DIR` or in the usual paths, rather than the one of `3rd/mathlib` |
 | `GAOL_BUILD_MATHLIB` | `ON` | Build the mathlib of `3rd/mathlib` when no installed mathlib is used; `OFF`, with `GAOL_FIND_MATHLIB` `OFF`, leaves mathlib to the code linking GAOL |
 | `GAOL_BUILD_TESTS` | `OFF` | Build the tests of `tests/`, which `ctest` runs; no build compiles tests by default |
-| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors, and `gaol::interval2f` with SSE3 (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
+| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
+| `GAOL_FLOAT_INTERVALS` | `OFF` | Compile the intervals of floats, `gaol::intervalf`, and `gaol::interval2f` where `GAOL_SIMD` gives SSE3: both are unfinished, and neither IBEX nor Codac uses them |
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
@@ -73,7 +74,8 @@ dates of the checkout. The options, with their defaults:
 | `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where the header and the library of an installed mathlib are, given to use it rather than the one of `3rd/mathlib`; for CRlibm, when not in the usual paths |
 | `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`; `--disable-optimize` compiles with `-O` |
 | `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
-| `--enable-simd` | `yes` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
+| `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
+| `--enable-float-intervals` | `no` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
 | `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
@@ -84,13 +86,15 @@ dates of the checkout. The options, with their defaults:
 With `--with-mathlib=m` (`-Dwith-mathlib=default` for meson), GAOL computes its
 elementary functions with the math library of the system, whose results it
 widens slightly, and configure and meson warn that the bounds are not
-certified. Built so with glibc 2.31 on x86-64, 11 of the 2993 checks of
-`elementary` gave bounds not enclosing the exact values, near the overflow of
-`exp`, `sinh` and `cosh`; 1144 of the checks of `other_functions` failed,
-`acos_rel`, `asin_rel` and `atan_rel` not containing the values they had to;
-and 630 checks of `rounding_direction`, the elementary functions, `pow` and
-`nth_root` leaving the rounding direction to nearest. mathlib, the default of
-every build, and CRlibm give certified bounds.
+certified. Built so with glibc 2.31 on x86-64, 202 of the 3108 checks of
+`elementary` fail: 10 give bounds not enclosing the exact values (NaN bounds
+at the overflow of `exp`, `sinh` and `cosh`, and `log([0, 1])` and
+`atanh([-1, 1])` stopping at -MAX rather than -oo), and the others bounds
+further from the tightest than the tests allow, `sin` and `cos` being up to 4
+doubles away where the tests want one; 960 of the checks of `other_functions`
+fail, `acos_rel`, `asin_rel` and `atan_rel` keeping the values they had to
+but being further than 2^-49 from them. The checks of `arithmetic`, `numbers` and `rounding_direction`
+pass. mathlib, the default of every build, and CRlibm give certified bounds.
 
 ## With meson
 
@@ -103,7 +107,8 @@ meson install -C build
 meson builds the mathlib of `3rd/mathlib` (`3rd/mathlib/meson.build`) and
 installs it along with GAOL, unless `with-mathlib-include` or
 `with-mathlib-lib` says where an installed mathlib is, as for autotools above.
-The options
+`meson compile` needs meson 0.54; with an older one, as the meson 0.53 of
+Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 (`-D<option>=<value>`), with their defaults:
 
 | Option | Default | |
@@ -113,7 +118,8 @@ The options
 | `with-mathlib-include`, `with-mathlib-lib` | | Where the header and the library of an installed mathlib are, as with configure |
 | `enable-optimize` | `true` | `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as configure |
 | `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
-| `enable-simd` | `true` | The SSE2 intervals and `gaol::interval2f` on x86 processors, as `GAOL_SIMD` |
+| `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
+| `enable-float-intervals` | `false` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
 | `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
