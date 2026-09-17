@@ -515,6 +515,9 @@ set(GAOL_SOURCES
   gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   s_nextafter.c gaol_interval_lexer.cpp
   gaol_interval_parser.cpp
+  # The hyperbolic functions of CORE-MATH (gaol/gaol_core_math.h)
+  core_math_sinh.c core_math_cosh.c core_math_tanh.c
+  core_math_asinh.c core_math_acosh.c core_math_atanh.c
 )
 if(GAOL_FLOAT_INTERVALS)
   list(APPEND GAOL_SOURCES gaol_intervalf.cpp)
@@ -569,6 +572,8 @@ install(TARGETS gaol EXPORT gaolTargets
 # GAOL's headers, including those gaol/gaol_config.h includes for Visual C++
 # and MinGW, which gaol/meson.build does not install
 file(GLOB GAOL_HEADERS gaol/*.h)
+# What CORE-MATH's sources need to compile within GAOL, and nothing else does
+list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
 if(NOT GAOL_FLOAT_INTERVALS)
   list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")

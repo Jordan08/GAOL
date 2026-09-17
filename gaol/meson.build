@@ -92,6 +92,13 @@ gaol_SOURCES += [
   'gaol_init_cleanup.cpp',
   's_nextafter.c',
   'gaol_exact.c',
+  # The hyperbolic functions of CORE-MATH (gaol_core_math.h)
+  'core_math_sinh.c',
+  'core_math_cosh.c',
+  'core_math_tanh.c',
+  'core_math_asinh.c',
+  'core_math_acosh.c',
+  'core_math_atanh.c',
 ]
 gaol_SOURCES += FLOAT_INTERVALS_SOURCE
 foreach f : lexer_files
@@ -110,6 +117,7 @@ gaol_HEADERS += [
   'gaol',
   'gaol_assert.h',
   'gaol_exact.h',
+  'gaol_core_math.h',
   'gaol_interval.h',
   'gaol_common.h',
   'gaol_exceptions.h',
