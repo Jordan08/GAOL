@@ -37,14 +37,25 @@ else
   )
 endif
 
+# The manual, gaol.pdf: meson compile -C <build directory> pdf (build-pdf.sh).
+# Its edition and date are those of configure.ac (GAOL_EDITION, GAOL_UPDATED)
 pdflatex = find_program('pdflatex', required: false)
-if pdflatex.found()
-  # TODO
-  # pdf_target = custom_target('pdf-gaol-docs',
-  #   build_by_default: false,
-  #   input: doxyfile,
-  #   output: 'pdf',
-  #   command: [pdflatex, ''],
-  #   install: true,
-  #   install_dir: datadir)
+bibtex = find_program('bibtex', required: false)
+makeindex = find_program('makeindex', required: false)
+if pdflatex.found() and bibtex.found() and makeindex.found()
+  version_data = configuration_data()
+  version_data.set('GAOL_EDITION', '4.6')
+  version_data.set('GAOL_UPDATED', '18 September 2026')
+  version_data.set('GAOL_VERSION', meson.project_version())
+  configure_file(
+    input: 'gaol_version.tex.in',
+    output: 'gaol_version.tex',
+    configuration: version_data,
+  )
+  run_target(
+    'pdf',
+    command: [find_program('sh'), files('build-pdf.sh'), meson.current_source_dir(), meson.current_build_dir()],
+  )
+else
+  warning('pdflatex, bibtex or makeindex not found: the manual cannot be built')
 endif
