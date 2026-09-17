@@ -13,7 +13,10 @@ installs it along with GAOL, unless told to use a mathlib installed already.
 The CMake build is the one to use; the autotools and meson builds of GAOL are
 kept for those who use them. The math library of the system (`-lm`) needs no
 installation. The autotools and meson builds can also build GAOL with
-[CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`).
+[CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`), which
+`sh scripts/install-crlibm.sh <prefix>` builds and installs; GAOL's headers
+then include `crlibm.h`, whose directory `gaol.pc` carries when
+`with-mathlib-include` gives it.
 
 ## With CMake
 
@@ -95,8 +98,9 @@ allow, `sin`, `cos`, `pow(x, y)` and `atan2` being up to 4 doubles away where
 the tests want one; 960 of the checks of `other_functions` fail, `acos_rel`,
 `asin_rel` and `atan_rel` keeping the values they had to but being further
 than 2^-49 from them. The checks of `arithmetic`, `numbers` and
-`rounding_direction` pass. mathlib, the default of every build, and CRlibm give
-certified bounds.
+`rounding_direction` pass, and the continuous integration checks that no other
+check than those fails. mathlib, the default of every build, and CRlibm give
+certified bounds, and the five tests pass with both.
 
 ## With meson
 
