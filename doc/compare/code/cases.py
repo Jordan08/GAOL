@@ -1377,8 +1377,8 @@ BEGIN = "<!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->"
 END = "<!-- END GENERATED TABLES -->"
 
 
-LIBRARIES = [("gaol", "GAOL"), ("p1788", "libieeep1788"), ("filib", "filib++"), ("profil", "PROFIL/BIAS"),
-             ("sun", "Solaris Studio")]
+LIBRARIES = [("p1788", "libieeep1788"), ("gaol", "GAOL"), ("filib", "filib++"), ("sun", "Solaris Studio"),
+             ("profil", "PROFIL/BIAS")]
 
 
 def report(directory, out):

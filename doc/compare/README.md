@@ -4,12 +4,12 @@ Part of the documentation of [this fork of GAOL](../../README.md#documentation).
 
 Five implementations of interval arithmetic on doubles are compared:
 
-| | GAOL | libieeep1788 | filib++ | PROFIL/BIAS | Solaris Studio |
+| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
 |---|---|---|---|---|---|
-| What | This fork of GAOL, the library of Frédéric Goualard | [libieeep1788](https://github.com/nehmeier/libieeep1788), by Marco Nehmeier (University of Würzburg), last commit in 2015 | [filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html) 3.0.2.2 (University of Wuppertal), as IBEX distributes it, which IBEX computes with by default on Windows | [PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) 2.0.8 (2009), by Olaf Knüppel and Christian Keil (TU Hamburg-Harburg) | The `interval(8)` type of Sun's Fortran 95 compiler, `f90 -xia`, in Solaris Studio 12.4 (2014) |
-| Language | C++ | C++11, header-only | C++, templates and a small library | C++ (PROFIL) over C (BIAS) | Fortran 95, intervals built into the compiler |
-| Bounds | Computed with the rounding direction set upward; elementary functions with mathlib | Computed by MPFR, correctly rounded | Computed with the rounding direction set and restored by each operation (`native_switched`); elementary functions of its own | Computed by the BIAS routines, which set the rounding direction downward, then upward, then back to nearest; elementary functions from the libm, moved outward | Computed by `libsunimath` |
-| Arithmetic | Set-based, following IEEE 1788-2015 in most of its special cases, with the deviations the reports list | The set-based flavor of the preliminary IEEE P1788, the prototype of IEEE 1788-2015 | The extended mode of filib++ (`i_mode_extended_flag`, as IBEX uses it), where the empty set and the infinities are handled | The interval arithmetic before IEEE 1788: no empty set, and an argument outside the domain of a function is an error that aborts the program | The containment sets of Sun's interval arithmetic (G. W. Walster), where the infinities are values |
+| What | [libieeep1788](https://github.com/nehmeier/libieeep1788), by Marco Nehmeier (University of Würzburg), last commit in 2015 | This fork of GAOL, the library of Frédéric Goualard | [filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html) 3.0.2.2 (University of Wuppertal), as IBEX distributes it, which IBEX computes with by default on Windows | The `interval(8)` type of Sun's Fortran 95 compiler, `f90 -xia`, in Solaris Studio 12.4 (2014) | [PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) 2.0.8 (2009), by Olaf Knüppel and Christian Keil (TU Hamburg-Harburg) |
+| Language | C++11, header-only | C++ | C++, templates and a small library | Fortran 95, intervals built into the compiler | C++ (PROFIL) over C (BIAS) |
+| Bounds | Computed by MPFR, correctly rounded | Computed with the rounding direction set upward; elementary functions with mathlib | Computed with the rounding direction set and restored by each operation (`native_switched`); elementary functions of its own | Computed by `libsunimath` | Computed by the BIAS routines, which set the rounding direction downward, then upward, then back to nearest; elementary functions from the libm, moved outward |
+| Arithmetic | The set-based flavor of the preliminary IEEE P1788, the prototype of IEEE 1788-2015 | Set-based, following IEEE 1788-2015 in most of its special cases, with the deviations the reports list | The extended mode of filib++ (`i_mode_extended_flag`, as IBEX uses it), where the empty set and the infinities are handled | The containment sets of Sun's interval arithmetic (G. W. Walster), where the infinities are values | The interval arithmetic before IEEE 1788: no empty set, and an argument outside the domain of a function is an error that aborts the program |
 
 The comparison has two parts:
 
@@ -28,17 +28,17 @@ reports.
 
 ## In short
 
-| | GAOL | libieeep1788 | filib++ | PROFIL/BIAS | Solaris Studio |
+| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
 |---|---|---|---|---|---|
-| Special cases with IEEE 1788's result | 258 of 286 | 279 of 279 | 126 of 243 | 56 of 221 | 150 of 261 |
-| … or an interval enclosing it | 22 | 0 | 50 | 22 | 41 |
-| … or another result | 6 | 0 | 67 | 143 | 70 |
-| Cases it has no operation for | 0 | 11 | 44 | 66 | 26 |
-| `x + y` | 3.7 ns | 213 ns | 7.5 ns | 22 ns | 24 ns |
-| `x * y` | 16 ns | 261 ns | 17 ns | 22 ns | 29 ns |
-| `sin(x)` | 113 ns | 8.0 µs | 53 ns | 175 ns | 59 ns |
-| `pow(x, 3)` | 32 ns | 331 ns | 27 ns | 50 ns | 213 ns |
-| Shekel 5 | 325 ns | 14 µs | 581 ns | 1.6 µs | 2.4 µs |
+| Special cases with IEEE 1788's result | 279 of 279 | 258 of 286 | 126 of 243 | 150 of 261 | 56 of 221 |
+| … or an interval enclosing it | 0 | 22 | 50 | 41 | 22 |
+| … or another result | 0 | 6 | 67 | 70 | 143 |
+| Cases it has no operation for | 11 | 0 | 44 | 26 | 66 |
+| `x + y` | 213 ns | 3.7 ns | 7.5 ns | 24 ns | 22 ns |
+| `x * y` | 261 ns | 16 ns | 17 ns | 29 ns | 22 ns |
+| `sin(x)` | 8.0 µs | 113 ns | 53 ns | 59 ns | 175 ns |
+| `pow(x, 3)` | 331 ns | 32 ns | 27 ns | 213 ns | 50 ns |
+| Shekel 5 | 14 µs | 325 ns | 581 ns | 2.4 µs | 1.6 µs |
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
   as tightly as possible, and is 10 to 72 times slower than GAOL.
