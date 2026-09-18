@@ -219,8 +219,8 @@ Each change is a commit of its own, and says where it comes from.
     that double: `nth_root([27], 3)` is `[3]`.
   - **`nth_root_rel()`** takes the roots of `nth_root()`: it took the same
     powers, and kept a value within 23 doubles, now 2.
-  - **Time.** A point interval takes 135 ns rather than 130, its only root
-    being looked for once; an interval 184 ns rather than 136 (Intel i7-1185G7,
+  - **Time.** A point interval takes 152 ns rather than 130, its only root
+    being looked for once; an interval 194 ns rather than 136 (Intel i7-1185G7,
     GCC 9.4).
 - **`sin()`** is computed as `cos()` is: the bounds of the interval divided by
   an enclosure of π, minus 1/2, tell the pieces where the sine is monotonic,
