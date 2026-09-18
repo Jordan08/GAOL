@@ -500,8 +500,14 @@ INLINE uint32_t reverse_bits(uint32_t v)
 
   /*
     I^e for a non-empty I and e > 0, inlined in sqr() and pow(): uipow(),
-    public and out of line, calls it (fork of GAOL, see gaol_interval.h)
+    public and out of line, calls it (fork of GAOL, see gaol_interval.h).
+    Inlined by force with GCC and Clang: built with -mfma, Clang 18 called it
+    from sqr() rather than inlining it there with e = 2, and sqr() took 13.7 ns
+    rather than 9.7, Shekel 5 of doc/compare 405 ns rather than 302.
   */
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
   static INLINE interval uipow_rounded(const interval& I, unsigned int e)
     {
       GAOL_RND_ENTER_SSE();
