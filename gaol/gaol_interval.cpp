@@ -907,92 +907,256 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     case 2:
       return sqrt_rel(J,I);
     default:
+      break;
+    }
+    // The roots of nth_root(), proved to be bounds (fork of GAOL: GAOL took the
+    // powers of the mathematical library with the exponent 1/n here too)
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    const interval tmp = nth_root(J,n);
+    if (odd(n) || tmp.is_empty()) {
+      return (tmp & I);
+    }
+    // n is even: the roots of either sign
+    if (I.certainly_positive()) {
+      return (tmp & I);
+    }
+    if (I.certainly_negative()) {
+      return (-tmp & I);
+    }
+    return ((tmp & I) | ((-tmp) & I));
+  }
+
+  /*
+    x^n rounded upward and downward, x >= 0 and n > 0, by binary exponentiation,
+    the rounding direction being upward: the products of ipow_up() and
+    ipow_dn() (gaol_double_op.h). x^n is a multiple of each square computed, so
+    that ipow_hi() only overflows where x^n does; ipow_lo() is rounded downward
+    through -((-a)*b) rounded upward, its product being kept negated.
+  */
+  static double ipow_hi(double x, unsigned int n)
+  {
+    double y = 1.0, z = x;
+    for (;;) {
       if (odd(n)) {
-	if (J.is_empty() || I.is_empty()) {
-	  return interval::emptyset();
-	}
-	interval inv_n = interval::one()/double(n);
-	double n_lo = inv_n.left();
-	double n_hi = inv_n.right();
-	double l, r;
-	if (J.left() >= 1.0) {
-	  l = nthroot_dn(J.left(),n_lo);
-	} else {
-	  if (J.left() >= 0.0) {
-	    l = nthroot_dn(J.left(),n_hi);
-	  } else {
-	    if (J.left() >= -1.0) {
-	      /*
-		current nthroot_up implementation does not work with non-integral
-		exponent for negative first argument
-	      */
-	      l = -nthroot_up(-J.left(),n_lo);
-	    } else {
-	      l = -nthroot_up(-J.left(),n_hi);
-	    }
-	  }
-	}
-	if (J.right() >= 1.0) {
-	  r = nthroot_up(J.right(),n_hi);
-	} else {
-	  if (J.right() >= 0.0) {
-	    r = nthroot_up(J.right(),n_lo);
-	  } else {
-	    if (J.right() >= -1.0) {
-	      r = -nthroot_dn(-J.right(),n_hi);
-	    } else {
-	      r = -nthroot_dn(-J.right(),n_lo);
-	    }
-	  }
-	}
-	return (interval(l,r) & I);
+	y *= z;
       }
-      // n is even
-      interval Jpos = interval(maximum(0.0,J.left()),J.right());
-      if (Jpos.is_empty() || I.is_empty()) {
-	return interval::emptyset();
+      n >>= 1;
+      if (n == 0) {
+	return y;
       }
-      interval inv_n = interval::one()/double(n);
-      double n_lo = inv_n.left();
-      double n_hi = inv_n.right();
-      double l, r;
-      if (Jpos.left() >= 1.0) {
-	l = nthroot_dn(Jpos.left(),n_lo);
-      } else {
-	l = nthroot_dn(Jpos.left(),n_hi);
+      z *= z;
+    }
+  }
+
+  static double ipow_lo(double x, unsigned int n)
+  {
+    double y = -1.0, z = x;
+    for (;;) {
+      if (odd(n)) {
+	y *= z;
       }
-      
-      if (Jpos.right() >= 1.0) {
-	r = nthroot_up(Jpos.right(),n_hi);
-      } else {
-	r = nthroot_up(Jpos.right(),n_lo);
+      n >>= 1;
+      if (n == 0) {
+	return -y;
       }
-      interval tmp(l,r);
-      if (I.certainly_positive()) {
-	return (tmp & I);
-      }
-      if (I.certainly_negative()) {
-	return (-tmp & I);
-      }
-      return ((tmp & I) | ((-tmp) & I));
+      z = -((-z)*z);
     }
   }
 
   /*
-    The n-th root of d >= 0 rounded downward and upward, n > 2, 1/n being
-    enclosed by [n_lo,n_hi]: d^e grows with e for d >= 1 and decreases for
-    d < 1. The roots of 0 and 1 are 0 and 1, which nthroot_dn() and
-    nthroot_up() move one double away (fork of GAOL). Rounding to nearest
-    (GAOL_RND_NEAREST_ENTER())
+    The n-th root of x rounded downward and upward, n > 2 and 0 < x < +oo, from
+    an approximation r of it, the rounding direction being upward (fork of
+    GAOL). GAOL took the power x^(1/n) of the mathematical library moved one
+    double outward, 1/n being rounded: the root is then |log(x)|/n 2^-53 away
+    relatively, up to 234 doubles for a cube root over all the doubles, and 8
+    between 2^-30 and 2^30.
+
+    A double l is below the root when l^n rounded upward is at most x, and u
+    above it when u^n rounded downward is at least x: both tests grow with
+    their argument. r is first brought next to the root by a step of Newton's
+    method on r^n = x, r - r (r^n - x)/(n r^n), where r^n is a normal double,
+    its rounding errors being relative then. The lower bound is the largest
+    double proved to be below the root, and the upper bound the smallest one
+    proved to be above it, looked for from r: outward or inward by steps that
+    double, until a double that is proved and one that is not are found, then
+    by bisection between them. From a double next to the root, that is two
+    powers; from any other, as the math library of the system may give, the
+    search still ends, and the bounds are proved.
+
+    l^n, of n - 1 rounded products, is within (n - 1) 2^-53 of its value
+    relatively, which moves the root by less than 2^-53 relatively: the bounds
+    are the tightest or one double beyond, and the root of a double that is an
+    n-th power is that double.
   */
-  static double root_dn(double d, double n_lo, double n_hi)
+  static double newton_root(double x, double r, unsigned int n)
   {
-    return (d == 0.0 || d == 1.0) ? d : nearest::nthroot_dn(d,(d >= 1.0) ? n_lo : n_hi);
+    if (!(r > 0.0)) { // Negative or NaN
+      return 0.0;
+    }
+    if (r > std::numeric_limits<double>::max()) {
+      return std::numeric_limits<double>::max();
+    }
+    const double p = ipow_hi(r,n);
+    if (p >= std::numeric_limits<double>::min() && p <= std::numeric_limits<double>::max()) {
+      const double s = r - r*((p - x)/(double(n)*p));
+      if (s > 0.0 && s <= std::numeric_limits<double>::max()) {
+	return s;
+      }
+    }
+    return r;
   }
 
-  static double root_up(double d, double n_lo, double n_hi)
+  static inline bool is_proved_below_root(double l, double x, unsigned int n)
   {
-    return (d == 0.0 || d == 1.0) ? d : nearest::nthroot_up(d,(d >= 1.0) ? n_hi : n_lo);
+    return ipow_hi(l,n) <= x;
+  }
+
+  static inline bool is_proved_above_root(double u, double x, unsigned int n)
+  {
+    return ipow_lo(u,n) >= x;
+  }
+
+  // A step of about one double at r, which doubles
+  static inline double first_step(double r)
+  {
+    return maximum(r*std::numeric_limits<double>::epsilon(), std::numeric_limits<double>::denorm_min());
+  }
+
+  /*
+    A double between l and h, l < h, their middle where it is one: the double
+    above l otherwise, which is h when l and h are consecutive. The neighbours
+    are reached with nextafter() (next_float(), previous_float()), whatever
+    the rounding direction and the treatment of subnormals.
+  */
+  static inline double double_between(double l, double h)
+  {
+    const double m = l + 0.5*(h - l);
+    return (l < m && m < h) ? m : next_float(l);
+  }
+
+  // The steps of the searches below end within a few thousand steps (the
+  // doubling ones reach 0 or the largest double within 2100), and are bounded
+  // in case a platform would not move: the bound found so far is returned
+  const int root_search_limit = 4096;
+
+  static double proved_root_dn(double x, double r, unsigned int n)
+  {
+    // l is proved to be below the root, and h is not: 0 is, and the largest
+    // double is not
+    const double largest = std::numeric_limits<double>::max();
+    double l = newton_root(x,r,n), h = l, step = first_step(l);
+    int steps = 0;
+    if (is_proved_below_root(l,x,n)) {
+      for (h = minimum(l + step, largest); is_proved_below_root(h,x,n) && h < largest; h = minimum(l + step, largest)) {
+	l = h;
+	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return l;
+	}
+      }
+      if (h >= largest && is_proved_below_root(h,x,n)) { // Not for n > 1 and a finite x
+	return h;
+      }
+    } else {
+      for (l = maximum(-(step - h), 0.0); !is_proved_below_root(l,x,n); l = maximum(-(step - h), 0.0)) {
+	h = l;
+	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return 0.0;
+	}
+      }
+    }
+    for (;;) {
+      const double m = double_between(l,h);
+      if (!(m < h) || ++steps > root_search_limit) {
+	return l;
+      }
+      if (is_proved_below_root(m,x,n)) {
+	l = m;
+      } else {
+	h = m;
+      }
+    }
+  }
+
+  static double proved_root_up(double x, double r, unsigned int n)
+  {
+    // u is proved to be above the root, and l is not: the largest double is,
+    // and 0 is not
+    const double largest = std::numeric_limits<double>::max();
+    double u = newton_root(x,r,n), l = u, step = first_step(u);
+    int steps = 0;
+    if (is_proved_above_root(u,x,n)) {
+      for (l = maximum(-(step - u), 0.0); is_proved_above_root(l,x,n); l = maximum(-(step - u), 0.0)) {
+	u = l;
+	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return u;
+	}
+      }
+    } else {
+      for (u = minimum(l + step, largest); !is_proved_above_root(u,x,n); u = minimum(l + step, largest)) {
+	l = u;
+	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return GAOL_INFINITY;
+	}
+      }
+    }
+    for (;;) {
+      const double m = double_between(l,u);
+      if (!(m < u) || ++steps > root_search_limit) {
+	return u;
+      }
+      if (is_proved_above_root(m,x,n)) {
+	u = m;
+      } else {
+	l = m;
+      }
+    }
+  }
+
+  /*
+    The power d^e of the mathematical library, e being 1/n rounded, for the
+    approximation the n-th root of d starts from. The roots of 0, 1 and +oo are
+    themselves. Rounding to nearest (GAOL_RND_NEAREST_ENTER())
+  */
+  static inline bool root_is_itself(double d)
+  {
+    return d == 0.0 || d == 1.0 || d == GAOL_INFINITY;
+  }
+
+  static inline double root_near(double d, double e)
+  {
+    return root_is_itself(d) ? d : nearest::nthroot_up(d,e);
+  }
+
+  // Rounding upward
+  static inline double root_dn(double d, double near_root, unsigned int n)
+  {
+    return root_is_itself(d) ? d : proved_root_dn(d,near_root,n);
+  }
+
+  static inline double root_up(double d, double near_root, unsigned int n)
+  {
+    return root_is_itself(d) ? d : proved_root_up(d,near_root,n);
+  }
+
+  /*
+    The approximations the n-th roots of a >= 0 and b >= 0 start from, the
+    rounding direction being set to nearest once for both. Rounding upward
+  */
+  static void near_roots(double a, double b, unsigned int n, double& near_a, double& near_b)
+  {
+    GAOL_RND_NEAREST_ENTER();
+    const double e = 1.0/double(n);
+    near_a = root_near(a,e);
+    near_b = (b == a) ? near_a : root_near(b,e);
+    GAOL_RND_KEEP(near_a);
+    GAOL_RND_KEEP(near_b);
+    GAOL_RND_NEAREST_LEAVE();
   }
 
   /*
@@ -1020,13 +1184,17 @@ interval nth_root(const interval& I, unsigned int n)
 	if (J.is_empty()) {
 		return interval::emptyset();
 	}
-	const interval inv_n = interval(1.0)/double(n);
-	const double n_lo = inv_n.left();
-	const double n_hi = inv_n.right();
-	GAOL_RND_NEAREST_ENTER();
-	const double l = (J.left() >= 0.0) ? root_dn(J.left(),n_lo,n_hi) : -root_up(-J.left(),n_lo,n_hi);
-	const double r = (J.right() >= 0.0) ? root_up(J.right(),n_lo,n_hi) : -root_dn(-J.right(),n_lo,n_hi);
-	GAOL_RND_NEAREST_LEAVE();
+	// The roots of the magnitudes of the bounds, the root of x < 0 being
+	// -(-x)^(1/n)
+	GAOL_RND_ENTER();
+	const double a = std::fabs(J.left()), b = std::fabs(J.right());
+	double near_a, near_b;
+	near_roots(a,b,n,near_a,near_b);
+	double l = (J.left() >= 0.0) ? root_dn(a,near_a,n) : -root_up(a,near_a,n);
+	double r = (J.right() >= 0.0) ? root_up(b,near_b,n) : -root_dn(b,near_b,n);
+	GAOL_RND_KEEP(l);
+	GAOL_RND_KEEP(r);
+	GAOL_RND_LEAVE();
 	return interval(l,r);
 }
 

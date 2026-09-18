@@ -105,7 +105,7 @@ ones, and millions of doubles away for the `acosh` of some
 
 | IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
 |---|---|---|---|---|
-| `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`. Otherwise mathlib's pow at the bounds with an exponent rounded from 1/n, moved one double outward, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n); the roots of 0 and 1 are 0 and 1 | n = 1, 2: tightest; tightest at 0, 1 and −1. n a power of 2: accurate, within one double. Otherwise valid: the rounded exponent moves the root by about \|log x\|·2<sup>−53</sup>/n relatively, besides the double | within 8 doubles for x in [2<sup>−30</sup>, 2<sup>30</sup>], 233 for all doubles |
+| `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from mathlib's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2: tightest; tightest where the bound of x is an n-th power of a double. Otherwise accurate: the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−53</sup> relatively, the bounds being the tightest or one double beyond, whatever the magnitude of x and whatever the math library | within 2 doubles, for all doubles (1 found) |
 | others | — | Not provided | | |
 
 ## Reverse functions (Table 10.1): valid required
@@ -120,7 +120,7 @@ they keep the values they are given, within the number of doubles below.
 |---|---|---|
 | `sqrRev(c, x)` | `sqrt_rel(c, x)` | within 1 double |
 | `absRev(c, x)` | `invabs_rel(c, x)` | tightest |
-| `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | within 23 doubles |
+| `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | within 2 doubles (the roots of `nth_root()`) |
 | `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | within 2<sup>−49</sup> |
 | `coshRev(c, x)` | `acosh_rel(c, x)` | within 16 doubles |
 | — | `asinh_rel`, `atanh_rel` | within 10 and 26 doubles |
@@ -155,7 +155,7 @@ provided.
 Built with CRlibm (`--with-mathlib=crlibm`, `-Dwith-mathlib=crlibm`), `exp`,
 `log`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh` and `cosh` take CRlibm's
 functions rounded downward and upward, and `sin` too: their bounds are the
-tightest where the algorithms above evaluate the functions at the bounds. `pow`, and so `nth_root`, take CRlibm's
+tightest where the algorithms above evaluate the functions at the bounds. `pow` takes CRlibm's
 pow rounded to nearest, moved one double outward, as with mathlib; `tanh`,
 `asinh`, `acosh` and `atanh` CORE-MATH's, as above.
 
