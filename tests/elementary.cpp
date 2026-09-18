@@ -128,7 +128,16 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if (f == "sin" || f == "cos" || f == "tan") {
+      if (f == "log") {
+        // CORE-MATH's log in the upward rounding, where GAOL takes it
+        // (GAOL_CORE_MATH_LOG, see gaol/gaol_core_math.h): the tightest bounds;
+        // mathlib's value moved one double outward otherwise
+#if defined(GAOL_CORE_MATH_LOG) && GAOL_CORE_MATH_LOG
+        expect_close(name, r, v.below, v.above, describe, 0);
+#else
+        expect_close(name, r, v.below, v.above, describe);
+#endif
+      } else if (f == "sin" || f == "cos" || f == "tan") {
         // mathlib's values at the argument, moved one double outward: within
         // one double of the tightest bounds, at every magnitude. Beyond 2^25,
         // or next to an extremum or a pole, where the division of the argument

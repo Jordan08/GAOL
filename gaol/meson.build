@@ -99,6 +99,8 @@ gaol_SOURCES += [
   'core_math_asinh.c',
   'core_math_acosh.c',
   'core_math_atanh.c',
+  # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
+  'core_math_log.c',
 ]
 gaol_SOURCES += FLOAT_INTERVALS_SOURCE
 foreach f : lexer_files

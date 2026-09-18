@@ -31,6 +31,7 @@
 #define cr_asinh gaol_cr_asinh
 #define cr_acosh gaol_cr_acosh
 #define cr_atanh gaol_cr_atanh
+#define cr_log gaol_cr_log
 
 #include "gaol/gaol_core_math.h"
 

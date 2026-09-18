@@ -398,6 +398,20 @@ Each change is a commit of its own, and says where it comes from.
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
   `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
   the empty set themselves before calling it.
+- **`log()` is the one of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**,
+  correctly rounded in the rounding direction in effect, with mathlib and
+  CRlibm, where the compiler has a 128-bit integer type, which its accurate
+  phase computes with (`__int128`, 64-bit targets of GCC and Clang;
+  `GAOL_CORE_MATH_LOG`, `gaol/gaol_core_math.h`). In the upward rounding GAOL
+  computes in, the value at the right bound is the right bound, and the double
+  below the value at the left bound the left one, log(l) being no double for l
+  other than 1: the tightest bounds, without switching to nearest and back.
+  Before, mathlib's log moved one double outward gave bounds one double wider
+  at half of the million intervals of `doc/compare`, and took 62 ns rather than
+  30 for the log of an interval (Intel i7-1185G7, Clang 18, `-mfma`; 64 rather
+  than 29 with GCC 9.4). With Visual C++ and on 32-bit targets, it is still
+  mathlib's. The sources are `gaol/core_math_log.c` and its
+  `gaol/core_math_log_dint.h` ([3rd/core-math](../3rd/core-math/README.md)).
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.
