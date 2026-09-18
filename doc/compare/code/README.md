@@ -25,9 +25,10 @@ from its site (or from the archive `PROFIL_TGZ` gives), built with its
 configuration `x86-64-Linux-compat-gcc`, its `gcc` replaced by `CC` and `CXX`,
 and checked with `make check`, and GAOL from this repository, built with CMake
 in Release and installed with mathlib. All of them are compiled by `CC` and
-`CXX`, filib++ and PROFIL/BIAS in C++11: Clang 16 and GCC 11 compile C++17 by
-default, where their dynamic exception specifications and `register` are
-errors.
+`CXX` with `-O3` (GMP, MPFR and PROFIL/BIAS compile with `-O2` on their own,
+and the configure of filib++ without any optimization), filib++ and
+PROFIL/BIAS in C++11: Clang 16 and GCC 11 compile C++17 by default, where
+their dynamic exception specifications and `register` are errors.
 
 ## Running
 
