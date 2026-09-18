@@ -506,6 +506,13 @@ Each change is a commit of its own, and says where it comes from.
   aborts, and `pow(interval2f, int)` does not handle the empty set. Without
   the option, their sources are not compiled, their headers are neither
   installed nor included, and their check programs are not built.
+- **The infinite values of the math library of the system**
+  (`gaol/gaol_double_op_m.h`, the build with `--with-mathlib=m`): +oo is
+  bounded below by the largest double, and -oo above by its opposite, and -oo
+  stays a lower bound. GAOL kept +oo as a lower bound, so that `exp`, `sinh`
+  and `cosh` gave the empty set `[+oo, +oo]` at their overflow, and bounded
+  -oo below by -MAX: `log([0, 1])` was `[-MAX, 0]`, `sinh([-0x1.638p+9])`
+  `[-MAX, -MAX]`.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.

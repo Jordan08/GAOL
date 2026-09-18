@@ -291,7 +291,7 @@ AC_ARG_WITH([mathlib],
 # config.status, missing gaol_double_op_<name>.h
 AS_CASE([${use_mathlib}],
   [apmathlib|crlibm], [],
-  [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
+  [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: they are valid only where the math library is within about one double of the exact value. Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
   [AC_MSG_ERROR([--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m])])
 # mathlib is the one of 3rd/mathlib, built and installed with GAOL
 # (3rd/Makefile.am), unless --with-mathlib-include or --with-mathlib-lib says
