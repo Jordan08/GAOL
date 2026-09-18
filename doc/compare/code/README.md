@@ -48,6 +48,16 @@ FILIB_DIR=/path/to/filib ./setup.sh   # once; without FILIB_DIR, it builds filib
 CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance.md
 ```
 
+The tables of [performance.md](../performance.md) and
+[special_cases.md](../special_cases.md) were computed with Clang 18, in a work
+directory of its own (GCC 9.4 gives the same special cases, and the same
+results in the benchmark):
+
+```bash
+export CC=clang-18 CXX=clang++-18 WORK=$PWD/work/clang
+./setup.sh && ./run_cases.sh && CPU=2 ./run_bench.sh
+```
+
 `./run_all.sh` runs the three in turn. The scripts rewrite only the tables
 between the `<!-- BEGIN GENERATED TABLES -->` and `<!-- END GENERATED TABLES -->`
 markers of the reports: the text around them, which comments on the results,
