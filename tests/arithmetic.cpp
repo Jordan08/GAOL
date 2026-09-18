@@ -50,6 +50,7 @@ namespace
 
   const int negative_power_limit = 8;
   const int square_root_limit = 0;
+  const int root_limit = 2;
 
   std::string operands(const interval& x, const interval& y)
   {
@@ -541,6 +542,34 @@ namespace
       { "nth_root(empty,3)", interval::emptyset(), 3, 0., 0., true, false },
       { "nth_root([-8,27],0)", interval(-8., 27.), 0, 0., 0., true, false },
     };
+    // The root of a double that is an n-th power is that double: the power of
+    // the root is x exactly, which proves it to be both bounds (few powers:
+    // the exact arithmetic of the tests is slow in the Debug builds of Visual
+    // C++, where the whole test has an hour)
+    for (unsigned int n = 3; n <= 12; ++n) {
+      for (const double root : { 2., 3., 7., 10., 1.5, 0.75, 0x1.8p-40, 0x1.4p+25 }) {
+        const double x = std::pow(root, static_cast<double>(n));
+        if (x > 0. && x < inf && compare(x, power(root, static_cast<int>(n))) == 0) {
+          const interval r = nth_root(interval(x), n), minus_r = nth_root(interval(-x), n);
+          const auto describe = [&] { return "x=" + hex(x) + " n=" + std::to_string(n) + ": " + hex(r); };
+          check("nth_root([a^n],n): [a]", !r.is_empty() && r.left() == root && r.right() == root, describe);
+          if (n % 2 == 1) {
+            check("nth_root([-a^n],n) for an odd n: [-a]", !minus_r.is_empty() && minus_r.left() == -root && minus_r.right() == -root,
+                  describe);
+          }
+        }
+      }
+    }
+    // The extreme doubles, and large n, where the power with a rounded
+    // exponent was the furthest from the root
+    for (const double x : { std::numeric_limits<double>::max(), std::numeric_limits<double>::min(),
+                            std::numeric_limits<double>::denorm_min(), 3*std::numeric_limits<double>::denorm_min(),
+                            0x1.fffffffffffffp-1, 0x1.0000000000001p+0, 10., 1e300, 1e-300 }) {
+      for (const unsigned int n : { 3u, 4u, 17u }) {
+        expect_root("nth_root([x],n) at extreme doubles and large n", nth_root(interval(x), n), x, static_cast<int>(n), root_limit);
+      }
+    }
+
     for (const Case& c : cases) {
       const interval x = nth_root(c.x, c.n);
       const auto describe = [&] { return hex(x); };

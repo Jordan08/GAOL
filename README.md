@@ -88,11 +88,16 @@ project can also build GAOL for itself, with FetchContent (see
   against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
   with the scripts to run the comparison again.
 - The manual of GAOL, by Frédéric Goualard: `manual/gaol.pdf`, with its LaTeX
-  sources in `manual/`.
+  sources in `manual/`, which follow the changes of this fork. `make -C manual
+  pdf` after `./configure`, or `meson compile -C <build> pdf` after `meson setup
+  <build> -Dwith-doc=true`, builds it again (`manual/build-pdf.sh`).
 
 ## Licences
 
 GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
 under the GNU LGPL v2 (`COPYING.LIB`). mathlib, whose sources are in
 `3rd/mathlib`, is distributed under the GNU LGPL v2 or later, as the headers
-of its sources state (`3rd/mathlib/COPYING` is the text of the GNU GPL v2).
+of its sources state (`3rd/mathlib/COPYING` is the text of the GNU GPL v2). The
+hyperbolic functions of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
+whose sources are `gaol/core_math_*.c`, are distributed under the MIT licence
+(`3rd/core-math/LICENSE`).

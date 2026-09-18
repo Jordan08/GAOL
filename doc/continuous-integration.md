@@ -25,6 +25,10 @@ They also build GAOL with autotools and meson, with the mathlib of
 x86_64) and MSYS2, and the tests with the GAOL they install; build GAOL with
 each of the three builds against a mathlib installed apart, on Ubuntu x86_64
 (`MATHLIB_DIR`, `--with-mathlib-include`, `-Dwith-mathlib-include`); build GAOL
+with autotools and meson with the two other mathematical libraries they offer,
+on Ubuntu x86_64: CRlibm (`scripts/install-crlibm.sh`), with which the five
+tests pass, and the math library of the system, with which only checks on the
+distance to the tightest bounds may fail; build GAOL
 as a part of another project, brought in by FetchContent
 (`tests/fetch_content`), and the tests with the GAOL that project installs;
 check that the three builds agree on each of these machines; check
@@ -34,6 +38,10 @@ to 14 (13 and 14 with autotools and meson too), and Visual C++ without
 rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and arm64
 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
 meson. The jobs built in Release print the time per operation in their summary.
+
+The manual is built from `manual/gaol.tex` with the LaTeX of Ubuntu 24.04, by
+the autotools and the meson builds, when `manual/` changes (`manual.yml`); the
+PDF is an artifact of the run.
 
 ## Configurations refused or left out, and why
 
@@ -67,8 +75,8 @@ change with its measures.
 - **Bounds that were wrong on some platforms only.**
   - The hyperbolic functions, taken from the libm of the system: the libms
     of glibc 2.31, musl and MinGW-w64 are sometimes more than one double from
-    the exact value, and their values are moved three doubles outward
-    ([issue #1](https://github.com/Jordan08/GAOL/issues/1)).
+    the exact value. They are now those of CORE-MATH, correctly rounded, on
+    every platform ([issue #1](https://github.com/Jordan08/GAOL/issues/1)).
   - The numbers read from text: the C runtime of Windows and musl on 64-bit
     ARM round `strtod()` to nearest in every direction, and
     `interval("0.1")` did not enclose 1/10 there. Numbers are now read

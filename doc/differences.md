@@ -146,15 +146,38 @@ Each change is a commit of its own, and says where it comes from.
   the right bound. They are written `1.25~[0, 67]` and `100.~[0, 47]`; the
   zeros ending an exponent are no longer dropped, and the search for the
   common characters stops at the end of the shorter text.
-- **Hyperbolic functions:** the values GAOL takes from the libm of the system
-  are moved three floats outward rather than one. The libms of glibc 2.31, musl
-  and MinGW-w64 are sometimes a float further, which gave bounds not enclosing
-  the exact values. The branch `hyperbolic-rigorous` bounds them without the
-  libm instead; [issue #1](https://github.com/Jordan08/GAOL/issues/1) compares
-  the two. At the overflow, the bounds were then two floats wider than the
-  tightest, against three assertions of GAOL's own check `trigonometric`
-  (`make check`); they are now the tightest there (see the exact values
-  below).
+- **Hyperbolic functions:** `sinh`, `cosh`, `tanh`, `asinh`, `acosh` and
+  `atanh` are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
+  correctly rounded, whose value rounded to nearest is moved one double
+  outward, as for the functions of mathlib
+  ([issue #1](https://github.com/Jordan08/GAOL/issues/1)): the bounds are
+  within one double of the tightest, on every system.
+  - **Before.** GAOL took them from the libm of the system, mathlib having
+    none, and moved their values one float outward. The libms of glibc 2.31,
+    musl and MinGW-w64 are sometimes a float further, which gave bounds not
+    enclosing the exact values. This fork first moved them three floats
+    outward, which holds as long as the libm is within two floats of the exact
+    value: the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
+    to 1, and its `asinh` NaN for large negative numbers. The branch
+    `hyperbolic-rigorous` bounded them without the libm, from `exp` and `log`,
+    6 to 45 times slower.
+  - **The sources** are `gaol/core_math_*.c`, one file for each function, as
+    CORE-MATH distributes them (MIT licence, [3rd/core-math](../3rd/core-math/README.md)),
+    compiled into GAOL's library under the names `gaol_cr_sinh()`...
+    (`gaol/gaol_core_math.h`). Two changes: `gaol/core_math_port.h` is included,
+    which gives Visual C++ the builtins of GCC they use; and `~0ul` is written
+    `~(u64)0` in three of them, `unsigned long` having 32 bits on Windows.
+  - **Tightness and time** (Intel i7-1185G7, GCC 9.4, glibc 2.31), per
+    interval: within 1 double rather than 3 or 4; `sinh()` 84 ns rather than
+    131, `cosh()` 76 rather than 77, `tanh()` 105 rather than 127, `asinh()`
+    86 rather than 108, `acosh()` 83 rather than 99, `atanh()` 86 rather than
+    128: three calls of `nextafter()` less for each bound.
+  - **Tests.** `tests/elementary.cpp` requires one double of every function,
+    rather than 8.
+  - At the overflow, the bounds were two floats wider than the
+    tightest, against three assertions of GAOL's own check `trigonometric`
+    (`make check`); they are the tightest there (see the exact values
+    below).
 - **Powers with a real exponent**, ported from the fix of Codac:
   - `pow(I, e)` for a floating-point `e` called `pow(I, int)`, which truncated
     the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`
@@ -225,6 +248,29 @@ Each change is a commit of its own, and says where it comes from.
   get the same intervals as before. `check/non_arithmetic.cpp` wanted
   `[0, 1.2457]` for `nth_root([-4, 3], 5)`, and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
+- **The n-th roots are proved with integer powers**, and are the tightest
+  bounds or one double beyond, for every n and every double (issue #7). GAOL
+  took the power of the mathematical library with the exponent 1/n rounded,
+  moved one double outward: the rounded exponent moves the root by
+  |log x|·2^-53/n relatively, and the bounds were up to 8 doubles from the
+  tightest between 2^-30 and 2^30, and 234 over all the doubles;
+  `nth_root([27], 3)` was `[0x1.7ffffffffffffp+1, 0x1.8000000000002p+1]`.
+  - **The proof.** l is below the root when l^n, rounded upward, is at most x,
+    and u above it when u^n, rounded downward, is at least x. The lower bound
+    is the largest double so proved, the upper bound the smallest one.
+  - **The search.** It starts from the power of the mathematical library,
+    brought next to the root by a step of Newton's method, r - r (r^n - x)/(n r^n),
+    and goes by steps that double until a proved and an unproved double are
+    found, then by bisection: two powers from a start next to the root. It ends
+    from any start, and its result is proved whatever the mathematical library
+    is: the roots are bounds with the math library of the system too.
+  - **Exact roots.** The root of a double that is the n-th power of a double is
+    that double: `nth_root([27], 3)` is `[3]`.
+  - **`nth_root_rel()`** takes the roots of `nth_root()`: it took the same
+    powers, and kept a value within 23 doubles, now 2.
+  - **Time.** A point interval takes 152 ns rather than 130, its only root
+    being looked for once; an interval 194 ns rather than 136 (Intel i7-1185G7,
+    GCC 9.4).
 - **`sin()`** is computed as `cos()` is: the bounds of the interval divided by
   an enclosure of π, minus 1/2, tell the pieces where the sine is monotonic,
   and mathlib's sine is taken at the bounds, moved one double outward. GAOL
@@ -232,9 +278,43 @@ Each change is a commit of its own, and says where it comes from.
   2^-52 max(2, |x|): `sin([1e-10])` was 4.4e-16 wide, billions of doubles,
   `sin([1, 2])` two doubles wider than the tightest, and `sin()` was not
   accurate in the sense of IEEE 1788-2015 (12.10.1). The bounds of `sin()` and
-  `cos()` are now within one double of the tightest up to 2^25, and kept
-  within [-1, 1]. On an Intel i7-1185G7 (GCC 9.4), `sin()` takes 121 ns rather
-  than 130.
+  `cos()` are kept within [-1, 1]. On an Intel i7-1185G7 (GCC 9.4), `sin()`
+  takes 121 ns rather than 130.
+- **`sin()`, `cos()` and `tan()` are within one double of the tightest bounds
+  at every magnitude** (issue #6). The bounds divided by an enclosure of π only
+  tell on which pieces the interval lies while the quotients are not within
+  their rounding errors of an integer: a bound within about |x|·2^-52 of an
+  extremum was taken as reaching it, up to |x|²·2^-103 from the tightest bound,
+  `cos([2^60])` was `[-1, 1]`, and `tan()` gave `[-oo, +oo]` next to a pole, as
+  for the double below π/2, whose tangent is `0x1.9153d9443ed0bp+51`, and
+  beyond 2^52.
+  - **The signs of the derivative.** mathlib being correctly rounded, and no
+    double but 0 being a multiple of π/2 (the closest has a cosine of 4.7e-19),
+    the signs of its sine and cosine are the exact ones. For an interval
+    narrower than 2π, the derivative has at most two zeros within it: signs
+    that differ at the bounds show one extremum, a minimum or a maximum
+    according to their order; the same signs show none below the width π, and
+    none or two beyond, which the sign at the middle tells. For `tan()`,
+    narrower than π, a pole is within the interval exactly when the signs of
+    the cosine at the bounds differ.
+  - **Only where the quotients cannot tell.** The quotients rounded outward
+    still tell the intervals on one piece, and rounded inward those that hold
+    an extremum or a pole for sure: the signs are only asked for next to an
+    extremum or a pole, and at the large magnitudes. `cos([2^60])` is
+    `[-0x1.1d146047d6948p-1, -0x1.1d146047d6946p-1]`.
+  - **Time** (Intel i7-1185G7, GCC 9.4): unchanged in the benchmark of
+    `doc/compare` (114 ns for `cos()`, 113.5 for `sin()`); 125 ns rather than
+    121 for intervals holding an extremum, 67 rather than 62 for those holding
+    both; `tan()` of a narrow interval 143 ns rather than 150. At magnitudes
+    from 1e8 to 1e15, `cos()` of a narrow interval takes 250 ns rather than
+    224, and `tan()` 260 rather than 217, where they gave `[-1, 1]` and
+    `[-oo, +oo]` more often.
+  - **Tests.** `tests/elementary.cpp` requires one double at every magnitude,
+    rather than |x|²·2^-103 + 2^-51 beyond 2^25 for `sin()` and `cos()` and
+    2^-49·max(1, |x|)·(1 + tan²) for `tan()`, and checks 649 intervals for
+    each function: a few doubles around the doubles nearest to kπ/2, k up to
+    2^55, widths about π and 2π from one extremum to the next, and consecutive
+    doubles up to the largest.
 - **`atan2(y, x)`** is implemented, as the `atan2` of IEEE 1788-2015
   (Table 9.1), defined on the plane but (0, 0) with values in (−π, π]
   ([issue #2](https://github.com/Jordan08/GAOL/issues/2)). GAOL declared it,
@@ -532,6 +612,13 @@ Each change is a commit of its own, and says where it comes from.
   aborts, and `pow(interval2f, int)` does not handle the empty set. Without
   the option, their sources are not compiled, their headers are neither
   installed nor included, and their check programs are not built.
+- **The infinite values of the math library of the system**
+  (`gaol/gaol_double_op_m.h`, the build with `--with-mathlib=m`): +oo is
+  bounded below by the largest double, and -oo above by its opposite, and -oo
+  stays a lower bound. GAOL kept +oo as a lower bound, so that `exp`, `sinh`
+  and `cosh` gave the empty set `[+oo, +oo]` at their overflow, and bounded
+  -oo below by -MAX: `log([0, 1])` was `[-MAX, 0]`, `sinh([-0x1.638p+9])`
+  `[-MAX, -MAX]`.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
@@ -551,6 +638,18 @@ Each change is a commit of its own, and says where it comes from.
   `scripts/install-mathlib.sh`, which downloaded it too. GAOL can now be built
   as a part of another project, brought in by FetchContent, with no network
   access beyond its own sources (`tests/fetch_content`).
+- **The manual compiles again**, and `manual/gaol.pdf` is the one of this fork
+  (issue #13): the PDF was the one of the original GAOL, of 2009, while
+  `gaol.tex` had followed the changes of the fork, and no longer compiled.
+  `marginbib`, a package of 2000 kept with the manual, patches the output
+  routine of LaTeX and stops with the LaTeX of today; the references in the
+  margin are now printed by `bibentry` (`\margincite`, `\margincite*` and
+  `\marginnocite` in `manual.cls`), and listed at the end of the manual. The
+  `multicol.sty` of 2006 kept with the manual is removed for the one of LaTeX,
+  and the fonts are Latin Modern, the PDF embedding bitmaps otherwise where
+  the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
+  `make -C manual pdf` and for the target `pdf` of the meson build, which had
+  none.
 - **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.
