@@ -74,7 +74,9 @@ Codac.
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
-  the relational functions (`sqrt_rel`, `div_rel`...).
+  the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
+  and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
+  and decide an interval of a single double beyond 2^53.
 
 The CMake build compiles them with `GAOL_BUILD_TESTS` (`OFF` by default: no
 build compiles tests unless asked to, as `make check` and `with-test` for
