@@ -278,6 +278,63 @@ for i in range(100):
     pow_boxes.append((x[0], x[1], y[0], y[1]))
 
 
+def trig_hull(name, a, b):
+    """The least and the greatest value of sin, cos or tan over [a, b], a <= b
+    being doubles: the values at a and b, and -1 or 1 where an extremum is
+    within [a, b], that is a multiple of pi for cos, and of pi plus pi/2 for
+    sin. For tan, a pole within [a, b] gives -inf and +inf."""
+    shift = m(0) if name == "cos" else m(0.5)
+    k_first = mpmath.ceil(m(a) / mpmath.pi - shift)
+    k_last = mpmath.floor(m(b) / mpmath.pi - shift)
+    if name == "tan":
+        if k_first <= k_last:
+            return -mpmath.inf, mpmath.inf
+        return mpmath.tan(m(a)), mpmath.tan(m(b))
+    f = mpmath.cos if name == "cos" else mpmath.sin
+    values = [f(m(a)), f(m(b))]
+    if k_first <= k_last:
+        # cos(k pi) = sin(k pi + pi/2) = (-1)^k
+        values.append(m(1) if int(k_first) % 2 == 0 else m(-1))
+        if k_first < k_last:
+            values.append(m(-1) if int(k_first) % 2 == 0 else m(1))
+    return min(values), max(values)
+
+
+def move(x, n):
+    """x moved by n doubles"""
+    for _ in range(abs(n)):
+        x = next_up(x) if n > 0 else next_down(x)
+    return x
+
+
+# Intervals of sin, cos and tan next to their extrema and poles, at every
+# magnitude, where the division of the bounds by an enclosure of pi cannot tell
+# whether an extremum is within them (issue #6): a few doubles around the
+# double nearest to k pi/2, k being random from 1 to 2^52 and beyond; of width
+# about pi and 2 pi, from one extremum to the next; and pairs of consecutive
+# doubles up to the largest
+trig_intervals = []
+PI_DN = float.fromhex("0x1.921fb54442d18p+1")
+PI_UP = next_up(PI_DN)
+for e in (0, 3, 10, 20, 25, 26, 30, 40, 50, 51, 52, 53, 54):
+    for _ in range(3):
+        k = rng.randint(2 ** e, 2 ** (e + 1))
+        c = float(k * mpmath.pi / 2)
+        for lo, hi in ((-2, -1), (-1, 0), (0, 0), (0, 1), (1, 2), (-1, 1), (-3, 3)):
+            a, b = move(c, lo), move(c, hi)
+            if a < b or lo == hi:
+                trig_intervals.append((a, b))
+for _ in range(10):
+    k = rng.randint(-1000, 1000)
+    c = float(k * mpmath.pi / 2)
+    for a in (move(c, -1), c, move(c, 1), rng.uniform(-10.0, 10.0)):
+        for width in (next_down(PI_DN), PI_DN, PI_UP, next_up(PI_UP), 2 * next_down(PI_DN), 2 * PI_DN, 2 * PI_UP, 3.0, 6.0):
+            trig_intervals.append((a, a + width))
+for x in (2.0 ** 52, 2.0 ** 53, 2.0 ** 54, 2.0 ** 55, 2.0 ** 60, 1e22, 1e300, next_down(MAX)):
+    trig_intervals.append((x, next_up(x)))
+    trig_intervals.append((-next_up(x), -x))
+
+
 def literal(x):
     if x == math.inf:
         return "gaol_tests::inf"
@@ -324,4 +381,15 @@ print("const Atan2Box atan2_boxes[] = {")
 for yl, yu, xl, xu in atan2_boxes:
     least, greatest = atan2_hull(yl, yu, xl, xu)
     print("  { %s }," % ", ".join(literal(v) for v in (yl, yu, xl, xu) + neighbours(least) + neighbours(greatest)))
+print("};")
+print()
+print("// The hull of sin, cos and tan over [a, b]: the doubles around its least value, and")
+print("// those around its greatest; -inf and +inf for tan with a pole within [a, b]")
+print("struct TrigInterval { const char *function; double a, b, least_below, least_above, greatest_below, greatest_above; };")
+print()
+print("const TrigInterval trig_intervals[] = {")
+for name in ("sin", "cos", "tan"):
+    for a, b in trig_intervals:
+        least, greatest = trig_hull(name, a, b)
+        print('  { "%s", %s },' % (name, ", ".join(literal(v) for v in (a, b) + neighbours(least) + neighbours(greatest))))
 print("};")

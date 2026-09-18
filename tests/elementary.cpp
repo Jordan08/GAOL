@@ -31,6 +31,15 @@ namespace
   // outward (issue #1)
   const int limit = 1;
 
+  // atan2 is the value of mathlib moved one double outward. CRlibm has no
+  // atan2: built with it, GAOL takes the one of the libm moved three doubles
+  // outward, as for the hyperbolic functions, up to four from the tightest
+#if GAOL_USING_CRLIBM
+  const int atan2_limit = 4;
+#else
+  const int atan2_limit = 1;
+#endif
+
   typedef interval (*Unary)(const interval&);
 
   enum class Variation { increasing, decreasing, even, periodic };
@@ -119,25 +128,15 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if ((f == "sin" || f == "cos") && std::fabs(v.x) <= 0x1p25) {
+      if (f == "sin" || f == "cos" || f == "tan") {
         // mathlib's values at the argument, moved one double outward: within
-        // one double of the tightest bounds
+        // one double of the tightest bounds, at every magnitude. Beyond 2^25,
+        // or next to an extremum or a pole, where the division of the argument
+        // by an enclosure of pi cannot tell whether an extremum is reached,
+        // the signs of the derivative tell (issue #6): GAOL's bounds were
+        // x^2 2^-103 + 2^-51 away, cos([2^60]) was [-1, 1], and the tangent of
+        // the double below pi/2 [-oo, +oo]
         expect_close(name, r, v.below, v.above, describe, 1);
-      } else if (f == "sin" || f == "cos" || f == "tan") {
-        // Beyond 2^25, sin and cos may take an argument within |x| 2^-51 of an
-        // extremum as reaching it, |x|^2 2^-103 away. tan tells its branch
-        // adding an interval enclosing pi/2, whose width, 2^-52, the argument
-        // takes on: checked to within 2^-49 max(1,|x|) times the derivative,
-        // where that tells something (below 1)
-        RoundingToNearest nearest;
-        double slack = (f == "tan") ? std::ldexp(std::max(1.0, std::fabs(v.x)), -49) * (1.0 + v.above*v.above)
-                                    : std::ldexp(v.x*v.x, -103) + std::ldexp(1.0, -51);
-        if (slack < 1.0) {
-          expect_within(name, (f == "tan") ? "2^-49 max(1,|x|) (1+tan^2)" : "x^2 2^-103 + 2^-51", r, v.below, v.above,
-                        slack, describe);
-        } else {
-          check(name + ": encloses", !r.is_empty() && r.left() <= v.below && r.right() >= v.above, describe);
-        }
       } else {
         expect_close(name, r, v.below, v.above, describe);
       }
@@ -151,7 +150,7 @@ namespace
         const interval angle = evaluate(name, [&] { return atan2(interval(v.a), interval(v.b)); }, arguments);
         expect_close(name, angle, v.below, v.above, [&] {
           return arguments() + " = " + hex(angle) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
-        }, 1);
+        }, atan2_limit);
         continue;
       }
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
@@ -191,6 +190,27 @@ namespace
     }
   }
 
+  // sin, cos and tan over intervals next to their extrema and poles, of width
+  // about pi and 2 pi, and of consecutive doubles up to the largest: the hull
+  // of the values, within one double, -1 and 1 being exact (issue #6)
+  void trigonometric_intervals()
+  {
+    for (const TrigInterval& t : trig_intervals) {
+      const std::string f = t.function, name = f + "([a,b]) next to extrema and poles";
+      const interval X(t.a, t.b);
+      const auto arguments = [&] { return f + "(" + hex(X) + ")"; };
+      const interval r = evaluate(name, [&] { return unary_functions().at(f).f(X); }, arguments);
+      const auto describe = [&] {
+        return arguments() + " = " + hex(r) + ", the hull of the values being within ["
+          + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
+      };
+      if (check(name + ": encloses", !r.is_empty() && r.left() <= t.least_below && r.right() >= t.greatest_above, describe)) {
+        check_distance(name, std::max(doubles_between(r.left(), t.least_below), doubles_between(t.greatest_above, r.right())),
+                       1, describe);
+      }
+    }
+  }
+
   // atan2 of IEEE 1788-2015 over boxes [yl, yu] x [xl, xu] in every position
   // about the axes and the half-line y = 0, x < 0, where the angle jumps from
   // pi to -pi, and at the boxes whose hull is known: those with infinite
@@ -212,7 +232,7 @@ namespace
                                       : doubles_between(r.left(), b.least_below),
                                       (b.greatest_below == b.greatest_above) ? 2*doubles_between(b.greatest_above, r.right())
                                       : doubles_between(b.greatest_above, r.right()));
-        check_distance("atan2([y],[x]) over boxes", distance, 1, describe);
+        check_distance("atan2([y],[x]) over boxes", distance, atan2_limit, describe);
       }
     }
 
@@ -552,6 +572,7 @@ int main()
   at_known_intervals();
   pow_of_boxes();
   atan2_of_boxes();
+  trigonometric_intervals();
   powers();
   const int status = summary();
   gaol::cleanup();

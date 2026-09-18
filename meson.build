@@ -59,7 +59,7 @@ mathlib = get_option('with-mathlib')
 # the user, who is warned
 if mathlib == 'default'
   warning('with-mathlib=default: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: '
-    + 'its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). '
+    + 'they are valid only where the math library is within about one double of the exact value. '
     + 'Use with-mathlib=apmathlib (the default) or crlibm for certified bounds.')
 endif
 doc = get_option('with-doc')
@@ -347,6 +347,12 @@ endif
 # one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
 # both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
 pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
+# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
+# (gaol/gaol_double_op_crlibm.h): its directory, when given, for the code using
+# GAOL to find it
+if mathlib == 'crlibm' and mathlib_include != ''
+  pc_cflags += ['-I' + mathlib_include]
+endif
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
     add_global_arguments([flag], language: 'cpp')

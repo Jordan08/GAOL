@@ -88,7 +88,9 @@ project can also build GAOL for itself, with FetchContent (see
   against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
   with the scripts to run the comparison again.
 - The manual of GAOL, by Frédéric Goualard: `manual/gaol.pdf`, with its LaTeX
-  sources in `manual/`.
+  sources in `manual/`, which follow the changes of this fork. `make -C manual
+  pdf` after `./configure`, or `meson compile -C <build> pdf` after `meson setup
+  <build> -Dwith-doc=true`, builds it again (`manual/build-pdf.sh`).
 
 ## Licences
 

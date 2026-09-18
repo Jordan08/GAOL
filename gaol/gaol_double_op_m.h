@@ -53,13 +53,16 @@ namespace gaol {
   */
   INLINE double round_down(double d)
   {
-	if (d == -GAOL_INFINITY) {
- 		return -std::numeric_limits<double>::max();
-	} else {
-		
-    return ((d<0.0) ? small_quantity_pos*d-std::numeric_limits<double>::min() 
+    // +oo from the libm is a value beyond the largest double (exp, sinh and
+    // cosh at their overflow) or an infinite one (atanh(1)): the largest
+    // double is a lower bound of both. GAOL kept +oo, and gave the empty set
+    // [+oo, +oo] (fork of GAOL). -oo stays -oo, as the lower bound of log(0):
+    // GAOL gave -MAX, and log([0, 1]) = [-MAX, 0].
+    if (d == GAOL_INFINITY) {
+      return std::numeric_limits<double>::max();
+    }
+    return ((d<0.0) ? small_quantity_pos*d-std::numeric_limits<double>::min()
 	    : small_quantity_neg*d-std::numeric_limits<double>::min());
-	}
   }
 
   /*
@@ -68,6 +71,11 @@ namespace gaol {
   */
   INLINE double round_up(double d)
   {
+    // -oo from the libm, as +oo in round_down(): sinh at its overflow (fork of
+    // GAOL)
+    if (d == -GAOL_INFINITY) {
+      return -std::numeric_limits<double>::max();
+    }
     return ((d<0.0) ? small_quantity_neg*d+std::numeric_limits<double>::min() 
 	    : small_quantity_pos*d+std::numeric_limits<double>::min());
   }

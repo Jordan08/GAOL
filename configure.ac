@@ -62,8 +62,8 @@ AC_DEFINE([GAOL_MINOR_VERSION],gaol_minor_version,[Minor version for gaol])
 AC_DEFINE([GAOL_MICRO_VERSION],gaol_micro_version,[Micro version for gaol])
 AC_DEFINE([GAOL_VERSION],gaol_version,[Version number for gaol])
 # Version for the manual
-GAOL_EDITION="4.5"
-GAOL_UPDATED="10 May 2020"
+GAOL_EDITION="4.6"
+GAOL_UPDATED="18 September 2026"
 GAOL_VERSION=gaol_version
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 AC_SUBST(GAOL_EDITION)
@@ -291,7 +291,7 @@ AC_ARG_WITH([mathlib],
 # config.status, missing gaol_double_op_<name>.h
 AS_CASE([${use_mathlib}],
   [apmathlib|crlibm], [],
-  [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: its tests find bounds that do not enclose the exact values with it (near the overflow of exp, sinh and cosh with glibc 2.31). Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
+  [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: they are valid only where the math library is within about one double of the exact value. Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
   [AC_MSG_ERROR([--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m])])
 # mathlib is the one of 3rd/mathlib, built and installed with GAOL
 # (3rd/Makefile.am), unless --with-mathlib-include or --with-mathlib-lib says
@@ -690,6 +690,12 @@ if test "${bundled_mathlib}" = yes; then
    GAOL_PC_MATHLIB="-lultim"
 else
    GAOL_PC_MATHLIB="${mathlib_libpath} ${MATHLIB}"
+fi
+# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
+# (gaol/gaol_double_op_crlibm.h): its directory, when given, goes into the
+# Cflags of gaol.pc, for the code using GAOL to find it
+if test "${use_mathlib}" = "crlibm" && test -n "${mathlib_incpath}"; then
+   GAOL_PC_CFLAGS="${mathlib_incpath} ${GAOL_PC_CFLAGS}"
 fi
 AC_SUBST([GAOL_PC_MATHLIB])
 
