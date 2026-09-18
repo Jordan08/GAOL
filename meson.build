@@ -2,7 +2,7 @@ project(
   'GAOL',
   'c',
   'cpp',
-  version: '4.3.0',
+  version: '4.3.1',
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
   # does not optimize), with NDEBUG as configure and the Release build of CMake
   # define it: meson setup --buildtype=debug builds it for debugging
@@ -10,7 +10,7 @@ project(
 )
 major_version = 4
 minor_version = 3
-micro_version = 0
+micro_version = 1
 
 ## Main compiler and linker configs
 
@@ -435,6 +435,63 @@ if target_x86
     endif
   endif
 endif
+# enable-fma: the fused multiply-add instructions of the processor, as
+# CMakeLists.txt and configure take them (see CMakeLists.txt): /arch:AVX2 with
+# Visual C++ but for 32-bit x86, where it breaks the rounding direction; -mfma
+# on x86, where it defines __FMA__, but with GCC for Windows (MinGW), which
+# does not align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
+# -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
+# and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
+# (gaol.pc), compiled for the same processor. -ffp-contract=off stays.
+fma_args = []
+if get_option('enable-fma')
+  if cpp_comp.get_argument_syntax() == 'msvc'
+    msvc_x86_32 = cpp_comp.compiles('''
+    #if !defined(_M_IX86)
+    #error not 32-bit x86
+    #endif
+    int main() { return 0; }
+    ''', name: 'the target is 32-bit x86 (Visual C++)')
+    if not msvc_x86_32 and cpp_comp.has_argument('/arch:AVX2') and c_comp.has_argument('/arch:AVX2')
+      fma_args = ['/arch:AVX2']
+    endif
+  else
+    mingw_gcc = cpp_comp.compiles('''
+    #if !(defined(_WIN32) && defined(__GNUC__) && !defined(__clang__))
+    #error not GCC for Windows
+    #endif
+    int main() { return 0; }
+    ''', name: 'GCC for Windows')
+    fma_check = '''
+    #if !defined(@0@)
+    #error no fused multiply-add instructions
+    #endif
+    int main() { return 0; }
+    '''
+    if mingw_gcc
+      message('Fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX')
+    elif cpp_comp.links(fma_check.format('__FMA__'), args: ['-mfma'], name: '-mfma gives the fused multiply-add instructions (C++)') and c_comp.links(fma_check.format('__FMA__'), args: ['-mfma'], name: '-mfma gives the fused multiply-add instructions (C)')
+      fma_args = ['-mfma']
+    else
+      arm32_without_fma = cpp_comp.compiles('''
+      #if !defined(__arm__) || defined(__ARM_FEATURE_FMA)
+      #error not a 32-bit ARM target without FMA
+      #endif
+      int main() { return 0; }
+      ''', name: 'a 32-bit ARM target without FMA')
+      arm_args = ['-mfpu=neon-vfpv4', '-mfloat-abi=hard']
+      if arm32_without_fma and cpp_comp.links(fma_check.format('__ARM_FEATURE_FMA'), args: arm_args, name: '-mfpu=neon-vfpv4 gives the fused multiply-add instructions (C++)') and c_comp.links(fma_check.format('__ARM_FEATURE_FMA'), args: arm_args, name: '-mfpu=neon-vfpv4 gives the fused multiply-add instructions (C)')
+        fma_args = arm_args
+      endif
+    endif
+  endif
+  if fma_args.length() > 0
+    add_global_arguments(fma_args, language: 'c')
+    add_global_arguments(fma_args, language: 'cpp')
+    pc_cflags += fma_args
+  endif
+endif
+message('Fused multiply-add flags: ' + ' '.join(fma_args))
 
 # -ffloat-store only where doubles are still computed on the x87 unit
 # (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a

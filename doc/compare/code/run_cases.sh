@@ -17,15 +17,15 @@ $CXX -std=c++11 -O2 $(gaol_cflags) "$OUT/cases_gaol.cpp" -o "$OUT/cases_gaol" $(
 "$OUT/cases_gaol" > "$OUT/gaol.txt"
 
 echo "== libieeep1788"
-$CXX -std=c++11 -O2 $IA_CXXFLAGS $(p1788_cflags) "$OUT/cases_p1788.cpp" -o "$OUT/cases_p1788" $(p1788_libs)
+$CXX -std=c++11 -O2 $FMA_FLAGS $IA_CXXFLAGS $(p1788_cflags) "$OUT/cases_p1788.cpp" -o "$OUT/cases_p1788" $(p1788_libs)
 "$OUT/cases_p1788" > "$OUT/p1788.txt"
 
 echo "== filib++"
-$CXX -O2 $IA_CXXFLAGS $(filib_cflags) "$OUT/cases_filib.cpp" -o "$OUT/cases_filib" $(filib_libs)
+$CXX -O2 $FMA_FLAGS $IA_CXXFLAGS $(filib_cflags) "$OUT/cases_filib.cpp" -o "$OUT/cases_filib" $(filib_libs)
 "$OUT/cases_filib" > "$OUT/filib.txt"
 
 echo "== PROFIL/BIAS"
-$CXX -std=c++11 -O2 $IA_CXXFLAGS $(profil_cflags) "$OUT/cases_profil.cpp" -o "$OUT/cases_profil" $(profil_libs)
+$CXX -std=c++11 -O2 $FMA_FLAGS $IA_CXXFLAGS $(profil_cflags) "$OUT/cases_profil.cpp" -o "$OUT/cases_profil" $(profil_libs)
 # BIAS writes its errors on the standard error and aborts, which the program catches
 "$OUT/cases_profil" > "$OUT/profil.txt" 2> "$OUT/profil.err"
 

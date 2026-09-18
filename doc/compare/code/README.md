@@ -11,7 +11,8 @@ of
 
 ## What they need
 
-- GCC (`g++`, `gcc`), CMake, git, curl, `pkg-config`;
+- GCC or Clang (`g++` and `gcc` unless `CXX` and `CC` give others), CMake,
+  git, curl, `pkg-config`;
 - Python 3 with mpmath and numpy;
 - Solaris Studio (Oracle Developer Studio 12.4 was used) with its `bin`
   directory in `PATH`, or its `f90` given by `F90`.
@@ -21,9 +22,20 @@ GMP and MPFR (unless the system has their headers), libieeep1788 at its last
 commit (header-only, it needs MPFR), filib++ 3.0.2.2 from the archive IBEX
 distributes, unless `FILIB_DIR` gives an installed filib++, PROFIL/BIAS 2.0.8
 from its site (or from the archive `PROFIL_TGZ` gives), built with its
-configuration `x86-64-Linux-compat-gcc` and checked with `make check`, and
-GAOL from this repository, built with CMake in Release and installed with
-mathlib.
+configuration `x86-64-Linux-compat-gcc`, its `gcc` replaced by `CC` and `CXX`,
+and checked with `make check`, and GAOL from this repository, built with CMake
+in Release and installed with mathlib. All of them are compiled by `CC` and
+`CXX` with `-O3` (GMP, MPFR and PROFIL/BIAS compile with `-O2` on their own,
+and the configure of filib++ without any optimization) and with the fused
+multiply-add instructions of the processor, `-mfma` (`FMA_FLAGS`), as GAOL is
+by default (`GAOL_FMA`), filib++ and PROFIL/BIAS in C++11: Clang 16 and GCC 11
+compile C++17 by default, where their dynamic exception specifications and
+`register` are errors. PROFIL/BIAS is compiled with `-ffp-contract=off` too:
+with `-mfma`, Clang contracted its outward roundings into fused multiply-adds
+whose subnormal addend made `sqrt`, `exp` and `log` six to fifteen times slower
+(see `setup.sh`). The benchmark and the special cases compile their
+programs with `-mfma` too. Solaris Studio's intervals are computed by
+`libsunimath`, compiled already, which no flag reaches.
 
 ## Running
 
@@ -34,6 +46,16 @@ FILIB_DIR=/path/to/filib ./setup.sh   # once; without FILIB_DIR, it builds filib
                         # FORCE_GAOL=1 ./setup.sh rebuilds GAOL after a change
 ./run_cases.sh          # the special cases        -> ../special_cases.md
 CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance.md
+```
+
+The tables of [performance.md](../performance.md) and
+[special_cases.md](../special_cases.md) were computed with Clang 18, in a work
+directory of its own (GCC 9.4 gives the same special cases, and the same
+results in the benchmark):
+
+```bash
+export CC=clang-18 CXX=clang++-18 WORK=$PWD/work/clang
+./setup.sh && ./run_cases.sh && CPU=2 ./run_bench.sh
 ```
 
 `./run_all.sh` runs the three in turn. The scripts rewrite only the tables
@@ -54,8 +76,9 @@ variables:
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
 | `LIBS` | `double gaol filib profil sun p1788` | Libraries to run |
 | `CPU` | | Processor to run on (`taskset -c`) |
-| `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers |
+| `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
+| `FMA_FLAGS` | `-mfma` | The flag of the fused multiply-add instructions, given to every library `setup.sh` builds and to every program; empty (`FMA_FLAGS=`) for a processor without them |
 | `WORK`, `PREFIX` | `work`, `work/prefix` | Where everything is built and installed |
 | `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
 | `PROFIL_TGZ` | | A copy of `Profil-2.0.8.tgz`, for `setup.sh` when the site of PROFIL/BIAS is down |

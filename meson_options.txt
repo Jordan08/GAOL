@@ -1,6 +1,7 @@
 option('enable-optimize', type : 'boolean', value : true, description : 'Add the optimizations of configure (-funroll-loops, -fomit-frame-pointer...) where the compiler takes them')
 option('enable-debug', type : 'boolean', value : false, description : 'Activate debugging messages')
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3 [default=yes, as configure]')
+option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (false: a library for any processor of the architecture) [default=yes, as configure and CMake]')
 option('enable-float-intervals', type : 'boolean', value : false, description : 'Compile gaol::intervalf, and gaol::interval2f with SSE3 [default=no, as configure and CMake]')
 option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')

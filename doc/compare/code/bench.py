@@ -37,8 +37,8 @@ OPERATIONS = [
     ("block5", "five lines: t1 = ab + p; t2 = sin(t1) cos(b); t3 = a² + t2/p; t4 = exp(t2) − b³; t3 t4 + √p"),
 ]
 
-LIBRARIES = [("double", "double (reference)"), ("gaol", "GAOL"), ("libieeep1788", "libieeep1788"),
-             ("filib", "filib++"), ("profil", "PROFIL/BIAS"), ("solaris_f90", "Solaris Studio f90")]
+LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"), ("gaol", "GAOL"),
+             ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90"), ("profil", "PROFIL/BIAS")]
 
 
 def data(n, path):

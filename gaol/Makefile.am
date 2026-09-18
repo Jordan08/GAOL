@@ -26,7 +26,7 @@
 
 SUFFIXES = .lpp .ypp
 
-EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h \
+EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h core_math_log_dint.h \
 	gaol_interval_lexer.lpp gaol_interval_parser.ypp dllmain.cpp gaol_config_mingw.h \
 	gaol_config_msvc.h gaol_version_msvc.h gaol_configuration.h.in gaol_interval_sse.cpp
 
@@ -67,6 +67,7 @@ libgaol_la_SOURCES = \
     gaol_exact.c \
 	core_math_sinh.c core_math_cosh.c core_math_tanh.c \
 	core_math_asinh.c core_math_acosh.c core_math_atanh.c \
+	core_math_log.c \
     $(FLOAT_INTERVALS_SOURCE) $(INTERVAL2_SOURCE)
 
 

@@ -29,7 +29,7 @@
 
 cmake_minimum_required(VERSION 3.14...3.25)
 
-project(gaol VERSION 4.3.0 LANGUAGES C CXX)
+project(gaol VERSION 4.3.1 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -78,6 +78,7 @@ option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
 option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with SSE3" OFF)
+option(GAOL_FMA "Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
 # As configure.ac and meson.build ask: -std=c++11; C99 with the GNU extensions,
 # which mathlib's DPChange.c needs on 32-bit x86 (asm)
@@ -280,6 +281,87 @@ else()
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
+# The fused multiply-add instructions of the processor (fork of GAOL), with
+# the flag that gives them to the compiler where it has one, as Codac takes
+# them: GAOL's exact products (std::fma() in gaol/gaol_interval.cpp, for the
+# integer powers and the reduction of sin and cos) and CORE-MATH's functions
+# then compute fma() with one instruction, rather than with a call to the
+# fma() of the math library. The flags are given to the code using GAOL too
+# (gaol::gaol, gaol.pc), as Codac gives its own: that code runs only where
+# GAOL's library runs, on a processor with these instructions, and is compiled
+# for the same processor, the inline operations of GAOL's headers included.
+# -ffp-contract=off stays: no multiplication and addition written apart are
+# contracted into a fused one, which would round them as one operation.
+#  - x86 and x86_64, GCC and Clang: -mfma, where it defines __FMA__ (Clang
+#    takes -mfma for a target without these instructions, and ignores it).
+#  - Visual C++ for x64: /arch:AVX2, which implies them. Not for 32-bit x86:
+#    there, Visual C++ with /arch:AVX2 reused a product rounded upward after
+#    the rounding direction had changed, in spite of /fp:strict (in Codac,
+#    with Visual Studio 2022 and 2026).
+#  - GCC for Windows (MinGW): none. -mfma turns AVX on, whose 32-byte aligned
+#    stack GCC does not keep on Windows (crashes in Codac's MinGW builds).
+#  - 32-bit ARM: -mfpu=neon-vfpv4 -mfloat-abi=hard where FMA is not on
+#    already (__ARM_FEATURE_FMA), and the libraries of the system take the
+#    hard-float ABI.
+#  - 64-bit ARM, POWER, s390x, RISC-V: none; fma() is an instruction of the
+#    base architecture.
+# A library so compiled needs a processor with these instructions (on x86,
+# Intel Haswell and AMD Piledriver, 2012-2013, and later ones): GAOL_FMA OFF
+# leaves them out, for a library running on any processor of the architecture.
+set(GAOL_FMA_FLAGS "")
+if(GAOL_FMA)
+  if(MSVC)
+    check_cxx_source_compiles("
+      #if defined(_M_IX86)
+      #error /arch:AVX2 breaks the rounding direction with Visual C++ for 32-bit x86
+      #endif
+      int main() { return 0; }"
+      GAOL_MSVC_TARGET_KEEPS_ROUNDING_WITH_AVX2)
+    if(GAOL_MSVC_TARGET_KEEPS_ROUNDING_WITH_AVX2)
+      check_cxx_compiler_flag(/arch:AVX2 GAOL_COMPILER_SUPPORTS_ARCH_AVX2)
+      if(GAOL_COMPILER_SUPPORTS_ARCH_AVX2)
+        list(APPEND GAOL_FMA_FLAGS /arch:AVX2)
+      endif()
+    endif()
+  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(STATUS "Fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX")
+  else()
+    set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} -mfma")
+    check_cxx_source_compiles("
+      #if !defined(__FMA__)
+      #error -mfma does not give the fused multiply-add instructions on this target
+      #endif
+      int main() { return 0; }"
+      GAOL_COMPILER_SUPPORTS_MFMA)
+    unset(CMAKE_REQUIRED_FLAGS)
+    if(GAOL_COMPILER_SUPPORTS_MFMA)
+      list(APPEND GAOL_FMA_FLAGS -mfma)
+    else()
+      check_cxx_source_compiles("
+        #if !defined(__arm__) || defined(__ARM_FEATURE_FMA)
+        #error not a 32-bit ARM target without FMA
+        #endif
+        int main() { return 0; }"
+        GAOL_TARGET_IS_ARM32_WITHOUT_FMA)
+      if(GAOL_TARGET_IS_ARM32_WITHOUT_FMA)
+        set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} -mfpu=neon-vfpv4 -mfloat-abi=hard")
+        check_cxx_source_compiles("
+          #if !defined(__ARM_FEATURE_FMA)
+          #error -mfpu=neon-vfpv4 does not give the fused multiply-add instructions
+          #endif
+          int main() { return 0; }"
+          GAOL_COMPILER_SUPPORTS_MFPU_NEON_VFPV4)
+        unset(CMAKE_REQUIRED_FLAGS)
+        if(GAOL_COMPILER_SUPPORTS_MFPU_NEON_VFPV4)
+          list(APPEND GAOL_FMA_FLAGS -mfpu=neon-vfpv4 -mfloat-abi=hard)
+        endif()
+      endif()
+    endif()
+  endif()
+endif()
+string(REPLACE ";" " " GAOL_FMA_FLAGS_STRING "${GAOL_FMA_FLAGS}")
+message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
+
 
 ################################################################################
 # mathlib
@@ -322,7 +404,7 @@ elseif(GAOL_BUILD_MATHLIB)
   # The CMake build of 3rd/mathlib exports libultim along with libgaol
   set(MATHLIB_EXPORT_NAME gaolTargets)
   add_subdirectory(3rd/mathlib)
-  target_compile_options(ultim PRIVATE ${GAOL_INTERVAL_FLAGS})
+  target_compile_options(ultim PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
   add_library(gaol::ultim ALIAS ultim)
   set(GAOL_MATHLIB ultim)
 elseif(GAOL_FIND_MATHLIB)
@@ -518,6 +600,8 @@ set(GAOL_SOURCES
   # The hyperbolic functions of CORE-MATH (gaol/gaol_core_math.h)
   core_math_sinh.c core_math_cosh.c core_math_tanh.c
   core_math_asinh.c core_math_acosh.c core_math_atanh.c
+  # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
+  core_math_log.c
 )
 if(GAOL_FLOAT_INTERVALS)
   list(APPEND GAOL_SOURCES gaol_intervalf.cpp)
@@ -539,8 +623,20 @@ target_include_directories(gaol PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
-target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS})
+target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
+# Without a build type, CMake gives no optimization flag at all. GAOL sets
+# Release when it is the top-level project, but brought in by a project that
+# sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
+# without optimization: they are compiled with -O3 then, as in Release (/O2
+# with Visual C++). 3rd/mathlib/CMakeLists.txt does the same for mathlib.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  if(MSVC)
+    target_compile_options(gaol PRIVATE /O2)
+  else()
+    target_compile_options(gaol PRIVATE -O3)
+  endif()
+endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")
@@ -573,7 +669,8 @@ install(TARGETS gaol EXPORT gaolTargets
 # and MinGW, which gaol/meson.build does not install
 file(GLOB GAOL_HEADERS gaol/*.h)
 # What CORE-MATH's sources need to compile within GAOL, and nothing else does
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
+list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_log_dint.h")
 if(NOT GAOL_FLOAT_INTERVALS)
   list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")

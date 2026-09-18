@@ -164,7 +164,8 @@ am__libgaol_la_SOURCES_DIST = gaol_interval.cpp gaol_profile.cpp \
 	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
 	gaol_exact.c core_math_sinh.c core_math_cosh.c \
 	core_math_tanh.c core_math_asinh.c core_math_acosh.c \
-	core_math_atanh.c gaol_intervalf.cpp gaol_interval2f.cpp
+	core_math_atanh.c core_math_log.c gaol_intervalf.cpp \
+	gaol_interval2f.cpp
 @FLOAT_INTERVALS_COND_TRUE@am__objects_1 = gaol_intervalf.lo
 @COMPILE_INTERVAL2_TRUE@am__objects_2 = gaol_interval2f.lo
 am_libgaol_la_OBJECTS = gaol_interval.lo gaol_profile.lo \
@@ -173,7 +174,8 @@ am_libgaol_la_OBJECTS = gaol_interval.lo gaol_profile.lo \
 	gaol_exceptions.lo gaol_init_cleanup.lo s_nextafter.lo \
 	gaol_exact.lo core_math_sinh.lo core_math_cosh.lo \
 	core_math_tanh.lo core_math_asinh.lo core_math_acosh.lo \
-	core_math_atanh.lo $(am__objects_1) $(am__objects_2)
+	core_math_atanh.lo core_math_log.lo $(am__objects_1) \
+	$(am__objects_2)
 libgaol_la_OBJECTS = $(am_libgaol_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -419,7 +421,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUFFIXES = .lpp .ypp
-EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h \
+EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h core_math_log_dint.h \
 	gaol_interval_lexer.lpp gaol_interval_parser.ypp dllmain.cpp gaol_config_mingw.h \
 	gaol_config_msvc.h gaol_version_msvc.h gaol_configuration.h.in gaol_interval_sse.cpp
 
@@ -450,6 +452,7 @@ libgaol_la_SOURCES = \
     gaol_exact.c \
 	core_math_sinh.c core_math_cosh.c core_math_tanh.c \
 	core_math_asinh.c core_math_acosh.c core_math_atanh.c \
+	core_math_log.c \
     $(FLOAT_INTERVALS_SOURCE) $(INTERVAL2_SOURCE)
 
 LFLAGS = -Pgaol_
@@ -567,6 +570,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math_asinh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math_atanh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math_cosh.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math_log.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math_sinh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math_tanh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_common.Plo@am__quote@

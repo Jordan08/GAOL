@@ -67,6 +67,16 @@ check_c_compiler_flag(-w MATHLIB_C_COMPILER_SUPPORTS_W)
 if(MATHLIB_C_COMPILER_SUPPORTS_W)
   target_compile_options(ultim PRIVATE -w)
 endif()
+# Without a build type, CMake gives no optimization flag at all: mathlib, built
+# alone or with GAOL brought in by a project that sets none (add_subdirectory,
+# FetchContent), is compiled with -O3 then, as in Release (/O2 with Visual C++).
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  if(MSVC)
+    target_compile_options(ultim PRIVATE /O2)
+  else()
+    target_compile_options(ultim PRIVATE -O3)
+  endif()
+endif()
 if(MSVC)
   # src/mathlib_config.h declares mathlib's functions __declspec(dllexport) for
   # Visual C++, as for a DLL. They would then be exported by every DLL linking

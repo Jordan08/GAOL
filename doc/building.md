@@ -34,7 +34,9 @@ it then looks for an installed mathlib, under `MATHLIB_DIR` and in the usual
 paths, refuses one whose cosine is wrong (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)),
 and compiles the one of `3rd/mathlib` when none is found. Both libraries are
-static. The build type is Release unless another is given.
+static. The build type is Release unless another is given; brought in by a
+project that gives none (`add_subdirectory`, FetchContent), GAOL, CORE-MATH
+and mathlib are compiled with `-O3` all the same (`/O2` with Visual C++).
 
 | Option | Default | |
 |---|---|---|
@@ -47,6 +49,7 @@ static. The build type is Release unless another is given.
 | `GAOL_BUILD_TESTS` | `OFF` | Build the tests of `tests/`, which `ctest` runs; no build compiles tests by default |
 | `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
 | `GAOL_FLOAT_INTERVALS` | `OFF` | Compile the intervals of floats, `gaol::intervalf`, and `gaol::interval2f` where `GAOL_SIMD` gives SSE3: both are unfinished, and neither IBEX nor Codac uses them |
+| `GAOL_FMA` | `ON` | Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them: `-mfma` on x86 (not with GCC for Windows), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then needs a processor with them (on x86, Intel Haswell and AMD Piledriver, 2012-2013, and later); `OFF` builds it for any processor of the architecture. The code using GAOL is given the flag too, in `gaol::gaol` and `gaol.pc`, and `-ffp-contract=off` stays (see [The three builds](three-builds.md)) |
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
@@ -76,10 +79,11 @@ dates of the checkout. The options, with their defaults:
 |---|---|---|
 | `--with-mathlib=apmathlib\|crlibm\|m` | `apmathlib` | The mathematical library: mathlib (`ultim`) or CRlibm, whose bounds are certified, or `m`, the math library of the system, whose bounds are not (below) |
 | `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where the header and the library of an installed mathlib are, given to use it rather than the one of `3rd/mathlib`; for CRlibm, when not in the usual paths |
-| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`; `--disable-optimize` compiles with `-O` |
+| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`, for the C++ and C sources alike (GAOL, CORE-MATH, mathlib); `--disable-optimize` compiles with `-O` |
 | `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
 | `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `--enable-float-intervals` | `no` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |
+| `--enable-fma` | `yes` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
 | `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
@@ -126,6 +130,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
 | `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `enable-float-intervals` | `false` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |
+| `enable-fma` | `true` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
 | `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
