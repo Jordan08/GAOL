@@ -121,7 +121,7 @@ they keep the values they are given, within the number of doubles below.
 | `sqrRev(c, x)` | `sqrt_rel(c, x)` | within 1 double |
 | `absRev(c, x)` | `invabs_rel(c, x)` | tightest |
 | `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | within 2 doubles (the roots of `nth_root()`) |
-| `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | within 2<sup>−49</sup> |
+| `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | within 6 doubles (4, 5 and 3 found) from 1 to 2<sup>50</sup>, away from the points where the inverse function magnifies the width of the image; the pieces of the preimage are k·π, enclosed within about one double from π in double-double, plus or minus the inverse function of J; beyond 2<sup>52</sup> a bound of x is kept, and an x of a single double is decided by the image of the function |
 | `coshRev(c, x)` | `acosh_rel(c, x)` | within 16 doubles |
 | — | `asinh_rel`, `atanh_rel` | within 10 and 26 doubles |
 | `mulRev(b, c, x)` | `div_rel(c, b, x)`, and `c % b` for x = [−∞, +∞] | `%`: tightest; `div_rel`: within 2 doubles |

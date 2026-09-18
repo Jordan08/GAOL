@@ -29,6 +29,9 @@ namespace
   // twice the 26 found on the platforms tested: the relational functions bound
   // the preimage of an enclosure of the image, as tightly as it allows
   const int limit = 64;
+  // The relational functions of the periodic functions: about twice the 4
+  // found, which the width of f([x]) magnified by the inverse function gives
+  const int periodic_limit = 6;
 
   // The radius, rad of IEEE 1788-2015 (12.12.8): the smallest double r such
   // that [x] is in [m - r, m + r], m being the midpoint; mid_rad() gives both
@@ -304,7 +307,8 @@ namespace
 
   // Checks that r contains v, and is no more than limit doubles away from it,
   // or no more than slack when slack is given
-  void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands, double slack = 0.0)
+  void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands, double slack = 0.0,
+                   int max_doubles = limit)
   {
     const auto describe = [&] { return operands + ": " + hex(r) + ", which has to contain " + hex(v); };
     const Exact e = exact(v);
@@ -313,8 +317,8 @@ namespace
         RoundingToNearest nearest;
         check(name + ": no more than " + hex(slack) + " from the value", v - r.left() <= slack && r.right() - v <= slack, describe);
       } else {
-        check_distance(name, std::max(doubles_below_tightest(r.left(), e, limit), doubles_above_tightest(r.right(), e, limit)),
-                       limit, describe);
+        check_distance(name, std::max(doubles_below_tightest(r.left(), e, max_doubles), doubles_above_tightest(r.right(), e, max_doubles)),
+                       max_doubles, describe);
       }
     }
   }
@@ -346,14 +350,66 @@ namespace
       expect_kept("atanh_rel(tanh([t]), [t/2,3t/2])", atanh_rel(tanh(T), hull(t*0.5, t*1.5)), t, "t=" + hex(t));
       expect_kept("acosh_rel(cosh([c]), [c/2,3c/2])", acosh_rel(cosh(C), interval(c*0.5, c*1.5)), c, "c=" + hex(c));
 
-      // Periodic functions, within less than a half period of the argument.
-      // GAOL finds the periods with an interval enclosing pi, whose width,
-      // 2^-51, the bounds take on: they are checked to within 2^-49.
+      // Periodic functions, within less than a half period of the argument:
+      // within 4 doubles (issue #6: GAOL found the periods with an interval
+      // enclosing pi, whose width, 2^-51, the bounds took on, and they were
+      // checked to within 2^-49)
       const double u = random.uniform(0.5, 2.6), v = random.uniform(-1.3, 1.3), w = random.uniform(-1.4, 1.4);
-      const double slack = std::ldexp(1.0, -49);
-      expect_kept("acos_rel(cos([u]), [u-1/4,u+1/4])", acos_rel(cos(interval(u)), interval(u - 0.25, u + 0.25)), u, "u=" + hex(u), slack);
-      expect_kept("asin_rel(sin([v]), [v-1/10,v+1/10])", asin_rel(sin(interval(v)), interval(v - 0.1, v + 0.1)), v, "v=" + hex(v), slack);
-      expect_kept("atan_rel(tan([w]), [w-1,w+1])", atan_rel(tan(interval(w)), interval(w - 1.0, w + 1.0)), w, "w=" + hex(w), slack);
+      expect_kept("acos_rel(cos([u]), [u-1/4,u+1/4])", acos_rel(cos(interval(u)), interval(u - 0.25, u + 0.25)), u, "u=" + hex(u), 0.0,
+                  periodic_limit);
+      expect_kept("asin_rel(sin([v]), [v-1/10,v+1/10])", asin_rel(sin(interval(v)), interval(v - 0.1, v + 0.1)), v, "v=" + hex(v), 0.0,
+                  periodic_limit);
+      expect_kept("atan_rel(tan([w]), [w-1,w+1])", atan_rel(tan(interval(w)), interval(w - 1.0, w + 1.0)), w, "w=" + hex(w), 0.0,
+                  periodic_limit);
+    }
+  }
+
+  // The relational functions of the periodic functions at every magnitude
+  // (issue #6): f_rel(f([x]), [x - d, x + d]) has to keep x within a few
+  // doubles from 1 up to 2^50, away from the points where the inverse
+  // function magnifies the width of f([x]) (|sin x| >= 1/4 for acos_rel,
+  // |cos x| >= 1/4 for the others; below 1 that width is several doubles of x
+  // already); beyond 2^53, [x - d, x + d] is [x], and f_rel([x]) is [x] when
+  // f([x]) meets J, empty otherwise
+  void periodic_relations_at_every_magnitude()
+  {
+    Random random;
+    for (int i = 0; i < nb_random_values; ++i) {
+      const double x = random(0, 50);
+      const interval X(x), around = interval(x - 0.25, x + 0.25), wide = interval(x - 1.0, x + 1.0);
+      const std::string xs = "x=" + hex(x);
+      RoundingToNearest nearest;
+      const double s = std::sin(x), c = std::cos(x);
+      if (std::fabs(s) >= 0.25) {
+        expect_kept("acos_rel(cos([x]), [x-1/4,x+1/4]) from 1 to 2^50", acos_rel(cos(X), around), x, xs, 0.0, periodic_limit);
+      }
+      if (std::fabs(c) >= 0.25) {
+        expect_kept("asin_rel(sin([x]), [x-1/4,x+1/4]) from 1 to 2^50", asin_rel(sin(X), around), x, xs, 0.0, periodic_limit);
+        expect_kept("atan_rel(tan([x]), [x-1,x+1]) from 1 to 2^50", atan_rel(tan(X), wide), x, xs, 0.0, periodic_limit);
+      }
+    }
+    for (int i = 0; i < 1000; ++i) {
+      const double x = random(53, 1023);
+      const interval X(x);
+      const std::string xs = "x=" + hex(x);
+      // An image that f([x]) does not meet: shifted by 1/2 within [-1, 1], or
+      // beyond 1 for the tangent
+      const interval C = cos(X), S = sin(X), T = tan(X);
+      const interval notC = (C.right() < 0.5) ? C + 0.5 : C - 0.5, notS = (S.right() < 0.5) ? S + 0.5 : S - 0.5;
+      const interval notT = (T.right() < 0.0) ? T + 1.0 : T - 1.0;
+      struct Case { const char *name; interval r; bool kept; };
+      const Case cases[] = {
+        { "acos_rel(cos([x]), [x]) beyond 2^53: [x]", acos_rel(C, X), true },
+        { "acos_rel(cos([x]) shifted, [x]) beyond 2^53: empty", acos_rel(notC, X), false },
+        { "asin_rel(sin([x]), [x]) beyond 2^53: [x]", asin_rel(S, X), true },
+        { "asin_rel(sin([x]) shifted, [x]) beyond 2^53: empty", asin_rel(notS, X), false },
+        { "atan_rel(tan([x]), [x]) beyond 2^53: [x]", atan_rel(T, X), true },
+        { "atan_rel(tan([x]) shifted, [x]) beyond 2^53: empty", atan_rel(notT, X), false },
+      };
+      for (const Case& k : cases) {
+        check(k.name, k.kept ? (!k.r.is_empty() && k.r.left() == x && k.r.right() == x) : k.r.is_empty(),
+              [&] { return xs + ": " + hex(k.r); });
+      }
     }
   }
 }
@@ -372,6 +428,7 @@ int main()
   float_midpoints();
 #endif // GAOL_FLOAT_INTERVALS
   relations();
+  periodic_relations_at_every_magnitude();
   const int status = summary();
   gaol::cleanup();
   return status;

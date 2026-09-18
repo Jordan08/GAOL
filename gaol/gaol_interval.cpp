@@ -1653,38 +1653,84 @@ interval nth_root(const interval& I, unsigned int n)
     return interval(l,r);
   }
 
-  interval acos_k(double i, const interval &Jacos)
+  /*
+    k pi, k being an integer double, enclosed within about one double (fork of
+    GAOL, issue #6): pi = pi_hi + pi_lo, pi_hi being the double below pi, and
+    pi_lo lying between two consecutive doubles; k pi_hi is p + e exactly, p
+    being the product rounded and e its rest, from fma(); k pi_lo is bounded
+    by the products with the two doubles, rounded outward. GAOL computed
+    k [pi_dn, pi_up], whose width, k 2^-51, the relational functions took on:
+    their bounds were up to 2^-49 max(1, |x|) from the values they had to
+    keep. The rounding direction is upward.
+  */
+  static interval k_pi(double k)
   {
-
-    if (!feven(i)) {
-      return ((i+1)*interval::pi() - Jacos);
-    } else { // even
-      return (i*interval::pi() + Jacos);
-    }
+    // 0x1.1a62633145c06p-53 and 0x1.1a62633145c07p-53, the doubles around
+    // pi - pi_dn = 1.2246467991473531772e-16
+    static const double pi_lo_dn = std::ldexp(4967757600021510.0,-105);
+    static const double pi_lo_up = std::ldexp(4967757600021511.0,-105);
+    const double p = k*pi_dn;
+    const double e = std::fma(k,pi_dn,-p);
+    // The products of k with the doubles around pi_lo, rounded outward
+    const double below = (k >= 0.0) ? pi_lo_dn : pi_lo_up, above = (k >= 0.0) ? pi_lo_up : pi_lo_dn;
+    const double lo_lo = -((-k)*below), lo_hi = k*above;
+    const double hi = p + (e + lo_hi);
+    const double lo = -(((-p) - e) - lo_lo);
+    return interval(lo,hi);
   }
 
+  /*
+    The hull of the x of I whose image by a periodic function is in J (the
+    relational acos_rel(), asin_rel() and atan_rel()), the preimage of J
+    being the union of the pieces piece(i), the piece i lying on
+    [(i - shift) pi, (i + 1 - shift) pi], shift being 0 for the cosine and
+    1/2 for the sine and the tangent (fork of GAOL, issue #6: GAOL had three
+    copies of this, with k [pi]).
 
-  interval acos_i(double i, const interval &J, const interval &I)
+    A bound of I lies on the piece floor(x/pi + shift), or on the next one
+    when the quotient, rounded outward, is off by one: the leftmost point of
+    the preimage within I is on the piece of the left bound or the next one,
+    the union of the pieces being symmetric about every multiple of pi (plus
+    shift pi), and the rightmost point on the piece of the right bound or the
+    previous one. Beyond 2^52 the quotient may be off by more, and I is kept
+    as it is on that side; an I of a single double is decided by the image of
+    the function, at every magnitude.
+  */
+  template<class Piece, class Image>
+  static interval periodic_rel(const interval& J, const interval& I, double shift, Piece piece, Image image)
   {
-    double l, r;
-
-    if (J.right() > 1.0) {
-      l = 0.0;
+    if (J.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+    if (I.left() == I.right()) {
+      return (image(I) & J).is_empty() ? interval::emptyset() : I;
+    }
+    GAOL_RND_ENTER();
+    interval Ileft, Iright;
+    if (std::fabs(I.left()) > two_power_52) {
+      Ileft = I;
     } else {
-      l = acos_dn(J.right());
+      const double kl = std::floor((interval(I.left())/interval::pi() + shift).left());
+      Ileft = piece(kl) & I;
+      if (Ileft.is_empty()) {
+	Ileft = piece(kl + 1.0) & I;
+      }
     }
-
-    if (J.left() < -1.0) {
-      r = pi_up;
+    if (std::fabs(I.right()) > two_power_52) {
+      Iright = I;
     } else {
-      r = acos_up(J.left());
+      const double kr = std::floor((interval(I.right())/interval::pi() + shift).right());
+      Iright = piece(kr) & I;
+      if (Iright.is_empty()) {
+	Iright = piece(kr - 1.0) & I;
+      }
     }
-
-    if (!feven(i)) {
-      return ((i+1)*interval::pi()-interval(l,r)) & I;
-    } else { // even
-      return (i*interval::pi()+interval(l,r)) & I;
+    GAOL_RND_KEEP(Ileft); GAOL_RND_KEEP(Iright);
+    GAOL_RND_LEAVE();
+    if (Ileft.is_empty() || Iright.is_empty()) {
+      return interval::emptyset();
     }
+    return interval(Ileft.left(),Iright.right());
   }
 
   interval acos_rel(const interval& J, const interval &I)
@@ -1695,80 +1741,29 @@ interval nth_root(const interval& I, unsigned int n)
     if (J.set_contains(interval::minus_one_plus_one())) {
       return I;
     }
-    GAOL_RND_ENTER();
-
-    double kl = 0.0, kr = 0.0; // Meaningless definitions to keep the compiler happy
-    interval Jacos = acos(J);
-
-    interval Ileft;
-    // Checking whether the left bound is too large to perform
-    // a reliable range reduction (i.e., kl would be off by more than 1)
-    if (I.left() < -two_power_52 || I.left() > two_power_52) {
-      Ileft = I;
-    } else {
-      round_downward();
-      if (I.left() < 0) {
-	kl = std::floor(I.left()/interval::pi().left());
-      } else {
-	if (I.left() > 0) {
-	  kl = std::floor(I.left()/interval::pi().right());
-	} else {
-	  kl = 0;
-	}
-      }
-      // Computed rounding downward: kept before the direction changes (see gaol_fpu.h)
-      kl = gaol::rnd_keep(kl);
-      round_upward();
-      // From here, kl is at most off by 1 less than the true value
-      Ileft = acos_k(kl,Jacos) & I;
-      if (Ileft.is_empty()) {
-	Ileft = acos_k(kl+1,Jacos) & I;
-      }
-    }
-    interval Iright;
-    // Checking whether the right bound is too large to perform
-    // a reliable range reduction (i.e. kr would be off by more than 1)
-    if (I.right() < -two_power_52 || I.right() > two_power_52) {
-      Iright = I;
-    } else {
-      if (I.right() < 0) {
-	kr = std::floor(I.right()/interval::pi().right());
-      } else {
-	if (I.right() > 0) {
-	  kr = std::floor(I.right()/interval::pi().left());
-	} else {
-	  kr = 0;
-	}
-      }
-      // From here, kr is at most off by 1 more than the true value
-      if (kr == kl) {
-	Iright = Ileft;
-      } else {
-	Iright = acos_k(kr,Jacos) & I;
-	if (Iright.is_empty()) {
-	  Iright = acos_k(kr-1,Jacos) & I;
-	}
-      }
-    }
-    GAOL_RND_KEEP(Ileft); GAOL_RND_KEEP(Iright);
-    GAOL_RND_LEAVE();
-    return interval(Ileft.left(),Iright.right());
+    // The preimage of J: i pi + acos(J) for an even i, (i + 1) pi - acos(J)
+    // for an odd i
+    const interval Jacos = acos(J);
+    return periodic_rel(J, I, 0.0,
+			[&](double i) { return feven(i) ? k_pi(i) + Jacos : k_pi(i + 1.0) - Jacos; },
+			[](const interval& X) { return cos(X); });
   }
-
-
-
 
   interval asin_rel(const interval& J, const interval &I)
   {
-    return I & (interval::half_pi()+acos_rel(J,I-interval::half_pi()));
-  }
-
-  /*
-    Returns the multiple of $\pi$ on which to project tan(x)
-  */
-  INLINE double tan_period(double x)
-  {
-    return std::floor((std::floor(x)+1.0)/2.0);
+    if (J.is_empty() || I.is_empty() || J.left() > 1.0 || J.right() < -1.0) {
+      return interval::emptyset();
+    }
+    if (J.set_contains(interval::minus_one_plus_one())) {
+      return I;
+    }
+    // The preimage of J: i pi + asin(J) for an even i, i pi - asin(J) for an
+    // odd i (fork of GAOL: GAOL computed pi/2 + acos_rel(J, I - pi/2), two
+    // additions of an enclosure of pi/2 more)
+    const interval Jasin = asin(J);
+    return periodic_rel(J, I, 0.5,
+			[&](double i) { return feven(i) ? k_pi(i) + Jasin : k_pi(i) - Jasin; },
+			[](const interval& X) { return sin(X); });
   }
 
   interval atan_rel(const interval& J, const interval& I)
@@ -1776,67 +1771,11 @@ interval nth_root(const interval& I, unsigned int n)
     if (I.is_empty() || J.is_empty()) {
       return interval::emptyset();
     }
-    GAOL_RND_ENTER();
-    // kl is not computed when I.left() is too large for a reliable range
-    // reduction, but compared with kr below: Iright is then Ileft, which is I
-    double kl = 0.0, kr = 0.0;
-    interval atanJ = atan(J);
-
-    interval Ileft;
-    // Checking whether the left bound is too large to perform
-    // a reliable range reduction (i.e., kl would be off by more than 1)
-    if (I.left() < - two_power_51 || I.left() > two_power_51) {
-      Ileft = I;
-    } else {
-      round_downward();
-      if (I.left() < 0) {
-	kl = tan_period(I.left()/interval::half_pi().left());
-      } else {
-	if (I.left() > 0) {
-	  kl = tan_period(I.left()/interval::half_pi().right());
-	} else {
-	  kl = 0;
-	}
-      }
-      // Computed rounding downward: kept before the direction changes (see gaol_fpu.h)
-      kl = gaol::rnd_keep(kl);
-      round_upward();
-      // From here, kl is at most off by 1 less than the true value
-      interval tmp = atanJ + kl*interval::pi();
-      Ileft = tmp & I;
-      if (Ileft.is_empty()) {
-	Ileft = (tmp + interval::pi()) & I;
-      }
-    }
-    interval Iright;
-    // Checking whether the right bound is too large to perform
-    // a reliable range reduction (i.e. kr would be off by more than 1)
-    if (I.right() < -two_power_51 || I.right() > two_power_51) {
-      Iright = I;
-    } else {
-      if (I.right() < 0) {
-	kr = tan_period(I.right()/interval::half_pi().right());
-      } else {
-	if (I.right() > 0) {
-	  kr = tan_period(I.right()/interval::half_pi().left());
-	} else {
-	  kr = 0;
-	}
-      }
-      // From here, kr is at most off by 1 more than the true value
-      if (kr == kl) {
-	Iright = Ileft;
-      } else {
-	interval tmp = atanJ + kr*interval::pi();
-	Iright = tmp & I;
-	if (Iright.is_empty()) {
-	  Iright = (tmp - interval::pi()) & I;
-	}
-      }
-    }
-    GAOL_RND_KEEP(Ileft); GAOL_RND_KEEP(Iright);
-    GAOL_RND_LEAVE();
-    return interval(Ileft.left(),Iright.right());
+    // The preimage of J: i pi + atan(J)
+    const interval Jatan = atan(J);
+    return periodic_rel(J, I, 0.5,
+			[&](double i) { return k_pi(i) + Jatan; },
+			[](const interval& X) { return tan(X); });
   }
 
   interval acosh_rel(const interval &J, const interval &I)

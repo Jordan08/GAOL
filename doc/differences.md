@@ -315,6 +315,20 @@ Each change is a commit of its own, and says where it comes from.
     each function: a few doubles around the doubles nearest to kπ/2, k up to
     2^55, widths about π and 2π from one extremum to the next, and consecutive
     doubles up to the largest.
+- **`acos_rel()`, `asin_rel()` and `atan_rel()`** enclose the multiples of
+  π of the pieces of the preimage with π in double-double (issue #6): k·π_hi
+  is p + e exactly, e being the rest of the product from `fma()`, and
+  k·(π − π_hi) is bounded by the products with the two doubles around
+  π − π_hi. GAOL computed k·[π_dn, π_up], and `asin_rel()` as
+  π/2 + `acos_rel(J, I − π/2)`, two additions of an enclosure of π/2 more:
+  the values they have to keep are within 4, 5 and 3 doubles of their
+  bounds from 1 to 2^50, where they were within 4, 7 and 7. The three
+  functions share one algorithm (`periodic_rel()`), each with its pieces:
+  i·π ± acos(J), i·π ± asin(J), i·π + atan(J). An I of a single double is
+  decided at every magnitude by whether f(I) meets J, where a bound beyond
+  2^52 was kept as it was: `acos_rel(J, [2^60])` is `[2^60]` or empty. An I
+  that meets no piece gives the empty set, where the hull of two empty
+  intersections was taken.
 - **`atan2(y, x)`** is implemented, as the `atan2` of IEEE 1788-2015
   (Table 9.1), defined on the plane but (0, 0) with values in (−π, π]
   ([issue #2](https://github.com/Jordan08/GAOL/issues/2)). GAOL declared it,
