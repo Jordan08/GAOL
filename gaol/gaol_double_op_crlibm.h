@@ -40,6 +40,7 @@
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_assert.h"
 #include "gaol/gaol_common.h"
+#include "gaol/gaol_core_math.h"
 
 #include <crlibm.h>
 
@@ -135,19 +136,16 @@ namespace gaol {
     }
 
   /*
-    tanh, acosh, asinh and atanh come from the libm of the system, rounded to
-    nearest, crlibm having none of tanh, acosh, asinh and atanh. GAOL moved their values one float outward,
-    which only encloses the exact values when the libm is within one float of
-    them, and it is not always (fork of GAOL): on 2000 random arguments of each
-    function, the libms of glibc 2.31, musl and MinGW-w64 returned doubles
-    beyond the two around the exact value for sinh, cosh, tanh, acosh and atanh
-    (86 times for tanh), and GAOL's asinh() did not enclose
-    asinh(-0x1.ee84df02a8766p-4), nor its acosh() acosh(0x1.01fd62fff333fp+0).
-    The values are moved three floats outward instead, which encloses the exact
-    values as long as the libm is within two floats of them: none of the libms
-    tested was further than one float beyond the two around the exact value,
-    and tests/elementary.cpp checks them on each platform of the continuous
-    integration.
+    tanh, acosh, asinh and atanh are those of CORE-MATH (gaol_core_math.h),
+    correctly rounded, crlibm having none of them (fork of GAOL, issue #1):
+    rounded to nearest and moved one double outward, they enclose the exact
+    values. GAOL took them from the libm of the system, moved one float
+    outward, which only encloses the exact values when the libm is within one
+    float of them, and it is not always (see gaol_double_op_apmathlib.h).
+
+    atan2 still comes from the libm, crlibm having none: its value is moved
+    three floats outward, which encloses the exact value as long as the libm
+    is within two floats of it.
   */
   INLINE double gaol_libm_dn(double f)
   {
@@ -192,14 +190,14 @@ namespace gaol {
     INLINE double cosh_up(double x) { return cosh_ru(x); }
     INLINE double sinh_dn(double x) { return sinh_rd(x); }
     INLINE double sinh_up(double x) { return sinh_ru(x); }
-    INLINE double tanh_dn(double x) { return gaol_libm_dn(tanh(x)); } // From libm, not crlibm
-    INLINE double tanh_up(double x) { return gaol_libm_up(tanh(x)); } // From libm, not crlibm
-    INLINE double acosh_dn(double x) { return gaol_libm_dn(acosh(x)); } // From libm, not crlibm
-    INLINE double acosh_up(double x) { return gaol_libm_up(acosh(x)); } // From libm, not crlibm
-    INLINE double asinh_dn(double x) { return gaol_libm_dn(asinh(x)); } // From libm, not crlibm
-    INLINE double asinh_up(double x) { return gaol_libm_up(asinh(x)); } // From libm, not crlibm
-    INLINE double atanh_dn(double x) { return gaol_libm_dn(atanh(x)); } // From libm, not crlibm
-    INLINE double atanh_up(double x) { return gaol_libm_up(atanh(x)); } // From libm, not crlibm
+    INLINE double tanh_dn(double x) { return previous_float(gaol_cr_tanh(x)); } // From CORE-MATH, not crlibm
+    INLINE double tanh_up(double x) { return next_float(gaol_cr_tanh(x)); } // From CORE-MATH, not crlibm
+    INLINE double acosh_dn(double x) { return previous_float(gaol_cr_acosh(x)); } // From CORE-MATH, not crlibm
+    INLINE double acosh_up(double x) { return next_float(gaol_cr_acosh(x)); } // From CORE-MATH, not crlibm
+    INLINE double asinh_dn(double x) { return previous_float(gaol_cr_asinh(x)); } // From CORE-MATH, not crlibm
+    INLINE double asinh_up(double x) { return next_float(gaol_cr_asinh(x)); } // From CORE-MATH, not crlibm
+    INLINE double atanh_dn(double x) { return previous_float(gaol_cr_atanh(x)); } // From CORE-MATH, not crlibm
+    INLINE double atanh_up(double x) { return next_float(gaol_cr_atanh(x)); } // From CORE-MATH, not crlibm
   } // namespace nearest
 
   /*!

@@ -24,10 +24,12 @@ using namespace gaol_tests;
 
 namespace
 {
-  // The largest distance from the tightest bounds allowed, in doubles: twice
-  // the 4 found on the platforms tested, which the hyperbolic functions reach,
-  // their values from the libm being moved three floats outward
-  const int limit = 8;
+  // The largest distance from the tightest bounds allowed, in doubles: one,
+  // every function being the value of a correctly rounded library, mathlib or
+  // CORE-MATH, moved one double outward. It was 8, twice the 4 the hyperbolic
+  // functions reached, their values from the libm being moved three doubles
+  // outward (issue #1)
+  const int limit = 1;
 
   // atan2 is the value of mathlib moved one double outward. CRlibm has no
   // atan2: built with it, GAOL takes the one of the libm moved three doubles

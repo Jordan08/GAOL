@@ -97,4 +97,7 @@ project can also build GAOL for itself, with FetchContent (see
 GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
 under the GNU LGPL v2 (`COPYING.LIB`). mathlib, whose sources are in
 `3rd/mathlib`, is distributed under the GNU LGPL v2 or later, as the headers
-of its sources state (`3rd/mathlib/COPYING` is the text of the GNU GPL v2).
+of its sources state (`3rd/mathlib/COPYING` is the text of the GNU GPL v2). The
+hyperbolic functions of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
+whose sources are `gaol/core_math_*.c`, are distributed under the MIT licence
+(`3rd/core-math/LICENSE`).
