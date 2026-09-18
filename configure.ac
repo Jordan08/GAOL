@@ -282,7 +282,9 @@ AM_CONDITIONAL([COMPILE_INTERVAL2],[test ${has_sse3} = yes && test "${float_inte
 # align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
 # -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
 # and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
-# (gaol.pc), compiled for the same processor. -ffp-contract=off stays.
+# (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
+# where the machine building does not run a program compiled with them, but
+# when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
 AC_ARG_ENABLE(fma,
               [AS_HELP_STRING([--enable-fma],
                               [compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (no: a library for any processor of the architecture) @<:@default=yes@:>@])],
@@ -333,6 +335,24 @@ if test "$fma" = yes; then
             if test "${gaol_has_fma}" = yes; then
                 gaol_fma_flags="-mfpu=neon-vfpv4 -mfloat-abi=hard"
             fi
+        fi
+    fi
+    if test -n "${gaol_fma_flags}"; then
+        # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0
+        AC_LANG_PUSH([C++])
+        gaol_save_CXXFLAGS=$CXXFLAGS
+        CXXFLAGS="${CXXFLAGS} ${gaol_fma_flags}"
+        AC_MSG_CHECKING([whether this machine runs a program compiled with ${gaol_fma_flags}])
+        AC_RUN_IFELSE([AC_LANG_PROGRAM([[#include <cmath>]],
+[[volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
+return std::fma(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;]])],
+            [gaol_runs_fma=yes], [gaol_runs_fma=no], [gaol_runs_fma="not checked, cross-compiling"])
+        CXXFLAGS=$gaol_save_CXXFLAGS
+        AC_LANG_POP([C++])
+        AC_MSG_RESULT([${gaol_runs_fma}])
+        if test "${gaol_runs_fma}" = no; then
+            AC_MSG_NOTICE([fused multiply-add instructions left out: this machine does not run a program compiled with ${gaol_fma_flags}])
+            gaol_fma_flags=""
         fi
     fi
     CXXFLAGS="${CXXFLAGS} ${gaol_fma_flags}"

@@ -35,6 +35,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
+include(CheckCXXSourceRuns)
 include(CheckIncludeFileCXX)
 include(CheckSymbolExists)
 
@@ -308,6 +309,10 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 # A library so compiled needs a processor with these instructions (on x86,
 # Intel Haswell and AMD Piledriver, 2012-2013, and later ones): GAOL_FMA OFF
 # leaves them out, for a library running on any processor of the architecture.
+# They are also left out where the machine building does not run a program
+# compiled with them, but when cross-compiling: a compiler takes the flag
+# whatever the processor, and under Rosetta on macOS 14, which has no AVX, the
+# x86_64 programs of the tests stopped on an illegal instruction.
 set(GAOL_FMA_FLAGS "")
 if(GAOL_FMA)
   if(MSVC)
@@ -356,6 +361,23 @@ if(GAOL_FMA)
           list(APPEND GAOL_FMA_FLAGS -mfpu=neon-vfpv4 -mfloat-abi=hard)
         endif()
       endif()
+    endif()
+  endif()
+  if(GAOL_FMA_FLAGS AND NOT CMAKE_CROSSCOMPILING)
+    # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0
+    string(REPLACE ";" " " _gaol_fma_flags "${GAOL_FMA_FLAGS}")
+    set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} ${_gaol_fma_flags}")
+    check_cxx_source_runs("
+      #include <cmath>
+      int main() {
+        volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
+        return std::fma(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;
+      }"
+      GAOL_MACHINE_RUNS_FMA)
+    unset(CMAKE_REQUIRED_FLAGS)
+    if(NOT GAOL_MACHINE_RUNS_FMA)
+      message(STATUS "Fused multiply-add instructions left out: this machine does not run a program compiled with ${_gaol_fma_flags}")
+      set(GAOL_FMA_FLAGS "")
     endif()
   endif()
 endif()

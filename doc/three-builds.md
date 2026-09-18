@@ -23,7 +23,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86, except with GCC
   for Windows, which does not align the stack for the AVX that `-mfma` turns
   on; `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
-  the rounding direction; `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM.
+  the rounding direction; `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM;
+  and only where the machine building runs a program so compiled, but when
+  cross-compiling: under Rosetta on macOS 14, which has no AVX, the x86_64
+  tests stopped on an illegal instruction.
   GAOL's exact products (`std::fma()`) and CORE-MATH's functions then compute
   `fma()` with one instruction rather than with a call to the math library: on
   an Intel i7-1185G7, `pow(x, 3)` of an interval took 21 ns rather than 29, and

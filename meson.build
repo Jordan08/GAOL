@@ -442,7 +442,9 @@ endif
 # does not align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
 # -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
 # and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
-# (gaol.pc), compiled for the same processor. -ffp-contract=off stays.
+# (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
+# where the machine building does not run a program compiled with them, but
+# when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
 fma_args = []
 if get_option('enable-fma')
   if cpp_comp.get_argument_syntax() == 'msvc'
@@ -483,6 +485,20 @@ if get_option('enable-fma')
       if arm32_without_fma and cpp_comp.links(fma_check.format('__ARM_FEATURE_FMA'), args: arm_args, name: '-mfpu=neon-vfpv4 gives the fused multiply-add instructions (C++)') and c_comp.links(fma_check.format('__ARM_FEATURE_FMA'), args: arm_args, name: '-mfpu=neon-vfpv4 gives the fused multiply-add instructions (C)')
         fma_args = arm_args
       endif
+    endif
+  endif
+  if fma_args.length() > 0 and not meson.is_cross_build()
+    # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0
+    fma_run = cpp_comp.run('''
+    #include <cmath>
+    int main() {
+      volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
+      return std::fma(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;
+    }
+    ''', args: fma_args, name: 'this machine runs a program compiled with ' + ' '.join(fma_args))
+    if not (fma_run.compiled() and fma_run.returncode() == 0)
+      message('Fused multiply-add instructions left out: this machine does not run a program compiled with ' + ' '.join(fma_args))
+      fma_args = []
     endif
   endif
   if fma_args.length() > 0
