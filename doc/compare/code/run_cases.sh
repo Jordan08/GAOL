@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The special cases: generates the programs of cases.py, compiles them with
-# GAOL, libieeep1788, filib++ and Solaris Studio, runs them, and writes the
-# table of their results into doc/compare/special_cases.md (between its
-# markers).
+# GAOL, libieeep1788, filib++, PROFIL/BIAS and Solaris Studio, runs them, and
+# writes the table of their results into doc/compare/special_cases.md (between
+# its markers).
 # Run setup.sh first.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
@@ -23,6 +23,11 @@ $CXX -std=c++11 -O2 $IA_CXXFLAGS $(p1788_cflags) "$OUT/cases_p1788.cpp" -o "$OUT
 echo "== filib++"
 $CXX -O2 $IA_CXXFLAGS $(filib_cflags) "$OUT/cases_filib.cpp" -o "$OUT/cases_filib" $(filib_libs)
 "$OUT/cases_filib" > "$OUT/filib.txt"
+
+echo "== PROFIL/BIAS"
+$CXX -std=c++11 -O2 $IA_CXXFLAGS $(profil_cflags) "$OUT/cases_profil.cpp" -o "$OUT/cases_profil" $(profil_libs)
+# BIAS writes its errors on the standard error and aborts, which the program catches
+"$OUT/cases_profil" > "$OUT/profil.txt" 2> "$OUT/profil.err"
 
 echo "== Solaris Studio"
 (cd "$OUT" && "$F90" $F90FLAGS_CASES cases_sun.f90 -o cases_sun > f90.log 2>&1) \
