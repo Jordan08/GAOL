@@ -691,6 +691,12 @@ if test "${bundled_mathlib}" = yes; then
 else
    GAOL_PC_MATHLIB="${mathlib_libpath} ${MATHLIB}"
 fi
+# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
+# (gaol/gaol_double_op_crlibm.h): its directory, when given, goes into the
+# Cflags of gaol.pc, for the code using GAOL to find it
+if test "${use_mathlib}" = "crlibm" && test -n "${mathlib_incpath}"; then
+   GAOL_PC_CFLAGS="${mathlib_incpath} ${GAOL_PC_CFLAGS}"
+fi
 AC_SUBST([GAOL_PC_MATHLIB])
 
 

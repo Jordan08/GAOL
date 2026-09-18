@@ -29,6 +29,15 @@ namespace
   // their values from the libm being moved three floats outward
   const int limit = 8;
 
+  // atan2 is the value of mathlib moved one double outward. CRlibm has no
+  // atan2: built with it, GAOL takes the one of the libm moved three doubles
+  // outward, as for the hyperbolic functions, up to four from the tightest
+#if GAOL_USING_CRLIBM
+  const int atan2_limit = 4;
+#else
+  const int atan2_limit = 1;
+#endif
+
   typedef interval (*Unary)(const interval&);
 
   enum class Variation { increasing, decreasing, even, periodic };
@@ -149,7 +158,7 @@ namespace
         const interval angle = evaluate(name, [&] { return atan2(interval(v.a), interval(v.b)); }, arguments);
         expect_close(name, angle, v.below, v.above, [&] {
           return arguments() + " = " + hex(angle) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
-        }, 1);
+        }, atan2_limit);
         continue;
       }
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
@@ -210,7 +219,7 @@ namespace
                                       : doubles_between(r.left(), b.least_below),
                                       (b.greatest_below == b.greatest_above) ? 2*doubles_between(b.greatest_above, r.right())
                                       : doubles_between(b.greatest_above, r.right()));
-        check_distance("atan2([y],[x]) over boxes", distance, 1, describe);
+        check_distance("atan2([y],[x]) over boxes", distance, atan2_limit, describe);
       }
     }
 

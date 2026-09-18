@@ -154,7 +154,9 @@ Built with CRlibm (`--with-mathlib=crlibm`, `-Dwith-mathlib=crlibm`), `exp`,
 functions rounded downward and upward, and `sin` too: their bounds are the
 tightest where the algorithms above evaluate the functions at the bounds. `pow`, and so `nth_root`, take CRlibm's
 pow rounded to nearest, moved one double outward, as with mathlib; `tanh`,
-`asinh`, `acosh` and `atanh` the libm, as above.
+`asinh`, `acosh` and `atanh` the libm, as above, and `atan2` too, CRlibm having
+none: its bounds are up to four doubles from the tightest, which
+`tests/elementary.cpp` allows it with CRlibm.
 
 Built with the math library of the system (`--with-mathlib=m`,
 `-Dwith-mathlib=default`), every elementary function takes the libm's value

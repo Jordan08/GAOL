@@ -6,7 +6,9 @@
 # armhf in containers), macOS (arm64, x86_64) and Windows (MSYS2). Checks that
 # the three builds give GAOL the same configuration on each kind of machine
 # (.github/audit), and that autotools and meson refuse the MinGW-w64 CMake
-# refuses (mingw-w64 older than version 13).
+# refuses (mingw-w64 older than version 13). Builds GAOL with the two other
+# mathematical libraries autotools and meson offer, CRlibm and the math library
+# of the system, which no other job compiles.
 
 name: Autotools and meson
 
@@ -140,6 +142,70 @@ jobs:
           mathlib="$RUNNER_TEMP/gaol"
           if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$mathlib" shared
+      - name: Performance
+        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # GAOL built with CRlibm (--with-mathlib=crlibm), whose bounds are certified
+  # as those of mathlib: the five tests pass. Built with the math library of the
+  # system (--with-mathlib=m), GAOL does not aim at tight bounds: the checks of
+  # elementary and other_functions on the distance to the tightest bounds may
+  # fail, and no other (.github/scripts/tests.sh). Without these jobs,
+  # gaol/gaol_double_op_crlibm.h and gaol/gaol_double_op_m.h were compiled
+  # nowhere (issue #12).
+  other-mathlib:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { build: autotools, mathlib: crlibm, desc: 'Autotools, Ubuntu 24.04 x86_64, CRlibm' }
+          - { build: meson,     mathlib: crlibm, desc: 'Meson, Ubuntu 24.04 x86_64, CRlibm' }
+          - { build: autotools, mathlib: m,      desc: 'Autotools, Ubuntu 24.04 x86_64, math library of the system' }
+          - { build: meson,     mathlib: m,      desc: 'Meson, Ubuntu 24.04 x86_64, math library of the system' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ make flex bison pipx autoconf automake libtool pkg-config
+          pipx install meson
+          pipx install ninja
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: CRlibm
+        if: matrix.cfg.mathlib == 'crlibm'
+        run: sh scripts/install-crlibm.sh "$RUNNER_TEMP/crlibm"
+      - name: Configure, build and install
+        run: |
+          if [ ${{ matrix.cfg.build }} = autotools ]; then
+            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+            options="--with-mathlib=${{ matrix.cfg.mathlib }}"
+            if [ ${{ matrix.cfg.mathlib }} = crlibm ]; then
+              options="$options --with-mathlib-include=$RUNNER_TEMP/crlibm/include --with-mathlib-lib=$RUNNER_TEMP/crlibm/lib"
+            fi
+            ./configure --prefix="$RUNNER_TEMP/gaol" $options | tee configure.log
+            make -j 4
+            make install
+          else
+            # The math library of the system is "default" for meson
+            if [ ${{ matrix.cfg.mathlib }} = crlibm ]; then
+              options="-Dwith-mathlib=crlibm -Dwith-mathlib-include=$RUNNER_TEMP/crlibm/include -Dwith-mathlib-lib=$RUNNER_TEMP/crlibm/lib"
+            else
+              options="-Dwith-mathlib=default"
+            fi
+            meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib $options | tee configure.log
+            meson compile -C build-meson
+            meson install -C build-meson
+          fi
+          # No mathlib is built nor installed with GAOL
+          test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          cat "$RUNNER_TEMP/gaol/lib/pkgconfig/gaol.pc"
+      - name: Tests built with the installed GAOL
+        run: |
+          linking=static
+          if [ ${{ matrix.cfg.build }} = meson ]; then linking=shared; fi
+          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/crlibm" $linking ${{ matrix.cfg.mathlib }}
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 

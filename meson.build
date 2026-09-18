@@ -347,6 +347,12 @@ endif
 # one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
 # both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
 pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
+# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
+# (gaol/gaol_double_op_crlibm.h): its directory, when given, for the code using
+# GAOL to find it
+if mathlib == 'crlibm' and mathlib_include != ''
+  pc_cflags += ['-I' + mathlib_include]
+endif
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
     add_global_arguments([flag], language: 'cpp')

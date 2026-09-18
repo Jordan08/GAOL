@@ -3,11 +3,17 @@
 # the autotools or the meson build, and runs the tests, as the continuous
 # integration does. To be run from the root of GAOL's sources:
 #
-#   sh .github/scripts/tests.sh <prefix of GAOL> <prefix of mathlib> static|shared
+#   sh .github/scripts/tests.sh <prefix of GAOL> <prefix of mathlib> static|shared [apmathlib|crlibm|m]
 #
 # The prefix of mathlib is the one of GAOL when the mathlib of 3rd/mathlib was
 # installed with it. static links libgaol.a, shared links libgaol.so (or
-# .dylib) with an rpath. The flags of the tests are those of TEST_FLAGS, with
+# .dylib) with an rpath. The last argument is the mathematical library GAOL
+# was built with: mathlib (apmathlib, the default), CRlibm (crlibm, the prefix
+# of mathlib being the one of CRlibm), or the math library of the system (m,
+# the prefix of mathlib being ignored). With the latter, GAOL does not aim at
+# tight bounds (see doc/building.md): the checks of elementary and
+# other_functions on the distance to the tightest bounds ("no more than ...")
+# may fail, and no other. The flags of the tests are those of TEST_FLAGS, with
 # which the code using GAOL is compiled (see CMakeLists.txt); on a 32-bit x86
 # processor, -msse2 -mfpmath=sse too, without which gaol/gaol_config.h refuses
 # to compile.
@@ -19,10 +25,18 @@ flags="${TEST_FLAGS:--std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract
 case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
+backend=${4:-apmathlib}
+case "$backend" in
+  apmathlib) mathlib_libs="$mathlib/lib/libultim.a" ;;
+  # GAOL's headers include crlibm.h
+  crlibm) mathlib_libs="$mathlib/lib/libcrlibm.a -lm"; flags="$flags -I$mathlib/include" ;;
+  m) mathlib_libs="-lm" ;;
+  *) echo "unknown mathematical library: $backend"; exit 2 ;;
+esac
 if [ "$linking" = shared ]; then
-  libs="-L$prefix/lib -lgaol $mathlib/lib/libultim.a -Wl,-rpath,$prefix/lib"
+  libs="-L$prefix/lib -lgaol $mathlib_libs -Wl,-rpath,$prefix/lib"
 else
-  libs="$prefix/lib/libgaol.a $mathlib/lib/libultim.a"
+  libs="$prefix/lib/libgaol.a $mathlib_libs"
 fi
 grep -H -E "GAOL_PRESERVE_ROUNDING|USING_SSE2_INSTRUCTIONS|USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
 status=0
@@ -31,6 +45,11 @@ for test in arithmetic elementary numbers other_functions rounding_direction; do
   # The checks that failed, which the last lines do not show
   if ./$test > $test.log 2>&1; then
     tail -1 $test.log
+  elif [ "$backend" = m ] && { [ $test = elementary ] || [ $test = other_functions ]; } && tail -1 $test.log | grep -q -E "^[0-9]+ checks, [0-9]+ failed$" \
+       && ! grep -E "checks, [1-9][0-9]* failed" $test.log | grep -v -E "^[0-9]+ checks, |: no more than " > /dev/null; then
+    # The math library of the system: only distances to the tightest bounds
+    echo "$(tail -1 $test.log), all of them on the distance to the tightest bounds:"
+    grep -E "checks, [1-9][0-9]* failed" $test.log | grep -v -E "^[0-9]+ checks, "
   else
     grep -E "checks, [1-9][0-9]* failed|^FAILED" $test.log | head -60
     status=1
