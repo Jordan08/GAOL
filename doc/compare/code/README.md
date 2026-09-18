@@ -26,9 +26,13 @@ configuration `x86-64-Linux-compat-gcc`, its `gcc` replaced by `CC` and `CXX`,
 and checked with `make check`, and GAOL from this repository, built with CMake
 in Release and installed with mathlib. All of them are compiled by `CC` and
 `CXX` with `-O3` (GMP, MPFR and PROFIL/BIAS compile with `-O2` on their own,
-and the configure of filib++ without any optimization), filib++ and
-PROFIL/BIAS in C++11: Clang 16 and GCC 11 compile C++17 by default, where
-their dynamic exception specifications and `register` are errors.
+and the configure of filib++ without any optimization) and with the fused
+multiply-add instructions of the processor, `-mfma` (`FMA_FLAGS`), as GAOL is
+by default (`GAOL_FMA`), filib++ and PROFIL/BIAS in C++11: Clang 16 and GCC 11
+compile C++17 by default, where their dynamic exception specifications and
+`register` are errors. The benchmark and the special cases compile their
+programs with `-mfma` too. Solaris Studio's intervals are computed by
+`libsunimath`, compiled already, which no flag reaches.
 
 ## Running
 
@@ -61,6 +65,7 @@ variables:
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
+| `FMA_FLAGS` | `-mfma` | The flag of the fused multiply-add instructions, given to every library `setup.sh` builds and to every program; empty (`FMA_FLAGS=`) for a processor without them |
 | `WORK`, `PREFIX` | `work`, `work/prefix` | Where everything is built and installed |
 | `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
 | `PROFIL_TGZ` | | A copy of `Profil-2.0.8.tgz`, for `setup.sh` when the site of PROFIL/BIAS is down |

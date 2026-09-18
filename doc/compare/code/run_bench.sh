@@ -40,13 +40,13 @@ run() {
 }
 
 echo "== compiling"
-$CXX -std=c++11 $CXXFLAGS_BENCH -I"$CODE_DIR" "$CODE_DIR/bench_double.cpp" -o "$OUT/bench_double"
+$CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS -I"$CODE_DIR" "$CODE_DIR/bench_double.cpp" -o "$OUT/bench_double"
 $CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol" $(gaol_libs)
-$CXX -std=c++11 $CXXFLAGS_BENCH $IA_CXXFLAGS $(p1788_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_p1788.cpp" \
+$CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(p1788_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_p1788.cpp" \
      -o "$OUT/bench_p1788" $(p1788_libs)
-$CXX $CXXFLAGS_BENCH $IA_CXXFLAGS $(filib_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_filib.cpp" \
+$CXX $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(filib_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_filib.cpp" \
      -o "$OUT/bench_filib" $(filib_libs)
-$CXX -std=c++11 $CXXFLAGS_BENCH $IA_CXXFLAGS $(profil_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_profil.cpp" \
+$CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(profil_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_profil.cpp" \
      -o "$OUT/bench_profil" $(profil_libs)
 (cd "$OUT" && "$F90" $F90FLAGS_BENCH "$CODE_DIR/bench_sun.f90" -o bench_sun > f90.log 2>&1) \
   || { cat "$OUT/f90.log"; die "f90 failed"; }
@@ -74,7 +74,7 @@ done
   echo "Processor:       $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ *//')${CPU:+ (taskset -c $CPU)}"
   echo "System:          $(uname -sr), $(. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")"
   echo "C++ compiler:    $($CXX --version | head -1)"
-  echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788, filib++ and PROFIL/BIAS: $IA_CXXFLAGS)"
+  echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788, filib++ and PROFIL/BIAS: $IA_CXXFLAGS)"
   echo "Fortran:         $("$F90" -V 2>&1 | head -1), flags: $F90FLAGS_BENCH"
   # -dirty only for what GAOL is built from: the reports of doc/ are being rewritten
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"

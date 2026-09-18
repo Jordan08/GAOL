@@ -7,9 +7,10 @@
 #     built with its x86-64 Linux configuration,
 #   - GAOL, this repository, built with CMake in Release and installed,
 # and checks that Solaris Studio's f90 compiles an interval program.
-# Everything is compiled by $CC and $CXX with -O3: GMP, MPFR and PROFIL/BIAS
-# compile with -O2 on their own, and the configure of filib++ without any
-# optimization. Each step is skipped when its result is already there.
+# Everything is compiled by $CC and $CXX with -O3 and $FMA_FLAGS (-mfma, see
+# env.sh): GMP, MPFR and PROFIL/BIAS compile with -O2 on their own, and the
+# configure of filib++ without any optimization. Each step is skipped when its
+# result is already there.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 
@@ -37,7 +38,7 @@ else
         "gmp-$GMP_VERSION.tar.xz" "$GMP_SHA256"
   rm -rf "gmp-$GMP_VERSION" && tar xf "gmp-$GMP_VERSION.tar.xz"
   (cd "gmp-$GMP_VERSION" &&
-   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --disable-shared --enable-static CC="$CC" CFLAGS="-O3" > configure.log &&
+   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --disable-shared --enable-static CC="$CC" CFLAGS="-O3 $FMA_FLAGS" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
 
   echo "== MPFR $MPFR_VERSION"
@@ -45,7 +46,7 @@ else
         "mpfr-$MPFR_VERSION.tar.xz" "$MPFR_SHA256"
   rm -rf "mpfr-$MPFR_VERSION" && tar xf "mpfr-$MPFR_VERSION.tar.xz"
   (cd "mpfr-$MPFR_VERSION" &&
-   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --with-gmp="$PREFIX" --disable-shared --enable-static CC="$CC" CFLAGS="-O3" > configure.log &&
+   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --with-gmp="$PREFIX" --disable-shared --enable-static CC="$CC" CFLAGS="-O3 $FMA_FLAGS" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
 fi
 
@@ -81,7 +82,7 @@ else
   rm -rf "filibsrc-$FILIB_VERSION" && tar xzf "filibsrc-$FILIB_VERSION.tar.gz"
   (cd "filibsrc-$FILIB_VERSION" &&
    ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --disable-shared CXX="$CXX" CC="$CC" \
-               CXXFLAGS="-std=c++11 -O3 -frounding-math -Wno-deprecated" > configure.log &&
+               CXXFLAGS="-std=c++11 -O3 $FMA_FLAGS -frounding-math -Wno-deprecated" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
   echo "$PREFIX" > "$WORK/filib-dir"
 fi
@@ -89,8 +90,8 @@ fi
 ## PROFIL/BIAS: its own Configure asks for the configuration interactively;
 ## Host.cfg, which it writes, is written here for x86-64 Linux, its compilers
 ## (gcc in that configuration) replaced by $CC and $CXX, in C++11 (its
-## `register` is an error in C++17), and its -O2 by -O3. make install copies the
-## headers and the libraries into the source tree
+## `register` is an error in C++17), and its -O2 by -O3 $FMA_FLAGS. make install
+## copies the headers and the libraries into the source tree
 if [ -f "$PROFIL_DIR/include/Interval.h" ]; then
   echo "== PROFIL/BIAS: already in $PROFIL_DIR"
 else
@@ -101,7 +102,7 @@ else
   fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
   rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
   (cd "Profil-$PROFIL_VERSION" &&
-   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" > Host.cfg &&
+   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3 %s,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" "$FMA_FLAGS" > Host.cfg &&
    make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&
    grep -q "FAILED : 0" check.log)
   mkdir -p "$PROFIL_DIR"
@@ -116,6 +117,7 @@ else
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-build" -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
         -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" \
+        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" \
         -DGAOL_FIND_MATHLIB=OFF > "$WORK/gaol-configure.log"
   cmake --build "$WORK/gaol-build" -j"$JOBS" > "$WORK/gaol-build.log"
   cmake --install "$WORK/gaol-build" > "$WORK/gaol-install.log"

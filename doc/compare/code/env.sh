@@ -44,6 +44,10 @@ PROFIL_DIR="$PREFIX/profil"
 # the benchmarks. Solaris Studio needs -xia for its interval type.
 IA_CXXFLAGS="-frounding-math -fno-fast-math -ffp-contract=off"
 CXXFLAGS_BENCH="${CXXFLAGS_BENCH:--O3 -DNDEBUG}"
+# The fused multiply-add instructions of the processor, given to every library
+# setup.sh builds and to every program, as GAOL takes them by default
+# (GAOL_FMA): FMA_FLAGS= (empty) for a processor without them
+FMA_FLAGS="${FMA_FLAGS--mfma}"
 F90FLAGS_BENCH="${F90FLAGS_BENCH:--O3 -xia}"
 F90FLAGS_CASES="${F90FLAGS_CASES:--O3 -xia}"
 
