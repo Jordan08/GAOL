@@ -38,7 +38,7 @@ OPERATIONS = [
 ]
 
 LIBRARIES = [("double", "double (reference)"), ("gaol", "GAOL"), ("libieeep1788", "libieeep1788"),
-             ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90")]
+             ("filib", "filib++"), ("profil", "PROFIL/BIAS"), ("solaris_f90", "Solaris Studio f90")]
 
 
 def data(n, path):

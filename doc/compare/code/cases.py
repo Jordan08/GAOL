@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Special cases of interval arithmetic in GAOL, libieeep1788, filib++ and Solaris Studio.
+"""Special cases of interval arithmetic in GAOL, libieeep1788, filib++, PROFIL/BIAS and Solaris Studio.
 
 The cases come from the tests of GAOL (tests/*.cpp, and check/*.cpp for the
 integer powers). Each one is written once, below, as an expression, from which
@@ -8,11 +8,11 @@ print are then compared with the results IEEE 1788-2015 defines, computed here
 with mpmath and rounded outward.
 
     cases.py generate DIR
-        writes DIR/cases_gaol.cpp, DIR/cases_p1788.cpp, DIR/cases_filib.cpp
+        writes DIR/cases_gaol.cpp, DIR/cases_p1788.cpp, DIR/cases_filib.cpp, DIR/cases_profil.cpp
         and DIR/cases_sun.f90
     cases.py report DIR REPORT.md
-        reads what the four programs printed, DIR/gaol.txt, DIR/p1788.txt,
-        DIR/filib.txt and DIR/sun.txt, and writes the table of the results
+        reads what the five programs printed, DIR/gaol.txt, DIR/p1788.txt,
+        DIR/filib.txt, DIR/profil.txt and DIR/sun.txt, and writes the table of the results
         between the markers of REPORT.md (the whole file when it does not
         exist)
 
@@ -144,13 +144,19 @@ FUNCTIONS = ["sin", "cos", "tan", "asin", "acos", "atan", "exp", "log", "sqrt", 
 
 
 # The C++ libraries: the name of their interval type, and whether they have
-# operators of an interval and a double, and compound assignments
-CPP_TYPE = {"gaol": "interval", "p1788": "II", "filib": "FI"}
-MIXED = {"gaol": True, "p1788": False, "filib": True}
+# operators of an interval and a double, and compound assignments. PROFIL/BIAS
+# has no empty set: the cases with one are not available to it
+CPP_TYPE = {"gaol": "interval", "p1788": "II", "filib": "FI", "profil": "INTERVAL"}
+MIXED = {"gaol": True, "p1788": False, "filib": True, "profil": True}
+
+# The functions of PROFIL/BIAS (Functions.h)
+PROFIL_FUNCTIONS = {"sin": "Sin", "cos": "Cos", "tan": "Tan", "asin": "ArcSin", "acos": "ArcCos", "atan": "ArcTan",
+                    "exp": "Exp", "log": "Log", "sqrt": "Sqrt", "sinh": "Sinh", "cosh": "Cosh", "tanh": "Tanh",
+                    "asinh": "ArSinh", "acosh": "ArCosh", "atanh": "ArTanh", "abs": "IAbs", "sqr": "Sqr"}
 
 
 def cpp(n, lib):
-    """The C++ expression of n; lib is 'gaol', 'p1788' or 'filib'"""
+    """The C++ expression of n; lib is 'gaol', 'p1788', 'filib' or 'profil'"""
     t = CPP_TYPE[lib]
     a = n.args
 
@@ -161,12 +167,16 @@ def cpp(n, lib):
         lo, hi = a
         return point(lo) if hi is None else f"{t}({cpp_double(lo)}, {cpp_double(hi)})"
     if n.op == "empty":
+        if lib == "profil":
+            raise NotAvailable
         return {"gaol": "interval::emptyset()", "p1788": "II::empty()", "filib": "FI::EMPTY()"}[lib]
     if n.op == "entire":
-        return {"gaol": "interval::universe()", "p1788": "II::entire()", "filib": "FI::ENTIRE()"}[lib]
+        return {"gaol": "interval::universe()", "p1788": "II::entire()", "filib": "FI::ENTIRE()",
+                "profil": "INTERVAL(-pinf, pinf)"}[lib]
     if n.op == "text":
         s = a[0].replace("\\", "\\\\").replace('"', '\\"')
-        return {"gaol": f'interval("{s}")', "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")'}[lib]
+        return {"gaol": f'interval("{s}")', "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")',
+                "profil": f'read_interval("{s}")'}[lib]
     if n.op in INFIX:
         return f"({cpp(a[0], lib)} {INFIX[n.op]} {cpp(a[1], lib)})"
     if n.op == "neg":
@@ -178,41 +188,57 @@ def cpp(n, lib):
         d = cpp_double(a[0]) if MIXED[lib] else point(a[0])
         return f"({d} * {cpp(a[1], lib)})"
     if n.op == "rdiv":  # GAOL's relational division x % y: mul_rev of IEEE 1788
-        if lib == "filib":
+        if lib in ("filib", "profil"):
             raise NotAvailable
         return f"({cpp(a[0], lib)} % {cpp(a[1], lib)})" if lib == "gaol" else f"mul_rev({cpp(a[1], lib)}, {cpp(a[0], lib)})"
     if n.op in FUNCTIONS:
+        if lib == "profil":
+            return f"{PROFIL_FUNCTIONS[n.op]}({cpp(a[0], lib)})"
         return f"{n.op}({cpp(a[0], lib)})"
     if n.op == "inverse":
-        return {"gaol": "inverse({})", "p1788": "recip({})", "filib": "(1.0 / {})"}[lib].format(cpp(a[0], lib))
+        return {"gaol": "inverse({})", "p1788": "recip({})", "filib": "(1.0 / {})",
+                "profil": "(1.0 / {})"}[lib].format(cpp(a[0], lib))
     if n.op == "powi":
-        return {"gaol": "pow({}, {})", "p1788": "pown({}, {})", "filib": "power({}, {})"}[lib].format(cpp(a[0], lib), a[1])
+        return {"gaol": "pow({}, {})", "p1788": "pown({}, {})", "filib": "power({}, {})",
+                "profil": "Power({}, {})"}[lib].format(cpp(a[0], lib), a[1])
     if n.op == "powd":
         if lib == "gaol":
             return f"pow({cpp(a[0], lib)}, {cpp_double(a[1])})"
+        if lib == "profil":
+            return f"Power({cpp(a[0], lib)}, {point(a[1])})"
         return f"pow({cpp(a[0], lib)}, {point(a[1])})"
     if n.op == "pow":
+        if lib == "profil":
+            return f"Power({cpp(a[0], lib)}, {cpp(a[1], lib)})"
         return f"pow({cpp(a[0], lib)}, {cpp(a[1], lib)})"
-    if n.op == "atan2":  # filib++ has none
-        if lib == "filib":
+    if n.op == "atan2":  # filib++ and PROFIL/BIAS have none
+        if lib in ("filib", "profil"):
             raise NotAvailable
         return f"atan2({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op == "nth_root":
+        if lib == "profil":
+            return f"Root({cpp(a[0], lib)}, {a[1]})"
         if lib != "gaol":
             raise NotAvailable
         return f"nth_root({cpp(a[0], lib)}, {a[1]}u)"
     if n.op == "hull":
-        return {"gaol": "({} | {})", "p1788": "convex_hull({}, {})", "filib": "hull({}, {})"}[lib].format(
-            cpp(a[0], lib), cpp(a[1], lib))
+        return {"gaol": "({} | {})", "p1788": "convex_hull({}, {})", "filib": "hull({}, {})",
+                "profil": "Hull({}, {})"}[lib].format(cpp(a[0], lib), cpp(a[1], lib))
     if n.op == "inter":
-        return {"gaol": "({} & {})", "p1788": "intersection({}, {})", "filib": "intersect({}, {})"}[lib].format(
-            cpp(a[0], lib), cpp(a[1], lib))
+        return {"gaol": "({} & {})", "p1788": "intersection({}, {})", "filib": "intersect({}, {})",
+                "profil": "intersect({}, {})"}[lib].format(cpp(a[0], lib), cpp(a[1], lib))
     if n.op in ("min", "max"):
+        if lib == "profil":
+            raise NotAvailable
         name = "i" + n.op if lib == "filib" else n.op
         return f"{name}({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op in ("mid", "wid", "mag", "mig", "rad"):
         if lib == "p1788":
             return f"{n.op}({cpp(a[0], lib)})"
+        if lib == "profil":
+            if n.op == "rad":
+                raise NotAvailable
+            return {"mid": "Mid", "wid": "Diam", "mag": "Abs", "mig": "Mig"}[n.op] + f"({cpp(a[0], lib)})"
         methods = {"gaol": {"mid": "midpoint", "wid": "width"}, "filib": {"wid": "diam"}}[lib]
         return f"{cpp(a[0], lib)}.{methods.get(n.op, n.op)}()"
     if n.op in RELATIONS:
@@ -229,14 +255,19 @@ def cpp(n, lib):
 
 # The comparisons of IEEE 1788-2015 (Table 10.3), in each library; ~ marks a
 # GAOL method called on the second interval
+# PROFIL/BIAS: x <= y is the inclusion of x in y, x < y in its interior, x == y
+# the equality; the others are written with Inf and Sup in the program
+# (precedes, strict_precedes, disjoint, certainly_eq)
 RELATIONS = {
-    "precedes": {"gaol": "certainly_leq", "p1788": "precedes", "filib": "cle", "sun": ".cle."},
-    "strict_precedes": {"gaol": "certainly_le", "p1788": "strictly_precedes", "filib": "clt", "sun": ".clt."},
-    "interior": {"gaol": "~set_strictly_contains", "p1788": "interior", "filib": "interior", "sun": ".int."},
-    "subset": {"gaol": "~set_contains", "p1788": "subset", "filib": "subset", "sun": ".sb."},
-    "equal": {"gaol": "set_eq", "p1788": "equal", "filib": "seq", "sun": ".seq."},
-    "disjoint": {"gaol": "set_disjoint", "p1788": "disjoint", "filib": "disjoint", "sun": ".dj."},
-    "certainly_eq": {"gaol": "certainly_eq", "p1788": None, "filib": "ceq", "sun": ".ceq."},
+    "precedes": {"gaol": "certainly_leq", "p1788": "precedes", "filib": "cle", "sun": ".cle.", "profil": "precedes"},
+    "strict_precedes": {"gaol": "certainly_le", "p1788": "strictly_precedes", "filib": "clt", "sun": ".clt.",
+                        "profil": "strict_precedes"},
+    "interior": {"gaol": "~set_strictly_contains", "p1788": "interior", "filib": "interior", "sun": ".int.",
+                 "profil": "interior"},
+    "subset": {"gaol": "~set_contains", "p1788": "subset", "filib": "subset", "sun": ".sb.", "profil": "subset"},
+    "equal": {"gaol": "set_eq", "p1788": "equal", "filib": "seq", "sun": ".seq.", "profil": "equal"},
+    "disjoint": {"gaol": "set_disjoint", "p1788": "disjoint", "filib": "disjoint", "sun": ".dj.", "profil": "disjoint"},
+    "certainly_eq": {"gaol": "certainly_eq", "p1788": None, "filib": "ceq", "sun": ".ceq.", "profil": "certainly_eq"},
 }
 
 
@@ -246,7 +277,7 @@ def cpp_body(n, lib):
     a = n.args
     if n.op in ("iadd", "isub", "imul", "idiv", "irdiv"):  # x op= d
         x, d = a
-        if n.op == "irdiv" and lib == "filib":
+        if n.op == "irdiv" and lib in ("filib", "profil"):
             raise NotAvailable
         if MIXED[lib]:
             o = {"iadd": "+=", "isub": "-=", "imul": "*=", "idiv": "/=", "irdiv": "%="}[n.op]
@@ -1022,6 +1053,146 @@ FILIB_TAIL = r'''  return 0;
 }
 '''
 
+PROFIL_HEAD = r'''// Generated by doc/compare/code/cases.py: the special cases, computed by PROFIL/BIAS
+#include <Interval.h>
+#include <Functions.h>
+#include <cmath>
+#include <csetjmp>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
+
+// BIAS reports an error (a division by an interval holding 0, a function
+// outside its domain) on the standard error and calls abort(): SIGABRT is
+// caught, and the case shown as an error
+static sigjmp_buf bias_abort;
+static void on_abort(int) { siglongjmp(bias_abort, 1); }
+
+static const double pinf = std::numeric_limits<double>::infinity();
+static const double qnan = std::numeric_limits<double>::quiet_NaN();
+static const double dmax = std::numeric_limits<double>::max();
+static const double dtiny = std::numeric_limits<double>::denorm_min();
+
+// PROFIL/BIAS has no empty set: an intersection that is empty, which
+// Intersection() reports, is shown as one
+struct empty_set {};
+
+static INTERVAL intersect(const INTERVAL& x, const INTERVAL& y)
+{
+  INTERVAL r;
+  if (!Intersection(r, x, y)) {
+    throw empty_set();
+  }
+  return r;
+}
+
+// PROFIL/BIAS reads an interval as two numbers, "l u", with the >> of doubles
+// (rounded to nearest), and has no literal: [x], [l, u], l or "l u" are read
+// here with strtod, rounded to nearest as well; anything else is an error
+static INTERVAL read_interval(const char *s)
+{
+  std::string t(s);
+  for (char& c : t) {
+    if (c == '[' || c == ']' || c == ',') {
+      c = ' ';
+    }
+  }
+  double v[2];
+  int n = 0;
+  const char *p = t.c_str();
+  while (*p != '\0') {
+    while (*p == ' ') {
+      ++p;
+    }
+    if (*p == '\0') {
+      break;
+    }
+    char *end;
+    v[n < 2 ? n : 1] = std::strtod(p, &end);
+    if (end == p || n == 2) {
+      throw std::invalid_argument(s);
+    }
+    ++n;
+    p = end;
+  }
+  if (n == 0) {
+    throw std::invalid_argument(s);
+  }
+  return (n == 1) ? INTERVAL(v[0]) : INTERVAL(v[0], v[1]);
+}
+
+// The comparisons of IEEE 1788-2015 PROFIL/BIAS has no operator for
+static bool precedes(const INTERVAL& x, const INTERVAL& y) { return Sup(x) <= Inf(y); }
+static bool strict_precedes(const INTERVAL& x, const INTERVAL& y) { return Sup(x) < Inf(y); }
+static bool interior(const INTERVAL& x, const INTERVAL& y) { return x < y; }
+static bool subset(const INTERVAL& x, const INTERVAL& y) { return x <= y; }
+static bool equal(const INTERVAL& x, const INTERVAL& y) { return x == y; }
+static bool disjoint(const INTERVAL& x, const INTERVAL& y) { return Sup(x) < Inf(y) || Sup(y) < Inf(x); }
+static bool certainly_eq(const INTERVAL& x, const INTERVAL& y)
+{
+  return Inf(x) == Sup(x) && Inf(y) == Sup(y) && Inf(x) == Inf(y);
+}
+
+template<class F>
+static void show(const char *id, F f)
+{
+  if (sigsetjmp(bias_abort, 1) != 0) {
+    std::printf("%s|X|BIAS error, abort\n", id);
+    return;
+  }
+  try {
+    const INTERVAL r = f();
+    std::printf("%s|I|%a|%a\n", id, Inf(r), Sup(r));
+  } catch (empty_set&) {
+    std::printf("%s|E\n", id);
+  } catch (std::invalid_argument&) {
+    std::printf("%s|X|not read\n", id);
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+template<class F>
+static void show_real(const char *id, F f)
+{
+  if (sigsetjmp(bias_abort, 1) != 0) {
+    std::printf("%s|X|BIAS error, abort\n", id);
+    return;
+  }
+  try {
+    std::printf("%s|R|%a\n", id, f());
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+template<class F>
+static void show_bool(const char *id, F f)
+{
+  if (sigsetjmp(bias_abort, 1) != 0) {
+    std::printf("%s|X|BIAS error, abort\n", id);
+    return;
+  }
+  try {
+    std::printf("%s|B|%d\n", id, f() ? 1 : 0);
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+int main()
+{
+  std::setvbuf(stdout, NULL, _IOLBF, 0);
+  std::signal(SIGABRT, on_abort);
+'''
+
+PROFIL_TAIL = r'''  return 0;
+}
+'''
+
 SUN_HEAD = '''! Generated by doc/compare/code/cases.py: the special cases, computed by the
 ! intervals of Solaris Studio's Fortran (f90 -xia)
 module show_results
@@ -1096,7 +1267,8 @@ def generate(directory):
     os.makedirs(directory, exist_ok=True)
     for lib, head, tail, name in (("gaol", GAOL_HEAD, GAOL_TAIL, "cases_gaol.cpp"),
                                   ("p1788", P1788_HEAD, P1788_TAIL, "cases_p1788.cpp"),
-                                  ("filib", FILIB_HEAD, FILIB_TAIL, "cases_filib.cpp")):
+                                  ("filib", FILIB_HEAD, FILIB_TAIL, "cases_filib.cpp"),
+                                  ("profil", PROFIL_HEAD, PROFIL_TAIL, "cases_profil.cpp")):
         lines = [head]
         for c in CASES:
             lines.append(f"  // {c.name}\n")
@@ -1205,7 +1377,8 @@ BEGIN = "<!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->"
 END = "<!-- END GENERATED TABLES -->"
 
 
-LIBRARIES = [("gaol", "GAOL"), ("p1788", "libieeep1788"), ("filib", "filib++"), ("sun", "Solaris Studio")]
+LIBRARIES = [("gaol", "GAOL"), ("p1788", "libieeep1788"), ("filib", "filib++"), ("profil", "PROFIL/BIAS"),
+             ("sun", "Solaris Studio")]
 
 
 def report(directory, out):

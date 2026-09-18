@@ -229,9 +229,9 @@ Each change is a commit of its own, and says where it comes from.
     powers of exponents 3, 4, 5, 8, 17, 100, −3 and −4 at every magnitude,
     the bounds were never wider than before, and narrower for 47 %.
   - **Time** (Intel i7-1185G7, GCC 9.4, x86_64 without FMA instructions
-    compiled in, `fma()` being the one of glibc): `pow(x, 3)` takes 33 ns
-    rather than 14.5 in the benchmark of `doc/compare`, and the line
-    `sqrt(p) * x^3 - exp(b/p)` 111 ns rather than 93; `sqr()` and Shekel 5 are
+    compiled in, `fma()` being the one of glibc): `pow(x, 3)` takes 32 ns
+    rather than 14.4 in the benchmark of `doc/compare`, and the line
+    `sqrt(p) * x^3 - exp(b/p)` 113 ns rather than 94; `sqr()` and Shekel 5 are
     unchanged. Compiled with FMA instructions (`-mfma`, or on 64-bit ARM,
     which always has them), the exact products cost about 1 ns more than the
     rounded ones.
@@ -303,7 +303,7 @@ Each change is a commit of its own, and says where it comes from.
     extremum or a pole, and at the large magnitudes. `cos([2^60])` is
     `[-0x1.1d146047d6948p-1, -0x1.1d146047d6946p-1]`.
   - **Time** (Intel i7-1185G7, GCC 9.4): unchanged in the benchmark of
-    `doc/compare` (114 ns for `cos()`, 113.5 for `sin()`); 125 ns rather than
+    `doc/compare` (113 ns for `sin()` and `cos()`); 125 ns rather than
     121 for intervals holding an extremum, 67 rather than 62 for those holding
     both; `tan()` of a narrow interval 143 ns rather than 150. At magnitudes
     from 1e8 to 1e15, `cos()` of a narrow interval takes 250 ns rather than

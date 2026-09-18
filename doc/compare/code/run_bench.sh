@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The benchmark: draws the intervals (bench.py), compiles bench_gaol.cpp,
-# bench_p1788.cpp, bench_filib.cpp, bench_double.cpp and bench_sun.f90, runs
-# them, and writes
+# bench_p1788.cpp, bench_filib.cpp, bench_profil.cpp, bench_double.cpp and
+# bench_sun.f90, runs them, and writes
 # the tables of the results into doc/compare/performance.md (between its
 # markers). Run setup.sh first.
 #
@@ -14,7 +14,7 @@
 # OPS             a comma-separated list of operations (default: all of them,
 #                 see bench_ops.h)
 # CPU             a processor to run the programs on, with taskset
-# LIBS            the libraries to run (default: "double gaol filib sun p1788")
+# LIBS            the libraries to run (default: "double gaol filib profil sun p1788")
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 
@@ -24,7 +24,7 @@ REPEATS="${REPEATS:-5}"
 P1788_REPEATS="${P1788_REPEATS:-1}"
 OPS="${OPS:-}"
 CPU="${CPU:-}"
-LIBS="${LIBS:-double gaol filib sun p1788}"
+LIBS="${LIBS:-double gaol filib profil sun p1788}"
 OUT="$WORK/bench"
 REPORT="${REPORT:-$CODE_DIR/../performance.md}"
 mkdir -p "$OUT"
@@ -46,6 +46,8 @@ $CXX -std=c++11 $CXXFLAGS_BENCH $IA_CXXFLAGS $(p1788_cflags) -I"$CODE_DIR" "$COD
      -o "$OUT/bench_p1788" $(p1788_libs)
 $CXX $CXXFLAGS_BENCH $IA_CXXFLAGS $(filib_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_filib.cpp" \
      -o "$OUT/bench_filib" $(filib_libs)
+$CXX -std=c++11 $CXXFLAGS_BENCH $IA_CXXFLAGS $(profil_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_profil.cpp" \
+     -o "$OUT/bench_profil" $(profil_libs)
 (cd "$OUT" && "$F90" $F90FLAGS_BENCH "$CODE_DIR/bench_sun.f90" -o bench_sun > f90.log 2>&1) \
   || { cat "$OUT/f90.log"; die "f90 failed"; }
 
@@ -59,6 +61,7 @@ for round in $(seq "$ROUNDS"); do
       gaol) run "$OUT/bench_gaol" "$DATA" "$REPEATS" "$OPS" ;;
       p1788) run "$OUT/bench_p1788" "$DATA" "$P1788_REPEATS" "$OPS" ;;
       filib) run "$OUT/bench_filib" "$DATA" "$REPEATS" "$OPS" ;;
+      profil) run "$OUT/bench_profil" "$DATA" "$REPEATS" "$OPS" ;;
       sun) run "$OUT/bench_sun" "$DATA" "$REPEATS" "$OPS" ;;
       *) die "unknown library $lib" ;;
     esac | tee -a "$RESULTS"
@@ -71,7 +74,7 @@ done
   echo "Processor:       $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ *//')${CPU:+ (taskset -c $CPU)}"
   echo "System:          $(uname -sr), $(. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")"
   echo "C++ compiler:    $($CXX --version | head -1)"
-  echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788 and filib++: $IA_CXXFLAGS)"
+  echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788, filib++ and PROFIL/BIAS: $IA_CXXFLAGS)"
   echo "Fortran:         $("$F90" -V 2>&1 | head -1), flags: $F90FLAGS_BENCH"
   # -dirty only for what GAOL is built from: the reports of doc/ are being rewritten
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
@@ -79,6 +82,7 @@ done
   echo "GAOL:            $gaol_commit, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"
+  echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc"
 } > "$OUT/machine.txt"
 
 python3 "$CODE_DIR/bench.py" report "$RESULTS" "$OUT/machine.txt" "$REPORT"

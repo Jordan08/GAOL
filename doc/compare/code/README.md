@@ -2,7 +2,8 @@
 
 The scripts of this directory compare GAOL (this repository),
 [libieeep1788](https://github.com/nehmeier/libieeep1788),
-[filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html) and
+[filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html),
+[PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) and
 the intervals of Solaris Studio's Fortran (`f90 -xia`), and write the tables
 of
 [special_cases.md](../special_cases.md) and
@@ -18,8 +19,11 @@ of
 `setup.sh` downloads and builds the rest under `work/`, which git ignores:
 GMP and MPFR (unless the system has their headers), libieeep1788 at its last
 commit (header-only, it needs MPFR), filib++ 3.0.2.2 from the archive IBEX
-distributes, unless `FILIB_DIR` gives an installed filib++, and GAOL from this
-repository, built with CMake in Release and installed with mathlib.
+distributes, unless `FILIB_DIR` gives an installed filib++, PROFIL/BIAS 2.0.8
+from its site (or from the archive `PROFIL_TGZ` gives), built with its
+configuration `x86-64-Linux-compat-gcc` and checked with `make check`, and
+GAOL from this repository, built with CMake in Release and installed with
+mathlib.
 
 ## Running
 
@@ -48,26 +52,27 @@ variables:
 | `REPEATS` | `5` | Runs of each operation in a round |
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
-| `LIBS` | `double gaol filib sun p1788` | Libraries to run |
+| `LIBS` | `double gaol filib profil sun p1788` | Libraries to run |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
 | `WORK`, `PREFIX` | `work`, `work/prefix` | Where everything is built and installed |
 | `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
+| `PROFIL_TGZ` | | A copy of `Profil-2.0.8.tgz`, for `setup.sh` when the site of PROFIL/BIAS is down |
 
 ## The files
 
 | File | |
 |---|---|
 | `env.sh` | The variables shared by the scripts: directories, versions, compiler flags |
-| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++ and GAOL; checks `f90 -xia` |
+| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS and GAOL; checks `f90 -xia` |
 | `cases.py` | The 291 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
-| `run_cases.sh` | Generates, compiles and runs the four programs of the special cases, and writes their table |
+| `run_cases.sh` | Generates, compiles and runs the five programs of the special cases, and writes their table |
 | `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) |
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations, written once for every C++ library |
-| `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788 and filib++, and on doubles for reference |
+| `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_profil.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788, filib++ and PROFIL/BIAS, and on doubles for reference |
 | `bench_sun.f90` | The same operations in Fortran, for Solaris Studio |
-| `run_bench.sh` | Draws the intervals, compiles and runs the five programs, and writes the tables |
+| `run_bench.sh` | Draws the intervals, compiles and runs the six programs, and writes the tables |
 | `run_all.sh` | `setup.sh`, `run_cases.sh` and `run_bench.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`

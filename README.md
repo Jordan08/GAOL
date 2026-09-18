@@ -83,8 +83,8 @@ project can also build GAOL for itself, with FetchContent (see
   where it comes from.
 - [Continuous integration](doc/continuous-integration.md): the systems,
   processors and compilers GAOL is built and tested on.
-- [Comparison with libieeep1788, filib++ and Solaris Studio](doc/compare/README.md):
-  the [special cases](doc/compare/special_cases.md) of the four libraries
+- [Comparison with libieeep1788, filib++, PROFIL/BIAS and Solaris Studio](doc/compare/README.md):
+  the [special cases](doc/compare/special_cases.md) of the five libraries
   against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
   with the scripts to run the comparison again.
 - The manual of GAOL, by Frédéric Goualard: `manual/gaol.pdf`, with its LaTeX

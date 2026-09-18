@@ -3,6 +3,8 @@
 #   - GMP and MPFR (static), unless the system has their headers,
 #   - libieeep1788 (header only) at the commit P1788_COMMIT,
 #   - filib++ FILIB_VERSION, unless FILIB_DIR gives an installed one,
+#   - PROFIL/BIAS PROFIL_VERSION, from its site (or the archive PROFIL_TGZ),
+#     built with its x86-64 Linux configuration,
 #   - GAOL, this repository, built with CMake in Release and installed,
 # and checks that Solaris Studio's f90 compiles an interval program.
 # Each step is skipped when its result is already there.
@@ -78,6 +80,26 @@ else
                CXXFLAGS="-O2 -frounding-math -Wno-deprecated" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
   echo "$PREFIX" > "$WORK/filib-dir"
+fi
+
+## PROFIL/BIAS: its own Configure asks for the configuration interactively;
+## Host.cfg, which it writes, is written here for x86-64 Linux with GCC. make
+## install copies the headers and the libraries into the source tree
+if [ -f "$PROFIL_DIR/include/Interval.h" ]; then
+  echo "== PROFIL/BIAS: already in $PROFIL_DIR"
+else
+  echo "== PROFIL/BIAS $PROFIL_VERSION"
+  if [ -n "$PROFIL_TGZ" ]; then
+    cp "$PROFIL_TGZ" "Profil-$PROFIL_VERSION.tgz"
+  fi
+  fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
+  rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
+  (cd "Profil-$PROFIL_VERSION" &&
+   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\n' > Host.cfg &&
+   make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&
+   grep -q "FAILED : 0" check.log)
+  mkdir -p "$PROFIL_DIR"
+  cp -r "Profil-$PROFIL_VERSION/include" "Profil-$PROFIL_VERSION/lib" "$PROFIL_DIR/"
 fi
 
 ## GAOL, from this repository
