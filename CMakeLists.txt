@@ -541,6 +541,18 @@ target_include_directories(gaol PUBLIC
 )
 target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS})
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
+# Without a build type, CMake gives no optimization flag at all. GAOL sets
+# Release when it is the top-level project, but brought in by a project that
+# sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
+# without optimization: they are compiled with -O3 then, as in Release (/O2
+# with Visual C++). 3rd/mathlib/CMakeLists.txt does the same for mathlib.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  if(MSVC)
+    target_compile_options(gaol PRIVATE /O2)
+  else()
+    target_compile_options(gaol PRIVATE -O3)
+  endif()
+endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")

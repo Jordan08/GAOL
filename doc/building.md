@@ -34,7 +34,9 @@ it then looks for an installed mathlib, under `MATHLIB_DIR` and in the usual
 paths, refuses one whose cosine is wrong (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)),
 and compiles the one of `3rd/mathlib` when none is found. Both libraries are
-static. The build type is Release unless another is given.
+static. The build type is Release unless another is given; brought in by a
+project that gives none (`add_subdirectory`, FetchContent), GAOL, CORE-MATH
+and mathlib are compiled with `-O3` all the same (`/O2` with Visual C++).
 
 | Option | Default | |
 |---|---|---|
@@ -76,7 +78,7 @@ dates of the checkout. The options, with their defaults:
 |---|---|---|
 | `--with-mathlib=apmathlib\|crlibm\|m` | `apmathlib` | The mathematical library: mathlib (`ultim`) or CRlibm, whose bounds are certified, or `m`, the math library of the system, whose bounds are not (below) |
 | `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where the header and the library of an installed mathlib are, given to use it rather than the one of `3rd/mathlib`; for CRlibm, when not in the usual paths |
-| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`; `--disable-optimize` compiles with `-O` |
+| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`, for the C++ and C sources alike (GAOL, CORE-MATH, mathlib); `--disable-optimize` compiles with `-O` |
 | `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
 | `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `--enable-float-intervals` | `no` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |

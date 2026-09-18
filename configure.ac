@@ -83,6 +83,12 @@ AC_SUBST(LT_VERSION_INFO)
 AC_SUBST(LT_RELEASE)
 
 LT_PREREQ([2.2.6])
+# CFLAGS and CXXFLAGS left empty when not given, rather than the "-g -O2" that
+# AC_PROG_CC and AC_PROG_CXX give them otherwise: LT_INIT calls AC_PROG_CC, and
+# the C sources (CORE-MATH, mathlib) were compiled with "-g -O2 ... -O3".
+# --enable-optimize gives the C and C++ sources -O3 alike (see below).
+: ${CFLAGS=""}
+: ${CXXFLAGS=""}
 LT_INIT([dlopen])
 
 # RPM file versioning

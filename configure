@@ -3544,6 +3544,12 @@ LT_RELEASE="4.3"
 
 
 
+# CFLAGS and CXXFLAGS left empty when not given, rather than the "-g -O2" that
+# AC_PROG_CC and AC_PROG_CXX give them otherwise: LT_INIT calls AC_PROG_CC, and
+# the C sources (CORE-MATH, mathlib) were compiled with "-g -O2 ... -O3".
+# --enable-optimize gives the C and C++ sources -O3 alike (see below).
+: ${CFLAGS=""}
+: ${CXXFLAGS=""}
 case `pwd` in
   *\ * | *\	*)
     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Libtool does not cope well with whitespace in \`pwd\`" >&5
