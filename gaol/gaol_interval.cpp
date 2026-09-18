@@ -77,11 +77,130 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
 
 
+  // I^e for a non-empty I and e > 0, defined below: uipow(), in the files
+  // included here, calls it
+  static interval uipow_nonempty(const interval& I, unsigned int e);
+
 #if USING_SSE2_INSTRUCTIONS
 #  include "gaol/gaol_interval_sse.cpp"
 #else
 #  include "gaol/gaol_interval_fpu.cpp"
 #endif // USING_SSE2_INSTRUCTIONS
+
+  /*
+    x^n rounded upward and downward from exact products, x >= 0 and n >= 2, the
+    rounding direction being upward (fork of GAOL, issue #7). GAOL rounds each
+    product of its binary exponentiation outward (uipow_rounded()), and x^n is
+    then up to n + 1 doubles from the tightest bound: 2, 3, 5, 6, 8 for n = 3
+    to 7.
+
+    The power is kept as h + l, l being small: a product h*y, rounded upward,
+    is p, and fma(h, y, -p) is the rest h*y - p <= 0, a double, exactly. The
+    upper bound keeps h + l above the power, l <= 0 being rounded upward. The
+    lower bound keeps h - nl below it, nl >= 0 being rounded upward, and the
+    square of nl, which would raise it, left out. The power is only rounded at the
+    end, h + l upward and h - nl downward: the bounds are the tightest, or one
+    double beyond where the power is within n 2^-104 of a double, and exact
+    where the power is a double. false when a product is not finite, or is
+    below 2^-968, its rest being no double then: the rounded products handle
+    these powers, 0 included.
+  */
+  // Whether the rest of the product rounded to p is a double for sure: a
+  // multiple of 2^-105 p, it is one from p = 2^-968 on. Not for an infinite p
+  static inline bool is_normal_product(double p)
+  {
+    return p >= std::numeric_limits<double>::min()*18014398509481984.0 /* 2^54 */ && p <= std::numeric_limits<double>::max();
+  }
+
+  static bool ipow_exact_up(double x, unsigned int n, double& bound)
+  {
+    unsigned int bit = 1u;
+    while ((n >> 1) >= bit) { // The highest bit of n
+      bit <<= 1;
+    }
+    double h = x, l = 0.0;
+    for (bit >>= 1; bit != 0u; bit >>= 1) {
+      double p = h*h;
+      if (!is_normal_product(p)) {
+	return false;
+      }
+      l = std::fma(h,h,-p) + l*(-(-2.0*h - l)); // (h + l)^2 - p: l <= 0 times 2h + l rounded downward
+      h = p;
+      if (n & bit) {
+	p = h*x;
+	if (!is_normal_product(p)) {
+	  return false;
+	}
+	l = std::fma(h,x,-p) + l*x;
+	h = p;
+      }
+    }
+    bound = h + l;
+    return true;
+  }
+
+  static bool ipow_exact_dn(double x, unsigned int n, double& bound)
+  {
+    unsigned int bit = 1u;
+    while ((n >> 1) >= bit) {
+      bit <<= 1;
+    }
+    double h = x, nl = 0.0;
+    for (bit >>= 1; bit != 0u; bit >>= 1) {
+      double p = h*h;
+      if (!is_normal_product(p)) {
+	return false;
+      }
+      nl = std::fma(-h,h,p) + (2.0*h)*nl; // p - h*h, rounded upward in an underflow only
+      h = p;
+      if (n & bit) {
+	p = h*x;
+	if (!is_normal_product(p)) {
+	  return false;
+	}
+	nl = std::fma(-h,x,p) + nl*x;
+	h = p;
+      }
+    }
+    bound = maximum(-(-h + nl), 0.0); // h - nl rounded downward
+    return true;
+  }
+
+  /*
+    I^e for a non-empty I and e > 0, as pow() and uipow() call it: from exact
+    products for e > 2, the square being the tightest already, and from the
+    rounded products where a power is not finite or is below 2^-968
+  */
+  static interval uipow_nonempty(const interval& I, unsigned int e)
+  {
+    if (e < 3) {
+      return uipow_rounded(I,e);
+    }
+    GAOL_RND_ENTER();
+    const double a = I.left(), b = I.right();
+    double l = 0.0, r = 0.0, t = 0.0;
+    bool finite;
+    if (a >= 0.0) {
+      finite = ipow_exact_dn(a,e,l) && ipow_exact_up(b,e,r);
+    } else if (b <= 0.0) {
+      if (odd(e)) { // [-|a|^e, -|b|^e]
+	finite = ipow_exact_up(-a,e,t) && ipow_exact_dn(-b,e,r);
+	l = -t;
+	r = -r;
+      } else {
+	finite = ipow_exact_dn(-b,e,l) && ipow_exact_up(-a,e,r);
+      }
+    } else if (odd(e)) { // I straddles 0: [-|a|^e, b^e]
+      finite = ipow_exact_up(-a,e,t) && ipow_exact_up(b,e,r);
+      l = -t;
+    } else { // [0, mag(I)^e]
+      finite = ipow_exact_up(maximum(-a,b),e,r);
+    }
+    GAOL_RND_KEEP(l);
+    GAOL_RND_KEEP(r);
+    GAOL_RND_LEAVE();
+    return finite ? interval(l,r) : uipow_rounded(I,e);
+  }
 
 
 

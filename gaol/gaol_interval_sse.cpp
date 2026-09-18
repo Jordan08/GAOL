@@ -502,7 +502,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
     I^e for a non-empty I and e > 0, inlined in sqr() and pow(): uipow(),
     public and out of line, calls it (fork of GAOL, see gaol_interval.h)
   */
-  static INLINE interval uipow_nonempty(const interval& I, unsigned int e)
+  static INLINE interval uipow_rounded(const interval& I, unsigned int e)
     {
       GAOL_RND_ENTER_SSE();
       __m128d res;
@@ -576,7 +576,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
     if (I.is_empty()) {
         return I;
     } else {
-        return uipow_nonempty(I,2);
+        return uipow_rounded(I,2);
     }
   }
 
