@@ -62,8 +62,8 @@ AC_DEFINE([GAOL_MINOR_VERSION],gaol_minor_version,[Minor version for gaol])
 AC_DEFINE([GAOL_MICRO_VERSION],gaol_micro_version,[Micro version for gaol])
 AC_DEFINE([GAOL_VERSION],gaol_version,[Version number for gaol])
 # Version for the manual
-GAOL_EDITION="4.5"
-GAOL_UPDATED="10 May 2020"
+GAOL_EDITION="4.6"
+GAOL_UPDATED="18 September 2026"
 GAOL_VERSION=gaol_version
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 AC_SUBST(GAOL_EDITION)

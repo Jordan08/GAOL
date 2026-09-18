@@ -1,0 +1,62 @@
+# Builds the manual, manual/gaol.pdf, from manual/gaol.tex with the LaTeX of
+# Ubuntu, with the autotools build (make -C manual pdf) and with the meson
+# build (-Dwith-doc=true, target pdf), so that a change of the manual that no
+# longer compiles shows: gaol.tex had stopped compiling with the package
+# marginbib, which no job built (issue #13). The PDF is kept as an artifact of
+# the run. Only runs when the manual or this workflow changes.
+
+name: Manual
+
+on:
+  push:
+    branches: ['**']
+    paths: ['manual/**', '.github/workflows/manual.yml']
+  pull_request:
+    paths: ['manual/**', '.github/workflows/manual.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  manual:
+    name: The manual, Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: LaTeX, and the tools of the two builds
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended lmodern g++ make flex bison meson ninja-build
+      - name: With the autotools build
+        run: |
+          # The same date on every file, as in a release archive: make then
+          # does not regenerate configure nor the Makefile.in
+          find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+          mkdir build-autotools && cd build-autotools
+          ../configure > configure.log
+          make -C manual pdf
+          pdfinfo manual/gaol.pdf || true
+      - name: With the meson build
+        run: |
+          meson setup build-meson -Dwith-doc=true
+          meson compile -C build-meson pdf
+      - name: The same number of pages with both builds, and the fonts embedded as outlines
+        run: |
+          sudo apt-get install -y -q --no-install-recommends poppler-utils
+          pages_autotools=$(pdfinfo build-autotools/manual/gaol.pdf | awk '/^Pages:/ { print $2 }')
+          pages_meson=$(pdfinfo build-meson/manual/gaol.pdf | awk '/^Pages:/ { print $2 }')
+          echo "autotools: $pages_autotools pages, meson: $pages_meson pages"
+          test "$pages_autotools" = "$pages_meson"
+          test "$pages_autotools" -ge 90
+          pdffonts build-autotools/manual/gaol.pdf
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gaol-manual
+          path: build-autotools/manual/gaol.pdf

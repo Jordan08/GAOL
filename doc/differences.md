@@ -566,6 +566,18 @@ Each change is a commit of its own, and says where it comes from.
   `scripts/install-mathlib.sh`, which downloaded it too. GAOL can now be built
   as a part of another project, brought in by FetchContent, with no network
   access beyond its own sources (`tests/fetch_content`).
+- **The manual compiles again**, and `manual/gaol.pdf` is the one of this fork
+  (issue #13): the PDF was the one of the original GAOL, of 2009, while
+  `gaol.tex` had followed the changes of the fork, and no longer compiled.
+  `marginbib`, a package of 2000 kept with the manual, patches the output
+  routine of LaTeX and stops with the LaTeX of today; the references in the
+  margin are now printed by `bibentry` (`\margincite`, `\margincite*` and
+  `\marginnocite` in `manual.cls`), and listed at the end of the manual. The
+  `multicol.sty` of 2006 kept with the manual is removed for the one of LaTeX,
+  and the fonts are Latin Modern, the PDF embedding bitmaps otherwise where
+  the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
+  `make -C manual pdf` and for the target `pdf` of the meson build, which had
+  none.
 - **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.

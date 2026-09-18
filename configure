@@ -3524,8 +3524,8 @@ $as_echo "#define GAOL_MICRO_VERSION 0" >>confdefs.h
 $as_echo "#define GAOL_VERSION \"4.3.0\"" >>confdefs.h
 
 # Version for the manual
-GAOL_EDITION="4.5"
-GAOL_UPDATED="10 May 2020"
+GAOL_EDITION="4.6"
+GAOL_UPDATED="18 September 2026"
 GAOL_VERSION="4.3.0"
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
