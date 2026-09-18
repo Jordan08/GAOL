@@ -1002,13 +1002,20 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
   /*
     A double between l and h, l < h, their middle where it is one: the double
-    above l otherwise, which is h when l and h are consecutive
+    above l otherwise, which is h when l and h are consecutive. The neighbours
+    are reached with nextafter() (next_float(), previous_float()), whatever
+    the rounding direction and the treatment of subnormals.
   */
   static inline double double_between(double l, double h)
   {
     const double m = l + 0.5*(h - l);
-    return (l < m && m < h) ? m : l + std::numeric_limits<double>::denorm_min();
+    return (l < m && m < h) ? m : next_float(l);
   }
+
+  // The steps of the searches below end within a few thousand steps (the
+  // doubling ones reach 0 or the largest double within 2100), and are bounded
+  // in case a platform would not move: the bound found so far is returned
+  const int root_search_limit = 4096;
 
   static double proved_root_dn(double x, double r, unsigned int n)
   {
@@ -1016,20 +1023,30 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     // double is not
     const double largest = std::numeric_limits<double>::max();
     double l = newton_root(x,r,n), h = l, step = first_step(l);
+    int steps = 0;
     if (is_proved_below_root(l,x,n)) {
-      for (h = minimum(l + step, largest); is_proved_below_root(h,x,n); h = minimum(l + step, largest)) {
+      for (h = minimum(l + step, largest); is_proved_below_root(h,x,n) && h < largest; h = minimum(l + step, largest)) {
 	l = h;
 	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return l;
+	}
+      }
+      if (h >= largest && is_proved_below_root(h,x,n)) { // Not for n > 1 and a finite x
+	return h;
       }
     } else {
       for (l = maximum(-(step - h), 0.0); !is_proved_below_root(l,x,n); l = maximum(-(step - h), 0.0)) {
 	h = l;
 	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return 0.0;
+	}
       }
     }
     for (;;) {
       const double m = double_between(l,h);
-      if (!(m < h)) {
+      if (!(m < h) || ++steps > root_search_limit) {
 	return l;
       }
       if (is_proved_below_root(m,x,n)) {
@@ -1046,20 +1063,27 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     // and 0 is not
     const double largest = std::numeric_limits<double>::max();
     double u = newton_root(x,r,n), l = u, step = first_step(u);
+    int steps = 0;
     if (is_proved_above_root(u,x,n)) {
       for (l = maximum(-(step - u), 0.0); is_proved_above_root(l,x,n); l = maximum(-(step - u), 0.0)) {
 	u = l;
 	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return u;
+	}
       }
     } else {
       for (u = minimum(l + step, largest); !is_proved_above_root(u,x,n); u = minimum(l + step, largest)) {
 	l = u;
 	step *= 2.0;
+	if (++steps > root_search_limit) {
+	  return GAOL_INFINITY;
+	}
       }
     }
     for (;;) {
       const double m = double_between(l,u);
-      if (!(m < u)) {
+      if (!(m < u) || ++steps > root_search_limit) {
 	return u;
       }
       if (is_proved_above_root(m,x,n)) {
