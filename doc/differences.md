@@ -211,6 +211,32 @@ Each change is a commit of its own, and says where it comes from.
     results near the overflow, subnormal results, bases next to 1 with large
     exponents, and exact powers with their neighbouring doubles, which take
     its slow path, included: all correctly rounded.
+- **Integer powers are computed from exact products** (issue #7): `pow(x, n)`
+  and `uipow(x, n)` give the tightest bounds for n ≥ 3, where GAOL rounded each
+  product of its binary exponentiation outward and was up to n + 1 doubles from
+  them: 2, 3, 5, 6 and 8 doubles for n = 3 to 7, `pow([1.1], 3)` being two
+  doubles wide.
+  - **How.** Each product h·y is rounded to p, and `fma(h, y, -p)` gives its
+    rest h·y − p exactly: the power is carried as h + l, l being the sum of
+    the rests, and rounded outward once at the end. The upper bound keeps l
+    rounded upward, the lower bound keeps −l rounded upward and leaves out the
+    square of l, which would raise it: the bounds are proved, and the tightest
+    unless the power is within n·2^-104 of a double, where they are one double
+    beyond. The power of a double that is a double is exact.
+  - **Where not.** Below 2^-968 the rest of a product is no double, and at the
+    overflow neither is the product: the rounded products of before serve
+    there, as for the square, which is the tightest already. Over 2.4 million
+    powers of exponents 3, 4, 5, 8, 17, 100, −3 and −4 at every magnitude,
+    the bounds were never wider than before, and narrower for 47 %.
+  - **Time** (Intel i7-1185G7, GCC 9.4, x86_64 without FMA instructions
+    compiled in, `fma()` being the one of glibc): `pow(x, 3)` takes 33 ns
+    rather than 14.5 in the benchmark of `doc/compare`, and the line
+    `sqrt(p) * x^3 - exp(b/p)` 111 ns rather than 93; `sqr()` and Shekel 5 are
+    unchanged. Compiled with FMA instructions (`-mfma`, or on 64-bit ARM,
+    which always has them), the exact products cost about 1 ns more than the
+    rounded ones.
+  - **Tests.** `tests/arithmetic.cpp` requires the tightest bounds for
+    x between 2^-30 and 2^30, and n doubles over all the doubles, as before.
 - **`nth_root(I, n)`** is the `rootn` of IEEE 1788-2015 (Table 10.5): for an
   odd `n`, it is defined on the whole real line, the root of a negative number
   being the opposite of the root of its magnitude, and `nth_root([-8, 27], 3)`

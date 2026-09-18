@@ -108,7 +108,7 @@
 	  calls it (fork of GAOL, see gaol_interval.h). The stored bounds are the
 	  opposite of the left bound and the right bound.
 	*/
-	static INLINE interval uipow_nonempty(const interval& I, unsigned int e)
+	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
 	{
 		GAOL_RND_ENTER();
 		interval res;

@@ -35,16 +35,17 @@ namespace
   const int nb_random_values = 5000;
 
   // The largest distances from the tightest bounds allowed, in doubles, about
-  // twice those found on the platforms tested: GAOL computes integer powers by
-  // repeated rounded products, at most n+1 doubles away for x^n and 4 for x^-n.
-  // The n-th roots are proved with integer powers rounded upward and downward,
-  // at most one double away (GAOL took powers with a rounded exponent, up to
-  // 8 doubles away between 2^-30 and 2^30 and 234 over all the doubles).
-  // Square roots are the tightest (GAOL's lower bound was one double below it
-  // for half of the doubles)
-  int power_limit(int n)
+  // twice those found on the platforms tested. Integer powers are computed
+  // from exact products, rounded once: the tightest bounds, but where the
+  // power is below 2^-968 or overflows, computed by repeated rounded products
+  // then, at most n+1 doubles away (GAOL computed every power so); x^-n is
+  // the inverse of x^n. The n-th roots are powers with a rounded exponent,
+  // whose error grows with |log x|, up to 8 doubles between 2^-30 and 2^30
+  // and 234 over all the doubles. Square roots are the tightest (GAOL's lower
+  // bound was one double below it for half of the doubles)
+  int power_limit(int n, bool tight)
   {
-    return 2*n;
+    return tight ? 0 : 2*n;
   }
 
   const int negative_power_limit = 8;
@@ -122,9 +123,12 @@ namespace
     }
   }
 
-  // Operations on doubles, drawn by draw
+  // Operations on doubles, drawn by draw, root_limit being the largest distance
+  // from the tightest bounds allowed for n-th roots, and tight_powers whether
+  // the integer powers have to be the tightest bounds (their products are
+  // exact from 2^-968 up to the overflow)
   template<class Draw>
-  void operations_on_doubles(const std::string& range, Draw draw)
+  void operations_on_doubles(const std::string& range, Draw draw, int root_limit, bool tight_powers)
   {
     const std::string in = " (" + range + ")";
     for (int i = 0; i < nb_random_values; ++i) {
@@ -176,7 +180,7 @@ namespace
       for (int n = 2; n <= 7; ++n) {
         const Exact p = power(a, n);
         const interval N(n);
-        expect_close("pow([a],n) for n=" + std::to_string(n) + in, pow(A, n), p, p, power_limit(n), A, N);
+        expect_close("pow([a],n) for n=" + std::to_string(n) + in, pow(A, n), p, p, power_limit(n, tight_powers), A, N);
       }
       if (a != 0.0) {
         for (int n = 1; n <= 3; ++n) {
@@ -211,7 +215,7 @@ namespace
 
   // Operations on intervals, whose bounds are drawn by draw
   template<class Draw>
-  void operations_on_intervals(const std::string& range, Draw draw)
+  void operations_on_intervals(const std::string& range, Draw draw, bool tight_powers)
   {
     const std::string in = " (" + range + ")";
     const Exact zero = exact(0.0);
@@ -258,7 +262,7 @@ namespace
         const std::vector<Exact> powers = { power(X.left(), n), power(X.right(), n) };
         const Exact lo = (n % 2 == 1) ? powers[0] : (x_has_zero ? zero : min(powers));
         const Exact hi = (n % 2 == 1) ? powers[1] : max(powers);
-        expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit(n), X, interval(n));
+        expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit(n, tight_powers), X, interval(n));
       }
 
       // Square roots: the tightest roots of the bounds of [x] & [0, +oo]
@@ -589,10 +593,10 @@ int main()
 {
   gaol::init();
   Random random;
-  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); });
-  operations_on_doubles("any doubles", [&] { return random.any(); });
-  operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); });
-  operations_on_intervals("any doubles", [&] { return random.any(); });
+  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); }, 16, true);
+  operations_on_doubles("any doubles", [&] { return random.any(); }, 512, false);
+  operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); }, true);
+  operations_on_intervals("any doubles", [&] { return random.any(); }, false);
   divisions_by_zero();
   operations_with_special_doubles();
   products_with_infinite_bounds();
