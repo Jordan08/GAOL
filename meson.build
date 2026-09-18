@@ -2,7 +2,7 @@ project(
   'GAOL',
   'c',
   'cpp',
-  version: '4.3.0',
+  version: '4.3.1',
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
   # does not optimize), with NDEBUG as configure and the Release build of CMake
   # define it: meson setup --buildtype=debug builds it for debugging
@@ -10,7 +10,7 @@ project(
 )
 major_version = 4
 minor_version = 3
-micro_version = 0
+micro_version = 1
 
 ## Main compiler and linker configs
 
