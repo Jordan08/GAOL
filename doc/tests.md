@@ -40,8 +40,11 @@ Codac.
   has to be within one double of the tightest bounds at
   points of the four quadrants and over 324 boxes in every position about the
   axes, and the tightest over the boxes with infinite bounds or on an axis,
-  `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin and cos have to be within one
-  double of the tightest bounds up to 2^25, `sin([1e-10])` included. The
+  `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin, cos and tan have to be within one
+  double of the tightest bounds at every magnitude, `sin([1e-10])` and
+  `cos([2^60])` included, and over 649 intervals next to their extrema and
+  poles, of width about π and 2π, and of consecutive doubles up to the largest,
+  -1, 1 and `[-oo, +oo]` being exact. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
 - **`rounding_direction`:** about 100 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
@@ -86,8 +89,9 @@ summary of the jobs.
 
 What they show of GAOL, beyond the fixes below:
 
-- `sin` and `cos` tell the pieces of their argument where they are monotonic
-  by dividing it by an interval enclosing π: beyond 2^25, an argument within
-  about 2^-51·|x| of an extremum may be taken as reaching it. `tan` adds an
-  interval enclosing π/2 to its argument to tell its branch, and gives
-  [-oo, +oo] when it cannot. (See [Accuracy of the operations](accuracy.md).)
+- `sin`, `cos` and `tan` tell the pieces of their argument where they are
+  monotonic by dividing it by an interval enclosing π, and, where the quotients
+  cannot tell, next to an extremum or a pole and at the large magnitudes, from
+  the signs of their derivative at the bounds, which mathlib gives exactly:
+  their bounds are within one double of the tightest at every magnitude. (See
+  [Accuracy of the operations](accuracy.md).)
