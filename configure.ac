@@ -276,6 +276,70 @@ fi
 AM_CONDITIONAL([FLOAT_INTERVALS_COND],[test "${float_intervals}" = yes])
 AM_CONDITIONAL([COMPILE_INTERVAL2],[test ${has_sse3} = yes && test "${float_intervals}" = yes])
 
+# --enable-fma: the fused multiply-add instructions of the processor, as
+# CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
+# where it defines __FMA__, but with GCC for Windows (MinGW), which does not
+# align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
+# -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
+# and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
+# (gaol.pc), compiled for the same processor. -ffp-contract=off stays.
+AC_ARG_ENABLE(fma,
+              [AS_HELP_STRING([--enable-fma],
+                              [compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (no: a library for any processor of the architecture) @<:@default=yes@:>@])],
+              [fma=${enable_fma}],
+              [fma="yes"])
+# GAOL_CHECK_FMA_FLAGS(flags, macro, variable): whether the C++ and the C
+# compilers, given flags, define macro, and link a program so compiled
+AC_DEFUN([GAOL_CHECK_FMA_FLAGS],
+[$3=no
+AC_MSG_CHECKING([whether $1 gives the fused multiply-add instructions])
+AC_LANG_PUSH([C++])
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="${CXXFLAGS} $1"
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#if !defined($2)
+#error no fused multiply-add instructions
+#endif]], [[]])],[$3=yes])
+CXXFLAGS=$gaol_save_CXXFLAGS
+AC_LANG_POP([C++])
+if test "${$3}" = yes; then
+    AC_LANG_PUSH([C])
+    gaol_save_CFLAGS=$CFLAGS
+    CFLAGS="${CFLAGS} $1"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#if !defined($2)
+#error no fused multiply-add instructions
+#endif]], [[]])],[],[$3=no])
+    CFLAGS=$gaol_save_CFLAGS
+    AC_LANG_POP([C])
+fi
+AC_MSG_RESULT([${$3}])])
+gaol_fma_flags=""
+if test "$fma" = yes; then
+    AC_LANG_PUSH([C++])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !(defined(_WIN32) && defined(__GNUC__) && !defined(__clang__))
+#error not GCC for Windows
+#endif]], [[]])],[gaol_mingw_gcc=yes],[gaol_mingw_gcc=no])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !defined(__arm__) || defined(__ARM_FEATURE_FMA)
+#error not a 32-bit ARM target without FMA
+#endif]], [[]])],[gaol_arm32_without_fma=yes],[gaol_arm32_without_fma=no])
+    AC_LANG_POP([C++])
+    if test "${gaol_mingw_gcc}" = yes; then
+        AC_MSG_NOTICE([fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX])
+    else
+        GAOL_CHECK_FMA_FLAGS([-mfma], [__FMA__], [gaol_has_fma])
+        if test "${gaol_has_fma}" = yes; then
+            gaol_fma_flags="-mfma"
+        elif test "${gaol_arm32_without_fma}" = yes; then
+            GAOL_CHECK_FMA_FLAGS([-mfpu=neon-vfpv4 -mfloat-abi=hard], [__ARM_FEATURE_FMA], [gaol_has_fma])
+            if test "${gaol_has_fma}" = yes; then
+                gaol_fma_flags="-mfpu=neon-vfpv4 -mfloat-abi=hard"
+            fi
+        fi
+    fi
+    CXXFLAGS="${CXXFLAGS} ${gaol_fma_flags}"
+    CFLAGS="${CFLAGS} ${gaol_fma_flags}"
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} ${gaol_fma_flags}"
+fi
+
 
 
 

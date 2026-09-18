@@ -25,7 +25,8 @@ VALUES = ('SIZEOF_INT', 'SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus'
 # The flags compared by presence
 FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-store', '-mfpmath=sse', '-msse2',
          '-msse3', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-funroll-loops',
-         '-fomit-frame-pointer', '-fexpensive-optimizations', '-Wall', '-Wconversion')
+         '-fomit-frame-pointer', '-fexpensive-optimizations', '-Wall', '-Wconversion', '-mfma', '/arch:AVX2',
+         '-mfpu=neon-vfpv4', '-mfloat-abi=hard')
 
 
 def truth(entry, name):

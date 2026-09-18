@@ -18,6 +18,21 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`-msse2 -msse3`), except with Visual C++ and on 32-bit Windows, where a
   `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
   aligned on 16 bytes there, while the C runtime aligns it on 8;
+- GAOL, CORE-MATH and mathlib are compiled with the fused multiply-add
+  instructions of the processor, where the compiler has a flag for them
+  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86, except with GCC
+  for Windows, which does not align the stack for the AVX that `-mfma` turns
+  on; `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
+  the rounding direction; `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM.
+  GAOL's exact products (`std::fma()`) and CORE-MATH's functions then compute
+  `fma()` with one instruction rather than with a call to the math library: on
+  an Intel i7-1185G7, `pow(x, 3)` of an interval took 21 ns rather than 29, and
+  `sin` and `cos` 9 % less with GCC 9.4. The code using GAOL is given the flag
+  too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
+  `-ffp-contract=off` stays, which forbids the compiler to contract a
+  multiplication and an addition into a fused one: compiled by GCC with `-mfma`
+  and the contraction allowed, mathlib gave 3.8 million of 30 million results
+  differently, nearly half of those of sin, cos, tan and cot;
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
   (SSE3), unfinished, which `GAOL_FLOAT_INTERVALS`
   (`--enable-float-intervals`, `-Denable-float-intervals=true`) compiles;

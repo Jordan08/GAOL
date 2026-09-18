@@ -811,6 +811,7 @@ with_sysroot
 enable_libtool_lock
 enable_simd
 enable_float_intervals
+enable_fma
 with_mathlib_include
 with_mathlib_lib
 with_mathlib
@@ -1476,6 +1477,10 @@ Optional Features:
   --enable-float-intervals
                           compile gaol::intervalf, and gaol::interval2f with
                           SSE3 [default=no]
+  --enable-fma            compile GAOL, CORE-MATH and mathlib with the fused
+                          multiply-add instructions of the processor, where
+                          the compiler has a flag for them (no: a library for
+                          any processor of the architecture) [default=yes]
   --enable-verbose-mode   write a line on the standard error when GAOL
                           initializes and cleans up [default=no]
   --enable-optimize       compile gaol with full optimization [default=yes]
@@ -16838,6 +16843,242 @@ else
   COMPILE_INTERVAL2_FALSE=
 fi
 
+
+# --enable-fma: the fused multiply-add instructions of the processor, as
+# CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
+# where it defines __FMA__, but with GCC for Windows (MinGW), which does not
+# align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
+# -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
+# and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
+# (gaol.pc), compiled for the same processor. -ffp-contract=off stays.
+# Check whether --enable-fma was given.
+if test "${enable_fma+set}" = set; then :
+  enableval=$enable_fma; fma=${enable_fma}
+else
+  fma="yes"
+fi
+
+# GAOL_CHECK_FMA_FLAGS(flags, macro, variable): whether the C++ and the C
+# compilers, given flags, define macro, and link a program so compiled
+
+gaol_fma_flags=""
+if test "$fma" = yes; then
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !(defined(_WIN32) && defined(__GNUC__) && !defined(__clang__))
+#error not GCC for Windows
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  gaol_mingw_gcc=yes
+else
+  gaol_mingw_gcc=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__arm__) || defined(__ARM_FEATURE_FMA)
+#error not a 32-bit ARM target without FMA
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  gaol_arm32_without_fma=yes
+else
+  gaol_arm32_without_fma=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    if test "${gaol_mingw_gcc}" = yes; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX" >&5
+$as_echo "$as_me: fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX" >&6;}
+    else
+        gaol_has_fma=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether -mfma gives the fused multiply-add instructions" >&5
+$as_echo_n "checking whether -mfma gives the fused multiply-add instructions... " >&6; }
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="${CXXFLAGS} -mfma"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__FMA__)
+#error no fused multiply-add instructions
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  gaol_has_fma=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_has_fma}" = yes; then
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    gaol_save_CFLAGS=$CFLAGS
+    CFLAGS="${CFLAGS} -mfma"
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__FMA__)
+#error no fused multiply-add instructions
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+else
+  gaol_has_fma=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+    CFLAGS=$gaol_save_CFLAGS
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_has_fma}" >&5
+$as_echo "${gaol_has_fma}" >&6; }
+        if test "${gaol_has_fma}" = yes; then
+            gaol_fma_flags="-mfma"
+        elif test "${gaol_arm32_without_fma}" = yes; then
+            gaol_has_fma=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether -mfpu=neon-vfpv4 -mfloat-abi=hard gives the fused multiply-add instructions" >&5
+$as_echo_n "checking whether -mfpu=neon-vfpv4 -mfloat-abi=hard gives the fused multiply-add instructions... " >&6; }
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="${CXXFLAGS} -mfpu=neon-vfpv4 -mfloat-abi=hard"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__ARM_FEATURE_FMA)
+#error no fused multiply-add instructions
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  gaol_has_fma=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_has_fma}" = yes; then
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    gaol_save_CFLAGS=$CFLAGS
+    CFLAGS="${CFLAGS} -mfpu=neon-vfpv4 -mfloat-abi=hard"
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__ARM_FEATURE_FMA)
+#error no fused multiply-add instructions
+#endif
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+else
+  gaol_has_fma=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+    CFLAGS=$gaol_save_CFLAGS
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${gaol_has_fma}" >&5
+$as_echo "${gaol_has_fma}" >&6; }
+            if test "${gaol_has_fma}" = yes; then
+                gaol_fma_flags="-mfpu=neon-vfpv4 -mfloat-abi=hard"
+            fi
+        fi
+    fi
+    CXXFLAGS="${CXXFLAGS} ${gaol_fma_flags}"
+    CFLAGS="${CFLAGS} ${gaol_fma_flags}"
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} ${gaol_fma_flags}"
+fi
 
 
 
