@@ -63,7 +63,9 @@ else
       libieeep1788/p1788/version.hpp.in > "$PREFIX/include/p1788/version.hpp"
 fi
 
-## filib++: the one FILIB_DIR gives, or IBEX's archive, built with its configure
+## filib++: the one FILIB_DIR gives, or IBEX's archive, built with its configure,
+## in C++11: its dynamic exception specifications are errors in C++17, which
+## GCC 11 and Clang 16 compile by default
 if [ -n "$FILIB_DIR_GIVEN" ]; then
   [ -f "$FILIB_DIR_GIVEN/include/interval/interval.hpp" ] && [ -f "$FILIB_DIR_GIVEN/lib/libprim.a" ] \
     || die "no filib++ in $FILIB_DIR_GIVEN (include/interval/interval.hpp, lib/libprim.a)"
@@ -77,14 +79,16 @@ else
   rm -rf "filibsrc-$FILIB_VERSION" && tar xzf "filibsrc-$FILIB_VERSION.tar.gz"
   (cd "filibsrc-$FILIB_VERSION" &&
    ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --disable-shared CXX="$CXX" CC="$CC" \
-               CXXFLAGS="-O2 -frounding-math -Wno-deprecated" > configure.log &&
+               CXXFLAGS="-std=c++11 -O2 -frounding-math -Wno-deprecated" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
   echo "$PREFIX" > "$WORK/filib-dir"
 fi
 
 ## PROFIL/BIAS: its own Configure asks for the configuration interactively;
-## Host.cfg, which it writes, is written here for x86-64 Linux with GCC. make
-## install copies the headers and the libraries into the source tree
+## Host.cfg, which it writes, is written here for x86-64 Linux, its compilers
+## (gcc in that configuration) replaced by $CC and $CXX, in C++11 (its
+## `register` is an error in C++17). make install copies the headers and the
+## libraries into the source tree
 if [ -f "$PROFIL_DIR/include/Interval.h" ]; then
   echo "== PROFIL/BIAS: already in $PROFIL_DIR"
 else
@@ -95,7 +99,7 @@ else
   fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
   rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
   (cd "Profil-$PROFIL_VERSION" &&
-   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\n' > Host.cfg &&
+   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" > Host.cfg &&
    make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&
    grep -q "FAILED : 0" check.log)
   mkdir -p "$PROFIL_DIR"

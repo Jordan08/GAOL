@@ -82,7 +82,7 @@ done
   echo "GAOL:            $gaol_commit, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"
-  echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc"
+  echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc configuration, built by $CC and $CXX"
 } > "$OUT/machine.txt"
 
 python3 "$CODE_DIR/bench.py" report "$RESULTS" "$OUT/machine.txt" "$REPORT"
