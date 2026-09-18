@@ -90,8 +90,12 @@ fi
 ## PROFIL/BIAS: its own Configure asks for the configuration interactively;
 ## Host.cfg, which it writes, is written here for x86-64 Linux, its compilers
 ## (gcc in that configuration) replaced by $CC and $CXX, in C++11 (its
-## `register` is an error in C++17), and its -O2 by -O3 $FMA_FLAGS. make install
-## copies the headers and the libraries into the source tree
+## `register` is an error in C++17), and its -O2 by -O3 $FMA_FLAGS
+## -ffp-contract=off: with -mfma and the contraction Clang does by default, its
+## outward roundings x*(1+eps) + eta became fused multiply-adds, whose subnormal
+## addend eta cost about 43 ns each, and sqrt, exp and log took 90 ns rather
+## than 6 to 16 (i7-1185G7, Clang 18). make install copies the headers and the
+## libraries into the source tree
 if [ -f "$PROFIL_DIR/include/Interval.h" ]; then
   echo "== PROFIL/BIAS: already in $PROFIL_DIR"
 else
@@ -102,7 +106,7 @@ else
   fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
   rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
   (cd "Profil-$PROFIL_VERSION" &&
-   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3 %s,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" "$FMA_FLAGS" > Host.cfg &&
+   printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3 %s -ffp-contract=off,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" "$FMA_FLAGS" > Host.cfg &&
    make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&
    grep -q "FAILED : 0" check.log)
   mkdir -p "$PROFIL_DIR"

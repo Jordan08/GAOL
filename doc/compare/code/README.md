@@ -30,7 +30,10 @@ and the configure of filib++ without any optimization) and with the fused
 multiply-add instructions of the processor, `-mfma` (`FMA_FLAGS`), as GAOL is
 by default (`GAOL_FMA`), filib++ and PROFIL/BIAS in C++11: Clang 16 and GCC 11
 compile C++17 by default, where their dynamic exception specifications and
-`register` are errors. The benchmark and the special cases compile their
+`register` are errors. PROFIL/BIAS is compiled with `-ffp-contract=off` too:
+with `-mfma`, Clang contracted its outward roundings into fused multiply-adds
+whose subnormal addend made `sqrt`, `exp` and `log` six to fifteen times slower
+(see `setup.sh`). The benchmark and the special cases compile their
 programs with `-mfma` too. Solaris Studio's intervals are computed by
 `libsunimath`, compiled already, which no flag reaches.
 
