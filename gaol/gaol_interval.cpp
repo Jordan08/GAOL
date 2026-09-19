@@ -1670,16 +1670,20 @@ interval nth_root(const interval& I, unsigned int n)
   }
 
   /*
-    k pi, k being an integer double, enclosed within about one double (fork of
-    GAOL, issue #6): pi = pi_hi + pi_lo, pi_hi being the double below pi, and
-    pi_lo lying between two consecutive doubles; k pi_hi is p + e exactly, p
-    being the product rounded and e its rest, from fma(); k pi_lo is bounded
-    by the products with the two doubles, rounded outward. GAOL computed
-    k [pi_dn, pi_up], whose width, k 2^-51, the relational functions took on:
-    their bounds were up to 2^-49 max(1, |x|) from the values they had to
-    keep. The rounding direction is upward.
+    k pi + X, k being an integer double and X a bounded interval, enclosed
+    within about one double (fork of GAOL, issue #6): pi = pi_hi + pi_lo,
+    pi_hi being the double below pi, and pi_lo lying between two consecutive
+    doubles; k pi_hi is p + e exactly, p being the product rounded and e its
+    rest, from fma(); k pi_lo is bounded by the products with the two
+    doubles, rounded outward. The bounds of X are added to e + k pi_lo, and
+    the sums to p, rounded once at the magnitude of the result: adding X to
+    k pi rounded would round twice, and the bounds could be two doubles from
+    the tightest. GAOL computed k [pi_dn, pi_up] + X, whose width, k 2^-51,
+    the relational functions took on: their bounds were up to
+    2^-49 max(1, |x|) from the values they had to keep. The rounding
+    direction is upward.
   */
-  static interval k_pi(double k)
+  static interval k_pi_plus(double k, const interval& X)
   {
     // 0x1.1a62633145c06p-53 and 0x1.1a62633145c07p-53, the doubles around
     // pi - pi_dn = 1.2246467991473531772e-16
@@ -1690,8 +1694,8 @@ interval nth_root(const interval& I, unsigned int n)
     // The products of k with the doubles around pi_lo, rounded outward
     const double below = (k >= 0.0) ? pi_lo_dn : pi_lo_up, above = (k >= 0.0) ? pi_lo_up : pi_lo_dn;
     const double lo_lo = -((-k)*below), lo_hi = k*above;
-    const double hi = p + (e + lo_hi);
-    const double lo = -(((-p) - e) - lo_lo);
+    const double hi = p + ((e + lo_hi) + X.right());
+    const double lo = -((-p) + (((-e) - lo_lo) - X.left()));
     return interval(lo,hi);
   }
 
@@ -1761,7 +1765,7 @@ interval nth_root(const interval& I, unsigned int n)
     // for an odd i
     const interval Jacos = acos(J);
     return periodic_rel(J, I, 0.0,
-			[&](double i) { return feven(i) ? k_pi(i) + Jacos : k_pi(i + 1.0) - Jacos; },
+			[&](double i) { return feven(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
 			[](const interval& X) { return cos(X); });
   }
 
@@ -1778,7 +1782,7 @@ interval nth_root(const interval& I, unsigned int n)
     // additions of an enclosure of pi/2 more)
     const interval Jasin = asin(J);
     return periodic_rel(J, I, 0.5,
-			[&](double i) { return feven(i) ? k_pi(i) + Jasin : k_pi(i) - Jasin; },
+			[&](double i) { return k_pi_plus(i, feven(i) ? Jasin : -Jasin); },
 			[](const interval& X) { return sin(X); });
   }
 
@@ -1790,7 +1794,7 @@ interval nth_root(const interval& I, unsigned int n)
     // The preimage of J: i pi + atan(J)
     const interval Jatan = atan(J);
     return periodic_rel(J, I, 0.5,
-			[&](double i) { return k_pi(i) + Jatan; },
+			[&](double i) { return k_pi_plus(i, Jatan); },
 			[](const interval& X) { return tan(X); });
   }
 

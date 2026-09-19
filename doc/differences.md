@@ -319,7 +319,11 @@ Each change is a commit of its own, and says where it comes from.
   π of the pieces of the preimage with π in double-double (issue #6): k·π_hi
   is p + e exactly, e being the rest of the product from `fma()`, and
   k·(π − π_hi) is bounded by the products with the two doubles around
-  π − π_hi. GAOL computed k·[π_dn, π_up], and `asin_rel()` as
+  π − π_hi. The inverse function of J is added to that sum before it is
+  rounded, one rounding at the magnitude of the result rather than two:
+  `atan_rel()` was up to 49 doubles from the tightest bounds over random
+  cases where it is now within 2, and `acos_rel()` up to 34 where it is now
+  within 2. GAOL computed k·[π_dn, π_up], and `asin_rel()` as
   π/2 + `acos_rel(J, I − π/2)`, two additions of an enclosure of π/2 more:
   the values they have to keep are within 4, 5 and 3 doubles of their
   bounds from 1 to 2^50, where they were within 4, 7 and 7. The three
