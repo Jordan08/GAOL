@@ -417,6 +417,13 @@ Each change is a commit of its own, and says where it comes from.
   lost. The bounds of the other branches, computed on the representation
   `<-l, r>` of the SSE2 intervals or negated as `-(K.rb_/J.lb_)` with the
   x87, were rounded outward already.
+- **`invabs_rel()`** (`absRev` of IEEE 1788-2015, Table 10.1) takes no
+  magnitude from the negative part of J: it is the hull of the x of I whose
+  magnitude is in J. GAOL took that part as magnitudes, so that
+  `invabs_rel([-2, -1], [-10, 10])`, where no x has a magnitude in
+  `[-2, -1]`, was `[-2, 2]` rather than the empty set, and
+  `invabs_rel([-2, 0], [-10, 10])` `[-2, 2]` rather than `[0]`. The function
+  is otherwise the same: the bounds of J, of −J and of I, hence tightest.
 - **`log()` is the one of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**,
   correctly rounded in the rounding direction in effect, with mathlib and
   CRlibm, where the compiler has a 128-bit integer type, which its accurate

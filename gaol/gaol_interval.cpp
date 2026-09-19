@@ -1840,10 +1840,17 @@ interval nth_root(const interval& I, unsigned int n)
   }
 
   /*
-   * invabs_rel
+   * invabs_rel: the hull of the x of I whose magnitude is in J, absRev of
+   * IEEE 1788, the negative part of J holding no magnitude (fork of GAOL:
+   * GAOL took it as one, invabs_rel([-2, -1], I) being [-2, 2] & I instead of
+   * the empty set, and invabs_rel([-2, 0], I) [-2, 2] & I instead of [0])
    */
-  interval invabs_rel(const interval &J, const interval &I)
+  interval invabs_rel(const interval &Jall, const interval &I)
   {
+    const interval J = Jall & interval::positive();
+    if (J.is_empty()) {
+      return interval::emptyset();
+    }
     if (I.certainly_geq(interval::zero())) {
       return (J & I);
     }
