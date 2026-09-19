@@ -398,6 +398,13 @@ Each change is a commit of its own, and says where it comes from.
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
   `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
   the empty set themselves before calling it.
+- **The intersection of disjoint intervals** (`operator&`, `operator&=`) is the
+  empty set of `interval::emptyset()`, whose bounds are NaN. GAOL kept the
+  largest left bound and the smallest right bound, `[3, 2]` for
+  `[1, 2] & [3, 4]`: `is_empty()` took it for empty, but the operations that
+  compute on the bounds did not, and `([1, 2] & [3, 4]) + [0, 1]` was `[3, 3]`.
+  `div_rel(K, J, I)`, which intersects I with the quotients, returned such
+  empty sets: `div_rel([5, 6], [1, 2], [10, 20])` was `[10, 6]`.
 - **`log()` is the one of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**,
   correctly rounded in the rounding direction in effect, with mathlib and
   CRlibm, where the compiler has a 128-bit integer type, which its accurate

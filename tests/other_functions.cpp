@@ -305,6 +305,52 @@ namespace
     }
   }
 
+  // The intersection of the intervals of comparisons(): [max of the left bounds,
+  // min of the right bounds], and the empty set, [NaN, NaN], for disjoint
+  // intervals, which the operations computing on the bounds keep empty. GAOL
+  // gave [1, 2] & [3, 4] = [3, 2], and then [3, 2] + [0, 1] = [3, 3]
+  void intersections()
+  {
+    const double bounds[] = { -inf, -2., -1., 0., 1., 2., inf };
+    std::vector<interval> xs = { interval::emptyset(), interval(-inf, -0.), interval(0., inf) };
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u && l < inf && u > -inf) {
+          xs.push_back(interval(l, u));
+        }
+      }
+    }
+    for (const interval& a : xs) {
+      for (const interval& b : xs) {
+        const interval z = a & b;
+        interval w(a);
+        w &= b;
+        const auto describe = [&] { return "a=" + hex(a) + " b=" + hex(b) + ": " + hex(z); };
+        const bool empty = a.is_empty() || b.is_empty() || std::max(a.left(), b.left()) > std::min(a.right(), b.right());
+        if (empty) {
+          check("a & b, a &= b: the empty set [NaN, NaN] for disjoint intervals",
+                std::isnan(z.left()) && std::isnan(z.right()) && std::isnan(w.left()) && std::isnan(w.right()), describe);
+          w += interval(10., 20.);
+          check("(a & b) + [0, 1], (a &= b) += [10, 20]: empty", (z + interval(0., 1.)).is_empty() && w.is_empty(),
+                describe);
+        } else {
+          check("a & b, a &= b: [max of the left bounds, min of the right bounds]",
+                z.left() == std::max(a.left(), b.left()) && z.right() == std::min(a.right(), b.right()) && z.set_eq(w),
+                describe);
+        }
+      }
+    }
+    // div_rel(K, J, I) intersects I with the quotients: [5, 6] / [1, 2] = [2.5, 6]
+    // and [10, 20], disjoint, gave [10, 6]
+    const interval d[] = { div_rel(interval(5., 6.), interval(1., 2.), interval(10., 20.)),
+                           div_rel(interval(-6., -5.), interval(1., 2.), interval(1., 2.)),
+                           div_rel(interval(1., 2.), interval(0., 1.), interval(-6., -5.)) };
+    for (const interval& z : d) {
+      check("div_rel(K, J, I): the empty set [NaN, NaN] where I holds no quotient",
+            std::isnan(z.left()) && std::isnan(z.right()) && (z + interval(0., 1.)).is_empty(), [&] { return hex(z); });
+    }
+  }
+
   // Checks that r contains v, and is no more than limit doubles away from it,
   // or no more than slack when slack is given
   void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands, double slack = 0.0,
@@ -422,6 +468,7 @@ int main()
   measures("any doubles", [&] { return random.any(); });
   subnormal_bounds();
   comparisons();
+  intersections();
 #if GAOL_FLOAT_INTERVALS
   float_midpoints("floats of exponents from -30 to 30", [&] { return static_cast<float>(random(-30, 30)); });
   float_midpoints("any floats", [&] { return static_cast<float>(random(-149, 126)); });
