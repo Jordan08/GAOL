@@ -162,7 +162,10 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         if ( J.left() < 0.0 ) { // [J] M // FIXME: replace with SSE code
 			GAOL_RND_ENTER_SSE();
 			interval tmp(-GAOL_INFINITY,K.right()/J.right());
-			interval tmp2(K.right()/(J.left()),GAOL_INFINITY);
+			// The lower bound rounded downward, the rounding direction being
+			// upward (fork of GAOL: K.right()/J.left() was rounded upward, and
+			// the result left out the doubles below it that belong to the hull)
+			interval tmp2(-((-K.right())/J.left()),GAOL_INFINITY);
 	    	GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
 	    	GAOL_RND_LEAVE_SSE();
 	    	return (I&tmp) | (I&tmp2); // N1 M

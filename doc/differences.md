@@ -405,6 +405,18 @@ Each change is a commit of its own, and says where it comes from.
   compute on the bounds did not, and `([1, 2] & [3, 4]) + [0, 1]` was `[3, 3]`.
   `div_rel(K, J, I)`, which intersects I with the quotients, returned such
   empty sets: `div_rel([5, 6], [1, 2], [10, 20])` was `[10, 6]`.
+- **`div_rel()` rounds the lower bound of the quotients downward** where K is
+  below 0 and J straddles it, the one branch of the function left without SSE
+  code: `K.right()/J.left()` was computed in the rounding direction of the
+  library, upward, one double above the bound of the hull where the quotient
+  is no double, and the result left out points of the preimage.
+  `div_rel([-1], [-3, 1], [0, 10])`, the x of `[0, 10]` with an x·y in
+  `[-1]` for a y of `[-3, 1]`, was `[0x1.5555555555556p-2, 10]`, above 1/3,
+  rather than `[0x1.5555555555555p-2, 10]`: `mulRev` of IEEE 1788-2015 has to
+  be valid (12.10.2), and the numbers from 1/3 to the double above it were
+  lost. The bounds of the other branches, computed on the representation
+  `<-l, r>` of the SSE2 intervals or negated as `-(K.rb_/J.lb_)` with the
+  x87, were rounded outward already.
 - **`log()` is the one of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**,
   correctly rounded in the rounding direction in effect, with mathlib and
   CRlibm, where the compiler has a 128-bit integer type, which its accurate

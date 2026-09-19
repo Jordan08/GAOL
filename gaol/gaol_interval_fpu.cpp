@@ -867,7 +867,10 @@
 	  if (J.left() < 0.0) { // [J] M
 	    GAOL_RND_ENTER();
 	    interval tmp(-GAOL_INFINITY,K.rb_/J.rb_);
-	    interval tmp2(K.rb_/(-J.lb_),GAOL_INFINITY);
+	    // The lower bound rounded downward, the rounding direction being
+	    // upward (fork of GAOL: K.rb_/(-J.lb_) was rounded upward, and the
+	    // result left out the doubles below it that belong to the hull)
+	    interval tmp2(-(K.rb_/J.lb_),GAOL_INFINITY);
 	    GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
 	    GAOL_RND_LEAVE();
 	    return (I&tmp) | (I&tmp2); // N1 M
