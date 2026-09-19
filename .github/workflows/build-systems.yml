@@ -146,10 +146,10 @@ jobs:
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   # GAOL built with CRlibm (--with-mathlib=crlibm), whose bounds are certified
-  # as those of mathlib: the five tests pass. Built with the math library of the
+  # as those of mathlib: the six tests pass. Built with the math library of the
   # system (--with-mathlib=m), GAOL does not aim at tight bounds: the checks of
-  # elementary and other_functions on the distance to the tightest bounds may
-  # fail, and no other (.github/scripts/tests.sh). Without these jobs,
+  # elementary, other_functions and reverse on the distance to the tightest
+  # bounds may fail, and no other (.github/scripts/tests.sh). Without these jobs,
   # gaol/gaol_double_op_crlibm.h and gaol/gaol_double_op_m.h were compiled
   # nowhere (issue #12).
   other-mathlib:

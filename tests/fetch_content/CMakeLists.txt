@@ -52,7 +52,7 @@ target_link_libraries(gaol_test_shared PRIVATE gaol::gaol)
 
 enable_testing()
 
-foreach(test arithmetic elementary rounding_direction numbers other_functions)
+foreach(test arithmetic elementary rounding_direction numbers other_functions reverse)
   add_executable(gaol_test_${test} ../${test}.cpp)
   target_link_libraries(gaol_test_${test} PRIVATE gaol::gaol)
   set_target_properties(gaol_test_${test} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)

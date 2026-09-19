@@ -96,15 +96,17 @@ elementary functions with the math library of the system, whose results it
 widens slightly, and configure and meson warn that the bounds are not
 certified: they are valid only where the math library is within about one
 double of the exact value. Built so with glibc 2.31 on x86-64, every bound the
-tests check encloses the exact value, but 840 of the 4735 checks of
+tests check encloses the exact value, but 2754 of the 8673 checks of
 `elementary` fail, their bounds being further from the tightest than the tests
 allow, `sin`, `cos`, `pow(x, y)` and `atan2` being up to 4 doubles away where
-the tests want one; 960 of the checks of `other_functions` fail, `acos_rel`,
-`asin_rel` and `atan_rel` keeping the values they had to but being further
-than 2^-49 from them. The checks of `arithmetic`, `numbers` and
-`rounding_direction` pass, and the continuous integration checks that no other
-check than those fails. mathlib, the default of every build, and CRlibm give
-certified bounds, and the five tests pass with both.
+the tests want one; 4634 of the 488374 checks of `other_functions` fail,
+`acos_rel`, `asin_rel` and `atan_rel` keeping the values they had to but being
+further than 2^-49 from them; and 40 of the 4089 checks of `reverse` fail,
+`acosh_rel`, `acos_rel` and `atan_rel` being valid but not accurate. The
+checks of `arithmetic`, `numbers` and `rounding_direction` pass, and the
+continuous integration checks that no other check than those fails. mathlib,
+the default of every build, and CRlibm give certified bounds, and the six
+tests pass with both.
 
 ## With meson
 

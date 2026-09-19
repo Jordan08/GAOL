@@ -108,24 +108,35 @@ ones, and millions of doubles away for the `acosh` of some
 | `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from mathlib's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2: tightest; tightest where the bound of x is an n-th power of a double. Otherwise accurate: the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−53</sup> relatively, the bounds being the tightest or one double beyond, whatever the magnitude of x and whatever the math library | within 2 doubles, for all doubles (1 found) |
 | others | — | Not provided | | |
 
-## Reverse functions (Table 10.1): valid required
+## Reverse functions (Table 10.1): accurate
 
 GAOL's relational functions compute `f_rel(J, I)`, the hull of the x of I
 whose image is in J, the reverse functions of IEEE 1788 with the arguments
 in another order. Each computes the preimage of J with the functions above,
-rounded outward, and intersects it with I: **valid**. The tests check that
-they keep the values they are given, within the number of doubles below.
+rounded outward, and intersects it with I: **valid**, which the standard
+requires. `tests/reverse.cpp` checks on the cases of the minimal tests of
+libieeep1788 and on random ones that they are also **accurate**, which the
+standard recommends for inf-sup types, the hulls being computed from the
+definition of each function, apart from GAOL (see
+[the tests](tests.md)); `tests/other_functions.cpp` checks that they keep
+the values they are given, within the number of doubles below.
 
-| IEEE 1788 | GAOL | Tests |
-|---|---|---|
-| `sqrRev(c, x)` | `sqrt_rel(c, x)` | within 1 double |
-| `absRev(c, x)` | `invabs_rel(c, x)` | tightest |
-| `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | within 2 doubles (the roots of `nth_root()`) |
-| `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | within 6 doubles (4, 5 and 3 found) from 1 to 2<sup>50</sup>, away from the points where the inverse function magnifies the width of the image; the pieces of the preimage are k·π, enclosed within about one double from π in double-double, plus or minus the inverse function of J; beyond 2<sup>52</sup> a bound of x is kept, and an x of a single double is decided by the image of the function |
-| `coshRev(c, x)` | `acosh_rel(c, x)` | within 16 doubles |
-| — | `asinh_rel`, `atanh_rel` | within 10 and 26 doubles |
-| `mulRev(b, c, x)` | `div_rel(c, b, x)`, and `c % b` for x = [−∞, +∞] | `%`: tightest; `div_rel`: within 2 doubles |
-| `powRev1`, `powRev2`, `atan2Rev1`, `atan2Rev2`, `pownRev` for p < 0 | — | |
+| IEEE 1788 | GAOL | Tightness | Tests |
+|---|---|---|---|
+| `sqrRev(c, x)` | `sqrt_rel(c, x)` | accurate | accurate; within 1 double of the value it keeps |
+| `absRev(c, x)` | `invabs_rel(c, x)` | tightest: the bounds of J, of −J and of I | tightest |
+| `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | accurate (the roots of `nth_root()`) | accurate, within 1 double of the tightest; within 2 doubles of the value it keeps |
+| `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | accurate, or one double beyond: the pieces of the preimage are k·π, enclosed within about one double from π in double-double, plus or minus the inverse function of J, which is added before the sum is rounded; beyond 2<sup>52</sup> a bound of x is kept, and an x of a single double is decided by the image of the function | accurate but for one double, with the bounds of x beyond 2<sup>52</sup>; within 6 doubles (4, 5 and 3 found) of the value they keep from 1 to 2<sup>50</sup>, away from the points where the inverse function magnifies the width of the image |
+| `coshRev(c, x)` | `acosh_rel(c, x)` | accurate | accurate; within 16 doubles of the value it keeps |
+| — | `asinh_rel`, `atanh_rel` | accurate | within 10 and 26 doubles of the value they keep |
+| `mulRev(b, c, x)` | `div_rel(c, b, x)`, and `c % b` for x = [−∞, +∞] | accurate; tightest where the bounds of the quotients are doubles | accurate, the tightest bounds over the cases of `%`; within 2 doubles of the value `div_rel` keeps |
+| `powRev1`, `powRev2`, `atan2Rev1`, `atan2Rev2`, `pownRev` for p < 0 | — | | |
+
+Where a bound of J is one double from the image of a bound of the preimage,
+these functions keep a point of I whose image is just outside J:
+`sqrt_rel([1 + 2^-52, +oo], [-1, 1 + 2^-52])` is `[-1, 1 + 2^-52]`, whose
+tightest enclosure is `[1, 1 + 2^-52]`. They are accurate all the same, the
+widened J of nextOut holding that image.
 
 `mulRevToPair` (10.5.5), `cancelMinus` and `cancelPlus` (10.5.6) are not
 provided.

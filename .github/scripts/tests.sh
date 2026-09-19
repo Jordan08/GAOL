@@ -11,9 +11,9 @@
 # was built with: mathlib (apmathlib, the default), CRlibm (crlibm, the prefix
 # of mathlib being the one of CRlibm), or the math library of the system (m,
 # the prefix of mathlib being ignored). With the latter, GAOL does not aim at
-# tight bounds (see doc/building.md): the checks of elementary and
-# other_functions on the distance to the tightest bounds ("no more than ...")
-# may fail, and no other. The flags of the tests are those of TEST_FLAGS, with
+# tight bounds (see doc/building.md): the checks of elementary,
+# other_functions and reverse on the distance to the tightest bounds ("no
+# more than ...") may fail, and no other. The flags of the tests are those of TEST_FLAGS, with
 # which the code using GAOL is compiled (see CMakeLists.txt); on a 32-bit x86
 # processor, -msse2 -mfpmath=sse too, without which gaol/gaol_config.h refuses
 # to compile.
@@ -40,12 +40,12 @@ else
 fi
 grep -H -E "GAOL_PRESERVE_ROUNDING|USING_SSE2_INSTRUCTIONS|USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
 status=0
-for test in arithmetic elementary numbers other_functions rounding_direction; do
+for test in arithmetic elementary numbers other_functions reverse rounding_direction; do
   ${CXX:-c++} $flags -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
   # The checks that failed, which the last lines do not show
   if ./$test > $test.log 2>&1; then
     tail -1 $test.log
-  elif [ "$backend" = m ] && { [ $test = elementary ] || [ $test = other_functions ]; } && tail -1 $test.log | grep -q -E "^[0-9]+ checks, [0-9]+ failed$" \
+  elif [ "$backend" = m ] && { [ $test = elementary ] || [ $test = other_functions ] || [ $test = reverse ]; } && tail -1 $test.log | grep -q -E "^[0-9]+ checks, [0-9]+ failed$" \
        && ! grep -E "checks, [1-9][0-9]* failed" $test.log | grep -v -E "^[0-9]+ checks, |: no more than " > /dev/null; then
     # The math library of the system: only distances to the tightest bounds
     echo "$(tail -1 $test.log), all of them on the distance to the tightest bounds:"

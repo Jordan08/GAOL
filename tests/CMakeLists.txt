@@ -13,6 +13,7 @@ set(GAOL_TESTS
   rounding_direction
   numbers
   other_functions
+  reverse
 )
 
 foreach(test ${GAOL_TESTS})

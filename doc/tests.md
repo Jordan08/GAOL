@@ -77,6 +77,24 @@ Codac.
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
   and decide an interval of a single double beyond 2^53.
+- **`reverse`:** the relational functions against the reverse functions of
+  IEEE 1788-2015 (10.5.4, Table 10.1): `sqrt_rel` (`sqrRev`), `invabs_rel`
+  (`absRev`), `nth_root_rel` (`pownRev`), `asin_rel`, `acos_rel`, `atan_rel`
+  (`sinRev`, `cosRev`, `tanRev`), `acosh_rel` (`coshRev`), and `div_rel`,
+  `%` and `%=` (`mulRev`). Over the cases of the minimal tests of
+  libieeep1788 and random ones, each result has to be, as 12.10.2 asks:
+  empty when an argument is; **valid**, enclosing the hull of the x of I
+  whose image is in J, which the tests hold the tightest enclosure of; and
+  **accurate**, which the standard recommends for inf-sup types, within
+  `nextOut(tightest(nextOut(arguments)))` (12.10.1). The bounds of `asin_rel`,
+  `acos_rel` and `atan_rel` are allowed one double further, their reduction
+  modulo π rounding twice, and the bound of x beyond 2^52, which they keep
+  (see [Accuracy of the operations](accuracy.md)). The values are in
+  `reverse_values.h`, which `reverse_values.py` generates: the hulls are
+  computed from the definition of each function with exact rational
+  arithmetic, and with mpmath for the periodic ones, not from GAOL nor from
+  the results libieeep1788 expects, which the generator checks are
+  enclosures of them.
 
 The CMake build compiles them with `GAOL_BUILD_TESTS` (`OFF` by default: no
 build compiles tests unless asked to, as `make check` and `with-test` for

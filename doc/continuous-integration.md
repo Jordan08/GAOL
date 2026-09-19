@@ -26,7 +26,7 @@ x86_64) and MSYS2, and the tests with the GAOL they install; build GAOL with
 each of the three builds against a mathlib installed apart, on Ubuntu x86_64
 (`MATHLIB_DIR`, `--with-mathlib-include`, `-Dwith-mathlib-include`); build GAOL
 with autotools and meson with the two other mathematical libraries they offer,
-on Ubuntu x86_64: CRlibm (`scripts/install-crlibm.sh`), with which the five
+on Ubuntu x86_64: CRlibm (`scripts/install-crlibm.sh`), with which the six
 tests pass, and the math library of the system, with which only checks on the
 distance to the tightest bounds may fail; build GAOL
 as a part of another project, brought in by FetchContent
