@@ -35,9 +35,9 @@ find_package(gaol REQUIRED)
 target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
-`gaol::gaol` carries the include directory, the flags above, mathlib
-(`gaol::ultim` when it was built along with GAOL) and, for Visual C++,
-`__GAOL_PUBLIC__=`, GAOL being a static library. A library whose headers
+`gaol::gaol` carries the include directory, the flags above and, for Visual
+C++, `__GAOL_PUBLIC__=`, GAOL being a static library. There is no other library
+to link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
 include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
 get the flags, and its CMake package finds GAOL again (`find_dependency(gaol)`).
 `tests/find_package` is a project using an installed GAOL this way.
@@ -51,13 +51,12 @@ FetchContent_MakeAvailable(gaol)
 target_link_libraries(my_target PUBLIC gaol::gaol)
 ```
 
-GAOL and the mathlib of `3rd/mathlib` are then targets of the project
-(`gaol::gaol`, `gaol::ultim`), built with it, and `cmake --install` of the
-project installs them with it, CMake package and `gaol.pc` included; nothing
-is downloaded beyond GAOL's sources. `tests/fetch_content` is a project
+GAOL is then a target of the project (`gaol::gaol`), built with it, and
+`cmake --install` of the project installs it with it, CMake package and
+`gaol.pc` included; nothing is downloaded beyond GAOL's sources. `tests/fetch_content` is a project
 building GAOL this way.
 
-GAOL and mathlib, static libraries, are compiled as position-independent code
+GAOL, a static library, is compiled as position-independent code
 (`-fPIC`), so that `gaol::gaol` can be linked into a shared library, such as
 Python bindings. A project that sets `CMAKE_POSITION_INDEPENDENT_CODE`, `ON` or
 `OFF`, before `FetchContent_MakeAvailable(gaol)`, or on the command line, is
@@ -69,7 +68,8 @@ Each build installs `gaol.pc` in the `pkgconfig` directory of its library
 directory (`<prefix>/lib/pkgconfig`, or `lib64` or `lib/<multiarch>` rather
 than `lib` on the systems whose libraries go there), except the CMake build
 with Visual C++. Its `Cflags` carries the flags above with the include
-directory, and `Libs` GAOL and mathlib:
+directory, and `Libs` GAOL itself with the C math library, CORE-MATH being
+compiled into `libgaol`:
 
 ```bash
 export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig

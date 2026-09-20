@@ -160,6 +160,6 @@ What they show of GAOL, beyond the fixes below:
 - `sin`, `cos` and `tan` tell the pieces of their argument where they are
   monotonic by dividing it by an interval enclosing π, and, where the quotients
   cannot tell, next to an extremum or a pole and at the large magnitudes, from
-  the signs of their derivative at the bounds, which mathlib gives exactly:
+  the signs of their derivative at the bounds, which CORE-MATH gives exactly:
   their bounds are within one double of the tightest at every magnitude. (See
   [Accuracy of the operations](accuracy.md).)
