@@ -65,30 +65,17 @@ libgaol_la_SOURCES = \
 	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
 	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
     gaol_exact.c \
-	$(CORE_MATH_SOURCES) \
     $(FLOAT_INTERVALS_SOURCE) $(INTERVAL2_SOURCE)
 
 
 YFLAGS = -d -p gaol_
 LFLAGS = -Pgaol_
-# The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
-# itself: nothing is linked along with GAOL. Each source is compiled with
-# gaol/core_math_port.h included first, by the compiler rather than by the
-# source, so that importing a newer CORE-MATH stays a plain copy.
-CORE_MATH_DIR = $(top_srcdir)/3rd/math-core/src/binary64
-CORE_MATH_SOURCES = \
-	$(CORE_MATH_DIR)/exp/exp.c $(CORE_MATH_DIR)/log/log.c \
-	$(CORE_MATH_DIR)/pow/pow.c $(CORE_MATH_DIR)/sin/sin.c \
-	$(CORE_MATH_DIR)/cos/cos.c $(CORE_MATH_DIR)/tan/tan.c \
-	$(CORE_MATH_DIR)/asin/asin.c $(CORE_MATH_DIR)/acos/acos.c \
-	$(CORE_MATH_DIR)/atan/atan.c $(CORE_MATH_DIR)/atan2/atan2.c \
-	$(CORE_MATH_DIR)/sinh/sinh.c $(CORE_MATH_DIR)/cosh/cosh.c \
-	$(CORE_MATH_DIR)/tanh/tanh.c $(CORE_MATH_DIR)/asinh/asinh.c \
-	$(CORE_MATH_DIR)/acosh/acosh.c $(CORE_MATH_DIR)/atanh/atanh.c
-libgaol_la_CFLAGS = $(AM_CFLAGS) -include $(top_srcdir)/gaol/core_math_port.h
+# The elementary functions of CORE-MATH, compiled by 3rd/Makefile.am into a
+# convenience library and put into libgaol here: nothing is linked along with
+# GAOL.
 
 libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
-libgaol_la_LIBADD = -lm
+libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la -lm
 
 library_includedir=$(includedir)/gaol
 

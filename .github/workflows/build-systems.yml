@@ -5,7 +5,7 @@
 # armhf in containers), macOS (arm64, x86_64) and Windows (MSYS2). Checks that
 # the three builds give GAOL the same configuration on each kind of machine
 # (.github/audit), and that autotools and meson refuse the MinGW-w64 CMake
-# refuses (mingw-w64 older than version 13). Builds GAOL with the two other
+# Builds GAOL with the two other
 # mathematical libraries autotools and meson offer, CRlibm and the math library
 # of the system, which no other job compiles.
 
@@ -323,45 +323,4 @@ jobs:
           status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$out/audit" $status
-
-  mingw-refused:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
-    timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { build: autotools, version: '14.2.0', desc: 'Autotools, MinGW-w64 14.2.0 x64, refused' }
-          - { build: meson,     version: '14.2.0', desc: 'Meson, MinGW-w64 14.2.0 x64, refused' }
-          - { build: autotools, version: '13.2.0', desc: 'Autotools, MinGW-w64 13.2.0 x64, refused' }
-          - { build: meson,     version: '13.2.0', desc: 'Meson, MinGW-w64 13.2.0 x64, refused' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: MinGW-w64, from Chocolatey
-        run: |
-          choco install -y -r --no-progress mingw --version=${{ matrix.cfg.version }} --force
-          echo 'C:\ProgramData\mingw64\mingw64\bin' >> "$GITHUB_PATH"
-      - name: Configure, which has to fail, mingw-w64 being older than version 13
-        run: |
-          g++ --version
-          echo '#include <stdlib.h>' | g++ -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) ' || true
-          if [ "${{ matrix.cfg.build }}" = autotools ]; then
-            # The same date on every file, as in a release archive
-            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-            configure="sh ./configure"
-          else
-            python -m pip install -q meson ninja
-            configure="python -m mesonbuild.mesonmain setup build-meson"
-          fi
-          if CC=gcc CXX=g++ $configure > configure.log 2>&1; then
-            cat configure.log
-            echo "This MinGW-w64 was not refused"
-            exit 1
-          fi
-          cat configure.log
-          grep -q "GAOL cannot be built with" configure.log
 

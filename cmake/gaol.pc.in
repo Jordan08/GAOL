@@ -3,7 +3,8 @@
 # Cflags carries the flags interval arithmetic needs (see the README), which
 # the code including GAOL's headers has to be compiled with, and the flag of
 # the fused multiply-add instructions GAOL is compiled with (GAOL_FMA), and
-# Libs mathlib.
+# Libs the libraries to link: the elementary functions of CORE-MATH are
+# compiled into libgaol itself, so only the math library of the system.
 prefix=@CMAKE_INSTALL_PREFIX@
 libdir=@CMAKE_INSTALL_FULL_LIBDIR@
 includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@

@@ -37,7 +37,12 @@ OPERATIONS = [
     ("block5", "five lines: t1 = ab + p; t2 = sin(t1) cos(b); t3 = a² + t2/p; t4 = exp(t2) − b³; t3 t4 + √p"),
 ]
 
-LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"), ("gaol", "GAOL"),
+# The reference of the ratios is GAOL V5.0.0, the version of this fork that
+# bounds every elementary function with CORE-MATH; GAOL 4.3.1 is the version
+# before it, built from the master branch, run on the same intervals
+REFERENCE = "gaol5"
+LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"),
+             ("gaol5", "GAOL V5.0.0"), ("gaol", "GAOL 4.3.1"),
              ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90"), ("profil", "PROFIL/BIAS")]
 
 
@@ -128,8 +133,10 @@ def report(results_path, machine_path, out):
 
     lines.append("#### Time per operation (nanoseconds)\n\n")
     head = "| Operation | " + " | ".join(name for _, name in libs)
-    ratios = [(key, name) for key, name in libs if key not in ("double", "gaol")]
-    head += "".join(f" | {name} / GAOL" for _, name in ratios) + " |\n"
+    reference = REFERENCE if any(k[0] == REFERENCE for k in results) else "gaol"
+    reference_name = dict(LIBRARIES)[reference]
+    ratios = [(key, name) for key, name in libs if key not in ("double", reference)]
+    head += "".join(f" | {name} / {reference_name}" for _, name in ratios) + " |\n"
     lines.append(head)
     lines.append("|---" * (1 + len(libs) + len(ratios)) + "|\n")
     for op, _ in ops:
@@ -137,7 +144,7 @@ def report(results_path, machine_path, out):
         for key, _ in libs:
             r = results.get((key, op))
             cells.append(ns(r["ns"]) if r else "—")
-        g = results.get(("gaol", op))
+        g = results.get((reference, op))
         for key, _ in ratios:
             r = results.get((key, op))
             cells.append(ratio(r["ns"], g["ns"]) if r and g else "—")

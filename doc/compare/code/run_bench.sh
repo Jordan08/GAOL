@@ -14,7 +14,9 @@
 # OPS             a comma-separated list of operations (default: all of them,
 #                 see bench_ops.h)
 # CPU             a processor to run the programs on, with taskset
-# LIBS            the libraries to run (default: "double gaol filib profil sun p1788")
+# LIBS            the libraries to run (default: "double gaol5 gaol filib profil sun p1788")
+# GAOL5_PREFIX    where the GAOL of this branch is installed, run as gaol5
+#                 alongside the GAOL of PREFIX, run as gaol
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 
@@ -24,7 +26,7 @@ REPEATS="${REPEATS:-5}"
 P1788_REPEATS="${P1788_REPEATS:-1}"
 OPS="${OPS:-}"
 CPU="${CPU:-}"
-LIBS="${LIBS:-double gaol filib profil sun p1788}"
+LIBS="${LIBS:-double gaol5 gaol filib profil sun p1788}"
 OUT="$WORK/bench"
 REPORT="${REPORT:-$CODE_DIR/../performance.md}"
 mkdir -p "$OUT"
@@ -42,6 +44,14 @@ run() {
 echo "== compiling"
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS -I"$CODE_DIR" "$CODE_DIR/bench_double.cpp" -o "$OUT/bench_double"
 $CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol" $(gaol_libs)
+# The GAOL of this branch, installed apart (GAOL5_PREFIX): the same source,
+# under the name gaol5, so that the tables hold the two versions
+if [ -n "${GAOL5_PREFIX:-}" ]; then
+  gaol5_cflags() { PKG_CONFIG_PATH="$GAOL5_PREFIX/lib/pkgconfig" pkg-config --cflags gaol; }
+  gaol5_libs() { PKG_CONFIG_PATH="$GAOL5_PREFIX/lib/pkgconfig" pkg-config --libs gaol; }
+  $CXX -std=c++11 $CXXFLAGS_BENCH $(gaol5_cflags) -DGAOL_BENCH_NAME='"gaol5"' -I"$CODE_DIR" \
+       "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol5" $(gaol5_libs)
+fi
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(p1788_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_p1788.cpp" \
      -o "$OUT/bench_p1788" $(p1788_libs)
 $CXX $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(filib_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_filib.cpp" \
@@ -59,6 +69,7 @@ for round in $(seq "$ROUNDS"); do
     case "$lib" in
       double) run "$OUT/bench_double" "$DATA" "$REPEATS" "$OPS" ;;
       gaol) run "$OUT/bench_gaol" "$DATA" "$REPEATS" "$OPS" ;;
+      gaol5) run "$OUT/bench_gaol5" "$DATA" "$REPEATS" "$OPS" ;;
       p1788) run "$OUT/bench_p1788" "$DATA" "$P1788_REPEATS" "$OPS" ;;
       filib) run "$OUT/bench_filib" "$DATA" "$REPEATS" "$OPS" ;;
       profil) run "$OUT/bench_profil" "$DATA" "$REPEATS" "$OPS" ;;
@@ -79,7 +90,8 @@ done
   # -dirty only for what GAOL is built from: the reports of doc/ are being rewritten
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
   git -C "$ROOT_DIR" diff --quiet HEAD -- . ':!doc' 2>/dev/null || gaol_commit="$gaol_commit-dirty"
-  echo "GAOL:            $gaol_commit, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
+  echo "GAOL V5.0.0:     $gaol_commit, CMake Release, CORE-MATH of 3rd/math-core compiled into the library"
+  echo "GAOL 4.3.1:      the master branch, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"
   echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc configuration, built by $CC and $CXX"

@@ -5,7 +5,13 @@
 struct Gaol
 {
   typedef gaol::interval I;
-  static constexpr const char *name = "gaol";
+  /* The same source builds the benchmark of two versions of GAOL: the one of
+     this branch (GAOL_BENCH_NAME "gaol5") and the one before it, from the
+     master branch ("gaol"), so that the tables hold both (fork of GAOL). */
+#ifndef GAOL_BENCH_NAME
+#define GAOL_BENCH_NAME "gaol"
+#endif
+  static constexpr const char *name = GAOL_BENCH_NAME;
   static I make(double lo, double hi) { return I(lo, hi); }
   static I decimal(const char *s) { return I(s); }
   static I sqr(const I& x) { return gaol::sqr(x); }

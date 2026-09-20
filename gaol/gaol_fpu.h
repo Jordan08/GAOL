@@ -50,6 +50,20 @@
     || defined(_M_ARM) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  define GAOL_RND_PROBE 1
 #endif
+/* Not on a 32-bit x86 processor, where the x87 unit and the SSE instructions
+   each have their own rounding direction: the probe is an arithmetic operation,
+   so it only sees the direction the doubles are computed with (SSE), and the
+   other one could stay elsewhere. The elementary functions of CORE-MATH read
+   the direction with fegetround(), which gives the one of the x87 unit on
+   Windows: with the two differing, pow() rounded as if to nearest while GAOL
+   computed upward, and gave bounds one double apart from the ones it gives
+   when the two agree (fork of GAOL, found by tests/rounding_direction.cpp in
+   the continuous integration, with Visual C++ for 32-bit x86). There the
+   direction is read with fegetround() and set with round_upward(), which set
+   both units. */
+#if defined(__i386__) || defined(_M_IX86)
+#  undef GAOL_RND_PROBE
+#endif
 
 /*
   The rounding direction of GAOL's operations
