@@ -226,7 +226,9 @@ jobs:
         run: |
           python3 - <<'EOF'
           import json, sys
-          d = json.load(open("coverage/coverage.json"))
+          # the raw data of gcovr goes to the build directory, coverage/
+          # holding only coverage.html and README.md (fork of GAOL)
+          d = json.load(open("build/coverage.json"))
           run = cov = 0
           for f in d["files"]:
               if f["file"].startswith("3rd/"):

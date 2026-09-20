@@ -147,7 +147,27 @@ INLINE double next_float(double d)
   As with fesetround(), the values computed before a change of direction go
   through rnd_keep() (gaol_fpu.h): GCC does not model the rounding direction.
 */
-#if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))
+/* The mingw-w64 of a 32-bit target whose <fenv.h> keeps a state of its own:
+   there the direction is read and written with <fenv.h> only.
+
+   A 32-bit x86 processor has two rounding directions, the one of the x87 unit
+   and the one of the SSE instructions, and they have to agree: GAOL computes
+   its bounds with SSE, and the elementary functions of CORE-MATH ask
+   fegetround(), which those mingw-w64 answer from their own state. Writing the
+   registers directly leaves that state behind, and the two disagree; going
+   through <fenv.h> keeps them in step, and the continuous integration builds
+   and tests MinGW-w64 GCC 12, 13 and 14 for 32-bit x86 that way.
+
+   Not on x86-64, where there is one direction and the registers are written
+   directly, which is faster: MinGW-w64 GCC 14 and 15 are tested so. The
+   versions where neither works are refused in gaol/gaol_config.h. */
+#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
+    && !defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12
+#  define GAOL_RND_MINGW_FENV_ONLY 1
+#endif
+
+#if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__)) \
+    && !defined(GAOL_RND_MINGW_FENV_ONLY)
 #  define GAOL_RND_X86_REGISTERS 1
 #  include <xmmintrin.h>
 INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
