@@ -2,7 +2,7 @@
      Created 2026-09-20 by Jordan NININ -->
 # Tests
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 The programs of `tests/` compare the bounds GAOL computes with the exact results
 of the operations, independently of GAOL and of the floating-point environment.

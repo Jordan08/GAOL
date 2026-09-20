@@ -2,9 +2,10 @@
      Created 2026-09-20 by Jordan NININ -->
 # What differs from GAOL
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
-Each change is a commit of its own, and says where it comes from.
+What GAOL v5 changes from the GAOL 4.2.2 of Frédéric Goualard it starts
+from. Each change is a commit of its own, and says where it comes from.
 
 - **Every elementary function is bounded with
   [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**, on every architecture
@@ -214,14 +215,14 @@ Each change is a commit of its own, and says where it comes from.
   - **Before.** GAOL took them from the libm of the system, mathlib having
     none, and moved their values one float outward. The libms of glibc 2.31,
     musl and MinGW-w64 are sometimes a float further, which gave bounds not
-    enclosing the exact values. This fork first moved them three floats
+    enclosing the exact values. GAOL v5 first moved them three floats
     outward, which holds as long as the libm is within two floats of the exact
     value: the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
     to 1, and its `asinh` NaN for large negative numbers. The branch
     `hyperbolic-rigorous` bounded them without the libm, from `exp` and `log`,
     6 to 45 times slower.
   - **The sources** are `gaol/core_math_*.c`, one file for each function, as
-    CORE-MATH distributes them (MIT licence, [3rd/core-math](../3rd/core-math/README.md)),
+    CORE-MATH distributes them (MIT licence, [3rd/README.md](../3rd/README.md)),
     compiled into GAOL's library under the names `gaol_cr_sinh()`...
     (`gaol/gaol_core_math.h`). Two changes: `gaol/core_math_port.h` is included,
     which gives Visual C++ the builtins of GCC they use; and `~0ul` is written
@@ -500,7 +501,7 @@ Each change is a commit of its own, and says where it comes from.
   30 for the log of an interval (Intel i7-1185G7, Clang 18, `-mfma`; 64 rather
   than 29 with GCC 9.4). With Visual C++ and on 32-bit targets, it is still
   mathlib's. The sources are `gaol/core_math_log.c` and its
-  `gaol/core_math_log_dint.h` ([3rd/core-math](../3rd/core-math/README.md)).
+  `gaol/core_math_log_dint.h` ([3rd/README.md](../3rd/README.md)).
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.
@@ -755,9 +756,9 @@ Each change is a commit of its own, and says where it comes from.
   `scripts/install-mathlib.sh`, which downloaded it too. GAOL can now be built
   as a part of another project, brought in by FetchContent, with no network
   access beyond its own sources (`tests/fetch_content`).
-- **The manual compiles again**, and `manual/gaol.pdf` is the one of this fork
+- **The manual compiles again**, and `manual/gaol.pdf` is the one of GAOL v5
   (issue #13): the PDF was the one of the original GAOL, of 2009, while
-  `gaol.tex` had followed the changes of the fork, and no longer compiled.
+  `gaol.tex` had followed the changes of GAOL v5, and no longer compiled.
   `marginbib`, a package of 2000 kept with the manual, patches the output
   routine of LaTeX and stops with the LaTeX of today; the references in the
   margin are now printed by `bibentry` (`\margincite`, `\margincite*` and

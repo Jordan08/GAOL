@@ -2,7 +2,7 @@
      Created 2026-09-20 by Jordan NININ -->
 # The three builds
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 On a given machine with a given compiler, GAOL behaves the same whichever
 build configured it: CMake, configure and meson give it the same macros and the
@@ -58,7 +58,7 @@ integration runs it on each kind of machine.
 ## What the options are worth
 
 Measured with `tests/performance.cpp` on an Intel i7-1185G7 with GCC 9, in
-nanoseconds per operation (fork of GAOL):
+nanoseconds per operation (GAOL v5):
 
 | | x + y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -111,7 +111,7 @@ all but the second row, which no macro of the compiler shows:
 | Visual C++ without `/fp:strict` (`/fp:precise`, its default) | Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly: no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | In extended precision, GAOL's bounds are wrong: built for an i686 computing on the x87, `exp`, `sin` and `cos` missed the exact value for most arguments. |
 
-Two rows are gone with mathlib (fork of GAOL): mingw-w64 older than version 12,
+Two rows are gone with mathlib (GAOL v5): mingw-w64 older than version 12,
 whose math library gave `acosh()` near 1 up to 25 million floats away from the
 exact value, and mingw-w64 12, whose `fesetround()` runs the instruction
 `cpuid` at each call. GAOL takes no function from the math library of the

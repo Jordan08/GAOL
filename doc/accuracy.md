@@ -2,7 +2,7 @@
      Created 2026-09-20 by Jordan NININ -->
 # Accuracy of the operations
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 IEEE 1788-2015 requires an implementation to document the tightness of each
 of its interval operations, dividing the possible inputs into ranges and
@@ -40,7 +40,7 @@ give exactly where it happens (log(1) = 0, sin(0) = 0, asin(1) = the bounds of
 π/2...). Where an algorithm evaluates the function at the bounds of the
 interval, the bounds of the interval are therefore the tightest ones.
 
-Before this fork, the value was correctly rounded to nearest and moved one
+Before GAOL v5, the value was correctly rounded to nearest and moved one
 double outward, which is at most one double beyond the tightest bound, hence
 accurate and not tightest. Below, "within k doubles" means that each bound is
 at most k doubles beyond the tightest one.
@@ -78,7 +78,7 @@ off by default and unfinished, are not covered.
 |---|---|---|---|---|
 | `floor`, `ceil` | `floor(x)`, `ceil(x)` | Of each bound | tightest (exact) | exact |
 | — | `integer(x)` | The integers in x: [ceil(lower), floor(upper)] | tightest (exact) | exact |
-| `sign`, `trunc`, `roundTiesToEven`, `roundTiesToAway` | `sign(x)`, `trunc(x)`, `round_ties_to_even(x)`, `round_ties_to_away(x)` | The value at each bound, each function being non-decreasing, as `ceil` and `floor` above; ∅ for ∅, which the four test: GAOL holds the empty interval as the two bounds NaN, which `trunc` and the two roundings send to themselves, where `sign` would give [0, 0], a NaN comparing false both to 0 and above it. None of them rounds, each returning a double that is an integer: `trunc` and `round_ties_to_away` are `std::trunc` and `std::round`, which the C++ standard defines without reading the rounding direction, and `round_ties_to_even` reads the bits (`gaol/gaol_roundeven.h`), where `std::nearbyint` and `std::rint` would round in the direction in effect, upward in GAOL (fork of GAOL) | tightest, and exact | tightest; the same result in the four rounding directions, over 22 407 doubles (halfway values, whole numbers and the doubles on either side of them) |
+| `sign`, `trunc`, `roundTiesToEven`, `roundTiesToAway` | `sign(x)`, `trunc(x)`, `round_ties_to_even(x)`, `round_ties_to_away(x)` | The value at each bound, each function being non-decreasing, as `ceil` and `floor` above; ∅ for ∅, which the four test: GAOL holds the empty interval as the two bounds NaN, which `trunc` and the two roundings send to themselves, where `sign` would give [0, 0], a NaN comparing false both to 0 and above it. None of them rounds, each returning a double that is an integer: `trunc` and `round_ties_to_away` are `std::trunc` and `std::round`, which the C++ standard defines without reading the rounding direction, and `round_ties_to_even` reads the bits (`gaol/gaol_roundeven.h`), where `std::nearbyint` and `std::rint` would round in the direction in effect, upward in GAOL (GAOL v5) | tightest, and exact | tightest; the same result in the four rounding directions, over 22 407 doubles (halfway values, whole numbers and the doubles on either side of them) |
 | `abs` | `abs(x)` | Magnitudes of the bounds, 0 when x contains 0 | tightest (exact) | tightest |
 | `min`, `max` | `min(x, y)`, `max(x, y)` | Of the bounds | tightest (exact) | tightest |
 
@@ -90,8 +90,8 @@ off by default and unfinished, are not covered.
 | `pow(x, y)` | `pow(x, y)`, `pow(x, d)` for a non-integer y | On x ∩ [0, +∞], with finite bounds: CORE-MATH's pow at the corners of the box x × y where x<sup>y</sup> is the least and the greatest, which the places of the bounds about 1 and 0 give, correctly rounded upward; 1 where a corner has the base 1 or the exponent 0; [0, ·] for a base from 0 and exponents above 0. With an infinite bound, or a base from 0 and an exponent that is not above 0: exp(y·log(x)), which gives the limits; 0<sup>y</sup> = 0 for y > 0, ∅ for y ≤ 0 | tightest at the corners with finite bounds; valid otherwise | within 1 double at points and over 385 boxes; 4 doubles on the special cases |
 | `exp` | `exp(x)` | CORE-MATH's exp at the bounds, correctly rounded upward: the value at the right bound, and the double below the value at the left bound; the lower bound at least 0; exp(0) = 1 exactly | tightest where the function is evaluated at the bounds | tightest, for all doubles |
 | `log` | `log(x)` | CORE-MATH's log at the bounds of x ∩ [0, +∞], correctly rounded upward: the value at the right bound, and the double below the value at the left bound; ∅ when x holds no positive number; log(0) = −∞, log(1) = 0 exactly | tightest | tightest at the 75 doubles of the tests and the million intervals of doc/compare |
-| `exp2`, `exp10` | `exp2(x)`, `exp10(x)` | CORE-MATH's exp2 and exp10 at the bounds, correctly rounded upward: the value at the right bound, and the double below the value at the left bound unless that value is a double, which 2<sup>x</sup> is for an integer x of [−1074, 1023] and 10<sup>x</sup> for an integer x of [0, 22] (10<sup>23</sup> is no double, and no negative power of ten is); the lower bound at least 0 (fork of GAOL) | tightest | tightest, over 6 483 doubles each, and at the values that are doubles |
-| `log2`, `log10` | `log2(x)`, `log10(x)` | CORE-MATH's log2 and log10 at the bounds of x ∩ [0, +∞], correctly rounded upward, the double below the value at the left bound unless that value is a double, which log<sub>2</sub>x is for a power of two and log<sub>10</sub>x for a power of ten of [10<sup>0</sup>, 10<sup>22</sup>]; ∅ when x holds no positive number (fork of GAOL) | tightest | tightest, over 6 483 doubles each, and at the values that are doubles |
+| `exp2`, `exp10` | `exp2(x)`, `exp10(x)` | CORE-MATH's exp2 and exp10 at the bounds, correctly rounded upward: the value at the right bound, and the double below the value at the left bound unless that value is a double, which 2<sup>x</sup> is for an integer x of [−1074, 1023] and 10<sup>x</sup> for an integer x of [0, 22] (10<sup>23</sup> is no double, and no negative power of ten is); the lower bound at least 0 (GAOL v5) | tightest | tightest, over 6 483 doubles each, and at the values that are doubles |
+| `log2`, `log10` | `log2(x)`, `log10(x)` | CORE-MATH's log2 and log10 at the bounds of x ∩ [0, +∞], correctly rounded upward, the double below the value at the left bound unless that value is a double, which log<sub>2</sub>x is for a power of two and log<sub>10</sub>x for a power of ten of [10<sup>0</sup>, 10<sup>22</sup>]; ∅ when x holds no positive number (GAOL v5) | tightest | tightest, over 6 483 doubles each, and at the values that are doubles |
 
 ## Trigonometric and hyperbolic functions: valid required, accurate recommended
 
@@ -109,7 +109,7 @@ off by default and unfinished, are not covered.
 
 Every elementary function above is that of
 [CORE-MATH](https://core-math.gitlabpages.inria.fr/) (`3rd/math-core`, see
-[3rd/README.md](../3rd/README.md)). Before this fork GAOL took the hyperbolic
+[3rd/README.md](../3rd/README.md)). Before v5, GAOL took the hyperbolic
 functions from the libm of the system, whose values are sometimes further than
 one double from the exact ones, and millions of doubles away for the `acosh` of
 some ([issue #1](https://github.com/Jordan08/GAOL/issues/1)), and the others
@@ -119,8 +119,8 @@ from mathlib, correctly rounded to nearest only.
 
 | IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
 |---|---|---|---|---|
-| `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`; **n = 3: CORE-MATH's cbrt at the bounds, correctly rounded upward on their magnitudes, the root of a negative number being the opposite of the root of its magnitude: the tightest bounds, and exact where the cube root is a double, which cubing the value tells (fork of GAOL; 58 ns rather than 179 with the search below)**. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from CORE-MATH's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2, 3: tightest; tightest where the bound of x is an n-th power of a double. Otherwise accurate: the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−53</sup> relatively, the bounds being the tightest or one double beyond, whatever the magnitude of x | within 2 doubles, for all doubles (1 found) |
-| `rootn(x, q)`, q < 0 | `nth_root(x, q)` | 1/x<sup>1/\|q\|</sup>, the inverse of the root above: the domain is then ℝ∖{0} for an odd q and (0, +∞) for an even one, which taking the inverse gives, an interval holding 0 having for inverse the hull of the values away from it. `nth_root(x, 0)` is ∅ (fork of GAOL) | accurate: the root above, then the tightest division | encloses, over 1.5 million values against a reference in long double; the inverse of the positive root, over 8 000 values |
+| `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`; **n = 3: CORE-MATH's cbrt at the bounds, correctly rounded upward on their magnitudes, the root of a negative number being the opposite of the root of its magnitude: the tightest bounds, and exact where the cube root is a double, which cubing the value tells (GAOL v5; 58 ns rather than 179 with the search below)**. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from CORE-MATH's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2, 3: tightest; tightest where the bound of x is an n-th power of a double. Otherwise accurate: the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−53</sup> relatively, the bounds being the tightest or one double beyond, whatever the magnitude of x | within 2 doubles, for all doubles (1 found) |
+| `rootn(x, q)`, q < 0 | `nth_root(x, q)` | 1/x<sup>1/\|q\|</sup>, the inverse of the root above: the domain is then ℝ∖{0} for an odd q and (0, +∞) for an even one, which taking the inverse gives, an interval holding 0 having for inverse the hull of the values away from it. `nth_root(x, 0)` is ∅ (GAOL v5) | accurate: the root above, then the tightest division | encloses, over 1.5 million values against a reference in long double; the inverse of the positive root, over 8 000 values |
 | others | — | Not provided | | |
 
 ## Reverse functions (Table 10.1): accurate

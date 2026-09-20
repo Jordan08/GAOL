@@ -2,7 +2,7 @@
      Created 2026-09-20 by Jordan NININ -->
 # Continuous integration
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 The workflows of `.github/workflows/` build GAOL with CMake and run the tests
 on:

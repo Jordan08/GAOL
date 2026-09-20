@@ -142,7 +142,7 @@ as much a strategy of adoption as a technique.
 - **The licence is MIT**, deliberately permissive, so that the code can be
   taken up by the glibc, the libm of LLVM or musl. It answers the reason
   CRlibm was not adopted, and it works: routines of CORE-MATH have been
-  integrated upstream. It is also what lets this fork of GAOL simply copy the
+  integrated upstream. It is also what lets GAOL v5 simply copy the
   sources it needs into `gaol/core_math_*.c`.
 - **The coverage is wide**: the functions of C23, in binary32, binary64 and
   binary128, the recent functions included.
@@ -201,7 +201,7 @@ The hierarchy is read directly in the tightness of the bounds, which
 - CRlibm and CORE-MATH: **correctly rounded in the direction wanted**, hence
   the tightest bound of the value at the bound, with nothing to add.
 
-This is also why this fork takes CORE-MATH's sinh, cosh, tanh, asinh, acosh
+This is also why GAOL v5 takes CORE-MATH's sinh, cosh, tanh, asinh, acosh
 and atanh (neither mathlib nor CRlibm has them all, and the libm of the system
 is not accurate enough everywhere for its values moved outward to be bounds),
 and its log where the compiler has a 128-bit integer type.
@@ -216,6 +216,6 @@ and its log where the compiler has a 128-bit integer type.
 - The documentation distributed with the sources of CRlibm, which holds the
   proofs of its error bounds.
 - [CORE-MATH](https://core-math.gitlabpages.inria.fr/), and
-  [3rd/core-math](../3rd/core-math/README.md) for what this fork takes from it.
+  [3rd/README.md](../3rd/README.md) for what GAOL v5 takes from it.
 - The NEWS of the glibc 2.28, for the removal of the multiprecision slow paths
   inherited from mathlib.

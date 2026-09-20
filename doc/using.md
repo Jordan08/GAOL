@@ -2,7 +2,7 @@
      Created 2026-09-20 by Jordan NININ -->
 # Using GAOL
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 GAOL's interval operations are inline: the code that includes GAOL's headers
 has to be compiled with the flags of interval arithmetic, not only GAOL

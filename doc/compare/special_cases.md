@@ -28,7 +28,7 @@ pred(MAX) the one below it.
 
 | Library | Version | Intervals |
 |---|---|---|
-| GAOL | this fork | `gaol::interval`, CMake Release build, SSE2 intervals, mathlib 2.1.1 |
+| GAOL | v5 | `gaol::interval`, CMake Release build, SSE2 intervals, mathlib 2.1.1 |
 | libieeep1788 | last commit, 30 March 2015 | `interval<double, mpfr_bin_ieee754_flavor>`: the set-based flavor of the preliminary IEEE P1788, on doubles, computed with MPFR |
 | filib++ | 3.0.2.2, as IBEX distributes it | `interval<double, native_switched, i_mode_extended_flag>`, the intervals of IBEX built with filib++: the extended mode, where the infinities and the empty set are intervals |
 | PROFIL/BIAS | 2.0.8 (2009), configuration `x86-64-Linux-compat-gcc` | `INTERVAL` of PROFIL, on the BIAS routines, which set the rounding direction for each operation; no empty set |
@@ -52,7 +52,7 @@ operators with doubles and no compound assignments.
 
 **GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 280
 cases out of 286, and something else in 6, all from the hybrid `pow(x, y)` of
-this fork, which takes the integer power `pown` for a degenerate integer
+GAOL v5, which takes the integer power `pown` for a degenerate integer
 exponent, where IEEE 1788's `pow` only takes the part of x in [0, +∞] (see
 [What differs from GAOL](../differences.md)): `pow([−2], 2.0)` is [4],
 `pow([0], [0])` is [1], `pow([−1], [2^31−1])` is [−1] and
@@ -441,11 +441,11 @@ From tests/elementary.cpp (powers).
 | 154 | `pow([−4, 9], 0.5)` | [0, 3] | [−0, 3] ✓ | [0, 3.0000000000000004] ⊃ | [0, 3.000000000000007] ⊃ | [−0, 3] ✓ | BIAS error, abort ✗ |  |
 | 155 | `pow([−2, 3], [1, 2])` | [0, 9] | [−0, 9] ✓ | [0, 9.000000000000002] ⊃ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ |  |
 | 156 | `pow([−10, 10], −2)` | [0.009999999999999998, +∞] | [0.009999999999999998, +∞] ✓ | [0.009999999999999998, +∞] ✓ | [0.009999999999999936, +∞] ⊃ | [0.009999999999999998, +∞] ✓ | BIAS error, abort ✗ |  |
-| 157 | `pow([−2, 3], 3)` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
-| 158 | `pow([−2], 2)` | ∅ | ∅ ✓ | [4] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
+| 157 | `pow([−2, 3], 3)` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
+| 158 | `pow([−2], 2)` | ∅ | ∅ ✓ | [4] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
 | 159 | `pow([2, 3], 4)` | [16, 81] | [16, 81] ✓ | [16, 81] ✓ | [15.99999999999996, 81.00000000000047] ⊃ | [15.999999999999998, 81.00000000000001] ⊃ | [15.99999999999997, 81.00000000000021] ⊃ |  |
 | 160 | `pow([4], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [0.9999999999999996, 1.0000000000000004] ⊃ |  |
-| 161 | `pow([−2, 3], [3])` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
+| 161 | `pow([−2, 3], [3])` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
 | 162 | `pow([−2, 3], [2])` | [0, 9] | [−0, 9] ✓ | [−0, 9] ✓ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ |  |
 | 163 | `pow([3, 4], [2, 3])` | [9, 64] | [9, 64] ✓ | [8.999999999999998, 64.00000000000001] ⊃ | [8.999999999999984, 64.00000000000038] ⊃ | [9, 64.00000000000001] ⊃ | [8.99999999999999, 64.00000000000017] ⊃ |  |
 | 164 | `pow([−4, −1], 0.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
@@ -462,12 +462,12 @@ From tests/elementary.cpp (powers).
 | 175 | `pow([0.25, 0.5], [−(2^31+1)])` | [MAX, +∞] | [MAX, +∞] ✓ | [−∞, +∞] ⊃ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ |  |
 | 176 | `pow([−2, 3], 1e10)` | [0, +∞] | [−0, +∞] ✓ | [−∞, +∞] ⊃ | [0, +∞] ✓ | [−0, +∞] ✓ | BIAS error, abort ✗ |  |
 | 177 | `pow(∅, [1e10])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 178 | `pow([−1], [2^31−1])` | ∅ | ∅ ✓ | [−1] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
+| 178 | `pow([−1], [2^31−1])` | ∅ | ∅ ✓ | [−1] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
 | 179 | `pow([0], [0])` | ∅ | ∅ ✓ | [1] ✗ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ | pow(0, y) has no value for y ≤ 0 (Table 9.1, c); GAOL: pown(0, 0) = 1 |
 | 180 | `pow([0], 0)` | ∅ | ∅ ✓ | [1] ✗ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ |  |
 | 181 | `pow([−∞, +∞], [0])` | [1] | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
 | 182 | `pow([0, 2], [−1])` | [0.5, +∞] | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.4999999999999993, +∞] ⊃ | [0.5, +∞] ✓ | BIAS error, abort ✗ |  |
-| 183 | `pow([−2, 0], [−1])` | ∅ | ∅ ✓ | [−∞, −0.5] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
+| 183 | `pow([−2, 0], [−1])` | ∅ | ∅ ✓ | [−∞, −0.5] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
 | 184 | `pow([0], [0.5])` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ | pow(0, y) = 0 for y > 0 |
 | 185 | `pow([0], 0.5)` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ |  |
 | 186 | `pow([−2, 0], [2.5])` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | BIAS error, abort ✗ |  |

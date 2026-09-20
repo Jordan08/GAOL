@@ -2,7 +2,7 @@
      Created 2026-09-20 by Jordan NININ -->
 # Building GAOL
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 GAOL computes its elementary functions with
 [CORE-MATH](https://core-math.gitlabpages.inria.fr/), whose sources are in
