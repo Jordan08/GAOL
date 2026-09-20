@@ -77,19 +77,38 @@ option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with 
 # where the compiler has a 128-bit type: the code Visual C++ and the 32-bit
 # targets of GCC take, run on an ordinary machine (tests/u128.cpp compares the
 # two paths, and the continuous integration builds GAOL this way)
+# -flto -ffat-lto-objects: GAOL_LTO is on by default where the compiler takes
+# them (see below)
+include(CheckCXXCompilerFlag)
+set(_gaol_lto_flags -flto -ffat-lto-objects)
+if(MSVC)
+  set(_gaol_lto_flags "")
+  set(_gaol_lto_default OFF)
+else()
+  check_cxx_compiler_flag("-flto -ffat-lto-objects" GAOL_COMPILER_SUPPORTS_FAT_LTO)
+  if(GAOL_COMPILER_SUPPORTS_FAT_LTO)
+    set(_gaol_lto_default ON)
+  else()
+    set(_gaol_lto_default OFF)
+  endif()
+endif()
+
 # Interprocedural optimization (link-time optimization) for GAOL's own sources,
-# which makes the basic operations twice as fast: on an Intel i7-1185G7 with
-# GCC 9, x + y took 1.48 ns rather than 3.02, x - y 1.35 rather than 3.11,
-# sqr(x) 2.28 rather than 3.32, sqrt(x) 6.35 rather than 8.65 and pow(x, 3)
-# 12.03 rather than 15.66, the elementary functions being unchanged (the
-# sources of CORE-MATH are compiled apart, without it: reached by it, sin and
-# cos took 82 and 93 ns rather than 58 and 61).
+# which lets the compiler inline GAOL's operations into the code using them:
+# on an Intel i7-1185G7 with GCC 9, x + y then took 1.48 ns rather than 3.02,
+# x - y 1.35 rather than 3.11, sqr(x) 2.28 rather than 3.32, sqrt(x) 6.35
+# rather than 8.65 and pow(x, 3) 12.03 rather than 15.66.
 #
-# OFF by default: the objects of a static library compiled with it hold the
-# intermediate representation of the compiler, which the program linking GAOL
-# has to be able to read, so an installed libgaol would only link with the
-# compiler that built it. Turn it on when building GAOL for one program.
-option(GAOL_LTO "Compile GAOL's own sources with interprocedural optimization, which makes the basic operations twice as fast (the library then only links with the compiler that built it)" OFF)
+# ON by default, with -ffat-lto-objects: the objects then hold the ordinary
+# machine code as well as the intermediate representation of the compiler, so
+# the library links as it always did, with any compiler, and the program that
+# is itself compiled with -flto gets the inlining as well. Without that flag
+# the library would only link with the compiler that built it, so GAOL_LTO is
+# OFF by default where the compiler has not got it.
+#
+# The sources of CORE-MATH are compiled apart and never reached by it: sin and
+# cos took 82 and 93 ns rather than 58 and 61 when they were.
+option(GAOL_LTO "Compile GAOL's own sources with interprocedural optimization, so that the code using GAOL can inline its operations" ${_gaol_lto_default})
 
 option(GAOL_U128_EMULATION "Compute the 128-bit integer of the accurate phases with two 64-bit halves, as where the compiler has no 128-bit type" OFF)
 
@@ -551,15 +570,17 @@ target_include_directories(gaol_core_math PRIVATE
 
 add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
 
-if(GAOL_LTO)
-  include(CheckIPOSupported)
-  check_ipo_supported(RESULT _ipo_ok OUTPUT _ipo_why)
-  if(_ipo_ok)
-    message(STATUS "Interprocedural optimization: ON for GAOL's sources (CORE-MATH is compiled apart, without it)")
-    set_target_properties(gaol PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
-  else()
-    message(WARNING "GAOL_LTO is ON but the compiler does not support it: ${_ipo_why}")
-  endif()
+if(GAOL_LTO AND _gaol_lto_flags)
+  message(STATUS "Interprocedural optimization: ON for GAOL's sources (-flto -ffat-lto-objects; CORE-MATH is compiled apart, without it)")
+  # PUBLIC on the compile options only: the code using GAOL is not forced to
+  # compile with -flto, and gets the inlining when it does
+  target_compile_options(gaol PRIVATE ${_gaol_lto_flags})
+  target_link_options(gaol PRIVATE ${_gaol_lto_flags})
+elseif(GAOL_LTO)
+  message(WARNING
+    "GAOL_LTO is ON but ${CMAKE_CXX_COMPILER_ID} has no -ffat-lto-objects: an installed GAOL compiled with "
+    "-flto alone only links with the compiler that built it. Compile with -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON "
+    "for the whole build instead.")
 endif()
 
 if(GAOL_U128_EMULATION)

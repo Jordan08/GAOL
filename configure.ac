@@ -370,6 +370,15 @@ AC_ARG_WITH([mathlib-include],
 AC_ARG_WITH([mathlib-lib],
     [AS_HELP_STRING([--with-mathlib-lib],[removed, see --with-mathlib])],
     [AC_MSG_ERROR([--with-mathlib-lib is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to link.])])
+# -fno-lto for the sources of CORE-MATH, where the user compiles GAOL with
+# -flto: the interprocedural optimization is worth having on GAOL's own
+# operations and costs on the elementary functions (see doc/three-builds.md)
+GAOL_CHECK_C_FLAG([-fno-lto], [core_math_takes_fno_lto])
+CORE_MATH_NO_LTO=""
+if test "${core_math_takes_fno_lto}" = yes; then
+   CORE_MATH_NO_LTO="-fno-lto"
+fi
+AC_SUBST([CORE_MATH_NO_LTO])
 AC_MSG_NOTICE([elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)])
 MATHLIB=""
 AC_SUBST([MATHLIB])

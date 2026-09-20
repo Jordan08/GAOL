@@ -76,12 +76,26 @@ nanoseconds per operation (fork of GAOL):
   (x + y 3.02 ns rather than 3.30), and cost a little on the division (6.4
   rather than 5.8). They are on by default on x86 processors. The elementary
   functions do not go through them.
-- **Interprocedural optimization makes the basic operations twice as fast**,
-  and does not reach the sources of CORE-MATH, which are compiled apart: reached
-  by it, sin and cos took 82 and 93 ns rather than 58 and 61. `GAOL_LTO`
-  compiles GAOL's sources with it; the gain comes from inlining GAOL's
-  operations into the calling code, so the program using GAOL has to be
-  compiled with it too.
+- **Interprocedural optimization makes the basic operations twice as fast.**
+  The gain comes from inlining GAOL's operations into the calling code, so it
+  appears in the program that is itself compiled with `-flto`; a program
+  compiled without it runs exactly as before. It is on by default
+  (`GAOL_LTO`, `-flto -ffat-lto-objects`), and the sources of CORE-MATH are
+  compiled apart and never reached by it: reached by it, sin and cos took 82
+  and 93 ns rather than 58 and 61. How to use it:
+
+  | Build | GAOL | The program using GAOL |
+  |---|---|---|
+  | CMake | on by default; `-DGAOL_LTO=OFF` to turn it off | `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, or `-flto` in its flags |
+  | autotools | `./configure CFLAGS="-O3 -flto" CXXFLAGS="-O3 -flto"` (the sources of CORE-MATH are given `-fno-lto`) | `-flto` in its flags |
+  | meson | `meson setup build -Db_lto=true` (CORE-MATH is left out with `b_lto=false`) | `-Db_lto=true`, or `-flto` in its flags |
+
+  `-ffat-lto-objects` is what makes it safe to have on by default: each object
+  holds the ordinary machine code as well as the intermediate representation of
+  the compiler, so the installed library links with any compiler and not only
+  with the one that built it. A GAOL built by GCC 9 was linked by Clang 18 and
+  gave the same bounds. Where the compiler has not got that flag, `GAOL_LTO` is
+  off by default.
 - `-fno-math-errno` was measured and changes nothing.
 
 ## Compilers and options refused

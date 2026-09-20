@@ -60,8 +60,10 @@ core_math_lib = static_library(
   c_args: core_math_args,
   include_directories: incdir,
   # The sources use the GNU extensions of C (the inline asm of atan2's tint.h),
-  # which the c99 of the project refuses
-  override_options: ['c_std=gnu11'],
+  # which the c99 of the project refuses. And b_lto=false keeps the
+  # interprocedural optimization of -Db_lto=true away from them: reached by it,
+  # sin and cos took half as long again (see doc/three-builds.md)
+  override_options: ['c_std=gnu11', 'b_lto=false'],
   pic: true,
   install: false,
 )
