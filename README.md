@@ -51,10 +51,12 @@ ctest --test-dir build -C Release
 cmake --install build --config Release
 ```
 
-Each build compiles mathlib, the mathematical library GAOL computes its
-elementary functions with, from the sources of `3rd/mathlib`, with the fixes
-of this fork (see [3rd/README.md](3rd/README.md)), and installs it along with
-GAOL. A CMake project then uses the installed GAOL with:
+Each build compiles the sources of
+[CORE-MATH](https://core-math.gitlabpages.inria.fr/), the mathematical library
+GAOL computes its elementary functions with (`3rd/math-core`, see
+[3rd/README.md](3rd/README.md)), into `libgaol` itself: there is no
+mathematical library to install or to link along with GAOL. A CMake project
+then uses the installed GAOL with:
 
 ```cmake
 find_package(gaol REQUIRED)
@@ -95,9 +97,7 @@ project can also build GAOL for itself, with FetchContent (see
 ## Licences
 
 GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
-under the GNU LGPL v2 (`COPYING.LIB`). mathlib, whose sources are in
-`3rd/mathlib`, is distributed under the GNU LGPL v2 or later, as the headers
-of its sources state (`3rd/mathlib/COPYING` is the text of the GNU GPL v2). The
-hyperbolic functions of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
-whose sources are `gaol/core_math_*.c`, are distributed under the MIT licence
-(`3rd/core-math/LICENSE`).
+under the GNU LGPL v2 (`COPYING.LIB`).
+[CORE-MATH](https://core-math.gitlabpages.inria.fr/), whose sources are in
+`3rd/math-core` and provide every elementary function of GAOL, is distributed
+under the MIT licence (`3rd/math-core/LICENSE`).

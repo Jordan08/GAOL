@@ -4,6 +4,43 @@ Part of the documentation of [this fork of GAOL](../README.md#documentation).
 
 Each change is a commit of its own, and says where it comes from.
 
+- **Every elementary function is bounded with
+  [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**, on every architecture
+  and with every compiler, and it is the only mathematical library GAOL uses
+  (`3rd/math-core`, see [3rd/README.md](../3rd/README.md)):
+  - mathlib (the IBM Accurate Portable Mathematical Library), CRlibm and the
+    math library of the system are gone, with `3rd/mathlib`,
+    `gaol/gaol_double_op_{apmathlib,crlibm,m}.h` and the scripts that installed
+    them. The three builds refuse `--with-mathlib` and its two companions
+    rather than ignore them: there is nothing to choose, to find, to build
+    apart or to link along with GAOL, whose library holds the functions.
+  - The bounds are **the tightest ones** rather than one double beyond.
+    CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
+    takes the value at a bound, computed in the upward rounding it keeps, as
+    the upper bound, and the double below it as the lower one: mathlib was
+    correctly rounded to nearest only, so each bound had to be moved one double
+    outward, and the direction had to be set to nearest and back around every
+    call. On an Intel i7-1185G7 with Clang 18, the bounds of `log` took 30 ns
+    rather than 62 (see [Accuracy of the operations](accuracy.md)).
+  - The accurate phases of `log`, `sin`, `cos`, `tan`, `atan2` and `pow`
+    compute with a 128-bit integer, which Visual C++ has on no architecture and
+    GCC has on no 32-bit target: `gaol/gaol_u128.h` gives them the type of the
+    compiler where it has one and a structure of two 64-bit halves where it has
+    none, and the sources of CORE-MATH call its functions there. The two paths
+    were compared with the pristine upstream sources over about 40 million
+    arguments in the four rounding directions, and give the same bits;
+    `tests/u128.cpp` compares the halves with `unsigned __int128`, and a job of
+    the continuous integration builds the whole of GAOL with the halves forced.
+  - mingw-w64 is no longer refused for its version. The two reasons went with
+    mathlib: the hyperbolic functions of its math library, which GAOL no longer
+    uses, and the cost of its `fesetround()`, which GAOL no longer calls for
+    its elementary functions. MinGW-w64 11 to 15 are built and tested again.
+  - `tests/core_math.cpp` checks the bounds against CORE-MATH called in the
+    downward and the upward rounding, `tests/expressions.cpp` the intervals
+    read from a string, and `-DGAOL_COVERAGE=ON` writes the coverage of the
+    tests in [coverage/README.md](../coverage/README.md) (87 % of the lines of
+    GAOL).
+
 - **From the patch IBEX applies to GAOL** (Gilles Chabert,
   `interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0.all.all.patch` of
   [IBEX](https://github.com/ibex-team/ibex-lib)):
