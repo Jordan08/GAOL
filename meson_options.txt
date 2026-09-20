@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 option('enable-optimize', type : 'boolean', value : true, description : 'Add the optimizations of configure (-funroll-loops, -fomit-frame-pointer...) where the compiler takes them')
 option('enable-debug', type : 'boolean', value : false, description : 'Activate debugging messages')
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3 [default=yes, as configure]')

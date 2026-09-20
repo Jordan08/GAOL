@@ -1,4 +1,8 @@
 #!/bin/sh
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # audit.sh LABEL CC CXX SOURCES UNUSED OUT [MESON]: configures GAOL with CMake, autotools and meson, and
 # writes OUT/LABEL.json (see probe_build.py). The fifth argument named where a mathlib was installed and is
 # ignored: GAOL bounds its elementary functions with the CORE-MATH of 3rd/math-core, compiled into the library

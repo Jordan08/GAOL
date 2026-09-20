@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Builds GAOL with CMake on macOS, arm64 and x86_64 (natively or under Rosetta),
 # runs its tests, installs it, and builds the tests again with the installed
 # GAOL. Also with the sanitizers, with AppleClang, LLVM's Clang and GCC.

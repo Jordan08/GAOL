@@ -25,6 +25,10 @@
  * beyond 2^52, which they keep, as doc/accuracy.md documents.
  * The summary also gives how far from the tightest bounds the results were,
  * where both are nonempty.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

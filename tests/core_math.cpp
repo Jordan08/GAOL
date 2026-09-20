@@ -22,6 +22,10 @@
  * Each function is tried on the values at the ends of its domain and next to
  * them, on the values GAOL treats apart, on the powers of two and their
  * neighbours, on the subnormals, and on random doubles of every magnitude.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

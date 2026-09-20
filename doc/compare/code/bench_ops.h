@@ -1,3 +1,7 @@
+// Copyright (c) 2026 ENSTA, France
+//
+// Created 2026-09-20 by Jordan NININ
+//
 // The operations timed by the benchmark, written once for every C++ library.
 // T gives the library: its interval type T::I, and
 //   T::make(lo, hi)     the interval [lo, hi]

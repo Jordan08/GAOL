@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 #---------------------------------------------------------------------------
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------

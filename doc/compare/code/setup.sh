@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Downloads and builds what the comparisons need, under $WORK (see env.sh):
 #   - GMP and MPFR (static), unless the system has their headers,
 #   - libieeep1788 (header only) at the commit P1788_COMMIT,

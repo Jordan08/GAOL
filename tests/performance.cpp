@@ -7,6 +7,10 @@
  * of the same operations on doubles, in nanoseconds: the median of 5 measures,
  * each made over 1024 operands, as many times as it takes to last 20 ms. The
  * table is written in Markdown. This is not a test: it always succeeds.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

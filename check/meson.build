@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # build_tests = get_option('with-test')
 # if build_tests.to_lower() == 'yes'
 if build_tests

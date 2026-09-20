@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # The benchmark: draws the intervals (bench.py), compiles bench_gaol.cpp,
 # bench_p1788.cpp, bench_filib.cpp, bench_profil.cpp, bench_double.cpp and
 # bench_sun.f90, runs them, and writes

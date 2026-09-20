@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Variables shared by the scripts of doc/compare/code (sourced, not run).
 #
 # WORK      where the dependencies are downloaded and built, and where the

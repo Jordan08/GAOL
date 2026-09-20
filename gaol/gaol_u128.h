@@ -17,6 +17,10 @@
  * emulated ones are the textbook algorithms on two halves, and
  * tests/u128.cpp compares them with the native type over random values and
  * over the values at the ends of the ranges.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *------------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

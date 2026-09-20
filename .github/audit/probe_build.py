@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 """probe_build.py WORK LABEL: for the CMake, autotools and meson builds configured in WORK, the flags of
 gaol_interval.cpp and the configuration the probe shows, as JSON."""
 import json, os, re, shlex, subprocess, sys

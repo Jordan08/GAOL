@@ -1,3 +1,7 @@
+// Copyright (c) 2026 ENSTA, France
+//
+// Created 2026-09-20 by Jordan NININ
+//
 // The benchmark with the intervals of filib++, as IBEX uses them (see
 // bench_ops.h)
 #include <interval/interval.hpp>

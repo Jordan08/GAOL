@@ -1,3 +1,7 @@
+// Copyright (c) 2026 ENSTA, France
+//
+// Created 2026-09-20 by Jordan NININ
+//
 // The benchmark of doc/compare/code: reading the intervals of bench.py, timing
 // the operations of bench_ops.h, and writing the results as CSV lines:
 //   library,operation,n,repeats,best time (s),time per operation (ns),

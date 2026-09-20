@@ -15,6 +15,10 @@
  * (tests/core/domains/interval/codac2_tests_Interval_rounding.cpp, Jordan
  * Ninin): the same random doubles, the same checks, and the same list of
  * operations after which the rounding direction has to be upward still.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

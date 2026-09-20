@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
 # arm64; Release and Debug), MinGW-w64 15 (x86, x64) and MSYS2 (UCRT64
 # GCC, CLANG64 Clang), runs its tests, installs it, and builds the tests again

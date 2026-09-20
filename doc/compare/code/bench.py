@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 """The benchmark of GAOL, libieeep1788, filib++ and Solaris Studio.
 
     bench.py data N FILE

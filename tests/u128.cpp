@@ -18,6 +18,10 @@
  * runs in earnest, there is nothing to compare with: the test then checks the
  * identities the operations satisfy (a + b - b = a, shifting left then right,
  * the product of the halves against the schoolbook product, and the order).
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

@@ -16,6 +16,10 @@
  * Their sources are those of CORE-MATH, in 3rd/math-core/src/binary64,
  * compiled into GAOL's library under the names below, the three builds
  * including gaol/core_math_port.h in each of them (`-include`, `/FI`).
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

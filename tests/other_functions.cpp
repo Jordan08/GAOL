@@ -9,6 +9,10 @@
  * parts, radii; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
  * values they are given and bound them within a few doubles.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

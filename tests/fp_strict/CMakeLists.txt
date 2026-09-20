@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # ==================================================================
 #  Refusal of Visual C++ without /fp:strict (fork of GAOL)
 # ==================================================================

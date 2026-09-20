@@ -1,4 +1,8 @@
 #!/bin/sh
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Builds the manual, gaol.pdf, from gaol.tex:
 #
 #   sh manual/build-pdf.sh <directory of gaol.tex> <output directory>

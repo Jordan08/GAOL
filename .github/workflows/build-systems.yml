@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Checks that GAOL still builds the ways it did before the CMake build of this
 # fork: with autotools and with meson, which compile the sources of CORE-MATH
 # into libgaol as the CMake build does. The tests

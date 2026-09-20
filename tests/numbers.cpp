@@ -14,6 +14,10 @@
  * (9.7, 12.11) have to be read, whatever the case of their letters: [ ],
  * [empty], [entire], bounds left out or infinite, hexadecimal numbers and the
  * uncertain form 3.56?1.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

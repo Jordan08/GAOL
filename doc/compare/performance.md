@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 ENSTA, France
+     Created 2026-09-20 by Jordan NININ -->
 # Performance: GAOL, libieeep1788, filib++, PROFIL/BIAS and Solaris Studio
 
 Part of the [comparison](README.md) of GAOL with libieeep1788, filib++,

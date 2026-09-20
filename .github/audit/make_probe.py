@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 """Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees."""
 config = ['AARCH64_LINUX', 'ARM_MACOSX', 'IX86_LINUX', 'IX86_MACOSX', 'GAOL_CERTAINLY_RELATIONS', 'GAOL_POSSIBLY_RELATIONS',
           'GAOL_SET_RELATIONS', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS', 'GAOL_PRESERVE_ROUNDING', 'GAOL_USING_ASM', 'GAOL_VERBOSE_MODE', 'GETRUSAGE_IN_HEADER', 'HAVE_CASSERT', 'HAVE_CLOCK',

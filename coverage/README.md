@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 ENSTA, France
+     Created 2026-09-20 by Jordan NININ -->
 # Coverage of the tests
 
 *Written by `scripts/coverage_summary.py` from the report of gcovr, which `cmake --build <build> --target coverage` runs (`-DGAOL_COVERAGE=ON`). Last run: 2026-09-20.*

@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 ENSTA, France
+     Created 2026-09-20 by Jordan NININ -->
 
 # GAOL
 <em>Not Just Another Interval Library</em>
@@ -101,3 +103,12 @@ under the GNU LGPL v2 (`COPYING.LIB`).
 [CORE-MATH](https://core-math.gitlabpages.inria.fr/), whose sources are in
 `3rd/math-core` and provide every elementary function of GAOL, is distributed
 under the MIT licence (`3rd/math-core/LICENSE`).
+
+The files this fork adds, which are neither GAOL's nor CORE-MATH's, carry the
+copyright of ENSTA and are distributed under the same GNU LGPL v2 as GAOL:
+
+    Copyright (c) 2026 ENSTA, France
+    Created 2026-09-20 by Jordan NININ
+
+Each of them names it in its own header. The files of GAOL and of CORE-MATH
+that the fork changes keep the copyright of their authors.

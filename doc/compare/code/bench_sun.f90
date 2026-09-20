@@ -1,3 +1,7 @@
+! Copyright (c) 2026 ENSTA, France
+!
+! Created 2026-09-20 by Jordan NININ
+!
 ! The benchmark with the intervals of Solaris Studio's Fortran (f90 -xia): the
 ! operations of bench_ops.h, on the intervals of bench.py, written as CSV lines
 !   library,operation,n,repeats,best time (s),time per operation (ns),

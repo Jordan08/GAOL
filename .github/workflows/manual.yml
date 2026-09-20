@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Builds the manual, manual/gaol.pdf, from manual/gaol.tex with the LaTeX of
 # Ubuntu, with the autotools build (make -C manual pdf) and with the meson
 # build (-Dwith-doc=true, target pdf), so that a change of the manual that no

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
+ */
 /* <unistd.h> for Visual C++, which has none -- on the include path of GAOL's
    CMake build for Visual C++ only (see CMakeLists.txt).
 

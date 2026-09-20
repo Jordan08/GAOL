@@ -18,6 +18,10 @@
  * one counting as 0, the pairs of bounds that are not an interval being the
  * empty set. The n-th roots are the rootn of IEEE 1788-2015: for an odd n,
  * the root of a negative number is the opposite of the root of its magnitude.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

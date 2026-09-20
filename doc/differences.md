@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 ENSTA, France
+     Created 2026-09-20 by Jordan NININ -->
 # What differs from GAOL
 
 Part of the documentation of [this fork of GAOL](../README.md#documentation).

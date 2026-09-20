@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 doxygen = find_program('doxygen', required: false)
 if not doxygen.found()
   warning('Doxygen not found, no documentation generated!')

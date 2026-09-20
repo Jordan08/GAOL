@@ -1,3 +1,7 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # ==================================================================
 #  The tests of GAOL built with an installed GAOL (fork of GAOL)
 # ==================================================================

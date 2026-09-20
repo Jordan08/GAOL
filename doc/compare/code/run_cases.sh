@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # The special cases: generates the programs of cases.py, compiles them with
 # GAOL, libieeep1788, filib++, PROFIL/BIAS and Solaris Studio, runs them, and
 # writes the table of their results into doc/compare/special_cases.md (between

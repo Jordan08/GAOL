@@ -1,3 +1,7 @@
+// Copyright (c) 2026 ENSTA, France
+//
+// Created 2026-09-20 by Jordan NININ
+//
 // The benchmark with GAOL's intervals (see bench_ops.h)
 #include <gaol/gaol.h>
 #include "bench_ops.h"

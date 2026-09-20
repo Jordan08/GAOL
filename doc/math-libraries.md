@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 ENSTA, France
+     Created 2026-09-20 by Jordan NININ -->
 # The math libraries: libm, mathlib, CRlibm and CORE-MATH
 
 *Not listed in the documentation index of the [README](../README.md#documentation):

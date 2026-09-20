@@ -1,4 +1,8 @@
 #!/bin/sh
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
+#
 # Builds the tests of tests/ and tests/performance.cpp with a GAOL installed by
 # the autotools or the meson build, and runs the tests, as the continuous
 # integration does. To be run from the root of GAOL's sources:

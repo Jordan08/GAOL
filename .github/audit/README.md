@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 ENSTA, France
+     Created 2026-09-20 by Jordan NININ -->
 # The three builds have to agree
 
 GAOL can be configured with CMake, autotools (`configure`) and meson. On a

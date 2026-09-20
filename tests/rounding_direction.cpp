@@ -18,6 +18,10 @@
  * leave the direction as it found it, or upward (as it found it only, with
  * GAOL_PRESERVE_ROUNDING). After it, the bounds of a product and a sum have to
  * be the tightest ones.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

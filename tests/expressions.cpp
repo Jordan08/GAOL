@@ -18,6 +18,10 @@
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
  * lexer, the parser and the evaluation of the tree, not the operations.
+ *
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
