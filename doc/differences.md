@@ -40,6 +40,16 @@ Each change is a commit of its own, and says where it comes from.
     read from a string, and `-DGAOL_COVERAGE=ON` writes the coverage of the
     tests in [coverage/README.md](../coverage/README.md) (87 % of the lines of
     GAOL).
+  - **`exp2`, `exp10`, `log2` and `log10`**, which IEEE 1788-2015 requires
+    among the forward elementary functions (Table 9.1) and which GAOL did not
+    provide, are bounded with CORE-MATH's, the tightest bounds. The value that
+    is a double is kept as a bound rather than moved: 2<sup>3</sup> = 8,
+    10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
+    are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
+    its `dint.h` being that of `log` but for a constant.
+  - **`nth_root(x, q)` takes a negative q**, which IEEE 1788-2015 recommends
+    (rootn over ℤ∖{0}, Table 10.5): x<sup>1/q</sup> is 1/x<sup>1/|q|</sup>,
+    whose domain is ℝ∖{0} for an odd q and (0, +∞) for an even one.
 
 - **From the patch IBEX applies to GAOL** (Gilles Chabert,
   `interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0.all.all.patch` of

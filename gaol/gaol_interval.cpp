@@ -1371,6 +1371,31 @@ interval nth_root(const interval& I, unsigned int n)
 	return interval(l,r);
 }
 
+/*
+  rootn(x, q) with an integer q, which may be negative (fork of GAOL)
+
+  IEEE 1788-2015 recommends rootn(x, q) for every q of Z\{0} (Table 10.5),
+  where GAOL only took a positive one. For q < 0, x^(1/q) = 1/x^(1/|q|), whose
+  domain is the one the table gives: R\{0} for an odd q, (0, +oo) for an even
+  one. Taking the inverse gives exactly that, the inverse of an interval
+  holding 0 being the hull of the values away from it, so the result is the
+  natural interval extension: rootn([-1, 1], -3) is the hull of
+  (-oo, -1] u [1, +oo), that is the whole line, and rootn([0], -3) is empty.
+*/
+interval nth_root(const interval& I, int q)
+{
+	if (q > 0) {
+		return nth_root(I, static_cast<unsigned int>(q));
+	}
+	if (q == 0) {
+		// As rootn(x, 0), which the table leaves out: no value
+		return interval::emptyset();
+	}
+	// -q on a long, INT_MIN having no opposite on an int
+	const unsigned int n = static_cast<unsigned int>(-static_cast<long>(q));
+	return inverse(nth_root(I,n));
+}
+
   ULONGLONGINT nb_fp_numbers(double a, double b)
   {
     if (!is_finite(a) || !is_finite(b) || (a > b)) {
@@ -1396,6 +1421,118 @@ interval nth_root(const interval& I, unsigned int n)
     zi.d = 0.0;
     ai.d = -ai.d;
     return (bi.i-zi.i)+(ai.i-zi.i)+1;
+  }
+
+  /*
+    The exponentials and the logarithms in base 2 and 10 (fork of GAOL)
+
+    IEEE 1788-2015 requires them among the forward elementary functions
+    (Table 9.1: "exp, exp2, exp10(x) = b^x" on R with range (0, +oo), and
+    "log, log2, log10(x) = log_b(x)" on (0, +oo), note d saying b = e, 2 or
+    10), and GAOL did not provide them. CORE-MATH computes them correctly
+    rounded in the rounding direction in effect, so, in the upward rounding
+    GAOL keeps, the value at the right bound is the upper bound and the double
+    below the value at the left bound the lower one -- unless that value is
+    itself a double, and the tests below tell when it is. The bounds are then
+    the tightest ones, as they are for exp and log.
+  */
+
+  // 2^x is a double exactly when x is an integer of [-1074, 1023]: 2^-1074 is
+  // the smallest subnormal and 2^1024 overflows
+  static inline bool exp2_is_exact(double x)
+  {
+    return x == std::floor(x) && x >= -1074.0 && x <= 1023.0;
+  }
+
+  // 10^x is a double exactly when x is an integer of [0, 22]: 10^23 is not a
+  // double, and no negative power of ten is (0.1 is not one)
+  static inline bool exp10_is_exact(double x)
+  {
+    return x == std::floor(x) && x >= 0.0 && x <= 22.0;
+  }
+
+  // log2(x) is a double exactly when x is a power of two, which frexp tells:
+  // it writes x as m*2^e with m in [1/2, 1), so m is 1/2 for a power of two
+  // and nothing else (and 0 for zero, inf for an infinity)
+  static inline bool log2_is_exact(double x)
+  {
+    int e;
+    return std::frexp(x, &e) == 0.5;
+  }
+
+  // log10(x) is a double exactly when x is a power of ten with an exponent in
+  // [0, 22], the powers of ten that are doubles. The value rounded upward is
+  // an integer of that range for those x, and might be for others, which
+  // raising ten to it settles: 10^n is exact there.
+  static inline bool log10_is_exact(double x)
+  {
+    if (!(x > 0.0) || !is_finite(x)) {
+      return false;
+    }
+    const double n = gaol_cr_log10(x);
+    if (n != std::floor(n) || n < 0.0 || n > 22.0) {
+      return false;
+    }
+    return gaol_cr_exp10(n) == x;
+  }
+
+  interval exp2(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double l = I.left(), r = I.right();
+    GAOL_RND_ENTER();
+    const double w = gaol_cr_exp2(l);
+    const double u = exp2_is_exact(l) ? w : previous_float(w);
+    const double v = gaol_cr_exp2(r);
+    GAOL_RND_LEAVE();
+    // Within [0, +oo], as exp: 2^x is positive
+    return interval(maximum(0.0, u), v);
+  }
+
+  interval exp10(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double l = I.left(), r = I.right();
+    GAOL_RND_ENTER();
+    const double w = gaol_cr_exp10(l);
+    const double u = exp10_is_exact(l) ? w : previous_float(w);
+    const double v = gaol_cr_exp10(r);
+    GAOL_RND_LEAVE();
+    return interval(maximum(0.0, u), v);
+  }
+
+  interval log2(const interval& I)
+  {
+    // Defined on (0, +oo), as log: I holding no positive number gives the
+    // empty set (IEEE 1788-2015, Table 9.1)
+    if (I.is_empty() || !(I.right() > 0.0)) {
+      return interval::emptyset();
+    }
+    const double l = maximum(0.0, I.left()), r = I.right();
+    GAOL_RND_ENTER();
+    const double w = gaol_cr_log2(l);
+    const double u = log2_is_exact(l) ? w : previous_float(w);
+    const double v = gaol_cr_log2(r);
+    GAOL_RND_LEAVE();
+    return interval(u, v);
+  }
+
+  interval log10(const interval& I)
+  {
+    if (I.is_empty() || !(I.right() > 0.0)) {
+      return interval::emptyset();
+    }
+    const double l = maximum(0.0, I.left()), r = I.right();
+    GAOL_RND_ENTER();
+    const double w = gaol_cr_log10(l);
+    const double u = log10_is_exact(l) ? w : previous_float(w);
+    const double v = gaol_cr_log10(r);
+    GAOL_RND_LEAVE();
+    return interval(u, v);
   }
 
   interval exp(const interval& I)

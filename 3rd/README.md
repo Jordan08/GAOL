@@ -22,20 +22,23 @@ gone (see [What differs from GAOL](../doc/differences.md)).
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
 | Commit | `671f2c7355d76c670f59d714d41a99eb1cf620b6` (19 September 2026) |
 | Taken | the whole tree, without the `.wc` files |
-| Built | `math-core/src/binary64/<f>/<f>.c` for the sixteen functions below, compiled into libgaol itself |
+| Built | `math-core/src/binary64/<f>/<f>.c` for the twenty-one functions below, compiled into libgaol itself |
 
 The `.wc` files, which hold the hardest-to-round arguments CORE-MATH checks
 itself against, are 542 of the 555 MB of the upstream tree and are not needed
 to build: they are left out, and the commit above is what to clone to get them.
 
-The sixteen functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`, `tan`,
-`asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh` and
-`atanh`. The other formats and functions of the tree are kept as they are, so
-that importing a newer CORE-MATH is a plain copy, but nothing compiles them.
+The twenty-one functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
+`tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`,
+`acosh` and `atanh`, then `cbrt`, which `nth_root(x, 3)` takes, and `exp2`,
+`exp10`, `log2` and `log10`, which IEEE 1788-2015 requires among the forward
+elementary functions (Table 9.1). The other formats and functions of the tree
+are kept as they are, so that importing a newer CORE-MATH is a plain copy, but
+nothing compiles them.
 
 ### How GAOL builds them
 
-The three builds compile the sixteen sources into `libgaol` and include
+The three builds compile the twenty-one sources into `libgaol` and include
 `gaol/core_math_port.h` first in each of them, **by the compiler rather than by
 the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
 never name that header, so that importing a newer CORE-MATH stays a copy. That
@@ -58,8 +61,8 @@ kept as a patch to reapply.
    `atan2` and `pow`. Upstream writes it `unsigned __int128`, or
    `unsigned _BitInt(128)` with Clang 14 and GCC 14: Visual C++ has neither, on
    no architecture, and neither has GCC for a 32-bit target. In
-   `log/dint.h`, `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`, `sin/sin.c`,
-   `cos/cos.c` and `tan/tan.c`, the five lines that choose the type are one
+   `log/dint.h`, `log10/dint.h`, `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`,
+   `sin/sin.c`, `cos/cos.c` and `tan/tan.c`, the five lines that choose the type are one
    line naming `gaol_u128`, which is the type of the compiler where it has one
    and a structure of two 64-bit halves where it has none
    (`gaol/gaol_u128.h`), and the extended-arithmetic functions of those files
@@ -79,7 +82,7 @@ kept as a patch to reapply.
 The changes touch the arithmetic of the accurate phases, so they are checked by
 comparison rather than by reading:
 
-- **against the upstream sources.** Each of the six functions, compiled from
+- **against the upstream sources.** Each of the functions whose files changed, compiled from
   this tree, was compared with the same function compiled from the pristine
   upstream commit, over about 40 million arguments in the four rounding
   directions, including the hard paths (large arguments reduced modulo π/2,

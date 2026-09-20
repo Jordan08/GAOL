@@ -744,6 +744,14 @@ extern __GAOL_PUBLIC__   interval nth_root_rel(const interval& J,
     roots of the part of I in [0,+oo]. nth_root(I,0) is the empty set.
   */
 extern __GAOL_PUBLIC__   interval nth_root(const interval& I, unsigned int n);
+  /*!
+    \brief Returns an enclosure of the q-th roots of the elements of I
+
+    q may be negative (rootn of IEEE 1788-2015, Table 10.5, fork of GAOL):
+    rootn(x, q) is then 1/x^(1/|q|), defined on R\{0} for an odd q and on
+    (0, +oo) for an even one.
+  */
+extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int q);
 
   /*!
     \brief Returns the number of floating-point numbers in [a,b]
@@ -763,6 +771,23 @@ extern __GAOL_PUBLIC__	  unsigned short int modulo_k_pi(const interval &I, doubl
 
 extern __GAOL_PUBLIC__   interval exp(const interval& I);
 extern __GAOL_PUBLIC__   interval log(const interval& I);
+
+  /*!
+    \brief Returns an enclosure of 2^x for x in I
+  */
+extern __GAOL_PUBLIC__   interval exp2(const interval& I);
+  /*!
+    \brief Returns an enclosure of 10^x for x in I
+  */
+extern __GAOL_PUBLIC__   interval exp10(const interval& I);
+  /*!
+    \brief Returns an enclosure of the base 2 logarithms of the elements of I
+  */
+extern __GAOL_PUBLIC__   interval log2(const interval& I);
+  /*!
+    \brief Returns an enclosure of the base 10 logarithms of the elements of I
+  */
+extern __GAOL_PUBLIC__   interval log10(const interval& I);
 
 extern __GAOL_PUBLIC__   interval cos(const interval& I);
 extern __GAOL_PUBLIC__   interval sin(const interval& I);

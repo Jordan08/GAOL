@@ -51,6 +51,10 @@
 #define cr_acosh gaol_cr_acosh
 #define cr_atanh gaol_cr_atanh
 #define cr_cbrt gaol_cr_cbrt
+#define cr_exp2 gaol_cr_exp2
+#define cr_exp10 gaol_cr_exp10
+#define cr_log2 gaol_cr_log2
+#define cr_log10 gaol_cr_log10
 
 #include "gaol/gaol_core_math.h"
 

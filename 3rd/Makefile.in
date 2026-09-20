@@ -138,7 +138,12 @@ am_libgaolcoremath_la_OBJECTS =  \
 	$(CORE_MATH_DIR)/tanh/libgaolcoremath_la-tanh.lo \
 	$(CORE_MATH_DIR)/asinh/libgaolcoremath_la-asinh.lo \
 	$(CORE_MATH_DIR)/acosh/libgaolcoremath_la-acosh.lo \
-	$(CORE_MATH_DIR)/atanh/libgaolcoremath_la-atanh.lo
+	$(CORE_MATH_DIR)/atanh/libgaolcoremath_la-atanh.lo \
+	$(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo \
+	$(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo \
+	$(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo \
+	$(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo \
+	$(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo
 libgaolcoremath_la_OBJECTS = $(am_libgaolcoremath_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -171,10 +176,15 @@ am__depfiles_remade =  \
 	$(CORE_MATH_DIR)/atan/$(DEPDIR)/libgaolcoremath_la-atan.Plo \
 	$(CORE_MATH_DIR)/atan2/$(DEPDIR)/libgaolcoremath_la-atan2.Plo \
 	$(CORE_MATH_DIR)/atanh/$(DEPDIR)/libgaolcoremath_la-atanh.Plo \
+	$(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Plo \
 	$(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo \
 	$(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo \
 	$(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo \
+	$(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo \
+	$(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Plo \
 	$(CORE_MATH_DIR)/log/$(DEPDIR)/libgaolcoremath_la-log.Plo \
+	$(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Plo \
+	$(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Plo \
 	$(CORE_MATH_DIR)/pow/$(DEPDIR)/libgaolcoremath_la-pow.Plo \
 	$(CORE_MATH_DIR)/sin/$(DEPDIR)/libgaolcoremath_la-sin.Plo \
 	$(CORE_MATH_DIR)/sinh/$(DEPDIR)/libgaolcoremath_la-sinh.Plo \
@@ -379,7 +389,10 @@ libgaolcoremath_la_SOURCES = \
 	$(CORE_MATH_DIR)/atan/atan.c $(CORE_MATH_DIR)/atan2/atan2.c \
 	$(CORE_MATH_DIR)/sinh/sinh.c $(CORE_MATH_DIR)/cosh/cosh.c \
 	$(CORE_MATH_DIR)/tanh/tanh.c $(CORE_MATH_DIR)/asinh/asinh.c \
-	$(CORE_MATH_DIR)/acosh/acosh.c $(CORE_MATH_DIR)/atanh/atanh.c
+	$(CORE_MATH_DIR)/acosh/acosh.c $(CORE_MATH_DIR)/atanh/atanh.c \
+	$(CORE_MATH_DIR)/cbrt/cbrt.c \
+	$(CORE_MATH_DIR)/exp2/exp2.c $(CORE_MATH_DIR)/exp10/exp10.c \
+	$(CORE_MATH_DIR)/log2/log2.c $(CORE_MATH_DIR)/log10/log10.c
 
 libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # -fno-lto keeps the interprocedural optimization away from these sources, where
@@ -577,6 +590,51 @@ $(CORE_MATH_DIR)/atanh/$(DEPDIR)/$(am__dirstamp):
 $(CORE_MATH_DIR)/atanh/libgaolcoremath_la-atanh.lo:  \
 	$(CORE_MATH_DIR)/atanh/$(am__dirstamp) \
 	$(CORE_MATH_DIR)/atanh/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/cbrt/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/cbrt
+	@: > $(CORE_MATH_DIR)/cbrt/$(am__dirstamp)
+$(CORE_MATH_DIR)/cbrt/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/cbrt/$(DEPDIR)
+	@: > $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo:  \
+	$(CORE_MATH_DIR)/cbrt/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/cbrt/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/exp2/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/exp2
+	@: > $(CORE_MATH_DIR)/exp2/$(am__dirstamp)
+$(CORE_MATH_DIR)/exp2/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/exp2/$(DEPDIR)
+	@: > $(CORE_MATH_DIR)/exp2/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo:  \
+	$(CORE_MATH_DIR)/exp2/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/exp2/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/exp10/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/exp10
+	@: > $(CORE_MATH_DIR)/exp10/$(am__dirstamp)
+$(CORE_MATH_DIR)/exp10/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/exp10/$(DEPDIR)
+	@: > $(CORE_MATH_DIR)/exp10/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo:  \
+	$(CORE_MATH_DIR)/exp10/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/exp10/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/log2/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/log2
+	@: > $(CORE_MATH_DIR)/log2/$(am__dirstamp)
+$(CORE_MATH_DIR)/log2/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/log2/$(DEPDIR)
+	@: > $(CORE_MATH_DIR)/log2/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo:  \
+	$(CORE_MATH_DIR)/log2/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/log2/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/log10/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/log10
+	@: > $(CORE_MATH_DIR)/log10/$(am__dirstamp)
+$(CORE_MATH_DIR)/log10/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/log10/$(DEPDIR)
+	@: > $(CORE_MATH_DIR)/log10/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo:  \
+	$(CORE_MATH_DIR)/log10/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/log10/$(DEPDIR)/$(am__dirstamp)
 
 libgaolcoremath.la: $(libgaolcoremath_la_OBJECTS) $(libgaolcoremath_la_DEPENDENCIES) $(EXTRA_libgaolcoremath_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libgaolcoremath_la_LINK)  $(libgaolcoremath_la_OBJECTS) $(libgaolcoremath_la_LIBADD) $(LIBS)
@@ -597,14 +655,24 @@ mostlyclean-compile:
 	-rm -f $(CORE_MATH_DIR)/atan2/*.lo
 	-rm -f $(CORE_MATH_DIR)/atanh/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/atanh/*.lo
+	-rm -f $(CORE_MATH_DIR)/cbrt/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/cbrt/*.lo
 	-rm -f $(CORE_MATH_DIR)/cos/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/cos/*.lo
 	-rm -f $(CORE_MATH_DIR)/cosh/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/cosh/*.lo
 	-rm -f $(CORE_MATH_DIR)/exp/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/exp/*.lo
+	-rm -f $(CORE_MATH_DIR)/exp10/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/exp10/*.lo
+	-rm -f $(CORE_MATH_DIR)/exp2/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/exp2/*.lo
 	-rm -f $(CORE_MATH_DIR)/log/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/log/*.lo
+	-rm -f $(CORE_MATH_DIR)/log10/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/log10/*.lo
+	-rm -f $(CORE_MATH_DIR)/log2/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/log2/*.lo
 	-rm -f $(CORE_MATH_DIR)/pow/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/pow/*.lo
 	-rm -f $(CORE_MATH_DIR)/sin/*.$(OBJEXT)
@@ -626,10 +694,15 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/atan/$(DEPDIR)/libgaolcoremath_la-atan.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/atan2/$(DEPDIR)/libgaolcoremath_la-atan2.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/atanh/$(DEPDIR)/libgaolcoremath_la-atanh.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/log/$(DEPDIR)/libgaolcoremath_la-log.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/pow/$(DEPDIR)/libgaolcoremath_la-pow.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/sin/$(DEPDIR)/libgaolcoremath_la-sin.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/sinh/$(DEPDIR)/libgaolcoremath_la-sinh.Plo@am__quote@ # am--include-marker
@@ -778,6 +851,41 @@ $(CORE_MATH_DIR)/atanh/libgaolcoremath_la-atanh.lo: $(CORE_MATH_DIR)/atanh/atanh
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/atanh/libgaolcoremath_la-atanh.lo `test -f '$(CORE_MATH_DIR)/atanh/atanh.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/atanh/atanh.c
 
+$(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo: $(CORE_MATH_DIR)/cbrt/cbrt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo -MD -MP -MF $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Tpo -c -o $(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo `test -f '$(CORE_MATH_DIR)/cbrt/cbrt.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/cbrt/cbrt.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Tpo $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/cbrt/cbrt.c' object='$(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/cbrt/libgaolcoremath_la-cbrt.lo `test -f '$(CORE_MATH_DIR)/cbrt/cbrt.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/cbrt/cbrt.c
+
+$(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo: $(CORE_MATH_DIR)/exp2/exp2.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo -MD -MP -MF $(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Tpo -c -o $(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo `test -f '$(CORE_MATH_DIR)/exp2/exp2.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/exp2/exp2.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Tpo $(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/exp2/exp2.c' object='$(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/exp2/libgaolcoremath_la-exp2.lo `test -f '$(CORE_MATH_DIR)/exp2/exp2.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/exp2/exp2.c
+
+$(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo: $(CORE_MATH_DIR)/exp10/exp10.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo -MD -MP -MF $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Tpo -c -o $(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo `test -f '$(CORE_MATH_DIR)/exp10/exp10.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/exp10/exp10.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Tpo $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/exp10/exp10.c' object='$(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/exp10/libgaolcoremath_la-exp10.lo `test -f '$(CORE_MATH_DIR)/exp10/exp10.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/exp10/exp10.c
+
+$(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo: $(CORE_MATH_DIR)/log2/log2.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo -MD -MP -MF $(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Tpo -c -o $(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo `test -f '$(CORE_MATH_DIR)/log2/log2.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/log2/log2.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Tpo $(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/log2/log2.c' object='$(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/log2/libgaolcoremath_la-log2.lo `test -f '$(CORE_MATH_DIR)/log2/log2.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/log2/log2.c
+
+$(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo: $(CORE_MATH_DIR)/log10/log10.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo -MD -MP -MF $(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Tpo -c -o $(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo `test -f '$(CORE_MATH_DIR)/log10/log10.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/log10/log10.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Tpo $(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/log10/log10.c' object='$(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/log10/libgaolcoremath_la-log10.lo `test -f '$(CORE_MATH_DIR)/log10/log10.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/log10/log10.c
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -789,10 +897,15 @@ clean-libtool:
 	-rm -rf $(CORE_MATH_DIR)/atan/.libs $(CORE_MATH_DIR)/atan/_libs
 	-rm -rf $(CORE_MATH_DIR)/atan2/.libs $(CORE_MATH_DIR)/atan2/_libs
 	-rm -rf $(CORE_MATH_DIR)/atanh/.libs $(CORE_MATH_DIR)/atanh/_libs
+	-rm -rf $(CORE_MATH_DIR)/cbrt/.libs $(CORE_MATH_DIR)/cbrt/_libs
 	-rm -rf $(CORE_MATH_DIR)/cos/.libs $(CORE_MATH_DIR)/cos/_libs
 	-rm -rf $(CORE_MATH_DIR)/cosh/.libs $(CORE_MATH_DIR)/cosh/_libs
 	-rm -rf $(CORE_MATH_DIR)/exp/.libs $(CORE_MATH_DIR)/exp/_libs
+	-rm -rf $(CORE_MATH_DIR)/exp10/.libs $(CORE_MATH_DIR)/exp10/_libs
+	-rm -rf $(CORE_MATH_DIR)/exp2/.libs $(CORE_MATH_DIR)/exp2/_libs
 	-rm -rf $(CORE_MATH_DIR)/log/.libs $(CORE_MATH_DIR)/log/_libs
+	-rm -rf $(CORE_MATH_DIR)/log10/.libs $(CORE_MATH_DIR)/log10/_libs
+	-rm -rf $(CORE_MATH_DIR)/log2/.libs $(CORE_MATH_DIR)/log2/_libs
 	-rm -rf $(CORE_MATH_DIR)/pow/.libs $(CORE_MATH_DIR)/pow/_libs
 	-rm -rf $(CORE_MATH_DIR)/sin/.libs $(CORE_MATH_DIR)/sin/_libs
 	-rm -rf $(CORE_MATH_DIR)/sinh/.libs $(CORE_MATH_DIR)/sinh/_libs
@@ -929,14 +1042,24 @@ distclean-generic:
 	-test -z "$(CORE_MATH_DIR)/atan2/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/atan2/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/atanh/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/atanh/$(DEPDIR)/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/atanh/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/atanh/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/cbrt/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/cbrt/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/cbrt/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/cos/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/cos/$(DEPDIR)/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/cos/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/cos/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/cosh/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/cosh/$(DEPDIR)/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/cosh/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/cosh/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/exp/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/exp/$(DEPDIR)/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/exp/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/exp/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/exp10/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/exp10/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/exp10/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/exp10/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/exp2/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/exp2/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/exp2/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/exp2/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/log/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/log/$(DEPDIR)/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/log/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/log/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/log10/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/log10/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/log10/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/log10/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/log2/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/log2/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(CORE_MATH_DIR)/log2/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/log2/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/pow/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/pow/$(DEPDIR)/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/pow/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/pow/$(am__dirstamp)
 	-test -z "$(CORE_MATH_DIR)/sin/$(DEPDIR)/$(am__dirstamp)" || rm -f $(CORE_MATH_DIR)/sin/$(DEPDIR)/$(am__dirstamp)
@@ -964,10 +1087,15 @@ distclean: distclean-am
 	-rm -f $(CORE_MATH_DIR)/atan/$(DEPDIR)/libgaolcoremath_la-atan.Plo
 	-rm -f $(CORE_MATH_DIR)/atan2/$(DEPDIR)/libgaolcoremath_la-atan2.Plo
 	-rm -f $(CORE_MATH_DIR)/atanh/$(DEPDIR)/libgaolcoremath_la-atanh.Plo
+	-rm -f $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Plo
 	-rm -f $(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo
 	-rm -f $(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo
 	-rm -f $(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo
+	-rm -f $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo
+	-rm -f $(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Plo
 	-rm -f $(CORE_MATH_DIR)/log/$(DEPDIR)/libgaolcoremath_la-log.Plo
+	-rm -f $(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Plo
+	-rm -f $(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Plo
 	-rm -f $(CORE_MATH_DIR)/pow/$(DEPDIR)/libgaolcoremath_la-pow.Plo
 	-rm -f $(CORE_MATH_DIR)/sin/$(DEPDIR)/libgaolcoremath_la-sin.Plo
 	-rm -f $(CORE_MATH_DIR)/sinh/$(DEPDIR)/libgaolcoremath_la-sinh.Plo
@@ -1025,10 +1153,15 @@ maintainer-clean: maintainer-clean-am
 	-rm -f $(CORE_MATH_DIR)/atan/$(DEPDIR)/libgaolcoremath_la-atan.Plo
 	-rm -f $(CORE_MATH_DIR)/atan2/$(DEPDIR)/libgaolcoremath_la-atan2.Plo
 	-rm -f $(CORE_MATH_DIR)/atanh/$(DEPDIR)/libgaolcoremath_la-atanh.Plo
+	-rm -f $(CORE_MATH_DIR)/cbrt/$(DEPDIR)/libgaolcoremath_la-cbrt.Plo
 	-rm -f $(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo
 	-rm -f $(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo
 	-rm -f $(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo
+	-rm -f $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo
+	-rm -f $(CORE_MATH_DIR)/exp2/$(DEPDIR)/libgaolcoremath_la-exp2.Plo
 	-rm -f $(CORE_MATH_DIR)/log/$(DEPDIR)/libgaolcoremath_la-log.Plo
+	-rm -f $(CORE_MATH_DIR)/log10/$(DEPDIR)/libgaolcoremath_la-log10.Plo
+	-rm -f $(CORE_MATH_DIR)/log2/$(DEPDIR)/libgaolcoremath_la-log2.Plo
 	-rm -f $(CORE_MATH_DIR)/pow/$(DEPDIR)/libgaolcoremath_la-pow.Plo
 	-rm -f $(CORE_MATH_DIR)/sin/$(DEPDIR)/libgaolcoremath_la-sin.Plo
 	-rm -f $(CORE_MATH_DIR)/sinh/$(DEPDIR)/libgaolcoremath_la-sinh.Plo

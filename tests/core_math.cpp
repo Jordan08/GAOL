@@ -173,6 +173,12 @@ namespace
     compare("asinh", gaol_cr_asinh, [](const interval& x) { return asinh(x); }, v);
     compare("acosh", gaol_cr_acosh, [](const interval& x) { return acosh(x); }, v);
     compare("atanh", gaol_cr_atanh, [](const interval& x) { return atanh(x); }, v);
+    // The exponentials and the logarithms in base 2 and 10, which IEEE
+    // 1788-2015 requires (Table 9.1, fork of GAOL)
+    compare("exp2", gaol_cr_exp2, [](const interval& x) { return exp2(x); }, v);
+    compare("exp10", gaol_cr_exp10, [](const interval& x) { return exp10(x); }, v);
+    compare("log2", gaol_cr_log2, [](const interval& x) { return log2(x); }, v);
+    compare("log10", gaol_cr_log10, [](const interval& x) { return log10(x); }, v);
   }
 
   /* CORE-MATH gives the same value whatever the rounding direction it is called
@@ -196,6 +202,19 @@ namespace
       {"asinh(0)", gaol_cr_asinh, 0.0, 0.0},
       {"acosh(1)", gaol_cr_acosh, 1.0, 0.0},
       {"atanh(0)", gaol_cr_atanh, 0.0, 0.0},
+      {"exp2(0)", gaol_cr_exp2, 0.0, 1.0},
+      {"exp2(3)", gaol_cr_exp2, 3.0, 8.0},
+      {"exp2(-1)", gaol_cr_exp2, -1.0, 0.5},
+      {"exp2(1023)", gaol_cr_exp2, 1023.0, 0x1p1023},
+      {"exp10(0)", gaol_cr_exp10, 0.0, 1.0},
+      {"exp10(2)", gaol_cr_exp10, 2.0, 100.0},
+      {"exp10(22)", gaol_cr_exp10, 22.0, 1e22},
+      {"log2(1)", gaol_cr_log2, 1.0, 0.0},
+      {"log2(8)", gaol_cr_log2, 8.0, 3.0},
+      {"log2(0.25)", gaol_cr_log2, 0.25, -2.0},
+      {"log10(1)", gaol_cr_log10, 1.0, 0.0},
+      {"log10(100)", gaol_cr_log10, 100.0, 2.0},
+      {"log10(1e22)", gaol_cr_log10, 1e22, 22.0},
     };
     for (const Case& c : cases) {
       double lo, hi;
@@ -252,6 +271,110 @@ namespace
             });
     }
   }
+
+  /* The bounds GAOL gives of the exponentials and the logarithms in base 2 and
+     10 where the value is a double: they are that double, not the one below it
+     (fork of GAOL). Where the value is not a double, the bounds are checked
+     against the tightest ones by compare() above. */
+  void base_two_and_ten_exact()
+  {
+    struct Case { const char* name; std::function<interval(double)> f; double x; double value; };
+    const Case cases[] = {
+      {"exp2", [](double x) { return exp2(interval(x, x)); }, 0.0, 1.0},
+      {"exp2", [](double x) { return exp2(interval(x, x)); }, 3.0, 8.0},
+      {"exp2", [](double x) { return exp2(interval(x, x)); }, -1.0, 0.5},
+      {"exp2", [](double x) { return exp2(interval(x, x)); }, -1074.0, 0x1p-1074},
+      {"exp2", [](double x) { return exp2(interval(x, x)); }, 1023.0, 0x1p1023},
+      {"exp10", [](double x) { return exp10(interval(x, x)); }, 0.0, 1.0},
+      {"exp10", [](double x) { return exp10(interval(x, x)); }, 2.0, 100.0},
+      {"exp10", [](double x) { return exp10(interval(x, x)); }, 22.0, 1e22},
+      {"log2", [](double x) { return log2(interval(x, x)); }, 1.0, 0.0},
+      {"log2", [](double x) { return log2(interval(x, x)); }, 8.0, 3.0},
+      {"log2", [](double x) { return log2(interval(x, x)); }, 0.25, -2.0},
+      {"log2", [](double x) { return log2(interval(x, x)); }, 0x1p-1074, -1074.0},
+      {"log10", [](double x) { return log10(interval(x, x)); }, 1.0, 0.0},
+      {"log10", [](double x) { return log10(interval(x, x)); }, 100.0, 2.0},
+      {"log10", [](double x) { return log10(interval(x, x)); }, 1e22, 22.0},
+    };
+    for (const Case& c : cases) {
+      const std::string name = std::string(c.name) + ": the value that is a double is a bound";
+      const interval got = c.f(c.x);
+      check(name, !got.is_empty() && got.left() == c.value && got.right() == c.value,
+            [&] {
+              return std::string(c.name) + "(" + show(c.x) + ") = ["
+                   + (got.is_empty() ? std::string("empty")
+                                     : show(got.left()) + ", " + show(got.right()))
+                   + "] rather than [" + show(c.value) + "]";
+            });
+    }
+    // The domains of Table 9.1: the logarithms are defined on (0, +oo) only
+    check("log2: empty where no number is positive", log2(interval(-4.0, 0.0)).is_empty(),
+          [] { return std::string("log2([-4, 0])"); });
+    check("log10: empty where no number is positive", log10(interval(-4.0, -1.0)).is_empty(),
+          [] { return std::string("log10([-4, -1])"); });
+    check("exp2: within [0, +oo]", exp2(interval(-GAOL_INFINITY, 0.0)).left() == 0.0,
+          [] { return std::string("exp2([-oo, 0])"); });
+    check("exp10: within [0, +oo]", exp10(interval(-GAOL_INFINITY, 0.0)).left() == 0.0,
+          [] { return std::string("exp10([-oo, 0])"); });
+  }
+
+  /* rootn(x, q) with a negative q, which IEEE 1788-2015 recommends
+     (Table 10.5): x^(1/q) = 1/x^(1/|q|), defined on R\{0} for an odd q and on
+     (0, +oo) for an even one (fork of GAOL). */
+  void negative_roots()
+  {
+    struct Case { const char* what; interval got; interval expected; bool empty; };
+    const Case cases[] = {
+      {"nth_root([8], -3)", nth_root(interval(8.0, 8.0), -3), interval(0.5, 0.5), false},
+      {"nth_root([-8], -3)", nth_root(interval(-8.0, -8.0), -3), interval(-0.5, -0.5), false},
+      {"nth_root([16], -4)", nth_root(interval(16.0, 16.0), -4), interval(0.5, 0.5), false},
+      {"nth_root([1, 8], -3)", nth_root(interval(1.0, 8.0), -3), interval(0.5, 1.0), false},
+      // 0 is outside the domain, and an even root needs a positive number
+      {"nth_root([0], -3)", nth_root(interval(0.0, 0.0), -3), interval::emptyset(), true},
+      {"nth_root([-4, -1], -4)", nth_root(interval(-4.0, -1.0), -4), interval::emptyset(), true},
+      {"nth_root([8], 0)", nth_root(interval(8.0, 8.0), 0), interval::emptyset(), true},
+      // an interval holding 0 with an odd q: the hull of the two half-lines
+      {"nth_root([-1, 1], -3)", nth_root(interval(-1.0, 1.0), -3), interval::universe(), false},
+    };
+    for (const Case& c : cases) {
+      if (c.empty) {
+        check(std::string(c.what) + ": empty", c.got.is_empty(),
+              [&] { return std::string(c.what); });
+      } else {
+        check(std::string(c.what) + ": the expected interval",
+              !c.got.is_empty() && c.got.left() == c.expected.left()
+                && c.got.right() == c.expected.right(),
+              [&] {
+                return std::string(c.what) + " = ["
+                     + (c.got.is_empty() ? std::string("empty")
+                                         : show(c.got.left()) + ", " + show(c.got.right()))
+                     + "] rather than [" + show(c.expected.left()) + ", "
+                     + show(c.expected.right()) + "]";
+              });
+      }
+    }
+    /* A positive q gives what nth_root(x, unsigned) gives, and a negative one
+       its inverse: checked over the doubles of a range. */
+    for (int k = 1; k <= 2000; ++k) {
+      const double x = (double)k / 8.0;
+      for (int q : {2, 3, 5, 7}) {
+        const interval up = nth_root(interval(x, x), q);
+        const interval dn = nth_root(interval(x, x), -q);
+        const interval inv = inverse(up);
+        check("nth_root: a negative exponent inverts the positive one",
+              dn.left() == inv.left() && dn.right() == inv.right(),
+              [&] {
+                return "nth_root(" + show(x) + ", " + std::to_string(-q) + ")";
+              });
+        check("nth_root: an int exponent agrees with the unsigned one",
+              up.left() == nth_root(interval(x, x), (unsigned int)q).left()
+                && up.right() == nth_root(interval(x, x), (unsigned int)q).right(),
+              [&] {
+                return "nth_root(" + show(x) + ", " + std::to_string(q) + ")";
+              });
+      }
+    }
+  }
 }
 
 int main()
@@ -260,6 +383,8 @@ int main()
   elementary_functions();
   exact_values();
   two_arguments();
+  base_two_and_ten_exact();
+  negative_roots();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();

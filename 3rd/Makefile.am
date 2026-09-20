@@ -29,7 +29,9 @@ libgaolcoremath_la_SOURCES = \
 	$(CORE_MATH_DIR)/sinh/sinh.c $(CORE_MATH_DIR)/cosh/cosh.c \
 	$(CORE_MATH_DIR)/tanh/tanh.c $(CORE_MATH_DIR)/asinh/asinh.c \
 	$(CORE_MATH_DIR)/acosh/acosh.c $(CORE_MATH_DIR)/atanh/atanh.c \
-	$(CORE_MATH_DIR)/cbrt/cbrt.c
+	$(CORE_MATH_DIR)/cbrt/cbrt.c \
+	$(CORE_MATH_DIR)/exp2/exp2.c $(CORE_MATH_DIR)/exp10/exp10.c \
+	$(CORE_MATH_DIR)/log2/log2.c $(CORE_MATH_DIR)/log10/log10.c
 
 libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # -fno-lto keeps the interprocedural optimization away from these sources, where

@@ -39,8 +39,9 @@ endif
 core_math_functions = [
   'exp', 'log', 'pow', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
   'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
-  # cbrt, which nth_root(x, 3) takes (fork of GAOL)
-  'cbrt',
+  # cbrt, which nth_root(x, 3) takes, and the exponentials and logarithms in
+  # base 2 and 10, which IEEE 1788-2015 requires (Table 9.1) (fork of GAOL)
+  'cbrt', 'exp2', 'exp10', 'log2', 'log10',
 ]
 incdir = include_directories(['.', '..', './sysdeps'])
 

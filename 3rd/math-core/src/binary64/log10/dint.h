@@ -46,11 +46,13 @@ SOFTWARE.
 #ifndef UINT128_T
 #define UINT128_T
 
-#if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
-typedef unsigned _BitInt(128) u128;
-#else
-typedef unsigned __int128 u128;
-#endif
+/* GAOL: u128 is the 128-bit unsigned integer of gaol/gaol_u128.h: the type of
+   the compiler where it has one (unsigned __int128, or _BitInt(128) of C23),
+   and the structure of two 64-bit halves with Visual C++, which has none on
+   any architecture, and on the 32-bit targets of GCC. Where it is that
+   structure, the extended-arithmetic functions below call gaol_u128_*()
+   rather than the operators of the language. */
+typedef gaol_u128 u128;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 typedef union {
@@ -81,7 +83,7 @@ static inline int addu_128(uint128_t a, uint128_t b, uint128_t *r) {
 
 // Subtract two 128 bit integers and return 1 if an underflow occured
 static inline int subu_128(uint128_t a, uint128_t b, uint128_t *r) {
-  uint128_t c = {.r = -b.r};
+  uint128_t c; c.r = gaol_u128_neg(b.r); /* GAOL */
   r->l = a.l + c.l;
   r->h = a.h + c.h + (r->l < a.l);
 
@@ -183,11 +185,11 @@ static inline void add_dint(dint64_t *r, const dint64_t *a, const dint64_t *b) {
     int sh = a->ex - b->ex;
     // round to nearest
     if (sh <= 128)
-      B.r += 0x1 & (B.r >> (sh - 1));
+      B.r = gaol_u128_add64(B.r, 0x1 & gaol_u128_lo(gaol_u128_shr(B.r, sh - 1))); /* GAOL */
     if (sh < 128)
-      B.r = B.r >> sh;
+      B.r = gaol_u128_shr(B.r, sh); /* GAOL */
     else
-      B.r = 0;
+      B.r = gaol_u128_of(0); /* GAOL */
   }
 
   uint128_t C;
@@ -198,15 +200,15 @@ static inline void add_dint(dint64_t *r, const dint64_t *a, const dint64_t *b) {
     subu_128(A, B, &C);
   } else {
     if (addu_128(A, B, &C)) {
-      C.r += C.l & 0x1;
-      C.r = ((u128)1 << 127) | (C.r >> 1);
+      C.r = gaol_u128_add64(C.r, C.l & 0x1); /* GAOL */
+      C.r = gaol_u128_or(gaol_u128_bit(127), gaol_u128_shr(C.r, 1)); /* GAOL */
       m_ex++;
     }
   }
 
   uint64_t ex =
       C.h ? __builtin_clzll(C.h) : 64 + (C.l ? __builtin_clzll(C.l) : a->ex);
-  C.r = C.r << ex;
+  C.r = gaol_u128_shl(C.r, (int)ex); /* GAOL */
 
   r->sgn = sgn;
   r->hi = C.h;
@@ -216,23 +218,23 @@ static inline void add_dint(dint64_t *r, const dint64_t *a, const dint64_t *b) {
 
 // Multiply two dint64_t numbers, with 126 bits of accuracy
 static inline void mul_dint(dint64_t *r, const dint64_t *a, const dint64_t *b) {
-  uint128_t t = {.r = (u128)(a->hi) * (u128)(b->hi)};
-  uint128_t m1 = {.r = (u128)(a->hi) * (u128)(b->lo)};
-  uint128_t m2 = {.r = (u128)(a->lo) * (u128)(b->hi)};
+  uint128_t t; t.r = gaol_u128_mul64(a->hi, b->hi); /* GAOL */
+  uint128_t m1; m1.r = gaol_u128_mul64(a->hi, b->lo); /* GAOL */
+  uint128_t m2; m2.r = gaol_u128_mul64(a->lo, b->hi); /* GAOL */
 
   uint128_t m;
   // If we only garantee 127 bits of accuracy, we improve the simplicity of the
   // code uint64_t l = ((u128)(a->lo) * (u128)(b->lo)) >> 64; m.l += l; m.h +=
   // (m.l < l);
   t.h += addu_128(m1, m2, &m);
-  t.r += m.h;
+  t.r = gaol_u128_add64(t.r, m.h); /* GAOL */
 
   // Ensure that r->hi starts with a 1
   uint64_t ex = !(t.h >> 63);
   if (ex)
-    t.r = t.r << 1;
+    t.r = gaol_u128_shl(t.r, 1); /* GAOL */
 
-  t.r += (m.l >> 63);
+  t.r = gaol_u128_add64(t.r, m.l >> 63); /* GAOL */
 
   r->hi = t.h;
   r->lo = t.l;
@@ -254,19 +256,19 @@ static inline void mul_dint_2(dint64_t *r, int64_t b, const dint64_t *a) {
   uint64_t c = b < 0 ? -b : b;
   r->sgn = b < 0 ? !a->sgn : a->sgn;
 
-  t.r = (u128)(a->hi) * (u128)c;
+  t.r = gaol_u128_mul64(a->hi, c); /* GAOL */
 
   int m = t.h ? __builtin_clzll(t.h) : 64;
-  t.r = (t.r << m);
+  t.r = gaol_u128_shl(t.r, m); /* GAOL */
 
   // Will pose issues if b is too large but for now we assume it never happens
   // TODO: FIXME
-  uint128_t l = {.r = (u128)(a->lo) * (u128)c};
-  l.r = (l.r << (m - 1)) >> 63;
+  uint128_t l; l.r = gaol_u128_mul64(a->lo, c); /* GAOL */
+  l.r = gaol_u128_shr(gaol_u128_shl(l.r, m - 1), 63); /* GAOL */
 
   if (addu_128(l, t, &t)) {
-    t.r += t.r & 0x1;
-    t.r = ((u128)1 << 127) | (t.r >> 1);
+    t.r = gaol_u128_add64(t.r, gaol_u128_lo(t.r) & 0x1); /* GAOL */
+    t.r = gaol_u128_or(gaol_u128_bit(127), gaol_u128_shr(t.r, 1)); /* GAOL */
     m--;
   }
 
