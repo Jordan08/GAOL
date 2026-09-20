@@ -126,12 +126,12 @@
 
 #define GAOL_X86_FLAG_BITS 0x3fu /* IE DE ZE OE UE PE, bits 0 to 5 */
 
-GAOL_PORT_INLINE void gaol_fegetexceptflag(fexcept_t *flagp, int excepts)
+static inline void gaol_fegetexceptflag(fexcept_t *flagp, int excepts)
 {
   *flagp = (fexcept_t)(_mm_getcsr() & (unsigned int)excepts & GAOL_X86_FLAG_BITS);
 }
 
-GAOL_PORT_INLINE void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
+static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 {
   const unsigned int keep = (unsigned int)excepts & GAOL_X86_FLAG_BITS;
   const unsigned int want = (unsigned int)(*flagp) & keep;

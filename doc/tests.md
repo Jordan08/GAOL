@@ -46,7 +46,18 @@ Codac.
   double of the tightest bounds at every magnitude, `sin([1e-10])` and
   `cos([2^60])` included, and over 649 intervals next to their extrema and
   poles, of width about π and 2π, and of consecutive doubles up to the largest,
-  -1, 1 and `[-oo, +oo]` being exact. The
+  -1, 1 and `[-oo, +oo]` being exact. `exp2`, `exp10`, `log2` and `log10` have
+  to be the tightest enclosures, and the exact values themselves where they are
+  doubles (`exp2` of a whole number, `exp10` of 0 to 22, `log2` of a power of
+  two, `log10` of a power of ten up to 10^22). `nth_root(I, q)` has to be an
+  enclosure for a negative q too, which is `inverse(nth_root(I, -q))`, and
+  `nth_root(I, 3)` the cube root CORE-MATH gives. The integer functions of
+  Table 9.1 — `sign`, `trunc`, `round_ties_to_even` and `round_ties_to_away` —
+  are exact, and have to give the same result whatever rounding direction the
+  calling code left, which `std::nearbyint` and `std::rint` would not: they are
+  compared with a reference computed arithmetically, over the halfway values,
+  the whole numbers and the doubles on either side of them, and over the
+  magnitudes beyond 2^52, on both signs and on the empty set. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
 - **`rounding_direction`:** about 100 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
@@ -79,6 +90,41 @@ Codac.
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
   and decide an interval of a single double beyond 2^53.
+- **`core_math`:** the bounds of the elementary functions against CORE-MATH
+  itself. CORE-MATH is correctly rounded in the rounding direction in effect,
+  so the tightest bounds of f at a double x are the values it gives rounding
+  downward and upward, which the test computes by setting the direction itself,
+  independently of GAOL. Computing in the upward direction it keeps, GAOL takes
+  the upper bound from CORE-MATH and the double below it as the lower one: its
+  bounds have to enclose the tightest ones, to be equal above and within one
+  double below, and to be the tightest ones where `gaol_interval.cpp` gives the
+  exact value itself (`log(1)`, `sin(0)`, the bounds of π/2 at `asin(1)`...).
+  Each function is tried at the ends of its domain and next to them, at the
+  values GAOL treats apart, at the powers of two and their neighbours, at the
+  subnormals, and at random doubles of every magnitude.
+- **`expressions`:** `interval("...")` lexes the string, parses it into the
+  tree of `gaol/gaol_expression.h` and evaluates that tree, so this test goes
+  through every node of the tree and every way the string can be wrong: the
+  numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
+  bounds given apart), the operators and the functions alone and nested, and
+  the strings the parser has to refuse with an exception rather than an
+  interval. Each value is compared with the same computation written in C++,
+  which the other tests check against the exact results: what is tested here is
+  the lexer, the parser and the evaluation, not the operations.
+- **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
+  `atan2` and `pow` compute with a 128-bit unsigned integer, which Visual C++
+  has on no architecture and GCC has on no 32-bit target; there GAOL computes
+  with the two 64-bit halves of `gaol/gaol_u128.h`. The test compiles those
+  halves (`GAOL_U128_FORCE_EMULATION`) and compares every operation with the
+  same operation on the native type of the compiler, at the ends of the ranges,
+  at the powers of two and their neighbours, at random values, and over every
+  shift count from 0 to 127: the two have to give the same 128 bits, so that
+  the bounds GAOL computes with Visual C++ and on a 32-bit target are those it
+  computes elsewhere. Where the compiler has no 128-bit type of its own, which
+  is where the halves run in earnest, there is nothing to compare with, and the
+  test checks the identities the operations satisfy instead (a + b − b = a,
+  shifting left then right, the product of the halves against the schoolbook
+  product, and the order).
 - **`reverse`:** the relational functions against the reverse functions of
   IEEE 1788-2015 (10.5.4, Table 10.1): `sqrt_rel` (`sqrRev`), `invabs_rel`
   (`absRev`), `nth_root_rel` (`pownRev`), `asin_rel`, `acos_rel`, `atan_rel`
