@@ -1,0 +1,260 @@
+stages:
+  - test
+  - publish
+
+check:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    # x86-64-v2 is needed for rsqrtq
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH EXTRA_CFLAGS="-march=x86-64-v2 -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./ci.sh
+
+check_errno:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    # x86-64-v2 is needed for rsqrtq
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH EXTRA_CFLAGS="-DCORE_MATH_SUPPORT_ERRNO -march=x86-64-v2 -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./ci.sh
+
+check_inexact:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    # x86-64-v2 is needed for rsqrtq
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH EXTRA_CFLAGS="-DCORE_MATH_CHECK_INEXACT -march=x86-64-v2 -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./ci.sh
+
+check_sanitize:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH CFLAGS="-fsanitize=undefined -fsanitize=address -I/usr/local/include" LDFLAGS="-fsanitize=undefined -fsanitize=address -L/usr/local/lib" ./ci.sh
+
+check_sanitize_clang:
+  stage: test
+  image: silkeh/clang:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    # clang 19 does not properly handle __bf16
+    - SKIPBF16=1 LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH CC=clang CORE_MATH_NO_OPENMP=1 CFLAGS="-fsanitize=undefined -I/usr/local/include" LDFLAGS="-fsanitize=undefined -L/usr/local/lib" ./ci.sh
+
+check_without_fma:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH EXTRA_CFLAGS="-march=x86-64 -Werror -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./ci.sh
+
+check_core2:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH EXTRA_CFLAGS="-O3 -march=core2 -Werror -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./ci.sh
+
+# ensure clz/ctz is not called with 0
+# gcc __builtin_clz / __builtin_ctz: If x is 0, the result is undefined.
+# https://gcc.gnu.org/onlinedocs/gcc/Bit-Operation-Builtins.html
+# clang __builtin_clzg / __builtin_ctzg: If the first argument is 0,
+# but only one argument is provided, then the behavior is undefined.
+# https://clang.llvm.org/docs/LanguageExtensions.html#builtin-clzg-and-builtin-ctzg
+check_nolzcnt:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    # x86-64-v2 is needed for rsqrtq
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH CFLAGS="-march=x86-64-v2 -mno-lzcnt -mno-bmi -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./ci.sh
+
+check_dry:
+  stage: test
+  image: debian:testing
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - FORCE=true DRY=--dry LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include -Wdouble-promotion -Werror" ./ci.sh
+
+check_dry_with_O3:
+  stage: test
+  image: debian:testing
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - FORCE=true DRY=--dry CFLAGS=-O3 LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include" ./ci.sh
+
+check_dry_inexact_errno:
+  stage: test
+  image: debian:testing
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - FORCE=true DRY=--dry LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include" CFLAGS="-DCORE_MATH_CHECK_INEXACT -DCORE_MATH_SUPPORT_ERRNO" ./ci.sh
+
+check_dry_inexact:
+  stage: test
+  image: debian:testing
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - FORCE=true DRY=--dry CFLAGS="-DCORE_MATH_CHECK_INEXACT" LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include" ./ci.sh
+
+check_dry_errno:
+  stage: test
+  image: debian:testing
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    - FORCE=true DRY=--dry CFLAGS="-DCORE_MATH_SUPPORT_ERRNO" LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include" ./ci.sh
+
+check_dry_clang:
+  stage: test
+  image: silkeh/clang:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    # clang has -Wshift-sign-overflow
+    - SKIPBF16=1 CORE_MATH_NO_OPENMP=1 FORCE=true DRY=--dry CC=clang LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include -Wshift-sign-overflow" ./ci.sh
+
+check_dry_icx:
+  stage: test
+  image: intel/oneapi-hpckit:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git
+    # MPFR-dev is installed in /usr/local
+    # clang 19 does not properly handle __bf16
+    - SKIPBF16=1 FORCE=true DRY=--dry CC=icx LDFLAGS="-L /usr/local/lib" EXTRA_CFLAGS="-I /usr/local/include" ./ci.sh
+
+perf_test:
+  stage: test
+  image: debian:testing
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    - ci/perf_test.sh
+
+rescale:
+  stage: test
+  image: debian:latest
+  before_script:
+    - ci/00-prepare-docker.sh
+  script:
+    - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH EXTRA_CFLAGS="-march=x86-64-v2 -I/usr/local/include" LDFLAGS="-L/usr/local/lib" ci/rescale.sh
+
+# check_llvm:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/01-prepare-llvm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/llvm_test.sh
+
+# check_rlibm1:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/02-prepare-rlibm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/rlibm_test1.sh
+
+# check_rlibm2:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/02-prepare-rlibm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/rlibm_test2.sh
+
+# check_rlibm3:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/02-prepare-rlibm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/rlibm_test3.sh
+
+# check_rlibm4:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/02-prepare-rlibm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/rlibm_test4.sh
+
+# check_rlibm5:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/02-prepare-rlibm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/rlibm_test5.sh
+
+# check_rlibm6:
+#   stage: test
+#   image: debian:testing
+#   before_script:
+#     - ci/00-prepare-docker.sh
+#     - ci/02-prepare-rlibm.sh
+#   script:
+#     - apt-get update -qq && apt-get install -qq build-essential git libmpfr-dev
+#     - ci/rlibm_test6.sh
+
+# removed artifacts older than 1 year
+# this works with a token GITLAB_ACCESS_TOKEN
+# cf https://gitlab.inria.fr/sdt-pfo/tools/gitlab-quotas-helper-component
+clean-pipelines:
+  # run this only in the master branch, since the GITLAB_ACCESS_TOKEN is
+  # (now) protected, and cannot be used by pipelines from other branches.
+  stage: publish
+  allow_failure: true
+  variables:
+    GITLAB_URL: https://gitlab.inria.fr/
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH == "master" && $CI_SERVER_HOST == "gitlab.inria.fr"
+      when: always
+    - when: never
+  image: registry.gitlab.inria.fr/sdt-pfo/tools/gitlab-quotas-helper-component/poetry-python:1.7.1-3.12
+  script:
+    - cmd=("gitlab-api connect project $CI_PROJECT_ID pipelines --days 365")
+    - cmd+=" delete --force"
+    - eval $cmd

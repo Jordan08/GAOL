@@ -47,7 +47,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   endif()
 endif()
 
-# libgaol and libultim, static libraries, are compiled as position-independent
+# libgaol, a static library, is compiled as position-independent
 # code, so that they can be linked into shared libraries (Python bindings,
 # plugins), unless the project building GAOL, or the command line, sets
 # CMAKE_POSITION_INDEPENDENT_CODE, which is then followed. Brought in by
@@ -61,16 +61,6 @@ if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
-# mathlib: the one of 3rd/mathlib unless an installed one is asked for, which
-# giving MATHLIB_DIR does by default (see below)
-set(MATHLIB_DIR "" CACHE PATH "Installation prefix of an installed mathlib (MathLib.h and the ultim library), which GAOL_FIND_MATHLIB is then ON by default to use")
-if(MATHLIB_DIR)
-  set(_gaol_find_mathlib_default ON)
-else()
-  set(_gaol_find_mathlib_default OFF)
-endif()
-option(GAOL_BUILD_MATHLIB "Build the mathlib of 3rd/mathlib when no installed mathlib is used" ON)
-option(GAOL_FIND_MATHLIB "Use an installed mathlib, under MATHLIB_DIR or in the usual paths, rather than the one of 3rd/mathlib" ${_gaol_find_mathlib_default})
 option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each operation, rather than leaving it upward" OFF)
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest (OFF: the tests are not built by default, with the three builds)" OFF)
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
@@ -386,118 +376,47 @@ message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
 
 
 ################################################################################
-# mathlib
+# CORE-MATH
 ################################################################################
 #
-# libgaol, a static library, does not link mathlib itself, but whatever links
-# GAOL has to: gaol::gaol links it.
+# GAOL bounds every one of its elementary functions with CORE-MATH
+# (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
+# 3rd/math-core and are compiled into libgaol itself: there is no library to
+# find, to build apart or to install, and nothing to link along with GAOL.
 #
-# By default, the mathlib GAOL links and installs is the one of 3rd/mathlib,
-# built here with the CMake build of 3rd/mathlib/CMakeLists.txt, whatever
-# mathlib the machine has: mathlib 2.1.1, as Frederic Goualard distributes it,
-# with the fixes 3rd/README.md lists. A project building GAOL for itself, with
-# FetchContent or as Codac does, can then count on finding libultim and
-# MathLib.h under the installation prefix it gave.
+# This replaces mathlib (the IBM Accurate Portable Mathematical Library),
+# CRlibm and the math library of the system, which GAOL could be built with:
+# CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
+# takes its values as bounds without moving them outward and without switching
+# the rounding direction (see gaol/gaol_double_op.h), and the bounds are the
+# same on every architecture and with every compiler.
 #
-# With GAOL_FIND_MATHLIB ON, which giving MATHLIB_DIR makes the default, an
-# installed mathlib is looked for, under MATHLIB_DIR and in the usual paths,
-# and the one of 3rd/mathlib is built only when none is found.
-# GAOL_FIND_MATHLIB is tested after the search too, so that a mathlib found by
-# an earlier configuration, kept in the cache, is not used once it is OFF.
+# Each source is compiled with gaol/core_math_port.h included first, by the
+# compiler rather than by the source (-include, /FI), so that importing a newer
+# CORE-MATH stays a plain copy: that header gives them the names GAOL uses, the
+# 128-bit integer of gaol/gaol_u128.h where the compiler has none (Visual C++,
+# and GCC for a 32-bit target), and what Visual C++ has not of GCC.
 
-if(GAOL_FIND_MATHLIB)
-  find_path(MATHLIB_INCDIR MathLib.h HINTS "${MATHLIB_DIR}" PATH_SUFFIXES include)
-  find_library(MATHLIB_LIB ultim HINTS "${MATHLIB_DIR}" PATH_SUFFIXES lib)
-elseif(MATHLIB_DIR)
-  message(WARNING "MATHLIB_DIR (${MATHLIB_DIR}) is ignored, GAOL_FIND_MATHLIB being OFF: configure with "
-    "-DGAOL_FIND_MATHLIB=ON to use the mathlib installed there.")
-endif()
+set(GAOL_CORE_MATH_FUNCTIONS
+  exp log pow sin cos tan asin acos atan atan2
+  sinh cosh tanh asinh acosh atanh)
 
-set(GAOL_MATHLIB "")
-if(GAOL_FIND_MATHLIB AND MATHLIB_INCDIR AND MATHLIB_LIB)
-  message(STATUS "Found mathlib: ${MATHLIB_LIB}")
-  set(GAOL_MATHLIB "${MATHLIB_LIB}")
-elseif(GAOL_BUILD_MATHLIB)
-  if(GAOL_FIND_MATHLIB)
-    message(STATUS "mathlib not found: the one of 3rd/mathlib is built with GAOL")
-  else()
-    message(STATUS "mathlib: the one of 3rd/mathlib, built with GAOL")
+set(GAOL_CORE_MATH_SOURCES "")
+foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)
+  set(_src "${CMAKE_CURRENT_SOURCE_DIR}/3rd/math-core/src/binary64/${_f}/${_f}.c")
+  if(NOT EXISTS "${_src}")
+    message(FATAL_ERROR "The source of CORE-MATH's ${_f} is missing: ${_src}")
   endif()
-  # The CMake build of 3rd/mathlib exports libultim along with libgaol
-  set(MATHLIB_EXPORT_NAME gaolTargets)
-  add_subdirectory(3rd/mathlib)
-  target_compile_options(ultim PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
-  add_library(gaol::ultim ALIAS ultim)
-  set(GAOL_MATHLIB ultim)
-elseif(GAOL_FIND_MATHLIB)
-  message(WARNING "mathlib not found and GAOL_BUILD_MATHLIB is OFF: link the ultim library along with GAOL.")
+  list(APPEND GAOL_CORE_MATH_SOURCES "${_src}")
+endforeach()
+
+if(MSVC)
+  set(GAOL_CORE_MATH_FLAGS "/FI${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
 else()
-  message(WARNING "GAOL_FIND_MATHLIB and GAOL_BUILD_MATHLIB are OFF: link the ultim library along with GAOL.")
+  set(GAOL_CORE_MATH_FLAGS "-include;${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
 endif()
 
-# A mathlib found installed is refused when its cosine of 2^52 - 1 is wrong.
-# mathlib compiled with the contraction of multiplications and additions into
-# fused multiply-adds, which GCC does by default wherever the processor has them
-# (64-bit ARM processors among them) unless given -ffp-contract=off, reduces
-# large arguments modulo pi/2 wrongly (branred()): compiled so on x86_64, it gave
-# about -0.4855 rather than 0.4733 at 2^52 - 1, and sin, cos and tan far from
-# their values at 534 of 20080 random arguments from 2^26 to 2^54, which GAOL's
-# bounds did not enclose (see BRANRED_ARGUMENTS in tests/elementary_values.py).
-# The mathlib built here, as the one scripts/install-mathlib.sh installs, is
-# compiled with -ffp-contract=off. The program checking it cannot run when
-# cross-compiling without an emulator: the builds then only warn.
-if(GAOL_FIND_MATHLIB AND MATHLIB_INCDIR AND MATHLIB_LIB)
-  if(CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
-    message(WARNING
-      "Cross-compiling: the cosine of the mathlib found (${MATHLIB_LIB}) is not checked at 2^52 - 1. A mathlib "
-      "compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and "
-      "tan of large arguments far from their values, which the intervals GAOL computes would not enclose: "
-      "configure with -DGAOL_FIND_MATHLIB=OFF to build the mathlib of 3rd/mathlib, which GAOL is tested with.")
-  else()
-    set(_mathlib_check_dir "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/gaol_mathlib_cosine")
-    file(WRITE "${_mathlib_check_dir}/cosine.cpp" [=[
-extern "C" unsigned short Init_Lib();
-extern "C" void Exit_Lib(unsigned short);
-extern "C" double ucos(double);
-#include <cmath>
-#include <cstdio>
-int main()
-{
-  unsigned short state = Init_Lib();
-  double c = ucos(4503599627370495.0); // 2^52 - 1
-  Exit_Lib(state);
-  std::printf("%.17g\n", c);
-  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
-}
-]=])
-    unset(GAOL_MATHLIB_COSINE_RUNS CACHE)
-    unset(GAOL_MATHLIB_COSINE_COMPILES CACHE)
-    try_run(GAOL_MATHLIB_COSINE_RUNS GAOL_MATHLIB_COSINE_COMPILES
-      "${_mathlib_check_dir}" "${_mathlib_check_dir}/cosine.cpp"
-      LINK_LIBRARIES "${MATHLIB_LIB}"
-      RUN_OUTPUT_VARIABLE _mathlib_cosine)
-    string(STRIP "${_mathlib_cosine}" _mathlib_cosine)
-    if(GAOL_MATHLIB_COSINE_COMPILES AND GAOL_MATHLIB_COSINE_RUNS STREQUAL "0")
-      message(STATUS "Cosine of mathlib at 2^52 - 1: ${_mathlib_cosine}, right")
-    elseif(GAOL_MATHLIB_COSINE_COMPILES AND GAOL_MATHLIB_COSINE_RUNS STREQUAL "1")
-      message(FATAL_ERROR
-        "GAOL cannot use the mathlib found (${MATHLIB_LIB}): its cosine of 2^52 - 1 is ${_mathlib_cosine}, rather "
-        "than 0.47329288595430913.\n"
-        "Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of "
-        "multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor "
-        "has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with "
-        "sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far "
-        "from them at 534 of 20080 random arguments, from 2^26 to 2^54).\n"
-        "Let GAOL build the mathlib it is tested with: configure again with -DGAOL_FIND_MATHLIB=OFF, and CMake "
-        "compiles the mathlib of 3rd/mathlib with the flags of interval arithmetic; or install that one with "
-        "sh scripts/install-mathlib.sh <prefix> and give -DMATHLIB_DIR=<prefix>, in a new build directory.")
-    else()
-      message(WARNING
-        "A program linked with the mathlib found (${MATHLIB_LIB}) could not be built or run "
-        "(${GAOL_MATHLIB_COSINE_RUNS}): its cosine is not checked at 2^52 - 1.")
-    endif()
-  endif()
-endif()
+message(STATUS "Elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)")
 
 
 ################################################################################
@@ -599,7 +518,6 @@ endif()
 configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h")
 # The double operations of the mathematical library GAOL is built with, mathlib
 # here, as gaol/meson.build and IBEX name them
-configure_file(gaol/gaol_double_op_apmathlib.h "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_double_op.h" COPYONLY)
 
 
 ################################################################################
@@ -619,11 +537,6 @@ set(GAOL_SOURCES
   gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   s_nextafter.c gaol_interval_lexer.cpp
   gaol_interval_parser.cpp
-  # The hyperbolic functions of CORE-MATH (gaol/gaol_core_math.h)
-  core_math_sinh.c core_math_cosh.c core_math_tanh.c
-  core_math_asinh.c core_math_acosh.c core_math_atanh.c
-  # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
-  core_math_log.c
 )
 if(GAOL_FLOAT_INTERVALS)
   list(APPEND GAOL_SOURCES gaol_intervalf.cpp)
@@ -636,7 +549,14 @@ if(NOT MSVC)
 endif()
 list(TRANSFORM GAOL_SOURCES PREPEND "gaol/")
 
+# The sources of CORE-MATH, which keep their own path
+list(APPEND GAOL_SOURCES ${GAOL_CORE_MATH_SOURCES})
+
 add_library(gaol STATIC ${GAOL_SOURCES})
+
+# gaol/core_math_port.h included first in each of them, by the compiler
+set_source_files_properties(${GAOL_CORE_MATH_SOURCES} PROPERTIES
+  COMPILE_OPTIONS "${GAOL_CORE_MATH_FLAGS}")
 add_library(gaol::gaol ALIAS gaol)
 
 # The generated headers, then GAOL's own: its sources include "gaol/..."
@@ -669,8 +589,7 @@ if(MSVC)
   # for a DLL: every file including GAOL's headers has to define it, empty
   target_compile_definitions(gaol PUBLIC __GAOL_PUBLIC__=)
 endif()
-if(GAOL_MATHLIB)
-  target_link_libraries(gaol PUBLIC ${GAOL_MATHLIB})
+if(FALSE)
 endif()
 
 
@@ -678,8 +597,9 @@ endif()
 # Installation
 ################################################################################
 #
-# find_package(gaol) then provides gaol::gaol, and gaol::ultim when mathlib was
-# built here.
+# find_package(gaol) then provides gaol::gaol, which carries the flags of
+# interval arithmetic. CORE-MATH is compiled into libgaol, so there is no
+# other target and nothing else to install.
 
 install(TARGETS gaol EXPORT gaolTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -701,7 +621,6 @@ install(FILES
   gaol/gaol
   ${GAOL_HEADERS}
   "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h"
-  "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_double_op.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol
 )
 install(FILES gaol/sysdeps/gaol_exact_c99.h gaol/sysdeps/gaol_exact_msvc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/sysdeps)
@@ -716,17 +635,12 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaolConfig.cmake" "${CMAKE_CURRENT_BI
   DESTINATION ${GAOL_INSTALL_CMAKEDIR})
 
 # The pkg-config file, for the builds that are not CMake (pkg-config --cflags
-# --libs gaol): the flags of interval arithmetic and mathlib, as gaol::gaol
-# carries them. Not with Visual C++, whose libraries pkg-config does not name.
+# --libs gaol): the flags of interval arithmetic, as gaol::gaol carries them.
+# No mathematical library is named any more: the functions of CORE-MATH are
+# compiled into libgaol itself. Not with Visual C++, whose libraries pkg-config
+# does not name.
 if(NOT MSVC)
-  if(GAOL_MATHLIB STREQUAL "ultim")
-    set(GAOL_PC_MATHLIB "-lultim")
-  elseif(GAOL_MATHLIB)
-    get_filename_component(_mathlib_libdir "${GAOL_MATHLIB}" DIRECTORY)
-    set(GAOL_PC_MATHLIB "-L${_mathlib_libdir} -lultim")
-  else()
-    set(GAOL_PC_MATHLIB "-lultim")
-  endif()
+  set(GAOL_PC_MATHLIB "")
   configure_file(cmake/gaol.pc.in "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()

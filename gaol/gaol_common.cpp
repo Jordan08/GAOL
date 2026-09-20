@@ -35,26 +35,16 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_expression.h"
 
-#if GAOL_USING_APMATHLIB
-#include "gaol/gaol_double_op_apmathlib.h"
-//    extern  unsigned short Init_Lib();
-//	extern  void Exit_Lib(unsigned short);
-#elif GAOL_USING_CRLIBM
-#include "gaol/gaol_double_op_crlibm.h"
-//	extern unsigned long long crlibm_init(void);
-//	extern  void crlibm_exit(unsigned long long);
-#endif
+#include "gaol/gaol_double_op.h"
 
 namespace gaol {
 
   extern void gaol_init_lib(void);
 
-  // Saves the state of the FPU at init time to be restored at the end.
-#if GAOL_USING_APMATHLIB
-  static unsigned short save_fpu_state; // What Init_Lib() returns and Exit_Lib() takes
-#elif GAOL_USING_CRLIBM
-  static unsigned long long save_fpu_state_crlibm;
-#endif
+  /* CORE-MATH has no state to save and no library to initialise: it computes
+     in the rounding direction in effect, and changes nothing of the
+     floating-point environment (fork of GAOL, which had to call mathlib's
+     Init_Lib() before setting the direction, and CRlibm's crlibm_init()). */
 
   static bool _already_cleaned = false;
   static bool _already_initialized = false;
@@ -63,20 +53,9 @@ namespace gaol {
 
 	bool init(int dbg_lvl)
 	{
-		/*
-       		Call Initialization of MathLib.
-       		NOTE: it is crucial to call Init_Lib() at the very beginning of this
-       		function to avoid having MathLib messing with the FPU state set by
-       		gaol.
-    	*/
 		if (!_already_initialized) {
 			debug_level = dbg_lvl;
 
-#if GAOL_USING_APMATHLIB
-           save_fpu_state = Init_Lib();
-#elif GAOL_USING_CRLIBM
-            save_fpu_state_crlibm = ::crlibm_init();
-#endif
 #if !GAOL_PRESERVE_ROUNDING
 	fesetenv(FE_DFL_ENV);
 	round_upward();
@@ -106,11 +85,6 @@ namespace gaol {
   bool cleanup(void)
   {
     if (!_already_cleaned) {
-#if GAOL_USING_APMATHLIB
-		Exit_Lib(save_fpu_state);
-#elif GAOL_USING_CRLIBM
-		::crlibm_exit(save_fpu_state_crlibm);
-#endif
 		delete the_null_expr;
 		_already_cleaned=true;
 		return true;

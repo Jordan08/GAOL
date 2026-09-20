@@ -37,11 +37,7 @@
 #include <limits>
 #include <type_traits>
 #include "gaol/gaol_config.h"
-#if defined (_MSC_VER) || defined (__MINGW32__)
-#	include "gaol/gaol_double_op_apmathlib.h"
-#else
-#	include "gaol/gaol_double_op.h"
-#endif // _MSC_VER
+#include "gaol/gaol_double_op.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"

@@ -1371,9 +1371,7 @@ interval nth_root(const interval& I, unsigned int n)
 
     // log(1) = 0 exactly: log([1]) was [-2^-1074, 2^-1074] (fork of GAOL)
     const double l = maximum(0.0,I.left()), r = I.right();
-#if defined(GAOL_CORE_MATH_LOG) && GAOL_CORE_MATH_LOG
-    // CORE-MATH's log, with mathlib and CRlibm, where the compiler has a
-    // 128-bit integer type (see gaol/gaol_core_math.h), correctly rounded in
+    // CORE-MATH's log, correctly rounded in
     // the rounding direction in effect (fork of GAOL): in the upward rounding
     // GAOL computes in, RU(log r) is the right bound, and RD(log l) =
     // pred(RU(log l)) the left one, log(l) being no double for l other than 1.
@@ -1385,12 +1383,6 @@ interval nth_root(const interval& I, unsigned int n)
     const double u = (l == 1.0) ? 0.0 : previous_float(gaol_cr_log(l));
     const double v = (r == 1.0) ? 0.0 : gaol_cr_log(r);
     GAOL_RND_LEAVE();
-#else
-    GAOL_RND_NEAREST_ENTER();
-    const double u = (l == 1.0) ? 0.0 : nearest::log_dn(l);
-    const double v = (r == 1.0) ? 0.0 : nearest::log_up(r);
-    GAOL_RND_NEAREST_LEAVE();
-#endif
     return interval(u, v);
   }
 

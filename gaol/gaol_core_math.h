@@ -1,23 +1,21 @@
 /*-*-C-*---------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * The hyperbolic functions of CORE-MATH (https://core-math.gitlabpages.inria.fr,
- * MIT licence, see 3rd/core-math), correctly rounded in double precision:
- * the double they return is the one the rounding direction in effect gives
- * of the exact value. GAOL bounds sinh, cosh, tanh, asinh, acosh and atanh
- * with them (fork of GAOL, issue #1): neither mathlib nor CRlibm has them all,
- * and the ones of the math library of the system, which GAOL took, are not
- * accurate enough on every system for their values moved outward to be
- * bounds. GAOL bounds log with CORE-MATH's too, where the compiler has a
- * 128-bit integer type, which its accurate phase computes with
- * (GAOL_CORE_MATH_LOG: __int128 of GCC and Clang for 64-bit targets), and
- * with mathlib's elsewhere (Visual C++, 32-bit targets): correctly rounded in
- * the upward rounding GAOL computes in, it gives the tightest bounds without
- * switching the rounding direction, twice as fast as mathlib's log moved
- * outward (fork of GAOL).
+ * The elementary functions of CORE-MATH (https://core-math.gitlabpages.inria.fr,
+ * MIT licence, see 3rd/math-core), correctly rounded in double precision: the
+ * double each returns is the one the rounding direction in effect gives of
+ * the exact value.
  *
- * Their sources are gaol/core_math_*.c, compiled into GAOL's library under
- * the names below (gaol/core_math_port.h).
+ * GAOL bounds every one of its elementary functions with them, on every
+ * architecture and with every compiler (fork of GAOL): computed in the upward
+ * rounding GAOL keeps, they give the tightest bounds without switching the
+ * rounding direction, where the functions of mathlib, correctly rounded to
+ * nearest only, had to be moved one double outward, and where those of the
+ * math library of the system are not accurate enough for that to be a bound.
+ *
+ * Their sources are those of CORE-MATH, in 3rd/math-core/src/binary64,
+ * compiled into GAOL's library under the names below, the three builds
+ * including gaol/core_math_port.h in each of them (`-include`, `/FI`).
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -32,25 +30,26 @@
 #  define GAOL_CORE_MATH_PUBLIC
 #endif
 
-#if defined(__SIZEOF_INT128__)
-#  define GAOL_CORE_MATH_LOG 1
-#else
-#  define GAOL_CORE_MATH_LOG 0
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+GAOL_CORE_MATH_PUBLIC double gaol_cr_exp(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_log(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_pow(double x, double y);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_sin(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_cos(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_tan(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_asin(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_acos(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_atan(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_atan2(double y, double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_sinh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_cosh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_tanh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_asinh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_acosh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_atanh(double x);
-#if GAOL_CORE_MATH_LOG
-GAOL_CORE_MATH_PUBLIC double gaol_cr_log(double x);
-#endif
 
 #ifdef __cplusplus
 }

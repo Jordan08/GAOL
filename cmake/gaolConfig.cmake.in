@@ -6,8 +6,8 @@
 # gaol::gaol carries GAOL's include directory, the compilation flags interval
 # arithmetic needs (-frounding-math, -ffp-contract=off, /fp:strict...), the
 # flag of the fused multiply-add instructions GAOL is compiled with (-mfma,
-# /arch:AVX2..., GAOL_FMA), and mathlib (gaol::ultim when it was built along
-# with GAOL).
+# /arch:AVX2..., GAOL_FMA). The elementary functions come from CORE-MATH, whose
+# sources are compiled into libgaol: there is no other library to link.
 
 @PACKAGE_INIT@
 
