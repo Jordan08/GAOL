@@ -28,7 +28,7 @@ pred(MAX) the one below it.
 
 | Library | Version | Intervals |
 |---|---|---|
-| GAOL | v5 | `gaol::interval`, CMake Release build, SSE2 intervals, mathlib 2.1.1 |
+| GAOL | v5 | `gaol::interval`, CMake Release build, SSE2 intervals, CORE-MATH |
 | libieeep1788 | last commit, 30 March 2015 | `interval<double, mpfr_bin_ieee754_flavor>`: the set-based flavor of the preliminary IEEE P1788, on doubles, computed with MPFR |
 | filib++ | 3.0.2.2, as IBEX distributes it | `interval<double, native_switched, i_mode_extended_flag>`, the intervals of IBEX built with filib++: the extended mode, where the infinities and the empty set are intervals |
 | PROFIL/BIAS | 2.0.8 (2009), configuration `x86-64-Linux-compat-gcc` | `INTERVAL` of PROFIL, on the BIAS routines, which set the rounding direction for each operation; no empty set |
