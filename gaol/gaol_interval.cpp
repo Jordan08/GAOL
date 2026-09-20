@@ -271,15 +271,15 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     acosh(1) = 0, cosh(x) and sinh(x) beyond the largest double for x >= 711,
     and tanh(x) above the double below 1 for x >= 20, 2 exp(-2x) being below
     2^-54 there.
-    They are called between GAOL_RND_NEAREST_ENTER() and
-    GAOL_RND_NEAREST_LEAVE(), as the functions of gaol::nearest they call.
+    They are called between GAOL_RND_ENTER() and
+    GAOL_RND_LEAVE(), as the functions of gaol::nearest they call.
   */
-  static inline double sin_lo(double x) { return (x == 0.0) ? 0.0 : nearest::sin_dn(x); }
-  static inline double sin_hi(double x) { return (x == 0.0) ? 0.0 : nearest::sin_up(x); }
-  static inline double cos_lo(double x) { return (x == 0.0) ? 1.0 : nearest::cos_dn(x); }
-  static inline double cos_hi(double x) { return (x == 0.0) ? 1.0 : nearest::cos_up(x); }
-  static inline double tan_lo(double x) { return (x == 0.0) ? 0.0 : nearest::tan_dn(x); }
-  static inline double tan_hi(double x) { return (x == 0.0) ? 0.0 : nearest::tan_up(x); }
+  static inline double sin_lo(double x) { return (x == 0.0) ? 0.0 : sin_dn(x); }
+  static inline double sin_hi(double x) { return (x == 0.0) ? 0.0 : sin_up(x); }
+  static inline double cos_lo(double x) { return (x == 0.0) ? 1.0 : cos_dn(x); }
+  static inline double cos_hi(double x) { return (x == 0.0) ? 1.0 : cos_up(x); }
+  static inline double tan_lo(double x) { return (x == 0.0) ? 0.0 : tan_dn(x); }
+  static inline double tan_hi(double x) { return (x == 0.0) ? 0.0 : tan_up(x); }
 
   /*
     The signs of sin(x) and cos(x), x being finite (fork of GAOL, issue #6).
@@ -287,14 +287,14 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     closest one, 6381956970095103 2^797, has a cosine of 4.7e-19, so that the
     value of the mathematical library, moved one double downward, still has
     the sign of the function. Next to 0 the sign is known from x. Rounding to nearest
-    (GAOL_RND_NEAREST_ENTER()).
+    (GAOL_RND_ENTER()).
   */
   static inline int sign_of_sin(double x)
   {
     if (std::fabs(x) < 3.0) {
       return (x > 0.0) - (x < 0.0);
     }
-    return (nearest::sin_dn(x) > 0.0) ? 1 : -1;
+    return (sin_dn(x) > 0.0) ? 1 : -1;
   }
 
   static inline int sign_of_cos(double x)
@@ -302,27 +302,27 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (std::fabs(x) < 1.5) {
       return 1;
     }
-    return (nearest::cos_dn(x) > 0.0) ? 1 : -1;
+    return (cos_dn(x) > 0.0) ? 1 : -1;
   }
 
   static double asin_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_dn : ((x == -1.0) ? -half_pi_up : nearest::asin_dn(x)));
+    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_dn : ((x == -1.0) ? -half_pi_up : asin_dn(x)));
   }
 
   static double asin_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_up : ((x == -1.0) ? -half_pi_dn : nearest::asin_up(x)));
+    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_up : ((x == -1.0) ? -half_pi_dn : asin_up(x)));
   }
 
   static double acos_lo(double x)
   {
-    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_dn : ((x == -1.0) ? pi_dn : nearest::acos_dn(x)));
+    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_dn : ((x == -1.0) ? pi_dn : acos_dn(x)));
   }
 
   static double acos_hi(double x)
   {
-    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_up : ((x == -1.0) ? pi_up : nearest::acos_up(x)));
+    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_up : ((x == -1.0) ? pi_up : acos_up(x)));
   }
 
   // pi/4 is half of pi/2, exactly
@@ -336,7 +336,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? half_pi_dn*b : -half_pi_up*b;
     }
-    return nearest::atan_dn(x);
+    return atan_dn(x);
   }
 
   static double atan_hi(double x)
@@ -349,7 +349,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? half_pi_up*b : -half_pi_dn*b;
     }
-    return nearest::atan_up(x);
+    return atan_up(x);
   }
 
   /*
@@ -373,7 +373,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (x == std::fabs(y)) {
       return (y > 0.0) ? half_pi_dn*0.5 : -half_pi_up*0.5;
     }
-    return maximum(nearest::atan2_dn(y,x), -pi_up);
+    return maximum(atan2_dn(y,x), -pi_up);
   }
 
   static double atan2_hi(double y, double x)
@@ -390,58 +390,58 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (x == std::fabs(y)) {
       return (y > 0.0) ? half_pi_up*0.5 : -half_pi_dn*0.5;
     }
-    return minimum(nearest::atan2_up(y,x), pi_up);
+    return minimum(atan2_up(y,x), pi_up);
   }
 
   // x^y for x > 0: 1 for x = 1 or y = 0, and at least 0
   static inline double pow_lo(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(nearest::nthroot_dn(x,y), 0.0);
+    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(nthroot_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : nearest::nthroot_up(x,y);
+    return (x == 1.0 || y == 0.0) ? 1.0 : nthroot_up(x,y);
   }
 
   static inline double sinh_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x >= 711.0) ? std::numeric_limits<double>::max() : nearest::sinh_dn(x));
+    return (x == 0.0) ? 0.0 : ((x >= 711.0) ? std::numeric_limits<double>::max() : sinh_dn(x));
   }
 
   static inline double sinh_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x <= -711.0) ? -std::numeric_limits<double>::max() : nearest::sinh_up(x));
+    return (x == 0.0) ? 0.0 : ((x <= -711.0) ? -std::numeric_limits<double>::max() : sinh_up(x));
   }
 
   // cosh(x), cosh(-x): the lower bound for |x|, the upper bound for 0
   static inline double cosh_lo(double x)
   {
-    return (x == 0.0) ? 1.0 : ((std::fabs(x) >= 711.0) ? std::numeric_limits<double>::max() : nearest::cosh_dn(x));
+    return (x == 0.0) ? 1.0 : ((std::fabs(x) >= 711.0) ? std::numeric_limits<double>::max() : cosh_dn(x));
   }
 
   static inline double cosh_hi(double x)
   {
-    return (x == 0.0) ? 1.0 : nearest::cosh_up(x);
+    return (x == 0.0) ? 1.0 : cosh_up(x);
   }
 
   // 1 - 2^-53, the double below 1, exactly
   static inline double tanh_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x >= 20.0) ? 1.0 - 0.5*std::numeric_limits<double>::epsilon() : nearest::tanh_dn(x));
+    return (x == 0.0) ? 0.0 : ((x >= 20.0) ? 1.0 - 0.5*std::numeric_limits<double>::epsilon() : tanh_dn(x));
   }
 
   static inline double tanh_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x <= -20.0) ? -(1.0 - 0.5*std::numeric_limits<double>::epsilon()) : nearest::tanh_up(x));
+    return (x == 0.0) ? 0.0 : ((x <= -20.0) ? -(1.0 - 0.5*std::numeric_limits<double>::epsilon()) : tanh_up(x));
   }
 
-  static inline double asinh_lo(double x) { return (x == 0.0) ? 0.0 : nearest::asinh_dn(x); }
-  static inline double asinh_hi(double x) { return (x == 0.0) ? 0.0 : nearest::asinh_up(x); }
-  static inline double acosh_lo(double x) { return (x == 1.0) ? 0.0 : nearest::acosh_dn(x); }
-  static inline double acosh_hi(double x) { return (x == 1.0) ? 0.0 : nearest::acosh_up(x); }
-  static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : nearest::atanh_dn(x); }
-  static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : nearest::atanh_up(x); }
+  static inline double asinh_lo(double x) { return (x == 0.0) ? 0.0 : asinh_dn(x); }
+  static inline double asinh_hi(double x) { return (x == 0.0) ? 0.0 : asinh_up(x); }
+  static inline double acosh_lo(double x) { return (x == 1.0) ? 0.0 : acosh_dn(x); }
+  static inline double acosh_hi(double x) { return (x == 1.0) ? 0.0 : acosh_up(x); }
+  static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : atanh_dn(x); }
+  static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : atanh_up(x); }
 
   /*
     \brief test for evenness
@@ -966,7 +966,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     const double dmax = (std::numeric_limits<double>::max)();
     if (xu <= dmax && yl >= -dmax && yu <= dmax && (xl > 0.0 || yl > 0.0)) {
       double l, r;
-      GAOL_RND_NEAREST_ENTER();
+      GAOL_RND_ENTER();
       if (xl == 0.0) {
         l = 0.0;
         r = pow_hi(xu, (xu >= 1.0) ? yu : yl);
@@ -980,7 +980,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
         l = minimum(pow_lo(xl, yu), pow_lo(xu, yl));
         r = maximum(pow_hi(xl, yl), pow_hi(xu, yu));
       }
-      GAOL_RND_NEAREST_LEAVE();
+      GAOL_RND_LEAVE();
       return interval(l,r);
     }
     return exp(J*log(base));
@@ -1240,7 +1240,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   /*
     The power d^e of the mathematical library, e being 1/n rounded, for the
     approximation the n-th root of d starts from. The roots of 0, 1 and +oo are
-    themselves. Rounding to nearest (GAOL_RND_NEAREST_ENTER())
+    themselves. Rounding to nearest (GAOL_RND_ENTER())
   */
   static inline bool root_is_itself(double d)
   {
@@ -1249,7 +1249,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
   static inline double root_near(double d, double e)
   {
-    return root_is_itself(d) ? d : nearest::nthroot_up(d,e);
+    return root_is_itself(d) ? d : nthroot_up(d,e);
   }
 
   // Rounding upward
@@ -1269,13 +1269,13 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   */
   static void near_roots(double a, double b, unsigned int n, double& near_a, double& near_b)
   {
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     const double e = 1.0/double(n);
     near_a = root_near(a,e);
     near_b = (b == a) ? near_a : root_near(b,e);
     GAOL_RND_KEEP(near_a);
     GAOL_RND_KEEP(near_b);
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
   }
 
   /*
@@ -1353,10 +1353,10 @@ interval nth_root(const interval& I, unsigned int n)
     // outward gave exp([0]) a width, and pow([1], [-oo, +oo]) = [0, +oo]
     // (fork of GAOL)
     const double l = I.left(), r = I.right();
-    GAOL_RND_NEAREST_ENTER();
-    const double u = (l == 0.0) ? 1.0 : nearest::exp_dn(l);
-    const double v = (r == 0.0) ? 1.0 : nearest::exp_up(r);
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_ENTER();
+    const double u = (l == 0.0) ? 1.0 : exp_dn(l);
+    const double v = (r == 0.0) ? 1.0 : exp_up(r);
+    GAOL_RND_LEAVE();
     return interval(maximum(0.0,u), v);
   }
 
@@ -1478,7 +1478,7 @@ interval nth_root(const interval& I, unsigned int n)
     }
     // Rounded upward
     const bool narrower_than_pi = (r - l < pi_dn);
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     if (!told && narrower_than_pi) {
       no_pole = (sign_of_cos(l) == sign_of_cos(r));
     }
@@ -1487,7 +1487,7 @@ interval nth_root(const interval& I, unsigned int n)
       u = tan_lo(l);
       v = tan_hi(r);
     }
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
     GAOL_RND_LEAVE();
     return interval(u,v);
@@ -1503,9 +1503,9 @@ interval nth_root(const interval& I, unsigned int n)
       return interval::emptyset();
     }
 
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     const double l = acos_lo(J.right()), r = acos_hi(J.left());
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
@@ -1517,9 +1517,9 @@ interval nth_root(const interval& I, unsigned int n)
     if (J.is_empty()) {
       return interval::emptyset();
     }
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     const double l = asin_lo(J.left()), r = asin_hi(J.right());
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
@@ -1528,9 +1528,9 @@ interval nth_root(const interval& I, unsigned int n)
 	if (I.is_empty()) {
 	  return I;
 	}
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     const double l = atan_lo(I.left()), r = atan_hi(I.right());
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
@@ -1556,7 +1556,7 @@ interval nth_root(const interval& I, unsigned int n)
       return interval(-pi_up, pi_up);
     }
     double l, r;
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     if (yl >= 0.0) { // Upper half-plane: the angle decreases with x
       // The least angle is at the right of the box, at the bottom if x > 0
       // there and at the top otherwise, and the greatest at the left. The box
@@ -1571,7 +1571,7 @@ interval nth_root(const interval& I, unsigned int n)
       l = atan2_lo(yl, xl);
       r = (yu == 0.0) ? ((xu == 0.0) ? -half_pi_dn : 0.0) : atan2_hi(yu, xl);
     }
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
@@ -1581,7 +1581,7 @@ interval nth_root(const interval& I, unsigned int n)
 		return I;
 	}
     double l, r;
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     if (I.right() < 0) {
       l = cosh_lo(I.right());
       r = cosh_hi(I.left());
@@ -1593,7 +1593,7 @@ interval nth_root(const interval& I, unsigned int n)
       l = 1.0;
       r = cosh_hi((abs_l >= I.right()) ? abs_l : I.right());
     }
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
@@ -1602,9 +1602,9 @@ interval nth_root(const interval& I, unsigned int n)
 	if (I.is_empty()) {
 		return I;
 	}
-	GAOL_RND_NEAREST_ENTER();
+	GAOL_RND_ENTER();
 	const double l = sinh_lo(I.left()), r = sinh_hi(I.right());
-	GAOL_RND_NEAREST_LEAVE();
+	GAOL_RND_LEAVE();
 	return interval(l,r);
   }
 
@@ -1613,9 +1613,9 @@ interval nth_root(const interval& I, unsigned int n)
 	if (I.is_empty()) {
 		return I;
 	}
-	GAOL_RND_NEAREST_ENTER();
+	GAOL_RND_ENTER();
 	const double l = tanh_lo(I.left()), r = tanh_hi(I.right());
-	GAOL_RND_NEAREST_LEAVE();
+	GAOL_RND_LEAVE();
 	return interval(l,r) & interval::minus_one_plus_one();
   }
 
@@ -1628,9 +1628,9 @@ interval nth_root(const interval& I, unsigned int n)
       return J;
     }
 
-  	GAOL_RND_NEAREST_ENTER();
+  	GAOL_RND_ENTER();
   	const double l = acosh_lo(J.left()), r = acosh_hi(J.right());
-  	GAOL_RND_NEAREST_LEAVE();
+  	GAOL_RND_LEAVE();
   	return interval(l,r);
   }
 
@@ -1642,9 +1642,9 @@ interval nth_root(const interval& I, unsigned int n)
       return I;
     }
 
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     const double l = asinh_lo(I.left()), r = asinh_hi(I.right());
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
 
   }
@@ -1655,9 +1655,9 @@ interval nth_root(const interval& I, unsigned int n)
     if (J.is_empty()) {
       return interval::emptyset();
     }
-    GAOL_RND_NEAREST_ENTER();
+    GAOL_RND_ENTER();
     const double l = atanh_lo(J.left()), r = atanh_hi(J.right());
-    GAOL_RND_NEAREST_LEAVE();
+    GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
@@ -2115,7 +2115,7 @@ interval nth_root(const interval& I, unsigned int n)
     if (nm < 2.0) {
       // even(m)? No conversion to int in order to avoid overflow
       const bool even_m = feven(m);
-      GAOL_RND_NEAREST_ENTER();
+      GAOL_RND_ENTER();
       if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
 	u = sine ? sin_lo(Iright) : cos_lo(Iright);
 	v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
@@ -2123,7 +2123,7 @@ interval nth_root(const interval& I, unsigned int n)
 	u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
 	v = sine ? sin_hi(Iright) : cos_hi(Iright);
       }
-      GAOL_RND_NEAREST_LEAVE();
+      GAOL_RND_LEAVE();
     } else {
       // The width of I, rounded upward: both extrema from 2 pi on, or for
       // infinite bounds
@@ -2155,7 +2155,7 @@ interval nth_root(const interval& I, unsigned int n)
       }
       const bool even_m = feven(m);
 
-      GAOL_RND_NEAREST_ENTER();
+      GAOL_RND_ENTER();
       // -1: a minimum within I; 1: a maximum; 0: none; 2: both
       int extremum;
       if (sure) {
@@ -2205,7 +2205,7 @@ interval nth_root(const interval& I, unsigned int n)
 	u = -1.0;
 	v = 1.0;
       }
-      GAOL_RND_NEAREST_LEAVE();
+      GAOL_RND_LEAVE();
     }
     // The values of the mathematical library moved outward may leave [-1,1]
     // (fork of GAOL)

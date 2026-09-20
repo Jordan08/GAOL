@@ -14,6 +14,10 @@ set(GAOL_TESTS
   numbers
   other_functions
   reverse
+  # The 128-bit integer GAOL computes the accurate phases of CORE-MATH with
+  # where the compiler has none, and the bounds CORE-MATH gives (fork of GAOL)
+  u128
+  core_math
 )
 
 foreach(test ${GAOL_TESTS})

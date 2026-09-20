@@ -413,7 +413,9 @@ mul_dint (dint64_t *r, const dint64_t *a, const dint64_t *b) {
   /* there can be no overflow in the following addition since r <= (B-1)^2
      with B=2^64, (m1>>64) <= B-1 and (m2>>64) <= B-1, thus the sum is
      bounded by (B-1)^2+2*(B-1) = B^2-1 */
-  r->r = gaol_u128_add64(r->r, gaol_u128_hi(m1) + gaol_u128_hi(m2)); /* GAOL */
+  /* GAOL: the sum of the two high halves can reach 2^65 - 2, so it is added
+     on 128 bits, as (m1 >> 64) + (m2 >> 64) was */
+  r->r = gaol_u128_add(r->r, gaol_u128_add(gaol_u128_of(gaol_u128_hi(m1)), gaol_u128_of(gaol_u128_hi(m2))));
 
   // Ensure that r->hi starts with a 1
   uint64_t ex = r->hi >> 63;
