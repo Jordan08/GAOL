@@ -77,38 +77,24 @@ option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with 
 # where the compiler has a 128-bit type: the code Visual C++ and the 32-bit
 # targets of GCC take, run on an ordinary machine (tests/u128.cpp compares the
 # two paths, and the continuous integration builds GAOL this way)
-# -flto -ffat-lto-objects: GAOL_LTO is on by default where the compiler takes
-# them (see below)
-include(CheckCXXCompilerFlag)
-set(_gaol_lto_flags -flto -ffat-lto-objects)
-if(MSVC)
-  set(_gaol_lto_flags "")
-  set(_gaol_lto_default OFF)
-else()
-  check_cxx_compiler_flag("-flto -ffat-lto-objects" GAOL_COMPILER_SUPPORTS_FAT_LTO)
-  if(GAOL_COMPILER_SUPPORTS_FAT_LTO)
-    set(_gaol_lto_default ON)
-  else()
-    set(_gaol_lto_default OFF)
-  endif()
-endif()
+# Interprocedural optimization (link-time optimization) is not offered
+#
+# It made GAOL's basic operations about twice as fast where the code using GAOL
+# was compiled with it too (an addition of intervals took 1.48 ns rather than
+# 3.02 on an Intel i7-1185G7 with GCC 9 at -O3), and it **breaks the bounds**:
+# compiled with it, GAOL failed tests/rounding_direction.cpp, which checks that
+# an operation gives the same result whatever the rounding direction the
+# calling code left. With GAOL_PRESERVE_ROUNDING, interval("sin(1)+exp(0.1)")
+# gave an upper bound one double below the right one when the caller left the
+# direction downward or toward zero: the compiler moves floating-point
+# operations across the changes of rounding direction, which -frounding-math is
+# meant to forbid and which it does not across translation units.
+#
+# GAOL's whole point is that its intervals enclose the exact values, so there is
+# no option for this (fork of GAOL, see doc/three-builds.md). The sources of
+# CORE-MATH are compiled apart all the same, which keeps a -flto given by hand
+# away from them.
 
-# Interprocedural optimization (link-time optimization) for GAOL's own sources,
-# which lets the compiler inline GAOL's operations into the code using them:
-# on an Intel i7-1185G7 with GCC 9, x + y then took 1.48 ns rather than 3.02,
-# x - y 1.35 rather than 3.11, sqr(x) 2.28 rather than 3.32, sqrt(x) 6.35
-# rather than 8.65 and pow(x, 3) 12.03 rather than 15.66.
-#
-# ON by default, with -ffat-lto-objects: the objects then hold the ordinary
-# machine code as well as the intermediate representation of the compiler, so
-# the library links as it always did, with any compiler, and the program that
-# is itself compiled with -flto gets the inlining as well. Without that flag
-# the library would only link with the compiler that built it, so GAOL_LTO is
-# OFF by default where the compiler has not got it.
-#
-# The sources of CORE-MATH are compiled apart and never reached by it: sin and
-# cos took 82 and 93 ns rather than 58 and 61 when they were.
-option(GAOL_LTO "Compile GAOL's own sources with interprocedural optimization, so that the code using GAOL can inline its operations" ${_gaol_lto_default})
 
 option(GAOL_U128_EMULATION "Compute the 128-bit integer of the accurate phases with two 64-bit halves, as where the compiler has no 128-bit type" OFF)
 
@@ -570,18 +556,6 @@ target_include_directories(gaol_core_math PRIVATE
 
 add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
 
-if(GAOL_LTO AND _gaol_lto_flags)
-  message(STATUS "Interprocedural optimization: ON for GAOL's sources (-flto -ffat-lto-objects; CORE-MATH is compiled apart, without it)")
-  # PUBLIC on the compile options only: the code using GAOL is not forced to
-  # compile with -flto, and gets the inlining when it does
-  target_compile_options(gaol PRIVATE ${_gaol_lto_flags})
-  target_link_options(gaol PRIVATE ${_gaol_lto_flags})
-elseif(GAOL_LTO)
-  message(WARNING
-    "GAOL_LTO is ON but ${CMAKE_CXX_COMPILER_ID} has no -ffat-lto-objects: an installed GAOL compiled with "
-    "-flto alone only links with the compiler that built it. Compile with -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON "
-    "for the whole build instead.")
-endif()
 
 if(GAOL_U128_EMULATION)
   message(STATUS "128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target")

@@ -17165,6 +17165,7 @@ if test "${core_math_takes_fno_lto}" = yes; then
    CORE_MATH_NO_LTO="-fno-lto"
 fi
 
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)" >&5
 $as_echo "$as_me: elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)" >&6;}
 MATHLIB=""

@@ -379,6 +379,7 @@ if test "${core_math_takes_fno_lto}" = yes; then
    CORE_MATH_NO_LTO="-fno-lto"
 fi
 AC_SUBST([CORE_MATH_NO_LTO])
+
 AC_MSG_NOTICE([elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)])
 MATHLIB=""
 AC_SUBST([MATHLIB])

@@ -76,27 +76,21 @@ nanoseconds per operation (fork of GAOL):
   (x + y 3.02 ns rather than 3.30), and cost a little on the division (6.4
   rather than 5.8). They are on by default on x86 processors. The elementary
   functions do not go through them.
-- **Interprocedural optimization makes the basic operations twice as fast.**
-  The gain comes from inlining GAOL's operations into the calling code, so it
-  appears in the program that is itself compiled with `-flto`; a program
-  compiled without it runs exactly as before. It is on by default
-  (`GAOL_LTO`, `-flto -ffat-lto-objects`), and the sources of CORE-MATH are
-  compiled apart and never reached by it: reached by it, sin and cos took 82
-  and 93 ns rather than 58 and 61. How to use it:
-
-  | Build | GAOL | The program using GAOL |
-  |---|---|---|
-  | CMake | on by default; `-DGAOL_LTO=OFF` to turn it off | `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, or `-flto` in its flags |
-  | autotools | `./configure CFLAGS="-O3 -flto" CXXFLAGS="-O3 -flto"` (the sources of CORE-MATH are given `-fno-lto`) | `-flto` in its flags |
-  | meson | `meson setup build -Db_lto=true` (CORE-MATH is left out with `b_lto=false`) | `-Db_lto=true`, or `-flto` in its flags |
-
-  `-ffat-lto-objects` is what makes it safe to have on by default: each object
-  holds the ordinary machine code as well as the intermediate representation of
-  the compiler, so the installed library links with any compiler and not only
-  with the one that built it. A GAOL built by GCC 9 was linked by Clang 18 and
-  gave the same bounds. Where the compiler has not got that flag, `GAOL_LTO` is
-  off by default.
-- `-fno-math-errno` was measured and changes nothing.
+- **Interprocedural optimization is not offered, because it breaks the
+  bounds.** Compiled with it (`-flto`), GAOL's basic operations are about twice
+  as fast where the code using GAOL is compiled with it too — an addition of
+  intervals took 1.48 ns rather than 3.02, a subtraction 1.35 rather than 3.11,
+  `sqr(x)` 2.28 rather than 3.32 at `-O3` — and GAOL then **fails
+  `tests/rounding_direction.cpp`**: with `GAOL_PRESERVE_ROUNDING`,
+  `interval("sin(1)+exp(0.1)")` gave an upper bound one double below the right
+  one when the calling code left the rounding direction downward or toward
+  zero. The compiler moves floating-point operations across the changes of
+  rounding direction, which `-frounding-math` is meant to forbid and which it
+  does not do across translation units; compiling GAOL's sources alone with it
+  is enough for the test to fail. An interval that does not enclose the exact
+  value is worse than a slow one, so there is no option for this, and `gaol.pc`
+  and `gaol::gaol` carry no such flag. The sources of CORE-MATH are compiled
+  apart all the same, which keeps a `-flto` given by hand away from them.
 
 ## Compilers and options refused
 
