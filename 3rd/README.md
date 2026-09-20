@@ -46,8 +46,14 @@ the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
 never name that header, so that importing a newer CORE-MATH stays a copy. That
 header gives them the names `gaol_cr_<f>()`, so that GAOL does not clash with a
 program or a C library holding CORE-MATH's functions too, the 128-bit integer
-of `gaol/gaol_u128.h`, and what Visual C++ has not of GCC (`__builtin_clzll`,
-`__builtin_roundeven`, `__attribute__`...).
+of `gaol/gaol_u128.h`, what Visual C++ has not of GCC (`__builtin_clzll`,
+`__builtin_roundeven`, `__attribute__`...), the `roundeven()` the math library
+of Windows has not (`gaol/gaol_roundeven.h`, which GAOL's own sources use too),
+and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
+written on MXCSR: `cbrt`, `pow` and `atan2` keep the exception flags around
+their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
+well, which unmasks the exceptions and makes the first comparison of the NaN
+bounds of an empty interval trap.
 
 They are compiled with the flags of interval arithmetic, as CORE-MATH asks
 (`-frounding-math -ffp-contract=off`, `/fp:strict` for Visual C++), and with the

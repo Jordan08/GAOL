@@ -37,7 +37,11 @@ from. Each change is a commit of its own, and says where it comes from.
   - mingw-w64 is no longer refused for its version. The two reasons went with
     mathlib: the hyperbolic functions of its math library, which GAOL no longer
     uses, and the cost of its `fesetround()`, which GAOL no longer calls for
-    its elementary functions. MinGW-w64 11 to 15 are built and tested again.
+    its elementary functions. MinGW-w64 GCC 12 to 15 are built and tested again
+    on 32-bit x86, and 14 and 15 on x86-64; only those whose `<fenv.h>` answers
+    `fegetround()` from a state of its own are still refused, CORE-MATH's
+    functions reading it to know the direction GAOL sets by writing the
+    registers (`gaol/gaol_config.h`).
   - `tests/core_math.cpp` checks the bounds against CORE-MATH called in the
     downward and the upward rounding, `tests/expressions.cpp` the intervals
     read from a string, and `-DGAOL_COVERAGE=ON` writes the coverage of the
@@ -50,6 +54,11 @@ from. Each change is a commit of its own, and says where it comes from.
     10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
     are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
     its `dint.h` being that of `log` but for a constant.
+  - **`nth_root(x, 3)` is CORE-MATH's `cbrt`**, at the magnitudes of the bounds,
+    the root of a negative number being the opposite of the root of its
+    magnitude: the tightest bounds, and the exact value where the cube root is
+    a double, which cubing the value tells. It took 50 ns rather than 189 with
+    the search by bisection the other roots use (Intel i7-1185G7, Clang 18.1).
   - **`nth_root(x, q)` takes a negative q**, which IEEE 1788-2015 recommends
     (rootn over ℤ∖{0}, Table 10.5): x<sup>1/q</sup> is 1/x<sup>1/|q|</sup>,
     whose domain is ℝ∖{0} for an odd q and (0, +∞) for an even one.
@@ -221,12 +230,13 @@ from. Each change is a commit of its own, and says where it comes from.
     to 1, and its `asinh` NaN for large negative numbers. The branch
     `hyperbolic-rigorous` bounded them without the libm, from `exp` and `log`,
     6 to 45 times slower.
-  - **The sources** are `gaol/core_math_*.c`, one file for each function, as
-    CORE-MATH distributes them (MIT licence, [3rd/README.md](../3rd/README.md)),
-    compiled into GAOL's library under the names `gaol_cr_sinh()`...
-    (`gaol/gaol_core_math.h`). Two changes: `gaol/core_math_port.h` is included,
-    which gives Visual C++ the builtins of GCC they use; and `~0ul` is written
-    `~(u64)0` in three of them, `unsigned long` having 32 bits on Windows.
+  - **The sources** were `gaol/core_math_*.c`, one file for each function. Every
+    elementary function comes from CORE-MATH now, and its whole tree is vendored
+    in `3rd/math-core` (MIT licence), compiled into GAOL's library under the
+    names `gaol_cr_sinh()`... (`gaol/gaol_core_math.h`). The sources are kept as
+    CORE-MATH wrote them, `gaol/core_math_port.h` being force-included into each
+    of them by the compiler: [3rd/README.md](../3rd/README.md) lists what that
+    header gives and the two changes the vendored sources carry.
   - **Tightness and time** (Intel i7-1185G7, GCC 9.4, glibc 2.31), per
     interval: within 1 double rather than 3 or 4; `sinh()` 84 ns rather than
     131, `cosh()` 76 rather than 77, `tanh()` 105 rather than 127, `asinh()`
