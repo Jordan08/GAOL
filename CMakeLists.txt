@@ -391,7 +391,9 @@ message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
 
 set(GAOL_CORE_MATH_FUNCTIONS
   exp log pow sin cos tan asin acos atan atan2
-  sinh cosh tanh asinh acosh atanh)
+  sinh cosh tanh asinh acosh atanh
+  # cbrt, which nth_root(x, 3) takes (fork of GAOL)
+  cbrt)
 
 set(GAOL_CORE_MATH_SOURCES "")
 foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)

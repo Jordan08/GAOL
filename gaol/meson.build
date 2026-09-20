@@ -39,6 +39,8 @@ endif
 core_math_functions = [
   'exp', 'log', 'pow', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
   'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
+  # cbrt, which nth_root(x, 3) takes (fork of GAOL)
+  'cbrt',
 ]
 incdir = include_directories(['.', '..', './sysdeps'])
 

@@ -50,6 +50,7 @@ GAOL_CORE_MATH_PUBLIC double gaol_cr_tanh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_asinh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_acosh(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_atanh(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_cbrt(double x);
 
 #ifdef __cplusplus
 }

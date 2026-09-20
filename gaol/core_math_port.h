@@ -50,6 +50,7 @@
 #define cr_asinh gaol_cr_asinh
 #define cr_acosh gaol_cr_acosh
 #define cr_atanh gaol_cr_atanh
+#define cr_cbrt gaol_cr_cbrt
 
 #include "gaol/gaol_core_math.h"
 
