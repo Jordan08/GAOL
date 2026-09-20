@@ -28,6 +28,8 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
+
+#include <cstdio>
 #include "gaol/gaol_expr_eval.h"
 
 using namespace gaol;
@@ -335,15 +337,29 @@ namespace
 
 }
 
+namespace
+{
+  /* Written on the standard error as each part starts, and flushed, so that a
+     crash says where it happened: the test prints nothing else until its
+     summary, and a floating-point exception left no trace at all of where it
+     came from (MinGW-w64 for a 32-bit target, GAOL v5). */
+  void step(const char* what)
+  {
+    std::fprintf(stderr, "-- %s\n", what);
+    std::fflush(stderr);
+  }
+}
+
 int main()
 {
   gaol::init();
-  numbers();
-  operators();
-  functions();
-  wrong_strings();
-  decimals();
-  built_expressions();
+  step("numbers");           numbers();
+  step("operators");         operators();
+  step("functions");         functions();
+  step("wrong_strings");     wrong_strings();
+  step("decimals");          decimals();
+  step("built_expressions"); built_expressions();
+  step("summary");
   const int status = summary();
   gaol::cleanup();
   return status;

@@ -613,15 +613,35 @@ namespace
     return v;
   }
 
-  // roundTiesToEven and roundTiesToAway, computed in the rounding to nearest
-  // and away from GAOL, as references
-  double to_nearest(double (*f)(double), double x)
+  /* roundTiesToEven, computed without reading the rounding direction and
+     without changing it.
+
+     std::nearbyint in the rounding to nearest was the reference at first, set
+     with std::fesetround around the call. That is not sound: without
+     FENV_ACCESS a compiler may move a floating-point operation across a call
+     that changes the direction, and one did -- on 64-bit ARM nearbyint is the
+     single instruction frintx, which GCC hoisted out, so the reference was
+     computed in the upward rounding GAOL leaves and roundTiesToEven(-199.5)
+     was said to be -199 rather than -200.
+
+     Here floor, the subtraction, the addition and fmod are all exact for the
+     arguments they are given, so the result does not depend on the direction
+     at all. */
+  double reference_ties_to_even(double x)
   {
-    const int save = std::fegetround();
-    std::fesetround(FE_TONEAREST);
-    const double r = f(x);
-    std::fesetround(save);
-    return r;
+    if (!(std::fabs(x) < 0x1p52)) {
+      return x; // an integer already, or an infinity
+    }
+    const double f = std::floor(x);
+    const double d = x - f; // exact, and 0 <= d < 1
+    if (d > 0.5) {
+      return f + 1.0;
+    }
+    if (d < 0.5) {
+      return f;
+    }
+    // a tie: the even one of f and f+1
+    return (std::fmod(f, 2.0) == 0.0) ? f : f + 1.0;
   }
 
   void integer_functions()
@@ -652,12 +672,14 @@ namespace
             [&] { return "sign(" + hex(x) + ")"; });
       check("trunc: toward zero", trunc(I).left() == std::trunc(x) && trunc(I).right() == std::trunc(x),
             [&] { return "trunc(" + hex(x) + ")"; });
-      const double e = to_nearest(std::nearbyint, x);
+      const double e = reference_ties_to_even(x);
       check("roundTiesToEven: the nearest integer, ties to the even one",
             round_ties_to_even(I).left() == e && round_ties_to_even(I).right() == e,
             [&] { return "round_ties_to_even(" + hex(x) + ") = " + hex(round_ties_to_even(I).left())
                        + " rather than " + hex(e); });
-      const double a = to_nearest(std::round, x);
+      // std::round rounds ties away from zero "regardless of the current
+      // rounding direction", so it is called as it is
+      const double a = std::round(x);
       check("roundTiesToAway: the nearest integer, ties away from zero",
             round_ties_to_away(I).left() == a && round_ties_to_away(I).right() == a,
             [&] { return "round_ties_to_away(" + hex(x) + ")"; });
