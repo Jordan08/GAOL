@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the 128-bit unsigned integer of gaol/gaol_u128.h.
+ * Tests of GAOL v5: the 128-bit unsigned integer of gaol/gaol_u128.h.
  *
  * The accurate phases of CORE-MATH's log, sin, cos, tan, atan2 and pow compute
  * with a 128-bit unsigned integer, which Visual C++ has on no architecture and

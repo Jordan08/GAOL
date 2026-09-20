@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the arithmetic operations.
+ * Tests of GAOL v5: the arithmetic operations.
  *
  * On random doubles and intervals, the bounds are compared exactly with the
  * exact results: sums, differences, products, quotients, squares and inverses

@@ -31,8 +31,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
   tests stopped on an illegal instruction.
   GAOL's exact products (`std::fma()`) and CORE-MATH's functions then compute
   `fma()` with one instruction rather than with a call to the math library: on
-  an Intel i7-1185G7, `pow(x, 3)` of an interval took 21 ns rather than 29, and
-  `sin` and `cos` 9 % less with GCC 9.4. The code using GAOL is given the flag
+  an Intel i7-1185G7 with Clang 18.1, `pow(x, 3)` of an interval took 14.5 ns
+  rather than 21.1, and `sin` and `cos` 2.4 times less, measured in
+  [What the options are worth](#what-the-options-are-worth). The code using GAOL is given the flag
   too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
   `-ffp-contract=off` stays, which forbids the compiler to contract a
   multiplication and an addition into a fused one, as CORE-MATH asks and as

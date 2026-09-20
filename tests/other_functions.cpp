@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the other functions on intervals.
+ * Tests of GAOL v5: the other functions on intervals.
  *
  * On random intervals, and for the midpoints on intervals of subnormal bounds,
  * compared exactly with the exact results: midpoints (of gaol::intervalf too),

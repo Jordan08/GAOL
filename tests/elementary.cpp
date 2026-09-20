@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the elementary functions.
+ * Tests of GAOL v5: the elementary functions.
  *
  * The bounds GAOL computes are compared with the doubles on each side of the
  * exact values, computed with 2000 bits of precision (elementary_values.h,

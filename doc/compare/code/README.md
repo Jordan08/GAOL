@@ -52,8 +52,8 @@ CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance
 
 The tables of [performance.md](../performance.md) and
 [special_cases.md](../special_cases.md) were computed with Clang 18, in a work
-directory of its own (GCC 9.4 gives the same special cases, and the same
-results in the benchmark):
+directory of its own (GCC 9.4 gives the same special cases; its timings differ,
+the libraries not being compiled the same way):
 
 ```bash
 export CC=clang-18 CXX=clang++-18 WORK=$PWD/work/clang

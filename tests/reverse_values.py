@@ -2,7 +2,7 @@
 #---------------------------------------------------------------------------
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------
-# Tests of this fork of GAOL: generates reverse_values.h, the cases of the
+# Tests of GAOL v5: generates reverse_values.h, the cases of the
 # reverse functions of IEEE 1788-2015 (10.5.4, Table 10.1) tests/reverse.cpp
 # checks GAOL's relational functions with.
 #

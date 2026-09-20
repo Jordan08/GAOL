@@ -135,10 +135,10 @@ def main():
     out.append("")
     if reached:
         out.append("**The tests run %.1f %% of the lines of GAOL, above the %.0f %% "
-                   "this fork aims at.**" % (gaol_percent, TARGET))
+                   "GAOL v5 aims at.**" % (gaol_percent, TARGET))
     else:
         out.append("**The tests run %.1f %% of the lines of GAOL, below the %.0f %% "
-                   "this fork aims at**: the files at the top of the table below are "
+                   "GAOL v5 aims at**: the files at the top of the table below are "
                    "where the next tests are worth writing." % (gaol_percent, TARGET))
     out.append("")
     out.append("Branches: %.1f %% of those of GAOL are taken both ways."

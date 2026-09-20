@@ -48,7 +48,7 @@
     tanh, acosh and atanh (86 times for tanh), and the acosh() of MinGW-w64 11
     to 13 is millions of doubles away next to 1.
 
-  \author Frederic Goualard, then this fork
+  \author Frederic Goualard, then GAOL v5
 */
 
 #ifndef __gaol_double_op_h__
@@ -169,7 +169,7 @@ namespace gaol {
     (86 times for tanh), GAOL's asinh() did not enclose
     asinh(-0x1.ee84df02a8766p-4), nor its acosh() acosh(0x1.01fd62fff333fp+0),
     and the acosh() of MinGW-w64 11 to 13 is millions of doubles away next to 1.
-    This fork first moved the values of the libm three floats outward, which
+    GAOL v5 first moved the values of the libm three floats outward, which
     encloses the exact values as long as the libm is within two floats of them.
   */
   /*

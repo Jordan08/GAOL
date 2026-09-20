@@ -10,7 +10,7 @@ The line-by-line report is [coverage.html](coverage.html), one page holding its 
 |---|---:|---:|---:|---:|---|
 | **GAOL (`gaol/`)** | 3102 | 2716 | 386 | **87.6** | `██████████████████░░` |
 
-**The tests run 87.6 % of the lines of GAOL, above the 80 % this fork aims at.**
+**The tests run 87.6 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
 
 Branches: 66.5 % of those of GAOL are taken both ways.
 

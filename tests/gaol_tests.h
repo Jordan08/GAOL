@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: what they have in common.
+ * Tests of GAOL v5: what they have in common.
  *
  * The tests check the bounds GAOL computes against the exact results of the
  * operations, independently of GAOL and of the floating-point environment:

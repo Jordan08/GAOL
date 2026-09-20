@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: numbers, constants and constructors.
+ * Tests of GAOL v5: numbers, constants and constructors.
  *
  * An interval read from a number, interval("0.1"), has to be the tightest
  * interval of doubles enclosing it, and the double itself when the number is

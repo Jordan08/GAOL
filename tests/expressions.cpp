@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the intervals built from a string.
+ * Tests of GAOL v5: the intervals built from a string.
  *
  * interval("...") lexes the string, parses it into the tree of
  * gaol/gaol_expression.h, and evaluates that tree (gaol_expr_eval.h,

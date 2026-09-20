@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the rounding direction of the code using GAOL.
+ * Tests of GAOL v5: the rounding direction of the code using GAOL.
  *
  * GAOL computes its bounds with the rounding direction upward. By default,
  * each operation sets it upward when it is not, and leaves it upward; with

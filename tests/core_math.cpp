@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the bounds of the elementary functions against
+ * Tests of GAOL v5: the bounds of the elementary functions against
  * CORE-MATH itself.
  *
  * GAOL bounds every elementary function with CORE-MATH (gaol/gaol_core_math.h),

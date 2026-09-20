@@ -2,7 +2,7 @@
 #---------------------------------------------------------------------------
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------
-# Tests of this fork of GAOL: generates elementary_values.h, the values of the
+# Tests of GAOL v5: generates elementary_values.h, the values of the
 # elementary functions tests/elementary.cpp compares GAOL's bounds with.
 #
 # For each function f and argument x, a double, the table gives the greatest

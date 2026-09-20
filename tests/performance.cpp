@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Performance of this fork of GAOL, which the continuous integration prints.
+ * Performance of GAOL v5, which the continuous integration prints.
  *
  * The time per operation of GAOL's arithmetic and elementary functions, and
  * of the same operations on doubles, in nanoseconds: the median of 5 measures,

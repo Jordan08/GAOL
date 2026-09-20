@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the relational functions, against the reverse
+ * Tests of GAOL v5: the relational functions, against the reverse
  * functions of IEEE 1788-2015 (10.5.4, Table 10.1).
  *
  * IEEE 1788 defines fRev(c, x) = hull{ x in x | f(x) is defined and in c } and
