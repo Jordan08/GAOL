@@ -1,2 +1,5 @@
+# every working tree of the benchmark: the sources it downloads and what it
+# builds from them, which are not GAOL's and must not be committed
 work/
+work-*/
 __pycache__/
