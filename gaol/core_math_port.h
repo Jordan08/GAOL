@@ -191,7 +191,9 @@ static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t 
 #if defined(__GNUC__) || defined(__clang__)
 #  pragma GCC diagnostic ignored "-Wconversion"
 #  pragma GCC diagnostic ignored "-Wsign-conversion"
+#  pragma GCC diagnostic ignored "-Wfloat-conversion"
 #  pragma GCC diagnostic ignored "-Wunused-function"
+#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
 #endif /* __gaol_core_math_port_h__ */

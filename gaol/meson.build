@@ -32,40 +32,39 @@ if float_intervals
   endif
 endif
 
-if mathlib == 'apmathlib'
-  math_header = custom_target(
-    'gen-math-header',
-    input: 'gaol_double_op_apmathlib.h',
-    output: 'gaol_double_op.h',
-    # A copy rather than a hard link, which fails across file systems (a build
-    # directory outside a bind mount in a container)
-    command: ['cp', '@INPUT@', '@OUTPUT@'],
-    install: true,
-    install_dir: 'include/gaol',
-  )
-elif mathlib == 'crlibm'
-  math_header = custom_target(
-    'gen-math-header',
-    input: 'gaol_double_op_crlibm.h',
-    output: 'gaol_double_op.h',
-    # A copy rather than a hard link, which fails across file systems (a build
-    # directory outside a bind mount in a container)
-    command: ['cp', '@INPUT@', '@OUTPUT@'],
-    install: true,
-    install_dir: 'include/gaol',
-  )
+# The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
+# itself: nothing is linked along with GAOL. Each source is compiled with
+# gaol/core_math_port.h included first, by the compiler rather than by the
+# source, so that importing a newer CORE-MATH stays a plain copy.
+core_math_functions = [
+  'exp', 'log', 'pow', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
+  'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
+]
+incdir = include_directories(['.', '..', './sysdeps'])
+
+core_math_root = meson.source_root() + '/3rd/math-core/src/binary64/'
+core_math_sources = []
+foreach f : core_math_functions
+  core_math_sources += [core_math_root + f + '/' + f + '.c']
+endforeach
+core_math_port = meson.source_root() + '/gaol/core_math_port.h'
+if cpp_comp.get_argument_syntax() == 'msvc'
+  core_math_args = ['/FI' + core_math_port]
 else
-  math_header = custom_target(
-    'gen-math-header',
-    input: 'gaol_double_op_m.h',
-    output: 'gaol_double_op.h',
-    # A copy rather than a hard link, which fails across file systems (a build
-    # directory outside a bind mount in a container)
-    command: ['cp', '@INPUT@', '@OUTPUT@'],
-    install: true,
-    install_dir: 'include/gaol',
-  )
+  core_math_args = ['-include', core_math_port]
 endif
+
+core_math_lib = static_library(
+  'gaol_core_math',
+  core_math_sources,
+  c_args: core_math_args,
+  include_directories: incdir,
+  # The sources use the GNU extensions of C (the inline asm of atan2's tint.h),
+  # which the c99 of the project refuses
+  override_options: ['c_std=gnu11'],
+  pic: true,
+  install: false,
+)
 
 fpu_source = 'gaol_interval_fpu.cpp'
 if use_sse2
@@ -80,7 +79,7 @@ fpu_target = custom_target(
   # install_dir: 'include/gaol',
 )
 
-gaol_SOURCES = [math_header]
+gaol_SOURCES = []
 gaol_SOURCES += [
   'gaol_interval.cpp',
   'gaol_profile.cpp',
@@ -92,15 +91,7 @@ gaol_SOURCES += [
   'gaol_init_cleanup.cpp',
   's_nextafter.c',
   'gaol_exact.c',
-  # The hyperbolic functions of CORE-MATH (gaol_core_math.h)
-  'core_math_sinh.c',
-  'core_math_cosh.c',
-  'core_math_tanh.c',
-  'core_math_asinh.c',
-  'core_math_acosh.c',
-  'core_math_atanh.c',
   # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
-  'core_math_log.c',
 ]
 gaol_SOURCES += FLOAT_INTERVALS_SOURCE
 foreach f : lexer_files
@@ -132,8 +123,8 @@ gaol_HEADERS += [
   'gaol_expr_eval.h',
   'gaol_expr_visitor.h',
   'gaol_parameters.h',
-  'gaol_double_op_apmathlib.h',
-  'gaol_double_op_crlibm.h',
+  'gaol_double_op.h',
+  'gaol_u128.h',
   'gaol_flags.h',
   'gaol_parser.h',
   'gaol_port.h',
@@ -172,12 +163,12 @@ EXTRA_DIST = [
   'gaol_interval_sse.cpp',
 ]
 
-incdir = include_directories(['.', '..', './sysdeps'])
 
 gaollib = both_libraries(
   'gaol',
   sources: gaol_SOURCES,
   dependencies: deps,
+  link_whole: core_math_lib,
   install: true,
   extra_files: EXTRA_DIST,
   include_directories: incdir,

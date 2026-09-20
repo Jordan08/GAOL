@@ -24,11 +24,9 @@
 
 
 EXTRA_DIST = BUGS
-# The mathlib of 3rd/mathlib, built before GAOL when GAOL uses it
-if BUNDLED_MATHLIB_COND
-MATHLIB_SUBDIR = 3rd
-endif
-SUBDIRS = $(MATHLIB_SUBDIR) gaol check examples
+# 3rd/ builds nothing: the sources of CORE-MATH are compiled into libgaol by
+# gaol/Makefile.am, and only distributed from there
+SUBDIRS = 3rd gaol check examples
 DIST_SUBDIRS = 3rd gaol check manual examples
 ACLOCAL_AMFLAGS = -I m4
 

@@ -656,10 +656,7 @@ CPPUNIT_COND_TRUE
 DLLIB
 IS_CYGWIN_COND_FALSE
 IS_CYGWIN_COND_TRUE
-MATHLIB_CFLAGS
 MATHLIB
-BUNDLED_MATHLIB_COND_FALSE
-BUNDLED_MATHLIB_COND_TRUE
 COMPILE_INTERVAL2_FALSE
 COMPILE_INTERVAL2_TRUE
 FLOAT_INTERVALS_COND_FALSE
@@ -704,7 +701,6 @@ am__nodep
 AMDEPBACKSLASH
 AMDEP_FALSE
 AMDEP_TRUE
-am__quote
 am__include
 DEPDIR
 OBJEXT
@@ -777,6 +773,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -795,7 +792,8 @@ PACKAGE_VERSION
 PACKAGE_TARNAME
 PACKAGE_NAME
 PATH_SEPARATOR
-SHELL'
+SHELL
+am__quote'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
@@ -812,9 +810,9 @@ enable_libtool_lock
 enable_simd
 enable_float_intervals
 enable_fma
+with_mathlib
 with_mathlib_include
 with_mathlib_lib
-with_mathlib
 enable_verbose_mode
 enable_optimize
 enable_debug
@@ -878,6 +876,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1130,6 +1129,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1267,7 +1275,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1420,6 +1428,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1501,15 +1510,10 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-mathlib-include  Specify the include path for the mathematical
-                          library
-  --with-mathlib-lib      Specify the library path for the mathematical
-                          library
-  --with-mathlib=(apmathlib,crlibm,m)
-                          Specify the mathematical library to use: apmathlib
-                          (mathlib) or crlibm, or m, the math library of the
-                          system, with which the bounds of the elementary
-                          functions are not certified [default=apmathlib]
+  --with-mathlib          removed: GAOL computes its elementary functions with
+                          CORE-MATH only
+  --with-mathlib-include  removed, see --with-mathlib
+  --with-mathlib-lib      removed, see --with-mathlib
   --with-cppunit-include  Specify the include path for cppunit
   --with-cppunit-lib      Specify the library path for cppunit
 
@@ -2038,97 +2042,6 @@ fi
 
 } # ac_fn_cxx_try_run
 
-# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
-# -------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
-# accordingly.
-ac_fn_c_check_header_mongrel ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if eval \${$3+:} false; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
-else
-  ac_header_compiler=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
-  yes:no: )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-( $as_echo "## --------------------------------------------- ##
-## Report this to goualard@users.sourceforge.net ##
-## --------------------------------------------- ##"
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_c_check_header_mongrel
-
 # ac_fn_cxx_check_header_mongrel LINENO HEADER VAR INCLUDES
 # ---------------------------------------------------------
 # Tests whether HEADER exists, giving a warning if it cannot be compiled using
@@ -2219,6 +2132,97 @@ fi
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_cxx_check_header_mongrel
+
+# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
+# -------------------------------------------------------
+# Tests whether HEADER exists, giving a warning if it cannot be compiled using
+# the include files in INCLUDES and setting the cache variable VAR
+# accordingly.
+ac_fn_c_check_header_mongrel ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if eval \${$3+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
+$as_echo_n "checking $2 usability... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_header_compiler=yes
+else
+  ac_header_compiler=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
+$as_echo_n "checking $2 presence... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <$2>
+_ACEOF
+if ac_fn_c_try_cpp "$LINENO"; then :
+  ac_header_preproc=yes
+else
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
+  yes:no: )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+( $as_echo "## --------------------------------------------- ##
+## Report this to goualard@users.sourceforge.net ##
+## --------------------------------------------- ##"
+     ) | sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  eval "$3=\$ac_header_compiler"
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+fi
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_header_mongrel
 
 # ac_fn_cxx_check_type LINENO TYPE VAR INCLUDES
 # ---------------------------------------------
@@ -2875,7 +2879,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-am__api_version='1.15'
+am__api_version='1.16'
 
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
@@ -3420,8 +3424,8 @@ MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
 
 # For better backward compatibility.  To be removed once Automake 1.9.x
 # dies out for good.  For more background, see:
-# <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
-# <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
+# <https://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
+# <https://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
 mkdir_p='$(MKDIR_P)'
 
 # We need awk for the "check" target (and possibly the TAP driver).  The
@@ -3472,7 +3476,7 @@ END
 Aborting the configuration process, to ensure you take notice of the issue.
 
 You can download and install GNU coreutils to get an 'rm' implementation
-that behaves properly: <http://www.gnu.org/software/coreutils/>.
+that behaves properly: <https://www.gnu.org/software/coreutils/>.
 
 If you want to complete the configuration process using your problematic
 'rm' anyway, export the environment variable ACCEPT_INFERIOR_RM_PROGRAM
@@ -3724,45 +3728,45 @@ DEPDIR="${am__leading_dot}deps"
 
 ac_config_commands="$ac_config_commands depfiles"
 
-
-am_make=${MAKE-make}
-cat > confinc << 'END'
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} supports the include directive" >&5
+$as_echo_n "checking whether ${MAKE-make} supports the include directive... " >&6; }
+cat > confinc.mk << 'END'
 am__doit:
-	@echo this is the am__doit target
+	@echo this is the am__doit target >confinc.out
 .PHONY: am__doit
 END
-# If we don't find an include directive, just comment out the code.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for style of include used by $am_make" >&5
-$as_echo_n "checking for style of include used by $am_make... " >&6; }
 am__include="#"
 am__quote=
-_am_result=none
-# First try GNU make style include.
-echo "include confinc" > confmf
-# Ignore all kinds of additional output from 'make'.
-case `$am_make -s -f confmf 2> /dev/null` in #(
-*the\ am__doit\ target*)
-  am__include=include
-  am__quote=
-  _am_result=GNU
-  ;;
-esac
-# Now try BSD make style include.
-if test "$am__include" = "#"; then
-   echo '.include "confinc"' > confmf
-   case `$am_make -s -f confmf 2> /dev/null` in #(
-   *the\ am__doit\ target*)
-     am__include=.include
-     am__quote="\""
-     _am_result=BSD
+# BSD make does it like this.
+echo '.include "confinc.mk" # ignored' > confmf.BSD
+# Other make implementations (GNU, Solaris 10, AIX) do it like this.
+echo 'include confinc.mk # ignored' > confmf.GNU
+_am_result=no
+for s in GNU BSD; do
+  { echo "$as_me:$LINENO: ${MAKE-make} -f confmf.$s && cat confinc.out" >&5
+   (${MAKE-make} -f confmf.$s && cat confinc.out) >&5 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }
+  case $?:`cat confinc.out 2>/dev/null` in #(
+  '0:this is the am__doit target') :
+    case $s in #(
+  BSD) :
+    am__include='.include' am__quote='"' ;; #(
+  *) :
+    am__include='include' am__quote='' ;;
+esac ;; #(
+  *) :
      ;;
-   esac
-fi
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $_am_result" >&5
-$as_echo "$_am_result" >&6; }
-rm -f confinc confmf
+esac
+  if test "$am__include" != "#"; then
+    _am_result="yes ($s style)"
+    break
+  fi
+done
+rm -f confinc.* confmf.*
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${_am_result}" >&5
+$as_echo "${_am_result}" >&6; }
 
 # Check whether --enable-dependency-tracking was given.
 if test "${enable_dependency_tracking+set}" = set; then :
@@ -17136,357 +17140,44 @@ fi
 
 
 
-# --with-mathlib(-path)
+# The mathematical library
+#
+# GAOL bounds every one of its elementary functions with CORE-MATH
+# (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
+# 3rd/math-core and are compiled into libgaol itself (gaol/Makefile.am): there
+# is no library to find, to build apart or to link along with GAOL.
+#
+# CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
+# takes its values as bounds without moving them outward and without switching
+# the rounding direction (gaol/gaol_double_op.h). mathlib (the IBM Accurate
+# Portable Mathematical Library), CRlibm and the math library of the system,
+# which GAOL could be built with, are no longer used: the first two are
+# correctly rounded to nearest only, and the third is not accurate enough on
+# every system for its values moved outward to be bounds.
+#
+# The options naming them are refused rather than ignored, so that a script
+# still giving them is told what happened.
+
+# Check whether --with-mathlib was given.
+if test "${with_mathlib+set}" = set; then :
+  withval=$with_mathlib; as_fn_error $? "--with-mathlib is no longer available: GAOL bounds every elementary function with CORE-MATH, whose sources (3rd/math-core) are compiled into the library. mathlib, CRlibm and the math library of the system are no longer used." "$LINENO" 5
+fi
+
 
 # Check whether --with-mathlib-include was given.
 if test "${with_mathlib_include+set}" = set; then :
-  withval=$with_mathlib_include; mathlib_incpath="-I${with_mathlib_include}"
-else
-  mathlib_incpath=""
+  withval=$with_mathlib_include; as_fn_error $? "--with-mathlib-include is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to find." "$LINENO" 5
 fi
 
 
 # Check whether --with-mathlib-lib was given.
 if test "${with_mathlib_lib+set}" = set; then :
-  withval=$with_mathlib_lib; mathlib_libpath="-L${with_mathlib_lib}"
-else
-  mathlib_libpath=""
+  withval=$with_mathlib_lib; as_fn_error $? "--with-mathlib-lib is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to link." "$LINENO" 5
 fi
 
-CXXFLAGS="$CXXFLAGS ${mathlib_libpath}"
-CPPFLAGS="$CPPFLAGS ${mathlib_incpath}"
-
-# Check whether --with-mathlib was given.
-if test "${with_mathlib+set}" = set; then :
-  withval=$with_mathlib; use_mathlib="${with_mathlib}"
-else
-  use_mathlib="apmathlib"
-fi
-
-# The math library of the system, whose results GAOL widens slightly
-# (gaol/gaol_double_op_m.h) without certifying its bounds: a choice left to
-# the user, who is warned. Any other name was only refused by
-# config.status, missing gaol_double_op_<name>.h
-case ${use_mathlib} in #(
-  apmathlib|crlibm) :
-     ;; #(
-  m) :
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: --with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: they are valid only where the math library is within about one double of the exact value. Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds." >&5
-$as_echo "$as_me: WARNING: --with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: they are valid only where the math library is within about one double of the exact value. Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds." >&2;} ;; #(
-  *) :
-    as_fn_error $? "--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m" "$LINENO" 5 ;;
-esac
-# mathlib is the one of 3rd/mathlib, built and installed with GAOL
-# (3rd/Makefile.am), unless --with-mathlib-include or --with-mathlib-lib says
-# where an installed one is. It is compiled with the flags of GAOL's C code,
-# those of interval arithmetic included, and without warnings (-w, as the CMake
-# build gives it).
-bundled_mathlib=no
-if test "${use_mathlib}" = "apmathlib" && test -z "${with_mathlib_include}${with_mathlib_lib}"; then
-   bundled_mathlib=yes
-fi
- if test "${bundled_mathlib}" = yes; then
-  BUNDLED_MATHLIB_COND_TRUE=
-  BUNDLED_MATHLIB_COND_FALSE='#'
-else
-  BUNDLED_MATHLIB_COND_TRUE='#'
-  BUNDLED_MATHLIB_COND_FALSE=
-fi
-
-MATHLIB_CFLAGS=""
-if test "${bundled_mathlib}" = yes; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: mathlib: the one of 3rd/mathlib, built with GAOL" >&5
-$as_echo "$as_me: mathlib: the one of 3rd/mathlib, built with GAOL" >&6;}
-   ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-gaol_save_CFLAGS=$CFLAGS
-CFLAGS="-Werror -w"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -w" >&5
-$as_echo_n "checking whether the C compiler accepts -w... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  mathlib_c_takes_w=yes
-else
-  mathlib_c_takes_w=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${mathlib_c_takes_w}" >&5
-$as_echo "${mathlib_c_takes_w}" >&6; }
-CFLAGS=$gaol_save_CFLAGS
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-   if test "${mathlib_c_takes_w}" = yes; then
-      MATHLIB_CFLAGS="-w"
-   fi
-
-$as_echo "#define HAVE_MATHLIB_H 1" >>confdefs.h
-
-
-$as_echo "#define GAOL_USING_APMATHLIB 1" >>confdefs.h
-
-   MATHLIB='$(top_builddir)/3rd/libultim.la'
-elif test "${use_mathlib}" = "apmathlib"; then
-   OLD_LIBS=$LIBS
-   OLD_LDFLAGS=$LDFLAGS
-   LDFLAGS="${mathlib_libpath}"
-   LIBS="-lm"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for utan in -lultim" >&5
-$as_echo_n "checking for utan in -lultim... " >&6; }
-if ${ac_cv_lib_ultim_utan+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lultim  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char utan ();
-int
-main ()
-{
-return utan ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ultim_utan=yes
-else
-  ac_cv_lib_ultim_utan=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ultim_utan" >&5
-$as_echo "$ac_cv_lib_ultim_utan" >&6; }
-if test "x$ac_cv_lib_ultim_utan" = xyes; then :
-  mathlib_found=yes
-else
-  mathlib_found=no
-fi
-
-   LIBS=${OLD_LIBS}
-   LDFLAGS=${OLD_LDFLAGS}
-   if test "${mathlib_found}" = "no"; then
-      as_fn_error $? "APMathlib library not found" "$LINENO" 5
-   fi
-   for ac_header in MathLib.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "MathLib.h" "ac_cv_header_MathLib_h" "$ac_includes_default"
-if test "x$ac_cv_header_MathLib_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_MATHLIB_H 1
-_ACEOF
- mathlib_h=yes
-else
-  mathlib_h=no
-fi
-
-done
-
-   if test "${mathlib_h}" = "no"; then
-      as_fn_error $? "Header MathLib.h not found" "$LINENO" 5
-   fi
-   # A mathlib whose cosine of 2^52 - 1 is wrong is refused, as CMakeLists.txt
-   # refuses it (see there): mathlib compiled with the contraction of
-   # multiplications and additions into fused multiply-adds reduces large
-   # arguments modulo pi/2 wrongly. The program checking it writes the cosine to
-   # conftest.cos, which tells a wrong cosine from a program that did not run;
-   # it cannot run when cross-compiling, and configure then only warns.
-   ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-   OLD_LIBS=$LIBS
-   OLD_LDFLAGS=$LDFLAGS
-   LDFLAGS="$LDFLAGS ${mathlib_libpath}"
-   LIBS="-lultim -lm $LIBS"
-   rm -f conftest.cos
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the cosine of mathlib is right at 2^52 - 1" >&5
-$as_echo_n "checking whether the cosine of mathlib is right at 2^52 - 1... " >&6; }
-   if test "$cross_compiling" = yes; then :
-  mathlib_cosine=cross
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-extern "C" unsigned short Init_Lib();
-extern "C" void Exit_Lib(unsigned short);
-extern "C" double ucos(double);
-#include <cmath>
-#include <cstdio>
-int main()
-{
-  unsigned short state = Init_Lib();
-  double c = ucos(4503599627370495.0); // 2^52 - 1
-  Exit_Lib(state);
-  std::FILE *f = std::fopen("conftest.cos", "w");
-  if (f) {
-    std::fprintf(f, "%.17g", c);
-    std::fclose(f);
-  }
-  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
-}
-_ACEOF
-if ac_fn_cxx_try_run "$LINENO"; then :
-  mathlib_cosine=yes
-else
-  if test -s conftest.cos; then :
-  mathlib_cosine=no
-else
-  mathlib_cosine=unknown
-fi
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-   case ${mathlib_cosine} in #(
-  yes) :
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; } ;; #(
-  no) :
-    mathlib_cosine_value=`cat conftest.cos`
-             { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, ${mathlib_cosine_value}" >&5
-$as_echo "no, ${mathlib_cosine_value}" >&6; } ;; #(
-  cross) :
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not checked, cross-compiling" >&5
-$as_echo "not checked, cross-compiling" >&6; } ;; #(
-  *) :
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not checked, the program did not run" >&5
-$as_echo "not checked, the program did not run" >&6; } ;;
-esac
-   rm -f conftest.cos
-   LIBS=${OLD_LIBS}
-   LDFLAGS=${OLD_LDFLAGS}
-   ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-   case ${mathlib_cosine} in #(
-  no) :
-    as_fn_error $? "GAOL cannot use the mathlib found (-lultim ${mathlib_libpath}): its cosine of 2^52 - 1 is ${mathlib_cosine_value}, rather than 0.47329288595430913.
-Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).
-Build GAOL with the mathlib it is tested with, the one of 3rd/mathlib: ./configure without --with-mathlib-include and --with-mathlib-lib compiles it with the flags of interval arithmetic; or install that one with sh scripts/install-mathlib.sh <mathlib>, then ./configure --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib." "$LINENO" 5 ;; #(
-  cross) :
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: build GAOL with the mathlib of 3rd/mathlib, without --with-mathlib-include and --with-mathlib-lib." >&5
-$as_echo "$as_me: WARNING: Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: build GAOL with the mathlib of 3rd/mathlib, without --with-mathlib-include and --with-mathlib-lib." >&2;} ;; #(
-  unknown) :
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1." >&5
-$as_echo "$as_me: WARNING: A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1." >&2;} ;; #(
-  *) :
-     ;;
-esac
-
-$as_echo "#define GAOL_USING_APMATHLIB 1" >>confdefs.h
-
-   MATHLIB="-lultim"
-fi
-if test "${use_mathlib}" = "crlibm"; then
-   OLD_LIBS=$LIBS
-   OLD_LDFLAGS=$LDFLAGS
-   LDFLAGS="${mathlib_libpath}"
-   LIBS="-lm"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cos_rn in -lcrlibm" >&5
-$as_echo_n "checking for cos_rn in -lcrlibm... " >&6; }
-if ${ac_cv_lib_crlibm_cos_rn+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcrlibm  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char cos_rn ();
-int
-main ()
-{
-return cos_rn ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_crlibm_cos_rn=yes
-else
-  ac_cv_lib_crlibm_cos_rn=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crlibm_cos_rn" >&5
-$as_echo "$ac_cv_lib_crlibm_cos_rn" >&6; }
-if test "x$ac_cv_lib_crlibm_cos_rn" = xyes; then :
-  crlibm_found=yes
-else
-  crlibm_found=no
-fi
-
-   LIBS=${OLD_LIBS}
-   LDFLAGS=${OLD_LDFLAGS}
-   if test "${crlibm_found}" = "no"; then
-      as_fn_error $? "CRLibm library not found" "$LINENO" 5
-   fi
-   for ac_header in crlibm.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "crlibm.h" "ac_cv_header_crlibm_h" "$ac_includes_default"
-if test "x$ac_cv_header_crlibm_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_CRLIBM_H 1
-_ACEOF
- crlibm_h=yes
-else
-  crlibm_h=no
-fi
-
-done
-
-   if test "${crlibm_h}" = "no"; then
-      as_fn_error $? "Header crlibm.h not found" "$LINENO" 5
-   fi
-
-$as_echo "#define GAOL_USING_CRLIBM 1" >>confdefs.h
-
-   MATHLIB="-lcrlibm"
-fi
-
-
-ac_config_links="$ac_config_links gaol/gaol_double_op.h:gaol/gaol_double_op_${use_mathlib}.h"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)" >&5
+$as_echo "$as_me: elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)" >&6;}
+MATHLIB=""
 
 
 
@@ -19122,19 +18813,9 @@ done
 # The version for gaol.pc, without the quotes VERSION carries
 GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
 
-# mathlib in gaol.pc: -lultim or -lcrlibm, with its directory when given; the
-# mathlib of 3rd/mathlib is installed in the library directory of GAOL
-if test "${bundled_mathlib}" = yes; then
-   GAOL_PC_MATHLIB="-lultim"
-else
-   GAOL_PC_MATHLIB="${mathlib_libpath} ${MATHLIB}"
-fi
-# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
-# (gaol/gaol_double_op_crlibm.h): its directory, when given, goes into the
-# Cflags of gaol.pc, for the code using GAOL to find it
-if test "${use_mathlib}" = "crlibm" && test -n "${mathlib_incpath}"; then
-   GAOL_PC_CFLAGS="${mathlib_incpath} ${GAOL_PC_CFLAGS}"
-fi
+# No mathematical library is named in gaol.pc any more: the functions of
+# CORE-MATH are compiled into libgaol itself
+GAOL_PC_MATHLIB=""
 
 
 
@@ -19540,10 +19221,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_INTERVAL2_TRUE}" && test -z "${COMPILE_INTERVAL2_FALSE}"; then
   as_fn_error $? "conditional \"COMPILE_INTERVAL2\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${BUNDLED_MATHLIB_COND_TRUE}" && test -z "${BUNDLED_MATHLIB_COND_FALSE}"; then
-  as_fn_error $? "conditional \"BUNDLED_MATHLIB_COND\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
@@ -19995,7 +19672,6 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 # Files that config.status was made for.
 config_files="$ac_config_files"
 config_headers="$ac_config_headers"
-config_links="$ac_config_links"
 config_commands="$ac_config_commands"
 
 _ACEOF
@@ -20025,9 +19701,6 @@ $config_files
 
 Configuration headers:
 $config_headers
-
-Configuration links:
-$config_links
 
 Configuration commands:
 $config_commands
@@ -20157,7 +19830,7 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 #
 # INIT-COMMANDS
 #
-AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"
+AMDEP_TRUE="$AMDEP_TRUE" MAKE="${MAKE-make}"
 
 
 # The HP-UX ksh and POSIX shell print the target directory to stdout
@@ -20545,7 +20218,6 @@ do
     "gaol/gaol_configuration.h") CONFIG_HEADERS="$CONFIG_HEADERS gaol/gaol_configuration.h" ;;
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
-    "gaol/gaol_double_op.h") CONFIG_LINKS="$CONFIG_LINKS gaol/gaol_double_op.h:gaol/gaol_double_op_${use_mathlib}.h" ;;
     "gaol.pc") CONFIG_FILES="$CONFIG_FILES gaol.pc" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "3rd/Makefile") CONFIG_FILES="$CONFIG_FILES 3rd/Makefile" ;;
@@ -20569,7 +20241,6 @@ done
 if $ac_need_defaults; then
   test "${CONFIG_FILES+set}" = set || CONFIG_FILES=$config_files
   test "${CONFIG_HEADERS+set}" = set || CONFIG_HEADERS=$config_headers
-  test "${CONFIG_LINKS+set}" = set || CONFIG_LINKS=$config_links
   test "${CONFIG_COMMANDS+set}" = set || CONFIG_COMMANDS=$config_commands
 fi
 
@@ -20867,7 +20538,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 fi # test -n "$CONFIG_HEADERS"
 
 
-eval set X "  :F $CONFIG_FILES  :H $CONFIG_HEADERS  :L $CONFIG_LINKS  :C $CONFIG_COMMANDS"
+eval set X "  :F $CONFIG_FILES  :H $CONFIG_HEADERS    :C $CONFIG_COMMANDS"
 shift
 for ac_tag
 do
@@ -21144,38 +20815,7 @@ $as_echo X"$_am_arg" |
 	  }
 	  s/.*/./; q'`/stamp-h$_am_stamp_count
  ;;
-  :L)
-  #
-  # CONFIG_LINK
-  #
 
-  if test "$ac_source" = "$ac_file" && test "$srcdir" = '.'; then
-    :
-  else
-    # Prefer the file from the source tree if names are identical.
-    if test "$ac_source" = "$ac_file" || test ! -r "$ac_source"; then
-      ac_source=$srcdir/$ac_source
-    fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: linking $ac_source to $ac_file" >&5
-$as_echo "$as_me: linking $ac_source to $ac_file" >&6;}
-
-    if test ! -r "$ac_source"; then
-      as_fn_error $? "$ac_source: file not found" "$LINENO" 5
-    fi
-    rm -f "$ac_file"
-
-    # Try a relative symlink, then a hard link, then a copy.
-    case $ac_source in
-    [\\/$]* | ?:[\\/]* ) ac_rel_source=$ac_source ;;
-	*) ac_rel_source=$ac_top_build_prefix$ac_source ;;
-    esac
-    ln -s "$ac_rel_source" "$ac_file" 2>/dev/null ||
-      ln "$ac_source" "$ac_file" 2>/dev/null ||
-      cp -p "$ac_source" "$ac_file" ||
-      as_fn_error $? "cannot link or copy $ac_source to $ac_file" "$LINENO" 5
-  fi
- ;;
   :C)  { $as_echo "$as_me:${as_lineno-$LINENO}: executing $ac_file commands" >&5
 $as_echo "$as_me: executing $ac_file commands" >&6;}
  ;;
@@ -21187,29 +20827,35 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
   # Older Autoconf quotes --file arguments for eval, but not when files
   # are listed without --file.  Let's play safe and only enable the eval
   # if we detect the quoting.
-  case $CONFIG_FILES in
-  *\'*) eval set x "$CONFIG_FILES" ;;
-  *)   set x $CONFIG_FILES ;;
-  esac
+  # TODO: see whether this extra hack can be removed once we start
+  # requiring Autoconf 2.70 or later.
+  case $CONFIG_FILES in #(
+  *\'*) :
+    eval set x "$CONFIG_FILES" ;; #(
+  *) :
+    set x $CONFIG_FILES ;; #(
+  *) :
+     ;;
+esac
   shift
-  for mf
+  # Used to flag and report bootstrapping failures.
+  am_rc=0
+  for am_mf
   do
     # Strip MF so we end up with the name of the file.
-    mf=`echo "$mf" | sed -e 's/:.*$//'`
-    # Check whether this is an Automake generated Makefile or not.
-    # We used to match only the files named 'Makefile.in', but
-    # some people rename them; so instead we look at the file content.
-    # Grep'ing the first line is not enough: some people post-process
-    # each Makefile.in and add a new line on top of each file to say so.
-    # Grep'ing the whole file is not good either: AIX grep has a line
+    am_mf=`$as_echo "$am_mf" | sed -e 's/:.*$//'`
+    # Check whether this is an Automake generated Makefile which includes
+    # dependency-tracking related rules and includes.
+    # Grep'ing the whole file directly is not great: AIX grep has a line
     # limit of 2048, but all sed's we know have understand at least 4000.
-    if sed -n 's,^#.*generated by automake.*,X,p' "$mf" | grep X >/dev/null 2>&1; then
-      dirpart=`$as_dirname -- "$mf" ||
-$as_expr X"$mf" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
-	 X"$mf" : 'X\(//\)[^/]' \| \
-	 X"$mf" : 'X\(//\)$' \| \
-	 X"$mf" : 'X\(/\)' \| . 2>/dev/null ||
-$as_echo X"$mf" |
+    sed -n 's,^am--depfiles:.*,X,p' "$am_mf" | grep X >/dev/null 2>&1 \
+      || continue
+    am_dirpart=`$as_dirname -- "$am_mf" ||
+$as_expr X"$am_mf" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
+	 X"$am_mf" : 'X\(//\)[^/]' \| \
+	 X"$am_mf" : 'X\(//\)$' \| \
+	 X"$am_mf" : 'X\(/\)' \| . 2>/dev/null ||
+$as_echo X"$am_mf" |
     sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
 	    s//\1/
 	    q
@@ -21227,53 +20873,48 @@ $as_echo X"$mf" |
 	    q
 	  }
 	  s/.*/./; q'`
-    else
-      continue
-    fi
-    # Extract the definition of DEPDIR, am__include, and am__quote
-    # from the Makefile without running 'make'.
-    DEPDIR=`sed -n 's/^DEPDIR = //p' < "$mf"`
-    test -z "$DEPDIR" && continue
-    am__include=`sed -n 's/^am__include = //p' < "$mf"`
-    test -z "$am__include" && continue
-    am__quote=`sed -n 's/^am__quote = //p' < "$mf"`
-    # Find all dependency output files, they are included files with
-    # $(DEPDIR) in their names.  We invoke sed twice because it is the
-    # simplest approach to changing $(DEPDIR) to its actual value in the
-    # expansion.
-    for file in `sed -n "
-      s/^$am__include $am__quote\(.*(DEPDIR).*\)$am__quote"'$/\1/p' <"$mf" | \
-	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g'`; do
-      # Make sure the directory exists.
-      test -f "$dirpart/$file" && continue
-      fdir=`$as_dirname -- "$file" ||
-$as_expr X"$file" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
-	 X"$file" : 'X\(//\)[^/]' \| \
-	 X"$file" : 'X\(//\)$' \| \
-	 X"$file" : 'X\(/\)' \| . 2>/dev/null ||
-$as_echo X"$file" |
-    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
+    am_filepart=`$as_basename -- "$am_mf" ||
+$as_expr X/"$am_mf" : '.*/\([^/][^/]*\)/*$' \| \
+	 X"$am_mf" : 'X\(//\)$' \| \
+	 X"$am_mf" : 'X\(/\)' \| . 2>/dev/null ||
+$as_echo X/"$am_mf" |
+    sed '/^.*\/\([^/][^/]*\)\/*$/{
 	    s//\1/
 	    q
 	  }
-	  /^X\(\/\/\)[^/].*/{
+	  /^X\/\(\/\/\)$/{
 	    s//\1/
 	    q
 	  }
-	  /^X\(\/\/\)$/{
-	    s//\1/
-	    q
-	  }
-	  /^X\(\/\).*/{
+	  /^X\/\(\/\).*/{
 	    s//\1/
 	    q
 	  }
 	  s/.*/./; q'`
-      as_dir=$dirpart/$fdir; as_fn_mkdir_p
-      # echo "creating $dirpart/$file"
-      echo '# dummy' > "$dirpart/$file"
-    done
+    { echo "$as_me:$LINENO: cd "$am_dirpart" \
+      && sed -e '/# am--include-marker/d' "$am_filepart" \
+        | $MAKE -f - am--depfiles" >&5
+   (cd "$am_dirpart" \
+      && sed -e '/# am--include-marker/d' "$am_filepart" \
+        | $MAKE -f - am--depfiles) >&5 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); } || am_rc=$?
   done
+  if test $am_rc -ne 0; then
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Something went wrong bootstrapping makefile fragments
+    for automatic dependency tracking.  Try re-running configure with the
+    '--disable-dependency-tracking' option to at least be able to build
+    the package (albeit without support for automatic dependency tracking).
+See \`config.log' for more details" "$LINENO" 5; }
+  fi
+  { am_dirpart=; unset am_dirpart;}
+  { am_filepart=; unset am_filepart;}
+  { am_mf=; unset am_mf;}
+  { am_rc=; unset am_rc;}
+  rm -f conftest-deps.mk
 }
  ;;
     "libtool":C)
@@ -22117,11 +21758,7 @@ printf "CC\t\t\t= ${CC}\n"
 printf "CFLAGS\t\t\t= ${CFLAGS}\n"
 printf "CXX\t\t\t= ${CXX}\n"
 printf "CXXFLAGS\t\t= ${CXXFLAGS}\n"
-if test "${bundled_mathlib}" = yes; then
-   printf "mathlib\t\t\t= ${use_mathlib} (3rd/mathlib)\n"
-else
-   printf "mathlib\t\t\t= ${use_mathlib}\n"
-fi
+   printf "elementary functions\t= CORE-MATH (3rd/math-core, correctly rounded)\n"
 printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"

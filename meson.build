@@ -53,66 +53,33 @@ float_intervals = get_option('enable-float-intervals')
 preserve_rounding = get_option('enable-preserve-rounding')
 relations = get_option('enable-relations')
 exception = get_option('enable-exception')
-mathlib = get_option('with-mathlib')
-# The math library of the system, whose results GAOL widens slightly
-# (gaol/gaol_double_op_m.h) without certifying its bounds: a choice left to
-# the user, who is warned
-if mathlib == 'default'
-  warning('with-mathlib=default: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: '
-    + 'they are valid only where the math library is within about one double of the exact value. '
-    + 'Use with-mathlib=apmathlib (the default) or crlibm for certified bounds.')
-endif
+# The mathematical library
+#
+# GAOL bounds every one of its elementary functions with CORE-MATH
+# (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
+# 3rd/math-core and are compiled into libgaol itself (gaol/meson.build): there
+# is no library to find, to build apart or to link along with GAOL. mathlib,
+# CRlibm and the math library of the system, which GAOL could be built with,
+# are no longer used.
+#
+# The options naming them are refused rather than ignored, so that a script
+# still giving them is told what happened.
+foreach _opt : ['with-mathlib', 'with-mathlib-include', 'with-mathlib-lib']
+  if get_option(_opt) != ''
+    error(_opt + ' is no longer available: GAOL bounds every elementary function with CORE-MATH, '
+      + 'whose sources (3rd/math-core) are compiled into the library.')
+  endif
+endforeach
+message('Elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)')
+mathlib_pc_libs = []
+mathlib_dep = dependency('', required: false)
+
 doc = get_option('with-doc')
 build_tests = get_option('with-test')
 
-## dependencies
-#apmathlib_dep = cpp_comp.find_library('ultim', required : false)
-#crmlibm_dep = cpp_comp.find_library('crlibm', required : false)
-#mathlib_dep=apmathlib_dep
-#if not apmathlib_dep.found() and crlibm_dep.found()
-#  mathlib_dep = crlibm_dep
-#elif not apmathlib_dep.found() and not crlibm_dep.found()
-#  error('Missing Mathematical library! Expecting APMathlib or Crlibm')
-#endif
-# Where the mathematical library is, when it is not in the usual paths (or on
-# CPATH and LIBRARY_PATH): with-mathlib-include and with-mathlib-lib, as
-# --with-mathlib-include and --with-mathlib-lib of configure. Its directory
-# then goes into gaol.pc too.
-#
-# mathlib is the one of 3rd/mathlib, built and installed with GAOL (see
-# 3rd/mathlib/meson.build), unless with-mathlib-include or with-mathlib-lib
-# says where an installed one is, as with configure.
-mathlib_include = get_option('with-mathlib-include')
-mathlib_libdir = get_option('with-mathlib-lib')
-bundled_mathlib = mathlib == 'apmathlib' and mathlib_include == '' and mathlib_libdir == ''
-mathlib_dirs = []
-mathlib_pc_libs = []
-if mathlib_include != ''
-  add_global_arguments(['-I' + mathlib_include], language: 'cpp')
-  add_global_arguments(['-I' + mathlib_include], language: 'c')
-endif
-if mathlib_libdir != ''
-  mathlib_dirs = [mathlib_libdir]
-  mathlib_pc_libs = ['-L' + mathlib_libdir]
-endif
-mathlib_dep = dependency('', required: false)
-if bundled_mathlib
-  # Installed in the library directory of GAOL; mathlib_dep is set once the
-  # library is declared, below
-  message('mathlib: the one of 3rd/mathlib, built with GAOL')
-  mathlib_pc_libs += ['-lultim']
-elif mathlib == 'apmathlib'
-  mathlib_dep = cpp_comp.find_library('ultim', required: true, dirs: mathlib_dirs)
-  mathlib_pc_libs += ['-lultim']
-elif mathlib == 'crlibm'
-  mathlib_dep = cpp_comp.find_library('crlibm', required: true, dirs: mathlib_dirs)
-  mathlib_pc_libs += ['-lcrlibm']
-  # else
-  #   mathlib_dep = cpp_comp.find_library('m', required: true)
-endif
 m_dep = cpp_comp.find_library('m', required: true)
 
-deps = [mathlib_dep, m_dep]
+deps = [m_dep]
 
 ## Config
 os_unix = false
@@ -157,11 +124,6 @@ conf_data.set('GAOL_MINOR_VERSION', minor_version)
 conf_data.set('GAOL_MICRO_VERSION', micro_version)
 conf_data.set('version', meson.project_version())
 
-if mathlib == 'apmathlib'
-  conf_data.set('GAOL_USING_APMATHLIB', 1)
-elif mathlib == 'crlibm'
-  conf_data.set('GAOL_USING_CRLIBM', 1)
-endif
 if relations == 'certainly'
   conf_data.set('GAOL_CERTAINLY_RELATIONS', 1)
 elif relations == 'possibly'
@@ -228,16 +190,6 @@ foreach h : check_headers
   endif
 endforeach
 
-if mathlib == 'apmathlib'
-  if bundled_mathlib or cpp_comp.has_header('MathLib.h')
-    conf_data.set('HAVE_' + 'MathLib.h'.underscorify().to_upper(), 1)
-  endif
-elif mathlib == 'crlibm'
-  if cpp_comp.has_header('crlibm.h')
-    conf_data.set('HAVE_' + 'crlibm.h'.underscorify().to_upper(), 1)
-  endif
-endif
-
 check_functions = [
   'clock',
   'fesetround',
@@ -296,50 +248,6 @@ if cpp_comp.has_argument('-frounding-math')
   endif
 endif
 
-# A mathlib whose cosine of 2^52 - 1 is wrong is refused, as CMakeLists.txt and
-# configure refuse it (see CMakeLists.txt): mathlib compiled with the
-# contraction of multiplications and additions into fused multiply-adds reduces
-# large arguments modulo pi/2 wrongly. The program checking it cannot run when
-# cross-compiling without an exe_wrapper: meson then only warns. After the
-# refused compilers, whose messages come first. The mathlib of 3rd/mathlib is
-# compiled with -ffp-contract=off below.
-if mathlib == 'apmathlib' and not bundled_mathlib
-  mathlib_where = mathlib_libdir != '' ? mathlib_libdir : 'the usual paths'
-  # meson.can_run_host_binaries() is has_exe_wrapper() before meson 0.55, as
-  # the meson 0.53 of Ubuntu 20.04, which stopped here on an unknown method
-  if meson.version().version_compare('>= 0.55.0')
-    can_run_host_binaries = meson.can_run_host_binaries()
-  else
-    can_run_host_binaries = meson.has_exe_wrapper()
-  endif
-  if can_run_host_binaries
-    mathlib_cosine = cpp_comp.run('''
-extern "C" unsigned short Init_Lib();
-extern "C" void Exit_Lib(unsigned short);
-extern "C" double ucos(double);
-#include <cmath>
-#include <cstdio>
-int main()
-{
-  unsigned short state = Init_Lib();
-  double c = ucos(4503599627370495.0); // 2^52 - 1
-  Exit_Lib(state);
-  std::printf("%.17g\n", c);
-  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
-}
-''', dependencies: [mathlib_dep, m_dep], name: 'the cosine of mathlib is right at 2^52 - 1')
-    if mathlib_cosine.compiled() and mathlib_cosine.returncode() == 1
-      error('GAOL cannot use the mathlib found (ultim, in ' + mathlib_where + '): its cosine of 2^52 - 1 is '
-        + mathlib_cosine.stdout().strip() + ', rather than 0.47329288595430913.\n'
-        + 'Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).\n'
-        + 'Build GAOL with the mathlib it is tested with, the one of 3rd/mathlib: meson setup without with-mathlib-include and with-mathlib-lib compiles it with the flags of interval arithmetic, in a new build directory; or install that one with sh scripts/install-mathlib.sh <mathlib>, then meson setup ... -Dwith-mathlib-include=<mathlib>/include -Dwith-mathlib-lib=<mathlib>/lib.')
-    elif not mathlib_cosine.compiled() or mathlib_cosine.returncode() != 0
-      warning('A program linked with the mathlib found (ultim, in ' + mathlib_where + ') could not be built or run: its cosine is not checked at 2^52 - 1.')
-    endif
-  else
-    warning('Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: build GAOL with the mathlib of 3rd/mathlib, without with-mathlib-include and with-mathlib-lib.')
-  endif
-endif
 
 # The flags of interval arithmetic, each where the compiler accepts it, as
 # CMakeLists.txt and configure give them: -frounding-math; -ffp-contract=off
@@ -347,12 +255,6 @@ endif
 # one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
 # both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
 pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
-# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
-# (gaol/gaol_double_op_crlibm.h): its directory, when given, for the code using
-# GAOL to find it
-if mathlib == 'crlibm' and mathlib_include != ''
-  pc_cflags += ['-I' + mathlib_include]
-endif
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
     add_global_arguments([flag], language: 'cpp')
@@ -528,14 +430,6 @@ endif
 
 flex = find_program('flex', required: true)
 bison = find_program('bison', required: true)
-
-# The mathlib of 3rd/mathlib, after the global arguments, which meson refuses
-# once a target is declared, and which the library is compiled with
-if bundled_mathlib
-  subdir('3rd/mathlib')
-  mathlib_dep = ultim_dep
-  deps = [mathlib_dep, m_dep]
-endif
 
 subdir('gaol')
 

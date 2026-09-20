@@ -26,7 +26,7 @@
 
 SUFFIXES = .lpp .ypp
 
-EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h core_math_log_dint.h \
+EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h \
 	gaol_interval_lexer.lpp gaol_interval_parser.ypp dllmain.cpp gaol_config_mingw.h \
 	gaol_config_msvc.h gaol_version_msvc.h gaol_configuration.h.in gaol_interval_sse.cpp
 
@@ -65,19 +65,30 @@ libgaol_la_SOURCES = \
 	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
 	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
     gaol_exact.c \
-	core_math_sinh.c core_math_cosh.c core_math_tanh.c \
-	core_math_asinh.c core_math_acosh.c core_math_atanh.c \
-	core_math_log.c \
+	$(CORE_MATH_SOURCES) \
     $(FLOAT_INTERVALS_SOURCE) $(INTERVAL2_SOURCE)
 
 
 YFLAGS = -d -p gaol_
 LFLAGS = -Pgaol_
+# The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
+# itself: nothing is linked along with GAOL. Each source is compiled with
+# gaol/core_math_port.h included first, by the compiler rather than by the
+# source, so that importing a newer CORE-MATH stays a plain copy.
+CORE_MATH_DIR = $(top_srcdir)/3rd/math-core/src/binary64
+CORE_MATH_SOURCES = \
+	$(CORE_MATH_DIR)/exp/exp.c $(CORE_MATH_DIR)/log/log.c \
+	$(CORE_MATH_DIR)/pow/pow.c $(CORE_MATH_DIR)/sin/sin.c \
+	$(CORE_MATH_DIR)/cos/cos.c $(CORE_MATH_DIR)/tan/tan.c \
+	$(CORE_MATH_DIR)/asin/asin.c $(CORE_MATH_DIR)/acos/acos.c \
+	$(CORE_MATH_DIR)/atan/atan.c $(CORE_MATH_DIR)/atan2/atan2.c \
+	$(CORE_MATH_DIR)/sinh/sinh.c $(CORE_MATH_DIR)/cosh/cosh.c \
+	$(CORE_MATH_DIR)/tanh/tanh.c $(CORE_MATH_DIR)/asinh/asinh.c \
+	$(CORE_MATH_DIR)/acosh/acosh.c $(CORE_MATH_DIR)/atanh/atanh.c
+libgaol_la_CFLAGS = $(AM_CFLAGS) -include $(top_srcdir)/gaol/core_math_port.h
+
 libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
-# The shared library links the mathematical library: without it, libtool
-# linked libgaol.dylib on macOS with -undefined suppress, and a program linking
-# libgaol.dylib without mathlib crashed at the first elementary function
-libgaol_la_LIBADD = @MATHLIB@ -lm
+libgaol_la_LIBADD = -lm
 
 library_includedir=$(includedir)/gaol
 
@@ -85,12 +96,12 @@ library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_core_math.h gaol_
 	gaol_interval_parser.h gaol_config.h gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h \
 	gaol_configuration.h gaol_expression.h gaol_limits.h \
 	gaol_expr_eval.h  gaol_expr_visitor.h gaol_parameters.h \
-	gaol_double_op_apmathlib.h gaol_double_op_crlibm.h gaol_flags.h gaol_parser.h gaol_double_op.h \
+	gaol_flags.h gaol_parser.h gaol_double_op.h gaol_u128.h \
 	gaol_port.h gaol_fpu.h gaol_fpu_fenv.h gaol_profile.h gaol.h \
 	gaol_eval_stack.h gaol_init_cleanup.h gaol_version.h gaol_allocator.h \
 	gaol_interval_fpu.h gaol_interval_sse.h $(FLOAT_INTERVALS_HEADER) $(INTERVAL2_HEADER)
 
-LDADD = -lm @MATHLIB@
+LDADD = -lm
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c

@@ -363,137 +363,35 @@ fi
 
 
 
-# --with-mathlib(-path)
-AC_ARG_WITH([mathlib-include],
-		  [AS_HELP_STRING([--with-mathlib-include],[Specify the include path for the mathematical library])],
-		  mathlib_incpath="-I${with_mathlib_include}",mathlib_incpath="")
-AC_ARG_WITH([mathlib-lib],
-		  [AS_HELP_STRING([--with-mathlib-lib],[Specify the library path for the mathematical library])],
-		  mathlib_libpath="-L${with_mathlib_lib}",mathlib_libpath="")
-CXXFLAGS="$CXXFLAGS ${mathlib_libpath}"
-CPPFLAGS="$CPPFLAGS ${mathlib_incpath}"
+# The mathematical library
+#
+# GAOL bounds every one of its elementary functions with CORE-MATH
+# (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
+# 3rd/math-core and are compiled into libgaol itself (gaol/Makefile.am): there
+# is no library to find, to build apart or to link along with GAOL.
+#
+# CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
+# takes its values as bounds without moving them outward and without switching
+# the rounding direction (gaol/gaol_double_op.h). mathlib (the IBM Accurate
+# Portable Mathematical Library), CRlibm and the math library of the system,
+# which GAOL could be built with, are no longer used: the first two are
+# correctly rounded to nearest only, and the third is not accurate enough on
+# every system for its values moved outward to be bounds.
+#
+# The options naming them are refused rather than ignored, so that a script
+# still giving them is told what happened.
 AC_ARG_WITH([mathlib],
-    [AS_HELP_STRING([--with-mathlib=(apmathlib,crlibm,m)],[Specify the mathematical library to use: apmathlib (mathlib) or crlibm, or m, the math library of the system, with which the bounds of the elementary functions are not certified @<:@default=apmathlib@:>@])],
-    use_mathlib="${with_mathlib}",use_mathlib="apmathlib")
-# The math library of the system, whose results GAOL widens slightly
-# (gaol/gaol_double_op_m.h) without certifying its bounds: a choice left to
-# the user, who is warned. Any other name was only refused by
-# config.status, missing gaol_double_op_<name>.h
-AS_CASE([${use_mathlib}],
-  [apmathlib|crlibm], [],
-  [m], [AC_MSG_WARN([--with-mathlib=m: GAOL computes its elementary functions with the math library of the system, and does not certify their bounds: they are valid only where the math library is within about one double of the exact value. Use --with-mathlib=apmathlib (the default) or crlibm for certified bounds.])],
-  [AC_MSG_ERROR([--with-mathlib=${use_mathlib}: unknown mathematical library; apmathlib (the default), crlibm or m])])
-# mathlib is the one of 3rd/mathlib, built and installed with GAOL
-# (3rd/Makefile.am), unless --with-mathlib-include or --with-mathlib-lib says
-# where an installed one is. It is compiled with the flags of GAOL's C code,
-# those of interval arithmetic included, and without warnings (-w, as the CMake
-# build gives it).
-bundled_mathlib=no
-if test "${use_mathlib}" = "apmathlib" && test -z "${with_mathlib_include}${with_mathlib_lib}"; then
-   bundled_mathlib=yes
-fi
-AM_CONDITIONAL([BUNDLED_MATHLIB_COND], [test "${bundled_mathlib}" = yes])
-MATHLIB_CFLAGS=""
-if test "${bundled_mathlib}" = yes; then
-   AC_MSG_NOTICE([mathlib: the one of 3rd/mathlib, built with GAOL])
-   GAOL_CHECK_C_FLAG([-w], [mathlib_c_takes_w])
-   if test "${mathlib_c_takes_w}" = yes; then
-      MATHLIB_CFLAGS="-w"
-   fi
-   AC_DEFINE(HAVE_MATHLIB_H,1,[Define to 1 if you have the <MathLib.h> header file.])
-   AC_DEFINE(GAOL_USING_APMATHLIB,1,
-      [Define this to 1 if using the IBM APMathlib library])
-   MATHLIB='$(top_builddir)/3rd/libultim.la'
-elif test "${use_mathlib}" = "apmathlib"; then
-   OLD_LIBS=$LIBS
-   OLD_LDFLAGS=$LDFLAGS
-   LDFLAGS="${mathlib_libpath}"
-   LIBS="-lm"
-   AC_CHECK_LIB(ultim,utan,mathlib_found=yes,mathlib_found=no)
-   LIBS=${OLD_LIBS}
-   LDFLAGS=${OLD_LDFLAGS}
-   if test "${mathlib_found}" = "no"; then
-      AC_MSG_ERROR([APMathlib library not found])
-   fi
-   AC_CHECK_HEADERS(MathLib.h,mathlib_h=yes,mathlib_h=no)
-   if test "${mathlib_h}" = "no"; then
-      AC_MSG_ERROR([Header MathLib.h not found])
-   fi
-   # A mathlib whose cosine of 2^52 - 1 is wrong is refused, as CMakeLists.txt
-   # refuses it (see there): mathlib compiled with the contraction of
-   # multiplications and additions into fused multiply-adds reduces large
-   # arguments modulo pi/2 wrongly. The program checking it writes the cosine to
-   # conftest.cos, which tells a wrong cosine from a program that did not run;
-   # it cannot run when cross-compiling, and configure then only warns.
-   AC_LANG_PUSH([C++])
-   OLD_LIBS=$LIBS
-   OLD_LDFLAGS=$LDFLAGS
-   LDFLAGS="$LDFLAGS ${mathlib_libpath}"
-   LIBS="-lultim -lm $LIBS"
-   rm -f conftest.cos
-   AC_MSG_CHECKING([whether the cosine of mathlib is right at 2^52 - 1])
-   AC_RUN_IFELSE([AC_LANG_SOURCE([[extern "C" unsigned short Init_Lib();
-extern "C" void Exit_Lib(unsigned short);
-extern "C" double ucos(double);
-#include <cmath>
-#include <cstdio>
-int main()
-{
-  unsigned short state = Init_Lib();
-  double c = ucos(4503599627370495.0); // 2^52 - 1
-  Exit_Lib(state);
-  std::FILE *f = std::fopen("conftest.cos", "w");
-  if (f) {
-    std::fprintf(f, "%.17g", c);
-    std::fclose(f);
-  }
-  return std::fabs(c - 0.47329288595430913) <= 1e-15 ? 0 : 1;
-}]])],
-      [mathlib_cosine=yes],
-      [AS_IF([test -s conftest.cos], [mathlib_cosine=no], [mathlib_cosine=unknown])],
-      [mathlib_cosine=cross])
-   AS_CASE([${mathlib_cosine}],
-      [yes], [AC_MSG_RESULT([yes])],
-      [no], [mathlib_cosine_value=`cat conftest.cos`
-             AC_MSG_RESULT([no, ${mathlib_cosine_value}])],
-      [cross], [AC_MSG_RESULT([not checked, cross-compiling])],
-      [AC_MSG_RESULT([not checked, the program did not run])])
-   rm -f conftest.cos
-   LIBS=${OLD_LIBS}
-   LDFLAGS=${OLD_LDFLAGS}
-   AC_LANG_POP([C++])
-   AS_CASE([${mathlib_cosine}],
-      [no], [AC_MSG_ERROR([GAOL cannot use the mathlib found (-lultim ${mathlib_libpath}): its cosine of 2^52 - 1 is ${mathlib_cosine_value}, rather than 0.47329288595430913.
-Its reduction of large arguments modulo pi/2 is wrong, as when mathlib is compiled with the contraction of multiplications and additions into fused multiply-adds, which GCC does by default wherever the processor has them, 64-bit ARM processors included, unless given -ffp-contract=off: the intervals GAOL computes with sin, cos and tan would not enclose the values they should (compiled so on x86_64, mathlib gave values far from them at 534 of 20080 random arguments, from 2^26 to 2^54).
-Build GAOL with the mathlib it is tested with, the one of 3rd/mathlib: ./configure without --with-mathlib-include and --with-mathlib-lib compiles it with the flags of interval arithmetic; or install that one with sh scripts/install-mathlib.sh <mathlib>, then ./configure --with-mathlib-include=<mathlib>/include --with-mathlib-lib=<mathlib>/lib.])],
-      [cross], [AC_MSG_WARN([Cross-compiling: the cosine of mathlib is not checked at 2^52 - 1. A mathlib compiled with the contraction of multiplications and additions into fused multiply-adds gives sin, cos and tan of large arguments far from their values, which the intervals GAOL computes would not enclose: build GAOL with the mathlib of 3rd/mathlib, without --with-mathlib-include and --with-mathlib-lib.])],
-      [unknown], [AC_MSG_WARN([A program linked with mathlib (-lultim ${mathlib_libpath}) did not run: its cosine is not checked at 2^52 - 1.])])
-   AC_DEFINE(GAOL_USING_APMATHLIB,1,
-      [Define this to 1 if using the IBM APMathlib library])
-   MATHLIB="-lultim"
-fi
-if test "${use_mathlib}" = "crlibm"; then
-   OLD_LIBS=$LIBS
-   OLD_LDFLAGS=$LDFLAGS
-   LDFLAGS="${mathlib_libpath}"
-   LIBS="-lm"
-   AC_CHECK_LIB(crlibm,cos_rn,crlibm_found=yes,crlibm_found=no)
-   LIBS=${OLD_LIBS}
-   LDFLAGS=${OLD_LDFLAGS}
-   if test "${crlibm_found}" = "no"; then
-      AC_MSG_ERROR([CRLibm library not found])
-   fi
-   AC_CHECK_HEADERS(crlibm.h,crlibm_h=yes,crlibm_h=no)
-   if test "${crlibm_h}" = "no"; then
-      AC_MSG_ERROR([Header crlibm.h not found])
-   fi
-   AC_DEFINE(GAOL_USING_CRLIBM,1,
-      [Define this to 1 if using the CRLibm Mathematical library])
-   MATHLIB="-lcrlibm"
-fi
+    [AS_HELP_STRING([--with-mathlib],[removed: GAOL computes its elementary functions with CORE-MATH only])],
+    [AC_MSG_ERROR([--with-mathlib is no longer available: GAOL bounds every elementary function with CORE-MATH, whose sources (3rd/math-core) are compiled into the library. mathlib, CRlibm and the math library of the system are no longer used.])])
+AC_ARG_WITH([mathlib-include],
+    [AS_HELP_STRING([--with-mathlib-include],[removed, see --with-mathlib])],
+    [AC_MSG_ERROR([--with-mathlib-include is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to find.])])
+AC_ARG_WITH([mathlib-lib],
+    [AS_HELP_STRING([--with-mathlib-lib],[removed, see --with-mathlib])],
+    [AC_MSG_ERROR([--with-mathlib-lib is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to link.])])
+AC_MSG_NOTICE([elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)])
+MATHLIB=""
 AC_SUBST([MATHLIB])
-AC_SUBST([MATHLIB_CFLAGS])
-AC_CONFIG_LINKS([gaol/gaol_double_op.h:gaol/gaol_double_op_${use_mathlib}.h])
 
 
 
@@ -774,19 +672,9 @@ AC_SUBST([GAOL_PC_CFLAGS])
 # The version for gaol.pc, without the quotes VERSION carries
 GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
 AC_SUBST([GAOL_PC_VERSION])
-# mathlib in gaol.pc: -lultim or -lcrlibm, with its directory when given; the
-# mathlib of 3rd/mathlib is installed in the library directory of GAOL
-if test "${bundled_mathlib}" = yes; then
-   GAOL_PC_MATHLIB="-lultim"
-else
-   GAOL_PC_MATHLIB="${mathlib_libpath} ${MATHLIB}"
-fi
-# crlibm.h, which GAOL's headers include when GAOL is built with CRlibm
-# (gaol/gaol_double_op_crlibm.h): its directory, when given, goes into the
-# Cflags of gaol.pc, for the code using GAOL to find it
-if test "${use_mathlib}" = "crlibm" && test -n "${mathlib_incpath}"; then
-   GAOL_PC_CFLAGS="${mathlib_incpath} ${GAOL_PC_CFLAGS}"
-fi
+# No mathematical library is named in gaol.pc any more: the functions of
+# CORE-MATH are compiled into libgaol itself
+GAOL_PC_MATHLIB=""
 AC_SUBST([GAOL_PC_MATHLIB])
 
 
@@ -843,11 +731,7 @@ printf "CC\t\t\t= ${CC}\n"
 printf "CFLAGS\t\t\t= ${CFLAGS}\n"
 printf "CXX\t\t\t= ${CXX}\n"
 printf "CXXFLAGS\t\t= ${CXXFLAGS}\n"
-if test "${bundled_mathlib}" = yes; then
-   printf "mathlib\t\t\t= ${use_mathlib} (3rd/mathlib)\n"
-else
-   printf "mathlib\t\t\t= ${use_mathlib}\n"
-fi
+   printf "elementary functions\t= CORE-MATH (3rd/math-core, correctly rounded)\n"
 printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"
