@@ -30,8 +30,6 @@
 #include "gaol_tests.h"
 
 #include <cstdio>
-#include <cfenv>
-#include <xmmintrin.h>
 #include "gaol/gaol_expr_eval.h"
 
 using namespace gaol;
@@ -46,19 +44,7 @@ namespace
      came from (MinGW-w64 for a 32-bit target, GAOL v5). */
   void step(const char* what)
   {
-#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-    /* The control words as well: a floating-point exception traps only when it
-       is unmasked, and the bits below say which are. The exception raised on
-       32-bit MinGW-w64 comes after an empty interval is made, whose bounds are
-       NaN, and is_empty() compares them with <=, which signals invalid. */
-    unsigned short cw = 0;
-    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
-    std::fprintf(stderr, "-- %s  [x87 %04x, sse %04x, raised %02x]\n",
-                 what, (unsigned)cw, (unsigned)_mm_getcsr(),
-                 (unsigned)std::fetestexcept(FE_ALL_EXCEPT));
-#else
     std::fprintf(stderr, "-- %s\n", what);
-#endif
     std::fflush(stderr);
   }
 
@@ -162,64 +148,36 @@ namespace
 
   void functions()
   {
-    step("functions 1: cos(0)");
     same("cos(0)", cos(interval(0.0, 0.0)));
-    step("functions 2: sin(0)");
     same("sin(0)", sin(interval(0.0, 0.0)));
-    step("functions 3: tan(0)");
     same("tan(0)", tan(interval(0.0, 0.0)));
-    step("functions 4: cos([0,1])");
     same("cos([0,1])", cos(interval(0.0, 1.0)));
-    step("functions 5: sin([0,1])");
     same("sin([0,1])", sin(interval(0.0, 1.0)));
-    step("functions 6: tan([0,1])");
     same("tan([0,1])", tan(interval(0.0, 1.0)));
-    step("functions 7: acos([0,1])");
     same("acos([0,1])", acos(interval(0.0, 1.0)));
-    step("functions 8: asin([0,1])");
     same("asin([0,1])", asin(interval(0.0, 1.0)));
-    step("functions 9: atan([0,1])");
     same("atan([0,1])", atan(interval(0.0, 1.0)));
-    step("functions 10: cosh([0,1])");
     same("cosh([0,1])", cosh(interval(0.0, 1.0)));
-    step("functions 11: sinh([0,1])");
     same("sinh([0,1])", sinh(interval(0.0, 1.0)));
-    step("functions 12: tanh([0,1])");
     same("tanh([0,1])", tanh(interval(0.0, 1.0)));
-    step("functions 13: acosh([1,2])");
     same("acosh([1,2])", acosh(interval(1.0, 2.0)));
-    step("functions 14: asinh([0,1])");
     same("asinh([0,1])", asinh(interval(0.0, 1.0)));
-    step("functions 15: atanh([0,0.5])");
     same("atanh([0,0.5])", atanh(interval(0.0, 0.5)));
-    step("functions 16: exp([0,1])");
     same("exp([0,1])", exp(interval(0.0, 1.0)));
-    step("functions 17: log([1,2])");
     same("log([1,2])", log(interval(1.0, 2.0)));
-    step("functions 18: sqrt([4,9])");
     same("sqrt([4,9])", sqrt(interval(4.0, 9.0)));
-    step("functions 19: atan2([1,2],[3,4])");
     same("atan2([1,2],[3,4])", atan2(interval(1.0, 2.0), interval(3.0, 4.0)));
-    step("functions 20: nth_root([1,8],3)");
     same("nth_root([1,8],3)", nth_root(interval(1.0, 8.0), 3));
     // nested, and mixed with the operators
-    step("functions 21: exp(log([1,2]))");
     same("exp(log([1,2]))", exp(log(interval(1.0, 2.0))));
-    step("functions 22: sin(cos(tan([0,1])))");
     same("sin(cos(tan([0,1])))", sin(cos(tan(interval(0.0, 1.0)))));
-    step("functions 23: cos([0,1])+sin([0,1])*exp([0,1])");
     same("cos([0,1])+sin([0,1])*exp([0,1])",
          cos(interval(0.0, 1.0)) + sin(interval(0.0, 1.0)) * exp(interval(0.0, 1.0)));
-    step("functions 24: -exp([0,1])");
     same("-exp([0,1])", -exp(interval(0.0, 1.0)));
-    step("functions 25: log(exp([1,2])*exp([1,2]))");
     same("log(exp([1,2])*exp([1,2]))", log(exp(interval(1.0, 2.0)) * exp(interval(1.0, 2.0))));
     // outside the domain: the empty set rather than an exception
-    step("functions 26: log([-2,-1])");
     same("log([-2,-1])", log(interval(-2.0, -1.0)));
-    step("functions 27: sqrt([-2,-1])");
     same("sqrt([-2,-1])", sqrt(interval(-2.0, -1.0)));
-    step("functions 28: acos([2,3])");
     same("acos([2,3])", acos(interval(2.0, 3.0)));
   }
 
