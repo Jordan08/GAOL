@@ -113,7 +113,7 @@ def main():
                "which `cmake --build <build> --target coverage` runs "
                "(`-DGAOL_COVERAGE=ON`). Last run: %s.*" % date.today().isoformat())
     out.append("")
-    out.append("The line-by-line report is [index.html](index.html).")
+    out.append("The line-by-line report is [coverage.html](coverage.html), one page holding its own style.")
     out.append("")
     out.append("## Conclusion")
     out.append("")

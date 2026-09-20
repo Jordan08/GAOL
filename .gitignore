@@ -1,7 +1,6 @@
 autom4te.cache/
 # The line-by-line coverage report, which the target coverage writes: only
 # coverage/README.md, the page of conclusions, is kept in the repository
-coverage/*.html
 coverage/*.css
 coverage/*.js
 coverage/coverage.json

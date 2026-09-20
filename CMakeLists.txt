@@ -682,10 +682,12 @@ endif()
 # The counters of gcov are compiled into GAOL and its tests (--coverage), the
 # tests are run, and gcovr writes into coverage/ of the source tree:
 #
-# - index.html and its pages, the report line by line;
-# - coverage.json, what scripts/coverage_summary.py reads;
+# - coverage.html, the report line by line, one page holding its own style;
 # - README.md, the page of conclusions, which says what is covered and what is
 #   not, and whether the 80 % the fork aims at is reached.
+#
+# The raw data of gcovr (coverage.json) is written in the build directory, not
+# in coverage/, which holds only those two files.
 #
 # GAOL's own sources (gaol/) are counted apart from those of CORE-MATH
 # (3rd/math-core), whose accurate phases are reached by a handful of arguments
@@ -723,11 +725,13 @@ if(GAOL_COVERAGE)
             --gcov-ignore-errors=no_working_dir_found
             --filter "${CMAKE_CURRENT_SOURCE_DIR}/gaol/"
             --filter "${CMAKE_CURRENT_SOURCE_DIR}/3rd/math-core/"
-            --html-details "${_coverage_dir}/index.html"
-            --json "${_coverage_dir}/coverage.json"
+            # one page, holding its own style: coverage/ keeps no raw file
+            --html --html-self-contained --html-title "Coverage of GAOL"
+            --output "${_coverage_dir}/coverage.html"
+            --json "${CMAKE_CURRENT_BINARY_DIR}/coverage.json"
             --print-summary .
     COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/coverage_summary.py"
-            "${_coverage_dir}/coverage.json" "${_coverage_dir}/README.md"
+            "${CMAKE_CURRENT_BINARY_DIR}/coverage.json" "${_coverage_dir}/README.md"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Running the tests and writing the coverage report in coverage/"
     VERBATIM)
