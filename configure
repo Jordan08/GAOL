@@ -657,6 +657,7 @@ DLLIB
 IS_CYGWIN_COND_FALSE
 IS_CYGWIN_COND_TRUE
 MATHLIB
+CORE_MATH_EXCESS_PRECISION
 CORE_MATH_NO_LTO
 COMPILE_INTERVAL2_FALSE
 COMPILE_INTERVAL2_TRUE
@@ -17163,6 +17164,51 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 CORE_MATH_NO_LTO=""
 if test "${core_math_takes_fno_lto}" = yes; then
    CORE_MATH_NO_LTO="-fno-lto"
+fi
+
+
+# CORE-MATH asks for its computations to be rounded to double precision
+# (FLT_EVAL_METHOD = 0, see 3rd/math-core/README.md), which GAOL gets on x86 by
+# computing with SSE2 and which this asks the compiler for as well
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror -fexcess-precision=standard"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -fexcess-precision=standard" >&5
+$as_echo_n "checking whether the C compiler accepts -fexcess-precision=standard... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  core_math_takes_excess_precision=yes
+else
+  core_math_takes_excess_precision=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${core_math_takes_excess_precision}" >&5
+$as_echo "${core_math_takes_excess_precision}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+CORE_MATH_EXCESS_PRECISION=""
+if test "${core_math_takes_excess_precision}" = yes; then
+   CORE_MATH_EXCESS_PRECISION="-fexcess-precision=standard"
 fi
 
 

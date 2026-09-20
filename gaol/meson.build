@@ -52,6 +52,11 @@ if cpp_comp.get_argument_syntax() == 'msvc'
   core_math_args = ['/FI' + core_math_port]
 else
   core_math_args = ['-include', core_math_port]
+  # CORE-MATH asks for its computations to be rounded to double precision
+  # (FLT_EVAL_METHOD = 0, see 3rd/math-core/README.md)
+  if c_comp.has_argument('-fexcess-precision=standard')
+    core_math_args += ['-fexcess-precision=standard']
+  endif
 endif
 
 core_math_lib = static_library(

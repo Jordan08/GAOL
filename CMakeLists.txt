@@ -406,6 +406,16 @@ if(MSVC)
   set(GAOL_CORE_MATH_FLAGS "/FI${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
 else()
   set(GAOL_CORE_MATH_FLAGS "-include;${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
+  # CORE-MATH asks for its computations to be rounded to double precision
+  # (FLT_EVAL_METHOD = 0, see 3rd/math-core/README.md). GAOL gets that on x86
+  # by computing with SSE2, which gaol/gaol_config.h refuses to do without, and
+  # this asks the compiler for it as well, where it has the flag. It is for C
+  # only: GCC answers "sorry, unimplemented" for C++.
+  include(CheckCCompilerFlag)
+  check_c_compiler_flag("-fexcess-precision=standard" GAOL_C_SUPPORTS_EXCESS_PRECISION)
+  if(GAOL_C_SUPPORTS_EXCESS_PRECISION)
+    list(APPEND GAOL_CORE_MATH_FLAGS "-fexcess-precision=standard")
+  endif()
 endif()
 
 message(STATUS "Elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)")

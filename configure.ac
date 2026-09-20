@@ -380,6 +380,16 @@ if test "${core_math_takes_fno_lto}" = yes; then
 fi
 AC_SUBST([CORE_MATH_NO_LTO])
 
+# CORE-MATH asks for its computations to be rounded to double precision
+# (FLT_EVAL_METHOD = 0, see 3rd/math-core/README.md), which GAOL gets on x86 by
+# computing with SSE2 and which this asks the compiler for as well
+GAOL_CHECK_C_FLAG([-fexcess-precision=standard], [core_math_takes_excess_precision])
+CORE_MATH_EXCESS_PRECISION=""
+if test "${core_math_takes_excess_precision}" = yes; then
+   CORE_MATH_EXCESS_PRECISION="-fexcess-precision=standard"
+fi
+AC_SUBST([CORE_MATH_EXCESS_PRECISION])
+
 AC_MSG_NOTICE([elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)])
 MATHLIB=""
 AC_SUBST([MATHLIB])

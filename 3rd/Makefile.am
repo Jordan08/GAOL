@@ -36,6 +36,6 @@ libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # it makes GAOL's own operations twice as fast (see doc/three-builds.md). The
 # flag is given where the compiler takes it, which configure tested
 # (CORE_MATH_NO_LTO).
-libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @CORE_MATH_NO_LTO@ -include $(top_srcdir)/gaol/core_math_port.h
+libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ -include $(top_srcdir)/gaol/core_math_port.h
 
 EXTRA_DIST = README.md math-core
