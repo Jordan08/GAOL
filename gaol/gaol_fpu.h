@@ -64,17 +64,6 @@
 #if defined(__i386__) || defined(_M_IX86)
 #  undef GAOL_RND_PROBE
 #endif
-/* Nor with the mingw-w64 whose <fenv.h> answers fegetround() from a state of
-   its own rather than from the registers (before version 14 on x86-64 and 12
-   on 32-bit x86, see gaol/gaol_fpu_fenv.h): the probe reads the registers,
-   where fegetround() reads that state, and the two have to agree, the
-   elementary functions of CORE-MATH reading fegetround(). The condition is
-   written here as well, gaol/gaol_fpu_fenv.h being included below. */
-#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-    && ((defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 14) \
-        || (!defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12))
-#  undef GAOL_RND_PROBE
-#endif
 
 /*
   The rounding direction of GAOL's operations

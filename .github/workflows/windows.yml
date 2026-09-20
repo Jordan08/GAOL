@@ -80,19 +80,17 @@ jobs:
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 15.2.0 x86 Release' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Debug,   desc: 'MinGW-w64 15.2.0 x64 Debug' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Debug,   desc: 'MinGW-w64 15.2.0 x86 Debug' }
-          # The older MinGW-w64, built and tested again: GAOL takes no function
-          # from the math library of the system, whose hyperbolic functions were
-          # not accurate enough before mingw-w64 12, and no longer changes the
-          # rounding direction, whose fesetround() of mingw-w64 12 makes slow
-          # (fork of GAOL, see CMakeLists.txt)
+          # The older MinGW-w64 that GAOL builds with again: the two reasons it
+          # refused them are gone with mathlib (the hyperbolic functions of the
+          # math library of the system, and the cost of fesetround()). Those
+          # whose <fenv.h> answers fegetround() from a state of its own are
+          # still refused, the elementary functions of CORE-MATH reading it
+          # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and
+          # GCC 11 on 32-bit x86, which the job below checks are refused.
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 14.2.0 x64 Release' }
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 14.2.0 x86 Release' }
-          - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 13.2.0 x64 Release' }
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 13.2.0 x86 Release' }
-          - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 12.2.0 x64 Release' }
           - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 12.2.0 x86 Release' }
-          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 11.2.0 x64 Release' }
-          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 11.2.0 x86 Release' }
     steps:
       - uses: actions/checkout@v7
       - name: MinGW-w64, from Chocolatey
@@ -149,3 +147,41 @@ jobs:
         run: cd build && ctest -j 4 --output-on-failure
       - name: Performance
         run: build/tests/gaol_performance.exe
+
+  # The mingw-w64 whose <fenv.h> answers fegetround() from a state of its own
+  # are refused when compiling (gaol/gaol_config.h): GAOL sets the rounding
+  # direction by writing the registers, and the elementary functions of
+  # CORE-MATH read fegetround() to know it, so the bounds would not enclose
+  mingw-refused:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      desc: 'MinGW-w64 13.2.0 x64, refused' }
+          - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      desc: 'MinGW-w64 12.2.0 x64, refused' }
+          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      desc: 'MinGW-w64 11.2.0 x64, refused' }
+          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', desc: 'MinGW-w64 11.2.0 x86, refused' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: MinGW-w64, from Chocolatey
+        run: |
+          choco install -y -r --no-progress mingw --version=${{ matrix.cfg.version }} --force ${{ matrix.cfg.choco_flags }}
+          echo '${{ matrix.cfg.bin }}' >> "$GITHUB_PATH"
+      - name: The version of mingw-w64, and a build that has to fail
+        run: |
+          g++ --version
+          echo '#include <stdlib.h>' | g++ -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) '
+          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+          if cmake --build build > build.log 2>&1; then
+            cat build.log
+            echo "This MinGW-w64 was not refused"
+            exit 1
+          fi
+          cat build.log
+          grep -q "GAOL cannot be compiled with this mingw-w64" build.log

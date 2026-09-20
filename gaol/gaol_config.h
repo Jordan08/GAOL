@@ -182,10 +182,24 @@
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
-/* mingw-w64 is no longer refused for its version (fork of GAOL): GAOL takes no
-   function from the math library of the system, whose hyperbolic functions
-   were not accurate enough before mingw-w64 12, and no longer changes the
-   rounding direction for its elementary functions, which the fesetround() of
-   mingw-w64 12 makes slow. See CMakeLists.txt. */
+/* mingw-w64 whose <fenv.h> answers fegetround() from a state of its own rather
+   than from the registers. GAOL sets the rounding direction by writing the
+   registers, and the elementary functions of CORE-MATH read fegetround() to
+   know it: those versions then computed for another direction, and the bounds
+   did not enclose the exact values (tan, asin and atan of small arguments, in
+   the continuous integration).
+
+   The two reasons that had GAOL refuse mingw-w64 before are gone (the
+   hyperbolic functions of its math library, which GAOL no longer uses, and the
+   cost of its fesetround(), which GAOL no longer calls for its elementary
+   functions), so more versions are accepted than before: MinGW-w64 GCC 14 and
+   15 on x86-64 (mingw-w64 12 and 13), and GCC 12 to 15 on 32-bit x86
+   (mingw-w64 11 and later), where GAOL sets both units itself. GAOL was built
+   and tested with each of them (fork of GAOL). */
+#if defined(__MINGW64_VERSION_MAJOR) \
+    && ((defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12) \
+        || (!defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 11))
+#  error "GAOL cannot be compiled with this mingw-w64: its <fenv.h> answers fegetround() from a state of its own rather than from the registers, and the elementary functions of CORE-MATH read fegetround() to know the rounding direction GAOL set by writing the registers, so that the bounds would not enclose the exact values. Build GAOL with the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0), or the one of MSYS2, or with Visual Studio"
+#endif
 
 #endif /* __gaol_config_h__ */
