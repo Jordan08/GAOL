@@ -113,7 +113,7 @@ jobs:
       - name: Configure
         run: |
           # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
-          # behaviour; none is suppressed, mathlib's being fixed in 3rd/mathlib
+          # behaviour; none is suppressed
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
             "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
@@ -157,15 +157,15 @@ jobs:
       - name: Configure tests/fetch_content, a project building GAOL for itself with FetchContent, from this checkout
         run: |
           cmake -S tests/fetch_content -B build-fetch-content -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" | tee configure.log
-          grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure.log
+          grep -q "Elementary functions: CORE-MATH" configure.log
       - name: Build
         run: cmake --build build-fetch-content -j 4
       - name: Tests
         run: cd build-fetch-content && ctest -j 4 --output-on-failure
-      - name: Install, which installs GAOL and mathlib with the project
+      - name: Install, which installs GAOL with the project
         run: |
           cmake --install build-fetch-content
-          for file in lib/libgaol.a lib/libultim.a include/MathLib.h include/gaol/gaol.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
+          for file in lib/libgaol.a include/gaol/gaol.h include/gaol/gaol_u128.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
             test -f "gaol-install/$file" || { echo "$file is not installed"; exit 1; }
           done
       - name: Tests built with the installed GAOL

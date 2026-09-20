@@ -1478,7 +1478,7 @@ interval nth_root(const interval& I, unsigned int n)
     }
     // Rounded upward
     const bool narrower_than_pi = (r - l < pi_dn);
-    GAOL_RND_ENTER();
+    // The rounding direction is upward already, set at the top of tan()
     if (!told && narrower_than_pi) {
       no_pole = (sign_of_cos(l) == sign_of_cos(r));
     }

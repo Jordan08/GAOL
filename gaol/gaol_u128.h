@@ -101,10 +101,15 @@ GAOL_U128_INLINE uint64_t gaol_u128_hi(gaol_u128 a) { return a.h; }
 /* The 128-bit product of two 64-bit values: one instruction where the
    processor has it, four 32-bit products elsewhere. */
 GAOL_U128_INLINE gaol_u128 gaol_u128_mul64(uint64_t a, uint64_t b) {
-#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64) || defined(_M_ARM64EC))
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64)
+  /* One instruction on x64; _umul128 is for x64 only */
   uint64_t h;
   uint64_t l = _umul128(a, b, &h);
   return gaol_u128_make(h, l);
+#elif defined(_MSC_VER) && !defined(__clang__) && (defined(_M_ARM64) || defined(_M_ARM64EC))
+  /* On ARM64, __umulh gives the high half and the ordinary product the low one
+     (Visual C++ has no _umul128 there) */
+  return gaol_u128_make(__umulh(a, b), a * b);
 #else
   uint64_t a0 = (uint32_t)a, a1 = a >> 32;
   uint64_t b0 = (uint32_t)b, b1 = b >> 32;

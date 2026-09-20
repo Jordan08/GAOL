@@ -3,7 +3,7 @@
 # ==================================================================
 #
 # Builds the tests of the parent directory as a project building GAOL for
-# itself with FetchContent would: GAOL and mathlib (from 3rd/mathlib) are then
+# itself with FetchContent would: GAOL, holding the sources of CORE-MATH, is then
 # targets of this project, built with it, and installed with it by
 # cmake --install, CMake package included:
 #
@@ -28,15 +28,15 @@ FetchContent_Declare(gaol
 )
 FetchContent_MakeAvailable(gaol)
 
-foreach(target gaol::gaol gaol::ultim)
+foreach(target gaol::gaol)
   if(NOT TARGET ${target})
     message(FATAL_ERROR "FetchContent did not provide ${target}")
   endif()
 endforeach()
 
 # A shared library linking GAOL, as Python bindings do: this project does not
-# set CMAKE_POSITION_INDEPENDENT_CODE, and GAOL and mathlib, static libraries,
-# have to be position-independent code for it to link
+# set CMAKE_POSITION_INDEPENDENT_CODE, and GAOL, a static library holding the
+# sources of CORE-MATH, has to be position-independent code for it to link
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/gaol_shared.cpp" [=[
 #include <gaol/gaol.h>
 #if defined(_WIN32)

@@ -125,25 +125,46 @@ namespace gaol {
 
   expression& expression::operator+=(const expression& e)
   {
-    // Decrementing because it will be reset to its original value by mult_node
+    /* The node built below takes a reference on the root it replaces, which
+       the decrement below gives up: the count of that root is unchanged.
+       The expression then takes a reference on its new root, as every
+       constructor does; without it the count of the new root stayed 0, the
+       destructor decremented it to UINT_MAX rather than to 0, and the node
+       was never deleted (fork of GAOL, found by LeakSanitizer through
+       tests/expressions.cpp). */
     --root->refcount;
     root=new add_node(*this,e);
+    ++root->refcount;
     return *this;
   }
 
   expression& expression::operator-=(const expression& e)
   {
-    // Decrementing because it will be reset to its original value by mult_node
+    /* The node built below takes a reference on the root it replaces, which
+       the decrement below gives up: the count of that root is unchanged.
+       The expression then takes a reference on its new root, as every
+       constructor does; without it the count of the new root stayed 0, the
+       destructor decremented it to UINT_MAX rather than to 0, and the node
+       was never deleted (fork of GAOL, found by LeakSanitizer through
+       tests/expressions.cpp). */
     --root->refcount;
     root=new sub_node(*this,e);
+    ++root->refcount;
     return *this;
   }
 
   expression& expression::operator*=(const expression& e)
   {
-    // Decrementing because it will be reset to its original value by mult_node
+    /* The node built below takes a reference on the root it replaces, which
+       the decrement below gives up: the count of that root is unchanged.
+       The expression then takes a reference on its new root, as every
+       constructor does; without it the count of the new root stayed 0, the
+       destructor decremented it to UINT_MAX rather than to 0, and the node
+       was never deleted (fork of GAOL, found by LeakSanitizer through
+       tests/expressions.cpp). */
     --root->refcount;
     root=new mult_node(*this,e);
+    ++root->refcount;
     return *this;
   }
 

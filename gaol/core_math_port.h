@@ -72,6 +72,72 @@
 #include "gaol/gaol_u128.h"
 
 /*---------------------------------------------------------------------------
+  roundeven(), which the math library of Windows has not
+
+  The sources call __builtin_roundeven(). GCC and Clang turn it into one
+  instruction where the processor has it (roundsd of SSE4.1, frintn on ARM),
+  and into a call to roundeven() of C23 otherwise: the math library of glibc
+  has that function, those of mingw-w64 and of Visual C++ have not, and a
+  program linking GAOL there stopped on "undefined reference to roundeven"
+  (the continuous integration, with MinGW-w64 15 and MSYS2, where GAOL is
+  compiled without the AVX instructions).
+
+  So on Windows the builtin is replaced by the function below, which reads the
+  bits: it is neither round() (halfway values away from zero) nor nearbyint()
+  (the rounding direction in effect, upward in GAOL), and it does not depend on
+  that direction.
+ --------------------------------------------------------------------------*/
+
+#if defined(_WIN32) || defined(__MINGW32__) || defined(__CYGWIN__)
+
+#include <math.h>
+#include <string.h>
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  define GAOL_PORT_INLINE static __forceinline
+#else
+#  define GAOL_PORT_INLINE static inline
+#endif
+
+/* x rounded to the nearest integer, halfway values to the even one, which is
+   neither round() (halfway away from zero) nor nearbyint() (the rounding
+   direction in effect, upward in GAOL). The bits are read, so that the result
+   does not depend on that direction. */
+GAOL_PORT_INLINE double gaol_roundeven(double x)
+{
+  uint64_t u;
+  int e;
+  memcpy(&u, &x, sizeof u);
+  e = (int)((u >> 52) & 0x7ff) - 1023;
+  if (e >= 52) {
+    return x; /* an integer already, or an infinity or a NaN */
+  }
+  if (e < -1) {
+    return copysign(0.0, x); /* |x| < 1/2 */
+  }
+  if (e == -1) {
+    /* 1/2 <= |x| < 1: 1/2 goes to 0, which is even */
+    const uint64_t frac = u & 0x000fffffffffffffull;
+    return frac == 0 ? copysign(0.0, x) : copysign(1.0, x);
+  }
+  {
+    const int shift = 52 - e;
+    const uint64_t half = (uint64_t)1 << (shift - 1);
+    const uint64_t frac = u & (((uint64_t)1 << shift) - 1);
+    uint64_t r = u - frac;
+    if (frac > half || (frac == half && (u & ((uint64_t)1 << shift)) != 0)) {
+      r += (uint64_t)1 << shift;
+    }
+    memcpy(&x, &r, sizeof x);
+    return x;
+  }
+}
+
+#define __builtin_roundeven(x) gaol_roundeven(x)
+
+#endif /* Windows */
+
+/*---------------------------------------------------------------------------
   What Visual C++ has not of GCC and Clang
  --------------------------------------------------------------------------*/
 
@@ -135,41 +201,6 @@ static __forceinline int gaol_ctzll(uint64_t x)
 #define __builtin_clzl(x) gaol_clzll((uint64_t)(x))
 #define __builtin_ctzl(x) gaol_ctzll((uint64_t)(x))
 
-/* x rounded to the nearest integer, halfway values to the even one, which is
-   neither round() (halfway away from zero) nor nearbyint() (the rounding
-   direction in effect, upward in GAOL). The bits are read, so that the result
-   does not depend on that direction. */
-static __forceinline double gaol_roundeven(double x)
-{
-  uint64_t u;
-  int e;
-  memcpy(&u, &x, sizeof u);
-  e = (int)((u >> 52) & 0x7ff) - 1023;
-  if (e >= 52) {
-    return x; /* an integer already, or an infinity or a NaN */
-  }
-  if (e < -1) {
-    return copysign(0.0, x); /* |x| < 1/2 */
-  }
-  if (e == -1) {
-    /* 1/2 <= |x| < 1: 1/2 goes to 0, which is even */
-    const uint64_t frac = u & 0x000fffffffffffffull;
-    return frac == 0 ? copysign(0.0, x) : copysign(1.0, x);
-  }
-  {
-    const int shift = 52 - e;
-    const uint64_t half = (uint64_t)1 << (shift - 1);
-    const uint64_t frac = u & (((uint64_t)1 << shift) - 1);
-    uint64_t r = u - frac;
-    if (frac > half || (frac == half && (u & ((uint64_t)1 << shift)) != 0)) {
-      r += (uint64_t)1 << shift;
-    }
-    memcpy(&x, &r, sizeof x);
-    return x;
-  }
-}
-
-#define __builtin_roundeven(x) gaol_roundeven(x)
 
 /* The sources use __builtin_mul_overflow on 64-bit operands only. */
 static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t *r)
