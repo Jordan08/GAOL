@@ -5,13 +5,13 @@
 *Not listed in the documentation index of the [README](../README.md#documentation):
 a note kept for reference.*
 
-GAOL bounds its elementary functions with one of three math libraries —
-mathlib by default, CRlibm, or the math library of the system (see
-[Building GAOL](building.md)) — and carries the sources of a fourth,
-CORE-MATH, in `gaol/core_math_*.c`. The four come from four moments of the
-same history and were written with different goals, which is why they give
-bounds of different tightness. This page says where each of them comes from
-and what separates them.
+GAOL v5 bounds every one of its elementary functions with CORE-MATH, which is
+the only math library it uses (`3rd/math-core`). Before that it was built with
+one of three — mathlib by default, CRlibm, or the math library of the system —
+which the three builds now refuse rather than ignore. The four come from four
+moments of the same history and were written with different goals, which is why
+they give bounds of different tightness. This page says where each of them comes
+from and what separates them, and why GAOL v5 ended up with the last.
 
 ## What they all answer: the table maker's dilemma
 
@@ -63,10 +63,10 @@ precisely what interval arithmetic needs. Beside these portable
 implementations live the fast and non-portable ones: Intel SVML, AMD libm,
 ARM's `optimized-routines`, and the vector variants.
 
-This is why configure and meson warn when GAOL is built with `--with-mathlib=m`:
-the bounds are no longer certified, and hold only where the libm of the system
-stays within about one double of the exact value (see
-[Accuracy of the operations](accuracy.md#with-crlibm-or-the-math-library-of-the-system)).
+This is why GAOL could not keep the libm of the system as an option: the bounds
+would not be certified, holding only where that libm stays within about one
+double of the exact value. `--with-mathlib` and its companions are refused by
+the three builds rather than ignored, there being nothing left to choose.
 
 ## mathlib, the IBM Accurate Portable Mathematical Library (libultim)
 
@@ -94,8 +94,8 @@ sin, cos, atan and pow for some fifteen years. In 2018 the glibc 2.28 removed
 these multiprecision slow paths: the pathological execution times were judged
 worse than the accuracy was worth. The glibc thereby gave up correct rounding
 and went back to about half to one unit in the last place with a bounded worst
-case. The version GAOL builds is mathlib 2.1.1, under the GNU LGPL, as
-Frédéric Goualard distributes it (see [3rd/mathlib](../3rd/README.md#mathlib)).
+case. The version GAOL built was mathlib 2.1.1, under the GNU LGPL, as
+Frédéric Goualard distributed it; GAOL v5 carries it no longer.
 
 ## CRlibm, the proofs
 
@@ -117,11 +117,12 @@ CRlibm keeps Ziv's two phases but changes what is guaranteed:
   The documentation of CRlibm is as much a proof document as a manual, and
   this is its main scientific contribution.
 - **the four rounding directions are provided explicitly**: `cos_rn`, `cos_rd`,
-  `cos_ru`, `cos_rz`. This is what makes it natural for interval arithmetic,
-  and why GAOL takes its functions rounded downward and upward directly,
-  without moving them outward: built with CRlibm, GAOL's exp, log, sin, cos,
-  tan, asin, acos, atan, sinh and cosh are the tightest bounds of the value at
-  the bound ([Accuracy of the operations](accuracy.md#with-crlibm-or-the-math-library-of-the-system)).
+  `cos_ru`, `cos_rz`. This is what makes it natural for interval arithmetic, and
+  why GAOL took its functions rounded downward and upward directly, without
+  moving them outward: built with CRlibm, GAOL's exp, log, sin, cos, tan, asin,
+  acos, atan, sinh and cosh were the tightest bounds of the value at the bound.
+  CORE-MATH gives the same, in the direction in effect, for every function and
+  on every system (see [Accuracy of the operations](accuracy.md)).
 
 Its price was the work of a specialist for each function, a narrow coverage (a
 dozen functions, binary64 only — neither tanh nor asinh, acosh, atanh), and a
@@ -150,10 +151,10 @@ as much a strategy of adoption as a technique.
   arguments can be enumerated and compared with MPFR; in binary64 and beyond,
   a proved fast phase and an accurate phase, with a search for the hard cases.
 - **The four rounding directions** are honoured, the one in effect included.
-  This is what GAOL uses for log: correctly rounded in the upward rounding
-  GAOL computes in, CORE-MATH's log gives the tightest bounds without
-  switching the rounding direction, twice as fast as mathlib's log moved
-  outward (see `gaol/gaol_core_math.h`).
+  This is what GAOL v5 rests on: correctly rounded in the upward rounding GAOL
+  computes in, CORE-MATH gives the tightest bounds without switching the
+  rounding direction, `log` twice as fast as mathlib's moved outward (see
+  `gaol/gaol_core_math.h`).
 
 A proposal to add `cr_*` functions to the C standard comes from the same team,
 so that correct rounding can be asked for by the program rather than imposed
@@ -201,10 +202,12 @@ The hierarchy is read directly in the tightness of the bounds, which
 - CRlibm and CORE-MATH: **correctly rounded in the direction wanted**, hence
   the tightest bound of the value at the bound, with nothing to add.
 
-This is also why GAOL v5 takes CORE-MATH's sinh, cosh, tanh, asinh, acosh
-and atanh (neither mathlib nor CRlibm has them all, and the libm of the system
-is not accurate enough everywhere for its values moved outward to be bounds),
-and its log where the compiler has a 128-bit integer type.
+This is also why GAOL v5 takes every one of its elementary functions from
+CORE-MATH, the hyperbolic ones first (neither mathlib nor CRlibm has them all,
+and the libm of the system is not accurate enough everywhere for its values
+moved outward to be bounds), and on every architecture and with every compiler,
+`gaol/gaol_u128.h` giving the accurate phases the 128-bit integer where the
+compiler has none.
 
 ## Further reading
 
