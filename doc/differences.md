@@ -52,6 +52,16 @@ Each change is a commit of its own, and says where it comes from.
   - **`nth_root(x, q)` takes a negative q**, which IEEE 1788-2015 recommends
     (rootn over ℤ∖{0}, Table 10.5): x<sup>1/q</sup> is 1/x<sup>1/|q|</sup>,
     whose domain is ℝ∖{0} for an odd q and (0, +∞) for an even one.
+  - **`sign`, `trunc`, `round_ties_to_even` and `round_ties_to_away`**, the
+    integer functions IEEE 1788-2015 requires beside `ceil` and `floor`
+    (Table 9.1), which GAOL did not provide. Each is non-decreasing, so the
+    bounds of the result are its values at the bounds, and each is exact. They
+    take nothing from CORE-MATH, which has none of them and needs none: their
+    results are integers, with no rounding to get right. What they do need is
+    to ignore the rounding direction, which `std::nearbyint` and `std::rint`
+    read: `round_ties_to_even` therefore reads the bits
+    (`gaol/gaol_roundeven.h`, which also gives CORE-MATH the `roundeven()` the
+    math library of Windows has not).
 
 - **From the patch IBEX applies to GAOL** (Gilles Chabert,
   `interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0.all.all.patch` of

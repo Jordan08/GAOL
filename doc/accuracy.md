@@ -78,7 +78,7 @@ off by default and unfinished, are not covered.
 |---|---|---|---|---|
 | `floor`, `ceil` | `floor(x)`, `ceil(x)` | Of each bound | tightest (exact) | exact |
 | — | `integer(x)` | The integers in x: [ceil(lower), floor(upper)] | tightest (exact) | exact |
-| `sign`, `trunc`, `roundTiesToEven`, `roundTiesToAway` | — | Not provided | | |
+| `sign`, `trunc`, `roundTiesToEven`, `roundTiesToAway` | `sign(x)`, `trunc(x)`, `round_ties_to_even(x)`, `round_ties_to_away(x)` | The value at each bound, each function being non-decreasing, as `ceil` and `floor` above; ∅ for ∅, which `sign` has to test, the bounds of the empty interval being +∞ and −∞. None of them rounds, each returning a double that is an integer: `trunc` and `round_ties_to_away` are `std::trunc` and `std::round`, which the C++ standard defines without reading the rounding direction, and `round_ties_to_even` reads the bits (`gaol/gaol_roundeven.h`), where `std::nearbyint` and `std::rint` would round in the direction in effect, upward in GAOL (fork of GAOL) | tightest, and exact | tightest; the same result in the four rounding directions, over 22 407 doubles (halfway values, whole numbers and the doubles on either side of them) |
 | `abs` | `abs(x)` | Magnitudes of the bounds, 0 when x contains 0 | tightest (exact) | tightest |
 | `min`, `max` | `min(x, y)`, `max(x, y)` | Of the bounds | tightest (exact) | tightest |
 

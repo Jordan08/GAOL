@@ -38,6 +38,7 @@
 #include <type_traits>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_double_op.h"
+#include "gaol/gaol_roundeven.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
@@ -829,6 +830,14 @@ extern __GAOL_PUBLIC__   interval invabs_rel(const interval &J, const interval &
     \brief
    */
 
+  /*!
+    \brief Returns the sign of d: -1 below 0, 0 at 0 and at -0, 1 above
+  */
+INLINE double gaol_sign_of(double d)
+  {
+    return (d < 0.0) ? -1.0 : ((d > 0.0) ? 1.0 : 0.0);
+  }
+
 INLINE interval floor(const interval &I)
   {
     return interval(std::floor(I.left()),std::floor(I.right()));
@@ -842,6 +851,76 @@ INLINE interval ceil(const interval &I)
 INLINE interval integer(const interval &I)
   {
     return interval(std::ceil(I.left()),std::floor(I.right()));
+  }
+
+/*
+  The integer functions of IEEE 1788-2015 (Table 9.1, fork of GAOL)
+
+  sign, trunc, roundTiesToEven and roundTiesToAway, which GAOL did not provide,
+  beside the ceil and floor above. Each of them is non-decreasing, so the
+  bounds of the result are its values at the bounds of the interval, as they
+  are for ceil and floor.
+
+  None of them rounds: each returns a double that is an integer (or an
+  infinity), exactly, so the rounding direction GAOL leaves upward changes
+  nothing -- provided the functions of the C library used here do not read that
+  direction. std::trunc and std::round do not: the standard defines them as
+  rounding toward zero and to the nearest with halfway values away from zero,
+  "regardless of the current rounding direction". std::nearbyint and std::rint
+  are the ones that do read it, and are not used; roundTiesToEven, which no
+  function of C++ gives, is gaol/gaol_roundeven.h, which reads the bits.
+  tests/elementary.cpp checks the four in the four rounding directions.
+
+  Each tests the empty set first. The empty interval has +oo as its lower bound
+  and -oo as its upper one, which trunc and the two roundings send to
+  themselves, giving the empty set back; sign does not, sending them to 1 and
+  -1, so without the test sign(empty) would be the interval [1, -1].
+*/
+
+  /*!
+    \brief Returns the signs of the elements of I: -1 below 0, 0 at 0, 1 above
+  */
+INLINE interval sign(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_sign_of(I.left()),gaol_sign_of(I.right()));
+  }
+
+  /*!
+    \brief Returns an enclosure of the elements of I rounded toward zero
+  */
+INLINE interval trunc(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(std::trunc(I.left()),std::trunc(I.right()));
+  }
+
+  /*!
+    \brief Returns an enclosure of the elements of I rounded to the nearest
+           integer, halfway values to the even one
+  */
+INLINE interval round_ties_to_even(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_roundeven(I.left()),gaol_roundeven(I.right()));
+  }
+
+  /*!
+    \brief Returns an enclosure of the elements of I rounded to the nearest
+           integer, halfway values away from zero
+  */
+INLINE interval round_ties_to_away(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(std::round(I.left()),std::round(I.right()));
   }
 
 INLINE interval operator+(const interval& I, double d)

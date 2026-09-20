@@ -21,7 +21,11 @@
 #include "elementary_values.h"
 
 #include <algorithm>
+#include <cfenv>
+#include <cmath>
 #include <cstdlib>
+#include <random>
+#include <vector>
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -577,6 +581,125 @@ namespace
   }
 }
 
+/*
+  The integer functions of IEEE 1788-2015 (Table 9.1, fork of GAOL)
+
+  sign, trunc, roundTiesToEven and roundTiesToAway are exact: each returns a
+  double that is an integer, with no rounding of its own. What is checked here
+  is that they do not read the rounding direction either -- std::nearbyint and
+  std::rint would -- so that GAOL gives the same result whatever direction the
+  calling code left, as it does for every other operation.
+*/
+namespace
+{
+  std::vector<double> integer_arguments()
+  {
+    std::vector<double> v;
+    // halfway values, whole numbers, and the doubles on either side of them
+    for (int k = -400; k <= 400; ++k) {
+      const double h = k / 2.0;
+      v.push_back(h);
+      v.push_back(std::nextafter(h, -GAOL_INFINITY));
+      v.push_back(std::nextafter(h, GAOL_INFINITY));
+    }
+    std::mt19937_64 g(31415);
+    for (int i = 0; i < 20000; ++i) {
+      v.push_back((double)(g() % 2000000) / 1000.0 - 1000.0);
+    }
+    v.push_back(0.0);
+    v.push_back(-0.0);
+    v.push_back(0x1p52);
+    v.push_back(-0x1p52);
+    return v;
+  }
+
+  // roundTiesToEven and roundTiesToAway, computed in the rounding to nearest
+  // and away from GAOL, as references
+  double to_nearest(double (*f)(double), double x)
+  {
+    const int save = std::fegetround();
+    std::fesetround(FE_TONEAREST);
+    const double r = f(x);
+    std::fesetround(save);
+    return r;
+  }
+
+  void integer_functions()
+  {
+    const std::vector<double> v = integer_arguments();
+    const int modes[4] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+
+    for (double x : v) {
+      const interval I(x, x);
+      interval first[4];
+      for (int m = 0; m < 4; ++m) {
+        std::fesetround(modes[m]);
+        const interval got[4] = {sign(I), trunc(I), round_ties_to_even(I), round_ties_to_away(I)};
+        for (int f = 0; f < 4; ++f) {
+          if (m == 0) {
+            first[f] = got[f];
+          } else {
+            check("the integer functions: the same result whatever the rounding direction",
+                  got[f].left() == first[f].left() && got[f].right() == first[f].right(),
+                  [&] { return "at " + hex(x); });
+          }
+        }
+      }
+      std::fesetround(FE_UPWARD);
+
+      const double s = (x < 0.0) ? -1.0 : ((x > 0.0) ? 1.0 : 0.0);
+      check("sign: the sign of the bounds", sign(I).left() == s && sign(I).right() == s,
+            [&] { return "sign(" + hex(x) + ")"; });
+      check("trunc: toward zero", trunc(I).left() == std::trunc(x) && trunc(I).right() == std::trunc(x),
+            [&] { return "trunc(" + hex(x) + ")"; });
+      const double e = to_nearest(std::nearbyint, x);
+      check("roundTiesToEven: the nearest integer, ties to the even one",
+            round_ties_to_even(I).left() == e && round_ties_to_even(I).right() == e,
+            [&] { return "round_ties_to_even(" + hex(x) + ") = " + hex(round_ties_to_even(I).left())
+                       + " rather than " + hex(e); });
+      const double a = to_nearest(std::round, x);
+      check("roundTiesToAway: the nearest integer, ties away from zero",
+            round_ties_to_away(I).left() == a && round_ties_to_away(I).right() == a,
+            [&] { return "round_ties_to_away(" + hex(x) + ")"; });
+    }
+
+    // Over intervals: each function does not decrease, so the bounds of the
+    // result are its values at the bounds
+    struct Case { const char* what; interval got; double lo, hi; };
+    const Case cases[] = {
+      {"sign([-3, 5])", sign(interval(-3.0, 5.0)), -1.0, 1.0},
+      {"sign([0])", sign(interval(0.0, 0.0)), 0.0, 0.0},
+      {"sign([-inf, -1])", sign(interval(-GAOL_INFINITY, -1.0)), -1.0, -1.0},
+      {"trunc([-2.7, 3.7])", trunc(interval(-2.7, 3.7)), -2.0, 3.0},
+      {"trunc([-inf, +inf])", trunc(interval(-GAOL_INFINITY, GAOL_INFINITY)), -GAOL_INFINITY, GAOL_INFINITY},
+      // 0.5 and 2.5 go to the even integers 0 and 2, and away from zero to 1 and 3
+      {"round_ties_to_even([0.5, 2.5])", round_ties_to_even(interval(0.5, 2.5)), 0.0, 2.0},
+      {"round_ties_to_away([0.5, 2.5])", round_ties_to_away(interval(0.5, 2.5)), 1.0, 3.0},
+      {"round_ties_to_even([-0.5, 1.5])", round_ties_to_even(interval(-0.5, 1.5)), 0.0, 2.0},
+      {"round_ties_to_away([-0.5, 1.5])", round_ties_to_away(interval(-0.5, 1.5)), -1.0, 2.0},
+    };
+    for (const Case& c : cases) {
+      check("the integer functions: over an interval",
+            !c.got.is_empty() && c.got.left() == c.lo && c.got.right() == c.hi,
+            [&] {
+              return std::string(c.what) + " = [" + hex(c.got.left()) + ", " + hex(c.got.right())
+                   + "] rather than [" + hex(c.lo) + ", " + hex(c.hi) + "]";
+            });
+    }
+
+    // The empty set: sign would give [1, -1] from the bounds of the empty
+    // interval, +oo and -oo, without the test the functions make
+    check("sign: empty of the empty set", sign(interval::emptyset()).is_empty(),
+          [] { return std::string("sign(empty)"); });
+    check("trunc: empty of the empty set", trunc(interval::emptyset()).is_empty(),
+          [] { return std::string("trunc(empty)"); });
+    check("roundTiesToEven: empty of the empty set", round_ties_to_even(interval::emptyset()).is_empty(),
+          [] { return std::string("round_ties_to_even(empty)"); });
+    check("roundTiesToAway: empty of the empty set", round_ties_to_away(interval::emptyset()).is_empty(),
+          [] { return std::string("round_ties_to_away(empty)"); });
+  }
+}
+
 int main()
 {
   gaol::init();
@@ -587,6 +710,8 @@ int main()
   atan2_of_boxes();
   trigonometric_intervals();
   powers();
+  integer_functions();
+  std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();
   return status;
