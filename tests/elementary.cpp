@@ -687,8 +687,10 @@ namespace
             });
     }
 
-    // The empty set: sign would give [1, -1] from the bounds of the empty
-    // interval, +oo and -oo, without the test the functions make
+    /* The empty set, which GAOL holds as the two bounds NaN: trunc and the
+       two roundings send a NaN to itself, so they give the empty set back,
+       where sign would give [0, 0], a NaN comparing false both to 0 and above
+       it. The four test it rather than rely on that. */
     check("sign: empty of the empty set", sign(interval::emptyset()).is_empty(),
           [] { return std::string("sign(empty)"); });
     check("trunc: empty of the empty set", trunc(interval::emptyset()).is_empty(),

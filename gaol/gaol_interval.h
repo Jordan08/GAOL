@@ -832,9 +832,15 @@ extern __GAOL_PUBLIC__   interval invabs_rel(const interval &J, const interval &
 
   /*!
     \brief Returns the sign of d: -1 below 0, 0 at 0 and at -0, 1 above
+
+    A NaN has no sign and is returned as it is: the comparisons below are both
+    false for it, so without this it would be given the sign 0.
   */
 INLINE double gaol_sign_of(double d)
   {
+    if (std::isnan(d)) {
+      return d;
+    }
     return (d < 0.0) ? -1.0 : ((d > 0.0) ? 1.0 : 0.0);
   }
 
@@ -871,10 +877,18 @@ INLINE interval integer(const interval &I)
   function of C++ gives, is gaol/gaol_roundeven.h, which reads the bits.
   tests/elementary.cpp checks the four in the four rounding directions.
 
-  Each tests the empty set first. The empty interval has +oo as its lower bound
-  and -oo as its upper one, which trunc and the two roundings send to
-  themselves, giving the empty set back; sign does not, sending them to 1 and
-  -1, so without the test sign(empty) would be the interval [1, -1].
+  Each tests the empty set first. GAOL holds the empty interval as the two
+  bounds NaN, in both of its representations (interval::emptyset() of
+  gaol/gaol_interval_sse.h, cst_emptyset of gaol/gaol_interval_fpu.cpp), and
+  is_empty() reads it as !(left() <= right()), which a NaN makes true. trunc
+  and the two roundings send a NaN to itself, so they would give the empty set
+  back without the test; sign would not, a NaN comparing false both to 0 and
+  above it, so sign(empty) would be the interval [0, 0]. The test is made in
+  the four all the same, rather than relying on how the empty set is held.
+
+  (IEEE 1788-2015 says of the empty set at Level 1 that inf is +oo and sup is
+  -oo, 10.2, which is its convention for the mathematical object, not the way
+  GAOL holds it.)
 */
 
   /*!
