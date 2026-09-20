@@ -95,7 +95,7 @@ done
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
   git -C "$ROOT_DIR" diff --quiet HEAD -- . ':!doc' 2>/dev/null || gaol_commit="$gaol_commit-dirty"
   echo "GAOL V5.0.0:     the branch of this checkout ($gaol_commit), CMake Release, CORE-MATH of 3rd/math-core compiled into the library"
-  echo "GAOL 4.3.1:      the master branch, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
+  echo "GAOL 4.3.2:      the master branch, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"
   echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc configuration, built by $CC and $CXX"
