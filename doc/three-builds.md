@@ -53,6 +53,37 @@ build, and the CMake build follows them, apart from the errors corrected (see
 sees and the flags it is compiled with (`compare.py --check`); the continuous
 integration runs it on each kind of machine.
 
+## What the options are worth
+
+Measured with `tests/performance.cpp` on an Intel i7-1185G7 with GCC 9, in
+nanoseconds per operation (fork of GAOL):
+
+| | x + y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 3.02 | 3.31 | 15.7 | 28.7 | 33.1 | 59.0 | 59.1 |
+| `-DGAOL_FMA=OFF` | 3.03 | 3.58 | 25.5 | 37.9 | 52.5 | 143.7 | 142.0 |
+| `-DGAOL_SIMD=OFF` | 3.30 | 3.46 | 15.9 | 28.2 | 32.8 | 59.6 | 60.3 |
+| Default, whole build with interprocedural optimization | 1.48 | 2.28 | 12.0 | 26.4 | 33.0 | 57.9 | 60.8 |
+
+- **The fused multiply-add instructions (`GAOL_FMA`) are worth much more than
+  they were**: sin and cos are **2.4 times faster** with them, log 1.5 times and
+  exp 1.3 times. CORE-MATH computes with `__builtin_fma` throughout, which is
+  one instruction where the processor has it and a call to the math library
+  where it has not; with mathlib the gain was 9 %. They are on by default
+  wherever the compiler has a flag for them and the machine building runs a
+  program compiled with it.
+- **The SSE2 intervals (`GAOL_SIMD`) pay on the additions and the products**
+  (x + y 3.02 ns rather than 3.30), and cost a little on the division (6.4
+  rather than 5.8). They are on by default on x86 processors. The elementary
+  functions do not go through them.
+- **Interprocedural optimization makes the basic operations twice as fast**,
+  and does not reach the sources of CORE-MATH, which are compiled apart: reached
+  by it, sin and cos took 82 and 93 ns rather than 58 and 61. `GAOL_LTO`
+  compiles GAOL's sources with it; the gain comes from inlining GAOL's
+  operations into the calling code, so the program using GAOL has to be
+  compiled with it too.
+- `-fno-math-errno` was measured and changes nothing.
+
 ## Compilers and options refused
 
 Each of these gave bounds not enclosing the exact results, or worse. The three
