@@ -132,6 +132,7 @@ gaol_HEADERS += [
   'gaol_config_mingw.h',
   'gaol_config_msvc.h',
   'gaol_version_msvc.h',
+  'gaol_version_mingw.h',
   'gaol_expression.h',
   'gaol_limits.h',
   'gaol_expr_eval.h',
@@ -175,6 +176,7 @@ EXTRA_DIST = [
   'gaol_config_mingw.h',
   'gaol_config_msvc.h',
   'gaol_version_msvc.h',
+  'gaol_version_mingw.h',
   'gaol_interval_sse.cpp',
 ]
 
