@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 #---------------------------------------------------------------------------
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------
@@ -54,6 +50,10 @@
 # gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 # COPYING file for information.
 #---------------------------------------------------------------------------
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 import math
 import random
 import re
@@ -592,6 +592,10 @@ def main():
     print("// on doubles, in the cases of the minimal tests of libieeep1788 (Apache License")
     print("// 2.0) and in random ones, with the tightest enclosure of the hull the standard")
     print("// defines and the bound of the accurate results. Do not edit.")
+    print("//")
+    print("// Copyright (c) 2026 ENSTA, France")
+    print("//")
+    print("// Created 2026-09-20 by Jordan NININ")
     print("#ifndef GAOL_TESTS_REVERSE_VALUES_H")
     print("#define GAOL_TESTS_REVERSE_VALUES_H")
     print("namespace reverse_values")

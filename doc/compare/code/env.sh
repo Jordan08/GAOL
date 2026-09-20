@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # Variables shared by the scripts of doc/compare/code (sourced, not run).
 #
 # WORK      where the dependencies are downloaded and built, and where the
@@ -14,6 +10,10 @@
 # CXX       the C++ compiler for GAOL, libieeep1788 and filib++ (default: g++)
 # F90       Solaris Studio's Fortran compiler (default: f90)
 # JOBS      parallel jobs of the builds
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 CODE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$CODE_DIR/../../.." && pwd)"

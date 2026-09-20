@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # ==================================================================
 #  The tests of GAOL built with an installed GAOL (fork of GAOL)
 # ==================================================================
@@ -13,6 +9,10 @@
 #   cmake -S tests/find_package -B build-find-package -DCMAKE_PREFIX_PATH=<prefix of GAOL>
 #   cmake --build build-find-package
 #   ctest --test-dir build-find-package
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 cmake_minimum_required(VERSION 3.14)
 

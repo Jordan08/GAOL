@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 #-*-Makefile-*-----------------------------------------------------------------
 # The third-party sources, for the autotools build of GAOL
 #------------------------------------------------------------------------------
@@ -19,6 +15,10 @@
 # rather than by the source, so that importing a newer CORE-MATH stays a plain
 # copy. See README.md.
 #------------------------------------------------------------------------------
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 noinst_LTLIBRARIES = libgaolcoremath.la
 

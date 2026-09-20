@@ -1,11 +1,11 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # Builds GAOL with CMake and runs its tests in containers of official images:
 # Debian (amd64, arm64, armhf, i386), manylinux_2_28, Alpine (musl), and under
 # qemu on s390x (big-endian), ppc64le and riscv64. Checks that Clang is refused
 # for 32-bit ARM processors.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 name: Linux containers
 

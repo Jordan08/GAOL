@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 """The page of conclusions of the coverage report of GAOL (fork of GAOL).
 
 Reads the JSON gcovr writes (coverage/coverage.json) and writes a Markdown page
@@ -19,6 +15,10 @@ nothing of either.
 
     python3 scripts/coverage_summary.py coverage/coverage.json coverage/README.md
 """
+
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 import json
 import os

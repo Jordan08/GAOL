@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # ==================================================================
 #  The tests of GAOL built with a GAOL brought in by FetchContent
 # ==================================================================
@@ -19,6 +15,10 @@
 # tests/find_package then builds the tests with the GAOL installed so. Without
 # FETCHCONTENT_SOURCE_DIR_GAOL, GAOL is cloned from the master branch of the
 # fork, as a project using it would do.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 cmake_minimum_required(VERSION 3.14)
 

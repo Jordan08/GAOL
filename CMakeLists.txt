@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # ==================================================================
 #  CMake build of GAOL
 # ==================================================================
@@ -30,6 +26,10 @@
 # it builds mathlib, the IBM Accurate Portable Mathematical Library GAOL
 # computes its elementary functions with, from the sources of 3rd/mathlib. It
 # also builds as a part of another project, brought in with FetchContent.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 cmake_minimum_required(VERSION 3.14...3.25)
 

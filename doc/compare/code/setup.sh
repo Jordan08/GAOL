@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # Downloads and builds what the comparisons need, under $WORK (see env.sh):
 #   - GMP and MPFR (static), unless the system has their headers,
 #   - libieeep1788 (header only) at the commit P1788_COMMIT,
@@ -15,6 +11,10 @@
 # env.sh): GMP, MPFR and PROFIL/BIAS compile with -O2 on their own, and the
 # configure of filib++ without any optimization. Each step is skipped when its
 # result is already there.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 

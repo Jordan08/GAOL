@@ -1,8 +1,4 @@
 #!/bin/sh
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # Builds the manual, gaol.pdf, from gaol.tex:
 #
 #   sh manual/build-pdf.sh <directory of gaol.tex> <output directory>
@@ -14,6 +10,10 @@
 # integration. Needs pdflatex, bibtex and makeindex, with the packages the
 # class manual.cls loads (on Debian and Ubuntu: texlive-latex-recommended,
 # texlive-latex-extra, texlive-fonts-recommended and lmodern).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 set -e
 source_dir=$(cd "$1" && pwd)
 mkdir -p "$2"

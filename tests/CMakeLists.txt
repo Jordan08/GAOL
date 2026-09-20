@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # ==================================================================
 #  Tests of GAOL's bounds (fork of GAOL)
 # ==================================================================
@@ -10,6 +6,10 @@
 # (see gaol_tests.h). They are compiled as any code using GAOL, with the flags
 # gaol::gaol carries, and in C++17 for the hexadecimal floating literals of
 # elementary_values.h.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 set(GAOL_TESTS
   arithmetic

@@ -1,7 +1,3 @@
-// Copyright (c) 2026 ENSTA, France
-//
-// Created 2026-09-20 by Jordan NININ
-//
 // The operations timed by the benchmark, written once for every C++ library.
 // T gives the library: its interval type T::I, and
 //   T::make(lo, hi)     the interval [lo, hi]
@@ -11,6 +7,10 @@
 //   T::pow(x, y)        x^y for an interval y
 //   T::mid, T::wid      the midpoint and the width, for the sums printed
 // The same operations are in bench_sun.f90.
+//
+// Copyright (c) 2026 ENSTA, France
+//
+// Created 2026-09-20 by Jordan NININ
 #ifndef BENCH_OPS_H
 #define BENCH_OPS_H
 

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # The benchmark: draws the intervals (bench.py), compiles bench_gaol.cpp,
 # bench_p1788.cpp, bench_filib.cpp, bench_profil.cpp, bench_double.cpp and
 # bench_sun.f90, runs them, and writes
@@ -21,6 +17,10 @@
 # LIBS            the libraries to run (default: "double gaol5 gaol filib profil sun p1788")
 # GAOL5_PREFIX    where the GAOL of this branch is installed, run as gaol5
 #                 alongside the GAOL of PREFIX, run as gaol
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 

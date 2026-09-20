@@ -1,7 +1,3 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 """compare.py [--check] JSON...
 
 For each machine and compiler audited (audit.sh, probe_build.py), prints the
@@ -10,6 +6,10 @@ With --check, exits with 1 when a build did not configure, or when the builds
 differ on a macro GAOL reads or on a flag that bears on the results or the
 speed (see MACROS and FLAGS).
 """
+
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 import json
 import re
 import sys

@@ -1,9 +1,9 @@
+// The benchmark with the intervals of libieeep1788, set-based flavor on
+// doubles, computed with MPFR (see bench_ops.h)
+//
 // Copyright (c) 2026 ENSTA, France
 //
 // Created 2026-09-20 by Jordan NININ
-//
-// The benchmark with the intervals of libieeep1788, set-based flavor on
-// doubles, computed with MPFR (see bench_ops.h)
 #include <p1788/p1788.hpp>
 #include "bench_ops.h"
 

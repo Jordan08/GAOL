@@ -1,8 +1,4 @@
 #!/bin/sh
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # Builds the tests of tests/ and tests/performance.cpp with a GAOL installed by
 # the autotools or the meson build, and runs the tests, as the continuous
 # integration does. To be run from the root of GAOL's sources:
@@ -16,6 +12,10 @@
 # which the code using GAOL is compiled (see CMakeLists.txt); on a 32-bit x86
 # processor, -msse2 -mfpmath=sse too, without which gaol/gaol_config.h refuses
 # to compile.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 set -e
 prefix=$1
 mathlib=$2

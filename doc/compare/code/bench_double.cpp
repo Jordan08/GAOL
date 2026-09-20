@@ -1,9 +1,9 @@
+// The benchmark on doubles, for reference: the same operations on the
+// midpoints of the intervals, without any rounding (see bench_ops.h)
+//
 // Copyright (c) 2026 ENSTA, France
 //
 // Created 2026-09-20 by Jordan NININ
-//
-// The benchmark on doubles, for reference: the same operations on the
-// midpoints of the intervals, without any rounding (see bench_ops.h)
 #include <cmath>
 #include "bench_ops.h"
 

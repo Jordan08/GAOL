@@ -1,10 +1,10 @@
 #!/bin/sh
+# logs.sh WORK STATUS: when STATUS is not 0, prints the end of the logs of the
+# three builds configured in WORK by audit.sh, then exits with STATUS
+#
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
-#
-# logs.sh WORK STATUS: when STATUS is not 0, prints the end of the logs of the
-# three builds configured in WORK by audit.sh, then exits with STATUS
 work=$1
 status=$2
 if [ "$status" != 0 ]; then

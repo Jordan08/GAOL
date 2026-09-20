@@ -1,13 +1,13 @@
-# Copyright (c) 2026 ENSTA, France
-#
-# Created 2026-09-20 by Jordan NININ
-#
 # Builds the manual, manual/gaol.pdf, from manual/gaol.tex with the LaTeX of
 # Ubuntu, with the autotools build (make -C manual pdf) and with the meson
 # build (-Dwith-doc=true, target pdf), so that a change of the manual that no
 # longer compiles shows: gaol.tex had stopped compiling with the package
 # marginbib, which no job built (issue #13). The PDF is kept as an artifact of
 # the run. Only runs when the manual or this workflow changes.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-20 by Jordan NININ
 
 name: Manual
 
