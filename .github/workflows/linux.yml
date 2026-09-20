@@ -173,3 +173,71 @@ jobs:
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
           cd build-find-package && ctest -j 4 --output-on-failure
+
+  # The 128-bit integer computed with two 64-bit halves, which is the code
+  # Visual C++ and the 32-bit targets of GCC take: built and tested on an
+  # ordinary machine, where the native type is there to compare with
+  # (tests/u128.cpp), so that the path is checked at every change rather than
+  # only on the containers of containers.yml (fork of GAOL)
+  u128-emulation:
+    name: The 128-bit integer emulated, Ubuntu 24.04 x86_64 ${{ matrix.cc }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { cc: gcc, cxx: g++ }
+          - { cc: clang, cxx: clang++ }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON \
+            -DGAOL_U128_EMULATION=ON \
+            -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} | tee configure.log
+          grep -q "128-bit integer: the two halves" configure.log
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Tests
+        run: cd build && ctest -j 4 --output-on-failure
+
+  # The coverage of the tests, and the page of conclusions of coverage/
+  coverage:
+    name: Coverage, Ubuntu 24.04 x86_64 GCC
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: gcovr
+        run: pipx install gcovr
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DGAOL_COVERAGE=ON
+      - name: Tests and report
+        run: cmake --build build --target coverage
+      - name: The page of conclusions
+        run: cat coverage/README.md >> "$GITHUB_STEP_SUMMARY"
+      - name: The coverage of GAOL has to stay above 80 %
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          d = json.load(open("coverage/coverage.json"))
+          run = cov = 0
+          for f in d["files"]:
+              if f["file"].startswith("3rd/"):
+                  continue
+              for l in f["lines"]:
+                  if l.get("gcovr/noncode") is True:
+                      continue
+                  run += 1
+                  cov += l.get("count", 0) > 0
+          p = 100.0 * cov / run if run else 0.0
+          print("Coverage of GAOL: %.1f %% of %d lines" % (p, run))
+          sys.exit(0 if p >= 80.0 else 1)
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/

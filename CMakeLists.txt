@@ -73,6 +73,12 @@ option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with 
 # (--coverage), and the target "coverage", which runs the tests and writes the
 # report in coverage/ (see doc/coverage.md). GCC and Clang only; the build has
 # to be a Debug or an unoptimized one for the counts to follow the source.
+# The 128-bit integer of gaol/gaol_u128.h computed with two 64-bit halves even
+# where the compiler has a 128-bit type: the code Visual C++ and the 32-bit
+# targets of GCC take, run on an ordinary machine (tests/u128.cpp compares the
+# two paths, and the continuous integration builds GAOL this way)
+option(GAOL_U128_EMULATION "Compute the 128-bit integer of the accurate phases with two 64-bit halves, as where the compiler has no 128-bit type" OFF)
+
 option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and add the target coverage, which runs the tests and writes the report in coverage/" OFF)
 
 option(GAOL_FMA "Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
@@ -524,6 +530,11 @@ add_library(gaol STATIC ${GAOL_SOURCES})
 # gaol/core_math_port.h included first in each of them, by the compiler
 set_source_files_properties(${GAOL_CORE_MATH_SOURCES} PROPERTIES
   COMPILE_OPTIONS "${GAOL_CORE_MATH_FLAGS}")
+
+if(GAOL_U128_EMULATION)
+  message(STATUS "128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target")
+  target_compile_definitions(gaol PUBLIC GAOL_U128_FORCE_EMULATION=1)
+endif()
 add_library(gaol::gaol ALIAS gaol)
 
 # The generated headers, then GAOL's own: its sources include "gaol/..."
