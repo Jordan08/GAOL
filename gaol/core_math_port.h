@@ -99,6 +99,50 @@
 
 #include "gaol/gaol_roundeven.h"
 
+/*---------------------------------------------------------------------------
+  fesetexceptflag() on a 32-bit Windows, which unmasks the exceptions
+
+  cbrt, pow and atan2 read the rounding direction and keep the exception flags
+  around their work, with _mm_getcsr() and _mm_setcsr() on x86-64 and with
+  fegetexceptflag() and fesetexceptflag() everywhere else. The
+  fesetexceptflag() of mingw-w64 for a 32-bit target does not write the flags
+  alone: it clears the mask bits of MXCSR with them, so that the invalid, the
+  divide-by-zero and the overflow exceptions become unmasked (the register went
+  from 0x5fb2 to 0x5932 in the continuous integration). An exception then traps
+  rather than raise a flag, and GAOL died on the first comparison of the bounds
+  of an empty interval, which are NaN and which is_empty() compares with <=, an
+  operation that signals invalid.
+
+  So on a 32-bit x86 Windows the two are written here, on MXCSR, where GAOL's
+  doubles are computed (gaol/gaol_config.h refuses an x86 target whose doubles
+  are not). The six flag bits of MXCSR are the FE_* values of x86 in the same
+  order, so no mapping is needed; the mask bits are left exactly as they are.
+ --------------------------------------------------------------------------*/
+
+#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
+
+#include <fenv.h>
+#include <xmmintrin.h>
+
+#define GAOL_X86_FLAG_BITS 0x3fu /* IE DE ZE OE UE PE, bits 0 to 5 */
+
+GAOL_PORT_INLINE void gaol_fegetexceptflag(fexcept_t *flagp, int excepts)
+{
+  *flagp = (fexcept_t)(_mm_getcsr() & (unsigned int)excepts & GAOL_X86_FLAG_BITS);
+}
+
+GAOL_PORT_INLINE void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
+{
+  const unsigned int keep = (unsigned int)excepts & GAOL_X86_FLAG_BITS;
+  const unsigned int want = (unsigned int)(*flagp) & keep;
+  _mm_setcsr((_mm_getcsr() & ~keep) | want);
+}
+
+#define fegetexceptflag(f, e) gaol_fegetexceptflag((f), (e))
+#define fesetexceptflag(f, e) gaol_fesetexceptflag((f), (e))
+
+#endif /* a 32-bit x86 Windows */
+
 /* The math library of Windows has no roundeven(), which the sources call
    through __builtin_roundeven(): GCC and Clang turn that builtin into one
    instruction where the processor has it (roundsd of SSE4.1, frintn on ARM)
