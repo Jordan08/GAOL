@@ -694,7 +694,7 @@ case(op("powi", iv(10), -400), X(0, "TINY"))
 
 group("Real powers (GAOL's pow(x, d) and pow(x, y), pow of IEEE 1788 and of filib++, x**y of Fortran)",
       "tests/elementary.cpp (powers)")
-NOTE_POWN = "GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only"
+NOTE_POWN = "GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only"
 case(op("powd", iv(4), 0.5), X(2), "libieeep1788 and filib++: pow(x, [d])")
 case(op("powd", iv(4), 1.5), X(8))
 case(op("powd", iv(4, 9), 0.5), X(2, 3))

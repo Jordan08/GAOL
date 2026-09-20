@@ -25,9 +25,9 @@ Publications of Frédéric Goualard related to GAOL (see the
 - [How do you compute the midpoint of an interval?](https://hal.archives-ouvertes.fr/hal-00576641v2).
   ACM Transactions on Mathematical Software 40(2), 2014.
 
-## This fork
+## GAOL v5
 
-This fork of [GAOL](https://github.com/goualard-f/GAOL) adds a CMake build,
+GAOL v5, this version of [GAOL](https://github.com/goualard-f/GAOL), adds a CMake build,
 tests of the bounds GAOL computes, and the changes GAOL needs to compile and
 compute right on every system it can: Linux, macOS and Windows, on x86, x86_64,
 ARM, arm64 and the other processors of Debian. It was written for
@@ -35,7 +35,7 @@ ARM, arm64 and the other processors of Debian. It was written for
 GAOL. The autotools and meson builds of GAOL are kept, and the three builds
 configure GAOL the same way (see [The three builds](doc/three-builds.md)).
 
-This fork follows [IEEE 1788-2015](https://doi.org/10.1109/IEEESTD.2015.7140721),
+GAOL v5 follows [IEEE 1788-2015](https://doi.org/10.1109/IEEESTD.2015.7140721),
 the standard for interval arithmetic, in the operations GAOL provides: the
 empty set, infinite bounds, the domains of the functions, the comparisons,
 the interval literals, and the accuracy of each operation, which
@@ -83,7 +83,7 @@ project can also build GAOL for itself, with FetchContent (see
 - [Accuracy of the operations](doc/accuracy.md): the tightness of each
   operation, from its algorithm, as IEEE 1788-2015 requires it to be
   documented (12.10.3).
-- [What differs from GAOL](doc/differences.md): each change of this fork, and
+- [What differs from GAOL](doc/differences.md): each change GAOL v5 brings, and
   where it comes from.
 - [Continuous integration](doc/continuous-integration.md): the systems,
   processors and compilers GAOL is built and tested on.
@@ -92,7 +92,7 @@ project can also build GAOL for itself, with FetchContent (see
   against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
   with the scripts to run the comparison again.
 - The manual of GAOL, by Frédéric Goualard: `manual/gaol.pdf`, with its LaTeX
-  sources in `manual/`, which follow the changes of this fork. `make -C manual
+  sources in `manual/`, which follow the changes of GAOL v5. `make -C manual
   pdf` after `./configure`, or `meson compile -C <build> pdf` after `meson setup
   <build> -Dwith-doc=true`, builds it again (`manual/build-pdf.sh`).
 
@@ -104,11 +104,11 @@ under the GNU LGPL v2 (`COPYING.LIB`).
 `3rd/math-core` and provide every elementary function of GAOL, is distributed
 under the MIT licence (`3rd/math-core/LICENSE`).
 
-The files this fork adds, which are neither GAOL's nor CORE-MATH's, carry the
+The files GAOL v5 adds, which are neither GAOL's nor CORE-MATH's, carry the
 copyright of ENSTA and are distributed under the same GNU LGPL v2 as GAOL:
 
     Copyright (c) 2026 ENSTA, France
     Created 2026-09-20 by Jordan NININ
 
 Each of them names it in its own header. The files of GAOL and of CORE-MATH
-that the fork changes keep the copyright of their authors.
+that GAOL v5 changes keep the copyright of their authors.

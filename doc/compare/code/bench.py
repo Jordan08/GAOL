@@ -41,9 +41,9 @@ OPERATIONS = [
     ("block5", "five lines: t1 = ab + p; t2 = sin(t1) cos(b); t3 = a² + t2/p; t4 = exp(t2) − b³; t3 t4 + √p"),
 ]
 
-# The reference of the ratios is GAOL V5.0.0, the version of this fork that
-# bounds every elementary function with CORE-MATH; GAOL 4.3.2 is the version
-# before it, built from the master branch, run on the same intervals
+# The reference of the ratios is GAOL V5.0.0, the version that bounds every
+# elementary function with CORE-MATH; GAOL 4.3.2 is the version before it,
+# built from the master branch, run on the same intervals
 REFERENCE = "gaol5"
 LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"),
              ("gaol5", "GAOL V5.0.0"), ("gaol", "GAOL 4.3.2"),

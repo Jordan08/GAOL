@@ -9,9 +9,9 @@
 struct Gaol
 {
   typedef gaol::interval I;
-  /* The same source builds the benchmark of two versions of GAOL: the one of
-     this branch (GAOL_BENCH_NAME "gaol5") and the one before it, from the
-     master branch ("gaol"), so that the tables hold both (fork of GAOL). */
+  /* The same source builds the benchmark of two versions of GAOL: GAOL v5
+     (GAOL_BENCH_NAME "gaol5") and the one before it, from the master branch
+     ("gaol"), so that the tables hold both. */
 #ifndef GAOL_BENCH_NAME
 #define GAOL_BENCH_NAME "gaol"
 #endif
