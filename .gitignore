@@ -5,3 +5,10 @@ coverage/*.html
 coverage/*.css
 coverage/*.js
 coverage/coverage.json
+
+# What an in-source build leaves in the vendored sources of CORE-MATH
+3rd/math-core/**/*.o
+3rd/math-core/**/*.lo
+3rd/math-core/**/.libs/
+3rd/math-core/**/.deps/
+3rd/math-core/**/.dirstamp
