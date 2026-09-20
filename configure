@@ -16472,64 +16472,9 @@ Build GAOL with a compiler that honours the rounding direction on this target, s
     fi
 fi
 CXXFLAGS=$gaol_save_CXXFLAGS
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether mingw-w64, if used, is of version 12 or later" >&5
-$as_echo_n "checking whether mingw-w64, if used, is of version 12 or later... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <stdlib.h>
-#if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 12
-#error mingw-w64 before version 12
-#endif
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  mingw_w64_recent_enough=yes
-else
-  mingw_w64_recent_enough=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${mingw_w64_recent_enough}" >&5
-$as_echo "${mingw_w64_recent_enough}" >&6; }
-if test "${mingw_w64_recent_enough}" = no; then
-    as_fn_error $? "GAOL cannot be built with $CXX, whose mingw-w64 is older than version 12.
-The math library of mingw-w64 before version 12 is not accurate enough for the hyperbolic functions GAOL takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).
-Build GAOL with a MinGW-w64 of version 13 or later (version 12 is refused too, its fesetround() being slow), such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with CMake and Visual Studio." "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether mingw-w64, if used, is of version 13 or later" >&5
-$as_echo_n "checking whether mingw-w64, if used, is of version 13 or later... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <stdlib.h>
-#if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 13
-#error mingw-w64 before version 13
-#endif
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  mingw_w64_fast_enough=yes
-else
-  mingw_w64_fast_enough=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${mingw_w64_fast_enough}" >&5
-$as_echo "${mingw_w64_fast_enough}" >&6; }
-if test "${mingw_w64_fast_enough}" = no; then
-    as_fn_error $? "GAOL cannot be built with $CXX, whose mingw-w64 is version 12.
-fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which takes microseconds in a virtual machine: 3.5 microseconds per call in GitHub Actions, against 130 nanoseconds with mingw-w64 13. GAOL changes the rounding direction four times for each exp(), log(), sin() or cos() of an interval, which then took 10.6 to 13.8 microseconds rather than 0.5 to 0.7 (with the MinGW-w64 GCC 14.2.0 of Chocolatey, rt_v12): the intervals GAOL computes are right, but some 20 times slower.
-Build GAOL with a MinGW-w64 of version 13 or later, such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with CMake and Visual Studio." "$LINENO" 5
-fi
+# mingw-w64 is no longer refused for its version: GAOL takes no function from
+# the math library of the system, and no longer changes the rounding direction
+# for its elementary functions (see CMakeLists.txt)
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'

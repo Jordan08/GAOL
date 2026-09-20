@@ -69,6 +69,12 @@ option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
 option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with SSE3" OFF)
+# Coverage: the library and the tests compiled with the counters of gcov
+# (--coverage), and the target "coverage", which runs the tests and writes the
+# report in coverage/ (see doc/coverage.md). GCC and Clang only; the build has
+# to be a Debug or an unoptimized one for the counts to follow the source.
+option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and add the target coverage, which runs the tests and writes the report in coverage/" OFF)
+
 option(GAOL_FMA "Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
 # As configure.ac and meson.build ask: -std=c++11; C99 with the GNU extensions,
@@ -128,65 +134,26 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
-# The math library of mingw-w64 before its version 12, which MinGW-w64 GCC 11 to
-# 13 come with (MinGW-Builds with rt_v10 and rt_v11, WinLibs), is not accurate
-# enough for the hyperbolic functions GAOL takes from it: acosh() near 1 was up
-# to 25 million floats away from the exact value, and asinh() of large negative
-# numbers NaN, so that GAOL's bounds did not enclose the exact values
-# (tests/elementary.cpp, in the continuous integration, with the MinGW-w64 GCC
-# 11.2.0, 12.2.0 and 13.2.0 of Chocolatey, while 14.2.0, with rt_v12, and 15.2.0
-# passed). Computed without the libm, acosh() still gave an inverted interval
-# there, which tracing its computation made disappear. GAOL is not built with
-# it.
-check_cxx_source_compiles("
-  #include <stdlib.h>
-  #if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 12
-  #error mingw-w64 before version 12
-  #endif
-  int main() { return 0; }"
-  GAOL_MINGW_W64_RECENT_ENOUGH)
-if(NOT GAOL_MINGW_W64_RECENT_ENOUGH)
-  message(FATAL_ERROR
-    "GAOL cannot be built with ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}), "
-    "whose mingw-w64 is older than version 12.\n"
-    "The math library of mingw-w64 before version 12 is not accurate enough for the hyperbolic functions GAOL "
-    "takes from it: acosh() near 1 was up to 25 million floats away from the exact value, and asinh() of large "
-    "negative numbers NaN, so that the intervals GAOL computes did not enclose the values they should (with the "
-    "MinGW-w64 GCC 11.2.0, 12.2.0 and 13.2.0 of Chocolatey).\n"
-    "Build GAOL with a MinGW-w64 of version 13 or later (version 12 is refused too, its fesetround() being slow), "
-    "such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, which Chocolatey installs (choco install mingw "
-    "--version=15.2.0), or the one of MSYS2, or with Visual Studio, in a new build directory.")
-endif()
-
-# fesetround() of mingw-w64 12 on x86 and x64 processors (MinGW-Builds with
-# rt_v12, as the MinGW-w64 GCC 14.2.0 of Chocolatey) runs the instruction cpuid
-# at each call, to know whether the processor has SSE (__mingw_has_sse(), whose
-# result mingw-w64 13 keeps). cpuid exits to the hypervisor in a virtual
-# machine: in the continuous integration, fesetround() took 3.5 microseconds per
-# call, against 130 nanoseconds with mingw-w64 13. GAOL changes the rounding
-# direction four times for each exp(), log(), sin() or cos() of an interval,
-# which took 10.6 to 13.8 microseconds rather than 0.5 to 0.7. GAOL's bounds were
-# right, but GAOL is not built with it.
-check_cxx_source_compiles("
-  #include <stdlib.h>
-  #if defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 13
-  #error mingw-w64 before version 13
-  #endif
-  int main() { return 0; }"
-  GAOL_MINGW_W64_FAST_ENOUGH)
-if(NOT GAOL_MINGW_W64_FAST_ENOUGH)
-  message(FATAL_ERROR
-    "GAOL cannot be built with ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}), "
-    "whose mingw-w64 is version 12.\n"
-    "fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which takes microseconds in a virtual "
-    "machine: 3.5 microseconds per call in GitHub Actions, against 130 nanoseconds with mingw-w64 13. GAOL changes "
-    "the rounding direction four times for each exp(), log(), sin() or cos() of an interval, which then took 10.6 "
-    "to 13.8 microseconds rather than 0.5 to 0.7 (with the MinGW-w64 GCC 14.2.0 of Chocolatey, rt_v12): the "
-    "intervals GAOL computes are right, but some 20 times slower.\n"
-    "Build GAOL with a MinGW-w64 of version 13 or later, such as the MinGW-w64 GCC 15.2.0 (rt_v13) of MinGW-Builds, "
-    "which Chocolatey installs (choco install mingw --version=15.2.0), or the one of MSYS2, or with Visual Studio, "
-    "in a new build directory.")
-endif()
+# mingw-w64 is no longer refused for its version
+#
+# Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
+# and both are gone now that GAOL bounds its elementary functions with
+# CORE-MATH (fork of GAOL):
+#
+# - the math library of mingw-w64 before version 12 was not accurate enough for
+#   the hyperbolic functions GAOL took from it (acosh() near 1 was up to 25
+#   million floats away from the exact value, and asinh() of large negative
+#   numbers NaN). GAOL takes no function from the math library of the system any
+#   more: CORE-MATH gives them all, correctly rounded, whatever the system;
+# - fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which
+#   takes microseconds in a virtual machine (3.5 against 130 nanoseconds with
+#   mingw-w64 13), and GAOL changed the rounding direction four times for each
+#   exp(), log(), sin() or cos() of an interval. It changes it no more: the
+#   functions of CORE-MATH are correctly rounded in the direction in effect, so
+#   GAOL calls them in the upward rounding it keeps (gaol/gaol_double_op.h).
+#
+# The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0, 12.2.0,
+# 13.2.0 and 14.2.0 of Chocolatey again, and runs the tests with them.
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
@@ -653,4 +620,66 @@ endif()
 if(GAOL_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+
+################################################################################
+# Coverage
+################################################################################
+#
+# cmake -S . -B build-coverage -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON \
+#       -DGAOL_COVERAGE=ON && cmake --build build-coverage --target coverage
+#
+# The counters of gcov are compiled into GAOL and its tests (--coverage), the
+# tests are run, and gcovr writes into coverage/ of the source tree:
+#
+# - index.html and its pages, the report line by line;
+# - coverage.json, what scripts/coverage_summary.py reads;
+# - README.md, the page of conclusions, which says what is covered and what is
+#   not, and whether the 80 % the fork aims at is reached.
+#
+# GAOL's own sources (gaol/) are counted apart from those of CORE-MATH
+# (3rd/math-core), whose accurate phases are reached by a handful of arguments
+# in a million: counting them together would say nothing of either.
+
+if(GAOL_COVERAGE)
+  if(NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
+    message(FATAL_ERROR "GAOL_COVERAGE needs GCC or Clang, and this build uses ${CMAKE_CXX_COMPILER_ID}.")
+  endif()
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(WARNING
+      "GAOL_COVERAGE with CMAKE_BUILD_TYPE=Release: the optimizations move the code around, and the counts "
+      "no longer follow the source. Configure with -DCMAKE_BUILD_TYPE=Debug.")
+  endif()
+  message(STATUS "Coverage: ON, target coverage (report in ${CMAKE_CURRENT_SOURCE_DIR}/coverage)")
+  target_compile_options(gaol PUBLIC --coverage -fprofile-update=atomic)
+  target_link_options(gaol PUBLIC --coverage)
+
+  find_program(GAOL_GCOVR gcovr)
+  if(NOT GAOL_GCOVR)
+    message(FATAL_ERROR "GAOL_COVERAGE is ON but gcovr was not found: pip install gcovr, or apt install gcovr.")
+  endif()
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  set(_coverage_dir "${CMAKE_CURRENT_SOURCE_DIR}/coverage")
+  add_custom_target(coverage
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${_coverage_dir}"
+    # the tests, which ctest runs but does not build
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_CURRENT_BINARY_DIR}"
+    # the counters of a previous run, which gcov would add to these
+    COMMAND find . -name "*.gcda" -delete
+    COMMAND "${CMAKE_CTEST_COMMAND}" --output-on-failure
+    # --gcov-ignore-errors: gcov cannot infer the working directory of the
+    # sources of CORE-MATH, which are compiled from outside the build directory
+    COMMAND "${GAOL_GCOVR}" --root "${CMAKE_CURRENT_SOURCE_DIR}"
+            --gcov-ignore-errors=no_working_dir_found
+            --filter "${CMAKE_CURRENT_SOURCE_DIR}/gaol/"
+            --filter "${CMAKE_CURRENT_SOURCE_DIR}/3rd/math-core/"
+            --html-details "${_coverage_dir}/index.html"
+            --json "${_coverage_dir}/coverage.json"
+            --print-summary .
+    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/coverage_summary.py"
+            "${_coverage_dir}/coverage.json" "${_coverage_dir}/README.md"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Running the tests and writing the coverage report in coverage/"
+    VERBATIM)
 endif()

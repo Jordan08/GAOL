@@ -18,6 +18,7 @@ set(GAOL_TESTS
   # where the compiler has none, and the bounds CORE-MATH gives (fork of GAOL)
   u128
   core_math
+  expressions
 )
 
 foreach(test ${GAOL_TESTS})
