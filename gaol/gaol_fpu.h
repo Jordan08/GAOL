@@ -203,6 +203,18 @@ namespace gaol {
     if (1.0 + tiny == 1.0) {
       round_upward();
     }
+#elif (defined(__i386__) || defined(_M_IX86)) && GAOL_RND_SSE_REGISTER
+    /* On a 32-bit x86 processor the x87 unit and the SSE instructions each
+       have their own rounding direction, and both have to be upward: GAOL
+       computes its bounds with SSE, and the elementary functions of CORE-MATH
+       read the direction with fegetround(), which gives the one of the x87
+       unit. Either being elsewhere, round_upward() sets both (fork of GAOL,
+       found by tests/rounding_direction.cpp in the continuous integration,
+       which leaves the two differing on purpose). */
+    if (fegetround() != FE_UPWARD
+        || (_mm_getcsr() & (unsigned int)_MM_ROUND_MASK) != (unsigned int)_MM_ROUND_UP) {
+      round_upward();
+    }
 #else
     if (fegetround() != FE_UPWARD) {
       round_upward();

@@ -233,7 +233,8 @@ jobs:
             meson setup build-meson --prefix="$prefix" --libdir=lib
             meson compile -C build-meson && meson install -C build-meson
           fi
-          test -f "$prefix/lib/libultim.a"
+          # CORE-MATH is compiled into libgaol: no other library is installed
+          test ! -f "$prefix/lib/libultim.a"
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" "$(cygpath -m "$RUNNER_TEMP")/gaol" static
       - name: Performance

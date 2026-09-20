@@ -27,9 +27,6 @@
    --enable-optimize --disable-verbose-mode, the defaults otherwise)
    --------------------------------------------------------------------------- */
 
-/* Define this to 1 if using the IBM APMathlib library */
-#define GAOL_USING_APMATHLIB 1
-
 /* Define this if relation symbols should stand for "certainly relations" */
 #define GAOL_CERTAINLY_RELATIONS 1
 

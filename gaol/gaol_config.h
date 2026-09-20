@@ -174,16 +174,18 @@
 #  error "GAOL cannot be compiled by Visual C++ without /fp:strict: Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
 #endif
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__) && !defined(__SSE2_MATH__)
-#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, its bounds and the results of mathlib are wrong"
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, its bounds are wrong"
 #endif
 #if defined(_M_IX86_FP) && (_M_IX86_FP < 2)
-#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, its bounds and the results of mathlib are wrong"
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, its bounds are wrong"
 #endif
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
-#if defined(__MINGW64_VERSION_MAJOR) && (__MINGW64_VERSION_MAJOR < 13)
-#  error "GAOL cannot be compiled with a mingw-w64 older than version 13: before 12, its math library gave hyperbolic functions far from their exact values; in 12, fesetround() runs the instruction cpuid at each call (see CMakeLists.txt)"
-#endif
+/* mingw-w64 is no longer refused for its version (fork of GAOL): GAOL takes no
+   function from the math library of the system, whose hyperbolic functions
+   were not accurate enough before mingw-w64 12, and no longer changes the
+   rounding direction for its elementary functions, which the fesetround() of
+   mingw-w64 12 makes slow. See CMakeLists.txt. */
 
 #endif /* __gaol_config_h__ */
