@@ -134,17 +134,17 @@ Measured on:
 Date:            2026-09-20
 Processor:       11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
 System:          Linux 5.15.0-191-generic, Ubuntu 20.04.6 LTS
-C++ compiler:    g++ (Ubuntu 9.4.0-1ubuntu1~20.04.3) 9.4.0
-C++ flags:       -std=c++11 -O3 -DNDEBUG -mfma (GAOL: -frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3; libieeep1788, filib++ and PROFIL/BIAS: -frounding-math -fno-fast-math -ffp-contract=off)
+C++ compiler:    Ubuntu clang version 18.1.8 (11~20.04.2)
+C++ flags:       -std=c++11 -O3 -DNDEBUG -mfma (GAOL: -frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3 -mfma; libieeep1788, filib++ and PROFIL/BIAS: -frounding-math -fno-fast-math -ffp-contract=off)
 Fortran:         f90: Sun Fortran 95 8.7 Linux_i386 2014/10/20, flags: -O3 -xia
-GAOL V5.0.0:     the MATH-CORE branch (c45ee95), CMake Release, CORE-MATH of 3rd/math-core compiled into the library
-GAOL 4.3.1:      the master branch, CMake Release, mathlib 2.1.1 of 3rd/mathlib
+GAOL V5.0.0:     the branch of this checkout (v4.3.2-35-g5bfc3f9), CMake Release, CORE-MATH of 3rd/math-core compiled into the library
+GAOL 4.3.2:      the master branch, CMake Release, mathlib 2.1.1 of 3rd/mathlib
 libieeep1788:    1f10b89, MPFR 4.2.1, GMP 6.3.0
 filib++:         3.0.2.2, interval<double, native_switched, i_mode_extended_flag>
-PROFIL/BIAS:     2.0.8, x86-64-Linux-compat-gcc configuration, built by gcc and g++
+PROFIL/BIAS:     2.0.8, x86-64-Linux-compat-gcc configuration, built by clang-18 and clang++-18
 ```
 
-1 000 000 operations of each kind, on the same intervals. Each time is the best of 3 rounds, each program being run in turn with the others: 15 runs for double (reference), 3 runs for libieeep1788, 15 runs for GAOL V5.0.0, 15 runs for GAOL 4.3.1, 15 runs for filib++, 15 runs for Solaris Studio f90, 15 runs for PROFIL/BIAS in all.
+1 000 000 operations of each kind, on the same intervals. Each time is the best of 3 rounds, each program being run in turn with the others: 15 runs for double (reference), 3 runs for libieeep1788, 15 runs for GAOL V5.0.0, 15 runs for GAOL 4.3.2, 15 runs for filib++, 15 runs for Solaris Studio f90, 15 runs for PROFIL/BIAS in all.
 
 #### The operations
 
@@ -172,53 +172,53 @@ a and b are intervals centred in [−10, 10], p in [1, 10], e in [0.5, 2.5], the
 
 #### Time per operation (nanoseconds)
 
-| Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.3.1 | filib++ | Solaris Studio f90 | PROFIL/BIAS | libieeep1788 / GAOL V5.0.0 | GAOL 4.3.1 / GAOL V5.0.0 | filib++ / GAOL V5.0.0 | Solaris Studio f90 / GAOL V5.0.0 | PROFIL/BIAS / GAOL V5.0.0 |
+| Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.3.2 | filib++ | Solaris Studio f90 | PROFIL/BIAS | libieeep1788 / GAOL V5.0.0 | GAOL 4.3.2 / GAOL V5.0.0 | filib++ / GAOL V5.0.0 | Solaris Studio f90 / GAOL V5.0.0 | PROFIL/BIAS / GAOL V5.0.0 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `add` | 1.09 | 211 | 3.83 | 3.63 | 7.51 | 23.8 | 21.6 | 55.1 | 0.9 | 2.0 | 6.2 | 5.6 |
-| `sub` | 1.18 | 216 | 3.83 | 3.82 | 7.26 | 23.8 | 21.5 | 56.5 | 1.0 | 1.9 | 6.2 | 5.6 |
-| `mul` | 1.12 | 265 | 16.0 | 16.3 | 16.6 | 29.0 | 22.1 | 16.5 | 1.0 | 1.0 | 1.8 | 1.4 |
-| `div` | 1.07 | 252 | 13.0 | 13.0 | 11.6 | 26.9 | 21.7 | 19.4 | 1.0 | 0.9 | 2.1 | 1.7 |
-| `sqr` | 0.76 | 125 | 9.56 | 9.22 | 13.0 | 75.8 | 28.1 | 13.1 | 1.0 | 1.4 | 7.9 | 2.9 |
-| `sqrt` | 1.96 | 146 | 9.17 | 8.97 | 16.7 | 36.7 | 10.5 | 15.9 | 1.0 | 1.8 | 4.0 | 1.1 |
-| `exp` | 5.93 | 2 225 | 29.1 | 46.7 | 46.3 | 54.6 | 16.3 | 76.4 | 1.6 | 1.6 | 1.9 | 0.6 |
-| `log` | 5.30 | 2 609 | 29.1 | 67.6 | 30.9 | 55.6 | 17.4 | 89.8 | 2.3 | 1.1 | 1.9 | 0.6 |
-| `sin` | 19.5 | 8 090 | 87.3 | 113 | 54.1 | 59.1 | 174 | 92.7 | 1.3 | 0.6 | 0.7 | 2.0 |
-| `cos` | 18.9 | 7 221 | 84.8 | 113 | 54.3 | 59.5 | 196 | 85.2 | 1.3 | 0.6 | 0.7 | 2.3 |
-| `pow_int` | 19.7 | 321 | 22.7 | 32.0 | 26.6 | 214 | 49.8 | 14.1 | 1.4 | 1.2 | 9.4 | 2.2 |
-| `pow_real` | 16.5 | 9 196 | 71.7 | 138 | 92.2 | 184 | 53.5 | 128 | 1.9 | 1.3 | 2.6 | 0.7 |
-| `line_arith` | 1.42 | 997 | 29.0 | 29.3 | 40.6 | 87.7 | 91.4 | 34.3 | 1.0 | 1.4 | 3.0 | 3.1 |
-| `line_trig` | 39.6 | 16 112 | 204 | 253 | 138 | 228 | 440 | 79.2 | 1.2 | 0.7 | 1.1 | 2.2 |
-| `line_pow` | 29.4 | 3 640 | 84.4 | 113 | 121 | 360 | 133 | 43.1 | 1.3 | 1.4 | 4.3 | 1.6 |
-| `shekel5` | 3.40 | 13 504 | 310 | 327 | 582 | 2 367 | 1 597 | 43.5 | 1.1 | 1.9 | 7.6 | 5.1 |
-| `block5` | 66.8 | 21 670 | 308 | 399 | 283 | 641 | 611 | 70.5 | 1.3 | 0.9 | 2.1 | 2.0 |
+| `add` | 1.20 | 210 | 3.23 | 3.24 | 7.91 | 23.9 | 21.5 | 65.0 | 1.0 | 2.4 | 7.4 | 6.6 |
+| `sub` | 1.20 | 205 | 3.43 | 3.41 | 7.93 | 23.9 | 21.7 | 59.7 | 1.0 | 2.3 | 7.0 | 6.3 |
+| `mul` | 1.22 | 259 | 16.3 | 16.3 | 23.3 | 28.9 | 22.0 | 15.9 | 1.0 | 1.4 | 1.8 | 1.4 |
+| `div` | 1.20 | 263 | 12.8 | 12.7 | 13.7 | 26.9 | 21.7 | 20.6 | 1.0 | 1.1 | 2.1 | 1.7 |
+| `sqr` | 0.76 | 134 | 9.68 | 9.61 | 12.5 | 75.8 | 28.1 | 13.8 | 1.0 | 1.3 | 7.8 | 2.9 |
+| `sqrt` | 1.97 | 142 | 11.7 | 12.1 | 22.8 | 36.8 | 5.58 | 12.1 | 1.0 | 1.9 | 3.1 | 0.5 |
+| `exp` | 5.90 | 2 093 | 29.7 | 47.5 | 46.4 | 54.6 | 14.9 | 70.5 | 1.6 | 1.6 | 1.8 | 0.5 |
+| `log` | 5.14 | 2 941 | 30.5 | 29.8 | 41.3 | 55.7 | 15.4 | 96.4 | 1.0 | 1.4 | 1.8 | 0.5 |
+| `sin` | 19.9 | 8 323 | 89.5 | 103 | 50.8 | 59.2 | 175 | 93.0 | 1.2 | 0.6 | 0.7 | 2.0 |
+| `cos` | 19.6 | 7 678 | 85.6 | 105 | 52.2 | 59.5 | 195 | 89.7 | 1.2 | 0.6 | 0.7 | 2.3 |
+| `pow_int` | 19.7 | 407 | 20.8 | 20.9 | 27.5 | 215 | 49.3 | 19.5 | 1.0 | 1.3 | 10.3 | 2.4 |
+| `pow_real` | 16.3 | 16 679 | 69.7 | 137 | 107 | 184 | 48.2 | 239 | 2.0 | 1.5 | 2.6 | 0.7 |
+| `line_arith` | 1.61 | 984 | 29.2 | 29.4 | 41.7 | 87.9 | 88.5 | 33.7 | 1.0 | 1.4 | 3.0 | 3.0 |
+| `line_trig` | 39.8 | 17 674 | 206 | 238 | 142 | 234 | 443 | 85.8 | 1.2 | 0.7 | 1.1 | 2.1 |
+| `line_pow` | 29.2 | 3 544 | 88.8 | 101 | 139 | 363 | 130 | 39.9 | 1.1 | 1.6 | 4.1 | 1.5 |
+| `shekel5` | 3.54 | 14 419 | 302 | 301 | 608 | 2 396 | 1 612 | 47.7 | 1.0 | 2.0 | 7.9 | 5.3 |
+| `block5` | 66.5 | 25 944 | 328 | 383 | 325 | 650 | 615 | 79.0 | 1.2 | 1.0 | 2.0 | 1.9 |
 
 #### Total time of the 1 000 000 operations (seconds)
 
-| Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.3.1 | filib++ | Solaris Studio f90 | PROFIL/BIAS |
+| Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.3.2 | filib++ | Solaris Studio f90 | PROFIL/BIAS |
 |---|---|---|---|---|---|---|---|
-| `add` | 0.001 | 0.211 | 0.004 | 0.004 | 0.008 | 0.024 | 0.022 |
-| `sub` | 0.001 | 0.216 | 0.004 | 0.004 | 0.007 | 0.024 | 0.022 |
-| `mul` | 0.001 | 0.265 | 0.016 | 0.016 | 0.017 | 0.029 | 0.022 |
-| `div` | 0.001 | 0.252 | 0.013 | 0.013 | 0.012 | 0.027 | 0.022 |
-| `sqr` | 0.001 | 0.125 | 0.010 | 0.009 | 0.013 | 0.076 | 0.028 |
-| `sqrt` | 0.002 | 0.146 | 0.009 | 0.009 | 0.017 | 0.037 | 0.011 |
-| `exp` | 0.006 | 2.225 | 0.029 | 0.047 | 0.046 | 0.055 | 0.016 |
-| `log` | 0.005 | 2.609 | 0.029 | 0.068 | 0.031 | 0.056 | 0.017 |
-| `sin` | 0.019 | 8.090 | 0.087 | 0.113 | 0.054 | 0.059 | 0.174 |
-| `cos` | 0.019 | 7.221 | 0.085 | 0.113 | 0.054 | 0.060 | 0.196 |
-| `pow_int` | 0.020 | 0.321 | 0.023 | 0.032 | 0.027 | 0.214 | 0.050 |
-| `pow_real` | 0.016 | 9.196 | 0.072 | 0.138 | 0.092 | 0.184 | 0.053 |
-| `line_arith` | 0.001 | 0.997 | 0.029 | 0.029 | 0.041 | 0.088 | 0.091 |
-| `line_trig` | 0.040 | 16.112 | 0.204 | 0.253 | 0.138 | 0.228 | 0.440 |
-| `line_pow` | 0.029 | 3.640 | 0.084 | 0.113 | 0.121 | 0.360 | 0.133 |
-| `shekel5` | 0.003 | 13.504 | 0.310 | 0.327 | 0.582 | 2.367 | 1.597 |
-| `block5` | 0.067 | 21.670 | 0.308 | 0.399 | 0.283 | 0.641 | 0.611 |
+| `add` | 0.001 | 0.210 | 0.003 | 0.003 | 0.008 | 0.024 | 0.021 |
+| `sub` | 0.001 | 0.205 | 0.003 | 0.003 | 0.008 | 0.024 | 0.022 |
+| `mul` | 0.001 | 0.259 | 0.016 | 0.016 | 0.023 | 0.029 | 0.022 |
+| `div` | 0.001 | 0.263 | 0.013 | 0.013 | 0.014 | 0.027 | 0.022 |
+| `sqr` | 0.001 | 0.134 | 0.010 | 0.010 | 0.013 | 0.076 | 0.028 |
+| `sqrt` | 0.002 | 0.142 | 0.012 | 0.012 | 0.023 | 0.037 | 0.006 |
+| `exp` | 0.006 | 2.093 | 0.030 | 0.047 | 0.046 | 0.055 | 0.015 |
+| `log` | 0.005 | 2.941 | 0.031 | 0.030 | 0.041 | 0.056 | 0.015 |
+| `sin` | 0.020 | 8.323 | 0.089 | 0.103 | 0.051 | 0.059 | 0.175 |
+| `cos` | 0.020 | 7.678 | 0.086 | 0.105 | 0.052 | 0.060 | 0.195 |
+| `pow_int` | 0.020 | 0.407 | 0.021 | 0.021 | 0.027 | 0.215 | 0.049 |
+| `pow_real` | 0.016 | 16.679 | 0.070 | 0.137 | 0.107 | 0.184 | 0.048 |
+| `line_arith` | 0.002 | 0.984 | 0.029 | 0.029 | 0.042 | 0.088 | 0.089 |
+| `line_trig` | 0.040 | 17.674 | 0.206 | 0.238 | 0.142 | 0.234 | 0.443 |
+| `line_pow` | 0.029 | 3.544 | 0.089 | 0.101 | 0.139 | 0.363 | 0.130 |
+| `shekel5` | 0.004 | 14.419 | 0.302 | 0.301 | 0.608 | 2.396 | 1.612 |
+| `block5` | 0.067 | 25.944 | 0.328 | 0.383 | 0.325 | 0.650 | 0.615 |
 
 #### Same results?
 
 The sum of the midpoints of the results, relative to libieeep1788's, and the mean width of the results, with the relative excess of the other libraries over libieeep1788, whose bounds are the tightest:
 
-| Operation | Σ midpoints (libieeep1788) | Δ GAOL V5.0.0 | Δ GAOL 4.3.1 | Δ filib++ | Δ Solaris Studio f90 | Δ PROFIL/BIAS | mean width (libieeep1788) | excess GAOL V5.0.0 | excess GAOL 4.3.1 | excess filib++ | excess Solaris Studio f90 | excess PROFIL/BIAS |
+| Operation | Σ midpoints (libieeep1788) | Δ GAOL V5.0.0 | Δ GAOL 4.3.2 | Δ filib++ | Δ Solaris Studio f90 | Δ PROFIL/BIAS | mean width (libieeep1788) | excess GAOL V5.0.0 | excess GAOL 4.3.2 | excess filib++ | excess Solaris Studio f90 | excess PROFIL/BIAS |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `add` | 6215.245078 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 1.2e-14 | 0.144602 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 |
 | `sub` | 15708.8058 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 8.3e-15 | 0.144602 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 |
@@ -227,7 +227,7 @@ The sum of the midpoints of the results, relative to libieeep1788's, and the mea
 | `sqr` | 33351536.53 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.723458 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 |
 | `sqrt` | 2269319.522 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0173328 | 0.0e+00 | 0.0e+00 | 2.4e-14 | 0.0e+00 | 9.7e-14 |
 | `exp` | 1113373157 | 0.0e+00 | -2.1e-16 | 2.1e-16 | 0.0e+00 | 0.0e+00 | 81.332 | 0.0e+00 | 2.6e-15 | 2.1e-14 | 7.3e-16 | 9.0e-15 |
-| `log` | 1559051.81 | 0.0e+00 | 0.0e+00 | 4.5e-16 | 0.0e+00 | 1.5e-16 | 0.0185316 | 0.0e+00 | 1.5e-14 | 1.4e-13 | 0.0e+00 | 5.9e-14 |
+| `log` | 1559051.81 | 0.0e+00 | 0.0e+00 | 4.5e-16 | 0.0e+00 | 1.5e-16 | 0.0185316 | 0.0e+00 | 0.0e+00 | 1.4e-13 | 0.0e+00 | 5.9e-14 |
 | `sin` | 372.7406966 | 0.0e+00 | 1.5e-15 | 3.4e-15 | -9.2e-16 | -1.7e-14 | 0.0471741 | 0.0e+00 | 1.4e-15 | 3.7e-14 | 0.0e+00 | 7.4e-14 |
 | `cos` | -55217.80218 | 0.0e+00 | -4.0e-16 | -1.3e-16 | 0.0e+00 | 2.5e-15 | 0.04418 | 0.0e+00 | 1.8e-15 | 4.6e-14 | 3.3e-16 | 9.7e-14 |
 | `pow_int` | 763027.2411 | 0.0e+00 | 0.0e+00 | -9.2e-16 | 1.5e-15 | 2.4e-06 | 7.24104 | 0.0e+00 | 0.0e+00 | 4.2e-15 | 4.6e-15 | 1.1e-05 |

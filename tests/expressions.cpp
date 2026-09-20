@@ -30,6 +30,8 @@
 #include "gaol_tests.h"
 
 #include <cstdio>
+#include <cfenv>
+#include <xmmintrin.h>
 #include "gaol/gaol_expr_eval.h"
 
 using namespace gaol;
@@ -44,7 +46,19 @@ namespace
      came from (MinGW-w64 for a 32-bit target, GAOL v5). */
   void step(const char* what)
   {
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+    /* The control words as well: a floating-point exception traps only when it
+       is unmasked, and the bits below say which are. The exception raised on
+       32-bit MinGW-w64 comes after an empty interval is made, whose bounds are
+       NaN, and is_empty() compares them with <=, which signals invalid. */
+    unsigned short cw = 0;
+    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+    std::fprintf(stderr, "-- %s  [x87 %04x, sse %04x, raised %02x]\n",
+                 what, (unsigned)cw, (unsigned)_mm_getcsr(),
+                 (unsigned)std::fetestexcept(FE_ALL_EXCEPT));
+#else
     std::fprintf(stderr, "-- %s\n", what);
+#endif
     std::fflush(stderr);
   }
 
