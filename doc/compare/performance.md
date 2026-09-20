@@ -16,112 +16,117 @@ benchmark again.
 
 | Library | Compiled with | Operations |
 |---|---|---|
-| GAOL V5.0.0 (this branch) | GCC 9.4, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by CMake in Release with `-mfma` (`GAOL_FMA`), the sources of CORE-MATH compiled into it | Inline SSE2 operations, the rounding direction set upward; **every** elementary function CORE-MATH's, correctly rounded in that direction, so the bounds are the tightest ones and the direction is never switched |
-| GAOL 4.3.1 (the master branch) | the same, with mathlib 2.1.1 of `3rd/mathlib` | The same operations; elementary functions computed by mathlib, correctly rounded to nearest, then moved one double outward, the rounding direction set to nearest and back for each; log CORE-MATH's |
-| libieeep1788 | GCC 9.4, `-O3 -mfma`; MPFR 4.2.1 and GMP 6.3.0 built by GCC 9.4 with `-O3 -mfma` | Each bound computed by MPFR, correctly rounded |
-| filib++ | GCC 9.4, `-O3 -mfma`, the flags of interval arithmetic; filib++ 3.0.2.2 built by GCC 9.4 in C++11 with `-O3 -mfma` | `interval<double, native_switched, i_mode_extended_flag>`, as in IBEX: inline operations, the rounding direction set and restored by each; elementary functions of its own |
-| PROFIL/BIAS | GCC 9.4, `-O3 -mfma`, the flags of interval arithmetic; PROFIL/BIAS 2.0.8 built with its `x86-64-Linux-compat-gcc` configuration, by GCC 9.4 in C++11 with `-O3 -mfma -ffp-contract=off` | `INTERVAL`, whose operations are calls to the BIAS library, each setting the rounding direction downward then upward and back to nearest; elementary functions from the libm, moved outward |
+| GAOL V5.0.0 (this branch) | Clang 18.1, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by CMake in Release with `-mfma` (`GAOL_FMA`), the sources of CORE-MATH compiled into it | Inline SSE2 operations, the rounding direction set upward; **every** elementary function CORE-MATH's, correctly rounded in that direction, so the bounds are the tightest ones and the direction is never switched |
+| GAOL 4.3.2 (the master branch) | the same, with mathlib 2.1.1 of `3rd/mathlib` | The same operations; elementary functions computed by mathlib, correctly rounded to nearest, then moved one double outward, the rounding direction set to nearest and back for each; log CORE-MATH's |
+| libieeep1788 | Clang 18.1, `-O3 -mfma`; MPFR 4.2.1 and GMP 6.3.0 built by Clang 18.1 with `-O3 -mfma` | Each bound computed by MPFR, correctly rounded |
+| filib++ | Clang 18.1, `-O3 -mfma`, the flags of interval arithmetic; filib++ 3.0.2.2, the archive IBEX distributes, built by Clang 18.1 in C++11 with `-O3 -mfma` | `interval<double, native_switched, i_mode_extended_flag>`, as in IBEX: inline operations, the rounding direction set and restored by each; elementary functions of its own |
+| PROFIL/BIAS | Clang 18.1, `-O3 -mfma`, the flags of interval arithmetic; PROFIL/BIAS 2.0.8 built with its `x86-64-Linux-compat-gcc` configuration, by Clang 18.1 in C++11 with `-O3 -mfma -ffp-contract=off` | `INTERVAL`, whose operations are calls to the BIAS library, each setting the rounding direction downward then upward and back to nearest; elementary functions from the libm, moved outward |
 | Solaris Studio | Sun Fortran 95 8.7 (Solaris Studio 12.4, 2014), `-O3 -xia` | Calls to `libsunimath` |
 
 ## What the timings show
 
 The two versions of GAOL are measured side by side: **GAOL V5.0.0**, this
 branch, which bounds every elementary function with CORE-MATH, and **GAOL
-4.3.1**, the master branch, which bounds them with mathlib. Everything was
-built and run again for this table, with GCC 9.4: the numbers are not those of
-the earlier table, measured with Clang 18, but the seven columns are
-comparable with one another.
+4.3.2**, the master branch, which bounds them with mathlib. Everything was
+built and run again for this table with **Clang 18.1** — GMP, MPFR,
+libieeep1788, filib++ (from the archive IBEX distributes) and PROFIL/BIAS as
+well as the two GAOL — so that one compiler answers for every C and C++ library
+here. Only Solaris Studio keeps its own, by nature.
 
 **What GAOL V5.0.0 changes.** The arithmetic is untouched, and the timings say
-so: +, −, ×, ÷, `sqr` and `sqrt` are the same to within the noise. The
-elementary functions are between 1.3 and 2.3 times faster:
+so: +, −, ×, ÷, `sqr` and `pow(x, 3)` are the same to within the noise. What
+moves are the functions that mathlib used to bound:
 
-| | GAOL V5.0.0 | GAOL 4.3.1 | |
+| | GAOL V5.0.0 | GAOL 4.3.2 | |
 |---|---:|---:|---|
-| `log` | 29.1 ns | 67.6 ns | 2.3 times faster |
-| `pow(x, y)` | 71.7 | 138 | 1.9 |
-| `exp` | 29.1 | 46.7 | 1.6 |
-| `pow(x, 3)` | 22.7 | 32.0 | 1.4 |
-| `sin` | 87.3 | 113 | 1.3 |
-| `cos` | 84.8 | 113 | 1.3 |
-| five-line block | 308 | 399 | 1.3 |
+| `pow(x, y)` | 69.7 ns | 137 ns | 2.0 times faster |
+| `exp` | 29.7 | 47.5 | 1.6 |
+| `cos` | 85.6 | 105 | 1.2 |
+| `sin` | 89.5 | 103 | 1.15 |
+| line of powers | 88.8 | 101 | 1.1 |
+| line of sin and cos | 206 | 238 | 1.2 |
+| five-line block | 328 | 383 | 1.2 |
 
-Two things are gone at once: the outward move of each bound, and the two
-changes of rounding direction each function made, to nearest before mathlib
-and back upward after. **And the bounds are tighter, not looser**: in the last
+`log` is the one elementary function that does not move (30.5 ns against
+29.8): GAOL 4.3.2 already took CORE-MATH's log, which was the first function of
+this work, and V5.0.0 only takes the rest of them the same way.
+
+Two things go at once with mathlib: the outward move of each bound, and the two
+changes of rounding direction each function made, to nearest before mathlib and
+back upward after. **And the bounds are tighter, not looser**: in the last
 table below, GAOL V5.0.0's results are no wider than libieeep1788's, which
 computes every bound with MPFR, for **every one of the seventeen operations**
-(excess 0.0e+00), where GAOL 4.3.1 was wider by up to 1.5e-14 relatively on
-log and 3.6e-15 on the real power.
+(excess 0.0e+00), where GAOL 4.3.2 is wider on `exp`, `sin`, `cos`, the real
+power and the line of powers.
 
-**Arithmetic.** GAOL is the fastest on + and −, 3.8 ns, about twice as fast as
-filib++ (7.3 to 7.5 ns) and six times as fast as PROFIL/BIAS (22 ns) and
-Solaris Studio (24 ns); × and ÷ take GAOL 16 and 13 ns, against 17 and 12 ns
+**Arithmetic.** GAOL is the fastest on + and −, 3.2 and 3.4 ns, about twice as
+fast as filib++ (7.9 ns) and six to seven times as fast as PROFIL/BIAS (22 ns)
+and Solaris Studio (24 ns); × and ÷ take GAOL 16 and 13 ns, against 23 and 14 ns
 for filib++, 22 ns for PROFIL/BIAS and 27 to 29 ns for Solaris Studio. An
-addition of intervals costs GAOL 3.5 times an addition of doubles: two
+addition of intervals costs GAOL 2.7 times an addition of doubles: two
 additions, and the check that the rounding direction is upward, where filib++
-sets the rounding direction and restores it, and PROFIL/BIAS calls a function
-of BIAS that sets it downward, then upward, then back to nearest — which is
-why its four arithmetic operations all take about the same time. The integer
-power `pow(x, 3)` takes GAOL 23 ns, computed from exact products since
+sets the rounding direction and restores it, and PROFIL/BIAS calls a function of
+BIAS that sets it downward, then upward, then back to nearest — which is why its
+four arithmetic operations all take about the same time. The integer power
+`pow(x, 3)` takes GAOL 21 ns, computed from exact products since
 [issue #7](https://github.com/Jordan08/GAOL/issues/7), whose `fma()` is one
-instruction with `-mfma`: filib++'s `power(x, 3)` takes 27 ns, PROFIL/BIAS's
-50 ns and Solaris Studio's `x**3` 214 ns; `sqr` takes GAOL 9.6 ns, against 13
+instruction with `-mfma`: filib++'s `power(x, 3)` takes 28 ns, PROFIL/BIAS's
+49 ns and Solaris Studio's `x**3` 215 ns; `sqr` takes GAOL 9.7 ns, against 13
 for filib++, 28 for PROFIL/BIAS and 76 for Solaris Studio.
 
-**Elementary functions.** PROFIL/BIAS is the fastest on exp (16 ns), log
-(17 ns) and the real power `pow(x, y)` (54 ns), which it computes from the libm
-of the system, moved outward, without correct rounding: its bounds are the
-widest of the five (below), and its sin and cos, computed by its own argument
-reduction, are the slowest, 174 and 196 ns. GAOL V5.0.0 comes next on exp and
-log, 29.1 ns each — faster than filib++ (46 and 31 ns) and than Solaris Studio
-(55 and 56 ns) — with **correctly rounded** values, where the others are not.
-filib++ is the fastest on sin and cos (54 ns) with its own polynomials, then
-Solaris Studio (59 ns), then GAOL V5.0.0 (87 and 85 ns): GAOL pays there for
-correct rounding over the whole range, and for dividing the bounds by an
-interval enclosing π to find where the function is monotonic, asking CORE-MATH
-for the signs of the derivative where the division cannot tell
-([issue #6](https://github.com/Jordan08/GAOL/issues/6)). On `pow(x, y)` GAOL
-V5.0.0 takes 72 ns, against 92 for filib++ and 184 for Solaris Studio.
+**Elementary functions.** PROFIL/BIAS is the fastest on the square root
+(5.6 ns), exp (15 ns), log (15 ns) and the real power `pow(x, y)` (48 ns),
+which it computes from the libm of the system, moved outward, without correct
+rounding: its bounds are the widest of the five (below), and its sin and cos,
+computed by its own argument reduction, are the slowest, 175 and 195 ns. GAOL
+V5.0.0 comes next on exp and log, about 30 ns each — faster than filib++ (46
+and 41 ns) and than Solaris Studio (55 and 56 ns) — with **correctly rounded**
+values, where the others are not. filib++ is the fastest on sin and cos (51 and
+52 ns) with its own polynomials, then Solaris Studio (59 ns), then GAOL V5.0.0
+(90 and 86 ns): GAOL pays there for correct rounding over the whole range, and
+for dividing the bounds by an interval enclosing π to find where the function is
+monotonic, asking CORE-MATH for the signs of the derivative where the division
+cannot tell ([issue #6](https://github.com/Jordan08/GAOL/issues/6)). On
+`pow(x, y)` GAOL V5.0.0 takes 70 ns, against 107 for filib++ and 184 for
+Solaris Studio.
 
-**Formulas.** GAOL is the fastest on the arithmetic line (29 ns, against 41
-for filib++, 88 for Solaris Studio and 91 for PROFIL/BIAS), on the line of
-powers (84 ns, against 121, 360 and 133) and on Shekel 5 (310 ns, against
-582, 2 367 and 1 597: Shekel 5 is 20 squares, 45 additions and subtractions
-and 5 divisions, and its squares cost Solaris Studio 76 ns each and
-PROFIL/BIAS 28). filib++ is the fastest on the line of sin and cos (138 ns,
-against 204 for GAOL, 228 for Solaris Studio and 440 for PROFIL/BIAS) and, by
-a little, on the five-line block (283 ns, against 308 for GAOL, 611 for
-PROFIL/BIAS and 641 for Solaris Studio), where its elementary functions weigh
-most.
+**Formulas.** GAOL is the fastest on the arithmetic line (29 ns, against 42 for
+filib++, 88 for Solaris Studio and 89 for PROFIL/BIAS), on the line of powers
+(89 ns, against 139, 363 and 130) and on Shekel 5 (302 ns, against 608, 2 396
+and 1 612: Shekel 5 is 20 squares, 45 additions and subtractions and 5
+divisions, and its squares cost Solaris Studio 76 ns each and PROFIL/BIAS 28).
+filib++ is the fastest on the line of sin and cos (142 ns, against 206 for GAOL,
+234 for Solaris Studio and 443 for PROFIL/BIAS) and, by three nanoseconds, on
+the five-line block (325 ns, against 328 for GAOL, 615 for PROFIL/BIAS and 650
+for Solaris Studio), where its elementary functions weigh most.
 
-**libieeep1788** is 14 to 93 times slower than GAOL: every bound is an MPFR
-computation, about 210 ns for an addition and 7 to 9 µs for sin, cos and the
-real power. Its own README warns that its focus is correctness, not speed.
-GAOL V5.0.0 now gives **the same bounds as it does**, tightest everywhere, at
-between a fourteenth and a ninety-third of the time.
+**libieeep1788** is 13 to 240 times slower than GAOL: every bound is an MPFR
+computation, about 210 ns for an addition and 8 to 17 µs for sin, cos and the
+real power. Its own README warns that its focus is correctness, not speed. GAOL
+V5.0.0 now gives **the same bounds as it does**, tightest everywhere, at
+between a thirteenth and a two-hundred-and-fortieth of the time.
 
 **The results** are the same: the sums of the midpoints of the million results
 agree to 4e-15 relatively, apart from PROFIL/BIAS's integer powers (2.4e-06,
 below). The arithmetic operations and the square roots give the tightest
 intervals in the five libraries, except filib++'s and PROFIL/BIAS's square
 roots. Of the elementary functions, **only GAOL V5.0.0's are the tightest on
-every operation**: on average the others are wider than libieeep1788's by up
-to 3.6e-15 relatively with GAOL 4.3.1, 4e-15 to 2.4e-13 with filib++ (1.4e-13
-for log, 2.4e-13 for the real power), 9e-15 to 1.2e-13 with PROFIL/BIAS, and
-at most 5e-15 with Solaris Studio. PROFIL/BIAS's integer power is far wider,
-1.1e-05 on average: it computes `Power(x, n)` as exp(n log x), where the four
-others multiply. Its arithmetic results have midpoints that differ by about
-1e-14 relatively while their widths are the tightest: the intervals are the
-same, but its `Mid` computes inf + (sup − inf)/2 **rounded upward**, one double
-above the midpoint for 4 % of the sums of the benchmark, where the others round
-to nearest.
+every operation**: on average the others are wider than libieeep1788's by up to
+3.6e-15 relatively with GAOL 4.3.2, 4e-15 to 2.4e-13 with filib++ (1.4e-13 for
+log, 2.4e-13 for the real power), 9e-15 to 1.2e-13 with PROFIL/BIAS, and at most
+5e-15 with Solaris Studio. PROFIL/BIAS's integer power is far wider, 1.1e-05 on
+average: it computes `Power(x, n)` as exp(n log x), where the four others
+multiply. Its arithmetic results have midpoints that differ by about 1e-14
+relatively while their widths are the tightest: the intervals are the same, but
+its `Mid` computes inf + (sup − inf)/2 **rounded upward**, one double above the
+midpoint for 4 % of the sums of the benchmark, where the others round to
+nearest.
 
 The timings were measured on a laptop, each time being the best of several runs
 spread over three rounds: the machine slowed down now and then for a few
 seconds, which made some operations up to 2.5 times slower in a single round.
-libieeep1788's times, from a single run of each operation in each round, are
-the least steady. Solaris Studio's and PROFIL/BIAS's operations are calls into
+libieeep1788's times, from a single run of each operation in each round, are the
+least steady. Solaris Studio's and PROFIL/BIAS's operations are calls into
 libraries, where the compiler inlines GAOL's and filib++'s.
 
 ## The timings

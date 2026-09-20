@@ -57,42 +57,52 @@ integration runs it on each kind of machine.
 
 ## What the options are worth
 
-Measured with `tests/performance.cpp` on an Intel i7-1185G7 with GCC 9, in
-nanoseconds per operation (GAOL v5):
+Measured with `tests/performance.cpp` on an Intel i7-1185G7 with Clang 18.1,
+in nanoseconds per operation, the best of five runs (GAOL v5):
 
-| | x + y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 3.02 | 3.31 | 15.7 | 28.7 | 33.1 | 59.0 | 59.1 |
-| `-DGAOL_FMA=OFF` | 3.03 | 3.58 | 25.5 | 37.9 | 52.5 | 143.7 | 142.0 |
-| `-DGAOL_SIMD=OFF` | 3.30 | 3.46 | 15.9 | 28.2 | 32.8 | 59.6 | 60.3 |
-| Default, whole build with interprocedural optimization | 1.48 | 2.28 | 12.0 | 26.4 | 33.0 | 57.9 | 60.8 |
+| | x + y | x × y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 2.68 | 3.87 | 2.61 | 14.5 | 29.3 | 32.9 | 59.4 | 58.0 |
+| `-DGAOL_FMA=OFF` | 2.54 | 3.92 | 2.94 | 21.1 | 37.9 | 52.6 | 143.4 | 141.4 |
+| `-DGAOL_SIMD=OFF` | 3.15 | 6.27 | 2.85 | 13.9 | 29.2 | 32.3 | 61.1 | 61.3 |
 
 - **The fused multiply-add instructions (`GAOL_FMA`) are worth much more than
-  they were**: sin and cos are **2.4 times faster** with them, log 1.5 times and
-  exp 1.3 times. CORE-MATH computes with `__builtin_fma` throughout, which is
-  one instruction where the processor has it and a call to the math library
-  where it has not; with mathlib the gain was 9 %. They are on by default
-  wherever the compiler has a flag for them and the machine building runs a
-  program compiled with it.
-- **The SSE2 intervals (`GAOL_SIMD`) pay on the additions and the products**
-  (x + y 3.02 ns rather than 3.30), and cost a little on the division (6.4
-  rather than 5.8). They are on by default on x86 processors. The elementary
-  functions do not go through them.
-- **Interprocedural optimization is not offered, because it breaks the
-  bounds.** Compiled with it (`-flto`), GAOL's basic operations are about twice
-  as fast where the code using GAOL is compiled with it too — an addition of
-  intervals took 1.48 ns rather than 3.02, a subtraction 1.35 rather than 3.11,
-  `sqr(x)` 2.28 rather than 3.32 at `-O3` — and GAOL then **fails
-  `tests/rounding_direction.cpp`**: with `GAOL_PRESERVE_ROUNDING`,
-  `interval("sin(1)+exp(0.1)")` gave an upper bound one double below the right
-  one when the calling code left the rounding direction downward or toward
-  zero. The compiler moves floating-point operations across the changes of
-  rounding direction, which `-frounding-math` is meant to forbid and which it
-  does not do across translation units; compiling GAOL's sources alone with it
-  is enough for the test to fail. An interval that does not enclose the exact
-  value is worse than a slow one, so there is no option for this, and `gaol.pc`
-  and `gaol::gaol` carry no such flag. The sources of CORE-MATH are compiled
-  apart all the same, which keeps a `-flto` given by hand away from them.
+  they were**: sin and cos are **2.4 times faster** with them, log 1.6 times,
+  pow(x, 3) 1.5 times and exp 1.3 times. CORE-MATH computes with
+  `__builtin_fma` throughout, which is one instruction where the processor has
+  it and a call to the math library where it has not; with mathlib the gain was
+  9 %. They are on by default wherever the compiler has a flag for them and the
+  machine building runs a program compiled with it. They do nothing for the
+  arithmetic, which does not multiply and add in one step.
+- **The SSE2 intervals (`GAOL_SIMD`) pay on the products and the additions**:
+  x × y takes 3.87 ns rather than 6.27, and x + y 2.68 rather than 3.15, the two
+  bounds being computed in one instruction. They are on by default on x86
+  processors. The elementary functions do not go through them.
+
+### Interprocedural optimization is not offered
+
+Compiled with it (`-flto`), GAOL's basic operations are two to three times
+faster where the code using GAOL is compiled with it too — an addition of
+intervals took 0.99 ns rather than 2.68 with Clang 18.1, `sqr(x)` 1.96 rather
+than 2.61 — and the elementary functions are two to three times **slower**: cos
+took 169 ns rather than 58, sin 147 rather than 59, log 61 rather than 33. The
+sources of CORE-MATH are compiled apart, without it, and it reaches them
+through the link all the same.
+
+Worse, with **GCC** it breaks the bounds: GAOL then fails
+`tests/rounding_direction.cpp`, which checks that an operation gives the same
+result whatever the rounding direction the calling code left. With
+`GAOL_PRESERVE_ROUNDING`, `interval("sin(1)+exp(0.1)")` gave an upper bound one
+double below the right one when the caller left the direction downward or
+toward zero: the compiler moves floating-point operations across the changes of
+rounding direction, which `-frounding-math` is meant to forbid and which it
+does not do across translation units. Compiling GAOL's sources alone with it is
+enough for the test to fail. Clang 18.1 passes the tests with it, so this is not
+a property of the option but of one compiler's handling of it — which is reason
+enough not to offer it.
+
+An interval that does not enclose the exact value is worse than a slow one, so
+there is no option for this, and `gaol.pc` and `gaol::gaol` carry no such flag.
 
 ## Compilers and options refused
 

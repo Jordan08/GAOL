@@ -83,16 +83,20 @@ option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with 
 # two paths, and the continuous integration builds GAOL this way)
 # Interprocedural optimization (link-time optimization) is not offered
 #
-# It made GAOL's basic operations about twice as fast where the code using GAOL
-# was compiled with it too (an addition of intervals took 1.48 ns rather than
-# 3.02 on an Intel i7-1185G7 with GCC 9 at -O3), and it **breaks the bounds**:
-# compiled with it, GAOL failed tests/rounding_direction.cpp, which checks that
-# an operation gives the same result whatever the rounding direction the
-# calling code left. With GAOL_PRESERVE_ROUNDING, interval("sin(1)+exp(0.1)")
-# gave an upper bound one double below the right one when the caller left the
-# direction downward or toward zero: the compiler moves floating-point
-# operations across the changes of rounding direction, which -frounding-math is
-# meant to forbid and which it does not across translation units.
+# It makes GAOL's basic operations two to three times faster where the code
+# using GAOL is compiled with it too (an addition of intervals took 0.99 ns
+# rather than 2.68 on an Intel i7-1185G7 with Clang 18.1 at -O3) and the
+# elementary functions two to three times slower (cos 169 ns rather than 58),
+# and **with GCC it breaks the bounds**: GAOL then fails
+# tests/rounding_direction.cpp, which checks that an operation gives the same
+# result whatever the rounding direction the calling code left. With
+# GAOL_PRESERVE_ROUNDING, interval("sin(1)+exp(0.1)") gave an upper bound one
+# double below the right one when the caller left the direction downward or
+# toward zero: the compiler moves floating-point operations across the changes
+# of rounding direction, which -frounding-math is meant to forbid and which it
+# does not across translation units. Clang 18.1 passes the tests with it, so
+# this is one compiler's handling of the option rather than the option itself
+# -- which is reason enough not to offer it.
 #
 # GAOL's whole point is that its intervals enclose the exact values, so there is
 # no option for this (fork of GAOL, see doc/three-builds.md). The sources of
