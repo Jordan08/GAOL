@@ -628,7 +628,9 @@ namespace
        infinities, the legs of Pythagorean triples scaled by powers of two,
        and their neighbours */
     std::vector<double> coords = {0.0, 1.0, -1.0, 3.0, 4.0, -3.0, -4.0, 5.0, 12.0, 0.5, inf, -inf, 1e300};
-    for (int i = 0; i < 400; ++i) {
+    // five values per triple from there: its legs a and b, then three neighbours
+    const std::size_t first_triple = coords.size(), triples = 400;
+    for (std::size_t i = 0; i < triples; ++i) {
       const std::uint64_t n = 1 + gen() % 3000, m = n + 1 + gen() % 3000000;
       const int e = (int)(gen() % 2100) - 1060;
       const double a = std::ldexp((double)(m * m - n * n), e), b = std::ldexp((double)(2 * m * n), e);
@@ -662,7 +664,17 @@ namespace
     };
     for (int i = 0; i < 200000; ++i) {
       std::size_t j = gen() % coords.size();
-      double x1 = coords[j], y1 = coords[(i % 3 == 0) ? (j ^ 1) : gen() % coords.size()];
+      double x1 = coords[j], y1;
+      if (i % 3 == 0) {
+        // the two legs of a triple, whose hypot is exact; j ^ 1 read past the
+        // end of coords for its last index, and paired no legs, the triples
+        // starting at an odd index
+        j = first_triple + 5 * (j % triples);
+        x1 = coords[j];
+        y1 = coords[j + 1];
+      } else {
+        y1 = coords[gen() % coords.size()];
+      }
       double x2 = (i % 2 == 0) ? x1 : coords[gen() % coords.size()];
       double y2 = (i % 5 < 2) ? y1 : coords[gen() % coords.size()];
       if (i % 7 == 0) {
