@@ -183,6 +183,15 @@ namespace
     compare("exp10", gaol_cr_exp10, [](const interval& x) { return exp10(x); }, v);
     compare("log2", gaol_cr_log2, [](const interval& x) { return log2(x); }, v);
     compare("log10", gaol_cr_log10, [](const interval& x) { return log10(x); }, v);
+    // The forward functions IEEE 1788-2015 recommends (Table 10.5, GAOL v5)
+    compare("expm1", gaol_cr_expm1, [](const interval& x) { return expm1(x); }, v);
+    compare("exp2m1", gaol_cr_exp2m1, [](const interval& x) { return exp2m1(x); }, v);
+    compare("exp10m1", gaol_cr_exp10m1, [](const interval& x) { return exp10m1(x); }, v);
+    compare("sinpi", gaol_cr_sinpi, [](const interval& x) { return sinpi(x); }, v);
+    compare("cospi", gaol_cr_cospi, [](const interval& x) { return cospi(x); }, v);
+    compare("tanpi", gaol_cr_tanpi, [](const interval& x) { return tanpi(x); }, v);
+    compare("atanpi", gaol_cr_atanpi, [](const interval& x) { return atanpi(x); }, v);
+    compare("acospi", gaol_cr_acospi, [](const interval& x) { return acospi(x); }, v);
   }
 
   /* CORE-MATH gives the same value whatever the rounding direction it is called
@@ -379,6 +388,126 @@ namespace
       }
     }
   }
+
+  /*
+    The forward functions IEEE 1788-2015 recommends (Table 10.5) over
+    intervals (GAOL v5). They are claimed the tightest, so each result has to
+    equal the hull of the image computed here apart from GAOL: for the
+    monotonic ones the values at the bounds, rounded outward by CORE-MATH in
+    the two directed roundings; for sinpi, cospi and tanpi the values at the
+    bounds and at every multiple of 1/2 within, enumerated one by one, where
+    the extrema and the poles are.
+  */
+  void recommended_intervals()
+  {
+    std::uint64_t state = 0x9e3779b97f4a7c15ULL;
+    const auto next = [&] {
+      state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+      return state;
+    };
+    const auto uniform = [&](double lo, double hi) {
+      return lo + (hi - lo) * (static_cast<double>(next() >> 11) * 0x1p-53);
+    };
+    const auto rd = [](double (*f)(double), double x) {
+      std::fesetround(FE_DOWNWARD);
+      const double v = f(x);
+      std::fesetround(FE_UPWARD);
+      return v;
+    };
+    const auto ru = [](double (*f)(double), double x) {
+      std::fesetround(FE_UPWARD);
+      return f(x);
+    };
+    // a pole of tan(pi*x): 2x an odd integer
+    const auto is_pole = [](double x) {
+      return 2.0 * x == std::floor(2.0 * x) && std::fmod(std::fabs(2.0 * x), 2.0) == 1.0;
+    };
+
+    struct Periodic { const char *name; double (*cr)(double);
+                      interval (*g)(const interval&); bool tan; };
+    const Periodic periodic[] = {
+      {"sinpi", gaol_cr_sinpi, sinpi, false},
+      {"cospi", gaol_cr_cospi, cospi, false},
+      {"tanpi", gaol_cr_tanpi, tanpi, true},
+    };
+    for (const Periodic& p : periodic) {
+      for (int i = 0; i < 20000; ++i) {
+        const double a = uniform(-6.0, 6.0);
+        // every eighth interval starts on a multiple of 1/2
+        const double l = (i % 8 == 0) ? std::floor(2.0 * a) / 2.0 : a;
+        const double r = l + uniform(0.0, 2.6);
+        std::fesetround(FE_UPWARD);
+        const interval got = p.g(interval(l, r));
+        double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+        bool pole_in = false;
+        for (double h = std::ceil(2.0 * l) / 2.0; h <= r; h += 0.5) {
+          if (p.tan) {
+            pole_in = pole_in || (h > l && h < r && is_pole(h));
+          } else {
+            lo = std::min(lo, rd(p.cr, h));
+            hi = std::max(hi, ru(p.cr, h));
+          }
+        }
+        if (p.tan) {
+          const bool pl = is_pole(l), pr = is_pole(r);
+          if (pole_in || (pl && pr)) {
+            lo = -GAOL_INFINITY;
+            hi = GAOL_INFINITY;
+          } else {
+            lo = pl ? -GAOL_INFINITY : rd(p.cr, l);
+            hi = pr ? GAOL_INFINITY : ru(p.cr, r);
+          }
+        } else {
+          lo = std::min(lo, std::min(rd(p.cr, l), rd(p.cr, r)));
+          hi = std::max(hi, std::max(ru(p.cr, l), ru(p.cr, r)));
+        }
+        std::fesetround(FE_UPWARD);
+        check(std::string(p.name) + " over an interval: the tightest bounds",
+              got.left() == lo && got.right() == hi,
+              [&] {
+                return std::string(p.name) + "([" + show(l) + ", " + show(r) + "]) = ["
+                     + show(got.left()) + ", " + show(got.right()) + "] rather than ["
+                     + show(lo) + ", " + show(hi) + "]";
+              });
+      }
+    }
+
+    // The values given apart: the exact ones, the extrema and the poles at a
+    // bound, the infinite bounds, the domain of acospi, and beyond 2^61
+    const double inf = GAOL_INFINITY;
+    struct Case { const char *what; interval got; double lo, hi; bool empty; };
+    const Case cases[] = {
+      {"sinpi([1e17]) = 0, where sin(pi*x) gave [-1, 1]", sinpi(interval(1e17)), 0.0, 0.0, false},
+      {"sinpi([1/2]) = 1", sinpi(interval(0.5)), 1.0, 1.0, false},
+      {"cospi([1]) = -1", cospi(interval(1.0)), -1.0, -1.0, false},
+      {"tanpi([1/4]) = 1", tanpi(interval(0.25)), 1.0, 1.0, false},
+      {"atanpi([1]) = 1/4", atanpi(interval(1.0)), 0.25, 0.25, false},
+      {"acospi([0]) = 1/2", acospi(interval(0.0)), 0.5, 0.5, false},
+      {"exp2m1([10]) = 1023", exp2m1(interval(10.0)), 1023.0, 1023.0, false},
+      {"exp10m1([3]) = 999", exp10m1(interval(3.0)), 999.0, 999.0, false},
+      {"expm1([0]) = 0", expm1(interval(0.0)), 0.0, 0.0, false},
+      {"sinpi([0, 1]) = [0, 1]", sinpi(interval(0.0, 1.0)), 0.0, 1.0, false},
+      {"tanpi([0.4, 0.6]): a pole within", tanpi(interval(0.4, 0.6)), -inf, inf, false},
+      {"tanpi([1/2]): a pole alone, no value", tanpi(interval(0.5)), 0.0, 0.0, true},
+      {"expm1([-oo, 0]) = [-1, 0]", expm1(interval(-inf, 0.0)), -1.0, 0.0, false},
+      {"atanpi(entire) = [-1/2, 1/2]", atanpi(interval::universe()), -0.5, 0.5, false},
+      {"sinpi(entire) = [-1, 1]", sinpi(interval::universe()), -1.0, 1.0, false},
+      {"acospi([2, 3]): outside the domain", acospi(interval(2.0, 3.0)), 0.0, 0.0, true},
+      {"acospi([-5, 5]) = [0, 1]", acospi(interval(-5.0, 5.0)), 0.0, 1.0, false},
+      {"sinpi(empty)", sinpi(interval::emptyset()), 0.0, 0.0, true},
+      {"cospi([2^62]) = 1", cospi(interval(4611686018427387904.0)), 1.0, 1.0, false},
+      {"sinpi([2^62, 2^62 + 1024]) = [-1, 1]",
+       sinpi(interval(4611686018427387904.0, 4611686018427388928.0)), -1.0, 1.0, false},
+    };
+    for (const Case& c : cases) {
+      if (c.empty) {
+        check(std::string(c.what), c.got.is_empty(), [&] { return hex(c.got); });
+      } else {
+        check(std::string(c.what), !c.got.is_empty() && c.got.left() == c.lo && c.got.right() == c.hi,
+              [&] { return hex(c.got); });
+      }
+    }
+  }
 }
 
 int main()
@@ -389,6 +518,7 @@ int main()
   two_arguments();
   base_two_and_ten_exact();
   negative_roots();
+  recommended_intervals();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();

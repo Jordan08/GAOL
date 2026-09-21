@@ -792,6 +792,27 @@ extern __GAOL_PUBLIC__   interval log2(const interval& I);
   */
 extern __GAOL_PUBLIC__   interval log10(const interval& I);
 
+  /*!
+    \brief The forward functions IEEE 1788-2015 recommends (Table 10.5) that
+    CORE-MATH provides without the 128-bit integer (GAOL v5)
+
+    expm1(x) = e^x - 1, exp2m1(x) = 2^x - 1 and exp10m1(x) = 10^x - 1 on R,
+    within [-1, +oo]; sinpi(x) = sin(pi*x), cospi(x) = cos(pi*x) and
+    tanpi(x) = tan(pi*x), the last on R minus the half-integers, where it has
+    no value; atanpi(x) = atan(x)/pi on R, within [-1/2, 1/2], and
+    acospi(x) = acos(x)/pi on [-1, 1], within [0, 1]. Each is the tightest
+    enclosure: CORE-MATH is correctly rounded, and the functions of pi*x find
+    their extrema and poles exactly, at the multiples of 1/2.
+  */
+extern __GAOL_PUBLIC__   interval expm1(const interval& I);
+extern __GAOL_PUBLIC__   interval exp2m1(const interval& I);
+extern __GAOL_PUBLIC__   interval exp10m1(const interval& I);
+extern __GAOL_PUBLIC__   interval sinpi(const interval& I);
+extern __GAOL_PUBLIC__   interval cospi(const interval& I);
+extern __GAOL_PUBLIC__   interval tanpi(const interval& I);
+extern __GAOL_PUBLIC__   interval atanpi(const interval& I);
+extern __GAOL_PUBLIC__   interval acospi(const interval& I);
+
 extern __GAOL_PUBLIC__   interval cos(const interval& I);
 extern __GAOL_PUBLIC__   interval sin(const interval& I);
 extern __GAOL_PUBLIC__   interval tan(const interval& I);

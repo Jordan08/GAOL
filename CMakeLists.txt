@@ -402,7 +402,11 @@ set(GAOL_CORE_MATH_FUNCTIONS
   sinh cosh tanh asinh acosh atanh
   # cbrt, which nth_root(x, 3) takes, and the exponentials and logarithms in
   # base 2 and 10, which IEEE 1788-2015 requires (Table 9.1) (GAOL v5)
-  cbrt exp2 exp10 log2 log10)
+  cbrt exp2 exp10 log2 log10
+  # The forward functions IEEE 1788-2015 recommends (Table 10.5), which
+  # avoid the loss of accuracy of pi being irrational for the *Pi family
+  # and of cancellation for the m1/p1 family (GAOL v5)
+  expm1 exp2m1 exp10m1 sinpi cospi tanpi acospi atanpi)
 
 set(GAOL_CORE_MATH_SOURCES "")
 foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)

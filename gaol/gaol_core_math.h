@@ -59,6 +59,16 @@ GAOL_CORE_MATH_PUBLIC double gaol_cr_exp2(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_exp10(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_log2(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_log10(double x);
+/* The forward functions IEEE 1788-2015 recommends (Table 10.5) that CORE-MATH
+   provides without the 128-bit integer (GAOL v5) */
+GAOL_CORE_MATH_PUBLIC double gaol_cr_expm1(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_exp2m1(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_exp10m1(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_sinpi(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_cospi(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_tanpi(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_acospi(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_atanpi(double x);
 
 #ifdef __cplusplus
 }

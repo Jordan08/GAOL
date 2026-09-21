@@ -46,6 +46,9 @@ core_math_functions = [
   # cbrt, which nth_root(x, 3) takes, and the exponentials and logarithms in
   # base 2 and 10, which IEEE 1788-2015 requires (Table 9.1) (GAOL v5)
   'cbrt', 'exp2', 'exp10', 'log2', 'log10',
+
+  # The forward functions IEEE 1788-2015 recommends (Table 10.5) (GAOL v5)
+  'expm1', 'exp2m1', 'exp10m1', 'sinpi', 'cospi', 'tanpi', 'acospi', 'atanpi',
 ]
 incdir = include_directories(['.', '..', './sysdeps'])
 

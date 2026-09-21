@@ -59,6 +59,14 @@
 #define cr_exp10 gaol_cr_exp10
 #define cr_log2 gaol_cr_log2
 #define cr_log10 gaol_cr_log10
+#define cr_expm1 gaol_cr_expm1
+#define cr_exp2m1 gaol_cr_exp2m1
+#define cr_exp10m1 gaol_cr_exp10m1
+#define cr_sinpi gaol_cr_sinpi
+#define cr_cospi gaol_cr_cospi
+#define cr_tanpi gaol_cr_tanpi
+#define cr_acospi gaol_cr_acospi
+#define cr_atanpi gaol_cr_atanpi
 
 #include "gaol/gaol_core_math.h"
 

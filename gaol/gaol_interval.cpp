@@ -41,6 +41,7 @@
 #include <locale>
 #include <cstdlib>
 #include <cstdio>
+#include <cstdint>
 #include <sstream>
 
 #if USING_SSE2_INSTRUCTIONS
@@ -1552,6 +1553,247 @@ interval nth_root(const interval& I, int q)
     const double v = gaol_cr_log10(r);
     GAOL_RND_LEAVE();
     return interval(u, v);
+  }
+
+  /*
+    The forward functions IEEE 1788-2015 recommends (Table 10.5) that CORE-MATH
+    provides without the 128-bit integer (GAOL v5)
+
+    expm1, exp2m1 and exp10m1 compute b^x - 1 without the cancellation of
+    subtracting 1 from b^x near 0, and atanpi, acospi, sinpi, cospi and tanpi a
+    function of pi*x, or one divided by pi, without the loss of accuracy of pi
+    being irrational (notes c and e of the table). CORE-MATH computes each of
+    them correctly rounded in the rounding direction in effect, as it does
+    exp2, so the bounds are got the same way: in the upward rounding GAOL keeps,
+    the value at a bound rounded upward, and the double below it for a lower
+    bound unless the value is itself a double, which the tests below tell.
+  */
+
+  // b^x - 1 is a double exactly at 0, and for b = 2 at the integers of
+  // [-53, 53], for b = 10 at those of [0, 15]: 2^n - 1 has n significant bits,
+  // 1 - 2^-n as many, and 10^n - 1 is below 2^53 up to n = 15
+  static inline bool expm1_is_exact(double x)
+  {
+    return x == 0.0;
+  }
+
+  static inline bool exp2m1_is_exact(double x)
+  {
+    return x == std::floor(x) && x >= -53.0 && x <= 53.0;
+  }
+
+  static inline bool exp10m1_is_exact(double x)
+  {
+    return x == std::floor(x) && x >= 0.0 && x <= 15.0;
+  }
+
+  // atan(x)/pi is rational at a rational x only for x in {0, +-1}, by Niven's
+  // theorem, where it is 0 and +-1/4; and it is +-1/2 at the infinities
+  static inline bool atanpi_is_exact(double x)
+  {
+    return x == 0.0 || x == 1.0 || x == -1.0 || !is_finite(x);
+  }
+
+  // acos(x)/pi is a double at -1, 0 and 1 only, where it is 1, 1/2 and 0: the
+  // other rational values, 1/3 and 2/3 at +-1/2, are no doubles
+  static inline bool acospi_is_exact(double x)
+  {
+    return x == 0.0 || x == 1.0 || x == -1.0;
+  }
+
+  // An increasing function, whose range the bounds are brought back into: the
+  // value at the right bound, the double below the value at the left bound
+  // unless it is a double
+  static interval increasing_cr(const interval& I, double (*f)(double),
+                                bool (*exact)(double), double lowest, double highest)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double l = I.left(), r = I.right();
+    GAOL_RND_ENTER();
+    const double w = f(l);
+    const double u = exact(l) ? w : previous_float(w);
+    const double v = f(r);
+    GAOL_RND_LEAVE();
+    return interval(maximum(lowest, u), minimum(highest, v));
+  }
+
+  interval expm1(const interval& I)
+  {
+    // within [-1, +oo]: b^x - 1 exceeds -1, which it nears as x goes to -oo
+    return increasing_cr(I, gaol_cr_expm1, expm1_is_exact, -1.0, GAOL_INFINITY);
+  }
+
+  interval exp2m1(const interval& I)
+  {
+    return increasing_cr(I, gaol_cr_exp2m1, exp2m1_is_exact, -1.0, GAOL_INFINITY);
+  }
+
+  interval exp10m1(const interval& I)
+  {
+    return increasing_cr(I, gaol_cr_exp10m1, exp10m1_is_exact, -1.0, GAOL_INFINITY);
+  }
+
+  interval atanpi(const interval& I)
+  {
+    // within [-1/2, 1/2], the image of atan divided by pi
+    return increasing_cr(I, gaol_cr_atanpi, atanpi_is_exact, -0.5, 0.5);
+  }
+
+  interval acospi(const interval& I)
+  {
+    // Defined on [-1, 1], as acos (IEEE 1788-2015, Table 10.5): the part of I
+    // outside is left out, and I holding no point of it gives the empty set
+    if (I.is_empty() || I.right() < -1.0 || I.left() > 1.0) {
+      return interval::emptyset();
+    }
+    const double l = maximum(-1.0, I.left()), r = minimum(1.0, I.right());
+    GAOL_RND_ENTER();
+    // decreasing: the upper bound at the left bound, the lower one at the right
+    const double v = gaol_cr_acospi(l);
+    const double w = gaol_cr_acospi(r);
+    const double u = acospi_is_exact(r) ? w : previous_float(w);
+    GAOL_RND_LEAVE();
+    return interval(maximum(0.0, u), minimum(1.0, v));
+  }
+
+  /*
+    sinpi, cospi and tanpi: the points where these functions change direction,
+    or have a pole, are the multiples of 1/2, which are doubles, so the
+    analysis of an interval reduces exactly to the integers t = 2x. Doubling a
+    double is exact, and so are its ceiling and its floor; below 2^61 these
+    integers are held exactly in 64 bits, and two distinct doubles beyond 2^61
+    are at least 2^9 apart, whole periods. sin(pi*x) and cos(pi*x) have their
+    extrema at the odd, respectively even, t, and tan(pi*x) its poles at the
+    odd t, increasing between them.
+  */
+  static const double gaol_two_61 = 2305843009213693952.0;
+
+  // Whether an integer congruent to r modulo m lies in [lo, hi]
+  static inline bool holds_residue(std::int64_t lo, std::int64_t hi,
+                                   std::int64_t r, std::int64_t m)
+  {
+    if (lo > hi) {
+      return false;
+    }
+    std::int64_t lm = lo % m;
+    if (lm < 0) {
+      lm += m;
+    }
+    std::int64_t d = (r - lm) % m;
+    if (d < 0) {
+      d += m;
+    }
+    return lo + d <= hi;
+  }
+
+  // Whether k*x is an integer: sin(pi*x) and cos(pi*x) are doubles exactly at
+  // the multiples of 1/2 (k = 2), and tan(pi*x) at those of 1/4 (k = 4). By
+  // Niven's theorem sin and cos take at a rational x the rational values 0,
+  // +-1/2 and +-1 only, +-1/2 at points that are not doubles, and tan the
+  // values 0 and +-1 only. Beyond 2^61 every double is an even integer.
+  static inline bool is_multiple_of_inverse(double x, double k)
+  {
+    if (std::fabs(x) >= gaol_two_61) {
+      return true;
+    }
+    const double t = k * x;
+    return t == std::floor(t);
+  }
+
+  // sin(pi*x) or cos(pi*x) over I: the maximum 1 where a t congruent to up
+  // modulo 4 lies within, the minimum -1 where one congruent to down does, and
+  // the values at the bounds otherwise
+  static interval sin_or_cos_pi(const interval& I, double (*f)(double),
+                                std::int64_t up, std::int64_t down)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double l = I.left(), r = I.right();
+    if (!is_finite(l) || !is_finite(r)) {
+      return interval(-1.0, 1.0);
+    }
+    const double far = maximum(std::fabs(l), std::fabs(r));
+    if (l != r && far >= gaol_two_61) {
+      return interval(-1.0, 1.0);
+    }
+    bool has_max = false, has_min = false;
+    if (far < gaol_two_61) {
+      const std::int64_t ka = static_cast<std::int64_t>(std::ceil(2.0 * l));
+      const std::int64_t kb = static_cast<std::int64_t>(std::floor(2.0 * r));
+      if (kb - ka >= 3) {
+        return interval(-1.0, 1.0);  // every residue modulo 4
+      }
+      has_max = holds_residue(ka, kb, up, 4);
+      has_min = holds_residue(ka, kb, down, 4);
+    }
+    GAOL_RND_ENTER();
+    const double fl = f(l), fr = f(r);
+    const double dl = is_multiple_of_inverse(l, 2.0) ? fl : previous_float(fl);
+    const double dr = is_multiple_of_inverse(r, 2.0) ? fr : previous_float(fr);
+    GAOL_RND_LEAVE();
+    const double lower = has_min ? -1.0 : maximum(-1.0, minimum(dl, dr));
+    const double upper = has_max ? 1.0 : minimum(1.0, maximum(fl, fr));
+    return interval(lower, upper);
+  }
+
+  interval sinpi(const interval& I)
+  {
+    // sin(pi*x) = 1 at x = 1/2 modulo 2, t = 1 modulo 4; -1 at t = 3
+    return sin_or_cos_pi(I, gaol_cr_sinpi, 1, 3);
+  }
+
+  interval cospi(const interval& I)
+  {
+    // cos(pi*x) = 1 at the even x, t = 0 modulo 4; -1 at the odd x, t = 2
+    return sin_or_cos_pi(I, gaol_cr_cospi, 0, 2);
+  }
+
+  interval tanpi(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double l = I.left(), r = I.right();
+    if (!is_finite(l) || !is_finite(r)) {
+      return interval::universe();
+    }
+    const double far = maximum(std::fabs(l), std::fabs(r));
+    if (l != r && far >= gaol_two_61) {
+      return interval::universe();
+    }
+    bool pole_inside = false, pole_at_l = false, pole_at_r = false;
+    if (far < gaol_two_61) {
+      const double tl = 2.0 * l, tr = 2.0 * r;
+      // the integers strictly between tl and tr, and the poles among them
+      const std::int64_t lo = static_cast<std::int64_t>(std::floor(tl)) + 1;
+      const std::int64_t hi = static_cast<std::int64_t>(std::ceil(tr)) - 1;
+      pole_inside = holds_residue(lo, hi, 1, 2);
+      pole_at_l = tl == std::floor(tl) && std::fmod(tl, 2.0) != 0.0;
+      pole_at_r = tr == std::floor(tr) && std::fmod(tr, 2.0) != 0.0;
+    }
+    // tan(pi*x) has no value at a pole (IEEE 1788-2015, Table 10.5), and is
+    // increasing between two poles, from -oo to +oo
+    if (l == r && pole_at_l) {
+      return interval::emptyset();
+    }
+    if (pole_inside || (pole_at_l && pole_at_r)) {
+      return interval::universe();
+    }
+    // a pole at a bound is the limit -oo from its right, +oo from its left
+    double lower = -GAOL_INFINITY, upper = GAOL_INFINITY;
+    GAOL_RND_ENTER();
+    if (!pole_at_l) {
+      const double fl = gaol_cr_tanpi(l);
+      lower = is_multiple_of_inverse(l, 4.0) ? fl : previous_float(fl);
+    }
+    if (!pole_at_r) {
+      upper = gaol_cr_tanpi(r);
+    }
+    GAOL_RND_LEAVE();
+    return interval(lower, upper);
   }
 
   interval exp(const interval& I)
