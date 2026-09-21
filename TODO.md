@@ -4,6 +4,9 @@ What is left to do on the branch MATH-CORE, found by the review of commit
 a7544a1 (`gaol_ieee1788`, out of `gaol`). Each point was reproduced unless it
 says otherwise. The continuous integration is green again since 1436918.
 
+All ten points are dealt with on the branch `todo-review-fixes`: see
+[TODO2.md](TODO2.md) for what was done, how it was checked, and what is left.
+
 ## pow in gaol_ieee1788
 
 1. **`pow` with a number as exponent is GAOL's pow under the using-directive.**
