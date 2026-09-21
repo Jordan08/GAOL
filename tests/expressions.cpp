@@ -168,6 +168,28 @@ namespace
     same("sqrt([4,9])", sqrt(interval(4.0, 9.0)));
     same("atan2([1,2],[3,4])", atan2(interval(1.0, 2.0), interval(3.0, 4.0)));
     same("nth_root([1,8],3)", nth_root(interval(1.0, 8.0), 3));
+    /* The names GAOL v5 adds to the reader. cbrt(x) is nth_root(x, 3), as
+       sqrt(x) is nth_root(x, 2); the lexer takes the longest name, so exp2 and
+       log2 are read as themselves rather than as exp and log followed by 2. */
+    same("exp2([1,2])", exp2(interval(1.0, 2.0)));
+    same("log2([1,8])", log2(interval(1.0, 8.0)));
+    same("cbrt([1,8])", nth_root(interval(1.0, 8.0), 3));
+    same("cbrt([-8,-1])", nth_root(interval(-8.0, -1.0), 3));
+    same("sign([-2,3])", sign(interval(-2.0, 3.0)));
+    same("trunc([-1.5,2.7])", trunc(interval(-1.5, 2.7)));
+    // the letters may be in any case, as for every other name
+    same("EXP2([1,2])", exp2(interval(1.0, 2.0)));
+    same("Trunc([-1.5,2.7])", trunc(interval(-1.5, 2.7)));
+    /* The same names through the tree of gaol/gaol_expression.h, which the
+       bounds given apart go through, rather than through the direct path */
+    same("[exp2(1), exp2(2)]", interval(2.0, 4.0));
+    same("[log2(1), log2(8)]", interval(0.0, 3.0));
+    same("[cbrt(1), cbrt(8)]", interval(1.0, 2.0));
+    same("[sign(-2), sign(3)]", interval(-1.0, 1.0));
+    same("[trunc(-1.5), trunc(2.7)]", interval(-1.0, 2.0));
+    same("[cbrt(27)]", interval(3.0, 3.0));
+    same("[log2(exp2(5))]", interval(5.0, 5.0));
+    same("[cbrt(8)+sign(5), exp2(3)]", interval(3.0, 8.0));
     // nested, and mixed with the operators
     same("exp(log([1,2]))", exp(log(interval(1.0, 2.0))));
     same("sin(cos(tan([0,1])))", sin(cos(tan(interval(0.0, 1.0)))));
@@ -175,10 +197,14 @@ namespace
          cos(interval(0.0, 1.0)) + sin(interval(0.0, 1.0)) * exp(interval(0.0, 1.0)));
     same("-exp([0,1])", -exp(interval(0.0, 1.0)));
     same("log(exp([1,2])*exp([1,2]))", log(exp(interval(1.0, 2.0)) * exp(interval(1.0, 2.0))));
+    same("log2(exp2([1,2]))", log2(exp2(interval(1.0, 2.0))));
+    same("trunc(exp([1,2]))", trunc(exp(interval(1.0, 2.0))));
+    same("exp2([1,2])*log2([2,4])", exp2(interval(1.0, 2.0)) * log2(interval(2.0, 4.0)));
     // outside the domain: the empty set rather than an exception
     same("log([-2,-1])", log(interval(-2.0, -1.0)));
     same("sqrt([-2,-1])", sqrt(interval(-2.0, -1.0)));
     same("acos([2,3])", acos(interval(2.0, 3.0)));
+    same("log2([-2,-1])", log2(interval(-2.0, -1.0)));
   }
 
   void wrong_strings()
@@ -277,6 +303,11 @@ namespace
       {atanh(expression(interval(0.0, 0.5))), atanh(interval(0.0, 0.5)), "atanh"},
       {exp(x), exp(interval(1.0, 2.0)), "exp"},
       {log(x), log(interval(1.0, 2.0)), "log"},
+      {exp2(x), exp2(interval(1.0, 2.0)), "exp2"},
+      {log2(x), log2(interval(1.0, 2.0)), "log2"},
+      {sign(x), sign(interval(1.0, 2.0)), "sign"},
+      {trunc(x), trunc(interval(1.0, 2.0)), "trunc"},
+      {nth_root(x, 3), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3)"},
       {cos(x) + sin(y) * exp(x), cos(interval(1.0, 2.0)) + sin(interval(3.0, 4.0)) * exp(interval(1.0, 2.0)), "nested"},
     };
 

@@ -2252,7 +2252,12 @@ syntax (with terminals in lower case and non-terminals in slanted upper case):
 	| @TM^log~ @TM^(~ @NT^itv_expr~ @TM^)~
 	| @TM^pow~ @TM^(~ @NT^itv_expr~ @TM^,~ @NT^itv_expr~ @TM^)~
 	| @TM^sqrt~ @TM^(~ @NT^itv_expr~ @TM^)~
+	| @TM^cbrt~ @TM^(~ @NT^itv_expr~ @TM^)~
 	| @TM^nth_root~ @TM^(~ @NT^itv_expr~ @TM^,~ @NT^itv_expr~ @TM^)~
+	| @TM^exp2~ @TM^(~ @NT^itv_expr~ @TM^)~
+	| @TM^log2~ @TM^(~ @NT^itv_expr~ @TM^)~
+	| @TM^sign~ @TM^(~ @NT^itv_expr~ @TM^)~
+	| @TM^trunc~ @TM^(~ @NT^itv_expr~ @TM^)~
 	;
 
 @NT^parsed_interval~
@@ -2298,12 +2303,20 @@ syntax (with terminals in lower case and non-terminals in slanted upper case):
 	| @TM^log~ @TM^(~ @NT^expression~ @TM^)~
 	| @TM^pow~ @TM^(~ @NT^expression~ @TM^,~ @NT^expression~ @TM^)~
 	| @TM^sqrt~ @TM^(~ @NT^expression~ @TM^)~
+	| @TM^cbrt~ @TM^(~ @NT^expression~ @TM^)~
 	| @TM^nth_root~ @TM^(~ @NT^expression~ @TM^,~ @NT^expression~ @TM^)~
+	| @TM^exp2~ @TM^(~ @NT^expression~ @TM^)~
+	| @TM^log2~ @TM^(~ @NT^expression~ @TM^)~
+	| @TM^sign~ @TM^(~ @NT^expression~ @TM^)~
+	| @TM^trunc~ @TM^(~ @NT^expression~ @TM^)~
 	;
 \end{Verbatim}
 
 Spaces are not significant except in numbers. The ``$+$'' sign before
 numbers and \code{inf} is optional.
+\code{cbrt(x)} is \code{nth\_root(x,3)}, as \code{sqrt(x)} is
+\code{nth\_root(x,2)}, and \code{exp2}, \code{log2}, \code{sign} and
+\code{trunc} are the functions of the same name on intervals (GAOL v5).
 Note that the second argument of \code{nth\_root} shall be a point interval that can be evaluated
 as an integer. Otherwise, an \element{invalid\_action\_error} exception is thrown (or an error is 
 reported, depending on whether exceptions were enabled or not at configuration time---see Section~\ref{sec:configuration}, page~\pageref{sec:configuration}).

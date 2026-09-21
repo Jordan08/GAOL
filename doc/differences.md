@@ -54,6 +54,13 @@ from. Each change is a commit of its own, and says where it comes from.
     10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
     are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
     its `dint.h` being that of `log` but for a constant.
+  - **The reader of strings takes the new names.** `interval("...")` reads
+    `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions GAOL
+    already had, in the direct grammar and in the tree of
+    `gaol/gaol_expression.h`; `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is
+    `nth_root(x, 2)`, so it needs no node of its own, and the four others have
+    one each, which `gaol::exp2(expression)` and its companions build from C++
+    too. Read from a string, they gave a syntax error before.
   - **`nth_root(x, 3)` is CORE-MATH's `cbrt`**, at the magnitudes of the bounds,
     the root of a negative number being the opposite of the root of its
     magnitude: the tightest bounds, and the exact value where the cube root is

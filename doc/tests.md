@@ -108,7 +108,11 @@ Codac.
   numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
   the strings the parser has to refuse with an exception rather than an
-  interval. Each value is compared with the same computation written in C++,
+  interval. The names GAOL v5 adds — `exp2`, `log2`, `cbrt`, `sign` and
+  `trunc` — are read by both paths of the grammar, the direct one and the tree
+  of `gaol/gaol_expression.h` that the bounds given apart go through, in any
+  case of letters, the lexer taking the longest name so that `exp2` is not read
+  as `exp` followed by 2. Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,

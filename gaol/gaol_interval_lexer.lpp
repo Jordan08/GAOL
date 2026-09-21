@@ -471,10 +471,15 @@ SPACE		[ \t\r]+
 "dmin"                     { return DMIN_STR; }
 "dmax"                    { return DMAX_STR; }
 "exp"		{ return EXP_STR; }
+"exp2"		{ return EXP2_STR; }
 "log"		{ return LOG_STR; }
+"log2"		{ return LOG2_STR; }
 "pow"		{ return POW_STR; }
 "nth_root"	{ return NTH_ROOT_STR; }
 "sqrt"		{ return SQRT_STR; }
+"cbrt"		{ return CBRT_STR; }
+"sign"		{ return SIGN_STR; }
+"trunc"		{ return TRUNC_STR; }
 "cos"		{ return COS_STR; }
 "sin"		{ return SIN_STR; }
 "tan"		{ return TAN_STR; }

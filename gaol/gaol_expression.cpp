@@ -64,6 +64,10 @@ namespace gaol {
   const unsigned atanh_node::precedence = prec_t::uminus_prec;
   const unsigned exp_node::precedence = prec_t::uminus_prec;
   const unsigned log_node::precedence = prec_t::uminus_prec;
+  const unsigned exp2_node::precedence = prec_t::uminus_prec;
+  const unsigned log2_node::precedence = prec_t::uminus_prec;
+  const unsigned sign_node::precedence = prec_t::uminus_prec;
+  const unsigned trunc_node::precedence = prec_t::uminus_prec;
 
   /*
    * expression --
@@ -1195,6 +1199,150 @@ namespace gaol {
   }
 
   /*
+    exp2_node
+  */
+  exp2_node::exp2_node(const expression& e) : e_exp2(e.get_root())
+  {
+    e_exp2->inc_refcount();
+    GAOL_DEBUG(3,std::cout << "exp2_node created" << std::endl);
+  }
+
+  exp2_node::~exp2_node()
+  {
+    if (e_exp2->dec_refcount() == 0) {
+      delete e_exp2;
+    }
+    GAOL_DEBUG(3,std::cout << "exp2_node destroyed" << std::endl);
+  }
+
+  std::ostream& exp2_node::display(std::ostream& os) const
+  {
+    os << "exp2(";
+    e_exp2->display(os);
+    os.put(')');
+    return os;
+  }
+
+  expr_node* exp2_node::clone() const
+  {
+    exp2_node* e = new exp2_node(*e_exp2);
+    return e;
+  }
+
+  unsigned int exp2_node::get_precedence() const
+  {
+    return precedence;
+  }
+
+  /*
+    log2_node
+  */
+  log2_node::log2_node(const expression& e) : e_log2(e.get_root())
+  {
+    e_log2->inc_refcount();
+    GAOL_DEBUG(3,std::cout << "log2_node created" << std::endl);
+  }
+
+  log2_node::~log2_node()
+  {
+    if (e_log2->dec_refcount() == 0) {
+      delete e_log2;
+    }
+    GAOL_DEBUG(3,std::cout << "log2_node destroyed" << std::endl);
+  }
+
+  std::ostream& log2_node::display(std::ostream& os) const
+  {
+    os << "log2(";
+    e_log2->display(os);
+    os.put(')');
+    return os;
+  }
+
+  expr_node* log2_node::clone() const
+  {
+    log2_node* e = new log2_node(*e_log2);
+    return e;
+  }
+
+  unsigned int log2_node::get_precedence() const
+  {
+    return precedence;
+  }
+
+  /*
+    sign_node
+  */
+  sign_node::sign_node(const expression& e) : e_sign(e.get_root())
+  {
+    e_sign->inc_refcount();
+    GAOL_DEBUG(3,std::cout << "sign_node created" << std::endl);
+  }
+
+  sign_node::~sign_node()
+  {
+    if (e_sign->dec_refcount() == 0) {
+      delete e_sign;
+    }
+    GAOL_DEBUG(3,std::cout << "sign_node destroyed" << std::endl);
+  }
+
+  std::ostream& sign_node::display(std::ostream& os) const
+  {
+    os << "sign(";
+    e_sign->display(os);
+    os.put(')');
+    return os;
+  }
+
+  expr_node* sign_node::clone() const
+  {
+    sign_node* e = new sign_node(*e_sign);
+    return e;
+  }
+
+  unsigned int sign_node::get_precedence() const
+  {
+    return precedence;
+  }
+
+  /*
+    trunc_node
+  */
+  trunc_node::trunc_node(const expression& e) : e_trunc(e.get_root())
+  {
+    e_trunc->inc_refcount();
+    GAOL_DEBUG(3,std::cout << "trunc_node created" << std::endl);
+  }
+
+  trunc_node::~trunc_node()
+  {
+    if (e_trunc->dec_refcount() == 0) {
+      delete e_trunc;
+    }
+    GAOL_DEBUG(3,std::cout << "trunc_node destroyed" << std::endl);
+  }
+
+  std::ostream& trunc_node::display(std::ostream& os) const
+  {
+    os << "trunc(";
+    e_trunc->display(os);
+    os.put(')');
+    return os;
+  }
+
+  expr_node* trunc_node::clone() const
+  {
+    trunc_node* e = new trunc_node(*e_trunc);
+    return e;
+  }
+
+  unsigned int trunc_node::get_precedence() const
+  {
+    return precedence;
+  }
+
+  /*
    * Construction operators --
    */
 
@@ -1302,6 +1450,22 @@ namespace gaol {
   const expression log(const expression& e)
   {
     return *(new log_node(e));
+  }
+  const expression exp2(const expression& e)
+  {
+    return *(new exp2_node(e));
+  }
+  const expression log2(const expression& e)
+  {
+    return *(new log2_node(e));
+  }
+  const expression sign(const expression& e)
+  {
+    return *(new sign_node(e));
+  }
+  const expression trunc(const expression& e)
+  {
+    return *(new trunc_node(e));
   }
 
   bool evaluate_left_right(const expression& el, const expression& er,

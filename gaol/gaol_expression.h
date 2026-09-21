@@ -667,6 +667,94 @@ typedef struct {
     expr_node *e_log;
   };
 
+  /*!
+    \brief Node for 2^x (GAOL v5)
+  */
+  class exp2_node : public expr_node {
+  public:
+    exp2_node(const expression& e);
+    ~exp2_node();
+    expr_node* clone() const;
+    std::ostream& display(std::ostream& os) const;
+    unsigned int get_precedence() const;
+    INLINE void accept(expr_visitor& visitor);
+    //! Accessors
+    //@{
+    INLINE expr_node* get_subexpr();
+    //@}
+
+  protected:
+    static const unsigned int precedence;
+  private:
+    expr_node *e_exp2;
+  };
+
+  /*!
+    \brief Node for the logarithm in base 2 (GAOL v5)
+  */
+  class log2_node : public expr_node {
+  public:
+    log2_node(const expression& e);
+    ~log2_node();
+    expr_node* clone() const;
+    std::ostream& display(std::ostream& os) const;
+    unsigned int get_precedence() const;
+    INLINE void accept(expr_visitor& visitor);
+    //! Accessors
+    //@{
+    INLINE expr_node* get_subexpr();
+    //@}
+
+  protected:
+    static const unsigned int precedence;
+  private:
+    expr_node *e_log2;
+  };
+
+  /*!
+    \brief Node for the sign, an integer function of IEEE 1788-2015 (GAOL v5)
+  */
+  class sign_node : public expr_node {
+  public:
+    sign_node(const expression& e);
+    ~sign_node();
+    expr_node* clone() const;
+    std::ostream& display(std::ostream& os) const;
+    unsigned int get_precedence() const;
+    INLINE void accept(expr_visitor& visitor);
+    //! Accessors
+    //@{
+    INLINE expr_node* get_subexpr();
+    //@}
+
+  protected:
+    static const unsigned int precedence;
+  private:
+    expr_node *e_sign;
+  };
+
+  /*!
+    \brief Node for the truncation, an integer function of IEEE 1788-2015 (GAOL v5)
+  */
+  class trunc_node : public expr_node {
+  public:
+    trunc_node(const expression& e);
+    ~trunc_node();
+    expr_node* clone() const;
+    std::ostream& display(std::ostream& os) const;
+    unsigned int get_precedence() const;
+    INLINE void accept(expr_visitor& visitor);
+    //! Accessors
+    //@{
+    INLINE expr_node* get_subexpr();
+    //@}
+
+  protected:
+    static const unsigned int precedence;
+  private:
+    expr_node *e_trunc;
+  };
+
 
   //! Construction operators
   //@{
@@ -693,6 +781,13 @@ typedef struct {
   const expression atanh(const expression& e);
   const expression exp(const expression& e);
   const expression log(const expression& e);
+  /* The functions GAOL v5 adds, which the reader of strings builds too
+     (gaol/gaol_interval_parser.ypp): cbrt(x) is nth_root(x, 3), as sqrt(x) is
+     nth_root(x, 2), so it needs no node of its own */
+  const expression exp2(const expression& e);
+  const expression log2(const expression& e);
+  const expression sign(const expression& e);
+  const expression trunc(const expression& e);
   //@}
 
   /*!
@@ -1124,6 +1219,62 @@ typedef struct {
   INLINE expr_node* log_node::get_subexpr()
   {
     return e_log;
+  }
+
+  /*
+    exp2_node --
+  */
+  INLINE void exp2_node::accept(expr_visitor& visitor)
+  {
+    GAOL_DEBUG(2,std::cout << "exp2_node accepting visitor" << std::endl;);
+    visitor.visit(this);
+  }
+
+  INLINE expr_node* exp2_node::get_subexpr()
+  {
+    return e_exp2;
+  }
+
+  /*
+    log2_node --
+  */
+  INLINE void log2_node::accept(expr_visitor& visitor)
+  {
+    GAOL_DEBUG(2,std::cout << "log2_node accepting visitor" << std::endl;);
+    visitor.visit(this);
+  }
+
+  INLINE expr_node* log2_node::get_subexpr()
+  {
+    return e_log2;
+  }
+
+  /*
+    sign_node --
+  */
+  INLINE void sign_node::accept(expr_visitor& visitor)
+  {
+    GAOL_DEBUG(2,std::cout << "sign_node accepting visitor" << std::endl;);
+    visitor.visit(this);
+  }
+
+  INLINE expr_node* sign_node::get_subexpr()
+  {
+    return e_sign;
+  }
+
+  /*
+    trunc_node --
+  */
+  INLINE void trunc_node::accept(expr_visitor& visitor)
+  {
+    GAOL_DEBUG(2,std::cout << "trunc_node accepting visitor" << std::endl;);
+    visitor.visit(this);
+  }
+
+  INLINE expr_node* trunc_node::get_subexpr()
+  {
+    return e_trunc;
   }
 
 

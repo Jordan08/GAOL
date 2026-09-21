@@ -106,6 +106,10 @@ static int gaol_literal_infinity(expr_node *e)
 
 %token EMPTY_STR ENTIRE_STR INFINITY_STR DMIN_STR DMAX_STR PI_STR
 %token EXP_STR LOG_STR POW_STR NTH_ROOT_STR SQRT_STR
+/* The functions GAOL v5 adds to the reader: the exponential and the
+   logarithm in base 2, the cube root, and two of the integer functions of
+   IEEE 1788-2015 (Table 9.1) */
+%token EXP2_STR LOG2_STR CBRT_STR SIGN_STR TRUNC_STR
 %token COS_STR SIN_STR TAN_STR ATAN2_STR
 %token COSH_STR SINH_STR TANH_STR
 %token ACOS_STR ASIN_STR ATAN_STR
@@ -187,6 +191,16 @@ itv_function_call
 						   									pow(interval($3.l,$3.r),interval($5.l,$5.r));
 						   									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
 	| SQRT_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=sqrt(interval($3.l,$3.r));
+						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
+	| EXP2_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=exp2(interval($3.l,$3.r));
+						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
+	| LOG2_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=log2(interval($3.l,$3.r));
+						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
+	| CBRT_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=nth_root(interval($3.l,$3.r),3);
+						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
+	| SIGN_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=sign(interval($3.l,$3.r));
+						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
+	| TRUNC_STR '(' itv_expr_aux ')'					{ gaol_tmp_itv=trunc(interval($3.l,$3.r));
 						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
 	| NTH_ROOT_STR '(' itv_expr_aux ',' itv_expr_aux ')' { interval tmp($5.l,$5.r);
 														   if (!tmp.is_an_int()) {
@@ -420,6 +434,22 @@ function_call
 					  									$$->inc_refcount();
 					  									gaol_release($3);
 													}
+	| CBRT_STR '(' expression ')'					{	$$ = new nth_root_node(*$3,3);
+					  									$$->inc_refcount();
+					  									gaol_release($3);
+													}
+	| EXP2_STR '(' expression ')'  					{ 	$$ = new exp2_node(*$3);
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
+	| LOG2_STR '(' expression ')'  					{ 	$$ = new log2_node(*$3);
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
+	| SIGN_STR '(' expression ')'  					{ 	$$ = new sign_node(*$3);
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
+	| TRUNC_STR '(' expression ')' 					{ 	$$ = new trunc_node(*$3);
+					  									$$->inc_refcount();
+					  									gaol_release($3); }
 	| NTH_ROOT_STR '(' expression ',' expression ')' { 	interval tmp;
 														bool aborted = false;
 					  									gaol_global_parsing_flag =

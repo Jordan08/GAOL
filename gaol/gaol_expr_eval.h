@@ -178,6 +178,22 @@ namespace gaol {
       (node->get_subexpr())->accept(*this);
       stack.push(gaol::exp(stack.pop()));
     }
+    virtual void visit(exp2_node* node) {
+      (node->get_subexpr())->accept(*this);
+      stack.push(gaol::exp2(stack.pop()));
+    }
+    virtual void visit(log2_node* node) {
+      (node->get_subexpr())->accept(*this);
+      stack.push(gaol::log2(stack.pop()));
+    }
+    virtual void visit(sign_node* node) {
+      (node->get_subexpr())->accept(*this);
+      stack.push(gaol::sign(stack.pop()));
+    }
+    virtual void visit(trunc_node* node) {
+      (node->get_subexpr())->accept(*this);
+      stack.push(gaol::trunc(stack.pop()));
+    }
     interval result() {
       return stack.pop();
     }

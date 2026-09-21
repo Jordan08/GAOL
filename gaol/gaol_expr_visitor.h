@@ -59,6 +59,10 @@ namespace gaol {
   class atanh_node;
   class exp_node;
   class log_node;
+  class exp2_node;
+  class log2_node;
+  class sign_node;
+  class trunc_node;
 
   /*!
     \brief Base class for all visitors that want to manipulate expressions
@@ -156,6 +160,18 @@ namespace gaol {
       error = true;
     }
     virtual void visit(exp_node* node) {
+      error = true;
+    }
+    virtual void visit(exp2_node* node) {
+      error = true;
+    }
+    virtual void visit(log2_node* node) {
+      error = true;
+    }
+    virtual void visit(sign_node* node) {
+      error = true;
+    }
+    virtual void visit(trunc_node* node) {
       error = true;
     }
   protected:

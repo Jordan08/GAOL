@@ -60,25 +60,30 @@ extern int gaol_debug;
     POW_STR = 266,
     NTH_ROOT_STR = 267,
     SQRT_STR = 268,
-    COS_STR = 269,
-    SIN_STR = 270,
-    TAN_STR = 271,
-    ATAN2_STR = 272,
-    COSH_STR = 273,
-    SINH_STR = 274,
-    TANH_STR = 275,
-    ACOS_STR = 276,
-    ASIN_STR = 277,
-    ATAN_STR = 278,
-    ACOSH_STR = 279,
-    ASINH_STR = 280,
-    ATANH_STR = 281,
-    UNEXPECTED_CHAR = 282,
-    NUMBER = 283,
-    INTERVAL_CST = 284,
-    UNCERTAIN_CST = 285,
-    UMINUS = 286,
-    UPLUS = 287
+    EXP2_STR = 269,
+    LOG2_STR = 270,
+    CBRT_STR = 271,
+    SIGN_STR = 272,
+    TRUNC_STR = 273,
+    COS_STR = 274,
+    SIN_STR = 275,
+    TAN_STR = 276,
+    ATAN2_STR = 277,
+    COSH_STR = 278,
+    SINH_STR = 279,
+    TANH_STR = 280,
+    ACOS_STR = 281,
+    ASIN_STR = 282,
+    ATAN_STR = 283,
+    ACOSH_STR = 284,
+    ASINH_STR = 285,
+    ATANH_STR = 286,
+    UNEXPECTED_CHAR = 287,
+    NUMBER = 288,
+    INTERVAL_CST = 289,
+    UNCERTAIN_CST = 290,
+    UMINUS = 291,
+    UPLUS = 292
   };
 #endif
 /* Tokens.  */
@@ -93,25 +98,30 @@ extern int gaol_debug;
 #define POW_STR 266
 #define NTH_ROOT_STR 267
 #define SQRT_STR 268
-#define COS_STR 269
-#define SIN_STR 270
-#define TAN_STR 271
-#define ATAN2_STR 272
-#define COSH_STR 273
-#define SINH_STR 274
-#define TANH_STR 275
-#define ACOS_STR 276
-#define ASIN_STR 277
-#define ATAN_STR 278
-#define ACOSH_STR 279
-#define ASINH_STR 280
-#define ATANH_STR 281
-#define UNEXPECTED_CHAR 282
-#define NUMBER 283
-#define INTERVAL_CST 284
-#define UNCERTAIN_CST 285
-#define UMINUS 286
-#define UPLUS 287
+#define EXP2_STR 269
+#define LOG2_STR 270
+#define CBRT_STR 271
+#define SIGN_STR 272
+#define TRUNC_STR 273
+#define COS_STR 274
+#define SIN_STR 275
+#define TAN_STR 276
+#define ATAN2_STR 277
+#define COSH_STR 278
+#define SINH_STR 279
+#define TANH_STR 280
+#define ACOS_STR 281
+#define ASIN_STR 282
+#define ATAN_STR 283
+#define ACOSH_STR 284
+#define ASINH_STR 285
+#define ATANH_STR 286
+#define UNEXPECTED_CHAR 287
+#define NUMBER 288
+#define INTERVAL_CST 289
+#define UNCERTAIN_CST 290
+#define UMINUS 291
+#define UPLUS 292
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -124,7 +134,7 @@ union YYSTYPE
   Interval_struct itv;
   expr_node* expr;
 
-#line 128 "y.tab.h"
+#line 138 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
