@@ -339,6 +339,42 @@ int main()
     }
   }
 
+  /*
+    The floating-point exceptions stay masked (GAOL v5). CORE-MATH's cbrt, pow
+    and atan2 keep the exception flags around their work with
+    fegetexceptflag() and fesetexceptflag() outside x86-64, and the
+    fesetexceptflag() of mingw-w64 for a 32-bit target cleared the mask bits of
+    MXCSR along with the flags: an invalid operation then trapped rather than
+    raised a flag, and the first comparison of the NaN bounds of an empty
+    interval killed the program. Where the SSE control register is readable,
+    its mask bits have to be the same after each of these functions, in each
+    rounding direction; everywhere, an empty interval has to be told empty
+    after them, which is where the program died.
+  */
+  for (const Direction& d : directions) {
+    set(d);
+#if GAOL_TESTS_SSE
+    const unsigned masks_before = _mm_getcsr() & _MM_MASK_MASK;
+#endif
+    const interval roots = nth_root(interval(1.0, 8.0), 3);     // cbrt
+    const interval powers = pow(interval(1.5, 2.5), interval(0.1, 0.3));
+    const interval angles = atan2(interval(1.0, 2.0), interval(3.0, 4.0));
+#if GAOL_TESTS_SSE
+    const unsigned masks_after = _mm_getcsr() & _MM_MASK_MASK;
+    check("the SSE exception masks unchanged by cbrt, pow and atan2", masks_after == masks_before,
+          [&] {
+            return std::string("rounding direction ") + d.name + ": masks " + std::to_string(masks_after)
+                 + " after them, " + std::to_string(masks_before) + " before";
+          });
+#endif
+    const interval empty = interval::emptyset();
+    check("an empty interval still told empty after cbrt, pow and atan2", empty.is_empty(),
+          [&] { return std::string("rounding direction ") + d.name; });
+    check("cbrt, pow and atan2 not empty on their domain",
+          !roots.is_empty() && !powers.is_empty() && !angles.is_empty(),
+          [&] { return std::string("rounding direction ") + d.name; });
+  }
+
   set(directions[0]);
   const int status = summary();
   gaol::cleanup();
