@@ -43,7 +43,7 @@ namespace gaol {
 
   /* CORE-MATH has no state to save and no library to initialise: it computes
      in the rounding direction in effect, and changes nothing of the
-     floating-point environment (fork of GAOL, which had to call mathlib's
+     floating-point environment (GAOL v5, which had to call mathlib's
      Init_Lib() before setting the direction, and CRlibm's crlibm_init()). */
 
   static bool _already_cleaned = false;

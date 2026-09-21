@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The page of conclusions of the coverage report of GAOL (fork of GAOL).
+"""The page of conclusions of the coverage report of GAOL (GAOL v5).
 
 Reads the JSON gcovr writes (coverage/coverage.json) and writes a Markdown page
 (coverage/README.md) saying, file by file and for the whole:

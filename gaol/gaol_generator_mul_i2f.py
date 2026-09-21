@@ -7,7 +7,7 @@
 # Run with python3 and ply (pip install ply); it writes the 256 cases of the
 # multiplication on the standard output, which are the ones of
 # gaol_interval2f.cpp. No build runs it: it is a tool of the author.
-# (fork of GAOL: rewritten from Python 2, giving the same bytes)
+# (GAOL v5: rewritten from Python 2, giving the same bytes)
 
 # [a,b]x[e,f] | [c,d]x[g,h]
 # <d, -c, b, -a> x <h, -g, f, -e>

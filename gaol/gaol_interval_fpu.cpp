@@ -61,7 +61,7 @@
 	  The n-th power, n > 0, of the interval of stored bounds lb (the opposite
 	  of its left bound) and rb, in [0, +oo] for uipow_dnup() and containing 0
 	  for uipow_upup(), as uipow() calls them: static, and no longer declared
-	  in gaol_interval.h (fork of GAOL)
+	  in gaol_interval.h (GAOL v5)
 	*/
 	static interval uipow_dnup(double lb, double rb, unsigned int n)
 	{
@@ -105,7 +105,7 @@
 
 	/*
 	  I^e for a non-empty I and e > 0, as pow() calls it: uipow(), public,
-	  calls it (fork of GAOL, see gaol_interval.h). The stored bounds are the
+	  calls it (GAOL v5, see gaol_interval.h). The stored bounds are the
 	  opposite of the left bound and the right bound.
 	*/
 	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
@@ -868,7 +868,7 @@
 	    GAOL_RND_ENTER();
 	    interval tmp(-GAOL_INFINITY,K.rb_/J.rb_);
 	    // The lower bound rounded downward, the rounding direction being
-	    // upward (fork of GAOL: K.rb_/(-J.lb_) was rounded upward, and the
+	    // upward (GAOL v5: K.rb_/(-J.lb_) was rounded upward, and the
 	    // result left out the doubles below it that belong to the hull)
 	    interval tmp2(-(K.rb_/J.lb_),GAOL_INFINITY);
 	    GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);

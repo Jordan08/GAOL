@@ -7,7 +7,7 @@
  * the exact value.
  *
  * GAOL bounds every one of its elementary functions with them, on every
- * architecture and with every compiler (fork of GAOL): computed in the upward
+ * architecture and with every compiler (GAOL v5): computed in the upward
  * rounding GAOL keeps, they give the tightest bounds without switching the
  * rounding direction, where the functions of mathlib, correctly rounded to
  * nearest only, had to be moved one double outward, and where those of the

@@ -1,5 +1,5 @@
 # ==================================================================
-#  Refusal of Visual C++ without /fp:strict (fork of GAOL)
+#  Refusal of Visual C++ without /fp:strict (GAOL v5)
 # ==================================================================
 #
 # Compiles a file including the headers of an installed GAOL with Visual C++:

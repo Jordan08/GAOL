@@ -1,5 +1,5 @@
 # ==================================================================
-#  The tests of GAOL built with an installed GAOL (fork of GAOL)
+#  The tests of GAOL built with an installed GAOL (GAOL v5)
 # ==================================================================
 #
 # Builds the tests of the parent directory with the GAOL that find_package()

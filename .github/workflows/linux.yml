@@ -182,7 +182,7 @@ jobs:
   # Visual C++ and the 32-bit targets of GCC take: built and tested on an
   # ordinary machine, where the native type is there to compare with
   # (tests/u128.cpp), so that the path is checked at every change rather than
-  # only on the containers of containers.yml (fork of GAOL)
+  # only on the containers of containers.yml (GAOL v5)
   u128-emulation:
     name: The 128-bit integer emulated, Ubuntu 24.04 x86_64 ${{ matrix.cc }}
     runs-on: ubuntu-24.04
@@ -227,7 +227,7 @@ jobs:
           python3 - <<'EOF'
           import json, sys
           # the raw data of gcovr goes to the build directory, coverage/
-          # holding only coverage.html and README.md (fork of GAOL)
+          # holding only coverage.html and README.md (GAOL v5)
           d = json.load(open("build/coverage.json"))
           run = cov = 0
           for f in d["files"]:

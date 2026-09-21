@@ -58,7 +58,7 @@ namespace gaol {
       gaol_parse();
     } catch (...) {
       // The buffer of the lexer is freed whatever the parser throws, as
-      // gaol_ERROR() in its actions (fork of GAOL)
+      // gaol_ERROR() in its actions (GAOL v5)
       gaol_cleanup_parsing();
       throw;
     }

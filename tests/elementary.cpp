@@ -582,7 +582,7 @@ namespace
 }
 
 /*
-  The integer functions of IEEE 1788-2015 (Table 9.1, fork of GAOL)
+  The integer functions of IEEE 1788-2015 (Table 9.1, GAOL v5)
 
   sign, trunc, roundTiesToEven and roundTiesToAway are exact: each returns a
   double that is an integer, with no rounding of its own. What is checked here

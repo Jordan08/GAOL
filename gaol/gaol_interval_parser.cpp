@@ -120,7 +120,7 @@ extern bool gaol_global_parsing_flag;
 /*
   The parser holds one reference to each node it builds ($$->inc_refcount()),
   which it gives up when the node goes into another node, which holds its own,
-  or into an expression (fork of GAOL): GAOL kept it, and the nodes of every
+  or into an expression (GAOL v5): GAOL kept it, and the nodes of every
   expression read were never freed. the_null_expr keeps the reference
   init() gives it.
 */
@@ -132,7 +132,7 @@ static void gaol_release(expr_node *e)
 }
 
 /*
-  The exception the evaluation of an exponent threw (fork of GAOL): the action
+  The exception the evaluation of an exponent threw (GAOL v5): the action
   keeps it and aborts, the parser frees the nodes it holds, and
   parse_interval() throws it again. Thrown through the parser, it left them.
 */

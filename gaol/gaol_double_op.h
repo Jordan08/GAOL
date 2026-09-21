@@ -24,7 +24,7 @@
 
   Every elementary function of GAOL is bounded with CORE-MATH
   (3rd/math-core, see gaol/gaol_core_math.h), on every architecture and with
-  every compiler (fork of GAOL). CORE-MATH's functions are correctly rounded
+  every compiler (GAOL v5). CORE-MATH's functions are correctly rounded
   in the rounding direction in effect, so in the upward rounding GAOL computes
   in:
 
@@ -158,7 +158,7 @@ namespace gaol {
 
   /*
     The hyperbolic functions below are those of CORE-MATH (gaol_core_math.h),
-    correctly rounded, mathlib having none (fork of GAOL, issue #1): rounded to
+    correctly rounded, mathlib having none (GAOL v5, issue #1): rounded to
     nearest and moved one double outward, as the functions of mathlib, their
     values enclose the exact ones, within one double of the tightest bounds.
     GAOL took them from the libm of the system and moved them one float
@@ -176,7 +176,7 @@ namespace gaol {
     The bounds of the functions below, computed in the rounding direction to
     nearest, which the mathematical library needs, set beforehand
     (GAOL_RND_NEAREST_ENTER()): an operation of GAOL sets the direction once
-    for both of its bounds, rather than twice for each (fork of GAOL). The
+    for both of its bounds, rather than twice for each (GAOL v5). The
     functions of the same names in gaol:: set it themselves.
   */
 
@@ -185,7 +185,7 @@ namespace gaol {
     effect. CORE-MATH is correctly rounded in that direction, so the value at
     a bound rounded upward is the upper bound itself, and the double below it
     the lower bound: nothing is added, and the direction is never switched
-    (fork of GAOL).
+    (GAOL v5).
 
     The functions of namespace nearest are those the code setting the
     direction to nearest itself calls: there the value is rounded to nearest,

@@ -99,7 +99,7 @@ option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with 
 # -- which is reason enough not to offer it.
 #
 # GAOL's whole point is that its intervals enclose the exact values, so there is
-# no option for this (fork of GAOL, see doc/three-builds.md). The sources of
+# no option for this (GAOL v5, see doc/three-builds.md). The sources of
 # CORE-MATH are compiled apart all the same, which keeps a -flto given by hand
 # away from them.
 
@@ -171,7 +171,7 @@ endif()
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
-# CORE-MATH (fork of GAOL):
+# CORE-MATH (GAOL v5):
 #
 # - the math library of mingw-w64 before version 12 was not accurate enough for
 #   the hyperbolic functions GAOL took from it (acosh() near 1 was up to 25
@@ -272,7 +272,7 @@ else()
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
-# The fused multiply-add instructions of the processor (fork of GAOL), with
+# The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
 # them: GAOL's exact products (std::fma() in gaol/gaol_interval.cpp, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
@@ -401,7 +401,7 @@ set(GAOL_CORE_MATH_FUNCTIONS
   exp log pow sin cos tan asin acos atan atan2
   sinh cosh tanh asinh acosh atanh
   # cbrt, which nth_root(x, 3) takes, and the exponentials and logarithms in
-  # base 2 and 10, which IEEE 1788-2015 requires (Table 9.1) (fork of GAOL)
+  # base 2 and 10, which IEEE 1788-2015 requires (Table 9.1) (GAOL v5)
   cbrt exp2 exp10 log2 log10)
 
 set(GAOL_CORE_MATH_SOURCES "")
@@ -565,7 +565,7 @@ list(TRANSFORM GAOL_SOURCES PREPEND "gaol/")
 # The sources of CORE-MATH, compiled apart and put into libgaol: apart so that
 # the interprocedural optimization GAOL is compiled with does not reach them,
 # which made sin and cos half as fast again while it makes the basic
-# operations twice as fast (fork of GAOL, see doc/three-builds.md)
+# operations twice as fast (GAOL v5, see doc/three-builds.md)
 add_library(gaol_core_math OBJECT ${GAOL_CORE_MATH_SOURCES})
 set_target_properties(gaol_core_math PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION OFF

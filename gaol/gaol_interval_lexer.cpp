@@ -1195,7 +1195,7 @@ namespace {
 
   /*
     Reads a number in the uncertain form of IEEE 1788-2015 (9.7.4, 12.11.3,
-    fork of GAOL): m?rve, m being a decimal number with an optional sign, r a
+    GAOL v5): m?rve, m being a decimal number with an optional sign, r a
     natural number of units of the last place of m (half a unit when absent)
     or ?, for an infinite radius, v the direction d or u, and e an exponent
     written as e and an integer. Returns UNCERTAIN_CST, with gaol_lval.itv set
@@ -1296,7 +1296,7 @@ namespace gaol {
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
-   read (fork of GAOL) */
+   read (GAOL v5) */
 #define YY_NO_INPUT 1
 #line 1302 "lex.gaol_.c"
 

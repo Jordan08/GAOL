@@ -90,7 +90,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
   /*
     x^n rounded upward and downward from exact products, x >= 0 and n >= 2, the
-    rounding direction being upward (fork of GAOL, issue #7). GAOL rounds each
+    rounding direction being upward (GAOL v5, issue #7). GAOL rounds each
     product of its binary exponentiation outward (uipow_rounded()), and x^n is
     then up to n + 1 doubles from the tightest bound: 2, 3, 5, 6, 8 for n = 3
     to 7.
@@ -228,7 +228,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
      direction set upward, respectively downward.
 
      s*s rounded downward, -((-s)*s) when rounding upward, is below x exactly
-     when s*s is, x being a double, and s is then below sqrt(x) (fork of GAOL:
+     when s*s is, x being a double, and s is then below sqrt(x) (GAOL v5:
      GAOL compared s with x/s, a division, several times slower than a
      product). */
   static double gaol_sqrt_up(double x)
@@ -253,7 +253,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
      upward, to be called with the rounding direction set upward: u when it is
      the exact root, the double below u otherwise. u*u rounded upward is x
      exactly when u is the exact root, u*u being above x otherwise. Returned
-     negated, as the SSE2 intervals store their lower bound (fork of GAOL: GAOL
+     negated, as the SSE2 intervals store their lower bound (GAOL v5: GAOL
      computed x/u rounded downward, one double below the tightest bound for half
      of the doubles). */
   static double gaol_minus_sqrt_down(double x, double u)
@@ -283,7 +283,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   static inline double tan_hi(double x) { return (x == 0.0) ? 0.0 : tan_up(x); }
 
   /*
-    The signs of sin(x) and cos(x), x being finite (fork of GAOL, issue #6).
+    The signs of sin(x) and cos(x), x being finite (GAOL v5, issue #6).
     Neither is 0 but sin(0): no other double is a multiple of pi/2, and the
     closest one, 6381956970095103 2^797, has a cosine of 4.7e-19, so that the
     value of the mathematical library, moved one double downward, still has
@@ -354,7 +354,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   }
 
   /*
-    Bounds of atan2(y, x) at a point other than (0, 0) (fork of GAOL): 0, pi/2,
+    Bounds of atan2(y, x) at a point other than (0, 0) (GAOL v5): 0, pi/2,
     pi, their opposites and pi/4 where the angle is one of them, a bound being
     an infinity included, where atan2 has that limit; the value of the
     mathematical library moved outward elsewhere, within [-pi, pi]. The sign of
@@ -738,7 +738,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
   /*
     A bound written in the hexadecimal-significand form of IEEE 1788-2015
-    (13.4.1), which interval(const char*) reads back exactly (fork of GAOL).
+    (13.4.1), which interval(const char*) reads back exactly (GAOL v5).
 
     The recovery requirement of 13.4 asks that writing an interval and reading
     it again give the same bounds. GAOL wrote the sixteen hexadecimal digits of
@@ -851,7 +851,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 	  			rbound << bound_to_text(I.right(), true, rbound);
 
 	  			// The characters both bounds start with, then what is left of
-	  			// each, without the zeros ending it (fork of GAOL: GAOL dropped
+	  			// each, without the zeros ending it (GAOL v5: GAOL dropped
 	  			// from both bounds the characters after the last one of the left
 	  			// bound that is not a zero, and wrote [1.25, 1.2567] "1.25~[, ]";
 	  			// zeros ending an exponent are not dropped)
@@ -893,7 +893,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 		}
 		if (n < 0) {
 			/*
-			  x^-m is 1/x^m, unless x^m overflows: then (1/x)^m (fork of GAOL).
+			  x^-m is 1/x^m, unless x^m overflows: then (1/x)^m (GAOL v5).
 			  GAOL computed 1/x^m, whose x^m overflowed for some |x| > 1 before
 			  the inversion: pow([10],-400) was [0,5.6e-309] rather than
 			  [0,2^-1074], and pow([2],-1050) [0,2^-1024] rather than [2^-1050].
@@ -938,7 +938,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     }
 
     /*
-      Hybrid semantics (fork of GAOL): a degenerate integer exponent always
+      Hybrid semantics (GAOL v5): a degenerate integer exponent always
       takes the integer power, pown of IEEE 1788, which is defined for a
       negative base too, is 1 at p = 0 for any x, 0 included, and has no value
       at x = 0 for p < 0 (Table 9.1, footnote b), and any other exponent the
@@ -953,7 +953,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     }
 
     /*
-      x^y is only real for a negative x when y is an integer (fork of GAOL,
+      x^y is only real for a negative x when y is an integer (GAOL v5,
       ported from the fix of Codac, commit 74086ccb, Jordan Ninin). GAOL
       computed the powers of the negative part of I on its magnitude, and
       pow([-4,-1],[0.5,0.5]) returned [-1,2] where sqrt([-4,-1]) is empty.
@@ -969,7 +969,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     }
     /*
       For a base above 0 and finite bounds, the pow of the mathematical library
-      at the corners of the box (fork of GAOL, issue #8): x^y increases with y
+      at the corners of the box (GAOL v5, issue #8): x^y increases with y
       for x > 1 and decreases for x < 1, increases with x for y > 0 and
       decreases for y < 0, so that its extrema over I x J are at corners, which
       the places of the bounds about 1 and 0 give. mathlib's upow() is
@@ -1006,7 +1006,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   }
 
   /*!
-    \brief I^p for a floating-point p (fork of GAOL)
+    \brief I^p for a floating-point p (GAOL v5)
 
     Without it, pow(I,2.5) called pow(const interval&, int), converting a
     double to an int being a standard conversion and converting it to an
@@ -1047,7 +1047,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     default:
       break;
     }
-    // The roots of nth_root(), proved to be bounds (fork of GAOL: GAOL took the
+    // The roots of nth_root(), proved to be bounds (GAOL v5: GAOL took the
     // powers of the mathematical library with the exponent 1/n here too)
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1300,14 +1300,14 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   /*
     Code inspired from ia_math by Timothy Hickey
 
-    rootn of IEEE 1788-2015 (Table 10.5, fork of GAOL): defined on R for an odd
+    rootn of IEEE 1788-2015 (Table 10.5, GAOL v5): defined on R for an odd
     n, the root of x < 0 being -(-x)^(1/n), and on [0,+oo] for an even n. GAOL
     took the roots of the part of I in [0,+oo] for every n: nth_root([-8,27],3)
     was [0,3] rather than [-2,3]. rootn(x,0) is not defined, and gives the
     empty set.
   */
 /*
-  The cube root, with CORE-MATH's cbrt (fork of GAOL)
+  The cube root, with CORE-MATH's cbrt (GAOL v5)
 
   cbrt is correctly rounded in the rounding direction in effect and increasing
   on the whole line. Computed in the upward rounding GAOL keeps, cbrt(x) of a
@@ -1391,7 +1391,7 @@ interval nth_root(const interval& I, unsigned int n)
 }
 
 /*
-  rootn(x, q) with an integer q, which may be negative (fork of GAOL)
+  rootn(x, q) with an integer q, which may be negative (GAOL v5)
 
   IEEE 1788-2015 recommends rootn(x, q) for every q of Z\{0} (Table 10.5),
   where GAOL only took a positive one. For q < 0, x^(1/q) = 1/x^(1/|q|), whose
@@ -1443,7 +1443,7 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
-    The exponentials and the logarithms in base 2 and 10 (fork of GAOL)
+    The exponentials and the logarithms in base 2 and 10 (GAOL v5)
 
     IEEE 1788-2015 requires them among the forward elementary functions
     (Table 9.1: "exp, exp2, exp10(x) = b^x" on R with range (0, +oo), and
@@ -1561,7 +1561,7 @@ interval nth_root(const interval& I, int q)
 	*/
     // exp(0) = 1 exactly, where the value of the mathematical library moved
     // outward gave exp([0]) a width, and pow([1], [-oo, +oo]) = [0, +oo]
-    // (fork of GAOL)
+    // (GAOL v5)
     const double l = I.left(), r = I.right();
     GAOL_RND_ENTER();
     const double u = (l == 0.0) ? 1.0 : exp_dn(l);
@@ -1572,17 +1572,17 @@ interval nth_root(const interval& I, int q)
 
   interval log(const interval& I)
   {
-    // log is defined on (0,+oo) (IEEE 1788-2015, Table 9.1, fork of GAOL): I
+    // log is defined on (0,+oo) (IEEE 1788-2015, Table 9.1, GAOL v5): I
     // holding no positive number, as [-4,0] and [0], gives the empty set, where
     // GAOL kept its part in [0,+oo] and gave [-oo,-MAX]
     if (I.is_empty() || !(I.right() > 0.0)) {
       return interval::emptyset();
     }
 
-    // log(1) = 0 exactly: log([1]) was [-2^-1074, 2^-1074] (fork of GAOL)
+    // log(1) = 0 exactly: log([1]) was [-2^-1074, 2^-1074] (GAOL v5)
     const double l = maximum(0.0,I.left()), r = I.right();
     // CORE-MATH's log, correctly rounded in
-    // the rounding direction in effect (fork of GAOL): in the upward rounding
+    // the rounding direction in effect (GAOL v5): in the upward rounding
     // GAOL computes in, RU(log r) is the right bound, and RD(log l) =
     // pred(RU(log l)) the left one, log(l) being no double for l other than 1.
     // The tightest bounds, without switching to nearest and back: 30 ns rather
@@ -1671,7 +1671,7 @@ interval nth_root(const interval& I, int q)
       the same integer part, and there is one when an integer lies between the
       upper bound of A and the lower bound of B. When the quotients cannot
       tell, a bound of I being within about |x| 2^-52 of a pole, or beyond
-      2^52, the signs of the cosine at the bounds do (fork of GAOL, issue #6,
+      2^52, the signs of the cosine at the bounds do (GAOL v5, issue #6,
       see cos_or_sin()): I being narrower than pi, there is a pole within I
       exactly when they differ. GAOL gave [-oo, +oo] then, as for the double
       below pi/2, whose tangent is 0x1.9153d9443ed0bp+51, and for every
@@ -1746,7 +1746,7 @@ interval nth_root(const interval& I, int q)
 
   /*
     atan2 of IEEE 1788-2015 (Table 9.1), defined on the plane but (0, 0), with
-    values in (-pi, pi] (fork of GAOL; GAOL raised unavailable_feature_error).
+    values in (-pi, pi] (GAOL v5; GAOL raised unavailable_feature_error).
     The angle of a point of the box Y x X is monotonic in y and in x in each
     quadrant, and its extrema are at corners of the box, which the signs of the
     bounds give. It jumps from pi to -pi across the half-line y = 0, x < 0: a
@@ -1873,7 +1873,7 @@ interval nth_root(const interval& I, int q)
 
   /*
     k pi + X, k being an integer double and X a bounded interval, enclosed
-    within about one double (fork of GAOL, issue #6): pi = pi_hi + pi_lo,
+    within about one double (GAOL v5, issue #6): pi = pi_hi + pi_lo,
     pi_hi being the double below pi, and pi_lo lying between two consecutive
     doubles; k pi_hi is p + e exactly, p being the product rounded and e its
     rest, from fma(); k pi_lo is bounded by the products with the two
@@ -1906,7 +1906,7 @@ interval nth_root(const interval& I, int q)
     relational acos_rel(), asin_rel() and atan_rel()), the preimage of J
     being the union of the pieces piece(i), the piece i lying on
     [(i - shift) pi, (i + 1 - shift) pi], shift being 0 for the cosine and
-    1/2 for the sine and the tangent (fork of GAOL, issue #6: GAOL had three
+    1/2 for the sine and the tangent (GAOL v5, issue #6: GAOL had three
     copies of this, with k [pi]).
 
     A bound of I lies on the piece floor(x/pi + shift), or on the next one
@@ -1980,7 +1980,7 @@ interval nth_root(const interval& I, int q)
       return I;
     }
     // The preimage of J: i pi + asin(J) for an even i, i pi - asin(J) for an
-    // odd i (fork of GAOL: GAOL computed pi/2 + acos_rel(J, I - pi/2), two
+    // odd i (GAOL v5: GAOL computed pi/2 + acos_rel(J, I - pi/2), two
     // additions of an enclosure of pi/2 more)
     const interval Jasin = asin(J);
     return periodic_rel(J, I, 0.5,
@@ -2047,7 +2047,7 @@ interval nth_root(const interval& I, int q)
 
   /*
    * invabs_rel: the hull of the x of I whose magnitude is in J, absRev of
-   * IEEE 1788, the negative part of J holding no magnitude (fork of GAOL:
+   * IEEE 1788, the negative part of J holding no magnitude (GAOL v5:
    * GAOL took it as one, invabs_rel([-2, -1], I) being [-2, 2] & I instead of
    * the empty set, and invabs_rel([-2, 0], I) [-2, 2] & I instead of [0])
    */
@@ -2270,11 +2270,11 @@ interval nth_root(const interval& I, int q)
     rounded outward, give the pieces [m pi, n pi] on which I lies: on one
     piece (n - m < 2), the function is monotonic, and its bounds are the values
     of the mathematical library at the bounds of I. sin is computed from the
-    sine of the mathematical library (fork of GAOL): GAOL computed
+    sine of the mathematical library (GAOL v5): GAOL computed
     cos(I - [pi/2]), whose subtraction widened I by about 2^-52 max(2, |x|), and
     sin([1e-10]) was 4.4e-16 wide.
 
-    Otherwise (fork of GAOL, issue #6), I is on several pieces for sure when
+    Otherwise (GAOL v5, issue #6), I is on several pieces for sure when
     the same divisions rounded inward give the same m and n: an extremum is
     within I when n - m is 2, and both extrema are beyond. When they do not,
     a bound of I being within about |x| 2^-52 of an extremum, or beyond 2^52,
@@ -2418,7 +2418,7 @@ interval nth_root(const interval& I, int q)
       GAOL_RND_LEAVE();
     }
     // The values of the mathematical library moved outward may leave [-1,1]
-    // (fork of GAOL)
+    // (GAOL v5)
     if (u < -1.0) {
       u = -1.0;
     }

@@ -118,7 +118,7 @@
     	}
 
         // Disjoint intervals give the empty set, [NaN, NaN] as
-        // interval::emptyset() (fork of GAOL): their bounds in the wrong
+        // interval::emptyset() (GAOL v5): their bounds in the wrong
         // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
         // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
         if (!(-bd[0] <= bd[1])) {

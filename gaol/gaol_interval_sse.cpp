@@ -163,7 +163,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			GAOL_RND_ENTER_SSE();
 			interval tmp(-GAOL_INFINITY,K.right()/J.right());
 			// The lower bound rounded downward, the rounding direction being
-			// upward (fork of GAOL: K.right()/J.left() was rounded upward, and
+			// upward (GAOL v5: K.right()/J.left() was rounded upward, and
 			// the result left out the doubles below it that belong to the hull)
 			interval tmp2(-((-K.right())/J.left()),GAOL_INFINITY);
 	    	GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
@@ -503,7 +503,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
 
   /*
     I^e for a non-empty I and e > 0, inlined in sqr() and pow(): uipow(),
-    public and out of line, calls it (fork of GAOL, see gaol_interval.h).
+    public and out of line, calls it (GAOL v5, see gaol_interval.h).
     Inlined by force with GCC and Clang: built with -mfma, Clang 18 called it
     from sqr() rather than inlining it there with e = 2, and sqr() took 13.7 ns
     rather than 9.7, Shekel 5 of doc/compare 405 ns rather than 302.

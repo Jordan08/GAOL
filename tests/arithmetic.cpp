@@ -453,7 +453,7 @@ namespace
 
   // gaol::uipow(), the pown of IEEE 1788 for an unsigned exponent, as
   // pow(x, n): GAOL declared it public but defined it INLINE with the SSE2
-  // intervals, and a program calling it did not link (fork of GAOL)
+  // intervals, and a program calling it did not link (GAOL v5)
   void unsigned_powers()
   {
     const double bounds[] = { -inf, -3., -1., -0.5, -0., 0., 0.5, 2., inf };

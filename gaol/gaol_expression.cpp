@@ -134,7 +134,7 @@ namespace gaol {
        The expression then takes a reference on its new root, as every
        constructor does; without it the count of the new root stayed 0, the
        destructor decremented it to UINT_MAX rather than to 0, and the node
-       was never deleted (fork of GAOL, found by LeakSanitizer through
+       was never deleted (GAOL v5, found by LeakSanitizer through
        tests/expressions.cpp). */
     --root->refcount;
     root=new add_node(*this,e);
@@ -149,7 +149,7 @@ namespace gaol {
        The expression then takes a reference on its new root, as every
        constructor does; without it the count of the new root stayed 0, the
        destructor decremented it to UINT_MAX rather than to 0, and the node
-       was never deleted (fork of GAOL, found by LeakSanitizer through
+       was never deleted (GAOL v5, found by LeakSanitizer through
        tests/expressions.cpp). */
     --root->refcount;
     root=new sub_node(*this,e);
@@ -164,7 +164,7 @@ namespace gaol {
        The expression then takes a reference on its new root, as every
        constructor does; without it the count of the new root stayed 0, the
        destructor decremented it to UINT_MAX rather than to 0, and the node
-       was never deleted (fork of GAOL, found by LeakSanitizer through
+       was never deleted (GAOL v5, found by LeakSanitizer through
        tests/expressions.cpp). */
     --root->refcount;
     root=new mult_node(*this,e);

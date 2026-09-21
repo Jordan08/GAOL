@@ -1,5 +1,5 @@
 # ==================================================================
-#  Tests of GAOL's bounds (fork of GAOL)
+#  Tests of GAOL's bounds (GAOL v5)
 # ==================================================================
 #
 # Each test program compares the bounds GAOL computes with the exact results
@@ -19,7 +19,7 @@ set(GAOL_TESTS
   other_functions
   reverse
   # The 128-bit integer GAOL computes the accurate phases of CORE-MATH with
-  # where the compiler has none, and the bounds CORE-MATH gives (fork of GAOL)
+  # where the compiler has none, and the bounds CORE-MATH gives (GAOL v5)
   u128
   core_math
   expressions

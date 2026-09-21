@@ -66,7 +66,7 @@ namespace gaol {
     hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids the
     round-off error of a binary-to-decimal conversion and which
     interval(const char*) reads back bit for bit: the exact text
-    representation of 13.4 (fork of GAOL)
+    representation of 13.4 (GAOL v5)
     - agreeing: the interval is output in the form "r [l, r]" where
     r is the number containing all the digits that are the same in both
     left and right bounds, and where l and r are the disagreeing
@@ -444,7 +444,7 @@ namespace gaol {
     1788-2015 (Table 10.3): for all x in *this and all y in I, x < y (x <= y),
     which is true when either interval is empty (Table 10.4), as for
     certainly_ge() and certainly_geq(). GAOL gave false when only I was empty,
-    respectively only *this (fork of GAOL).
+    respectively only *this (GAOL v5).
   */
   INLINE bool interval::certainly_ge(const interval &I) const
   {
@@ -470,7 +470,7 @@ namespace gaol {
   /*
     For all x in *this and all y in I, x = y: both intervals are the same
     double, or both are empty. GAOL did not look at the lower bound of I, and
-    [2] was certainly equal to [1,2] (fork of GAOL).
+    [2] was certainly equal to [1,2] (GAOL v5).
   */
   INLINE bool interval::certainly_eq(const interval &I) const
   {
@@ -567,7 +567,7 @@ namespace gaol {
     infinite bound of *this is beyond the same infinite bound of I, and the
     empty set is interior to any interval, itself included. GAOL gave false for
     set_strictly_contains(I) when both had the same infinite bound, as
-    interior(Entire, Entire), which is true (fork of GAOL).
+    interior(Entire, Entire), which is true (GAOL v5).
   */
   INLINE bool interval::set_strictly_contains(const interval& I) const
   {
@@ -602,7 +602,7 @@ namespace gaol {
   }
 
    // *this is interior to I (see set_strictly_contains()): GAOL gave false
-   // for the empty set in the empty set (fork of GAOL)
+   // for the empty set in the empty set (GAOL v5)
    INLINE bool interval::set_le(const interval& I) const
    {
        return I.set_strictly_contains(*this);
@@ -678,14 +678,14 @@ namespace gaol {
   /*
     I^e for an unsigned e, the pown of IEEE 1788-2015: [1] for e = 0 and the
     empty set for an empty I. Declared here too, and defined out of line with
-    the SSE2 intervals, where it was INLINE (fork of GAOL): gaol::uipow() was
+    the SSE2 intervals, where it was INLINE (GAOL v5): gaol::uipow() was
     not found, and uipow() did not link. uipow_upup() and uipow_dnup(), which
     only computed parts of it on the stored bounds, are no longer declared.
   */
   extern __GAOL_PUBLIC__   interval uipow(const interval& I, unsigned int e);
 
   /*!
-    \brief I^J (fork of GAOL)
+    \brief I^J (GAOL v5)
 
     A degenerate integer exponent J = [n] always takes the integer power
     pow(const interval&, int), the pown of IEEE 1788, which is defined for a
@@ -702,7 +702,7 @@ namespace gaol {
   extern __GAOL_PUBLIC__   interval pow(const interval &I, const interval &J);
 
   /*!
-    \brief I^p for a floating-point p (fork of GAOL)
+    \brief I^p for a floating-point p (GAOL v5)
 
     Without it, pow(I,2.5) called pow(const interval&, int), converting a
     double to an int being a standard conversion and converting it to an
@@ -750,7 +750,7 @@ extern __GAOL_PUBLIC__   interval nth_root(const interval& I, unsigned int n);
   /*!
     \brief Returns an enclosure of the q-th roots of the elements of I
 
-    q may be negative (rootn of IEEE 1788-2015, Table 10.5, fork of GAOL):
+    q may be negative (rootn of IEEE 1788-2015, Table 10.5, GAOL v5):
     rootn(x, q) is then 1/x^(1/|q|), defined on R\{0} for an odd q and on
     (0, +oo) for an even one.
   */
@@ -862,7 +862,7 @@ INLINE interval integer(const interval &I)
   }
 
 /*
-  The integer functions of IEEE 1788-2015 (Table 9.1, fork of GAOL)
+  The integer functions of IEEE 1788-2015 (Table 9.1, GAOL v5)
 
   sign, trunc, roundTiesToEven and roundTiesToAway, which GAOL did not provide,
   beside the ceil and floor above. Each of them is non-decreasing, so the
@@ -1031,7 +1031,7 @@ INLINE interval operator|(const interval& I1, const interval& I2)
     \brief Diameter of an interval
     Returns the width of the interval (rounded upward).
     \note Returns NaN if the interval is empty, as wid of IEEE 1788-2015
-    (12.12.8) does, rather than -1 (fork of GAOL)
+    (12.12.8) does, rather than -1 (GAOL v5)
    */
 INLINE double interval::width(void) const
 {
@@ -1047,7 +1047,7 @@ INLINE double interval::width(void) const
 }
 
  /*!
-    \brief Midpoint and radius (fork of GAOL)
+    \brief Midpoint and radius (GAOL v5)
 
     The radius is the smallest double r such that m-r <= left() and
     m+r >= right(), m being the midpoint: the greater of m-left() and

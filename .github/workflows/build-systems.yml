@@ -119,7 +119,7 @@ jobs:
 
   # The options naming another mathematical library are refused rather than
   # ignored: GAOL bounds its elementary functions with CORE-MATH only, whose
-  # sources are compiled into the library (fork of GAOL)
+  # sources are compiled into the library (GAOL v5)
   mathlib-options-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: ubuntu-24.04

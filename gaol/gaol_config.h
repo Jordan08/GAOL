@@ -195,7 +195,7 @@
    functions), so more versions are accepted than before: MinGW-w64 GCC 14 and
    15 on x86-64 (mingw-w64 12 and 13), and GCC 12 to 15 on 32-bit x86
    (mingw-w64 11 and later), where GAOL sets both units itself. GAOL was built
-   and tested with each of them (fork of GAOL). */
+   and tested with each of them (GAOL v5). */
 #if defined(__MINGW64_VERSION_MAJOR) \
     && ((defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12) \
         || (!defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 11))

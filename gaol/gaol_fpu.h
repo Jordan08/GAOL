@@ -57,7 +57,7 @@
    the direction with fegetround(), which gives the one of the x87 unit on
    Windows: with the two differing, pow() rounded as if to nearest while GAOL
    computed upward, and gave bounds one double apart from the ones it gives
-   when the two agree (fork of GAOL, found by tests/rounding_direction.cpp in
+   when the two agree (GAOL v5, found by tests/rounding_direction.cpp in
    the continuous integration, with Visual C++ for 32-bit x86). There the
    direction is read with fegetround() and set with round_upward(), which set
    both units. */
@@ -118,7 +118,7 @@
 /*
   GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
   of the mathematical library of an operation, made with the functions of
-  gaol::nearest, which need the rounding direction to nearest (fork of GAOL):
+  gaol::nearest, which need the rounding direction to nearest (GAOL v5):
   the direction is set twice for both bounds of an interval rather than twice
   for each bound, which cost 11 ns more in sin() and cos() on an Intel
   i7-1185G7 with glibc. After GAOL_RND_NEAREST_LEAVE(), the direction is
@@ -208,7 +208,7 @@ namespace gaol {
        have their own rounding direction, and both have to be upward: GAOL
        computes its bounds with SSE, and the elementary functions of CORE-MATH
        read the direction with fegetround(), which gives the one of the x87
-       unit. Either being elsewhere, round_upward() sets both (fork of GAOL,
+       unit. Either being elsewhere, round_upward() sets both (GAOL v5,
        found by tests/rounding_direction.cpp in the continuous integration,
        which leaves the two differing on purpose). */
     if (fegetround() != FE_UPWARD

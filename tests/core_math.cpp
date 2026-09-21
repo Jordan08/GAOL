@@ -178,7 +178,7 @@ namespace
     compare("acosh", gaol_cr_acosh, [](const interval& x) { return acosh(x); }, v);
     compare("atanh", gaol_cr_atanh, [](const interval& x) { return atanh(x); }, v);
     // The exponentials and the logarithms in base 2 and 10, which IEEE
-    // 1788-2015 requires (Table 9.1, fork of GAOL)
+    // 1788-2015 requires (Table 9.1, GAOL v5)
     compare("exp2", gaol_cr_exp2, [](const interval& x) { return exp2(x); }, v);
     compare("exp10", gaol_cr_exp10, [](const interval& x) { return exp10(x); }, v);
     compare("log2", gaol_cr_log2, [](const interval& x) { return log2(x); }, v);
@@ -278,7 +278,7 @@ namespace
 
   /* The bounds GAOL gives of the exponentials and the logarithms in base 2 and
      10 where the value is a double: they are that double, not the one below it
-     (fork of GAOL). Where the value is not a double, the bounds are checked
+     (GAOL v5). Where the value is not a double, the bounds are checked
      against the tightest ones by compare() above. */
   void base_two_and_ten_exact()
   {
@@ -324,7 +324,7 @@ namespace
 
   /* rootn(x, q) with a negative q, which IEEE 1788-2015 recommends
      (Table 10.5): x^(1/q) = 1/x^(1/|q|), defined on R\{0} for an odd q and on
-     (0, +oo) for an even one (fork of GAOL). */
+     (0, +oo) for an even one (GAOL v5). */
   void negative_roots()
   {
     struct Case { const char* what; interval got; interval expected; bool empty; };
