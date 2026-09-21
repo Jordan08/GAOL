@@ -48,10 +48,13 @@ PDF is an artifact of the run.
 ## Configurations refused or left out, and why
 
 Each of these was built by the continuous integration at first, or asked for,
-and gave wrong bounds, crashed, or was far slower than the others. The builds
-now refuse the compilers among them (see
+and gave wrong bounds, crashed, was far slower than the others, or could not
+be built. The builds now refuse the compilers among them (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)),
-and the workflows check the refusal where they built before.
+and the workflows check the refusal where they built before. Several were
+found while GAOL took its elementary functions from mathlib and from the math
+library of the system, which CORE-MATH replaced in GAOL v5: the last column
+says what is left of them.
 
 | Configuration | Problem | Now |
 |---|---|---|
@@ -62,10 +65,10 @@ and the workflows check the refusal where they built before.
 | Visual C++ without `/fp:strict` | **Crash, and bounds not certified.** Built with `/fp:strict` for GAOL and without it for the tests, `rounding_direction` and `other_functions` crashed with Visual Studio 2022 (a constant computed at compile time in read-only memory, which GAOL wrote); without it everywhere the tests passed, but Visual C++ then assumes rounding to nearest. | Refused by `gaol/gaol_config.h`; each Visual Studio job checks it (`tests/fp_strict`). |
 | The SSE2 intervals on 32-bit Windows | **Crash.** A `std::vector` of SSE2 intervals crashed on its first `movaps` in `rounding_direction` with MinGW-w64 15.2 for x86: GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime aligns on 8. | The FPU intervals are compiled there, in the three builds, as with Visual C++, for which IBEX and the fork of Fabrice Le Bars build GAOL without them. On 64-bit Windows (MinGW-w64, MSYS2) the SSE2 intervals pass the tests. |
 | `fesetexceptflag()` of mingw-w64 for 32-bit x86 | **Crash.** CORE-MATH's `cbrt`, `pow` and `atan2` keep the exception flags around their work, with `_mm_getcsr()` and `_mm_setcsr()` on x86-64 and with `fegetexceptflag()` and `fesetexceptflag()` everywhere else. On a 32-bit target mingw-w64 writes the flags into the mask bits of MXCSR as well: the register went from 0x5fb2 to 0x5932, which unmasks the invalid, divide-by-zero and overflow exceptions. The first comparison of the bounds of an empty interval, which are NaN and which `is_empty()` compares with `<=`, then trapped rather than raised a flag, and the tests died without a message. | The two are written on MXCSR in `gaol/core_math_port.h`, force-included into CORE-MATH's sources, on a 32-bit x86 Windows only; the mask bits and the rounding bits are left exactly as they are. |
-| Doubles computed on the x87 unit of 32-bit x86 | **Wrong bounds.** In extended precision, `exp`, `sin` and `cos` missed the exact value for most arguments. | The i386 jobs compile with `-msse2 -mfpmath=sse`, which the builds give; `gaol/gaol_config.h` refuses the x87 unit. |
-| An installed mathlib compiled with fused multiply-adds | **Wrong bounds.** On 64-bit ARM, where GCC contracts by default, mathlib's cosine of 2^52 − 1 was −0.4855 rather than 0.4733. | Refused by the three builds, which run a program linked with it. |
+| Doubles computed on the x87 unit of 32-bit x86 | **Wrong bounds.** In extended precision, `exp`, `sin` and `cos`, then computed by mathlib, missed the exact value for most arguments. | Still refused: CORE-MATH assumes every operation on doubles rounded to a double as well (`FLT_EVAL_METHOD` 0, see `3rd/math-core/README.md`), and the builds compile its sources with `-fexcess-precision=standard` besides. The i386 jobs compile with `-msse2 -mfpmath=sse`, which the builds give; `gaol/gaol_config.h` refuses the x87 unit. |
+| An installed mathlib compiled with fused multiply-adds | **Wrong bounds.** On 64-bit ARM, where GCC contracts by default, mathlib's cosine of 2^52 − 1 was −0.4855 rather than 0.4733. | **Gone with mathlib:** GAOL looks for no installed library any more. CMake ignores `MATHLIB_DIR`, and configure and meson refuse the options that named one (`--with-mathlib`, `--with-mathlib-include`, `--with-mathlib-lib`), which a job checks (`build-systems.yml`). CORE-MATH, compiled into GAOL, is given `-ffp-contract=off` by the three builds, as GAOL is. |
 | Debian 11 Bullseye (amd64, arm64, armhf) | **Could not be installed.** Out of support since August 2026: its security repository lists packages that can no longer be downloaded (`libc-dev-bin 2.31-13+deb11u14`...), so that `g++` cannot be installed in the container. | Left out. Debian 12 and 13 are built. |
-| mathlib downloaded by each job | **Every job failed.** The CMake build downloaded `mathlib-2.1.1.tar.gz` from Frédéric Goualard's site in each new build directory, and `scripts/install-mathlib.sh` for configure and meson: on 17 September 2026 the site stopped answering, and all the jobs of the five workflows failed on a connection timed out, after 15 minutes each. | mathlib is in the sources (`3rd/mathlib`), and no job downloads anything but its tools. |
+| mathlib downloaded by each job | **Every job failed.** The CMake build downloaded `mathlib-2.1.1.tar.gz` from Frédéric Goualard's site in each new build directory, and `scripts/install-mathlib.sh` for configure and meson: on 17 September 2026 the site stopped answering, and all the jobs of the five workflows failed on a connection timed out, after 15 minutes each. | mathlib was then put in the sources (`3rd/mathlib`), and CORE-MATH, which replaced it in GAOL v5, is in them too (`3rd/math-core`): no job downloads anything but its tools. |
 | The intervals of floats (`gaol::intervalf`, `gaol::interval2f`) | **Unfinished.** `sqrt(intervalf)` returns its argument and `interval2f::inverse()` aborts; neither IBEX nor Codac uses them. | Off by default in the three builds (`GAOL_FLOAT_INTERVALS`); the audit compares the option between them. |
 
 ## What these platforms showed
