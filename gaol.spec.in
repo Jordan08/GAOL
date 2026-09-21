@@ -8,20 +8,23 @@ Version: %{version}
 Release: %{release}
 License: GNU LGPL
 Group: Sciences/Libraries
-Vendor: Laboratoire d'Informatique de Nantes-Atlantique, France
+Vendor: ENSTA, France
 #Provides: %{name} = %{version}-%{release}
 Source0: %{name}-%{version}.tar.gz
-URL: ftp://gaol.sf.net/gaol-%{version}.tar.gz
+URL: https://github.com/Jordan08/GAOL
 BuildRoot: %{_tmppath}/%{name}-root
 Prefix: %{_prefix}
 Requires: /sbin/ldconfig
-Packager: Frederic Goualard <goualard@users.sourceforge.net>
+Packager: Jordan Ninin <jordan.ninin@ensta.fr>
 
 %description
 Gaol is a C++ library that offers an "interval" data type 
 to perform interval arithmetic. Its specificity is to implement
 also "relational" interval arithmetic as needed by interval constraint
 solvers.
+
+GAOL v5 is written by Jordan Ninin (ENSTA). It continues GAOL as Frederic
+Goualard developed it, from its version 4.2.2.
 
 See: 
 - Interval Analysis, Ramon E. Moore, Prentice Hall, 1966
@@ -72,6 +75,8 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Mon Sep 21 2026 Jordan Ninin <jordan.ninin@ensta.fr> %{version}
+- GAOL v5: changed the Vendor to ENSTA and the Packager to Jordan Ninin
 * Fri Jul 15 2005 Frederic Goualard <Frederic.Goualard@univ-nantes.fr> %{version}
 - modified %post and %postun rules
 * Thu Oct 14 2004 Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr> %{version}

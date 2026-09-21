@@ -6,11 +6,15 @@
 
 GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic) library that strives to offer fast and reliable operators for constraint solvers. 
 
-## Author
+## Authors
 
-GAOL is written by [Frédéric Goualard](https://frederic.goualard.net/), Associate
-Professor in Computing Science at Nantes Université (LS2N, UMR CNRS 6004), who
-has been its main developer since 2001. Its page is the
+GAOL v5 is written by Jordan Ninin (ENSTA). It continues GAOL as
+[Frédéric Goualard](https://frederic.goualard.net/) developed it, from its
+version 4.2.2 (see [What differs from GAOL](doc/differences.md)).
+
+GAOL was written by Frédéric Goualard, Associate Professor in Computing
+Science at Nantes Université (LS2N, UMR CNRS 6004), who has been its main
+developer since 2001. Its page is the
 [GAOL section](https://frederic.goualard.net/#research-software-gaol) of
 Frédéric Goualard's site, and its original repository is
 [goualard-f/GAOL](https://github.com/goualard-f/GAOL).

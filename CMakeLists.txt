@@ -4,8 +4,9 @@
 #
 # GAOL, the interval arithmetic library written by Frederic Goualard
 # (https://github.com/goualard-f/GAOL, GNU LGPL v2), comes with an autotools
-# and a meson build, which GAOL v5 keeps. This CMake build is an addition of
-# the fork, written for Codac (https://github.com/codac-team/codac). See the
+# and a meson build, which GAOL v5 keeps. GAOL v5, written by Jordan Ninin,
+# continues GAOL from its version 4.2.2. This CMake build is an addition of
+# GAOL v5, written for Codac (https://github.com/codac-team/codac). See the
 # section of README.md about GAOL v5.
 #
 # Origin

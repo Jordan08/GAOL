@@ -171,6 +171,8 @@ namespace gaol_core {
 /**
  * \mainpage gaol (Just Another Interval Library)
  * \section authors Authors
+ * Jordan Ninin    \<jordan.ninin@ensta.fr\>: GAOL v5, which continues the
+ * GAOL of Frederic Goualard from its version 4.2.2 <P>
  * Frederic Goualard    \<Frederic.Goualard@irin.univ-nantes.fr\> <P>
  * \section copyright Copyright Notice
  * <tt>

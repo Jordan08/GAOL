@@ -4,8 +4,9 @@
 
 Part of the documentation of [GAOL v5](../README.md#documentation).
 
-What GAOL v5 changes from the GAOL 4.2.2 of Frédéric Goualard it starts
-from. Each change is a commit of its own, and says where it comes from.
+What GAOL v5, written by Jordan Ninin, changes from the GAOL 4.2.2 of
+Frédéric Goualard it continues. Each change is a commit of its own, and says
+where it comes from.
 
 - **Every elementary function is bounded with
   [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**, on every architecture
