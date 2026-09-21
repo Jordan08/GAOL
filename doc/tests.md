@@ -104,14 +104,17 @@ Codac.
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
   and decide an interval of a single double beyond 2^53. `less`,
   `strictly_less`, `is_entire` and `is_common_interval` have to give the values
-  of Tables 10.3 and 10.4. Each name of `gaol::ieee1788` has to be the operation
+  of Tables 10.3 and 10.4. Each name of `gaol_ieee1788` has to be the operation
   of the standard it names, which a wrong translation would not show at
   compilation: the eight comparisons against the bounds of Table 10.3 and the
-  empty cases of Table 10.4, over 20 000 pairs; `pow` against the pow of Table
-  9.1, which GAOL's own `pow` is not for a negative base; `inf`, `sup` and the
-  numeric functions against Table 10.2; the reverse functions with the arguments
-  in the order of the standard, `mulRev(b, c, x)` being `div_rel(c, b, x)`
-  (GAOL v5).
+  empty cases of Table 10.4, over 20 000 pairs; `inf`, `sup` and the numeric
+  functions against Table 10.2; the reverse functions with the arguments in
+  the order of the standard, `mulRev(b, c, x)` being `div_rel(c, b, x)`; `pow`
+  against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
+  base. The names are then called unqualified under
+  `using namespace gaol_ieee1788;`, beside `using namespace gaol;`, which
+  compiles only if none of them is ambiguous with a function of `gaol`, and
+  `pow(x, y)` has to be the standard's there (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding

@@ -753,7 +753,23 @@ namespace gaol {
     not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
     pow([0],[0]) is [1].
   */
-  extern __GAOL_PUBLIC__   interval pow(const interval &I, const interval &J);
+  extern __GAOL_PUBLIC__   interval pow_hybrid(const interval &I, const interval &J);
+
+  /*
+    pow(I,J) is pow_hybrid(I,J), as a function template whose parameter is
+    never deduced (GAOL v5). gaol_ieee1788::pow (gaol/gaol_ieee1788.h), the
+    pow of IEEE 1788-2015, has the same parameters, and argument-dependent
+    lookup finds this one beside it: overload resolution prefers a plain
+    function to a template that fits as well, so that pow(x,y) under using
+    namespace gaol_ieee1788 is the standard's, where two plain functions made
+    the call ambiguous. Anywhere else, this template is the only pow of two
+    intervals.
+  */
+  template <typename T = void>
+  inline interval pow(const interval &I, const interval &J)
+  {
+    return pow_hybrid(I, J);
+  }
 
   /*!
     \brief I^p for a floating-point p (GAOL v5)

@@ -69,9 +69,13 @@ from. Each change is a commit of its own, and says where it comes from.
     Rounding the lower bound of `fma` as -fma(-a, b, -c) came one double above
     the exact bound under GCC, which folded the negations into one
     instruction rounded upward: the result goes through `rnd_keep()` first.
-  - **`gaol::ieee1788`**: the operations of the standard GAOL provides, under
-    the names and in the argument order of the standard (see
-    [Using GAOL](using.md#the-names-of-ieee-1788-2015)).
+  - **`gaol_ieee1788`**: the operations of the standard GAOL provides, under
+    the names and in the argument order of the standard, with the type
+    `interval`, so that `using namespace gaol_ieee1788;` is enough to use them
+    (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). For
+    `pow(x, y)` to be the standard's there rather than ambiguous,
+    `gaol::pow(interval, interval)` is a function template calling
+    `pow_hybrid()`, which the library compiles: its value is the same.
   - **`cospi.c` of CORE-MATH shifted a signed integer** out of its range,
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see
