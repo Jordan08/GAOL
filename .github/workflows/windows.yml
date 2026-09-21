@@ -1,8 +1,9 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
-# arm64; Release and Debug), MinGW-w64 15 (x86, x64) and MSYS2 (UCRT64
-# GCC, CLANG64 Clang), runs its tests, installs it, and builds the tests again
-# with the installed GAOL. Builds with MinGW-w64 11 to 15, x64 and x86: the older ones are no longer
-# refused (GAOL v5, see CMakeLists.txt).
+# arm64; Release and Debug), MinGW-w64 15 (x86, x64; Release and Debug), 14
+# (x86, x64), 12 and 13 (x86), and MSYS2 (UCRT64 GCC, CLANG64 Clang), runs its
+# tests, installs it, and builds the tests again with the installed GAOL.
+# Checks that gaol/gaol_config.h refuses the MinGW-w64 whose <fenv.h> answers
+# fegetround() from a state of its own: GCC 11 to 13 on x64, GCC 11 on x86.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -84,13 +85,12 @@ jobs:
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 15.2.0 x86 Release' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Debug,   desc: 'MinGW-w64 15.2.0 x64 Debug' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Debug,   desc: 'MinGW-w64 15.2.0 x86 Debug' }
-          # The older MinGW-w64 that GAOL builds with again: the two reasons it
-          # refused them are gone with mathlib (the hyperbolic functions of the
-          # math library of the system, and the cost of fesetround()). Those
-          # whose <fenv.h> answers fegetround() from a state of its own are
-          # still refused, the elementary functions of CORE-MATH reading it
-          # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and
-          # GCC 11 on 32-bit x86, which the job below checks are refused.
+          # The older MinGW-w64 GAOL builds with: GAOL v5 takes no function from
+          # the math library of the system and no longer calls fesetround() for
+          # its elementary functions. Those whose <fenv.h> answers fegetround()
+          # from a state of its own are refused, the elementary functions of
+          # CORE-MATH reading it (see gaol/gaol_config.h): MinGW-w64 GCC 11 to
+          # 13 on x86-64, and GCC 11 on 32-bit x86, which the job below checks.
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 14.2.0 x64 Release' }
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 14.2.0 x86 Release' }
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 13.2.0 x86 Release' }

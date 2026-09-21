@@ -1,13 +1,11 @@
-# Checks that GAOL still builds the ways it did before the CMake build of this
-# fork: with autotools and with meson, which compile the sources of CORE-MATH
-# into libgaol as the CMake build does. The tests
-# are built with each installed GAOL, on Linux (x86_64, arm64, and i386 and
-# armhf in containers), macOS (arm64, x86_64) and Windows (MSYS2). Checks that
-# the three builds give GAOL the same configuration on each kind of machine
-# (.github/audit), and that autotools and meson refuse the MinGW-w64 CMake
-# Builds GAOL with the two other
-# mathematical libraries autotools and meson offer, CRlibm and the math library
-# of the system, which no other job compiles.
+# Checks that GAOL still builds the ways it did before its CMake build: with
+# autotools and with meson, which compile the sources of CORE-MATH into libgaol
+# as the CMake build does. The tests are built with each installed GAOL, on
+# Linux (x86_64, arm64, and i386 and armhf in containers), macOS (arm64,
+# x86_64) and Windows (MSYS2). Checks that configure and meson refuse the
+# options that chose a mathematical library before GAOL v5, and that the three
+# builds give GAOL the same configuration on each kind of machine
+# (.github/audit).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -67,10 +65,11 @@ jobs:
           make install
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -q "elementary functions" configure.log
-          test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          ls "$RUNNER_TEMP/gaol/lib"
+          ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
       - name: Tests built with the installed GAOL
         run: |
-          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/gaol" static
+          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -111,9 +110,10 @@ jobs:
           meson install -C build-meson
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -qi "elementary functions" configure.log
-          test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
+          ls "$RUNNER_TEMP/gaol/lib"
+          ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/gaol" shared
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -197,11 +197,11 @@ jobs:
               ./configure --prefix=/tmp/gaol
               grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
               make -j 4 && make install
-              sh .github/scripts/tests.sh /tmp/gaol /tmp/gaol static
+              sh .github/scripts/tests.sh /tmp/gaol static
             else
               meson setup build-meson --prefix=/tmp/gaol --libdir=lib
               meson compile -C build-meson && meson install -C build-meson
-              sh .github/scripts/tests.sh /tmp/gaol /tmp/gaol shared
+              sh .github/scripts/tests.sh /tmp/gaol shared
             fi
             ./performance | tee /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
@@ -238,9 +238,10 @@ jobs:
             meson compile -C build-meson && meson install -C build-meson
           fi
           # CORE-MATH is compiled into libgaol: no other library is installed
-          test ! -f "$prefix/lib/libultim.a"
+          ls "$prefix/lib"
+          ! ls "$prefix/lib" | grep "^lib" | grep -v "^libgaol"
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" "$(cygpath -m "$RUNNER_TEMP")/gaol" static
+        run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" static
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -259,7 +260,6 @@ jobs:
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, desc: 'The builds agree, Ubuntu 24.04 arm64 Clang' }
           - { os: macos-15,         cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 arm64' }
           - { os: macos-15-intel,   cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 x86_64' }
-          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     installed_mathlib: true, desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC, installed mathlib' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -277,9 +277,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Configure with the three builds and compare
         run: |
-          mathlib=-
-          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
-          sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$mathlib" "$RUNNER_TEMP/audit" meson
+          sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$RUNNER_TEMP/audit" meson
           status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$RUNNER_TEMP/audit/audit" $status
@@ -301,7 +299,7 @@ jobs:
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
             set -e
             apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 > /dev/null
-            sh .github/audit/audit.sh audit gcc g++ /gaol - /tmp/audit meson
+            sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/audit meson
             status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
             cat /gaol/agree.md
             sh .github/audit/logs.sh /tmp/audit/audit \$status"
@@ -324,7 +322,7 @@ jobs:
         run: |
           export CMAKE_GENERATOR=Ninja
           out="$(cygpath -m "$RUNNER_TEMP")/audit"
-          sh .github/audit/audit.sh audit gcc g++ . - "$out" meson
+          sh .github/audit/audit.sh audit gcc g++ . "$out" meson
           status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$out/audit" $status

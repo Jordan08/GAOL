@@ -8,13 +8,12 @@ configuration: the same macros in `gaol/gaol_configuration.h`, and the same
 compilation flags that bear on the results or on the speed (rounding, contraction,
 fast-math, x87 or SSE2 doubles, SSE2 intervals, optimization, C++ standard).
 
-`audit.sh` configures the three builds, with the mathlib of `3rd/mathlib` or
-against an installed one, and
-`probe_build.py` preprocesses `make_probe.py`'s program with the flags each build
-gives `gaol_interval.cpp`, which shows the macros GAOL sees. `compare.py`
+`audit.sh` configures the three builds, and `probe_build.py` preprocesses
+`make_probe.py`'s program with the flags each build gives
+`gaol_interval.cpp`, which shows the macros GAOL sees. `compare.py`
 prints what differs, and with `--check` fails when a build did not configure
 or when the configurations differ. The continuous integration runs it on each
 kind of machine (`.github/workflows/build-systems.yml`).
 
-    sh .github/audit/audit.sh <label> <cc> <cxx> <sources> <mathlib prefix, or - for the one of 3rd/mathlib> <output directory> [meson]
+    sh .github/audit/audit.sh <label> <cc> <cxx> <sources> <output directory> [meson]
     python3 .github/audit/compare.py --check <output directory>/<label>.json
