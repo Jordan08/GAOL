@@ -1,23 +1,8 @@
 # TODO
 
 What is left to do on the branch MATH-CORE, found by the review of commit
-a7544a1 (`gaol_ieee1788`, out of `gaol`), and by the continuous integration of
-commit 7eecc73. Each point was reproduced unless it says otherwise.
-
-## The continuous integration is red since 7eecc73
-
-38 jobs fail on 7eecc73; the last run all green was ee026fe. The failing jobs
-are the sanitizers of Linux and macOS, Debian i386, armhf and s390x, Clang on
-Ubuntu 22.04, MinGW-w64 and MSYS2 (tests), and every Visual Studio job (build).
-
-- **Visual Studio (certain).** `3rd/math-core/src/binary64/exp2m1/exp2m1.c:1012`
-  calls `__builtin_ldexp`, which `gaol/core_math_port.h` does not map for
-  Visual C++: the function stays undeclared and does not link. Fix: add
-  `#define __builtin_ldexp(x, n) ldexp(x, n)` to the Visual C++ section.
-- **The other failures are not reproduced.** GCC 13, Clang 18 and Clang 20,
-  with ASan and UBSan, with `GAOL_U128_EMULATION=ON`, and on a clean clone,
-  all pass locally. The logs of GitHub Actions need an authenticated access
-  (`gh auth login` or a token) to find the failing tests.
+a7544a1 (`gaol_ieee1788`, out of `gaol`). Each point was reproduced unless it
+says otherwise. The continuous integration is green again since 1436918.
 
 ## pow in gaol_ieee1788
 
@@ -89,6 +74,15 @@ Ubuntu 22.04, MinGW-w64 and MSYS2 (tests), and every Visual Studio job (build).
    `gaol/gaol_interval.h` now documents `pow_hybrid()`, and the template
    `pow` has a plain comment only; `manual/gaol.tex` still describes
    `pow(const interval&, const interval&)` as a plain function.
+
+## CORE-MATH
+
+10. **Propose the local fixes upstream.** `3rd/README.md` lists four changes
+    of the CORE-MATH sources that are fixes rather than adaptations to GAOL:
+    the masks `~0ull` of `sinh.c`, `cosh.c` and `tanh.c`, the signed shifts of
+    `cospi.c`, the
+    128-bit shift of `asinpi.c`, and the 64-bit `__builtin_expect` of
+    `rsqrt.c`, which took subnormals for +0 wherever `long` has 32 bits.
 
 Suggested order: points 1 to 4 together, all being about pow, then 8, then 6
 and 9.
