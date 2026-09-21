@@ -172,7 +172,7 @@ double cr_rsqrt(double x){
   b64u64_u ix = {.f = x};
   double r;
   if(__builtin_expect(ix.u < 1ll<<52, 0)){ // 0 <= x < 0x1p-1022
-    if(__builtin_expect(ix.u, 1)){ // x <> +0
+    if(__builtin_expect(ix.u != 0, 1)){ /* GAOL */ // x <> +0
       r = __builtin_sqrt(x)/x;
     } else {
 #ifdef CORE_MATH_SUPPORT_ERRNO

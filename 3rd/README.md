@@ -115,6 +115,18 @@ kept as a patch to reapply.
    being about 2<sup>−54</sup> of a small correction; the regression test is in
    `tests/core_math.cpp`. This is a fix to propose to CORE-MATH.
 
+5. **A 64-bit test made a comparison** in `rsqrt/rsqrt.c` (`cr_rsqrt`, the
+   subnormal x). `__builtin_expect(ix.u, 1)` passed the 64 bits of x where
+   `__builtin_expect` takes a `long`, which has 32 bits on the 32-bit targets
+   and on Windows: the high half was dropped, and a subnormal whose low 32
+   bits are 0, 2^-1040 to 2^-1024 among the powers of 4, was taken for +0,
+   its rsqrt being +oo rather than 2^520 to 2^512 (the continuous integration,
+   Debian i386 and armhf, MinGW-w64 and MSYS2; Visual C++, where
+   `__builtin_expect(x, y)` is `(x)`, was right). It is now
+   `__builtin_expect(ix.u != 0, 1)`. The other `__builtin_expect` of the
+   sources GAOL compiles take a comparison, or an integer of 32 bits or less.
+   This is a fix to propose to CORE-MATH.
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
