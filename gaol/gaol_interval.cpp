@@ -969,13 +969,14 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       return J.right() > 0.0 ? interval::zero() : interval::emptyset();
     }
     /*
-      For a base above 0 and finite bounds, the pow of the mathematical library
-      at the corners of the box (GAOL v5, issue #8): x^y increases with y
-      for x > 1 and decreases for x < 1, increases with x for y > 0 and
-      decreases for y < 0, so that its extrema over I x J are at corners, which
-      the places of the bounds about 1 and 0 give. mathlib's upow() is
-      correctly rounded, and each bound is one double from the tightest one at
-      most, where exp(J*log(I)) multiplied the relative width of log(I) by
+      For a base above 0 and finite bounds, CORE-MATH's pow at the corners of
+      the box (GAOL v5, issue #8): x^y increases with y for x > 1 and decreases
+      for x < 1, increases with x for y > 0 and decreases for y < 0, so that
+      its extrema over I x J are at corners, which the places of the bounds
+      about 1 and 0 give. CORE-MATH's pow is correctly rounded in the upward
+      rounding GAOL computes in, which gives the upper bound, and the double
+      below it the lower one: each bound is one double from the tightest one
+      at most, where exp(J*log(I)) multiplied the relative width of log(I) by
       |y log(x)|: pow([2], [1023.5]) was 1425 doubles below and 748 above.
       A base from 0, whose powers are from 0 for exponents above 0, takes its
       upper bound so. The other boxes (a base from 0 with an exponent that is
@@ -1948,14 +1949,11 @@ interval nth_root(const interval& I, int q)
 
     // log(1) = 0 exactly: log([1]) was [-2^-1074, 2^-1074] (GAOL v5)
     const double l = maximum(0.0,I.left()), r = I.right();
-    // CORE-MATH's log, correctly rounded in
-    // the rounding direction in effect (GAOL v5): in the upward rounding
-    // GAOL computes in, RU(log r) is the right bound, and RD(log l) =
-    // pred(RU(log l)) the left one, log(l) being no double for l other than 1.
-    // The tightest bounds, without switching to nearest and back: 30 ns rather
-    // than 62 with mathlib's log moved one double outward, which the bounds
-    // were for half of the intervals of doc/compare (Intel i7-1185G7, Clang 18,
-    // -mfma).
+    // CORE-MATH's log, correctly rounded in the rounding direction in effect
+    // (GAOL v5): in the upward rounding GAOL computes in, RU(log r) is the
+    // right bound, and RD(log l) = pred(RU(log l)) the left one, log(l) being
+    // no double for l other than 1. The tightest bounds, without switching the
+    // rounding direction.
     GAOL_RND_ENTER();
     const double u = (l == 1.0) ? 0.0 : previous_float(gaol_cr_log(l));
     const double v = (r == 1.0) ? 0.0 : gaol_cr_log(r);
