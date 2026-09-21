@@ -725,6 +725,16 @@ namespace gaol {
 					     const interval& I);
   extern __GAOL_PUBLIC__ std::istream& operator>>(std::istream& is,
 					     interval& I);
+  /*!
+    \brief The exact text of I (GAOL v5)
+
+    What operator<< writes in interval_format::hexa: "[empty]" for the empty
+    set, and otherwise each bound in the hexadecimal-significand form, which
+    interval(const char*) reads back bit for bit (IEEE 1788-2015, 13.4). It
+    neither reads nor changes the global output format, which
+    interval::format() sets.
+  */
+  extern __GAOL_PUBLIC__ std::string exact_string(const interval& I);
   //! I^2
   extern __GAOL_PUBLIC__   interval sqr(const interval& I);
   /*!

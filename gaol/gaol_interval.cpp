@@ -760,6 +760,17 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     }
   }
 
+  std::string exact_string(const interval& I)
+  {
+    if (I.is_empty()) {
+      return "[empty]";
+    }
+    char lo[64], hi[64];
+    write_hexa_bound(I.left(), lo, sizeof lo);
+    write_hexa_bound(I.right(), hi, sizeof hi);
+    return std::string("[") + lo + ", " + hi + "]";
+  }
+
   ostream& operator<<(ostream& os, const interval& I)
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
@@ -776,14 +787,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       display_bounds(l,r,os);
       break;
     case interval_format::hexa: // The exact text representation of 13.4
-      if (I.is_empty()) {
-				os << "[empty]";
-      } else {
-				char lo[64], hi[64];
-				write_hexa_bound(l, lo, sizeof lo);
-				write_hexa_bound(r, hi, sizeof hi);
-				os << '[' << lo << ", " << hi << ']';
-      }
+      os << exact_string(I);
       break;
     case interval_format::width: // Display in the form "c (+/- w)"
       if (I.is_empty()) {
