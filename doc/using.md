@@ -100,24 +100,32 @@ bool b = strictLess(x, entire());
 ```
 
 The functions of GAOL that already have the name and the meaning the standard
-gives them (`sin`, `exp`, `sqrt`, `min`...) are the same functions in
-`gaol_ieee1788`, so that a call on an interval is not ambiguous with the
-function of `gaol` that argument-dependent lookup finds, and a program can
-keep `using namespace gaol;` as well. Where the standard and GAOL differ,
-these names follow the standard: `pow(x, y)` is the pow of Table 9.1, defined
-for x > 0 (GAOL's `pow` takes the integer power for a degenerate integer
-exponent, a negative base included: `pow([-4, -1], [2])` is [1, 16] in `gaol`,
-the empty set in `gaol_ieee1788`); `inf` and `sup` of the empty set are +∞ and
-−∞, where GAOL's bounds are NaN;
-`isMember(m, x)` is false for an infinite m; `textToInterval` returns the
-empty set for a string that is no interval literal, where GAOL's constructor
-throws. The call `pow(x, y)` on two intervals is not ambiguous either:
-`gaol::pow(interval, interval)` is a function template, to which overload
-resolution prefers the plain function of `gaol_ieee1788`. `pow(x, 2)` and
-`pow(x, 0.5)`, whose exponent is a number rather than an interval, remain
-GAOL's. A name of the program's own that one of the standard shadows, a
-constant `inf` for instance, is to be qualified: `gaol_ieee1788::inf(x)`. Only
-bare intervals are provided, GAOL having no decorations;
+gives them (`sin`, `exp`, `sqrt`, `min`...) are function templates in
+`gaol_ieee1788` that call GAOL's. On an interval, overload resolution prefers
+the plain function of `gaol` that argument-dependent lookup finds to the
+template, which is the same computation, so the call is not ambiguous, and a
+program can keep `using namespace gaol;` as well. A template takes part only
+when one argument at least is an interval: `min(x, 1.0)` and `atan2(y, 1.0)`
+are GAOL's, while `sqrt(4)` and `floor(2.5)` remain the functions of C, and
+`gaol_ieee1788::sqrt(4)` does not compile, where `sqrt(interval(4))` is to be
+written. The same holds whatever the order of the includes.
+
+Where the standard and GAOL differ, these names follow the standard:
+`pow(x, y)` is the pow of Table 9.1, defined for x > 0, and `pow(x, 2)` and
+`pow(x, 0.5)` are `pow(x, [2])` and `pow(x, [0.5])`: GAOL's `pow` takes the
+integer power for an integer exponent, a negative base included, so that
+`pow([-4, -1], 2)` is [1, 16] in `gaol` and the empty set in `gaol_ieee1788`,
+where the integer power is `pown(x, 2)`. The three `pow` of `gaol` are function
+templates, to which overload resolution prefers those of `gaol_ieee1788`. `inf`
+and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
+`isMember(m, x)` is false for an infinite m; `textToInterval` returns the empty
+set for a string that is no interval literal, where GAOL's constructor throws.
+
+A name of the program's own that one of the standard shadows, a constant `inf`
+for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`
+next to `using namespace std;`, where it is ambiguous with the class template
+`std::less`; the other names of the standard do not clash with those of `std`.
+Only bare intervals are provided, GAOL having no decorations;
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
 

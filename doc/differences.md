@@ -72,10 +72,15 @@ from. Each change is a commit of its own, and says where it comes from.
   - **`gaol_ieee1788`**: the operations of the standard GAOL provides, under
     the names and in the argument order of the standard, with the type
     `interval`, so that `using namespace gaol_ieee1788;` is enough to use them
-    (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). For
-    `pow(x, y)` to be the standard's there rather than ambiguous,
-    `gaol::pow(interval, interval)` is a function template calling
-    `pow_hybrid()`, which the library compiles: its value is the same.
+    (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). For `pow` to be
+    the standard's there rather than ambiguous, the three `gaol::pow` are
+    function templates calling `pown()`, the integer power, and
+    `pow_hybrid()`, whose values are the same; the library still defines the
+    three plain functions, for the programs compiled against the former
+    header. `pow_real()` is the pow of Table 9.1 alone, which
+    `gaol_ieee1788::pow` is, and `exact_string()` the exact text of an
+    interval, which `intervalToExact` writes without changing the global
+    output format.
   - **`cospi.c` of CORE-MATH shifted a signed integer** out of its range,
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see

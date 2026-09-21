@@ -1689,17 +1689,37 @@ both functional and relational versions of the main arithmetic operators.
 \end{deffun}
 
 \deffunx{interval}{pow}{(const interval\& \var{I}, int \var{b})}
-\begin{deffun}{interval}{pow}{(const interval\& \var{I1}, const interval\& \var{I2})}
+\deffunx{interval}{pow}{(const interval\& \var{I1}, const interval\& \var{I2})}
+\begin{deffun}{interval}{pow}{(const interval\& \var{I}, double \var{p})}
   \begin{operation}
     \op{$I^b$}
     \op{$I_1^{I_2}$}
+    \op{$I^p$}
   \end{operation}
-  Power function. The former computes \var{I} to the integral power \var{b},
-  while the latter raises \var{I1} to the interval power \var{I2}. If
-  \var{I2} is an \code{int} in disguise, the first function is used to
-  improve accuracy.
+  Power function. The first computes \var{I} to the integral power \var{b},
+  and is \code{pown(\var{I}, \var{b})}; the second raises \var{I1} to the
+  interval power \var{I2}, and is \code{pow\_hybrid(\var{I1}, \var{I2})}: if
+  \var{I2} is an \code{int} in disguise, the integral power is used, which is
+  defined for a negative base too, and otherwise \code{pow\_real(\var{I1},
+  \var{I2})}; the third is \code{pow\_hybrid(\var{I}, \var{p})}, the integral
+  power for an integral \var{p} and \code{pow\_real(\var{I}, [\var{p}])}
+  otherwise. The three are function templates whose parameter is never
+  deduced, which a call writes as a call of a function (GAOL v5): the
+  \code{pow} of \code{gaol\_ieee1788}, the pow of IEEE 1788-2015, has the same
+  parameters, and overload resolution prefers it to them under
+  \code{using namespace gaol\_ieee1788}.
+\end{deffun}
 
-  The power function for interval exponents is not yet fully tested and should be used with care.
+\deffunx{interval}{pown}{(const interval\& \var{I}, int \var{b})}
+\begin{deffun}{interval}{pow\_real}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  \begin{operation}
+    \op{$I^b$}
+    \op{$I_1^{I_2}$, $I_1 \cap [0,+\infty]$}
+  \end{operation}
+  The integral power of \var{I}, the \code{pown} of IEEE 1788-2015, [1] for
+  $\var{b}=0$; and the \code{pow} of IEEE 1788-2015, $\exp(I_2\log I_1)$ on the
+  part of \var{I1} in $[0,+\infty]$, where $0^y$ is 0 for $y>0$ and has no value
+  for $y\le 0$ (GAOL v5).
 \end{deffun}
 
 \begin{deffun}{interval}{nth\_root}{(const interval\& \var{I}, int \var{b})}
@@ -2419,6 +2439,9 @@ before, which the parser refused to read):
  std::cout << interval("0.1") << std::endl;
  @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
 \end{example}
+The function \code{std::string exact\_string(const interval\&)} returns that
+text, \code{[empty]} for the empty set, without reading or changing the format
+(GAOL v5).
 
 \end{description}
 

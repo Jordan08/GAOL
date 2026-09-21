@@ -155,6 +155,18 @@ Codac.
   as `exp` followed by 2. Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
+- **`ieee1788`:** `gaol_ieee1788` as a program uses it: `using namespace
+  gaol_ieee1788;` at file scope, without `using namespace gaol`, and
+  `gaol/gaol_expression.h` included before `gaol/gaol`, so that the overloads
+  of GAOL's expressions are in sight. The names of the standard are called
+  unqualified, which compiles only if none is ambiguous with a function of
+  `gaol`; `pow` has to be the pow of Table 9.1 with an interval, an `int` or a
+  `double` as exponent, empty for a negative base where `gaol::pow` and `pown`
+  give the integer power, and the tightest for an integer exponent beyond the
+  ints; `min`, `atan2` and `hypot` take an interval and a number; `sqrt`,
+  `floor`, `atan2` and `abs` on numbers remain those of C, which
+  `static_assert` checks; `intervalToExact` does not change the output format
+  and writes what `operator<<` writes in `interval_format::hexa` (GAOL v5).
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
   `atan2` and `pow` compute with a 128-bit unsigned integer, which Visual C++
   has on no architecture and GCC has on no 32-bit target; there GAOL computes
