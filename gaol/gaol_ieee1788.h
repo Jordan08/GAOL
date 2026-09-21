@@ -125,9 +125,14 @@ namespace gaol_ieee1788 {
   inline interval pown(const interval& x, int p) { return ::gaol_core::gaol_pown(x, p); }
 
   /*!
-    pow(x, y): the pow of IEEE 1788-2015, on the part of x in [0, +oo], 0^y
-    having a value only for y > 0. gaol_pow_hybrid(x, y) is that pow there,
-    but for 0^y with y <= 0 and a degenerate integer y, where it takes pown.
+    pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
+    [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is that
+    pow there, but for a degenerate integer exponent [n], for which it takes
+    pown: the same on x >= 0 for an n within the ints, and [-oo, +oo] beyond
+    them, where pown cannot be called. x^n is monotone in x >= 0, so that its
+    bounds there are CORE-MATH's pow at the bounds of x, each one double at
+    most from the tightest one: pow([2, 3], [1e10]) is [DBL_MAX, +oo],
+    pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
   */
   inline interval pow(const interval& x, const interval& y)
   {
@@ -141,6 +146,21 @@ namespace gaol_ieee1788 {
     if (xp.left() == 0.0 && xp.right() == 0.0) {
       // x = {0}: 0^y = 0 for y > 0, no value otherwise
       return (y.right() > 0.0) ? interval(0.0) : interval::emptyset();
+    }
+    const double n = y.left();
+    if (n == y.right() && std::floor(n) == n && !y.is_an_int()) {
+      /* |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
+         decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower
+         bound 0 is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd
+         n < 0. */
+      const double xl = (xp.left() == 0.0) ? 0.0 : xp.left(), xu = xp.right();
+      const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
+      double l, r;
+      GAOL_RND_ENTER();
+      l = (at_lower == 1.0) ? 1.0 : ::gaol_core::nthroot_dn(at_lower, n);
+      r = (at_upper == 1.0) ? 1.0 : ::gaol_core::nthroot_up(at_upper, n);
+      GAOL_RND_LEAVE();
+      return interval((l > 0.0) ? l : 0.0, r);
     }
     return ::gaol_core::gaol_pow_hybrid(xp, y);
   }

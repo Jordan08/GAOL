@@ -583,6 +583,17 @@ namespace
       {"pow([0], [0]) = empty: 0^0 has no value", interval(0.0), interval(0.0), interval(), true},
       {"pow([0], [1, 2]) = [0]", interval(0.0), interval(1.0, 2.0), interval(0.0), false},
       {"pow([0, 4], [0]) = [1]: x^0 = 1 for x > 0", interval(0.0, 4.0), interval(0.0), interval(1.0), false},
+      // An integer exponent beyond the ints, which pown cannot take: [-oo, +oo]
+      // was the result, negative values included
+      {"pow([2, 3], [1e10]) = [DBL_MAX, +oo]", interval(2.0, 3.0), interval(1e10),
+       interval(std::numeric_limits<double>::max(), inf), false},
+      {"pow([0.5, 0.9], [1e10]) = [0, 2^-1074]", interval(0.5, 0.9), interval(1e10),
+       interval(0.0, std::numeric_limits<double>::denorm_min()), false},
+      {"pow([1], [-1e12]) = [1]", interval(1.0), interval(-1e12), interval(1.0), false},
+      {"pow([-1, 1], [2^31 + 1]) = [0, 1]", interval(-1.0, 1.0), interval(2147483649.0), interval(0.0, 1.0), false},
+      // 0^n for an odd n < 0: +oo, the limit at 0 of x^n for x > 0
+      {"pow([-1, 0.5], [-2^31 - 1]) = [DBL_MAX, +oo]", interval(-1.0, 0.5), interval(-2147483649.0),
+       interval(std::numeric_limits<double>::max(), inf), false},
     };
     for (const PowCase& c : pows) {
       const interval got = std1788::pow(c.x, c.y);
