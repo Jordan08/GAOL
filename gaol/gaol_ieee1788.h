@@ -17,20 +17,28 @@
  *
  *   using namespace gaol_ieee1788;
  *
- * uses GAOL under the names of the standard, without naming gaol. The
- * functions of GAOL that have the name and the meaning the standard gives them
- * (sin, exp, sqrt, min...) are brought in by using-declarations rather than
- * wrapped: a call sin(x) on an interval finds gaol::sin by argument-dependent
- * lookup too, and would be ambiguous between two functions of the same
- * signature, where a using-declaration names the same function.
+ * uses GAOL under the names of the standard, without naming gaol.
+ *
+ * The functions of GAOL that have the name and the meaning the standard gives
+ * them (sin, exp, sqrt, min...) are function templates here, which forward to
+ * GAOL's. A call sin(x) on an interval finds gaol::sin by argument-dependent
+ * lookup too: two plain functions of the same signature would make it
+ * ambiguous, and overload resolution prefers the plain gaol::sin to the
+ * template, which is the same computation. A template takes part only when one
+ * argument at least is an interval, and every other one converts to an
+ * interval: sqrt(4) remains the sqrt of C, and gaol_ieee1788::sqrt(4) does not
+ * compile, where an interval is to be written. Using-declarations did the
+ * same, but they took the overloads gaol had when this header was read, those
+ * of gaol::expression too when gaol/gaol_expression.h came first, which made
+ * gaol_ieee1788::sin(0.5) ambiguous there only.
  *
  * Where the standard and GAOL differ, these functions follow the standard:
  *   - pow(x, y) is the pow of Table 9.1, defined for x > 0, and for x = 0 when
- *     y > 0; GAOL's pow takes the integer power pown for a degenerate integer
- *     exponent, which is defined for x < 0 too. gaol::pow(interval, interval)
- *     being a function template, overload resolution prefers this plain
- *     function to it, and pow(x, y) on intervals is the standard's under
- *     using namespace gaol_ieee1788, rather than ambiguous;
+ *     y > 0, and pow(x, n) and pow(x, p) are pow(x, [n]) and pow(x, [p]);
+ *     GAOL's pow takes the integer power pown for an integer exponent, which
+ *     is defined for x < 0 too. The three pow of gaol being function
+ *     templates, overload resolution prefers these plain functions to them,
+ *     rather than find the calls ambiguous;
  *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);
@@ -57,6 +65,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 #include "gaol/gaol_interval.h"
 
@@ -68,6 +77,43 @@ namespace gaol_ieee1788 {
   /* Each function below calls the operation of GAOL by its full name,
      ::gaol::f: inside this namespace an unqualified f would be the function
      of the same name defined here, and call itself. */
+
+  namespace detail {
+    /* interval, the result type of the templates that forward to a function
+       of GAOL, when one of the argument types A at least is interval and
+       every other one converts to an interval; no type otherwise, which
+       takes the template out of overload resolution (see the heading). */
+    template <typename... A> struct has_interval : std::false_type {};
+    template <typename F, typename... R> struct has_interval<F, R...>
+      : std::integral_constant<bool, std::is_same<F, interval>::value || has_interval<R...>::value> {};
+    template <typename... A> struct all_convert : std::true_type {};
+    template <typename F, typename... R> struct all_convert<F, R...>
+      : std::integral_constant<bool, std::is_convertible<const F&, interval>::value && all_convert<R...>::value> {};
+    template <typename... A> struct gaol_result
+      : std::enable_if<has_interval<A...>::value && all_convert<A...>::value, interval> {};
+  } // namespace detail
+
+  /* f(x), f(x, y), f(x, y, z): the function f of GAOL, forwarded by a template
+     (see the heading). The name and the call are in parentheses, which a
+     function-like macro min or max does not take for its own. */
+#define GAOL_IEEE1788_FORWARD1(f)                                             \
+  template <typename X>                                                      \
+  inline typename detail::gaol_result<X>::type (f)(const X& x)               \
+  {                                                                          \
+    return (::gaol::f)(interval(x));                                         \
+  }
+#define GAOL_IEEE1788_FORWARD2(f)                                             \
+  template <typename X, typename Y>                                          \
+  inline typename detail::gaol_result<X, Y>::type (f)(const X& x, const Y& y) \
+  {                                                                          \
+    return (::gaol::f)(interval(x), interval(y));                            \
+  }
+#define GAOL_IEEE1788_FORWARD3(f)                                             \
+  template <typename X, typename Y, typename Z>                              \
+  inline typename detail::gaol_result<X, Y, Z>::type (f)(const X& x, const Y& y, const Z& z) \
+  {                                                                          \
+    return (::gaol::f)(interval(x), interval(y), interval(z));               \
+  }
 
   // ----------------------------------------------------------------------
   // Interval constants (10.5.2) and constructors (10.5.8, 12.12.7)
@@ -108,71 +154,61 @@ namespace gaol_ieee1788 {
   //! recip(x): inverse(x)
   inline interval recip(const interval& x) { return ::gaol::inverse(x); }
   //! sqr(x), sqrt(x), fma(x, y, z): the functions of GAOL
-  using ::gaol::sqr;
-  using ::gaol::sqrt;
-  using ::gaol::fma;
+  GAOL_IEEE1788_FORWARD1(sqr)
+  GAOL_IEEE1788_FORWARD1(sqrt)
+  GAOL_IEEE1788_FORWARD3(fma)
 
-  //! pown(x, p): pow(x, p) with an int p
-  inline interval pown(const interval& x, int p) { return ::gaol::pow(x, p); }
+  //! pown(x, p): pown of GAOL, x^p for an int p, defined for x < 0 too
+  using ::gaol::pown;
 
+  //! pow(x, y): pow_real(x, y) of GAOL, the pow of IEEE 1788-2015 (Table 9.1)
+  inline interval pow(const interval& x, const interval& y) { return ::gaol::pow_real(x, y); }
   /*!
-    pow(x, y): the pow of IEEE 1788-2015, on the part of x in [0, +oo], 0^y
-    having a value only for y > 0. GAOL's pow(x, y) is that pow there, but
-    for 0^y with y <= 0 and a degenerate integer y, where it takes pown.
+    pow(x, p), pow(x, n): pow(x, [p]) and pow(x, [n]), the pow of the standard
+    for a number as exponent, where GAOL's pow takes pown for an integer
+    exponent, which is defined for x < 0 too: pow([-4, -1], 2) is the empty
+    set here, and [1, 16] in gaol. pown(x, n) is the integer power.
   */
-  inline interval pow(const interval& x, const interval& y)
-  {
-    if (x.is_empty() || y.is_empty()) {
-      return interval::emptyset();
-    }
-    const interval xp = x & interval(0.0, GAOL_INFINITY);
-    if (xp.is_empty()) {
-      return interval::emptyset();
-    }
-    if (xp.left() == 0.0 && xp.right() == 0.0) {
-      // x = {0}: 0^y = 0 for y > 0, no value otherwise
-      return (y.right() > 0.0) ? interval(0.0) : interval::emptyset();
-    }
-    return ::gaol::pow(xp, y);
-  }
+  inline interval pow(const interval& x, double p) { return ::gaol::pow_real(x, interval(p)); }
+  inline interval pow(const interval& x, int n) { return ::gaol::pow_real(x, interval(static_cast<double>(n))); }
 
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
-  using ::gaol::exp;
-  using ::gaol::exp2;
-  using ::gaol::exp10;
-  using ::gaol::log;
-  using ::gaol::log2;
-  using ::gaol::log10;
+  GAOL_IEEE1788_FORWARD1(exp)
+  GAOL_IEEE1788_FORWARD1(exp2)
+  GAOL_IEEE1788_FORWARD1(exp10)
+  GAOL_IEEE1788_FORWARD1(log)
+  GAOL_IEEE1788_FORWARD1(log2)
+  GAOL_IEEE1788_FORWARD1(log10)
 
   //! The trigonometric and hyperbolic functions: the functions of GAOL, atan2(y, x) included
-  using ::gaol::sin;
-  using ::gaol::cos;
-  using ::gaol::tan;
-  using ::gaol::asin;
-  using ::gaol::acos;
-  using ::gaol::atan;
-  using ::gaol::atan2;
-  using ::gaol::sinh;
-  using ::gaol::cosh;
-  using ::gaol::tanh;
-  using ::gaol::asinh;
-  using ::gaol::acosh;
-  using ::gaol::atanh;
+  GAOL_IEEE1788_FORWARD1(sin)
+  GAOL_IEEE1788_FORWARD1(cos)
+  GAOL_IEEE1788_FORWARD1(tan)
+  GAOL_IEEE1788_FORWARD1(asin)
+  GAOL_IEEE1788_FORWARD1(acos)
+  GAOL_IEEE1788_FORWARD1(atan)
+  GAOL_IEEE1788_FORWARD2(atan2)
+  GAOL_IEEE1788_FORWARD1(sinh)
+  GAOL_IEEE1788_FORWARD1(cosh)
+  GAOL_IEEE1788_FORWARD1(tanh)
+  GAOL_IEEE1788_FORWARD1(asinh)
+  GAOL_IEEE1788_FORWARD1(acosh)
+  GAOL_IEEE1788_FORWARD1(atanh)
 
   //! The integer functions: sign, ceil, floor and trunc of GAOL
-  using ::gaol::sign;
-  using ::gaol::ceil;
-  using ::gaol::floor;
-  using ::gaol::trunc;
+  GAOL_IEEE1788_FORWARD1(sign)
+  GAOL_IEEE1788_FORWARD1(ceil)
+  GAOL_IEEE1788_FORWARD1(floor)
+  GAOL_IEEE1788_FORWARD1(trunc)
   //! roundTiesToEven(x): round_ties_to_even(x)
   inline interval roundTiesToEven(const interval& x) { return ::gaol::round_ties_to_even(x); }
   //! roundTiesToAway(x): round_ties_to_away(x)
   inline interval roundTiesToAway(const interval& x) { return ::gaol::round_ties_to_away(x); }
 
   //! The absmax functions: abs, min and max of GAOL
-  using ::gaol::abs;
-  using ::gaol::min;
-  using ::gaol::max;
+  GAOL_IEEE1788_FORWARD1(abs)
+  GAOL_IEEE1788_FORWARD2(min)
+  GAOL_IEEE1788_FORWARD2(max)
 
   // ----------------------------------------------------------------------
   // Recommended forward functions (Table 10.5)
@@ -181,12 +217,12 @@ namespace gaol_ieee1788 {
   //! rootn(x, q): nth_root(x, q), q may be negative
   inline interval rootn(const interval& x, int q) { return ::gaol::nth_root(x, q); }
   //! expm1, exp2m1, exp10m1, log2p1, log10p1 and hypot: the functions of GAOL
-  using ::gaol::expm1;
-  using ::gaol::exp2m1;
-  using ::gaol::exp10m1;
-  using ::gaol::log2p1;
-  using ::gaol::log10p1;
-  using ::gaol::hypot;
+  GAOL_IEEE1788_FORWARD1(expm1)
+  GAOL_IEEE1788_FORWARD1(exp2m1)
+  GAOL_IEEE1788_FORWARD1(exp10m1)
+  GAOL_IEEE1788_FORWARD1(log2p1)
+  GAOL_IEEE1788_FORWARD1(log10p1)
+  GAOL_IEEE1788_FORWARD2(hypot)
   //! logp1(x): log1p(x), the name of C
   inline interval logp1(const interval& x) { return ::gaol::log1p(x); }
   //! rSqrt(x): rsqrt(x)
@@ -340,19 +376,13 @@ namespace gaol_ieee1788 {
   }
 
   /*!
-    intervalToExact(x): operator<< in interval_format::hexa, whose bounds in
-    the hexadecimal-significand form exactToInterval() reads back bit for bit
-    (13.4). The format GAOL was in is set back.
+    intervalToExact(x): exact_string(x), what operator<< writes in
+    interval_format::hexa, whose bounds in the hexadecimal-significand form
+    exactToInterval() reads back bit for bit (13.4). It does not go through
+    the global output format, which switching to hexa and back left in hexa
+    if the output threw, and changed for the other threads meanwhile.
   */
-  inline std::string intervalToExact(const interval& x)
-  {
-    const ::gaol::interval_format::format_t saved = interval::format();
-    interval::format(::gaol::interval_format::hexa);
-    std::ostringstream s;
-    s << x;
-    interval::format(saved);
-    return s.str();
-  }
+  inline std::string intervalToExact(const interval& x) { return ::gaol::exact_string(x); }
 
   //! exactToInterval(s): textToInterval(s)
   inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
@@ -368,6 +398,10 @@ namespace gaol_ieee1788 {
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
         and the exact ones of 12.13.5.
   */
+
+#undef GAOL_IEEE1788_FORWARD1
+#undef GAOL_IEEE1788_FORWARD2
+#undef GAOL_IEEE1788_FORWARD3
 
 } // namespace gaol_ieee1788
 

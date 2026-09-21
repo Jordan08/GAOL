@@ -23,6 +23,9 @@ set(GAOL_TESTS
   u128
   core_math
   expressions
+  # gaol_ieee1788 as a program uses it, gaol/gaol_expression.h included first
+  # (GAOL v5)
+  ieee1788
   # The results that doubles computed in extended precision, on the x87 unit,
   # round wrongly (GAOL v5)
   extended_precision
