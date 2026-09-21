@@ -32,6 +32,19 @@
 #ifndef __gaol_core_math_port_h__
 #define __gaol_core_math_port_h__
 
+/* GCC 14 for a 32-bit x86 target stopped on an internal compiler error in
+   asinpi_acc() of asinpi.c ("in extract_bit_field_1, at expmed.cc:1838", at
+   -O2 and -O3): its SLP vectorizer puts the two 64-bit halves of the 128-bit
+   integer, a structure there, in a vector it cannot take them out of again
+   (the continuous integration, MinGW-w64 14.2 x86; reproduced with the GCC
+   14.2 of Ubuntu and -m32). GCC 12, 13 and 15 compile it. The SLP vectorizer
+   is turned off for the sources of CORE-MATH with that compiler only, which
+   compute on scalars. */
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 14 \
+    && defined(__i386__) && !defined(__x86_64__)
+#pragma GCC optimize ("no-tree-slp-vectorize")
+#endif
+
 #include <stdint.h>
 
 /*---------------------------------------------------------------------------
