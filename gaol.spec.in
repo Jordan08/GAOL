@@ -14,7 +14,7 @@ Source0: %{name}-%{version}.tar.gz
 URL: ftp://gaol.sf.net/gaol-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-root
 Prefix: %{_prefix}
-Requires: mathlib /sbin/ldconfig
+Requires: /sbin/ldconfig
 Packager: Frederic Goualard <goualard@users.sourceforge.net>
 
 %description

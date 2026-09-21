@@ -40,14 +40,8 @@
 /* Define this if relation symbols should stand for \"set relations\" */
 #undef GAOL_SET_RELATIONS
 
-/* Define this to 1 if using the IBM APMathlib library */
-#undef GAOL_USING_APMATHLIB
-
 /* define this to 1 if you want to allow ASM support */
 #undef GAOL_USING_ASM
-
-/* Define this to 1 if using the CRLibm Mathematical library */
-#undef GAOL_USING_CRLIBM
 
 /* Define this to 1 to enable verbose mode */
 #undef GAOL_VERBOSE_MODE
@@ -63,9 +57,6 @@
 
 /* Define to 1 if you have the `clock' function. */
 #undef HAVE_CLOCK
-
-/* Define to 1 if you have the <crlibm.h> header file. */
-#undef HAVE_CRLIBM_H
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
@@ -100,9 +91,6 @@
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #undef HAVE_MALLOC
-
-/* Define to 1 if you have the <MathLib.h> header file. */
-#undef HAVE_MATHLIB_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

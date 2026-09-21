@@ -179,11 +179,8 @@ provided.
 
 ## The mathematical library is no longer a choice
 
-GAOL could be built with mathlib, with CRlibm or with the math library of the
-system (`--with-mathlib`), which gave three different sets of bounds. It is
-built with CORE-MATH only, whose sources are compiled into the library: the
-bounds above are the bounds on every machine, and the three builds refuse
-`--with-mathlib` rather than ignore it.
+GAOL is built with CORE-MATH only, whose sources are compiled into the
+library: the bounds above are the bounds on every machine.
 
 The bounds of this page are therefore those of every build of GAOL, and
 `tests/core_math.cpp` checks them against CORE-MATH called in the downward and

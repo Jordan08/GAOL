@@ -33,20 +33,9 @@ using namespace gaol_tests;
 namespace
 {
   // The largest distance from the tightest bounds allowed, in doubles: one,
-  // every function being the value of a correctly rounded library, mathlib or
-  // CORE-MATH, moved one double outward. It was 8, twice the 4 the hyperbolic
-  // functions reached, their values from the libm being moved three doubles
-  // outward (issue #1)
+  // GAOL taking the value of CORE-MATH in the upward rounding as the upper
+  // bound and the double below it as the lower one (see tests/core_math.cpp)
   const int limit = 1;
-
-  // atan2 is the value of mathlib moved one double outward. CRlibm has no
-  // atan2: built with it, GAOL takes the one of the libm moved three doubles
-  // outward, as for the hyperbolic functions, up to four from the tightest
-#if GAOL_USING_CRLIBM
-  const int atan2_limit = 4;
-#else
-  const int atan2_limit = 1;
-#endif
 
   typedef interval (*Unary)(const interval&);
 
@@ -136,23 +125,13 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if (f == "log") {
-        // CORE-MATH's log in the upward rounding, where GAOL takes it
-        // (GAOL_CORE_MATH_LOG, see gaol/gaol_core_math.h): the tightest bounds;
-        // mathlib's value moved one double outward otherwise
-#if defined(GAOL_CORE_MATH_LOG) && GAOL_CORE_MATH_LOG
-        expect_close(name, r, v.below, v.above, describe, 0);
-#else
-        expect_close(name, r, v.below, v.above, describe);
-#endif
-      } else if (f == "sin" || f == "cos" || f == "tan") {
-        // mathlib's values at the argument, moved one double outward: within
-        // one double of the tightest bounds, at every magnitude. Beyond 2^25,
-        // or next to an extremum or a pole, where the division of the argument
-        // by an enclosure of pi cannot tell whether an extremum is reached,
-        // the signs of the derivative tell (issue #6): GAOL's bounds were
-        // x^2 2^-103 + 2^-51 away, cos([2^60]) was [-1, 1], and the tangent of
-        // the double below pi/2 [-oo, +oo]
+      if (f == "sin" || f == "cos" || f == "tan") {
+        // Within one double of the tightest bounds, at every magnitude. Beyond
+        // 2^25, or next to an extremum or a pole, where the division of the
+        // argument by an enclosure of pi cannot tell whether an extremum is
+        // reached, the signs of the derivative tell (issue #6): GAOL's bounds
+        // were x^2 2^-103 + 2^-51 away, cos([2^60]) was [-1, 1], and the
+        // tangent of the double below pi/2 [-oo, +oo]
         expect_close(name, r, v.below, v.above, describe, 1);
       } else {
         expect_close(name, r, v.below, v.above, describe);
@@ -163,15 +142,13 @@ namespace
       const std::string name = std::string(v.function) + "([a],[b])";
       const auto arguments = [&] { return std::string(v.function) + "(" + hex(v.a) + ", " + hex(v.b) + ")"; };
       if (std::strcmp(v.function, "atan2") == 0) {
-        // The value of mathlib moved one double outward
         const interval angle = evaluate(name, [&] { return atan2(interval(v.a), interval(v.b)); }, arguments);
         expect_close(name, angle, v.below, v.above, [&] {
           return arguments() + " = " + hex(angle) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
-        }, atan2_limit);
+        }, limit);
         continue;
       }
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
-      // The pow of mathlib, correctly rounded, moved one double outward
       expect_close(name, r, v.below, v.above, [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       }, 1);
@@ -249,7 +226,7 @@ namespace
                                       : doubles_between(r.left(), b.least_below),
                                       (b.greatest_below == b.greatest_above) ? 2*doubles_between(b.greatest_above, r.right())
                                       : doubles_between(b.greatest_above, r.right()));
-        check_distance("atan2([y],[x]) over boxes", distance, atan2_limit, describe);
+        check_distance("atan2([y],[x]) over boxes", distance, limit, describe);
       }
     }
 

@@ -9,9 +9,7 @@
  * GAOL bounds every one of its elementary functions with them, on every
  * architecture and with every compiler (GAOL v5): computed in the upward
  * rounding GAOL keeps, they give the tightest bounds without switching the
- * rounding direction, where the functions of mathlib, correctly rounded to
- * nearest only, had to be moved one double outward, and where those of the
- * math library of the system are not accurate enough for that to be a bound.
+ * rounding direction.
  *
  * Their sources are those of CORE-MATH, in 3rd/math-core/src/binary64,
  * compiled into GAOL's library under the names below, the three builds

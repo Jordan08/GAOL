@@ -639,7 +639,6 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-GAOL_PC_MATHLIB
 GAOL_PC_VERSION
 GAOL_PC_CFLAGS
 DOT
@@ -656,7 +655,6 @@ CPPUNIT_COND_TRUE
 DLLIB
 IS_CYGWIN_COND_FALSE
 IS_CYGWIN_COND_TRUE
-MATHLIB
 CORE_MATH_EXCESS_PRECISION
 CORE_MATH_NO_LTO
 COMPILE_INTERVAL2_FALSE
@@ -812,9 +810,6 @@ enable_libtool_lock
 enable_simd
 enable_float_intervals
 enable_fma
-with_mathlib
-with_mathlib_include
-with_mathlib_lib
 enable_verbose_mode
 enable_optimize
 enable_debug
@@ -1512,10 +1507,6 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-mathlib          removed: GAOL computes its elementary functions with
-                          CORE-MATH only
-  --with-mathlib-include  removed, see --with-mathlib
-  --with-mathlib-lib      removed, see --with-mathlib
   --with-cppunit-include  Specify the include path for cppunit
   --with-cppunit-lib      Specify the library path for cppunit
 
@@ -17093,32 +17084,7 @@ fi
 #
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
 # takes its values as bounds without moving them outward and without switching
-# the rounding direction (gaol/gaol_double_op.h). mathlib (the IBM Accurate
-# Portable Mathematical Library), CRlibm and the math library of the system,
-# which GAOL could be built with, are no longer used: the first two are
-# correctly rounded to nearest only, and the third is not accurate enough on
-# every system for its values moved outward to be bounds.
-#
-# The options naming them are refused rather than ignored, so that a script
-# still giving them is told what happened.
-
-# Check whether --with-mathlib was given.
-if test "${with_mathlib+set}" = set; then :
-  withval=$with_mathlib; as_fn_error $? "--with-mathlib is no longer available: GAOL bounds every elementary function with CORE-MATH, whose sources (3rd/math-core) are compiled into the library. mathlib, CRlibm and the math library of the system are no longer used." "$LINENO" 5
-fi
-
-
-# Check whether --with-mathlib-include was given.
-if test "${with_mathlib_include+set}" = set; then :
-  withval=$with_mathlib_include; as_fn_error $? "--with-mathlib-include is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to find." "$LINENO" 5
-fi
-
-
-# Check whether --with-mathlib-lib was given.
-if test "${with_mathlib_lib+set}" = set; then :
-  withval=$with_mathlib_lib; as_fn_error $? "--with-mathlib-lib is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to link." "$LINENO" 5
-fi
-
+# the rounding direction (gaol/gaol_double_op.h).
 # -fno-lto for the sources of CORE-MATH, where the user compiles GAOL with
 # -flto: the interprocedural optimization is worth having on GAOL's own
 # operations and costs on the elementary functions (see doc/three-builds.md)
@@ -17211,8 +17177,6 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)" >&5
 $as_echo "$as_me: elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)" >&6;}
-MATHLIB=""
-
 
 
 
@@ -18846,10 +18810,6 @@ done
 
 # The version for gaol.pc, without the quotes VERSION carries
 GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
-
-# No mathematical library is named in gaol.pc any more: the functions of
-# CORE-MATH are compiled into libgaol itself
-GAOL_PC_MATHLIB=""
 
 
 

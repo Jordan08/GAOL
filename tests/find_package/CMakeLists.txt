@@ -4,7 +4,7 @@
 #
 # Builds the tests of the parent directory with the GAOL that find_package()
 # finds, as a project using GAOL would, which checks that gaol::gaol carries
-# what they need (include directories, mathlib, compilation flags):
+# what they need (include directories, compilation flags):
 #
 #   cmake -S tests/find_package -B build-find-package -DCMAKE_PREFIX_PATH=<prefix of GAOL>
 #   cmake --build build-find-package

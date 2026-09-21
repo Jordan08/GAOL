@@ -61,20 +61,19 @@ EXTRA_DIST = gaolcc.in tests.h
 
 TESTS = $(check_PROGRAMS)
 
-# GAOL's own directories before those configure adds to CPPFLAGS
-# (--with-mathlib-include), which come first otherwise: a prefix holding
-# mathlib may hold an installed GAOL too, whose headers were then included
-# rather than those of the sources
+# GAOL's own directories before those given in CPPFLAGS, which come first
+# otherwise: a prefix given there may hold an installed GAOL too, whose headers
+# were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 
 #// TODO (goualard#4#): Handle cppunit under Windows
 # The library just built, by its libtool archive, rather than -lgaol with
-# -L../gaol/.libs, which came after the -L of --with-mathlib-lib: a prefix
-# holding mathlib may hold an installed GAOL too, which was then linked
+# -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
+# there may hold an installed GAOL too, which was then linked
 if IS_CYGWIN_COND
-LDADD = $(top_builddir)/gaol/libgaol.la -lm @MATHLIB@ $(CPPUNIT_LIB)
+LDADD = $(top_builddir)/gaol/libgaol.la -lm $(CPPUNIT_LIB)
 else
-LDADD = -lm $(top_builddir)/gaol/libgaol.la $(CPPUNIT_LIB) @DLLIB@ @MATHLIB@
+LDADD = -lm $(top_builddir)/gaol/libgaol.la $(CPPUNIT_LIB) @DLLIB@
 endif
 
 
@@ -88,7 +87,7 @@ perf:
 	@date | tee performances_result.txt
 	@hostname | tee -a performances_result.txt
 	@echo "Compiler: @CXX@" | tee -a performances_result.txt
-	@echo "Mathematical library: @MATHLIB@" | tee -a performances_result.txt
+	@echo "Elementary functions: CORE-MATH" | tee -a performances_result.txt
 	./performances add 10 $(PROBABILITIES) | tee -a performances_result.txt
 	./performances sub 10 $(PROBABILITIES) | tee -a performances_result.txt
 	./performances mul 10 $(PROBABILITIES) | tee -a performances_result.txt

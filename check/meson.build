@@ -205,7 +205,7 @@ if build_tests
     # run_command('date | tee performances_result.txt')
     # run_command('hostname | tee -a performances_result.txt')
     # run_command('echo "Compiler: @CXX@" | tee -a performances_result.txt')
-    # run_command('echo "Mathematical library: '+mathlib+'" | tee -a performances_result.txt')
+    # run_command('echo "Elementary functions: CORE-MATH" | tee -a performances_result.txt')
     # run_command('./performances add 10 '+PROBABILITIES+' | tee -a performances_result.txt')
     # run_command('./performances sub 10 '+PROBABILITIES+' | tee -a performances_result.txt')
     # run_command('./performances mul 10 '+PROBABILITIES+' | tee -a performances_result.txt')

@@ -37,14 +37,8 @@
 /* Define this if relation symbols should stand for \"set relations\" */
 #mesondefine GAOL_SET_RELATIONS
 
-/* Define this to 1 if using the IBM APMathlib library */
-#mesondefine GAOL_USING_APMATHLIB
-
 /* define this to 1 if you want to allow ASM support */
 #mesondefine GAOL_USING_ASM
-
-/* Define this to 1 if using the CRLibm Mathematical library */
-#mesondefine GAOL_USING_CRLIBM
 
 /* Define this to 1 to enable verbose mode */
 #mesondefine GAOL_VERBOSE_MODE
@@ -60,9 +54,6 @@
 
 /* Define to 1 if you have the `clock' function. */
 #mesondefine HAVE_CLOCK
-
-/* Define to 1 if you have the <crlibm.h> header file. */
-#mesondefine HAVE_CRLIBM_H
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #mesondefine HAVE_DLFCN_H
@@ -97,9 +88,6 @@
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #mesondefine HAVE_MALLOC
-
-/* Define to 1 if you have the <MathLib.h> header file. */
-#mesondefine HAVE_MATHLIB_H
 
 /* Define to 1 if you have the `memset' function. */
 #mesondefine HAVE_MEMSET

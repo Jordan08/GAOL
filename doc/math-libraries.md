@@ -65,8 +65,7 @@ ARM's `optimized-routines`, and the vector variants.
 
 This is why GAOL could not keep the libm of the system as an option: the bounds
 would not be certified, holding only where that libm stays within about one
-double of the exact value. `--with-mathlib` and its companions are refused by
-the three builds rather than ignored, there being nothing left to choose.
+double of the exact value.
 
 ## mathlib, the IBM Accurate Portable Mathematical Library (libultim)
 

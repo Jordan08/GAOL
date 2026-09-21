@@ -39,21 +39,8 @@ exception = get_option('enable-exception')
 # GAOL bounds every one of its elementary functions with CORE-MATH
 # (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
 # 3rd/math-core and are compiled into libgaol itself (gaol/meson.build): there
-# is no library to find, to build apart or to link along with GAOL. mathlib,
-# CRlibm and the math library of the system, which GAOL could be built with,
-# are no longer used.
-#
-# The options naming them are refused rather than ignored, so that a script
-# still giving them is told what happened.
-foreach _opt : ['with-mathlib', 'with-mathlib-include', 'with-mathlib-lib']
-  if get_option(_opt) != ''
-    error(_opt + ' is no longer available: GAOL bounds every elementary function with CORE-MATH, '
-      + 'whose sources (3rd/math-core) are compiled into the library.')
-  endif
-endforeach
+# is no library to find, to build apart or to link along with GAOL.
 message('Elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)')
-mathlib_pc_libs = []
-mathlib_dep = dependency('', required: false)
 
 doc = get_option('with-doc')
 build_tests = get_option('with-test')
@@ -426,7 +413,7 @@ endif
 ## In a meson project: gaol_dep = dependency('gaol')
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: [gaollib] + mathlib_pc_libs + ['-lm'],
+  libraries: [gaollib, '-lm'],
   name: 'gaol',
   description: 'GAOL, Not Just Another Interval Library',
   url: 'https://github.com/Jordan08/GAOL',

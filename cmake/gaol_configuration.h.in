@@ -108,12 +108,6 @@
 /* nextafter() and isnan() are standard since Visual Studio 2013 */
 #  define HAVE_NEXTAFTER 1
 #  define HAVE_ISNAN 1
-#  ifdef __cplusplus
-/* mathlib is a static library: GAOL declares its functions without
-   __declspec(dllimport) (see the #ifndef around the definition of
-   _MATHLIB_DLL_ in gaol/gaol_double_op_apmathlib.h). */
-#    define _MATHLIB_DLL_ extern "C"
-#  endif
 #endif
 
 #endif /* __gaol_configuration_h__ */

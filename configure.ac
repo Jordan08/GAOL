@@ -350,23 +350,7 @@ fi
 #
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
 # takes its values as bounds without moving them outward and without switching
-# the rounding direction (gaol/gaol_double_op.h). mathlib (the IBM Accurate
-# Portable Mathematical Library), CRlibm and the math library of the system,
-# which GAOL could be built with, are no longer used: the first two are
-# correctly rounded to nearest only, and the third is not accurate enough on
-# every system for its values moved outward to be bounds.
-#
-# The options naming them are refused rather than ignored, so that a script
-# still giving them is told what happened.
-AC_ARG_WITH([mathlib],
-    [AS_HELP_STRING([--with-mathlib],[removed: GAOL computes its elementary functions with CORE-MATH only])],
-    [AC_MSG_ERROR([--with-mathlib is no longer available: GAOL bounds every elementary function with CORE-MATH, whose sources (3rd/math-core) are compiled into the library. mathlib, CRlibm and the math library of the system are no longer used.])])
-AC_ARG_WITH([mathlib-include],
-    [AS_HELP_STRING([--with-mathlib-include],[removed, see --with-mathlib])],
-    [AC_MSG_ERROR([--with-mathlib-include is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to find.])])
-AC_ARG_WITH([mathlib-lib],
-    [AS_HELP_STRING([--with-mathlib-lib],[removed, see --with-mathlib])],
-    [AC_MSG_ERROR([--with-mathlib-lib is no longer available: CORE-MATH is compiled into GAOL, there is no mathematical library to link.])])
+# the rounding direction (gaol/gaol_double_op.h).
 # -fno-lto for the sources of CORE-MATH, where the user compiles GAOL with
 # -flto: the interprocedural optimization is worth having on GAOL's own
 # operations and costs on the elementary functions (see doc/three-builds.md)
@@ -388,8 +372,6 @@ fi
 AC_SUBST([CORE_MATH_EXCESS_PRECISION])
 
 AC_MSG_NOTICE([elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)])
-MATHLIB=""
-AC_SUBST([MATHLIB])
 
 
 
@@ -670,10 +652,6 @@ AC_SUBST([GAOL_PC_CFLAGS])
 # The version for gaol.pc, without the quotes VERSION carries
 GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
 AC_SUBST([GAOL_PC_VERSION])
-# No mathematical library is named in gaol.pc any more: the functions of
-# CORE-MATH are compiled into libgaol itself
-GAOL_PC_MATHLIB=""
-AC_SUBST([GAOL_PC_MATHLIB])
 
 
 # Checks for library functions.

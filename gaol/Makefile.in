@@ -321,7 +321,6 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GAOL_EDITION = @GAOL_EDITION@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
-GAOL_PC_MATHLIB = @GAOL_PC_MATHLIB@
 GAOL_PC_VERSION = @GAOL_PC_VERSION@
 GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
@@ -346,7 +345,6 @@ MAINT = @MAINT@
 MAKEINDEX = @MAKEINDEX@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
-MATHLIB = @MATHLIB@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -444,10 +442,9 @@ MAINTAINERCLEANFILES = *.~* *.obj gaol_interval_lexer.cpp gaol_interval_parser.c
 @COMPILE_INTERVAL2_FALSE@INTERVAL2_HEADER = 
 @COMPILE_INTERVAL2_TRUE@INTERVAL2_HEADER = gaol_interval2f.h
 
-# GAOL's own directories before those configure adds to CPPFLAGS
-# (--with-mathlib-include), which come first otherwise: a prefix holding
-# mathlib may hold an installed GAOL too, whose headers were then included
-# rather than those of the sources
+# GAOL's own directories before those given in CPPFLAGS, which come first
+# otherwise: a prefix given there may hold an installed GAOL too, whose headers
+# were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 libgaol_la_SOURCES = \
 	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \

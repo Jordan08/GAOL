@@ -14,9 +14,9 @@ from. Each change is a commit of its own, and says where it comes from.
   - mathlib (the IBM Accurate Portable Mathematical Library), CRlibm and the
     math library of the system are gone, with `3rd/mathlib`,
     `gaol/gaol_double_op_{apmathlib,crlibm,m}.h` and the scripts that installed
-    them. The three builds refuse `--with-mathlib` and its two companions
-    rather than ignore them: there is nothing to choose, to find, to build
-    apart or to link along with GAOL, whose library holds the functions.
+    them, and so are `--with-mathlib` and its two companions: there is nothing
+    to choose, to find, to build apart or to link along with GAOL, whose
+    library holds the functions.
   - The bounds are **the tightest ones** rather than one double beyond.
     CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
     takes the value at a bound, computed in the upward rounding it keeps, as
@@ -771,18 +771,11 @@ from. Each change is a commit of its own, and says where it comes from.
   which it did not compile on Linux, and installs the headers for MinGW and
   Visual C++, as configure now does too (and `gaol/gaol_interval2f.h`, which
   it left out, with the intervals of floats). Both install
-  a `gaol.pc` carrying the flags of interval arithmetic, and meson takes
-  `with-mathlib-include` and `with-mathlib-lib` as configure does.
-- **mathlib is in the sources** (`3rd/mathlib`, see
-  [3rd/README.md](../3rd/README.md)): the archive of mathlib 2.1.1, with the
-  fixes above. The three builds compile it themselves, with the flags of
-  interval arithmetic, and install it along with GAOL, unless told to use an
-  installed one. The CMake build downloaded the archive from Frédéric
-  Goualard's site in each new build directory and patched it; the autotools
-  and meson builds needed mathlib installed beforehand, with
-  `scripts/install-mathlib.sh`, which downloaded it too. GAOL can now be built
-  as a part of another project, brought in by FetchContent, with no network
-  access beyond its own sources (`tests/fetch_content`).
+  a `gaol.pc` carrying the flags of interval arithmetic.
+- **CORE-MATH is in the sources** (`3rd/math-core`, see
+  [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
+  project, brought in by FetchContent, with no network access beyond its own
+  sources (`tests/fetch_content`).
 - **The manual compiles again**, and `manual/gaol.pdf` is the one of GAOL v5
   (issue #13): the PDF was the one of the original GAOL, of 2009, while
   `gaol.tex` had followed the changes of GAOL v5, and no longer compiled.

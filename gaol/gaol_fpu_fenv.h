@@ -29,8 +29,7 @@
 /* fesetenv() on Linux
 
    The original GAOL noted here that fesetenv() did not seem to work
-   correctly on Linux, which did not matter once mathlib's Init_Lib() had set
-   the precision of the x87 unit to 53 bits. fesetenv() was not at fault, but
+   correctly on Linux. fesetenv() was not at fault, but
    what GAOL gave it: reset_fpu_cw() wrote GAOL_FPU_MASK into the control word
    of fenv_t with fegetenv() and fesetenv(), the control word of the x87 unit
    on x86 Linux and macOS, whereas GAOL's doubles are computed with SSE2
@@ -127,15 +126,12 @@ INLINE double next_float(double d)
   On x86 processors, the control registers of the two floating-point units
   are written directly: the rounding bits of the x87 control word (fnstcw,
   fldcw) and of the SSE control register MXCSR (stmxcsr, ldmxcsr), what
-  fesetround() does after checking its argument, through a call. GAOL changes
-  the direction twice for each exp(), log(), sin() or cos() of an interval
-  (to nearest before mathlib, upward after, see GAOL_RND_NEAREST_ENTER()), and
-  fesetround() cost 130 ns per call with mingw-w64 13, 50 ns with the C
-  runtime of Visual C++ for x64 and 250 ns for x86, 8.5 ns with glibc.
-  The doubles of GAOL and of mathlib are computed with SSE2 instructions
-  (MXCSR); the x87 unit serves the C library's long doubles and, with
-  MinGW-w64, some of its functions, whose results GAOL widens (the hyperbolic
-  functions) or bounds whatever their rounding (sqrt). Both are set, as
+  fesetround() does after checking its argument, through a call, which cost
+  130 ns with mingw-w64 13, 50 ns with the C runtime of Visual C++ for x64 and
+  250 ns for x86, 8.5 ns with glibc. The doubles of GAOL and of CORE-MATH are
+  computed with SSE2 instructions (MXCSR); the x87 unit serves the C library's
+  long doubles and, with MinGW-w64, some of its functions, whose results GAOL
+  bounds whatever their rounding (sqrt). Both are set, as
   fesetround() sets them, so that fegetround() reads the direction set (with
   Visual C++ for x86, fegetround() returns -1 when the two differ). With
   Visual C++ for x64, MXCSR only: the x87 unit is not used there, and Visual

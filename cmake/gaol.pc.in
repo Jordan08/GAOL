@@ -14,4 +14,4 @@ Description: GAOL, Not Just Another Interval Library
 URL: https://github.com/Jordan08/GAOL
 Version: @PROJECT_VERSION@
 Cflags: -I${includedir} @GAOL_INTERVAL_FLAGS_STRING@ @GAOL_FMA_FLAGS_STRING@
-Libs: -L${libdir} -lgaol @GAOL_PC_MATHLIB@ -lm
+Libs: -L${libdir} -lgaol -lm

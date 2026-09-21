@@ -2,10 +2,8 @@
 # autotools and with meson, which compile the sources of CORE-MATH into libgaol
 # as the CMake build does. The tests are built with each installed GAOL, on
 # Linux (x86_64, arm64, and i386 and armhf in containers), macOS (arm64,
-# x86_64) and Windows (MSYS2). Checks that configure and meson refuse the
-# options that chose a mathematical library before GAOL v5, and that the three
-# builds give GAOL the same configuration on each kind of machine
-# (.github/audit).
+# x86_64) and Windows (MSYS2). Checks that the three builds give GAOL the same
+# configuration on each kind of machine (.github/audit).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -116,61 +114,6 @@ jobs:
         run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
-
-  # The options naming another mathematical library are refused rather than
-  # ignored: GAOL bounds its elementary functions with CORE-MATH only, whose
-  # sources are compiled into the library (GAOL v5)
-  mathlib-options-refused:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { build: cmake,     option: '-DMATHLIB_DIR=/tmp/none',           desc: 'CMake, MATHLIB_DIR is unknown' }
-          - { build: autotools, option: '--with-mathlib=crlibm',             desc: 'Autotools, --with-mathlib refused' }
-          - { build: autotools, option: '--with-mathlib-include=/tmp/none',  desc: 'Autotools, --with-mathlib-include refused' }
-          - { build: autotools, option: '--with-mathlib-lib=/tmp/none',      desc: 'Autotools, --with-mathlib-lib refused' }
-          - { build: meson,     option: '-Dwith-mathlib=crlibm',             desc: 'Meson, with-mathlib refused' }
-          - { build: meson,     option: '-Dwith-mathlib-lib=/tmp/none',      desc: 'Meson, with-mathlib-lib refused' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Tools
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ make cmake flex bison pipx autoconf automake libtool pkg-config
-          pipx install meson
-          pipx install ninja
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Configure, which has to fail or to say the option is unknown
-        run: |
-          set +e
-          case "${{ matrix.cfg.build }}" in
-            cmake)
-              # CMake warns about an unknown variable rather than failing
-              cmake -S . -B build ${{ matrix.cfg.option }} > configure.log 2>&1
-              status=$?
-              cat configure.log
-              grep -q "Elementary functions: CORE-MATH" configure.log
-              test "$status" = 0
-              ;;
-            autotools)
-              find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-              ./configure ${{ matrix.cfg.option }} > configure.log 2>&1
-              status=$?
-              cat configure.log
-              test "$status" != 0
-              grep -q "no longer available" configure.log
-              ;;
-            meson)
-              meson setup build-meson ${{ matrix.cfg.option }} > configure.log 2>&1
-              status=$?
-              cat configure.log
-              test "$status" != 0
-              grep -q "no longer available" configure.log
-              ;;
-          esac
 
   container:
     name: ${{ matrix.cfg.desc }}

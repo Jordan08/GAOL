@@ -53,10 +53,9 @@ INTERVAL2_SOURCE=
 INTERVAL2_HEADER=
 endif
 
-# GAOL's own directories before those configure adds to CPPFLAGS
-# (--with-mathlib-include), which come first otherwise: a prefix holding
-# mathlib may hold an installed GAOL too, whose headers were then included
-# rather than those of the sources
+# GAOL's own directories before those given in CPPFLAGS, which come first
+# otherwise: a prefix given there may hold an installed GAOL too, whose headers
+# were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 
 libgaol_la_SOURCES = \

@@ -670,12 +670,10 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaolConfig.cmake" "${CMAKE_CURRENT_BI
   DESTINATION ${GAOL_INSTALL_CMAKEDIR})
 
 # The pkg-config file, for the builds that are not CMake (pkg-config --cflags
-# --libs gaol): the flags of interval arithmetic, as gaol::gaol carries them.
-# No mathematical library is named any more: the functions of CORE-MATH are
-# compiled into libgaol itself. Not with Visual C++, whose libraries pkg-config
-# does not name.
+# --libs gaol): the flags of interval arithmetic, as gaol::gaol carries them,
+# and libgaol, into which the functions of CORE-MATH are compiled. Not with
+# Visual C++, whose libraries pkg-config does not name.
 if(NOT MSVC)
-  set(GAOL_PC_MATHLIB "")
   configure_file(cmake/gaol.pc.in "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()

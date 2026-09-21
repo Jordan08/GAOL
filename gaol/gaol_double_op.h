@@ -33,21 +33,6 @@
     the exact value is a double, and the operations of gaol/gaol_interval.cpp
     give those exactly (log(1) = 0, sin(0) = 0, asin(1) = the bounds of pi/2...).
 
-  This replaces mathlib (the IBM Accurate Portable Mathematical Library) and
-  CRlibm, which GAOL could be built with, and the math library of the system,
-  with which the bounds were not certified:
-
-  - mathlib is correctly rounded to nearest only, so each bound had to be
-    moved one double outward, and the rounding direction had to be set to
-    nearest and back around every call. On an Intel i7-1185G7 with Clang 18,
-    the bounds of log took 30 ns rather than 62;
-  - the functions of the math library of the system are not accurate enough on
-    every system for their values moved outward to be bounds: on 2000 random
-    arguments of each function, the libms of glibc 2.31, musl and MinGW-w64
-    returned doubles beyond the two around the exact value for sinh, cosh,
-    tanh, acosh and atanh (86 times for tanh), and the acosh() of MinGW-w64 11
-    to 13 is millions of doubles away next to 1.
-
   \author Frederic Goualard, then GAOL v5
 */
 
@@ -158,26 +143,7 @@ namespace gaol {
 
   /*
     The hyperbolic functions below are those of CORE-MATH (gaol_core_math.h),
-    correctly rounded, mathlib having none (GAOL v5, issue #1): rounded to
-    nearest and moved one double outward, as the functions of mathlib, their
-    values enclose the exact ones, within one double of the tightest bounds.
-    GAOL took them from the libm of the system and moved them one float
-    outward, which only encloses the exact values when the libm is within one
-    float of them, and it is not always: on 2000 random arguments of each
-    function, the libms of glibc 2.31, musl and MinGW-w64 returned doubles
-    beyond the two around the exact value for sinh, cosh, tanh, acosh and atanh
-    (86 times for tanh), GAOL's asinh() did not enclose
-    asinh(-0x1.ee84df02a8766p-4), nor its acosh() acosh(0x1.01fd62fff333fp+0),
-    and the acosh() of MinGW-w64 11 to 13 is millions of doubles away next to 1.
-    GAOL v5 first moved the values of the libm three floats outward, which
-    encloses the exact values as long as the libm is within two floats of them.
-  */
-  /*
-    The bounds of the functions below, computed in the rounding direction to
-    nearest, which the mathematical library needs, set beforehand
-    (GAOL_RND_NEAREST_ENTER()): an operation of GAOL sets the direction once
-    for both of its bounds, rather than twice for each (GAOL v5). The
-    functions of the same names in gaol:: set it themselves.
+    correctly rounded, as the other elementary functions (GAOL v5, issue #1).
   */
 
   /*
