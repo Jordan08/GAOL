@@ -727,8 +727,13 @@ namespace gaol {
 					     interval& I);
   //! I^2
   extern __GAOL_PUBLIC__   interval sqr(const interval& I);
-  //! I^e for an integer e.
-  extern __GAOL_PUBLIC__   interval pow(const interval& I, int e);
+  /*!
+    \brief I^e for an integer e, the pown of IEEE 1788-2015 (GAOL v5 name)
+
+    Defined for a negative base too; [1] for e = 0, 0 included, and no value
+    at 0 for e < 0. pow(I, e) below is this function.
+  */
+  extern __GAOL_PUBLIC__   interval pown(const interval& I, int e);
   /*
     I^e for an unsigned e, the pown of IEEE 1788-2015: [1] for e = 0 and the
     empty set for an empty I. Declared here too, and defined out of line with
@@ -739,37 +744,27 @@ namespace gaol {
   extern __GAOL_PUBLIC__   interval uipow(const interval& I, unsigned int e);
 
   /*!
-    \brief I^J (GAOL v5)
+    \brief I^J, the pow of IEEE 1788-2015 (Table 9.1) (GAOL v5)
 
-    A degenerate integer exponent J = [n] always takes the integer power
-    pow(const interval&, int), the pown of IEEE 1788, which is defined for a
-    negative base too, gives x^0 = 1 for any x, 0 included, and has no value
-    at 0 for n < 0; for an n beyond the ints, the result is [-oo,+oo]. Any
-    other exponent takes the pow of IEEE 1788, exp(J log(I)) on the part of I
-    in [0,+oo], where 0^y is 0 for y > 0 and has no value for y <= 0:
-    pow([-4,9],[0.5]) is [0,3], pow([0],[0,1]) is [0], and
-    pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5]) are empty. An exponent [+oo] or
-    [-oo] contains no real number, and gives the empty set. The result is thus
-    not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
-    pow([0],[0]) is [1].
+    exp(J log(I)) on the part of I in [0,+oo], where 0^y is 0 for y > 0 and
+    has no value for y <= 0: pow_real([-4,9],[0.5]) is [0,3],
+    pow_real([0],[0,1]) is [0], and pow_real([-4,-1],[2]) and
+    pow_real([0],[-0.5]) are empty. An exponent [+oo] or [-oo] contains no
+    real number, and gives the empty set. It is gaol_ieee1788::pow.
+  */
+  extern __GAOL_PUBLIC__   interval pow_real(const interval &I, const interval &J);
+
+  /*!
+    \brief I^J, GAOL's power of two intervals (GAOL v5)
+
+    A degenerate integer exponent J = [n] always takes pown(I, n), which is
+    defined for a negative base too, gives x^0 = 1 for any x, 0 included, and
+    has no value at 0 for n < 0; for an n beyond the ints, the result is
+    [-oo,+oo]. Any other exponent takes pow_real(I, J). The result is thus
+    not monotone for the inclusion of J: pow_hybrid([-4,-1],[2]) is [1,16],
+    and pow_hybrid([0],[0]) is [1]. pow(I, J) below is this function.
   */
   extern __GAOL_PUBLIC__   interval pow_hybrid(const interval &I, const interval &J);
-
-  /*
-    pow(I,J) is pow_hybrid(I,J), as a function template whose parameter is
-    never deduced (GAOL v5). gaol_ieee1788::pow (gaol/gaol_ieee1788.h), the
-    pow of IEEE 1788-2015, has the same parameters, and argument-dependent
-    lookup finds this one beside it: overload resolution prefers a plain
-    function to a template that fits as well, so that pow(x,y) under using
-    namespace gaol_ieee1788 is the standard's, where two plain functions made
-    the call ambiguous. Anywhere else, this template is the only pow of two
-    intervals.
-  */
-  template <typename T = void>
-  inline interval pow(const interval &I, const interval &J)
-  {
-    return pow_hybrid(I, J);
-  }
 
   /*!
     \brief I^p for a floating-point p (GAOL v5)
@@ -777,13 +772,43 @@ namespace gaol {
     Without it, pow(I,2.5) called pow(const interval&, int), converting a
     double to an int being a standard conversion and converting it to an
     interval a user-defined one: the exponent was truncated, and pow([4],0.5)
-    returned [1]. An integer p within the ints is computed by
-    pow(const interval&, int), which is defined for negative bases too, any
-    other p by pow(const interval&, const interval&), and an infinite or NaN p
-    gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
-    Ninin).
+    returned [1]. An integer p within the ints is computed by pown(I, p),
+    which is defined for negative bases too, any other p by
+    pow_real(I, [p]), and an infinite or NaN p gives the empty set. Ported
+    from the fix of Codac (commit 74086ccb, Jordan Ninin). pow(I, p) below is
+    this function.
   */
-  extern __GAOL_PUBLIC__  interval pow(const interval& I, double p);
+  extern __GAOL_PUBLIC__  interval pow_hybrid(const interval& I, double p);
+
+  /*!
+    \brief pow(I, e), pow(I, J), pow(I, p): GAOL's power, pown(I, e),
+    pow_hybrid(I, J) and pow_hybrid(I, p) (GAOL v5)
+
+    Function templates whose parameter is never deduced. gaol_ieee1788::pow
+    (gaol/gaol_ieee1788.h), the pow of IEEE 1788-2015, has the same
+    parameters, and argument-dependent lookup finds these beside it: overload
+    resolution prefers a plain function to a template that fits as well, so
+    that pow(x, y), pow(x, 2) and pow(x, 0.5) under using namespace
+    gaol_ieee1788 are the standard's, where two plain functions made the call
+    ambiguous. Anywhere else, these templates are the only pow of an interval.
+    The library still defines the three plain functions they replaced, for the
+    programs compiled against the former header.
+  */
+  template <typename T = void>
+  inline interval pow(const interval& I, int e)
+  {
+    return pown(I, e);
+  }
+  template <typename T = void>
+  inline interval pow(const interval& I, const interval& J)
+  {
+    return pow_hybrid(I, J);
+  }
+  template <typename T = void>
+  inline interval pow(const interval& I, double p)
+  {
+    return pow_hybrid(I, p);
+  }
 
   /*!
     \brief relational square root of J w.r.t. I

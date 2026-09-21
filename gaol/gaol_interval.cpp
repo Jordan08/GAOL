@@ -887,7 +887,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
 
 
-	interval pow(const interval& I, int n)
+	interval pown(const interval& I, int n)
 	{
 		if (I.is_empty()) {
 			return I;
@@ -943,14 +943,33 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       takes the integer power, pown of IEEE 1788, which is defined for a
       negative base too, is 1 at p = 0 for any x, 0 included, and has no value
       at x = 0 for p < 0 (Table 9.1, footnote b), and any other exponent the
-      pow of IEEE 1788, defined for x > 0, and for x = 0 when y > 0.
+      pow of IEEE 1788, pow_real().
     */
     if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
       if (J.is_an_int()) {
-        return pow(I,int(J.left()));
+        return pown(I,int(J.left()));
       }
-      // An integer beyond the ints, for which pow(I,int) cannot be called
+      // An integer beyond the ints, for which pown cannot be called
       return interval::universe();
+    }
+    return pow_real(I, J);
+  }
+
+  /*
+    The pow of IEEE 1788-2015 (Table 9.1), defined for x > 0, and for x = 0
+    when y > 0 (GAOL v5). It was the second half of pow_hybrid(), which
+    gaol_ieee1788::pow went through after repeating its first checks, taking
+    pown for any degenerate integer exponent: an exponent beyond the ints gave
+    [-oo,+oo], even for a positive base.
+  */
+  interval pow_real(const interval &I, const interval &J)
+  {
+    if (I.is_empty() || J.is_empty()) {
+      return interval::emptyset();
+    }
+    // [+oo] and [-oo] contain no real number (10.5.8)
+    if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {
+      return interval::emptyset();
     }
 
     /*
@@ -967,6 +986,12 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     // c), which exp(J*log([0])) does not give, log([0]) being empty
     if (base.right() == 0.0) {
       return J.right() > 0.0 ? interval::zero() : interval::emptyset();
+    }
+    // A degenerate integer exponent within the ints: pown on the base, which
+    // is x^n for x >= 0 and gives the powers that are doubles exactly, where
+    // the corners below are one double wide
+    if (J.left() == J.right() && std::floor(J.left()) == J.left() && J.is_an_int()) {
+      return pown(base, int(J.left()));
     }
     /*
       For a base above 0 and finite bounds, CORE-MATH's pow at the corners of
@@ -1013,21 +1038,45 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     Without it, pow(I,2.5) called pow(const interval&, int), converting a
     double to an int being a standard conversion and converting it to an
     interval a user-defined one: the exponent was truncated, and pow([4],0.5)
-    returned [1]. An integer p within the ints is computed by
-    pow(const interval&, int), which is defined for negative bases too, any
-    other p by pow(const interval&, const interval&), and an infinite or NaN p
-    gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
+    returned [1]. An integer p within the ints is computed by pown(), which
+    is defined for negative bases too, any other p by pow_hybrid(I, [p]), and
+    an infinite or NaN p gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
     Ninin).
   */
-  interval  pow(const interval& I, double p)
+  interval  pow_hybrid(const interval& I, double p)
   {
     if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
       return interval::emptyset();
     }
     if (std::floor(p) == p && p >= (std::numeric_limits<int>::min)() && p <= (std::numeric_limits<int>::max)()) {
-      return pow(I, static_cast<int>(p));
+      return pown(I, static_cast<int>(p));
     }
-    return pow(I, interval(p));
+    return pow_hybrid(I, interval(p));
+  }
+
+  /*
+    The three plain functions gaol/gaol_interval.h declared before pow became
+    function templates (GAOL v5), still defined so that the programs compiled
+    against the former header link: they keep their symbols. The header no
+    longer declares them, and each has its declaration here.
+  */
+  __GAOL_PUBLIC__ interval pow(const interval& I, int e);
+  __GAOL_PUBLIC__ interval pow(const interval& I, const interval& J);
+  __GAOL_PUBLIC__ interval pow(const interval& I, double p);
+
+  interval pow(const interval& I, int e)
+  {
+    return pown(I, e);
+  }
+
+  interval pow(const interval& I, const interval& J)
+  {
+    return pow_hybrid(I, J);
+  }
+
+  interval pow(const interval& I, double p)
+  {
+    return pow_hybrid(I, p);
   }
 
   /*
