@@ -610,8 +610,12 @@ namespace
       if (a == 0.0 || b == 0.0) {
         return c;  // 0 times an infinite bound counts as 0
       }
+      // rnd_keep() before the rounding direction changes back: GCC moved
+      // std::fma, a pure function to it, after the fesetround() that follows,
+      // and the lower bounds were rounded upward (the continuous integration,
+      // armhf and s390x)
       std::fesetround(direction);
-      const double v = std::fma(a, b, c);
+      const double v = gaol::rnd_keep(std::fma(a, b, c));
       std::fesetround(FE_UPWARD);
       return v;
     };
@@ -668,9 +672,12 @@ namespace
         check("cancel_minus: Y + result encloses X", sum.set_contains(X),
               [&] { return "cancel_minus(" + hex(X) + ", " + hex(Y) + ") = " + hex(got); });
         // the tightest bounds: the differences of the bounds rounded in the
-        // two directed roundings directly
+        // two directed roundings directly, the lower one through rnd_keep()
+        // before the rounding direction changes back: Clang 14 moved the
+        // subtraction after the fesetround() that follows, and rounded it
+        // upward (the continuous integration, Ubuntu 22.04)
         std::fesetround(FE_DOWNWARD);
-        const double lo = X.left() - Y.left();
+        const double lo = gaol::rnd_keep(X.left() - Y.left());
         std::fesetround(FE_UPWARD);
         const double hi = X.right() - Y.right();
         check("cancel_minus: the tightest bounds", got.left() == lo && got.right() == hi,
