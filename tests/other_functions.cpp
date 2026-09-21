@@ -628,6 +628,11 @@ namespace
     check("gaol_ieee1788::sqrRev([1, 4], [0, 1.5]) = [1, 1.5]",
           std1788::sqrRev(interval(1.0, 4.0), interval(0.0, 1.5)).set_eq(interval(1.0, 1.5)),
           [] { return std::string(); });
+    check("gaol_ieee1788::sinhRev([-oo, 0], [-1, 1]) = [-1, 0], tanhRev([0, 1], [-2, 2]) = [0, 2]",
+          std1788::sinhRev(interval(-inf, 0.0), interval(-1.0, 1.0)).set_eq(interval(-1.0, 0.0))
+          && std1788::tanhRev(interval(0.0, 1.0), interval(-2.0, 2.0)).set_eq(interval(0.0, 2.0))
+          && std1788::sinhRev(interval(0.0)).set_eq(interval(0.0)) && std1788::tanhRev(interval(0.0)).set_eq(interval(0.0)),
+          [] { return std::string(); });
     check("gaol_ieee1788::pownRev([8], [0, +oo], 3) = [2]",
           std1788::pownRev(interval(8.0), interval(0.0, inf), 3).set_eq(interval(2.0)), [] { return std::string(); });
     bool threw = false;

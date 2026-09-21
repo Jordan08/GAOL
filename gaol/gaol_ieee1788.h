@@ -237,6 +237,12 @@ namespace gaol_ieee1788 {
   //! coshRev(c, x): acosh_rel(c, x)
   inline interval coshRev(const interval& c, const interval& x) { return ::gaol::acosh_rel(c, x); }
   inline interval coshRev(const interval& c) { return ::gaol::acosh_rel(c, interval::universe()); }
+  //! sinhRev(c, x), tanhRev(c, x): asinh_rel(c, x), atanh_rel(c, x); not in
+  //! Table 10.1, sinh and tanh being one-to-one, but named after coshRev
+  inline interval sinhRev(const interval& c, const interval& x) { return ::gaol::asinh_rel(c, x); }
+  inline interval sinhRev(const interval& c) { return ::gaol::asinh_rel(c, interval::universe()); }
+  inline interval tanhRev(const interval& c, const interval& x) { return ::gaol::atanh_rel(c, x); }
+  inline interval tanhRev(const interval& c) { return ::gaol::atanh_rel(c, interval::universe()); }
   //! mulRev(b, c, x): div_rel(c, b, x), the arguments in another order
   inline interval mulRev(const interval& b, const interval& c, const interval& x)
   {

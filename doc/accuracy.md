@@ -151,7 +151,7 @@ the values they are given, within the number of doubles below.
 | `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | accurate (the roots of `nth_root()`) | accurate, within 1 double of the tightest; within 2 doubles of the value it keeps |
 | `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | accurate, or one double beyond: the pieces of the preimage are k·π, enclosed within about one double from π in double-double, plus or minus the inverse function of J, which is added before the sum is rounded; beyond 2<sup>52</sup> a bound of x is kept, and an x of a single double is decided by the image of the function | accurate but for one double, with the bounds of x beyond 2<sup>52</sup>; within 6 doubles (4, 5 and 3 found) of the value they keep from 1 to 2<sup>50</sup>, away from the points where the inverse function magnifies the width of the image |
 | `coshRev(c, x)` | `acosh_rel(c, x)` | accurate | accurate; within 16 doubles of the value it keeps |
-| — | `asinh_rel`, `atanh_rel` | accurate | within 10 and 26 doubles of the value they keep |
+| `sinhRev`, `tanhRev` (not in Table 10.1, named after `coshRev`) | `asinh_rel`, `atanh_rel` | accurate | within 10 and 26 doubles of the value they keep |
 | `mulRev(b, c, x)` | `div_rel(c, b, x)`, and `c % b` for x = [−∞, +∞] | accurate; tightest where the bounds of the quotients are doubles | accurate, the tightest bounds over the cases of `%`; within 2 doubles of the value `div_rel` keeps |
 | `powRev1`, `powRev2`, `atan2Rev1`, `atan2Rev2`, `pownRev` for p < 0 | — | | |
 
