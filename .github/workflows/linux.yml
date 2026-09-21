@@ -198,9 +198,19 @@ jobs:
       - name: Configure
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON \
-            -DGAOL_U128_EMULATION=ON \
+            -DGAOL_U128_EMULATION=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} | tee configure.log
           grep -q "128-bit integer: the two halves" configure.log
+          # Every source of CORE-MATH compiled with the two halves: the option
+          # once reached GAOL's sources only, and CORE-MATH kept the native type
+          python3 - <<'EOF'
+          import json, sys
+          srcs = [e for e in json.load(open("build/compile_commands.json"))
+                  if "/3rd/math-core/" in e["file"]]
+          native = [e["file"] for e in srcs if "GAOL_U128_FORCE_EMULATION" not in e.get("command", " ".join(e.get("arguments", [])))]
+          print(len(srcs), "sources of CORE-MATH,", len(native), "without the emulation")
+          sys.exit(1 if native or not srcs else 0)
+          EOF
       - name: Build
         run: cmake --build build -j 4
       - name: Tests

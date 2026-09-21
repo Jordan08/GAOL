@@ -591,6 +591,11 @@ add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
 if(GAOL_U128_EMULATION)
   message(STATUS "128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target")
   target_compile_definitions(gaol PUBLIC GAOL_U128_FORCE_EMULATION=1)
+  # The sources of CORE-MATH, which are the ones computing with the 128-bit
+  # integer, are compiled in gaol_core_math, which the definitions of gaol do
+  # not reach: without this line they took the native type, and the option
+  # only changed tests/u128.cpp (GAOL v5)
+  target_compile_definitions(gaol_core_math PRIVATE GAOL_U128_FORCE_EMULATION=1)
 endif()
 add_library(gaol::gaol ALIAS gaol)
 
