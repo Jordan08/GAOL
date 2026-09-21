@@ -574,8 +574,9 @@ namespace gaol_core {
   /*
     pow_itv_node
   */
-  pow_itv_node::pow_itv_node(const expression& e1, const expression &e2) : e_left(e1.get_root()),
-									   e_right(e2.get_root())
+  pow_itv_node::pow_itv_node(const expression& e1, const expression &e2, power_function f) : e_left(e1.get_root()),
+									   e_right(e2.get_root()),
+									   f(f)
   {
     e_left->inc_refcount();
     e_right->inc_refcount();
@@ -603,7 +604,7 @@ namespace gaol_core {
 
   expr_node* pow_itv_node::clone() const
   {
-    pow_itv_node* e = new pow_itv_node(*e_left,*e_right);
+    pow_itv_node* e = new pow_itv_node(*e_left,*e_right,f);
     return e;
   }
 

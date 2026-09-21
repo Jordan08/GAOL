@@ -34,7 +34,9 @@
  *     included: the power with an integer exponent is pown(x, p) in the
  *     standard. gaol::pow takes that integer power for an integer exponent,
  *     which is defined for x < 0 too, and gives [-oo, +oo] for an integer
- *     beyond the ints. Neither pow is in gaol_core: each namespace has its own;
+ *     beyond the ints. Neither pow is in gaol_core: each namespace has its own.
+ *     pown(e, n) and pow(e1, e2) build expressions (gaol/gaol_expression.h)
+ *     computed with the pown and the pow of the standard;
  *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);
@@ -67,7 +69,7 @@
 
 namespace gaol_ieee1788 {
 
-  //! The interval of GAOL, the only type of the operations below
+  //! The interval of GAOL, the type of the operations below, but for the expressions of pown and pow
   using ::gaol_core::interval;
 
   /* Each function below calls the operation of GAOL by its full name,
@@ -172,6 +174,24 @@ namespace gaol_ieee1788 {
     to an interval through interval(double) and interval(const char*) alike.
   */
   inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
+
+  /*!
+    pown(e, n), pow(e1, e2): the expressions of pown and pow
+    (gaol/gaol_expression.h). pown(e, n) is gaol_pown_exp(e, n), whose node
+    is computed by gaol_pown(), the pown of the standard. The node of
+    pow(e1, e2) keeps the function computing it: pow(x, y) above here, where
+    gaol_pow_exp(e1, e2), which is gaol::pow(e1, e2), keeps GAOL's pow,
+    [1, 16] for [-4, -1]^[2].
+  */
+  inline const ::gaol_core::expression pown(const ::gaol_core::expression& e, int n)
+  {
+    return ::gaol_core::gaol_pown_exp(e, n);
+  }
+  inline const ::gaol_core::expression pow(const ::gaol_core::expression& e1, const ::gaol_core::expression& e2)
+  {
+    const ::gaol_core::pow_itv_node::power_function standard_pow = pow;
+    return *(new ::gaol_core::pow_itv_node(e1, e2, standard_pow));
+  }
 
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
   using ::gaol_core::exp;

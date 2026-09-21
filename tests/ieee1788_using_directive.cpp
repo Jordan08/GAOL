@@ -21,12 +21,21 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
+#include "gaol/gaol_expr_eval.h"
 
 using namespace gaol_ieee1788;
 using gaol_tests::check;
 
 namespace
 {
+  // The value of an expression, which the evaluator of GAOL computes
+  interval value_of(const gaol::expression& e)
+  {
+    gaol::expr_eval eval;
+    e.get_root()->accept(eval);
+    return eval.result();
+  }
+
   void ieee1788_using_directive()
   {
     const interval x = textToInterval("[0.25, 0.5]"), y = numsToInterval(-1.0, 2.0);
@@ -67,6 +76,16 @@ namespace
     check("using namespace gaol_ieee1788: pown(x, 2) is the integer power, [1, 16] for x = [-4, -1]",
           pown(neg_base, 2).set_eq(interval(1.0, 16.0)) && pown(interval(0.0), 0).set_eq(interval(1.0)),
           [&] { return gaol_tests::hex(pown(neg_base, 2)); });
+    // The expressions of pow and pown, evaluated: pow(e1, e2) is the pow of
+    // the standard, where the node of gaol::pow(e1, e2) computes GAOL's
+    {
+      const gaol::expression base(neg_base), exponent(two);
+      const interval std_pow = value_of(pow(base, exponent)), std_pown = value_of(pown(base, 2));
+      const interval gaol_pow = value_of(gaol::pow(base, exponent));
+      check("using namespace gaol_ieee1788: pow(e1, e2) and pown(e, n) on expressions are those of the standard",
+            std_pow.is_empty() && std_pown.set_eq(interval(1.0, 16.0)) && gaol_pow.set_eq(interval(1.0, 16.0)),
+            [&] { return gaol_tests::hex(std_pow) + " " + gaol_tests::hex(std_pown) + " " + gaol_tests::hex(gaol_pow); });
+    }
     check("using namespace gaol_ieee1788: the functions of the standard's names",
           b && inf(x) == 0.25 && sup(x) == 0.5 && m == mid(x) && r == rad(x) && wid(x) == 0.25
           && mag(y) == 2.0 && mig(y) == 0.0 && forward[0].set_eq(-x) && reverse[8].set_eq(y / x)

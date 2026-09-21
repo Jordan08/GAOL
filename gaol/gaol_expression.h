@@ -332,7 +332,13 @@ typedef struct {
   */
   class pow_itv_node : public expr_node {
   public:
-    pow_itv_node(const expression& e1, const expression& e2);
+    /*
+      The power of the values of e1 and e2, which the node keeps (GAOL v5):
+      GAOL's pow, gaol_pow_hybrid(), for gaol::pow(e1, e2) and the parser, and
+      the pow of IEEE 1788-2015 for gaol_ieee1788::pow(e1, e2)
+    */
+    typedef interval (*power_function)(const interval&, const interval&);
+    pow_itv_node(const expression& e1, const expression& e2, power_function f = gaol_pow_hybrid);
     ~pow_itv_node();
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
@@ -342,6 +348,7 @@ typedef struct {
     //@{
     INLINE expr_node* get_left();
     INLINE expr_node* get_right();
+    INLINE power_function get_function() const;
     //@}
 
   protected:
@@ -349,6 +356,7 @@ typedef struct {
   private:
     expr_node *e_left;
     expr_node *e_right;
+    power_function f;
   };
 
   /*!
@@ -984,6 +992,11 @@ typedef struct {
   INLINE expr_node* pow_itv_node::get_right()
   {
     return e_right;
+  }
+
+  INLINE pow_itv_node::power_function pow_itv_node::get_function() const
+  {
+    return f;
   }
 
 

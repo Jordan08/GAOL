@@ -110,7 +110,7 @@ namespace gaol_core {
       (node->get_left())->accept(*this);
       interval l = stack.pop();
       (node->get_right())->accept(*this);
-      stack.push(gaol_core::gaol_pow_hybrid(l,stack.pop()));
+      stack.push((*node->get_function())(l,stack.pop()));
     }
     virtual void visit(nth_root_node* node) {
       (node->get_subexpr())->accept(*this);
