@@ -754,7 +754,7 @@ if(GAOL_COVERAGE)
             --output "${_coverage_dir}/coverage.html"
             --json "${CMAKE_CURRENT_BINARY_DIR}/coverage.json"
             --print-summary .
-    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/coverage_summary.py"
+    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/coverage/coverage_summary.py"
             "${CMAKE_CURRENT_BINARY_DIR}/coverage.json" "${_coverage_dir}/README.md"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Running the tests and writing the coverage report in coverage/"

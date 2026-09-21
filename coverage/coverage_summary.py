@@ -13,7 +13,7 @@ GAOL's own sources (gaol/) are counted apart from those of CORE-MATH
 arguments in a million, by design, so counting them with the rest would say
 nothing of either.
 
-    python3 scripts/coverage_summary.py coverage/coverage.json coverage/README.md
+    python3 coverage/coverage_summary.py coverage/coverage.json coverage/README.md
 """
 
 # Copyright (c) 2026 ENSTA, France
@@ -113,7 +113,7 @@ def main():
     out = []
     out.append("# Coverage of the tests")
     out.append("")
-    out.append("*Written by `scripts/coverage_summary.py` from the report of gcovr, "
+    out.append("*Written by `coverage/coverage_summary.py` from the report of gcovr, "
                "which `cmake --build <build> --target coverage` runs "
                "(`-DGAOL_COVERAGE=ON`). Last run: %s.*" % date.today().isoformat())
     out.append("")
