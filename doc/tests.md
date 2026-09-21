@@ -132,6 +132,22 @@ Codac.
   test checks the identities the operations satisfy instead (a + b − b = a,
   shifting left then right, the product of the halves against the schoolbook
   product, and the order).
+- **`extended_precision`:** the results that doubles computed in extended
+  precision, on the x87 unit of an x86 processor, round wrongly, which is why
+  `gaol/gaol_config.h` refuses that unit. CORE-MATH in the four rounding
+  directions, and GAOL's bounds of [x, x], are checked at the arguments where
+  CORE-MATH, built past that refusal, gave the wrong double. Rounded to
+  nearest, its results are rounded twice there, to 64 bits and then to a
+  double: `exp(-0x1.74910d52d3051p+9)` gave 0 rather than 2^-1074, and
+  `tanh(0x1.30fc1931f09c9p+4)` 1 rather than 1 − 2^-53. In the directed
+  roundings, GCC 9 rounded to nearest at compile time the constants CORE-MATH
+  rounds in the direction in effect, and GAOL's bounds of `exp2(-1075)`,
+  `expm1(-800)` or `atan2()` of a tiny and a huge number did not enclose the
+  exact values. The values are computed by `extended_precision_values.py`,
+  with mpmath at 5000 bits. Built on the x87 unit, the test fails on Debian 12
+  i386 with GCC 12 (22 checks rounded to nearest, tried without `expm1`,
+  `exp2m1`, `exp10m1`, `sinpi`, `cospi` and `tanpi`), and on x86-64 with
+  `-mfpmath=387` and GCC 9 (76 of its 300 checks).
 - **`reverse`:** the relational functions against the reverse functions of
   IEEE 1788-2015 (10.5.4, Table 10.1): `sqrt_rel` (`sqrRev`), `invabs_rel`
   (`absRev`), `nth_root_rel` (`pownRev`), `asin_rel`, `acos_rel`, `atan_rel`

@@ -23,6 +23,9 @@ set(GAOL_TESTS
   u128
   core_math
   expressions
+  # The results that doubles computed in extended precision, on the x87 unit,
+  # round wrongly (GAOL v5)
+  extended_precision
 )
 
 foreach(test ${GAOL_TESTS})
