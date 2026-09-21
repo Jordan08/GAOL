@@ -174,10 +174,10 @@
 #  error "GAOL cannot be compiled by Visual C++ without /fp:strict: Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
 #endif
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__) && !defined(__SSE2_MATH__)
-#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, its bounds are wrong"
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, CORE-MATH rounds some results twice and some of its bounds are wrong (see tests/extended_precision.cpp)"
 #endif
 #if defined(_M_IX86_FP) && (_M_IX86_FP < 2)
-#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, its bounds are wrong"
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, CORE-MATH rounds some results twice and some of its bounds are wrong (see tests/extended_precision.cpp)"
 #endif
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"

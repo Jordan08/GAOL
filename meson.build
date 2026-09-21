@@ -280,9 +280,10 @@ endif
 # configure): the intervals are computed with SSE2 instructions
 # (gaol_interval_sse.cpp), SSE3 instructions serve gaol::interval2f
 # (gaol_interval2f.cpp), and on 32-bit x86 the doubles are computed with SSE2
-# (-mfpmath=sse) rather than on the x87 unit, where GAOL's bounds and mathlib's
-# results are wrong (see gaol/gaol_config.h). Not the SSE2 intervals on 32-bit
-# Windows, where a std::vector of them crashes (see CMakeLists.txt).
+# (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH rounds some
+# results twice and some bounds are wrong (see CMakeLists.txt). Not the SSE2
+# intervals on 32-bit Windows, where a std::vector of them crashes (see
+# CMakeLists.txt).
 use_sse2 = false
 use_sse3 = false
 x86_args = []
@@ -324,7 +325,7 @@ endif
 # on x86, where it defines __FMA__, but with GCC for Windows (MinGW), which
 # does not align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
 # -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
-# and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
+# and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
 # (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
 # where the machine building does not run a program compiled with them, but
 # when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
@@ -421,8 +422,8 @@ if doc
 endif
 
 ## The pkg-config file (pkg-config --cflags --libs gaol): the flags of interval
-## arithmetic, which the code including GAOL's headers has to be compiled with,
-## and mathlib. In a meson project: gaol_dep = dependency('gaol')
+## arithmetic, which the code including GAOL's headers has to be compiled with.
+## In a meson project: gaol_dep = dependency('gaol')
 pkg = import('pkgconfig')
 pkg.generate(
   libraries: [gaollib] + mathlib_pc_libs + ['-lm'],

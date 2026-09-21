@@ -85,7 +85,7 @@ AC_SUBST(LT_RELEASE)
 LT_PREREQ([2.2.6])
 # CFLAGS and CXXFLAGS left empty when not given, rather than the "-g -O2" that
 # AC_PROG_CC and AC_PROG_CXX give them otherwise: LT_INIT calls AC_PROG_CC, and
-# the C sources (CORE-MATH, mathlib) were compiled with "-g -O2 ... -O3".
+# the C sources (CORE-MATH) were compiled with "-g -O2 ... -O3".
 # --enable-optimize gives the C and C++ sources -O3 alike (see below).
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
@@ -152,10 +152,7 @@ GAOL_PC_CFLAGS=""
 #   cubes did not enclose their exact values;
 # - a compiler that takes -frounding-math and says it does not honour the
 #   rounding direction on the target ("overriding currently unsupported
-#   rounding mode on this target"), as Clang 14 for 64-bit ARM processors;
-# - mingw-w64 before version 12, whose math library is not accurate enough for
-#   the hyperbolic functions GAOL takes from it, and version 12, whose
-#   fesetround() runs the instruction cpuid at each call.
+#   rounding mode on this target"), as Clang 14 for 64-bit ARM processors.
 AC_LANG_PUSH([C++])
 AC_MSG_CHECKING([whether the C++ compiler is Clang for a 32-bit ARM processor])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
@@ -184,9 +181,9 @@ Build GAOL with a compiler that honours the rounding direction on this target, s
     fi
 fi
 CXXFLAGS=$gaol_save_CXXFLAGS
-# mingw-w64 is no longer refused for its version: GAOL takes no function from
-# the math library of the system, and no longer changes the rounding direction
-# for its elementary functions (see CMakeLists.txt)
+# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
+# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
+# its own, which CORE-MATH's functions read (see CMakeLists.txt)
 AC_LANG_POP([C++])
 
 # --enable-simd
@@ -200,9 +197,9 @@ AM_CONDITIONAL([SIMD_COND],[test "$simd" == "yes"])
 # the machine building, as CMakeLists.txt): the intervals are computed with
 # SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
 # gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
-# computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where GAOL's
-# bounds and mathlib's results are wrong (see gaol/gaol_config.h). Not the SSE2
-# intervals on 32-bit Windows, where a std::vector of them crashes (see
+# computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH
+# rounds some results twice and some bounds are wrong (see CMakeLists.txt). Not
+# the SSE2 intervals on 32-bit Windows, where a std::vector of them crashes (see
 # CMakeLists.txt).
 using_sse2=no
 has_sse3=no
@@ -262,13 +259,13 @@ AM_CONDITIONAL([COMPILE_INTERVAL2],[test ${has_sse3} = yes && test "${float_inte
 # where it defines __FMA__, but with GCC for Windows (MinGW), which does not
 # align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
 # -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
-# and C++ sources (GAOL, CORE-MATH, mathlib), and to the code using GAOL
+# and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
 # (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
 # where the machine building does not run a program compiled with them, but
 # when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
 AC_ARG_ENABLE(fma,
               [AS_HELP_STRING([--enable-fma],
-                              [compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (no: a library for any processor of the architecture) @<:@default=yes@:>@])],
+                              [compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (no: a library for any processor of the architecture) @<:@default=yes@:>@])],
               [fma=${enable_fma}],
               [fma="yes"])
 # GAOL_CHECK_FMA_FLAGS(flags, macro, variable): whether the C++ and the C

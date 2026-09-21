@@ -23,9 +23,9 @@
 # preprocessor (cmake/gaol_configuration.h.in) and by compilation checks
 # rather than from CMAKE_SYSTEM_NAME and CMAKE_SYSTEM_PROCESSOR, which works the
 # same in a cross-compilation, in that it builds with Visual C++, and in that
-# it builds mathlib, the IBM Accurate Portable Mathematical Library GAOL
-# computes its elementary functions with, from the sources of 3rd/mathlib. It
-# also builds as a part of another project, brought in with FetchContent.
+# it compiles CORE-MATH, which GAOL computes its elementary functions with,
+# into libgaol, from the sources of 3rd/math-core. It also builds as a part of
+# another project, brought in with FetchContent.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -60,7 +60,7 @@ endif()
 # R_X86_64_PC32 against symbol ... can not be used when making a shared object;
 # recompile with -fPIC"). On x86_64, where GCC compiles with -fPIE by default,
 # -fPIC changed the times of doc/compare by -5 to +2.4 %, the noise of the
-# measure. The variable is set for this directory and 3rd/mathlib only.
+# measure. The variable is set for this directory and tests/ only.
 if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -108,10 +108,11 @@ option(GAOL_U128_EMULATION "Compute the 128-bit integer of the accurate phases w
 
 option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and add the target coverage, which runs the tests and writes the report in coverage/" OFF)
 
-option(GAOL_FMA "Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
+option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
-# As configure.ac and meson.build ask: -std=c++11; C99 with the GNU extensions,
-# which mathlib's DPChange.c needs on 32-bit x86 (asm)
+# As configure.ac and meson.build ask: -std=c++11; C99 for the sources of
+# CORE-MATH, with the GNU extensions (CMake's default), which the inline
+# assembly of atan2 needs (see 3rd/README.md)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 99)
@@ -125,7 +126,7 @@ set(CMAKE_C_STANDARD 99)
 # every floating-point operation to be rounded in the direction in effect, as
 # it is written: not evaluated at compile time in the default rounding, nor
 # contracted into a fused multiply-add. These flags are given to GAOL and
-# mathlib, and to the targets linking gaol::gaol, GAOL's headers being full of
+# CORE-MATH, and to the targets linking gaol::gaol, GAOL's headers being full of
 # inline interval operations.
 
 # Clang does not honour the rounding direction on 32-bit ARM processors: it
@@ -167,7 +168,12 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
-# mingw-w64 is no longer refused for its version
+# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
+# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
+# its own rather than from the registers, before version 12 on x86-64 (the
+# MinGW-w64 GCC 11 to 13 of Chocolatey) and before 11 on 32-bit x86 (GCC 11).
+# CORE-MATH's functions read fegetround() to know the rounding direction GAOL
+# set by writing the registers.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -185,8 +191,10 @@ endif()
 #   functions of CORE-MATH are correctly rounded in the direction in effect, so
 #   GAOL calls them in the upward rounding it keeps (gaol/gaol_double_op.h).
 #
-# The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0, 12.2.0,
-# 13.2.0 and 14.2.0 of Chocolatey again, and runs the tests with them.
+# The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
+# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, runs the
+# tests with them, and checks that GCC 11.2.0 to 13.2.0 are refused on x86-64
+# and 11.2.0 on 32-bit x86 (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
@@ -203,12 +211,14 @@ else()
   endforeach()
 
   # On a 32-bit x86 processor, doubles are computed in SSE2 rather than on the
-  # x87. Computed on the x87, GAOL's bounds and mathlib's results are only right
-  # while the precision of the x87 is set to 53 bits, which GAOL's
-  # initialisation does not keep (it restores the default floating-point
-  # environment, whose precision is 64 bits on Linux and with MinGW): built for
-  # an i686 computing on the x87, exp, sin and cos missed the exact value for
-  # most arguments. Visual C++ computes in SSE2 already.
+  # x87. CORE-MATH assumes every operation on doubles rounded to a double
+  # (FLT_EVAL_METHOD 0, see 3rd/math-core/README.md). Computed on the x87, in
+  # extended precision, its results rounded to nearest are rounded twice and
+  # 175 arguments gave the other neighbour of f(x) (Debian 12 i386, GCC 12);
+  # GCC 9 rounded to nearest at compile time the constants CORE-MATH rounds in
+  # the direction in effect, and GAOL's bounds of exp2(-1075), expm1(-800) or
+  # atan2() of a tiny and a huge number did not enclose the exact values
+  # (tests/extended_precision.cpp). Visual C++ computes in SSE2 already.
   check_cxx_source_compiles("
     #if !defined(__i386__)
     #error not a 32-bit x86 target
@@ -384,8 +394,6 @@ message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
 # 3rd/math-core and are compiled into libgaol itself: there is no library to
 # find, to build apart or to install, and nothing to link along with GAOL.
 #
-# This replaces mathlib (the IBM Accurate Portable Mathematical Library),
-# CRlibm and the math library of the system, which GAOL could be built with:
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
 # takes its values as bounds without moving them outward and without switching
 # the rounding direction (see gaol/gaol_double_op.h), and the bounds are the
@@ -533,8 +541,6 @@ if(NOT MSVC)
 endif()
 
 configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h")
-# The double operations of the mathematical library GAOL is built with, mathlib
-# here, as gaol/meson.build and IBEX name them
 
 
 ################################################################################
@@ -600,7 +606,7 @@ target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
 # Release when it is the top-level project, but brought in by a project that
 # sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
 # without optimization: they are compiled with -O3 then, as in Release (/O2
-# with Visual C++). 3rd/mathlib/CMakeLists.txt does the same for mathlib.
+# with Visual C++).
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   if(MSVC)
     target_compile_options(gaol PRIVATE /O2)
