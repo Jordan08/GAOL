@@ -144,6 +144,7 @@ gaol_HEADERS += [
   'gaol_double_op.h',
   'gaol_u128.h',
   'gaol_roundeven.h',
+  'gaol_ieee1788.h',
   'gaol_flags.h',
   'gaol_parser.h',
   'gaol_port.h',

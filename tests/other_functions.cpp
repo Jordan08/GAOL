@@ -504,6 +504,154 @@ namespace
             [&] { return std::string(c.what) + " is " + (c.got ? "true" : "false"); });
     }
   }
+
+  /*
+    gaol::ieee1788, the operations of IEEE 1788-2015 under their own names
+    (GAOL v5). A wrong translation compiles all the same -- mulRev(b, c, x) is
+    div_rel(c, b, x), its arguments in another order -- so each name is checked
+    against the standard itself, computed here apart from GAOL: the eight
+    comparisons against the bounds of Table 10.3 and the empty cases of Table
+    10.4, pow against the pow of Table 9.1 (x > 0, and x = 0 for y > 0), the
+    numeric functions against Table 10.2 and 12.12.8.
+  */
+  void ieee1788_names()
+  {
+    namespace std1788 = gaol::ieee1788;
+    const double inf = GAOL_INFINITY;
+    Random random;
+
+    // <' of Table 10.3: < but for -oo <' -oo and +oo <' +oo
+    const auto lt1 = [](double a, double b) { return a < b || (a == b && std::isinf(a)); };
+    for (int i = 0; i < 20000; ++i) {
+      // bounds among a few values, so that equal bounds, infinite bounds and
+      // the empty set all occur
+      const double pool[] = {-inf, -2.0, -1.0, 0.0, 1.0, 2.0, inf};
+      const auto pick = [&] { return pool[random.integer(0, 6)]; };
+      const auto make = [&] {
+        if (random.integer(0, 7) == 0) return interval::emptyset();
+        double l = pick(), u = pick();
+        if (l > u) std::swap(l, u);
+        return interval(l, u);   // the empty set too, for [+oo, +oo] or [-oo, -oo]
+      };
+      const interval a = make(), b = make();
+      const bool ea = a.is_empty(), eb = b.is_empty();
+      bool ref[8];
+      if (ea || eb) {
+        // Table 10.4: a = 0, b != 0 | a != 0, b = 0 | both empty
+        const int col = (ea && eb) ? 2 : (ea ? 0 : 1);
+        const bool table[8][3] = {
+          {false, false, true},  // equal
+          {true,  false, true},  // subset
+          {false, false, true},  // less
+          {true,  true,  true},  // precedes
+          {true,  false, true},  // interior
+          {false, false, true},  // strictLess
+          {true,  true,  true},  // strictPrecedes
+          {true,  true,  true},  // disjoint
+        };
+        for (int k = 0; k < 8; ++k) ref[k] = table[k][col];
+      } else {
+        const double al = a.left(), au = a.right(), bl = b.left(), bu = b.right();
+        ref[0] = al == bl && au == bu;
+        ref[1] = bl <= al && au <= bu;
+        ref[2] = al <= bl && au <= bu;
+        ref[3] = au <= bl;
+        ref[4] = lt1(bl, al) && lt1(au, bu);
+        ref[5] = lt1(al, bl) && lt1(au, bu);
+        ref[6] = au < bl;
+        ref[7] = au < bl || bu < al;
+      }
+      const bool got[8] = {std1788::equal(a, b), std1788::subset(a, b), std1788::less(a, b),
+                           std1788::precedes(a, b), std1788::interior(a, b), std1788::strictLess(a, b),
+                           std1788::strictPrecedes(a, b), std1788::disjoint(a, b)};
+      const char *names[8] = {"equal", "subset", "less", "precedes", "interior", "strictLess",
+                              "strictPrecedes", "disjoint"};
+      for (int k = 0; k < 8; ++k) {
+        check(std::string("ieee1788::") + names[k] + ": Tables 10.3 and 10.4", got[k] == ref[k],
+              [&] { return std::string(names[k]) + "(" + hex(a) + ", " + hex(b) + ") is "
+                         + (got[k] ? "true" : "false"); });
+      }
+    }
+
+    // pow of Table 9.1: the cases GAOL's own pow gives otherwise
+    struct PowCase { const char *what; interval x, y, expected; bool empty; };
+    const PowCase pows[] = {
+      {"pow([-2, 3], [3]) = [0, 27]", interval(-2.0, 3.0), interval(3.0), interval(0.0, 27.0), false},
+      {"pow([-2], [2]) = empty: x < 0", interval(-2.0), interval(2.0), interval(), true},
+      {"pow([-1], [2^31 - 1]) = empty", interval(-1.0), interval(2147483647.0), interval(), true},
+      {"pow([-2, 0], [-1]) = empty: 0^-1 has no value", interval(-2.0, 0.0), interval(-1.0), interval(), true},
+      {"pow([0], [0]) = empty: 0^0 has no value", interval(0.0), interval(0.0), interval(), true},
+      {"pow([0], [1, 2]) = [0]", interval(0.0), interval(1.0, 2.0), interval(0.0), false},
+      {"pow([0, 4], [0]) = [1]: x^0 = 1 for x > 0", interval(0.0, 4.0), interval(0.0), interval(1.0), false},
+    };
+    for (const PowCase& c : pows) {
+      const interval got = std1788::pow(c.x, c.y);
+      check(std::string("ieee1788::pow: ") + c.what,
+            c.empty ? got.is_empty() : (!got.is_empty() && got.set_eq(c.expected)),
+            [&] { return hex(got); });
+    }
+    // pow([4], [0.5]) encloses 2 within one double: GAOL's pow does not tell
+    // that 4^0.5 is a double, and gives the double below as its lower bound
+    {
+      const interval got = std1788::pow(interval(4.0), interval(0.5));
+      check("ieee1788::pow([4], [0.5]) encloses 2, within one double",
+            got.set_contains(2.0) && got.right() == 2.0 && got.left() >= std::nextafter(2.0, 0.0),
+            [&] { return hex(got); });
+    }
+    // and GAOL's pow wherever x > 0, whatever y
+    for (int i = 0; i < 2000; ++i) {
+      const interval x = hull(random.uniform(0.1, 4.0), random.uniform(0.1, 4.0));
+      const interval y = hull(random.uniform(-3.0, 3.0), random.uniform(-3.0, 3.0));
+      check("ieee1788::pow: GAOL's pow for x > 0", std1788::pow(x, y).set_eq(gaol::pow(x, y)),
+            [&] { return hex(x) + " " + hex(y); });
+    }
+
+    // numeric functions: Table 10.2 and 12.12.8
+    const interval empty = interval::emptyset();
+    check("ieee1788::inf(empty) = +oo", std1788::inf(empty) == inf, [] { return std::string(); });
+    check("ieee1788::sup(empty) = -oo", std1788::sup(empty) == -inf, [] { return std::string(); });
+    check("ieee1788::inf([0, 1]) = -0", std1788::inf(interval(0.0, 1.0)) == 0.0
+          && std::signbit(std1788::inf(interval(0.0, 1.0))), [] { return std::string(); });
+    check("ieee1788::sup([-1, 0]) = +0", std1788::sup(interval(-1.0, 0.0)) == 0.0
+          && !std::signbit(std1788::sup(interval(-1.0, 0.0))), [] { return std::string(); });
+    check("ieee1788::mid(empty), wid, rad, mag, mig are NaN",
+          std::isnan(std1788::mid(empty)) && std::isnan(std1788::wid(empty)) && std::isnan(std1788::rad(empty))
+          && std::isnan(std1788::mag(empty)) && std::isnan(std1788::mig(empty)), [] { return std::string(); });
+    check("ieee1788::mid(entire) = 0", std1788::mid(interval::universe()) == 0.0, [] { return std::string(); });
+    check("ieee1788::isMember(+oo, [1, +oo]) is false: m has to be finite",
+          !std1788::isMember(inf, interval(1.0, inf)) && std1788::isMember(2.0, interval(1.0, inf)),
+          [] { return std::string(); });
+
+    // reverse functions, their arguments in the order of the standard
+    check("ieee1788::mulRev([2], [4, 6]) = [2, 3]: div_rel(c, b, x)",
+          std1788::mulRev(interval(2.0), interval(4.0, 6.0)).set_eq(interval(2.0, 3.0)), [] { return std::string(); });
+    check("ieee1788::sqrRev([1, 4], [0, 1.5]) = [1, 1.5]",
+          std1788::sqrRev(interval(1.0, 4.0), interval(0.0, 1.5)).set_eq(interval(1.0, 1.5)),
+          [] { return std::string(); });
+    check("ieee1788::pownRev([8], [0, +oo], 3) = [2]",
+          std1788::pownRev(interval(8.0), interval(0.0, inf), 3).set_eq(interval(2.0)), [] { return std::string(); });
+    bool threw = false;
+    try { std1788::pownRev(interval(8.0), 0); } catch (const std::invalid_argument&) { threw = true; }
+    check("ieee1788::pownRev with p <= 0 throws, GAOL not providing it", threw, [] { return std::string(); });
+
+    // the forward names reach the functions they name
+    const interval x(0.3, 0.7);
+    check("ieee1788 forward names", std1788::sinPi(x).set_eq(sinpi(x)) && std1788::rootn(x, -3).set_eq(nth_root(x, -3))
+          && std1788::roundTiesToEven(interval(2.5)).set_eq(interval(2.0)) && std1788::recip(interval(4.0)).set_eq(interval(0.25))
+          && std1788::cancelMinus(interval(1.0, 5.0), interval(0.0, 2.0)).set_eq(interval(1.0, 3.0))
+          && std1788::convexHull(interval(1.0), interval(3.0)).set_eq(interval(1.0, 3.0)),
+          [] { return std::string(); });
+
+    // text: an empty set for what is no literal, and the exact form read back
+    check("ieee1788::textToInterval of no literal: empty", std1788::textToInterval("[1, 2").is_empty(),
+          [] { return std::string(); });
+    const interval_format::format_t saved = interval::format();
+    const interval third(1.0 / 3.0, 2.0 / 3.0);
+    const std::string exact = std1788::intervalToExact(third);
+    check("ieee1788::exactToInterval(intervalToExact(x)) = x, bit for bit",
+          std1788::exactToInterval(exact).set_eq(third), [&] { return exact; });
+    check("ieee1788::intervalToExact sets the format back", interval::format() == saved, [] { return std::string(); });
+  }
 }
 
 int main()
@@ -523,6 +671,7 @@ int main()
   relations();
   periodic_relations_at_every_magnitude();
   ieee1788_order();
+  ieee1788_names();
   const int status = summary();
   gaol::cleanup();
   return status;

@@ -38,6 +38,8 @@
 #include "gaol/gaol_profile.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_exceptions.h"
+// The operations of IEEE 1788-2015 under their own names (GAOL v5)
+#include "gaol/gaol_ieee1788.h"
 #if GAOL_FLOAT_INTERVALS
 #  include "gaol/gaol_intervalf.h"
 #endif // GAOL_FLOAT_INTERVALS
