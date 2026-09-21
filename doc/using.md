@@ -78,6 +78,33 @@ c++ -std=c++17 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs g
 
 In a meson project, `dependency('gaol')`.
 
+## The names of IEEE 1788-2015
+
+GAOL names its operations its own way: the reverse function `coshRev(c, x)` of
+the standard is `acosh_rel(c, x)`, `mulRev(b, c, x)` is `div_rel(c, b, x)`,
+with its arguments in another order, and `roundTiesToEven(x)` is
+`round_ties_to_even(x)`. The namespace `gaol::ieee1788`, which `gaol/gaol.h`
+brings along, gives each operation of the standard that GAOL provides the name
+and the argument order the standard gives it:
+
+```cpp
+#include <gaol/gaol.h>
+namespace s = gaol::ieee1788;
+
+gaol::interval x = s::textToInterval("[1, 2]");
+gaol::interval y = s::mulRev(s::numsToInterval(2, 2), x);   // x / 2
+bool b = s::strictLess(x, s::entire());
+```
+
+Where the standard and GAOL differ, these names follow the standard: `pow(x, y)`
+is the pow of Table 9.1, defined for x > 0 (GAOL's `pow` takes the integer
+power for an integer exponent, a negative base included); `inf` and `sup` of
+the empty set are +∞ and −∞, where GAOL's bounds are NaN; `isMember(m, x)` is
+false for an infinite m; `textToInterval` returns the empty set for a string
+that is no interval literal, where GAOL's constructor throws. Only bare
+intervals are provided, GAOL having no decorations; `gaol/gaol_ieee1788.h`
+lists the operations of the standard GAOL does not provide.
+
 ## The rounding direction
 
 Each operation of GAOL sets the rounding direction upward when it is not, and

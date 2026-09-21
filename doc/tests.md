@@ -27,7 +27,13 @@ Codac.
   Products of intervals with zero and infinite bounds have to be the hull of
   the products of the bounds, a zero bound times an infinite one counting as 0.
   The constructors have to give the empty set for a lower bound of `+oo`, an
-  upper bound of `-oo`, bounds in the wrong order and NaN bounds.
+  upper bound of `-oo`, bounds in the wrong order and NaN bounds. `fma(x, y, z)`
+  has to be the tightest enclosure over random boxes, against `std::fma` called
+  in the downward and the upward rounding directly: GCC had folded the
+  negations GAOL rounds its lower bound with, and the bound came one double
+  above the exact one. `cancel_minus` and `cancel_plus` have to be the tightest
+  and `y + cancel_minus(x, y)` to enclose x, over intervals of the same width
+  and one double wider, which rounding cannot tell apart (GAOL v5).
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
@@ -65,7 +71,11 @@ Codac.
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
   have to be the tightest enclosures, also when computed in a loop that changes
-  the rounding direction before each of them.
+  the rounding direction before each of them. `cbrt`, `pow` and `atan2` have to
+  leave the exception masks of the SSE control register as they found them, and
+  an empty interval to be told empty after them: the `fesetexceptflag()` of
+  mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
+  the NaN bounds of an empty interval then killed the program (GAOL v5).
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
   be the tightest enclosures of π, 2π and π/2. The literals of IEEE 1788-2015
@@ -92,7 +102,16 @@ Codac.
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
-  and decide an interval of a single double beyond 2^53.
+  and decide an interval of a single double beyond 2^53. `less`,
+  `strictly_less`, `is_entire` and `is_common_interval` have to give the values
+  of Tables 10.3 and 10.4. Each name of `gaol::ieee1788` has to be the operation
+  of the standard it names, which a wrong translation would not show at
+  compilation: the eight comparisons against the bounds of Table 10.3 and the
+  empty cases of Table 10.4, over 20 000 pairs; `pow` against the pow of Table
+  9.1, which GAOL's own `pow` is not for a negative base; `inf`, `sup` and the
+  numeric functions against Table 10.2; the reverse functions with the arguments
+  in the order of the standard, `mulRev(b, c, x)` being `div_rel(c, b, x)`
+  (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -104,7 +123,12 @@ Codac.
   exact value itself (`log(1)`, `sin(0)`, the bounds of π/2 at `asin(1)`...).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
-  subnormals, and at random doubles of every magnitude.
+  subnormals, and at random doubles of every magnitude. The functions of
+  Table 10.5 GAOL provides (`expm1`, `exp2m1`, `exp10m1`, `sinpi`, `cospi`,
+  `tanpi`, `atanpi`, `acospi`) have to be the tightest enclosures over
+  intervals too: the hull of their image, computed from the values at the
+  bounds and, for `sinpi`, `cospi` and `tanpi`, at every multiple of 1/2 within,
+  enumerated one by one, where their extrema and poles are (GAOL v5).
 - **`expressions`:** `interval("...")` lexes the string, parses it into the
   tree of `gaol/gaol_expression.h` and evaluates that tree, so this test goes
   through every node of the tree and every way the string can be wrong: the

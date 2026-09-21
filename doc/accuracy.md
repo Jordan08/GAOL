@@ -70,7 +70,7 @@ off by default and unfinished, are not covered.
 | `recip` | `inverse(x)`, `x.inverse()` | 1 divided by the bounds, rounded upward | tightest | tightest |
 | `sqr` | `sqr(x)` | Squares of the bounds rounded upward, 0 when x contains 0 | tightest | tightest |
 | `sqrt` | `sqrt(x)` | On x ∩ [0, +∞]: the square root u rounded upward, from the square root of the C library checked with a product rounded the other way and moved one double when needed; the lower bound is u when u·u = x exactly, the double below u otherwise | tightest | tightest |
-| `fma` | — | Not provided | | |
+| `fma` | `fma(x, y, z)` | x·y ranges over the hull of the products of the bounds, being bilinear, so x·y + z ranges from the least product plus inf z to the greatest plus sup z; each corner is rounded once by `std::fma`, upward for the upper bound and downward for the lower one as −fma(−a, b, −c), the result of `std::fma` going through `rnd_keep()` before it is negated: GCC folded −fma(−a, b, −c) into fma(a, b, c), a single instruction rounded upward, and the lower bound came one double above the exact one. A bound 0 times an infinite one counts as 0 (GAOL v5) | tightest | tightest, over 200 000 boxes against exact rational arithmetic |
 
 ## Integer and absmax functions: tightest required
 
@@ -121,7 +121,12 @@ from mathlib, correctly rounded to nearest only.
 |---|---|---|---|---|
 | `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`; **n = 3: CORE-MATH's cbrt at the bounds, correctly rounded upward on their magnitudes, the root of a negative number being the opposite of the root of its magnitude: the tightest bounds, and exact where the cube root is a double, which cubing the value tells (GAOL v5; 50 ns rather than 189 with the search below, Intel i7-1185G7, Clang 18.1)**. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from CORE-MATH's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2, 3: tightest; tightest where the bound of x is an n-th power of a double. Otherwise accurate: the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−53</sup> relatively, the bounds being the tightest or one double beyond, whatever the magnitude of x | within 2 doubles, for all doubles (1 found) |
 | `rootn(x, q)`, q < 0 | `nth_root(x, q)` | 1/x<sup>1/\|q\|</sup>, the inverse of the root above: the domain is then ℝ∖{0} for an odd q and (0, +∞) for an even one, which taking the inverse gives, an interval holding 0 having for inverse the hull of the values away from it. `nth_root(x, 0)` is ∅ (GAOL v5) | accurate: the root above, then the tightest division | encloses, over 1.5 million values against a reference in long double; the inverse of the positive root, over 8 000 values |
-| others | — | Not provided | | |
+| `expm1`, `exp2m1`, `exp10m1` | `expm1(x)`, `exp2m1(x)`, `exp10m1(x)` | CORE-MATH's functions at the bounds, correctly rounded upward, the double below the value at the left bound unless it is a double, which b<sup>x</sup> − 1 is at 0, and at the integers of [−53, 53] for b = 2 and of [0, 15] for b = 10; within [−1, +∞] (GAOL v5) | tightest | tightest, over 400 000 points and intervals each |
+| `sinPi`, `cosPi` | `sinpi(x)`, `cospi(x)` | The extrema are at the multiples of 1/2, which are doubles: doubling the bounds, which is exact, and taking their ceiling and floor give exactly the integers t = 2x within, and sin(πx) has its maximum 1 at the t congruent to 1 modulo 4 and its minimum −1 at those congruent to 3 (cos at 0 and 2); otherwise CORE-MATH's functions at the bounds, exact at the multiples of 1/2. Beyond 2<sup>61</sup> two distinct doubles are whole periods apart, [−1, 1] (GAOL v5) | tightest, at every magnitude: sinPi(10<sup>17</sup>) is 0, where sin(π·x) gave [−1, 1] | tightest, over 400 000 points and intervals each |
+| `tanPi` | `tanpi(x)` | As sinPi, its poles at the odd t: [−∞, +∞] with a pole within, −∞ or +∞ for a pole at a bound, and ∅ for a pole alone, where tanPi has no value (GAOL v5) | tightest | tightest, over 400 000 points and intervals |
+| `atanPi`, `acosPi` | `atanpi(x)`, `acospi(x)` | CORE-MATH's functions at the bounds, acosPi decreasing and on x ∩ [−1, 1]; exact at 0 and ±1 (and ±∞ for atanPi), the only doubles where the values are rational (GAOL v5) | tightest | tightest, over 400 000 points and intervals each |
+| `logp1`, `log2p1`, `log10p1`, `hypot`, `rSqrt`, `asinPi`, `atan2Pi` | — | Not provided yet: their CORE-MATH sources need the 128-bit integer of `gaol/gaol_u128.h`, as `log` and `pow` did | | |
+| `compoundm1` | — | Not provided: CORE-MATH has no binary64 version | | |
 
 ## Reverse functions (Table 10.1): accurate
 
@@ -153,8 +158,15 @@ these functions keep a point of I whose image is just outside J:
 tightest enclosure is `[1, 1 + 2^-52]`. They are accurate all the same, the
 widened J of nextOut holding that image.
 
-`mulRevToPair` (10.5.5), `cancelMinus` and `cancelPlus` (10.5.6) are not
-provided.
+`mulRevToPair` (10.5.5) is not provided. `cancelMinus(x, y)` and
+`cancelPlus(x, y)` (10.5.6) are `cancel_minus(x, y)` and `cancel_plus(x, y)`,
+the tightest, which 12.12.5 requires: whether the result exists depends on x
+being at least as wide as y, which rounding the differences of the bounds
+cannot decide when they are within a double of each other; each difference
+is computed exactly, as the sum of its value rounded to nearest and of its
+error by the TwoSum of Knuth. [−∞, +∞] where there is no value, and ∅ for an
+empty x and a bounded y. Checked over 200 000 pairs against exact rational
+arithmetic, 11 524 of them of exactly equal widths (GAOL v5).
 
 ## Set operations, constructors, numeric and boolean functions
 
@@ -173,7 +185,8 @@ provided.
 | `isEmpty`, `isSingleton`, `isMember` | `is_empty()`, `is_a_double()`, `set_contains(d)` | Of the bounds | exact | exact |
 | `equal`, `subset`, `interior`, `disjoint` | `set_eq`, `set_contains` and `set_leq`, `set_strictly_contains` and `set_le`, `set_disjoint` | Of the bounds, as Tables 10.3 and 10.4 | exact | exact |
 | `precedes`, `strictPrecedes` | `certainly_leq`, `certainly_le` (and `certainly_geq`, `certainly_ge`) | Of the bounds, true when an interval is empty | exact | exact |
-| `isEntire`, `isCommonInterval`, `less`, `strictLess` | — | Not provided | | |
+| `isEntire`, `isCommonInterval` | `is_entire()`, `is_common_interval()` | Of the bounds; a common interval is nonempty and bounded, the empty set's NaN bounds being no infinities (GAOL v5) | exact | exact |
+| `less`, `strictLess` | `less(y)`, `strictly_less(y)` | Of the bounds, as Table 10.3, strictLess counting an infinite bound as below itself; the empty cases of Table 10.4 (GAOL v5) | exact | exact, and against Tables 10.3 and 10.4 over 20 000 pairs |
 | `intervalToText` | `operator<<` | Hexadecimal format: the bounds in the hexadecimal-significand form of 13.4.1. Decimal formats: each bound written to nearest by the C library with the digits asked for, compared exactly with the bound, and its last digit moved outward when it is on the wrong side | hexadecimal: exact; decimal: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should | hexadecimal: exact; decimal: less than one unit of the last digit |
 | `intervalToExact`, `exactToInterval` | `operator<<` with `interval_format::hexa`, `interval(const char*)` | The recovery requirement of 13.4: an interval written in hexadecimal and read again gives the same bounds, bit for bit, the empty set, the infinite bounds, the signed zeros and the subnormals included (GAOL v5) | exact | exact, over 2 000 random intervals and the values written apart |
 
