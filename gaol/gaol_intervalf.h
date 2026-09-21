@@ -26,7 +26,7 @@
 
 #include <limits>
 
-namespace gaol {
+namespace gaol_core {
 
 	/**
 	@brief Representation of a floating-point interval.
@@ -209,7 +209,7 @@ namespace gaol {
     I2 = intervalf(m,r);
   }
 
-} // namespace gaol
+} // namespace gaol_core
 
 
 

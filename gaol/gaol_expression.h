@@ -41,7 +41,7 @@
 #include "gaol/gaol_flags.h"
 #include "gaol/gaol_expr_visitor.h"
 
-namespace gaol {
+namespace gaol_core {
 
 /*!
   Use of Interval_struct instead of interval to overcome the fact that a
@@ -763,8 +763,9 @@ typedef struct {
   const expression operator-(const expression& el, const expression& er);
   const expression operator*(const expression& el, const expression& er);
   const expression operator/(const expression& el, const expression& er);
-  const expression pow(const expression& e, int n);
-  const expression pow(const expression& e1, const expression& e2);
+  //! gaol_pown_exp(e, n), gaol_pow_exp(e1, e2): e^n and e1^e2, gaol::pow(e, n) and gaol::pow(e1, e2)
+  const expression gaol_pown_exp(const expression& e, int n);
+  const expression gaol_pow_exp(const expression& e1, const expression& e2);
   const expression nth_root(const expression& e, unsigned int n);
   const expression cos(const expression& e);
   const expression sin(const expression& e);
@@ -1278,6 +1279,19 @@ typedef struct {
   }
 
 
+} // namespace gaol_core
+
+/*
+  pow(e, n), pow(e1, e2): the expressions of GAOL's power, gaol_pow_exp(), in
+  the namespace gaol as the pow of intervals (gaol/gaol_interval.h), no pow
+  being in gaol_core (GAOL v5). An interval converting to an expression,
+  argument-dependent lookup found a pow of expressions in gaol_core for a call
+  pow(x, 3) on an interval too, which was ambiguous with
+  gaol_ieee1788::pow(x, [3]).
+*/
+namespace gaol {
+  inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
+  inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
 } // namespace gaol
 
 #endif /* __gaol_expression_h__ */

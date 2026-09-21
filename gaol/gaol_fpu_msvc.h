@@ -54,7 +54,7 @@
 
 
 
-namespace gaol {
+namespace gaol_core {
 
 INLINE double previous_float(double d)
 {
@@ -148,6 +148,6 @@ INLINE void reset_fpu_cw(unsigned short int st)
     }
 #endif // GAOL_USING_ASM
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_fpu_msvc_h__ */

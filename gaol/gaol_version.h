@@ -41,7 +41,7 @@
 # include "gaol/gaol_configuration.h"
 #endif
 
-namespace gaol {
+namespace gaol_core {
   const unsigned int version_major = GAOL_MAJOR_VERSION;
   const unsigned int version_minor = GAOL_MINOR_VERSION;
   const unsigned int version_micro = GAOL_MICRO_VERSION;

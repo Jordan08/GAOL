@@ -34,7 +34,7 @@
 
 #include "gaol/gaol_config.h"
 
-namespace gaol {
+namespace gaol_core {
 
   /*!
     \brief Object to record time for profiling purpose
@@ -72,6 +72,6 @@ extern __GAOL_PUBLIC__ long elapsed_time(void);
   */
 extern __GAOL_PUBLIC__ long intermediate_elapsed_time(void);
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_profile_h__ */

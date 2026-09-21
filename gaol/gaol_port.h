@@ -94,7 +94,7 @@
 #endif // defined(MSC_VER)
 
 
-namespace gaol {
+namespace gaol_core {
 
 #if HAVE_ROUNDING_MATH_OPTION
   INLINE double f_negate_simple(double x) { return -x; }
@@ -155,7 +155,7 @@ namespace gaol {
 
 #ifndef GAOL_NAN
   static const uintdouble NaN_val = {{IFBIGENDIAN(0x7ff80000, 0x0)}};
-#define GAOL_NAN (gaol::NaN_val.d)
+#define GAOL_NAN (gaol_core::NaN_val.d)
 #endif
 
   // #define GAOL_INFINITY std::numeric_limits<double>::infinity()
@@ -210,6 +210,6 @@ namespace gaol {
   }
 
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_port_h__ */

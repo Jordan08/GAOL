@@ -36,7 +36,7 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
 
-namespace gaol {
+namespace gaol_core {
 
   extern int debug_level; // defined in gaol_common.cpp
 
@@ -141,9 +141,9 @@ extern __GAOL_PUBLIC__ void gaol_error(const char *err);
 extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *err);
 
 #if GAOL_EXCEPTIONS_ENABLED
-#   define gaol_ERROR(excep,msg) do { throw gaol::excep(GAOL_FILE_POS,msg); } while (0)
+#   define gaol_ERROR(excep,msg) do { throw gaol_core::excep(GAOL_FILE_POS,msg); } while (0)
 #else
-#   define gaol_ERROR(excep,msg) do { gaol::gaol_error(GAOL_FILE_POS,msg); std::abort(); } while (0)
+#   define gaol_ERROR(excep,msg) do { gaol_core::gaol_error(GAOL_FILE_POS,msg); std::abort(); } while (0)
 #endif
 
 #if GAOL_VERBOSE_MODE
@@ -152,7 +152,7 @@ extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *e
 #   define GAOL_IF_VERBOSE(a)
 #endif
 
-} // namespace gaol
+} // namespace gaol_core
 
 
 #if !defined (_MSC_VER)

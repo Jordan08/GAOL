@@ -19,7 +19,7 @@
 
 #include <iostream>
 #include "gaol/gaol.h"
-
+using namespace gaol;
 
 using std::cout;
 using std::endl;

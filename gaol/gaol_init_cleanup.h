@@ -33,13 +33,13 @@
 #ifndef __gaol_init_cleanup_h__
 #define __gaol_init_cleanup_h__
 
-namespace gaol {
+namespace gaol_core {
 
   void gaol_init_lib(void);
 
   void initialization_process(void);
   void cleanup_process(void);
   
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_init_cleanup_h__ */

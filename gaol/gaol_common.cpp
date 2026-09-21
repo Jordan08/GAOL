@@ -37,7 +37,7 @@
 
 #include "gaol/gaol_double_op.h"
 
-namespace gaol {
+namespace gaol_core {
 
   extern void gaol_init_lib(void);
 
@@ -145,7 +145,7 @@ namespace gaol {
 
 
 
-} // namespace gaol
+} // namespace gaol_core
 
 
 
@@ -161,7 +161,7 @@ namespace gaol {
        and cleanup for te whole cacao library. Code for these stages should be
        put in them (see gaol_init_cleanup.cpp)
     */
-    gaol::gaol_init_lib();
+    gaol_core::gaol_init_lib();
   }
 
 #elif defined (_MSC_VER)

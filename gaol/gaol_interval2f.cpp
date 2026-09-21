@@ -30,7 +30,7 @@
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_intervalf.h"
 
-namespace gaol {
+namespace gaol_core {
 
 	std::ostream& operator<<(std::ostream& os, const interval2f& I)
 	{
@@ -3115,4 +3115,4 @@ interval2f interval2f::inverse() const
 	}
 
 
-} // namespace gaol
+} // namespace gaol_core

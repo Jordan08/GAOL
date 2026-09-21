@@ -451,9 +451,10 @@ namespace
     }
   }
 
-  // gaol::uipow(), the pown of IEEE 1788 for an unsigned exponent, as
-  // pow(x, n): GAOL declared it public but defined it INLINE with the SSE2
-  // intervals, and a program calling it did not link (GAOL v5)
+  // gaol::pow(x, n) for an unsigned n, gaol_uipow(), the pown of IEEE 1788
+  // for an unsigned exponent, as for an int n: GAOL declared it public, as
+  // uipow(), but defined it INLINE with the SSE2 intervals, and a program
+  // calling it did not link (GAOL v5)
   void unsigned_powers()
   {
     const double bounds[] = { -inf, -3., -1., -0.5, -0., 0., 0.5, 2., inf };
@@ -472,15 +473,15 @@ namespace
     }
     for (const interval& x : xs) {
       for (unsigned int n = 0; n <= 9; ++n) {
-        const interval r = gaol::uipow(x, n), p = pow(x, static_cast<int>(n));
-        check("gaol::uipow([x],n) as pow([x],n)",
+        const interval r = gaol::pow(x, n), p = pow(x, static_cast<int>(n));
+        check("gaol::pow([x],n) for an unsigned n as for an int n",
               r.is_empty() ? p.is_empty() : (!p.is_empty() && r.left() == p.left() && r.right() == p.right()),
               [&] { return hex(x) + ", n=" + std::to_string(n) + ": " + hex(r) + " and " + hex(p); });
       }
     }
-    const interval one = gaol::uipow(interval(-2., 3.), 0), none = gaol::uipow(interval::emptyset(), 0);
-    check("gaol::uipow([-2,3],0) = [1]", !one.is_empty() && one.left() == 1.0 && one.right() == 1.0, [&] { return hex(one); });
-    check("gaol::uipow(empty,0): empty", none.is_empty(), [&] { return hex(none); });
+    const interval one = gaol::pow(interval(-2., 3.), 0u), none = gaol::pow(interval::emptyset(), 0u);
+    check("gaol::pow([-2,3],0u) = [1]", !one.is_empty() && one.left() == 1.0 && one.right() == 1.0, [&] { return hex(one); });
+    check("gaol::pow(empty,0u): empty", none.is_empty(), [&] { return hex(none); });
   }
 
   // Negative integer powers whose x^n overflows: x^-n is (1/x)^n there. GAOL

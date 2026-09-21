@@ -36,11 +36,11 @@
   extern "C" int getrusage(int, struct rusage*);
 #endif
 
-namespace gaol {
+namespace gaol_core {
 
   static long last_usr_time;
   static long last_reset_time;
-} // namespace gaol
+} // namespace gaol_core
 
 #if HAVE_GETRUSAGE
 //================
@@ -52,7 +52,7 @@ namespace gaol {
 
 #  include <unistd.h>
 
-namespace gaol {
+namespace gaol_core {
 
   long get_time(void)
   {
@@ -60,25 +60,25 @@ namespace gaol {
     getrusage(RUSAGE_SELF,&RsrUsage);
     return (RsrUsage.ru_utime.tv_sec*1000 + RsrUsage.ru_utime.tv_usec/1000);
   }
-} // namespace gaol
+} // namespace gaol_core
 
 #elif HAVE_CLOCK
 //==============
 #  include <time.h>
 
-namespace gaol {
+namespace gaol_core {
 
   long get_time(void)
   {
     return long((1000.*clock())/CLOCKS_PER_SEC);
   }
-} // namespace gaol
+} // namespace gaol_core
 
 #else
 #  error "No timing function available"
 #endif /* HAVE_GETRUSAGE */
 
-namespace gaol {
+namespace gaol_core {
 
   void reset_time(void)
   {
@@ -138,4 +138,4 @@ namespace gaol {
     return get_time()-the_last_time;
   }
 
-} // namespace gaol
+} // namespace gaol_core

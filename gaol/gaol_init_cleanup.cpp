@@ -34,7 +34,7 @@ using std::cout;
 using std::endl;
 
 
-namespace gaol {
+namespace gaol_core {
 
   /**
 	@class init_cleanup
@@ -81,4 +81,4 @@ namespace gaol {
       GAOL_IF_VERBOSE(cerr << "done" << endl);
   }
   
-} // namespace gaol
+} // namespace gaol_core

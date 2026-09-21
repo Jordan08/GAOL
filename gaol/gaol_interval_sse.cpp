@@ -502,8 +502,9 @@ INLINE uint32_t reverse_bits(uint32_t v)
 #endif
 
   /*
-    I^e for a non-empty I and e > 0, inlined in sqr() and pow(): uipow(),
-    public and out of line, calls it (GAOL v5, see gaol_interval.h).
+    I^e for a non-empty I and e > 0, inlined in sqr() and gaol_pown():
+    gaol_uipow(), public and out of line, calls it (GAOL v5, see
+    gaol_interval.h).
     Inlined by force with GCC and Clang: built with -mfma, Clang 18 called it
     from sqr() rather than inlining it there with e = 2, and sqr() took 13.7 ns
     rather than 9.7, Shekel 5 of doc/compare 405 ns rather than 302.
@@ -563,7 +564,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
       return interval(res);
     }
 
-  interval uipow(const interval& I, unsigned int e)
+  interval gaol_uipow(const interval& I, unsigned int e)
     {
       if (I.is_empty()) {
         return I;

@@ -51,7 +51,7 @@
 #endif
 
 
-namespace gaol {
+namespace gaol_core {
 
   /*!
     \brief Format to use for the output of intervals.
@@ -367,7 +367,7 @@ namespace gaol {
     static std::streamsize precision(std::streamsize n);
 
 
-    friend __GAOL_PUBLIC__ interval uipow(const interval& I, unsigned int e);
+    friend __GAOL_PUBLIC__ interval gaol_uipow(const interval& I, unsigned int e);
     friend __GAOL_PUBLIC__ interval sqr(const interval& I);
     friend __GAOL_PUBLIC__ interval cos(const interval& I);
     friend __GAOL_PUBLIC__ interval sin(const interval& I);
@@ -727,22 +727,23 @@ namespace gaol {
 					     interval& I);
   //! I^2
   extern __GAOL_PUBLIC__   interval sqr(const interval& I);
-  //! I^e for an integer e.
-  extern __GAOL_PUBLIC__   interval pow(const interval& I, int e);
+  //! I^e for an integer e, gaol::pow(I, e)
+  extern __GAOL_PUBLIC__   interval gaol_pown(const interval& I, int e);
   /*
-    I^e for an unsigned e, the pown of IEEE 1788-2015: [1] for e = 0 and the
-    empty set for an empty I. Declared here too, and defined out of line with
-    the SSE2 intervals, where it was INLINE (GAOL v5): gaol::uipow() was
-    not found, and uipow() did not link. uipow_upup() and uipow_dnup(), which
-    only computed parts of it on the stored bounds, are no longer declared.
+    I^e for an unsigned e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
+    for e = 0 and the empty set for an empty I. Declared here too, and defined
+    out of line with the SSE2 intervals, where it was INLINE (GAOL v5): named
+    uipow() then, it was not found and did not link. uipow_upup() and
+    uipow_dnup(), which only computed parts of it on the stored bounds, are no
+    longer declared.
   */
-  extern __GAOL_PUBLIC__   interval uipow(const interval& I, unsigned int e);
+  extern __GAOL_PUBLIC__   interval gaol_uipow(const interval& I, unsigned int e);
 
   /*!
-    \brief I^J (GAOL v5)
+    \brief I^J, gaol::pow(I, J) (GAOL v5)
 
     A degenerate integer exponent J = [n] always takes the integer power
-    pow(const interval&, int), the pown of IEEE 1788, which is defined for a
+    gaol_pown(), the pown of IEEE 1788, which is defined for a
     negative base too, gives x^0 = 1 for any x, 0 included, and has no value
     at 0 for n < 0; for an n beyond the ints, the result is [-oo,+oo]. Any
     other exponent takes the pow of IEEE 1788, exp(J log(I)) on the part of I
@@ -753,37 +754,21 @@ namespace gaol {
     not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
     pow([0],[0]) is [1].
   */
-  extern __GAOL_PUBLIC__   interval pow_hybrid(const interval &I, const interval &J);
+  extern __GAOL_PUBLIC__   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
-  /*
-    pow(I,J) is pow_hybrid(I,J), as a function template whose parameter is
-    never deduced (GAOL v5). gaol_ieee1788::pow (gaol/gaol_ieee1788.h), the
-    pow of IEEE 1788-2015, has the same parameters, and argument-dependent
-    lookup finds this one beside it: overload resolution prefers a plain
-    function to a template that fits as well, so that pow(x,y) under using
-    namespace gaol_ieee1788 is the standard's, where two plain functions made
-    the call ambiguous. Anywhere else, this template is the only pow of two
-    intervals.
-  */
-  template <typename T = void>
-  inline interval pow(const interval &I, const interval &J)
-  {
-    return pow_hybrid(I, J);
-  }
 
   /*!
-    \brief I^p for a floating-point p (GAOL v5)
+    \brief I^p for a floating-point p, gaol::pow(I, p) (GAOL v5)
 
     Without it, pow(I,2.5) called pow(const interval&, int), converting a
     double to an int being a standard conversion and converting it to an
     interval a user-defined one: the exponent was truncated, and pow([4],0.5)
-    returned [1]. An integer p within the ints is computed by
-    pow(const interval&, int), which is defined for negative bases too, any
-    other p by pow(const interval&, const interval&), and an infinite or NaN p
-    gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
-    Ninin).
+    returned [1]. An integer p within the ints is computed by gaol_pown(),
+    which is defined for negative bases too, any other p by
+    gaol_pow_hybrid(), and an infinite or NaN p gives the empty set. Ported
+    from the fix of Codac (commit 74086ccb, Jordan Ninin).
   */
-  extern __GAOL_PUBLIC__  interval pow(const interval& I, double p);
+  extern __GAOL_PUBLIC__  interval gaol_pow_real(const interval& I, double p);
 
   /*!
     \brief relational square root of J w.r.t. I
@@ -1328,6 +1313,31 @@ extern __GAOL_PUBLIC__ bool feven(double d);
 	}
 
 
+
+} // namespace gaol_core
+
+/*
+  The namespace gaol: GAOL under its own names (GAOL v5).
+
+  The type interval and GAOL's functions are in gaol_core, which gaol takes
+  whole: gaol::interval and gaol::sin(x) name them. A call sin(x) on an
+  interval finds by argument-dependent lookup the functions of gaol_core only,
+  the namespace where interval is defined, never those of gaol or of
+  gaol_ieee1788 (gaol/gaol_ieee1788.h). pow, which is not the same function in
+  the two, is therefore in each of them rather than in gaol_core, as plain
+  functions of the same parameters: a program opens one of the two namespaces
+  and gets its pow; with both open, pow(x, y) is ambiguous.
+*/
+namespace gaol {
+
+  using namespace gaol_core;
+
+  //! pow(I, e), pow(I, J), pow(I, p): GAOL's power, gaol_pown(I, e), gaol_pow_hybrid(I, J), gaol_pow_real(I, p)
+  inline interval pow(const interval& I, int e) { return gaol_core::gaol_pown(I, e); }
+  inline interval pow(const interval& I, const interval& J) { return gaol_core::gaol_pow_hybrid(I, J); }
+  inline interval pow(const interval& I, double p) { return gaol_core::gaol_pow_real(I, p); }
+  //! pow(I, e): gaol_uipow(I, e), I^e for an unsigned e
+  inline interval pow(const interval& I, unsigned int e) { return gaol_core::gaol_uipow(I, e); }
 
 } // namespace gaol
 

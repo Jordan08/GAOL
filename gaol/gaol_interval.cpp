@@ -69,6 +69,13 @@ using std::endl;
 
 
 namespace gaol {
+  // Defined in gaol_interval_lexer.lpp, in the namespace of the parser: the
+  // sign of v - x, v being the number s writes, with no sign, compared exactly
+  // with the double x
+  int compare_number_with_double(const char *s, double x);
+}
+
+namespace gaol_core {
 
 const interval interval::cst_two_pi(2.0*pi_dn,2.0*pi_up); // No rounding when multiplying by 2
 const interval interval::cst_pi(pi_dn,pi_up);
@@ -79,8 +86,8 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
 
 
-  // I^e for a non-empty I and e > 0, defined below: uipow(), in the files
-  // included here, calls it
+  // I^e for a non-empty I and e > 0, defined below: gaol_uipow(), in the
+  // files included here, calls it
   static interval uipow_nonempty(const interval& I, unsigned int e);
 
 #if USING_SSE2_INSTRUCTIONS
@@ -169,9 +176,10 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   }
 
   /*
-    I^e for a non-empty I and e > 0, as pow() and uipow() call it: from exact
-    products for e > 2, the square being the tightest already, and from the
-    rounded products where a power is not finite or is below 2^-968
+    I^e for a non-empty I and e > 0, as gaol_pown() and gaol_uipow() call
+    it: from exact products for e > 2, the square being the tightest already,
+    and from the rounded products where a power is not finite or is below
+    2^-968
   */
   static interval uipow_nonempty(const interval& I, unsigned int e)
   {
@@ -498,7 +506,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   interval::interval(const char *const s)
   {
     interval tmp;
-    bool ok = parse_interval(s,tmp);
+    bool ok = gaol::parse_interval(s,tmp);
     if (!ok) {
       std::string err_msg("Syntax error in interval initialization: ");
       err_msg += s;
@@ -518,14 +526,14 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   interval::interval(const char *const sl, const char *const sr)
   {
     interval tmpl, tmpr;
-    if (!parse_interval(sl,tmpl)) {
+    if (!gaol::parse_interval(sl,tmpl)) {
       std::string err_msg("Syntax error in left bound initialization: ");
       err_msg += sl;
       *this = interval::emptyset();
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
     }
-    if (!parse_interval(sr,tmpr)) {
+    if (!gaol::parse_interval(sr,tmpr)) {
 	  std::string err_msg("Syntax error in right bound initialization: ");
       err_msg += sr;
       *this = interval::emptyset();
@@ -558,7 +566,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
     getline(is,buffer);
 
-    if (!parse_interval(buffer.c_str(),I)) {
+    if (!gaol::parse_interval(buffer.c_str(),I)) {
       std::string err_msg("Syntax error in expression of interval: ");
       err_msg += buffer;
       I = interval::emptyset();
@@ -566,10 +574,6 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     }
     return is;
   }
-
-  // Defined in gaol_interval_lexer.lpp: the sign of v - x, v being the number s
-  // writes, with no sign, compared exactly with the double x
-  int compare_number_with_double(const char *s, double x);
 
   /*
     Moves the last digit of text by one unit, away from zero or toward it,
@@ -583,7 +587,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   {
     for (int moves = 0; moves < 4; ++moves) {
       const std::size_t last = scientific ? text.find_first_of("eE") : text.size(); // One past the mantissa
-      const int sign = compare_number_with_double(text.c_str(), magnitude);
+      const int sign = gaol::compare_number_with_double(text.c_str(), magnitude);
       if (sign == 0 || (sign > 0) == away) {
         return;
       }
@@ -887,7 +891,8 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
 
 
-	interval pow(const interval& I, int n)
+
+	interval gaol_pown(const interval& I, int n)
 	{
 		if (I.is_empty()) {
 			return I;
@@ -915,9 +920,9 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 				if (g == GAOL_INFINITY) {
 					return interval::positive();
 				}
-				return interval(uipow(inverse(interval(g)),m).left(),GAOL_INFINITY);
+				return interval(gaol_uipow(inverse(interval(g)),m).left(),GAOL_INFINITY);
 			}
-			return uipow(inverse(I),m);
+			return gaol_uipow(inverse(I),m);
 		} else {
 			if (n > 0) {
 				return uipow_nonempty(I,static_cast<unsigned int>(n));
@@ -927,7 +932,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 		}
 	}
 
-  interval pow_hybrid(const interval &I, const interval &J)
+  interval gaol_pow_hybrid(const interval &I, const interval &J)
   {
     if (I.is_empty() || J.is_empty()) {
       return interval::emptyset();
@@ -947,9 +952,9 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     */
     if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
       if (J.is_an_int()) {
-        return pow(I,int(J.left()));
+        return gaol_pown(I,int(J.left()));
       }
-      // An integer beyond the ints, for which pow(I,int) cannot be called
+      // An integer beyond the ints, which gaol_pown() cannot take
       return interval::universe();
     }
 
@@ -1008,26 +1013,25 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   }
 
   /*!
-    \brief I^p for a floating-point p (GAOL v5)
+    \brief I^p for a floating-point p, gaol::pow(I, p) (GAOL v5)
 
     Without it, pow(I,2.5) called pow(const interval&, int), converting a
     double to an int being a standard conversion and converting it to an
     interval a user-defined one: the exponent was truncated, and pow([4],0.5)
-    returned [1]. An integer p within the ints is computed by
-    pow(const interval&, int), which is defined for negative bases too, any
-    other p by pow(const interval&, const interval&), and an infinite or NaN p
-    gives the empty set. Ported from the fix of Codac (commit 74086ccb, Jordan
-    Ninin).
+    returned [1]. An integer p within the ints is computed by gaol_pown(),
+    which is defined for negative bases too, any other p by
+    gaol_pow_hybrid(), and an infinite or NaN p gives the empty set. Ported
+    from the fix of Codac (commit 74086ccb, Jordan Ninin).
   */
-  interval  pow(const interval& I, double p)
+  interval  gaol_pow_real(const interval& I, double p)
   {
     if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
       return interval::emptyset();
     }
     if (std::floor(p) == p && p >= (std::numeric_limits<int>::min)() && p <= (std::numeric_limits<int>::max)()) {
-      return pow(I, static_cast<int>(p));
+      return gaol_pown(I, static_cast<int>(p));
     }
-    return pow(I, interval(p));
+    return gaol_pow_hybrid(I, interval(p));
   }
 
   /*
@@ -2107,7 +2111,7 @@ interval nth_root(const interval& I, int q)
   */
   static inline double fma_down(double a, double b, double c)
   {
-    return (a == 0.0 || b == 0.0) ? c : -gaol::rnd_keep(std::fma(-a, b, -c));
+    return (a == 0.0 || b == 0.0) ? c : -gaol_core::rnd_keep(std::fma(-a, b, -c));
   }
 
   interval fma(const interval& X, const interval& Y, const interval& Z)
@@ -2737,7 +2741,7 @@ interval nth_root(const interval& I, int q)
 	  res = I.right() / I.left();
 	}
 	// Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
-	res = gaol::rnd_keep(res);
+	res = gaol_core::rnd_keep(res);
 	GAOL_RND_RESTORE();
 	return res;
       }
@@ -2843,7 +2847,7 @@ interval nth_root(const interval& I, int q)
 		middle = 0.5*left() + 0.5*right();
 	 }
     // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
-    middle = gaol::rnd_keep(middle);
+    middle = gaol_core::rnd_keep(middle);
     GAOL_RND_RESTORE();
     return middle;
   }
@@ -2892,7 +2896,7 @@ interval nth_root(const interval& I, int q)
       round_downward();
 			l = gaol_sqrt_down(Jpos.left());
       // Computed rounding downward: kept before the direction changes (see gaol_fpu.h)
-      l = gaol::rnd_keep(l);
+      l = gaol_core::rnd_keep(l);
       round_upward();
 			r = gaol_sqrt_up(Jpos.right());
     }
@@ -3095,4 +3099,4 @@ interval nth_root(const interval& I, int q)
   }
 
 
-} // namespace gaol
+} // namespace gaol_core

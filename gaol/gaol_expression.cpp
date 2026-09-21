@@ -34,7 +34,7 @@
 #include "gaol/gaol_expression.h"
 #include "gaol/gaol_expr_eval.h"
 
-namespace gaol {
+namespace gaol_core {
   // Node used for empty expressions to have something to point at
   null_node* the_null_expr;
 
@@ -1371,12 +1371,16 @@ namespace gaol {
     return *(new div_node(el,er));
   }
 
-  const expression pow(const expression& e, unsigned int n)
+  /*
+    The exponent is an int, as the header declares it (GAOL v5): it was an
+    unsigned int here, and pow(e, n) on an expression did not link
+  */
+  const expression gaol_pown_exp(const expression& e, int n)
   {
-    return *(new pow_node(e,static_cast<int>(n)));
+    return *(new pow_node(e,n));
   }
 
-  const expression pow(const expression& e1, const expression &e2)
+  const expression gaol_pow_exp(const expression& e1, const expression &e2)
   {
     return *(new pow_itv_node(e1,e2));
   }
@@ -1509,4 +1513,4 @@ namespace gaol {
     return true;
   }
 
-} // namespace gaol
+} // namespace gaol_core

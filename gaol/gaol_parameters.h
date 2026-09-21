@@ -32,10 +32,10 @@
 #ifndef __gaol_parameters_h__
 #define __gaol_parameters_h__
 
-namespace gaol {
+namespace gaol_core {
 
 // None at present
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_parameters_h__ */

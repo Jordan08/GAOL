@@ -47,7 +47,7 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_core_math.h"
 
-namespace gaol {
+namespace gaol_core {
 
 
 
@@ -229,6 +229,6 @@ namespace gaol {
   INLINE double atanh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_atanh(d)); }
   INLINE double atanh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_atanh(d); }
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_double_op_h__ */

@@ -36,7 +36,7 @@
 #define _XOPEN_SOURCE 600
 #include <stdlib.h>
 
-namespace gaol {
+namespace gaol_core {
 
 template <class T>
 class aligned_allocator
@@ -121,5 +121,5 @@ class aligned_allocator
 		}
 };
 
-} // namespace gaol
+} // namespace gaol_core
 #endif // __gaol_allocator_h__

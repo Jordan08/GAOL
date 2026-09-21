@@ -94,23 +94,23 @@
   direction when it is preserved.
 */
 #if GAOL_PRESERVE_ROUNDING
-#  define GAOL_RND_ENTER()      const gaol::rounding_state _save_state = gaol::get_rounding(); gaol::round_upward_if_needed()
-#  define GAOL_RND_LEAVE()      gaol::set_rounding(_save_state)
-#  define GAOL_RND_PRESERVE()   const gaol::rounding_state _save_state = gaol::get_rounding()
-#  define GAOL_RND_RESTORE()    gaol::set_rounding(_save_state)
-#  define GAOL_RND_KEEP(x)      ((x) = gaol::rnd_keep(x))
+#  define GAOL_RND_ENTER()      const gaol_core::rounding_state _save_state = gaol_core::get_rounding(); gaol_core::round_upward_if_needed()
+#  define GAOL_RND_LEAVE()      gaol_core::set_rounding(_save_state)
+#  define GAOL_RND_PRESERVE()   const gaol_core::rounding_state _save_state = gaol_core::get_rounding()
+#  define GAOL_RND_RESTORE()    gaol_core::set_rounding(_save_state)
+#  define GAOL_RND_KEEP(x)      ((x) = gaol_core::rnd_keep(x))
 #  if USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & _MM_ROUND_MASK; gaol::round_upward_sse()
+#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & _MM_ROUND_MASK; gaol_core::round_upward_sse()
 #     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | _save_state_sse)
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
-#  define GAOL_RND_ENTER()      gaol::round_upward_if_needed()
+#  define GAOL_RND_ENTER()      gaol_core::round_upward_if_needed()
 #  define GAOL_RND_LEAVE()
 #  define GAOL_RND_PRESERVE()
-#  define GAOL_RND_RESTORE()    gaol::round_upward()
+#  define GAOL_RND_RESTORE()    gaol_core::round_upward()
 #  define GAOL_RND_KEEP(x)
 #  if USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() gaol::round_upward_if_needed()
+#     define GAOL_RND_ENTER_SSE() gaol_core::round_upward_if_needed()
 #     define GAOL_RND_LEAVE_SSE()
 #  endif
 #endif // GAOL_PRESERVE_ROUNDING
@@ -128,11 +128,11 @@
   upward precede GAOL_RND_NEAREST_ENTER().
 */
 #if GAOL_PRESERVE_ROUNDING
-#  define GAOL_RND_NEAREST_ENTER() const gaol::rounding_state _save_state_nearest = gaol::get_rounding(); gaol::round_nearest()
-#  define GAOL_RND_NEAREST_LEAVE() gaol::set_rounding(_save_state_nearest)
+#  define GAOL_RND_NEAREST_ENTER() const gaol_core::rounding_state _save_state_nearest = gaol_core::get_rounding(); gaol_core::round_nearest()
+#  define GAOL_RND_NEAREST_LEAVE() gaol_core::set_rounding(_save_state_nearest)
 #else
-#  define GAOL_RND_NEAREST_ENTER() gaol::round_nearest()
-#  define GAOL_RND_NEAREST_LEAVE() gaol::round_upward()
+#  define GAOL_RND_NEAREST_ENTER() gaol_core::round_nearest()
+#  define GAOL_RND_NEAREST_LEAVE() gaol_core::round_upward()
 #endif
 
 
@@ -145,7 +145,7 @@
 #  error "Don't know how to define FPU manipulation functions"
 #endif // HAVE_FENV_H
 
-namespace gaol {
+namespace gaol_core {
 
   /*!
     \brief The rounding direction GAOL_RND_ENTER() and GAOL_RND_PRESERVE()
@@ -256,6 +256,6 @@ namespace gaol {
     return kept;
   }
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_fpu_h__ */

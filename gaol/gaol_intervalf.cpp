@@ -30,7 +30,7 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
 
-namespace gaol {
+namespace gaol_core {
 
 
 	intervalf::intervalf()
@@ -326,7 +326,7 @@ namespace gaol {
     	return (left()<=v) && (right()>=v);
 	}
 
-	gaol::intervalf uipow_dnup(const gaol::intervalf& I, unsigned int n) // FIXME: this program does not work when an infinity is produced
+	gaol_core::intervalf uipow_dnup(const gaol_core::intervalf& I, unsigned int n) // FIXME: this program does not work when an infinity is produced
 	{                                                                    // FIXME: in the 80 bits registers and not translated into MAX_FLOAT
 		float ly = 1.0f, ry = 1.0f;
 		float lz2 = I._left, rz2 = I._right;
@@ -451,7 +451,7 @@ namespace gaol {
     // the rounding of the sum to change the float nearest; its half is exact
     float middle = static_cast<float>(0.5*(static_cast<double>(left()) + static_cast<double>(right())));
     // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
-    middle = gaol::rnd_keep(middle);
+    middle = gaol_core::rnd_keep(middle);
     GAOL_RND_RESTORE();
     return middle;
   }
@@ -479,4 +479,4 @@ namespace gaol {
     return !std::isinf(left()) && !std::isinf(right());
   }
 
-} // namespace gaol
+} // namespace gaol_core

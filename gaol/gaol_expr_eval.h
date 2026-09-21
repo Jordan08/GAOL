@@ -39,7 +39,7 @@
 #include <limits>
 #include "gaol/gaol_expr_visitor.h"
 
-namespace gaol {
+namespace gaol_core {
   // Forward declarations
   /*!
     \brief Base class for all visitors that want to manipulate expressions
@@ -104,95 +104,95 @@ namespace gaol {
     }
     virtual void visit(pow_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::pow(stack.pop(),node->get_exponent()));
+      stack.push(gaol_core::gaol_pown(stack.pop(),node->get_exponent()));
     }
     virtual void visit(pow_itv_node* node) {
       (node->get_left())->accept(*this);
       interval l = stack.pop();
       (node->get_right())->accept(*this);
-      stack.push(gaol::pow(l,stack.pop()));
+      stack.push(gaol_core::gaol_pow_hybrid(l,stack.pop()));
     }
     virtual void visit(nth_root_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::nth_root(stack.pop(),node->get_exponent()));
+      stack.push(gaol_core::nth_root(stack.pop(),node->get_exponent()));
     }
     virtual void visit(cos_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::cos(stack.pop()));
+      stack.push(gaol_core::cos(stack.pop()));
     }
     virtual void visit(sin_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::sin(stack.pop()));
+      stack.push(gaol_core::sin(stack.pop()));
     }
     virtual void visit(tan_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::tan(stack.pop()));
+      stack.push(gaol_core::tan(stack.pop()));
     }
     virtual void visit(atan2_node* node) {
       (node->get_Y())->accept(*this);
       interval Y=stack.pop();
       (node->get_X())->accept(*this);
-      stack.push(gaol::atan2(Y,stack.pop()));
+      stack.push(gaol_core::atan2(Y,stack.pop()));
     }
     virtual void visit(acos_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::acos(stack.pop()));
+      stack.push(gaol_core::acos(stack.pop()));
     }
     virtual void visit(asin_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::asin(stack.pop()));
+      stack.push(gaol_core::asin(stack.pop()));
     }
     virtual void visit(atan_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::atan(stack.pop()));
+      stack.push(gaol_core::atan(stack.pop()));
     }
     virtual void visit(cosh_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::cosh(stack.pop()));
+      stack.push(gaol_core::cosh(stack.pop()));
     }
     virtual void visit(sinh_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::sinh(stack.pop()));
+      stack.push(gaol_core::sinh(stack.pop()));
     }
     virtual void visit(tanh_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::tanh(stack.pop()));
+      stack.push(gaol_core::tanh(stack.pop()));
     }
     virtual void visit(acosh_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::acosh(stack.pop()));
+      stack.push(gaol_core::acosh(stack.pop()));
     }
     virtual void visit(asinh_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::asinh(stack.pop()));
+      stack.push(gaol_core::asinh(stack.pop()));
     }
     virtual void visit(atanh_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::atanh(stack.pop()));
+      stack.push(gaol_core::atanh(stack.pop()));
     }
     virtual void visit(log_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::log(stack.pop()));
+      stack.push(gaol_core::log(stack.pop()));
     }
     virtual void visit(exp_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::exp(stack.pop()));
+      stack.push(gaol_core::exp(stack.pop()));
     }
     virtual void visit(exp2_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::exp2(stack.pop()));
+      stack.push(gaol_core::exp2(stack.pop()));
     }
     virtual void visit(log2_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::log2(stack.pop()));
+      stack.push(gaol_core::log2(stack.pop()));
     }
     virtual void visit(sign_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::sign(stack.pop()));
+      stack.push(gaol_core::sign(stack.pop()));
     }
     virtual void visit(trunc_node* node) {
       (node->get_subexpr())->accept(*this);
-      stack.push(gaol::trunc(stack.pop()));
+      stack.push(gaol_core::trunc(stack.pop()));
     }
     interval result() {
       return stack.pop();
@@ -201,6 +201,6 @@ namespace gaol {
     eval_stack<interval> stack;
   };
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_expr_eval_h__ */

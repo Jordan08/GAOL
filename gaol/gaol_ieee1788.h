@@ -17,20 +17,24 @@
  *
  *   using namespace gaol_ieee1788;
  *
- * uses GAOL under the names of the standard, without naming gaol. The
- * functions of GAOL that have the name and the meaning the standard gives them
- * (sin, exp, sqrt, min...) are brought in by using-declarations rather than
- * wrapped: a call sin(x) on an interval finds gaol::sin by argument-dependent
- * lookup too, and would be ambiguous between two functions of the same
- * signature, where a using-declaration names the same function.
+ * uses GAOL under the names of the standard, without naming gaol: a program
+ * opens one of the two namespaces, not both. The type interval and GAOL's
+ * functions are in gaol_core (gaol/gaol_interval.h), the only namespace where
+ * argument-dependent lookup looks for a call sin(x) on an interval, so that
+ * it finds neither gaol's functions nor these. The functions of GAOL that
+ * have the name and the meaning the standard gives them (sin, exp, sqrt,
+ * min...) are brought in by using-declarations of those of gaol_core, which
+ * name the functions argument-dependent lookup finds too; gaol/gaol_expression.h
+ * is included first, so that they take its overloads whatever the order of
+ * the includes.
  *
  * Where the standard and GAOL differ, these functions follow the standard:
- *   - pow(x, y) is the pow of Table 9.1, defined for x > 0, and for x = 0 when
- *     y > 0; GAOL's pow takes the integer power pown for a degenerate integer
- *     exponent, which is defined for x < 0 too. gaol::pow(interval, interval)
- *     being a function template, overload resolution prefers this plain
- *     function to it, and pow(x, y) on intervals is the standard's under
- *     using namespace gaol_ieee1788, rather than ambiguous;
+ *   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
+ *     for x = 0 when y > 0, [p] being the exponent for a number p, an int
+ *     included: the power with an integer exponent is pown(x, p) in the
+ *     standard. gaol::pow takes that integer power for an integer exponent,
+ *     which is defined for x < 0 too, and gives [-oo, +oo] for an integer
+ *     beyond the ints. Neither pow is in gaol_core: each namespace has its own;
  *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);
@@ -59,15 +63,16 @@
 #include <string>
 
 #include "gaol/gaol_interval.h"
+#include "gaol/gaol_expression.h"
 
 namespace gaol_ieee1788 {
 
   //! The interval of GAOL, the only type of the operations below
-  using ::gaol::interval;
+  using ::gaol_core::interval;
 
   /* Each function below calls the operation of GAOL by its full name,
-     ::gaol::f: inside this namespace an unqualified f would be the function
-     of the same name defined here, and call itself. */
+     ::gaol_core::f: inside this namespace an unqualified f would be the
+     function of the same name defined here, and call itself. */
 
   // ----------------------------------------------------------------------
   // Interval constants (10.5.2) and constructors (10.5.8, 12.12.7)
@@ -106,19 +111,23 @@ namespace gaol_ieee1788 {
   //! div(x, y): x / y
   inline interval div(const interval& x, const interval& y) { return x / y; }
   //! recip(x): inverse(x)
-  inline interval recip(const interval& x) { return ::gaol::inverse(x); }
+  inline interval recip(const interval& x) { return ::gaol_core::inverse(x); }
   //! sqr(x), sqrt(x), fma(x, y, z): the functions of GAOL
-  using ::gaol::sqr;
-  using ::gaol::sqrt;
-  using ::gaol::fma;
+  using ::gaol_core::sqr;
+  using ::gaol_core::sqrt;
+  using ::gaol_core::fma;
 
-  //! pown(x, p): pow(x, p) with an int p
-  inline interval pown(const interval& x, int p) { return ::gaol::pow(x, p); }
+  /*!
+    pown(x, p): gaol_pown(x, p), x^p for an int p, defined for x < 0 too. The
+    standard's power with an integer exponent: its p is an integer, not an
+    interval (Table 9.1, footnote b), and pow has no such exponent.
+  */
+  inline interval pown(const interval& x, int p) { return ::gaol_core::gaol_pown(x, p); }
 
   /*!
     pow(x, y): the pow of IEEE 1788-2015, on the part of x in [0, +oo], 0^y
-    having a value only for y > 0. GAOL's pow(x, y) is that pow there, but
-    for 0^y with y <= 0 and a degenerate integer y, where it takes pown.
+    having a value only for y > 0. gaol_pow_hybrid(x, y) is that pow there,
+    but for 0^y with y <= 0 and a degenerate integer y, where it takes pown.
   */
   inline interval pow(const interval& x, const interval& y)
   {
@@ -133,73 +142,81 @@ namespace gaol_ieee1788 {
       // x = {0}: 0^y = 0 for y > 0, no value otherwise
       return (y.right() > 0.0) ? interval(0.0) : interval::emptyset();
     }
-    return ::gaol::pow(xp, y);
+    return ::gaol_core::gaol_pow_hybrid(xp, y);
   }
+  /*!
+    pow(x, p): pow(x, [p]), the pow of the standard for a double as
+    exponent. An int exponent comes here too, pow(x, 2) being pow(x, [2]),
+    not the integer power pown(x, 2): pow([-4, -1], 2) is the empty set here,
+    and [1, 16] in gaol. Without it, pow(x, 0) would not compile, 0 converting
+    to an interval through interval(double) and interval(const char*) alike.
+  */
+  inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
 
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
-  using ::gaol::exp;
-  using ::gaol::exp2;
-  using ::gaol::exp10;
-  using ::gaol::log;
-  using ::gaol::log2;
-  using ::gaol::log10;
+  using ::gaol_core::exp;
+  using ::gaol_core::exp2;
+  using ::gaol_core::exp10;
+  using ::gaol_core::log;
+  using ::gaol_core::log2;
+  using ::gaol_core::log10;
 
   //! The trigonometric and hyperbolic functions: the functions of GAOL, atan2(y, x) included
-  using ::gaol::sin;
-  using ::gaol::cos;
-  using ::gaol::tan;
-  using ::gaol::asin;
-  using ::gaol::acos;
-  using ::gaol::atan;
-  using ::gaol::atan2;
-  using ::gaol::sinh;
-  using ::gaol::cosh;
-  using ::gaol::tanh;
-  using ::gaol::asinh;
-  using ::gaol::acosh;
-  using ::gaol::atanh;
+  using ::gaol_core::sin;
+  using ::gaol_core::cos;
+  using ::gaol_core::tan;
+  using ::gaol_core::asin;
+  using ::gaol_core::acos;
+  using ::gaol_core::atan;
+  using ::gaol_core::atan2;
+  using ::gaol_core::sinh;
+  using ::gaol_core::cosh;
+  using ::gaol_core::tanh;
+  using ::gaol_core::asinh;
+  using ::gaol_core::acosh;
+  using ::gaol_core::atanh;
 
   //! The integer functions: sign, ceil, floor and trunc of GAOL
-  using ::gaol::sign;
-  using ::gaol::ceil;
-  using ::gaol::floor;
-  using ::gaol::trunc;
+  using ::gaol_core::sign;
+  using ::gaol_core::ceil;
+  using ::gaol_core::floor;
+  using ::gaol_core::trunc;
   //! roundTiesToEven(x): round_ties_to_even(x)
-  inline interval roundTiesToEven(const interval& x) { return ::gaol::round_ties_to_even(x); }
+  inline interval roundTiesToEven(const interval& x) { return ::gaol_core::round_ties_to_even(x); }
   //! roundTiesToAway(x): round_ties_to_away(x)
-  inline interval roundTiesToAway(const interval& x) { return ::gaol::round_ties_to_away(x); }
+  inline interval roundTiesToAway(const interval& x) { return ::gaol_core::round_ties_to_away(x); }
 
   //! The absmax functions: abs, min and max of GAOL
-  using ::gaol::abs;
-  using ::gaol::min;
-  using ::gaol::max;
+  using ::gaol_core::abs;
+  using ::gaol_core::min;
+  using ::gaol_core::max;
 
   // ----------------------------------------------------------------------
   // Recommended forward functions (Table 10.5)
   // ----------------------------------------------------------------------
 
   //! rootn(x, q): nth_root(x, q), q may be negative
-  inline interval rootn(const interval& x, int q) { return ::gaol::nth_root(x, q); }
+  inline interval rootn(const interval& x, int q) { return ::gaol_core::nth_root(x, q); }
   //! expm1, exp2m1, exp10m1, log2p1, log10p1 and hypot: the functions of GAOL
-  using ::gaol::expm1;
-  using ::gaol::exp2m1;
-  using ::gaol::exp10m1;
-  using ::gaol::log2p1;
-  using ::gaol::log10p1;
-  using ::gaol::hypot;
+  using ::gaol_core::expm1;
+  using ::gaol_core::exp2m1;
+  using ::gaol_core::exp10m1;
+  using ::gaol_core::log2p1;
+  using ::gaol_core::log10p1;
+  using ::gaol_core::hypot;
   //! logp1(x): log1p(x), the name of C
-  inline interval logp1(const interval& x) { return ::gaol::log1p(x); }
+  inline interval logp1(const interval& x) { return ::gaol_core::log1p(x); }
   //! rSqrt(x): rsqrt(x)
-  inline interval rSqrt(const interval& x) { return ::gaol::rsqrt(x); }
+  inline interval rSqrt(const interval& x) { return ::gaol_core::rsqrt(x); }
   //! sinPi(x), cosPi(x), tanPi(x), asinPi(x), acosPi(x), atanPi(x), atan2Pi(y, x):
   //! sinpi(x), cospi(x), tanpi(x), asinpi(x), acospi(x), atanpi(x), atan2pi(y, x)
-  inline interval sinPi(const interval& x) { return ::gaol::sinpi(x); }
-  inline interval cosPi(const interval& x) { return ::gaol::cospi(x); }
-  inline interval tanPi(const interval& x) { return ::gaol::tanpi(x); }
-  inline interval asinPi(const interval& x) { return ::gaol::asinpi(x); }
-  inline interval acosPi(const interval& x) { return ::gaol::acospi(x); }
-  inline interval atanPi(const interval& x) { return ::gaol::atanpi(x); }
-  inline interval atan2Pi(const interval& y, const interval& x) { return ::gaol::atan2pi(y, x); }
+  inline interval sinPi(const interval& x) { return ::gaol_core::sinpi(x); }
+  inline interval cosPi(const interval& x) { return ::gaol_core::cospi(x); }
+  inline interval tanPi(const interval& x) { return ::gaol_core::tanpi(x); }
+  inline interval asinPi(const interval& x) { return ::gaol_core::asinpi(x); }
+  inline interval acosPi(const interval& x) { return ::gaol_core::acospi(x); }
+  inline interval atanPi(const interval& x) { return ::gaol_core::atanpi(x); }
+  inline interval atan2Pi(const interval& y, const interval& x) { return ::gaol_core::atan2pi(y, x); }
 
   // ----------------------------------------------------------------------
   // Reverse functions (Table 10.1): the last argument x is optional and
@@ -207,11 +224,11 @@ namespace gaol_ieee1788 {
   // ----------------------------------------------------------------------
 
   //! sqrRev(c, x): sqrt_rel(c, x)
-  inline interval sqrRev(const interval& c, const interval& x) { return ::gaol::sqrt_rel(c, x); }
-  inline interval sqrRev(const interval& c) { return ::gaol::sqrt_rel(c, interval::universe()); }
+  inline interval sqrRev(const interval& c, const interval& x) { return ::gaol_core::sqrt_rel(c, x); }
+  inline interval sqrRev(const interval& c) { return ::gaol_core::sqrt_rel(c, interval::universe()); }
   //! absRev(c, x): invabs_rel(c, x)
-  inline interval absRev(const interval& c, const interval& x) { return ::gaol::invabs_rel(c, x); }
-  inline interval absRev(const interval& c) { return ::gaol::invabs_rel(c, interval::universe()); }
+  inline interval absRev(const interval& c, const interval& x) { return ::gaol_core::invabs_rel(c, x); }
+  inline interval absRev(const interval& c) { return ::gaol_core::invabs_rel(c, interval::universe()); }
 
   /*!
     pownRev(c, x, p): nth_root_rel(c, p, x), for p >= 1. GAOL has no reverse
@@ -223,34 +240,34 @@ namespace gaol_ieee1788 {
     if (p < 1) {
       throw std::invalid_argument("gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
     }
-    return ::gaol::nth_root_rel(c, static_cast<unsigned int>(p), x);
+    return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
   }
   inline interval pownRev(const interval& c, int p) { return pownRev(c, interval::universe(), p); }
 
   //! sinRev(c, x), cosRev(c, x), tanRev(c, x): asin_rel(c, x), acos_rel(c, x), atan_rel(c, x)
-  inline interval sinRev(const interval& c, const interval& x) { return ::gaol::asin_rel(c, x); }
-  inline interval sinRev(const interval& c) { return ::gaol::asin_rel(c, interval::universe()); }
-  inline interval cosRev(const interval& c, const interval& x) { return ::gaol::acos_rel(c, x); }
-  inline interval cosRev(const interval& c) { return ::gaol::acos_rel(c, interval::universe()); }
-  inline interval tanRev(const interval& c, const interval& x) { return ::gaol::atan_rel(c, x); }
-  inline interval tanRev(const interval& c) { return ::gaol::atan_rel(c, interval::universe()); }
+  inline interval sinRev(const interval& c, const interval& x) { return ::gaol_core::asin_rel(c, x); }
+  inline interval sinRev(const interval& c) { return ::gaol_core::asin_rel(c, interval::universe()); }
+  inline interval cosRev(const interval& c, const interval& x) { return ::gaol_core::acos_rel(c, x); }
+  inline interval cosRev(const interval& c) { return ::gaol_core::acos_rel(c, interval::universe()); }
+  inline interval tanRev(const interval& c, const interval& x) { return ::gaol_core::atan_rel(c, x); }
+  inline interval tanRev(const interval& c) { return ::gaol_core::atan_rel(c, interval::universe()); }
   //! coshRev(c, x): acosh_rel(c, x)
-  inline interval coshRev(const interval& c, const interval& x) { return ::gaol::acosh_rel(c, x); }
-  inline interval coshRev(const interval& c) { return ::gaol::acosh_rel(c, interval::universe()); }
+  inline interval coshRev(const interval& c, const interval& x) { return ::gaol_core::acosh_rel(c, x); }
+  inline interval coshRev(const interval& c) { return ::gaol_core::acosh_rel(c, interval::universe()); }
   //! sinhRev(c, x), tanhRev(c, x): asinh_rel(c, x), atanh_rel(c, x); not in
   //! Table 10.1, sinh and tanh being one-to-one, but named after coshRev
-  inline interval sinhRev(const interval& c, const interval& x) { return ::gaol::asinh_rel(c, x); }
-  inline interval sinhRev(const interval& c) { return ::gaol::asinh_rel(c, interval::universe()); }
-  inline interval tanhRev(const interval& c, const interval& x) { return ::gaol::atanh_rel(c, x); }
-  inline interval tanhRev(const interval& c) { return ::gaol::atanh_rel(c, interval::universe()); }
+  inline interval sinhRev(const interval& c, const interval& x) { return ::gaol_core::asinh_rel(c, x); }
+  inline interval sinhRev(const interval& c) { return ::gaol_core::asinh_rel(c, interval::universe()); }
+  inline interval tanhRev(const interval& c, const interval& x) { return ::gaol_core::atanh_rel(c, x); }
+  inline interval tanhRev(const interval& c) { return ::gaol_core::atanh_rel(c, interval::universe()); }
   //! mulRev(b, c, x): div_rel(c, b, x), the arguments in another order
   inline interval mulRev(const interval& b, const interval& c, const interval& x)
   {
-    return ::gaol::div_rel(c, b, x);
+    return ::gaol_core::div_rel(c, b, x);
   }
   inline interval mulRev(const interval& b, const interval& c)
   {
-    return ::gaol::div_rel(c, b, interval::universe());
+    return ::gaol_core::div_rel(c, b, interval::universe());
   }
 
   // ----------------------------------------------------------------------
@@ -258,8 +275,8 @@ namespace gaol_ieee1788 {
   // ----------------------------------------------------------------------
 
   //! cancelMinus(x, y), cancelPlus(x, y): cancel_minus(x, y), cancel_plus(x, y)
-  inline interval cancelMinus(const interval& x, const interval& y) { return ::gaol::cancel_minus(x, y); }
-  inline interval cancelPlus(const interval& x, const interval& y) { return ::gaol::cancel_plus(x, y); }
+  inline interval cancelMinus(const interval& x, const interval& y) { return ::gaol_core::cancel_minus(x, y); }
+  inline interval cancelPlus(const interval& x, const interval& y) { return ::gaol_core::cancel_plus(x, y); }
   //! intersection(x, y): x & y
   inline interval intersection(const interval& x, const interval& y) { return x & y; }
   //! convexHull(x, y): x | y
@@ -346,8 +363,8 @@ namespace gaol_ieee1788 {
   */
   inline std::string intervalToExact(const interval& x)
   {
-    const ::gaol::interval_format::format_t saved = interval::format();
-    interval::format(::gaol::interval_format::hexa);
+    const ::gaol_core::interval_format::format_t saved = interval::format();
+    interval::format(::gaol_core::interval_format::hexa);
     std::ostringstream s;
     s << x;
     interval::format(saved);

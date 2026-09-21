@@ -288,6 +288,9 @@ namespace
       {-x, -interval(1.0, 2.0), "-x"},
       {x + d, interval(1.0, 2.0) + interval(2.5), "x+d"},
       {pow(x, y), pow(interval(1.0, 2.0), interval(3.0, 4.0)), "x^y"},
+      // pow(e, n) with an int n, which did not link: the library defined it
+      // with an unsigned int
+      {pow(x, 3), pow(interval(1.0, 2.0), 3), "x^3"},
       {nth_root(y, 2), nth_root(interval(3.0, 4.0), 2), "nth_root(y,2)"},
       {cos(x), cos(interval(1.0, 2.0)), "cos(x)"},
       {sin(x), sin(interval(1.0, 2.0)), "sin(x)"},

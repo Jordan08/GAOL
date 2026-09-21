@@ -17,6 +17,9 @@ set(GAOL_TESTS
   rounding_direction
   numbers
   other_functions
+  # gaol_ieee1788 under using namespace gaol_ieee1788 alone, as a program
+  # opens it (GAOL v5)
+  ieee1788_using_directive
   reverse
   # The 128-bit integer GAOL computes the accurate phases of CORE-MATH with
   # where the compiler has none, and the bounds CORE-MATH gives (GAOL v5)

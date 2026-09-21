@@ -60,7 +60,7 @@
 	/*
 	  The n-th power, n > 0, of the interval of stored bounds lb (the opposite
 	  of its left bound) and rb, in [0, +oo] for uipow_dnup() and containing 0
-	  for uipow_upup(), as uipow() calls them: static, and no longer declared
+	  for uipow_upup(), as gaol_uipow() calls them: static, and no longer declared
 	  in gaol_interval.h (GAOL v5)
 	*/
 	static interval uipow_dnup(double lb, double rb, unsigned int n)
@@ -104,8 +104,8 @@
 	}
 
 	/*
-	  I^e for a non-empty I and e > 0, as pow() calls it: uipow(), public,
-	  calls it (GAOL v5, see gaol_interval.h). The stored bounds are the
+	  I^e for a non-empty I and e > 0, as gaol_pown() calls it: gaol_uipow(),
+	  public, calls it (GAOL v5, see gaol_interval.h). The stored bounds are the
 	  opposite of the left bound and the right bound.
 	*/
 	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
@@ -151,7 +151,7 @@
 		return res;
 	}
 
-	interval uipow(const interval& I, unsigned int e)
+	interval gaol_uipow(const interval& I, unsigned int e)
 	{
 		if (I.is_empty()) {
 			return I;
@@ -1098,8 +1098,8 @@
       // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
       // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
       // direction when it is inexact, and mid([2^-1074, MAX]) was [MAX/2, MAX/2]
-      mid_left  = -(.5*lb_ + gaol::rnd_keep((-.5)*rb_));
-      mid_right = gaol::rnd_keep((-.5)*lb_) + .5*rb_;
+      mid_left  = -(.5*lb_ + gaol_core::rnd_keep((-.5)*rb_));
+      mid_right = gaol_core::rnd_keep((-.5)*lb_) + .5*rb_;
     } else {
       mid_left  = -(.5*opp_sum);
       mid_right = .5*sum;

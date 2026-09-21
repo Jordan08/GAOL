@@ -44,7 +44,7 @@ using std::exception;
 
 using std::string;
 
-namespace gaol {
+namespace gaol_core {
 
   /*!
     \brief Base class for all gaol exceptions
@@ -166,7 +166,7 @@ namespace gaol {
   extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out,
 					      const gaol_exception &e);
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* GAOL_EXCEPTIONS_ENABLED */
 #endif /* __gaol_exceptions_h__ */

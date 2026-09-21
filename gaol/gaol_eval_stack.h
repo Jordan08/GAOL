@@ -35,7 +35,7 @@
 
 #include "gaol/gaol_common.h"
 
-namespace gaol {
+namespace gaol_core {
 
   /*!
     \brief stack for evaluation of expressions
@@ -88,6 +88,6 @@ namespace gaol {
       }
     }
   
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_eval_stack_h__ */

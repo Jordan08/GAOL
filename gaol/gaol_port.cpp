@@ -31,7 +31,7 @@
 #include <iostream>
 #include "gaol/gaol_port.h"
 
-namespace gaol {
+namespace gaol_core {
 
   int gaol_signbit(double d)
   {
@@ -44,4 +44,4 @@ namespace gaol {
     //return ((unsigned int)(__HI(d)) & 0x80000000)!=0;
   }
 
-} // namespace gaol
+} // namespace gaol_core

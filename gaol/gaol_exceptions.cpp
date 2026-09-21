@@ -36,7 +36,7 @@
 
 #include "gaol/gaol_exceptions.h"
 
-namespace gaol {
+namespace gaol_core {
 
   // Class gaol_exception
   gaol_exception::gaol_exception(const char* f, unsigned l)
@@ -81,6 +81,6 @@ namespace gaol {
     return out;
   }
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* GAOL_EXCEPTIONS_ENABLED */

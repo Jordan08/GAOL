@@ -31,7 +31,7 @@
 #ifndef __gaol_expr_visitor_h__
 #define __gaol_expr_visitor_h__
 
-namespace gaol {
+namespace gaol_core {
   // Forward declarations
   class null_node;
   class double_node;
@@ -179,6 +179,6 @@ namespace gaol {
     bool error;
   };
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_expr_visitor_h__ */

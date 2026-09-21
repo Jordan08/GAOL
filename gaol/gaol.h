@@ -32,7 +32,6 @@
 
 #include "gaol"
 
-using namespace gaol;
 
 
 #endif /* __gaol_h__ */

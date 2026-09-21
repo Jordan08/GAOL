@@ -33,7 +33,7 @@
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_common.h"
 
-namespace gaol {
+namespace gaol_core {
 
 	class interval; // Forward declaration for interval2f::first() and interval2f::second()
 	class intervalf; // Forward declaration 

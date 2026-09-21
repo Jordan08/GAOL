@@ -32,7 +32,7 @@
 #ifndef __gaol_flags_h__
 #define __gaol_flags_h__
 
-namespace gaol {
+namespace gaol_core {
 
 
   /*!
@@ -49,6 +49,6 @@ namespace gaol {
     };
   };
 
-} // namespace gaol
+} // namespace gaol_core
 
 #endif /* __gaol_flags_h__ */

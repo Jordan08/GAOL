@@ -35,9 +35,15 @@
 #include "gaol/gaol_config.h"
 #include <iosfwd>
 
-namespace gaol {
-
+namespace gaol_core {
   class interval;
+}
+
+/*
+  The parser is in the namespace gaol, not in gaol_core: it calls GAOL's
+  functions under their names in gaol, pow being GAOL's pow there (GAOL v5).
+*/
+namespace gaol {
 
   /*!
     \brief Parse a string to create an interval.
@@ -74,7 +80,7 @@ namespace gaol {
 
     \note The out interval is not modified whenever an error occur.
   */
-  extern __GAOL_PUBLIC__ bool parse_interval(const char* const s, interval& out);
+  extern __GAOL_PUBLIC__ bool parse_interval(const char* const s, gaol_core::interval& out);
 
 } // namespace gaol
 
