@@ -85,6 +85,14 @@ kept as a patch to reapply.
    not the mask of the 52 low bits of a double. Upstream writes `~0ull` in its
    other sources: this is a fix to propose to CORE-MATH.
 
+3. **Three signed shifts made unsigned** in `cospi/cospi.c` (the test of an
+   integer or half-integer argument). `m` is a signed 64-bit integer holding
+   the significand with its hidden bit, 2^52, and shifting it left by 11 to 13
+   places overflows: undefined behaviour in C, which UBSan reported in the tests
+   run with the sanitizers. `sinpi.c` and `tanpi.c`, which do the same, convert
+   `m` to `uint64_t` before shifting it; `cospi.c` now does too, and gives the
+   same values bit for bit. This is a fix to propose to CORE-MATH.
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
@@ -109,6 +117,6 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the two changes
+Copy the upstream tree again without the `.wc` files, then make the three changes
 above. `git diff` against the previous version shows them: they are marked
 `/* GAOL */`, and no other line differs.

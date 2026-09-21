@@ -176,9 +176,9 @@ double cr_cospi(double x){
   }
   
   int32_t si = e-1011;
-  if(__builtin_expect(si>=0&&(m<<(si+1))==0, 0)) { // x is integer or half-integer
-    if ((m<<si) == 0){ // x is integer
-      int t = (m<<(si-1))>>63;
+  if(__builtin_expect(si>=0&&((uint64_t)m<<(si+1))==0, 0)) { /* GAOL */ // x is integer or half-integer
+    if (((uint64_t)m<<si) == 0){ /* GAOL */ // x is integer
+      int t = ((uint64_t)m<<(si-1))>>63; /* GAOL */
       // t = 0 if |x| = 1/2 mod 2, t = 1 if |x| = 3/2 mod 2
       return t?-1.0:1.0;
     }
