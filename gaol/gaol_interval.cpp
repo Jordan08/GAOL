@@ -1796,6 +1796,131 @@ interval nth_root(const interval& I, int q)
     return interval(lower, upper);
   }
 
+  /*
+    fma(X, Y, Z) of IEEE 1788-2015 (Table 9.1), whose tightness is required
+    (12.10.2) (GAOL v5)
+
+    x*y ranges over the hull of the products of the bounds of X and Y, x*y
+    being bilinear, so x*y + z ranges from the least of those products plus
+    inf Z to the greatest plus sup Z. Each corner is rounded once, by std::fma,
+    upward for the upper bound and downward for the lower one as
+    -fma(-a, b, -c): the bounds are the tightest. A bound 0 times an infinite
+    one counts as 0, as in the product of intervals, where std::fma would give
+    NaN; and an infinite bound of Z gives the bound of the result it is on.
+  */
+  static inline double fma_up(double a, double b, double c)
+  {
+    return (a == 0.0 || b == 0.0) ? c : std::fma(a, b, c);
+  }
+
+  /*
+    The result of std::fma goes through rnd_keep() before it is negated: GCC
+    folds -fma(-a, b, -c) into fma(a, b, c), a single vfmadd rounded upward
+    whatever -frounding-math says, which gave the lower bound rounded the wrong
+    way -- a bound one double above the exact one, the interval no longer
+    enclosing it. The negations inside may be folded: -a*b - c is rounded
+    upward all the same.
+  */
+  static inline double fma_down(double a, double b, double c)
+  {
+    return (a == 0.0 || b == 0.0) ? c : -gaol::rnd_keep(std::fma(-a, b, -c));
+  }
+
+  interval fma(const interval& X, const interval& Y, const interval& Z)
+  {
+    if (X.is_empty() || Y.is_empty() || Z.is_empty()) {
+      return interval::emptyset();
+    }
+    const double xl = X.left(), xr = X.right(), yl = Y.left(), yr = Y.right();
+    const double zl = Z.left(), zr = Z.right();
+    double lower = -GAOL_INFINITY, upper = GAOL_INFINITY;
+    GAOL_RND_ENTER();
+    if (zl != -GAOL_INFINITY) {
+      lower = minimum(minimum(fma_down(xl, yl, zl), fma_down(xl, yr, zl)),
+                      minimum(fma_down(xr, yl, zl), fma_down(xr, yr, zl)));
+    }
+    if (zr != GAOL_INFINITY) {
+      upper = maximum(maximum(fma_up(xl, yl, zr), fma_up(xl, yr, zr)),
+                      maximum(fma_up(xr, yl, zr), fma_up(xr, yr, zr)));
+    }
+    GAOL_RND_LEAVE();
+    return interval(lower, upper);
+  }
+
+  /*
+    cancelMinus and cancelPlus of IEEE 1788-2015 (10.5.6, 12.12.5) (GAOL v5)
+
+    Whether the result exists depends on X being at least as wide as Y, that
+    is sup X - sup Y >= inf X - inf Y, which rounding the two differences
+    cannot decide when they are within a double of each other (note of
+    12.12.5). Each difference is therefore computed exactly, as the sum of its
+    value rounded to nearest and of its error, by the TwoSum of Knuth, which is
+    exact in the rounding to nearest: the rounded values compare as the exact
+    ones unless they are equal, and the errors decide then.
+  */
+  static inline void two_sum(double a, double b, double& s, double& e)
+  {
+    s = a + b;
+    const double ap = s - b;
+    const double bp = s - ap;
+    e = (a - ap) + (b - bp);
+  }
+
+  // Whether a1 - b1 >= a2 - b2, exactly
+  static bool difference_at_least(double a1, double b1, double a2, double b2)
+  {
+    double s1, e1, s2, e2;
+    GAOL_RND_NEAREST_ENTER();
+    two_sum(a1, -b1, s1, e1);
+    two_sum(a2, -b2, s2, e2);
+    GAOL_RND_NEAREST_LEAVE();
+    const bool inf1 = std::isinf(s1), inf2 = std::isinf(s2);
+    if (inf1 || inf2) {
+      // A difference beyond the largest double decides the comparison unless
+      // both are, with the same sign; the four doubles are then beyond 2^1022,
+      // where halving them is exact
+      if (inf1 && inf2 && (s1 > 0.0) == (s2 > 0.0)) {
+        return difference_at_least(0.5 * a1, 0.5 * b1, 0.5 * a2, 0.5 * b2);
+      }
+      return s1 >= s2;
+    }
+    if (s1 != s2) {
+      return s1 > s2;
+    }
+    return e1 >= e2;
+  }
+
+  interval cancel_minus(const interval& X, const interval& Y)
+  {
+    const bool x_empty = X.is_empty(), y_empty = Y.is_empty();
+    // no value at Level 1, which 12.12.5 has return [-oo, +oo]: an unbounded X
+    // or Y, a nonempty X with an empty Y, or X narrower than Y
+    if ((!x_empty && !X.is_finite()) || (!y_empty && !Y.is_finite())) {
+      return interval::universe();
+    }
+    if (x_empty) {
+      return interval::emptyset();
+    }
+    if (y_empty) {
+      return interval::universe();
+    }
+    const double xl = X.left(), xr = X.right(), yl = Y.left(), yr = Y.right();
+    if (!difference_at_least(xr, yr, xl, yl)) {
+      return interval::universe();
+    }
+    GAOL_RND_ENTER();
+    // [xl - yl, xr - yr] rounded outward: xl - yl downward as -(yl - xl)
+    const double lower = -(yl - xl);
+    const double upper = xr - yr;
+    GAOL_RND_LEAVE();
+    return interval(lower, upper);
+  }
+
+  interval cancel_plus(const interval& X, const interval& Y)
+  {
+    return cancel_minus(X, -Y);
+  }
+
   interval exp(const interval& I)
   {
 	/* We intersect the result with [0, +oo] to ensure that the result is strictly positive

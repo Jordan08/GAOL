@@ -462,6 +462,48 @@ namespace
       }
     }
   }
+
+  /*
+    less, strictLess, isEntire and isCommonInterval of IEEE 1788-2015
+    (Tables 10.3 and 10.4, 10.5.10, 10.6.3), GAOL v5. Each case is written with
+    the value the standard gives it: the two empty sets are in both orders, an
+    empty set and a nonempty interval in neither; strictLess counts an
+    infinite bound as below itself (<' of Table 10.3), so that [-oo, 1] is
+    strictly less than [-oo, 2] while [1, 2] is not strictly less than [1, 3].
+  */
+  void ieee1788_order()
+  {
+    const double inf = GAOL_INFINITY;
+    const interval empty = interval::emptyset();
+    struct Case { const char *what; bool got, expected; };
+    const Case cases[] = {
+      {"less(empty, empty)", empty.less(empty), true},
+      {"less(empty, [1, 2])", empty.less(interval(1.0, 2.0)), false},
+      {"less([1, 2], empty)", interval(1.0, 2.0).less(empty), false},
+      {"less([1, 2], [1, 3])", interval(1.0, 2.0).less(interval(1.0, 3.0)), true},
+      {"less([1, 2], [1, 2])", interval(1.0, 2.0).less(interval(1.0, 2.0)), true},
+      {"less([1, 4], [2, 3])", interval(1.0, 4.0).less(interval(2.0, 3.0)), false},
+      {"less([-oo, 1], [-oo, +oo])", interval(-inf, 1.0).less(interval(-inf, inf)), true},
+      {"strictly_less(empty, empty)", empty.strictly_less(empty), true},
+      {"strictly_less(empty, [1, 2])", empty.strictly_less(interval(1.0, 2.0)), false},
+      {"strictly_less([1, 2], [3, 4])", interval(1.0, 2.0).strictly_less(interval(3.0, 4.0)), true},
+      {"strictly_less([1, 2], [1, 3]): equal lower bounds", interval(1.0, 2.0).strictly_less(interval(1.0, 3.0)), false},
+      {"strictly_less([-oo, 1], [-oo, 2]): -oo <' -oo", interval(-inf, 1.0).strictly_less(interval(-inf, 2.0)), true},
+      {"strictly_less([1, +oo], [2, +oo]): +oo <' +oo", interval(1.0, inf).strictly_less(interval(2.0, inf)), true},
+      {"strictly_less(entire, entire)", interval::universe().strictly_less(interval::universe()), true},
+      {"is_entire([-oo, +oo])", interval::universe().is_entire(), true},
+      {"is_entire([-oo, 1])", interval(-inf, 1.0).is_entire(), false},
+      {"is_entire(empty)", empty.is_entire(), false},
+      {"is_common_interval([1, 2])", interval(1.0, 2.0).is_common_interval(), true},
+      {"is_common_interval([1, 1])", interval(1.0).is_common_interval(), true},
+      {"is_common_interval([1, +oo])", interval(1.0, inf).is_common_interval(), false},
+      {"is_common_interval(empty): its NaN bounds are no infinities", empty.is_common_interval(), false},
+    };
+    for (const Case& c : cases) {
+      check(std::string("IEEE 1788 order: ") + c.what, c.got == c.expected,
+            [&] { return std::string(c.what) + " is " + (c.got ? "true" : "false"); });
+    }
+  }
 }
 
 int main()
@@ -480,6 +522,7 @@ int main()
 #endif // GAOL_FLOAT_INTERVALS
   relations();
   periodic_relations_at_every_magnitude();
+  ieee1788_order();
   const int status = summary();
   gaol::cleanup();
   return status;

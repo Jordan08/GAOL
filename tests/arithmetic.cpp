@@ -591,6 +591,108 @@ namespace
       }
     }
   }
+
+  /*
+    fma, cancel_minus and cancel_plus of IEEE 1788-2015 (GAOL v5), which are
+    required to be the tightest.
+
+    The bounds of fma are compared with std::fma called in the downward and
+    the upward rounding directly, apart from the negations GAOL rounds with:
+    GCC folded -fma(-a, b, -c) into fma(a, b, c), a single instruction rounded
+    upward, and the lower bound came one double above the exact one. cancel
+    is checked on intervals of the same width, which rounding the differences
+    of the bounds cannot tell from others, and on intervals one double wider.
+  */
+  void fused_and_cancellative()
+  {
+    Random random;
+    const auto corner = [](double a, double b, double c, int direction) {
+      if (a == 0.0 || b == 0.0) {
+        return c;  // 0 times an infinite bound counts as 0
+      }
+      std::fesetround(direction);
+      const double v = std::fma(a, b, c);
+      std::fesetround(FE_UPWARD);
+      return v;
+    };
+    for (int i = 0; i < 100000; ++i) {
+      const interval X = hull(random.any(), random.any());
+      const interval Y = hull(random.any(), random.any());
+      const interval Z = hull(random.any(), random.any());
+      const interval got = fma(X, Y, Z);
+      double lo = -GAOL_INFINITY, hi = GAOL_INFINITY;
+      if (Z.left() != -GAOL_INFINITY) {
+        lo = GAOL_INFINITY;
+        for (double a : {X.left(), X.right()})
+          for (double b : {Y.left(), Y.right()})
+            lo = std::min(lo, corner(a, b, Z.left(), FE_DOWNWARD));
+      }
+      if (Z.right() != GAOL_INFINITY) {
+        hi = -GAOL_INFINITY;
+        for (double a : {X.left(), X.right()})
+          for (double b : {Y.left(), Y.right()})
+            hi = std::max(hi, corner(a, b, Z.right(), FE_UPWARD));
+      }
+      check("fma: the tightest bounds, each rounded once", got.left() == lo && got.right() == hi,
+            [&] {
+              return "fma(" + hex(X) + ", " + hex(Y) + ", " + hex(Z) + ") = " + hex(got)
+                   + " rather than [" + hex(lo) + ", " + hex(hi) + "]";
+            });
+    }
+    check("fma with an empty argument: empty",
+          fma(interval::emptyset(), interval(1.0), interval(1.0)).is_empty(), [] { return std::string(); });
+    check("fma([0, 1], [0, +oo], [2]) = [2, +oo]: 0 times +oo counts as 0",
+          fma(interval(0.0, 1.0), interval(0.0, GAOL_INFINITY), interval(2.0)).left() == 2.0,
+          [] { return std::string(); });
+
+    for (int i = 0; i < 100000; ++i) {
+      const interval X = hull(random.any(), random.any());
+      const double w = X.right() - X.left();   // the width rounded upward
+      const double b = random.any();
+      // a Y of the width of X rounded, then one double narrower and one wider
+      for (int shift = -1; shift <= 1; ++shift) {
+        double u = b + w;
+        if (shift < 0) u = std::nextafter(u, -GAOL_INFINITY);
+        if (shift > 0) u = std::nextafter(u, GAOL_INFINITY);
+        if (!(b <= u) || !std::isfinite(u) || !X.is_finite()) {
+          continue;
+        }
+        const interval Y(b, u);
+        const interval got = cancel_minus(X, Y);
+        // defined when X is at least as wide as Y: in exact arithmetic
+        // X.right() - X.left() >= u - b, which Y + result must then contain
+        if (got.is_entire()) {
+          continue;  // no value at Level 1, which the next check does not see
+        }
+        const interval sum = Y + got;
+        check("cancel_minus: Y + result encloses X", sum.set_contains(X),
+              [&] { return "cancel_minus(" + hex(X) + ", " + hex(Y) + ") = " + hex(got); });
+        // the tightest bounds: the differences of the bounds rounded in the
+        // two directed roundings directly
+        std::fesetround(FE_DOWNWARD);
+        const double lo = X.left() - Y.left();
+        std::fesetround(FE_UPWARD);
+        const double hi = X.right() - Y.right();
+        check("cancel_minus: the tightest bounds", got.left() == lo && got.right() == hi,
+              [&] {
+                return "cancel_minus(" + hex(X) + ", " + hex(Y) + ") = " + hex(got)
+                     + " rather than [" + hex(lo) + ", " + hex(hi) + "]";
+              });
+      }
+    }
+    check("cancel_minus(empty, [1, 2]) = empty",
+          cancel_minus(interval::emptyset(), interval(1.0, 2.0)).is_empty(), [] { return std::string(); });
+    check("cancel_minus([1, 2], empty) = entire",
+          cancel_minus(interval(1.0, 2.0), interval::emptyset()).is_entire(), [] { return std::string(); });
+    check("cancel_minus([1, +oo], [1, 2]) = entire",
+          cancel_minus(interval(1.0, GAOL_INFINITY), interval(1.0, 2.0)).is_entire(), [] { return std::string(); });
+    check("cancel_minus([1, 2], [0, 5]) = entire: X narrower than Y",
+          cancel_minus(interval(1.0, 2.0), interval(0.0, 5.0)).is_entire(), [] { return std::string(); });
+    check("cancel_minus([1, 5], [0, 2]) = [1, 3]",
+          cancel_minus(interval(1.0, 5.0), interval(0.0, 2.0)).set_eq(interval(1.0, 3.0)), [] { return std::string(); });
+    check("cancel_plus([1, 5], [0, 2]) = cancel_minus([1, 5], [-2, 0]) = [3, 5]",
+          cancel_plus(interval(1.0, 5.0), interval(0.0, 2.0)).set_eq(interval(3.0, 5.0)), [] { return std::string(); });
+  }
 }
 
 int main()
@@ -607,6 +709,7 @@ int main()
   unsigned_powers();
   negative_powers_at_special_values();
   roots_at_special_values();
+  fused_and_cancellative();
   const int status = summary();
   gaol::cleanup();
   return status;

@@ -214,8 +214,22 @@ namespace gaol {
     bool set_geq(const interval& I) const;
     bool set_le(const interval& I) const;
     bool set_ge(const interval& I) const;
+    /*!
+      \brief The order of IEEE 1788-2015 on intervals (Table 10.3, GAOL v5)
+
+      less(I) is less, *this <= I: each bound of *this at most that of I;
+      strictly_less(I) is strictLess, each bound below that of I, an infinite
+      bound counting as below itself. Two empty sets are in both relations,
+      and an empty set and a nonempty interval in neither (Table 10.4).
+    */
+    bool less(const interval& I) const;
+    bool strictly_less(const interval& I) const;
 
     bool is_empty(void) const;
+    //! isEntire of IEEE 1788-2015 (10.5.10): *this is [-oo, +oo] (GAOL v5)
+    bool is_entire(void) const;
+    //! isCommonInterval of IEEE 1788-2015 (10.6.3): nonempty and bounded (GAOL v5)
+    bool is_common_interval(void) const;
     bool is_symmetric(void) const;
     bool is_finite(void) const;
     /*!
@@ -406,6 +420,46 @@ namespace gaol {
   bool interval::is_empty(void) const
   {
     return !(left() <= right()); // Negation to handle NaNs
+  }
+
+  INLINE
+  bool interval::is_entire(void) const
+  {
+    return left() == -GAOL_INFINITY && right() == GAOL_INFINITY;
+  }
+
+  /*
+    The empty set is bounded to interval::is_finite(), its bounds being NaN,
+    which is no infinity: a common interval has to be nonempty as well
+  */
+  INLINE
+  bool interval::is_common_interval(void) const
+  {
+    return !is_empty() && is_finite();
+  }
+
+  INLINE
+  bool interval::less(const interval& I) const
+  {
+    if (is_empty() || I.is_empty()) {
+      return is_empty() && I.is_empty();
+    }
+    return left() <= I.left() && right() <= I.right();
+  }
+
+  /*
+    <' of Table 10.3: < but for -oo <' -oo and +oo <' +oo, which are true, so
+    that [-oo, 1] is strictly less than [-oo, 2]
+  */
+  INLINE
+  bool interval::strictly_less(const interval& I) const
+  {
+    if (is_empty() || I.is_empty()) {
+      return is_empty() && I.is_empty();
+    }
+    const bool lower = left() < I.left() || (left() == I.left() && left() == -GAOL_INFINITY);
+    const bool upper = right() < I.right() || (right() == I.right() && right() == GAOL_INFINITY);
+    return lower && upper;
   }
 
   INLINE
@@ -812,6 +866,24 @@ extern __GAOL_PUBLIC__   interval cospi(const interval& I);
 extern __GAOL_PUBLIC__   interval tanpi(const interval& I);
 extern __GAOL_PUBLIC__   interval atanpi(const interval& I);
 extern __GAOL_PUBLIC__   interval acospi(const interval& I);
+
+  /*!
+    \brief fma(X, Y, Z) of IEEE 1788-2015 (Table 9.1): an enclosure of
+    x*y + z for x in X, y in Y and z in Z, each bound rounded once, the
+    tightest one (GAOL v5)
+  */
+extern __GAOL_PUBLIC__   interval fma(const interval& X, const interval& Y, const interval& Z);
+  /*!
+    \brief cancelMinus and cancelPlus of IEEE 1788-2015 (10.5.6, 12.12.5)
+    (GAOL v5)
+
+    cancel_minus(X, Y) is the tightest interval Z such that Y + Z contains X,
+    [inf X - inf Y, sup X - sup Y], which exists when X and Y are bounded and
+    X is at least as wide as Y; otherwise [-oo, +oo]. It is the empty set for
+    an empty X and a bounded Y. cancel_plus(X, Y) is cancel_minus(X, -Y).
+  */
+extern __GAOL_PUBLIC__   interval cancel_minus(const interval& X, const interval& Y);
+extern __GAOL_PUBLIC__   interval cancel_plus(const interval& X, const interval& Y);
 
 extern __GAOL_PUBLIC__   interval cos(const interval& I);
 extern __GAOL_PUBLIC__   interval sin(const interval& I);
