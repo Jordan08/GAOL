@@ -3,8 +3,9 @@
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the 128-bit unsigned integer of gaol/gaol_u128.h.
  *
- * The accurate phases of CORE-MATH's log, sin, cos, tan, atan2 and pow compute
- * with a 128-bit unsigned integer, which Visual C++ has on no architecture and
+ * The accurate phases of CORE-MATH's log, sin, cos, tan, atan2 and pow, and of
+ * log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
+ * integer (unsigned, and signed in asinpi), which Visual C++ has on no architecture and
  * GCC has on no 32-bit target: there GAOL computes with the two 64-bit halves
  * of gaol/gaol_u128.h. This test compiles those halves (GAOL_U128_FORCE_EMULATION)
  * and compares every operation with the same operation on the native type of
@@ -93,6 +94,7 @@ namespace
 #if defined(__SIZEOF_INT128__)
 
 typedef unsigned __int128 native;
+typedef __int128 signed_native;
 
 namespace
 {
@@ -121,6 +123,11 @@ namespace
     same("or", gaol_u128_or(a, b), (native)(na | nb), what);
     same("and64", gaol_u128_and64(a, bl), (native)(na & (native)bl), what);
     same("of", gaol_u128_of(al), (native)al, what);
+    same("and", gaol_u128_and(a, b), (native)(na & nb), what);
+    // the signed values, in two's complement
+    same("of_i64", gaol_u128_of_i64((int64_t)al), (native)(signed_native)(int64_t)al, what);
+    same("imul64", gaol_u128_imul64((int64_t)al, (int64_t)bl),
+         (native)((signed_native)(int64_t)al * (int64_t)bl), what);
 
     check("lo", gaol_u128_lo(a) == (uint64_t)na, what);
     check("hi", gaol_u128_hi(a) == (uint64_t)(na >> 64), what);
@@ -137,6 +144,7 @@ namespace
       const std::string what = hex(ah, al) + " by " + std::to_string(n);
       same("shl", gaol_u128_shl(a, n), (native)(na << n), what);
       same("shr", gaol_u128_shr(a, n), (native)(na >> n), what);
+      same("sar", gaol_u128_sar(a, n), (native)((signed_native)na >> n), what);
       same("bit", gaol_u128_bit(n), (native)((native)1 << n),
            std::to_string(n));
     }
@@ -193,10 +201,30 @@ namespace
                        gaol_u128_mul(gaol_u128_of(al), gaol_u128_of(bl))), what);
     check("the order is total",
           gaol_u128_lt(a, b) + gaol_u128_gt(a, b) + gaol_u128_eq(a, b) == 1, what);
+    const gaol_u128 ones = gaol_u128_make(UINT64_MAX, UINT64_MAX);
+    check("and is commutative",
+          gaol_u128_eq(gaol_u128_and(a, b), gaol_u128_and(b, a)), what);
+    check("and with all ones", gaol_u128_eq(gaol_u128_and(a, ones), a), what);
+    // the signed product is the product of the values extended with their sign
+    check("imul64 is mul of the values extended",
+          gaol_u128_eq(gaol_u128_imul64((int64_t)al, (int64_t)bl),
+                       gaol_u128_mul(gaol_u128_of_i64((int64_t)al),
+                                     gaol_u128_of_i64((int64_t)bl))), what);
+    check("of_i64 is the high half shifted with its sign",
+          gaol_u128_eq(gaol_u128_of_i64((int64_t)al),
+                       gaol_u128_sar(gaol_u128_make(al, 0), 64)), what);
     for (int n = 0; n < 64; ++n) {
       const gaol_u128 low = gaol_u128_of(al >> n << n);
       check("shl then shr",
             gaol_u128_eq(gaol_u128_shr(gaol_u128_shl(low, n), n), low),
+            what + " by " + std::to_string(n));
+    }
+    // ~a is ones - a: sar is shr for a >= 0 and ~shr(~a) for a < 0
+    const gaol_u128 not_a = gaol_u128_sub(ones, a);
+    for (int n = 0; n < 128; ++n) {
+      const gaol_u128 expected = (ah >> 63) ? gaol_u128_sub(ones, gaol_u128_shr(not_a, n))
+                                            : gaol_u128_shr(a, n);
+      check("sar", gaol_u128_eq(gaol_u128_sar(a, n), expected),
             what + " by " + std::to_string(n));
     }
   }

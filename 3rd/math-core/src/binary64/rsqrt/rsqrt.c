@@ -106,11 +106,13 @@ static inline int get_rounding_mode (void)
 #endif
 }
 
-#if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
-typedef unsigned _BitInt(128) u128;
-#else
-typedef unsigned __int128 u128;
-#endif
+/* GAOL: u128 is the 128-bit unsigned integer of gaol/gaol_u128.h: the type of
+   the compiler where it has one (unsigned __int128, or _BitInt(128) of C23),
+   and the structure of two 64-bit halves with Visual C++, which has none on
+   any architecture, and on the 32-bit targets of GCC. Where it is that
+   structure, the code below calls gaol_u128_*() rather than the operators of
+   the language. */
+typedef gaol_u128 u128;
 
 typedef uint64_t u64;
 typedef int64_t i64;
@@ -132,30 +134,31 @@ static double __attribute__((noinline)) as_rsqrt_refine(double rf, double a){
     u64 rm, am;
     rm = (ir.u<<11|1ull<<63)>>11;
     am = ((ia.u&(~0ull>>12))|1ull<<52)<<(5-e);
-    u128 rt = (u128)rm*am;
-    u64 rth = rt>>64, rtl = rt;
-    u128 rrt = (u128)rtl*rm;
-    u64 t0 = rrt, t1 = (rrt>>64) + rth*rm;
-    rrt = (u128)t1<<64|t0;
-    i64 s = rrt>>127, dd = 1 - 2*s;
-    u128 rts = ((rt<<1)^(-s)) + s;
+    u128 rt = gaol_u128_mul64(rm, am); /* GAOL */
+    u64 rth = gaol_u128_hi(rt), rtl = gaol_u128_lo(rt); /* GAOL */
+    u128 rrt = gaol_u128_mul64(rtl, rm); /* GAOL */
+    u64 t0 = gaol_u128_lo(rrt), t1 = gaol_u128_hi(rrt) + rth*rm; /* GAOL */
+    rrt = gaol_u128_make(t1, t0); /* GAOL */
+    i64 s = gaol_u128_hi(rrt)>>63, dd = 1 - 2*s; /* GAOL */
+    /* GAOL: ((rt<<1)^(-s)) + s, -s being 0 or all ones, negates rt<<1 when s is 1 */
+    u128 rts = s ? gaol_u128_neg(gaol_u128_shl(rt, 1)) : gaol_u128_shl(rt, 1);
     u128 prrt;
     u64 am2 = am<<1, am20 = -am;
     do {
       ir.u -= dd;
       prrt = rrt;
       am20 += am2;
-      u128 tt = rts - am20;
-      rrt -= tt;
-    } while(__builtin_expect(!((prrt^rrt)>>127), 0));
-    ir.u += (rrt>>127)?0:dd;
-    rrt = (rrt>>127)?rrt:prrt;
+      u128 tt = gaol_u128_sub(rts, gaol_u128_of(am20)); /* GAOL */
+      rrt = gaol_u128_sub(rrt, tt); /* GAOL */
+    } while(__builtin_expect(!((gaol_u128_hi(prrt)^gaol_u128_hi(rrt))>>63), 0)); /* GAOL */
+    ir.u += (gaol_u128_hi(rrt)>>63)?0:dd; /* GAOL */
+    rrt = (gaol_u128_hi(rrt)>>63)?rrt:prrt; /* GAOL */
     if(__builtin_expect(mode==FE_TONEAREST, 1)){
       rm = (ir.u<<11|1ull<<63)>>11;
-      rt = (u128)rm*am;
-      rrt += am>>2;
-      rrt += rt;
-      u64 inc = rrt>>127;
+      rt = gaol_u128_mul64(rm, am); /* GAOL */
+      rrt = gaol_u128_add64(rrt, am>>2); /* GAOL */
+      rrt = gaol_u128_add(rrt, rt); /* GAOL */
+      u64 inc = gaol_u128_hi(rrt)>>63; /* GAOL */
       ir.u += inc;
     } else {
       ir.u += mode==FE_UPWARD;

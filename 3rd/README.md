@@ -66,15 +66,22 @@ which are marked `/* GAOL */` in the code. They are made in the tree rather than
 kept as a patch to reapply.
 
 1. **The 128-bit integer** of the accurate phases of `log`, `sin`, `cos`, `tan`,
-   `atan2` and `pow`. Upstream writes it `unsigned __int128`, or
+   `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`, `hypot`, `rsqrt`
+   and `asinpi`. Upstream writes it `unsigned __int128`, or
    `unsigned _BitInt(128)` with Clang 14 and GCC 14: Visual C++ has neither, on
    no architecture, and neither has GCC for a 32-bit target. In
-   `log/dint.h`, `log10/dint.h`, `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`,
-   `sin/sin.c`, `cos/cos.c` and `tan/tan.c`, the five lines that choose the type are one
-   line naming `gaol_u128`, which is the type of the compiler where it has one
-   and a structure of two 64-bit halves where it has none
-   (`gaol/gaol_u128.h`), and the extended-arithmetic functions of those files
-   call `gaol_u128_*()` rather than the operators of the language.
+   `log/dint.h`, `log10/dint.h`, `log2p1/dint_log2p1.h`, `log10p1/dint.h`,
+   `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`, `atan2pi/tint.h`, `sin/sin.c`,
+   `cos/cos.c`, `tan/tan.c`, `hypot/hypot.c`, `rsqrt/rsqrt.c` and
+   `asinpi/asinpi.c`, the lines that choose the type name `gaol_u128` instead,
+   which is the type of the compiler where it has one and a structure of two
+   64-bit halves where it has none (`gaol/gaol_u128.h`), and the
+   extended-arithmetic functions of those files call `gaol_u128_*()` rather
+   than the operators of the language. `asinpi.c` computes with a signed
+   128-bit integer too, `i128`, which is then a `gaol_u128` read in two's
+   complement: its product, its conversion from a 64-bit integer and its shift
+   right are `gaol_u128_imul64()`, `gaol_u128_of_i64()` and `gaol_u128_sar()`.
+   `log1p/dint.h` is unchanged: `log1p.c` does not include it.
 
    There is no way round this: C has no operator overloading, and the files
    cannot be compiled as C++ because their tables initialise anonymous unions
@@ -105,12 +112,25 @@ comparison rather than by reading:
   bases next to 1, exact results): the two give the same bits everywhere. This
   found a real bug the first time, an addition of two 64-bit halves that has to
   be made on 128 bits;
+- **on the paths that are seldom taken.** The 128-bit code of `log2p1`,
+  `log10p1`, `atan2pi`, `hypot`, `rsqrt` and `asinpi` only runs when their
+  fast phase cannot round, which random arguments seldom make happen. They
+  were therefore also compared over arguments collected because they reach it
+  (6,077 for `log2p1`, 4,503 for `log10p1`, 133,085 for `asinpi`, Pythagorean
+  triples for `hypot`, the powers of 4 and their neighbours for `rsqrt`), and
+  the functions of `atan2pi/tint.h` and the accurate phase of `asinpi` were
+  called directly, from upstream and from this tree, including the branches no
+  argument reaches in practice (a subtraction cancelling 64 bits or more,
+  |x| < 0.0131875 in `asinpi_acc`). Each comparison was shown able to fail: a
+  fault put in the ported code for a moment (a shift count, a dropped carry, a
+  signed shift made unsigned) makes it report thousands of differences;
 - **against the native type.** `tests/u128.cpp` compares every operation of the
-  two halves with the same operation on `unsigned __int128`, over 6.5 million
-  values and every shift count, and the whole of GAOL is built and tested with
-  the halves forced (`-DGAOL_U128_EMULATION=ON`, a job of the continuous
-  integration) so that the code Visual C++ and the 32-bit targets take is run
-  at each change;
+  two halves with the same operation on `unsigned __int128` and `__int128`, over
+  8 million values and every shift count, and the whole of GAOL is built and
+  tested with the halves forced (`-DGAOL_U128_EMULATION=ON`, a job of the
+  continuous integration, which checks that every source of CORE-MATH is
+  compiled with them) so that the code Visual C++ and the 32-bit targets take
+  is run at each change;
 - **against the tightest bounds.** `tests/core_math.cpp` compares the bounds
   GAOL computes with what CORE-MATH gives in the downward and the upward
   rounding, which are the tightest bounds there are.

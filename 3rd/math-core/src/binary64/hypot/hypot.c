@@ -64,11 +64,13 @@ static inline void set_flags (fexcept_t flag)
 typedef uint64_t u64;
 typedef int64_t i64;
 
-#if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
-typedef unsigned _BitInt(128) u128;
-#else
-typedef unsigned __int128 u128;
-#endif
+/* GAOL: u128 is the 128-bit unsigned integer of gaol/gaol_u128.h: the type of
+   the compiler where it has one (unsigned __int128, or _BitInt(128) of C23),
+   and the structure of two 64-bit halves with Visual C++, which has none on
+   any architecture, and on the 32-bit targets of GCC. Where it is that
+   structure, the code below calls gaol_u128_*() rather than the operators of
+   the language. */
+typedef gaol_u128 u128;
 typedef union {double f; u64 u;} b64u64_u;
 
 static inline double fasttwosum(double x, double y, double *e){
@@ -171,10 +173,10 @@ static double  __attribute__((noinline)) as_hypot_hard(double x, double y, const
     lm <<= ls;
     m2 += lm*lm;
   } else {
-    u128 lm2 = (u128)lm*lm;
+    u128 lm2 = gaol_u128_mul64(lm, lm); /* GAOL */
     ls *= 2;
-    m2 += lm2 >> -ls; // since ls < 0, the shift by -ls is legitimate
-    m2 |= !!(lm2 << (128 + ls));
+    m2 += gaol_u128_lo(gaol_u128_shr(lm2, -ls)); /* GAOL */ // since ls < 0, the shift by -ls is legitimate
+    { u128 t = gaol_u128_shl(lm2, 128 + ls); m2 |= !!(gaol_u128_lo(t) | gaol_u128_hi(t)); } /* GAOL */
   }
   int k = bs+re;
   i64 D;

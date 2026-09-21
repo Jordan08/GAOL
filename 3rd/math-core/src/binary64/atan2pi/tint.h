@@ -27,11 +27,13 @@ SOFTWARE.
 #include <stdlib.h> // needed for exit
 #include <inttypes.h>
 
-#if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
-typedef unsigned _BitInt(128) u128;
-#else
-typedef unsigned __int128 u128;
-#endif
+/* GAOL: u128 is the 128-bit unsigned integer of gaol/gaol_u128.h: the type of
+   the compiler where it has one (unsigned __int128, or _BitInt(128) of C23),
+   and the structure of two 64-bit halves with Visual C++, which has none on
+   any architecture, and on the 32-bit targets of GCC. Where it is that
+   structure, the extended-arithmetic functions below call gaol_u128_*()
+   rather than the operators of the language. */
+typedef gaol_u128 u128;
 
 // the following represent (-1)^sgn*(h/2^64+m/2^128+l/2^192)*2^ex
 // we have either h=m=l=0 to represent +0 or -0
@@ -99,29 +101,27 @@ mul_tint (tint_t *r, const tint_t *a, const tint_t *b)
   r->ex = a->ex + b->ex;
   r->sgn = a->sgn ^ b->sgn;
 
-  u128 ah = a->h, am = a->m, al = a->l;
-  u128 bh = b->h, bm = b->m, bl = b->l;
-  u128 rh = ah * bh, rm1 = ah * bm, rm2 = am * bh;
-  u128 rl1 = ah * bl, rl2 = am * bm, rl3 = al * bh;
+  u128 rh = gaol_u128_mul64(a->h, b->h), rm1 = gaol_u128_mul64(a->h, b->m), rm2 = gaol_u128_mul64(a->m, b->h); /* GAOL */
+  u128 rl1 = gaol_u128_mul64(a->h, b->l), rl2 = gaol_u128_mul64(a->m, b->m), rl3 = gaol_u128_mul64(a->l, b->h); /* GAOL */
   uint64_t h, l, cm;
-  r->h = rh >> 64;
-  r->m = rh; // cast to low 64 bits
+  r->h = gaol_u128_hi(rh); /* GAOL */
+  r->m = gaol_u128_lo(rh); // cast to low 64 bits
   // accumulate rm1
-  r->l = rm1; // cast to low 64 bits
-  h = rm1 >> 64;
+  r->l = gaol_u128_lo(rm1); // cast to low 64 bits
+  h = gaol_u128_hi(rm1); /* GAOL */
   r->m += h;
   r->h += r->m < h; // no overflow possible
   // accumulate rm2
-  l = rm2; // cast to low 64 bits
-  h = rm2 >> 64;
+  l = gaol_u128_lo(rm2); // cast to low 64 bits
+  h = gaol_u128_hi(rm2); /* GAOL */
   r->l += l;
   cm = r->l < l; // carry at r->m
   r->m += h;
   r->h += r->m < h; // no overflow possible
   // accumulate rl1+rl2+rl3
-  rl1 = (rl1 >> 64) + (rl2 >> 64) + (rl3 >> 64);
-  l = rl1; // cast to low 64 bits
-  cm += rl1 >> 64;
+  rl1 = gaol_u128_add(gaol_u128_add(gaol_u128_of(gaol_u128_hi(rl1)), gaol_u128_of(gaol_u128_hi(rl2))), gaol_u128_of(gaol_u128_hi(rl3))); /* GAOL */
+  l = gaol_u128_lo(rl1); // cast to low 64 bits
+  cm += gaol_u128_hi(rl1); /* GAOL */
   r->l += l;
   cm += r->l < l; // carry at r->m
   // accumulate cm
@@ -157,7 +157,7 @@ tint_zero_p (const tint_t *a)
 
 static inline int cmp(int64_t a, int64_t b) { return (a > b) - (a < b); }
 static inline int cmpu64(uint64_t a, uint64_t b) { return (a > b) - (a < b); }
-static inline int cmpu128(u128 a, u128 b) { return (a > b) - (a < b); }
+static inline int cmpu128(u128 a, u128 b) { return gaol_u128_gt(a, b) - gaol_u128_lt(a, b); } /* GAOL */
 
 // Compare the absolute values of a and b
 // Return -1 if |a| < |b|
@@ -190,26 +190,26 @@ rshift (tint_t *a, const tint_t *b, int k)
   }
   else if (k < 64)
   {
-    a->_h = b->_h >> k;
-    a->_l = (b->_h << (64 - k)) | (b->_l >> k);
+    a->_h = gaol_u128_shr(b->_h, k); /* GAOL */
+    a->_l = gaol_u128_lo(gaol_u128_shl(b->_h, 64 - k)) | (b->_l >> k); /* GAOL */
   }
   else if (k == 64)
   {
-    a->_h = b->_h >> k;
-    a->_l = b->_h;
+    a->_h = gaol_u128_shr(b->_h, k); /* GAOL */
+    a->_l = gaol_u128_lo(b->_h); /* GAOL */
   }
   else if (k < 128)
   {
-    a->_h = b->_h >> k;
-    a->_l = b->_h >> (k - 64);
+    a->_h = gaol_u128_shr(b->_h, k); /* GAOL */
+    a->_l = gaol_u128_lo(gaol_u128_shr(b->_h, k - 64)); /* GAOL */
   }
   else if (k < 192)
   {
-    a->_h = 0;
-    a->_l = b->_h >> (k - 64);
+    a->_h = gaol_u128_of(0); /* GAOL */
+    a->_l = gaol_u128_lo(gaol_u128_shr(b->_h, k - 64)); /* GAOL */
   }
   else
-    a->_h = a->_l = 0;
+    a->_l = 0, a->_h = gaol_u128_of(0); /* GAOL */
 }
 
 // shift left by k bits (only deal with the significand)
@@ -223,26 +223,26 @@ lshift (tint_t *a, const tint_t *b, int k)
   }
   else if (k < 64)
   {
-    a->_h = (b->_h << k) | (b->_l >> (64 - k));
+    a->_h = gaol_u128_or(gaol_u128_shl(b->_h, k), gaol_u128_of(b->_l >> (64 - k))); /* GAOL */
     a->_l = b->_l << k;
   }
   else if (k == 64)
   {
-    a->_h = (b->_h << k) | (u128) b->_l;
+    a->_h = gaol_u128_or(gaol_u128_shl(b->_h, k), gaol_u128_of(b->_l)); /* GAOL */
     a->_l = 0;
   }
   else if (k < 128)
   {
-    a->_h = b->_h << k | ((u128) b->_l << (k - 64));
+    a->_h = gaol_u128_or(gaol_u128_shl(b->_h, k), gaol_u128_shl(gaol_u128_of(b->_l), k - 64)); /* GAOL */
     a->_l = 0;
   }
   else if (k < 192)
   {
-    a->_h = (u128) b->_l << (k - 64);
+    a->_h = gaol_u128_shl(gaol_u128_of(b->_l), k - 64); /* GAOL */
     a->_l = 0;
   }
   else
-    a->_h = a->_l = 0;
+    a->_l = 0, a->_h = gaol_u128_of(0); /* GAOL */
 }
 
 // Add two tint_t values, with error bounded by 2 ulps
@@ -275,11 +275,11 @@ add_tint (tint_t *r, const tint_t *a, const tint_t *b)
 
   if (a->sgn ^ b->sgn) { // opposite signs, it's a subtraction
     t->_l = a->_l - t->_l;
-    t->_h = a->_h - t->_h - (t->_l > a->_l);
-    uint64_t th = t->_h >> 64;
+    t->_h = gaol_u128_sub(gaol_u128_sub(a->_h, t->_h), gaol_u128_of(t->_l > a->_l)); /* GAOL */
+    uint64_t th = gaol_u128_hi(t->_h); /* GAOL */
     uint64_t ex =
       th ? __builtin_clzll (th)
-      : (t->_h ? 64 + __builtin_clzll (t->_h) : 128 + __builtin_clzll (t->_l));
+      : (gaol_u128_lo(t->_h) ? 64 + __builtin_clzll (gaol_u128_lo(t->_h)) : 128 + __builtin_clzll (t->_l)); /* GAOL */
     if (ex <= 1 || sh == 0) {
       /* The maximal error of 1 ulp for the neglected low part of b is shifted
          by ex bits, thus contributes to < 2 ulps. And for sh=0, there is no
@@ -297,11 +297,11 @@ add_tint (tint_t *r, const tint_t *a, const tint_t *b)
       lshift (t, b, ex - sh);
       lshift (r, a, ex);
       t->_l = r->_l - t->_l;
-      t->_h = r->_h - t->_h - (t->_l > r->_l);
-      th = t->_h >> 64;
+      t->_h = gaol_u128_sub(gaol_u128_sub(r->_h, t->_h), gaol_u128_of(t->_l > r->_l)); /* GAOL */
+      th = gaol_u128_hi(t->_h); /* GAOL */
       uint64_t ex1 =
         th ? __builtin_clzll (th)
-        : (t->_h ? 64 + __builtin_clzll (t->_h) : 128 + __builtin_clzll (t->_l));
+        : (gaol_u128_lo(t->_h) ? 64 + __builtin_clzll (gaol_u128_lo(t->_h)) : 128 + __builtin_clzll (t->_l)); /* GAOL */
       lshift (r, t, ex1);
       r->ex = a->ex - (ex + ex1);
       /* Since we shifted b left in this case, there is no neglected bit of b,
@@ -314,15 +314,15 @@ add_tint (tint_t *r, const tint_t *a, const tint_t *b)
     uint64_t al = a->_l;
     r->_l = al + t->_l;
     uint64_t cl = r->_l < al;
-    r->_h = ah + t->_h;
-    uint64_t ch = r->_h < ah;
-    r->_h += cl;
-    ch += r->_h < cl;
+    r->_h = gaol_u128_add(ah, t->_h); /* GAOL */
+    uint64_t ch = gaol_u128_lt(r->_h, ah); /* GAOL */
+    r->_h = gaol_u128_add64(r->_h, cl); /* GAOL */
+    ch += gaol_u128_lt(r->_h, gaol_u128_of(cl)); /* GAOL */
     // up to here, the maximal error is < ulp(r) [shifted part of b]
     if (ch) { // can be at most 1
       r->ex = a->ex + 1;
-      r->_l = (r->_h << 63) | (r->_l >> 1);
-      r->_h = ((u128) ch << 127) | (r->_h >> 1);
+      r->_l = gaol_u128_lo(gaol_u128_shl(r->_h, 63)) | (r->_l >> 1); /* GAOL */
+      r->_h = gaol_u128_or(gaol_u128_shl(gaol_u128_of(ch), 127), gaol_u128_shr(r->_h, 1)); /* GAOL */
       /* the maximal error from the shifted part of b is now < 1/2 ulp(r),
          and in addition the low bit of r->_l that disappeared might give
          1/2 ulp(r), thus the total error is still < ulp(r) */

@@ -115,13 +115,16 @@ static inline int get_rounding_mode (void)
 #endif
 }
 
-#if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
-typedef unsigned _BitInt(128) u128;
-typedef _BitInt(128) i128;
-#else
-typedef unsigned __int128 u128;
-typedef __int128 i128;
-#endif
+/* GAOL: u128 is the 128-bit unsigned integer of gaol/gaol_u128.h: the type of
+   the compiler where it has one (unsigned __int128, or _BitInt(128) of C23),
+   and the structure of two 64-bit halves with Visual C++, which has none on
+   any architecture, and on the 32-bit targets of GCC. Where it is that
+   structure, the functions below call gaol_u128_*() rather than the operators
+   of the language. A signed value of type i128 is held in a u128 too, in two's
+   complement: gaol_u128_imul64(), gaol_u128_of_i64() and gaol_u128_sar() are
+   the product, the conversion and the shift right of the signed type. */
+typedef gaol_u128 u128;
+typedef gaol_u128 i128;
 
 typedef uint64_t u64;
 typedef int64_t i64;
@@ -132,36 +135,36 @@ typedef union {u128 a; struct {u64 bh, bl;};} u128_u;
 #endif
 typedef union {double f; u64 u;} b64u64_u;
 
-inline static void shl(u128_u *a, int n){(*a).a <<= n;}
-inline static void shr(u128_u *a, int n){(*a).a >>= n;}
+inline static void shl(u128_u *a, int n){(*a).a = gaol_u128_shl((*a).a, n);} /* GAOL */
+inline static void shr(u128_u *a, int n){(*a).a = gaol_u128_shr((*a).a, n);} /* GAOL */
 
-inline static u64 muuh(u64 a, u64 b){return (a*(u128)b)>>64;}
-inline static i64 mh(i64 a, i64 b){return (i64)((a*(i128)b)>>64);}
-inline static i128 imul(i64 a, i64 b){return a*(i128)b;}
+inline static u64 muuh(u64 a, u64 b){return gaol_u128_hi(gaol_u128_mul64(a, b));} /* GAOL */
+inline static i64 mh(i64 a, i64 b){return (i64)gaol_u128_hi(gaol_u128_imul64(a, b));} /* GAOL */
+inline static i128 imul(i64 a, i64 b){return gaol_u128_imul64(a, b);} /* GAOL */
 inline static u128 mUU(u128 a, u128 b){
   u128_u x = {.a = a}, y = {.a = b};
-  u128 o = x.bh*(u128)y.bh;
-  o += (u64)(x.bl*(u128)y.bh>>64);
-  o += (u64)(x.bh*(u128)y.bl>>64);
+  u128 o = gaol_u128_mul64(x.bh, y.bh); /* GAOL */
+  o = gaol_u128_add64(o, gaol_u128_hi(gaol_u128_mul64(x.bl, y.bh))); /* GAOL */
+  o = gaol_u128_add64(o, gaol_u128_hi(gaol_u128_mul64(x.bh, y.bl))); /* GAOL */
   return o;
 }
 
 inline static u128 muU(u64 a, u128 b){
   u128_u y = {.a = b};
-  u128 o = a*(u128)y.bh;
-  o += a*(u128)y.bl>>64;
+  u128 o = gaol_u128_mul64(a, y.bh); /* GAOL */
+  o = gaol_u128_add64(o, gaol_u128_hi(gaol_u128_mul64(a, y.bl))); /* GAOL */
   return o;
 }
 
 inline static u128 sqrU(u128 a){
   u128_u x = {.a = a};
-  u128 os = x.bl*(u128)x.bh>>63;
-  u128 o = x.bh*(u128)x.bh;
-  return o + os;
+  u128 os = gaol_u128_shr(gaol_u128_mul64(x.bl, x.bh), 63); /* GAOL */
+  u128 o = gaol_u128_mul64(x.bh, x.bh); /* GAOL */
+  return gaol_u128_add(o, os); /* GAOL */
 }
 
 static u128 pasin(u128 x){
-  u64 xh = x>>64;
+  u64 xh = gaol_u128_hi(x); /* GAOL */
   static const u64 b[] = {0x5ba2e8ba2e8ad9b7, 0x0004713b13b29079, 0x000000393331e196, 0x0000000002f5c315};
   static const u128_u ch[] = {
     {.bl = 0xaaaaaaaaaaaaaaa5, .bh = 0x0002aaaaaaaaaaaa}, // *+1
@@ -171,7 +174,7 @@ static u128 pasin(u128 x){
   };
   u128_u t = ch[3];
   t.bl += muuh(xh, b[0] + muuh(xh, b[1] + muuh(xh, b[2] + muuh(xh, b[3]))));
-  return mUU(x, ch[0].a + mUU(x, ch[1].a + mUU(x, ch[2].a + mUU(x, t.a))));
+  return mUU(x, gaol_u128_add(ch[0].a, mUU(x, gaol_u128_add(ch[1].a, mUU(x, gaol_u128_add(ch[2].a, mUU(x, t.a))))))); /* GAOL */
 }
 
 // asinpi_begin
@@ -228,12 +231,12 @@ static double asinpi_acc(double x){
   double ax = __builtin_fabs(x);
   u128_u fi;
   u64 sm = (t.u<<11)|(u64)1<<63;
-  u128_u sm2 = {.a = (u128)sm * sm};
+  u128_u sm2; sm2.a = gaol_u128_mul64(sm, sm); /* GAOL */
   if(__builtin_expect(ax<0.0131875,0)) {
     int ss = 2*se;
-    sm2.a >>= -14 - ss;
-    u128 Sm = (u128)(sm>>1)<<64;
-    fi.a = Sm + muU(sm>>1, pasin(sm2.a));
+    sm2.a = gaol_u128_shr(sm2.a, -14 - ss); /* GAOL */
+    u128 Sm = gaol_u128_make(sm>>1, 0); /* GAOL */
+    fi.a = gaol_u128_add(Sm, muU(sm>>1, pasin(sm2.a))); /* GAOL */
     se += 0x3ff;
   } else {
     double xx = __builtin_fma(x,-x,1.0);
@@ -247,64 +250,64 @@ static double asinpi_acc(double x){
     b64u64_u ic = {.f = c0*c.f + 64.0};
     int indx = ((ic.u&(~0ull>>12)) + (1ll<<(52-7)))>>(52-6);
     u64 cm = (c.u<<11)|(u64)1<<63; int ce = (c.u>>52) - 0x3ff;
-    u128_u cm2 = {.a = (u128)cm * cm};
+    u128_u cm2; cm2.a = gaol_u128_mul64(cm, cm); /* GAOL */
     const int off = 36 - 22 + 14;
     int ss = 128 - 104 + 2*se + off;
     shl(&sm2, ss);
     int sc = 128 - 104 + 2*ce + off;
     shl(&cm2, sc);
-    sm2.a += cm2.a;
+    sm2.a = gaol_u128_add(sm2.a, cm2.a); /* GAOL */
     i64 h = sm2.bh;
     u64 ixm = (ixx.u&(~0ull>>12))|1ll<<52; int ixe = (ixx.u>>52) - 0x3ff;
     i64 dc = mh(h, ixm);
-    u128_u dsm2 = {.a = (u128)imul(dc,cm>>1)};
-    dsm2.a <<= 13;
-    sm2.a -= dsm2.a;
-    u128_u dsm3 = {.a = (u128)imul(dc,dc)};
+    u128_u dsm2; dsm2.a = imul(dc,cm>>1); /* GAOL */
+    dsm2.a = gaol_u128_shl(dsm2.a, 13); /* GAOL */
+    sm2.a = gaol_u128_sub(sm2.a, dsm2.a); /* GAOL */
+    u128_u dsm3; dsm3.a = imul(dc,dc); /* GAOL */
     sc = 28 - ixe*2;
     if(__builtin_expect(sc>=0, 1))
       shr(&dsm3, sc);
     else
-      dsm3.a <<= -sc; // since sc < 0, the shift by -sc is legitimate
-    sm2.a += dsm3.a;
+      dsm3.a = gaol_u128_shl(dsm3.a, -sc); /* GAOL */ // since sc < 0, the shift by -sc is legitimate
+    sm2.a = gaol_u128_add(sm2.a, dsm3.a); /* GAOL */
     int k = ixe-ce;
     ss = 24 + k;
     u128_u Cm = {.bl = 0, .bh = cm},
       D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))};
-    Cm.a -= D.a;
-    h = sm2.a>>14;
+    Cm.a = gaol_u128_sub(Cm.a, D.a); /* GAOL */
+    h = (i64)gaol_u128_lo(gaol_u128_shr(sm2.a, 14)); /* GAOL */
     dc = mh(h, ixm);
     ss = 26-k;
     if(__builtin_expect(ss>=0,1))
-      Cm.a -= (i128)dc>> ss;
+      Cm.a = gaol_u128_sub(Cm.a, gaol_u128_sar(gaol_u128_of_i64(dc), ss)); /* GAOL */
     else
-      Cm.a -= (u128)dc<<-ss; // since ss < 0, the shift by -ss is legitimate
+      Cm.a = gaol_u128_sub(Cm.a, gaol_u128_shl(gaol_u128_of_i64(dc), -ss)); /* GAOL */ // since ss < 0, the shift by -ss is legitimate
     fi.bl = 0xd313198a2e037073;
     fi.bh = 0x3243f6a8885a308;
-    fi.a *= (u64)(64u - indx);
+    fi.a = gaol_u128_mul(fi.a, gaol_u128_of((u64)(64u - indx))); /* GAOL */
     if(__builtin_expect(indx==0, 0)){
       shr(&Cm, -ce-7);
       u128 c_2 = sqrU(Cm.a);
       u128_u z = {.a = pasin(c_2)};
-      Cm.a += mUU(Cm.a, z.a);
-      fi.a -= Cm.a>>7;
+      Cm.a = gaol_u128_add(Cm.a, mUU(Cm.a, z.a)); /* GAOL */
+      fi.a = gaol_u128_sub(fi.a, gaol_u128_shr(Cm.a, 7)); /* GAOL */
     } else {
-      i128 v = muU(sm>>-se, s[indx-1].a) - (mUU(Cm.a,s[63-indx].a)>>-ce), msk = v>>127, v2 = sqrU(v) - (msk&(v+v)); // since se<0 and ce<0, the shifts by -se and -ce are legitimate
-      v2 = (u128)v2 << 14;
+      i128 v = gaol_u128_sub(muU(sm>>-se, s[indx-1].a), gaol_u128_shr(mUU(Cm.a,s[63-indx].a), -ce)), msk = gaol_u128_sar(v, 127), v2 = gaol_u128_sub(sqrU(v), gaol_u128_and(msk, gaol_u128_add(v, v))); /* GAOL */ // since se<0 and ce<0, the shifts by -se and -ce are legitimate
+      v2 = gaol_u128_shl(v2, 14); /* GAOL */
       u128 p = pasin(v2);
-      v += mUU(p,v)-(msk&p);
-      fi.a += v;
+      v = gaol_u128_add(v, gaol_u128_sub(mUU(p,v), gaol_u128_and(msk, p))); /* GAOL */
+      fi.a = gaol_u128_add(fi.a, v); /* GAOL */
     }
     se = 0x3fe;
   }
 
   // asinpi_begin
   /* multiply by 1/pi */
-  u128 m1 = (u128) INV_PI_H * (u128) fi.bl;
-  u128 m2 = (u128) INV_PI_L * (u128) fi.bh;
-  fi.a = (u128) INV_PI_H * (u128) fi.bh;
-  fi.a += m1 >> 64;
-  fi.a += m2 >> 64;
+  u128 m1 = gaol_u128_mul64(INV_PI_H, fi.bl); /* GAOL */
+  u128 m2 = gaol_u128_mul64(INV_PI_L, fi.bh); /* GAOL */
+  fi.a = gaol_u128_mul64(INV_PI_H, fi.bh); /* GAOL */
+  fi.a = gaol_u128_add64(fi.a, gaol_u128_hi(m1)); /* GAOL */
+  fi.a = gaol_u128_add64(fi.a, gaol_u128_hi(m2)); /* GAOL */
   // asinpi_end
 
   int nz = __builtin_clzll(fi.bh);
@@ -576,11 +579,11 @@ double cr_asinpi(double x){
     /* fi.a/2^127 approximates y + 1/6*y^3 + 3/40*y^5 + ... + 63/2816*y^11 */
 
     // asinpi_begin
-    u128 m1 = (u128) INV_PI_H * (u128) fi.bl;
-    u128 m2 = (u128) INV_PI_L * (u128) fi.bh;
-    fi.a = (u128) INV_PI_H * (u128) fi.bh;
-    fi.a += m1 >> 64;
-    fi.a += m2 >> 64;
+    u128 m1 = gaol_u128_mul64(INV_PI_H, fi.bl); /* GAOL */
+    u128 m2 = gaol_u128_mul64(INV_PI_L, fi.bh); /* GAOL */
+    fi.a = gaol_u128_mul64(INV_PI_H, fi.bh); /* GAOL */
+    fi.a = gaol_u128_add64(fi.a, gaol_u128_hi(m1)); /* GAOL */
+    fi.a = gaol_u128_add64(fi.a, gaol_u128_hi(m2)); /* GAOL */
     /* now fi.a/2^127 approximates asinpi(x), with error < 15:
      * 13/pi < 5 coming from the error in the approximation y + 1/6*y^3 + ...
        which is multiplied by 1/pi
@@ -592,7 +595,7 @@ double cr_asinpi(double x){
     /* the number of leading zeros in fi.bh is usually 1, but it can also
        be 0, for example for x=0x1.fffffffffffffp-7, thus nz is 0, 1 or 2 */
     u128_u u = fi;
-    u.a += 15ll<<ss; // asinpi_specific
+    u.a = gaol_u128_add64(u.a, 15ll<<ss); /* GAOL */ // asinpi_specific
     /* Here fi is the 'left' approximation, and u is the 'right' approximation.
        We check the last bit (or the round bit for FE_TONEAREST) does not
        change between fi and u. */
@@ -659,7 +662,7 @@ double cr_asinpi(double x){
        |c'-sqrt(a)| = (sqrt(a)-c)^2/(2c).
        Here a=1-x^2, and since |c - sqrt(1-x^2)| < 2^-51.41, we get:
        |c'-sqrt(a)| < 2^-103.82/c. */
-    u128_u sm2 = {.a = (u128)sm * sm}, cm2 = {.a = (u128)cm * cm};
+    u128_u sm2, cm2; sm2.a = gaol_u128_mul64(sm, sm); cm2.a = gaol_u128_mul64(cm, cm); /* GAOL */
     /* x^2 = 2^(2*e)*sm2/2^126 and c^2 = 2^(2*ce)*cm2/2^126 */
     const int off = 36 - 22 + 14;   /* off = 28 */
     int ss = 128 - 104 + 2*e + off; /* ss = 52 + 2*e */
@@ -670,9 +673,9 @@ double cr_asinpi(double x){
     if(__builtin_expect(sc>=0, 1))
       shl(&cm2, sc);
     else
-      cm2.a >>= -sc; // since sc < 0, the shift by -sc is legitimate
+      cm2.a = gaol_u128_shr(cm2.a, -sc); /* GAOL */ // since sc < 0, the shift by -sc is legitimate
     /* now frac(2^50*c^2) = cm2/2^128 */
-    sm2.a += cm2.a; /* now frac(2^50*(x^2+c^2)) = sm2/2^128 */
+    sm2.a = gaol_u128_add(sm2.a, cm2.a); /* GAOL */ /* now frac(2^50*(x^2+c^2)) = sm2/2^128 */
     /* since |c-sqrt(xx)| < 2^-51.41, we have:
        |c^2-xx| < 2^-51.41*|c+sqrt(xx)| < 2^-50.41 since c,xx < 1.
        This proves that |2^50*e| < 2^-0.41 with e = (1-x^2) - c^2.
@@ -747,21 +750,21 @@ double cr_asinpi(double x){
     fi.bl = 0xd313198a2e037073;
     fi.bh = 0x3243f6a8885a308;
     /* fi.a/2^127 approximates pi/2/64 */
-    fi.a *= (u64)(64u - indx); /* multiply pi/2/64 by i=64-indx */
+    fi.a = gaol_u128_mul(fi.a, gaol_u128_of((u64)(64u - indx))); /* GAOL */ /* multiply pi/2/64 by i=64-indx */
     /* we add v after normalization */
     u64 Vh = v>>5, Vl = (u64)v<<59;
     /* the maximal error 24.08 on v translates into an error of 24.08*2^59
        on Vl */
-    i128 V = (u128)Vh<<64|Vl;
-    fi.a += V;
+    i128 V = gaol_u128_make(Vh, Vl); /* GAOL */
+    fi.a = gaol_u128_add(fi.a, V); /* GAOL */
     /* now fi/2^127 approximates asin(|x|) */
 
     // asinpi_begin
-    u128 m1 = (u128) INV_PI_H * (u128) fi.bl;
-    u128 m2 = (u128) INV_PI_L * (u128) fi.bh;
-    fi.a = (u128) INV_PI_H * (u128) fi.bh;
-    fi.a += m1 >> 64;
-    fi.a += m2 >> 64;
+    u128 m1 = gaol_u128_mul64(INV_PI_H, fi.bl); /* GAOL */
+    u128 m2 = gaol_u128_mul64(INV_PI_L, fi.bh); /* GAOL */
+    fi.a = gaol_u128_mul64(INV_PI_H, fi.bh); /* GAOL */
+    fi.a = gaol_u128_add64(fi.a, gaol_u128_hi(m1)); /* GAOL */
+    fi.a = gaol_u128_add64(fi.a, gaol_u128_hi(m2)); /* GAOL */
     /* now fi.a/2^127 approximates asinpi(|x|), with error < 124*2^55:
      * 24.08*2^59/pi < 123*2^55 coming from the error in the approximation
        of asin(|x|) which is multiplied by 1/pi
@@ -771,8 +774,8 @@ double cr_asinpi(double x){
 
     int nz = __builtin_clzll(fi.bh) + (rm==FE_TONEAREST);    
     u128_u u = fi, d = fi;
-    u.a += 124ll<<55; // asinpi_specific
-    d.a -= 124ll<<55; // asinpi_specific
+    u.a = gaol_u128_add64(u.a, 124ll<<55); /* GAOL */ // asinpi_specific
+    d.a = gaol_u128_sub(d.a, gaol_u128_of(124ll<<55)); /* GAOL */ // asinpi_specific
     if( __builtin_expect(((d.bh^u.bh)>>(11-nz))&1, 0)){
       return asinpi_acc(x);
     }

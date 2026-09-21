@@ -2,8 +2,12 @@
  * gaol -- NOT Just Another Interval Library
  *------------------------------------------------------------------------------
  * The 128-bit unsigned integer that the accurate phases of CORE-MATH's log,
- * sin, cos, tan, atan2 and pow compute with, on every compiler GAOL is built
- * with.
+ * sin, cos, tan, atan2 and pow, and of log2p1, log10p1, atan2pi, hypot, rsqrt
+ * and asinpi, compute with, on every compiler GAOL is built with. asinpi
+ * computes with a signed 128-bit integer too, which a gaol_u128 holds in two's
+ * complement, as the signed type of the compiler holds it:
+ * gaol_u128_imul64(), gaol_u128_of_i64() and gaol_u128_sar() are the product,
+ * the conversion and the shift of that signed type.
  *
  * GCC and Clang have a 128-bit integer type on 64-bit targets
  * (`unsigned __int128`), and Clang 14 and GCC 14 have `_BitInt(128)`, which
@@ -46,12 +50,14 @@ typedef struct { uint64_t l; uint64_t h; } gaol_u128;
 #elif defined(__SIZEOF_INT128__)
 #  define GAOL_U128_NATIVE 1
 typedef unsigned __int128 gaol_u128;
+typedef __int128 gaol_s128; /* the signed type, for gaol_u128_imul64() and gaol_u128_sar() */
 /* `_BitInt(128)` of C23: Clang 14 has it on 32-bit targets too, GCC 14 only
    where the ABI defines it, which `__BITINT_MAXWIDTH__` tells. */
 #elif (defined(__clang__) && __clang_major__ >= 14) \
    || (defined(__GNUC__) && __GNUC__ >= 14 && defined(__BITINT_MAXWIDTH__) && __BITINT_MAXWIDTH__ >= 128)
 #  define GAOL_U128_NATIVE 1
 typedef unsigned _BitInt(128) gaol_u128;
+typedef _BitInt(128) gaol_s128; /* the signed type, for gaol_u128_imul64() and gaol_u128_sar() */
 #else
 #  define GAOL_U128_NATIVE 0
 /* The halves are ordered as the union of CORE-MATH's uint128_t orders them,
@@ -75,6 +81,9 @@ typedef struct { uint64_t l; uint64_t h; } gaol_u128;
 
 #if GAOL_U128_NATIVE
 
+/* h*2^64 + l, which the two halves had and the native type had not: the port
+   of rsqrt builds a 128-bit integer from its halves (GAOL v5) */
+GAOL_U128_INLINE gaol_u128 gaol_u128_make(uint64_t h, uint64_t l) { return ((gaol_u128)h << 64) | l; }
 GAOL_U128_INLINE gaol_u128 gaol_u128_of(uint64_t a) { return (gaol_u128)a; }
 GAOL_U128_INLINE uint64_t gaol_u128_lo(gaol_u128 a) { return (uint64_t)a; }
 GAOL_U128_INLINE uint64_t gaol_u128_hi(gaol_u128 a) { return (uint64_t)(a >> 64); }
@@ -92,6 +101,16 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_bit(int n) { return (gaol_u128)1 << n; }
 GAOL_U128_INLINE int gaol_u128_lt(gaol_u128 a, gaol_u128 b) { return a < b; }
 GAOL_U128_INLINE int gaol_u128_gt(gaol_u128 a, gaol_u128 b) { return a > b; }
 GAOL_U128_INLINE int gaol_u128_eq(gaol_u128 a, gaol_u128 b) { return a == b; }
+GAOL_U128_INLINE gaol_u128 gaol_u128_and(gaol_u128 a, gaol_u128 b) { return a & b; }
+/* The signed values, in two's complement (the port of asinpi, GAOL v5): the
+   conversion of an int64_t, which extends its sign, the product of two
+   int64_t, and the shift right that copies the sign bit, which GCC and Clang
+   make of >> on a negative value of the signed type (the C standard leaves
+   it to the compiler, and so does the conversion to the signed type of a
+   value above its maximum, which they make modulo 2^128). */
+GAOL_U128_INLINE gaol_u128 gaol_u128_of_i64(int64_t a) { return (gaol_u128)a; }
+GAOL_U128_INLINE gaol_u128 gaol_u128_imul64(int64_t a, int64_t b) { return (gaol_u128)((gaol_s128)a * b); }
+GAOL_U128_INLINE gaol_u128 gaol_u128_sar(gaol_u128 a, int n) { return (gaol_u128)((gaol_s128)a >> n); }
 
 #else /* the two halves */
 
@@ -189,6 +208,32 @@ GAOL_U128_INLINE int gaol_u128_gt(gaol_u128 a, gaol_u128 b) {
 }
 GAOL_U128_INLINE int gaol_u128_eq(gaol_u128 a, gaol_u128 b) {
   return a.h == b.h && a.l == b.l;
+}
+GAOL_U128_INLINE gaol_u128 gaol_u128_and(gaol_u128 a, gaol_u128 b) {
+  return gaol_u128_make(a.h & b.h, a.l & b.l);
+}
+
+/* The signed values, in two's complement (the port of asinpi, GAOL v5). */
+/* a, its sign extended to the high half */
+GAOL_U128_INLINE gaol_u128 gaol_u128_of_i64(int64_t a) {
+  return gaol_u128_make(a < 0 ? UINT64_MAX : 0, (uint64_t)a);
+}
+/* With A and B the bits of a and b read as unsigned, a = A - 2^64 when a < 0,
+   and so a*b = A*B - 2^64*(B when a < 0, plus A when b < 0) modulo 2^128. */
+GAOL_U128_INLINE gaol_u128 gaol_u128_imul64(int64_t a, int64_t b) {
+  gaol_u128 r = gaol_u128_mul64((uint64_t)a, (uint64_t)b);
+  r.h -= (a < 0 ? (uint64_t)b : 0) + (b < 0 ? (uint64_t)a : 0);
+  return r;
+}
+/* Shifting right, the sign bit copied into the bits vacated: shifts of
+   unsigned words only, whose result the C standard defines. */
+GAOL_U128_INLINE gaol_u128 gaol_u128_sar(gaol_u128 a, int n) {
+  const uint64_t s = (a.h >> 63) ? UINT64_MAX : 0;
+  gaol_u128 r;
+  if (n == 0) return a;
+  if (n >= 64) { r.h = s; r.l = n == 64 ? a.h : (a.h >> (n - 64)) | (s << (128 - n)); }
+  else { r.l = (a.l >> n) | (a.h << (64 - n)); r.h = (a.h >> n) | (s << (64 - n)); }
+  return r;
 }
 
 #endif /* GAOL_U128_NATIVE */
