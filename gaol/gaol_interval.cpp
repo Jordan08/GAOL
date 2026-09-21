@@ -40,6 +40,7 @@
 #include <cerrno>
 #include <locale>
 #include <cstdlib>
+#include <cstdio>
 #include <sstream>
 
 #if USING_SSE2_INSTRUCTIONS
@@ -735,6 +736,29 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
   }
 
 
+  /*
+    A bound written in the hexadecimal-significand form of IEEE 1788-2015
+    (13.4.1), which interval(const char*) reads back exactly (fork of GAOL).
+
+    The recovery requirement of 13.4 asks that writing an interval and reading
+    it again give the same bounds. GAOL wrote the sixteen hexadecimal digits of
+    each double instead, which is no interval literal at all: the parser
+    refused them, and the note of 13.4.1 gives that very form as the one that
+    fails the readability test. printf("%a") writes as many digits as the value
+    needs, the C standard asking for an exact representation when no precision
+    is given, and the lexer already reads that form.
+  */
+  static void write_hexa_bound(double x, char *buf, std::size_t n)
+  {
+    if (x == GAOL_INFINITY) {
+      std::snprintf(buf, n, "inf");
+    } else if (x == -GAOL_INFINITY) {
+      std::snprintf(buf, n, "-inf");
+    } else {
+      std::snprintf(buf, n, "%a", x);
+    }
+  }
+
   ostream& operator<<(ostream& os, const interval& I)
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
@@ -750,19 +774,14 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     case interval_format::bounds: // Display in the form "[ l, r ]"
       display_bounds(l,r,os);
       break;
-    case interval_format::hexa: // Display in the form [H L, H L]
+    case interval_format::hexa: // The exact text representation of 13.4
       if (I.is_empty()) {
 				os << "[empty]";
       } else {
-				uintdouble tmp;
-				tmp.d = l;
-				os.setf(std::ios_base::hex,std::ios_base::basefield);
-				os << '[' <<  std::setw(8) << std::setfill('0') << HI_UINTDOUBLE(tmp)
-	   			<<  std::setw(8) << std::setfill('0')  << LO_UINTDOUBLE(tmp) << ", ";
-				tmp.d = r;
-				os << std::setw(8) << std::setfill('0') << HI_UINTDOUBLE(tmp)
-	   			<< std::setw(8) << std::setfill('0') << LO_UINTDOUBLE(tmp) << ']';
-				os.setf(std::ios_base::dec,std::ios_base::basefield);
+				char lo[64], hi[64];
+				write_hexa_bound(l, lo, sizeof lo);
+				write_hexa_bound(r, hi, sizeof hi);
+				os << '[' << lo << ", " << hi << ']';
       }
       break;
     case interval_format::width: // Display in the form "c (+/- w)"

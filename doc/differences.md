@@ -54,6 +54,16 @@ from. Each change is a commit of its own, and says where it comes from.
     10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
     are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
     its `dint.h` being that of `log` but for a constant.
+  - **The hexadecimal output is an interval literal.** Written with
+    `interval_format::hexa` and read again, an interval now gives the same
+    bounds bit for bit, which is the recovery requirement of IEEE 1788-2015
+    (13.4). GAOL wrote the sixteen hexadecimal digits of each double
+    (`[3fb999999999999a, ...]`), which is no interval literal at all and which
+    the parser refused; the note of 13.4.1 gives that very form as the one
+    failing its readability test. The bounds are written in the
+    hexadecimal-significand form instead (`[0x1.999999999999ap-4, ...]`), which
+    the lexer already read. The decimal formats, and the default one, are
+    unchanged.
   - **The reader of strings takes the new names.** `interval("...")` reads
     `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions GAOL
     already had, in the direct grammar and in the tree of

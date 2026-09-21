@@ -62,9 +62,11 @@ namespace gaol {
     - width: the interval is output in the form "c (+/- w)" where
     c is its center and w its width
     - center: the interval is output as a single value, its center.
-    - hexa: same as "bounds" except that bounds are printed as hexadecimal
-    values to avoid problems due to round-off errors when translating
-    the floats into decimal
+    - hexa: same as "bounds" except that bounds are printed in the
+    hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids the
+    round-off error of a binary-to-decimal conversion and which
+    interval(const char*) reads back bit for bit: the exact text
+    representation of 13.4 (fork of GAOL)
     - agreeing: the interval is output in the form "r [l, r]" where
     r is the number containing all the digits that are the same in both
     left and right bounds, and where l and r are the disagreeing

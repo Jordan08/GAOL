@@ -7,7 +7,7 @@
  * interval of doubles enclosing it, and the double itself when the number is
  * one, whatever the C library. Each number is compared exactly with the
  * bounds read. The constants have to be the tightest intervals enclosing pi,
- * 2pi and pi/2, and the hexadecimal output to give the bounds bit for bit.
+ * 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
  * in the wrong order, and NaN bounds. The interval literals of IEEE 1788-2015
@@ -363,26 +363,48 @@ namespace
           [&] { return hex(r); });
   }
 
+  /*
+    The exact text representation of IEEE 1788-2015 (13.4): written in
+    hexadecimal and read again, an interval has to give the same bounds, bit
+    for bit, which is the recovery requirement of that subclause. GAOL wrote
+    the sixteen digits of each double instead, which is no interval literal and
+    which the parser refused (GAOL v5).
+  */
   void hexadecimal_output()
   {
     const interval_format::format_t saved = interval::format();
     interval::format(interval_format::hexa);
-    Random random;
-    for (int i = 0; i < nb_random_values; ++i) {
-      const interval x = hull(random.any(), random.any());
+    const auto round_trip = [&](const interval& x, const char *what) {
       std::ostringstream s;
       s << x;
-      std::uint64_t l = 0, r = 0;
-      const bool read = std::sscanf(s.str().c_str(), "[%16llx, %16llx]",
-                                    static_cast<unsigned long long*>(static_cast<void*>(&l)),
-                                    static_cast<unsigned long long*>(static_cast<void*>(&r))) == 2;
-      std::uint64_t lx, rx;
-      const double left = x.left(), right = x.right();
-      std::memcpy(&lx, &left, sizeof lx);
-      std::memcpy(&rx, &right, sizeof rx);
-      check("operator<< in hexadecimal: the bits of the bounds", read && l == lx && r == rx,
-            [&] { return hex(x) + " written " + s.str(); });
+      bool same = false;
+      try {
+        const interval y(s.str().c_str());
+        same = x.is_empty() ? y.is_empty()
+                            : (!y.is_empty() && y.left() == x.left() && y.right() == x.right());
+      } catch (...) {
+        same = false;
+      }
+      check("operator<< in hexadecimal, read again: the same bounds", same,
+            [&] { return std::string(what) + " " + hex(x) + " written " + s.str(); });
+    };
+    Random random;
+    for (int i = 0; i < nb_random_values; ++i) {
+      round_trip(hull(random.any(), random.any()), "random");
     }
+    /* The values the form has to write apart, or whose digits it has to keep
+       all of: the empty set, the infinite bounds, the signed zeros, the
+       subnormals and the largest doubles */
+    const double max_double = std::numeric_limits<double>::max();
+    const double smallest = std::numeric_limits<double>::denorm_min();
+    round_trip(interval::emptyset(), "empty");
+    round_trip(interval::universe(), "entire");
+    round_trip(interval(1.0, GAOL_INFINITY), "[1, +oo]");
+    round_trip(interval(-GAOL_INFINITY, -1.0), "[-oo, -1]");
+    round_trip(interval(-0.0, 0.0), "[-0, 0]");
+    round_trip(interval(smallest, 4.0 * smallest), "subnormal");
+    round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
+    round_trip(interval::pi(), "pi");
     interval::format(saved);
   }
 

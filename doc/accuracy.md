@@ -174,7 +174,8 @@ provided.
 | `equal`, `subset`, `interior`, `disjoint` | `set_eq`, `set_contains` and `set_leq`, `set_strictly_contains` and `set_le`, `set_disjoint` | Of the bounds, as Tables 10.3 and 10.4 | exact | exact |
 | `precedes`, `strictPrecedes` | `certainly_leq`, `certainly_le` (and `certainly_geq`, `certainly_ge`) | Of the bounds, true when an interval is empty | exact | exact |
 | `isEntire`, `isCommonInterval`, `less`, `strictLess` | — | Not provided | | |
-| `intervalToText` | `operator<<` | Hexadecimal format: the bits of the bounds. Decimal formats: each bound written to nearest by the C library with the digits asked for, compared exactly with the bound, and its last digit moved outward when it is on the wrong side | hexadecimal: exact; decimal: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should | hexadecimal: exact; decimal: less than one unit of the last digit |
+| `intervalToText` | `operator<<` | Hexadecimal format: the bounds in the hexadecimal-significand form of 13.4.1. Decimal formats: each bound written to nearest by the C library with the digits asked for, compared exactly with the bound, and its last digit moved outward when it is on the wrong side | hexadecimal: exact; decimal: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should | hexadecimal: exact; decimal: less than one unit of the last digit |
+| `intervalToExact`, `exactToInterval` | `operator<<` with `interval_format::hexa`, `interval(const char*)` | The recovery requirement of 13.4: an interval written in hexadecimal and read again gives the same bounds, bit for bit, the empty set, the infinite bounds, the signed zeros and the subnormals included (GAOL v5) | exact | exact, over 2 000 random intervals and the values written apart |
 
 ## The mathematical library is no longer a choice
 

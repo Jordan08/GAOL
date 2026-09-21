@@ -2409,13 +2409,15 @@ Degenerate intervals whose left and right bound are equal are printed with angle
  @outputs^4.5 (+/- 0.5)~
 \end{example}
 
-\item[\element{hexa}.] by printing the hexadecimal representation of their left and right
-bounds (useful when one wants to know the precise value of the bound without being
-affected by the round-off error due to binary-to-decimal conversion):
+\item[\element{hexa}.] by printing their left and right bounds in the
+hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which is exact and which
+\code{interval(const char*)} reads back bit for bit, without the round-off error of a
+binary-to-decimal conversion (GAOL v5; the sixteen digits of each double were printed
+before, which the parser refused to read):
 \begin{example}
  interval::format(interval_format::hexa);
  std::cout << interval("0.1") << std::endl;
- @outputs^[3fb9999999999999, 3fb999999999999a]~
+ @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
 \end{example}
 
 \end{description}
@@ -2468,7 +2470,7 @@ The choice of the format to use is made through the following static methods:
   @smallskip
   interval::format(interval_format::hexa);
   cout << I << "\n";
-  @rem^// Prints [400921fb54442d18, 400921fb54442d19]~
+  @rem^// Prints [0x1.921fb54442d18p+1, 0x1.921fb54442d19p+1]~
 \end{example}
 
 \subsection{Choosing the number of digits to display}
