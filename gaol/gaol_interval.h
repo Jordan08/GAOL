@@ -847,25 +847,40 @@ extern __GAOL_PUBLIC__   interval log2(const interval& I);
 extern __GAOL_PUBLIC__   interval log10(const interval& I);
 
   /*!
-    \brief The forward functions IEEE 1788-2015 recommends (Table 10.5) that
-    CORE-MATH provides without the 128-bit integer (GAOL v5)
+    \brief The forward functions IEEE 1788-2015 recommends (Table 10.5)
+    (GAOL v5)
 
     expm1(x) = e^x - 1, exp2m1(x) = 2^x - 1 and exp10m1(x) = 10^x - 1 on R,
-    within [-1, +oo]; sinpi(x) = sin(pi*x), cospi(x) = cos(pi*x) and
-    tanpi(x) = tan(pi*x), the last on R minus the half-integers, where it has
-    no value; atanpi(x) = atan(x)/pi on R, within [-1/2, 1/2], and
-    acospi(x) = acos(x)/pi on [-1, 1], within [0, 1]. Each is the tightest
-    enclosure: CORE-MATH is correctly rounded, and the functions of pi*x find
-    their extrema and poles exactly, at the multiples of 1/2.
+    within [-1, +oo]; log1p(x) = log(1 + x), log2p1(x) = log2(1 + x) and
+    log10p1(x) = log10(1 + x) on (-1, +oo), -oo the limit at -1;
+    hypot(x, y) = sqrt(x^2 + y^2) on the plane; rsqrt(x) = 1/sqrt(x) on
+    (0, +oo), +oo the limit at 0; sinpi(x) = sin(pi*x), cospi(x) = cos(pi*x)
+    and tanpi(x) = tan(pi*x), the last on R minus the half-integers, where it
+    has no value; atanpi(x) = atan(x)/pi on R, within [-1/2, 1/2],
+    asinpi(x) = asin(x)/pi on [-1, 1], within [-1/2, 1/2],
+    acospi(x) = acos(x)/pi on [-1, 1], within [0, 1], and
+    atan2pi(y, x) = atan2(y, x)/pi on the plane but (0, 0), within [-1, 1].
+    The part of an interval outside the domain is left out, and an interval
+    with no point of it gives the empty set. Each is the tightest enclosure:
+    CORE-MATH is correctly rounded, the value at a bound is taken as the bound
+    where it is a double, and the functions of pi*x find their extrema and
+    poles exactly, at the multiples of 1/2.
   */
 extern __GAOL_PUBLIC__   interval expm1(const interval& I);
 extern __GAOL_PUBLIC__   interval exp2m1(const interval& I);
 extern __GAOL_PUBLIC__   interval exp10m1(const interval& I);
+extern __GAOL_PUBLIC__   interval log1p(const interval& I);
+extern __GAOL_PUBLIC__   interval log2p1(const interval& I);
+extern __GAOL_PUBLIC__   interval log10p1(const interval& I);
+extern __GAOL_PUBLIC__   interval hypot(const interval& X, const interval& Y);
+extern __GAOL_PUBLIC__   interval rsqrt(const interval& I);
 extern __GAOL_PUBLIC__   interval sinpi(const interval& I);
 extern __GAOL_PUBLIC__   interval cospi(const interval& I);
 extern __GAOL_PUBLIC__   interval tanpi(const interval& I);
 extern __GAOL_PUBLIC__   interval atanpi(const interval& I);
+extern __GAOL_PUBLIC__   interval asinpi(const interval& I);
 extern __GAOL_PUBLIC__   interval acospi(const interval& I);
+extern __GAOL_PUBLIC__   interval atan2pi(const interval& Y, const interval& X);
 
   /*!
     \brief fma(X, Y, Z) of IEEE 1788-2015 (Table 9.1): an enclosure of

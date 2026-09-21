@@ -272,8 +272,11 @@ static double asinpi_acc(double x){
     sm2.a = gaol_u128_add(sm2.a, dsm3.a); /* GAOL */
     int k = ixe-ce;
     ss = 24 + k;
-    u128_u Cm = {.bl = 0, .bh = cm},
-      D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))};
+    /* GAOL: D = dc 2^ss on 128 bits, in two's complement. ss reaches 69 next
+       to +-1 (1 - |x| about 2^-40), where shifting the halves by ss and by
+       64 - ss was undefined behaviour, which UBSan reported. */
+    u128_u Cm = {.bl = 0, .bh = cm}, D;
+    D.a = gaol_u128_shl(gaol_u128_of_i64(dc), ss); /* GAOL */
     Cm.a = gaol_u128_sub(Cm.a, D.a); /* GAOL */
     h = (i64)gaol_u128_lo(gaol_u128_shr(sm2.a, 14)); /* GAOL */
     dc = mh(h, ixm);

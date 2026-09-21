@@ -24,23 +24,26 @@ gone (see [What differs from GAOL](../doc/differences.md)).
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
 | Commit | `671f2c7355d76c670f59d714d41a99eb1cf620b6` (19 September 2026) |
 | Taken | the whole tree, without the `.wc` files |
-| Built | `math-core/src/binary64/<f>/<f>.c` for the twenty-one functions below, compiled into libgaol itself |
+| Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-six functions below, compiled into libgaol itself |
 
 The `.wc` files, which hold the hardest-to-round arguments CORE-MATH checks
 itself against, are 542 of the 555 MB of the upstream tree and are not needed
 to build: they are left out, and the commit above is what to clone to get them.
 
-The twenty-one functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
+The thirty-six functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
 `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`,
-`acosh` and `atanh`, then `cbrt`, which `nth_root(x, 3)` takes, and `exp2`,
+`acosh` and `atanh`, then `cbrt`, which `nth_root(x, 3)` takes, `exp2`,
 `exp10`, `log2` and `log10`, which IEEE 1788-2015 requires among the forward
-elementary functions (Table 9.1). The other formats and functions of the tree
-are kept as they are, so that importing a newer CORE-MATH is a plain copy, but
-nothing compiles them.
+elementary functions (Table 9.1), and the fifteen of its recommended ones
+(Table 10.5) CORE-MATH has: `expm1`, `exp2m1`, `exp10m1`, `log1p`, `log2p1`,
+`log10p1`, `hypot`, `rsqrt`, `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
+`atanpi` and `atan2pi`. The other formats and functions of the tree are kept
+as they are, so that importing a newer CORE-MATH is a plain copy, but nothing
+compiles them.
 
 ### How GAOL builds them
 
-The three builds compile the twenty-one sources into `libgaol` and include
+The three builds compile the thirty-six sources into `libgaol` and include
 `gaol/core_math_port.h` first in each of them, **by the compiler rather than by
 the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
 never name that header, so that importing a newer CORE-MATH stays a copy. That
@@ -100,6 +103,18 @@ kept as a patch to reapply.
    `m` to `uint64_t` before shifting it; `cospi.c` now does too, and gives the
    same values bit for bit. This is a fix to propose to CORE-MATH.
 
+4. **A 128-bit shift written on 128 bits** in `asinpi/asinpi.c`
+   (`asinpi_acc`). `D`, the 64-bit integer `dc` times 2<sup>ss</sup>, was made
+   of its two halves, `dc << ss` and `dc >> (64 - ss)`, which is right for
+   0 < ss < 64 only; next to ±1 (1 − |x| about 2<sup>−40</sup>) ss reaches 65
+   to 69, and both shifts are undefined behaviour, which UBSan reported on
+   the arguments of the accurate phase. It is now
+   `gaol_u128_shl(gaol_u128_of_i64(dc), ss)`, the same value for
+   0 < ss < 64 and the intended one beyond. On x86-64 the two versions gave
+   the same results over 460 000 arguments next to ±1, the part of `D` lost
+   being about 2<sup>−54</sup> of a small correction; the regression test is in
+   `tests/core_math.cpp`. This is a fix to propose to CORE-MATH.
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
@@ -137,6 +152,6 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the three changes
+Copy the upstream tree again without the `.wc` files, then make the four changes
 above. `git diff` against the previous version shows them: they are marked
 `/* GAOL */`, and no other line differs.

@@ -39,7 +39,11 @@ libgaolcoremath_la_SOURCES = \
 	$(CORE_MATH_DIR)/expm1/expm1.c $(CORE_MATH_DIR)/exp2m1/exp2m1.c \
 	$(CORE_MATH_DIR)/exp10m1/exp10m1.c $(CORE_MATH_DIR)/sinpi/sinpi.c \
 	$(CORE_MATH_DIR)/cospi/cospi.c $(CORE_MATH_DIR)/tanpi/tanpi.c \
-	$(CORE_MATH_DIR)/acospi/acospi.c $(CORE_MATH_DIR)/atanpi/atanpi.c
+	$(CORE_MATH_DIR)/acospi/acospi.c $(CORE_MATH_DIR)/atanpi/atanpi.c \
+	$(CORE_MATH_DIR)/log1p/log1p.c $(CORE_MATH_DIR)/log2p1/log2p1.c \
+	$(CORE_MATH_DIR)/log10p1/log10p1.c $(CORE_MATH_DIR)/hypot/hypot.c \
+	$(CORE_MATH_DIR)/rsqrt/rsqrt.c $(CORE_MATH_DIR)/asinpi/asinpi.c \
+	$(CORE_MATH_DIR)/atan2pi/atan2pi.c
 
 libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # -fno-lto keeps the interprocedural optimization away from these sources, where

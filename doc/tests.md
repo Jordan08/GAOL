@@ -124,11 +124,21 @@ Codac.
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
   subnormals, and at random doubles of every magnitude. The functions of
-  Table 10.5 GAOL provides (`expm1`, `exp2m1`, `exp10m1`, `sinpi`, `cospi`,
-  `tanpi`, `atanpi`, `acospi`) have to be the tightest enclosures over
-  intervals too: the hull of their image, computed from the values at the
-  bounds and, for `sinpi`, `cospi` and `tanpi`, at every multiple of 1/2 within,
-  enumerated one by one, where their extrema and poles are (GAOL v5).
+  Table 10.5 GAOL provides have to be the tightest enclosures over intervals
+  too: the hull of their image, computed from the values at the bounds of the
+  part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
+  `log2p1`, `log10p1`, `rsqrt`, `atanpi`, `asinpi`, `acospi`), at the points of
+  the box nearest to the origin and farthest from it (`hypot`), at the
+  corners of the box (`atan2pi`), and, for `sinpi`, `cospi` and `tanpi`, at
+  every multiple of 1/2 within, enumerated one by one, where their extrema
+  and poles are (GAOL v5). The bounds are drawn among the points where the
+  value is a double (2<sup>k</sup> − 1, 10<sup>k</sup> − 1, the powers of 4,
+  Pythagorean triples, the diagonals) and their neighbours, so that a value
+  taken for exact when it is not, which gives a bound that no longer encloses
+  the image, fails as a double missed does. The arguments of `asinpi` next to
+  ±1 where CORE-MATH shifted a 64-bit integer by 65 bits are among them: the
+  jobs of the continuous integration with the sanitizers stop there if that
+  undefined behaviour comes back.
 - **`expressions`:** `interval("...")` lexes the string, parses it into the
   tree of `gaol/gaol_expression.h` and evaluates that tree, so this test goes
   through every node of the tree and every way the string can be wrong: the

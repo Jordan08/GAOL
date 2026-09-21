@@ -171,12 +171,22 @@ namespace ieee1788 {
   inline interval expm1(const interval& x) { return ::gaol::expm1(x); }
   inline interval exp2m1(const interval& x) { return ::gaol::exp2m1(x); }
   inline interval exp10m1(const interval& x) { return ::gaol::exp10m1(x); }
-  //! sinPi(x), cosPi(x), tanPi(x), atanPi(x), acosPi(x): sinpi(x), cospi(x), tanpi(x), atanpi(x), acospi(x)
+  //! logp1(x): log1p(x), the name of C
+  inline interval logp1(const interval& x) { return ::gaol::log1p(x); }
+  inline interval log2p1(const interval& x) { return ::gaol::log2p1(x); }
+  inline interval log10p1(const interval& x) { return ::gaol::log10p1(x); }
+  inline interval hypot(const interval& x, const interval& y) { return ::gaol::hypot(x, y); }
+  //! rSqrt(x): rsqrt(x)
+  inline interval rSqrt(const interval& x) { return ::gaol::rsqrt(x); }
+  //! sinPi(x), cosPi(x), tanPi(x), asinPi(x), acosPi(x), atanPi(x), atan2Pi(y, x):
+  //! sinpi(x), cospi(x), tanpi(x), asinpi(x), acospi(x), atanpi(x), atan2pi(y, x)
   inline interval sinPi(const interval& x) { return ::gaol::sinpi(x); }
   inline interval cosPi(const interval& x) { return ::gaol::cospi(x); }
   inline interval tanPi(const interval& x) { return ::gaol::tanpi(x); }
-  inline interval atanPi(const interval& x) { return ::gaol::atanpi(x); }
+  inline interval asinPi(const interval& x) { return ::gaol::asinpi(x); }
   inline interval acosPi(const interval& x) { return ::gaol::acospi(x); }
+  inline interval atanPi(const interval& x) { return ::gaol::atanpi(x); }
+  inline interval atan2Pi(const interval& y, const interval& x) { return ::gaol::atan2pi(y, x); }
 
   // ----------------------------------------------------------------------
   // Reverse functions (Table 10.1): the last argument x is optional and
@@ -334,9 +344,7 @@ namespace ieee1788 {
       - mulRevToPair (10.5.5), the two-output division;
       - powRev1, powRev2, atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for
         p <= 0;
-      - of Table 10.5: logp1, log2p1, log10p1, hypot, rSqrt, asinPi and
-        atan2Pi, whose CORE-MATH sources need the 128-bit integer of
-        gaol/gaol_u128.h first, and compoundm1, which CORE-MATH has not;
+      - compoundm1 of Table 10.5, which CORE-MATH has not;
       - the slope functions (Table 10.6) and overlap (10.6.4);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
         and the exact ones of 12.13.5.

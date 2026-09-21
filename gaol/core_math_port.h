@@ -11,10 +11,10 @@
  *
  * It gives them:
  *
- * - the 128-bit unsigned integer their accurate phases compute with
- *   (gaol/gaol_u128.h), so that log, sin, cos, tan, atan2 and pow are built
- *   with Visual C++ and on 32-bit targets too, where the compiler has no
- *   128-bit type of its own;
+ * - the 128-bit integer their accurate phases compute with
+ *   (gaol/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
+ *   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
+ *   32-bit targets too, where the compiler has no 128-bit type of its own;
  * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
  *   with a program or a C library holding CORE-MATH's functions too;
  * - what Visual C++ has not of GCC: the builtins the sources call, and
@@ -67,21 +67,30 @@
 #define cr_tanpi gaol_cr_tanpi
 #define cr_acospi gaol_cr_acospi
 #define cr_atanpi gaol_cr_atanpi
+#define cr_log1p gaol_cr_log1p
+#define cr_log2p1 gaol_cr_log2p1
+#define cr_log10p1 gaol_cr_log10p1
+#define cr_hypot gaol_cr_hypot
+#define cr_rsqrt gaol_cr_rsqrt
+#define cr_asinpi gaol_cr_asinpi
+#define cr_atan2pi gaol_cr_atan2pi
 
 #include "gaol/gaol_core_math.h"
 
 /*---------------------------------------------------------------------------
   The 128-bit unsigned integer
 
-  The accurate phases of log, sin, cos, tan, atan2 and pow compute with a
-  128-bit unsigned integer, which their sources name u128. GCC and Clang have
+  The accurate phases of log, sin, cos, tan, atan2, pow, log2p1, log10p1,
+  atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned integer,
+  which their sources name u128, and asinpi with a signed one too, i128, held
+  in a u128 in two's complement. GCC and Clang have
   one on 64-bit targets, and Clang has _BitInt(128) on 32-bit targets too;
   Visual C++ has none, on no architecture, and neither has GCC for a 32-bit
   target. There the sources take the structure of two 64-bit halves of
   gaol/gaol_u128.h, which tests/u128.cpp checks against the native type, and
   call its functions rather than the operators of the language.
 
-  Each of the seven sources keeps its own definitions of uint128_t, addu_128,
+  Each of these sources keeps its own definitions of uint128_t, addu_128,
   subu_128, cmp and cmpu, whose signatures are not the same in all of them:
   only the line naming the type is GAOL's.
  --------------------------------------------------------------------------*/

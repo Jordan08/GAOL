@@ -641,6 +641,13 @@ namespace
           && std1788::cancelMinus(interval(1.0, 5.0), interval(0.0, 2.0)).set_eq(interval(1.0, 3.0))
           && std1788::convexHull(interval(1.0), interval(3.0)).set_eq(interval(1.0, 3.0)),
           [] { return std::string(); });
+    const interval y(-2.0, 0.5);
+    check("ieee1788 names of Table 10.5 whose GAOL names differ, and argument orders",
+          std1788::logp1(x).set_eq(log1p(x)) && std1788::log2p1(x).set_eq(log2p1(x))
+          && std1788::log10p1(x).set_eq(log10p1(x)) && std1788::rSqrt(x).set_eq(rsqrt(x))
+          && std1788::asinPi(x).set_eq(asinpi(x)) && std1788::hypot(x, y).set_eq(hypot(x, y))
+          && std1788::atan2Pi(y, x).set_eq(atan2pi(y, x)) && std1788::atan2Pi(interval(1.0), interval(-1.0)).set_eq(interval(0.75)),
+          [] { return std::string(); });
 
     // text: an empty set for what is no literal, and the exact form read back
     check("ieee1788::textToInterval of no literal: empty", std1788::textToInterval("[1, 2").is_empty(),

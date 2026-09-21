@@ -1557,8 +1557,7 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
-    The forward functions IEEE 1788-2015 recommends (Table 10.5) that CORE-MATH
-    provides without the 128-bit integer (GAOL v5)
+    The forward functions IEEE 1788-2015 recommends (Table 10.5) (GAOL v5)
 
     expm1, exp2m1 and exp10m1 compute b^x - 1 without the cancellation of
     subtracting 1 from b^x near 0, and atanpi, acospi, sinpi, cospi and tanpi a
@@ -1795,6 +1794,290 @@ interval nth_root(const interval& I, int q)
     }
     GAOL_RND_LEAVE();
     return interval(lower, upper);
+  }
+
+  /*
+    log1p, log2p1 and log10p1, the logp1, log2p1 and log10p1 of IEEE 1788-2015
+    (Table 10.5): log_b(1 + x) on (-1, +oo), without the cancellation of
+    adding 1 to x near 0. They are increasing and bounded as expm1 is; the
+    part of I at or below -1 is left out, and the value at -1 is the limit -oo.
+  */
+
+  // log(1 + x) is rational at a rational x only for x = 0, where it is 0: the
+  // logarithm of a rational other than 1 is transcendental (Lindemann)
+  static inline bool log1p_is_exact(double x)
+  {
+    return x == 0.0 || x == -1.0 || x == GAOL_INFINITY;
+  }
+
+  // log2(1 + x) is a double exactly where 1 + x is a power of two 2^k: then
+  // x = 2^k - 1, a double for k in [0, 53], the integers below 2^53 whose
+  // successor is a power of two, and for k in [-53, -1], in (-1, -1/2] where
+  // 1 + x is computed exactly (Sterbenz). A logarithm of a rational that is
+  // not a power of two is irrational.
+  static inline bool log2p1_is_exact(double x)
+  {
+    if (x == -1.0 || x == GAOL_INFINITY) {
+      return true;
+    }
+    if (x >= 0.0 && x < 9007199254740992.0 && x == std::floor(x)) { // 2^53
+      const std::uint64_t n = static_cast<std::uint64_t>(x);
+      return (n & (n + 1)) == 0;
+    }
+    if (x > -1.0 && x <= -0.5) {
+      int e;
+      return std::frexp(1.0 + x, &e) == 0.5;
+    }
+    return false;
+  }
+
+  // log10(1 + x) is a double exactly where 1 + x is a power of ten 10^k with
+  // k >= 0, the others being no doubles: x = 10^k - 1 for k in [0, 15],
+  // 10^16 - 1 being above 2^53
+  static inline bool log10p1_is_exact(double x)
+  {
+    if (x == -1.0 || x == GAOL_INFINITY) {
+      return true;
+    }
+    if (!(x >= 0.0 && x < 1e15 && x == std::floor(x))) {
+      return false;
+    }
+    double p = 1.0; // 10^k, exact up to 10^15
+    for (int k = 0; k <= 15; ++k, p *= 10.0) {
+      if (x == p - 1.0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static interval log_p1(const interval& I, double (*f)(double), bool (*exact)(double))
+  {
+    if (I.is_empty() || !(I.right() > -1.0)) {
+      return interval::emptyset();
+    }
+    return increasing_cr(interval(maximum(-1.0, I.left()), I.right()), f, exact,
+                         -GAOL_INFINITY, GAOL_INFINITY);
+  }
+
+  interval log1p(const interval& I)
+  {
+    return log_p1(I, gaol_cr_log1p, log1p_is_exact);
+  }
+
+  interval log2p1(const interval& I)
+  {
+    return log_p1(I, gaol_cr_log2p1, log2p1_is_exact);
+  }
+
+  interval log10p1(const interval& I)
+  {
+    return log_p1(I, gaol_cr_log10p1, log10p1_is_exact);
+  }
+
+  /*
+    rsqrt, the rSqrt of IEEE 1788-2015 (Table 10.5): 1/sqrt(x) on (0, +oo),
+    decreasing, +oo the limit at 0.
+
+    1/sqrt(x) is a double exactly at the powers of two of even exponent,
+    2^(2k), where it is 2^-k: were 1/sqrt(x) = m 2^e with m an odd integer
+    above 1, x = 2^(-2e)/m^2 would be no double. And it is 0 at +oo.
+  */
+  static inline bool rsqrt_is_exact(double x)
+  {
+    if (x == GAOL_INFINITY) {
+      return true;
+    }
+    int e;
+    return std::frexp(x, &e) == 0.5 && (e - 1) % 2 == 0;
+  }
+
+  interval rsqrt(const interval& I)
+  {
+    if (I.is_empty() || !(I.right() > 0.0)) {
+      return interval::emptyset();
+    }
+    // +0 rather than -0 for a left bound at or below 0: 1/sqrt(-0) is -oo
+    const double l = (I.left() > 0.0) ? I.left() : 0.0, r = I.right();
+    GAOL_RND_ENTER();
+    // decreasing: the upper bound at the left bound, the lower one at the right
+    const double v = gaol_cr_rsqrt(l);
+    const double w = gaol_cr_rsqrt(r);
+    const double u = rsqrt_is_exact(r) ? w : previous_float(w);
+    GAOL_RND_LEAVE();
+    return interval(maximum(0.0, u), v);
+  }
+
+  /*
+    asinpi, the asinPi of IEEE 1788-2015 (Table 10.5): asin(x)/pi on [-1, 1],
+    increasing, within [-1/2, 1/2].
+
+    asin(x)/pi is rational at a rational x only for x in {0, +-1/2, +-1}, by
+    Niven's theorem, where it is 0, +-1/6 and +-1/2: a double at 0 and +-1.
+  */
+  static inline bool asinpi_is_exact(double x)
+  {
+    return x == 0.0 || x == 1.0 || x == -1.0;
+  }
+
+  interval asinpi(const interval& I)
+  {
+    // the part of I outside [-1, 1] is left out, as with acospi
+    return increasing_cr(I & interval::minus_one_plus_one(), gaol_cr_asinpi,
+                         asinpi_is_exact, -0.5, 0.5);
+  }
+
+  /*
+    hypot of IEEE 1788-2015 (Table 10.5): sqrt(x^2 + y^2) on the plane. It
+    increases with |x| and with |y|: its least value on X x Y is at the point
+    nearest to the origin, (mig X, mig Y), and its greatest at the farthest,
+    (mag X, mag Y).
+  */
+
+  // x > 0 finite as m 2^e, m an odd integer
+  static inline void odd_significand(double x, std::uint64_t& m, int& e)
+  {
+    const double f = std::frexp(x, &e);
+    m = static_cast<std::uint64_t>(std::ldexp(f, 53)); // below 2^53
+    e -= 53;
+    while ((m & 1) == 0) {
+      m >>= 1;
+      ++e;
+    }
+  }
+
+  // Whether h^2 - b^2 = a^2 4^d, for odd integers h, b, a below 2^53: both
+  // sides are integers below 2^107, which a double with the residual of its
+  // rounding holds exactly, std::fma computing the residual. The rounding of
+  // an exact value is unique, whatever its direction: the two sides are equal
+  // exactly when the roundings and the residuals are.
+  static inline bool difference_of_squares(std::uint64_t h, std::uint64_t b,
+                                           std::uint64_t a, int d)
+  {
+    if (h <= b || d > 53) { // a^2 4^d >= 2^(2d) > (h - b)(h + b) for d > 53
+      return false;
+    }
+    const double s = static_cast<double>(h - b), t = static_cast<double>(h + b); // both exact
+    const double m = static_cast<double>(a);
+    const double p = s * t, q = m * m;
+    return p == std::ldexp(q, 2 * d)
+        && std::fma(s, t, -p) == std::ldexp(std::fma(m, m, -q), 2 * d);
+  }
+
+  /* Whether h, sqrt(a^2 + b^2) rounded upward, is the exact value, for
+     a, b >= 0. It is at a = 0 or b = 0, where it is the other one, and at an
+     infinity. Otherwise, with a = A 2^ea, b = B 2^eb and h = H 2^eh, A, B and H
+     odd integers: dividing A^2 4^ea + B^2 4^eb = H^2 4^eh by the least power of
+     4 among them leaves one, two or three odd squares, each 1 modulo 8, the
+     other terms being multiples of 4. One odd square alone is not 0 modulo 4,
+     A^2 + B^2 is 2 modulo 8 whether H^2 is left or not: the equality holds
+     only where eh is the least exponent and equal to eb, H^2 - B^2 being
+     A^2 4^(ea - eb), or equal to ea, the same with a and b exchanged. */
+  static bool hypot_is_exact(double a, double b, double h)
+  {
+    if (a == 0.0 || b == 0.0 || !is_finite(a) || !is_finite(b)) {
+      return true;
+    }
+    if (!is_finite(h)) {
+      return false; // beyond the largest double
+    }
+    std::uint64_t A, B, H;
+    int ea, eb, eh;
+    odd_significand(a, A, ea);
+    odd_significand(b, B, eb);
+    odd_significand(h, H, eh);
+    if (eh == eb && ea > eb) {
+      return difference_of_squares(H, B, A, ea - eb);
+    }
+    if (eh == ea && eb > ea) {
+      return difference_of_squares(H, A, B, eb - ea);
+    }
+    return false;
+  }
+
+  interval hypot(const interval& X, const interval& Y)
+  {
+    if (X.is_empty() || Y.is_empty()) {
+      return interval::emptyset();
+    }
+    const double al = X.mig(), bl = Y.mig(), ar = X.mag(), br = Y.mag();
+    GAOL_RND_ENTER();
+    const double w = gaol_cr_hypot(al, bl);
+    const double u = hypot_is_exact(al, bl, w) ? w : previous_float(w);
+    const double v = gaol_cr_hypot(ar, br);
+    GAOL_RND_LEAVE();
+    return interval(maximum(0.0, u), v);
+  }
+
+  /*
+    atan2pi, the atan2Pi of IEEE 1788-2015 (Table 10.5): atan2(y, x)/pi on the
+    plane but (0, 0), with values in (-1, 1]. The analysis of the box is that
+    of atan2 above, the angles divided by pi. The angle over pi is a double
+    where it is a multiple of 1/4, which the tests below find: 0, +-1/4, +-1/2,
+    +-3/4 and 1, and -1 as a limit. Elsewhere it is irrational: tan(pi r) is
+    rational for a rational r only where it is 0 or +-1 (Niven), and y/x is
+    rational.
+  */
+  static inline bool atan2pi_special(double y, double x, double& v)
+  {
+    if (y == 0.0 || x == GAOL_INFINITY) {
+      v = (x > 0.0) ? 0.0 : 1.0;
+      return true;
+    }
+    if (x == 0.0 || std::fabs(y) == GAOL_INFINITY) {
+      v = (y > 0.0) ? 0.5 : -0.5;
+      return true;
+    }
+    if (x == -GAOL_INFINITY) {
+      v = (y > 0.0) ? 1.0 : -1.0;
+      return true;
+    }
+    if (std::fabs(x) == std::fabs(y)) {
+      const double q = (x > 0.0) ? 0.25 : 0.75;
+      v = (y > 0.0) ? q : -q;
+      return true;
+    }
+    return false;
+  }
+
+  static double atan2pi_lo(double y, double x)
+  {
+    double v;
+    return atan2pi_special(y, x, v) ? v : maximum(previous_float(gaol_cr_atan2pi(y, x)), -1.0);
+  }
+
+  static double atan2pi_hi(double y, double x)
+  {
+    double v;
+    return atan2pi_special(y, x, v) ? v : minimum(gaol_cr_atan2pi(y, x), 1.0);
+  }
+
+  interval atan2pi(const interval& Y, const interval& X)
+  {
+    if (Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+    if (yl == 0.0 && yu == 0.0 && xl == 0.0 && xu == 0.0) {
+      return interval::emptyset();
+    }
+    if (yl < 0.0 && yu >= 0.0 && xl < 0.0) {
+      return interval(-1.0, 1.0);
+    }
+    double l, r;
+    GAOL_RND_ENTER();
+    if (yl >= 0.0) { // Upper half-plane: the angle decreases with x
+      l = atan2pi_lo((xu > 0.0) ? yl : yu, xu);
+      r = (xl == 0.0 && yu == 0.0) ? 0.0 : atan2pi_hi((xl >= 0.0) ? yu : yl, xl);
+    } else if (yu < 0.0) { // Lower half-plane, y = 0 left out: the angle increases with x
+      l = atan2pi_lo((xl >= 0.0) ? yl : yu, xl);
+      r = atan2pi_hi((xu > 0.0) ? yu : yl, xu);
+    } else { // yl < 0 <= yu, in the right half-plane
+      l = atan2pi_lo(yl, xl);
+      r = (yu == 0.0) ? ((xu == 0.0) ? -0.5 : 0.0) : atan2pi_hi(yu, xl);
+    }
+    GAOL_RND_LEAVE();
+    return interval(l, r);
   }
 
   /*

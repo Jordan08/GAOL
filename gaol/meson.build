@@ -49,6 +49,7 @@ core_math_functions = [
 
   # The forward functions IEEE 1788-2015 recommends (Table 10.5) (GAOL v5)
   'expm1', 'exp2m1', 'exp10m1', 'sinpi', 'cospi', 'tanpi', 'acospi', 'atanpi',
+  'log1p', 'log2p1', 'log10p1', 'hypot', 'rsqrt', 'asinpi', 'atan2pi',
 ]
 incdir = include_directories(['.', '..', './sysdeps'])
 

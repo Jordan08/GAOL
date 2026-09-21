@@ -192,6 +192,11 @@ namespace
     compare("tanpi", gaol_cr_tanpi, [](const interval& x) { return tanpi(x); }, v);
     compare("atanpi", gaol_cr_atanpi, [](const interval& x) { return atanpi(x); }, v);
     compare("acospi", gaol_cr_acospi, [](const interval& x) { return acospi(x); }, v);
+    compare("log1p", gaol_cr_log1p, [](const interval& x) { return log1p(x); }, v);
+    compare("log2p1", gaol_cr_log2p1, [](const interval& x) { return log2p1(x); }, v);
+    compare("log10p1", gaol_cr_log10p1, [](const interval& x) { return log10p1(x); }, v);
+    compare("rsqrt", gaol_cr_rsqrt, [](const interval& x) { return rsqrt(x); }, v);
+    compare("asinpi", gaol_cr_asinpi, [](const interval& x) { return asinpi(x); }, v);
   }
 
   /* CORE-MATH gives the same value whatever the rounding direction it is called
@@ -228,6 +233,16 @@ namespace
       {"log10(1)", gaol_cr_log10, 1.0, 0.0},
       {"log10(100)", gaol_cr_log10, 100.0, 2.0},
       {"log10(1e22)", gaol_cr_log10, 1e22, 22.0},
+      {"log1p(0)", gaol_cr_log1p, 0.0, 0.0},
+      {"log2p1(1)", gaol_cr_log2p1, 1.0, 1.0},
+      {"log2p1(-1/2)", gaol_cr_log2p1, -0.5, -1.0},
+      {"log2p1(2^53 - 1)", gaol_cr_log2p1, 9007199254740991.0, 53.0},
+      {"log10p1(9)", gaol_cr_log10p1, 9.0, 1.0},
+      {"log10p1(10^15 - 1)", gaol_cr_log10p1, 999999999999999.0, 15.0},
+      {"rsqrt(4)", gaol_cr_rsqrt, 4.0, 0.5},
+      {"rsqrt(2^-1074)", gaol_cr_rsqrt, 0x1p-1074, 0x1p537},
+      {"asinpi(1)", gaol_cr_asinpi, 1.0, 0.5},
+      {"asinpi(-1)", gaol_cr_asinpi, -1.0, -0.5},
     };
     for (const Case& c : cases) {
       double lo, hi;
@@ -508,6 +523,260 @@ namespace
       }
     }
   }
+  /*
+    The forward functions of Table 10.5 claimed the tightest (GAOL v5), over
+    intervals: each result has to be the hull of the image, computed here
+    apart from GAOL with CORE-MATH in the two directed roundings -- for the
+    monotonic ones the values at the bounds of the part of the interval
+    inside the domain, for hypot the values at the points of the box nearest
+    to the origin and farthest from it, and for atan2pi the values at the
+    corners of the box. The bounds are drawn among the points where the value
+    is a double (2^k - 1 for log2p1, 10^k - 1 for log10p1, 4^k for rsqrt,
+    Pythagorean triples for hypot, the diagonals for atan2pi...) and their
+    neighbours, where a lower bound taken as the value itself is right only if
+    the value is exact: an exactness wrongly claimed gives a bound above the
+    tightest one, which then no longer encloses the image, and one missed
+    gives a bound a double below it.
+  */
+  void recommended_tightest()
+  {
+    std::mt19937_64 gen(20260921u);
+    const double inf = GAOL_INFINITY;
+    const auto rd = [](double (*f)(double), double x) {
+      std::fesetround(FE_DOWNWARD);
+      const double v = f(x);
+      std::fesetround(FE_UPWARD);
+      return v;
+    };
+    const auto ru = [](double (*f)(double), double x) {
+      std::fesetround(FE_UPWARD);
+      return f(x);
+    };
+    const auto same = [](const interval& got, double lo, double hi) {
+      return !got.is_empty() && got.left() == lo && got.right() == hi;
+    };
+
+    // The bounds the intervals are drawn from
+    std::vector<double> points = {0.0, 1.0, -1.0, 0.5, -0.5, 2.0, 3.0, 0.25, 4.0, -0.75,
+                                  inf, -inf, 1e300, -1e300, 0x1p-1074, 0x1p-1022};
+    const auto with_neighbours = [&](double x) {
+      points.push_back(x);
+      points.push_back(next_float(x));
+      points.push_back(previous_float(x));
+    };
+    for (int k = -53; k <= 60; ++k) {
+      with_neighbours(std::ldexp(1.0, k) - 1.0); // 2^k - 1: log2p1
+    }
+    double p10 = 1.0;
+    for (int k = 0; k <= 17; ++k, p10 *= 10.0) {
+      with_neighbours(p10 - 1.0);                // 10^k - 1: log10p1
+    }
+    for (int k = -537; k <= 511; k += 3) {
+      with_neighbours(std::ldexp(1.0, 2 * k));   // 4^k: rsqrt
+    }
+    for (int i = 0; i < 300; ++i) {
+      points.push_back(std::ldexp(std::uniform_real_distribution<double>(-1.0, 1.0)(gen),
+                                  (int)(gen() % 40) - 20));
+      points.push_back(std::uniform_real_distribution<double>(-1.0, 1.0)(gen));
+    }
+
+    struct Monotonic { const char *name; double (*cr)(double); interval (*g)(const interval&);
+                       double lo, hi; bool lo_open, hi_open, decreasing; };
+    const Monotonic monotonic[] = {
+      {"expm1", gaol_cr_expm1, expm1, -inf, inf, false, false, false},
+      {"exp2m1", gaol_cr_exp2m1, exp2m1, -inf, inf, false, false, false},
+      {"exp10m1", gaol_cr_exp10m1, exp10m1, -inf, inf, false, false, false},
+      {"atanpi", gaol_cr_atanpi, atanpi, -inf, inf, false, false, false},
+      {"acospi", gaol_cr_acospi, acospi, -1.0, 1.0, false, false, true},
+      {"asinpi", gaol_cr_asinpi, asinpi, -1.0, 1.0, false, false, false},
+      {"log1p", gaol_cr_log1p, log1p, -1.0, inf, true, false, false},
+      {"log2p1", gaol_cr_log2p1, log2p1, -1.0, inf, true, false, false},
+      {"log10p1", gaol_cr_log10p1, log10p1, -1.0, inf, true, false, false},
+      {"rsqrt", gaol_cr_rsqrt, rsqrt, 0.0, inf, true, false, true},
+    };
+    for (const Monotonic& m : monotonic) {
+      for (int i = 0; i < 40000; ++i) {
+        double l = points[gen() % points.size()], r = points[gen() % points.size()];
+        if (i % 4 == 0) {
+          r = l; // a single point
+        }
+        if (l > r) {
+          std::swap(l, r);
+        }
+        if (l == inf || r == -inf) {
+          continue;
+        }
+        std::fesetround(FE_UPWARD);
+        const interval got = m.g(interval(l, r));
+        // the part of [l, r] in the domain, the open end of which is a limit
+        const bool none = r < m.lo || l > m.hi || (m.lo_open && r == m.lo);
+        std::string what = std::string(m.name) + "([" + show(l) + ", " + show(r) + "])";
+        if (none) {
+          check(std::string(m.name) + ": empty outside the domain", got.is_empty(),
+                [&] { return what + " = " + hex(got); });
+          continue;
+        }
+        const double a = (l > m.lo) ? l : (m.lo == 0.0 ? 0.0 : m.lo), b = (r < m.hi) ? r : m.hi;
+        const double lo = m.decreasing ? rd(m.cr, b) : rd(m.cr, a);
+        const double hi = m.decreasing ? ru(m.cr, a) : ru(m.cr, b);
+        check(std::string(m.name) + " over an interval: the tightest bounds", same(got, lo, hi),
+              [&] { return what + " = " + hex(got) + " rather than [" + show(lo) + ", " + show(hi) + "]"; });
+      }
+    }
+
+    /* hypot and atan2pi, over boxes whose bounds are drawn among zeros,
+       infinities, the legs of Pythagorean triples scaled by powers of two,
+       and their neighbours */
+    std::vector<double> coords = {0.0, 1.0, -1.0, 3.0, 4.0, -3.0, -4.0, 5.0, 12.0, 0.5, inf, -inf, 1e300};
+    for (int i = 0; i < 400; ++i) {
+      const std::uint64_t n = 1 + gen() % 3000, m = n + 1 + gen() % 3000000;
+      const int e = (int)(gen() % 2100) - 1060;
+      const double a = std::ldexp((double)(m * m - n * n), e), b = std::ldexp((double)(2 * m * n), e);
+      const double sa = (gen() & 1) ? 1.0 : -1.0, sb = (gen() & 1) ? 1.0 : -1.0;
+      coords.push_back(sa * a);
+      coords.push_back(sb * b);
+      coords.push_back(sa * next_float(a));
+      coords.push_back(sb * std::ldexp(b, 1)); // the triple broken
+      coords.push_back(std::ldexp(std::uniform_real_distribution<double>(-1.0, 1.0)(gen),
+                                  (int)(gen() % 60) - 30));
+    }
+    const auto hypot_rd = [](double x, double y) {
+      std::fesetround(FE_DOWNWARD);
+      const double v = gaol_cr_hypot(x, y);
+      std::fesetround(FE_UPWARD);
+      return v;
+    };
+    const auto hypot_ru = [](double x, double y) {
+      std::fesetround(FE_UPWARD);
+      return gaol_cr_hypot(x, y);
+    };
+    const auto atan2pi_rd = [](double y, double x) {
+      std::fesetround(FE_DOWNWARD);
+      const double v = gaol_cr_atan2pi(y, x);
+      std::fesetround(FE_UPWARD);
+      return v;
+    };
+    const auto atan2pi_ru = [](double y, double x) {
+      std::fesetround(FE_UPWARD);
+      return gaol_cr_atan2pi(y, x);
+    };
+    for (int i = 0; i < 200000; ++i) {
+      std::size_t j = gen() % coords.size();
+      double x1 = coords[j], y1 = coords[(i % 3 == 0) ? (j ^ 1) : gen() % coords.size()];
+      double x2 = (i % 2 == 0) ? x1 : coords[gen() % coords.size()];
+      double y2 = (i % 5 < 2) ? y1 : coords[gen() % coords.size()];
+      if (i % 7 == 0) {
+        std::swap(x1, y1); // the Pythagorean pairs both ways
+        std::swap(x2, y2);
+      }
+      const double xl = std::min(x1, x2), xu = std::max(x1, x2);
+      const double yl = std::min(y1, y2), yu = std::max(y1, y2);
+      if (xl == inf || xu == -inf || yl == inf || yu == -inf) {
+        continue;
+      }
+      std::fesetround(FE_UPWARD);
+      const interval X(xl, xu), Y(yl, yu);
+      const std::string box = "([" + show(yl) + ", " + show(yu) + "], [" + show(xl) + ", " + show(xu) + "])";
+
+      // hypot: least at the point nearest to the origin, greatest at the farthest
+      const double nx = (xl <= 0.0 && xu >= 0.0) ? 0.0 : std::min(std::fabs(xl), std::fabs(xu));
+      const double ny = (yl <= 0.0 && yu >= 0.0) ? 0.0 : std::min(std::fabs(yl), std::fabs(yu));
+      const double fx = std::max(std::fabs(xl), std::fabs(xu)), fy = std::max(std::fabs(yl), std::fabs(yu));
+      const double hlo = hypot_rd(nx, ny), hhi = hypot_ru(fx, fy);
+      const interval h = hypot(X, Y);
+      check("hypot over a box: the tightest bounds", same(h, hlo, hhi),
+            [&] { return "hypot" + box + " = " + hex(h) + " rather than [" + show(hlo) + ", " + show(hhi) + "]"; });
+
+      // atan2pi: the hull of the corners, but where the box crosses the
+      // half-line y = 0, x < 0, where the angle jumps from 1 to -1
+      const interval t = atan2pi(Y, X);
+      if (xl == 0.0 && xu == 0.0 && yl == 0.0 && yu == 0.0) {
+        check("atan2pi: empty at the origin alone", t.is_empty(), [&] { return "atan2pi" + box; });
+        continue;
+      }
+      double tlo, thi;
+      if (yl < 0.0 && yu >= 0.0 && xl < 0.0) {
+        tlo = -1.0;
+        thi = 1.0;
+      } else {
+        tlo = inf;
+        thi = -inf;
+        const double cy[2] = {yl, yu}, cx[2] = {xl, xu};
+        for (double y : cy) {
+          for (double x : cx) {
+            if (x == 0.0 && y == 0.0) {
+              continue; // no angle at the origin
+            }
+            const double yy = (y == 0.0) ? 0.0 : y; // +0: the angle on y = 0, x < 0 is 1
+            tlo = std::min(tlo, atan2pi_rd(yy, x));
+            thi = std::max(thi, atan2pi_ru(yy, x));
+          }
+        }
+      }
+      check("atan2pi over a box: the tightest bounds", same(t, tlo, thi),
+            [&] { return "atan2pi" + box + " = " + hex(t) + " rather than [" + show(tlo) + ", " + show(thi) + "]"; });
+    }
+
+    /* asinpi next to +-1 (1 - |x| about 2^-40), where CORE-MATH's accurate
+       phase shifted a 64-bit integer by 65 to 69 bits, undefined behaviour
+       that UBSan found (3rd/README.md): each of these arguments reaches that
+       shift in some rounding direction, the four with (u) in the upward one
+       GAOL computes in. The jobs of the continuous integration with the
+       sanitizers stop on it, and the bounds have to be the tightest. */
+    const double near_one[] = {
+      0x1.ffffffffff03bp-1, 0x1.ffffffffff0c7p-1 /* (u) */, 0x1.ffffffffff23p-1 /* (u) */,
+      0x1.ffffffffff28bp-1 /* (u) */, 0x1.ffffffffff358p-1, 0x1.ffffffffff7a3p-1,
+      0x1.ffffffffff83bp-1, 0x1.ffffffffffaf7p-1, 0x1.ffffffffffc8cp-1 /* (u) */,
+      0x1.ffffffffffe8cp-1, 0x1.fffffffffff23p-1,
+    };
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (double x0 : near_one) {
+      for (double x : {x0, -x0}) {
+        double v[4];
+        for (int d = 0; d < 4; ++d) {
+          std::fesetround(directions[d]);
+          v[d] = gaol_cr_asinpi(x);
+        }
+        std::fesetround(FE_UPWARD);
+        const interval got = asinpi(interval(x));
+        check("asinpi next to +-1: the tightest bounds, the four roundings consistent",
+              same(got, v[2], v[1]) && v[2] <= v[0] && v[0] <= v[1] && (v[3] == v[1] || v[3] == v[2])
+              && next_float(v[2]) == v[1],
+              [&] { return "asinpi(" + show(x) + ") = " + hex(got); });
+      }
+    }
+
+    // The values given apart
+    struct Case { const char *what; interval got; double lo, hi; bool empty; };
+    const Case cases[] = {
+      {"log1p([-1, 0]) = [-oo, 0]", log1p(interval(-1.0, 0.0)), -inf, 0.0, false},
+      {"log1p([-1]): no value", log1p(interval(-1.0)), 0.0, 0.0, true},
+      {"log2p1([-5, 1]) = [-oo, 1]", log2p1(interval(-5.0, 1.0)), -inf, 1.0, false},
+      {"log2p1([2^53 - 1]) = 53", log2p1(interval(9007199254740991.0)), 53.0, 53.0, false},
+      {"log10p1([99]) = 2", log10p1(interval(99.0)), 2.0, 2.0, false},
+      {"rsqrt([0, 4]) = [1/2, +oo]", rsqrt(interval(0.0, 4.0)), 0.5, inf, false},
+      {"rsqrt([-0, 4]) = [1/2, +oo]", rsqrt(interval(-0.0, 4.0)), 0.5, inf, false},
+      {"rsqrt([-4, 0]): no value", rsqrt(interval(-4.0, 0.0)), 0.0, 0.0, true},
+      {"rsqrt([4, +oo]) = [0, 1/2]", rsqrt(interval(4.0, inf)), 0.0, 0.5, false},
+      {"asinpi([-2, 2]) = [-1/2, 1/2]", asinpi(interval(-2.0, 2.0)), -0.5, 0.5, false},
+      {"asinpi([2, 3]): outside the domain", asinpi(interval(2.0, 3.0)), 0.0, 0.0, true},
+      {"hypot([3], [4]) = 5", hypot(interval(3.0), interval(4.0)), 5.0, 5.0, false},
+      {"hypot([-4, 3], [-1, 12]) = [0, 12.64...]", hypot(interval(-4.0, 3.0), interval(-1.0, 12.0)),
+       0.0, gaol_cr_hypot(4.0, 12.0), false},
+      {"hypot(entire, [1]) = [1, +oo]", hypot(interval::universe(), interval(1.0)), 1.0, inf, false},
+      {"atan2pi([1], [-1]) = 3/4", atan2pi(interval(1.0), interval(-1.0)), 0.75, 0.75, false},
+      {"atan2pi([0], [-1]) = 1", atan2pi(interval(0.0), interval(-1.0)), 1.0, 1.0, false},
+      {"atan2pi([-1, 1], [-1]) = [-1, 1]", atan2pi(interval(-1.0, 1.0), interval(-1.0)), -1.0, 1.0, false},
+      {"atan2pi([0], [0]): no value", atan2pi(interval(0.0), interval(0.0)), 0.0, 0.0, true},
+    };
+    for (const Case& c : cases) {
+      if (c.empty) {
+        check(std::string(c.what), c.got.is_empty(), [&] { return hex(c.got); });
+      } else {
+        check(std::string(c.what), same(c.got, c.lo, c.hi), [&] { return hex(c.got); });
+      }
+    }
+  }
 }
 
 int main()
@@ -519,6 +788,7 @@ int main()
   base_two_and_ten_exact();
   negative_roots();
   recommended_intervals();
+  recommended_tightest();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();

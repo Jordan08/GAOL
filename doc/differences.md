@@ -54,13 +54,16 @@ from. Each change is a commit of its own, and says where it comes from.
     10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
     are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
     its `dint.h` being that of `log` but for a constant.
-  - **Eight functions of Table 10.5**, which IEEE 1788-2015 recommends and
-    CORE-MATH provides without the 128-bit integer: `expm1`, `exp2m1`,
-    `exp10m1`, `sinpi`, `cospi`, `tanpi`, `atanpi` and `acospi`, the tightest
-    bounds. `sinpi`, `cospi` and `tanpi` find their extrema and poles exactly,
-    at the multiples of 1/2, which are doubles: `sinpi([1e17])` is 0, where
-    `sin(pi*x)` gave [-1, 1], the width of pi times 10^17 being more than a
-    period. The seven others CORE-MATH has need the 128-bit integer first.
+  - **Fifteen functions of Table 10.5**, which IEEE 1788-2015 recommends:
+    `expm1`, `exp2m1`, `exp10m1`, `log1p` (logp1), `log2p1`, `log10p1`,
+    `hypot`, `rsqrt` (rSqrt), `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
+    `atanpi` and `atan2pi`, the tightest bounds. `sinpi`, `cospi` and `tanpi`
+    find their extrema and poles exactly, at the multiples of 1/2, which are
+    doubles: `sinpi([1e17])` is 0, where `sin(pi*x)` gave [-1, 1], the width
+    of pi times 10^17 being more than a period. Seven of them compute with
+    CORE-MATH's 128-bit integer, which was ported to `gaol/gaol_u128.h` first
+    (see [3rd/README.md](../3rd/README.md)). Only `compoundm1` is missing,
+    CORE-MATH having no binary64 version of it.
   - **`fma`, `cancelMinus` and `cancelPlus`**, which IEEE 1788-2015 requires the
     tightest, and **`less`, `strictLess`, `isEntire` and `isCommonInterval`**.
     Rounding the lower bound of `fma` as -fma(-a, b, -c) came one double above
