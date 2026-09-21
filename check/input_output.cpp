@@ -180,7 +180,13 @@ public:
 		interval::format(interval_format::hexa);
 		interval::precision(2);
 		os << I;
-		CPPUNIT_ASSERT(os.str() == string("[400b9db22d0e5604, 400b9fbe76c8b43a]"));
+		// the hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
+		// reads back bit for bit, rather than the digits of each double (GAOL v5)
+		CPPUNIT_ASSERT(os.str() == string("[0x1.b9db22d0e5604p+1, 0x1.b9fbe76c8b43ap+1]"));
+		{
+			interval R(os.str().c_str());
+			CPPUNIT_ASSERT(R.left() == I.left() && R.right() == I.right());
+		}
 
 		os.str("");
 		interval::format(interval_format::agreeing);
