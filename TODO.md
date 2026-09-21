@@ -16,6 +16,11 @@ says otherwise. The continuous integration is green again since 1436918.
    and `gaol::pow(interval, double)` become function templates, and
    `gaol_ieee1788` gets its own `pow(interval, int)` and `pow(interval, double)`
    that follow the standard.
+   **Done otherwise.** `interval` and GAOL's functions are in `gaol_core`,
+   where argument-dependent lookup finds no `pow`, and `gaol` and
+   `gaol_ieee1788` each have their own, plain functions. `pow(x, p)` of
+   `gaol_ieee1788` is `pow(x, [p])`, an int exponent included, the integer
+   power being `pown(x, n)` as in the standard.
 
 2. **Binary compatibility.** `libgaol.a` no longer has the symbol
    `gaol::pow(interval const&, interval const&)`: an object compiled against
@@ -24,6 +29,8 @@ says otherwise. The continuous integration is green again since 1436918.
    `pow(const interval&, const interval&)` that calls `pow_hybrid()`, without
    declaring it in the header. It keeps the former symbol and does not change
    overload resolution.
+   **No longer applies.** Every symbol of the library names `gaol_core` now:
+   a program is compiled again against the new headers.
 
 3. **An integer exponent beyond the ints gives [-oo, +oo]** (older than
    a7544a1). `gaol_ieee1788::pow([2, 3], [1e10])` is [-oo, +oo], where the
@@ -32,6 +39,9 @@ says otherwise. The continuous integration is green again since 1436918.
    `pow_hybrid()`, which takes pown for any degenerate integer exponent
    (`gaol/gaol_interval.cpp`, the `interval::universe()` for an integer beyond
    the ints).
+   **Done** in `gaol/gaol_ieee1788.h`: CORE-MATH's pow at the bounds of x,
+   [DBL_MAX, +oo] here; `tests/other_functions.cpp` checks five such
+   exponents.
 
 4. **Logic written twice** (older than a7544a1). `gaol_ieee1788::pow` repeats
    the intersection with [0, +oo] and the case of a zero base that
@@ -39,6 +49,9 @@ says otherwise. The continuous integration is green again since 1436918.
    standard half of `pow_hybrid()` (for instance `pow_real()`), have
    `pow_hybrid()` add only the pown case of a degenerate integer exponent, and
    have `gaol_ieee1788::pow` call `pow_real()` directly.
+   **Still open.** `gaol_ieee1788::pow` still intersects x with [0, +oo] and
+   takes x = {0} apart before `gaol_pow_hybrid()` does it again; point 3 was
+   settled apart.
 
 ## The names of gaol_ieee1788
 
@@ -49,10 +62,13 @@ says otherwise. The continuous integration is green again since 1436918.
    compiles (a double converts to `interval` and to `expression`). Rare, a
    double being passed to a function of the standard, but the header says
    `interval` is the only type of its operations.
+   **Done.** `gaol/gaol_ieee1788.h` includes `gaol/gaol_expression.h` before
+   its using-declarations, whatever the program includes first.
 
 6. **Clash with `using namespace std;`.** `less(x, y)` is then ambiguous
    between `gaol_ieee1788::less` and the class template `std::less`. To be
    said in `doc/using.md`, which tells that one line is enough.
+   **Done.** `doc/using.md` says to write `gaol_ieee1788::less(x, y)` there.
 
 ## intervalToExact
 
@@ -69,11 +85,18 @@ says otherwise. The continuous integration is green again since 1436918.
    `ieee1788_using_directive()` (`tests/other_functions.cpp`) compiles
    `pow(x, 3)` and `pow(x, 0.5)` but checks neither on a negative base;
    `pow(interval, interval)` is checked on a negative base.
+   **Done.** `tests/ieee1788_using_directive.cpp`, under
+   `using namespace gaol_ieee1788;` alone, checks `pow(x, 2)`, `pow(x, 2.0)`
+   and `pow([0], 0)` on x = [-4, -1], and the expressions `pow(e1, e2)` and
+   `pown(e, n)`.
 
 9. **The documentation of pow.** The Doxygen block `\brief I^J` of
    `gaol/gaol_interval.h` now documents `pow_hybrid()`, and the template
    `pow` has a plain comment only; `manual/gaol.tex` still describes
    `pow(const interval&, const interval&)` as a plain function.
+   **Done** for the comments, which name `gaol_pown()`, `gaol_pow_hybrid()` and
+   `gaol_pow_real()` and the `gaol::pow` each one is; `manual/gaol.tex` is the
+   manual of GAOL 4, left as it is.
 
 ## CORE-MATH
 
@@ -84,5 +107,4 @@ says otherwise. The continuous integration is green again since 1436918.
     128-bit shift of `asinpi.c`, and the 64-bit `__builtin_expect` of
     `rsqrt.c`, which took subnormals for +0 wherever `long` has 32 bits.
 
-Suggested order: points 1 to 4 together, all being about pow, then 8, then 6
-and 9.
+Left: points 4, 7 and 10.

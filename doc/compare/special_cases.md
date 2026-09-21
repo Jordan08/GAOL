@@ -52,14 +52,16 @@ operators with doubles and no compound assignments.
 
 **GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 280
 cases out of 286, and something else in 6, all from the hybrid `pow(x, y)` of
-GAOL v5, which takes the integer power `pown` for a degenerate integer
+the namespace `gaol`, which takes the integer power `pown` for a degenerate integer
 exponent, where IEEE 1788's `pow` only takes the part of x in [0, +∞] (see
 [What differs from GAOL](../differences.md)): `pow([−2], 2.0)` is [4],
 `pow([0], [0])` is [1], `pow([−1], [2^31−1])` is [−1] and
 `pow([−2, 0], [−1])` is [−∞, −0.5], where IEEE 1788 has ∅ (cases 158, 178 to
 180, 183); `pow([−2, −1], [1e10])`, an integer beyond the ints, is [−∞, +∞]
 (173). Five more cases enclose IEEE 1788's result for the same reason (157,
-161, 174 to 176). GAOL reads a bare number, `interval("0.1")`, as the interval
+161, 174 to 176). The `pow` of `gaol_ieee1788` follows IEEE 1788 there, taking
+only the part of x in [0, +∞] whatever the exponent (see
+[Using GAOL](../using.md#the-names-of-ieee-1788-2015)). GAOL reads a bare number, `interval("0.1")`, as the interval
 enclosing it, an extension of the literals IEEE 1788 allows (19).
 
 Its wider results are one double off: sin, cos, tan and `pow(x, y)`, the

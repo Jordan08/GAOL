@@ -40,9 +40,11 @@ the standard for interval arithmetic, in the operations GAOL provides: the
 empty set, infinite bounds, the domains of the functions, the comparisons,
 the interval literals, and the accuracy of each operation, which
 [Accuracy of the operations](doc/accuracy.md) documents. The few cases where
-it differs, mostly `pow(x, y)`, which takes the integer power `pown` for an
-integer exponent, are listed in
-[the special cases](doc/compare/special_cases.md#what-the-cases-show).
+it differs, mostly the `pow(x, y)` of the namespace `gaol`, which takes the
+integer power `pown` for an integer exponent, are listed in
+[the special cases](doc/compare/special_cases.md#what-the-cases-show); the
+namespace `gaol_ieee1788` gives the operations under the names of the standard,
+its `pow` being the standard's (see [Using GAOL](doc/using.md#the-namespaces)).
 
 ## Quick start
 

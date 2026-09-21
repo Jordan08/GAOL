@@ -72,10 +72,10 @@ from. Each change is a commit of its own, and says where it comes from.
   - **`gaol_ieee1788`**: the operations of the standard GAOL provides, under
     the names and in the argument order of the standard, with the type
     `interval`, so that `using namespace gaol_ieee1788;` is enough to use them
-    (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). For
-    `pow(x, y)` to be the standard's there rather than ambiguous,
-    `gaol::pow(interval, interval)` is a function template calling
-    `pow_hybrid()`, which the library compiles: its value is the same.
+    (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). Its `pow` is
+    the standard's, `pow(x, 2)` being `pow(x, [2])` and the integer power
+    `pown(x, 2)`, and an integer exponent beyond the ints gives the pow of
+    CORE-MATH at the bounds of x, where the `pow` of `gaol` gives [-oo, +oo].
   - **`cospi.c` of CORE-MATH shifted a signed integer** out of its range,
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see
@@ -324,10 +324,10 @@ from. Each change is a commit of its own, and says where it comes from.
     results near the overflow, subnormal results, bases next to 1 with large
     exponents, and exact powers with their neighbouring doubles, which take
     its slow path, included: all correctly rounded.
-- **Integer powers are computed from exact products** (issue #7): `pow(x, n)`
-  and `uipow(x, n)` give the tightest bounds for n ≥ 3, where GAOL rounded each
-  product of its binary exponentiation outward and was up to n + 1 doubles from
-  them: 2, 3, 5, 6 and 8 doubles for n = 3 to 7, `pow([1.1], 3)` being two
+- **Integer powers are computed from exact products** (issue #7): `pow(x, n)`,
+  for an `int` or an `unsigned` n, gives the tightest bounds for n ≥ 3, where
+  GAOL rounded each product of its binary exponentiation outward and was up to
+  n + 1 doubles from them: 2, 3, 5, 6 and 8 doubles for n = 3 to 7, `pow([1.1], 3)` being two
   doubles wide.
   - **How.** Each product h·y is rounded to p, and `fma(h, y, -p)` gives its
     rest h·y − p exactly: the power is carried as h + l, l being the sum of
@@ -597,7 +597,27 @@ from. Each change is a commit of its own, and says where it comes from.
     `pow()` for an exponent it cannot use, which later expressions still
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
     Both now throw `input_format_error`.
+- **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
+  [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
+  functions and its expressions are in `gaol_core`; `gaol` names them as GAOL
+  did, and `gaol_ieee1788` as IEEE 1788-2015 does. `pow`, the one function of
+  the same name whose meaning differs between the two, is in each of them and
+  not in `gaol_core`, where argument-dependent lookup looks for a call on an
+  interval: each namespace finds its own `pow` only. The powers of
+  `gaol_core` are named apart: `gaol_pown()`, `gaol_uipow()`,
+  `gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
+  `gaol_pow_exp()`, and the node of a power of expressions keeps the function
+  that computes it. The parser is in `gaol`, and takes GAOL's `pow`.
+  - **`gaol/gaol.h`** no longer opens `gaol`: a program adds
+    `using namespace gaol;` or `using namespace gaol_ieee1788;`, one of the
+    two, `pow(x, y)` being ambiguous with both.
+  - **The symbols** of the library name `gaol_core`: a program compiled
+    against the headers of GAOL 4 is compiled again.
+- **`pow(e, n)` on an expression links.** The library defined it with an
+  `unsigned int` exponent, where the header declares an `int`, and a program
+  calling it did not link; `tests/expressions.cpp` builds it.
 - **`uipow()`**, the `pown` of IEEE 1788-2015 for an unsigned exponent, is
+  `pow(I, n)` for an `unsigned` n in `gaol`, `gaol_uipow()` in `gaol_core`,
   declared in `gaol/gaol_interval.h` and exported with the SSE2 intervals too,
   where it was `INLINE` ([issue #10](https://github.com/Jordan08/GAOL/issues/10)).
   - **Before.** `gaol::uipow()` was not found, and `uipow()` did not link.

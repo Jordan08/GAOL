@@ -78,6 +78,44 @@ c++ -std=c++17 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs g
 
 In a meson project, `dependency('gaol')`.
 
+## The namespaces
+
+GAOL's type `interval` and its functions are in the namespace `gaol_core`. A
+program names them through one of two namespaces, which `gaol/gaol.h` declares
+and does not open:
+
+- `gaol`, GAOL under its own names;
+- `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (below).
+
+```cpp
+#include <gaol/gaol.h>
+using namespace gaol;
+
+interval x(1, 2);
+interval y = pow(x, 3) + sin(x);
+```
+
+`gaol/gaol.h` no longer opens `gaol` itself, as GAOL 4 did: a program that
+relied on it adds `using namespace gaol;`, or names `gaol::interval`.
+
+The two namespaces hold `interval`, and the functions that have the same name
+and the same meaning in both (`sin`, `exp`, `sqrt`, `min`...) are the same
+functions, those of `gaol_core`. `pow` is the one whose meaning differs: each
+namespace has its own, and none is in `gaol_core`, the namespace where
+argument-dependent lookup looks for a call `pow(x, y)` on an interval, so that
+each namespace finds its own only. A program opens one of the two namespaces,
+not both: with both open, `pow(x, y)` is ambiguous.
+
+The `pow` of `gaol` takes the integer power for an integer exponent, a negative
+base included: `pow(x, n)` for an `int` or an `unsigned` n, and `pow(x, p)` and
+`pow(x, y)` for a double p or a degenerate interval y that is an integer, one
+beyond the ints giving [−∞, +∞]; any other exponent takes the pow of IEEE
+1788-2015. `pow(e, n)` and `pow(e1, e2)` build the expressions of
+`gaol/gaol_expression.h`, computed with the same powers. In `gaol_core`, these
+functions are named apart from `pow`: `gaol_pown()`, `gaol_uipow()`,
+`gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
+`gaol_pow_exp()`.
+
 ## The names of IEEE 1788-2015
 
 GAOL names its operations its own way: the reverse function `coshRev(c, x)` of
@@ -101,23 +139,28 @@ bool b = strictLess(x, entire());
 
 The functions of GAOL that already have the name and the meaning the standard
 gives them (`sin`, `exp`, `sqrt`, `min`...) are the same functions in
-`gaol_ieee1788`, so that a call on an interval is not ambiguous with the
-function of `gaol` that argument-dependent lookup finds, and a program can
-keep `using namespace gaol;` as well. Where the standard and GAOL differ,
-these names follow the standard: `pow(x, y)` is the pow of Table 9.1, defined
-for x > 0 (GAOL's `pow` takes the integer power for a degenerate integer
-exponent, a negative base included: `pow([-4, -1], [2])` is [1, 16] in `gaol`,
-the empty set in `gaol_ieee1788`); `inf` and `sup` of the empty set are +∞ and
-−∞, where GAOL's bounds are NaN;
-`isMember(m, x)` is false for an infinite m; `textToInterval` returns the
-empty set for a string that is no interval literal, where GAOL's constructor
-throws. The call `pow(x, y)` on two intervals is not ambiguous either:
-`gaol::pow(interval, interval)` is a function template, to which overload
-resolution prefers the plain function of `gaol_ieee1788`. `pow(x, 2)` and
-`pow(x, 0.5)`, whose exponent is a number rather than an interval, remain
-GAOL's. A name of the program's own that one of the standard shadows, a
-constant `inf` for instance, is to be qualified: `gaol_ieee1788::inf(x)`. Only
-bare intervals are provided, GAOL having no decorations;
+`gaol_ieee1788`. Where the standard and GAOL differ, these names follow the
+standard:
+
+- `pow(x, y)` is the pow of Table 9.1, defined for x > 0, and for x = 0 when
+  y > 0, where the `pow` of `gaol` takes the integer power for an integer
+  exponent, a negative base included: `pow([-4, -1], [2])` is [1, 16] in
+  `gaol` and the empty set in `gaol_ieee1788`. `pow(x, p)` with a number p is
+  `pow(x, [p])`, `pow(x, 2)` included: the power with an integer exponent is
+  `pown(x, n)` in the standard, whose n is an integer rather than an interval.
+  An integer exponent beyond the ints gives the pow of CORE-MATH at the bounds
+  of x, `pow([2, 3], [1e10])` being [DBL_MAX, +∞], where the `pow` of `gaol`
+  gives [−∞, +∞]. `pown(e, n)` and `pow(e1, e2)` build expressions computed
+  with this `pown` and this `pow`;
+- `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
+- `isMember(m, x)` is false for an infinite m;
+- `textToInterval` returns the empty set for a string that is no interval
+  literal, where GAOL's constructor throws.
+
+A name of the program's own that one of the standard shadows, a constant `inf`
+for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`
+next to `using namespace std;`, where it is ambiguous with the class template
+`std::less`. Only bare intervals are provided, GAOL having no decorations;
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
 

@@ -20,8 +20,8 @@ Codac.
   roots of intervals the roots of their bounds (of their part in `[0, +oo]`
   for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
   intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
-  enclosures. `gaol::uipow(x, n)` has to give what `pow(x, n)` gives, `[1]`
-  for n = 0 and the empty set for an empty x. The operators of an interval with a double have to give, on
+  enclosures. `gaol::pow(x, n)` for an unsigned n has to give what it gives
+  for an int n, `[1]` for n = 0 and the empty set for an empty x. The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
@@ -111,10 +111,15 @@ Codac.
   functions against Table 10.2; the reverse functions with the arguments in
   the order of the standard, `mulRev(b, c, x)` being `div_rel(c, b, x)`; `pow`
   against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
-  base. The names are then called unqualified under
-  `using namespace gaol_ieee1788;`, beside `using namespace gaol;`, which
-  compiles only if none of them is ambiguous with a function of `gaol`, and
-  `pow(x, y)` has to be the standard's there (GAOL v5).
+  base, and at integer exponents beyond the ints, where it has to give the
+  tightest bounds and GAOL's own `pow` gives [-oo, +oo] (GAOL v5).
+- **`ieee1788_using_directive`:** the names of `gaol_ieee1788` called
+  unqualified under `using namespace gaol_ieee1788;` alone, as a program opens
+  it, which compiles only if none of them is ambiguous with a function of
+  `gaol_core`. `pow(x, y)`, `pow(x, 2)`, `pow(x, 2.0)` and `pow([0], 0)` have
+  to be the standard's there, `pown(x, 2)` the integer power, and the
+  expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the standard's too
+  (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -152,7 +157,8 @@ Codac.
   `trunc` — are read by both paths of the grammar, the direct one and the tree
   of `gaol/gaol_expression.h` that the bounds given apart go through, in any
   case of letters, the lexer taking the longest name so that `exp2` is not read
-  as `exp` followed by 2. Each value is compared with the same computation written in C++,
+  as `exp` followed by 2. The expressions built in C++ go through every node
+  too, `pow(e, 3)` included, which did not link. Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
