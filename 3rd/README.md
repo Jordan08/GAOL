@@ -127,6 +127,9 @@ kept as a patch to reapply.
    sources GAOL compiles take a comparison, or an integer of 32 bits or less.
    This is a fix to propose to CORE-MATH.
 
+The four fixes are written as patches against the upstream sources, ready to
+be proposed to CORE-MATH, in [core-math-patches/](core-math-patches/README.md).
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by

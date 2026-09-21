@@ -1,0 +1,16 @@
+diff --git a/src/binary64/asinpi/asinpi.c b/src/binary64/asinpi/asinpi.c
+index 226a7fd8..bd7da645 100644
+--- a/src/binary64/asinpi/asinpi.c
++++ b/src/binary64/asinpi/asinpi.c
+@@ -269,8 +269,9 @@ static double asinpi_acc(double x){
+     sm2.a += dsm3.a;
+     int k = ixe-ce;
+     ss = 24 + k;
+-    u128_u Cm = {.bl = 0, .bh = cm},
+-      D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))};
++    // D = dc*2^ss on 128 bits: next to +/-1, ss exceeds 63, where shifting
++    // the 64-bit halves by ss and 64-ss is undefined behaviour
++    u128_u Cm = {.bl = 0, .bh = cm}, D = {.a = (u128)(i128)dc << ss};
+     Cm.a -= D.a;
+     h = sm2.a>>14;
+     dc = mh(h, ixm);
