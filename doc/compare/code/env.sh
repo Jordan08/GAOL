@@ -43,6 +43,16 @@ PROFIL_URL=https://www.tuhh.de/ti3/keil/profil/Profil-$PROFIL_VERSION.tgz
 PROFIL_SHA256=1706e684166360d60f33b4c9301cfe48a6153fc0c624f2087efa9bc94aa07c20
 PROFIL_TGZ="${PROFIL_TGZ:-}"
 PROFIL_DIR="$PREFIX/profil"
+# The last GAOL of Frédéric Goualard, which GAOL v5 continues: the master
+# branch of his repository (4.2.3, 9 December 2025), with mathlib, the
+# mathematical library his README gives, from his site
+GAOL_GOUALARD_REPO=https://github.com/goualard-f/GAOL
+GAOL_GOUALARD_COMMIT=cd0ee1a75febab97a7f6c18a03e31780a2717f2c
+GAOL_GOUALARD_VERSION=4.2.3
+GAOL_GOUALARD_PREFIX="$PREFIX/gaol-goualard"
+MATHLIB_VERSION=2.1.1
+MATHLIB_URL=https://frederic.goualard.net/software/mathlib-$MATHLIB_VERSION.tar.gz
+MATHLIB_SHA256=f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281
 
 # The flags of interval arithmetic for GCC (see doc/using.md), and those of
 # the benchmarks. Solaris Studio needs -xia for its interval type.
@@ -61,6 +71,10 @@ export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
 # Compiler flags of GAOL, as installed (gaol.pc), of libieeep1788 and of filib++
 gaol_cflags() { pkg-config --cflags gaol; }
 gaol_libs() { pkg-config --libs gaol; }
+# Goualard's GAOL installs no gaol.pc: its headers hold the SSE2 and SSE3
+# intervals its configure found, and its library calls mathlib's
+gaol_goualard_cflags() { echo "-I$GAOL_GOUALARD_PREFIX/include $IA_CXXFLAGS -msse2 -msse3 $FMA_FLAGS"; }
+gaol_goualard_libs() { echo "-L$GAOL_GOUALARD_PREFIX/lib -lgaol -lultim -lm"; }
 p1788_cflags() { echo "-std=c++11 -I$PREFIX/include"; }
 p1788_libs() { echo "-L$PREFIX/lib -lmpfr -lgmp"; }
 # filib++'s headers have dynamic exception specifications, deprecated in C++11

@@ -14,9 +14,9 @@
 # OPS             a comma-separated list of operations (default: all of them,
 #                 see bench_ops.h)
 # CPU             a processor to run the programs on, with taskset
-# LIBS            the libraries to run (default: "double gaol5 gaol filib profil sun p1788")
-# GAOL5_PREFIX    where the GAOL of this branch is installed, run as gaol5
-#                 alongside the GAOL of PREFIX, run as gaol
+# LIBS            the libraries to run (default: "double gaol5 gaol filib profil sun p1788"):
+#                 gaol5 is the GAOL of this repository, installed in PREFIX, and
+#                 gaol the last GAOL of Frédéric Goualard, in GAOL_GOUALARD_PREFIX
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -47,15 +47,12 @@ run() {
 
 echo "== compiling"
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS -I"$CODE_DIR" "$CODE_DIR/bench_double.cpp" -o "$OUT/bench_double"
-$CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol" $(gaol_libs)
-# The GAOL of this branch, installed apart (GAOL5_PREFIX): the same source,
-# under the name gaol5, so that the tables hold the two versions
-if [ -n "${GAOL5_PREFIX:-}" ]; then
-  gaol5_cflags() { PKG_CONFIG_PATH="$GAOL5_PREFIX/lib/pkgconfig" pkg-config --cflags gaol; }
-  gaol5_libs() { PKG_CONFIG_PATH="$GAOL5_PREFIX/lib/pkgconfig" pkg-config --libs gaol; }
-  $CXX -std=c++11 $CXXFLAGS_BENCH $(gaol5_cflags) -DGAOL_BENCH_NAME='"gaol5"' -I"$CODE_DIR" \
-       "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol5" $(gaol5_libs)
-fi
+# The same source for the two GAOL: this repository's, under the name gaol5,
+# and Goualard's last one, under the name gaol
+$CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_cflags) -DGAOL_BENCH_NAME='"gaol5"' -I"$CODE_DIR" \
+     "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol5" $(gaol_libs)
+$CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_goualard_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_gaol.cpp" \
+     -o "$OUT/bench_gaol" $(gaol_goualard_libs)
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(p1788_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_p1788.cpp" \
      -o "$OUT/bench_p1788" $(p1788_libs)
 $CXX $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(filib_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_filib.cpp" \
@@ -94,8 +91,8 @@ done
   # -dirty only for what GAOL is built from: the reports of doc/ are being rewritten
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
   git -C "$ROOT_DIR" diff --quiet HEAD -- . ':!doc' 2>/dev/null || gaol_commit="$gaol_commit-dirty"
-  echo "GAOL V5.0.0:     the branch of this checkout ($gaol_commit), CMake Release, CORE-MATH of 3rd/math-core compiled into the library"
-  echo "GAOL 4.3.2:      the master branch, CMake Release, mathlib 2.1.1 of 3rd/mathlib"
+  echo "GAOL V5.0.0:     the branch of this checkout ($gaol_commit), CMake Release, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved"
+  echo "GAOL $GAOL_GOUALARD_VERSION:      the last version of Frédéric Goualard (${GAOL_GOUALARD_COMMIT:0:7} of $GAOL_GOUALARD_REPO), its configure, the rounding direction not preserved, mathlib $MATHLIB_VERSION"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"
   echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc configuration, built by $CC and $CXX"

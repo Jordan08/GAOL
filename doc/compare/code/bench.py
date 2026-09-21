@@ -42,11 +42,11 @@ OPERATIONS = [
 ]
 
 # The reference of the ratios is GAOL V5.0.0, the version that bounds every
-# elementary function with CORE-MATH; GAOL 4.3.2 is the version before it,
-# built from the master branch, run on the same intervals
+# elementary function with CORE-MATH; GAOL 4.2.3 is the last version of
+# Frédéric Goualard, which GAOL V5.0.0 continues, run on the same intervals
 REFERENCE = "gaol5"
 LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"),
-             ("gaol5", "GAOL V5.0.0"), ("gaol", "GAOL 4.3.2"),
+             ("gaol5", "GAOL V5.0.0"), ("gaol", "GAOL 4.2.3"),
              ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90"), ("profil", "PROFIL/BIAS")]
 
 

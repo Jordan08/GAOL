@@ -2,7 +2,8 @@
      Created 2026-09-20 by Jordan NININ -->
 # Running the comparison again
 
-The scripts of this directory compare GAOL (this repository),
+The scripts of this directory compare GAOL (this repository), the last
+version of [Frédéric Goualard's GAOL](https://github.com/goualard-f/GAOL),
 [libieeep1788](https://github.com/nehmeier/libieeep1788),
 [filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html),
 [PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) and
@@ -25,8 +26,13 @@ commit (header-only, it needs MPFR), filib++ 3.0.2.2 from the archive IBEX
 distributes, unless `FILIB_DIR` gives an installed filib++, PROFIL/BIAS 2.0.8
 from its site (or from the archive `PROFIL_TGZ` gives), built with its
 configuration `x86-64-Linux-compat-gcc`, its `gcc` replaced by `CC` and `CXX`,
-and checked with `make check`, and GAOL from this repository, built with CMake
-in Release and installed with mathlib. All of them are compiled by `CC` and
+and checked with `make check`, GAOL from this repository, built with CMake
+in Release and installed, and the last GAOL of Frédéric Goualard (4.2.3, the
+master branch of his repository) with
+[mathlib 2.1.1](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
+from his site, built with their configure, without the preservation of the
+rounding direction, as GAOL v5, and with the flags GAOL v5 is built with,
+which his configure gives to `g++` alone. All of them are compiled by `CC` and
 `CXX` with `-O3` (GMP, MPFR and PROFIL/BIAS compile with `-O2` on their own,
 and the configure of filib++ without any optimization) and with the fused
 multiply-add instructions of the processor, `-mfma` (`FMA_FLAGS`), as GAOL is
@@ -76,7 +82,7 @@ variables:
 | `REPEATS` | `5` | Runs of each operation in a round |
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
-| `LIBS` | `double gaol filib profil sun p1788` | Libraries to run |
+| `LIBS` | `double gaol5 gaol filib profil sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol` the last GAOL of Frédéric Goualard |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
@@ -90,7 +96,7 @@ variables:
 | File | |
 |---|---|
 | `env.sh` | The variables shared by the scripts: directories, versions, compiler flags |
-| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS and GAOL; checks `f90 -xia` |
+| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS, GAOL, and Goualard's GAOL with mathlib; checks `f90 -xia` |
 | `cases.py` | The 291 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
 | `run_cases.sh` | Generates, compiles and runs the five programs of the special cases, and writes their table |
 | `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) |

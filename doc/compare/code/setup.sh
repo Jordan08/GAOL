@@ -6,6 +6,8 @@
 #   - PROFIL/BIAS PROFIL_VERSION, from its site (or the archive PROFIL_TGZ),
 #     built with its x86-64 Linux configuration,
 #   - GAOL, this repository, built with CMake in Release and installed,
+#   - the last GAOL of Frédéric Goualard, at the commit GAOL_GOUALARD_COMMIT,
+#     with mathlib MATHLIB_VERSION, built with their configure,
 # and checks that Solaris Studio's f90 compiles an interval program.
 # Everything is compiled by $CC and $CXX with -O3 and $FMA_FLAGS (-mfma, see
 # env.sh): GMP, MPFR and PROFIL/BIAS compile with -O2 on their own, and the
@@ -129,6 +131,40 @@ else
         -DGAOL_FIND_MATHLIB=OFF > "$WORK/gaol-configure.log"
   cmake --build "$WORK/gaol-build" -j"$JOBS" > "$WORK/gaol-build.log"
   cmake --install "$WORK/gaol-build" > "$WORK/gaol-install.log"
+fi
+
+## The last GAOL of Frédéric Goualard, which GAOL v5 continues, with mathlib,
+## both built with their configure, as his README has it for Linux, and static,
+## as GAOL v5's library. Its configure gives -O3 and the SSE flags to g++
+## alone: the flags GAOL v5 is built with in Release are given instead. The
+## rounding direction is not preserved, as in GAOL v5 (his configure preserves
+## it by default). mathlib is compiled with -ffp-contract=off: its exact
+## products split the doubles, which fused multiply-adds would break
+if [ -f "$GAOL_GOUALARD_PREFIX/include/gaol/gaol.h" ]; then
+  echo "== GAOL $GAOL_GOUALARD_VERSION of Frédéric Goualard: already in $GAOL_GOUALARD_PREFIX"
+else
+  echo "== mathlib $MATHLIB_VERSION"
+  fetch "$MATHLIB_URL" "mathlib-$MATHLIB_VERSION.tar.gz" "$MATHLIB_SHA256"
+  rm -rf "mathlib-$MATHLIB_VERSION" && tar xzf "mathlib-$MATHLIB_VERSION.tar.gz"
+  (cd "mathlib-$MATHLIB_VERSION" &&
+   ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
+               CC="$CC" CFLAGS="-O3 $FMA_FLAGS -ffp-contract=off" > configure.log &&
+   make -j"$JOBS" > make.log && make install > install.log)
+
+  echo "== GAOL $GAOL_GOUALARD_VERSION of Frédéric Goualard (${GAOL_GOUALARD_COMMIT:0:7})"
+  if [ ! -d gaol-goualard ]; then
+    git clone -q "$GAOL_GOUALARD_REPO" gaol-goualard
+  fi
+  git -C gaol-goualard checkout -q "$GAOL_GOUALARD_COMMIT"
+  (cd gaol-goualard &&
+   ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
+               --disable-preserve-rounding \
+               --with-mathlib-include="$GAOL_GOUALARD_PREFIX/include" \
+               --with-mathlib-lib="$GAOL_GOUALARD_PREFIX/lib" \
+               CC="$CC" CXX="$CXX" CFLAGS="-O3 $FMA_FLAGS -ffp-contract=off" \
+               CXXFLAGS="-O3 -DNDEBUG -std=c++11 $IA_CXXFLAGS -msse2 -msse3 $FMA_FLAGS -fvisibility-inlines-hidden -fvisibility=hidden -funroll-loops -fomit-frame-pointer" \
+               > configure.log &&
+   make -j"$JOBS" > make.log && make install > install.log)
 fi
 
 ## Solaris Studio f90
