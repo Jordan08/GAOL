@@ -127,7 +127,7 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 99 "gaol_interval_parser.ypp"
+#line 165 "gaol_interval_parser.ypp"
 
   int i;
   double d;

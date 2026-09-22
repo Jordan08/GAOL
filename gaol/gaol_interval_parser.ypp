@@ -27,6 +27,7 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_expression.h"
+#include "gaol/gaol_expr_eval.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 
@@ -38,16 +39,39 @@ int gaol_lex(void);
 
 using namespace gaol;
 extern interval *gaol_result_of_parsing;
-extern interval gaol_tmp_itv;
 extern bool gaol_global_parsing_flag;
 
 /*
-  The parser holds one reference to each node it builds ($$->inc_refcount()),
-  which it gives up when the node goes into another node, which holds its own,
-  or into an expression (GAOL v5): GAOL kept it, and the nodes of every
-  expression read were never freed. the_null_expr keeps the reference
-  init() gives it.
+  One grammar, whose every string is an expression (GAOL v5)
+
+  GAOL read a string with two grammars: the numbers, the constants and the
+  functions of them built the tree of gaol/gaol_expression.h, while the
+  intervals written between brackets, and the operations on them, were
+  computed at once. Bison chose between the two at each token (124
+  shift/reduce and 14 reduce/reduce conflicts): once a number had started the
+  tree, no interval could come, and 1+[1,2], 2*cos([0,1]) and [1,2]+1+[1,2]
+  were refused while [1,2]*2 was read, as was an interval in a bound,
+  [cos([0,1]), 2]. Each literal set the flag of success, which the next one
+  set again: [nth_root(8,1.5)]+[1,2] gave [-oo,+oo] rather than an error.
+
+  The literals of intervals, the uncertain numbers, empty and <a,b> are now
+  leaves of the tree, computed when they are read, and the operators and
+  functions are nodes over any expression. The grammar has no conflict, and an
+  error found in an action aborts the parsing at once.
 */
+
+/*
+  The parser holds one reference to each node it builds (gaol_node()), which
+  it gives up when the node goes into another node, which holds its own, or
+  when its value has been computed (GAOL v5): GAOL kept it, and the nodes of
+  every expression read were never freed.
+*/
+static expr_node *gaol_node(expr_node *e)
+{
+  e->inc_refcount();
+  return e;
+}
+
 static void gaol_release(expr_node *e)
 {
   if (e->dec_refcount() == 0) {
@@ -56,30 +80,35 @@ static void gaol_release(expr_node *e)
 }
 
 /*
-  The exception the evaluation of an exponent threw (GAOL v5): the action
-  keeps it and aborts, the parser frees the nodes it holds, and
-  parse_interval() throws it again. Thrown through the parser, it left them.
+  The value of the tree e: a literal, a bound, the exponent of nth_root(). The
+  parser builds no null node, the only one whose evaluation fails.
 */
-std::exception_ptr gaol_parsing_exception;
-
-/*
-  Evaluates e, the exponent of pow() or nth_root(), into v; aborted is set
-  when the evaluation throws, as atan2() does
-*/
-static bool gaol_evaluate_exponent(expr_node *e, interval& v, bool& aborted)
+static interval gaol_value(expr_node *e)
 {
-  try {
-    return evaluate_expr(expression(*e),v);
-  } catch (...) {
-    gaol_parsing_exception = std::current_exception();
-    aborted = true;
-    return false;
-  }
+  expr_eval eval;
+  e->accept(eval);
+  return eval.result();
 }
 
 /*
-  1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (fork of
-  GAOL). An infinity read in an expression is [dmax, +oo] or [-oo, -dmax] (see
+  The exception an action raises (GAOL v5): the action keeps it and aborts,
+  the parser frees the nodes it holds, and parse_interval() throws it again.
+  Thrown through the parser, it left them.
+*/
+std::exception_ptr gaol_parsing_exception;
+
+#define GAOL_PARSING_ERROR(excep,msg)                                   \
+  do {                                                                  \
+    try {                                                               \
+      gaol_ERROR(excep,msg);                                            \
+    } catch (...) {                                                     \
+      gaol_parsing_exception = std::current_exception();                \
+    }                                                                   \
+  } while (0)
+
+/*
+  1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (GAOL
+  v5). An infinity read in an expression is [dmax, +oo] or [-oo, -dmax] (see
   gaol_expr_eval.h), but a lower bound written inf, or an upper bound written
   -inf, leaves no interval, as numsToInterval of IEEE 1788-2015 (10.5.8): [inf],
   [inf, inf] and [inf,] are the empty set.
@@ -93,6 +122,43 @@ static int gaol_literal_infinity(expr_node *e)
     return -gaol_literal_infinity(m->get_subexpr());
   }
   return 0;
+}
+
+// The leaf holding the interval of a literal
+static expr_node *gaol_leaf(const interval& I)
+{
+  return gaol_node(new interval_node(I));
+}
+
+/*
+  The leaf of an uncertain number, 3.56?1 (GAOL v5). IEEE 1788-2015 makes the
+  uncertain form an interval literal of its own, not a number that can bound
+  one: [5?1] is no interval literal (12.11.4). Its leaf is told apart from
+  the other intervals so that the literals between brackets refuse it.
+*/
+class uncertain_node : public interval_node {
+public:
+  explicit uncertain_node(const interval& I) : interval_node(I) {}
+};
+
+// e is an uncertain number, alone or behind a minus sign
+static bool gaol_uncertain(expr_node *e)
+{
+  if (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    return gaol_uncertain(m->get_subexpr());
+  }
+  return dynamic_cast<uncertain_node*>(e) != 0;
+}
+
+// e is an uncertain number written as a bound: the error the parsing aborts with
+static bool gaol_uncertain_bound(expr_node *e)
+{
+  if (!gaol_uncertain(e)) {
+    return false;
+  }
+  GAOL_PARSING_ERROR(input_format_error,
+    "an uncertain number is no bound of an interval literal (IEEE 1788-2015, 12.11)");
+  return true;
 }
 %}
 
@@ -118,12 +184,11 @@ static int gaol_literal_infinity(expr_node *e)
 %token<d> NUMBER
 %token<itv> INTERVAL_CST UNCERTAIN_CST
 
-%type<expr> expression function_call
-%type<itv> parsed_interval itv_expr_aux itv_function_call
+%type<expr> expression literal function_call
 
 /* The nodes the parser discards on a syntax error (GAOL v5). The symbols
    are named, rather than <expr>, which Bison 2.3 of macOS does not read */
-%destructor { gaol_release($$); } expression function_call
+%destructor { gaol_release($$); } expression literal function_call
 
 %left '+' '-'
 %left '*' '/'
@@ -134,359 +199,151 @@ static int gaol_literal_infinity(expr_node *e)
 %%
 
 itv_expr
-	: itv_expr_aux				{ *gaol_result_of_parsing = interval($1.l,$1.r); }
-
-
-itv_expr_aux
-	: parsed_interval					{ $$ = $1; }
-	| itv_expr_aux '+' itv_expr_aux		{ gaol_tmp_itv=interval($1.l,$1.r)+interval($3.l,$3.r);
-						  					$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| itv_expr_aux '-' itv_expr_aux		{ gaol_tmp_itv=interval($1.l,$1.r)-interval($3.l,$3.r);
-						  					$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| itv_expr_aux '*' itv_expr_aux		{ gaol_tmp_itv=interval($1.l,$1.r)*interval($3.l,$3.r);
-						  					$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| itv_expr_aux '/' itv_expr_aux		{ gaol_tmp_itv=interval($1.l,$1.r)/interval($3.l,$3.r);
-						  					$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| '-' itv_expr_aux %prec UMINUS		{ gaol_tmp_itv= -interval($2.l,$2.r);
-						  					$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| '+' itv_expr_aux %prec UPLUS		{ $$ = $2; }
-	| itv_function_call					{ $$ = $1; }
-	| '(' itv_expr_aux ')'				{ $$ = $2; }
-	;
-
-
-itv_function_call
-	: COS_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=cos(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| SIN_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=sin(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| TAN_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=tan(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ATAN2_STR '(' itv_expr_aux ',' itv_expr_aux ')' 	{ gaol_tmp_itv=atan2(interval($3.l,$3.r),
-							          						interval($5.l,$5.r));
-						    								$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ACOS_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=acos(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ASIN_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=asin(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ATAN_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=atan(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| COSH_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=cosh(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| SINH_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=sinh(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| TANH_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=tanh(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ACOSH_STR '(' itv_expr_aux ')'					{ gaol_tmp_itv=acosh(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ASINH_STR '(' itv_expr_aux ')'					{ gaol_tmp_itv=asinh(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| ATANH_STR '(' itv_expr_aux ')'					{ gaol_tmp_itv=atanh(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| EXP_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=exp(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| LOG_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=log(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| POW_STR '(' itv_expr_aux ',' itv_expr_aux ')'   	{ gaol_tmp_itv=
-						   									pow(interval($3.l,$3.r),interval($5.l,$5.r));
-						   									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| SQRT_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=sqrt(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| EXP2_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=exp2(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| LOG2_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=log2(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| CBRT_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=nth_root(interval($3.l,$3.r),3);
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| SIGN_STR '(' itv_expr_aux ')'						{ gaol_tmp_itv=sign(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| TRUNC_STR '(' itv_expr_aux ')'					{ gaol_tmp_itv=trunc(interval($3.l,$3.r));
-						  									$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-	| NTH_ROOT_STR '(' itv_expr_aux ',' itv_expr_aux ')' { interval tmp($5.l,$5.r);
-														   if (!tmp.is_an_int()) {
-					                                       		// not an int?
-																$$.l=1; $$.r=-1;
-																gaol_ERROR(invalid_action_error,
-																	"nth_root used with non integral 2nd arg.");
-														    } else {
-					     										// The int, which may be negative: rootn(x, q) of IEEE 1788-2015
-					     										// for q < 0, as nth_root(I, int) computes it (GAOL v5)
-					     										gaol_tmp_itv=nth_root(interval($3.l,$3.r),static_cast<int>($5.l));
-						       										$$.l=gaol_tmp_itv.left(); $$.r=gaol_tmp_itv.right(); }
-														    }
-	;
-
-parsed_interval
-	: expression						{ 	const expression e(*$1);
-											gaol_release($1);
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-							  				$$.l=gaol_result_of_parsing->left();
-					          				$$.r=gaol_result_of_parsing->right();
-										}
-
-	| EMPTY_STR							{ 	*gaol_result_of_parsing = interval::emptyset();
-					  						gaol_global_parsing_flag = true;
-											$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-
-	| '[' expression ']'    			{	const expression e(*$2);
-											gaol_release($2);
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-					  						if (gaol_literal_infinity(e.get_root()) != 0) {
-					  							*gaol_result_of_parsing = interval::emptyset();
-					  						}
-											$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '[' expression ',' expression ']'	{ 	const expression el(*$2), er(*$4);
-											gaol_release($2);
-											gaol_release($4);
-											gaol_global_parsing_flag = evaluate_left_right(el, er,
-																			gaol_result_of_parsing);
-					  						if (gaol_literal_infinity(el.get_root()) > 0 || gaol_literal_infinity(er.get_root()) < 0) {
-					  							*gaol_result_of_parsing = interval::emptyset();
-					  						}
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '[' EMPTY_STR ']'					{ 	*gaol_result_of_parsing = interval::emptyset();
-					  						gaol_global_parsing_flag = true;
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	/* The literals of IEEE 1788-2015 GAOL did not read (12.11.3, fork of
-	   GAOL): [ ] is the empty set, [entire] and [,] are [-oo, +oo], a bound
-	   left out is infinite, and the uncertain form 3.56?1 is [3.55, 3.57] */
-	| '[' ']'							{ 	*gaol_result_of_parsing = interval::emptyset();
-					  						gaol_global_parsing_flag = true;
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '[' ENTIRE_STR ']'				{ 	*gaol_result_of_parsing = interval::universe();
-					  						gaol_global_parsing_flag = true;
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '[' ',' ']'						{ 	*gaol_result_of_parsing = interval::universe();
-					  						gaol_global_parsing_flag = true;
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '[' expression ',' ']'			{ 	const expression e(*$2);
-											gaol_release($2);
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-					  						*gaol_result_of_parsing = (gaol_literal_infinity(e.get_root()) > 0) ? interval::emptyset()
-					  							: interval(gaol_result_of_parsing->left(), GAOL_INFINITY);
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '[' ',' expression ']'			{ 	const expression e(*$3);
-											gaol_release($3);
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-					  						*gaol_result_of_parsing = (gaol_literal_infinity(e.get_root()) < 0) ? interval::emptyset()
-					  							: interval(-GAOL_INFINITY, gaol_result_of_parsing->right());
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| UNCERTAIN_CST						{ 	*gaol_result_of_parsing = interval($1.l,$1.r);
-					  						gaol_global_parsing_flag = true;
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-										}
-	| '<' expression ',' expression '>' { 	const expression el(*$2), er(*$4);
-											gaol_release($2);
-											gaol_release($4);
-											gaol_global_parsing_flag = evaluate_left_right(el, er,
-																							gaol_result_of_parsing);
-                                          	$$.l=gaol_result_of_parsing->left();
-					  						$$.r=gaol_result_of_parsing->right();
-											if ($$.l != $$.r) {
-												gaol_ERROR(input_format_error, std::string("bounds of degenerate interval do not evaluate to the same value"));
-											}
-										}
+	: expression					{ *gaol_result_of_parsing = gaol_value($1);
+							  gaol_release($1);
+							  gaol_global_parsing_flag = true; }
 	;
 
 expression
-	: NUMBER					{ 	$$ = new double_node($1);
-					  				$$->inc_refcount(); }
-	| DMIN_STR					{ 	$$ = new double_node(std::numeric_limits<double>::min());
-					  				$$->inc_refcount(); }
-	| DMAX_STR					{ 	$$ = new double_node(std::numeric_limits<double>::max());
-					  				$$->inc_refcount(); }
-	| PI_STR					{ 	$$ = new interval_node(interval::pi());
-	                                $$->inc_refcount(); }
-	| INTERVAL_CST              { 	$$ = new interval_node(interval($1.l,$1.r));
-					  				$$->inc_refcount(); }
-	| INFINITY_STR				{ 	$$ = new double_node(GAOL_INFINITY);
-					  				$$->inc_refcount(); }
-	| expression '+' expression	{ 	$$ = new add_node(*$1,*$3);
-					  				$$->inc_refcount();
-					  				gaol_release($1); gaol_release($3); }
-	| expression '-' expression	{ 	$$ = new sub_node(*$1,*$3);
-					  				$$->inc_refcount();
-					  				gaol_release($1); gaol_release($3); }
-	| expression '*' expression { 	$$ = new mult_node(*$1,*$3);
-					  				$$->inc_refcount();
-					  				gaol_release($1); gaol_release($3); }
-	| expression '/' expression { 	$$ = new div_node(*$1,*$3);
-					  				$$->inc_refcount();
-					  				gaol_release($1); gaol_release($3); }
-	| '-' expression %prec UMINUS { $$ = new unary_minus_node(*$2);
-					  				$$->inc_refcount();
-					  				gaol_release($2); }
-	| '+' expression %prec UPLUS  { $$ = $2; }
-	| function_call				{ $$ = $1; }
-	| '(' expression ')'		{ $$ = $2; }
+	: NUMBER					{ $$ = gaol_node(new double_node($1)); }
+	| DMIN_STR					{ $$ = gaol_node(new double_node(std::numeric_limits<double>::min())); }
+	| DMAX_STR					{ $$ = gaol_node(new double_node(std::numeric_limits<double>::max())); }
+	| INFINITY_STR					{ $$ = gaol_node(new double_node(GAOL_INFINITY)); }
+	| PI_STR					{ $$ = gaol_leaf(interval::pi()); }
+	| INTERVAL_CST					{ $$ = gaol_leaf(interval($1.l,$1.r)); }
+	| UNCERTAIN_CST					{ $$ = gaol_node(new uncertain_node(interval($1.l,$1.r))); }
+	| EMPTY_STR					{ $$ = gaol_leaf(interval::emptyset()); }
+	| literal					{ $$ = $1; }
+	| expression '+' expression			{ $$ = gaol_node(new add_node(*$1,*$3));
+							  gaol_release($1); gaol_release($3); }
+	| expression '-' expression			{ $$ = gaol_node(new sub_node(*$1,*$3));
+							  gaol_release($1); gaol_release($3); }
+	| expression '*' expression			{ $$ = gaol_node(new mult_node(*$1,*$3));
+							  gaol_release($1); gaol_release($3); }
+	| expression '/' expression			{ $$ = gaol_node(new div_node(*$1,*$3));
+							  gaol_release($1); gaol_release($3); }
+	| '-' expression %prec UMINUS			{ $$ = gaol_node(new unary_minus_node(*$2));
+							  gaol_release($2); }
+	| '+' expression %prec UPLUS			{ $$ = $2; }
+	| function_call					{ $$ = $1; }
+	| '(' expression ')'				{ $$ = $2; }
+	;
+
+/* The literals of intervals, with their bounds computed when they are read.
+   Those of IEEE 1788-2015 (12.11.3): [ ] is the empty set, [entire] and [,]
+   are [-oo, +oo], and a bound left out is infinite. <a,b> is the interval
+   [a,b] whose bounds have to be the same double. No bound is an uncertain
+   number, which is an interval literal of its own (12.11.4). */
+literal
+	: '[' expression ']'				{ if (gaol_uncertain_bound($2)) {
+							    gaol_release($2);
+							    YYABORT;
+							  }
+							  const interval v = gaol_value($2);
+							  const bool infinite = (gaol_literal_infinity($2) != 0);
+							  gaol_release($2);
+							  $$ = gaol_leaf(infinite ? interval::emptyset() : v); }
+	| '[' expression ',' expression ']'		{ if (gaol_uncertain_bound($2) || gaol_uncertain_bound($4)) {
+							    gaol_release($2); gaol_release($4);
+							    YYABORT;
+							  }
+							  const interval l = gaol_value($2), r = gaol_value($4);
+							  const bool infinite = (gaol_literal_infinity($2) > 0
+										 || gaol_literal_infinity($4) < 0);
+							  gaol_release($2); gaol_release($4);
+							  $$ = gaol_leaf(infinite ? interval::emptyset()
+									 : interval(l.left(),r.right())); }
+	| '[' ']'					{ $$ = gaol_leaf(interval::emptyset()); }
+	| '[' ENTIRE_STR ']'				{ $$ = gaol_leaf(interval::universe()); }
+	| '[' ',' ']'					{ $$ = gaol_leaf(interval::universe()); }
+	| '[' expression ',' ']'			{ if (gaol_uncertain_bound($2)) {
+							    gaol_release($2);
+							    YYABORT;
+							  }
+							  const interval l = gaol_value($2);
+							  const bool infinite = (gaol_literal_infinity($2) > 0);
+							  gaol_release($2);
+							  $$ = gaol_leaf(infinite ? interval::emptyset()
+									 : interval(l.left(),GAOL_INFINITY)); }
+	| '[' ',' expression ']'			{ if (gaol_uncertain_bound($3)) {
+							    gaol_release($3);
+							    YYABORT;
+							  }
+							  const interval r = gaol_value($3);
+							  const bool infinite = (gaol_literal_infinity($3) < 0);
+							  gaol_release($3);
+							  $$ = gaol_leaf(infinite ? interval::emptyset()
+									 : interval(-GAOL_INFINITY,r.right())); }
+	| '<' expression ',' expression '>'		{ if (gaol_uncertain_bound($2) || gaol_uncertain_bound($4)) {
+							    gaol_release($2); gaol_release($4);
+							    YYABORT;
+							  }
+							  const interval l = gaol_value($2), r = gaol_value($4);
+							  gaol_release($2); gaol_release($4);
+							  if (l.left() != r.right()) {
+							    GAOL_PARSING_ERROR(input_format_error,
+							      "bounds of degenerate interval do not evaluate to the same value");
+							    YYABORT;
+							  }
+							  $$ = gaol_leaf(interval(l.left(),r.right())); }
 	;
 
 function_call
-	: COS_STR '(' expression ')'					{ 	$$ = new cos_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| SIN_STR '(' expression ')'  					{ 	$$ = new sin_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| TAN_STR '(' expression ')'  					{ 	$$ = new tan_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| ATAN2_STR '(' expression ',' expression ')'	{ 	$$ = new atan2_node(*$3, *$5);
-					  									$$->inc_refcount();
-					  									gaol_release($3); gaol_release($5); }
-	| ACOS_STR '(' expression ')'					{ 	$$ = new acos_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| ASIN_STR '(' expression ')'  					{ 	$$ = new asin_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| ATAN_STR '(' expression ')'  					{ 	$$ = new atan_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| COSH_STR '(' expression ')'					{ 	$$ = new cosh_node(*$3);
-														$$->inc_refcount();
-														gaol_release($3); }
-	| SINH_STR '(' expression ')'  					{ 	$$ = new sinh_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| TANH_STR '(' expression ')'  					{ 	$$ = new tanh_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| ACOSH_STR '(' expression ')'					{ 	$$ = new acosh_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| ASINH_STR '(' expression ')'  				{ 	$$ = new asinh_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| ATANH_STR '(' expression ')'  				{ 	$$ = new atanh_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| EXP_STR '(' expression ')'   					{ 	$$ = new exp_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| LOG_STR '(' expression ')'   					{ 	$$ = new log_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| POW_STR '(' expression ',' expression ')'   	{ 	interval tmp;
-														bool aborted = false;
-					  									gaol_global_parsing_flag =
-					    									gaol_evaluate_exponent($5,tmp,aborted);
-														if (aborted) {
-															gaol_release($3);
-															gaol_release($5);
-															YYABORT;
-														}
-														if (!gaol_global_parsing_flag) { // Error?
-					     									$$ = the_null_expr;
-					     									$$->inc_refcount();
-                                          				} else {
-					     									if (!tmp.is_an_int()) {
-					        									// not an int in disguise?
-																$$ = new pow_itv_node(*$3,*$5);
-																$$->inc_refcount();
-       					     								} else {
-					        									if (tmp.left() > 0) {
-					           										$$ = new pow_node(*$3,static_cast<int>(tmp.left()));
-	 				           										$$->inc_refcount();
-                                               					} else {
-						  											expr_node *one = new double_node(1.0);
-					          										one->inc_refcount();
-						  											if (tmp.left() < 0) {
-					           											// translating x^(-a) into 1/(x^a)
-						     											expr_node *e = new pow_node(*$3,
-																							static_cast<int>(-tmp.left()));
-						     											e->inc_refcount();
-						     											$$ = new div_node(*one,*e);
-						     											$$->inc_refcount();
-						     											gaol_release(one);
-						     											gaol_release(e);
-																	} else {  // tmp == 0.0
-						     											$$ = one;
-						 											}
-                                                				}
-					     									}
-                                          				}
-														gaol_release($3);
-														gaol_release($5);
-                                        			}
-	| SQRT_STR '(' expression ')'					{	$$ = new nth_root_node(*$3,2);
-					  									$$->inc_refcount();
-					  									gaol_release($3);
-													}
-	| CBRT_STR '(' expression ')'					{	$$ = new nth_root_node(*$3,3);
-					  									$$->inc_refcount();
-					  									gaol_release($3);
-													}
-	| EXP2_STR '(' expression ')'  					{ 	$$ = new exp2_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| LOG2_STR '(' expression ')'  					{ 	$$ = new log2_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| SIGN_STR '(' expression ')'  					{ 	$$ = new sign_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| TRUNC_STR '(' expression ')' 					{ 	$$ = new trunc_node(*$3);
-					  									$$->inc_refcount();
-					  									gaol_release($3); }
-	| NTH_ROOT_STR '(' expression ',' expression ')' { 	interval tmp;
-														bool aborted = false;
-					  									gaol_global_parsing_flag =
-					    									gaol_evaluate_exponent($5,tmp,aborted);
-														if (aborted) {
-															gaol_release($3);
-															gaol_release($5);
-															YYABORT;
-														}
-														if (!tmp.is_an_int() || !gaol_global_parsing_flag) {
-					     									// not an int?
-															$$ = the_null_expr;
-															$$->inc_refcount();
-       					  								} else if (tmp.left() < 0) {
-															/* rootn(x, q) of IEEE 1788-2015 for q < 0,
-															   1/x^(1/|q|), as nth_root(I, int) computes it:
-															   the cast to an unsigned int took the
-															   4294967294-th root for q = -2 (GAOL v5). -q
-															   on a long, INT_MIN having no opposite on an int */
-															expr_node *one = new double_node(1.0);
-															one->inc_refcount();
-															expr_node *e = new nth_root_node(*$3,
-																static_cast<unsigned int>(-static_cast<long>(tmp.left())));
-															e->inc_refcount();
-															$$ = new div_node(*one,*e);
-															$$->inc_refcount();
-															gaol_release(one);
-															gaol_release(e);
-														} else {
-					     									$$ = new nth_root_node(*$3,static_cast<unsigned int>(tmp.left()));
-					     									$$->inc_refcount();
-					 									}
-														gaol_release($3);
-														gaol_release($5);
-													  }
+	: COS_STR '(' expression ')'			{ $$ = gaol_node(new cos_node(*$3)); gaol_release($3); }
+	| SIN_STR '(' expression ')'			{ $$ = gaol_node(new sin_node(*$3)); gaol_release($3); }
+	| TAN_STR '(' expression ')'			{ $$ = gaol_node(new tan_node(*$3)); gaol_release($3); }
+	| ATAN2_STR '(' expression ',' expression ')'	{ $$ = gaol_node(new atan2_node(*$3,*$5));
+							  gaol_release($3); gaol_release($5); }
+	| ACOS_STR '(' expression ')'			{ $$ = gaol_node(new acos_node(*$3)); gaol_release($3); }
+	| ASIN_STR '(' expression ')'			{ $$ = gaol_node(new asin_node(*$3)); gaol_release($3); }
+	| ATAN_STR '(' expression ')'			{ $$ = gaol_node(new atan_node(*$3)); gaol_release($3); }
+	| COSH_STR '(' expression ')'			{ $$ = gaol_node(new cosh_node(*$3)); gaol_release($3); }
+	| SINH_STR '(' expression ')'			{ $$ = gaol_node(new sinh_node(*$3)); gaol_release($3); }
+	| TANH_STR '(' expression ')'			{ $$ = gaol_node(new tanh_node(*$3)); gaol_release($3); }
+	| ACOSH_STR '(' expression ')'			{ $$ = gaol_node(new acosh_node(*$3)); gaol_release($3); }
+	| ASINH_STR '(' expression ')'			{ $$ = gaol_node(new asinh_node(*$3)); gaol_release($3); }
+	| ATANH_STR '(' expression ')'			{ $$ = gaol_node(new atanh_node(*$3)); gaol_release($3); }
+	| EXP_STR '(' expression ')'			{ $$ = gaol_node(new exp_node(*$3)); gaol_release($3); }
+	| LOG_STR '(' expression ')'			{ $$ = gaol_node(new log_node(*$3)); gaol_release($3); }
+	| EXP2_STR '(' expression ')'			{ $$ = gaol_node(new exp2_node(*$3)); gaol_release($3); }
+	| LOG2_STR '(' expression ')'			{ $$ = gaol_node(new log2_node(*$3)); gaol_release($3); }
+	| SIGN_STR '(' expression ')'			{ $$ = gaol_node(new sign_node(*$3)); gaol_release($3); }
+	| TRUNC_STR '(' expression ')'			{ $$ = gaol_node(new trunc_node(*$3)); gaol_release($3); }
+	/* sqrt(x) and cbrt(x) are nth_root(x, 2) and nth_root(x, 3), which
+	   compute them with sqrt() and cube_root() */
+	| SQRT_STR '(' expression ')'			{ $$ = gaol_node(new nth_root_node(*$3,2)); gaol_release($3); }
+	| CBRT_STR '(' expression ')'			{ $$ = gaol_node(new nth_root_node(*$3,3)); gaol_release($3); }
+	/* gaol::pow(x, y), gaol_pow_hybrid(), which takes gaol_pown() for an
+	   exponent that is an integer: the parser took 1/x^|n| for n < 0, whose
+	   x^|n| overflowed (pow(2,-1050) was [0,5.6e-309] rather than
+	   [2^-1050]), and 1 for n = 0, which is no value for an empty x (GAOL
+	   v5) */
+	| POW_STR '(' expression ',' expression ')'	{ $$ = gaol_node(new pow_itv_node(*$3,*$5));
+							  gaol_release($3); gaol_release($5); }
+	/* The exponent is an int, which may be negative: rootn(x, q) of IEEE
+	   1788-2015 for q < 0, 1/x^(1/|q|), as nth_root(I, int) computes it (the
+	   cast to an unsigned int took the 4294967294-th root for q = -2, GAOL
+	   v5). -q on a long, INT_MIN having no opposite on an int. */
+	| NTH_ROOT_STR '(' expression ',' expression ')' { const interval q = gaol_value($5);
+							  gaol_release($5);
+							  if (!q.is_an_int()) {
+							    gaol_release($3);
+							    GAOL_PARSING_ERROR(invalid_action_error,
+							      "nth_root used with non integral 2nd arg.");
+							    YYABORT;
+							  }
+							  const int n = static_cast<int>(q.left());
+							  if (n < 0) {
+							    expr_node *one = gaol_node(new double_node(1.0));
+							    expr_node *root = gaol_node(new nth_root_node(*$3,
+							      static_cast<unsigned int>(-static_cast<long>(n))));
+							    $$ = gaol_node(new div_node(*one,*root));
+							    gaol_release(one);
+							    gaol_release(root);
+							  } else {
+							    $$ = gaol_node(new nth_root_node(*$3,static_cast<unsigned int>(n)));
+							  }
+							  gaol_release($3); }
 	;
 
 %%

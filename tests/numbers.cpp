@@ -284,7 +284,11 @@ namespace
     }
 
     // Not literals of IEEE 1788 (12.11.3): input_format_error
-    const char *const invalid[] = { "[5?1]", "[1 000 000]", "[ganz]", "[entire!comment]", "5???u", "[1,2,3]", "3.56?1?" };
+    /* An uncertain number is an interval literal of its own, not a bound:
+       [5?1], and the uncertain numbers as bounds in the other forms, which
+       the grammar reading every string as an expression accepted (GAOL v5) */
+    const char *const invalid[] = { "[5?1]", "[1 000 000]", "[ganz]", "[entire!comment]", "5???u", "[1,2,3]", "3.56?1?",
+                                    "[5?1, 6]", "[1, 3.56?1]", "[3.56?1,]", "[,3.56?1]", "[- 3.56?1]" };
     for (const char *s : invalid) {
       bool threw = false;
       try {

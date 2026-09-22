@@ -451,15 +451,17 @@ namespace gaol {
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
-   read (GAOL v5) */
-%option nounput noinput caseless
+   read (GAOL v5). No default rule: a newline, which the rule . does not take
+   and SPACE did not, fell to the one of flex, which wrote it on the standard
+   output and read on (GAOL v5); a newline is now a space. */
+%option nounput noinput caseless nodefault
 
 DIGIT		[0-9]
 HEXDIGIT	[0-9a-f]
 INT		{DIGIT}+
 E 		e[+-]?{DIGIT}+
 DECSIGNIFICAND	{DIGIT}*"."{DIGIT}+|{DIGIT}+"."?
-SPACE		[ \t\r]+
+SPACE		[ \t\r\n]+
 
 %%
 
@@ -517,7 +519,6 @@ SPACE		[ \t\r]+
 
 YY_BUFFER_STATE gaol_interval_parsing_buffer;
 interval *gaol_result_of_parsing;
-interval gaol_tmp_itv;
 // Any error during the parsing?
 bool gaol_global_parsing_flag;
 extern int gaol_debug;

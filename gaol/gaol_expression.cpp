@@ -281,9 +281,13 @@ namespace gaol_core {
     return e;
   }
 
+  /*
+    A number written with a minus sign is shown as the unary minus is (GAOL
+    v5): (-2)^2 was shown as -2^2, which reads as -(2^2).
+  */
   unsigned int double_node::get_precedence() const
   {
-    return precedence;
+    return std::signbit(val) ? static_cast<unsigned int>(prec_t::uminus_prec) : precedence;
   }
 
   /*
@@ -514,10 +518,11 @@ namespace gaol_core {
     GAOL_DEBUG(3,std::cout << "div_node destroyed" << std::endl);
   }
 
+  // '/', where GAOL wrote '*': x/(y*z) was shown as x*(y*z) (GAOL v5)
   std::ostream& div_node::display(std::ostream& os) const
   {
     parenthesize_if_necessary(precedence,os,e_left);
-    os.put('*');
+    os.put('/');
     parenthesize_if_necessary(precedence,os,e_right);
     return os;
   }

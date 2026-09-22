@@ -103,6 +103,7 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_expression.h"
+#include "gaol/gaol_expr_eval.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 
@@ -114,16 +115,39 @@ int gaol_lex(void);
 
 using namespace gaol;
 extern interval *gaol_result_of_parsing;
-extern interval gaol_tmp_itv;
 extern bool gaol_global_parsing_flag;
 
 /*
-  The parser holds one reference to each node it builds ($$->inc_refcount()),
-  which it gives up when the node goes into another node, which holds its own,
-  or into an expression (GAOL v5): GAOL kept it, and the nodes of every
-  expression read were never freed. the_null_expr keeps the reference
-  init() gives it.
+  One grammar, whose every string is an expression (GAOL v5)
+
+  GAOL read a string with two grammars: the numbers, the constants and the
+  functions of them built the tree of gaol/gaol_expression.h, while the
+  intervals written between brackets, and the operations on them, were
+  computed at once. Bison chose between the two at each token (124
+  shift/reduce and 14 reduce/reduce conflicts): once a number had started the
+  tree, no interval could come, and 1+[1,2], 2*cos([0,1]) and [1,2]+1+[1,2]
+  were refused while [1,2]*2 was read, as was an interval in a bound,
+  [cos([0,1]), 2]. Each literal set the flag of success, which the next one
+  set again: [nth_root(8,1.5)]+[1,2] gave [-oo,+oo] rather than an error.
+
+  The literals of intervals, the uncertain numbers, empty and <a,b> are now
+  leaves of the tree, computed when they are read, and the operators and
+  functions are nodes over any expression. The grammar has no conflict, and an
+  error found in an action aborts the parsing at once.
 */
+
+/*
+  The parser holds one reference to each node it builds (gaol_node()), which
+  it gives up when the node goes into another node, which holds its own, or
+  when its value has been computed (GAOL v5): GAOL kept it, and the nodes of
+  every expression read were never freed.
+*/
+static expr_node *gaol_node(expr_node *e)
+{
+  e->inc_refcount();
+  return e;
+}
+
 static void gaol_release(expr_node *e)
 {
   if (e->dec_refcount() == 0) {
@@ -132,30 +156,35 @@ static void gaol_release(expr_node *e)
 }
 
 /*
-  The exception the evaluation of an exponent threw (GAOL v5): the action
-  keeps it and aborts, the parser frees the nodes it holds, and
-  parse_interval() throws it again. Thrown through the parser, it left them.
+  The value of the tree e: a literal, a bound, the exponent of nth_root(). The
+  parser builds no null node, the only one whose evaluation fails.
 */
-std::exception_ptr gaol_parsing_exception;
-
-/*
-  Evaluates e, the exponent of pow() or nth_root(), into v; aborted is set
-  when the evaluation throws, as atan2() does
-*/
-static bool gaol_evaluate_exponent(expr_node *e, interval& v, bool& aborted)
+static interval gaol_value(expr_node *e)
 {
-  try {
-    return evaluate_expr(expression(*e),v);
-  } catch (...) {
-    gaol_parsing_exception = std::current_exception();
-    aborted = true;
-    return false;
-  }
+  expr_eval eval;
+  e->accept(eval);
+  return eval.result();
 }
 
 /*
-  1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (fork of
-  GAOL). An infinity read in an expression is [dmax, +oo] or [-oo, -dmax] (see
+  The exception an action raises (GAOL v5): the action keeps it and aborts,
+  the parser frees the nodes it holds, and parse_interval() throws it again.
+  Thrown through the parser, it left them.
+*/
+std::exception_ptr gaol_parsing_exception;
+
+#define GAOL_PARSING_ERROR(excep,msg)                                   \
+  do {                                                                  \
+    try {                                                               \
+      gaol_ERROR(excep,msg);                                            \
+    } catch (...) {                                                     \
+      gaol_parsing_exception = std::current_exception();                \
+    }                                                                   \
+  } while (0)
+
+/*
+  1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (GAOL
+  v5). An infinity read in an expression is [dmax, +oo] or [-oo, -dmax] (see
   gaol_expr_eval.h), but a lower bound written inf, or an upper bound written
   -inf, leaves no interval, as numsToInterval of IEEE 1788-2015 (10.5.8): [inf],
   [inf, inf] and [inf,] are the empty set.
@@ -171,7 +200,44 @@ static int gaol_literal_infinity(expr_node *e)
   return 0;
 }
 
-#line 175 "y.tab.c"
+// The leaf holding the interval of a literal
+static expr_node *gaol_leaf(const interval& I)
+{
+  return gaol_node(new interval_node(I));
+}
+
+/*
+  The leaf of an uncertain number, 3.56?1 (GAOL v5). IEEE 1788-2015 makes the
+  uncertain form an interval literal of its own, not a number that can bound
+  one: [5?1] is no interval literal (12.11.4). Its leaf is told apart from
+  the other intervals so that the literals between brackets refuse it.
+*/
+class uncertain_node : public interval_node {
+public:
+  explicit uncertain_node(const interval& I) : interval_node(I) {}
+};
+
+// e is an uncertain number, alone or behind a minus sign
+static bool gaol_uncertain(expr_node *e)
+{
+  if (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    return gaol_uncertain(m->get_subexpr());
+  }
+  return dynamic_cast<uncertain_node*>(e) != 0;
+}
+
+// e is an uncertain number written as a bound: the error the parsing aborts with
+static bool gaol_uncertain_bound(expr_node *e)
+{
+  if (!gaol_uncertain(e)) {
+    return false;
+  }
+  GAOL_PARSING_ERROR(input_format_error,
+    "an uncertain number is no bound of an interval literal (IEEE 1788-2015, 12.11)");
+  return true;
+}
+
+#line 241 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -297,14 +363,14 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 99 "gaol_interval_parser.ypp"
+#line 165 "gaol_interval_parser.ypp"
 
   int i;
   double d;
   Interval_struct itv;
   expr_node* expr;
 
-#line 308 "y.tab.c"
+#line 374 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -418,7 +484,7 @@ typedef int yytype_uint16;
 #define YYSIZEOF(X) YY_CAST (YYPTRDIFF_T, sizeof (X))
 
 /* Stored state numbers (used for stacks). */
-typedef yytype_int16 yy_state_t;
+typedef yytype_uint8 yy_state_t;
 
 /* State numbers in computations.  */
 typedef int yy_state_fast_t;
@@ -621,18 +687,18 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  104
+#define YYFINAL  72
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   750
+#define YYLAST   466
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  49
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  7
+#define YYNNTS  5
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  83
+#define YYNRULES  50
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  289
+#define YYNSTATES  146
 
 #define YYUNDEFTOK  2
 #define YYMAXUTOK   292
@@ -651,12 +717,12 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      42,    43,    38,    36,    44,    37,     2,    39,     2,     2,
+      42,    43,    38,    36,    46,    37,     2,    39,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
       47,     2,    48,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,    45,     2,    46,     2,     2,     2,     2,     2,     2,
+       2,    44,     2,    45,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -683,15 +749,12 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   137,   137,   141,   142,   144,   146,   148,   150,   152,
-     153,   154,   159,   161,   163,   165,   168,   170,   172,   174,
-     176,   178,   180,   182,   184,   186,   188,   190,   193,   195,
-     197,   199,   201,   203,   205,   220,   228,   234,   244,   255,
-     263,   268,   273,   278,   287,   296,   301,   315,   317,   319,
-     321,   323,   325,   327,   330,   333,   336,   339,   342,   343,
-     344,   348,   351,   354,   357,   360,   363,   366,   369,   372,
-     375,   378,   381,   384,   387,   390,   393,   435,   439,   443,
-     446,   449,   452,   455
+       0,   202,   202,   208,   209,   210,   211,   212,   213,   214,
+     215,   216,   217,   219,   221,   223,   225,   227,   228,   229,
+     238,   246,   256,   257,   258,   259,   268,   277,   292,   293,
+     294,   295,   297,   298,   299,   300,   301,   302,   303,   304,
+     305,   306,   307,   308,   309,   310,   311,   314,   315,   321,
+     327
 };
 #endif
 
@@ -707,9 +770,8 @@ static const char *const yytname[] =
   "ATAN2_STR", "COSH_STR", "SINH_STR", "TANH_STR", "ACOS_STR", "ASIN_STR",
   "ATAN_STR", "ACOSH_STR", "ASINH_STR", "ATANH_STR", "UNEXPECTED_CHAR",
   "NUMBER", "INTERVAL_CST", "UNCERTAIN_CST", "'+'", "'-'", "'*'", "'/'",
-  "UMINUS", "UPLUS", "'('", "')'", "','", "'['", "']'", "'<'", "'>'",
-  "$accept", "itv_expr", "itv_expr_aux", "itv_function_call",
-  "parsed_interval", "expression", "function_call", YY_NULLPTR
+  "UMINUS", "UPLUS", "'('", "')'", "'['", "']'", "','", "'<'", "'>'",
+  "$accept", "itv_expr", "expression", "literal", "function_call", YY_NULLPTR
 };
 #endif
 
@@ -722,7 +784,7 @@ static const yytype_int16 yytoknum[] =
      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
      275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
      285,   286,   287,   288,   289,   290,    43,    45,    42,    47,
-     291,   292,    40,    41,    44,    91,    93,    60,    62
+     291,   292,    40,    41,    91,    93,    44,    60,    62
 };
 # endif
 
@@ -740,35 +802,21 @@ static const yytype_int16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-     193,   -33,   -33,   -33,   -33,   -33,    -4,     6,    16,    17,
-      19,    20,    21,    31,    32,    46,    47,    82,    84,    86,
-      87,    88,   116,   118,   129,   131,   134,   145,   147,   -33,
-     -33,   -33,   193,   193,   193,   275,   401,    45,   -31,   -33,
-     -33,   155,   -33,   193,   193,   193,   193,   193,   193,   193,
-     193,   193,   193,   193,   193,   193,   193,   193,   193,   193,
-     193,   193,   193,   193,   193,   193,   -33,   -33,   -33,   -33,
-      33,    48,    29,    44,   153,   183,   194,   203,   204,   211,
-     212,   220,   221,   228,   229,   232,   233,   234,   265,   268,
-     276,   307,   310,   318,   349,   352,   360,   401,   401,   401,
-     317,   -33,     3,    79,   -33,   193,   193,   193,   193,   401,
-     401,   401,   401,   205,   213,   222,   230,    83,   126,   130,
-     142,   277,   319,   361,   403,   411,   419,   427,   435,   443,
-     451,   459,   467,   475,   483,   491,   499,   507,   515,   146,
-     195,   523,   531,   539,   547,   555,   563,   571,   579,   587,
-     595,   603,   611,   619,   627,   635,   643,   651,   659,   -33,
-     -33,   -33,   -33,   401,   401,   401,   401,   401,   401,   401,
-     401,   401,   401,   401,   401,   401,   401,   401,   401,   401,
-     401,   401,   401,   401,   401,   401,   -33,   -33,    48,   -33,
-      14,   359,   -33,   401,   -29,   -29,   -33,   -33,     5,     5,
-     -33,   -33,   -33,   -33,   -33,   -33,   193,   401,   193,   401,
-     -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,
-     -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   193,   401,
-     -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,
-     -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   213,   230,
-     126,   142,   319,   403,   419,   435,   451,   467,   483,   499,
-     515,   195,   531,   547,   563,   579,   595,   611,   627,   643,
-     659,   -33,   -33,    18,    -2,   667,   675,   683,   691,   699,
-     707,   -33,   -33,   -33,   -33,   -33,   -33,   -33,   -33
+     221,   -33,   -33,   -33,   -33,   -33,   -10,    -2,    12,    15,
+      16,    17,    27,    28,    30,    38,    41,    42,    43,    45,
+      46,    47,    48,    49,    80,    86,    87,    88,    89,   -33,
+     -33,   -33,   221,   221,   221,    90,   221,   133,   -31,   -33,
+     -33,   221,   221,   221,   221,   221,   221,   221,   221,   221,
+     221,   221,   221,   221,   221,   221,   221,   221,   221,   221,
+     221,   221,   221,   221,   -33,   -33,   223,    94,   -33,   135,
+      10,    14,   -33,   221,   221,   221,   221,   247,   255,    25,
+      29,   263,   271,   279,   287,   295,   303,   311,   319,   327,
+      40,   335,   343,   351,   359,   367,   375,   383,   391,   399,
+     -33,   -33,   -33,   233,   -33,   178,   221,     0,     0,   -33,
+     -33,   -33,   -33,   221,   221,   -33,   -33,   -33,   -33,   -33,
+     -33,   -33,   -33,   -33,   221,   -33,   -33,   -33,   -33,   -33,
+     -33,   -33,   -33,   -33,   -33,   -33,   237,    -3,   407,   415,
+     423,   -33,   -33,   -33,   -33,   -33
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -776,181 +824,120 @@ static const yytype_int16 yypact[] =
      means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       0,    36,    52,    48,    49,    50,     0,     0,     0,     0,
+       0,    10,     6,     4,     5,     7,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,    47,
-      51,    45,     0,     0,     0,     0,     0,     0,     2,    10,
-       3,    35,    59,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     3,
+       8,     9,     0,     0,     0,     0,     0,     0,     2,    11,
+      18,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     9,    35,     8,    35,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,    40,     0,     0,     1,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    17,    16,     0,     0,    22,     0,
+       0,     0,     1,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,    11,
-      60,    39,    41,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,    58,    57,     0,    42,
-       0,     0,    37,     0,     4,     5,     6,     7,    53,    54,
-      55,    56,    25,    74,    26,    75,     0,     0,     0,     0,
-      28,    77,    29,    79,    30,    80,    31,    78,    32,    81,
-      33,    82,    12,    61,    13,    62,    14,    63,     0,     0,
-      19,    68,    20,    69,    21,    70,    16,    65,    17,    66,
-      18,    67,    22,    71,    23,    72,    24,    73,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,    44,    43,     0,     0,     0,     0,     0,     0,     0,
-       0,    38,    46,    27,    76,    34,    83,    15,    64
+      19,    23,    24,     0,    20,     0,     0,    12,    13,    14,
+      15,    41,    42,     0,     0,    47,    43,    44,    48,    45,
+      46,    28,    29,    30,     0,    35,    36,    37,    32,    33,
+      34,    38,    39,    40,    26,    25,     0,     0,     0,     0,
+       0,    21,    27,    49,    50,    31
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -33,   -33,    49,   -33,   -33,   -32,   -33
+     -33,   -33,   -32,   -33,   -33
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,    37,    38,    39,    40,    41,    42
+      -1,    37,    38,    39,    40
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
      positive, shift that token.  If negative, reduce the rule whose
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
-static const yytype_int16 yytable[] =
+static const yytype_uint8 yytable[] =
 {
-      67,    69,    71,   102,   103,   105,   106,   107,   108,   107,
-     108,   114,   116,   118,   120,   122,   124,   126,   128,   130,
-     132,   134,   136,   138,   140,   142,   144,   146,   148,   150,
-     152,   154,   156,   158,   109,   110,   111,   112,    43,   109,
-     110,   111,   112,   111,   112,   104,   282,   191,    44,   192,
-     109,   110,   111,   112,   109,   110,   111,   112,    45,    46,
-     271,    47,    48,    49,   281,   186,   187,   188,   190,   105,
-     106,   107,   108,    50,    51,   161,   159,   198,   199,   200,
-     201,    66,    68,    70,   109,   110,   111,   112,    52,    53,
-     162,   160,   113,   115,   117,   119,   121,   123,   125,   127,
-     129,   131,   133,   135,   137,   139,   141,   143,   145,   147,
-     149,   151,   153,   155,   157,   109,   110,   111,   112,   105,
-     106,   107,   108,   193,    54,     0,    55,   206,    56,    57,
-      58,   248,   249,   250,   251,   252,   253,   254,   255,   256,
-     257,   258,   259,   260,   261,   262,   263,   264,   265,   266,
-     267,   268,   269,   270,   194,   195,   196,   197,    59,   273,
-      60,   274,   109,   110,   111,   112,   105,   106,   107,   108,
-     207,    61,     0,    62,   208,   276,    63,   278,   109,   110,
-     111,   112,   105,   106,   107,   108,   209,    64,     0,    65,
-     228,   109,   110,   111,   112,   163,     1,   280,     2,     3,
-       4,     5,     6,     7,     8,     9,    10,    11,    12,    13,
-      14,    15,    16,    17,    18,    19,    20,    21,    22,    23,
-      24,    25,    26,    27,    28,   164,    29,    30,    31,    32,
-      33,   109,   110,   111,   112,    34,   165,     0,    35,   229,
-      36,   105,   106,   107,   108,   166,   167,     0,   202,   109,
-     110,   111,   112,   168,   169,   275,   203,   277,   105,   106,
-     107,   108,   170,   171,     0,   204,   109,   110,   111,   112,
-     172,   173,     0,   205,   174,   175,   176,   279,    72,    73,
-       2,     3,     4,     5,    74,    75,    76,    77,    78,    79,
-      80,    81,    82,    83,    84,    85,    86,    87,    88,    89,
-      90,    91,    92,    93,    94,    95,    96,   177,    29,    30,
-     178,    97,    98,   105,   106,   107,   108,    99,   179,   100,
-     210,   101,     2,     3,     4,     5,    74,    75,    76,    77,
+      64,    65,    66,    70,    71,    73,    74,    75,    76,    77,
       78,    79,    80,    81,    82,    83,    84,    85,    86,    87,
-      88,    89,    90,    91,    92,    93,    94,    95,    96,   180,
-      29,    30,   181,    97,    98,   109,   110,   111,   112,    99,
-     182,     0,   211,   189,     2,     3,     4,     5,    74,    75,
-      76,    77,    78,    79,    80,    81,    82,    83,    84,    85,
-      86,    87,    88,    89,    90,    91,    92,    93,    94,    95,
-      96,   183,    29,    30,   184,    97,    98,   105,   106,   107,
-     108,    99,   185,     0,   212,   272,     2,     3,     4,     5,
-      74,    75,    76,    77,    78,    79,    80,    81,    82,    83,
-      84,    85,    86,    87,    88,    89,    90,    91,    92,    93,
-      94,    95,    96,     0,    29,    30,     0,    97,    98,   109,
-     110,   111,   112,    99,     0,     0,   213,   105,   106,   107,
-     108,     0,     0,     0,   214,   109,   110,   111,   112,     0,
-       0,     0,   215,   105,   106,   107,   108,     0,     0,     0,
-     216,   109,   110,   111,   112,     0,     0,     0,   217,   105,
-     106,   107,   108,     0,     0,     0,   218,   109,   110,   111,
-     112,     0,     0,     0,   219,   105,   106,   107,   108,     0,
-       0,     0,   220,   109,   110,   111,   112,     0,     0,     0,
-     221,   105,   106,   107,   108,     0,     0,     0,   222,   109,
-     110,   111,   112,     0,     0,     0,   223,   105,   106,   107,
-     108,     0,     0,     0,   224,   109,   110,   111,   112,     0,
-       0,     0,   225,   105,   106,   107,   108,     0,     0,     0,
-     226,   109,   110,   111,   112,     0,     0,     0,   227,   105,
-     106,   107,   108,     0,     0,     0,   230,   109,   110,   111,
-     112,     0,     0,     0,   231,   105,   106,   107,   108,     0,
-       0,     0,   232,   109,   110,   111,   112,     0,     0,     0,
-     233,   105,   106,   107,   108,     0,     0,     0,   234,   109,
-     110,   111,   112,     0,     0,     0,   235,   105,   106,   107,
-     108,     0,     0,     0,   236,   109,   110,   111,   112,     0,
-       0,     0,   237,   105,   106,   107,   108,     0,     0,     0,
-     238,   109,   110,   111,   112,     0,     0,     0,   239,   105,
-     106,   107,   108,     0,     0,     0,   240,   109,   110,   111,
-     112,     0,     0,     0,   241,   105,   106,   107,   108,     0,
-       0,     0,   242,   109,   110,   111,   112,     0,     0,     0,
-     243,   105,   106,   107,   108,     0,     0,     0,   244,   109,
-     110,   111,   112,     0,     0,     0,   245,   105,   106,   107,
-     108,     0,     0,     0,   246,   109,   110,   111,   112,     0,
-       0,     0,   247,   105,   106,   107,   108,     0,     0,     0,
-     283,   109,   110,   111,   112,     0,     0,     0,   284,   105,
-     106,   107,   108,     0,     0,     0,   285,   109,   110,   111,
-     112,     0,     0,     0,   286,   105,   106,   107,   108,     0,
-       0,     0,   287,   109,   110,   111,   112,     0,     0,     0,
-     288
-};
-
-static const yytype_int16 yycheck[] =
-{
-      32,    33,    34,    35,    36,    36,    37,    38,    39,    38,
-      39,    43,    44,    45,    46,    47,    48,    49,    50,    51,
-      52,    53,    54,    55,    56,    57,    58,    59,    60,    61,
-      62,    63,    64,    65,    36,    37,    38,    39,    42,    36,
-      37,    38,    39,    38,    39,     0,    48,    44,    42,    46,
-      36,    37,    38,    39,    36,    37,    38,    39,    42,    42,
-      46,    42,    42,    42,    46,    97,    98,    99,   100,    36,
-      37,    38,    39,    42,    42,    46,    43,   109,   110,   111,
-     112,    32,    33,    34,    36,    37,    38,    39,    42,    42,
-      46,    43,    43,    44,    45,    46,    47,    48,    49,    50,
-      51,    52,    53,    54,    55,    56,    57,    58,    59,    60,
-      61,    62,    63,    64,    65,    36,    37,    38,    39,    36,
-      37,    38,    39,    44,    42,    -1,    42,    44,    42,    42,
-      42,   163,   164,   165,   166,   167,   168,   169,   170,   171,
-     172,   173,   174,   175,   176,   177,   178,   179,   180,   181,
-     182,   183,   184,   185,   105,   106,   107,   108,    42,   191,
-      42,   193,    36,    37,    38,    39,    36,    37,    38,    39,
-      44,    42,    -1,    42,    44,   207,    42,   209,    36,    37,
-      38,    39,    36,    37,    38,    39,    44,    42,    -1,    42,
-      44,    36,    37,    38,    39,    42,     3,   229,     5,     6,
+      88,    89,    90,    91,    92,    93,    94,    95,    96,    97,
+      98,    99,    41,    73,    74,    75,    76,   103,    75,    76,
+      42,   107,   108,   109,   110,   142,    73,    74,    75,    76,
+      73,    74,    75,    76,    43,   104,   105,    44,    45,    46,
+     106,    73,    74,    75,    76,    73,    74,    75,    76,    47,
+      48,   113,    49,   136,   137,   114,    73,    74,    75,    76,
+      50,   138,   139,    51,    52,    53,   124,    54,    55,    56,
+      57,    58,   140,     1,    67,     2,     3,     4,     5,     6,
        7,     8,     9,    10,    11,    12,    13,    14,    15,    16,
       17,    18,    19,    20,    21,    22,    23,    24,    25,    26,
-      27,    28,    29,    30,    31,    42,    33,    34,    35,    36,
-      37,    36,    37,    38,    39,    42,    42,    -1,    45,    44,
-      47,    36,    37,    38,    39,    42,    42,    -1,    43,    36,
-      37,    38,    39,    42,    42,   206,    43,   208,    36,    37,
-      38,    39,    42,    42,    -1,    43,    36,    37,    38,    39,
-      42,    42,    -1,    43,    42,    42,    42,   228,     3,     4,
-       5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
-      25,    26,    27,    28,    29,    30,    31,    42,    33,    34,
-      42,    36,    37,    36,    37,    38,    39,    42,    42,    44,
-      43,    46,     5,     6,     7,     8,     9,    10,    11,    12,
-      13,    14,    15,    16,    17,    18,    19,    20,    21,    22,
-      23,    24,    25,    26,    27,    28,    29,    30,    31,    42,
-      33,    34,    42,    36,    37,    36,    37,    38,    39,    42,
-      42,    -1,    43,    46,     5,     6,     7,     8,     9,    10,
-      11,    12,    13,    14,    15,    16,    17,    18,    19,    20,
-      21,    22,    23,    24,    25,    26,    27,    28,    29,    30,
-      31,    42,    33,    34,    42,    36,    37,    36,    37,    38,
-      39,    42,    42,    -1,    43,    46,     5,     6,     7,     8,
+      27,    28,    59,    29,    30,    31,    32,    33,    60,    61,
+      62,    63,    34,    72,    35,    68,    69,    36,     1,   101,
+       2,     3,     4,     5,     6,     7,     8,     9,    10,    11,
+      12,    13,    14,    15,    16,    17,    18,    19,    20,    21,
+      22,    23,    24,    25,    26,    27,    28,     0,    29,    30,
+      31,    32,    33,     0,     0,     0,     0,    34,     0,    35,
+     102,     1,    36,     2,     3,     4,     5,     6,     7,     8,
        9,    10,    11,    12,    13,    14,    15,    16,    17,    18,
       19,    20,    21,    22,    23,    24,    25,    26,    27,    28,
-      29,    30,    31,    -1,    33,    34,    -1,    36,    37,    36,
-      37,    38,    39,    42,    -1,    -1,    43,    36,    37,    38,
-      39,    -1,    -1,    -1,    43,    36,    37,    38,    39,    -1,
-      -1,    -1,    43,    36,    37,    38,    39,    -1,    -1,    -1,
+       0,    29,    30,    31,    32,    33,     0,     0,     0,     0,
+      34,     0,    35,   135,     1,    36,     2,     3,     4,     5,
+       6,     7,     8,     9,    10,    11,    12,    13,    14,    15,
+      16,    17,    18,    19,    20,    21,    22,    23,    24,    25,
+      26,    27,    28,     0,    29,    30,    31,    32,    33,    73,
+      74,    75,    76,    34,     0,    35,   100,     0,    36,    73,
+      74,    75,    76,    73,    74,    75,    76,     0,   134,     0,
+       0,     0,   141,    73,    74,    75,    76,     0,     0,     0,
+     111,    73,    74,    75,    76,     0,     0,     0,   112,    73,
+      74,    75,    76,     0,     0,     0,   115,    73,    74,    75,
+      76,     0,     0,     0,   116,    73,    74,    75,    76,     0,
+       0,     0,   117,    73,    74,    75,    76,     0,     0,     0,
+     118,    73,    74,    75,    76,     0,     0,     0,   119,    73,
+      74,    75,    76,     0,     0,     0,   120,    73,    74,    75,
+      76,     0,     0,     0,   121,    73,    74,    75,    76,     0,
+       0,     0,   122,    73,    74,    75,    76,     0,     0,     0,
+     123,    73,    74,    75,    76,     0,     0,     0,   125,    73,
+      74,    75,    76,     0,     0,     0,   126,    73,    74,    75,
+      76,     0,     0,     0,   127,    73,    74,    75,    76,     0,
+       0,     0,   128,    73,    74,    75,    76,     0,     0,     0,
+     129,    73,    74,    75,    76,     0,     0,     0,   130,    73,
+      74,    75,    76,     0,     0,     0,   131,    73,    74,    75,
+      76,     0,     0,     0,   132,    73,    74,    75,    76,     0,
+       0,     0,   133,    73,    74,    75,    76,     0,     0,     0,
+     143,    73,    74,    75,    76,     0,     0,     0,   144,    73,
+      74,    75,    76,     0,     0,     0,   145
+};
+
+static const yytype_int8 yycheck[] =
+{
+      32,    33,    34,    35,    36,    36,    37,    38,    39,    41,
+      42,    43,    44,    45,    46,    47,    48,    49,    50,    51,
+      52,    53,    54,    55,    56,    57,    58,    59,    60,    61,
+      62,    63,    42,    36,    37,    38,    39,    69,    38,    39,
+      42,    73,    74,    75,    76,    48,    36,    37,    38,    39,
+      36,    37,    38,    39,    42,    45,    46,    42,    42,    42,
+      46,    36,    37,    38,    39,    36,    37,    38,    39,    42,
+      42,    46,    42,   105,   106,    46,    36,    37,    38,    39,
+      42,   113,   114,    42,    42,    42,    46,    42,    42,    42,
+      42,    42,   124,     3,     4,     5,     6,     7,     8,     9,
+      10,    11,    12,    13,    14,    15,    16,    17,    18,    19,
+      20,    21,    22,    23,    24,    25,    26,    27,    28,    29,
+      30,    31,    42,    33,    34,    35,    36,    37,    42,    42,
+      42,    42,    42,     0,    44,    45,    46,    47,     3,    45,
+       5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
+      15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
+      25,    26,    27,    28,    29,    30,    31,    -1,    33,    34,
+      35,    36,    37,    -1,    -1,    -1,    -1,    42,    -1,    44,
+      45,     3,    47,     5,     6,     7,     8,     9,    10,    11,
+      12,    13,    14,    15,    16,    17,    18,    19,    20,    21,
+      22,    23,    24,    25,    26,    27,    28,    29,    30,    31,
+      -1,    33,    34,    35,    36,    37,    -1,    -1,    -1,    -1,
+      42,    -1,    44,    45,     3,    47,     5,     6,     7,     8,
+       9,    10,    11,    12,    13,    14,    15,    16,    17,    18,
+      19,    20,    21,    22,    23,    24,    25,    26,    27,    28,
+      29,    30,    31,    -1,    33,    34,    35,    36,    37,    36,
+      37,    38,    39,    42,    -1,    44,    43,    -1,    47,    36,
+      37,    38,    39,    36,    37,    38,    39,    -1,    45,    -1,
+      -1,    -1,    45,    36,    37,    38,    39,    -1,    -1,    -1,
       43,    36,    37,    38,    39,    -1,    -1,    -1,    43,    36,
       37,    38,    39,    -1,    -1,    -1,    43,    36,    37,    38,
       39,    -1,    -1,    -1,    43,    36,    37,    38,    39,    -1,
@@ -968,18 +955,7 @@ static const yytype_int16 yycheck[] =
       39,    -1,    -1,    -1,    43,    36,    37,    38,    39,    -1,
       -1,    -1,    43,    36,    37,    38,    39,    -1,    -1,    -1,
       43,    36,    37,    38,    39,    -1,    -1,    -1,    43,    36,
-      37,    38,    39,    -1,    -1,    -1,    43,    36,    37,    38,
-      39,    -1,    -1,    -1,    43,    36,    37,    38,    39,    -1,
-      -1,    -1,    43,    36,    37,    38,    39,    -1,    -1,    -1,
-      43,    36,    37,    38,    39,    -1,    -1,    -1,    43,    36,
-      37,    38,    39,    -1,    -1,    -1,    43,    36,    37,    38,
-      39,    -1,    -1,    -1,    43,    36,    37,    38,    39,    -1,
-      -1,    -1,    43,    36,    37,    38,    39,    -1,    -1,    -1,
-      43,    36,    37,    38,    39,    -1,    -1,    -1,    43,    36,
-      37,    38,    39,    -1,    -1,    -1,    43,    36,    37,    38,
-      39,    -1,    -1,    -1,    43,    36,    37,    38,    39,    -1,
-      -1,    -1,    43,    36,    37,    38,    39,    -1,    -1,    -1,
-      43
+      37,    38,    39,    -1,    -1,    -1,    43
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
@@ -989,60 +965,40 @@ static const yytype_int8 yystos[] =
        0,     3,     5,     6,     7,     8,     9,    10,    11,    12,
       13,    14,    15,    16,    17,    18,    19,    20,    21,    22,
       23,    24,    25,    26,    27,    28,    29,    30,    31,    33,
-      34,    35,    36,    37,    42,    45,    47,    50,    51,    52,
-      53,    54,    55,    42,    42,    42,    42,    42,    42,    42,
+      34,    35,    36,    37,    42,    44,    47,    50,    51,    52,
+      53,    42,    42,    42,    42,    42,    42,    42,    42,    42,
       42,    42,    42,    42,    42,    42,    42,    42,    42,    42,
-      42,    42,    42,    42,    42,    42,    51,    54,    51,    54,
-      51,    54,     3,     4,     9,    10,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
-      25,    26,    27,    28,    29,    30,    31,    36,    37,    42,
-      44,    46,    54,    54,     0,    36,    37,    38,    39,    36,
-      37,    38,    39,    51,    54,    51,    54,    51,    54,    51,
-      54,    51,    54,    51,    54,    51,    54,    51,    54,    51,
-      54,    51,    54,    51,    54,    51,    54,    51,    54,    51,
-      54,    51,    54,    51,    54,    51,    54,    51,    54,    51,
-      54,    51,    54,    51,    54,    51,    54,    51,    54,    43,
-      43,    46,    46,    42,    42,    42,    42,    42,    42,    42,
-      42,    42,    42,    42,    42,    42,    42,    42,    42,    42,
-      42,    42,    42,    42,    42,    42,    54,    54,    54,    46,
-      54,    44,    46,    44,    51,    51,    51,    51,    54,    54,
-      54,    54,    43,    43,    43,    43,    44,    44,    44,    44,
-      43,    43,    43,    43,    43,    43,    43,    43,    43,    43,
-      43,    43,    43,    43,    43,    43,    43,    43,    44,    44,
-      43,    43,    43,    43,    43,    43,    43,    43,    43,    43,
-      43,    43,    43,    43,    43,    43,    43,    43,    54,    54,
-      54,    54,    54,    54,    54,    54,    54,    54,    54,    54,
-      54,    54,    54,    54,    54,    54,    54,    54,    54,    54,
-      54,    46,    46,    54,    54,    51,    54,    51,    54,    51,
-      54,    46,    48,    43,    43,    43,    43,    43,    43
+      42,    42,    42,    42,    51,    51,    51,     4,    45,    46,
+      51,    51,     0,    36,    37,    38,    39,    51,    51,    51,
+      51,    51,    51,    51,    51,    51,    51,    51,    51,    51,
+      51,    51,    51,    51,    51,    51,    51,    51,    51,    51,
+      43,    45,    45,    51,    45,    46,    46,    51,    51,    51,
+      51,    43,    43,    46,    46,    43,    43,    43,    43,    43,
+      43,    43,    43,    43,    46,    43,    43,    43,    43,    43,
+      43,    43,    43,    43,    45,    45,    51,    51,    51,    51,
+      51,    45,    48,    43,    43,    43
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_int8 yyr1[] =
 {
        0,    49,    50,    51,    51,    51,    51,    51,    51,    51,
-      51,    51,    52,    52,    52,    52,    52,    52,    52,    52,
-      52,    52,    52,    52,    52,    52,    52,    52,    52,    52,
-      52,    52,    52,    52,    52,    53,    53,    53,    53,    53,
-      53,    53,    53,    53,    53,    53,    53,    54,    54,    54,
-      54,    54,    54,    54,    54,    54,    54,    54,    54,    54,
-      54,    55,    55,    55,    55,    55,    55,    55,    55,    55,
-      55,    55,    55,    55,    55,    55,    55,    55,    55,    55,
-      55,    55,    55,    55
+      51,    51,    51,    51,    51,    51,    51,    51,    51,    51,
+      52,    52,    52,    52,    52,    52,    52,    52,    53,    53,
+      53,    53,    53,    53,    53,    53,    53,    53,    53,    53,
+      53,    53,    53,    53,    53,    53,    53,    53,    53,    53,
+      53
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     1,     1,     3,     3,     3,     3,     2,     2,
-       1,     3,     4,     4,     4,     6,     4,     4,     4,     4,
-       4,     4,     4,     4,     4,     4,     4,     6,     4,     4,
-       4,     4,     4,     4,     6,     1,     1,     3,     5,     3,
-       2,     3,     3,     4,     4,     1,     5,     1,     1,     1,
-       1,     1,     1,     3,     3,     3,     3,     2,     2,     1,
-       3,     4,     4,     4,     6,     4,     4,     4,     4,     4,
-       4,     4,     4,     4,     4,     4,     6,     4,     4,     4,
-       4,     4,     4,     6
+       0,     2,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     3,     3,     3,     3,     2,     2,     1,     3,
+       3,     5,     2,     3,     3,     4,     4,     5,     4,     4,
+       4,     6,     4,     4,     4,     4,     4,     4,     4,     4,
+       4,     4,     4,     4,     4,     4,     4,     4,     4,     6,
+       6
 };
 
 
@@ -1477,16 +1433,22 @@ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep)
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   switch (yytype)
     {
-    case 54: /* expression  */
-#line 126 "gaol_interval_parser.ypp"
+    case 51: /* expression  */
+#line 191 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1484 "y.tab.c"
+#line 1440 "y.tab.c"
         break;
 
-    case 55: /* function_call  */
-#line 126 "gaol_interval_parser.ypp"
+    case 52: /* literal  */
+#line 191 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1490 "y.tab.c"
+#line 1446 "y.tab.c"
+        break;
+
+    case 53: /* function_call  */
+#line 191 "gaol_interval_parser.ypp"
+            { gaol_release(((*yyvaluep).expr)); }
+#line 1452 "y.tab.c"
         break;
 
       default:
@@ -1754,749 +1716,372 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 137 "gaol_interval_parser.ypp"
-                                                { *gaol_result_of_parsing = interval((yyvsp[0].itv).l,(yyvsp[0].itv).r); }
-#line 1760 "y.tab.c"
+#line 202 "gaol_interval_parser.ypp"
+                                                        { *gaol_result_of_parsing = gaol_value((yyvsp[0].expr));
+							  gaol_release((yyvsp[0].expr));
+							  gaol_global_parsing_flag = true; }
+#line 1724 "y.tab.c"
     break;
 
   case 3:
-#line 141 "gaol_interval_parser.ypp"
-                                                                { (yyval.itv) = (yyvsp[0].itv); }
-#line 1766 "y.tab.c"
+#line 208 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new double_node((yyvsp[0].d))); }
+#line 1730 "y.tab.c"
     break;
 
   case 4:
-#line 142 "gaol_interval_parser.ypp"
-                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)+interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
-						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1773 "y.tab.c"
+#line 209 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new double_node(std::numeric_limits<double>::min())); }
+#line 1736 "y.tab.c"
     break;
 
   case 5:
-#line 144 "gaol_interval_parser.ypp"
-                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)-interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
-						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1780 "y.tab.c"
+#line 210 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new double_node(std::numeric_limits<double>::max())); }
+#line 1742 "y.tab.c"
     break;
 
   case 6:
-#line 146 "gaol_interval_parser.ypp"
-                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)*interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
-						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1787 "y.tab.c"
+#line 211 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new double_node(GAOL_INFINITY)); }
+#line 1748 "y.tab.c"
     break;
 
   case 7:
-#line 148 "gaol_interval_parser.ypp"
-                                                { gaol_tmp_itv=interval((yyvsp[-2].itv).l,(yyvsp[-2].itv).r)/interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
-						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1794 "y.tab.c"
+#line 212 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_leaf(interval::pi()); }
+#line 1754 "y.tab.c"
     break;
 
   case 8:
-#line 150 "gaol_interval_parser.ypp"
-                                                { gaol_tmp_itv= -interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
-						  					(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1801 "y.tab.c"
+#line 213 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_leaf(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r)); }
+#line 1760 "y.tab.c"
     break;
 
   case 9:
-#line 152 "gaol_interval_parser.ypp"
-                                                { (yyval.itv) = (yyvsp[0].itv); }
-#line 1807 "y.tab.c"
+#line 214 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new uncertain_node(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))); }
+#line 1766 "y.tab.c"
     break;
 
   case 10:
-#line 153 "gaol_interval_parser.ypp"
-                                                                { (yyval.itv) = (yyvsp[0].itv); }
-#line 1813 "y.tab.c"
+#line 215 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_leaf(interval::emptyset()); }
+#line 1772 "y.tab.c"
     break;
 
   case 11:
-#line 154 "gaol_interval_parser.ypp"
-                                                        { (yyval.itv) = (yyvsp[-1].itv); }
-#line 1819 "y.tab.c"
+#line 216 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = (yyvsp[0].expr); }
+#line 1778 "y.tab.c"
     break;
 
   case 12:
-#line 159 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=cos(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1826 "y.tab.c"
+#line 217 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new add_node(*(yyvsp[-2].expr),*(yyvsp[0].expr)));
+							  gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
+#line 1785 "y.tab.c"
     break;
 
   case 13:
-#line 161 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=sin(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1833 "y.tab.c"
+#line 219 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new sub_node(*(yyvsp[-2].expr),*(yyvsp[0].expr)));
+							  gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
+#line 1792 "y.tab.c"
     break;
 
   case 14:
-#line 163 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=tan(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1840 "y.tab.c"
+#line 221 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new mult_node(*(yyvsp[-2].expr),*(yyvsp[0].expr)));
+							  gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
+#line 1799 "y.tab.c"
     break;
 
   case 15:
-#line 165 "gaol_interval_parser.ypp"
-                                                                { gaol_tmp_itv=atan2(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),
-							          						interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						    								(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1848 "y.tab.c"
+#line 223 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new div_node(*(yyvsp[-2].expr),*(yyvsp[0].expr)));
+							  gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
+#line 1806 "y.tab.c"
     break;
 
   case 16:
-#line 168 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=acos(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1855 "y.tab.c"
+#line 225 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new unary_minus_node(*(yyvsp[0].expr)));
+							  gaol_release((yyvsp[0].expr)); }
+#line 1813 "y.tab.c"
     break;
 
   case 17:
-#line 170 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=asin(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1862 "y.tab.c"
+#line 227 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = (yyvsp[0].expr); }
+#line 1819 "y.tab.c"
     break;
 
   case 18:
-#line 172 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=atan(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1869 "y.tab.c"
+#line 228 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = (yyvsp[0].expr); }
+#line 1825 "y.tab.c"
     break;
 
   case 19:
-#line 174 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=cosh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1876 "y.tab.c"
+#line 229 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = (yyvsp[-1].expr); }
+#line 1831 "y.tab.c"
     break;
 
   case 20:
-#line 176 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=sinh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1883 "y.tab.c"
+#line 238 "gaol_interval_parser.ypp"
+                                                        { if (gaol_uncertain_bound((yyvsp[-1].expr))) {
+							    gaol_release((yyvsp[-1].expr));
+							    YYABORT;
+							  }
+							  const interval v = gaol_value((yyvsp[-1].expr));
+							  const bool infinite = (gaol_literal_infinity((yyvsp[-1].expr)) != 0);
+							  gaol_release((yyvsp[-1].expr));
+							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset() : v); }
+#line 1844 "y.tab.c"
     break;
 
   case 21:
-#line 178 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=tanh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1890 "y.tab.c"
+#line 246 "gaol_interval_parser.ypp"
+                                                        { if (gaol_uncertain_bound((yyvsp[-3].expr)) || gaol_uncertain_bound((yyvsp[-1].expr))) {
+							    gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
+							    YYABORT;
+							  }
+							  const interval l = gaol_value((yyvsp[-3].expr)), r = gaol_value((yyvsp[-1].expr));
+							  const bool infinite = (gaol_literal_infinity((yyvsp[-3].expr)) > 0
+										 || gaol_literal_infinity((yyvsp[-1].expr)) < 0);
+							  gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
+							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset()
+									 : interval(l.left(),r.right())); }
+#line 1859 "y.tab.c"
     break;
 
   case 22:
-#line 180 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=acosh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1897 "y.tab.c"
+#line 256 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_leaf(interval::emptyset()); }
+#line 1865 "y.tab.c"
     break;
 
   case 23:
-#line 182 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=asinh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1904 "y.tab.c"
+#line 257 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_leaf(interval::universe()); }
+#line 1871 "y.tab.c"
     break;
 
   case 24:
-#line 184 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=atanh(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1911 "y.tab.c"
+#line 258 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_leaf(interval::universe()); }
+#line 1877 "y.tab.c"
     break;
 
   case 25:
-#line 186 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=exp(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1918 "y.tab.c"
+#line 259 "gaol_interval_parser.ypp"
+                                                        { if (gaol_uncertain_bound((yyvsp[-2].expr))) {
+							    gaol_release((yyvsp[-2].expr));
+							    YYABORT;
+							  }
+							  const interval l = gaol_value((yyvsp[-2].expr));
+							  const bool infinite = (gaol_literal_infinity((yyvsp[-2].expr)) > 0);
+							  gaol_release((yyvsp[-2].expr));
+							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset()
+									 : interval(l.left(),GAOL_INFINITY)); }
+#line 1891 "y.tab.c"
     break;
 
   case 26:
-#line 188 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=log(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1925 "y.tab.c"
+#line 268 "gaol_interval_parser.ypp"
+                                                        { if (gaol_uncertain_bound((yyvsp[-1].expr))) {
+							    gaol_release((yyvsp[-1].expr));
+							    YYABORT;
+							  }
+							  const interval r = gaol_value((yyvsp[-1].expr));
+							  const bool infinite = (gaol_literal_infinity((yyvsp[-1].expr)) < 0);
+							  gaol_release((yyvsp[-1].expr));
+							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset()
+									 : interval(-GAOL_INFINITY,r.right())); }
+#line 1905 "y.tab.c"
     break;
 
   case 27:
-#line 190 "gaol_interval_parser.ypp"
-                                                                { gaol_tmp_itv=
-						   									pow(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						   									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1933 "y.tab.c"
+#line 277 "gaol_interval_parser.ypp"
+                                                        { if (gaol_uncertain_bound((yyvsp[-3].expr)) || gaol_uncertain_bound((yyvsp[-1].expr))) {
+							    gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
+							    YYABORT;
+							  }
+							  const interval l = gaol_value((yyvsp[-3].expr)), r = gaol_value((yyvsp[-1].expr));
+							  gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
+							  if (l.left() != r.right()) {
+							    GAOL_PARSING_ERROR(input_format_error,
+							      "bounds of degenerate interval do not evaluate to the same value");
+							    YYABORT;
+							  }
+							  (yyval.expr) = gaol_leaf(interval(l.left(),r.right())); }
+#line 1922 "y.tab.c"
     break;
 
   case 28:
-#line 193 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=sqrt(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1940 "y.tab.c"
+#line 292 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new cos_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1928 "y.tab.c"
     break;
 
   case 29:
-#line 195 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=exp2(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1947 "y.tab.c"
+#line 293 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new sin_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1934 "y.tab.c"
     break;
 
   case 30:
-#line 197 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=log2(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1954 "y.tab.c"
+#line 294 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new tan_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1940 "y.tab.c"
     break;
 
   case 31:
-#line 199 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=nth_root(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r),3);
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1961 "y.tab.c"
+#line 295 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new atan2_node(*(yyvsp[-3].expr),*(yyvsp[-1].expr)));
+							  gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr)); }
+#line 1947 "y.tab.c"
     break;
 
   case 32:
-#line 201 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=sign(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1968 "y.tab.c"
+#line 297 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new acos_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1953 "y.tab.c"
     break;
 
   case 33:
-#line 203 "gaol_interval_parser.ypp"
-                                                                                { gaol_tmp_itv=trunc(interval((yyvsp[-1].itv).l,(yyvsp[-1].itv).r));
-						  									(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-#line 1975 "y.tab.c"
+#line 298 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new asin_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1959 "y.tab.c"
     break;
 
   case 34:
-#line 205 "gaol_interval_parser.ypp"
-                                                             { interval tmp((yyvsp[-1].itv).l,(yyvsp[-1].itv).r);
-														   if (!tmp.is_an_int()) {
-					                                       		// not an int?
-																(yyval.itv).l=1; (yyval.itv).r=-1;
-																gaol_ERROR(invalid_action_error,
-																	"nth_root used with non integral 2nd arg.");
-														    } else {
-					     										// The int, which may be negative: rootn(x, q) of IEEE 1788-2015
-					     										// for q < 0, as nth_root(I, int) computes it (GAOL v5)
-					     										gaol_tmp_itv=nth_root(interval((yyvsp[-3].itv).l,(yyvsp[-3].itv).r),static_cast<int>((yyvsp[-1].itv).l));
-						       										(yyval.itv).l=gaol_tmp_itv.left(); (yyval.itv).r=gaol_tmp_itv.right(); }
-														    }
-#line 1992 "y.tab.c"
+#line 299 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new atan_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1965 "y.tab.c"
     break;
 
   case 35:
-#line 220 "gaol_interval_parser.ypp"
-                                                                { 	const expression e(*(yyvsp[0].expr));
-											gaol_release((yyvsp[0].expr));
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-							  				(yyval.itv).l=gaol_result_of_parsing->left();
-					          				(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2004 "y.tab.c"
+#line 300 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new cosh_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1971 "y.tab.c"
     break;
 
   case 36:
-#line 228 "gaol_interval_parser.ypp"
-                                                                        { 	*gaol_result_of_parsing = interval::emptyset();
-					  						gaol_global_parsing_flag = true;
-											(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2014 "y.tab.c"
+#line 301 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new sinh_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1977 "y.tab.c"
     break;
 
   case 37:
-#line 234 "gaol_interval_parser.ypp"
-                                                        {	const expression e(*(yyvsp[-1].expr));
-											gaol_release((yyvsp[-1].expr));
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-					  						if (gaol_literal_infinity(e.get_root()) != 0) {
-					  							*gaol_result_of_parsing = interval::emptyset();
-					  						}
-											(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2029 "y.tab.c"
+#line 302 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new tanh_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1983 "y.tab.c"
     break;
 
   case 38:
-#line 244 "gaol_interval_parser.ypp"
-                                                { 	const expression el(*(yyvsp[-3].expr)), er(*(yyvsp[-1].expr));
-											gaol_release((yyvsp[-3].expr));
-											gaol_release((yyvsp[-1].expr));
-											gaol_global_parsing_flag = evaluate_left_right(el, er,
-																			gaol_result_of_parsing);
-					  						if (gaol_literal_infinity(el.get_root()) > 0 || gaol_literal_infinity(er.get_root()) < 0) {
-					  							*gaol_result_of_parsing = interval::emptyset();
-					  						}
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2045 "y.tab.c"
+#line 303 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new acosh_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1989 "y.tab.c"
     break;
 
   case 39:
-#line 255 "gaol_interval_parser.ypp"
-                                                                { 	*gaol_result_of_parsing = interval::emptyset();
-					  						gaol_global_parsing_flag = true;
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2055 "y.tab.c"
+#line 304 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new asinh_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 1995 "y.tab.c"
     break;
 
   case 40:
-#line 263 "gaol_interval_parser.ypp"
-                                                                        { 	*gaol_result_of_parsing = interval::emptyset();
-					  						gaol_global_parsing_flag = true;
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2065 "y.tab.c"
+#line 305 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new atanh_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2001 "y.tab.c"
     break;
 
   case 41:
-#line 268 "gaol_interval_parser.ypp"
-                                                        { 	*gaol_result_of_parsing = interval::universe();
-					  						gaol_global_parsing_flag = true;
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2075 "y.tab.c"
+#line 306 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new exp_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2007 "y.tab.c"
     break;
 
   case 42:
-#line 273 "gaol_interval_parser.ypp"
-                                                                { 	*gaol_result_of_parsing = interval::universe();
-					  						gaol_global_parsing_flag = true;
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2085 "y.tab.c"
+#line 307 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new log_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2013 "y.tab.c"
     break;
 
   case 43:
-#line 278 "gaol_interval_parser.ypp"
-                                                        { 	const expression e(*(yyvsp[-2].expr));
-											gaol_release((yyvsp[-2].expr));
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-					  						*gaol_result_of_parsing = (gaol_literal_infinity(e.get_root()) > 0) ? interval::emptyset()
-					  							: interval(gaol_result_of_parsing->left(), GAOL_INFINITY);
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2099 "y.tab.c"
+#line 308 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new exp2_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2019 "y.tab.c"
     break;
 
   case 44:
-#line 287 "gaol_interval_parser.ypp"
-                                                        { 	const expression e(*(yyvsp[-1].expr));
-											gaol_release((yyvsp[-1].expr));
-											gaol_global_parsing_flag = evaluate_left_right(e,
-																gaol_result_of_parsing);
-					  						*gaol_result_of_parsing = (gaol_literal_infinity(e.get_root()) < 0) ? interval::emptyset()
-					  							: interval(-GAOL_INFINITY, gaol_result_of_parsing->right());
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2113 "y.tab.c"
+#line 309 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new log2_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2025 "y.tab.c"
     break;
 
   case 45:
-#line 296 "gaol_interval_parser.ypp"
-                                                                { 	*gaol_result_of_parsing = interval((yyvsp[0].itv).l,(yyvsp[0].itv).r);
-					  						gaol_global_parsing_flag = true;
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-										}
-#line 2123 "y.tab.c"
+#line 310 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new sign_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2031 "y.tab.c"
     break;
 
   case 46:
-#line 301 "gaol_interval_parser.ypp"
-                                            { 	const expression el(*(yyvsp[-3].expr)), er(*(yyvsp[-1].expr));
-											gaol_release((yyvsp[-3].expr));
-											gaol_release((yyvsp[-1].expr));
-											gaol_global_parsing_flag = evaluate_left_right(el, er,
-																							gaol_result_of_parsing);
-                                          	(yyval.itv).l=gaol_result_of_parsing->left();
-					  						(yyval.itv).r=gaol_result_of_parsing->right();
-											if ((yyval.itv).l != (yyval.itv).r) {
-												gaol_ERROR(input_format_error, std::string("bounds of degenerate interval do not evaluate to the same value"));
-											}
-										}
-#line 2139 "y.tab.c"
+#line 311 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new trunc_node(*(yyvsp[-1].expr))); gaol_release((yyvsp[-1].expr)); }
+#line 2037 "y.tab.c"
     break;
 
   case 47:
-#line 315 "gaol_interval_parser.ypp"
-                                                        { 	(yyval.expr) = new double_node((yyvsp[0].d));
-					  				(yyval.expr)->inc_refcount(); }
-#line 2146 "y.tab.c"
+#line 314 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new nth_root_node(*(yyvsp[-1].expr),2)); gaol_release((yyvsp[-1].expr)); }
+#line 2043 "y.tab.c"
     break;
 
   case 48:
-#line 317 "gaol_interval_parser.ypp"
-                                                        { 	(yyval.expr) = new double_node(std::numeric_limits<double>::min());
-					  				(yyval.expr)->inc_refcount(); }
-#line 2153 "y.tab.c"
+#line 315 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new nth_root_node(*(yyvsp[-1].expr),3)); gaol_release((yyvsp[-1].expr)); }
+#line 2049 "y.tab.c"
     break;
 
   case 49:
-#line 319 "gaol_interval_parser.ypp"
-                                                        { 	(yyval.expr) = new double_node(std::numeric_limits<double>::max());
-					  				(yyval.expr)->inc_refcount(); }
-#line 2160 "y.tab.c"
+#line 321 "gaol_interval_parser.ypp"
+                                                        { (yyval.expr) = gaol_node(new pow_itv_node(*(yyvsp[-3].expr),*(yyvsp[-1].expr)));
+							  gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr)); }
+#line 2056 "y.tab.c"
     break;
 
   case 50:
-#line 321 "gaol_interval_parser.ypp"
-                                                        { 	(yyval.expr) = new interval_node(interval::pi());
-	                                (yyval.expr)->inc_refcount(); }
-#line 2167 "y.tab.c"
-    break;
-
-  case 51:
-#line 323 "gaol_interval_parser.ypp"
-                                    { 	(yyval.expr) = new interval_node(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r));
-					  				(yyval.expr)->inc_refcount(); }
-#line 2174 "y.tab.c"
-    break;
-
-  case 52:
-#line 325 "gaol_interval_parser.ypp"
-                                                { 	(yyval.expr) = new double_node(GAOL_INFINITY);
-					  				(yyval.expr)->inc_refcount(); }
-#line 2181 "y.tab.c"
-    break;
-
-  case 53:
 #line 327 "gaol_interval_parser.ypp"
-                                        { 	(yyval.expr) = new add_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
-					  				(yyval.expr)->inc_refcount();
-					  				gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
-#line 2189 "y.tab.c"
-    break;
-
-  case 54:
-#line 330 "gaol_interval_parser.ypp"
-                                        { 	(yyval.expr) = new sub_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
-					  				(yyval.expr)->inc_refcount();
-					  				gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
-#line 2197 "y.tab.c"
-    break;
-
-  case 55:
-#line 333 "gaol_interval_parser.ypp"
-                                    { 	(yyval.expr) = new mult_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
-					  				(yyval.expr)->inc_refcount();
-					  				gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
-#line 2205 "y.tab.c"
-    break;
-
-  case 56:
-#line 336 "gaol_interval_parser.ypp"
-                                    { 	(yyval.expr) = new div_node(*(yyvsp[-2].expr),*(yyvsp[0].expr));
-					  				(yyval.expr)->inc_refcount();
-					  				gaol_release((yyvsp[-2].expr)); gaol_release((yyvsp[0].expr)); }
-#line 2213 "y.tab.c"
-    break;
-
-  case 57:
-#line 339 "gaol_interval_parser.ypp"
-                                      { (yyval.expr) = new unary_minus_node(*(yyvsp[0].expr));
-					  				(yyval.expr)->inc_refcount();
-					  				gaol_release((yyvsp[0].expr)); }
-#line 2221 "y.tab.c"
-    break;
-
-  case 58:
-#line 342 "gaol_interval_parser.ypp"
-                                      { (yyval.expr) = (yyvsp[0].expr); }
-#line 2227 "y.tab.c"
-    break;
-
-  case 59:
-#line 343 "gaol_interval_parser.ypp"
-                                                { (yyval.expr) = (yyvsp[0].expr); }
-#line 2233 "y.tab.c"
-    break;
-
-  case 60:
-#line 344 "gaol_interval_parser.ypp"
-                                        { (yyval.expr) = (yyvsp[-1].expr); }
-#line 2239 "y.tab.c"
-    break;
-
-  case 61:
-#line 348 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new cos_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2247 "y.tab.c"
-    break;
-
-  case 62:
-#line 351 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new sin_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2255 "y.tab.c"
-    break;
-
-  case 63:
-#line 354 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new tan_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2263 "y.tab.c"
-    break;
-
-  case 64:
-#line 357 "gaol_interval_parser.ypp"
-                                                        { 	(yyval.expr) = new atan2_node(*(yyvsp[-3].expr), *(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr)); }
-#line 2271 "y.tab.c"
-    break;
-
-  case 65:
-#line 360 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new acos_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2279 "y.tab.c"
-    break;
-
-  case 66:
-#line 363 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new asin_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2287 "y.tab.c"
-    break;
-
-  case 67:
-#line 366 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new atan_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2295 "y.tab.c"
-    break;
-
-  case 68:
-#line 369 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new cosh_node(*(yyvsp[-1].expr));
-														(yyval.expr)->inc_refcount();
-														gaol_release((yyvsp[-1].expr)); }
-#line 2303 "y.tab.c"
-    break;
-
-  case 69:
-#line 372 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new sinh_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2311 "y.tab.c"
-    break;
-
-  case 70:
-#line 375 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new tanh_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2319 "y.tab.c"
-    break;
-
-  case 71:
-#line 378 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new acosh_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2327 "y.tab.c"
-    break;
-
-  case 72:
-#line 381 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new asinh_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2335 "y.tab.c"
-    break;
-
-  case 73:
-#line 384 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new atanh_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2343 "y.tab.c"
-    break;
-
-  case 74:
-#line 387 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new exp_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2351 "y.tab.c"
-    break;
-
-  case 75:
-#line 390 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new log_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2359 "y.tab.c"
-    break;
-
-  case 76:
-#line 393 "gaol_interval_parser.ypp"
-                                                        { 	interval tmp;
-														bool aborted = false;
-					  									gaol_global_parsing_flag =
-					    									gaol_evaluate_exponent((yyvsp[-1].expr),tmp,aborted);
-														if (aborted) {
-															gaol_release((yyvsp[-3].expr));
-															gaol_release((yyvsp[-1].expr));
-															YYABORT;
-														}
-														if (!gaol_global_parsing_flag) { // Error?
-					     									(yyval.expr) = the_null_expr;
-					     									(yyval.expr)->inc_refcount();
-                                          				} else {
-					     									if (!tmp.is_an_int()) {
-					        									// not an int in disguise?
-																(yyval.expr) = new pow_itv_node(*(yyvsp[-3].expr),*(yyvsp[-1].expr));
-																(yyval.expr)->inc_refcount();
-       					     								} else {
-					        									if (tmp.left() > 0) {
-					           										(yyval.expr) = new pow_node(*(yyvsp[-3].expr),static_cast<int>(tmp.left()));
-	 				           										(yyval.expr)->inc_refcount();
-                                               					} else {
-						  											expr_node *one = new double_node(1.0);
-					          										one->inc_refcount();
-						  											if (tmp.left() < 0) {
-					           											// translating x^(-a) into 1/(x^a)
-						     											expr_node *e = new pow_node(*(yyvsp[-3].expr),
-																							static_cast<int>(-tmp.left()));
-						     											e->inc_refcount();
-						     											(yyval.expr) = new div_node(*one,*e);
-						     											(yyval.expr)->inc_refcount();
-						     											gaol_release(one);
-						     											gaol_release(e);
-																	} else {  // tmp == 0.0
-						     											(yyval.expr) = one;
-						 											}
-                                                				}
-					     									}
-                                          				}
-														gaol_release((yyvsp[-3].expr));
-														gaol_release((yyvsp[-1].expr));
-                                        			}
-#line 2406 "y.tab.c"
-    break;
-
-  case 77:
-#line 435 "gaol_interval_parser.ypp"
-                                                                        {	(yyval.expr) = new nth_root_node(*(yyvsp[-1].expr),2);
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr));
-													}
-#line 2415 "y.tab.c"
-    break;
-
-  case 78:
-#line 439 "gaol_interval_parser.ypp"
-                                                                        {	(yyval.expr) = new nth_root_node(*(yyvsp[-1].expr),3);
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr));
-													}
-#line 2424 "y.tab.c"
-    break;
-
-  case 79:
-#line 443 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new exp2_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2432 "y.tab.c"
-    break;
-
-  case 80:
-#line 446 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new log2_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2440 "y.tab.c"
-    break;
-
-  case 81:
-#line 449 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new sign_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2448 "y.tab.c"
-    break;
-
-  case 82:
-#line 452 "gaol_interval_parser.ypp"
-                                                                        { 	(yyval.expr) = new trunc_node(*(yyvsp[-1].expr));
-					  									(yyval.expr)->inc_refcount();
-					  									gaol_release((yyvsp[-1].expr)); }
-#line 2456 "y.tab.c"
-    break;
-
-  case 83:
-#line 455 "gaol_interval_parser.ypp"
-                                                         { 	interval tmp;
-														bool aborted = false;
-					  									gaol_global_parsing_flag =
-					    									gaol_evaluate_exponent((yyvsp[-1].expr),tmp,aborted);
-														if (aborted) {
-															gaol_release((yyvsp[-3].expr));
-															gaol_release((yyvsp[-1].expr));
-															YYABORT;
-														}
-														if (!tmp.is_an_int() || !gaol_global_parsing_flag) {
-					     									// not an int?
-															(yyval.expr) = the_null_expr;
-															(yyval.expr)->inc_refcount();
-       					  								} else if (tmp.left() < 0) {
-															/* rootn(x, q) of IEEE 1788-2015 for q < 0,
-															   1/x^(1/|q|), as nth_root(I, int) computes it:
-															   the cast to an unsigned int took the
-															   4294967294-th root for q = -2 (GAOL v5). -q
-															   on a long, INT_MIN having no opposite on an int */
-															expr_node *one = new double_node(1.0);
-															one->inc_refcount();
-															expr_node *e = new nth_root_node(*(yyvsp[-3].expr),
-																static_cast<unsigned int>(-static_cast<long>(tmp.left())));
-															e->inc_refcount();
-															(yyval.expr) = new div_node(*one,*e);
-															(yyval.expr)->inc_refcount();
-															gaol_release(one);
-															gaol_release(e);
-														} else {
-					     									(yyval.expr) = new nth_root_node(*(yyvsp[-3].expr),static_cast<unsigned int>(tmp.left()));
-					     									(yyval.expr)->inc_refcount();
-					 									}
-														gaol_release((yyvsp[-3].expr));
-														gaol_release((yyvsp[-1].expr));
-													  }
-#line 2496 "y.tab.c"
+                                                         { const interval q = gaol_value((yyvsp[-1].expr));
+							  gaol_release((yyvsp[-1].expr));
+							  if (!q.is_an_int()) {
+							    gaol_release((yyvsp[-3].expr));
+							    GAOL_PARSING_ERROR(invalid_action_error,
+							      "nth_root used with non integral 2nd arg.");
+							    YYABORT;
+							  }
+							  const int n = static_cast<int>(q.left());
+							  if (n < 0) {
+							    expr_node *one = gaol_node(new double_node(1.0));
+							    expr_node *root = gaol_node(new nth_root_node(*(yyvsp[-3].expr),
+							      static_cast<unsigned int>(-static_cast<long>(n))));
+							    (yyval.expr) = gaol_node(new div_node(*one,*root));
+							    gaol_release(one);
+							    gaol_release(root);
+							  } else {
+							    (yyval.expr) = gaol_node(new nth_root_node(*(yyvsp[-3].expr),static_cast<unsigned int>(n)));
+							  }
+							  gaol_release((yyvsp[-3].expr)); }
+#line 2081 "y.tab.c"
     break;
 
 
-#line 2500 "y.tab.c"
+#line 2085 "y.tab.c"
 
       default: break;
     }
@@ -2728,7 +2313,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 492 "gaol_interval_parser.ypp"
+#line 349 "gaol_interval_parser.ypp"
 
 
 int gaol_error_bison(const char *s ...)
