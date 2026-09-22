@@ -170,6 +170,10 @@ where it comes from.
     i7-1185G7). `tan()`, the relational functions of the trigonometric
     functions and the negative integer powers still check it again within the
     operations of intervals they call.
+  - **`tan()` keeps its bounds before setting the direction back**, with
+    `GAOL_PRESERVE_ROUNDING`: it set it back first, and `GAOL_RND_KEEP()`,
+    which writes the bounds to memory so that they are computed before, came
+    too late.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with

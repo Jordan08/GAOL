@@ -2350,7 +2350,6 @@ interval nth_root(const interval& I, int q)
       u = tan_lo(l);
       v = tan_hi(r);
     }
-    GAOL_RND_LEAVE();
     GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
     GAOL_RND_LEAVE();
     return interval(u,v);
