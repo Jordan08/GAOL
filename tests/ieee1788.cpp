@@ -2,20 +2,18 @@
  * gaol -- NOT Just Another Interval Library
  *------------------------------------------------------------------------------
  * Tests of GAOL v5: gaol_ieee1788 as a program uses it, with
- * using namespace gaol_ieee1788 at file scope, without using namespace gaol,
- * and with gaol/gaol_expression.h included before gaol/gaol.
+ * using namespace gaol_ieee1788 at file scope and without using namespace
+ * gaol.
  *
  * A program opens one of the two namespaces. The names of the standard are
  * called unqualified, which compiles only if none of them is ambiguous with a
  * function that argument-dependent lookup finds on an interval, in gaol_core:
  * sin, min and the others brought in by using-declarations are gaol_core's
- * own, and the overloads of gaol::expression are in sight, which made
- * gaol_ieee1788 depend on the order of the includes when it took GAOL's
- * functions by using-declarations. pow, which is in gaol_ieee1788 and in gaol
- * but not in gaol_core, takes an interval, an int or a double as exponent, and
- * has to be the pow of Table 9.1 for each, on intervals and on expressions,
- * where GAOL's pow takes pown for an integer exponent: pow(x, 2) is
- * pow(x, [2]), the integer power being pown(x, 2). The functions of C on
+ * own. pow, which is in gaol_ieee1788 and in gaol but not in gaol_core, takes
+ * an interval, an int or a double as exponent, and has to be the pow of
+ * Table 9.1 for each, on intervals and on expressions, where GAOL's pow takes
+ * pown for an integer exponent: pow(x, 2) is pow(x, [2]), the integer power
+ * being pown(x, 2). The functions of C on
  * numbers have to remain those of C. intervalToExact() has to be
  * exact_string(), and to leave the global output format alone, which another
  * thread writing intervals meanwhile sees.
@@ -28,9 +26,8 @@
  * COPYING file for information.
  *----------------------------------------------------------------------------*/
 
-// gaol/gaol_expression.h first, through the evaluator of the expressions
-#include "gaol/gaol_expr_eval.h"
 #include "gaol_tests.h"
+#include "gaol/gaol_expr_eval.h"
 
 #include <cstdlib>
 #include <sstream>
