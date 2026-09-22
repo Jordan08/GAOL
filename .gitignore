@@ -11,3 +11,6 @@ coverage/coverage.json
 3rd/math-core/**/.libs/
 3rd/math-core/**/.deps/
 3rd/math-core/**/.dirstamp
+
+# Written by the performance target of check/Makefile.am
+check/performances_result.txt
