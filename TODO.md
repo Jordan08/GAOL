@@ -90,10 +90,9 @@ says otherwise. The continuous integration is green again since 1436918.
    `ieee1788_using_directive()` (`tests/other_functions.cpp`) compiles
    `pow(x, 3)` and `pow(x, 0.5)` but checks neither on a negative base;
    `pow(interval, interval)` is checked on a negative base.
-   **Done.** `tests/ieee1788_using_directive.cpp`, under
-   `using namespace gaol_ieee1788;` alone, checks `pow(x, 2)`, `pow(x, 2.0)`
-   and `pow([0], 0)` on x = [-4, -1], and the expressions `pow(e1, e2)` and
-   `pown(e, n)`.
+   **Done.** `tests/ieee1788.cpp`, under `using namespace gaol_ieee1788;`
+   alone, checks `pow(x, 2)`, `pow(x, 2.0)` and `pow([0], 0)` on
+   x = [-4, -1], and the expressions `pow(e1, e2)` and `pown(e, n)`.
 
 9. **The documentation of pow.** The Doxygen block `\brief I^J` of
    `gaol/gaol_interval.h` now documents `pow_hybrid()`, and the template
@@ -112,4 +111,4 @@ says otherwise. The continuous integration is green again since 1436918.
     128-bit shift of `asinpi.c`, and the 64-bit `__builtin_expect` of
     `rsqrt.c`, which took subnormals for +0 wherever `long` has 32 bits.
 
-Left: points 4, 7 and 10.
+Left: points 4 and 10.

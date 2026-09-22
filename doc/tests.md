@@ -113,22 +113,19 @@ Codac.
   against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
   base, and at integer exponents beyond the ints, where it has to give the
   tightest bounds and GAOL's own `pow` gives [-oo, +oo] (GAOL v5).
-- **`ieee1788_using_directive`:** the names of `gaol_ieee1788` called
-  unqualified under `using namespace gaol_ieee1788;` alone, as a program opens
-  it, which compiles only if none of them is ambiguous with a function of
-  `gaol_core`. `pow(x, y)`, `pow(x, 2)`, `pow(x, 2.0)` and `pow([0], 0)` have
-  to be the standard's there, `pown(x, 2)` the integer power, and the
-  expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the standard's too
-  (GAOL v5).
-- **`ieee1788`:** `gaol_ieee1788` as a program uses it, with
-  `gaol/gaol_expression.h` included before `gaol/gaol`: `pow` with an
-  interval, an `int` or a `double` exponent on a negative base, at `[0]` and
-  at infinite, NaN and beyond-the-ints exponents; `pown` and `gaol::pow`, the
-  integer power; GAOL's functions on intervals and on an interval and a
-  number; the functions of C on numbers, by `static_assert`. `intervalToExact()`
-  has to be `exact_string()`, read back bit for bit, and to leave the global
-  output format alone, which a second thread writing intervals meanwhile
-  checks (GAOL v5).
+- **`ieee1788`:** `gaol_ieee1788` as a program uses it, under
+  `using namespace gaol_ieee1788;` alone and with `gaol/gaol_expression.h`
+  included before `gaol/gaol`. Every name of the standard it provides is
+  called unqualified, which compiles only if none of them is ambiguous with a
+  function of `gaol_core`. `pow` has to be the standard's with an interval, an
+  `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
+  NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
+  and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
+  standard's too. GAOL's functions on intervals and on an interval and a
+  number; the functions of C on numbers, by `static_assert`.
+  `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
+  to leave the global output format alone, which a second thread writing
+  intervals meanwhile checks (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding

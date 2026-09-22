@@ -18,10 +18,8 @@ set(GAOL_TESTS
   numbers
   other_functions
   # gaol_ieee1788 under using namespace gaol_ieee1788 alone, as a program
-  # opens it (GAOL v5)
-  ieee1788_using_directive
-  # gaol_ieee1788 as a program uses it: pow, pown, GAOL's functions and
-  # intervalToExact(), in two threads (GAOL v5)
+  # opens it: pow, pown, the names of the standard and intervalToExact(), in
+  # two threads (GAOL v5)
   ieee1788
   reverse
   # The 128-bit integer GAOL computes the accurate phases of CORE-MATH with
