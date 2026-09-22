@@ -20,6 +20,9 @@ set(GAOL_TESTS
   # gaol_ieee1788 under using namespace gaol_ieee1788 alone, as a program
   # opens it (GAOL v5)
   ieee1788_using_directive
+  # gaol_ieee1788 as a program uses it: pow, pown, GAOL's functions and
+  # intervalToExact(), in two threads (GAOL v5)
+  ieee1788
   reverse
   # The 128-bit integer GAOL computes the accurate phases of CORE-MATH with
   # where the compiler has none, and the bounds CORE-MATH gives (GAOL v5)
@@ -41,6 +44,11 @@ foreach(test ${GAOL_TESTS})
   endif()
   add_test(NAME ${test} COMMAND gaol_test_${test})
 endforeach()
+
+# ieee1788 calls intervalToExact() in a thread of its own (std::thread), which
+# needs -pthread with the glibc before 2.34
+find_package(Threads REQUIRED)
+target_link_libraries(gaol_test_ieee1788 PRIVATE Threads::Threads)
 
 # The time per operation of GAOL and of the same operation on doubles, which
 # the continuous integration prints: not a test ctest runs

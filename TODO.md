@@ -78,6 +78,11 @@ says otherwise. The continuous integration is green again since 1436918.
    every later output in hexadecimal, and another thread printing meanwhile
    prints hexadecimal. Fix: a guard that sets the format back in its
    destructor, or writing the bounds without the global format.
+   **Done.** `exact_string(I)` (`gaol/gaol_interval.h`) writes the bounds
+   without the global format; `operator<<` in `interval_format::hexa` and
+   `intervalToExact()` call it. `tests/ieee1788.cpp` calls `intervalToExact()`
+   in one thread while another writes intervals in `interval_format::bounds`:
+   11422 of the 12680 intervals it wrote were in hexadecimal before.
 
 ## Tests and documentation
 

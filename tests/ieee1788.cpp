@@ -12,7 +12,9 @@
  * functions by using-declarations. pow takes an interval, an int or a double
  * as exponent, and has to be the pow of Table 9.1 for each, where GAOL's pow
  * takes pown for an integer exponent. The functions of C on numbers have to
- * remain those of C.
+ * remain those of C. intervalToExact() has to be exact_string(), and to leave
+ * the global output format alone, which another thread writing intervals
+ * meanwhile sees.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -25,7 +27,16 @@
 #include "gaol_tests.h"
 
 #include <cstdlib>
+#include <sstream>
+#include <string>
 #include <type_traits>
+
+// std::thread, which libstdc++ has only when built with a thread model
+#if !defined(__GLIBCXX__) || defined(_GLIBCXX_HAS_GTHREADS)
+#  include <atomic>
+#  include <thread>
+#  define GAOL_TESTS_THREADS 1
+#endif
 
 using namespace gaol_ieee1788;
 using gaol_tests::check;
@@ -119,6 +130,43 @@ namespace
           s.str() == gaol::exact_string(third) + " [empty]", [&] { return s.str(); });
     interval::format(saved);
   }
+
+#if GAOL_TESTS_THREADS
+  /*
+    intervalToExact() in one thread while another writes intervals in
+    interval_format::bounds: the other one has to write them in that format.
+    intervalToExact() switched the global output format to hexa and back,
+    which the other threads saw meanwhile (TODO.md, point 7).
+  */
+  void exact_text_in_another_thread()
+  {
+    const interval third(1.0 / 3.0, 2.0 / 3.0);
+    const gaol::interval_format::format_t saved = interval::format();
+    interval::format(gaol::interval_format::bounds);
+    std::atomic<bool> done(false);
+    std::thread exact_writer([&] {
+      for (int i = 0; i < 20000; ++i) {
+        (void)intervalToExact(third);
+      }
+      done = true;
+    });
+    long written = 0, in_hexa = 0;
+    std::string seen;
+    while (!done) {
+      std::ostringstream s;
+      s << third;
+      ++written;
+      if (s.str().find("0x") != std::string::npos) {
+        ++in_hexa;
+        seen = s.str();
+      }
+    }
+    exact_writer.join();
+    check("intervalToExact in one thread leaves the output format of the others", in_hexa == 0,
+          [&] { return std::to_string(in_hexa) + " of " + std::to_string(written) + " intervals written in hexa, " + seen; });
+    interval::format(saved);
+  }
+#endif
 }
 
 int main()
@@ -127,6 +175,9 @@ int main()
   pow_of_the_standard();
   gaol_functions();
   exact_text();
+#if GAOL_TESTS_THREADS
+  exact_text_in_another_thread();
+#endif
   const int status = gaol_tests::summary();
   gaol::cleanup();
   return status;

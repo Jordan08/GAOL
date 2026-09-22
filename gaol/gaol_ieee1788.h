@@ -397,19 +397,13 @@ namespace gaol_ieee1788 {
   }
 
   /*!
-    intervalToExact(x): operator<< in interval_format::hexa, whose bounds in
-    the hexadecimal-significand form exactToInterval() reads back bit for bit
-    (13.4). The format GAOL was in is set back.
+    intervalToExact(x): exact_string(x), what operator<< writes in
+    interval_format::hexa, whose bounds in the hexadecimal-significand form
+    exactToInterval() reads back bit for bit (13.4). It leaves the global
+    output format alone: switching it to hexa and back left it in hexa if the
+    output threw, and showed it to the other threads meanwhile.
   */
-  inline std::string intervalToExact(const interval& x)
-  {
-    const ::gaol_core::interval_format::format_t saved = interval::format();
-    interval::format(::gaol_core::interval_format::hexa);
-    std::ostringstream s;
-    s << x;
-    interval::format(saved);
-    return s.str();
-  }
+  inline std::string intervalToExact(const interval& x) { return ::gaol_core::exact_string(x); }
 
   //! exactToInterval(s): textToInterval(s)
   inline interval exactToInterval(const std::string& s) { return textToInterval(s); }

@@ -89,7 +89,9 @@ where it comes from.
     failing its readability test. The bounds are written in the
     hexadecimal-significand form instead (`[0x1.999999999999ap-4, ...]`), which
     the lexer already read. The decimal formats, and the default one, are
-    unchanged.
+    unchanged. `exact_string(I)` gives that text without the global output
+    format, and `gaol_ieee1788::intervalToExact()` is it: switching the format
+    to hexa and back, it showed hexa to the other threads meanwhile.
   - **The reader of strings takes the new names.** `interval("...")` reads
     `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions GAOL
     already had, in the direct grammar and in the tree of
