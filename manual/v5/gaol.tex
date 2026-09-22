@@ -2999,70 +2999,66 @@ A string to be translated into an interval must have the following
 syntax (with terminals in lower case and non-terminals in slanted upper case):
 
 \begin{Verbatim}[commandchars=\@\^\~,fontsize=\small]
-@NT^itv_expr~
-        : @NT^parsed_interval~
-	| @NT^itv_expr~ @TM^+~ @NT^itv_expr~
-	| @NT^itv_expr~ @TM^-~ @NT^itv_expr~
-	| @NT^itv_expr~ @TM^*~ @NT^itv_expr~
-	| @NT^itv_expr~ @TM^/~ @NT^itv_expr~
-	| @TM^-~ @NT^itv_expr~
-	| @TM^+~ @NT^itv_expr~
-	| @NT^function_call~ @rem^@hfill// Of itv_expr arguments~
-	| @TM^(~ @NT^itv_expr~ @TM^)~
-	;
-
-@NT^parsed_interval~
-	: @NT^expression~
-	| @TM^empty~ @rem^@hfill// Empty interval~
-	| @NT^uncertain_number~
-	| [ @NT^expression~ ]
-	| [ @NT^expression~ @TM^,~ @NT^expression~ ]
-	| [ @NT^expression~ @TM^,~ ] @rem^@hfill// Right bound +@ensuremath^@infty~~
-	| [ @TM^,~ @NT^expression~ ] @rem^@hfill// Left bound -@ensuremath^@infty~~
-	| [ @TM^,~ ] @rem^@hfill// Entire real line~
-	| [ @TM^entire~ ] @rem^@hfill// Entire real line~
-	| [ @TM^empty~ ] @rem^@hfill// Empty interval~
-	| [ ] @rem^@hfill// Empty interval~
-	| < @NT^expression~ @TM^,~ @NT^expression~ >
-	;
-
-@NT^expression~
+@NT^expr~
 	: @NT^number~
+	| @NT^uncertain_number~ @rem^@hfill// An interval literal, never a bound~
+	| @NT^literal~
 	| @TM^dmin~  @rem^@hfill// Smallest positive normal floating-point number~
 	| @TM^dmax~ @rem^@hfill// Largest positive floating-point number~
 	| @TM^pi~
 	| @TM^inf~ @rem^@hfill// Floating-point positive ``infinity''~
 	| @TM^infinity~ @rem^@hfill// The same~
-	| @NT^expression~ + @NT^expression~
-	| @NT^expression~ - @NT^expression~
-	| @NT^expression~ * @NT^expression~
-	| @NT^expression~ / @NT^expression~
-	| - @NT^expression~
-	| + @NT^expression~
-	| @NT^function_call~ @rem^@hfill// Of expression arguments~
-	| @TM^(~ @NT^expression~ @TM^)~
+	| @TM^empty~ @rem^@hfill// Empty interval~
+	| @NT^expr~ @TM^+~ @NT^expr~
+	| @NT^expr~ @TM^-~ @NT^expr~
+	| @NT^expr~ @TM^*~ @NT^expr~
+	| @NT^expr~ @TM^/~ @NT^expr~
+	| @TM^-~ @NT^expr~
+	| @TM^+~ @NT^expr~
+	| @NT^function_call~
+	| @TM^(~ @NT^expr~ @TM^)~
+	;
+
+@NT^literal~
+	: [ @NT^expr~ ]
+	| [ @NT^expr~ @TM^,~ @NT^expr~ ]
+	| [ @NT^expr~ @TM^,~ ] @rem^@hfill// Right bound +@ensuremath^@infty~~
+	| [ @TM^,~ @NT^expr~ ] @rem^@hfill// Left bound -@ensuremath^@infty~~
+	| [ @TM^,~ ] @rem^@hfill// Entire real line~
+	| [ @TM^entire~ ] @rem^@hfill// Entire real line~
+	| [ ] @rem^@hfill// Empty interval~
+	| < @NT^expr~ @TM^,~ @NT^expr~ >
 	;
 
 @NT^function_call~
-	: @TM^cos~ @TM^(~ @NT^arg~ @TM^)~   | @TM^sin~ @TM^(~ @NT^arg~ @TM^)~   | @TM^tan~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^acos~ @TM^(~ @NT^arg~ @TM^)~  | @TM^asin~ @TM^(~ @NT^arg~ @TM^)~  | @TM^atan~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^atan2~ @TM^(~ @NT^arg~ @TM^,~ @NT^arg~ @TM^)~
-	| @TM^cosh~ @TM^(~ @NT^arg~ @TM^)~  | @TM^sinh~ @TM^(~ @NT^arg~ @TM^)~  | @TM^tanh~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^acosh~ @TM^(~ @NT^arg~ @TM^)~ | @TM^asinh~ @TM^(~ @NT^arg~ @TM^)~ | @TM^atanh~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^exp~ @TM^(~ @NT^arg~ @TM^)~   | @TM^exp2~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^log~ @TM^(~ @NT^arg~ @TM^)~   | @TM^log2~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^pow~ @TM^(~ @NT^arg~ @TM^,~ @NT^arg~ @TM^)~
-	| @TM^sqrt~ @TM^(~ @NT^arg~ @TM^)~  | @TM^cbrt~ @TM^(~ @NT^arg~ @TM^)~
-	| @TM^nth_root~ @TM^(~ @NT^arg~ @TM^,~ @NT^arg~ @TM^)~
-	| @TM^sign~ @TM^(~ @NT^arg~ @TM^)~  | @TM^trunc~ @TM^(~ @NT^arg~ @TM^)~
+	: @TM^cos~ @TM^(~ @NT^expr~ @TM^)~   | @TM^sin~ @TM^(~ @NT^expr~ @TM^)~   | @TM^tan~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^acos~ @TM^(~ @NT^expr~ @TM^)~  | @TM^asin~ @TM^(~ @NT^expr~ @TM^)~  | @TM^atan~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^atan2~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
+	| @TM^cosh~ @TM^(~ @NT^expr~ @TM^)~  | @TM^sinh~ @TM^(~ @NT^expr~ @TM^)~  | @TM^tanh~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^acosh~ @TM^(~ @NT^expr~ @TM^)~ | @TM^asinh~ @TM^(~ @NT^expr~ @TM^)~ | @TM^atanh~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^exp~ @TM^(~ @NT^expr~ @TM^)~   | @TM^exp2~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^log~ @TM^(~ @NT^expr~ @TM^)~   | @TM^log2~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^pow~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
+	| @TM^sqrt~ @TM^(~ @NT^expr~ @TM^)~  | @TM^cbrt~ @TM^(~ @NT^expr~ @TM^)~
+	| @TM^nth_root~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
+	| @TM^sign~ @TM^(~ @NT^expr~ @TM^)~  | @TM^trunc~ @TM^(~ @NT^expr~ @TM^)~
 	;
 \end{Verbatim}
 
 \noindent
-Spaces are not significant except in numbers, and the case of letters is
-ignored, as IEEE 1788-2015 has it for its literals: \code{[Empty]},
-\code{[1, Inf]}, \code{SIN(1)} and \code{1E3} are read.\newinvfive{} The
-``$+$'' sign before numbers and \code{inf} is optional.
+Every string is an expression, computed with interval arithmetic: the
+literals of intervals, the numbers, the constants and the functions combine
+with the operators in any order, and a literal stands wherever a number may,
+in a bound too.\newinvfive{} \code{1+[1,2]}, \code{2*cos([0,1])} and
+\code{[cos([0,1]), 2]} are read. GAOL~4 read a string with two grammars, one
+for the intervals between brackets and one for the numbers, and refused
+\code{1+[1,2]} and \code{[1,2]+1+[1,2]} while it read \code{[1,2]*2}.
+\code{[empty]} is the form \code{[\NT{expr}]} of the expression \code{empty}.
+
+Spaces, tabs and newlines are not significant except in numbers, and the
+case of letters is ignored, as IEEE 1788-2015 has it for its literals:
+\code{[Empty]}, \code{[1, Inf]}, \code{SIN(1)} and \code{1E3} are
+read.\newinvfive{} The ``$+$'' sign before numbers and \code{inf} is optional.
 
 \paragraph{Numbers.} A \NT{number} is written in decimal, with an optional point
 and exponent (\code{12}, \code{0.1}, \code{1e-3}), or in hexadecimal, with a
@@ -3080,21 +3076,26 @@ last digit (half a unit when it is left out, and an infinite radius for a
 second \code{?}), an optional direction, \code{u} or \code{d}, which keeps only
 the radius above or below, and an optional exponent: \code{3.56?1} is
 \itv{3.55}{3.57}, \code{3.56?1e2} is \itv{355}{357}, and \code{-10??u} is
-\itv{-10}{+\infty}.\newinvfive
+\itv{-10}{+\infty}.\newinvfive{} It is an interval literal of its own, not a
+bound: \code{"[5?1]"} and \code{"[1, 3.56?1]"} throw \code{input\_format\_error},
+as IEEE 1788-2015 has it (12.11.4), while \code{"3.56?1*2"} is
+\itv{7.1}{7.14}.
 
 \paragraph{Functions.} The functions are those of GAOL of the same names;
 \code{pow} is the \code{pow} of the namespace \code{gaol} (\pxref{sec:powers}),
 \code{cbrt(x)} is \code{nth\_root(x,3)}, as \code{sqrt(x)} is
 \code{nth\_root(x,2)}. The second argument of \code{nth\_root} shall be a point
 interval that can be evaluated as an integer, negative ones included; otherwise,
-an exception is thrown (or an error is reported, depending on whether exceptions
-were enabled or not at configuration time---\pxref{sec:configuration}).
+an \element{invalid\_action\_error} exception is thrown (or an error is
+reported, depending on whether exceptions were enabled or not at configuration
+time---\pxref{sec:configuration}).
 \code{exp2}, \code{log2}, \code{cbrt}, \code{sign} and \code{trunc} are read
 since GAOL v5.
 
 \paragraph{Bounds.} The notations "$n$" and "[$n$]" are equivalent. Expressions
-in bounds are evaluated using interval arithmetic; the left (resp. right) bound
-is then used, depending on the side it appeared in. A bound left out is
+in bounds are evaluated using interval arithmetic, intervals included; the left
+(resp. right) bound of the result is then used, depending on the side it
+appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
@@ -3107,6 +3108,11 @@ empty.\newinvfive{} The expression \code{"inf"} alone is still
 \itv{\text{MAX}}{+\infty}, and \code{"-inf"} \itv{-\infty}{-\text{MAX}}
 (\pxref{par:inf_inf_note}).
 
+\paragraph{Errors.} A string that is not an expression throws
+\element{input\_format\_error}. An error found anywhere in the string stops the
+reading, and no interval is given: \code{"[nth\_root(8,1.5)]+[1,2]"} throws,
+where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive
+
 \begin{example}
 interval x("[4, 6*7]");
 interval y("[-inf, dmax]");
@@ -3118,6 +3124,9 @@ cout << interval("[1,]") << ' ' << interval("[ ]") << ' '
 cout << interval("[0x1.3p-1, 2/3]") << ' '
      << interval("3.56?1") << endl;
 @outputs^[0.59375, 0.6666666666666668] [3.549999999999999, 3.570000000000001]~
+cout << interval("1+[1,2]") << ' '
+     << interval("[cos([0,1]), 2]") << endl;
+@outputs^[2, 3] [0.5403023058681396, 2]~
 \end{example}
 
 \section{Writing intervals}\label{sec:writing}
@@ -4372,7 +4381,9 @@ change with its reasons and its measures.
   infinite bound as beyond itself (\pxref{sec:interval-relations}).
 \item \textbf{Input and output.} Numbers are read exactly, and the literals of
   IEEE 1788-2015 are read, in any case of letters; \code{"[inf]"} is the empty
-  set. The format \code{hexa} writes interval literals, which are read back bit
+  set. Every string is an expression, where an interval may stand wherever a
+  number may (\code{"1+[1,2]"}), an uncertain number being no bound
+  (\code{"[5?1]"} is refused), and an error anywhere stops the reading. The format \code{hexa} writes interval literals, which are read back bit
   for bit; the decimal formats round the bounds outward whatever the C
   library, and the format \code{agreeing} keeps the digits of each bound
   (Chapter~\ref{chap:io}).

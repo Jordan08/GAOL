@@ -160,14 +160,20 @@ Codac.
   numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
   the strings the parser has to refuse with an exception rather than an
-  interval. The names GAOL v5 adds — `exp2`, `log2`, `cbrt`, `sign` and
-  `trunc` — are read by both paths of the grammar, the direct one and the tree
-  of `gaol/gaol_expression.h` that the bounds given apart go through, in any
-  case of letters, the lexer taking the longest name so that `exp2` is not read
-  as `exp` followed by 2. A negative exponent of `nth_root` has to give the
-  root of C++, 1/x<sup>1/|q|</sup>, by both paths: the reader converted it to
-  an unsigned int (GAOL v5). The expressions built in C++ go through every node
-  too, `pow(e, 3)` included, which did not link. Each value is compared with the same computation written in C++,
+  interval. Every string being an expression, the intervals have to be read
+  wherever a number may stand, after a number and in a bound (`1+[1,2]`,
+  `[1,2]+1+[1,2]`, `[cos([0,1]), 2]`), which the two grammars of GAOL refused,
+  a newline as a space, and an error anywhere to stop the reading
+  (`[nth_root(8,1.5)]+[1,2]` gave `[-oo, +oo]`); `pow(2,-1050)` has to be
+  `gaol::pow`, whose power the reader computed as an inverse that overflowed
+  (GAOL v5). The names GAOL v5 adds — `exp2`, `log2`, `cbrt`, `sign` and
+  `trunc` — are read alone and in bounds, in any case of letters, the lexer
+  taking the longest name so that `exp2` is not read as `exp` followed by 2.
+  A negative exponent of `nth_root` has to give the root of C++,
+  1/x<sup>1/|q|</sup>, alone and in a bound: the reader converted it to an
+  unsigned int (GAOL v5). The expressions built in C++ go through every node
+  too, `pow(e, 3)` included, which did not link, and have to be printed as
+  written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,

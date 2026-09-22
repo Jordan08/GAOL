@@ -592,6 +592,37 @@ where it comes from.
     `pow()` for an exponent it cannot use, which later expressions still
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
     Both now throw `input_format_error`.
+- **One grammar reads every string as an expression**
+  (`gaol/gaol_interval_parser.ypp`).
+  - **Before.** GAOL read a string with two grammars: the numbers, the
+    constants and the functions of them built the tree of
+    `gaol/gaol_expression.h`, while the intervals written between brackets,
+    and the operations on them, were computed at once. Bison chose between the
+    two at each token (124 shift/reduce and 14 reduce/reduce conflicts): once
+    a number had started the tree, no interval could come, and `1+[1,2]`,
+    `2*cos([0,1])` and `[1,2]+1+[1,2]` were refused while `[1,2]*2` was read,
+    as was an interval in a bound, `[cos([0,1]), 2]`. Each literal set the flag
+    of success, which the next one set again: `[nth_root(8,1.5)]+[1,2]` gave
+    `[-oo, +oo]` rather than an error.
+  - **Now.** The literals of intervals, the uncertain numbers, `empty` and
+    `<a,b>` are leaves of the tree, computed when they are read, and the
+    operators and the functions are nodes over any expression. The grammar has
+    no conflict, and an error found in an action stops the reading at once. An
+    uncertain number is still no bound of a literal: `[5?1]` and `[1, 3.56?1]`
+    throw `input_format_error`, IEEE 1788-2015 giving `[5?1]` as a string that
+    is not an interval literal (12.11.4).
+  - **`pow(x, n)`** is the `pow` of `gaol` for an integer exponent too: the
+    parser took 1/x<sup>|n|</sup> for n < 0, whose x<sup>|n|</sup>
+    overflowed (`pow(2,-1050)` was `[0, 5.6e-309]` rather than
+    `[2^-1050]`), and 1 for n = 0, which is no value for an empty x.
+  - **A newline is a space.** It fell to the default rule of flex, which wrote
+    it on the standard output and read on.
+  - **Expressions are printed as written**: a division with `/`, where GAOL
+    wrote `*` (`x/(y*z)` was printed `x*(y*z)`), and a negative number within
+    the parentheses a power of it needs (`(-2)^2` was printed `-2^2`).
+  - **Tests.** `tests/expressions.cpp` reads the strings GAOL refused, checks
+    that an error anywhere stops the reading, and prints both expressions; 9 of
+    its checks fail with the two grammars.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL

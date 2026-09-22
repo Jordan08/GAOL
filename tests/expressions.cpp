@@ -144,6 +144,23 @@ namespace
     same("[1,2]/[3,4]/[1,2]", interval(1.0, 2.0) / interval(3.0, 4.0) / interval(1.0, 2.0));
     // a division by an interval holding 0
     same("[1,2]/[-1,1]", interval(1.0, 2.0) / interval(-1.0, 1.0));
+    /* Every string is an expression, the intervals among its terms (GAOL v5):
+       with two grammars, GAOL refused an interval after a number, and one in
+       a bound, but read [1,2]*2 */
+    same("1+[1,2]", interval(1.0) + interval(1.0, 2.0));
+    same("2*cos([0,1])", 2.0 * cos(interval(0.0, 1.0)));
+    same("[1,2]+1+[1,2]", interval(1.0, 2.0) + interval(1.0) + interval(1.0, 2.0));
+    same("[1,2]*2", interval(1.0, 2.0) * 2.0);
+    same("[cos([0,1]), 2]", interval(cos(interval(0.0, 1.0)).left(), 2.0));
+    same("[[1,2], 3]", interval(1.0, 3.0));
+    same("3.56?1*2", interval("3.56?1") * 2.0);
+    // a newline is a space: flex wrote it on the standard output (GAOL v5)
+    same("[1,2]\n+[3,4]", interval(1.0, 2.0) + interval(3.0, 4.0));
+    same("1 +\n 2", interval(3.0));
+    /* pow(x, n) is gaol::pow for a negative n too: the parser took 1/x^|n|,
+       whose x^|n| overflowed, and [0, 5.6e-309] for 2^-1050 (GAOL v5) */
+    same("pow(2,-1050)", pow(interval(2.0), -1050));
+    same("pow([-4,-1],2)", pow(interval(-4.0, -1.0), 2));
   }
 
   void functions()
@@ -172,7 +189,7 @@ namespace
        1/x^(1/|q|), as nth_root(x, q) computes it in C++: the parser converted
        it to an unsigned int, and nth_root(16, -2) was the 4294967294-th root of
        16, [1.000000000645543, 1.000000000645544] rather than [0.25] (GAOL v5).
-       The direct path, then the tree the bounds given apart go through. */
+       Alone, then in the bounds of a literal. */
     same("nth_root(16,-2)", interval(0.25, 0.25));
     same("nth_root([4,16],-2)", nth_root(interval(4.0, 16.0), -2));
     same("nth_root([-8,27],-3)", nth_root(interval(-8.0, 27.0), -3));
@@ -193,8 +210,7 @@ namespace
     // the letters may be in any case, as for every other name
     same("EXP2([1,2])", exp2(interval(1.0, 2.0)));
     same("Trunc([-1.5,2.7])", trunc(interval(-1.5, 2.7)));
-    /* The same names through the tree of gaol/gaol_expression.h, which the
-       bounds given apart go through, rather than through the direct path */
+    // The same names in the bounds of a literal
     same("[exp2(1), exp2(2)]", interval(2.0, 4.0));
     same("[log2(1), log2(8)]", interval(0.0, 3.0));
     same("[cbrt(1), cbrt(8)]", interval(1.0, 2.0));
@@ -241,6 +257,10 @@ namespace
     refused("[1,2]^3");        // the parser has no power operator
     refused("abs([-2,1])");    // nor abs
     refused("atan2([1,2])");   // atan2 takes two arguments
+    /* An error stops the reading: each literal set the flag of success again,
+       and this string gave [-oo, +oo] (GAOL v5) */
+    refused("[nth_root(8,1.5)]+[1,2]");
+    refused("[1,2]+[nth_root(8,1.5)]");
   }
 
   /* Many decimal intervals, whose bounds are no doubles: the interval read has
@@ -384,6 +404,19 @@ namespace
             o << got << " rather than " << expected;
             return o.str();
           });
+
+    /* Printed as written (GAOL v5): the division was printed with '*', and a
+       negative number without the parentheses a power of it needs */
+    {
+      const expression z = expression(interval(5.0, 6.0));
+      std::ostringstream quotient, power;
+      quotient << x / (y * z);
+      power << pow(expression(-2.0), 2);
+      check("built expression: printed as written, x/(y*z)",
+            quotient.str() == "[1, 2]/([3, 4]*[5, 6])", [&] { return quotient.str(); });
+      check("built expression: printed as written, (-2)^2",
+            power.str() == "(-2)^2", [&] { return power.str(); });
+    }
 
     // the empty expression, whose evaluation is an error
     expression empty;
