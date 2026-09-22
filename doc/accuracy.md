@@ -55,8 +55,8 @@ headers compiled with the flags of interval arithmetic (see
 whatever the rounding direction the calling code left
 (`tests/rounding_direction.cpp`). They hold on every architecture and with
 every compiler alike, CORE-MATH giving the same bits everywhere: there is no
-other mathematical library to build GAOL with (mathlib, CRlibm and the math
-library of the system are gone, see [What differs from GAOL](differences.md)). The float intervals `gaol::intervalf` and `gaol::interval2f`,
+other mathematical library to build GAOL with (see
+[What differs from GAOL](differences.md)). The float intervals `gaol::intervalf` and `gaol::interval2f`,
 off by default and unfinished, are not covered.
 
 ## Basic operations (Table 9.1): tightest required
@@ -113,7 +113,8 @@ Every elementary function above is that of
 functions from the libm of the system, whose values are sometimes further than
 one double from the exact ones, and millions of doubles away for the `acosh` of
 some ([issue #1](https://github.com/Jordan08/GAOL/issues/1)), and the others
-from mathlib, correctly rounded to nearest only.
+from a library correctly rounded to nearest only, whose values it moved one
+double outward.
 
 ## Recommended functions (Table 10.5)
 

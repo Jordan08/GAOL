@@ -15,9 +15,8 @@ in the rounding direction in effect. It is distributed under the MIT licence
 
 GAOL bounds **every one of its elementary functions** with them, on every
 architecture and with every compiler, and they are the only mathematical
-library it uses: mathlib (the IBM Accurate Portable Mathematical Library),
-CRlibm and the math library of the system, which GAOL could be built with, are
-gone (see [What differs from GAOL](../doc/differences.md)).
+library it uses: the other libraries GAOL could be built with are gone (see
+[What differs from GAOL](../doc/differences.md)).
 
 | | |
 | --- | --- |

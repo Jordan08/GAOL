@@ -12,20 +12,19 @@ where it comes from.
   [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**, on every architecture
   and with every compiler, and it is the only mathematical library GAOL uses
   (`3rd/math-core`, see [3rd/README.md](../3rd/README.md)):
-  - mathlib (the IBM Accurate Portable Mathematical Library), CRlibm and the
-    math library of the system are gone, with `3rd/mathlib`,
-    `gaol/gaol_double_op_{apmathlib,crlibm,m}.h` and the scripts that installed
-    them, and so are `--with-mathlib` and its two companions: there is nothing
-    to choose, to find, to build apart or to link along with GAOL, whose
-    library holds the functions.
+  - The other mathematical libraries GAOL could be built with are gone, with
+    their sources, their headers and the scripts that installed them, and so
+    are the options of the builds that chose one: there is nothing to choose,
+    to find, to build apart or to link along with GAOL, whose library holds
+    the functions.
   - The bounds are **the tightest ones** rather than one double beyond.
     CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
     takes the value at a bound, computed in the upward rounding it keeps, as
-    the upper bound, and the double below it as the lower one: mathlib was
-    correctly rounded to nearest only, so each bound had to be moved one double
-    outward, and the direction had to be set to nearest and back around every
-    call. On an Intel i7-1185G7 with Clang 18, the bounds of `log` took 30 ns
-    rather than 62 (see [Accuracy of the operations](accuracy.md)).
+    the upper bound, and the double below it as the lower one: GAOL 4 took
+    values correctly rounded to nearest only, so each bound had to be moved one
+    double outward, and the direction had to be set to nearest and back around
+    every call. On an Intel i7-1185G7 with Clang 18, the bounds of `log` took
+    30 ns rather than 62 (see [Accuracy of the operations](accuracy.md)).
   - The accurate phases of `log`, `sin`, `cos`, `tan`, `atan2` and `pow`
     compute with a 128-bit integer, which Visual C++ has on no architecture and
     GCC has on no 32-bit target: `gaol/gaol_u128.h` gives them the type of the
@@ -35,10 +34,10 @@ where it comes from.
     arguments in the four rounding directions, and give the same bits;
     `tests/u128.cpp` compares the halves with `unsigned __int128`, and a job of
     the continuous integration builds the whole of GAOL with the halves forced.
-  - mingw-w64 is no longer refused for its version. The two reasons went with
-    mathlib: the hyperbolic functions of its math library, which GAOL no longer
-    uses, and the cost of its `fesetround()`, which GAOL no longer calls for
-    its elementary functions. MinGW-w64 GCC 12 to 15 are built and tested again
+  - mingw-w64 is no longer refused for its version. Both reasons are gone: the
+    hyperbolic functions of its math library, which GAOL no longer uses, and
+    the cost of its `fesetround()`, which GAOL no longer calls for its
+    elementary functions. MinGW-w64 GCC 12 to 15 are built and tested again
     on 32-bit x86, and 14 and 15 on x86-64; only those whose `<fenv.h>` answers
     `fegetround()` from a state of its own are still refused, CORE-MATH's
     functions reading it to know the direction GAOL sets by writing the
@@ -132,8 +131,8 @@ where it comes from.
     `gaol/gaol_version_msvc.h` include the generated configuration.
   - `get_fpu_cw()` and `reset_fpu_cw()` save the rounding direction with
     `<fenv.h>` where the control word of `fenv_t` is not known.
-  - `_MATHLIB_DLL_` is only defined when not already, and Visual C++ gets the
-    `<fenv.h>` version of `get_inexact()` and `clear_inexact()`.
+  - Visual C++ gets the `<fenv.h>` version of `get_inexact()` and
+    `clear_inexact()`.
 - **The rounding direction** is set upward by each operation when it is not,
   in every build. Built with CMake, GAOL set it once, in `gaol::init()`, and
   computed in the direction the calling code left: rounding to nearest,
@@ -179,9 +178,9 @@ where it comes from.
   rather than through `fesetround()`, which cost 130 ns per call with
   mingw-w64 13, 50 ns with the C runtime of Visual C++ for x64 and 250 ns for
   x86, 8.5 ns with glibc. GAOL changed the direction four times for each
-  elementary function of an interval (to nearest before mathlib and upward
-  after, for each bound; twice now, see below), where mathlib itself takes
-  about 10 ns. On the
+  elementary function of an interval (to nearest before the math library and
+  upward after, for each bound), where the math library itself took about
+  10 ns; it no longer changes it there, CORE-MATH computing upward. On the
   runners of the continuous integration, `exp()`, `log()`, `sin()` and `cos()`
   of an interval took 535 to 630 ns with MinGW-w64 and MSYS2, and take 48 to
   209 ns; 250 to 340 ns with Visual C++ for x64, and 45 to 160 ns; 1050 to
@@ -277,12 +276,11 @@ where it comes from.
   common characters stops at the end of the shorter text.
 - **Hyperbolic functions:** `sinh`, `cosh`, `tanh`, `asinh`, `acosh` and
   `atanh` are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
-  correctly rounded, whose value rounded to nearest is moved one double
-  outward, as for the functions of mathlib
+  correctly rounded upward, as the other elementary functions
   ([issue #1](https://github.com/Jordan08/GAOL/issues/1)): the bounds are
-  within one double of the tightest, on every system.
-  - **Before.** GAOL took them from the libm of the system, mathlib having
-    none, and moved their values one float outward. The libms of glibc 2.31,
+  the tightest, on every system.
+  - **Before.** GAOL took them from the libm of the system, and moved their
+    values one float outward. The libms of glibc 2.31,
     musl and MinGW-w64 are sometimes a float further, which gave bounds not
     enclosing the exact values. GAOL v5 first moved them three floats
     outward, which holds as long as the libm is within two floats of the exact
@@ -298,7 +296,8 @@ where it comes from.
     of them by the compiler: [3rd/README.md](../3rd/README.md) lists what that
     header gives and the two changes the vendored sources carry.
   - **Tightness and time** (Intel i7-1185G7, GCC 9.4, glibc 2.31), per
-    interval: within 1 double rather than 3 or 4; `sinh()` 84 ns rather than
+    interval, with the values of CORE-MATH rounded to nearest and moved one
+    double outward, as they first were: within 1 double rather than 3 or 4; `sinh()` 84 ns rather than
     131, `cosh()` 76 rather than 77, `tanh()` 105 rather than 127, `asinh()`
     86 rather than 108, `acosh()` 83 rather than 99, `atanh()` 86 rather than
     128: three calls of `nextafter()` less for each bound.
@@ -326,9 +325,8 @@ where it comes from.
   increases with y for x > 1 and decreases for x < 1, increases with x for
   y > 0 and decreases for y < 0: over a box of bases above 0 its extrema are
   at corners, which the places of the bounds about 1 and 0 give, and the pow
-  of the mathematical library (mathlib's `upow()`, correctly rounded, which
-  `nth_root()` used already) is taken there and moved one double outward;
-  a base from 0 with exponents above 0 has 0 for lower bound.
+  of CORE-MATH, correctly rounded upward, is taken there; a base from 0 with
+  exponents above 0 has 0 for lower bound.
   - **Before.** `exp(J*log(I))` multiplied the relative width of `log(I)`, a
     few 2^-52, by |y log x|: `pow([2], [1023.5])` was 1425 doubles below the
     exact value and 748 above. It is kept where a bound is infinite, or for
@@ -337,10 +335,6 @@ where it comes from.
     (GCC 9.4), for bounds 16 times closer to the tightest: over the million
     powers of the benchmark of `doc/compare`, its intervals are 3.6e-15 wider
     than the tightest relatively, against 5.9e-14.
-  - **Checked.** `upow()` was compared with mpmath at 240000 arguments,
-    results near the overflow, subnormal results, bases next to 1 with large
-    exponents, and exact powers with their neighbouring doubles, which take
-    its slow path, included: all correctly rounded.
 - **Integer powers are computed from exact products** (issue #7): `pow(x, n)`,
   for an `int` or an `unsigned` n, gives the tightest bounds for n ≥ 3, where
   GAOL rounded each product of its binary exponentiation outward and was up to
@@ -403,8 +397,8 @@ where it comes from.
     GCC 9.4).
 - **`sin()`** is computed as `cos()` is: the bounds of the interval divided by
   an enclosure of π, minus 1/2, tell the pieces where the sine is monotonic,
-  and mathlib's sine is taken at the bounds, moved one double outward. GAOL
-  computed `cos(x - [pi/2])`, whose subtraction widened the argument by about
+  and the sine of CORE-MATH is taken at the bounds, correctly rounded upward.
+  GAOL computed `cos(x - [pi/2])`, whose subtraction widened the argument by about
   2^-52 max(2, |x|): `sin([1e-10])` was 4.4e-16 wide, billions of doubles,
   `sin([1, 2])` two doubles wider than the tightest, and `sin()` was not
   accurate in the sense of IEEE 1788-2015 (12.10.1). The bounds of `sin()` and
@@ -418,7 +412,7 @@ where it comes from.
   `cos([2^60])` was `[-1, 1]`, and `tan()` gave `[-oo, +oo]` next to a pole, as
   for the double below π/2, whose tangent is `0x1.9153d9443ed0bp+51`, and
   beyond 2^52.
-  - **The signs of the derivative.** mathlib being correctly rounded, and no
+  - **The signs of the derivative.** CORE-MATH being correctly rounded, and no
     double but 0 being a multiple of π/2 (the closest has a cosine of 4.7e-19),
     the signs of its sine and cosine are the exact ones. For an interval
     narrower than 2π, the derivative has at most two zeros within it: signs
@@ -469,10 +463,8 @@ where it comes from.
   and its parser read it, but it raised `unavailable_feature_error`.
   - **Algorithm.** In each quadrant the angle is monotonic in y and in x: its
     least and greatest values over a box are at two of its corners, which the
-    signs of the bounds give, and mathlib's `uatan2()`, correctly rounded, is
-    taken there and moved one double outward. With CRlibm, which has no
-    atan2, and with the math library of the system, the `atan2()` of the
-    libm is taken, moved outward as the hyperbolic functions are.
+    signs of the bounds give, and the atan2 of CORE-MATH, correctly rounded
+    upward, is taken there.
   - **Special cases.** A box with points on the half-line y = 0, x < 0, where
     the angle is π, and points below it, whose angles are next to −π, gives
     `[-pi, pi]`; `atan2([0], [0])` is empty; a corner on an axis, on a
@@ -481,8 +473,8 @@ where it comes from.
     `atan2([1, +oo], [1, +oo])` is `[0, pi/2]`.
   - **Time.** 100 ns on an Intel i7-1185G7 (GCC 9.4) for boxes within a
     quadrant, against 68 ns for `atan()`.
-- **`exp(0)` = 1 and `log(1)` = 0 exactly**, the bounds of mathlib moved one
-  double outward giving `exp([0])` and `log([1])` a width: `log([0, 1])` was
+- **`exp(0)` = 1 and `log(1)` = 0 exactly**, the bounds moved one double
+  outward giving `exp([0])` and `log([1])` a width: `log([0, 1])` was
   `[-oo, 2^-1074]`, and `pow([1], [-oo, +oo])`, exp(y log 1), was `[0, +oo]`
   rather than `[1]`, and `pow([0, 1], [1, +oo])` `[0, +oo]` rather than
   `[0, 1]`. On an Intel i7-1185G7 (GCC 9.4), `log()` takes 1.5 ns more
@@ -494,8 +486,8 @@ where it comes from.
   and `atanh(0)` are 0, `cos(0)` and `cosh(0)` 1, `acos(1)` and `acosh(1)` 0,
   the n-th roots of 0, 1 and −1 are themselves, and `asin(±1)`, `acos(0)`,
   `acos(-1)`, `atan(±1)` and `atan(±oo)` are the tightest enclosures of ±π/2,
-  π and ±π/4, the constants of GAOL. The values of mathlib moved one double
-  outward gave these intervals a width: `acos([1, 3])` was
+  π and ±π/4, the constants of GAOL. The values moved one double outward
+  gave these intervals a width: `acos([1, 3])` was
   `[-2^-1074, 2^-1074]`, `acos(-1)` one double wider than the tightest, and
   `nth_root([1], 3)` `[1 - 2^-53, 1 + 2^-52]`; those of the libm moved three
   doubles, `acosh([1])` and `sinh([0])` `[-3·2^-1074, 3·2^-1074]`. `cosh()`
@@ -513,20 +505,6 @@ where it comes from.
   `[2^-1050]`, and `pow([-2, 2], -1050)` `[0, +oo]` rather than
   `[2^-1050, +oo]`. Elsewhere `1/x^n` is kept, exact where `x^n` is exact, and
   `pow(x, -3)` takes 0.8 ns more (14.6 ns rather than 13.8).
-- **The rounding direction is set once for both bounds** of an elementary
-  function: `exp()`, `log()`, `sin()`, `cos()`, `tan()`, `asin()`, `acos()`,
-  `atan()`, the hyperbolic functions and `nth_root()` set it to nearest
-  before evaluating the mathematical library at both bounds, and upward
-  after (`GAOL_RND_NEAREST_ENTER()`, with the functions of `gaol::nearest`),
-  rather than around each bound. The bounds are the same, and `exp_dn()`,
-  `cos_up()` and the like still set the direction themselves. On an Intel
-  i7-1185G7 (GCC 9.4, glibc 2.31), `sin()` and `cos()` take 113 and 114 ns
-  rather than 124 and 126, `tan()` 106 ns rather than 120, the hyperbolic
-  functions 9 to 12 ns less, `exp()` 47 ns rather than 53, `log()` 69 ns
-  rather than 73, and `pow(x, y)` 129 ns rather than 147. With the math
-  library of the system (`--with-mathlib=m`), the elementary functions left
-  the direction to nearest, and so did `cosh_up()` with CRlibm, where GAOL
-  leaves it upward: they leave it upward too.
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
@@ -558,20 +536,6 @@ where it comes from.
   `[-2, -1]`, was `[-2, 2]` rather than the empty set, and
   `invabs_rel([-2, 0], [-10, 10])` `[-2, 2]` rather than `[0]`. The function
   is otherwise the same: the bounds of J, of −J and of I, hence tightest.
-- **`log()` is the one of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**,
-  correctly rounded in the rounding direction in effect, with mathlib and
-  CRlibm, where the compiler has a 128-bit integer type, which its accurate
-  phase computes with (`__int128`, 64-bit targets of GCC and Clang;
-  `GAOL_CORE_MATH_LOG`, `gaol/gaol_core_math.h`). In the upward rounding GAOL
-  computes in, the value at the right bound is the right bound, and the double
-  below the value at the left bound the left one, log(l) being no double for l
-  other than 1: the tightest bounds, without switching to nearest and back.
-  Before, mathlib's log moved one double outward gave bounds one double wider
-  at half of the million intervals of `doc/compare`, and took 62 ns rather than
-  30 for the log of an interval (Intel i7-1185G7, Clang 18, `-mfma`; 64 rather
-  than 29 with GCC 9.4). With Visual C++ and on 32-bit targets, it is still
-  mathlib's. The sources are `gaol/core_math_log.c` and its
-  `gaol/core_math_log_dint.h` ([3rd/README.md](../3rd/README.md)).
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.
@@ -649,119 +613,6 @@ where it comes from.
   Codac's `diam()` returned NaN for the empty set without calling `width()`;
   IBEX's `diam()`, which its documentation says is 0 for the empty set, returns
   what `width()` returns, NaN now.
-- **The cosine of mathlib** (`3rd/mathlib/src/sincos32.c`): for the arguments
-  hardest to round, mathlib computes cos(x) with multiple-precision numbers, as
-  sin(π/2 − x) when x > 0.8, and `mpcos()` returned the cosine of π/2 − x
-  instead, which is sin(x). `cos()` then gave bounds not enclosing cos(x), off
-  by up to 9%, at 54 of the hard-to-round arguments of cos of
-  [CORE-MATH](https://gitlab.inria.fr/core-math/core-math), all between 0.80
-  and 0.853 ([dreal-deps/mathlib#2](https://github.com/dreal-deps/mathlib/issues/2)).
-  The call to `c32()` in `mpcos()` is fixed, the line glibc fixed in its copy
-  of the same code in 2003.
-- **The arctangent of mathlib** (`3rd/mathlib/src/mpsqrt.c`): `fastiroot()`,
-  which starts the multiple-precision square roots mathlib computes the
-  arctangent with at the arguments hardest to round, read the halves of a double
-  through `long`s. Where `long` has 64 bits (Linux and macOS on 64-bit
-  processors), `atan()` returned values far from atan(x), or had not returned
-  after 20 ms, at 15970 of the 55190 hard-to-round arguments of atan of
-  CORE-MATH: `atan(1.016527294692847)` was 0.082 instead of 0.794. They are
-  `int`s, as glibc made them in 2003
-  ([commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5));
-  [Debian bug 210613](https://bugs.debian.org/210613) is the same bug on Alpha.
-- **The logarithm of mathlib at subnormal arguments**
-  (`3rd/mathlib/src/ulog.c`): `ulog()` scales a subnormal argument by 2^54,
-  but its last, multiple-precision stage computed the logarithm from the scaled
-  argument and from an approximation of the logarithm of the unscaled one.
-  `log()` returned about 2^54 at 26 of the 53 subnormal hard-to-round arguments
-  of log of CORE-MATH: `log(0x0.8819864d7985dp-1022)` was 1.8e16 instead of
-  −709.03. That stage is given the unscaled argument. glibc had
-  the same code until it
-  [removed that stage](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)
-  in 2018.
-- **`#pragma STDC FENV_ACCESS ON` in mathlib's configuration**
-  (`3rd/mathlib/src/mathlib_config.h`): the pragma of C99 (7.6.1) that tells the
-  compiler the code may be executed with a rounding direction other than the
-  default, and that it must not fold nor reorder its floating-point operations
-  as if the rounding were to nearest, is written at the end of
-  `src/mathlib_config.h`, which every source of mathlib includes. GAOL calls
-  mathlib with the rounding direction set to nearest and sets it back upward
-  afterwards, and mathlib is compiled with the flags of interval arithmetic:
-  the pragma states for the compiler what those flags ask of it. It comes from
-  the fork of mathlib by Fabrice Le Bars
-  ([commit](https://github.com/lebarsfa/mathlib/commit/5ac52c2bd817e44d33d4f9af6c1045d4b8577449)),
-  with the uppercase `ON` that macOS warns about in the lowercase. Clang 18
-  honours it, and the elementary functions of an interval took the same time
-  with it as without (exp, log, sin and cos within 0.8%, below the dispersion
-  of the measures); GCC 13 ignores it and gave a `libultim.a` identical byte
-  for byte; Visual C++ is given `/fp:strict`, which its documentation says
-  makes it behave as if `fenv_access(on)` were set, and reads the pragma for
-  Visual C++ rather than the one of C99, which it does not know.
-- **The warnings of mathlib's tables** (`3rd/mathlib/src/uatan.tbl`,
-  `ulog.tbl` and `utan.tbl`): the
-  entries of the tables, of the union type `number`, are written
-  `{0x3ff6a13c, 0xd1537290 }` where the union holds an array, and GCC and Clang
-  warn about each of them with `-Wall` (`-Wmissing-braces`), 15777 times over
-  mathlib's sources. Printing them is slow enough to stop a build: compiling
-  `src/atnat.c`, which includes `src/uatan.tbl` and its 6027 of them, had not
-  finished after ten minutes, against 0.22 s without `-Wall`. The three tables
-  carrying 15165 of the 15777, `uatan.tbl`, `ulog.tbl` and `utan.tbl`, are
-  given the pragma that turns the warning off, as Fabrice Le Bars does in his
-  fork of mathlib
-  ([commit](https://github.com/lebarsfa/mathlib/commit/daa4f21874f76785988426f03a5f651ac5a6cf4e)):
-  434 warnings are left, from the tables of the other sources, which are kept
-  as they are, and `src/atnat.c` compiles in 0.22 s with `-Wall`. The pragma
-  changes no code: `libultim.a` is the same, byte for byte, with it and without
-  it. The builds of GAOL compile mathlib with `-w` besides, whatever warning
-  flags the project building GAOL gives.
-- **The shifts of mathlib's `halfulp()`** (`3rd/mathlib/src/halfulp.c`,
-  [issue #5](https://github.com/Jordan08/GAOL/issues/5)): `halfulp()`, which
-  `upow()` calls for the powers that may be exact, and so `nth_root()`,
-  shifted a positive `int` into its sign bit, undefined behaviour in C that
-  the UndefinedBehaviorSanitizer of Clang reports. It shifts an
-  `unsigned int`, and returns the same doubles (4 million arguments compared,
-  228644 of them exact powers). The continuous integration suppressed the
-  report (`.github/sanitizers/ubsan.supp`, now removed): it suppresses nothing
-  any more.
-- **`Init_Lib()` and `Exit_Lib()` of mathlib**
-  (`3rd/mathlib/src/AARCH64_DPChange.c`,
-  `3rd/mathlib/mathlib_configuration.h.in`): `Init_Lib()` sets the rounding
-  direction to nearest, which mathlib's algorithms need, returns the one it
-  found, and `Exit_Lib()` sets that one back, from the fork of mathlib by
-  Fabrice Le Bars
-  ([commit](https://github.com/lebarsfa/mathlib/commit/40c8a25ad855830db7688ef7dd32bb667ff0eb25)).
-  `src/AARCH64_DPChange.c`, which does it through `<fenv.h>` alone, is the
-  implementation chosen for every target: the ones mathlib's own build chooses
-  on x86_64 Linux, on Intel Macs and on 32-bit x86 save the control word of the
-  x87 unit in global variables, which two threads calling `gaol::init()` would
-  write at once, to set a precision that GAOL loses right after by restoring
-  the default floating-point environment, and that the doubles of 32-bit x86,
-  computed in SSE2, do not depend on.
-  - **Before.** `Init_Lib()` of `src/AARCH64_DPChange.c` restored the default
-    floating-point environment and returned 0, and `Exit_Lib()` did nothing,
-    where the comment of `Init_Lib()` says its result is what `Exit_Lib()` takes
-    to restore what it found. On x86_64 Linux, `src/LINUX64_DPChange.c` wrote
-    back the control word of the x87 unit alone: after `gaol::cleanup()`, the
-    x87 unit rounded to nearest again, as `fegetround()` reported, while the
-    SSE unit, which computes the doubles there, was left rounding upward.
-  - **Now.** Both are set back, on every target. The rest of the floating-point
-    environment, whose exception flags and masks `FE_DFL_ENV` also reset, is
-    left as it is; with `GAOL_PRESERVE_ROUNDING`, where `gaol::init()` does not
-    restore the default environment itself, the rounding direction of the caller
-    is no longer lost either.
-  - **Not taken.** The same version of that fork also sets the precision of the
-    x87 unit to 53 bits on 32-bit Windows (`_controlfp(_PC_53, _MCW_PC)`).
-    Windows sets it already, 32-bit Visual C++ computes doubles in SSE2, and
-    `Init_Lib()` is called once, outside everything GAOL times: measured with
-    Visual C++ 2022 and 2026, in x86 and in x64, it changed neither the bounds
-    nor the time of an operation.
-- **A mathlib found installed whose cosine of 2^52 − 1 is wrong** is refused by
-  the three builds (see
-  [Compilers and options refused](three-builds.md#compilers-and-options-refused)). A TODO of
-  GAOL's check `reverse_mappings` said that `acos_rel()` failed at
-  [2^52 − 1, 2^52 − 1/2] under AArch64: mathlib compiled there without
-  `-ffp-contract=off`, as its own configure compiles it, gives that cosine far
-  from its value. `tests/elementary.cpp` checks sin and cos at arguments where
-  such a mathlib fails.
 - **The three builds agree** (see [The three builds](three-builds.md)).
   Before, each had its own idea: configure optimized only when the compiler
   was named `g++` exactly (`clang++` compiled without optimization), computed
@@ -780,11 +631,6 @@ where it comes from.
   `other_functions`, with meson on macOS arm64 and with autotools on Ubuntu
   arm64. Without `-frounding-math`, GAOL built by `clang++` at `-O2` without
   SSE2 intervals gave integer powers not enclosing their exact values.
-  configure also put the directories of `--with-mathlib-include` and
-  `--with-mathlib-lib` before those of GAOL's sources and of the library just
-  built: with mathlib in a prefix holding an installed GAOL, as the prefix of a
-  GAOL installed by CMake, the sources included the headers installed, and
-  `make check` and the examples linked the library installed.
 - **`-ffloat-store`** is added only where doubles are still computed on the x87
   unit (`FLT_EVAL_METHOD` not 0), whose 80-bit registers keep more digits than
   a double. CMake gave it to GCC on every target, and configure wherever SSE2
@@ -820,13 +666,6 @@ where it comes from.
   aborts, and `pow(interval2f, int)` does not handle the empty set. Without
   the option, their sources are not compiled, their headers are neither
   installed nor included, and their check programs are not built.
-- **The infinite values of the math library of the system**
-  (`gaol/gaol_double_op_m.h`, the build with `--with-mathlib=m`): +oo is
-  bounded below by the largest double, and -oo above by its opposite, and -oo
-  stays a lower bound. GAOL kept +oo as a lower bound, so that `exp`, `sinh`
-  and `cosh` gave the empty set `[+oo, +oo]` at their overflow, and bounded
-  -oo below by -MAX: `log([0, 1])` was `[-MAX, 0]`, `sinh([-0x1.638p+9])`
-  `[-MAX, -MAX]`.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
@@ -851,7 +690,7 @@ where it comes from.
   the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
   `make -C manual pdf` and for the target `pdf` of the meson build, which had
   none.
-- **The CMake build**, derived from the CMake build of GAOL and mathlib in IBEX
+- **The CMake build**, derived from the CMake build of GAOL in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.
 - **The tests** of `tests/`, after the rounding tests of Codac.

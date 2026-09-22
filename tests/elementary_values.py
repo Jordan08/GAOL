@@ -86,11 +86,11 @@ def exponents(emin, emax, n, signed=True):
 
 
 # The hard-to-round arguments of cos of CORE-MATH
-# (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) at
-# which mathlib 2.1.1 returned sin(x), before 3rd/mathlib fixed
-# its multiple-precision cosine, mpcos(), as glibc did in 2003
+# (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) from
+# 0.80 to 0.853, at which the multiple-precision cosine of IBM's code, mpcos(),
+# which computes cos(x) as sin(pi/2 - x) there, returned sin(x), as glibc's
+# copy of it did until 2003
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=86583139a4d746743ccffcd72e25d96c5fb8d488).
-# Reported to mathlib in https://github.com/dreal-deps/mathlib/issues/2.
 MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.9a25c721c7bfep-1 0x1.9a27a4b746fa2p-1 0x1.9a92cdb25a2e1p-1 0x1.9c3503f763063p-1
     0x1.9c445d0ecfbabp-1 0x1.9cd9b3bb42eeep-1 0x1.9e2eb96bbac15p-1 0x1.9efb0f4c665a3p-1
@@ -108,9 +108,10 @@ MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.b434e9418d78dp-1 0x1.b4b54238060cbp-1
 """.split()]
 
-# Arguments of atan at which mathlib 2.1.1 returned values far from atan(x)
-# where long has 64 bits, before 3rd/mathlib fixed fastiroot(),
-# which starts its multiple-precision square roots, as glibc did in 2003
+# Arguments of atan at which IBM's code returned values far from atan(x) where
+# long has 64 bits, its fastiroot(), which starts the multiple-precision square
+# roots, reading the halves of a double through longs, as glibc's copy of it
+# did until 2003
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5):
 # the three of Debian bug 210613 (https://bugs.debian.org/210613), on Alpha,
 # and 14 of the 12003 hard-to-round arguments of atan of CORE-MATH
@@ -126,9 +127,9 @@ MPSQRT_ARGUMENTS = [0.062510113344606447, 1.016527294692847, 1.9966212994203429]
 
 # The subnormal hard-to-round arguments of log of CORE-MATH
 # (https://gitlab.inria.fr/core-math/core-math, src/binary64/log/log.wc) at
-# which mathlib 2.1.1 returned about 2^54, before 3rd/mathlib
-# gave the last, multiple-precision stage of ulog() the argument it had not
-# scaled by 2^54. glibc had the same code until it removed that stage in 2018
+# which IBM's code returned about 2^54: ulog() scales a subnormal argument by
+# 2^54, and its last, multiple-precision stage took the scaled argument. glibc
+# had the same code until it removed that stage in 2018
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97).
 ULOG_ARGUMENTS = [float.fromhex(x) for x in """
     0x0.8819864d7985dp-1022 0x0.8e26ace5de305p-1022 0x0.a39291c8ef4a7p-1022 0x0.abae673b61d1dp-1022
@@ -140,18 +141,16 @@ ULOG_ARGUMENTS = [float.fromhex(x) for x in """
     0x0.087b50e3c0a7fp-1022 0x0.00b7751dfaafap-1022
 """.split()]
 
-# Arguments of sin and cos at which mathlib 2.1.1 returned values far from
-# sin(x) and cos(x) when compiled with contraction into fused multiply-adds,
-# which GCC does by default (-ffp-contract=fast) wherever the processor has
-# them, 64-bit ARM processors included: branred(), which reduces x modulo pi/2
-# for |x| > 2^48, relies on its operations being computed as written. The CMake
-# build and scripts/install-mathlib.sh compile mathlib with -ffp-contract=off;
-# a mathlib installed otherwise may not have been. Compiled so on x86_64 (-mfma
-# -ffp-contract=fast), mathlib did so at 96 of 20080 random positive arguments
-# from 2^20 to 2^1024 for cos and 11 for sin, all from 2^48 to 2^54, which the
-# random arguments below seldom reach (and at 491 for tan, from 2^26, which
-# they already catch). These are some of them, with the bounds of
-# [2^52 - 1, 2^52 - 1/2], at which acos_rel() failed in
+# Arguments of sin and cos at which IBM's code returned values far from sin(x)
+# and cos(x) when compiled with contraction into fused multiply-adds, which GCC
+# does by default (-ffp-contract=fast) wherever the processor has them, 64-bit
+# ARM processors included: branred(), which reduces x modulo pi/2 for
+# |x| > 2^48, relies on its operations being computed as written. Compiled so
+# on x86_64 (-mfma -ffp-contract=fast), it did so at 96 of 20080 random
+# positive arguments from 2^20 to 2^1024 for cos and 11 for sin, all from 2^48
+# to 2^54, which the random arguments below seldom reach (and at 491 for tan,
+# from 2^26, which they already catch). These are some of them, with the
+# bounds of [2^52 - 1, 2^52 - 1/2], at which acos_rel() failed in
 # check/reverse_mappings.cpp, and 2^52.
 BRANRED_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.3e0d1243f671p+48 0x1.725c21a6d255p+49 0x1.90e0714ad979p+50 0x1.01a738a1847ep+51
