@@ -168,6 +168,19 @@ namespace
     same("sqrt([4,9])", sqrt(interval(4.0, 9.0)));
     same("atan2([1,2],[3,4])", atan2(interval(1.0, 2.0), interval(3.0, 4.0)));
     same("nth_root([1,8],3)", nth_root(interval(1.0, 8.0), 3));
+    /* A negative exponent is the rootn of IEEE 1788-2015 for q < 0,
+       1/x^(1/|q|), as nth_root(x, q) computes it in C++: the parser converted
+       it to an unsigned int, and nth_root(16, -2) was the 4294967294-th root of
+       16, [1.000000000645543, 1.000000000645544] rather than [0.25] (GAOL v5).
+       The direct path, then the tree the bounds given apart go through. */
+    same("nth_root(16,-2)", interval(0.25, 0.25));
+    same("nth_root([4,16],-2)", nth_root(interval(4.0, 16.0), -2));
+    same("nth_root([-8,27],-3)", nth_root(interval(-8.0, 27.0), -3));
+    same("nth_root([0,16],-2)", nth_root(interval(0.0, 16.0), -2));
+    same("[nth_root(16,-2)]", interval(0.25, 0.25));
+    same("[nth_root(16,-2), nth_root(1,-2)]", interval(0.25, 1.0));
+    same("[nth_root(-8,-3)]", interval(-0.5, -0.5));
+    same("[nth_root(0,-2), 1]", interval::emptyset());
     /* The names GAOL v5 adds to the reader. cbrt(x) is nth_root(x, 3), as
        sqrt(x) is nth_root(x, 2); the lexer takes the longest name, so exp2 and
        log2 are read as themselves rather than as exp and log followed by 2. */

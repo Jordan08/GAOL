@@ -106,7 +106,10 @@ where it comes from.
     the search by bisection the other roots use (Intel i7-1185G7, Clang 18.1).
   - **`nth_root(x, q)` takes a negative q**, which IEEE 1788-2015 recommends
     (rootn over ℤ∖{0}, Table 10.5): x<sup>1/q</sup> is 1/x<sup>1/|q|</sup>,
-    whose domain is ℝ∖{0} for an odd q and (0, +∞) for an even one.
+    whose domain is ℝ∖{0} for an odd q and (0, +∞) for an even one. The
+    reader of strings takes it too: it converted the exponent to an unsigned
+    int, and `interval("nth_root(16, -2)")` was the 4294967294-th root of 16,
+    `[1.000000000645543, 1.000000000645544]`, rather than `[0.25]`.
   - **`sign`, `trunc`, `round_ties_to_even` and `round_ties_to_away`**, the
     integer functions IEEE 1788-2015 requires beside `ceil` and `floor`
     (Table 9.1), which GAOL did not provide. Each is non-decreasing, so the

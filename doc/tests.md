@@ -163,7 +163,9 @@ Codac.
   `trunc` — are read by both paths of the grammar, the direct one and the tree
   of `gaol/gaol_expression.h` that the bounds given apart go through, in any
   case of letters, the lexer taking the longest name so that `exp2` is not read
-  as `exp` followed by 2. The expressions built in C++ go through every node
+  as `exp` followed by 2. A negative exponent of `nth_root` has to give the
+  root of C++, 1/x<sup>1/|q|</sup>, by both paths: the reader converted it to
+  an unsigned int (GAOL v5). The expressions built in C++ go through every node
   too, `pow(e, 3)` included, which did not link. Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
