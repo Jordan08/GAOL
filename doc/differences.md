@@ -287,27 +287,16 @@ where it comes from.
   ([issue #1](https://github.com/Jordan08/GAOL/issues/1)): the bounds are
   the tightest, on every system.
   - **Before.** GAOL took them from the libm of the system, and moved their
-    values one float outward. The libms of glibc 2.31,
-    musl and MinGW-w64 are sometimes a float further, which gave bounds not
-    enclosing the exact values. GAOL v5 first moved them three floats
-    outward, which holds as long as the libm is within two floats of the exact
-    value: the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
-    to 1, and its `asinh` NaN for large negative numbers. The branch
-    `hyperbolic-rigorous` bounded them without the libm, from `exp` and `log`,
-    6 to 45 times slower.
-  - **The sources** were `gaol/core_math_*.c`, one file for each function. Every
-    elementary function comes from CORE-MATH now, and its whole tree is vendored
-    in `3rd/math-core` (MIT licence), compiled into GAOL's library under the
+    values one float outward. The libms of glibc 2.31, musl and MinGW-w64 are
+    sometimes a float further, which gave bounds not enclosing the exact
+    values; the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
+    to 1, and its `asinh` NaN for large negative numbers.
+  - **The sources.** The whole tree of CORE-MATH is vendored in
+    `3rd/math-core` (MIT licence), compiled into GAOL's library under the
     names `gaol_cr_sinh()`... (`gaol/gaol_core_math.h`). The sources are kept as
     CORE-MATH wrote them, `gaol/core_math_port.h` being force-included into each
     of them by the compiler: [3rd/README.md](../3rd/README.md) lists what that
-    header gives and the two changes the vendored sources carry.
-  - **Tightness and time** (Intel i7-1185G7, GCC 9.4, glibc 2.31), per
-    interval, with the values of CORE-MATH rounded to nearest and moved one
-    double outward, as they first were: within 1 double rather than 3 or 4; `sinh()` 84 ns rather than
-    131, `cosh()` 76 rather than 77, `tanh()` 105 rather than 127, `asinh()`
-    86 rather than 108, `acosh()` 83 rather than 99, `atanh()` 86 rather than
-    128: three calls of `nextafter()` less for each bound.
+    header gives and the changes the vendored sources carry.
   - **Tests.** `tests/elementary.cpp` requires one double of every function,
     rather than 8.
   - At the overflow, the bounds were two floats wider than the
@@ -327,8 +316,9 @@ where it comes from.
     `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
     `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
     `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
-- **`pow(I, J)` with finite bounds is within one double of the tightest
-  bounds** ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y
+- **`pow(I, J)` with finite bounds takes the tightest bounds at the corners
+  of the box**, but for a lower bound one double below where the power there
+  is a double ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y
   increases with y for x > 1 and decreases for x < 1, increases with x for
   y > 0 and decreases for y < 0: over a box of bases above 0 its extrema are
   at corners, which the places of the bounds about 1 and 0 give, and the pow
@@ -338,10 +328,10 @@ where it comes from.
     few 2^-52, by |y log x|: `pow([2], [1023.5])` was 1425 doubles below the
     exact value and 748 above. It is kept where a bound is infinite, or for
     a base from 0 with an exponent that is not above 0, whose limits it gives.
-  - **Time.** `pow(x, y)` takes 138 ns rather than 128 on an Intel i7-1185G7
-    (GCC 9.4), for bounds 16 times closer to the tightest: over the million
-    powers of the benchmark of `doc/compare`, its intervals are 3.6e-15 wider
-    than the tightest relatively, against 5.9e-14.
+  - **Tightness.** Over the million powers of the benchmark of `doc/compare`,
+    its intervals are no wider than those of libieeep1788, which computes
+    each bound with MPFR, where `exp(J*log(I))` made them 5.9e-14 wider than
+    the tightest relatively.
 - **Integer powers are computed from exact products** (issue #7): `pow(x, n)`,
   for an `int` or an `unsigned` n, gives the tightest bounds for n ≥ 3, where
   GAOL rounded each product of its binary exponentiation outward and was up to
@@ -374,10 +364,9 @@ where it comes from.
   encloses `[-2, 3]`; for an even `n`, it takes the roots of the part of `I` in
   `[0, +oo]`, as before. GAOL took that part for every `n`, and gave
   `[-2^-1074, 3.000000000000001]`, or the empty set for `nth_root([-8, -1], 3)`.
-  The root of 0 is 0, rather than `[-2^-1074, 2^-1074]`. IBEX and Codac, which
-  add the roots of the negative part themselves (`nth_root(x) | -nth_root(-x)`),
-  get the same intervals as before. `check/non_arithmetic.cpp` wanted
-  `[0, 1.2457]` for `nth_root([-4, 3], 5)`, and now wants `[-1.3195, 1.2457]`.
+  The root of 0 is 0, rather than `[-2^-1074, 2^-1074]`.
+  `check/non_arithmetic.cpp` wanted `[0, 1.2457]` for `nth_root([-4, 3], 5)`,
+  and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
 - **The n-th roots are proved with integer powers**, and are the tightest
   bounds or one double beyond, for every n and every double (issue #7). GAOL
@@ -389,12 +378,12 @@ where it comes from.
   - **The proof.** l is below the root when l^n, rounded upward, is at most x,
     and u above it when u^n, rounded downward, is at least x. The lower bound
     is the largest double so proved, the upper bound the smallest one.
-  - **The search.** It starts from the power of the mathematical library,
-    brought next to the root by a step of Newton's method, r - r (r^n - x)/(n r^n),
-    and goes by steps that double until a proved and an unproved double are
-    found, then by bisection: two powers from a start next to the root. It ends
-    from any start, and its result is proved whatever the mathematical library
-    is: the roots are bounds with the math library of the system too.
+  - **The search.** It starts from the pow of CORE-MATH with the exponent 1/n
+    rounded, brought next to the root by a step of Newton's method,
+    r - r (r^n - x)/(n r^n), and goes by steps that double until a proved and
+    an unproved double are found, then by bisection: two powers from a start
+    next to the root. It ends from any start, and its result is proved
+    whatever the start.
   - **Exact roots.** The root of a double that is the n-th power of a double is
     that double: `nth_root([27], 3)` is `[3]`.
   - **`nth_root_rel()`** takes the roots of `nth_root()`: it took the same
@@ -515,8 +504,7 @@ where it comes from.
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
-  `log([0])`, which `check/non_arithmetic.cpp` wanted; IBEX and Codac returned
-  the empty set themselves before calling it.
+  `log([0])`, which `check/non_arithmetic.cpp` wanted.
 - **The intersection of disjoint intervals** (`operator&`, `operator&=`) is the
   empty set of `interval::emptyset()`, whose bounds are NaN. GAOL kept the
   largest left bound and the smallest right bound, `[3, 2]` for
@@ -617,9 +605,6 @@ where it comes from.
     They are no longer declared.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
-  Codac's `diam()` returned NaN for the empty set without calling `width()`;
-  IBEX's `diam()`, which its documentation says is 0 for the empty set, returns
-  what `width()` returns, NaN now.
 - **The three builds agree** (see [The three builds](three-builds.md)).
   Before, each had its own idea: configure optimized only when the compiler
   was named `g++` exactly (`clang++` compiled without optimization), computed
@@ -685,9 +670,9 @@ where it comes from.
   [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
   project, brought in by FetchContent, with no network access beyond its own
   sources (`tests/fetch_content`).
-- **The manual compiles again**, and `manual/gaol.pdf` is the one of GAOL v5
-  (issue #13): the PDF was the one of the original GAOL, of 2009, while
-  `gaol.tex` had followed the changes of GAOL v5, and no longer compiled.
+- **The manual of GAOL 4 compiles again** (issue #13): `manual/gaol.pdf` was
+  the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
+  describes the mathematical libraries and the options of GAOL 4.
   `marginbib`, a package of 2000 kept with the manual, patches the output
   routine of LaTeX and stops with the LaTeX of today; the references in the
   margin are now printed by `bibentry` (`\margincite`, `\margincite*` and

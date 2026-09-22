@@ -163,6 +163,6 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the four changes
+Copy the upstream tree again without the `.wc` files, then make the five changes
 above. `git diff` against the previous version shows them: they are marked
 `/* GAOL */`, and no other line differs.

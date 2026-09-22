@@ -65,8 +65,9 @@ Codac.
   the whole numbers and the doubles on either side of them, and over the
   magnitudes beyond 2^52, on both signs and on the empty set. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
-- **`rounding_direction`:** about 100 operations of GAOL's interface, called
-  with the rounding direction upward, to nearest, downward and toward zero (and
+- **`rounding_direction`:** about 100 operations of GAOL's interface, and the
+  bounds at doubles of its elementary functions (`exp_dn()`, `sin_up()`...),
+  called with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
@@ -167,7 +168,8 @@ Codac.
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
-  `atan2` and `pow` compute with a 128-bit unsigned integer, which Visual C++
+  `atan2` and `pow`, and of `log10` and seven functions of Table 10.5, compute
+  with a 128-bit unsigned integer, which Visual C++
   has on no architecture and GCC has on no 32-bit target; there GAOL computes
   with the two 64-bit halves of `gaol/gaol_u128.h`. The test compiles those
   halves (`GAOL_U128_FORCE_EMULATION`) and compares every operation with the
@@ -226,7 +228,8 @@ GAOL's arithmetic and elementary functions, and of the same operations on
 doubles. It is not a test: the continuous integration prints its table in the
 summary of the jobs.
 
-What they show of GAOL, beyond the fixes below:
+What they show of GAOL, beyond the fixes of
+[What differs from GAOL](differences.md):
 
 - `sin`, `cos` and `tan` tell the pieces of their argument where they are
   monotonic by dividing it by an interval enclosing π, and, where the quotients

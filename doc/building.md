@@ -27,7 +27,7 @@ ctest --test-dir build -C Release
 cmake --install build --config Release
 ```
 
-CMake 3.14 or later. The build compiles the sixteen sources of CORE-MATH into
+CMake 3.14 or later. The build compiles the thirty-six sources of CORE-MATH into
 `libgaol`, which is static: there is nothing else to build and nothing else to
 install. The build type is Release unless another is given; brought in by a
 project that gives none (`add_subdirectory`, FetchContent), GAOL and CORE-MATH
@@ -56,7 +56,7 @@ make
 make install
 ```
 
-configure compiles the sixteen sources of CORE-MATH into `libgaol`
+configure compiles the thirty-six sources of CORE-MATH into `libgaol`
 (`gaol/Makefile.am`), with the flags it gives GAOL's C code: there is nothing
 else to build, nothing else to install and nothing else to link.
 
@@ -86,7 +86,7 @@ meson compile -C build
 meson install -C build
 ```
 
-meson compiles the sixteen sources of CORE-MATH into `libgaol`
+meson compiles the thirty-six sources of CORE-MATH into `libgaol`
 (`gaol/meson.build`), as CMake and configure do.
 `meson compile` needs meson 0.54; with an older one, as the meson 0.53 of
 Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
