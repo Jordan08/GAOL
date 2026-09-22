@@ -27,9 +27,6 @@
    --enable-optimize --disable-verbose-mode, the defaults otherwise)
    --------------------------------------------------------------------------- */
 
-/* Define this if relation symbols should stand for "certainly relations" */
-#define GAOL_CERTAINLY_RELATIONS 1
-
 /* Define this to 1 to allow raising exceptions instead of simply aborting */
 #define GAOL_EXCEPTIONS_ENABLED 1
 

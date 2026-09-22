@@ -545,10 +545,26 @@ where it comes from.
   `interior`, take an infinite bound as beyond the same infinite bound:
   `interior(Entire, Entire)` and `[2, +oo]` interior to `[1, +oo]` were
   false, as `set_le()` of the empty set in the empty set.
-  `certainly_eq()`, true for two intervals that are the same double, or both
-  empty, ignored the lower bound of its argument: `[2] == [1, 2]` was true
-  with the certainly relations, the default of every build.
   `check/relations.cpp` wanted the former results.
+- **The possibly relations, `certainly_eq()`, `certainly_neq()`, `==` and
+  `!=` are removed**, and so is the option that chose what the relation
+  symbols mean (`--enable-relations`, `-Denable-relations`), which configure
+  and meson refuse with a message. The code is kept in comments in
+  `gaol/gaol_interval.h`.
+  - **Why.** `certainly_neq()` was `!certainly_eq()`, which is "possibly not
+    equal": `[3, 4]` was certainly not equal to `[3, 4]`, and so was `!=` with
+    the certainly relations, the default of every build. IEEE 1788-2015 has
+    neither the possibly relations nor a certain equality (Table 10.3): its
+    equality is `equal`, `set_eq()`, and "for all x and y, x ≠ y" is
+    `disjoint`, `set_disjoint()`, which `gaol_ieee1788` names already.
+    `possibly_eq(y)` was `!set_disjoint(y)`.
+  - **The relation symbols.** `<`, `<=`, `>` and `>=` are the certainly
+    relations in every build: `strictPrecedes`, `precedes` and their
+    converses. The set relations of the option were never taken, configure
+    and meson defining `GAOL_SET_RELATIONS` where the header read
+    `GAOL_SET_RELATION`: they gave the possibly relations.
+  - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
+    compile on intervals.
 - **The interval literals of IEEE 1788-2015** are read (9.7, 12.11), whatever
   the case of their letters (`[Empty]`, `[1, Inf]`): `[ ]`, `[entire]`, the
   bounds left out (`[1,]`, `[,]`), `infinity`, the hexadecimal numbers

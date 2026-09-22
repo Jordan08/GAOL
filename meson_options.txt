@@ -10,7 +10,7 @@ option('enable-float-intervals', type : 'boolean', value : false, description : 
 option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
-option('enable-relations', type: 'string', value:'certainly', description: 'use KIND symbols of relations, with KIND being "set", "certainly" or "possibly" [default=certainly]')
+option('enable-relations', type: 'string', value: '', description: 'Gone in GAOL v5: <, <=, > and >= are the certainly relations, and == and != are not defined on intervals')
 option('enable-exception', type: 'boolean', value: true, description: 'raise exceptions to signal errors [default=yes]')
 option('with-test', type: 'boolean', value: false, description: 'Specify if test are built [default=no]')
 option('check-perf', type : 'boolean', value : false, description : 'Run test performances')

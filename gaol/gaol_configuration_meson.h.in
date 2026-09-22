@@ -7,9 +7,6 @@
 /* Define this to 1 if function clock() is declared in time.h */
 #mesondefine CLOCK_IN_HEADER
 
-/* Define this if relation symbols should stand for \"certainly relations\" */
-#mesondefine GAOL_CERTAINLY_RELATIONS
-
 /* define this if you want debugging facilities */
 #mesondefine GAOL_DEBUGGING
 
@@ -28,14 +25,8 @@
 /* Minor version for gaol */
 #mesondefine GAOL_MINOR_VERSION
 
-/* Define this if relation symbols should stand for \"possibly relations\" */
-#mesondefine GAOL_POSSIBLY_RELATIONS
-
 /* define this to 1 if rounding direction should be preserved */
 #mesondefine GAOL_PRESERVE_ROUNDING
-
-/* Define this if relation symbols should stand for \"set relations\" */
-#mesondefine GAOL_SET_RELATIONS
 
 /* define this to 1 if you want to allow ASM support */
 #mesondefine GAOL_USING_ASM

@@ -1496,8 +1496,9 @@ Optional Features:
   --enable-preserve-rounding
                           restore the rounding direction after each operation,
                           rather than leaving it upward [default=no]
-  --enable-relations=KIND use KIND symbols of relations, with KIND being
-                          "set", "certainly" or "possibly" [default=certainly]
+  --enable-relations      gone in GAOL v5: <, <=, > and >= are the certainly
+                          relations, and == and != are not defined on
+                          intervals
   --enable-exceptions     raise exceptions to signal errors [default=yes]
   --enable-asm            use assembler code [default=yes]
 
@@ -17433,33 +17434,14 @@ $as_echo "#define GAOL_PRESERVE_ROUNDING 1" >>confdefs.h
 fi
 
 # --enable-relations
+# The relation symbols are the certainly relations (GAOL v5): the option that
+# chose them is gone with the possibly relations, and == and != are not
+# defined on intervals (see gaol/gaol_interval.h)
 # Check whether --enable-relations was given.
 if test "${enable_relations+set}" = set; then :
-  enableval=$enable_relations; relations=${enable_relations}
-else
-  relations="certainly"
+  enableval=$enable_relations; as_fn_error $? "--enable-relations is gone in GAOL v5: <, <=, > and >= are the certainly relations of intervals, and == and != are not defined on them (set_eq, set_disjoint)" "$LINENO" 5
 fi
 
-case "$relations" in
-set)
-
-$as_echo "#define GAOL_SET_RELATIONS 1" >>confdefs.h
-
-    ;;
-certainly)
-
-$as_echo "#define GAOL_CERTAINLY_RELATIONS 1" >>confdefs.h
-
-    ;;
-possibly)
-
-$as_echo "#define GAOL_POSSIBLY_RELATIONS 1" >>confdefs.h
-
-    ;;
-*)
-    as_fn_error $? "\"$relations\": unrecognized default relation (set/possibly/certainly)" "$LINENO" 5
-   ;;
-esac
 
 
 # --enable-exceptions

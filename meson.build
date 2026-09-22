@@ -32,7 +32,6 @@ simd = get_option('enable-simd')
 asm = get_option('enable-asm')
 float_intervals = get_option('enable-float-intervals')
 preserve_rounding = get_option('enable-preserve-rounding')
-relations = get_option('enable-relations')
 exception = get_option('enable-exception')
 # The mathematical library
 #
@@ -92,17 +91,11 @@ conf_data.set('GAOL_MINOR_VERSION', minor_version)
 conf_data.set('GAOL_MICRO_VERSION', micro_version)
 conf_data.set('version', meson.project_version())
 
-if relations == 'certainly'
-  conf_data.set('GAOL_CERTAINLY_RELATIONS', 1)
-elif relations == 'possibly'
-  conf_data.set('GAOL_POSSIBLY_RELATIONS', 1)
-elif relations == 'set'
-  conf_data.set('GAOL_SET_RELATIONS', 1)
-else
-  error(
-    'Wrong value for relations, expecting set, possibly or certainly, but get: '
-    + relations,
-  )
+# The relation symbols are the certainly relations: the option enable-relations
+# is gone with the possibly relations (GAOL v5, see gaol/gaol_interval.h). It
+# stays declared so that asking for it stops here, rather than being ignored
+if get_option('enable-relations') != ''
+  error('enable-relations is gone in GAOL v5: <, <=, > and >= are the certainly relations of intervals, and == and != are not defined on them (set_eq, set_disjoint)')
 endif
 if exception
   conf_data.set('GAOL_EXCEPTIONS_ENABLED', 1)

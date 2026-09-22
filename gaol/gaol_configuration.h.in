@@ -10,9 +10,6 @@
 /* Define this to 1 if function clock() is declared in time.h */
 #undef CLOCK_IN_HEADER
 
-/* Define this if relation symbols should stand for \"certainly relations\" */
-#undef GAOL_CERTAINLY_RELATIONS
-
 /* define this if you want debugging facilities */
 #undef GAOL_DEBUGGING
 
@@ -31,14 +28,8 @@
 /* Minor version for gaol */
 #undef GAOL_MINOR_VERSION
 
-/* Define this if relation symbols should stand for \"possibly relations\" */
-#undef GAOL_POSSIBLY_RELATIONS
-
 /* define this to 1 if rounding direction should be preserved */
 #undef GAOL_PRESERVE_ROUNDING
-
-/* Define this if relation symbols should stand for \"set relations\" */
-#undef GAOL_SET_RELATIONS
 
 /* define this to 1 if you want to allow ASM support */
 #undef GAOL_USING_ASM

@@ -4,7 +4,6 @@ class relations_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(relations_test);
   CPPUNIT_TEST(test_set);
   CPPUNIT_TEST(test_certainly);
-  CPPUNIT_TEST(test_possibly);
   CPPUNIT_TEST(test_misc);
   CPPUNIT_TEST_SUITE_END();
 public:
@@ -43,13 +42,6 @@ public:
     TEST_TRUE(interval::emptyset().set_leq(interval::emptyset()));
 }
     void test_certainly() {
-      TEST_FALSE(interval(3,4).certainly_eq(interval(3,4)));
-      TEST_TRUE(interval(-6).certainly_eq(interval(-6,-6)));
-      TEST_FALSE(interval::universe().certainly_eq(interval::universe()));
-      TEST_TRUE(interval::emptyset().certainly_eq(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().certainly_eq(interval(3,4)));
-      TEST_FALSE(interval(3,4).certainly_eq(interval::emptyset()));
-
       TEST_TRUE(interval(4,5).certainly_le(interval(6,9)));
       TEST_FALSE(interval(4,5).certainly_le(interval(5,9)));
       TEST_TRUE(interval::emptyset().certainly_le(interval(4,6)));
@@ -103,46 +95,6 @@ public:
       TEST_FALSE(interval(-3,+0.0).certainly_strictly_negative());
       TEST_FALSE(interval(-4,5).certainly_strictly_negative());
  }
-
-  void test_possibly() {
-      TEST_TRUE(interval(4,5).possibly_eq(interval(4.5,6)));
-      TEST_FALSE(interval(4,5).possibly_eq(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().possibly_eq(interval::emptyset()));
-
-      TEST_TRUE(interval(4,5).possibly_neq(interval(4,6)));
-      TEST_FALSE(interval(4,4).possibly_neq(interval(4,4)));
-      TEST_FALSE(interval::emptyset().possibly_neq(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().possibly_neq(interval(4,5)));
-      TEST_FALSE(interval(4,5).possibly_neq(interval::emptyset()));
-
-      TEST_TRUE(interval(4,5).possibly_leq(interval(3,7)));
-      TEST_FALSE(interval(4,5).possibly_leq(interval(2,3)));
-      TEST_TRUE(interval(4,5).possibly_leq(interval(2,4)));
-      TEST_FALSE(interval::emptyset().possibly_leq(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().possibly_leq(interval(3,4)));
-      TEST_FALSE(interval(4,5).possibly_leq(interval::emptyset()));
-
-      TEST_TRUE(interval(4,5).possibly_le(interval(3,7)));
-      TEST_FALSE(interval(4,5).possibly_le(interval(2,3)));
-      TEST_FALSE(interval(4,5).possibly_le(interval(2,4)));
-      TEST_FALSE(interval::emptyset().possibly_le(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().possibly_le(interval(3,4)));
-      TEST_FALSE(interval(4,5).possibly_le(interval::emptyset()));
-
-      TEST_TRUE(interval(4,5).possibly_geq(interval(3,6)));
-      TEST_TRUE(interval(4,5).possibly_geq(interval(5,6)));
-      TEST_FALSE(interval(4,5).possibly_geq(interval(6,7)));
-      TEST_FALSE(interval::emptyset().possibly_geq(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().possibly_geq(interval(3,4)));
-      TEST_FALSE(interval(4,5).possibly_geq(interval::emptyset()));
-
-      TEST_TRUE(interval(4,5).possibly_ge(interval(3,6)));
-      TEST_FALSE(interval(4,5).possibly_ge(interval(5,6)));
-      TEST_FALSE(interval(4,5).possibly_ge(interval(6,7)));
-      TEST_FALSE(interval::emptyset().possibly_ge(interval::emptyset()));
-      TEST_FALSE(interval::emptyset().possibly_ge(interval(3,4)));
-      TEST_FALSE(interval(4,5).possibly_ge(interval::emptyset()));
-  }
 
   void test_misc() {
     // straddles_zero()

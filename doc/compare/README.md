@@ -15,7 +15,7 @@ Five implementations of interval arithmetic on doubles are compared:
 
 The comparison has two parts:
 
-- [Special cases](special_cases.md): 291 special cases taken from GAOL's tests
+- [Special cases](special_cases.md): 288 special cases taken from GAOL's tests
   (infinities, zeros, NaN, empty sets, divisions by zero, `pow` and `pown`,
   `+=` and the other operators with doubles, reading from text, midpoints,
   widths, radii, comparisons and `atan2`), computed by the five libraries and compared
@@ -35,7 +35,7 @@ reports.
 | Special cases with IEEE 1788's result | 279 of 279 | 270 of 286 | 126 of 243 | 150 of 261 | 56 of 221 |
 | … or an interval enclosing it | 0 | 10 | 50 | 41 | 22 |
 | … or another result | 0 | 6 | 67 | 70 | 143 |
-| Cases it has no operation for | 11 | 0 | 44 | 26 | 66 |
+| Cases it has no operation for | 8 | 0 | 44 | 26 | 65 |
 | `x + y` | 207 ns | 3.2 ns | 7.9 ns | 24 ns | 22 ns |
 | `x * y` | 260 ns | 16 ns | 23 ns | 29 ns | 22 ns |
 | `sin(x)` | 7.8 µs | 88 ns | 51 ns | 59 ns | 173 ns |

@@ -42,7 +42,8 @@
 
 using namespace gaol;
 
-#define TEST_PEQ(a,b)  CPPUNIT_ASSERT((a).possibly_eq(b))
+// Possibly equal: not disjoint, possibly_eq() being gone (GAOL v5)
+#define TEST_PEQ(a,b)  CPPUNIT_ASSERT(!(a).set_disjoint(b))
 #define TEST_SEQ(a,b)  CPPUNIT_ASSERT((a).set_eq(b))
 #define TEST_EQ(a,b)   CPPUNIT_ASSERT(hausdorff(a,b)<=1e-8)
 #define TEST_CONT(a,b) CPPUNIT_ASSERT((a).set_contains(b))

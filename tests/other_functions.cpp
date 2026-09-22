@@ -21,6 +21,8 @@
 #include "gaol_tests.h"
 
 #include <algorithm>
+#include <type_traits>
+#include <utility>
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -264,20 +266,25 @@ namespace
     return a.is_empty() || b.is_empty() || a.right() < b.left() || b.right() < a.left();
   }
 
-  // For all x in a and y in b, x = y: both are the same double, or both are
-  // empty, as equal() for the empty set
-  bool certainly_equal(const interval& a, const interval& b)
-  {
-    return (a.is_empty() && b.is_empty())
-      || (!a.is_empty() && !b.is_empty() && a.left() == a.right() && b.left() == b.right() && a.left() == b.left());
-  }
+  /* == and != are not defined on intervals (GAOL v5): with the certainly
+     relations, != was !certainly_eq(), true for [3,4] and [3,4], and IEEE
+     1788-2015 has equal and disjoint, set_eq() and set_disjoint() */
+  template <typename T, typename = void> struct has_equal : std::false_type {};
+  template <typename T>
+  struct has_equal<T, decltype(void(std::declval<const T&>() == std::declval<const T&>()))> : std::true_type {};
+  template <typename T, typename = void> struct has_not_equal : std::false_type {};
+  template <typename T>
+  struct has_not_equal<T, decltype(void(std::declval<const T&>() != std::declval<const T&>()))> : std::true_type {};
+  static_assert(!has_equal<interval>::value, "== is not defined on intervals");
+  static_assert(!has_not_equal<interval>::value, "!= is not defined on intervals");
+  static_assert(has_equal<double>::value, "the detection of == works");
 
   // GAOL's relations, on the intervals whose bounds are zeros, infinities or
   // small integers, and the empty set: certainly_le() and certainly_leq() are
   // strictPrecedes and precedes, set_strictly_contains() and set_le() interior,
   // set_contains() and set_leq() subset, set_eq() equal, set_disjoint()
   // disjoint. GAOL did not give precedes(a, Empty), interior(Empty, Empty) nor
-  // interior(Entire, Entire), and [2] was certainly equal to [1, 2]
+  // interior(Entire, Entire)
   void comparisons()
   {
     const double bounds[] = { -inf, -2., -1., 0., 1., 2., inf };
@@ -304,7 +311,6 @@ namespace
               b.set_contains(a) == sub && a.set_leq(b) == sub && b.set_geq(a) == sub, describe);
         check("a.set_eq(b): equal(a, b)", a.set_eq(b) == ieee_equal(a, b), describe);
         check("a.set_disjoint(b): disjoint(a, b)", a.set_disjoint(b) == ieee_disjoint(a, b), describe);
-        check("a.certainly_eq(b): the same double, or both empty", a.certainly_eq(b) == certainly_equal(a, b), describe);
       }
     }
   }

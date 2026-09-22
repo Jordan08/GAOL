@@ -472,28 +472,13 @@ if test "${preserve_rounding}" = yes; then
 fi
 
 # --enable-relations
+# The relation symbols are the certainly relations (GAOL v5): the option that
+# chose them is gone with the possibly relations, and == and != are not
+# defined on intervals (see gaol/gaol_interval.h)
 AC_ARG_ENABLE(relations,
-            [AS_HELP_STRING([--enable-relations=KIND],
-                            [use KIND symbols of relations, with  KIND being "set", "certainly" or "possibly" @<:@default=certainly@:>@])],
-            [relations=${enable_relations}],
-            [relations="certainly"])
-case "$relations" in
-set)
-    AC_DEFINE(GAOL_SET_RELATIONS,1,
-    [Define this if relation symbols should stand for \"set relations\"])
-    ;;
-certainly)
-    AC_DEFINE(GAOL_CERTAINLY_RELATIONS,1,
-    [Define this if relation symbols should stand for \"certainly relations\"])
-    ;;
-possibly)
-    AC_DEFINE(GAOL_POSSIBLY_RELATIONS,1,
-    [Define this if relation symbols should stand for \"possibly relations\"])
-    ;;
-*)
-    AC_MSG_ERROR(\"$relations\": unrecognized default relation (set/possibly/certainly))
-   ;;
-esac
+            [AS_HELP_STRING([--enable-relations],
+                            [gone in GAOL v5: <, <=, > and >= are the certainly relations, and == and != are not defined on intervals])],
+            [AC_MSG_ERROR([--enable-relations is gone in GAOL v5: <, <=, > and >= are the certainly relations of intervals, and == and != are not defined on them (set_eq, set_disjoint)])])
 
 
 # --enable-exceptions

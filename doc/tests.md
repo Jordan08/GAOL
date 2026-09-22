@@ -105,7 +105,8 @@ Codac.
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
   and decide an interval of a single double beyond 2^53. `less`,
   `strictly_less`, `is_entire` and `is_common_interval` have to give the values
-  of Tables 10.3 and 10.4. Each name of `gaol_ieee1788` has to be the operation
+  of Tables 10.3 and 10.4, and `==` and `!=` must not compile on intervals,
+  `certainly_neq()` and the possibly relations being gone. Each name of `gaol_ieee1788` has to be the operation
   of the standard it names, which a wrong translation would not show at
   compilation: the eight comparisons against the bounds of Table 10.3 and the
   empty cases of Table 10.4, over 20 000 pairs; `inf`, `sup` and the numeric

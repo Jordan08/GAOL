@@ -261,7 +261,7 @@ def cpp(n, lib):
 # GAOL method called on the second interval
 # PROFIL/BIAS: x <= y is the inclusion of x in y, x < y in its interior, x == y
 # the equality; the others are written with Inf and Sup in the program
-# (precedes, strict_precedes, disjoint, certainly_eq)
+# (precedes, strict_precedes, disjoint)
 RELATIONS = {
     "precedes": {"gaol": "certainly_leq", "p1788": "precedes", "filib": "cle", "sun": ".cle.", "profil": "precedes"},
     "strict_precedes": {"gaol": "certainly_le", "p1788": "strictly_precedes", "filib": "clt", "sun": ".clt.",
@@ -271,7 +271,6 @@ RELATIONS = {
     "subset": {"gaol": "~set_contains", "p1788": "subset", "filib": "subset", "sun": ".sb.", "profil": "subset"},
     "equal": {"gaol": "set_eq", "p1788": "equal", "filib": "seq", "sun": ".seq.", "profil": "equal"},
     "disjoint": {"gaol": "set_disjoint", "p1788": "disjoint", "filib": "disjoint", "sun": ".dj.", "profil": "disjoint"},
-    "certainly_eq": {"gaol": "certainly_eq", "p1788": None, "filib": "ceq", "sun": ".ceq.", "profil": "certainly_eq"},
 }
 
 
@@ -818,10 +817,6 @@ case(op("equal", EMPTY, EMPTY), XB(True), kind="B")
 case(op("equal", iv(1, INF), iv(1, INF)), XB(True), kind="B")
 case(op("disjoint", I12, EMPTY), XB(True), kind="B")
 case(op("disjoint", I12, iv(2, 3)), XB(False), kind="B")
-case(op("certainly_eq", iv(2), I12), None, "not in IEEE 1788: for all x, y, x = y (false); filib++: ceq, Solaris Studio: .ceq.",
-     kind="B")
-case(op("certainly_eq", iv(2), iv(2)), None, kind="B")
-case(op("certainly_eq", EMPTY, EMPTY), None, kind="B")
 
 # After the other groups, whose cases keep their numbers
 group("atan2(y, x), defined on the plane but (0, 0), with values in (−π, π] (Table 9.1)",
@@ -1135,10 +1130,6 @@ static bool interior(const INTERVAL& x, const INTERVAL& y) { return x < y; }
 static bool subset(const INTERVAL& x, const INTERVAL& y) { return x <= y; }
 static bool equal(const INTERVAL& x, const INTERVAL& y) { return x == y; }
 static bool disjoint(const INTERVAL& x, const INTERVAL& y) { return Sup(x) < Inf(y) || Sup(y) < Inf(x); }
-static bool certainly_eq(const INTERVAL& x, const INTERVAL& y)
-{
-  return Inf(x) == Sup(x) && Inf(y) == Sup(y) && Inf(x) == Inf(y);
-}
 
 template<class F>
 static void show(const char *id, F f)

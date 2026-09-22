@@ -192,15 +192,23 @@ namespace gaol_core {
     GAOL_NODISCARD bool certainly_leq(const interval &I) const;
     GAOL_NODISCARD bool certainly_ge(const interval &I) const;
     GAOL_NODISCARD bool certainly_le(const interval &I) const;
-    GAOL_NODISCARD bool certainly_eq(const interval &I) const;
-    GAOL_NODISCARD bool certainly_neq(const interval &I) const;
-
-    GAOL_NODISCARD bool possibly_geq(const interval &I) const;
-    GAOL_NODISCARD bool possibly_leq(const interval &I) const;
-    GAOL_NODISCARD bool possibly_ge(const interval &I) const;
-    GAOL_NODISCARD bool possibly_le(const interval &I) const;
-    GAOL_NODISCARD bool possibly_eq(const interval &I) const;
-    GAOL_NODISCARD bool possibly_neq(const interval &I) const;
+    /*
+      Removed from GAOL v5, with the operators == and != (see the relation
+      symbols below): certainly_neq() was !certainly_eq(), which is "possibly
+      not equal", [3,4] being certainly not equal to [3,4]; IEEE 1788-2015 has
+      neither certainly_eq nor the possibly relations, and its "certainly not
+      equal" is disjoint, set_disjoint() here. possibly_eq(I) is
+      !set_disjoint(I). The code is kept in comments.
+    */
+//     GAOL_NODISCARD bool certainly_eq(const interval &I) const;
+//     GAOL_NODISCARD bool certainly_neq(const interval &I) const;
+//
+//     GAOL_NODISCARD bool possibly_geq(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_leq(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_ge(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_le(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_eq(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_neq(const interval &I) const;
 
     GAOL_NODISCARD bool set_contains(const interval& I) const;
     //! d shall not be a NaN
@@ -521,53 +529,55 @@ namespace gaol_core {
   }
 
 
-  /*
-    For all x in *this and all y in I, x = y: both intervals are the same
-    double, or both are empty. GAOL did not look at the lower bound of I, and
-    [2] was certainly equal to [1,2] (GAOL v5).
-  */
-  INLINE bool interval::certainly_eq(const interval &I) const
-  {
-    return (is_empty() && I.is_empty())
-      || (left() == right() && I.left() == I.right() && left() == I.left());
-  }
-
-  INLINE bool interval::certainly_neq(const interval &I) const
-  {
-    return !certainly_eq(I);
-  }
-
-
-  INLINE bool interval::possibly_geq(const interval &I) const
-  {
-    return right()>= I.left();
-  }
-
-
-  INLINE bool interval::possibly_leq(const interval &I) const
-  {
-    return left() <= I.right();
-  }
-
-  INLINE bool interval::possibly_ge(const interval &I) const
-  {
-    return right() > I.left();
-  }
-  INLINE bool interval::possibly_le(const interval &I) const
-  {
-    return left() < I.right();
-  }
-
-
-  INLINE bool interval::possibly_eq(const interval &I) const
-  {
-    return (left() <= I.right()) && (right() >= I.left());
-  }
-
-  INLINE bool interval::possibly_neq(const interval &I) const
-  {
-    return (!is_empty() && !I.is_empty()) && !((right()<= I.left()) && (left()>=I.right()));
-  }
+  // certainly_eq(), certainly_neq() and the possibly relations, removed from
+  // GAOL v5 (see their declarations above)
+//   /*
+//     For all x in *this and all y in I, x = y: both intervals are the same
+//     double, or both are empty. GAOL did not look at the lower bound of I, and
+//     [2] was certainly equal to [1,2] (GAOL v5).
+//   */
+//   INLINE bool interval::certainly_eq(const interval &I) const
+//   {
+//     return (is_empty() && I.is_empty())
+//       || (left() == right() && I.left() == I.right() && left() == I.left());
+//   }
+//
+//   INLINE bool interval::certainly_neq(const interval &I) const
+//   {
+//     return !certainly_eq(I);
+//   }
+//
+//
+//   INLINE bool interval::possibly_geq(const interval &I) const
+//   {
+//     return right()>= I.left();
+//   }
+//
+//
+//   INLINE bool interval::possibly_leq(const interval &I) const
+//   {
+//     return left() <= I.right();
+//   }
+//
+//   INLINE bool interval::possibly_ge(const interval &I) const
+//   {
+//     return right() > I.left();
+//   }
+//   INLINE bool interval::possibly_le(const interval &I) const
+//   {
+//     return left() < I.right();
+//   }
+//
+//
+//   INLINE bool interval::possibly_eq(const interval &I) const
+//   {
+//     return (left() <= I.right()) && (right() >= I.left());
+//   }
+//
+//   INLINE bool interval::possibly_neq(const interval &I) const
+//   {
+//     return (!is_empty() && !I.is_empty()) && !((right()<= I.left()) && (left()>=I.right()));
+//   }
 
   INLINE
   bool interval::is_zero(void) const
@@ -1195,78 +1205,114 @@ INLINE double interval::rad(void) const
     return r;
 }
 
+  /*
+    The relation symbols (GAOL v5). <, <=, > and >= are the certainly
+    relations, strictPrecedes and precedes of IEEE 1788-2015 and their
+    converses, whichever build configured GAOL. The option --enable-relations,
+    which chose between the set, certainly and possibly relations, is gone
+    with the possibly relations; its set relations were never taken, the
+    builds defining GAOL_SET_RELATIONS where this header read
+    GAOL_SET_RELATION. == and != are not defined on intervals: with the
+    certainly relations, != was !certainly_eq(), true for [3,4] and [3,4].
+    set_eq() and set_disjoint() are the equality and the "certainly not equal"
+    of IEEE 1788-2015. The former operators are kept in comments.
+  */
+//   //! Relations
+//   //@{
+// GAOL_NODISCARD INLINE bool operator==(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_eq(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_eq(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_eq(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD INLINE bool operator!=(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_neq(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_neq(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_neq(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD INLINE bool operator<=(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_leq(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_leq(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_leq(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD INLINE bool operator>=(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_geq(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_geq(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_geq(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD INLINE bool operator<(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_le(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_le(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_le(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD INLINE bool operator>(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_ge(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_ge(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_ge(I2);
+// #endif
+//   }
+//
+//   //@}
+
   //! Relations
   //@{
-GAOL_NODISCARD INLINE bool operator==(const interval &I1, const interval &I2)
-  {
-#if GAOL_SET_RELATION
-    return I1.set_eq(I2);
-#elif GAOL_CERTAINLY_RELATIONS
-    return I1.certainly_eq(I2);
-#else
-    // No other case than GAOL_POSSIBLY_RELATIONS
-    return I1.possibly_eq(I2);
-#endif
-  }
-
-GAOL_NODISCARD INLINE bool operator!=(const interval &I1, const interval &I2)
-  {
-#if GAOL_SET_RELATION
-    return I1.set_neq(I2);
-#elif GAOL_CERTAINLY_RELATIONS
-    return I1.certainly_neq(I2);
-#else
-    // No other case than GAOL_POSSIBLY_RELATIONS
-    return I1.possibly_neq(I2);
-#endif
-  }
-
 GAOL_NODISCARD INLINE bool operator<=(const interval &I1, const interval &I2)
   {
-#if GAOL_SET_RELATION
-    return I1.set_leq(I2);
-#elif GAOL_CERTAINLY_RELATIONS
     return I1.certainly_leq(I2);
-#else
-    // No other case than GAOL_POSSIBLY_RELATIONS
-    return I1.possibly_leq(I2);
-#endif
   }
 
 GAOL_NODISCARD INLINE bool operator>=(const interval &I1, const interval &I2)
   {
-#if GAOL_SET_RELATION
-    return I1.set_geq(I2);
-#elif GAOL_CERTAINLY_RELATIONS
     return I1.certainly_geq(I2);
-#else
-    // No other case than GAOL_POSSIBLY_RELATIONS
-    return I1.possibly_geq(I2);
-#endif
   }
 
 GAOL_NODISCARD INLINE bool operator<(const interval &I1, const interval &I2)
   {
-#if GAOL_SET_RELATION
-    return I1.set_le(I2);
-#elif GAOL_CERTAINLY_RELATIONS
     return I1.certainly_le(I2);
-#else
-    // No other case than GAOL_POSSIBLY_RELATIONS
-    return I1.possibly_le(I2);
-#endif
   }
 
 GAOL_NODISCARD INLINE bool operator>(const interval &I1, const interval &I2)
   {
-#if GAOL_SET_RELATION
-    return I1.set_ge(I2);
-#elif GAOL_CERTAINLY_RELATIONS
     return I1.certainly_ge(I2);
-#else
-    // No other case than GAOL_POSSIBLY_RELATIONS
-    return I1.possibly_ge(I2);
-#endif
   }
 
   //@}

@@ -3101,7 +3101,8 @@ interval2f interval2f::inverse() const
 
 	bool interval2f::possibly_eq_all(const interval2f& I) const
 	{
-		return first().possibly_eq(I.first()) && second().possibly_eq(I.second());
+		// Possibly equal: not disjoint, interval::possibly_eq() being gone (GAOL v5)
+		return !first().set_disjoint(I.first()) && !second().set_disjoint(I.second());
 	}
 
 	bool interval2f::set_eq_all(const interval2f& I) const

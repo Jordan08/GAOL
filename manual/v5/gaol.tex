@@ -444,9 +444,7 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \end{itemize}
 
 \noindent
-The CMake build always gives the relational symbols the ``certainly''
-relations (\pxref{sec:interval-relations}), and reports errors by
-exceptions (\pxref{sec:exceptions}).
+The CMake build always reports errors by exceptions (\pxref{sec:exceptions}).
 
 Interprocedural optimization is not offered, and \code{gaol::gaol} carries no
 such flag: with GCC, it moves floating-point operations across the changes of
@@ -512,12 +510,6 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
   restores the rounding direction it found (\pxref{sec:rounding-direction}).
   This option defaults to \code{no};
 \cindex{rounding!preserving}%
-\item \loption{enable-relations=\var{kind}}. Defines the kind of relation
-  to use for relational symbols ($=,\leq, \dots$) to be
-  \var{kind}. Possible values for \var{kind} are
-  \code{certainly}, \code{set}, and \code{possibly} (\pxref{sec:interval-relations}).
-  The default is \code{certainly};
-\cindex{relation}%
 \item \loption{enable-exceptions[=\var{yes/no}]}. If enabled, errors
   are reported by throwing an exception (\pxref{sec:exceptions}); otherwise,
   by calling \code{gaol\_error()}, which prints a message to the standard error
@@ -574,7 +566,6 @@ are those of \cmd{configure}:
     \code{enable-asm} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
-    \code{enable-relations} & \code{certainly}\\
     \code{enable-exception} & \code{true}\\
     \code{with-test} & \code{false}; builds the check programs of GAOL~4\\
     \code{with-doc} & \code{false}; the target \code{pdf} then builds this manual and the manual of GAOL~4\\
@@ -1387,7 +1378,7 @@ cout << interval::emptyset() << ' ' << interval::pi() << endl;
 \chapter{Interval relations}\label{sec:interval-relations}
 %===========================
 
-Interval relations may be divided into three groups. Given $I$ and
+Interval relations may be divided into two groups. Given $I$ and
 $J$ two intervals, we have:
 
 \begin{enumerate}
@@ -1400,24 +1391,26 @@ Basically, two intervals are equal in that mode if they have the same bounds;
 \item\dfn{certainly relations}: the relations must be true for any tuple of
 values in the intervals. For example:
 \begin{equation*}
-I=J \Leftrightarrow(\forall x\in I, \forall y\in J\colon x=y)
+I\leq J \Leftrightarrow(\forall x\in I, \forall y\in J\colon x\leq y)
 \end{equation*}
-Then, two intervals are equal in that mode if they are both reduced to
-the same value;
-\item\dfn{possibly relations}: the relations are true if it exists at
-least one tuple verifying the corresponding real relation. For example:
-\begin{equation*}
-I=J \Leftrightarrow(\exists x\in I, \exists y\in J\colon x=y)
-\end{equation*}
-Then, two intervals are equal in that mode whenever their intersection
-is not empty.
+Then, $I$ is less than or equal to $J$ in that mode if its right bound is at
+most the left bound of $J$.
 \end{enumerate}
 
-The kind of relation to associate to relation symbols such as
-$==$ and $\leq$ is chosen when configuring the library with autotools or meson
-(\pxref{sec:configuration}); it is ``certainly'' by default, and always with
-CMake. The other possible definitions are always available through the methods
-described hereunder.
+GAOL~4 had a third group, the \dfn{possibly relations}, true if at least one
+tuple of values verifies the real relation, and a certain equality,
+\code{certainly\_eq()} and \code{certainly\_neq()}. They are gone from
+GAOL v5, and so are the operators \code{==} and \code{!=} on
+intervals:\newinvfive{} \code{certainly\_neq()} was the negation of
+\code{certainly\_eq()}, which is ``possibly not equal'', so that \itv{3}{4} was
+certainly not equal to \itv{3}{4}. IEEE 1788-2015 has neither. Its equality is
+\ieee{equal}, \code{set\_eq()}; that no value of $I$ equals a value of $J$ is
+\ieee{disjoint}, \code{set\_disjoint()}; and ``possibly equal'' is
+\code{!set\_disjoint()}.
+\cindex{relation!possibly (removed)}%
+
+The relation symbols $<$, $\leq$, $>$ and $\geq$ are the certainly relations
+in every build (\pxref{sec:relational-symbols}).
 
 The relations that IEEE 1788-2015 defines (Tables 10.3 and 10.4) follow its
 definitions, for the empty set and for the infinite bounds
@@ -1575,40 +1568,6 @@ Returns \code{true} if the real set defined by \code{self} contains \var{I}:
 \section{Certainly relations}
 %%---------------------------
 
-\begin{defmethod}{interval}{bool}{certainly\_eq}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x=y$}
-  \end{operation}
-  Returns \code{true} if \code{self} is certainly equal to \var{I}, which is true
-only when both intervals are degenerate and contain the same floating-point
-number, or are both empty. GAOL~4 did not look at the left bound of
-\var{I}, and \itv{2}{2} was certainly equal to \itv{1}{2}.\newinvfive
-\begin{example}
-interval u = interval::universe(), e = interval::emptyset();
-cout << interval(3,4).certainly_eq(interval(3,4)) << ' '
-     << interval(-6).certainly_eq(interval(-6,-6)) << ' '
-     << u.certainly_eq(u) << ' ' << e.certainly_eq(e) << ' '
-     << interval(2).certainly_eq(interval(1,2));
-@outputs^false true false true false~
-\end{example}
-\end{defmethod}
-
-\begin{defmethod}{interval}{bool}{certainly\_neq}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\neg\code{self.certainly\_eq(\var{I})}$}
-  \end{operation}
-Returns the negation of \code{certainly\_eq(\var{I})}, as in GAOL~4: \code{true}
-unless both intervals are the same double, or both empty. It is therefore
-\code{true} for two intervals that share points, as \itv{3}{4} and \itv{3}{4};
-that no point of \code{self} equals a point of \var{I} is
-\code{set\_disjoint(\var{I})}.
-\begin{example}
-cout << interval(3,4).certainly_neq(interval(5,6)) << ' '
-     << interval(3,4).certainly_neq(interval(3,4));
-@outputs^true true~
-\end{example}
-\end{defmethod}
-
 \begin{defmethod}{interval}{bool}{certainly\_le}{(const interval\& \var{I}) const}
   \begin{operation}
     \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x<y$}
@@ -1730,88 +1689,6 @@ cout << interval::emptyset().certainly_strictly_negative() << ' '
 \end{example}
 \end{defmethod}
 
-\section{Possibly relations}
-%%--------------------------
-
-\begin{defmethod}{interval}{bool}{possibly\_eq}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x=y$}
-  \end{operation}
-Returns \code{true} if \code{self} is possibly equal to \var{I}.
-\begin{example}
-cout << interval(5,10).possibly_eq(interval(6,100)) << ' '
-     << interval::emptyset().possibly_eq(interval::emptyset());
-@outputs^true false~
-\end{example}
-\end{defmethod}
-
-\begin{defmethod}{interval}{bool}{possibly\_neq}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x\neq y$}
-  \end{operation}
-Returns \code{true} if \code{self} is possibly not equal to \var{I}.
-\begin{example}
-cout << interval(4,5).possibly_neq(interval(4,5)) << ' '
-     << interval(4,4).possibly_neq(interval(4,4)) << ' '
-     << interval::emptyset().possibly_neq(interval::emptyset());
-@outputs^true false false~
-\end{example}
-\end{defmethod}
-
-\begin{defmethod}{interval}{bool}{possibly\_le}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x<y$}
-  \end{operation}
-Returns \code{true} if \code{self} is possibly strictly less than \var{I}.
-\begin{example}
-cout << interval(4,5).possibly_le(interval(3,7)) << ' '
-     << interval(4,5).possibly_le(interval(2,4)) << ' '
-     << interval(4,5).possibly_le(interval::emptyset());
-@outputs^true false false~
-\end{example}
-\end{defmethod}
-
-\begin{defmethod}{interval}{bool}{possibly\_leq}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x\leq y$}
-  \end{operation}
-  Returns \code{true} if \code{self} is possibly less or equal to \var{I}.
-\begin{example}
-cout << interval(4,5).possibly_leq(interval(3,7)) << ' '
-     << interval(4,5).possibly_leq(interval(2,4)) << ' '
-     << interval(4,5).possibly_leq(interval::emptyset());
-@outputs^true true false~
-\end{example}
-\end{defmethod}
-
-\begin{defmethod}{interval}{bool}{possibly\_ge}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x>y$}
-  \end{operation}
-  Returns \code{true} if \code{self} is possibly strictly greater than \var{I}.
-  \begin{example}
-cout << interval(4,5).possibly_ge(interval(3,6)) << ' '
-     << interval(4,5).possibly_ge(interval(5,6)) << ' '
-     << interval(4,5).possibly_ge(interval(6,7)) << ' '
-     << interval(4,5).possibly_ge(interval::emptyset());
-@outputs^true false false false~
-  \end{example}
-\end{defmethod}
-
-\begin{defmethod}{interval}{bool}{possibly\_geq}{(const interval\& \var{I}) const}
-  \begin{operation}
-    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x\geq y$}
-  \end{operation}
-  Returns \code{true} if \code{self} is possibly greater or equal to \var{I}.
-  \begin{example}
-cout << interval(4,5).possibly_geq(interval(3,6)) << ' '
-     << interval(4,5).possibly_geq(interval(5,6)) << ' '
-     << interval(4,5).possibly_geq(interval(6,7)) << ' '
-     << interval(4,5).possibly_geq(interval::emptyset());
-@outputs^true true false false~
-  \end{example}
-\end{defmethod}
-
 \section{The order of IEEE 1788-2015}
 %%-----------------------------------
 
@@ -1848,54 +1725,40 @@ cout << interval(1,2).strictly_less(interval(1,3)) << ' '
 \end{example}
 \end{defmethod}
 
-\section{Relational Symbols}
+\section{Relational Symbols}\label{sec:relational-symbols}
 %%--------------------------
 
-\begin{deffun}{bool}{operator==}{(const interval\& \var{I1}, const interval\& \var{I2})}
-    Returns \code{\var{I1}.\var{kind}\_eq(\var{I2})}, \var{kind} being
-    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
-    chosen when configuring GAOL (\pxref{sec:configuration}).
-\end{deffun}
-
-\begin{deffun}{bool}{operator!=}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.\var{kind}\_neq(\var{I2})}, \var{kind} being
-    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
-    chosen when configuring GAOL (\pxref{sec:configuration}).
-\end{deffun}
+The relation symbols are the certainly relations, whichever build configured
+GAOL: the option of GAOL~4 that chose between the set, certainly and possibly
+relations is gone, and \cmd{configure} and meson refuse
+it.\newinvfive{} \code{==} and \code{!=} are not defined on intervals: compare
+them with \code{set\_eq()}, \code{set\_disjoint()} or \code{less()}.
+\cindex{relation!symbols}%
 
 \begin{deffun}{bool}{operator<}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.\var{kind}\_le(\var{I2})}, \var{kind} being
-    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
-    chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.certainly\_le(\var{I2})}: \ieee{strictPrecedes} of
+  IEEE 1788-2015.
 \end{deffun}
 
 \begin{deffun}{bool}{operator<=}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.\var{kind}\_leq(\var{I2})}, \var{kind} being
-    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
-    chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.certainly\_leq(\var{I2})}: \ieee{precedes} of
+  IEEE 1788-2015.
 \end{deffun}
 
 \begin{deffun}{bool}{operator>}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.\var{kind}\_ge(\var{I2})}, \var{kind} being
-    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
-    chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.certainly\_ge(\var{I2})}.
 \end{deffun}
 
 \begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.\var{kind}\_geq(\var{I2})}, \var{kind} being
-    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
-    chosen when configuring GAOL (\pxref{sec:configuration}).
-\end{deffun}
-
-\noindent
-With the certainly relations, the default of the three builds:
+  Returns \code{\var{I1}.certainly\_geq(\var{I2})}.
 \begin{example}
-cout << (interval(1,2) == interval(1,2)) << ' '
-     << (interval(2) == interval(2)) << ' '
-     << (interval(1,2) < interval(3,4)) << ' '
-     << (interval(1,2) <= interval(2,4));
-@outputs^false true true true~
+cout << (interval(1,2) < interval(3,4)) << ' '
+     << (interval(1,2) <= interval(2,4)) << ' '
+     << (interval(1,3) <= interval(2,4)) << ' '
+     << (interval(3,4) > interval(1,2));
+@outputs^true true false true~
 \end{example}
+\end{deffun}
 
 
 \section{Interval-specific relations}
@@ -4473,6 +4336,13 @@ change with its reasons and its measures.
 \item \code{gaol::init()} need not be called again after the program changed the
   rounding direction: each operation sets it upward itself
   (\pxref{sec:rounding-direction}).
+\item The operators \code{==} and \code{!=} on intervals are gone, with the
+  possibly relations (\code{possibly\_eq()}, \code{possibly\_le()}\ldots),
+  \code{certainly\_eq()} and \code{certainly\_neq()}, and so is the option
+  \loption{enable-relations}, which \cmd{configure} and meson refuse: a program
+  compares intervals with \code{set\_eq()}, \code{set\_disjoint()} and
+  \code{!set\_disjoint()}, and \code{<}, \code{<=}, \code{>} and \code{>=} are
+  the certainly relations (\pxref{sec:interval-relations}).
 \end{itemize}
 
 \section{Results that change}
@@ -4498,9 +4368,8 @@ change with its reasons and its measures.
   real line, and takes a negative order.
 \item \textbf{The comparisons} follow IEEE 1788-2015 for the empty set and the
   infinite bounds: \code{certainly\_leq()} and its companions are true when
-  either interval is empty, \code{set\_strictly\_contains()} takes an infinite
-  bound as beyond itself, and \code{certainly\_eq()} looks at both bounds of its
-  argument (\pxref{sec:interval-relations}).
+  either interval is empty, and \code{set\_strictly\_contains()} takes an
+  infinite bound as beyond itself (\pxref{sec:interval-relations}).
 \item \textbf{Input and output.} Numbers are read exactly, and the literals of
   IEEE 1788-2015 are read, in any case of letters; \code{"[inf]"} is the empty
   set. The format \code{hexa} writes interval literals, which are read back bit
