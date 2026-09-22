@@ -766,37 +766,37 @@ typedef struct {
 
   //! Construction operators
   //@{
-  const expression operator+(const expression& el, const expression& er);
-  const expression operator-(const expression& e);
-  const expression operator-(const expression& el, const expression& er);
-  const expression operator*(const expression& el, const expression& er);
-  const expression operator/(const expression& el, const expression& er);
+  GAOL_NODISCARD const expression operator+(const expression& el, const expression& er);
+  GAOL_NODISCARD const expression operator-(const expression& e);
+  GAOL_NODISCARD const expression operator-(const expression& el, const expression& er);
+  GAOL_NODISCARD const expression operator*(const expression& el, const expression& er);
+  GAOL_NODISCARD const expression operator/(const expression& el, const expression& er);
   //! gaol_pown_exp(e, n), gaol_pow_exp(e1, e2): e^n and e1^e2, gaol::pow(e, n) and gaol::pow(e1, e2)
-  const expression gaol_pown_exp(const expression& e, int n);
-  const expression gaol_pow_exp(const expression& e1, const expression& e2);
-  const expression nth_root(const expression& e, unsigned int n);
-  const expression cos(const expression& e);
-  const expression sin(const expression& e);
-  const expression tan(const expression& e);
-  const expression atan2(const expression& e1, const expression& e2);
-  const expression acos(const expression& e);
-  const expression asin(const expression& e);
-  const expression atan(const expression& e);
-  const expression cosh(const expression& e);
-  const expression sinh(const expression& e);
-  const expression tanh(const expression& e);
-  const expression acosh(const expression& e);
-  const expression asinh(const expression& e);
-  const expression atanh(const expression& e);
-  const expression exp(const expression& e);
-  const expression log(const expression& e);
+  GAOL_NODISCARD const expression gaol_pown_exp(const expression& e, int n);
+  GAOL_NODISCARD const expression gaol_pow_exp(const expression& e1, const expression& e2);
+  GAOL_NODISCARD const expression nth_root(const expression& e, unsigned int n);
+  GAOL_NODISCARD const expression cos(const expression& e);
+  GAOL_NODISCARD const expression sin(const expression& e);
+  GAOL_NODISCARD const expression tan(const expression& e);
+  GAOL_NODISCARD const expression atan2(const expression& e1, const expression& e2);
+  GAOL_NODISCARD const expression acos(const expression& e);
+  GAOL_NODISCARD const expression asin(const expression& e);
+  GAOL_NODISCARD const expression atan(const expression& e);
+  GAOL_NODISCARD const expression cosh(const expression& e);
+  GAOL_NODISCARD const expression sinh(const expression& e);
+  GAOL_NODISCARD const expression tanh(const expression& e);
+  GAOL_NODISCARD const expression acosh(const expression& e);
+  GAOL_NODISCARD const expression asinh(const expression& e);
+  GAOL_NODISCARD const expression atanh(const expression& e);
+  GAOL_NODISCARD const expression exp(const expression& e);
+  GAOL_NODISCARD const expression log(const expression& e);
   /* The functions GAOL v5 adds, which the reader of strings builds too
      (gaol/gaol_interval_parser.ypp): cbrt(x) is nth_root(x, 3), as sqrt(x) is
      nth_root(x, 2), so it needs no node of its own */
-  const expression exp2(const expression& e);
-  const expression log2(const expression& e);
-  const expression sign(const expression& e);
-  const expression trunc(const expression& e);
+  GAOL_NODISCARD const expression exp2(const expression& e);
+  GAOL_NODISCARD const expression log2(const expression& e);
+  GAOL_NODISCARD const expression sign(const expression& e);
+  GAOL_NODISCARD const expression trunc(const expression& e);
   //@}
 
   /*!
@@ -808,9 +808,9 @@ typedef struct {
     \return true if the parsing was possible and flase otherwise
   */
   //@{
-  bool evaluate_left_right(const expression& el, const expression& er,
+  GAOL_NODISCARD bool evaluate_left_right(const expression& el, const expression& er,
 			   interval* itv);
-  bool evaluate_left_right(const expression& e,
+  GAOL_NODISCARD bool evaluate_left_right(const expression& e,
 			   interval* itv);
   //@}
   /*!
@@ -819,7 +819,7 @@ typedef struct {
 
     \return true if the parsing was possible and flase otherwise
   */
-  bool evaluate_expr(const expression& e,interval& itv);
+  GAOL_NODISCARD bool evaluate_expr(const expression& e,interval& itv);
 
   /*
     INLINE methods ---
@@ -1303,8 +1303,8 @@ typedef struct {
   gaol_ieee1788::pow(x, [3]).
 */
 namespace gaol {
-  inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
-  inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
+  GAOL_NODISCARD inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
+  GAOL_NODISCARD inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
 } // namespace gaol
 
 #endif /* __gaol_expression_h__ */

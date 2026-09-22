@@ -134,18 +134,18 @@ namespace gaol_core {
     interval& operator/=(const interval& I);
     interval& operator%=(const interval& I);
 
-    interval operator+(void) const;
-    interval operator-(void) const;
+    GAOL_NODISCARD interval operator+(void) const;
+    GAOL_NODISCARD interval operator-(void) const;
 
-    interval inverse() const; // TODO: document inverse() method
+    GAOL_NODISCARD interval inverse() const; // TODO: document inverse() method
 
     //! Intersection of *this and I
     interval& operator&=(const interval& I);
     //! Union of *this and I
     interval& operator|=(const interval& I);
 
-    double left(void) const;
-    double right(void) const;
+    GAOL_NODISCARD double left(void) const;
+    GAOL_NODISCARD double right(void) const;
     /*!
      \brief Returns the midpoint of an interval.
 
@@ -156,7 +156,7 @@ namespace gaol_core {
      - [a, +oo]   -> midP = MAXREAL
      - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even
     */
-    double midpoint(void) const;
+    GAOL_NODISCARD double midpoint(void) const;
     /*!
       \brief Midpoint enclosing interval.
 
@@ -168,14 +168,14 @@ namespace gaol_core {
      - mid([a,+oo])   = [MAXREAL,MAXREAL]
      - mid([-oo,+oo]) = [0,0]
     */
-    interval mid(void) const;
+    GAOL_NODISCARD interval mid(void) const;
     /*!
       \brief Radius of an interval, rad of IEEE 1788-2015 (12.12.8)
 
       The smallest double r such that '*this' is included in [m-r, m+r], m
       being midpoint(): NaN for the empty set, +oo for an unbounded interval.
     */
-    double rad(void) const;
+    GAOL_NODISCARD double rad(void) const;
     /*!
       \brief Midpoint and radius at once, midRad of IEEE 1788-2015 (12.12.8)
 
@@ -184,36 +184,36 @@ namespace gaol_core {
     void mid_rad(double& m, double& r) const;
 
 
-    bool certainly_positive(void) const;
-    bool certainly_negative(void) const;
-    bool certainly_strictly_positive(void) const;
-    bool certainly_strictly_negative(void) const;
-    bool certainly_geq(const interval &I) const;
-    bool certainly_leq(const interval &I) const;
-    bool certainly_ge(const interval &I) const;
-    bool certainly_le(const interval &I) const;
-    bool certainly_eq(const interval &I) const;
-    bool certainly_neq(const interval &I) const;
+    GAOL_NODISCARD bool certainly_positive(void) const;
+    GAOL_NODISCARD bool certainly_negative(void) const;
+    GAOL_NODISCARD bool certainly_strictly_positive(void) const;
+    GAOL_NODISCARD bool certainly_strictly_negative(void) const;
+    GAOL_NODISCARD bool certainly_geq(const interval &I) const;
+    GAOL_NODISCARD bool certainly_leq(const interval &I) const;
+    GAOL_NODISCARD bool certainly_ge(const interval &I) const;
+    GAOL_NODISCARD bool certainly_le(const interval &I) const;
+    GAOL_NODISCARD bool certainly_eq(const interval &I) const;
+    GAOL_NODISCARD bool certainly_neq(const interval &I) const;
 
-    bool possibly_geq(const interval &I) const;
-    bool possibly_leq(const interval &I) const;
-    bool possibly_ge(const interval &I) const;
-    bool possibly_le(const interval &I) const;
-    bool possibly_eq(const interval &I) const;
-    bool possibly_neq(const interval &I) const;
+    GAOL_NODISCARD bool possibly_geq(const interval &I) const;
+    GAOL_NODISCARD bool possibly_leq(const interval &I) const;
+    GAOL_NODISCARD bool possibly_ge(const interval &I) const;
+    GAOL_NODISCARD bool possibly_le(const interval &I) const;
+    GAOL_NODISCARD bool possibly_eq(const interval &I) const;
+    GAOL_NODISCARD bool possibly_neq(const interval &I) const;
 
-    bool set_contains(const interval& I) const;
+    GAOL_NODISCARD bool set_contains(const interval& I) const;
     //! d shall not be a NaN
-    bool set_contains(double d) const;
-    bool set_strictly_contains(const interval& I) const;
-    bool set_strictly_contains(double d) const;
-    bool set_disjoint(const interval &I) const;
-    bool set_eq(const interval& I) const;
-    bool set_neq(const interval& I) const;
-    bool set_leq(const interval& I) const;
-    bool set_geq(const interval& I) const;
-    bool set_le(const interval& I) const;
-    bool set_ge(const interval& I) const;
+    GAOL_NODISCARD bool set_contains(double d) const;
+    GAOL_NODISCARD bool set_strictly_contains(const interval& I) const;
+    GAOL_NODISCARD bool set_strictly_contains(double d) const;
+    GAOL_NODISCARD bool set_disjoint(const interval &I) const;
+    GAOL_NODISCARD bool set_eq(const interval& I) const;
+    GAOL_NODISCARD bool set_neq(const interval& I) const;
+    GAOL_NODISCARD bool set_leq(const interval& I) const;
+    GAOL_NODISCARD bool set_geq(const interval& I) const;
+    GAOL_NODISCARD bool set_le(const interval& I) const;
+    GAOL_NODISCARD bool set_ge(const interval& I) const;
     /*!
       \brief The order of IEEE 1788-2015 on intervals (Table 10.3, GAOL v5)
 
@@ -222,30 +222,30 @@ namespace gaol_core {
       bound counting as below itself. Two empty sets are in both relations,
       and an empty set and a nonempty interval in neither (Table 10.4).
     */
-    bool less(const interval& I) const;
-    bool strictly_less(const interval& I) const;
+    GAOL_NODISCARD bool less(const interval& I) const;
+    GAOL_NODISCARD bool strictly_less(const interval& I) const;
 
-    bool is_empty(void) const;
+    GAOL_NODISCARD bool is_empty(void) const;
     //! isEntire of IEEE 1788-2015 (10.5.10): *this is [-oo, +oo] (GAOL v5)
-    bool is_entire(void) const;
+    GAOL_NODISCARD bool is_entire(void) const;
     //! isCommonInterval of IEEE 1788-2015 (10.6.3): nonempty and bounded (GAOL v5)
-    bool is_common_interval(void) const;
-    bool is_symmetric(void) const;
-    bool is_finite(void) const;
+    GAOL_NODISCARD bool is_common_interval(void) const;
+    GAOL_NODISCARD bool is_symmetric(void) const;
+    GAOL_NODISCARD bool is_finite(void) const;
     /*!
       An interval is canonical if it is of the form [a, a] or
       of the form [a,a+] with a+ the smallest floating-point number larger
       than a
     */
-    bool is_canonical(void) const;
-    bool is_zero(void) const;
-    bool straddles_zero(void) const;
-    bool strictly_straddles_zero(void) const;
-    bool is_a_double(void) const;
-    bool is_an_int(void) const;
+    GAOL_NODISCARD bool is_canonical(void) const;
+    GAOL_NODISCARD bool is_zero(void) const;
+    GAOL_NODISCARD bool straddles_zero(void) const;
+    GAOL_NODISCARD bool strictly_straddles_zero(void) const;
+    GAOL_NODISCARD bool is_a_double(void) const;
+    GAOL_NODISCARD bool is_an_int(void) const;
 
     ///! Size of the interval
-    double width(void) const;
+    GAOL_NODISCARD double width(void) const;
 
     /*!
      \brief Mignitude.
@@ -256,14 +256,14 @@ namespace gaol_core {
      - 0 otherwise
      See "Global Optimization using interval Analysis", chap. 3, Eldon Hansen
      */
-    double mig(void) const;
+    GAOL_NODISCARD double mig(void) const;
        /*!
       \brief Magnitude
 
       Returns the magnitude of '*this', that is,
       mag(*this)=max(|min_|, |max_|)
     */
-    double mag(void) const;
+    GAOL_NODISCARD double mag(void) const;
 
     /*!
       \brief Signed mignitude.
@@ -276,11 +276,11 @@ namespace gaol_core {
      See "interval Methods for Bounding the Range of Polynomials and Solving
      Systems of Nonlinear Equations", Volker Stahl PhD. thesis, def. 1.3.28.
     */
-    double smig(void) const;
+    GAOL_NODISCARD double smig(void) const;
 
 
     static void format(interval_format::format_t f);
-    static interval_format::format_t format(void);
+    GAOL_NODISCARD static interval_format::format_t format(void);
 
 // TODO: Change all static constants in interval class as functions
 #if USING_SSE2_INSTRUCTIONS
@@ -317,11 +317,11 @@ namespace gaol_core {
     static const interval cst_negative;
 
 #endif // USING_SSE2_INSTRUCTIONS
-    static interval zero(void);
-    static interval universe(void);
-    static interval emptyset(void);
-    static interval positive(void); // [0, +oo]
-    static interval negative(void); // [-oo, 0]
+    GAOL_NODISCARD static interval zero(void);
+    GAOL_NODISCARD static interval universe(void);
+    GAOL_NODISCARD static interval emptyset(void);
+    GAOL_NODISCARD static interval positive(void); // [0, +oo]
+    GAOL_NODISCARD static interval negative(void); // [-oo, 0]
 
     static const interval cst_one;
     static const interval cst_minus_one_plus_one;
@@ -331,12 +331,12 @@ namespace gaol_core {
     static const interval cst_one_plus_infinity;
 
 
-    static interval one(void);
-    static interval minus_one_plus_one(void);
-    static interval pi(void);
-    static interval two_pi(void);
-    static interval half_pi(void);
-    static interval one_plus_infinity(void);
+    GAOL_NODISCARD static interval one(void);
+    GAOL_NODISCARD static interval minus_one_plus_one(void);
+    GAOL_NODISCARD static interval pi(void);
+    GAOL_NODISCARD static interval two_pi(void);
+    GAOL_NODISCARD static interval half_pi(void);
+    GAOL_NODISCARD static interval one_plus_infinity(void);
 
     /*!
       @name Splitting methods
@@ -350,16 +350,16 @@ namespace gaol_core {
     void split(interval &I1, interval &I2) const;
 
     //! Returns the left part (i.e. [left,midpoint()] of the domain.
-    interval split_left(void) const;
+    GAOL_NODISCARD interval split_left(void) const;
     //! Returns the right part (i.e. [midpoint(),right] of the domain.
-    interval split_right(void) const;
+    GAOL_NODISCARD interval split_right(void) const;
     //@} // End of splitting methods
 
     //! Conversion to std::string
     operator std::string() const;
 
     //! Returns the current number of digits used for display
-    static std::streamsize precision(void);
+    GAOL_NODISCARD static std::streamsize precision(void);
     /*!
       Sets the number of digits for display to 'n'.
       \return The number of digits previously used
@@ -404,7 +404,7 @@ namespace gaol_core {
 #endif // USING_SSE2_INSTRUCTIONS
 
 
-  INLINE interval inverse(const interval& I)
+  GAOL_NODISCARD INLINE interval inverse(const interval& I)
   { // TODO: document inverse() function
     return I.inverse();
   }
@@ -711,15 +711,15 @@ namespace gaol_core {
                = b/a,  otherwise
 
    */
-  extern __GAOL_PUBLIC__ double chi(const interval &I);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ double chi(const interval &I);
   /*!
     \brief maximum of 2 intervals
    */
-  extern __GAOL_PUBLIC__ interval max(const interval &I, const interval &J);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ interval max(const interval &I, const interval &J);
   /*!
     \brief minimum of 2 intervals
    */
-  extern __GAOL_PUBLIC__ interval min(const interval &I, const interval &J);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ interval min(const interval &I, const interval &J);
 
   extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& os,
 					     const interval& I);
@@ -734,11 +734,11 @@ namespace gaol_core {
     neither reads nor changes the global output format, which
     interval::format() sets.
   */
-  extern __GAOL_PUBLIC__ std::string exact_string(const interval& I);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ std::string exact_string(const interval& I);
   //! I^2
-  extern __GAOL_PUBLIC__   interval sqr(const interval& I);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__   interval sqr(const interval& I);
   //! I^e for an integer e, gaol::pow(I, e)
-  extern __GAOL_PUBLIC__   interval gaol_pown(const interval& I, int e);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__   interval gaol_pown(const interval& I, int e);
   /*
     I^e for an unsigned e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
     for e = 0 and the empty set for an empty I. Declared here too, and defined
@@ -747,7 +747,7 @@ namespace gaol_core {
     uipow_dnup(), which only computed parts of it on the stored bounds, are no
     longer declared.
   */
-  extern __GAOL_PUBLIC__   interval gaol_uipow(const interval& I, unsigned int e);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__   interval gaol_uipow(const interval& I, unsigned int e);
 
   /*!
     \brief I^J, gaol::pow(I, J) (GAOL v5)
@@ -764,7 +764,7 @@ namespace gaol_core {
     not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
     pow([0],[0]) is [1].
   */
-  extern __GAOL_PUBLIC__   interval gaol_pow_hybrid(const interval &I, const interval &J);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
 
   /*!
@@ -778,31 +778,31 @@ namespace gaol_core {
     gaol_pow_hybrid(), and an infinite or NaN p gives the empty set. Ported
     from the fix of Codac (commit 74086ccb, Jordan Ninin).
   */
-  extern __GAOL_PUBLIC__  interval gaol_pow_real(const interval& I, double p);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__  interval gaol_pow_real(const interval& I, double p);
 
   /*!
     \brief relational square root of J w.r.t. I
     \f$sqrt_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^2}\f$
   */
-extern __GAOL_PUBLIC__   interval sqrt_rel(const interval& J, const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval sqrt_rel(const interval& J, const interval& I);
 
   /*!
     \brief relational division of K by J w.r.t. I
 
     div_rel(K,J,I) = hull(x\in I\mid\exists z\in K\exists y\in J:z=xy)
    */
-extern __GAOL_PUBLIC__   interval div_rel(const interval &K,
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval div_rel(const interval &K,
 				      const interval &J, const interval &I);
 
   /*!
     \brief square root of I
   */
-extern __GAOL_PUBLIC__   interval sqrt(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval sqrt(const interval& I);
   /*!
     \brief relational nth root of J w.r.t. I, for a positive n
     \f$nthroot_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^n}\f$
   */
-extern __GAOL_PUBLIC__   interval nth_root_rel(const interval& J,
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval nth_root_rel(const interval& J,
 					   unsigned int n, const interval& I);
   /*!
     \brief nth root of I for a positive n
@@ -811,7 +811,7 @@ extern __GAOL_PUBLIC__   interval nth_root_rel(const interval& J,
     -(-x)^(1/n), and nth_root([-8,27],3) encloses [-2,3]; for an even n, the
     roots of the part of I in [0,+oo]. nth_root(I,0) is the empty set.
   */
-extern __GAOL_PUBLIC__   interval nth_root(const interval& I, unsigned int n);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval nth_root(const interval& I, unsigned int n);
   /*!
     \brief Returns an enclosure of the q-th roots of the elements of I
 
@@ -819,7 +819,7 @@ extern __GAOL_PUBLIC__   interval nth_root(const interval& I, unsigned int n);
     rootn(x, q) is then 1/x^(1/|q|), defined on R\{0} for an odd q and on
     (0, +oo) for an even one.
   */
-extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int q);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int q);
 
   /*!
     \brief Returns the number of floating-point numbers in [a,b]
@@ -833,29 +833,29 @@ extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int q);
     configured.
     \precond a must be smaller or equal to b
   */
-extern __GAOL_PUBLIC__   ULONGLONGINT nb_fp_numbers(double a, double b);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   ULONGLONGINT nb_fp_numbers(double a, double b);
 
 extern __GAOL_PUBLIC__	  unsigned short int modulo_k_pi(const interval &I, double &k_left, double &k_right);
 
-extern __GAOL_PUBLIC__   interval exp(const interval& I);
-extern __GAOL_PUBLIC__   interval log(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval exp(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval log(const interval& I);
 
   /*!
     \brief Returns an enclosure of 2^x for x in I
   */
-extern __GAOL_PUBLIC__   interval exp2(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval exp2(const interval& I);
   /*!
     \brief Returns an enclosure of 10^x for x in I
   */
-extern __GAOL_PUBLIC__   interval exp10(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval exp10(const interval& I);
   /*!
     \brief Returns an enclosure of the base 2 logarithms of the elements of I
   */
-extern __GAOL_PUBLIC__   interval log2(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval log2(const interval& I);
   /*!
     \brief Returns an enclosure of the base 10 logarithms of the elements of I
   */
-extern __GAOL_PUBLIC__   interval log10(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval log10(const interval& I);
 
   /*!
     \brief The forward functions IEEE 1788-2015 recommends (Table 10.5)
@@ -877,28 +877,28 @@ extern __GAOL_PUBLIC__   interval log10(const interval& I);
     where it is a double, and the functions of pi*x find their extrema and
     poles exactly, at the multiples of 1/2.
   */
-extern __GAOL_PUBLIC__   interval expm1(const interval& I);
-extern __GAOL_PUBLIC__   interval exp2m1(const interval& I);
-extern __GAOL_PUBLIC__   interval exp10m1(const interval& I);
-extern __GAOL_PUBLIC__   interval log1p(const interval& I);
-extern __GAOL_PUBLIC__   interval log2p1(const interval& I);
-extern __GAOL_PUBLIC__   interval log10p1(const interval& I);
-extern __GAOL_PUBLIC__   interval hypot(const interval& X, const interval& Y);
-extern __GAOL_PUBLIC__   interval rsqrt(const interval& I);
-extern __GAOL_PUBLIC__   interval sinpi(const interval& I);
-extern __GAOL_PUBLIC__   interval cospi(const interval& I);
-extern __GAOL_PUBLIC__   interval tanpi(const interval& I);
-extern __GAOL_PUBLIC__   interval atanpi(const interval& I);
-extern __GAOL_PUBLIC__   interval asinpi(const interval& I);
-extern __GAOL_PUBLIC__   interval acospi(const interval& I);
-extern __GAOL_PUBLIC__   interval atan2pi(const interval& Y, const interval& X);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval expm1(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval exp2m1(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval exp10m1(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval log1p(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval log2p1(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval log10p1(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval hypot(const interval& X, const interval& Y);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval rsqrt(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval sinpi(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval cospi(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval tanpi(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atanpi(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval asinpi(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval acospi(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atan2pi(const interval& Y, const interval& X);
 
   /*!
     \brief fma(X, Y, Z) of IEEE 1788-2015 (Table 9.1): an enclosure of
     x*y + z for x in X, y in Y and z in Z, each bound rounded once, the
     tightest one (GAOL v5)
   */
-extern __GAOL_PUBLIC__   interval fma(const interval& X, const interval& Y, const interval& Z);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval fma(const interval& X, const interval& Y, const interval& Z);
   /*!
     \brief cancelMinus and cancelPlus of IEEE 1788-2015 (10.5.6, 12.12.5)
     (GAOL v5)
@@ -908,37 +908,37 @@ extern __GAOL_PUBLIC__   interval fma(const interval& X, const interval& Y, cons
     X is at least as wide as Y; otherwise [-oo, +oo]. It is the empty set for
     an empty X and a bounded Y. cancel_plus(X, Y) is cancel_minus(X, -Y).
   */
-extern __GAOL_PUBLIC__   interval cancel_minus(const interval& X, const interval& Y);
-extern __GAOL_PUBLIC__   interval cancel_plus(const interval& X, const interval& Y);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval cancel_minus(const interval& X, const interval& Y);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval cancel_plus(const interval& X, const interval& Y);
 
-extern __GAOL_PUBLIC__   interval cos(const interval& I);
-extern __GAOL_PUBLIC__   interval sin(const interval& I);
-extern __GAOL_PUBLIC__   interval tan(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval cos(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval sin(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval tan(const interval& I);
 
-extern __GAOL_PUBLIC__   interval acos(const interval& I);
-extern __GAOL_PUBLIC__   interval asin(const interval& I);
-extern __GAOL_PUBLIC__   interval atan(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval acos(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval asin(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atan(const interval& I);
 
-extern __GAOL_PUBLIC__   interval atan2(const interval& Y, const interval& X);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atan2(const interval& Y, const interval& X);
 
-extern __GAOL_PUBLIC__   interval cosh(const interval& I);
-extern __GAOL_PUBLIC__   interval sinh(const interval& I);
-extern __GAOL_PUBLIC__   interval tanh(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval cosh(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval sinh(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval tanh(const interval& I);
 
-extern __GAOL_PUBLIC__   interval acosh(const interval& I);
-extern __GAOL_PUBLIC__   interval asinh(const interval& I);
-extern __GAOL_PUBLIC__   interval atanh(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval acosh(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval asinh(const interval& I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atanh(const interval& I);
 
-extern __GAOL_PUBLIC__   interval acos_rel(const interval& J, const interval &I);
-extern __GAOL_PUBLIC__   interval asin_rel(const interval& J, const interval &I);
-extern __GAOL_PUBLIC__   interval atan_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval acos_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval asin_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atan_rel(const interval& J, const interval &I);
 
-extern __GAOL_PUBLIC__   interval acosh_rel(const interval& J, const interval &I);
-extern __GAOL_PUBLIC__   interval asinh_rel(const interval& J, const interval &I);
-extern __GAOL_PUBLIC__   interval atanh_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval acosh_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval asinh_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval atanh_rel(const interval& J, const interval &I);
 
-extern __GAOL_PUBLIC__   interval abs(const interval &I);
-extern __GAOL_PUBLIC__   interval invabs_rel(const interval &J, const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval abs(const interval &I);
+GAOL_NODISCARD extern __GAOL_PUBLIC__   interval invabs_rel(const interval &J, const interval &I);
 
   //@}
 
@@ -957,7 +957,7 @@ extern __GAOL_PUBLIC__   interval invabs_rel(const interval &J, const interval &
     A NaN has no sign and is returned as it is: the comparisons below are both
     false for it, so without this it would be given the sign 0.
   */
-INLINE double gaol_sign_of(double d)
+GAOL_NODISCARD INLINE double gaol_sign_of(double d)
   {
     if (std::isnan(d)) {
       return d;
@@ -965,17 +965,17 @@ INLINE double gaol_sign_of(double d)
     return (d < 0.0) ? -1.0 : ((d > 0.0) ? 1.0 : 0.0);
   }
 
-INLINE interval floor(const interval &I)
+GAOL_NODISCARD INLINE interval floor(const interval &I)
   {
     return interval(std::floor(I.left()),std::floor(I.right()));
   }
 
-INLINE interval ceil(const interval &I)
+GAOL_NODISCARD INLINE interval ceil(const interval &I)
   {
     return interval(std::ceil(I.left()),std::ceil(I.right()));
   }
 
-INLINE interval integer(const interval &I)
+GAOL_NODISCARD INLINE interval integer(const interval &I)
   {
     return interval(std::ceil(I.left()),std::floor(I.right()));
   }
@@ -1015,7 +1015,7 @@ INLINE interval integer(const interval &I)
   /*!
     \brief Returns the signs of the elements of I: -1 below 0, 0 at 0, 1 above
   */
-INLINE interval sign(const interval &I)
+GAOL_NODISCARD INLINE interval sign(const interval &I)
   {
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1026,7 +1026,7 @@ INLINE interval sign(const interval &I)
   /*!
     \brief Returns an enclosure of the elements of I rounded toward zero
   */
-INLINE interval trunc(const interval &I)
+GAOL_NODISCARD INLINE interval trunc(const interval &I)
   {
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1038,7 +1038,7 @@ INLINE interval trunc(const interval &I)
     \brief Returns an enclosure of the elements of I rounded to the nearest
            integer, halfway values to the even one
   */
-INLINE interval round_ties_to_even(const interval &I)
+GAOL_NODISCARD INLINE interval round_ties_to_even(const interval &I)
   {
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1050,7 +1050,7 @@ INLINE interval round_ties_to_even(const interval &I)
     \brief Returns an enclosure of the elements of I rounded to the nearest
            integer, halfway values away from zero
   */
-INLINE interval round_ties_to_away(const interval &I)
+GAOL_NODISCARD INLINE interval round_ties_to_away(const interval &I)
   {
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1058,88 +1058,88 @@ INLINE interval round_ties_to_away(const interval &I)
     return interval(std::round(I.left()),std::round(I.right()));
   }
 
-INLINE interval operator+(const interval& I, double d)
+GAOL_NODISCARD INLINE interval operator+(const interval& I, double d)
   {
     return interval(I)+=d;
   }
 
-INLINE interval operator-(const interval& I, double d)
+GAOL_NODISCARD INLINE interval operator-(const interval& I, double d)
   {
     return interval(I)-=d;
   }
 
 
-INLINE interval operator*(const interval& I, double d)
+GAOL_NODISCARD INLINE interval operator*(const interval& I, double d)
   {
     return interval(I)*=d;
   }
 
-INLINE interval operator/(const interval& I, double d)
+GAOL_NODISCARD INLINE interval operator/(const interval& I, double d)
   {
     return interval(I)/=d;
   }
 
-INLINE interval operator%(const interval& I, double d)
+GAOL_NODISCARD INLINE interval operator%(const interval& I, double d)
   {
     return interval(I)%=d;
   }
 
-INLINE interval operator+(double d,const interval& I)
+GAOL_NODISCARD INLINE interval operator+(double d,const interval& I)
   {
     return interval(d)+=I;
   }
 
-INLINE interval operator-(double d, const interval& I)
+GAOL_NODISCARD INLINE interval operator-(double d, const interval& I)
   {
     return interval(d)-=I;
   }
 
-INLINE interval operator*(double d, const interval& I)
+GAOL_NODISCARD INLINE interval operator*(double d, const interval& I)
   {
     return interval(d)*=I;
   }
 
-INLINE interval operator/(double d, const interval& I)
+GAOL_NODISCARD INLINE interval operator/(double d, const interval& I)
   {
     return interval(d)/=I;
   }
 
-INLINE interval operator%(double d, const interval& I)
+GAOL_NODISCARD INLINE interval operator%(double d, const interval& I)
   {
     return interval(d)%=I;
   }
 
-INLINE interval operator+(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator+(const interval& I1, const interval& I2)
   {
     return interval(I1) += I2;
   }
 
-INLINE interval operator-(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator-(const interval& I1, const interval& I2)
   {
     return interval(I1) -= I2;
   }
 
-INLINE interval operator*(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator*(const interval& I1, const interval& I2)
   {
     return interval(I1) *= I2;
   }
 
-INLINE interval operator/(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator/(const interval& I1, const interval& I2)
   {
     return interval(I1) /= I2;
   }
 
-INLINE interval operator%(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator%(const interval& I1, const interval& I2)
   {
     return interval(I1) %= I2;
   }
 
-INLINE interval operator&(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator&(const interval& I1, const interval& I2)
   {
     return interval(I1) &= I2;
   }
 
-INLINE interval operator|(const interval& I1, const interval& I2)
+GAOL_NODISCARD INLINE interval operator|(const interval& I1, const interval& I2)
   {
     return interval(I1) |= I2;
   }
@@ -1197,7 +1197,7 @@ INLINE double interval::rad(void) const
 
   //! Relations
   //@{
-INLINE bool operator==(const interval &I1, const interval &I2)
+GAOL_NODISCARD INLINE bool operator==(const interval &I1, const interval &I2)
   {
 #if GAOL_SET_RELATION
     return I1.set_eq(I2);
@@ -1209,7 +1209,7 @@ INLINE bool operator==(const interval &I1, const interval &I2)
 #endif
   }
 
-INLINE bool operator!=(const interval &I1, const interval &I2)
+GAOL_NODISCARD INLINE bool operator!=(const interval &I1, const interval &I2)
   {
 #if GAOL_SET_RELATION
     return I1.set_neq(I2);
@@ -1221,7 +1221,7 @@ INLINE bool operator!=(const interval &I1, const interval &I2)
 #endif
   }
 
-INLINE bool operator<=(const interval &I1, const interval &I2)
+GAOL_NODISCARD INLINE bool operator<=(const interval &I1, const interval &I2)
   {
 #if GAOL_SET_RELATION
     return I1.set_leq(I2);
@@ -1233,7 +1233,7 @@ INLINE bool operator<=(const interval &I1, const interval &I2)
 #endif
   }
 
-INLINE bool operator>=(const interval &I1, const interval &I2)
+GAOL_NODISCARD INLINE bool operator>=(const interval &I1, const interval &I2)
   {
 #if GAOL_SET_RELATION
     return I1.set_geq(I2);
@@ -1245,7 +1245,7 @@ INLINE bool operator>=(const interval &I1, const interval &I2)
 #endif
   }
 
-INLINE bool operator<(const interval &I1, const interval &I2)
+GAOL_NODISCARD INLINE bool operator<(const interval &I1, const interval &I2)
   {
 #if GAOL_SET_RELATION
     return I1.set_le(I2);
@@ -1257,7 +1257,7 @@ INLINE bool operator<(const interval &I1, const interval &I2)
 #endif
   }
 
-INLINE bool operator>(const interval &I1, const interval &I2)
+GAOL_NODISCARD INLINE bool operator>(const interval &I1, const interval &I2)
   {
 #if GAOL_SET_RELATION
     return I1.set_ge(I2);
@@ -1283,7 +1283,7 @@ INLINE double
     return right_internal();
   }
 
-extern __GAOL_PUBLIC__ bool feven(double d);
+GAOL_NODISCARD extern __GAOL_PUBLIC__ bool feven(double d);
 
 
   /*!(void)
@@ -1291,7 +1291,7 @@ extern __GAOL_PUBLIC__ bool feven(double d);
 
     hausdorff([a,b],[c,d]) = max(|a-c|,|b-d|)
    */
-  extern __GAOL_PUBLIC__ double hausdorff(const interval &I1, const interval &I2);
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ double hausdorff(const interval &I1, const interval &I2);
 
    INLINE interval interval::one(void)
 	{
@@ -1343,11 +1343,11 @@ namespace gaol {
   using namespace gaol_core;
 
   //! pow(I, e), pow(I, J), pow(I, p): GAOL's power, gaol_pown(I, e), gaol_pow_hybrid(I, J), gaol_pow_real(I, p)
-  inline interval pow(const interval& I, int e) { return gaol_core::gaol_pown(I, e); }
-  inline interval pow(const interval& I, const interval& J) { return gaol_core::gaol_pow_hybrid(I, J); }
-  inline interval pow(const interval& I, double p) { return gaol_core::gaol_pow_real(I, p); }
+  GAOL_NODISCARD inline interval pow(const interval& I, int e) { return gaol_core::gaol_pown(I, e); }
+  GAOL_NODISCARD inline interval pow(const interval& I, const interval& J) { return gaol_core::gaol_pow_hybrid(I, J); }
+  GAOL_NODISCARD inline interval pow(const interval& I, double p) { return gaol_core::gaol_pow_real(I, p); }
   //! pow(I, e): gaol_uipow(I, e), I^e for an unsigned e
-  inline interval pow(const interval& I, unsigned int e) { return gaol_core::gaol_uipow(I, e); }
+  GAOL_NODISCARD inline interval pow(const interval& I, unsigned int e) { return gaol_core::gaol_uipow(I, e); }
 
 } // namespace gaol
 

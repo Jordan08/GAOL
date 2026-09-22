@@ -647,7 +647,7 @@ namespace
     check("gaol_ieee1788::pownRev([8], [0, +oo], 3) = [2]",
           std1788::pownRev(interval(8.0), interval(0.0, inf), 3).set_eq(interval(2.0)), [] { return std::string(); });
     bool threw = false;
-    try { std1788::pownRev(interval(8.0), 0); } catch (const std::invalid_argument&) { threw = true; }
+    try { (void)std1788::pownRev(interval(8.0), 0); } catch (const std::invalid_argument&) { threw = true; }
     check("gaol_ieee1788::pownRev with p <= 0 throws, GAOL not providing it", threw, [] { return std::string(); });
 
     // the forward names reach the functions they name

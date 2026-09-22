@@ -54,7 +54,7 @@ namespace gaol_core {
   \see even
   \warning Should be used only with integer-like types
 */
-template<typename T> INLINE
+template<typename T> GAOL_NODISCARD INLINE
 bool odd(const T& x)
 {
   return (x&1);
@@ -67,7 +67,7 @@ bool odd(const T& x)
   \return true if x is even.
   \see odd
 */
-template<typename T> INLINE bool
+template<typename T> GAOL_NODISCARD INLINE bool
 even(const T& x)
 {
   return (!odd(x));
@@ -79,7 +79,7 @@ even(const T& x)
   This functions returns true also for -0.0. The result is undefined
   if "a" is a NaN.
 */
-INLINE bool is_signed(double a)
+GAOL_NODISCARD INLINE bool is_signed(double a)
 {
   return gaol_signbit(a);
 }
@@ -90,7 +90,7 @@ INLINE bool is_signed(double a)
   This version is commutative even when one of the operands is a NaN. It also returns
   +0 when comparing +0 and -0.
 */
-extern __GAOL_PUBLIC__ double maximum(double a, double b);
+GAOL_NODISCARD extern __GAOL_PUBLIC__ double maximum(double a, double b);
 
 /*!
   \brief computation of the minimum of two doubles
@@ -98,7 +98,7 @@ extern __GAOL_PUBLIC__ double maximum(double a, double b);
   This version is commutative even when there is a NaN. It also returns
   -0 when comparing +0 and -0.
 */
-extern __GAOL_PUBLIC__ double minimum(double a, double b);
+GAOL_NODISCARD extern __GAOL_PUBLIC__ double minimum(double a, double b);
 
   /*!
     \brief Initialization of the library

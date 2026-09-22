@@ -164,6 +164,28 @@ next to `using namespace std;`, where it is ambiguous with the class template
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
 
+## A result thrown away
+
+GAOL's functions do not change the interval they are given: they return
+another one. `sqrt(x);` alone leaves x as it was, and so do `x.mid();` and
+`x.emptyset();`, a static function that returns the empty set. In C++17 and
+later, the functions whose result is all they do carry `[[nodiscard]]` (GAOL
+v5): the functions and operators on intervals, their predicates, the names of
+`gaol_ieee1788` and the functions building expressions. The compiler then
+warns about such a call:
+
+```cpp
+sqrt(x);          // warning: the result is thrown away, x is unchanged
+x = sqrt(x);      // what was meant
+(void)sqrt(x);    // thrown away on purpose: no warning
+```
+
+The attribute is `GAOL_NODISCARD`, of `gaol/gaol_config.h`, which is empty
+before C++17: GAOL itself is compiled in C++11. A program that does not want
+the warnings defines `GAOL_NODISCARD` empty before including GAOL
+(`-DGAOL_NODISCARD=`). The compound assignments (`x += y`), which do change x,
+do not carry it.
+
 ## The rounding direction
 
 Each operation of GAOL sets the rounding direction upward when it is not, and

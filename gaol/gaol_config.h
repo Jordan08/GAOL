@@ -148,6 +148,24 @@
 #  define WORDS_BIGENDIAN 1
 #endif
 
+/* GAOL_NODISCARD: [[nodiscard]] on the functions whose result is all they do
+   (GAOL v5), so that the compiler warns about a call whose result is thrown
+   away, as sqrt(I); or I.emptyset(); written to change I, which they leave
+   as it was. The attribute is C++17: with an earlier standard, which GAOL
+   itself is compiled with, the macro is empty, the compilers warning about
+   the attribute there (Clang with -pedantic, Visual C++ in C++14). Visual C++
+   keeps __cplusplus at 199711L without /Zc:__cplusplus, and gives the
+   standard in _MSVC_LANG. Defining GAOL_NODISCARD before including GAOL
+   replaces it, an empty definition removing the attribute. */
+#ifndef GAOL_NODISCARD
+#  if defined(__cplusplus) \
+      && (__cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
+#    define GAOL_NODISCARD [[nodiscard]]
+#  else
+#    define GAOL_NODISCARD
+#  endif
+#endif
+
 
 /* ---------------------------------------------------------------------------
    What GAOL requires of the compiler and the target
