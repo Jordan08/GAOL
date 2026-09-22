@@ -1,9 +1,10 @@
-# Builds the manual, manual/gaol.pdf, from manual/gaol.tex with the LaTeX of
-# Ubuntu, with the autotools build (make -C manual pdf) and with the meson
-# build (-Dwith-doc=true, target pdf), so that a change of the manual that no
-# longer compiles shows: gaol.tex had stopped compiling with the package
-# marginbib, which no job built (issue #13). The PDF is kept as an artifact of
-# the run. Only runs when the manual or this workflow changes.
+# Builds the manuals, the manual of GAOL v5 (manual/v5/gaol.tex) and the manual
+# of GAOL 4 (manual/v4/gaol.tex), with the LaTeX of Ubuntu, with the autotools
+# build (make -C manual pdf) and with the meson build (-Dwith-doc=true, target
+# pdf), so that a change of a manual that no longer compiles shows: gaol.tex had
+# stopped compiling with the package marginbib, which no job built (issue #13).
+# The PDFs are kept as artifacts of the run. Only runs when the manuals or this
+# workflow change.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -46,7 +47,8 @@ jobs:
           mkdir build-autotools && cd build-autotools
           ../configure > configure.log
           make -C manual pdf
-          pdfinfo manual/gaol.pdf || true
+          pdfinfo manual/v5/gaol.pdf || true
+          pdfinfo manual/v4/gaol.pdf || true
       - name: With the meson build
         run: |
           meson setup build-meson -Dwith-doc=true
@@ -54,13 +56,21 @@ jobs:
       - name: The same number of pages with both builds, and the fonts embedded as outlines
         run: |
           sudo apt-get install -y -q --no-install-recommends poppler-utils
-          pages_autotools=$(pdfinfo build-autotools/manual/gaol.pdf | awk '/^Pages:/ { print $2 }')
-          pages_meson=$(pdfinfo build-meson/manual/gaol.pdf | awk '/^Pages:/ { print $2 }')
-          echo "autotools: $pages_autotools pages, meson: $pages_meson pages"
-          test "$pages_autotools" = "$pages_meson"
-          test "$pages_autotools" -ge 90
-          pdffonts build-autotools/manual/gaol.pdf
+          # The manual of GAOL v5 had 122 pages when written, that of GAOL 4 94
+          for manual in v5:110 v4:90; do
+            dir=${manual%:*}
+            pages_autotools=$(pdfinfo build-autotools/manual/$dir/gaol.pdf | awk '/^Pages:/ { print $2 }')
+            pages_meson=$(pdfinfo build-meson/manual/$dir/gaol.pdf | awk '/^Pages:/ { print $2 }')
+            echo "$dir: autotools: $pages_autotools pages, meson: $pages_meson pages"
+            test "$pages_autotools" = "$pages_meson"
+            test "$pages_autotools" -ge "${manual#*:}"
+            pdffonts build-autotools/manual/$dir/gaol.pdf
+          done
       - uses: actions/upload-artifact@v7
         with:
-          name: gaol-manual
-          path: build-autotools/manual/gaol.pdf
+          name: gaol-manual-v5
+          path: build-autotools/manual/v5/gaol.pdf
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gaol-manual-v4
+          path: build-autotools/manual/v4/gaol.pdf

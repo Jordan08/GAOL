@@ -61,13 +61,19 @@ AC_DEFINE([GAOL_MAJOR_VERSION],gaol_major_version,[Major version for gaol])
 AC_DEFINE([GAOL_MINOR_VERSION],gaol_minor_version,[Minor version for gaol])
 AC_DEFINE([GAOL_MICRO_VERSION],gaol_micro_version,[Micro version for gaol])
 AC_DEFINE([GAOL_VERSION],gaol_version,[Version number for gaol])
-# Version for the manual
+# Version for the manuals: GAOL_EDITION and GAOL_UPDATED are those of the
+# manual of GAOL 4 (manual/v4), GAOL_V5_EDITION and GAOL_V5_UPDATED those of
+# the manual of GAOL v5 (manual/v5)
 GAOL_EDITION="4.6"
 GAOL_UPDATED="18 September 2026"
+GAOL_V5_EDITION="5.0"
+GAOL_V5_UPDATED="22 September 2026"
 GAOL_VERSION=gaol_version
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 AC_SUBST(GAOL_EDITION)
 AC_SUBST(GAOL_UPDATED)
+AC_SUBST(GAOL_V5_EDITION)
+AC_SUBST(GAOL_V5_UPDATED)
 AC_SUBST(GAOL_VERSION)
 
 
@@ -695,7 +701,8 @@ AC_CONFIG_FILES([gaol.pc
         check/Makefile
 		  manual/gaol_doxygen.cfg
         manual/Makefile
-        manual/gaol_version.tex
+        manual/v4/gaol_version.tex
+        manual/v5/gaol_version.tex
 		  gaol.spec
 		  gaol/Makefile
 		  examples/Makefile])

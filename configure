@@ -722,6 +722,8 @@ LIBTOOL
 LT_RELEASE
 LT_VERSION_INFO
 GAOL_VERSION
+GAOL_V5_UPDATED
+GAOL_V5_EDITION
 GAOL_UPDATED
 GAOL_EDITION
 MAINT
@@ -3525,11 +3527,17 @@ $as_echo "#define GAOL_MICRO_VERSION 0" >>confdefs.h
 
 $as_echo "#define GAOL_VERSION \"5.0.0\"" >>confdefs.h
 
-# Version for the manual
+# Version for the manuals: GAOL_EDITION and GAOL_UPDATED are those of the
+# manual of GAOL 4 (manual/v4), GAOL_V5_EDITION and GAOL_V5_UPDATED those of
+# the manual of GAOL v5 (manual/v5)
 GAOL_EDITION="4.6"
 GAOL_UPDATED="18 September 2026"
+GAOL_V5_EDITION="5.0"
+GAOL_V5_UPDATED="22 September 2026"
 GAOL_VERSION="5.0.0"
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 
 
 
@@ -19057,7 +19065,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files gaol.pc Makefile 3rd/Makefile check/Makefile manual/gaol_doxygen.cfg manual/Makefile manual/gaol_version.tex gaol.spec gaol/Makefile examples/Makefile"
+ac_config_files="$ac_config_files gaol.pc Makefile 3rd/Makefile check/Makefile manual/gaol_doxygen.cfg manual/Makefile manual/v4/gaol_version.tex manual/v5/gaol_version.tex gaol.spec gaol/Makefile examples/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -20218,7 +20226,8 @@ do
     "check/Makefile") CONFIG_FILES="$CONFIG_FILES check/Makefile" ;;
     "manual/gaol_doxygen.cfg") CONFIG_FILES="$CONFIG_FILES manual/gaol_doxygen.cfg" ;;
     "manual/Makefile") CONFIG_FILES="$CONFIG_FILES manual/Makefile" ;;
-    "manual/"5.0.0".tex") CONFIG_FILES="$CONFIG_FILES manual/"5.0.0".tex" ;;
+    "manual/v4/"5.0.0".tex") CONFIG_FILES="$CONFIG_FILES manual/v4/"5.0.0".tex" ;;
+    "manual/v5/"5.0.0".tex") CONFIG_FILES="$CONFIG_FILES manual/v5/"5.0.0".tex" ;;
     "gaol.spec") CONFIG_FILES="$CONFIG_FILES gaol.spec" ;;
     "gaol/Makefile") CONFIG_FILES="$CONFIG_FILES gaol/Makefile" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;

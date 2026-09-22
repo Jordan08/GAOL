@@ -106,4 +106,4 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `enable-relations` | `certainly` | `set`, `certainly` or `possibly`, as configure |
 | `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
 | `with-test` | `false` | Build GAOL's own check programs, which need CppUnit |
-| `check-perf`, `with-doc` | `false` | GAOL's performance programs; the documentation: the target `pdf` builds the manual, `manual/gaol.pdf`, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools) |
+| `check-perf`, `with-doc` | `false` | GAOL's performance programs; the documentation: the target `pdf` builds the manuals, `manual/v5/gaol.pdf` for GAOL v5 and `manual/v4/gaol.pdf` for GAOL 4, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools) |

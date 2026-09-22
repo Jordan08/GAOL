@@ -97,12 +97,17 @@ project can also build GAOL for itself, with FetchContent (see
   the [special cases](doc/compare/special_cases.md) of the five libraries
   against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
   with the scripts to run the comparison again.
-- The manual of GAOL 4, by Frédéric Goualard: `manual/gaol.pdf`, with its
-  LaTeX sources in `manual/`. It still describes the mathematical libraries
-  and the options of GAOL 4: where it differs from the pages above, they
-  describe GAOL v5. `make -C manual pdf` after `./configure`, or
-  `meson compile -C <build> pdf` after `meson setup <build> -Dwith-doc=true`,
-  builds it again (`manual/build-pdf.sh`).
+- The manual of GAOL v5: `manual/v5/gaol.pdf`, with its LaTeX sources in
+  `manual/v5/`. It follows the manual of GAOL 4 by Frédéric Goualard, and
+  describes GAOL v5: its installation, each operation with examples, the names
+  of IEEE 1788-2015, the accuracy of the operations, and what a program written
+  for GAOL 4 has to change.
+- The manual of GAOL 4, by Frédéric Goualard: `manual/v4/gaol.pdf`, with its
+  LaTeX sources in `manual/v4/`, kept as it was. It still describes the
+  mathematical libraries and the options of GAOL 4.
+- `make -C manual pdf` after `./configure`, or `meson compile -C <build> pdf`
+  after `meson setup <build> -Dwith-doc=true`, builds both manuals again
+  (`manual/build-pdf.sh`).
 
 ## Licences
 

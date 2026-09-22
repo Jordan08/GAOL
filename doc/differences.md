@@ -673,8 +673,16 @@ where it comes from.
   [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
   project, brought in by FetchContent, with no network access beyond its own
   sources (`tests/fetch_content`).
-- **The manual of GAOL 4 compiles again** (issue #13): `manual/gaol.pdf` was
-  the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
+- **The manual of GAOL v5**, `manual/v5`, follows the manual of GAOL 4 and
+  describes GAOL v5: the three builds and their options, the flags of
+  interval arithmetic, the namespaces and the rounding direction, each
+  operation of GAOL, the new ones included, with examples whose outputs are
+  those of GAOL v5, the names of IEEE 1788-2015, the accuracy of each
+  operation, and what a program written for GAOL 4 has to change. The manual
+  of GAOL 4 is kept as it was in `manual/v4`, and `make -C manual pdf` and the
+  target `pdf` of the meson build build both.
+- **The manual of GAOL 4 compiles again** (issue #13): `manual/v4/gaol.pdf`
+  was the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
   describes the mathematical libraries and the options of GAOL 4.
   `marginbib`, a package of 2000 kept with the manual, patches the output
   routine of LaTeX and stops with the LaTeX of today; the references in the

@@ -37,9 +37,10 @@ and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in
 their summary.
 
-The manual is built from `manual/gaol.tex` with the LaTeX of Ubuntu 24.04, by
-the autotools and the meson builds, when `manual/` changes (`manual.yml`); the
-PDF is an artifact of the run.
+The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
+(`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
+autotools and the meson builds, when `manual/` changes (`manual.yml`); the
+PDFs are artifacts of the run.
 
 ## Configurations refused or left out, and why
 

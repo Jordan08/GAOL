@@ -1,0 +1,4540 @@
+%% The manual of GAOL v5. It follows the manual of GAOL 4 by Frederic Goualard
+%% (manual/v4/gaol.tex), whose text it keeps where GAOL v5 behaves as GAOL 4,
+%% and describes what GAOL v5 changes: the pages of doc/ give each change with
+%% its measures. Every output shown in an example was obtained from GAOL v5.
+%%
+%% Copyright (c) 2026 ENSTA, France
+%%
+%% Created 2026-09-22 by Jordan NININ
+\documentclass{manual}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{pifont}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{longtable}
+
+
+\title{GAOL v5}
+\subtitle{NOT Just Another \\Interval Arithmetic Library}
+\author{Jordan Ninin\\[4pt]Fr\'ed\'eric Goualard}
+\institute{ENSTA, France --- LS2N, Nantes Universit\'e, France}
+
+\hypersetup{pdftitle={GAOL v5: NOT Just Another Interval Arithmetic Library},pdfauthor={Jordan Ninin, Frederic Goualard},pdfkeywords={constraint,interval arithmetic,IEEE 1788-2015,CORE-MATH}}
+
+\newcommand{\itv}[2]{\ensuremath{[#1,\,#2]}}
+\newcommand{\roundDn}[1]{\ensuremath{\downarrow#1\downarrow}}
+\newcommand{\roundUp}[1]{\ensuremath{\uparrow#1\uparrow}}
+\newcommand{\roundNearest}[1]{\ensuremath{\updownarrow#1\updownarrow}}
+\newcommand{\hull}[1]{\ensuremath{\mathop{\Box} #1}}
+\newcommand{\leftBound}[1]{\ensuremath{\underline{#1}}}
+\newcommand{\rightBound}[1]{\ensuremath{\overline{#1}}}
+\newcommand{\returns}{\hbox{\ding{229}}}
+\let\leq=\leqslant
+\let\geq=\geqslant
+\let\emptyset=\varnothing
+
+%% Non terminal
+\newcommand*{\NT}[1]{\uppercase{\textit{#1}}}
+%% Terminal
+\newcommand*{\TM}[1]{\textsf{#1}}
+
+
+\newcommand*{\prevfloat}[1]{\ensuremath{{#1}^-}}
+\newcommand*{\nextfloat}[1]{\ensuremath{{#1}^+}}
+
+%% What GAOL v5 changes: a mark in the text, the definitions being in
+%% minipages, where no \marginpar can go
+\newcommand*{\newinvfive}{\unskip\nobreak\ \textcolor{blue}{\textsf{\scriptsize[GAOL~v5]}}}
+%% A name of IEEE 1788-2015
+\newcommand*{\ieee}[1]{\textsf{#1}}
+%% Tables of the chapter on accuracy
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+%% The names of functions and options, in typewriter, are not hyphenated: let
+%% the lines holding them stretch rather than overflow into the margin
+\setlength{\emergencystretch}{3em}
+
+\input{gaol_version}
+
+\begin{document}
+\nobibliography*
+\maketitle
+
+\begin{copyrighttxt}
+Copyright \copyright{} 2001 Swiss Federal Institute of Technology, Switzerland
+
+Copyright \copyright{} 2002-2016 LINA UMR CNRS 6241, France
+
+Copyright \copyright{} 2017-\number\year\ LS2N UMR CNRS 6004, France
+
+Copyright \copyright{} 2026 ENSTA, France
+
+All Trademarks, Copyrights and Trade Names are the property of their respective owners
+even if they are not specified below.
+
+Part of the work was done while Fr\'ed\'eric Goualard was a postdoctorate
+at the \emph{Swiss Federal Institute of Technology, Lausanne, Switzerland}
+supported by the \emph{European Research Consortium for Informatics and
+Mathematics} fellowship programme.
+
+This is edition \edition{} of the documentation of GAOL v5, which follows the
+manual of GAOL 4 by Fr\'ed\'eric Goualard. It is consistent with version
+\version{} of the \texttt{gaol} library.
+
+Permission is granted to make and distribute verbatim copies of this manual
+provided the copyright notice and this permission notice are preserved on all
+copies.
+
+\smallskip
+GAOL IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHAN\-TA\-BILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THIS
+SOFTWARE IS WITH YOU.  SHOULD THIS SOFTWARE PRO\-VE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+\end{copyrighttxt}
+
+\newpage
+\thispagestyle{empty}
+
+\vspace*{7cm}
+\marginpar{\begin{raggedright}
+  \textbf{Recipriversexcluson. n.}
+  \textit{A number whose existence can only be defined as being anything other than itself.} \par
+\begin{flushright}
+  Douglas Adams, {\fontfamily{cmr}\selectfont\oldstylenums{1982}}\\
+  \textit{Life, the Universe and Everything}
+\end{flushright}
+\end{raggedright}}
+
+\cleardoublepage
+
+\tableofcontents
+
+\chapter*{Copyright}\addcontentsline{toc}{chapter}{Copyright}
+%%=================
+GAOL is distributed under the GNU Library General Public License, version~2
+(\pxref{chap:copying}).
+The copyright for the initial version---named \code{cell}---(year 2001) is owned by the
+\findex{cell}%
+\emph{Swiss Federal Institute of Technology}, Lausanne, Switzerland.
+The copyright for the following versions (from 2002 onward) is owned by the
+\emph{Laboratoire d'Informatique de Nantes-Atlantique}, then by the
+\emph{Laboratoire des Sciences du Num\'erique de Nantes}, France.
+
+The files GAOL v5 adds carry the copyright of ENSTA, France, and are distributed
+under the same license as GAOL; the files of GAOL that GAOL v5 changes keep the
+copyright of their authors.
+
+\medskip
+GAOL v5 computes its elementary functions with CORE-MATH~\margincite{CoreMath:2022},
+whose sources are distributed with GAOL (in \file{3rd/math-core}) and compiled
+into its library. CORE-MATH is distributed under the MIT license, which is
+reproduced with the license of GAOL (\pxref{chap:copying}).
+\cindex{CORE-MATH}\cindex{license!of CORE-MATH}%
+
+\mainmatter
+
+
+\chapter{Introduction}
+%%====================
+
+
+GAOL$^\dag$\marginpar{$^\dag\:$For those readers who are not native
+  English speakers, ``gaol'' should be pronounced \textsf{j\={a}l},
+  like the word ``jail'', of which it is a, chiefly British, variant.}
+\cindex{gaol!pronunciation}%
+is a C++ library to perform arithmetic with floating-point intervals.
+The development of GAOL was initiated at the \emph{Swiss Federal
+  Institute of Technology}, Lausanne, Switzerland, while F.  Goualard
+was a post-doctorate fellow supported by the \emph{Swiss National Science
+  Foundation}.  It started as a limited version of \emph{Jail} (now
+\emph{halloween}), a templated C++ interval library developed during
+Goualard's PhD.
+
+To our knowledge, a unique feature of GAOL among the C++ interval
+arithmetic libraries available when it was written is the implementation of
+\emph{relational arithmetic operators} required by interval constraint
+arithmetic software (\pxref{sec:relational-arithmetic}).
+\cindex{operator!relational}\cindex{relational operator}%
+Hence, the game of the name: GAOL is \emph{not} JAIL (\emph{Just
+  Another Interval Library}). The standard for interval arithmetic,
+IEEE 1788-2015~\margincite{IEEE1788:2015}, has since required such operators,
+as its \emph{reverse functions}.
+\cindex{IEEE 1788-2015}%
+
+\section{GAOL v5}
+%%--------------
+
+GAOL v5, written by Jordan Ninin at ENSTA, continues GAOL as Fr\'ed\'eric
+Goualard developed it, from its version 4.2.2. It was written for Codac, whose
+intervals are built upon GAOL, and brings the changes GAOL needs to compile and
+compute right on every system it can: Linux, macOS and Windows, on x86, x86-64,
+ARM, 64-bit ARM and the other processors of Debian. What it brings, and this
+manual describes:
+\cindex{GAOL v5}%
+
+\begin{itemize}
+\item \textbf{The tightest bounds for the elementary functions.} Every
+  elementary function is bounded with CORE-MATH~\margincite{CoreMath:2022},
+  which is correctly rounded in the rounding direction in effect: the value
+  GAOL computes at a bound, rounding upward, \emph{is} the upper bound, and the
+  double below it the lower one. The bounds are the same on every architecture
+  and with every compiler, and there is no mathematical library to install,
+  to find or to link along with GAOL: CORE-MATH is compiled into it.
+\item \textbf{IEEE 1788-2015.} GAOL v5 follows the standard for interval
+  arithmetic in the operations GAOL provides: the empty set, the infinite
+  bounds, the domains of the functions, the comparisons and the interval
+  literals. The few cases where it differs, mostly the \code{pow} of the
+  namespace \code{gaol}, are stated where the operations are described, and
+  the tightness of each operation is documented, as the standard requires
+  (Chapter~\ref{chap:accuracy}).
+\item \textbf{New operations}, which the standard requires or recommends:
+  \code{exp2}, \code{exp10}, \code{log2}, \code{log10}, \code{fma}, the integer
+  functions \code{sign}, \code{trunc}, \code{round\_ties\_to\_even} and
+  \code{round\_ties\_to\_away}, fifteen recommended functions (\code{expm1},
+  \code{log1p}, \code{hypot}, \code{rsqrt}, \code{sinpi}\ldots), the
+  cancellative subtraction and addition, the radius, and the comparisons
+  \code{less}, \code{strictly\_less}, \code{is\_entire} and
+  \code{is\_common\_interval}; \code{atan2}, which GAOL declared, is
+  implemented.
+\item \textbf{The names of the standard.} The namespace \code{gaol\_ieee1788}
+  gives each operation of the standard that GAOL provides the name and the
+  argument order the standard gives it (Chapter~\ref{chap:ieee1788}).
+\item \textbf{The rounding direction is the business of GAOL.} Each operation
+  sets the rounding direction upward when it is not, whichever direction the
+  calling code left: the user no longer has to keep it upward
+  (\pxref{sec:rounding-direction}).
+\item \textbf{Exact input and output.} Numbers are read exactly, and intervals
+  written in decimal are rounded outward, whatever the C library; written in
+  hexadecimal, an interval is read back bit for bit.
+\item \textbf{Three builds that agree.} A CMake build, which is the one to use,
+  and the autotools and meson builds of GAOL, which configure GAOL the same way;
+  tests of the bounds GAOL computes against their exact values; a continuous
+  integration on Linux, macOS and Windows, with the compilers and on the
+  processors listed in Section~\ref{sec:platforms}.
+\end{itemize}
+
+\noindent
+A program written for GAOL 4 needs a few changes, which
+Chapter~\ref{chap:changes} lists: first of all, \file{gaol/gaol.h} no longer
+opens the namespace \code{gaol}.
+
+\section{About this manual}
+%%-------------------------
+
+This document is both a manual and a reference to use GAOL. It assumes
+a prior knowledge of interval arithmetic. Refer to the books and
+papers by Goldberg, Neumaier, and
+others~\margincite{Goldberg:01,IEEE754:90,Moore:Book1966,Alefeld-Herzberger:83,Neumaier:Book1990}
+for a basic presentation of floating-point arithmetic, interval
+arithmetic and the use thereof.
+\cindex{references!on interval arithmetic}
+
+The main entry point for interval arithmetic on the Web is Vladik
+Kreino\-vich's \emph{Interval Computation site} (\url{http://www.cs.utep.edu/interval-comp/}).
+\cindex{interval!computation site (web)}
+
+The pages of the directory \file{doc} of the sources give the details of each
+change GAOL v5 brings, with its measures (\pxref{chap:documentation}). The
+mark \textcolor{blue}{\textsf{\scriptsize[GAOL~v5]}} follows what behaves
+otherwise than in GAOL~4.
+
+Classes, methods, functions, macros, constants and variables available in the
+library but not described in this document are likely to change or to
+be removed. Consequently, they should be used with caution, if at all. Among
+them are the intervals of floats, \code{gaol::intervalf} and
+\code{gaol::interval2f}, which are unfinished and compiled only when asked for
+(\pxref{sec:cmake-options}).
+\cindex{undocumented!use of \idxself{} functions}%
+\cindex{function!undocumented}%
+
+\chapter{Installation}\label{chap:installation}
+%%====================
+
+GAOL v5 is built with CMake, which is the build to use. The autotools and meson
+builds of GAOL are kept for those who use them: on a given machine with a given
+compiler, GAOL behaves the same whichever build configured it, the three giving
+it the same macros and the same flags.
+
+\section{Supported platforms}\label{sec:platforms}
+%%---------------------------
+
+The continuous integration of GAOL v5 builds it and runs its tests on:
+\cindex{platforms}%
+
+\begin{itemize}
+\item Linux: Ubuntu 22.04, 24.04 and 26.04 on x86-64 and 64-bit ARM, with GCC and
+  Clang; Debian 12 and 13 on x86-64, 64-bit ARM and 32-bit ARM (armhf), and
+  Debian 12 on 32-bit x86; manylinux\_2\_28 on x86-64 and 64-bit ARM; Alpine
+  (musl) on x86-64 and 64-bit ARM; Debian 13 on s390x, ppc64le and riscv64;
+\item macOS 14, 15 and 26, on arm64 and x86-64, with AppleClang, the Clang of LLVM
+  and GCC;
+\item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 12 to 15;
+  MSYS2 (UCRT64 with GCC, CLANG64 with Clang).
+\end{itemize}
+
+\noindent
+The bounds GAOL computes are the same on all of them.
+
+\section{Getting the software}
+%%----------------------------
+
+GAOL v5 is available at \url{https://github.com/Jordan08/GAOL}.
+\cindex{gaol!web page}%
+The GAOL of Fr\'ed\'eric Goualard, which GAOL v5 continues, is available at
+\url{https://github.com/goualard-f/GAOL}, and presented in the GAOL section
+of \url{https://frederic.goualard.net}.
+
+GAOL comes as source code, to be compiled for the computer it is used on.
+The sources of CORE-MATH are part of it (\file{3rd/math-core}): there is
+nothing else to download.
+
+\section{Prerequisites}
+%%---------------------
+
+\subsection{Mandatory tools}
+%%..........................
+\cindex{tool!mandatory \idxself{} to compile gaol}%
+
+\begin{itemize}
+\item A C++11 and C99 compiler: GCC, Clang, AppleClang, Visual C++ (Visual
+  Studio 2022 or later), or GCC and Clang for Windows (MinGW-w64, MSYS2).
+\index[idx]{c++!standard}%
+\item CMake 3.14 or later; or, for the autotools build, a shell and
+  \cmd{make}; or, for the meson build, meson and ninja, with flex and bison.
+\end{itemize}
+
+\noindent
+No mathematical library is needed: CORE-MATH is compiled into GAOL.
+
+\subsection{Compilers and options refused}\label{sec:refused}
+%%........................................
+\cindex{compiler!refused}%
+
+Each of the following gave bounds not enclosing the exact results. The three
+builds refuse the compilers when configuring, with a message naming what to use
+instead, and keep the options away by giving GAOL the flags of interval
+arithmetic (\pxref{sec:compiling}); \file{gaol/gaol\_config.h} refuses them
+again when compiling, for the code including the headers of GAOL too, all
+but the second one, which no macro of the compiler shows:
+
+\begin{itemize}
+\item Clang for 32-bit ARM processors, which does not honour the rounding
+  direction there (GCC does);
+\item a compiler saying of \option{-frounding-math} ``overriding currently
+  unsupported rounding mode on this target'', as Clang 14 for 64-bit ARM
+  (Clang 18 honours the rounding direction there);
+\item a MinGW-w64 whose \file{<fenv.h>} answers \code{fegetround()} from a
+  state of its own, before mingw-w64 12 on x64 and before 11 on 32-bit x86:
+  GAOL sets the rounding direction by writing the registers of the processor,
+  and CORE-MATH reads \code{fegetround()} to know it;
+\item \option{-ffast-math}, \option{-Ofast} and \option{/fp:fast}, with which
+  the compiler rounds to nearest and drops the checks of NaN and infinities;
+\item Visual C++ without \option{/fp:strict}, which then assumes rounding to
+  nearest;
+\item doubles computed on the x87 unit of 32-bit x86 processors, in extended
+  precision (without \option{-msse2 -mfpmath=sse}, or \option{/arch:SSE2}):
+  CORE-MATH assumes every operation on doubles rounded to a double.
+\end{itemize}
+
+\subsection{Tools for maintainers}
+%%................................
+
+GAOL uses code produced by GNU Flex and GNU Bison for parsing the expressions used to
+initialize an interval.
+\findex{flex}%
+\findex{bison}%
+The meson build generates the lexer and the parser from
+\file{gaol\_interval\_lexer.lpp} and \file{gaol\_interval\_parser.ypp}; the CMake
+and autotools builds compile the ones committed with the sources
+(generated by flex 2.6.4 and bison 3.5.1), and need these tools only when one
+of the two files changes.
+
+\subsection{Optional tools}
+%%.........................
+
+\begin{itemize}
+\item \cmd{doxygen}, and \cmd{dot} of GraphViz, to generate the HTML reference of
+  the code (\cmd{make -C manual html} with autotools);
+\index[idx]{doxygen}\findex{Graphviz}%
+\item CppUnit, for the check programs of GAOL 4 (\cmd{make check} with autotools,
+  \option{-Dwith-test=true} with meson); the tests of GAOL v5, built by CMake,
+  need nothing (\pxref{sec:tests});
+\index[idx]{CppUnit}%
+\item \cmd{pdflatex}, \cmd{bibtex} and \cmd{makeindex}, to build this manual.
+\end{itemize}
+
+\section{Building and installing with CMake}\label{sec:cmake}
+%%------------------------------------------
+\cindex{CMake}%
+
+In the root directory of the sources:
+
+\begin{cmdshell}
+% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=@var^prefix~ -DGAOL_BUILD_TESTS=ON
+% cmake --build build --config Release
+% ctest --test-dir build -C Release
+% cmake --install build --config Release
+\end{cmdshell}
+
+\noindent
+The build compiles the thirty-six sources of CORE-MATH GAOL uses into
+\file{libgaol}, which is a static library: there is nothing else to build and
+nothing else to install. The build type is \code{Release} unless another is
+given; brought in by a project that gives none (\code{add\_subdirectory},
+\code{FetchContent}), GAOL and CORE-MATH are compiled with \option{-O3} all
+the same (\option{/O2} with Visual C++).
+
+\subsection{Options}\label{sec:cmake-options}
+%%..................
+
+The options are given to the first command, as \option{-D\var{option}=\var{value}}:
+
+\begin{itemize}
+\item \option{CMAKE\_BUILD\_TYPE}. \code{Release} by default; \code{Debug}
+  builds GAOL without optimization, with debugging information;
+\item \option{CMAKE\_INSTALL\_PREFIX}. Where \cmd{cmake --install} puts GAOL;
+\item \option{CMAKE\_POSITION\_INDEPENDENT\_CODE}. \code{ON} by default: GAOL is
+  compiled as position-independent code (\option{-fPIC}), so that it can be
+  linked into a shared library, as Python bindings; a project building GAOL
+  with \code{FetchContent} that sets it is followed;
+\item \option{GAOL\_BUILD\_TESTS}. \code{OFF} by default: builds the tests of
+  \file{tests}, which \cmd{ctest} runs;
+\item \option{GAOL\_SIMD}. \code{ON} by default: the intervals are computed
+  with SSE2 instructions on x86 processors (\option{-msse2 -msse3}), their two
+  bounds in one register; not with Visual C++ nor on 32-bit Windows;
+\cindex{SSE2}%
+\item \option{GAOL\_FMA}. \code{ON} by default: GAOL and CORE-MATH are compiled
+  with the fused multiply-add instructions of the processor, where the compiler
+  has a flag for them and the machine building runs a program compiled with it:
+  \option{-mfma} on x86 (not with GCC for Windows), \option{/arch:AVX2} with
+  Visual C++ for x64, \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on 32-bit ARM;
+  64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then
+  needs a processor with them (on x86, Intel Haswell and AMD Piledriver,
+  2012--2013, and later), and the code using GAOL is given the flag too;
+  \code{OFF} builds GAOL for any processor of the architecture. The elementary
+  functions are much faster with them: \code{sin} and \code{cos} 2.4 times,
+  \code{log} 1.6 times (Intel i7-1185G7, Clang~18.1);
+\cindex{fused multiply-add}%
+\item \option{GAOL\_ASM}. \code{ON} by default: GAOL's assembly code, where it
+  has some (\code{GAOL\_USING\_ASM});
+\item \option{GAOL\_VERBOSE\_MODE}. \code{OFF} by default: writes a line on the
+  standard error when GAOL initializes and cleans up;
+\cindex{verbose mode}%
+\item \option{GAOL\_PRESERVE\_ROUNDING}. \code{OFF} by default: each operation
+  restores the rounding direction it found, rather than leaving it upward
+  (\pxref{sec:rounding-direction});
+\cindex{rounding!preserving}%
+\item \option{GAOL\_FLOAT\_INTERVALS}. \code{OFF} by default: compiles the
+  intervals of floats, \code{gaol::intervalf}, and \code{gaol::interval2f}
+  where \option{GAOL\_SIMD} gives SSE3. Both are unfinished, and left
+  undocumented;
+\item \option{GAOL\_COVERAGE}. \code{OFF} by default: compiles GAOL and its
+  tests with the counters of gcov, and adds the target \code{coverage}, which
+  runs the tests and writes the report of their coverage (GCC and Clang, with
+  \code{Debug});
+\item \option{GAOL\_U128\_EMULATION}. \code{OFF} by default: computes the
+  128-bit integer of the accurate phases of CORE-MATH with two 64-bit halves,
+  as where the compiler has no 128-bit type (Visual C++, and GCC for 32-bit
+  targets).
+\end{itemize}
+
+\noindent
+The CMake build always gives the relational symbols the ``certainly''
+relations (\pxref{sec:interval-relations}), and reports errors by
+exceptions (\pxref{sec:exceptions}).
+
+Interprocedural optimization is not offered, and \code{gaol::gaol} carries no
+such flag: with GCC, it moves floating-point operations across the changes of
+the rounding direction, and GAOL then gives bounds that do not enclose the
+exact results.
+\cindex{optimization!interprocedural}%
+
+\section{Building and installing with autotools}\label{sec:configuration}
+%%---------------------------------------------
+\findex{configure}%
+
+In the root directory of the sources, or in another directory for a build
+outside the sources:
+
+\begin{cmdshell}
+% ./configure --prefix=@var^prefix~
+% make
+% make install
+\end{cmdshell}
+
+\noindent
+\cmd{configure} compiles the sources of CORE-MATH into \file{libgaol}, with the
+flags it gives to the C code of GAOL. It is committed, generated by autoconf
+2.69 from \file{configure.ac}: \cmd{make} does not regenerate it as long as
+the files keep the dates of the checkout. It accepts the following options:
+
+\begin{itemize}
+\item \loption{help}. Displays a list of all options. Note that only
+those described hereunder are supported;
+\cindex{help!on configuration}%
+\item \loption{prefix=\var{prefix-dir}}. The root directory where the library
+will be installed. It defaults to \file{/usr/local};
+\item \loption{libdir=\var{lib-dir}}. The directory where to put the
+libraries. It defaults to \file{\var{prefix-dir}/lib};
+\item \loption{includedir=\var{include-dir}}. The directory where to
+put the header files. It defaults to \file{\var{prefix-dir}/include};
+\item \loption{enable-optimize[=\var{yes/no}]}. Compiles GAOL and CORE-MATH
+  with \option{-O3} and \code{NDEBUG}, and with the flags
+  \option{-funroll-loops}, \option{-fomit-frame-pointer} and
+  \option{-fexpensive-optimizations} where the compiler takes them; with
+  \option{-O} otherwise. This option defaults to \code{yes};
+\cindex{optimization!configuration option}%
+\item \loption{enable-debug[=\var{yes/no}]}. Adds debugging information to the
+  library, and enables the debugging macros (\pxref{sec:debugging-facilities}).
+  This option defaults to \code{no};
+\cindex{debugging!option}%
+\item \loption{enable-simd[=\var{yes/no}]}. The SSE2 intervals on x86
+  processors, as \option{GAOL\_SIMD} (\pxref{sec:cmake-options}). This option
+  defaults to \code{yes};
+\item \loption{enable-fma[=\var{yes/no}]}. The fused multiply-add instructions
+  of the processor, as \option{GAOL\_FMA}. This option defaults to \code{yes};
+\item \loption{enable-float-intervals[=\var{yes/no}]}. The intervals of floats,
+  as \option{GAOL\_FLOAT\_INTERVALS}. This option defaults to \code{no};
+\item \loption{enable-asm[=\var{yes/no}]}. GAOL's assembly code, as
+  \option{GAOL\_ASM}. This option defaults to \code{yes};
+\cindex{assembler}%
+\item \loption{enable-verbose-mode[=\var{yes/no}]}. Writes a line on the
+  standard error when GAOL initializes and cleans up. This option defaults to
+  \code{no};
+\cindex{verbose mode}%
+\cindex{messages!avoiding printing of}%
+\item \loption{enable-preserve-rounding[=\var{yes/no}]}. Each operation
+  restores the rounding direction it found (\pxref{sec:rounding-direction}).
+  This option defaults to \code{no};
+\cindex{rounding!preserving}%
+\item \loption{enable-relations=\var{kind}}. Defines the kind of relation
+  to use for relational symbols ($=,\leq, \dots$) to be
+  \var{kind}. Possible values for \var{kind} are
+  \code{certainly}, \code{set}, and \code{possibly} (\pxref{sec:interval-relations}).
+  The default is \code{certainly};
+\cindex{relation}%
+\item \loption{enable-exceptions[=\var{yes/no}]}. If enabled, errors
+  are reported by throwing an exception (\pxref{sec:exceptions}); otherwise,
+  by calling \code{gaol\_error()}, which prints a message to the standard error
+  channel, and aborting. This option defaults to \code{yes};
+\cindex{error!raising an exception}%
+\item \loption{with-cppunit-include=PATH}, \loption{with-cppunit-lib=PATH}. The
+  headers and the library of CppUnit, for the check programs of \cmd{make check}.
+\cindex{cppunit!include path}\cindex{cppunit!library path}%
+\end{itemize}
+
+Note that, as usual, \loption{disable-\var{xxx}} is
+equivalent to \loption{enable-\var{xxx}=no}. Moreover,
+\loption{enable-\var{xxx}} is equivalent to
+\loption{enable-\var{xxx}=yes}.
+
+The targets of the \file{Makefile} in the root directory are the standard ones:
+\option{all}, \option{check}, which compiles and runs the check programs of
+GAOL~4 (with CppUnit), \option{install}, \option{clean}, \option{distclean} and
+\option{maintainer-clean}. \cmd{make -C manual pdf} builds this manual and
+the manual of GAOL~4, and \cmd{make -C manual html} the HTML reference of the
+code, with doxygen.
+
+\section{Building and installing with meson}
+%%------------------------------------------
+\cindex{meson}%
+
+\begin{cmdshell}
+% meson setup build --prefix=@var^prefix~
+% meson compile -C build
+% meson install -C build
+\end{cmdshell}
+
+\noindent
+meson compiles the sources of CORE-MATH into \file{libgaol}, as CMake and
+\cmd{configure} do. \cmd{meson compile} needs meson 0.54; with an older one,
+\cmd{ninja -C build} builds GAOL as well. The options are given to
+\cmd{meson setup}, as \option{-D\var{option}=\var{value}}:
+\code{buildtype} (\code{release} by default: \option{-O3} and \code{NDEBUG}),
+\code{enable-optimize} (\code{true}), \code{enable-debug} (\code{false}),
+\code{enable-simd} (\code{true}), \code{enable-fma} (\code{true}),
+\code{enable-float-intervals} (\code{false}), \code{enable-asm} (\code{true}),
+\code{enable-verbose-mode} (\code{false}), \code{enable-preserve-rounding}
+(\code{false}), \code{enable-relations} (\code{certainly}),
+\code{enable-exception} (\code{true}), which are those of \cmd{configure};
+\code{with-test} (\code{false}), which builds the check programs of GAOL~4, and
+\code{with-doc} (\code{false}), with which the target \code{pdf} builds this
+manual and the manual of GAOL~4.
+
+\section{Tests}\label{sec:tests}
+%%-------------
+\cindex{tests}%
+
+Built with \option{GAOL\_BUILD\_TESTS}, the programs of \file{tests} compare the
+bounds GAOL computes with the exact results of the operations, independently of
+GAOL and of the floating-point environment: the exact results are computed with
+integers, or were computed with 2000 bits of precision. They check, among
+others, that the basic operations are the tightest enclosures, that the
+elementary functions are the tightest or within one double of them, that every
+operation gives the same result whatever the rounding direction the calling
+code left, that numbers are read exactly and intervals written rounded outward,
+that the reverse functions are accurate in the sense of IEEE 1788-2015, and
+that each name of \code{gaol\_ieee1788} is the operation of the standard it
+names. \cmd{ctest} runs them. The page \file{doc/tests.md} says what each
+program checks.
+
+\file{tests/find\_package} builds the same tests with an installed GAOL, and
+\file{tests/fetch\_content} with a GAOL brought into a project by
+\code{FetchContent}. \code{gaol\_performance} (\file{tests/performance.cpp})
+measures the time per operation of GAOL's arithmetic and elementary functions.
+
+\section{What is installed}
+%%-------------------------
+
+Each build installs:
+\begin{itemize}
+\item the headers, in \file{\var{prefix}/include/gaol};
+\item the library, \file{libgaol}, which holds CORE-MATH: static with CMake;
+  static and shared with autotools and meson;
+\item \file{gaol.pc}, for pkg-config, in the \file{pkgconfig} directory of the
+  library directory (except the CMake build with Visual C++);
+\item with CMake, the CMake package of GAOL, which defines the target
+  \code{gaol::gaol}.
+\end{itemize}
+
+\noindent
+Both \file{gaol.pc} and \code{gaol::gaol} carry the flags that the code
+including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
+
+
+\chapter{An overview of GAOL}\label{chap:overview}
+%%===========================
+
+ In this chapter, we will assume that GAOL has already been
+ properly installed, and that the libraries and header files are
+ accessible to your compiler.
+
+ Let us consider the following program to compute the
+ range of the function
+ \begin{align*}
+ f(x,y)=&\bigl(1+(x+y)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
+ &\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
+ \end{align*}
+ for $x\in\itv{-2}{2}$ and $y\in \itv{-2}{2}$.
+
+ \begin{example}
+ #include <iostream>
+ #include <gaol/gaol.h>
+ using namespace gaol;
+
+ int main(void)
+ {
+   interval
+     x(-2,2),
+     y(-2,2), z;
+
+   z=(1+sqr(x+y)*(19-14*x+3*sqr(x)-14*y+6*x*y+3*sqr(y)))*
+     (30+sqr(2*x-3*y)*(18-32*x+12*sqr(x)+
+        48*y-36*x*y+27*sqr(y)));
+
+   std::cout << "z = " << z << std::endl;
+   return 0;
+ }
+ \end{example}
+
+ First, note that we have to include the \file{gaol/gaol.h} header file in order to
+ use all the facilities provided by GAOL. The type \code{interval} and the
+ functions of GAOL are in the namespace \code{gaol\_core}, which a program
+ names through the namespace \code{gaol}: the \code{using} directive of
+ Line~3 imports it. The \file{gaol/gaol.h} header of GAOL~4 imported the
+ namespace itself; that of GAOL v5 no longer does, and a program adds the
+ directive, or names \code{gaol::interval} and \code{gaol::sqr}
+ (\pxref{sec:namespaces}).\newinvfive
+\cindex{gaol!namespace}%
+\cindex{namespace!gaol}%
+\cindex{header!and namespace|see{namespace}}%
+
+ Nothing has to be called before using GAOL: it initializes itself when the
+ program starts (\pxref{chap:init}), and each of its operations sets the
+ rounding direction it needs (\pxref{sec:rounding-direction}).
+
+ The \code{sqr(\var{x})} function stands for \emph{square of \var{x}}
+ and is equivalent to \code{pow(\var{x},2)}.
+
+ Let \file{f.cpp} be the name of the file containing the program
+ above. To compile it, with the flags pkg-config gives
+ (\pxref{sec:compiling}), we type the following command:
+\cindex{compiling!a file using gaol}%
+
+ \begin{cmdshell}
+ % c++ -std=c++11 -O2 $(pkg-config --cflags gaol) -o f f.cpp $(pkg-config --libs gaol)
+ \end{cmdshell}
+
+ \noindent
+ GAOL is the only library to link, with the C mathematical library: CORE-MATH,
+ which computes its elementary functions, is compiled into it.
+
+ Executing \file{f}, we obtain:
+
+ \begin{onscreen}
+  z = [-56254330, 94177270]
+ \end{onscreen}
+
+ We then know that $f(x,y)$ ranges over
+ \itv{-56254330}{94177270} when $x$ and $y$ range over \itv{-2}{2} independently.
+
+\section{Compiling a program using GAOL}\label{sec:compiling}
+%%--------------------------------------
+\cindex{flags of interval arithmetic}%
+\cindex{compiling!a file using gaol}%
+
+The operations of GAOL on intervals are inline: the code that includes the
+headers of GAOL has to be compiled with the \dfn{flags of interval arithmetic},
+not only GAOL itself.\newinvfive{} With GCC and Clang, each where the compiler
+takes it:
+
+\begin{itemize}
+\item \option{-frounding-math -fno-fast-math -ffp-contract=off}, so that the
+  compiler rounds each operation in the direction in effect, as written, and
+  neither evaluates it at compile time in the default rounding nor contracts a
+  multiplication and an addition into a fused one;
+\item \option{-msse2 -mfpmath=sse} on 32-bit x86, so that doubles are computed
+  in double precision rather than on the x87 unit;
+\item \option{-msse2 -msse3} on x86 processors with the SSE2 intervals
+  (\option{GAOL\_SIMD});
+\item \option{-ffloat-store} where doubles are still computed on the x87 unit;
+\item \option{-mfma} on x86, and \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
+  32-bit ARM, where GAOL is compiled with the fused multiply-add instructions of
+  the processor (\option{GAOL\_FMA}): the code using GAOL then runs only on a
+  processor with them, as GAOL itself.
+\end{itemize}
+
+\noindent
+With Visual C++, \option{/fp:strict}, and \option{/arch:AVX2} for x64 with
+\option{GAOL\_FMA}. Each build installs these flags with GAOL, in
+\code{gaol::gaol} and \file{gaol.pc}. \file{gaol/gaol\_config.h} refuses code
+compiled by Visual C++ without \option{/fp:strict}. GCC and Clang do not tell
+the code whether \option{-frounding-math} and \option{-ffp-contract=off} were
+given: there, it only refuses what contradicts them, \option{-ffast-math} and
+doubles computed on the x87 unit (\pxref{sec:refused}).
+
+\subsection{From CMake}
+%%.....................
+
+\begin{example}
+find_package(gaol REQUIRED)
+target_link_libraries(my_target PRIVATE gaol::gaol)
+\end{example}
+
+\noindent
+\code{gaol::gaol} carries the include directory, the flags above and, for Visual
+C++, the definition \code{\_\_GAOL\_PUBLIC\_\_=}, GAOL being a static library.
+There is no other library to link. A library whose headers include those of
+GAOL links \code{gaol::gaol} \code{PUBLIC}, so that its own users get the
+flags, and its CMake package finds GAOL again (\code{find\_dependency(gaol)}).
+\cindex{CMake!using gaol from}%
+
+A project can also build GAOL for itself, with the options it wants:
+
+\begin{example}
+include(FetchContent)
+FetchContent_Declare(gaol GIT_REPOSITORY
+    https://github.com/Jordan08/GAOL.git GIT_TAG master)
+FetchContent_MakeAvailable(gaol)
+target_link_libraries(my_target PUBLIC gaol::gaol)
+\end{example}
+
+\noindent
+GAOL is then a target of the project, built with it, and \cmd{cmake --install}
+of the project installs it with it; nothing is downloaded beyond the sources of
+GAOL. GAOL is compiled as position-independent code, so that
+\code{gaol::gaol} can be linked into a shared library.
+
+\subsection{From pkg-config}
+%%..........................
+
+Each build installs \file{gaol.pc} in the \file{pkgconfig} directory of its
+library directory, except the CMake build with Visual C++. Its \code{Cflags}
+carries the flags above with the include directory, and its \code{Libs} GAOL
+itself with the C mathematical library:
+\cindex{pkg-config}%
+
+\begin{cmdshell}
+% export PKG_CONFIG_PATH=@var^prefix~/lib/pkgconfig
+% c++ -std=c++11 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs gaol)
+\end{cmdshell}
+
+\noindent
+Built by CMake with its default options on x86-64 Linux, GAOL gives:
+
+\begin{cmdshell}
+% pkg-config --cflags --libs gaol
+-frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3 -mfma
+-I@var^prefix~/include -L@var^prefix~/lib -lgaol -lm
+\end{cmdshell}
+
+\noindent
+In a meson project, \code{dependency('gaol')} finds it.
+
+\section{The rounding direction}\label{sec:rounding-direction}
+%%------------------------------
+\cindex{rounding!direction}%
+
+ Floating-point interval arithmetic requires \dfn{outward rounding} in
+ order to fulfill the \dfn{containment property}: for example, to add
+ intervals \itv{a}{b} and \itv{c}{d}, we compute
+ \itv{\roundDn{a+c}}{\roundUp{b+d}}, where \roundDn{r}
+ and \roundUp{r} return the greatest (resp. smallest)
+ floating-point number smaller (resp. greater) than the real result of
+ $r$. These two operations are performed by switching the rounding
+ direction of the FPU towards, respectively, $-\infty$ and
+ $+\infty$.
+ \marginpar{%
+   \begin{definition}[Rounding down/up]
+     \cindex{rounding!downward|hyperpagebf}\cindex{rounding!upward|hyperpagebf}%
+     \cindex{F@\FSet}\cindex{R@\RSet}%
+     Given \RSet\ the set of real numbers and \FSet\ the set of
+     floating-point numbers (\texttt{double}), we have:
+     \begin{equation*}
+       \forall x\in\RSet\colon
+       \left\{\begin{array}{l}
+           \roundDn{x} = \max\{y\in\FSet\mid y\leq x\}\\
+           \roundUp{x} = \min\{y\in\FSet\mid y\geq x\}
+         \end{array}\right.
+     \end{equation*}
+   \end{definition}
+ }
+\cindex{containement property}%
+\cindex{rounding!outward|see{outward rounding}}%
+\cindex{downward rounding ($\roundDn{\:}$)}%
+\cindex{upward rounding ($\roundUp{\:}$)}%
+\cindex{outward rounding}%
+\index[idx]{aaa@$\roundDn{\:}$|see{downward rounding}}%
+\index[idx]{aab@$\roundUp{\:}$|see{upward rounding}}%
+
+On most platforms, switching the rounding direction is costly.
+However, it is possible to cut down the number of switches
+by relying on the property that
+$\roundDn{-r}=-\roundUp{r}$. Consequently, one can
+replace nearly all downward rounding operations by upward rounding ones
+by negating appropriately twice the operations performed. GAOL stores the
+lower bound of an interval negated, and computes both bounds rounding upward:
+the rounding direction can then be set towards $+\infty$ once and for all.
+
+GAOL 4 put on the user the burden to ensure that the rounding direction be
+always set towards $+\infty$ before any computation involving intervals, which
+it called the \emph{trust rounding mode}. GAOL v5 no longer does:\newinvfive{}
+\emph{each operation sets the rounding direction upward when it is not}, and
+leaves it upward, whichever way GAOL is built. The bounds are then right
+whatever rounding direction the calling code left. The check is an addition,
+$1+2^{-60}$, which is above 1 only when rounded upward, rather than a reading
+of the rounding direction, which cost far more on some platforms: under
+Rosetta~2, reading it made an addition of intervals take 800~ns rather than
+2.8~ns. Each function of intervals checks the direction once, and the
+functions it calls on doubles take it to be upward already.
+\cindex{trust rounding mode}%
+
+Code that needs its own rounding direction after the operations of GAOL
+builds GAOL with \option{GAOL\_PRESERVE\_ROUNDING}
+(\loption{enable-preserve-rounding} with autotools,
+\option{-Denable-preserve-rounding=true} with meson): each operation then also
+restores the rounding direction it found, which makes the arithmetic
+operations several times slower. It is off by default in the three builds.
+\cindex{rounding!preserving}%
+
+\paragraph{Note.} The rounding direction GAOL leaves applies to the rest of the
+program too. With the GNU C library, \code{printf()} and the streams of C++
+round the decimal digits they write of a double in the direction in effect:
+after an operation of GAOL, \code{std::cout~<{}<~pi\_dn} writes
+\code{3.141592653589794} with 16 digits, and \code{3.141592653589793} once
+\code{round\_nearest()} has been called. The intervals themselves are written
+by GAOL rounded outward, whatever the direction (\pxref{sec:writing}).
+
+\section{The namespaces}\label{sec:namespaces}
+%%----------------------
+\cindex{namespace!gaol}\cindex{namespace!gaol\_core}\cindex{namespace!gaol\_ieee1788}%
+
+The type \code{interval} of GAOL and its functions are in the namespace
+\code{gaol\_core}. A program names them through one of two namespaces, which
+\file{gaol/gaol.h} declares and does not open:\newinvfive
+
+\begin{itemize}
+\item \code{gaol}, GAOL under its own names, which this manual uses;
+\item \code{gaol\_ieee1788}, GAOL under the names of IEEE 1788-2015
+  (Chapter~\ref{chap:ieee1788}).
+\end{itemize}
+
+\noindent
+The two namespaces hold \code{interval}, and the functions that have the same
+name and the same meaning in both (\code{sin}, \code{exp}, \code{sqrt},
+\code{min}\ldots) are the same functions, those of \code{gaol\_core}.
+\code{pow} is the one whose meaning differs: each namespace has its own, and
+none is in \code{gaol\_core}, the namespace where argument-dependent lookup
+looks for a call \code{pow(x,~y)} on an interval, so that each namespace finds
+its own only. A program opens one of the two namespaces, not both: with both
+open, \code{pow(x,~y)} is ambiguous.
+
+The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
+a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
+exponent (\pxref{sec:powers}). In \code{gaol\_core}, its versions are named
+apart: \code{gaol\_pown()}, \code{gaol\_uipow()}, \code{gaol\_pow\_real()},
+\code{gaol\_pow\_hybrid()}.
+
+\section{Common errors}
+%%---------------------
+
+In this section, we will review common errors made when using GAOL in
+the---forlorn?---hope that it will help prevent users from making
+them.
+
+\subsection{Floating-point arithmetic and rounding}
+%%.................................................
+
+Programming with floating-point numbers is one of the few activities
+where one must always consider ones compiler defiantly. For example, let
+us consider the following piece of code:
+
+\begin{example}
+#include <gaol/gaol>  @rem^// We do not import the gaol namespace~
+
+using gaol::interval;
+
+int main(void) {
+  interval one_tenth(0.1); @rem^BEWARE: wrong !~
+
+  @emph^[some code using one_tenth]~
+}
+\end{example}
+
+\marginpar{%
+\begin{definition}[Rounding to the nearest]
+  \cindex{Rounding!to nearest|hyperpagebf}
+     Given \RSet\ the set of real numbers and \FSet\ the set of
+     floating-point numbers (\texttt{double}), we have:
+       \begin{multline*}
+         \forall x\in\RSet\colon \roundNearest{x} = y\in\FSet
+         \text{ s.t. }\\
+         x-y=\min\{|\delta|\in\RSet\mid \delta=x-z, \forall z\in\FSet\}
+     \end{multline*}
+\end{definition}
+}
+Though a rational perfectly representable in decimal, \code{0.1} is
+not representable in binary (at least, not with a finite number of
+bits) and thus requires rounding. Obviously, the purpose of the user
+was to define an interval containing this value.  However, \code{0.1}
+will be rounded \emph{at compile time}, most certainly to the nearest
+representable floating-point number \roundNearest{0.1}.  As a
+consequence, \code{one\_tenth} will be a degenerate interval
+containing only \roundNearest{0.1}, and the \dfn{containment property}
+will be violated.
+
+The right way to deal with rational constants that might not be perfectly
+representable as floating-point numbers is to stringify them, such
+that they can be correctly rounded downward and upward at \emph{runtime}:
+
+\begin{example}
+#include <gaol/gaol>
+
+using gaol::interval;
+
+int main(void)
+{
+  interval one_tenth("0.1"), @rem^// OK: this is the right way~
+           one_tenth2("1/10"); @rem^// Another possible way~
+
+  @emph^[some code using one_tenth]~
+  return 0;
+}
+\end{example}
+
+\marginpar{%
+  \begin{definition}[canonical interval]
+    \cindex{interval!canonical|see{canonical interval}}%
+    \cindex{canonical interval|hyperpagebf}%
+    A non-empty interval $I=\itv{a}{b}$ is \emph{canonical} if and only if
+    $a\geq\prevfloat{b}$.
+  \end{definition}
+}
+Now, \code{one\_tenth} will be the smallest floating-point interval
+enclosing \code{0.1}. An interval like this one, containing at most two
+consecutive floating-point numbers, is called a \dfn{canonical interval}.
+\cindex{canonical interval}%
+Written in hexadecimal (\pxref{sec:output-format}), which shows the bounds
+exactly, the two intervals are:
+
+\begin{onscreen}
+interval(0.1)   = [0x1.999999999999ap-4, 0x1.999999999999ap-4]
+interval("0.1") = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
+\end{onscreen}
+
+\subsection{Zero}
+%%...............
+
+\code{interval~x(0)} does not compile: the literal \code{0} is also a null
+pointer, which the constructor from a string takes as well as the constructor
+from a \code{double}, and the call is ambiguous. Write \code{interval~x(0.0)},
+or \code{interval::zero()}.
+\cindex{interval!zero}%
+
+\subsection{Both namespaces}
+%%..........................
+
+A program opens the namespace \code{gaol} or the namespace
+\code{gaol\_ieee1788}, not both (\pxref{sec:namespaces}):
+
+\begin{example}
+#include <gaol/gaol.h>
+using namespace gaol;
+using namespace gaol_ieee1788;
+
+gaol::interval x(1,2), y = pow(x,x); @rem^// Does not compile~
+\end{example}
+
+\noindent
+The compiler reports that the call of \code{pow} is ambiguous.
+
+\subsection{The flags of interval arithmetic}
+%%...........................................
+
+Compiled without the flags of interval arithmetic (\pxref{sec:compiling}), the
+inline operations of GAOL may be evaluated by the compiler at compile time,
+rounded to nearest, or contracted into fused multiply-adds, and give bounds
+that do not enclose the exact results. \file{gaol/gaol\_config.h} stops the
+compilation where it can tell:
+
+\begin{onscreen}
+% c++ -ffast-math -c program.cpp
+gaol/gaol_config.h: error: #error "GAOL cannot be compiled with -ffast-math
+(nor -Ofast): the bounds it computes would not enclose the exact results"
+\end{onscreen}
+
+\noindent
+Taking the flags from \code{gaol::gaol} or \file{gaol.pc} avoids the question.
+
+\chapter{Initialization and cleanup}\label{chap:init}
+%%==================================
+
+GAOL initializes itself when the program starts, and cleans up when it ends:
+the functions below need not be called. Since Release 1.0 of GAOL, there is an
+automatic initialization and cleanup that ensures that no problem will arise if
+the user forgets to call them; since GAOL v5, each operation also sets the
+rounding direction upward itself (\pxref{sec:rounding-direction}), so that
+\code{init()} no longer has to be called again after the calling code changed
+it.\newinvfive
+
+\begin{deffun}{bool}{init}{(int \var{dbg\_lvl} = 0)}
+Initializes the variable \code{debug\_level} (\pxref{sec:debugging-facilities}) to the
+value of \var{dbg\_lvl}.
+
+Unless GAOL was built to preserve the rounding direction, the first call sets the
+floating-point environment to its default one, then the rounding direction
+towards $+\infty$. In addition, it sets the number of digits to display for
+interval bounds to 16.
+
+Returns \code{true} if the library was not already initialized and \code{false}
+otherwise. After its first call, the function sets the debugging level to its
+new value and, unless the rounding direction is preserved, the rounding
+direction upward again: the C runtime of Windows resets it when the program
+starts, after the library initialized itself.
+\end{deffun}
+
+\begin{deffun}{bool}{cleanup}{(void)}
+Frees what the initialization allocated. It does not change the floating-point
+environment.
+
+Returns \code{true} the first time it is called and \code{false} afterwards.
+\end{deffun}
+
+
+\begin{example}
+#include <gaol/gaol.h>
+
+int main(void)
+{
+  gaol::init(1); @rem^// First level of debugging requested~
+
+  @emph^[Some code using interval arithmetic]~
+
+  gaol::cleanup();
+  return 0;
+}
+\end{example}
+
+\chapter{Interval creation and assignment}
+%%========================================
+
+The methods for creating an interval and assigning a new value to an already existing one
+are described in the following.
+
+\section{Constructors}\label{sec:constructors}
+%%--------------------
+
+One can create an interval in six different ways:
+
+\begin{itemize}
+\item by providing its left and right bounds:
+  \begin{example}
+    interval x(@var^l~,@var^r~);
+  \end{example}
+  where \var{l} and \var{r} are \code{double}s or of a type that is
+  castable into a \code{double}. The result is the empty set when
+  \itv{l}{r} is not an interval: for a left bound $+\infty$, a right bound
+  $-\infty$, bounds in the wrong order ($l>r$) and NaN bounds;\newinvfive
+\cindex{empty!interval: constructing}%
+
+\item by providing only one bound, for degenerate point intervals:
+  \begin{example}
+    interval x(@var^v~);
+  \end{example}
+  This is equivalent to: \code{interval x(\var{v},\var{v});}, and the empty set
+  for an infinite or NaN \var{v};
+\item without providing any bound:
+  \begin{example}
+    interval x;
+  \end{example}
+  This is equivalent to:
+  \begin{example}
+    interval x(-GAOL_INFINITY,+GAOL_INFINITY);
+  \end{example}
+  \noindent where \code{GAOL\_INFINITY} represents the infinity value of the \code{double} format
+  (\pxref{sec:floating-point-constants});
+\item by copying an already existing interval (\emph{copy constructor}):
+  \begin{example}
+    interval x(-12,12), y=x, z(x);
+  \end{example}
+\item by using a string representing an interval in the same format as
+  the one used for input (\pxref{sec:input-format})
+
+  \begin{example}
+    interval x("[-23, inf]"),
+             y("[5*0.1+dmin, 89*sinh(2.1)]");
+  \end{example}
+
+  If the input string does not comply with the expected format, the exception
+  \code{gaol::input\_format\_error} is thrown if the library was compiled with
+  exception support, which the CMake build always is; in the absence of exception
+  support, the \code{errno} variable is set to \code{-1}, and the
+  \code{gaol\_error()} function prints an error message before the program
+  aborts (\pxref{chap:errors}). The function \code{textToInterval()} of
+  \code{gaol\_ieee1788} returns the empty set instead (Chapter~\ref{chap:ieee1788});
+\item by using a string representing an interval in the same format as the one used for input
+  (\pxref{sec:input-format}) for each bound: the left bound of the first one
+  and the right bound of the second one are taken.
+
+  \begin{example}
+ @rem^// constructs x=[-4,4]~
+ interval x("[-5,4]+1","[4,6]-[2,3]");
+  \end{example}
+\end{itemize}
+
+\paragraph{Caution.} you have to be very careful when creating an interval
+from floating-point constants. Remember that a rational number that is
+perfectly representable in the decimal base may require rounding in the
+binary base. For example, if you write the following statement:
+
+\begin{example}
+  interval x(0.1);
+\end{example}
+
+\noindent
+you will \emph{not} have created an interval containing $0.1$ since
+this number has an infinite expansion in the binary base (i.e. it is
+impossible to represent it perfectly whatever the size of the mantissa
+may be). As a consequence, the constant $0.1$ has very likely
+been rounded to the nearest floating-point number at compile-time.
+In such a case, you have to use a string instead:
+
+\begin{example}
+interval x("0.1");
+\end{example}
+
+\paragraph{Note.}\label{par:inf_inf_note}
+The degenerate intervals \itv{+\infty}{+\infty} and \itv{-\infty}{-\infty} do
+not exist in GAOL v5.\newinvfive{} IEEE 1788-2015 has no such interval, and its
+constructor fails there and gives the empty set (10.5.8, 12.12.7); the
+constructors of GAOL give the empty set too, as those of IBEX do, for an
+infinite point and for all the cases above:
+\cindex{interval!with infinite bounds}%
+\begin{example}
+cout << interval(GAOL_INFINITY) << ' '
+     << interval(-GAOL_INFINITY,-GAOL_INFINITY) << ' '
+     << interval(2,1) << ' '
+     << interval(1,GAOL_INFINITY) << endl;
+@outputs^[empty] [empty] [empty] [1, inf]~
+\end{example}
+GAOL 4 built them as intervals of one infinite point, which its operators did not
+support. The intervals with one infinite bound, as \itv{1}{+\infty}, are
+intervals as any other.
+
+Read from a string, the constant \element{inf}, an expression, stands for
+\itv{\text{MAX}}{+\infty}, MAX being the largest double, and
+\element{-inf} for \itv{-\infty}{-\text{MAX}}; the interval literals whose left
+bound is $+\infty$ or whose right bound is $-\infty$ are the empty set, as
+\code{numsToInterval} of IEEE 1788-2015 has it:
+\begin{example}
+cout << interval("inf") << ' ' << interval("[inf]") << ' '
+     << interval("[-inf, -inf]") << endl;
+@outputs^[1.797693134862315e+308, inf] [empty] [empty]~
+\end{example}
+The string \element{"<-inf, -inf>"} throws \code{input\_format\_error}, its two
+bounds being different values (\pxref{sec:input-format}).
+
+\section{Straight assignment}
+%%---------------------------
+
+It is possible to assign a new value to an already existing interval in
+three different ways:
+
+\begin{itemize}
+\item by copying another interval:
+  \begin{example}
+    interval x(-12,12),
+             y; @rem^// Here, y is @itv^-@infty~^+@infty~~
+    y = x; @rem^// Now, y is @itv^-12~^12~~
+  \end{example}
+\item by using a string whose format follows the one expected for
+input (\pxref{sec:reading-intervals}).
+
+\begin{example}
+interval x;
+x = "[-inf, 123]";
+\end{example}
+
+\item by using a \code{double}:
+
+\begin{example}
+interval x;
+x = 1234.5; @rem^// Now, x is @itv^1234.5~^1234.5~~
+x = GAOL_INFINITY; @rem^// Now, x is empty~
+\end{example}
+\end{itemize}
+
+\noindent
+Both go through the constructors of the previous section, whose rules they
+follow: assigning an infinity to an interval empties it.\newinvfive
+
+Note that there is no method for modifying a bound of an
+interval since intervals must be considered as an atomic concept.
+
+\section{Assignment combined with an operation}
+%%=============================================
+
+The following assignment operators combine the value of the interval
+pointed to by \code{self} and the value of the right-hand side
+interval.
+\marginpar{%
+    In this manual, we note \code{self} the object to which
+    \code{this} is a pointer in C++.
+\cindex{this@\code{this}}\cindex{self@\code{self}}}
+
+\begin{defmethod}{interval}{interval\&}{operator\&=}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\code{self}\gets\code{self} \cap I$}
+  \end{operation}
+Assigns to \code{self} the interval resulting from the intersection of
+\code{self} and \var{I}, which is the empty set when they are
+disjoint.\newinvfive
+
+\begin{example}
+interval x(-12,12);
+x &= interval(-6,23); @rem^// Now, @code^x~ is @itv^-6~^12~~
+\end{example}
+
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval\&}{operator|=}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\code{self}\gets\hull{(\code{self} \cup I)}$}
+  \end{operation}
+  Assigns to \code{self} the interval hull of the union of \code{self} and \var{I}.
+
+\begin{example}
+  interval x(-12,12);
+  x |= interval(-6,23); @rem^// Now, @code^x~ is @itv^-12~^23~~
+\end{example}
+
+\end{defmethod}
+
+\defmethodx{interval}{interval\&}{operator+=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator+=}{(double \var{d})}
+  \begin{operation}
+    \op{$\code{self} \gets \code{self} + I$}
+    \op{$\code{self} \gets \code{self} + d$}
+  \end{operation}
+
+  Assigns to \code{self} the interval resulting from adding \code{self} and \var{I}
+  (resp. \var{d}).
+
+\begin{example}
+interval x(-12,12);
+x += interval(-6,23); @rem^// Now, @code^x~ is @itv^-18~^35~~
+\end{example}
+\end{defmethod}
+
+\defmethodx{interval}{interval\&}{operator-=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator-=}{(double \var{d})}
+  \begin{operation}
+    \op{$\code{self}\gets \code{self} - \var{I}$}
+    \op{$\code{self}\gets \code{self} - \var{d}$}
+  \end{operation}
+  Assigns to \code{self} the interval resulting from subtracting \var{I} (resp. \var{d})
+  from \code{self}.
+\begin{example}
+interval x(-12,12);
+x -= interval(-6,23); @rem^// Now, @code^x~ is @itv^-35~^18~~
+\end{example}
+\end{defmethod}
+
+\defmethodx{interval}{interval\&}{operator*=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator*=}{(double \var{d})}
+\begin{operation}
+\op{$\code{self}\gets \code{self} \times\var{I}$}
+\op{$\code{self}\gets \code{self} \times\var{d}$}
+\end{operation}
+Assigns to \code{self} the interval resulting from multiplying \code{self} and \var{I}
+(resp. \var{d}).
+\begin{example}
+interval x(-12,12);
+x *= interval(-6,23); @rem^// Now, @code^x~ is @itv^-276~^276~~
+\end{example}
+\end{defmethod}
+
+\defmethodx{interval}{interval\&}{operator/=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator/=}{(double \var{d})}
+\begin{operation}
+\op{$\code{self}\gets \code{self} / \var{I}$}
+\op{$\code{self}\gets \code{self} / \var{d}$}
+\end{operation}
+Assigns to \code{self} the interval resulting from dividing \code{self} by \var{I}
+(resp. \var{d}).
+\begin{example}
+interval x(-12,12);
+x /= interval(-6,23);   @rem^// Now, @code^x~ is @itv^-@infty~^+@infty~~
+x /= interval::zero();  @rem^// Now, @code^x~ is @ensuremath^@emptyset~~
+\end{example}
+\end{defmethod}
+
+\defmethodx{interval}{interval\&}{operator\%=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator\%= }{(double \var{d})}
+Assigns to \code{self} the interval resulting from dividing \code{self} by
+\var{I} (resp. \var{d}), using a \emph{relational division} (\pxref{sec:relational-arithmetic}).
+\begin{example}
+interval x(-12,12);
+x %= interval(-6,23);   @rem^// Now, @code^x~ is @itv^-@infty~^+@infty~~
+x %= interval::zero();  @rem^// Now, @code^x~ is @itv^-@infty~^+@infty~~
+\end{example}
+\end{defmethod}
+
+\noindent
+The operators with a double compute as those with an interval, by the sign of
+the double; an infinite double gives the empty set, as \code{interval(\var{d})}
+is empty.\newinvfive
+
+\chapter{Interval constants}\label{sec:interval-constants}
+%%==========================
+For convenience, some useful intervals and some canonical intervals enclosing real constants
+are defined as static functions of the \code{interval} class:
+
+
+\begin{center}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{lc}
+    \hline
+    \multicolumn{1}{c}{Function} & \multicolumn{1}{c}{Value}\\
+    \hline\hline
+    \element{interval::emptyset()} & $\emptyset$\\
+    \element{interval::half\_pi()} & \itv{\roundDn{\frac{\pi}{2}}}{\roundUp{\frac{\pi}{2}}}\\
+    \element{interval::minus\_one\_plus\_one()} & \itv{-1}{1}\\
+    \element{interval::negative()} & \itv{-\infty}{0}\\
+    \element{interval::one()} & $1$\\
+    \element{interval::one\_plus\_infinity()} & \itv{1}{+\infty}\\
+    \element{interval::pi()} & \itv{\roundDn{\pi}}{\roundUp{\pi}}\\
+    \element{interval::positive()} & \itv{0}{+\infty}\\
+    \element{interval::two\_pi()} & \itv{\roundDn{2\pi}}{\roundUp{2\pi}}\\
+    \element{interval::universe()} & \itv{-\infty}{+\infty}\\
+    \element{interval::zero()} & $0$\\
+    \hline
+  \end{tabular}
+\end{center}
+
+\noindent
+The enclosures of $\pi$, $2\pi$ and $\pi/2$ are the tightest ones. The empty set
+is held as an interval whose two bounds are NaN.
+\cindex{empty!interval: representation}%
+
+\begin{example}
+cout << interval::emptyset() << ' ' << interval::pi() << endl;
+@outputs^[empty] [3.141592653589793, 3.141592653589794]~
+\end{example}
+
+
+\chapter{Interval relations}\label{sec:interval-relations}
+%===========================
+
+Interval relations may be divided into three groups. Given $I$ and
+$J$ two intervals, we have:
+
+\begin{enumerate}
+\item\dfn{set relations}: intervals $I$ and $J$ are considered as sets of reals. For example:
+\begin{equation*}
+I=J \Leftrightarrow(\forall x\in I, \exists y\in J\colon x=y)\wedge
+                   (\forall y\in J, \exists x\in I\colon x=y)
+\end{equation*}
+Basically, two intervals are equal in that mode if they have the same bounds;
+\item\dfn{certainly relations}: the relations must be true for any tuple of
+values in the intervals. For example:
+\begin{equation*}
+I=J \Leftrightarrow(\forall x\in I, \forall y\in J\colon x=y)
+\end{equation*}
+Then, two intervals are equal in that mode if they are both reduced to
+the same value;
+\item\dfn{possibly relations}: the relations are true if it exists at
+least one tuple verifying the corresponding real relation. For example:
+\begin{equation*}
+I=J \Leftrightarrow(\exists x\in I, \exists y\in J\colon x=y)
+\end{equation*}
+Then, two intervals are equal in that mode whenever their intersection
+is not empty.
+\end{enumerate}
+
+The kind of relation to associate to relation symbols such as
+$==$ and $\leq$ is chosen when configuring the library with autotools or meson
+(\pxref{sec:configuration}); it is ``certainly'' by default, and always with
+CMake. The other possible definitions are always available through the methods
+described hereunder.
+
+The relations that IEEE 1788-2015 defines (Tables 10.3 and 10.4) follow its
+definitions, for the empty set and for the infinite bounds
+too:\newinvfive{} \ieee{equal}, \ieee{subset}, \ieee{interior},
+\ieee{disjoint}, \ieee{precedes}, \ieee{strictPrecedes}, \ieee{less} and
+\ieee{strictLess}. Each method below says which one it is; the namespace
+\code{gaol\_ieee1788} gives them their names (Chapter~\ref{chap:ieee1788}).
+\cindex{IEEE 1788-2015!relations}%
+
+\section{Set relations}
+%----------------------
+
+\defmethodx{interval}{bool}{set\_contains}{(const interval\& \var{I}) const}
+\begin{defmethod}{interval}{bool}{set\_contains}{(double \var{d}) const}
+  \begin{operation}
+    \op{$I\subseteq\code{self}$}
+    \op{$d\in\code{self}$}
+  \end{operation}
+  Returns \code{true} if \var{I} (resp. \{\var{d}\}) is included in \code{self}:
+  \ieee{subset}(\var{I}, \code{self}), and \ieee{isMember}(\var{d}, \code{self}) of
+  IEEE 1788-2015 for a finite \var{d}. \var{d} shall not be a NaN.
+
+\begin{example}
+interval x(-12,34), y(-12,5);
+
+cout << x.set_contains(y) << ' '
+     << x.set_contains(interval::emptyset()) << ' '
+     << y.set_contains(x) << ' '
+     << interval::emptyset().set_contains(x) << ' '
+     << interval::emptyset().set_contains(interval::emptyset())
+     << endl;
+@outputs^true true false false true~
+\end{example}
+\end{defmethod}
+
+\defmethodx{interval}{bool}{set\_strictly\_contains}{(const interval\& \var{I}) const}
+\begin{defmethod}{interval}{bool}{set\_strictly\_contains}{(double \var{d}) const}
+  \begin{operation}
+    \op{$I$ interior to \code{self}}
+    \op{$d$ in the interior of \code{self}}
+  \end{operation}
+Returns \code{true} if \var{I} is interior to \code{self}, \ieee{interior}(\var{I},
+\code{self}) of IEEE 1788-2015: each bound of \code{self} is beyond that of \var{I},
+an infinite bound being beyond the same infinite bound, and the empty set is
+interior to any interval, itself included.\newinvfive{} The second form returns
+\code{true} if \var{d} is strictly between the bounds of \code{self}.
+
+\begin{example}
+interval x(-10,12), y(-10, 11), z, t, u(10.5);
+
+cout << boolalpha
+     << x.set_strictly_contains(y) << ' '
+     << z.set_strictly_contains(t) << ' '
+     << x.set_strictly_contains(u) << ' '
+     << interval::emptyset().set_strictly_contains(
+                                 interval::emptyset()) << ' '
+     << u.set_strictly_contains(interval::emptyset())
+     << endl;
+@outputs^false true true true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_disjoint}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\code{self}\cap I=\emptyset$}
+  \end{operation}
+Returns \code{true} if the intersection of \code{self} and \var{I} is empty:
+\ieee{disjoint} of IEEE 1788-2015.
+
+\begin{example}
+interval a(2,4), b(6,8);
+cout << a.set_disjoint(b) << ' '
+     << interval::emptyset().set_disjoint(interval::emptyset());
+@outputs^true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_eq }{(const interval\& \var{I}) const}
+  \begin{operation}
+\op{$\forall x\in \code{self} \exists y\in I\colon x=y \wedge \forall y\in I, \exists x\in \code{self}\colon y=x$}
+  \end{operation}
+Returns \code{true} if intervals \code{self} and \var{I} are equal
+when considered as sets of reals: \ieee{equal} of IEEE 1788-2015.
+\begin{example}
+cout << interval(4,8).set_eq(interval(4,8)) << ' '
+     << interval::emptyset().set_eq(interval::emptyset()) << endl;
+@outputs^true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_neq}{(const interval\& \var{I}) const}
+    \begin{operation}
+      \op{$\neg(\code{self}=I)$}
+    \end{operation}
+    Returns \code{true} if \code{self} and \var{I} are not equal when
+    considered as sets of reals.
+    \begin{example}
+cout << interval::universe().set_neq(interval::emptyset());
+@outputs^true~
+    \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_le}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{\code{self} interior to $I$}
+  \end{operation}
+Returns \code{true} if \code{self} is interior to \var{I}:
+\code{\var{I}.set\_strictly\_contains(self)}, \ieee{interior}(\code{self}, \var{I}) of
+IEEE 1788-2015.\newinvfive
+\begin{example}
+cout << interval(-4.5,3).set_le(interval(-10,10)) << ' '
+     << interval::emptyset().set_le(interval(5,6)) << ' '
+     << interval::emptyset().set_le(interval::emptyset()) << ' '
+     << interval::universe().set_le(interval::universe()) << ' '
+     << interval("[2, inf]").set_le(interval("[1, inf]"));
+@outputs^true true true true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_leq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq I$}
+  \end{operation}
+Returns \code{true} if the real set defined by \code{self} is included in \var{I}:
+\ieee{subset}(\code{self}, \var{I}) of IEEE 1788-2015.
+\begin{example}
+cout << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
+     << interval(3.5,9).set_leq(interval(2,6)) << ' '
+     << interval::emptyset().set_leq(interval::emptyset());
+@outputs^true false true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_ge}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$I$ interior to \code{self}}
+  \end{operation}
+Returns \code{true} if \var{I} is interior to \code{self}: \code{set\_strictly\_contains(\var{I})}.
+\begin{example}
+cout << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
+     << interval(1,2).set_ge(interval(1,2));
+@outputs^true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_geq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$I\subseteq\code{self}$}
+  \end{operation}
+Returns \code{true} if the real set defined by \code{self} contains \var{I}:
+\code{set\_contains(\var{I})}.
+\end{defmethod}
+
+
+\section{Certainly relations}
+%%---------------------------
+
+\begin{defmethod}{interval}{bool}{certainly\_eq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x=y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly equal to \var{I}, which is true
+only when both intervals are degenerate and contain the same floating-point
+number, or are both empty. GAOL~4 did not look at the left bound of
+\var{I}, and \itv{2}{2} was certainly equal to \itv{1}{2}.\newinvfive
+\begin{example}
+cout << interval(3,4).certainly_eq(interval(3,4)) << ' '
+     << interval(-6).certainly_eq(interval(-6,-6)) << ' '
+     << interval::universe().certainly_eq(interval::universe()) << ' '
+     << interval::emptyset().certainly_eq(interval::emptyset()) << ' '
+     << interval(2).certainly_eq(interval(1,2));
+@outputs^false true false true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_neq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\neg\code{self.certainly\_eq(\var{I})}$}
+  \end{operation}
+Returns the negation of \code{certainly\_eq(\var{I})}, as in GAOL~4: \code{true}
+unless both intervals are the same double, or both empty. It is therefore
+\code{true} for two intervals that share points, as \itv{3}{4} and \itv{3}{4};
+that no point of \code{self} equals a point of \var{I} is
+\code{set\_disjoint(\var{I})}.
+\begin{example}
+cout << interval(3,4).certainly_neq(interval(5,6)) << ' '
+     << interval(3,4).certainly_neq(interval(3,4));
+@outputs^true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_le}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x<y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly strictly less than \var{I}:
+  \ieee{strictPrecedes} of IEEE 1788-2015, true when either interval is
+  empty.\newinvfive
+  \begin{example}
+cout << interval(4,5).certainly_le(interval(6,9)) << ' '
+     << interval(4,5).certainly_le(interval(5,9)) << ' '
+     << interval::emptyset().certainly_le(interval(4,6)) << ' '
+     << interval(4,6).certainly_le(interval::emptyset());
+@outputs^true false true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_leq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x\leq y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly less or equal to \var{I}:
+  \ieee{precedes} of IEEE 1788-2015, true when either interval is
+  empty.\newinvfive
+  \begin{example}
+cout << interval(4,5).certainly_leq(interval(6,9)) << ' '
+     << interval(4,5).certainly_leq(interval(5,9)) << ' '
+     << interval(5,9).certainly_leq(interval(4,5)) << ' '
+     << interval(4,8).certainly_leq(interval(5,9)) << ' '
+     << interval::emptyset().certainly_leq(interval(4,6)) << ' '
+     << interval(4,6).certainly_leq(interval::emptyset());
+@outputs^true true false false true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_ge}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x>y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly strictly greater than \var{I},
+  or if either interval is empty.
+  \begin{example}
+cout << interval(8,10).certainly_ge(interval(4,8)) << ' '
+     << interval(8,10).certainly_ge(interval(4,7)) << ' '
+     << interval::emptyset().certainly_ge(interval::emptyset());
+@outputs^false true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_geq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x\geq y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly greater or equal to \var{I},
+  or if either interval is empty.
+  \begin{example}
+cout << interval(8,10).certainly_geq(interval(4,8)) << ' '
+     << interval::emptyset().certainly_geq(interval::emptyset());
+@outputs^true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_positive}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\itv{0}{+\infty}$}
+  \end{operation}
+Returns \code{true} if the left bound of \code{self} is greater or equal to zero,
+or if \code{self} is empty.
+\begin{example}
+cout << interval::emptyset().certainly_positive() << ' '
+     << interval(4,5).certainly_positive() << ' '
+     << interval(-0.0,6).certainly_positive() << ' '
+     << interval(-6,0).certainly_positive();
+@outputs^true true true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_strictly\_positive}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\left]0,+\infty\right]$}
+  \end{operation}
+Returns \code{true} if the left bound of \code{self} is strictly greater than zero,
+or if \code{self} is empty.
+\begin{example}
+cout << interval::emptyset().certainly_strictly_positive() << ' '
+     << interval(4,5).certainly_strictly_positive() << ' '
+     << interval(-0.0,6).certainly_strictly_positive() << ' '
+     << interval(-6,0).certainly_strictly_positive();
+@outputs^true true false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_negative}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\itv{-\infty}{0}$}
+  \end{operation}
+Returns \code{true} if the right bound of \code{self} is lower or equal to zero,
+or if \code{self} is empty.
+\begin{example}
+cout << interval::emptyset().certainly_negative() << ' '
+     << interval(4,5).certainly_negative() << ' '
+     << interval(-6,0).certainly_negative() << ' '
+     << interval(-6,-5).certainly_negative();
+@outputs^true false true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_strictly\_negative}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\left[-\infty,0\right[$}
+  \end{operation}
+Returns \code{true} if the right bound of \code{self} is strictly lower than zero,
+or if \code{self} is empty.
+\begin{example}
+cout << interval::emptyset().certainly_strictly_negative() << ' '
+     << interval(4,5).certainly_strictly_negative() << ' '
+     << interval(-6,0).certainly_strictly_negative() << ' '
+     << interval(-6,-5).certainly_strictly_negative();
+@outputs^true false false true~
+\end{example}
+\end{defmethod}
+
+\section{Possibly relations}
+%%--------------------------
+
+\begin{defmethod}{interval}{bool}{possibly\_eq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x=y$}
+  \end{operation}
+Returns \code{true} if \code{self} is possibly equal to \var{I}.
+\begin{example}
+cout << interval(5,10).possibly_eq(interval(6,100)) << ' '
+     << interval::emptyset().possibly_eq(interval::emptyset());
+@outputs^true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{possibly\_neq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x\neq y$}
+  \end{operation}
+Returns \code{true} if \code{self} is possibly not equal to \var{I}.
+\begin{example}
+cout << interval(4,5).possibly_neq(interval(4,5)) << ' '
+     << interval(4,4).possibly_neq(interval(4,4)) << ' '
+     << interval::emptyset().possibly_neq(interval::emptyset());
+@outputs^true false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{possibly\_le}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x<y$}
+  \end{operation}
+Returns \code{true} if \code{self} is possibly strictly less than \var{I}.
+\begin{example}
+cout << interval(4,5).possibly_le(interval(3,7)) << ' '
+     << interval(4,5).possibly_le(interval(2,4)) << ' '
+     << interval(4,5).possibly_le(interval::emptyset());
+@outputs^true false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{possibly\_leq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x\leq y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is possibly less or equal to \var{I}.
+\begin{example}
+cout << interval(4,5).possibly_leq(interval(3,7)) << ' '
+     << interval(4,5).possibly_leq(interval(2,4)) << ' '
+     << interval(4,5).possibly_leq(interval::emptyset());
+@outputs^true true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{possibly\_ge}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x>y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is possibly strictly greater than \var{I}.
+  \begin{example}
+cout << interval(4,5).possibly_ge(interval(3,6)) << ' '
+     << interval(4,5).possibly_ge(interval(5,6)) << ' '
+     << interval(4,5).possibly_ge(interval(6,7)) << ' '
+     << interval(4,5).possibly_ge(interval::emptyset());
+@outputs^true false false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{possibly\_geq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\exists x\in \code{self}, \exists y \in \var{I}\colon x\geq y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is possibly greater or equal to \var{I}.
+  \begin{example}
+cout << interval(4,5).possibly_geq(interval(3,6)) << ' '
+     << interval(4,5).possibly_geq(interval(5,6)) << ' '
+     << interval(4,5).possibly_geq(interval(6,7)) << ' '
+     << interval(4,5).possibly_geq(interval::emptyset());
+@outputs^true true false false~
+  \end{example}
+\end{defmethod}
+
+\section{The order of IEEE 1788-2015}
+%%-----------------------------------
+
+\begin{defmethod}{interval}{bool}{less}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\leftBound{\code{self}}\leq\leftBound{I}\wedge\rightBound{\code{self}}\leq\rightBound{I}$}
+  \end{operation}
+  Returns \code{true} if each bound of \code{self} is at most the bound of
+  \var{I} on the same side: \ieee{less} of IEEE 1788-2015 (Table 10.3). Two
+  empty sets are in the relation, and an empty set and a nonempty interval are
+  not (Table 10.4).\newinvfive
+\begin{example}
+interval e = interval::emptyset();
+cout << interval(1,2).less(interval(1,3)) << ' '
+     << interval(1,4).less(interval(2,3)) << ' '
+     << e.less(e) << ' ' << e.less(interval(1,2));
+@outputs^true false true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{strictly\_less}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\leftBound{\code{self}}<\leftBound{I}\wedge\rightBound{\code{self}}<\rightBound{I}$}
+  \end{operation}
+  Returns \code{true} if each bound of \code{self} is below the bound of \var{I}
+  on the same side, an infinite bound counting as below itself:
+  \ieee{strictLess} of IEEE 1788-2015. The empty sets are as for
+  \code{less()}.\newinvfive
+\begin{example}
+cout << interval(1,2).strictly_less(interval(1,3)) << ' '
+     << interval("[-inf, 1]").strictly_less(interval("[-inf, 2]"))
+     << ' ' << interval(0,1).strictly_less(interval(2,3));
+@outputs^false true true~
+\end{example}
+\end{defmethod}
+
+\section{Relational Symbols}
+%%--------------------------
+
+\begin{deffun}{bool}{operator==}{(const interval\& \var{I1}, const interval\& \var{I2})}
+    Returns \code{\var{I1}.set\_eq(\var{I2})},
+    \code{\var{I1}.certainly\_eq(\var{I2})}, or
+    \code{\var{I1}.possibly\_eq(\var{I2})} depending on the default kind of
+    relation chosen when configuring GAOL (\pxref{sec:configuration}).
+\end{deffun}
+
+\begin{deffun}{bool}{operator!=}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_neq(\var{I2})},
+  \code{\var{I1}.certainly\_neq(\var{I2})}, or
+  \code{\var{I1}.possibly\_neq(\var{I2})} depending on the default kind of
+  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+\end{deffun}
+
+\begin{deffun}{bool}{operator<}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_le(\var{I2})},
+  \code{\var{I1}.certainly\_le(\var{I2})}, or
+  \code{\var{I1}.possibly\_le(\var{I2})} depending on the default kind of
+  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+\end{deffun}
+
+\begin{deffun}{bool}{operator<=}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_leq(\var{I2})},
+  \code{\var{I1}.certainly\_leq(\var{I2})}, or
+  \code{\var{I1}.possibly\_leq(\var{I2})} depending on the default kind of
+  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+\end{deffun}
+
+\begin{deffun}{bool}{operator>}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_ge(\var{I2})},
+  \code{\var{I1}.certainly\_ge(\var{I2})}, or
+  \code{\var{I1}.possibly\_ge(\var{I2})} depending on the default kind of
+  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+\end{deffun}
+
+\begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_geq(\var{I2})},
+  \code{\var{I1}.certainly\_geq(\var{I2})}, or
+  \code{\var{I1}.possibly\_geq(\var{I2})} depending on the default kind of
+  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+\end{deffun}
+
+\noindent
+With the certainly relations, the default of the three builds:
+\begin{example}
+cout << (interval(1,2) == interval(1,2)) << ' '
+     << (interval(2) == interval(2)) << ' '
+     << (interval(1,2) < interval(3,4)) << ' '
+     << (interval(1,2) <= interval(2,4));
+@outputs^false true true true~
+\end{example}
+
+
+\section{Interval-specific relations}
+%%-----------------------------------
+
+\begin{defmethod}{interval}{bool}{straddles\_zero}{(void) const}
+  \begin{operation}
+    \op{$0 \in \code{self}$}
+  \end{operation}
+Returns \code{true} if \code{self} contains zero.
+\begin{example}
+interval x(0,4), y, z(-12,-5);
+
+cout << boolalpha << x.straddles_zero() << ' '
+     << y.straddles_zero() << ' '
+     << z.straddles_zero() << endl;
+@outputs^true true false~
+\end{example}
+
+\paragraph*{Note.} \code{I.straddles\_zero()} $\equiv$ \code{I.set\_contains(0.0)}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{strictly\_straddles\_zero}{(void) const}
+  \begin{operation}
+  \op{$\{0\}$ interior to \code{self}}
+  \end{operation}
+  Returns \code{true} if zero is included in the interior of \code{self}.
+\begin{example}
+interval x(0,4), y, z(-12,-5);
+
+cout << boolalpha << x.strictly_straddles_zero() << ' '
+     << y.strictly_straddles_zero() << ' '
+     << z.strictly_straddles_zero() << endl;
+@outputs^false true false~
+\end{example}
+
+\paragraph*{Note.} The method call to \code{I.strictly\_straddles\_zero()} is equivalent to
+                   \code{I.set\_strictly\_contains(0.0)}
+\end{defmethod}
+
+
+\begin{defmethod}{interval}{bool}{is\_a\_double}{(void) const}
+Returns \code{true} whenever the left and right bounds of the interval
+are equal: \ieee{isSingleton} of IEEE 1788-2015.
+\begin{example}
+interval x(-12.5), y;
+
+cout << boolalpha << x.is_a_double() << ' '
+     << y.is_a_double() << ' '
+     << interval::emptyset().is_a_double() << endl;
+@outputs^true false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_an\_int}{(void) const}
+  Returns \code{true} whenever the left and right bounds of the interval
+  are equal and castable into an integer (type \code{int}).
+\begin{example}
+interval x(-12.0), y;
+
+cout << boolalpha << x.is_an_int() << ' ' << y.is_an_int() << ' '
+     << interval::emptyset().is_an_int() << ' '
+     << interval(3e10).is_an_int() << endl;
+@outputs^true false false false~
+\end{example}
+\end{defmethod}
+
+
+\begin{defmethod}{interval}{bool}{is\_canonical}{(void) const}
+  Returns \code{true} if \code{self} is nonempty and contains at most two
+  floating-point numbers.
+\begin{example}
+interval x(0.0), y(-14,9);
+
+cout << boolalpha << x.is_canonical() << ' '
+     << y.is_canonical() << ' '
+     << interval::emptyset().is_canonical() << ' '
+     << interval::pi().is_canonical();
+@outputs^true false false true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_empty}{(void) const}
+  \begin{operation}
+    \op{$\code{self} = \emptyset$}
+  \end{operation}
+  Returns \code{true} if \code{self} is an empty interval: \ieee{isEmpty} of
+  IEEE 1788-2015.
+  \begin{example}
+cout << interval(4,5).is_empty() << ' '
+     << interval(5,4).is_empty() << ' '
+     << interval::emptyset().is_empty();
+@outputs^false true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_entire}{(void) const}
+  \begin{operation}
+    \op{$\code{self} = \itv{-\infty}{+\infty}$}
+  \end{operation}
+  Returns \code{true} if \code{self} is the whole real line: \ieee{isEntire} of
+  IEEE 1788-2015.\newinvfive
+  \begin{example}
+cout << interval::universe().is_entire() << ' '
+     << interval::positive().is_entire() << ' '
+     << interval::emptyset().is_entire();
+@outputs^true false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_common\_interval}{(void) const}
+  Returns \code{true} if \code{self} is nonempty and bounded:
+  \ieee{isCommonInterval} of IEEE 1788-2015.\newinvfive
+  \begin{example}
+cout << interval(1,2).is_common_interval() << ' '
+     << interval::positive().is_common_interval() << ' '
+     << interval::emptyset().is_common_interval();
+@outputs^true false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_zero}{(void) const}
+  \begin{operation}
+    \op{$\code{self} = \itv{0}{0}$}
+  \end{operation}
+  Returns \code{true} if \code{self} is equal to the interval containing only $0$.
+  \begin{example}
+cout << interval::zero().is_zero() << ' '
+     << interval(0.0,0.0).is_zero() << ' '
+     << interval(-0.0,+0.0).is_zero() << ' '
+     << interval(0,5).is_zero() << ' '
+     << interval::emptyset().is_zero();
+@outputs^true true true false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_symmetric}{(void) const}
+  Returns \code{true} if the left bound of \code{self} is the opposite of the
+  right bound. An empty interval is not symmetric.
+
+\begin{example}
+cout << interval(-5,5).is_symmetric() << ' '
+     << interval::emptyset().is_symmetric() << endl;
+@outputs^true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_finite}{(void) const}
+  Returns \code{true} if neither bound is infinite. The empty set, whose bounds
+  are NaN, is finite; \code{is\_common\_interval()} is not true of it.
+
+\begin{example}
+cout << interval("[4,inf]").is_finite() << ' '
+     << interval::emptyset().is_finite() << ' '
+     << interval(5,80).is_finite();
+@outputs^false true true~
+\end{example}
+\end{defmethod}
+
+
+\chapter{Interval Arithmetic}\label{chap:arithmetic}
+%%===========================
+
+The \emph{containment principle} of (floating-point) interval arithmetic
+imposes that for any operation ``$\circ$'', and any intervals \var{I} and \var{J},
+the following does hold:
+\begin{equation*}
+I\circ J= \hull{\{i\circ j\mid i\in I, j\in J\}}
+\end{equation*}
+where \hull{} is a function mapping any real set to the
+smallest floating-point interval containing it.
+
+For example, if we consider the interval square root, we have:
+\begin{equation*}
+\sqrt{\var{I}} = \hull{\{\sqrt{i}\mid i\in \var{I}\}}
+\end{equation*}
+
+From monotonicity considerations, the square root of \itv{1}{2} is then
+$\sqrt{\itv{1}{2}}=\itv{1}{\sqrt{2}}$. Now, another
+interpretation of the square root function is as follows:
+
+\begin{equation*}
+\sqrt{_r\var{I}} = \hull{\{j\in\RSet\mid\exists i\in \var{I}\colon j^2=i\}}
+\end{equation*}
+
+This last definition stands for the \dfn{relational square root} and
+permits obtaining both negative and positive values. Hence, we have:
+\begin{equation*}
+\sqrt{_r\itv{1}{2}} = \itv{-\sqrt{2}}{\sqrt{2}}
+\end{equation*}
+
+This operator arises when we consider the relation
+\begin{equation*}
+x^2= y
+\end{equation*}
+which can alternatively be written
+\begin{equation*}
+x=\sqrt{_r y}
+\end{equation*}
+Here, the \dfn{functional square root} is not suitable since it would
+induce the intersection of the domain of $y$ with \itv{0}{+\infty}.
+
+Some applications (mainly in the area of \emph{constraint programming})
+require the availability of such operators. As a consequence, GAOL offers
+both functional and relational versions of the main arithmetic operators.
+
+\paragraph{Domains.} A function is computed on the part of its argument within its
+domain, which is that of IEEE 1788-2015 (Tables 9.1 and 10.5): the part outside
+is left out, and an argument with no point of the domain gives the empty set,
+as \code{log(\itv{-4}{0})} does.\newinvfive{} Every function gives the empty set
+for an empty argument. How tight each result is, for each operation, is stated
+in Chapter~\ref{chap:accuracy}.
+\cindex{domain of a function}%
+
+\section{Functional Arithmetic}
+%%-----------------------------
+
+\subsection{Basic operations}
+%%...........................
+
+\defmethodx{interval}{interval}{operator+}{(void) const}
+\deffunx{interval}{operator+}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator+}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator+}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Addition of two intervals, or of one interval and a double: \ieee{add} of
+  IEEE 1788-2015.
+\end{deffun}
+
+\defmethodx{interval}{interval}{operator-}{(void) const}
+\deffunx{interval}{operator-}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator-}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator-}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Negation (\ieee{neg}), or subtraction (\ieee{sub}) of two intervals, or of one interval and a double.
+\end{deffun}
+
+
+\deffunx{interval}{operator*}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator*}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator*}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Multiplication of two intervals, or of one interval and a double: \ieee{mul}
+  of IEEE 1788-2015. A zero bound times an infinite bound counts as $0$, as the
+  product of a real number of the interval by 0.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{operator/}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator/}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator/}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Functional division of two intervals, or of one interval and a double:
+  \ieee{div} of IEEE 1788-2015. The quotient by an interval containing 0 is the
+  hull of the quotients by its nonzero part, and the quotient by \itv{0}{0} is
+  the empty set.
+\begin{example}
+cout << interval(1,2) * interval(-3,4) << ' '
+     << interval(0,1) * interval("[1, inf]") << ' '
+     << interval(1,2) / interval(0,1) << ' '
+     << interval(1,2) / interval(-1,1) << ' '
+     << interval(1,2) / interval::zero();
+@outputs^[-6, 8] [0, inf] [1, inf] [-inf, inf] [empty]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{operator\%}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator\%}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator\%}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Relational division of two intervals, or of one interval and a double
+  (\pxref{sec:relational-arithmetic}).
+\end{deffun}
+
+\defmethodx{interval}{interval}{inverse}{(void) const}
+\begin{deffun}{interval}{inverse}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$1/I$}
+  \end{operation}
+  Inverse of \var{I} (resp. \code{self}): \ieee{recip} of IEEE 1788-2015. The
+  inverse of an interval containing 0 is the hull of the inverses of its
+  nonzero part.
+\begin{example}
+cout << inverse(interval(2,4)) << ' ' << inverse(interval(-1,2));
+@outputs^[0.25, 0.5] [-inf, inf]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sqr}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\var{I}^2$}
+  \end{operation}
+  Square of \var{I}: \ieee{sqr} of IEEE 1788-2015.
+\end{deffun}
+
+\begin{deffun}{interval}{sqrt}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\sqrt{I}$}
+  \end{operation}
+  Functional square root of \var{I}, on the part of \var{I} in \itv{0}{+\infty}:
+  \ieee{sqrt} of IEEE 1788-2015. The bounds are the tightest ones, whatever the
+  rounding of the square root of the C library.\newinvfive
+\begin{example}
+cout << sqrt(interval(-4,9)) << ' ' << sqrt(interval(-4,-1));
+@outputs^[0, 3] [empty]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{fma}{(const interval\& \var{X}, const interval\& \var{Y}, const interval\& \var{Z})}
+  \begin{operation}
+    \op{$\hull{\{xy+z\mid x\in X, y\in Y, z\in Z\}}$}
+  \end{operation}
+  Fused multiply-add: \ieee{fma} of IEEE 1788-2015, each bound rounded once, the
+  tightest enclosure.\newinvfive
+\begin{example}
+cout << fma(interval(1,2), interval(3,4), interval(-1,1));
+@outputs^[2, 9]~
+\end{example}
+\end{deffun}
+
+\subsection{Powers and roots}\label{sec:powers}
+%%...........................
+\cindex{power}%
+
+The following four functions are those of the namespace \code{gaol}; the
+namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee1788}).
+
+\deffunx{interval}{pow}{(const interval\& \var{I}, int \var{n})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, unsigned int \var{n})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, double \var{p})}
+\begin{deffun}{interval}{pow}{(const interval\& \var{I}, const interval\& \var{J})}
+  \begin{operation}
+    \op{$I^n$}
+    \op{$I^p$}
+    \op{$I^J$}
+  \end{operation}
+  Power function. \code{pow} is hybrid in GAOL v5:\newinvfive
+  \begin{itemize}
+  \item an integer exponent takes the \emph{integer power}, \ieee{pown} of
+    IEEE 1788-2015: \var{I} to the power \var{n}, the negative part of \var{I}
+    included, $x^0=1$ for every $x$, 0 included, and no value at 0 for $n<0$;
+    so do a double \var{p} and a degenerate interval $\var{J}=\itv{n}{n}$ whose
+    value is an integer within the \code{int}s, an integer beyond them giving
+    \itv{-\infty}{+\infty};
+  \item any other exponent takes the \emph{real power}, \ieee{pow} of
+    IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty}, where $0^y$ is
+    $0$ for $y>0$ and has no value for $y\leq0$. An exponent \itv{+\infty}{+\infty}
+    or \itv{-\infty}{-\infty}, or an infinite or NaN \var{p}, gives the empty set.
+  \end{itemize}
+  The result is thus not monotone for the inclusion of \var{J}:
+  \code{pow(\itv{-4}{-1}, \itv{2}{2})} is \itv{1}{16}, and
+  \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})} the empty set.
+  GAOL~4 truncated a double exponent \var{p}, and computed the powers of a
+  negative base on its magnitude.
+
+  The integer powers are computed from exact products, and are the tightest
+  enclosures, or one double beyond where the power is within $n\cdot2^{-104}$
+  of a double. The real power takes the power of CORE-MATH at the corners of
+  the box $I\times J$ where it is the least and the greatest: the upper bound
+  is the tightest one, and so is the lower bound but where the power at the
+  corner is a double, which it misses by one double.
+\begin{example}
+cout << pow(interval(-4,-1), 2) << ' '
+     << pow(interval(-4,-1), interval(2.0)) << ' '
+     << pow(interval(-4,9), interval(0.5)) << ' '
+     << pow(interval(-4,-1), interval(1.5, 2.5)) << endl;
+@outputs^[1, 16] [1, 16] [0, 3] [empty]~
+cout << pow(interval(0.0), interval(0.0)) << ' '
+     << pow(interval(-2,2), -2) << ' '
+     << pow(interval(4), 0.5) << endl;
+@outputs^<1, 1> [0.25, inf] [1.999999999999999, 2]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned int \var{n})}
+\begin{deffun}{interval}{nth\_root}{(const interval\& \var{I}, int \var{q})}
+  \begin{operation}
+    \op{$^{n}\sqrt{I}$}
+  \end{operation}
+  Computes the \var{n}th functional root of \var{I}: \ieee{rootn} of
+  IEEE 1788-2015. For an odd \var{n}, the root of a negative number is the
+  opposite of the root of its magnitude, and the root is defined on the whole
+  real line; for an even \var{n}, only the part of \var{I} in
+  \itv{0}{+\infty} is considered.\newinvfive{} A negative \var{q} gives
+  $1/x^{1/|q|}$, defined on $\RSet\setminus\{0\}$ for an odd \var{q} and on
+  $\left]0,+\infty\right]$ for an even one. Returns the empty set for
+  $n=0$.
+
+  The bounds are the tightest ones, or one double beyond: each is proved with
+  integer powers. The cube root is that of CORE-MATH, the tightest one, and the
+  root of a double that is the \var{n}th power of a double is that double.
+\begin{example}
+cout << nth_root(interval(-8,27), 3) << ' '
+     << nth_root(interval(-4,16), 2) << ' '
+     << nth_root(interval(4,16), -2) << ' '
+     << nth_root(interval(-8,-1), -3);
+@outputs^[-2, 3] [0, 4] [0.25, 0.5] [-1, -0.5]~
+\end{example}
+\end{deffun}
+
+\subsection{Exponentials and logarithms}
+%%......................................
+
+The functions of this section, and of the next two, are bounded with CORE-MATH
+at the bounds of the interval, or at the points where the function reaches its
+extrema within it. CORE-MATH being correctly rounded, the value at a bound,
+computed rounding upward, is the upper bound, and the double below it the
+lower bound: the tightest bounds, unless the exact value is a double, which
+the functions give exactly where they know it happens ($\exp(0)=1$,
+$\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
+\cindex{CORE-MATH}%
+
+\begin{deffun}{interval}{exp}{(const interval\& \var{I})}
+  Exponential of \var{I}.
+\end{deffun}
+
+\deffunx{interval}{exp2}{(const interval\& \var{I})}
+\begin{deffun}{interval}{exp10}{(const interval\& \var{I})}
+  $2^x$ and $10^x$ for $x$ in \var{I}: \ieee{exp2} and \ieee{exp10} of IEEE
+  1788-2015.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{expm1}{(const interval\& \var{I})}
+\deffunx{interval}{exp2m1}{(const interval\& \var{I})}
+\begin{deffun}{interval}{exp10m1}{(const interval\& \var{I})}
+  $e^x-1$, $2^x-1$ and $10^x-1$ for $x$ in \var{I}, within \itv{-1}{+\infty}:
+  \ieee{expm1}, \ieee{exp2m1} and \ieee{exp10m1} of IEEE 1788-2015
+  (Table~10.5).\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{log}{(const interval\& \var{I})}
+  Natural logarithm of \var{I}, defined on $\left]0,+\infty\right]$: an
+  interval holding no positive number gives the empty set, where GAOL~4 kept
+  its part in \itv{0}{+\infty} and gave \itv{-\infty}{-\text{MAX}} for
+  \code{log(\itv{-4}{0})}.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{log2}{(const interval\& \var{I})}
+\begin{deffun}{interval}{log10}{(const interval\& \var{I})}
+  Logarithms in base 2 and 10 of \var{I}: \ieee{log2} and \ieee{log10} of IEEE
+  1788-2015.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{log1p}{(const interval\& \var{I})}
+\deffunx{interval}{log2p1}{(const interval\& \var{I})}
+\begin{deffun}{interval}{log10p1}{(const interval\& \var{I})}
+  $\log(1+x)$, $\log_2(1+x)$ and $\log_{10}(1+x)$ for $x$ in \var{I}, defined on
+  $\left]-1,+\infty\right]$, $-\infty$ being their limit at $-1$: \ieee{logp1},
+  \ieee{log2p1} and \ieee{log10p1} of IEEE 1788-2015 (Table~10.5).\newinvfive
+\begin{example}
+cout << exp(interval(0.0)) << ' ' << log(interval(1)) << ' '
+     << log(interval(-4,0.0)) << ' ' << log(interval(-4,1)) << endl;
+@outputs^<1, 1> <0, 0> [empty] [-inf, 0]~
+cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
+     << log10(interval(0.0,1000)) << ' '
+     << expm1(interval(-1e300,0.0)) << ' '
+     << log1p(interval(-2,0.0)) << endl;
+@outputs^<8, 8> <-2, -2> [-inf, 3] [-1, 0] [-inf, 0]~
+\end{example}
+\end{deffun}
+
+\subsection{Trigonometric functions}
+%%..................................
+
+\begin{deffun}{interval}{cos}{(const interval\& \var{I})}
+  Returns the cosine of \var{I}, within \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{sin}{(const interval\& \var{I})}
+  Returns the sine of \var{I}, within \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{tan}{(const interval\& \var{I})}
+  Returns the tangent of \var{I}: \itv{-\infty}{+\infty} when \var{I} holds a
+  pole.
+
+  The three functions find the pieces of \var{I} on which they are monotonic
+  by dividing its bounds by an enclosure of $\pi$ and, where the quotients
+  cannot tell, next to an extremum or a pole and at the large magnitudes, from
+  the signs of the derivative at the bounds, which CORE-MATH gives exactly:
+  their bounds are within one double of the tightest ones at every
+  magnitude.\newinvfive{} GAOL~4 gave \itv{-1}{1} for \code{cos(\itv{2^{60}}{2^{60}})},
+  and computed the sine as a shifted cosine, which widened narrow intervals.
+\begin{example}
+cout << cos(interval(1,4)) << endl
+     << sin(interval(1,2)) << endl
+     << tan(interval(1,2)) << endl
+     << cos(interval(1152921504606846976.0)) << endl; @rem^// 2 to the 60~
+@outputs^[-1, 0.5403023058681398]~
+@outputs^[0.8414709848078965, 1]~
+@outputs^[-inf, inf]~
+@outputs^[-0.5567960822766418, -0.5567960822766416]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{acos}{(const interval\& \var{I})}
+  Returns the arccosine of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{asin}{(const interval\& \var{I})}
+  Returns the arcsine of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{atan}{(const interval\& \var{I})}
+  Returns the arctangent of \var{I}.
+\begin{example}
+cout << acos(interval(1,3)) << ' ' << asin(interval(1)) << ' '
+     << atan(interval(1));
+@outputs^<0, 0> [1.570796326794896, 1.570796326794897]~
+@outputs^[0.7853981633974482, 0.7853981633974484]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{atan2}{(const interval\& \var{Y}, const interval\& \var{X})}
+  Returns the hull of the angles in $(-\pi,\pi]$ of the points of ordinate in \var{Y} and abscissa
+  in \var{X}, the point $(0,0)$ left out, as the \ieee{atan2} of IEEE~1788-2015:
+  \code{atan2([0],[0])} is empty, and the result is $[-\pi,\pi]$ whenever the box holds points of the
+  half-line $y=0$, $x<0$, where the angle is $\pi$, and points below it, where it is next to $-\pi$.
+  GAOL~4 declared the function, but it raised \code{unavailable\_feature\_error}.\newinvfive
+\begin{example}
+cout << atan2(interval(0.0), interval(0.0)) << endl
+     << atan2(interval(-1,1), interval(-1)) << endl
+     << atan2(interval("[1, inf]"), interval("[1, inf]")) << endl;
+@outputs^[empty]~
+@outputs^[-3.141592653589794, 3.141592653589794]~
+@outputs^[0, 1.570796326794897]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{sinpi}{(const interval\& \var{I})}
+\deffunx{interval}{cospi}{(const interval\& \var{I})}
+\begin{deffun}{interval}{tanpi}{(const interval\& \var{I})}
+  $\sin(\pi x)$, $\cos(\pi x)$ and $\tan(\pi x)$ for $x$ in \var{I}:
+  \ieee{sinPi}, \ieee{cosPi} and \ieee{tanPi} of IEEE 1788-2015
+  (Table~10.5).\newinvfive{} Their extrema and poles are at the multiples of
+  $1/2$, which are doubles, and are found exactly, at every magnitude.
+  \code{tanpi} has no value at the half-integers, which are left out: a
+  half-integer alone gives the empty set.
+\end{deffun}
+
+\deffunx{interval}{asinpi}{(const interval\& \var{I})}
+\deffunx{interval}{acospi}{(const interval\& \var{I})}
+\deffunx{interval}{atanpi}{(const interval\& \var{I})}
+\begin{deffun}{interval}{atan2pi}{(const interval\& \var{Y}, const interval\& \var{X})}
+  $\operatorname{asin}(x)/\pi$, $\operatorname{acos}(x)/\pi$,
+  $\operatorname{atan}(x)/\pi$ and $\operatorname{atan2}(y,x)/\pi$: \ieee{asinPi},
+  \ieee{acosPi}, \ieee{atanPi} and \ieee{atan2Pi} of IEEE 1788-2015
+  (Table~10.5), within \itv{-1/2}{1/2}, \itv{0}{1}, \itv{-1/2}{1/2} and
+  \itv{-1}{1}.\newinvfive
+\begin{example}
+cout << sinpi(interval(1e17)) << ' '
+     << sin(interval::pi() * 1e17) << endl;
+@outputs^<0, 0> [-1, 1]~
+cout << tanpi(interval(0.5)) << ' '
+     << tanpi(interval(0.25,0.75)) << ' '
+     << asinpi(interval(1)) << ' '
+     << atan2pi(interval(1), interval(-1)) << endl;
+@outputs^[empty] [-inf, inf] <0.5, 0.5> <0.75, 0.75>~
+\end{example}
+\end{deffun}
+
+\subsection{Hyperbolic functions}
+%%...............................
+
+\begin{deffun}{interval}{cosh}{(const interval\& \var{I})}
+  Returns the hyperbolic cosine of \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{acosh}{(const interval\& \var{I})}
+  Returns the hyperbolic arccosine of \var{I}, on the part of \var{I} in \itv{1}{+\infty}.
+\end{deffun}
+
+\begin{deffun}{interval}{sinh}{(const interval\& \var{I})}
+  Returns the hyperbolic sine of \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{asinh}{(const interval\& \var{I})}
+  Returns the hyperbolic arcsine of \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{tanh}{(const interval\& \var{I})}
+  Returns the hyperbolic tangent of \var{I}, within \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{atanh}{(const interval\& \var{I})}
+  Returns the hyperbolic arctangent of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+
+  The six functions are those of CORE-MATH, where GAOL~4 took them from the
+  mathematical library of the system, which is sometimes further than one
+  double from the exact value.\newinvfive
+\begin{example}
+cout << cosh(interval(-1,2)) << ' ' << tanh(interval(20,30)) << endl
+     << acosh(interval(0,1)) << ' ' << atanh(interval(-2,2)) << endl;
+@outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
+@outputs^<0, 0> [-inf, inf]~
+\end{example}
+\end{deffun}
+
+\subsection{Other functions}
+%%..........................
+
+\begin{deffun}{interval}{hypot}{(const interval\& \var{X}, const interval\& \var{Y})}
+  $\sqrt{x^2+y^2}$ for $x$ in \var{X} and $y$ in \var{Y}: \ieee{hypot} of
+  IEEE 1788-2015 (Table~10.5), computed at the points of the box nearest to the
+  origin and farthest from it.\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{rsqrt}{(const interval\& \var{I})}
+  $1/\sqrt{x}$ for $x$ in \var{I}, defined on $\left]0,+\infty\right]$,
+  $+\infty$ being its limit at 0: \ieee{rSqrt} of IEEE 1788-2015
+  (Table~10.5).\newinvfive
+\begin{example}
+cout << hypot(interval(3), interval(4)) << ' '
+     << hypot(interval(-3,1), interval(4,5)) << endl
+     << rsqrt(interval(4,16)) << ' ' << rsqrt(interval(0.0,4)) << endl;
+@outputs^<5, 5> [4, 5.830951894845301]~
+@outputs^[0.25, 0.5] [0.5, inf]~
+\end{example}
+\end{deffun}
+
+\noindent
+Among the functions IEEE 1788-2015 recommends (Table~10.5), \ieee{compoundm1}
+alone is not provided, CORE-MATH having no version of it for doubles.
+
+\section{Relational Arithmetic}\label{sec:relational-arithmetic}
+%%-----------------------------
+\cindex{reverse functions|see{relational arithmetic}}%
+
+The relational functions of GAOL are the \dfn{reverse functions} of
+IEEE 1788-2015 (10.5.4, Table 10.1), with their arguments in another order:
+each computes the hull of the $x$ of an interval \var{I} whose image by the
+function is in \var{J}. Their correspondence is given at the end of this
+section, and the namespace \code{gaol\_ieee1788} provides them under their
+names (Chapter~\ref{chap:ieee1788}).
+
+\defmethodx{interval}{interval}{operator\% }{(double \var{d}) const}
+\defmethodx{interval}{interval}{operator\% }{(const interval\& \var{I}) const}
+\begin{deffun}{interval}{operator\%}{(double \var{d}, const interval\& \var{I})}
+  \begin{operation}
+    \op{$\code{self}\,\%\,\var{I}=\hull{\{z\in \RSet\mid\exists x\in \code{self}, \exists y\in I\colon x=yz\}}$}
+  \end{operation}
+Relational division: \code{div\_rel(self, \var{I}, \itv{-\infty}{+\infty})}.
+\begin{example}
+cout << interval(1,2) % interval(0,1) << ' '
+     << interval(1,2) % interval(-1,1);
+@outputs^[1, inf] [-inf, inf]~
+\end{example}
+\end{deffun}
+
+\subsection{$(n+1)$-ary relational functions}
+%%...........................................
+
+Consider the relation $y = \cos x$ where $x$ and $y$ are
+interval variables. One would like to be able to express this relation
+in the equivalent way: $x = \mathop{acos} y$. However, one cannot use the
+$\mathop{acos}$ function because its result is always included into the
+interval \itv{0}{\pi}. What we need here is a relational
+version of the $\mathop{acos}$ function. But, since for any value $x$
+there are infinitely many values $y$ verifying $x=\mathop{acos} y$, we
+have to take into account the domain of $y$. As a consequence, we
+define a new binary operator \code{acos\_rel} whose definition is as
+follows:
+
+\begin{equation*}
+{\tt\mathop{acos\_rel}}(Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon y=\cos x\}}
+\end{equation*}
+
+\noindent
+This is to be contrasted with the previous definition of the
+$\mathop{acos}$ function:
+
+\begin{equation*}
+\code{acos}(Y)=\hull{\{x\in\RSet\mid\exists y\in Y\colon x=\mathop{acos} y\}}
+\end{equation*}
+
+\noindent
+Figure~\ref{fig:relational-cos} presents the different results obtained when computing
+either $\code{acos}(J)$ or $\code{acos\_rel}(J,I)$. An interval \var{I} that
+meets no piece of the preimage gives the empty set.\newinvfive
+
+\begin{wrapfigure}{O}{\marginparwidth}
+ \includegraphics[width=.9\marginparwidth,bb=11 262 553 470]{relation-cos}
+  \caption{Relational cosine}
+  \label{fig:relational-cos}
+\end{wrapfigure}
+
+\begin{deffun}{interval}{acos\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{acos\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=\cos x\}}$}
+  \end{operation}
+  Returns the \emph{relational arccosine} of \var{J} w.r.t. \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{asin\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{asin\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=\sin x\}}$}
+  \end{operation}
+  Returns the \emph{relational arcsine} of \var{J} w.r.t. \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{atan\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{atan\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=\tan x\}}$}
+  \end{operation}
+  Returns the \emph{relational arctangent} of \var{J} w.r.t. \var{I}.
+
+  The three functions enclose the multiples of $\pi$ of the pieces of the
+  preimage in double-double arithmetic, and add the inverse function of \var{J}
+  before rounding the sum: their bounds are within one double of the accurate
+  ones.\newinvfive
+\begin{example}
+cout << asin_rel(interval(0.0), interval(1,7)) << endl
+     << atan_rel(interval(1), interval(0,5)) << endl;
+@outputs^[3.141592653589793, 6.283185307179588]~
+@outputs^[0.7853981633974482, 3.926990816987242]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{acosh\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{acosh\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=\cosh x\}}$}
+  \end{operation}
+  Returns the \emph{relational hyperbolic arccosine} of \var{J} w.r.t. \var{I}.
+\end{deffun}
+
+\deffunx{interval}{asinh\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{atanh\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{asinh\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=\sinh x\}}$}
+    \op{$\code{atanh\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=\tanh x\}}$}
+  \end{operation}
+  Return the \emph{relational hyperbolic arcsine} and \emph{arctangent} of
+  \var{J} w.r.t. \var{I}, that is, $\operatorname{asinh}(J)\cap I$ and
+  $\operatorname{atanh}(J)\cap I$, $\sinh$ and $\tanh$ being one-to-one.
+\begin{example}
+cout << acosh_rel(interval(1,2), interval::universe()) << endl
+     << asinh_rel(interval(0,1), interval::universe()) << endl;
+@outputs^[-1.316957896924817, 1.316957896924817]~
+@outputs^[0, 0.8813735870195431]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sqrt\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{sqrt\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=x^2\}}$}
+  \end{operation}
+  Returns the \emph{relational square root} of \var{J} w.r.t. \var{I}.
+\begin{example}
+cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
+     << sqrt_rel(interval(1,4), interval(0,10));
+@outputs^[-2, 2] [1, 2]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, \\\hbox{}\hfill const interval\& \var{I})}
+  \begin{operation}
+    \op{$\code{nth\_root\_rel}(J,n,I)=\hull{\{x\in I\mid\exists y\in J\colon y=x^n\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse \var{n}-th power} of
+  \var{J} w.r.t. \var{I}, for $n\geq1$. It takes the roots of
+  \code{nth\_root()}.
+\begin{example}
+interval J(1,16);
+cout << nth_root_rel(J, 4, interval::universe()) << ' '
+     << nth_root_rel(J, 4, interval(-10,0.0));
+@outputs^[-2, 2] [-2, -1]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{invabs\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{invabs\_rel}(J,I)=\hull{\{x\in I\mid |x|\in J\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse absolute value} of \var{J} w.r.t. \var{I}.
+  The negative part of \var{J} holds no magnitude: GAOL~4 took it as
+  magnitudes, and gave \itv{-2}{2} where the result is empty.\newinvfive
+\begin{example}
+cout << invabs_rel(interval(1,2), interval::universe()) << ' '
+     << invabs_rel(interval(-2,-1), interval(-10,10));
+@outputs^[-2, 2] [empty]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{div\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{div\_rel}(K,J,I)=\hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=xy\}}$}
+  \end{operation}
+  Returns the \emph{ternary relational division} of \var{K} by \var{J}
+  w.r.t. \var{I}, which is empty when no $x$ of \var{I} is in the
+  relation.\newinvfive
+\begin{example}
+cout << div_rel(interval(1,2), interval(-1,1), interval(0,10)) << ' '
+     << div_rel(interval(5,6), interval(1,2), interval(10,20));
+@outputs^[1, 10] [empty]~
+\end{example}
+\end{deffun}
+
+\noindent
+The correspondence with the reverse functions of IEEE 1788-2015, whose
+last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
+
+\begin{center}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{ll}
+    \hline
+    \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL}\\
+    \hline\hline
+    \ieee{sqrRev}$(c,x)$ & \code{sqrt\_rel(c, x)}\\
+    \ieee{absRev}$(c,x)$ & \code{invabs\_rel(c, x)}\\
+    \ieee{pownRev}$(c,x,p)$, $p\geq1$ & \code{nth\_root\_rel(c, p, x)}\\
+    \ieee{sinRev}, \ieee{cosRev}, \ieee{tanRev}$(c,x)$ & \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
+    \ieee{coshRev}$(c,x)$ & \code{acosh\_rel(c, x)}\\
+    \ieee{mulRev}$(b,c,x)$ & \code{div\_rel(c, b, x)}\\
+    \hline
+  \end{tabular}
+\end{center}
+
+\noindent
+\ieee{powRev1}, \ieee{powRev2}, \ieee{atan2Rev1}, \ieee{atan2Rev2}, \ieee{pownRev}
+for $p\leq0$ and \ieee{mulRevToPair} are not provided.
+
+\section{Cancellative addition and subtraction}
+%%---------------------------------------------
+\cindex{cancellative operations}%
+
+\begin{deffun}{interval}{cancel\_minus}{(const interval\& \var{X}, const interval\& \var{Y})}
+  The tightest interval $Z$ such that $Y+Z$ contains $X$,
+  \itv{\leftBound{X}-\leftBound{Y}}{\rightBound{X}-\rightBound{Y}}, which exists
+  when \var{X} and \var{Y} are bounded and \var{X} is at least as wide as \var{Y};
+  \itv{-\infty}{+\infty} otherwise, and the empty set for an empty \var{X} and a
+  bounded \var{Y}: \ieee{cancelMinus} of IEEE 1788-2015 (10.5.6). Whether
+  \var{X} is at least as wide as \var{Y} is decided exactly, which rounding the
+  differences of the bounds cannot do.\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{cancel\_plus}{(const interval\& \var{X}, const interval\& \var{Y})}
+  \code{cancel\_minus(\var{X}, -\var{Y})}: \ieee{cancelPlus} of IEEE
+  1788-2015.\newinvfive
+\begin{example}
+cout << cancel_minus(interval(1,5), interval(0,2)) << ' '
+     << cancel_minus(interval(1,2), interval(0,3)) << ' '
+     << cancel_plus(interval(1,5), interval(0,2));
+@outputs^[1, 3] [-inf, inf] [3, 5]~
+\end{example}
+\end{deffun}
+
+
+\chapter{Interval functions}
+%%==========================
+
+The numeric functions of IEEE 1788-2015 (Table 10.2, 12.12.8) are those of this
+chapter; the namespace \code{gaol\_ieee1788} names them as the standard does,
+and returns $+\infty$ and $-\infty$ for the bounds of the empty set, where
+\code{left()} and \code{right()} return NaN (Chapter~\ref{chap:ieee1788}).
+
+\begin{defmethod}{interval}{double}{rad}{(void) const}
+  \begin{operation}
+    \op{$\code{rad}(\itv{a}{b})=\min\{r\mid [m-r,m+r]\supseteq\itv{a}{b}\}$}
+  \end{operation}
+Returns the radius of \code{self}, the smallest double $r$ such that
+$[m-r,m+r]$ contains \code{self}, $m$ being \code{self.midpoint()}: $+\infty$
+for an unbounded interval, NaN for the empty set (\ieee{rad} of IEEE
+1788-2015).\newinvfive
+\end{defmethod}
+
+\begin{defmethod}{interval}{void}{mid\_rad}{(double\& \var{m}, double\& \var{r}) const}
+Sets \var{m} to \code{self.midpoint()} and \var{r} to \code{self.rad()}
+(\ieee{midRad} of IEEE 1788-2015).\newinvfive
+\begin{example}
+double m, r;
+interval(1,4).mid_rad(m, r);
+cout << m << ' ' << r << ' ' << interval("[1, inf]").rad();
+@outputs^2.5 1.5 inf~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{width}{(void) const}
+  \begin{operation}
+    \op{$\code{width}(\itv{a}{b})=\roundUp{b-a}$}
+  \end{operation}
+Returns the width of \code{self}: \ieee{wid} of IEEE 1788-2015. Returns NaN
+whenever the interval is empty, as the standard has it, where GAOL~4 returned
+$-1$.\newinvfive
+\begin{example}
+cout << interval(4,6).width() << ' '
+     << (interval(1,next_float(1)).width()
+         == std::numeric_limits<double>::epsilon()) << ' '
+     << interval::emptyset().width();
+@outputs^2 true nan~
+\end{example}
+\end{defmethod}
+
+\marginnocite{Hansen:book92} % To handle the minipage in environment 'defmethod'
+\begin{defmethod}{interval}{double}{mig}{(void) const}
+  Returns the \dfn{mignitude} of \code{self}: \ieee{mig} of IEEE 1788-2015. See the book by
+  Hansen~\margincite*[chap.~3]{Hansen:book92}. The mignitude of an
+  interval \itv{a}{b} is the smallest absolute value of the numbers in
+  the interval, that is: $0$ if the interval straddles \code{0}, $a$
+  if the interval is strictly positive, and $-b$ otherwise.
+
+\paragraph{Note.} The mignitude of the empty interval is a NaN.
+\begin{example}
+cout << interval(4,5).mig() << ' '
+     << interval(-6,-3).mig() << ' '
+     << interval(-3,8).mig();
+@outputs^4 3 0~
+\end{example}
+\end{defmethod}
+
+\marginnocite{Stahl:PhD}
+\begin{defmethod}{interval}{double}{smig}{(void) const}
+  Returns the \dfn{signed mignitude} of \code{self}.  See Stahl's
+  thesis~\margincite*[def.~1.3.28]{Stahl:PhD}. The signed mignitude of
+  an interval \itv{a}{b} is $0$ if the interval straddles \code{0},
+  $a$ if the interval is strictly positive, and $b$ otherwise.
+
+\paragraph{Note.} The signed mignitude of the empty interval is a NaN.
+\begin{example}
+cout << interval(4,5).smig() << ' '
+     << interval(-6,-3).smig() << ' '
+     << interval(-3,8).smig();
+@outputs^4 -3 0~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{mag}{(void) const}
+  Returns the \dfn{magnitude} of \code{self}: \ieee{mag} of IEEE 1788-2015. The
+  magnitude of an interval \itv{a}{b} is the greatest absolute value of the
+  numbers in the interval.
+
+\paragraph{Note.} The magnitude of the empty interval is a NaN.
+\begin{example}
+cout << interval(4,5).mag() << ' '
+     << interval(-6,-3).mag() << ' '
+     << interval(-10,5).mag();
+@outputs^5 6 10~
+\end{example}
+\end{defmethod}
+
+\begin{deffun}{double}{hausdorff}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns the Hausdorff distance between the two sets defined by intervals \var{I1} and
+  \var{I2}, that is:
+\begin{equation*}
+\code{hausdorff}(I_1,I_2)=\max(|\leftBound{I_1}-\leftBound{I_2}|,
+                          |\rightBound{I_1}-\rightBound{I_2}|)
+\end{equation*}
+rounded upward: the tightest upper bound of the distance.\newinvfive
+\begin{example}
+cout << hausdorff(interval(4,8),interval(5,10));
+@outputs^2~
+\end{example}
+\end{deffun}
+
+\marginnocite{Goualard:TOMS2014}
+\begin{defmethod}{interval}{double}{midpoint}{(void) const}
+  Returns the midpoint of \code{self}: \ieee{mid} of IEEE 1788-2015. Given $a$ and $b$ two finite
+  floating-point numbers and \code{std::numeric\_limits<double>::max()} the largest positive
+  floating-point number of type double, we have the following cases:
+\begin{equation*}
+\left\{\begin{array}{ll}
+\code{midpoint}(\emptyset{})&=\text{NaN}\\
+\code{midpoint}(\itv{-\infty}{+\infty})&=0\\
+\code{midpoint}(\itv{-\infty}{b})&=-\code{std::numeric\_limits<double>::max()}\\
+\code{midpoint}(\itv{a}{+\infty})&=\code{std::numeric\_limits<double>::max()}\\
+\code{midpoint}(\itv{a}{b})&=\roundNearest{(a+b)/2} \\
+\end{array}\right.
+\end{equation*}
+The midpoint of \itv{a}{b} is rounded to nearest, ties to even: it is the half
+of $a+b$, or the sum of the halves of $a$ and $b$ when $a+b$
+overflows~\margincite*{Goualard:TOMS2014}.
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{mid}{(void) const}
+  Returns the tightest interval enclosing the midpoint of \code{self}, which is
+  included in \code{self}.
+  With the same notations as for \code{midpoint()}, we have the cases:
+\begin{equation*}
+\left\{\begin{array}{ll}
+\code{mid}(\emptyset{})&=\emptyset{}\\
+\code{mid}(\itv{-\infty}{+\infty})&=\itv{0}{0}\\
+\code{mid}(\itv{-\infty}{b})&=[-\code{std::numeric\_limits<double>::max()}]\\
+\code{mid}(\itv{a}{+\infty})&=[\code{std::numeric\_limits<double>::max()}]\\
+\code{mid}(\itv{a}{b})&=\itv{\roundDn{(a+b)/2}}{\roundUp{(a+b)/2}}
+\end{array}\right.
+\end{equation*}
+The midpoint is computed as \code{midpoint()} computes it, with the rounding
+outward. GAOL~4 did not enclose the midpoint of some intervals whose bounds are
+subnormal numbers.\newinvfive
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{left}{(void) const}
+  \begin{operation}
+    \op{$\code{left}(\itv{x}{y})=x$}
+  \end{operation}
+  Returns the left bound of \code{self}: NaN for the empty set, whose bounds are
+  NaN. \code{gaol\_ieee1788::inf()} returns $+\infty$ there, as IEEE 1788-2015
+  has it.
+\end{defmethod}
+
+
+\begin{defmethod}{interval}{double}{right}{(void) const}
+  \begin{operation}
+    \op{$\code{right}(\itv{x}{y})=y$}
+  \end{operation}
+  Returns the right bound of \code{self}: NaN for the empty set.
+  \code{gaol\_ieee1788::sup()} returns $-\infty$ there.
+\end{defmethod}
+
+\begin{deffun}{interval}{abs}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\text{abs}(I)=\{|x|\in\RSet^+\mid x\in I\}$}
+  \end{operation}
+  Returns the absolute value of \var{I}.
+  \begin{example}
+cout << abs(interval(-5,6)) << ' '
+     << abs(interval(-4,-2));
+@outputs^[0, 6] [2, 4]~
+  \end{example}
+\end{deffun}
+
+\marginnocite{Ratschek-Rokne:1995}
+\begin{deffun}{double}{chi}{(const interval \&\var{I})}
+This function, introduced by Ratscheck and Rokne~\margincite*{Ratschek-Rokne:1995},
+characterizes the degree of symmetry of intervals. Its definition is as follows:
+
+\begin{equation*}
+\text{For} I=\itv{a}{b}, \quad\text{chi}(I)=\left\{\begin{array}{ll}
+    -1  & \text{if } I = 0\\
+    a/b & \text{if } |a|\leq |b|\\
+    b/a & \text{otherwise}
+  \end{array}\right.
+\end{equation*}
+\begin{example}
+cout << chi(interval(3,6)) << ' '
+     << chi(interval(-6,3)) << ' '
+     << chi(interval::emptyset()) << ' '
+     << chi(interval::universe()) << ' '
+     << chi(interval("[-5,inf]"));
+@outputs^0.5 -0.5 nan 1 0~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{min}{(const interval \&I, const interval \&J)}
+  \begin{operation}
+    \op{$\min(\itv{a}{b}, \itv{c}{d}) = \itv{\min(a,c)}{\min(b,d)}$}
+  \end{operation}
+  Returns the minimum of two intervals.
+  \begin{example}
+cout << min(interval(5,6),interval(3,9)) << ' '
+     << min(interval::emptyset(),interval(3,8));
+@outputs^[3, 6] [empty]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{max}{(const interval \&\var{I}, const interval \&\var{J})}
+  \begin{operation}
+    \op{$\max(\itv{a}{b}, \itv{c}{d}) = \itv{\max(a,c)}{\max(b,d)}$}
+  \end{operation}
+  Returns the maximum of two intervals.
+\begin{example}
+cout << max(interval(5,6),interval(3,9)) << ' '
+     << max(interval::emptyset(),interval(3,8));
+@outputs^[5, 9] [empty]~
+\end{example}
+\end{deffun}
+
+\section{Integer functions}
+%%-------------------------
+
+The functions of this section are those of IEEE 1788-2015 (Table 9.1): each is
+non-decreasing, so that the bounds of the result are its values at the bounds
+of the interval, and each is exact. None of them depends on the rounding
+direction.
+
+\begin{deffun}{interval}{floor}{(const interval \&\var{I})}
+  \begin{operation}
+    \op{$\itv{\code{floor}(I.\code{left}())}{\code{floor}(I.\code{right}())}$}
+  \end{operation}
+
+  \begin{example}
+cout << floor(interval(4.5,6.5)) << ' '
+     << floor(interval("[-10.4,3.5]"));
+@outputs^[4, 6] [-11, 3]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{ceil}{(const interval \&\var{I})}
+  \begin{operation}
+    \op{\itv{\code{ceil}(I.\code{left}())}{\code{ceil}(I.\code{right}())}}
+  \end{operation}
+  \begin{example}
+cout << ceil(interval(4.5,6.5)) << ' '
+     << ceil(interval("[-10.4,3.5]"));
+@outputs^[5, 7] [-10, 4]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{integer}{(const interval \&\var{I})}
+  \begin{operation}
+    \op{\itv{\code{ceil}(I.\code{left}())}{\code{floor}(I.\code{right}())}}
+  \end{operation}
+  Narrows down the bounds to the closest integers: the empty set when \var{I}
+  holds no integer. Note that the
+  resulting bounds are still \code{double} numbers, and may therefore
+  not be representable with integral types.
+  \begin{example}
+cout << integer(interval(4.5,6.5)) << ' '
+     << integer(interval(4.2,4.8));
+@outputs^[5, 6] [empty]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sign}{(const interval \&\var{I})}
+  The signs of the elements of \var{I}: $-1$ below 0, 0 at 0, 1 above
+  (\ieee{sign}).\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{trunc}{(const interval \&\var{I})}
+  The elements of \var{I} rounded toward zero (\ieee{trunc}).\newinvfive
+\end{deffun}
+
+\deffunx{interval}{round\_ties\_to\_even}{(const interval \&\var{I})}
+\begin{deffun}{interval}{round\_ties\_to\_away}{(const interval \&\var{I})}
+  The elements of \var{I} rounded to the nearest integer, halfway values to the
+  even one, respectively away from zero (\ieee{roundTiesToEven},
+  \ieee{roundTiesToAway}).\newinvfive
+  \begin{example}
+cout << sign(interval(-2,3)) << ' '
+     << trunc(interval(-2.5,3.7)) << ' '
+     << round_ties_to_even(interval(0.5,2.5)) << ' '
+     << round_ties_to_away(interval(0.5,2.5));
+@outputs^[-1, 1] [-2, 3] [0, 2] [1, 3]~
+  \end{example}
+\end{deffun}
+
+\section{Splitting methods}
+%%-------------------------
+
+\begin{defmethod}{interval}{void}{split}{(interval\& \var{I1}, interval\& \var{I2}) const}
+  Splits \code{self} into two parts using \code{midpoint()}; returns the left part
+  in \var{I1} and the right part in \var{I2}.
+
+  \var{I1} or \var{I2} may be equal to \code{self}.
+  \begin{example}
+interval I1a, I2a,
+         I3(1.0,next_float(1.0)),
+         I1b, I2b;
+interval(4,5).split(I1a,I2a);
+I3.split(I1b,I2b);
+cout << I1a << ' ' << I2a << ' '
+     << I1b.set_eq(interval(1.0)) << ' ' << I2b.set_eq(I3) << endl;
+@outputs^[4, 4.5] [4.5, 5] true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{split\_left}{(void) const}
+  \begin{operation}
+    \op{$\code{split\_left}(\itv{a}{b})=\itv{a}{m}$}
+  \end{operation}
+  Splits \code{self} into two parts using $m=\code{midpoint()}$ and returns the left
+  part.
+  \begin{example}
+cout << interval(4,5).split_left();
+@outputs^[4, 4.5]~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{split\_right}{(void) const}
+  \begin{operation}
+    \op{$\code{split\_right}(\itv{a}{b})=\itv{m}{b}$}
+  \end{operation}
+  Splits \code{self} into two parts using $m=\code{midpoint()}$ and
+  returns the right part.
+  \begin{example}
+cout << interval(4,5).split_right();
+@outputs^[4.5, 5]~
+  \end{example}
+\end{defmethod}
+
+\section{Union and intersection}
+%%------------------------------
+
+\begin{deffun}{interval}{operator\&}{(const interval\& I1, const interval\& I2)}
+  \begin{operation}
+    \op{$\var{I1}\cap\var{I2}$}
+  \end{operation}
+  Returns the interval resulting from the intersection of \var{I1} and
+  \var{I2}: \ieee{intersection} of IEEE 1788-2015. The intersection of disjoint
+  intervals is the empty set \code{interval::emptyset()}, whose bounds are NaN.
+  GAOL~4 kept the greatest left bound and the smallest right bound,
+  \itv{3}{2} for $\itv{1}{2}\cap\itv{3}{4}$, which the operations computing on
+  the bounds did not take for empty.\newinvfive
+  \begin{example}
+cout << (interval(4,6) & interval(5,9)) << ' '
+     << (interval(1,2) & interval(3,4));
+@outputs^[5, 6] [empty]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{operator|}{(const interval\& I1, const interval\& I2)}
+  \begin{operation}
+    \op{$\hull{(\var{I1}\cup\var{I2})}$}
+  \end{operation}
+  Returns the hull of the union of \var{I1} and \var{I2}: \ieee{convexHull} of
+  IEEE 1788-2015.
+  \begin{example}
+cout << (interval(3,6) | interval(9,12));
+@outputs^[3, 12]~
+  \end{example}
+\end{deffun}
+
+\chapter{Input/output}\label{chap:io}
+%%====================
+
+\section{Reading intervals}\label{sec:reading-intervals}
+%%-------------------------
+
+\begin{deffun}{istream\&}{operator>{}>}{(istream\& \var{in}, interval\& I)}
+  Reads a line from the input stream \var{in}, and assigns to \var{I} the
+  interval it writes. If the line is syntactically ill-formed, \var{I} is set
+  to the empty set, and an \code{input\_format\_error} exception is thrown
+  (\pxref{sec:exceptions}) if the library was compiled with exceptions
+  enabled (\pxref{sec:configuration}); alternatively, it prints an
+  error message to \code{cerr} and aborts if exceptions were disabled.
+\begin{example}
+std::istringstream in("[1, 2]\n[0.1, 0.2]\n");
+interval a, b;
+in >> a >> b;
+cout << a << ' ' << b;
+@outputs^[1, 2] [0.09999999999999999, 0.2000000000000001]~
+\end{example}
+\end{deffun}
+
+\subsection{Input format}\label{sec:input-format}
+%%.......................
+
+A string to be translated into an interval must have the following
+syntax (with terminals in lower case and non-terminals in slanted upper case):
+
+\begin{Verbatim}[commandchars=\@\^\~,fontsize=\small]
+@NT^itv_expr~
+        : @NT^parsed_interval~
+	| @NT^itv_expr~ @TM^+~ @NT^itv_expr~
+	| @NT^itv_expr~ @TM^-~ @NT^itv_expr~
+	| @NT^itv_expr~ @TM^*~ @NT^itv_expr~
+	| @NT^itv_expr~ @TM^/~ @NT^itv_expr~
+	| @TM^-~ @NT^itv_expr~
+	| @TM^+~ @NT^itv_expr~
+	| @NT^function_call~ @rem^@hfill// Of itv_expr arguments~
+	| @TM^(~ @NT^itv_expr~ @TM^)~
+	;
+
+@NT^parsed_interval~
+	: @NT^expression~
+	| @TM^empty~ @rem^@hfill// Empty interval~
+	| @NT^uncertain_number~
+	| [ @NT^expression~ ]
+	| [ @NT^expression~ @TM^,~ @NT^expression~ ]
+	| [ @NT^expression~ @TM^,~ ] @rem^@hfill// Right bound +@ensuremath^@infty~~
+	| [ @TM^,~ @NT^expression~ ] @rem^@hfill// Left bound -@ensuremath^@infty~~
+	| [ @TM^,~ ] @rem^@hfill// Entire real line~
+	| [ @TM^entire~ ] @rem^@hfill// Entire real line~
+	| [ @TM^empty~ ] @rem^@hfill// Empty interval~
+	| [ ] @rem^@hfill// Empty interval~
+	| < @NT^expression~ @TM^,~ @NT^expression~ >
+	;
+
+@NT^expression~
+	: @NT^number~
+	| @TM^dmin~  @rem^@hfill// Smallest positive normal floating-point number~
+	| @TM^dmax~ @rem^@hfill// Largest positive floating-point number~
+	| @TM^pi~
+	| @TM^inf~ @rem^@hfill// Floating-point positive ``infinity''~
+	| @TM^infinity~ @rem^@hfill// The same~
+	| @NT^expression~ + @NT^expression~
+	| @NT^expression~ - @NT^expression~
+	| @NT^expression~ * @NT^expression~
+	| @NT^expression~ / @NT^expression~
+	| - @NT^expression~
+	| + @NT^expression~
+	| @NT^function_call~ @rem^@hfill// Of expression arguments~
+	| @TM^(~ @NT^expression~ @TM^)~
+	;
+
+@NT^function_call~
+	: @TM^cos~ @TM^(~ @NT^arg~ @TM^)~   | @TM^sin~ @TM^(~ @NT^arg~ @TM^)~   | @TM^tan~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^acos~ @TM^(~ @NT^arg~ @TM^)~  | @TM^asin~ @TM^(~ @NT^arg~ @TM^)~  | @TM^atan~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^atan2~ @TM^(~ @NT^arg~ @TM^,~ @NT^arg~ @TM^)~
+	| @TM^cosh~ @TM^(~ @NT^arg~ @TM^)~  | @TM^sinh~ @TM^(~ @NT^arg~ @TM^)~  | @TM^tanh~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^acosh~ @TM^(~ @NT^arg~ @TM^)~ | @TM^asinh~ @TM^(~ @NT^arg~ @TM^)~ | @TM^atanh~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^exp~ @TM^(~ @NT^arg~ @TM^)~   | @TM^exp2~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^log~ @TM^(~ @NT^arg~ @TM^)~   | @TM^log2~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^pow~ @TM^(~ @NT^arg~ @TM^,~ @NT^arg~ @TM^)~
+	| @TM^sqrt~ @TM^(~ @NT^arg~ @TM^)~  | @TM^cbrt~ @TM^(~ @NT^arg~ @TM^)~
+	| @TM^nth_root~ @TM^(~ @NT^arg~ @TM^,~ @NT^arg~ @TM^)~
+	| @TM^sign~ @TM^(~ @NT^arg~ @TM^)~  | @TM^trunc~ @TM^(~ @NT^arg~ @TM^)~
+	;
+\end{Verbatim}
+
+\noindent
+Spaces are not significant except in numbers, and the case of letters is
+ignored, as IEEE 1788-2015 has it for its literals: \code{[Empty]},
+\code{[1, Inf]}, \code{SIN(1)} and \code{1E3} are read.\newinvfive{} The
+``$+$'' sign before numbers and \code{inf} is optional.
+
+\paragraph{Numbers.} A \NT{number} is written in decimal, with an optional point
+and exponent (\code{12}, \code{0.1}, \code{1e-3}), or in hexadecimal, with a
+binary exponent (\code{0x1.3p-1}). Numbers are read exactly, whatever their
+number of digits: a number that is a double is read as that double, and any
+other one is replaced by the tightest interval of doubles containing
+it.\newinvfive{} GAOL~4 read them with the \code{strtod()} of the C library,
+which did not enclose \code{0.1} where it rounds to nearest in every rounding
+direction (the C runtime of Windows, musl on 64-bit ARM processors).
+\cindex{number!reading}%
+
+\paragraph{The uncertain form.} An \NT{uncertain\_number} of IEEE 1788-2015
+(12.11.3) is a decimal number followed by \code{?}, a radius in units of its
+last digit (half a unit when it is left out, and an infinite radius for a
+second \code{?}), an optional direction, \code{u} or \code{d}, which keeps only
+the radius above or below, and an optional exponent: \code{3.56?1} is
+\itv{3.55}{3.57}, \code{3.56?1e2} is \itv{355}{357}, and \code{-10??u} is
+\itv{-10}{+\infty}.\newinvfive
+
+\paragraph{Functions.} The functions are those of GAOL of the same names;
+\code{pow} is the \code{pow} of the namespace \code{gaol} (\pxref{sec:powers}),
+\code{cbrt(x)} is \code{nth\_root(x,3)}, as \code{sqrt(x)} is
+\code{nth\_root(x,2)}. The second argument of \code{nth\_root} shall be a point
+interval that can be evaluated as an integer, negative ones included; otherwise,
+an exception is thrown (or an error is reported, depending on whether exceptions
+were enabled or not at configuration time---\pxref{sec:configuration}).
+\code{exp2}, \code{log2}, \code{cbrt}, \code{sign} and \code{trunc} are read
+since GAOL v5.
+
+\paragraph{Bounds.} The notations "$n$" and "[$n$]" are equivalent. Expressions
+in bounds are evaluated using interval arithmetic; the left (resp. right) bound
+is then used, depending on the side it appeared in. A bound left out is
+infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
+that evaluate to the same double even for different rounding directions: an
+\element{input\_format\_error} exception is raised otherwise, as for
+\code{"<0.1, 0.1>"}.
+
+\paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
+whose right bound is $-\infty$ is the empty set, as \code{numsToInterval} of
+IEEE 1788-2015 has it: \code{"[inf]"} and \code{"[-inf, -inf]"} are
+empty.\newinvfive{} The expression \code{"inf"} alone is still
+\itv{\text{MAX}}{+\infty}, and \code{"-inf"} \itv{-\infty}{-\text{MAX}}
+(\pxref{par:inf_inf_note}).
+
+\begin{example}
+interval x("[4, 6*7]");
+interval y("[-inf, dmax]");
+interval z("[3.14,3.15]/8", "[3.14,3.15]/7");
+interval t("[3.14,3.15]/[7,8]");
+cout << interval("[1,]") << ' ' << interval("[ ]") << ' '
+     << interval("[Entire]") << endl;
+@outputs^[1, inf] [empty] [-inf, inf]~
+cout << interval("[0x1.3p-1, 2/3]") << ' '
+     << interval("3.56?1") << endl;
+@outputs^[0.59375, 0.6666666666666668] [3.549999999999999, 3.570000000000001]~
+\end{example}
+
+\section{Writing intervals}\label{sec:writing}
+%%-------------------------
+
+Intervals may be printed into a stream like any other C++ primitive type
+by using the ``\code{<{}<}'' operator.
+
+\begin{deffun}{ostream\&}{operator<{}<}{(ostream\& \var{out}, const interval\& I)}
+Prints the interval \var{I} to the output stream \var{out}. The way the intervals
+are actually displayed depends on the active format (see next section).
+However, whatever the format, an empty interval is always displayed as \code{[empty]}
+\cindex{empty!interval: printing}%
+\index[idx]{empty@\code{[empty]}}%
+\end{deffun}
+
+\noindent
+In the decimal formats, each bound is rounded outward, whatever the C library:
+its magnitude is written by the C library, rounded to nearest, then compared
+exactly with the bound, and its last digit is moved by one when it is on the
+wrong side. The text read back therefore encloses the interval
+written.\newinvfive{} GAOL~4 let the C library round each bound in the
+direction it set, which the C runtime of Windows and musl do not honour.
+
+\begin{deffun}{std::string}{exact\_string}{(const interval\& \var{I})}
+  Returns what \code{operator<{}<} writes in the format \code{hexa} (see next
+  section), without reading nor changing the global output format:
+  \code{"[empty]"} for the empty set, and otherwise the two bounds in the
+  hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
+  \code{interval(const char*)} reads back bit for bit. This is the exact text
+  representation of the standard, its \ieee{intervalToExact}.\newinvfive
+\begin{example}
+cout << exact_string(interval("0.1"));
+@outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
+\end{example}
+\end{deffun}
+
+\subsection{Converting intervals to strings}
+%%..........................................
+
+For convenience, the \code{interval} class provides a conversion operator
+into the standard C++ type \code{string}, which writes the interval in the
+active format.
+\cindex{interval!conversion to \code{string}}%
+\index[idx]{string@\code{string}!converting interval to|see{interval}}
+
+\begin{example}
+  interval I(3,4);
+  string s = "test line embedding " + string(I) + " as a string";
+  @rem^// Now, s is "test line embedding [3, 4] as a string"~
+\end{example}
+
+\subsection{Output format}\label{sec:output-format}
+%%........................
+
+Intervals may be displayed following five different formats:
+\begin{description}
+\item[\element{agreeing}.] By printing all the digits that are the same in the left and right bounds
+followed by an interval containing the remaining digits:
+\begin{center}
+``\element{3.141\textasciitilde[5926, 6001]}'' stands for
+``\element{\itv{3.1415926}{3.1416001}}''
+\end{center}
+Note that if the bounds do not have any agreeing digit, there will still be a tilde before the bracketed part.
+The digits of each bound are kept: GAOL~4 dropped from both bounds what followed
+the last character of the left one that is not a zero, and wrote
+\itv{1.25}{1.2567} \code{1.25\textasciitilde[, ]}.\newinvfive
+\begin{example}
+ interval::format(interval_format::agreeing);
+ std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << std::endl;
+ @outputs^@textasciitilde[4., 6.] 1.25@textasciitilde[0, 67]~
+\end{example}
+
+\item[\element{bounds}.] By printing the bounds between square brackets.
+Degenerate intervals whose left and right bound are equal are printed with angles:
+\begin{example}
+ interval::format(interval_format::bounds);
+ std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
+ @outputs^[3, 5] <4, 4>~
+\end{example}
+A degenerate interval whose value has more digits than those displayed is
+printed with its two bounds rounded outward: \code{interval(0.1)} is printed
+\code{<0.1, 0.1000000000000001>}.
+
+\item[\element{width}.] by printing their midpoint and their width:
+\begin{example}
+ interval::format(interval_format::width);
+ std::cout << interval(4,5) << std::endl;
+ @outputs^4.5 (+/- 0.5)~
+\end{example}
+
+\item[\element{center}.] by printing their midpoint only.
+
+\item[\element{hexa}.] by printing their left and right bounds in the
+hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which is exact and which
+\code{interval(const char*)} reads back bit for bit, without the round-off error of a
+binary-to-decimal conversion: the recovery requirement of the standard
+(13.4). GAOL~4 printed the sixteen hexadecimal digits of each double, which
+its parser did not read.\newinvfive
+\begin{example}
+ interval::format(interval_format::hexa);
+ std::cout << interval("0.1") << std::endl;
+ @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
+\end{example}
+
+\end{description}
+
+\medskip
+Note that \emph{the \element{bounds} and \element{hexa} formats are the ones
+read back as an input} (see previous section).
+\medskip
+
+The choice of the format to use is made through the following static methods:
+
+\defstaticmethodx{interval}{void}{format}{(interval\_format::format\_t \var{f})}
+\begin{defstaticmethod}{interval}{interval\_format::format\_t}{format}{(void)}
+  The first form of the method allows modifying the format to use in subsequent
+  printing of intervals. The second form reports what is the current form in use.
+  It returns a value of  type \code{interval\_format::format\_t}
+  (see below and \ref{sec:output-example} for an example of use).
+  The format is global to the program: \code{exact\_string()} gives the
+  hexadecimal text without changing it.
+\end{defstaticmethod}
+
+\begin{deftype}{struct}{interval\_format}
+  Structure type used to choose the output format for intervals. It has
+  five possible values of type \element{interval\_format::format\_t}:
+\begin{itemize}
+\item \element{interval\_format::agreeing}.
+\item \element{interval\_format::bounds}.
+\item \element{interval\_format::width}.
+\item \element{interval\_format::center}.
+\item \element{interval\_format::hexa}.
+\end{itemize}
+\end{deftype}
+
+\begin{example}
+  interval I(interval::pi());
+
+  interval::format(interval_format::agreeing);
+  cout << I << "\n";
+  @rem^// Prints 3.14159265358979@textasciitilde[3, 4]~
+  @rem^// The @textasciitilde[] part is dropped if the bounds agree on all digits~
+  @smallskip
+  interval::format(interval_format::bounds);
+  cout << I << "\n";
+  @rem^// Prints [3.141592653589793, 3.141592653589794]~
+  @smallskip
+  interval::format(interval_format::width);
+  cout << I << "\n";
+  @rem^// Prints 3.141592653589793 (+/- 2.220446049250313e-16)~
+  @smallskip
+  interval::format(interval_format::center);
+  cout << I << "\n";
+  @rem^// Prints 3.141592653589793~
+  @smallskip
+  interval::format(interval_format::hexa);
+  cout << I << "\n";
+  @rem^// Prints [0x1.921fb54442d18p+1, 0x1.921fb54442d19p+1]~
+\end{example}
+
+\subsection{Choosing the number of digits to display}
+%%...................................................
+You can manipulate the number of digits to print by using the \code{precision()} static
+methods of the interval class:
+
+\begin{defstaticmethod}{interval}{std::streamsize}{precision}{(void)}
+Returns the current number of digits used for printing bounds
+of intervals, 16 by default.
+
+See example below.
+\end{defstaticmethod}
+
+\begin{defstaticmethod}{interval}{std::streamsize}{precision}{(std::streamsize \var{n})}
+Set the number of digits to use for printing bounds to \var{n}. In addition,
+returns the number of digits previously used.
+
+See example below.
+\end{defstaticmethod}
+
+
+\subsection{Example}\label{sec:output-example}
+%%..................
+
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+using std::cout;
+using std::endl;
+
+int main(void)
+{
+  interval::precision(4);
+  interval::format(interval_format::bounds);
+  cout << interval::pi() << endl;
+
+  if (interval::format() != interval_format::bounds) {
+    cout << interval::pi() << endl;
+  } else {
+    interval::precision(16);
+    interval::format(interval_format::width);
+    cout << interval::pi() << endl;
+  }
+  return 0;
+}
+\end{example}
+
+\noindent
+The previous program has the following output:
+
+\begin{onscreen}
+[3.141, 3.142]
+3.141592653589793 (+/- 2.220446049250313e-16)
+\end{onscreen}
+
+The first call to \code{interval::format()} is unnecessary
+since the default format is \code{interval\_format::bounds}.
+
+\paragraph*{Note.} An interval written in decimal and read back gives an
+interval that encloses it, whatever the precision chosen, the bounds being
+rounded outward; the fewer the digits, the wider. The format \code{hexa} gives
+the same interval back, bit for bit.
+
+The \code{interval::pi()} constant is a predefined \dfn{canonical}
+interval containing $\pi$ (\pxref{sec:interval-constants}). Here,
+the width of the interval is equal to the $\epsilon$ of
+the format.
+
+The \code{interval\_format::width} format may be useful whenever the number of
+digits displayed is insufficient to know whether the result is a single
+floating-point number or an interval whose size is very small (consider
+for example the first result above), because \emph{we have the guarantee that
+if the actual width of an interval is greater than zero, the width
+displayed will also be different from zero}. Another indication is that a degenerate
+interval is displayed between angles.
+
+
+\chapter{The names of IEEE 1788-2015}\label{chap:ieee1788}
+%%===================================
+\cindex{namespace!gaol\_ieee1788}\cindex{IEEE 1788-2015!names}%
+
+GAOL names its operations its own way: the reverse function
+\ieee{coshRev}$(c,x)$ of IEEE 1788-2015 is \code{acosh\_rel(c, x)},
+\ieee{mulRev}$(b,c,x)$ is \code{div\_rel(c, b, x)}, with its arguments in
+another order, and \ieee{roundTiesToEven}$(x)$ is
+\code{round\_ties\_to\_even(x)}. The namespace \code{gaol\_ieee1788}, which
+\file{gaol/gaol.h} brings along, gives each operation of the standard that GAOL
+provides the name and the argument order the standard gives it, so that a
+reader of the standard finds it without looking for its translation. It is not
+in \code{gaol}, and it holds the type \code{interval} as well: one directive
+lets a program use GAOL under the names of the standard.\newinvfive
+
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol_ieee1788;
+
+int main(void)
+{
+  interval x = textToInterval("[1, 2]");
+  interval y = mulRev(numsToInterval(2, 2), x);   @rem^// x / 2~
+  interval z = sinPi(x) + rootn(y, 3);
+  bool b = strictLess(x, entire());
+  std::cout << std::boolalpha
+            << x << ' ' << y << ' ' << z << ' ' << b << std::endl;
+  return 0;
+}
+@outputs^[1, 2] [0.5, 1] [-0.2062994740159004, 1] false~
+\end{example}
+
+\noindent
+A program opens \code{gaol} or \code{gaol\_ieee1788}, not both
+(\pxref{sec:namespaces}). A name of the program's own that one of the standard
+shadows, a constant \code{inf} for instance, is to be qualified:
+\code{gaol\_ieee1788::inf(x)}. So is \code{less(x, y)} next to
+\code{using namespace std;}, where it is ambiguous with the class template
+\code{std::less}.
+
+\section{Where the standard and GAOL differ}
+%%-----------------------------------------
+
+The functions of GAOL that have the name and the meaning the standard gives them
+(\code{sin}, \code{exp}, \code{sqrt}, \code{min}\ldots) are the same functions in
+\code{gaol\_ieee1788}. Where the standard and GAOL differ, the names of
+\code{gaol\_ieee1788} follow the standard:
+
+\begin{itemize}
+\item \code{pow(x, y)} is the \ieee{pow} of Table 9.1, defined for $x>0$, and
+  for $x=0$ when $y>0$, where the \code{pow} of \code{gaol} takes the integer
+  power for an integer exponent, a negative base included
+  (\pxref{sec:powers}). \code{pow(x, p)} with a number $p$ is
+  \code{pow(x, [p])}, \code{pow(x, 2)} included: the power with an integer
+  exponent is \code{pown(x, n)} in the standard, whose $n$ is an integer
+  rather than an interval. An integer exponent beyond the \code{int}s gives
+  the power of CORE-MATH at the bounds of $x$, where the \code{pow} of
+  \code{gaol} gives \itv{-\infty}{+\infty};
+\item \code{inf(x)} and \code{sup(x)} are $+\infty$ and $-\infty$ for the empty
+  set (Table 10.2), where \code{left()} and \code{right()} are NaN, and
+  \code{inf} returns $-0$ for a left bound 0 (12.12.8);
+\item \code{isMember(m, x)} is \code{false} for an infinite $m$ (10.6.3);
+\item \code{textToInterval} and \code{exactToInterval} return the empty set for
+  a string that is no interval literal (12.1.3), where the constructor of GAOL
+  throws;
+\item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
+  $p\leq0$, which GAOL does not provide, rather than give an interval it has
+  not computed.
+\end{itemize}
+
+\begin{example}
+cout << pow(interval(-4,-1), interval(2.0)) << ' '
+     << pown(interval(-4,-1), 2) << ' '
+     << pow(interval(2,3), interval(1e10)) << endl;
+@outputs^[empty] [1, 16] [1.797693134862315e+308, inf]~
+cout << inf(empty()) << ' ' << sup(empty()) << ' '
+     << isMember(GAOL_INFINITY, entire()) << ' '
+     << textToInterval("[1, 2") << endl;
+@outputs^inf -inf false [empty]~
+\end{example}
+
+\section{The operations}
+%%----------------------
+
+The last argument $x$ of the reverse functions is optional, and
+\itv{-\infty}{+\infty} when it is left out (10.5.4).
+
+\begingroup\renewcommand{\arraystretch}{1.1}\small
+\begin{longtable}{L{5.2cm}L{5.8cm}}
+  \hline
+  \multicolumn{1}{c}{\code{gaol\_ieee1788}} & \multicolumn{1}{c}{GAOL}\\
+  \hline\hline
+  \endhead
+  \hline
+  \endfoot
+  \multicolumn{2}{l}{\textit{Constants and constructors (10.5.2, 10.5.8)}}\\
+  \code{empty()}, \code{entire()} & \code{interval::emptyset()}, \code{interval::universe()}\\
+  \code{numsToInterval(l, u)} & \code{interval(l, u)}\\
+  \code{textToInterval(s)} & \code{interval(s)}, the empty set for a wrong string\\
+  \hline
+  \multicolumn{2}{l}{\textit{Forward elementary functions (Table 9.1)}}\\
+  \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} & \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
+  \code{recip(x)} & \code{inverse(x)}\\
+  \code{sqr}, \code{sqrt}, \code{fma} & the same\\
+  \code{pown(x, p)} & \code{gaol::pow(x, p)} for an \code{int} $p$\\
+  \code{pow(x, y)}, \code{pow(x, p)} & the \ieee{pow} of the standard\\
+  \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & the same\\
+  \code{sin}, \code{cos}, \code{tan}, \code{asin}, \code{acos}, \code{atan}, \code{atan2} & the same\\
+  \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh} & the same\\
+  \code{sign}, \code{ceil}, \code{floor}, \code{trunc} & the same\\
+  \code{roundTiesToEven}, \code{roundTiesToAway} & \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}\\
+  \code{abs}, \code{min}, \code{max} & the same\\
+  \hline
+  \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\
+  \code{rootn(x, q)} & \code{nth\_root(x, q)}\\
+  \code{expm1}, \code{exp2m1}, \code{exp10m1} & the same\\
+  \code{logp1}, \code{log2p1}, \code{log10p1} & \code{log1p}, \code{log2p1}, \code{log10p1}\\
+  \code{hypot}, \code{rSqrt} & \code{hypot}, \code{rsqrt}\\
+  \code{sinPi}, \code{cosPi}, \code{tanPi} & \code{sinpi}, \code{cospi}, \code{tanpi}\\
+  \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi} & \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1)}}\\
+  \code{sqrRev(c, x)}, \code{absRev(c, x)} & \code{sqrt\_rel(c, x)}, \code{invabs\_rel(c, x)}\\
+  \code{pownRev(c, x, p)}, $p\geq1$ & \code{nth\_root\_rel(c, p, x)}\\
+  \code{sinRev}, \code{cosRev}, \code{tanRev(c, x)} & \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
+  \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
+  \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
+  \code{mulRev(b, c, x)} & \code{div\_rel(c, b, x)}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Cancellative operations and set operations (10.5.6, 10.5.7)}}\\
+  \code{cancelMinus}, \code{cancelPlus} & \code{cancel\_minus}, \code{cancel\_plus}\\
+  \code{intersection(x, y)}, \code{convexHull(x, y)} & \code{x \& y}, \code{x | y}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Numeric functions (Table 10.2)}}\\
+  \code{inf(x)}, \code{sup(x)} & \code{x.left()}, \code{x.right()}, but for the empty set\\
+  \code{mid}, \code{wid}, \code{rad}, \code{mag}, \code{mig(x)} & \code{x.midpoint()}, \code{width()}, \code{rad()}, \code{mag()}, \code{mig()}\\
+  \code{midRad(x, m, r)} & \code{x.mid\_rad(m, r)}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Boolean functions (10.5.10, Tables 10.3 and 10.4)}}\\
+  \code{isEmpty(x)}, \code{isEntire(x)} & \code{x.is\_empty()}, \code{x.is\_entire()}\\
+  \code{equal(a, b)}, \code{subset(a, b)} & \code{a.set\_eq(b)}, \code{a.set\_leq(b)}\\
+  \code{interior(a, b)}, \code{disjoint(a, b)} & \code{a.set\_le(b)}, \code{a.set\_disjoint(b)}\\
+  \code{less(a, b)}, \code{strictLess(a, b)} & \code{a.less(b)}, \code{a.strictly\_less(b)}\\
+  \code{precedes(a, b)}, \code{strictPrecedes(a, b)} & \code{a.certainly\_leq(b)}, \code{a.certainly\_le(b)}\\
+  \code{isCommonInterval(x)}, \code{isSingleton(x)} & \code{x.is\_common\_interval()}, \code{x.is\_a\_double()}\\
+  \code{isMember(m, x)} & \code{x.set\_contains(m)}, false for an infinite $m$\\
+  \hline
+  \multicolumn{2}{l}{\textit{Input and output (Clause 13)}}\\
+  \code{intervalToText(x)} & \code{operator<{}<} in the current format\\
+  \code{intervalToExact(x)} & \code{exact\_string(x)}\\
+  \code{exactToInterval(s)} & \code{textToInterval(s)}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Expressions}}\\
+  \code{pown(e, n)}, \code{pow(e1, e2)} & the expressions of \code{pown} and of the \ieee{pow} of the standard\\
+\end{longtable}
+\endgroup
+
+\section{What is not provided}
+%%----------------------------
+
+GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
+it provide \ieee{mulRevToPair} (10.5.5), \ieee{powRev1}, \ieee{powRev2},
+\ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
+$p\leq0$, \ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
+\ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
+\ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
+12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
+
+\chapter{Accuracy of the operations}\label{chap:accuracy}
+%%=================================
+\cindex{accuracy!of the operations}\cindex{tightness}%
+
+IEEE 1788-2015 requires an implementation to document the tightness of each of
+its interval operations (12.10.3). This chapter does so for \code{interval},
+from the algorithm of each operation; the tests of \file{tests} check each
+statement on random and special arguments (\pxref{sec:tests}), and the page
+\file{doc/accuracy.md} gives, for each, the algorithm and the largest distance
+the tests found.\newinvfive
+
+\section{Accuracy modes}
+%%----------------------
+
+IEEE 1788-2015 defines three accuracy modes (12.10.1), for an operation $f$,
+its exact value $f^*$, and an input box $x$:
+
+\begin{itemize}
+\item \dfn{tightest}: $f(x)$ is the hull, in doubles, of $f^*(x)$: each bound is
+  the nearest double on its side of the exact bound;
+\item \dfn{accurate}: $f(x)$ encloses $f^*(x)$, and is within
+  \[\text{nextOut}(f_{\text{tightest}}(\text{nextOut}(x))),\]
+  nextOut moving
+  each bound one double outward: roughly, $f(x)$ is no wider than the tightest
+  result for an input one double wider, plus one double on each side;
+\item \dfn{valid}: $f(x)$ encloses $f^*(x)$.
+\end{itemize}
+
+\noindent
+The standard requires the basic operations, the integer functions and
+\code{abs}, \code{min} and \code{max} to be tightest; the other elementary
+functions, the reverse functions and the recommended functions to be valid,
+and recommends them to be accurate (12.10.2). Below, ``within $k$ doubles''
+means that each bound is at most $k$ doubles beyond the tightest one.
+
+GAOL bounds its elementary functions with CORE-MATH, which is correctly rounded
+in the rounding direction in effect: computing upward, GAOL takes the value at
+a bound as the upper bound, with nothing to add, and the double below it as the
+lower one. Those are the tightest bounds, the second one unless the exact value
+is a double, which the operations give exactly where it happens. Where an
+algorithm evaluates the function at the bounds of the interval, the bounds of
+the interval are therefore the tightest ones.
+
+The statements hold for GAOL as the three builds make it, with the code
+including its headers compiled with the flags of interval arithmetic
+(\pxref{sec:compiling}), for the SSE2 and the FPU intervals, whatever the
+rounding direction the calling code left, and on every architecture and with
+every compiler alike. The intervals of floats are not covered.
+
+\section{Tightness of each operation}
+%%-----------------------------------
+
+\begingroup\renewcommand{\arraystretch}{1.1}\small
+\begin{longtable}{L{4.2cm}L{6.8cm}}
+  \hline
+  \multicolumn{1}{c}{Operations} & \multicolumn{1}{c}{Tightness}\\
+  \hline\hline
+  \endhead
+  \hline
+  \endfoot
+  \multicolumn{2}{l}{\textit{Basic operations (Table 9.1): tightest required}}\\
+  \code{-x}, \code{+}, \code{-}, \code{*}, \code{/}, \code{inverse}, \code{sqr} & tightest\\
+  \code{sqrt} & tightest, whatever the rounding of the square root of the C library\\
+  \code{fma} & tightest\\
+  \hline
+  \multicolumn{2}{l}{\textit{Integer and absmax functions: tightest required}}\\
+  \code{floor}, \code{ceil}, \code{integer}, \code{sign}, \code{trunc}, \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}, \code{abs}, \code{min}, \code{max} & tightest, and exact, in every rounding direction\\
+  \hline
+  \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid required, accurate recommended}}\\
+  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & $n=0$, 1, 2: tightest. $n\geq3$: the tightest bounds, or one double beyond where the power is within $n\cdot2^{-104}$ of a double; exact where the power is a double; within about $2(n-1)$ doubles below $2^{-968}$ and at the overflow. Negative $n$: valid, within 2 doubles where $x^n$ is normal\\
+  \code{pow(x, y)} (\ieee{pow}) & tightest at the corners of the box with finite bounds, but for a lower bound one double below where the power at the corner is a double; valid with infinite bounds\\
+  \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & tightest; exact where the value is a double ($\exp(0)$, $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
+  \hline
+  \multicolumn{2}{l}{\textit{Trigonometric and hyperbolic functions: valid required, accurate recommended}}\\
+  \code{cos}, \code{sin} & tightest where the function is evaluated at the bounds, at every magnitude; $-1$ and $1$ exactly at the extrema; \itv{-1}{1} from the width $2\underline{\pi}$ on, $\underline{\pi}$ being the double below $\pi$\\
+  \code{tan} & tightest between two poles, at every magnitude; \itv{-\infty}{+\infty} exactly when a pole is within $x$, but for the widths between $\underline{\pi}$ and $\pi$\\
+  \code{asin}, \code{acos}, \code{atan}, \code{atan2} & tightest; exactly 0, or the tightest enclosures of $\pm\pi/4$, $\pm\pi/2$ and $\pi$, where the value is one of them\\
+  \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh} & tightest\\
+  \hline
+  \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\
+  \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise accurate: the tightest bounds or one double beyond, proved with integer powers\\
+  \code{nth\_root(x, q)}, $q<0$ & accurate: the root above, then the tightest division\\
+  \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
+  \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\
+  \hline
+  \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid required, accurate recommended}}\\
+  \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel}, \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
+  \code{invabs\_rel} & tightest\\
+  \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
+  \code{div\_rel}, \code{\%} & accurate; tightest where the bounds of the quotients are doubles\\
+  \code{cancel\_minus}, \code{cancel\_plus} & tightest\\
+  \hline
+  \multicolumn{2}{l}{\textit{Set operations, constructors, numeric and boolean functions}}\\
+  \code{\&}, \code{|}, \code{interval(l, u)} & tightest (exact)\\
+  \code{interval(s)}, \code{operator>{}>} & tightest for the literals of IEEE 1788-2015; valid for expressions, computed with the operations above\\
+  \code{midpoint()}, \code{width()}, \code{rad()}, \code{mag()}, \code{mig()} & as 12.12.8 requires\\
+  \code{mid()}, \code{hausdorff()} & tightest\\
+  relations & exact, as Tables 10.3 and 10.4\\
+  \code{operator<{}<} & \code{hexa}: exact, read back bit for bit. Decimal formats: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should\\
+\end{longtable}
+\endgroup
+
+\noindent
+Where a bound of \var{J} is one double from the image of a bound of the
+preimage, the reverse functions keep a point of \var{I} whose image is just
+outside \var{J}: \code{sqrt\_rel(\itv{1+2^{-52}}{+\infty}, \itv{-1}{1+2^{-52}})}
+is \itv{-1}{1+2^{-52}}, whose tightest enclosure is \itv{1}{1+2^{-52}}. They are
+accurate all the same, the widened \var{J} of nextOut holding that image.
+
+Before GAOL v5, the elementary functions were correctly rounded to nearest and
+moved one double outward, which is at most one double beyond the tightest
+bound, and the hyperbolic functions were taken from the mathematical library of
+the system, whose values are sometimes further than one double from the exact
+ones.
+
+
+\chapter{Floating-point numbers}
+%%==============================
+
+\section{Floating-point constants}\label{sec:floating-point-constants}
+%%--------------------------------
+
+In addition to the constants available through \code{numeric\_limits<double>},
+GAOL defines the following \code{double} constants:
+
+\begin{center}
+  \renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{lc}
+    \hline
+    \multicolumn{1}{c}{\bfseries Constant (\texttt{double})} & \multicolumn{1}{c}{\bfseries Value}\\
+    \hline\hline
+    \element{two\_pi} & \roundNearest{2\pi}\\
+    \element{pi} & \roundNearest{\pi}\\
+    \element{half\_pi} & \roundNearest{\frac{\pi}{2}}\\
+    \element{pi\_dn} & \roundDn{\pi}\\
+    \element{pi\_up} & \roundUp{\pi}\\
+    \element{half\_pi\_dn} & \roundDn{\frac{\pi}{2}}\\
+    \element{half\_pi\_up} & \roundUp{\frac{\pi}{2}}\\
+    \element{ln2\_dn} & \roundDn{\ln 2}\\
+    \element{ln2\_up} & \roundUp{\ln 2}\\
+    \element{two\_power\_51} & $2^{51}$\\
+    \element{two\_power\_52} & $2^{52}$\\
+    \element{GAOL\_NAN} & NaN (quiet)\\
+    \element{GAOL\_INFINITY} & $+\infty$ \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\section{Floating-point functions}
+%%--------------------------------
+
+\begin{deffun}{bool}{feven}{(double \var{x})}
+  Returns true whenever \var{x} is even.
+
+  This function should not be used with infinity and NaN arguments.
+
+  \begin{example}
+cout << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
+@outputs^false true false~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{double}{next\_float}{(double \var{x})}
+  Returns the smallest \code{double} greater than \var{x}.
+\end{deffun}
+
+\begin{deffun}{double}{previous\_float}{(double \var{x})}
+  Returns the greatest \code{double} smaller than \var{x}.
+\end{deffun}
+
+\begin{deffun}{bool}{is\_signed}{(double \var{x})}
+Returns true whenever \var{x} is signed. No provision is made concerning the
+fact that \var{x} is a NaN. If you only want to test for negative
+numbers (and $-0$), you will have to test also whether \var{x} is a NaN
+by using \code{std::isnan()}.
+\end{deffun}
+
+\begin{deffun}{double}{minimum}{(double \var{x}, double \var{y})}
+  Returns the minimum \code{double} value of \var{x}
+  and \var{y}. This function is commutative and returns $-0$ when comparing
+  $-0$ and $+0$, i.e.:
+\begin{equation*}
+\left\{\begin{array}{lll}
+    \min(x,y) &=\min(y,x), &\forall x\neq\text{NaN}, \forall y\neq\text{NaN}\\
+    \min(x,\text{NaN}) &=\min(\text{NaN},x)=\text{NaN}, &\forall x\\
+    \min(-0,0) &=\min(0,-0)=-0
+  \end{array}\right.
+\end{equation*}
+\end{deffun}
+
+\begin{deffun}{double}{maximum}{(double \var{x},double \var{y})}
+  Returns the maximum \code{double} value of \var{x}
+  and \var{y}. This function is commutative and returns $+0$ when comparing
+  $-0$ and $+0$, i.e.:
+\begin{equation*}
+  \left\{\begin{array}{lll}
+      \max(x,y) &= \max(y,x), &\forall x\neq\text{NaN}, \forall y\neq\text{NaN} \\
+      \max(x,\text{NaN})&=\max(\text{NaN},x)=\text{NaN}, &\forall x\\
+      \max(-0,0)&=\max(0,-0)=0
+    \end{array}\right.
+\end{equation*}
+\end{deffun}
+
+\begin{defmacro}{ULONGLONGINT}
+  Macro standing for an unsigned integral data type with a size equal to 8 bytes
+  (usually \code{unsigned long long int}).
+\end{defmacro}
+
+\begin{deffun}{ULONGLONGINT}{nb\_fp\_numbers}{(double \var{a}, double \var{b})}
+Returns the number of floating-point numbers in the interval
+\itv{\var{a}}{\var{b}}. In particular, we have:
+\begin{itemize}
+\item \code{nb\_fp\_numbers(a,next\_float(a)) == 2}
+\item \code{nb\_fp\_numbers(a,a) == 1}
+\end{itemize}
+
+\paragraph{Note.} As a precondition, \var{a} shall be lower or equal to \var{b}.
+
+Returns \code{numeric\_limits<ULONGLONGINT>::max()} if either
+\var{a} or \var{b} is a NaN or an infinity, or if \var{a} is greater than
+\var{b}. In addition, raises
+an \code{invalid\_action\_error} exception (\pxref{sec:exceptions}) or calls
+\code{gaol\_error} depending on the way the library was configured.
+\begin{example}
+cout << nb_fp_numbers(1.0, next_float(1.0)) << ' '
+     << nb_fp_numbers(1.0, 2.0);
+@outputs^2 4503599627370497~
+\end{example}
+\end{deffun}
+
+\chapter{Manipulating the FPU}
+%%============================
+
+GAOL provides functions to set the rounding direction of the floating-point
+unit. The operations of GAOL do not need them: each sets the rounding
+direction upward itself (\pxref{sec:rounding-direction}).
+
+On x86 processors, with GCC, Clang and Visual C++, they write the control
+registers of the x87 and SSE units directly (\code{fnstcw}/\code{fldcw},
+\code{stmxcsr}/\code{ldmxcsr}), rather than calling \code{fesetround()}, which
+cost 50 to 250~ns per call with the C runtime of Windows; with Visual C++ for
+x64, the SSE register only, the x87 unit being unused there.\newinvfive{}
+Elsewhere (ARM, POWER, s390x, RISC-V), they call \code{fesetround()}.
+
+\section{Rounding functions}
+%%--------------------------
+
+\begin{deffun}{void}{round\_downward}{(void)}
+Sets the rounding direction mode towards $-\infty$.
+\end{deffun}
+
+\begin{deffun}{void}{round\_nearest}{(void)}
+  Sets the rounding direction mode to the nearest/even.
+\end{deffun}
+
+\begin{deffun}{void}{round\_upward}{(void)}
+  Sets the rounding direction mode to $+\infty$.
+\end{deffun}
+
+\section{Saving the rounding direction}
+%%-------------------------------------
+
+\begin{deffun}{unsigned short}{get\_fpu\_cw}{(void)}
+  Returns the rounding direction, as \code{fegetround()} of \file{<fenv.h>}
+  gives it.
+\end{deffun}
+
+\begin{deffun}{void}{reset\_fpu\_cw}{(unsigned short \var{st})}
+  Sets the rounding direction \var{st}, which \code{get\_fpu\_cw()} returned,
+  with \code{fesetround()}.
+
+  GAOL~4 read and wrote the control word of the x87 unit with these functions
+  on x86 Linux and macOS, which left the direction of the SSE instructions
+  alone, and 16 bits of the control register on 64-bit ARM, which left out its
+  rounding bits.\newinvfive
+\end{deffun}
+
+\chapter{Version information}
+%%===========================
+
+The library provides four constants to allow programs to determine at runtime with which version
+they are dynamically linked with. The versioning scheme adopted is the one used by the Apache
+Software Foundation described at \url{http://apr.apache.org/versioning.html}.
+
+\begin{defconst}{unsigned int}{version\_major}
+  Major version of the library: 5 for GAOL v5.
+\end{defconst}
+
+\begin{defconst}{unsigned int}{version\_minor}
+  Minor version of the library.
+\end{defconst}
+
+\begin{defconst}{unsigned int}{version\_micro}
+  Patch version of the library.
+\end{defconst}
+
+\begin{defconst}{const char *const}{version}
+  Version of the library as a string.
+\begin{example}
+cout << gaol::version;
+@outputs^5.0.0~
+\end{example}
+\end{defconst}
+
+\chapter{Additional functions}
+%%============================
+
+The following functions are utility functions not necessarily related to
+intervals or floating-point numbers.
+
+\begin{defTfun}{template <typename T>}{bool}{odd}{(const \var{T}\& \var{x})}
+  Returns \code{true} if \var{x} is odd and false otherwise. The \var{T}
+  type may be any type providing the \code{\&} (``bitwise \code{and}'') operator
+  with the same semantics as the one for \code{int}s.
+\end{defTfun}
+
+\begin{defTfun}{template <typename T>}{bool}{even}{(const \var{T}\& \var{x})}
+  Returns \code{true} if \var{x} is even and false otherwise. The \var{T}
+  type may be any type providing the \code{\&} (``bitwise \code{and}'') operator
+  with the same semantics as the one for \code{int}s.
+\end{defTfun}
+
+\chapter{Error handling}\label{chap:errors}
+%%======================
+
+A program that uses GAOL may report errors in two different ways:
+\begin{itemize}
+\item by throwing an exception;
+\item or by printing a message and aborting.
+\end{itemize}
+
+The mechanism in use depends on the way the library is configured. If
+you use the option \option{-{}-enable-exceptions=yes}, the default, all errors are
+reported through exception throwing; otherwise, a message is printed to the
+standard error, and the program aborts. The CMake build always reports errors
+by exceptions. Relying on exceptions is more in the C++ spirit,
+though it may incur some overhead.
+
+It is up to the user to comply with this mechanism when adding error reporting
+code to ones program. GAOL defines the following macro to be used
+whenever one wants to report an error.
+
+\begin{defmacroA}{gaol\_ERROR}{(\var{excep},\var{msg})}
+  The behavior of the macro depends on the value chosen for the option
+  \option{-{}-enable-exceptions}: if exceptions are enabled, exception
+  \code{gaol\_core::\var{excep}} is raised with the message \var{msg}; otherwise, the
+  program aborts with message \var{msg}.
+
+\begin{example}
+interval x;
+
+@emph^[Code manipulating x]~
+
+if (x.is_empty()) {
+   gaol_ERROR(invalid_action_error,"Emptiness of one interval");
+}
+\end{example}
+\end{defmacroA}
+
+The \code{gaol\_error()} function is defined as follows:
+
+\deffunx{void}{gaol\_error}{(const char *const \var{err})}
+\begin{deffun}{void}{gaol\_error}{(const char *\var{file}, int \var{line},
+const char *\var{err})}
+Displays a message on the standard error output. The ternary version should be
+called with the \code{GAOL\_FILE\_POS} macro for the first two parameters.
+\end{deffun}
+
+The \code{GAOL\_FILE\_POS} macro is described in the next section.
+
+\section{Exceptions}\label{sec:exceptions}
+%%------------------
+
+The library defines \code{gaol\_exception} as a class to be used as a base
+class for all GAOL exceptions.
+All of them provide at least the name of the file and the line number from
+where the exception has been thrown. As a facility, GAOL defines the following
+macro:
+
+\begin{defmacro}{GAOL\_FILE\_POS}
+Expands itself into the first two arguments of any constructor for
+\code{gaol\_exception} or one of its derived classes:
+
+\begin{example}
+if (@emph^[some condition]~) {
+  throw gaol_exception(GAOL_FILE_POS,
+                       "No additional information");
+}
+\end{example}
+\end{defmacro}
+
+All GAOL exceptions can be sent to an output stream through the ``\code{<{}<}''
+operator.
+
+\subsection{The \code{gaol\_exception} exception}\label{sec:gaol_exception}
+%%...............................................
+The \code{gaol\_exception} class is the base class from which derive all
+GAOL exceptions. It inherits from the C++ standard class \code{exception}.
+
+Every exception class deriving from it must at least provide the name of
+the file and the line where the corresponding exception was thrown. As a
+consequence, the constructors for \code{gaol\_exception} are as follows:
+
+\defmethodx{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l})}
+\begin{defmethod}{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const char* \var{e})}
+Constructs a \code{gaol\_exception} being thrown from file \var{f} at
+line \var{l}. The second form permits adding some explanatory string \var{e}.
+\end{defmethod}
+
+\noindent
+The class offers the following accessors:
+
+\begin{defmethod}{gaol\_exception}{const char*}{file}{(void) const}
+  Return the name of the file from where the exception was thrown.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{unsigned int}{line}{(void) const}
+  Returns the line number in the file from where the exception was thrown.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{const char* const}{explanation}{(void) const}
+  Returns a string explaining why the exception was thrown. Returns an empty
+  string if no additional information was provided.
+\end{defmethod}
+
+\subsection{The \code{input\_format\_error} exception}
+%%....................................................
+The \code{input\_format\_error} exception is thrown whenever one attempts to
+create an interval from an invalid string. This situation may occur when
+reading an interval from a stream with the \code{>{}>} operator, or when
+creating an interval from a string.
+
+This class, as all GAOL exceptions, derives from \code{gaol\_exception}
+(\pxref{sec:gaol_exception}). Its constructors have the same format
+than the ones for \code{gaol\_exception}, namely:
+
+\defmethodx{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l})}
+\begin{defmethod}{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+Constructs an \code{input\_format\_error} being thrown from file \var{f} at
+line \var{l}. The second form permits adding some explanatory string \var{e}.
+\end{defmethod}
+The methods of the class are inherited from \code{gaol\_exception}
+(\pxref{sec:gaol_exception}).
+
+\begin{example}
+try {
+  interval x("sin(1)+");
+} catch (const gaol::input_format_error& e) {
+  cout << e.explanation();
+}
+@outputs^Syntax error in interval initialization: sin(1)+~
+\end{example}
+
+\subsection{The \code{unavailable\_feature\_error} exception}
+%%---------------------------------------------------------
+
+This exception is thrown whenever an unavailable feature is requested. No
+operation of GAOL v5 throws it: \code{atan2()}, which did, is
+implemented.\newinvfive
+
+This class, as all GAOL exceptions, derives from \code{gaol\_exception}.
+(\pxref{sec:gaol_exception}). Its constructors have the same format
+than the ones for \code{gaol\_exception}, namely:
+
+\defmethodx{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l})}
+\begin{defmethod}{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+Constructs an \code{unavailable\_feature\_error} being thrown from file \var{f} at
+line \var{l}. The second form permits adding some explanatory string \var{e}.
+\end{defmethod}
+
+The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:gaol_exception}).
+
+\subsection{The \code{invalid\_action\_error} exception}
+%%------------------------------------------------------
+
+This exception is thrown whenever a function is called with invalid arguments
+(e.g. calling \code{nb\_fp\_numbers()} with NaNs as parameters).
+
+This class, as all GAOL exceptions, derives from \code{gaol\_exception}
+(\pxref{sec:gaol_exception}). Its constructors have the same format
+than the ones for \code{gaol\_exception}, namely:
+
+\defmethodx{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l})}
+\begin{defmethod}{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l}, const char* \var{e})}
+Constructs an \code{invalid\_action\_error} being thrown from file \var{f} at
+line \var{l}. The second form permits adding some explanatory string \var{e}.
+\end{defmethod}
+
+The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:gaol_exception}).
+
+
+\section{Warnings}
+%%----------------
+
+\deffunx{void}{gaol\_warning}{(const char *\var{warn})}
+\begin{deffun}{void}{gaol\_warning}{(const char *\var{file}, int \var{line}, const char *\var{warn})}
+Prints the message \var{warn} on the standard error output. The second form
+should be called with the \code{GAOL\_FILE\_POS} macro for the first two parameters.
+\end{deffun}
+
+\chapter{Debugging facilities}\label{sec:debugging-facilities}
+%%============================
+
+The debugging facilities described hereunder are available only if
+GAOL has been configured with the debugging facilities enabled: the
+\option{-{}-enable-debug} option of \cmd{configure} (\pxref{sec:configuration}),
+or \option{-Denable-debug=true} with meson. The CMake build does not enable
+them.
+
+\begin{deffun}{int}{debug\_level}{}
+  Global variable used to remember the current value of the debugging
+  level.  This variable is set when initializing the library. The
+  variable is declared in the \code{gaol\_core} namespace, which \code{gaol}
+  imports.
+\end{deffun}
+
+\begin{defmacroA}{GAOL\_DEBUG}{(\var{lvl},\var{cmd})}
+  Executes \var{cmd} if \var{lvl} is lower or equal to the current debugging
+  level (see the variable \code{debug\_level} above).
+
+  This macro defaults to nothing if the library was not configured with the
+debugging facilities.
+\end{defmacroA}
+
+\noindent
+A possible use for this macro is as follows:
+
+\begin{example}
+interval x(-10,10);
+
+@emph^[Some code]~
+
+GAOL_DEBUG(1,cout << "The value of x is " << x);
+x += interval(3.5,4.5);
+GAOL_DEBUG(2,cout << "Now the value of x is " << x);
+\end{example}
+
+The first message will be displayed whenever the debugging level is at least
+1, and the second one only if it is at least 2.
+
+\begin{defmacroA}{GAOL\_ASSERT}{(\var{cond})}
+Tests whether \var{cond} holds. Aborts with an error message if it is not the case.
+
+This macro defaults to nothing if the library was not configured with the
+debugging facilities.
+\end{defmacroA}
+
+\noindent
+A possible use for this macro is as follows:
+
+\begin{example}
+int x;
+cout << "Give an integer no greater than 5: ";
+cin >> x;
+GAOL_ASSERT(x <= 5);
+\end{example}
+
+\chapter{Profiling}
+%%=================
+
+The following functions permit computing the time used for a computation. The
+returned times are \emph{user} times, meaning that delays induced by
+input/output operations and freezing during CPU switches in multi-programming
+environments are not taken into account.
+
+If you need to keep track of several events, consider using an object of the
+\code{timepiece} class (\pxref{sec:timepiece}) instead of calling
+directly the functions below.
+
+\paragraph*{Warning.} The precision of the timing functions depends on the platform
+used. What is more, despite the fact that the reported times are user
+times, they may vary from an execution to another, and can get larger on
+heavily loaded machines. \code{tests/performance.cpp} shows how GAOL v5 measures
+the time of its operations, in nanoseconds.
+
+
+\begin{deffun}{long}{get\_time}{(void)}
+Returns the time in milliseconds since a certain unspecified moment.
+
+This function should only be used to compute differences between two
+calls since the starting point may vary depending on the availability of
+\code{clock()} or \code{getrusage()} on the system.
+
+
+\paragraph*{Warning.} if the function in use is the standard \code{clock()},
+the time returned will wrap approximately every 72 minutes. Consequently, it is
+not safe to use \code{get\_time()} in that case for processes requiring more than
+72 minutes to execute.
+\end{deffun}
+
+
+\begin{deffun}{void}{reset\_time}{(void)}
+  Resets the time counter. To be called just before executing some code to be
+  profiled.
+\end{deffun}
+
+\begin{deffun}{long}{elapsed\_time}{(void)}
+  Returns the time in milliseconds elapsed between now and the last call to
+  \code{reset\_time()}.
+\end{deffun}
+
+\begin{deffun}{long}{intermediate\_elapsed\_time}{(void)}
+  Returns the time in milliseconds elapsed between now and the last call to
+  \code{reset\_time()} or to \code{intermediate\_elapsed\_time()}.
+\end{deffun}
+
+Here is a typical example of use of the timing functions:
+
+\begin{example}
+int main(void)
+{
+  reset_time();
+  for (unsigned int i=0;i<1000;++i) {
+     @emph^[Some time consuming operations]~
+  }
+  cout << "Elapsed time: " << elapsed_time() << " ms." << endl;
+  return 0;
+}
+\end{example}
+
+\section{The \code{timepiece} class}\label{sec:timepiece}
+%%----------------------------------
+
+A \code{timepiece} object allows to keep track of the time spent to perform
+a particular task. Since the counter used is local to the object, it is possible
+to monitor more than one such process.
+
+\subsection{Methods of the \code{timepiece} class}
+%%................................................
+
+\begin{defmethod}{timepiece}{void}{start}{(void)}
+  Starts the timepiece.
+\end{defmethod}
+
+\begin{defmethod}{timepiece}{void}{stop}{(void)}
+  Stops the timepiece and accumulates the time spent since the last call to \code{start()}.
+\end{defmethod}
+
+\begin{defmethod}{timepiece}{void}{reset}{(void)}
+  Resets to zero the counter keeping track of the total time the timepiece was running.
+\end{defmethod}
+
+\begin{defmethod}{timepiece}{long}{get\_total\_time}{(void) const}
+  Returns the total amount of time the timepiece was running (time between calls to
+  \code{start()} and \code{stop()}). The timepiece shall have been stopped by calling the
+  \code{stop()} method before calling this one.
+\end{defmethod}
+
+\begin{defmethod}{timepiece}{long}{get\_intermediate\_time}{(void) const}
+  Returns the amount of time spent since the last call to \code{start()}.
+\end{defmethod}
+
+
+\begin{example}
+int main(void)
+{
+  timepiece t;
+  t.start();
+  for (unsigned int i=0;i<1000;++i) {
+     @emph^[Some time consuming operations]~
+     cout << "Intermediate time: "
+          << t.get_intermediate_time() << " ms." << endl;
+  }
+  t.stop();
+  cout << "Elapsed time: " << t.get_total_time() << " ms." << endl;
+  return 0;
+}
+\end{example}
+
+
+\chapter{Additional Documentation}\label{chap:documentation}
+%%================================
+
+\section{Documentation on GAOL}
+%%-----------------------------
+
+The primary reference is this manual. The directory \file{doc} of the sources
+holds the pages that give the details of GAOL v5, with the measures behind its
+choices:
+
+\begin{itemize}
+\item \file{doc/building.md}: the CMake, autotools and meson builds, and their options;
+\item \file{doc/using.md}: the flags of interval arithmetic, GAOL from CMake
+  and from pkg-config, the namespaces and the rounding direction;
+\item \file{doc/three-builds.md}: what the three builds agree on, what the options
+  are worth, and the compilers and options they refuse;
+\item \file{doc/tests.md}: what the programs of \file{tests} check;
+\item \file{doc/accuracy.md}: the tightness of each operation, with its algorithm
+  and what the tests found;
+\item \file{doc/differences.md}: each change GAOL v5 brings to GAOL 4.2.2, and
+  where it comes from;
+\item \file{doc/continuous-integration.md}: the systems, processors and compilers
+  GAOL is built and tested on;
+\item \file{doc/compare/README.md}: GAOL compared with libieeep1788, filib++,
+  PROFIL/BIAS and Solaris Studio, their special cases against IEEE 1788-2015 and
+  their performance;
+\item \file{3rd/README.md}: the version of CORE-MATH GAOL takes, and what differs
+  from it.
+\end{itemize}
+
+\noindent
+There is also an HTML reference for the code itself, generated by doxygen,
+which might be of interest only to developers seeking to understand or modify
+GAOL. The manual of GAOL~4, by Fr\'ed\'eric Goualard, is kept in
+\file{manual/v4}.
+
+\section{References}
+%%------------------
+The following articles, books and standards have inspired in some way or another the
+devising of the GAOL library and/or the writing of this manual.
+
+\begin{itemize}
+\item \emph{IEEE Standard for Interval Arithmetic}. IEEE Std 1788-2015~\cite{IEEE1788:2015}.
+\item \emph{The CORE-MATH Project}. Alexei Sibidanov, Paul Zimmermann and
+  St\'ephane Glondu~\cite{CoreMath:2022}, and \url{https://core-math.gitlabpages.inria.fr/}.
+\item \emph{How do you compute the midpoint of an interval?} Fr\'ed\'eric
+  Goualard~\cite{Goualard:TOMS2014}.
+\item \emph{Fast and Correct SIMD Algorithms for Interval Arithmetic}. Fr\'ed\'eric
+  Goualard~\cite{Goualard:PARA08}.
+\item \emph{Interval Extensions of Multivalued Inverse Functions}. Fr\'ed\'eric
+  Goualard~\cite{Goualard:2008}.
+\item \emph{Interval Arithmetic Specification}. Dmitri Chiriaev and G.\:
+William Walster. Draft revised May 1998.
+\item \emph{The Extended Real Interval System}. G.\: William
+Walster. April 1998.
+\item \emph{C++ Interval Arithmetic Programming Reference}. Sun Microsystems,
+Inc. October 2000, revision A.
+\item \emph{Interval Arithmetic: From Principles to Implementation}. T.\:
+Hickey, Q.\: Ju, and M.\: H.\: van Emden~\cite{Hickey-Ju-vanEmden:2001}.
+\end{itemize}
+
+\chapter{Reporting bugs}
+%%======================
+
+Bugs and suggestions for improvement of GAOL v5 shall be submitted as issues of
+its repository:
+
+\begin{center}
+  \url{https://github.com/Jordan08/GAOL/issues}
+\end{center}
+
+\noindent
+A report is most useful with the program that shows the problem, the interval
+it gives and the one expected, the system, the processor, the compiler and the
+options GAOL was built with.
+
+\chapter{Contributors}
+%%====================
+
+The main implementor and lead designer for the GAOL library is Fr\'ed\'eric Goualard
+(\url{https://frederic.goualard.net}).
+
+GAOL v5 is written by Jordan Ninin (ENSTA), for Codac.
+
+The \code{interval pow(const interval\&, const interval\&)} function
+was designed by Marc Christie.
+
+The code for the multiplication and the division is largely inspired
+from the one presented by Tim Hickey, Qun Ju and Maarten Van Emden in
+\emph{Interval Arithmetic: from Principles to Implementation}, Journal
+of the ACM 48(5):1038--1068, september 2001.
+
+GAOL v5 takes up:
+\begin{itemize}
+\item the patch IBEX applies to GAOL, by Gilles Chabert (initialization of the
+  floating-point unit, rounding direction of \code{midpoint()} and
+  \code{operator<{}<});
+\item the fork of GAOL by Fabrice Le Bars, for Visual C++, MinGW and the systems
+  the \cmd{configure} of GAOL does not know;
+\item the CMake build of GAOL in IBEX, by Cyril Bouvier and Gilles Chabert, with
+  the compilation flags of the IBEX fork of Fabrice Le Bars;
+\item the rounding tests of Codac, which its tests follow.
+\end{itemize}
+
+\noindent
+Its elementary functions are those of CORE-MATH, by Alexei Sibidanov, Paul
+Zimmermann and the other authors of the project (Inria).
+
+\chapter{Moving a program from GAOL 4 to GAOL v5}\label{chap:changes}
+%%==============================================
+\cindex{GAOL 4!moving from}%
+
+Most programs written for GAOL~4 compile and run with GAOL v5 once the
+namespace is opened. This chapter lists what a program may have to change, and
+what it will see differently. The page \file{doc/differences.md} gives each
+change with its reasons and its measures.
+
+\section{Compiling and linking}
+%%-----------------------------
+
+\begin{itemize}
+\item \file{gaol/gaol.h} no longer opens the namespace \code{gaol}: add
+  \code{using namespace gaol;}, or name \code{gaol::interval}
+  (\pxref{sec:namespaces}). The type and the functions are in
+  \code{gaol\_core}, and the symbols of the library name it: a program compiled
+  against the headers of GAOL~4 is compiled again.
+\item GAOL is the only library to link: the mathematical library GAOL~4 was
+  built with is no longer used, CORE-MATH being compiled into GAOL, and the
+  options of the builds that chose it are gone.
+\item The code including the headers of GAOL is compiled with the flags of
+  interval arithmetic, which \code{gaol::gaol} and \file{gaol.pc} give
+  (\pxref{sec:compiling}); \file{gaol/gaol\_config.h} refuses the options and the
+  compilers that give wrong bounds (\pxref{sec:refused}).
+\item The intervals of floats, \code{gaol::intervalf} and
+  \code{gaol::interval2f}, are compiled only when asked for
+  (\option{GAOL\_FLOAT\_INTERVALS}).
+\item \code{gaol::init()} need not be called again after the program changed the
+  rounding direction: each operation sets it upward itself
+  (\pxref{sec:rounding-direction}).
+\end{itemize}
+
+\section{Results that change}
+%%---------------------------
+
+\begin{itemize}
+\item \textbf{The bounds are tighter}: the elementary functions give the tightest
+  bounds, rather than one double beyond, and are exact where their value is a
+  double; the integer powers and the $n$th roots are computed from exact
+  products; \code{sin}, \code{cos} and \code{tan} are within one double of the
+  tightest bounds at every magnitude (Chapter~\ref{chap:accuracy}).
+\item \textbf{The empty set.} The constructors give it for
+  \itv{+\infty}{+\infty}, \itv{-\infty}{-\infty}, bounds in the wrong order and
+  NaN bounds, and assigning an infinity to an interval empties it
+  (\pxref{sec:constructors}); the intersection of disjoint intervals is it,
+  with NaN bounds; so are \code{log} of an interval holding no positive number,
+  \code{invabs\_rel} of a negative interval and \code{div\_rel} with no
+  solution in \var{I}. \code{width()} of the empty set is NaN rather than $-1$.
+\item \textbf{Powers.} \code{pow(x, p)} for a double \var{p} no longer truncates
+  \var{p}; \code{pow(x, y)} keeps the negative part of \var{x} for an integer
+  exponent only, and takes the \ieee{pow} of IEEE 1788-2015 otherwise
+  (\pxref{sec:powers}). \code{nth\_root} of an odd order is defined on the whole
+  real line, and takes a negative order.
+\item \textbf{The comparisons} follow IEEE 1788-2015 for the empty set and the
+  infinite bounds: \code{certainly\_leq()} and its companions are true when
+  either interval is empty, \code{set\_strictly\_contains()} takes an infinite
+  bound as beyond itself, and \code{certainly\_eq()} looks at both bounds of its
+  argument (\pxref{sec:interval-relations}).
+\item \textbf{Input and output.} Numbers are read exactly, and the literals of
+  IEEE 1788-2015 are read, in any case of letters; \code{"[inf]"} is the empty
+  set. The format \code{hexa} writes interval literals, which are read back bit
+  for bit; the decimal formats round the bounds outward whatever the C
+  library, and the format \code{agreeing} keeps the digits of each bound
+  (Chapter~\ref{chap:io}).
+\item \textbf{New operations}: \code{atan2()} is implemented, and the functions
+  of IEEE 1788-2015 GAOL did not provide are added (\code{exp2}, \code{hypot},
+  \code{sign}, \code{trunc}\ldots, Chapter~\ref{chap:arithmetic}).
+\end{itemize}
+
+
+\schapter{Library Copying}\label{chap:copying}
+%%========================
+\input{lgpl}
+
+\section*{The license of CORE-MATH}
+%%---------------------------------
+
+The sources of CORE-MATH, in \file{3rd/math-core}, which GAOL compiles into its
+library, are distributed under the following license (MIT license):
+
+\begin{verbatim}
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+\end{verbatim}
+
+
+\bibliographystyle{plain}
+\bibliography{gaol}
+
+\printindex[idx]
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

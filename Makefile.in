@@ -125,7 +125,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
-CONFIG_CLEAN_FILES = gaol.pc gaol.spec
+CONFIG_CLEAN_FILES = gaol.pc manual/v4/gaol_version.tex \
+	manual/v5/gaol_version.tex gaol.spec
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -183,9 +184,12 @@ ETAGS = etags
 CTAGS = ctags
 CSCOPE = cscope
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/gaol.pc.in \
-	$(srcdir)/gaol.spec.in AUTHORS COPYING.LIB ChangeLog INSTALL \
-	NEWS README TODO compile config.guess config.sub depcomp \
-	install-sh ltmain.sh missing mkinstalldirs
+	$(srcdir)/gaol.spec.in \
+	$(top_srcdir)/manual/v4/gaol_version.tex.in \
+	$(top_srcdir)/manual/v5/gaol_version.tex.in AUTHORS \
+	COPYING.LIB ChangeLog INSTALL NEWS README TODO compile \
+	config.guess config.sub depcomp install-sh ltmain.sh missing \
+	mkinstalldirs
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -268,6 +272,8 @@ GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
 GAOL_PC_VERSION = @GAOL_PC_VERSION@
 GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
+GAOL_V5_EDITION = @GAOL_V5_EDITION@
+GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
 GAOL_VERSION = @GAOL_VERSION@
 GREP = @GREP@
 INSTALL = @INSTALL@
@@ -413,6 +419,10 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
 gaol.pc: $(top_builddir)/config.status $(srcdir)/gaol.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+manual/v4/gaol_version.tex: $(top_builddir)/config.status $(top_srcdir)/manual/v4/gaol_version.tex.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+manual/v5/gaol_version.tex: $(top_builddir)/config.status $(top_srcdir)/manual/v5/gaol_version.tex.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 gaol.spec: $(top_builddir)/config.status $(srcdir)/gaol.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

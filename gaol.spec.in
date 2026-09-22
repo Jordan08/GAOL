@@ -64,7 +64,7 @@ rm -rf ${RPM_BUILD_ROOT}
 ######################################################################
 %files
 %defattr(-,root,root)
-%doc AUTHORS BUGS README TODO NEWS COPYING ChangeLog manual/gaol.pdf manual/html 
+%doc AUTHORS BUGS README TODO NEWS COPYING ChangeLog manual/v5/gaol.pdf manual/v4/gaol.pdf manual/html 
 #%doc %{_infodir}/gaol.info*
 %{_libdir}/*.so*
 %{_libdir}/*.a
