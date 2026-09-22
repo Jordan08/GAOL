@@ -233,8 +233,8 @@ for a basic presentation of floating-point arithmetic, interval
 arithmetic and the use thereof.
 \cindex{references!on interval arithmetic}
 
-The main entry point for interval arithmetic on the Web is Vladik
-Kreino\-vich's \emph{Interval Computation site} (\url{http://www.cs.utep.edu/interval-comp/}).
+The main entry point for interval arithmetic on the Web is the \emph{Interval
+Computation site} of Vladik Kreino\-vich, \url{http://www.cs.utep.edu/interval-comp/}.
 \cindex{interval!computation site (web)}
 
 The pages of the directory \file{doc} of the sources give the details of each
@@ -374,7 +374,8 @@ of the two files changes.
 In the root directory of the sources:
 
 \begin{cmdshell}
-% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=@var^prefix~ -DGAOL_BUILD_TESTS=ON
+% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=@var^prefix~ \
+        -DGAOL_BUILD_TESTS=ON
 % cmake --build build --config Release
 % ctest --test-dir build -C Release
 % cmake --install build --config Release
@@ -522,9 +523,12 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
   by calling \code{gaol\_error()}, which prints a message to the standard error
   channel, and aborting. This option defaults to \code{yes};
 \cindex{error!raising an exception}%
-\item \loption{with-cppunit-include=PATH}, \loption{with-cppunit-lib=PATH}. The
-  headers and the library of CppUnit, for the check programs of \cmd{make check}.
-\cindex{cppunit!include path}\cindex{cppunit!library path}%
+\item \loption{with-cppunit-include=\var{dir}}. The directory of the headers of
+  CppUnit, for the check programs of \cmd{make check};
+\cindex{cppunit!include path}%
+\item \loption{with-cppunit-lib=\var{dir}}. The directory of the library of
+  CppUnit.
+\cindex{cppunit!library path}%
 \end{itemize}
 
 Note that, as usual, \loption{disable-\var{xxx}} is
@@ -553,17 +557,30 @@ code, with doxygen.
 meson compiles the sources of CORE-MATH into \file{libgaol}, as CMake and
 \cmd{configure} do. \cmd{meson compile} needs meson 0.54; with an older one,
 \cmd{ninja -C build} builds GAOL as well. The options are given to
-\cmd{meson setup}, as \option{-D\var{option}=\var{value}}:
-\code{buildtype} (\code{release} by default: \option{-O3} and \code{NDEBUG}),
-\code{enable-optimize} (\code{true}), \code{enable-debug} (\code{false}),
-\code{enable-simd} (\code{true}), \code{enable-fma} (\code{true}),
-\code{enable-float-intervals} (\code{false}), \code{enable-asm} (\code{true}),
-\code{enable-verbose-mode} (\code{false}), \code{enable-preserve-rounding}
-(\code{false}), \code{enable-relations} (\code{certainly}),
-\code{enable-exception} (\code{true}), which are those of \cmd{configure};
-\code{with-test} (\code{false}), which builds the check programs of GAOL~4, and
-\code{with-doc} (\code{false}), with which the target \code{pdf} builds this
-manual and the manual of GAOL~4.
+\cmd{meson setup}, as \option{-D\var{option}=\var{value}}; all but the last two
+are those of \cmd{configure}:
+
+\begin{center}\renewcommand{\arraystretch}{1.1}\small
+  \begin{tabular}{lL{6.2cm}}
+    \hline
+    \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default}\\
+    \hline\hline
+    \code{buildtype} & \code{release}: \option{-O3} and \code{NDEBUG}\\
+    \code{enable-optimize} & \code{true}\\
+    \code{enable-debug} & \code{false}\\
+    \code{enable-simd} & \code{true}\\
+    \code{enable-fma} & \code{true}\\
+    \code{enable-float-intervals} & \code{false}\\
+    \code{enable-asm} & \code{true}\\
+    \code{enable-verbose-mode} & \code{false}\\
+    \code{enable-preserve-rounding} & \code{false}\\
+    \code{enable-relations} & \code{certainly}\\
+    \code{enable-exception} & \code{true}\\
+    \code{with-test} & \code{false}; builds the check programs of GAOL~4\\
+    \code{with-doc} & \code{false}; the target \code{pdf} then builds this manual and the manual of GAOL~4\\
+    \hline
+  \end{tabular}
+\end{center}
 
 \section{Tests}\label{sec:tests}
 %%-------------
@@ -666,7 +683,8 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
 \cindex{compiling!a file using gaol}%
 
  \begin{cmdshell}
- % c++ -std=c++11 -O2 $(pkg-config --cflags gaol) -o f f.cpp $(pkg-config --libs gaol)
+ % c++ -std=c++11 -O2 $(pkg-config --cflags gaol) -o f f.cpp \
+       $(pkg-config --libs gaol)
  \end{cmdshell}
 
  \noindent
@@ -760,16 +778,18 @@ itself with the C mathematical library:
 
 \begin{cmdshell}
 % export PKG_CONFIG_PATH=@var^prefix~/lib/pkgconfig
-% c++ -std=c++11 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs gaol)
+% c++ -std=c++11 -O2 $(pkg-config --cflags gaol) program.cpp \
+      $(pkg-config --libs gaol)
 \end{cmdshell}
 
 \noindent
-Built by CMake with its default options on x86-64 Linux, GAOL gives:
+Built by CMake with its default options on x86-64 Linux, GAOL gives, on one
+line:
 
 \begin{cmdshell}
 % pkg-config --cflags --libs gaol
--frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3 -mfma
--I@var^prefix~/include -L@var^prefix~/lib -lgaol -lm
+-frounding-math -fno-fast-math -ffp-contract=off
+-msse2 -msse3 -mfma -I@var^prefix~/include -L@var^prefix~/lib -lgaol -lm
 \end{cmdshell}
 
 \noindent
@@ -789,18 +809,15 @@ In a meson project, \code{dependency('gaol')} finds it.
  direction of the FPU towards, respectively, $-\infty$ and
  $+\infty$.
  \marginpar{%
-   \begin{definition}[Rounding down/up]
+   \begin{definition}[Round down/up]
      \cindex{rounding!downward|hyperpagebf}\cindex{rounding!upward|hyperpagebf}%
      \cindex{F@\FSet}\cindex{R@\RSet}%
      Given \RSet\ the set of real numbers and \FSet\ the set of
-     floating-point numbers (\texttt{double}), we have:
-     \begin{equation*}
-       \forall x\in\RSet\colon
-       \left\{\begin{array}{l}
-           \roundDn{x} = \max\{y\in\FSet\mid y\leq x\}\\
-           \roundUp{x} = \min\{y\in\FSet\mid y\geq x\}
-         \end{array}\right.
-     \end{equation*}
+     floating-point numbers (\texttt{double}), we have, for all $x\in\RSet$:
+     \begin{align*}
+       \roundDn{x} &= \max\{y\in\FSet\mid y\leq x\}\\
+       \roundUp{x} &= \min\{y\in\FSet\mid y\geq x\}
+     \end{align*}
    \end{definition}
  }
 \cindex{containement property}%
@@ -834,9 +851,9 @@ functions it calls on doubles take it to be upward already.
 \cindex{trust rounding mode}%
 
 Code that needs its own rounding direction after the operations of GAOL
-builds GAOL with \option{GAOL\_PRESERVE\_ROUNDING}
-(\loption{enable-preserve-rounding} with autotools,
-\option{-Denable-preserve-rounding=true} with meson): each operation then also
+builds GAOL with the option \option{GAOL\_PRESERVE\_ROUNDING} of CMake, which is
+\loption{enable-preserve-rounding} with autotools and
+\option{-Denable-preserve-rounding=true} with meson: each operation then also
 restores the rounding direction it found, which makes the arithmetic
 operations several times slower. It is off by default in the three builds.
 \cindex{rounding!preserving}%
@@ -906,15 +923,15 @@ int main(void) {
 \end{example}
 
 \marginpar{%
-\begin{definition}[Rounding to the nearest]
+\begin{definition}[Round to nearest]
   \cindex{Rounding!to nearest|hyperpagebf}
      Given \RSet\ the set of real numbers and \FSet\ the set of
-     floating-point numbers (\texttt{double}), we have:
-       \begin{multline*}
-         \forall x\in\RSet\colon \roundNearest{x} = y\in\FSet
-         \text{ s.t. }\\
-         x-y=\min\{|\delta|\in\RSet\mid \delta=x-z, \forall z\in\FSet\}
-     \end{multline*}
+     floating-point numbers (\texttt{double}), $\roundNearest{x}$ is, for
+     $x\in\RSet$, the $y\in\FSet$ that minimizes $|x-y|$:
+     \begin{equation*}
+       |x-\roundNearest{x}| = \min\{|x-y|\mid y\in\FSet\}
+     \end{equation*}
+     the one whose significand is even when two are equally near.
 \end{definition}
 }
 Though a rational perfectly representable in decimal, \code{0.1} is
@@ -1003,8 +1020,9 @@ compilation where it can tell:
 
 \begin{onscreen}
 % c++ -ffast-math -c program.cpp
-gaol/gaol_config.h: error: #error "GAOL cannot be compiled with -ffast-math
-(nor -Ofast): the bounds it computes would not enclose the exact results"
+gaol/gaol_config.h: error: #error "GAOL cannot be
+compiled with -ffast-math (nor -Ofast): the bounds it
+computes would not enclose the exact results"
 \end{onscreen}
 
 \noindent
@@ -1566,10 +1584,10 @@ only when both intervals are degenerate and contain the same floating-point
 number, or are both empty. GAOL~4 did not look at the left bound of
 \var{I}, and \itv{2}{2} was certainly equal to \itv{1}{2}.\newinvfive
 \begin{example}
+interval u = interval::universe(), e = interval::emptyset();
 cout << interval(3,4).certainly_eq(interval(3,4)) << ' '
      << interval(-6).certainly_eq(interval(-6,-6)) << ' '
-     << interval::universe().certainly_eq(interval::universe()) << ' '
-     << interval::emptyset().certainly_eq(interval::emptyset()) << ' '
+     << u.certainly_eq(u) << ' ' << e.certainly_eq(e) << ' '
      << interval(2).certainly_eq(interval(1,2));
 @outputs^false true false true false~
 \end{example}
@@ -1834,45 +1852,39 @@ cout << interval(1,2).strictly_less(interval(1,3)) << ' '
 %%--------------------------
 
 \begin{deffun}{bool}{operator==}{(const interval\& \var{I1}, const interval\& \var{I2})}
-    Returns \code{\var{I1}.set\_eq(\var{I2})},
-    \code{\var{I1}.certainly\_eq(\var{I2})}, or
-    \code{\var{I1}.possibly\_eq(\var{I2})} depending on the default kind of
-    relation chosen when configuring GAOL (\pxref{sec:configuration}).
+    Returns \code{\var{I1}.\var{kind}\_eq(\var{I2})}, \var{kind} being
+    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
+    chosen when configuring GAOL (\pxref{sec:configuration}).
 \end{deffun}
 
 \begin{deffun}{bool}{operator!=}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.set\_neq(\var{I2})},
-  \code{\var{I1}.certainly\_neq(\var{I2})}, or
-  \code{\var{I1}.possibly\_neq(\var{I2})} depending on the default kind of
-  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.\var{kind}\_neq(\var{I2})}, \var{kind} being
+    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
+    chosen when configuring GAOL (\pxref{sec:configuration}).
 \end{deffun}
 
 \begin{deffun}{bool}{operator<}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.set\_le(\var{I2})},
-  \code{\var{I1}.certainly\_le(\var{I2})}, or
-  \code{\var{I1}.possibly\_le(\var{I2})} depending on the default kind of
-  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.\var{kind}\_le(\var{I2})}, \var{kind} being
+    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
+    chosen when configuring GAOL (\pxref{sec:configuration}).
 \end{deffun}
 
 \begin{deffun}{bool}{operator<=}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.set\_leq(\var{I2})},
-  \code{\var{I1}.certainly\_leq(\var{I2})}, or
-  \code{\var{I1}.possibly\_leq(\var{I2})} depending on the default kind of
-  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.\var{kind}\_leq(\var{I2})}, \var{kind} being
+    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
+    chosen when configuring GAOL (\pxref{sec:configuration}).
 \end{deffun}
 
 \begin{deffun}{bool}{operator>}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.set\_ge(\var{I2})},
-  \code{\var{I1}.certainly\_ge(\var{I2})}, or
-  \code{\var{I1}.possibly\_ge(\var{I2})} depending on the default kind of
-  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.\var{kind}\_ge(\var{I2})}, \var{kind} being
+    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
+    chosen when configuring GAOL (\pxref{sec:configuration}).
 \end{deffun}
 
 \begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
-  Returns \code{\var{I1}.set\_geq(\var{I2})},
-  \code{\var{I1}.certainly\_geq(\var{I2})}, or
-  \code{\var{I1}.possibly\_geq(\var{I2})} depending on the default kind of
-  relation chosen when configuring GAOL (\pxref{sec:configuration}).
+  Returns \code{\var{I1}.\var{kind}\_geq(\var{I2})}, \var{kind} being
+    \code{set}, \code{certainly} or \code{possibly}, the default kind of relation
+    chosen when configuring GAOL (\pxref{sec:configuration}).
 \end{deffun}
 
 \noindent
@@ -2329,7 +2341,8 @@ $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
   \ieee{log2p1} and \ieee{log10p1} of IEEE 1788-2015 (Table~10.5).\newinvfive
 \begin{example}
 cout << exp(interval(0.0)) << ' ' << log(interval(1)) << ' '
-     << log(interval(-4,0.0)) << ' ' << log(interval(-4,1)) << endl;
+     << log(interval(-4,0.0)) << ' '
+     << log(interval(-4,1)) << endl;
 @outputs^<1, 1> <0, 0> [empty] [-inf, 0]~
 cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
      << log10(interval(0.0,1000)) << ' '
@@ -2365,7 +2378,8 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
 cout << cos(interval(1,4)) << endl
      << sin(interval(1,2)) << endl
      << tan(interval(1,2)) << endl
-     << cos(interval(1152921504606846976.0)) << endl; @rem^// 2 to the 60~
+     @rem^// 1152921504606846976 is 2 to the 60~
+     << cos(interval(1152921504606846976.0)) << endl;
 @outputs^[-1, 0.5403023058681398]~
 @outputs^[0.8414709848078965, 1]~
 @outputs^[-inf, inf]~
@@ -2469,8 +2483,10 @@ cout << tanpi(interval(0.5)) << ' '
   mathematical library of the system, which is sometimes further than one
   double from the exact value.\newinvfive
 \begin{example}
-cout << cosh(interval(-1,2)) << ' ' << tanh(interval(20,30)) << endl
-     << acosh(interval(0,1)) << ' ' << atanh(interval(-2,2)) << endl;
+cout << cosh(interval(-1,2)) << ' '
+     << tanh(interval(20,30)) << endl
+     << acosh(interval(0,1)) << ' '
+     << atanh(interval(-2,2)) << endl;
 @outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
 @outputs^<0, 0> [-inf, inf]~
 \end{example}
@@ -2492,7 +2508,8 @@ cout << cosh(interval(-1,2)) << ' ' << tanh(interval(20,30)) << endl
 \begin{example}
 cout << hypot(interval(3), interval(4)) << ' '
      << hypot(interval(-3,1), interval(4,5)) << endl
-     << rsqrt(interval(4,16)) << ' ' << rsqrt(interval(0.0,4)) << endl;
+     << rsqrt(interval(4,16)) << ' '
+     << rsqrt(interval(0.0,4)) << endl;
 @outputs^<5, 5> [4, 5.830951894845301]~
 @outputs^[0.25, 0.5] [0.5, inf]~
 \end{example}
@@ -2669,8 +2686,10 @@ cout << invabs_rel(interval(1,2), interval::universe()) << ' '
   w.r.t. \var{I}, which is empty when no $x$ of \var{I} is in the
   relation.\newinvfive
 \begin{example}
-cout << div_rel(interval(1,2), interval(-1,1), interval(0,10)) << ' '
-     << div_rel(interval(5,6), interval(1,2), interval(10,20));
+cout << div_rel(interval(1,2), interval(-1,1),
+                interval(0,10)) << ' '
+     << div_rel(interval(5,6), interval(1,2),
+                interval(10,20));
 @outputs^[1, 10] [empty]~
 \end{example}
 \end{deffun}
@@ -2832,15 +2851,15 @@ cout << hausdorff(interval(4,8),interval(5,10));
 
 \marginnocite{Goualard:TOMS2014}
 \begin{defmethod}{interval}{double}{midpoint}{(void) const}
-  Returns the midpoint of \code{self}: \ieee{mid} of IEEE 1788-2015. Given $a$ and $b$ two finite
-  floating-point numbers and \code{std::numeric\_limits<double>::max()} the largest positive
-  floating-point number of type double, we have the following cases:
+  Returns the midpoint of \code{self}, \ieee{mid} of IEEE 1788-2015. Given $a$
+  and $b$ two finite floating-point numbers, we have the following cases, MAX
+  being the largest positive double, \code{std::numeric\_limits<double>::max()}:
 \begin{equation*}
 \left\{\begin{array}{ll}
 \code{midpoint}(\emptyset{})&=\text{NaN}\\
 \code{midpoint}(\itv{-\infty}{+\infty})&=0\\
-\code{midpoint}(\itv{-\infty}{b})&=-\code{std::numeric\_limits<double>::max()}\\
-\code{midpoint}(\itv{a}{+\infty})&=\code{std::numeric\_limits<double>::max()}\\
+\code{midpoint}(\itv{-\infty}{b})&=-\text{MAX}\\
+\code{midpoint}(\itv{a}{+\infty})&=\text{MAX}\\
 \code{midpoint}(\itv{a}{b})&=\roundNearest{(a+b)/2} \\
 \end{array}\right.
 \end{equation*}
@@ -2857,8 +2876,8 @@ overflows~\margincite*{Goualard:TOMS2014}.
 \left\{\begin{array}{ll}
 \code{mid}(\emptyset{})&=\emptyset{}\\
 \code{mid}(\itv{-\infty}{+\infty})&=\itv{0}{0}\\
-\code{mid}(\itv{-\infty}{b})&=[-\code{std::numeric\_limits<double>::max()}]\\
-\code{mid}(\itv{a}{+\infty})&=[\code{std::numeric\_limits<double>::max()}]\\
+\code{mid}(\itv{-\infty}{b})&=\itv{-\text{MAX}}{-\text{MAX}}\\
+\code{mid}(\itv{a}{+\infty})&=\itv{\text{MAX}}{\text{MAX}}\\
 \code{mid}(\itv{a}{b})&=\itv{\roundDn{(a+b)/2}}{\roundUp{(a+b)/2}}
 \end{array}\right.
 \end{equation*}
@@ -3305,7 +3324,8 @@ the last character of the left one that is not a zero, and wrote
 \itv{1.25}{1.2567} \code{1.25\textasciitilde[, ]}.\newinvfive
 \begin{example}
  interval::format(interval_format::agreeing);
- std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << std::endl;
+ std::cout << interval(4,6) << ' '
+           << interval(1.25,1.2567) << std::endl;
  @outputs^@textasciitilde[4., 6.] 1.25@textasciitilde[0, 67]~
 \end{example}
 
