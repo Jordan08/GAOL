@@ -158,6 +158,18 @@ where it comes from.
   to 4 ns with 32-bit Visual C++, and 48 ns rather than 6.4 ns with 32-bit
   MinGW-w64 15.2; and Clang 18 read MXCSR once for a whole loop that changed
   the rounding direction.
+  - **Once per function of intervals.** The bounds of the elementary
+    functions at doubles are computed by the functions of namespace `upward`
+    (`gaol/gaol_double_op.h`), which take the direction to be upward already,
+    as it is after the check of the function of intervals calling them; the
+    functions of the same names outside it check it too, for the code calling
+    them directly. `exp()` of an interval checked the direction three times,
+    `sin()` and `cos()` up to four, the other elementary functions and
+    `pow(x, y)` two or three: once now, the bounds being the same. `exp()`
+    takes 5.7 % less time, `sin()` 3.6 %, `pow(x, y)` 3.4 % (Clang 18,
+    i7-1185G7). `tan()`, the relational functions of the trigonometric
+    functions and the negative integer powers still check it again within the
+    operations of intervals they call.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with

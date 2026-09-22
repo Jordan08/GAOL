@@ -194,40 +194,78 @@ namespace gaol_core {
 
   /*
     Computed in the upward rounding GAOL keeps: the tightest bounds, without
-    switching the rounding direction.
+    switching the rounding direction. Those of namespace upward take the
+    direction to be upward already, as it is in the functions of intervals
+    after GAOL_RND_ENTER(): the ones below it check it again, and a function
+    of intervals calling one for each bound checked it three times (GAOL v5).
   */
-  INLINE double nthroot_dn(double d, double e) { GAOL_RND_ENTER(); return previous_float(gaol_cr_pow(d, e)); }
-  INLINE double nthroot_up(double d, double e) { GAOL_RND_ENTER(); return gaol_cr_pow(d, e); }
-  INLINE double atan2_dn(double y, double x) { GAOL_RND_ENTER(); return previous_float(gaol_cr_atan2(y, x)); }
-  INLINE double atan2_up(double y, double x) { GAOL_RND_ENTER(); return gaol_cr_atan2(y, x); }
-  INLINE double exp_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_exp(d)); }
-  INLINE double exp_up(double d) { GAOL_RND_ENTER(); return gaol_cr_exp(d); }
-  INLINE double log_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_log(d)); }
-  INLINE double log_up(double d) { GAOL_RND_ENTER(); return gaol_cr_log(d); }
-  INLINE double sin_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_sin(d)); }
-  INLINE double sin_up(double d) { GAOL_RND_ENTER(); return gaol_cr_sin(d); }
-  INLINE double cos_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_cos(d)); }
-  INLINE double cos_up(double d) { GAOL_RND_ENTER(); return gaol_cr_cos(d); }
-  INLINE double tan_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_tan(d)); }
-  INLINE double tan_up(double d) { GAOL_RND_ENTER(); return gaol_cr_tan(d); }
-  INLINE double asin_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_asin(d)); }
-  INLINE double asin_up(double d) { GAOL_RND_ENTER(); return gaol_cr_asin(d); }
-  INLINE double acos_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_acos(d)); }
-  INLINE double acos_up(double d) { GAOL_RND_ENTER(); return gaol_cr_acos(d); }
-  INLINE double atan_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_atan(d)); }
-  INLINE double atan_up(double d) { GAOL_RND_ENTER(); return gaol_cr_atan(d); }
-  INLINE double sinh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_sinh(d)); }
-  INLINE double sinh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_sinh(d); }
-  INLINE double cosh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_cosh(d)); }
-  INLINE double cosh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_cosh(d); }
-  INLINE double tanh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_tanh(d)); }
-  INLINE double tanh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_tanh(d); }
-  INLINE double asinh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_asinh(d)); }
-  INLINE double asinh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_asinh(d); }
-  INLINE double acosh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_acosh(d)); }
-  INLINE double acosh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_acosh(d); }
-  INLINE double atanh_dn(double d) { GAOL_RND_ENTER(); return previous_float(gaol_cr_atanh(d)); }
-  INLINE double atanh_up(double d) { GAOL_RND_ENTER(); return gaol_cr_atanh(d); }
+  namespace upward {
+    INLINE double nthroot_dn(double d, double e) { return previous_float(gaol_cr_pow(d, e)); }
+    INLINE double nthroot_up(double d, double e) { return gaol_cr_pow(d, e); }
+    INLINE double atan2_dn(double y, double x) { return previous_float(gaol_cr_atan2(y, x)); }
+    INLINE double atan2_up(double y, double x) { return gaol_cr_atan2(y, x); }
+    INLINE double exp_dn(double d) { return previous_float(gaol_cr_exp(d)); }
+    INLINE double exp_up(double d) { return gaol_cr_exp(d); }
+    INLINE double log_dn(double d) { return previous_float(gaol_cr_log(d)); }
+    INLINE double log_up(double d) { return gaol_cr_log(d); }
+    INLINE double sin_dn(double d) { return previous_float(gaol_cr_sin(d)); }
+    INLINE double sin_up(double d) { return gaol_cr_sin(d); }
+    INLINE double cos_dn(double d) { return previous_float(gaol_cr_cos(d)); }
+    INLINE double cos_up(double d) { return gaol_cr_cos(d); }
+    INLINE double tan_dn(double d) { return previous_float(gaol_cr_tan(d)); }
+    INLINE double tan_up(double d) { return gaol_cr_tan(d); }
+    INLINE double asin_dn(double d) { return previous_float(gaol_cr_asin(d)); }
+    INLINE double asin_up(double d) { return gaol_cr_asin(d); }
+    INLINE double acos_dn(double d) { return previous_float(gaol_cr_acos(d)); }
+    INLINE double acos_up(double d) { return gaol_cr_acos(d); }
+    INLINE double atan_dn(double d) { return previous_float(gaol_cr_atan(d)); }
+    INLINE double atan_up(double d) { return gaol_cr_atan(d); }
+    INLINE double sinh_dn(double d) { return previous_float(gaol_cr_sinh(d)); }
+    INLINE double sinh_up(double d) { return gaol_cr_sinh(d); }
+    INLINE double cosh_dn(double d) { return previous_float(gaol_cr_cosh(d)); }
+    INLINE double cosh_up(double d) { return gaol_cr_cosh(d); }
+    INLINE double tanh_dn(double d) { return previous_float(gaol_cr_tanh(d)); }
+    INLINE double tanh_up(double d) { return gaol_cr_tanh(d); }
+    INLINE double asinh_dn(double d) { return previous_float(gaol_cr_asinh(d)); }
+    INLINE double asinh_up(double d) { return gaol_cr_asinh(d); }
+    INLINE double acosh_dn(double d) { return previous_float(gaol_cr_acosh(d)); }
+    INLINE double acosh_up(double d) { return gaol_cr_acosh(d); }
+    INLINE double atanh_dn(double d) { return previous_float(gaol_cr_atanh(d)); }
+    INLINE double atanh_up(double d) { return gaol_cr_atanh(d); }
+  } // namespace upward
+
+  INLINE double nthroot_dn(double d, double e) { GAOL_RND_ENTER(); return upward::nthroot_dn(d, e); }
+  INLINE double nthroot_up(double d, double e) { GAOL_RND_ENTER(); return upward::nthroot_up(d, e); }
+  INLINE double atan2_dn(double y, double x) { GAOL_RND_ENTER(); return upward::atan2_dn(y, x); }
+  INLINE double atan2_up(double y, double x) { GAOL_RND_ENTER(); return upward::atan2_up(y, x); }
+  INLINE double exp_dn(double d) { GAOL_RND_ENTER(); return upward::exp_dn(d); }
+  INLINE double exp_up(double d) { GAOL_RND_ENTER(); return upward::exp_up(d); }
+  INLINE double log_dn(double d) { GAOL_RND_ENTER(); return upward::log_dn(d); }
+  INLINE double log_up(double d) { GAOL_RND_ENTER(); return upward::log_up(d); }
+  INLINE double sin_dn(double d) { GAOL_RND_ENTER(); return upward::sin_dn(d); }
+  INLINE double sin_up(double d) { GAOL_RND_ENTER(); return upward::sin_up(d); }
+  INLINE double cos_dn(double d) { GAOL_RND_ENTER(); return upward::cos_dn(d); }
+  INLINE double cos_up(double d) { GAOL_RND_ENTER(); return upward::cos_up(d); }
+  INLINE double tan_dn(double d) { GAOL_RND_ENTER(); return upward::tan_dn(d); }
+  INLINE double tan_up(double d) { GAOL_RND_ENTER(); return upward::tan_up(d); }
+  INLINE double asin_dn(double d) { GAOL_RND_ENTER(); return upward::asin_dn(d); }
+  INLINE double asin_up(double d) { GAOL_RND_ENTER(); return upward::asin_up(d); }
+  INLINE double acos_dn(double d) { GAOL_RND_ENTER(); return upward::acos_dn(d); }
+  INLINE double acos_up(double d) { GAOL_RND_ENTER(); return upward::acos_up(d); }
+  INLINE double atan_dn(double d) { GAOL_RND_ENTER(); return upward::atan_dn(d); }
+  INLINE double atan_up(double d) { GAOL_RND_ENTER(); return upward::atan_up(d); }
+  INLINE double sinh_dn(double d) { GAOL_RND_ENTER(); return upward::sinh_dn(d); }
+  INLINE double sinh_up(double d) { GAOL_RND_ENTER(); return upward::sinh_up(d); }
+  INLINE double cosh_dn(double d) { GAOL_RND_ENTER(); return upward::cosh_dn(d); }
+  INLINE double cosh_up(double d) { GAOL_RND_ENTER(); return upward::cosh_up(d); }
+  INLINE double tanh_dn(double d) { GAOL_RND_ENTER(); return upward::tanh_dn(d); }
+  INLINE double tanh_up(double d) { GAOL_RND_ENTER(); return upward::tanh_up(d); }
+  INLINE double asinh_dn(double d) { GAOL_RND_ENTER(); return upward::asinh_dn(d); }
+  INLINE double asinh_up(double d) { GAOL_RND_ENTER(); return upward::asinh_up(d); }
+  INLINE double acosh_dn(double d) { GAOL_RND_ENTER(); return upward::acosh_dn(d); }
+  INLINE double acosh_up(double d) { GAOL_RND_ENTER(); return upward::acosh_up(d); }
+  INLINE double atanh_dn(double d) { GAOL_RND_ENTER(); return upward::atanh_dn(d); }
+  INLINE double atanh_up(double d) { GAOL_RND_ENTER(); return upward::atanh_up(d); }
 
 } // namespace gaol_core
 

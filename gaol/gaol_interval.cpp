@@ -281,15 +281,16 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     acosh(1) = 0, cosh(x) and sinh(x) beyond the largest double for x >= 711,
     and tanh(x) above the double below 1 for x >= 20, 2 exp(-2x) being below
     2^-54 there.
-    They are called between GAOL_RND_ENTER() and
-    GAOL_RND_LEAVE(), as the functions of gaol::nearest they call.
+    They are called between GAOL_RND_ENTER() and GAOL_RND_LEAVE(), the
+    rounding direction being upward, and call the functions of namespace
+    upward, which do not check it again (GAOL v5).
   */
-  static inline double sin_lo(double x) { return (x == 0.0) ? 0.0 : sin_dn(x); }
-  static inline double sin_hi(double x) { return (x == 0.0) ? 0.0 : sin_up(x); }
-  static inline double cos_lo(double x) { return (x == 0.0) ? 1.0 : cos_dn(x); }
-  static inline double cos_hi(double x) { return (x == 0.0) ? 1.0 : cos_up(x); }
-  static inline double tan_lo(double x) { return (x == 0.0) ? 0.0 : tan_dn(x); }
-  static inline double tan_hi(double x) { return (x == 0.0) ? 0.0 : tan_up(x); }
+  static inline double sin_lo(double x) { return (x == 0.0) ? 0.0 : upward::sin_dn(x); }
+  static inline double sin_hi(double x) { return (x == 0.0) ? 0.0 : upward::sin_up(x); }
+  static inline double cos_lo(double x) { return (x == 0.0) ? 1.0 : upward::cos_dn(x); }
+  static inline double cos_hi(double x) { return (x == 0.0) ? 1.0 : upward::cos_up(x); }
+  static inline double tan_lo(double x) { return (x == 0.0) ? 0.0 : upward::tan_dn(x); }
+  static inline double tan_hi(double x) { return (x == 0.0) ? 0.0 : upward::tan_up(x); }
 
   /*
     The signs of sin(x) and cos(x), x being finite (GAOL v5, issue #6).
@@ -304,7 +305,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (std::fabs(x) < 3.0) {
       return (x > 0.0) - (x < 0.0);
     }
-    return (sin_dn(x) > 0.0) ? 1 : -1;
+    return (upward::sin_dn(x) > 0.0) ? 1 : -1;
   }
 
   static inline int sign_of_cos(double x)
@@ -312,27 +313,27 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (std::fabs(x) < 1.5) {
       return 1;
     }
-    return (cos_dn(x) > 0.0) ? 1 : -1;
+    return (upward::cos_dn(x) > 0.0) ? 1 : -1;
   }
 
   static double asin_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_dn : ((x == -1.0) ? -half_pi_up : asin_dn(x)));
+    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_dn : ((x == -1.0) ? -half_pi_up : upward::asin_dn(x)));
   }
 
   static double asin_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_up : ((x == -1.0) ? -half_pi_dn : asin_up(x)));
+    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_up : ((x == -1.0) ? -half_pi_dn : upward::asin_up(x)));
   }
 
   static double acos_lo(double x)
   {
-    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_dn : ((x == -1.0) ? pi_dn : acos_dn(x)));
+    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_dn : ((x == -1.0) ? pi_dn : upward::acos_dn(x)));
   }
 
   static double acos_hi(double x)
   {
-    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_up : ((x == -1.0) ? pi_up : acos_up(x)));
+    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_up : ((x == -1.0) ? pi_up : upward::acos_up(x)));
   }
 
   // pi/4 is half of pi/2, exactly
@@ -346,7 +347,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? half_pi_dn*b : -half_pi_up*b;
     }
-    return atan_dn(x);
+    return upward::atan_dn(x);
   }
 
   static double atan_hi(double x)
@@ -359,7 +360,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? half_pi_up*b : -half_pi_dn*b;
     }
-    return atan_up(x);
+    return upward::atan_up(x);
   }
 
   /*
@@ -383,7 +384,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (x == std::fabs(y)) {
       return (y > 0.0) ? half_pi_dn*0.5 : -half_pi_up*0.5;
     }
-    return maximum(atan2_dn(y,x), -pi_up);
+    return maximum(upward::atan2_dn(y,x), -pi_up);
   }
 
   static double atan2_hi(double y, double x)
@@ -400,58 +401,58 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
     if (x == std::fabs(y)) {
       return (y > 0.0) ? half_pi_up*0.5 : -half_pi_dn*0.5;
     }
-    return minimum(atan2_up(y,x), pi_up);
+    return minimum(upward::atan2_up(y,x), pi_up);
   }
 
   // x^y for x > 0: 1 for x = 1 or y = 0, and at least 0
   static inline double pow_lo(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(nthroot_dn(x,y), 0.0);
+    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(upward::nthroot_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : nthroot_up(x,y);
+    return (x == 1.0 || y == 0.0) ? 1.0 : upward::nthroot_up(x,y);
   }
 
   static inline double sinh_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x >= 711.0) ? std::numeric_limits<double>::max() : sinh_dn(x));
+    return (x == 0.0) ? 0.0 : ((x >= 711.0) ? std::numeric_limits<double>::max() : upward::sinh_dn(x));
   }
 
   static inline double sinh_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x <= -711.0) ? -std::numeric_limits<double>::max() : sinh_up(x));
+    return (x == 0.0) ? 0.0 : ((x <= -711.0) ? -std::numeric_limits<double>::max() : upward::sinh_up(x));
   }
 
   // cosh(x), cosh(-x): the lower bound for |x|, the upper bound for 0
   static inline double cosh_lo(double x)
   {
-    return (x == 0.0) ? 1.0 : ((std::fabs(x) >= 711.0) ? std::numeric_limits<double>::max() : cosh_dn(x));
+    return (x == 0.0) ? 1.0 : ((std::fabs(x) >= 711.0) ? std::numeric_limits<double>::max() : upward::cosh_dn(x));
   }
 
   static inline double cosh_hi(double x)
   {
-    return (x == 0.0) ? 1.0 : cosh_up(x);
+    return (x == 0.0) ? 1.0 : upward::cosh_up(x);
   }
 
   // 1 - 2^-53, the double below 1, exactly
   static inline double tanh_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x >= 20.0) ? 1.0 - 0.5*std::numeric_limits<double>::epsilon() : tanh_dn(x));
+    return (x == 0.0) ? 0.0 : ((x >= 20.0) ? 1.0 - 0.5*std::numeric_limits<double>::epsilon() : upward::tanh_dn(x));
   }
 
   static inline double tanh_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x <= -20.0) ? -(1.0 - 0.5*std::numeric_limits<double>::epsilon()) : tanh_up(x));
+    return (x == 0.0) ? 0.0 : ((x <= -20.0) ? -(1.0 - 0.5*std::numeric_limits<double>::epsilon()) : upward::tanh_up(x));
   }
 
-  static inline double asinh_lo(double x) { return (x == 0.0) ? 0.0 : asinh_dn(x); }
-  static inline double asinh_hi(double x) { return (x == 0.0) ? 0.0 : asinh_up(x); }
-  static inline double acosh_lo(double x) { return (x == 1.0) ? 0.0 : acosh_dn(x); }
-  static inline double acosh_hi(double x) { return (x == 1.0) ? 0.0 : acosh_up(x); }
-  static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : atanh_dn(x); }
-  static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : atanh_up(x); }
+  static inline double asinh_lo(double x) { return (x == 0.0) ? 0.0 : upward::asinh_dn(x); }
+  static inline double asinh_hi(double x) { return (x == 0.0) ? 0.0 : upward::asinh_up(x); }
+  static inline double acosh_lo(double x) { return (x == 1.0) ? 0.0 : upward::acosh_dn(x); }
+  static inline double acosh_hi(double x) { return (x == 1.0) ? 0.0 : upward::acosh_up(x); }
+  static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : upward::atanh_dn(x); }
+  static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : upward::atanh_up(x); }
 
   /*
     \brief test for evenness
@@ -1274,7 +1275,7 @@ const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
   static inline double root_near(double d, double e)
   {
-    return root_is_itself(d) ? d : nthroot_up(d,e);
+    return root_is_itself(d) ? d : upward::nthroot_up(d,e);
   }
 
   // Rounding upward
@@ -2219,8 +2220,8 @@ interval nth_root(const interval& I, int q)
     // (GAOL v5)
     const double l = I.left(), r = I.right();
     GAOL_RND_ENTER();
-    const double u = (l == 0.0) ? 1.0 : exp_dn(l);
-    const double v = (r == 0.0) ? 1.0 : exp_up(r);
+    const double u = (l == 0.0) ? 1.0 : upward::exp_dn(l);
+    const double v = (r == 0.0) ? 1.0 : upward::exp_up(r);
     GAOL_RND_LEAVE();
     return interval(maximum(0.0,u), v);
   }
@@ -2945,6 +2946,8 @@ interval nth_root(const interval& I, int q)
   {
     // I is not empty, Il being the opposite of its left bound, as the SSE2
     // intervals store it, and Ir its right bound
+    // The only check of the rounding direction: nothing below changes it, and
+    // the bounds are computed with the functions of namespace upward (GAOL v5)
     GAOL_RND_ENTER();
     double a,b;
     double Ileft = -Il;
@@ -2977,7 +2980,6 @@ interval nth_root(const interval& I, int q)
     if (nm < 2.0) {
       // even(m)? No conversion to int in order to avoid overflow
       const bool even_m = feven(m);
-      GAOL_RND_ENTER();
       if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
 	u = sine ? sin_lo(Iright) : cos_lo(Iright);
 	v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
@@ -2985,7 +2987,6 @@ interval nth_root(const interval& I, int q)
 	u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
 	v = sine ? sin_hi(Iright) : cos_hi(Iright);
       }
-      GAOL_RND_LEAVE();
     } else {
       // The width of I, rounded upward: both extrema from 2 pi on, or for
       // infinite bounds
@@ -3017,7 +3018,6 @@ interval nth_root(const interval& I, int q)
       }
       const bool even_m = feven(m);
 
-      GAOL_RND_ENTER();
       // -1: a minimum within I; 1: a maximum; 0: none; 2: both
       int extremum;
       if (sure) {
@@ -3067,7 +3067,6 @@ interval nth_root(const interval& I, int q)
 	u = -1.0;
 	v = 1.0;
       }
-      GAOL_RND_LEAVE();
     }
     // The values of the mathematical library moved outward may leave [-1,1]
     // (GAOL v5)
