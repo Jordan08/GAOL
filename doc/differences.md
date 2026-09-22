@@ -173,6 +173,11 @@ where it comes from.
     `GAOL_PRESERVE_ROUNDING`: it set it back first, and `GAOL_RND_KEEP()`,
     which writes the bounds to memory so that they are computed before, came
     too late.
+  - **The bounds at doubles set the direction back**, with
+    `GAOL_PRESERVE_ROUNDING`: `exp_dn()`, `sin_up()` and the thirty others
+    of `gaol/gaol_double_op.h` saved the direction they found, but left it
+    upward, which the compilers only showed by warning that `_save_state` was
+    set but not used. `tests/rounding_direction.cpp` calls them.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with
