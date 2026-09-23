@@ -184,8 +184,9 @@ Codac.
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   be `interval(const char*)`, with one string and with two. The reading of
-  strings by four threads at once, where the reader, whose state is global,
-  crashed before it took a lock, is commented out: the tests run no thread
+  strings by four threads at once, where the reader, whose state was global,
+  crashed before its lexer became reentrant and its parser pure, is commented
+  out: the tests run no thread
   (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.

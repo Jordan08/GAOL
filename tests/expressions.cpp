@@ -496,9 +496,9 @@ namespace
 // #if GAOL_TESTS_THREADS
 //   /* Strings read by four threads at once, with the names of GAOL and with
 //      those of IEEE 1788-2015 (GAOL v5). The lexer of flex, the parser of bison
-//      and the state of GAOL's reader are globals: reading two strings at once
+//      and the state of GAOL's reader were globals: reading two strings at once
 //      crashed, "fatal flex scanner internal error" or a segmentation fault,
-//      before parse_interval() took a lock. */
+//      before the lexer became reentrant and the parser pure. */
 //   void reading_in_threads()
 //   {
 //     struct Reading { const char *text; bool standard; };

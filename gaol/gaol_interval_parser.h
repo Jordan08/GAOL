@@ -83,7 +83,7 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 344 "gaol_interval_parser.ypp"
+#line 360 "gaol_interval_parser.ypp"
 
   int i;
   double d;
@@ -100,8 +100,7 @@ typedef union YYSTYPE YYSTYPE;
 #endif
 
 
-extern YYSTYPE gaol_lval;
 
-int gaol_parse (void);
+int gaol_parse (void *scanner, void *context);
 
 #endif /* !YY_GAOL_Y_TAB_H_INCLUDED  */
