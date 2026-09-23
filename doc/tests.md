@@ -182,7 +182,10 @@ Codac.
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
-  be `interval(const char*)`, with one string and with two (GAOL v5). Each value is compared with the same computation written in C++,
+  be `interval(const char*)`, with one string and with two. Four threads have
+  to read strings at once, with the names of GAOL and with those of the
+  standard, and to get the intervals read in one thread: the reader, whose
+  state is global, crashed there before it took a lock (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,

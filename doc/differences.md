@@ -645,6 +645,18 @@ where it comes from.
   - **Tests.** `tests/expressions.cpp` reads each name of GAOL and refuses
     those of the standard alone, and `tests/ieee1788.cpp` reads each name of
     the standard and gives the empty set for those of GAOL alone.
+- **Several threads can read strings at once.** The lexer of flex keeps its
+  buffer and its position in globals, the parser of bison its token and its
+  value, and GAOL the interval read and the names of the functions: two
+  threads each building an interval from a string crashed, with "fatal flex
+  scanner internal error" or a segmentation fault. `parse_interval()`, which
+  `interval("...")`, `operator>>` and the two `textToInterval()` go through,
+  now reads one string at a time, under a `std::mutex`
+  (`gaol/gaol_parser.cpp`). Where the C++ library has no thread support
+  (MinGW-w64 with the win32 threads, before GCC 13), it has no `std::thread`
+  either, and there is no lock. `tests/expressions.cpp` reads strings in four
+  threads at once, with the names of GAOL and of the standard; it crashed each
+  time without the lock, and ThreadSanitizer reports nothing with it.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL

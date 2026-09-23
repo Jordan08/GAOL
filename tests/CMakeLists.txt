@@ -43,10 +43,12 @@ foreach(test ${GAOL_TESTS})
   add_test(NAME ${test} COMMAND gaol_test_${test})
 endforeach()
 
-# ieee1788 calls intervalToExact() in a thread of its own (std::thread), which
-# needs -pthread with the glibc before 2.34
+# ieee1788 calls intervalToExact() in a thread of its own (std::thread), and
+# expressions reads strings in four threads at once, which needs -pthread with
+# the glibc before 2.34
 find_package(Threads REQUIRED)
 target_link_libraries(gaol_test_ieee1788 PRIVATE Threads::Threads)
+target_link_libraries(gaol_test_expressions PRIVATE Threads::Threads)
 
 # The time per operation of GAOL and of the same operation on doubles, which
 # the continuous integration prints: not a test ctest runs

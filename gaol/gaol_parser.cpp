@@ -32,6 +32,13 @@
 #include <cstring>
 #include <cctype>
 #include <exception>
+// std::mutex, which libstdc++ has only when built with a thread model: without
+// one (MinGW-w64 with the win32 threads, before GCC 13), there are no
+// std::thread either, and nothing to lock
+#if !defined(__GLIBCXX__) || defined(_GLIBCXX_HAS_GTHREADS)
+#  include <mutex>
+#  define GAOL_PARSING_LOCK 1
+#endif
 
 using std::istream;
 
@@ -48,10 +55,29 @@ extern int gaol_parse(void);
 extern std::exception_ptr gaol_parsing_exception;
 extern gaol::parsing_names gaol_parsing_names;
 
+#if GAOL_PARSING_LOCK
+namespace {
+  /*
+    One string read at a time (GAOL v5). The lexer of flex keeps its buffer
+    and its position in globals, the parser of bison its token and its value,
+    and GAOL the interval read, the success of the reading, the exception an
+    action raised and the names of the functions: two threads reading a string
+    each at once crashed, "fatal flex scanner internal error" or a
+    segmentation fault. interval(const char*), operator>>, and the
+    textToInterval() of gaol and of gaol_ieee1788 all go through
+    parse_interval(), which holds this lock while it reads.
+  */
+  std::mutex gaol_parsing_mutex;
+}
+#endif
+
 namespace gaol {
 
   bool parse_interval(const char* const s, interval& out, parsing_names names)
   {
+#if GAOL_PARSING_LOCK
+    std::lock_guard<std::mutex> lock(gaol_parsing_mutex);
+#endif
     interval itv;
     gaol_parsing_exception = nullptr;
     // The names of the functions the lexer looks up (GAOL v5)
