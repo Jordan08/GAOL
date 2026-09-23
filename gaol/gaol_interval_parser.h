@@ -55,35 +55,13 @@ extern int gaol_debug;
     DMIN_STR = 261,
     DMAX_STR = 262,
     PI_STR = 263,
-    EXP_STR = 264,
-    LOG_STR = 265,
-    POW_STR = 266,
-    NTH_ROOT_STR = 267,
-    SQRT_STR = 268,
-    EXP2_STR = 269,
-    LOG2_STR = 270,
-    CBRT_STR = 271,
-    SIGN_STR = 272,
-    TRUNC_STR = 273,
-    COS_STR = 274,
-    SIN_STR = 275,
-    TAN_STR = 276,
-    ATAN2_STR = 277,
-    COSH_STR = 278,
-    SINH_STR = 279,
-    TANH_STR = 280,
-    ACOS_STR = 281,
-    ASIN_STR = 282,
-    ATAN_STR = 283,
-    ACOSH_STR = 284,
-    ASINH_STR = 285,
-    ATANH_STR = 286,
-    UNEXPECTED_CHAR = 287,
-    NUMBER = 288,
-    INTERVAL_CST = 289,
-    UNCERTAIN_CST = 290,
-    UMINUS = 291,
-    UPLUS = 292
+    FUNCTION_NAME = 264,
+    UNEXPECTED_CHAR = 265,
+    NUMBER = 266,
+    INTERVAL_CST = 267,
+    UNCERTAIN_CST = 268,
+    UMINUS = 269,
+    UPLUS = 270
   };
 #endif
 /* Tokens.  */
@@ -93,48 +71,27 @@ extern int gaol_debug;
 #define DMIN_STR 261
 #define DMAX_STR 262
 #define PI_STR 263
-#define EXP_STR 264
-#define LOG_STR 265
-#define POW_STR 266
-#define NTH_ROOT_STR 267
-#define SQRT_STR 268
-#define EXP2_STR 269
-#define LOG2_STR 270
-#define CBRT_STR 271
-#define SIGN_STR 272
-#define TRUNC_STR 273
-#define COS_STR 274
-#define SIN_STR 275
-#define TAN_STR 276
-#define ATAN2_STR 277
-#define COSH_STR 278
-#define SINH_STR 279
-#define TANH_STR 280
-#define ACOS_STR 281
-#define ASIN_STR 282
-#define ATAN_STR 283
-#define ACOSH_STR 284
-#define ASINH_STR 285
-#define ATANH_STR 286
-#define UNEXPECTED_CHAR 287
-#define NUMBER 288
-#define INTERVAL_CST 289
-#define UNCERTAIN_CST 290
-#define UMINUS 291
-#define UPLUS 292
+#define FUNCTION_NAME 264
+#define UNEXPECTED_CHAR 265
+#define NUMBER 266
+#define INTERVAL_CST 267
+#define UNCERTAIN_CST 268
+#define UMINUS 269
+#define UPLUS 270
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 165 "gaol_interval_parser.ypp"
+#line 344 "gaol_interval_parser.ypp"
 
   int i;
   double d;
   Interval_struct itv;
   expr_node* expr;
+  const void* fn;
 
-#line 138 "y.tab.h"
+#line 95 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

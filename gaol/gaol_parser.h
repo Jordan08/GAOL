@@ -79,8 +79,15 @@ namespace gaol {
     (resp. right) bound.
 
     \note The out interval is not modified whenever an error occur.
+
+    The names of the functions are those of GAOL, or those of IEEE 1788-2015
+    with parsing_names::ieee1788 (GAOL v5): gaol::textToInterval() and
+    gaol_ieee1788::textToInterval() read a string with the names of their
+    namespace, as pow is the pow of each.
   */
-  extern __GAOL_PUBLIC__ bool parse_interval(const char* const s, gaol_core::interval& out);
+  enum class parsing_names { gaol, ieee1788 };
+  extern __GAOL_PUBLIC__ bool parse_interval(const char* const s, gaol_core::interval& out,
+                                             parsing_names names = parsing_names::gaol);
 
 } // namespace gaol
 

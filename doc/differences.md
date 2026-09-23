@@ -623,6 +623,28 @@ where it comes from.
   - **Tests.** `tests/expressions.cpp` reads the strings GAOL refused, checks
     that an error anywhere stops the reading, and prints both expressions; 9 of
     its checks fail with the two grammars.
+- **The reader of strings knows every function of GAOL, and those of IEEE
+  1788-2015 under their names.** The lexer takes a name as a whole and looks it
+  up in a table of names, rather than in a token of the grammar for each of the
+  23 functions GAOL read (`gaol/gaol_interval_parser.ypp`).
+  - **The names of GAOL.** `interval("...")`, `operator>>` and
+    `gaol::textToInterval()`, which is new, with the two-string form of the
+    constructor as `textToInterval(sl, sr)`, read all the functions of GAOL on
+    intervals: `exp10`, `log10`, `expm1`, `log1p`, `hypot`, `rsqrt`, `sinpi`,
+    `atan2pi`, `sqr`, `abs`, `min`, `max`, `floor`, `integer`, `inverse`, `fma`
+    and the others, which GAOL did not read.
+  - **The names of the standard.** `gaol_ieee1788::textToInterval()` reads the
+    names of Tables 9.1 and 10.5 (`pown`, `rootn`, `recip`, `logp1`, `rSqrt`,
+    `sinPi`, `roundTiesToEven`...), whose `pow` is the pow of the standard. It
+    read those of GAOL: `textToInterval("pow([-4,-1],2)")` was [1, 16], where
+    `gaol_ieee1788::pow([-4,-1], 2)` is the empty set, and `pown`, `rootn` and
+    `sinPi` gave the empty set. As for `pow`, a program calls the
+    `textToInterval` of the namespace it opens.
+  - **Calls.** A call is computed when it is read and gives a leaf of the
+    tree; a wrong number of arguments throws `input_format_error`.
+  - **Tests.** `tests/expressions.cpp` reads each name of GAOL and refuses
+    those of the standard alone, and `tests/ieee1788.cpp` reads each name of
+    the standard and gives the empty set for those of GAOL alone.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL

@@ -154,8 +154,13 @@ standard:
   with this `pown` and this `pow`;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
-- `textToInterval` returns the empty set for a string that is no interval
-  literal, where GAOL's constructor throws.
+- `textToInterval` reads the names of the functions of the standard, those of
+  Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
+  `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
+  empty set for a string that is no interval, a name of GAOL alone
+  (`nth_root`, `cbrt`, `log1p`...) included. `gaol::textToInterval`, which is
+  `interval(const char*)`, reads the names of GAOL and throws: as for `pow`, a
+  program calls the one of the namespace it opens.
 
 A name of the program's own that one of the standard shadows, a constant `inf`
 for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`

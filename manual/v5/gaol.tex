@@ -1123,8 +1123,11 @@ One can create an interval in six different ways:
   exception support, which the CMake build always is; in the absence of exception
   support, the \code{errno} variable is set to \code{-1}, and the
   \code{gaol\_error()} function prints an error message before the program
-  aborts (\pxref{chap:errors}). The function \code{textToInterval()} of
-  \code{gaol\_ieee1788} returns the empty set instead (Chapter~\ref{chap:ieee1788});
+  aborts (\pxref{chap:errors}). \code{textToInterval(\var{s})} of the namespace
+  \code{gaol} is the same constructor, under the name IEEE 1788-2015 gives
+  it;\newinvfive{} the \code{textToInterval()} of \code{gaol\_ieee1788} reads
+  the names of the functions of the standard, and returns the empty set
+  instead (Chapter~\ref{chap:ieee1788});
 \item by using a string representing an interval in the same format as the one used for input
   (\pxref{sec:input-format}) for each bound: the left bound of the first one
   and the right bound of the second one are taken.
@@ -1133,6 +1136,8 @@ One can create an interval in six different ways:
  @rem^// constructs x=[-4,4]~
  interval x("[-5,4]+1","[4,6]-[2,3]");
   \end{example}
+  \code{textToInterval(\var{sl}, \var{sr})} of the namespace \code{gaol} is
+  this constructor.
 \end{itemize}
 
 \paragraph{Caution.} you have to be very careful when creating an interval
@@ -2606,7 +2611,7 @@ cout << cancel_minus(interval(1,5), interval(0,2)) << ' '
 \end{deffun}
 
 
-\chapter{Interval functions}
+\chapter{Interval functions}\label{chap:functions}
 %%==========================
 
 The numeric functions of IEEE 1788-2015 (Table 10.2, 12.12.8) are those of this
@@ -3031,17 +3036,9 @@ syntax (with terminals in lower case and non-terminals in slanted upper case):
 	;
 
 @NT^function_call~
-	: @TM^cos~ @TM^(~ @NT^expr~ @TM^)~   | @TM^sin~ @TM^(~ @NT^expr~ @TM^)~   | @TM^tan~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^acos~ @TM^(~ @NT^expr~ @TM^)~  | @TM^asin~ @TM^(~ @NT^expr~ @TM^)~  | @TM^atan~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^atan2~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
-	| @TM^cosh~ @TM^(~ @NT^expr~ @TM^)~  | @TM^sinh~ @TM^(~ @NT^expr~ @TM^)~  | @TM^tanh~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^acosh~ @TM^(~ @NT^expr~ @TM^)~ | @TM^asinh~ @TM^(~ @NT^expr~ @TM^)~ | @TM^atanh~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^exp~ @TM^(~ @NT^expr~ @TM^)~   | @TM^exp2~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^log~ @TM^(~ @NT^expr~ @TM^)~   | @TM^log2~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^pow~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
-	| @TM^sqrt~ @TM^(~ @NT^expr~ @TM^)~  | @TM^cbrt~ @TM^(~ @NT^expr~ @TM^)~
-	| @TM^nth_root~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
-	| @TM^sign~ @TM^(~ @NT^expr~ @TM^)~  | @TM^trunc~ @TM^(~ @NT^expr~ @TM^)~
+	: @NT^name~ @TM^(~ @NT^expr~ @TM^)~
+	| @NT^name~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
+	| @NT^name~ @TM^(~ @NT^expr~ @TM^,~ @NT^expr~ @TM^,~ @NT^expr~ @TM^)~
 	;
 \end{Verbatim}
 
@@ -3081,16 +3078,40 @@ bound: \code{"[5?1]"} and \code{"[1, 3.56?1]"} throw \code{input\_format\_error}
 as IEEE 1788-2015 has it (12.11.4), while \code{"3.56?1*2"} is
 \itv{7.1}{7.14}.
 
-\paragraph{Functions.} The functions are those of GAOL of the same names;
-\code{pow} is the \code{pow} of the namespace \code{gaol} (\pxref{sec:powers}),
-\code{cbrt(x)} is \code{nth\_root(x,3)}, as \code{sqrt(x)} is
-\code{nth\_root(x,2)}. The second argument of \code{nth\_root} shall be a point
-interval that can be evaluated as an integer, negative ones included; otherwise,
-an \element{invalid\_action\_error} exception is thrown (or an error is
-reported, depending on whether exceptions were enabled or not at configuration
-time---\pxref{sec:configuration}).
-\code{exp2}, \code{log2}, \code{cbrt}, \code{sign} and \code{trunc} are read
-since GAOL v5.
+\paragraph{Functions.} A \NT{name} is the name of a function of GAOL, with
+its arguments, whatever the case of its letters: \code{interval(const char*)},
+\code{gaol::textToInterval()} and \code{operator>{}>} read the names of
+GAOL, and \code{gaol\_ieee1788::textToInterval()} those of IEEE 1788-2015
+(\pxref{sec:ieee1788-text}), as each namespace has its own
+\code{pow}.\newinvfive{} The names of GAOL are:
+
+\begin{center}\small
+\begin{tabular}{L{11cm}}
+\code{sqr}, \code{sqrt}, \code{cbrt}, \code{pow}, \code{nth\_root}, \code{exp},
+\code{exp2}, \code{exp10}, \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log},
+\code{log2}, \code{log10}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{sin},
+\code{cos}, \code{tan}, \code{asin}, \code{acos}, \code{atan}, \code{atan2},
+\code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh},
+\code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi},
+\code{atanpi}, \code{atan2pi}, \code{hypot}, \code{rsqrt}, \code{sign}, \code{ceil},
+\code{floor}, \code{trunc}, \code{integer}, \code{round\_ties\_to\_even},
+\code{round\_ties\_to\_away}, \code{abs}, \code{min}, \code{max}, \code{inverse},
+\code{fma}\\
+\end{tabular}
+\end{center}
+
+\noindent
+Each is the function of GAOL of that name (Chapters~\ref{chap:arithmetic}
+and~\ref{chap:functions}); \code{pow} is the \code{pow} of the namespace \code{gaol}
+(\pxref{sec:powers}), and \code{cbrt(x)} is \code{nth\_root(x,3)}. A name that
+is not in the list, or a call with a wrong number of arguments, throws
+\element{input\_format\_error}. The second argument of \code{nth\_root} shall
+be a point interval that can be evaluated as an integer, negative ones
+included; otherwise, an \element{invalid\_action\_error} exception is thrown
+(or an error is reported, depending on whether exceptions were enabled or not
+at configuration time---\pxref{sec:configuration}). GAOL~4 read the
+trigonometric and hyperbolic functions, \code{exp}, \code{log}, \code{pow},
+\code{sqrt} and \code{nth\_root} only.
 
 \paragraph{Bounds.} The notations "$n$" and "[$n$]" are equivalent. Expressions
 in bounds are evaluated using interval arithmetic, intervals included; the left
@@ -3430,9 +3451,10 @@ The functions of GAOL that have the name and the meaning the standard gives them
   set (Table 10.2), where \code{left()} and \code{right()} are NaN, and
   \code{inf} returns $-0$ for a left bound 0 (12.12.8);
 \item \code{isMember(m, x)} is \code{false} for an infinite $m$ (10.6.3);
-\item \code{textToInterval} and \code{exactToInterval} return the empty set for
-  a string that is no interval literal (12.1.3), where the constructor of GAOL
-  throws;
+\item \code{textToInterval} and \code{exactToInterval} read the names of the
+  functions of the standard, and return the empty set for a string that is no
+  interval (12.1.3), where \code{gaol::textToInterval} and the constructor of
+  GAOL read the names of GAOL and throw (\pxref{sec:ieee1788-text});
 \item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
   $p\leq0$, which GAOL does not provide, rather than give an interval it has
   not computed.
@@ -3466,7 +3488,7 @@ The last argument $x$ of the reverse functions is optional, and
   \multicolumn{2}{l}{\textit{Constants and constructors (10.5.2, 10.5.8)}}\\
   \code{empty()}, \code{entire()} & \code{interval::emptyset()}, \code{interval::universe()}\\
   \code{numsToInterval(l, u)} & \code{interval(l, u)}\\
-  \code{textToInterval(s)} & \code{interval(s)}, the empty set for a wrong string\\
+  \code{textToInterval(s)} & \code{interval(s)} with the names of the standard, the empty set for a wrong string\\
   \hline
   \multicolumn{2}{l}{\textit{Forward elementary functions (Table 9.1)}}\\
   \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} & \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
@@ -3524,6 +3546,50 @@ The last argument $x$ of the reverse functions is optional, and
   \code{pown(e, n)}, \code{pow(e1, e2)} & the expressions of \code{pown} and of the \ieee{pow} of the standard\\
 \end{longtable}
 \endgroup
+
+\section{Reading with the names of the standard}\label{sec:ieee1788-text}
+%%-----------------------------------------------
+
+\code{textToInterval(\var{s})} reads a string as \code{interval(const char*)}
+does (\pxref{sec:input-format}), with the names of the functions of IEEE
+1788-2015: those of Tables 9.1 and 10.5 that GAOL provides, whatever the case
+of their letters.\newinvfive
+
+\begin{center}\small
+\begin{tabular}{L{11cm}}
+\code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div}, \code{recip},
+\code{sqr}, \code{sqrt}, \code{fma}, \code{pown}, \code{pow}, \code{exp},
+\code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10}, \code{sin},
+\code{cos}, \code{tan}, \code{asin}, \code{acos}, \code{atan}, \code{atan2},
+\code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh},
+\code{sign}, \code{ceil}, \code{floor}, \code{trunc}, \code{roundTiesToEven},
+\code{roundTiesToAway}, \code{abs}, \code{min}, \code{max}, \code{rootn},
+\code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{logp1}, \code{log2p1},
+\code{log10p1}, \code{hypot}, \code{rSqrt}, \code{sinPi}, \code{cosPi},
+\code{tanPi}, \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi}\\
+\end{tabular}
+\end{center}
+
+\noindent
+\code{pow} is the \ieee{pow} of Table 9.1, and the second argument of
+\code{pown} and \code{rootn} is an integer. The names of GAOL alone
+(\code{nth\_root}, \code{cbrt}, \code{inverse}, \code{integer}, \code{log1p},
+\code{round\_ties\_to\_even}\ldots) are no functions there, and give the
+empty set, as any string that is no interval. As \code{pow}, the function
+\code{textToInterval} is in the namespace \code{gaol} too, where it reads the
+names of GAOL and throws \code{input\_format\_error} for a wrong string: a
+program calls the one of the namespace it opens.
+
+\begin{example}
+cout << textToInterval("pown([2,5],5)") << ' '
+     << textToInterval("pow([-4,-1],2)") << ' '
+     << textToInterval("nth_root(8,3)") << endl;
+@outputs^[32, 3125] [empty] [empty]~
+\end{example}
+
+\noindent
+With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
+\itv{1}{16}, and \code{textToInterval("pown([2,5],5)")} throws.
 
 \section{What is not provided}
 %%----------------------------
@@ -4383,7 +4449,9 @@ change with its reasons and its measures.
   IEEE 1788-2015 are read, in any case of letters; \code{"[inf]"} is the empty
   set. Every string is an expression, where an interval may stand wherever a
   number may (\code{"1+[1,2]"}), an uncertain number being no bound
-  (\code{"[5?1]"} is refused), and an error anywhere stops the reading. The format \code{hexa} writes interval literals, which are read back bit
+  (\code{"[5?1]"} is refused), and an error anywhere stops the reading. The
+  reader knows every function of GAOL, and \code{gaol\_ieee1788::textToInterval}
+  reads the names of IEEE 1788-2015 (\code{pown}, \code{rootn}\ldots). The format \code{hexa} writes interval literals, which are read back bit
   for bit; the decimal formats round the bounds outward whatever the C
   library, and the format \code{agreeing} keeps the digits of each bound
   (Chapter~\ref{chap:io}).

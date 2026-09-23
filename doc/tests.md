@@ -126,7 +126,11 @@ Codac.
   number; the functions of C on numbers, by `static_assert`.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
   to leave the global output format alone, which a second thread writing
-  intervals meanwhile checks (GAOL v5).
+  intervals meanwhile checks. `textToInterval` has to read each name of
+  Tables 9.1 and 10.5 as the function of that name, in any case of letters,
+  `pow([-4,-1],2)` being the empty set, and to give the empty set for the
+  names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
+  wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -173,7 +177,12 @@ Codac.
   1/x<sup>1/|q|</sup>, alone and in a bound: the reader converted it to an
   unsigned int (GAOL v5). The expressions built in C++ go through every node
   too, `pow(e, 3)` included, which did not link, and have to be printed as
-  written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5). Each value is compared with the same computation written in C++,
+  written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
+  Every function of GAOL has to be read under its name, those the reader did
+  not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
+  1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
+  number of arguments have to be refused, and `gaol::textToInterval` has to
+  be `interval(const char*)`, with one string and with two (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,

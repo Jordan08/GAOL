@@ -30,6 +30,9 @@
 #include "gaol/gaol_expr_eval.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
+#include "gaol/gaol_ieee1788.h"
+#include "gaol/gaol_parser.h"
+#include <cctype>
 
 #undef yyerror
 #define yyerror gaol_error_bison
@@ -160,6 +163,182 @@ static bool gaol_uncertain_bound(expr_node *e)
     "an uncertain number is no bound of an interval literal (IEEE 1788-2015, 12.11)");
   return true;
 }
+
+/*
+  The functions a string calls, by their names (GAOL v5)
+
+  A string is read with the names of GAOL, by interval(const char*),
+  gaol::textToInterval() and operator>>, or with the names of IEEE 1788-2015,
+  by gaol_ieee1788::textToInterval(), as a program opens the namespace gaol or
+  gaol_ieee1788: parse_interval() sets gaol_parsing_names. The lexer looks each
+  name up in the table of those names, whatever the case of its letters, and
+  a name that is not in it is an error: nth_root(8,3) is read with the names
+  of GAOL, rootn(8,3) with those of the standard, and pow(x,y) is the pow of
+  the namespace of the names, gaol_pow_hybrid() or the pow of Table 9.1.
+
+  Each name gives a function of intervals of one, two or three arguments, or
+  of an interval and an int, whose second argument has to be an integer. A
+  call is computed when it is read, its arguments being computed then too,
+  and gives a leaf of the tree, as a literal does: GAOL built a node of
+  gaol/gaol_expression.h for each of its functions, and read no other.
+*/
+::gaol::parsing_names gaol_parsing_names = ::gaol::parsing_names::gaol;
+
+struct gaol_function {
+  const char *name;
+  unsigned int arity;
+  interval (*f1)(const interval&);
+  interval (*f2)(const interval&, const interval&);
+  interval (*f3)(const interval&, const interval&, const interval&);
+  interval (*fn)(const interval&, int);
+};
+
+typedef interval (*gaol_f1)(const interval&);
+typedef interval (*gaol_f2)(const interval&, const interval&);
+typedef interval (*gaol_fn)(const interval&, int);
+#define GAOL_F1(name, f) { name, 1, static_cast<gaol_f1>(f), 0, 0, 0 }
+#define GAOL_F2(name, f) { name, 2, 0, static_cast<gaol_f2>(f), 0, 0 }
+#define GAOL_FN(name, f) { name, 2, 0, 0, 0, static_cast<gaol_fn>(f) }
+
+// cbrt(x) is nth_root(x,3), as sqrt(x) is nth_root(x,2)
+static interval gaol_cbrt(const interval& x)
+{
+  return ::gaol_core::nth_root(x, 3);
+}
+
+/* The names of GAOL: its functions of intervals, the functions of Tables 9.1
+   and 10.5 of IEEE 1788-2015 under GAOL's names, and cbrt, integer and
+   inverse. pow is gaol::pow, gaol_pow_hybrid(), which takes gaol_pown() for an
+   exponent that is an integer: the parser took 1/x^|n| for n < 0, whose x^|n|
+   overflowed, and 1 for n = 0, which is no value for an empty x. nth_root(x,
+   q) takes an int q, which may be negative: rootn(x, q) of IEEE 1788-2015 */
+static const gaol_function gaol_functions[] = {
+  GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt), GAOL_F1("cbrt", gaol_cbrt),
+  GAOL_F2("pow", ::gaol_core::gaol_pow_hybrid), GAOL_FN("nth_root", ::gaol_core::nth_root),
+  GAOL_F1("exp", ::gaol_core::exp), GAOL_F1("exp2", ::gaol_core::exp2), GAOL_F1("exp10", ::gaol_core::exp10),
+  GAOL_F1("expm1", ::gaol_core::expm1), GAOL_F1("exp2m1", ::gaol_core::exp2m1),
+  GAOL_F1("exp10m1", ::gaol_core::exp10m1),
+  GAOL_F1("log", ::gaol_core::log), GAOL_F1("log2", ::gaol_core::log2), GAOL_F1("log10", ::gaol_core::log10),
+  GAOL_F1("log1p", ::gaol_core::log1p), GAOL_F1("log2p1", ::gaol_core::log2p1),
+  GAOL_F1("log10p1", ::gaol_core::log10p1),
+  GAOL_F1("sin", ::gaol_core::sin), GAOL_F1("cos", ::gaol_core::cos), GAOL_F1("tan", ::gaol_core::tan),
+  GAOL_F1("asin", ::gaol_core::asin), GAOL_F1("acos", ::gaol_core::acos), GAOL_F1("atan", ::gaol_core::atan),
+  GAOL_F2("atan2", ::gaol_core::atan2),
+  GAOL_F1("sinh", ::gaol_core::sinh), GAOL_F1("cosh", ::gaol_core::cosh), GAOL_F1("tanh", ::gaol_core::tanh),
+  GAOL_F1("asinh", ::gaol_core::asinh), GAOL_F1("acosh", ::gaol_core::acosh),
+  GAOL_F1("atanh", ::gaol_core::atanh),
+  GAOL_F1("sinpi", ::gaol_core::sinpi), GAOL_F1("cospi", ::gaol_core::cospi), GAOL_F1("tanpi", ::gaol_core::tanpi),
+  GAOL_F1("asinpi", ::gaol_core::asinpi), GAOL_F1("acospi", ::gaol_core::acospi),
+  GAOL_F1("atanpi", ::gaol_core::atanpi), GAOL_F2("atan2pi", ::gaol_core::atan2pi),
+  GAOL_F2("hypot", ::gaol_core::hypot), GAOL_F1("rsqrt", ::gaol_core::rsqrt),
+  GAOL_F1("sign", ::gaol_core::sign), GAOL_F1("ceil", ::gaol_core::ceil), GAOL_F1("floor", ::gaol_core::floor),
+  GAOL_F1("trunc", ::gaol_core::trunc), GAOL_F1("integer", ::gaol_core::integer),
+  GAOL_F1("round_ties_to_even", ::gaol_core::round_ties_to_even),
+  GAOL_F1("round_ties_to_away", ::gaol_core::round_ties_to_away),
+  GAOL_F1("abs", ::gaol_core::abs), GAOL_F2("min", ::gaol_core::min), GAOL_F2("max", ::gaol_core::max),
+  GAOL_F1("inverse", ::gaol_core::inverse),
+  { "fma", 3, 0, 0, ::gaol_core::fma, 0 },
+};
+
+/* The names of IEEE 1788-2015: the functions of Tables 9.1 and 10.5 that
+   GAOL provides, as gaol_ieee1788 names them. pow is the pow of Table 9.1,
+   pown(x, p) the power with an integer exponent, rootn(x, q) the root */
+static const gaol_function ieee1788_functions[] = {
+  GAOL_F1("neg", ::gaol_ieee1788::neg), GAOL_F2("add", ::gaol_ieee1788::add),
+  GAOL_F2("sub", ::gaol_ieee1788::sub), GAOL_F2("mul", ::gaol_ieee1788::mul),
+  GAOL_F2("div", ::gaol_ieee1788::div), GAOL_F1("recip", ::gaol_ieee1788::recip),
+  GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt),
+  { "fma", 3, 0, 0, ::gaol_core::fma, 0 },
+  GAOL_FN("pown", ::gaol_ieee1788::pown), GAOL_F2("pow", ::gaol_ieee1788::pow),
+  GAOL_F1("exp", ::gaol_core::exp), GAOL_F1("exp2", ::gaol_core::exp2), GAOL_F1("exp10", ::gaol_core::exp10),
+  GAOL_F1("log", ::gaol_core::log), GAOL_F1("log2", ::gaol_core::log2), GAOL_F1("log10", ::gaol_core::log10),
+  GAOL_F1("sin", ::gaol_core::sin), GAOL_F1("cos", ::gaol_core::cos), GAOL_F1("tan", ::gaol_core::tan),
+  GAOL_F1("asin", ::gaol_core::asin), GAOL_F1("acos", ::gaol_core::acos), GAOL_F1("atan", ::gaol_core::atan),
+  GAOL_F2("atan2", ::gaol_core::atan2),
+  GAOL_F1("sinh", ::gaol_core::sinh), GAOL_F1("cosh", ::gaol_core::cosh), GAOL_F1("tanh", ::gaol_core::tanh),
+  GAOL_F1("asinh", ::gaol_core::asinh), GAOL_F1("acosh", ::gaol_core::acosh),
+  GAOL_F1("atanh", ::gaol_core::atanh),
+  GAOL_F1("sign", ::gaol_core::sign), GAOL_F1("ceil", ::gaol_core::ceil), GAOL_F1("floor", ::gaol_core::floor),
+  GAOL_F1("trunc", ::gaol_core::trunc),
+  GAOL_F1("roundTiesToEven", ::gaol_ieee1788::roundTiesToEven),
+  GAOL_F1("roundTiesToAway", ::gaol_ieee1788::roundTiesToAway),
+  GAOL_F1("abs", ::gaol_core::abs), GAOL_F2("min", ::gaol_core::min), GAOL_F2("max", ::gaol_core::max),
+  GAOL_FN("rootn", ::gaol_ieee1788::rootn),
+  GAOL_F1("expm1", ::gaol_core::expm1), GAOL_F1("exp2m1", ::gaol_core::exp2m1),
+  GAOL_F1("exp10m1", ::gaol_core::exp10m1),
+  GAOL_F1("logp1", ::gaol_ieee1788::logp1), GAOL_F1("log2p1", ::gaol_core::log2p1),
+  GAOL_F1("log10p1", ::gaol_core::log10p1),
+  GAOL_F2("hypot", ::gaol_core::hypot), GAOL_F1("rSqrt", ::gaol_ieee1788::rSqrt),
+  GAOL_F1("sinPi", ::gaol_ieee1788::sinPi), GAOL_F1("cosPi", ::gaol_ieee1788::cosPi),
+  GAOL_F1("tanPi", ::gaol_ieee1788::tanPi), GAOL_F1("asinPi", ::gaol_ieee1788::asinPi),
+  GAOL_F1("acosPi", ::gaol_ieee1788::acosPi), GAOL_F1("atanPi", ::gaol_ieee1788::atanPi),
+  GAOL_F2("atan2Pi", ::gaol_ieee1788::atan2Pi),
+};
+
+// The function of a name, whatever the case of its letters, in the table of
+// the names the string is read with; 0 for a name that is not in it
+const void *gaol_lookup_function(const char *name)
+{
+  const bool ieee1788 = (gaol_parsing_names == ::gaol::parsing_names::ieee1788);
+  const gaol_function *table = ieee1788 ? ieee1788_functions : gaol_functions;
+  const std::size_t size = ieee1788 ? sizeof(ieee1788_functions)/sizeof(gaol_function)
+                                    : sizeof(gaol_functions)/sizeof(gaol_function);
+  for (std::size_t i = 0; i < size; ++i) {
+    const char *a = table[i].name, *b = name;
+    while (*a != '\0' && *b != '\0'
+           && std::tolower(static_cast<unsigned char>(*a)) == std::tolower(static_cast<unsigned char>(*b))) {
+      ++a;
+      ++b;
+    }
+    if (*a == '\0' && *b == '\0') {
+      return &table[i];
+    }
+  }
+  return 0;
+}
+
+/*
+  The call of the function fn on the n expressions given, which it releases:
+  the leaf of its value, or 0 for an error, which the parsing aborts with.
+  A wrong number of arguments is an input_format_error, and a second argument
+  that is no integer, where it has to be one, an invalid_action_error.
+*/
+static expr_node *gaol_call(const void *fn, unsigned int n, expr_node *a, expr_node *b, expr_node *c)
+{
+  const gaol_function *f = static_cast<const gaol_function*>(fn);
+  expr_node *result = 0;
+  try {
+    if (f->arity != n) {
+      const std::string msg = std::string(f->name) + " called with a wrong number of arguments";
+      GAOL_PARSING_ERROR(input_format_error, msg.c_str());
+    } else if (f->fn != 0) {
+      const interval q = gaol_value(b);
+      if (!q.is_an_int()) {
+        const std::string msg = std::string(f->name) + " used with non integral 2nd arg.";
+        GAOL_PARSING_ERROR(invalid_action_error, msg.c_str());
+      } else {
+        result = gaol_leaf(f->fn(gaol_value(a), static_cast<int>(q.left())));
+      }
+    } else if (n == 1) {
+      result = gaol_leaf(f->f1(gaol_value(a)));
+    } else if (n == 2) {
+      result = gaol_leaf(f->f2(gaol_value(a), gaol_value(b)));
+    } else {
+      result = gaol_leaf(f->f3(gaol_value(a), gaol_value(b), gaol_value(c)));
+    }
+  } catch (...) {
+    gaol_parsing_exception = std::current_exception();
+    result = 0;
+  }
+  gaol_release(a);
+  if (b != 0) {
+    gaol_release(b);
+  }
+  if (c != 0) {
+    gaol_release(c);
+  }
+  return result;
+}
 %}
 
 %union {
@@ -167,19 +346,14 @@ static bool gaol_uncertain_bound(expr_node *e)
   double d;
   Interval_struct itv;
   expr_node* expr;
+  const void* fn;
 }
 
 
 %token EMPTY_STR ENTIRE_STR INFINITY_STR DMIN_STR DMAX_STR PI_STR
-%token EXP_STR LOG_STR POW_STR NTH_ROOT_STR SQRT_STR
-/* The functions GAOL v5 adds to the reader: the exponential and the
-   logarithm in base 2, the cube root, and two of the integer functions of
-   IEEE 1788-2015 (Table 9.1) */
-%token EXP2_STR LOG2_STR CBRT_STR SIGN_STR TRUNC_STR
-%token COS_STR SIN_STR TAN_STR ATAN2_STR
-%token COSH_STR SINH_STR TANH_STR
-%token ACOS_STR ASIN_STR ATAN_STR
-%token ACOSH_STR ASINH_STR ATANH_STR
+/* A name of function, whose value is its entry in the table of the names
+   the string is read with (GAOL v5): GAOL had a token for each function */
+%token<fn> FUNCTION_NAME
 %token UNEXPECTED_CHAR
 %token<d> NUMBER
 %token<itv> INTERVAL_CST UNCERTAIN_CST
@@ -289,61 +463,11 @@ literal
 	;
 
 function_call
-	: COS_STR '(' expression ')'			{ $$ = gaol_node(new cos_node(*$3)); gaol_release($3); }
-	| SIN_STR '(' expression ')'			{ $$ = gaol_node(new sin_node(*$3)); gaol_release($3); }
-	| TAN_STR '(' expression ')'			{ $$ = gaol_node(new tan_node(*$3)); gaol_release($3); }
-	| ATAN2_STR '(' expression ',' expression ')'	{ $$ = gaol_node(new atan2_node(*$3,*$5));
-							  gaol_release($3); gaol_release($5); }
-	| ACOS_STR '(' expression ')'			{ $$ = gaol_node(new acos_node(*$3)); gaol_release($3); }
-	| ASIN_STR '(' expression ')'			{ $$ = gaol_node(new asin_node(*$3)); gaol_release($3); }
-	| ATAN_STR '(' expression ')'			{ $$ = gaol_node(new atan_node(*$3)); gaol_release($3); }
-	| COSH_STR '(' expression ')'			{ $$ = gaol_node(new cosh_node(*$3)); gaol_release($3); }
-	| SINH_STR '(' expression ')'			{ $$ = gaol_node(new sinh_node(*$3)); gaol_release($3); }
-	| TANH_STR '(' expression ')'			{ $$ = gaol_node(new tanh_node(*$3)); gaol_release($3); }
-	| ACOSH_STR '(' expression ')'			{ $$ = gaol_node(new acosh_node(*$3)); gaol_release($3); }
-	| ASINH_STR '(' expression ')'			{ $$ = gaol_node(new asinh_node(*$3)); gaol_release($3); }
-	| ATANH_STR '(' expression ')'			{ $$ = gaol_node(new atanh_node(*$3)); gaol_release($3); }
-	| EXP_STR '(' expression ')'			{ $$ = gaol_node(new exp_node(*$3)); gaol_release($3); }
-	| LOG_STR '(' expression ')'			{ $$ = gaol_node(new log_node(*$3)); gaol_release($3); }
-	| EXP2_STR '(' expression ')'			{ $$ = gaol_node(new exp2_node(*$3)); gaol_release($3); }
-	| LOG2_STR '(' expression ')'			{ $$ = gaol_node(new log2_node(*$3)); gaol_release($3); }
-	| SIGN_STR '(' expression ')'			{ $$ = gaol_node(new sign_node(*$3)); gaol_release($3); }
-	| TRUNC_STR '(' expression ')'			{ $$ = gaol_node(new trunc_node(*$3)); gaol_release($3); }
-	/* sqrt(x) and cbrt(x) are nth_root(x, 2) and nth_root(x, 3), which
-	   compute them with sqrt() and cube_root() */
-	| SQRT_STR '(' expression ')'			{ $$ = gaol_node(new nth_root_node(*$3,2)); gaol_release($3); }
-	| CBRT_STR '(' expression ')'			{ $$ = gaol_node(new nth_root_node(*$3,3)); gaol_release($3); }
-	/* gaol::pow(x, y), gaol_pow_hybrid(), which takes gaol_pown() for an
-	   exponent that is an integer: the parser took 1/x^|n| for n < 0, whose
-	   x^|n| overflowed (pow(2,-1050) was [0,5.6e-309] rather than
-	   [2^-1050]), and 1 for n = 0, which is no value for an empty x (GAOL
-	   v5) */
-	| POW_STR '(' expression ',' expression ')'	{ $$ = gaol_node(new pow_itv_node(*$3,*$5));
-							  gaol_release($3); gaol_release($5); }
-	/* The exponent is an int, which may be negative: rootn(x, q) of IEEE
-	   1788-2015 for q < 0, 1/x^(1/|q|), as nth_root(I, int) computes it (the
-	   cast to an unsigned int took the 4294967294-th root for q = -2, GAOL
-	   v5). -q on a long, INT_MIN having no opposite on an int. */
-	| NTH_ROOT_STR '(' expression ',' expression ')' { const interval q = gaol_value($5);
-							  gaol_release($5);
-							  if (!q.is_an_int()) {
-							    gaol_release($3);
-							    GAOL_PARSING_ERROR(invalid_action_error,
-							      "nth_root used with non integral 2nd arg.");
-							    YYABORT;
-							  }
-							  const int n = static_cast<int>(q.left());
-							  if (n < 0) {
-							    expr_node *one = gaol_node(new double_node(1.0));
-							    expr_node *root = gaol_node(new nth_root_node(*$3,
-							      static_cast<unsigned int>(-static_cast<long>(n))));
-							    $$ = gaol_node(new div_node(*one,*root));
-							    gaol_release(one);
-							    gaol_release(root);
-							  } else {
-							    $$ = gaol_node(new nth_root_node(*$3,static_cast<unsigned int>(n)));
-							  }
-							  gaol_release($3); }
+	: FUNCTION_NAME '(' expression ')'		{ if (($$ = gaol_call($1,1,$3,0,0)) == 0) YYABORT; }
+	| FUNCTION_NAME '(' expression ',' expression ')'
+							{ if (($$ = gaol_call($1,2,$3,$5,0)) == 0) YYABORT; }
+	| FUNCTION_NAME '(' expression ',' expression ',' expression ')'
+							{ if (($$ = gaol_call($1,3,$3,$5,$7)) == 0) YYABORT; }
 	;
 
 %%

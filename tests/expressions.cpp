@@ -234,6 +234,53 @@ namespace
     same("sqrt([-2,-1])", sqrt(interval(-2.0, -1.0)));
     same("acos([2,3])", acos(interval(2.0, 3.0)));
     same("log2([-2,-1])", log2(interval(-2.0, -1.0)));
+    /* The functions of GAOL the reader did not know, which it now looks up in
+       the table of GAOL's names (GAOL v5) */
+    const interval u(0.0, 1.0), v(1.0, 2.0), w(3.0, 4.0);
+    same("exp10([0,1])", exp10(u));
+    same("log10([1,2])", log10(v));
+    same("expm1([0,1])", expm1(u));
+    same("exp2m1([0,1])", exp2m1(u));
+    same("exp10m1([0,1])", exp10m1(u));
+    same("log1p([0,1])", log1p(u));
+    same("log2p1([0,1])", log2p1(u));
+    same("log10p1([0,1])", log10p1(u));
+    same("hypot([1,2],[3,4])", hypot(v, w));
+    same("rsqrt([1,2])", rsqrt(v));
+    same("sinpi([0,1])", sinpi(u));
+    same("cospi([0,1])", cospi(u));
+    same("tanpi([0,0.25])", tanpi(interval(0.0, 0.25)));
+    same("asinpi([0,1])", asinpi(u));
+    same("acospi([0,1])", acospi(u));
+    same("atanpi([0,1])", atanpi(u));
+    same("atan2pi([1,2],[3,4])", atan2pi(v, w));
+    same("sqr([-2,3])", sqr(interval(-2.0, 3.0)));
+    same("abs([-2,1])", abs(interval(-2.0, 1.0)));
+    same("min([1,2],[0,3])", min(v, interval(0.0, 3.0)));
+    same("max([1,2],[0,3])", max(v, interval(0.0, 3.0)));
+    same("floor([1.5,2.5])", floor(interval(1.5, 2.5)));
+    same("ceil([1.5,2.5])", ceil(interval(1.5, 2.5)));
+    same("integer([1.5,3.5])", integer(interval(1.5, 3.5)));
+    same("round_ties_to_even([0.5,2.5])", round_ties_to_even(interval(0.5, 2.5)));
+    same("round_ties_to_away([0.5,2.5])", round_ties_to_away(interval(0.5, 2.5)));
+    same("inverse([2,4])", inverse(interval(2.0, 4.0)));
+    same("fma([1,2],[3,4],[0,1])", fma(v, w, u));
+    same("SinPi([0,1])", sinpi(u));
+    same("[exp10(0), hypot(3,4)]", interval(1.0, 5.0));
+
+    // gaol::textToInterval reads as interval(const char*), with GAOL's names
+    check("gaol::textToInterval(s) is interval(s)",
+          textToInterval("[1,2]+nth_root([8,27],3)").set_eq(interval("[1,2]+nth_root([8,27],3)")));
+    check("gaol::textToInterval(sl, sr) takes the left bound of sl and the right bound of sr",
+          textToInterval("[-5,4]+1", "[4,6]-[2,3]").set_eq(interval(-4.0, 4.0)));
+    bool threw = false;
+    try {
+      const interval z = textToInterval("pown([2,5],5)");
+      (void)z;
+    } catch (const input_format_error&) {
+      threw = true;
+    }
+    check("gaol::textToInterval throws input_format_error for a name of IEEE 1788-2015 alone", threw);
   }
 
   void wrong_strings()
@@ -255,8 +302,19 @@ namespace
     refused("[1,2] [3,4]");
     refused("$");
     refused("[1,2]^3");        // the parser has no power operator
-    refused("abs([-2,1])");    // nor abs
     refused("atan2([1,2])");   // atan2 takes two arguments
+    refused("sin(1,2)");
+    refused("pow(2)");
+    refused("fma(1,2)");
+    refused("nth_root(8)");
+    /* The names of IEEE 1788-2015 alone, which gaol_ieee1788::textToInterval
+       reads: interval("...") and gaol::textToInterval read those of GAOL */
+    refused("pown([2,5],5)");
+    refused("rootn(8,3)");
+    refused("recip([2,4])");
+    refused("logp1(0)");
+    refused("roundTiesToEven(1)");
+    refused("add(1,2)");
     /* An error stops the reading: each literal set the flag of success again,
        and this string gave [-oo, +oo] (GAOL v5) */
     refused("[nth_root(8,1.5)]+[1,2]");

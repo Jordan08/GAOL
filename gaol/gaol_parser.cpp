@@ -46,13 +46,16 @@ extern void gaol_initialize_parsing(const char* const str,
 extern bool gaol_cleanup_parsing(void);
 extern int gaol_parse(void);
 extern std::exception_ptr gaol_parsing_exception;
+extern gaol::parsing_names gaol_parsing_names;
 
 namespace gaol {
 
-  bool parse_interval(const char* const s, interval& out)
+  bool parse_interval(const char* const s, interval& out, parsing_names names)
   {
     interval itv;
     gaol_parsing_exception = nullptr;
+    // The names of the functions the lexer looks up (GAOL v5)
+    gaol_parsing_names = names;
     gaol_initialize_parsing(s,&itv);
     try {
       gaol_parse();

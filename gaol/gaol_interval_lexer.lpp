@@ -44,6 +44,9 @@ using namespace gaol;
 #include "gaol/gaol_fpu.h"
 
 #define YY_NEVER_INTERACTIVE 1
+// The function of a name, in the table of the names the string is read with
+// (gaol/gaol_interval_parser.ypp); 0 for a name that is not in it
+extern const void *gaol_lookup_function(const char *name);
 
 
 extern int gaol_error(char *s ...);
@@ -472,29 +475,14 @@ SPACE		[ \t\r\n]+
 "pi"		{ return PI_STR; }
 "dmin"                     { return DMIN_STR; }
 "dmax"                    { return DMAX_STR; }
-"exp"		{ return EXP_STR; }
-"exp2"		{ return EXP2_STR; }
-"log"		{ return LOG_STR; }
-"log2"		{ return LOG2_STR; }
-"pow"		{ return POW_STR; }
-"nth_root"	{ return NTH_ROOT_STR; }
-"sqrt"		{ return SQRT_STR; }
-"cbrt"		{ return CBRT_STR; }
-"sign"		{ return SIGN_STR; }
-"trunc"		{ return TRUNC_STR; }
-"cos"		{ return COS_STR; }
-"sin"		{ return SIN_STR; }
-"tan"		{ return TAN_STR; }
-"atan2"		{ return ATAN2_STR; }
-"cosh"                      { return COSH_STR; }
-"sinh"                       { return SINH_STR; }
-"tanh"                      { return TANH_STR; }
-"acos"       	{ return ACOS_STR; }
-"asin"       	{ return ASIN_STR; }
-"atan"       	{ return ATAN_STR; }
-"acosh"       	{ return ACOSH_STR; }
-"asinh"       	{ return ASINH_STR; }
-"atanh"       	{ return ATANH_STR; }
+[a-z_][a-z0-9_]*	{ /* The name of a function, looked for in the table of the
+			     names the string is read with, those of GAOL or those
+			     of IEEE 1788-2015 (gaol_lookup_function() in
+			     gaol/gaol_interval_parser.ypp): a name that is not in
+			     it is an error. The names above, which are no
+			     functions, come first (GAOL v5) */
+			  gaol_lval.fn = gaol_lookup_function(gaol_text);
+			  return gaol_lval.fn ? FUNCTION_NAME : UNEXPECTED_CHAR; }
 "["		{ return '['; }
 "]"		{ return ']'; }
 "<"		{ return '<'; }

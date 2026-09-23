@@ -172,6 +172,67 @@ namespace
           [] { return std::string(); });
   }
 
+  /* textToInterval reads the names of the standard (GAOL v5): each name of
+     Tables 9.1 and 10.5 gives the function of the same name, pow the pow of
+     Table 9.1, and a name of GAOL alone is no function, which gives the
+     empty set; gaol::textToInterval and interval(const char*) read the names
+     of GAOL. textToInterval read those of GAOL, and pow([-4,-1],2) was
+     [1, 16], where pow([-4,-1], 2) is the empty set. */
+  void text_with_the_names_of_the_standard()
+  {
+    const interval x = numsToInterval(0.25, 0.5), y = numsToInterval(-1.0, 2.0),
+      p = numsToInterval(2.0, 5.0);
+    struct Case { const char *text; interval value; };
+    const Case cases[] = {
+      {"pown([2,5],5)", pown(p, 5)}, {"pow([2,5],5)", pow(p, 5.0)},
+      {"pow([-4,-1],2)", pow(numsToInterval(-4.0, -1.0), 2.0)},
+      {"rootn([-8,27],3)", rootn(numsToInterval(-8.0, 27.0), 3)},
+      {"rootn([0.25,0.5],-3)", rootn(x, -3)},
+      {"neg([0.25,0.5])", neg(x)}, {"add([0.25,0.5],[-1,2])", add(x, y)},
+      {"sub([0.25,0.5],[-1,2])", sub(x, y)}, {"mul([0.25,0.5],[-1,2])", mul(x, y)},
+      {"div([0.25,0.5],[-1,2])", div(x, y)}, {"recip([0.25,0.5])", recip(x)},
+      {"sqr([-1,2])", sqr(y)}, {"sqrt([0.25,0.5])", sqrt(x)},
+      {"fma([0.25,0.5],[-1,2],[0.25,0.5])", fma(x, y, x)},
+      {"exp([0.25,0.5])", exp(x)}, {"exp2([0.25,0.5])", exp2(x)}, {"exp10([0.25,0.5])", exp10(x)},
+      {"log([0.25,0.5])", log(x)}, {"log2([0.25,0.5])", log2(x)}, {"log10([0.25,0.5])", log10(x)},
+      {"sin([0.25,0.5])", sin(x)}, {"cos([0.25,0.5])", cos(x)}, {"tan([0.25,0.5])", tan(x)},
+      {"asin([0.25,0.5])", asin(x)}, {"acos([0.25,0.5])", acos(x)}, {"atan([0.25,0.5])", atan(x)},
+      {"atan2([-1,2],[0.25,0.5])", atan2(y, x)},
+      {"sinh([0.25,0.5])", sinh(x)}, {"cosh([0.25,0.5])", cosh(x)}, {"tanh([0.25,0.5])", tanh(x)},
+      {"asinh([0.25,0.5])", asinh(x)}, {"acosh([-1,2])", acosh(y)}, {"atanh([0.25,0.5])", atanh(x)},
+      {"sign([-1,2])", sign(y)}, {"ceil([-1,2])", ceil(y)}, {"floor([-1,2])", floor(y)},
+      {"trunc([-1,2])", trunc(y)}, {"roundTiesToEven([0.5,2.5])", roundTiesToEven(numsToInterval(0.5, 2.5))},
+      {"roundTiesToAway([0.5,2.5])", roundTiesToAway(numsToInterval(0.5, 2.5))},
+      {"abs([-1,2])", abs(y)}, {"min([0.25,0.5],[-1,2])", min(x, y)}, {"max([0.25,0.5],[-1,2])", max(x, y)},
+      {"expm1([0.25,0.5])", expm1(x)}, {"exp2m1([0.25,0.5])", exp2m1(x)},
+      {"exp10m1([0.25,0.5])", exp10m1(x)}, {"logp1([0.25,0.5])", logp1(x)},
+      {"log2p1([0.25,0.5])", log2p1(x)}, {"log10p1([0.25,0.5])", log10p1(x)},
+      {"hypot([0.25,0.5],[-1,2])", hypot(x, y)}, {"rSqrt([0.25,0.5])", rSqrt(x)},
+      {"sinPi([0.25,0.5])", sinPi(x)}, {"cosPi([0.25,0.5])", cosPi(x)}, {"tanPi([0.25,0.5])", tanPi(x)},
+      {"asinPi([0.25,0.5])", asinPi(x)}, {"acosPi([0.25,0.5])", acosPi(x)},
+      {"atanPi([0.25,0.5])", atanPi(x)}, {"atan2Pi([-1,2],[0.25,0.5])", atan2Pi(y, x)},
+      {"SINPI([0.25,0.5])", sinPi(x)}, {"[pown(2,3), rootn(27,3)*3]", numsToInterval(8.0, 9.0)},
+    };
+    for (const Case& c : cases) {
+      const interval got = textToInterval(c.text);
+      check("textToInterval reads the names of IEEE 1788-2015", got.set_eq(c.value),
+            [&] { return std::string(c.text) + ": " + hex(got) + " rather than " + hex(c.value); });
+    }
+    // The names of GAOL alone, and the calls that are wrong: the empty set
+    const char *const not_the_standard[] = {
+      "nth_root(8,3)", "cbrt(8)", "inverse(2)", "integer([1.5,3])", "log1p(0)",
+      "round_ties_to_even(1)", "pown([2,5],2.5)", "sin(1,2)", "fma(1,2)",
+    };
+    for (const char *t : not_the_standard) {
+      const interval got = textToInterval(t);
+      check("textToInterval gives the empty set for a name of GAOL alone or a wrong call",
+            got.is_empty(), [&] { return std::string(t) + ": " + hex(got); });
+    }
+    check("gaol::textToInterval reads the names of GAOL: pow([-4,-1],2) is [1, 16]",
+          gaol::textToInterval("pow([-4,-1],2)").set_eq(numsToInterval(1.0, 16.0)),
+          [] { return hex(gaol::textToInterval("pow([-4,-1],2)")); });
+  }
+
   void exact_text()
   {
     const interval third(1.0 / 3.0, 2.0 / 3.0);
@@ -234,6 +295,7 @@ int main()
   pow_of_the_standard();
   gaol_functions();
   names_of_the_standard();
+  text_with_the_names_of_the_standard();
   exact_text();
 #if GAOL_TESTS_THREADS
   exact_text_in_another_thread();

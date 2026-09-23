@@ -40,8 +40,10 @@
  *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);
- *   - textToInterval and exactToInterval return the empty set for a string
- *     that is no interval literal (12.1.3), where GAOL's constructor throws.
+ *   - textToInterval and exactToInterval read the names of the functions of
+ *     the standard (pown, rootn, sinPi...), where interval(const char*) and
+ *     gaol::textToInterval read those of GAOL, and return the empty set for a
+ *     string that is no interval literal (12.1.3), where GAOL throws.
  *
  * Only bare intervals are provided: GAOL has no decorations (Clause 11). The
  * operations of the standard GAOL does not provide are listed at the end of
@@ -66,6 +68,7 @@
 
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_expression.h"
+#include "gaol/gaol_parser.h"
 
 namespace gaol_ieee1788 {
 
@@ -88,11 +91,18 @@ namespace gaol_ieee1788 {
   //! numsToInterval(l, u): interval(l, u), the empty set for l > u, l = +oo, u = -oo or a NaN
   GAOL_NODISCARD inline interval numsToInterval(double l, double u) { return interval(l, u); }
 
-  //! textToInterval(s): interval(s), the empty set for a string that is no interval literal
+  /*!
+    textToInterval(s): the interval s writes, read with the names of the
+    functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
+    gaol::textToInterval() and interval(const char*) read those of GAOL
+    (GAOL v5); the empty set for a string that is no interval (12.1.3), where
+    GAOL throws
+  */
   GAOL_NODISCARD inline interval textToInterval(const std::string& s)
   {
     try {
-      return interval(s.c_str());
+      interval x;
+      return ::gaol::parse_interval(s.c_str(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
     } catch (const std::exception&) {
       return interval::emptyset();
     }

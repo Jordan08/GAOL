@@ -1395,6 +1395,23 @@ namespace gaol {
   //! pow(I, e): gaol_uipow(I, e), I^e for an unsigned e
   GAOL_NODISCARD inline interval pow(const interval& I, unsigned int e) { return gaol_core::gaol_uipow(I, e); }
 
+  /*!
+    textToInterval(s): the interval s writes, read with the names of the
+    functions of GAOL, as interval(const char*) reads it (GAOL v5). A string
+    that is no interval throws input_format_error. gaol_ieee1788 has its own,
+    which reads the names of IEEE 1788-2015 and gives the empty set for such a
+    string: as for pow, a program opens one of the two namespaces.
+  */
+  GAOL_NODISCARD inline interval textToInterval(const std::string& s) { return interval(s.c_str()); }
+  /*!
+    textToInterval(sl, sr): the left bound of the interval sl writes and the
+    right bound of the one sr writes, as interval(const char*, const char*)
+  */
+  GAOL_NODISCARD inline interval textToInterval(const std::string& sl, const std::string& sr)
+  {
+    return interval(sl.c_str(), sr.c_str());
+  }
+
 } // namespace gaol
 
 #endif /* __gaol_interval_h__ */
