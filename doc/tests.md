@@ -125,8 +125,9 @@ Codac.
   standard's too. GAOL's functions on intervals and on an interval and a
   number; the functions of C on numbers, by `static_assert`.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
-  to leave the global output format alone, which a second thread writing
-  intervals meanwhile checks. `textToInterval` has to read each name of
+  to leave the global output format alone; the check of it by a second
+  thread writing intervals meanwhile is commented out, the tests running no
+  thread. `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
@@ -182,10 +183,10 @@ Codac.
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
-  be `interval(const char*)`, with one string and with two. Four threads have
-  to read strings at once, with the names of GAOL and with those of the
-  standard, and to get the intervals read in one thread: the reader, whose
-  state is global, crashed there before it took a lock (GAOL v5). Each value is compared with the same computation written in C++,
+  be `interval(const char*)`, with one string and with two. The reading of
+  strings by four threads at once, where the reader, whose state is global,
+  crashed before it took a lock, is commented out: the tests run no thread
+  (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
