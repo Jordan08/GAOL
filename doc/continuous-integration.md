@@ -18,7 +18,10 @@ on:
 - **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), and
   with the sanitizers with AppleClang, LLVM's Clang and GCC.
 - **Windows:**
-  - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug;
+  - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug (on
+    arm64, the compiler of Visual Studio 2022, MSVC 14.44, installed with
+    Visual Studio 2026: GitHub has no image with Visual Studio 2022 on arm64
+    any more);
   - MinGW-w64 15 on x86 and x64, Release and Debug, 14 on x86 and x64, 12 and
     13 on x86;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).

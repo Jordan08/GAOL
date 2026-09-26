@@ -91,11 +91,9 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = Linux ]; then
             sudo apt-get update -q
-            sudo apt-get install -y -q g++ cmake flex bison pipx
+            sudo apt-get install -y -q g++ cmake pipx
           else
-            brew install flex bison pipx
-            echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
-            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+            brew install pipx
           fi
           pipx install meson
           pipx install ninja
@@ -133,7 +131,7 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ make flex bison meson ninja-build > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build > /dev/null
             uname -m && c++ --version | head -1
             if [ ${{ matrix.cfg.build }} = autotools ]; then
               find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
@@ -167,7 +165,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson flex bison make libtool
+          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson make libtool
       - name: Configure, build and install
         run: |
           prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"
@@ -209,11 +207,9 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = Linux ]; then
             sudo apt-get update -q
-            sudo apt-get install -y -q g++ clang cmake flex bison make pipx
+            sudo apt-get install -y -q g++ clang cmake make pipx
           else
-            brew install flex bison pipx
-            echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
-            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+            brew install pipx
           fi
           pipx install meson
           pipx install ninja
@@ -241,7 +237,7 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ cmake make meson ninja-build python3 > /dev/null
             sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/audit meson
             status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
             cat /gaol/agree.md
@@ -260,7 +256,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python flex bison make libtool
+          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python make libtool
       - name: Configure with the three builds and compare
         run: |
           export CMAKE_GENERATOR=Ninja

@@ -86,7 +86,9 @@ meson install -C build
 ```
 
 meson compiles the thirty-six sources of CORE-MATH into `libgaol`
-(`gaol/meson.build`), as CMake and configure do.
+(`gaol/meson.build`), as CMake and configure do, and the lexer and the parser
+committed (`gaol/gaol_interval_lexer.cpp`, `gaol/gaol_interval_parser.cpp`):
+neither flex nor bison is needed.
 `meson compile` needs meson 0.54; with an older one, as the meson 0.53 of
 Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 (`-D<option>=<value>`), with their defaults:

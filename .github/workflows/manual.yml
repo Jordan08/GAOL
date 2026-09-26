@@ -38,7 +38,7 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends texlive-latex-recommended texlive-latex-extra \
-            texlive-fonts-recommended lmodern g++ make flex bison meson ninja-build
+            texlive-fonts-recommended lmodern g++ make meson ninja-build
       - name: With the autotools build
         run: |
           # The same date on every file, as in a release archive: make then

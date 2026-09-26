@@ -1,7 +1,11 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
 # arm64; Release and Debug), MinGW-w64 15 (x86, x64; Release and Debug), 14
 # (x86, x64), 12 and 13 (x86), and MSYS2 (UCRT64 GCC, CLANG64 Clang), runs its
-# tests, installs it, and builds the tests again with the installed GAOL.
+# tests, installs it, and builds the tests again with the installed GAOL. On
+# arm64, the compiler of Visual Studio 2022 (toolset v143, MSVC 14.44) is the
+# one installed with Visual Studio 2026: the label windows-11-arm runs the image
+# of Visual Studio 2026 since September 2026 (actions/runner-images#14602), and
+# no image of GitHub has Visual Studio 2022 on arm64 any more.
 # Checks that gaol/gaol_config.h refuses the MinGW-w64 whose <fenv.h> answers
 # fegetround() from a state of its own: GCC 11 to 13 on x64, GCC 11 on x86.
 #
@@ -44,15 +48,20 @@ jobs:
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Debug,   desc: 'Visual Studio 2026 arm64 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Release, desc: 'Visual Studio 2022 x86 Release' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Release, desc: 'Visual Studio 2022 x64 Release' }
-          - { os: windows-11-arm,        generator: 'Visual Studio 17 2022', arch: ARM64, config: Release, desc: 'Visual Studio 2022 arm64 Release' }
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Release, desc: 'Visual Studio 2022 arm64 Release' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Debug,   desc: 'Visual Studio 2022 x86 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Debug,   desc: 'Visual Studio 2022 x64 Debug' }
-          - { os: windows-11-arm,        generator: 'Visual Studio 17 2022', arch: ARM64, config: Debug,   desc: 'Visual Studio 2022 arm64 Debug' }
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Debug,   desc: 'Visual Studio 2022 arm64 Debug' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Configure
-        run: cmake -S . -B build -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DGAOL_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+        run: |
+          cmake -S . -B build -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DGAOL_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }} | tee configure.log
+          # The compiler of the toolset asked for, not the one of the generator
+          if [ -n "${{ matrix.cfg.cl }}" ]; then
+            grep "The CXX compiler identification is MSVC ${{ matrix.cfg.cl }}\." configure.log
+          fi
       - name: Build
         run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
       - name: Tests
@@ -64,11 +73,11 @@ jobs:
         run: cmake --install build --config ${{ matrix.cfg.config }}
       - name: Tests built with the installed GAOL
         run: |
-          cmake -S tests/find_package -B build-find-package -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+          cmake -S tests/find_package -B build-find-package -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package --config ${{ matrix.cfg.config }} -j 4
           ctest --test-dir build-find-package -C ${{ matrix.cfg.config }} -j 4 --output-on-failure
       - name: GAOL's headers refused without /fp:strict
-        run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
 
   mingw:
     name: ${{ matrix.cfg.desc }}
