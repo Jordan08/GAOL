@@ -158,7 +158,13 @@ Codac.
   the image, fails as a double missed does. The arguments of `asinpi` next to
   ±1 where CORE-MATH shifted a 64-bit integer by 65 bits are among them: the
   jobs of the continuous integration with the sanitizers stop there if that
-  undefined behaviour comes back.
+  undefined behaviour comes back. `sin` is also checked, in the four
+  rounding directions, against the values of the upstream sources of
+  CORE-MATH compiled unchanged, at 19 arguments that take its accurate path in
+  the upward rounding, which computes with the 128-bit integer GAOL ports
+  (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
+  the rest of the test cannot see a fault of that port, which the jobs
+  computing with the two 64-bit halves would then find here.
 - **`expressions`:** `interval("...")` lexes the string, parses it into the
   tree of `gaol/gaol_expression.h` and evaluates that tree, so this test goes
   through every node of the tree and every way the string can be wrong: the

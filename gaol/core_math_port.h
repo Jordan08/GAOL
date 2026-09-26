@@ -18,7 +18,7 @@
  * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
  *   with a program or a C library holding CORE-MATH's functions too;
  * - what Visual C++ has not of GCC: the builtins the sources call, and
- *   __attribute__;
+ *   __attribute__; and __builtin_roundeven() where the compiler has not;
  * - silence for the warnings on conversions GAOL's library is compiled with.
  *
  * Copyright (c) 2026 ENSTA, France
@@ -179,10 +179,25 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
    and into a call to roundeven() otherwise, and a program linking GAOL there
    stopped on "undefined reference to roundeven" (the continuous integration,
    with MinGW-w64 15 and MSYS2, where GAOL is compiled without the AVX
-   instructions). The function of gaol/gaol_roundeven.h is given instead. */
+   instructions). The function of gaol/gaol_roundeven.h is given instead.
+
+   It is given as well to the compilers that have no such builtin: GCC before
+   10 and the Clang whose __has_builtin() says so. The other sources of
+   CORE-MATH take __builtin_roundeven() only from GCC 10 and Clang 17 and
+   round by themselves before, but sin.c calls it unguarded since its rewrite
+   (upstream commit 6b844573), which GCC 9.4 took for an undeclared function
+   and did not link. */
 #if defined(_WIN32) || defined(__MINGW32__) || defined(__CYGWIN__)
 #define __builtin_roundeven(x) gaol_roundeven(x)
-#endif /* Windows */
+#elif defined(__clang__)
+#  if defined(__has_builtin)
+#    if !__has_builtin(__builtin_roundeven)
+#      define __builtin_roundeven(x) gaol_roundeven(x)
+#    endif
+#  endif
+#elif defined(__GNUC__) && __GNUC__ < 10
+#define __builtin_roundeven(x) gaol_roundeven(x)
+#endif /* Windows, or no __builtin_roundeven() */
 
 /*---------------------------------------------------------------------------
   What Visual C++ has not of GCC and Clang

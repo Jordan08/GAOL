@@ -152,6 +152,26 @@ jobs:
           cmake --build build-find-package -j 4
           cd build-find-package && ctest -j 4 --output-on-failure
 
+  gcc-9:
+    name: Ubuntu 22.04 x86_64 GCC 9, without __builtin_roundeven
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          # GCC 9 has no __builtin_roundeven(), which CORE-MATH's sin.c calls
+          # unguarded: gaol/core_math_port.h gives it gaol_roundeven()
+          sudo apt-get update -q
+          sudo apt-get install -y -q gcc-9 g++-9 cmake make
+          g++-9 --version
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Tests
+        run: cd build && ctest -j 4 --output-on-failure
+
   fetch-content:
     name: Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent
     runs-on: ubuntu-24.04

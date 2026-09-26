@@ -21,7 +21,7 @@ library it uses: the other libraries GAOL could be built with are gone (see
 | | |
 | --- | --- |
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
-| Commit | `671f2c7355d76c670f59d714d41a99eb1cf620b6` (19 September 2026) |
+| Commit | `6b84457310ad90b644b3335af2faa8c7301e1c47` (25 September 2026) |
 | Taken | the whole tree, without the `.wc` files |
 | Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-six functions below, compiled into libgaol itself |
 
@@ -51,6 +51,10 @@ program or a C library holding CORE-MATH's functions too, the 128-bit integer
 of `gaol/gaol_u128.h`, what Visual C++ has not of GCC (`__builtin_clzll`,
 `__builtin_roundeven`, `__attribute__`...), the `roundeven()` the math library
 of Windows has not (`gaol/gaol_roundeven.h`, which GAOL's own sources use too),
+given as well for `__builtin_roundeven()` to the compilers that have no such
+builtin, GCC before 10 among them: `sin.c` calls it without the guard of the
+other sources since its rewrite (upstream commit `6b84457`), and GCC 9.4 did
+not link it,
 and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow` and `atan2` keep the exception flags around
 their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
@@ -84,6 +88,16 @@ kept as a patch to reapply.
    complement: its product, its conversion from a 64-bit integer and its shift
    right are `gaol_u128_imul64()`, `gaol_u128_of_i64()` and `gaol_u128_sar()`.
    `log1p/dint.h` is unchanged: `log1p.c` does not include it.
+
+   `sin.c`, rewritten upstream (commit `6b84457`), no longer has the
+   extended-arithmetic functions of `dint.h`: its accurate path computes in
+   fixed point on the 128-bit integer throughout, the argument reduction
+   (`reduce_large()`, `reduce_large_acc()`), the truncated product `mhUU()`,
+   the polynomials (`evalPS()`, `evalPC()`), the combination of the tables in
+   `sin_large_accurate()` and the rounding to double (`u128_tod()`). Each
+   operation on `u128` there is a `gaol_u128_*()` call, and the tables of
+   128-bit constants are written with `U128()`, which gives the two halves as
+   designated initialisers where the type is the structure.
 
    There is no way round this: C has no operator overloading, and the files
    cannot be compiled as C++ because their tables initialise anonymous unions
@@ -150,6 +164,18 @@ comparison rather than by reading:
   |x| < 0.0131875 in `asinpi_acc`). Each comparison was shown able to fail: a
   fault put in the ported code for a moment (a shift count, a dropped carry, a
   signed shift made unsigned) makes it report thousands of differences;
+- **the rewritten `sin.c`** (commit `6b84457`), ported with the native type and
+  with the two halves forced, against the upstream file compiled unchanged,
+  with Clang 18 and GCC 9.4: the same bits in the four rounding directions
+  over 102.5 million arguments of `cr_sin()` (random bit patterns, [−π, π],
+  2^-26 to 2^31, beyond 2^31, the doubles next to 2.5 million multiples of π),
+  over 10 million calls of `sin_large_accurate()` itself, from 2^-16 to the
+  largest double, and over 10 million of each argument reduction and
+  40 million products `mhUU()`. A fault put in the port (a term of `mhUU()`
+  dropped, a shift count, the halves of the tables swapped) makes it report
+  from 400 000 to 3 million differences over a hundredth of these arguments. `tests/core_math.cpp` checks 19
+  arguments that take the accurate path in the upward rounding against the
+  values of the upstream file, in the four directions;
 - **against the native type.** `tests/u128.cpp` compares every operation of the
   two halves with the same operation on `unsigned __int128` and `__int128`, over
   8 million values and every shift count, and the whole of GAOL is built and

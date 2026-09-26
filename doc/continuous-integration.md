@@ -8,8 +8,9 @@ The workflows of `.github/workflows/` build GAOL with CMake and run the tests
 on:
 
 - **Linux:** Ubuntu 22.04, 24.04 and 26.04 on x86_64 and arm64, with GCC and
-  Clang, also with the address and undefined behaviour sanitizers, and with
-  CMake 3.14.
+  Clang, also with the address and undefined behaviour sanitizers, with
+  CMake 3.14, and with GCC 9, which has no `__builtin_roundeven()` (see
+  [3rd/README.md](../3rd/README.md)).
 - **Linux containers:**
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;

@@ -538,6 +538,63 @@ namespace
     tightest one, which then no longer encloses the image, and one missed
     gives a bound a double below it.
   */
+  /* sin at arguments that take the accurate path of CORE-MATH's sin.c in the
+     upward rounding GAOL computes in, where the rewrite of upstream commit
+     6b84457 computes with the 128-bit integer throughout (sin_large_accurate(),
+     reduce_large_acc(), mhUU(), u128_tod()), ported to gaol_u128
+     (3rd/README.md): from 2^-16 to 1, from 1 to 2^31, beyond 2^31, and next to
+     multiples of pi. The values are those of the upstream sources, compiled
+     unchanged, in the four roundings: the jobs of the continuous integration
+     that compute with the two 64-bit halves (GAOL_U128_EMULATION, Visual C++,
+     the 32-bit targets) have to find them too. */
+  void sin_accurate_path()
+  {
+    struct Value { double x, rn, ru, rd, rz; };
+    const Value values[] = {
+      {-0x1.d14d4430c32b6p-14, -0x1.d14d4420c006dp-14, -0x1.d14d4420c006cp-14, -0x1.d14d4420c006dp-14, -0x1.d14d4420c006cp-14},
+      {-0x1.336ec93771f1dp-13, -0x1.336ec924f89e7p-13, -0x1.336ec924f89e7p-13, -0x1.336ec924f89e8p-13, -0x1.336ec924f89e7p-13},
+      {0x1.10c145535098fp-13, 0x1.10c1454669ea5p-13, 0x1.10c1454669ea5p-13, 0x1.10c1454669ea4p-13, 0x1.10c1454669ea4p-13},
+      {0x1.c4fbc1a4b3a65p-15, 0x1.c4fbc1a1021e6p-15, 0x1.c4fbc1a1021e7p-15, 0x1.c4fbc1a1021e6p-15, 0x1.c4fbc1a1021e6p-15},
+      {-0x1.a170e03c7f1d6p+11, 0x1.d73f6254f437fp-7, 0x1.d73f6254f438p-7, 0x1.d73f6254f437fp-7, 0x1.d73f6254f437fp-7},
+      {0x1.9ebef1d961064p+17, -0x1.b95c6468b2531p-3, -0x1.b95c6468b253p-3, -0x1.b95c6468b2531p-3, -0x1.b95c6468b253p-3},
+      {-0x1.90a5f260af55dp+4, 0x1.7939da374bb67p-4, 0x1.7939da374bb68p-4, 0x1.7939da374bb67p-4, 0x1.7939da374bb67p-4},
+      {0x1.4fe39e39fcc5p+20, -0x1.c2c850d185ec3p-1, -0x1.c2c850d185ec2p-1, -0x1.c2c850d185ec3p-1, -0x1.c2c850d185ec2p-1},
+      {0x1.9a43dc47106fep+22, 0x1.845645bb8a558p-7, 0x1.845645bb8a559p-7, 0x1.845645bb8a558p-7, 0x1.845645bb8a558p-7},
+      {-0x1.3c4c1127c58c2p+759, 0x1.4f9030064a64cp-12, 0x1.4f9030064a64dp-12, 0x1.4f9030064a64cp-12, 0x1.4f9030064a64cp-12},
+      {-0x1.a099d37b49741p+931, 0x1.618390d7c05e5p-10, 0x1.618390d7c05e6p-10, 0x1.618390d7c05e5p-10, 0x1.618390d7c05e5p-10},
+      {-0x1.40fde94b6f696p+889, 0x1.73d23c7e5ee47p-8, 0x1.73d23c7e5ee48p-8, 0x1.73d23c7e5ee47p-8, 0x1.73d23c7e5ee47p-8},
+      {-0x1.e0e52ffbecd8ap+141, 0x1.6a2a2880dbf25p-5, 0x1.6a2a2880dbf25p-5, 0x1.6a2a2880dbf24p-5, 0x1.6a2a2880dbf24p-5},
+      {0x1.62a76058c6aadp+764, 0x1.25ae24b86d4fcp-3, 0x1.25ae24b86d4fcp-3, 0x1.25ae24b86d4fbp-3, 0x1.25ae24b86d4fbp-3},
+      {-0x1.0f92923c41b34p+627, -0x1.e1a4679a65e86p-1, -0x1.e1a4679a65e86p-1, -0x1.e1a4679a65e87p-1, -0x1.e1a4679a65e86p-1},
+      {0x1.f6150c5c955eep+538, 0x1.3269779299746p-6, 0x1.3269779299746p-6, 0x1.3269779299745p-6, 0x1.3269779299745p-6},
+      // next to multiples of pi
+      {0x1.f00e7f249eb5ap+33, 0x1.c029885e3124ap-21, 0x1.c029885e3124bp-21, 0x1.c029885e3124ap-21, 0x1.c029885e3124ap-21},
+      {0x1.51481f216a9b2p+42, 0x1.3bb9e1309d4eep-13, 0x1.3bb9e1309d4efp-13, 0x1.3bb9e1309d4eep-13, 0x1.3bb9e1309d4eep-13},
+      {0x1.17ba50afa4cfp+35, 0x1.0ed85ce5ce86cp-20, 0x1.0ed85ce5ce86dp-20, 0x1.0ed85ce5ce86cp-20, 0x1.0ed85ce5ce86cp-20},
+    };
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (const Value& e : values) {
+      const double want[4] = {e.rn, e.ru, e.rd, e.rz};
+      double v[4];
+      for (int d = 0; d < 4; ++d) {
+        std::fesetround(directions[d]);
+        v[d] = gaol_cr_sin(e.x);
+      }
+      std::fesetround(FE_UPWARD);
+      check("sin on its accurate path: the values of the upstream sources in the four roundings",
+            v[0] == want[0] && v[1] == want[1] && v[2] == want[2] && v[3] == want[3],
+            [&] {
+              return "sin(" + show(e.x) + ") = " + show(v[0]) + ", " + show(v[1]) + ", " + show(v[2]) + ", "
+                   + show(v[3]) + " rather than " + show(want[0]) + ", " + show(want[1]) + ", "
+                   + show(want[2]) + ", " + show(want[3]);
+            });
+      const interval got = sin(interval(e.x));
+      check("sin on its accurate path: the tightest bounds",
+            !got.is_empty() && got.left() == e.rd && got.right() == e.ru,
+            [&] { return "sin([" + show(e.x) + "]) = " + hex(got); });
+    }
+  }
+
   void recommended_tightest()
   {
     std::mt19937_64 gen(20260921u);
@@ -801,6 +858,7 @@ int main()
   negative_roots();
   recommended_intervals();
   recommended_tightest();
+  sin_accurate_path();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();
