@@ -44,12 +44,10 @@ using namespace gaol;
 #include "gaol/gaol_fpu.h"
 
 #define YY_NEVER_INTERACTIVE 1
-// The function of a name, in the table of the names the string is read with
-// (gaol/gaol_interval_parser.ypp); 0 for a name that is not in it
-extern const void *gaol_lookup_function(const char *name);
-
-
-extern int gaol_error(char *s ...);
+// The function of a name, in the table of the names the string is read with,
+// which the context of the reading gives (gaol/gaol_interval_parser.ypp); 0
+// for a name that is not in it
+extern const void *gaol_lookup_function(const char *name, void *context);
 
 /*
   Numbers are read exactly, whatever the C library. A number no double is
@@ -250,18 +248,18 @@ namespace {
     }
   }
 
-  // Reads the number s: returns NUMBER, with gaol_lval.d set to it, if it is a
-  // double, and INTERVAL_CST, with gaol_lval.itv set to the tightest interval
-  // of doubles enclosing it, otherwise
-  int gaol_read_number(const char *s)
+  // Reads the number s: returns NUMBER, with lval->d set to it, if it is a
+  // double, and INTERVAL_CST, with lval->itv set to the tightest interval of
+  // doubles enclosing it, otherwise
+  int gaol_read_number(const char *s, YYSTYPE *lval)
   {
     double l, r;
     if (gaol_enclose_number(s, l, r)) {
-      gaol_lval.d = l;
+      lval->d = l;
       return NUMBER;
     }
-    (gaol_lval.itv).l = l;
-    (gaol_lval.itv).r = r;
+    (lval->itv).l = l;
+    (lval->itv).r = r;
     return INTERVAL_CST;
   }
 
@@ -348,11 +346,11 @@ namespace {
     GAOL v5): m?rve, m being a decimal number with an optional sign, r a
     natural number of units of the last place of m (half a unit when absent)
     or ?, for an infinite radius, v the direction d or u, and e an exponent
-    written as e and an integer. Returns UNCERTAIN_CST, with gaol_lval.itv set
+    written as e and an integer. Returns UNCERTAIN_CST, with lval->itv set
     to the tightest interval of doubles enclosing the interval the number
     denotes: [m-r, m+r] times 10^e, [m-r, m] for d, [m, m+r] for u.
   */
-  int gaol_read_uncertain(const char *s)
+  int gaol_read_uncertain(const char *s, YYSTYPE *lval)
   {
     gaol_decimal m;
     m.negative = (*s == '-');
@@ -426,8 +424,8 @@ namespace {
       gaol_enclose_decimal((direction == 'u') ? m10 : gaol_decimal_add(m10, minus_r10), q, l, hi);
       gaol_enclose_decimal((direction == 'd') ? m10 : gaol_decimal_add(m10, r10), q, lo, r);
     }
-    (gaol_lval.itv).l = l;
-    (gaol_lval.itv).r = r;
+    (lval->itv).l = l;
+    (lval->itv).r = r;
     return UNCERTAIN_CST;
   }
 
@@ -459,6 +457,14 @@ namespace gaol {
    output and read on (GAOL v5); a newline is now a space. */
 %option nounput noinput caseless nodefault
 
+/* A reentrant scanner, whose state is in a structure of its own rather than
+   in globals, and which gives the value of a token through the pointer the
+   pure parser passes it (bison-bridge): each reading of a string has its own
+   scanner, and several threads read strings at once (GAOL v5). Its extra data
+   is the context of the reading (gaol/gaol_interval_parser.ypp), which holds
+   the names of the functions. No yywrap(): a string is read to its end. */
+%option reentrant bison-bridge noyywrap
+
 DIGIT		[0-9]
 HEXDIGIT	[0-9a-f]
 INT		{DIGIT}+
@@ -481,8 +487,8 @@ SPACE		[ \t\r\n]+
 			     gaol/gaol_interval_parser.ypp): a name that is not in
 			     it is an error. The names above, which are no
 			     functions, come first (GAOL v5) */
-			  gaol_lval.fn = gaol_lookup_function(gaol_text);
-			  return gaol_lval.fn ? FUNCTION_NAME : UNEXPECTED_CHAR; }
+			  yylval->fn = gaol_lookup_function(yytext, yyextra);
+			  return yylval->fn ? FUNCTION_NAME : UNEXPECTED_CHAR; }
 "["		{ return '['; }
 "]"		{ return ']'; }
 "<"		{ return '<'; }
@@ -498,33 +504,29 @@ SPACE		[ \t\r\n]+
 {INT} |
 {DIGIT}+{E} |
 {DIGIT}*"."{DIGIT}+({E})? |
-{DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(gaol_text); }
-0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)p[+-]?{DIGIT}+	{ return gaol_read_number(gaol_text); }
-[+-]?({DECSIGNIFICAND})"?"({DIGIT}+|"?")?[du]?({E})?	{ return gaol_read_uncertain(gaol_text); }
+{DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(yytext, yylval); }
+0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)p[+-]?{DIGIT}+	{ return gaol_read_number(yytext, yylval); }
+[+-]?({DECSIGNIFICAND})"?"({DIGIT}+|"?")?[du]?({E})?	{ return gaol_read_uncertain(yytext, yylval); }
 {SPACE}		{  }
 .		{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 %%
 
-YY_BUFFER_STATE gaol_interval_parsing_buffer;
-interval *gaol_result_of_parsing;
-// Any error during the parsing?
-bool gaol_global_parsing_flag;
-extern int gaol_debug;
-
-void gaol_initialize_parsing(const char* const s, interval* itv)
+/*
+  The scanner of a reading of the string s, whose extra data is the context of
+  the reading; 0 if it could not be allocated. gaol_cleanup_parsing() frees it,
+  with its buffer (GAOL v5)
+*/
+void *gaol_initialize_parsing(const char *const s, void *context)
 {
-  gaol_interval_parsing_buffer = gaol__scan_string(s);
-  gaol_result_of_parsing = itv;
-  gaol_global_parsing_flag = false;
+  yyscan_t scanner;
+  if (gaol_lex_init_extra(context, &scanner) != 0) {
+    return 0;
+  }
+  gaol__scan_string(s, scanner);
+  return scanner;
 }
 
-bool gaol_cleanup_parsing(void)
+void gaol_cleanup_parsing(void *scanner)
 {
-  gaol__delete_buffer(gaol_interval_parsing_buffer);
-  return gaol_global_parsing_flag;
-}
-
-int gaol_wrap(void)
-{
-  return 1;
+  gaol_lex_destroy(scanner);
 }

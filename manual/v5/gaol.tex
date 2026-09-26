@@ -3129,12 +3129,10 @@ empty.\newinvfive{} The expression \code{"inf"} alone is still
 \itv{\text{MAX}}{+\infty}, and \code{"-inf"} \itv{-\infty}{-\text{MAX}}
 (\pxref{par:inf_inf_note}).
 
-\paragraph{Threads.} Several threads may read strings at once: the lexer and
-the parser keep their state in global variables, so the strings are read one
-at a time, under a lock that every reading of a string takes.\newinvfive{}
-GAOL~4 crashed there. Where the C++ library has no thread support (MinGW-w64
-with the win32 threads, before GCC~13), there is no lock, and no
-\code{std::thread} either.
+\paragraph{Threads.} Several threads may read strings at once, in parallel:
+the lexer is reentrant and the parser pure, and each reading of a string has
+a state of its own.\newinvfive{} GAOL~4 kept that state in global variables,
+and crashed there.
 
 \paragraph{Errors.} A string that is not an expression throws
 \element{input\_format\_error}. An error found anywhere in the string stops the
