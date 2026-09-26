@@ -26,7 +26,7 @@ using std::endl;
 
 int main(void)
 {
-//  gaol::init();
+  // No gaol::init(): GAOL initialized itself before main()
 
   interval
     x(-2,2),
@@ -50,6 +50,7 @@ int main(void)
   }
   cout << "z = " << z << endl;
   cout << "Elapsed time: " << elapsed_time() << endl;
-// gaol::cleanup();
+  // Always, right after the last use of GAOL: sets back the rounding direction
+  gaol::cleanup();
   return 0;
 }

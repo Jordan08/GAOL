@@ -62,9 +62,21 @@ namespace gaol_core {
   {
 	static init_cleanup _ic_object;
   }
+
+  // The static object of each translation unit including GAOL's headers
+  // (gaol/gaol_common.h)
+  gaol_initializer::gaol_initializer()
+  {
+	gaol_init_lib();
+  }
   
   void initialization_process(void)
   {
+#if GAOL_VERBOSE_MODE
+      // The standard streams may not be constructed yet: GAOL initializes
+      // itself before the static objects of the program
+      std::ios_base::Init ios_init;
+#endif
 #if !GAOL_PRESERVE_ROUNDING
       GAOL_IF_VERBOSE(cerr << "Automatic initialization of gaol (rounding set to +oo)... ");	
 #else
@@ -76,8 +88,13 @@ namespace gaol_core {
   
   void cleanup_process(void)
   {
+#if !GAOL_PRESERVE_ROUNDING
+      GAOL_IF_VERBOSE(cerr << "Automatic cleanup of gaol (rounding set back)... ");
+#else
       GAOL_IF_VERBOSE(cerr << "Automatic cleanup of gaol... ");
+#endif
       cleanup();
+      free_initialization();
       GAOL_IF_VERBOSE(cerr << "done" << endl);
   }
   

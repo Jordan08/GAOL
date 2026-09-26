@@ -31,6 +31,12 @@ set(GAOL_TESTS
   # round wrongly (GAOL v5)
   extended_precision
 )
+# The rounding direction after the automatic cleanup of GAOL, read after the
+# end of main() by a function registered in a constructor of priority 101,
+# which ELF runs before GAOL initializes itself (GAOL v5)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  list(APPEND GAOL_TESTS automatic_cleanup)
+endif()
 
 foreach(test ${GAOL_TESTS})
   add_executable(gaol_test_${test} ${test}.cpp gaol_tests.h)

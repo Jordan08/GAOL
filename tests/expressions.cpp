@@ -46,6 +46,14 @@ using namespace gaol_tests;
 
 namespace
 {
+  /* An empty expression of static storage, which refers to the node of the
+     empty expression and is destroyed after main() has called
+     gaol::cleanup(): cleanup() deleted that node, and the destructor of the
+     expression then wrote into freed memory, which the sanitizers report
+     (GAOL v5). The node is now freed by the automatic cleanup, after the
+     static objects of the program are destroyed. */
+  expression static_expression;
+
   // The interval of a string, and the same interval computed in C++
   /* Written on the standard error as each part starts, and flushed, so that a
      crash says where it happened: the test prints nothing else until its
@@ -552,6 +560,12 @@ int main()
 // #if GAOL_TESTS_THREADS
 //   step("reading_in_threads"); reading_in_threads();
 // #endif
+  {
+    std::ostringstream text;
+    text << static_expression;
+    check("a static empty expression", static_expression.get_root() == the_null_expr && text.str() == ":null:",
+          [&] { return text.str(); });
+  }
   step("summary");
   const int status = summary();
   gaol::cleanup();

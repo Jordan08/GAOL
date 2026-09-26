@@ -78,6 +78,62 @@ c++ -std=c++17 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs g
 
 In a meson project, `dependency('gaol')`.
 
+## Initialization and cleanup
+
+GAOL initializes itself before `main()`, with every compiler: `gaol::init()`
+need not be called. Each file including GAOL's headers holds a static object
+whose constructor initializes GAOL the first time, as `<iostream>` initializes
+the standard streams: GAOL is initialized before the static objects that such
+a file defines after its `#include`.
+
+**Every program calls `gaol::cleanup()` right after its last use of GAOL**, at
+the latest at the end of `main()`, whatever the compiler:
+
+```cpp
+#include <cstdio>
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main()
+{
+  // No gaol::init(): GAOL initialized itself before main()
+  interval x(1, 2);
+  std::cout << pow(x, 3) + sin(x) << std::endl;
+
+  gaol::cleanup();   // always, right after the last use of GAOL
+  std::printf("%g\n", 1.0 / 3.0);   // the program's own doubles, to nearest
+  return 0;
+}
+```
+
+Unless GAOL is built with `GAOL_PRESERVE_ROUNDING`, its initialization leaves
+the rounding direction upward for the whole program, not only for GAOL's
+operations, and `gaol::cleanup()` sets back the one the program started with
+(see [The rounding direction](#the-rounding-direction)). GAOL also calls
+`gaol::cleanup()` itself, but only when the program ends, once `main()` has
+returned and the static objects are destroyed, or when the library is
+unloaded: until then, the code after the last use of GAOL (the rest of
+`main()`, the destructors of static objects, the functions registered with
+`std::atexit()`) computes its doubles rounded upward. Only the first call sets
+the direction back: an operation of GAOL after it sets the direction upward
+again. What the initialization allocated is freed by the automatic cleanup
+only, after the static objects are destroyed, so that the expressions of
+`gaol/gaol_expression.h` still alive when the program calls `gaol::cleanup()`
+remain valid.
+
+The direction set back is the one GAOL found when it initialized itself. It is
+not the one the program started with when an operation of GAOL came first: in
+the initialization of a static object of a file that uses GAOL without
+including its headers, through a library of the program for instance, or, with
+Clang, of an `inline` variable or a static member of a class template, whose
+initialization C++ does not order with the rest of the file.
+
+With the static library, which the CMake build makes, a static object of the
+program does not compute intervals: GAOL's own constants (π, the masks of its
+SSE2 operations) are initialized with GAOL's files, after those of the program,
+and bounds computed before them are wrong.
+
 ## The namespaces
 
 GAOL's type `interval` and its functions are in the namespace `gaol_core`. A
@@ -204,3 +260,12 @@ its own rounding direction after GAOL's operations builds GAOL with
 `-Denable-preserve-rounding=true`): each operation then also restores the
 rounding direction it found, which makes the arithmetic operations several
 times slower.
+
+Without it, the rounding direction stays upward from the initialization of
+GAOL on, for the whole program, and `gaol::cleanup()`, which every program
+calls right after its last use of GAOL (see
+[Initialization and cleanup](#initialization-and-cleanup)), sets back the one
+that the first `gaol::init()` found when GAOL initialized itself: to nearest,
+as a program starts, on x86 for the x87 unit and the SSE instructions each, in
+the thread calling it. The rest of the floating-point
+environment is left as it is, the exception flags raised in particular.

@@ -76,12 +76,20 @@ arithmetic that the code including GAOL's headers has to be compiled with. A
 project can also build GAOL for itself, with FetchContent (see
 [Using GAOL](doc/using.md#from-cmake)).
 
+A program calls `gaol::cleanup()` right after its last use of GAOL:
+GAOL's initialization, which runs by itself before `main()`, sets the
+rounding direction upward for the whole program (unless GAOL is built with
+`GAOL_PRESERVE_ROUNDING`), and `gaol::cleanup()` sets back the one the
+program started with (see
+[Using GAOL](doc/using.md#initialization-and-cleanup)).
+
 ## Documentation
 
 - [Building GAOL](doc/building.md): the CMake, autotools and meson builds, and
   their options.
 - [Using GAOL](doc/using.md): the flags of interval arithmetic, GAOL from CMake
-  and from pkg-config, and the rounding direction.
+  and from pkg-config, the call of `gaol::cleanup()` at the end of a program,
+  and the rounding direction.
 - [The three builds](doc/three-builds.md): what CMake, configure and meson
   agree on, and the compilers and options they refuse.
 - [Tests](doc/tests.md): what the programs of `tests/` check, and what they

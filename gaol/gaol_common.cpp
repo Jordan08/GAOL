@@ -34,12 +34,11 @@
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_expression.h"
+#include "gaol/gaol_init_cleanup.h"
 
 #include "gaol/gaol_double_op.h"
 
 namespace gaol_core {
-
-  extern void gaol_init_lib(void);
 
   /* CORE-MATH has no state to save and no library to initialise: it computes
      in the rounding direction in effect, and changes nothing of the
@@ -47,6 +46,18 @@ namespace gaol_core {
 
   static bool _already_cleaned = false;
   static bool _already_initialized = false;
+
+#if !GAOL_PRESERVE_ROUNDING
+  /* The rounding direction the first call of init() found, before setting it
+     upward: cleanup() sets it back, the x87 unit and the SSE instructions
+     each theirs (GAOL v5). That first call is the automatic one, before the
+     static objects of the program are constructed (gaol_initializer,
+     gaol/gaol_common.h), and cleanup() runs when the program ends or the
+     library is unloaded, if the program did not call it. Constant-initialized,
+     as the two flags above: the automatic init() may run before the dynamic
+     initialization of this file. */
+  static rounding_state _initial_rounding;
+#endif
 
   int debug_level;
 
@@ -56,6 +67,7 @@ namespace gaol_core {
 			debug_level = dbg_lvl;
 
 #if !GAOL_PRESERVE_ROUNDING
+	_initial_rounding = get_rounding();
 	fesetenv(FE_DFL_ENV);
 	round_upward();
 	// next instruction crashes on MacOS ARM64 platform
@@ -84,12 +96,30 @@ namespace gaol_core {
   bool cleanup(void)
   {
     if (!_already_cleaned) {
-		delete the_null_expr;
+#if !GAOL_PRESERVE_ROUNDING
+		// Only the rounding direction: the exception flags raised since
+		// init() are the program's
+		if (_already_initialized) {
+		  set_rounding(_initial_rounding);
+		}
+#endif
 		_already_cleaned=true;
 		return true;
     } else {
       return false;
     }
+  }
+
+  /* What init() allocated, freed by the automatic cleanup only, when the
+     program ends or the library is unloaded, after the static objects
+     constructed since GAOL initialized itself are destroyed (GAOL v5).
+     cleanup(), which the program calls after its last use of GAOL, deleted
+     the_null_expr while expressions still referred to it: their destructors
+     then wrote into freed memory. */
+  void free_initialization(void)
+  {
+    delete the_null_expr;
+    the_null_expr = 0;
   }
 
   void gaol_warning(const char *file, int line, const char *warn)
@@ -148,25 +178,6 @@ namespace gaol_core {
 } // namespace gaol_core
 
 
-
-#if defined (__GNUC__)
-  /*
-    Function declared __attribute__ ((constructor)) to be called
-    automatically before main() starts. It creates also in effect a
-    destructor by defining a static instance of an init_cleanup object.
-  */
-  void gaol_init(void)
-  {
-    /* The constructor and destructor for this object will do the initialization
-       and cleanup for te whole cacao library. Code for these stages should be
-       put in them (see gaol_init_cleanup.cpp)
-    */
-    gaol_core::gaol_init_lib();
-  }
-
-#elif defined (_MSC_VER)
-
-#endif
 
 /**
  * \mainpage gaol (Just Another Interval Library)

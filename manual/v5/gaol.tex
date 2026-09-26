@@ -658,6 +658,7 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
         48*y-36*x*y+27*sqr(y)));
 
    std::cout << "z = " << z << std::endl;
+   gaol::cleanup(); @rem^// Always, after the last use of GAOL~
    return 0;
  }
  \end{example}
@@ -674,9 +675,20 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
 \cindex{namespace!gaol}%
 \cindex{header!and namespace|see{namespace}}%
 
- Nothing has to be called before using GAOL: it initializes itself when the
- program starts (\pxref{chap:init}), and each of its operations sets the
- rounding direction it needs (\pxref{sec:rounding-direction}).
+ Nothing has to be called before using GAOL: \code{gaol::init()} runs by
+ itself when the program starts, before \code{main()}, with every compiler
+ (\pxref{chap:init}), and each operation of GAOL sets the rounding direction
+ it needs (\pxref{sec:rounding-direction}).\newinvfive
+
+ \leavevmode\important
+ \emph{The program calls \code{gaol::cleanup()} right after its last use of
+ GAOL}, at the latest at the end of \code{main()}, whatever the compiler.
+ Unless GAOL is built to preserve the rounding direction, its initialization
+ sets the rounding direction upward for the whole program, not only for the
+ operations of GAOL, and \code{gaol::cleanup()} sets back the one the program
+ started with. GAOL also calls it itself, but only when the program ends: without
+ the call, the code after the last use of GAOL would compute its doubles rounded
+ upward.\newinvfive
 
  The \code{sqr(\var{x})} function stands for \emph{square of \var{x}}
  and is equivalent to \code{pow(\var{x},2)}.
@@ -860,6 +872,11 @@ builds GAOL with the option \option{GAOL\_PRESERVE\_ROUNDING} of CMake, which is
 \option{-Denable-preserve-rounding=true} with meson: each operation then also
 restores the rounding direction it found, which makes the arithmetic
 operations several times slower. It is off by default in the three builds.
+
+Without it, the rounding direction stays upward from the initialization of
+GAOL on, for the whole program, and \code{cleanup()} sets back the one that the
+initialization found: every program calls \code{gaol::cleanup()} right after
+its last use of GAOL (\pxref{chap:init}).\newinvfive
 \cindex{rounding!preserving}%
 
 \paragraph{Note.} The rounding direction GAOL leaves applies to the rest of the
@@ -923,6 +940,7 @@ int main(void) {
   interval one_tenth(0.1); @rem^BEWARE: wrong !~
 
   @emph^[some code using one_tenth]~
+  gaol::cleanup();
 }
 \end{example}
 
@@ -963,6 +981,7 @@ int main(void)
            one_tenth2("1/10"); @rem^// Another possible way~
 
   @emph^[some code using one_tenth]~
+  gaol::cleanup();
   return 0;
 }
 \end{example}
@@ -1035,19 +1054,49 @@ Taking the flags from \code{gaol::gaol} or \file{gaol.pc} avoids the question.
 \chapter{Initialization and cleanup}\label{chap:init}
 %%==================================
 
-GAOL initializes itself when the program starts, and cleans up when it ends:
-the functions below need not be called. Since Release 1.0 of GAOL, there is an
-automatic initialization and cleanup that ensures that no problem will arise if
-the user forgets to call them; since GAOL v5, each operation also sets the
-rounding direction upward itself (\pxref{sec:rounding-direction}), so that
-\code{init()} no longer has to be called again after the calling code changed
-it.\newinvfive
+GAOL initializes itself when the program starts, before \code{main()}:
+\code{init()} need not be called. Since Release 1.0 of GAOL, there is an
+automatic initialization and cleanup, so that GAOL works even when the program
+calls neither function. Since GAOL v5, the initialization is made with every
+compiler, Visual C++ included: each file including the headers of GAOL holds a
+static object whose constructor initializes GAOL the first time, as
+\file{<iostream>} initializes the standard streams, so that GAOL is initialized
+before the static objects that such a file defines after its
+\code{\#include}. Each operation also sets the rounding direction upward itself
+(\pxref{sec:rounding-direction}), so that \code{init()} no longer has to be
+called again after the calling code changed it.\newinvfive
+
+\leavevmode\important
+\emph{\code{cleanup()}, on the other hand, is to be called by the program right
+after its last use of GAOL}, at the latest at the end of \code{main()}, with
+every compiler.\newinvfive{} Unless GAOL is built to preserve the rounding
+direction, the initialization leaves the rounding direction upward for the whole
+program, not only for the operations of GAOL, and \code{cleanup()} sets back the
+one the program started with. The automatic cleanup does so too, but only when
+the program ends, once \code{main()} has returned and the static objects are
+destroyed, or when the library is unloaded: until then, the code after the last
+use of GAOL (the rest of \code{main()}, the destructors of static objects, the
+functions registered with \code{std::atexit()}) computes its doubles rounded
+upward.
+
+The direction set back is the one GAOL found when it initialized itself. It is
+not the one the program started with when an operation of GAOL came first: in
+the initialization of a static object of a file that uses GAOL without
+including its headers, through a library of the program for instance, or, with
+Clang, of an \code{inline} variable or a static member of a class template,
+whose initialization C++ does not order with the rest of the file.
+
+With the static library, which the CMake build makes, a static object of the
+program does not compute intervals: the constants of GAOL ($\pi$, the masks of
+its SSE2 operations) are initialized with the files of GAOL, after those of the
+program, and bounds computed before them are wrong.
 
 \begin{deffun}{bool}{init}{(int \var{dbg\_lvl} = 0)}
 Initializes the variable \code{debug\_level} (\pxref{sec:debugging-facilities}) to the
 value of \var{dbg\_lvl}.
 
-Unless GAOL was built to preserve the rounding direction, the first call sets the
+Unless GAOL was built to preserve the rounding direction, the first call notes
+the rounding direction it finds, which \code{cleanup()} sets back, then sets the
 floating-point environment to its default one, then the rounding direction
 towards $+\infty$. In addition, it sets the number of digits to display for
 interval bounds to 16.
@@ -1060,10 +1109,23 @@ starts, after the library initialized itself.
 \end{deffun}
 
 \begin{deffun}{bool}{cleanup}{(void)}
-Frees what the initialization allocated. It does not change the floating-point
-environment.
+Unless GAOL was built to preserve the rounding direction, sets back the rounding
+direction that the first call of \code{init()} found: the one of the program
+when GAOL initialized itself, to nearest when the program starts. On x86 processors, the x87 unit and the SSE
+instructions each get theirs back. The rest of the floating-point environment is
+left as it is, the exception flags raised since in particular. The rounding
+direction being one of each thread, it is set back in the thread calling
+\code{cleanup()}.\newinvfive
 
-Returns \code{true} the first time it is called and \code{false} afterwards.
+The program calls it right after its last use of GAOL: an operation of GAOL
+after it sets the rounding direction upward again. The automatic cleanup calls it
+when the program ends, or when the library is unloaded, if the program did not,
+and frees what the initialization allocated, after the static objects of the
+program are destroyed: the expressions of \file{gaol/gaol\_expression.h} still alive
+when the program calls \code{cleanup()} remain valid.
+
+Returns \code{true} the first time it is called and \code{false} afterwards:
+only the first call sets back the rounding direction.
 \end{deffun}
 
 
@@ -1072,11 +1134,14 @@ Returns \code{true} the first time it is called and \code{false} afterwards.
 
 int main(void)
 {
-  gaol::init(1); @rem^// First level of debugging requested~
+  gaol::init(1); @rem^// First level of debugging requested;~
+                 @rem^// without it, GAOL initializes itself~
 
   @emph^[Some code using interval arithmetic]~
 
-  gaol::cleanup();
+  gaol::cleanup(); @rem^// Always, right after the last use~
+                   @rem^// of GAOL: sets back the rounding~
+                   @rem^// direction~
   return 0;
 }
 \end{example}
@@ -3372,6 +3437,7 @@ int main(void)
     interval::format(interval_format::width);
     cout << interval::pi() << endl;
   }
+  gaol::cleanup();
   return 0;
 }
 \end{example}
@@ -3434,6 +3500,7 @@ int main(void)
   bool b = strictLess(x, entire());
   std::cout << std::boolalpha
             << x << ' ' << y << ' ' << z << ' ' << b << std::endl;
+  gaol::cleanup();
   return 0;
 }
 @outputs^[1, 2] [0.5, 1] [-0.2062994740159004, 1] false~
@@ -4236,6 +4303,7 @@ int main(void)
      @emph^[Some time consuming operations]~
   }
   cout << "Elapsed time: " << elapsed_time() << " ms." << endl;
+  gaol::cleanup();
   return 0;
 }
 \end{example}
@@ -4285,6 +4353,7 @@ int main(void)
   }
   t.stop();
   cout << "Elapsed time: " << t.get_total_time() << " ms." << endl;
+  gaol::cleanup();
   return 0;
 }
 \end{example}
@@ -4428,7 +4497,14 @@ change with its reasons and its measures.
   (\option{GAOL\_FLOAT\_INTERVALS}).
 \item \code{gaol::init()} need not be called again after the program changed the
   rounding direction: each operation sets it upward itself
-  (\pxref{sec:rounding-direction}).
+  (\pxref{sec:rounding-direction}). It need not be called at all, GAOL
+  initializing itself with every compiler, Visual C++ included
+  (\pxref{chap:init}).
+\item The program calls \code{gaol::cleanup()} right after its last use of GAOL:
+  unless the rounding direction is preserved, it sets back the rounding
+  direction that the initialization found, which GAOL~4 left upward
+  (\pxref{chap:init}). It no longer frees what the initialization allocated,
+  which the automatic cleanup frees when the program ends.
 \item The operators \code{==} and \code{!=} on intervals are gone, with the
   possibly relations (\code{possibly\_eq()}, \code{possibly\_le()}\ldots),
   \code{certainly\_eq()} and \code{certainly\_neq()}, and so is the option

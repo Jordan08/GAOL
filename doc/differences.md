@@ -183,6 +183,38 @@ where it comes from.
     of `gaol/gaol_double_op.h` saved the direction they found, but left it
     upward, which the compilers only showed by warning that `_save_state` was
     set but not used. `tests/rounding_direction.cpp` calls them.
+  - **`gaol::cleanup()` sets back the rounding direction** that the first
+    `gaol::init()` found, unless it is preserved: GAOL left it upward after
+    its use, even after its automatic cleanup when the program ends or the
+    library is unloaded, and a program computing to nearest after it had to
+    set it back itself. Only the rounding direction is set back, on x86 the
+    one of the x87 unit and the one of the SSE instructions (`rounding_state`,
+    `gaol/gaol_fpu.h`), not the rest of the environment that `gaol::init()`
+    replaced with `fesetenv(FE_DFL_ENV)`: the exception flags raised since are
+    the program's. `tests/rounding_direction.cpp` checks the direction after
+    `gaol::cleanup()`, and `tests/automatic_cleanup.cpp` after the end of
+    `main()`, on Linux, where the priorities of constructors let a function
+    registered with `std::atexit()` run after GAOL's automatic cleanup.
+  - **GAOL initializes itself with every compiler, before the static objects
+    of the program**: each file including `gaol/gaol_common.h` holds a static
+    `gaol_core::gaol_initializer`, whose constructor initializes GAOL the first
+    time, as `std::ios_base::Init` does the standard streams. GAOL declared
+    `gaol_init()` with `__attribute__((constructor))`, for GCC and Clang only:
+    Visual C++ had no automatic initialization (`gaol/dllmain.cpp`, for a DLL,
+    is compiled by none of the builds), and the constructor of the static
+    library ran after those of the program, whose static objects computing
+    intervals set the rounding direction upward before the first
+    `gaol::init()` read it, so that `gaol::cleanup()` left it upward.
+    `gaol_init()` is gone. `tests/rounding_direction.cpp` computes such an
+    object.
+  - **`gaol::cleanup()` no longer frees what the initialization allocated**:
+    the automatic cleanup frees it, when the program ends or the library is
+    unloaded, after the static objects of the program are destroyed.
+    `gaol::cleanup()` deleted the node of the empty expression while
+    expressions still referred to it, a local of `main()` destroyed after the
+    call or a static object, whose destructors then wrote into freed memory:
+    `tests/expressions.cpp` holds such a static expression, which the
+    sanitizers of the continuous integration check.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with

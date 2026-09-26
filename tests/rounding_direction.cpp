@@ -17,7 +17,8 @@
  * of direction that the source code writes after its computation. It has to
  * leave the direction as it found it, or upward (as it found it only, with
  * GAOL_PRESERVE_ROUNDING). After it, the bounds of a product and a sum have to
- * be the tightest ones.
+ * be the tightest ones. At the end, gaol::cleanup() has to set back the
+ * direction the first gaol::init() found (GAOL v5).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -48,6 +49,13 @@ using namespace gaol_tests;
 
 namespace
 {
+  // An operation of GAOL computed before main(), in the initialization of a
+  // static object: it sets the rounding direction upward. GAOL has to initialize itself before, so that the first
+  // gaol::init() finds the direction the program started with: with GCC and
+  // Clang, the constructor of the static library GAOL ran after those of the
+  // program, and gaol::cleanup() left the direction upward (GAOL v5).
+  const interval computed_before_main = interval(0.1, 0.3) * interval(1.5, 2.5);
+
   // The results of the operations, written exactly
   std::string S(const interval& x) { return hex(x); }
   std::string S(double x) { return hex(x); }
@@ -392,8 +400,24 @@ int main()
           [&] { return std::string("rounding direction ") + d.name; });
   }
 
+  /*
+    gaol::cleanup() sets back the rounding direction the first gaol::init()
+    found, the x87 unit and the SSE instructions each theirs (GAOL v5): to
+    nearest, as a program starts (C11, F.8.3), GAOL initializing itself before
+    the static objects of the program. With GAOL_PRESERVE_ROUNDING, it leaves
+    the direction as it is.
+  */
   set(directions[0]);
-  const int status = summary();
+  const State before_cleanup = state();
   gaol::cleanup();
-  return status;
+  const State after_cleanup = state();
+#if GAOL_PRESERVE_ROUNDING
+  check("rounding direction unchanged by gaol::cleanup()", after_cleanup == before_cleanup,
+        [&] { return text(after_cleanup) + " after it, " + text(before_cleanup) + " before"; });
+#else
+  const State to_nearest = { FE_TONEAREST, SSE_DIRECTION(_MM_ROUND_NEAREST) };
+  check("rounding direction set back to nearest by gaol::cleanup()", after_cleanup == to_nearest,
+        [&] { return text(after_cleanup) + " after it, " + text(before_cleanup) + " before"; });
+#endif
+  return summary();
 }

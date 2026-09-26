@@ -113,7 +113,12 @@ extern __GAOL_PUBLIC__  bool init(int dbg_lvl = 0);
   /*!
     \brief Cleanup function
 
-    To be called at the end of a program
+    To be called right after the last use of GAOL. Unless GAOL is built with
+    GAOL_PRESERVE_ROUNDING, it also sets back the rounding direction that the
+    first call of init() found (GAOL v5). GAOL calls it itself when the
+    program ends or the library is unloaded, if the program did not, and then
+    frees what the initialization allocated.
+    \return true the first time it is called and false afterwards
   */
 extern __GAOL_PUBLIC__ bool cleanup(void);
 
@@ -152,11 +157,29 @@ extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *e
 #   define GAOL_IF_VERBOSE(a)
 #endif
 
+  /*!
+    \brief Initializes GAOL before the static objects of the code using it
+
+    Each translation unit including GAOL's headers holds a static object of
+    this class, defined here, before its own static objects: its constructor
+    initializes GAOL the first time only (gaol_init_lib(),
+    gaol/gaol_init_cleanup.cpp), as <iostream> initializes the standard
+    streams, and GAOL cleans up when the program ends, after the static
+    objects constructed since are destroyed (GAOL v5). The first gaol::init()
+    thus comes before the operations of GAOL in the static objects that such
+    a unit defines after including GAOL, and finds the rounding direction the
+    program started with, which gaol::cleanup() sets back. The function of
+    GCC and Clang that GAOL declared __attribute__((constructor)) ran after
+    the constructors of the program, GAOL being a static library, and Visual
+    C++ had none.
+  */
+  class __GAOL_PUBLIC__ gaol_initializer {
+  public:
+    gaol_initializer();
+  };
+
+  static gaol_initializer _gaol_initializer;
+
 } // namespace gaol_core
-
-
-#if !defined (_MSC_VER)
-  extern void gaol_init(void) __attribute__ ((constructor));
-#endif // !defined (_MSC_VER)
 
 #endif /* __gaol_common_h__ */

@@ -77,6 +77,18 @@ Codac.
   an empty interval to be told empty after them: the `fesetexceptflag()` of
   mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
   the NaN bounds of an empty interval then killed the program (GAOL v5).
+  `gaol::cleanup()` has to set back the direction the first `gaol::init()`
+  found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
+  although an interval computed in the initialization of a static object set
+  it upward before `main()`: GAOL has to initialize itself before.
+- **`automatic_cleanup`** (Linux only): after the end of `main()`, which leaves
+  the rounding direction downward, GAOL's automatic cleanup has to set back
+  the direction to nearest, as the program started, or to leave it downward
+  with `GAOL_PRESERVE_ROUNDING`. The direction is read by a function a
+  constructor of priority 101 registers with `std::atexit()`, before GAOL
+  initializes itself in the initialization of the static objects, so that it
+  runs after GAOL's automatic cleanup: the priorities of constructors are those
+  of ELF, and GAOL is linked statically, as the CMake build makes it.
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
   be the tightest enclosures of π, 2π and π/2. The literals of IEEE 1788-2015
@@ -195,7 +207,11 @@ Codac.
   out: the tests run no thread
   (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
-  the lexer, the parser and the evaluation, not the operations.
+  the lexer, the parser and the evaluation, not the operations. An empty
+  expression of static storage, destroyed after `main()` has called
+  `gaol::cleanup()`, has to stay valid: `gaol::cleanup()` deleted the node it
+  refers to, and its destructor wrote into freed memory, which the sanitizers
+  of the continuous integration report (GAOL v5).
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
   `atan2` and `pow`, and of `log10` and seven functions of Table 10.5, compute
   with a 128-bit unsigned integer, which Visual C++

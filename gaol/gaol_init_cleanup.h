@@ -39,6 +39,7 @@ namespace gaol_core {
 
   void initialization_process(void);
   void cleanup_process(void);
+  void free_initialization(void);
   
 } // namespace gaol_core
 
