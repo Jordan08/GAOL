@@ -170,7 +170,8 @@ extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *e
     a unit defines after including GAOL, and finds the rounding direction the
     program started with, which gaol::cleanup() sets back. The function of
     GCC and Clang that GAOL declared __attribute__((constructor)) ran after
-    the constructors of the program, GAOL being a static library, and Visual
+    the constructors of the program, GAOL being a static library, except with
+    MinGW-w64, which runs them from the last linked to the first, and Visual
     C++ had none.
   */
   class __GAOL_PUBLIC__ gaol_initializer {

@@ -26,11 +26,6 @@
 
 //#include "cycle.h"
 
-  const interval interval::cst_emptyset(GAOL_NAN,GAOL_NAN);
-  const interval interval::cst_universe(-GAOL_INFINITY,GAOL_INFINITY);
-  const interval interval::cst_zero(0.0);
-  const interval interval::cst_positive(0.0,GAOL_INFINITY);
-  const interval interval::cst_negative(-GAOL_INFINITY,0.0);
 
   double hausdorff(const interval &I1, const interval &I2)
   {

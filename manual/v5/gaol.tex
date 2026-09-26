@@ -1086,10 +1086,10 @@ including its headers, through a library of the program for instance, or, with
 Clang, of an \code{inline} variable or a static member of a class template,
 whose initialization C++ does not order with the rest of the file.
 
-With the static library, which the CMake build makes, a static object of the
-program does not compute intervals: the constants of GAOL ($\pi$, the masks of
-its SSE2 operations) are initialized with the files of GAOL, after those of the
-program, and bounds computed before them are wrong.
+The constants of GAOL ($\pi$, the masks of its SSE2 operations) are initialized
+when compiling: a static object of the program may compute intervals, before the
+files of GAOL are initialized, which with the static library of the CMake build
+come after those of the program, except with MinGW-w64.\newinvfive
 
 \begin{deffun}{bool}{init}{(int \var{dbg\_lvl} = 0)}
 Initializes the variable \code{debug\_level} (\pxref{sec:debugging-facilities}) to the
@@ -4495,6 +4495,10 @@ change with its reasons and its measures.
 \item The intervals of floats, \code{gaol::intervalf} and
   \code{gaol::interval2f}, are compiled only when asked for
   (\option{GAOL\_FLOAT\_INTERVALS}).
+\item The static intervals \code{interval::cst\_one}, \code{cst\_pi} and the
+  other \code{cst\_} members are gone: \code{interval::one()},
+  \code{interval::pi()} and the other functions give these constants, right
+  even in the initialization of a static object (\pxref{chap:init}).
 \item \code{gaol::init()} need not be called again after the program changed the
   rounding direction: each operation sets it upward itself
   (\pxref{sec:rounding-direction}). It need not be called at all, GAOL
@@ -4518,6 +4522,11 @@ change with its reasons and its measures.
 %%---------------------------
 
 \begin{itemize}
+\item \textbf{Static objects.} The intervals computed in the initialization of
+  the static objects of a program linked with the static library GAOL are
+  right: \code{interval::pi()} was $[-0, 0]$ there, and $[1, 2]/[-1, 1]$ was
+  $[-0, 0]$ rather than $[-\infty, +\infty]$, the constants of GAOL being
+  computed after these objects, except with MinGW-w64 (\pxref{chap:init}).
 \item \textbf{The bounds are tighter}: the elementary functions give the tightest
   bounds, rather than one double beyond, and are exact where their value is a
   double; the integer powers and the $n$th roots are computed from exact

@@ -50,10 +50,11 @@ using namespace gaol_tests;
 namespace
 {
   // An operation of GAOL computed before main(), in the initialization of a
-  // static object: it sets the rounding direction upward. GAOL has to initialize itself before, so that the first
-  // gaol::init() finds the direction the program started with: with GCC and
-  // Clang, the constructor of the static library GAOL ran after those of the
-  // program, and gaol::cleanup() left the direction upward (GAOL v5).
+  // static object: it sets the rounding direction upward. GAOL has to
+  // initialize itself before, so that the first gaol::init() finds the
+  // direction the program started with: with GCC and Clang, the constructor of
+  // the static library GAOL ran after those of the program, except with
+  // MinGW-w64, and gaol::cleanup() left the direction upward (GAOL v5).
   const interval computed_before_main = interval(0.1, 0.3) * interval(1.5, 2.5);
 
   // The results of the operations, written exactly

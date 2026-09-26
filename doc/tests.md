@@ -89,6 +89,19 @@ Codac.
   initializes itself in the initialization of the static objects, so that it
   runs after GAOL's automatic cleanup: the priorities of constructors are those
   of ELF, and GAOL is linked statically, as the CMake build makes it.
+- **`static_initialization`:** about 40 operations computed before `main()`, in
+  the initialization of a static object of the program, have to give the
+  intervals they give in `main()`, bit for bit: the constants of intervals
+  (`pi()`, `one()`, `universe()`...), products and quotients, which use the
+  masks of the SSE2 intervals, the elementary functions, the trigonometric ones
+  using π, and the reader of strings. The static library of the CMake build is
+  initialized after the program, except with MinGW-w64, and GAOL's constants
+  were computed by its dynamic initialization: 25 of the 45 checks failed with
+  the SSE2 intervals, 24 with the others, `pi()` giving [-0, 0] (GAOL v5). With
+  MinGW-w64, which initializes GAOL's files first, the test passes with or
+  without the fix. `pi_dn`, `pi_up` and
+  the other doubles of `gaol/gaol_port.h`, now written in decimal, have to be
+  those their unions write in bits.
 - **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
   number read, and the number itself when it is a double. The constants have to
   be the tightest enclosures of π, 2π and π/2. The literals of IEEE 1788-2015

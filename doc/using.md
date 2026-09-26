@@ -129,10 +129,10 @@ including its headers, through a library of the program for instance, or, with
 Clang, of an `inline` variable or a static member of a class template, whose
 initialization C++ does not order with the rest of the file.
 
-With the static library, which the CMake build makes, a static object of the
-program does not compute intervals: GAOL's own constants (π, the masks of its
-SSE2 operations) are initialized with GAOL's files, after those of the program,
-and bounds computed before them are wrong.
+The constants of GAOL (π, the masks of its SSE2 operations) are initialized
+when compiling: a static object of the program may compute intervals, before
+the files of GAOL are initialized, which with the static library of the CMake
+build come after those of the program, except with MinGW-w64.
 
 ## The namespaces
 

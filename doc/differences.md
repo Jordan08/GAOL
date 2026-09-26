@@ -202,9 +202,10 @@ where it comes from.
     `gaol_init()` with `__attribute__((constructor))`, for GCC and Clang only:
     Visual C++ had no automatic initialization (`gaol/dllmain.cpp`, for a DLL,
     is compiled by none of the builds), and the constructor of the static
-    library ran after those of the program, whose static objects computing
-    intervals set the rounding direction upward before the first
-    `gaol::init()` read it, so that `gaol::cleanup()` left it upward.
+    library ran after those of the program (except with MinGW-w64, which runs
+    the constructors from the last linked to the first): the static objects of
+    the program computing intervals set the rounding direction upward before
+    the first `gaol::init()` read it, so that `gaol::cleanup()` left it upward.
     `gaol_init()` is gone. `tests/rounding_direction.cpp` computes such an
     object.
   - **`gaol::cleanup()` no longer frees what the initialization allocated**:
@@ -215,6 +216,26 @@ where it comes from.
     call or a static object, whose destructors then wrote into freed memory:
     `tests/expressions.cpp` holds such a static expression, which the
     sanitizers of the continuous integration check.
+- **The constants of GAOL are initialized when compiling**, so that the
+  intervals computed in the initialization of the static objects of a program
+  are right. They were computed by the dynamic initialization of GAOL's files,
+  which, with the static library of the CMake build, comes after the static
+  objects of the program, except with MinGW-w64: an interval computed there
+  found them 0, and `interval::pi()` was [-0, 0], `[1, 2]/[-1, 1]` was [-0, 0]
+  rather than [−∞, +∞] and `sin([0, 4])` was [-0, 0], without any warning (25
+  of the 45 checks of `tests/static_initialization.cpp` failed with the SSE2
+  intervals, 24 with the others).
+  - `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`, `ln2_dn` and `ln2_up`
+    (`gaol/gaol_port.h`) are written in decimal, exactly, rather than read from
+    the unions that give their bits, which is not a constant expression.
+  - `interval::one()`, `pi()`, `universe()` and the other constants of
+    intervals build their interval from these doubles, which the compiler
+    folds, rather than copy the static intervals `interval::cst_one`,
+    `cst_pi`..., which are gone.
+  - The masks of the SSE2 intervals (`gaol/gaol_interval_sse.cpp`) are
+    written as vectors, which GCC and Clang, the only compilers of the SSE2
+    intervals, put in read-only memory, rather than computed with
+    `_mm_set_pd()` and `_mm_cmpeq_pd()`.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with

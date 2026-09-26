@@ -290,7 +290,13 @@ namespace gaol_core {
     static void format(interval_format::format_t f);
     GAOL_NODISCARD static interval_format::format_t format(void);
 
-// TODO: Change all static constants in interval class as functions
+    /* The masks of the SSE2 operations, initialized when compiling
+       (gaol/gaol_interval_sse.cpp), so that the operations computed in the
+       initialization of the static objects of a program are right, before
+       the files of GAOL are initialized (GAOL v5). The constants of intervals
+       (one(), pi()...) are built by the functions giving them, from doubles
+       written in gaol/gaol_port.h, rather than held in static intervals, which
+       only the dynamic initialization of gaol/gaol_interval.cpp computed. */
 #if USING_SSE2_INSTRUCTIONS
      /// Mask for the sign bit of the left operand of an xmm register
     static const __m128d lbsignmask;
@@ -317,26 +323,12 @@ namespace gaol_core {
 	void *operator new(size_t sz, void *p);
 	void operator delete(void *p, void *place);
 
-#else // !USING_SSE2_INSTRUCTIONS
-    static const interval cst_emptyset;
-    static const interval cst_universe;
-    static const interval cst_zero;
-    static const interval cst_positive;
-    static const interval cst_negative;
-
 #endif // USING_SSE2_INSTRUCTIONS
     GAOL_NODISCARD static interval zero(void);
     GAOL_NODISCARD static interval universe(void);
     GAOL_NODISCARD static interval emptyset(void);
     GAOL_NODISCARD static interval positive(void); // [0, +oo]
     GAOL_NODISCARD static interval negative(void); // [-oo, 0]
-
-    static const interval cst_one;
-    static const interval cst_minus_one_plus_one;
-    static const interval cst_pi;
-    static const interval cst_two_pi;
-    static const interval cst_half_pi;
-    static const interval cst_one_plus_infinity;
 
 
     GAOL_NODISCARD static interval one(void);
@@ -1010,7 +1002,7 @@ GAOL_NODISCARD INLINE interval integer(const interval &I)
 
   Each tests the empty set first. GAOL holds the empty interval as the two
   bounds NaN, in both of its representations (interval::emptyset() of
-  gaol/gaol_interval_sse.h, cst_emptyset of gaol/gaol_interval_fpu.cpp), and
+  gaol/gaol_interval_sse.h and of gaol/gaol_interval_fpu.h), and
   is_empty() reads it as !(left() <= right()), which a NaN makes true. trunc
   and the two roundings send a NaN to itself, so they would give the empty set
   back without the test; sign would not, a NaN comparing false both to 0 and
@@ -1339,33 +1331,35 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ bool feven(double d);
    */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ double hausdorff(const interval &I1, const interval &I2);
 
+   // Built from constants, which the compiler folds, rather than copied from
+   // static intervals initialized when the program starts (GAOL v5)
    INLINE interval interval::one(void)
 	{
-		return interval::cst_one;
+		return interval(1.0);
 	}
    INLINE interval interval::minus_one_plus_one(void)
 	{
-		return interval::cst_minus_one_plus_one;
+		return interval(-1.0, 1.0);
 	}
 
    INLINE interval interval::pi(void)
 	{
-		return interval::cst_pi;
+		return interval(pi_dn, pi_up);
 	}
 
    INLINE interval interval::two_pi(void)
 	{
-		return interval::cst_two_pi;
+		return interval(2.0*pi_dn, 2.0*pi_up); // No rounding when multiplying by 2
 	}
 
    INLINE interval interval::half_pi(void)
 	{
-		return interval::cst_half_pi;
+		return interval(half_pi_dn, half_pi_up);
 	}
 
    INLINE interval interval::one_plus_infinity(void)
 	{
-		return interval::cst_one_plus_infinity;
+		return interval(1.0, GAOL_INFINITY);
 	}
 
 
