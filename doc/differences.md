@@ -658,8 +658,8 @@ where it comes from.
   `interval("...")`, `operator>>` and the two `textToInterval()` go through,
   creates them. The grammar keeps the directives of Bison 2.3, the Bison of
   macOS, which Bison 3 reads with a warning: autotools regenerates the parser
-  with the `bison -y` it finds when `gaol_interval_parser.ypp` is newer than
-  `gaol_interval_parser.cpp`. The generated lexer and parser stay in the
+  with the yacc that configure finds (`bison -y`, else `byacc` or `yacc`) when
+  `gaol_interval_parser.ypp` is newer than `gaol_interval_parser.cpp`. The generated lexer and parser stay in the
   repository, and CMake and meson compile them. Four threads reading strings
   at once, with the names of GAOL and of the standard, crashed each time with
   the globals; ThreadSanitizer reports nothing with the reentrant reader. That
@@ -757,7 +757,10 @@ where it comes from.
   which it did not compile on Linux, and installs the headers for MinGW and
   Visual C++, as configure now does too (and `gaol/gaol_interval2f.h`, which
   it left out, with the intervals of floats). Both install
-  a `gaol.pc` carrying the flags of interval arithmetic.
+  a `gaol.pc` carrying the flags of interval arithmetic. The meson build no
+  longer requires flex and bison: it compiles the lexer and the parser
+  committed, as CMake does, and its generators, whose output nothing compiled,
+  are gone.
 - **CORE-MATH is in the sources** (`3rd/math-core`, see
   [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
   project, brought in by FetchContent, with no network access beyond its own

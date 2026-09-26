@@ -390,9 +390,6 @@ if float_store_needed and cpp_comp.has_argument('-ffloat-store')
   pc_cflags += ['-ffloat-store']
 endif
 
-flex = find_program('flex', required: true)
-bison = find_program('bison', required: true)
-
 subdir('gaol')
 
 subdir('check')
