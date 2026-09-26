@@ -39,6 +39,12 @@ What is left to do on GAOL v5. What is done is in
    of `sinh.c`, `cosh.c` and `tanh.c`, the signed shifts of `cospi.c`, the
    128-bit shift of `asinpi.c`, and the 64-bit `__builtin_expect` of
    `rsqrt.c`, which took subnormals for +0 wherever `long` has 32 bits.
+   A fifth one is made in `gaol/core_math_port.h` rather than in the
+   sources: `sin.c` calls `__builtin_roundeven()` unguarded since its rewrite
+   (upstream commit `6b84457`), which GCC before 10 does not have, and GCC 9.4
+   did not link it; the other sources take the builtin only from GCC 10 and
+   Clang 17 and round by themselves before (`roundeven_finite()` of
+   `exp.c`), which `sin.c` could do too.
    This is also how the work of GAOL v5 reaches the glibc, which imports
    CORE-MATH's functions (glibc 2.41 to 2.44; `cosh`, `sinh` and `tanh` in
    2.44) and runs on 32-bit Linux targets, where `long` has 32 bits too.
@@ -50,9 +56,11 @@ What is left to do on GAOL v5. What is done is in
 ## Documentation
 
 5. **The coverage report** ([coverage/README.md](coverage/README.md)) was
-   written on 2026-09-20: its lines not run no longer match the sources. To
-   write again with `-DGAOL_COVERAGE=ON` and the target `coverage`, which
-   need gcovr.
+   written on 2026-09-20: its lines not run no longer match the sources, which
+   changed since (one grammar for the reader of strings, the lexer and the
+   parser made reentrant, the relations `possibly_*`, `certainly_eq` and
+   `certainly_neq` removed). To write again with `-DGAOL_COVERAGE=ON` and the
+   target `coverage`, which need gcovr.
 
 6. **The timings of [doc/compare/performance.md](doc/compare/performance.md)**
    were measured at `bb6f7e4` with files outside the sources changed
