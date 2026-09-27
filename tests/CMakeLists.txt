@@ -30,6 +30,10 @@ set(GAOL_TESTS
   # The results that doubles computed in extended precision, on the x87 unit,
   # round wrongly (GAOL v5)
   extended_precision
+  # The operations computed in the initialization of static objects, before
+  # the files of the static library GAOL are initialized, except with
+  # MinGW-w64 (GAOL v5)
+  static_initialization
 )
 # The rounding direction after the automatic cleanup of GAOL, read after the
 # end of main() by a function registered in a constructor of priority 101,

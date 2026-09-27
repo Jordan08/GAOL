@@ -181,18 +181,26 @@ namespace gaol_core {
   const uintdouble uln2_up = {{IFBIGENDIAN(0x3fe62e42,0xFEFA39F0)}};
 
 
-  const double pi_dn = upi_dn.d;
-  const double pi_up = upi_up.d;
+  /* The same doubles, written exactly in decimal (GAOL v5). Read from the
+     unions above, they were computed when the program started, by the
+     dynamic initialization of each file including this header: the
+     functions of the static library GAOL found them 0 when a static object of
+     the program called them before the files of GAOL were initialized, and
+     gave bounds that did not enclose the results. A literal is converted when
+     compiling, and the exact value of a double needs no rounding.
+     tests/static_initialization.cpp checks them against the bits above. */
+  const double pi_dn = 3.141592653589793115997963468544185161590576171875;
+  const double pi_up = 3.141592653589793560087173318606801331043243408203125;
 
-  const double half_pi_dn = uhalfpi_dn.d;
-  const double half_pi_up = uhalfpi_up.d;
+  const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
+  const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
 
   const double two_pi = 6.28318530717958647693;
   const double pi = 3.14159265358979323846;
   const double half_pi = 1.57079632679489661923;
 
-  const double ln2_dn = uln2_dn.d;
-  const double ln2_up = uln2_up.d;
+  const double ln2_dn = 0.69314718055994528622676398299518041312694549560546875;
+  const double ln2_up = 0.6931471805599453972490664455108344554901123046875;
 
   const double two_power_51 = 2251799813685248.0;
   const double two_power_52 = 4503599627370496.0;

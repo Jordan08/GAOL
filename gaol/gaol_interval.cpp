@@ -77,12 +77,6 @@ namespace gaol {
 
 namespace gaol_core {
 
-const interval interval::cst_two_pi(2.0*pi_dn,2.0*pi_up); // No rounding when multiplying by 2
-const interval interval::cst_pi(pi_dn,pi_up);
-const interval interval::cst_half_pi(half_pi_dn,half_pi_up);
-const interval interval::cst_one_plus_infinity(1.0,GAOL_INFINITY);
-const interval interval::cst_one(1.0);
-const interval interval::cst_minus_one_plus_one(-1.0,1.0);
 
 
 

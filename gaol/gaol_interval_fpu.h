@@ -33,29 +33,33 @@
 #ifndef __gaol_interval_fpu_h__
 #define __gaol_interval_fpu_h__
 
+    // Built from constants rather than copied from static intervals, which
+    // the dynamic initialization of gaol/gaol_interval.cpp computed after the
+    // static objects of a program linked with the static library GAOL, except
+    // with MinGW-w64 (GAOL v5)
     INLINE interval interval::zero(void)
     {
-        return interval::cst_zero;
+        return interval(0.0);
     }
 
     INLINE interval interval::universe(void)
     {
-        return interval::cst_universe;
+        return interval(-GAOL_INFINITY, GAOL_INFINITY);
     }
 
     INLINE interval interval::emptyset(void)
     {
-        return interval::cst_emptyset;
+        return interval(std::numeric_limits<double>::quiet_NaN());
     }
 
     INLINE interval interval::positive(void) // [0, +oo]
     {
-        return interval::cst_positive;
+        return interval(0.0, GAOL_INFINITY);
     }
 
     INLINE interval interval::negative(void) // [-oo, 0]
     {
-        return interval::cst_negative;
+        return interval(-GAOL_INFINITY, 0.0);
     }
 
 

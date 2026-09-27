@@ -26,14 +26,26 @@
 // TODO: check existence of stdint.h in configure.in
 #include <stdint.h>
 
-	const __m128d interval::lbsignmask = _mm_set_pd(0.0,-0.0);
-	const __m128d interval::lbrbsignmask = _mm_set1_pd(-0.0);
-	const __m128d interval::m128d_02mask = _mm_cmpeq_pd(_mm_set1_pd(0.0),_mm_set_pd(0.0,1.0));
-	const __m128d interval::m128d_20mask = _mm_cmpeq_pd(_mm_set1_pd(0.0),_mm_set_pd(1.0,0.0));
-	const __m128d interval::m128_zero = _mm_set1_pd(0.0);
-	const __m128d interval::m128_minus_one = _mm_set_pd(1.0,-1.0);
-	const __m128d interval::m128_nan = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
-	const __m128d interval::m128_infinf = _mm_set1_pd(std::numeric_limits<double>::infinity());
+	/* Written as vectors, lower double first, rather than computed with
+	   _mm_set_pd() and _mm_cmpeq_pd(): the compilers put them in read-only
+	   memory, where they are right before the program starts, whereas the
+	   dynamic initialization of this file computed them after the static
+	   objects of a program linked with the static library GAOL, except with
+	   MinGW-w64, whose operations then found them 0 (GAOL v5). The SSE2 intervals are compiled
+	   by GCC and Clang only, which know these vectors: none of the three
+	   builds compiles them with Visual C++. m128d_02mask and m128d_20mask,
+	   whose all-ones half no double writes, are integer vectors seen as
+	   doubles; __extension__ keeps -pedantic from warning about them. */
+	const __m128d interval::lbsignmask = {-0.0, 0.0};
+	const __m128d interval::lbrbsignmask = {-0.0, -0.0};
+	const __m128d interval::m128d_02mask = __extension__ (__m128d)(__m128i){0, -1};
+	const __m128d interval::m128d_20mask = __extension__ (__m128d)(__m128i){-1, 0};
+	const __m128d interval::m128_zero = {0.0, 0.0};
+	const __m128d interval::m128_minus_one = {-1.0, 1.0};
+	const __m128d interval::m128_nan = {std::numeric_limits<double>::quiet_NaN(),
+	                                    std::numeric_limits<double>::quiet_NaN()};
+	const __m128d interval::m128_infinf = {std::numeric_limits<double>::infinity(),
+	                                       std::numeric_limits<double>::infinity()};
 
 	void* interval::operator new(size_t sz)
 	{
