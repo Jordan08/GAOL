@@ -17,7 +17,12 @@ struct Gaol
 #endif
   static constexpr const char *name = GAOL_BENCH_NAME;
   static I make(double lo, double hi) { return I(lo, hi); }
+  // GAOL v5 reads a string with textToInterval(), GAOL 4 with a constructor
+#if GAOL_MAJOR_VERSION >= 5
+  static I decimal(const char *s) { return gaol::textToInterval(s); }
+#else
   static I decimal(const char *s) { return I(s); }
+#endif
   static I sqr(const I& x) { return gaol::sqr(x); }
   static I sqrt(const I& x) { return gaol::sqrt(x); }
   static I exp(const I& x) { return gaol::exp(x); }

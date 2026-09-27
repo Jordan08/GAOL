@@ -930,11 +930,13 @@ The type \code{interval} of GAOL and its functions are in the namespace
 The two namespaces hold \code{interval}, and the functions that have the same
 name and the same meaning in both (\code{sin}, \code{exp}, \code{sqrt},
 \code{min}\ldots) are the same functions, those of \code{gaol\_core}.
-\code{pow} is the one whose meaning differs: each namespace has its own, and
-none is in \code{gaol\_core}, the namespace where argument-dependent lookup
-looks for a call \code{pow(x,~y)} on an interval, so that each namespace finds
-its own only. A program opens one of the two namespaces, not both: with both
-open, \code{pow(x,~y)} is ambiguous.
+\code{pow} and \code{textToInterval} are the ones whose meaning differs: each
+namespace has its own, and none is in \code{gaol\_core}, the namespace where
+argument-dependent lookup looks for a call \code{pow(x,~y)} on an interval, so
+that each namespace finds its own only. A program opens one of the two
+namespaces, not both: with both open, \code{pow(x,~y)} is ambiguous, and so is
+\code{textToInterval(s)}, which reads the names of GAOL in \code{gaol} and
+those of the standard in \code{gaol\_ieee1788} (\pxref{sec:constructors}).
 
 The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
 a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
@@ -992,7 +994,8 @@ containing only \roundNearest{0.1}, and the \dfn{containment property}
 will be violated.
 
 The right way to deal with rational constants that might not be perfectly
-representable as floating-point numbers is to stringify them, such
+representable as floating-point numbers is to stringify them, and to read
+them with \code{gaol::textToInterval()} (\pxref{sec:constructors}), such
 that they can be correctly rounded downward and upward at \emph{runtime}:
 
 \begin{example}
@@ -1002,8 +1005,10 @@ using gaol::interval;
 
 int main(void)
 {
-  interval one_tenth("0.1"), @rem^// OK: this is the right way~
-           one_tenth2("1/10"); @rem^// Another possible way~
+  @rem^// OK: this is the right way~
+  interval one_tenth = gaol::textToInterval("0.1");
+  @rem^// Another possible way~
+  interval one_tenth2 = gaol::textToInterval("1/10");
 
   @emph^[some code using one_tenth]~
   gaol::cleanup();
@@ -1027,17 +1032,19 @@ Written in hexadecimal (\pxref{sec:output-format}), which shows the bounds
 exactly, the two intervals are:
 
 \begin{onscreen}
-interval(0.1)   = [0x1.999999999999ap-4, 0x1.999999999999ap-4]
-interval("0.1") = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
+interval(0.1) = [0x1.999999999999ap-4, 0x1.999999999999ap-4]
+one_tenth     = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
 \end{onscreen}
 
 \subsection{Zero}
 %%...............
 
-\code{interval~x(0)} does not compile: the literal \code{0} is also a null
-pointer, which the constructor from a string takes as well as the constructor
-from a \code{double}, and the call is ambiguous. Write \code{interval~x(0.0)},
-or \code{interval::zero()}.
+\code{interval~x(0,~0)} does not compile: the literal \code{0} is also a null
+pointer, which the constructor from two strings takes as well as the
+constructor from two \code{double}s, and the call is ambiguous. Write
+\code{interval~x(0.0,~0.0)}, \code{interval~x(0)} or \code{interval::zero()}:
+\code{interval~x(0)} compiles, the constructor from one string that made it
+ambiguous in GAOL~4 being gone.\newinvfive
 \cindex{interval!zero}%
 
 \subsection{Both namespaces}
@@ -1180,7 +1187,8 @@ are described in the following.
 \section{Constructors}\label{sec:constructors}
 %%--------------------
 
-One can create an interval in six different ways:
+One can create an interval with five constructors, or with
+\code{textToInterval()}:
 
 \begin{itemize}
 \item by providing its left and right bounds:
@@ -1213,24 +1221,6 @@ One can create an interval in six different ways:
   \begin{example}
     interval x(-12,12), y=x, z(x);
   \end{example}
-\item by using a string representing an interval in the same format as
-  the one used for input (\pxref{sec:input-format})
-
-  \begin{example}
-    interval x("[-23, inf]"),
-             y("[5*0.1+dmin, 89*sinh(2.1)]");
-  \end{example}
-
-  If the input string does not comply with the expected format, the exception
-  \code{gaol::input\_format\_error} is thrown if the library was compiled with
-  exception support, which the CMake build always is; in the absence of exception
-  support, the \code{errno} variable is set to \code{-1}, and the
-  \code{gaol\_error()} function prints an error message before the program
-  aborts (\pxref{chap:errors}). \code{textToInterval(\var{s})} of the namespace
-  \code{gaol} is the same constructor, under the name IEEE 1788-2015 gives
-  it;\newinvfive{} the \code{textToInterval()} of \code{gaol\_ieee1788} reads
-  the names of the functions of the standard, and returns the empty set
-  instead (Chapter~\ref{chap:ieee1788});
 \item by using a string representing an interval in the same format as the one used for input
   (\pxref{sec:input-format}) for each bound: the left bound of the first one
   and the right bound of the second one are taken.
@@ -1240,8 +1230,34 @@ One can create an interval in six different ways:
  interval x("[-5,4]+1","[4,6]-[2,3]");
   \end{example}
   \code{textToInterval(\var{sl}, \var{sr})} of the namespace \code{gaol} is
-  this constructor.
+  this constructor;
+\item by reading a string representing an interval in the same format as the
+  one used for input (\pxref{sec:input-format}), with \code{textToInterval()}:
 \end{itemize}
+
+\begin{deffun}{interval}{textToInterval}{(const std::string\& \var{s})}
+  Returns the interval the string \var{s} writes, read with the names of the
+  functions of GAOL (\pxref{sec:input-format}). It is in the namespace
+  \code{gaol}, under the name IEEE 1788-2015 gives it.
+  \begin{example}
+interval x = textToInterval("[-23, inf]"),
+         y = textToInterval("[5*0.1+dmin, 89*sinh(2.1)]");
+  \end{example}
+  If the input string does not comply with the expected format, the exception
+  \code{gaol::input\_format\_error} is thrown if the library was compiled with
+  exception support, which the CMake build always is; in the absence of exception
+  support, the \code{errno} variable is set to \code{-1}, and the
+  \code{gaol\_error()} function prints an error message before the program
+  aborts (\pxref{chap:errors}). The \code{textToInterval()} of
+  \code{gaol\_ieee1788} reads the names of the functions of the standard, and
+  returns the empty set instead (Chapter~\ref{chap:ieee1788}).
+
+  GAOL v5 has no constructor from one string: \code{textToInterval()} takes
+  the place of the constructor \code{interval(const char*)} of GAOL~4, which
+  converted any \code{const char*} implicitly: \code{interval(0)} was
+  ambiguous, and \code{x~+~p} compiled for a null \code{p}, and
+  crashed.\newinvfive
+\end{deffun}
 
 \paragraph{Caution.} you have to be very careful when creating an interval
 from floating-point constants. Remember that a rational number that is
@@ -1258,10 +1274,10 @@ this number has an infinite expansion in the binary base (i.e. it is
 impossible to represent it perfectly whatever the size of the mantissa
 may be). As a consequence, the constant $0.1$ has very likely
 been rounded to the nearest floating-point number at compile-time.
-In such a case, you have to use a string instead:
+In such a case, you have to read it from a string instead:
 
 \begin{example}
-interval x("0.1");
+interval x = textToInterval("0.1");
 \end{example}
 
 \paragraph{Note.}\label{par:inf_inf_note}
@@ -1288,8 +1304,8 @@ Read from a string, the constant \element{inf}, an expression, stands for
 bound is $+\infty$ or whose right bound is $-\infty$ are the empty set, as
 \code{numsToInterval} of IEEE 1788-2015 has it:
 \begin{example}
-cout << interval("inf") << ' ' << interval("[inf]") << ' '
-     << interval("[-inf, -inf]") << endl;
+cout << textToInterval("inf") << ' ' << textToInterval("[inf]") << ' '
+     << textToInterval("[-inf, -inf]") << endl;
 @outputs^[1.797693134862315e+308, inf] [empty] [empty]~
 \end{example}
 The string \element{"<-inf, -inf>"} throws \code{input\_format\_error}, its two
@@ -1309,12 +1325,14 @@ three different ways:
     y = x; @rem^// Now, y is @itv^-12~^12~~
   \end{example}
 \item by using a string whose format follows the one expected for
-input (\pxref{sec:reading-intervals}).
+input (\pxref{sec:reading-intervals}), which \code{textToInterval()} reads:
 
 \begin{example}
 interval x;
-x = "[-inf, 123]";
+x = textToInterval("[-inf, 123]");
 \end{example}
+GAOL~4 assigned the string itself, \code{x~=~"[-inf,~123]"}, which GAOL v5
+refuses, having no constructor from one string;\newinvfive
 
 \item by using a \code{double}:
 
@@ -1326,8 +1344,8 @@ x = GAOL_INFINITY; @rem^// Now, x is empty~
 \end{itemize}
 
 \noindent
-Both go through the constructors of the previous section, whose rules they
-follow: assigning an infinity to an interval empties it.\newinvfive
+Both follow the rules of the previous section: assigning an infinity to an
+interval empties it.\newinvfive
 
 Note that there is no method for modifying a bound of an
 interval since intervals must be considered as an atomic concept.
@@ -1629,11 +1647,12 @@ Returns \code{true} if \code{self} is interior to \var{I}:
 \code{\var{I}.set\_strictly\_contains(self)}, \ieee{interior}(\code{self}, \var{I}) of
 IEEE 1788-2015.\newinvfive
 \begin{example}
+interval a(2,GAOL_INFINITY), b(1,GAOL_INFINITY);
 cout << interval(-4.5,3).set_le(interval(-10,10)) << ' '
      << interval::emptyset().set_le(interval(5,6)) << ' '
      << interval::emptyset().set_le(interval::emptyset()) << ' '
      << interval::universe().set_le(interval::universe()) << ' '
-     << interval("[2, inf]").set_le(interval("[1, inf]"));
+     << a.set_le(b);
 @outputs^true true true true true~
 \end{example}
 \end{defmethod}
@@ -1826,9 +1845,10 @@ cout << interval(1,2).less(interval(1,3)) << ' '
   \ieee{strictLess} of IEEE 1788-2015. The empty sets are as for
   \code{less()}.\newinvfive
 \begin{example}
+interval a(-GAOL_INFINITY,1), b(-GAOL_INFINITY,2);
 cout << interval(1,2).strictly_less(interval(1,3)) << ' '
-     << interval("[-inf, 1]").strictly_less(interval("[-inf, 2]"))
-     << ' ' << interval(0,1).strictly_less(interval(2,3));
+     << a.strictly_less(b) << ' '
+     << interval(0,1).strictly_less(interval(2,3));
 @outputs^false true true~
 \end{example}
 \end{defmethod}
@@ -2019,7 +2039,7 @@ cout << interval(-5,5).is_symmetric() << ' '
   are NaN, is finite; \code{is\_common\_interval()} is not true of it.
 
 \begin{example}
-cout << interval("[4,inf]").is_finite() << ' '
+cout << interval(4,GAOL_INFINITY).is_finite() << ' '
      << interval::emptyset().is_finite() << ' '
      << interval(5,80).is_finite();
 @outputs^false true true~
@@ -2120,7 +2140,7 @@ in Chapter~\ref{chap:accuracy}.
   the empty set.
 \begin{example}
 cout << interval(1,2) * interval(-3,4) << ' '
-     << interval(0,1) * interval("[1, inf]") << ' '
+     << interval(0,1) * interval(1,GAOL_INFINITY) << ' '
      << interval(1,2) / interval(0,1) << ' '
      << interval(1,2) / interval(-1,1) << ' '
      << interval(1,2) / interval::zero();
@@ -2383,9 +2403,10 @@ cout << acos(interval(1,3)) << ' ' << asin(interval(1)) << ' '
   half-line $y=0$, $x<0$, where the angle is $\pi$, and points below it, where it is next to $-\pi$.
   GAOL~4 declared the function, but it raised \code{unavailable\_feature\_error}.\newinvfive
 \begin{example}
+interval x(1,GAOL_INFINITY);
 cout << atan2(interval(0.0), interval(0.0)) << endl
      << atan2(interval(-1,1), interval(-1)) << endl
-     << atan2(interval("[1, inf]"), interval("[1, inf]")) << endl;
+     << atan2(x, x) << endl;
 @outputs^[empty]~
 @outputs^[-3.141592653589794, 3.141592653589794]~
 @outputs^[0, 1.570796326794897]~
@@ -2738,7 +2759,7 @@ Sets \var{m} to \code{self.midpoint()} and \var{r} to \code{self.rad()}
 \begin{example}
 double m, r;
 interval(1,4).mid_rad(m, r);
-cout << m << ' ' << r << ' ' << interval("[1, inf]").rad();
+cout << m << ' ' << r << ' ' << interval(1,GAOL_INFINITY).rad();
 @outputs^2.5 1.5 inf~
 \end{example}
 \end{defmethod}
@@ -2904,7 +2925,7 @@ cout << chi(interval(3,6)) << ' '
      << chi(interval(-6,3)) << ' '
      << chi(interval::emptyset()) << ' '
      << chi(interval::universe()) << ' '
-     << chi(interval("[-5,inf]"));
+     << chi(interval(-5,GAOL_INFINITY));
 @outputs^0.5 -0.5 nan 1 0~
 \end{example}
 \end{deffun}
@@ -2948,7 +2969,7 @@ direction.
 
   \begin{example}
 cout << floor(interval(4.5,6.5)) << ' '
-     << floor(interval("[-10.4,3.5]"));
+     << floor(textToInterval("[-10.4,3.5]"));
 @outputs^[4, 6] [-11, 3]~
   \end{example}
 \end{deffun}
@@ -2959,7 +2980,7 @@ cout << floor(interval(4.5,6.5)) << ' '
   \end{operation}
   \begin{example}
 cout << ceil(interval(4.5,6.5)) << ' '
-     << ceil(interval("[-10.4,3.5]"));
+     << ceil(textToInterval("[-10.4,3.5]"));
 @outputs^[5, 7] [-10, 4]~
   \end{example}
 \end{deffun}
@@ -3194,9 +3215,10 @@ as IEEE 1788-2015 has it (12.11.4), while \code{"3.56?1*2"} is
 \itv{7.1}{7.14}.
 
 \paragraph{Functions.} A \NT{name} is the name of a function of GAOL, with
-its arguments, whatever the case of its letters: \code{interval(const char*)},
-\code{gaol::textToInterval()} and \code{operator>{}>} read the names of
-GAOL, and \code{gaol\_ieee1788::textToInterval()} those of IEEE 1788-2015
+its arguments, whatever the case of its letters:
+\code{gaol::textToInterval()}, the constructor from two strings and
+\code{operator>{}>} read the names of GAOL, and
+\code{gaol\_ieee1788::textToInterval()} those of IEEE 1788-2015
 (\pxref{sec:ieee1788-text}), as each namespace has its own
 \code{pow}.\newinvfive{} The names of GAOL are:
 
@@ -3255,18 +3277,18 @@ reading, and no interval is given: \code{"[nth\_root(8,1.5)]+[1,2]"} throws,
 where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive
 
 \begin{example}
-interval x("[4, 6*7]");
-interval y("[-inf, dmax]");
+interval x = textToInterval("[4, 6*7]");
+interval y = textToInterval("[-inf, dmax]");
 interval z("[3.14,3.15]/8", "[3.14,3.15]/7");
-interval t("[3.14,3.15]/[7,8]");
-cout << interval("[1,]") << ' ' << interval("[ ]") << ' '
-     << interval("[Entire]") << endl;
+interval t = textToInterval("[3.14,3.15]/[7,8]");
+cout << textToInterval("[1,]") << ' ' << textToInterval("[ ]") << ' '
+     << textToInterval("[Entire]") << endl;
 @outputs^[1, inf] [empty] [-inf, inf]~
-cout << interval("[0x1.3p-1, 2/3]") << ' '
-     << interval("3.56?1") << endl;
+cout << textToInterval("[0x1.3p-1, 2/3]") << ' '
+     << textToInterval("3.56?1") << endl;
 @outputs^[0.59375, 0.6666666666666668] [3.549999999999999, 3.570000000000001]~
-cout << interval("1+[1,2]") << ' '
-     << interval("[cos([0,1]), 2]") << endl;
+cout << textToInterval("1+[1,2]") << ' '
+     << textToInterval("[cos([0,1]), 2]") << endl;
 @outputs^[2, 3] [0.5403023058681396, 2]~
 \end{example}
 
@@ -3297,12 +3319,12 @@ direction it set, which the C runtime of Windows and musl do not honour.
   section), without reading nor changing the global output format:
   \code{"[empty]"} for the empty set, and otherwise the two bounds in the
   hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
-  \code{interval(const char*)} reads back bit for bit. This is the exact text
+  \code{textToInterval()} reads back bit for bit. This is the exact text
   representation of the standard, its \ieee{intervalToExact}.\newinvfive{}
   The text is the same whatever the locale of the program, a locale writing a
   decimal comma included, and whatever the C library.
 \begin{example}
-cout << exact_string(interval("0.1"));
+cout << exact_string(textToInterval("0.1"));
 @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
 \end{example}
 \end{deffun}
@@ -3366,13 +3388,13 @@ printed with its two bounds rounded outward: \code{interval(0.1)} is printed
 
 \item[\element{hexa}.] by printing their left and right bounds in the
 hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which is exact and which
-\code{interval(const char*)} reads back bit for bit, without the round-off error of a
+\code{textToInterval()} reads back bit for bit, without the round-off error of a
 binary-to-decimal conversion: the recovery requirement of the standard
 (13.4). GAOL~4 printed the sixteen hexadecimal digits of each double, which
 its parser did not read.\newinvfive
 \begin{example}
  interval::format(interval_format::hexa);
- std::cout << interval("0.1") << std::endl;
+ std::cout << textToInterval("0.1") << std::endl;
  @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
 \end{example}
 
@@ -3583,8 +3605,8 @@ The functions of GAOL that have the name and the meaning the standard gives them
 \item \code{isMember(m, x)} is \code{false} for an infinite $m$ (10.6.3);
 \item \code{textToInterval} and \code{exactToInterval} read the names of the
   functions of the standard, and return the empty set for a string that is no
-  interval (12.1.3), where \code{gaol::textToInterval} and the constructor of
-  GAOL read the names of GAOL and throw (\pxref{sec:ieee1788-text});
+  interval (12.1.3), where \code{gaol::textToInterval} reads the names of
+  GAOL and throws (\pxref{sec:ieee1788-text});
 \item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
   $p\leq0$, which GAOL does not provide, rather than give an interval it has
   not computed.
@@ -3618,7 +3640,7 @@ The last argument $x$ of the reverse functions is optional, and
   \multicolumn{2}{l}{\textit{Constants and constructors (10.5.2, 10.5.8)}}\\
   \code{empty()}, \code{entire()} & \code{interval::emptyset()}, \code{interval::universe()}\\
   \code{numsToInterval(l, u)} & \code{interval(l, u)}\\
-  \code{textToInterval(s)} & \code{interval(s)} with the names of the standard, the empty set for a wrong string\\
+  \code{textToInterval(s)} & \code{gaol::textToInterval(s)} with the names of the standard, the empty set for a wrong string\\
   \hline
   \multicolumn{2}{l}{\textit{Forward elementary functions (Table 9.1)}}\\
   \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} & \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
@@ -3680,7 +3702,7 @@ The last argument $x$ of the reverse functions is optional, and
 \section{Reading with the names of the standard}\label{sec:ieee1788-text}
 %%-----------------------------------------------
 
-\code{textToInterval(\var{s})} reads a string as \code{interval(const char*)}
+\code{textToInterval(\var{s})} reads a string as \code{gaol::textToInterval()}
 does (\pxref{sec:input-format}), with the names of the functions of IEEE
 1788-2015: those of Tables 9.1 and 10.5 that GAOL provides, whatever the case
 of their letters.\newinvfive
@@ -3826,7 +3848,7 @@ every compiler alike. The intervals of floats are not covered.
   \hline
   \multicolumn{2}{l}{\textit{Set operations, constructors, numeric and boolean functions}}\\
   \code{\&}, \code{|}, \code{interval(l, u)} & tightest (exact)\\
-  \code{interval(s)}, \code{operator>{}>} & tightest for the literals of IEEE 1788-2015; valid for expressions, computed with the operations above\\
+  \code{textToInterval(s)}, \code{operator>{}>} & tightest for the literals of IEEE 1788-2015; valid for expressions, computed with the operations above\\
   \code{midpoint()}, \code{width()}, \code{rad()}, \code{mag()}, \code{mig()} & as 12.12.8 requires\\
   \code{mid()}, \code{hausdorff()} & tightest\\
   relations & exact, as Tables 10.3 and 10.4\\
@@ -4162,7 +4184,8 @@ The class offers the following accessors:
 The \code{input\_format\_error} exception is thrown whenever one attempts to
 create an interval from an invalid string. This situation may occur when
 reading an interval from a stream with the \code{>{}>} operator, or when
-creating an interval from a string.
+reading a string with \code{gaol::textToInterval()} or the constructor from
+two strings.
 
 This class, as all GAOL exceptions, derives from \code{gaol\_exception}
 (\pxref{sec:gaol_exception}). Its constructors have the same format
@@ -4178,7 +4201,7 @@ The methods of the class are inherited from \code{gaol\_exception}
 
 \begin{example}
 try {
-  interval x("sin(1)+");
+  interval x = textToInterval("sin(1)+");
 } catch (const gaol::input_format_error& e) {
   cout << e.explanation();
 }
@@ -4517,7 +4540,9 @@ Zimmermann and the other authors of the project (Inria).
 \cindex{GAOL 4!moving from}%
 
 Most programs written for GAOL~4 compile and run with GAOL v5 once the
-namespace is opened. This chapter lists what a program may have to change, and
+namespace is opened and \code{textToInterval()} reads the strings they gave to
+\code{interval(const char*)}. This chapter lists what a program may have to
+change, and
 what it will see differently. The page \file{doc/differences.md} gives each
 change with its reasons and its measures.
 
@@ -4565,6 +4590,15 @@ change with its reasons and its measures.
   compares intervals with \code{set\_eq()}, \code{set\_disjoint()} and
   \code{!set\_disjoint()}, and \code{<}, \code{<=}, \code{>} and \code{>=} are
   the certainly relations (\pxref{sec:interval-relations}).
+\item The constructor from one string, \code{interval(const char*)}, is gone,
+  and with it the conversion of a string wherever an interval is expected:
+  \code{textToInterval("0.1")} reads a string in its place, and throws
+  \code{input\_format\_error} as it did; \code{x~=~"[1,~2]"} becomes
+  \code{x~=~textToInterval("[1,~2]")}, and \code{x~+~"0.1"} becomes
+  \code{x~+~textToInterval("0.1")} (\pxref{sec:constructors}). The constructor
+  from two strings stays.
+  \code{interval(0)}, which the constructor from one string made ambiguous,
+  compiles.
 \end{itemize}
 
 \section{Results that change}

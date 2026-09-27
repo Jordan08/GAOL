@@ -156,11 +156,13 @@ relied on it adds `using namespace gaol;`, or names `gaol::interval`.
 
 The two namespaces hold `interval`, and the functions that have the same name
 and the same meaning in both (`sin`, `exp`, `sqrt`, `min`...) are the same
-functions, those of `gaol_core`. `pow` is the one whose meaning differs: each
-namespace has its own, and none is in `gaol_core`, the namespace where
-argument-dependent lookup looks for a call `pow(x, y)` on an interval, so that
-each namespace finds its own only. A program opens one of the two namespaces,
-not both: with both open, `pow(x, y)` is ambiguous.
+functions, those of `gaol_core`. `pow` and `textToInterval` are the ones whose
+meaning differs: each namespace has its own, and none is in `gaol_core`, the
+namespace where argument-dependent lookup looks for a call `pow(x, y)` on an
+interval, so that each namespace finds its own only. A program opens one of the
+two namespaces, not both: with both open, `pow(x, y)` is ambiguous, and so is
+`textToInterval(s)`, which reads the names of GAOL in `gaol` and those of the
+standard in `gaol_ieee1788`.
 
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
 base included: `pow(x, n)` for an `int` or an `unsigned` n, and `pow(x, p)` and
@@ -214,9 +216,10 @@ standard:
   Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
   `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
   empty set for a string that is no interval, a name of GAOL alone
-  (`nth_root`, `cbrt`, `log1p`...) included. `gaol::textToInterval`, which is
-  `interval(const char*)`, reads the names of GAOL and throws: as for `pow`, a
-  program calls the one of the namespace it opens.
+  (`nth_root`, `cbrt`, `log1p`...) included. `gaol::textToInterval`, which
+  replaces the constructor `interval(const char*)` of GAOL 4, reads the names
+  of GAOL and throws: as for `pow`, a program calls the one of the namespace
+  it opens.
 
 A name of the program's own that one of the standard shadows, a constant `inf`
 for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`
