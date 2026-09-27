@@ -2937,20 +2937,13 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
 
-    if (Ipos.left() == 0.0) {
-			GAOL_RND_ENTER();
-			interval tmp = interval(0.0,gaol_sqrt_up(Ipos.right()));
-      GAOL_RND_KEEP(tmp);
-      GAOL_RND_LEAVE();
-      return tmp;
-    } else {
-			GAOL_RND_ENTER();
-			double l = gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
-			double r = gaol_sqrt_up(Ipos.right());
-      GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-      GAOL_RND_LEAVE();
-      return interval(-l,r);
-    }
+    // One check for both branches, which both compute
+    GAOL_RND_ENTER();
+    double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
+    double r = gaol_sqrt_up(Ipos.right());
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    GAOL_RND_LEAVE();
+    return interval(l,r);
   }
 
 

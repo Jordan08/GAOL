@@ -230,18 +230,17 @@
       return *this;
     }
 
+    // One check for both branches, which both compute, as in the SSE2 build
+    GAOL_RND_ENTER();
     if (d>0.0) {
-			GAOL_RND_ENTER();
 			lb_ *= d;
 			rb_ *= d;
-      GAOL_RND_LEAVE();
     } else {
-			GAOL_RND_ENTER();
 			double tmp = (-d)*rb_;
 			rb_ = (-d)*lb_;
 			lb_ = tmp;
-      GAOL_RND_LEAVE();
     }
+    GAOL_RND_LEAVE();
     return *this;
   }
 
@@ -257,20 +256,18 @@
       return *this;
     }
 
+    // One check for both branches, which both compute, as in the SSE2 build
+    GAOL_RND_ENTER();
     if (d > 0.0) {
-		GAOL_RND_ENTER();
 		lb_ /= d;
 		rb_ /= d;
-      	GAOL_RND_LEAVE();
-      	return *this;
     } else { // d < 0.0
-		GAOL_RND_ENTER();
 		double tmp = rb_/(-d);
 		rb_ = lb_/(-d);
 		lb_ = tmp;
-      	GAOL_RND_LEAVE();
-      	return *this;
     }
+    GAOL_RND_LEAVE();
+    return *this;
   }
 
 
@@ -292,20 +289,18 @@
     }
 
 
+    // One check for both branches, which both compute, as in the SSE2 build
+    GAOL_RND_ENTER();
     if (d > 0.0) {
-			GAOL_RND_ENTER();
 			lb_ /= d;
 			rb_ /= d;
-      GAOL_RND_LEAVE();
-      return *this;
     } else { // d < 0.0
-			GAOL_RND_ENTER();
 			double tmp = rb_/(-d);
 			rb_ = lb_/(-d);
 			lb_ = tmp;
-      GAOL_RND_LEAVE();
-      return *this;
     }
+    GAOL_RND_LEAVE();
+    return *this;
   }
 
 
@@ -1048,37 +1043,22 @@
       return interval::emptyset();
     }
 
+    // One check for the three cases, which all compute
+    GAOL_RND_ENTER();
+    double l, r;
     if (I.certainly_positive()) {
-		GAOL_RND_ENTER();
-		double l = I.lb_*(-I.lb_);
-		double r = I.rb_*I.rb_;
-      	GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-      	GAOL_RND_LEAVE();
-        return interval(-l,r);
-    }
-
-    if (I.certainly_negative()) {
-		GAOL_RND_ENTER();
-		double l = I.rb_*(-I.rb_);
-		double r = I.lb_*I.lb_;
-      	GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-      	GAOL_RND_LEAVE();
-        return interval(-l,r);
-    }
-
-    if (fabs(I.left()) >= fabs(I.right())) {
-		GAOL_RND_ENTER();
-		interval tmp = interval(0.0,I.left()*I.left());
-        GAOL_RND_KEEP(tmp);
-        GAOL_RND_LEAVE();
-        return tmp;
+		l = -(I.lb_*(-I.lb_));
+		r = I.rb_*I.rb_;
+    } else if (I.certainly_negative()) {
+		l = -(I.rb_*(-I.rb_));
+		r = I.lb_*I.lb_;
     } else {
-		GAOL_RND_ENTER();
-		interval tmp = interval(0.0,I.right()*I.right());
-        GAOL_RND_KEEP(tmp);
-        GAOL_RND_LEAVE();
-        return tmp;
+		l = 0.0;
+		r = (fabs(I.left()) >= fabs(I.right())) ? I.left()*I.left() : I.right()*I.right();
     }
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    GAOL_RND_LEAVE();
+    return interval(l,r);
   }
 
 
