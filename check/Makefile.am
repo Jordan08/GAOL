@@ -48,7 +48,6 @@ endif
 EXTRA_PROGRAMS = performances
 
 
-EXTRA_DIST = gaolcc.in tests.h intervalf.cpp interval2f.cpp
 
 TESTS = $(check_PROGRAMS)
 

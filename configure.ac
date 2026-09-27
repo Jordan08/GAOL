@@ -46,7 +46,10 @@ m4_define([gaol_interface_age], [0])
 m4_define([gaol_binary_age], [0])
 
 AC_INIT([gaol],[gaol_version],[goualard@users.sourceforge.net])
-AM_INIT_AUTOMAKE([gnu 1.7 dist-bzip2 subdir-objects])
+# no-dist: no make dist nor make distcheck, the archives of the sources and
+# the packages being made by CMake (cmake --build <build> --target
+# package_source, package; see doc/building.md) (GAOL v5)
+AM_INIT_AUTOMAKE([gnu 1.7 no-dist subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
 

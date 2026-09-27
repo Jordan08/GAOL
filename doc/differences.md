@@ -850,6 +850,18 @@ where it comes from.
   as it includes those of the SSE2 and FPU intervals. Their headers are not
   installed, `gaol/gaol` does not include them, and their check programs are
   not built.
+- **The archive of the sources and the packages are made by CMake**
+  (CPack, see [Building GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
+  `cmake --build <build> --target package_source` gives `gaol-<version>.tar.gz`,
+  the files of the repository, and `--target package` an archive of what
+  `cmake --install` installs and, on Linux, `libgaol-dev_<version>_<arch>.deb`.
+  `make dist` and `make distcheck` of the autotools build are gone
+  (`no-dist` in `configure.ac`), with the lists of files they put in the
+  archive and `make rpm`, which built an RPM from it: `make dist` stopped on
+  `m4/libtool.m4`, which it could not copy. The `gaol.pc` of the CMake build
+  finds its directories from where it is (`${pcfiledir}`), where it named
+  those of `CMAKE_INSTALL_PREFIX`, so that it stays right in the archive and
+  the `.deb`, or after `cmake --install --prefix`.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.

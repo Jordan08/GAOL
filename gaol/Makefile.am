@@ -26,10 +26,6 @@
 
 SUFFIXES = .lpp .ypp
 
-EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h \
-	gaol_interval_lexer.lpp gaol_interval_parser.ypp dllmain.cpp gaol_config_mingw.h \
-	gaol_config_msvc.h gaol_version_msvc.h gaol_configuration.h.in gaol_interval_sse.cpp
-
 
 lib_LTLIBRARIES = libgaol.la
 
@@ -70,12 +66,11 @@ library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_core_math.h gaol_
 	gaol_eval_stack.h gaol_init_cleanup.h gaol_version.h gaol_allocator.h \
 	gaol_interval_fpu.h gaol_interval_sse.h
 
-# Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
-# and *_up(), which are not part of its interface, and the intervals of floats,
-# which gaol_interval.cpp includes where a developer of GAOL defines
+# Headers of the sources of GAOL, not installed: the bounds at doubles,
+# *_dn() and *_up(), which are not part of its interface, and the intervals of
+# floats, which gaol_interval.cpp includes where a developer of GAOL defines
 # GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
 noinst_HEADERS = gaol_double_op.h gaol_intervalf.h gaol_interval2f.h
-EXTRA_DIST += gaol_intervalf.cpp gaol_interval2f.cpp
 
 LDADD = -lm
 

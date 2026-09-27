@@ -122,7 +122,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(library_include_HEADERS) \
-	$(noinst_HEADERS) $(am__DIST_COMMON)
+	$(noinst_HEADERS)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = gaol_configuration.h
 CONFIG_CLEAN_FILES =
@@ -233,7 +233,6 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(libgaol_la_SOURCES)
-DIST_SOURCES = $(libgaol_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -260,10 +259,6 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(srcdir)/Makefile.in \
-	$(srcdir)/gaol_configuration.h.in $(top_srcdir)/depcomp \
-	$(top_srcdir)/mkinstalldirs
-DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
@@ -406,11 +401,6 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUFFIXES = .lpp .ypp
-EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h \
-	gaol_interval_lexer.lpp gaol_interval_parser.ypp dllmain.cpp \
-	gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h \
-	gaol_configuration.h.in gaol_interval_sse.cpp \
-	gaol_intervalf.cpp gaol_interval2f.cpp
 lib_LTLIBRARIES = libgaol.la
 DISTCLEANFILES = *.~* *.obj TAGS
 MAINTAINERCLEANFILES = *.~* *.obj gaol_interval_lexer.cpp gaol_interval_parser.cpp \
@@ -445,9 +435,9 @@ library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_core_math.h gaol_
 	gaol_interval_fpu.h gaol_interval_sse.h
 
 
-# Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
-# and *_up(), which are not part of its interface, and the intervals of floats,
-# which gaol_interval.cpp includes where a developer of GAOL defines
+# Headers of the sources of GAOL, not installed: the bounds at doubles,
+# *_dn() and *_up(), which are not part of its interface, and the intervals of
+# floats, which gaol_interval.cpp includes where a developer of GAOL defines
 # GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
 noinst_HEADERS = gaol_double_op.h gaol_intervalf.h gaol_interval2f.h
 LDADD = -lm
@@ -688,40 +678,6 @@ cscopelist-am: $(am__tagged_files)
 
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
-
-distdir: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) distdir-am
-
-distdir-am: $(DISTFILES)
-	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
-	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
-	list='$(DISTFILES)'; \
-	  dist_files=`for file in $$list; do echo $$file; done | \
-	  sed -e "s|^$$srcdirstrip/||;t" \
-	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
-	case $$dist_files in \
-	  */*) $(MKDIR_P) `echo "$$dist_files" | \
-			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
-			   sort -u` ;; \
-	esac; \
-	for file in $$dist_files; do \
-	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
-	  if test -d $$d/$$file; then \
-	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
-	    if test -d "$(distdir)/$$file"; then \
-	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
-	    fi; \
-	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
-	      cp -fpR $(srcdir)/$$file "$(distdir)$$dir" || exit 1; \
-	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
-	    fi; \
-	    cp -fpR $$d/$$file "$(distdir)$$dir" || exit 1; \
-	  else \
-	    test -f "$(distdir)/$$file" \
-	    || cp -p $$d/$$file "$(distdir)/$$file" \
-	    || exit 1; \
-	  fi; \
-	done
 check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES) $(HEADERS) gaol_configuration.h
@@ -860,18 +816,17 @@ uninstall-am: uninstall-libLTLIBRARIES \
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
 	clean-generic clean-libLTLIBRARIES clean-libtool cscopelist-am \
 	ctags ctags-am distclean distclean-compile distclean-generic \
-	distclean-hdr distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-data-local install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am \
-	install-libLTLIBRARIES install-library_includeHEADERS \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-libLTLIBRARIES \
+	distclean-hdr distclean-libtool distclean-tags dvi dvi-am html \
+	html-am info info-am install install-am install-data \
+	install-data-am install-data-local install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libLTLIBRARIES \
+	install-library_includeHEADERS install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-libLTLIBRARIES \
 	uninstall-library_includeHEADERS
 
 .PRECIOUS: Makefile

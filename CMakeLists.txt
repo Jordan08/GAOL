@@ -680,8 +680,83 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaolConfig.cmake" "${CMAKE_CURRENT_BI
 # and libgaol, into which the functions of CORE-MATH are compiled. Not with
 # Visual C++, whose libraries pkg-config does not name.
 if(NOT MSVC)
+  # Relocatable: the prefix from the directory of gaol.pc, ${pcfiledir}, so
+  # that the file is right wherever the files are put (cmake --install
+  # --prefix, the archive and the .deb of CPack below), unless the directories
+  # given are absolute (GAOL v5)
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}" OR IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(GAOL_PC_PREFIX "${CMAKE_INSTALL_PREFIX}")
+    set(GAOL_PC_LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    set(GAOL_PC_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+  else()
+    file(RELATIVE_PATH _gaol_pc_to_prefix "/prefix/${CMAKE_INSTALL_LIBDIR}/pkgconfig" "/prefix")
+    string(REGEX REPLACE "/$" "" _gaol_pc_to_prefix "${_gaol_pc_to_prefix}")
+    set(GAOL_PC_PREFIX "\${pcfiledir}/${_gaol_pc_to_prefix}")
+    set(GAOL_PC_LIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}")
+    set(GAOL_PC_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
   configure_file(cmake/gaol.pc.in "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
+
+
+################################################################################
+# Packages (CPack)
+################################################################################
+#
+# The archive of the sources, which make dist of the autotools build made
+# before (GAOL v5), and the packages of the library built:
+#
+#   cmake --build <build> --target package_source
+#       gaol-<version>.tar.gz: the sources, in gaol-<version>/
+#   cmake --build <build> --target package
+#       gaol-<version>-<system>.tar.gz: what cmake --install installs, in
+#       gaol-<version>-<system>/, and on Linux libgaol-dev_<version>_<arch>.deb,
+#       the same files in /usr
+#
+# CPack takes the source tree as it is: the archive of the sources is made
+# from a clean checkout, its untracked files and those of the builds left
+# out below. The packages hold libgaol as the build compiled it: with GAOL_FMA
+# ON, the default, only processors with the fused multiply-add instructions
+# run it, so a package for other machines is built with -DGAOL_FMA=OFF (see
+# doc/building.md). Only where GAOL is the project built, not brought in by
+# another (add_subdirectory, FetchContent), whose packages are its own.
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(CPACK_PACKAGE_NAME "gaol")
+  set(CPACK_PACKAGE_VENDOR "ENSTA")
+  set(CPACK_PACKAGE_CONTACT "Jordan Ninin <jordan.ninin@ensta.fr>")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GAOL, Not Just Another Interval Library: interval arithmetic in C++")
+  set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the static library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
+  set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Jordan08/GAOL")
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING.LIB")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/README.md")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CPACK_GENERATOR "TGZ;DEB")
+  else()
+    set(CPACK_GENERATOR "TGZ")
+  endif()
+
+  # The .deb: a static library and its headers, hence the name and the
+  # section of Debian's development packages; nothing to depend on at run time
+  set(CPACK_DEBIAN_PACKAGE_NAME "libgaol-dev")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+  set(CPACK_DEBIAN_PACKAGE_SECTION "libdevel")
+
+  # The archive of the sources: the files of the repository, without what git
+  # ignores (.gitignore), the builds within the sources, and the packages
+  set(CPACK_SOURCE_GENERATOR "TGZ")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
+  string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
+  set(CPACK_SOURCE_IGNORE_FILES
+    "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
+    "\\.swp$" "~$" "/#" "/\\.#"
+    "/autom4te\\.cache/" "/doc/compare/code/work/"
+    "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
+    "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
+    "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
+    "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
+  )
+  include(CPack)
 endif()
 
 

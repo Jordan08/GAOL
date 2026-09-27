@@ -2865,6 +2865,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+# no-dist: no make dist nor make distcheck, the archives of the sources and
+# the packages being made by CMake (cmake --build <build> --target
+# package_source, package; see doc/building.md) (GAOL v5)
 am__api_version='1.16'
 
 ac_aux_dir=
