@@ -59,18 +59,21 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   (printf, strtod, lrint and the program's own doubles change), the literal
   `0` that does not convert to an interval, `operator<` which is not an
   ordering (std::sort and std::set misbehave, and can read out of bounds),
-  stream input and output that break the idioms of iostreams, and the missing
+  streams that broke the idioms of iostreams (fixed since, apart from point
+  intervals written `<a, b>`, which the reader refuses, and blank lines, which
+  `operator>>` refuses), and the missing
   pieces every algorithm needs: a box type, derivatives, a two-piece division,
   inflation, bisection at a ratio.
 - **Confirmed bugs**: two give bounds that miss the exact result (`x -= x`,
   `x /= x` and `x %= x` in the FPU build used on ARM and with Visual C++; `pow`
   with a subnormal result when the x87 and SSE rounding directions differ),
   one environment makes every operation unsound (flush-to-zero set by a
-  program linked with `-Ofast`), the parser hangs under a locale writing a
+  program linked with `-Ofast`), the parser hung under a locale writing a
   decimal comma, and several crashes and I/O bugs follow (section 5). Each
   has a fix and a regression test that were validated on scratch builds;
-  the first one, `x op= x` in the FPU build, is applied, the others are not
-  (Appendix B).
+  those of `x op= x` in the FPU build, of the reader under a comma locale, of
+  `operator<<` and `operator>>`, and of the expressions (threads, `/=`) are
+  applied, the others are not (Appendix B).
 - **The documentation** is precise and its 86 examples of the manual are
   right, but it has no tutorial and no example of an interval algorithm, and
   its FetchContent recipe fetches the public `master`, which is GAOL 4.2.3,
@@ -433,13 +436,21 @@ intervals and automatic differentiation. With GAOL:
 GAOL's reader is an expression language that encloses what it reads, the
 literals of IEEE 1788 included, and its decimal output is rounded outward, so
 that the text read back encloses the interval; `exact_string()` (or the hexa
-format) reads back bit for bit. Four points break the idioms of C++ streams
-(section 5.2): `operator<<` leaves the stream's precision set to
-`interval::precision()` (16) and applies `std::setw` to the `[` only;
-`operator>>` reads a whole line and throws at the end of the input, so
-`while (in >> x)` always ends with an exception; a point interval is written
-`<0.1, 0.1000000000000001>`, which the reader refuses; and under a locale
-writing a decimal comma the reader hangs.
+format) reads back bit for bit. `operator<<` writes with the digits of
+`interval::precision()`, not those of `std::setprecision`, and leaves the
+stream's own precision as it was; `std::setw` pads the whole interval.
+`operator>>` reads one interval per line: at the end of the input it sets
+`failbit`, so that `while (in >> x)` ends there, and a line that is no
+interval, a blank one included, sets `failbit` and throws
+`input_format_error`. Numbers are read with a point whatever the locale, and
+`exact_string()` writes one; the decimal formats of `operator<<` write the
+decimal point of the stream's locale, as for a double, so that a stream with
+a French locale writes `[1,5, 2,5]`, which the reader refuses (number 21).
+One point still breaks the round trip (section 5.2): a point interval is written
+`<0.1, 0.1000000000000001>`, which the reader refuses. (Before the fixes of
+this review, `operator<<` left the stream's precision at 16 and padded the
+`[` only, `while (in >> x)` always ended with an exception, and the reader
+hung under a locale writing a decimal comma.)
 
 ### 2.8 The rounding direction and the rest of the program
 
@@ -497,7 +508,7 @@ bisection, branch and bound, contractor, HC4, centered form or Krawczyk,
 although it presents the relational functions as what "interval constraint
 arithmetic software" needs. The docs are exact but dense (31 to 40 words per
 sentence on average in `using.md`, `accuracy.md` and `tests.md`), and the
-manual carries 81 `[GAOL v5]` markers and 41 mentions of GAOL 4, which a
+manual carried, at `605728e`, 81 `[GAOL v5]` markers and 41 mentions of GAOL 4, which a
 newcomer does not need. `doc/accuracy.md`, the tightness of each operation as
 IEEE 1788 (12.10.3) asks, is rare among interval libraries.
 
@@ -575,9 +586,10 @@ The first round of review reported candidates; each was then given to a
 separate reviewer asked to refute it, who reduced it to a minimal program,
 found its cause, and wrote a fix and a regression test, validated on scratch
 builds: the test fails on the original library (SSE2 and FPU builds) and
-passes with the fix, and the existing ctest suite still passes. **Only
-number 1 is fixed in the library**, with its regression test in
-`tests/arithmetic.cpp`; the other changes to the sources are left to the
+passes with the fix, and the existing ctest suite still passes. **Numbers
+1, 9, 11, 13, 14 and 18 are fixed in the library**, with their regression
+tests in `tests/arithmetic.cpp`, `tests/numbers.cpp` and
+`tests/expressions.cpp`; the other changes to the sources are left to the
 maintainer. Appendix B gives each fix and its test.
 
 ### 5.1 Wrong bounds
@@ -597,16 +609,16 @@ maintainer. Appendix B gives each fix and its test.
 
 | # | What | Where | Severity |
 |---|---|---|---|
-| 9 | The reader hangs under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `interval("0.1")` never returns, nor `textToInterval` nor `operator>>`. `strtod` stops at the `.`, and the lexer then walks from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` writes `0x1,999999999999ap-4`, which does not read back. | `gaol/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/gaol_interval.cpp:756` | high |
+| 9 | The reader hung under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `interval("0.1")` never returned, nor `textToInterval` nor `operator>>`. `strtod` stopped at the `.`, and the lexer then walked from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` wrote `0x1,999999999999ap-4`, which did not read back. **Fixed**, as the exponents of 7 digits or more, which the reader cut at 100000. | `gaol/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/gaol_interval.cpp:756` | high |
 | 10 | `interval((const char*)nullptr)`, `interval(std::getenv("UNSET"))` and `interval(1, 2) + nullptr` compile and crash (`strlen` of a null pointer). | `gaol/gaol_parser.cpp:58`, `gaol/gaol_interval.h:114` | medium |
-| 11 | `gaol_core::expression` objects created with no argument in two threads crash within a million iterations: they share one global node whose reference count is a plain `unsigned`. | `gaol/gaol_expression.cpp:76` | medium |
+| 11 | `gaol_core::expression` objects created with no argument in two threads crashed within a million iterations: they shared one global node whose reference count was a plain `unsigned`. **Fixed**. | `gaol/gaol_expression.cpp:76` | medium |
 | 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. | `gaol/gaol_interval.cpp:728` | medium |
-| 13 | `operator<<` sets the stream's precision to `interval::precision()` and never restores it: after printing an interval, `std::cout << 1.0/3` prints 16 digits. `std::setprecision` is ignored for intervals, and `std::setw` pads the `[` only. IBEX and Codac both work around it. | `gaol/gaol_interval.cpp:780` | medium |
-| 14 | `operator>>` reads a whole line and throws `input_format_error` at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ends with an exception, and leaves x empty. | `gaol/gaol_interval.cpp:556` | medium |
+| 13 | `operator<<` set the stream's precision to `interval::precision()` and never restored it: after printing an interval, `std::cout << 1.0/3` printed 16 digits, and `std::setw` padded the `[` only. IBEX and Codac both work around it. **Fixed** (`std::setprecision` still does not apply to intervals, by design). | `gaol/gaol_interval.cpp:780` | medium |
+| 14 | `operator>>` read a whole line and threw `input_format_error` at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ended with an exception, and left x empty. **Fixed** at the end of the input, where `failbit` is now set and nothing thrown; a blank line still throws `input_format_error`, `failbit` set. | `gaol/gaol_interval.cpp:556` | medium |
 | 15 | `gaol_exception` does not override `what()`: `catch (const std::exception& e)` prints `std::exception`, and an uncaught error ends with `what(): std::exception`. | `gaol/gaol_exceptions.h:56` | medium |
 | 16 | `gaol::sin(0.5)` (and every function of namespace `gaol` on a double) is ambiguous between the interval and the expression overloads. It compiled with GAOL 4, whose `<gaol/gaol>` did not include `gaol_expression.h`; GAOL v5's includes it through `gaol_ieee1788.h`. | `gaol/gaol_ieee1788.h:70` | low (regression) |
 | 17 | Parsing a sum of 100 000 terms overflows the stack (one frame per term, in the evaluation and the destruction of the tree), and so do expressions built through the public API. | `gaol/gaol_interval_parser.ypp:422` | low |
-| 18 | `expression::operator/=` is declared but not defined: a program using it does not link. | `gaol/gaol_expression.h:72` | low |
+| 18 | `expression::operator/=` was declared but not defined: a program using it did not link. **Fixed**. | `gaol/gaol_expression.h:72` | low |
 | 19 | `hausdorff(x, x)` is +∞ for x = [1, +∞], and so is `hausdorff([1, +∞], [2, +∞])`, whose distance is 1: a fixed-point loop on a box with an unbounded side never stops. | `gaol/gaol_interval_sse.cpp:95`, `gaol/gaol_interval_fpu.cpp:30` | low |
 | 20 | `nb_fp_numbers(-0.0, 1.0)` wraps around to 13830554455654793217; `[1, 2] - 1` has the lower bound −0. | `gaol/gaol_interval.cpp:1451` | low |
 | 21 | The width and center output formats print a center and a radius rounded to nearest, which need not enclose the interval ([1, 1 + 2⁻⁵²] is written `1 (+/- 1.11e-16)`), and a radius of 0 for [0, 5·10⁻³²⁴], against the manual. `gaol_ieee1788::intervalToText` follows the global format and the global locale, so its text is not always an interval literal. | `gaol/gaol_interval.cpp:789`, `gaol/gaol_ieee1788.h:375` | low |
@@ -867,10 +879,11 @@ To take:
 
 ### Priority 1: the bounds
 
-1. Apply the fixes of the wrong bounds of section 5.1 and of the hang, the
-   crashes and the link error of section 5.2 (numbers 3 to 11 and 18 to 20;
-   number 1 is applied), with their regression tests (Appendix B). Each is
-   small and was validated on the SSE2 and FPU builds.
+1. Apply the fixes of the wrong bounds of section 5.1 and of the crash and
+   the other bugs of section 5.2 that remain (numbers 3 to 8, 10, 19 and 20;
+   numbers 1, 9, 11 and 18 are applied), with their regression tests
+   (Appendix B). Each is small and was validated on the SSE2 and FPU
+   builds.
 2. Decide on flush-to-zero (number 2). The fused probe of Appendix B detects
    the rounding direction, FTZ and DAZ in one comparison, measured at no cost
    on an i7-1185G7; it should be measured on the other processors of the
@@ -901,9 +914,9 @@ To take:
 8. Give a total order for containers (`gaol::lexicographic_less`, and possibly
    a `std::less` specialization), and warn against `std::sort`, `std::set`,
    `std::max` with the certainly relations.
-9. Fix the streams (numbers 12 to 15): restore the stream's state and honour
-   `setw`, read one interval token and set `failbit`, write point intervals as
-   `[a, b]` when their two texts differ, make `what()` the explanation.
+9. Finish the streams (numbers 12 and 15; 13 and 14 are applied): write point
+   intervals as `[a, b]` when their two texts differ, make `what()` the
+   explanation, and consider reading one interval token rather than a line.
 10. Add the helpers every algorithm writes: `mulRevToPair`/`div_rel_pair`,
     `inflate`, `bisect(ratio)` and `is_bisectable()`, a mid-radius
     constructor, `hull()` and `intersect()` as functions, an enclosure of the
@@ -974,8 +987,8 @@ the fix, the whole ctest suite passing too.
 
 ## Appendix B. The fixes of the confirmed bugs
 
-The numbers are those of section 5. Only number 1 is applied in the
-repository.
+The numbers are those of section 5. Numbers 1, 9, 11, 13, 14 and 18 are
+applied in the repository, with the tests described.
 
 **1. `x -= x`, `x /= x`, `x %= x` in the FPU build (applied).** In
 `gaol_interval_fpu.cpp`, read the operand's bounds before writing:
@@ -1059,7 +1072,7 @@ rounded upward, at most the double below π proves the exact width below π.
 Test (`tests/elementary.cpp`): `tan([-M_PI_2, M_PI_2])` is
 [−0x1.d02967c31cdb5p+53, 0x1.d02967c31cdb5p+53].
 
-**9. The reader under a comma locale.** Replace the one-double-at-a-time walk
+**9. The reader under a comma locale (applied).** Replace the one-double-at-a-time walk
 of `gaol_enclose_number()` (in `gaol_interval_lexer.lpp` and in the committed
 `gaol_interval_lexer.cpp`, which carry the same code) by steps doubling from
 `strtod()`'s value, then a bisection on the bits of the doubles (the doubles of
@@ -1070,7 +1083,12 @@ at most about 125 whatever it gives. Write the hexadecimal bounds of
 locale). Test (`tests/numbers.cpp`): under a comma locale if one is installed
 (`fr_FR.UTF-8`, `de_DE.UTF-8`, skipped otherwise), `exact_string([1.5, 2.5])`
 is `[0x1.8p+0, 0x1.4p+1]`, `interval("0.1")` and `interval("1.5")` are right,
-and a `TIMEOUT` on the test so that a hang fails it.
+and a `TIMEOUT` on the test so that a hang fails it. The exponent of a number
+is no longer cut at 100000, which the bracketing turned from a hang into a
+wrong bound for 1 written with a million zeros after the point and the
+exponent 1000001: it is kept at 4 times the length of the text plus 2000,
+beyond which the number is out of the doubles whatever its digits; tested on
+that number, in decimal, in hexadecimal and in the uncertain form.
 
 **10. Null pointers.** `parse_interval()` returns false for a null pointer,
 the error messages write `(null pointer)` instead of the string, and
@@ -1079,7 +1097,7 @@ Test (`tests/numbers.cpp`): `interval(std::getenv(...))` of an unset variable
 throws `input_format_error`, and
 `static_assert(!std::is_convertible<std::nullptr_t, interval>::value)`.
 
-**11. Expressions in threads.** Make the shared null node immortal:
+**11. Expressions in threads (applied).** Make the shared null node immortal:
 `inc_refcount()` and `dec_refcount()` leave it alone, and the constructors,
 destructor and compound operators of `expression` go through them (no cost on
 other nodes; `std::atomic` counts would make building expressions 2.4 times
@@ -1093,16 +1111,20 @@ Test (`tests/numbers.cpp`): for special values and every precision, the text
 of a point interval reads back and encloses it; in `tests/ieee1788.cpp`,
 `textToInterval(intervalToText(interval(0.1)))` contains 0.1.
 
-**13. `operator<<`.** Format into a local `std::ostringstream` that copies the
+**13. `operator<<` (applied).** Format into a local `std::ostringstream` that copies the
 stream's flags and locale and takes `interval::precision()`, then write the
 whole text at once: the stream keeps its precision, and `setw` and `left`
 apply to the whole interval. Test: after `os.precision(3); os << interval(1, 2)`,
 `os.precision()` is 3, and `std::setw(8) << interval(1, 2)` gives `  [1, 2]`.
 
-**14. `operator>>`.** `if (!std::getline(is, buffer)) return is;` (failbit
+**14. `operator>>` (applied).** `if (!std::getline(is, buffer)) return is;` (failbit
 set, the interval unchanged, as for a double at the end of the input), and set
-`failbit` before throwing on a syntax error. Test: `while (in >> x)` over
-`"[1, 2]\n[3, 4]\n"` reads 2 intervals and throws nothing.
+`failbit` before throwing on a syntax error, whether the reader refuses the
+line at its end or throws as it reads it, without letting `setstate()` throw
+`std::ios_base::failure` on a stream whose `exceptions()` include `failbit`:
+the exception stays `input_format_error`. Test: `while (in >> x)` over
+`"[1, 2]\n[3, 4]\n"` reads 2 intervals and throws nothing; `"[1, 2"` and
+`"<3, 4>"` set `failbit` and throw `input_format_error`.
 
 **15. `what()`.** In `gaol_exception`:
 `const char* what() const noexcept override { return explanation_.empty() ? "gaol_exception" : explanation_.c_str(); }`,
@@ -1122,7 +1144,7 @@ when it is read (`$$ = gaol_leaf(gaol_value($1) + gaol_value($3))`), as calls
 of functions already are, and regenerate the committed parser. Test
 (`tests/expressions.cpp`): a sum and a product of 200 000 terms.
 
-**18. `expression::operator/=`.** Define it as `operator*=` is, with a
+**18. `expression::operator/=` (applied).** Define it as `operator*=` is, with a
 `div_node`. Test: the in-place operators of `tests/expressions.cpp` with
 `/=`.
 

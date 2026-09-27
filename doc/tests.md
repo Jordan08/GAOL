@@ -120,6 +120,21 @@ Codac.
   IEEE 1788-2015 (13.4.1) and read back bit for bit, which is the recovery
   requirement of 13.4: over random intervals, and over the empty set, the
   infinite bounds, the signed zeros, the subnormals and the largest doubles.
+  `operator<<` has to leave the precision of the stream as it was, and
+  `std::setw` to pad the whole interval, adjusted to the right or to the left.
+  `while (in >> x)` has to stop at the end of the input with `failbit` set,
+  nothing thrown and the interval unchanged, and a line that is no interval,
+  refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
+  `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
+  too (GAOL v5). Numbers with a million zeros after their point and an
+  exponent of 7 digits (`0.00…01e1000001`, and in hexadecimal and in the
+  uncertain form) have to be read exactly: the exponent was cut at 100000
+  (GAOL v5). Under a locale writing a decimal comma, where one is installed
+  (`fr_FR.UTF-8`, `de_DE.UTF-8`, `French_France.1252`...), numbers have to be
+  read as in the C locale, and `exact_string()` has to write points and read
+  back bit for bit: the reading never ended there, and the test, which ctest
+  would otherwise let run with no limit, fails after 5 minutes should it hang
+  again (GAOL v5).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
@@ -207,8 +222,8 @@ Codac.
   A negative exponent of `nth_root` has to give the root of C++,
   1/x<sup>1/|q|</sup>, alone and in a bound: the reader converted it to an
   unsigned int (GAOL v5). The expressions built in C++ go through every node
-  too, `pow(e, 3)` included, which did not link, and have to be printed as
-  written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
+  too, `pow(e, 3)` and `/=` included, which did not link, and have to be
+  printed as written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
@@ -223,7 +238,11 @@ Codac.
   expression of static storage, destroyed after `main()` has called
   `gaol::cleanup()`, has to stay valid: `gaol::cleanup()` deleted the node it
   refers to, and its destructor wrote into freed memory, which the sanitizers
-  of the continuous integration report (GAOL v5).
+  of the continuous integration report (GAOL v5). The references of the empty
+  expressions to that node, `the_null_expr`, must not be counted
+  (`expr_node::references()` does not change as they are built, copied,
+  assigned and extended): the count, changed by several threads at once, came
+  down to 0 and the node was deleted twice (GAOL v5).
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
   `atan2` and `pow`, and of `log10` and seven functions of Table 10.5, compute
   with a 128-bit unsigned integer, which Visual C++

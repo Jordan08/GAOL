@@ -351,7 +351,22 @@ where it comes from.
   with `strtod()` rounding downward and upward, and relied on the inexact flag.
   The C runtime of Windows and musl on 64-bit ARM processors round to nearest in
   every direction and raise no flag, so `interval("0.1")` did not enclose 1/10
-  there. Each number is now compared exactly with the doubles around it.
+  there. Each number is now compared exactly with the doubles around it,
+  whatever the number of digits of its significand and of its exponent.
+- **Numbers are read, and exact texts written, whatever the locale** of the
+  program. GAOL read numbers with `strtod()`, which reads the decimal point of
+  the C locale: under a locale writing a decimal comma, as
+  `setlocale(LC_ALL, "")` sets under a French one, it stopped at the `.` of
+  `0.1`, and `interval("0.1")` was `[0, 0]`. The doubles around the number
+  are now bracketed by steps doubling from the double `strtod()` gives, then
+  found by bisection on their bits: two comparisons when `strtod()` gives the
+  nearest double, and at most about 125 whatever it gives. `exact_string()`
+  and the format `hexa` write the bounds from the bits of the doubles, in the
+  form glibc's `%a` has, with a point whatever the locale and the same text
+  whatever the C library. The decimal formats of `operator<<` keep the
+  decimal point of the locale of the stream, as for a double.
+  `tests/numbers.cpp` reads and writes under such a locale where one is
+  installed.
 - **Intervals are written in decimal rounded outward**, whatever the C
   library ([issue #3](https://github.com/Jordan08/GAOL/issues/3)).
   - **Before.** `operator<<` set the rounding direction downward, then upward,
@@ -369,6 +384,23 @@ where it comes from.
   - **Same text with glibc**, which rounds as asked: 1077546 bounds written
     in the general, scientific and fixed formats with 1 to 18 digits were the
     same, character for character.
+- **`operator<<` leaves the stream as it found it.** The interval is written
+  in a stream of its own, with the flags and the locale of the stream and the
+  precision of `interval::precision()`, then into the stream at once. GAOL set
+  the precision of the stream to `interval::precision()` and left it so, the
+  doubles written afterwards getting 16 digits, and wrote the `[` apart, which
+  `std::setw` padded alone: `std::setw(8) << interval(1, 2)` wrote 7 spaces
+  before `[1, 2]` rather than 2.
+- **`operator>>` ends with the input.** Where no line is left, it sets the
+  `failbit` of the stream, leaves the interval as it was and throws nothing,
+  as the reading of a double does, and `while (in >> x)` ends there. It read
+  the empty text left, threw `input_format_error` and emptied the interval:
+  such a loop always ended with an exception. A line that is no interval, a
+  blank one included, sets the `failbit` too, and empties the interval; then
+  `input_format_error` is thrown as before, a stream whose `exceptions()`
+  include `failbit` included (`invalid_action_error` for a function called
+  with an argument it does not take). A program that reads on after it calls
+  `in.clear()` first: GAOL read the next line.
 - **The format of the agreeing digits** (`interval_format::agreeing`) keeps
   the digits of each bound. GAOL dropped from both bounds what followed the
   last character of the left one that is not a zero: `[1.25, 1.2567]` was
@@ -776,6 +808,23 @@ where it comes from.
 - **`pow(e, n)` on an expression links.** The library defined it with an
   `unsigned int` exponent, where the header declares an `int`, and a program
   calling it did not link; `tests/expressions.cpp` builds it.
+- **`expression::operator/=` links**: it was declared and not defined. The
+  operators `+=`, `-=`, `*=` and `/=` of expressions build the new node before
+  giving up their reference to the old root, which a `std::bad_alloc` left
+  one reference short, and deleted while another expression held it.
+- **Empty expressions can be created in several threads.** They all point to
+  one node, `the_null_expr`, whose count of references, a plain
+  `unsigned int` that two threads changed at once, lost updates and came down
+  to 0 while expressions still pointed to it: the node was deleted twice, and
+  two threads each creating and destroying a million empty expressions
+  crashed each time. The references to that node are no longer counted: it
+  lives from the initialization of GAOL to its automatic cleanup, when the
+  program ends or the library is unloaded, which deletes it.
+  `tests/expressions.cpp` checks, with `expr_node::references()`, that its
+  count no longer changes, the tests running no thread. Other expressions
+  still share the nodes of their copies and clones, whose counts are not
+  atomic: such an expression is not copied or destroyed in two threads at
+  once; expressions built apart in each thread are independent.
 - **`uipow()`**, the `pown` of IEEE 1788-2015 for an unsigned exponent, is
   `pow(I, n)` for an `unsigned` n in `gaol`, `gaol_uipow()` in `gaol_core`,
   declared in `gaol/gaol_interval.h` and exported with the SSE2 intervals too,

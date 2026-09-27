@@ -3091,6 +3091,14 @@ cout << (interval(3,6) | interval(9,12));
   (\pxref{sec:exceptions}) if the library was compiled with exceptions
   enabled (\pxref{sec:configuration}); alternatively, it prints an
   error message to \code{cerr} and aborts if exceptions were disabled.
+  An ill-formed line, a blank one included, also sets the \code{failbit} of
+  \var{in}, which \code{in.clear()} resets before reading on; a function
+  called with an argument it does not take throws
+  \code{invalid\_action\_error} instead. Where no line is left, \var{in} gets
+  its \code{failbit}, \var{I} is left as it was, and nothing is thrown, as
+  for a number: \code{while (in >{}> x)} reads the lines one after the other
+  and ends with the input.\newinvfive{} GAOL~4 read the empty text left, and
+  threw \code{input\_format\_error}.
 \begin{example}
 std::istringstream in("[1, 2]\n[0.1, 0.2]\n");
 interval a, b;
@@ -3168,6 +3176,10 @@ other one is replaced by the tightest interval of doubles containing
 it.\newinvfive{} GAOL~4 read them with the \code{strtod()} of the C library,
 which did not enclose \code{0.1} where it rounds to nearest in every rounding
 direction (the C runtime of Windows, musl on 64-bit ARM processors).
+The point of a number is a point whatever the locale of the program, a locale
+writing a decimal comma included (as \code{setlocale(LC\_ALL, "")} sets under
+a French one).\newinvfive{} GAOL~4 read \code{0.1} as 0 there,
+\code{strtod()} stopping at the point.
 \cindex{number!reading}%
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} of IEEE 1788-2015
@@ -3286,7 +3298,9 @@ direction it set, which the C runtime of Windows and musl do not honour.
   \code{"[empty]"} for the empty set, and otherwise the two bounds in the
   hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
   \code{interval(const char*)} reads back bit for bit. This is the exact text
-  representation of the standard, its \ieee{intervalToExact}.\newinvfive
+  representation of the standard, its \ieee{intervalToExact}.\newinvfive{}
+  The text is the same whatever the locale of the program, a locale writing a
+  decimal comma included, and whatever the C library.
 \begin{example}
 cout << exact_string(interval("0.1"));
 @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
@@ -3421,7 +3435,13 @@ The choice of the format to use is made through the following static methods:
 \subsection{Choosing the number of digits to display}
 %%...................................................
 You can manipulate the number of digits to print by using the \code{precision()} static
-methods of the interval class:
+methods of the interval class. The precision of the stream, which
+\code{std::setprecision} sets, is not used for intervals, and is left as it
+was: the numbers written after an interval keep it. The width of the stream
+(\code{std::setw}) and its adjustment apply to the whole interval, which
+\code{std::internal} pads as \code{std::right} does.\newinvfive{} GAOL~4 set the precision of the stream to that of the
+intervals and left it so, and \code{std::setw} padded the \code{[} of an
+interval alone.
 
 \begin{defstaticmethod}{interval}{std::streamsize}{precision}{(void)}
 Returns the current number of digits used for printing bounds
