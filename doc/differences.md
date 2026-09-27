@@ -1003,6 +1003,11 @@ where it comes from.
     included, to `PACKAGE_VERSION`. `configure --help` and the summary of
     meson give the address for the bug reports, jordan.ninin@ensta.fr, and
     the page of GAOL v5, https://github.com/Jordan08/GAOL.
+  - **`minimum()` and `maximum()` of two zeros** give -0 and +0 with every
+    compiler: Visual C++ compiled `(b <= a) ? b : a` as the instruction
+    `minsd`, which gives its second operand for two zeros, and
+    `minimum(0.0, -0.0)` was +0, `maximum(0.0, -0.0)` -0. The unit test of
+    GAOL 4 `tests/float_functions.cpp` found it, once built with Visual C++.
   - **Gone:** the `Doxyfile` of the root, which named the sources of
     Frédéric Goualard's machine, and the documentation Doxygen wrote from
     the sources (`manual/gaol_doxygen.cfg.in`, `make -C manual html`),

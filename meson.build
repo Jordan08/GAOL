@@ -338,7 +338,7 @@ else
 endif
 if build_tests or build_examples
   run_target('check',
-    command: [find_program('meson'), 'test', '-C', meson.build_root(), '--no-rebuild', '--print-errorlogs']
+    command: [find_program('meson'), 'test', '-C', meson.current_build_dir(), '--no-rebuild', '--print-errorlogs']
              + (meson.version().version_compare('>=0.57') ? ['--setup', 'check'] : []),
     depends: check_targets)
 endif
@@ -348,7 +348,7 @@ endif
 # doc/compare/code/run_perf.sh). Linux only, as the benchmark (GAOL v5).
 bash = find_program('bash', required: false)
 if host_machine.system() == 'linux' and bash.found()
-  bench_dir = meson.source_root() + '/doc/compare/code'
+  bench_dir = meson.current_source_dir() + '/doc/compare/code'
   gaol_bench = executable('gaol_bench', bench_dir + '/bench_gaol.cpp',
     include_directories: include_directories('.', 'doc/compare/code'),
     cpp_args: ['-DGAOL_BENCH_NAME="gaol5"'],

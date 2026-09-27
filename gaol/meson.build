@@ -30,12 +30,12 @@ core_math_functions = [
 ]
 incdir = include_directories(['.', '..', './sysdeps'])
 
-core_math_root = meson.source_root() + '/3rd/math-core/src/binary64/'
+core_math_root = meson.current_source_dir() + '/../3rd/math-core/src/binary64/'
 core_math_sources = []
 foreach f : core_math_functions
   core_math_sources += [core_math_root + f + '/' + f + '.c']
 endforeach
-core_math_port = meson.source_root() + '/gaol/core_math_port.h'
+core_math_port = meson.current_source_dir() + '/core_math_port.h'
 if msvc
   core_math_args = ['/FI' + core_math_port]
 else

@@ -54,6 +54,9 @@
 	gaol/gaol_expression.h did not compile; debug_level is public.
 	* gaol/gaol_expression.h: the classes and functions of the
 	expressions are public, which a shared libgaol did not export.
+	* gaol/gaol_common.cpp (minimum, maximum): two zeros of different
+	signs give -0 and +0 with Visual C++ too, which compiled the
+	comparison as minsd and gave the other zero.
 	* CMakeLists.txt: WITH_TESTS and WITH_EXAMPLES (GAOL_BUILD_TESTS
 	before), BUILD_SHARED_LIBS, libgaol.so.5.0.0 as with configure and
 	meson, GAOL_DEBUGGING in the Debug build, and the targets check,
