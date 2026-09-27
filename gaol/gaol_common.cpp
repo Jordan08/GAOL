@@ -76,8 +76,8 @@ namespace gaol_core {
             round_upward_sse();
 #   endif
 #endif
+	  		// Not counted: expr_node::inc_refcount() leaves it alone (GAOL v5)
 	  		the_null_expr = new null_node;
-	  		the_null_expr->inc_refcount();
 	  		interval::precision(16);
 	  		_already_initialized=true;
 	  		return true;

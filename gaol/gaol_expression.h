@@ -114,6 +114,13 @@ typedef struct {
     */
     unsigned int dec_refcount();
     /*!
+      \brief The number of references to the node (GAOL v5)
+
+      inc_refcount() and dec_refcount() leave the one of the_null_expr, the
+      node of the empty expressions, as it is: it is not counted.
+    */
+    unsigned int references() const;
+    /*!
       \brief put parentheses around the expression if necessary, that
       is, if the precedence of the expr_node is smaller than the one of
       the node calling the method.

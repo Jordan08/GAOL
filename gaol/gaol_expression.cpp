@@ -75,7 +75,7 @@ namespace gaol_core {
 
   expression::expression() : root(the_null_expr)
   {
-    ++root->refcount;
+    root->inc_refcount();
     GAOL_DEBUG(3,std::cout << "creating null expression" << std::endl);
   }
 
@@ -83,28 +83,28 @@ namespace gaol_core {
   {
     GAOL_DEBUG(3,std::cout << "creating expression from " << d << std::endl);
     root= new double_node(d);
-    ++root->refcount;
+    root->inc_refcount();
   }
 
   expression::expression(const interval& I)
   {
     GAOL_DEBUG(3,std::cout << "creating expression from " << I << std::endl);
     root= new interval_node(I);
-    ++root->refcount;
+    root->inc_refcount();
   }
 
   expression::expression(const expression& e) : root(e.root)
   {
     GAOL_DEBUG(3,std::cout << "creating expression from expression "
 		<< std::endl);
-    ++root->refcount;
+    root->inc_refcount();
   }
 
   expression::expression(const expr_node& e)
   {
     GAOL_DEBUG(3,std::cout << "creating expression from node " << std::endl);
     root = &const_cast<expr_node&>(e);
-    ++root->refcount;
+    root->inc_refcount();
   }
 
 
@@ -112,15 +112,15 @@ namespace gaol_core {
   {
     GAOL_DEBUG(3,std::cout << "deleting expression" << std::endl);
 
-    if (--root->refcount == 0) {
+    if (root->dec_refcount() == 0) {
       delete root;
     }
   }
 
   expression& expression::operator=(const expression& e)
   {
-    ++e.root->refcount;
-    if (--root->refcount == 0) {
+    e.root->inc_refcount();
+    if (root->dec_refcount() == 0) {
       delete root;
     }
     root=e.root;
@@ -129,46 +129,67 @@ namespace gaol_core {
 
   expression& expression::operator+=(const expression& e)
   {
-    /* The node built below takes a reference on the root it replaces, which
-       the decrement below gives up: the count of that root is unchanged.
-       The expression then takes a reference on its new root, as every
-       constructor does; without it the count of the new root stayed 0, the
-       destructor decremented it to UINT_MAX rather than to 0, and the node
-       was never deleted (GAOL v5, found by LeakSanitizer through
-       tests/expressions.cpp). */
-    --root->refcount;
-    root=new add_node(*this,e);
-    ++root->refcount;
+    /* The node, built first, takes a reference on the root it replaces,
+       which the decrement after gives up: the count of that root is
+       unchanged, and the expression is left as it was when new throws (GAOL
+       v5: the decrement came first, and a root shared with another
+       expression lost a reference for good). The expression then takes a
+       reference on its new root, as every constructor does; without it the
+       count of the new root stayed 0, the destructor decremented it to
+       UINT_MAX rather than to 0, and the node was never deleted (GAOL v5,
+       found by LeakSanitizer through tests/expressions.cpp). */
+    expr_node *const node = new add_node(*this,e);
+    root->dec_refcount();
+    root=node;
+    root->inc_refcount();
     return *this;
   }
 
   expression& expression::operator-=(const expression& e)
   {
-    /* The node built below takes a reference on the root it replaces, which
-       the decrement below gives up: the count of that root is unchanged.
-       The expression then takes a reference on its new root, as every
-       constructor does; without it the count of the new root stayed 0, the
-       destructor decremented it to UINT_MAX rather than to 0, and the node
-       was never deleted (GAOL v5, found by LeakSanitizer through
-       tests/expressions.cpp). */
-    --root->refcount;
-    root=new sub_node(*this,e);
-    ++root->refcount;
+    /* The node, built first, takes a reference on the root it replaces,
+       which the decrement after gives up: the count of that root is
+       unchanged, and the expression is left as it was when new throws (GAOL
+       v5: the decrement came first, and a root shared with another
+       expression lost a reference for good). The expression then takes a
+       reference on its new root, as every constructor does; without it the
+       count of the new root stayed 0, the destructor decremented it to
+       UINT_MAX rather than to 0, and the node was never deleted (GAOL v5,
+       found by LeakSanitizer through tests/expressions.cpp). */
+    expr_node *const node = new sub_node(*this,e);
+    root->dec_refcount();
+    root=node;
+    root->inc_refcount();
     return *this;
   }
 
   expression& expression::operator*=(const expression& e)
   {
-    /* The node built below takes a reference on the root it replaces, which
-       the decrement below gives up: the count of that root is unchanged.
-       The expression then takes a reference on its new root, as every
-       constructor does; without it the count of the new root stayed 0, the
-       destructor decremented it to UINT_MAX rather than to 0, and the node
-       was never deleted (GAOL v5, found by LeakSanitizer through
-       tests/expressions.cpp). */
-    --root->refcount;
-    root=new mult_node(*this,e);
-    ++root->refcount;
+    /* The node, built first, takes a reference on the root it replaces,
+       which the decrement after gives up: the count of that root is
+       unchanged, and the expression is left as it was when new throws (GAOL
+       v5: the decrement came first, and a root shared with another
+       expression lost a reference for good). The expression then takes a
+       reference on its new root, as every constructor does; without it the
+       count of the new root stayed 0, the destructor decremented it to
+       UINT_MAX rather than to 0, and the node was never deleted (GAOL v5,
+       found by LeakSanitizer through tests/expressions.cpp). */
+    expr_node *const node = new mult_node(*this,e);
+    root->dec_refcount();
+    root=node;
+    root->inc_refcount();
+    return *this;
+  }
+
+  // Declared, and not defined: a program using it did not link (GAOL v5)
+  expression& expression::operator/=(const expression& e)
+  {
+    // As in operator*=: the new node, built first, takes a reference on the
+    // root it replaces, and the expression one on its new root
+    expr_node *const node = new div_node(*this,e);
+    root->dec_refcount();
+    root=node;
+    root->inc_refcount();
     return *this;
   }
 
@@ -204,14 +225,36 @@ namespace gaol_core {
     // nothing to do
   }
 
+  /*
+    the_null_expr, which every empty expression of every thread points to, is
+    not counted: it lives from GAOL's initialization to its automatic cleanup,
+    when the program ends or the library is unloaded, which deletes it (GAOL
+    v5). Its count, a plain unsigned int that expressions
+    created and destroyed in two threads changed at once, lost updates, came
+    down to 0 while expressions still pointed to the node, and the node was
+    deleted twice. The expressions count their references through these two
+    functions only. Before the initialization, the_null_expr is 0: an
+    expression made then has no node, and fails where it is made, as it did.
+  */
   unsigned int expr_node::inc_refcount()
   {
+    if (the_null_expr != 0 && this == the_null_expr) {
+      return 1;
+    }
     return ++refcount;
   }
 
   unsigned int expr_node::dec_refcount()
   {
+    if (the_null_expr != 0 && this == the_null_expr) {
+      return 1;
+    }
     return --refcount;
+  }
+
+  unsigned int expr_node::references() const
+  {
+    return refcount;
   }
 
   void expr_node::parenthesize_if_necessary(unsigned int calling_prec,
