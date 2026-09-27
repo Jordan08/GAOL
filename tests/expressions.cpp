@@ -462,17 +462,19 @@ namespace
       delete clone;
     }
 
-    // the operators that change the expression in place
+    // the operators that change the expression in place; /= was declared and
+    // not defined, and a program using it did not link (GAOL v5)
     expression acc = expression(interval(1.0, 1.0));
     acc += x;
     acc -= d;
     acc *= y;
+    acc /= x;
     expr_eval ev;
     acc.get_root()->accept(ev);
     const interval got = ev.result();
     const interval expected =
-      ((interval(1.0) + interval(1.0, 2.0)) - interval(2.5)) * interval(3.0, 4.0);
-    check("built expression: +=, -= and *=",
+      (((interval(1.0) + interval(1.0, 2.0)) - interval(2.5)) * interval(3.0, 4.0)) / interval(1.0, 2.0);
+    check("built expression: +=, -=, *= and /=",
           got.left() == expected.left() && got.right() == expected.right(),
           [&] {
             std::ostringstream o;
@@ -498,6 +500,31 @@ namespace
     std::ostringstream o;
     o << empty;
     check("built expression: the empty one is printed", true);
+  }
+
+  /* The empty expressions, of every thread, point to one node, the_null_expr,
+     whose references are not counted (GAOL v5): its count, a plain unsigned
+     int that expressions created and destroyed in two threads changed at
+     once, lost updates and came down to 0, and the node was deleted twice.
+     The tests run no thread: the count is checked not to change as empty
+     expressions are built, copied, assigned, extended and divided. */
+  void null_node_not_counted()
+  {
+    const unsigned int before = the_null_expr->references();
+    unsigned int during = 0;
+    {
+      expression e, f = e;
+      expression g;
+      g = f;
+      g += expression(1.0);
+      expression h;
+      h /= expression(2.0);
+      during = the_null_expr->references();
+    }
+    const unsigned int after = the_null_expr->references();
+    check("expression: the empty expressions do not count their references to the_null_expr",
+          before == during && during == after,
+          [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
   }
 
 // Commented out: the tests run no thread (GAOL v5)
@@ -556,6 +583,7 @@ int main()
   step("wrong_strings");     wrong_strings();
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
+  step("null_node_not_counted"); null_node_not_counted();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   step("reading_in_threads"); reading_in_threads();

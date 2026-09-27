@@ -53,6 +53,12 @@ foreach(test ${GAOL_TESTS})
   add_test(NAME ${test} COMMAND gaol_test_${test})
 endforeach()
 
+# Under a locale writing a decimal comma, the reading of a number never
+# returned (GAOL v5): numbers, which reads numbers under such a locale, fails
+# after 5 minutes should it hang again, ctest giving a test no time limit of
+# its own (the project does not include CTest)
+set_tests_properties(numbers PROPERTIES TIMEOUT 300)
+
 # Commented out: the tests run no thread (GAOL v5)
 # # ieee1788 calls intervalToExact() in a thread of its own (std::thread), and
 # # expressions reads strings in four threads at once, which needs -pthread with

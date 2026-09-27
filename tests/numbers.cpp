@@ -25,7 +25,9 @@
 
 #include "gaol_tests.h"
 
+#include <clocale>
 #include <cstdlib>
+#include <iomanip>
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -553,6 +555,192 @@ namespace
     interval::precision(saved_precision);
     interval::format(saved_format);
   }
+
+  /*
+    operator<< leaves the stream as it found it, the text written apart, and
+    std::setw and the adjustment of the stream apply to the whole interval
+    (GAOL v5): it set the precision of the stream to interval::precision() for
+    good, the doubles written afterwards getting 16 digits, and wrote the '['
+    apart, which std::setw padded alone.
+  */
+  void stream_output()
+  {
+    const interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    interval::format(interval_format::bounds);
+    interval::precision(16);
+    {
+      std::ostringstream os;
+      os.precision(3);
+      os << interval(1.0, 2.0);
+      check("operator<< leaves the precision of the stream", os.precision() == 3,
+            [&] { return "the precision is " + std::to_string(os.precision()); });
+    }
+    const auto expect_text = [](const std::string& name, const std::string& got, const std::string& expected) {
+      check(name, got == expected, [&] { return "\"" + got + "\" rather than \"" + expected + "\""; });
+    };
+    {
+      std::ostringstream os;
+      os << '|' << std::setw(8) << interval(1.0, 2.0) << '|' << interval(3.0, 4.0) << '|';
+      expect_text("operator<< pads the whole interval to std::setw, once", os.str(), "|  [1, 2]|[3, 4]|");
+    }
+    {
+      std::ostringstream os;
+      os << '|' << std::left << std::setfill('.') << std::setw(8) << interval(1.0, 2.0) << '|';
+      expect_text("operator<< pads the whole interval to std::setw, adjusted to the left", os.str(), "|[1, 2]..|");
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+  }
+
+  /*
+    operator>> reads an interval from a line. At the end of the input it sets
+    failbit, leaves the interval as it was and throws nothing, as for a double,
+    so that while (in >> x) ends there (GAOL v5): it threw input_format_error
+    and emptied the interval, and such a loop always ended with an exception.
+    A line that is no interval sets failbit, then throws input_format_error.
+  */
+  void stream_input()
+  {
+    {
+      std::istringstream in("[1, 2]\n[3, 4]\n");
+      interval x;
+      int n = 0;
+      bool threw = false;
+      try {
+        while (in >> x) {
+          ++n;
+        }
+      } catch (...) {
+        threw = true;
+      }
+      check("operator>>: while (in >> x) reads each line, and stops at the end of the input",
+            !threw && n == 2 && x.left() == 3.0 && x.right() == 4.0,
+            [&] { return std::to_string(n) + " read" + (threw ? ", then an exception, " : ", ") + hex(x); });
+    }
+    {
+      std::istringstream in("");
+      interval x(1.0, 2.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      check("operator>> at the end of the input: failbit, the interval unchanged, nothing thrown",
+            !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
+            [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
+    }
+    {
+      std::istringstream in("[1, 2\n");
+      interval x(1.0, 2.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (const input_format_error&) {
+        threw = true;
+      }
+      check("operator>> of a line that is no interval: failbit, then input_format_error",
+            threw && in.fail() && x.is_empty(),
+            [&] { return std::string(threw ? "threw, " : "nothing thrown, ") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
+    }
+    // The same where the reader throws as it reads, rather than refusing the
+    // line at its end: the degenerate interval of two numbers that differ
+    {
+      std::istringstream in("<3, 4>\n");
+      interval x(5.0, 6.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (const input_format_error&) {
+        threw = true;
+      }
+      check("operator>> of a line the reader refuses as it reads it: failbit, then input_format_error",
+            threw && in.fail() && x.is_empty(),
+            [&] { return std::string(threw ? "threw, " : "nothing thrown, ") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
+    }
+    // A stream whose exceptions include failbit gets input_format_error, the
+    // error of the line, rather than std::ios_base::failure
+    {
+      std::istringstream in("[1, 2\n");
+      in.exceptions(std::ios_base::failbit);
+      interval x(1.0, 2.0);
+      bool format_error = false;
+      try {
+        in >> x;
+      } catch (const input_format_error&) {
+        format_error = true;
+      } catch (...) {
+      }
+      check("operator>> of a line that is no interval, on a stream throwing on failbit: input_format_error",
+            format_error && in.fail(), [&] { return std::string(format_error ? "input_format_error" : "another exception"); });
+    }
+  }
+
+  /*
+    Numbers whose exponent has 7 digits or more and whose significand has a
+    million zeros after its point, so that they are doubles (GAOL v5): the
+    exponent was kept below 100000, and 1 written so was compared as
+    10^-900001, which the reader, bracketing the number from the double
+    strtod() gives, turned into [0, 2^-1074]. Exactly 1 each, and [0.5, 1.5]
+    in the uncertain form.
+  */
+  void long_exponents()
+  {
+    const std::string zeros(1000000, '0');
+    const auto expect_one = [](const std::string& name, const std::string& s) {
+      const interval x(s.c_str());
+      check(name, x.left() == 1.0 && x.right() == 1.0, [&] { return hex(x); });
+    };
+    expect_one("interval(0.<a million zeros>1e1000001) is 1", "0." + zeros + "1e1000001");
+    expect_one("interval(0x0.<300000 zeros>1p1200004) is 1", "0x0." + zeros.substr(0, 300000) + "1p1200004");
+    const interval u(("0." + zeros + "1?e1000001").c_str());
+    check("interval(0.<a million zeros>1?e1000001) is [0.5, 1.5]", u.left() == 0.5 && u.right() == 1.5,
+          [&] { return hex(u); });
+  }
+
+  /*
+    Numbers read, and exact texts written, under a locale writing a decimal
+    comma, which a program sets with setlocale(LC_ALL, "") (GAOL v5): strtod()
+    stops there at the '.' of "0.1" and gives 0, from which the reader moved
+    one double at a time, about 4.6e18 of them, and never returned; and
+    exact_string() wrote the '.' of printf("%a") as a comma,
+    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. Nothing is checked
+    where no such locale is installed.
+  */
+  void comma_locale()
+  {
+    const char *const current = std::setlocale(LC_NUMERIC, nullptr);
+    const std::string saved = (current != nullptr) ? current : "C";
+    const char *const names[] = { "fr_FR.UTF-8", "fr_FR.utf8", "de_DE.UTF-8", "de_DE.utf8", "French_France.1252", "fr_FR" };
+    const char *comma = nullptr;
+    for (const char *name : names) {
+      if (std::setlocale(LC_NUMERIC, name) != nullptr && std::localeconv()->decimal_point[0] == ',') {
+        comma = name;
+        break;
+      }
+    }
+    if (comma == nullptr) {
+      std::setlocale(LC_NUMERIC, saved.c_str());
+      std::printf("No locale writing a decimal comma: the reading and the writing under such a locale are not checked\n");
+      return;
+    }
+    const std::string text = exact_string(interval(1.5, 2.5));
+    check("exact_string() under a locale writing a decimal comma", text == "[0x1.8p+0, 0x1.4p+1]",
+          [&] { return std::string(comma) + ": " + text; });
+    for (const char *s : { "0.1", "1.5", "2.5e-3", "123.456", "0.1000000000000000055511151231257827021181583404541015625" }) {
+      expect_number("interval(number) under a locale writing a decimal comma", s);
+    }
+    const interval three("0x1.8p1");
+    check("interval(\"0x1.8p1\") under a locale writing a decimal comma", three.left() == 3.0 && three.right() == 3.0,
+          [&] { return hex(three); });
+    for (double x : { 0.1, std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::max() }) {
+      const interval y(exact_string(interval(x)).c_str());
+      check("exact_string() read back under a locale writing a decimal comma", y.left() == x && y.right() == x,
+            [&] { return exact_string(interval(x)) + " read " + hex(y); });
+    }
+    std::setlocale(LC_NUMERIC, saved.c_str());
+  }
 }
 
 int main()
@@ -565,6 +753,10 @@ int main()
   expressions();
   hexadecimal_output();
   decimal_output();
+  stream_output();
+  stream_input();
+  long_exponents();
+  comma_locale();
   const int status = summary();
   gaol::cleanup();
   return status;
