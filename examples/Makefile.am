@@ -30,6 +30,6 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # there may hold an installed GAOL too, which was then linked
 LDADD = -lm $(top_builddir)/gaol/libgaol.la
 
-noinst_PROGRAMS = Goldstein_Price
+noinst_PROGRAMS = 16_Goldstein_Price
 
-Goldstein_Price_SOURCES = Goldstein_Price.cpp
+16_Goldstein_Price_SOURCES = 16_Goldstein_Price.cpp
