@@ -21,6 +21,11 @@
 #ifndef __gaol_intervalf_h__
 #define __gaol_intervalf_h__
 
+// Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
+// gaol/gaol_config.h), and empty otherwise (GAOL v5)
+#include "gaol/gaol_config.h"
+#ifdef GAOL_FLOAT_INTERVALS
+
 #include <iosfwd>
 #include <new>
 
@@ -211,6 +216,6 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-
+#endif // GAOL_FLOAT_INTERVALS
 
 #endif // __gaol_intervalf_h__

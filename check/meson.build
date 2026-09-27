@@ -97,16 +97,9 @@ if build_tests
   )
   test('Test of interval_functions', test_interval_functions)
 
-  if float_intervals
-    test_intervalf = executable(
-      'intervalf',
-      sources: ['tests.h', 'intervalf.cpp'],
-      link_with: gaollib,
-      dependencies: deps + [cppunit],
-      include_directories: '../',
-    )
-    test('Test of intervalf', test_intervalf)
-  endif
+  # Not the tests of the intervals of floats, intervalf.cpp and
+  # interval2f.cpp, which only a developer of GAOL compiles (see
+  # gaol/gaol_config.h) (GAOL v5)
 
   test_misc = executable(
     'misc',
@@ -152,17 +145,6 @@ if build_tests
     include_directories: '../',
   )
   test('Test of trigonometric', test_trigonometric)
-
-  if float_intervals and use_sse3
-    test_interval2f = executable(
-      'interval2f',
-      sources: ['tests.h', 'interval2f.cpp'],
-      link_with: gaollib,
-      dependencies: deps + [cppunit],
-      include_directories: '../',
-    )
-    test('Test of interval2f', test_interval2f)
-  endif
 
   if get_option('check-perf')
     test_performances = executable(

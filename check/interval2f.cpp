@@ -1,4 +1,8 @@
+// Built by no build: only a developer of GAOL compiles the intervals of
+// floats, defining GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h) (GAOL v5)
 #include "tests.h"
+#include "gaol/gaol_intervalf.h"
+#include "gaol/gaol_interval2f.h"
 
 
 class interval2f_test : public CppUnit::TestFixture {

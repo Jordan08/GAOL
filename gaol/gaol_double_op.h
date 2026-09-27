@@ -33,6 +33,10 @@
     the exact value is a double, and the operations of gaol/gaol_interval.cpp
     give those exactly (log(1) = 0, sin(0) = 0, asin(1) = the bounds of pi/2...).
 
+  A header of the sources of GAOL, which the builds do not install and no
+  installed header includes: the functions *_dn() and *_up() of doubles are
+  not part of GAOL's interface, whose operations are on intervals (GAOL v5).
+
   \author Frederic Goualard, then GAOL v5
 */
 
@@ -54,6 +58,11 @@ namespace gaol_core {
   /*
     Computes d^n rounded upward with a binary exponentiation algorithm
     \warning "d" and "n" should be positive
+
+    ipow_up(), ipow_dn(), pow_up() and pow_dn() check the rounding direction
+    themselves. No operation of GAOL calls them: the integer powers of
+    intervals take their products from ipow_exact_up() and ipow_exact_dn(),
+    or ipow_hi() and ipow_lo() for the roots (gaol/gaol_interval.cpp).
    */
 
   INLINE double ipow_up(double d, unsigned int n)
@@ -157,9 +166,9 @@ namespace gaol_core {
     the lower bound: nothing is added, and the direction is never switched
     (GAOL v5).
 
-    The functions of namespace nearest are those the code setting the
-    direction to nearest itself calls: there the value is rounded to nearest,
-    and moved one double outward to enclose the exact one.
+    The functions of namespace nearest are for code setting the direction to
+    nearest itself, which no operation of GAOL does today: there the value is
+    rounded to nearest, and moved one double outward to enclose the exact one.
   */
   namespace nearest {
     INLINE double nthroot_dn(double d, double e) { return previous_float(gaol_cr_pow(d, e)); }
@@ -200,9 +209,11 @@ namespace gaol_core {
     Computed in the upward rounding GAOL keeps: the tightest bounds, without
     switching the rounding direction. Those of namespace upward take the
     direction to be upward already, as it is in the functions of intervals
-    after GAOL_RND_ENTER(), gaol_ieee1788::pow() included: the ones below it
-    check it again, and a function of intervals calling one for each bound
-    checked it three times (GAOL v5).
+    after GAOL_RND_ENTER(), gaol_ieee1788::pow() included (GAOL v5: functions
+    of the same names outside namespace upward checked it again, for the code
+    calling them directly, and a function of intervals calling one for each
+    bound checked it three times; they are gone with that code, the header no
+    longer being installed).
   */
   namespace upward {
     INLINE double nthroot_dn(double d, double e) { return previous_float(gaol_cr_pow(d, e)); }
@@ -238,52 +249,6 @@ namespace gaol_core {
     INLINE double atanh_dn(double d) { return previous_float(gaol_cr_atanh(d)); }
     INLINE double atanh_up(double d) { return gaol_cr_atanh(d); }
   } // namespace upward
-
-  /*
-    The functions below check the rounding direction, and set it upward when
-    it is not, for the code calling them directly. With
-    GAOL_PRESERVE_ROUNDING, they set back the direction they found, after the
-    bound has gone through GAOL_RND_KEEP(), so that it is computed before
-    (GAOL v5: they left it upward, which the compilers only showed by warning
-    that _save_state was set but not used).
-  */
-#define GAOL_UPWARD_BOUND(f) \
-  GAOL_RND_ENTER(); double r = upward::f; GAOL_RND_KEEP(r); GAOL_RND_LEAVE(); return r
-
-  INLINE double nthroot_dn(double d, double e) { GAOL_UPWARD_BOUND(nthroot_dn(d, e)); }
-  INLINE double nthroot_up(double d, double e) { GAOL_UPWARD_BOUND(nthroot_up(d, e)); }
-  INLINE double atan2_dn(double y, double x) { GAOL_UPWARD_BOUND(atan2_dn(y, x)); }
-  INLINE double atan2_up(double y, double x) { GAOL_UPWARD_BOUND(atan2_up(y, x)); }
-  INLINE double exp_dn(double d) { GAOL_UPWARD_BOUND(exp_dn(d)); }
-  INLINE double exp_up(double d) { GAOL_UPWARD_BOUND(exp_up(d)); }
-  INLINE double log_dn(double d) { GAOL_UPWARD_BOUND(log_dn(d)); }
-  INLINE double log_up(double d) { GAOL_UPWARD_BOUND(log_up(d)); }
-  INLINE double sin_dn(double d) { GAOL_UPWARD_BOUND(sin_dn(d)); }
-  INLINE double sin_up(double d) { GAOL_UPWARD_BOUND(sin_up(d)); }
-  INLINE double cos_dn(double d) { GAOL_UPWARD_BOUND(cos_dn(d)); }
-  INLINE double cos_up(double d) { GAOL_UPWARD_BOUND(cos_up(d)); }
-  INLINE double tan_dn(double d) { GAOL_UPWARD_BOUND(tan_dn(d)); }
-  INLINE double tan_up(double d) { GAOL_UPWARD_BOUND(tan_up(d)); }
-  INLINE double asin_dn(double d) { GAOL_UPWARD_BOUND(asin_dn(d)); }
-  INLINE double asin_up(double d) { GAOL_UPWARD_BOUND(asin_up(d)); }
-  INLINE double acos_dn(double d) { GAOL_UPWARD_BOUND(acos_dn(d)); }
-  INLINE double acos_up(double d) { GAOL_UPWARD_BOUND(acos_up(d)); }
-  INLINE double atan_dn(double d) { GAOL_UPWARD_BOUND(atan_dn(d)); }
-  INLINE double atan_up(double d) { GAOL_UPWARD_BOUND(atan_up(d)); }
-  INLINE double sinh_dn(double d) { GAOL_UPWARD_BOUND(sinh_dn(d)); }
-  INLINE double sinh_up(double d) { GAOL_UPWARD_BOUND(sinh_up(d)); }
-  INLINE double cosh_dn(double d) { GAOL_UPWARD_BOUND(cosh_dn(d)); }
-  INLINE double cosh_up(double d) { GAOL_UPWARD_BOUND(cosh_up(d)); }
-  INLINE double tanh_dn(double d) { GAOL_UPWARD_BOUND(tanh_dn(d)); }
-  INLINE double tanh_up(double d) { GAOL_UPWARD_BOUND(tanh_up(d)); }
-  INLINE double asinh_dn(double d) { GAOL_UPWARD_BOUND(asinh_dn(d)); }
-  INLINE double asinh_up(double d) { GAOL_UPWARD_BOUND(asinh_up(d)); }
-  INLINE double acosh_dn(double d) { GAOL_UPWARD_BOUND(acosh_dn(d)); }
-  INLINE double acosh_up(double d) { GAOL_UPWARD_BOUND(acosh_up(d)); }
-  INLINE double atanh_dn(double d) { GAOL_UPWARD_BOUND(atanh_dn(d)); }
-  INLINE double atanh_up(double d) { GAOL_UPWARD_BOUND(atanh_up(d)); }
-
-#undef GAOL_UPWARD_BOUND
 
 } // namespace gaol_core
 

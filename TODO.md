@@ -6,12 +6,12 @@ What is left to do on GAOL v5. What is done is in
 ## Code
 
 1. **The pow of the standard is written twice.** `gaol_ieee1788::pow`
-   (`gaol/gaol_ieee1788.h`) intersects x with [0, +oo] and takes x = {0}
-   apart, and `gaol_pow_hybrid()` does it again. Fix: export the standard half
-   of `gaol_pow_hybrid()`, the pow of Table 9.1 for an interval exponent, have
-   `gaol_pow_hybrid()` add only the pown case of a degenerate integer
-   exponent, and have `gaol_ieee1788::pow` call that half directly, apart
-   from its integer exponents beyond the ints.
+   (`gaol/gaol_interval.cpp`) intersects x with [0, +oo] and takes x = {0}
+   apart, and `gaol_pow_hybrid()` does it again. Fix: make the standard half
+   of `gaol_pow_hybrid()`, the pow of Table 9.1 for an interval exponent, a
+   function of `gaol/gaol_interval.cpp`, have `gaol_pow_hybrid()` add only the
+   pown case of a degenerate integer exponent, and have `gaol_ieee1788::pow`
+   call that half directly, apart from its integer exponents beyond the ints.
 
 2. **The rounding direction is still checked more than once** by `pow(x, y)`
    where it takes exp(y log x) (an infinite bound, or a base from 0 with an
@@ -103,8 +103,8 @@ What is left to do on GAOL v5. What is done is in
      doubt for software that is not free: the LGPL v2 (section 5) leaves a
      program compiled with the library free only if it takes from it "small
      inline functions (ten lines or less in length)", and
-     `gaol_interval.h`, `gaol_double_op.h`, `gaol_interval_sse.h` and
-     `gaol_interval_fpu.h` define about 225 `INLINE` functions. Code
+     `gaol_interval.h`, `gaol_interval_sse.h` and `gaol_interval_fpu.h`
+     define about 120 `INLINE` functions. Code
      reusable by any project, which is how CORE-MATH entered the glibc. And
      MIT is in the list of licences the French administrations may use
      (article D323-2-1 of the Code des relations entre le public et

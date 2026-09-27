@@ -120,8 +120,7 @@ host_triplet = @host@
 @CPPUNIT_COND_TRUE@	interval_functions$(EXEEXT) misc$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	non_arithmetic$(EXEEXT) relations$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	reverse_mappings$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) essai$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	$(am__EXEEXT_1) $(am__EXEEXT_2)
+@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) essai$(EXEEXT)
 EXTRA_PROGRAMS = performances$(EXEEXT)
 subdir = check
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -136,8 +135,6 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@FLOAT_INTERVALS_COND_TRUE@am__EXEEXT_1 = intervalf$(EXEEXT)
-am__EXEEXT_2 =
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)
@@ -233,15 +230,6 @@ interval_functions_LDADD = $(LDADD)
 @IS_CYGWIN_COND_TRUE@interval_functions_DEPENDENCIES =  \
 @IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
-intervalf_SOURCES = intervalf.cpp
-intervalf_OBJECTS = intervalf.$(OBJEXT)
-intervalf_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@intervalf_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@intervalf_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 misc_SOURCES = misc.cpp
 misc_OBJECTS = misc.$(OBJEXT)
 misc_LDADD = $(LDADD)
@@ -317,8 +305,8 @@ am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/essai.Po \
 	./$(DEPDIR)/float_functions.Po ./$(DEPDIR)/fpu.Po \
 	./$(DEPDIR)/generic_functions.Po ./$(DEPDIR)/input_output.Po \
-	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/intervalf.Po \
-	./$(DEPDIR)/misc.Po ./$(DEPDIR)/non_arithmetic.Po \
+	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/misc.Po \
+	./$(DEPDIR)/non_arithmetic.Po \
 	./$(DEPDIR)/performance_test_set.Po \
 	./$(DEPDIR)/performances.Po ./$(DEPDIR)/relations.Po \
 	./$(DEPDIR)/reverse_mappings.Po ./$(DEPDIR)/trigonometric.Po
@@ -343,15 +331,14 @@ am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = arithmetic.cpp assignment.cpp constants.cpp constructor.cpp \
 	essai.cpp float_functions.cpp fpu.cpp generic_functions.cpp \
-	input_output.cpp interval_functions.cpp intervalf.cpp misc.cpp \
+	input_output.cpp interval_functions.cpp misc.cpp \
 	non_arithmetic.cpp $(performances_SOURCES) relations.cpp \
 	reverse_mappings.cpp trigonometric.cpp
 DIST_SOURCES = arithmetic.cpp assignment.cpp constants.cpp \
 	constructor.cpp essai.cpp float_functions.cpp fpu.cpp \
 	generic_functions.cpp input_output.cpp interval_functions.cpp \
-	intervalf.cpp misc.cpp non_arithmetic.cpp \
-	$(performances_SOURCES) relations.cpp reverse_mappings.cpp \
-	trigonometric.cpp
+	misc.cpp non_arithmetic.cpp $(performances_SOURCES) \
+	relations.cpp reverse_mappings.cpp trigonometric.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -732,14 +719,13 @@ AUTOMAKE_OPTIONS = 1.4
 #CLEANFILES =
 DISTCLEANFILES = gaolcc
 MAINTAINERCLEANFILES = gaolcc
-@SIMD_COND_TRUE@OBSIMD_FILES = interval2f
-@SIMD_COND_FALSE@SIMD_FILES = 
-@FLOAT_INTERVALS_COND_FALSE@FLOAT_FILES = 
-@FLOAT_INTERVALS_COND_TRUE@FLOAT_FILES = intervalf
+
+# Not the tests of the intervals of floats, intervalf.cpp and interval2f.cpp,
+# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
 AM_DEFAULT_SOURCE_EXT = .cpp
 @CPPUNIT_COND_FALSE@CPPUNIT_LIB = 
 @CPPUNIT_COND_TRUE@CPPUNIT_LIB = -lcppunit
-EXTRA_DIST = gaolcc.in tests.h
+EXTRA_DIST = gaolcc.in tests.h intervalf.cpp interval2f.cpp
 TESTS = $(check_PROGRAMS)
 
 # GAOL's own directories before those given in CPPFLAGS, which come first
@@ -838,10 +824,6 @@ interval_functions$(EXEEXT): $(interval_functions_OBJECTS) $(interval_functions_
 	@rm -f interval_functions$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(interval_functions_OBJECTS) $(interval_functions_LDADD) $(LIBS)
 
-intervalf$(EXEEXT): $(intervalf_OBJECTS) $(intervalf_DEPENDENCIES) $(EXTRA_intervalf_DEPENDENCIES) 
-	@rm -f intervalf$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(intervalf_OBJECTS) $(intervalf_LDADD) $(LIBS)
-
 misc$(EXEEXT): $(misc_OBJECTS) $(misc_DEPENDENCIES) $(EXTRA_misc_DEPENDENCIES) 
 	@rm -f misc$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(misc_OBJECTS) $(misc_LDADD) $(LIBS)
@@ -882,7 +864,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generic_functions.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/input_output.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interval_functions.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intervalf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/non_arithmetic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performance_test_set.Po@am__quote@ # am--include-marker
@@ -1225,13 +1206,6 @@ essai.log: essai$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
-intervalf.log: intervalf$(EXEEXT)
-	@p='intervalf$(EXEEXT)'; \
-	b='intervalf'; \
-	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
-	--log-file $$b.log --trs-file $$b.trs \
-	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
-	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1337,7 +1311,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
 	-rm -f ./$(DEPDIR)/interval_functions.Po
-	-rm -f ./$(DEPDIR)/intervalf.Po
 	-rm -f ./$(DEPDIR)/misc.Po
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
 	-rm -f ./$(DEPDIR)/performance_test_set.Po
@@ -1400,7 +1373,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
 	-rm -f ./$(DEPDIR)/interval_functions.Po
-	-rm -f ./$(DEPDIR)/intervalf.Po
 	-rm -f ./$(DEPDIR)/misc.Po
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
 	-rm -f ./$(DEPDIR)/performance_test_set.Po

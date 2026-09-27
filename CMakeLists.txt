@@ -70,10 +70,11 @@ option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each o
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest (OFF: the tests are not built by default, with the three builds)" OFF)
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
 # with its defaults, but for the verbose mode: GAOL is silent by default
-option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3" ON)
+option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
-option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with SSE3" OFF)
+# No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
+# unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 # Coverage: the library and the tests compiled with the counters of gcov
 # (--coverage), and the target "coverage", which runs the tests and writes the
 # report in coverage/ (see doc/coverage.md). GCC and Clang only; the build has
@@ -467,8 +468,8 @@ set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
-# SSE3 instructions serve gaol::interval2f (gaol/gaol_interval2f.h), as the
-# autotools build on a processor with SSE3. Not with Visual C++, which IBEX and
+# -msse3 is given where the compiler takes it, as the autotools build on a
+# processor with SSE3. Not with Visual C++, which IBEX and
 # the fork of Fabrice Le Bars build GAOL without them, nor on 32-bit Windows:
 # there, GCC takes the memory of new to be aligned on 16 bytes
 # (__STDCPP_DEFAULT_NEW_ALIGNMENT__), while the C runtime aligns it on 8, so
@@ -505,7 +506,7 @@ if(GAOL_SIMD AND NOT MSVC)
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
-message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3 (interval2f): ${USING_SSE3_INSTRUCTIONS}")
+message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3: ${USING_SSE3_INSTRUCTIONS}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -551,7 +552,9 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # The sources listed in gaol/meson.build. gaol_interval.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# USING_SSE2_INSTRUCTIONS. gaol_exact.c is left out for Visual C++, for which
+# USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
+# where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
+# gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
 # gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
 #
 # A static library: for Visual C++, GAOL's declarations are then compiled
@@ -563,12 +566,6 @@ set(GAOL_SOURCES
   s_nextafter.c gaol_interval_lexer.cpp
   gaol_interval_parser.cpp
 )
-if(GAOL_FLOAT_INTERVALS)
-  list(APPEND GAOL_SOURCES gaol_intervalf.cpp)
-  if(USING_SSE3_INSTRUCTIONS)
-    list(APPEND GAOL_SOURCES gaol_interval2f.cpp)
-  endif()
-endif()
 if(NOT MSVC)
   list(APPEND GAOL_SOURCES gaol_exact.c)
 endif()
@@ -655,10 +652,12 @@ file(GLOB GAOL_HEADERS gaol/*.h)
 # What CORE-MATH's sources need to compile within GAOL, and nothing else does
 list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_log_dint.h")
-if(NOT GAOL_FLOAT_INTERVALS)
-  list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
-endif()
+# The headers of the sources of GAOL only: the bounds at doubles, *_dn() and
+# *_up(), which are not part of GAOL's interface, and the intervals of floats,
+# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
+list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_double_op.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}

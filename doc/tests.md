@@ -65,8 +65,7 @@ Codac.
   the whole numbers and the doubles on either side of them, and over the
   magnitudes beyond 2^52, on both signs and on the empty set. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
-- **`rounding_direction`:** about 100 operations of GAOL's interface, and the
-  bounds at doubles of its elementary functions (`exp_dn()`, `sin_up()`...),
+- **`rounding_direction`:** about 110 operations of GAOL's interface,
   called with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
@@ -122,7 +121,7 @@ Codac.
   requirement of 13.4: over random intervals, and over the empty set, the
   infinite bounds, the signed zeros, the subnormals and the largest doubles.
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
-  when GAOL is built with the float intervals), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
+  where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and

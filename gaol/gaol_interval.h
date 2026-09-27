@@ -37,7 +37,6 @@
 #include <limits>
 #include <type_traits>
 #include "gaol/gaol_config.h"
-#include "gaol/gaol_double_op.h"
 #include "gaol/gaol_roundeven.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"

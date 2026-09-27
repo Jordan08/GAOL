@@ -31,23 +31,14 @@ AUTOMAKE_OPTIONS = 1.4
 DISTCLEANFILES = gaolcc
 MAINTAINERCLEANFILES = gaolcc
 
-if SIMD_COND
-OBSIMD_FILES = interval2f
-else
-SIMD_FILES = 
-endif
-
-if FLOAT_INTERVALS_COND
-FLOAT_FILES = intervalf
-else
-FLOAT_FILES =
-endif
+# Not the tests of the intervals of floats, intervalf.cpp and interval2f.cpp,
+# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
 
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 if CPPUNIT_COND
 check_PROGRAMS = arithmetic assignment constants constructor float_functions fpu generic_functions input_output \
-	interval_functions misc non_arithmetic relations reverse_mappings trigonometric essai $(FLOAT_FILES) $(SIMD_FILES)
+	interval_functions misc non_arithmetic relations reverse_mappings trigonometric essai
 CPPUNIT_LIB = -lcppunit
 else
 CPPUNIT_LIB = 
@@ -57,7 +48,7 @@ endif
 EXTRA_PROGRAMS = performances
 
 
-EXTRA_DIST = gaolcc.in tests.h
+EXTRA_DIST = gaolcc.in tests.h intervalf.cpp interval2f.cpp
 
 TESTS = $(check_PROGRAMS)
 

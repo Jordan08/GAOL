@@ -51,10 +51,14 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_fpu.h"
+// The bounds at doubles, *_dn() and *_up(): a header of the sources, not
+// installed (GAOL v5)
+#include "gaol/gaol_double_op.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval.h"
+#include "gaol/gaol_ieee1788.h"
 #include "gaol/gaol_parameters.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
@@ -3171,3 +3175,61 @@ interval nth_root(const interval& I, int q)
 
 
 } // namespace gaol_core
+
+namespace gaol_ieee1788 {
+
+  /*
+    pow(x, y) of IEEE 1788-2015 (gaol/gaol_ieee1788.h), in the library rather
+    than inline in its header, for the bounds at doubles of
+    gaol/gaol_double_op.h, which no installed header includes (GAOL v5)
+  */
+  interval pow(const interval& x, const interval& y)
+  {
+    if (x.is_empty() || y.is_empty()) {
+      return interval::emptyset();
+    }
+    const interval xp = x & interval(0.0, GAOL_INFINITY);
+    if (xp.is_empty()) {
+      return interval::emptyset();
+    }
+    if (xp.left() == 0.0 && xp.right() == 0.0) {
+      // x = {0}: 0^y = 0 for y > 0, no value otherwise
+      return (y.right() > 0.0) ? interval(0.0) : interval::emptyset();
+    }
+    const double n = y.left();
+    if (n == y.right() && std::floor(n) == n && !y.is_an_int()) {
+      /* |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
+         decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower
+         bound 0 is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd
+         n < 0. */
+      const double xl = (xp.left() == 0.0) ? 0.0 : xp.left(), xu = xp.right();
+      const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
+      double l, r;
+      // The bounds of namespace upward, which do not check the rounding
+      // direction again (GAOL v5). l and r are used after GAOL_RND_LEAVE(),
+      // hence GAOL_RND_KEEP() (see gaol/gaol_fpu.h)
+      GAOL_RND_ENTER();
+      l = (at_lower == 1.0) ? 1.0 : ::gaol_core::upward::nthroot_dn(at_lower, n);
+      r = (at_upper == 1.0) ? 1.0 : ::gaol_core::upward::nthroot_up(at_upper, n);
+      GAOL_RND_KEEP(l);
+      GAOL_RND_KEEP(r);
+      GAOL_RND_LEAVE();
+      return interval((l > 0.0) ? l : 0.0, r);
+    }
+    return ::gaol_core::gaol_pow_hybrid(xp, y);
+  }
+
+} // namespace gaol_ieee1788
+
+/*
+  The intervals of floats, gaol::intervalf and gaol::interval2f: unfinished,
+  and compiled only where a developer of GAOL defines GAOL_FLOAT_INTERVALS
+  (see gaol/gaol_config.h); none of the three builds has an option for them
+  (GAOL v5)
+*/
+#ifdef GAOL_FLOAT_INTERVALS
+#  include "gaol/gaol_intervalf.cpp"
+#  if USING_SSE3_INSTRUCTIONS
+#    include "gaol/gaol_interval2f.cpp"
+#  endif
+#endif // GAOL_FLOAT_INTERVALS

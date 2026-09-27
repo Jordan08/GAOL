@@ -657,12 +657,6 @@ IS_CYGWIN_COND_FALSE
 IS_CYGWIN_COND_TRUE
 CORE_MATH_EXCESS_PRECISION
 CORE_MATH_NO_LTO
-COMPILE_INTERVAL2_FALSE
-COMPILE_INTERVAL2_TRUE
-FLOAT_INTERVALS_COND_FALSE
-FLOAT_INTERVALS_COND_TRUE
-SIMD_COND_FALSE
-SIMD_COND_TRUE
 CXXCPP
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
@@ -810,7 +804,6 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_simd
-enable_float_intervals
 enable_fma
 enable_verbose_mode
 enable_optimize
@@ -1482,9 +1475,6 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-simd           use SIMD instructions to implement arithmetic
                           operations
-  --enable-float-intervals
-                          compile gaol::intervalf, and gaol::interval2f with
-                          SSE3 [default=no]
   --enable-fma            compile GAOL and CORE-MATH with the fused
                           multiply-add instructions of the processor, where
                           the compiler has a flag for them (no: a library for
@@ -16489,18 +16479,10 @@ else
   simd="yes"
 fi
 
- if test "$simd" == "yes"; then
-  SIMD_COND_TRUE=
-  SIMD_COND_FALSE='#'
-else
-  SIMD_COND_TRUE='#'
-  SIMD_COND_FALSE=
-fi
-
 # On x86 processors (the target of the compiler, rather than the processor of
 # the machine building, as CMakeLists.txt): the intervals are computed with
-# SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
-# gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
+# SSE2 instructions (gaol_interval_sse.cpp), -msse3 is given where the
+# compiler takes it, and on 32-bit x86 the doubles are
 # computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH
 # rounds some results twice and some bounds are wrong (see CMakeLists.txt). Not
 # the SSE2 intervals on 32-bit Windows, where a std::vector of them crashes (see
@@ -16762,35 +16744,8 @@ $as_echo "#define USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
         fi
     fi
 fi
-# --enable-float-intervals
-# Check whether --enable-float-intervals was given.
-if test "${enable_float_intervals+set}" = set; then :
-  enableval=$enable_float_intervals; float_intervals=${enable_float_intervals}
-else
-  float_intervals="no"
-fi
-
-if test "${float_intervals}" = yes; then
-
-$as_echo "#define GAOL_FLOAT_INTERVALS 1" >>confdefs.h
-
-fi
- if test "${float_intervals}" = yes; then
-  FLOAT_INTERVALS_COND_TRUE=
-  FLOAT_INTERVALS_COND_FALSE='#'
-else
-  FLOAT_INTERVALS_COND_TRUE='#'
-  FLOAT_INTERVALS_COND_FALSE=
-fi
-
- if test ${has_sse3} = yes && test "${float_intervals}" = yes; then
-  COMPILE_INTERVAL2_TRUE=
-  COMPILE_INTERVAL2_FALSE='#'
-else
-  COMPILE_INTERVAL2_TRUE='#'
-  COMPILE_INTERVAL2_FALSE=
-fi
-
+# No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
+# unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 
 # --enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
@@ -19193,18 +19148,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${SIMD_COND_TRUE}" && test -z "${SIMD_COND_FALSE}"; then
-  as_fn_error $? "conditional \"SIMD_COND\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${FLOAT_INTERVALS_COND_TRUE}" && test -z "${FLOAT_INTERVALS_COND_FALSE}"; then
-  as_fn_error $? "conditional \"FLOAT_INTERVALS_COND\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${COMPILE_INTERVAL2_TRUE}" && test -z "${COMPILE_INTERVAL2_FALSE}"; then
-  as_fn_error $? "conditional \"COMPILE_INTERVAL2\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${IS_CYGWIN_COND_TRUE}" && test -z "${IS_CYGWIN_COND_FALSE}"; then
@@ -21752,7 +21695,6 @@ printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
-printf "float intervals\t\t= ${float_intervals}\n"
 printf "doxygen\t\t\t= ${DOXYGEN}\n"
 printf "dot\t\t\t= ${DOT}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"

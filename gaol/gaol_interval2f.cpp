@@ -18,6 +18,13 @@
  * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 
+/*
+  Not compiled by itself: gaol/gaol_interval.cpp includes it where a developer
+  of GAOL defines GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h) (GAOL v5)
+*/
+#include "gaol/gaol_config.h"
+#if defined(GAOL_FLOAT_INTERVALS) && USING_SSE3_INSTRUCTIONS
+
 #include <iostream>
 #include <cmath>
 #include <pmmintrin.h>
@@ -3117,3 +3124,5 @@ interval2f interval2f::inverse() const
 
 
 } // namespace gaol_core
+
+#endif // GAOL_FLOAT_INTERVALS && USING_SSE3_INSTRUCTIONS
