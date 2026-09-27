@@ -138,28 +138,41 @@ namespace gaol_core {
     std::cerr << "[gaol error]: " << err << std::endl;
   }
 
+  /* The larger and the smaller of two doubles, +0 and -0 for two zeros of
+     different signs. The equal values are told apart by their sign bit, which
+     the comparisons do not see: Visual C++ compiled (b <= a) ? b : a as the
+     instruction minsd, which gives its second operand for two zeros, and
+     minimum(0.0, -0.0) was +0 and maximum(0.0, -0.0) -0, which
+     tests/float_functions.cpp (check/ of GAOL 4) found once built with it
+     (GAOL v5). */
   double maximum(double a, double b)
   {
     if (std::isnan(a) || std::isnan(b)) {
       return GAOL_NAN;
     }
-    if (is_signed(a)) { // To handle +0 and -0 such that +0 is returned
-      return ((b >= a) ? b : a);
-    } else {
-    return ((a >= b) ? a : b);
+    if (a > b) {
+      return a;
     }
+    if (b > a) {
+      return b;
+    }
+    // Equal: +0 where one of them is +0
+    return is_signed(a) ? b : a;
   }
 
   double minimum(double a, double b)
   {
     if (std::isnan(a) || std::isnan(b)) {
       return GAOL_NAN;
-  }
-    if (is_signed(a)) { // To handle +0 and -0 such that -0 is returned
-      return ((a <= b) ? a : b);
-    } else {
-      return ((b <= a) ? b : a);
     }
+    if (a < b) {
+      return a;
+    }
+    if (b < a) {
+      return b;
+    }
+    // Equal: -0 where one of them is -0
+    return is_signed(a) ? a : b;
   }
 
 

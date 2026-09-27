@@ -119,6 +119,10 @@ change with its measures.
     `gaol/gaol_expression.h` wrote on `std::cout` without `<iostream>`. The
     Debug jobs of CMake, which now define `GAOL_DEBUGGING` too, and the test
     `debugging` compile that code.
+  - `minimum()` and `maximum()` of two zeros of different signs gave +0 and
+    -0 with Visual C++ in Release, rather than -0 and +0, which the unit
+    test of GAOL 4 `float_functions` checks, built with Visual C++ since the
+    tests of `check/` are in `tests/`.
   - A shared `libgaol` (configure, meson) did not export the classes and
     functions of the expressions (`gaol/gaol_expression.h`), and a program
     building one did not link with it. The shared library job of CMake and
