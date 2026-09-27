@@ -57,7 +57,8 @@ whatever the rounding direction the calling code left
 every compiler alike, CORE-MATH giving the same bits everywhere: there is no
 other mathematical library to build GAOL with (see
 [What differs from GAOL](differences.md)). The float intervals `gaol::intervalf` and `gaol::interval2f`,
-off by default and unfinished, are not covered.
+unfinished, which only a developer of GAOL compiles (`gaol/gaol_config.h`), are
+not covered.
 
 ## Basic operations (Table 9.1): tightest required
 

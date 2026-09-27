@@ -79,6 +79,16 @@
   GAOL_RND_PRESERVE() and GAOL_RND_RESTORE() frame the computations made in
   another direction, after which the direction is set upward again.
 
+  Each operation checks the direction once, at its entry. What it calls after
+  its GAOL_RND_ENTER() takes the direction to be upward and does not check it
+  again: the functions of namespace upward (gaol/gaol_double_op.h) and the
+  bodies of the operations of intervals that other operations use, such as
+  uipow_rounded_upward() and interval::inverse_upward(), which the operations
+  checking the direction call too (GAOL v5). A check within another gives the
+  same bounds, the inner GAOL_RND_LEAVE() setting back the direction upward
+  that the inner GAOL_RND_ENTER() found, but it costs an addition, and a save
+  and a restore of the direction with GAOL_PRESERVE_ROUNDING.
+
   With GAOL_PRESERVE_ROUNDING defined, the operations also restore the
   direction they found, which makes the arithmetic operations several times
   slower.

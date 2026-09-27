@@ -99,13 +99,14 @@
 	}
 
 	/*
-	  I^e for a non-empty I and e > 0, as gaol_pown() calls it: gaol_uipow(),
-	  public, calls it (GAOL v5, see gaol_interval.h). The stored bounds are the
-	  opposite of the left bound and the right bound.
+	  I^e for a non-empty I and e > 0 from the products rounded outward, the
+	  rounding direction being upward already: uipow_nonempty() and
+	  uipow_nonempty_upward() call it after their check, and uipow_rounded()
+	  below checks the direction for the other callers (GAOL v5). The stored
+	  bounds are the opposite of the left bound and the right bound.
 	*/
-	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+	static INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
 	{
-		GAOL_RND_ENTER();
 		interval res;
 		const double lb = -I.left(), rb = I.right();
 
@@ -140,7 +141,14 @@
 			}
 			// No other meaningful cases
 		}
+		return res;
+	}
 
+	// uipow_rounded_upward(), after a check of the rounding direction
+	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+	{
+		GAOL_RND_ENTER();
+		interval res = uipow_rounded_upward(I,e);
 		GAOL_RND_KEEP(res);
 		GAOL_RND_LEAVE();
 		return res;
@@ -222,18 +230,17 @@
       return *this;
     }
 
+    // One check for both branches, which both compute, as in the SSE2 build
+    GAOL_RND_ENTER();
     if (d>0.0) {
-			GAOL_RND_ENTER();
 			lb_ *= d;
 			rb_ *= d;
-      GAOL_RND_LEAVE();
     } else {
-			GAOL_RND_ENTER();
 			double tmp = (-d)*rb_;
 			rb_ = (-d)*lb_;
 			lb_ = tmp;
-      GAOL_RND_LEAVE();
     }
+    GAOL_RND_LEAVE();
     return *this;
   }
 
@@ -249,20 +256,18 @@
       return *this;
     }
 
+    // One check for both branches, which both compute, as in the SSE2 build
+    GAOL_RND_ENTER();
     if (d > 0.0) {
-		GAOL_RND_ENTER();
 		lb_ /= d;
 		rb_ /= d;
-      	GAOL_RND_LEAVE();
-      	return *this;
     } else { // d < 0.0
-		GAOL_RND_ENTER();
 		double tmp = rb_/(-d);
 		rb_ = lb_/(-d);
 		lb_ = tmp;
-      	GAOL_RND_LEAVE();
-      	return *this;
     }
+    GAOL_RND_LEAVE();
+    return *this;
   }
 
 
@@ -284,20 +289,18 @@
     }
 
 
+    // One check for both branches, which both compute, as in the SSE2 build
+    GAOL_RND_ENTER();
     if (d > 0.0) {
-			GAOL_RND_ENTER();
 			lb_ /= d;
 			rb_ /= d;
-      GAOL_RND_LEAVE();
-      return *this;
     } else { // d < 0.0
-			GAOL_RND_ENTER();
 			double tmp = rb_/(-d);
 			rb_ = lb_/(-d);
 			lb_ = tmp;
-      GAOL_RND_LEAVE();
-      return *this;
     }
+    GAOL_RND_LEAVE();
+    return *this;
   }
 
 
@@ -394,39 +397,46 @@
   }
 
 
+  // The rounding direction being upward already (see gaol_interval.h)
+  interval interval::inverse_upward(const interval& I)
+  {
+    interval res;
+    if (I.right() <= 0.0) { // (Z N0 N1)
+      if (I.left() < 0) { // (N0 N1)
+        if (I.right() < 0) { // N1
+          res.lb_ = (-1.0)/I.rb_;
+          res.rb_ = (-1.0)/I.lb_;
+        } else { // N0
+          res.lb_ = GAOL_INFINITY;
+          res.rb_ = (-1.0)/I.lb_;
+        }
+      } else {  // Z
+        res = interval::emptyset();
+      }
+    } else { // (M P0 P1)
+      if (I.left() < 0) { // M
+        res = interval::universe();
+      } else { // (P0 P1)
+        if (I.left() == 0.0) { // P0
+          res.lb_ = (-1.0)/I.rb_;
+          res.rb_ = GAOL_INFINITY;
+        } else { // P1
+          res.lb_ = (-1.0)/I.rb_;
+          res.rb_ = (-1.0)/I.lb_;
+        }
+      }
+    }
+    return res;
+  }
+
   interval interval::inverse() const
   {
     if (is_empty()) {
       return interval::emptyset();
     }
 
-    interval res;
     GAOL_RND_ENTER();
-    if (right() <= 0.0) { // (Z N0 N1)
-      if (left() < 0) { // (N0 N1)
-        if (right() < 0) { // N1
-          res.lb_ = (-1.0)/rb_;
-          res.rb_ = (-1.0)/lb_;
-        } else { // N0
-          res.lb_ = GAOL_INFINITY;
-          res.rb_ = (-1.0)/lb_;
-        }
-      } else {  // Z
-        res = interval::emptyset();
-      }
-    } else { // (M P0 P1)
-      if (left() < 0) { // M
-        res = interval::universe();
-      } else { // (P0 P1)
-        if (left() == 0.0) { // P0
-          res.lb_ = (-1.0)/rb_;
-          res.rb_ = GAOL_INFINITY;
-        } else { // P1
-          res.lb_ = (-1.0)/rb_;
-          res.rb_ = (-1.0)/lb_;
-        }
-      }
-    }
+    interval res = inverse_upward(*this);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -1033,37 +1043,22 @@
       return interval::emptyset();
     }
 
+    // One check for the three cases, which all compute
+    GAOL_RND_ENTER();
+    double l, r;
     if (I.certainly_positive()) {
-		GAOL_RND_ENTER();
-		double l = I.lb_*(-I.lb_);
-		double r = I.rb_*I.rb_;
-      	GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-      	GAOL_RND_LEAVE();
-        return interval(-l,r);
-    }
-
-    if (I.certainly_negative()) {
-		GAOL_RND_ENTER();
-		double l = I.rb_*(-I.rb_);
-		double r = I.lb_*I.lb_;
-      	GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-      	GAOL_RND_LEAVE();
-        return interval(-l,r);
-    }
-
-    if (fabs(I.left()) >= fabs(I.right())) {
-		GAOL_RND_ENTER();
-		interval tmp = interval(0.0,I.left()*I.left());
-        GAOL_RND_KEEP(tmp);
-        GAOL_RND_LEAVE();
-        return tmp;
+		l = -(I.lb_*(-I.lb_));
+		r = I.rb_*I.rb_;
+    } else if (I.certainly_negative()) {
+		l = -(I.rb_*(-I.rb_));
+		r = I.lb_*I.lb_;
     } else {
-		GAOL_RND_ENTER();
-		interval tmp = interval(0.0,I.right()*I.right());
-        GAOL_RND_KEEP(tmp);
-        GAOL_RND_LEAVE();
-        return tmp;
+		l = 0.0;
+		r = (fabs(I.left()) >= fabs(I.right())) ? I.left()*I.left() : I.right()*I.right();
     }
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    GAOL_RND_LEAVE();
+    return interval(l,r);
   }
 
 

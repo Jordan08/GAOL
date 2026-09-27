@@ -165,15 +165,35 @@ where it comes from.
   - **Once per function of intervals.** The bounds of the elementary
     functions at doubles are computed by the functions of namespace `upward`
     (`gaol/gaol_double_op.h`), which take the direction to be upward already,
-    as it is after the check of the function of intervals calling them; the
-    functions of the same names outside it check it too, for the code calling
-    them directly. `exp()` of an interval checked the direction three times,
+    as it is after the check of the function of intervals calling them (the
+    functions of the same names outside it, which checked it again for the
+    code calling them directly, are gone since: see below). `exp()` of an
+    interval checked the direction three times,
     `sin()` and `cos()` up to four, the other elementary functions and
     `pow(x, y)` two or three: once now, the bounds being the same. `exp()`
     takes 5.7 % less time, `sin()` 3.6 %, `pow(x, y)` 3.4 % (Clang 18,
-    i7-1185G7). `tan()`, the relational functions of the trigonometric
-    functions and the negative integer powers still check it again within the
-    operations of intervals they call.
+    i7-1185G7).
+  - **Once in the operations calling others.** `tan()` checked the direction
+    six times, calling `width()`, `+` and `/` on intervals after its own
+    check, and `acos_rel()`, `asin_rel()` and `atan_rel()` six times too,
+    with `acos()`, `asin()` or `atan()` of J and four operations of intervals;
+    `pow(x, -n)` two to five times, with `inverse()` and `gaol_uipow()`;
+    `pow(x, n)` twice where it falls back to the products rounded outward (a
+    bound 0 or infinite, a power not finite or below 2^-968); `nth_root(x, n)`
+    for n >= 4 twice; `gaol_ieee1788::pow(x, [n])` for an integer n beyond the
+    ints three times. They compute on doubles, or with the bodies of the
+    operations they called (`uipow_rounded_upward()`,
+    `interval::inverse_upward()`), after their one check, and give the same
+    bounds, bit for bit, in the SSE2 and FPU builds and with
+    `GAOL_PRESERVE_ROUNDING`. `sqrt_rel()` no longer sets the direction
+    downward then upward again, two changes per call in every build: its
+    lower bound is computed upward, as `sqrt()` computes it. `tan()` takes
+    22 % less time, `acos_rel()` 24 %, `sqrt_rel()` 29 %, `pow(x, -3)` 6 %;
+    with `GAOL_PRESERVE_ROUNDING`, where each check saves and restores the
+    direction, `tan()` 74 % and `acos_rel()` 83 % (Clang 18, i7-1185G7).
+    Still checking more than once: `pow(x, y)` where it takes exp(y log x)
+    (an infinite bound, or a base from 0 with an exponent not above 0),
+    `nth_root(x, q)` for q < 0, the inverse of a root, and `modulo_k_pi()`.
   - **`tan()` keeps its bounds before setting the direction back**, with
     `GAOL_PRESERVE_ROUNDING`: it set it back first, and `GAOL_RND_KEEP()`,
     which writes the bounds to memory so that they are computed before, came
@@ -182,7 +202,17 @@ where it comes from.
     `GAOL_PRESERVE_ROUNDING`: `exp_dn()`, `sin_up()` and the thirty others
     of `gaol/gaol_double_op.h` saved the direction they found, but left it
     upward, which the compilers only showed by warning that `_save_state` was
-    set but not used. `tests/rounding_direction.cpp` calls them.
+    set but not used. They are gone since, with the header no longer
+    installed (see below).
+  - **`ipow_up()`, `ipow_dn()` and `pow(x, y)` keep their bounds before
+    setting the direction back**, with `GAOL_PRESERVE_ROUNDING`: they set it
+    back without `GAOL_RND_KEEP()`, which the rule of `gaol/gaol_fpu.h` asks
+    of every value computed before and used after, so that GCC, which does
+    not model the rounding direction, could compute them after. No operation
+    of GAOL calls `ipow_up()` nor `ipow_dn()`: compiled in a function of test,
+    GCC 9 and Clang 18 computed the last product before all the same, and
+    `pow(x, y)` gives the same bounds in every rounding direction
+    (`tests/rounding_direction.cpp`).
   - **`gaol::cleanup()` sets back the rounding direction** that the first
     `gaol::init()` found, unless it is preserved: GAOL left it upward after
     its use, even after its automatic cleanup when the program ends or the
@@ -748,6 +778,18 @@ where it comes from.
   - **Removed declarations.** `uipow_upup()` and `uipow_dnup()` computed parts
     of it on the stored bounds, and the SSE2 intervals did not define them.
     They are no longer declared.
+- **The bounds at doubles are no longer part of the interface.**
+  `gaol/gaol_double_op.h` declared the functions of doubles `exp_dn()`,
+  `sin_up()` and the thirty others of the elementary functions, `ipow_up()`,
+  `ipow_dn()`, `pow_up()`, `pow_dn()`, and those of the namespaces `upward`
+  and `nearest`; `gaol/gaol` and `gaol/gaol_interval.h` included it, and the
+  three builds installed it. It is now a header of the sources, which no
+  installed header includes, and `gaol_ieee1788::pow()`, which called two of
+  its functions, is compiled in the library rather than inline in
+  `gaol/gaol_ieee1788.h`. The thirty-two functions that checked the rounding
+  direction for the code calling them from outside GAOL are gone, and
+  `tests/rounding_direction.cpp` no longer calls them; `gaol_core::upward`,
+  which the operations of intervals call, stays.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **The three builds agree** (see [The three builds](three-builds.md)).
@@ -792,24 +834,40 @@ where it comes from.
   GAOL wrote into it. 2^-60 is now a literal, and the tests pass so. Built
   without `/fp:strict` everywhere, they passed too, but Visual C++ then assumes
   rounding to nearest, and nothing certifies the bounds.
-- **The intervals of floats are compiled only when asked**, with
-  `GAOL_FLOAT_INTERVALS` (`--enable-float-intervals`,
-  `-Denable-float-intervals=true`), off by default in the three builds:
+- **The intervals of floats are compiled by a developer of GAOL only**:
   `gaol::intervalf`, intervals of floats computed on the x87 unit, and
   `gaol::interval2f`, two of them in an SSE3 register, were compiled and
   installed by every build, and `gaol/gaol` included their headers. Neither
   IBEX nor Codac uses them, the manual leaves them undocumented, and they are
   unfinished: `sqrt(intervalf)` returns its argument, `interval2f::inverse()`
-  aborts, and `pow(interval2f, int)` does not handle the empty set. Without
-  the option, their sources are not compiled, their headers are neither
-  installed nor included, and their check programs are not built.
+  aborts, and `pow(interval2f, int)` does not handle the empty set. Their
+  code is within `#ifdef GAOL_FLOAT_INTERVALS`, a macro that no build
+  defines and that no build has an option for: the options
+  `GAOL_FLOAT_INTERVALS` of CMake, `--enable-float-intervals` of configure
+  and `enable-float-intervals` of meson, which compiled them for a while,
+  are gone. A developer working on them defines the macro in
+  `gaol/gaol_config.h`: `gaol/gaol_interval.cpp` then includes their sources,
+  as it includes those of the SSE2 and FPU intervals. Their headers are not
+  installed, `gaol/gaol` does not include them, and their check programs are
+  not built.
+- **The archive of the sources and the packages are made by CMake**
+  (CPack, see [Building GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
+  `cmake --build <build> --target package_source` gives `gaol-<version>.tar.gz`,
+  the files of the repository, and `--target package` an archive of what
+  `cmake --install` installs and, on Linux, `libgaol-dev_<version>_<arch>.deb`.
+  `make dist` and `make distcheck` of the autotools build are gone
+  (`no-dist` in `configure.ac`), with the lists of files they put in the
+  archive and `make rpm`, which built an RPM from it: `make dist` stopped on
+  `m4/libtool.m4`, which it could not copy. The `gaol.pc` of the CMake build
+  finds its directories from where it is (`${pcfiledir}`), where it named
+  those of `CMAKE_INSTALL_PREFIX`, so that it stays right in the archive and
+  the `.deb`, or after `cmake --install --prefix`.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
 - **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
   which it did not compile on Linux, and installs the headers for MinGW and
-  Visual C++, as configure now does too (and `gaol/gaol_interval2f.h`, which
-  it left out, with the intervals of floats). Both install
+  Visual C++, as configure now does too. Both install
   a `gaol.pc` carrying the flags of interval arithmetic. The meson build no
   longer requires flex and bison: it compiles the lexer and the parser
   committed, as CMake does, and its generators, whose output nothing compiled,

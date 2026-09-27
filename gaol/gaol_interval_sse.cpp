@@ -514,19 +514,20 @@ INLINE uint32_t reverse_bits(uint32_t v)
 #endif
 
   /*
-    I^e for a non-empty I and e > 0, inlined in sqr() and gaol_pown():
-    gaol_uipow(), public and out of line, calls it (GAOL v5, see
-    gaol_interval.h).
-    Inlined by force with GCC and Clang: built with -mfma, Clang 18 called it
-    from sqr() rather than inlining it there with e = 2, and sqr() took 13.7 ns
-    rather than 9.7, Shekel 5 of doc/compare 405 ns rather than 302.
+    I^e for a non-empty I and e > 0 from the products rounded outward, the
+    rounding direction being upward already: uipow_nonempty() and
+    uipow_nonempty_upward() call it after their check, and uipow_rounded()
+    below checks the direction for sqr() and the other callers (GAOL v5).
+    Both are inlined by force with GCC and Clang: built with -mfma, Clang 18
+    called uipow_rounded() from sqr() rather than inlining it there with
+    e = 2, and sqr() took 13.7 ns rather than 9.7, Shekel 5 of doc/compare
+    405 ns rather than 302.
   */
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
-  static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+  static INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
     {
-      GAOL_RND_ENTER_SSE();
       __m128d res;
       __m128d Ix = I.get_xmminterval();
 
@@ -570,7 +571,17 @@ INLINE uint32_t reverse_bits(uint32_t v)
 		res= _mm_set_pd(-1.0,1.0);  // Just to keep the compiler happy.
       
       }
+      return interval(res);
+    }
 
+  // uipow_rounded_upward(), after a check of the rounding direction
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+    {
+      GAOL_RND_ENTER_SSE();
+      __m128d res = uipow_rounded_upward(I,e).get_xmminterval();
       GAOL_RND_KEEP(res);
       GAOL_RND_LEAVE_SSE();
       return interval(res);
@@ -1160,14 +1171,14 @@ interval& interval::operator/=(const interval& I)
 	return *this;
 }
 
+// The branch #else, not compiled, has no inverse_upward(), which gaol_pown()
+// calls (GAOL v5)
 #define OPT_INV 1
 #if OPT_INV
-interval interval::inverse() const
+// The rounding direction being upward already (see gaol_interval.h)
+interval interval::inverse_upward(const interval& I)
 {
-  if (is_empty()) {
-    return *this;
-  }
-  GAOL_RND_ENTER_SSE();
+  const __m128d xmmbounds = I.xmmbounds;
   __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == < d, c >
   __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
   __m128d r3 = _mm_div_pd(interval::m128_minus_one,r2); // r3 == < -1/c, -1/d >
@@ -1186,9 +1197,19 @@ interval interval::inverse() const
   __m128d r16 = _mm_and_pd(r15, interval::m128_infinf); // r14 == < ((-c)>0 && d>0) ? inf : 0, ((-c)>0 && d>0) ? inf : 0 >
   __m128d r17 = _mm_andnot_pd(r15, r12); // r17 ==  < ((-c)<=0 || d<=0) ? hi(r12) : 0, ((-c)<=0 || d<=0) ? lo(r12) : 0 >
   __m128d r18 = _mm_or_pd(r16,r17); // < ((-c)>0 && d>0) ? inf : hi(r12), ((-c)>0 && d>0) ? inf : lo(r12) >
-  GAOL_RND_KEEP(r18);
-  GAOL_RND_LEAVE_SSE();
   return interval(r18);
+}
+
+interval interval::inverse() const
+{
+  if (is_empty()) {
+    return *this;
+  }
+  GAOL_RND_ENTER_SSE();
+  __m128d res = inverse_upward(*this).get_xmminterval();
+  GAOL_RND_KEEP(res);
+  GAOL_RND_LEAVE_SSE();
+  return interval(res);
 }
 #else
   interval interval::inverse() const

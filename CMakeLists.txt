@@ -70,10 +70,11 @@ option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each o
 option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest (OFF: the tests are not built by default, with the three builds)" OFF)
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
 # with its defaults, but for the verbose mode: GAOL is silent by default
-option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors, and gaol::interval2f with SSE3" ON)
+option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
-option(GAOL_FLOAT_INTERVALS "Compile gaol::intervalf, and gaol::interval2f with SSE3" OFF)
+# No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
+# unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 # Coverage: the library and the tests compiled with the counters of gcov
 # (--coverage), and the target "coverage", which runs the tests and writes the
 # report in coverage/ (see doc/coverage.md). GCC and Clang only; the build has
@@ -467,8 +468,8 @@ set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
-# SSE3 instructions serve gaol::interval2f (gaol/gaol_interval2f.h), as the
-# autotools build on a processor with SSE3. Not with Visual C++, which IBEX and
+# -msse3 is given where the compiler takes it, as the autotools build on a
+# processor with SSE3. Not with Visual C++, which IBEX and
 # the fork of Fabrice Le Bars build GAOL without them, nor on 32-bit Windows:
 # there, GCC takes the memory of new to be aligned on 16 bytes
 # (__STDCPP_DEFAULT_NEW_ALIGNMENT__), while the C runtime aligns it on 8, so
@@ -505,7 +506,7 @@ if(GAOL_SIMD AND NOT MSVC)
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
-message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3 (interval2f): ${USING_SSE3_INSTRUCTIONS}")
+message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3: ${USING_SSE3_INSTRUCTIONS}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -551,7 +552,9 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # The sources listed in gaol/meson.build. gaol_interval.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# USING_SSE2_INSTRUCTIONS. gaol_exact.c is left out for Visual C++, for which
+# USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
+# where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
+# gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
 # gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
 #
 # A static library: for Visual C++, GAOL's declarations are then compiled
@@ -563,12 +566,6 @@ set(GAOL_SOURCES
   s_nextafter.c gaol_interval_lexer.cpp
   gaol_interval_parser.cpp
 )
-if(GAOL_FLOAT_INTERVALS)
-  list(APPEND GAOL_SOURCES gaol_intervalf.cpp)
-  if(USING_SSE3_INSTRUCTIONS)
-    list(APPEND GAOL_SOURCES gaol_interval2f.cpp)
-  endif()
-endif()
 if(NOT MSVC)
   list(APPEND GAOL_SOURCES gaol_exact.c)
 endif()
@@ -655,10 +652,12 @@ file(GLOB GAOL_HEADERS gaol/*.h)
 # What CORE-MATH's sources need to compile within GAOL, and nothing else does
 list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_log_dint.h")
-if(NOT GAOL_FLOAT_INTERVALS)
-  list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
-endif()
+# The headers of the sources of GAOL only: the bounds at doubles, *_dn() and
+# *_up(), which are not part of GAOL's interface, and the intervals of floats,
+# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
+list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_double_op.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}
@@ -681,8 +680,83 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaolConfig.cmake" "${CMAKE_CURRENT_BI
 # and libgaol, into which the functions of CORE-MATH are compiled. Not with
 # Visual C++, whose libraries pkg-config does not name.
 if(NOT MSVC)
+  # Relocatable: the prefix from the directory of gaol.pc, ${pcfiledir}, so
+  # that the file is right wherever the files are put (cmake --install
+  # --prefix, the archive and the .deb of CPack below), unless the directories
+  # given are absolute (GAOL v5)
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}" OR IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(GAOL_PC_PREFIX "${CMAKE_INSTALL_PREFIX}")
+    set(GAOL_PC_LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    set(GAOL_PC_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+  else()
+    file(RELATIVE_PATH _gaol_pc_to_prefix "/prefix/${CMAKE_INSTALL_LIBDIR}/pkgconfig" "/prefix")
+    string(REGEX REPLACE "/$" "" _gaol_pc_to_prefix "${_gaol_pc_to_prefix}")
+    set(GAOL_PC_PREFIX "\${pcfiledir}/${_gaol_pc_to_prefix}")
+    set(GAOL_PC_LIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}")
+    set(GAOL_PC_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
   configure_file(cmake/gaol.pc.in "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
+
+
+################################################################################
+# Packages (CPack)
+################################################################################
+#
+# The archive of the sources, which make dist of the autotools build made
+# before (GAOL v5), and the packages of the library built:
+#
+#   cmake --build <build> --target package_source
+#       gaol-<version>.tar.gz: the sources, in gaol-<version>/
+#   cmake --build <build> --target package
+#       gaol-<version>-<system>.tar.gz: what cmake --install installs, in
+#       gaol-<version>-<system>/, and on Linux libgaol-dev_<version>_<arch>.deb,
+#       the same files in /usr
+#
+# CPack takes the source tree as it is: the archive of the sources is made
+# from a clean checkout, its untracked files and those of the builds left
+# out below. The packages hold libgaol as the build compiled it: with GAOL_FMA
+# ON, the default, only processors with the fused multiply-add instructions
+# run it, so a package for other machines is built with -DGAOL_FMA=OFF (see
+# doc/building.md). Only where GAOL is the project built, not brought in by
+# another (add_subdirectory, FetchContent), whose packages are its own.
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(CPACK_PACKAGE_NAME "gaol")
+  set(CPACK_PACKAGE_VENDOR "ENSTA")
+  set(CPACK_PACKAGE_CONTACT "Jordan Ninin <jordan.ninin@ensta.fr>")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GAOL, Not Just Another Interval Library: interval arithmetic in C++")
+  set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the static library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
+  set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Jordan08/GAOL")
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING.LIB")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/README.md")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CPACK_GENERATOR "TGZ;DEB")
+  else()
+    set(CPACK_GENERATOR "TGZ")
+  endif()
+
+  # The .deb: a static library and its headers, hence the name and the
+  # section of Debian's development packages; nothing to depend on at run time
+  set(CPACK_DEBIAN_PACKAGE_NAME "libgaol-dev")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+  set(CPACK_DEBIAN_PACKAGE_SECTION "libdevel")
+
+  # The archive of the sources: the files of the repository, without what git
+  # ignores (.gitignore), the builds within the sources, and the packages
+  set(CPACK_SOURCE_GENERATOR "TGZ")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
+  string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
+  set(CPACK_SOURCE_IGNORE_FILES
+    "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
+    "\\.swp$" "~$" "/#" "/\\.#"
+    "/autom4te\\.cache/" "/doc/compare/code/work/"
+    "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
+    "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
+    "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
+    "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
+  )
+  include(CPack)
 endif()
 
 

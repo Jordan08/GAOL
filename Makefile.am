@@ -23,9 +23,10 @@
 #------------------------------------------------------------------------------
 
 
-EXTRA_DIST = BUGS
 # 3rd/ builds nothing: the sources of CORE-MATH are compiled into libgaol by
-# gaol/Makefile.am, and only distributed from there
+# gaol/Makefile.am. No make dist (no-dist in configure.ac): the archives of the
+# sources and the packages are made by CMake (see doc/building.md) (GAOL v5);
+# DIST_SUBDIRS is what make distclean goes through.
 SUBDIRS = 3rd gaol check examples
 DIST_SUBDIRS = 3rd gaol check manual examples
 ACLOCAL_AMFLAGS = -I m4
@@ -33,11 +34,4 @@ ACLOCAL_AMFLAGS = -I m4
 # Requires automake 1.4
 AUTOMAKE_OPTIONS = 1.4
 
-# Rule to build tar-gzipped distribution package
-$(PACKAGE)-$(VERSION).tar.gz: dist
-
-
-# Rule to build RPM distribution package
-rpm: $(PACKAGE)-$(VERSION).tar.gz
-	rpmbuild -ta --clean $(PACKAGE)-$(VERSION).tar.gz
 

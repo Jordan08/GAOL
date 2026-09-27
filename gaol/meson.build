@@ -10,17 +10,6 @@ configure_file(
   install_dir: 'include/gaol',
 )
 
-FLOAT_INTERVALS_SOURCE = []
-FLOAT_INTERVALS_HEADER = []
-if float_intervals
-  FLOAT_INTERVALS_SOURCE += ['gaol_intervalf.cpp']
-  FLOAT_INTERVALS_HEADER += ['gaol_intervalf.h']
-  if use_sse3
-    FLOAT_INTERVALS_SOURCE += ['gaol_interval2f.cpp']
-    FLOAT_INTERVALS_HEADER += ['gaol_interval2f.h']
-  endif
-endif
-
 # The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
 # itself: nothing is linked along with GAOL. Each source is compiled with
 # gaol/core_math_port.h included first, by the compiler rather than by the
@@ -103,7 +92,6 @@ gaol_SOURCES += [
   'gaol_exact.c',
   # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
 ]
-gaol_SOURCES += FLOAT_INTERVALS_SOURCE
 
 gaol_HEADERS = []
 gaol_HEADERS += [
@@ -124,7 +112,6 @@ gaol_HEADERS += [
   'gaol_expr_eval.h',
   'gaol_expr_visitor.h',
   'gaol_parameters.h',
-  'gaol_double_op.h',
   'gaol_u128.h',
   'gaol_roundeven.h',
   'gaol_ieee1788.h',
@@ -157,6 +144,15 @@ EXTRA_DIST = [
   'gaol_version_msvc.h',
   'gaol_version_mingw.h',
   'gaol_interval_sse.cpp',
+  # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
+  # and *_up(), which are not part of its interface, and the intervals of
+  # floats, which gaol_interval.cpp includes where a developer of GAOL defines
+  # GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
+  'gaol_double_op.h',
+  'gaol_intervalf.h',
+  'gaol_intervalf.cpp',
+  'gaol_interval2f.h',
+  'gaol_interval2f.cpp',
 ]
 
 
@@ -170,4 +166,4 @@ gaollib = both_libraries(
   include_directories: incdir,
 )
 
-install_headers(gaol_HEADERS + FLOAT_INTERVALS_HEADER, subdir: 'gaol')
+install_headers(gaol_HEADERS, subdir: 'gaol')

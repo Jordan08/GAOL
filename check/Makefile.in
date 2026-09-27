@@ -120,8 +120,7 @@ host_triplet = @host@
 @CPPUNIT_COND_TRUE@	interval_functions$(EXEEXT) misc$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	non_arithmetic$(EXEEXT) relations$(EXEEXT) \
 @CPPUNIT_COND_TRUE@	reverse_mappings$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) essai$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	$(am__EXEEXT_1) $(am__EXEEXT_2)
+@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) essai$(EXEEXT)
 EXTRA_PROGRAMS = performances$(EXEEXT)
 subdir = check
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -131,13 +130,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@FLOAT_INTERVALS_COND_TRUE@am__EXEEXT_1 = intervalf$(EXEEXT)
-am__EXEEXT_2 =
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)
@@ -233,15 +230,6 @@ interval_functions_LDADD = $(LDADD)
 @IS_CYGWIN_COND_TRUE@interval_functions_DEPENDENCIES =  \
 @IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
 @IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
-intervalf_SOURCES = intervalf.cpp
-intervalf_OBJECTS = intervalf.$(OBJEXT)
-intervalf_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@intervalf_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@intervalf_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
 misc_SOURCES = misc.cpp
 misc_OBJECTS = misc.$(OBJEXT)
 misc_LDADD = $(LDADD)
@@ -317,8 +305,8 @@ am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/essai.Po \
 	./$(DEPDIR)/float_functions.Po ./$(DEPDIR)/fpu.Po \
 	./$(DEPDIR)/generic_functions.Po ./$(DEPDIR)/input_output.Po \
-	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/intervalf.Po \
-	./$(DEPDIR)/misc.Po ./$(DEPDIR)/non_arithmetic.Po \
+	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/misc.Po \
+	./$(DEPDIR)/non_arithmetic.Po \
 	./$(DEPDIR)/performance_test_set.Po \
 	./$(DEPDIR)/performances.Po ./$(DEPDIR)/relations.Po \
 	./$(DEPDIR)/reverse_mappings.Po ./$(DEPDIR)/trigonometric.Po
@@ -343,15 +331,9 @@ am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = arithmetic.cpp assignment.cpp constants.cpp constructor.cpp \
 	essai.cpp float_functions.cpp fpu.cpp generic_functions.cpp \
-	input_output.cpp interval_functions.cpp intervalf.cpp misc.cpp \
+	input_output.cpp interval_functions.cpp misc.cpp \
 	non_arithmetic.cpp $(performances_SOURCES) relations.cpp \
 	reverse_mappings.cpp trigonometric.cpp
-DIST_SOURCES = arithmetic.cpp assignment.cpp constants.cpp \
-	constructor.cpp essai.cpp float_functions.cpp fpu.cpp \
-	generic_functions.cpp input_output.cpp interval_functions.cpp \
-	intervalf.cpp misc.cpp non_arithmetic.cpp \
-	$(performances_SOURCES) relations.cpp reverse_mappings.cpp \
-	trigonometric.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -580,9 +562,6 @@ TEST_LOGS = $(am__test_logs2:.test.log=.log)
 TEST_LOG_DRIVER = $(SHELL) $(top_srcdir)/test-driver
 TEST_LOG_COMPILE = $(TEST_LOG_COMPILER) $(AM_TEST_LOG_FLAGS) \
 	$(TEST_LOG_FLAGS)
-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp \
-	$(top_srcdir)/mkinstalldirs $(top_srcdir)/test-driver
-DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
@@ -732,14 +711,12 @@ AUTOMAKE_OPTIONS = 1.4
 #CLEANFILES =
 DISTCLEANFILES = gaolcc
 MAINTAINERCLEANFILES = gaolcc
-@SIMD_COND_TRUE@OBSIMD_FILES = interval2f
-@SIMD_COND_FALSE@SIMD_FILES = 
-@FLOAT_INTERVALS_COND_FALSE@FLOAT_FILES = 
-@FLOAT_INTERVALS_COND_TRUE@FLOAT_FILES = intervalf
+
+# Not the tests of the intervals of floats, intervalf.cpp and interval2f.cpp,
+# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
 AM_DEFAULT_SOURCE_EXT = .cpp
 @CPPUNIT_COND_FALSE@CPPUNIT_LIB = 
 @CPPUNIT_COND_TRUE@CPPUNIT_LIB = -lcppunit
-EXTRA_DIST = gaolcc.in tests.h
 TESTS = $(check_PROGRAMS)
 
 # GAOL's own directories before those given in CPPFLAGS, which come first
@@ -838,10 +815,6 @@ interval_functions$(EXEEXT): $(interval_functions_OBJECTS) $(interval_functions_
 	@rm -f interval_functions$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(interval_functions_OBJECTS) $(interval_functions_LDADD) $(LIBS)
 
-intervalf$(EXEEXT): $(intervalf_OBJECTS) $(intervalf_DEPENDENCIES) $(EXTRA_intervalf_DEPENDENCIES) 
-	@rm -f intervalf$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(intervalf_OBJECTS) $(intervalf_LDADD) $(LIBS)
-
 misc$(EXEEXT): $(misc_OBJECTS) $(misc_DEPENDENCIES) $(EXTRA_misc_DEPENDENCIES) 
 	@rm -f misc$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(misc_OBJECTS) $(misc_LDADD) $(LIBS)
@@ -882,7 +855,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generic_functions.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/input_output.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interval_functions.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intervalf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/non_arithmetic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performance_test_set.Po@am__quote@ # am--include-marker
@@ -1225,13 +1197,6 @@ essai.log: essai$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
-intervalf.log: intervalf$(EXEEXT)
-	@p='intervalf$(EXEEXT)'; \
-	b='intervalf'; \
-	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
-	--log-file $$b.log --trs-file $$b.trs \
-	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
-	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1246,40 +1211,6 @@ intervalf.log: intervalf$(EXEEXT)
 @am__EXEEXT_TRUE@	--log-file $$b.log --trs-file $$b.trs \
 @am__EXEEXT_TRUE@	$(am__common_driver_flags) $(AM_TEST_LOG_DRIVER_FLAGS) $(TEST_LOG_DRIVER_FLAGS) -- $(TEST_LOG_COMPILE) \
 @am__EXEEXT_TRUE@	"$$tst" $(AM_TESTS_FD_REDIRECT)
-
-distdir: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) distdir-am
-
-distdir-am: $(DISTFILES)
-	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
-	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
-	list='$(DISTFILES)'; \
-	  dist_files=`for file in $$list; do echo $$file; done | \
-	  sed -e "s|^$$srcdirstrip/||;t" \
-	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
-	case $$dist_files in \
-	  */*) $(MKDIR_P) `echo "$$dist_files" | \
-			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
-			   sort -u` ;; \
-	esac; \
-	for file in $$dist_files; do \
-	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
-	  if test -d $$d/$$file; then \
-	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
-	    if test -d "$(distdir)/$$file"; then \
-	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
-	    fi; \
-	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
-	      cp -fpR $(srcdir)/$$file "$(distdir)$$dir" || exit 1; \
-	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
-	    fi; \
-	    cp -fpR $$d/$$file "$(distdir)$$dir" || exit 1; \
-	  else \
-	    test -f "$(distdir)/$$file" \
-	    || cp -p $$d/$$file "$(distdir)/$$file" \
-	    || exit 1; \
-	  fi; \
-	done
 check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
@@ -1337,7 +1268,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
 	-rm -f ./$(DEPDIR)/interval_functions.Po
-	-rm -f ./$(DEPDIR)/intervalf.Po
 	-rm -f ./$(DEPDIR)/misc.Po
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
 	-rm -f ./$(DEPDIR)/performance_test_set.Po
@@ -1400,7 +1330,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
 	-rm -f ./$(DEPDIR)/interval_functions.Po
-	-rm -f ./$(DEPDIR)/intervalf.Po
 	-rm -f ./$(DEPDIR)/misc.Po
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
 	-rm -f ./$(DEPDIR)/performance_test_set.Po
@@ -1431,13 +1360,13 @@ uninstall-am:
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-TESTS \
 	check-am clean clean-checkPROGRAMS clean-generic clean-libtool \
 	cscopelist-am ctags ctags-am distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
+	distclean-generic distclean-libtool distclean-tags dvi dvi-am \
+	html html-am info info-am install install-am install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	recheck tags tags-am uninstall uninstall-am

@@ -91,6 +91,23 @@
 
 
 /* ---------------------------------------------------------------------------
+   The intervals of floats, gaol::intervalf and gaol::interval2f
+
+   Unfinished (sqrt(intervalf) returns its argument, interval2f::inverse()
+   aborts, pow(interval2f, int) does not handle the empty set) and used by
+   nothing: GAOL leaves them out, and none of its three builds has an option
+   to compile them (GAOL v5). A developer of GAOL working on them defines
+   GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
+   gaol/gaol_interval.cpp then compiles them, gaol::interval2f where SSE3
+   instructions are used (USING_SSE3_INSTRUCTIONS), and the code using them
+   includes their headers, gaol/gaol_intervalf.h and gaol/gaol_interval2f.h,
+   which the builds do not install and gaol/gaol does not include.
+   --------------------------------------------------------------------------- */
+
+/* #define GAOL_FLOAT_INTERVALS 1 */
+
+
+/* ---------------------------------------------------------------------------
    The target, from the macros of the compiler
 
    What GAOL needs to know of the processor and the system comes from the

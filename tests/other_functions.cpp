@@ -4,7 +4,8 @@
  * Tests of GAOL v5: the other functions on intervals.
  *
  * On random intervals, and for the midpoints on intervals of subnormal bounds,
- * compared exactly with the exact results: midpoints (of gaol::intervalf too),
+ * compared exactly with the exact results: midpoints (of gaol::intervalf too,
+ * where a developer of GAOL compiles it, see gaol/gaol_config.h),
  * widths, magnitudes and mignitudes, Hausdorff distances, splitting, integer
  * parts, radii; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
@@ -19,6 +20,10 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
+#ifdef GAOL_FLOAT_INTERVALS
+// Not included by gaol/gaol (see gaol/gaol_config.h)
+#  include "gaol/gaol_intervalf.h"
+#endif
 
 #include <algorithm>
 #include <type_traits>
@@ -177,7 +182,7 @@ namespace
     }
   }
 
-#if GAOL_FLOAT_INTERVALS
+#ifdef GAOL_FLOAT_INTERVALS
   // |x - v|, exactly
   Exact distance(double x, const Exact& v)
   {
@@ -692,7 +697,7 @@ int main()
   subnormal_bounds();
   comparisons();
   intersections();
-#if GAOL_FLOAT_INTERVALS
+#ifdef GAOL_FLOAT_INTERVALS
   float_midpoints("floats of exponents from -30 to 30", [&] { return static_cast<float>(random(-30, 30)); });
   float_midpoints("any floats", [&] { return static_cast<float>(random(-149, 126)); });
   float_midpoints();

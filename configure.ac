@@ -46,7 +46,10 @@ m4_define([gaol_interface_age], [0])
 m4_define([gaol_binary_age], [0])
 
 AC_INIT([gaol],[gaol_version],[goualard@users.sourceforge.net])
-AM_INIT_AUTOMAKE([gnu 1.7 dist-bzip2 subdir-objects])
+# no-dist: no make dist nor make distcheck, the archives of the sources and
+# the packages being made by CMake (cmake --build <build> --target
+# package_source, package; see doc/building.md) (GAOL v5)
+AM_INIT_AUTOMAKE([gnu 1.7 no-dist subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
 
@@ -198,11 +201,10 @@ AC_ARG_ENABLE(simd,
                         [use SIMD instructions to implement arithmetic operations])],
                 [simd=${enable_simd}],
                 [simd="yes"])
-AM_CONDITIONAL([SIMD_COND],[test "$simd" == "yes"])
 # On x86 processors (the target of the compiler, rather than the processor of
 # the machine building, as CMakeLists.txt): the intervals are computed with
-# SSE2 instructions (gaol_interval_sse.cpp), SSE3 instructions serve
-# gaol::interval2f (gaol_interval2f.cpp), and on 32-bit x86 the doubles are
+# SSE2 instructions (gaol_interval_sse.cpp), -msse3 is given where the
+# compiler takes it, and on 32-bit x86 the doubles are
 # computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH
 # rounds some results twice and some bounds are wrong (see CMakeLists.txt). Not
 # the SSE2 intervals on 32-bit Windows, where a std::vector of them crashes (see
@@ -248,17 +250,8 @@ if test "${target_x86}" = yes; then
         fi
     fi
 fi
-# --enable-float-intervals
-AC_ARG_ENABLE(float-intervals,
-              [AS_HELP_STRING([--enable-float-intervals],
-                              [compile gaol::intervalf, and gaol::interval2f with SSE3 @<:@default=no@:>@])],
-              [float_intervals=${enable_float_intervals}],
-              [float_intervals="no"])
-if test "${float_intervals}" = yes; then
-   AC_DEFINE(GAOL_FLOAT_INTERVALS,1,[Define this to 1 to compile gaol::intervalf and gaol::interval2f])
-fi
-AM_CONDITIONAL([FLOAT_INTERVALS_COND],[test "${float_intervals}" = yes])
-AM_CONDITIONAL([COMPILE_INTERVAL2],[test ${has_sse3} = yes && test "${float_intervals}" = yes])
+# No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
+# unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 
 # --enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
@@ -708,7 +701,6 @@ printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
-printf "float intervals\t\t= ${float_intervals}\n"
 printf "doxygen\t\t\t= ${DOXYGEN}\n"
 printf "dot\t\t\t= ${DOT}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"

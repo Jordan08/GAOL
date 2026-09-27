@@ -145,37 +145,11 @@ namespace gaol_ieee1788 {
     bounds there are CORE-MATH's pow at the bounds of x, each one double at
     most from the tightest one: pow([2, 3], [1e10]) is [DBL_MAX, +oo],
     pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
+    Defined in gaol/gaol_interval.cpp (GAOL v5): the bounds at doubles it
+    takes for an integer exponent beyond the ints are not part of GAOL's
+    interface (gaol/gaol_double_op.h).
   */
-  GAOL_NODISCARD inline interval pow(const interval& x, const interval& y)
-  {
-    if (x.is_empty() || y.is_empty()) {
-      return interval::emptyset();
-    }
-    const interval xp = x & interval(0.0, GAOL_INFINITY);
-    if (xp.is_empty()) {
-      return interval::emptyset();
-    }
-    if (xp.left() == 0.0 && xp.right() == 0.0) {
-      // x = {0}: 0^y = 0 for y > 0, no value otherwise
-      return (y.right() > 0.0) ? interval(0.0) : interval::emptyset();
-    }
-    const double n = y.left();
-    if (n == y.right() && std::floor(n) == n && !y.is_an_int()) {
-      /* |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
-         decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower
-         bound 0 is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd
-         n < 0. */
-      const double xl = (xp.left() == 0.0) ? 0.0 : xp.left(), xu = xp.right();
-      const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
-      double l, r;
-      GAOL_RND_ENTER();
-      l = (at_lower == 1.0) ? 1.0 : ::gaol_core::nthroot_dn(at_lower, n);
-      r = (at_upper == 1.0) ? 1.0 : ::gaol_core::nthroot_up(at_upper, n);
-      GAOL_RND_LEAVE();
-      return interval((l > 0.0) ? l : 0.0, r);
-    }
-    return ::gaol_core::gaol_pow_hybrid(xp, y);
-  }
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ interval pow(const interval& x, const interval& y);
   /*!
     pow(x, p): pow(x, [p]), the pow of the standard for a double as
     exponent. An int exponent comes here too, pow(x, 2) being pow(x, [2]),

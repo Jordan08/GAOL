@@ -282,24 +282,23 @@ int main()
     { "asinh_rel", [](const interval& x, const interval&) { return S(asinh_rel(x, x)); } },
     { "atanh_rel", [](const interval& x, const interval&) { return S(atanh_rel(x, x)); } },
     { "invabs_rel", [](const interval& x, const interval& y) { return S(invabs_rel(x, y)); } },
-    // The bounds at doubles of the elementary functions (gaol/gaol_double_op.h)
-    { "exp_dn(), exp_up()", [](const interval& x, const interval&) { return S(exp_dn(x.left())) + " " + S(exp_up(x.right())); } },
-    { "log_dn(), log_up()", [](const interval&, const interval& y) { return S(log_dn(y.left())) + " " + S(log_up(y.right())); } },
-    { "sin_dn(), sin_up()", [](const interval& x, const interval&) { return S(sin_dn(x.left())) + " " + S(sin_up(x.right())); } },
-    { "cos_dn(), cos_up()", [](const interval& x, const interval&) { return S(cos_dn(x.right())) + " " + S(cos_up(x.left())); } },
-    { "tan_dn(), tan_up()", [](const interval& x, const interval&) { return S(tan_dn(x.left())) + " " + S(tan_up(x.right())); } },
-    { "asin_dn(), asin_up()", [](const interval& x, const interval&) { return S(asin_dn(x.left())) + " " + S(asin_up(x.right())); } },
-    { "acos_dn(), acos_up()", [](const interval& x, const interval&) { return S(acos_dn(x.right())) + " " + S(acos_up(x.left())); } },
-    { "atan_dn(), atan_up()", [](const interval&, const interval& y) { return S(atan_dn(y.left())) + " " + S(atan_up(y.right())); } },
-    { "atan2_dn(), atan2_up()", [](const interval& x, const interval& y) { return S(atan2_dn(x.left(), y.right())) + " " + S(atan2_up(x.right(), y.left())); } },
-    { "nthroot_dn(), nthroot_up()", [](const interval&, const interval& y) { return S(nthroot_dn(y.left(), 0.25)) + " " + S(nthroot_up(y.right(), 0.25)); } },
-    { "sinh_dn(), sinh_up()", [](const interval& x, const interval&) { return S(sinh_dn(x.left())) + " " + S(sinh_up(x.right())); } },
-    { "cosh_dn(), cosh_up()", [](const interval&, const interval& y) { return S(cosh_dn(y.left())) + " " + S(cosh_up(y.right())); } },
-    { "tanh_dn(), tanh_up()", [](const interval& x, const interval&) { return S(tanh_dn(x.left())) + " " + S(tanh_up(x.right())); } },
-    { "asinh_dn(), asinh_up()", [](const interval&, const interval& y) { return S(asinh_dn(y.left())) + " " + S(asinh_up(y.right())); } },
-    { "acosh_dn(), acosh_up()", [](const interval&, const interval& y) { return S(acosh_dn(y.left())) + " " + S(acosh_up(y.right())); } },
-    { "atanh_dn(), atanh_up()", [](const interval& x, const interval&) { return S(atanh_dn(x.left())) + " " + S(atanh_up(x.right())); } },
     { "nb_fp_numbers", [](const interval& x, const interval&) { return S(nb_fp_numbers(x.left(), x.right())); } },
+    // Operations that compute after their one check of the rounding direction
+    // what they computed with operations of intervals checking it again, or
+    // that the operations above do not reach (GAOL v5)
+    { "tan next to a pole", [](const interval& x, const interval&) {
+        return S(tan(x + 1.0)) + " " + S(tan(interval(1.5, 0x1.921fb54442d18p+0))); } },
+    { "acos_rel, asin_rel and atan_rel on their pieces", [](const interval& x, const interval& y) {
+        return S(acos_rel(x, y)) + " " + S(acos_rel(x + 0.8, y)) + " " + S(asin_rel(x - 1.5, y)) + " " + S(atan_rel(y, x + 4.0)); } },
+    { "nth_root(x,n) for n >= 4", [](const interval&, const interval& y) { return S(nth_root(y, 4)) + " " + S(nth_root(-y, 5)); } },
+    { "pow(x,n) from the rounded products", [](const interval&, const interval& y) {
+        return S(pow(y*0x1p-330, 3)) + " " + S(pow(interval(0., 1.)*y, 3)) + " " + S(pow(y*1e200, 3)); } },
+    { "pow(x,-n) where x^n overflows", [](const interval&, const interval& y) {
+        return S(pow(y*1e200, -2)) + " " + S(pow((y - 2.)*1e200, -2)) + " " + S(pow((y - 2.)*1e200, -3)) + " "
+          + S(pow(interval(0., 1.)*y, -1)); } },
+    { "gaol_ieee1788::pow with an integer exponent beyond the ints", [](const interval&, const interval& y) {
+        return S(gaol_ieee1788::pow(y, interval(2147483649.))) + " " + S(gaol_ieee1788::pow(interval(0.5, 0.9), interval(1e10))) + " "
+          + S(gaol_ieee1788::pow(1. + (y - 1.)*0x1p-40, interval(-2147483649.))); } },
     { "feven", [](const interval&, const interval&) { return S(feven(2.0)); } },
     { "interval::pi()", [](const interval&, const interval&) { return S(interval::pi()); } },
     { "interval::precision(n)", [](const interval&, const interval&) { const int p = interval::precision(17); interval::precision(p); return S(p); } },

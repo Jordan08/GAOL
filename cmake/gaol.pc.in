@@ -5,9 +5,12 @@
 # the fused multiply-add instructions GAOL is compiled with (GAOL_FMA), and
 # Libs the libraries to link: the elementary functions of CORE-MATH are
 # compiled into libgaol itself, so only the math library of the system.
-prefix=@CMAKE_INSTALL_PREFIX@
-libdir=@CMAKE_INSTALL_FULL_LIBDIR@
-includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+# The paths are taken from the directory of this file, ${pcfiledir}, so that
+# it stays right wherever GAOL is installed: cmake --install --prefix, the
+# archive and the .deb that CPack makes (GAOL v5).
+prefix=@GAOL_PC_PREFIX@
+libdir=@GAOL_PC_LIBDIR@
+includedir=@GAOL_PC_INCLUDEDIR@
 
 Name: gaol
 Description: GAOL, Not Just Another Interval Library

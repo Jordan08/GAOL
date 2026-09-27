@@ -47,9 +47,6 @@
    and macOS only; elsewhere the code is the same with or without it. */
 #cmakedefine GAOL_USING_ASM 1
 
-/* Define this to 1 to compile gaol::intervalf and gaol::interval2f */
-#cmakedefine GAOL_FLOAT_INTERVALS 1
-
 
 /* ---------------------------------------------------------------------------
    What the compiler provides
@@ -79,8 +76,8 @@
 /* Define this to 1 if SSE2 instructions are to be used */
 #cmakedefine USING_SSE2_INSTRUCTIONS 1
 
-/* Define this to 1 if SSE3 instructions are to be used (gaol::interval2f, as
-   the autotools build on a processor with SSE3) */
+/* Define this to 1 if SSE3 instructions are to be used (-msse3, as the
+   autotools build on a processor with SSE3) */
 #cmakedefine USING_SSE3_INSTRUCTIONS 1
 
 /* Define this to 1 to enable verbose mode: GAOL then writes a line on the

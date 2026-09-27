@@ -30,7 +30,6 @@ gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
 debug = get_option('enable-debug')
 simd = get_option('enable-simd')
 asm = get_option('enable-asm')
-float_intervals = get_option('enable-float-intervals')
 preserve_rounding = get_option('enable-preserve-rounding')
 exception = get_option('enable-exception')
 # The mathematical library
@@ -109,9 +108,8 @@ endif
 if asm
   conf_data.set('GAOL_USING_ASM', 1)
 endif
-if float_intervals
-  conf_data.set('GAOL_FLOAT_INTERVALS', 1)
-endif
+# No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
+# unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 if get_option('enable-verbose-mode')
   conf_data.set('GAOL_VERBOSE_MODE', 1)
 endif
@@ -258,14 +256,13 @@ endif
 
 # On x86 processors (the target of the compiler, as CMakeLists.txt and
 # configure): the intervals are computed with SSE2 instructions
-# (gaol_interval_sse.cpp), SSE3 instructions serve gaol::interval2f
-# (gaol_interval2f.cpp), and on 32-bit x86 the doubles are computed with SSE2
+# (gaol_interval_sse.cpp), -msse3 is given where the compiler takes it, and on
+# 32-bit x86 the doubles are computed with SSE2
 # (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH rounds some
 # results twice and some bounds are wrong (see CMakeLists.txt). Not the SSE2
 # intervals on 32-bit Windows, where a std::vector of them crashes (see
 # CMakeLists.txt).
 use_sse2 = false
-use_sse3 = false
 x86_args = []
 target_x86 = cpp_comp.compiles('''
 #if !(defined(__i386__) || defined(__x86_64__))
@@ -292,7 +289,6 @@ if target_x86
     add_global_arguments(['-msse2'], language: 'cpp')
     pc_cflags += ['-msse2']
     if cpp_comp.has_argument('-msse3')
-      use_sse3 = true
       conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
       add_global_arguments(['-msse3'], language: 'cpp')
       pc_cflags += ['-msse3']

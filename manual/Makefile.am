@@ -37,9 +37,6 @@ CLEANFILES =  html/* $(LATEX_BUILT)
 DISTCLEANFILES = html/* $(LATEX_BUILT)
 MAINTAINERCLEANFILES = html/* $(LATEX_BUILT)
 
-EXTRA_DIST = v5/gaol.bib v5/gaol.tex v5/gaol.pdf v5/manual.cls v5/lgpl.tex \
-	v5/relation-cos.pdf v4/gaol.bib v4/gaol.tex v4/gaol.pdf v4/manual.cls \
-	v4/lgpl.tex v4/relation-cos.pdf build-pdf.sh
 
 
 all: html pdf

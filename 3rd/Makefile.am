@@ -53,4 +53,3 @@ libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # (CORE_MATH_NO_LTO).
 libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ -include $(top_srcdir)/gaol/core_math_port.h
 
-EXTRA_DIST = README.md math-core

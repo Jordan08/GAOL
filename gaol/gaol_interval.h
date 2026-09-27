@@ -37,7 +37,6 @@
 #include <limits>
 #include <type_traits>
 #include "gaol/gaol_config.h"
-#include "gaol/gaol_double_op.h"
 #include "gaol/gaol_roundeven.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"
@@ -368,6 +367,7 @@ namespace gaol_core {
 
 
     friend __GAOL_PUBLIC__ interval gaol_uipow(const interval& I, unsigned int e);
+    friend __GAOL_PUBLIC__ interval gaol_pown(const interval& I, int e);
     friend __GAOL_PUBLIC__ interval sqr(const interval& I);
     friend __GAOL_PUBLIC__ interval cos(const interval& I);
     friend __GAOL_PUBLIC__ interval sin(const interval& I);
@@ -391,6 +391,12 @@ namespace gaol_core {
 #endif // USING_SSE2_INSTRUCTIONS
     double left_internal() const;
     double right_internal() const;
+    /*
+      inverse() of a non-empty I, the rounding direction being upward already:
+      the body of inverse(), which checks the direction, for gaol_pown(),
+      which checked it before (GAOL v5)
+    */
+    static interval inverse_upward(const interval& I);
     static interval_format::format_t output;
     //! Number of digits to display
     static std::streamsize output_precision;
