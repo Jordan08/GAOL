@@ -70,10 +70,8 @@ namespace {
 
   // The systems are written once, as templates: with T = interval they give
   // the natural interval extension of f, with T = Dual2 its Jacobian matrix
-  // as well. The constants are doubles, 1.0 rather than 1: where an interval
-  // is expected, the literal 0 is also a null pointer, which
-  // interval(const char*) takes, and writing every constant as a double
-  // avoids the question.
+  // as well. The constants are doubles, 1.0 rather than 1, as in the other
+  // examples.
   template <class T>
   std::array<T, 2> circles(const T& x, const T& y)
   {
@@ -338,7 +336,7 @@ namespace {
     // printed with 16 digits it would show -0.3181320000000001; the text is
     // printed instead
     const std::string text = "[-0.318132, -0.318131] x [1.337235, 1.337236]";
-    const Box X{ interval("[-0.318132, -0.318131]"), interval("[1.337235, 1.337236]") };
+    const Box X{ textToInterval("[-0.318132, -0.318131]"), textToInterval("[1.337235, 1.337236]") };
     Box K_hand, K_ad;
     const bool hand = krawczyk(f, lambert_jacobian_by_hand(X), X, K_hand);
     const bool ad = krawczyk(f, jacobian(f, X), X, K_ad);
@@ -363,8 +361,8 @@ int main()
   interval::precision(16);
 
   // IBEX's two circles. The references are exact but for sqrt(3)/2, which
-  // mpmath gives with 40 digits and interval("...") encloses.
-  const interval x_star("0.5"), y_star("0.8660254037844386467637231707529361834714");
+  // mpmath gives with 40 digits and textToInterval("...") encloses.
+  const interval x_star(0.5), y_star = textToInterval("0.8660254037844386467637231707529361834714");
   const std::vector<Box> intersections{ Box{ x_star, -y_star }, Box{ x_star, y_star } };
   run("IBEX's doc-solver.cpp", "x^2 + y^2 = 1 and (x - 1)^2 + y^2 = 1",
       [](const auto& x, const auto& y) { return circles(x, y); },
@@ -374,12 +372,12 @@ int main()
 
   // Codac's Evans function. W_k(-1) by mpmath.lambertw(-1, k) with 40
   // digits; W_3(-1) = -3.02 + 20.27 i lies beyond y = 20
-  const Box w0{ interval("-0.3181315052047641353126542515876645172035"),
-                interval("1.337235701430689408901162143193710612540") };
-  const Box w1{ interval("-2.062277729598283884978486720008045951284"),
-                interval("7.588631178472512622568923954107584383013") };
-  const Box w2{ interval("-2.653191974038697286601106643318049074593"),
-                interval("13.94920833453321445528891803900272649216") };
+  const Box w0{ textToInterval("-0.3181315052047641353126542515876645172035"),
+                textToInterval("1.337235701430689408901162143193710612540") };
+  const Box w1{ textToInterval("-2.062277729598283884978486720008045951284"),
+                textToInterval("7.588631178472512622568923954107584383013") };
+  const Box w2{ textToInterval("-2.653191974038697286601106643318049074593"),
+                textToInterval("13.94920833453321445528891803900272649216") };
   run("Codac's main_evans.cpp", "x + i y + exp(-(x + i y)) = 0",
       [](const auto& x, const auto& y) { return lambert(x, y); },
       Box{ interval(-10.0, 10.0), interval(0.0, 20.0) }, { w0, w1, w2 }, "W_0(-1), W_1(-1) and W_2(-1)");

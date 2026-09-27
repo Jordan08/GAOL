@@ -60,10 +60,8 @@ namespace {
 
   // The functions are written once, as templates: with T = interval they
   // give the natural interval extension, with T = Dual2 the enclosures of
-  // the gradient as well. The constants are doubles, 19.0 rather than 19:
-  // the operators would take the int, but an interval cannot be built from
-  // the literal 0 (interval(0) is ambiguous, 0 being also a null pointer,
-  // the text of an interval), and doubles everywhere avoid the question.
+  // the gradient as well. The constants are doubles, 19.0 rather than 19, as
+  // in the other examples.
   template <class T>
   T goldstein_price(const T& x, const T& y)
   {
@@ -79,7 +77,7 @@ namespace {
   {
     // 2.1 has no double: the double 2.1 is another number, and would make f
     // another function. Read from its text, the interval encloses 21/10.
-    static const interval c21("2.1");
+    static const interval c21 = textToInterval("2.1");
     // pow(x, 4) is gaol::pow for intervals, found through "using namespace
     // gaol" (argument-dependent lookup does not find it), and Dual's own pow
     // for Dual2. sqr(x) is tighter than x * x: [-1, 1] * [-1, 1] = [-1, 1],
@@ -335,18 +333,19 @@ int main()
   // (-1.7373725377583070, 2), computed by mpmath.
   ok &= compare(
     "Goldstein-Price", [](const auto& x, const auto& y) { return goldstein_price(x, y); },
-    Box{ interval(-2.0, 2.0), interval(-2.0, 2.0) }, interval(3.0), interval("[3, 1015690.2717980589082989]"));
+    Box{ interval(-2.0, 2.0), interval(-2.0, 2.0) }, interval(3.0),
+    textToInterval("[3, 1015690.2717980589082989]"));
   std::cout << "\n";
 
   // The six-hump camel: f* computed by mpmath with 60 digits at the zero of
-  // the gradient that findroot finds from (0.0898, -0.7126); interval("...")
-  // encloses the decimal number, which a double could not. Its maximum is
-  // f(3, 2) = 162.9.
+  // the gradient that findroot finds from (0.0898, -0.7126);
+  // textToInterval("...") encloses the decimal number, which a double could
+  // not. Its maximum is f(3, 2) = 162.9.
   ok &= compare(
     "Six-hump camel", [](const auto& x, const auto& y) { return six_hump_camel(x, y); },
     Box{ interval(-3.0, 3.0), interval(-2.0, 2.0) },
-    interval("-1.03162845348987735041636543714940299235123243853811645053101"),
-    interval("[-1.03162845348987735041636543714940299235123243853811645053101, 162.9]"));
+    textToInterval("-1.03162845348987735041636543714940299235123243853811645053101"),
+    textToInterval("[-1.03162845348987735041636543714940299235123243853811645053101, 162.9]"));
 
   gaol::cleanup();
   return ok ? 0 : EXIT_FAILURE;

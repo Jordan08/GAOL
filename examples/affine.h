@@ -94,7 +94,7 @@ public:
 
   // The exact constant d. Not explicit, so that 1.0 - x reads as it does on
   // intervals. A decimal constant such as 0.1 is no double: it is
-  // Affine::constant(interval("0.1")).
+  // Affine::constant(gaol::textToInterval("0.1")).
   Affine(double d) : c_(d)
   {
     if (!std::isfinite(d)) {

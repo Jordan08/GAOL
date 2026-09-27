@@ -92,8 +92,8 @@ option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializ
 # and **with GCC it breaks the bounds**: GAOL then fails
 # tests/rounding_direction.cpp, which checks that an operation gives the same
 # result whatever the rounding direction the calling code left. With
-# GAOL_PRESERVE_ROUNDING, interval("sin(1)+exp(0.1)") gave an upper bound one
-# double below the right one when the caller left the direction downward or
+# GAOL_PRESERVE_ROUNDING, textToInterval("sin(1)+exp(0.1)") gave an upper bound
+# one double below the right one when the caller left the direction downward or
 # toward zero: the compiler moves floating-point operations across the changes
 # of rounding direction, which -frounding-math is meant to forbid and which it
 # does not across translation units. Clang 18.1 passes the tests with it, so

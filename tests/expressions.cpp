@@ -3,7 +3,7 @@
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the intervals built from a string.
  *
- * interval("...") lexes the string, parses it into the tree of
+ * textToInterval("...") lexes the string, parses it into the tree of
  * gaol/gaol_expression.h, and evaluates that tree (gaol_expr_eval.h,
  * gaol_expr_visitor.h). This test goes through every node of the tree and
  * every way the string can be wrong, so that the parts of GAOL the other
@@ -70,7 +70,7 @@ namespace
     interval got;
     bool threw = false;
     try {
-      got = interval(text.c_str());
+      got = textToInterval(text);
     } catch (const std::exception& e) {
       threw = true;
       check("expression: no exception on a string that is right", false,
@@ -93,7 +93,7 @@ namespace
   void encloses(const std::string& text, double a, double b)
   {
     try {
-      const interval got = interval(text.c_str());
+      const interval got = textToInterval(text);
       check("expression: the interval holds the value written",
             got.left() <= a && got.right() >= b,
             [&] {
@@ -112,7 +112,7 @@ namespace
   {
     bool threw = false;
     try {
-      const interval got = interval(text.c_str());
+      const interval got = textToInterval(text);
       (void)got;
     } catch (const std::exception&) {
       threw = true;
@@ -170,7 +170,7 @@ namespace
     same("[1,2]*2", interval(1.0, 2.0) * 2.0);
     same("[cos([0,1]), 2]", interval(cos(interval(0.0, 1.0)).left(), 2.0));
     same("[[1,2], 3]", interval(1.0, 3.0));
-    same("3.56?1*2", interval("3.56?1") * 2.0);
+    same("3.56?1*2", textToInterval("3.56?1") * 2.0);
     // a newline is a space: flex wrote it on the standard output (GAOL v5)
     same("[1,2]\n+[3,4]", interval(1.0, 2.0) + interval(3.0, 4.0));
     same("1 +\n 2", interval(3.0));
@@ -285,9 +285,9 @@ namespace
     same("SinPi([0,1])", sinpi(u));
     same("[exp10(0), hypot(3,4)]", interval(1.0, 5.0));
 
-    // gaol::textToInterval reads as interval(const char*), with GAOL's names
-    check("gaol::textToInterval(s) is interval(s)",
-          textToInterval("[1,2]+nth_root([8,27],3)").set_eq(interval("[1,2]+nth_root([8,27],3)")));
+    // gaol::textToInterval reads the names of GAOL, nth_root among them
+    check("gaol::textToInterval(s) reads the names of GAOL",
+          textToInterval("[1,2]+nth_root([8,27],3)").set_eq(interval(1.0, 2.0) + nth_root(interval(8.0, 27.0), 3)));
     check("gaol::textToInterval(sl, sr) takes the left bound of sl and the right bound of sr",
           textToInterval("[-5,4]+1", "[4,6]-[2,3]").set_eq(interval(-4.0, 4.0)));
     bool threw = false;
@@ -325,7 +325,7 @@ namespace
     refused("fma(1,2)");
     refused("nth_root(8)");
     /* The names of IEEE 1788-2015 alone, which gaol_ieee1788::textToInterval
-       reads: interval("...") and gaol::textToInterval read those of GAOL */
+       reads: gaol::textToInterval reads those of GAOL */
     refused("pown([2,5],5)");
     refused("rootn(8,3)");
     refused("recip([2,4])");
@@ -351,7 +351,7 @@ namespace
     for (const char* t : texts) {
       interval got;
       try {
-        got = interval(t);
+        got = textToInterval(t);
       } catch (const std::exception& e) {
         check("expression: a decimal interval is read", false,
               [&] { return std::string(t) + ": " + e.what(); });
@@ -542,7 +542,7 @@ namespace
 //       {"pow([-4,-1],2)", true}, {"[0.1, rootn(27,3)]*hypot(3,4)", true},
 //     };
 //     const auto read = [](const Reading& r) {
-//       return r.standard ? gaol_ieee1788::textToInterval(r.text) : interval(r.text);
+//       return r.standard ? gaol_ieee1788::textToInterval(r.text) : gaol::textToInterval(r.text);
 //     };
 //     interval expected[4];
 //     for (int t = 0; t < 4; ++t) {

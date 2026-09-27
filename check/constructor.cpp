@@ -2,7 +2,7 @@
 
 #define TEST_INOUT_EQ(Istr,Ires)  \
   try {                           \
-       interval I(Istr);          \
+       interval I = textToInterval(Istr); \
        TEST_EQ(I,Ires);           \
   } catch (input_format_error) {  \
     CPPUNIT_FAIL(string("Wrong format: ")+string(Istr)); \
@@ -10,7 +10,7 @@
 
 #define TEST_INOUT_SEQ(Istr,Ires) \
   try {                           \
-       interval I(Istr);          \
+       interval I = textToInterval(Istr); \
        TEST_SEQ(I,Ires);          \
   } catch (input_format_error) {  \
     CPPUNIT_FAIL(string("Wrong format: ")+string(Istr)); \
@@ -40,9 +40,10 @@ public:
       CPPUNIT_ASSERT(d.left()==-4 && d.right() == 6);
   }
 
+  // textToInterval() in place of interval(const char*) of GAOL 4 (GAOL v5)
   void test_constructor_string() {
-    interval a("empty"), b("[empty]");
-		interval c("5.80258497501207e-14");
+    interval a = textToInterval("empty"), b = textToInterval("[empty]");
+		interval c = textToInterval("5.80258497501207e-14");
 		CPPUNIT_ASSERT(!c.is_empty());
     TEST_EMPTY(a);
     TEST_EMPTY(b);

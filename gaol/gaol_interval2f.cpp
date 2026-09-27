@@ -111,7 +111,7 @@ namespace gaol_core {
 
 	interval2f::interval2f(const char* const str)
 	{
-		interval I(str);
+		interval I = gaol::textToInterval(str);
 		GAOL_RND_ENTER_SSE();
 		xmm2d tmpl1 = {-I.left(), I.right()};
 		__m128 tmpl2 = _mm_cvtpd_ps(_mm_load_pd(tmpl1));

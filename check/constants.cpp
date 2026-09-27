@@ -15,9 +15,9 @@ public:
 
   // Tests of logical predicates ===================================================================
   void test_interval_const() {
-    TEST_EQ(interval::two_pi(),interval("[6.283185307179586, 6.283185307179587]"));
-    TEST_EQ(interval::pi(),interval("[3.141592653589793, 3.141592653589794]"));
-    TEST_EQ(interval::half_pi(),interval("[1.570796326794897, 1.570796326794897]"));
+    TEST_EQ(interval::two_pi(),textToInterval("[6.283185307179586, 6.283185307179587]"));
+    TEST_EQ(interval::pi(),textToInterval("[3.141592653589793, 3.141592653589794]"));
+    TEST_EQ(interval::half_pi(),textToInterval("[1.570796326794897, 1.570796326794897]"));
     TEST_SEQ(interval::positive(),interval(0,GAOL_INFINITY));
     TEST_SEQ(interval::negative(),interval(-GAOL_INFINITY,0));
     TEST_SEQ(interval::minus_one_plus_one(),interval(-1.0,1.0));

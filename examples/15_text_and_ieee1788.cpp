@@ -61,8 +61,8 @@ namespace {
      string is read into the two doubles around the number it writes; each
      string being within 1e-44 of the real number, it has the same two doubles
      around it, and an enclosure of the real number contains them. */
-  const gaol::interval sqrt2_ref("1.41421356237309504880168872420969807856967188");
-  const gaol::interval two_pi_ref("6.28318530717958647692528676655900576839433880");
+  const gaol::interval sqrt2_ref = gaol::textToInterval("1.41421356237309504880168872420969807856967188");
+  const gaol::interval two_pi_ref = gaol::textToInterval("6.28318530717958647692528676655900576839433880");
 
   int failures = 0;
 
@@ -125,7 +125,7 @@ namespace {
   template <class Holds>
   void read_text(const char* text, const std::string& claim, Holds holds)
   {
-    const gaol::interval x(text);
+    const gaol::interval x = gaol::textToInterval(text);
     show(std::string("\"") + text + "\"", x, claim, holds(x));
   }
 
@@ -134,7 +134,7 @@ namespace {
     using namespace gaol;
     const double oo = std::numeric_limits<double>::infinity();
 
-    std::cout << "1.1 interval(\"...\") encloses the number the text writes\n";
+    std::cout << "1.1 gaol::textToInterval(\"...\") encloses the number the text writes\n";
     read_text("0.1", "encloses 1/10", [](const interval& x) { return contains_ratio(x, 1, 10); });
     read_text("[1, 2]", "the bounds 1 and 2", [](const interval& x) { return x.set_eq(interval(1, 2)); });
     // The text is an expression, computed with intervals
@@ -169,7 +169,7 @@ namespace {
     std::cout << "1.2 A malformed text\n";
     bool thrown = false;
     try {
-      const interval x("[1, 2");
+      const interval x = gaol::textToInterval("[1, 2");
       std::cout << "  \"[1, 2\" read as " << x << '\n';
     } catch (const input_format_error& e) {
       thrown = true;
@@ -186,12 +186,12 @@ namespace {
 
     /* Four measurements of the same resistance R, in ohms, one per line, in
        the forms above, with a comment, a blank line and a line with an error.
-       The robust way to read them: std::getline, then interval(line) in a
-       try block of its own, so that a bad line is reported with its number
-       and skipped. The handler takes gaol_exception, the base of GAOL's
-       exceptions: a text can also be refused with an invalid_action_error,
-       "nth_root(8, 1.5)" for one. A std::ifstream is read the same way as
-       this stream. */
+       The robust way to read them: std::getline, then
+       gaol::textToInterval(line) in a try block of its own, so that a bad
+       line is reported with its number and skipped. The handler takes
+       gaol_exception, the base of GAOL's exceptions: a text can also be
+       refused with an invalid_action_error, "nth_root(8, 1.5)" for one. A
+       std::ifstream is read the same way as this stream. */
     std::istringstream file("# R in ohms, measured four times\n"
                             "[99.5, 100.5]\n"
                             "100.2?5\n"
@@ -209,7 +209,7 @@ namespace {
       }
       const std::string where = "line " + std::to_string(number) + ": " + line;
       try {
-        const interval m(line.c_str());
+        const interval m = gaol::textToInterval(line);
         // Each measurement holds R: so does their intersection
         r &= m;
         ++measurements;
@@ -230,16 +230,17 @@ namespace {
     using namespace gaol;
 
     std::cout << "1.4 Writing: decimal rounded outward, or exact\n";
-    const interval third("1/3");
+    const interval third = gaol::textToInterval("1/3");
     show("1/3 (16 digits by default)", third, "read back, still encloses 1/3",
-         contains_ratio(interval(std::string(third).c_str()), 1, 3));
+         contains_ratio(gaol::textToInterval(std::string(third)), 1, 3));
     // interval::precision(n) chooses the number of digits, for every output
     // of intervals, and returns the previous one to set it back. The text
     // still encloses the interval: read back, it contains 1/3.
     const std::streamsize digits = interval::precision(5);
     const std::string five = third;
     interval::precision(digits);
-    show("1/3 with 5 digits", five, "read back, still encloses 1/3", contains_ratio(interval(five.c_str()), 1, 3));
+    show("1/3 with 5 digits", five, "read back, still encloses 1/3",
+         contains_ratio(gaol::textToInterval(five), 1, 3));
 
     // The hexadecimal format is exact. The format is global, as the
     // precision: set it back after use. exact_string() gives the same text
@@ -255,10 +256,10 @@ namespace {
                                interval(1, std::numeric_limits<double>::infinity()), interval::emptyset() };
     bool exact = true;
     for (const interval& x : saved) {
-      exact = exact && same_bits(interval(exact_string(x).c_str()), x);
+      exact = exact && same_bits(gaol::textToInterval(exact_string(x)), x);
     }
     show("exact_string(pi)", exact_string(interval::pi()), "reads back as the same doubles",
-         same_bits(interval(exact_string(interval::pi()).c_str()), interval::pi()));
+         same_bits(gaol::textToInterval(exact_string(interval::pi())), interval::pi()));
     show("the same round trip for", std::string("1/3, 0.1, [-0, 0], [1, +oo), [empty]"), "bit for bit", exact);
   }
 
@@ -283,7 +284,7 @@ namespace {
   Revise revise_gaol(double lo, double hi, const char* c_text)
   {
     using namespace gaol;
-    const interval x0(lo, hi), c(c_text);
+    const interval x0(lo, hi), c = gaol::textToInterval(c_text);
     const interval power = pow(x0, 2);  // GAOL's pow: the integer power, x < 0 too
     interval t = power;
     interval u = 2.0 * t;

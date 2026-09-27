@@ -64,7 +64,7 @@ namespace gaol_core {
     - hexa: same as "bounds" except that bounds are printed in the
     hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids the
     round-off error of a binary-to-decimal conversion and which
-    interval(const char*) reads back bit for bit: the exact text
+    textToInterval() reads back bit for bit: the exact text
     representation of 13.4 (GAOL v5)
     - agreeing: the interval is output in the form "r [l, r]" where
     r is the number containing all the digits that are the same in both
@@ -103,15 +103,12 @@ namespace gaol_core {
     interval(const __m128d& xmm);
 #endif // USING_SSE2_INSTRUCTIONS
 
-    /*!
-      \brief Creation of an interval from a C string.
-
-      Allows creating intervals with bounds not representable with
-      floats, e.g.: interval("0.1")=[0.09999,0.10001]. See the
-      file jail_parser.h for a description of the supported format
-      for representing intervals with std::strings.
-     */
-    interval(const char *const s);
+    /*
+      No constructor from one string (GAOL v5): textToInterval() reads it,
+      textToInterval("0.1") being [0.09999,0.10001]. interval(const char*)
+      converted any const char* implicitly: interval(0) was ambiguous, and
+      x + nullptr compiled and crashed.
+    */
     /*!
       \brief Creation of an interval from two C strings
 
@@ -738,7 +735,7 @@ namespace gaol_core {
 
     What operator<< writes in interval_format::hexa: "[empty]" for the empty
     set, and otherwise each bound in the hexadecimal-significand form, which
-    interval(const char*) reads back bit for bit (IEEE 1788-2015, 13.4). It
+    textToInterval() reads back bit for bit (IEEE 1788-2015, 13.4). It
     neither reads nor changes the global output format, which
     interval::format() sets.
   */
@@ -1379,10 +1376,11 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ bool feven(double d);
   whole: gaol::interval and gaol::sin(x) name them. A call sin(x) on an
   interval finds by argument-dependent lookup the functions of gaol_core only,
   the namespace where interval is defined, never those of gaol or of
-  gaol_ieee1788 (gaol/gaol_ieee1788.h). pow, which is not the same function in
-  the two, is therefore in each of them rather than in gaol_core, as plain
-  functions of the same parameters: a program opens one of the two namespaces
-  and gets its pow; with both open, pow(x, y) is ambiguous.
+  gaol_ieee1788 (gaol/gaol_ieee1788.h). pow and textToInterval, which are not
+  the same functions in the two, are therefore in each of them rather than in
+  gaol_core, as plain functions of the same parameters: a program opens one of
+  the two namespaces and gets its pow; with both open, pow(x, y) is ambiguous,
+  and so is textToInterval(s).
 */
 namespace gaol {
 
@@ -1397,12 +1395,13 @@ namespace gaol {
 
   /*!
     textToInterval(s): the interval s writes, read with the names of the
-    functions of GAOL, as interval(const char*) reads it (GAOL v5). A string
-    that is no interval throws input_format_error. gaol_ieee1788 has its own,
-    which reads the names of IEEE 1788-2015 and gives the empty set for such a
-    string: as for pow, a program opens one of the two namespaces.
+    functions of GAOL (GAOL v5), where GAOL 4 had the constructor
+    interval(const char*). A string that is no interval throws
+    input_format_error. gaol_ieee1788 has its own, which reads the names of
+    IEEE 1788-2015 and gives the empty set for such a string: as for pow, a
+    program opens one of the two namespaces.
   */
-  GAOL_NODISCARD inline interval textToInterval(const std::string& s) { return interval(s.c_str()); }
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ interval textToInterval(const std::string& s);
   /*!
     textToInterval(sl, sr): the left bound of the interval sl writes and the
     right bound of the one sr writes, as interval(const char*, const char*)

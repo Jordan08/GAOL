@@ -66,7 +66,7 @@ namespace gaol_core {
 	intervalf::intervalf(const char* const s)
 	{ // BEWARE: quick and dirty implementation for now. Use at your own risks!
 		
-	 interval tmp(s);
+	 interval tmp = gaol::textToInterval(s);
 	 _left = float(tmp.left());
 	 _right = float(tmp.right());
 	}

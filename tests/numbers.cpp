@@ -3,11 +3,11 @@
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: numbers, constants and constructors.
  *
- * An interval read from a number, interval("0.1"), has to be the tightest
- * interval of doubles enclosing it, and the double itself when the number is
- * one, whatever the C library. Each number is compared exactly with the
- * bounds read. The constants have to be the tightest intervals enclosing pi,
- * 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
+ * An interval read from a number, textToInterval("0.1"), has to be the
+ * tightest interval of doubles enclosing it, and the double itself when the
+ * number is one, whatever the C library. Each number is compared exactly with
+ * the bounds read. The constants have to be the tightest intervals enclosing
+ * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
  * in the wrong order, and NaN bounds. The interval literals of IEEE 1788-2015
@@ -28,6 +28,7 @@
 #include <clocale>
 #include <cstdlib>
 #include <iomanip>
+#include <type_traits>
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -73,7 +74,7 @@ namespace
 
   void expect_number(const std::string& name, const std::string& s)
   {
-    const interval r(s.c_str());
+    const interval r = textToInterval(s);
     check(name, is_tightest_enclosure(r, decimal(s)), [&] { return "\"" + s + "\": " + hex(r); });
   }
 
@@ -98,7 +99,7 @@ namespace
       "0.1000000000000000055511151231257827021181583404541015624",
     };
     for (const char *s : numbers) {
-      expect_number("interval(number): the tightest enclosure of the number", s);
+      expect_number("textToInterval(number): the tightest enclosure of the number", s);
     }
 
     // Doubles written with 17 significant digits, and exactly, with up to 1100
@@ -106,11 +107,11 @@ namespace
     Random random;
     for (int i = 0; i < nb_random_values; ++i) {
       const double x = std::fabs(random.any()), y = random.positive(-30, 30);
-      expect_number("interval(number) for numbers of 17 significant digits", format("%.16e", x));
-      expect_number("interval(number) for numbers of 17 significant digits", format("%.16e", y));
+      expect_number("textToInterval(number) for numbers of 17 significant digits", format("%.16e", x));
+      expect_number("textToInterval(number) for numbers of 17 significant digits", format("%.16e", y));
       if (i % 10 == 0) {
-        expect_number("interval(number) for the decimal expansions of doubles", format("%.1100f", x));
-        expect_number("interval(number) for the decimal expansions of doubles", format("%.1100f", y));
+        expect_number("textToInterval(number) for the decimal expansions of doubles", format("%.1100f", x));
+        expect_number("textToInterval(number) for the decimal expansions of doubles", format("%.1100f", y));
       }
     }
 
@@ -126,18 +127,18 @@ namespace
       { "[0.3, 1/3]", three_tenths, third },
     };
     for (const auto& e : expressions) {
-      const interval r(e.s);
-      check("interval(expression): the tightest enclosure", is_tightest_enclosure(r, e.lo, e.hi),
+      const interval r = textToInterval(e.s);
+      check("textToInterval(expression): the tightest enclosure", is_tightest_enclosure(r, e.lo, e.hi),
             [&] { return std::string("\"") + e.s + "\": " + hex(r); });
     }
     // Bounds in the wrong order: the empty set, as interval(2, 1) is
-    check("interval(\"[1/3, 0.3]\"): empty", interval("[1/3, 0.3]").is_empty(),
-          [&] { return hex(interval("[1/3, 0.3]")); });
+    check("textToInterval(\"[1/3, 0.3]\"): empty", textToInterval("[1/3, 0.3]").is_empty(),
+          [&] { return hex(textToInterval("[1/3, 0.3]")); });
     const interval two(".1", "0.3");
     check("interval(number, number): the tightest enclosure", is_tightest_enclosure(two, tenth, three_tenths),
           [&] { return hex(two); });
-    const interval sum("0.1+0.2");
-    check("interval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
+    const interval sum = textToInterval("0.1+0.2");
+    check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
   }
 
   void constants()
@@ -147,7 +148,7 @@ namespace
       { "interval::pi()", interval::pi(), pi_below, pi_above },
       { "interval::two_pi()", interval::two_pi(), pi_below*2.0, pi_above*2.0 },
       { "interval::half_pi()", interval::half_pi(), pi_below/2.0, pi_above/2.0 },
-      { "interval(\"pi\")", interval("pi"), pi_below, pi_above },
+      { "textToInterval(\"pi\")", textToInterval("pi"), pi_below, pi_above },
       { "interval::zero()", interval::zero(), 0.0, 0.0 },
       { "interval::one()", interval::one(), 1.0, 1.0 },
       { "interval::minus_one_plus_one()", interval::minus_one_plus_one(), -1.0, 1.0 },
@@ -155,7 +156,7 @@ namespace
       { "interval::universe()", interval::universe(), -inf, inf },
       { "interval::positive()", interval::positive(), 0.0, inf },
       { "interval::negative()", interval::negative(), -inf, 0.0 },
-      { "interval(\"[dmax, inf]\")", interval("[dmax, inf]"), std::numeric_limits<double>::max(), inf },
+      { "textToInterval(\"[dmax, inf]\")", textToInterval("[dmax, inf]"), std::numeric_limits<double>::max(), inf },
     };
     for (const auto& c : constants) {
       check(std::string(c.name) + ": the tightest enclosure", c.r.left() == c.lo && c.r.right() == c.hi,
@@ -207,6 +208,16 @@ namespace
     }
     check("midpoint([1, +oo])", interval(1., inf).midpoint() == largest);
     check("midpoint([-oo, 1])", interval(-inf, 1.).midpoint() == -largest);
+
+    /* No constructor from one string (GAOL v5): any const char*, nullptr
+       included, converted to an interval, and interval(0) was ambiguous */
+    static_assert(!std::is_constructible<interval, const char*>::value, "no interval(const char*)");
+    static_assert(!std::is_convertible<const char*, interval>::value, "no conversion from const char*");
+    static_assert(!std::is_constructible<interval, std::nullptr_t>::value, "no interval(nullptr)");
+    static_assert(!std::is_convertible<std::nullptr_t, interval>::value, "no conversion from nullptr");
+    const interval zero(0);
+    check("interval(0) with an int: [0, 0]", !zero.is_empty() && zero.left() == 0. && zero.right() == 0.,
+          [&] { return hex(zero); });
   }
 
   // The interval literals of IEEE 1788-2015 (9.7, 12.11): GAOL read neither
@@ -237,7 +248,7 @@ namespace
       { "[0x.2P0, 1/3]", exact(0.125), third },
     };
     for (const auto& c : tightest) {
-      const interval r = evaluate(std::string("interval(\"") + c.s + "\")", [&] { return interval(c.s); },
+      const interval r = evaluate(std::string("textToInterval(\"") + c.s + "\")", [&] { return textToInterval(c.s); },
                                   [] { return std::string(); });
       check("IEEE 1788 literals: the tightest enclosure", !r.is_empty() && is_tightest_enclosure(r, c.lo, c.hi),
             [&] { return std::string("\"") + c.s + "\": " + hex(r); });
@@ -279,7 +290,7 @@ namespace
       { "[0x2p0, 1/1]", 0., 0., true },
     };
     for (const auto& c : exactly) {
-      const interval r = evaluate(std::string("interval(\"") + c.s + "\")", [&] { return interval(c.s); },
+      const interval r = evaluate(std::string("textToInterval(\"") + c.s + "\")", [&] { return textToInterval(c.s); },
                                   [] { return std::string(); });
       check("IEEE 1788 literals: exact", c.empty ? r.is_empty() : (!r.is_empty() && r.left() == c.lo && r.right() == c.hi),
             [&] { return std::string("\"") + c.s + "\": " + hex(r); });
@@ -294,7 +305,8 @@ namespace
     for (const char *s : invalid) {
       bool threw = false;
       try {
-        interval x(s);
+        const interval x = textToInterval(s);
+        (void)x;
       } catch (input_format_error&) {
         threw = true;
       } catch (...) {
@@ -309,14 +321,14 @@ namespace
     for (int i = 0; i < nb_random_values; ++i) {
       const double x = random(-1000, 1000);
       const std::string s = format("%.13a", x);
-      const interval r(("[" + s + "]").c_str());
-      check("interval(\"[hexadecimal double]\"): the double", r.left() == x && r.right() == x,
+      const interval r = textToInterval("[" + s + "]");
+      check("textToInterval(\"[hexadecimal double]\"): the double", r.left() == x && r.right() == x,
             [&] { return s + ": " + hex(r); });
       std::string t = s;
       t.insert(t.find_first_of("pP"), "8");
       const Dyadic half_unit = dyadic(std::ldexp(x < 0.0 ? -1.0 : 1.0, std::ilogb(x) - 53));
-      const interval u(("[" + t + "]").c_str());
-      check("interval(\"[hexadecimal number]\"): the tightest enclosure",
+      const interval u = textToInterval("[" + t + "]");
+      check("textToInterval(\"[hexadecimal number]\"): the tightest enclosure",
             is_tightest_enclosure(u, exact(dyadic(x) + half_unit)), [&] { return t + ": " + hex(u); });
     }
   }
@@ -333,13 +345,13 @@ namespace
                                   "[cosh(1), sinh(2)+tanh(1)]", "<1+1, 2>", "[1,]+[,2]", "[-inf, log(2)]",
                                   "1+pow(2, atan2(1,1))", "(1+2)*pow(1+2, atan2(1,1)+1)-3" };
     for (const char *s : valid) {
-      const interval first(s);
+      const interval first = textToInterval(s);
       bool same = true;
       for (int i = 0; i < 100; ++i) {
-        const interval r(s);
+        const interval r = textToInterval(s);
         same = same && r.left() == first.left() && r.right() == first.right();
       }
-      check("interval(expression) read again: the same interval", same, [&] { return std::string(s); });
+      check("textToInterval(expression) read again: the same interval", same, [&] { return std::string(s); });
     }
     const char *const invalid[] = { "nth_root(8, 1.5)", "nth_root(8, 1.5)+1", "[nth_root(8, 1.5), 2]",
                                     "sin(1)+", "[sin(1), cos(", "(1+2", "[1, 2*(3+4]", "pow(2, 1)+*3",
@@ -349,23 +361,25 @@ namespace
       for (const char *s : invalid) {
         bool threw = false;
         try {
-          interval x(s);
+          const interval x = textToInterval(s);
+          (void)x;
         } catch (...) {
           threw = true;
         }
-        check("interval(expression) not computed: an exception", threw, [&] { return std::string(s); });
+        check("textToInterval(expression) not computed: an exception", threw, [&] { return std::string(s); });
       }
     }
     // atan2(y, x) in expressions: 4 atan2(1, 1) is the tightest enclosure of
     // pi, and atan2(0, 0), which has no value, is empty
-    const interval four_angles("4*atan2(1, 1)"), none("atan2(0, 0)"), cut("atan2([-1, 1], -1)");
-    check("interval(\"4*atan2(1, 1)\"): the tightest enclosure of pi", four_angles.set_eq(interval::pi()),
+    const interval four_angles = textToInterval("4*atan2(1, 1)"), none = textToInterval("atan2(0, 0)"),
+      cut = textToInterval("atan2([-1, 1], -1)");
+    check("textToInterval(\"4*atan2(1, 1)\"): the tightest enclosure of pi", four_angles.set_eq(interval::pi()),
           [&] { return hex(four_angles); });
-    check("interval(\"atan2(0, 0)\"): empty", none.is_empty(), [&] { return hex(none); });
-    check("interval(\"atan2([-1, 1], -1)\"): [-pi, pi]", cut.left() == -interval::pi().right()
+    check("textToInterval(\"atan2(0, 0)\"): empty", none.is_empty(), [&] { return hex(none); });
+    check("textToInterval(\"atan2([-1, 1], -1)\"): [-pi, pi]", cut.left() == -interval::pi().right()
           && cut.right() == interval::pi().right(), [&] { return hex(cut); });
-    const interval r("1+2");
-    check("interval(expression) after expressions not computed", r.left() == 3.0 && r.right() == 3.0,
+    const interval r = textToInterval("1+2");
+    check("textToInterval(expression) after expressions not computed", r.left() == 3.0 && r.right() == 3.0,
           [&] { return hex(r); });
   }
 
@@ -385,7 +399,7 @@ namespace
       s << x;
       bool same = false;
       try {
-        const interval y(s.str().c_str());
+        const interval y = textToInterval(s.str());
         same = x.is_empty() ? y.is_empty()
                             : (!y.is_empty() && y.left() == x.left() && y.right() == x.right());
       } catch (...) {
@@ -507,8 +521,8 @@ namespace
       std::ostringstream os;
       interval::precision(p);
       os << y;
-      const interval back(os.str().c_str());
-      check("interval(text written by operator<<): encloses the interval", back.set_contains(y),
+      const interval back = textToInterval(os.str());
+      check("textToInterval(text written by operator<<): encloses the interval", back.set_contains(y),
             [&] { return hex(y) + " written " + os.str() + " read " + hex(back); });
     }
 
@@ -689,13 +703,13 @@ namespace
   {
     const std::string zeros(1000000, '0');
     const auto expect_one = [](const std::string& name, const std::string& s) {
-      const interval x(s.c_str());
+      const interval x = textToInterval(s);
       check(name, x.left() == 1.0 && x.right() == 1.0, [&] { return hex(x); });
     };
-    expect_one("interval(0.<a million zeros>1e1000001) is 1", "0." + zeros + "1e1000001");
-    expect_one("interval(0x0.<300000 zeros>1p1200004) is 1", "0x0." + zeros.substr(0, 300000) + "1p1200004");
-    const interval u(("0." + zeros + "1?e1000001").c_str());
-    check("interval(0.<a million zeros>1?e1000001) is [0.5, 1.5]", u.left() == 0.5 && u.right() == 1.5,
+    expect_one("textToInterval(0.<a million zeros>1e1000001) is 1", "0." + zeros + "1e1000001");
+    expect_one("textToInterval(0x0.<300000 zeros>1p1200004) is 1", "0x0." + zeros.substr(0, 300000) + "1p1200004");
+    const interval u = textToInterval("0." + zeros + "1?e1000001");
+    check("textToInterval(0.<a million zeros>1?e1000001) is [0.5, 1.5]", u.left() == 0.5 && u.right() == 1.5,
           [&] { return hex(u); });
   }
 
@@ -729,13 +743,13 @@ namespace
     check("exact_string() under a locale writing a decimal comma", text == "[0x1.8p+0, 0x1.4p+1]",
           [&] { return std::string(comma) + ": " + text; });
     for (const char *s : { "0.1", "1.5", "2.5e-3", "123.456", "0.1000000000000000055511151231257827021181583404541015625" }) {
-      expect_number("interval(number) under a locale writing a decimal comma", s);
+      expect_number("textToInterval(number) under a locale writing a decimal comma", s);
     }
-    const interval three("0x1.8p1");
-    check("interval(\"0x1.8p1\") under a locale writing a decimal comma", three.left() == 3.0 && three.right() == 3.0,
+    const interval three = textToInterval("0x1.8p1");
+    check("textToInterval(\"0x1.8p1\") under a locale writing a decimal comma", three.left() == 3.0 && three.right() == 3.0,
           [&] { return hex(three); });
     for (double x : { 0.1, std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::max() }) {
-      const interval y(exact_string(interval(x)).c_str());
+      const interval y = textToInterval(exact_string(interval(x)));
       check("exact_string() read back under a locale writing a decimal comma", y.left() == x && y.right() == x,
             [&] { return exact_string(interval(x)) + " read " + hex(y); });
     }

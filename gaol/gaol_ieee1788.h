@@ -41,9 +41,9 @@
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);
  *   - textToInterval and exactToInterval read the names of the functions of
- *     the standard (pown, rootn, sinPi...), where interval(const char*) and
- *     gaol::textToInterval read those of GAOL, and return the empty set for a
- *     string that is no interval literal (12.1.3), where GAOL throws.
+ *     the standard (pown, rootn, sinPi...), where gaol::textToInterval reads
+ *     those of GAOL, and return the empty set for a string that is no
+ *     interval literal (12.1.3), where GAOL throws.
  *
  * Only bare intervals are provided: GAOL has no decorations (Clause 11). The
  * operations of the standard GAOL does not provide are listed at the end of
@@ -94,9 +94,8 @@ namespace gaol_ieee1788 {
   /*!
     textToInterval(s): the interval s writes, read with the names of the
     functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
-    gaol::textToInterval() and interval(const char*) read those of GAOL
-    (GAOL v5); the empty set for a string that is no interval (12.1.3), where
-    GAOL throws
+    gaol::textToInterval() reads those of GAOL (GAOL v5); the empty set for a
+    string that is no interval (12.1.3), where GAOL throws
   */
   GAOL_NODISCARD inline interval textToInterval(const std::string& s)
   {
@@ -154,8 +153,7 @@ namespace gaol_ieee1788 {
     pow(x, p): pow(x, [p]), the pow of the standard for a double as
     exponent. An int exponent comes here too, pow(x, 2) being pow(x, [2]),
     not the integer power pown(x, 2): pow([-4, -1], 2) is the empty set here,
-    and [1, 16] in gaol. Without it, pow(x, 0) would not compile, 0 converting
-    to an interval through interval(double) and interval(const char*) alike.
+    and [1, 16] in gaol.
   */
   GAOL_NODISCARD inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
 

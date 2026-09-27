@@ -172,7 +172,7 @@ int main()
   const Case cases[] = {{"[0, 1]", "[0, 0.25]"}, {"[0.2, 0.4]", "[0.16, 0.24]"}, {"[0.49, 0.51]", "[0.2499, 0.25]"}};
   std::string interval_times, affine_times, form;
   for (const Case& k : cases) {
-    const interval X2(k.box), R(k.range);
+    const interval X2 = textToInterval(k.box), R = textToInterval(k.range);
     const Affine x2 = Affine::variable(X2);
     const interval I = logistic(X2), A = logistic(x2).to_interval();
     row(std::string("x in ") + k.box, {text(I), text(A), k.range});
@@ -196,7 +196,7 @@ int main()
   // Near 1 the terms of the expanded polynomial, as large as 10, cancel down
   // to 1e-10. Affine forms cancel their first-order parts, not the products
   // of the noise symbol with itself, which Horner's scheme makes at each step.
-  const interval X3("[0.99, 1.01]"), R3("[-1e-10, 1e-10]");
+  const interval X3 = textToInterval("[0.99, 1.01]"), R3 = textToInterval("[-1e-10, 1e-10]");
   const interval I3 = quintic(X3), A3 = quintic(Affine::variable(X3)).to_interval();
   // pow is in namespace gaol, not in gaol_core with the type interval:
   // pow(x, 5) needs using namespace gaol, or gaol::pow
@@ -229,7 +229,7 @@ int main()
   // the smallest slope of exp over the box, Chebyshev the slope of its chord,
   // which halves delta; alpha is any double, the band [beta - delta,
   // beta + delta] being enclosed by interval evaluations of exp.
-  const interval X5("[-0.1, 0.1]"), R5(1.0);
+  const interval X5 = textToInterval("[-0.1, 0.1]"), R5(1.0);
   const Affine x5 = Affine::variable(X5);
   const interval I5 = exp(X5) * exp(-X5);
   const interval M5 = (exp(x5, Linearization::min_range) * exp(-x5, Linearization::min_range)).to_interval();
@@ -323,7 +323,7 @@ int main()
 
   // x occurs once in 1 / x: intervals give the range, affine forms can only
   // lose, and the intersection is the interval enclosure
-  const interval X7(1.0, 100.0), R7("[0.01, 1]");
+  const interval X7(1.0, 100.0), R7 = textToInterval("[0.01, 1]");
   const interval I7 = 1.0 / X7, A7 = inv(Affine::variable(X7)).to_interval();
   row("1 / x, x in [1, 100]", {text(I7), text(A7), text(A7 & I7), "[0.01, 1]"});
   check(I7.set_contains(R7) && A7.set_contains(R7), "1 / x: contains the range");

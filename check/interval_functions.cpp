@@ -146,18 +146,18 @@ public:
       TEST_SEQ(floor(interval(4.5,6.5)),interval(4,6));
       TEST_SEQ(floor(interval::universe()),interval::universe());
       TEST_EMPTY(floor(interval::emptyset()));
-      TEST_SEQ(floor(interval("[-10.4,3.5]")),interval(-11,3));
+      TEST_SEQ(floor(textToInterval("[-10.4,3.5]")),interval(-11,3));
 
       TEST_SEQ(ceil(interval(4.5,6.5)),interval(5,7));
       TEST_SEQ(ceil(interval::universe()),interval::universe());
       TEST_EMPTY(ceil(interval::emptyset()));
-      TEST_SEQ(ceil(interval("[-10.4,3.5]")),interval(-10,4));
+      TEST_SEQ(ceil(textToInterval("[-10.4,3.5]")),interval(-10,4));
 
       TEST_SEQ(integer(interval::universe()),interval::universe());
       TEST_EMPTY(integer(interval::emptyset()));
       TEST_SEQ(integer(interval(4.5,6.5)),interval(5,6));
       TEST_SEQ(integer(interval(-6.5,3.75)),interval(-6,3));
-      TEST_EMPTY(integer(interval("1/10")));
+      TEST_EMPTY(integer(textToInterval("1/10")));
   }
 
   void test_splitting() {
@@ -166,7 +166,7 @@ public:
       interval(4,5).split(I1,I2); TEST_SEQ(I1,interval(4,4.5)); TEST_SEQ(I2,interval(4.5,5));
       interval::universe().split(I1,I2); TEST_SEQ(I1,interval::negative()); TEST_SEQ(I2,interval::positive());
       interval::emptyset().split(I1,I2); TEST_EMPTY(I1); TEST_EMPTY(I2);
-      interval("1/10").split(I1,I2); TEST_CONT(interval("1/10"),I1); TEST_CONT(interval("1/10"),I2);
+      textToInterval("1/10").split(I1,I2); TEST_CONT(textToInterval("1/10"),I1); TEST_CONT(textToInterval("1/10"),I2);
       interval(5.0).split(I1,I2); TEST_SEQ(I1, interval(5.0)); TEST_SEQ(I2,interval(5.0));
 
       TEST_EMPTY(interval::emptyset().split_left());

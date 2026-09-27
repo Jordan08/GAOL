@@ -497,26 +497,6 @@ namespace gaol_core {
   }
 
 
-  interval::interval(const char *const s)
-  {
-    interval tmp;
-    bool ok = gaol::parse_interval(s,tmp);
-    if (!ok) {
-      std::string err_msg("Syntax error in interval initialization: ");
-      err_msg += s;
-      *this = interval::emptyset();
-      GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error,err_msg.c_str());
-    } else {
-#if USING_SSE2_INSTRUCTIONS
-      xmmbounds = tmp.xmmbounds;
-#else
-      lb_ = tmp.lb_;
-      rb_ = tmp.rb_;
-#endif
-    }
-  }
-
   interval::interval(const char *const sl, const char *const sr)
   {
     interval tmpl, tmpr;
@@ -771,7 +751,7 @@ namespace gaol_core {
 
   /*
     A bound written in the hexadecimal-significand form of IEEE 1788-2015
-    (13.4.1), which interval(const char*) reads back exactly (GAOL v5).
+    (13.4.1), which textToInterval() reads back exactly (GAOL v5).
 
     The recovery requirement of 13.4 asks that writing an interval and reading
     it again give the same bounds. GAOL wrote the sixteen hexadecimal digits of
@@ -3292,6 +3272,26 @@ namespace gaol_ieee1788 {
   }
 
 } // namespace gaol_ieee1788
+
+namespace gaol {
+
+  /*
+    textToInterval(s) of gaol/gaol_interval.h: what the constructor
+    interval(const char*) of GAOL 4 did, which GAOL v5 no longer has
+  */
+  interval textToInterval(const std::string& s)
+  {
+    interval tmp;
+    if (!parse_interval(s.c_str(),tmp)) {
+      std::string err_msg("Syntax error in interval initialization: ");
+      err_msg += s;
+      GAOL_ERRNO = -1;
+      gaol_ERROR(input_format_error,err_msg.c_str());
+    }
+    return tmp;
+  }
+
+} // namespace gaol
 
 /*
   The intervals of floats, gaol::intervalf and gaol::interval2f: unfinished,

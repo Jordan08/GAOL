@@ -191,7 +191,7 @@ namespace {
     {"interval(1.0) / 3.0", [] { return interval(1.0) / 3.0; },
      "[0.333333333333333333333333333333333333333333333, 0.333333333333333333333333333333333333333333334]",
      "contains 1/3"},
-    {"interval(\"0.3\") * 10.0", [] { return interval("0.3") * 10.0; }, "3",
+    {"textToInterval(\"0.3\") * 10.0", [] { return textToInterval("0.3") * 10.0; }, "3",
      "contains 3: \"0.3\" encloses 3/10"},
     {"sqrt(interval(2.0))", [] { return sqrt(interval(2.0)); },
      "[1.414213562373095048801688724209698078569671875, 1.414213562373095048801688724209698078569671876]",
@@ -284,7 +284,7 @@ int main()
   // 1/3 lies between two doubles, a third of the gap above the lower one
   // (mpmath): the lower one is the nearest, the upper one the rounding up
   const interval third_enclosure = interval(1.0) / 3.0;
-  const interval tenths("0.3");
+  const interval tenths = textToInterval("0.3");
 
   show("std::fegetround()", direction_name(at_start),
        at_start == FE_UPWARD ? "set by GAOL's initialization, before main()" : "GAOL did not change it",
@@ -319,7 +319,7 @@ int main()
   const std::vector<std::string> reference_texts = exact_texts(reference);
   for (std::size_t i = 0; i < computation_count; ++i) {
     show(computations[i].what, std::string(reference[i]), computations[i].claim,
-         reference[i].set_contains(interval(computations[i].truth)));
+         reference[i].set_contains(textToInterval(computations[i].truth)));
   }
 
   const struct {
@@ -336,7 +336,7 @@ int main()
          texts == reference_texts && afterwards == (leaves_upward ? FE_UPWARD : other.direction));
   }
 
-  /* exact_string() writes the bounds in hexadecimal, which interval("...")
+  /* exact_string() writes the bounds in hexadecimal, which textToInterval()
      reads back bit for bit, and %a the same for a double, which strtod()
      reads back: exact, in any direction. A double written with 17 decimal
      digits and read back while rounding upward can move up by one double at
@@ -344,10 +344,10 @@ int main()
   std::fesetround(FE_DOWNWARD);
   bool read_back = keep(std::strtod(hex(third).c_str(), nullptr)) == third;
   for (const std::string& text : reference_texts) {
-    read_back = read_back && exact_string(interval(text.c_str())) == text;
+    read_back = read_back && exact_string(textToInterval(text)) == text;
   }
   show("exact_string(), %a, read back", read_back ? "the same bits, after FE_DOWNWARD" : "OTHER bits",
-       "interval(\"[0x...]\"), strtod(\"0x...\") are exact", read_back);
+       "textToInterval(\"[0x...]\"), strtod(\"0x...\") are exact", read_back);
 
   // The program's doubles do follow the direction: interval(1.0 / 3.0) would
   // be one double or the other, and enclose nothing
@@ -503,7 +503,7 @@ int main()
        final_direction == FE_TONEAREST);
 
   std::cout << "What to do\n"
-            << "  read data with interval(\"0.3\"), which encloses 3/10 in every direction, not with strtod()\n"
+            << "  read data with textToInterval(\"0.3\"), which encloses 3/10 in every direction, not with strtod()\n"
             << "  write data with exact_string() or %a, read back to the same bits in every direction\n"
             << "  call gaol::cleanup() right after the last use of GAOL, and set FE_TONEAREST after each phase\n";
 
