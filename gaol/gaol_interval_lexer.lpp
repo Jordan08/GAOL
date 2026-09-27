@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <vector>
@@ -60,6 +61,10 @@ extern const void *gaol_lookup_function(const char *name, void *context);
   flag, so that "0.1" was read as the double nearest to 1/10, which does not
   enclose it. strtod() now gives a double near the number, which the number is
   compared with exactly, as integers, to find the doubles on each side of it.
+  strtod() reads the decimal point of the C locale: under a locale writing a
+  decimal comma, it stops at the '.' of "0.1" and gives 0, far from the
+  number. The doubles on each side of it are then found by steps doubling
+  from that double, and by bisection on the bits of the doubles (GAOL v5).
 */
 namespace {
 
@@ -129,6 +134,24 @@ namespace {
     return 0;
   }
 
+  /*
+    The bound an exponent is kept at in a number of the text s: beyond it, the
+    number is above the largest double or below the least positive one,
+    whatever its digits. A significand that is not 0, of fewer than L digits,
+    fewer than L of them after its point, L being the length of s, times 10^e
+    lies between 10^(e - L) and 10^(e + L); in hexadecimal, times 2^e, between
+    2^(e - 4L) and 2^(e + 4L). An exponent beyond 4L + 2000, or below its
+    opposite, thus puts the number beyond the doubles, and so does the bound.
+    GAOL kept exponents below 100000, which is not beyond the doubles when the
+    significand has a million zeros after its point: "0." followed by a
+    million zeros then "1e1000001", which is 1, was compared as 10^-900001
+    (GAOL v5).
+  */
+  long long gaol_exponent_bound(const char *s)
+  {
+    return 4*static_cast<long long>(std::strlen(s)) + 2000;
+  }
+
   // The sign of v - x, v being the number s writes, as the rules below match
   // numbers (decimal digits with an optional point and exponent, or, after
   // 0x, hexadecimal digits with an optional point and a binary exponent), and
@@ -138,6 +161,7 @@ namespace {
     // v = N*10^k*2^k2, N being written with ndigits digits
     gaol_natural N;
     long k = 0, k2 = 0, ndigits = 0;
+    const long long exponent_bound = gaol_exponent_bound(s);
     const bool hexadecimal = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'));
     const uint32_t base = hexadecimal ? 16 : 10;
     if (hexadecimal) {
@@ -169,13 +193,16 @@ namespace {
       if (*s == '-' || *s == '+') {
         ++s;
       }
-      long e = 0;
+      long long e = 0;
       for (; *s != '\0'; ++s) {
-        if (e < 100000) { // Far beyond the doubles already
+        if (e <= exponent_bound) {
           e = 10*e + (*s - '0');
         }
       }
-      (hexadecimal ? k2 : k) += negative ? -e : e;
+      if (e > exponent_bound) {
+        e = exponent_bound;
+      }
+      (hexadecimal ? k2 : k) += static_cast<long>(negative ? -e : e);
     }
 
     if (N.empty()) { // v = 0
@@ -221,31 +248,82 @@ namespace {
     return gaol_natural_compare(A, B);
   }
 
-  // The tightest interval of doubles [l, r] enclosing the number s, with no
-  // sign; returns whether s is a double, l and r being it
+  // The bits of a double, and the double of given bits: the doubles of
+  // [0, +oo] are ordered as their bits, read as unsigned integers
+  uint64_t gaol_bits_of(double x)
+  {
+    uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
+
+  double gaol_double_of(uint64_t bits)
+  {
+    double x;
+    std::memcpy(&x, &bits, sizeof x);
+    return x;
+  }
+
+  /*
+    The tightest interval of doubles [l, r] enclosing the number s, with no
+    sign; returns whether s is a double, l and r being it.
+    The greatest double lo not above the number, and the next one hi, are
+    bracketed by steps doubling from the double strtod() gives, then found by
+    bisection on the bits: two comparisons when strtod() gives the nearest
+    double, at most about 125 whatever it gives (GAOL v5). GAOL moved one
+    double at a time from it: under a locale writing a decimal comma, where
+    strtod("0.1") is 0, it had about 4.6e18 doubles to go through, and the
+    reading never ended.
+  */
   bool gaol_enclose_number(const char *s, double& l, double& r)
   {
     GAOL_RND_PRESERVE();
     round_nearest();
-    double lo = strtod(s,NULL);
-    // lo is moved to the greatest double below the number
-    int sign = gaol_compare_number(s, lo);
-    while (sign < 0) {
-      lo = previous_float(lo);
-      sign = gaol_compare_number(s, lo);
-    }
-    for (;;) {
-      const double hi = next_float(lo);
-      const int sign_hi = gaol_compare_number(s, hi);
-      if (sign_hi < 0) {
-        GAOL_RND_RESTORE();
-        l = lo;
-        r = (sign == 0) ? lo : hi;
-        return sign == 0;
+    const uint64_t guess = gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
+    const uint64_t top = gaol_bits_of(std::numeric_limits<double>::infinity());
+    // gaol_double_of(lo) <= the number < gaol_double_of(hi), sign_lo being
+    // the comparison of the number with gaol_double_of(lo)
+    uint64_t lo, hi;
+    int sign_lo = gaol_compare_number(s, gaol_double_of(guess));
+    if (sign_lo >= 0) {
+      lo = guess;
+      for (uint64_t step = 1;; step *= 2) {
+        hi = (top - lo > step) ? lo + step : top;
+        if (hi == top) { // +oo is above every number
+          break;
+        }
+        const int sign_hi = gaol_compare_number(s, gaol_double_of(hi));
+        if (sign_hi < 0) {
+          break;
+        }
+        lo = hi;
+        sign_lo = sign_hi;
       }
-      lo = hi;
-      sign = sign_hi;
+    } else {
+      hi = guess;
+      for (uint64_t step = 1;; step *= 2) {
+        lo = (hi > step) ? hi - step : 0;
+        sign_lo = gaol_compare_number(s, gaol_double_of(lo));
+        if (sign_lo >= 0) { // at the latest for 0, which no number is below
+          break;
+        }
+        hi = lo;
+      }
     }
+    while (hi - lo > 1) {
+      const uint64_t middle = lo + (hi - lo)/2;
+      const int sign_middle = gaol_compare_number(s, gaol_double_of(middle));
+      if (sign_middle >= 0) {
+        lo = middle;
+        sign_lo = sign_middle;
+      } else {
+        hi = middle;
+      }
+    }
+    GAOL_RND_RESTORE();
+    l = gaol_double_of(lo);
+    r = (sign_lo == 0) ? l : gaol_double_of(hi);
+    return sign_lo == 0;
   }
 
   // Reads the number s: returns NUMBER, with lval->d set to it, if it is a
@@ -352,6 +430,7 @@ namespace {
   */
   int gaol_read_uncertain(const char *s, YYSTYPE *lval)
   {
+    const long long exponent_bound = gaol_exponent_bound(s);
     gaol_decimal m;
     m.negative = (*s == '-');
     if (*s == '-' || *s == '+') {
@@ -392,11 +471,13 @@ namespace {
       if (*s == '-' || *s == '+') {
         ++s;
       }
+      long long e = 0;
       for (; *s != '\0'; ++s) {
-        if (exponent < 100000) { // Far beyond the doubles already
-          exponent = 10*exponent + (*s - '0');
+        if (e <= exponent_bound) {
+          e = 10*e + (*s - '0');
         }
       }
+      exponent = static_cast<long>((e > exponent_bound) ? exponent_bound : e);
       if (negative) {
         exponent = -exponent;
       }

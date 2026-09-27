@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <sstream>
 
 #if USING_SSE2_INSTRUCTIONS
@@ -553,16 +554,50 @@ namespace gaol_core {
   }
 
 
+  // Sets the failbit of is, without the std::ios_base::failure setstate()
+  // throws when the exceptions of is include failbit: the error of a line
+  // that is no interval is GAOL's exception. The bit stays set.
+  static void set_failbit(istream& is)
+  {
+    try {
+      is.setstate(std::ios_base::failbit);
+    } catch (const std::ios_base::failure&) {
+      // failbit is set
+    }
+  }
+
+  /*
+    Reads an interval from a line. Where there is no line left, std::getline()
+    fails, which sets failbit: I is left as it was and nothing is thrown, as
+    for a double, so that while (is >> x) ends at the end of the input (GAOL
+    v5). GAOL read the empty text then, threw input_format_error and emptied
+    I, so that such a loop always ended with an exception. A line that is no
+    interval, a blank one included, sets failbit too, I becomes the empty
+    set, and the exception of the reader is thrown: input_format_error, or
+    invalid_action_error for a function called with an argument it does not
+    take. A program reading on calls is.clear() first.
+  */
   istream& operator >>(istream& is, interval& I)
   {
     std::string buffer;
 
-    getline(is,buffer);
+    if (!std::getline(is,buffer)) {
+      return is;
+    }
 
-    if (!gaol::parse_interval(buffer.c_str(),I)) {
+    bool read;
+    try {
+      read = gaol::parse_interval(buffer.c_str(),I);
+    } catch (...) { // An error the reader raised as it read the line
+      I = interval::emptyset();
+      set_failbit(is);
+      throw;
+    }
+    if (!read) {
       std::string err_msg("Syntax error in expression of interval: ");
       err_msg += buffer;
       I = interval::emptyset();
+      set_failbit(is);
       gaol_ERROR(input_format_error,err_msg.c_str());
     }
     return is;
@@ -742,19 +777,44 @@ namespace gaol_core {
     it again give the same bounds. GAOL wrote the sixteen hexadecimal digits of
     each double instead, which is no interval literal at all: the parser
     refused them, and the note of 13.4.1 gives that very form as the one that
-    fails the readability test. printf("%a") writes as many digits as the value
-    needs, the C standard asking for an exact representation when no precision
-    is given, and the lexer already reads that form.
+    fails the readability test. The form is the one printf("%a") of the glibc
+    writes: as many digits as the value needs, "0x1.999999999999ap-4",
+    "0x0.0000000000001p-1022" for a subnormal, "0x0p+0" for zero, and the
+    lexer reads it.
+    It is written from the bits of the double rather than by printf("%a"),
+    which follows the decimal point of the C locale: under a locale writing a
+    decimal comma, it wrote "0x1,999999999999ap-4", which cannot be read
+    back (GAOL v5).
   */
   static void write_hexa_bound(double x, char *buf, std::size_t n)
   {
     if (x == GAOL_INFINITY) {
       std::snprintf(buf, n, "inf");
-    } else if (x == -GAOL_INFINITY) {
-      std::snprintf(buf, n, "-inf");
-    } else {
-      std::snprintf(buf, n, "%a", x);
+      return;
     }
+    if (x == -GAOL_INFINITY) {
+      std::snprintf(buf, n, "-inf");
+      return;
+    }
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const int biased = static_cast<int>((bits >> 52) & 0x7ff);
+    std::uint64_t fraction = bits & ((static_cast<std::uint64_t>(1) << 52) - 1);
+    // 1.f 2^(e-1023) for a normal double, 0.f 2^-1022 for a subnormal one, 0
+    const int leading = (biased == 0) ? 0 : 1;
+    const int exponent = (biased == 0) ? ((fraction == 0) ? 0 : -1022) : biased - 1023;
+    // The 13 hexadecimal digits of the fraction, without the zeros ending them
+    char digits[14];
+    for (int i = 12; i >= 0; --i, fraction >>= 4) {
+      digits[i] = "0123456789abcdef"[fraction & 0xf];
+    }
+    int nb_digits = 13;
+    while (nb_digits > 0 && digits[nb_digits - 1] == '0') {
+      --nb_digits;
+    }
+    digits[nb_digits] = '\0';
+    std::snprintf(buf, n, "%s0x%d%s%sp%+d", (bits >> 63) ? "-" : "", leading,
+                  (nb_digits > 0) ? "." : "", digits, exponent);
   }
 
   std::string exact_string(const interval& I)
@@ -768,68 +828,80 @@ namespace gaol_core {
     return std::string("[") + lo + ", " + hi + "]";
   }
 
+  /*
+    The text is written in a stream of its own, with the flags and the locale
+    of os and the precision of interval::precision(), then into os at once
+    (GAOL v5): os keeps its precision, and its width (std::setw) and
+    adjustment apply to the whole interval. GAOL set the precision of os to
+    interval::precision() and left it so, the doubles written afterwards
+    getting 16 digits, and wrote the interval piece by piece, std::setw
+    padding its '[' only.
+  */
   ostream& operator<<(ostream& os, const interval& I)
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
+    std::ostringstream out;
+    out.copyfmt(os);
+    out.width(0);
+    out.precision(interval::precision());
+
     GAOL_RND_PRESERVE();
 	round_upward();
 
     double l = I.left(), r = I.right();
 
-    os.precision(interval::precision());
-
     switch (interval::format()) {
     case interval_format::bounds: // Display in the form "[ l, r ]"
-      display_bounds(l,r,os);
+      display_bounds(l,r,out);
       break;
     case interval_format::hexa: // The exact text representation of 13.4
-      os << exact_string(I);
+      out << exact_string(I);
       break;
     case interval_format::width: // Display in the form "c (+/- w)"
       if (I.is_empty()) {
-				os << "empty";
+				out << "empty";
       } else {
 				if (l == r) {
-	  			os << l;
+	  			out << l;
 				} else {
 	  			round_nearest();
 	  			if (l == -GAOL_INFINITY) {
 	    			if (r == GAOL_INFINITY) { // [-oo, +oo]
-	      			os << 0.0;
+	      			out << 0.0;
 	    			} else {                        // [-oo, x]
-	      			os << -std::numeric_limits<double>::max();
+	      			out << -std::numeric_limits<double>::max();
 	    			}
 	  			} else {
 	    			if (r == GAOL_INFINITY) { // [x, +oo]
-	      			os << std::numeric_limits<double>::max();
+	      			out << std::numeric_limits<double>::max();
 	    			} else {                        // [x, y]
-	      			os << ((l+r)/2.0);
+	      			out << ((l+r)/2.0);
 	    			}
 	  			}
-	  				os << " (+/- " << ((r-l)/2.0) << ")";
+	  				out << " (+/- " << ((r-l)/2.0) << ")";
 				}
       }
       break;
     case interval_format::center: // Display in the form "c"
       if (I.is_empty()) {
-				os << "empty";
+				out << "empty";
       } else {
 				if (l == r) {
-	  			os << l;
+	  			out << l;
 				} else {
 	  			round_nearest();
 	  			if (l == -GAOL_INFINITY) {
 	    			if (r == GAOL_INFINITY) { // [-oo, +oo]
-	      			os << 0.0;
+	      			out << 0.0;
 	    			} else {                        // [-oo, x]
-	      			os << -std::numeric_limits<double>::max();
+	      			out << -std::numeric_limits<double>::max();
 	    			}
 	  			} else {
 	    			if (r == GAOL_INFINITY) { // [x, +oo]
-	      			os << std::numeric_limits<double>::max();
+	      			out << std::numeric_limits<double>::max();
 	    			} else {                        // [x, y]
-	      			os << ((l+r)/2.0);
+	      			out << ((l+r)/2.0);
 	    			}
 	  			}
 				}
@@ -837,10 +909,10 @@ namespace gaol_core {
       break;
     case interval_format::agreeing:
       if (I.is_empty()) {
-				os << "[empty]";
+				out << "[empty]";
       } else {
 				if (I.right() > 10*I.left()) {
-	  			display_bounds(l,r,os);
+	  			display_bounds(l,r,out);
 				} else {
 	  			std::ostringstream lbound, rbound;
 	  			std::string itv;
@@ -878,12 +950,12 @@ namespace gaol_core {
 	      			itv += (k == 0) ? ", " : "]";
 	    			}
 	  			}
-	  			os << itv;
+	  			out << itv;
 				}
       }
     }
     GAOL_RND_RESTORE();
-    return os;
+    return os << out.str();
   }
 
 
