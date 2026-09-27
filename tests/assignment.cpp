@@ -1,11 +1,8 @@
-#include "tests.h"
+// GAOL 4's unit test check/assignment.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-class assignment_test : public CppUnit::TestFixture {
-    CPPUNIT_TEST_SUITE(assignment_test);
-    CPPUNIT_TEST(test_assignment);
-    CPPUNIT_TEST(test_arithmetic_assignment);
-    CPPUNIT_TEST(test_logic_assignment);
-    CPPUNIT_TEST_SUITE_END();
+class assignment_test {
 public:
   void setUp() {
   }
@@ -81,4 +78,7 @@ public:
   // <-- End of tests
 };
 
-GAOL_REGISTER_TEST(assignment_test)
+GAOL_UNIT_MAIN(assignment_test, "assignment",
+               GAOL_UNIT_TEST(test_assignment),
+               GAOL_UNIT_TEST(test_arithmetic_assignment),
+               GAOL_UNIT_TEST(test_logic_assignment))

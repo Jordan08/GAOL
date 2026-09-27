@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_exact.h 54 2009-03-01 13:53:01Z goualard $
- * Last modified: 
- * By: 
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -36,8 +32,6 @@
 #ifndef __gaol_exact_h__
 #define __gaol_exact_h__
 
-// To overcome problems with old versions of autoconf
-#undef PACKAGE
 #include "gaol/gaol_config.h"
 
 #ifdef __cplusplus

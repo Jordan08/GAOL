@@ -33,8 +33,11 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base  
 # directory of gaol.                                                          
 #------------------------------------------------------------------------------
-# SVN: $Id$
-#------------------------------------------------------------------------------
+
+# The examples of GAOL v5 (see examples.md), as examples/CMakeLists.txt builds
+# them: ./configure --with-examples builds them with GAOL (make), and make
+# check runs them, each checking what it prints (see ../Makefile.am). In C++17,
+# with the threads of 13_rounding_environment (PTHREAD_FLAGS) (GAOL v5).
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -110,7 +113,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = 16_Goldstein_Price$(EXEEXT)
+@WITH_EXAMPLES_TRUE@noinst_PROGRAMS = $(am__EXEEXT_1)
+@WITH_EXAMPLES_TRUE@TESTS = $(am__EXEEXT_1)
 subdir = examples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -120,19 +124,90 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+am__EXEEXT_1 = 01_first_steps$(EXEEXT) 02_decimals_and_rump$(EXEEXT) \
+	03_dependency_problem$(EXEEXT) 04_centered_form$(EXEEXT) \
+	05_interval_newton$(EXEEXT) 06_global_optimization$(EXEEXT) \
+	07_contractors$(EXEEXT) 08_sivia$(EXEEXT) \
+	09_parameter_estimation$(EXEEXT) 10_krawczyk$(EXEEXT) \
+	11_ode_enclosure$(EXEEXT) 12_affine_arithmetic$(EXEEXT) \
+	13_rounding_environment$(EXEEXT) \
+	14_generic_programming$(EXEEXT) 15_text_and_ieee1788$(EXEEXT) \
+	16_Goldstein_Price$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
-am_16_Goldstein_Price_OBJECTS = 16_Goldstein_Price.$(OBJEXT)
-16_Goldstein_Price_OBJECTS = $(am_16_Goldstein_Price_OBJECTS)
-16_Goldstein_Price_LDADD = $(LDADD)
-16_Goldstein_Price_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+01_first_steps_SOURCES = 01_first_steps.cpp
+01_first_steps_OBJECTS = 01_first_steps.$(OBJEXT)
+01_first_steps_LDADD = $(LDADD)
+01_first_steps_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+02_decimals_and_rump_SOURCES = 02_decimals_and_rump.cpp
+02_decimals_and_rump_OBJECTS = 02_decimals_and_rump.$(OBJEXT)
+02_decimals_and_rump_LDADD = $(LDADD)
+02_decimals_and_rump_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+03_dependency_problem_SOURCES = 03_dependency_problem.cpp
+03_dependency_problem_OBJECTS = 03_dependency_problem.$(OBJEXT)
+03_dependency_problem_LDADD = $(LDADD)
+03_dependency_problem_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+04_centered_form_SOURCES = 04_centered_form.cpp
+04_centered_form_OBJECTS = 04_centered_form.$(OBJEXT)
+04_centered_form_LDADD = $(LDADD)
+04_centered_form_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+05_interval_newton_SOURCES = 05_interval_newton.cpp
+05_interval_newton_OBJECTS = 05_interval_newton.$(OBJEXT)
+05_interval_newton_LDADD = $(LDADD)
+05_interval_newton_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+06_global_optimization_SOURCES = 06_global_optimization.cpp
+06_global_optimization_OBJECTS = 06_global_optimization.$(OBJEXT)
+06_global_optimization_LDADD = $(LDADD)
+06_global_optimization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+07_contractors_SOURCES = 07_contractors.cpp
+07_contractors_OBJECTS = 07_contractors.$(OBJEXT)
+07_contractors_LDADD = $(LDADD)
+07_contractors_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+08_sivia_SOURCES = 08_sivia.cpp
+08_sivia_OBJECTS = 08_sivia.$(OBJEXT)
+08_sivia_LDADD = $(LDADD)
+08_sivia_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+09_parameter_estimation_SOURCES = 09_parameter_estimation.cpp
+09_parameter_estimation_OBJECTS = 09_parameter_estimation.$(OBJEXT)
+09_parameter_estimation_LDADD = $(LDADD)
+09_parameter_estimation_DEPENDENCIES =  \
+	$(top_builddir)/gaol/libgaol.la
+10_krawczyk_SOURCES = 10_krawczyk.cpp
+10_krawczyk_OBJECTS = 10_krawczyk.$(OBJEXT)
+10_krawczyk_LDADD = $(LDADD)
+10_krawczyk_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+11_ode_enclosure_SOURCES = 11_ode_enclosure.cpp
+11_ode_enclosure_OBJECTS = 11_ode_enclosure.$(OBJEXT)
+11_ode_enclosure_LDADD = $(LDADD)
+11_ode_enclosure_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+12_affine_arithmetic_SOURCES = 12_affine_arithmetic.cpp
+12_affine_arithmetic_OBJECTS = 12_affine_arithmetic.$(OBJEXT)
+12_affine_arithmetic_LDADD = $(LDADD)
+12_affine_arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+13_rounding_environment_SOURCES = 13_rounding_environment.cpp
+13_rounding_environment_OBJECTS = 13_rounding_environment.$(OBJEXT)
+13_rounding_environment_LDADD = $(LDADD)
+13_rounding_environment_DEPENDENCIES =  \
+	$(top_builddir)/gaol/libgaol.la
+14_generic_programming_SOURCES = 14_generic_programming.cpp
+14_generic_programming_OBJECTS = 14_generic_programming.$(OBJEXT)
+14_generic_programming_LDADD = $(LDADD)
+14_generic_programming_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+15_text_and_ieee1788_SOURCES = 15_text_and_ieee1788.cpp
+15_text_and_ieee1788_OBJECTS = 15_text_and_ieee1788.$(OBJEXT)
+15_text_and_ieee1788_LDADD = $(LDADD)
+15_text_and_ieee1788_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+16_Goldstein_Price_SOURCES = 16_Goldstein_Price.cpp
+16_Goldstein_Price_OBJECTS = 16_Goldstein_Price.$(OBJEXT)
+16_Goldstein_Price_LDADD = $(LDADD)
+16_Goldstein_Price_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -148,7 +223,20 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/gaol
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/16_Goldstein_Price.Po
+am__depfiles_remade = ./$(DEPDIR)/01_first_steps.Po \
+	./$(DEPDIR)/02_decimals_and_rump.Po \
+	./$(DEPDIR)/03_dependency_problem.Po \
+	./$(DEPDIR)/04_centered_form.Po \
+	./$(DEPDIR)/05_interval_newton.Po \
+	./$(DEPDIR)/06_global_optimization.Po \
+	./$(DEPDIR)/07_contractors.Po ./$(DEPDIR)/08_sivia.Po \
+	./$(DEPDIR)/09_parameter_estimation.Po \
+	./$(DEPDIR)/10_krawczyk.Po ./$(DEPDIR)/11_ode_enclosure.Po \
+	./$(DEPDIR)/12_affine_arithmetic.Po \
+	./$(DEPDIR)/13_rounding_environment.Po \
+	./$(DEPDIR)/14_generic_programming.Po \
+	./$(DEPDIR)/15_text_and_ieee1788.Po \
+	./$(DEPDIR)/16_Goldstein_Price.Po
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -168,7 +256,13 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(16_Goldstein_Price_SOURCES)
+SOURCES = 01_first_steps.cpp 02_decimals_and_rump.cpp \
+	03_dependency_problem.cpp 04_centered_form.cpp \
+	05_interval_newton.cpp 06_global_optimization.cpp \
+	07_contractors.cpp 08_sivia.cpp 09_parameter_estimation.cpp \
+	10_krawczyk.cpp 11_ode_enclosure.cpp 12_affine_arithmetic.cpp \
+	13_rounding_environment.cpp 14_generic_programming.cpp \
+	15_text_and_ieee1788.cpp 16_Goldstein_Price.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -193,6 +287,210 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
+am__tty_colors_dummy = \
+  mgn= red= grn= lgn= blu= brg= std=; \
+  am__color_tests=no
+am__tty_colors = { \
+  $(am__tty_colors_dummy); \
+  if test "X$(AM_COLOR_TESTS)" = Xno; then \
+    am__color_tests=no; \
+  elif test "X$(AM_COLOR_TESTS)" = Xalways; then \
+    am__color_tests=yes; \
+  elif test "X$$TERM" != Xdumb && { test -t 1; } 2>/dev/null; then \
+    am__color_tests=yes; \
+  fi; \
+  if test $$am__color_tests = yes; then \
+    red='[0;31m'; \
+    grn='[0;32m'; \
+    lgn='[1;32m'; \
+    blu='[1;34m'; \
+    mgn='[0;35m'; \
+    brg='[1m'; \
+    std='[m'; \
+  fi; \
+}
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__recheck_rx = ^[ 	]*:recheck:[ 	]*
+am__global_test_result_rx = ^[ 	]*:global-test-result:[ 	]*
+am__copy_in_global_log_rx = ^[ 	]*:copy-in-global-log:[ 	]*
+# A command that, given a newline-separated list of test names on the
+# standard input, print the name of the tests that are to be re-run
+# upon "make recheck".
+am__list_recheck_tests = $(AWK) '{ \
+  recheck = 1; \
+  while ((rc = (getline line < ($$0 ".trs"))) != 0) \
+    { \
+      if (rc < 0) \
+        { \
+          if ((getline line2 < ($$0 ".log")) < 0) \
+	    recheck = 0; \
+          break; \
+        } \
+      else if (line ~ /$(am__recheck_rx)[nN][Oo]/) \
+        { \
+          recheck = 0; \
+          break; \
+        } \
+      else if (line ~ /$(am__recheck_rx)[yY][eE][sS]/) \
+        { \
+          break; \
+        } \
+    }; \
+  if (recheck) \
+    print $$0; \
+  close ($$0 ".trs"); \
+  close ($$0 ".log"); \
+}'
+# A command that, given a newline-separated list of test names on the
+# standard input, create the global log from their .trs and .log files.
+am__create_global_log = $(AWK) ' \
+function fatal(msg) \
+{ \
+  print "fatal: making $@: " msg | "cat >&2"; \
+  exit 1; \
+} \
+function rst_section(header) \
+{ \
+  print header; \
+  len = length(header); \
+  for (i = 1; i <= len; i = i + 1) \
+    printf "="; \
+  printf "\n\n"; \
+} \
+{ \
+  copy_in_global_log = 1; \
+  global_test_result = "RUN"; \
+  while ((rc = (getline line < ($$0 ".trs"))) != 0) \
+    { \
+      if (rc < 0) \
+         fatal("failed to read from " $$0 ".trs"); \
+      if (line ~ /$(am__global_test_result_rx)/) \
+        { \
+          sub("$(am__global_test_result_rx)", "", line); \
+          sub("[ 	]*$$", "", line); \
+          global_test_result = line; \
+        } \
+      else if (line ~ /$(am__copy_in_global_log_rx)[nN][oO]/) \
+        copy_in_global_log = 0; \
+    }; \
+  if (copy_in_global_log) \
+    { \
+      rst_section(global_test_result ": " $$0); \
+      while ((rc = (getline line < ($$0 ".log"))) != 0) \
+      { \
+        if (rc < 0) \
+          fatal("failed to read from " $$0 ".log"); \
+        print line; \
+      }; \
+      printf "\n"; \
+    }; \
+  close ($$0 ".trs"); \
+  close ($$0 ".log"); \
+}'
+# Restructured Text title.
+am__rst_title = { sed 's/.*/   &   /;h;s/./=/g;p;x;s/ *$$//;p;g' && echo; }
+# Solaris 10 'make', and several other traditional 'make' implementations,
+# pass "-e" to $(SHELL), and POSIX 2008 even requires this.  Work around it
+# by disabling -e (using the XSI extension "set +e") if it's set.
+am__sh_e_setup = case $$- in *e*) set +e;; esac
+# Default flags passed to test drivers.
+am__common_driver_flags = \
+  --color-tests "$$am__color_tests" \
+  --enable-hard-errors "$$am__enable_hard_errors" \
+  --expect-failure "$$am__expect_failure"
+# To be inserted before the command running the test.  Creates the
+# directory for the log if needed.  Stores in $dir the directory
+# containing $f, in $tst the test, in $log the log.  Executes the
+# developer- defined test setup AM_TESTS_ENVIRONMENT (if any), and
+# passes TESTS_ENVIRONMENT.  Set up options for the wrapper that
+# will run the test scripts (or their associated LOG_COMPILER, if
+# thy have one).
+am__check_pre = \
+$(am__sh_e_setup);					\
+$(am__vpath_adj_setup) $(am__vpath_adj)			\
+$(am__tty_colors);					\
+srcdir=$(srcdir); export srcdir;			\
+case "$@" in						\
+  */*) am__odir=`echo "./$@" | sed 's|/[^/]*$$||'`;;	\
+    *) am__odir=.;; 					\
+esac;							\
+test "x$$am__odir" = x"." || test -d "$$am__odir" 	\
+  || $(MKDIR_P) "$$am__odir" || exit $$?;		\
+if test -f "./$$f"; then dir=./;			\
+elif test -f "$$f"; then dir=;				\
+else dir="$(srcdir)/"; fi;				\
+tst=$$dir$$f; log='$@'; 				\
+if test -n '$(DISABLE_HARD_ERRORS)'; then		\
+  am__enable_hard_errors=no; 				\
+else							\
+  am__enable_hard_errors=yes; 				\
+fi; 							\
+case " $(XFAIL_TESTS) " in				\
+  *[\ \	]$$f[\ \	]* | *[\ \	]$$dir$$f[\ \	]*) \
+    am__expect_failure=yes;;				\
+  *)							\
+    am__expect_failure=no;;				\
+esac; 							\
+$(AM_TESTS_ENVIRONMENT) $(TESTS_ENVIRONMENT)
+# A shell command to get the names of the tests scripts with any registered
+# extension removed (i.e., equivalently, the names of the test logs, with
+# the '.log' extension removed).  The result is saved in the shell variable
+# '$bases'.  This honors runtime overriding of TESTS and TEST_LOGS.  Sadly,
+# we cannot use something simpler, involving e.g., "$(TEST_LOGS:.log=)",
+# since that might cause problem with VPATH rewrites for suffix-less tests.
+# See also 'test-harness-vpath-rewrite.sh' and 'test-trs-basic.sh'.
+am__set_TESTS_bases = \
+  bases='$(TEST_LOGS)'; \
+  bases=`for i in $$bases; do echo $$i; done | sed 's/\.log$$//'`; \
+  bases=`echo $$bases`
+RECHECK_LOGS = $(TEST_LOGS)
+AM_RECURSIVE_TARGETS = check recheck
+TEST_SUITE_LOG = test-suite.log
+TEST_EXTENSIONS = @EXEEXT@ .test
+LOG_DRIVER = $(SHELL) $(top_srcdir)/test-driver
+LOG_COMPILE = $(LOG_COMPILER) $(AM_LOG_FLAGS) $(LOG_FLAGS)
+am__set_b = \
+  case '$@' in \
+    */*) \
+      case '$*' in \
+        */*) b='$*';; \
+          *) b=`echo '$@' | sed 's/\.log$$//'`; \
+       esac;; \
+    *) \
+      b='$*';; \
+  esac
+am__test_logs1 = $(TESTS:=.log)
+am__test_logs2 = $(am__test_logs1:@EXEEXT@.log=.log)
+TEST_LOGS = $(am__test_logs2:.test.log=.log)
+TEST_LOG_DRIVER = $(SHELL) $(top_srcdir)/test-driver
+TEST_LOG_COMPILE = $(TEST_LOG_COMPILER) $(AM_TEST_LOG_FLAGS) \
+	$(TEST_LOG_FLAGS)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
@@ -216,10 +514,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DLLIB = @DLLIB@
 DLLTOOL = @DLLTOOL@
-DOT = @DOT@
-DOXYGEN = @DOXYGEN@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
@@ -228,10 +523,9 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GAOL_CXX_STD = @GAOL_CXX_STD@
 GAOL_EDITION = @GAOL_EDITION@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
-GAOL_PC_VERSION = @GAOL_PC_VERSION@
-GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
@@ -250,7 +544,6 @@ LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LT_RELEASE = @LT_RELEASE@
 LT_VERSION_INFO = @LT_VERSION_INFO@
 MAINT = @MAINT@
 MAKEINDEX = @MAKEINDEX@
@@ -272,14 +565,13 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PDFLATEX = @PDFLATEX@
+PTHREAD_FLAGS = @PTHREAD_FLAGS@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
-YACC = @YACC@
-YFLAGS = @YFLAGS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -339,16 +631,26 @@ top_srcdir = @top_srcdir@
 # otherwise: a prefix given there may hold an installed GAOL too, whose headers
 # were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+AM_CXXFLAGS = -std=c++17 $(PTHREAD_FLAGS)
+AM_LDFLAGS = $(PTHREAD_FLAGS)
+AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The library just built, by its libtool archive, rather than -lgaol with
 # -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
 # there may hold an installed GAOL too, which was then linked
-LDADD = -lm $(top_builddir)/gaol/libgaol.la
-16_Goldstein_Price_SOURCES = 16_Goldstein_Price.cpp
+LDADD = $(top_builddir)/gaol/libgaol.la -lm
+
+# The same list as examples/CMakeLists.txt
+GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \
+	04_centered_form 05_interval_newton 06_global_optimization 07_contractors \
+	08_sivia 09_parameter_estimation 10_krawczyk 11_ode_enclosure \
+	12_affine_arithmetic 13_rounding_environment 14_generic_programming \
+	15_text_and_ieee1788 16_Goldstein_Price
+
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .lo .o .obj
+.SUFFIXES: .cpp .lo .log .o .obj .test .test$(EXEEXT) .trs
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -388,6 +690,66 @@ clean-noinstPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
+01_first_steps$(EXEEXT): $(01_first_steps_OBJECTS) $(01_first_steps_DEPENDENCIES) $(EXTRA_01_first_steps_DEPENDENCIES) 
+	@rm -f 01_first_steps$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(01_first_steps_OBJECTS) $(01_first_steps_LDADD) $(LIBS)
+
+02_decimals_and_rump$(EXEEXT): $(02_decimals_and_rump_OBJECTS) $(02_decimals_and_rump_DEPENDENCIES) $(EXTRA_02_decimals_and_rump_DEPENDENCIES) 
+	@rm -f 02_decimals_and_rump$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(02_decimals_and_rump_OBJECTS) $(02_decimals_and_rump_LDADD) $(LIBS)
+
+03_dependency_problem$(EXEEXT): $(03_dependency_problem_OBJECTS) $(03_dependency_problem_DEPENDENCIES) $(EXTRA_03_dependency_problem_DEPENDENCIES) 
+	@rm -f 03_dependency_problem$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(03_dependency_problem_OBJECTS) $(03_dependency_problem_LDADD) $(LIBS)
+
+04_centered_form$(EXEEXT): $(04_centered_form_OBJECTS) $(04_centered_form_DEPENDENCIES) $(EXTRA_04_centered_form_DEPENDENCIES) 
+	@rm -f 04_centered_form$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(04_centered_form_OBJECTS) $(04_centered_form_LDADD) $(LIBS)
+
+05_interval_newton$(EXEEXT): $(05_interval_newton_OBJECTS) $(05_interval_newton_DEPENDENCIES) $(EXTRA_05_interval_newton_DEPENDENCIES) 
+	@rm -f 05_interval_newton$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(05_interval_newton_OBJECTS) $(05_interval_newton_LDADD) $(LIBS)
+
+06_global_optimization$(EXEEXT): $(06_global_optimization_OBJECTS) $(06_global_optimization_DEPENDENCIES) $(EXTRA_06_global_optimization_DEPENDENCIES) 
+	@rm -f 06_global_optimization$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(06_global_optimization_OBJECTS) $(06_global_optimization_LDADD) $(LIBS)
+
+07_contractors$(EXEEXT): $(07_contractors_OBJECTS) $(07_contractors_DEPENDENCIES) $(EXTRA_07_contractors_DEPENDENCIES) 
+	@rm -f 07_contractors$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(07_contractors_OBJECTS) $(07_contractors_LDADD) $(LIBS)
+
+08_sivia$(EXEEXT): $(08_sivia_OBJECTS) $(08_sivia_DEPENDENCIES) $(EXTRA_08_sivia_DEPENDENCIES) 
+	@rm -f 08_sivia$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(08_sivia_OBJECTS) $(08_sivia_LDADD) $(LIBS)
+
+09_parameter_estimation$(EXEEXT): $(09_parameter_estimation_OBJECTS) $(09_parameter_estimation_DEPENDENCIES) $(EXTRA_09_parameter_estimation_DEPENDENCIES) 
+	@rm -f 09_parameter_estimation$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(09_parameter_estimation_OBJECTS) $(09_parameter_estimation_LDADD) $(LIBS)
+
+10_krawczyk$(EXEEXT): $(10_krawczyk_OBJECTS) $(10_krawczyk_DEPENDENCIES) $(EXTRA_10_krawczyk_DEPENDENCIES) 
+	@rm -f 10_krawczyk$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(10_krawczyk_OBJECTS) $(10_krawczyk_LDADD) $(LIBS)
+
+11_ode_enclosure$(EXEEXT): $(11_ode_enclosure_OBJECTS) $(11_ode_enclosure_DEPENDENCIES) $(EXTRA_11_ode_enclosure_DEPENDENCIES) 
+	@rm -f 11_ode_enclosure$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(11_ode_enclosure_OBJECTS) $(11_ode_enclosure_LDADD) $(LIBS)
+
+12_affine_arithmetic$(EXEEXT): $(12_affine_arithmetic_OBJECTS) $(12_affine_arithmetic_DEPENDENCIES) $(EXTRA_12_affine_arithmetic_DEPENDENCIES) 
+	@rm -f 12_affine_arithmetic$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(12_affine_arithmetic_OBJECTS) $(12_affine_arithmetic_LDADD) $(LIBS)
+
+13_rounding_environment$(EXEEXT): $(13_rounding_environment_OBJECTS) $(13_rounding_environment_DEPENDENCIES) $(EXTRA_13_rounding_environment_DEPENDENCIES) 
+	@rm -f 13_rounding_environment$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(13_rounding_environment_OBJECTS) $(13_rounding_environment_LDADD) $(LIBS)
+
+14_generic_programming$(EXEEXT): $(14_generic_programming_OBJECTS) $(14_generic_programming_DEPENDENCIES) $(EXTRA_14_generic_programming_DEPENDENCIES) 
+	@rm -f 14_generic_programming$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(14_generic_programming_OBJECTS) $(14_generic_programming_LDADD) $(LIBS)
+
+15_text_and_ieee1788$(EXEEXT): $(15_text_and_ieee1788_OBJECTS) $(15_text_and_ieee1788_DEPENDENCIES) $(EXTRA_15_text_and_ieee1788_DEPENDENCIES) 
+	@rm -f 15_text_and_ieee1788$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(15_text_and_ieee1788_OBJECTS) $(15_text_and_ieee1788_LDADD) $(LIBS)
+
 16_Goldstein_Price$(EXEEXT): $(16_Goldstein_Price_OBJECTS) $(16_Goldstein_Price_DEPENDENCIES) $(EXTRA_16_Goldstein_Price_DEPENDENCIES) 
 	@rm -f 16_Goldstein_Price$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(16_Goldstein_Price_OBJECTS) $(16_Goldstein_Price_LDADD) $(LIBS)
@@ -398,6 +760,21 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/01_first_steps.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/02_decimals_and_rump.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/03_dependency_problem.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/04_centered_form.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/05_interval_newton.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/06_global_optimization.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/07_contractors.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/08_sivia.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/09_parameter_estimation.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/10_krawczyk.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/11_ode_enclosure.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/12_affine_arithmetic.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/13_rounding_environment.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/14_generic_programming.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/15_text_and_ieee1788.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/16_Goldstein_Price.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -487,7 +864,276 @@ cscopelist-am: $(am__tagged_files)
 
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
+
+# Recover from deleted '.trs' file; this should ensure that
+# "rm -f foo.log; make foo.trs" re-run 'foo.test', and re-create
+# both 'foo.log' and 'foo.trs'.  Break the recipe in two subshells
+# to avoid problems with "make -n".
+.log.trs:
+	rm -f $< $@
+	$(MAKE) $(AM_MAKEFLAGS) $<
+
+# Leading 'am--fnord' is there to ensure the list of targets does not
+# expand to empty, as could happen e.g. with make check TESTS=''.
+am--fnord $(TEST_LOGS) $(TEST_LOGS:.log=.trs): $(am__force_recheck)
+am--force-recheck:
+	@:
+
+$(TEST_SUITE_LOG): $(TEST_LOGS)
+	@$(am__set_TESTS_bases); \
+	am__f_ok () { test -f "$$1" && test -r "$$1"; }; \
+	redo_bases=`for i in $$bases; do \
+	              am__f_ok $$i.trs && am__f_ok $$i.log || echo $$i; \
+	            done`; \
+	if test -n "$$redo_bases"; then \
+	  redo_logs=`for i in $$redo_bases; do echo $$i.log; done`; \
+	  redo_results=`for i in $$redo_bases; do echo $$i.trs; done`; \
+	  if $(am__make_dryrun); then :; else \
+	    rm -f $$redo_logs && rm -f $$redo_results || exit 1; \
+	  fi; \
+	fi; \
+	if test -n "$$am__remaking_logs"; then \
+	  echo "fatal: making $(TEST_SUITE_LOG): possible infinite" \
+	       "recursion detected" >&2; \
+	elif test -n "$$redo_logs"; then \
+	  am__remaking_logs=yes $(MAKE) $(AM_MAKEFLAGS) $$redo_logs; \
+	fi; \
+	if $(am__make_dryrun); then :; else \
+	  st=0;  \
+	  errmsg="fatal: making $(TEST_SUITE_LOG): failed to create"; \
+	  for i in $$redo_bases; do \
+	    test -f $$i.trs && test -r $$i.trs \
+	      || { echo "$$errmsg $$i.trs" >&2; st=1; }; \
+	    test -f $$i.log && test -r $$i.log \
+	      || { echo "$$errmsg $$i.log" >&2; st=1; }; \
+	  done; \
+	  test $$st -eq 0 || exit 1; \
+	fi
+	@$(am__sh_e_setup); $(am__tty_colors); $(am__set_TESTS_bases); \
+	ws='[ 	]'; \
+	results=`for b in $$bases; do echo $$b.trs; done`; \
+	test -n "$$results" || results=/dev/null; \
+	all=`  grep "^$$ws*:test-result:"           $$results | wc -l`; \
+	pass=` grep "^$$ws*:test-result:$$ws*PASS"  $$results | wc -l`; \
+	fail=` grep "^$$ws*:test-result:$$ws*FAIL"  $$results | wc -l`; \
+	skip=` grep "^$$ws*:test-result:$$ws*SKIP"  $$results | wc -l`; \
+	xfail=`grep "^$$ws*:test-result:$$ws*XFAIL" $$results | wc -l`; \
+	xpass=`grep "^$$ws*:test-result:$$ws*XPASS" $$results | wc -l`; \
+	error=`grep "^$$ws*:test-result:$$ws*ERROR" $$results | wc -l`; \
+	if test `expr $$fail + $$xpass + $$error` -eq 0; then \
+	  success=true; \
+	else \
+	  success=false; \
+	fi; \
+	br='==================='; br=$$br$$br$$br$$br; \
+	result_count () \
+	{ \
+	    if test x"$$1" = x"--maybe-color"; then \
+	      maybe_colorize=yes; \
+	    elif test x"$$1" = x"--no-color"; then \
+	      maybe_colorize=no; \
+	    else \
+	      echo "$@: invalid 'result_count' usage" >&2; exit 4; \
+	    fi; \
+	    shift; \
+	    desc=$$1 count=$$2; \
+	    if test $$maybe_colorize = yes && test $$count -gt 0; then \
+	      color_start=$$3 color_end=$$std; \
+	    else \
+	      color_start= color_end=; \
+	    fi; \
+	    echo "$${color_start}# $$desc $$count$${color_end}"; \
+	}; \
+	create_testsuite_report () \
+	{ \
+	  result_count $$1 "TOTAL:" $$all   "$$brg"; \
+	  result_count $$1 "PASS: " $$pass  "$$grn"; \
+	  result_count $$1 "SKIP: " $$skip  "$$blu"; \
+	  result_count $$1 "XFAIL:" $$xfail "$$lgn"; \
+	  result_count $$1 "FAIL: " $$fail  "$$red"; \
+	  result_count $$1 "XPASS:" $$xpass "$$red"; \
+	  result_count $$1 "ERROR:" $$error "$$mgn"; \
+	}; \
+	{								\
+	  echo "$(PACKAGE_STRING): $(subdir)/$(TEST_SUITE_LOG)" |	\
+	    $(am__rst_title);						\
+	  create_testsuite_report --no-color;				\
+	  echo;								\
+	  echo ".. contents:: :depth: 2";				\
+	  echo;								\
+	  for b in $$bases; do echo $$b; done				\
+	    | $(am__create_global_log);					\
+	} >$(TEST_SUITE_LOG).tmp || exit 1;				\
+	mv $(TEST_SUITE_LOG).tmp $(TEST_SUITE_LOG);			\
+	if $$success; then						\
+	  col="$$grn";							\
+	 else								\
+	  col="$$red";							\
+	  test x"$$VERBOSE" = x || cat $(TEST_SUITE_LOG);		\
+	fi;								\
+	echo "$${col}$$br$${std}"; 					\
+	echo "$${col}Testsuite summary for $(PACKAGE_STRING)$${std}";	\
+	echo "$${col}$$br$${std}"; 					\
+	create_testsuite_report --maybe-color;				\
+	echo "$$col$$br$$std";						\
+	if $$success; then :; else					\
+	  echo "$${col}See $(subdir)/$(TEST_SUITE_LOG)$${std}";		\
+	  if test -n "$(PACKAGE_BUGREPORT)"; then			\
+	    echo "$${col}Please report to $(PACKAGE_BUGREPORT)$${std}";	\
+	  fi;								\
+	  echo "$$col$$br$$std";					\
+	fi;								\
+	$$success || exit 1
+
+check-TESTS: 
+	@list='$(RECHECK_LOGS)';           test -z "$$list" || rm -f $$list
+	@list='$(RECHECK_LOGS:.log=.trs)'; test -z "$$list" || rm -f $$list
+	@test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
+	@set +e; $(am__set_TESTS_bases); \
+	log_list=`for i in $$bases; do echo $$i.log; done`; \
+	trs_list=`for i in $$bases; do echo $$i.trs; done`; \
+	log_list=`echo $$log_list`; trs_list=`echo $$trs_list`; \
+	$(MAKE) $(AM_MAKEFLAGS) $(TEST_SUITE_LOG) TEST_LOGS="$$log_list"; \
+	exit $$?;
+recheck: all 
+	@test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
+	@set +e; $(am__set_TESTS_bases); \
+	bases=`for i in $$bases; do echo $$i; done \
+	         | $(am__list_recheck_tests)` || exit 1; \
+	log_list=`for i in $$bases; do echo $$i.log; done`; \
+	log_list=`echo $$log_list`; \
+	$(MAKE) $(AM_MAKEFLAGS) $(TEST_SUITE_LOG) \
+	        am__force_recheck=am--force-recheck \
+	        TEST_LOGS="$$log_list"; \
+	exit $$?
+01_first_steps.log: 01_first_steps$(EXEEXT)
+	@p='01_first_steps$(EXEEXT)'; \
+	b='01_first_steps'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+02_decimals_and_rump.log: 02_decimals_and_rump$(EXEEXT)
+	@p='02_decimals_and_rump$(EXEEXT)'; \
+	b='02_decimals_and_rump'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+03_dependency_problem.log: 03_dependency_problem$(EXEEXT)
+	@p='03_dependency_problem$(EXEEXT)'; \
+	b='03_dependency_problem'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+04_centered_form.log: 04_centered_form$(EXEEXT)
+	@p='04_centered_form$(EXEEXT)'; \
+	b='04_centered_form'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+05_interval_newton.log: 05_interval_newton$(EXEEXT)
+	@p='05_interval_newton$(EXEEXT)'; \
+	b='05_interval_newton'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+06_global_optimization.log: 06_global_optimization$(EXEEXT)
+	@p='06_global_optimization$(EXEEXT)'; \
+	b='06_global_optimization'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+07_contractors.log: 07_contractors$(EXEEXT)
+	@p='07_contractors$(EXEEXT)'; \
+	b='07_contractors'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+08_sivia.log: 08_sivia$(EXEEXT)
+	@p='08_sivia$(EXEEXT)'; \
+	b='08_sivia'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+09_parameter_estimation.log: 09_parameter_estimation$(EXEEXT)
+	@p='09_parameter_estimation$(EXEEXT)'; \
+	b='09_parameter_estimation'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+10_krawczyk.log: 10_krawczyk$(EXEEXT)
+	@p='10_krawczyk$(EXEEXT)'; \
+	b='10_krawczyk'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+11_ode_enclosure.log: 11_ode_enclosure$(EXEEXT)
+	@p='11_ode_enclosure$(EXEEXT)'; \
+	b='11_ode_enclosure'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+12_affine_arithmetic.log: 12_affine_arithmetic$(EXEEXT)
+	@p='12_affine_arithmetic$(EXEEXT)'; \
+	b='12_affine_arithmetic'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+13_rounding_environment.log: 13_rounding_environment$(EXEEXT)
+	@p='13_rounding_environment$(EXEEXT)'; \
+	b='13_rounding_environment'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+14_generic_programming.log: 14_generic_programming$(EXEEXT)
+	@p='14_generic_programming$(EXEEXT)'; \
+	b='14_generic_programming'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+15_text_and_ieee1788.log: 15_text_and_ieee1788$(EXEEXT)
+	@p='15_text_and_ieee1788$(EXEEXT)'; \
+	b='15_text_and_ieee1788'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+16_Goldstein_Price.log: 16_Goldstein_Price$(EXEEXT)
+	@p='16_Goldstein_Price$(EXEEXT)'; \
+	b='16_Goldstein_Price'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+.test.log:
+	@p='$<'; \
+	$(am__set_b); \
+	$(am__check_pre) $(TEST_LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_TEST_LOG_DRIVER_FLAGS) $(TEST_LOG_DRIVER_FLAGS) -- $(TEST_LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+@am__EXEEXT_TRUE@.test$(EXEEXT).log:
+@am__EXEEXT_TRUE@	@p='$<'; \
+@am__EXEEXT_TRUE@	$(am__set_b); \
+@am__EXEEXT_TRUE@	$(am__check_pre) $(TEST_LOG_DRIVER) --test-name "$$f" \
+@am__EXEEXT_TRUE@	--log-file $$b.log --trs-file $$b.trs \
+@am__EXEEXT_TRUE@	$(am__common_driver_flags) $(AM_TEST_LOG_DRIVER_FLAGS) $(TEST_LOG_DRIVER_FLAGS) -- $(TEST_LOG_COMPILE) \
+@am__EXEEXT_TRUE@	"$$tst" $(AM_TESTS_FD_REDIRECT)
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
@@ -511,6 +1157,9 @@ install-strip:
 	    "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'" install; \
 	fi
 mostlyclean-generic:
+	-test -z "$(TEST_LOGS)" || rm -f $(TEST_LOGS)
+	-test -z "$(TEST_LOGS:.log=.trs)" || rm -f $(TEST_LOGS:.log=.trs)
+	-test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
 
 clean-generic:
 
@@ -527,7 +1176,22 @@ clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/16_Goldstein_Price.Po
+		-rm -f ./$(DEPDIR)/01_first_steps.Po
+	-rm -f ./$(DEPDIR)/02_decimals_and_rump.Po
+	-rm -f ./$(DEPDIR)/03_dependency_problem.Po
+	-rm -f ./$(DEPDIR)/04_centered_form.Po
+	-rm -f ./$(DEPDIR)/05_interval_newton.Po
+	-rm -f ./$(DEPDIR)/06_global_optimization.Po
+	-rm -f ./$(DEPDIR)/07_contractors.Po
+	-rm -f ./$(DEPDIR)/08_sivia.Po
+	-rm -f ./$(DEPDIR)/09_parameter_estimation.Po
+	-rm -f ./$(DEPDIR)/10_krawczyk.Po
+	-rm -f ./$(DEPDIR)/11_ode_enclosure.Po
+	-rm -f ./$(DEPDIR)/12_affine_arithmetic.Po
+	-rm -f ./$(DEPDIR)/13_rounding_environment.Po
+	-rm -f ./$(DEPDIR)/14_generic_programming.Po
+	-rm -f ./$(DEPDIR)/15_text_and_ieee1788.Po
+	-rm -f ./$(DEPDIR)/16_Goldstein_Price.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -573,7 +1237,22 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/16_Goldstein_Price.Po
+		-rm -f ./$(DEPDIR)/01_first_steps.Po
+	-rm -f ./$(DEPDIR)/02_decimals_and_rump.Po
+	-rm -f ./$(DEPDIR)/03_dependency_problem.Po
+	-rm -f ./$(DEPDIR)/04_centered_form.Po
+	-rm -f ./$(DEPDIR)/05_interval_newton.Po
+	-rm -f ./$(DEPDIR)/06_global_optimization.Po
+	-rm -f ./$(DEPDIR)/07_contractors.Po
+	-rm -f ./$(DEPDIR)/08_sivia.Po
+	-rm -f ./$(DEPDIR)/09_parameter_estimation.Po
+	-rm -f ./$(DEPDIR)/10_krawczyk.Po
+	-rm -f ./$(DEPDIR)/11_ode_enclosure.Po
+	-rm -f ./$(DEPDIR)/12_affine_arithmetic.Po
+	-rm -f ./$(DEPDIR)/13_rounding_environment.Po
+	-rm -f ./$(DEPDIR)/14_generic_programming.Po
+	-rm -f ./$(DEPDIR)/15_text_and_ieee1788.Po
+	-rm -f ./$(DEPDIR)/16_Goldstein_Price.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -592,20 +1271,21 @@ ps-am:
 
 uninstall-am:
 
-.MAKE: install-am install-strip
+.MAKE: check-am install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
-	clean-generic clean-libtool clean-noinstPROGRAMS cscopelist-am \
-	ctags ctags-am distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags dvi dvi-am html html-am info \
-	info-am install install-am install-data install-data-am \
-	install-dvi install-dvi-am install-exec install-exec-am \
-	install-html install-html-am install-info install-info-am \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+.PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-TESTS \
+	check-am clean clean-generic clean-libtool \
+	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags dvi dvi-am html html-am info info-am install \
+	install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am recheck tags tags-am uninstall \
 	uninstall-am
 
 .PRECIOUS: Makefile

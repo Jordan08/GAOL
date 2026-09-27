@@ -100,3 +100,10 @@ done
 
 python3 "$CODE_DIR/bench.py" report "$RESULTS" "$OUT/machine.txt" "$REPORT"
 echo "== tables written to $REPORT"
+# The results of a whole run, which make perf (run_perf.sh) keeps for the
+# libraries other than GAOL v5 when it measures GAOL v5 alone again
+if [ -z "$OPS" ] && [ "$LIBS" = "double gaol5 gaol filib profil sun p1788" ]; then
+  cp "$RESULTS" "$CODE_DIR/results.csv"
+  cp "$OUT/machine.txt" "$CODE_DIR/machine.txt"
+  echo "== results kept in $CODE_DIR/results.csv and machine.txt, for make perf"
+fi

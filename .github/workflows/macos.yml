@@ -21,6 +21,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# make test (the target test of CMake, RUN_TESTS with Visual Studio) runs
+# ctest, which reads these: four tests at a time, and the output of those that
+# fail (GAOL v5)
+env:
+  CTEST_PARALLEL_LEVEL: 4
+  CTEST_OUTPUT_ON_FAILURE: 1
+
 jobs:
   cmake:
     name: ${{ matrix.cfg.desc }}
@@ -45,13 +52,13 @@ jobs:
       - name: Configure
         run: |
           c++ --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
+      - name: Tests (make test)
         run: |
           file build/tests/gaol_test_arithmetic
-          cd build && ctest -j 4 --output-on-failure
+          cmake --build build --target test
       - name: Performance
         run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
@@ -60,7 +67,7 @@ jobs:
         run: |
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+          cmake --build build-find-package --target test
 
   sanitizers:
     name: ${{ matrix.cfg.desc }}
@@ -105,8 +112,8 @@ jobs:
           # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
           # behaviour; none is suppressed
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build --target test

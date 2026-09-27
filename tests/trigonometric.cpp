@@ -1,21 +1,9 @@
+// GAOL 4's unit test check/trigonometric.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
 #include <iostream>
-#include "tests.h"
+#include "unit_tests.h"
 
-class trigonometric_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(trigonometric_test);
-  CPPUNIT_TEST(test_cos);
-  CPPUNIT_TEST(test_sin);
-  CPPUNIT_TEST(test_tan);
-  CPPUNIT_TEST(test_acos);
-  CPPUNIT_TEST(test_asin);
-  CPPUNIT_TEST(test_atan);
-  CPPUNIT_TEST(test_cosh);
-  CPPUNIT_TEST(test_sinh);
-  CPPUNIT_TEST(test_tanh);
-  CPPUNIT_TEST(test_acosh);
-  CPPUNIT_TEST(test_asinh);
-  CPPUNIT_TEST(test_atanh);
-  CPPUNIT_TEST_SUITE_END();
+class trigonometric_test {
 public:
   void setUp() {
   }
@@ -139,4 +127,16 @@ public:
   // <-- End of tests
 };
 
-GAOL_REGISTER_TEST(trigonometric_test)
+GAOL_UNIT_MAIN(trigonometric_test, "trigonometric",
+               GAOL_UNIT_TEST(test_cos),
+               GAOL_UNIT_TEST(test_sin),
+               GAOL_UNIT_TEST(test_tan),
+               GAOL_UNIT_TEST(test_acos),
+               GAOL_UNIT_TEST(test_asin),
+               GAOL_UNIT_TEST(test_atan),
+               GAOL_UNIT_TEST(test_cosh),
+               GAOL_UNIT_TEST(test_sinh),
+               GAOL_UNIT_TEST(test_tanh),
+               GAOL_UNIT_TEST(test_acosh),
+               GAOL_UNIT_TEST(test_asinh),
+               GAOL_UNIT_TEST(test_atanh))

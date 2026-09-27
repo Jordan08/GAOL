@@ -13,8 +13,6 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * SVN: $Id: gaol_interval_fpu.cpp 247 2015-05-21 07:00:45Z goualard $
- * Last modified:
  * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 

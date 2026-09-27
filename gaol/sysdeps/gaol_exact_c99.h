@@ -9,8 +9,6 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * CVS: $Id: gaol_exact_c99.h 55 2009-03-01 13:55:03Z goualard $
- * Last modified: Thu Dec  5 13:02:08 2002 on victory.irin.sciences.univ-nantes.fr
  * By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 

@@ -3,11 +3,15 @@
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
-config = ['AARCH64_LINUX', 'ARM_MACOSX', 'IX86_LINUX', 'IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS', 'GAOL_PRESERVE_ROUNDING', 'GAOL_USING_ASM', 'GAOL_VERBOSE_MODE', 'GETRUSAGE_IN_HEADER', 'HAVE_CASSERT', 'HAVE_CLOCK',
-          'HAVE_FENV_H', 'HAVE_FINITE', 'HAVE_GETRUSAGE', 'HAVE_ISNAN', 'HAVE_LIMITS', 'HAVE_NEXTAFTER',
-          'HAVE_ROUNDING_MATH_OPTION', 'HAVE_VISIBILITY_OPTIONS', 'SIZEOF_INT', 'SIZEOF_LONG_INT', 'SIZEOF_LONG_LONG_INT',
+# The macros GAOL's sources read: those of gaol/gaol_configuration.h, the same
+# with the three builds (see doc/building.md), and those gaol/gaol_config.h
+# derives from the compiler (GAOL v5)
+config = ['AARCH64_LINUX', 'ARM_MACOSX', 'IX86_LINUX', 'IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS', 'GAOL_PRESERVE_ROUNDING', 'GAOL_USING_ASM', 'GAOL_VERBOSE_MODE',
+          'HAVE_FENV_H', 'HAVE_GETRUSAGE',
+          'HAVE_ROUNDING_MATH_OPTION', 'HAVE_VISIBILITY_OPTIONS', 'SIZEOF_INT', 'SIZEOF_LONG_LONG_INT',
           'USING_SSE2_INSTRUCTIONS', 'USING_SSE3_INSTRUCTIONS', 'WORDS_BIGENDIAN', 'GAOL_RND_PROBE', 'GAOL_RND_SSE_REGISTER']
-text = ['INLINE', '__GAOL_PUBLIC__']
+# Compared by value only (GAOL_VERSION is a string, which #if cannot read)
+text = ['INLINE', '__GAOL_PUBLIC__', 'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION', 'GAOL_MICRO_VERSION', 'GAOL_VERSION']
 compiler = ['__cplusplus', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', 'FLT_EVAL_METHOD',
             '__SSE2__', '__SSE3__', '__SSE2_MATH__', '__PIC__', '__x86_64__', '__i386__', '__aarch64__', '__arm__', '__APPLE__',
             '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR']

@@ -12,8 +12,6 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * CVS: $Id: dllmain.cpp 191 2012-03-06 17:08:58Z goualard $
- * Last modified: Tue Sep 12 10:28:50 2006 on pc-goualard.lina.sciences.univ-nantes.prive
  * By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 

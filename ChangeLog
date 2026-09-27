@@ -1,3 +1,92 @@
+2026-09-27  Jordan Ninin  <jordan.ninin@ensta.fr>
+
+	GAOL v5, version 5.0.0, continues GAOL 4.2.2. doc/differences.md
+	gives each change and why; the main ones:
+
+	* 3rd/math-core: CORE-MATH, compiled into libgaol, bounds every
+	elementary function, correctly rounded; mathlib is gone.  The
+	functions IEEE 1788-2015 requires and recommends are added (exp2,
+	exp10, log2, log10, cbrt, expm1, sinpi..., fma, the integer
+	functions), with the names of the standard in gaol_ieee1788.
+	* gaol/: the tightest bounds of the arithmetic, the reverse
+	functions accurate in the sense of IEEE 1788-2015, the empty set
+	[NaN, NaN], numbers read exactly whatever the C library, the
+	possibly relations and == and != removed, one grammar reading every
+	string, a reentrant lexer and a pure parser, the rounding direction
+	checked once per operation, the *_dn() and *_up() of doubles no
+	longer public, the intervals of floats left to the developers of
+	GAOL (GAOL_FLOAT_INTERVALS).
+	* CMakeLists.txt: a CMake build, the one to use, which finds GAOL
+	with find_package(gaol) and makes the archive of the sources and
+	the packages (CPack); make dist is gone.
+	* tests/: tests of the bounds against the exact results, and the
+	continuous integration on Linux, macOS and Windows
+	(.github/workflows).
+	* manual/v5: the manual of GAOL v5; manual/v4 keeps the manual of
+	GAOL 4.
+
+	The three builds made alike:
+
+	* configure.ac: the version is 5.0.0, not "5.0.0" with its quotes;
+	AC_INIT gives jordan.ninin@ensta.fr for the bug reports and
+	https://github.com/Jordan08/GAOL.  --enable-debug builds as the
+	Debug build of CMake (-g, no optimization nor NDEBUG,
+	GAOL_DEBUGGING), where it gave g++ alone -g -ansi -Weffc++ -pedantic
+	on top of --enable-optimize.  --with-tests and --with-examples.  The
+	checks nothing read are gone (AC_FUNC_MALLOC, AC_FUNC_REALLOC,
+	AC_HEADER_STDC, AC_C_BIGENDIAN, AC_CHECK_SIZEOF...), and so are
+	CppUnit, the dl library, doxygen, dot, AC_PROG_YACC, --enable-relations,
+	AC_REVISION, the release of the RPM and the line "relations =" of the
+	summary.  no-define: no PACKAGE nor VERSION.
+	* gaol/gaol_configuration.h.in, gaol/gaol_configuration_meson.h.in,
+	cmake/gaol_configuration.h.in: the same macros with the three
+	builds, those the sources read (doc/building.md lists them); the
+	template of configure is written by hand.
+	* gaol/gaol_config.h, gaol/gaol_version.h: include the generated
+	configuration with every compiler.  gaol_config_msvc.h,
+	gaol_config_mingw.h, gaol_version_msvc.h, gaol_version_mingw.h:
+	removed.  PACKAGE and VERSION are no longer undefined.
+	* gaol/gaol_port.h, gaol/gaol_limits.h, gaol/gaol_assert.h,
+	gaol/gaol_profile.cpp, gaol/gaol_exact.h: no longer read HAVE_LIMITS,
+	HAVE_CASSERT, HAVE_CLOCK, GETRUSAGE_IN_HEADER, HAVE_NEXTAFTER,
+	HAVE_ISNAN nor SIZEOF_LONG_INT.
+	* gaol/gaol_common.h: <iostream> with GAOL_DEBUGGING, without which
+	gaol/gaol_expression.h did not compile; debug_level is public.
+	* gaol/gaol_expression.h: the classes and functions of the
+	expressions are public, which a shared libgaol did not export.
+	* CMakeLists.txt: WITH_TESTS and WITH_EXAMPLES (GAOL_BUILD_TESTS
+	before), BUILD_SHARED_LIBS, libgaol.so.5.0.0 as with configure and
+	meson, GAOL_DEBUGGING in the Debug build, and the targets check,
+	parser and perf.
+	* gaol/Makefile.am: libgaol.so.5.0.0 (-version-info 5:0:0), where it
+	was libgaol-5.0.so.0; the rules running flex and bison and the
+	MAINTAINERCLEANFILES that deleted the committed lexer and parser are
+	gone.
+	* Makefile.am: the targets test, perf and parser.
+	* meson.build, meson_options.txt, gaol/meson.build: with-tests and
+	with-examples (with-test before); the build type gives the Debug
+	build, and enable-debug, enable-optimize, enable-relations and
+	check-perf are gone; libgaol.so.5.0.0; the targets check, perf and
+	parser; the install with Visual C++ (the directory of
+	gaol_configuration.h, gaol_fpu_msvc.h and sysdeps/, a static
+	library, __GAOL_PUBLIC__, no libm); only the macros the sources read.
+	The headers of the meson files name Raphael Chenouard, who wrote
+	them.
+	* check/: moved into tests/, without CppUnit (tests/unit_tests.h);
+	check/fpu.cpp, check/essai.cpp and the benchmark of GAOL 4 are gone.
+	* tests/debugging.cpp: GAOL's headers with GAOL_DEBUGGING.
+	* examples/: built by the three builds, and run by make check.
+	* gaol/regenerate_parser.sh: regenerates the lexer and the parser.
+	* doc/compare/code/run_perf.sh, results.csv, machine.txt: make perf
+	measures GAOL v5 alone and writes the tables of performance.md.
+	* .github: the continuous integration runs make test; a shared
+	library job with CMake and meson jobs with Visual C++; the audit
+	compares the configuration headers of the three builds.
+	* Doxyfile, manual/gaol_doxygen.cfg.in, version.h, gaol.spec.in,
+	stamp-h.in, mkinstalldirs: removed.
+	* The lines $Id$ and "Last modified ... on pc-goualard" of the
+	headers: removed.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's

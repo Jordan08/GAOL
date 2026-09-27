@@ -1,11 +1,8 @@
-#include "tests.h"
+// GAOL 4's unit test check/relations.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-class relations_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(relations_test);
-  CPPUNIT_TEST(test_set);
-  CPPUNIT_TEST(test_certainly);
-  CPPUNIT_TEST(test_misc);
-  CPPUNIT_TEST_SUITE_END();
+class relations_test {
 public:
   void setUp() {
   }
@@ -169,4 +166,7 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(relations_test)
+GAOL_UNIT_MAIN(relations_test, "relations",
+               GAOL_UNIT_TEST(test_set),
+               GAOL_UNIT_TEST(test_certainly),
+               GAOL_UNIT_TEST(test_misc))

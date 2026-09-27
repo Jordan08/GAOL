@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_config.h 191 2012-03-06 17:08:58Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -35,9 +31,21 @@
 #ifndef __gaol_config_h__
 #define __gaol_config_h__
 
+/* The configuration the build wrote, the same macros with the three builds
+   and every compiler (see doc/building.md): CMake from
+   cmake/gaol_configuration.h.in, configure from gaol/gaol_configuration.h.in,
+   meson from gaol/gaol_configuration_meson.h.in. It no longer defines
+   PACKAGE nor VERSION, which were undefined before including it, and
+   undefined those of the code including GAOL with them; Visual C++ and MinGW
+   included it through gaol/gaol_config_msvc.h and gaol/gaol_config_mingw.h,
+   which included nothing else (GAOL v5). */
+#include "gaol/gaol_configuration.h"
+
+#define GAOL_ERRNO errno
+#define INLINE inline
+
 #if defined (_MSC_VER)
 
-# define GAOL_ERRNO errno
 # ifndef __GAOL_PUBLIC__
 #   ifdef _COMPILING__GAOL_PUBLIC__
 #     define __GAOL_PUBLIC__ __declspec(dllexport)
@@ -45,29 +53,9 @@
 #     define __GAOL_PUBLIC__ __declspec(dllimport)
 #   endif
 # endif
-# define INLINE inline
-# include "gaol/gaol_config_msvc.h"
-
-#elif defined (__MINGW32__)
-
-# define GAOL_ERRNO errno
-# undef PACKAGE
-# undef VERSION
-# include "gaol/gaol_config_mingw.h"
-# ifndef __GAOL_PUBLIC__
-#  if defined (HAVE_VISIBILITY_OPTIONS)
-#     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
-#  else
-#     define __GAOL_PUBLIC__
-#  endif
-# endif
-# define INLINE inline
 
 #elif defined (__GNUC__)
-# define GAOL_ERRNO errno
-# undef PACKAGE
-# undef VERSION
-# include "gaol/gaol_configuration.h"
+
 # ifndef __GAOL_PUBLIC__
 #  if defined (HAVE_VISIBILITY_OPTIONS)
 #     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
@@ -75,18 +63,13 @@
 #     define __GAOL_PUBLIC__
 #  endif
 # endif
-# define INLINE inline
 
 #else
 
-# define GAOL_ERRNO errno
-# undef PACKAGE
-# undef VERSION
 # ifndef __GAOL_PUBLIC__
 #  define __GAOL_PUBLIC__
 # endif
-# define INLINE inline
-# include "gaol/gaol_configuration.h"
+
 #endif
 
 
@@ -117,7 +100,7 @@
    building. GAOL reads the names of the system to allocate aligned memory
    (gaol/gaol_port.h) and to negate a double (gaol/gaol_fpu_fenv.h); both have
    a fallback for the other systems. The sizes of the integer types come from
-   <limits.h> where the build system did not measure them.
+   <limits.h>, the builds no longer measuring them (GAOL v5).
    --------------------------------------------------------------------------- */
 
 #include <limits.h>
@@ -141,13 +124,6 @@
 #    define SIZEOF_INT 4
 #  elif UINT_MAX == 0xFFFFFFFFFFFFFFFFu
 #    define SIZEOF_INT 8
-#  endif
-#endif
-#ifndef SIZEOF_LONG
-#  if ULONG_MAX == 0xFFFFFFFFul
-#    define SIZEOF_LONG 4
-#  elif ULONG_MAX == 0xFFFFFFFFFFFFFFFFul
-#    define SIZEOF_LONG 8
 #  endif
 #endif
 #ifndef SIZEOF_LONG_LONG_INT

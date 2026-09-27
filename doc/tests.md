@@ -274,11 +274,41 @@ Codac.
   the results libieeep1788 expects, which the generator checks are
   enclosures of them.
 
-The CMake build compiles them with `GAOL_BUILD_TESTS` (`OFF` by default: no
-build compiles tests unless asked to, as `make check` and `with-test` for
-GAOL's own check programs). `tests/find_package` builds the same tests with
-an installed GAOL, and `.github/scripts/tests.sh` with a GAOL installed by
-configure or meson.
+- **`debugging`:** GAOL's headers compiled with `GAOL_DEBUGGING`, which the
+  Debug builds define (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
+  `meson setup --buildtype=debug`), whatever the build: an expression is built
+  and evaluated, its nodes calling `GAOL_DEBUG`, which has to run its command
+  at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
+  did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
+  which no header included (GAOL v5).
+- **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
+  `assignment`, `constants`, `constructor`, `float_functions`,
+  `generic_functions`, `input_output`, `interval_functions`, `misc`,
+  `non_arithmetic`, `relations`, `reverse_mappings` and `trigonometric` check
+  the results of the operations on chosen intervals, as Frédéric Goualard wrote
+  them with CppUnit in `check/`. They are in `tests/` now and run with the
+  checks of `unit_tests.h` rather than CppUnit, which no build needs any more:
+  each suite keeps its class and its tests, a `TEST_...` counts a check named
+  after its test and describes a failure by its line, its expression and the
+  values compared, and a failure no longer ends its test. `reverse_mappings`
+  draws its random intervals from a seed of its own rather than from the
+  process identifier (`srand48(getpid())`, which Visual C++ does not have), so
+  that its checks are the same at each run. `intervalf` and `interval2f` test
+  the intervals of floats where a developer of GAOL compiles them
+  (`GAOL_FLOAT_INTERVALS`, see `gaol/gaol_config.h`), and are skipped otherwise
+  (exit status 77). `check/fpu.cpp`, an empty test, and `check/essai.cpp`,
+  which printed an interval, are gone, as is `check/performances.cpp`, the
+  benchmark of GAOL 4, which `make perf` replaces (see
+  [Building GAOL](building.md#tests-examples-performance-and-the-parser)).
+
+The three builds compile them with `WITH_TESTS` (CMake), `--with-tests`
+(configure) and `with-tests` (meson), all off by default, and run them with
+`make test` (`meson test`, or `ninja test`); `make check` (`ninja check`) runs
+the examples of `examples/` too, where they are built (see
+[Building GAOL](building.md#tests-examples-performance-and-the-parser)). The
+continuous integration runs `make test` in every job. `tests/find_package`
+builds some of the same tests with an installed GAOL, and
+`.github/scripts/tests.sh` with a GAOL installed by configure or meson.
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, and of the same operations on

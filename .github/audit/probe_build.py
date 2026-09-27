@@ -63,6 +63,12 @@ for kind in ('cmake', 'autotools', 'meson'):
         if m:
             ifs[m.group(1)] = m.group(2) == 'true'
     entry['macros'], entry['ifs'] = macros, ifs
+    # The macros the build wrote into gaol/gaol_configuration.h (GAOL v5)
+    header = os.path.join(work, kind, 'gaol', 'gaol_configuration.h')
+    if os.path.exists(header):
+        entry['configuration'] = {m.group(1): m.group(2).strip() for m in
+                                  re.finditer(r'^#define (\w+)[ \t]*(.*)$', open(header).read(), re.M)
+                                  if m.group(1) != '__gaol_configuration_h__'}
     v = subprocess.run([tokens[0], '--version'], capture_output=True, text=True)
     entry['version'] = (v.stdout.splitlines() or [''])[0]
 print(json.dumps(result, indent=1))

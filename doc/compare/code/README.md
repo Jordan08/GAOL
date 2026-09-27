@@ -91,6 +91,35 @@ variables:
 | `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
 | `PROFIL_TGZ` | | A copy of `Profil-2.0.8.tgz`, for `setup.sh` when the site of PROFIL/BIAS is down |
 
+## GAOL v5 alone: `make perf`
+
+The target `perf` of the three builds of GAOL (`make perf` with CMake and
+configure, `ninja perf` with meson) measures GAOL v5 again without building the
+other libraries: it compiles `bench_gaol.cpp` with the flags and the library of
+the build, and runs `run_perf.sh`, which draws the intervals (Python 3 with
+numpy, the same intervals as `run_bench.sh`), runs the program `ROUNDS` times,
+replaces the rows of GAOL v5 in `results.csv` by the new ones, and writes the
+tables of [performance.md](../performance.md) from them, the line of GAOL v5 of
+`machine.txt` saying when and how it was measured. GAOL 4.2.3, filib++,
+libieeep1788, PROFIL/BIAS, Solaris Studio and the doubles keep the times of
+the last whole run, which `results.csv` holds: the machine should be the one
+they were measured on (`machine.txt`), doing nothing else. `N`, `ROUNDS`,
+`REPEATS`, `OPS`, `CPU`, `WORK` (default: `perf` in the build directory) and
+`REPORT` apply as for `run_bench.sh`:
+
+```bash
+cmake -S . -B build && CPU=2 cmake --build build --target perf
+./configure && make && CPU=2 make perf
+meson setup build && CPU=2 ninja -C build perf
+```
+
+`results.csv` is written by `run_bench.sh` after a whole run (all the
+libraries, all the operations). The one committed holds a whole run of 27
+September 2026 on the machine of `performance.md` (Clang 18, three rounds,
+`605728e`), not the later run of six rounds that its tables were written
+from: the first `make perf` writes the columns of the other libraries from
+it, within a few per cent of the tables.
+
 ## The files
 
 | File | |
@@ -103,7 +132,9 @@ variables:
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations, written once for every C++ library |
 | `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_profil.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788, filib++ and PROFIL/BIAS, and on doubles for reference |
 | `bench_sun.f90` | The same operations in Fortran, for Solaris Studio |
-| `run_bench.sh` | Draws the intervals, compiles and runs the six programs, and writes the tables |
+| `run_bench.sh` | Draws the intervals, compiles and runs the six programs, and writes the tables; after a whole run, keeps its results in `results.csv` and `machine.txt` |
+| `run_perf.sh` | `make perf`: runs the benchmark of GAOL v5 alone and writes the tables with its new times (see below) |
+| `results.csv`, `machine.txt` | The results of the last whole run, and what it was measured on, which `run_perf.sh` keeps for the other libraries |
 | `run_all.sh` | `setup.sh`, `run_cases.sh` and `run_bench.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`

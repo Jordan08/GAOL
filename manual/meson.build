@@ -1,46 +1,10 @@
-# Copyright (c) 2026 ENSTA, France
+# Meson build of GAOL: the manuals
 #
-# Created 2026-09-20 by Jordan NININ
+# Created 2025-11-25 by Raphaël Chenouard (doc/meson.build)
+# Modified in 2026 by Jordan NININ (GAOL v5): the manuals of GAOL v5 and of
+# GAOL 4; the documentation Doxygen wrote from the sources (gaol_doxygen.cfg.in)
+# is gone, as the Doxyfile of the root
 #
-doxygen = find_program('doxygen', required: false)
-if not doxygen.found()
-  warning('Doxygen not found, no documentation generated!')
-else
-  cdata = configuration_data()
-  cdata.set('VERSION', meson.project_version())
-  cdata.set('TOP_SRCDIR', meson.current_source_dir())
-  cdata.set('TOP_BUILDDIR', meson.current_build_dir())
-
-  if find_program('dot', required: false).found()
-    # In the real world this would set the variable
-    # to YES. However we set it to NO so that the
-    # list of generated files is always the same
-    # so tests always pass.
-    cdata.set('HAVE_DOT', 'YES')
-  else
-    cdata.set('HAVE_DOT', 'NO')
-  endif
-
-  doxyfile = configure_file(
-    input: 'gaol_doxygen.cfg.in',
-    output: 'gaol_doxygen.cfg',
-    configuration: cdata,
-    install: false,
-  )
-
-  datadir = join_paths(get_option('datadir'), 'doc', 'gaol')
-
-  html_target = custom_target(
-    'html-gaol-docs',
-    build_by_default: false,
-    input: doxyfile,
-    output: 'html',
-    command: [doxygen, doxyfile],
-    install: true,
-    install_dir: datadir,
-  )
-endif
-
 # The manuals: meson compile -C <build directory> pdf (build-pdf.sh) builds
 # v5/gaol.pdf, the manual of GAOL v5, and v4/gaol.pdf, the manual of GAOL 4.
 # Their editions and dates are those of configure.ac (GAOL_V5_EDITION,

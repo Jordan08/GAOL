@@ -17,19 +17,33 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base  
 # directory of gaol.                                                          
 #------------------------------------------------------------------------------
-# SVN: $Id$
-#------------------------------------------------------------------------------
+
+# The examples of GAOL v5 (see examples.md), as examples/CMakeLists.txt builds
+# them: ./configure --with-examples builds them with GAOL (make), and make
+# check runs them, each checking what it prints (see ../Makefile.am). In C++17,
+# with the threads of 13_rounding_environment (PTHREAD_FLAGS) (GAOL v5).
 
 # GAOL's own directories before those given in CPPFLAGS, which come first
 # otherwise: a prefix given there may hold an installed GAOL too, whose headers
 # were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+AM_CXXFLAGS = -std=c++17 $(PTHREAD_FLAGS)
+AM_LDFLAGS = $(PTHREAD_FLAGS)
+AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The library just built, by its libtool archive, rather than -lgaol with
 # -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
 # there may hold an installed GAOL too, which was then linked
-LDADD = -lm $(top_builddir)/gaol/libgaol.la
+LDADD = $(top_builddir)/gaol/libgaol.la -lm
 
-noinst_PROGRAMS = 16_Goldstein_Price
+# The same list as examples/CMakeLists.txt
+GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \
+	04_centered_form 05_interval_newton 06_global_optimization 07_contractors \
+	08_sivia 09_parameter_estimation 10_krawczyk 11_ode_enclosure \
+	12_affine_arithmetic 13_rounding_environment 14_generic_programming \
+	15_text_and_ieee1788 16_Goldstein_Price
 
-16_Goldstein_Price_SOURCES = 16_Goldstein_Price.cpp
+if WITH_EXAMPLES
+noinst_PROGRAMS = $(GAOL_EXAMPLES)
+TESTS = $(GAOL_EXAMPLES)
+endif

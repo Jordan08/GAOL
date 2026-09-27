@@ -19,12 +19,13 @@ BUILDS = ('cmake', 'autotools', 'meson')
 # The macros GAOL reads, compared by whether they are defined and true
 MACROS = ('AARCH64_LINUX', 'ARM_MACOSX', 'IX86_LINUX', 'IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS',
           'GAOL_PRESERVE_ROUNDING', 'GAOL_USING_ASM',
-          'GAOL_VERBOSE_MODE', 'GETRUSAGE_IN_HEADER', 'HAVE_CASSERT', 'HAVE_CLOCK', 'HAVE_FENV_H',
-          'HAVE_GETRUSAGE', 'HAVE_LIMITS', 'HAVE_ROUNDING_MATH_OPTION', 'HAVE_VISIBILITY_OPTIONS',
+          'GAOL_VERBOSE_MODE', 'HAVE_FENV_H',
+          'HAVE_GETRUSAGE', 'HAVE_ROUNDING_MATH_OPTION', 'HAVE_VISIBILITY_OPTIONS',
           'USING_SSE2_INSTRUCTIONS', 'USING_SSE3_INSTRUCTIONS', 'WORDS_BIGENDIAN', 'GAOL_RND_PROBE',
           'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__')
 # The macros compared by value
-VALUES = ('SIZEOF_INT', 'SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus')
+VALUES = ('SIZEOF_INT', 'SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus',
+          'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION', 'GAOL_MICRO_VERSION', 'GAOL_VERSION')
 # The flags compared by presence
 FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-store', '-mfpmath=sse', '-msse2',
          '-msse3', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-funroll-loops',
@@ -76,6 +77,14 @@ def main():
             vals = ['yes' if f in r[b]['flags'] else 'no' for b in ok]
             if len(set(vals)) > 1:
                 rows.append((f, vals))
+        # The macros each build wrote into gaol/gaol_configuration.h, and their
+        # values: the same with the three builds (GAOL v5)
+        headers = [r[b].get('configuration') for b in ok]
+        if all(h is not None for h in headers):
+            for n in sorted(set().union(*[set(h) for h in headers])):
+                vals = [str(h.get(n, 'undefined')) for h in headers]
+                if len(set(vals)) > 1:
+                    rows.append(('configuration: ' + n, vals))
         for name, fn in (('optimization', optimization), ('standard', standard)):
             vals = [fn(r[b]['flags']) for b in ok]
             if len(set(vals)) > 1:

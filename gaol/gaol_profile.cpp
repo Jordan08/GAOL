@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_profile.cpp 191 2012-03-06 17:08:58Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -28,13 +24,7 @@
   \date   2001-10-02
 */
 
-// To overcome problems with old versions of autoconf
-#undef PACKAGE
 #include "gaol/gaol_profile.h"
-
-#if (HAVE_GETRUSAGE && (!GETRUSAGE_IN_HEADER))
-  extern "C" int getrusage(int, struct rusage*);
-#endif
 
 namespace gaol_core {
 
@@ -62,8 +52,11 @@ namespace gaol_core {
   }
 } // namespace gaol_core
 
-#elif HAVE_CLOCK
+#else
 //==============
+// clock(), which the C standard provides: where getrusage() is not
+// (HAVE_GETRUSAGE, which the three builds check in <sys/resource.h>, as Visual
+// C++) (GAOL v5)
 #  include <time.h>
 
 namespace gaol_core {
@@ -74,8 +67,6 @@ namespace gaol_core {
   }
 } // namespace gaol_core
 
-#else
-#  error "No timing function available"
 #endif /* HAVE_GETRUSAGE */
 
 namespace gaol_core {

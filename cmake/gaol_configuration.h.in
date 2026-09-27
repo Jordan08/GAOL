@@ -1,107 +1,76 @@
-/* gaol/gaol_configuration.h -- written by CMake from cmake/gaol_configuration.h.in.
+/* gaol/gaol_configuration.h, written by CMake from
+   cmake/gaol_configuration.h.in.
 
-   The header GAOL's configure script writes, for every compiler: for Visual
-   C++ and MinGW, gaol/gaol_config.h and gaol/gaol_version.h include
-   gaol/gaol_config_msvc.h, gaol/gaol_config_mingw.h and
-   gaol/gaol_version_msvc.h, which include this one.
+   The macros are the same with the three builds, CMake
+   (cmake/gaol_configuration.h.in), configure (gaol/gaol_configuration.h.in)
+   and meson (gaol/gaol_configuration_meson.h.in), and are all GAOL's sources
+   read of the build: doc/building.md lists them. What GAOL needs to know of
+   the processor and the system, and the sizes of the integer types, come from
+   the macros of the compiler (gaol/gaol_config.h). Every compiler includes
+   this header, through gaol/gaol_config.h. (GAOL v5)
 
    Origin: the version of gaol/gaol_configuration.h.in with which IBEX builds
    GAOL with CMake (https://github.com/ibex-team/ibex-lib,
    interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/, Cyril Bouvier and Gilles
-   Chabert), itself generated from GAOL's configure.ac. Only the macros GAOL's
-   sources read are kept, and those describing the target are set by the
-   preprocessor below rather than by the build system. */
+   Chabert), itself generated from GAOL's configure.ac. */
 
 #ifndef __gaol_configuration_h__
 #define __gaol_configuration_h__
 
-/* Version for gaol */
+/* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
 #define GAOL_MAJOR_VERSION @PROJECT_VERSION_MAJOR@
 #define GAOL_MINOR_VERSION @PROJECT_VERSION_MINOR@
 #define GAOL_MICRO_VERSION @PROJECT_VERSION_PATCH@
 #define GAOL_VERSION "@PROJECT_VERSION@"
 
+/* Defined to 1 by a Debug build (CMAKE_BUILD_TYPE=Debug, configure
+   --enable-debug, meson --buildtype=debug): GAOL checks its assertions
+   (gaol/gaol_assert.h) */
+#cmakedefine GAOL_DEBUGGING 1
 
-/* ---------------------------------------------------------------------------
-   Options: those IBEX configures GAOL with (--disable-preserve-rounding
-   --enable-optimize --disable-verbose-mode, the defaults otherwise)
-   --------------------------------------------------------------------------- */
+/* Defined to 1 to raise exceptions instead of aborting: always with CMake,
+   by default with configure (--disable-exceptions) and meson
+   (-Denable-exception=false) */
+#cmakedefine GAOL_EXCEPTIONS_ENABLED 1
 
-/* Define this to 1 to allow raising exceptions instead of simply aborting */
-#define GAOL_EXCEPTIONS_ENABLED 1
-
-/* define this to 1 if rounding direction should be preserved
-
-   GAOL_PRESERVE_ROUNDING OFF, the default, leaves it undefined: each operation
-   sets the rounding direction upward when it is not, and leaves it upward, so
-   that its bounds are right whatever direction the code using GAOL set.
-   GAOL_PRESERVE_ROUNDING ON defines it: the operations also restore the
-   direction they found, which makes the arithmetic operations several times
-   slower (see gaol/gaol_fpu.h). */
+/* Defined to 1 to restore the rounding direction after each operation,
+   rather than leaving it upward (GAOL_PRESERVE_ROUNDING,
+   --enable-preserve-rounding, -Denable-preserve-rounding=true; see
+   gaol/gaol_fpu.h) */
 #cmakedefine GAOL_PRESERVE_ROUNDING 1
 
-/* define this to 1 if you want to allow ASM support
-
-   GAOL_ASM ON, the default, defines it, as configure and meson do by default.
-   GAOL's assembly (f_negate() in gaol/gaol_fpu_fenv.h) serves 32-bit x86 Linux
-   and macOS only; elsewhere the code is the same with or without it. */
+/* Defined to 1 to use the assembly of gaol/gaol_fpu_fenv.h, which serves
+   32-bit x86 Linux and macOS only (GAOL_ASM, --enable-asm, -Denable-asm:
+   on by default; never with Visual C++) */
 #cmakedefine GAOL_USING_ASM 1
 
-
-/* ---------------------------------------------------------------------------
-   What the compiler provides
-   --------------------------------------------------------------------------- */
-
-/* Define to 1 if you have the <fenv.h> header file. */
-#cmakedefine HAVE_FENV_H 1
-
-/* Define to 1 if you have the <limits> header file. */
-#define HAVE_LIMITS 1
-
-/* Define to 1 if you have the <cassert> header file. */
-#define HAVE_CASSERT 1
-
-/* Define to 1 if you have the `clock' function. */
-#define HAVE_CLOCK 1
-
-/* Define to 1 if you have the `getrusage' function. */
-#cmakedefine HAVE_GETRUSAGE 1
-
-/* Define this to 1 if function getrusage() is declared in sys/resource.h */
-#cmakedefine GETRUSAGE_IN_HEADER 1
-
-/* Define this to 1 if the compiler supports the "-frounding-math" option */
-#cmakedefine HAVE_ROUNDING_MATH_OPTION 1
-
-/* Define this to 1 if SSE2 instructions are to be used */
-#cmakedefine USING_SSE2_INSTRUCTIONS 1
-
-/* Define this to 1 if SSE3 instructions are to be used (-msse3, as the
-   autotools build on a processor with SSE3) */
-#cmakedefine USING_SSE3_INSTRUCTIONS 1
-
-/* Define this to 1 to enable verbose mode: GAOL then writes a line on the
-   standard error when it initializes and cleans up (GAOL_VERBOSE_MODE, off by
-   default: GAOL is silent, with the three builds) */
+/* Defined to 1 to write a line on the standard error when GAOL initializes
+   and cleans up (GAOL_VERBOSE_MODE, --enable-verbose-mode,
+   -Denable-verbose-mode=true; off by default) */
 #cmakedefine GAOL_VERBOSE_MODE 1
 
-/* Define this to 1 if the compiler supports the "-fvisibility" option, with
-   which the library is compiled: GAOL's public declarations then carry
-   __attribute__ ((visibility("default"))) (gaol/gaol_config.h) */
+/* Defined to 1 where the intervals are computed with SSE2 instructions
+   (x86 processors, but 32-bit Windows and Visual C++; GAOL_SIMD,
+   --enable-simd, -Denable-simd, on by default) */
+#cmakedefine USING_SSE2_INSTRUCTIONS 1
+
+/* Defined to 1 where they are compiled with -msse3 too */
+#cmakedefine USING_SSE3_INSTRUCTIONS 1
+
+/* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
+   a double with the minus sign (gaol/gaol_port.h) */
+#cmakedefine HAVE_ROUNDING_MATH_OPTION 1
+
+/* Defined to 1 where the library is compiled with -fvisibility=hidden:
+   GAOL's public declarations then carry __attribute__ ((visibility("default")))
+   (gaol/gaol_config.h) */
 #cmakedefine HAVE_VISIBILITY_OPTIONS 1
 
-/* HAVE_FINITE is left undefined: gaol::is_finite() is std::isfinite() in every
-   build (gaol/gaol_port.h), finite() being neither provided by Visual C++ nor
-   declared by every C library. */
+/* Defined to 1 where the compiler has <fenv.h> */
+#cmakedefine HAVE_FENV_H 1
 
-/* ---------------------------------------------------------------------------
-   Visual C++, as in the former gaol/gaol_config_msvc.h where it still applies
-   --------------------------------------------------------------------------- */
-
-#if defined(_MSC_VER)
-/* nextafter() and isnan() are standard since Visual Studio 2013 */
-#  define HAVE_NEXTAFTER 1
-#  define HAVE_ISNAN 1
-#endif
+/* Defined to 1 where <sys/resource.h> declares getrusage(), which
+   gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
+#cmakedefine HAVE_GETRUSAGE 1
 
 #endif /* __gaol_configuration_h__ */

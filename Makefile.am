@@ -17,8 +17,6 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base  
 # directory of gaol.                                                          
 #------------------------------------------------------------------------------
-# CVS: $Id: Makefile.am,v 1.12 2007/09/13 07:51:26 goualard Exp $
-# Last modified: Wed Sep 27 10:55:49 2006 on pc-goualard.lina.sciences.univ-nantes.prive
 # By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
 #------------------------------------------------------------------------------
 
@@ -27,11 +25,31 @@
 # gaol/Makefile.am. No make dist (no-dist in configure.ac): the archives of the
 # sources and the packages are made by CMake (see doc/building.md) (GAOL v5);
 # DIST_SUBDIRS is what make distclean goes through.
-SUBDIRS = 3rd gaol check examples
-DIST_SUBDIRS = 3rd gaol check manual examples
+SUBDIRS = 3rd gaol tests examples
+DIST_SUBDIRS = 3rd gaol tests examples manual
 ACLOCAL_AMFLAGS = -I m4
 
 # Requires automake 1.4
 AUTOMAKE_OPTIONS = 1.4
 
+# make check runs the unit tests of tests/ (--with-tests) and the examples of
+# examples/ (--with-examples), make test the unit tests only, as with CMake and
+# meson (GAOL v5)
+test:
+	cd tests && $(MAKE) $(AM_MAKEFLAGS) check
 
+# make perf measures GAOL v5 on the benchmark of doc/compare/performance.md and
+# writes its times into the tables (see tests/Makefile.am) (GAOL v5)
+perf:
+	cd tests && $(MAKE) $(AM_MAKEFLAGS) perf
+
+# make parser regenerates the lexer and the parser of the strings,
+# gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and
+# gaol/gaol_interval_parser.h, from gaol/gaol_interval_lexer.lpp and
+# gaol/gaol_interval_parser.ypp, with the flex and the bison of the system
+# (FLEX, BISON). The three files are committed: no build needs flex nor bison
+# otherwise (GAOL v5).
+parser:
+	$(SHELL) $(top_srcdir)/gaol/regenerate_parser.sh
+
+.PHONY: test perf parser

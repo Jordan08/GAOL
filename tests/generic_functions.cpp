@@ -12,18 +12,14 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: generic_functions.cpp 55 2009-03-01 13:55:03Z goualard $
- * Last modified: 
- * By: 
  *--------------------------------------------------------------------------*/
 
-#include "tests.h"
+// GAOL 4's unit test check/generic_functions.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
 
-class generic_function_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(generic_function_test);
-  CPPUNIT_TEST(test_generic_function);
-  CPPUNIT_TEST_SUITE_END();
+#include "unit_tests.h"
+
+class generic_function_test {
 public:
   void setUp() {
   }
@@ -47,4 +43,5 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(generic_function_test)
+GAOL_UNIT_MAIN(generic_function_test, "generic_functions",
+               GAOL_UNIT_TEST(test_generic_function))

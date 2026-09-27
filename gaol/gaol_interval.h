@@ -13,8 +13,6 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * CVS: $Id: gaol_interval.h 247 2015-05-21 07:00:45Z goualard $
- * Last modified: Thu May  7 09:57:51 2009 on almighty
  * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 

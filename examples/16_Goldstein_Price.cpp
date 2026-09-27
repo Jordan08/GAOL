@@ -12,8 +12,6 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * CVS: $Id: Goldstein_Price.cpp,v 1.8 2006/03/22 08:35:11 goualard Exp $
- * Last modified: Tue Mar 21 17:55:28 2006 on pc-dubreil-123.irin.sciences.univ-nantes.prive
  * By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 

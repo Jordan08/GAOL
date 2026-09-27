@@ -12,21 +12,16 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: float_functions.cpp 191 2012-03-06 17:08:58Z goualard $
- * Last modified: 
- * By: 
  *--------------------------------------------------------------------------*/
 
+// GAOL 4's unit test check/float_functions.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
 
-#include "tests.h"
+
+#include "unit_tests.h"
 
 
-class float_functions_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(float_functions_test);
-  CPPUNIT_TEST(test_functions);
-  CPPUNIT_TEST(test_types);
-  CPPUNIT_TEST_SUITE_END();
+class float_functions_test {
 public:
   void setUp() {
   }
@@ -85,7 +80,7 @@ public:
       { 
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(GAOL_NAN,5);
+	      (void) nb_fp_numbers(GAOL_NAN,5);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -98,7 +93,7 @@ public:
       { 
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(5,GAOL_NAN);
+	      (void) nb_fp_numbers(5,GAOL_NAN);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -110,7 +105,7 @@ public:
       { 
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(GAOL_NAN,-5);
+	      (void) nb_fp_numbers(GAOL_NAN,-5);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -122,7 +117,7 @@ public:
       { 	
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(-5,GAOL_NAN);
+	      (void) nb_fp_numbers(-5,GAOL_NAN);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -136,7 +131,7 @@ public:
       { 
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(GAOL_INFINITY,5);
+	      (void) nb_fp_numbers(GAOL_INFINITY,5);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -149,7 +144,7 @@ public:
       { 
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(5,GAOL_INFINITY);
+	      (void) nb_fp_numbers(5,GAOL_INFINITY);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -161,7 +156,7 @@ public:
       { 
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(GAOL_INFINITY,-5);
+	      (void) nb_fp_numbers(GAOL_INFINITY,-5);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -173,7 +168,7 @@ public:
       { 	
 	  bool ok = false;
 	  try {	
-	      ULONGLONGINT x = nb_fp_numbers(-5,GAOL_INFINITY);
+	      (void) nb_fp_numbers(-5,GAOL_INFINITY);
 	  } catch (invalid_action_error &e) {
 	      ok = true;
 	  } catch (gaol_exception &e) {
@@ -192,4 +187,6 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(float_functions_test)
+GAOL_UNIT_MAIN(float_functions_test, "float_functions",
+               GAOL_UNIT_TEST(test_functions),
+               GAOL_UNIT_TEST(test_types))

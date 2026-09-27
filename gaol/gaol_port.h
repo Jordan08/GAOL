@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_port.h 191 2012-03-06 17:08:58Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 /*!
   \file   gaol_port.h
@@ -32,8 +28,6 @@
 #ifndef __gaol_port_h__
 #define __gaol_port_h__
 
-// To overcome problems with old versions of autoconf
-#undef PACKAGE
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_limits.h"
 
@@ -77,21 +71,9 @@
 #endif
 
 
-#if defined (_MSC_VER)
-#   if HAVE_NEXTAFTER
-	// Nothing to do
-#   elif HAVE__NEXTAFTER
-#		include <float.h>
-#		define nextafter _nextafter
-#	else // !HAVE_NEXTAFER && !HAVE__NEXTAFTER
-        double s_nextafter(double,double);
-#       define nextafter s_nextafter
-#   endif
-#   ifndef HAVE_ISNAN
-        int _isnan(double);
-#       define isnan _isnan
-#   endif
-#endif // defined(MSC_VER)
+// nextafter and isnan are no longer redefined for Visual C++, which has both
+// since Visual Studio 2013, unless the build defined HAVE_NEXTAFTER and
+// HAVE_ISNAN (GAOL v5)
 
 
 namespace gaol_core {
@@ -112,17 +94,15 @@ namespace gaol_core {
   extern __GAOL_PUBLIC__ int gaol_signbit(double);
 
 
+// SIZEOF_INT and SIZEOF_LONG_LONG_INT come from gaol/gaol_config.h; no build
+// defined SIZEOF_LONG_INT, whose branches are gone (GAOL v5)
 #if SIZEOF_INT==4
 #  define INT_FOR_DOUBLE int
-#elif SIZEOF_LONG_INT==4
-#  define INT_FOR_DOUBLE long
 #else
 #  error "Cannot find a 32 bits integer type!"
 #endif
 
-#if SIZEOF_LONG_INT==8
-#  define ULONGLONGINT unsigned long int
-#elif SIZEOF_LONG_LONG_INT==8
+#if SIZEOF_LONG_LONG_INT==8
 #  define ULONGLONGINT unsigned long long int
 #else
 #  error "Cannot find a 64 bits integer type!"

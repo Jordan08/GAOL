@@ -33,8 +33,6 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base  
 # directory of gaol.                                                          
 #------------------------------------------------------------------------------
-# CVS: $Id: Makefile.am,v 1.12 2007/09/13 07:51:26 goualard Exp $
-# Last modified: Wed Sep 27 10:55:49 2006 on pc-goualard.lina.sciences.univ-nantes.prive
 # By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
 #------------------------------------------------------------------------------
 VPATH = @srcdir@
@@ -123,10 +121,10 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES = gaol.pc manual/v4/gaol_version.tex \
-	manual/v5/gaol_version.tex gaol.spec
+	manual/v5/gaol_version.tex
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -205,10 +203,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DLLIB = @DLLIB@
 DLLTOOL = @DLLTOOL@
-DOT = @DOT@
-DOXYGEN = @DOXYGEN@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
@@ -217,10 +212,9 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GAOL_CXX_STD = @GAOL_CXX_STD@
 GAOL_EDITION = @GAOL_EDITION@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
-GAOL_PC_VERSION = @GAOL_PC_VERSION@
-GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
@@ -239,7 +233,6 @@ LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LT_RELEASE = @LT_RELEASE@
 LT_VERSION_INFO = @LT_VERSION_INFO@
 MAINT = @MAINT@
 MAKEINDEX = @MAKEINDEX@
@@ -261,14 +254,13 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PDFLATEX = @PDFLATEX@
+PTHREAD_FLAGS = @PTHREAD_FLAGS@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
-YACC = @YACC@
-YFLAGS = @YFLAGS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -328,8 +320,8 @@ top_srcdir = @top_srcdir@
 # gaol/Makefile.am. No make dist (no-dist in configure.ac): the archives of the
 # sources and the packages are made by CMake (see doc/building.md) (GAOL v5);
 # DIST_SUBDIRS is what make distclean goes through.
-SUBDIRS = 3rd gaol check examples
-DIST_SUBDIRS = 3rd gaol check manual examples
+SUBDIRS = 3rd gaol tests examples
+DIST_SUBDIRS = 3rd gaol tests examples manual
 ACLOCAL_AMFLAGS = -I m4
 
 # Requires automake 1.4
@@ -375,8 +367,6 @@ gaol.pc: $(top_builddir)/config.status $(srcdir)/gaol.pc.in
 manual/v4/gaol_version.tex: $(top_builddir)/config.status $(top_srcdir)/manual/v4/gaol_version.tex.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 manual/v5/gaol_version.tex: $(top_builddir)/config.status $(top_srcdir)/manual/v5/gaol_version.tex.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-gaol.spec: $(top_builddir)/config.status $(srcdir)/gaol.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:
@@ -616,6 +606,28 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
+
+# make check runs the unit tests of tests/ (--with-tests) and the examples of
+# examples/ (--with-examples), make test the unit tests only, as with CMake and
+# meson (GAOL v5)
+test:
+	cd tests && $(MAKE) $(AM_MAKEFLAGS) check
+
+# make perf measures GAOL v5 on the benchmark of doc/compare/performance.md and
+# writes its times into the tables (see tests/Makefile.am) (GAOL v5)
+perf:
+	cd tests && $(MAKE) $(AM_MAKEFLAGS) perf
+
+# make parser regenerates the lexer and the parser of the strings,
+# gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and
+# gaol/gaol_interval_parser.h, from gaol/gaol_interval_lexer.lpp and
+# gaol/gaol_interval_parser.ypp, with the flex and the bison of the system
+# (FLEX, BISON). The three files are committed: no build needs flex nor bison
+# otherwise (GAOL v5).
+parser:
+	$(SHELL) $(top_srcdir)/gaol/regenerate_parser.sh
+
+.PHONY: test perf parser
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

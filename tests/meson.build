@@ -1,0 +1,53 @@
+# Meson build of GAOL: the unit tests of tests/, as tests/CMakeLists.txt builds
+# them (see there)
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-27 by Jordan NININ
+#
+# Built where with-tests is true; each is a test of the suite unit, which meson
+# test (make test) and meson test --setup check (make check) run. They are
+# compiled as any code using GAOL, in C++17 for the hexadecimal floating
+# literals of elementary_values.h, and linked with the static libgaol, as CMake
+# links them. Exit status 77 is a test skipped (intervalf and interval2f where
+# the intervals of floats are not compiled). check/, which built the unit tests
+# of GAOL 4 with CppUnit, is gone: they are among these (GAOL v5).
+gaol_tests = [
+  'arithmetic', 'elementary', 'rounding_direction', 'numbers', 'other_functions',
+  'ieee1788', 'reverse', 'u128', 'core_math', 'expressions', 'extended_precision',
+  'static_initialization', 'debugging',
+  # The unit tests of GAOL 4 (unit_tests.h)
+  'arithmetic_operators', 'assignment', 'constants', 'constructor', 'float_functions',
+  'generic_functions', 'input_output', 'interval_functions', 'misc', 'non_arithmetic',
+  'relations', 'reverse_mappings', 'trigonometric', 'intervalf', 'interval2f',
+]
+# The rounding direction after the automatic cleanup of GAOL, read by a
+# function registered in a constructor of priority 101, which ELF runs before
+# GAOL initializes itself
+if host_machine.system() == 'linux'
+  gaol_tests += ['automatic_cleanup']
+endif
+tests_args = []
+if msvc
+  # getenv() and sscanf(), which the tests use as the C standard has them
+  tests_args += ['-D_CRT_SECURE_NO_WARNINGS']
+endif
+tests_dep = declare_dependency(
+  link_with: gaollib_static,
+  include_directories: include_directories('..'),
+  compile_args: gaol_public_args + tests_args,
+  dependencies: deps,
+)
+foreach t : gaol_tests
+  exe = executable('gaol_test_' + t, t + '.cpp',
+    dependencies: tests_dep,
+    override_options: ['cpp_std=c++17'])
+  test(t, exe, suite: 'unit', timeout: 300)
+  check_targets += [exe]
+endforeach
+
+# The time per operation of GAOL and of the same operation on doubles, which
+# the continuous integration prints: not a test
+executable('gaol_performance', 'performance.cpp',
+  dependencies: tests_dep,
+  override_options: ['cpp_std=c++17'])

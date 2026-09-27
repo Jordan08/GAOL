@@ -1,6 +1,7 @@
-# Copyright (c) 2026 ENSTA, France
+# Meson build of GAOL
 #
-# Created 2026-09-20 by Jordan NININ
+# Created 2025-11-25 by Raphaël Chenouard
+# Modified in 2026 by Jordan NININ (GAOL v5)
 #
 project(
   'GAOL',
@@ -9,12 +10,17 @@ project(
   version: '5.0.0',
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
   # does not optimize), with NDEBUG as configure and the Release build of CMake
-  # define it: meson setup --buildtype=debug builds it for debugging
+  # define it: meson setup --buildtype=debug builds it for debugging, as the
+  # Debug build of CMake and configure --enable-debug (GAOL_DEBUGGING)
   default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release', 'b_ndebug=if-release'],
 )
 major_version = 5
 minor_version = 0
 micro_version = 0
+# Where to report bugs, and the page of GAOL v5, which configure --help gives
+# too (AC_INIT of configure.ac) (GAOL v5)
+gaol_bug_report = 'jordan.ninin@ensta.fr'
+gaol_url = 'https://github.com/Jordan08/GAOL'
 
 ## Main compiler and linker configs
 
@@ -26,12 +32,18 @@ gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
 # the math library of the system, and no longer changes the rounding direction
 # for its elementary functions (see CMakeLists.txt)
 
+msvc = cpp_comp.get_argument_syntax() == 'msvc'
+
 # Options
-debug = get_option('enable-debug')
 simd = get_option('enable-simd')
 asm = get_option('enable-asm')
 preserve_rounding = get_option('enable-preserve-rounding')
 exception = get_option('enable-exception')
+# The Debug build, as CMAKE_BUILD_TYPE=Debug and configure --enable-debug:
+# GAOL checks its assertions (GAOL_DEBUGGING). The option enable-debug, which
+# only defined GAOL_DEBUGGING, is gone, as enable-optimize: the build type
+# gives both (GAOL v5)
+debug = get_option('buildtype') == 'debug'
 # The mathematical library
 #
 # GAOL bounds every one of its elementary functions with CORE-MATH
@@ -41,34 +53,18 @@ exception = get_option('enable-exception')
 message('Elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)')
 
 doc = get_option('with-doc')
-build_tests = get_option('with-test')
+# The unit tests of tests/ and the examples of examples/, as WITH_TESTS and
+# WITH_EXAMPLES of CMake, --with-tests and --with-examples of configure (GAOL
+# v5; with-test before)
+build_tests = get_option('with-tests')
+build_examples = get_option('with-examples')
 
-m_dep = cpp_comp.find_library('m', required: true)
+# The math library of the system, which Visual C++ does not have apart
+m_dep = cpp_comp.find_library('m', required: false)
 
 deps = [m_dep]
 
-## Config
-os_unix = false
-os_linux = false
-os_win = false
-os_darwin = false
-os_cygwin = false
-os_sun = false
-
-if host_machine.system() == 'darwin'
-  os_darwin = true
-elif host_machine.system() == 'windows'
-  os_win = true
-elif host_machine.system() == 'linux'
-  os_linux = true
-elif host_machine.system() == 'cygwin'
-  os_cygwin = true
-elif host_machine.system() == 'sunos'
-  os_sun = true
-else
-  warning('Unknown host system!')
-endif
-os_unix = not os_win
+os_win = host_machine.system() == 'windows'
 
 message('CPU: ' + host_machine.cpu_family() + ' (' + host_machine.cpu() + ')')
 message('OS: ' + host_machine.system())
@@ -78,24 +74,15 @@ message('OS: ' + host_machine.system())
 # (meson.build refused every cpu() other than aarch64, x86 and x86_64, i686
 # and armv7l included)
 
+# gaol/gaol_configuration.h: the macros GAOL's sources read, the same as with
+# CMake and configure (see doc/building.md). The checks of headers, functions,
+# types and sizes nothing read are gone (GAOL v5).
 conf_data = configuration_data()
-conf_data.set('version', meson.project_version())
-conf_data.set('project_name', meson.project_name())
-conf_data.set('project_full_name', meson.project_name())
-conf_data.set('bug_report', 'frederic.goualard@univ-nantes.fr')
-conf_data.set('project_url', 'https://github.com/goualard-f/GAOL')
-
 conf_data.set('GAOL_MAJOR_VERSION', major_version)
 conf_data.set('GAOL_MINOR_VERSION', minor_version)
 conf_data.set('GAOL_MICRO_VERSION', micro_version)
-conf_data.set('version', meson.project_version())
+conf_data.set_quoted('GAOL_VERSION', meson.project_version())
 
-# The relation symbols are the certainly relations: the option enable-relations
-# is gone with the possibly relations (GAOL v5, see gaol/gaol_interval.h). It
-# stays declared so that asking for it stops here, rather than being ignored
-if get_option('enable-relations') != ''
-  error('enable-relations is gone in GAOL v5: <, <=, > and >= are the certainly relations of intervals, and == and != are not defined on them (set_eq, set_disjoint)')
-endif
 if exception
   conf_data.set('GAOL_EXCEPTIONS_ENABLED', 1)
 endif
@@ -105,7 +92,8 @@ endif
 if preserve_rounding
   conf_data.set('GAOL_PRESERVE_ROUNDING', 1)
 endif
-if asm
+# Never with Visual C++, as with CMake
+if asm and not msvc
   conf_data.set('GAOL_USING_ASM', 1)
 endif
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
@@ -114,73 +102,14 @@ if get_option('enable-verbose-mode')
   conf_data.set('GAOL_VERBOSE_MODE', 1)
 endif
 
-if host_machine.endian() == 'big'
-  conf_data.set('WORDS_BIGENDIAN', 1)
+# gaol/gaol_fpu.h and gaol/gaol_exact.h: <fenv.h>; gaol/gaol_profile.cpp:
+# getrusage() where <sys/resource.h> declares it, clock() otherwise
+if cpp_comp.has_header('fenv.h')
+  conf_data.set('HAVE_FENV_H', 1)
 endif
-
-conf_data.set('STDC_HEADERS', 1)
-#conf_data.set('const',0)
-
-check_headers = [
-  'dlfcn.h',
-  'inttypes.h',
-  'stdint.h',
-  'stdio.h',
-  'stdlib.h',
-  'strings.h',
-  'string.h',
-  'sys/stat.h',
-  'sys/types.h',
-  'unistd.h',
-  'cassert',
-  'fenv.h',
-  'float.h',
-  'limits',
-  'stddef.h',
-  'sys/resource.h',
-  'sys/time.h',
-  'time.h',
-  'stdbool.h',
-]
-
-foreach h : check_headers
-  if cpp_comp.has_header(h)
-    conf_data.set('HAVE_' + h.underscorify().to_upper(), 1)
-  endif
-endforeach
-
-check_functions = [
-  'clock',
-  'fesetround',
-  'finite',
-  'floor',
-  'getrusage',
-  'localeconv',
-  'malloc',
-  'memset',
-  'nextafter',
-  'pow',
-  'realloc',
-  'rint',
-  'round',
-  'sqrt',
-  '__signbit',
-]
-
-foreach f : check_functions
-  if cpp_comp.has_function(f)
-    conf_data.set('HAVE_' + f.underscorify().to_upper(), 1)
-  endif
-endforeach
-
-# As configure.ac does: gaol_profile.cpp declares getrusage() itself when
-# sys/resource.h does not, which conflicts with the declaration of glibc
-conf_data.set10('GETRUSAGE_IN_HEADER', cpp_comp.has_header_symbol('sys/resource.h', 'getrusage'))
-
-conf_data.set('HAVE__BOOL', cpp_comp.has_type('_Bool'))
-conf_data.set('SIZEOF_INT', cpp_comp.sizeof('int'))
-conf_data.set('SIZEOF_LONG', cpp_comp.sizeof('long'))
-conf_data.set('SIZEOF_LONG_LONG_INT', cpp_comp.sizeof('long long int'))
+if cpp_comp.has_function('getrusage', prefix: '#include <sys/resource.h>')
+  conf_data.set('HAVE_GETRUSAGE', 1)
+endif
 
 # The compilers CMakeLists.txt and configure refuse, for the same reasons (see
 # CMakeLists.txt): Clang for 32-bit ARM processors, which does not honour the
@@ -223,10 +152,11 @@ foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
     add_global_arguments([flag], language: 'c')
   endif
 endforeach
-# Visual C++: /fp:strict, as CMakeLists.txt gives it, without which
-# gaol/gaol_config.h refuses to compile
-if cpp_comp.get_argument_syntax() == 'msvc'
-  add_global_arguments(['/fp:strict'], language: 'cpp')
+# Visual C++: /fp:strict, as CMakeLists.txt gives it to GAOL and to CORE-MATH,
+# without which gaol/gaol_config.h refuses to compile
+if msvc
+  add_global_arguments(['/fp:strict'], language: ['c', 'cpp'])
+  pc_cflags += ['/fp:strict']
 endif
 
 # The library compiled with hidden visibility, as configure builds it: GAOL's
@@ -241,9 +171,9 @@ endif
 if c_comp.has_argument('-Wconversion')
   add_global_arguments(['-Wconversion'], language: 'c')
 endif
-# enable-optimize: the optimizations configure adds for g++, where the compiler
-# takes them, on top of the build type
-if get_option('enable-optimize')
+# The optimizations configure (--enable-optimize) and the Release build of
+# CMake add to -O3, in the release build type, where the compiler takes them
+if get_option('buildtype') == 'release'
   foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
     if cpp_comp.has_argument(flag)
       add_global_arguments([flag], language: 'cpp')
@@ -283,7 +213,7 @@ if target_x86
     add_global_arguments(x86_args, language: 'c')
     pc_cflags += x86_args
   endif
-  if simd and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
+  if simd and not msvc and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
     conf_data.set('USING_SSE2_INSTRUCTIONS', 1)
     add_global_arguments(['-msse2'], language: 'cpp')
@@ -307,7 +237,7 @@ endif
 # when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
 fma_args = []
 if get_option('enable-fma')
-  if cpp_comp.get_argument_syntax() == 'msvc'
+  if msvc
     msvc_x86_32 = cpp_comp.compiles('''
     #if !defined(_M_IX86)
     #error not 32-bit x86
@@ -388,8 +318,54 @@ endif
 
 subdir('gaol')
 
-subdir('check')
-subdir('examples')
+# make test and make check, as with CMake and configure (GAOL v5): the unit
+# tests are in the suite unit, the examples in the suite examples.
+#   meson test -C <build>            the unit tests (make test; ninja test)
+#   meson test -C <build> --setup check, or ninja -C <build> check
+#                                    the tests and the examples (make check)
+check_targets = []
+if build_tests
+  subdir('tests')
+endif
+if build_examples
+  subdir('examples')
+endif
+if meson.version().version_compare('>=0.57')
+  add_test_setup('unit', exclude_suites: ['examples'], is_default: true)
+  add_test_setup('check')
+else
+  message('meson ' + meson.version() + ': meson test and ninja test run the examples too (meson test --suite unit runs the unit tests only)')
+endif
+if build_tests or build_examples
+  run_target('check',
+    command: [find_program('meson'), 'test', '-C', meson.build_root(), '--no-rebuild', '--print-errorlogs']
+             + (meson.version().version_compare('>=0.57') ? ['--setup', 'check'] : []),
+    depends: check_targets)
+endif
+
+# make perf, as with CMake and configure: GAOL v5 measured on the benchmark of
+# doc/compare/performance.md, whose tables get its new times (see
+# doc/compare/code/run_perf.sh). Linux only, as the benchmark (GAOL v5).
+bash = find_program('bash', required: false)
+if host_machine.system() == 'linux' and bash.found()
+  bench_dir = meson.source_root() + '/doc/compare/code'
+  gaol_bench = executable('gaol_bench', bench_dir + '/bench_gaol.cpp',
+    include_directories: include_directories('.', 'doc/compare/code'),
+    cpp_args: ['-DGAOL_BENCH_NAME="gaol5"'],
+    link_with: gaollib_static,
+    dependencies: deps,
+    build_by_default: false)
+  run_target('perf',
+    command: [bash, bench_dir + '/run_perf.sh', gaol_bench.full_path(),
+              'meson ' + get_option('buildtype'), ' '.join(cpp_comp.cmd_array())],
+    depends: gaol_bench)
+endif
+
+# make parser, as with CMake and configure: the lexer and the parser
+# regenerated in the sources with the flex and the bison of the system (see
+# gaol/regenerate_parser.sh) (GAOL v5)
+run_target('parser', command: [find_program('sh'), files('gaol/regenerate_parser.sh')])
+
 if doc
   subdir('manual')
 endif
@@ -399,9 +375,21 @@ endif
 ## In a meson project: gaol_dep = dependency('gaol')
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: [gaollib, '-lm'],
+  libraries: [gaollib] + (m_dep.found() ? ['-lm'] : []),
   name: 'gaol',
   description: 'GAOL, Not Just Another Interval Library',
-  url: 'https://github.com/Jordan08/GAOL',
+  url: gaol_url,
   extra_cflags: pc_cflags,
 )
+
+summary({
+  'Version': meson.project_version(),
+  'Bug reports': gaol_bug_report,
+  'Home page': gaol_url,
+  'Debug (GAOL_DEBUGGING)': debug,
+  'Preserve rounding': preserve_rounding,
+  'SSE2 intervals': use_sse2,
+  'Fused multiply-add': ' '.join(fma_args),
+  'Unit tests': build_tests,
+  'Examples': build_examples,
+})

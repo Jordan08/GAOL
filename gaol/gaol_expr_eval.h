@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_expr_eval.h 54 2009-03-01 13:53:01Z goualard $
- * Last modified: 
- * By: 
  *--------------------------------------------------------------------------*/
 
 /*!

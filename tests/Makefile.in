@@ -14,29 +14,23 @@
 
 @SET_MAKE@
 
-#-*-Makefile-*-----------------------------------------------------------------
-#  gaol -- Just Another Interval Library
-#------------------------------------------------------------------------------
-# This file is part of the gaol distribution. Gaol was primarily
-# developed at the Swiss Federal Institute of Technology, Lausanne,
-# Switzerland, and is now developed at the Institut de Recherche
-# en Informatique de Nantes, France.
+# The unit tests of GAOL (GAOL v5), as tests/CMakeLists.txt builds them
 #
-# Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
-# Copyright (c) 2002 Institut de Recherche en Informatique de Nantes, France
-#------------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#------------------------------------------------------------------------------
-# Note: To be used with GNU Make
-# If this file has the name "Makefile.in" then it is a template for a
-# Makefile; to generate the actual Makefile, run "./configure" from the base
-# directory of gaol.
-#------------------------------------------------------------------------------
-# CVS: $Id: Makefile.am,v 1.19 2007/12/10 20:19:52 goualard Exp $
-# Last modified: Wed Mar 22 09:55:09 2006 on pc-dubreil-123.irin.sciences.univ-nantes.prive
-# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
-#------------------------------------------------------------------------------
+# ./configure --with-tests builds them with GAOL (make), and make check and
+# make test run them (see ../Makefile.am). They are compiled as any code using
+# GAOL, with the flags of interval arithmetic configure gives, in C++17 for the
+# hexadecimal floating literals of elementary_values.h, and linked with the
+# static libgaol just built (-static: a libtool library not installed), as
+# CMake links them. Exit status 77 is a test skipped (intervalf and interval2f
+# where the intervals of floats are not compiled).
+#
+# make perf measures GAOL v5 on the benchmark of doc/compare/performance.md
+# (doc/compare/code/run_perf.sh).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-09-27 by Jordan NININ
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -111,18 +105,14 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@CPPUNIT_COND_TRUE@check_PROGRAMS = arithmetic$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	assignment$(EXEEXT) constants$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	constructor$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	float_functions$(EXEEXT) fpu$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	generic_functions$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	input_output$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	interval_functions$(EXEEXT) misc$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	non_arithmetic$(EXEEXT) relations$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	reverse_mappings$(EXEEXT) \
-@CPPUNIT_COND_TRUE@	trigonometric$(EXEEXT) essai$(EXEEXT)
-EXTRA_PROGRAMS = performances$(EXEEXT)
-subdir = check
+# The rounding direction after the automatic cleanup of GAOL, read by a
+# function registered in a constructor of priority 101, which ELF runs before
+# GAOL initializes itself
+@HOST_LINUX_TRUE@am__append_1 = automatic_cleanup
+@WITH_TESTS_TRUE@noinst_PROGRAMS = $(am__EXEEXT_2) \
+@WITH_TESTS_TRUE@	gaol_performance$(EXEEXT)
+@WITH_TESTS_TRUE@TESTS = $(am__EXEEXT_2)
+subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -131,160 +121,148 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+@HOST_LINUX_TRUE@am__EXEEXT_1 = automatic_cleanup$(EXEEXT)
+am__EXEEXT_2 = arithmetic$(EXEEXT) elementary$(EXEEXT) \
+	rounding_direction$(EXEEXT) numbers$(EXEEXT) \
+	other_functions$(EXEEXT) ieee1788$(EXEEXT) reverse$(EXEEXT) \
+	u128$(EXEEXT) core_math$(EXEEXT) expressions$(EXEEXT) \
+	extended_precision$(EXEEXT) static_initialization$(EXEEXT) \
+	debugging$(EXEEXT) arithmetic_operators$(EXEEXT) \
+	assignment$(EXEEXT) constants$(EXEEXT) constructor$(EXEEXT) \
+	float_functions$(EXEEXT) generic_functions$(EXEEXT) \
+	input_output$(EXEEXT) interval_functions$(EXEEXT) \
+	misc$(EXEEXT) non_arithmetic$(EXEEXT) relations$(EXEEXT) \
+	reverse_mappings$(EXEEXT) trigonometric$(EXEEXT) \
+	intervalf$(EXEEXT) interval2f$(EXEEXT) $(am__EXEEXT_1)
+PROGRAMS = $(noinst_PROGRAMS)
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)
-am__DEPENDENCIES_1 =
-@IS_CYGWIN_COND_FALSE@arithmetic_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@arithmetic_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+arithmetic_operators_SOURCES = arithmetic_operators.cpp
+arithmetic_operators_OBJECTS = arithmetic_operators.$(OBJEXT)
+arithmetic_operators_LDADD = $(LDADD)
+arithmetic_operators_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 assignment_SOURCES = assignment.cpp
 assignment_OBJECTS = assignment.$(OBJEXT)
 assignment_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@assignment_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@assignment_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+assignment_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+automatic_cleanup_SOURCES = automatic_cleanup.cpp
+automatic_cleanup_OBJECTS = automatic_cleanup.$(OBJEXT)
+automatic_cleanup_LDADD = $(LDADD)
+automatic_cleanup_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 constants_SOURCES = constants.cpp
 constants_OBJECTS = constants.$(OBJEXT)
 constants_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@constants_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@constants_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+constants_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 constructor_SOURCES = constructor.cpp
 constructor_OBJECTS = constructor.$(OBJEXT)
 constructor_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@constructor_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@constructor_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
-essai_SOURCES = essai.cpp
-essai_OBJECTS = essai.$(OBJEXT)
-essai_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@essai_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@essai_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+constructor_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+core_math_SOURCES = core_math.cpp
+core_math_OBJECTS = core_math.$(OBJEXT)
+core_math_LDADD = $(LDADD)
+core_math_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+debugging_SOURCES = debugging.cpp
+debugging_OBJECTS = debugging.$(OBJEXT)
+debugging_LDADD = $(LDADD)
+debugging_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+elementary_SOURCES = elementary.cpp
+elementary_OBJECTS = elementary.$(OBJEXT)
+elementary_LDADD = $(LDADD)
+elementary_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+expressions_SOURCES = expressions.cpp
+expressions_OBJECTS = expressions.$(OBJEXT)
+expressions_LDADD = $(LDADD)
+expressions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+extended_precision_SOURCES = extended_precision.cpp
+extended_precision_OBJECTS = extended_precision.$(OBJEXT)
+extended_precision_LDADD = $(LDADD)
+extended_precision_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 float_functions_SOURCES = float_functions.cpp
 float_functions_OBJECTS = float_functions.$(OBJEXT)
 float_functions_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@float_functions_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@float_functions_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
-fpu_SOURCES = fpu.cpp
-fpu_OBJECTS = fpu.$(OBJEXT)
-fpu_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@fpu_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@fpu_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+float_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+am_gaol_performance_OBJECTS = performance.$(OBJEXT)
+gaol_performance_OBJECTS = $(am_gaol_performance_OBJECTS)
+gaol_performance_LDADD = $(LDADD)
+gaol_performance_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 generic_functions_SOURCES = generic_functions.cpp
 generic_functions_OBJECTS = generic_functions.$(OBJEXT)
 generic_functions_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@generic_functions_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@generic_functions_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+generic_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+ieee1788_SOURCES = ieee1788.cpp
+ieee1788_OBJECTS = ieee1788.$(OBJEXT)
+ieee1788_LDADD = $(LDADD)
+ieee1788_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 input_output_SOURCES = input_output.cpp
 input_output_OBJECTS = input_output.$(OBJEXT)
 input_output_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@input_output_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@input_output_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+input_output_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+interval2f_SOURCES = interval2f.cpp
+interval2f_OBJECTS = interval2f.$(OBJEXT)
+interval2f_LDADD = $(LDADD)
+interval2f_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 interval_functions_SOURCES = interval_functions.cpp
 interval_functions_OBJECTS = interval_functions.$(OBJEXT)
 interval_functions_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@interval_functions_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@interval_functions_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+interval_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+intervalf_SOURCES = intervalf.cpp
+intervalf_OBJECTS = intervalf.$(OBJEXT)
+intervalf_LDADD = $(LDADD)
+intervalf_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 misc_SOURCES = misc.cpp
 misc_OBJECTS = misc.$(OBJEXT)
 misc_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@misc_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@misc_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+misc_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 non_arithmetic_SOURCES = non_arithmetic.cpp
 non_arithmetic_OBJECTS = non_arithmetic.$(OBJEXT)
 non_arithmetic_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@non_arithmetic_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@non_arithmetic_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
-am_performances_OBJECTS = performance_test_set.$(OBJEXT) \
-	performances.$(OBJEXT)
-performances_OBJECTS = $(am_performances_OBJECTS)
-performances_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@performances_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@performances_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+non_arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+numbers_SOURCES = numbers.cpp
+numbers_OBJECTS = numbers.$(OBJEXT)
+numbers_LDADD = $(LDADD)
+numbers_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+other_functions_SOURCES = other_functions.cpp
+other_functions_OBJECTS = other_functions.$(OBJEXT)
+other_functions_LDADD = $(LDADD)
+other_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 relations_SOURCES = relations.cpp
 relations_OBJECTS = relations.$(OBJEXT)
 relations_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@relations_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@relations_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+relations_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+reverse_SOURCES = reverse.cpp
+reverse_OBJECTS = reverse.$(OBJEXT)
+reverse_LDADD = $(LDADD)
+reverse_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 reverse_mappings_SOURCES = reverse_mappings.cpp
 reverse_mappings_OBJECTS = reverse_mappings.$(OBJEXT)
 reverse_mappings_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@reverse_mappings_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@reverse_mappings_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+reverse_mappings_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+rounding_direction_SOURCES = rounding_direction.cpp
+rounding_direction_OBJECTS = rounding_direction.$(OBJEXT)
+rounding_direction_LDADD = $(LDADD)
+rounding_direction_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+static_initialization_SOURCES = static_initialization.cpp
+static_initialization_OBJECTS = static_initialization.$(OBJEXT)
+static_initialization_LDADD = $(LDADD)
+static_initialization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 trigonometric_SOURCES = trigonometric.cpp
 trigonometric_OBJECTS = trigonometric.$(OBJEXT)
 trigonometric_LDADD = $(LDADD)
-@IS_CYGWIN_COND_FALSE@trigonometric_DEPENDENCIES =  \
-@IS_CYGWIN_COND_FALSE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_FALSE@	$(am__DEPENDENCIES_1)
-@IS_CYGWIN_COND_TRUE@trigonometric_DEPENDENCIES =  \
-@IS_CYGWIN_COND_TRUE@	$(top_builddir)/gaol/libgaol.la \
-@IS_CYGWIN_COND_TRUE@	$(am__DEPENDENCIES_1)
+trigonometric_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+u128_SOURCES = u128.cpp
+u128_OBJECTS = u128.$(OBJEXT)
+u128_LDADD = $(LDADD)
+u128_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -301,15 +279,22 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/gaol
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
-	./$(DEPDIR)/assignment.Po ./$(DEPDIR)/constants.Po \
-	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/essai.Po \
-	./$(DEPDIR)/float_functions.Po ./$(DEPDIR)/fpu.Po \
-	./$(DEPDIR)/generic_functions.Po ./$(DEPDIR)/input_output.Po \
-	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/misc.Po \
-	./$(DEPDIR)/non_arithmetic.Po \
-	./$(DEPDIR)/performance_test_set.Po \
-	./$(DEPDIR)/performances.Po ./$(DEPDIR)/relations.Po \
-	./$(DEPDIR)/reverse_mappings.Po ./$(DEPDIR)/trigonometric.Po
+	./$(DEPDIR)/arithmetic_operators.Po ./$(DEPDIR)/assignment.Po \
+	./$(DEPDIR)/automatic_cleanup.Po ./$(DEPDIR)/constants.Po \
+	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/core_math.Po \
+	./$(DEPDIR)/debugging.Po ./$(DEPDIR)/elementary.Po \
+	./$(DEPDIR)/expressions.Po ./$(DEPDIR)/extended_precision.Po \
+	./$(DEPDIR)/float_functions.Po \
+	./$(DEPDIR)/generic_functions.Po ./$(DEPDIR)/ieee1788.Po \
+	./$(DEPDIR)/input_output.Po ./$(DEPDIR)/interval2f.Po \
+	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/intervalf.Po \
+	./$(DEPDIR)/misc.Po ./$(DEPDIR)/non_arithmetic.Po \
+	./$(DEPDIR)/numbers.Po ./$(DEPDIR)/other_functions.Po \
+	./$(DEPDIR)/performance.Po ./$(DEPDIR)/relations.Po \
+	./$(DEPDIR)/reverse.Po ./$(DEPDIR)/reverse_mappings.Po \
+	./$(DEPDIR)/rounding_direction.Po \
+	./$(DEPDIR)/static_initialization.Po \
+	./$(DEPDIR)/trigonometric.Po ./$(DEPDIR)/u128.Po
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -329,11 +314,16 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = arithmetic.cpp assignment.cpp constants.cpp constructor.cpp \
-	essai.cpp float_functions.cpp fpu.cpp generic_functions.cpp \
-	input_output.cpp interval_functions.cpp misc.cpp \
-	non_arithmetic.cpp $(performances_SOURCES) relations.cpp \
-	reverse_mappings.cpp trigonometric.cpp
+SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
+	automatic_cleanup.cpp constants.cpp constructor.cpp \
+	core_math.cpp debugging.cpp elementary.cpp expressions.cpp \
+	extended_precision.cpp float_functions.cpp \
+	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
+	input_output.cpp interval2f.cpp interval_functions.cpp \
+	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
+	other_functions.cpp relations.cpp reverse.cpp \
+	reverse_mappings.cpp rounding_direction.cpp \
+	static_initialization.cpp trigonometric.cpp u128.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -585,10 +575,7 @@ CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
-DLLIB = @DLLIB@
 DLLTOOL = @DLLTOOL@
-DOT = @DOT@
-DOXYGEN = @DOXYGEN@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
@@ -597,10 +584,9 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GAOL_CXX_STD = @GAOL_CXX_STD@
 GAOL_EDITION = @GAOL_EDITION@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
-GAOL_PC_VERSION = @GAOL_PC_VERSION@
-GAOL_RPM_RELEASE = @GAOL_RPM_RELEASE@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
@@ -619,7 +605,6 @@ LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LT_RELEASE = @LT_RELEASE@
 LT_VERSION_INFO = @LT_VERSION_INFO@
 MAINT = @MAINT@
 MAKEINDEX = @MAKEINDEX@
@@ -641,14 +626,13 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PDFLATEX = @PDFLATEX@
+PTHREAD_FLAGS = @PTHREAD_FLAGS@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
-YACC = @YACC@
-YFLAGS = @YFLAGS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -703,35 +687,24 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-
-# Requires automake 1.4
-AUTOMAKE_OPTIONS = 1.4
-
-#MOSTLYCLEANFILES=
-#CLEANFILES =
-DISTCLEANFILES = gaolcc
-MAINTAINERCLEANFILES = gaolcc
-
-# Not the tests of the intervals of floats, intervalf.cpp and interval2f.cpp,
-# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
-AM_DEFAULT_SOURCE_EXT = .cpp
-@CPPUNIT_COND_FALSE@CPPUNIT_LIB = 
-@CPPUNIT_COND_TRUE@CPPUNIT_LIB = -lcppunit
-TESTS = $(check_PROGRAMS)
-
-# GAOL's own directories before those given in CPPFLAGS, which come first
-# otherwise: a prefix given there may hold an installed GAOL too, whose headers
-# were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
-@IS_CYGWIN_COND_FALSE@LDADD = -lm $(top_builddir)/gaol/libgaol.la $(CPPUNIT_LIB) @DLLIB@
+AM_CXXFLAGS = -std=c++17
+AM_LDFLAGS = -static
+LDADD = $(top_builddir)/gaol/libgaol.la -lm
+AM_DEFAULT_SOURCE_EXT = .cpp
 
-#// TODO (goualard#4#): Handle cppunit under Windows
-# The library just built, by its libtool archive, rather than -lgaol with
-# -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
-# there may hold an installed GAOL too, which was then linked
-@IS_CYGWIN_COND_TRUE@LDADD = $(top_builddir)/gaol/libgaol.la -lm $(CPPUNIT_LIB)
-performances_SOURCES = performance_test_set.cpp performances.cpp
-PROBABILITIES = .05 .1 .1 .75
+# The same list as tests/CMakeLists.txt
+GAOL_TESTS = arithmetic elementary rounding_direction numbers \
+	other_functions ieee1788 reverse u128 core_math expressions \
+	extended_precision static_initialization debugging \
+	arithmetic_operators assignment constants constructor \
+	float_functions generic_functions input_output \
+	interval_functions misc non_arithmetic relations \
+	reverse_mappings trigonometric intervalf interval2f \
+	$(am__append_1)
+gaol_performance_SOURCES = performance.cpp
+CLEANFILES = gaol_bench$(EXEEXT)
+BASH = bash
 all: all-am
 
 .SUFFIXES:
@@ -745,9 +718,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu check/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu tests/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu check/Makefile
+	  $(AUTOMAKE) --gnu tests/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -766,8 +739,8 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 
-clean-checkPROGRAMS:
-	@list='$(check_PROGRAMS)'; test -n "$$list" || exit 0; \
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
 	echo " rm -f" $$list; \
 	rm -f $$list || exit $$?; \
 	test -n "$(EXEEXT)" || exit 0; \
@@ -779,9 +752,17 @@ arithmetic$(EXEEXT): $(arithmetic_OBJECTS) $(arithmetic_DEPENDENCIES) $(EXTRA_ar
 	@rm -f arithmetic$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(arithmetic_OBJECTS) $(arithmetic_LDADD) $(LIBS)
 
+arithmetic_operators$(EXEEXT): $(arithmetic_operators_OBJECTS) $(arithmetic_operators_DEPENDENCIES) $(EXTRA_arithmetic_operators_DEPENDENCIES) 
+	@rm -f arithmetic_operators$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(arithmetic_operators_OBJECTS) $(arithmetic_operators_LDADD) $(LIBS)
+
 assignment$(EXEEXT): $(assignment_OBJECTS) $(assignment_DEPENDENCIES) $(EXTRA_assignment_DEPENDENCIES) 
 	@rm -f assignment$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(assignment_OBJECTS) $(assignment_LDADD) $(LIBS)
+
+automatic_cleanup$(EXEEXT): $(automatic_cleanup_OBJECTS) $(automatic_cleanup_DEPENDENCIES) $(EXTRA_automatic_cleanup_DEPENDENCIES) 
+	@rm -f automatic_cleanup$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(automatic_cleanup_OBJECTS) $(automatic_cleanup_LDADD) $(LIBS)
 
 constants$(EXEEXT): $(constants_OBJECTS) $(constants_DEPENDENCIES) $(EXTRA_constants_DEPENDENCIES) 
 	@rm -f constants$(EXEEXT)
@@ -791,29 +772,57 @@ constructor$(EXEEXT): $(constructor_OBJECTS) $(constructor_DEPENDENCIES) $(EXTRA
 	@rm -f constructor$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(constructor_OBJECTS) $(constructor_LDADD) $(LIBS)
 
-essai$(EXEEXT): $(essai_OBJECTS) $(essai_DEPENDENCIES) $(EXTRA_essai_DEPENDENCIES) 
-	@rm -f essai$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(essai_OBJECTS) $(essai_LDADD) $(LIBS)
+core_math$(EXEEXT): $(core_math_OBJECTS) $(core_math_DEPENDENCIES) $(EXTRA_core_math_DEPENDENCIES) 
+	@rm -f core_math$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(core_math_OBJECTS) $(core_math_LDADD) $(LIBS)
+
+debugging$(EXEEXT): $(debugging_OBJECTS) $(debugging_DEPENDENCIES) $(EXTRA_debugging_DEPENDENCIES) 
+	@rm -f debugging$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(debugging_OBJECTS) $(debugging_LDADD) $(LIBS)
+
+elementary$(EXEEXT): $(elementary_OBJECTS) $(elementary_DEPENDENCIES) $(EXTRA_elementary_DEPENDENCIES) 
+	@rm -f elementary$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(elementary_OBJECTS) $(elementary_LDADD) $(LIBS)
+
+expressions$(EXEEXT): $(expressions_OBJECTS) $(expressions_DEPENDENCIES) $(EXTRA_expressions_DEPENDENCIES) 
+	@rm -f expressions$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(expressions_OBJECTS) $(expressions_LDADD) $(LIBS)
+
+extended_precision$(EXEEXT): $(extended_precision_OBJECTS) $(extended_precision_DEPENDENCIES) $(EXTRA_extended_precision_DEPENDENCIES) 
+	@rm -f extended_precision$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(extended_precision_OBJECTS) $(extended_precision_LDADD) $(LIBS)
 
 float_functions$(EXEEXT): $(float_functions_OBJECTS) $(float_functions_DEPENDENCIES) $(EXTRA_float_functions_DEPENDENCIES) 
 	@rm -f float_functions$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(float_functions_OBJECTS) $(float_functions_LDADD) $(LIBS)
 
-fpu$(EXEEXT): $(fpu_OBJECTS) $(fpu_DEPENDENCIES) $(EXTRA_fpu_DEPENDENCIES) 
-	@rm -f fpu$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(fpu_OBJECTS) $(fpu_LDADD) $(LIBS)
+gaol_performance$(EXEEXT): $(gaol_performance_OBJECTS) $(gaol_performance_DEPENDENCIES) $(EXTRA_gaol_performance_DEPENDENCIES) 
+	@rm -f gaol_performance$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(gaol_performance_OBJECTS) $(gaol_performance_LDADD) $(LIBS)
 
 generic_functions$(EXEEXT): $(generic_functions_OBJECTS) $(generic_functions_DEPENDENCIES) $(EXTRA_generic_functions_DEPENDENCIES) 
 	@rm -f generic_functions$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(generic_functions_OBJECTS) $(generic_functions_LDADD) $(LIBS)
 
+ieee1788$(EXEEXT): $(ieee1788_OBJECTS) $(ieee1788_DEPENDENCIES) $(EXTRA_ieee1788_DEPENDENCIES) 
+	@rm -f ieee1788$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(ieee1788_OBJECTS) $(ieee1788_LDADD) $(LIBS)
+
 input_output$(EXEEXT): $(input_output_OBJECTS) $(input_output_DEPENDENCIES) $(EXTRA_input_output_DEPENDENCIES) 
 	@rm -f input_output$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(input_output_OBJECTS) $(input_output_LDADD) $(LIBS)
 
+interval2f$(EXEEXT): $(interval2f_OBJECTS) $(interval2f_DEPENDENCIES) $(EXTRA_interval2f_DEPENDENCIES) 
+	@rm -f interval2f$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(interval2f_OBJECTS) $(interval2f_LDADD) $(LIBS)
+
 interval_functions$(EXEEXT): $(interval_functions_OBJECTS) $(interval_functions_DEPENDENCIES) $(EXTRA_interval_functions_DEPENDENCIES) 
 	@rm -f interval_functions$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(interval_functions_OBJECTS) $(interval_functions_LDADD) $(LIBS)
+
+intervalf$(EXEEXT): $(intervalf_OBJECTS) $(intervalf_DEPENDENCIES) $(EXTRA_intervalf_DEPENDENCIES) 
+	@rm -f intervalf$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(intervalf_OBJECTS) $(intervalf_LDADD) $(LIBS)
 
 misc$(EXEEXT): $(misc_OBJECTS) $(misc_DEPENDENCIES) $(EXTRA_misc_DEPENDENCIES) 
 	@rm -f misc$(EXEEXT)
@@ -823,21 +832,41 @@ non_arithmetic$(EXEEXT): $(non_arithmetic_OBJECTS) $(non_arithmetic_DEPENDENCIES
 	@rm -f non_arithmetic$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(non_arithmetic_OBJECTS) $(non_arithmetic_LDADD) $(LIBS)
 
-performances$(EXEEXT): $(performances_OBJECTS) $(performances_DEPENDENCIES) $(EXTRA_performances_DEPENDENCIES) 
-	@rm -f performances$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(performances_OBJECTS) $(performances_LDADD) $(LIBS)
+numbers$(EXEEXT): $(numbers_OBJECTS) $(numbers_DEPENDENCIES) $(EXTRA_numbers_DEPENDENCIES) 
+	@rm -f numbers$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(numbers_OBJECTS) $(numbers_LDADD) $(LIBS)
+
+other_functions$(EXEEXT): $(other_functions_OBJECTS) $(other_functions_DEPENDENCIES) $(EXTRA_other_functions_DEPENDENCIES) 
+	@rm -f other_functions$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(other_functions_OBJECTS) $(other_functions_LDADD) $(LIBS)
 
 relations$(EXEEXT): $(relations_OBJECTS) $(relations_DEPENDENCIES) $(EXTRA_relations_DEPENDENCIES) 
 	@rm -f relations$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(relations_OBJECTS) $(relations_LDADD) $(LIBS)
 
+reverse$(EXEEXT): $(reverse_OBJECTS) $(reverse_DEPENDENCIES) $(EXTRA_reverse_DEPENDENCIES) 
+	@rm -f reverse$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(reverse_OBJECTS) $(reverse_LDADD) $(LIBS)
+
 reverse_mappings$(EXEEXT): $(reverse_mappings_OBJECTS) $(reverse_mappings_DEPENDENCIES) $(EXTRA_reverse_mappings_DEPENDENCIES) 
 	@rm -f reverse_mappings$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(reverse_mappings_OBJECTS) $(reverse_mappings_LDADD) $(LIBS)
 
+rounding_direction$(EXEEXT): $(rounding_direction_OBJECTS) $(rounding_direction_DEPENDENCIES) $(EXTRA_rounding_direction_DEPENDENCIES) 
+	@rm -f rounding_direction$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(rounding_direction_OBJECTS) $(rounding_direction_LDADD) $(LIBS)
+
+static_initialization$(EXEEXT): $(static_initialization_OBJECTS) $(static_initialization_DEPENDENCIES) $(EXTRA_static_initialization_DEPENDENCIES) 
+	@rm -f static_initialization$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(static_initialization_OBJECTS) $(static_initialization_LDADD) $(LIBS)
+
 trigonometric$(EXEEXT): $(trigonometric_OBJECTS) $(trigonometric_DEPENDENCIES) $(EXTRA_trigonometric_DEPENDENCIES) 
 	@rm -f trigonometric$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(trigonometric_OBJECTS) $(trigonometric_LDADD) $(LIBS)
+
+u128$(EXEEXT): $(u128_OBJECTS) $(u128_DEPENDENCIES) $(EXTRA_u128_DEPENDENCIES) 
+	@rm -f u128$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(u128_OBJECTS) $(u128_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -846,22 +875,35 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arithmetic.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arithmetic_operators.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/assignment.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/automatic_cleanup.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/constants.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/constructor.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/essai.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debugging.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elementary.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expressions.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extended_precision.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/float_functions.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fpu.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generic_functions.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee1788.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/input_output.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interval2f.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interval_functions.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intervalf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/non_arithmetic.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performance_test_set.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performances.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/numbers.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/other_functions.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performance.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/relations.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse_mappings.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rounding_direction.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/static_initialization.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trigonometric.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/u128.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -1071,7 +1113,7 @@ $(TEST_SUITE_LOG): $(TEST_LOGS)
 	fi;								\
 	$$success || exit 1
 
-check-TESTS: $(check_PROGRAMS)
+check-TESTS: 
 	@list='$(RECHECK_LOGS)';           test -z "$$list" || rm -f $$list
 	@list='$(RECHECK_LOGS:.log=.trs)'; test -z "$$list" || rm -f $$list
 	@test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
@@ -1081,7 +1123,7 @@ check-TESTS: $(check_PROGRAMS)
 	log_list=`echo $$log_list`; trs_list=`echo $$trs_list`; \
 	$(MAKE) $(AM_MAKEFLAGS) $(TEST_SUITE_LOG) TEST_LOGS="$$log_list"; \
 	exit $$?;
-recheck: all $(check_PROGRAMS)
+recheck: all 
 	@test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
 	@set +e; $(am__set_TESTS_bases); \
 	bases=`for i in $$bases; do echo $$i; done \
@@ -1095,6 +1137,97 @@ recheck: all $(check_PROGRAMS)
 arithmetic.log: arithmetic$(EXEEXT)
 	@p='arithmetic$(EXEEXT)'; \
 	b='arithmetic'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+elementary.log: elementary$(EXEEXT)
+	@p='elementary$(EXEEXT)'; \
+	b='elementary'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+rounding_direction.log: rounding_direction$(EXEEXT)
+	@p='rounding_direction$(EXEEXT)'; \
+	b='rounding_direction'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+numbers.log: numbers$(EXEEXT)
+	@p='numbers$(EXEEXT)'; \
+	b='numbers'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+other_functions.log: other_functions$(EXEEXT)
+	@p='other_functions$(EXEEXT)'; \
+	b='other_functions'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+ieee1788.log: ieee1788$(EXEEXT)
+	@p='ieee1788$(EXEEXT)'; \
+	b='ieee1788'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+reverse.log: reverse$(EXEEXT)
+	@p='reverse$(EXEEXT)'; \
+	b='reverse'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+u128.log: u128$(EXEEXT)
+	@p='u128$(EXEEXT)'; \
+	b='u128'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+core_math.log: core_math$(EXEEXT)
+	@p='core_math$(EXEEXT)'; \
+	b='core_math'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+expressions.log: expressions$(EXEEXT)
+	@p='expressions$(EXEEXT)'; \
+	b='expressions'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+extended_precision.log: extended_precision$(EXEEXT)
+	@p='extended_precision$(EXEEXT)'; \
+	b='extended_precision'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+static_initialization.log: static_initialization$(EXEEXT)
+	@p='static_initialization$(EXEEXT)'; \
+	b='static_initialization'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+debugging.log: debugging$(EXEEXT)
+	@p='debugging$(EXEEXT)'; \
+	b='debugging'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+arithmetic_operators.log: arithmetic_operators$(EXEEXT)
+	@p='arithmetic_operators$(EXEEXT)'; \
+	b='arithmetic_operators'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
@@ -1123,13 +1256,6 @@ constructor.log: constructor$(EXEEXT)
 float_functions.log: float_functions$(EXEEXT)
 	@p='float_functions$(EXEEXT)'; \
 	b='float_functions'; \
-	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
-	--log-file $$b.log --trs-file $$b.trs \
-	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
-	"$$tst" $(AM_TESTS_FD_REDIRECT)
-fpu.log: fpu$(EXEEXT)
-	@p='fpu$(EXEEXT)'; \
-	b='fpu'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
@@ -1190,9 +1316,23 @@ trigonometric.log: trigonometric$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
-essai.log: essai$(EXEEXT)
-	@p='essai$(EXEEXT)'; \
-	b='essai'; \
+intervalf.log: intervalf$(EXEEXT)
+	@p='intervalf$(EXEEXT)'; \
+	b='intervalf'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+interval2f.log: interval2f$(EXEEXT)
+	@p='interval2f$(EXEEXT)'; \
+	b='interval2f'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+automatic_cleanup.log: automatic_cleanup$(EXEEXT)
+	@p='automatic_cleanup$(EXEEXT)'; \
+	b='automatic_cleanup'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
@@ -1211,11 +1351,11 @@ essai.log: essai$(EXEEXT)
 @am__EXEEXT_TRUE@	--log-file $$b.log --trs-file $$b.trs \
 @am__EXEEXT_TRUE@	$(am__common_driver_flags) $(AM_TEST_LOG_DRIVER_FLAGS) $(TEST_LOG_DRIVER_FLAGS) -- $(TEST_LOG_COMPILE) \
 @am__EXEEXT_TRUE@	"$$tst" $(AM_TESTS_FD_REDIRECT)
+@WITH_TESTS_TRUE@check-local:
 check-am: all-am
-	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
-	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
+	$(MAKE) $(AM_MAKEFLAGS) check-TESTS check-local
 check: check-am
-all-am: Makefile
+all-am: Makefile $(PROGRAMS)
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -1242,39 +1382,51 @@ mostlyclean-generic:
 	-test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
+clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/arithmetic.Po
+	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
+	-rm -f ./$(DEPDIR)/automatic_cleanup.Po
 	-rm -f ./$(DEPDIR)/constants.Po
 	-rm -f ./$(DEPDIR)/constructor.Po
-	-rm -f ./$(DEPDIR)/essai.Po
+	-rm -f ./$(DEPDIR)/core_math.Po
+	-rm -f ./$(DEPDIR)/debugging.Po
+	-rm -f ./$(DEPDIR)/elementary.Po
+	-rm -f ./$(DEPDIR)/expressions.Po
+	-rm -f ./$(DEPDIR)/extended_precision.Po
 	-rm -f ./$(DEPDIR)/float_functions.Po
-	-rm -f ./$(DEPDIR)/fpu.Po
 	-rm -f ./$(DEPDIR)/generic_functions.Po
+	-rm -f ./$(DEPDIR)/ieee1788.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
+	-rm -f ./$(DEPDIR)/interval2f.Po
 	-rm -f ./$(DEPDIR)/interval_functions.Po
+	-rm -f ./$(DEPDIR)/intervalf.Po
 	-rm -f ./$(DEPDIR)/misc.Po
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
-	-rm -f ./$(DEPDIR)/performance_test_set.Po
-	-rm -f ./$(DEPDIR)/performances.Po
+	-rm -f ./$(DEPDIR)/numbers.Po
+	-rm -f ./$(DEPDIR)/other_functions.Po
+	-rm -f ./$(DEPDIR)/performance.Po
 	-rm -f ./$(DEPDIR)/relations.Po
+	-rm -f ./$(DEPDIR)/reverse.Po
 	-rm -f ./$(DEPDIR)/reverse_mappings.Po
+	-rm -f ./$(DEPDIR)/rounding_direction.Po
+	-rm -f ./$(DEPDIR)/static_initialization.Po
 	-rm -f ./$(DEPDIR)/trigonometric.Po
+	-rm -f ./$(DEPDIR)/u128.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1321,22 +1473,35 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/arithmetic.Po
+	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
+	-rm -f ./$(DEPDIR)/automatic_cleanup.Po
 	-rm -f ./$(DEPDIR)/constants.Po
 	-rm -f ./$(DEPDIR)/constructor.Po
-	-rm -f ./$(DEPDIR)/essai.Po
+	-rm -f ./$(DEPDIR)/core_math.Po
+	-rm -f ./$(DEPDIR)/debugging.Po
+	-rm -f ./$(DEPDIR)/elementary.Po
+	-rm -f ./$(DEPDIR)/expressions.Po
+	-rm -f ./$(DEPDIR)/extended_precision.Po
 	-rm -f ./$(DEPDIR)/float_functions.Po
-	-rm -f ./$(DEPDIR)/fpu.Po
 	-rm -f ./$(DEPDIR)/generic_functions.Po
+	-rm -f ./$(DEPDIR)/ieee1788.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
+	-rm -f ./$(DEPDIR)/interval2f.Po
 	-rm -f ./$(DEPDIR)/interval_functions.Po
+	-rm -f ./$(DEPDIR)/intervalf.Po
 	-rm -f ./$(DEPDIR)/misc.Po
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
-	-rm -f ./$(DEPDIR)/performance_test_set.Po
-	-rm -f ./$(DEPDIR)/performances.Po
+	-rm -f ./$(DEPDIR)/numbers.Po
+	-rm -f ./$(DEPDIR)/other_functions.Po
+	-rm -f ./$(DEPDIR)/performance.Po
 	-rm -f ./$(DEPDIR)/relations.Po
+	-rm -f ./$(DEPDIR)/reverse.Po
 	-rm -f ./$(DEPDIR)/reverse_mappings.Po
+	-rm -f ./$(DEPDIR)/rounding_direction.Po
+	-rm -f ./$(DEPDIR)/static_initialization.Po
 	-rm -f ./$(DEPDIR)/trigonometric.Po
+	-rm -f ./$(DEPDIR)/u128.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -1358,48 +1523,37 @@ uninstall-am:
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-TESTS \
-	check-am clean clean-checkPROGRAMS clean-generic clean-libtool \
-	cscopelist-am ctags ctags-am distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags dvi dvi-am \
-	html html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	recheck tags tags-am uninstall uninstall-am
+	check-am check-local clean clean-generic clean-libtool \
+	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags dvi dvi-am html html-am info info-am install \
+	install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am recheck tags tags-am uninstall \
+	uninstall-am
 
 .PRECIOUS: Makefile
 
+@WITH_TESTS_FALSE@check-local:
+@WITH_TESTS_FALSE@	@echo "No unit tests: configure with --with-tests"
 
-# Test of performances. Launch with "make perf"
-perf:
-	@date | tee performances_result.txt
-	@hostname | tee -a performances_result.txt
-	@echo "Compiler: @CXX@" | tee -a performances_result.txt
-	@echo "Elementary functions: CORE-MATH" | tee -a performances_result.txt
-	./performances add 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances sub 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances mul 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances div 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances inv 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances pow 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances cos 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances sin 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances tan 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances acos 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances asin 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances atan 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances cosh 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances sinh 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances tanh 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances acosh 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances asinh 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances atanh 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances exp 10 $(PROBABILITIES) | tee -a performances_result.txt
-	./performances log 10 $(PROBABILITIES) | tee -a performances_result.txt
+# The benchmark of doc/compare/performance.md, compiled as run_bench.sh
+# compiles it (C++11) and linked with the static libgaol, as setup.sh builds
+# GAOL v5 for it
+gaol_bench$(EXEEXT): $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la
+	$(LIBTOOL) --tag=CXX --mode=link $(CXX) $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	  -I$(top_srcdir)/doc/compare/code -DGAOL_BENCH_NAME='"gaol5"' $(GAOL_CXX_STD) $(CXXFLAGS) \
+	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -lm -o $@
+
+perf: gaol_bench$(EXEEXT)
+	$(BASH) $(top_srcdir)/doc/compare/code/run_perf.sh ./gaol_bench$(EXEEXT) autotools "$(CXX)"
+
+.PHONY: perf
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

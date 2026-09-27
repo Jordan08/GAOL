@@ -8,6 +8,10 @@
 #   cmake --build build-examples
 #   ctest --test-dir build-examples
 #
+# or a part of the build of GAOL, with the GAOL it builds, where WITH_EXAMPLES
+# is ON (see CMakeLists.txt): make check then runs the examples, with the unit
+# tests, and make test leaves them out (label example).
+#
 # Examples 01 to 15 check what they print (the enclosures contain the values
 # computed apart, the proofs hold) and exit with a failure otherwise, so that
 # ctest runs them as tests. 16_Goldstein_Price is the example of GAOL 4, a
@@ -22,7 +26,11 @@ cmake_minimum_required(VERSION 3.14)
 
 project(gaol_examples CXX)
 
-find_package(gaol REQUIRED)
+# gaol::gaol is the library being built where the examples are a part of the
+# build of GAOL
+if(NOT TARGET gaol::gaol)
+  find_package(gaol REQUIRED)
+endif()
 find_package(Threads REQUIRED)
 
 enable_testing()
@@ -51,4 +59,11 @@ foreach(ex ${GAOL_EXAMPLES})
   target_link_libraries(${ex} PRIVATE gaol::gaol Threads::Threads)
   set_target_properties(${ex} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
   add_test(NAME ${ex} COMMAND ${ex})
+  set_tests_properties(${ex} PROPERTIES LABELS example)
+  list(APPEND GAOL_CHECK_TARGETS ${ex})
 endforeach()
+# The examples, which make check builds before running them, in the build of
+# GAOL (CMakeLists.txt)
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
+endif()

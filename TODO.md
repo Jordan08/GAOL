@@ -67,7 +67,8 @@ What is left to do on GAOL v5. What is done is in
    function of intervals (`exp()` 5.7 % faster since, `sin()` 3.6 %,
    `pow(x, y)` 3.4 %), and once in `tan()`, the relational functions, the
    negative powers and `sqrt_rel()`. To measure again on a clean commit, the
-   machine doing nothing else (`doc/compare/code/run_bench.sh`).
+   machine doing nothing else (`doc/compare/code/run_bench.sh`, or GAOL v5
+   alone with `make perf`).
 
 ## Licence
 
@@ -76,8 +77,9 @@ What is left to do on GAOL v5. What is done is in
    change that.
    - **Whose code it is** (`git blame` on 2026-09-22, outside `3rd/` and the
      parser written by Bison): in `gaol/`, 13 592 lines of Frédéric Goualard,
-     5 650 of Jordan Ninin and 2 of Raphaël Chenouard; in `check/`, 3 148 and
-     41; `tests/`, 11 242 lines, all of Jordan Ninin; the meson files, about
+     5 650 of Jordan Ninin and 2 of Raphaël Chenouard; in `check/` (now in
+     `tests/`), 3 148 and 41; `tests/`, 11 242 lines, all of Jordan
+     Ninin; the meson files, about
      740 lines of Raphaël Chenouard and 360 of Jordan Ninin.
    - **Who has to agree.** Frédéric Goualard, and the establishments the
      headers name: the EPFL (2001), the IRIN and the LINA (2002-2011, now the
@@ -97,7 +99,7 @@ What is left to do on GAOL v5. What is done is in
      anywhere; the library as a whole stays under the LGPL.
    - **Once agreed:** `COPYING.LIB` replaced by a `LICENSE`, a line
      `SPDX-License-Identifier: MIT` in the headers, the section Licences of
-     `README.md`, the `License:` of `gaol.spec.in`. The releases already
+     `README.md`. The releases already
      published (GAOL 4.2.2) stay under the LGPL.
    - **What MIT brings.** One licence for GAOL v5 and CORE-MATH. No more
      doubt for software that is not free: the LGPL v2 (section 5) leaves a

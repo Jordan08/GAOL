@@ -12,25 +12,20 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: input_output.cpp 264 2015-05-22 14:01:41Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
+
+// GAOL 4's unit test check/input_output.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
 
 #include <sstream>
 #include <string>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_limits.h"
-#include "tests.h"
+#include "unit_tests.h"
 
 
-class input_output_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(input_output_test);
-  CPPUNIT_TEST(test_input);
-  CPPUNIT_TEST(test_output);
-  CPPUNIT_TEST_SUITE_END();
+class input_output_test {
 public:
   void setUp() {
   }
@@ -46,7 +41,7 @@ public:
       	instr.str("[4.5,");
       	try {
 	  		instr >> I;
-      	} catch (input_format_error e) {
+      	} catch (const input_format_error& e) {
 	  		CPPUNIT_ASSERT(e.explanation().substr(0,26) == "Syntax error in expression");
 		}
 #endif
@@ -55,7 +50,7 @@ public:
       	instr.str("<3, 4>");
       	try {
 	  		instr >> I;
-      	} catch (input_format_error e) {
+      	} catch (const input_format_error& e) {
 	  		CPPUNIT_ASSERT(e.explanation().substr(0,26) == "Syntax error in expression");
 		}
 #endif
@@ -146,7 +141,7 @@ public:
       instr >> I;
       CPPUNIT_ASSERT(I.left()==std::numeric_limits<double>::max() && I.right()==GAOL_INFINITY);
 #if GAOL_EXCEPTIONS_ENABLED
-		} catch (input_format_error e) {
+		} catch (const input_format_error& e) {
 	  		std::cerr <<  e;
       	}
 #endif
@@ -203,4 +198,6 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(input_output_test)
+GAOL_UNIT_MAIN(input_output_test, "input_output",
+               GAOL_UNIT_TEST(test_input),
+               GAOL_UNIT_TEST(test_output))

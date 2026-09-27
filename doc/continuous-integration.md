@@ -4,13 +4,15 @@
 
 Part of the documentation of [GAOL v5](../README.md#documentation).
 
-The workflows of `.github/workflows/` build GAOL with CMake and run the tests
-on:
+The workflows of `.github/workflows/` build GAOL with CMake and run the tests,
+with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
+Visual Studio), on:
 
 - **Linux:** Ubuntu 22.04, 24.04 and 26.04 on x86_64 and arm64, with GCC and
   Clang, also with the address and undefined behaviour sanitizers, with
-  CMake 3.14, and with GCC 9, which has no `__builtin_roundeven()` (see
-  [3rd/README.md](../3rd/README.md)).
+  CMake 3.14, with GCC 9, which has no `__builtin_roundeven()` (see
+  [3rd/README.md](../3rd/README.md)), and as a shared library
+  (`BUILD_SHARED_LIBS`).
 - **Linux containers:**
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;
@@ -28,7 +30,9 @@ on:
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
 
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
-Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2, and the tests with the
+Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2, and with meson and
+Visual Studio 2022 and 2026 (x64, x86), run the tests (`make test`,
+`ninja test`), and build them again with the
 GAOL they install, which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by
 FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
@@ -111,6 +115,15 @@ change with its measures.
   - The agreement jobs passed while a build had not configured in the
     containers, a pipe hiding the failure: they now fail, and print the
     logs.
+  - `configure --enable-debug` did not compile: with `GAOL_DEBUGGING`,
+    `gaol/gaol_expression.h` wrote on `std::cout` without `<iostream>`. The
+    Debug jobs of CMake, which now define `GAOL_DEBUGGING` too, and the test
+    `debugging` compile that code.
+  - A shared `libgaol` (configure, meson) did not export the classes and
+    functions of the expressions (`gaol/gaol_expression.h`), and a program
+    building one did not link with it. The shared library job of CMake and
+    the meson jobs, whose tests link with the installed `libgaol.so`, build
+    `tests/expressions.cpp`.
 - **Reports of the sanitizers that were suppressed at first**, and are fixed
   now: the nodes the parser did not free (`lsan.supp`,
   [issue #4](https://github.com/Jordan08/GAOL/issues/4)). Nothing is

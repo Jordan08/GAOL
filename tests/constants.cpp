@@ -1,10 +1,8 @@
-#include "tests.h"
+// GAOL 4's unit test check/constants.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-class constants_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(constants_test);
-  CPPUNIT_TEST(test_interval_const);
-  CPPUNIT_TEST(test_floating_point_const);
-  CPPUNIT_TEST_SUITE_END();
+class constants_test {
 public:
   void setUp() {
   }
@@ -51,4 +49,6 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(constants_test)
+GAOL_UNIT_MAIN(constants_test, "constants",
+               GAOL_UNIT_TEST(test_interval_const),
+               GAOL_UNIT_TEST(test_floating_point_const))

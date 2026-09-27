@@ -9,7 +9,7 @@ label=$1; cc=$2; cxx=$3; src=$(cd "$4" && pwd); out=$5; meson=${6:-meson}
 here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$out"; out=$(cd "$out" && pwd); work=$out/$label; rm -rf "$work"; mkdir -p "$work"
 python3 "$here/make_probe.py" > "$work/probe.cpp"
-cmake -S "$src" -B "$work/cmake" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_BUILD_TESTS=OFF \
+cmake -S "$src" -B "$work/cmake" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_C_COMPILER="$cc" -DCMAKE_CXX_COMPILER="$cxx" > "$work/cmake.log" 2>&1
 echo $? > "$work/cmake.status"
 mkdir -p "$work/autotools"

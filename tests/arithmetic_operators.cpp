@@ -1,14 +1,8 @@
-#include "tests.h"
+// GAOL 4's unit test check/arithmetic.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-class arithmetic_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(arithmetic_test);
-  CPPUNIT_TEST(test_addition);
-  CPPUNIT_TEST(test_subtraction);
-  CPPUNIT_TEST(test_multiplication);
-  CPPUNIT_TEST(test_division);
-  CPPUNIT_TEST(test_reldivision);
-  CPPUNIT_TEST(test_inverse);
-  CPPUNIT_TEST_SUITE_END();
+class arithmetic_test {
 public:
   void setUp() {
   }
@@ -285,4 +279,10 @@ public:
   // <-- End of tests
 };
 
-GAOL_REGISTER_TEST(arithmetic_test)
+GAOL_UNIT_MAIN(arithmetic_test, "arithmetic_operators",
+               GAOL_UNIT_TEST(test_addition),
+               GAOL_UNIT_TEST(test_subtraction),
+               GAOL_UNIT_TEST(test_multiplication),
+               GAOL_UNIT_TEST(test_division),
+               GAOL_UNIT_TEST(test_reldivision),
+               GAOL_UNIT_TEST(test_inverse))

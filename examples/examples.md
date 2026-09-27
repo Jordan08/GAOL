@@ -88,8 +88,13 @@ cmake --build build-examples
 ctest --test-dir build-examples
 ```
 
-The autotools and meson builds of GAOL compile `16_Goldstein_Price` only, as
-they compiled `Goldstein_Price` before (`Makefile.am`, `meson.build`).
+The three builds of GAOL build them too, with the GAOL they build, where they
+are asked to (`-DWITH_EXAMPLES=ON`, `./configure --with-examples`,
+`meson setup -Dwith-examples=true`), and `make check` (`ninja check` with
+meson) runs them with the unit tests (see
+[Building GAOL](../doc/building.md#tests-examples-performance-and-the-parser)).
+The autotools and meson builds compiled `16_Goldstein_Price` only, as they
+compiled `Goldstein_Price` before.
 
 Examples 01 to 15 **check what they print**: each enclosure is compared with
 a value computed apart (mpmath, closed forms, exact fractions), each proof
@@ -528,17 +533,19 @@ headers.
   warning for `sqrt(x);`.
 - `examples/` held one benchmark of 2006, which the recommended CMake build
   did not build and no document mentioned; `check/` holds the CppUnit tests of
-  GAOL 4, not built by CMake, some for types no build compiles.
+  GAOL 4, not built by CMake, some for types no build compiles (they have been
+  in `tests/` since, run by the three builds without CppUnit).
 - The public headers put `using std::exception; using std::string;` at global
   scope, define unprefixed macros (`INLINE`, `HAVE_FENV_H`, `MEMALIGN`,
-  `__HI`… 25 in all) and `#undef PACKAGE`.
+  `__HI`… 25 in all) and `#undef PACKAGE` (gone since: the configuration no
+  longer defines `PACKAGE`).
 - Smaller slips: the width output format is described as "midpoint and
   width" but prints the radius; the header comment of `chi()` says
   `chi([0,0]) = 0` while the code and the manual say −1; `tests/gaol_tests.h`
   says the references use 400 bits where the scripts use 2000; the header
   comment of `interval(const char*)` names a `jail_parser.h` that does not
   exist; the root file `version.h` is a Code::Blocks file of 2009 that nothing
-  uses.
+  uses (removed since).
 
 ## 4. What was checked and found right
 
