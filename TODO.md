@@ -13,15 +13,14 @@ What is left to do on GAOL v5. What is done is in
    exponent, and have `gaol_ieee1788::pow` call that half directly, apart
    from its integer exponents beyond the ints.
 
-2. **The rounding direction is still checked more than once** by `tan()`, the
-   relational functions of the trigonometric functions (`acos_rel()`,
-   `asin_rel()`, `atan_rel()`) and the negative integer powers `pow(x, -n)`,
-   which call operations of intervals (`+`, `/`, `inverse()`, `atan()`...)
-   that check it again: six times per call of `tan()` and of the relational
-   functions. Fix: cores of these operations without the check, in
-   `gaol/gaol_interval_sse.cpp` and `gaol/gaol_interval_fpu.cpp`, called
-   after the check of the function calling them, as the functions of
-   namespace `upward` are for the bounds at doubles.
+2. **The rounding direction is still checked more than once** by `pow(x, y)`
+   where it takes exp(y log x) (an infinite bound, or a base from 0 with an
+   exponent not above 0): `log()`, `*` and `exp()` check it three times; by
+   `nth_root(x, q)` for q < 0, `inverse()` of `nth_root(x, -q)`, twice; and
+   by `modulo_k_pi()`, twice. Fix: call the bodies of these operations after
+   one check, as `tan()`, the relational functions and the negative powers
+   now do (`uipow_rounded_upward()`, `interval::inverse_upward()`); bodies of
+   `log()`, `exp()` and `*` without the check are to write.
 
 3. **`pow(x, y)` is one double wide where the power at a corner is a double.**
    The lower bound is the double below CORE-MATH's value rounded upward, even
@@ -66,8 +65,9 @@ What is left to do on GAOL v5. What is done is in
    were measured at `bb6f7e4` with files outside the sources changed
    (`bb6f7e4-dirty`), before the rounding direction was checked once per
    function of intervals (`exp()` 5.7 % faster since, `sin()` 3.6 %,
-   `pow(x, y)` 3.4 %). To measure again on a clean commit, the machine doing
-   nothing else (`doc/compare/code/run_bench.sh`).
+   `pow(x, y)` 3.4 %), and once in `tan()`, the relational functions, the
+   negative powers and `sqrt_rel()`. To measure again on a clean commit, the
+   machine doing nothing else (`doc/compare/code/run_bench.sh`).
 
 ## Licence
 

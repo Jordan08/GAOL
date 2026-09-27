@@ -300,6 +300,22 @@ int main()
     { "acosh_dn(), acosh_up()", [](const interval&, const interval& y) { return S(acosh_dn(y.left())) + " " + S(acosh_up(y.right())); } },
     { "atanh_dn(), atanh_up()", [](const interval& x, const interval&) { return S(atanh_dn(x.left())) + " " + S(atanh_up(x.right())); } },
     { "nb_fp_numbers", [](const interval& x, const interval&) { return S(nb_fp_numbers(x.left(), x.right())); } },
+    // Operations that compute after their one check of the rounding direction
+    // what they computed with operations of intervals checking it again, or
+    // that the operations above do not reach (GAOL v5)
+    { "tan next to a pole", [](const interval& x, const interval&) {
+        return S(tan(x + 1.0)) + " " + S(tan(interval(1.5, 0x1.921fb54442d18p+0))); } },
+    { "acos_rel, asin_rel and atan_rel on their pieces", [](const interval& x, const interval& y) {
+        return S(acos_rel(x, y)) + " " + S(acos_rel(x + 0.8, y)) + " " + S(asin_rel(x - 1.5, y)) + " " + S(atan_rel(y, x + 4.0)); } },
+    { "nth_root(x,n) for n >= 4", [](const interval&, const interval& y) { return S(nth_root(y, 4)) + " " + S(nth_root(-y, 5)); } },
+    { "pow(x,n) from the rounded products", [](const interval&, const interval& y) {
+        return S(pow(y*0x1p-330, 3)) + " " + S(pow(interval(0., 1.)*y, 3)) + " " + S(pow(y*1e200, 3)); } },
+    { "pow(x,-n) where x^n overflows", [](const interval&, const interval& y) {
+        return S(pow(y*1e200, -2)) + " " + S(pow((y - 2.)*1e200, -2)) + " " + S(pow((y - 2.)*1e200, -3)) + " "
+          + S(pow(interval(0., 1.)*y, -1)); } },
+    { "gaol_ieee1788::pow with an integer exponent beyond the ints", [](const interval&, const interval& y) {
+        return S(gaol_ieee1788::pow(y, interval(2147483649.))) + " " + S(gaol_ieee1788::pow(interval(0.5, 0.9), interval(1e10))) + " "
+          + S(gaol_ieee1788::pow(1. + (y - 1.)*0x1p-40, interval(-2147483649.))); } },
     { "feven", [](const interval&, const interval&) { return S(feven(2.0)); } },
     { "interval::pi()", [](const interval&, const interval&) { return S(interval::pi()); } },
     { "interval::precision(n)", [](const interval&, const interval&) { const int p = interval::precision(17); interval::precision(p); return S(p); } },

@@ -510,6 +510,39 @@ namespace
     }
   }
 
+  // Integer powers from the products rounded outward, which pow(x, n) takes
+  // where a bound is 0 or infinite, or a power is not finite or is below
+  // 2^-968, and negative powers of intervals with a bound 0 (GAOL v5: they
+  // are computed after the one check of the rounding direction of pow(x, n))
+  void powers_from_the_rounded_products()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const struct { const char *name; interval x; int n; bool empty; double lo, hi; } cases[] = {
+      { "pow([0,2],3)", interval(0., 2.), 3, false, 0., 8. },
+      { "pow([-0,1],4)", interval(-0., 1.), 4, false, 0., 1. },
+      { "pow([-2,0],3)", interval(-2., 0.), 3, false, -8., 0. },
+      { "pow([1,+oo],3)", interval(1., inf), 3, false, 1., inf },
+      { "pow([-oo,-1],3)", interval(-inf, -1.), 3, false, -inf, -1. },
+      { "pow([-oo,2],4)", interval(-inf, 2.), 4, false, 0., inf },
+      { "pow([1e200],3)", interval(1e200), 3, false, largest, inf },
+      { "pow([2^-400],3)", interval(0x1p-400), 3, false, 0., tiny },
+      { "pow([-2^-400],3)", interval(-0x1p-400), 3, false, -tiny, 0. },
+      { "pow([2^-330],3)", interval(0x1p-330), 3, false, 0x1p-990, 0x1p-990 },
+      { "pow([1.5 2^-330],3)", interval(0x1.8p-330), 3, false, 0x1.bp-989, 0x1.bp-989 },
+      { "pow([0,+oo],-3)", interval(0., inf), -3, false, 0., inf },
+      { "pow([-oo,0],-3)", interval(-inf, 0.), -3, false, -inf, 0. },
+      { "pow([0,4],-1)", interval(0., 4.), -1, false, 0.25, inf },
+      { "pow([-0,+0],-1): empty", interval(-0., 0.), -1, true, 0., 0. },
+      { "pow([-2^-1074],-1)", interval(-tiny), -1, false, -inf, -largest },
+    };
+    for (const auto& c : cases) {
+      const interval r = pow(c.x, c.n);
+      check(std::string(c.name) + ": exact",
+            c.empty ? r.is_empty() : (!r.is_empty() && r.left() == c.lo && r.right() == c.hi),
+            [&] { return hex(r); });
+    }
+  }
+
   // The n-th roots at special values: the rootn of IEEE 1788-2015 (Table
   // 10.5), defined on R for an odd n and on [0, +oo] for an even n, the root
   // of 0 being 0. GAOL took the roots of the part of [x] in [0, +oo] for every
@@ -716,6 +749,7 @@ int main()
   products_with_infinite_bounds();
   unsigned_powers();
   negative_powers_at_special_values();
+  powers_from_the_rounded_products();
   roots_at_special_values();
   fused_and_cancellative();
   const int status = summary();

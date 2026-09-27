@@ -196,8 +196,9 @@ namespace gaol_core {
     Computed in the upward rounding GAOL keeps: the tightest bounds, without
     switching the rounding direction. Those of namespace upward take the
     direction to be upward already, as it is in the functions of intervals
-    after GAOL_RND_ENTER(): the ones below it check it again, and a function
-    of intervals calling one for each bound checked it three times (GAOL v5).
+    after GAOL_RND_ENTER(), gaol_ieee1788::pow() included: the ones below it
+    check it again, and a function of intervals calling one for each bound
+    checked it three times (GAOL v5).
   */
   namespace upward {
     INLINE double nthroot_dn(double d, double e) { return previous_float(gaol_cr_pow(d, e)); }

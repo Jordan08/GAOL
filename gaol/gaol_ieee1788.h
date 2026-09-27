@@ -168,9 +168,15 @@ namespace gaol_ieee1788 {
       const double xl = (xp.left() == 0.0) ? 0.0 : xp.left(), xu = xp.right();
       const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
       double l, r;
+      // The bounds of namespace upward, which do not check the rounding
+      // direction again (GAOL v5): the checking nthroot_dn() and nthroot_up()
+      // checked it once each after the check here. l and r are used after
+      // GAOL_RND_LEAVE(), hence GAOL_RND_KEEP() (see gaol/gaol_fpu.h)
       GAOL_RND_ENTER();
-      l = (at_lower == 1.0) ? 1.0 : ::gaol_core::nthroot_dn(at_lower, n);
-      r = (at_upper == 1.0) ? 1.0 : ::gaol_core::nthroot_up(at_upper, n);
+      l = (at_lower == 1.0) ? 1.0 : ::gaol_core::upward::nthroot_dn(at_lower, n);
+      r = (at_upper == 1.0) ? 1.0 : ::gaol_core::upward::nthroot_up(at_upper, n);
+      GAOL_RND_KEEP(l);
+      GAOL_RND_KEEP(r);
       GAOL_RND_LEAVE();
       return interval((l > 0.0) ? l : 0.0, r);
     }

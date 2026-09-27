@@ -171,9 +171,28 @@ where it comes from.
     `sin()` and `cos()` up to four, the other elementary functions and
     `pow(x, y)` two or three: once now, the bounds being the same. `exp()`
     takes 5.7 % less time, `sin()` 3.6 %, `pow(x, y)` 3.4 % (Clang 18,
-    i7-1185G7). `tan()`, the relational functions of the trigonometric
-    functions and the negative integer powers still check it again within the
-    operations of intervals they call.
+    i7-1185G7).
+  - **Once in the operations calling others.** `tan()` checked the direction
+    six times, calling `width()`, `+` and `/` on intervals after its own
+    check, and `acos_rel()`, `asin_rel()` and `atan_rel()` six times too,
+    with `acos()`, `asin()` or `atan()` of J and four operations of intervals;
+    `pow(x, -n)` two to five times, with `inverse()` and `gaol_uipow()`;
+    `pow(x, n)` twice where it falls back to the products rounded outward (a
+    bound 0 or infinite, a power not finite or below 2^-968); `nth_root(x, n)`
+    for n >= 4 twice; `gaol_ieee1788::pow(x, [n])` for an integer n beyond the
+    ints three times. They compute on doubles, or with the bodies of the
+    operations they called (`uipow_rounded_upward()`,
+    `interval::inverse_upward()`), after their one check, and give the same
+    bounds, bit for bit, in the SSE2 and FPU builds and with
+    `GAOL_PRESERVE_ROUNDING`. `sqrt_rel()` no longer sets the direction
+    downward then upward again, two changes per call in every build: its
+    lower bound is computed upward, as `sqrt()` computes it. `tan()` takes
+    22 % less time, `acos_rel()` 24 %, `sqrt_rel()` 29 %, `pow(x, -3)` 6 %;
+    with `GAOL_PRESERVE_ROUNDING`, where each check saves and restores the
+    direction, `tan()` 74 % and `acos_rel()` 83 % (Clang 18, i7-1185G7).
+    Still checking more than once: `pow(x, y)` where it takes exp(y log x)
+    (an infinite bound, or a base from 0 with an exponent not above 0),
+    `nth_root(x, q)` for q < 0, the inverse of a root, and `modulo_k_pi()`.
   - **`tan()` keeps its bounds before setting the direction back**, with
     `GAOL_PRESERVE_ROUNDING`: it set it back first, and `GAOL_RND_KEEP()`,
     which writes the bounds to memory so that they are computed before, came

@@ -99,13 +99,14 @@
 	}
 
 	/*
-	  I^e for a non-empty I and e > 0, as gaol_pown() calls it: gaol_uipow(),
-	  public, calls it (GAOL v5, see gaol_interval.h). The stored bounds are the
-	  opposite of the left bound and the right bound.
+	  I^e for a non-empty I and e > 0 from the products rounded outward, the
+	  rounding direction being upward already: uipow_nonempty() and
+	  uipow_nonempty_upward() call it after their check, and uipow_rounded()
+	  below checks the direction for the other callers (GAOL v5). The stored
+	  bounds are the opposite of the left bound and the right bound.
 	*/
-	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+	static INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
 	{
-		GAOL_RND_ENTER();
 		interval res;
 		const double lb = -I.left(), rb = I.right();
 
@@ -140,7 +141,14 @@
 			}
 			// No other meaningful cases
 		}
+		return res;
+	}
 
+	// uipow_rounded_upward(), after a check of the rounding direction
+	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+	{
+		GAOL_RND_ENTER();
+		interval res = uipow_rounded_upward(I,e);
 		GAOL_RND_KEEP(res);
 		GAOL_RND_LEAVE();
 		return res;
@@ -394,39 +402,46 @@
   }
 
 
+  // The rounding direction being upward already (see gaol_interval.h)
+  interval interval::inverse_upward(const interval& I)
+  {
+    interval res;
+    if (I.right() <= 0.0) { // (Z N0 N1)
+      if (I.left() < 0) { // (N0 N1)
+        if (I.right() < 0) { // N1
+          res.lb_ = (-1.0)/I.rb_;
+          res.rb_ = (-1.0)/I.lb_;
+        } else { // N0
+          res.lb_ = GAOL_INFINITY;
+          res.rb_ = (-1.0)/I.lb_;
+        }
+      } else {  // Z
+        res = interval::emptyset();
+      }
+    } else { // (M P0 P1)
+      if (I.left() < 0) { // M
+        res = interval::universe();
+      } else { // (P0 P1)
+        if (I.left() == 0.0) { // P0
+          res.lb_ = (-1.0)/I.rb_;
+          res.rb_ = GAOL_INFINITY;
+        } else { // P1
+          res.lb_ = (-1.0)/I.rb_;
+          res.rb_ = (-1.0)/I.lb_;
+        }
+      }
+    }
+    return res;
+  }
+
   interval interval::inverse() const
   {
     if (is_empty()) {
       return interval::emptyset();
     }
 
-    interval res;
     GAOL_RND_ENTER();
-    if (right() <= 0.0) { // (Z N0 N1)
-      if (left() < 0) { // (N0 N1)
-        if (right() < 0) { // N1
-          res.lb_ = (-1.0)/rb_;
-          res.rb_ = (-1.0)/lb_;
-        } else { // N0
-          res.lb_ = GAOL_INFINITY;
-          res.rb_ = (-1.0)/lb_;
-        }
-      } else {  // Z
-        res = interval::emptyset();
-      }
-    } else { // (M P0 P1)
-      if (left() < 0) { // M
-        res = interval::universe();
-      } else { // (P0 P1)
-        if (left() == 0.0) { // P0
-          res.lb_ = (-1.0)/rb_;
-          res.rb_ = GAOL_INFINITY;
-        } else { // P1
-          res.lb_ = (-1.0)/rb_;
-          res.rb_ = (-1.0)/lb_;
-        }
-      }
-    }
+    interval res = inverse_upward(*this);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
