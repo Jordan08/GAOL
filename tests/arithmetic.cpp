@@ -234,6 +234,24 @@ namespace
       { interval r(X); r -= Y; expect_tightest("[x]-=[y]" + in, r, exact(xl - yh), exact(xh - yl), X, Y); }
       expect_tightest("-[x]" + in, -X, exact(-xh), exact(-xl), X, Y);
 
+      // x op= x, the operand being *this: the FPU intervals wrote a bound of
+      // *this before reading the one of the operand, and x -= x was [-2, 1]
+      // for x = [-3, -1], x /= x and x %= x [0.5, 1] for x = [0.25, 0.5]
+      // (GAOL v5)
+      { interval r(X); r += r; expect_tightest("[x]+=[x], the same interval" + in, r, exact(xl + xl), exact(xh + xh), X, X); }
+      { interval r(X); r -= r; expect_tightest("[x]-=[x], the same interval" + in, r, exact(xl - xh), exact(xh - xl), X, X); }
+      {
+        const std::vector<Exact> self_products = { exact(xl*xl), exact(xl*xh), exact(xh*xh) };
+        interval r(X);
+        r *= r;
+        expect_tightest("[x]*=[x], the same interval" + in, r, min(self_products), max(self_products), X, X);
+      }
+      if (!x_has_zero) {
+        const std::vector<Exact> self_quotients = { quotient(xl, xh), quotient(xh, xl), quotient(xl, xl) };
+        { interval r(X); r /= r; expect_tightest("[x]/=[x], the same interval" + in, r, min(self_quotients), max(self_quotients), X, X); }
+        { interval r(X); r %= r; expect_tightest("[x]%=[x], the same interval" + in, r, min(self_quotients), max(self_quotients), X, X); }
+      }
+
       const std::vector<Exact> products = { exact(xl*yl), exact(xl*yh), exact(xh*yl), exact(xh*yh) };
       expect_tightest("[x]*[y]" + in, X * Y, min(products), max(products), X, Y);
       { interval r(X); r *= Y; expect_tightest("[x]*=[y]" + in, r, min(products), max(products), X, Y); }
