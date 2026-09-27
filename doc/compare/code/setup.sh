@@ -138,8 +138,12 @@ fi
 ## as GAOL v5's library. Its configure gives -O3 and the SSE flags to g++
 ## alone: the flags GAOL v5 is built with in Release are given instead. The
 ## rounding direction is not preserved, as in GAOL v5 (his configure preserves
-## it by default). mathlib is compiled with -ffp-contract=off: its exact
-## products split the doubles, which fused multiply-adds would break
+## it by default). Its verbose mode, on by default, is turned off: its
+## constructor gaol_init() then prints to std::cerr before main(), which only
+## works if another object has constructed std::cerr first; a library compiled
+## with the headers of GCC 13 and linked with the libstdc++ of GCC 10 crashed.
+## mathlib is compiled with -ffp-contract=off: its exact products split the
+## doubles, which fused multiply-adds would break
 if [ -f "$GAOL_GOUALARD_PREFIX/include/gaol/gaol.h" ]; then
   echo "== GAOL $GAOL_GOUALARD_VERSION of Frédéric Goualard: already in $GAOL_GOUALARD_PREFIX"
 else
@@ -158,7 +162,7 @@ else
   git -C gaol-goualard checkout -q "$GAOL_GOUALARD_COMMIT"
   (cd gaol-goualard &&
    ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
-               --disable-preserve-rounding \
+               --disable-preserve-rounding --disable-verbose-mode \
                --with-mathlib-include="$GAOL_GOUALARD_PREFIX/include" \
                --with-mathlib-lib="$GAOL_GOUALARD_PREFIX/lib" \
                CC="$CC" CXX="$CXX" CFLAGS="-O3 $FMA_FLAGS -ffp-contract=off" \

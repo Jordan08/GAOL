@@ -36,39 +36,39 @@ reports.
 | … or an interval enclosing it | 0 | 10 | 50 | 41 | 22 |
 | … or another result | 0 | 6 | 67 | 70 | 143 |
 | Cases it has no operation for | 8 | 0 | 44 | 26 | 65 |
-| `x + y` | 207 ns | 3.2 ns | 7.9 ns | 24 ns | 22 ns |
-| `x * y` | 260 ns | 16 ns | 23 ns | 29 ns | 22 ns |
-| `sin(x)` | 7.8 µs | 88 ns | 51 ns | 59 ns | 173 ns |
+| `x + y` | 208 ns | 3.2 ns | 7.8 ns | 24 ns | 22 ns |
+| `x * y` | 259 ns | 16 ns | 23 ns | 29 ns | 22 ns |
+| `sin(x)` | 8.6 µs | 70 ns | 51 ns | 59 ns | 173 ns |
 | `log(x)` | 2.7 µs | 30 ns | 41 ns | 56 ns | 15 ns |
-| `pow(x, 3)` | 342 ns | 21 ns | 27 ns | 214 ns | 49 ns |
-| Shekel 5 | 13 µs | 301 ns | 600 ns | 2.4 µs | 1.6 µs |
+| `pow(x, 3)` | 343 ns | 21 ns | 27 ns | 214 ns | 49 ns |
+| Shekel 5 | 14 µs | 310 ns | 602 ns | 2.4 µs | 1.6 µs |
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
-  as tightly as possible, and is 12 to 132 times slower than GAOL.
+  as tightly as possible, and is 13 to 138 times slower than GAOL.
 - **GAOL** is the fastest on the arithmetic and on most formulas, and gives
   IEEE 1788's result, or an interval enclosing it, in all but 6 special
   cases, all from its hybrid `pow`, which takes `pown` for integer
   exponents. Its elementary functions, CORE-MATH's, give the tightest bounds;
   its exp and log are faster than filib++'s, its sin and cos slower.
-- **filib++** is the fastest on sin and cos, 1.7 times as fast as GAOL, as fast
-  as GAOL on ÷, but 1.5 times as slow on × and 2.4 times on + and −, and its
-  bounds of elementary functions and real powers are up to 36 doubles wider
-  than the tightest. Its extended mode gives other results than IEEE 1788
-  wherever an infinity or a division by zero is involved, much as Solaris
-  Studio: `interval(+∞)` is [MAX, +∞] and `[0] * [1, +∞]` is
+- **filib++** is the fastest on sin and cos, 1.4 to 1.6 times as fast as GAOL,
+  as fast as GAOL on ÷, but 1.5 times as slow on × and 2.3 to 2.4 times on +
+  and −, and its bounds of elementary functions and real powers are up to 36
+  doubles wider than the tightest. Its extended mode gives other results than
+  IEEE 1788 wherever an infinity or a division by zero is involved, much as
+  Solaris Studio: `interval(+∞)` is [MAX, +∞] and `[0] * [1, +∞]` is
   [−∞, +∞]; its `operator>>` rounds the bounds it reads to nearest, and its
   comparisons with the empty set and the infinities differ from IEEE 1788's.
 - **PROFIL/BIAS** is a library of the interval arithmetic before IEEE 1788: it
   has no empty set, and an operation whose argument leaves the domain of the
   function, a division by an interval containing zero included, prints an error
   and aborts the program. Its exponential, logarithm and real power, taken
-  from the libm, are the fastest of the five (15, 15 and 48 ns), and so is its
-  square root (5.6 ns); its arithmetic is 6 to 7 times slower than GAOL's on +
-  and −, its sin and cos are the slowest (173 and 194 ns), and its integer
-  power, computed as exp(n log x), is 1.1e−05 wider than the tightest on
-  average.
-- **Solaris Studio** is 1.5 times as fast as GAOL on sin and cos, but slow on
-  integer powers and squares. Its containment sets give other results than
-  IEEE 1788 wherever an infinity, a division by zero or an invalid argument is
-  involved: `interval(+∞)` is [MAX, +∞], `[1, 2] / [0, 1]` is [−∞, +∞] and
-  `interval(2, 1)` is [−∞, +∞].
+  from the libm, are the fastest of the five (15, 15.5 and 47 ns), and so is
+  its square root (5.5 ns); its arithmetic is 6 to 7 times slower than GAOL's
+  on + and −, its sin and cos are the slowest after libieeep1788's (173 and
+  195 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
+  than the tightest on average.
+- **Solaris Studio** is 1.2 to 1.4 times as fast as GAOL on sin and cos, but
+  slow on integer powers and squares. Its containment sets give other results
+  than IEEE 1788 wherever an infinity, a division by zero or an invalid
+  argument is involved: `interval(+∞)` is [MAX, +∞], `[1, 2] / [0, 1]` is
+  [−∞, +∞] and `interval(2, 1)` is [−∞, +∞].
