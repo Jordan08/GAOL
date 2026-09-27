@@ -1,5 +1,6 @@
-# Builds GAOL with CMake on Ubuntu, runs its tests, installs it, and builds the
-# tests again with the installed GAOL. Also with the sanitizers, with the
+# Builds GAOL with CMake on Ubuntu, runs its tests (make test), installs it, and
+# builds the tests again with the installed GAOL, also as a shared library
+# (BUILD_SHARED_LIBS). Also with the sanitizers, with the
 # minimum version of CMake GAOL declares, and as a part of another project,
 # brought in by FetchContent (tests/fetch_content).
 #
@@ -21,6 +22,13 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# make test (the target test of CMake, RUN_TESTS with Visual Studio) runs
+# ctest, which reads these: four tests at a time, and the output of those that
+# fail (GAOL v5)
+env:
+  CTEST_PARALLEL_LEVEL: 4
+  CTEST_OUTPUT_ON_FAILURE: 1
 
 jobs:
   cmake:
@@ -44,6 +52,9 @@ jobs:
           - { os: ubuntu-22.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 arm64 GCC' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved' }
+          # libgaol.so.5.0.0, as configure and meson build it: the tests link
+          # with it, the expressions included, which it did not export (GAOL v5)
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DBUILD_SHARED_LIBS=ON', desc: 'Ubuntu 24.04 x86_64 GCC, shared library' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -53,11 +64,11 @@ jobs:
           ${{ matrix.cfg.cxx }} --version
           cmake --version
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build --target test
       - name: Performance
         run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
@@ -67,11 +78,11 @@ jobs:
           # With the flags and libraries of gaol.pc alone, then with find_package()
           export PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig"
           pkg-config --cflags --libs gaol
-          ${{ matrix.cfg.cxx }} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) -o rounding_direction_pc
+          ${{ matrix.cfg.cxx }} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) -Wl,-rpath,"$PWD/gaol-install/lib" -o rounding_direction_pc
           ./rounding_direction_pc | tail -1
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+          cmake --build build-find-package --target test
 
   clang-14-arm64:
     name: Ubuntu 22.04 arm64 Clang 14, refused
@@ -119,12 +130,12 @@ jobs:
           # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
           # behaviour; none is suppressed
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
             "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build --target test
 
   cmake-3-14:
     name: Ubuntu 22.04 x86_64 GCC, CMake 3.14.7
@@ -139,18 +150,18 @@ jobs:
       - name: Configure
         run: |
           cmake --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build --target test
       - name: Install
         run: cmake --build build --target install
       - name: Tests built with the installed GAOL
         run: |
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+          cmake --build build-find-package --target test
 
   gcc-9:
     name: Ubuntu 22.04 x86_64 GCC 9, without __builtin_roundeven
@@ -166,11 +177,11 @@ jobs:
           sudo apt-get install -y -q gcc-9 g++-9 cmake make
           g++-9 --version
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build --target test
 
   fetch-content:
     name: Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent
@@ -184,8 +195,8 @@ jobs:
           grep -q "Elementary functions: CORE-MATH" configure.log
       - name: Build
         run: cmake --build build-fetch-content -j 4
-      - name: Tests
-        run: cd build-fetch-content && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build-fetch-content --target test
       - name: Install, which installs GAOL with the project
         run: |
           cmake --install build-fetch-content
@@ -196,7 +207,7 @@ jobs:
         run: |
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+          cmake --build build-find-package --target test
 
   # The 128-bit integer computed with two 64-bit halves, which is the code
   # Visual C++ and the 32-bit targets of GCC take: built and tested on an
@@ -217,7 +228,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON \
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
             -DGAOL_U128_EMULATION=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} | tee configure.log
           grep -q "128-bit integer: the two halves" configure.log
@@ -233,8 +244,8 @@ jobs:
           EOF
       - name: Build
         run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+      - name: Tests (make test)
+        run: cmake --build build --target test
 
   # The coverage of the tests, and the page of conclusions of coverage/
   coverage:
@@ -247,7 +258,7 @@ jobs:
         run: pipx install gcovr
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DGAOL_COVERAGE=ON
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DGAOL_COVERAGE=ON
       - name: Tests and report
         run: cmake --build build --target coverage
       - name: The page of conclusions

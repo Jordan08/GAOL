@@ -53,9 +53,9 @@ its `pow` being the standard's (see [Using GAOL](doc/using.md#the-namespaces)).
 ## Quick start
 
 ```bash
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DGAOL_BUILD_TESTS=ON
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
 cmake --build build --config Release
-ctest --test-dir build -C Release
+cmake --build build --target test
 cmake --install build --config Release
 ```
 

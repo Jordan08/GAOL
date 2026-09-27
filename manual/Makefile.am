@@ -12,12 +12,10 @@
 # gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
 # COPYING file for information.
 #--------------------------------------------------------------------------
-# CVS: $Id: Makefile.am,v 1.15 2008/01/22 09:07:32 goualard Exp $
-# Last modified: Fri Oct  6 10:55:46 2006 on pc-goualard.lina.sciences.univ-nantes.prive
 # By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
 #--------------------------------------------------------------------------
 
-.PHONY: html pdf
+.PHONY: pdf
 
 
 
@@ -33,20 +31,12 @@ LATEX_BUILT = v4/*.fux v4/*.idx v4/*.ind v4/*.fnd v4/*.aux v4/*.log v4/*.bbl \
 	v5/*.fux v5/*.idx v5/*.ind v5/*.fnd v5/*.aux v5/*.log v5/*.bbl \
 	v5/*.blg v5/*.out v5/*.toc v5/*.ilg
 
-CLEANFILES =  html/* $(LATEX_BUILT)
-DISTCLEANFILES = html/* $(LATEX_BUILT)
-MAINTAINERCLEANFILES = html/* $(LATEX_BUILT)
+CLEANFILES = $(LATEX_BUILT)
+DISTCLEANFILES = $(LATEX_BUILT)
 
-
-
-all: html pdf
-
-html: gaol_doxygen.cfg
-if DOXYGEN
-	doxygen ./gaol_doxygen.cfg
-else
-	@echo Sorry, doxygen does not seem to be present on your system
-endif
+# No html target: the documentation Doxygen wrote from the sources
+# (gaol_doxygen.cfg.in) is gone, as the Doxyfile of the root (GAOL v5)
+all: pdf
 
 
 # v5/gaol.pdf and v4/gaol.pdf

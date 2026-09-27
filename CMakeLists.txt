@@ -67,7 +67,18 @@ if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
 endif()
 
 option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each operation, rather than leaving it upward" OFF)
-option(GAOL_BUILD_TESTS "Build the tests of GAOL's bounds, run by ctest (OFF: the tests are not built by default, with the three builds)" OFF)
+# The unit tests of tests/ and the examples of examples/, built by the build
+# and run by make test (the tests) and make check (the tests and the
+# examples), as --with-tests and --with-examples of configure, with-tests and
+# with-examples of meson (GAOL v5; GAOL_BUILD_TESTS before). Only where GAOL
+# is the project built: a project bringing GAOL in (add_subdirectory,
+# FetchContent) may have options of the same names, for its own tests.
+option(WITH_TESTS "Build the unit tests of tests/, which make test (ctest) and make check run" OFF)
+option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OFF)
+# libgaol is a static library, or with BUILD_SHARED_LIBS=ON, the variable of
+# CMake, a shared one, libgaol.so.5.0.0 as with configure and meson (GAOL v5).
+# Always static with Visual C++, whose declarations of GAOL carry no
+# __declspec(dllexport).
 # The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
 # with its defaults, but for the verbose mode: GAOL is silent by default
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
@@ -460,7 +471,19 @@ endif()
 # gaol/gaol_profile.cpp measures time with getrusage() where it exists, and with
 # clock() otherwise
 check_symbol_exists(getrusage "sys/resource.h" HAVE_GETRUSAGE)
-set(GETRUSAGE_IN_HEADER ${HAVE_GETRUSAGE})
+
+# GAOL raises exceptions to signal errors, which --disable-exceptions of
+# configure and -Denable-exception=false of meson turn off
+set(GAOL_EXCEPTIONS_ENABLED ON)
+
+# The Debug build has GAOL check its assertions (gaol/gaol_assert.h), as
+# --enable-debug of configure and --buildtype=debug of meson (GAOL v5). With a
+# generator of several configurations (Visual Studio, Xcode), whose
+# configurations share gaol/gaol_configuration.h, GAOL_DEBUGGING is given to
+# the sources of GAOL in the Debug configuration below.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(GAOL_DEBUGGING ON)
+endif()
 
 # With -frounding-math, GAOL negates a double with the minus sign rather than by
 # flipping its sign bit (gaol_opposite() in gaol/gaol_port.h)
@@ -557,8 +580,9 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
 # gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
 #
-# A static library: for Visual C++, GAOL's declarations are then compiled
-# without __declspec(dllexport) or dllimport (see __GAOL_PUBLIC__ below).
+# A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
+# C++, always a static one, GAOL's declarations being compiled without
+# __declspec(dllexport) or dllimport (see __GAOL_PUBLIC__ below).
 
 set(GAOL_SOURCES
   gaol_interval.cpp gaol_profile.cpp gaol_common.cpp gaol_parser.cpp
@@ -584,7 +608,17 @@ target_compile_options(gaol_core_math PRIVATE ${GAOL_CORE_MATH_FLAGS} ${GAOL_INT
 target_include_directories(gaol_core_math PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 
-add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
+if(MSVC)
+  add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
+else()
+  add_library(gaol ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
+endif()
+# The shared library libgaol.so.5.0.0, whose soname is libgaol.so.5, and the
+# link libgaol.so, as configure (libtool) and meson name it (GAOL v5)
+set_target_properties(gaol PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+if(CMAKE_CONFIGURATION_TYPES)
+  target_compile_definitions(gaol PRIVATE $<$<CONFIG:Debug>:GAOL_DEBUGGING=1>)
+endif()
 
 
 if(GAOL_U128_EMULATION)
@@ -726,7 +760,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_PACKAGE_VENDOR "ENSTA")
   set(CPACK_PACKAGE_CONTACT "Jordan Ninin <jordan.ninin@ensta.fr>")
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GAOL, Not Just Another Interval Library: interval arithmetic in C++")
-  set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the static library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
+  set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
   set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Jordan08/GAOL")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING.LIB")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/README.md")
@@ -761,12 +795,115 @@ endif()
 
 
 ################################################################################
-# Tests
+# Tests and examples
 ################################################################################
+#
+# WITH_TESTS builds the unit tests of tests/ and WITH_EXAMPLES the examples of
+# examples/, which check what they print. ctest runs both; make test (the test
+# target of CMake: RUN_TESTS with Visual Studio) runs the unit tests only, and
+# make check (the target check) builds and runs the tests and the examples, as
+# with configure and meson (GAOL v5):
+#
+#   cmake -S . -B build -DWITH_TESTS=ON -DWITH_EXAMPLES=ON
+#   cmake --build build
+#   cmake --build build --target test     # make test: the unit tests
+#   cmake --build build --target check    # make check: the tests and the examples
+#
+# The examples carry the label example, which make test leaves out
+# (CMAKE_CTEST_ARGUMENTS, CMake 3.17 and later: an earlier CMake runs them too).
 
-if(GAOL_BUILD_TESTS)
+if(GAOL_IS_TOP_LEVEL AND (WITH_TESTS OR WITH_EXAMPLES))
+  set(CMAKE_CTEST_ARGUMENTS --label-exclude example)
   enable_testing()
-  add_subdirectory(tests)
+  set(GAOL_CHECK_TARGETS "")
+  if(WITH_TESTS)
+    add_subdirectory(tests)
+  endif()
+  if(WITH_EXAMPLES)
+    add_subdirectory(examples)
+  endif()
+  add_custom_target(check
+    COMMAND "${CMAKE_CTEST_COMMAND}" --output-on-failure -C $<CONFIG>
+    DEPENDS ${GAOL_CHECK_TARGETS}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Running the unit tests and the examples"
+    USES_TERMINAL)
+endif()
+
+
+################################################################################
+# The lexer and the parser of the strings
+################################################################################
+#
+# gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and
+# gaol/gaol_interval_parser.h are generated from gaol/gaol_interval_lexer.lpp
+# (flex) and gaol/gaol_interval_parser.ypp (bison) and committed, so that no
+# build needs flex or bison. After a change of the .lpp or of the .ypp, the
+# target parser regenerates them in the sources, with the flex and the bison of
+# the system, where both are found (GAOL v5):
+#
+#   cmake --build build --target parser
+#
+# gaol/regenerate_parser.sh runs the same commands without CMake. The committed
+# files were generated by flex 2.6.4 and bison 3.5.1, which give them again
+# byte for byte; the programs write lex.gaol_.c and y.tab.c, the names of the
+# #line directives of the committed files, in a directory of the build. Only
+# where GAOL is the project built, as the targets check and perf.
+
+if(GAOL_IS_TOP_LEVEL)
+  find_program(GAOL_FLEX NAMES flex win_flex)
+  find_program(GAOL_BISON NAMES bison win_bison)
+  mark_as_advanced(GAOL_FLEX GAOL_BISON)
+endif()
+if(GAOL_IS_TOP_LEVEL AND GAOL_FLEX AND GAOL_BISON)
+  set(_parser_dir "${CMAKE_CURRENT_BINARY_DIR}/parser")
+  set(_gaol_dir "${CMAKE_CURRENT_SOURCE_DIR}/gaol")
+  # The directory the commands run in, which has to exist before they run
+  file(MAKE_DIRECTORY "${_parser_dir}")
+  add_custom_target(parser
+    COMMAND "${CMAKE_COMMAND}" -E copy "${_gaol_dir}/gaol_interval_lexer.lpp" "${_gaol_dir}/gaol_interval_parser.ypp" "${_parser_dir}"
+    COMMAND "${GAOL_FLEX}" -Pgaol_ gaol_interval_lexer.lpp
+    COMMAND "${GAOL_BISON}" -y -Wno-yacc -Wno-deprecated -Wno-other -d -p gaol_ gaol_interval_parser.ypp
+    COMMAND "${CMAKE_COMMAND}" -E copy lex.gaol_.c "${_gaol_dir}/gaol_interval_lexer.cpp"
+    COMMAND "${CMAKE_COMMAND}" -E copy y.tab.c "${_gaol_dir}/gaol_interval_parser.cpp"
+    COMMAND "${CMAKE_COMMAND}" -E copy y.tab.h "${_gaol_dir}/gaol_interval_parser.h"
+    WORKING_DIRECTORY "${_parser_dir}"
+    COMMENT "Regenerating gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and gaol/gaol_interval_parser.h with ${GAOL_FLEX} and ${GAOL_BISON}"
+    VERBATIM)
+endif()
+
+
+################################################################################
+# Performance
+################################################################################
+#
+# make perf (the target perf) measures GAOL v5 alone on the benchmark of
+# doc/compare/performance.md, compiled with the flags of this build, and
+# writes the new times of GAOL v5 into its tables; the columns of the other
+# libraries keep the times measured with them, which
+# doc/compare/code/results.csv holds (see doc/compare/code/run_perf.sh). It
+# needs bash and Python 3 with numpy, which draws the intervals. GAOL 4.2.3,
+# filib++, libieeep1788 and PROFIL/BIAS are not run: doc/compare/code/run_all.sh
+# measures them all again. Linux only, as the benchmark (GAOL v5).
+
+if(GAOL_IS_TOP_LEVEL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  find_program(GAOL_BASH bash)
+  mark_as_advanced(GAOL_BASH)
+  if(GAOL_BASH)
+    set(_bench_dir "${CMAKE_CURRENT_SOURCE_DIR}/doc/compare/code")
+    add_executable(gaol_bench EXCLUDE_FROM_ALL "${_bench_dir}/bench_gaol.cpp")
+    target_link_libraries(gaol_bench PRIVATE gaol::gaol)
+    target_include_directories(gaol_bench PRIVATE "${_bench_dir}")
+    target_compile_definitions(gaol_bench PRIVATE GAOL_BENCH_NAME="gaol5")
+    add_custom_target(perf
+      COMMAND "${GAOL_BASH}" "${_bench_dir}/run_perf.sh" "$<TARGET_FILE:gaol_bench>"
+              "CMake ${CMAKE_BUILD_TYPE}" "${CMAKE_CXX_COMPILER}"
+      DEPENDS gaol_bench
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      COMMENT "Measuring GAOL v5 on the benchmark of doc/compare/performance.md"
+      USES_TERMINAL
+      VERBATIM)
+  endif()
 endif()
 
 
@@ -774,7 +911,7 @@ endif()
 # Coverage
 ################################################################################
 #
-# cmake -S . -B build-coverage -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON \
+# cmake -S . -B build-coverage -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON \
 #       -DGAOL_COVERAGE=ON && cmake --build build-coverage --target coverage
 #
 # The counters of gcov are compiled into GAOL and its tests (--coverage), the

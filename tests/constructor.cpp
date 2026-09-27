@@ -1,10 +1,12 @@
-#include "tests.h"
+// GAOL 4's unit test check/constructor.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
 #define TEST_INOUT_EQ(Istr,Ires)  \
   try {                           \
        interval I = textToInterval(Istr); \
        TEST_EQ(I,Ires);           \
-  } catch (input_format_error) {  \
+  } catch (const input_format_error&) {  \
     CPPUNIT_FAIL(string("Wrong format: ")+string(Istr)); \
   }
 
@@ -12,16 +14,12 @@
   try {                           \
        interval I = textToInterval(Istr); \
        TEST_SEQ(I,Ires);          \
-  } catch (input_format_error) {  \
+  } catch (const input_format_error&) {  \
     CPPUNIT_FAIL(string("Wrong format: ")+string(Istr)); \
   }
 
 
-class constructor_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(constructor_test);
-  CPPUNIT_TEST(test_constructor_string);
-  CPPUNIT_TEST(test_constructor_numbers);
-  CPPUNIT_TEST_SUITE_END();
+class constructor_test {
 public:
   void setUp() {
   }
@@ -56,4 +54,6 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(constructor_test)
+GAOL_UNIT_MAIN(constructor_test, "constructor",
+               GAOL_UNIT_TEST(test_constructor_string),
+               GAOL_UNIT_TEST(test_constructor_numbers))

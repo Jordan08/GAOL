@@ -12,21 +12,15 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: interval_functions.cpp 286 2016-10-05 09:03:25Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 
-#include "tests.h"
+// GAOL 4's unit test check/interval_functions.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+
+#include "unit_tests.h"
 #include <limits>
 
-class interval_function_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(interval_function_test);
-  CPPUNIT_TEST(test_properties);
-  CPPUNIT_TEST(test_splitting);
-  CPPUNIT_TEST(test_set_operations);
-  CPPUNIT_TEST_SUITE_END();
+class interval_function_test {
 public:
   void setUp() {
   }
@@ -192,4 +186,7 @@ public:
 };
 
 
-GAOL_REGISTER_TEST(interval_function_test)
+GAOL_UNIT_MAIN(interval_function_test, "interval_functions",
+               GAOL_UNIT_TEST(test_properties),
+               GAOL_UNIT_TEST(test_splitting),
+               GAOL_UNIT_TEST(test_set_operations))

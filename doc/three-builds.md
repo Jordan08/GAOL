@@ -46,11 +46,27 @@ build, and the CMake build follows them, apart from the errors corrected (see
   is asked for, where configure wrote it by default;
 - the processor and the system (`IX86_LINUX`, `AARCH64_LINUX`...), the sizes
   of the integer types and the byte order are read from the macros of the
-  compiler, in `gaol/gaol_config.h`, rather than from the machine building.
+  compiler, in `gaol/gaol_config.h`, rather than from the machine building;
+- the three write the same macros into `gaol/gaol_configuration.h`, those
+  GAOL's sources read and nothing else (see
+  [Building GAOL](building.md#the-configuration-of-gaol)) (GAOL v5);
+- the shared library is `libgaol.so.5.0.0`, whose soname is `libgaol.so.5`,
+  where the build makes one (configure, meson, CMake with
+  `BUILD_SHARED_LIBS`); it was `libgaol-5.0.so.0` with configure, and meson
+  gave no version (GAOL v5).
+
+In a Debug build (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
+`meson setup --buildtype=debug`), GAOL is compiled with `-g`, without
+optimization nor `NDEBUG`, and checks its assertions (`GAOL_DEBUGGING`). It was
+`configure --enable-debug` alone that defined `GAOL_DEBUGGING`, adding `-g
+-ansi -Weffc++ -pedantic` for `g++` alone to the optimizations of
+`--enable-optimize`; the Debug build of CMake did not define it, and meson
+defined it with its option `enable-debug`, now gone (GAOL v5).
 
 `.github/audit/` configures the three builds and compares the macros GAOL
-sees and the flags it is compiled with (`compare.py --check`); the continuous
-integration runs it on each kind of machine.
+sees, the macros each writes into `gaol/gaol_configuration.h`, and the flags
+GAOL is compiled with (`compare.py --check`); the continuous integration runs
+it on each kind of machine.
 
 ## What the options are worth
 

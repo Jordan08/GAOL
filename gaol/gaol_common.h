@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_common.h 191 2012-03-06 17:08:58Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -36,9 +32,18 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
 
+// The commands of GAOL_DEBUG (below) write on std::cout: gaol/gaol_expression.h
+// did not compile with GAOL_DEBUGGING, which configure --enable-debug defined,
+// without <iostream> (GAOL v5)
+#if GAOL_DEBUGGING
+#  include <iostream>
+#endif
+
 namespace gaol_core {
 
-  extern int debug_level; // defined in gaol_common.cpp
+  // defined in gaol_common.cpp; public, as GAOL_DEBUG reads it in the inline
+  // functions of the headers, compiled into the code using GAOL (GAOL v5)
+  extern __GAOL_PUBLIC__ int debug_level;
 
 #if GAOL_DEBUGGING
 #  define GAOL_DEBUG(lvl,cmd) do { if (debug_level>=lvl) {cmd;} } while(0)

@@ -13,6 +13,6 @@ includedir=@includedir@
 Name: gaol
 Description: GAOL, Not Just Another Interval Library
 URL: https://github.com/Jordan08/GAOL
-Version: @GAOL_PC_VERSION@
+Version: @PACKAGE_VERSION@
 Cflags: -I${includedir} @GAOL_PC_CFLAGS@
 Libs: -L${libdir} -lgaol -lm

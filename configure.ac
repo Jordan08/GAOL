@@ -24,46 +24,41 @@ dnl
 
 AC_PREREQ(2.61)
 
-# gaol library version information
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# Do NOT forget to modify gaol_version_msvc.h and gaol_version_mingw.h as well
-# gaol library version information.
-# (shamelessly stolen from GiNaC (http://www.ginac.de/)
-# Making releases:
-#   gaol_micro_version += 1;
-#   gaol_interface_age += 1;
-#   gaol_binary_age += 1;
-# if any functions have been added, set gaol_interface_age to 0.
-# if backwards compatibility has been broken,
-# set gaol_binary_age and gaol_interface_age to 0.
-# Version information for gaol
+# The version of GAOL, 5.0.0, as project() of CMakeLists.txt and of
+# meson.build give it
 m4_define([gaol_major_version], [5])
 m4_define([gaol_minor_version], [0])
 m4_define([gaol_micro_version], [0])
-m4_define([gaol_version], ["gaol_major_version.gaol_minor_version.gaol_micro_version"])
-m4_define([gaol_release], [gaol_major_version.gaol_minor_version])
-m4_define([gaol_interface_age], [0])
-m4_define([gaol_binary_age], [0])
+m4_define([gaol_version], [gaol_major_version.gaol_minor_version.gaol_micro_version])
 
-AC_INIT([gaol],[gaol_version],[goualard@users.sourceforge.net])
+# configure --help ends with the address for the bug reports and the page of
+# GAOL v5 (GAOL v5)
+AC_INIT([gaol],[gaol_version],[jordan.ninin@ensta.fr],[gaol],[https://github.com/Jordan08/GAOL])
 # no-dist: no make dist nor make distcheck, the archives of the sources and
 # the packages being made by CMake (cmake --build <build> --target
-# package_source, package; see doc/building.md) (GAOL v5)
-AM_INIT_AUTOMAKE([gnu 1.7 no-dist subdir-objects])
+# package_source, package; see doc/building.md) (GAOL v5). no-define: no
+# PACKAGE nor VERSION in gaol/gaol_configuration.h, which the code using GAOL
+# includes.
+AM_INIT_AUTOMAKE([gnu 1.7 no-dist no-define subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
 
-AC_REVISION([$Revision: 291 $])
 AC_CONFIG_SRCDIR([gaol/gaol_config.h])
+# gaol/gaol_configuration.h.in is written by hand, not by autoheader: it holds
+# the macros GAOL's sources read, the same as the headers the CMake and the
+# meson builds write (cmake/gaol_configuration.h.in,
+# gaol/gaol_configuration_meson.h.in; see doc/building.md), and nothing else
+# (GAOL v5)
 AC_CONFIG_HEADERS([gaol/gaol_configuration.h])
-AC_COPYRIGHT([Copyright (c) 2002-2020 Laboratoire d'Informatique de Nantes-Atlantique, France])
+AC_COPYRIGHT([Copyright (c) 2001-2020 Frederic Goualard
+Copyright (c) 2026 ENSTA, France])
 
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_DEFINE([GAOL_MAJOR_VERSION],gaol_major_version,[Major version for gaol])
 AC_DEFINE([GAOL_MINOR_VERSION],gaol_minor_version,[Minor version for gaol])
 AC_DEFINE([GAOL_MICRO_VERSION],gaol_micro_version,[Micro version for gaol])
-AC_DEFINE([GAOL_VERSION],gaol_version,[Version number for gaol])
+AC_DEFINE([GAOL_VERSION],["gaol_version"],[Version number for gaol])
 # Version for the manuals: GAOL_EDITION and GAOL_UPDATED are those of the
 # manual of GAOL 4 (manual/v4), GAOL_V5_EDITION and GAOL_V5_UPDATED those of
 # the manual of GAOL v5 (manual/v5)
@@ -72,7 +67,6 @@ GAOL_UPDATED="18 September 2026"
 GAOL_V5_EDITION="5.0"
 GAOL_V5_UPDATED="22 September 2026"
 GAOL_VERSION=gaol_version
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 AC_SUBST(GAOL_EDITION)
 AC_SUBST(GAOL_UPDATED)
 AC_SUBST(GAOL_V5_EDITION)
@@ -80,39 +74,32 @@ AC_SUBST(GAOL_V5_UPDATED)
 AC_SUBST(GAOL_VERSION)
 
 
-
-dnl libtool versioning
-m4_define([lt_revision], [gaol_interface_age])
-m4_define([lt_current], [m4_eval(gaol_micro_version - gaol_interface_age)])
-m4_define([lt_age], [m4_eval(gaol_binary_age - gaol_interface_age)])
-LT_VERSION_INFO="lt_current:lt_revision:lt_age"
-LT_RELEASE="gaol_release"
-
+# The version of the shared library, libgaol.so.5.0.0 for GAOL 5.0.0, its
+# soname libgaol.so.5, as the CMake and the meson builds name it (VERSION and
+# SOVERSION, version and soversion): libtool makes libgaol.so.<c-a>.<a>.<r> of
+# -version-info c:r:a, hence c = major + minor, r = micro, a = minor. It
+# made libgaol-5.0.so.0 of -release 5.0 (GAOL v5).
+LT_VERSION_INFO="m4_eval(gaol_major_version + gaol_minor_version):gaol_micro_version:gaol_minor_version"
 AC_SUBST(LT_VERSION_INFO)
-AC_SUBST(LT_RELEASE)
 
 LT_PREREQ([2.2.6])
 # CFLAGS and CXXFLAGS left empty when not given, rather than the "-g -O2" that
 # AC_PROG_CC and AC_PROG_CXX give them otherwise: LT_INIT calls AC_PROG_CC, and
 # the C sources (CORE-MATH) were compiled with "-g -O2 ... -O3".
-# --enable-optimize gives the C and C++ sources -O3 alike (see below).
+# --enable-optimize gives the C and C++ sources -O3 alike, --enable-debug -g
+# (see below).
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
-LT_INIT([dlopen])
-
-# RPM file versioning
-GAOL_RPM_RELEASE=1
-AC_SUBST(GAOL_RPM_RELEASE)
-
-
-# Checks for programs.
-AC_PROG_YACC
-
-CFLAGS="${CFLAGS} -I.."
-CXXFLAGS="${CXXFLAGS} -std=c++11 -I.."
-
-AC_PROG_CC([gcc])
+AC_PROG_CC
 AC_PROG_CXX
+LT_INIT
+
+# GAOL is compiled in C++11 (gaol/Makefile.am), as with CMake and meson, and
+# the tests and the examples in C++17 (tests/Makefile.am,
+# examples/Makefile.am): the standard is not in CXXFLAGS, which comes after
+# the flags of each directory and would override theirs
+GAOL_CXX_STD="-std=c++11"
+AC_SUBST([GAOL_CXX_STD])
 
 # GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,
 # with -Werror, so that a flag it only warns about (Clang and
@@ -385,17 +372,33 @@ if test "$verbose" = yes; then
         [Define this to 1 to enable verbose mode])
 fi
 
+# --enable-debug: GAOL compiled for debugging, as by the Debug build of CMake
+# (CMAKE_BUILD_TYPE=Debug) and meson (--buildtype=debug): -g, no optimization,
+# no NDEBUG, and GAOL_DEBUGGING, with which GAOL checks its assertions
+# (gaol/gaol_assert.h) (GAOL v5). It gave g++ alone -g -ansi -Weffc++
+# -pedantic, on top of the optimizations of --enable-optimize.
+AC_ARG_ENABLE(debug,
+            [AS_HELP_STRING([--enable-debug],
+                            [compile GAOL for debugging, as the Debug build of CMake: -g, no optimization, and GAOL checks its assertions (GAOL_DEBUGGING); --enable-optimize is then ignored @<:@default=no@:>@])],
+            [debug=${enable_debug}],
+            [debug="no"])
+
 # --enable-optimize
 AC_ARG_ENABLE(optimize,
 	    [AS_HELP_STRING([--enable-optimize],
-                            [compile gaol with full optimization @<:@default=yes@:>@])],
+                            [compile gaol with full optimization, as the Release build of CMake @<:@default=yes@:>@])],
             [optimize=${enable_optimize}],
             [optimize="yes"])
-# With any compiler, each flag where the compiler accepts it (they were added
-# when the compiler was named g++ exactly, and clang++ or g++-13 compiled
-# without any optimization), and NDEBUG, as the Release build of CMake and
-# meson define it
-if test $optimize = yes; then
+if test "$debug" = yes; then
+    optimize="no (--enable-debug)"
+    AC_DEFINE(GAOL_DEBUGGING,1,[Define this to 1 to have GAOL check its assertions (Debug build)])
+    CXXFLAGS="${CXXFLAGS} -g"
+    CFLAGS="${CFLAGS} -g"
+elif test "$optimize" = yes; then
+    # With any compiler, each flag where the compiler accepts it (they were
+    # added when the compiler was named g++ exactly, and clang++ or g++-13
+    # compiled without any optimization), and NDEBUG, as the Release build of
+    # CMake and meson define it
     for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
         GAOL_ADD_FLAG([${gaol_flag}])
     done
@@ -435,25 +438,6 @@ else
 fi
 AC_LANG_POP([C++])
 
-# --enable-debug
-AC_ARG_ENABLE(debug,
-            [AS_HELP_STRING([--enable-debug],
-                            [compile gaol with debugging info @<:@default=no@:>@])],
-            [debug=${enable_debug}],
-            [debug="no"])
-if test "$debug" = yes; then
-   AC_DEFINE(GAOL_DEBUGGING,1,[define this if you want debugging facilities])
-    case $CXX in
-    icpc)
-        CXXFLAGS="${CXXFLAGS} -g"
-        ;;
-    g++)
-        CXXFLAGS="${CXXFLAGS} -g -ansi"
-        CXXFLAGS="${CXXFLAGS} -Weffc++ -pedantic"
-        ;;
-    esac
-fi
-
 # --enable-preserve-rounding
 AC_ARG_ENABLE(preserve-rounding,
             [AS_HELP_STRING([--enable-preserve-rounding],
@@ -463,16 +447,6 @@ AC_ARG_ENABLE(preserve-rounding,
 if test "${preserve_rounding}" = yes; then
    AC_DEFINE(GAOL_PRESERVE_ROUNDING,1,[define this to 1 if rounding direction should be preserved])
 fi
-
-# --enable-relations
-# The relation symbols are the certainly relations (GAOL v5): the option that
-# chose them is gone with the possibly relations, and == and != are not
-# defined on intervals (see gaol/gaol_interval.h)
-AC_ARG_ENABLE(relations,
-            [AS_HELP_STRING([--enable-relations],
-                            [gone in GAOL v5: <, <=, > and >= are the certainly relations, and == and != are not defined on intervals])],
-            [AC_MSG_ERROR([--enable-relations is gone in GAOL v5: <, <=, > and >= are the certainly relations of intervals, and == and != are not defined on them (set_eq, set_disjoint)])])
-
 
 # --enable-exceptions
 AC_ARG_ENABLE(exceptions,
@@ -496,74 +470,40 @@ if test "${using_asm}" = yes; then
 fi
 
 
-# The processor and the system: gaol/gaol_config.h names them from the macros
-# of the compiler, for the three builds alike (configure defined IX86_LINUX,
-# AARCH64_LINUX, IX86_MACOSX and ARM_MACOSX from $host, and refused the other
-# systems: macOS on Apple silicon was arm-apple-* and x86_64-apple-* neither)
-AC_CANONICAL_HOST
-case $host in
-*-cygwin*)
-	AM_CONDITIONAL([IS_CYGWIN_COND],[true])
-	;;
-*)
-	AM_CONDITIONAL([IS_CYGWIN_COND],[false])
-	;;
+# --with-tests: the unit tests of tests/, built by make and run by make test
+# and make check, as WITH_TESTS of CMake and with-tests of meson (GAOL v5)
+AC_ARG_WITH([tests],
+            [AS_HELP_STRING([--with-tests],
+                            [build the unit tests of tests/, which make test and make check run @<:@default=no@:>@])],
+            [with_tests=${withval}],
+            [with_tests="no"])
+AM_CONDITIONAL([WITH_TESTS], [test "${with_tests}" = yes])
+
+# --with-examples: the examples of examples/, built by make and run by make
+# check, as WITH_EXAMPLES of CMake and with-examples of meson (GAOL v5)
+AC_ARG_WITH([examples],
+            [AS_HELP_STRING([--with-examples],
+                            [build the examples of examples/, which make check runs @<:@default=no@:>@])],
+            [with_examples=${withval}],
+            [with_examples="no"])
+AM_CONDITIONAL([WITH_EXAMPLES], [test "${with_examples}" = yes])
+# The threads of the example 13_rounding_environment (std::thread), which the
+# glibc before 2.34 needs -pthread for
+GAOL_CHECK_CXX_FLAG([-pthread], [gaol_cxx_pthread])
+PTHREAD_FLAGS=""
+if test "${gaol_cxx_pthread}" = yes; then
+    PTHREAD_FLAGS="-pthread"
+fi
+AC_SUBST([PTHREAD_FLAGS])
+# tests/automatic_cleanup.cpp, on Linux only, as with CMake and meson
+case $host_os in
+  linux*) gaol_host_linux=yes ;;
+  *) gaol_host_linux=no ;;
 esac
+AM_CONDITIONAL([HOST_LINUX], [test "${gaol_host_linux}" = yes])
 
-
-
-# Checking for dl library
-AC_CHECK_LIB([dl], [dlopen],have_dl=yes,have_dl=no)
-if test "${have_dl}" = no; then
-   dllib=""
-else
-   dllib="-ldl"
-fi
-# The check programs link it where it exists: Windows has none
-AC_SUBST([DLLIB], [${dllib}])
-
-# Checking for cppunit
-AC_LANG_PUSH([C++])
-AC_ARG_WITH([cppunit-include],
-		  [AS_HELP_STRING([--with-cppunit-include],[Specify the include path for cppunit])],
-		  cppunit_incpath="-I${with_cppunit_include}",cppunit_incpath="")
-AC_ARG_WITH([cppunit-lib],
-		  [AS_HELP_STRING([--with-cppunit-lib],[Specify the library path for cppunit])],
-		  cppunit_libpath="-L${with_cppunit_lib}",cppunit_libpath="")
-LDFLAGS="$LDFLAGS ${cppunit_libpath}"
-CXXFLAGS="${CXXFLAGS} ${cppunit_incpath}"
-AC_MSG_CHECKING([for cppunit/ui/text/TestRunner.h])
-AC_CHECK_HEADERS("cppunit/ui/text/TestRunner.h",have_TestRunner=yes,have_TestRunner=no)
-if test "${have_TestRunner}" = no; then
-  AM_CONDITIONAL([CPPUNIT_COND],[test ${have_TestRunner} = yes])
-    AC_MSG_WARN("*******************************************")
-    AC_MSG_WARN("Library 'cppunit' not present.")
-    AC_MSG_WARN("You will not be able to check the library.")
-    AC_MSG_WARN("*******************************************")
-else
-  AC_MSG_CHECKING([for libcppunit])
-  OLD_LIBS=$LIBS
-  LIBS="-lcppunit $dllib"
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <cppunit/ui/text/TestRunner.h>]], [[CppUnit::TextUi::TestRunner runner;]])],[have_cppunit=yes],[have_cppunit=no])
-  AC_MSG_RESULT(${have_cppunit})
-  AM_CONDITIONAL([CPPUNIT_COND],[test ${have_cppunit} = yes])
-  LIBS=$OLD_LIBS
-fi
-AC_LANG_POP([C++])
-
-AC_CHECK_LIB([m],[nextafter],nextafter_found=yes,nextafter_found=no)
-if test "${nextafter_found}" = yes; then
-   AC_DEFINE(HAVE_NEXTAFTER,1,[ Define to 1 if you have the `nextafter' function.])
-fi
-
-# Checking for tools to re-create the pdf documentation
+# The tools that compile the manuals (make -C manual pdf)
 AC_CHECK_PROG(PDFLATEX,pdflatex,pdflatex,no)
-if test "$PDFLATEX" = "no"; then
-    AC_MSG_WARN("****************************************************")
-    AC_MSG_WARN("No tool to compile a LaTeX file into a PDF file found")
-    AC_MSG_WARN("You will not be able to re-create the PDF documentation")
-    AC_MSG_WARN("****************************************************")
-fi
 AC_CHECK_PROG(BIBTEX,bibtex,bibtex,no)
 AC_CHECK_PROG(MAKEINDEX,makeindex,makeindex,no)
 if test "$MAKEINDEX" = "no"; then
@@ -572,48 +512,23 @@ fi
 AM_CONDITIONAL(PDF_TO_LATEX,
                [test "${PDFLATEX}" != "no" -a "$MAKEINDEX" != "no" -a "$BIBTEX" != "no"])
 
-
-
-# Checking for tools to re-create the html documentation
-AC_CHECK_PROG(DOXYGEN,doxygen,doxygen,no)
-if test "${DOXYGEN}" = "no"; then
-   AC_MSG_WARN("****************************************************")
-   AC_MSG_WARN("'doxygen' not found:                                ")
-   AC_MSG_WARN("You will not be able to create html documentation   ")
-   AC_MSG_WARN("****************************************************")
-fi
-AM_CONDITIONAL(DOXYGEN, test "${DOXYGEN}" = "doxygen")
-AC_CHECK_PROG(DOT,dot,dot,no)
-if test "${DOT}" = "no"; then
-   AC_MSG_WARN("******************************************************")
-   AC_MSG_WARN("'dot' not found:                                      ")
-   AC_MSG_WARN("You will not be able to create full html documentation")
-   AC_MSG_WARN("You should consider installing the GraphViz package   ")
-   AC_MSG_WARN("                           http://www.graphviz.org/   ")
-   AC_MSG_WARN("******************************************************")
-fi
-
-
-# Checks for C header files
-AC_HEADER_STDC
-AC_CHECK_HEADERS([fenv.h float.h stddef.h stdlib.h string.h sys/time.h unistd.h])
-
-# Checking for C++ header files
+# What GAOL's sources read of the system (gaol/gaol_fpu.h, gaol/gaol_exact.h,
+# gaol/gaol_profile.cpp), as the CMake and the meson builds check it. The
+# checks of headers, functions, types and sizes nothing read are gone, as
+# AC_FUNC_MALLOC and AC_FUNC_REALLOC, which replaced malloc() and realloc()
+# by rpl_malloc() and rpl_realloc() in a cross-compilation (GAOL v5).
 AC_LANG([C++])
-AC_CHECK_HEADERS([limits cassert])
-
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_SIZE_T
-
-AC_C_BIGENDIAN
-AC_CHECK_SIZEOF(int, 4)
-AC_CHECK_SIZEOF(long, 4)
-AC_CHECK_SIZEOF(long long int,8)
-
+AC_CHECK_HEADER([fenv.h],
+                [AC_DEFINE([HAVE_FENV_H],1,[Define to 1 if you have the <fenv.h> header file.])],
+                [], [/* fenv.h alone */])
+AC_MSG_CHECKING([for getrusage in sys/resource.h])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/resource.h>]],
+                                [[struct rusage r; return getrusage(RUSAGE_SELF, &r);]])],
+               [have_getrusage=yes], [have_getrusage=no])
+AC_MSG_RESULT([${have_getrusage}])
+if test "${have_getrusage}" = yes; then
+    AC_DEFINE([HAVE_GETRUSAGE],1,[Define to 1 if you have the `getrusage' function in <sys/resource.h>.])
+fi
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where
@@ -633,57 +548,17 @@ for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
 AC_SUBST([GAOL_PC_CFLAGS])
-# The version for gaol.pc, without the quotes VERSION carries
-GAOL_PC_VERSION=`echo "$VERSION" | tr -d '"'`
-AC_SUBST([GAOL_PC_VERSION])
 
-
-# Checks for library functions.
-AC_LANG([C++])
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-AC_CHECK_FUNCS([fesetround floor localeconv memset pow sqrt])
-AC_CHECK_FUNCS(getrusage clock __signbit round rint finite)
-
-# Checking for timing functions
-AC_CHECK_HEADERS(sys/resource.h,sys_resource_found=yes,sys_resource_found=no)
-if test "${sys_resource_found}" = yes; then
-   AC_EGREP_HEADER("getrusage",sys/resource.h,
-	    AC_DEFINE(GETRUSAGE_IN_HEADER,1,
-               [Define this to 1 if function getrusage() is declared in sys/resource.h]),
-	    AC_DEFINE(GETRUSAGE_IN_HEADER,0,
-               [Define this to 1 if function getrusage() is declared in sys/resource.h]))
-else
-   AC_CHECK_HEADERS(time.h,time_found=yes,time_found=no)
-   if test "${time_found}" = yes; then
-      AC_EGREP_HEADER("clock",time.h,
-	AC_DEFINE(CLOCK_IN_HEADER,1,
-	  [Define this to 1 if function clock() is declared in time.h]),
-	AC_DEFINE(CLOCK_IN_HEADER,0,
-	  [Define this to 1 if function clock() is declared in time.h]))
-   fi
-fi
-
-
-
-AC_SUBST(CPPFLAGS)
-AC_SUBST(CXXFLAGS)
-AC_SUBST(CFLAGS)
-AC_SUBST(CXX)
-AC_SUBST(CC)
-AC_SUBST(LDFLAGS)
 
 AC_CONFIG_FILES([gaol.pc
                  Makefile
-        3rd/Makefile
-        check/Makefile
-		  manual/gaol_doxygen.cfg
-        manual/Makefile
-        manual/v4/gaol_version.tex
-        manual/v5/gaol_version.tex
-		  gaol.spec
-		  gaol/Makefile
-		  examples/Makefile])
+                 3rd/Makefile
+                 gaol/Makefile
+                 tests/Makefile
+                 examples/Makefile
+                 manual/Makefile
+                 manual/v4/gaol_version.tex
+                 manual/v5/gaol_version.tex])
 
 AC_OUTPUT
 
@@ -692,17 +567,16 @@ printf "CC\t\t\t= ${CC}\n"
 printf "CFLAGS\t\t\t= ${CFLAGS}\n"
 printf "CXX\t\t\t= ${CXX}\n"
 printf "CXXFLAGS\t\t= ${CXXFLAGS}\n"
-   printf "elementary functions\t= CORE-MATH (3rd/math-core, correctly rounded)\n"
+printf "elementary functions\t= CORE-MATH (3rd/math-core, correctly rounded)\n"
 printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"
-printf "relations\t\t= $relations\n"
 printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
-printf "doxygen\t\t\t= ${DOXYGEN}\n"
-printf "dot\t\t\t= ${DOT}\n"
+printf "tests\t\t\t= ${with_tests}\n"
+printf "examples\t\t= ${with_examples}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"
 printf "makeindex\t\t= $MAKEINDEX\n"
 printf "bibtex\t\t\t= $BIBTEX\n"

@@ -1,13 +1,16 @@
-# Copyright (c) 2026 ENSTA, France
+# Meson build of GAOL: libgaol
 #
-# Created 2026-09-20 by Jordan NININ
+# Created 2025-11-25 by Raphaël Chenouard
+# Modified in 2026 by Jordan NININ (GAOL v5)
 #
+# Installed in the directory of the headers of the build (includedir), as the
+# other headers, rather than in include/gaol under the prefix
 configure_file(
   input: 'gaol_configuration_meson.h.in',
   output: 'gaol_configuration.h',
   configuration: conf_data,
   install: true,
-  install_dir: 'include/gaol',
+  install_dir: get_option('includedir') / 'gaol',
 )
 
 # The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
@@ -33,7 +36,7 @@ foreach f : core_math_functions
   core_math_sources += [core_math_root + f + '/' + f + '.c']
 endforeach
 core_math_port = meson.source_root() + '/gaol/core_math_port.h'
-if cpp_comp.get_argument_syntax() == 'msvc'
+if msvc
   core_math_args = ['/FI' + core_math_port]
 else
   core_math_args = ['-include', core_math_port]
@@ -44,31 +47,23 @@ else
   endif
 endif
 
+# The sources use the GNU extensions of C (the inline asm of atan2's tint.h),
+# which the c99 of the project refuses, but with Visual C++, which has no GNU
+# C and compiles them as CMake does. And b_lto=false keeps the interprocedural
+# optimization of -Db_lto=true away from them: reached by it, sin and cos took
+# half as long again (see doc/three-builds.md)
+core_math_overrides = ['b_lto=false']
+if not msvc
+  core_math_overrides += ['c_std=gnu11']
+endif
 core_math_lib = static_library(
   'gaol_core_math',
   core_math_sources,
   c_args: core_math_args,
   include_directories: incdir,
-  # The sources use the GNU extensions of C (the inline asm of atan2's tint.h),
-  # which the c99 of the project refuses. And b_lto=false keeps the
-  # interprocedural optimization of -Db_lto=true away from them: reached by it,
-  # sin and cos took half as long again (see doc/three-builds.md)
-  override_options: ['c_std=gnu11', 'b_lto=false'],
+  override_options: core_math_overrides,
   pic: true,
   install: false,
-)
-
-fpu_source = 'gaol_interval_fpu.cpp'
-if use_sse2
-  fpu_source = 'gaol_interval_sse.cpp'
-endif
-fpu_target = custom_target(
-  'gaol_fpu',
-  output: 'gaol_interval_fpu.cpp',
-  input: fpu_source,
-  command: ['cp', '@INPUT@', '@OUTPUT@'],
-  # install: true,
-  # install_dir: 'include/gaol',
 )
 
 gaol_SOURCES = []
@@ -89,9 +84,13 @@ gaol_SOURCES += [
   'gaol_exceptions.cpp',
   'gaol_init_cleanup.cpp',
   's_nextafter.c',
-  'gaol_exact.c',
   # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
 ]
+# Not for Visual C++, for which gaol_exact.h defines get_inexact() and
+# clear_inexact() itself, as CMake leaves it out
+if not msvc
+  gaol_SOURCES += ['gaol_exact.c']
+endif
 
 gaol_HEADERS = []
 gaol_HEADERS += [
@@ -103,10 +102,6 @@ gaol_HEADERS += [
   'gaol_common.h',
   'gaol_exceptions.h',
   'gaol_config.h',
-  'gaol_config_mingw.h',
-  'gaol_config_msvc.h',
-  'gaol_version_msvc.h',
-  'gaol_version_mingw.h',
   'gaol_expression.h',
   'gaol_limits.h',
   'gaol_expr_eval.h',
@@ -122,6 +117,8 @@ gaol_HEADERS += [
   'gaol_port.h',
   'gaol_fpu.h',
   'gaol_fpu_fenv.h',
+  # What Visual C++ includes, as CMake and configure install it (GAOL v5)
+  'gaol_fpu_msvc.h',
   'gaol_profile.h',
   'gaol.h',
   'gaol_eval_stack.h',
@@ -139,10 +136,6 @@ EXTRA_DIST = [
   'gaol_interval_lexer.lpp',
   'gaol_interval_parser.ypp',
   'dllmain.cpp',
-  'gaol_config_mingw.h',
-  'gaol_config_msvc.h',
-  'gaol_version_msvc.h',
-  'gaol_version_mingw.h',
   'gaol_interval_sse.cpp',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
   # and *_up(), which are not part of its interface, and the intervals of
@@ -156,14 +149,54 @@ EXTRA_DIST = [
 ]
 
 
-gaollib = both_libraries(
-  'gaol',
-  sources: gaol_SOURCES,
+# The static library libgaol.a and the shared one, libgaol.so.5.0.0, whose
+# soname is libgaol.so.5, as CMake (BUILD_SHARED_LIBS) and configure name it
+# (GAOL v5). With Visual C++, the static library alone, as with CMake: GAOL's
+# declarations carry no __declspec(dllexport), and __GAOL_PUBLIC__ is defined
+# empty for GAOL and for the code using it (gaol/gaol_config.h), which
+# gaol_dep and gaol.pc give it.
+gaol_public_args = []
+if msvc
+  gaol_public_args = ['-D__GAOL_PUBLIC__=']
+  pc_cflags += gaol_public_args
+  # The lexer includes <unistd.h>, which Visual C++ does not have
+  # (cmake/msvc/unistd.h), and the warnings CMake turns off too
+  gaol_msvc_args = gaol_public_args + ['/Zc:strictStrings-', '-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
+  gaollib = static_library(
+    'gaol',
+    sources: gaol_SOURCES,
+    dependencies: deps,
+    link_whole: core_math_lib,
+    install: true,
+    extra_files: EXTRA_DIST,
+    include_directories: [incdir, include_directories('../cmake/msvc')],
+    c_args: gaol_msvc_args,
+    cpp_args: gaol_msvc_args,
+  )
+  gaollib_static = gaollib
+else
+  gaollib = both_libraries(
+    'gaol',
+    sources: gaol_SOURCES,
+    dependencies: deps,
+    link_whole: core_math_lib,
+    install: true,
+    extra_files: EXTRA_DIST,
+    include_directories: incdir,
+    version: meson.project_version(),
+    soversion: major_version.to_string(),
+  )
+  gaollib_static = gaollib.get_static_lib()
+endif
+
+# GAOL, for the tests and the examples of this build, and for a meson project
+# bringing GAOL in as a subproject
+gaol_dep = declare_dependency(
+  link_with: gaollib,
+  include_directories: include_directories('..'),
+  compile_args: gaol_public_args,
   dependencies: deps,
-  link_whole: core_math_lib,
-  install: true,
-  extra_files: EXTRA_DIST,
-  include_directories: incdir,
 )
 
 install_headers(gaol_HEADERS, subdir: 'gaol')
+install_headers('sysdeps/gaol_exact_c99.h', 'sysdeps/gaol_exact_msvc.h', subdir: 'gaol/sysdeps')

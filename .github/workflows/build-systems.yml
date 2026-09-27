@@ -1,9 +1,10 @@
 # Checks that GAOL still builds the ways it did before its CMake build: with
 # autotools and with meson, which compile the sources of CORE-MATH into libgaol
-# as the CMake build does. The tests are built with each installed GAOL, on
-# Linux (x86_64, arm64, and i386 and armhf in containers), macOS (arm64,
-# x86_64) and Windows (MSYS2). Checks that the three builds give GAOL the same
-# configuration on each kind of machine (.github/audit).
+# as the CMake build does. Each build runs the unit tests (make test, ninja
+# test), and the tests are built again with each installed GAOL, on Linux
+# (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
+# Windows (MSYS2, and Visual C++ with meson). Checks that the three builds give
+# GAOL the same configuration on each kind of machine (.github/audit).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -28,6 +29,8 @@ env:
   # The flags code using GAOL is compiled with (see CMakeLists.txt); on a
   # 32-bit x86 processor, tests.sh adds -msse2 -mfpmath=sse
   TEST_FLAGS: -std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off
+  # Four tests at a time with make test (automake) and ninja test (meson)
+  MESON_TESTTHREADS: 4
 
 jobs:
   autotools:
@@ -57,7 +60,7 @@ jobs:
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-          ./configure --prefix="$RUNNER_TEMP/gaol" ${{ matrix.cfg.configure }} | tee configure.log
+          ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ matrix.cfg.configure }} | tee configure.log
           grep -E "^(CXXFLAGS|CPPFLAGS) =" gaol/Makefile
           make -j 4
           make install
@@ -65,6 +68,8 @@ jobs:
           grep -q "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      - name: Tests (make test)
+        run: make -j 4 test || { cat tests/test-suite.log; exit 1; }
       - name: Tests built with the installed GAOL
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
@@ -101,17 +106,74 @@ jobs:
       - name: Configure, build and install
         run: |
           meson --version
-          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib ${{ matrix.cfg.options }} | tee configure.log
+          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true ${{ matrix.cfg.options }} | tee configure.log
           meson compile -C build-meson
           meson install -C build-meson
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      - name: Tests (ninja test, make test of meson)
+        run: ninja -C build-meson test
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
         run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # meson with Visual C++: the static libgaol, as CMake builds it, its tests,
+  # and the installed GAOL, with which a test is compiled again (GAOL v5). In
+  # PowerShell: the link of Git Bash would hide the linker of Visual C++.
+  meson-msvc:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: windows-2022,        arch: x64, desc: 'Meson, Visual Studio 2022 x64' }
+          - { os: windows-2025-vs2026, arch: x64, desc: 'Meson, Visual Studio 2026 x64' }
+          - { os: windows-2022,        arch: x86, desc: 'Meson, Visual Studio 2022 x86' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.cfg.arch }}
+      - name: Tools
+        run: pip install meson ninja
+      - name: Configure, build and install
+        run: |
+          meson --version
+          $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
+          $env:CC = 'cl'
+          $env:CXX = 'cl'
+          meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+          if ($LASTEXITCODE) { exit 1 }
+          meson compile -C build-meson
+          if ($LASTEXITCODE) { exit 1 }
+          meson install -C build-meson
+          if ($LASTEXITCODE) { exit 1 }
+          Get-ChildItem -Recurse -File $prefix | ForEach-Object { $_.FullName }
+          # What the code using GAOL includes with Visual C++, and the
+          # configuration, in include/gaol under the prefix
+          foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h', 'sysdeps/gaol_exact_msvc.h') {
+            if (-not (Test-Path "$prefix/include/gaol/$f")) { Write-Output "$f is not installed"; exit 1 }
+          }
+      - name: Tests (ninja test, make test of meson)
+        run: |
+          ninja -C build-meson test
+          if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+      - name: A test built with the installed GAOL
+        run: |
+          $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
+          $lib = Get-ChildItem "$prefix/lib" | Where-Object { $_.Name -match 'gaol\.(lib|a)$' } | Select-Object -First 1
+          cl /nologo /EHsc /std:c++17 /fp:strict /D__GAOL_PUBLIC__= /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $lib.FullName /Fe:rounding_direction.exe
+          if ($LASTEXITCODE) { exit 1 }
+          ./rounding_direction.exe
+          if ($LASTEXITCODE) { exit 1 }
 
   container:
     name: ${{ matrix.cfg.desc }}
@@ -129,19 +191,21 @@ jobs:
       - uses: actions/checkout@v7
       - name: Build and tests
         run: |
-          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS ${{ matrix.cfg.image }} sh -c "
+          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS -e MESON_TESTTHREADS ${{ matrix.cfg.image }} sh -c "
             set -e
             apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build > /dev/null
             uname -m && c++ --version | head -1
             if [ ${{ matrix.cfg.build }} = autotools ]; then
               find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-              ./configure --prefix=/tmp/gaol
+              ./configure --prefix=/tmp/gaol --with-tests
               grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
               make -j 4 && make install
+              make -j 4 test
               sh .github/scripts/tests.sh /tmp/gaol static
             else
-              meson setup build-meson --prefix=/tmp/gaol --libdir=lib
+              meson setup build-meson --prefix=/tmp/gaol --libdir=lib -Dwith-tests=true
               meson compile -C build-meson && meson install -C build-meson
+              ninja -C build-meson test
               sh .github/scripts/tests.sh /tmp/gaol shared
             fi
             ./performance | tee /gaol/performance.md"
@@ -171,12 +235,14 @@ jobs:
           prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"
           if [ ${{ matrix.cfg.build }} = autotools ]; then
             find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-            ./configure --prefix="$prefix"
+            ./configure --prefix="$prefix" --with-tests
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
             make -j 4 && make install
+            make -j 4 test
           else
-            meson setup build-meson --prefix="$prefix" --libdir=lib
+            meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
             meson compile -C build-meson && meson install -C build-meson
+            ninja -C build-meson test
           fi
           # CORE-MATH is compiled into libgaol: no other library is installed
           ls "$prefix/lib"

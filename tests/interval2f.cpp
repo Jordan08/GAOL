@@ -1,18 +1,18 @@
-// Built by no build: only a developer of GAOL compiles the intervals of
-// floats, defining GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h) (GAOL v5)
-#include "tests.h"
+// GAOL 4's unit test check/interval2f.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+// The intervals of floats, which only a developer of GAOL compiles, defining
+// GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h), gaol::interval2f where SSE3
+// instructions are used: the three builds compile this test, which is skipped
+// otherwise (exit status 77) (GAOL v5)
+#include "unit_tests.h"
+
+#if defined(GAOL_FLOAT_INTERVALS) && USING_SSE3_INSTRUCTIONS
+
 #include "gaol/gaol_intervalf.h"
 #include "gaol/gaol_interval2f.h"
 
 
-class interval2f_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(interval2f_test);
-  CPPUNIT_TEST(test_addition);
-  CPPUNIT_TEST(test_subtraction);
-  CPPUNIT_TEST(test_multiplication);
-  CPPUNIT_TEST(test_ipower);
-  CPPUNIT_TEST(test_inverse);
-  CPPUNIT_TEST_SUITE_END();
+class interval2f_test {
 public:
   void setUp() {
   }
@@ -187,4 +187,19 @@ public:
   // <-- End of tests
 };
 
-GAOL_REGISTER_TEST(interval2f_test)
+GAOL_UNIT_MAIN(interval2f_test, "interval2f",
+               GAOL_UNIT_TEST(test_addition),
+               GAOL_UNIT_TEST(test_subtraction),
+               GAOL_UNIT_TEST(test_multiplication),
+               GAOL_UNIT_TEST(test_ipower),
+               GAOL_UNIT_TEST(test_inverse))
+
+#else
+
+int main()
+{
+  std::printf("gaol::interval2f is not compiled (GAOL_FLOAT_INTERVALS, see gaol/gaol_config.h): skipped\n");
+  return 77;
+}
+
+#endif

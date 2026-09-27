@@ -17,26 +17,23 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base
 # directory of gaol.
 #------------------------------------------------------------------------------
-# CVS: $Id: Makefile.am,v 1.22 2007/09/12 12:41:57 goualard Exp $
-# Last modified: Wed Sep 27 18:12:40 2006 on pc-goualard.lina.sciences.univ-nantes.prive
 # By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
 #------------------------------------------------------------------------------
 
 .PHONY: tags
 
-SUFFIXES = .lpp .ypp
-
-
 lib_LTLIBRARIES = libgaol.la
 
+# No MAINTAINERCLEANFILES: make maintainer-clean deleted the lexer and the
+# parser, which are committed and which no build regenerates (GAOL v5)
 DISTCLEANFILES = *.~* *.obj TAGS
-MAINTAINERCLEANFILES = *.~* *.obj gaol_interval_lexer.cpp gaol_interval_parser.cpp \
-	gaol_interval_parser.h TAGS
 
 # GAOL's own directories before those given in CPPFLAGS, which come first
 # otherwise: a prefix given there may hold an installed GAOL too, whose headers
 # were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+# GAOL in C++11, as with CMake and meson (see configure.ac)
+AM_CXXFLAGS = $(GAOL_CXX_STD)
 
 libgaol_la_SOURCES = \
 	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \
@@ -46,23 +43,30 @@ libgaol_la_SOURCES = \
     gaol_exact.c
 
 
-YFLAGS = -d -p gaol_
-LFLAGS = -Pgaol_
+# The lexer and the parser, gaol_interval_lexer.cpp, gaol_interval_parser.cpp
+# and gaol_interval_parser.h, are committed and compiled as the other sources:
+# make parser (../Makefile.am) regenerates them from gaol_interval_lexer.lpp
+# and gaol_interval_parser.ypp with regenerate_parser.sh. The rules .lpp.cpp and
+# .ypp.cpp, which ran flex and bison where make found the sources newer, are
+# gone (GAOL v5).
+
 # The elementary functions of CORE-MATH, compiled by 3rd/Makefile.am into a
 # convenience library and put into libgaol here: nothing is linked along with
 # GAOL.
 
-libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
+# libgaol.so.5.0.0 and its soname libgaol.so.5 (see configure.ac)
+libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO)
 libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la -lm
 
 library_includedir=$(includedir)/gaol
 
+# The headers CMake and meson install too, gaol_fpu_msvc.h included (GAOL v5)
 library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_core_math.h gaol_interval.h gaol_common.h gaol_exceptions.h \
-	gaol_interval_parser.h gaol_config.h gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h gaol_version_mingw.h \
+	gaol_interval_parser.h gaol_config.h \
 	gaol_configuration.h gaol_expression.h gaol_limits.h \
 	gaol_expr_eval.h  gaol_expr_visitor.h gaol_parameters.h \
 	gaol_flags.h gaol_parser.h gaol_u128.h gaol_roundeven.h gaol_ieee1788.h \
-	gaol_port.h gaol_fpu.h gaol_fpu_fenv.h gaol_profile.h gaol.h \
+	gaol_port.h gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_profile.h gaol.h \
 	gaol_eval_stack.h gaol_init_cleanup.h gaol_version.h gaol_allocator.h \
 	gaol_interval_fpu.h gaol_interval_sse.h
 
@@ -79,19 +83,9 @@ tags: TAGS
 
 TAGS: $(gaol_HEADERS) $(libgaol_la_SOURCES)
 
-.lpp.cpp:
-	$(LEX) $(AM_LFLAGS) $(LFLAGS) $< && mv lex.gaol_.c $@
-
-.ypp.cpp:
-	$(YACC) $(AM_YFLAGS) $(YFLAGS) $< && mv y.tab.c $*.cpp
-	if test -f y.tab.h; then \
-	if cmp -s y.tab.h $*.h; then rm -f y.tab.h; else mv y.tab.h $*.h; fi; \
-	else :; fi
-
-
 install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/gaol/sysdeps
+	$(MKDIR_P) $(DESTDIR)$(includedir)/gaol/sysdeps
 	$(INSTALL_DATA) $(srcdir)/sysdeps/*.h $(DESTDIR)$(includedir)/gaol/sysdeps
-	$(mkinstalldirs) $(DESTDIR)$(libdir)/pkgconfig
+	$(MKDIR_P) $(DESTDIR)$(libdir)/pkgconfig
 	$(INSTALL_DATA) ../gaol.pc $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
 

@@ -326,7 +326,8 @@ but not applied. Its numbers 1, 9, 11, 13, 14 and 18 are fixed.
     function of intervals (`exp()` 5.7 % faster since, `sin()` 3.6 %,
     `pow(x, y)` 3.4 %), and once in `tan()`, the relational functions, the
     negative powers and `sqrt_rel()`. To measure again on a clean commit, the
-    machine doing nothing else (`doc/compare/code/run_bench.sh`).
+    machine doing nothing else (`doc/compare/code/run_bench.sh`, or GAOL v5
+    alone with `make perf`).
 
 36. **The FetchContent recipes fetch GAOL 4.** Those of `doc/using.md` and of
     the manual, and the `git clone` of `doc/building.md`, take the `master`
@@ -375,14 +376,12 @@ but not applied. Its numbers 1, 9, 11, 13, 14 and 18 are fixed.
     says `chi([0,0]) = 0` where the code and the manual say −1;
     `tests/gaol_tests.h` says the references use 400 bits where
     `tests/elementary_values.py` uses 2000; the comment of
-    `interval(const char*)` names a `jail_parser.h` that does not exist; the
-    root `version.h` is a Code::Blocks file of 2009 that nothing uses;
+    `interval(const char*)` names a `jail_parser.h` that does not exist;
     `GAOL_NODISCARD` works from C++17 and `gaol::gaol` sets no language
     standard, so that a CMake project with GCC 9, in C++14, gets no warning
     for `sqrt(x);`; three examples of the manual show `true`/`false` where the
     program prints 1/0 (no `std::boolalpha`), and `nan` where it prints
-    `-nan`; `check/` holds the CppUnit tests of GAOL 4, which CMake does not
-    build, some of them for types no build compiles.
+    `-nan`.
 
 ## Licence
 
@@ -391,8 +390,8 @@ but not applied. Its numbers 1, 9, 11, 13, 14 and 18 are fixed.
     change that.
     - **Whose code it is** (`git blame` on 2026-09-22, outside `3rd/` and the
       parser written by Bison): in `gaol/`, 13 592 lines of Frédéric Goualard,
-      5 650 of Jordan Ninin and 2 of Raphaël Chenouard; in `check/`, 3 148 and
-      41; `tests/`, 11 242 lines, all of Jordan Ninin; the meson files, about
+      5 650 of Jordan Ninin and 2 of Raphaël Chenouard; in `check/` (now in
+      `tests/`), 3 148 and 41; `tests/`, 11 242 lines, all of Jordan Ninin; the meson files, about
       740 lines of Raphaël Chenouard and 360 of Jordan Ninin.
     - **Who has to agree.** Frédéric Goualard, and the establishments the
       headers name: the EPFL (2001), the IRIN and the LINA (2002-2011, now the
@@ -412,7 +411,7 @@ but not applied. Its numbers 1, 9, 11, 13, 14 and 18 are fixed.
       anywhere; the library as a whole stays under the LGPL.
     - **Once agreed:** `COPYING.LIB` replaced by a `LICENSE`, a line
       `SPDX-License-Identifier: MIT` in the headers, the section Licences of
-      `README.md`, the `License:` of `gaol.spec.in`. The releases already
+      `README.md`. The releases already
       published (GAOL 4.2.2) stay under the LGPL.
     - **What MIT brings.** One licence for GAOL v5 and CORE-MATH. No more
       doubt for software that is not free: the LGPL v2 (section 5) leaves a

@@ -747,10 +747,6 @@ static const flex_int16_t yy_chk[291] =
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_interval_lexer.lpp 191 2012-03-06 17:08:58Z goualard $
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 
 #include <cstdio>
@@ -877,8 +873,9 @@ namespace {
     2^(e - 4L) and 2^(e + 4L). An exponent beyond 4L + 2000, or below its
     opposite, thus puts the number beyond the doubles, and so does the bound.
     GAOL kept exponents below 100000, which is not beyond the doubles when the
-    significand has a million zeros after its point: "0." followed by 999999
-    zeros then "1e1000001", which is 1, was compared as 10^-900001 (GAOL v5).
+    significand has a million zeros after its point: "0." followed by a
+    million zeros then "1e1000001", which is 1, was compared as 10^-900001
+    (GAOL v5).
   */
   long long gaol_exponent_bound(const char *s)
   {
@@ -1254,7 +1251,7 @@ namespace gaol {
     return gaol_compare_number(s, x);
   }
 }
-#line 1258 "lex.gaol_.c"
+#line 1255 "lex.gaol_.c"
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
@@ -1268,7 +1265,7 @@ namespace gaol {
    scanner, and several threads read strings at once (GAOL v5). Its extra data
    is the context of the reading (gaol/gaol_interval_parser.ypp), which holds
    the names of the functions. No yywrap(): a string is read to its end. */
-#line 1272 "lex.gaol_.c"
+#line 1269 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1540,10 +1537,10 @@ YY_DECL
 		}
 
 	{
-#line 555 "gaol_interval_lexer.lpp"
+#line 552 "gaol_interval_lexer.lpp"
 
 
-#line 1547 "lex.gaol_.c"
+#line 1544 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1602,42 +1599,42 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 557 "gaol_interval_lexer.lpp"
+#line 554 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 558 "gaol_interval_lexer.lpp"
+#line 555 "gaol_interval_lexer.lpp"
 { return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 559 "gaol_interval_lexer.lpp"
+#line 556 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 560 "gaol_interval_lexer.lpp"
+#line 557 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 561 "gaol_interval_lexer.lpp"
+#line 558 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 562 "gaol_interval_lexer.lpp"
+#line 559 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 563 "gaol_interval_lexer.lpp"
+#line 560 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 564 "gaol_interval_lexer.lpp"
+#line 561 "gaol_interval_lexer.lpp"
 { /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
@@ -1649,97 +1646,97 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 572 "gaol_interval_lexer.lpp"
+#line 569 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 573 "gaol_interval_lexer.lpp"
+#line 570 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 574 "gaol_interval_lexer.lpp"
+#line 571 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 575 "gaol_interval_lexer.lpp"
+#line 572 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 576 "gaol_interval_lexer.lpp"
+#line 573 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 577 "gaol_interval_lexer.lpp"
+#line 574 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 578 "gaol_interval_lexer.lpp"
+#line 575 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 579 "gaol_interval_lexer.lpp"
+#line 576 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 580 "gaol_interval_lexer.lpp"
+#line 577 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 581 "gaol_interval_lexer.lpp"
+#line 578 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 582 "gaol_interval_lexer.lpp"
+#line 579 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 20:
-#line 585 "gaol_interval_lexer.lpp"
+#line 582 "gaol_interval_lexer.lpp"
 case 21:
-#line 586 "gaol_interval_lexer.lpp"
+#line 583 "gaol_interval_lexer.lpp"
 case 22:
-#line 587 "gaol_interval_lexer.lpp"
+#line 584 "gaol_interval_lexer.lpp"
 case 23:
 YY_RULE_SETUP
-#line 587 "gaol_interval_lexer.lpp"
+#line 584 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 588 "gaol_interval_lexer.lpp"
+#line 585 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 589 "gaol_interval_lexer.lpp"
+#line 586 "gaol_interval_lexer.lpp"
 { return gaol_read_uncertain(yytext, yylval); }
 	YY_BREAK
 case 26:
 /* rule 26 can match eol */
 YY_RULE_SETUP
-#line 590 "gaol_interval_lexer.lpp"
+#line 587 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 591 "gaol_interval_lexer.lpp"
+#line 588 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 592 "gaol_interval_lexer.lpp"
+#line 589 "gaol_interval_lexer.lpp"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 1743 "lex.gaol_.c"
+#line 1740 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2882,7 +2879,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 592 "gaol_interval_lexer.lpp"
+#line 589 "gaol_interval_lexer.lpp"
 
 
 /*

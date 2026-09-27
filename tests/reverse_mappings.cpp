@@ -1,40 +1,19 @@
-// $Id: reverse_mappings.cpp 191 2012-03-06 17:08:58Z goualard $
-#include "tests.h"
+// GAOL 4's unit test check/reverse_mappings.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-/*
-  Define this to 1 if the random generators should be initialized with the PID
-  WARNING: if '1', the tests performed will vary from one invocation to the other
- */
-#define RAND_INIT_PID 1
 
 using std::cout;
 using std::endl;
 
-class reverse_mappings_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(reverse_mappings_test);
-  CPPUNIT_TEST(test_acos_rel);
-  CPPUNIT_TEST(test_asin_rel);
-  CPPUNIT_TEST(test_atan_rel);
-  CPPUNIT_TEST(test_sqrt_rel);
-  CPPUNIT_TEST(test_nth_root_rel);
-  CPPUNIT_TEST(test_invabs_rel);
-  CPPUNIT_TEST(test_div_rel);
-  CPPUNIT_TEST(test_acosh_rel);
-  CPPUNIT_TEST(test_asinh_rel);
-  CPPUNIT_TEST(test_atanh_rel);
-  CPPUNIT_TEST_SUITE_END();
+class reverse_mappings_test {
 	static const unsigned int MAX = 100;
 	//static const unsigned int MAX = 100000;
   public:
   void setUp() {
-#if RAND_INIT_PID
-	 srand48(getpid());
-	 srand(getpid());
-#else
-    // MAgic value 10 was chosen "at random"
-	 srand48(10);
-	 srand(10);
-#endif
+    // The random numbers come from gaol_unit::uniform() and gaol_unit::integer(),
+    // with a seed of their own, rather than from drand48() and rand() seeded
+    // with the process identifier: the tests are the same at each run (GAOL v5)
   }
   void tearDown() {
   }
@@ -109,8 +88,8 @@ class reverse_mappings_test : public CppUnit::TestFixture {
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
-		double Il = drand48()*(rand() % 1000000);
-		double Ir = drand48()*(rand() % 1000000);
+		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
+		double Ir = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
 		reorder(Il,Ir);
 		TI[i] = interval(Il,Ir);
 	 }
@@ -164,14 +143,14 @@ class reverse_mappings_test : public CppUnit::TestFixture {
   void test_div_rel() {
 	 interval TI[MAX], TJ[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
-		double Il = drand48()*(rand() % 1000000);
-		double Ir = drand48()*(rand() % 1000000);
+		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
+		double Ir = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
 		reorder(Il,Ir);
 		TI[i] = interval(Il,Ir);
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
-		double Il = drand48()*(rand() % 1000000);
-		double Ir = drand48()*(rand() % 1000000);
+		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
+		double Ir = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
 		reorder(Il,Ir);
 		TJ[i] = interval(Il,Ir);
 	 }
@@ -196,8 +175,8 @@ class reverse_mappings_test : public CppUnit::TestFixture {
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
-		double Il = drand48()*(rand() % 1000000);
-		double Ir = drand48()*(rand() % 1000000);
+		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
+		double Ir = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
 		reorder(Il,Ir);
 		TI[i] = interval(Il,Ir);
 	 }
@@ -216,8 +195,8 @@ class reverse_mappings_test : public CppUnit::TestFixture {
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
-		double Il = drand48()*(rand() % 1000000);
-		double Ir = drand48()*(rand() % 1000000);
+		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
+		double Ir = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
 		reorder(Il,Ir);
 		TI[i] = interval(Il,Ir);
 	 }
@@ -237,8 +216,8 @@ class reverse_mappings_test : public CppUnit::TestFixture {
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
-		double Il = drand48()*(rand() % 1000000);
-		double Ir = drand48()*(rand() % 1000000);
+		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
+		double Ir = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);
 		reorder(Il,Ir);
 		TI[i] = interval(Il,Ir);
 	 }
@@ -260,4 +239,14 @@ class reverse_mappings_test : public CppUnit::TestFixture {
   }
 };
 
-GAOL_REGISTER_TEST(reverse_mappings_test)
+GAOL_UNIT_MAIN(reverse_mappings_test, "reverse_mappings",
+               GAOL_UNIT_TEST(test_acos_rel),
+               GAOL_UNIT_TEST(test_asin_rel),
+               GAOL_UNIT_TEST(test_atan_rel),
+               GAOL_UNIT_TEST(test_sqrt_rel),
+               GAOL_UNIT_TEST(test_nth_root_rel),
+               GAOL_UNIT_TEST(test_invabs_rel),
+               GAOL_UNIT_TEST(test_div_rel),
+               GAOL_UNIT_TEST(test_acosh_rel),
+               GAOL_UNIT_TEST(test_asinh_rel),
+               GAOL_UNIT_TEST(test_atanh_rel))

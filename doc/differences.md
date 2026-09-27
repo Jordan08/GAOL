@@ -132,8 +132,12 @@ where it comes from.
   - The macro `opposite()` is renamed `gaol_opposite()`.
 - **For Visual C++, MinGW and the systems GAOL's configure does not know**,
   following the fork of GAOL by [Fabrice Le Bars](https://github.com/lebarsfa/GAOL):
-  - `gaol/gaol_config_msvc.h`, `gaol/gaol_config_mingw.h` and
-    `gaol/gaol_version_msvc.h` include the generated configuration.
+  - The generated configuration is included with every compiler:
+    `gaol/gaol_config.h` includes it itself, where it included
+    `gaol/gaol_config_msvc.h` and `gaol/gaol_config_mingw.h`, which only
+    included it, and `gaol/gaol_version.h` includes `gaol/gaol_config.h`,
+    where it included `gaol/gaol_version_msvc.h` for Visual C++ and nothing for
+    MinGW. The four headers are gone.
   - `get_fpu_cw()` and `reset_fpu_cw()` save the rounding direction with
     `<fenv.h>` where the control word of `fenv_t` is not known.
   - Visual C++ gets the `<fenv.h>` version of `get_inexact()` and
@@ -672,8 +676,8 @@ where it comes from.
   `check/relations.cpp` wanted the former results.
 - **The possibly relations, `certainly_eq()`, `certainly_neq()`, `==` and
   `!=` are removed**, and so is the option that chose what the relation
-  symbols mean (`--enable-relations`, `-Denable-relations`), which configure
-  and meson refuse with a message. The code is kept in comments in
+  symbols mean (`--enable-relations`, `-Denable-relations`), gone from
+  configure and meson. The code is kept in comments in
   `gaol/gaol_interval.h`.
   - **Why.** `certainly_neq()` was `!certainly_eq()`, which is "possibly not
     equal": `[3, 4]` was certainly not equal to `[3, 4]`, and so was `!=` with
@@ -781,10 +785,10 @@ where it comes from.
   are read in parallel, with no lock. `parse_interval()`, which
   `interval(sl, sr)`, `operator>>` and the two `textToInterval()` go through,
   creates them. The grammar keeps the directives of Bison 2.3, the Bison of
-  macOS, which Bison 3 reads with a warning: autotools regenerates the parser
-  with the yacc that configure finds (`bison -y`, else `byacc` or `yacc`) when
-  `gaol_interval_parser.ypp` is newer than `gaol_interval_parser.cpp`. The generated lexer and parser stay in the
-  repository, and CMake and meson compile them. Four threads reading strings
+  macOS, which Bison 3 reads with a warning. The generated lexer and parser
+  stay in the repository, and the three builds compile them; `make parser`
+  regenerates them (see
+  [Building GAOL](building.md#tests-examples-performance-and-the-parser)). Four threads reading strings
   at once, with the names of GAOL and of the standard, crashed each time with
   the globals; ThreadSanitizer reports nothing with the reentrant reader. That
   test is commented out in `tests/expressions.cpp`, the tests running no
@@ -917,8 +921,8 @@ where it comes from.
   are gone. A developer working on them defines the macro in
   `gaol/gaol_config.h`: `gaol/gaol_interval.cpp` then includes their sources,
   as it includes those of the SSE2 and FPU intervals. Their headers are not
-  installed, `gaol/gaol` does not include them, and their check programs are
-  not built.
+  installed, `gaol/gaol` does not include them, and their tests,
+  `tests/intervalf.cpp` and `tests/interval2f.cpp`, are skipped.
 - **The archive of the sources and the packages are made by CMake**
   (CPack, see [Building GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
   `cmake --build <build> --target package_source` gives `gaol-<version>.tar.gz`,
@@ -934,13 +938,78 @@ where it comes from.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
-- **The meson build** defines `GETRUSAGE_IN_HEADER`, as configure does, without
-  which it did not compile on Linux, and installs the headers for MinGW and
+- **The meson build** did not compile on Linux without `GETRUSAGE_IN_HEADER`,
+  which configure defined: `gaol/gaol_profile.cpp` declared `getrusage()`
+  itself, against the declaration of the C library; it no longer declares it,
+  and the macro is gone. meson installs the headers for MinGW and
   Visual C++, as configure now does too. Both install
   a `gaol.pc` carrying the flags of interval arithmetic. The meson build no
   longer requires flex and bison: it compiles the lexer and the parser
   committed, as CMake does, and its generators, whose output nothing compiled,
   are gone.
+- **The three builds are alike** (GAOL v5, see [Building GAOL](building.md)
+  and [The three builds](three-builds.md)):
+  - **The same macros in `gaol/gaol_configuration.h`**, those GAOL's sources
+    read and nothing else. configure and meson checked some fifty headers,
+    functions, types and sizes nothing read (`AC_FUNC_MALLOC` and
+    `AC_FUNC_REALLOC` among them, which replaced `malloc()` and `realloc()` by
+    `rpl_malloc()` and `rpl_realloc()` in a cross-compilation), and the header
+    of configure defined `PACKAGE`, `VERSION` and `PACKAGE_*`, which
+    `gaol/gaol_config.h` undefined before including it, undefining those of
+    the code including GAOL. The template of configure,
+    `gaol/gaol_configuration.h.in`, is written by hand.
+  - **The Debug build** of each (`CMAKE_BUILD_TYPE=Debug`,
+    `configure --enable-debug`, `meson setup --buildtype=debug`) compiles
+    GAOL with `-g`, without optimization nor `NDEBUG`, and has it check its
+    assertions (`GAOL_DEBUGGING`). `--enable-debug` added `-g -ansi -Weffc++
+    -pedantic` for `g++` alone to the optimizations of `--enable-optimize`,
+    and GAOL did not compile with it: `gaol/gaol_expression.h` wrote on
+    `std::cout` in `GAOL_DEBUG` without including `<iostream>`
+    (`tests/debugging.cpp`). meson's options `enable-debug` and
+    `enable-optimize` are gone: its build type gives both, as CMake's.
+  - **The tests and the examples:** `WITH_TESTS` and `WITH_EXAMPLES` of
+    CMake (`GAOL_BUILD_TESTS` before), `--with-tests` and `--with-examples`
+    of configure, `with-tests` and `with-examples` of meson (`with-test`
+    before) build them, `make test` runs the unit tests and `make check` the
+    unit tests and the examples, with the three builds. The unit tests of
+    GAOL 4, which were in `check/` and needed CppUnit, are in `tests/`, and
+    run without it (see [Tests](tests.md)).
+  - **`make perf`** measures GAOL v5 on the benchmark of
+    [performance.md](compare/performance.md) and writes its times into the
+    tables, the other libraries keeping theirs; it ran the benchmark of GAOL
+    4 (`check/performances.cpp`) with autotools, and meson had an option
+    `check-perf`.
+  - **`make parser`** regenerates the lexer and the parser with the flex and
+    the bison of the system, as `gaol/regenerate_parser.sh` does. The rules of
+    `gaol/Makefile.am` that ran flex and bison where make found the sources
+    newer, and `AC_PROG_YACC`, are gone, and so is the deletion of the lexer
+    and the parser by `make maintainer-clean`, which no build could make
+    again without flex and bison.
+  - **The shared library** is `libgaol.so.5.0.0`, whose soname is
+    `libgaol.so.5`, with configure (`libgaol-5.0.so.0` before), meson (no
+    version before) and CMake, which builds it with `BUILD_SHARED_LIBS` (a
+    static library only before). A shared `libgaol` exports the classes and
+    functions of the expressions (`gaol/gaol_expression.h`), which it did not.
+  - **meson with Visual C++** installs `gaol/gaol_configuration.h` in the
+    directory of the headers (in `include/gaol` under the prefix before,
+    whatever `includedir`), `gaol_fpu_msvc.h` and the headers of
+    `gaol/sysdeps`, and builds a static library, as CMake, with
+    `__GAOL_PUBLIC__` defined empty for GAOL and for the code using it; it no
+    longer requires a math library apart, nor compiles `gaol/gaol_exact.c`,
+    and gives `/fp:strict` to CORE-MATH too. `nextafter` and `isnan` are no
+    longer redefined for Visual C++ (`s_nextafter`, `_isnan`) where the build
+    did not define `HAVE_NEXTAFTER` and `HAVE_ISNAN`, which only CMake did.
+  - **The version is 5.0.0 everywhere**: configure gave `"5.0.0"`, its quotes
+    included, to `PACKAGE_VERSION`. `configure --help` and the summary of
+    meson give the address for the bug reports, jordan.ninin@ensta.fr, and
+    the page of GAOL v5, https://github.com/Jordan08/GAOL.
+  - **Gone:** the `Doxyfile` of the root, which named the sources of
+    Frédéric Goualard's machine, and the documentation Doxygen wrote from
+    the sources (`manual/gaol_doxygen.cfg.in`, `make -C manual html`),
+    `version.h`, a file of Code::Blocks of 2009, `gaol.spec.in`, of `make
+    rpm`, `stamp-h.in` and `mkinstalldirs`, of old versions of automake, the
+    option `--enable-relations`, and the lines of CVS and Subversion (`$Id$`,
+    `$Revision$`) and "Last modified ... on pc-goualard" of the headers.
 - **CORE-MATH is in the sources** (`3rd/math-core`, see
   [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
   project, brought in by FetchContent, with no network access beyond its own

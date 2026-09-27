@@ -1,11 +1,14 @@
 # ==================================================================
-#  Tests of GAOL's bounds (GAOL v5)
+#  The unit tests of GAOL (GAOL v5)
 # ==================================================================
 #
-# Each test program compares the bounds GAOL computes with the exact results
-# (see gaol_tests.h). They are compiled as any code using GAOL, with the flags
-# gaol::gaol carries, and in C++17 for the hexadecimal floating literals of
-# elementary_values.h.
+# Each test program of GAOL v5 compares the bounds GAOL computes with the
+# exact results (see gaol_tests.h); the unit tests of GAOL 4, which were in
+# check/ and ran with CppUnit, check the results of the operations on chosen
+# intervals (see unit_tests.h). They are compiled as any code using GAOL, with
+# the flags gaol::gaol carries, and in C++17 for the hexadecimal floating
+# literals of elementary_values.h. WITH_TESTS builds them (CMakeLists.txt);
+# make test and make check run them, with the label unit.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -34,11 +37,37 @@ set(GAOL_TESTS
   # the files of the static library GAOL are initialized, except with
   # MinGW-w64 (GAOL v5)
   static_initialization
+  # GAOL's headers with GAOL_DEBUGGING, which the Debug builds define (GAOL v5)
+  debugging
+  # The unit tests of GAOL 4 (check/), with the checks of unit_tests.h rather
+  # than CppUnit (GAOL v5); arithmetic is arithmetic_operators, the name
+  # arithmetic being taken
+  arithmetic_operators
+  assignment
+  constants
+  constructor
+  float_functions
+  generic_functions
+  input_output
+  interval_functions
+  misc
+  non_arithmetic
+  relations
+  reverse_mappings
+  trigonometric
+  # The intervals of floats, which only a developer of GAOL compiles (see
+  # gaol/gaol_config.h): without GAOL_FLOAT_INTERVALS, the tests are skipped
+  # (exit status 77)
+  intervalf
+  interval2f
 )
 # The rounding direction after the automatic cleanup of GAOL, read after the
 # end of main() by a function registered in a constructor of priority 101,
-# which ELF runs before GAOL initializes itself (GAOL v5)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+# which ELF runs before GAOL initializes itself (GAOL v5): a static libgaol
+# only, a shared one initializing itself before that constructor runs
+# (BUILD_SHARED_LIBS)
+get_target_property(_gaol_type gaol TYPE)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND _gaol_type STREQUAL "STATIC_LIBRARY")
   list(APPEND GAOL_TESTS automatic_cleanup)
 endif()
 
@@ -51,7 +80,10 @@ foreach(test ${GAOL_TESTS})
     target_compile_definitions(gaol_test_${test} PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
   add_test(NAME ${test} COMMAND gaol_test_${test})
+  set_tests_properties(${test} PROPERTIES LABELS unit SKIP_RETURN_CODE 77)
+  list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
+set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
 
 # Under a locale writing a decimal comma, the reading of a number never
 # returned (GAOL v5): numbers, which reads numbers under such a locale, fails

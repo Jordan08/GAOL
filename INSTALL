@@ -8,25 +8,29 @@ mathematical library to install beforehand, nor to link along with GAOL.
 
 With CMake (3.14 or later):
 
-    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DGAOL_BUILD_TESTS=ON
+    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
     cmake --build build --config Release
-    ctest --test-dir build -C Release
+    cmake --build build --target test
     cmake --install build --config Release
 
 With autotools:
 
-    ./configure --prefix=<prefix>
+    ./configure --prefix=<prefix> --with-tests
     make
+    make test
     make install
 
 With meson:
 
-    meson setup build --prefix=<prefix>
+    meson setup build --prefix=<prefix> -Dwith-tests=true
     meson compile -C build
+    meson test -C build
     meson install -C build
 
-GAOL's own check programs (make check, and -Dwith-test=true with meson)
-need CppUnit; the tests of tests/, which CMake builds, need nothing else.
+make test runs the unit tests of tests/, which need nothing else, and make
+check the unit tests and the examples of examples/, built with
+-DWITH_EXAMPLES=ON, --with-examples or -Dwith-examples=true (ninja check with
+meson).
 
 doc/building.md gives the options of each build, and doc/using.md the flags
 of interval arithmetic the code including GAOL's headers is compiled with.

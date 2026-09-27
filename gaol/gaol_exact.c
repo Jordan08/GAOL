@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * SVN: $Id$
- * Last modified:
- * By:
  *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol_exact.h"

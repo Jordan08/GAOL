@@ -1,15 +1,8 @@
-#include "tests.h"
+// GAOL 4's unit test check/non_arithmetic.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-class non_arithmetic_test : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(non_arithmetic_test);
-  	CPPUNIT_TEST(test_pow_int);
-	CPPUNIT_TEST(test_pow);
-  	CPPUNIT_TEST(test_sqr);
-  	CPPUNIT_TEST(test_sqrt);
-  	CPPUNIT_TEST(test_log);
-  	CPPUNIT_TEST(test_exp);
-	CPPUNIT_TEST(test_nth_root);
-  	CPPUNIT_TEST_SUITE_END();
+class non_arithmetic_test {
 public:
   void setUp() {
   }
@@ -158,4 +151,11 @@ public:
   // <-- End of tests
 };
 
-GAOL_REGISTER_TEST(non_arithmetic_test)
+GAOL_UNIT_MAIN(non_arithmetic_test, "non_arithmetic",
+               GAOL_UNIT_TEST(test_pow_int),
+               GAOL_UNIT_TEST(test_pow),
+               GAOL_UNIT_TEST(test_sqr),
+               GAOL_UNIT_TEST(test_sqrt),
+               GAOL_UNIT_TEST(test_log),
+               GAOL_UNIT_TEST(test_exp),
+               GAOL_UNIT_TEST(test_nth_root))

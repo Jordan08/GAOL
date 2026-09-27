@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_version.h 54 2009-03-01 13:53:01Z goualard $
- * Last modified: 
- * By: 
  *--------------------------------------------------------------------------*/
 /*!
   \file   gaol_version.h
@@ -31,15 +27,10 @@
 #ifndef __gaol_version_h__
 #define __gaol_version_h__
 
-#if defined (_MSC_VER)
-# include "gaol/gaol_version_msvc.h"
-
-#elif defined (__MINGW32__)
-// Nothing for now. FIXME!
-
-#elif defined (__GNUC__)
-# include "gaol/gaol_configuration.h"
-#endif
+// The version the build wrote into gaol/gaol_configuration.h, with every
+// compiler: MinGW included nothing, and GAOL_MAJOR_VERSION was undefined there
+// unless another header of GAOL had been included first (GAOL v5)
+#include "gaol/gaol_config.h"
 
 namespace gaol_core {
   const unsigned int version_major = GAOL_MAJOR_VERSION;

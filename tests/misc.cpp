@@ -1,10 +1,8 @@
-#include "tests.h"
+// GAOL 4's unit test check/misc.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
 
-class misc_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(misc_test);
-  CPPUNIT_TEST(test_constants);
-  CPPUNIT_TEST(test_predicates);
-  CPPUNIT_TEST_SUITE_END();
+class misc_test {
 public:
   void setUp() {
   }
@@ -47,4 +45,6 @@ public:
   // <-- End of tests
 };
 
-GAOL_REGISTER_TEST(misc_test)
+GAOL_UNIT_MAIN(misc_test, "misc",
+               GAOL_UNIT_TEST(test_constants),
+               GAOL_UNIT_TEST(test_predicates))

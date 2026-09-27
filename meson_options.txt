@@ -1,16 +1,19 @@
-# Copyright (c) 2026 ENSTA, France
+# Meson build of GAOL: its options
 #
-# Created 2026-09-20 by Jordan NININ
+# Created 2025-11-25 by Raphaël Chenouard
+# Modified in 2026 by Jordan NININ (GAOL v5)
 #
-option('enable-optimize', type : 'boolean', value : true, description : 'Add the optimizations of configure (-funroll-loops, -fomit-frame-pointer...) where the compiler takes them')
-option('enable-debug', type : 'boolean', value : false, description : 'Activate debugging messages')
+# The build type gives the optimizations and the debugging, as with CMake:
+# --buildtype=release (the default) for -O3 and the optimizations of
+# configure's --enable-optimize, --buildtype=debug for GAOL_DEBUGGING, as
+# configure's --enable-debug. The options enable-optimize and enable-debug,
+# and enable-relations, with-test and check-perf, are gone (GAOL v5).
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors [default=yes, as configure]')
 option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (false: a library for any processor of the architecture) [default=yes, as configure and CMake]')
 option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
-option('enable-relations', type: 'string', value: '', description: 'Gone in GAOL v5: <, <=, > and >= are the certainly relations, and == and != are not defined on intervals')
-option('enable-exception', type: 'boolean', value: true, description: 'raise exceptions to signal errors [default=yes]')
-option('with-test', type: 'boolean', value: false, description: 'Specify if test are built [default=no]')
-option('check-perf', type : 'boolean', value : false, description : 'Run test performances')
-option('with-doc', type: 'boolean', value: false, description: 'Build the documentation')
+option('enable-exception', type: 'boolean', value: true, description: 'Raise exceptions to signal errors [default=yes]')
+option('with-tests', type: 'boolean', value: false, description: 'Build the unit tests of tests/, which meson test (make test) and ninja check (make check) run [default=no, as WITH_TESTS of CMake and --with-tests of configure]')
+option('with-examples', type: 'boolean', value: false, description: 'Build the examples of examples/, which ninja check (make check) runs [default=no, as WITH_EXAMPLES of CMake and --with-examples of configure]')
+option('with-doc', type: 'boolean', value: false, description: 'Build the manuals (ninja pdf)')

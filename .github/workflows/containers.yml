@@ -22,6 +22,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# make test (the target test of CMake, RUN_TESTS with Visual Studio) runs
+# ctest, which reads these: four tests at a time, and the output of those that
+# fail (GAOL v5)
+env:
+  CTEST_PARALLEL_LEVEL: 4
+  CTEST_OUTPUT_ON_FAILURE: 1
+
 jobs:
   container:
     name: ${{ matrix.cfg.desc }}
@@ -61,16 +68,16 @@ jobs:
             apk) tools='apk add --no-cache build-base cmake linux-headers ca-certificates > /dev/null' ;;
             *) tools='true' ;;
           esac
-          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
+          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e CTEST_PARALLEL_LEVEL -e CTEST_OUTPUT_ON_FAILURE ${{ matrix.cfg.image }} sh -c "
             set -e
             $tools
             uname -m
             c++ --version
             cmake --version
-            cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON ${{ matrix.cfg.opts }}
+            cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON ${{ matrix.cfg.opts }}
             cmake --build /tmp/build -j 4
+            cmake --build /tmp/build --target test
             cd /tmp/build
-            ctest -j 4 --output-on-failure
             ./tests/gaol_performance | tee /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
 

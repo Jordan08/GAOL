@@ -12,10 +12,6 @@
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_assert.h 54 2009-03-01 13:53:01Z goualard $
- * Last modified: 
- * By: 
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -36,14 +32,8 @@
 #include "gaol/gaol_config.h"
 
 #if GAOL_DEBUGGING
-# if HAVE_CASSERT
-#   include <cassert>
-#   undef NDEBUG
-#   define GAOL_ASSERT(a) assert(a)
-# else
-#   include <cstdlib>
-#   define GAOL_ASSERT(a) if (!(a)) abort()
-# endif // HAVE_CASSERT
+# include <cassert>
+# define GAOL_ASSERT(a) assert(a)
 #else 
 # define GAOL_ASSERT(a) 
 #endif  // GAOL_DEBUGGING
