@@ -202,6 +202,15 @@ where it comes from.
     of `gaol/gaol_double_op.h` saved the direction they found, but left it
     upward, which the compilers only showed by warning that `_save_state` was
     set but not used. `tests/rounding_direction.cpp` calls them.
+  - **`ipow_up()`, `ipow_dn()` and `pow(x, y)` keep their bounds before
+    setting the direction back**, with `GAOL_PRESERVE_ROUNDING`: they set it
+    back without `GAOL_RND_KEEP()`, which the rule of `gaol/gaol_fpu.h` asks
+    of every value computed before and used after, so that GCC, which does
+    not model the rounding direction, could compute them after. No operation
+    of GAOL calls `ipow_up()` nor `ipow_dn()`: compiled in a function of test,
+    GCC 9 and Clang 18 computed the last product before all the same, and
+    `pow(x, y)` gives the same bounds in every rounding direction
+    (`tests/rounding_direction.cpp`).
   - **`gaol::cleanup()` sets back the rounding direction** that the first
     `gaol::init()` found, unless it is preserved: GAOL left it upward after
     its use, even after its automatic cleanup when the program ends or the

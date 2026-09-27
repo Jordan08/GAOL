@@ -1014,6 +1014,9 @@ namespace gaol_core {
         l = minimum(pow_lo(xl, yu), pow_lo(xu, yl));
         r = maximum(pow_hi(xl, yl), pow_hi(xu, yu));
       }
+      // Computed before the direction is set back (see gaol_fpu.h)
+      GAOL_RND_KEEP(l);
+      GAOL_RND_KEEP(r);
       GAOL_RND_LEAVE();
       return interval(l,r);
     }

@@ -69,8 +69,10 @@ namespace gaol_core {
 	n >>= 1;
 	y *= z;
 	if (n == 0) {
+	  // Computed before the direction is set back (see gaol_fpu.h)
+	  GAOL_RND_KEEP(y);
 	  GAOL_RND_LEAVE();
-	  return double(y);
+	  return y;
 	}
       } else {
 	n>>=1;
@@ -97,6 +99,8 @@ namespace gaol_core {
 				n >>= 1;
 				y = gaol_opposite(gaol_opposite(y)*z);
 				if (n == 0) {
+	  				// Computed before the direction is set back (see gaol_fpu.h)
+	  				GAOL_RND_KEEP(y);
 	  				GAOL_RND_LEAVE();
 	  				return y;
 				}
