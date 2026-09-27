@@ -69,7 +69,8 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   program linked with `-Ofast`), the parser hangs under a locale writing a
   decimal comma, and several crashes and I/O bugs follow (section 5). Each
   has a fix and a regression test that were validated on scratch builds;
-  none was applied to the library (Appendix B).
+  the first one, `x op= x` in the FPU build, is applied, the others are not
+  (Appendix B).
 - **The documentation** is precise and its 86 examples of the manual are
   right, but it has no tutorial and no example of an interval algorithm, and
   its FetchContent recipe fetches the public `master`, which is GAOL 4.2.3,
@@ -574,15 +575,16 @@ The first round of review reported candidates; each was then given to a
 separate reviewer asked to refute it, who reduced it to a minimal program,
 found its cause, and wrote a fix and a regression test, validated on scratch
 builds: the test fails on the original library (SSE2 and FPU builds) and
-passes with the fix, and the existing ctest suite still passes. **No fix was
-applied to the library**: the changes to the sources are left to the
+passes with the fix, and the existing ctest suite still passes. **Only
+number 1 is fixed in the library**, with its regression test in
+`tests/arithmetic.cpp`; the other changes to the sources are left to the
 maintainer. Appendix B gives each fix and its test.
 
 ### 5.1 Wrong bounds
 
 | # | What | Where | Severity |
 |---|---|---|---|
-| 1 | In the FPU build (`GAOL_SIMD=OFF`, the code of ARM, Visual C++ and 32-bit Windows), `x -= x`, `x /= x` and `x %= x` give bounds that miss the result: `c = [-3,-1]; c -= c` is [−2, 1], `a = [0.25, 0.5]; a /= a` is [0.5, 1], and `b = [0.1]; b /= b` is empty. A natural loop meets it: normalising a row by its pivot, `row[j] /= row[i]` down to j = i. The compound operator writes one bound of `*this` before reading the operand's, which is `*this` itself. | `gaol/gaol_interval_fpu.cpp:187`, `:636`, `:832` | high |
+| 1 | In the FPU build (`GAOL_SIMD=OFF`, the code of ARM, Visual C++ and 32-bit Windows), `x -= x`, `x /= x` and `x %= x` gave bounds that missed the result: `c = [-3,-1]; c -= c` was [−2, 1], `a = [0.25, 0.5]; a /= a` was [0.5, 1], and `b = [0.1]; b /= b` was empty. A natural loop meets it: normalising a row by its pivot, `row[j] /= row[i]` down to j = i. The compound operator wrote one bound of `*this` before reading the operand's, which is `*this` itself. **Fixed**. | `gaol/gaol_interval_fpu.cpp:187`, `:636`, `:832` | high |
 | 2 | Flush-to-zero and denormals-are-zero make every operation with a subnormal result unsound: `[1e-300] * [1e-20]` is [0, 0]. They are set by `crtfastmath.o`, which GCC links into a program linked with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`, even when GAOL's `-fno-fast-math` silenced the `#error` at compile time (GCC applies `-O` options first), and whose constructor runs after GAOL's initialization; also by loading a plug-in or Python module built with `-Ofast`. The check of each operation (1 + 2⁻⁶⁰ > 1) sees the rounding direction only. | `gaol/gaol_fpu.h:204` | high |
 | 3 | On x86-64 with glibc, when the x87 rounding bits say nearest and MXCSR says upward (what `exactinit()` of Shewchuk's Triangle and predicates does), `pow` with a subnormal result misses the exact value (205 of 400 random cases): CORE-MATH rounds those results itself in the direction `fegetround()` gives, which glibc reads from the x87 unit. GAOL's own test lists that state (`tests/rounding_direction.cpp:104`) but no subnormal `pow`. | `3rd/math-core/src/binary64/pow/pow.h:236, 261, 408` | medium |
 | 4 | `-ffinite-math-only` is not refused, and makes the empty set invisible: `([1,2] & [3,4]).is_empty()` is false, and the hull of the empty set with [1, 2] is empty. `-funsafe-math-optimizations` and `-ffast-math -fno-finite-math-only` are not refused either (no macro reveals them), and GCC then rewrites the probe `1 + tiny == 1` as `tiny == 0` in inline code, so that `width()` after a change of direction is below the exact width. | `gaol/gaol_config.h:199` | medium |
@@ -866,9 +868,9 @@ To take:
 ### Priority 1: the bounds
 
 1. Apply the fixes of the wrong bounds of section 5.1 and of the hang, the
-   crashes and the link error of section 5.2 (numbers 1, 3 to 11, 18 to 20),
-   with their regression tests (Appendix B). Each is small and was validated on
-   the SSE2 and FPU builds.
+   crashes and the link error of section 5.2 (numbers 3 to 11 and 18 to 20;
+   number 1 is applied), with their regression tests (Appendix B). Each is
+   small and was validated on the SSE2 and FPU builds.
 2. Decide on flush-to-zero (number 2). The fused probe of Appendix B detects
    the rounding direction, FTZ and DAZ in one comparison, measured at no cost
    on an i7-1185G7; it should be measured on the other processors of the
@@ -972,9 +974,10 @@ the fix, the whole ctest suite passing too.
 
 ## Appendix B. The fixes of the confirmed bugs
 
-The numbers are those of section 5. None is applied in the repository.
+The numbers are those of section 5. Only number 1 is applied in the
+repository.
 
-**1. `x -= x`, `x /= x`, `x %= x` in the FPU build.** In
+**1. `x -= x`, `x /= x`, `x %= x` in the FPU build (applied).** In
 `gaol_interval_fpu.cpp`, read the operand's bounds before writing:
 
 ```cpp

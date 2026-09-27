@@ -183,9 +183,12 @@
 
   interval& interval::operator-=(const interval& I)
   {
+    // I may be *this (x -= x): its bounds are read before one is written,
+    // or x -= x was [a - b, 2b - a] for x = [a, b] (GAOL v5)
+    const double ilb = I.lb_, irb = I.rb_;
     GAOL_RND_ENTER();
-		lb_ += I.rb_;
-		rb_ += I.lb_;
+		lb_ += irb;
+		rb_ += ilb;
     GAOL_RND_LEAVE();
     return *this;
   }
@@ -633,8 +636,11 @@
 						  return *this; // P1 P0
 						} else { // [I] P1
 						  GAOL_RND_ENTER();
-						  lb_ /= I.rb_;
+						  // I may be *this (x /= x): the new lower bound is
+						  // written once the right one is computed (GAOL v5)
+						  const double tmp = lb_/I.rb_;
 						  rb_ /=  -I.lb_;
+						  lb_ = tmp;
 						  GAOL_RND_LEAVE();
 						  return *this; // P1 P1
 						}
@@ -829,8 +835,11 @@
 		    						return *this; // P1 P0
 		  						} else { // [I] P1
 										GAOL_RND_ENTER();
-										lb_ = lb_/I.rb_;
+										// I may be *this (x %= x): the new lower bound is
+										// written once the right one is computed (GAOL v5)
+										const double tmp = lb_/I.rb_;
 										rb_ /= -I.lb_;
+										lb_ = tmp;
 								    GAOL_RND_LEAVE();
 		    						return *this; // P1 P1
 		  						}

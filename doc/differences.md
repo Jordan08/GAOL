@@ -327,6 +327,15 @@ where it comes from.
   double give the empty set for an infinite double, as `interval(d)` is empty:
   they no longer repair NaN bounds, and `x *= d` takes 3.6 ns rather than
   4.8 ns.
+- **`x -= x`, `x /= x` and `x %= x`** enclose their results in the FPU
+  intervals (`GAOL_SIMD=OFF`: the intervals of ARM, of Visual C++ and of
+  32-bit Windows), the bounds of the operand being read before those of the
+  interval are written. The operand being the interval itself, GAOL wrote one
+  bound before reading it: `x -= x` was `[a - b, 2b - a]` for x = [a, b],
+  `[-2, 1]` for `[-3, -1]`, and `x /= x` and `x %= x` were `[a/b, b²/a]` for
+  0 < a ≤ b, `[0.5, 1]` for `[0.25, 0.5]`, neither containing the exact
+  result; `[0.1] /= [0.1]` was empty. Normalising a row by its pivot,
+  `row[j] /= row[i]` down to j = i, did it. The SSE2 intervals were right.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.
