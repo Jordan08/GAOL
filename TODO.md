@@ -134,3 +134,45 @@ What is left to do on GAOL v5. What is done is in
      [glibc copyright assignment policy](https://sourceware.org/pipermail/libc-alpha/2021-July/129577.html),
      [licences of the French administrations](https://www.data.gouv.fr/pages/legal/licences),
      [NEWS of the glibc](https://sourceware.org/git/?p=glibc.git;a=blob;f=NEWS).
+
+## The builds: choices to confirm
+
+The choices made when the three builds were made alike (PR #29,
+`configure-clean`), to keep or to undo.
+
+8. **The HTML reference of Doxygen is gone too.** Along with the `Doxyfile`
+   of the root, which named the sources of Frédéric Goualard's machine,
+   `manual/gaol_doxygen.cfg.in`, the target `html` of `manual/Makefile.am`
+   (`make -C manual html`) and the Doxygen target of `manual/meson.build` are
+   removed, as are the checks of `doxygen` and `dot` in `configure.ac`. To
+   undo: restore these files from `eac339b`.
+
+9. **meson has no `enable-debug` nor `enable-optimize` any more.** Its build
+   type gives both, as the build type of CMake does: `--buildtype=debug` for
+   the Debug build (`-g`, `GAOL_DEBUGGING`), `release`, the default, for `-O3`
+   and the optimizations of `--enable-optimize`. A command line giving
+   `-Denable-debug=true` or `-Denable-optimize=false` now stops on an unknown
+   option. configure keeps its `--enable-debug` and `--enable-optimize`.
+
+10. **The continuous integration runs `make test` only**: the unit tests, not
+    the examples of `examples/`, which only `make check` runs. To run them
+    too: `-DWITH_EXAMPLES=ON` and `make check` in some jobs, `--with-examples`
+    and `-Dwith-examples=true` for autotools and meson.
+
+11. **`make test` leaves the examples out only with CMake 3.17 and meson 0.57
+    or later.** CMake excludes their label `example` through
+    `CMAKE_CTEST_ARGUMENTS` (3.17), meson through a test setup excluding the
+    suite `examples` (`exclude_suites`, 0.57). With an earlier version, as the
+    meson 0.53 of Ubuntu 20.04, `make test` (`meson test`) runs the examples
+    too, when they are built; `meson test --suite unit` runs the unit tests
+    alone.
+
+12. **The first `make perf` moves the columns of the other libraries.**
+    `doc/compare/code/results.csv` holds a whole run of the benchmark of 27
+    September 2026 (three rounds, at `605728e`), and the tables of
+    `doc/compare/performance.md` come from a later run of six rounds, whose
+    results were not kept: the first `make perf` writes the times of GAOL
+    4.2.3, filib++, libieeep1788, PROFIL/BIAS and Solaris Studio from
+    `results.csv`, a few per cent from those of the tables. To keep the two
+    in step: run `doc/compare/code/run_bench.sh` once, all the libraries and
+    all the operations, which writes the tables and `results.csv` together.
