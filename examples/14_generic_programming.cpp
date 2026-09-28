@@ -151,12 +151,13 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "1. One template, three types: f(v) = sqrt(2/pi) v^2 exp(-v^2/2)\n";
-  // The references, from mpmath with 60 digits, read by gaol::textToInterval,
-  // which encloses a decimal that no double equals
-  const interval f15 = gaol::textToInterval("0.58282918049651277426344801079633671032");     // f(1.5)
-  const interval df15 = gaol::textToInterval("-0.097138196749418795710574668466056118387");  // f'(1.5)
-  const interval f_max = gaol::textToInterval("0.58705065269495959957725771612621847203");   // f(sqrt 2), the maximum
-  const interval f2 = gaol::textToInterval("0.43192773210550441560451360328570865391");      // f(2)
+  // The references, from mpmath with 60 digits, held as one of the two
+  // doubles around each; pi_ref, read by gaol::textToInterval, encloses pi,
+  // which no double is
+  const interval f15 = gaol::interval(0.58282918049651277426344801079633671032);     // f(1.5)
+  const interval df15 = gaol::interval(-0.097138196749418795710574668466056118387);  // f'(1.5)
+  const interval f_max = gaol::interval(0.58705065269495959957725771612621847203);   // f(sqrt 2), the maximum
+  const interval f2 = gaol::interval(0.43192773210550441560451360328570865391);      // f(2)
   const interval pi_ref = gaol::textToInterval("3.1415926535897932384626433832795028841972");
 
   // T = double: no error bound. GAOL leaves the rounding direction upward
@@ -230,9 +231,9 @@ int main()
             << "   std::accumulate from interval() = " << sum_entire << ": interval() is the whole line\n";
   // The exact sums, in decimal: 7.22 and 7.58 for the bounds, 9.7734 and
   // 10.717 for their squares (all bounds are positive)
-  check(mean_speed.set_contains(interval("7.22/6", "7.58/6")) && mean_speed.width() < 0.36 / 6 + 1e-12,
+  check(mean_speed.set_contains(gaol::textToInterval("7.22/6", "7.58/6")) && mean_speed.width() < 0.36 / 6 + 1e-12,
         "the mean speed holds [7.22/6, 7.58/6], and no more than rounding beyond it");
-  check(energy.set_contains(interval("9.7734/12", "10.717/12")) && energy.width() < 0.9436 / 12 + 1e-12,
+  check(energy.set_contains(gaol::textToInterval("9.7734/12", "10.717/12")) && energy.width() < 0.9436 / 12 + 1e-12,
         "the mean energy holds [9.7734/12, 10.717/12], and no more than rounding beyond it");
   check(sum_entire.is_entire() && interval{}.is_entire(), "interval() and interval{} are [-oo, +oo]");
   // The same templates on doubles: the midpoints of the measures

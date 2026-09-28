@@ -263,7 +263,7 @@ public:
   void test_inverse() {
     TEST_EMPTY(inverse(interval::emptyset()));
     TEST_SEQ(inverse(interval::universe()),interval::universe());
-    TEST_EQ(inverse(interval(10.0)),textToInterval("0.1"));
+    TEST_EQ(inverse(interval(10.0)),interval(0.1));
 
     TEST_SEQ(inverse(interval(-4,-2)),interval(-.5,-.25));
     interval tmp = inverse(interval(-2,0));

@@ -54,9 +54,9 @@
 	gaol/gaol_expression.h did not compile; debug_level is public.
 	* gaol/gaol_expression.h: the classes and functions of the
 	expressions are public, which a shared libgaol did not export.
-	* gaol/gaol_interval.h: the constructors of interval from numbers
-	and from two strings are explicit: a double becomes an interval only
-	where the program writes interval(d).
+	* gaol/gaol_interval.h: the constructor from two strings is gone:
+	textToInterval(sl, sr) takes its place, and gives the empty set for
+	bounds in the wrong order, where the constructor kept [2, 1].
 	* gaol/gaol_common.cpp (minimum, maximum): two zeros of different
 	signs give -0 and +0 with Visual C++ too, which compiled the
 	comparison as minsd and gave the other zero.

@@ -234,7 +234,7 @@ int main()
   // In two dimensions, n x n boxes: dividing the excess by 4 costs 16 times
   // as many evaluations
   const interval side(-2.0, 2.0);
-  const interval gp_range = interval(3.0) | textToInterval("1015690.2717980589082988423120822331039464707651154");
+  const interval gp_range = interval(3.0) | interval(1015690.2717980589082988423120822331039464707651154);
   // The minimum 3 is f(0, -1): this point evaluation is exact
   check(goldstein_price(interval(0.0), interval(-1.0)).set_eq(interval(3.0)), "f(0, -1) = 3");
   excess_before = 0.0;

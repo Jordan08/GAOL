@@ -103,7 +103,7 @@ namespace {
      relation, having no point to contradict it, hence the test first. */
   bool contains_ratio(const gaol::interval& x, double p, double q)
   {
-    return !x.is_empty() && gaol::interval(x.left()) * q <= gaol::interval(p) && gaol::interval(x.right()) * q >= gaol::interval(p);
+    return !x.is_empty() && gaol::interval(x.left()) * q <= p && gaol::interval(x.right()) * q >= p;
   }
 
   // The same bounds, bit for bit: the same doubles, with the same signs (a
@@ -299,8 +299,8 @@ namespace {
 
     std::cout << "2. The names of IEEE 1788-2015: using namespace gaol_ieee1788\n";
     std::cout << "   x in [-4, -1], contracted by 2 x^2 in c = [2, 4] (one HC4-revise)\n";
-    // numsToInterval takes doubles: numsToInterval(0, 0) compiles, where
-    // interval(0, 0) is ambiguous.
+    // numsToInterval, the constructor from two numbers of the standard, takes
+    // doubles, as interval(l, r) does.
     const interval x0 = numsToInterval(-4, -1);
     const interval c = numsToInterval(2, 4);
     const interval two = numsToInterval(2, 2);

@@ -134,8 +134,8 @@ namespace
     // Bounds in the wrong order: the empty set, as interval(2, 1) is
     check("textToInterval(\"[1/3, 0.3]\"): empty", textToInterval("[1/3, 0.3]").is_empty(),
           [&] { return hex(textToInterval("[1/3, 0.3]")); });
-    const interval two(".1", "0.3");
-    check("interval(number, number): the tightest enclosure", is_tightest_enclosure(two, tenth, three_tenths),
+    const interval two = textToInterval(".1", "0.3");
+    check("textToInterval(number, number): the tightest enclosure", is_tightest_enclosure(two, tenth, three_tenths),
           [&] { return hex(two); });
     const interval sum = textToInterval("0.1+0.2");
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
@@ -187,10 +187,10 @@ namespace
       check(std::string(c.name) + ": empty", c.r.is_empty(), [&] { return hex(c.r); });
     }
     interval to_infinity(1., 2.);
-    to_infinity = interval(inf);
+    to_infinity = inf;
     check("[x] = +oo: empty", to_infinity.is_empty(), [&] { return hex(to_infinity); });
     interval to_minus_infinity(1., 2.);
-    to_minus_infinity = interval(-inf);
+    to_minus_infinity = -inf;
     check("[x] = -oo: empty", to_minus_infinity.is_empty(), [&] { return hex(to_minus_infinity); });
 
     // The intervals with one infinite bound are unchanged
@@ -219,16 +219,12 @@ namespace
     check("interval(0) with an int: [0, 0]", !zero.is_empty() && zero.left() == 0. && zero.right() == 0.,
           [&] { return hex(zero); });
 
-    /* The constructors are explicit (GAOL v5): a double becomes an interval
-       only where the program writes interval(d), and x < 0.1, x = 0.1 or
-       min(x, 0.1) no longer take the double nearest to 0.1 for an interval
-       without saying so */
-    static_assert(std::is_constructible<interval, double>::value, "interval(double)");
-    static_assert(!std::is_convertible<double, interval>::value, "no implicit conversion from double");
-    static_assert(!std::is_convertible<int, interval>::value, "no implicit conversion from int");
-    static_assert(std::is_constructible<interval, double, double>::value, "interval(double, double)");
-    static_assert(std::is_constructible<interval, const char*, const char*>::value, "interval(const char*, const char*)");
-    static_assert(!std::is_assignable<interval&, double>::value, "no assignment of a double");
+    /* No constructor from two strings either (GAOL v5): textToInterval(sl,
+       sr) reads them, and interval(0, 0) is [0] */
+    static_assert(!std::is_constructible<interval, const char*, const char*>::value, "no interval(const char*, const char*)");
+    const interval zero_zero(0, 0);
+    check("interval(0, 0) with ints: [0, 0]", !zero_zero.is_empty() && zero_zero.left() == 0. && zero_zero.right() == 0.,
+          [&] { return hex(zero_zero); });
   }
 
   // The interval literals of IEEE 1788-2015 (9.7, 12.11): GAOL read neither

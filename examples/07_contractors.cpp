@@ -201,9 +201,9 @@ int main()
   // ---- Part 1: IBEX's backward arithmetic
   std::cout << "Part 1. Backward arithmetic (IBEX examples/doc-arithmetic.cpp, #4 and #5)\n";
 
-  // 3pi/2, from mpmath with 50 digits: textToInterval("...") encloses the
-  // decimal number, where a double literal would be rounded to one double
-  const interval three_pi_2 = textToInterval("4.7123889803846898576939650749192543262957540990627");
+  // 3pi/2, from mpmath with 50 digits: interval(d) holds one of the two
+  // doubles around it, which an enclosure of 3pi/2 contains
+  const interval three_pi_2 = interval(4.7123889803846898576939650749192543262957540990627);
   {
     interval x(1.0, 2.0), y(3.0, 4.0);
     interval z = x + y;
@@ -269,10 +269,10 @@ int main()
   // The two solutions, from mpmath with 50 digits (findroot on
   // x^2 + (exp(x) - 1.5)^2 = 1, checked by findroot on the system)
   const Box solution[2] = {
-    { textToInterval("-0.47660954471908055134256347216127561813625353271843"),
-      textToInterval("-0.87911509023714907230029912788341393476004746249643") },
-    { textToInterval("0.76351037484796563769106834834693518671171708347844"),
-      textToInterval("0.64579556169078694043427738736715192326909564742362") } };
+    { interval(-0.47660954471908055134256347216127561813625353271843),
+      interval(-0.87911509023714907230029912788341393476004746249643) },
+    { interval(0.76351037484796563769106834834693518671171708347844),
+      interval(0.64579556169078694043427738736715192326909564742362) } };
 
   const Box initial{ interval(-10.0, 10.0), interval(-10.0, 10.0) };
   interval::precision(10);

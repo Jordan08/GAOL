@@ -48,7 +48,7 @@ public:
     TEST_INOUT_EQ("[3,4]",interval(3,4));
     TEST_INOUT_EQ("4.5",interval(4.5,4.5));
     TEST_INOUT_EQ("1.0/10",interval(1.0)/interval(10.0));
-    TEST_INOUT_EQ("1.0/10.0",interval("[0.1,0.1]","[0.1,0.1]"));
+    TEST_INOUT_EQ("1.0/10.0",textToInterval("[0.1,0.1]","[0.1,0.1]"));
 }
   // <-- End of tests
 };

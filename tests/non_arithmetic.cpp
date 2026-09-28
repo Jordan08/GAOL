@@ -112,20 +112,20 @@ public:
 	interval tmp = log(interval(-3,4));
 	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && (tmp.right()-1.386294361119891)<=1e-8);
 	TEST_EQ(log(interval(5,9)),interval(1.6094379124341003746,2.19722457733621938279));
-	TEST_EQ(log(textToInterval("56.1")),textToInterval("4.02713581252865063169"));
+	TEST_EQ(log(interval(56.1)),interval(4.02713581252865063169));
   }
 
   void test_exp() {
     TEST_EMPTY(exp(interval::emptyset()));
     TEST_EQ(exp(interval::zero()),interval::one());
-    TEST_EQ(exp(interval::one()),textToInterval("2.7182818284590452"));
+    TEST_EQ(exp(interval::one()),interval(2.7182818284590452));
     TEST_SEQ(exp(interval(740.0)),interval(std::numeric_limits<double>::max(),GAOL_INFINITY));
     TEST_EQ(exp(interval(-800.0)),interval::zero());
     TEST_EQ(exp(interval(-10.0,-5.0)),textToInterval("[4.53999297624848e-5,6.7379469990855e-3]"));
     TEST_EQ(exp(interval(-5.0,9.0)),textToInterval("[6.7379469990854e-3,8103.0839275754]"));
     TEST_EQ(exp(interval(9.0,11.0)),textToInterval("[8103.0839275754,59874.14171519782]"));
-    TEST_EQ(exp(interval(-3.5)),textToInterval("3.01973834223185e-2"));
-    TEST_EQ(exp(interval(3.5)),textToInterval("33.1154519586923"));
+    TEST_EQ(exp(interval(-3.5)),interval(3.01973834223185e-2));
+    TEST_EQ(exp(interval(3.5)),interval(33.1154519586923));
 	CPPUNIT_ASSERT(exp(m_inf_m_max).certainly_positive());
   }
 
@@ -142,10 +142,10 @@ public:
 		TEST_EQ(nth_root(interval(0.2,0.5),4),interval(0.668740304976422024,0.84089641525371454303));
 		TEST_EQ(nth_root(interval(0.5,2),5),interval(0.8705505632,1.14869835));
 		TEST_EQ(nth_root(interval(0.2,0.5),5),interval(0.72477966,0.8705505632));
-		TEST_EQ(nth_root(textToInterval("0.1"),4),textToInterval("0.562341325190349"));
-		TEST_EQ(nth_root(textToInterval("0.1"),5),textToInterval("0.630957344480193"));
-		TEST_EQ(nth_root(textToInterval("2.1"),4),textToInterval("1.203801343502715"));
-		TEST_EQ(nth_root(textToInterval("2.1"),5),textToInterval("1.159962258654001"));
+		TEST_EQ(nth_root(interval(0.1),4),interval(0.562341325190349));
+		TEST_EQ(nth_root(interval(0.1),5),interval(0.630957344480193));
+		TEST_EQ(nth_root(interval(2.1),4),interval(1.203801343502715));
+		TEST_EQ(nth_root(interval(2.1),5),interval(1.159962258654001));
 
 	}
   // <-- End of tests

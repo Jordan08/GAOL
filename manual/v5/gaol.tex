@@ -1069,12 +1069,10 @@ one_tenth     = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
 \subsection{Zero}
 %%...............
 
-\code{interval~x(0,~0)} does not compile: the literal \code{0} is also a null
-pointer, which the constructor from two strings takes as well as the
-constructor from two \code{double}s, and the call is ambiguous. Write
-\code{interval~x(0.0,~0.0)}, \code{interval~x(0)} or \code{interval::zero()}:
-\code{interval~x(0)} compiles, the constructor from one string that made it
-ambiguous in GAOL~4 being gone.\newinvfive
+\code{interval~x(0,~0)}, \code{interval~x(0)} and \code{interval::zero()}
+are \itv{0}{0}. The literal \code{0} is also a null pointer, and the
+constructors from one and from two strings of GAOL~4 made these calls
+ambiguous; GAOL v5 has no constructor from strings.\newinvfive
 \cindex{interval!zero}%
 
 \subsection{Both namespaces}
@@ -1217,7 +1215,7 @@ are described in the following.
 \section{Constructors}\label{sec:constructors}
 %%--------------------
 
-One can create an interval with five constructors, or with
+One can create an interval with four constructors, or with
 \code{textToInterval()}:
 
 \begin{itemize}
@@ -1251,16 +1249,6 @@ One can create an interval with five constructors, or with
   \begin{example}
     interval x(-12,12), y=x, z(x);
   \end{example}
-\item by using a string representing an interval in the same format as the one used for input
-  (\pxref{sec:input-format}) for each bound: the left bound of the first one
-  and the right bound of the second one are taken.
-
-  \begin{example}
- @rem^// constructs x=[-4,4]~
- interval x("[-5,4]+1","[4,6]-[2,3]");
-  \end{example}
-  \code{textToInterval(\var{sl}, \var{sr})} of the namespace \code{gaol} is
-  this constructor;
 \item by reading a string representing an interval in the same format as the
   one used for input (\pxref{sec:input-format}), with \code{textToInterval()}:
 \end{itemize}
@@ -1289,17 +1277,20 @@ interval x = textToInterval("[-23, inf]"),
   crashed.\newinvfive
 \end{deffun}
 
-The constructors from numbers and from two strings are \code{explicit}: a
-\code{double} becomes an interval only where the program writes
-\code{interval(\var{d})}. \code{interval~x~=~0.5;}, \code{x~=~0.5;},
-\code{x~<~0.5} and \code{min(x,~0.5)} do not compile, and
-\code{interval~r~=~sqrt(2.0);} neither, where \code{sqrt(2.0)} is the
-\code{double} of the C library that GAOL~4 turned silently into a point
-interval: \code{interval(sqrt(2.0))} writes that point. The operators of an
-interval and a \code{double} (\code{x~+~0.5}, \code{x~*=~2.0}) and
-\code{set\_contains(\var{d})} take the \code{double} as it is. GAOL~4 converted
-a \code{double} to an interval wherever one was expected.\newinvfive
-\cindex{constructor!explicit}%
+\begin{deffun}{interval}{textToInterval}{(const std::string\& \var{sl}, const std::string\& \var{sr})}
+  Returns the interval whose left bound is the one of the interval the
+  string \var{sl} writes, and whose right bound is the one of the interval
+  \var{sr} writes, and the empty set when the first is above the second.
+  \begin{example}
+ @rem^// x=[-4,4]~
+ interval x = textToInterval("[-5,4]+1","[4,6]-[2,3]");
+  \end{example}
+  It is in the namespace \code{gaol}, and throws \code{input\_format\_error}
+  as \code{textToInterval(\var{s})} does. It takes the place of the
+  constructor from two strings of GAOL~4, which kept the bounds
+  \itv{2}{1} of \code{interval("2",~"1")}: \code{is\_empty()} was true, but
+  its sum with \itv{0}{1} was \itv{2}{2}.\newinvfive
+\end{deffun}
 
 \paragraph{Caution.} you have to be very careful when creating an interval
 from floating-point constants. Remember that a rational number that is
@@ -1376,16 +1367,13 @@ x = textToInterval("[-inf, 123]");
 GAOL~4 assigned the string itself, \code{x~=~"[-inf,~123]"}, which GAOL v5
 refuses, having no constructor from one string;\newinvfive
 
-\item by using a \code{double}, made an interval explicitly, the
-  constructors of \code{interval} being explicit (\pxref{sec:constructors}):
+\item by using a \code{double}:
 
 \begin{example}
 interval x;
-x = interval(1234.5); @rem^// Now, x is @itv^1234.5~^1234.5~~
-x = interval(GAOL_INFINITY); @rem^// Now, x is empty~
+x = 1234.5; @rem^// Now, x is @itv^1234.5~^1234.5~~
+x = GAOL_INFINITY; @rem^// Now, x is empty~
 \end{example}
-GAOL~4 assigned the \code{double} itself, \code{x~=~1234.5}, which GAOL v5
-refuses;\newinvfive
 \end{itemize}
 
 \noindent
@@ -3261,7 +3249,7 @@ as IEEE 1788-2015 has it (12.11.4), while \code{"3.56?1*2"} is
 
 \paragraph{Functions.} A \NT{name} is the name of a function of GAOL, with
 its arguments, whatever the case of its letters:
-\code{gaol::textToInterval()}, the constructor from two strings and
+\code{gaol::textToInterval()}, from one string or from two, and
 \code{operator>{}>} read the names of GAOL, and
 \code{gaol\_ieee1788::textToInterval()} those of IEEE 1788-2015
 (\pxref{sec:ieee1788-text}), as each namespace has its own
@@ -3324,7 +3312,7 @@ where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive
 \begin{example}
 interval x = textToInterval("[4, 6*7]");
 interval y = textToInterval("[-inf, dmax]");
-interval z("[3.14,3.15]/8", "[3.14,3.15]/7");
+interval z = textToInterval("[3.14,3.15]/8", "[3.14,3.15]/7");
 interval t = textToInterval("[3.14,3.15]/[7,8]");
 cout << textToInterval("[1,]") << ' ' << textToInterval("[ ]") << ' '
      << textToInterval("[Entire]") << endl;
@@ -4229,8 +4217,8 @@ The class offers the following accessors:
 The \code{input\_format\_error} exception is thrown whenever one attempts to
 create an interval from an invalid string. This situation may occur when
 reading an interval from a stream with the \code{>{}>} operator, or when
-reading a string with \code{gaol::textToInterval()} or the constructor from
-two strings.
+reading a string with \code{gaol::textToInterval()}, from one string or from
+two.
 
 This class, as all GAOL exceptions, derives from \code{gaol\_exception}
 (\pxref{sec:gaol_exception}). Its constructors have the same format
@@ -4641,9 +4629,10 @@ change with its reasons and its measures.
   \code{input\_format\_error} as it did; \code{x~=~"[1,~2]"} becomes
   \code{x~=~textToInterval("[1,~2]")}, and \code{x~+~"0.1"} becomes
   \code{x~+~textToInterval("0.1")} (\pxref{sec:constructors}). The constructor
-  from two strings stays.
-  \code{interval(0)}, which the constructor from one string made ambiguous,
-  compiles.
+  from two strings is gone too: \code{interval("0.1",~"0.3")} becomes
+  \code{textToInterval("0.1",~"0.3")}, which gives the empty set for bounds in
+  the wrong order. \code{interval(0)} and \code{interval(0,~0)}, which these
+  constructors made ambiguous, compile.
 \end{itemize}
 
 \section{Results that change}

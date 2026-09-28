@@ -495,32 +495,6 @@ namespace gaol_core {
   }
 
 
-  interval::interval(const char *const sl, const char *const sr)
-  {
-    interval tmpl, tmpr;
-    if (!gaol::parse_interval(sl,tmpl)) {
-      std::string err_msg("Syntax error in left bound initialization: ");
-      err_msg += sl;
-      *this = interval::emptyset();
-      GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error,err_msg.c_str());
-    }
-    if (!gaol::parse_interval(sr,tmpr)) {
-	  std::string err_msg("Syntax error in right bound initialization: ");
-      err_msg += sr;
-      *this = interval::emptyset();
-      GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error,err_msg.c_str());
-    }
-#if USING_SSE2_INSTRUCTIONS
-    xmm2d tmp = {tmpl.left_internal(), tmpr.right_internal()};
-    xmmbounds = _mm_load_pd(tmp);
-#else
-    lb_ = tmpl.lb_;
-    rb_ = tmpr.rb_;
-#endif
-  }
-
   void interval::format(interval_format::format_t f)
   {
     output = f;
@@ -3287,6 +3261,29 @@ namespace gaol {
       gaol_ERROR(input_format_error,err_msg.c_str());
     }
     return tmp;
+  }
+
+  // The constructor interval(const char*, const char*) of GAOL 4, as a
+  // function (GAOL v5): the left bound of the interval sl writes and the
+  // right bound of the one sr writes
+  interval textToInterval(const std::string& sl, const std::string& sr)
+  {
+    interval tmpl, tmpr;
+    if (!parse_interval(sl.c_str(),tmpl)) {
+      std::string err_msg("Syntax error in left bound initialization: ");
+      err_msg += sl;
+      GAOL_ERRNO = -1;
+      gaol_ERROR(input_format_error,err_msg.c_str());
+      return interval::emptyset();
+    }
+    if (!parse_interval(sr.c_str(),tmpr)) {
+      std::string err_msg("Syntax error in right bound initialization: ");
+      err_msg += sr;
+      GAOL_ERRNO = -1;
+      gaol_ERROR(input_format_error,err_msg.c_str());
+      return interval::emptyset();
+    }
+    return interval(tmpl.left(), tmpr.right());
   }
 
 } // namespace gaol

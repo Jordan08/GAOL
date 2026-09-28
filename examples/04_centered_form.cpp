@@ -151,7 +151,7 @@ int main()
   const interval centered = centered_form(f, X);
   const interval both = natural & centered;  // two enclosures: so is their intersection
   // The range of f on X, from mpmath: f(0) = 0 and the maximum, at x = 0.8603...
-  const interval range = interval(0.0) | textToInterval("0.56109633819104506754040375316122670886");
+  const interval range = interval(0.0) | interval(0.56109633819104506754040375316122670886);
   std::cout << "   natural   f(X)                  = " << natural << "\n"
             << "   f'(X), computed by dual.h       = " << dfX << "\n"
             << "   centered  f(m) + f'(X) (X - m)  = " << centered << "\n"
@@ -167,7 +167,7 @@ int main()
                                              " 0.9387912809451863580581407913019148259958]")) &&
           textToInterval("[-0.0612088, 0.938792]").set_contains(centered),
         "the centered form is Codac's [-0.0612088, 0.938792]");
-  check(dfX.set_contains(textToInterval("-0.30116867893975678925")), "f'(X) holds f'(1) = cos 1 - sin 1");
+  check(dfX.set_contains(interval(-0.30116867893975678925)), "f'(X) holds f'(1) = cos 1 - sin 1");
   std::cout << "   each holds the range and f at 1001 points of X; Codac prints [-0.0612088, 0.938792]\n";
 
   // -------------------------------------------------------------------------
@@ -180,9 +180,9 @@ int main()
   // f' undefined somewhere on X would give it. The bounds are evaluated as
   // point intervals, so that their rounding errors are enclosed; the hull of
   // the two would cover a decreasing f (f'(X) < 0.0) as well.
-  const bool increasing = !dfX2.is_empty() && dfX2 > interval(0.0);
+  const bool increasing = !dfX2.is_empty() && dfX2 > 0.0;
   const interval at_bounds = f(interval(X2.left())) | f(interval(X2.right()));
-  const interval f08 = textToInterval("0.55736536747773233673659998531385994088");  // f(0.8), mpmath
+  const interval f08 = interval(0.55736536747773233673659998531385994088);  // f(0.8), mpmath
   std::cout << "   X = [0, 0.8]: f'(X) = " << dfX2 << ", above 0: f increases on X\n"
             << "     natural            " << f(X2) << "\n"
             << "     centered           " << centered_form(f, X2) << "\n"
@@ -264,8 +264,8 @@ int main()
     if (i > 0) {
       // Dividing r by 10 divides a linear excess by 10, a quadratic one by 100
       const interval qn = previous_natural / en, qc = previous_centered / ec;
-      check(interval(5.0) < qn && qn < interval(20.0), "the natural excess is linear in r");
-      check(interval(50.0) < qc && qc < interval(200.0), "the centered excess is quadratic in r");
+      check(5.0 < qn && qn < 20.0, "the natural excess is linear in r");
+      check(50.0 < qc && qc < 200.0, "the centered excess is quadratic in r");
       natural_ratio[i] = qn.midpoint();
       centered_ratio[i] = qc.midpoint();
     }

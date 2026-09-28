@@ -52,7 +52,7 @@ public:
 	TEST_EMPTY(acos(interval(3,5)));
 	TEST_EQ(acos(interval(-1.5,-.5)),interval(2.09439510239319549231,3.14159265358979323846));
 	TEST_EQ(acos(interval(-0.5,0.5)),interval(1.04719755119659774615,2.09439510239319549231));
-	TEST_EQ(acos(textToInterval("0.1")),textToInterval("1.47062890563333682289"));
+	TEST_EQ(acos(interval(0.1)),interval(1.47062890563333682289));
   }
   void test_asin() {
 	TEST_EMPTY(asin(interval::emptyset()));
@@ -60,12 +60,12 @@ public:
 	TEST_EMPTY(asin(interval(3,5)));
 	TEST_EQ(asin(interval(-1.5,-.5)),interval(-1.57079632679489661923,-0.52359877559829887308));
 	TEST_EQ(asin(interval(-0.5,0.5)),interval(-0.52359877559829887308,0.52359877559829887308));
-	TEST_EQ(asin(textToInterval("0.1")),textToInterval("0.1001674211615"));
+	TEST_EQ(asin(interval(0.1)),interval(0.1001674211615));
   }
   void test_atan() {
 	TEST_EMPTY(atan(interval::emptyset()));
-	TEST_EQ(atan(max_inf),textToInterval("1.57079632679489661923"));
- 	TEST_EQ(atan(m_inf_m_max),textToInterval("-1.57079632679489661923"));
+	TEST_EQ(atan(max_inf),interval(1.57079632679489661923));
+ 	TEST_EQ(atan(m_inf_m_max),interval(-1.57079632679489661923));
 	TEST_EQ(atan(interval(-10,3)),interval(-1.47112767430373459185,1.24904577239825442583));
   }
 
@@ -101,7 +101,7 @@ public:
 	TEST_CONT(interval(700,GAOL_INFINITY),acosh(max_inf));
 	TEST_EQ(acosh(interval(0,1)),interval::zero());
 	TEST_EQ(acosh(interval(2,4)),interval(1.31695789692481670863,2.06343706889556054673));
-	TEST_EQ(acosh(textToInterval("100.1")),textToInterval("5.29929191587240895417"));
+	TEST_EQ(acosh(interval(100.1)),interval(5.29929191587240895417));
 
   }
   void test_asinh() {

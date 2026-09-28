@@ -188,7 +188,7 @@ int main()
     { "interval(a,b)", [](const interval&, const interval&) { return S(interval(0x1.999999999999ap-4, 0x1.5555555555555p-2)); } },
     { "interval(a)", [](const interval&, const interval&) { return S(interval(0.1)); } },
     { "textToInterval(const std::string&)", [](const interval&, const interval&) { return S(textToInterval("[0.1, 1/3]")); } },
-    { "interval(const char*, const char*)", [](const interval&, const interval&) { return S(interval("0.1", "0.3")); } },
+    { "textToInterval(sl, sr)", [](const interval&, const interval&) { return S(textToInterval("0.1", "0.3")); } },
     { "textToInterval(\"sin(1)+exp(0.1)\")", [](const interval&, const interval&) { return S(textToInterval("sin(1)+exp(0.1)")); } },
     { "textToInterval(\"3.56?1e-2\")", [](const interval&, const interval&) { return S(textToInterval("3.56?1e-2")); } },
     { "textToInterval(\"[-0x1.00000000000001p0, 2/3]\")", [](const interval&, const interval&) { return S(textToInterval("[-0x1.00000000000001p0, 2/3]")); } },

@@ -243,9 +243,9 @@ namespace {
     // f is written once, for intervals and for the dual numbers of its
     // derivative. C-XSC writes deriv(x) by hand.
     const auto f = [](const auto& x) { return sqrt(x) + (x + 1.0) * cos(x); };
-    // The root, by mpmath's findroot with 60 digits; textToInterval("...")
-    // encloses the decimal number, which no double is
-    const interval root = textToInterval("2.059045253415143788680636155343254522623");
+    // The root, by mpmath's findroot with 60 digits; interval(d) holds one of
+    // the two doubles around it, which an enclosure of the root contains
+    const interval root = interval(2.059045253415143788680636155343254522623);
 
     interval X(2.0, 3.0);
     std::cout << "(a) sqrt(x) + (x + 1) cos(x) = 0 on " << X << ", C-XSC's inewton.cpp\n";
@@ -261,7 +261,7 @@ namespace {
     // set_contains().
     const interval p = f(interval(X.left())) * f(interval(X.right()));
     const interval D = derivative(f, X);
-    const bool sign_change = !p.is_empty() && p < interval(0.0);
+    const bool sign_change = !p.is_empty() && p < 0.0;
     const bool monotonic = !D.set_contains(0.0);
     std::cout << "    f(2) f(3) < 0: X holds a root (C-XSC's test)\n"
               << "    F'(X) = " << D << " does not hold 0: only one\n";
@@ -340,9 +340,9 @@ namespace {
     // The roots, by mpmath (a sign change on a grid of 20000 points, then
     // findroot with 60 digits); f is odd, and the negation of an interval
     // is exact
-    const interval r1 = textToInterval("2.852341894450091648325219940702758448067");
-    const interval r2 = textToInterval("7.068174358095817395977019713295141723188");
-    const interval r3 = textToInterval("8.423203932360491733611069596154942218252");
+    const interval r1 = interval(2.852341894450091648325219940702758448067);
+    const interval r2 = interval(7.068174358095817395977019713295141723188);
+    const interval r3 = interval(8.423203932360491733611069596154942218252);
     report(found, { -r3, -r2, -r1, interval(0.0), r1, r2, r3 }, "(b)");
     check(proved == 7 && found.size() == 7, "(b) did not prove its 7 roots");
   }
@@ -366,7 +366,7 @@ namespace {
     int examined = 0;
     const std::vector<Root> found = all_roots(f, X, 1e-12, examined);
     std::cout << "    worklist: " << examined << " intervals examined, both roots proved, none elsewhere:\n";
-    const interval sqrt2 = textToInterval("1.414213562373095048801688724209698078570");   // mpmath
+    const interval sqrt2 = interval(1.414213562373095048801688724209698078570);   // mpmath
     report(found, { -sqrt2, sqrt2 }, "(c)");
     check(found.size() == 2 && found[0].unique && found[1].unique, "(c) did not prove its 2 roots");
   }

@@ -295,8 +295,6 @@ def cpp_body(n, lib):
         return f"return {cpp(x, lib)} + {cpp(y, lib)};"
     if n.op == "assign":  # x = d
         x, d = a
-        if lib == "gaol":  # the constructors of GAOL v5 are explicit: no assignment of a double
-            return f"{t} r = {cpp(x, lib)}; r = {t}({cpp_double(d)}); return r;"
         if MIXED[lib]:
             return f"{t} r = {cpp(x, lib)}; r = {cpp_double(d)}; return r;"
         return f"return II({cpp_double(d)}, {cpp_double(d)});"
@@ -546,7 +544,7 @@ case(iv(2, 1), EMPTYSET, "l > u: the constructor fails")
 case(iv(NAN), EMPTYSET)
 case(iv(NAN, 1), EMPTYSET)
 case(iv(1, NAN), EMPTYSET)
-case(op("assign", I12, INF), EMPTYSET, "libieeep1788 has no assignment of a double: II(d, d); nor GAOL v5, whose constructors are explicit: interval(d)")
+case(op("assign", I12, INF), EMPTYSET, "libieeep1788 has no assignment of a double: II(d, d)")
 case(op("assign", I12, -INF), EMPTYSET)
 case(iv(-INF, 1), X("-inf", 1))
 case(iv(1, INF), X(1, "inf"))

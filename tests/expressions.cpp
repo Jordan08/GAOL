@@ -142,8 +142,8 @@ namespace
     same("[ 1 , 2 ]", interval(1.0, 2.0));
     // the bounds given apart, as tests/numbers.cpp writes them
     check("expression: the bounds given apart",
-          interval("[0.1,0.1]", "[0.2,0.2]").left() <= 0.1
-            && interval("[0.1,0.1]", "[0.2,0.2]").right() >= 0.2);
+          textToInterval("[0.1,0.1]", "[0.2,0.2]").left() <= 0.1
+            && textToInterval("[0.1,0.1]", "[0.2,0.2]").right() >= 0.2);
   }
 
   void operators()
@@ -290,6 +290,12 @@ namespace
           textToInterval("[1,2]+nth_root([8,27],3)").set_eq(interval(1.0, 2.0) + nth_root(interval(8.0, 27.0), 3)));
     check("gaol::textToInterval(sl, sr) takes the left bound of sl and the right bound of sr",
           textToInterval("[-5,4]+1", "[4,6]-[2,3]").set_eq(interval(-4.0, 4.0)));
+    // Bounds in the wrong order give the empty set, which stays empty: the
+    // constructor from two strings kept the bounds [2, 1], whose sum with
+    // [0, 1] was [2, 2] (review #6 of examples/examples.md; GAOL v5)
+    check("gaol::textToInterval(\"2\", \"1\") is the empty set, which stays empty",
+          textToInterval("2", "1").is_empty() && (textToInterval("2", "1") + interval(0.0, 1.0)).is_empty(),
+          [] { return hex(textToInterval("2", "1") + interval(0.0, 1.0)); });
     bool threw = false;
     try {
       const interval z = textToInterval("pown([2,5],5)");

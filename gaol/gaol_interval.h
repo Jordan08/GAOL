@@ -85,12 +85,6 @@ namespace gaol_core {
   public:
     //! Creates [-oo, +oo]
     interval(void);
-    /*
-      The constructors from numbers and from two strings are explicit (GAOL
-      v5): a double becomes an interval only where the program writes
-      interval(d), and x = 0.1, x < 0.1 or min(x, 0.1) do not compile. GAOL 4
-      took the double for a point interval without saying so.
-    */
     /*!
       \brief Creates [a, b], and the empty set when [a, b] is not an interval
 
@@ -99,29 +93,24 @@ namespace gaol_core {
       has no interval [+oo, +oo] nor [-oo, -oo] (10.5.8), and its constructor
       gives the empty set there (12.12.7).
     */
-    explicit interval(double a, double b);
+    interval(double a, double b);
     //! Creates [a, a], and the empty set for an infinite a or a NaN
-    explicit interval(double a);
+    interval(double a);
+    //! Creates a copy of I
     interval(const interval& I);
 #if USING_SSE2_INSTRUCTIONS
-    explicit interval(const __m128d& xmm);
+    interval(const __m128d& xmm);
 #endif // USING_SSE2_INSTRUCTIONS
 
     /*
-      No constructor from one string (GAOL v5): textToInterval() reads it,
-      textToInterval("0.1") being [0.09999,0.10001]. interval(const char*)
-      converted any const char* implicitly: interval(0) was ambiguous, and
-      x + nullptr compiled and crashed.
+      No constructor from strings (GAOL v5): textToInterval() reads them,
+      textToInterval("0.1") being [0.09999,0.10001], and textToInterval(sl,
+      sr) takes the left bound of sl and the right bound of sr, as the
+      constructor from two strings did. interval(const char*) converted any
+      const char* implicitly: interval(0) was ambiguous, and x + nullptr
+      compiled and crashed; interval(const char*, const char*) made
+      interval(0, 0) ambiguous, 0 being a null pointer too.
     */
-    /*!
-      \brief Creation of an interval from two C strings
-
-      Allows creating intervals by providing a std::string for each bound. Each std::string
-      is evaluated using interval arithmetic; the left (resp. right) bound of the first
-      (resp. second) std::string is used to represent the left (resp. right) bound of the
-      interval constructed.
-      */
-    explicit interval(const char *const sl, const char *const sr);
     interval& operator+=(double d);
     interval& operator-=(double d);
     interval& operator*=(double d);
@@ -1408,12 +1397,10 @@ namespace gaol {
   GAOL_NODISCARD extern __GAOL_PUBLIC__ interval textToInterval(const std::string& s);
   /*!
     textToInterval(sl, sr): the left bound of the interval sl writes and the
-    right bound of the one sr writes, as interval(const char*, const char*)
+    right bound of the one sr writes, which the constructor from two strings
+    of GAOL 4 gave; a string that is no interval throws input_format_error
   */
-  GAOL_NODISCARD inline interval textToInterval(const std::string& sl, const std::string& sr)
-  {
-    return interval(sl.c_str(), sr.c_str());
-  }
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ interval textToInterval(const std::string& sl, const std::string& sr);
 
 } // namespace gaol
 

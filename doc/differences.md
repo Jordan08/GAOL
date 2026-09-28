@@ -755,9 +755,9 @@ where it comes from.
   1788-2015 under their names.** The lexer takes a name as a whole and looks it
   up in a table of names, rather than in a token of the grammar for each of the
   23 functions GAOL read (`gaol/gaol_interval_parser.ypp`).
-  - **The names of GAOL.** `gaol::textToInterval()`, which is new, `operator>>`
-    and the two-string constructor, with its form `textToInterval(sl, sr)`,
-    read all the functions of GAOL on intervals: `exp10`, `log10`, `expm1`,
+  - **The names of GAOL.** `gaol::textToInterval()`, which is new, from one
+    string or from two, and `operator>>` read all the functions of GAOL on
+    intervals: `exp10`, `log10`, `expm1`,
     `log1p`, `hypot`, `rsqrt`, `sinpi`, `atan2pi`, `sqr`, `abs`, `min`, `max`,
     `floor`, `integer`, `inverse`, `fma` and the others, which GAOL did not
     read.
@@ -859,20 +859,18 @@ where it comes from.
   interval: `interval x("0.1")` becomes `interval x = textToInterval("0.1")`.
   The constructor took any `const char*`, and converted it implicitly:
   `interval(0)` was ambiguous, 0 being a null pointer as well as a number, and
-  `x + nullptr` compiled, and crashed. The constructor from two strings,
-  `interval("0.1", "0.3")`, stays, and so does `textToInterval(sl, sr)`.
-  `tests/numbers.cpp` checks that neither a `const char*` nor `nullptr`
-  converts to an interval, and that `interval(0)` is [0].
-- **The constructors of `interval` are explicit**: from a `double`, from two
-  `double`s and from two strings. A `double` becomes an interval only where
-  the program writes `interval(d)`: `interval x = 0.5;`, `x = 0.5;`,
-  `x < 0.5`, `min(x, 0.5)` and `interval r = sqrt(2.0);` do not compile,
-  where GAOL 4 took the double for a point interval without saying so, the
-  `sqrt(2.0)` of the C library among them. The operators of an interval and
-  a `double` (`x + 0.5`, `x *= 2.0`) and `set_contains(d)` still take the
-  double. `tests/numbers.cpp` checks that a `double` and an `int` do not
-  convert to an interval; the special cases of `doc/compare` give the same
-  results with GAOL v5.
+  `x + nullptr` compiled, and crashed. `tests/numbers.cpp` checks that
+  neither a `const char*` nor `nullptr` converts to an interval, and that
+  `interval(0)` is [0].
+- **The constructor from two strings, `interval(const char*, const char*)`,
+  is gone** too: `interval("0.1", "0.3")` becomes
+  `textToInterval("0.1", "0.3")`, which takes the left bound of the first
+  string and the right bound of the second, and gives the empty set for
+  bounds in the wrong order. The constructor kept the bounds [2, 1] of
+  `interval("2", "1")`, which `is_empty()` called empty, but whose sum with
+  [0, 1] was [2, 2] (review #6 of `examples/examples.md`, checked by
+  `tests/expressions.cpp`). The literal 0 being a null pointer too, it made
+  `interval(0, 0)` ambiguous, which now compiles.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **The three builds agree** (see [The three builds](three-builds.md)).

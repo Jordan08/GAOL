@@ -132,13 +132,10 @@ namespace
           && min(x, y).set_eq(gaol::min(x, y)) && hypot(x, y).set_eq(gaol::hypot(x, y))
           && sinPi(x).set_eq(gaol::sinpi(x)),
           [&] { return hex(sin(x)); });
-    // A number is made a point interval explicitly, the constructors of
-    // interval being explicit (GAOL v5): min(y, 1.0) no longer compiles
-    check("min, max, atan2 and hypot of an interval and a point interval are GAOL's",
-          min(y, interval(1.0)).set_eq(gaol::min(y, interval(1.0))) && max(interval(0.0), y).set_eq(gaol::max(interval(0.0), y))
-          && atan2(y, interval(1.0)).set_eq(gaol::atan2(y, interval(1.0)))
-          && hypot(interval(3.0), x).set_eq(gaol::hypot(interval(3.0), x)),
-          [&] { return hex(min(y, interval(1.0))); });
+    check("min, max, atan2 and hypot take an interval and a number",
+          min(y, 1.0).set_eq(gaol::min(y, interval(1.0))) && max(0.0, y).set_eq(gaol::max(interval(0.0), y))
+          && atan2(y, 1.0).set_eq(gaol::atan2(y, interval(1.0))) && hypot(3.0, x).set_eq(gaol::hypot(interval(3.0), x)),
+          [&] { return hex(min(y, 1.0)); });
     check("the qualified names take intervals",
           gaol_ieee1788::sin(x).set_eq(gaol::sin(x)) && gaol_ieee1788::min(x, y).set_eq(gaol::min(x, y)),
           [&] { return hex(gaol_ieee1788::sin(x)); });

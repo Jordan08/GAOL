@@ -338,13 +338,13 @@ int main()
   std::cout << "\n";
 
   // The six-hump camel: f* computed by mpmath with 60 digits at the zero of
-  // the gradient that findroot finds from (0.0898, -0.7126);
-  // textToInterval("...") encloses the decimal number, which a double could
-  // not. Its maximum is f(3, 2) = 162.9.
+  // the gradient that findroot finds from (0.0898, -0.7126); interval(d)
+  // holds one of the two doubles around it, which an enclosure of f*
+  // contains. Its maximum is f(3, 2) = 162.9.
   ok &= compare(
     "Six-hump camel", [](const auto& x, const auto& y) { return six_hump_camel(x, y); },
     Box{ interval(-3.0, 3.0), interval(-2.0, 2.0) },
-    textToInterval("-1.03162845348987735041636543714940299235123243853811645053101"),
+    interval(-1.03162845348987735041636543714940299235123243853811645053101),
     textToInterval("[-1.03162845348987735041636543714940299235123243853811645053101, 162.9]"));
 
   gaol::cleanup();

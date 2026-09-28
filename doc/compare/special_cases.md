@@ -242,7 +242,7 @@ From tests/numbers.cpp (constructors).
 | 008 | `interval(NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, NaN] ✗ |  |
 | 009 | `interval(NaN, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, NaN] ✗ |  |
 | 010 | `interval(1, NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, 1] ✗ |  |
-| 011 | `x = [1, 2]; x = +∞` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | libieeep1788 has no assignment of a double: II(d, d); nor GAOL v5, whose constructors are explicit: interval(d) |
+| 011 | `x = [1, 2]; x = +∞` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | libieeep1788 has no assignment of a double: II(d, d) |
 | 012 | `x = [1, 2]; x = −∞` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ |  |
 | 013 | `[−∞, 1]` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ |  |
 | 014 | `[1, +∞]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |

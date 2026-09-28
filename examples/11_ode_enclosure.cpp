@@ -424,13 +424,13 @@ int main()
     check(found && P.set_contains(X0) && P.set_contains(X0 + tau * f1(P)), "Picard's test holds on the first step");
     // The true solutions over [0, h] from [0.9, 1.1]: the lowest is
     // 0.9 / (1 + 0.09) = 0.825688..., the highest 1.1 at t = 0
-    check(P.set_contains(textToInterval("0.8256880733944954128440366972477064220183") | X0),
+    check(P.set_contains(interval(0.8256880733944954128440366972477064220183) | X0),
           "the a priori enclosure holds the solutions over [0, 0.1]");
   }
 
   // The image of [0.9, 1.1] by the exact solution at t = 2: x0 / (1 + 2 x0)
   // increases with x0, and the image is [0.9 / 2.8, 1.1 / 3.2] = [9/28, 11/32]
-  const interval exact1 = textToInterval("0.3214285714285714285714285714285714285714") | interval(0.34375);
+  const interval exact1 = interval(0.3214285714285714285714285714285714285714) | interval(0.34375);
   std::cout << "   x(2) by Taylor steps in the mean-value form, remainder bounded over P:\n"
             << "     h      order  pieces  x(2) in                         width / exact width\n";
   struct Run {
@@ -464,7 +464,7 @@ int main()
   // of the mean-value form, in the square of the width of X (see step())
   check(width_of(runs[2].X) < 1.01 * width_of(runs[3].X) && width_of(runs[3].X) < 1.01 * width_of(runs[2].X),
         "at h = 0.01, orders 1 and 2 are within 1% of each other");
-  check(width_of(runs[4].X) < width_of(runs[3].X) && ratio(runs[4].X, exact1) < interval(1.01),
+  check(width_of(runs[4].X) < width_of(runs[3].X) && ratio(runs[4].X, exact1) < 1.01,
         "X0 cut into 10 pieces gives a width within 1% of the exact one");
   std::cout << "   each holds the exact image; order 2 gains at h = 0.1, where the remainder\n"
             << "   dominates; at h = 0.01 the excess comes from the width of X: 10 pieces remove it\n";
@@ -475,12 +475,12 @@ int main()
   // initial box, x0(0) e^-10 and 2 atan(tan(x1(0) / 2) e^-10), by mpmath.
   // Both increase with the initial value: the exact image of the box is the
   // box of the images of 0.9 and 1.1.
-  const interval x0_10[3] = { textToInterval("0.00004085993678623636638203236400449554921413"),
-                              textToInterval("0.00004539992976248485153559151556055061023792"),
-                              textToInterval("0.00004993992273873333668915066711660567126171") };
-  const interval x1_10[3] = { textToInterval("0.00004386133209377857577275105566580286115045"),
-                              textToInterval("0.00004960418932578612835305135825821192810679"),
-                              textToInterval("0.00005566986722621193905245902864968715822707") };
+  const interval x0_10[3] = { interval(0.00004085993678623636638203236400449554921413),
+                              interval(0.00004539992976248485153559151556055061023792),
+                              interval(0.00004993992273873333668915066711660567126171) };
+  const interval x1_10[3] = { interval(0.00004386133209377857577275105566580286115045),
+                              interval(0.00004960418932578612835305135825821192810679),
+                              interval(0.00005566986722621193905245902864968715822707) };
   const Box exact2{ x0_10[0] | x0_10[2], x1_10[0] | x1_10[2] };
   std::cout << "   h     form        width of x0(10)  width of x1(10)  width / exact width\n";
   const int steps2[2] = { 50, 1000 };
@@ -519,12 +519,12 @@ int main()
   std::cout << "   h = 0.01, mean-value form: x(10) in " << final_box[1][1] << "\n"
             << "   exact image of the initial box:     " << exact2 << "\n";
   for (int i = 0; i < 2; ++i) {
-    check(ratio(final_box[i][0][0], exact2[0]) > interval(1e6) && ratio(final_box[i][0][1], exact2[1]) > interval(1e3),
+    check(ratio(final_box[i][0][0], exact2[0]) > 1e6 && ratio(final_box[i][0][1], exact2[1]) > 1e3,
           "the natural form explodes, whatever the step");
   }
-  check(ratio(final_box[1][1][0], exact2[0]) < interval(1.2) && ratio(final_box[1][1][1], exact2[1]) < interval(1.2),
+  check(ratio(final_box[1][1][0], exact2[0]) < 1.2 && ratio(final_box[1][1][1], exact2[1]) < 1.2,
         "the mean-value form with h = 0.01 is within 20% of the exact widths");
-  check(ratio(final_box[0][1][0], exact2[0]) < interval(5.0) && ratio(final_box[0][1][1], exact2[1]) < interval(5.0),
+  check(ratio(final_box[0][1][0], exact2[0]) < 5.0 && ratio(final_box[0][1][1], exact2[1]) < 5.0,
         "the mean-value form with h = 0.2 is within 5 times the exact widths");
   // The cause, on the first step with h = 0.01 and on x0 alone: the width w0
   // of X0 is multiplied by 1 + h in the natural form and by 1 - h in the
@@ -546,7 +546,7 @@ int main()
   std::cout << "3. The integral of exp(-x^2) over [0, 1] by interval Riemann sums\n";
   interval::precision(10);
   // sqrt(pi) / 2 erf(1), by mpmath (quad gives the same digits)
-  const interval integral = textToInterval("0.746824132812427025399467436131853005354499687");
+  const interval integral = interval(0.746824132812427025399467436131853005354499687);
   std::cout << "   the integral, sqrt(pi) / 2 erf(1), is in " << integral << "\n";
   interval previous;
   for (int n : { 10, 100, 1000 }) {

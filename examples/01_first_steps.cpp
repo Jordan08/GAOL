@@ -14,15 +14,14 @@
  * can prove things about numbers it never holds exactly, 1/10 or pi. The
  * example shows the few rules of GAOL that surprise a newcomer: a decimal
  * constant is read from a string, textToInterval("0.1"), the double 0.1 not
- * being 1/10; interval(0, 0) is ambiguous where interval(0.0, 0.0) is not;
- * interval(2, 1) is the empty set; x < y means "for every point of x and
- * every point of y", and there is no ==; mid() is an interval where
+ * being 1/10; interval(2, 1) is the empty set; x < y means "for every point
+ * of x and every point of y", and there is no ==; mid() is an interval where
  * midpoint() is a double. Each line of the output says what it proves, and
- * the program checks it: the enclosures contain the values mpmath computed to
- * 45 digits, and the set relations are the ones stated. It follows IBEX's
- * examples/doc-arithmetic.cpp (the constructors and constants of Interval),
- * the page on the Interval class of Codac's manual
- * (doc/manual/manual/intervals/src.cpp, whose example of sin, exp and
+ * the program checks it: the enclosures contain the doubles nearest the
+ * values mpmath computed to 45 digits, and the set relations are the ones
+ * stated. It follows IBEX's examples/doc-arithmetic.cpp (the constructors
+ * and constants of Interval), the page on the Interval class of Codac's
+ * manual (doc/manual/manual/intervals/src.cpp, whose example of sin, exp and
  * intersection it repeats) and the chapter "An overview of GAOL" of GAOL's
  * manual (manual/v5/gaol.tex).
  *
@@ -50,15 +49,13 @@ namespace {
   const double inf = std::numeric_limits<double>::infinity();
 
   /* Reference values, computed with mpmath at 60 digits and cut at 45.
-     textToInterval() reads a string into the two doubles around the number
-     it writes; each string being within 1e-44 of the real number, it has the
-     same two doubles around it, and an enclosure of the real number contains
-     them. */
-  const interval pi_ref = textToInterval("3.14159265358979323846264338327950288419716940");
-  const interval half_pi_ref = textToInterval("1.57079632679489661923132169163975144209858470");
-  const interval e_ref = textToInterval("2.71828182845904523536028747135266249775724709");
-  const interval sqrt2_ref = textToInterval("1.41421356237309504880168872420969807856967188");
-  const interval exp_half_pi_ref = textToInterval("4.81047738096535165547303566670383312639017087");
+     interval(d) holds the double nearest the number, one of the two doubles
+     around it, which an enclosure of the number contains. */
+  const interval pi_ref = interval(3.14159265358979323846264338327950288419716940);
+  const interval half_pi_ref = interval(1.57079632679489661923132169163975144209858470);
+  const interval e_ref = interval(2.71828182845904523536028747135266249775724709);
+  const interval sqrt2_ref = interval(1.41421356237309504880168872420969807856967188);
+  const interval exp_half_pi_ref = interval(4.81047738096535165547303566670383312639017087);
 
   int failures = 0;
 
@@ -100,7 +97,7 @@ namespace {
      contradict it. */
   bool contains_ratio(const interval& x, double p, double q)
   {
-    return !x.is_empty() && interval(x.left()) * q <= interval(p) && interval(x.right()) * q >= interval(p);
+    return !x.is_empty() && interval(x.left()) * q <= p && interval(x.right()) * q >= p;
   }
 
 } // namespace
@@ -113,10 +110,9 @@ int main()
   std::cout << "1. Building intervals\n";
 
   // From two bounds and from one double (a point interval); text is for
-  // what doubles cannot write, as 0.1 below. The literal 0 is both a number
-  // and a null pointer, which the constructor from two strings takes too:
-  // interval(0, 0) does not compile, being ambiguous; interval(0.0, 0.0) and
-  // interval(0) do.
+  // what doubles cannot write, as 0.1 below. interval(0, 0) and interval(0)
+  // compile: the literal 0 is an int, the constructors taking doubles only
+  // (GAOL v5).
   show("interval(1, 2)", interval(1, 2), "the real numbers from 1 to 2",
        interval(1, 2).left() == 1.0 && interval(1, 2).right() == 2.0);
   show("interval(2.0)", interval(2.0), "a point interval: one double", interval(2.0).is_a_double());
@@ -147,8 +143,8 @@ int main()
   show("interval::pi()", interval::pi(), "contains pi", interval::pi().set_contains(pi_ref));
   show("interval::emptyset()", interval::emptyset(), "no real number", interval::emptyset().is_empty());
   show("interval()", interval(), "every real number", interval().is_entire());
-  show("interval(0.0, 0.0)", interval(0.0, 0.0), "zero; interval(0, 0) would not compile",
-       interval(0.0, 0.0).set_eq(interval::zero()));
+  show("interval(0, 0)", interval(0, 0), "zero, the int 0 becoming the double 0.0",
+       interval(0, 0).set_eq(interval::zero()));
 
   // ------------------------------------------------------------------------
   std::cout << "2. Arithmetic, doubles mixed in: x = [1, 2], y = [-1, 2]\n";
@@ -181,12 +177,11 @@ int main()
   show("sqrt(interval(-2.0, -1.0))", sqrt(interval(-2.0, -1.0)), "no point in the domain",
        sqrt(interval(-2.0, -1.0)).is_empty());
 
-  // Codac's example: the hull of [pi/2] and 0 (Codac writes x |= 0; the
-  // constructors of GAOL being explicit, 0 is written as the point interval
-  // [0, 0])
+  // Codac's example: the hull of [pi/2] and 0 (Codac writes x |= 0, which
+  // compiles here too, 0 becoming the point interval [0, 0])
   interval h = interval::half_pi();
-  h |= interval(0.0);
-  show("h = half_pi() | [0]", h, "contains 0 and pi/2", h.set_contains(0.0) && h.set_contains(half_pi_ref));
+  h |= 0.0;
+  show("h = half_pi() | 0.0", h, "contains 0 and pi/2", h.set_contains(0.0) && h.set_contains(half_pi_ref));
   show("sin(h)", sin(h), "the maximum 1 at pi/2 is kept", sin(h).set_eq(interval(0.0, 1.0)));
   show("exp(h)", exp(h), "contains 1 and e^(pi/2)", exp(h).set_contains(1.0) && exp(h).set_contains(exp_half_pi_ref));
   show("sin(h) & exp(h)", sin(h) & exp(h), "their only common value: 1", (sin(h) & exp(h)).set_eq(interval(1.0)));
@@ -250,9 +245,9 @@ int main()
   show("u < v, u >= v", std::string(u < v ? "true" : "false") + ", " + (u >= v ? "true" : "false"),
        "overlapping: neither holds", !(u < v) && !(u >= v));
   const interval empty = interval::emptyset();
-  show("empty < [0], empty > [0]",
-       std::string(empty < interval(0.0) ? "true" : "false") + ", " + (empty > interval(0.0) ? "true" : "false"),
-       "no point to contradict them", empty < interval(0.0) && empty > interval(0.0));
+  show("empty < 0.0, empty > 0.0",
+       std::string(empty < 0.0 ? "true" : "false") + ", " + (empty > 0.0 ? "true" : "false"),
+       "no point to contradict them", empty < 0.0 && empty > 0.0);
 
   // ------------------------------------------------------------------------
   std::cout << "7. Output: interval::precision(n) digits, rounded outward\n";

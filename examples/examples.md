@@ -124,7 +124,7 @@ Every program follows GAOL v5's rules: `#include <gaol/gaol.h>`, no call to
 
 | File | What it computes | What it shows | After |
 |---|---|---|---|
-| `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `textToInterval("0.1")`; `interval(0, 0)` does not compile; `mid()` vs `midpoint()`; no `==`; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
+| `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `textToInterval("0.1")`; `interval(0, 0)` is zero; `mid()` vs `midpoint()`; no `==`; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
 | `02_decimals_and_rump.cpp` | 0.1 summed ten times; π by Machin; Rump's polynomial | Decimals are not doubles; a raw literal `0.1_iv`; `sqrt(2)` on a number is the C library's; the width as an alarm | Rump 1988, INTLAB demos |
 | `03_dependency_problem.cpp` | x − x, x(1 − x) three ways, (x − 1)^5, subdivision, Goldstein-Price, rotations | The dependency problem, single-use forms, `sqr` vs `x*x`, linear convergence of subdivision, the wrapping effect | Moore et al. 2009, IBEX lab1, filib++ `horner.cc` |
 | `04_centered_form.cpp` | x cos x and Chebyshev T5, natural and mean-value forms | Automatic differentiation over intervals, quadratic convergence of the centered form, monotonicity test | Codac's `AnalyticFunction`, `02_centered_form` |
@@ -165,15 +165,14 @@ Three headers are shared:
   x - x                        [-1, 1]                                      not [0, 0]: the dependency problem
   sqrt(interval(-1.0, 4.0))    [0, 2]                                       sqrt of [0, 4] only
   u < v, u >= v                false, false                                 overlapping: neither holds
-  empty < [0], empty > [0]     true, true                                   no point to contradict them
+  empty < 0.0, empty > 0.0     true, true                                   no point to contradict them
 ```
 
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
 `textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
-1/10. `sqrt(2.0)` is the C library's double, which no longer becomes an
-interval silently (`interval r = sqrt(2.0);` does not compile, the constructors
-of `interval` being explicit), while `sqrt(interval(2.0))` encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
+1/10. `sqrt(2.0)` is the C library's double, while `sqrt(interval(2.0))`
+encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
 doubles, silently wrong, and [−5.9·10²¹, 4.7·10²¹] in intervals, which contains
 the true −0.827396…: the width is the alarm, and more precision (MPFI, Arb) is
@@ -324,7 +323,7 @@ it, and says for each idiom how it reads with GAOL v5.
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
 | A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return textToInterval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
 | A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
-| Zero | `interval(0.0)`, `interval(0)`, `interval::zero()` | `interval(0, 0)` does not compile: the literal 0 is a null pointer too, and `interval(const char*, const char*)` competes with `interval(double, double)`. `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` compile, GAOL v5 having no `interval(const char*)` |
+| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` compile |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
 | m ± r | `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward); there is no mid-radius constructor |
 | From an integer beyond 2⁵³ | — | `interval(9007199254740993LL)` is one double that does not contain the integer |
@@ -607,7 +606,7 @@ maintainer. Appendix B gives each fix and its test.
 | 3 | On x86-64 with glibc, when the x87 rounding bits say nearest and MXCSR says upward (what `exactinit()` of Shewchuk's Triangle and predicates does), `pow` with a subnormal result misses the exact value (205 of 400 random cases): CORE-MATH rounds those results itself in the direction `fegetround()` gives, which glibc reads from the x87 unit. GAOL's own test lists that state (`tests/rounding_direction.cpp:104`) but no subnormal `pow`. | `3rd/math-core/src/binary64/pow/pow.h:236, 261, 408` | medium |
 | 4 | `-ffinite-math-only` is not refused, and makes the empty set invisible: `([1,2] & [3,4]).is_empty()` is false, and the hull of the empty set with [1, 2] is empty. `-funsafe-math-optimizations` and `-ffast-math -fno-finite-math-only` are not refused either (no macro reveals them), and GCC then rewrites the probe `1 + tiny == 1` as `tiny == 0` in inline code, so that `width()` after a change of direction is below the exact width. | `gaol/gaol_config.h:199` | medium |
 | 5 | `atanh([1, 5])` and `atanh([1])` are [DBL_MAX, +∞] instead of the empty set (atanh is defined on (−1, 1)); `atanh([-5, -1])` is empty. `atanh_rel` and `tanhRev` inherit it. | `gaol/gaol_interval.cpp:2558` | low |
-| 6 | `interval("2", "1")` (and `textToInterval(sl, sr)`) keeps the bounds [2, 1]: `is_empty()` is true, but `interval("2","1") + [0, 1]` is [2, 2]. | `gaol/gaol_interval.cpp:519` | low |
+| 6 | `interval("2", "1")` (and `textToInterval(sl, sr)`) keeps the bounds [2, 1]: `is_empty()` is true, but `interval("2","1") + [0, 1]` is [2, 2]. **Fixed**: the constructor from two strings is gone, and `textToInterval("2", "1")` is the empty set. | `gaol/gaol_interval.cpp:519` | low |
 | 7 | `pow(x, n)` for large n: the lower bound loses the square of the rest it carries, 8 doubles below the tightest at n = 2²⁸ − 1, 557 at 2³¹ − 1, 1962 at 2³² − 1 (the manual promises the tightest or one double beyond). When one bound's power under- or overflows, both bounds take the rounded products, and the SSE2 and FPU builds multiply them in different orders: their bounds differ in 190 of 1 600 random cases, against "the same bounds on every machine" of `doc/accuracy.md`. | `gaol/gaol_interval.cpp:160` | low |
 | 8 | `tan(interval(-M_PI_2, M_PI_2))` is [−∞, +∞] where the tightest is ±1.63·10¹⁶: the width test uses `<` where `<=` is sound. | `gaol/gaol_interval.cpp:2387` | low (tightness) |
 
@@ -616,7 +615,7 @@ maintainer. Appendix B gives each fix and its test.
 | # | What | Where | Severity |
 |---|---|---|---|
 | 9 | The reader hung under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `textToInterval("0.1")` never returned, nor `operator>>`. `strtod` stopped at the `.`, and the lexer then walked from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` wrote `0x1,999999999999ap-4`, which did not read back. **Fixed**, as the exponents of 7 digits or more, which the reader cut at 100000. | `gaol/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/gaol_interval.cpp:756` | high |
-| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compile and crash (`strlen` of a null pointer). `interval((const char*)nullptr)` and `interval(1, 2) + nullptr` crashed too, and no longer compile, GAOL v5 having no `interval(const char*)`; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). | `gaol/gaol_parser.cpp:58`, `gaol/gaol_interval.h:120` | medium |
+| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compiled and crashed (`strlen` of a null pointer), and so did `interval((const char*)nullptr)` and `interval(1, 2) + nullptr`; none of them compiles now, GAOL v5 having no constructor from strings; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). | `gaol/gaol_parser.cpp:58`, `gaol/gaol_interval.h:120` | medium |
 | 11 | `gaol_core::expression` objects created with no argument in two threads crashed within a million iterations: they shared one global node whose reference count was a plain `unsigned`. **Fixed**. | `gaol/gaol_expression.cpp:76` | medium |
 | 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. | `gaol/gaol_interval.cpp:728` | medium |
 | 13 | `operator<<` set the stream's precision to `interval::precision()` and never restored it: after printing an interval, `std::cout << 1.0/3` printed 16 digits, and `std::setw` padded the `[` only. IBEX and Codac both work around it. **Fixed** (`std::setprecision` still does not apply to intervals, by design). | `gaol/gaol_interval.cpp:780` | medium |
@@ -640,7 +639,9 @@ reviewer and every example writer:
   make the standard containers safe.
 - The literal `0` converts to `interval`, GAOL v5 having no
   `interval(const char*)`, but `interval(0, 0)` does not compile, being
-  ambiguous with `interval(const char*, const char*)` (section 2.1).
+  ambiguous with `interval(const char*, const char*)` (section 2.1). (Since
+  then, the constructor from two strings is gone and `interval(0, 0)`
+  compiles.)
   Constrained template constructors for the integer types would fix it, and
   enclose integers beyond 2⁵³.
 - The rounding direction leaks into the program (section 2.8), `cleanup()`
@@ -1065,6 +1066,9 @@ domain (−1, 1) in `doc/accuracy.md:109` and the manual. Test: `atanh([1])`,
 
 **6. `interval(sl, sr)`.** At the end of the constructor, set the empty set
 when `tmpl.is_empty() || tmpr.is_empty() || !(tmpl.left() <= tmpr.right())`.
+(Done since another way: the constructor from two strings is gone, and
+`textToInterval(sl, sr)` returns `interval(tmpl.left(), tmpr.right())`, the
+empty set for bounds in the wrong order.)
 Test (`tests/expressions.cpp`): `interval("2", "1")` stays empty after adding
 [0, 1] and in `max()`.
 
