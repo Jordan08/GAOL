@@ -179,7 +179,7 @@ def cpp(n, lib):
                 "profil": "INTERVAL(-pinf, pinf)"}[lib]
     if n.op == "text":
         s = a[0].replace("\\", "\\\\").replace('"', '\\"')
-        return {"gaol": f'interval("{s}")', "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")',
+        return {"gaol": f'textToInterval("{s}")', "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")',
                 "profil": f'read_interval("{s}")'}[lib]
     if n.op in INFIX:
         return f"({cpp(a[0], lib)} {INFIX[n.op]} {cpp(a[1], lib)})"
@@ -390,7 +390,7 @@ def label(n):
     if n.op == "entire":
         return "[−∞, +∞]"
     if n.op == "text":
-        return f'interval("{a[0]}")'
+        return f'textToInterval("{a[0]}")'
     if n.op in INFIX:
         return f"{label(a[0])} {INFIX[n.op]} {label(a[1])}"
     if n.op == "neg":

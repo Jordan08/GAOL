@@ -13,17 +13,18 @@
  * result encloses all the values the computation can take, so that a program
  * can prove things about numbers it never holds exactly, 1/10 or pi. The
  * example shows the few rules of GAOL that surprise a newcomer: a decimal
- * constant is written as a string, "0.1", the double 0.1 not being 1/10; the
- * literal 0 is ambiguous where 0.0 is not; interval(2, 1) is the empty set;
- * x < y means "for every point of x and every point of y", and there is no
- * ==; mid() is an interval where midpoint() is a double. Each line of the
- * output says what it proves, and the program checks it: the enclosures
- * contain the values mpmath computed to 45 digits, and the set relations are
- * the ones stated. It follows IBEX's examples/doc-arithmetic.cpp (the
- * constructors and constants of Interval), the page on the Interval class of
- * Codac's manual (doc/manual/manual/intervals/src.cpp, whose example of sin,
- * exp and intersection it repeats) and the chapter "An overview of GAOL" of
- * GAOL's manual (manual/v5/gaol.tex).
+ * constant is read from a string, textToInterval("0.1"), the double 0.1 not
+ * being 1/10; interval(0, 0) is ambiguous where interval(0.0, 0.0) is not;
+ * interval(2, 1) is the empty set; x < y means "for every point of x and
+ * every point of y", and there is no ==; mid() is an interval where
+ * midpoint() is a double. Each line of the output says what it proves, and
+ * the program checks it: the enclosures contain the values mpmath computed to
+ * 45 digits, and the set relations are the ones stated. It follows IBEX's
+ * examples/doc-arithmetic.cpp (the constructors and constants of Interval),
+ * the page on the Interval class of Codac's manual
+ * (doc/manual/manual/intervals/src.cpp, whose example of sin, exp and
+ * intersection it repeats) and the chapter "An overview of GAOL" of GAOL's
+ * manual (manual/v5/gaol.tex).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -48,15 +49,16 @@ namespace {
 
   const double inf = std::numeric_limits<double>::infinity();
 
-  /* Reference values, computed with mpmath at 60 digits and cut at 45. A
-     string is read by GAOL into the two doubles around the number it writes;
-     each string being within 1e-44 of the real number, it has the same two
-     doubles around it, and an enclosure of the real number contains them. */
-  const interval pi_ref("3.14159265358979323846264338327950288419716940");
-  const interval half_pi_ref("1.57079632679489661923132169163975144209858470");
-  const interval e_ref("2.71828182845904523536028747135266249775724709");
-  const interval sqrt2_ref("1.41421356237309504880168872420969807856967188");
-  const interval exp_half_pi_ref("4.81047738096535165547303566670383312639017087");
+  /* Reference values, computed with mpmath at 60 digits and cut at 45.
+     textToInterval() reads a string into the two doubles around the number
+     it writes; each string being within 1e-44 of the real number, it has the
+     same two doubles around it, and an enclosure of the real number contains
+     them. */
+  const interval pi_ref = textToInterval("3.14159265358979323846264338327950288419716940");
+  const interval half_pi_ref = textToInterval("1.57079632679489661923132169163975144209858470");
+  const interval e_ref = textToInterval("2.71828182845904523536028747135266249775724709");
+  const interval sqrt2_ref = textToInterval("1.41421356237309504880168872420969807856967188");
+  const interval exp_half_pi_ref = textToInterval("4.81047738096535165547303566670383312639017087");
 
   int failures = 0;
 
@@ -110,27 +112,28 @@ int main()
   // ------------------------------------------------------------------------
   std::cout << "1. Building intervals\n";
 
-  // From two bounds, from one double (a point interval) and from text. The
-  // literal 0 is both a number and a null pointer, which the constructor
-  // from a string takes too: interval(0), interval(0, 0), x |= 0 and x < 0
-  // do not compile, being ambiguous; interval(0.0), x |= 0.0 and x < 0.0 do.
+  // From two bounds and from one double (a point interval); text is for
+  // what doubles cannot write, as 0.1 below. The literal 0 is both a number
+  // and a null pointer, which the constructor from two strings takes too:
+  // interval(0, 0) does not compile, being ambiguous; interval(0.0, 0.0) and
+  // interval(0) do.
   show("interval(1, 2)", interval(1, 2), "the real numbers from 1 to 2",
        interval(1, 2).left() == 1.0 && interval(1, 2).right() == 2.0);
   show("interval(2.0)", interval(2.0), "a point interval: one double", interval(2.0).is_a_double());
-  show("interval(\"[1, 2]\")", interval("[1, 2]"), "read from text", interval("[1, 2]").set_eq(interval(1, 2)));
 
   /* The double 0.1 is not 1/10, which has no finite binary expansion: the
      compiler rounded it to the nearest double before GAOL saw it, and
-     interval(0.1) holds that double only. The string "0.1" is read by GAOL,
-     which encloses the decimal number it writes between two doubles. The
+     interval(0.1) holds that double only. textToInterval() reads the string
+     "0.1", and encloses the decimal number it writes between two doubles. The
      hexadecimal text of exact_string() shows the bounds exactly, where 16
      decimal digits would print both intervals alike. */
-  const interval tenth_double(0.1), tenth("0.1");
+  const interval tenth_double(0.1);
+  const interval tenth = textToInterval("0.1");
   // interval(0.1) is one double d; 10*d is not a double (the interval product
   // is not a point), so it is not 1, and d is not 1/10
   show("interval(0.1)", exact_string(tenth_double), "one double: misses 1/10",
        tenth_double.is_a_double() && !(tenth_double * 10.0).is_a_double());
-  show("interval(\"0.1\")", exact_string(tenth), "two doubles: encloses 1/10", contains_ratio(tenth, 1, 10));
+  show("textToInterval(\"0.1\")", exact_string(tenth), "two doubles: encloses 1/10", contains_ratio(tenth, 1, 10));
 
   // Bounds in the wrong order give the empty set, as numsToInterval does in
   // IEEE 1788: the hull of two points is the interval between two numbers
@@ -144,8 +147,8 @@ int main()
   show("interval::pi()", interval::pi(), "contains pi", interval::pi().set_contains(pi_ref));
   show("interval::emptyset()", interval::emptyset(), "no real number", interval::emptyset().is_empty());
   show("interval()", interval(), "every real number", interval().is_entire());
-  show("interval(0.0)", interval(0.0), "zero; interval(0) would not compile",
-       interval(0.0).set_eq(interval::zero()));
+  show("interval(0.0, 0.0)", interval(0.0, 0.0), "zero; interval(0, 0) would not compile",
+       interval(0.0, 0.0).set_eq(interval::zero()));
 
   // ------------------------------------------------------------------------
   std::cout << "2. Arithmetic, doubles mixed in: x = [1, 2], y = [-1, 2]\n";
@@ -179,7 +182,7 @@ int main()
        sqrt(interval(-2.0, -1.0)).is_empty());
 
   // Codac's example: the hull of [pi/2] and 0 (Codac writes x |= 0, which
-  // is ambiguous here, 0 being a null pointer as well: write 0.0)
+  // compiles here too, 0 becoming the point interval [0, 0])
   interval h = interval::half_pi();
   h |= 0.0;
   show("h = half_pi() | 0.0", h, "contains 0 and pi/2", h.set_contains(0.0) && h.set_contains(half_pi_ref));
@@ -259,7 +262,7 @@ int main()
   // the interval: read back, it contains pi.
   const std::streamsize digits = interval::precision(5);
   const std::string pi_text = interval::pi();
-  show("pi with 5 digits", pi_text, "read back, still contains pi", interval(pi_text.c_str()).set_contains(pi_ref));
+  show("pi with 5 digits", pi_text, "read back, still contains pi", textToInterval(pi_text).set_contains(pi_ref));
   interval::precision(digits);
 
   // The last use of GAOL: cleanup() sets back the rounding direction the

@@ -256,9 +256,9 @@ static bool gaol_uncertain_bound(expr_node *e, void *context)
 /*
   The functions a string calls, by their names (GAOL v5)
 
-  A string is read with the names of GAOL, by interval(const char*),
-  gaol::textToInterval() and operator>>, or with the names of IEEE 1788-2015,
-  by gaol_ieee1788::textToInterval(), as a program opens the namespace gaol or
+  A string is read with the names of GAOL, by gaol::textToInterval() and
+  operator>>, or with the names of IEEE 1788-2015, by
+  gaol_ieee1788::textToInterval(), as a program opens the namespace gaol or
   gaol_ieee1788: parse_interval() gives them to the context of the reading.
   The lexer looks each
   name up in the table of those names, whatever the case of its letters, and

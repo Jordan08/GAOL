@@ -93,9 +93,9 @@ namespace
     { "atan2([1], [-1, 1])", [] { return atan2(interval(1.0), interval(-1.0, 1.0)); } },
     { "atan2([-1, 1], [-1, -0.5])", [] { return atan2(interval(-1.0, 1.0), interval(-1.0, -0.5)); } },
     // The reader of strings, whose "pi" is interval::pi()
-    { "interval(\"pi\")", [] { return interval("pi"); } },
-    { "interval(\"[0.1, 1/3]\")", [] { return interval("[0.1, 1/3]"); } },
-    { "interval(\"sin(1)+exp(0.1)\")", [] { return interval("sin(1)+exp(0.1)"); } },
+    { "textToInterval(\"pi\")", [] { return textToInterval("pi"); } },
+    { "textToInterval(\"[0.1, 1/3]\")", [] { return textToInterval("[0.1, 1/3]"); } },
+    { "textToInterval(\"sin(1)+exp(0.1)\")", [] { return textToInterval("sin(1)+exp(0.1)"); } },
   };
 
   const std::size_t nb_operations = sizeof(operations)/sizeof(operations[0]);

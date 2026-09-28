@@ -194,8 +194,8 @@ namespace {
 
   void part1()
   {
-    // The measurements of lab5.cpp. They are decimal numbers, read from
-    // their text: interval("[0.67, 4.6]") is rounded outward and encloses
+    // The measurements of lab5.cpp. They are decimal numbers, read from their
+    // text: textToInterval("[0.67, 4.6]") is rounded outward and encloses
     // them, whereas interval(0.67, 4.6) would take the nearest doubles and
     // lose both ends of the interval: the double 0.67 is above 0.67, and the
     // double 4.6 below 4.6.
@@ -204,7 +204,7 @@ namespace {
                                      "[-1.2, 0.0089]", "[-1, -0.031]" };
     std::vector<Measurement> data;
     for (int i = 0; i < 10; ++i) {
-      data.push_back({ i + 1.0, interval(y_text[i]) });
+      data.push_back({ i + 1.0, textToInterval(y_text[i]) });
     }
     std::cout << "Part 1. Bounded-error parameter estimation (IBEX lab5)\n"
               << "  y(t) = 20 exp(-p1 t) - 8 exp(-p2 t) measured at t = 1, ..., 10:\n"
@@ -225,9 +225,10 @@ namespace {
     // the area is the integral over p1 of the width of the slice (mpmath's
     // quad, between the points where the active bounds change)
     const Box hull = s.hull();
-    const Box hull_ref{ interval("[0.33098635095139862492168319503200028, 0.77609861402355031216830196139317631]"),
-                        interval("[0.15310755595639399872521438977822748, 0.53103716068658547974283981201728409]") };
-    const interval area_ref("0.06611365919069719801467444514175237576689");
+    const Box hull_ref{
+      textToInterval("[0.33098635095139862492168319503200028, 0.77609861402355031216830196139317631]"),
+      textToInterval("[0.15310755595639399872521438977822748, 0.53103716068658547974283981201728409]") };
+    const interval area_ref = textToInterval("0.06611365919069719801467444514175237576689");
     const interval area = s.area();
     std::cout << "  hull of S (inside and boundary boxes) " << hull << "\n"
               << "  holds the hull of S computed apart    " << hull_ref << "\n"
@@ -254,7 +255,7 @@ namespace {
                                         { "0.77599861", "0.53092855" } };
     bool all_fit = true, all_covered = true;
     for (const auto& p : fitting) {
-      const Box point{ interval(p[0]), interval(p[1]) };
+      const Box point{ textToInterval(p[0]), textToInterval(p[1]) };
       all_fit = all_fit && fits(point, data);
       all_covered = all_covered && (Paving::meets(s.inside, point) || Paving::meets(s.boundary, point));
     }
@@ -263,7 +264,7 @@ namespace {
     check(all_fit, "a point of S does not fit the data");
     check(all_covered, "a point of S is not in the paving");
 
-    const Box corner{ interval("0.6"), interval("0.2") };
+    const Box corner{ textToInterval("0.6"), textToInterval("0.2") };
     const interval y1 = model(corner, 1.0);
     std::cout << "  (0.6, 0.2): y(1) in " << y1 << ", proved outside [4.5, 7.5]\n";
     check(y1.set_disjoint(data[0].y) && !Paving::meets(s.inside, corner),
@@ -357,7 +358,7 @@ namespace {
     const Paving plain = sivia(
       init, eps, [](Box&) { return true; }, [&](const Box& p) { return classify(p, beacons); });
     const Paving ctc = sivia(init, eps, contract_all, [&](const Box& p) { return classify(p, beacons); });
-    const interval area_ref("0.569341846214634982520589826093");
+    const interval area_ref = textToInterval("0.569341846214634982520589826093");
     const Paving* const pavings[2] = { &plain, &ctc };
     const char* const names[2] = { "bisection only", "contractor, then bisection" };
     for (int k = 0; k < 2; ++k) {
@@ -371,7 +372,7 @@ namespace {
     check(ctc.area().width() < plain.area().width(), "the contractor should tighten the area");
 
     // A point of the set found apart, with a margin of 0.27 on each ring
-    const Box point{ interval("0.81"), interval("1.74") };
+    const Box point{ textToInterval("0.81"), textToInterval("1.74") };
     const bool in_set = classify(point, beacons) == Verdict::inside;
     const bool covered = (Paving::meets(ctc.inside, point) || Paving::meets(ctc.boundary, point)) &&
                          (Paving::meets(plain.inside, point) || Paving::meets(plain.boundary, point));

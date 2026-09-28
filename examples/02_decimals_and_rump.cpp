@@ -15,14 +15,15 @@
  *             + a / (2 b)
  * at (77617, 33096), in the form of E. Loh and G. W. Walster ("Rump's
  * example revisited", Reliable Computing 8, 2002). It shows that a decimal
- * constant has to reach GAOL as text, interval("0.1") or the literal 0.1_iv
- * defined below, and not as a double; that sqrt(2.0) is the C library's
- * function of a double; and that intervals do not make a computation exact,
- * but say how far from exact it may be: doubles give Rump's f with a wrong
- * value and no warning, intervals give an enclosure of the true value that
- * is 10^22 wide, the sign that the computation needs more precision (MPFI,
- * Arb). The references were computed apart with mpmath (50 digits), and
- * Rump's true value, -54767/66192, with the rational numbers of Python.
+ * constant has to reach GAOL as text, textToInterval("0.1") or the literal
+ * 0.1_iv defined below, and not as a double; that sqrt(2.0) is the C
+ * library's function of a double; and that intervals do not make a
+ * computation exact, but say how far from exact it may be: doubles give
+ * Rump's f with a wrong value and no warning, intervals give an enclosure of
+ * the true value that is 10^22 wide, the sign that the computation needs more
+ * precision (MPFI, Arb). The references were computed apart with mpmath (50
+ * digits), and Rump's true value, -54767/66192, with the rational numbers of
+ * Python.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -55,12 +56,12 @@ namespace {
     A decimal literal for intervals, which GAOL does not provide: a raw
     literal operator receives the characters of the literal as the source
     writes them, "0.1" for 0.1_iv, before any conversion to double, and
-    interval(const char*) encloses the number they write. 0.1_iv reads like a
+    textToInterval() encloses the number they write. 0.1_iv reads like a
     number and holds 1/10.
   */
   interval operator""_iv(const char* digits)
   {
-    return interval(digits);
+    return textToInterval(digits);
   }
 
   bool all_checks_passed = true;
@@ -135,21 +136,20 @@ int main()
 
   // As text, the number reaches the parser of GAOL, which rounds it down for
   // the lower bound and up for the upper bound
-  const interval tenth("0.1");
-  show("interval(\"0.1\"): the two doubles around 1/10, which contain it", tenth);
+  const interval tenth = textToInterval("0.1");
+  show("textToInterval(\"0.1\"): the two doubles around 1/10, which contain it", tenth);
   // 1 / 10 computed by GAOL's division, a way of its own to enclose 1/10
-  check(tenth.set_contains(interval(1.0) / 10.0), "interval(\"0.1\") contains 1/10");
-  check(tenth.left() < tenth.right(), "interval(\"0.1\") is not a point");
+  check(tenth.set_contains(interval(1.0) / 10.0), "textToInterval(\"0.1\") contains 1/10");
+  check(tenth.left() < tenth.right(), "textToInterval(\"0.1\") is not a point");
   show("0.1_iv: the same interval, written as a number", 0.1_iv);
   // The parentheses are needed: 0.1_iv.set_eq would be read as one number.
   // set_eq() is the equality of sets; GAOL has no operator==.
-  check((0.1_iv).set_eq(tenth), "0.1_iv is interval(\"0.1\")");
+  check((0.1_iv).set_eq(tenth), "0.1_iv is textToInterval(\"0.1\")");
 
   // ------------------------------------------------------------------------
   std::cout << "\nAdding 0.1 ten times (with doubles: at the end)\n";
 
-  // interval s(0.0), not s(0): the literal 0 is also the null pointer, and
-  // interval(0) hesitates between interval(double) and interval(const char*)
+  // The sums start at interval(0.0): a default interval is the whole line
   interval s_double(0.0), s_tenth(0.0);
   for (int i = 0; i < 10; ++i) {
     s_double += 0.1;  // adds the double 0.1, exactly as interval(0.1) would
@@ -159,7 +159,7 @@ int main()
   // The ten doubles 0.1 add up to 1.000000000000000055..., not to 1. The
   // interval encloses that sum, and contains 1 only because rounding its lower
   // bound down went below 1: an enclosure, but of another problem.
-  const interval ten_doubles("1.000000000000000055511151231257827021181583404541015625");
+  const interval ten_doubles = textToInterval("1.000000000000000055511151231257827021181583404541015625");
   show("with s += 0.1 on an interval: encloses 10 x 0.1000000000000000055, and 1 by chance", s_double);
   check(s_double.set_contains(ten_doubles), "the sum of interval(0.1) encloses 10 times the double 0.1");
   check(s_double.set_contains(1.0), "the sum of interval(0.1) contains 1");
@@ -168,7 +168,7 @@ int main()
 
   // Squaring shows the difference: the square of the double 0.1 lies above
   // 1/100, and so does the whole interval
-  const interval hundredth("0.01");
+  const interval hundredth = textToInterval("0.01");
   const interval double_square = sqr(double_tenth);
   show("sqr(interval(0.1)): lies above 1/100", double_square);
   // x >= y is a certainly-relation: every element of x is at least every
@@ -187,20 +187,20 @@ int main()
   // GAOL's sqrt(const interval&): it returns sqrt(2) rounded to a double,
   // which converts silently to an interval, a point. sqrt(2) is irrational,
   // and no double.
-  const interval sqrt2("1.4142135623730950488016887242096980785696718753769");
+  const interval sqrt2 = textToInterval("1.4142135623730950488016887242096980785696718753769");
   const interval root_point = sqrt(2.0);
   show("interval r = sqrt(2.0): a point, the rounded double, which misses sqrt(2)", root_point);
   check(root_point.left() == root_point.right(), "interval r = sqrt(2.0) is a point");
   show("sqrt(interval(2.0)): contains sqrt(2)", sqrt(interval(2.0)));
   check(sqrt(interval(2.0)).set_contains(sqrt2), "sqrt(interval(2.0)) contains sqrt(2)");
   // The parser computes the expressions it reads with intervals
-  show("interval(\"sqrt(2)\"): contains sqrt(2)", interval("sqrt(2)"));
-  check(interval("sqrt(2)").set_contains(sqrt2), "interval(\"sqrt(2)\") contains sqrt(2)");
+  show("textToInterval(\"sqrt(2)\"): contains sqrt(2)", textToInterval("sqrt(2)"));
+  check(textToInterval("sqrt(2)").set_contains(sqrt2), "textToInterval(\"sqrt(2)\") contains sqrt(2)");
 
   // ------------------------------------------------------------------------
   std::cout << "\nPi\n";
 
-  const interval pi("3.1415926535897932384626433832795028841971693993751");
+  const interval pi = textToInterval("3.1415926535897932384626433832795028841971693993751");
   show("interval::pi(): contains pi", interval::pi());
   check(interval::pi().set_contains(pi), "interval::pi() contains pi");
   // Machin's formula (1706). 1/5 and 1/239 are no doubles either:
@@ -222,7 +222,7 @@ int main()
 
   // The terms of f reach 8e36, and cancel down to -0.83: their rounding
   // errors, up to 2^70 = 1.2e21 each, are all that is left of them
-  const interval truth("-0.82739605994682136814116509547981629199903311578438");
+  const interval truth = textToInterval("-0.82739605994682136814116509547981629199903311578438");
   const interval r = rump(interval(77617.0), interval(33096.0));
   show(("with intervals: contains the true value, and 0; its width, " + approx(r.width()) +
         ", is the alarm").c_str(), r);

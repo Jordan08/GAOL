@@ -92,9 +92,9 @@ where it comes from.
     unchanged. `exact_string(I)` gives that text without the global output
     format, and `gaol_ieee1788::intervalToExact()` is it: switching the format
     to hexa and back, it showed hexa to the other threads meanwhile.
-  - **The reader of strings takes the new names.** `interval("...")` reads
-    `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions GAOL
-    already had, in the direct grammar and in the tree of
+  - **The reader of strings takes the new names.** `gaol::textToInterval("...")`
+    reads `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions
+    GAOL already had, in the direct grammar and in the tree of
     `gaol/gaol_expression.h`; `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is
     `nth_root(x, 2)`, so it needs no node of its own, and the four others have
     one each, which `gaol::exp2(expression)` and its companions build from C++
@@ -751,12 +751,12 @@ where it comes from.
   1788-2015 under their names.** The lexer takes a name as a whole and looks it
   up in a table of names, rather than in a token of the grammar for each of the
   23 functions GAOL read (`gaol/gaol_interval_parser.ypp`).
-  - **The names of GAOL.** `interval("...")`, `operator>>` and
-    `gaol::textToInterval()`, which is new, with the two-string form of the
-    constructor as `textToInterval(sl, sr)`, read all the functions of GAOL on
-    intervals: `exp10`, `log10`, `expm1`, `log1p`, `hypot`, `rsqrt`, `sinpi`,
-    `atan2pi`, `sqr`, `abs`, `min`, `max`, `floor`, `integer`, `inverse`, `fma`
-    and the others, which GAOL did not read.
+  - **The names of GAOL.** `gaol::textToInterval()`, which is new, `operator>>`
+    and the two-string constructor, with its form `textToInterval(sl, sr)`,
+    read all the functions of GAOL on intervals: `exp10`, `log10`, `expm1`,
+    `log1p`, `hypot`, `rsqrt`, `sinpi`, `atan2pi`, `sqr`, `abs`, `min`, `max`,
+    `floor`, `integer`, `inverse`, `fma` and the others, which GAOL did not
+    read.
   - **The names of the standard.** `gaol_ieee1788::textToInterval()` reads the
     names of Tables 9.1 and 10.5 (`pown`, `rootn`, `recip`, `logp1`, `rSqrt`,
     `sinPi`, `roundTiesToEven`...), whose `pow` is the pow of the standard. It
@@ -779,7 +779,7 @@ where it comes from.
   its own scanner and its own context, which holds the interval read, the
   exception an action raised and the names of the functions, and the strings
   are read in parallel, with no lock. `parse_interval()`, which
-  `interval("...")`, `operator>>` and the two `textToInterval()` go through,
+  `interval(sl, sr)`, `operator>>` and the two `textToInterval()` go through,
   creates them. The grammar keeps the directives of Bison 2.3, the Bison of
   macOS, which Bison 3 reads with a warning: autotools regenerates the parser
   with the yacc that configure finds (`bison -y`, else `byacc` or `yacc`) when
@@ -792,10 +792,11 @@ where it comes from.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL
-  did, and `gaol_ieee1788` as IEEE 1788-2015 does. `pow`, the one function of
-  the same name whose meaning differs between the two, is in each of them and
-  not in `gaol_core`, where argument-dependent lookup looks for a call on an
-  interval: each namespace finds its own `pow` only. The powers of
+  did, and `gaol_ieee1788` as IEEE 1788-2015 does. `pow` and
+  `textToInterval`, the functions of the same name whose meaning differs
+  between the two, are in each of them and not in `gaol_core`, where
+  argument-dependent lookup looks for a call on an interval: each namespace
+  finds its own only. The powers of
   `gaol_core` are named apart: `gaol_pown()`, `gaol_uipow()`,
   `gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
   `gaol_pow_exp()`, and the node of a power of expressions keeps the function
@@ -848,6 +849,16 @@ where it comes from.
   direction for the code calling them from outside GAOL are gone, and
   `tests/rounding_direction.cpp` no longer calls them; `gaol_core::upward`,
   which the operations of intervals call, stays.
+- **The constructor from one string, `interval(const char*)`, is gone.**
+  `gaol::textToInterval()` reads the string instead, with the same names of
+  functions, and throws the same `input_format_error` for a string that is no
+  interval: `interval x("0.1")` becomes `interval x = textToInterval("0.1")`.
+  The constructor took any `const char*`, and converted it implicitly:
+  `interval(0)` was ambiguous, 0 being a null pointer as well as a number, and
+  `x + nullptr` compiled, and crashed. The constructor from two strings,
+  `interval("0.1", "0.3")`, stays, and so does `textToInterval(sl, sr)`.
+  `tests/numbers.cpp` checks that neither a `const char*` nor `nullptr`
+  converts to an interval, and that `interval(0)` is [0].
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **The three builds agree** (see [The three builds](three-builds.md)).
@@ -881,7 +892,7 @@ where it comes from.
   `_aligned_malloc()` and `_aligned_free()` on Windows, where `malloc()` aligns
   on 8 bytes only on 32-bit systems, so that the SSE2 intervals can be used with
   MinGW-w64 and MSYS2 on x64. The placement `delete` of `interval` and
-  `interval2f`, called when a constructor throws (`interval("1/0")`), freed
+  `interval2f`, called when a constructor throws (`interval("1", "x")`), freed
   the caller's memory; it now leaves it alone.
 - **Visual C++ without `/fp:strict`** is refused by `gaol/gaol_config.h`, as
   `/fp:fast` was. Built with `/fp:strict` for GAOL and without it for the tests,

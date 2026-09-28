@@ -30,7 +30,7 @@ int main(void)
 
   interval
     x(-2,2),
-    y(-2,2), z("[0.1]");
+    y(-2,2), z = textToInterval("[0.1]");
 
 
   cout.precision(16);

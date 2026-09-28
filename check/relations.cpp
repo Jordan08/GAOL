@@ -129,13 +129,13 @@ public:
 
     // is_canonical()
     TEST_TRUE(!interval::emptyset().is_canonical());
-    TEST_TRUE(interval("1/10.0").is_canonical());
+    TEST_TRUE(textToInterval("1/10.0").is_canonical());
 	TEST_TRUE(interval(3,next_float(3)).is_canonical());
 	TEST_TRUE(interval(previous_float(-3),-3).is_canonical());
     // is_empty()
     TEST_TRUE(interval::emptyset().is_empty());
     TEST_FALSE(interval::universe().is_empty());
-    TEST_FALSE(interval("1.0/10").is_empty());
+    TEST_FALSE(textToInterval("1.0/10").is_empty());
     TEST_FALSE(interval(4,5).is_empty());
     TEST_TRUE(interval(5,4).is_empty());
 	TEST_FALSE(interval(-4,5).is_empty());

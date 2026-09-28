@@ -171,8 +171,6 @@ namespace {
   bool apriori(const interval& X, const interval& h, interval& enclosure, int& inflations)
   {
     // [0, h], as the hull of 0 and h: h is an interval, see step_size().
-    // 0.0 and not 0: the literal 0 is also a null pointer, and interval(0)
-    // would be ambiguous between the constructors from a double and a text.
     const interval tau = interval(0.0) | h;
     interval B = X;
     for (inflations = 0; inflations < 30; ++inflations) {
@@ -410,9 +408,9 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "1. x' = -x^2, x(0) in X0 = [0.9, 1.1], t in [0, 2]; exact solution x(0) / (1 + x(0) t)\n";
-  // The text constructor encloses the decimals 0.9 and 1.1, which no double
+  // textToInterval() encloses the decimals 0.9 and 1.1, which no double
   // equals; interval(0.9, 1.1) would hold the doubles nearest to them only
-  const interval X0("[0.9, 1.1]");
+  const interval X0 = textToInterval("[0.9, 1.1]");
   {
     const interval h = step_size(2.0, 20);
     interval P;
@@ -426,13 +424,13 @@ int main()
     check(found && P.set_contains(X0) && P.set_contains(X0 + tau * f1(P)), "Picard's test holds on the first step");
     // The true solutions over [0, h] from [0.9, 1.1]: the lowest is
     // 0.9 / (1 + 0.09) = 0.825688..., the highest 1.1 at t = 0
-    check(P.set_contains(interval("0.8256880733944954128440366972477064220183") | X0),
+    check(P.set_contains(textToInterval("0.8256880733944954128440366972477064220183") | X0),
           "the a priori enclosure holds the solutions over [0, 0.1]");
   }
 
   // The image of [0.9, 1.1] by the exact solution at t = 2: x0 / (1 + 2 x0)
   // increases with x0, and the image is [0.9 / 2.8, 1.1 / 3.2] = [9/28, 11/32]
-  const interval exact1 = interval("0.3214285714285714285714285714285714285714") | interval("0.34375");
+  const interval exact1 = textToInterval("0.3214285714285714285714285714285714285714") | interval(0.34375);
   std::cout << "   x(2) by Taylor steps in the mean-value form, remainder bounded over P:\n"
             << "     h      order  pieces  x(2) in                         width / exact width\n";
   struct Run {
@@ -477,12 +475,12 @@ int main()
   // initial box, x0(0) e^-10 and 2 atan(tan(x1(0) / 2) e^-10), by mpmath.
   // Both increase with the initial value: the exact image of the box is the
   // box of the images of 0.9 and 1.1.
-  const interval x0_10[3] = { interval("0.00004085993678623636638203236400449554921413"),
-                              interval("0.00004539992976248485153559151556055061023792"),
-                              interval("0.00004993992273873333668915066711660567126171") };
-  const interval x1_10[3] = { interval("0.00004386133209377857577275105566580286115045"),
-                              interval("0.00004960418932578612835305135825821192810679"),
-                              interval("0.00005566986722621193905245902864968715822707") };
+  const interval x0_10[3] = { textToInterval("0.00004085993678623636638203236400449554921413"),
+                              textToInterval("0.00004539992976248485153559151556055061023792"),
+                              textToInterval("0.00004993992273873333668915066711660567126171") };
+  const interval x1_10[3] = { textToInterval("0.00004386133209377857577275105566580286115045"),
+                              textToInterval("0.00004960418932578612835305135825821192810679"),
+                              textToInterval("0.00005566986722621193905245902864968715822707") };
   const Box exact2{ x0_10[0] | x0_10[2], x1_10[0] | x1_10[2] };
   std::cout << "   h     form        width of x0(10)  width of x1(10)  width / exact width\n";
   const int steps2[2] = { 50, 1000 };
@@ -548,7 +546,7 @@ int main()
   std::cout << "3. The integral of exp(-x^2) over [0, 1] by interval Riemann sums\n";
   interval::precision(10);
   // sqrt(pi) / 2 erf(1), by mpmath (quad gives the same digits)
-  const interval integral("0.746824132812427025399467436131853005354499687");
+  const interval integral = textToInterval("0.746824132812427025399467436131853005354499687");
   std::cout << "   the integral, sqrt(pi) / 2 erf(1), is in " << integral << "\n";
   interval previous;
   for (int n : { 10, 100, 1000 }) {

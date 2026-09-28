@@ -160,7 +160,7 @@ int main()
   // real numbers from 2/5 to 3/5, which are no doubles, and the range too
   const Domain domains[] = {
     {"on [0, 1], true range [0, 0.25]", interval(0.0, 1.0), interval(0.0, 0.25)},
-    {"on [0.4, 0.6], true range [0.24, 0.25]", interval("[0.4, 0.6]"), interval("[0.24, 0.25]")},
+    {"on [0.4, 0.6], true range [0.24, 0.25]", textToInterval("[0.4, 0.6]"), textToInterval("[0.24, 0.25]")},
   };
   for (const Domain& d : domains) {
     std::cout << "  " << d.text << "\n";
@@ -196,13 +196,13 @@ int main()
   // 10, cancel down to 1e-10 for each x; the five independent occurrences of x
   // cannot cancel, and each brings its width 0.02 times the size of what it
   // multiplies.
-  const interval x("[0.99, 1.01]");
+  const interval x = textToInterval("[0.99, 1.01]");
   const interval horner = ((((x - 5.0) * x + 10.0) * x - 10.0) * x + 5.0) * x - 1.0;
   // pow is not in namespace gaol_core of the type interval, where
   // argument-dependent lookup finds sqr() or sin(), but in namespace gaol:
   // pow(x, 5) needs using namespace gaol, or gaol::pow
   const interval power = pow(x - 1.0, 5);
-  const interval range("[-1e-10, 1e-10]");
+  const interval range = textToInterval("[-1e-10, 1e-10]");
   row("Horner's scheme", horner, "x five times");
   row("pow(x - 1, 5)", power, "x once");
   std::cout << "    Horner's scheme gives an enclosure " << approx(horner.width() / power.width()) << " times wider\n";
@@ -234,7 +234,7 @@ int main()
   // In two dimensions, n x n boxes: dividing the excess by 4 costs 16 times
   // as many evaluations
   const interval side(-2.0, 2.0);
-  const interval gp_range = interval(3.0) | interval("1015690.2717980589082988423120822331039464707651154");
+  const interval gp_range = interval(3.0) | textToInterval("1015690.2717980589082988423120822331039464707651154");
   // The minimum 3 is f(0, -1): this point evaluation is exact
   check(goldstein_price(interval(0.0), interval(-1.0)).set_eq(interval(3.0)), "f(0, -1) = 3");
   excess_before = 0.0;

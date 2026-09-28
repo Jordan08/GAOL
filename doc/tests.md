@@ -101,9 +101,12 @@ Codac.
   without the fix. `pi_dn`, `pi_up` and
   the other doubles of `gaol/gaol_port.h`, now written in decimal, have to be
   those their unions write in bits.
-- **`numbers`:** `interval("0.1")` has to be the tightest interval enclosing the
-  number read, and the number itself when it is a double. The constants have to
-  be the tightest enclosures of π, 2π and π/2. The literals of IEEE 1788-2015
+- **`numbers`:** `textToInterval("0.1")` has to be the tightest interval
+  enclosing the number read, and the number itself when it is a double. The
+  constants have to be the tightest enclosures of π, 2π and π/2. No
+  `const char*` nor `nullptr` may convert to an interval, and `interval(0)` has
+  to be `[0, 0]`: the constructor from one string, which made it ambiguous, is
+  gone (GAOL v5). The literals of IEEE 1788-2015
   (`[entire]`, `[ ]`, `[1,]`, `3.56?1`, hexadecimal numbers...) have to be read
   as the tightest intervals enclosing them, whatever the case of their letters,
   and `[inf]` and the like as the empty set. Expressions read again and again
@@ -204,10 +207,10 @@ Codac.
   (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
   the rest of the test cannot see a fault of that port, which the jobs
   computing with the two 64-bit halves would then find here.
-- **`expressions`:** `interval("...")` lexes the string, parses it into the
-  tree of `gaol/gaol_expression.h` and evaluates that tree, so this test goes
-  through every node of the tree and every way the string can be wrong: the
-  numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
+- **`expressions`:** `textToInterval("...")` lexes the string, parses it into
+  the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
+  goes through every node of the tree and every way the string can be wrong:
+  the numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
   the strings the parser has to refuse with an exception rather than an
   interval. Every string being an expression, the intervals have to be read
@@ -228,7 +231,8 @@ Codac.
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
-  be `interval(const char*)`, with one string and with two. The reading of
+  read the names of GAOL, and with two strings to take the left bound of the
+  first and the right bound of the second. The reading of
   strings by four threads at once, where the reader, whose state was global,
   crashed before its lexer became reentrant and its parser pure, is commented
   out: the tests run no thread

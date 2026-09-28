@@ -177,9 +177,9 @@ namespace
   /* textToInterval reads the names of the standard (GAOL v5): each name of
      Tables 9.1 and 10.5 gives the function of the same name, pow the pow of
      Table 9.1, and a name of GAOL alone is no function, which gives the
-     empty set; gaol::textToInterval and interval(const char*) read the names
-     of GAOL. textToInterval read those of GAOL, and pow([-4,-1],2) was
-     [1, 16], where pow([-4,-1], 2) is the empty set. */
+     empty set; gaol::textToInterval reads the names of GAOL. textToInterval
+     read those of GAOL, and pow([-4,-1],2) was [1, 16], where
+     pow([-4,-1], 2) is the empty set. */
   void text_with_the_names_of_the_standard()
   {
     const interval x = numsToInterval(0.25, 0.5), y = numsToInterval(-1.0, 2.0),

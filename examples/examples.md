@@ -56,12 +56,11 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   need, and they were found sound and tight on 40 000 random cases.
 - **What makes natural code awkward** is not the arithmetic but its
   surroundings: the rounding direction left upward for the whole program
-  (printf, strtod, lrint and the program's own doubles change), the literal
-  `0` that does not convert to an interval, `operator<` which is not an
-  ordering (std::sort and std::set misbehave, and can read out of bounds),
-  streams that broke the idioms of iostreams (fixed since, apart from point
-  intervals written `<a, b>`, which the reader refuses, and blank lines, which
-  `operator>>` refuses), and the missing
+  (printf, strtod, lrint and the program's own doubles change), `operator<`
+  which is not an ordering (std::sort and std::set misbehave, and can read out
+  of bounds), streams that broke the idioms of iostreams (fixed since, apart
+  from point intervals written `<a, b>`, which the reader refuses, and blank
+  lines, which `operator>>` refuses), and the missing
   pieces every algorithm needs: a box type, derivatives, a two-piece division,
   inflation, bisection at a ratio.
 - **Confirmed bugs**: two give bounds that miss the exact result (`x -= x`,
@@ -120,7 +119,7 @@ Every program follows GAOL v5's rules: `#include <gaol/gaol.h>`, no call to
 
 | File | What it computes | What it shows | After |
 |---|---|---|---|
-| `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `interval("0.1")`; `interval(0)` does not compile; `mid()` vs `midpoint()`; no `==`; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
+| `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `textToInterval("0.1")`; `interval(0, 0)` does not compile; `mid()` vs `midpoint()`; no `==`; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
 | `02_decimals_and_rump.cpp` | 0.1 summed ten times; π by Machin; Rump's polynomial | Decimals are not doubles; a raw literal `0.1_iv`; `sqrt(2)` on a number is the C library's; the width as an alarm | Rump 1988, INTLAB demos |
 | `03_dependency_problem.cpp` | x − x, x(1 − x) three ways, (x − 1)^5, subdivision, Goldstein-Price, rotations | The dependency problem, single-use forms, `sqr` vs `x*x`, linear convergence of subdivision, the wrapping effect | Moore et al. 2009, IBEX lab1, filib++ `horner.cc` |
 | `04_centered_form.cpp` | x cos x and Chebyshev T5, natural and mean-value forms | Automatic differentiation over intervals, quadratic convergence of the centered form, monotonicity test | Codac's `AnalyticFunction`, `02_centered_form` |
@@ -155,7 +154,7 @@ Three headers are shared:
 
 ```text
   interval(0.1)                [0x1.999999999999ap-4, 0x1.999999999999ap-4] one double: misses 1/10
-  interval("0.1")              [0x1.9999999999999p-4, 0x1.999999999999ap-4] two doubles: encloses 1/10
+  textToInterval("0.1")        [0x1.9999999999999p-4, 0x1.999999999999ap-4] two doubles: encloses 1/10
   interval(a, b)               [empty]                                      a = 3.5 > b = -1.25: empty
   interval(a) | interval(b)    [-1.25, 3.5]                                 the hull: from b to a
   x - x                        [-1, 1]                                      not [0, 0]: the dependency problem
@@ -166,7 +165,7 @@ Three headers are shared:
 
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
-`interval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
+`textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
 1/10. `sqrt(2.0)` is the C library's double, while `sqrt(interval(2.0))`
 encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
@@ -231,7 +230,7 @@ tests inclusion first claims an area of 3.16 for a set of area 1/6; testing
 `is_empty()` and the domain explicitly gives [0.157, 0.186].
 
 **09 — Parameter estimation.** IBEX lab5, with its data read as text
-(`interval("[0.67, 4.6]")`, since the doubles 0.67 and 4.6 miss both ends):
+(`textToInterval("[0.67, 4.6]")`, since the doubles 0.67 and 4.6 miss both ends):
 the feasible set's hull and area bracket contain the values computed apart
 (area 0.0661137, in [0.0655, 0.0667]). One of the four corners from which
 lab5 says its data were generated, (0.6, 0.2), is proved inconsistent with the
@@ -285,17 +284,17 @@ where none of this happens.
 `using std::sqrt;` finds GAOL's functions by argument-dependent lookup, but
 `pow` needs `using gaol::pow;` (GAOL's `pow` and IEEE 1788's differ:
 `gaol::pow([-4,-1], 2)` is [1, 16], `gaol_ieee1788::pow` gives the empty set);
-accumulators start at `T(0.0)`, since `interval()` is the whole line and `T(0)`
-does not compile; `std::max([1,3], [2,4])` silently returns [1, 3] where
+accumulators start at `T(0.0)`, since `interval()` is the whole line;
+`std::max([1,3], [2,4])` silently returns [1, 3] where
 `gaol::max` gives [2, 4]; sorting, `std::set` and `std::priority_queue` take an
 explicit comparator.
 
-**15 — Text and IEEE 1788.** `interval("...")` reads decimals, `[1, 2]`,
+**15 — Text and IEEE 1788.** `gaol::textToInterval("...")` reads decimals, `[1, 2]`,
 `1/3`, `sqrt(2)`, `2*pi`, the uncertain form `3.56?1`, `[1,]`, `[entire]`,
 `[empty]` and hexadecimal floating-point numbers, always enclosing the number
 written; a malformed text throws `input_format_error`, whose `explanation()`
 says why. A file is read line by line with `std::getline` and
-`interval(line.c_str())` in a `try` of its own. `exact_string()` reads back bit
+`gaol::textToInterval(line)` in a `try` of its own. `exact_string()` reads back bit
 for bit. The second part writes one contractor step with the names of the
 standard (`numsToInterval`, `pown`, `mulRev`, `sqrRev`, `precedes`…) in a
 function that opens `gaol_ieee1788` alone.
@@ -317,9 +316,9 @@ it, and says for each idiom how it reads with GAOL v5.
 | Idiom | With GAOL v5 | Remark |
 |---|---|---|
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
-| A decimal constant | `interval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return interval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
-| A constant | `interval::pi()`, `interval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
-| Zero | `interval(0.0)`, `interval::zero()` | `interval(0)`, `interval(0, 0)`, `x = 0`, `x < 0`, `max(x, 0)`, `T(0)` do not compile: the literal 0 is a null pointer too, and `interval(const char*)` competes with `interval(double)` |
+| A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return textToInterval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
+| A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
+| Zero | `interval(0.0)`, `interval(0)`, `interval::zero()` | `interval(0, 0)` does not compile: the literal 0 is a null pointer too, and `interval(const char*, const char*)` competes with `interval(double, double)`. `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` compile, GAOL v5 having no `interval(const char*)` |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
 | m ± r | `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward); there is no mid-radius constructor |
 | From an integer beyond 2⁵³ | — | `interval(9007199254740993LL)` is one double that does not contain the integer |
@@ -424,10 +423,11 @@ intervals and automatic differentiation. With GAOL:
   differ): generic code writes `using std::pow; using gaol::pow;`, and the
   error message otherwise names `gaol_core::interval`, which the user never
   wrote; `pow(x, 2L)` and `pow(x, size_t)` are ambiguous;
-- constants are written `T(0.0)`, never `T(0)` or `T{}`;
-- `Eigen::Matrix<gaol::interval, ...>` does not compile, Eigen writing
-  `Scalar(0)` and `Scalar(1)`; Codac wraps GAOL's interval in a class of its
-  own for this reason;
+- constants are written `T(0.0)` or `T(0)`, never `T{}` (the whole line);
+- `Eigen::Matrix<gaol::interval, ...>` compiles for sums, GAOL v5 having no
+  `interval(const char*)` to make Eigen's `Scalar(0)` ambiguous, but for
+  products of small fixed-size matrices only: from 8 × 8, or with a dynamic
+  size, Eigen compares a scalar with `==`;
 - `std::complex<interval>` compiles for `+ - * /` and `exp`, not for `abs`,
   `norm` or `sqrt`, which need `==`.
 
@@ -547,10 +547,8 @@ headers.
 - Smaller slips: the width output format is described as "midpoint and
   width" but prints the radius; the header comment of `chi()` says
   `chi([0,0]) = 0` while the code and the manual say −1; `tests/gaol_tests.h`
-  says the references use 400 bits where the scripts use 2000; the header
-  comment of `interval(const char*)` names a `jail_parser.h` that does not
-  exist; the root file `version.h` is a Code::Blocks file of 2009 that nothing
-  uses.
+  says the references use 400 bits where the scripts use 2000; the root file
+  `version.h` is a Code::Blocks file of 2009 that nothing uses.
 
 ## 4. What was checked and found right
 
@@ -609,8 +607,8 @@ maintainer. Appendix B gives each fix and its test.
 
 | # | What | Where | Severity |
 |---|---|---|---|
-| 9 | The reader hung under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `interval("0.1")` never returned, nor `textToInterval` nor `operator>>`. `strtod` stopped at the `.`, and the lexer then walked from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` wrote `0x1,999999999999ap-4`, which did not read back. **Fixed**, as the exponents of 7 digits or more, which the reader cut at 100000. | `gaol/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/gaol_interval.cpp:756` | high |
-| 10 | `interval((const char*)nullptr)`, `interval(std::getenv("UNSET"))` and `interval(1, 2) + nullptr` compile and crash (`strlen` of a null pointer). | `gaol/gaol_parser.cpp:58`, `gaol/gaol_interval.h:114` | medium |
+| 9 | The reader hung under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `textToInterval("0.1")` never returned, nor `operator>>`. `strtod` stopped at the `.`, and the lexer then walked from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` wrote `0x1,999999999999ap-4`, which did not read back. **Fixed**, as the exponents of 7 digits or more, which the reader cut at 100000. | `gaol/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/gaol_interval.cpp:756` | high |
+| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compile and crash (`strlen` of a null pointer). `interval((const char*)nullptr)` and `interval(1, 2) + nullptr` crashed too, and no longer compile, GAOL v5 having no `interval(const char*)`; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). | `gaol/gaol_parser.cpp:58`, `gaol/gaol_interval.h:120` | medium |
 | 11 | `gaol_core::expression` objects created with no argument in two threads crashed within a million iterations: they shared one global node whose reference count was a plain `unsigned`. **Fixed**. | `gaol/gaol_expression.cpp:76` | medium |
 | 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. | `gaol/gaol_interval.cpp:728` | medium |
 | 13 | `operator<<` set the stream's precision to `interval::precision()` and never restored it: after printing an interval, `std::cout << 1.0/3` printed 16 digits, and `std::setw` padded the `[` only. IBEX and Codac both work around it. **Fixed** (`std::setprecision` still does not apply to intervals, by design). | `gaol/gaol_interval.cpp:780` | medium |
@@ -632,11 +630,11 @@ reviewer and every example writer:
 - `operator<` is IEEE 1788's strictPrecedes, true for (∅, ∅): not an ordering
   (section 2.3). A named total order and a `std::less` specialization would
   make the standard containers safe.
-- The literal `0` does not convert to `interval` (section 2.1). Constrained
-  template constructors for the integer types, plus
-  `interval(std::nullptr_t) = delete`, fix it without making any existing call
-  ambiguous (checked against all the test programs and the library sources),
-  make `Eigen::Matrix<interval>` possible, and enclose integers beyond 2⁵³.
+- The literal `0` converts to `interval`, GAOL v5 having no
+  `interval(const char*)`, but `interval(0, 0)` does not compile, being
+  ambiguous with `interval(const char*, const char*)` (section 2.1).
+  Constrained template constructors for the integer types would fix it, and
+  enclose integers beyond 2⁵³.
 - The rounding direction leaks into the program (section 2.8), `cleanup()`
   restores only once, there is no scoped guard and no documented barrier
   (`rnd_keep()` exists but is not presented as interface).
@@ -855,7 +853,7 @@ To take:
 
 - **Rigorous literals**: `I"0.1"` (Julia), `intval('0.1')` (INTLAB),
   `interval!("[0.1]")` (inari); in C++, a raw literal `operator""_iv` on
-  `interval(const char*)`.
+  `textToInterval()`.
 - **Loud misuse**: Julia flags an interval that met a plain float as "not
   guaranteed", and refuses ambiguous comparisons; Octave warns on
   `interval(2, 1)`; decorations report a domain left.
@@ -909,8 +907,8 @@ To take:
 
 ### Priority 3: natural code
 
-7. Accept the literal 0 and every integer (constrained template constructors,
-   `interval(std::nullptr_t) = delete`), which also opens Eigen.
+7. Accept every integer (constrained template constructors), which makes
+   `interval(0, 0)` compile and encloses the integers beyond 2⁵³.
 8. Give a total order for containers (`gaol::lexicographic_less`, and possibly
    a `std::less` specialization), and warn against `std::sort`, `std::set`,
    `std::max` with the certainly relations.
@@ -1082,7 +1080,8 @@ at most about 125 whatever it gives. Write the hexadecimal bounds of
 (checked identical to glibc's `%a` on 200 000 random doubles under the C
 locale). Test (`tests/numbers.cpp`): under a comma locale if one is installed
 (`fr_FR.UTF-8`, `de_DE.UTF-8`, skipped otherwise), `exact_string([1.5, 2.5])`
-is `[0x1.8p+0, 0x1.4p+1]`, `interval("0.1")` and `interval("1.5")` are right,
+is `[0x1.8p+0, 0x1.4p+1]`, `textToInterval("0.1")` and `textToInterval("1.5")` are
+right,
 and a `TIMEOUT` on the test so that a hang fails it. The exponent of a number
 is no longer cut at 100000, which the bracketing turned from a hang into a
 wrong bound for 1 written with a million zeros after the point and the
@@ -1091,10 +1090,10 @@ beyond which the number is out of the doubles whatever its digits; tested on
 that number, in decimal, in hexadecimal and in the uncertain form.
 
 **10. Null pointers.** `parse_interval()` returns false for a null pointer,
-the error messages write `(null pointer)` instead of the string, and
-`interval(std::nullptr_t) = delete;` makes `x + nullptr` a compile error.
-Test (`tests/numbers.cpp`): `interval(std::getenv(...))` of an unset variable
-throws `input_format_error`, and
+and the error messages write `(null pointer)` instead of the string
+(`x + nullptr` no longer compiles). Test (`tests/numbers.cpp`):
+`interval(std::getenv(...), "1")` of an unset variable throws
+`input_format_error`, and
 `static_assert(!std::is_convertible<std::nullptr_t, interval>::value)`.
 
 **11. Expressions in threads (applied).** Make the shared null node immortal:

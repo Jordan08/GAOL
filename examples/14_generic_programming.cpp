@@ -14,11 +14,11 @@
  * std::vector<interval> of measured speeds, and the program shows what
  * generic code has to write for intervals, and why: the using-declarations
  * that let argument-dependent lookup find GAOL's functions, pow being in the
- * namespace gaol rather than in the namespace of interval; T(0.0) rather
- * than T{} (the whole line) or T(0) (ambiguous); constants computed in T
- * rather than written as doubles; comparisons that are "certainly"
- * relations, which std::sort, std::set, std::priority_queue and std::max must
- * not use; set_eq for set equality.
+ * namespace gaol rather than in the namespace of interval; T(0.0) rather than
+ * T{} (the whole line); constants computed in T rather than written as
+ * doubles; comparisons that are "certainly" relations, which std::sort,
+ * std::set, std::priority_queue and std::max must not use; set_eq for set
+ * equality.
  *
  * It follows the generic style of C++ numerical code (the "using std::sqrt;
  * sqrt(x)" idiom that lets a template take any number type, as Boost.Interval
@@ -92,9 +92,7 @@ namespace {
   }
 
   // The mean of values. The sum starts at T(0.0): T{} and T() are the whole
-  // line [-oo, +oo] for an interval, as in IBEX and Codac ("nothing known"),
-  // and T(0) does not compile, the literal 0 being a null pointer too, which
-  // interval(const char*) takes as well as interval(double).
+  // line [-oo, +oo] for an interval, as in IBEX and Codac ("nothing known").
   template <class T>
   T mean(const std::vector<T>& values)
   {
@@ -153,13 +151,13 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "1. One template, three types: f(v) = sqrt(2/pi) v^2 exp(-v^2/2)\n";
-  // The references, from mpmath with 60 digits, read by the text constructor,
+  // The references, from mpmath with 60 digits, read by gaol::textToInterval,
   // which encloses a decimal that no double equals
-  const interval f15("0.58282918049651277426344801079633671032");      // f(1.5)
-  const interval df15("-0.097138196749418795710574668466056118387");   // f'(1.5)
-  const interval f_max("0.58705065269495959957725771612621847203");    // f(sqrt 2), the maximum
-  const interval f2("0.43192773210550441560451360328570865391");       // f(2)
-  const interval pi_ref("3.1415926535897932384626433832795028841972");
+  const interval f15 = gaol::textToInterval("0.58282918049651277426344801079633671032");     // f(1.5)
+  const interval df15 = gaol::textToInterval("-0.097138196749418795710574668466056118387");  // f'(1.5)
+  const interval f_max = gaol::textToInterval("0.58705065269495959957725771612621847203");   // f(sqrt 2), the maximum
+  const interval f2 = gaol::textToInterval("0.43192773210550441560451360328570865391");      // f(2)
+  const interval pi_ref = gaol::textToInterval("3.1415926535897932384626433832795028841972");
 
   // T = double: no error bound. GAOL leaves the rounding direction upward
   // (unless it is built with GAOL_PRESERVE_ROUNDING), for the doubles of the
@@ -207,24 +205,24 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "3. A std::vector<interval> of measured speeds, with <numeric>\n";
-  // Measured speeds with their uncertainty, given as text: the text
-  // constructor encloses the decimals, which two doubles need not do
+  // Measured speeds with their uncertainty, given as text:
+  // gaol::textToInterval encloses the decimals, which two doubles need not do
   const char* const measures[] = {"[1.20, 1.25]", "[0.85, 0.90]", "[1.95, 2.05]",
                                   "[1.22, 1.30]", "[0.60, 0.66]", "[1.40, 1.42]"};
   std::vector<interval> speeds;
   std::string measures_text;
   for (const char* m : measures) {
-    speeds.emplace_back(m);
+    speeds.push_back(gaol::textToInterval(m));
     measures_text += std::string(measures_text.empty() ? "" : " ") + m;
   }
   // Printing rounds each bound outward, so that the text still holds the
   // interval: a bound that is not a double shows as a slightly wider decimal
   interval::precision(5);
   std::cout << "   measured speeds, as text: " << measures_text << "\n"
-            << "   read by interval(const char*), printed back with 5 digits rounded outward:\n"
+            << "   read by gaol::textToInterval, printed back with 5 digits rounded outward:\n"
             << "     " << text(speeds) << "\n"
             << "   interval(1.95, 2.05), from two doubles, misses 2.05: the double 2.05 is below it\n";
-  check(!interval(1.95, 2.05).set_contains(interval("[1.95, 2.05]")), "interval(1.95, 2.05) misses 2.05");
+  check(!interval(1.95, 2.05).set_contains(gaol::textToInterval("[1.95, 2.05]")), "interval(1.95, 2.05) misses 2.05");
   const interval mean_speed = mean(speeds), energy = mean_energy(speeds);
   const interval sum_entire = std::accumulate(speeds.begin(), speeds.end(), interval());
   std::cout << "   mean(speeds)        = " << mean_speed << "  std::accumulate from interval(0.0)\n"
@@ -248,7 +246,8 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "4. Comparisons are \"certainly\" relations, and there is no ==\n";
-  const interval a("[1.20, 1.25]"), b("[1.40, 1.42]"), c("[1.22, 1.30]");
+  const interval a = gaol::textToInterval("[1.20, 1.25]"), b = gaol::textToInterval("[1.40, 1.42]"),
+                 c = gaol::textToInterval("[1.22, 1.30]");
   std::cout << "   [1.2, 1.25] < [1.4, 1.42] : " << (a < b) << "   each element of one is below each of the other\n"
             << "   [1.2, 1.25] < [1.22, 1.3] : " << (a < c) << ", and >= : " << (a >= c)
             << "   they overlap: false is not \"the opposite\"\n";
@@ -283,12 +282,12 @@ int main()
     increasing = increasing && sorted[i - 1].left() <= sorted[i].left();
   }
   check(increasing, "the speeds sorted by by_bounds are sorted by left bound");
-  check(kept.size() == speeds.size() && queue.top().set_eq(interval("[1.95, 2.05]")),
+  check(kept.size() == speeds.size() && queue.top().set_eq(gaol::textToInterval("[1.95, 2.05]")),
         "std::set keeps the 6 speeds, the queue gives [1.95, 2.05] first");
-  // Eigen::Matrix<interval, n, n> does not compile today, even with a
-  // NumTraits<interval>: Eigen writes Scalar(0) and Scalar(1), and
-  // interval(0) is ambiguous, as T(0) above. Codac wraps gaol::interval in a
-  // class of its own for that reason.
+  // Eigen writes Scalar(0) and Scalar(1), which compile for an interval, but
+  // its products of dynamic size or from 8 x 8 test a scalar with ==, which
+  // interval does not have: Eigen::Matrix<interval> adds matrices of any
+  // size, and multiplies small fixed-size ones only.
 
   // GAOL is not used below. gaol::cleanup() sets the rounding direction back
   // to the one the program started with, to nearest: the doubles computed

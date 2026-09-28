@@ -78,8 +78,7 @@ enum class Verdict { inside, outside, unknown };
 struct Paving {
   std::vector<Box> inside, boundary;
   long processed = 0, outside = 0;
-  // interval(0.0), not interval(0): the literal 0 is a null pointer too, and
-  // interval has a constructor from a C string, so interval(0) is ambiguous
+  // interval(0.0), not interval(), which is the whole line
   interval inside_area = interval(0.0);
   interval boundary_area = interval(0.0);
 
@@ -191,12 +190,13 @@ interval f_codac(const Box& x)
 
 // ---- Part 2: IBEX's lab2 and lab3, f(x, y) = sin(x + y) - 0.1 x y
 //
-// 0.1 is not a double: interval("0.1") encloses 1/10, where interval(0.1)
-// would be the double nearest to it, and S another set. A function-local
-// static builds it once, at the first call, after GAOL is initialized.
+// 0.1 is not a double: textToInterval("0.1") encloses 1/10, where
+// interval(0.1) would be the double nearest to it, and S another set. A
+// function-local static builds it once, at the first call, after GAOL is
+// initialized.
 const interval& tenth()
 {
-  static const interval t("0.1");
+  static const interval t = textToInterval("0.1");
   return t;
 }
 
@@ -357,7 +357,7 @@ int main(int argc, char* argv[])
   // The area of S, by two methods in double precision: the exact length of
   // S on 8000 columns x0 (its ends found with brentq), and a grid of
   // 16000 x 16000 points; they agree to 0.001
-  const interval codac_reference("[19.562, 19.566]");
+  const interval codac_reference = textToInterval("[19.562, 19.566]");
 
   std::cout << "Part 1. Codac's examples/03_sivia: S = {x : x0^2 sin(x0^2 + x1^2) - x1^2 >= 0}\n"
             << "        in [-5, 5] x [-4, 4], boxes cut at 0.49 of their widest side, down to 0.01\n"
@@ -385,7 +385,7 @@ int main(int argc, char* argv[])
   const Paving lab3 = sivia_contractors(lab_box, 0.1, 0.5);
   // The area of S, by the same two methods as in Part 1 (their results
   // 100.87360 and 100.87342)
-  const interval lab_reference("[100.872, 100.875]");
+  const interval lab_reference = textToInterval("[100.872, 100.875]");
 
   std::cout << "\nPart 2. IBEX's lab2 and lab3: S = {(x, y) : sin(x + y) - 0.1 x y in [0, 2]}\n"
             << "        in [-10, 10]^2, boxes cut in the middle, down to 0.1\n"

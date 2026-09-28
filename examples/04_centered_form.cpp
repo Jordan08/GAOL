@@ -59,9 +59,7 @@ namespace {
   const auto f = [](const auto& x) { return x * cos(x); };
 
   // The Chebyshev polynomial T5 written three ways. The coefficients are
-  // written as doubles (16.0): an int works too, except the literal 0, which
-  // is ambiguous for an interval, being a null const char* as well; writing
-  // every constant as a double avoids the case.
+  // written as doubles (16.0), as in the other examples; an int works too.
   const auto t5_expanded = [](const auto& y) { return 16.0 * pow(y, 5) - 20.0 * pow(y, 3) + 5.0 * y; };
   const auto t5_horner = [](const auto& y) {
     // sqr(y), not y * y, which takes the two factors as independent:
@@ -153,7 +151,7 @@ int main()
   const interval centered = centered_form(f, X);
   const interval both = natural & centered;  // two enclosures: so is their intersection
   // The range of f on X, from mpmath: f(0) = 0 and the maximum, at x = 0.8603...
-  const interval range = interval(0.0) | interval("0.56109633819104506754040375316122670886");
+  const interval range = interval(0.0) | textToInterval("0.56109633819104506754040375316122670886");
   std::cout << "   natural   f(X)                  = " << natural << "\n"
             << "   f'(X), computed by dual.h       = " << dfX << "\n"
             << "   centered  f(m) + f'(X) (X - m)  = " << centered << "\n"
@@ -165,17 +163,17 @@ int main()
   // In exact arithmetic, f'(X) = [cos 1 - sin 1, 1] and the centered form is
   // 0.5 cos 0.5 + [-0.5, 0.5]: GAOL's result holds that interval, and lies in
   // the one Codac's manual prints with 6 digits
-  check(centered.set_contains(interval("[-0.06120871905481364194185920869808517400418,"
-                                       " 0.9387912809451863580581407913019148259958]")) &&
-          interval("[-0.0612088, 0.938792]").set_contains(centered),
+  check(centered.set_contains(textToInterval("[-0.06120871905481364194185920869808517400418,"
+                                             " 0.9387912809451863580581407913019148259958]")) &&
+          textToInterval("[-0.0612088, 0.938792]").set_contains(centered),
         "the centered form is Codac's [-0.0612088, 0.938792]");
-  check(dfX.set_contains(interval("-0.30116867893975678925")), "f'(X) holds f'(1) = cos 1 - sin 1");
+  check(dfX.set_contains(textToInterval("-0.30116867893975678925")), "f'(X) holds f'(1) = cos 1 - sin 1");
   std::cout << "   each holds the range and f at 1001 points of X; Codac prints [-0.0612088, 0.938792]\n";
 
   // -------------------------------------------------------------------------
   std::cout << "2. Monotonicity: when 0 is not in f'(X), the range is f at the bounds of X\n";
-  // The text constructor encloses the decimal 0.8, which no double equals
-  const interval X2("[0, 0.8]");
+  // textToInterval() encloses the decimal 0.8, which no double equals
+  const interval X2 = textToInterval("[0, 0.8]");
   const interval dfX2 = f(Dual<1>::variable(X2, 0)).d[0];
   // > is "certainly greater": every element of f'(X) is above 0, f increases
   // on X. The empty set passes every certainly-test, hence the test apart: an
@@ -184,7 +182,7 @@ int main()
   // the two would cover a decreasing f (f'(X) < 0.0) as well.
   const bool increasing = !dfX2.is_empty() && dfX2 > 0.0;
   const interval at_bounds = f(interval(X2.left())) | f(interval(X2.right()));
-  const interval f08("0.55736536747773233673659998531385994088");  // f(0.8), mpmath
+  const interval f08 = textToInterval("0.55736536747773233673659998531385994088");  // f(0.8), mpmath
   std::cout << "   X = [0, 0.8]: f'(X) = " << dfX2 << ", above 0: f increases on X\n"
             << "     natural            " << f(X2) << "\n"
             << "     centered           " << centered_form(f, X2) << "\n"
@@ -201,11 +199,11 @@ int main()
   // -------------------------------------------------------------------------
   std::cout << "3. Chebyshev T5(y) = 16y^5 - 20y^3 + 5y: the way f is written matters\n";
   interval::precision(4);
-  const interval Y1(-1.0, 1.0), Y2("[0.2, 0.3]");
+  const interval Y1(-1.0, 1.0), Y2 = textToInterval("[0.2, 0.3]");
   // The true ranges: T5 = cos(5 acos(y)) takes every value of [-1, 1] on
   // [-1, 1]; on [0.2, 0.3] it increases, from T5(0.2) = 0.84512 to T5(0.3) =
   // 0.99888 (exact decimals: T5 has integer coefficients)
-  const interval range1(-1.0, 1.0), range2("[0.84512, 0.99888]");
+  const interval range1(-1.0, 1.0), range2 = textToInterval("[0.84512, 0.99888]");
   struct Writing {
     const char* name;
     interval on_y1, on_y2;
@@ -254,8 +252,8 @@ int main()
   double natural_excess[3] = {}, centered_excess[3] = {}, natural_ratio[3] = {}, centered_ratio[3] = {};
   interval previous_natural, previous_centered;
   for (int i = 0; i < 3; ++i) {
-    const interval Xr(boxes[i].box);
-    const interval lo(boxes[i].f_left), hi(boxes[i].f_right);
+    const interval Xr = textToInterval(boxes[i].box);
+    const interval lo = textToInterval(boxes[i].f_left), hi = textToInterval(boxes[i].f_right);
     const interval nat = f(Xr), cen = centered_form(f, Xr);
     check(nat.set_contains(lo | hi) && cen.set_contains(lo | hi), "both forms hold the range on [0.5 - r, 0.5 + r]");
     // Enclosures of the excesses, then their midpoints to print

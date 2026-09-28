@@ -161,11 +161,11 @@ public:
 	}
 
 	void test_output() {
-		interval I("[3.452, 3.453]");
+		interval I = textToInterval("[3.452, 3.453]");
 		std::ostringstream os;
 		
 		os << I;
-		interval K(os.str().c_str());
+		interval K = textToInterval(os.str());
 		TEST_PEQ(K,interval(3.452, 3.453));
 		os.str("");
 		interval::precision(2);
@@ -192,7 +192,7 @@ public:
 		// reads back bit for bit, rather than the digits of each double (GAOL v5)
 		CPPUNIT_ASSERT(os.str() == string("[0x1.b9db22d0e5604p+1, 0x1.b9fbe76c8b43ap+1]"));
 		{
-			interval R(os.str().c_str());
+			interval R = textToInterval(os.str());
 			CPPUNIT_ASSERT(R.left() == I.left() && R.right() == I.right());
 		}
 

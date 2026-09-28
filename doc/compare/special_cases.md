@@ -62,8 +62,8 @@ is [4], `pow([0], [0])` is [1], `pow([−1], [2^31−1])` is [−1] and
 176). The `pow` of `gaol_ieee1788` follows IEEE 1788 there, taking only the
 part of x in [0, +∞] whatever the exponent (see
 [Using GAOL](../using.md#the-names-of-ieee-1788-2015)). GAOL reads a bare
-number, `interval("0.1")`, as the interval enclosing it, an extension of the
-literals IEEE 1788 allows (19).
+number, `textToInterval("0.1")`, as the interval enclosing it, an extension of
+the literals IEEE 1788 allows (19).
 
 Its other wider results are one double off, all from `pow(x, y)` where the
 power at a corner of the box is a double: CORE-MATH's value there, correctly
@@ -257,17 +257,17 @@ From tests/numbers.cpp (numbers).
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
 |---|---|---|---|---|---|---|---|---|
-| 019 | `interval("0.1")` | — | ∅ | [0.09999999999999999, 0.1] | exception interval_io_exception | [0, 0.2] | [0.1] | not an interval literal (9.7.4): ∅, unless the implementation extends the literals (9.7.1), as GAOL does; Solaris Studio reads 0.1 ± 0.1 |
-| 020 | `interval("[0.1]")` | [0.09999999999999999, 0.1] | [0.09999999999999999, 0.1] ✓ | [0.09999999999999999, 0.1] ✓ | exception interval_io_exception ✗ | [0.09999999999999999, 0.1] ✓ | [0.1] ✗ | filib++: operator>>, which reads [l, u] only, and rounds the bounds to nearest |
-| 021 | `interval("[0.1, 0.3]")` | [0.09999999999999999, 0.30000000000000004] | [0.09999999999999999, 0.30000000000000004] ✓ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ |  |
-| 022 | `interval("[1/3, 0.3]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | rational literal, l > u |
-| 023 | `interval("[0.3, 0.1]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | read error, iostat 1211 ✗ | [0.1, 0.3] ✗ | l > u |
-| 024 | `interval("[1e309]")` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✓ | [+∞] ✗ | the real number 1e309, beyond the doubles |
-| 025 | `interval("[1e-400]")` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | exception interval_io_exception ✗ | [0, 2^-1074] ✓ | [0] ✗ |  |
-| 026 | `interval("[1, inf]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | a literal of the set-based flavor (10.5.1) |
-| 027 | `interval("[empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | a literal of the set-based flavor (10.5.1); filib++ reads [ EMPTY ] |
-| 028 | `interval("[entire]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
-| 029 | `interval("3.56?1")` | [3.55, 3.5700000000000003] | [3.55, 3.5700000000000003] ✓ | [3.55, 3.5700000000000003] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | uncertain form (9.7.4) |
+| 019 | `textToInterval("0.1")` | — | ∅ | [0.09999999999999999, 0.1] | exception interval_io_exception | [0, 0.2] | [0.1] | not an interval literal (9.7.4): ∅, unless the implementation extends the literals (9.7.1), as GAOL does; Solaris Studio reads 0.1 ± 0.1 |
+| 020 | `textToInterval("[0.1]")` | [0.09999999999999999, 0.1] | [0.09999999999999999, 0.1] ✓ | [0.09999999999999999, 0.1] ✓ | exception interval_io_exception ✗ | [0.09999999999999999, 0.1] ✓ | [0.1] ✗ | filib++: operator>>, which reads [l, u] only, and rounds the bounds to nearest |
+| 021 | `textToInterval("[0.1, 0.3]")` | [0.09999999999999999, 0.30000000000000004] | [0.09999999999999999, 0.30000000000000004] ✓ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ |  |
+| 022 | `textToInterval("[1/3, 0.3]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | rational literal, l > u |
+| 023 | `textToInterval("[0.3, 0.1]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | read error, iostat 1211 ✗ | [0.1, 0.3] ✗ | l > u |
+| 024 | `textToInterval("[1e309]")` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✓ | [+∞] ✗ | the real number 1e309, beyond the doubles |
+| 025 | `textToInterval("[1e-400]")` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | exception interval_io_exception ✗ | [0, 2^-1074] ✓ | [0] ✗ |  |
+| 026 | `textToInterval("[1, inf]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | a literal of the set-based flavor (10.5.1) |
+| 027 | `textToInterval("[empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | a literal of the set-based flavor (10.5.1); filib++ reads [ EMPTY ] |
+| 028 | `textToInterval("[entire]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
+| 029 | `textToInterval("3.56?1")` | [3.55, 3.5700000000000003] | [3.55, 3.5700000000000003] ✓ | [3.55, 3.5700000000000003] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | uncertain form (9.7.4) |
 
 ### 3. Division by an interval containing zero
 
@@ -541,17 +541,17 @@ From tests/numbers.cpp (ieee_literals).
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
 |---|---|---|---|---|---|---|---|---|
-| 233 | `interval("[ ]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat -1 ✗ | not read ✗ | 12.11.3 |
-| 234 | `interval("[Empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | the case of the letters is ignored (9.7.1) |
-| 235 | `interval("[,]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [0] ✗ | read error, iostat 1210 ✗ | not read ✗ | bounds left out are infinite |
-| 236 | `interval("[1,]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | ∅ ✗ | read error, iostat 1210 ✗ | [1] ✗ |  |
-| 237 | `interval("[-Inf, 2/3]")` | [−∞, 0.6666666666666667] | [−∞, 0.6666666666666667] ✓ | [−∞, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
-| 238 | `interval("[0x1.3p-1, 2/3]")` | [0.59375, 0.6666666666666667] | [0.59375, 0.6666666666666667] ✓ | [0.59375, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | hexadecimal number (9.7.2) |
-| 239 | `interval("[0x1.00000000000001p0]")` | [1, 1.0000000000000002] | [1, 1.0000000000000002] ✓ | [1, 1.0000000000000002] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | [1] ✗ |  |
-| 240 | `interval("-10??u")` | [−10, +∞] | [−10, +∞] ✓ | [−10, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | uncertain form with an infinite radius |
-| 241 | `interval("-10?12")` | [−22, 2] | [−22, 2] ✓ | [−22, 2] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
-| 242 | `interval("[inf]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✗ | [+∞] ✗ | not a literal: numsToInterval(+∞, +∞) has no value |
-| 243 | `interval("[inf, inf]")` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
+| 233 | `textToInterval("[ ]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat -1 ✗ | not read ✗ | 12.11.3 |
+| 234 | `textToInterval("[Empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | the case of the letters is ignored (9.7.1) |
+| 235 | `textToInterval("[,]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [0] ✗ | read error, iostat 1210 ✗ | not read ✗ | bounds left out are infinite |
+| 236 | `textToInterval("[1,]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | ∅ ✗ | read error, iostat 1210 ✗ | [1] ✗ |  |
+| 237 | `textToInterval("[-Inf, 2/3]")` | [−∞, 0.6666666666666667] | [−∞, 0.6666666666666667] ✓ | [−∞, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
+| 238 | `textToInterval("[0x1.3p-1, 2/3]")` | [0.59375, 0.6666666666666667] | [0.59375, 0.6666666666666667] ✓ | [0.59375, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | hexadecimal number (9.7.2) |
+| 239 | `textToInterval("[0x1.00000000000001p0]")` | [1, 1.0000000000000002] | [1, 1.0000000000000002] ✓ | [1, 1.0000000000000002] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | [1] ✗ |  |
+| 240 | `textToInterval("-10??u")` | [−10, +∞] | [−10, +∞] ✓ | [−10, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | uncertain form with an infinite radius |
+| 241 | `textToInterval("-10?12")` | [−22, 2] | [−22, 2] ✓ | [−22, 2] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
+| 242 | `textToInterval("[inf]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✗ | [+∞] ✗ | not a literal: numsToInterval(+∞, +∞) has no value |
+| 243 | `textToInterval("[inf, inf]")` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
 
 ### 13. Comparisons (Tables 10.3 and 10.4)
 

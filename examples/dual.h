@@ -43,7 +43,7 @@ struct Dual {
   std::array<interval, N> d;  // enclosures of the partial derivatives
 
   // A constant: its derivatives are zero. Not explicit, so that 2.0 * x and
-  // x + interval("0.1") read as they do on intervals.
+  // x + gaol::textToInterval("0.1") read as they do on intervals.
   Dual(const interval& c = interval(0.0)) : v(c) { d.fill(interval(0.0)); }
   Dual(double c) : Dual(interval(c)) {}
 
