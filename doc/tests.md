@@ -137,7 +137,15 @@ Codac.
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it hang
-  again (GAOL v5).
+  again (GAOL v5). With flush-to-zero, denormals-are-zero or both set in MXCSR
+  (x86 only, and where the processor honours them), the numbers from 0 to the
+  least normal double, in decimal and in hexadecimal, alone, in intervals and
+  in the uncertain form, have to be read as the tightest intervals enclosing
+  them, and the doubles among them, 0 included, as themselves: the reader
+  compared each number with the doubles around it as doubles, and
+  denormals-are-zero reads a subnormal as 0, so that 1e-310 was read as the
+  interval from the greatest subnormal to the least normal double, which does
+  not enclose it, and 0 as the greatest subnormal (GAOL v5).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015

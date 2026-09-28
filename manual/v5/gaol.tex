@@ -3233,7 +3233,11 @@ direction (the C runtime of Windows, musl on 64-bit ARM processors).
 The point of a number is a point whatever the locale of the program, a locale
 writing a decimal comma included (as \code{setlocale(LC\_ALL, "")} sets under
 a French one).\newinvfive{} GAOL~4 read \code{0.1} as 0 there,
-\code{strtod()} stopping at the point.
+\code{strtod()} stopping at the point. The modes of the processor that flush
+the subnormal numbers to zero (flush-to-zero and denormals-are-zero, which a
+program linked with \code{-Ofast} has) do not change what a number is read as:
+\code{1e-310} is read as the tightest interval of doubles containing it, and
+\code{0} as 0.\newinvfive{}
 \cindex{number!reading}%
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} of IEEE 1788-2015
