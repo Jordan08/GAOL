@@ -55,7 +55,13 @@ namespace gaol_core {
 
     The supported formats so far are the following:
     - bounds: the interval is output in the form "[l, r]" where l and r
-    are respectively its left and right bounds
+    are respectively its left and right bounds, rounded outward, and in the
+    form "<a, a>" for a point interval that the digits write exactly, as
+    "<4, 4>". textToInterval() reads <a, b> for one double only: the point
+    interval of a double that the digits do not write exactly is output in
+    the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
+    read back as an interval containing it (GAOL v5: GAOL wrote
+    "<0.1, 0.1000000000000001>", which it refused to read)
     - width: the interval is output in the form "c (+/- w)" where
     c is its center and w its width
     - center: the interval is output as a single value, its center.

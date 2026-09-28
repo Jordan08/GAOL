@@ -3290,7 +3290,8 @@ appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}.
+\code{"<0.1, 0.1>"}. It is the form in which \code{operator<{}<} writes the
+degenerate intervals whose digits are exact (\pxref{sec:output-format}).
 
 \paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
 whose right bound is $-\infty$ is the empty set, as \code{numsToInterval} of
@@ -3400,15 +3401,21 @@ the last character of the left one that is not a zero, and wrote
 \end{example}
 
 \item[\element{bounds}.] By printing the bounds between square brackets.
-Degenerate intervals whose left and right bound are equal are printed with angles:
+Degenerate intervals whose left and right bound are equal, and are written
+exactly by the digits displayed, are printed with angles:
 \begin{example}
  interval::format(interval_format::bounds);
  std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
  @outputs^[3, 5] <4, 4>~
 \end{example}
 A degenerate interval whose value has more digits than those displayed is
-printed with its two bounds rounded outward: \code{interval(0.1)} is printed
-\code{<0.1, 0.1000000000000001>}.
+printed like any other interval, with its two bounds rounded outward between
+square brackets: \code{interval(0.1)} is printed
+\code{[0.1, 0.1000000000000001]}. The reader takes the angles for one double
+only (\pxref{sec:input-format}), so that the text of a degenerate interval is
+read back, as any other, as an interval containing it.\newinvfive{} GAOL~4 printed
+\code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its reader
+refused (\code{input\_format\_error}).
 
 \item[\element{width}.] by printing their midpoint and their width:
 \begin{example}
