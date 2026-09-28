@@ -13,7 +13,12 @@
  *   hexadecimal, the bounds given apart);
  * - the operators and the functions, alone and nested;
  * - the strings the parser refuses, which have to raise an exception rather
- *   than give an interval.
+ *   than give an interval;
+ * - the long and the deeply nested expressions: sums, products, differences
+ *   and quotients of 200000 terms, read from a string and built in C++, and
+ *   chains of 200000 unary operations, which have to be evaluated and deleted
+ *   whatever their depth, on no more stack than a tree of two nodes takes, and
+ *   the nesting the reader refuses.
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -30,7 +35,12 @@
 #include "gaol_tests.h"
 
 #include <cstdio>
+#include <random>
 #include "gaol/gaol_expr_eval.h"
+
+#if defined(_MSC_VER)
+#  include <intrin.h>
+#endif
 
 // Commented out: the tests run no thread (GAOL v5)
 // // std::thread, which libstdc++ has only when built with a thread model
@@ -63,6 +73,9 @@ namespace
   {
     std::fprintf(stderr, "-- %s\n", what);
     std::fflush(stderr);
+    // What the checks of the last part printed, which a crash in this one
+    // would take with the buffer of a pipe (GAOL v5)
+    std::fflush(stdout);
   }
 
   void same(const std::string& text, const interval& expected)
@@ -533,6 +546,439 @@ namespace
           [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
   }
 
+  /* The long and the deeply nested expressions (GAOL v5)
+
+     A sum of 100000 terms read from a string, and an expression that long
+     built in C++, were trees 100000 nodes deep, whose evaluation and
+     deletion made one call within another per node: they overflowed the
+     stack of the program, 8 MB with Linux and macOS, and crashed it. The
+     parser now computes an operation when it reads it, the evaluation and
+     the deletion of a tree take stacks of their own in the heap, and the
+     reader keeps what it reads in a stack of the heap too, of 10000 entries:
+     a string nested deeper, with parentheses, signs or calls, is refused. */
+
+  // The operation of the operator op, one of + - * /
+  interval operate(char op, const interval& a, const interval& b)
+  {
+    switch (op) {
+    case '+': return a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    default:  return a / b;
+    }
+  }
+
+  // The expression a op b
+  expression combine(char op, const expression& a, const expression& b)
+  {
+    switch (op) {
+    case '+': return a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    default:  return a / b;
+    }
+  }
+
+  // "t op t op ... op t", n terms
+  std::string repeated(int n, char op, const std::string& term)
+  {
+    std::string text;
+    text.reserve(static_cast<std::size_t>(n) * (term.size() + 1));
+    for (int i = 0; i < n; ++i) {
+      if (i > 0) {
+        text += op;
+      }
+      text += term;
+    }
+    return text;
+  }
+
+  // The same bounds to the bit, the signs of the zeros and the empty set included
+  bool same_bits(const interval& a, const interval& b)
+  {
+    return hex(a) == hex(b);
+  }
+
+  const int long_terms = 200000;
+
+  /* Sums, differences, products and quotients of 200000 terms, read from a
+     string: the value is the one of the same operations in C++, grouped
+     from the left as the reader groups them. The terms are decimals, that
+     are no doubles, whose operations round. */
+  void long_strings()
+  {
+    struct Chain { char op; const char* term; };
+    const Chain chains[] = { {'+', "0.1"}, {'-', "0.1"}, {'*', "1.0000001"}, {'/', "1.0000001"} };
+    for (const Chain& c : chains) {
+      const interval t = textToInterval(c.term);
+      interval expected = t;
+      for (int i = 1; i < long_terms; ++i) {
+        expected = operate(c.op, expected, t);
+      }
+      try {
+        const interval got = textToInterval(repeated(long_terms, c.op, c.term));
+        check("long expression: a string of 200000 terms is read as its operators group them",
+              same_bits(got, expected),
+              [&] { return std::string(1, c.op) + " of " + c.term + " gave " + hex(got) + " rather than " + hex(expected); });
+      } catch (const std::exception& e) {
+        check("long expression: no exception on a string of 200000 terms", false,
+              [&] { return std::string(1, c.op) + " of " + c.term + ": " + e.what(); });
+      }
+    }
+  }
+
+  /* The chains of 200000 terms built in C++, on the left, then on the right,
+     then chains of 200000 unary operations: the value is the one of the same
+     operations in C++, in the same order. The trees are deleted when they go
+     out of scope, which is a part of the test too. */
+  void long_built()
+  {
+    for (const char op : {'+', '-', '*', '/'}) {
+      // Terms whose sums and products round, and neither overflow nor underflow in 200000 of them
+      const interval t = (op == '+' || op == '-') ? interval(0.1, 0.2) : interval(0.9999999, 1.0000001);
+
+      expression left(t), right(t);
+      interval expected_left = t, expected_right = t;
+      for (int i = 1; i < long_terms; ++i) {
+        left = combine(op, left, expression(t));
+        expected_left = operate(op, expected_left, t);
+        right = combine(op, expression(t), right);
+        expected_right = operate(op, t, expected_right);
+      }
+      interval got_left, got_right;
+      const bool evaluated_left = evaluate_expr(left, got_left);
+      const bool evaluated_right = evaluate_expr(right, got_right);
+      check("long expression: 200000 terms built on the left have the value of the operations in C++",
+            evaluated_left && same_bits(got_left, expected_left),
+            [&] { return std::string(1, op) + " gave " + hex(got_left) + " rather than " + hex(expected_left); });
+      check("long expression: 200000 terms built on the right have the value of the operations in C++",
+            evaluated_right && same_bits(got_right, expected_right),
+            [&] { return std::string(1, op) + " gave " + hex(got_right) + " rather than " + hex(expected_right); });
+    }
+
+    // The operators that change an expression in place, on a chain
+    {
+      const interval t(0.1, 0.2);
+      expression sum(t), difference(t);
+      interval expected_sum = t, expected_difference = t;
+      for (int i = 1; i < long_terms; ++i) {
+        sum += expression(t);
+        expected_sum = expected_sum + t;
+        difference -= expression(t);
+        expected_difference = expected_difference - t;
+      }
+      interval got_sum, got_difference;
+      const bool evaluated = evaluate_expr(sum, got_sum) && evaluate_expr(difference, got_difference);
+      check("long expression: 200000 terms added and subtracted in place",
+            evaluated && same_bits(got_sum, expected_sum) && same_bits(got_difference, expected_difference),
+            [&] { return hex(got_sum) + " and " + hex(got_difference); });
+    }
+
+    // Chains of unary operations: minus signs, and sines
+    {
+      const interval t(0.1, 0.2);
+      expression signs(t), sines(t);
+      interval expected_sines = t;
+      for (int i = 0; i < long_terms; ++i) {
+        signs = -signs;
+        sines = sin(sines);
+        expected_sines = sin(expected_sines);
+      }
+      interval got_signs, got_sines;
+      bool evaluated = evaluate_expr(signs, got_signs);
+      check("long expression: 200000 minus signs, an even number, are no sign",
+            evaluated && same_bits(got_signs, t), [&] { return hex(got_signs); });
+      signs = -signs;
+      evaluated = evaluate_expr(signs, got_signs);
+      check("long expression: 200001 minus signs are one",
+            evaluated && same_bits(got_signs, -t), [&] { return hex(got_signs); });
+      evaluated = evaluate_expr(sines, got_sines);
+      check("long expression: a sine of a sine of 200000 sines",
+            evaluated && same_bits(got_sines, expected_sines),
+            [&] { return hex(got_sines) + " rather than " + hex(expected_sines); });
+    }
+  }
+
+  /* What the reader does with a string nested deeper than its stack of 10000
+     entries: it refuses it, as a syntax error, where it read a string 9000
+     deep. The nesting of parentheses, of brackets, of signs and of calls of
+     functions: none is more than a few thousand nodes deep once read, which
+     the evaluation and the deletion of the tree take without recursion. */
+  void deep_strings()
+  {
+    const auto nested = [](int depth, const char* open, const char* inner, const char* close) {
+      std::string text;
+      for (int i = 0; i < depth; ++i) {
+        text += open;
+      }
+      text += inner;
+      for (int i = 0; i < depth; ++i) {
+        text += close;
+      }
+      return text;
+    };
+
+    // Accepted: 9000 levels of parentheses, of brackets and of signs, and thousands of calls
+    same(nested(9000, "(", "1", ")"), interval(1.0));
+    same(nested(9000, "[", "1", "]"), interval(1.0));
+    same(nested(4000, "sin(", "0", ")"), interval(0.0));
+    same(nested(2000, "pow(1,", "1", ")"), interval(1.0));
+    same(nested(9000, "-", "3", ""), interval(3.0));
+    same(nested(8999, "-", "3", ""), interval(-3.0));
+    same(nested(9000, "-", "inf", ""), textToInterval("inf"));
+    same(nested(8999, "-", "inf", ""), textToInterval("-inf"));
+    same("[" + nested(9000, "-", "1", "") + ", 2]", interval(1.0, 2.0));
+    same("[" + nested(9000, "-", "inf", "") + ", 2]", interval::emptyset());
+    same("[" + nested(8999, "-", "inf", "") + ", 2]", interval(-inf, 2.0));
+    same("1+" + nested(9000, "-", "3", "") + "*2", interval(7.0));
+    same(nested(4000, "(", "1", "+1)"), interval(4001.0));
+
+    // Refused as a syntax error, an input_format_error, whatever the depth
+    const struct { const char* name; std::string text; } refusals[] = {
+      {"parentheses", nested(100000, "(", "1", ")")},
+      {"brackets", nested(100000, "[", "1", "]")},
+      {"signs", nested(100000, "-", "1", "")},
+      {"calls", nested(100000, "sin(", "1", ")")},
+      {"nested sums", nested(100000, "(", "1", "+1)")},
+    };
+    for (const auto& r : refusals) {
+      bool syntax_error = false, other = false;
+      try {
+        const interval x = textToInterval(r.text);
+        (void)x;
+      } catch (const input_format_error&) {
+        syntax_error = true;
+      } catch (...) {
+        other = true;
+      }
+      check("deep string: 100000 levels are refused with an input_format_error", syntax_error && !other,
+            [&] { return std::string(r.name) + (other ? ": another exception" : ": read"); });
+    }
+  }
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_TESTS_FRAME_POSITION() reinterpret_cast<std::uintptr_t>(__builtin_frame_address(0))
+#elif defined(_MSC_VER)
+#  define GAOL_TESTS_FRAME_POSITION() reinterpret_cast<std::uintptr_t>(_AddressOfReturnAddress())
+#endif
+
+#ifdef GAOL_TESTS_FRAME_POSITION
+  /* A leaf that notes where the stack of the program is when it is visited
+     by an evaluation and when it is deleted. Under a chain of nodes, the
+     recursion of an evaluation or of a deletion has put a frame on the stack
+     for each node above the leaf: the further the leaf is from where the
+     evaluation or the deletion started, the deeper the recursion.
+     The position is the address of the frame, and not the one of a local
+     variable, which the sanitizers move to a stack of their own. */
+  class probe_leaf : public expr_node
+  {
+    public:
+      explicit probe_leaf(double v) : value_(v) {}
+      ~probe_leaf() override { deleted_at = GAOL_TESTS_FRAME_POSITION(); }
+      expr_node* clone() const override { return new probe_leaf(value_.get_val()); }
+      void accept(expr_visitor& visitor) override
+      {
+        visited_at = GAOL_TESTS_FRAME_POSITION();
+        visitor.visit(&value_);
+      }
+      unsigned int get_precedence() const override { return value_.get_precedence(); }
+      std::ostream& display(std::ostream& os) const override { return value_.display(os); }
+
+      static std::uintptr_t visited_at, deleted_at;
+
+    private:
+      double_node value_;
+  };
+
+  std::uintptr_t probe_leaf::visited_at = 0;
+  std::uintptr_t probe_leaf::deleted_at = 0;
+
+  // The bytes of stack between two positions, whichever way the stack grows
+  std::uintptr_t stack_between(std::uintptr_t a, std::uintptr_t b)
+  {
+    return a > b ? a - b : b - a;
+  }
+#endif
+
+  /* The stack an evaluation and a deletion use does not depend on the depth of
+     the tree: the leaf at the bottom of a chain of 20000 nodes is visited and
+     deleted less than 64 KiB of stack away from the function that starts
+     them, where a recursion needs a frame, 16 bytes at the very least, for
+     each node: 320 KB. Deterministic, whatever the stack of the program and
+     the size of the frames (the sanitizers make them larger), and it fails
+     without crashing, where the chains of 200000 nodes above overflow the
+     stack of 8 MB only. */
+  void stack_use()
+  {
+#ifdef GAOL_TESTS_FRAME_POSITION
+    const int terms = 20000;
+    const std::uintptr_t limit = 64 * 1024;
+    const char* const shapes[] = {"on the left", "on the right", "of minus signs"};
+    const std::uintptr_t here = GAOL_TESTS_FRAME_POSITION();
+    for (int shape = 0; shape < 3; ++shape) {
+      probe_leaf::visited_at = probe_leaf::deleted_at = 0;
+      interval value;
+      bool evaluated = false;
+      {
+        // The leaf is at the bottom: leftmost, rightmost, or under the signs
+        expression e(*new probe_leaf(1.0));
+        for (int i = 1; i < terms; ++i) {
+          if (shape == 0) {
+            e += expression(1.0);
+          } else if (shape == 1) {
+            e = expression(1.0) + e;
+          } else {
+            e = -e;
+          }
+        }
+        evaluated = evaluate_expr(e, value);
+      }
+      const interval expected = (shape < 2) ? interval(static_cast<double>(terms)) : -interval(1.0);
+      check("stack use: the value of a chain of 20000 nodes", evaluated && same_bits(value, expected),
+            [&] { return std::string(shapes[shape]) + ": " + hex(value); });
+      const std::uintptr_t evaluation = stack_between(here, probe_leaf::visited_at);
+      const std::uintptr_t deletion = stack_between(here, probe_leaf::deleted_at);
+      check("stack use: the evaluation of a chain of 20000 nodes takes less than 64 KiB of stack",
+            probe_leaf::visited_at != 0 && evaluation < limit,
+            [&] { return std::string(shapes[shape]) + ": the leaf was visited " + std::to_string(evaluation) + " bytes down"; });
+      check("stack use: the deletion of a chain of 20000 nodes takes less than 64 KiB of stack",
+            probe_leaf::deleted_at != 0 && deletion < limit,
+            [&] { return std::string(shapes[shape]) + ": the leaf was deleted " + std::to_string(deletion) + " bytes down"; });
+    }
+#else
+    std::printf("stack use: no frame address on this compiler: skipped\n");
+#endif
+  }
+
+  // The value of a random expression, computed as the expression is built
+  struct Modeled
+  {
+    expression e;
+    interval v;
+  };
+
+  Modeled random_leaf(std::mt19937& rng)
+  {
+    const double doubles[] = {-2.5, -1.0, -0.5, 0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0};
+    const interval intervals[] = {interval(-1.0, 1.0), interval(0.5, 2.0), interval(-3.0, -1.0),
+                                  interval(0.0, 0.5), interval(1.0, 4.0), interval(-0.5, 0.25)};
+    if (rng() % 2 == 0) {
+      const double d = doubles[rng() % 10];
+      return Modeled{expression(d), interval(d)};
+    }
+    const interval& i = intervals[rng() % 6];
+    return Modeled{expression(i), i};
+  }
+
+  Modeled random_tree(std::mt19937& rng, int depth)
+  {
+    if (depth == 0 || rng() % 6 == 0) {
+      return random_leaf(rng);
+    }
+    const unsigned int kind = static_cast<unsigned int>(rng() % 27);
+    const Modeled a = random_tree(rng, depth - 1);
+    if (kind < 21) {
+      switch (kind) {
+      case 0:  return Modeled{-a.e, -a.v};
+      case 1:  return Modeled{pow(a.e, 3), pow(a.v, 3)};
+      case 2:  return Modeled{nth_root(a.e, 3), nth_root(a.v, 3)};
+      case 3:  return Modeled{cos(a.e), cos(a.v)};
+      case 4:  return Modeled{sin(a.e), sin(a.v)};
+      case 5:  return Modeled{tan(a.e), tan(a.v)};
+      case 6:  return Modeled{acos(a.e), acos(a.v)};
+      case 7:  return Modeled{asin(a.e), asin(a.v)};
+      case 8:  return Modeled{atan(a.e), atan(a.v)};
+      case 9:  return Modeled{cosh(a.e), cosh(a.v)};
+      case 10: return Modeled{sinh(a.e), sinh(a.v)};
+      case 11: return Modeled{tanh(a.e), tanh(a.v)};
+      case 12: return Modeled{acosh(a.e), acosh(a.v)};
+      case 13: return Modeled{asinh(a.e), asinh(a.v)};
+      case 14: return Modeled{atanh(a.e), atanh(a.v)};
+      case 15: return Modeled{exp(a.e), exp(a.v)};
+      case 16: return Modeled{log(a.e), log(a.v)};
+      case 17: return Modeled{exp2(a.e), exp2(a.v)};
+      case 18: return Modeled{log2(a.e), log2(a.v)};
+      case 19: return Modeled{sign(a.e), sign(a.v)};
+      default: return Modeled{trunc(a.e), trunc(a.v)};
+      }
+    }
+    // A quarter of the operations have the same operand twice: a node that two nodes share
+    const Modeled b = (rng() % 4 == 0) ? a : random_tree(rng, depth - 1);
+    switch (kind) {
+    case 21: return Modeled{a.e + b.e, a.v + b.v};
+    case 22: return Modeled{a.e - b.e, a.v - b.v};
+    case 23: return Modeled{a.e * b.e, a.v * b.v};
+    case 24: return Modeled{a.e / b.e, a.v / b.v};
+    case 25: return Modeled{pow(a.e, b.e), pow(a.v, b.v)};
+    default: return Modeled{atan2(a.e, b.e), atan2(a.v, b.v)};
+    }
+  }
+
+  /* The evaluation of a tree takes the operands of each node in the order of
+     the operations, and gives the bounds of the operations in C++: random
+     trees of every node, with shared nodes, whose value is computed as they
+     are built. */
+  void random_trees()
+  {
+    std::mt19937 rng(20260929);
+    for (int i = 0; i < 3000; ++i) {
+      const Modeled m = random_tree(rng, 2 + i % 5);
+      interval got;
+      const bool evaluated = evaluate_expr(m.e, got);
+      check("random expression: the same bounds as the operations of C++", evaluated && same_bits(got, m.v),
+            [&] {
+              std::ostringstream o;
+              o << m.e << " gave " << hex(got) << " rather than " << hex(m.v);
+              return o.str();
+            });
+    }
+  }
+
+  /* An empty expression, at the bottom or beside other operands, is an error
+     that leaves the operands of the other nodes where they are */
+  void null_operands()
+  {
+    const expression none, one(1.0), two(2.0);
+    interval x;
+    check("null operand: the empty expression cannot be evaluated", !evaluate_expr(none, x));
+    check("null operand: nor as the left operand of +", !evaluate_expr(none + one, x));
+    check("null operand: nor as the right operand of *", !evaluate_expr(one * none, x));
+    check("null operand: nor as the operand of a minus sign", !evaluate_expr(-none, x));
+    check("null operand: nor as an argument of a function", !evaluate_expr(atan2(one, none), x));
+    check("null operand: nor deep in a chain", !evaluate_expr(none + one + two + one * two - one / two, x));
+    expression chain = none;
+    for (int i = 0; i < 2000; ++i) {
+      chain = chain + one;
+    }
+    check("null operand: nor at the bottom of a chain of 2000 nodes", !evaluate_expr(chain, x));
+
+    // The same evaluator, after an error, evaluates the next expression
+    expr_eval ev;
+    none.get_root()->accept(ev);
+    check("null operand: the evaluator sets its error", ev.error_occurred());
+    (void)ev.result();
+    ev.reset();
+    (one + two).get_root()->accept(ev);
+    const interval three = ev.result();
+    check("null operand: and evaluates the next expression once reset",
+          !ev.error_occurred() && same_bits(three, interval(3.0)), [&] { return hex(three); });
+  }
+
+  /* The stack of values of an evaluation is a stack that grows: 10000 values
+     pushed on one that holds 4 come out in reverse */
+  void eval_stack_growth()
+  {
+    gaol_core::eval_stack<int, 4> stack;
+    for (int i = 0; i < 10000; ++i) {
+      stack.push(i);
+    }
+    bool in_reverse = true;
+    for (int i = 9999; i >= 0; --i) {
+      in_reverse = (stack.pop() == i) && in_reverse;
+    }
+    check("eval_stack: 10000 values pushed on a stack of 4 come out in reverse", in_reverse);
+  }
+
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   /* Strings read by four threads at once, with the names of GAOL and with
@@ -590,6 +1036,15 @@ int main()
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();
+  step("eval_stack");        eval_stack_growth();
+  step("null_operands");     null_operands();
+  step("random_trees");      random_trees();
+  step("deep_strings");      deep_strings();
+  // The graceful checks of the stack come before the chains of 200000 nodes,
+  // which crash the program when the stack is used as deep as they are
+  step("stack_use");         stack_use();
+  step("long_strings");      long_strings();
+  step("long_built");        long_built();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   step("reading_in_threads"); reading_in_threads();

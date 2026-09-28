@@ -31,6 +31,20 @@
 #include "gaol/gaol_parser.h"
 #include <cctype>
 
+/*
+  The depth of the stack of the parser: the 10000 entries that bison gives it
+  when the grammar does not say (GAOL v5). An open parenthesis or bracket, and
+  a sign, keep an entry until the expression they open is reduced, and the
+  name and the parenthesis of a call two or more: a string nested deeper is
+  refused, as a syntax error (input_format_error). The stack is in the heap.
+  The reading of a string uses no more of the stack of the program, whatever
+  its length or its nesting: an operation is computed when it is read
+  (gaol_operation()), and the signs, the only tree the parser holds that is
+  more than a node deep, are evaluated and deleted without recursion
+  (gaol/gaol_expr_eval.h, gaol/gaol_expression.cpp).
+*/
+#define YYMAXDEPTH 10000
+
 #undef yyerror
 #define yyerror gaol_error_bison
 
@@ -129,11 +143,14 @@ static interval gaol_value(expr_node *e)
 */
 static int gaol_literal_infinity(expr_node *e)
 {
-  if (double_node *d = dynamic_cast<double_node*>(e)) {
-    return (d->get_val() == GAOL_INFINITY) ? 1 : ((d->get_val() == -GAOL_INFINITY) ? -1 : 0);
+  // A loop, not a recursion: the signs of a bound, thousands of them, are a chain of nodes (GAOL v5)
+  int sign = 1;
+  while (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    sign = -sign;
+    e = m->get_subexpr();
   }
-  if (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
-    return -gaol_literal_infinity(m->get_subexpr());
+  if (double_node *d = dynamic_cast<double_node*>(e)) {
+    return sign * ((d->get_val() == GAOL_INFINITY) ? 1 : ((d->get_val() == -GAOL_INFINITY) ? -1 : 0));
   }
   return 0;
 }
@@ -158,8 +175,9 @@ public:
 // e is an uncertain number, alone or behind a minus sign
 static bool gaol_uncertain(expr_node *e)
 {
-  if (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
-    return gaol_uncertain(m->get_subexpr());
+  // A loop, as gaol_literal_infinity() (GAOL v5)
+  while (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    e = m->get_subexpr();
   }
   return dynamic_cast<uncertain_node*>(e) != 0;
 }
@@ -351,6 +369,45 @@ static expr_node *gaol_call(void *context, const void *fn, unsigned int n,
   }
   return result;
 }
+
+/*
+  The operation op, one of + - * /, on the two expressions given, which it
+  releases: the leaf of its value, or 0 for an error, which the parsing aborts
+  with (GAOL v5). An operation is computed when it is read, as the call of a
+  function is, and is no node of the tree: GAOL built a node for it, so that
+  a sum of 100000 terms was a tree 100000 nodes deep, which the evaluation and
+  the deletion of the tree walked with one call within another per node and
+  overflowed the stack. The value is that of the nodes it replaces, the
+  operands being computed in the same order.
+*/
+static expr_node *gaol_operation(void *context, char op, expr_node *a, expr_node *b)
+{
+  expr_node *result = 0;
+  try {
+    const interval x = gaol_value(a);
+    const interval y = gaol_value(b);
+    switch (op) {
+    case '+':
+      result = gaol_leaf(x + y);
+      break;
+    case '-':
+      result = gaol_leaf(x - y);
+      break;
+    case '*':
+      result = gaol_leaf(x * y);
+      break;
+    default:
+      result = gaol_leaf(x / y);
+      break;
+    }
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    result = 0;
+  }
+  gaol_release(a);
+  gaol_release(b);
+  return result;
+}
 %}
 
 %union {
@@ -415,14 +472,10 @@ expression
 	| UNCERTAIN_CST					{ $$ = gaol_node(new uncertain_node(interval($1.l,$1.r))); }
 	| EMPTY_STR					{ $$ = gaol_leaf(interval::emptyset()); }
 	| literal					{ $$ = $1; }
-	| expression '+' expression			{ $$ = gaol_node(new add_node(*$1,*$3));
-							  gaol_release($1); gaol_release($3); }
-	| expression '-' expression			{ $$ = gaol_node(new sub_node(*$1,*$3));
-							  gaol_release($1); gaol_release($3); }
-	| expression '*' expression			{ $$ = gaol_node(new mult_node(*$1,*$3));
-							  gaol_release($1); gaol_release($3); }
-	| expression '/' expression			{ $$ = gaol_node(new div_node(*$1,*$3));
-							  gaol_release($1); gaol_release($3); }
+	| expression '+' expression			{ if (($$ = gaol_operation(context,'+',$1,$3)) == 0) YYABORT; }
+	| expression '-' expression			{ if (($$ = gaol_operation(context,'-',$1,$3)) == 0) YYABORT; }
+	| expression '*' expression			{ if (($$ = gaol_operation(context,'*',$1,$3)) == 0) YYABORT; }
+	| expression '/' expression			{ if (($$ = gaol_operation(context,'/',$1,$3)) == 0) YYABORT; }
 	| '-' expression %prec UMINUS			{ $$ = gaol_node(new unary_minus_node(*$2));
 							  gaol_release($2); }
 	| '+' expression %prec UPLUS			{ $$ = $2; }
