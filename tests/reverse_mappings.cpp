@@ -214,6 +214,20 @@ class reverse_mappings_test {
 	 TEST_EMPTY(atanh_rel(interval::emptyset(),interval(0,2)));
 	 TEST_EMPTY(atanh_rel(interval::emptyset(),interval::universe()));
 
+	 // tanh takes its values in (-1, 1), where atanh is defined (IEEE
+	 // 1788-2015, Table 9.1): no x has its tanh in [1], [1,5], [1,+oo], [-1]
+	 // or [-5,-1]. GAOL gave [MAX,+oo] for the first three
+	 TEST_EMPTY(atanh_rel(interval(1.0),interval::universe()));
+	 TEST_EMPTY(atanh_rel(interval(1.0,5.0),interval::universe()));
+	 TEST_EMPTY(atanh_rel(interval(1.0,GAOL_INFINITY),interval(0.0,GAOL_INFINITY)));
+	 TEST_EMPTY(atanh_rel(interval(-1.0),interval::universe()));
+	 TEST_EMPTY(atanh_rel(interval(-5.0,-1.0),interval::universe()));
+	 // ... while a J that holds points of (-1, 1) keeps its preimage, whose
+	 // end is +oo where J ends at 1: tanh(x) is in [0.5,1] from atanh(0.5)
+	 // on, and every x has its tanh in [-1,1]
+	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,100.0)),interval(0.5493061443340548457,100.0));
+	 TEST_EQ(atanh_rel(interval(-1.0,1.0),interval(1.0,2.0)),interval(1.0,2.0));
+
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
 		double Il = gaol_unit::uniform()*(gaol_unit::integer() % 1000000);

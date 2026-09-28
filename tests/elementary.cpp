@@ -335,6 +335,12 @@ namespace
       { "sqrt([-4,4])", [] { return sqrt(interval(-4., 4.)); }, 0., 2. },
       { "tanh([-inf,inf])", [] { return tanh(interval::universe()); }, -1., 1. },
       { "atanh([-1,1])", [] { return atanh(interval(-1., 1.)); }, -inf, inf },
+      // The doubles next to -1 and 1 are in the domain (-1, 1) of atanh: the
+      // bound at -1 or 1 is the limit -oo or +oo, the other one is a value
+      { "atanh([1-2^-53,1])", [] { return atanh(interval(0x1.fffffffffffffp-1, 1.)); },
+        value("atanh", 0x1.fffffffffffffp-1).below, inf },
+      { "atanh([-1,-(1-2^-53)])", [] { return atanh(interval(-1., -0x1.fffffffffffffp-1)); },
+        -inf, value("atanh", -0x1.fffffffffffffp-1).above },
       { "cosh([-inf,inf])", [] { return cosh(interval::universe()); }, 1., inf },
     };
     for (const Known& k : known) {
@@ -380,6 +386,11 @@ namespace
       { "acosh([1])", [] { return acosh(interval(1.)); }, 0., 0. },
       { "acosh([0,1])", [] { return acosh(interval(0., 1.)); }, 0., 0. },
       { "atanh([0])", [] { return atanh(interval(0.)); }, 0., 0. },
+      // atanh tends to -oo at -1 and to +oo at 1, the ends of its domain
+      // (-1, 1): these limits are the bounds of the result
+      { "atanh([0,1])", [] { return atanh(interval(0., 1.)); }, 0., inf },
+      { "atanh([-1,0])", [] { return atanh(interval(-1., 0.)); }, -inf, 0. },
+      { "atanh([-2,2]), whose part outside (-1, 1) is left out", [] { return atanh(interval(-2., 2.)); }, -inf, inf },
     };
     for (const Known& e : exact) {
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
@@ -402,6 +413,16 @@ namespace
       { "acos([-3,-2])", [] { return acos(interval(-3., -2.)); } },
       { "acosh([-1,0.5])", [] { return acosh(interval(-1., 0.5)); } },
       { "atanh([2,3])", [] { return atanh(interval(2., 3.)); } },
+      // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1): its limits
+      // -oo and +oo at -1 and 1 are no values, so that an interval holding
+      // no point of (-1, 1) gives the empty set, [1] and [-1] included. GAOL
+      // gave [MAX,+oo] for the first three
+      { "atanh([1])", [] { return atanh(interval(1.)); } },
+      { "atanh([1,5])", [] { return atanh(interval(1., 5.)); } },
+      { "atanh([1,+oo])", [] { return atanh(interval(1., inf)); } },
+      { "atanh([-1])", [] { return atanh(interval(-1.)); } },
+      { "atanh([-5,-1])", [] { return atanh(interval(-5., -1.)); } },
+      { "atanh([-oo,-1])", [] { return atanh(interval(-inf, -1.)); } },
     };
     for (const Empty& e : empty) {
       bool threw = false;
