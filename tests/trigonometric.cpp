@@ -14,24 +14,24 @@ public:
   void test_cos() {
     TEST_EMPTY(cos(interval::emptyset()));
 
- 	TEST_PEQ(cos(interval(-1,-0.5)),textToInterval("[0.540302305868139, 0.877582561890373]"));
+ 	TEST_PEQ(cos(interval(-1,-0.5)),interval(0.540302305868139, 0.877582561890373));
     TEST_SEQ(cos(interval(-10,10)),interval(-1,1));
     TEST_SEQ(cos(interval::universe()),interval(-1,1));
     TEST_EQ(cos(interval::pi()),interval(-1,-1));
 
-	TEST_EQ(cos(interval(3,3.5)),textToInterval("[-1,-0.936456687290796]"));
-	TEST_EQ(cos(interval(-3.5,-3)),textToInterval("[-1,-0.936456687290796]"));
+	TEST_EQ(cos(interval(3,3.5)),interval(-1.0, -0.936456687290796));
+	TEST_EQ(cos(interval(-3.5,-3)),interval(-1.0, -0.936456687290796));
 	TEST_EQ(cos(interval(-3.5,3)),interval(-1,1));
-	TEST_EQ(cos(interval(10,12)),textToInterval("[-0.839071529076452,0.843853958732493]"));
-	TEST_EQ(cos(interval(13,14)),textToInterval("[0.136737218207833,0.907446781450197]"));
-	TEST_EQ(cos(interval(10,14)),textToInterval("[-0.839071529076452,1]"));
-	TEST_EQ(cos(interval(14,16)),textToInterval("[-1,0.136737218207833]"));
-	TEST_EQ(cos(interval(-11,-10)),textToInterval("[-0.839071529076452,0.004425697988051]"));
-	TEST_EQ(cos(interval(-14,-13)),textToInterval("[0.136737218207833,0.907446781450197]"));
-	TEST_EQ(cos(interval(-16,-14)),textToInterval("[-1,0.136737218207833]"));
-	TEST_EQ(cos(interval(-102,-100)),textToInterval("[0.101585703696621,1]"));
+	TEST_EQ(cos(interval(10,12)),interval(-0.839071529076452, 0.843853958732493));
+	TEST_EQ(cos(interval(13,14)),interval(0.136737218207833, 0.907446781450197));
+	TEST_EQ(cos(interval(10,14)),interval(-0.839071529076452, 1.0));
+	TEST_EQ(cos(interval(14,16)),interval(-1.0, 0.136737218207833));
+	TEST_EQ(cos(interval(-11,-10)),interval(-0.839071529076452, 0.004425697988051));
+	TEST_EQ(cos(interval(-14,-13)),interval(0.136737218207833, 0.907446781450197));
+	TEST_EQ(cos(interval(-16,-14)),interval(-1.0, 0.136737218207833));
+	TEST_EQ(cos(interval(-102,-100)),interval(0.101585703696621, 1.0));
 	TEST_EQ(cos(interval(4.6e15,4.7e15)),interval(-1,1));
-	TEST_EQ(cos(interval(4503599627370495,4503599627370496)),textToInterval("[-0.48553486774222065, 0.4732928859543091]"));
+	TEST_EQ(cos(interval(4503599627370495,4503599627370496)),interval(-0.48553486774222065, 0.4732928859543091));
   }
 
   void test_sin() {
@@ -73,10 +73,10 @@ public:
 	TEST_EMPTY(cosh(interval::emptyset()));
 	TEST_SEQ(cosh(max_inf),max_inf);
 	TEST_SEQ(cosh(m_inf_m_max),max_inf);
-	TEST_EQ(cosh(interval(-5,-3)),textToInterval("[10.06766199577776584195,74.20994852478784444411]"));
+	TEST_EQ(cosh(interval(-5,-3)),interval(10.06766199577776584195, 74.20994852478784444411));
 	TEST_EQ(cosh(interval(-3,5)),interval(1.0,74.20994852478784444411));
 	TEST_EQ(cosh(interval(-5,3)),interval(1.0,74.20994852478784444411));
-	TEST_EQ(cosh(interval(3,5)),textToInterval("[10.06766199577776584195,74.20994852478784444411]"));
+	TEST_EQ(cosh(interval(3,5)),interval(10.06766199577776584195, 74.20994852478784444411));
   }
   void test_sinh() {
 	TEST_EMPTY(sinh(interval::emptyset()));

@@ -140,12 +140,12 @@ public:
       TEST_SEQ(floor(interval(4.5,6.5)),interval(4,6));
       TEST_SEQ(floor(interval::universe()),interval::universe());
       TEST_EMPTY(floor(interval::emptyset()));
-      TEST_SEQ(floor(textToInterval("[-10.4,3.5]")),interval(-11,3));
+      TEST_SEQ(floor(interval(-10.4, 3.5)),interval(-11,3));
 
       TEST_SEQ(ceil(interval(4.5,6.5)),interval(5,7));
       TEST_SEQ(ceil(interval::universe()),interval::universe());
       TEST_EMPTY(ceil(interval::emptyset()));
-      TEST_SEQ(ceil(textToInterval("[-10.4,3.5]")),interval(-10,4));
+      TEST_SEQ(ceil(interval(-10.4, 3.5)),interval(-10,4));
 
       TEST_SEQ(integer(interval::universe()),interval::universe());
       TEST_EMPTY(integer(interval::emptyset()));

@@ -39,7 +39,7 @@ class reverse_mappings_test {
 	  I = interval(previous_float(previous_float(two_power_52)),previous_float(two_power_52));
 	  J = cos(I);
 	  TEST_EQ(acos_rel(J,I),I);
-	  TEST_EQ(acos_rel(interval(.25,.5),textToInterval("[1.02,1.32]")),textToInterval("[1.047197551196,1.31811607165282]"));
+	  TEST_EQ(acos_rel(interval(.25,.5),interval(1.02, 1.32)),interval(1.047197551196, 1.31811607165282));
 	  I = interval(-1e8,next_float(-1e8));
 	  J = cos(I);
 	  TEST_EQ(acos_rel(J,I),I);
@@ -59,16 +59,16 @@ class reverse_mappings_test {
 	  }
 	  I = interval(-6.3,6.3);
 	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(J,I),textToInterval("[-5.560451059366172, 5.560451059366172]"));
+	  TEST_EQ(acos_rel(J,I),interval(-5.560451059366172, 5.560451059366172));
 	  I = interval(-2,6.3);
 	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(J,I),textToInterval("[-1.047197551196598, 5.560451059366172]"));
+	  TEST_EQ(acos_rel(J,I),interval(-1.047197551196598, 5.560451059366172));
 	  I = interval(-6.3,2);
 	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(J,I),textToInterval("[-5.560451059366172, 1.047197551196598]"));
+	  TEST_EQ(acos_rel(J,I),interval(-5.560451059366172, 1.047197551196598));
 	  I = interval(-0.32,0.2);
 	  J = interval(0.9,0.95);
-	  TEST_EQ(acos_rel(J,I),textToInterval("[-0.32,-0.3175604292]"));
+	  TEST_EQ(acos_rel(J,I),interval(-0.32, -0.3175604292));
 	  I = interval(-interval::pi().left(),interval::pi().left());
 	  J = interval(0.5,0.75);
 	  TEST_EQ(acos_rel(interval::universe(),interval(-3,2)),interval(-3,2));
@@ -100,10 +100,10 @@ class reverse_mappings_test {
 	 TEST_EQ(atan_rel(interval(-5,5),interval::universe()),interval::universe());
 	 TEST_EQ(atan_rel(interval::universe(),interval(4.0,5.5)),interval(4.0,5.5));
 	 TEST_EQ(atan_rel(interval::universe(),interval(4.0,6.5)),interval(4.0,6.5));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.7,7)),textToInterval("[6.746832916180391, 6.823604807450172]"));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.5,7)),textToInterval("[3.605240262590599, 6.823604807450172]"));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.62,7)),textToInterval("[3.62, 6.823604807450172]"));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(-7,-3.62)),textToInterval("[-5.819537698178782, -5.742765806909001]"));
+	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.7,7)),interval(6.746832916180391, 6.823604807450172));
+	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.5,7)),interval(3.605240262590599, 6.823604807450172));
+	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.62,7)),interval(3.62, 6.823604807450172));
+	 TEST_EQ(atan_rel(interval(.5,.6),interval(-7,-3.62)),interval(-5.819537698178782, -5.742765806909001));
   }
 
   void test_sqrt_rel() {
@@ -111,19 +111,19 @@ class reverse_mappings_test {
 
   void test_nth_root_rel() {
 	TEST_EMPTY(nth_root_rel(interval(-3,-2),2,interval::universe()));
-	TEST_EQ(nth_root_rel(interval(-3,2),2,interval::universe()),textToInterval("[-1.41421356237,1.41421356237]"));
-	TEST_EQ(nth_root_rel(interval(2,3),2,interval::universe()),textToInterval("[-1.73205080756,1.73205080756]"));
-	TEST_EQ(nth_root_rel(interval(2,3),2,interval(-2,-1.5)),textToInterval("[-1.73205080756,-1.5]"));
-	TEST_EQ(nth_root_rel(interval(2,3),2,interval(1.5,2)),textToInterval("[1.5,1.73205080756]"));
+	TEST_EQ(nth_root_rel(interval(-3,2),2,interval::universe()),interval(-1.41421356237, 1.41421356237));
+	TEST_EQ(nth_root_rel(interval(2,3),2,interval::universe()),interval(-1.73205080756, 1.73205080756));
+	TEST_EQ(nth_root_rel(interval(2,3),2,interval(-2,-1.5)),interval(-1.73205080756, -1.5));
+	TEST_EQ(nth_root_rel(interval(2,3),2,interval(1.5,2)),interval(1.5, 1.73205080756));
 
-	TEST_EQ(nth_root_rel(interval(2,3),5,interval::universe()),textToInterval("[1.14869835,1.245730939]"));
-	TEST_EQ(nth_root_rel(interval(0.5,3),5,interval::universe()),textToInterval("[0.87055056,1.245730939]"));
-	TEST_EQ(nth_root_rel(interval(-.2,3),5,interval::universe()),textToInterval("[-0.72477966,1.245730939]"));
-	TEST_EQ(nth_root_rel(interval(-3,-2),5,interval::universe()),textToInterval("[-1.245730939,-1.14869835]"));
+	TEST_EQ(nth_root_rel(interval(2,3),5,interval::universe()),interval(1.14869835, 1.245730939));
+	TEST_EQ(nth_root_rel(interval(0.5,3),5,interval::universe()),interval(0.87055056, 1.245730939));
+	TEST_EQ(nth_root_rel(interval(-.2,3),5,interval::universe()),interval(-0.72477966, 1.245730939));
+	TEST_EQ(nth_root_rel(interval(-3,-2),5,interval::universe()),interval(-1.245730939, -1.14869835));
 
-	TEST_EQ(nth_root_rel(interval(0.2,0.5),5,interval::universe()),textToInterval("[0.72477966,0.87055056]"));
-	TEST_EQ(nth_root_rel(interval(-3,-.2),5,interval::universe()),textToInterval("[-1.245730939,-0.72477966]"));
-	TEST_EQ(nth_root_rel(interval(-3,-2),5,interval::universe()),textToInterval("[-1.245730939,-1.14869835]"));
+	TEST_EQ(nth_root_rel(interval(0.2,0.5),5,interval::universe()),interval(0.72477966, 0.87055056));
+	TEST_EQ(nth_root_rel(interval(-3,-.2),5,interval::universe()),interval(-1.245730939, -0.72477966));
+	TEST_EQ(nth_root_rel(interval(-3,-2),5,interval::universe()),interval(-1.245730939, -1.14869835));
 
   }
 

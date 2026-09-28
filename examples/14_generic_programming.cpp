@@ -247,8 +247,7 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "4. Comparisons are \"certainly\" relations, and there is no ==\n";
-  const interval a = gaol::textToInterval("[1.20, 1.25]"), b = gaol::textToInterval("[1.40, 1.42]"),
-                 c = gaol::textToInterval("[1.22, 1.30]");
+  const interval a(1.20, 1.25), b(1.40, 1.42), c(1.22, 1.30);
   std::cout << "   [1.2, 1.25] < [1.4, 1.42] : " << (a < b) << "   each element of one is below each of the other\n"
             << "   [1.2, 1.25] < [1.22, 1.3] : " << (a < c) << ", and >= : " << (a >= c)
             << "   they overlap: false is not \"the opposite\"\n";

@@ -226,8 +226,8 @@ namespace {
     // quad, between the points where the active bounds change)
     const Box hull = s.hull();
     const Box hull_ref{
-      textToInterval("[0.33098635095139862492168319503200028, 0.77609861402355031216830196139317631]"),
-      textToInterval("[0.15310755595639399872521438977822748, 0.53103716068658547974283981201728409]") };
+      interval(0.33098635095139862492168319503200028, 0.77609861402355031216830196139317631),
+      interval(0.15310755595639399872521438977822748, 0.53103716068658547974283981201728409) };
     const interval area_ref = interval(0.06611365919069719801467444514175237576689);
     const interval area = s.area();
     std::cout << "  hull of S (inside and boundary boxes) " << hull << "\n"

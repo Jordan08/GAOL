@@ -161,11 +161,11 @@ int main()
         "the three enclosures hold the range of x cos(x) over [0, 1]");
   check(holds_samples(f, X, both), "f at 1001 points of [0, 1] lies in natural & centered");
   // In exact arithmetic, f'(X) = [cos 1 - sin 1, 1] and the centered form is
-  // 0.5 cos 0.5 + [-0.5, 0.5]: GAOL's result holds that interval, and lies in
-  // the one Codac's manual prints with 6 digits
-  check(centered.set_contains(textToInterval("[-0.06120871905481364194185920869808517400418,"
-                                             " 0.9387912809451863580581407913019148259958]")) &&
-          textToInterval("[-0.0612088, 0.938792]").set_contains(centered),
+  // 0.5 cos 0.5 + [-0.5, 0.5]: GAOL's result holds the doubles nearest its
+  // bounds, and lies in the interval Codac's manual prints with 6 digits
+  check(centered.set_contains(interval(-0.06120871905481364194185920869808517400418,
+                                       0.9387912809451863580581407913019148259958)) &&
+          interval(-0.0612088, 0.938792).set_contains(centered),
         "the centered form is Codac's [-0.0612088, 0.938792]");
   check(dfX.set_contains(interval(-0.30116867893975678925)), "f'(X) holds f'(1) = cos 1 - sin 1");
   std::cout << "   each holds the range and f at 1001 points of X; Codac prints [-0.0612088, 0.938792]\n";
@@ -199,11 +199,12 @@ int main()
   // -------------------------------------------------------------------------
   std::cout << "3. Chebyshev T5(y) = 16y^5 - 20y^3 + 5y: the way f is written matters\n";
   interval::precision(4);
-  const interval Y1(-1.0, 1.0), Y2 = textToInterval("[0.2, 0.3]");
+  const interval Y1(-1.0, 1.0), Y2(0.2, 0.3);
   // The true ranges: T5 = cos(5 acos(y)) takes every value of [-1, 1] on
   // [-1, 1]; on [0.2, 0.3] it increases, from T5(0.2) = 0.84512 to T5(0.3) =
-  // 0.99888 (exact decimals: T5 has integer coefficients)
-  const interval range1(-1.0, 1.0), range2 = textToInterval("[0.84512, 0.99888]");
+  // 0.99888 (exact decimals: T5 has integer coefficients). Y2 and range2 hold
+  // the doubles nearest these decimals
+  const interval range1(-1.0, 1.0), range2(0.84512, 0.99888);
   struct Writing {
     const char* name;
     interval on_y1, on_y2;
@@ -221,7 +222,7 @@ int main()
     check(holds_samples(t5_trigo, Y1, w.on_y1) && holds_samples(t5_trigo, Y2, w.on_y2),
           "T5 at 1001 points lies in every enclosure");
   }
-  std::cout << "   " << std::setw(23) << "range (exact)" << cell(range1, 18) << std::string(range2) << "\n";
+  std::cout << "   " << std::setw(23) << "range" << cell(range1, 18) << std::string(range2) << "\n";
   const auto wider = [](const interval& a, const interval& b) { return width_of(a) > width_of(b); };
   check(wider(writings[0].on_y1, writings[1].on_y1) && wider(writings[1].on_y1, writings[3].on_y1),
         "on [-1, 1], expanded is wider than Horner, wider than cos(5 acos(y))");

@@ -357,7 +357,7 @@ int main(int argc, char* argv[])
   // The area of S, by two methods in double precision: the exact length of
   // S on 8000 columns x0 (its ends found with brentq), and a grid of
   // 16000 x 16000 points; they agree to 0.001
-  const interval codac_reference = textToInterval("[19.562, 19.566]");
+  const interval codac_reference(19.562, 19.566);
 
   std::cout << "Part 1. Codac's examples/03_sivia: S = {x : x0^2 sin(x0^2 + x1^2) - x1^2 >= 0}\n"
             << "        in [-5, 5] x [-4, 4], boxes cut at 0.49 of their widest side, down to 0.01\n"
@@ -385,7 +385,7 @@ int main(int argc, char* argv[])
   const Paving lab3 = sivia_contractors(lab_box, 0.1, 0.5);
   // The area of S, by the same two methods as in Part 1 (their results
   // 100.87360 and 100.87342)
-  const interval lab_reference = textToInterval("[100.872, 100.875]");
+  const interval lab_reference(100.872, 100.875);
 
   std::cout << "\nPart 2. IBEX's lab2 and lab3: S = {(x, y) : sin(x + y) - 0.1 x y in [0, 2]}\n"
             << "        in [-10, 10]^2, boxes cut in the middle, down to 0.1\n"

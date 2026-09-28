@@ -331,12 +331,11 @@ namespace {
   void wrong_jacobian(const Box& root)
   {
     const auto f = [](const auto& x, const auto& y) { return lambert(x, y); };
-    // A small box around W_0(-1), read from text: X is the tightest box of
-    // doubles around these decimal bounds, none of which is a double, and
-    // printed with 16 digits it would show -0.3181320000000001; the text is
-    // printed instead
+    // A small box around W_0(-1): X holds the doubles nearest these decimal
+    // bounds, none of which is a double, and printed with 16 digits it would
+    // show -0.3181320000000001; the text is printed instead
     const std::string text = "[-0.318132, -0.318131] x [1.337235, 1.337236]";
-    const Box X{ textToInterval("[-0.318132, -0.318131]"), textToInterval("[1.337235, 1.337236]") };
+    const Box X{ interval(-0.318132, -0.318131), interval(1.337235, 1.337236) };
     Box K_hand, K_ad;
     const bool hand = krawczyk(f, lambert_jacobian_by_hand(X), X, K_hand);
     const bool ad = krawczyk(f, jacobian(f, X), X, K_ad);

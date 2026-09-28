@@ -21,10 +21,10 @@ public:
     TEST_EQ(pow(interval(-3,5),2),interval(0,25));
 
    // Negative interval
-    TEST_EQ(pow(interval(-3,-2),-4),textToInterval("[0.012345679,0.0625]"));
-    TEST_EQ(pow(interval(-3,-2),-3),textToInterval("[-0.125,-0.037037038]"));
-    TEST_EQ(pow(interval(-3,-2),-2),textToInterval("[0.111111111,0.25]"));
-    TEST_EQ(pow(interval(-3,-2),-1),textToInterval("[-0.5,-0.333333333]"));
+    TEST_EQ(pow(interval(-3,-2),-4),interval(0.012345679, 0.0625));
+    TEST_EQ(pow(interval(-3,-2),-3),interval(-0.125, -0.037037038));
+    TEST_EQ(pow(interval(-3,-2),-2),interval(0.111111111, 0.25));
+    TEST_EQ(pow(interval(-3,-2),-1),interval(-0.5, -0.333333333));
     TEST_SEQ(pow(interval(-3,-2),0),interval::one());
     TEST_EQ(pow(interval(-3,-2),1),interval(-3,-2));
     TEST_EQ(pow(interval(-3,-2),2),interval(4,9));
@@ -32,10 +32,10 @@ public:
     TEST_EQ(pow(interval(-3,-2),4),interval(16,81));
 
      // Positive interval
-    TEST_EQ(pow(interval(2,3),-4),textToInterval("[0.012345679,0.0625]"));
-    TEST_EQ(pow(interval(2,3),-3),textToInterval("[0.037037037,0.125]"));
-    TEST_EQ(pow(interval(2,3),-2),textToInterval("[0.111111111,0.25]"));
-    TEST_EQ(pow(interval(2,3),-1),textToInterval("[0.333333333,0.5]"));
+    TEST_EQ(pow(interval(2,3),-4),interval(0.012345679, 0.0625));
+    TEST_EQ(pow(interval(2,3),-3),interval(0.037037037, 0.125));
+    TEST_EQ(pow(interval(2,3),-2),interval(0.111111111, 0.25));
+    TEST_EQ(pow(interval(2,3),-1),interval(0.333333333, 0.5));
     TEST_SEQ(pow(interval(2,3),0),interval::one());
     TEST_EQ(pow(interval(2,3),1),interval(2,3));
     TEST_EQ(pow(interval(2,3),2),interval(4,9));
@@ -43,9 +43,9 @@ public:
     TEST_EQ(pow(interval(2,3),4),interval(16,81));
 
     // Interval straddling 0
-    TEST_PEQ(pow(interval(-3,2),-4),textToInterval("[0.01234567901,+inf]"));
+    TEST_PEQ(pow(interval(-3,2),-4),interval(0.01234567901, GAOL_INFINITY));
     TEST_SEQ(pow(interval(-3,2),-3),interval::universe());
-    TEST_PEQ(pow(interval(-3,2),-2),textToInterval("[0.1111111111,+inf]"));
+    TEST_PEQ(pow(interval(-3,2),-2),interval(0.1111111111, GAOL_INFINITY));
     TEST_SEQ(pow(interval(-3,2),-1),interval::universe());
     TEST_SEQ(pow(interval(-3,2),0),interval::one());
     TEST_EQ(pow(interval(-3,2),1),interval(-3,2));
@@ -53,9 +53,9 @@ public:
     TEST_EQ(pow(interval(-3,2),3),interval(-27,8));
     TEST_EQ(pow(interval(-3,2),4),interval(0,81));
 
-    TEST_PEQ(pow(interval(-2,3),-4),textToInterval("[0.012345679,+inf]"));
+    TEST_PEQ(pow(interval(-2,3),-4),interval(0.012345679, GAOL_INFINITY));
     TEST_SEQ(pow(interval(-2,3),-3),interval::universe());
-    TEST_PEQ(pow(interval(-2,3),-2),textToInterval("[0.11111111,+inf]"));
+    TEST_PEQ(pow(interval(-2,3),-2),interval(0.11111111, GAOL_INFINITY));
     TEST_SEQ(pow(interval(-2,3),-1),interval::universe());
     TEST_SEQ(pow(interval(-2,3),0),interval::one());
     TEST_EQ(pow(interval(-2,3),1),interval(-2,3));
@@ -99,9 +99,9 @@ public:
     TEST_SEQ(sqrt(interval::universe()),interval::positive());
 
     TEST_EMPTY(sqrt(interval(-3,-2)));
-    TEST_EQ(sqrt(interval(2,3)),textToInterval("[1.414213562373095, 1.732050807568877]"));
-    TEST_EQ(sqrt(interval(-3,2)),textToInterval("[0,1.414213562373096]"));
-    TEST_EQ(sqrt(interval(-2,3)),textToInterval("[0,1.732050807568877]"));
+    TEST_EQ(sqrt(interval(2,3)),interval(1.414213562373095, 1.732050807568877));
+    TEST_EQ(sqrt(interval(-3,2)),interval(0.0, 1.414213562373096));
+    TEST_EQ(sqrt(interval(-2,3)),interval(0.0, 1.732050807568877));
 
   }
 
@@ -121,9 +121,9 @@ public:
     TEST_EQ(exp(interval::one()),interval(2.7182818284590452));
     TEST_SEQ(exp(interval(740.0)),interval(std::numeric_limits<double>::max(),GAOL_INFINITY));
     TEST_EQ(exp(interval(-800.0)),interval::zero());
-    TEST_EQ(exp(interval(-10.0,-5.0)),textToInterval("[4.53999297624848e-5,6.7379469990855e-3]"));
-    TEST_EQ(exp(interval(-5.0,9.0)),textToInterval("[6.7379469990854e-3,8103.0839275754]"));
-    TEST_EQ(exp(interval(9.0,11.0)),textToInterval("[8103.0839275754,59874.14171519782]"));
+    TEST_EQ(exp(interval(-10.0,-5.0)),interval(4.53999297624848e-5, 6.7379469990855e-3));
+    TEST_EQ(exp(interval(-5.0,9.0)),interval(6.7379469990854e-3, 8103.0839275754));
+    TEST_EQ(exp(interval(9.0,11.0)),interval(8103.0839275754, 59874.14171519782));
     TEST_EQ(exp(interval(-3.5)),interval(3.01973834223185e-2));
     TEST_EQ(exp(interval(3.5)),interval(33.1154519586923));
 	CPPUNIT_ASSERT(exp(m_inf_m_max).certainly_positive());

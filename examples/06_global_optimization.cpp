@@ -334,7 +334,7 @@ int main()
   ok &= compare(
     "Goldstein-Price", [](const auto& x, const auto& y) { return goldstein_price(x, y); },
     Box{ interval(-2.0, 2.0), interval(-2.0, 2.0) }, interval(3.0),
-    textToInterval("[3, 1015690.2717980589082989]"));
+    interval(3.0, 1015690.2717980589082989));
   std::cout << "\n";
 
   // The six-hump camel: f* computed by mpmath with 60 digits at the zero of
@@ -345,7 +345,7 @@ int main()
     "Six-hump camel", [](const auto& x, const auto& y) { return six_hump_camel(x, y); },
     Box{ interval(-3.0, 3.0), interval(-2.0, 2.0) },
     interval(-1.03162845348987735041636543714940299235123243853811645053101),
-    textToInterval("[-1.03162845348987735041636543714940299235123243853811645053101, 162.9]"));
+    interval(-1.03162845348987735041636543714940299235123243853811645053101, 162.9));
 
   gaol::cleanup();
   return ok ? 0 : EXIT_FAILURE;
