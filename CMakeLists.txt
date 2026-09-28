@@ -34,20 +34,24 @@
 
 cmake_minimum_required(VERSION 3.14...3.25)
 
-# The version of GAOL is the line of the file VERSION, which configure.ac and
-# meson.build read too: project() gives it to PROJECT_VERSION, whence the
+# The version of GAOL is the line of the file VERSION.txt, which configure.ac
+# and meson.build read too: project() gives it to PROJECT_VERSION, whence the
 # macros GAOL_*VERSION, the shared library, gaol.pc, gaolConfigVersion.cmake
-# and the names of the packages (GAOL v5)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" _gaol_version)
+# and the names of the packages. Three numbers without leading zeros, which the
+# macros write as C integers. The file is not named VERSION: the root of the
+# sources is on the include path, and on file systems that ignore case (macOS,
+# Windows) #include <version>, which libc++ includes from <vector> or <cmath>,
+# would find it (GAOL v5)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version)
 string(STRIP "${_gaol_version}" _gaol_version)
-if(NOT _gaol_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
-  message(FATAL_ERROR "VERSION holds \"${_gaol_version}\", where it should hold the version of GAOL, three numbers such as 5.0.0")
+if(NOT _gaol_version MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
+  message(FATAL_ERROR "VERSION.txt holds \"${_gaol_version}\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0")
 endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
 
-# A change of VERSION configures again
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
+# A change of VERSION.txt configures again
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt")
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)

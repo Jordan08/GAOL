@@ -50,7 +50,7 @@ build, and the CMake build follows them, apart from the errors corrected (see
 - the three write the same macros into `gaol/gaol_configuration.h`, those
   GAOL's sources read and nothing else (see
   [Building GAOL](building.md#the-configuration-of-gaol)) (GAOL v5);
-- the three read the version of GAOL from the file `VERSION`, the only one
+- the three read the version of GAOL from the file `VERSION.txt`, the only one
   to change for a new version (see
   [Building GAOL](building.md#the-version-of-gaol)) (GAOL v5);
 - the shared library is `libgaol.so.5.0.0`, whose soname is `libgaol.so.5`,

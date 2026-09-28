@@ -116,7 +116,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/VERSION.txt $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -328,10 +328,11 @@ top_srcdir = @top_srcdir@
 SUBDIRS = 3rd gaol tests examples
 DIST_SUBDIRS = 3rd gaol tests examples manual
 ACLOCAL_AMFLAGS = -I m4
-# configure.ac reads the version of GAOL from VERSION: with
-# --enable-maintainer-mode, make generates configure again when it changes
-# (GAOL v5)
-CONFIGURE_DEPENDENCIES = $(top_srcdir)/VERSION
+# configure reads the version of GAOL from VERSION.txt: make runs it again
+# (config.status --recheck) when VERSION.txt changes, as CMake and meson
+# configure again. With --enable-maintainer-mode, make also generates configure
+# again (the m4_include of VERSION.txt in configure.ac) (GAOL v5)
+CONFIG_STATUS_DEPENDENCIES = $(top_srcdir)/VERSION.txt
 
 # Requires automake 1.4
 AUTOMAKE_OPTIONS = 1.4

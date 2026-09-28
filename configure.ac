@@ -22,21 +22,28 @@ dnl
 # to configure the system for the local environment.
 # ------------------------------------------------------------------------
 
-# autoconf 2.64 for m4_esyscmd_s, which reads VERSION (GAOL v5)
+# autoconf 2.64 for m4_esyscmd_s, which reads VERSION.txt (GAOL v5)
 AC_PREREQ(2.64)
 
-# The version of GAOL is the line of the file VERSION, which CMakeLists.txt and
-# meson.build read too. configure reads it when it runs (below), whence the
-# macros GAOL_*VERSION, the shared library, gaol.pc and the manuals: a new
-# version needs VERSION alone. autoconf reads it as well, for AC_INIT, whose
-# version configure --version and configure --help give: they keep the one of
-# the last generation of configure, which is to be generated again before
-# VERSION is committed (see doc/building.md); configure warns meanwhile
-# (GAOL v5). The m4 macro is not named gaol_version, which m4 replaced in
-# manual/v5/gaol_version.tex, giving config.status "manual/v5/5.0.0.tex".
-m4_define([gaol_m4_version], m4_esyscmd_s([tr -d ' \t\r' < VERSION]))
-m4_bmatch(gaol_m4_version, [^[0-9]+\.[0-9]+\.[0-9]+$], [],
-          [m4_fatal([VERSION holds "]gaol_m4_version[", where it should hold the version of GAOL, three numbers such as 5.0.0])])
+# The version of GAOL is the line of the file VERSION.txt, which CMakeLists.txt
+# and meson.build read too (not named VERSION: see CMakeLists.txt). configure
+# reads it when it runs (below), whence the macros GAOL_*VERSION, the shared
+# library, gaol.pc and the manuals: a new version needs VERSION.txt alone.
+# autoconf reads it as well, for AC_INIT, whose version configure --version,
+# configure --help, config.status --version and config.log give: they keep the
+# one of the last generation of configure, which is to be generated again
+# before VERSION.txt is committed (see doc/building.md); configure warns
+# meanwhile. The m4 macro is not named gaol_version, which m4 replaced in
+# manual/v5/gaol_version.tex, giving config.status "manual/v5/5.0.0.tex"
+# (GAOL v5).
+m4_define([gaol_m4_version], m4_esyscmd_s([tr -d ' \t\r\n' < VERSION.txt]))
+m4_bmatch(gaol_m4_version, [^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$], [],
+          [m4_fatal([VERSION.txt holds "]gaol_m4_version[", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])])
+dnl autom4te (its cache) and automake follow the files that m4_include reads,
+dnl not those of m4_esyscmd_s: VERSION.txt is included too, into the diversion
+dnl KILL, which m4 discards, so that a change of VERSION.txt generates configure
+dnl again, and makes make do it in maintainer mode (GAOL v5)
+m4_divert_push([KILL])m4_include([VERSION.txt])m4_divert_pop([KILL])
 
 # configure --help ends with the address for the bug reports and the page of
 # GAOL v5 (GAOL v5)
@@ -49,22 +56,35 @@ AC_INIT([gaol],[gaol_m4_version],[jordan.ninin@ensta.fr],[gaol],[https://github.
 AM_INIT_AUTOMAKE([gnu 1.7 no-dist no-define subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
+# In maintainer mode, the rule of automake that regenerates
+# gaol/gaol_configuration.h.in runs no autoheader, which would overwrite that
+# template, written by hand (GAOL v5)
+AUTOHEADER=true
 
 AC_CONFIG_SRCDIR([gaol/gaol_config.h])
 
-# The version of GAOL, read from VERSION when configure runs: GAOL_VERSION, and
-# its three numbers gaol_major, gaol_minor and gaol_micro
-GAOL_VERSION=`tr -d ' \t\r\n' < "$srcdir/VERSION"`
-if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then :; else
-  AC_MSG_ERROR([VERSION holds "$GAOL_VERSION", where it should hold the version of GAOL, three numbers such as 5.0.0])
+# The version of GAOL, read from VERSION.txt when configure runs, without the
+# blanks and the empty lines around it: GAOL_VERSION, and its three numbers
+# gaol_major, gaol_minor and gaol_micro, refused unless they are three numbers
+# without leading zeros, as with CMake and meson (GAOL v5)
+GAOL_VERSION=`tr -d '\r' < "$srcdir/VERSION.txt" | sed -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d'`
+gaol_version_ok=no
+if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then
+  case .$GAOL_VERSION in
+    *.0[[0-9]]*) ;;
+    *) gaol_version_ok=yes ;;
+  esac
+fi
+if test "${gaol_version_ok}" = no; then
+  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([[0-9]]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.\([[0-9]]*\)'`
 gaol_micro=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.[[0-9]]*\.\([[0-9]]*\)'`
-AC_MSG_NOTICE([the version of GAOL, from VERSION: $GAOL_VERSION])
+AC_MSG_NOTICE([the version of GAOL, from VERSION.txt: $GAOL_VERSION])
 gaol_version_warning=""
 if test "x$GAOL_VERSION" != "x[]gaol_m4_version"; then
-  gaol_version_warning="GAOL is configured as $GAOL_VERSION, which VERSION holds, but configure was generated for GAOL gaol_m4_version, which configure --version and configure --help still give: generate configure again, as doc/building.md says"
+  gaol_version_warning="GAOL is configured as $GAOL_VERSION, which VERSION.txt holds, but configure was generated for GAOL gaol_m4_version, which configure --version and configure --help still give: generate configure again, as doc/building.md says"
   AC_MSG_WARN([$gaol_version_warning])
 fi
 # gaol/gaol_configuration.h.in is written by hand, not by autoheader: it holds
@@ -603,7 +623,7 @@ printf "pdflatex\t\t= $PDFLATEX\n"
 printf "makeindex\t\t= $MAKEINDEX\n"
 printf "bibtex\t\t\t= $BIBTEX\n"
 # The warning of a configure generated for another version than that of
-# VERSION, again after the summary, where it is seen
+# VERSION.txt, again after the summary, where it is seen (GAOL v5)
 if test -n "$gaol_version_warning"; then
   AC_MSG_WARN([$gaol_version_warning])
 fi

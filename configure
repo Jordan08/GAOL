@@ -3950,23 +3950,36 @@ fi
   MAINT=$MAINTAINER_MODE_TRUE
 
 
+# In maintainer mode, the rule of automake that regenerates
+# gaol/gaol_configuration.h.in runs no autoheader, which would overwrite that
+# template, written by hand (GAOL v5)
+AUTOHEADER=true
 
 
 
-# The version of GAOL, read from VERSION when configure runs: GAOL_VERSION, and
-# its three numbers gaol_major, gaol_minor and gaol_micro
-GAOL_VERSION=`tr -d ' \t\r\n' < "$srcdir/VERSION"`
-if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null; then :; else
-  as_fn_error $? "VERSION holds \"$GAOL_VERSION\", where it should hold the version of GAOL, three numbers such as 5.0.0" "$LINENO" 5
+# The version of GAOL, read from VERSION.txt when configure runs, without the
+# blanks and the empty lines around it: GAOL_VERSION, and its three numbers
+# gaol_major, gaol_minor and gaol_micro, refused unless they are three numbers
+# without leading zeros, as with CMake and meson (GAOL v5)
+GAOL_VERSION=`tr -d '\r' < "$srcdir/VERSION.txt" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'`
+gaol_version_ok=no
+if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null; then
+  case .$GAOL_VERSION in
+    *.0[0-9]*) ;;
+    *) gaol_version_ok=yes ;;
+  esac
+fi
+if test "${gaol_version_ok}" = no; then
+  as_fn_error $? "VERSION.txt holds \"$GAOL_VERSION\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0" "$LINENO" 5
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([0-9]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[0-9]*\.\([0-9]*\)'`
 gaol_micro=`expr "x$GAOL_VERSION" : 'x[0-9]*\.[0-9]*\.\([0-9]*\)'`
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: the version of GAOL, from VERSION: $GAOL_VERSION" >&5
-printf "%s\n" "$as_me: the version of GAOL, from VERSION: $GAOL_VERSION" >&6;}
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: the version of GAOL, from VERSION.txt: $GAOL_VERSION" >&5
+printf "%s\n" "$as_me: the version of GAOL, from VERSION.txt: $GAOL_VERSION" >&6;}
 gaol_version_warning=""
 if test "x$GAOL_VERSION" != "x5.0.0"; then
-  gaol_version_warning="GAOL is configured as $GAOL_VERSION, which VERSION holds, but configure was generated for GAOL 5.0.0, which configure --version and configure --help still give: generate configure again, as doc/building.md says"
+  gaol_version_warning="GAOL is configured as $GAOL_VERSION, which VERSION.txt holds, but configure was generated for GAOL 5.0.0, which configure --version and configure --help still give: generate configure again, as doc/building.md says"
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: $gaol_version_warning" >&5
 printf "%s\n" "$as_me: WARNING: $gaol_version_warning" >&2;}
 fi
@@ -22848,7 +22861,7 @@ printf "pdflatex\t\t= $PDFLATEX\n"
 printf "makeindex\t\t= $MAKEINDEX\n"
 printf "bibtex\t\t\t= $BIBTEX\n"
 # The warning of a configure generated for another version than that of
-# VERSION, again after the summary, where it is seen
+# VERSION.txt, again after the summary, where it is seen (GAOL v5)
 if test -n "$gaol_version_warning"; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: $gaol_version_warning" >&5
 printf "%s\n" "$as_me: WARNING: $gaol_version_warning" >&2;}
