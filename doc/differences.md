@@ -863,6 +863,16 @@ where it comes from.
   `interval("0.1", "0.3")`, stays, and so does `textToInterval(sl, sr)`.
   `tests/numbers.cpp` checks that neither a `const char*` nor `nullptr`
   converts to an interval, and that `interval(0)` is [0].
+- **The constructors of `interval` are explicit**: from a `double`, from two
+  `double`s and from two strings. A `double` becomes an interval only where
+  the program writes `interval(d)`: `interval x = 0.5;`, `x = 0.5;`,
+  `x < 0.5`, `min(x, 0.5)` and `interval r = sqrt(2.0);` do not compile,
+  where GAOL 4 took the double for a point interval without saying so, the
+  `sqrt(2.0)` of the C library among them. The operators of an interval and
+  a `double` (`x + 0.5`, `x *= 2.0`) and `set_contains(d)` still take the
+  double. `tests/numbers.cpp` checks that a `double` and an `int` do not
+  convert to an interval; the special cases of `doc/compare` give the same
+  results with GAOL v5.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **The three builds agree** (see [The three builds](three-builds.md)).

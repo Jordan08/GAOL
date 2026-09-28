@@ -464,7 +464,7 @@ int main()
   // of the mean-value form, in the square of the width of X (see step())
   check(width_of(runs[2].X) < 1.01 * width_of(runs[3].X) && width_of(runs[3].X) < 1.01 * width_of(runs[2].X),
         "at h = 0.01, orders 1 and 2 are within 1% of each other");
-  check(width_of(runs[4].X) < width_of(runs[3].X) && ratio(runs[4].X, exact1) < 1.01,
+  check(width_of(runs[4].X) < width_of(runs[3].X) && ratio(runs[4].X, exact1) < interval(1.01),
         "X0 cut into 10 pieces gives a width within 1% of the exact one");
   std::cout << "   each holds the exact image; order 2 gains at h = 0.1, where the remainder\n"
             << "   dominates; at h = 0.01 the excess comes from the width of X: 10 pieces remove it\n";
@@ -519,12 +519,12 @@ int main()
   std::cout << "   h = 0.01, mean-value form: x(10) in " << final_box[1][1] << "\n"
             << "   exact image of the initial box:     " << exact2 << "\n";
   for (int i = 0; i < 2; ++i) {
-    check(ratio(final_box[i][0][0], exact2[0]) > 1e6 && ratio(final_box[i][0][1], exact2[1]) > 1e3,
+    check(ratio(final_box[i][0][0], exact2[0]) > interval(1e6) && ratio(final_box[i][0][1], exact2[1]) > interval(1e3),
           "the natural form explodes, whatever the step");
   }
-  check(ratio(final_box[1][1][0], exact2[0]) < 1.2 && ratio(final_box[1][1][1], exact2[1]) < 1.2,
+  check(ratio(final_box[1][1][0], exact2[0]) < interval(1.2) && ratio(final_box[1][1][1], exact2[1]) < interval(1.2),
         "the mean-value form with h = 0.01 is within 20% of the exact widths");
-  check(ratio(final_box[0][1][0], exact2[0]) < 5.0 && ratio(final_box[0][1][1], exact2[1]) < 5.0,
+  check(ratio(final_box[0][1][0], exact2[0]) < interval(5.0) && ratio(final_box[0][1][1], exact2[1]) < interval(5.0),
         "the mean-value form with h = 0.2 is within 5 times the exact widths");
   // The cause, on the first step with h = 0.01 and on x0 alone: the width w0
   // of X0 is multiplied by 1 + h in the natural form and by 1 - h in the

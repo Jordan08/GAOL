@@ -85,6 +85,12 @@ namespace gaol_core {
   public:
     //! Creates [-oo, +oo]
     interval(void);
+    /*
+      The constructors from numbers and from two strings are explicit (GAOL
+      v5): a double becomes an interval only where the program writes
+      interval(d), and x = 0.1, x < 0.1 or min(x, 0.1) do not compile. GAOL 4
+      took the double for a point interval without saying so.
+    */
     /*!
       \brief Creates [a, b], and the empty set when [a, b] is not an interval
 
@@ -93,12 +99,12 @@ namespace gaol_core {
       has no interval [+oo, +oo] nor [-oo, -oo] (10.5.8), and its constructor
       gives the empty set there (12.12.7).
     */
-    interval(double a, double b);
+    explicit interval(double a, double b);
     //! Creates [a, a], and the empty set for an infinite a or a NaN
-    interval(double a);
+    explicit interval(double a);
     interval(const interval& I);
 #if USING_SSE2_INSTRUCTIONS
-    interval(const __m128d& xmm);
+    explicit interval(const __m128d& xmm);
 #endif // USING_SSE2_INSTRUCTIONS
 
     /*
@@ -115,7 +121,7 @@ namespace gaol_core {
       (resp. second) std::string is used to represent the left (resp. right) bound of the
       interval constructed.
       */
-    interval(const char *const sl, const char *const sr);
+    explicit interval(const char *const sl, const char *const sr);
     interval& operator+=(double d);
     interval& operator-=(double d);
     interval& operator*=(double d);

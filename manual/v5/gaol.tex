@@ -1288,6 +1288,18 @@ interval x = textToInterval("[-23, inf]"),
   crashed.\newinvfive
 \end{deffun}
 
+The constructors from numbers and from two strings are \code{explicit}: a
+\code{double} becomes an interval only where the program writes
+\code{interval(\var{d})}. \code{interval~x~=~0.5;}, \code{x~=~0.5;},
+\code{x~<~0.5} and \code{min(x,~0.5)} do not compile, and
+\code{interval~r~=~sqrt(2.0);} neither, where \code{sqrt(2.0)} is the
+\code{double} of the C library that GAOL~4 turned silently into a point
+interval: \code{interval(sqrt(2.0))} writes that point. The operators of an
+interval and a \code{double} (\code{x~+~0.5}, \code{x~*=~2.0}) and
+\code{set\_contains(\var{d})} take the \code{double} as it is. GAOL~4 converted
+a \code{double} to an interval wherever one was expected.\newinvfive
+\cindex{constructor!explicit}%
+
 \paragraph{Caution.} you have to be very careful when creating an interval
 from floating-point constants. Remember that a rational number that is
 perfectly representable in the decimal base may require rounding in the
@@ -1363,13 +1375,16 @@ x = textToInterval("[-inf, 123]");
 GAOL~4 assigned the string itself, \code{x~=~"[-inf,~123]"}, which GAOL v5
 refuses, having no constructor from one string;\newinvfive
 
-\item by using a \code{double}:
+\item by using a \code{double}, made an interval explicitly, the
+  constructors of \code{interval} being explicit (\pxref{sec:constructors}):
 
 \begin{example}
 interval x;
-x = 1234.5; @rem^// Now, x is @itv^1234.5~^1234.5~~
-x = GAOL_INFINITY; @rem^// Now, x is empty~
+x = interval(1234.5); @rem^// Now, x is @itv^1234.5~^1234.5~~
+x = interval(GAOL_INFINITY); @rem^// Now, x is empty~
 \end{example}
+GAOL~4 assigned the \code{double} itself, \code{x~=~1234.5}, which GAOL v5
+refuses;\newinvfive
 \end{itemize}
 
 \noindent
@@ -3590,7 +3605,7 @@ using namespace gaol_ieee1788;
 
 int main(void)
 {
-  interval x = textToInterval("[1, 2]");
+  interval x = numsToInterval(1, 2);
   interval y = mulRev(numsToInterval(2, 2), x);   @rem^// x / 2~
   interval z = sinPi(x) + rootn(y, 3);
   bool b = strictLess(x, entire());

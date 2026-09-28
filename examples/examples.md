@@ -165,14 +165,15 @@ Three headers are shared:
   x - x                        [-1, 1]                                      not [0, 0]: the dependency problem
   sqrt(interval(-1.0, 4.0))    [0, 2]                                       sqrt of [0, 4] only
   u < v, u >= v                false, false                                 overlapping: neither holds
-  empty < 0.0, empty > 0.0     true, true                                   no point to contradict them
+  empty < [0], empty > [0]     true, true                                   no point to contradict them
 ```
 
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
 `textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
-1/10. `sqrt(2.0)` is the C library's double, while `sqrt(interval(2.0))`
-encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
+1/10. `sqrt(2.0)` is the C library's double, which no longer becomes an
+interval silently (`interval r = sqrt(2.0);` does not compile, the constructors
+of `interval` being explicit), while `sqrt(interval(2.0))` encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
 doubles, silently wrong, and [−5.9·10²¹, 4.7·10²¹] in intervals, which contains
 the true −0.827396…: the width is the alarm, and more precision (MPFI, Arb) is

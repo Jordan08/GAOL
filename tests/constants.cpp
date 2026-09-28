@@ -27,20 +27,20 @@ public:
   }
 
   void test_floating_point_const() {
-      TEST_EQ(two_pi,interval::two_pi());
-      TEST_EQ(pi,interval::pi());
-      TEST_EQ(half_pi,interval::half_pi());
-      TEST_EQ(pi_dn,interval::pi());
-      TEST_EQ(pi_up,interval::pi());
+      TEST_EQ(interval(two_pi),interval::two_pi());
+      TEST_EQ(interval(pi),interval::pi());
+      TEST_EQ(interval(half_pi),interval::half_pi());
+      TEST_EQ(interval(pi_dn),interval::pi());
+      TEST_EQ(interval(pi_up),interval::pi());
       CPPUNIT_ASSERT(pi_dn < pi_up);
-      TEST_EQ(half_pi_dn,interval::half_pi());
-      TEST_EQ(half_pi_up,interval::half_pi());
+      TEST_EQ(interval(half_pi_dn),interval::half_pi());
+      TEST_EQ(interval(half_pi_up),interval::half_pi());
       CPPUNIT_ASSERT(half_pi_dn < half_pi_up);
-      TEST_EQ(ln2_dn,log(interval(2)));
-      TEST_EQ(ln2_up,log(interval(2)));
+      TEST_EQ(interval(ln2_dn),log(interval(2)));
+      TEST_EQ(interval(ln2_up),log(interval(2)));
       CPPUNIT_ASSERT(ln2_dn < ln2_up);
-      TEST_EQ(two_power_52,pow(interval(2),52));
-		TEST_EQ(two_power_51,pow(interval(2),51));
+      TEST_EQ(interval(two_power_52),pow(interval(2),52));
+		TEST_EQ(interval(two_power_51),pow(interval(2),51));
 		CPPUNIT_ASSERT(std::isnan(GAOL_NAN));
       CPPUNIT_ASSERT(std::isinf(GAOL_INFINITY));
       CPPUNIT_ASSERT(GAOL_INFINITY > 0);

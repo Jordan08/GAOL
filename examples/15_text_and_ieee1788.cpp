@@ -103,7 +103,7 @@ namespace {
      relation, having no point to contradict it, hence the test first. */
   bool contains_ratio(const gaol::interval& x, double p, double q)
   {
-    return !x.is_empty() && gaol::interval(x.left()) * q <= p && gaol::interval(x.right()) * q >= p;
+    return !x.is_empty() && gaol::interval(x.left()) * q <= gaol::interval(p) && gaol::interval(x.right()) * q >= gaol::interval(p);
   }
 
   // The same bounds, bit for bit: the same doubles, with the same signs (a
@@ -300,10 +300,9 @@ namespace {
     std::cout << "2. The names of IEEE 1788-2015: using namespace gaol_ieee1788\n";
     std::cout << "   x in [-4, -1], contracted by 2 x^2 in c = [2, 4] (one HC4-revise)\n";
     // numsToInterval takes doubles: numsToInterval(0, 0) compiles, where
-    // interval(0, 0) is ambiguous. textToInterval returns the empty set on a
-    // malformed text rather than throw.
+    // interval(0, 0) is ambiguous.
     const interval x0 = numsToInterval(-4, -1);
-    const interval c = textToInterval("[2, 4]");
+    const interval c = numsToInterval(2, 4);
     const interval two = numsToInterval(2, 2);
 
     interval t = pown(x0, 2);  // the integer power of the standard
@@ -338,7 +337,7 @@ namespace {
     show("intervalToExact(x)", text, "read back bit for bit", same_bits(exactToInterval(text), x));
 
     // With c = [40, 50], 2 x^2 <= 32 < 40 on x: the constraint empties x
-    const interval c2 = textToInterval("[40, 50]");
+    const interval c2 = numsToInterval(40, 50);
     interval t2 = pown(x0, 2);
     t2 = mulRev(two, intersection(mul(two, t2), c2), t2);
     const interval x2 = sqrRev(t2, x0);

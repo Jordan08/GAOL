@@ -100,7 +100,7 @@ namespace {
      contradict it. */
   bool contains_ratio(const interval& x, double p, double q)
   {
-    return !x.is_empty() && interval(x.left()) * q <= p && interval(x.right()) * q >= p;
+    return !x.is_empty() && interval(x.left()) * q <= interval(p) && interval(x.right()) * q >= interval(p);
   }
 
 } // namespace
@@ -181,11 +181,12 @@ int main()
   show("sqrt(interval(-2.0, -1.0))", sqrt(interval(-2.0, -1.0)), "no point in the domain",
        sqrt(interval(-2.0, -1.0)).is_empty());
 
-  // Codac's example: the hull of [pi/2] and 0 (Codac writes x |= 0, which
-  // compiles here too, 0 becoming the point interval [0, 0])
+  // Codac's example: the hull of [pi/2] and 0 (Codac writes x |= 0; the
+  // constructors of GAOL being explicit, 0 is written as the point interval
+  // [0, 0])
   interval h = interval::half_pi();
-  h |= 0.0;
-  show("h = half_pi() | 0.0", h, "contains 0 and pi/2", h.set_contains(0.0) && h.set_contains(half_pi_ref));
+  h |= interval(0.0);
+  show("h = half_pi() | [0]", h, "contains 0 and pi/2", h.set_contains(0.0) && h.set_contains(half_pi_ref));
   show("sin(h)", sin(h), "the maximum 1 at pi/2 is kept", sin(h).set_eq(interval(0.0, 1.0)));
   show("exp(h)", exp(h), "contains 1 and e^(pi/2)", exp(h).set_contains(1.0) && exp(h).set_contains(exp_half_pi_ref));
   show("sin(h) & exp(h)", sin(h) & exp(h), "their only common value: 1", (sin(h) & exp(h)).set_eq(interval(1.0)));
@@ -249,9 +250,9 @@ int main()
   show("u < v, u >= v", std::string(u < v ? "true" : "false") + ", " + (u >= v ? "true" : "false"),
        "overlapping: neither holds", !(u < v) && !(u >= v));
   const interval empty = interval::emptyset();
-  show("empty < 0.0, empty > 0.0",
-       std::string(empty < 0.0 ? "true" : "false") + ", " + (empty > 0.0 ? "true" : "false"),
-       "no point to contradict them", empty < 0.0 && empty > 0.0);
+  show("empty < [0], empty > [0]",
+       std::string(empty < interval(0.0) ? "true" : "false") + ", " + (empty > interval(0.0) ? "true" : "false"),
+       "no point to contradict them", empty < interval(0.0) && empty > interval(0.0));
 
   // ------------------------------------------------------------------------
   std::cout << "7. Output: interval::precision(n) digits, rounded outward\n";

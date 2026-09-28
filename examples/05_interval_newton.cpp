@@ -261,7 +261,7 @@ namespace {
     // set_contains().
     const interval p = f(interval(X.left())) * f(interval(X.right()));
     const interval D = derivative(f, X);
-    const bool sign_change = !p.is_empty() && p < 0.0;
+    const bool sign_change = !p.is_empty() && p < interval(0.0);
     const bool monotonic = !D.set_contains(0.0);
     std::cout << "    f(2) f(3) < 0: X holds a root (C-XSC's test)\n"
               << "    F'(X) = " << D << " does not hold 0: only one\n";

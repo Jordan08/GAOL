@@ -187,10 +187,10 @@ namespace
       check(std::string(c.name) + ": empty", c.r.is_empty(), [&] { return hex(c.r); });
     }
     interval to_infinity(1., 2.);
-    to_infinity = inf;
+    to_infinity = interval(inf);
     check("[x] = +oo: empty", to_infinity.is_empty(), [&] { return hex(to_infinity); });
     interval to_minus_infinity(1., 2.);
-    to_minus_infinity = -inf;
+    to_minus_infinity = interval(-inf);
     check("[x] = -oo: empty", to_minus_infinity.is_empty(), [&] { return hex(to_minus_infinity); });
 
     // The intervals with one infinite bound are unchanged
@@ -218,6 +218,17 @@ namespace
     const interval zero(0);
     check("interval(0) with an int: [0, 0]", !zero.is_empty() && zero.left() == 0. && zero.right() == 0.,
           [&] { return hex(zero); });
+
+    /* The constructors are explicit (GAOL v5): a double becomes an interval
+       only where the program writes interval(d), and x < 0.1, x = 0.1 or
+       min(x, 0.1) no longer take the double nearest to 0.1 for an interval
+       without saying so */
+    static_assert(std::is_constructible<interval, double>::value, "interval(double)");
+    static_assert(!std::is_convertible<double, interval>::value, "no implicit conversion from double");
+    static_assert(!std::is_convertible<int, interval>::value, "no implicit conversion from int");
+    static_assert(std::is_constructible<interval, double, double>::value, "interval(double, double)");
+    static_assert(std::is_constructible<interval, const char*, const char*>::value, "interval(const char*, const char*)");
+    static_assert(!std::is_assignable<interval&, double>::value, "no assignment of a double");
   }
 
   // The interval literals of IEEE 1788-2015 (9.7, 12.11): GAOL read neither

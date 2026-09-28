@@ -189,7 +189,7 @@ names of the standard:
 #include <gaol/gaol.h>
 using namespace gaol_ieee1788;
 
-interval x = textToInterval("[1, 2]");
+interval x = numsToInterval(1, 2);
 interval y = mulRev(numsToInterval(2, 2), x);   // x / 2
 interval z = sinPi(x) + rootn(y, 3);
 bool b = strictLess(x, entire());

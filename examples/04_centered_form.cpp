@@ -180,7 +180,7 @@ int main()
   // f' undefined somewhere on X would give it. The bounds are evaluated as
   // point intervals, so that their rounding errors are enclosed; the hull of
   // the two would cover a decreasing f (f'(X) < 0.0) as well.
-  const bool increasing = !dfX2.is_empty() && dfX2 > 0.0;
+  const bool increasing = !dfX2.is_empty() && dfX2 > interval(0.0);
   const interval at_bounds = f(interval(X2.left())) | f(interval(X2.right()));
   const interval f08 = textToInterval("0.55736536747773233673659998531385994088");  // f(0.8), mpmath
   std::cout << "   X = [0, 0.8]: f'(X) = " << dfX2 << ", above 0: f increases on X\n"
@@ -264,8 +264,8 @@ int main()
     if (i > 0) {
       // Dividing r by 10 divides a linear excess by 10, a quadratic one by 100
       const interval qn = previous_natural / en, qc = previous_centered / ec;
-      check(5.0 < qn && qn < 20.0, "the natural excess is linear in r");
-      check(50.0 < qc && qc < 200.0, "the centered excess is quadratic in r");
+      check(interval(5.0) < qn && qn < interval(20.0), "the natural excess is linear in r");
+      check(interval(50.0) < qc && qc < interval(200.0), "the centered excess is quadratic in r");
       natural_ratio[i] = qn.midpoint();
       centered_ratio[i] = qc.midpoint();
     }

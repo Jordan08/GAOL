@@ -1,490 +1,420 @@
-# TODO
+# À faire
 
-What is left to do on GAOL v5. What is done is in
+Ce qui reste à faire sur GAOL v5. Ce qui est fait est dans
 [What differs from GAOL](doc/differences.md).
 
-Points 4 to 32 and 36 to 42 come from the review of 2026-09-27,
-[examples/examples.md](examples/examples.md), and from the check of the fixes
-that followed it. "Review #n" is number n of its section 5, whose Appendix B
-gives the fix and a regression test, validated on scratch SSE2 and FPU builds
-but not applied. Its numbers 1, 9, 11, 13, 14 and 18 are fixed.
+Les points 4 à 32 et 36 à 42 viennent de la revue du 2026-09-27,
+[examples/examples.md](examples/examples.md), et de la vérification des
+corrections qui l'ont suivie. « Revue n° n » renvoie au numéro n de sa
+section 5, dont l'annexe B donne la correction et un test de régression,
+validés sur des builds SSE2 et FPU de travail mais pas appliqués. Ses numéros
+1, 9, 11, 13, 14 et 18 sont corrigés.
 
 ## Code
 
-1. **The pow of the standard is written twice.** `gaol_ieee1788::pow`
-   (`gaol/gaol_interval.cpp`) intersects x with [0, +oo] and takes x = {0}
-   apart, and `gaol_pow_hybrid()` does it again. Fix: make the standard half
-   of `gaol_pow_hybrid()`, the pow of Table 9.1 for an interval exponent, a
-   function of `gaol/gaol_interval.cpp`, have `gaol_pow_hybrid()` add only the
-   pown case of a degenerate integer exponent, and have `gaol_ieee1788::pow`
-   call that half directly, apart from its integer exponents beyond the ints.
+1. **Le pow de la norme est écrit deux fois.** `gaol_ieee1788::pow`
+   (`gaol/gaol_interval.cpp`) intersecte x avec [0, +oo] et traite à part
+   x = {0}, et `gaol_pow_hybrid()` le refait. Correction : faire de la moitié
+   « norme » de `gaol_pow_hybrid()`, le pow de la table 9.1 pour un exposant
+   intervalle, une fonction de `gaol/gaol_interval.cpp` ; `gaol_pow_hybrid()`
+   n'y ajoute que le cas pown d'un exposant entier dégénéré, et
+   `gaol_ieee1788::pow` appelle directement cette moitié, sauf pour ses
+   exposants entiers au-delà des int.
 
-2. **The rounding direction is still checked more than once** by `pow(x, y)`
-   where it takes exp(y log x) (an infinite bound, or a base from 0 with an
-   exponent not above 0): `log()`, `*` and `exp()` check it three times; by
-   `nth_root(x, q)` for q < 0, `inverse()` of `nth_root(x, -q)`, twice; and
-   by `modulo_k_pi()`, twice. Fix: call the bodies of these operations after
-   one check, as `tan()`, the relational functions and the negative powers
-   now do (`uipow_rounded_upward()`, `interval::inverse_upward()`); bodies of
-   `log()`, `exp()` and `*` without the check are to write.
+2. **Le sens d'arrondi est encore vérifié plus d'une fois** par `pow(x, y)`
+   quand il passe par exp(y log x) (une borne infinie, ou une base partant de
+   0 avec un exposant qui n'est pas au-dessus de 0) : `log()`, `*` et `exp()`
+   le vérifient trois fois ; par `nth_root(x, q)` pour q < 0, `inverse()` de
+   `nth_root(x, -q)`, deux fois ; et par `modulo_k_pi()`, deux fois.
+   Correction : appeler les corps de ces opérations après une seule
+   vérification, comme le font maintenant `tan()`, les fonctions
+   relationnelles et les puissances négatives (`uipow_rounded_upward()`,
+   `interval::inverse_upward()`) ; les corps de `log()`, `exp()` et `*` sans
+   la vérification restent à écrire.
 
-3. **`pow(x, y)` is one double wide where the power at a corner is a double.**
-   The lower bound is the double below CORE-MATH's value rounded upward, even
-   where that value is exact: `pow([4], 0.5)` is [2 − 2^-52, 2], and cases
-   149 to 152 and 163 of [doc/compare/special_cases.md](doc/compare/special_cases.md)
-   are wider than IEEE 1788's result for this reason alone. Fix: keep the
-   value as the lower bound where the power is exact, as `exp2`, `log2`,
-   `nth_root(x, 3)` and the functions of Table 10.5 do.
+3. **`pow(x, y)` a la largeur d'un double là où la puissance en un coin est un
+   double.** La borne inférieure est le double sous la valeur de CORE-MATH
+   arrondie vers le haut, même quand cette valeur est exacte : `pow([4], 0.5)`
+   vaut [2 − 2^-52, 2], et les cas 149 à 152 et 163 de
+   [doc/compare/special_cases.md](doc/compare/special_cases.md) sont plus
+   larges que le résultat d'IEEE 1788 pour cette seule raison. Correction :
+   garder la valeur comme borne inférieure quand la puissance est exacte, comme
+   le font `exp2`, `log2`, `nth_root(x, 3)` et les fonctions de la table 10.5.
 
-## Wrong bounds
+## Bornes fausses
 
-4. **Flush-to-zero and denormals-are-zero make the bounds wrong** (review
-   #2): under them, `[1e-300] * [1e-20]` is [0, 0]. A program linked with
-   `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations` gets them from
-   `crtfastmath.o`, which GCC then links in and whose constructor runs after
-   GAOL's initialization. The `-fno-fast-math` of `gaol.pc` and `gaol::gaol`
-   does not prevent it, and silences the `#error` of `gaol_config.h` at
-   compile time, GCC applying the `-O` options first. Loading a plug-in or a
-   Python module built with `-Ofast` sets them too. The probe of each
-   operation, `1.0 + tiny == 1.0` in `round_upward_if_needed()`
-   (`gaol/gaol_fpu.h`), sees the rounding direction only: `tiny` is 2^-60, a
-   normal double. Fix:
-   - probe with a subnormal, `1.0 + (subnormal + 0.0) == 1.0` with 2^-1060,
-     which sees the direction, FTZ and DAZ in one comparison, and then clear
-     FTZ and DAZ in MXCSR (`& ~0x8040`) as well. Measured at no cost on an
-     i7-1185G7; to measure first on the processors of the continuous
-     integration, an addition with a subnormal operand being slow on some x86
-     processors. It is the only defence against plug-ins;
-   - pass `-mno-daz-ftz`, which keeps GCC from linking `crtfastmath.o`, in
-     the link options of `gaol.pc` and `gaol::gaol` where the compiler takes
-     it (GCC 12 and later on x86; not checked: GCC 9.4 and Clang 18 refuse
-     it);
-   - say in `doc/using.md`, `doc/three-builds.md` and the manual that linking
-     with these options, or loading code compiled with them, breaks the
-     bounds.
+4. **Le flush-to-zero et le denormals-are-zero rendent les bornes fausses**
+   (revue n° 2) : avec eux, `[1e-300] * [1e-20]` vaut [0, 0]. Un programme lié
+   avec `-Ofast`, `-ffast-math` ou `-funsafe-math-optimizations` les reçoit de
+   `crtfastmath.o`, que GCC lie alors et dont le constructeur s'exécute après
+   l'initialisation de GAOL. Le `-fno-fast-math` de `gaol.pc` et de
+   `gaol::gaol` ne l'empêche pas, et fait taire le `#error` de
+   `gaol_config.h` à la compilation, GCC appliquant d'abord les options `-O`.
+   Charger un plug-in ou un module Python compilé avec `-Ofast` les active
+   aussi. La sonde de chaque opération, `1.0 + tiny == 1.0` dans
+   `round_upward_if_needed()` (`gaol/gaol_fpu.h`), ne voit que le sens
+   d'arrondi : `tiny` vaut 2^-60, un double normal. Correction :
+   - sonder avec un sous-normal, `1.0 + (subnormal + 0.0) == 1.0` avec
+     2^-1060, qui voit le sens, FTZ et DAZ en une comparaison, puis effacer
+     aussi FTZ et DAZ dans MXCSR (`& ~0x8040`). Mesuré sans coût sur un
+     i7-1185G7 ; à mesurer d'abord sur les processeurs de l'intégration
+     continue, une addition avec un opérande sous-normal étant lente sur
+     certains processeurs x86. C'est la seule défense contre les plug-ins ;
+   - passer `-mno-daz-ftz`, qui empêche GCC de lier `crtfastmath.o`, dans les
+     options d'édition de liens de `gaol.pc` et de `gaol::gaol`, là où le
+     compilateur l'accepte (GCC 12 et plus récents sur x86 ; non vérifié :
+     GCC 9.4 et Clang 18 le refusent) ;
+   - dire dans `doc/using.md`, `doc/three-builds.md` et le manuel que lier
+     avec ces options, ou charger du code compilé avec elles, rend les bornes
+     fausses.
 
-5. **`-ffinite-math-only` is not refused** (review #4). The compiler then
-   takes NaNs and infinities never to occur, in the inline functions of the
-   headers too, which are compiled with the options of the program: the empty
-   set having NaN bounds, `([1,2] & [3,4]).is_empty()` is false, and the hull
-   of the empty set with [1, 2] is empty. The `-fno-fast-math` of `gaol.pc`
-   protects only when it comes after the option on the command line.
-   `-funsafe-math-optimizations`, and `-ffast-math -fno-finite-math-only`,
-   which no macro reveals, let GCC fold the probe `1 + tiny == 1` into
-   `tiny == 0` in inline code, so that `width()` after a change of direction
-   is below the exact width. Fix: an `#error` on `__FINITE_MATH_ONLY__` in
-   `gaol_config.h`, next to the one on `__FAST_MATH__`, a row in the refused
-   options of `doc/three-builds.md`, and a compile test as in
+5. **`-ffinite-math-only` n'est pas refusé** (revue n° 4). Le compilateur
+   suppose alors que les NaN et les infinis n'arrivent jamais, y compris dans
+   les fonctions inline des en-têtes, compilées avec les options du
+   programme : l'ensemble vide ayant des bornes NaN,
+   `([1,2] & [3,4]).is_empty()` est faux, et l'enveloppe de l'ensemble vide et
+   de [1, 2] est vide. Le `-fno-fast-math` de `gaol.pc` ne protège que s'il
+   vient après l'option sur la ligne de commande.
+   `-funsafe-math-optimizations`, et `-ffast-math -fno-finite-math-only`,
+   qu'aucune macro ne révèle, laissent GCC réduire la sonde `1 + tiny == 1` en
+   `tiny == 0` dans le code inline, si bien que `width()` après un changement
+   de sens est sous la largeur exacte. Correction : un `#error` sur
+   `__FINITE_MATH_ONLY__` dans `gaol_config.h`, à côté de celui sur
+   `__FAST_MATH__`, une ligne dans les options refusées de
+   `doc/three-builds.md`, et un test de compilation comme dans
    `tests/fp_strict`.
 
-6. **`pow` misses a subnormal result where the x87 unit and MXCSR disagree**
-   (review #3): on x86-64 with the glibc, the x87 unit rounding to nearest and
-   MXCSR upward, as `exactinit()` of Shewchuk's predicates and of Triangle
-   leaves them, in 205 of 400 random cases. CORE-MATH rounds those results
-   itself, in the direction `fegetround()` gives, which the glibc reads from
-   the x87 unit. Fix: in `gaol/core_math_port.h`, on x86-64, define
-   `fegetround()` as a read of MXCSR, as CORE-MATH's own `get_rounding_mode()`
-   of `rsqrt.c`, `asinpi.c` and `cbrt.c` does, and add `pow` with subnormal
-   results to `tests/rounding_direction.cpp`, which already lists that state.
+6. **`pow` rate un résultat sous-normal quand l'unité x87 et MXCSR ne sont pas
+   d'accord** (revue n° 3) : sur x86-64 avec la glibc, l'unité x87 arrondissant
+   au plus proche et MXCSR vers le haut, comme les laisse `exactinit()` des
+   prédicats de Shewchuk et de Triangle, dans 205 cas aléatoires sur 400.
+   CORE-MATH arrondit lui-même ces résultats, dans le sens que donne
+   `fegetround()`, que la glibc lit dans l'unité x87. Correction : dans
+   `gaol/core_math_port.h`, sur x86-64, définir `fegetround()` comme une
+   lecture de MXCSR, comme le fait `get_rounding_mode()` de CORE-MATH dans
+   `rsqrt.c`, `asinpi.c` et `cbrt.c`, et ajouter `pow` avec des résultats
+   sous-normaux à `tests/rounding_direction.cpp`, qui liste déjà cet état.
 
-7. **`atanh([1, x])` is [DBL_MAX, +oo]** instead of the empty set (review #5),
-   atanh being defined on (−1, 1); so is `atanh([1])`, and `atanh_rel` and
-   `tanhRev` inherit it, while `atanh([-5, -1])` is empty. Fix: the empty set
-   when `J.left() == 1.0 || J.right() == -1.0`, J being `I & [-1, 1]`, and
-   the domain (−1, 1) in `doc/accuracy.md` and the manual.
+7. **`atanh([1, x])` vaut [DBL_MAX, +oo]** au lieu de l'ensemble vide (revue
+   n° 5), atanh étant défini sur (−1, 1) ; de même `atanh([1])`, et
+   `atanh_rel` et `tanhRev` en héritent, alors que `atanh([-5, -1])` est vide.
+   Correction : l'ensemble vide quand `J.left() == 1.0 || J.right() == -1.0`,
+   J étant `I & [-1, 1]`, et le domaine (−1, 1) dans `doc/accuracy.md` et le
+   manuel.
 
-8. **`interval("2", "1")` keeps the bounds [2, 1]** (review #6), as does
-   `textToInterval(sl, sr)`: `is_empty()` is true, but adding [0, 1] gives
-   [2, 2]. Fix: the canonical empty set at the end of the constructor when
-   either text is empty or `!(tmpl.left() <= tmpr.right())`.
+8. **`interval("2", "1")` garde les bornes [2, 1]** (revue n° 6), de même que
+   `textToInterval(sl, sr)` : `is_empty()` est vrai, mais y ajouter [0, 1]
+   donne [2, 2]. Correction : l'ensemble vide canonique à la fin du
+   constructeur quand l'un des textes est vide ou que
+   `!(tmpl.left() <= tmpr.right())`.
 
-9. **`pow(x, n)` for large n** (review #7). The lower bound drops the square
-   of the rest `ipow_exact_dn()` carries: 8 doubles below the tightest at
-   n = 2^28 − 1, 1962 at 2^32 − 1, where the manual promises the tightest or
-   one double beyond. Fix: `nl = std::fma(-h,h,p) + nl*(2.0*h - nl);`. Where
-   the power of one bound under- or overflows, both bounds take the rounded
-   products, which the SSE2 and FPU builds multiply in different orders:
-   their bounds differ in 190 of 1600 random cases, against "the same bounds
-   on every machine" of `doc/accuracy.md`. Make them agree, or say so there.
+9. **`pow(x, n)` pour n grand** (revue n° 7). La borne inférieure perd le
+   carré du reste que porte `ipow_exact_dn()` : 8 doubles sous la plus serrée
+   pour n = 2^28 − 1, 1962 pour 2^32 − 1, là où le manuel promet la plus serrée
+   ou un double au-delà. Correction :
+   `nl = std::fma(-h,h,p) + nl*(2.0*h - nl);`. Là où la puissance d'une borne
+   dépasse la plage des doubles (vers 0 ou vers l'infini), les deux bornes
+   prennent les produits arrondis, que les builds SSE2 et FPU multiplient dans
+   des ordres différents : leurs bornes diffèrent dans 190 cas aléatoires sur
+   1600, contre « les mêmes bornes sur toutes les machines » de
+   `doc/accuracy.md`. Les mettre d'accord, ou le dire là.
 
-10. **`tan(interval(-M_PI_2, M_PI_2))` is [-oo, +oo]** where the tightest is
-    ±1.63·10^16 (review #8). Fix: `narrower_than_pi = (w <= pi_dn)`: w, the
-    width rounded upward, at most the double below π proves the exact width
-    below π.
+10. **`tan(interval(-M_PI_2, M_PI_2))` vaut [-oo, +oo]** là où la plus serrée
+    est ±1,63·10^16 (revue n° 8). Correction :
+    `narrower_than_pi = (w <= pi_dn)` : w, la largeur arrondie vers le haut,
+    au plus le double sous π, prouve que la largeur exacte est sous π.
 
-11. **`hausdorff()` on infinite bounds, `nb_fp_numbers()` on −0** (review #19
-    and #20). `hausdorff(x, x)` is +oo for x = [1, +oo], and so is
-    `hausdorff([1, +oo], [2, +oo])`, whose distance is 1: a fixed-point loop
-    on a box with an unbounded side never stops. Fix, in both builds: equal
-    bounds, the infinite ones included, are at distance 0.
-    `nb_fp_numbers(-0.0, 1.0)` wraps round to 13830554455654793217, and
-    `[1, 2] - 1` has the lower bound −0. Fix: number the doubles by the bits
-    of `std::fabs(a)` and `std::fabs(b)`.
+11. **`hausdorff()` sur les bornes infinies, `nb_fp_numbers()` sur −0** (revue
+    n° 19 et n° 20). `hausdorff(x, x)` vaut +oo pour x = [1, +oo], de même que
+    `hausdorff([1, +oo], [2, +oo])`, dont la distance vaut 1 : une boucle de
+    point fixe sur une boîte à un côté non borné ne s'arrête jamais.
+    Correction, dans les deux builds : des bornes égales, infinies comprises,
+    sont à distance 0. `nb_fp_numbers(-0.0, 1.0)` fait le tour et vaut
+    13830554455654793217, et `[1, 2] - 1` a pour borne inférieure −0.
+    Correction : numéroter les doubles par les bits de `std::fabs(a)` et
+    `std::fabs(b)`.
 
-12. **The reader gives a wrong subnormal enclosure under flush-to-zero and
-    denormals-are-zero**: `interval("1e-310")` is
-    [0x0.fffffffffffffp-1022, 0x1p-1022], which misses 1e-310 (GAOL hung
-    there before the bisection on bits). `gaol_compare_number()`
-    (`gaol/gaol_interval_lexer.lpp`) tests `!(x > 0.0)` and takes
-    `std::frexp()` of the candidate double, which DAZ reads as 0. Fix: take
-    the exponent and the significand of the candidate from its bits.
+12. **Le lecteur donne un encadrement sous-normal faux avec le flush-to-zero et
+    le denormals-are-zero** : `textToInterval("1e-310")` vaut
+    [0x0.fffffffffffffp-1022, 0x1p-1022], qui ne contient pas 1e-310 (GAOL s'y
+    bloquait avant la bissection sur les bits). `gaol_compare_number()`
+    (`gaol/gaol_interval_lexer.lpp`) teste `!(x > 0.0)` et prend
+    `std::frexp()` du double candidat, que DAZ lit comme 0. Correction :
+    prendre l'exposant et la mantisse du candidat dans ses bits.
 
-## Crashes
+## Plantages
 
-13. **A null `const char*` crashes** (review #10):
-    `interval((const char*)nullptr)`, `interval(std::getenv("UNSET"))` and
-    `interval(1, 2) + nullptr` compile, the constructor not being `explicit`,
-    and give a null pointer to `strlen` in the initialization of the lexer.
-    Fix: `parse_interval()` returns false for a null pointer, the error
-    messages write `(null pointer)`, and `interval(std::nullptr_t) = delete;`
-    refuses `x + nullptr` at compile time.
+13. **Un `const char*` nul fait planter** (revue n° 10) :
+    `interval((const char*)nullptr)`, `interval(std::getenv("UNSET"))` et
+    `interval(1, 2) + nullptr` compilent, le constructeur n'étant pas
+    `explicit`, et passent un pointeur nul à `strlen` dans l'initialisation du
+    lexer. Correction : `parse_interval()` renvoie faux pour un pointeur nul,
+    les messages d'erreur écrivent `(null pointer)`, et
+    `interval(std::nullptr_t) = delete;` refuse `x + nullptr` à la
+    compilation.
 
-14. **Long sums overflow the stack** (review #17): a sum of 100 000 terms read
-    from a string, and expressions as long built through the API, recurse once
-    per term in the evaluation and in the destruction of the tree. Fix: in
-    `gaol_interval_parser.ypp`, fold each binary operation when it is read, as
-    calls of functions already are, and regenerate the committed parser; for
-    the expressions of the API, an evaluation and a destruction without
-    recursion.
+14. **Les longues sommes débordent la pile** (revue n° 17) : une somme de
+    100 000 termes lue dans une chaîne, et des expressions aussi longues
+    construites par l'API, font une récursion par terme dans l'évaluation et
+    dans la destruction de l'arbre. Correction : dans
+    `gaol_interval_parser.ypp`, réduire chaque opération binaire dès sa
+    lecture, comme le sont déjà les appels de fonctions, et régénérer le
+    parser commité ; pour les expressions de l'API, une évaluation et une
+    destruction sans récursion.
 
-## Streams and text
+## Flux et texte
 
-15. **A point interval is written in a form the reader refuses** (review
-    #12): `<0.1, 0.1000000000000001>` in the default format, which the reader
-    refuses ("bounds of degenerate interval do not evaluate to the same
-    value"), so that `textToInterval(intervalToText(interval(0.1)))` is the
-    empty set, against the manual. Fix: in `display_bounds()`, write `<a, a>`
-    only when the two texts are equal and `[l, r]` otherwise, and correct the
-    manual where it shows `<0.1, 0.1000000000000001>`.
+15. **Un intervalle ponctuel est écrit sous une forme que le lecteur refuse**
+    (revue n° 12) : `<0.1, 0.1000000000000001>` dans le format par défaut, que
+    le lecteur refuse (« bounds of degenerate interval do not evaluate to the
+    same value »), si bien que
+    `textToInterval(intervalToText(interval(0.1)))` est l'ensemble vide,
+    contrairement au manuel. Correction : dans `display_bounds()`, écrire
+    `<a, a>` seulement quand les deux textes sont égaux, et `[l, r]` sinon, et
+    corriger le manuel là où il montre `<0.1, 0.1000000000000001>`.
 
-16. **`gaol_exception` does not override `what()`** (review #15):
-    `catch (const std::exception& e)` prints `std::exception`, and so does an
-    uncaught error. Fix: `what()` returns the explanation, and `operator<<`
-    of the exceptions no longer prints both.
+16. **`gaol_exception` ne redéfinit pas `what()`** (revue n° 15) :
+    `catch (const std::exception& e)` affiche `std::exception`, de même qu'une
+    erreur non rattrapée. Correction : `what()` renvoie l'explication, et
+    `operator<<` des exceptions n'affiche plus les deux.
 
-17. **`operator>>` throws on a blank line**, and on `in >> d >> x`, where the
-    interval reads the empty rest of the line of the number: a file ending
-    with a blank line ends `while (in >> x)` with `input_format_error`. Fix:
-    read with `std::getline(is >> std::ws, buffer)`, which skips blank space
-    as the reading of a number does, or say in the manual that a blank line
-    is ill-formed. Reading one interval per token rather than per line would
-    also read back what `os << x << ' ' << y` writes.
+17. **`operator>>` lève une exception sur une ligne vide**, et sur
+    `in >> d >> x`, où l'intervalle lit le reste vide de la ligne du nombre :
+    un fichier qui finit par une ligne vide termine `while (in >> x)` par
+    `input_format_error`. Correction : lire avec
+    `std::getline(is >> std::ws, buffer)`, qui saute les blancs comme la
+    lecture d'un nombre, ou dire dans le manuel qu'une ligne vide est mal
+    formée. Lire un intervalle par mot plutôt que par ligne permettrait aussi
+    de relire ce qu'écrit `os << x << ' ' << y`.
 
-18. **The width and center formats** (review #21) print a center and a radius
-    rounded to nearest, which need not enclose the interval ([1, 1 + 2^-52]
-    is written `1 (+/- 1.11e-16)`), and a radius of 0 for [0, 5·10^-324],
-    against the manual; the manual and `gaol/gaol_interval.h` describe the
-    width format as the center and the width, where it prints the radius.
-    Both formats write the empty set `empty`, where the manual says every
-    format writes `[empty]`. `gaol_ieee1788::intervalToText` follows the
-    global format and the locale of the stream, so its text is not always a
-    literal of IEEE 1788. Fix: document the two formats as display formats,
-    or round their radius upward; have `intervalToText` write the bounds
-    format with a point.
+18. **Les formats largeur et centre** (revue n° 21) affichent un centre et un
+    rayon arrondis au plus proche, qui ne contiennent pas forcément
+    l'intervalle ([1, 1 + 2^-52] s'écrit `1 (+/- 1.11e-16)`), et un rayon nul
+    pour [0, 5·10^-324], contrairement au manuel ; le manuel et
+    `gaol/gaol_interval.h` décrivent le format largeur comme le centre et la
+    largeur, alors qu'il affiche le rayon. Les deux formats écrivent
+    l'ensemble vide `empty`, là où le manuel dit que tous les formats écrivent
+    `[empty]`. `gaol_ieee1788::intervalToText` suit le format global et la
+    locale du flux, si bien que son texte n'est pas toujours un littéral
+    d'IEEE 1788. Correction : documenter les deux formats comme des formats
+    d'affichage, ou arrondir leur rayon vers le haut ; faire écrire à
+    `intervalToText` le format des bornes, avec un point.
 
-19. **`operator<<` is about 450 ns slower per interval** since it writes in a
-    `std::ostringstream` of its own (13 % for the bounds format, 2.2 times for
-    the center format), and `std::internal` now pads as `std::right` does. To
-    measure on programs that write many intervals; formatting in a buffer of
-    characters rather than in a stream would save most of it.
+19. **`operator<<` est environ 450 ns plus lent par intervalle** depuis qu'il
+    écrit dans un `std::ostringstream` à lui (13 % pour le format des bornes,
+    2,2 fois pour le format centre), et `std::internal` complète maintenant
+    comme `std::right`. À mesurer sur des programmes qui écrivent beaucoup
+    d'intervalles ; formater dans un tampon de caractères plutôt que dans un
+    flux en économiserait l'essentiel.
 
-20. **Reading a long number under a comma locale is slow**: each of the up to
-    125 comparisons of `gaol_enclose_number()` parses the text again, in a
-    time quadratic in its length: 2.5 s for 20 000 characters, against
-    0.08 s under the C locale. Fix: parse the significand and the exponent
-    once and compare them with each double, or give `strtod()` a copy of the
-    text with the decimal point of `localeconv()`, so that its value is right
-    again and two comparisons suffice.
+20. **Lire un long nombre sous une locale à virgule est lent** : chacune des
+    125 comparaisons au plus de `gaol_enclose_number()` réanalyse le texte, en
+    un temps quadratique en sa longueur : 2,5 s pour 20 000 caractères, contre
+    0,08 s sous la locale C. Correction : analyser une fois la mantisse et
+    l'exposant et les comparer à chaque double, ou donner à `strtod()` une
+    copie du texte avec le séparateur décimal de `localeconv()`, pour que sa
+    valeur soit de nouveau juste et que deux comparaisons suffisent.
 
-## Headers
+## En-têtes
 
-21. **`gaol::sin(0.5)` no longer compiles** (review #16): every function of
-    namespace `gaol` on a double is ambiguous between the interval and the
-    expression overloads, since `gaol_ieee1788.h` includes
-    `gaol_expression.h`; GAOL 4 compiled it. Fix: stop including
-    `gaol_expression.h` from `gaol_ieee1788.h`, and move the two expression
-    overloads of `gaol_ieee1788` (`pown(e, n)`, `pow(e1, e2)`) to the end of
+21. **`gaol::sin(0.5)` est l'expression sin(0.5)** (revue n° 16) : chaque
+    fonction de l'espace de noms `gaol` sur un double prend la surcharge pour
+    les expressions, depuis que `gaol_ieee1788.h` inclut `gaol_expression.h`
+    et que les constructeurs d'`interval` sont explicites (une expression se
+    construit implicitement d'un double) ; `interval y = gaol::sin(0.5);` ne
+    compile pas, et `auto y = gaol::sin(0.5);` donne une expression. Avant les
+    constructeurs explicites, l'appel était ambigu ; GAOL 4 le compilait et
+    donnait un intervalle. Correction : ne plus inclure `gaol_expression.h` depuis
+    `gaol_ieee1788.h`, et déplacer les deux surcharges d'expressions de
+    `gaol_ieee1788` (`pown(e, n)`, `pow(e1, e2)`) à la fin de
     `gaol_expression.h`.
 
-22. **The public headers leak into the program** (review #22). The installed
-    `gaol_interval_parser.h` does not compile when included, and it and
-    `gaol_init_cleanup.h` are internal; `gaol_allocator.h` does not compile
-    alone. They put `using std::exception; using std::string;` at global
-    scope, define 25 unprefixed macros (`INLINE`, `HAVE_FENV_H`, `MEMALIGN`,
-    `__HI`…) and `#undef PACKAGE`. With `-Wall -Wextra` and a plain `-I`
-    (pkg-config, or FetchContent, whose include directory is not `SYSTEM`), a
-    program gets about 35 warnings: 30 `-Wunused-parameter` in
-    `gaol_expr_visitor.h`, and a `-Wdeprecated-copy` at every `x = ...;` (a
-    user-provided copy constructor with an implicit copy assignment). Fix:
-    stop installing the internal headers, remove the `using`s, prefix the
-    macros, default the copy assignment and leave the unused parameters
-    unnamed.
+22. **Les en-têtes publics débordent dans le programme** (revue n° 22).
+    `gaol_interval_parser.h`, installé, ne compile pas quand on l'inclut, et
+    lui et `gaol_init_cleanup.h` sont internes ; `gaol_allocator.h` ne compile
+    pas seul. Ils mettent `using std::exception; using std::string;` à la
+    portée globale et définissent des macros sans préfixe (`INLINE`,
+    `HAVE_FENV_H`, `MEMALIGN`, `__HI`…). Avec `-Wall -Wextra` et un simple
+    `-I` (pkg-config, ou FetchContent, dont le répertoire d'inclusion n'est
+    pas `SYSTEM`), un programme reçoit environ 35 avertissements : 30
+    `-Wunused-parameter` dans `gaol_expr_visitor.h`, et un
+    `-Wdeprecated-copy` à chaque `x = ...;` (un constructeur de copie écrit
+    par l'utilisateur avec une affectation de copie implicite). Correction :
+    ne plus installer les en-têtes internes, supprimer les `using`, préfixer
+    les macros, déclarer l'affectation de copie par défaut et laisser sans nom
+    les paramètres inutilisés.
 
 ## Interface
 
-23. **The literal 0 does not convert to an interval**: `interval(0)`,
-    `interval(0, 0)`, `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` in a template
-    are ambiguous, 0 being a null pointer constant too, as close to
-    `const char*` as to `double`. So `Eigen::Matrix<interval>`, which writes
-    `Scalar(0)`, does not compile, and an integer beyond 2^53 becomes a double
-    that does not contain it. Fix: constructors templated on the integer
-    types, constrained, with `interval(std::nullptr_t) = delete;` (checked
-    against every test program and the sources of the library; in the
-    headers, no change of ABI). Not a plain `interval(int)`, which makes
-    `interval(5L)` ambiguous.
+23. **Le littéral 0 et les entiers** : `interval(0, 0)` est ambigu, 0 étant
+    aussi une constante pointeur nul, aussi proche du `const char*` du
+    constructeur à deux chaînes que de `double` ; `interval(0)` et `T(0)`
+    compilent. Les constructeurs étant explicites, `x = 0`, `x < 0` et
+    `max(x, 0)` ne compilent plus, comme avec un double. Un entier au-delà de
+    2^53 devient un double qui ne le contient pas. Correction : des constructeurs
+    templates sur les types entiers, contraints, avec
+    `interval(std::nullptr_t) = delete;` (vérifié sur tous les programmes de
+    test et les sources de la bibliothèque ; dans les en-têtes, sans
+    changement d'ABI). Pas un simple `interval(int)`, qui rend `interval(5L)`
+    ambigu.
 
-24. **No total order for the containers.** `<`, `<=`, `>` and `>=` are the
-    certainly relations of IEEE 1788, true for (∅, ∅): `std::set` drops
-    overlapping intervals, and `std::sort` of a vector holding an empty
-    interval reads past its end. Fix: a `gaol::lexicographic_less`, possibly
-    a `std::less` specialization, and a warning in the docs against
-    `std::sort`, `std::set`, `std::max`, `std::min` and `std::clamp` without a
-    comparator.
+24. **Pas d'ordre total pour les conteneurs.** `<`, `<=`, `>` et `>=` sont les
+    relations « certainement » d'IEEE 1788, vraies pour (∅, ∅) : `std::set`
+    perd les intervalles qui se chevauchent, et `std::sort` d'un vecteur
+    contenant un intervalle vide lit au-delà de sa fin. Correction : un
+    `gaol::lexicographic_less`, peut-être une spécialisation de `std::less`,
+    et une mise en garde dans la documentation contre `std::sort`,
+    `std::set`, `std::max`, `std::min` et `std::clamp` sans comparateur.
 
-25. **Handling the rounding direction.** `cleanup()` restores it only once,
-    there is no scoped guard, and `rnd_keep()` is not presented as a barrier.
-    Fix: a `gaol::restore_rounding()` callable any number of times, a guard
-    computing a block to nearest (about 7 ns), and `rnd_keep()` documented.
+25. **Gérer le sens d'arrondi.** `cleanup()` ne le restaure qu'une fois, il
+    n'y a pas de garde à portée, et `rnd_keep()` n'est pas présenté comme une
+    barrière. Correction : un `gaol::restore_rounding()` qu'on peut appeler
+    autant de fois qu'on veut, une garde qui calcule un bloc au plus proche
+    (environ 7 ns), et `rnd_keep()` documenté.
 
-26. **Floating-point flags and traps.** With traps enabled
-    (`feenableexcept`), `1/[0,1]`, `log([0,1])`, `[1e308]*10` and every
-    `is_empty()` of a computed empty set die with SIGFPE: the unbounded
-    results come from overflows or divisions by zero, and `is_empty()`
-    compares NaN bounds with a signaling comparison. Every operation raises
-    the inexact flag. Fix: `is_empty()` with `std::islessequal`, at no cost,
-    and a word in the docs that traps must be off.
+26. **Indicateurs et exceptions flottantes.** Avec les exceptions matérielles
+    activées (`feenableexcept`), `1/[0,1]`, `log([0,1])`, `[1e308]*10` et
+    chaque `is_empty()` d'un ensemble vide calculé meurent sur SIGFPE : les
+    résultats non bornés viennent de dépassements ou de divisions par zéro, et
+    `is_empty()` compare des bornes NaN avec une comparaison signalante.
+    Chaque opération lève l'indicateur inexact. Correction : `is_empty()` avec
+    `std::islessequal`, sans coût, et un mot dans la documentation pour dire
+    que les exceptions matérielles doivent être désactivées.
 
-27. **The helpers every algorithm writes**: `mulRevToPair` (a `div_rel` in
-    two pieces), `inflate`, `bisect(ratio)` and `is_bisectable()` (`split()`
-    cuts at the midpoint, ±DBL_MAX for a half-line), a mid-radius
-    constructor, `hull()` and `intersect()` as functions, an enclosure of the
-    width (`width()` is an upper bound), a `_iv` literal in a
-    `gaol::literals` namespace, `erf` and `erfc` (CORE-MATH's are vendored),
-    and the reverse functions of `atan2`, `pow(x, y)`, `max`, `min`, `sign`
-    and `floor`, which IBEX writes itself.
+27. **Les outils que chaque algorithme réécrit** : `mulRevToPair` (un
+    `div_rel` en deux morceaux), `inflate`, `bisect(ratio)` et
+    `is_bisectable()` (`split()` coupe au milieu, ±DBL_MAX pour une
+    demi-droite), un constructeur milieu-rayon, `hull()` et `intersect()`
+    comme fonctions, un encadrement de la largeur (`width()` est un majorant),
+    un littéral `_iv` dans un espace de noms `gaol::literals`, `erf` et `erfc`
+    (ceux de CORE-MATH sont embarqués), et les fonctions réciproques de
+    `atan2`, `pow(x, y)`, `max`, `min`, `sign` et `floor`, qu'IBEX écrit
+    lui-même.
 
-28. **Decorations**, or at least a flag telling that an argument left the
-    domain: `sqrt` of a negative box is empty and passes every inclusion
-    test, and `interval(DBL_MAX*10)`, `x + INFINITY` and `x * NAN` are
-    silently empty.
+28. **Des décorations**, ou au moins un indicateur disant qu'un argument est
+    sorti du domaine : `sqrt` d'une boîte négative est vide et passe tous les
+    tests d'inclusion, et `interval(DBL_MAX*10)`, `x + INFINITY` et
+    `x * NAN` sont vides sans rien dire.
 
-29. **A rounding direction that does not leak**: the rounding carried by each
-    instruction (AVX-512, the FPCR of AArch64 in assembly), as inari does,
-    three times faster on additions; in the direction of P2746.
+29. **Un sens d'arrondi qui ne fuit pas** : l'arrondi porté par chaque
+    instruction (AVX-512, le FPCR d'AArch64 en assembleur), comme le fait
+    inari, trois fois plus rapide sur les additions ; dans la direction de
+    P2746.
 
-30. **Optional headers above the scalar core**, from `examples/`: a box type
-    (`box.h`), forward differentiation over intervals (`dual.h`), affine forms
-    (`affine.h`); or GAOL traits for YalAA and an interval backend for
-    VNODE-LP.
+30. **Des en-têtes optionnels au-dessus du cœur scalaire**, à partir de
+    `examples/` : un type boîte (`box.h`), la différentiation directe sur les
+    intervalles (`dual.h`), les formes affines (`affine.h`) ; ou des traits
+    GAOL pour YalAA et un backend intervalle pour VNODE-LP.
 
-## Tests and continuous integration
+## Tests et intégration continue
 
-31. **The test under a comma locale does not run in the continuous
-    integration**: `tests/numbers.cpp` reads under `fr_FR.UTF-8` or
-    `de_DE.UTF-8` only where one is installed. Fix:
-    `sudo locale-gen fr_FR.UTF-8` in `.github/workflows/linux.yml`.
+31. **Le test sous une locale à virgule ne tourne pas dans l'intégration
+    continue** : `tests/numbers.cpp` lit sous `fr_FR.UTF-8` ou `de_DE.UTF-8`
+    seulement là où l'une est installée. Correction :
+    `sudo locale-gen fr_FR.UTF-8` dans `.github/workflows/linux.yml`.
 
-32. **Test suites and benchmarks where GAOL is absent**: run ITF1788 (all the
-    operations of IEEE 1788) and the benchmark of Tang et al. (2021) on GAOL
-    v5, and add Boost.Interval, the library users pick first, whose
-    elementary functions are unsound, to `doc/compare/`.
+32. **Des suites de tests et des bancs d'essai où GAOL est absent** : passer
+    ITF1788 (toutes les opérations d'IEEE 1788) et le banc d'essai de Tang et
+    al. (2021) sur GAOL v5, et ajouter à `doc/compare/` Boost.Interval, la
+    bibliothèque que les utilisateurs prennent d'abord, dont les fonctions
+    élémentaires ne sont pas sûres.
 
 ## CORE-MATH
 
-33. **Propose the fixes of the vendored sources upstream.**
-    [3rd/README.md](3rd/README.md) lists five changes of the CORE-MATH sources;
-    four of them are fixes rather than adaptations to GAOL: the masks `~0ull`
-    of `sinh.c`, `cosh.c` and `tanh.c`, the signed shifts of `cospi.c`, the
-    128-bit shift of `asinpi.c`, and the 64-bit `__builtin_expect` of
-    `rsqrt.c`, which took subnormals for +0 wherever `long` has 32 bits.
-    A fifth one is made in `gaol/core_math_port.h` rather than in the
-    sources: `sin.c` calls `__builtin_roundeven()` unguarded since its rewrite
-    (upstream commit `6b84457`), which GCC before 10 does not have, and GCC 9.4
-    did not link it; the other sources take the builtin only from GCC 10 and
-    Clang 17 and round by themselves before (`roundeven_finite()` of
-    `exp.c`), which `sin.c` could do too.
-    This is also how the work of GAOL v5 reaches the glibc, which imports
-    CORE-MATH's functions (glibc 2.41 to 2.44; `cosh`, `sinh` and `tanh` in
-    2.44) and runs on 32-bit Linux targets, where `long` has 32 bits too.
-    To check: whether the glibc's copies still carry the masks `~0ul` and the
-    64-bit `__builtin_expect`; if so, the same fixes are sent to the glibc
-    (libc-alpha, with a `Signed-off-by` line: no copyright assignment to the
-    FSF since August 2021).
+33. **Proposer en amont les corrections des sources embarquées.**
+    [3rd/README.md](3rd/README.md) liste cinq modifications des sources de
+    CORE-MATH ; quatre sont des corrections plutôt que des adaptations à
+    GAOL : les masques `~0ull` de `sinh.c`, `cosh.c` et `tanh.c`, les
+    décalages signés de `cospi.c`, le décalage sur 128 bits de `asinpi.c`, et
+    le `__builtin_expect` sur 64 bits de `rsqrt.c`, qui prenait les
+    sous-normaux pour +0 partout où `long` fait 32 bits.
+    Une cinquième est faite dans `gaol/core_math_port.h` plutôt que dans les
+    sources : depuis sa réécriture (commit amont `6b84457`), `sin.c` appelle
+    `__builtin_roundeven()` sans garde, ce que GCC n'a pas avant la version
+    10, et GCC 9.4 ne l'éditait pas ; les autres sources ne prennent ce
+    builtin qu'à partir de GCC 10 et de Clang 17 et arrondissent elles-mêmes
+    avant (`roundeven_finite()` de `exp.c`), ce que `sin.c` pourrait faire
+    aussi.
+    C'est aussi par là que le travail de GAOL v5 atteint la glibc, qui importe
+    les fonctions de CORE-MATH (glibc 2.41 à 2.44 ; `cosh`, `sinh` et `tanh`
+    en 2.44) et tourne sur des cibles Linux 32 bits, où `long` fait aussi
+    32 bits. À vérifier : si les copies de la glibc ont encore les masques
+    `~0ul` et le `__builtin_expect` sur 64 bits ; si oui, envoyer les mêmes
+    corrections à la glibc (libc-alpha, avec une ligne `Signed-off-by` : plus
+    de cession de copyright à la FSF depuis août 2021).
 
 ## Documentation
 
-34. **The coverage report** ([coverage/README.md](coverage/README.md)) was
-    written on 2026-09-20: its lines not run no longer match the sources, which
-    changed since (one grammar for the reader of strings, the lexer and the
-    parser made reentrant, the relations `possibly_*`, `certainly_eq` and
-    `certainly_neq` removed). To write again with `-DGAOL_COVERAGE=ON` and the
-    target `coverage`, which need gcovr.
+34. **Le rapport de couverture** ([coverage/README.md](coverage/README.md)) a
+    été écrit le 2026-09-20 : ses lignes non exécutées ne correspondent plus
+    aux sources, qui ont changé depuis (une seule grammaire pour le lecteur de
+    chaînes, le lexer et le parser rendus réentrants, les relations
+    `possibly_*`, `certainly_eq` et `certainly_neq` supprimées). À refaire
+    avec `-DGAOL_COVERAGE=ON` et la cible `coverage`, qui demandent gcovr.
 
-35. **The timings of [doc/compare/performance.md](doc/compare/performance.md)**
-    were measured at `bb6f7e4` with files outside the sources changed
-    (`bb6f7e4-dirty`), before the rounding direction was checked once per
-    function of intervals (`exp()` 5.7 % faster since, `sin()` 3.6 %,
-    `pow(x, y)` 3.4 %), and once in `tan()`, the relational functions, the
-    negative powers and `sqrt_rel()`. To measure again on a clean commit, the
-    machine doing nothing else (`doc/compare/code/run_bench.sh`, or GAOL v5
-    alone with `make perf`).
+35. **Les temps de [doc/compare/performance.md](doc/compare/performance.md)**
+    ont été mesurés à `bb6f7e4` avec des fichiers modifiés hors des sources
+    (`bb6f7e4-dirty`), avant que le sens d'arrondi ne soit vérifié une seule
+    fois par fonction d'intervalles (`exp()` 5,7 % plus rapide depuis, `sin()`
+    3,6 %, `pow(x, y)` 3,4 %), et une seule fois dans `tan()`, les fonctions
+    relationnelles, les puissances négatives et `sqrt_rel()`. À remesurer sur
+    un commit propre, la machine ne faisant rien d'autre
+    (`doc/compare/code/run_bench.sh`, ou GAOL v5 seul avec `make perf`).
 
-36. **The FetchContent recipes fetch GAOL 4.** Those of `doc/using.md` and of
-    the manual, and the `git clone` of `doc/building.md`, take the `master`
-    branch of `Jordan08/GAOL`, which on 2026-09-27 is GAOL 4.2.3, 121 commits
-    behind `MATH-CORE`: the programs of the docs do not compile against it,
-    and there is no `v5.0.0` tag to pin. Fix: tag `v5.0.0`, or merge
-    `MATH-CORE` into `master`, and write the tag in the recipes.
+36. **Les recettes FetchContent récupèrent GAOL 4.** Celles de `doc/using.md`
+    et du manuel, et le `git clone` de `doc/building.md`, prennent la branche
+    `master` de `Jordan08/GAOL`, qui le 2026-09-27 est GAOL 4.2.3, 121 commits
+    derrière `MATH-CORE` : les programmes de la documentation ne compilent pas
+    avec elle, et il n'y a pas d'étiquette `v5.0.0` à fixer. Correction :
+    étiqueter `v5.0.0`, ou fusionner `MATH-CORE` dans `master`, et écrire
+    l'étiquette dans les recettes.
 
-37. **A first program before the details.** `README.md` has no C++ code, the
-    first program is at line 92 of `doc/using.md`, and no document shows an
-    interval algorithm. Fix: a ten-line program in `README.md` that points to
-    `examples/`, and a short tutorial (range enclosure and subdivision,
-    Newton with `%` or `div_rel`, a contractor with the `*_rel` functions,
-    branch and bound), which examples 03, 05, 06 and 07 already contain.
+37. **Un premier programme avant les détails.** `README.md` ne contient pas de
+    code C++, le premier programme est à la ligne 92 de `doc/using.md`, et
+    aucun document ne montre un algorithme sur les intervalles. Correction :
+    un programme de dix lignes dans `README.md` qui renvoie à `examples/`, et
+    un court tutoriel (encadrement d'image et subdivision, Newton avec `%` ou
+    `div_rel`, un contracteur avec les fonctions `*_rel`, séparation et
+    évaluation), que les exemples 03, 05, 06 et 07 contiennent déjà.
 
-38. **What upward rounding does to the program**, in `doc/using.md` and in the
-    common errors of the manual, with the table of section 2.8 of the review:
-    `printf`, `strtod`, `lrint`, text round trips, TwoSum, and GCC reusing
-    after `cleanup()` a double computed before it. `GAOL_PRESERVE_ROUNDING`
-    as the way to keep the rounding of the program, with its measured cost
-    (4.8 times on x + y, 1.4 to 1.6 times on exp and sin).
+38. **Ce que l'arrondi vers le haut fait au programme**, dans `doc/using.md`
+    et dans les erreurs courantes du manuel, avec la table de la section 2.8
+    de la revue : `printf`, `strtod`, `lrint`, les allers-retours par le
+    texte, TwoSum, et GCC qui réutilise après `cleanup()` un double calculé
+    avant. `GAOL_PRESERVE_ROUNDING` comme moyen de garder l'arrondi du
+    programme, avec son coût mesuré (4,8 fois sur x + y, 1,4 à 1,6 fois sur
+    exp et sin).
 
-39. **A table of names** for the users of IBEX, Codac, C-XSC, Boost and IEEE
-    1788 (section 2.3 of the review), with what `<`, `<=` and `==` mean in
-    each: in C-XSC and PROFIL/BIAS, `<=` is the inclusion, and code ported
-    from them compiles and changes meaning.
+39. **Une table des noms** pour les utilisateurs d'IBEX, de Codac, de C-XSC,
+    de Boost et d'IEEE 1788 (section 2.3 de la revue), avec ce que `<`, `<=`
+    et `==` signifient dans chacun : dans C-XSC et PROFIL/BIAS, `<=` est
+    l'inclusion, et le code porté depuis eux compile et change de sens.
 
-40. **The pitfalls in the common errors of the manual**: `sqrt(2)` on a
-    number; `interval(m - r, m + r)` with doubles; the empty set passing every
-    test; the domain without decorations; `split()` of a canonical interval;
-    `/` against `%` in Newton's method; `pow(x, 2)` taking GAOL's pow with
-    both namespaces open; a text refused for a non-integer order of
-    `nth_root`, which throws `invalid_action_error` and not
-    `input_format_error`; `textToInterval` giving the empty set for a
-    malformed text; a zero bound written `-0`, whose sign differs between the
-    SSE2 and FPU builds (`sqr([-1, 2])`, `interval::zero()`).
+40. **Les pièges dans les erreurs courantes du manuel** : `sqrt(2)` sur un
+    nombre ; `interval(m - r, m + r)` avec des doubles ; l'ensemble vide qui
+    passe tous les tests ; le domaine sans décorations ; `split()` d'un
+    intervalle canonique ; `/` contre `%` dans la méthode de Newton ;
+    `pow(x, 2)` qui prend le pow de GAOL quand les deux espaces de noms sont
+    ouverts ; un texte refusé pour un ordre non entier de `nth_root`, qui lève
+    `invalid_action_error` et non `input_format_error` ; `textToInterval` qui
+    donne l'ensemble vide pour un texte mal formé ; une borne nulle écrite
+    `-0`, dont le signe diffère entre les builds SSE2 et FPU
+    (`sqr([-1, 2])`, `interval::zero()`).
 
-41. **The Goldstein-Price function of the manual drops the +1**
-    ((x + y)² instead of (x + y + 1)²), as `examples/16_Goldstein_Price.cpp`,
-    the example of GAOL 4, does, and the manual says that f "ranges over" the
-    enclosure, about 150 times wider than the range of the true function.
-    Fix: say that the enclosure contains the range, and give the true
-    function or say that it is not.
+41. **La fonction de Goldstein-Price du manuel oublie le +1**
+    ((x + y)² au lieu de (x + y + 1)²), comme `examples/16_Goldstein_Price.cpp`,
+    l'exemple de GAOL 4, et le manuel dit que f « parcourt » l'encadrement,
+    environ 150 fois plus large que l'image de la vraie fonction.
+    Correction : dire que l'encadrement contient l'image, et donner la vraie
+    fonction ou dire que ce n'est pas elle.
 
-42. **Small slips.** The header comment of `chi()` (`gaol/gaol_interval.h`)
-    says `chi([0,0]) = 0` where the code and the manual say −1;
-    `tests/gaol_tests.h` says the references use 400 bits where
-    `tests/elementary_values.py` uses 2000; the comment of
-    `interval(const char*)` names a `jail_parser.h` that does not exist;
-    `GAOL_NODISCARD` works from C++17 and `gaol::gaol` sets no language
-    standard, so that a CMake project with GCC 9, in C++14, gets no warning
-    for `sqrt(x);`; three examples of the manual show `true`/`false` where the
-    program prints 1/0 (no `std::boolalpha`), and `nan` where it prints
-    `-nan`.
-
-## Licence
-
-43. **Move GAOL v5 to the MIT licence, as CORE-MATH.** GAOL v5 is under the
-    GNU LGPL v2 of GAOL (`COPYING.LIB`), and only the holders of the rights can
-    change that.
-    - **Whose code it is** (`git blame` on 2026-09-22, outside `3rd/` and the
-      parser written by Bison): in `gaol/`, 13 592 lines of Frédéric Goualard,
-      5 650 of Jordan Ninin and 2 of Raphaël Chenouard; in `check/` (now in
-      `tests/`), 3 148 and 41; `tests/`, 11 242 lines, all of Jordan Ninin; the meson files, about
-      740 lines of Raphaël Chenouard and 360 of Jordan Ninin.
-    - **Who has to agree.** Frédéric Goualard, and the establishments the
-      headers name: the EPFL (2001), the IRIN and the LINA (2002-2011, now the
-      LS2N of Nantes Université); in France, software written by an agent in
-      the course of their duties belongs to their employer (article L113-9 of
-      the Code de la propriété intellectuelle), so the agreement goes through
-      the technology transfer offices of these establishments. ENSTA, which
-      holds the copyright of the files GAOL v5 adds. Raphaël Chenouard for the
-      meson files, or they are written again. Nothing to ask for CORE-MATH
-      (already MIT),
-      `gaol/s_nextafter.c` (Sun's licence, permissive: its notice stays) and
-      the parser written by Bison (its exception leaves the licence free).
-      Rewriting Goualard's code instead is no way round: code rewritten from
-      it remains a derived work.
-    - **If the agreement is refused:** the files of ENSTA alone (`tests/` and
-      the files GAOL v5 adds) under MIT, with ENSTA's agreement, reusable
-      anywhere; the library as a whole stays under the LGPL.
-    - **Once agreed:** `COPYING.LIB` replaced by a `LICENSE`, a line
-      `SPDX-License-Identifier: MIT` in the headers, the section Licences of
-      `README.md`. The releases already
-      published (GAOL 4.2.2) stay under the LGPL.
-    - **What MIT brings.** One licence for GAOL v5 and CORE-MATH. No more
-      doubt for software that is not free: the LGPL v2 (section 5) leaves a
-      program compiled with the library free only if it takes from it "small
-      inline functions (ten lines or less in length)", and
-      `gaol_interval.h`, `gaol_interval_sse.h` and `gaol_interval_fpu.h`
-      define about 120 `INLINE` functions. Code
-      reusable by any project, which is how CORE-MATH entered the glibc. And
-      MIT is in the list of licences the French administrations may use
-      (article D323-2-1 of the Code des relations entre le public et
-      l'administration), where the LGPL v2 is not (the LGPL-3.0-or-later is).
-    - **What MIT loses.** The reciprocity: whoever improves GAOL v5 may
-      distribute the improvements without their sources. No clause on patents
-      (Apache 2.0 has one); a small risk here.
-    - **GCC.** Its runtime libraries (libstdc++, libgcc) are under the GPLv3
-      with the GCC Runtime Library Exception. Code under MIT can go in (libffi
-      is); code under the LGPL v2 can be made GPL (section 3 of `COPYING.LIB`)
-      but cannot receive the exception without its holders. A `Signed-off-by`
-      line has been enough since June 2021. But libstdc++ holds only what the
-      C++ standard defines, and interval arithmetic is not in it: N2137
-      (Brönnimann, Melquiond, Pion, 2006) was not adopted. A new proposal to
-      WG21, which could build on IEEE 1788-2015, would have to come first.
-    - **glibc.** It is not part of GCC: it is the C library of Linux systems,
-      whatever the compiler, and its libm computes the `exp` that `std::exp`
-      of libstdc++ calls. It is under the LGPL-2.1-or-later and holds only C
-      code for what ISO C, POSIX or GNU define, so the C++ classes of GAOL v5
-      cannot go in, whatever their licence. The work of GAOL v5 reaches it
-      through CORE-MATH (point 33), or through C patches for standard
-      functions, sent to libc-alpha with ENSTA's agreement.
-    - **References:**
-      [Contributing to GCC](https://gcc.gnu.org/contribute.html),
-      [glibc copyright assignment policy](https://sourceware.org/pipermail/libc-alpha/2021-July/129577.html),
-      [licences of the French administrations](https://www.data.gouv.fr/pages/legal/licences),
-      [NEWS of the glibc](https://sourceware.org/git/?p=glibc.git;a=blob;f=NEWS).
-
-## The builds: choices to confirm
-
-The choices made when the three builds were made alike (PR #29,
-`configure-clean`), to keep or to undo.
-
-44. **The HTML reference of Doxygen is gone too.** Along with the `Doxyfile`
-    of the root, which named the sources of Frédéric Goualard's machine,
-    `manual/gaol_doxygen.cfg.in`, the target `html` of `manual/Makefile.am`
-    (`make -C manual html`) and the Doxygen target of `manual/meson.build` are
-    removed, as are the checks of `doxygen` and `dot` in `configure.ac`. To
-    undo: restore these files from `eac339b`.
-
-45. **meson has no `enable-debug` nor `enable-optimize` any more.** Its build
-    type gives both, as the build type of CMake does: `--buildtype=debug` for
-    the Debug build (`-g`, `GAOL_DEBUGGING`), `release`, the default, for `-O3`
-    and the optimizations of `--enable-optimize`. A command line giving
-    `-Denable-debug=true` or `-Denable-optimize=false` now stops on an unknown
-    option. configure keeps its `--enable-debug` and `--enable-optimize`.
-
-46. **The continuous integration runs `make test` only**: the unit tests, not
-    the examples of `examples/`, which only `make check` runs. To run them
-    too: `-DWITH_EXAMPLES=ON` and `make check` in some jobs, `--with-examples`
-    and `-Dwith-examples=true` for autotools and meson.
-
-47. **`make test` leaves the examples out only with CMake 3.17 and meson 0.57
-    or later.** CMake excludes their label `example` through
-    `CMAKE_CTEST_ARGUMENTS` (3.17), meson through a test setup excluding the
-    suite `examples` (`exclude_suites`, 0.57). With an earlier version, as the
-    meson 0.53 of Ubuntu 20.04, `make test` (`meson test`) runs the examples
-    too, when they are built; `meson test --suite unit` runs the unit tests
-    alone.
-
-48. **The first `make perf` moves the columns of the other libraries.**
-    `doc/compare/code/results.csv` holds a whole run of the benchmark of 27
-    September 2026 (three rounds, at `605728e`), and the tables of
-    `doc/compare/performance.md` come from a later run of six rounds, whose
-    results were not kept: the first `make perf` writes the times of GAOL
-    4.2.3, filib++, libieeep1788, PROFIL/BIAS and Solaris Studio from
-    `results.csv`, a few per cent from those of the tables. To keep the two
-    in step: run `doc/compare/code/run_bench.sh` once, all the libraries and
-    all the operations, which writes the tables and `results.csv` together.
+42. **Petites erreurs.** Le commentaire d'en-tête de `chi()`
+    (`gaol/gaol_interval.h`) dit `chi([0,0]) = 0` là où le code et le manuel
+    disent −1 ; `tests/gaol_tests.h` dit que les références utilisent 400 bits
+    là où `tests/elementary_values.py` en utilise 2000 ; le commentaire de
+    `interval(const char*)` nomme un `jail_parser.h` qui n'existe pas ;
+    `GAOL_NODISCARD` fonctionne à partir de C++17 et `gaol::gaol` ne fixe pas
+    de norme du langage, si bien qu'un projet CMake avec GCC 9, en C++14, n'a
+    pas d'avertissement pour `sqrt(x);` ; trois exemples du manuel montrent
+    `true`/`false` là où le programme affiche 1/0 (pas de `std::boolalpha`),
+    et `nan` là où il affiche `-nan`.

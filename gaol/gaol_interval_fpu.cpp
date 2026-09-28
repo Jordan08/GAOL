@@ -1075,7 +1075,7 @@
       return interval::emptyset();
     }
     if (is_symmetric()) { // symmetric case handles [-oo, +oo]
-      return 0.0;
+      return interval(0.0);
     }
     if (left() == -GAOL_INFINITY) {
       return interval(-std::numeric_limits<double>::max());

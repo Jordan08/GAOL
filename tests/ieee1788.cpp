@@ -75,7 +75,7 @@ namespace
           pow(x, 2).is_empty() && pow(x, 2.0).is_empty() && pow(x, interval(2.0)).is_empty()
           && pow(x, 3).is_empty() && pow(x, 0.5).is_empty(),
           [&] { return hex(pow(x, 2)) + " " + hex(pow(x, 2.0)); });
-    const interval y = textToInterval("[0.25, 0.5]"), z = numsToInterval(-1.0, 2.0);
+    const interval y = numsToInterval(0.25, 0.5), z = numsToInterval(-1.0, 2.0);
     check("pow(x, y) unqualified is gaol_ieee1788::pow", pow(y, z).set_eq(gaol_ieee1788::pow(y, z)),
           [&] { return hex(pow(y, z)); });
     check("pown(x, 2) is the integer power, [1, 16] for x = [-4, -1]",
@@ -124,7 +124,7 @@ namespace
 
   void gaol_functions()
   {
-    const interval x = textToInterval("[0.25, 0.5]"), y = numsToInterval(-1.0, 2.0);
+    const interval x = numsToInterval(0.25, 0.5), y = numsToInterval(-1.0, 2.0);
     check("sin, exp, sqrt, abs... on an interval are GAOL's",
           sin(x).set_eq(gaol::sin(x)) && exp(x).set_eq(gaol::exp(x)) && sqrt(x).set_eq(gaol::sqrt(x))
           && abs(y).set_eq(gaol::abs(y)) && sqr(y).set_eq(gaol::sqr(y)) && sign(y).set_eq(gaol::sign(y))
@@ -132,10 +132,13 @@ namespace
           && min(x, y).set_eq(gaol::min(x, y)) && hypot(x, y).set_eq(gaol::hypot(x, y))
           && sinPi(x).set_eq(gaol::sinpi(x)),
           [&] { return hex(sin(x)); });
-    check("min, max, atan2 and hypot take an interval and a number",
-          min(y, 1.0).set_eq(gaol::min(y, interval(1.0))) && max(0.0, y).set_eq(gaol::max(interval(0.0), y))
-          && atan2(y, 1.0).set_eq(gaol::atan2(y, interval(1.0))) && hypot(3.0, x).set_eq(gaol::hypot(interval(3.0), x)),
-          [&] { return hex(min(y, 1.0)); });
+    // A number is made a point interval explicitly, the constructors of
+    // interval being explicit (GAOL v5): min(y, 1.0) no longer compiles
+    check("min, max, atan2 and hypot of an interval and a point interval are GAOL's",
+          min(y, interval(1.0)).set_eq(gaol::min(y, interval(1.0))) && max(interval(0.0), y).set_eq(gaol::max(interval(0.0), y))
+          && atan2(y, interval(1.0)).set_eq(gaol::atan2(y, interval(1.0)))
+          && hypot(interval(3.0), x).set_eq(gaol::hypot(interval(3.0), x)),
+          [&] { return hex(min(y, interval(1.0))); });
     check("the qualified names take intervals",
           gaol_ieee1788::sin(x).set_eq(gaol::sin(x)) && gaol_ieee1788::min(x, y).set_eq(gaol::min(x, y)),
           [&] { return hex(gaol_ieee1788::sin(x)); });
@@ -146,7 +149,7 @@ namespace
   // Every name of the standard gaol_ieee1788 provides, called unqualified
   void names_of_the_standard()
   {
-    const interval x = textToInterval("[0.25, 0.5]"), y = numsToInterval(-1.0, 2.0);
+    const interval x = numsToInterval(0.25, 0.5), y = numsToInterval(-1.0, 2.0);
     const interval forward[] = {
       neg(x), add(x, y), sub(x, y), mul(x, y), div(x, y), recip(x), sqr(y), sqrt(x), fma(x, y, x),
       pown(y, 3), pow(x, y), pow(x, 3), pow(x, 0.5), exp(x), exp2(x), exp10(x), log(x), log2(x),

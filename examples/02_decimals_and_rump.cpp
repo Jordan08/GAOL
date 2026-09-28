@@ -184,13 +184,14 @@ int main()
   std::cout << "\nOn a number, sqrt is the C library's\n";
 
   // sqrt(2.0) calls sqrt(double) of <cmath>, which fits a double better than
-  // GAOL's sqrt(const interval&): it returns sqrt(2) rounded to a double,
-  // which converts silently to an interval, a point. sqrt(2) is irrational,
-  // and no double.
+  // GAOL's sqrt(const interval&): it returns sqrt(2) rounded to a double.
+  // interval r = sqrt(2.0); does not compile, the constructors of interval
+  // being explicit, and interval(sqrt(2.0)) is a point, which misses sqrt(2):
+  // sqrt(2) is irrational, and no double.
   const interval sqrt2 = textToInterval("1.4142135623730950488016887242096980785696718753769");
-  const interval root_point = sqrt(2.0);
-  show("interval r = sqrt(2.0): a point, the rounded double, which misses sqrt(2)", root_point);
-  check(root_point.left() == root_point.right(), "interval r = sqrt(2.0) is a point");
+  const interval root_point = interval(sqrt(2.0));
+  show("interval(sqrt(2.0)): a point, the rounded double, which misses sqrt(2)", root_point);
+  check(root_point.left() == root_point.right(), "interval(sqrt(2.0)) is a point");
   show("sqrt(interval(2.0)): contains sqrt(2)", sqrt(interval(2.0)));
   check(sqrt(interval(2.0)).set_contains(sqrt2), "sqrt(interval(2.0)) contains sqrt(2)");
   // The parser computes the expressions it reads with intervals
@@ -215,7 +216,7 @@ int main()
   // enclosure proves it
   const interval sin_m_pi = sin(interval(M_PI));
   show("sin(interval(M_PI)): positive, which proves that M_PI is not pi", sin_m_pi);
-  check(!sin_m_pi.is_empty() && 0.0 < sin_m_pi, "sin(interval(M_PI)) is positive");
+  check(!sin_m_pi.is_empty() && interval(0.0) < sin_m_pi, "sin(interval(M_PI)) is positive");
 
   // ------------------------------------------------------------------------
   std::cout << "\nRump's f(77617, 33096), whose true value is -0.827396059946821368...\n";
