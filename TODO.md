@@ -10,6 +10,9 @@ section 5, dont l'annexe B donne la correction et un test de régression,
 validés sur des builds SSE2 et FPU de travail mais pas appliqués. Ses numéros
 1, 6, 9, 10, 11, 13, 14 et 18 sont corrigés.
 
+Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
+2026-09-28 : ce que les agents ont trouvé et qui n'est pas corrigé.
+
 ## Code
 
 1. **Le pow de la norme est écrit deux fois.** `gaol_ieee1788::pow`
@@ -396,3 +399,45 @@ validés sur des builds SSE2 et FPU de travail mais pas appliqués. Ses numéros
     pas d'avertissement pour `sqrt(x);` ; trois exemples du manuel montrent
     `true`/`false` là où le programme affiche 1/0 (pas de `std::boolalpha`),
     et `nan` là où il affiche `-nan`.
+
+## Les trois builds
+
+41. **GAOL ne peut pas être un sous-projet meson.** `meson.build` appelle
+    `add_global_arguments` (17 fois, à partir de la ligne 171), que meson
+    refuse dans un sous-projet : un projet parent qui fait `subproject('gaol')`
+    s'arrête sur « Function 'add_global_arguments' cannot be used in
+    subprojects », avec meson 0.53.2 comme avec 1.11.2. Le défaut est
+    antérieur à `VERSION.txt`. Le commentaire de `gaol_dep`
+    (`gaol/meson.build`) dit pourtant qu'il sert à un projet meson qui prend
+    GAOL en sous-projet. Correction : `add_project_arguments`, et mettre dans
+    les `compile_args` de `gaol_dep` les options dont le code utilisant GAOL a
+    besoin (`-frounding-math`, `-ffp-contract=off`..., celles de `gaol.pc`),
+    que les arguments du projet ne transmettent pas au projet parent ; ou
+    retirer la promesse du commentaire.
+
+42. **meson 0.53 sous Windows peut prendre le faux Python du Microsoft
+    Store.** `find_program('python3', 'python', native: true)`, qui lit
+    `VERSION.txt` dans `project()`, peut trouver le `python3.exe` de
+    `WindowsApps`, qui ne fait qu'ouvrir le Store et que meson 0.53 n'écarte
+    pas : `run_command` échoue et `meson setup` s'arrête. Non reproduit (pas
+    de Windows ici) ; l'intégration continue n'est pas touchée, son meson
+    venant de pip et étant récent. Correction : chercher `python` avant
+    `python3` sous Windows, ou le dire dans la section meson de
+    `doc/building.md`.
+
+43. **Un `VERSION.txt` qui commence par une marque d'ordre des octets**
+    (UTF-8 avec BOM, comme l'enregistrent certains éditeurs sous Windows) est
+    refusé par les trois builds avec « VERSION.txt holds "7.3.11" », dont le
+    caractère fautif ne se voit pas. Correction : retirer une marque d'ordre
+    des octets en tête avant de lire la version, ou dire dans le message que le
+    fichier ne doit contenir que des chiffres et des points.
+
+44. **L'archive des sources de CPack ne voit pas un `configure` en retard.**
+    `cmake --build <build> --target package_source` prend le `configure`
+    commité tel quel : après un changement de `VERSION.txt` sans nouvelle
+    génération de `configure`, `gaol-<version>.tar.gz` contient un
+    `configure` dont `--version` donne l'ancienne version (il avertit quand il
+    tourne) ; seule l'intégration continue le signale. Correction : dans le
+    bloc CPack de `CMakeLists.txt`, lire la ligne `PACKAGE_VERSION=` de
+    `configure` et écrire un `message(WARNING)` quand elle diffère de
+    `PROJECT_VERSION`.
