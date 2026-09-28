@@ -5,8 +5,9 @@
  *
  * An interval read from a number, textToInterval("0.1"), has to be the
  * tightest interval of doubles enclosing it, and the double itself when the
- * number is one, whatever the C library. Each number is compared exactly with
- * the bounds read. The constants have to be the tightest intervals enclosing
+ * number is one, whatever the C library, and whether the processor flushes the
+ * subnormals to zero or not. Each number is compared exactly with the bounds
+ * read. The constants have to be the tightest intervals enclosing
  * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
@@ -29,6 +30,13 @@
 #include <cstdlib>
 #include <iomanip>
 #include <type_traits>
+
+// The control register of the SSE instructions, where the flush-to-zero and
+// denormals-are-zero modes are set
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_HAVE_MXCSR 1
+#endif
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -139,6 +147,134 @@ namespace
           [&] { return hex(two); });
     const interval sum = textToInterval("0.1+0.2");
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
+  }
+
+#if GAOL_TESTS_HAVE_MXCSR
+  // The bits of MXCSR that flush the subnormals: flush-to-zero (bit 15), which
+  // flushes the subnormal results of the operations to 0, and
+  // denormals-are-zero (bit 6), which makes the operations and the
+  // comparisons read a subnormal as 0
+  const unsigned int flush_to_zero = 0x8000u, denormals_are_zero = 0x0040u;
+
+  // Sets the bits of MXCSR it is given for its lifetime, and restores them as
+  // it found them afterwards, the rounding direction and the flags being left
+  // alone
+  class Flushing
+  {
+    public:
+
+      explicit Flushing(unsigned int bits)
+        : bits_(bits), saved_(_mm_getcsr() & bits)
+      {
+        _mm_setcsr(_mm_getcsr() | bits_);
+      }
+
+      ~Flushing()
+      {
+        _mm_setcsr((_mm_getcsr() & ~bits_) | saved_);
+      }
+
+    private:
+
+      const unsigned int bits_, saved_;
+  };
+
+  // Whether the processor reads a subnormal as 0 with denormals-are-zero: the
+  // least positive double is then not above 0. The result of the comparison is
+  // written to volatile memory before the mode is restored: GCC and Clang do
+  // not model MXCSR, and made the comparison after the destructor of Flushing
+  // otherwise, where the mode is not set anymore.
+  bool honours_denormals_are_zero()
+  {
+    volatile double least = std::numeric_limits<double>::denorm_min();
+    volatile bool not_above_zero;
+    {
+      Flushing flushing(denormals_are_zero);
+      not_above_zero = !(least > 0.0);
+    }
+    return not_above_zero;
+  }
+#endif
+
+  /*
+    Numbers read with flush-to-zero and denormals-are-zero set (GAOL v5), as a
+    program linked with -Ofast has them (crtfastmath.o), or which loads code
+    that has them set. The reader compared each number with the doubles around
+    it, taken as doubles, and with denormals-are-zero a subnormal is 0 in the
+    comparisons and for std::frexp(): 1e-310 was above every subnormal, and
+    read as [0x0.fffffffffffffp-1022, 0x1p-1022], the interval from the
+    greatest subnormal to the least normal double, which does not enclose it,
+    and 0 was equal to every subnormal, and read as the greatest one. The mode
+    is set for the reading only, the exact arithmetic of the checks reading
+    doubles as doubles too. x86 only, where MXCSR is: nothing is checked
+    elsewhere, nor where the processor does not honour denormals-are-zero.
+  */
+  void subnormal_numbers()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    if (!honours_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is not honoured: the reading of numbers with it is not checked\n");
+      return;
+    }
+    const struct { const char *name; unsigned int bits; } modes[] = {
+      { "flush-to-zero", flush_to_zero },
+      { "denormals-are-zero", denormals_are_zero },
+      { "flush-to-zero and denormals-are-zero", flush_to_zero | denormals_are_zero },
+    };
+    // The exact value of the number read, or the exact bounds of the interval
+    struct Text { std::string s; Exact lo, hi; };
+    const auto number = [](const std::string& s) { return Text{ s, decimal(s), decimal(s) }; };
+    // 2^-1075, half the least positive double, which is no double
+    Dyadic half_least;
+    half_least.sign = 1;
+    half_least.m = Natural(1);
+    half_least.e = -1075;
+    std::vector<Text> texts = {
+      number("0"),
+      number("0.0"),
+      number("1e-400"),                   // Below the least subnormal
+      number("2.5e-324"),                 // Between 0 and the least subnormal, 4.94e-324
+      number("5e-324"),                   // Between the two least subnormals
+      number("1e-320"),
+      number("1e-310"),
+      number("1e-309"),
+      number("2.2250738585072008e-308"),  // Below the greatest subnormal
+      number("2.2250738585072011e-308"),  // Between it and the least normal double
+      number("2.2250738585072014e-308"),  // Just above the least normal double
+      number("1e-300"),
+      { "-1e-310", -decimal("1e-310"), -decimal("1e-310") },
+      { "[1e-310, 1e-309]", decimal("1e-310"), decimal("1e-309") },
+      { "1?e-310", decimal("0.5e-310"), decimal("1.5e-310") },
+      // Hexadecimal: the least subnormal, half the least normal double and the
+      // greatest subnormal, which are doubles, and a number between the
+      // greatest subnormal and the least normal double
+      { "0x1p-1074", exact(0x1p-1074), exact(0x1p-1074) },
+      { "0x0.8p-1022", exact(0x0.8p-1022), exact(0x0.8p-1022) },
+      { "0x0.fffffffffffffp-1022", exact(0x0.fffffffffffffp-1022), exact(0x0.fffffffffffffp-1022) },
+      { "0x1.fffffffffffffp-1023", exact(dyadic(0x1p-1022) - half_least), exact(dyadic(0x1p-1022) - half_least) },
+    };
+    // Subnormals and the least normal doubles, written with 17 digits, and
+    // their exact decimal expansions, whose reading gives them back
+    Random random;
+    for (int i = 0; i < 100; ++i) {
+      const double x = random.positive(-1023, -1023), y = random.positive(-1023, -1021);
+      for (double d : { x, y }) {
+        texts.push_back(number(format("%.16e", d)));
+        texts.push_back(number(format("%.1100f", d)));
+      }
+    }
+    for (const auto& mode : modes) {
+      const std::string name = std::string("textToInterval(number) with ") + mode.name + ": the tightest enclosure";
+      for (const auto& t : texts) {
+        const interval r = evaluate(name, [&] { Flushing flushing(mode.bits); return textToInterval(t.s); },
+                                    [&] { return t.s.substr(0, 40); });
+        check(name, !r.is_empty() && is_tightest_enclosure(r, t.lo, t.hi),
+              [&] { return "\"" + t.s.substr(0, 40) + "\": " + hex(r); });
+      }
+    }
+#else
+    std::printf("No control register of the SSE instructions: the reading of numbers with flush-to-zero and denormals-are-zero is not checked\n");
+#endif
   }
 
   void constants()
@@ -768,6 +904,7 @@ int main()
 {
   gaol::init();
   numbers();
+  subnormal_numbers();
   constants();
   constructors();
   ieee_literals();

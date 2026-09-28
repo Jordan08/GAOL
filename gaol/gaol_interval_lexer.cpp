@@ -795,6 +795,9 @@ extern const void *gaol_lookup_function(const char *name, void *context);
   decimal comma, it stops at the '.' of "0.1" and gives 0, far from the
   number. The doubles on each side of it are then found by steps doubling
   from that double, and by bisection on the bits of the doubles (GAOL v5).
+  The number is compared with each double taken apart by its bits, so that
+  denormals-are-zero, where a subnormal is 0 in a comparison, changes nothing
+  (GAOL v5).
 */
 namespace {
 
@@ -882,10 +885,35 @@ namespace {
     return 4*static_cast<long long>(std::strlen(s)) + 2000;
   }
 
-  // The sign of v - x, v being the number s writes, as the rules below match
-  // numbers (decimal digits with an optional point and exponent, or, after
-  // 0x, hexadecimal digits with an optional point and a binary exponent), and
-  // x a double
+  // The bits of a double, and the double of given bits: the doubles of
+  // [0, +oo] are ordered as their bits, read as unsigned integers
+  uint64_t gaol_bits_of(double x)
+  {
+    uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
+
+  double gaol_double_of(uint64_t bits)
+  {
+    double x;
+    std::memcpy(&x, &bits, sizeof x);
+    return x;
+  }
+
+  /*
+    The sign of v - x, v being the number s writes, as the rules below match
+    numbers (decimal digits with an optional point and exponent, or, after
+    0x, hexadecimal digits with an optional point and a binary exponent), and
+    x a double.
+    x is taken apart by its bits, and never compared nor decomposed as a
+    double (GAOL v5): with denormals-are-zero, which programs linked with
+    -Ofast have (crtfastmath.o) and the code they load can set, the
+    comparisons of a subnormal with 0 and std::frexp() see it as 0. GAOL then
+    took every subnormal for 0, so that "1e-310" was above all of them and was
+    read as the interval from the greatest subnormal to the least normal
+    double, which does not enclose it, and "0" as the greatest subnormal.
+  */
   int gaol_compare_number(const char *s, double x)
   {
     // v = N*10^k*2^k2, N being written with ndigits digits
@@ -935,13 +963,18 @@ namespace {
       (hexadecimal ? k2 : k) += static_cast<long>(negative ? -e : e);
     }
 
+    const uint64_t bits = gaol_bits_of(x);
+    const uint64_t plus_infinity = gaol_bits_of(std::numeric_limits<double>::infinity());
+    const bool zero = ((bits << 1) == 0); // +0 or -0
+    // 0 < x <= +oo: the bits of a negative number and of a NaN are above those of +oo
+    const bool positive = (!zero && bits <= plus_infinity);
     if (N.empty()) { // v = 0
-      return (x < 0.0) ? 1 : ((x > 0.0) ? -1 : 0);
+      return zero ? 0 : (positive ? -1 : 1);
     }
-    if (!(x > 0.0)) {
+    if (!positive) {
       return 1;
     }
-    if (x > std::numeric_limits<double>::max()) {
+    if (bits == plus_infinity) { // v is below +oo
       return -1;
     }
     // 10^(k+ndigits-1) <= v < 10^(k+ndigits), respectively
@@ -954,16 +987,24 @@ namespace {
       return -1;
     }
 
-    // x = M*2^e, M being an integer of 53 bits
-    int ex;
-    const double f = std::frexp(x, &ex);
-    const uint64_t M = static_cast<uint64_t>(std::ldexp(f, 53));
-    const long e = static_cast<long>(ex) - 53;
+    // x = M*2^e, M being an integer of 53 bits at most: the 52 bits of the
+    // fraction of x, and 2^52 more for a normal double, whose leading bit they
+    // leave out; a subnormal has none, and the exponent -1074 of its unit, the
+    // least positive double
+    const uint64_t biased_exponent = bits >> 52; // The sign bit is 0
+    uint64_t M = bits & 0x000fffffffffffffull;
+    long e = -1074;
+    if (biased_exponent != 0) {
+      M |= 0x0010000000000000ull;
+      e = static_cast<long>(biased_exponent) - 1075;
+    }
 
     // N*5^k*2^(k+k2) compared with M*2^e
     gaol_natural A(N), B;
     B.push_back(static_cast<uint32_t>(M));
-    B.push_back(static_cast<uint32_t>(M >> 32));
+    if ((M >> 32) != 0) { // No leading zero digit, as gaol_natural_compare() needs
+      B.push_back(static_cast<uint32_t>(M >> 32));
+    }
     if (k >= 0) {
       gaol_natural_mul_pow5(A, k);
     } else {
@@ -976,22 +1017,6 @@ namespace {
       gaol_natural_shift_left(B, e - kb);
     }
     return gaol_natural_compare(A, B);
-  }
-
-  // The bits of a double, and the double of given bits: the doubles of
-  // [0, +oo] are ordered as their bits, read as unsigned integers
-  uint64_t gaol_bits_of(double x)
-  {
-    uint64_t bits;
-    std::memcpy(&bits, &x, sizeof bits);
-    return bits;
-  }
-
-  double gaol_double_of(uint64_t bits)
-  {
-    double x;
-    std::memcpy(&x, &bits, sizeof x);
-    return x;
   }
 
   /*
@@ -1251,7 +1276,7 @@ namespace gaol {
     return gaol_compare_number(s, x);
   }
 }
-#line 1255 "lex.gaol_.c"
+#line 1280 "lex.gaol_.c"
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
@@ -1265,7 +1290,7 @@ namespace gaol {
    scanner, and several threads read strings at once (GAOL v5). Its extra data
    is the context of the reading (gaol/gaol_interval_parser.ypp), which holds
    the names of the functions. No yywrap(): a string is read to its end. */
-#line 1269 "lex.gaol_.c"
+#line 1294 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1537,10 +1562,10 @@ YY_DECL
 		}
 
 	{
-#line 552 "gaol_interval_lexer.lpp"
+#line 577 "gaol_interval_lexer.lpp"
 
 
-#line 1544 "lex.gaol_.c"
+#line 1569 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1599,42 +1624,42 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 554 "gaol_interval_lexer.lpp"
+#line 579 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 555 "gaol_interval_lexer.lpp"
+#line 580 "gaol_interval_lexer.lpp"
 { return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 556 "gaol_interval_lexer.lpp"
+#line 581 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 557 "gaol_interval_lexer.lpp"
+#line 582 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 558 "gaol_interval_lexer.lpp"
+#line 583 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 559 "gaol_interval_lexer.lpp"
+#line 584 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 560 "gaol_interval_lexer.lpp"
+#line 585 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 561 "gaol_interval_lexer.lpp"
+#line 586 "gaol_interval_lexer.lpp"
 { /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
@@ -1646,97 +1671,97 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 569 "gaol_interval_lexer.lpp"
+#line 594 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 570 "gaol_interval_lexer.lpp"
+#line 595 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 571 "gaol_interval_lexer.lpp"
+#line 596 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 572 "gaol_interval_lexer.lpp"
+#line 597 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 573 "gaol_interval_lexer.lpp"
+#line 598 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 574 "gaol_interval_lexer.lpp"
+#line 599 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 575 "gaol_interval_lexer.lpp"
+#line 600 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 576 "gaol_interval_lexer.lpp"
+#line 601 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 577 "gaol_interval_lexer.lpp"
+#line 602 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 578 "gaol_interval_lexer.lpp"
+#line 603 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 579 "gaol_interval_lexer.lpp"
+#line 604 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 20:
-#line 582 "gaol_interval_lexer.lpp"
+#line 607 "gaol_interval_lexer.lpp"
 case 21:
-#line 583 "gaol_interval_lexer.lpp"
+#line 608 "gaol_interval_lexer.lpp"
 case 22:
-#line 584 "gaol_interval_lexer.lpp"
+#line 609 "gaol_interval_lexer.lpp"
 case 23:
 YY_RULE_SETUP
-#line 584 "gaol_interval_lexer.lpp"
+#line 609 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 585 "gaol_interval_lexer.lpp"
+#line 610 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 586 "gaol_interval_lexer.lpp"
+#line 611 "gaol_interval_lexer.lpp"
 { return gaol_read_uncertain(yytext, yylval); }
 	YY_BREAK
 case 26:
 /* rule 26 can match eol */
 YY_RULE_SETUP
-#line 587 "gaol_interval_lexer.lpp"
+#line 612 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 588 "gaol_interval_lexer.lpp"
+#line 613 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 589 "gaol_interval_lexer.lpp"
+#line 614 "gaol_interval_lexer.lpp"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 1740 "lex.gaol_.c"
+#line 1765 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2879,7 +2904,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 589 "gaol_interval_lexer.lpp"
+#line 614 "gaol_interval_lexer.lpp"
 
 
 /*
