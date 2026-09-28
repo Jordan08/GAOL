@@ -705,6 +705,22 @@ namespace gaol_core {
     return text;
   }
 
+  /*
+    The interval [l, r] as two bounds rounded outward, in square brackets, or
+    in angles, <a, a>, for a point interval whose double the text writes
+    exactly (GAOL v5). The reader takes <a, b> for two expressions that are the
+    same double, exactly: a decimal that is no double is read as the two
+    doubles around it, and <0.1, 0.1> is refused. GAOL wrote every point
+    interval <a, b>, the text of its double rounded downward and upward, so
+    that <0.1, 0.1000000000000001> for interval(0.1) was refused, and
+    textToInterval(intervalToText(interval(0.1))) was the empty set; it is now
+    [0.1, 0.1000000000000001], which is read as an interval enclosing it. The
+    text of the lower bound being at most it, and that of the upper bound at
+    least it, two equal texts are the double itself. A zero is written
+    exactly, of either sign, and the reader takes <-0, 0>, -0 being 0: [-0, 0],
+    which interval::zero() and x - x are with the SSE2 intervals, keeps its
+    angles.
+  */
   void display_bounds(double l, double r, ostream& os)
   {
     if (!(l <= r)) {
@@ -712,7 +728,7 @@ namespace gaol_core {
     } else {
       const std::string left = bound_to_text(l, false, os);
       const std::string right = bound_to_text(r, true, os);
-      if (l == r) {
+      if (l == r && (left == right || l == 0.0)) {
 				os << '<' << left << ", " << right << '>';
       } else {
 				os << '[' << left << ", " << right << ']';

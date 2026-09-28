@@ -432,6 +432,12 @@ namespace
     round_trip(interval(smallest, 4.0 * smallest), "subnormal");
     round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
     round_trip(interval::pi(), "pi");
+    // Point intervals, which are written [a, a] in this format, never in the
+    // angles whose two numbers have to be the same double
+    round_trip(interval(0.1), "[0.1]");
+    round_trip(interval(-1.0 / 3.0), "[-1/3]");
+    round_trip(interval(smallest), "[smallest]");
+    round_trip(interval(max_double), "[MAX]");
     interval::format(saved);
   }
 
@@ -482,6 +488,47 @@ namespace
     }
   }
 
+  /*
+    The point interval given, written by operator<< with the flags and the
+    precision given, has to be read back by textToInterval(), as an interval
+    enclosing it (GAOL v5). GAOL wrote every point interval <a, b>, the text
+    of its double rounded downward and upward, which the reader takes for the
+    same double only: <0.1, 0.1000000000000001> was refused, and the text of
+    interval(0.1) read back as the empty set with textToInterval() of IEEE
+    1788-2015. The form <a, a> has to write the point itself, twice, and to be
+    read as the point; the other point intervals are written [a, b], which
+    encloses it. A zero is written exactly whatever the sign of its bounds, and
+    keeps the angles: [-0, 0], which interval::zero() and x - x are with the
+    SSE2 intervals, is written <-0, 0>, which the reader takes, -0 being 0.
+  */
+  void expect_point_output(const interval& point, std::ios_base::fmtflags flags, int precision)
+  {
+    const std::string name = "operator<< of a point interval";
+    const double x = point.left();
+    std::ostringstream os;
+    os.flags(flags);
+    interval::precision(precision);
+    os << point;
+    const std::string s = os.str();
+    const auto describe = [&] { return hex(point) + " with the precision " + std::to_string(precision) + " written " + s; };
+    const interval back = evaluate(name + ", read back", [&] { return textToInterval(s); }, describe);
+    check(name + ", read back: encloses the point", back.set_contains(point), describe);
+    if (x == 0.0) {
+      check(name + " of zero: in angles", s[0] == '<', describe);
+    }
+    if (s[0] == '<') {
+      const std::size_t comma = s.find(", ");
+      if (!check(name + " in angles: two bounds", comma != std::string::npos && s.size() >= comma + 4
+                 && s[s.size() - 1] == '>', describe)) {
+        return;
+      }
+      const Exact vl = written(s.substr(1, comma - 1)), vr = written(s.substr(comma + 2, s.size() - comma - 3));
+      check(name + " in angles: both bounds are the point", compare(x, vl) == 0 && compare(x, vr) == 0, describe);
+      check(name + " in angles: read back as the point", back.left() == x && back.right() == x,
+            [&] { return describe() + " read " + hex(back); });
+    }
+  }
+
   void decimal_output()
   {
     const interval_format::format_t saved_format = interval::format();
@@ -511,6 +558,53 @@ namespace
           expect_output("operator<< in decimal, near powers of ten", -x, x, flags, p);
         }
       }
+    }
+
+    // The text of a point interval is read back, and encloses it, whatever the
+    // precision: the digits write some of the points exactly (1, 0.5, 1e22,
+    // and the doubles with few digits, from the precision that holds them),
+    // and not the others (0.1, 1/3, all of them with a precision of 1)
+    const std::ios_base::fmtflags point_flags[] = { general, general | showpoint, scientific, fixed,
+                                                    general | std::ios_base::showpos,
+                                                    scientific | std::ios_base::uppercase };
+    for (double x : special) {
+      for (int p = 1; p <= 25; ++p) {
+        for (std::ios_base::fmtflags flags : point_flags) {
+          if (flags == fixed && (std::fabs(x) > 1e30 || std::fabs(x) < 1e-30)) {
+            continue; // Hundreds of digits
+          }
+          expect_point_output(interval(x), flags, p);
+          expect_point_output(interval(-x), flags, p);
+        }
+      }
+    }
+    const interval zeros[] = { interval(0.0), interval(-0.0), interval(-0.0, 0.0), interval(0.0, -0.0),
+                               interval::zero(), interval(1.0) - interval(1.0) };
+    for (const interval& z : zeros) {
+      for (int p : precisions) {
+        for (std::ios_base::fmtflags flags : point_flags) {
+          expect_point_output(z, flags, p);
+        }
+      }
+    }
+    // The forms of the manual: angles where the digits write the point, and the
+    // bounds of any other interval where they do not
+    interval::precision(16);
+    const struct { const char *name; interval x; const char *text; } forms[] = {
+      { "interval(4)", interval(4.0), "<4, 4>" },
+      { "interval(0.5)", interval(0.5), "<0.5, 0.5>" },
+      { "interval(-1024)", interval(-1024.0), "<-1024, -1024>" },
+      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
+      { "interval(-0.1)", interval(-0.1), "[-0.1000000000000001, -0.1]" },
+      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
+      { "the double nearest 2/3", interval(0x1.5555555555555p-1), "[0.6666666666666666, 0.6666666666666667]" },
+      { "interval(1, 2)", interval(1.0, 2.0), "[1, 2]" },
+    };
+    for (const auto& f : forms) {
+      std::ostringstream os;
+      os << f.x;
+      check(std::string("operator<< of ") + f.name + ": the form of the manual", os.str() == f.text,
+            [&] { return "\"" + os.str() + "\" rather than \"" + f.text + "\""; });
     }
 
     Random random;
