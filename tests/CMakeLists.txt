@@ -91,6 +91,40 @@ set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
 # its own (the project does not include CTest)
 set_tests_properties(numbers PROPERTIES TIMEOUT 300)
 
+# The options gaol/gaol_config.h refuses where GCC and Clang define a macro for
+# them (GAOL v5): the tests refused_finite_math_only and refused_fast_math
+# compile refused_options.cpp, a program using GAOL, with -ffinite-math-only
+# and with -ffast-math, and the compilation has to fail with the message of the
+# refusal. The object is a target of its own, left out of the build of GAOL and
+# made by the test (cmake --build), so that it gets the compiler and the flags
+# of the platform as the files of GAOL do. A build fails for many reasons, so
+# the test does not look at its exit status: it passes if the output of the
+# build holds the message.
+#
+# The option has to come after the flags of interval arithmetic, whose
+# -fno-fast-math turns it off otherwise. gaol::gaol is therefore not linked,
+# CMake putting the options of a linked library after those of the target: the
+# flags it carries are written out here. Not with Visual C++, which has neither
+# option nor macro (see doc/three-builds.md). The autotools and meson builds
+# have no such test: the header it checks is the same.
+function(gaol_refused_test name flag text)
+  add_library(gaol_${name} OBJECT refused_options.cpp)
+  set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  target_include_directories(gaol_${name} PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+  target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
+  add_test(NAME ${name}
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
+  # One build at a time in the build directory, whatever ctest -j says
+  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_refused_options
+                       PASS_REGULAR_EXPRESSION "${text}")
+endfunction()
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  gaol_refused_test(refused_finite_math_only -ffinite-math-only
+                    "GAOL cannot be compiled with -ffinite-math-only")
+  gaol_refused_test(refused_fast_math -ffast-math
+                    "GAOL cannot be compiled with -ffast-math")
+endif()
+
 # Commented out: the tests run no thread (GAOL v5)
 # # ieee1788 calls intervalToExact() in a thread of its own (std::thread), and
 # # expressions reads strings in four threads at once, which needs -pthread with
