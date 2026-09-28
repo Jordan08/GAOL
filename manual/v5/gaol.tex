@@ -2502,7 +2502,10 @@ cout << tanpi(interval(0.5)) << ' '
 \end{deffun}
 
 \begin{deffun}{interval}{atanh}{(const interval\& \var{I})}
-  Returns the hyperbolic arctangent of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+  Returns the hyperbolic arctangent of \var{I}, defined on $\left]-1,1\right[$,
+  $-\infty$ and $+\infty$ being its limits at $-1$ and $1$: the part of \var{I}
+  outside is left out, and an interval with no point of it gives the empty set,
+  as \code{atanh(\itv{1}{5})} and \code{atanh(\itv{-1}{-1})} do.
 
   The six functions are those of CORE-MATH, where GAOL~4 took them from the
   mathematical library of the system, which is sometimes further than one
@@ -2511,9 +2514,10 @@ cout << tanpi(interval(0.5)) << ' '
 cout << cosh(interval(-1,2)) << ' '
      << tanh(interval(20,30)) << endl
      << acosh(interval(0,1)) << ' '
-     << atanh(interval(-2,2)) << endl;
+     << atanh(interval(-2,2)) << ' '
+     << atanh(interval(1,5)) << endl;
 @outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
-@outputs^<0, 0> [-inf, inf]~
+@outputs^<0, 0> [-inf, inf] [empty]~
 \end{example}
 \end{deffun}
 
@@ -2654,11 +2658,15 @@ cout << asin_rel(interval(0.0), interval(1,7)) << endl
   Return the \emph{relational hyperbolic arcsine} and \emph{arctangent} of
   \var{J} w.r.t. \var{I}, that is, $\operatorname{asinh}(J)\cap I$ and
   $\operatorname{atanh}(J)\cap I$, $\sinh$ and $\tanh$ being one-to-one.
+  As $\tanh$ takes its values in $\left]-1,1\right[$, \code{atanh\_rel} gives
+  the empty set for a \var{J} with no point of it, as \itv{1}{1}.
 \begin{example}
 cout << acosh_rel(interval(1,2), interval::universe()) << endl
-     << asinh_rel(interval(0,1), interval::universe()) << endl;
+     << asinh_rel(interval(0,1), interval::universe()) << endl
+     << atanh_rel(interval(1), interval::universe()) << endl;
 @outputs^[-1.316957896924817, 1.316957896924817]~
 @outputs^[0, 0.8813735870195431]~
+@outputs^[empty]~
 \end{example}
 \end{deffun}
 
