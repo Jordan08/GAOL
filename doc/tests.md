@@ -232,7 +232,16 @@ Codac.
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
-  first and the right bound of the second. The reading of
+  first and the right bound of the second. What the exceptions of GAOL say
+  has to be their explanation, or `gaol_exception` where there is none: the
+  `what()` of a `gaol_exception`, an `input_format_error`, an
+  `unavailable_feature_error` and an `invalid_action_error` built with a known
+  explanation, and of what the reader, `operator>>` and `nb_fp_numbers()`
+  throw, read through a `std::exception`; and `operator<<` has to write the
+  explanation once. `what()` was `std::exception`, which a handler of
+  `std::exception` printed and an exception that nothing catches ended the
+  program with, and `operator<<` wrote it next to the explanation (GAOL v5).
+  The reading of
   strings by four threads at once, where the reader, whose state was global,
   crashed before its lexer became reentrant and its parser pure, is commented
   out: the tests run no thread
