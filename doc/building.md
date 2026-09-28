@@ -18,6 +18,42 @@ compiler, and they are the tightest ones (see
 The CMake build is the one to use; the autotools and meson builds of GAOL are
 kept for those who use them.
 
+## The version of GAOL
+
+The file `VERSION` holds the version of GAOL, three numbers such as `5.0.0`,
+and nothing else: the three builds read it, and it is the only file to change
+for a new version (GAOL v5).
+
+- CMake reads it before `project()`, which gives it to `PROJECT_VERSION`; a
+  change of `VERSION` configures again.
+- meson reads it in `project()`, with Python, which works with meson 0.53 as
+  with later ones (`version: files('VERSION')` needs meson 0.57); a change of
+  `VERSION` configures again.
+- `configure` reads it when it runs, whence all that follows. Only
+  `configure --version` and `configure --help`, written when autoconf
+  generates `configure` (`AC_INIT`, which reads `VERSION` with `m4_esyscmd_s`),
+  keep the version of the last generation: `configure` is committed, and is to
+  be generated again before a new `VERSION` is committed, with the versions of
+  autoconf, automake and libtool given [below](#with-autotools) and
+  `AUTOHEADER=true autoreconf` (without `--force --install`, the other files
+  stay as they are committed). Until then, `configure` configures GAOL with
+  the version of `VERSION` and warns that it was generated for another one,
+  and the continuous integration fails (`.github/workflows/build-systems.yml`
+  compares `configure --version` with `VERSION`). With
+  `--enable-maintainer-mode`, `make` generates `configure` again itself
+  (`CONFIGURE_DEPENDENCIES` of `Makefile.am`).
+
+From `VERSION` come the macros `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`,
+`GAOL_MICRO_VERSION` and `GAOL_VERSION` of `gaol/gaol_configuration.h`
+(`gaol_core::version_major`... of `gaol/gaol_version.h`), the shared library
+`libgaol.so.<major>.<minor>.<micro>` and its soname `libgaol.so.<major>`,
+the `Version` of `gaol.pc`, `gaolConfigVersion.cmake` (`find_package(gaol
+<version>)` takes a version of the same major number), the names of the
+archive and of the packages of CPack, and the `\version` of the manuals
+(configure, meson). Each build refuses a `VERSION` that does not hold three
+numbers. The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are
+their own, set in `configure.ac` and `manual/meson.build`.
+
 ## With CMake
 
 ```bash
@@ -216,7 +252,7 @@ integration checks that they write the same header on each kind of machine
 
 | Macro | Defined | CMake | configure | meson |
 |---|---|---|---|---|
-| `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always: `5`, `0`, `0`, `"5.0.0"` | `project()` | `AC_INIT` | `project()` |
+| `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `AC_INIT` | `project()` |
 | `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG` runs its commands | `CMAKE_BUILD_TYPE=Debug` | `--enable-debug` | `--buildtype=debug` |
 | `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |

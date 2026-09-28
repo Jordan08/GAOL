@@ -7,16 +7,29 @@ project(
   'GAOL',
   'c',
   'cpp',
-  version: '5.0.0',
+  # The version of GAOL is the line of the file VERSION, which CMakeLists.txt
+  # and configure.ac read too; Python reads it, with meson 0.53 as later ones
+  # (version: files('VERSION') needs meson 0.57) (GAOL v5)
+  version: run_command(find_program('python3', 'python'), '-c',
+                       'import sys; print(open(sys.argv[1]).read().strip())',
+                       join_paths(meson.current_source_dir(), 'VERSION'),
+                       check: true).stdout().strip(),
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
   # does not optimize), with NDEBUG as configure and the Release build of CMake
   # define it: meson setup --buildtype=debug builds it for debugging, as the
   # Debug build of CMake and configure --enable-debug (GAOL_DEBUGGING)
   default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release', 'b_ndebug=if-release'],
 )
-major_version = 5
-minor_version = 0
-micro_version = 0
+gaol_version = meson.project_version().split('.')
+if gaol_version.length() != 3
+  error('VERSION holds "' + meson.project_version() + '", where it should hold the version of GAOL, three numbers such as 5.0.0')
+endif
+major_version = gaol_version[0].to_int()
+minor_version = gaol_version[1].to_int()
+micro_version = gaol_version[2].to_int()
+# A change of VERSION configures again: meson follows the files that
+# configure_file() reads, not those of run_command()
+configure_file(input: 'VERSION', output: 'VERSION', copy: true)
 # Where to report bugs, and the page of GAOL v5, which configure --help gives
 # too (AC_INIT of configure.ac) (GAOL v5)
 gaol_bug_report = 'jordan.ninin@ensta.fr'

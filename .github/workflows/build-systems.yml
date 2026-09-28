@@ -55,12 +55,26 @@ jobs:
             sudo apt-get update -q
             sudo apt-get install -y -q g++ cmake make
           fi
+      - name: configure generated for the version of VERSION
+        run: |
+          # configure reads VERSION when it runs, but configure --version and
+          # --help give the version of the last generation of configure, which
+          # is to be generated again when VERSION changes (doc/building.md)
+          version=$(tr -d ' \t\r\n' < VERSION)
+          ./configure --version | head -n 1
+          test "$(./configure --version | head -n 1)" = "gaol configure $version" || {
+            echo "configure was not generated again for GAOL $version (see doc/building.md)"; exit 1; }
       - name: Configure, build and install
         run: |
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
           ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ matrix.cfg.configure }} | tee configure.log
+          # config.status writes each of its files again when given its name,
+          # as the rules of make that follow the templates do: the m4 macro of
+          # the version named gaol_version made it refuse
+          # manual/v5/gaol_version.tex, which it knew as manual/v5/5.0.0.tex
+          ./config.status gaol.pc manual/v4/gaol_version.tex manual/v5/gaol_version.tex
           grep -E "^(CXXFLAGS|CPPFLAGS) =" gaol/Makefile
           make -j 4
           make install

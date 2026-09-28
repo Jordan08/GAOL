@@ -28,6 +28,10 @@
 SUBDIRS = 3rd gaol tests examples
 DIST_SUBDIRS = 3rd gaol tests examples manual
 ACLOCAL_AMFLAGS = -I m4
+# configure.ac reads the version of GAOL from VERSION: with
+# --enable-maintainer-mode, make generates configure again when it changes
+# (GAOL v5)
+CONFIGURE_DEPENDENCIES = $(top_srcdir)/VERSION
 
 # Requires automake 1.4
 AUTOMAKE_OPTIONS = 1.4

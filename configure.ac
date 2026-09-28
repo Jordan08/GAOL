@@ -22,18 +22,25 @@ dnl
 # to configure the system for the local environment.
 # ------------------------------------------------------------------------
 
-AC_PREREQ(2.61)
+# autoconf 2.64 for m4_esyscmd_s, which reads VERSION (GAOL v5)
+AC_PREREQ(2.64)
 
-# The version of GAOL, 5.0.0, as project() of CMakeLists.txt and of
-# meson.build give it
-m4_define([gaol_major_version], [5])
-m4_define([gaol_minor_version], [0])
-m4_define([gaol_micro_version], [0])
-m4_define([gaol_version], [gaol_major_version.gaol_minor_version.gaol_micro_version])
+# The version of GAOL is the line of the file VERSION, which CMakeLists.txt and
+# meson.build read too. configure reads it when it runs (below), whence the
+# macros GAOL_*VERSION, the shared library, gaol.pc and the manuals: a new
+# version needs VERSION alone. autoconf reads it as well, for AC_INIT, whose
+# version configure --version and configure --help give: they keep the one of
+# the last generation of configure, which is to be generated again before
+# VERSION is committed (see doc/building.md); configure warns meanwhile
+# (GAOL v5). The m4 macro is not named gaol_version, which m4 replaced in
+# manual/v5/gaol_version.tex, giving config.status "manual/v5/5.0.0.tex".
+m4_define([gaol_m4_version], m4_esyscmd_s([tr -d ' \t\r' < VERSION]))
+m4_bmatch(gaol_m4_version, [^[0-9]+\.[0-9]+\.[0-9]+$], [],
+          [m4_fatal([VERSION holds "]gaol_m4_version[", where it should hold the version of GAOL, three numbers such as 5.0.0])])
 
 # configure --help ends with the address for the bug reports and the page of
 # GAOL v5 (GAOL v5)
-AC_INIT([gaol],[gaol_version],[jordan.ninin@ensta.fr],[gaol],[https://github.com/Jordan08/GAOL])
+AC_INIT([gaol],[gaol_m4_version],[jordan.ninin@ensta.fr],[gaol],[https://github.com/Jordan08/GAOL])
 # no-dist: no make dist nor make distcheck, the archives of the sources and
 # the packages being made by CMake (cmake --build <build> --target
 # package_source, package; see doc/building.md) (GAOL v5). no-define: no
@@ -44,6 +51,22 @@ AM_INIT_AUTOMAKE([gnu 1.7 no-dist no-define subdir-objects])
 AM_MAINTAINER_MODE([disable])
 
 AC_CONFIG_SRCDIR([gaol/gaol_config.h])
+
+# The version of GAOL, read from VERSION when configure runs: GAOL_VERSION, and
+# its three numbers gaol_major, gaol_minor and gaol_micro
+GAOL_VERSION=`tr -d ' \t\r\n' < "$srcdir/VERSION"`
+if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then :; else
+  AC_MSG_ERROR([VERSION holds "$GAOL_VERSION", where it should hold the version of GAOL, three numbers such as 5.0.0])
+fi
+gaol_major=`expr "x$GAOL_VERSION" : 'x\([[0-9]]*\)'`
+gaol_minor=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.\([[0-9]]*\)'`
+gaol_micro=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.[[0-9]]*\.\([[0-9]]*\)'`
+AC_MSG_NOTICE([the version of GAOL, from VERSION: $GAOL_VERSION])
+gaol_version_warning=""
+if test "x$GAOL_VERSION" != "x[]gaol_m4_version"; then
+  gaol_version_warning="GAOL is configured as $GAOL_VERSION, which VERSION holds, but configure was generated for GAOL gaol_m4_version, which configure --version and configure --help still give: generate configure again, as doc/building.md says"
+  AC_MSG_WARN([$gaol_version_warning])
+fi
 # gaol/gaol_configuration.h.in is written by hand, not by autoheader: it holds
 # the macros GAOL's sources read, the same as the headers the CMake and the
 # meson builds write (cmake/gaol_configuration.h.in,
@@ -55,10 +78,10 @@ Copyright (c) 2026 ENSTA, France])
 
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_DEFINE([GAOL_MAJOR_VERSION],gaol_major_version,[Major version for gaol])
-AC_DEFINE([GAOL_MINOR_VERSION],gaol_minor_version,[Minor version for gaol])
-AC_DEFINE([GAOL_MICRO_VERSION],gaol_micro_version,[Micro version for gaol])
-AC_DEFINE([GAOL_VERSION],["gaol_version"],[Version number for gaol])
+AC_DEFINE_UNQUOTED([GAOL_MAJOR_VERSION],[$gaol_major],[Major version for gaol])
+AC_DEFINE_UNQUOTED([GAOL_MINOR_VERSION],[$gaol_minor],[Minor version for gaol])
+AC_DEFINE_UNQUOTED([GAOL_MICRO_VERSION],[$gaol_micro],[Micro version for gaol])
+AC_DEFINE_UNQUOTED([GAOL_VERSION],["$GAOL_VERSION"],[Version number for gaol])
 # Version for the manuals: GAOL_EDITION and GAOL_UPDATED are those of the
 # manual of GAOL 4 (manual/v4), GAOL_V5_EDITION and GAOL_V5_UPDATED those of
 # the manual of GAOL v5 (manual/v5)
@@ -66,7 +89,6 @@ GAOL_EDITION="4.6"
 GAOL_UPDATED="18 September 2026"
 GAOL_V5_EDITION="5.0"
 GAOL_V5_UPDATED="22 September 2026"
-GAOL_VERSION=gaol_version
 AC_SUBST(GAOL_EDITION)
 AC_SUBST(GAOL_UPDATED)
 AC_SUBST(GAOL_V5_EDITION)
@@ -79,7 +101,7 @@ AC_SUBST(GAOL_VERSION)
 # SOVERSION, version and soversion): libtool makes libgaol.so.<c-a>.<a>.<r> of
 # -version-info c:r:a, hence c = major + minor, r = micro, a = minor. It
 # made libgaol-5.0.so.0 of -release 5.0 (GAOL v5).
-LT_VERSION_INFO="m4_eval(gaol_major_version + gaol_minor_version):gaol_micro_version:gaol_minor_version"
+LT_VERSION_INFO="`expr $gaol_major + $gaol_minor`:$gaol_micro:$gaol_minor"
 AC_SUBST(LT_VERSION_INFO)
 
 LT_PREREQ([2.2.6])
@@ -580,4 +602,8 @@ printf "examples\t\t= ${with_examples}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"
 printf "makeindex\t\t= $MAKEINDEX\n"
 printf "bibtex\t\t\t= $BIBTEX\n"
-
+# The warning of a configure generated for another version than that of
+# VERSION, again after the summary, where it is seen
+if test -n "$gaol_version_warning"; then
+  AC_MSG_WARN([$gaol_version_warning])
+fi

@@ -3952,6 +3952,24 @@ fi
 
 
 
+
+# The version of GAOL, read from VERSION when configure runs: GAOL_VERSION, and
+# its three numbers gaol_major, gaol_minor and gaol_micro
+GAOL_VERSION=`tr -d ' \t\r\n' < "$srcdir/VERSION"`
+if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null; then :; else
+  as_fn_error $? "VERSION holds \"$GAOL_VERSION\", where it should hold the version of GAOL, three numbers such as 5.0.0" "$LINENO" 5
+fi
+gaol_major=`expr "x$GAOL_VERSION" : 'x\([0-9]*\)'`
+gaol_minor=`expr "x$GAOL_VERSION" : 'x[0-9]*\.\([0-9]*\)'`
+gaol_micro=`expr "x$GAOL_VERSION" : 'x[0-9]*\.[0-9]*\.\([0-9]*\)'`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: the version of GAOL, from VERSION: $GAOL_VERSION" >&5
+printf "%s\n" "$as_me: the version of GAOL, from VERSION: $GAOL_VERSION" >&6;}
+gaol_version_warning=""
+if test "x$GAOL_VERSION" != "x5.0.0"; then
+  gaol_version_warning="GAOL is configured as $GAOL_VERSION, which VERSION holds, but configure was generated for GAOL 5.0.0, which configure --version and configure --help still give: generate configure again, as doc/building.md says"
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: $gaol_version_warning" >&5
+printf "%s\n" "$as_me: WARNING: $gaol_version_warning" >&2;}
+fi
 # gaol/gaol_configuration.h.in is written by hand, not by autoheader: it holds
 # the macros GAOL's sources read, the same as the headers the CMake and the
 # meson builds write (cmake/gaol_configuration.h.in,
@@ -3964,16 +3982,16 @@ ac_config_headers="$ac_config_headers gaol/gaol_configuration.h"
 
 
 
-printf "%s\n" "#define GAOL_MAJOR_VERSION 5" >>confdefs.h
+printf "%s\n" "#define GAOL_MAJOR_VERSION $gaol_major" >>confdefs.h
 
 
-printf "%s\n" "#define GAOL_MINOR_VERSION 0" >>confdefs.h
+printf "%s\n" "#define GAOL_MINOR_VERSION $gaol_minor" >>confdefs.h
 
 
-printf "%s\n" "#define GAOL_MICRO_VERSION 0" >>confdefs.h
+printf "%s\n" "#define GAOL_MICRO_VERSION $gaol_micro" >>confdefs.h
 
 
-printf "%s\n" "#define GAOL_VERSION \"5.0.0\"" >>confdefs.h
+printf "%s\n" "#define GAOL_VERSION \"$GAOL_VERSION\"" >>confdefs.h
 
 # Version for the manuals: GAOL_EDITION and GAOL_UPDATED are those of the
 # manual of GAOL 4 (manual/v4), GAOL_V5_EDITION and GAOL_V5_UPDATED those of
@@ -3982,7 +4000,6 @@ GAOL_EDITION="4.6"
 GAOL_UPDATED="18 September 2026"
 GAOL_V5_EDITION="5.0"
 GAOL_V5_UPDATED="22 September 2026"
-GAOL_VERSION=5.0.0
 
 
 
@@ -3995,7 +4012,7 @@ GAOL_VERSION=5.0.0
 # SOVERSION, version and soversion): libtool makes libgaol.so.<c-a>.<a>.<r> of
 # -version-info c:r:a, hence c = major + minor, r = micro, a = minor. It
 # made libgaol-5.0.so.0 of -release 5.0 (GAOL v5).
-LT_VERSION_INFO="5:0:0"
+LT_VERSION_INFO="`expr $gaol_major + $gaol_minor`:$gaol_micro:$gaol_minor"
 
 
 
@@ -21364,8 +21381,8 @@ do
     "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "manual/Makefile") CONFIG_FILES="$CONFIG_FILES manual/Makefile" ;;
-    "manual/v4/5.0.0.tex") CONFIG_FILES="$CONFIG_FILES manual/v4/5.0.0.tex" ;;
-    "manual/v5/5.0.0.tex") CONFIG_FILES="$CONFIG_FILES manual/v5/5.0.0.tex" ;;
+    "manual/v4/gaol_version.tex") CONFIG_FILES="$CONFIG_FILES manual/v4/gaol_version.tex" ;;
+    "manual/v5/gaol_version.tex") CONFIG_FILES="$CONFIG_FILES manual/v5/gaol_version.tex" ;;
 
   *) as_fn_error $? "invalid argument: '$ac_config_target'" "$LINENO" 5;;
   esac
@@ -22830,5 +22847,10 @@ printf "examples\t\t= ${with_examples}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"
 printf "makeindex\t\t= $MAKEINDEX\n"
 printf "bibtex\t\t\t= $BIBTEX\n"
-
+# The warning of a configure generated for another version than that of
+# VERSION, again after the summary, where it is seen
+if test -n "$gaol_version_warning"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: $gaol_version_warning" >&5
+printf "%s\n" "$as_me: WARNING: $gaol_version_warning" >&2;}
+fi
 
