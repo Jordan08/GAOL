@@ -536,11 +536,23 @@ namespace gaol_core {
     the empty set, and the exception of the reader is thrown:
     input_format_error, or invalid_action_error for a function called with an
     argument it does not take. A program reading on calls is.clear() first.
+
+    std::ws is no extraction: it constructs no sentry, so that it neither
+    flushes the stream tied to is nor looks at the state of is, and libstdc++
+    reads the buffer whatever that state is. Used alone, it would crash on an
+    istream without buffer, consume the blanks of a stream that has failed,
+    and leave a prompt written on cout unflushed until the user had typed the
+    interval. The sentry of any extraction is therefore constructed first,
+    without skipping (std::getline() does the same): it flushes the tied
+    stream, and sets failbit where is is not good.
   */
   istream& operator >>(istream& is, interval& I)
   {
     std::string buffer;
 
+    if (!istream::sentry(is,true)) {
+      return is;
+    }
     if (!std::getline(is >> std::ws,buffer)) {
       return is;
     }

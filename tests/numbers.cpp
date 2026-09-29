@@ -30,6 +30,9 @@
 #include <exception>
 #include <iomanip>
 #include <ios>
+#include <istream>
+#include <ostream>
+#include <streambuf>
 #include <type_traits>
 
 using namespace gaol;
@@ -743,6 +746,62 @@ namespace
            (r.eof ? ", eofbit" : "");
   }
 
+  // A stream buffer with a put area, that notes that it was flushed: the
+  // stream tied to an input has something to flush
+  class flush_noted : public std::streambuf
+  {
+  public:
+    flush_noted()
+    {
+      setp(area, area + sizeof(area));
+    }
+
+    bool flushed = false;
+
+  protected:
+    int sync() override
+    {
+      flushed = true;
+      setp(area, area + sizeof(area));
+      return 0;
+    }
+
+  private:
+    char area[64];
+  };
+
+  // The text of an input, given one character at a time, that notes whether
+  // the buffer of the tied stream was flushed when it was first asked for a
+  // character
+  class input_noted : public std::streambuf
+  {
+  public:
+    input_noted(const flush_noted& tied_buffer, const std::string& content) : tied(tied_buffer), text(content) {}
+
+    bool asked = false, flushed_before = false;
+
+  protected:
+    int_type underflow() override
+    {
+      if (!asked) {
+        asked = true;
+        flushed_before = tied.flushed;
+      }
+      if (next == text.size()) {
+        return traits_type::eof();
+      }
+      current = text[next++];
+      setg(&current, &current, &current + 1);
+      return traits_type::to_int_type(current);
+    }
+
+  private:
+    const flush_noted& tied;
+    std::string text;
+    std::size_t next = 0;
+    char current = 0;
+  };
+
   /*
     operator>> reads an interval from a line. At the end of the input it sets
     failbit, leaves the interval as it was and throws nothing, as for a double,
@@ -753,6 +812,9 @@ namespace
     skipped, as before a number: a blank line was read as the empty text, which
     is no interval, so that a file ending with an empty line, or "in >> d >> x"
     over "1.5\n[1, 2]\n", threw input_format_error (GAOL v5).
+    Before that, the sentry of any extraction is constructed: a stream that is
+    not good is not read, nothing is consumed from it, and the stream tied to
+    the input is flushed before the first character is read.
   */
   void stream_input()
   {
@@ -913,9 +975,10 @@ namespace
             [&] { return hex(x) + ", d = " + hex(d) + (in.fail() ? ", failbit" : ""); });
     }
 
-    // The end of the input as for a double, whatever the exceptions of the
-    // stream: while (in >> x) over the intervals ends as while (in >> d) does
-    // over the numbers, at the end, with the same exception and state
+    // The end of the input as for a double, on a stream throwing on nothing, on
+    // failbit, or on badbit and failbit: while (in >> x) over the intervals ends
+    // as while (in >> d) does over the numbers, at the end, with the same
+    // exception and state
     {
       const std::ios_base::iostate masks[] = { std::ios_base::goodbit, std::ios_base::failbit,
                                                 std::ios_base::badbit | std::ios_base::failbit };
@@ -953,6 +1016,74 @@ namespace
             unread && !threw && !in.fail() && x.left() == 1.0 && x.right() == 2.0,
             [&] { return std::string(unread ? "read on after clear(): " : "read or threw: ") + hex(x) + (threw ? ", threw" : ""); });
     }
+    // ... and nothing is consumed from its buffer: std::ws reads the buffer whatever the state of
+    // the stream (libstdc++), and would skip the blank lines that the next read then does not find
+    for (const std::ios_base::iostate bit : { std::ios_base::failbit, std::ios_base::badbit }) {
+      std::istringstream in("\n\n[1, 2]\nrest\n");
+      in.setstate(bit);
+      interval x(5.0, 6.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      const bool unread = !threw && in.fail() && x.left() == 5.0 && x.right() == 6.0;
+      in.clear();
+      std::string line;
+      std::getline(in, line);
+      check(std::string("operator>> on a stream in ") + (bit == std::ios_base::failbit ? "failbit" : "badbit") +
+            " state consumes nothing: the first line is still there after clear()",
+            unread && line.empty(),
+            [&] { return std::string(unread ? "unread, " : "read or threw, ") + "the first line is \"" + line + "\""; });
+    }
+
+    // The stream tied to the input, cout for cin, is flushed before the first character is asked
+    // for, for an interval as for a number: the prompt has to show before the user types. The
+    // flush is required only where the put area is not empty, hence the text written on it.
+    {
+      const auto flushed_first = [](bool number) {
+        flush_noted prompt;
+        std::ostream out(&prompt);
+        input_noted input(prompt, number ? "1.5\n" : "[1, 2]\n");
+        std::istream in(&input);
+        in.tie(&out);
+        out << "x = ";
+        if (number) {
+          double d = 0.0;
+          in >> d;
+        } else {
+          interval x;
+          in >> x;
+        }
+        return input.asked && input.flushed_before;
+      };
+      if (flushed_first(true)) {
+        check("operator>> flushes the stream tied to the input before it reads, as for a number",
+              flushed_first(false));
+      } else {
+        std::printf("This library does not flush the stream tied to the input before it reads a number: "
+                    "the flush before an interval is not checked\n");
+      }
+    }
+  }
+
+  // An istream without buffer, which std::ws would read whatever the state of the stream, and
+  // crash (libstdc++): it is the last test, since a crash ends the program
+  void stream_without_buffer()
+  {
+    std::istream in(nullptr);
+    interval x(1.0, 2.0);
+    bool threw = false;
+    try {
+      in >> x;
+    } catch (...) {
+      threw = true;
+    }
+    check("operator>> on a stream without buffer: failbit and badbit, the interval unchanged, nothing thrown",
+          !threw && in.fail() && in.bad() && x.left() == 1.0 && x.right() == 2.0,
+          [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") +
+                       (in.bad() ? "badbit, " : "no badbit, ") + hex(x); });
   }
 
   /*
@@ -1035,6 +1166,7 @@ int main()
   stream_input();
   long_exponents();
   comma_locale();
+  stream_without_buffer();
   const int status = summary();
   gaol::cleanup();
   return status;
