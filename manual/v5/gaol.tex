@@ -242,6 +242,13 @@ change GAOL v5 brings, with its measures (\pxref{chap:documentation}). The
 mark \textcolor{blue}{\textsf{\scriptsize[GAOL~v5]}} follows what behaves
 otherwise than in GAOL~4.
 
+The examples of the reference show what they print. An example that writes a
+\code{bool} sets \code{boolalpha} first: without it, \code{cout} writes 1 and 0.
+A NaN is written \code{nan} or \code{-nan} by the C++ library, according to its
+sign, which the operation that gave it decides: the manual shows \code{nan},
+where \code{chi(interval::emptyset())} prints \code{-nan} with the GNU C library
+on x86.
+
 Classes, methods, functions, macros, constants and variables available in the
 library but not described in this document are likely to change or to
 be removed. Consequently, they should be used with caution, if at all. Among
@@ -1595,7 +1602,7 @@ too:\newinvfive{} \ieee{equal}, \ieee{subset}, \ieee{interior},
 \begin{example}
 interval x(-12,34), y(-12,5);
 
-cout << x.set_contains(y) << ' '
+cout << boolalpha << x.set_contains(y) << ' '
      << x.set_contains(interval::emptyset()) << ' '
      << y.set_contains(x) << ' '
      << interval::emptyset().set_contains(x) << ' '
@@ -1641,7 +1648,7 @@ Returns \code{true} if the intersection of \code{self} and \var{I} is empty:
 
 \begin{example}
 interval a(2,4), b(6,8);
-cout << a.set_disjoint(b) << ' '
+cout << boolalpha << a.set_disjoint(b) << ' '
      << interval::emptyset().set_disjoint(interval::emptyset());
 @outputs^true true~
 \end{example}
@@ -1654,7 +1661,7 @@ cout << a.set_disjoint(b) << ' '
 Returns \code{true} if intervals \code{self} and \var{I} are equal
 when considered as sets of reals: \ieee{equal} of IEEE 1788-2015.
 \begin{example}
-cout << interval(4,8).set_eq(interval(4,8)) << ' '
+cout << boolalpha << interval(4,8).set_eq(interval(4,8)) << ' '
      << interval::emptyset().set_eq(interval::emptyset()) << endl;
 @outputs^true true~
 \end{example}
@@ -1667,7 +1674,7 @@ cout << interval(4,8).set_eq(interval(4,8)) << ' '
     Returns \code{true} if \code{self} and \var{I} are not equal when
     considered as sets of reals.
     \begin{example}
-cout << interval::universe().set_neq(interval::emptyset());
+cout << boolalpha << interval::universe().set_neq(interval::emptyset());
 @outputs^true~
     \end{example}
 \end{defmethod}
@@ -1681,7 +1688,7 @@ Returns \code{true} if \code{self} is interior to \var{I}:
 IEEE 1788-2015.\newinvfive
 \begin{example}
 interval a(2,GAOL_INFINITY), b(1,GAOL_INFINITY);
-cout << interval(-4.5,3).set_le(interval(-10,10)) << ' '
+cout << boolalpha << interval(-4.5,3).set_le(interval(-10,10)) << ' '
      << interval::emptyset().set_le(interval(5,6)) << ' '
      << interval::emptyset().set_le(interval::emptyset()) << ' '
      << interval::universe().set_le(interval::universe()) << ' '
@@ -1697,7 +1704,7 @@ cout << interval(-4.5,3).set_le(interval(-10,10)) << ' '
 Returns \code{true} if the real set defined by \code{self} is included in \var{I}:
 \ieee{subset}(\code{self}, \var{I}) of IEEE 1788-2015.
 \begin{example}
-cout << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
+cout << boolalpha << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
      << interval(3.5,9).set_leq(interval(2,6)) << ' '
      << interval::emptyset().set_leq(interval::emptyset());
 @outputs^true false true~
@@ -1710,7 +1717,7 @@ cout << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
   \end{operation}
 Returns \code{true} if \var{I} is interior to \code{self}: \code{set\_strictly\_contains(\var{I})}.
 \begin{example}
-cout << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
+cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
      << interval(1,2).set_ge(interval(1,2));
 @outputs^true false~
 \end{example}
@@ -1736,7 +1743,7 @@ Returns \code{true} if the real set defined by \code{self} contains \var{I}:
   \ieee{strictPrecedes} of IEEE 1788-2015, true when either interval is
   empty.\newinvfive
   \begin{example}
-cout << interval(4,5).certainly_le(interval(6,9)) << ' '
+cout << boolalpha << interval(4,5).certainly_le(interval(6,9)) << ' '
      << interval(4,5).certainly_le(interval(5,9)) << ' '
      << interval::emptyset().certainly_le(interval(4,6)) << ' '
      << interval(4,6).certainly_le(interval::emptyset());
@@ -1752,7 +1759,7 @@ cout << interval(4,5).certainly_le(interval(6,9)) << ' '
   \ieee{precedes} of IEEE 1788-2015, true when either interval is
   empty.\newinvfive
   \begin{example}
-cout << interval(4,5).certainly_leq(interval(6,9)) << ' '
+cout << boolalpha << interval(4,5).certainly_leq(interval(6,9)) << ' '
      << interval(4,5).certainly_leq(interval(5,9)) << ' '
      << interval(5,9).certainly_leq(interval(4,5)) << ' '
      << interval(4,8).certainly_leq(interval(5,9)) << ' '
@@ -1769,7 +1776,7 @@ cout << interval(4,5).certainly_leq(interval(6,9)) << ' '
   Returns \code{true} if \code{self} is certainly strictly greater than \var{I},
   or if either interval is empty.
   \begin{example}
-cout << interval(8,10).certainly_ge(interval(4,8)) << ' '
+cout << boolalpha << interval(8,10).certainly_ge(interval(4,8)) << ' '
      << interval(8,10).certainly_ge(interval(4,7)) << ' '
      << interval::emptyset().certainly_ge(interval::emptyset());
 @outputs^false true true~
@@ -1783,7 +1790,7 @@ cout << interval(8,10).certainly_ge(interval(4,8)) << ' '
   Returns \code{true} if \code{self} is certainly greater or equal to \var{I},
   or if either interval is empty.
   \begin{example}
-cout << interval(8,10).certainly_geq(interval(4,8)) << ' '
+cout << boolalpha << interval(8,10).certainly_geq(interval(4,8)) << ' '
      << interval::emptyset().certainly_geq(interval::emptyset());
 @outputs^true true~
   \end{example}
@@ -1796,7 +1803,7 @@ cout << interval(8,10).certainly_geq(interval(4,8)) << ' '
 Returns \code{true} if the left bound of \code{self} is greater or equal to zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_positive() << ' '
+cout << boolalpha << interval::emptyset().certainly_positive() << ' '
      << interval(4,5).certainly_positive() << ' '
      << interval(-0.0,6).certainly_positive() << ' '
      << interval(-6,0).certainly_positive();
@@ -1811,7 +1818,7 @@ cout << interval::emptyset().certainly_positive() << ' '
 Returns \code{true} if the left bound of \code{self} is strictly greater than zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_strictly_positive() << ' '
+cout << boolalpha << interval::emptyset().certainly_strictly_positive() << ' '
      << interval(4,5).certainly_strictly_positive() << ' '
      << interval(-0.0,6).certainly_strictly_positive() << ' '
      << interval(-6,0).certainly_strictly_positive();
@@ -1826,7 +1833,7 @@ cout << interval::emptyset().certainly_strictly_positive() << ' '
 Returns \code{true} if the right bound of \code{self} is lower or equal to zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_negative() << ' '
+cout << boolalpha << interval::emptyset().certainly_negative() << ' '
      << interval(4,5).certainly_negative() << ' '
      << interval(-6,0).certainly_negative() << ' '
      << interval(-6,-5).certainly_negative();
@@ -1841,7 +1848,7 @@ cout << interval::emptyset().certainly_negative() << ' '
 Returns \code{true} if the right bound of \code{self} is strictly lower than zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_strictly_negative() << ' '
+cout << boolalpha << interval::emptyset().certainly_strictly_negative() << ' '
      << interval(4,5).certainly_strictly_negative() << ' '
      << interval(-6,0).certainly_strictly_negative() << ' '
      << interval(-6,-5).certainly_strictly_negative();
@@ -1862,7 +1869,7 @@ cout << interval::emptyset().certainly_strictly_negative() << ' '
   not (Table 10.4).\newinvfive
 \begin{example}
 interval e = interval::emptyset();
-cout << interval(1,2).less(interval(1,3)) << ' '
+cout << boolalpha << interval(1,2).less(interval(1,3)) << ' '
      << interval(1,4).less(interval(2,3)) << ' '
      << e.less(e) << ' ' << e.less(interval(1,2));
 @outputs^true false true false~
@@ -1879,7 +1886,7 @@ cout << interval(1,2).less(interval(1,3)) << ' '
   \code{less()}.\newinvfive
 \begin{example}
 interval a(-GAOL_INFINITY,1), b(-GAOL_INFINITY,2);
-cout << interval(1,2).strictly_less(interval(1,3)) << ' '
+cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
      << a.strictly_less(b) << ' '
      << interval(0,1).strictly_less(interval(2,3));
 @outputs^false true true~
@@ -1913,7 +1920,7 @@ them with \code{set\_eq()}, \code{set\_disjoint()} or \code{less()}.
 \begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Returns \code{\var{I1}.certainly\_geq(\var{I2})}.
 \begin{example}
-cout << (interval(1,2) < interval(3,4)) << ' '
+cout << boolalpha << (interval(1,2) < interval(3,4)) << ' '
      << (interval(1,2) <= interval(2,4)) << ' '
      << (interval(1,3) <= interval(2,4)) << ' '
      << (interval(3,4) > interval(1,2));
@@ -2009,7 +2016,7 @@ cout << boolalpha << x.is_canonical() << ' '
   Returns \code{true} if \code{self} is an empty interval: \ieee{isEmpty} of
   IEEE 1788-2015.
   \begin{example}
-cout << interval(4,5).is_empty() << ' '
+cout << boolalpha << interval(4,5).is_empty() << ' '
      << interval(5,4).is_empty() << ' '
      << interval::emptyset().is_empty();
 @outputs^false true true~
@@ -2023,7 +2030,7 @@ cout << interval(4,5).is_empty() << ' '
   Returns \code{true} if \code{self} is the whole real line: \ieee{isEntire} of
   IEEE 1788-2015.\newinvfive
   \begin{example}
-cout << interval::universe().is_entire() << ' '
+cout << boolalpha << interval::universe().is_entire() << ' '
      << interval::positive().is_entire() << ' '
      << interval::emptyset().is_entire();
 @outputs^true false false~
@@ -2034,7 +2041,7 @@ cout << interval::universe().is_entire() << ' '
   Returns \code{true} if \code{self} is nonempty and bounded:
   \ieee{isCommonInterval} of IEEE 1788-2015.\newinvfive
   \begin{example}
-cout << interval(1,2).is_common_interval() << ' '
+cout << boolalpha << interval(1,2).is_common_interval() << ' '
      << interval::positive().is_common_interval() << ' '
      << interval::emptyset().is_common_interval();
 @outputs^true false false~
@@ -2047,7 +2054,7 @@ cout << interval(1,2).is_common_interval() << ' '
   \end{operation}
   Returns \code{true} if \code{self} is equal to the interval containing only $0$.
   \begin{example}
-cout << interval::zero().is_zero() << ' '
+cout << boolalpha << interval::zero().is_zero() << ' '
      << interval(0.0,0.0).is_zero() << ' '
      << interval(-0.0,+0.0).is_zero() << ' '
      << interval(0,5).is_zero() << ' '
@@ -2061,7 +2068,7 @@ cout << interval::zero().is_zero() << ' '
   right bound. An empty interval is not symmetric.
 
 \begin{example}
-cout << interval(-5,5).is_symmetric() << ' '
+cout << boolalpha << interval(-5,5).is_symmetric() << ' '
      << interval::emptyset().is_symmetric() << endl;
 @outputs^true false~
 \end{example}
@@ -2072,7 +2079,7 @@ cout << interval(-5,5).is_symmetric() << ' '
   are NaN, is finite; \code{is\_common\_interval()} is not true of it.
 
 \begin{example}
-cout << interval(4,GAOL_INFINITY).is_finite() << ' '
+cout << boolalpha << interval(4,GAOL_INFINITY).is_finite() << ' '
      << interval::emptyset().is_finite() << ' '
      << interval(5,80).is_finite();
 @outputs^false true true~
@@ -2805,7 +2812,7 @@ Returns the width of \code{self}: \ieee{wid} of IEEE 1788-2015. Returns NaN
 whenever the interval is empty, as the standard has it, where GAOL~4 returned
 $-1$.\newinvfive
 \begin{example}
-cout << interval(4,6).width() << ' '
+cout << boolalpha << interval(4,6).width() << ' '
      << (interval(1,next_float(1)).width()
          == std::numeric_limits<double>::epsilon()) << ' '
      << interval::emptyset().width();
@@ -2961,6 +2968,8 @@ cout << chi(interval(3,6)) << ' '
      << chi(interval(-5,GAOL_INFINITY));
 @outputs^0.5 -0.5 nan 1 0~
 \end{example}
+\paragraph{Note.} The NaN for the empty set is written \code{-nan} with the GNU C
+library on x86: its sign is the one the operation leaves it.
 \end{deffun}
 
 \begin{deffun}{interval}{min}{(const interval \&I, const interval \&J)}
@@ -3070,7 +3079,7 @@ interval I1a, I2a,
          I1b, I2b;
 interval(4,5).split(I1a,I2a);
 I3.split(I1b,I2b);
-cout << I1a << ' ' << I2a << ' '
+cout << boolalpha << I1a << ' ' << I2a << ' '
      << I1b.set_eq(interval(1.0)) << ' ' << I2b.set_eq(I3) << endl;
 @outputs^[4, 4.5] [4.5, 5] true true~
   \end{example}
@@ -3650,7 +3659,7 @@ cout << pow(interval(-4,-1), interval(2.0)) << ' '
      << pown(interval(-4,-1), 2) << ' '
      << pow(interval(2,3), interval(1e10)) << endl;
 @outputs^[empty] [1, 16] [1.797693134862315e+308, inf]~
-cout << inf(empty()) << ' ' << sup(empty()) << ' '
+cout << boolalpha << inf(empty()) << ' ' << sup(empty()) << ' '
      << isMember(GAOL_INFINITY, entire()) << ' '
      << textToInterval("[1, 2") << endl;
 @outputs^inf -inf false [empty]~
@@ -3944,7 +3953,7 @@ GAOL defines the following \code{double} constants:
   This function should not be used with infinity and NaN arguments.
 
   \begin{example}
-cout << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
+cout << boolalpha << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
 @outputs^false true false~
   \end{example}
 \end{deffun}
