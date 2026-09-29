@@ -125,11 +125,19 @@ Codac.
   the intervals, each bound less than one unit of its last digit away, near
   the powers of ten too, where a digit moved outward changes the exponent;
   read back, they have to enclose the intervals written, and so do the two
-  numbers the format of the agreeing digits stands for. In hexadecimal, the
+  numbers the format of the agreeing digits stands for. The text of a point
+  interval, written with 1 to 25 digits in each of these formats, has to be
+  read back as an interval enclosing it: the angles `<a, a>`, which the reader
+  takes for one double only, are written for a number that is the point itself
+  (`<4, 4>`, and for a zero, whatever the signs of its bounds, `<0, 0>` or
+  `<-0, 0>`), and the two bounds `[a, b]` otherwise (`[0.1, 0.1000000000000001]`
+  for `interval(0.1)`). GAOL wrote `<a, b>` for every point interval, and the
+  reader refused most of them (GAOL v5). In hexadecimal, the
   bounds have to be written in the hexadecimal-significand form of
   IEEE 1788-2015 (13.4.1) and read back bit for bit, which is the recovery
   requirement of 13.4: over random intervals, and over the empty set, the
-  infinite bounds, the signed zeros, the subnormals and the largest doubles.
+  infinite bounds, the signed zeros, the subnormals, the largest doubles and
+  point intervals.
   `operator<<` has to leave the precision of the stream as it was, and
   `std::setw` to pad the whole interval, adjusted to the right or to the left.
   `while (in >> x)` has to stop at the end of the input with `failbit` set,
@@ -204,7 +212,9 @@ Codac.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
   to leave the global output format alone; the check of it by a second
   thread writing intervals meanwhile is commented out, the tests running no
-  thread. `textToInterval` has to read each name of
+  thread. `textToInterval(intervalToText(x))` has to contain x for a point
+  interval x, `interval(0.1)` first: it was the empty set (GAOL v5).
+  `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are

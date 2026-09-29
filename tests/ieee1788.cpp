@@ -405,6 +405,32 @@ namespace
     interval::format(saved);
   }
 
+  /*
+    The text of a point interval is read back (GAOL v5): intervalToText(
+    interval(0.1)) was <0.1, 0.1000000000000001>, whose two numbers are not the
+    same double, which the reader takes for a point only, so that
+    textToInterval() gave the empty set, where the recovery requirement of
+    IEEE 1788-2015 (13.4) asks for an interval containing the one written.
+  */
+  void text_of_a_point_interval()
+  {
+    const gaol::interval_format::format_t saved = interval::format();
+    interval::format(gaol::interval_format::bounds);
+    const interval tenth(0.1);
+    const interval back = textToInterval(intervalToText(tenth));
+    check("textToInterval(intervalToText(interval(0.1))) contains 0.1", back.set_contains(0.1),
+          [&] { return intervalToText(tenth) + " read " + hex(back); });
+    const double points[] = { 0.1, -0.1, 1.0 / 3.0, 3.14159265358979, 1e23, 4.0, 0.5, 0.0, -0.0,
+                              std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::max() };
+    for (double x : points) {
+      const std::string text = intervalToText(interval(x));
+      const interval y = textToInterval(text);
+      check("textToInterval(intervalToText(point)) contains the point", y.set_contains(x),
+            [&] { return text + " read " + hex(y); });
+    }
+    interval::format(saved);
+  }
+
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   /*
@@ -453,6 +479,7 @@ int main()
   names_of_the_standard();
   text_with_the_names_of_the_standard();
   exact_text();
+  text_of_a_point_interval();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   exact_text_in_another_thread();
