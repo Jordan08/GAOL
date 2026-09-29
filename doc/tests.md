@@ -37,8 +37,9 @@ Codac.
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
-  poles, domains, `log` of intervals holding no positive number being empty,
-  `exp(0)`, `log(1)` and `1^y` exact). The functions have to be the tightest
+  poles, domains, `log` of intervals holding no positive number and `atanh` of
+  intervals with no point of (-1, 1) being empty, `exp(0)`, `log(1)` and `1^y`
+  exact). The functions have to be the tightest
   enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
