@@ -222,6 +222,12 @@ namespace gaol_core {
     GAOL_NODISCARD bool less(const interval& I) const;
     GAOL_NODISCARD bool strictly_less(const interval& I) const;
 
+    /*!
+      isEmpty of IEEE 1788-2015: *this is the empty set, whose bounds are NaN.
+      It raises no floating-point exception, the invalid-operation one
+      included: a program that enabled it is not stopped by this call (GAOL
+      v5, see doc/using.md)
+    */
     GAOL_NODISCARD bool is_empty(void) const;
     //! isEntire of IEEE 1788-2015 (10.5.10): *this is [-oo, +oo] (GAOL v5)
     GAOL_NODISCARD bool is_entire(void) const;
@@ -412,10 +418,20 @@ namespace gaol_core {
   }
 
 
- INLINE
+  /*
+    The empty set has NaN bounds, which a comparison operator answers false
+    to, and !(left() <= right()) is true for it. <= is a signaling comparison,
+    though: on a quiet NaN it raises the invalid-operation exception, which
+    kills with SIGFPE a program that enabled it (feenableexcept() of glibc) at
+    each emptiness test of an empty interval, and sets FE_INVALID for a
+    program reading the flags. std::islessequal() is the same comparison,
+    false for a NaN, that raises nothing: ucomisd rather than comisd on x86,
+    with no more instruction with GCC 9 and Clang 18 (GAOL v5).
+  */
+  INLINE
   bool interval::is_empty(void) const
   {
-    return !(left() <= right()); // Negation to handle NaNs
+    return !std::islessequal(left(), right()); // Negation to handle NaNs
   }
 
   INLINE

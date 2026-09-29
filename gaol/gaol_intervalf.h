@@ -162,8 +162,10 @@ namespace gaol_core {
 
 	inline bool intervalf::is_empty(void) const
 	{
-		// Testing the logical inverse to handle NaNs
-		return !(left() <= right());
+		// Testing the logical inverse to handle NaNs, with the quiet
+		// comparison: <= signals the invalid-operation exception on a NaN,
+		// as interval::is_empty() explains (GAOL v5)
+		return !std::islessequal(left(), right());
 	}
 
 	inline bool intervalf::is_zero(void) const
