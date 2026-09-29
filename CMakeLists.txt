@@ -41,11 +41,13 @@ cmake_minimum_required(VERSION 3.14...3.25)
 # macros write as C integers. The file is not named VERSION: the root of the
 # sources is on the include path, and on file systems that ignore case (macOS,
 # Windows) #include <version>, which libc++ includes from <vector> or <cmath>,
-# would find it (GAOL v5)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version)
-string(STRIP "${_gaol_version}" _gaol_version)
-if(NOT _gaol_version MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
-  message(FATAL_ERROR "VERSION.txt holds \"${_gaol_version}\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0")
+# would find it. The reading, which ignores a byte order mark and the line ends
+# of Windows, is in cmake/gaol_version.cmake, where the test version_file
+# checks it (GAOL v5)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/gaol_version.cmake")
+gaol_read_version("${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version _gaol_version_error)
+if(_gaol_version_error)
+  message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)

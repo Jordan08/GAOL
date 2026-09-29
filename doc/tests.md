@@ -378,6 +378,28 @@ Codac.
   at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
   did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
   which no header included (GAOL v5).
+- **`version_file`** (CMake only: a script of CMake, not a program): the
+  reading of `VERSION.txt` by `CMakeLists.txt`, `gaol_read_version()` of
+  `cmake/gaol_version.cmake`, has to ignore a UTF-8 byte order mark at the
+  start of the file, which some editors of Windows write, the line ends of
+  Windows (CR LF), and the blanks and empty lines around the version, to
+  refuse anything but three numbers without leading zeros, and to give the
+  first bytes of a refused file in hexadecimal in its message. It refused a file
+  starting with a byte order mark as `VERSION.txt holds "5.0.0"`, the mark being
+  a character that is not seen; configure and meson did the same. A file of
+  UTF-16 characters (`tests/version_file/`, which CMake could not write: it
+  holds NUL bytes) has to be refused with all of its message, a NUL byte having
+  cut the text quoted, and a NUL byte after `5.0.0` has to make the file
+  refused, whether `file(READ)` cuts the text at the NUL byte (CMake 3.14.7 and
+  3.16.3) or keeps it and a regular expression stops there (4.4.3). A file
+  holding a mark alone, or nothing, has to be refused with its message too: it
+  stopped CMake 3.14.7 and 3.16.3 with an error of `string(REGEX MATCH)` on an
+  empty match, so these two checks fail only there, in the job of the
+  continuous integration that runs the tests with CMake 3.14. The files are
+  written by the script, which expects the versions it writes, not the ones the
+  code reads back. configure and meson, which read the file their own way, have
+  no such test: `.github/scripts/version-file.sh` runs them on a copy of the
+  sources, in the continuous integration (GAOL v5).
 - **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
   by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
   a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and

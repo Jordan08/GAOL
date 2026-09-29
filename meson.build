@@ -18,9 +18,16 @@ project(
   # if it finds none. Looking for python first would lose that fallback, and
   # would not avoid the Microsoft Store aliases of meson 0.53.0, which
   # WindowsApps holds for python.exe as for python3.exe: meson 0.53.1 and later
-  # leave that directory out (doc/building.md)
+  # leave that directory out (doc/building.md). The encoding utf-8-sig skips
+  # the byte order mark that some editors of Windows write at
+  # the start of a file, which the default encoding (the code page of Windows,
+  # cp1252) reads as three characters of the version. What is not the version
+  # is written as ASCII, with escapes (\u200b for a zero-width space, \udcff
+  # for a byte that is not UTF-8, \x00 for a NUL byte, \n), which show in the
+  # error message below, on one line, and which the pipe to meson carries
+  # whatever the code page (GAOL v5)
   version: run_command(find_program('python3', 'python', native: true), '-c',
-                       'import sys; print(open(sys.argv[-1]).read().strip())',
+                       'import sys; print(ascii(open(sys.argv[-1], encoding=\'utf-8-sig\', errors=\'surrogateescape\').read().strip())[1:-1])',
                        join_paths(meson.current_source_dir(), 'VERSION.txt'),
                        check: true).stdout().strip(),
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
@@ -38,7 +45,13 @@ foreach n : gaol_version
   endif
 endforeach
 if not gaol_version_ok
-  error('VERSION.txt holds "' + meson.project_version() + '", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0')
+  # The first bytes of the file in hexadecimal, which show what the quoted text
+  # does not (a zero-width space, a second byte order mark)
+  gaol_version_bytes = run_command(find_program('python3', 'python', native: true), '-c',
+                                   'import sys; print(*[\'%02x\' % b for b in open(sys.argv[-1], \'rb\').read(32)])',
+                                   join_paths(meson.current_source_dir(), 'VERSION.txt'),
+                                   check: false).stdout().strip()
+  error('VERSION.txt holds "' + meson.project_version() + '" (bytes in hexadecimal: ' + gaol_version_bytes + '), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0')
 endif
 major_version = gaol_version[0].to_int()
 minor_version = gaol_version[1].to_int()
