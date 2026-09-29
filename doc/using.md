@@ -262,7 +262,8 @@ its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
 rounding direction it found, which makes the arithmetic operations several
-times slower.
+times slower (see
+[What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 
 Without it, the rounding direction stays upward from the initialization of
 GAOL on, for the whole program, and `gaol::cleanup()`, which every program
@@ -272,3 +273,103 @@ that the first `gaol::init()` found when GAOL initialized itself: to nearest,
 as a program starts, on x86 for the x87 unit and the SSE instructions each, in
 the thread calling it. The rest of the floating-point
 environment is left as it is, the exception flags raised in particular.
+
+### What the upward rounding does to the program
+
+The rounding direction is the processor's, and the whole program shares it.
+GAOL's results do not depend on it, each operation setting it upward when it is
+not, in every thread, but the doubles the program computes do. Unless GAOL is
+built with `GAOL_PRESERVE_ROUNDING`, they are rounded upward from GAOL's
+initialization, before `main()`, until `gaol::cleanup()`, and again after each
+operation of GAOL that follows it. The compiler does not undo it: with the
+flags of `gaol::gaol`, `-frounding-math` in particular, an inexact operation on
+constants written in a function, `1.0 / 3.0`, is not evaluated when compiling,
+to nearest, but when the program runs, in the direction in effect. Only what
+the compiler must evaluate when compiling, a `constexpr` or the constant
+initializer of a static variable, is still rounded to nearest.
+
+What the program computes, with GCC 9.4 or Clang 18 and the GNU C library 2.31
+on x86-64
+([examples/13_rounding_environment.cpp](../examples/13_rounding_environment.cpp)
+computes each row and checks it):
+
+| The program computes | While GAOL is initialized | After `gaol::cleanup()` |
+|---|---|---|
+| `1.0 / 3.0` | 0.33333333333333337 | 0.33333333333333331 |
+| `std::stod("0.3") == 0.3` | false | true |
+| `std::lrint(2.3)` | 3 | 2 |
+| `std::printf("%.2f", 2.675)` | 2.68 | 2.67 |
+| `std::cout << std::setprecision(3) << 3.14159265358979` | 3.15 | 3.14 |
+| 0.1 added 10⁷ times | 1000000.0005483569 | 999999.99983897537 |
+| 20 000 doubles written with `%.17g`, read back by `std::strtod` | 20 000 come back different | none |
+| `TwoSum(1e20, 1e-20)`, the error of a sum | s + e ≠ a + b | s + e = a + b |
+| `TwoSum(a, b)`, 50 000 pairs of doubles of exponents from −60 to 60 | s + e ≠ a + b for 10 717 pairs | none |
+
+The quotient is the double above 1/3, where the program expects the nearest.
+The C library rounds in the direction in effect too, as the C standard
+recommends: with the GNU C library, `std::rint(-2.7)` is −2 where it is −3 to
+nearest, and `strtod()`, `stod()`, `printf()` and the streams round the decimal
+digits they read and write up. A double written with 17 digits, which reads
+back to itself to nearest, then comes back one double above, and one more at
+each round trip. Another C library may convert to nearest whatever the
+direction: the example reports what the one it runs with does. Sums are
+biased: each addition rounds up, so 0.1 added ten million times ends 5.5·10⁻⁴
+above the exact 10⁶ × 0.1, where to nearest it ends 1.6·10⁻⁴ below. And
+TwoSum, the algorithm that recovers the error of a sum,
+
+```cpp
+s = a + b;  bb = s - a;  e = (a - (s - bb)) + (b - bb);
+```
+
+gives s + e = a + b only to nearest. Rounded upward, the exact error of
+10²⁰ + 10⁻²⁰, 10⁻²⁰ − 16384, is no double: s is 10²⁰ + 16384 and e is
+−16383.999999999998, whose sum is not 10²⁰ + 10⁻²⁰. Compensated sums, and the
+double-double arithmetic built on such algorithms, lose their accuracy the same
+way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand
+column all the time.
+
+Other consequences:
+
+- a thread created after GAOL's initialization starts upward too (`std::thread`
+  gives a new thread the floating-point environment of the thread constructing
+  it), and `gaol::cleanup()` sets back the direction of the calling thread only;
+- the libraries the program calls run upward as well: the `exp`, `log` and
+  `pow` of the GNU C library 2.31 go from 0.51 ulp to 1.01 ulp from the exact
+  value, its `cbrt` from 2.8 to 3.8 ulp (20 000 random arguments each, against
+  mpmath), and its `sin`, `cos`, `tan` and `atan` give the same results;
+- GCC does not model the rounding direction, even with `-frounding-math`
+  ([GCC bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)), and
+  reuses after `gaol::cleanup()` a double computed before it, still rounded
+  upward, where the program computes it again: from `-O1`, GCC 9.4 does it for
+  `a / b` written on both sides of the call, where Clang 18 computes the
+  quotient again. A program cannot rely on either.
+
+What to do:
+
+- **Call `gaol::cleanup()` right after the last use of GAOL**, before the
+  program prints, converts or sums what it computed: its doubles are then
+  computed to nearest. A program that goes back to GAOL afterwards calls
+  `std::fesetround(FE_TONEAREST)` (or `gaol::round_nearest()`) after each use,
+  since an operation of GAOL sets the direction upward again and
+  `gaol::cleanup()` sets it back once only.
+- **Read and write numbers through GAOL**, not through the C library:
+  `gaol::textToInterval("0.3")` encloses 3/10 in every direction, where
+  `std::stod("0.3")` does not, and `exact_string()` and `%a` write a number that
+  reads back to the same bits in every direction. GAOL writes its intervals
+  rounded outward whatever the direction.
+- **Compute in a block the doubles that need rounding to nearest** (an
+  error-free transformation, `std::lrint()`, a decimal conversion, a call of a
+  library written for that): save the direction with `std::fegetround()`, set
+  `FE_TONEAREST`, and set the saved one back when the block ends, with no
+  operation of GAOL inside, which would set the direction upward again. The
+  example writes such a guard, `nearest_scope`.
+- **Do not count on the compiler** to compute a double where the source code
+  does. One that has to be computed on this side of a change of direction is
+  computed from operands read again through `gaol::rnd_keep()`, which writes its
+  argument to volatile memory and returns it: `gaol::rnd_keep(a) /
+  gaol::rnd_keep(b)` after `gaol::cleanup()` is the quotient to nearest with
+  GCC too, where `gaol::rnd_keep(a / b)` may be the one computed before.
+- **Or build GAOL with `GAOL_PRESERVE_ROUNDING`**, and the program keeps its
+  own direction: each operation reads it, sets it upward, and sets it back when
+  it is done. Nothing else changes: the bounds are the same, and the program
+  still calls `gaol::cleanup()`. It costs time: XXCOSTXX
