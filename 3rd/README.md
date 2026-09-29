@@ -61,6 +61,19 @@ their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
 well, which unmasks the exceptions and makes the first comparison of the NaN
 bounds of an empty interval trap.
 
+On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
+that rounds their doubles, rather than the control word of the x87 unit, which
+the `fegetround()` of glibc reads. `pow`, and `cos` and `tan`, whose accurate
+phases carry the same code, round a subnormal result themselves, in the
+direction `fegetround()` gives: with the x87 unit to nearest and MXCSR upward,
+the state the `exactinit()` of the predicates of Shewchuk and of Triangle
+leaves, `pow` rounded to nearest and its upper bound was below the exact value
+for about half of the arguments with a subnormal result. `<fenv.h>` is included
+first and the sources see `fegetround` renamed by a macro, which changes
+nothing for the rest of GAOL; `tests/rounding_direction.cpp` checks it. On a
+32-bit x86 processor, GAOL reads both units and sets both when one is not
+upward, so that they never differ when CORE-MATH runs.
+
 They are compiled with the flags of interval arithmetic, as CORE-MATH asks
 (`-frounding-math -ffp-contract=off`, `/fp:strict` for Visual C++), and with the
 GNU extensions of C (`atan2` uses inline assembly), not with `-std=c99`.

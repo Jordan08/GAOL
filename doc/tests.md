@@ -71,11 +71,16 @@ Codac.
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
   have to be the tightest enclosures, also when computed in a loop that changes
-  the rounding direction before each of them. `cbrt`, `pow` and `atan2` have to
-  leave the exception masks of the SSE control register as they found them, and
-  an empty interval to be told empty after them: the `fesetexceptflag()` of
-  mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
-  the NaN bounds of an empty interval then killed the program (GAOL v5).
+  the rounding direction before each of them. `pow` with a subnormal result,
+  which CORE-MATH rounds by itself in the direction `fegetround()` gives, has to
+  be the tightest enclosure, computed apart with mpmath, in each of them, the
+  x87 unit to nearest and the SSE instructions upward included: `fegetround()`
+  of glibc reads the x87 unit, and the upper bound was below the exact value
+  (GAOL v5). `cbrt`, `pow` and `atan2` have to leave the exception masks of the
+  SSE control register as they found them, and an empty interval to be told
+  empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit Windows
+  unmasked the exceptions, and the comparison of the NaN bounds of an empty
+  interval then killed the program (GAOL v5).
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
