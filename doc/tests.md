@@ -329,6 +329,20 @@ Codac.
   at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
   did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
   which no header included (GAOL v5).
+- **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
+  by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
+  a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and
+  with `-ffast-math`, put after the flags of interval arithmetic, and the
+  compilation has to fail with the message of `gaol/gaol_config.h`, which the
+  test looks for in the output of the build. With `-ffinite-math-only` the
+  compiler takes NaN and infinities never to occur, in the inline functions of
+  the headers too, and the empty interval, whose bounds are NaN, is no longer
+  told empty: `([1, 2] & [3, 4]).is_empty()` was false with GCC 9 and Clang 18.
+  The header did not refuse `-ffinite-math-only`, nor `-Ofast` or `-ffast-math`
+  followed by `-frounding-math` with Clang, which leave `__FAST_MATH__`
+  undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5). The autotools and meson
+  builds have no such test, the header being the same; `tests/fp_strict` is
+  the check of Visual C++ without `/fp:strict`.
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive

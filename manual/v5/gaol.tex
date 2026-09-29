@@ -334,12 +334,29 @@ but the second one, which no macro of the compiler shows:
   and CORE-MATH reads \code{fegetround()} to know it;
 \item \option{-ffast-math}, \option{-Ofast} and \option{/fp:fast}, with which
   the compiler rounds to nearest and drops the checks of NaN and infinities;
+\item \option{-ffinite-math-only}, which \option{-ffast-math} and
+  \option{-Ofast} turn on: the compiler takes NaN and infinities never to
+  occur, in the inline functions of GAOL too, and the empty interval, whose
+  bounds are NaN, is no longer told empty;
 \item Visual C++ without \option{/fp:strict}, which then assumes rounding to
   nearest;
 \item doubles computed on the x87 unit of 32-bit x86 processors, in extended
   precision (without \option{-msse2 -mfpmath=sse}, or \option{/arch:SSE2}):
   CORE-MATH assumes every operation on doubles rounded to a double.
 \end{itemize}
+
+\noindent
+\option{-fno-fast-math}, one of the flags of interval arithmetic, turns
+\option{-ffast-math} and \option{-ffinite-math-only} off when it comes after
+them on the command line, and does nothing when it comes before them, where the
+compilation stops. No macro of the compiler shows the following, which
+\file{gaol/gaol\_config.h} cannot refuse and which give wrong results all the
+same: \option{-funsafe-math-optimizations} and \option{-ffast-math
+-fno-finite-math-only} with GCC, which rewrites the addition by which GAOL sees
+the rounding direction, so that an operation does not set it upward again after
+the code using GAOL left it elsewhere; and \option{-fno-honor-nans} alone with
+Clang, which does to the empty interval what \option{-ffinite-math-only} does.
+The code using GAOL is not to be compiled with them.
 
 \subsection{Tools for maintainers}
 %%................................
@@ -806,8 +823,9 @@ With Visual C++, \option{/fp:strict}, and \option{/arch:AVX2} for x64 with
 \code{gaol::gaol} and \file{gaol.pc}. \file{gaol/gaol\_config.h} refuses code
 compiled by Visual C++ without \option{/fp:strict}. GCC and Clang do not tell
 the code whether \option{-frounding-math} and \option{-ffp-contract=off} were
-given: there, it only refuses what contradicts them, \option{-ffast-math} and
-doubles computed on the x87 unit (\pxref{sec:refused}).
+given: there, it only refuses what contradicts them, \option{-ffast-math},
+\option{-ffinite-math-only} and doubles computed on the x87 unit
+(\pxref{sec:refused}).
 
 \subsection{From CMake}
 %%.....................
@@ -1112,7 +1130,10 @@ computes would not enclose the exact results"
 \end{onscreen}
 
 \noindent
-Taking the flags from \code{gaol::gaol} or \file{gaol.pc} avoids the question.
+It stops \option{-ffinite-math-only} in the same way, with which the compiler
+takes NaN, the bounds of the empty interval, and infinities never to occur
+(\pxref{sec:refused}). Taking the flags from \code{gaol::gaol} or
+\file{gaol.pc} avoids the question.
 
 \chapter{Initialization and cleanup}\label{chap:init}
 %%==================================

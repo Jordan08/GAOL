@@ -25,8 +25,12 @@ With Visual C++, `/fp:strict`, and `/arch:AVX2` for x64 with `GAOL_FMA`. Each bu
 `gaol::gaol` and `gaol.pc` (below). `gaol/gaol_config.h` refuses code compiled
 by Visual C++ without `/fp:strict`. GCC and Clang do not tell the code whether
 `-frounding-math` and `-ffp-contract=off` were given: there, it only refuses
-what contradicts them, `-ffast-math` and doubles computed on the x87 unit (see
+what contradicts them, `-ffast-math`, `-ffinite-math-only` and doubles computed
+on the x87 unit (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)).
+`-fno-fast-math` turns the first two off when it comes after them on the
+command line, and does nothing when it comes before them, where the
+compilation stops.
 
 ## From CMake
 
