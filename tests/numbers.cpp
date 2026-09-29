@@ -945,6 +945,11 @@ namespace
             [&] { return describe(r); });
     }
 
+    // GAOL leaves the rounding direction upward, and the C runtime of Windows reads 1.5 in that
+    // direction one double above (1.5 + 2^-52) where glibc reads it exactly: what these checks are
+    // about is where the stream stops, so a double that is read is taken for the number when it is
+    // that number or the double above
+    const auto is_number = [](double read, double number) { return read == number || read == std::nextafter(number, GAOL_INFINITY); };
     // "in >> d >> x": the interval is read from the next line when the number
     // ends its line, as a second number would be
     struct { const char *name; const char *text; double d; double left, right; bool read, eof; } const after_number[] = {
@@ -960,7 +965,7 @@ namespace
     for (const auto& a : after_number) {
       const pair_result r = read_number_and_interval(a.text);
       check(std::string("in >> d >> x over \"") + a.name + "\": " + (a.read ? "d and x read" : "d read, then the end of the input"),
-            r.d == a.d && r.x.left() == a.left && r.x.right() == a.right && r.ended == "no exception" &&
+            is_number(r.d, a.d) && r.x.left() == a.left && r.x.right() == a.right && r.ended == "no exception" &&
             r.fail == !a.read && r.eof == a.eof,
             [&] { return describe(r); });
     }
@@ -971,7 +976,7 @@ namespace
       double d = -1.0;
       in >> x >> d;
       check("in >> x >> d over \"[1, 2]\\n\\n\\n1.5\\n\": both read",
-            !in.fail() && x.left() == 1.0 && x.right() == 2.0 && d == 1.5,
+            !in.fail() && x.left() == 1.0 && x.right() == 2.0 && is_number(d, 1.5),
             [&] { return hex(x) + ", d = " + hex(d) + (in.fail() ? ", failbit" : ""); });
     }
 
