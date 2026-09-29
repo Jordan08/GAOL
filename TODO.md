@@ -8,10 +8,154 @@ Les points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 corrections qui l'ont suivie. « Revue n° n » renvoie au numéro n de sa
 section 5, dont l'annexe B donne la correction et un test de régression,
 validés sur des builds SSE2 et FPU de travail mais pas appliqués. Ses numéros
-1, 6, 9, 10, 11, 13, 14 et 18 sont corrigés.
+1, 5, 6, 8, 9, 10, 11, 13, 14, 15 et 18 sont corrigés.
 
 Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
-2026-09-28 : ce que les agents ont trouvé et qui n'est pas corrigé.
+2026-09-28 : ce que les agents ont trouvé et qui n'est pas corrigé (le 44 l'est
+depuis).
+
+## Avancement au 2026-09-29
+
+Les points ont été repris un par un, chacun dans sa branche `todo-NN-…` faite à partir de `configure-clean`, validé en local
+(builds SSE2, FPU et Clang 18 selon le point, test de non-régression dont on a montré qu'il échoue sans la correction), relu par un
+ou deux relecteurs indépendants, poussé pour lancer la CI, puis proposé en pull request vers `configure-clean`, avec un texte en
+français. Le travail a été arrêté avant la fin : cette section dit où chaque point en est. Les points 7, 9, 14, 29 et 44, fusionnés,
+ne sont plus dans la liste ci-dessous. Les rapports détaillés de chaque point (résumé, tests, validation, questions ouvertes, ce
+qu'il faudra consigner dans `ChangeLog` et `doc/differences.md`, remarques des relecteurs) sont dans [todo-notes/](todo-notes/), le
+brouillon du texte de la pull request du point 5 dans `todo-notes/pr-05-brouillon.md`, et les scripts et consignes de la méthode
+dans [todo-notes/orchestration/](todo-notes/orchestration/) (à supprimer si vous n'en voulez pas).
+
+### Fusionné dans `configure-clean`
+
+| Point | Pull request | Branche |
+| --- | --- | --- |
+| 7 `atanh([1, x])` | #31 | `todo-07-atanh-domain` |
+| 14 `what()` des exceptions | #32 | `todo-14-exception-what` |
+| 44 archive CPack et `configure` en retard | #33 | `todo-44-cpack-stale-configure` |
+| hors liste : le job Debian 12 arm64 (voir plus bas) | #34 | `fix-numbers-gcc12-aarch64` |
+| 29 locale à virgule dans la CI | #35 | `todo-29-ci-comma-locale` |
+| 9 `tan([-M_PI_2, M_PI_2])` | #36 | `todo-09-tan-pi-half` |
+
+### Poussé et relu, sans pull request
+
+Chaque branche a été relue (aucun point bloquant à la fin) et poussée ; les branches marquées « fusionnée » ont reçu
+`configure-clean` (fusion, non réécriture) pour lever un conflit avec les points déjà fusionnés. La CI de ces branches était en
+file d'attente ou en cours à l'arrêt : il faut la regarder (`gh run list --branch <branche>`) ; aucun échec autre que le job Debian 12
+arm64 (corrigé par #34) n'avait été vu, sauf pour le point 13 (voir plus bas). Le texte français des pull requests n'est écrit
+que pour le point 5.
+
+| Point | Branche | Remarque |
+| --- | --- | --- |
+| 1 pow de la norme écrit une fois | `todo-01-pow-norm-half` | fonction `pow_standard()` ; seul changement de résultat : le signe d'un zéro. Les points 2 et 3 se font par-dessus. |
+| 5 `-ffinite-math-only` | `todo-05-finite-math-only` | fusionnée ; deux tests de compilation, CMake seul |
+| 10 `hausdorff()`, `nb_fp_numbers()` | `todo-10-hausdorff-nb-fp` | |
+| 11 lecteur et denormals-are-zero | `todo-11-lexer-subnormal` | fusionnée ; lexer régénéré (flex 2.6.4) |
+| 13 point écrit sous une forme que le lecteur refuse | `todo-13-point-interval-text` | correctif ajouté après un échec sous Visual C++ (voir plus bas) |
+| 15 `operator>>` sur une ligne vide | `todo-15-extract-empty-line` | |
+| 18 lecture lente sous locale à virgule | `todo-18-reader-locale-speed` | **dépend du 11** (fondée sur sa branche) ; fusionnée |
+| 24 exceptions et indicateurs flottants | `todo-24-fp-exceptions` | |
+| 42 meson 0.53 et le Python du Store | `todo-42-meson-windows-python` | fusionnée ; correction par la documentation |
+| 43 `VERSION.txt` avec une marque d'ordre des octets | `todo-43-version-bom` | fusionnée ; test `version_file` et `.github/scripts/version-file.sh` |
+
+### Poussé maintenant, relu ou non
+
+| Point | Branche | Remarque |
+| --- | --- | --- |
+| 16 formats largeur et centre | `todo-16-display-formats` | relu et approuvé ; **dépend du 13** (fusionné avec sa branche) |
+| 39 Goldstein-Price | `todo-39-goldstein-price` | relu et approuvé |
+| 6 `fegetround()` lu dans MXCSR | `todo-06-fegetround-mxcsr` | fait et validé par son auteur, **pas relu** |
+| 40 petites erreurs | `todo-40-small-errors` | trois commits, l'agent a été interrompu avant son rapport : **à valider** |
+
+### Travail inachevé (commit « WIP », non relu, poussé sans lancer la CI)
+
+3 exactitude de `pow(x, y)` aux coins (`todo-03-pow-exact-corner`, sur le 1) · 4 flush-to-zero (`todo-04-ftz-daz`, trois builds
+modifiés) · 8 `pow(x, n)` pour n grand (`todo-08-pow-large-n`) · 12 longues sommes (`todo-12-long-sums`, conflit avec
+`configure-clean` dans `tests/expressions.cpp`) · 17 vitesse de `operator<<` (`todo-17-output-speed`, sur le 16, conflit avec le 13
+dans `gaol/gaol_interval.cpp`) · 36 l'arrondi vers le haut dans la documentation (`todo-36-upward-rounding-effects`).
+
+### Pas commencés
+
+2 (se fait sur le 3), 19, 20, 21, 22, 23, 31, 32, 34, 35, 37, 38, 41, et les gros points 25, 26, 27, 28, 30 ; le 33 (temps de
+`doc/compare/performance.md`) est à faire en dernier, la machine ne faisant rien d'autre. Le découpage prévu des gros points est dans
+`todo-notes/orchestration/points_w4.py` : 25 en onze sous-fonctions (mulRevToPair, inflate, bisect, milieu-rayon, hull et intersect,
+encadrement de la largeur, littéral `_iv`, erf et erfc, réciproques de atan2, de pow, de max/min/sign/floor) réunies dans une seule
+branche et une seule pull request ; 26 un indicateur de sortie de domaine (pas de décorations) ; 27 une étude chiffrée de l'arrondi
+porté par l'instruction (AVX-512), en option seulement ; 28 trois en-têtes optionnels ; 30 trois bancs d'essai. Les points 31
+(propositions à CORE-MATH et à la glibc : préparer, ne rien envoyer sans votre accord) et 34 (étiquette `v5.0.0` ou fusion de
+`MATH-CORE` dans `master` : c'est à vous de le décider, la branche ne fait qu'écrire l'étiquette dans les recettes) demandent une
+décision de votre part.
+
+### Recouvrements entre branches
+
+Conflits de fusion textuels trouvés à l'arrêt (`git merge-tree`), sans conséquence sur le fond : ils se règlent en gardant les deux
+côtés, presque toujours des ajouts dans la même liste. Les fichiers qui reviennent : `doc/tests.md`, `tests/CMakeLists.txt`,
+`tests/rounding_direction.cpp`, `tests/numbers.cpp`, `tests/expressions.cpp`, `manual/v5/gaol.tex`.
+
+- 4 × 5 (`doc/three-builds.md`, `manual/v5/gaol.tex`), 4 × 6 et 6 × 24 (`doc/tests.md`, `tests/rounding_direction.cpp`), 4 × 24
+  (`doc/tests.md`, `doc/using.md`, `manual/v5/gaol.tex`, `tests/rounding_direction.cpp`), 4 × 36 et 24 × 36 (`doc/using.md`).
+- 5 × 43 (`doc/tests.md`, `tests/CMakeLists.txt`), 42 × 43 (`meson.build`).
+- 12 × 5, 11, 18, 42, 43 (`tests/expressions.cpp`) : le 12 n'a pas reçu `configure-clean`, où le point 14 a ajouté des vérifications au
+  même endroit.
+- 13 × 17 et 16 × 17 (`gaol/gaol_interval.cpp`), 15 × 17, 16 × 18 et 17 × 18 (`tests/numbers.cpp`).
+
+Quand une pull request est fusionnée, celles qui la recoupent demandent une fusion de `configure-clean` dans leur branche.
+
+### Ce que la CI a montré
+
+- **Debian 12 arm64** : le job « Debian 12 Bookworm arm64 » de « Linux containers » était rouge sur `configure-clean` depuis
+  `907fe05` : GCC 12.2 sur aarch64 compile mal `tests/numbers.cpp` à `-O2` et `-O3` (la variable de boucle d'un tableau local est lue à
+  une mauvaise adresse, selon les décisions d'inlining ; ni AddressSanitizer ni UBSan ne signalent rien sur x86-64). Contournement
+  (#34) : `#pragma GCC optimize("no-inline-functions")` pour GCC 12 sur aarch64. Le diagnostic est dans la pull request. La branche
+  jetable `ci-debug-numbers-arm64`, qui l'a permis, est encore sur le dépôt : à supprimer.
+- **Visual C++** : les nouveaux tests du point 13 ont trouvé, sous Visual C++ (x86 et x64), que le runtime de Windows écrit 0
+  « arrondi vers le haut » comme `0.1` : `[0, 0]` sortait `<0.0, 0.1>` et `[-1, 0]` avait pour borne haute `0.1`.
+  `bound_to_text()` écrit maintenant un zéro à l'arrondi au plus proche (dernier commit de `todo-13-point-interval-text`).
+- **Coût** : un push lance 111 jobs, environ 348 minutes de runner (Linux 25 jobs, macOS 11, Windows 27, Autotools et meson 30,
+  conteneurs 17, Manual 1), soit trois push à l'heure au mieux avec 20 jobs simultanés. Les workflows se lancent sur `push` (toutes les
+  branches) **et** sur `pull_request` : chaque pull request les fait tourner deux fois. Ne lancer `push` que sur les branches
+  principales diviserait la charge par deux (non fait).
+
+### Décisions et questions ouvertes
+
+Le détail est dans `todo-notes/NN.md` ; ici les choix à confirmer.
+
+- **1** : le bloc « exposants entiers au-delà des int » est dans `pow_standard()` et non dans `gaol_ieee1788::pow` ; `gaol::pow([0], y)`
+  s'écrit `<0, 0>` et non `<-0, 0>` en SSE2 (`interval(0.0)` au lieu de `interval::zero()`).
+- **5** : les deux tests de compilation n'existent que pour CMake (comme `tests/fp_strict`) ; un script POSIX enregistré dans autotools et
+  meson les donnerait aux trois builds. Clang laissait `__FAST_MATH__` indéfini pour `-Ofast` ou `-ffast-math` suivis de
+  `-frounding-math` : le `#error` sur `__FINITE_MATH_ONLY__` le refuse. `-fno-honor-nans` seul avec Clang casse aussi l'ensemble vide et
+  ne se détecte pas (documenté).
+- **6** : le refus de MinGW-w64 avant la version 12 sur x64 reposait sur un `fegetround()` propre à MinGW ; il n'a plus de raison sur
+  x64 (MXCSR est lu directement) : à lever ou non, la CI devant montrer que ces compilateurs passent. i386 avec `__SSE2_MATH__` est
+  laissé de côté (rien ici ne teste le 32 bits).
+- **9** (fusionné) : le drapeau `narrower_than_pi` a disparu, le test unique est `w <= pi_dn` ; un intervalle sans pôle dont la largeur
+  exacte est entre `pi_dn` et π donne encore `[-oo, +oo]`. L'annexe B de `examples/examples.md` et la revue n° 8 parlent du drapeau.
+- **10** : `hausdorff()` sur des bornes infinies est un peu plus lent (14 ns au lieu de 4,5 ns) ; une sortie anticipée est possible.
+  `[1, 2] - 1` a `-0` pour borne inférieure : faut-il normaliser les zéros des opérations d'intervalles ?
+- **11** : le même effet de denormals-are-zero existe hors du lecteur : l'action de `gaol_interval_parser.ypp` compare des bornes
+  sous-normales comme des doubles, et `operator<<` écrit `[0, 5e-324]` sous la forme `<0, 4.95e-324>` sous DAZ. Non corrigés.
+- **13** : un zéro de l'un ou l'autre signe garde les chevrons (`<-0, 0>` pour `interval::zero()`), sinon ce serait `[-0, 0]` :
+  à confirmer. `<a, a>` n'est pas un littéral d'IEEE 1788-2015 (un point y est `[m]`) : à traiter avec le point 16.
+- **15** : la lecture par mot n'est pas faite (un intervalle contient des espaces, la grammaire admet des expressions) ; options : un
+  intervalle par ligne (fait), seulement les littéraux jusqu'au crochet fermant, ou une fonction à part.
+- **18** : l'analyse des chiffres reste quadratique (20 000 chiffres : 0,02 s ; 100 000 : 0,55 s) ; neuf chiffres par passe la
+  rendraient neuf fois plus rapide.
+- **24** : beaucoup d'opérations lèvent encore FE_INVALID sur les bornes NaN d'un opérande vide (liste dans `todo-notes/24.md`) ; seule
+  `is_empty()` est corrigée, le reste est documenté (les exceptions matérielles doivent être désactivées).
+- **39** : l'exemple 16 garde le style de GAOL 4 et la première ligne `<-0, 0>` ; `examples/examples.md` dit encore que les exemples du
+  manuel « sont justes ».
+- **42** : correction par la documentation plutôt que par l'ordre `python`/`python3` (changer l'ordre fait perdre à meson son repli sur
+  son propre Python) ; un pas de CI qui lance meson sans Python dans le `PATH` n'est pas fait.
+- **43** : les règles de lecture diffèrent pour les blancs exotiques (autoconf accepte `5. 0.0` à la génération, `strip()` de meson
+  enlève aussi les espaces Unicode) ; un fichier en UTF-16 est refusé avec ses octets, non décodé.
+
+### Reprise
+
+Fusionner les pull requests dans l'ordre qui vous convient, puis pour chaque branche restante : lui fusionner `configure-clean` si
+elle a un conflit, vérifier la CI, ouvrir la pull request. Ensuite : relire les branches non relues (6, 40) et terminer les six
+inachevées ; commencer les points non commencés ; écrire la pull request de synthèse (retirer les points faits de ce fichier, consigner
+les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule fois `manual/v5/gaol.pdf` : aucune branche n'y touche, pour
+éviter des conflits binaires) ; mesurer enfin le point 33 sur une machine au repos.
 
 ## Code
 
@@ -98,13 +242,6 @@ Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
    `rsqrt.c`, `asinpi.c` et `cbrt.c`, et ajouter `pow` avec des résultats
    sous-normaux à `tests/rounding_direction.cpp`, qui liste déjà cet état.
 
-7. **`atanh([1, x])` vaut [DBL_MAX, +oo]** au lieu de l'ensemble vide (revue
-   n° 5), atanh étant défini sur (−1, 1) ; de même `atanh([1])`, et
-   `atanh_rel` et `tanhRev` en héritent, alors que `atanh([-5, -1])` est vide.
-   Correction : l'ensemble vide quand `J.left() == 1.0 || J.right() == -1.0`,
-   J étant `I & [-1, 1]`, et le domaine (−1, 1) dans `doc/accuracy.md` et le
-   manuel.
-
 8. **`pow(x, n)` pour n grand** (revue n° 7). La borne inférieure perd le
    carré du reste que porte `ipow_exact_dn()` : 8 doubles sous la plus serrée
    pour n = 2^28 − 1, 1962 pour 2^32 − 1, là où le manuel promet la plus serrée
@@ -115,11 +252,6 @@ Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
    des ordres différents : leurs bornes diffèrent dans 190 cas aléatoires sur
    1600, contre « les mêmes bornes sur toutes les machines » de
    `doc/accuracy.md`. Les mettre d'accord, ou le dire là.
-
-9. **`tan(interval(-M_PI_2, M_PI_2))` vaut [-oo, +oo]** là où la plus serrée
-   est ±1,63·10^16 (revue n° 8). Correction :
-   `narrower_than_pi = (w <= pi_dn)` : w, la largeur arrondie vers le haut,
-   au plus le double sous π, prouve que la largeur exacte est sous π.
 
 10. **`hausdorff()` sur les bornes infinies, `nb_fp_numbers()` sur −0** (revue
     n° 19 et n° 20). `hausdorff(x, x)` vaut +oo pour x = [1, +oo], de même que
@@ -160,11 +292,6 @@ Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
     contrairement au manuel. Correction : dans `display_bounds()`, écrire
     `<a, a>` seulement quand les deux textes sont égaux, et `[l, r]` sinon, et
     corriger le manuel là où il montre `<0.1, 0.1000000000000001>`.
-
-14. **`gaol_exception` ne redéfinit pas `what()`** (revue n° 15) :
-    `catch (const std::exception& e)` affiche `std::exception`, de même qu'une
-    erreur non rattrapée. Correction : `what()` renvoie l'explication, et
-    `operator<<` des exceptions n'affiche plus les deux.
 
 15. **`operator>>` lève une exception sur une ligne vide**, et sur
     `in >> d >> x`, où l'intervalle lit le reste vide de la ligne du nombre :
@@ -288,11 +415,6 @@ Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
     GAOL pour YalAA et un backend intervalle pour VNODE-LP.
 
 ## Tests et intégration continue
-
-29. **Le test sous une locale à virgule ne tourne pas dans l'intégration
-    continue** : `tests/numbers.cpp` lit sous `fr_FR.UTF-8` ou `de_DE.UTF-8`
-    seulement là où l'une est installée. Correction :
-    `sudo locale-gen fr_FR.UTF-8` dans `.github/workflows/linux.yml`.
 
 30. **Des suites de tests et des bancs d'essai où GAOL est absent** : passer
     ITF1788 (toutes les opérations d'IEEE 1788) et le banc d'essai de Tang et
@@ -431,13 +553,3 @@ Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
     caractère fautif ne se voit pas. Correction : retirer une marque d'ordre
     des octets en tête avant de lire la version, ou dire dans le message que le
     fichier ne doit contenir que des chiffres et des points.
-
-44. **L'archive des sources de CPack ne voit pas un `configure` en retard.**
-    `cmake --build <build> --target package_source` prend le `configure`
-    commité tel quel : après un changement de `VERSION.txt` sans nouvelle
-    génération de `configure`, `gaol-<version>.tar.gz` contient un
-    `configure` dont `--version` donne l'ancienne version (il avertit quand il
-    tourne) ; seule l'intégration continue le signale. Correction : dans le
-    bloc CPack de `CMakeLists.txt`, lire la ligne `PACKAGE_VERSION=` de
-    `configure` et écrire un `message(WARNING)` quand elle diffère de
-    `PROJECT_VERSION`.

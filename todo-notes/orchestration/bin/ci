@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""ci: the continuous integration of Jordan08/GAOL, seen from the command line.
+
+  ci status <branch> [--jobs]        one line per workflow run of the head commit of <branch> on origin
+  ci wait   <branch> [--minutes 9]   the same, after waiting for the runs of the push to complete
+  ci jobs   <branch>                 the failing jobs of the runs that failed, with the last lines of their log
+
+Exit code of status and wait: 0 every run completed successfully, 1 a run failed
+(or was cancelled), 2 runs are still going on (wait timed out), 3 no run of the
+push appeared yet. The runs of the event `push` are the ones waited for (the
+runs of `pull_request` start when the pull request is opened, and are shown too).
+A run of the workflow Manual exists only when manual/** changed, so five push
+runs are expected at least (Linux, macOS, Windows, Autotools and meson, Linux
+containers).
+"""
+import json, subprocess, sys, time
+
+REPO = "Jordan08/GAOL"
+CORE = {"Linux", "macOS", "Windows", "Autotools and meson", "Linux containers"}
+
+
+def gh(*args):
+    r = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError("gh %s: %s" % (" ".join(args), r.stderr.strip()))
+    return r.stdout
+
+
+def head_sha(branch):
+    return gh("api", "repos/%s/git/ref/heads/%s" % (REPO, branch), "--jq", ".object.sha").strip()
+
+
+def runs_of(branch, sha):
+    out = gh("run", "list", "--branch", branch, "--limit", "60", "--json",
+             "databaseId,name,event,status,conclusion,headSha,createdAt,url")
+    return [r for r in json.loads(out) if r["headSha"] == sha]
+
+
+def line(r):
+    state = r["status"] if r["status"] != "completed" else "completed/" + (r["conclusion"] or "?")
+    return "%-20s %-13s %-24s %s" % (r["name"], r["event"], state, r["url"])
+
+
+def summary(branch, show=True):
+    sha = head_sha(branch)
+    runs = runs_of(branch, sha)
+    if show:
+        print("branch %s  head %s  (%d runs)" % (branch, sha[:9], len(runs)))
+        for r in sorted(runs, key=lambda r: (r["event"], r["name"])):
+            print("  " + line(r))
+    push = [r for r in runs if r["event"] == "push"]
+    names = {r["name"] for r in push}
+    if len(CORE & names) < len(CORE):
+        return 3, runs, sha
+    if any(r["status"] != "completed" for r in push):
+        return 2, runs, sha
+    bad = [r for r in push if r["conclusion"] not in ("success", "skipped")]
+    return (1 if bad else 0), runs, sha
+
+
+def failing_jobs(runs, tail=25):
+    for r in runs:
+        if r["status"] == "completed" and r["conclusion"] not in ("success", "skipped"):
+            print("FAILED RUN %s (%s, %s) %s" % (r["databaseId"], r["name"], r["event"], r["url"]))
+            jobs = json.loads(gh("run", "view", str(r["databaseId"]), "--json", "jobs"))["jobs"]
+            for j in jobs:
+                if j["conclusion"] not in ("success", "skipped", None):
+                    print("  job: %s -> %s" % (j["name"], j["conclusion"]))
+
+
+def main():
+    if len(sys.argv) < 3:
+        print(__doc__)
+        return 64
+    cmd, branch = sys.argv[1], sys.argv[2]
+    rest = sys.argv[3:]
+    if cmd == "status":
+        code, runs, _ = summary(branch)
+        if "--jobs" in rest:
+            failing_jobs(runs)
+        return code
+    if cmd == "jobs":
+        code, runs, _ = summary(branch, show=False)
+        failing_jobs(runs)
+        return code
+    if cmd == "wait":
+        minutes = 9.0
+        if "--minutes" in rest:
+            minutes = float(rest[rest.index("--minutes") + 1])
+        deadline = time.time() + minutes * 60
+        while True:
+            code, runs, sha = summary(branch, show=False)
+            if code in (0, 1) or time.time() >= deadline:
+                break
+            time.sleep(20)
+        code, runs, sha = summary(branch)
+        if code == 1:
+            failing_jobs(runs)
+        return code
+    print(__doc__)
+    return 64
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except RuntimeError as e:
+        print("ci: " + str(e), file=sys.stderr)
+        sys.exit(70)
