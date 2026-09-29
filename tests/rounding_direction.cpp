@@ -17,8 +17,11 @@
  * of direction that the source code writes after its computation. It has to
  * leave the direction as it found it, or upward (as it found it only, with
  * GAOL_PRESERVE_ROUNDING). After it, the bounds of a product and a sum have to
- * be the tightest ones. At the end, gaol::cleanup() has to set back the
- * direction the first gaol::init() found (GAOL v5).
+ * be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
+ * itself in the direction fegetround() gives, have to be the tightest
+ * enclosures whatever the direction, with the x87 unit and the SSE
+ * instructions differing too (GAOL v5). At the end, gaol::cleanup() has to set
+ * back the direction the first gaol::init() found (GAOL v5).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -74,6 +77,29 @@ namespace
     const char *name;
     std::string (*run)(const interval& x, const interval& y);
   };
+
+  // Powers x^y with a result below the smallest normal double, which CORE-MATH
+  // rounds by itself, in the direction fegetround() gives (GAOL v5). Their
+  // tightest enclosure [lo, hi] is written as multiples of the smallest
+  // subnormal, 2^-1074, and was computed apart from GAOL, with mpmath at 600
+  // bits: exp(y*log(x)), rounded down and up to a multiple of 2^-1074. The
+  // exact values are 1458662373659.29, 567863.26 and 1.30 of them: with a
+  // fractional part below one half, rounding them to nearest, rather than
+  // upward, gives a value below the exact one.
+  struct SubnormalPower
+  {
+    double x, y;
+    long long lo, hi;
+  };
+
+  const SubnormalPower subnormal_powers[] = {
+    { 0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10, 1458662373659LL, 1458662373660LL },
+    { 0x1.0d00c0deaf87fp-2, 0x1.117ee54c23de1p+9, 567863LL, 567864LL },
+    { 0x1.999999999999ap-1, 0x1.a0df226893p+11, 1LL, 2LL },
+  };
+
+  // A multiple of 2^-1074, exact in every rounding direction
+  double subnormal(long long multiple) { return static_cast<double>(multiple) * 0x1p-1074; }
 
   // Writes x in the format f
   std::string write(const interval& x, interval_format::format_t f)
@@ -299,6 +325,15 @@ int main()
     { "gaol_ieee1788::pow with an integer exponent beyond the ints", [](const interval&, const interval& y) {
         return S(gaol_ieee1788::pow(y, interval(2147483649.))) + " " + S(gaol_ieee1788::pow(interval(0.5, 0.9), interval(1e10))) + " "
           + S(gaol_ieee1788::pow(1. + (y - 1.)*0x1p-40, interval(-2147483649.))); } },
+    // Powers with a subnormal result, which CORE-MATH rounds by itself in the
+    // direction fegetround() gives, where the doubles GAOL and CORE-MATH
+    // compute are rounded in the direction of MXCSR (GAOL v5)
+    { "gaol_ieee1788::pow with a subnormal result", [](const interval&, const interval&) {
+        std::string s;
+        for (const SubnormalPower& p : subnormal_powers) {
+          s += S(gaol_ieee1788::pow(interval(p.x), interval(p.y))) + " ";
+        }
+        return s; } },
     { "feven", [](const interval&, const interval&) { return S(feven(2.0)); } },
     { "interval::pi()", [](const interval&, const interval&) { return S(interval::pi()); } },
     { "interval::precision(n)", [](const interval&, const interval&) { const int p = interval::precision(17); interval::precision(p); return S(p); } },
@@ -398,6 +433,31 @@ int main()
     check("cbrt, pow and atan2 not empty on their domain",
           !roots.is_empty() && !powers.is_empty() && !angles.is_empty(),
           [&] { return std::string("rounding direction ") + d.name; });
+  }
+
+  /*
+    pow with a subnormal result gives the tightest enclosure of the exact
+    value, whatever the rounding direction of the calling code (GAOL v5). The
+    check of the operations above compares it with GAOL's own result when the
+    direction is upward; here the bounds are those computed apart, with mpmath
+    (see subnormal_powers). With the x87 unit to nearest and the SSE
+    instructions upward, the state the predicates of Shewchuk and of Triangle
+    leave, CORE-MATH rounded these results to nearest, the direction
+    fegetround() gives on x86-64 with glibc, and the upper bound was below the
+    exact value.
+  */
+  for (const Direction& d : directions) {
+    for (const SubnormalPower& p : subnormal_powers) {
+      set(d);
+      const interval z = gaol_ieee1788::pow(interval(p.x), interval(p.y));
+      const double lo = subnormal(p.lo), hi = subnormal(p.hi);
+      check("gaol_ieee1788::pow with a subnormal result: the tightest enclosure",
+            z.left() == lo && z.right() == hi,
+            [&] {
+              return std::string("rounding direction ") + d.name + ", x=" + hex(p.x) + " y=" + hex(p.y) + ": "
+                     + hex(z) + " rather than [" + hex(lo) + ", " + hex(hi) + "]";
+            });
+    }
   }
 
   /*
