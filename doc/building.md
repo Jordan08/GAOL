@@ -29,7 +29,13 @@ which the headers of libc++ write, would find it instead of the standard
 header.
 
 - CMake reads it before `project()`, which gives it to `PROJECT_VERSION`; a
-  change of `VERSION.txt` configures again.
+  change of `VERSION.txt` configures again. Where GAOL is the project built,
+  it reads the line `PACKAGE_VERSION=` of `configure` too, and warns when it
+  configures that `configure` was generated for another version than
+  `VERSION.txt` holds: the archive of the sources that CPack makes holds
+  `configure` as it is committed (see
+  [below](#the-archive-of-the-sources-and-the-packages)). It says nothing for
+  a tree without `configure`, or with a `configure` that has no such line.
 - meson reads it in `project()`, with Python, which works with meson 0.53 as
   with later ones (`version: files()` needs meson 0.57); a change of
   `VERSION.txt` configures again.
@@ -112,9 +118,15 @@ cmake --build build --target package
 
 | File | What it holds |
 |---|---|
-| `gaol-<version>.tar.gz` (`package_source`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. CPack takes the source tree as it is, less what git ignores and the builds made within it, so that made from a clean checkout, the archive holds the files of the commit. |
+| `gaol-<version>.tar.gz` (`package_source`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. CPack takes the source tree as it is, less what git ignores and the builds made within it, so that made from a clean checkout, the archive holds the files of the commit, `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
 | `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL and `gaol.pc`, to extract anywhere, `gaol.pc` finding its directories from where it is. |
 | `libgaol-dev_<version>_<arch>.deb` (`package`, on Linux) | The same files in `/usr`, for `apt install ./libgaol-dev_<version>_<arch>.deb`: by default a static library and its headers, hence the name and the section `libdevel` of the development packages of Debian. |
+
+The archive takes its name from the version CMake read when it configured, and
+CMake warns of a `configure` generated for another version at that moment.
+After a change of `VERSION.txt`, configure the build directory again
+(`cmake -S . -B build`) before `package_source`: Ninja does it by itself, the
+Makefile generators do not.
 
 The packages hold `libgaol` as the build compiled it: with `GAOL_FMA` `ON`,
 the default, only the processors that have the fused multiply-add

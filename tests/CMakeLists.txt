@@ -125,6 +125,26 @@ if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
                     "GAOL cannot be compiled with -ffast-math")
 endif()
 
+# The warning of the CPack block of CMakeLists.txt, when the configure that the
+# archive of the sources holds was generated for another version than VERSION.txt
+# holds (GAOL v5): not a program, a script that configures copies of the tree
+# with the compiler that built GAOL (cpack_stale_configure.cmake). Only the CMake
+# build makes the archive; the copies are made of symbolic links, so the script
+# runs on the machine that builds, where the system has them, and it asks the
+# configure of the tree its version, so there has to be one. The time limit is
+# that of a few configurations, on a slow machine.
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR}/configure")
+  add_test(NAME cpack_stale_configure
+    COMMAND "${CMAKE_COMMAND}"
+      "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/cpack_stale_configure"
+      "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
+      "-DGAOL_C_COMPILER=${CMAKE_C_COMPILER}"
+      "-DGAOL_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cpack_stale_configure.cmake")
+  set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600)
+endif()
+
 # Commented out: the tests run no thread (GAOL v5)
 # # ieee1788 calls intervalToExact() in a thread of its own (std::thread), and
 # # expressions reads strings in four threads at once, which needs -pthread with

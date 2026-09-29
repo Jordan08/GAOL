@@ -67,10 +67,22 @@ namespace gaol_core {
     return explanation_;
   }
 
+  /*
+    The explanation, or a text of its own where there is none, so that what a
+    handler of std::exception prints, or the terminate handler of an exception
+    nothing catches, is never empty (GAOL v5). GAOL 4 left the what() of
+    std::exception, "std::exception", whatever went wrong.
+  */
+  const char*
+  gaol_exception::what() const noexcept
+  {
+    return explanation_.empty() ? "gaol_exception" : explanation_.c_str();
+  }
+
   std::ostream& operator<<(std::ostream& out, const gaol_exception &e)
   {
-    out << e.file() << ", line " << e.line() << ": exception " <<
-      e.what() << " thrown";
+    // what() is the explanation now, written below: not here too (GAOL v5)
+    out << e.file() << ", line " << e.line() << ": exception thrown";
     if (e.explanation().length() != 0) { // Some explanation given?
       out << ": " << e.explanation();
     }
