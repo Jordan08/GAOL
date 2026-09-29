@@ -942,6 +942,60 @@ after an operation of GAOL, \code{std::cout~<{}<~pi\_dn} writes
 \code{round\_nearest()} has been called. The intervals themselves are written
 by GAOL rounded outward, whatever the direction (\pxref{sec:writing}).
 
+\section{The floating-point exceptions}\label{sec:fp-exceptions}
+%%--------------------------------------------------
+\cindex{floating-point exceptions}\cindex{exceptions!floating-point}%
+\cindex{flags!floating-point}%
+
+GAOL computes with the floating-point exceptions masked, as a program starts,
+and leaves them so: an operation that raises one only sets its flag.
+\emph{A program that enables them} (\code{feenableexcept()} of the GNU C
+library, \code{\_controlfp\_s()} of Visual C++, \code{fesetenv()} with an
+environment that traps) \emph{disables them while GAOL computes}, and enables
+them again afterwards if it wants them: the operations of GAOL raise some
+legitimately, and the processor then stops the program (with \code{SIGFPE} on
+Linux) instead of letting the operation give its bounds.\newinvfive
+
+\begin{itemize}
+\item An infinite bound comes from a division by zero or from an overflow:
+  \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
+  divide-by-zero exception, and so does \code{1/interval(0,~1)}, which is
+  \itv{1}{+\infty}, with the SSE2 intervals; \code{interval(1e308)*10}, which
+  is \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
+\item Almost every operation raises the inexact exception: most bounds are
+  rounded results, and where GAOL checks the rounding direction with an
+  addition, $1+2^{-60}$, whose result is inexact
+  (\pxref{sec:rounding-direction}), even an operation whose bounds are exact
+  raises it.
+\item The operations on the empty interval, whose bounds are NaN, raise the
+  invalid-operation exception where they compare a bound: \code{sqrt} of the
+  empty interval does, for instance. \code{is\_empty()}, which almost every
+  operation calls first, uses a quiet comparison (\code{std::islessequal}) and
+  raises nothing, and so does \code{interval::emptyset()}: with the
+  invalid-operation exception enabled, the first killed the program at each
+  emptiness test of an empty interval, and the second in a build without
+  optimization.\newinvfive
+\end{itemize}
+
+\noindent
+The flags tell nothing of the results: after an operation of GAOL,
+\code{fetestexcept(FE\_INEXACT)} is raised whatever the result, and
+\code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO} stands for an infinite bound of the
+interval, not for an infinite number the program computed. IEEE 1788-2015
+leaves the flags of its operations unspecified. A program that reads them for
+its own computations clears them (\code{std::feclearexcept(FE\_ALL\_EXCEPT)})
+just before, and reads them before its next operation of GAOL.
+
+GAOL's initialization, which runs before \code{main()}, sets the default
+environment (\code{fesetenv(FE\_DFL\_ENV)}), which masks every exception: a
+program enables them in \code{main()} or later, not in a static object
+initialized before GAOL. \code{cleanup()} leaves the exceptions and the flags
+as they are. With \option{GAOL\_PRESERVE\_ROUNDING} and the SSE2 intervals,
+\code{+}, \code{-}, \code{*}, \code{/}, \code{sqr()} and \code{inverse()} also
+write the SSE control register with every exception masked, which masks again
+the ones a program enabled: they stop nothing after the first of these
+operations. Disable them all the same, the other builds not masking them.
+
 \section{The namespaces}\label{sec:namespaces}
 %%----------------------
 \cindex{namespace!gaol}\cindex{namespace!gaol\_core}\cindex{namespace!gaol\_ieee1788}%
@@ -2007,7 +2061,9 @@ cout << boolalpha << x.is_canonical() << ' '
     \op{$\code{self} = \emptyset$}
   \end{operation}
   Returns \code{true} if \code{self} is an empty interval: \ieee{isEmpty} of
-  IEEE 1788-2015.
+  IEEE 1788-2015. It raises no floating-point exception, the invalid-operation
+  one included, though the bounds of the empty set are NaN
+  (\pxref{sec:fp-exceptions}).\newinvfive
   \begin{example}
 cout << interval(4,5).is_empty() << ' '
      << interval(5,4).is_empty() << ' '
@@ -3833,8 +3889,10 @@ the interval are therefore the tightest ones.
 The statements hold for GAOL as the three builds make it, with the code
 including its headers compiled with the flags of interval arithmetic
 (\pxref{sec:compiling}), for the SSE2 and the FPU intervals, whatever the
-rounding direction the calling code left, and on every architecture and with
-every compiler alike. The intervals of floats are not covered.
+rounding direction the calling code left, with the floating-point exceptions
+masked as a program starts (\pxref{sec:fp-exceptions}), and on every
+architecture and with every compiler alike. The intervals of floats are not
+covered.
 
 \section{Tightness of each operation}
 %%-----------------------------------

@@ -272,3 +272,49 @@ that the first `gaol::init()` found when GAOL initialized itself: to nearest,
 as a program starts, on x86 for the x87 unit and the SSE instructions each, in
 the thread calling it. The rest of the floating-point
 environment is left as it is, the exception flags raised in particular.
+
+## The floating-point exceptions
+
+GAOL computes with the floating-point exceptions masked, as a program starts,
+and leaves them so: an operation that raises one only sets its flag. **A
+program that enables them (`feenableexcept()` of glibc, `_controlfp_s()` of
+Visual C++, `fesetenv()` with an environment that traps) disables them while
+GAOL computes**, and enables them again afterwards if it wants them: GAOL's
+operations raise some legitimately, and the processor then stops the program
+(with SIGFPE on Linux) instead of letting the operation give its bounds.
+
+- An infinite bound comes from a division by zero or from an overflow:
+  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception, and
+  so does `1/[0, 1]`, which is `[1, +oo]`, with the SSE2 intervals;
+  `[1e308]*10`, which is `[DBL_MAX, +oo]`, raises the overflow exception.
+- Almost every operation raises the inexact exception: most bounds are rounded
+  results, and where GAOL checks the rounding direction with an addition,
+  1 + 2^-60, whose result is inexact (see
+  [The rounding direction](#the-rounding-direction)), even an operation whose
+  bounds are exact raises it.
+- The operations on the empty interval, whose bounds are NaN, raise the
+  invalid-operation exception where they compare a bound: `sqrt` of the empty
+  interval does, for instance. `is_empty()`, which almost every operation
+  calls first, uses a quiet comparison (`std::islessequal`) and raises
+  nothing, and so does `interval::emptyset()` (GAOL v5): with the
+  invalid-operation exception enabled, the first killed the program at each
+  emptiness test of an empty interval, and the second in a build without
+  optimization.
+
+The flags tell nothing of the results: after an operation of GAOL,
+`fetestexcept(FE_INEXACT)` is raised whatever the result, and `FE_OVERFLOW` or
+`FE_DIVBYZERO` stands for an infinite bound of the interval, not for an
+infinite number the program computed. IEEE 1788-2015 leaves the flags of its
+operations unspecified. A program that reads them for its own computations
+clears them (`std::feclearexcept(FE_ALL_EXCEPT)`) just before, and reads them
+before its next operation of GAOL.
+
+GAOL's initialization, which runs before `main()`, sets the default
+environment (`fesetenv(FE_DFL_ENV)`), which masks every exception: a program
+enables them in `main()` or later, not in a static object initialized before
+GAOL. `gaol::cleanup()` leaves the exceptions and the flags as they are. With
+`GAOL_PRESERVE_ROUNDING` and the SSE2 intervals, `+`, `-`, `*`, `/`, `sqr()`
+and `inverse()` also write the SSE control register with every exception
+masked, which masks again the ones a program enabled: they stop nothing after
+the first of these operations. Disable them all the same, the other builds not
+masking them.

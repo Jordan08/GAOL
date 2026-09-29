@@ -76,6 +76,15 @@ Codac.
   an empty interval to be told empty after them: the `fesetexceptflag()` of
   mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
   the NaN bounds of an empty interval then killed the program (GAOL v5).
+  `is_empty()` has to be true for six empty sets (`interval::emptyset()`,
+  `[3, 2]`, `sqrt([-2, -1])`, `log([-2, -1])` and the two orders of
+  `[1, 2] & [3, 4]`) and false for three nonempty intervals, and to raise no
+  exception flag, as `interval::emptyset()` (GAOL v5). With glibc, each is
+  also computed and told empty in a child process that enabled the
+  invalid-operation exception, which must not die on SIGFPE: the comparison
+  of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
+  without optimization. Where the processor does not trap an invalid
+  operation, the test says so and skips that part.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
