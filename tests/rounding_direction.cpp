@@ -20,6 +20,11 @@
  * be the tightest ones. At the end, gaol::cleanup() has to set back the
  * direction the first gaol::init() found (GAOL v5).
  *
+ * The rest of the floating-point environment is checked too: the exceptions
+ * stay masked, and an empty interval is told empty, with interval::emptyset(),
+ * without raising the invalid-operation exception, which kills a program that
+ * enabled it (GAOL v5).
+ *
  * Copyright (c) 2026 ENSTA, France
  *
  * Created 2026-09-20 by Jordan NININ
@@ -31,10 +36,27 @@
 #include "gaol_tests.h"
 
 #include <exception>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+
+// A program that enables the floating-point exceptions of the processor
+// (feenableexcept(), a GNU extension of glibc's <fenv.h>), run in a child
+// process (fork(), POSIX) that a signal kills without stopping the test: glibc
+// only. Elsewhere the traps are not tested, and the test says so.
+#if defined(__GLIBC__) && defined(_GNU_SOURCE) && defined(__unix__)
+#  include <csignal>
+#  include <cerrno>
+#  include <sys/resource.h>
+#  include <sys/types.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#  define GAOL_TESTS_TRAPS 1
+#else
+#  define GAOL_TESTS_TRAPS 0
+#endif
 
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
@@ -165,6 +187,127 @@ namespace
       return "exception";
     }
   }
+
+  // An interval the compiler knows nothing about: it would else compute at
+  // compile time that the empty sets below are empty, and the comparison of
+  // their NaN bounds, which is what raises the exception, would never run
+  interval opaque(const interval& x)
+  {
+    return gaol::rnd_keep(x);
+  }
+
+  // The empty sets of the checks below, each computed in a way of its own from
+  // operands the compiler does not know: the constant, an interval whose
+  // bounds are in the wrong order, a function outside its domain, disjoint
+  // intervals. None of them compares a NaN, so that each is computed without
+  // an exception with the invalid-operation exception enabled.
+  struct EmptySet
+  {
+    const char *name;
+    interval (*make)();
+  };
+
+  const EmptySet empty_sets[] = {
+    { "interval::emptyset()", [] { return opaque(interval::emptyset()); } },
+    { "interval(3, 2)", [] { return opaque(interval(gaol::rnd_keep(3.0), gaol::rnd_keep(2.0))); } },
+    { "sqrt([-2, -1])", [] { return opaque(sqrt(interval(gaol::rnd_keep(-2.0), gaol::rnd_keep(-1.0)))); } },
+    { "log([-2, -1])", [] { return opaque(log(interval(gaol::rnd_keep(-2.0), gaol::rnd_keep(-1.0)))); } },
+    { "[1, 2] & [3, 4]", [] {
+        return opaque(interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0)) & interval(gaol::rnd_keep(3.0), gaol::rnd_keep(4.0))); } },
+    { "[3, 4] & [1, 2]", [] {
+        return opaque(interval(gaol::rnd_keep(3.0), gaol::rnd_keep(4.0)) & interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0))); } },
+  };
+
+  // The nonempty intervals is_empty() has to tell nonempty as well
+  const EmptySet nonempty_sets[] = {
+    { "[1, 2]", [] { return opaque(interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0))); } },
+    { "[1]", [] { return opaque(interval(gaol::rnd_keep(1.0))); } },
+    { "[-oo, +oo]", [] { return opaque(interval::universe()); } },
+  };
+
+#if GAOL_TESTS_TRAPS
+  // How a child process that enabled the floating-point exceptions of excepts
+  // and ran f() ended: f() returned true or false, or the process was stopped
+  // by SIGFPE, which the processor raises for an exception that is enabled, or
+  // otherwise. The exit status tells which: 40 and 41 are the answers of f(),
+  // 42 the SIGFPE the child caught, 43 an exception that could not be enabled.
+  enum Outcome { returned_true, returned_false, trapped, other };
+
+  const int status_true = 40, status_false = 41, status_trapped = 42, status_not_enabled = 43;
+
+  void exit_on_sigfpe(int)
+  {
+    _exit(status_trapped);
+  }
+
+  Outcome run_with_exceptions_enabled(int excepts, const std::function<bool()>& f)
+  {
+    std::fflush(stdout);
+    std::fflush(stderr);
+    const pid_t child = fork();
+    if (child < 0) {
+      return other;
+    }
+    if (child == 0) {
+      // The SIGFPE is caught to exit with a status of its own: the sanitizers
+      // report it as an error and abort otherwise, and no core file is wanted
+      // for the one that would kill the process where the handler is ignored
+      const struct rlimit no_core = { 0, 0 };
+      setrlimit(RLIMIT_CORE, &no_core);
+      struct sigaction action;
+      std::memset(&action, 0, sizeof action);
+      action.sa_handler = exit_on_sigfpe;
+      sigemptyset(&action.sa_mask);
+      sigaction(SIGFPE, &action, nullptr);
+      std::feclearexcept(FE_ALL_EXCEPT);
+      if (feenableexcept(excepts) == -1) {
+        _exit(status_not_enabled);
+      }
+      const bool result = f();
+      fedisableexcept(FE_ALL_EXCEPT);
+      _exit(result ? status_true : status_false);
+    }
+    int status = 0;
+    pid_t waited;
+    do {
+      waited = waitpid(child, &status, 0);
+    } while (waited < 0 && errno == EINTR);
+    if (waited != child) {
+      return other;
+    }
+    if (WIFSIGNALED(status)) {
+      return WTERMSIG(status) == SIGFPE ? trapped : other;
+    }
+    if (WIFEXITED(status)) {
+      switch (WEXITSTATUS(status)) {
+        case status_true: return returned_true;
+        case status_false: return returned_false;
+        case status_trapped: return trapped;
+      }
+    }
+    return other;
+  }
+
+  const char *outcome_text(Outcome o)
+  {
+    switch (o) {
+      case returned_true: return "returned true";
+      case returned_false: return "returned false";
+      case trapped: return "died on SIGFPE";
+      default: return "ended otherwise (an error, another signal)";
+    }
+  }
+
+  // An invalid operation, 0/0, which traps where the processor delivers the
+  // exception: the control of the checks below, whose result is only
+  // meaningful there
+  bool invalid_operation()
+  {
+    volatile double zero = 0.0;
+    volatile double quotient = zero/zero;
+    return quotient != quotient;
+  }
+#endif // GAOL_TESTS_TRAPS
 }
 
 int main()
@@ -399,6 +542,79 @@ int main()
           !roots.is_empty() && !powers.is_empty() && !angles.is_empty(),
           [&] { return std::string("rounding direction ") + d.name; });
   }
+
+  /*
+    An empty interval is told empty without an exception (GAOL v5). GAOL holds
+    the empty set as the two bounds NaN, and is_empty() compared them with <=,
+    which signals the invalid-operation exception on a quiet NaN: a program
+    that enabled that exception (feenableexcept() of glibc) died on SIGFPE at
+    each emptiness test of an empty interval, and so did the operations, which
+    start with it; with the exception masked, the test raised the flag
+    FE_INVALID, which a program reading the flags to find its own NaNs took for
+    one of its own. interval::emptyset() did as much in a build without
+    optimization, where it compared the NaN it builds. Both are quiet now
+    (std::islessequal, and no comparison): neither raises a flag, on any
+    platform, and neither traps on glibc, where the checks enable the exception
+    in a child process.
+    The exceptions that GAOL's operations raise legitimately (the inexact one
+    for almost each, the divide-by-zero and the overflow ones for an infinite
+    bound), and the invalid-operation one of the operations that still compare
+    the NaN bounds of an empty interval, are not checked here: the exceptions
+    have to be masked while GAOL computes (doc/using.md).
+  */
+  for (const EmptySet& e : empty_sets) {
+    const interval empty = e.make();
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool told_empty = empty.is_empty();
+    const int raised = std::fetestexcept(FE_ALL_EXCEPT);
+    check("is_empty() of an empty set raises no exception flag", raised == 0,
+          [&] { return std::string(e.name) + ": flags " + std::to_string(raised) + " raised"; });
+    check("is_empty() of an empty set is true", told_empty, [&] { return std::string(e.name); });
+  }
+  for (const EmptySet& e : nonempty_sets) {
+    const interval nonempty = e.make();
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool told_empty = nonempty.is_empty();
+    const int raised = std::fetestexcept(FE_ALL_EXCEPT);
+    check("is_empty() of a nonempty interval raises no exception flag", raised == 0,
+          [&] { return std::string(e.name) + ": flags " + std::to_string(raised) + " raised"; });
+    check("is_empty() of a nonempty interval is false", !told_empty, [&] { return std::string(e.name); });
+  }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval empty = interval::emptyset();
+    static_cast<void>(empty);
+    const int raised = std::fetestexcept(FE_ALL_EXCEPT);
+    check("interval::emptyset() raises no exception flag", raised == 0,
+          [&] { return "flags " + std::to_string(raised) + " raised"; });
+  }
+
+#if GAOL_TESTS_TRAPS
+  // The empty sets, computed and told empty with the invalid-operation
+  // exception enabled: what the processor delivers where it can, which the
+  // control shows first (the FPU of some processors, and of the emulators of
+  // others, has no exception to enable)
+  if (run_with_exceptions_enabled(FE_INVALID, invalid_operation) != trapped) {
+    std::printf("The processor does not trap an invalid operation here: the checks with the "
+                "exception enabled are skipped\n");
+  } else {
+    for (const EmptySet& e : empty_sets) {
+      const Outcome o = run_with_exceptions_enabled(FE_INVALID, [&e] { return e.make().is_empty(); });
+      check("is_empty() of an empty set, FE_INVALID enabled", o == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(o); });
+    }
+    for (const EmptySet& e : nonempty_sets) {
+      const Outcome o = run_with_exceptions_enabled(FE_INVALID, [&e] { return !e.make().is_empty(); });
+      check("is_empty() of a nonempty interval, FE_INVALID enabled", o == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(o); });
+    }
+    const Outcome o = run_with_exceptions_enabled(FE_INVALID, [] { return interval::emptyset().is_empty(); });
+    check("interval::emptyset().is_empty(), FE_INVALID enabled", o == returned_true,
+          [&] { return outcome_text(o); });
+  }
+#else
+  std::printf("feenableexcept() and fork() are those of glibc: the checks with the exceptions enabled are skipped\n");
+#endif
 
   /*
     gaol::cleanup() sets back the rounding direction the first gaol::init()

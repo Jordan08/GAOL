@@ -83,6 +83,15 @@ Codac.
   an empty interval to be told empty after them: the `fesetexceptflag()` of
   mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
   the NaN bounds of an empty interval then killed the program (GAOL v5).
+  `is_empty()` has to be true for six empty sets (`interval::emptyset()`,
+  `[3, 2]`, `sqrt([-2, -1])`, `log([-2, -1])` and the two orders of
+  `[1, 2] & [3, 4]`) and false for three nonempty intervals, and to raise no
+  exception flag, as `interval::emptyset()` (GAOL v5). With glibc, each is
+  also computed and told empty in a child process that enabled the
+  invalid-operation exception, which must not die on SIGFPE: the comparison
+  of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
+  without optimization. Where the processor does not trap an invalid
+  operation, the test says so and skips that part.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
@@ -125,32 +134,70 @@ Codac.
   the intervals, each bound less than one unit of its last digit away, near
   the powers of ten too, where a digit moved outward changes the exponent;
   read back, they have to enclose the intervals written, and so do the two
-  numbers the format of the agreeing digits stands for. In hexadecimal, the
+  numbers the format of the agreeing digits stands for. The text of a point
+  interval, written with 1 to 25 digits in each of these formats, has to be
+  read back as an interval enclosing it: the angles `<a, a>`, which the reader
+  takes for one double only, are written for a number that is the point itself
+  (`<4, 4>`, and for a zero, whatever the signs of its bounds, `<0, 0>` or
+  `<-0, 0>`), and the two bounds `[a, b]` otherwise (`[0.1, 0.1000000000000001]`
+  for `interval(0.1)`). GAOL wrote `<a, b>` for every point interval, and the
+  reader refused most of them (GAOL v5). In hexadecimal, the
   bounds have to be written in the hexadecimal-significand form of
   IEEE 1788-2015 (13.4.1) and read back bit for bit, which is the recovery
   requirement of 13.4: over random intervals, and over the empty set, the
-  infinite bounds, the signed zeros, the subnormals and the largest doubles.
+  infinite bounds, the signed zeros, the subnormals, the largest doubles and
+  point intervals.
   `operator<<` has to leave the precision of the stream as it was, and
   `std::setw` to pad the whole interval, adjusted to the right or to the left.
   `while (in >> x)` has to stop at the end of the input with `failbit` set,
   nothing thrown and the interval unchanged, and a line that is no interval,
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
   `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
-  too (GAOL v5). Numbers with a million zeros after their point and an
-  exponent of 7 digits (`0.00…01e1000001`, and in hexadecimal and in the
-  uncertain form) have to be read exactly: the exponent was cut at 100000
-  (GAOL v5). Under a locale writing a decimal comma, where one is installed
+  too (GAOL v5). Blank lines have to be skipped, as the blanks before a number
+  are, with or without `std::noskipws`: a file ending with an empty line, an
+  empty line or a line of blanks between two intervals, and `in >> d >> x` over
+  the two lines `1.5` and `[1, 2]` have to read what is there, and to end at the
+  end of the input as `while (in >> d)` does over numbers, on a stream throwing
+  on nothing, on `failbit`, or on `badbit` and `failbit`; an interval written on
+  two lines is still no interval (GAOL v5). The skipping must not replace the
+  checks that open any extraction: a stream that is not good, one without buffer
+  included, is not read and keeps all its text, and the stream tied to the input
+  is flushed before the first character is read, as for a number, so that a
+  prompt shows before the user types (`std::ws` alone does none of this).
+  Numbers with a million zeros after their point and an exponent of 7 digits
+  (`0.00…01e1000001`, and in hexadecimal and in the uncertain form) have to be
+  read exactly: the exponent was cut at 100000 (GAOL v5). Under a locale
+  writing a decimal comma, where one is installed
   (`fr_FR.UTF-8`, `de_DE.UTF-8`, `French_France.1252`...), numbers have to be
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it hang
-  again (GAOL v5). The Ubuntu runners of the continuous integration have no
+  again (GAOL v5). Numbers of 5000 to 20000 characters, in decimal, in
+  hexadecimal and in the uncertain form, have to be read as the tightest
+  enclosures, known without reading them (`1.5` followed by zeros is 1.5, and
+  followed by zeros and a 1 is between 1.5 and the next double...), under the C
+  locale and under a locale writing a decimal comma; and under the comma
+  locale, the number of 20000 characters has to take at most 10 times the
+  time it takes under the C locale, and 50 ms more: the reader read the text
+  again for each of its 125 comparisons or so, in a time quadratic in its
+  length, and took 50 times as long (GAOL v5).
+  The Ubuntu runners of the continuous integration have no
   such locale: its Linux jobs generate `fr_FR.UTF-8` for the test, and fail if
   it did not check under it (see
   [Continuous integration](continuous-integration.md)).
+  With flush-to-zero, denormals-are-zero or both set in MXCSR
+  (x86 only, and where the processor honours them), the numbers from 0 to the
+  least normal double, in decimal and in hexadecimal, alone, in intervals and
+  in the uncertain form, have to be read as the tightest intervals enclosing
+  them, and the doubles among them, 0 included, as themselves: the reader
+  compared each number with the doubles around it as doubles, and
+  denormals-are-zero reads a subnormal as 0, so that 1e-310 was read as the
+  interval from the greatest subnormal to the least normal double, which does
+  not enclose it, and 0 as the greatest subnormal (GAOL v5).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
-  distances, splitting, integer parts, the comparisons of IEEE 1788-2015
+  distances (of intervals with infinite bounds too, equal bounds being at
+  distance 0), `nb_fp_numbers()` (across the two zeros), splitting, integer parts, the comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
@@ -173,13 +220,21 @@ Codac.
   ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 89 boxes, each
+  reaching a branch of the pow of Table 9.1, which the two share, or of what
+  `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
+  they have to be bit for bit those the two functions gave when each had its
+  own copy of the pow, each an enclosure of the exact power within one double
+  of the tightest bounds, and the same with the exponent given as a double;
   and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
   standard's too. GAOL's functions on intervals and on an interval and a
   number; the functions of C on numbers, by `static_assert`.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
   to leave the global output format alone; the check of it by a second
   thread writing intervals meanwhile is commented out, the tests running no
-  thread. `textToInterval` has to read each name of
+  thread. `textToInterval(intervalToText(x))` has to contain x for a point
+  interval x, `interval(0.1)` first: it was the empty set (GAOL v5).
+  `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
@@ -323,6 +378,42 @@ Codac.
   at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
   did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
   which no header included (GAOL v5).
+- **`version_file`** (CMake only: a script of CMake, not a program): the
+  reading of `VERSION.txt` by `CMakeLists.txt`, `gaol_read_version()` of
+  `cmake/gaol_version.cmake`, has to ignore a UTF-8 byte order mark at the
+  start of the file, which some editors of Windows write, the line ends of
+  Windows (CR LF), and the blanks and empty lines around the version, to
+  refuse anything but three numbers without leading zeros, and to give the
+  first bytes of a refused file in hexadecimal in its message. It refused a file
+  starting with a byte order mark as `VERSION.txt holds "5.0.0"`, the mark being
+  a character that is not seen; configure and meson did the same. A file of
+  UTF-16 characters (`tests/version_file/`, which CMake could not write: it
+  holds NUL bytes) has to be refused with all of its message, a NUL byte having
+  cut the text quoted, and a NUL byte after `5.0.0` has to make the file
+  refused, whether `file(READ)` cuts the text at the NUL byte (CMake 3.14.7 and
+  3.16.3) or keeps it and a regular expression stops there (4.4.3). A file
+  holding a mark alone, or nothing, has to be refused with its message too: it
+  stopped CMake 3.14.7 and 3.16.3 with an error of `string(REGEX MATCH)` on an
+  empty match, so these two checks fail only there, in the job of the
+  continuous integration that runs the tests with CMake 3.14. The files are
+  written by the script, which expects the versions it writes, not the ones the
+  code reads back. configure and meson, which read the file their own way, have
+  no such test: `.github/scripts/version-file.sh` runs them on a copy of the
+  sources, in the continuous integration (GAOL v5).
+- **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
+  by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
+  a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and
+  with `-ffast-math`, put after the flags of interval arithmetic, and the
+  compilation has to fail with the message of `gaol/gaol_config.h`, which the
+  test looks for in the output of the build. With `-ffinite-math-only` the
+  compiler takes NaN and infinities never to occur, in the inline functions of
+  the headers too, and the empty interval, whose bounds are NaN, is no longer
+  told empty: `([1, 2] & [3, 4]).is_empty()` was false with GCC 9 and Clang 18.
+  The header did not refuse `-ffinite-math-only`, nor `-Ofast` or `-ffast-math`
+  followed by `-frounding-math` with Clang, which leave `__FAST_MATH__`
+  undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5). The autotools and meson
+  builds have no such test, the header being the same; `tests/fp_strict` is
+  the check of Visual C++ without `/fp:strict`.
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive

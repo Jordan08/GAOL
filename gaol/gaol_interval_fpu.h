@@ -45,9 +45,14 @@
         return interval(-GAOL_INFINITY, GAOL_INFINITY);
     }
 
+    // Both bounds NaN, as interval(double) sets them for a NaN, but without the
+    // comparisons that decide it: they signal the invalid-operation exception
+    // on a NaN, and a build without optimization runs them (GAOL v5)
     INLINE interval interval::emptyset(void)
     {
-        return interval(std::numeric_limits<double>::quiet_NaN());
+        interval I;
+        I.lb_ = I.rb_ = std::numeric_limits<double>::quiet_NaN();
+        return I;
     }
 
     INLINE interval interval::positive(void) // [0, +oo]

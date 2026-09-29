@@ -28,17 +28,19 @@ and on file systems that ignore case (macOS, Windows), `#include <version>`,
 which the headers of libc++ write, would find it instead of the standard
 header.
 
-- CMake reads it before `project()`, which gives it to `PROJECT_VERSION`; a
-  change of `VERSION.txt` configures again. Where GAOL is the project built,
+- CMake reads it before `project()`, which gives it to `PROJECT_VERSION`, with
+  `gaol_read_version()` of `cmake/gaol_version.cmake`; a change of
+  `VERSION.txt` configures again. Where GAOL is the project built,
   it reads the line `PACKAGE_VERSION=` of `configure` too, and warns when it
   configures that `configure` was generated for another version than
   `VERSION.txt` holds: the archive of the sources that CPack makes holds
   `configure` as it is committed (see
   [below](#the-archive-of-the-sources-and-the-packages)). It says nothing for
   a tree without `configure`, or with a `configure` that has no such line.
-- meson reads it in `project()`, with Python, which works with meson 0.53 as
-  with later ones (`version: files()` needs meson 0.57); a change of
-  `VERSION.txt` configures again.
+- meson reads it in `project()`, with Python (see [With meson](#with-meson)
+  for the Python it takes), which works with meson 0.53 as with later ones
+  (`version: files()` needs meson 0.57); a change of `VERSION.txt` configures
+  again.
 - `configure` reads it when it runs, whence all that follows, and make runs it
   again when `VERSION.txt` changes (`CONFIG_STATUS_DEPENDENCIES` of
   `Makefile.am`). Only what `AC_INIT` writes when autoconf generates
@@ -68,8 +70,22 @@ asked for), the names of the archive and of the packages of CPack, and the
 `\version` of the manuals (configure, meson). Each build refuses a
 `VERSION.txt` that does not hold three numbers without leading zeros, which
 the macros write as C integers; blanks and empty lines around them are
-ignored. The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are
-their own, set in `configure.ac` and `manual/meson.build`.
+ignored, and so are the line ends of Windows (CR LF) and a UTF-8 byte order
+mark (the bytes EF BB BF) at the start of the file, which some editors of
+Windows write. The message of a build that refuses the file quotes what it read
+and gives the first bytes of the file in hexadecimal, `VERSION.txt holds
+"5.0.x" (bytes in hexadecimal: 35 2e 30 2e 78 0a), where it should hold the
+version of GAOL...`: a second byte order mark, or a zero-width space, does not
+show in the quotation. A file of UTF-16 characters, which Windows PowerShell 5
+writes for a redirection (`"5.0.0" > VERSION.txt`), is refused the same way,
+with its bytes (`ff fe 35 00 2e 00`...): it is to be saved as UTF-8 or ASCII.
+The test `version_file` (`ctest -R version_file`) checks
+the reading of CMake, and `.github/scripts/version-file.sh configure|meson`,
+which the continuous integration runs on a copy of the sources, those of
+configure and meson.
+
+The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
+set in `configure.ac` and `manual/meson.build`.
 
 ## With CMake
 
@@ -225,6 +241,23 @@ project). The summary of `meson setup` gives the address for the bug reports,
 jordan.ninin@ensta.fr, and the page of GAOL v5, https://github.com/Jordan08/GAOL.
 The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
+
+`meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
+[The version of GAOL](#the-version-of-gaol)): the first of `python3` and
+`python` that it finds in `PATH` or, when it finds neither, the Python that
+runs meson, which is what the `meson.exe` of the Windows installer does when
+no Python is installed. `meson.build` names `python3` first because meson
+falls back on its own Python for that name alone.
+
+On Windows, the directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`
+holds the aliases `python.exe` and `python3.exe`, which only open the
+Microsoft Store when Python was not installed from it. meson 0.53.1 and later
+(the 0.53.2 of Ubuntu 20.04 and the meson of pip among them) leave that
+directory out of their search for programs. meson 0.53.0 and earlier take the
+alias, and `meson setup` stops on the failure of the command that reads
+`VERSION.txt`: use a later meson (`pip install meson`), or turn off the
+aliases of `python.exe` and `python3.exe` in the Windows settings ("Manage app
+execution aliases").
 
 ## Tests, examples, performance and the parser
 

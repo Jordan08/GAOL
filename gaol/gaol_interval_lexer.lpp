@@ -61,6 +61,11 @@ extern const void *gaol_lookup_function(const char *name, void *context);
   decimal comma, it stops at the '.' of "0.1" and gives 0, far from the
   number. The doubles on each side of it are then found by steps doubling
   from that double, and by bisection on the bits of the doubles (GAOL v5).
+  The number is compared with each double taken apart by its bits, so that
+  denormals-are-zero, where a subnormal is 0 in a comparison, changes nothing
+  (GAOL v5). The text is taken apart once, and not by each of the comparisons
+  (about 125 under such a locale), which read a long number in a time
+  quadratic in its length (GAOL v5).
 */
 namespace {
 
@@ -116,6 +121,31 @@ namespace {
     n.insert(n.begin(), static_cast<std::size_t>(e / 32), 0u);
   }
 
+  // n*m, with m an integer of 64 bits at most
+  gaol_natural gaol_natural_mul_u64(const gaol_natural& n, uint64_t m)
+  {
+    gaol_natural r;
+    if (n.empty() || m == 0) {
+      return r;
+    }
+    r.assign(n.size() + 2, 0u);
+    for (std::size_t j = 0; j < 2; ++j) { // The two digits of m, in base 2^32
+      const uint64_t mj = (j == 0) ? (m & 0xffffffffu) : (m >> 32);
+      uint64_t carry = 0;
+      for (std::size_t i = 0; i < n.size(); ++i) {
+        // At most (2^32 - 1)^2 + 2(2^32 - 1) = 2^64 - 1
+        const uint64_t t = static_cast<uint64_t>(n[i])*mj + r[i + j] + carry;
+        r[i + j] = static_cast<uint32_t>(t);
+        carry = t >> 32;
+      }
+      r[n.size() + j] = static_cast<uint32_t>(carry);
+    }
+    while (r.back() == 0) { // No leading zero digit, as gaol_natural_compare() needs
+      r.pop_back();
+    }
+    return r;
+  }
+
   // The sign of a - b
   int gaol_natural_compare(const gaol_natural& a, const gaol_natural& b)
   {
@@ -148,11 +178,51 @@ namespace {
     return 4*static_cast<long long>(std::strlen(s)) + 2000;
   }
 
-  // The sign of v - x, v being the number s writes, as the rules below match
-  // numbers (decimal digits with an optional point and exponent, or, after
-  // 0x, hexadecimal digits with an optional point and a binary exponent), and
-  // x a double
-  int gaol_compare_number(const char *s, double x)
+  // The bits of a double, and the double of given bits: the doubles of
+  // [0, +oo] are ordered as their bits, read as unsigned integers
+  uint64_t gaol_bits_of(double x)
+  {
+    uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
+
+  double gaol_double_of(uint64_t bits)
+  {
+    double x;
+    std::memcpy(&x, &bits, sizeof x);
+    return x;
+  }
+
+  /*
+    A number v, as the rules below match numbers (decimal digits with an
+    optional point and exponent, or, after 0x, hexadecimal digits with an
+    optional point and a binary exponent), taken apart once to be compared
+    with doubles (GAOL v5): gaol_enclose_number() compares a number with up to
+    about 125 of them, and each comparison read the text again, in a time
+    quadratic in its length. It took 2.5 s for 20000 characters under a locale
+    writing a decimal comma, where strtod() is far from the number, against
+    0.08 s under the C locale, which needs two comparisons; both now take
+    about 0.03 s (Intel i7-1185G7, GCC 9.4).
+    v = N*10^k*2^k2 = N*5^k*2^(k+k2), N being an integer, is compared with a
+    double x = M*2^e as N*5^k*2^(k+k2) with M*2^e, and what does not depend on
+    x is kept: N*5^k for k >= 0, N and 5^-k otherwise. A comparison then costs
+    the product of 5^-k by M, a shift and a comparison of integers, in a time
+    linear in the length of the text.
+  */
+  struct gaol_number
+  {
+    bool is_zero;         // v = 0
+    int beyond;           // -1 if v is not 0 and below the least positive double, +1 if above the largest, 0 otherwise
+    long kb;              // k + k2
+    gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
+    gaol_natural pow5;    // 5^-k if k < 0, no digit otherwise
+
+    gaol_number() : is_zero(true), beyond(0), kb(0) {}
+  };
+
+  // The number s writes, taken apart
+  gaol_number gaol_take_apart(const char *s)
   {
     // v = N*10^k*2^k2, N being written with ndigits digits
     gaol_natural N;
@@ -201,63 +271,91 @@ namespace {
       (hexadecimal ? k2 : k) += static_cast<long>(negative ? -e : e);
     }
 
-    if (N.empty()) { // v = 0
-      return (x < 0.0) ? 1 : ((x > 0.0) ? -1 : 0);
-    }
-    if (!(x > 0.0)) {
-      return 1;
-    }
-    if (x > std::numeric_limits<double>::max()) {
-      return -1;
+    gaol_number v;
+    v.is_zero = N.empty();
+    if (v.is_zero) {
+      return v;
     }
     // 10^(k+ndigits-1) <= v < 10^(k+ndigits), respectively
     // 2^(k2+4(ndigits-1)) <= v < 2^(k2+4 ndigits), far above the largest
     // double or below the least positive one
     if (hexadecimal ? k2 + 4*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
-      return 1;
+      v.beyond = 1;
+      return v;
     }
     if (hexadecimal ? k2 + 4*ndigits < -1080 : k + ndigits < -330) {
+      v.beyond = -1;
+      return v;
+    }
+    v.kb = k + k2;
+    v.scaled.swap(N);
+    if (k >= 0) {
+      gaol_natural_mul_pow5(v.scaled, k);
+    } else {
+      v.pow5.push_back(1u);
+      gaol_natural_mul_pow5(v.pow5, -k);
+    }
+    return v;
+  }
+
+  /*
+    The sign of v - x, v being a number taken apart, and x a double.
+    x is taken apart by its bits, and never compared nor decomposed as a
+    double (GAOL v5): with denormals-are-zero, which programs linked with
+    -Ofast have (crtfastmath.o) and the code they load can set, the
+    comparisons of a subnormal with 0 and std::frexp() see it as 0. GAOL then
+    took every subnormal for 0, so that "1e-310" was above all of them and was
+    read as the interval from the greatest subnormal to the least normal
+    double, which does not enclose it, and "0" as the greatest subnormal.
+  */
+  int gaol_compare_number(const gaol_number& v, double x)
+  {
+    const uint64_t bits = gaol_bits_of(x);
+    const uint64_t plus_infinity = gaol_bits_of(std::numeric_limits<double>::infinity());
+    const bool zero = ((bits << 1) == 0); // +0 or -0
+    // 0 < x <= +oo: the bits of a negative number and of a NaN are above those of +oo
+    const bool positive = (!zero && bits <= plus_infinity);
+    if (v.is_zero) { // v = 0
+      return zero ? 0 : (positive ? -1 : 1);
+    }
+    if (!positive) {
+      return 1;
+    }
+    if (bits == plus_infinity) { // v is below +oo
       return -1;
     }
+    if (v.beyond != 0) {
+      return v.beyond;
+    }
 
-    // x = M*2^e, M being an integer of 53 bits
-    int ex;
-    const double f = std::frexp(x, &ex);
-    const uint64_t M = static_cast<uint64_t>(std::ldexp(f, 53));
-    const long e = static_cast<long>(ex) - 53;
+    // x = M*2^e, M being an integer of 53 bits at most: the 52 bits of the
+    // fraction of x, and 2^52 more for a normal double, whose leading bit they
+    // leave out; a subnormal has none, and the exponent -1074 of its unit, the
+    // least positive double
+    const uint64_t biased_exponent = bits >> 52; // The sign bit is 0
+    uint64_t M = bits & 0x000fffffffffffffull;
+    long e = -1074;
+    if (biased_exponent != 0) {
+      M |= 0x0010000000000000ull;
+      e = static_cast<long>(biased_exponent) - 1075;
+    }
 
     // N*5^k*2^(k+k2) compared with M*2^e
-    gaol_natural A(N), B;
-    B.push_back(static_cast<uint32_t>(M));
-    B.push_back(static_cast<uint32_t>(M >> 32));
-    if (k >= 0) {
-      gaol_natural_mul_pow5(A, k);
+    gaol_natural A(v.scaled), B;
+    if (v.pow5.empty()) {
+      B.push_back(static_cast<uint32_t>(M));
+      if ((M >> 32) != 0) { // No leading zero digit, as gaol_natural_compare() needs
+        B.push_back(static_cast<uint32_t>(M >> 32));
+      }
     } else {
-      gaol_natural_mul_pow5(B, -k);
+      B = gaol_natural_mul_u64(v.pow5, M);
     }
-    const long kb = k + k2;
-    if (kb >= e) {
-      gaol_natural_shift_left(A, kb - e);
+    if (v.kb >= e) {
+      gaol_natural_shift_left(A, v.kb - e);
     } else {
-      gaol_natural_shift_left(B, e - kb);
+      gaol_natural_shift_left(B, e - v.kb);
     }
     return gaol_natural_compare(A, B);
-  }
-
-  // The bits of a double, and the double of given bits: the doubles of
-  // [0, +oo] are ordered as their bits, read as unsigned integers
-  uint64_t gaol_bits_of(double x)
-  {
-    uint64_t bits;
-    std::memcpy(&bits, &x, sizeof bits);
-    return bits;
-  }
-
-  double gaol_double_of(uint64_t bits)
-  {
-    double x;
-    std::memcpy(&x, &bits, sizeof x);
-    return x;
   }
 
   /*
@@ -269,10 +367,13 @@ namespace {
     double, at most about 125 whatever it gives (GAOL v5). GAOL moved one
     double at a time from it: under a locale writing a decimal comma, where
     strtod("0.1") is 0, it had about 4.6e18 doubles to go through, and the
-    reading never ended.
+    reading never ended. The text is taken apart once for all the
+    comparisons, so that the time of a reading under such a locale is that of
+    a reading under the C locale, whatever the length of the number (GAOL v5).
   */
   bool gaol_enclose_number(const char *s, double& l, double& r)
   {
+    const gaol_number v = gaol_take_apart(s); // Before the rounding mode changes
     GAOL_RND_PRESERVE();
     round_nearest();
     const uint64_t guess = gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
@@ -280,7 +381,7 @@ namespace {
     // gaol_double_of(lo) <= the number < gaol_double_of(hi), sign_lo being
     // the comparison of the number with gaol_double_of(lo)
     uint64_t lo, hi;
-    int sign_lo = gaol_compare_number(s, gaol_double_of(guess));
+    int sign_lo = gaol_compare_number(v, gaol_double_of(guess));
     if (sign_lo >= 0) {
       lo = guess;
       for (uint64_t step = 1;; step *= 2) {
@@ -288,7 +389,7 @@ namespace {
         if (hi == top) { // +oo is above every number
           break;
         }
-        const int sign_hi = gaol_compare_number(s, gaol_double_of(hi));
+        const int sign_hi = gaol_compare_number(v, gaol_double_of(hi));
         if (sign_hi < 0) {
           break;
         }
@@ -299,7 +400,7 @@ namespace {
       hi = guess;
       for (uint64_t step = 1;; step *= 2) {
         lo = (hi > step) ? hi - step : 0;
-        sign_lo = gaol_compare_number(s, gaol_double_of(lo));
+        sign_lo = gaol_compare_number(v, gaol_double_of(lo));
         if (sign_lo >= 0) { // at the latest for 0, which no number is below
           break;
         }
@@ -308,7 +409,7 @@ namespace {
     }
     while (hi - lo > 1) {
       const uint64_t middle = lo + (hi - lo)/2;
-      const int sign_middle = gaol_compare_number(s, gaol_double_of(middle));
+      const int sign_middle = gaol_compare_number(v, gaol_double_of(middle));
       if (sign_middle >= 0) {
         lo = middle;
         sign_lo = sign_middle;
@@ -514,7 +615,7 @@ namespace gaol {
   // whose decimal bounds are rounded outward whatever the C library
   int compare_number_with_double(const char *s, double x)
   {
-    return gaol_compare_number(s, x);
+    return gaol_compare_number(gaol_take_apart(s), x);
   }
 }
 %}
