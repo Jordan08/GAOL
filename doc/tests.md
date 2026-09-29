@@ -316,11 +316,16 @@ Codac.
   UTF-16 characters (`tests/version_file/`, which CMake could not write: it
   holds NUL bytes) has to be refused with all of its message, a NUL byte having
   cut the text quoted, and a NUL byte after `5.0.0` has to make the file
-  refused, the regular expression stopping at it. The files are written by the
-  script, which expects the versions it writes, not the ones the code reads
-  back. configure and meson, which read the file their own way, have no such
-  test: `.github/scripts/version-file.sh` runs them on a copy of the sources, in
-  the continuous integration (GAOL v5).
+  refused, whether `file(READ)` cuts the text at the NUL byte (CMake 3.14.7 and
+  3.16.3) or keeps it and a regular expression stops there (4.4.3). A file
+  holding a mark alone, or nothing, has to be refused with its message too: it
+  stopped CMake 3.14.7 and 3.16.3 with an error of `string(REGEX MATCH)` on an
+  empty match, so these two checks fail only there, in the job of the
+  continuous integration that runs the tests with CMake 3.14. The files are
+  written by the script, which expects the versions it writes, not the ones the
+  code reads back. configure and meson, which read the file their own way, have
+  no such test: `.github/scripts/version-file.sh` runs them on a copy of the
+  sources, in the continuous integration (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,

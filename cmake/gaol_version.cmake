@@ -33,15 +33,25 @@ function(gaol_read_version file version error)
   endif()
   # string(STRIP) removes the CR of a line end of Windows as any other blank
   string(STRIP "${_text}" _text)
-  # file(READ) keeps a NUL byte in the text, as those of a file of UTF-16
-  # characters, which Windows PowerShell 5 writes for a redirection (FF FE 35
-  # 00 2E 00...), but a regular expression and a message stop at the first NUL
-  # byte: _shown is the text up to it, which is what the message quotes, and a
-  # file holding a NUL byte is refused, whatever the text before it
-  string(REGEX MATCH "^.*" _shown "${_text}")
-  string(LENGTH "${_text}" _length)
-  string(LENGTH "${_shown}" _shown_length)
-  if(_length EQUAL _shown_length AND _text MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
+  # A file of UTF-16 characters, which Windows PowerShell 5 writes for a
+  # redirection (FF FE 35 00 2E 00...), holds NUL bytes, and a damaged file may:
+  # it is refused, whatever the text before the first NUL byte. file(READ) does
+  # not treat a NUL byte alike in every version of CMake (3.14.7 and 3.16.3
+  # cut the text there, 4.4.3 keeps it, and a regular expression stops at it),
+  # so the NUL byte is looked for in the reading of the whole file in
+  # hexadecimal, which is the same in all: two digits per byte, 00 for NUL
+  file(READ "${file}" _all HEX)
+  string(REGEX REPLACE "([0-9a-f][0-9a-f])" "\\1;" _bytes "${_all}")
+  list(FIND _bytes "00" _nul)
+  # _shown is the text up to the first NUL byte, which the message quotes: a
+  # message stops at a NUL byte too. The regular expression is not run on an
+  # empty text (a file holding a mark alone, or nothing), where string(REGEX
+  # MATCH) of CMake 3.14.7 and 3.16.3 stops with an error
+  set(_shown "")
+  if(_text MATCHES "^.")
+    string(REGEX MATCH "^.*" _shown "${_text}")
+  endif()
+  if(_nul EQUAL -1 AND _text MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
     set(${version} "${_text}" PARENT_SCOPE)
   else()
     file(READ "${file}" _hex LIMIT 32 HEX)

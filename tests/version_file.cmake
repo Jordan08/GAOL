@@ -105,6 +105,9 @@ check_accepted("zeros" "${bom}0.0.0\n" "0.0.0")
 
 # In the bytes: 35 2e 30 2e 30 is 5.0.0, 78 is x, 20 is a blank, 0a the line
 # end (which a platform may write as 0d 0a)
+# A mark alone and an empty file leave no text: string(REGEX MATCH) of CMake
+# 3.14.7 and 3.16.3 stops with an error on an empty match, so these two checks
+# fail only there, in the job of the continuous integration that has CMake 3.14
 check_refused("a mark alone" "${bom}" "ef bb bf")
 check_refused("two marks" "${bom}${bom}5.0.0" "ef bb bf ef bb bf 35 2e 30 2e 30")
 check_refused("a mark inside" "5.${bom}0.0" "35 2e ef bb bf 30 2e 30")
@@ -120,8 +123,10 @@ check_refused("an empty file" "" "")
 # some. The first is "5.0.0" and a line end in UTF-16, little-endian, with its
 # byte order mark, as Windows PowerShell 5 writes for a redirection; the
 # message has to be all there, which a NUL byte in the text quoted cut. The
-# second is 5.0.0, a NUL byte and an x: a regular expression stops at the NUL
-# byte, and took the text for 5.0.0
+# second is 5.0.0, a NUL byte and an x: the text read is 5.0.0, file(READ)
+# having cut it at the NUL byte (CMake 3.14.7 and 3.16.3) or a regular
+# expression stopping there (4.4.3), and the file has to be refused all the
+# same
 check_refused_file("UTF-16" "${GAOL_SOURCE_DIR}/tests/version_file/utf16le_bom.txt"
                    "ff fe 35 00 2e 00 30 00 2e 00 30 00 0a 00")
 check_refused_file("a NUL byte after the version" "${GAOL_SOURCE_DIR}/tests/version_file/nul_after_version.txt"
