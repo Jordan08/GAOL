@@ -612,13 +612,12 @@ namespace
             c.empty ? got.is_empty() : (!got.is_empty() && got.set_eq(c.expected)),
             [&] { return hex(got); });
     }
-    // pow([4], [0.5]) encloses 2 within one double: GAOL's pow does not tell
-    // that 4^0.5 is a double, and gives the double below as its lower bound
+    // pow([4], [0.5]) is [2]: 4^0.5 is a double, which GAOL's pow tells, where
+    // it gave the double below as its lower bound
     {
       const interval got = std1788::pow(interval(4.0), interval(0.5));
-      check("gaol_ieee1788::pow([4], [0.5]) encloses 2, within one double",
-            got.set_contains(2.0) && got.right() == 2.0 && got.left() >= std::nextafter(2.0, 0.0),
-            [&] { return hex(got); });
+      check("gaol_ieee1788::pow([4], [0.5]) is [2]",
+            got.left() == 2.0 && got.right() == 2.0, [&] { return hex(got); });
     }
     // and GAOL's pow wherever x > 0, whatever y
     for (int i = 0; i < 2000; ++i) {

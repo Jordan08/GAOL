@@ -44,8 +44,9 @@ Codac.
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
   near 1. `pow(x, y)` has to be within one double of the tightest bounds at
   points, `pow([2], [1023.5])` among them, and over 385 boxes of bases and
-  exponents in every position about the base 1 and the exponent 0. `atan2`
-  has to be within one double of the tightest bounds at
+  exponents in every position about the base 1 and the exponent 0, and the
+  power itself as lower bound where it is a double: `pow([4], 0.5)` is `[2]`.
+  `atan2` has to be within one double of the tightest bounds at
   points of the four quadrants and over 324 boxes in every position about the
   axes, and the tightest over the boxes with infinite bounds or on an axis,
   `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin, cos and tan have to be within one
@@ -163,7 +164,7 @@ Codac.
   ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
-  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 89 boxes, each
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 92 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
   `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
   they have to be bit for bit those the two functions gave when each had its
@@ -191,7 +192,15 @@ Codac.
   exact value itself (`log(1)`, `sin(0)`, the bounds of π/2 at `asin(1)`...).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
-  subnormals, and at random doubles of every magnitude. The functions of
+  subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
+  the tightest at the corner of a box, `[x]` by `[y]`, the lower bound being
+  the power itself where it is a double (GAOL v5): 31 313 pairs, the powers of
+  two to the powers t/p (2<sup>p</sup> to the power t/p, t around the ends of
+  the doubles), the numbers c<sup>2<sup>k</sup></sup>·2<sup>f·2<sup>k</sup></sup>
+  to the powers a/2<sup>k</sup>, the integers to the integers and random pairs,
+  each with the neighbours of its base and of its exponent, 1 961 of them with
+  a power that is a double. Among the others is 8 to the double nearest 1/3,
+  whose product 3y rounds to 1 without being 1. The functions of
   Table 10.5 GAOL provides have to be the tightest enclosures over intervals
   too: the hull of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
