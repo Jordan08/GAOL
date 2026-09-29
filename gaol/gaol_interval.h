@@ -704,10 +704,13 @@ namespace gaol_core {
     This function characterizes the degree of symmetry of intervals.
 
     Definition:
-    chi([a,b]) = 0,    if a==b==0
+    chi([a,b]) = -1,   if a==b==0
                = a/b,  if |a| <= |b|
                = b/a,  otherwise
 
+    chi([0,0]) is -1, the value of chi([-a,a]) for a > 0: [0,0] is symmetric
+    about 0. For an interval with an infinite bound, chi([-oo,+oo]) is 1 and
+    chi is 0 otherwise; chi is NaN for the empty set.
    */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ double chi(const interval &I);
   /*!

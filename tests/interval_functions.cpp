@@ -118,6 +118,8 @@ public:
       TEST_TRUE(chi(interval::universe())==1);
       TEST_TRUE(chi(interval(-5,10))==-0.5);
       TEST_TRUE(chi(interval(-5,GAOL_INFINITY))==0.0);
+      TEST_TRUE(chi(interval(-GAOL_INFINITY,5))==0.0);
+      TEST_TRUE(chi(interval(-4,4))==-1);
       TEST_TRUE(chi(interval(3,6))==0.5);
       TEST_TRUE(chi(interval(-6,3))==-0.5);
 
