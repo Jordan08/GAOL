@@ -11,21 +11,23 @@ validés sur des builds SSE2 et FPU de travail mais pas appliqués. Ses numéros
 1, 5, 6, 8, 9, 10, 11, 13, 14, 15 et 18 sont corrigés.
 
 Les points 41 à 44 viennent de la vérification du fichier `VERSION.txt`, le
-2026-09-28 : ce que les agents ont trouvé et qui n'est pas corrigé (le 44 l'est
-depuis).
+2026-09-28 : ce que les agents ont trouvé et qui n'est pas corrigé (les 42, 43
+et 44 le sont depuis).
 
 ## Avancement au 2026-09-29
 
 Les points ont été repris un par un, chacun dans sa branche `todo-NN-…` faite à partir de `configure-clean`, validé en local
 (builds SSE2, FPU et Clang 18 selon le point, test de non-régression dont on a montré qu'il échoue sans la correction), relu par un
 ou deux relecteurs indépendants, poussé pour lancer la CI, puis proposé en pull request vers `configure-clean`, avec un texte en
-français. Le travail a été arrêté avant la fin : cette section dit où chaque point en est. Les points 7, 9, 14, 29 et 44, fusionnés,
-ne sont plus dans la liste ci-dessous. Les rapports détaillés de chaque point (résumé, tests, validation, questions ouvertes, ce
-qu'il faudra consigner dans `ChangeLog` et `doc/differences.md`, remarques des relecteurs) sont dans [todo-notes/](todo-notes/), le
-brouillon du texte de la pull request du point 5 dans `todo-notes/pr-05-brouillon.md`, et les scripts et consignes de la méthode
-dans [todo-notes/orchestration/](todo-notes/orchestration/) (à supprimer si vous n'en voulez pas).
+français. Le travail a été arrêté avant la fin : cette section dit où chaque point en est. Les points 1, 5, 7, 9, 10, 11, 13, 14, 15,
+18, 24, 29, 42, 43 et 44, fusionnés, ne sont plus dans la liste ci-dessous. Les rapports détaillés de chaque point (résumé, tests,
+validation, questions ouvertes, ce qu'il faudra consigner dans `ChangeLog` et `doc/differences.md`, remarques des relecteurs) sont dans
+[todo-notes/](todo-notes/), le brouillon du texte de la pull request du point 5 dans `todo-notes/pr-05-brouillon.md`, et les scripts et
+consignes de la méthode dans [todo-notes/orchestration/](todo-notes/orchestration/) (à supprimer si vous n'en voulez pas).
 
 ### Fusionné dans `configure-clean`
+
+Seize pull requests, toutes fusionnées.
 
 | Point | Pull request | Branche |
 | --- | --- | --- |
@@ -35,43 +37,46 @@ dans [todo-notes/orchestration/](todo-notes/orchestration/) (à supprimer si vou
 | hors liste : le job Debian 12 arm64 (voir plus bas) | #34 | `fix-numbers-gcc12-aarch64` |
 | 29 locale à virgule dans la CI | #35 | `todo-29-ci-comma-locale` |
 | 9 `tan([-M_PI_2, M_PI_2])` | #36 | `todo-09-tan-pi-half` |
+| 1 pow de la norme écrit une fois (`pow_standard()`) | #37 | `todo-01-pow-norm-half` |
+| 5 `-ffinite-math-only` | #39 | `todo-05-finite-math-only` |
+| 11 lecteur et denormals-are-zero | #40 | `todo-11-lexer-subnormal` |
+| 10 `hausdorff()`, `nb_fp_numbers()` | #41 | `todo-10-hausdorff-nb-fp` |
+| 18 lecture lente sous locale à virgule | #42 | `todo-18-reader-locale-speed` |
+| 13 point écrit sous une forme que le lecteur refuse | #43 | `todo-13-point-interval-text` |
+| 42 meson 0.53 et le Python du Store | #44 | `todo-42-meson-windows-python` |
+| 43 `VERSION.txt` avec une marque d'ordre des octets | #45 | `todo-43-version-bom` |
+| 15 `operator>>` sur une ligne vide | #46 | `todo-15-extract-empty-line` |
+| 24 exceptions et indicateurs flottants | #47 | `todo-24-fp-exceptions` |
+
+Les branches des points 7, 9, 14, 29 et 44 et `fix-numbers-gcc12-aarch64` ont été supprimées sur le dépôt à la fusion ; celles des dix autres
+points (1, 5, 10, 11, 13, 15, 18, 24, 42, 43) y sont encore, à supprimer aussi. La pull request #29 (`configure-clean` vers
+`MATH-CORE`) est toujours ouverte.
 
 ### Poussé et relu, sans pull request
 
-Chaque branche a été relue (aucun point bloquant à la fin) et poussée ; les branches marquées « fusionnée » ont reçu
-`configure-clean` (fusion, non réécriture) pour lever un conflit avec les points déjà fusionnés. La CI de ces branches était en
-file d'attente ou en cours à l'arrêt : il faut la regarder (`gh run list --branch <branche>`) ; aucun échec autre que le job Debian 12
-arm64 (corrigé par #34) n'avait été vu, sauf pour le point 13 (voir plus bas). Le texte français des pull requests n'est écrit
-que pour le point 5.
+Chaque branche a été poussée après relecture (aucun point bloquant à la fin). Le texte français des pull requests n'est pas écrit.
+Aucune de ces branches n'a de conflit avec `configure-clean` tel qu'il est maintenant, sauf indication contraire.
 
 | Point | Branche | Remarque |
 | --- | --- | --- |
-| 1 pow de la norme écrit une fois | `todo-01-pow-norm-half` | fonction `pow_standard()` ; seul changement de résultat : le signe d'un zéro. Les points 2 et 3 se font par-dessus. |
-| 5 `-ffinite-math-only` | `todo-05-finite-math-only` | fusionnée ; deux tests de compilation, CMake seul |
-| 10 `hausdorff()`, `nb_fp_numbers()` | `todo-10-hausdorff-nb-fp` | |
-| 11 lecteur et denormals-are-zero | `todo-11-lexer-subnormal` | fusionnée ; lexer régénéré (flex 2.6.4) |
-| 13 point écrit sous une forme que le lecteur refuse | `todo-13-point-interval-text` | correctif ajouté après un échec sous Visual C++ (voir plus bas) |
-| 15 `operator>>` sur une ligne vide | `todo-15-extract-empty-line` | |
-| 18 lecture lente sous locale à virgule | `todo-18-reader-locale-speed` | **dépend du 11** (fondée sur sa branche) ; fusionnée |
-| 24 exceptions et indicateurs flottants | `todo-24-fp-exceptions` | |
-| 42 meson 0.53 et le Python du Store | `todo-42-meson-windows-python` | fusionnée ; correction par la documentation |
-| 43 `VERSION.txt` avec une marque d'ordre des octets | `todo-43-version-bom` | fusionnée ; test `version_file` et `.github/scripts/version-file.sh` |
+| 16 formats largeur et centre | `todo-16-display-formats` | relu et approuvé ; contient le point 13, maintenant fusionné ; conflit avec `configure-clean` dans `tests/numbers.cpp` (le 15 y a ajouté des tests) |
+| 39 Goldstein-Price | `todo-39-goldstein-price` | relu et approuvé ; sans conflit |
 
-### Poussé maintenant, relu ou non
+### Poussé, pas relu
 
 | Point | Branche | Remarque |
 | --- | --- | --- |
-| 16 formats largeur et centre | `todo-16-display-formats` | relu et approuvé ; **dépend du 13** (fusionné avec sa branche) |
-| 39 Goldstein-Price | `todo-39-goldstein-price` | relu et approuvé |
-| 6 `fegetround()` lu dans MXCSR | `todo-06-fegetround-mxcsr` | fait et validé par son auteur, **pas relu** |
-| 40 petites erreurs | `todo-40-small-errors` | trois commits, l'agent a été interrompu avant son rapport : **à valider** |
+| 6 `fegetround()` lu dans MXCSR | `todo-06-fegetround-mxcsr` | fait et validé par son auteur, **pas relu** ; conflit avec `configure-clean` dans `doc/tests.md` et `tests/rounding_direction.cpp` (le 24 y a ajouté des tests) |
+| 40 petites erreurs | `todo-40-small-errors` | trois commits, l'agent a été interrompu avant son rapport : **à valider** ; sans conflit |
 
 ### Travail inachevé (commit « WIP », non relu, poussé sans lancer la CI)
 
-3 exactitude de `pow(x, y)` aux coins (`todo-03-pow-exact-corner`, sur le 1) · 4 flush-to-zero (`todo-04-ftz-daz`, trois builds
-modifiés) · 8 `pow(x, n)` pour n grand (`todo-08-pow-large-n`) · 12 longues sommes (`todo-12-long-sums`, conflit avec
-`configure-clean` dans `tests/expressions.cpp`) · 17 vitesse de `operator<<` (`todo-17-output-speed`, sur le 16, conflit avec le 13
-dans `gaol/gaol_interval.cpp`) · 36 l'arrondi vers le haut dans la documentation (`todo-36-upward-rounding-effects`).
+3 exactitude de `pow(x, y)` aux coins (`todo-03-pow-exact-corner`, fondé sur le 1, maintenant fusionné : sans conflit) · 4 flush-to-zero
+(`todo-04-ftz-daz`, trois builds modifiés ; conflits dans `doc/tests.md`, `doc/three-builds.md`, `doc/using.md`,
+`manual/v5/gaol.tex` et `tests/rounding_direction.cpp`) · 8 `pow(x, n)` pour n grand (`todo-08-pow-large-n`, sans conflit) · 12 longues
+sommes (`todo-12-long-sums`, conflit dans `tests/expressions.cpp`) · 17 vitesse de `operator<<` (`todo-17-output-speed`, fondé sur le 16 ;
+conflits dans `gaol/gaol_interval.cpp` et `tests/numbers.cpp`) · 36 l'arrondi vers le haut dans la documentation
+(`todo-36-upward-rounding-effects`, conflit dans `doc/using.md`).
 
 ### Pas commencés
 
@@ -87,16 +92,14 @@ décision de votre part.
 
 ### Recouvrements entre branches
 
-Conflits de fusion textuels trouvés à l'arrêt (`git merge-tree`), sans conséquence sur le fond : ils se règlent en gardant les deux
-côtés, presque toujours des ajouts dans la même liste. Les fichiers qui reviennent : `doc/tests.md`, `tests/CMakeLists.txt`,
-`tests/rounding_direction.cpp`, `tests/numbers.cpp`, `tests/expressions.cpp`, `manual/v5/gaol.tex`.
+Conflits de fusion textuels entre les branches restantes (`git merge-tree`, calculés après la fusion des seize pull requests), sans
+conséquence sur le fond : ils se règlent en gardant les deux côtés, presque toujours des ajouts dans la même liste.
 
-- 4 × 5 (`doc/three-builds.md`, `manual/v5/gaol.tex`), 4 × 6 et 6 × 24 (`doc/tests.md`, `tests/rounding_direction.cpp`), 4 × 24
-  (`doc/tests.md`, `doc/using.md`, `manual/v5/gaol.tex`, `tests/rounding_direction.cpp`), 4 × 36 et 24 × 36 (`doc/using.md`).
-- 5 × 43 (`doc/tests.md`, `tests/CMakeLists.txt`), 42 × 43 (`meson.build`).
-- 12 × 5, 11, 18, 42, 43 (`tests/expressions.cpp`) : le 12 n'a pas reçu `configure-clean`, où le point 14 a ajouté des vérifications au
-  même endroit.
-- 13 × 17 et 16 × 17 (`gaol/gaol_interval.cpp`), 15 × 17, 16 × 18 et 17 × 18 (`tests/numbers.cpp`).
+- Avec `configure-clean` : 4 (`doc/tests.md`, `doc/three-builds.md`, `doc/using.md`, `manual/v5/gaol.tex`,
+  `tests/rounding_direction.cpp`), 6 (`doc/tests.md`, `tests/rounding_direction.cpp`), 12 (`tests/expressions.cpp`), 16
+  (`tests/numbers.cpp`), 17 (`gaol/gaol_interval.cpp`, `tests/numbers.cpp`), 36 (`doc/using.md`).
+- Entre elles : 4 × 6 (`doc/tests.md`, `tests/rounding_direction.cpp`), 4 × 36 (`doc/using.md`), 16 × 17 (`gaol/gaol_interval.cpp`).
+- Sans conflit : 3, 8, 39, 40.
 
 Quand une pull request est fusionnée, celles qui la recoupent demandent une fusion de `configure-clean` dans leur branche.
 
@@ -105,24 +108,34 @@ Quand une pull request est fusionnée, celles qui la recoupent demandent une fus
 - **Debian 12 arm64** : le job « Debian 12 Bookworm arm64 » de « Linux containers » était rouge sur `configure-clean` depuis
   `907fe05` : GCC 12.2 sur aarch64 compile mal `tests/numbers.cpp` à `-O2` et `-O3` (la variable de boucle d'un tableau local est lue à
   une mauvaise adresse, selon les décisions d'inlining ; ni AddressSanitizer ni UBSan ne signalent rien sur x86-64). Contournement
-  (#34) : `#pragma GCC optimize("no-inline-functions")` pour GCC 12 sur aarch64. Le diagnostic est dans la pull request. La branche
-  jetable `ci-debug-numbers-arm64`, qui l'a permis, est encore sur le dépôt : à supprimer.
-- **Visual C++** : les nouveaux tests du point 13 ont trouvé, sous Visual C++ (x86 et x64), que le runtime de Windows écrit 0
-  « arrondi vers le haut » comme `0.1` : `[0, 0]` sortait `<0.0, 0.1>` et `[-1, 0]` avait pour borne haute `0.1`.
-  `bound_to_text()` écrit maintenant un zéro à l'arrondi au plus proche (dernier commit de `todo-13-point-interval-text`).
+  (#34, fusionné) : `#pragma GCC optimize("no-inline-functions")` pour GCC 12 sur aarch64. Le diagnostic est dans la pull request. La
+  branche jetable `ci-debug-numbers-arm64`, qui l'a permis, est encore sur le dépôt : à supprimer.
+- **Visual C++, littéraux entiers** (point 1) : un littéral décimal sans suffixe au-delà de `INT_MAX` a le type `unsigned int` sous
+  Visual C++ ; sa négation perd le signe. Cinq des 89 cas de `tests/ieee1788.cpp` étaient faux ; les exposants au-delà des `int` sont
+  maintenant écrits en `double` (`2147483648.0`).
+- **Visual C++, zéro écrit** (point 13) : le runtime de Windows écrit 0 « arrondi vers le haut » comme `0.1` : `[0, 0]` sortait
+  `<0.0, 0.1>` et `[-1, 0]` avait pour borne haute `0.1`. `bound_to_text()` écrit maintenant un zéro à l'arrondi au plus proche.
+- **Windows, lecture sous arrondi vers le haut** (point 15) : Visual C++, MinGW et le build meson de Visual Studio lisent `1.5` comme
+  `1.5 + 2^-52` sous arrondi vers le haut (`strtod` et `operator>>` du runtime). Les tests de `tests/numbers.cpp` acceptent le nombre ou
+  son successeur pour les vérifications de `double` (`is_number`) ; GAOL n'est pas en cause, la lecture d'un intervalle passe par
+  son propre lecteur.
+- **MSYS2, archive** (point 43) : `tar` de MSYS2 ne sait pas créer le lien symbolique `README` vers `README.md` de l'arborescence
+  copiée. `.github/scripts/version-file.sh` copie maintenant avec `tar -h` (les liens sont suivis), en excluant `.git` et
+  `autom4te.cache`.
 - **Coût** : un push lance 111 jobs, environ 348 minutes de runner (Linux 25 jobs, macOS 11, Windows 27, Autotools et meson 30,
   conteneurs 17, Manual 1), soit trois push à l'heure au mieux avec 20 jobs simultanés. Les workflows se lancent sur `push` (toutes les
   branches) **et** sur `pull_request` : chaque pull request les fait tourner deux fois. Ne lancer `push` que sur les branches
-  principales diviserait la charge par deux (non fait).
+  principales diviserait la charge par deux (non fait). Les exécutions des branches fusionnées ont été annulées.
 
 ### Décisions et questions ouvertes
 
-Le détail est dans `todo-notes/NN.md` ; ici les choix à confirmer.
+Le détail est dans `todo-notes/NN.md` ; ici les choix à confirmer. Les points marqués « fusionné » l'ont été avec ces questions
+ouvertes : elles restent à trancher.
 
-- **1** : le bloc « exposants entiers au-delà des int » est dans `pow_standard()` et non dans `gaol_ieee1788::pow` ; `gaol::pow([0], y)`
-  s'écrit `<0, 0>` et non `<-0, 0>` en SSE2 (`interval(0.0)` au lieu de `interval::zero()`).
-- **5** : les deux tests de compilation n'existent que pour CMake (comme `tests/fp_strict`) ; un script POSIX enregistré dans autotools et
-  meson les donnerait aux trois builds. Clang laissait `__FAST_MATH__` indéfini pour `-Ofast` ou `-ffast-math` suivis de
+- **1** (fusionné) : le bloc « exposants entiers au-delà des int » est dans `pow_standard()` et non dans `gaol_ieee1788::pow` ;
+  `gaol::pow([0], y)` s'écrit `<0, 0>` et non `<-0, 0>` en SSE2 (`interval(0.0)` au lieu de `interval::zero()`).
+- **5** (fusionné) : les deux tests de compilation n'existent que pour CMake (comme `tests/fp_strict`) ; un script POSIX enregistré dans
+  autotools et meson les donnerait aux trois builds. Clang laissait `__FAST_MATH__` indéfini pour `-Ofast` ou `-ffast-math` suivis de
   `-frounding-math` : le `#error` sur `__FINITE_MATH_ONLY__` le refuse. `-fno-honor-nans` seul avec Clang casse aussi l'ensemble vide et
   ne se détecte pas (documenté).
 - **6** : le refus de MinGW-w64 avant la version 12 sur x64 reposait sur un `fegetround()` propre à MinGW ; il n'a plus de raison sur
@@ -130,43 +143,35 @@ Le détail est dans `todo-notes/NN.md` ; ici les choix à confirmer.
   laissé de côté (rien ici ne teste le 32 bits).
 - **9** (fusionné) : le drapeau `narrower_than_pi` a disparu, le test unique est `w <= pi_dn` ; un intervalle sans pôle dont la largeur
   exacte est entre `pi_dn` et π donne encore `[-oo, +oo]`. L'annexe B de `examples/examples.md` et la revue n° 8 parlent du drapeau.
-- **10** : `hausdorff()` sur des bornes infinies est un peu plus lent (14 ns au lieu de 4,5 ns) ; une sortie anticipée est possible.
-  `[1, 2] - 1` a `-0` pour borne inférieure : faut-il normaliser les zéros des opérations d'intervalles ?
-- **11** : le même effet de denormals-are-zero existe hors du lecteur : l'action de `gaol_interval_parser.ypp` compare des bornes
-  sous-normales comme des doubles, et `operator<<` écrit `[0, 5e-324]` sous la forme `<0, 4.95e-324>` sous DAZ. Non corrigés.
-- **13** : un zéro de l'un ou l'autre signe garde les chevrons (`<-0, 0>` pour `interval::zero()`), sinon ce serait `[-0, 0]` :
+- **10** (fusionné) : `hausdorff()` sur des bornes infinies est un peu plus lent (14 ns au lieu de 4,5 ns) ; une sortie anticipée est
+  possible. `[1, 2] - 1` a `-0` pour borne inférieure : faut-il normaliser les zéros des opérations d'intervalles ?
+- **11** (fusionné) : le même effet de denormals-are-zero existe hors du lecteur : l'action de `gaol_interval_parser.ypp` compare des
+  bornes sous-normales comme des doubles, et `operator<<` écrit `[0, 5e-324]` sous la forme `<0, 4.95e-324>` sous DAZ. Non corrigés.
+- **13** (fusionné) : un zéro de l'un ou l'autre signe garde les chevrons (`<-0, 0>` pour `interval::zero()`), sinon ce serait `[-0, 0]` :
   à confirmer. `<a, a>` n'est pas un littéral d'IEEE 1788-2015 (un point y est `[m]`) : à traiter avec le point 16.
-- **15** : la lecture par mot n'est pas faite (un intervalle contient des espaces, la grammaire admet des expressions) ; options : un
-  intervalle par ligne (fait), seulement les littéraux jusqu'au crochet fermant, ou une fonction à part.
-- **18** : l'analyse des chiffres reste quadratique (20 000 chiffres : 0,02 s ; 100 000 : 0,55 s) ; neuf chiffres par passe la
+- **15** (fusionné) : la lecture par mot n'est pas faite (un intervalle contient des espaces, la grammaire admet des expressions) ;
+  options : un intervalle par ligne (fait), seulement les littéraux jusqu'au crochet fermant, ou une fonction à part.
+- **18** (fusionné) : l'analyse des chiffres reste quadratique (20 000 chiffres : 0,02 s ; 100 000 : 0,55 s) ; neuf chiffres par passe la
   rendraient neuf fois plus rapide.
-- **24** : beaucoup d'opérations lèvent encore FE_INVALID sur les bornes NaN d'un opérande vide (liste dans `todo-notes/24.md`) ; seule
-  `is_empty()` est corrigée, le reste est documenté (les exceptions matérielles doivent être désactivées).
+- **24** (fusionné) : beaucoup d'opérations lèvent encore FE_INVALID sur les bornes NaN d'un opérande vide (liste dans
+  `todo-notes/24.md`) ; seule `is_empty()` est corrigée, le reste est documenté (les exceptions matérielles doivent être désactivées).
 - **39** : l'exemple 16 garde le style de GAOL 4 et la première ligne `<-0, 0>` ; `examples/examples.md` dit encore que les exemples du
   manuel « sont justes ».
-- **42** : correction par la documentation plutôt que par l'ordre `python`/`python3` (changer l'ordre fait perdre à meson son repli sur
-  son propre Python) ; un pas de CI qui lance meson sans Python dans le `PATH` n'est pas fait.
-- **43** : les règles de lecture diffèrent pour les blancs exotiques (autoconf accepte `5. 0.0` à la génération, `strip()` de meson
-  enlève aussi les espaces Unicode) ; un fichier en UTF-16 est refusé avec ses octets, non décodé.
+- **42** (fusionné) : correction par la documentation plutôt que par l'ordre `python`/`python3` (changer l'ordre fait perdre à meson son
+  repli sur son propre Python) ; un pas de CI qui lance meson sans Python dans le `PATH` n'est pas fait.
+- **43** (fusionné) : les règles de lecture diffèrent pour les blancs exotiques (autoconf accepte `5. 0.0` à la génération, `strip()` de
+  meson enlève aussi les espaces Unicode) ; un fichier en UTF-16 est refusé avec ses octets, non décodé.
 
 ### Reprise
 
-Fusionner les pull requests dans l'ordre qui vous convient, puis pour chaque branche restante : lui fusionner `configure-clean` si
-elle a un conflit, vérifier la CI, ouvrir la pull request. Ensuite : relire les branches non relues (6, 40) et terminer les six
-inachevées ; commencer les points non commencés ; écrire la pull request de synthèse (retirer les points faits de ce fichier, consigner
-les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule fois `manual/v5/gaol.pdf` : aucune branche n'y touche, pour
-éviter des conflits binaires) ; mesurer enfin le point 33 sur une machine au repos.
+Pour chaque branche restante : lui fusionner `configure-clean` si elle a un conflit (fusion, jamais de réécriture d'une branche
+poussée), vérifier la CI, ouvrir la pull request. Ordre proposé : les deux branches approuvées (16, 39), puis 40 (à valider) et 6 (à
+relire), puis les inachevées (3, 4, 8, 12, 17, 36 : relire, terminer, lancer la CI) ; commencer les points non commencés ; écrire la
+pull request de synthèse (retirer les points faits de ce fichier, consigner les changements dans `ChangeLog` et `doc/differences.md`,
+régénérer une seule fois `manual/v5/gaol.pdf` : aucune branche n'y touche, pour éviter des conflits binaires) ; mesurer enfin le point
+33 sur une machine au repos. Le point 3 attend la correction du 1 (fusionnée) ; le 17 attend le 16.
 
 ## Code
-
-1. **Le pow de la norme est écrit deux fois.** `gaol_ieee1788::pow`
-   (`gaol/gaol_interval.cpp`) intersecte x avec [0, +oo] et traite à part
-   x = {0}, et `gaol_pow_hybrid()` le refait. Correction : faire de la moitié
-   « norme » de `gaol_pow_hybrid()`, le pow de la table 9.1 pour un exposant
-   intervalle, une fonction de `gaol/gaol_interval.cpp` ; `gaol_pow_hybrid()`
-   n'y ajoute que le cas pown d'un exposant entier dégénéré, et
-   `gaol_ieee1788::pow` appelle directement cette moitié, sauf pour ses
-   exposants entiers au-delà des int.
 
 2. **Le sens d'arrondi est encore vérifié plus d'une fois** par `pow(x, y)`
    quand il passe par exp(y log x) (une borne infinie, ou une base partant de
@@ -215,22 +220,6 @@ les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule
      avec ces options, ou charger du code compilé avec elles, rend les bornes
      fausses.
 
-5. **`-ffinite-math-only` n'est pas refusé** (revue n° 4). Le compilateur
-   suppose alors que les NaN et les infinis n'arrivent jamais, y compris dans
-   les fonctions inline des en-têtes, compilées avec les options du
-   programme : l'ensemble vide ayant des bornes NaN,
-   `([1,2] & [3,4]).is_empty()` est faux, et l'enveloppe de l'ensemble vide et
-   de [1, 2] est vide. Le `-fno-fast-math` de `gaol.pc` ne protège que s'il
-   vient après l'option sur la ligne de commande.
-   `-funsafe-math-optimizations`, et `-ffast-math -fno-finite-math-only`,
-   qu'aucune macro ne révèle, laissent GCC réduire la sonde `1 + tiny == 1` en
-   `tiny == 0` dans le code inline, si bien que `width()` après un changement
-   de sens est sous la largeur exacte. Correction : un `#error` sur
-   `__FINITE_MATH_ONLY__` dans `gaol_config.h`, à côté de celui sur
-   `__FAST_MATH__`, une ligne dans les options refusées de
-   `doc/three-builds.md`, et un test de compilation comme dans
-   `tests/fp_strict`.
-
 6. **`pow` rate un résultat sous-normal quand l'unité x87 et MXCSR ne sont pas
    d'accord** (revue n° 3) : sur x86-64 avec la glibc, l'unité x87 arrondissant
    au plus proche et MXCSR vers le haut, comme les laisse `exactinit()` des
@@ -253,24 +242,6 @@ les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule
    1600, contre « les mêmes bornes sur toutes les machines » de
    `doc/accuracy.md`. Les mettre d'accord, ou le dire là.
 
-10. **`hausdorff()` sur les bornes infinies, `nb_fp_numbers()` sur −0** (revue
-    n° 19 et n° 20). `hausdorff(x, x)` vaut +oo pour x = [1, +oo], de même que
-    `hausdorff([1, +oo], [2, +oo])`, dont la distance vaut 1 : une boucle de
-    point fixe sur une boîte à un côté non borné ne s'arrête jamais.
-    Correction, dans les deux builds : des bornes égales, infinies comprises,
-    sont à distance 0. `nb_fp_numbers(-0.0, 1.0)` fait le tour et vaut
-    13830554455654793217, et `[1, 2] - 1` a pour borne inférieure −0.
-    Correction : numéroter les doubles par les bits de `std::fabs(a)` et
-    `std::fabs(b)`.
-
-11. **Le lecteur donne un encadrement sous-normal faux avec le flush-to-zero et
-    le denormals-are-zero** : `textToInterval("1e-310")` vaut
-    [0x0.fffffffffffffp-1022, 0x1p-1022], qui ne contient pas 1e-310 (GAOL s'y
-    bloquait avant la bissection sur les bits). `gaol_compare_number()`
-    (`gaol/gaol_interval_lexer.lpp`) teste `!(x > 0.0)` et prend
-    `std::frexp()` du double candidat, que DAZ lit comme 0. Correction :
-    prendre l'exposant et la mantisse du candidat dans ses bits.
-
 ## Plantages
 
 12. **Les longues sommes débordent la pile** (revue n° 17) : une somme de
@@ -283,24 +254,6 @@ les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule
     destruction sans récursion.
 
 ## Flux et texte
-
-13. **Un intervalle ponctuel est écrit sous une forme que le lecteur refuse**
-    (revue n° 12) : `<0.1, 0.1000000000000001>` dans le format par défaut, que
-    le lecteur refuse (« bounds of degenerate interval do not evaluate to the
-    same value »), si bien que
-    `textToInterval(intervalToText(interval(0.1)))` est l'ensemble vide,
-    contrairement au manuel. Correction : dans `display_bounds()`, écrire
-    `<a, a>` seulement quand les deux textes sont égaux, et `[l, r]` sinon, et
-    corriger le manuel là où il montre `<0.1, 0.1000000000000001>`.
-
-15. **`operator>>` lève une exception sur une ligne vide**, et sur
-    `in >> d >> x`, où l'intervalle lit le reste vide de la ligne du nombre :
-    un fichier qui finit par une ligne vide termine `while (in >> x)` par
-    `input_format_error`. Correction : lire avec
-    `std::getline(is >> std::ws, buffer)`, qui saute les blancs comme la
-    lecture d'un nombre, ou dire dans le manuel qu'une ligne vide est mal
-    formée. Lire un intervalle par mot plutôt que par ligne permettrait aussi
-    de relire ce qu'écrit `os << x << ' ' << y`.
 
 16. **Les formats largeur et centre** (revue n° 21) affichent un centre et un
     rayon arrondis au plus proche, qui ne contiennent pas forcément
@@ -321,14 +274,6 @@ les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule
     comme `std::right`. À mesurer sur des programmes qui écrivent beaucoup
     d'intervalles ; formater dans un tampon de caractères plutôt que dans un
     flux en économiserait l'essentiel.
-
-18. **Lire un long nombre sous une locale à virgule est lent** : chacune des
-    125 comparaisons au plus de `gaol_enclose_number()` réanalyse le texte, en
-    un temps quadratique en sa longueur : 2,5 s pour 20 000 caractères, contre
-    0,08 s sous la locale C. Correction : analyser une fois la mantisse et
-    l'exposant et les comparer à chaque double, ou donner à `strtod()` une
-    copie du texte avec le séparateur décimal de `localeconv()`, pour que sa
-    valeur soit de nouveau juste et que deux comparaisons suffisent.
 
 ## En-têtes
 
@@ -379,15 +324,6 @@ les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule
     barrière. Correction : un `gaol::restore_rounding()` qu'on peut appeler
     autant de fois qu'on veut, une garde qui calcule un bloc au plus proche
     (environ 7 ns), et `rnd_keep()` documenté.
-
-24. **Indicateurs et exceptions flottantes.** Avec les exceptions matérielles
-    activées (`feenableexcept`), `1/[0,1]`, `log([0,1])`, `[1e308]*10` et
-    chaque `is_empty()` d'un ensemble vide calculé meurent sur SIGFPE : les
-    résultats non bornés viennent de dépassements ou de divisions par zéro, et
-    `is_empty()` compare des bornes NaN avec une comparaison signalante.
-    Chaque opération lève l'indicateur inexact. Correction : `is_empty()` avec
-    `std::islessequal`, sans coût, et un mot dans la documentation pour dire
-    que les exceptions matérielles doivent être désactivées.
 
 25. **Les outils que chaque algorithme réécrit** : `mulRevToPair` (un
     `div_rel` en deux morceaux), `inflate`, `bisect(ratio)` et
@@ -536,20 +472,3 @@ les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule
     besoin (`-frounding-math`, `-ffp-contract=off`..., celles de `gaol.pc`),
     que les arguments du projet ne transmettent pas au projet parent ; ou
     retirer la promesse du commentaire.
-
-42. **meson 0.53 sous Windows peut prendre le faux Python du Microsoft
-    Store.** `find_program('python3', 'python', native: true)`, qui lit
-    `VERSION.txt` dans `project()`, peut trouver le `python3.exe` de
-    `WindowsApps`, qui ne fait qu'ouvrir le Store et que meson 0.53 n'écarte
-    pas : `run_command` échoue et `meson setup` s'arrête. Non reproduit (pas
-    de Windows ici) ; l'intégration continue n'est pas touchée, son meson
-    venant de pip et étant récent. Correction : chercher `python` avant
-    `python3` sous Windows, ou le dire dans la section meson de
-    `doc/building.md`.
-
-43. **Un `VERSION.txt` qui commence par une marque d'ordre des octets**
-    (UTF-8 avec BOM, comme l'enregistrent certains éditeurs sous Windows) est
-    refusé par les trois builds avec « VERSION.txt holds "7.3.11" », dont le
-    caractère fautif ne se voit pas. Correction : retirer une marque d'ordre
-    des octets en tête avant de lire la version, ou dire dans le message que le
-    fichier ne doit contenir que des chiffres et des points.
