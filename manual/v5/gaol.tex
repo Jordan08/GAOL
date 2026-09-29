@@ -641,6 +641,15 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
   \end{tabular}
 \end{center}
 
+\noindent
+\cmd{meson setup} runs Python once, to read the version of GAOL in
+\file{VERSION.txt}: the first of \cmd{python3} and \cmd{python} found in the
+\code{PATH}, or, if there is none, the Python that runs meson. On Windows,
+meson 0.53.0 and earlier may take the \file{python.exe} or \file{python3.exe}
+alias of the Microsoft Store (in \file{WindowsApps}), which only opens the
+Store, and \cmd{meson setup} then stops; use meson 0.53.1 or later, or turn off
+the aliases in the Windows settings (\emph{Manage app execution aliases}).
+
 \section{Tests}\label{sec:tests}
 %%-------------
 \cindex{tests}%
@@ -2906,9 +2915,16 @@ cout << interval(4,5).mag() << ' '
                           |\rightBound{I_1}-\rightBound{I_2}|)
 \end{equation*}
 rounded upward: the tightest upper bound of the distance.\newinvfive
+
+Two equal bounds, infinite ones included, are at distance 0: the distance of
+\itv{1}{+\infty} to itself is 0, and to \itv{2}{+\infty} is 1
+(GAOL~4 returned $+\infty$ for both). It is $+\infty$ when a bound is infinite in
+one of the two intervals only, and a NaN when one of them is empty.\newinvfive
 \begin{example}
-cout << hausdorff(interval(4,8),interval(5,10));
-@outputs^2~
+cout << hausdorff(interval(4,8),interval(5,10)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(2,GAOL_INFINITY)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(1,2));
+@outputs^2 1 inf~
 \end{example}
 \end{deffun}
 
@@ -3271,7 +3287,11 @@ direction (the C runtime of Windows, musl on 64-bit ARM processors).
 The point of a number is a point whatever the locale of the program, a locale
 writing a decimal comma included (as \code{setlocale(LC\_ALL, "")} sets under
 a French one).\newinvfive{} GAOL~4 read \code{0.1} as 0 there,
-\code{strtod()} stopping at the point.
+\code{strtod()} stopping at the point. The modes of the processor that flush
+the subnormal numbers to zero (flush-to-zero and denormals-are-zero, which a
+program linked with \code{-Ofast} has) do not change what a number is read as:
+\code{1e-310} is read as the tightest interval of doubles containing it, and
+\code{0} as 0.\newinvfive{}
 \cindex{number!reading}%
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} of IEEE 1788-2015
@@ -3328,7 +3348,8 @@ appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}.
+\code{"<0.1, 0.1>"}. It is the form in which \code{operator<{}<} writes the
+degenerate intervals whose digits are exact (\pxref{sec:output-format}).
 
 \paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
 whose right bound is $-\infty$ is the empty set, as \code{numsToInterval} of
@@ -3438,15 +3459,21 @@ the last character of the left one that is not a zero, and wrote
 \end{example}
 
 \item[\element{bounds}.] By printing the bounds between square brackets.
-Degenerate intervals whose left and right bound are equal are printed with angles:
+Degenerate intervals whose left and right bound are equal, and are written
+exactly by the digits displayed, are printed with angles:
 \begin{example}
  interval::format(interval_format::bounds);
  std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
  @outputs^[3, 5] <4, 4>~
 \end{example}
 A degenerate interval whose value has more digits than those displayed is
-printed with its two bounds rounded outward: \code{interval(0.1)} is printed
-\code{<0.1, 0.1000000000000001>}.
+printed like any other interval, with its two bounds rounded outward between
+square brackets: \code{interval(0.1)} is printed
+\code{[0.1, 0.1000000000000001]}. The reader takes the angles for one double
+only (\pxref{sec:input-format}), so that the text of a degenerate interval is
+read back, as any other, as an interval containing it.\newinvfive{} GAOL~4 printed
+\code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its reader
+refused (\code{input\_format\_error}).
 
 \item[\element{width}.] by printing their midpoint and their width:
 \begin{example}
@@ -4040,6 +4067,10 @@ Returns the number of floating-point numbers in the interval
 \item \code{nb\_fp\_numbers(a,next\_float(a)) == 2}
 \item \code{nb\_fp\_numbers(a,a) == 1}
 \end{itemize}
+The two zeros are the same number: \code{nb\_fp\_numbers(-0.0,0.0)} is 1, and
+\code{nb\_fp\_numbers(-0.0,1.0)}, \code{nb\_fp\_numbers(-1.0,0.0)} and
+\code{nb\_fp\_numbers(0.0,1.0)} are all $4607182418800017409$ (GAOL~4 returned
+$13830554455654793217$ for the first two).\newinvfive
 
 \paragraph{Note.} As a precondition, \var{a} shall be lower or equal to \var{b}.
 

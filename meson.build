@@ -12,8 +12,14 @@ project(
   # CMakeLists.txt); Python reads it, with meson 0.53 as later ones
   # (version: files() needs meson 0.57). The Python of the machine building,
   # even in a cross build (native), and the path as the last argument, which
-  # the meson.exe of 0.53 gives to runpython after its own ones. The encoding
-  # utf-8-sig skips the byte order mark that some editors of Windows write at
+  # the meson.exe of 0.53 gives to runpython after its own ones (GAOL v5).
+  # python3 stays first: only when the first name ends with python3 does
+  # meson fall back on its own Python (the meson.exe of the Windows installer)
+  # if it finds none. Looking for python first would lose that fallback, and
+  # would not avoid the Microsoft Store aliases of meson 0.53.0, which
+  # WindowsApps holds for python.exe as for python3.exe: meson 0.53.1 and later
+  # leave that directory out (doc/building.md). The encoding utf-8-sig skips
+  # the byte order mark that some editors of Windows write at
   # the start of a file, which the default encoding (the code page of Windows,
   # cp1252) reads as three characters of the version. What is not the version
   # is written as ASCII, with escapes (\u200b for a zero-width space, \udcff

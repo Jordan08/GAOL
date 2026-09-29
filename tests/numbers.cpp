@@ -5,8 +5,9 @@
  *
  * An interval read from a number, textToInterval("0.1"), has to be the
  * tightest interval of doubles enclosing it, and the double itself when the
- * number is one, whatever the C library. Each number is compared exactly with
- * the bounds read. The constants have to be the tightest intervals enclosing
+ * number is one, whatever the C library, and whether the processor flushes the
+ * subnormals to zero or not. Each number is compared exactly with the bounds
+ * read. The constants have to be the tightest intervals enclosing
  * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
@@ -41,10 +42,18 @@
 
 #include "gaol_tests.h"
 
+#include <chrono>
 #include <clocale>
 #include <cstdlib>
 #include <iomanip>
 #include <type_traits>
+
+// The control register of the SSE instructions, where the flush-to-zero and
+// denormals-are-zero modes are set
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_HAVE_MXCSR 1
+#endif
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -155,6 +164,134 @@ namespace
           [&] { return hex(two); });
     const interval sum = textToInterval("0.1+0.2");
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
+  }
+
+#if GAOL_TESTS_HAVE_MXCSR
+  // The bits of MXCSR that flush the subnormals: flush-to-zero (bit 15), which
+  // flushes the subnormal results of the operations to 0, and
+  // denormals-are-zero (bit 6), which makes the operations and the
+  // comparisons read a subnormal as 0
+  const unsigned int flush_to_zero = 0x8000u, denormals_are_zero = 0x0040u;
+
+  // Sets the bits of MXCSR it is given for its lifetime, and restores them as
+  // it found them afterwards, the rounding direction and the flags being left
+  // alone
+  class Flushing
+  {
+    public:
+
+      explicit Flushing(unsigned int bits)
+        : bits_(bits), saved_(_mm_getcsr() & bits)
+      {
+        _mm_setcsr(_mm_getcsr() | bits_);
+      }
+
+      ~Flushing()
+      {
+        _mm_setcsr((_mm_getcsr() & ~bits_) | saved_);
+      }
+
+    private:
+
+      const unsigned int bits_, saved_;
+  };
+
+  // Whether the processor reads a subnormal as 0 with denormals-are-zero: the
+  // least positive double is then not above 0. The result of the comparison is
+  // written to volatile memory before the mode is restored: GCC and Clang do
+  // not model MXCSR, and made the comparison after the destructor of Flushing
+  // otherwise, where the mode is not set anymore.
+  bool honours_denormals_are_zero()
+  {
+    volatile double least = std::numeric_limits<double>::denorm_min();
+    volatile bool not_above_zero;
+    {
+      Flushing flushing(denormals_are_zero);
+      not_above_zero = !(least > 0.0);
+    }
+    return not_above_zero;
+  }
+#endif
+
+  /*
+    Numbers read with flush-to-zero and denormals-are-zero set (GAOL v5), as a
+    program linked with -Ofast has them (crtfastmath.o), or which loads code
+    that has them set. The reader compared each number with the doubles around
+    it, taken as doubles, and with denormals-are-zero a subnormal is 0 in the
+    comparisons and for std::frexp(): 1e-310 was above every subnormal, and
+    read as [0x0.fffffffffffffp-1022, 0x1p-1022], the interval from the
+    greatest subnormal to the least normal double, which does not enclose it,
+    and 0 was equal to every subnormal, and read as the greatest one. The mode
+    is set for the reading only, the exact arithmetic of the checks reading
+    doubles as doubles too. x86 only, where MXCSR is: nothing is checked
+    elsewhere, nor where the processor does not honour denormals-are-zero.
+  */
+  void subnormal_numbers()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    if (!honours_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is not honoured: the reading of numbers with it is not checked\n");
+      return;
+    }
+    const struct { const char *name; unsigned int bits; } modes[] = {
+      { "flush-to-zero", flush_to_zero },
+      { "denormals-are-zero", denormals_are_zero },
+      { "flush-to-zero and denormals-are-zero", flush_to_zero | denormals_are_zero },
+    };
+    // The exact value of the number read, or the exact bounds of the interval
+    struct Text { std::string s; Exact lo, hi; };
+    const auto number = [](const std::string& s) { return Text{ s, decimal(s), decimal(s) }; };
+    // 2^-1075, half the least positive double, which is no double
+    Dyadic half_least;
+    half_least.sign = 1;
+    half_least.m = Natural(1);
+    half_least.e = -1075;
+    std::vector<Text> texts = {
+      number("0"),
+      number("0.0"),
+      number("1e-400"),                   // Below the least subnormal
+      number("2.5e-324"),                 // Between 0 and the least subnormal, 4.94e-324
+      number("5e-324"),                   // Between the two least subnormals
+      number("1e-320"),
+      number("1e-310"),
+      number("1e-309"),
+      number("2.2250738585072008e-308"),  // Below the greatest subnormal
+      number("2.2250738585072011e-308"),  // Between it and the least normal double
+      number("2.2250738585072014e-308"),  // Just above the least normal double
+      number("1e-300"),
+      { "-1e-310", -decimal("1e-310"), -decimal("1e-310") },
+      { "[1e-310, 1e-309]", decimal("1e-310"), decimal("1e-309") },
+      { "1?e-310", decimal("0.5e-310"), decimal("1.5e-310") },
+      // Hexadecimal: the least subnormal, half the least normal double and the
+      // greatest subnormal, which are doubles, and a number between the
+      // greatest subnormal and the least normal double
+      { "0x1p-1074", exact(0x1p-1074), exact(0x1p-1074) },
+      { "0x0.8p-1022", exact(0x0.8p-1022), exact(0x0.8p-1022) },
+      { "0x0.fffffffffffffp-1022", exact(0x0.fffffffffffffp-1022), exact(0x0.fffffffffffffp-1022) },
+      { "0x1.fffffffffffffp-1023", exact(dyadic(0x1p-1022) - half_least), exact(dyadic(0x1p-1022) - half_least) },
+    };
+    // Subnormals and the least normal doubles, written with 17 digits, and
+    // their exact decimal expansions, whose reading gives them back
+    Random random;
+    for (int i = 0; i < 100; ++i) {
+      const double x = random.positive(-1023, -1023), y = random.positive(-1023, -1021);
+      for (double d : { x, y }) {
+        texts.push_back(number(format("%.16e", d)));
+        texts.push_back(number(format("%.1100f", d)));
+      }
+    }
+    for (const auto& mode : modes) {
+      const std::string name = std::string("textToInterval(number) with ") + mode.name + ": the tightest enclosure";
+      for (const auto& t : texts) {
+        const interval r = evaluate(name, [&] { Flushing flushing(mode.bits); return textToInterval(t.s); },
+                                    [&] { return t.s.substr(0, 40); });
+        check(name, !r.is_empty() && is_tightest_enclosure(r, t.lo, t.hi),
+              [&] { return "\"" + t.s.substr(0, 40) + "\": " + hex(r); });
+      }
+    }
+#else
+    std::printf("No control register of the SSE instructions: the reading of numbers with flush-to-zero and denormals-are-zero is not checked\n");
+#endif
   }
 
   void constants()
@@ -448,6 +585,12 @@ namespace
     round_trip(interval(smallest, 4.0 * smallest), "subnormal");
     round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
     round_trip(interval::pi(), "pi");
+    // Point intervals, which are written [a, a] in this format, never in the
+    // angles whose two numbers have to be the same double
+    round_trip(interval(0.1), "[0.1]");
+    round_trip(interval(-1.0 / 3.0), "[-1/3]");
+    round_trip(interval(smallest), "[smallest]");
+    round_trip(interval(max_double), "[MAX]");
     interval::format(saved);
   }
 
@@ -498,6 +641,47 @@ namespace
     }
   }
 
+  /*
+    The point interval given, written by operator<< with the flags and the
+    precision given, has to be read back by textToInterval(), as an interval
+    enclosing it (GAOL v5). GAOL wrote every point interval <a, b>, the text
+    of its double rounded downward and upward, which the reader takes for the
+    same double only: <0.1, 0.1000000000000001> was refused, and the text of
+    interval(0.1) read back as the empty set with textToInterval() of IEEE
+    1788-2015. The form <a, a> has to write the point itself, twice, and to be
+    read as the point; the other point intervals are written [a, b], which
+    encloses it. A zero is written exactly whatever the sign of its bounds, and
+    keeps the angles: [-0, 0], which interval::zero() and x - x are with the
+    SSE2 intervals, is written <-0, 0>, which the reader takes, -0 being 0.
+  */
+  void expect_point_output(const interval& point, std::ios_base::fmtflags flags, int precision)
+  {
+    const std::string name = "operator<< of a point interval";
+    const double x = point.left();
+    std::ostringstream os;
+    os.flags(flags);
+    interval::precision(precision);
+    os << point;
+    const std::string s = os.str();
+    const auto describe = [&] { return hex(point) + " with the precision " + std::to_string(precision) + " written " + s; };
+    const interval back = evaluate(name + ", read back", [&] { return textToInterval(s); }, describe);
+    check(name + ", read back: encloses the point", back.set_contains(point), describe);
+    if (x == 0.0) {
+      check(name + " of zero: in angles", s[0] == '<', describe);
+    }
+    if (s[0] == '<') {
+      const std::size_t comma = s.find(", ");
+      if (!check(name + " in angles: two bounds", comma != std::string::npos && s.size() >= comma + 4
+                 && s[s.size() - 1] == '>', describe)) {
+        return;
+      }
+      const Exact vl = written(s.substr(1, comma - 1)), vr = written(s.substr(comma + 2, s.size() - comma - 3));
+      check(name + " in angles: both bounds are the point", compare(x, vl) == 0 && compare(x, vr) == 0, describe);
+      check(name + " in angles: read back as the point", back.left() == x && back.right() == x,
+            [&] { return describe() + " read " + hex(back); });
+    }
+  }
+
   void decimal_output()
   {
     const interval_format::format_t saved_format = interval::format();
@@ -527,6 +711,53 @@ namespace
           expect_output("operator<< in decimal, near powers of ten", -x, x, flags, p);
         }
       }
+    }
+
+    // The text of a point interval is read back, and encloses it, whatever the
+    // precision: the digits write some of the points exactly (1, 0.5, 1e22,
+    // and the doubles with few digits, from the precision that holds them),
+    // and not the others (0.1, 1/3, all of them with a precision of 1)
+    const std::ios_base::fmtflags point_flags[] = { general, general | showpoint, scientific, fixed,
+                                                    general | std::ios_base::showpos,
+                                                    scientific | std::ios_base::uppercase };
+    for (double x : special) {
+      for (int p = 1; p <= 25; ++p) {
+        for (std::ios_base::fmtflags flags : point_flags) {
+          if (flags == fixed && (std::fabs(x) > 1e30 || std::fabs(x) < 1e-30)) {
+            continue; // Hundreds of digits
+          }
+          expect_point_output(interval(x), flags, p);
+          expect_point_output(interval(-x), flags, p);
+        }
+      }
+    }
+    const interval zeros[] = { interval(0.0), interval(-0.0), interval(-0.0, 0.0), interval(0.0, -0.0),
+                               interval::zero(), interval(1.0) - interval(1.0) };
+    for (const interval& z : zeros) {
+      for (int p : precisions) {
+        for (std::ios_base::fmtflags flags : point_flags) {
+          expect_point_output(z, flags, p);
+        }
+      }
+    }
+    // The forms of the manual: angles where the digits write the point, and the
+    // bounds of any other interval where they do not
+    interval::precision(16);
+    const struct { const char *name; interval x; const char *text; } forms[] = {
+      { "interval(4)", interval(4.0), "<4, 4>" },
+      { "interval(0.5)", interval(0.5), "<0.5, 0.5>" },
+      { "interval(-1024)", interval(-1024.0), "<-1024, -1024>" },
+      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
+      { "interval(-0.1)", interval(-0.1), "[-0.1000000000000001, -0.1]" },
+      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
+      { "the double nearest 2/3", interval(0x1.5555555555555p-1), "[0.6666666666666666, 0.6666666666666667]" },
+      { "interval(1, 2)", interval(1.0, 2.0), "[1, 2]" },
+    };
+    for (const auto& f : forms) {
+      std::ostringstream os;
+      os << f.x;
+      check(std::string("operator<< of ") + f.name + ": the form of the manual", os.str() == f.text,
+            [&] { return "\"" + os.str() + "\" rather than \"" + f.text + "\""; });
     }
 
     Random random;
@@ -736,14 +967,99 @@ namespace
           [&] { return hex(u); });
   }
 
+  // A number of some thousands of characters, and the tightest interval of
+  // doubles enclosing it, which is known without reading it: 1.5 followed by
+  // zeros is 1.5, and followed by zeros and a 1, is between 1.5 and the next
+  // double
+  struct Long_number
+  {
+    std::string text;
+    double left, right;
+  };
+
+  std::vector<Long_number> long_numbers(std::size_t n)
+  {
+    const std::string zeros(n, '0'), nines(n, '9'), digits = std::to_string(n);
+    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    return {
+      { "1.5" + zeros, 1.5, 1.5 },
+      { "1.5" + zeros + "1", 1.5, next_double(1.5) },
+      { "1." + nines, previous_double(2.0), 2.0 },
+      { "1" + zeros + "e-" + digits, 1.0, 1.0 },
+      { "15" + zeros + "e-" + std::to_string(n + 1), 1.5, 1.5 },
+      { "0." + zeros + "1e" + digits, previous_double(0.1), 0.1 }, // 0.1 is above 1/10
+      { "0x1." + zeros + "8p0", 1.0, next_double(1.0) },
+      { "0x1.8" + zeros + "p1", 3.0, 3.0 },
+      { "1" + zeros, dmax, inf },
+      { "0." + zeros + "1", 0.0, dmin },
+      // The uncertain form: half a unit of the last place, then one unit
+      { "1.5" + zeros + "?", previous_double(1.5), next_double(1.5) },
+      { "1.5" + zeros + "?1", previous_double(1.5), next_double(1.5) },
+    };
+  }
+
+  // The long number that took the longest to read under a locale writing a
+  // decimal comma (20000 characters)
+  Long_number slowest_long_number()
+  {
+    return { "1.5" + std::string(20000, '0') + "1", 1.5, next_double(1.5) };
+  }
+
+  void check_long_number(const std::string& where, const Long_number& l)
+  {
+    const interval x = textToInterval(l.text);
+    check("textToInterval(long number) " + where + ": the tightest enclosure", x.left() == l.left && x.right() == l.right,
+          [&] { return "\"" + l.text.substr(0, 12) + "...\" of " + std::to_string(l.text.size()) + " characters: " + hex(x); });
+  }
+
+  void check_long_numbers(const std::string& where)
+  {
+    for (const Long_number& l : long_numbers(5000)) {
+      check_long_number(where, l);
+    }
+    check_long_number(where, slowest_long_number());
+  }
+
+  // The least time, in seconds, that three readings of the text s take
+  double reading_time(const std::string& s)
+  {
+    double least = inf;
+    for (int i = 0; i < 3; ++i) {
+      const auto start = std::chrono::steady_clock::now();
+      static_cast<void>(textToInterval(s));
+      const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+      if (elapsed.count() < least) {
+        least = elapsed.count();
+      }
+    }
+    return least;
+  }
+
+  /*
+    Long numbers, under the C locale: the reading takes the digits apart once,
+    for the comparisons with the doubles around the number (GAOL v5).
+  */
+  void long_numbers_c_locale()
+  {
+    check_long_numbers("under the C locale");
+  }
+
   /*
     Numbers read, and exact texts written, under a locale writing a decimal
     comma, which a program sets with setlocale(LC_ALL, "") (GAOL v5): strtod()
     stops there at the '.' of "0.1" and gives 0, from which the reader moved
     one double at a time, about 4.6e18 of them, and never returned; and
     exact_string() wrote the '.' of printf("%a") as a comma,
-    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. Nothing is checked
-    where no such locale is installed.
+    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. The reader then
+    compared the number with about 125 doubles, and read its text again for
+    each of them, in a time quadratic in the length of the text: seconds for
+    20000 characters, where the C locale, which needs two comparisons, took a
+    twentieth of a second. The long numbers have to be read as under the C
+    locale, and in about the same time: the reading under the C locale is
+    timed on the same machine, and the one under the comma locale has to take
+    at most 10 times as long, and 50 ms more, a margin that a slow or a busy
+    machine does not exhaust (the fault made it 50 times as long). Nothing is
+    checked where no such locale is installed.
   */
   void comma_locale()
   {
@@ -776,6 +1092,14 @@ namespace
       check("exact_string() read back under a locale writing a decimal comma", y.left() == x && y.right() == x,
             [&] { return exact_string(interval(x)) + " read " + hex(y); });
     }
+    check_long_numbers("under a locale writing a decimal comma");
+    const std::string slowest = slowest_long_number().text;
+    std::setlocale(LC_NUMERIC, "C");
+    const double in_c = reading_time(slowest);
+    std::setlocale(LC_NUMERIC, comma);
+    const double in_comma = reading_time(slowest);
+    check("textToInterval(long number) under a locale writing a decimal comma: the time of the C locale", in_comma <= 10*in_c + 0.05,
+          [&] { return std::string(comma) + ": " + std::to_string(in_comma) + " s, against " + std::to_string(in_c) + " s under the C locale"; });
     std::setlocale(LC_NUMERIC, saved.c_str());
   }
 }
@@ -784,6 +1108,7 @@ int main()
 {
   gaol::init();
   numbers();
+  subnormal_numbers();
   constants();
   constructors();
   ieee_literals();
@@ -793,6 +1118,7 @@ int main()
   stream_output();
   stream_input();
   long_exponents();
+  long_numbers_c_locale();
   comma_locale();
   const int status = summary();
   gaol::cleanup();

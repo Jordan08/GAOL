@@ -37,9 +37,10 @@ header.
   `configure` as it is committed (see
   [below](#the-archive-of-the-sources-and-the-packages)). It says nothing for
   a tree without `configure`, or with a `configure` that has no such line.
-- meson reads it in `project()`, with Python, which works with meson 0.53 as
-  with later ones (`version: files()` needs meson 0.57); a change of
-  `VERSION.txt` configures again.
+- meson reads it in `project()`, with Python (see [With meson](#with-meson)
+  for the Python it takes), which works with meson 0.53 as with later ones
+  (`version: files()` needs meson 0.57); a change of `VERSION.txt` configures
+  again.
 - `configure` reads it when it runs, whence all that follows, and make runs it
   again when `VERSION.txt` changes (`CONFIG_STATUS_DEPENDENCIES` of
   `Makefile.am`). Only what `AC_INIT` writes when autoconf generates
@@ -240,6 +241,23 @@ project). The summary of `meson setup` gives the address for the bug reports,
 jordan.ninin@ensta.fr, and the page of GAOL v5, https://github.com/Jordan08/GAOL.
 The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
+
+`meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
+[The version of GAOL](#the-version-of-gaol)): the first of `python3` and
+`python` that it finds in `PATH` or, when it finds neither, the Python that
+runs meson, which is what the `meson.exe` of the Windows installer does when
+no Python is installed. `meson.build` names `python3` first because meson
+falls back on its own Python for that name alone.
+
+On Windows, the directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`
+holds the aliases `python.exe` and `python3.exe`, which only open the
+Microsoft Store when Python was not installed from it. meson 0.53.1 and later
+(the 0.53.2 of Ubuntu 20.04 and the meson of pip among them) leave that
+directory out of their search for programs. meson 0.53.0 and earlier take the
+alias, and `meson setup` stops on the failure of the command that reads
+`VERSION.txt`: use a later meson (`pip install meson`), or turn off the
+aliases of `python.exe` and `python3.exe` in the Windows settings ("Manage app
+execution aliases").
 
 ## Tests, examples, performance and the parser
 

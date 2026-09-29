@@ -94,46 +94,20 @@
 	{
 		if (I1.is_empty() || I2.is_empty()) {
 			return std::numeric_limits<double>::quiet_NaN();
-		} else {
-			int cmpinf = (_mm_movemask_pd(_mm_cmpeq_pd(I1.get_xmminterval(),interval::m128_infinf)) << 2) +
-							_mm_movemask_pd(_mm_cmpeq_pd(I2.get_xmminterval(),interval::m128_infinf));
-			/*
-				Possible values of cmpinf:
-						   I1      I2
-				0000 : [a, b]     [c, d]
-				0001 : [a, b]     [-oo, b]
-				0010 : [a, b]     [c, +oo]
-				0011 : [a, b]     [-oo, +oo]
-				0100 : [-oo, b]   [c, d]
-				0101 : [-oo, b]   [-oo, d]
-				0110 : [-oo, b]   [c, +oo]
-				0111 : [-oo, b]   [-oo, +oo]
-				1000 : [a,+oo]    [c, d]
-				1001 : [a, +oo]   [-oo, d]
-				1010 : [a, +oo]   [c, +oo]
-				1011 : [a, +oo]   [-oo, +oo]
-				1100 : [-oo, +oo] [c, d]
-				1101 : [-oo, +oo] [-oo, d]
-				1110 : [-oo, +oo] [c, +oo]
-				1111 : [-oo, +oo] [-oo, +oo]
-			*/
-			switch (cmpinf) {
-			case 0: { // 0000
-				// The tightest upper bound of the distance, whatever the rounding
-				// direction of the caller: each difference is rounded upward both ways
-				GAOL_RND_ENTER();
-				double d = fmax(fmax(I1.left()-I2.left(),I2.left()-I1.left()),
-				                fmax(I1.right()-I2.right(),I2.right()-I1.right()));
-				GAOL_RND_KEEP(d);
-				GAOL_RND_LEAVE();
-				return d;
-			}
-			case 15: // 1111
-				return 0.0;
-			default:
-				return std::numeric_limits<double>::infinity();
-			}
 		}
+		// The tightest upper bound of the distance, whatever the rounding
+		// direction of the caller: each difference is rounded upward both ways.
+		// Equal bounds, infinite ones included, are at distance 0 (inf - inf is a
+		// NaN): the distance of [1, +oo] to [1, +oo] is 0 and the one to [2, +oo] is
+		// 1, where GAOL 4 returned +oo. A bound infinite in one interval only is at
+		// distance +oo, as inf - x is.
+		GAOL_RND_ENTER();
+		const double a = I1.left(), b = I1.right(), c = I2.left(), e = I2.right();
+		double d = fmax((a == c) ? 0.0 : fmax(a - c, c - a),
+		                (b == e) ? 0.0 : fmax(b - e, e - b));
+		GAOL_RND_KEEP(d);
+		GAOL_RND_LEAVE();
+		return d;
 	}
 
 

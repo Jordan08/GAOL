@@ -636,7 +636,14 @@ namespace gaol_core {
       std::ostringstream as_it_was;
       as_it_was.copyfmt(os);
       as_it_was.width(0);
-      if (!upward) {
+      // Zero has no digit to round, and the C runtime of Windows, asked to write
+      // it in the upward direction, writes 0.1 (the point interval [0, 0] came
+      // out as <0.0, 0.1>): it is written to nearest. The other cases keep the
+      // direction of the bound, the hexadecimal format being rounded by the C
+      // library when the stream limits its digits.
+      if (x == 0.0) {
+        round_nearest();
+      } else if (!upward) {
         round_downward();
       }
       as_it_was << x;
@@ -705,6 +712,22 @@ namespace gaol_core {
     return text;
   }
 
+  /*
+    The interval [l, r] as two bounds rounded outward, in square brackets, or
+    in angles, <a, a>, for a point interval whose double the text writes
+    exactly (GAOL v5). The reader takes <a, b> for two expressions that are the
+    same double, exactly: a decimal that is no double is read as the two
+    doubles around it, and <0.1, 0.1> is refused. GAOL wrote every point
+    interval <a, b>, the text of its double rounded downward and upward, so
+    that <0.1, 0.1000000000000001> for interval(0.1) was refused, and
+    textToInterval(intervalToText(interval(0.1))) was the empty set; it is now
+    [0.1, 0.1000000000000001], which is read as an interval enclosing it. The
+    text of the lower bound being at most it, and that of the upper bound at
+    least it, two equal texts are the double itself. A zero is written
+    exactly, of either sign, and the reader takes <-0, 0>, -0 being 0: [-0, 0],
+    which interval::zero() and x - x are with the SSE2 intervals, keeps its
+    angles.
+  */
   void display_bounds(double l, double r, ostream& os)
   {
     if (!(l <= r)) {
@@ -712,7 +735,7 @@ namespace gaol_core {
     } else {
       const std::string left = bound_to_text(l, false, os);
       const std::string right = bound_to_text(r, true, os);
-      if (l == r) {
+      if (l == r && (left == right || l == 0.0)) {
 				os << '<' << left << ", " << right << '>';
       } else {
 				os << '[' << left << ", " << right << ']';
@@ -1517,19 +1540,24 @@ interval nth_root(const interval& I, int q)
       return 1;
     }
 
+    /*
+      The doubles are numbered by the bits of their absolute values, which
+      grow with the doubles, -0 and +0 being one number. With the bits of a
+      and b themselves, the sign bit of a lower bound -0 (which [1, 2] - 1 has,
+      and -0 >= 0), or of a negative a with b = +0, made the difference wrap
+      around: GAOL 4 returned 13830554455654793217 for nb_fp_numbers(-0.0, 1.0).
+    */
     ullidouble ai, bi;
-    ai.d = a;
-    bi.d = b;
+    ai.d = std::fabs(a);
+    bi.d = std::fabs(b);
     if (a >= 0) {
       return (bi.i-ai.i)+1;
     }
     if (b <= 0) {
       return (ai.i-bi.i)+1;
     }
-    ullidouble zi;
-    zi.d = 0.0;
-    ai.d = -ai.d;
-    return (bi.i-zi.i)+(ai.i-zi.i)+1;
+    // a < 0 < b: the doubles from a to -0 and from +0 to b, zero being counted once
+    return bi.i+ai.i+1;
   }
 
   /*
