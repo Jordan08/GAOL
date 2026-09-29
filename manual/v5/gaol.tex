@@ -3524,8 +3524,10 @@ You can manipulate the number of digits to print by using the \code{precision()}
 methods of the interval class. The precision of the stream, which
 \code{std::setprecision} sets, is not used for intervals, and is left as it
 was: the numbers written after an interval keep it. The width of the stream
-(\code{std::setw}) and its adjustment apply to the whole interval, which
-\code{std::internal} pads as \code{std::right} does.\newinvfive{} GAOL~4 set the precision of the stream to that of the
+(\code{std::setw}) and its adjustment apply to the whole interval; with
+\code{std::internal}, the fill goes between the sign of the midpoint and its digits
+in the formats \element{width} and \element{center}, as it does for a number, and
+before the \code{[} in the others, as \code{std::right} has it.\newinvfive{} GAOL~4 set the precision of the stream to that of the
 intervals and left it so, and \code{std::setw} padded the \code{[} of an
 interval alone.
 

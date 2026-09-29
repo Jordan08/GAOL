@@ -29,6 +29,8 @@
 #include <clocale>
 #include <cstdlib>
 #include <iomanip>
+#include <limits>
+#include <locale>
 #include <type_traits>
 
 using namespace gaol;
@@ -709,6 +711,100 @@ namespace
     interval::format(saved_format);
   }
 
+  // A locale of C++ whose decimal point is a colon and whose digits are grouped by three: a stream that
+  // has it writes 617 900:875
+  struct grouping_punct : std::numpunct<char>
+  {
+    char do_decimal_point() const override { return ':'; }
+    char do_thousands_sep() const override { return ' '; }
+    std::string do_grouping() const override { return "\3"; }
+  };
+
+  /*
+    operator<< under the settings of the stream (GAOL v5): the flags showpoint,
+    showpos, uppercase, fixed and scientific, the fill and the adjustment, and
+    the locale. The text of an interval used to be written in a stream of its
+    own, and is now made in a character string, which is much faster: the
+    expected texts are those the stream gave, but for std::internal. It padded
+    the text before its digits as std::right does, where GAOL 4 put the fill
+    after the sign of the midpoint written by the width and center formats, and
+    does again, for the whole text: "-1.5" in a width of 8 is "-****1.5", and
+    the bounds, which start with '[', are padded before it. The bounds are
+    written without the grouping of the locale, which would make a text no
+    reader takes, and the midpoint with it, as a stream writes a double; the
+    fixed format writes an infinity in lower case, as the conversion %f of the
+    standard does.
+  */
+  void stream_settings()
+  {
+    const interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    typedef std::ios_base ios;
+    const ios::fmtflags general = ios::fmtflags(), fixed = ios::fixed, scientific = ios::scientific,
+      uppercase = ios::uppercase, showpos = ios::showpos, showpoint = ios::showpoint, left = ios::left,
+      right = ios::right, internal = ios::internal;
+    const double infinity = std::numeric_limits<double>::infinity();
+    const interval_format::format_t bounds = interval_format::bounds, width = interval_format::width,
+      center = interval_format::center, agreeing = interval_format::agreeing;
+    const interval halves(0.5, 2.5), from_zero(0.0, infinity), to_zero(-infinity, 0.0), negative(-2.0, -1.0),
+      one_two(1.0, 2.0), one_one_and_half(1.0, 1.5), large(1234.5, 1234567.25), close(1.25, 1.2567);
+    const struct {
+      interval x;
+      interval_format::format_t format;
+      int precision;
+      ios::fmtflags flags;
+      int width;
+      char fill;
+      bool grouped;
+      const char *expected;
+    } cases[] = {
+      { halves, bounds, 0, general, 0, ' ', false, "[0.5, 3]" },
+      { halves, bounds, 0, fixed, 0, ' ', false, "[0, 3]" },
+      { halves, bounds, 0, fixed | showpoint, 0, ' ', false, "[0., 3.]" },
+      { halves, bounds, 1, scientific | uppercase, 0, ' ', false, "[5.0E-01, 2.5E+00]" },
+      { halves, bounds, 3, fixed | showpos, 0, ' ', false, "[+0.500, +2.500]" },
+      { from_zero, bounds, 2, fixed | uppercase, 0, ' ', false, "[0.00, inf]" },
+      { from_zero, bounds, 2, scientific | uppercase, 0, ' ', false, "[0.00E+00, INF]" },
+      { to_zero, bounds, 3, showpos, 0, ' ', false, "[-inf, +0]" },
+      { interval(-0.0, 0.0), bounds, 3, showpoint, 0, ' ', false, "<-0.00, 0.00>" },
+      { large, bounds, 16, general, 0, ' ', true, "[1234:5, 1234567:25]" },
+      { large, center, 16, general, 0, ' ', true, "617 900:875" },
+      { large, width, 3, general, 0, ' ', true, "6:18e+05 (+/- 6:17e+05)" },
+      { one_two, center, 5, showpos, 0, ' ', false, "+1.5" },
+      { one_two, width, 16, general, 0, ' ', false, "1.5 (+/- 0.5)" },
+      { one_one_and_half, width, 3, scientific | uppercase, 0, ' ', false, "1.250E+00 (+/- 2.500E-01)" },
+      { close, agreeing, 5, general, 0, ' ', false, "1.25~[0, 67]" },
+      { close, agreeing, 5, internal, 16, '.', false, "....1.25~[0, 67]" },
+      { negative, center, 16, right, 8, '*', false, "****-1.5" },
+      { negative, center, 16, left, 8, '*', false, "-1.5****" },
+      { negative, center, 16, internal, 8, '*', false, "-****1.5" },
+      { negative, bounds, 16, internal, 12, '*', false, "****[-2, -1]" },
+      { one_two, width, 16, showpos | internal, 20, '.', false, "+.....1.5 (+/- +0.5)" },
+      { one_two, center, 16, showpos | internal, 6, '0', false, "+001.5" },
+      { interval(3.0), center, 16, showpos | internal, 10, ' ', false, "+        3" },
+      { interval::emptyset(), center, 16, showpos | internal, 10, '*', false, "***[empty]" },
+    };
+    for (const auto& c : cases) {
+      std::ostringstream os;
+      if (c.grouped) {
+        os.imbue(std::locale(std::locale::classic(), new grouping_punct));
+      }
+      os.flags(c.flags);
+      os.fill(c.fill);
+      interval::precision(c.precision);
+      interval::format(c.format);
+      os << '|' << std::setw(c.width) << c.x << '|';
+      const std::string expected = std::string("|") + c.expected + "|";
+      check("operator<< under the flags, the fill and the locale of the stream", os.str() == expected,
+            [&] { return "\"" + os.str() + "\" rather than \"" + expected + "\""; });
+      check("operator<< leaves the flags, the fill and the precision of the stream, and its width 0",
+            os.flags() == c.flags && os.fill() == c.fill && os.precision() == 6 && os.width() == 0,
+            [&] { return std::string("\"") + c.expected + "\""; });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+  }
+
   /*
     The width and center formats write the midpoint c and the radius w of
     IEEE 1788-2015 (12.12.8), midpoint() and rad(): [c-w, c+w] contains the
@@ -1063,6 +1159,7 @@ int main()
   hexadecimal_output();
   decimal_output();
   stream_output();
+  stream_settings();
   width_and_center_output();
   stream_input();
   long_exponents();

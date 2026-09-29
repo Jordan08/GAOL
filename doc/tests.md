@@ -132,7 +132,14 @@ Codac.
   infinite bounds, the signed zeros, the subnormals, the largest doubles and
   point intervals.
   `operator<<` has to leave the precision of the stream as it was, and
-  `std::setw` to pad the whole interval, adjusted to the right or to the left.
+  `std::setw` to pad the whole interval, adjusted to the right, to the left
+  or inside (with `std::internal`, the fill follows the sign of the midpoint
+  in the width and center formats). The texts written under the flags of the
+  stream (`showpoint`, `showpos`, `uppercase`, `fixed`, `scientific`), its
+  fill and a locale of its own (a decimal colon, digits grouped by three) have
+  to be those `operator<<` wrote in a stream of its own, before it made the
+  text in a character string: 25 cases of four formats, over zeros,
+  infinities, the empty set and a point interval.
   The width and center formats have to write the `midpoint()` and the `rad()`
   of IEEE 1788-2015: with every precision and flag, over the special values,
   the subnormals, the largest doubles, unbounded intervals and random
