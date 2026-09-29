@@ -12,7 +12,13 @@ project(
   # CMakeLists.txt); Python reads it, with meson 0.53 as later ones
   # (version: files() needs meson 0.57). The Python of the machine building,
   # even in a cross build (native), and the path as the last argument, which
-  # the meson.exe of 0.53 gives to runpython after its own ones (GAOL v5)
+  # the meson.exe of 0.53 gives to runpython after its own ones (GAOL v5).
+  # python3 stays first: only when the first name ends with python3 does
+  # meson fall back on its own Python (the meson.exe of the Windows installer)
+  # if it finds none. Looking for python first would lose that fallback, and
+  # would not avoid the Microsoft Store aliases of meson 0.53.0, which
+  # WindowsApps holds for python.exe as for python3.exe: meson 0.53.1 and later
+  # leave that directory out (doc/building.md)
   version: run_command(find_program('python3', 'python', native: true), '-c',
                        'import sys; print(open(sys.argv[-1]).read().strip())',
                        join_paths(meson.current_source_dir(), 'VERSION.txt'),
