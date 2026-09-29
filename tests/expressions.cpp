@@ -14,11 +14,11 @@
  * - the operators and the functions, alone and nested;
  * - the strings the parser refuses, which have to raise an exception rather
  *   than give an interval;
- * - the long and the deeply nested expressions: sums, products, differences
- *   and quotients of 200000 terms, read from a string and built in C++, and
- *   chains of 200000 unary operations, which have to be evaluated and deleted
- *   whatever their depth, on no more stack than a tree of two nodes takes, and
- *   the nesting the reader refuses.
+ * - the long and the deeply nested expressions: sums and products of 200000
+ *   terms, differences and quotients of 20000, read from a string and built in
+ *   C++, and chains of 200000 minus signs and 20000 sines, which have to be
+ *   evaluated and deleted whatever their depth, on no more stack than a tree
+ *   of two nodes takes, and the nesting the reader refuses.
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -34,6 +34,7 @@
 
 #include "gaol_tests.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <random>
 #include "gaol/gaol_expr_eval.h"
@@ -550,12 +551,14 @@ namespace
 
      A sum of 100000 terms read from a string, and an expression that long
      built in C++, were trees 100000 nodes deep, whose evaluation and
-     deletion made one call within another per node: they overflowed the
-     stack of the program, 8 MB with Linux and macOS, and crashed it. The
-     parser now computes an operation when it reads it, the evaluation and
-     the deletion of a tree take stacks of their own in the heap, and the
-     reader keeps what it reads in a stack of the heap too, of 10000 entries:
-     a string nested deeper, with parentheses, signs or calls, is refused. */
+     deletion made one call within another per node: the evaluation
+     overflowed the stack of the program, 8 MB with Linux and macOS, and
+     crashed it (the deletion, whose frames are smaller, needs a longer
+     chain). The parser now computes an operation when it reads it, the
+     evaluation and the deletion of a tree take stacks of their own in the
+     heap, and the reader keeps what it reads in a stack of the heap too, of
+     10000 entries: a string nested deeper, with parentheses, signs or calls,
+     is refused. */
 
   // The operation of the operator op, one of + - * /
   interval operate(char op, const interval& a, const interval& b)
@@ -579,16 +582,17 @@ namespace
     }
   }
 
-  // "t op t op ... op t", n terms
-  std::string repeated(int n, char op, const std::string& term)
+  /* "a op b op a op b ...", n terms, the operators in turn those of ops: the
+     operators of one cycle have the same precedence, and group from the left */
+  std::string repeated(int n, const std::string& ops, const std::string& a, const std::string& b)
   {
     std::string text;
-    text.reserve(static_cast<std::size_t>(n) * (term.size() + 1));
+    text.reserve(static_cast<std::size_t>(n) * (std::max(a.size(), b.size()) + 1));
     for (int i = 0; i < n; ++i) {
       if (i > 0) {
-        text += op;
+        text += ops[static_cast<std::size_t>(i - 1) % ops.size()];
       }
-      text += term;
+      text += (i % 2 == 0) ? a : b;
     }
     return text;
   }
@@ -599,48 +603,77 @@ namespace
     return hex(a) == hex(b);
   }
 
+  /* Sums and products have to be 200000 terms long to overflow the stack of
+     8 MB of Linux and macOS with a recursion of about 100 bytes for each
+     node; the differences and the quotients, which do not commute, only have
+     to show that the operands are taken in the right order, in fewer */
   const int long_terms = 200000;
+  const int short_terms = 20000;
 
-  /* Sums, differences, products and quotients of 200000 terms, read from a
-     string: the value is the one of the same operations in C++, grouped
-     from the left as the reader groups them. The terms are decimals, that
-     are no doubles, whose operations round. */
+  int terms_of(char op)
+  {
+    return (op == '+' || op == '*') ? long_terms : short_terms;
+  }
+
+  // e op= x
+  void update(char op, expression& e, const expression& x)
+  {
+    switch (op) {
+    case '+': e += x; break;
+    case '-': e -= x; break;
+    case '*': e *= x; break;
+    default:  e /= x; break;
+    }
+  }
+
+  /* Chains of operations read from a string: the value is the one of the
+     same operations in C++, grouped from the left as the reader groups them.
+     The long chains are of pi, which the lexer reads in no time: it takes
+     tens of microseconds to read a number when the sanitizers slow it down,
+     as it does the decimals of the short chains, whose operations round. */
   void long_strings()
   {
-    struct Chain { char op; const char* term; };
-    const Chain chains[] = { {'+', "0.1"}, {'-', "0.1"}, {'*', "1.0000001"}, {'/', "1.0000001"} };
+    struct Chain { const char* ops; const char* a; const char* b; int terms; };
+    const Chain chains[] = {
+      {"+", "pi", "pi", long_terms}, {"*/", "pi", "pi", long_terms}, {"-+", "pi", "pi", short_terms},
+      {"+", "0.1", "0.2", 2000}, {"-+", "0.1", "0.2", 2000}, {"*/", "1.0000001", "0.9999999", 2000},
+    };
     for (const Chain& c : chains) {
-      const interval t = textToInterval(c.term);
-      interval expected = t;
-      for (int i = 1; i < long_terms; ++i) {
-        expected = operate(c.op, expected, t);
+      const interval ta = textToInterval(c.a), tb = textToInterval(c.b);
+      const std::string ops = c.ops;
+      interval expected = ta;
+      for (int i = 1; i < c.terms; ++i) {
+        expected = operate(ops[static_cast<std::size_t>(i - 1) % ops.size()], expected, (i % 2 == 0) ? ta : tb);
       }
+      const std::string what = std::string("\"") + c.a + c.ops[0] + c.b + "...\", " + std::to_string(c.terms) + " terms";
       try {
-        const interval got = textToInterval(repeated(long_terms, c.op, c.term));
-        check("long expression: a string of 200000 terms is read as its operators group them",
+        const interval got = textToInterval(repeated(c.terms, ops, c.a, c.b));
+        check("long expression: a long string is read as its operators group them",
               same_bits(got, expected),
-              [&] { return std::string(1, c.op) + " of " + c.term + " gave " + hex(got) + " rather than " + hex(expected); });
+              [&] { return what + " gave " + hex(got) + " rather than " + hex(expected); });
       } catch (const std::exception& e) {
-        check("long expression: no exception on a string of 200000 terms", false,
-              [&] { return std::string(1, c.op) + " of " + c.term + ": " + e.what(); });
+        check("long expression: no exception on a long string", false,
+              [&] { return what + ": " + e.what(); });
       }
     }
   }
 
-  /* The chains of 200000 terms built in C++, on the left, then on the right,
-     then chains of 200000 unary operations: the value is the one of the same
-     operations in C++, in the same order. The trees are deleted when they go
-     out of scope, which is a part of the test too. */
+  /* The chains built in C++, on the left with the operators that change an
+     expression in place, on the right with the others, then chains of unary
+     operations: the value is the one of the same operations in C++, in the
+     same order. The trees are deleted when they go out of scope, which is a
+     part of the test too. */
   void long_built()
   {
     for (const char op : {'+', '-', '*', '/'}) {
+      const int terms = terms_of(op);
       // Terms whose sums and products round, and neither overflow nor underflow in 200000 of them
       const interval t = (op == '+' || op == '-') ? interval(0.1, 0.2) : interval(0.9999999, 1.0000001);
 
       expression left(t), right(t);
       interval expected_left = t, expected_right = t;
-      for (int i = 1; i < long_terms; ++i) {
-        left = combine(op, left, expression(t));
+      for (int i = 1; i < terms; ++i) {
+        update(op, left, expression(t));
         expected_left = operate(op, expected_left, t);
         right = combine(op, expression(t), right);
         expected_right = operate(op, t, expected_right);
@@ -648,30 +681,12 @@ namespace
       interval got_left, got_right;
       const bool evaluated_left = evaluate_expr(left, got_left);
       const bool evaluated_right = evaluate_expr(right, got_right);
-      check("long expression: 200000 terms built on the left have the value of the operations in C++",
+      check("long expression: a chain built on the left has the value of the operations in C++",
             evaluated_left && same_bits(got_left, expected_left),
             [&] { return std::string(1, op) + " gave " + hex(got_left) + " rather than " + hex(expected_left); });
-      check("long expression: 200000 terms built on the right have the value of the operations in C++",
+      check("long expression: a chain built on the right has the value of the operations in C++",
             evaluated_right && same_bits(got_right, expected_right),
             [&] { return std::string(1, op) + " gave " + hex(got_right) + " rather than " + hex(expected_right); });
-    }
-
-    // The operators that change an expression in place, on a chain
-    {
-      const interval t(0.1, 0.2);
-      expression sum(t), difference(t);
-      interval expected_sum = t, expected_difference = t;
-      for (int i = 1; i < long_terms; ++i) {
-        sum += expression(t);
-        expected_sum = expected_sum + t;
-        difference -= expression(t);
-        expected_difference = expected_difference - t;
-      }
-      interval got_sum, got_difference;
-      const bool evaluated = evaluate_expr(sum, got_sum) && evaluate_expr(difference, got_difference);
-      check("long expression: 200000 terms added and subtracted in place",
-            evaluated && same_bits(got_sum, expected_sum) && same_bits(got_difference, expected_difference),
-            [&] { return hex(got_sum) + " and " + hex(got_difference); });
     }
 
     // Chains of unary operations: minus signs, and sines
@@ -681,6 +696,8 @@ namespace
       interval expected_sines = t;
       for (int i = 0; i < long_terms; ++i) {
         signs = -signs;
+      }
+      for (int i = 0; i < short_terms; ++i) {
         sines = sin(sines);
         expected_sines = sin(expected_sines);
       }
@@ -693,7 +710,7 @@ namespace
       check("long expression: 200001 minus signs are one",
             evaluated && same_bits(got_signs, -t), [&] { return hex(got_signs); });
       evaluated = evaluate_expr(sines, got_sines);
-      check("long expression: a sine of a sine of 200000 sines",
+      check("long expression: a sine of a sine of 20000 sines",
             evaluated && same_bits(got_sines, expected_sines),
             [&] { return hex(got_sines) + " rather than " + hex(expected_sines); });
     }
@@ -732,6 +749,9 @@ namespace
     same("[" + nested(8999, "-", "inf", "") + ", 2]", interval(-inf, 2.0));
     same("1+" + nested(9000, "-", "3", "") + "*2", interval(7.0));
     same(nested(4000, "(", "1", "+1)"), interval(4001.0));
+    // An uncertain number behind thousands of signs is still no bound
+    refused("[" + nested(9000, "-", "3.56?1", "") + ", 5]");
+    refused("[1, " + nested(9001, "-", "3.56?1", "") + "]");
 
     // Refused as a syntax error, an input_format_error, whatever the depth
     const struct { const char* name; std::string text; } refusals[] = {

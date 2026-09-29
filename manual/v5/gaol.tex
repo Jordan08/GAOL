@@ -3304,6 +3304,21 @@ the lexer is reentrant and the parser pure, and each reading of a string has
 a state of its own.\newinvfive{} GAOL~4 kept that state in global variables,
 and crashed there.
 
+\paragraph{Long and nested strings.} A string may be as long as memory allows:
+a sum of 100000 terms is read in a time proportional to its length, and takes
+no more of the stack of the program than a sum of two terms.\newinvfive{} The
+reader built a tree with a node for each operation, which was evaluated and
+deleted with one call within another per node: a sum of 100000 terms overflowed
+the stack and crashed the program. Operations are now computed as they are
+read, and the expressions that a program builds through
+\file{gaol/gaol\_expression.h} are evaluated and deleted without recursion too.
+The nesting of a string is limited by the stack of the parser, which holds 10000
+entries: an open parenthesis or bracket, or a sign, takes one until the
+expression it opens is complete, and the name and the parenthesis of a call two
+or more. About 10000 nested parentheses, brackets or signs, and about 5000
+nested calls, are read; a string nested deeper is refused as any string that is
+not an expression, and throws \element{input\_format\_error}.
+
 \paragraph{Errors.} A string that is not an expression throws
 \element{input\_format\_error}. An error found anywhere in the string stops the
 reading, and no interval is given: \code{"[nth\_root(8,1.5)]+[1,2]"} throws,

@@ -246,7 +246,29 @@ Codac.
   expressions to that node, `the_null_expr`, must not be counted
   (`expr_node::references()` does not change as they are built, copied,
   assigned and extended): the count, changed by several threads at once, came
-  down to 0 and the node was deleted twice (GAOL v5).
+  down to 0 and the node was deleted twice (GAOL v5). Long expressions have to
+  be evaluated and deleted: chains read from a string of 200000 sums
+  (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and of 20000
+  differences and sums, the same chains built in C++ on the left, with the
+  operators that change an expression in place, and on the right, and chains
+  of 200000 minus signs and of 20000 sines, whose value is that of the same
+  operations written in C++, bit for bit. Their evaluation
+  and their deletion made one call within another per node, and overflowed the
+  stack of 8 MB (GAOL v5). A crash shows it only where the
+  stack is small enough, so a leaf at the bottom of a chain of 20000 nodes
+  has to be visited and deleted less than 64 KiB of stack away from the
+  function that starts the evaluation and the deletion, where the recursion
+  took 1.9 MB and 640 KB: the address of the frame of the leaf tells it,
+  whatever the stack of the program and the size of the frames
+  (`__builtin_frame_address`, or `_AddressOfReturnAddress` with Visual C++;
+  the check is skipped where the compiler has neither). Random trees of every
+  node, with shared nodes, have to give the bounds of the same operations
+  written in C++, the empty expression has to be an error alone and as an
+  operand, and the stack of the values of the evaluation has to grow. A string
+  nested 9000 levels by parentheses, brackets or signs, or thousands of levels
+  by calls, has to be read, and one nested 100000 levels, which overflows the
+  10000 entries of the stack of the parser, to be refused with
+  `input_format_error`.
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
   `atan2` and `pow`, and of `log10` and seven functions of Table 10.5, compute
   with a 128-bit unsigned integer, which Visual C++

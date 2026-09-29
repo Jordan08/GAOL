@@ -76,6 +76,15 @@ namespace gaol {
 
     \note The out interval is not modified whenever an error occur.
 
+    \note A string may be as long as memory allows (GAOL v5): a sum of 100000
+    terms is read in a time proportional to its length, and takes no more of
+    the stack of the program than a sum of two terms. Its nesting is limited by
+    the stack of the parser, which holds 10000 entries: an open parenthesis, an
+    open bracket or a sign takes one until the expression it opens is complete,
+    and a call of a function two or more, so that about 10000 nested
+    parentheses, brackets or signs, and about 5000 nested calls, are read. A
+    string nested deeper is refused, as any string that is no expression.
+
     The names of the functions are those of GAOL, or those of IEEE 1788-2015
     with parsing_names::ieee1788 (GAOL v5): gaol::textToInterval() and
     gaol_ieee1788::textToInterval() read a string with the names of their

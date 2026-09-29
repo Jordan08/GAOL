@@ -21,6 +21,13 @@
   These classes are used to construct an internal representation of an interval
   obtained from a parsed string.
 
+  An expression may be as long as memory allows (GAOL v5): a sum of 100000
+  terms, a tree 100000 nodes deep, is evaluated (gaol/gaol_expr_eval.h) and
+  deleted by loops, with stacks in the heap, and not by one call within another
+  per node, which overflowed the stack of the program. Printing an expression
+  is still a recursion, once per level of the tree: a tree 100000 levels deep
+  cannot be printed.
+
   \author Goualard Frederic
   \date   2001-09-28
 */
@@ -771,6 +778,12 @@ typedef struct {
      declarations of GAOL: a shared libgaol, whose code is compiled with
      -fvisibility=hidden, did not export them, and a program building an
      expression did not link with it (GAOL v5) */
+  /*!
+    \brief Prints the expression e, with the parentheses its operators need
+
+    \warning A recursion of a call per level of the tree: the stack of the
+    program does not hold that of a tree 100000 levels deep.
+  */
   extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& os, const expression& e);
 
   //! Construction operators
@@ -815,6 +828,8 @@ typedef struct {
     for both trees and by taking the left bound for el and the right
     bound for er;
     \return true if the parsing was possible and flase otherwise
+
+    The trees may be as deep as memory allows (GAOL v5): see expr_eval.
   */
   //@{
   GAOL_NODISCARD extern __GAOL_PUBLIC__ bool evaluate_left_right(const expression& el, const expression& er,
