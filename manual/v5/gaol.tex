@@ -952,8 +952,8 @@ and leaves them so: an operation that raises one only sets its flag.
 \emph{A program that enables them} (\code{feenableexcept()} of the GNU C
 library, \code{\_controlfp\_s()} of Visual C++, \code{fesetenv()} with an
 environment that traps) \emph{disables them while GAOL computes}, and enables
-them again afterwards if it wants them: the operations of GAOL raise some
-legitimately, and the processor then stops the program (with \code{SIGFPE} on
+them again afterwards if it wants them: the operations of GAOL raise some, as
+listed below, and the processor then stops the program (with \code{SIGFPE} on
 Linux) instead of letting the operation give its bounds.\newinvfive
 
 \begin{itemize}
@@ -975,9 +975,27 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   invalid-operation exception enabled, the first killed the program at each
   emptiness test of an empty interval, and the second in a build without
   optimization.\newinvfive
+\item Nonempty operands raise the invalid-operation exception as well. With
+  the SSE2 intervals, multiplying a zero bound by an infinite one does:
+  \code{interval(0)*interval::one\_plus\_infinity()} and
+  \code{interval::positive()*interval(0)} (the FPU intervals give the same
+  product without it, and so does a build with
+  \option{GAOL\_PRESERVE\_ROUNDING}, whose product masks the exceptions, see
+  below). \code{pow} does in every build, through the \code{pow} of
+  CORE-MATH, for an exponent of extreme magnitude
+  (\code{pow(interval(1,~2),~interval(4.9e-324))},
+  \code{pow(interval(1,~2),~interval(1e-300))}, an exponent interval with a
+  bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}); with the SSE2
+  intervals, an exponent with an infinite bound also does, through that product
+  (\code{pow(interval(1),~interval::one\_plus\_infinity())}). This list is not
+  exhaustive.\newinvfive
 \end{itemize}
 
 \noindent
+\code{is\_empty()} being quiet therefore does not make the invalid-operation
+exception safe to leave enabled: every exception stays disabled while GAOL
+computes.
+
 The flags tell nothing of the results: after an operation of GAOL,
 \code{fetestexcept(FE\_INEXACT)} is raised whatever the result, and
 \code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO} stands for an infinite bound of the
@@ -987,14 +1005,17 @@ its own computations clears them (\code{std::feclearexcept(FE\_ALL\_EXCEPT)})
 just before, and reads them before its next operation of GAOL.
 
 GAOL's initialization, which runs before \code{main()}, sets the default
-environment (\code{fesetenv(FE\_DFL\_ENV)}), which masks every exception: a
-program enables them in \code{main()} or later, not in a static object
-initialized before GAOL. \code{cleanup()} leaves the exceptions and the flags
-as they are. With \option{GAOL\_PRESERVE\_ROUNDING} and the SSE2 intervals,
-\code{+}, \code{-}, \code{*}, \code{/}, \code{sqr()} and \code{inverse()} also
-write the SSE control register with every exception masked, which masks again
-the ones a program enabled: they stop nothing after the first of these
-operations. Disable them all the same, the other builds not masking them.
+environment (\code{fesetenv(FE\_DFL\_ENV)}), which masks every exception,
+unless GAOL is built with \option{GAOL\_PRESERVE\_ROUNDING}: the initialization
+then leaves the whole environment as it found it, and an exception a static
+object enabled before it stays enabled. A program enables the exceptions in
+\code{main()} or later, whichever the build, not in a static object initialized
+before GAOL. \code{cleanup()} leaves the exceptions and the flags as they are.
+With \option{GAOL\_PRESERVE\_ROUNDING} and the SSE2 intervals, \code{+},
+\code{-}, \code{*}, \code{/}, \code{sqr()} and \code{inverse()} also write the
+SSE control register with every exception masked, which masks again the ones a
+program enabled: they stop nothing after the first of these operations.
+Disable them all the same, the other builds not masking them.
 
 \section{The namespaces}\label{sec:namespaces}
 %%----------------------

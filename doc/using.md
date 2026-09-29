@@ -280,8 +280,9 @@ and leaves them so: an operation that raises one only sets its flag. **A
 program that enables them (`feenableexcept()` of glibc, `_controlfp_s()` of
 Visual C++, `fesetenv()` with an environment that traps) disables them while
 GAOL computes**, and enables them again afterwards if it wants them: GAOL's
-operations raise some legitimately, and the processor then stops the program
-(with SIGFPE on Linux) instead of letting the operation give its bounds.
+operations raise some, as listed below, and the processor then stops the
+program (with SIGFPE on Linux) instead of letting the operation give its
+bounds.
 
 - An infinite bound comes from a division by zero or from an overflow:
   `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception, and
@@ -300,6 +301,20 @@ operations raise some legitimately, and the processor then stops the program
   invalid-operation exception enabled, the first killed the program at each
   emptiness test of an empty interval, and the second in a build without
   optimization.
+- Nonempty operands raise the invalid-operation exception as well. With the
+  SSE2 intervals, multiplying a zero bound by an infinite one does:
+  `[0]*[1, +oo]` and `[0, +oo]*[0]` (the FPU intervals give the same product
+  without it, and so does a build with `GAOL_PRESERVE_ROUNDING`, whose product
+  masks the exceptions, see below). `pow` does in every build, through
+  CORE-MATH's `pow`, for an exponent of extreme magnitude (`pow([1, 2],
+  [4.9e-324])`, `pow([1, 2], [1e-300])`, an exponent interval with a bound near
+  `DBL_MAX` such as `[1e300, 1e308]`); with the SSE2 intervals, an exponent with
+  an infinite bound also does, through that product (`pow([1], [1, +oo])`).
+  This list is not exhaustive.
+
+`is_empty()` being quiet therefore does not make the invalid-operation
+exception safe to leave enabled: every exception stays disabled while GAOL
+computes.
 
 The flags tell nothing of the results: after an operation of GAOL,
 `fetestexcept(FE_INEXACT)` is raised whatever the result, and `FE_OVERFLOW` or
@@ -310,9 +325,12 @@ clears them (`std::feclearexcept(FE_ALL_EXCEPT)`) just before, and reads them
 before its next operation of GAOL.
 
 GAOL's initialization, which runs before `main()`, sets the default
-environment (`fesetenv(FE_DFL_ENV)`), which masks every exception: a program
-enables them in `main()` or later, not in a static object initialized before
-GAOL. `gaol::cleanup()` leaves the exceptions and the flags as they are. With
+environment (`fesetenv(FE_DFL_ENV)`), which masks every exception, unless GAOL
+is built with `GAOL_PRESERVE_ROUNDING`: the initialization then leaves the
+whole environment as it found it, and an exception a static object enabled
+before it stays enabled. A program enables the exceptions in `main()` or later,
+whichever the build, not in a static object initialized before GAOL.
+`gaol::cleanup()` leaves the exceptions and the flags as they are. With
 `GAOL_PRESERVE_ROUNDING` and the SSE2 intervals, `+`, `-`, `*`, `/`, `sqr()`
 and `inverse()` also write the SSE control register with every exception
 masked, which masks again the ones a program enabled: they stop nothing after
