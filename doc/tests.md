@@ -163,6 +163,12 @@ Codac.
   ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 89 boxes, each
+  reaching a branch of the pow of Table 9.1, which the two share, or of what
+  `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
+  they have to be bit for bit those the two functions gave when each had its
+  own copy of the pow, each an enclosure of the exact power within one double
+  of the tightest bounds, and the same with the exponent given as a double;
   and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
   standard's too. GAOL's functions on intervals and on an interval and a
   number; the functions of C on numbers, by `static_assert`.
