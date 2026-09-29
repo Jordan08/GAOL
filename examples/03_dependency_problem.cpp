@@ -117,9 +117,8 @@ namespace {
   }
 
   /*
-    The Goldstein-Price function, a classic test of global optimization.
-    examples/Goldstein_Price.cpp and the manual of GAOL drop the + 1 of
-    (x + y + 1)^2, and compute another function.
+    The Goldstein-Price function, a classic test of global optimization, as
+    16_Goldstein_Price.cpp and the manual of GAOL evaluate it.
   */
   interval goldstein_price(const interval& x, const interval& y)
   {
