@@ -636,7 +636,14 @@ namespace gaol_core {
       std::ostringstream as_it_was;
       as_it_was.copyfmt(os);
       as_it_was.width(0);
-      if (!upward) {
+      // Zero has no digit to round, and the C runtime of Windows, asked to write
+      // it in the upward direction, writes 0.1 (the point interval [0, 0] came
+      // out as <0.0, 0.1>): it is written to nearest. The other cases keep the
+      // direction of the bound, the hexadecimal format being rounded by the C
+      // library when the stream limits its digits.
+      if (x == 0.0) {
+        round_nearest();
+      } else if (!upward) {
         round_downward();
       }
       as_it_was << x;
