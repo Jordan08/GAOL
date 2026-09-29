@@ -47,6 +47,17 @@ and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in
 their summary.
 
+The Linux jobs of CMake (`linux.yml`) that run the tests generate the locale
+`fr_FR.UTF-8` before them, with `locale-gen`
+(`.github/scripts/comma-locale.sh`): the Ubuntu runners have no locale writing
+a decimal comma, and `tests/numbers.cpp`, which reads numbers and writes exact
+texts under one where the system has one (see [Tests](tests.md)), says so and
+passes where it has none. After the tests, each of these jobs fails if the
+output of `numbers`, which ctest keeps in `Testing/Temporary/LastTest.log`,
+holds no check under a locale writing a decimal comma. The other jobs generate
+no locale and check nothing of the kind: `numbers` runs that part where the
+system has such a locale.
+
 The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
 (`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
 autotools and the meson builds, when `manual/` changes (`manual.yml`); the
