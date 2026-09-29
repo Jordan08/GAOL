@@ -659,6 +659,7 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+GAOL_PC_LIBS
 GAOL_PC_CFLAGS
 PDF_TO_LATEX_FALSE
 PDF_TO_LATEX_TRUE
@@ -20235,6 +20236,61 @@ if test "${gaol_cxx_takes}" = yes; then
     GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} ${gaol_flag}"
 fi
 done
+
+
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and the releases 11.4 and 12.4; GCC 9.4 and Clang 18 refuse it), which
+# gaol.pc gives the code using GAOL in Libs, as CMakeLists.txt gives it to
+# gaol::gaol (GAOL v5). GCC links
+# crtfastmath.o into a program linked with -Ofast, -ffast-math or
+# -funsafe-math-optimizations, and its constructor sets the flush-to-zero and
+# denormals-are-zero modes of the SSE instructions, which make the bounds of
+# every operation with a subnormal operand or result wrong. The option keeps
+# that file out of the link; each operation of GAOL clears the two modes when
+# it starts (gaol/gaol_fpu.h). Checked by linking, since it is a link option.
+GAOL_PC_LIBS=""
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_LDFLAGS=$LDFLAGS
+LDFLAGS="-Werror -mno-daz-ftz"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler links with -mno-daz-ftz" >&5
+printf %s "checking whether the C++ compiler links with -mno-daz-ftz... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  gaol_takes_mno_daz_ftz=yes
+else case e in #(
+  e) gaol_takes_mno_daz_ftz=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_takes_mno_daz_ftz}" >&5
+printf "%s\n" "${gaol_takes_mno_daz_ftz}" >&6; }
+LDFLAGS=$gaol_save_LDFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_takes_mno_daz_ftz}" = yes; then
+    GAOL_PC_LIBS="-mno-daz-ftz"
+fi
 
 
 

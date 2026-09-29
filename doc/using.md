@@ -28,6 +28,14 @@ by Visual C++ without `/fp:strict`. GCC and Clang do not tell the code whether
 what contradicts them, `-ffast-math` and doubles computed on the x87 unit (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)).
 
+The link of the program takes one option too, where the compiler accepts it
+(GCC 13 and later on x86, and its releases 11.4 and 12.4): `-mno-daz-ftz`, which keeps out of the link the file
+that sets the flush-to-zero and denormals-are-zero modes when a program is
+linked with `-Ofast` (see
+[Flush-to-zero and denormals-are-zero](#flush-to-zero-and-denormals-are-zero)).
+`gaol::gaol` and `gaol.pc` carry it too, and the three builds test the
+compiler for it.
+
 ## From CMake
 
 ```cmake
@@ -35,7 +43,8 @@ find_package(gaol REQUIRED)
 target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
-`gaol::gaol` carries the include directory, the flags above and, for Visual
+`gaol::gaol` carries the include directory, the flags above, the link option
+above for the code built by GCC, and, for Visual
 C++, `__GAOL_PUBLIC__=`, GAOL being a static library. There is no other library
 to link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
 include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
@@ -69,7 +78,7 @@ directory (`<prefix>/lib/pkgconfig`, or `lib64` or `lib/<multiarch>` rather
 than `lib` on the systems whose libraries go there), except the CMake build
 with Visual C++. Its `Cflags` carries the flags above with the include
 directory, and `Libs` GAOL itself with the C math library, CORE-MATH being
-compiled into `libgaol`:
+compiled into `libgaol`, and the link option above:
 
 ```bash
 export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig
@@ -257,12 +266,15 @@ leaves it upward, whichever way GAOL is built. The bounds are then right
 whatever rounding direction the calling code left. The check is an addition,
 1 + 2^-60, above 1 only when rounded upward, rather than a reading of the
 rounding direction, which cost far more under Rosetta 2 and with 32-bit Visual
-C++ (see [What differs from GAOL](differences.md)). Code that needs
+C++ (see [What differs from GAOL](differences.md)); on x86 processors it is
+1 + (2^-1060 + 0), which shows the flush-to-zero and denormals-are-zero modes
+as well (below). Code that needs
 its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
-rounding direction it found, which makes the arithmetic operations several
-times slower.
+rounding direction it found, and on x86 the flush-to-zero and
+denormals-are-zero modes it cleared, which makes the arithmetic operations
+several times slower.
 
 Without it, the rounding direction stays upward from the initialization of
 GAOL on, for the whole program, and `gaol::cleanup()`, which every program
@@ -272,3 +284,59 @@ that the first `gaol::init()` found when GAOL initialized itself: to nearest,
 as a program starts, on x86 for the x87 unit and the SSE instructions each, in
 the thread calling it. The rest of the floating-point
 environment is left as it is, the exception flags raised in particular.
+
+## Flush-to-zero and denormals-are-zero
+
+On x86 processors, the flush-to-zero (FTZ) and denormals-are-zero (DAZ) modes of
+the SSE instructions, two bits of the control register MXCSR, make every result
+below 2^-1022 a zero (FTZ) and read every subnormal operand as a zero (DAZ).
+With either of them set, the bounds of every operation with a subnormal result
+or operand miss the exact result, whatever the rounding direction:
+`interval(1e-300) * interval(1e-20)` is [0, 0], and so are `sqr(interval(1e-160))`
+and `interval(3e-308) - interval(2.9e-308)`.
+
+They are set by a program linked with `-Ofast`, `-ffast-math` or
+`-funsafe-math-optimizations`: GCC and Clang then link `crtfastmath.o`, whose
+constructor sets both modes for the whole program, after GAOL initialized
+itself. The `-fno-fast-math` of `gaol.pc` and `gaol::gaol` does not prevent
+it: it cancels `-ffast-math` when it comes after it, but not `-Ofast` (GCC 9.4
+and Clang 18 link `crtfastmath.o` all the same, and the `#error` of
+`gaol/gaol_config.h` against `-ffast-math`, which `-Ofast` raises, is silenced)
+nor, with GCC 9.4, `-funsafe-math-optimizations`. Loading a plug-in or a Python
+module built with `-Ofast` sets the modes too, at the time it is loaded.
+
+**Linking a program that uses GAOL with `-Ofast`, `-ffast-math` or
+`-funsafe-math-optimizations`, or loading code built with them, makes the
+bounds wrong**, and GAOL defends itself in two ways on x86 processors:
+
+- Each operation of GAOL that computes bounds clears both modes when it starts,
+  in the check that sets the rounding direction upward: the check is one
+  comparison with a subnormal number, which shows the modes as well as the
+  direction (see [The rounding direction](#the-rounding-direction)), so that
+  the bounds computed after the check are the tightest ones, and the modes
+  stay cleared for the rest of the program, as the rounding direction stays
+  upward. With `GAOL_PRESERVE_ROUNDING`, each operation sets them back as it
+  found them. This is the only defence against a plug-in, which sets the modes
+  after GAOL initialized itself, and at any time. The check costs its second
+  addition, the one of the subnormal, about 0.2 ns on an Intel i7-1185G7,
+  where an addition with a subnormal operand and result takes as much time as
+  one of normal numbers (the addition of two SSE2 intervals took 1.6 ns with
+  the check of the direction alone and 1.85 ns with this one; `x + y`, `x * y`,
+  `exp` and `sin` through the library showed no difference above the noise of
+  a machine that was not quiet). An addition with a subnormal can be slower on
+  other x86 processors, which were not measured.
+- `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
+  compiler accepts it: GCC 13 and later on x86, and its releases 11.4 and 12.4
+  (GCC 9.4 and Clang 18 refuse it, and the builds test the compiler with a link,
+  not with its version). It keeps
+  `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
+  not get the modes at all.
+
+What remains: the functions that read the bounds of an interval or compare them
+without computing, or that do so before the check of their operation (`mag()`,
+`mid()`, `split()`, `sqrt()`, `log()`, `abs()`, and the like), read a
+subnormal bound as a zero for as long as the modes are set, that is until an
+operation that computes has cleared them. Other processors are not covered:
+the FZ bit of the FPCR of ARM processors is neither checked nor cleared.
+Link a program that uses GAOL without these options, or with `-mno-daz-ftz`,
+and compile the code that needs them apart from it.

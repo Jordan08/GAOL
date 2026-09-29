@@ -15,7 +15,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
   which GAOL compiles without warnings, `-Wsign-conversion` of Clang included;
-- with the flags of interval arithmetic of [Using GAOL](using.md);
+- with the flags of interval arithmetic of [Using GAOL](using.md), and the code
+  using GAOL is linked with `-mno-daz-ftz` where the compiler accepts it (GCC 13
+  and later on x86, and its releases 11.4 and 12.4), in `gaol::gaol` and in
+  `gaol.pc`: each build tests the compiler with a link (GAOL v5);
 - on x86 processors, the intervals are computed with SSE2 instructions
   (`-msse2 -msse3`), except with Visual C++ and on 32-bit Windows, where a
   `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
@@ -134,7 +137,7 @@ alone refuses, when compiling:
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
 | MinGW-w64 whose `<fenv.h>` answers `fegetround()` from a state of its own: before mingw-w64 12 on x64 (GCC 11 to 13 of MinGW-Builds), before 11 on 32-bit x86 (GCC 11) | GAOL sets the rounding direction by writing the registers, and CORE-MATH reads `fegetround()` to know it: its results would be rounded in another direction than GAOL's bounds need. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86, and MSYS2 are built and tested. |
-| `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. |
+| `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | Visual C++ without `/fp:strict` (`/fp:precise`, its default) | Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly: no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | CORE-MATH assumes every operation on doubles rounded to a double. Computed in extended precision, its results rounded to nearest are rounded twice, and 175 arguments gave the other neighbour of the exact value with GCC 12 on Debian 12 i386; with GCC 9, which rounds to nearest at compile time the constants CORE-MATH rounds in the direction in effect, GAOL's bounds of `exp2(-1075)`, `expm1(-800)` or `atan2()` of a tiny and a huge number did not enclose the exact values. `tests/extended_precision.cpp` checks these arguments. |
 
@@ -145,3 +148,37 @@ mingw-w64 12 runs the instruction `cpuid` at each call. GAOL takes no function
 from the math library of the system any more, and no longer changes the
 rounding direction for its elementary functions: the older MinGW-w64 are
 refused for the reason of the third row only.
+
+### Linking with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`
+
+The compilation of GAOL's headers refuses `-ffast-math`, but the link of the
+program is not seen: GCC and Clang link `crtfastmath.o` into a program linked
+with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`, whose
+constructor sets the flush-to-zero and denormals-are-zero modes of the SSE
+instructions, after GAOL initialized itself, and loading a plug-in or a Python
+module built with `-Ofast` sets them too. With either mode, every operation
+with a subnormal operand or result gives bounds that miss the exact result:
+`[1e-300] * [1e-20]` is [0, 0]. The `-fno-fast-math` of `gaol.pc` and
+`gaol::gaol` does not prevent it: it cancels `-ffast-math` when it comes after
+it, but not `-Ofast` (GCC 9.4 and Clang 18 link `crtfastmath.o` all the same,
+and it silences the `#error` of `gaol/gaol_config.h` against `-ffast-math`,
+which `-Ofast` would raise) nor, with GCC 9.4, `-funsafe-math-optimizations`.
+
+**Linking with them, or loading code built with them, makes the bounds wrong.**
+GAOL v5 defends itself on x86 processors:
+
+- each operation that computes bounds clears the two modes when it starts, in
+  the check that sets the rounding direction upward, which uses a subnormal
+  number to see them as well as the direction (`round_upward_if_needed()` in
+  `gaol/gaol_fpu.h`). It is the only defence against the plug-in, and costs
+  about 0.2 ns more than the check of the direction alone on an Intel
+  i7-1185G7, the only processor measured (see
+  [Using GAOL](using.md#flush-to-zero-and-denormals-are-zero));
+- `-mno-daz-ftz` is given to the link (`gaol::gaol`, `gaol.pc`) where the
+  compiler accepts it, which keeps `crtfastmath.o` out of it. No test checks
+  it: it takes a compiler that has it, and GCC 9.4 and Clang 18 do not.
+
+The processors other than x86 are not covered: the FZ bit of the FPCR of ARM
+processors is neither checked nor cleared. `tests/rounding_direction.cpp` sets
+FTZ, DAZ and both before operations with subnormal operands and results, and
+checks that the bounds are the tightest ones (x86 only).

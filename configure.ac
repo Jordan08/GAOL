@@ -591,6 +591,30 @@ for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
 done
 AC_SUBST([GAOL_PC_CFLAGS])
 
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and the releases 11.4 and 12.4; GCC 9.4 and Clang 18 refuse it), which
+# gaol.pc gives the code using GAOL in Libs, as CMakeLists.txt gives it to
+# gaol::gaol (GAOL v5). GCC links
+# crtfastmath.o into a program linked with -Ofast, -ffast-math or
+# -funsafe-math-optimizations, and its constructor sets the flush-to-zero and
+# denormals-are-zero modes of the SSE instructions, which make the bounds of
+# every operation with a subnormal operand or result wrong. The option keeps
+# that file out of the link; each operation of GAOL clears the two modes when
+# it starts (gaol/gaol_fpu.h). Checked by linking, since it is a link option.
+GAOL_PC_LIBS=""
+AC_LANG_PUSH([C++])
+gaol_save_LDFLAGS=$LDFLAGS
+LDFLAGS="-Werror -mno-daz-ftz"
+AC_MSG_CHECKING([whether the C++ compiler links with -mno-daz-ftz])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[gaol_takes_mno_daz_ftz=yes],[gaol_takes_mno_daz_ftz=no])
+AC_MSG_RESULT([${gaol_takes_mno_daz_ftz}])
+LDFLAGS=$gaol_save_LDFLAGS
+AC_LANG_POP([C++])
+if test "${gaol_takes_mno_daz_ftz}" = yes; then
+    GAOL_PC_LIBS="-mno-daz-ftz"
+fi
+AC_SUBST([GAOL_PC_LIBS])
+
 
 AC_CONFIG_FILES([gaol.pc
                  Makefile

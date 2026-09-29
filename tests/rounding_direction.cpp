@@ -17,8 +17,13 @@
  * of direction that the source code writes after its computation. It has to
  * leave the direction as it found it, or upward (as it found it only, with
  * GAOL_PRESERVE_ROUNDING). After it, the bounds of a product and a sum have to
- * be the tightest ones. At the end, gaol::cleanup() has to set back the
- * direction the first gaol::init() found (GAOL v5).
+ * be the tightest ones. On x86, the same holds with the flush-to-zero and
+ * denormals-are-zero modes of the SSE instructions set (what a program linked
+ * with -Ofast gets from crtfastmath.o, and a plug-in built so): the bounds of
+ * the operations with a subnormal operand or result are the tightest ones, and
+ * the modes are cleared after them, or restored with GAOL_PRESERVE_ROUNDING.
+ * At the end, gaol::cleanup() has to set back the direction the first
+ * gaol::init() found (GAOL v5).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -31,6 +36,7 @@
 #include "gaol_tests.h"
 
 #include <exception>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -363,6 +369,97 @@ int main()
             is_tightest_enclosure(s[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(s[i]); });
     }
   }
+
+#if GAOL_TESTS_SSE
+  /*
+    Flush-to-zero and denormals-are-zero (GAOL v5). With FTZ, DAZ or both set
+    in MXCSR, an operation whose result or operand is subnormal gave a zero:
+    [1e-300]*[1e-20] was [0, 0], when a program linked with -Ofast, whose
+    crtfastmath.o sets them after GAOL initialized itself, or a plug-in built
+    so, set them, and the rounding direction upward that the probe of each
+    operation looked at was still there. The direction is tried with each of
+    the modes, upward included, which is what such a program has. The bounds
+    have to be the tightest ones, computed apart with exact rational
+    arithmetic, or with mpmath for the exponential: the operands, the exact
+    values and the bounds are read with the modes cleared, which change
+    frexp(), on which the exact arithmetic of the tests relies, for a subnormal.
+    The modes are cleared after the operation, or restored with
+    GAOL_PRESERVE_ROUNDING. Not testable here: -mno-daz-ftz, which keeps
+    crtfastmath.o out of the link with GCC 12 and later.
+  */
+  {
+    const double dm = std::numeric_limits<double>::denorm_min(); // 2^-1074
+    const Dyadic half = dyadic(0.5);
+    struct Case
+    {
+      const char *name;
+      interval x, y;
+      interval (*run)(const interval&, const interval&);
+      Exact value; // the exact result, or a number of the same two doubles
+    };
+    const Case cases[] = {
+      // subnormal results of normal operands
+      { "[1e-300]*[1e-20]", interval(1e-300), interval(1e-20),
+        [](const interval& x, const interval& y) { return x*y; },
+        exact(dyadic(1e-300)*dyadic(1e-20)) },
+      // the exact difference, a subnormal
+      { "[3e-308]-[2.9e-308]", interval(3e-308), interval(2.9e-308),
+        [](const interval& x, const interval& y) { return x - y; },
+        exact(dyadic(3e-308) - dyadic(2.9e-308)) },
+      { "sqr([1e-160])", interval(1e-160), interval(),
+        [](const interval& x, const interval&) { return sqr(x); },
+        exact(dyadic(1e-160)*dyadic(1e-160)) },
+      // subnormal operands
+      { "[100*2^-1074]*[1e10]", interval(100.0*dm), interval(1e10),
+        [](const interval& x, const interval& y) { return x*y; },
+        exact(dyadic(100.0*dm)*dyadic(1e10)) },
+      { "[100*2^-1074]+[3*2^-1074]", interval(100.0*dm), interval(3.0*dm),
+        [](const interval& x, const interval& y) { return x + y; },
+        exact(dyadic(100.0*dm) + dyadic(3.0*dm)) },
+      // a normal result of a subnormal divisor
+      { "[1e-300]/[100*2^-1074]", interval(1e-300), interval(100.0*dm),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(100.0*dm)) },
+      // exp(-740) = 84.78 * 2^-1074 (mpmath), between 84 and 85 of them
+      { "exp([-740])", interval(-740.0), interval(),
+        [](const interval& x, const interval&) { return exp(x); },
+        exact(dyadic(169.0*dm)*half) },
+    };
+
+    struct Mode
+    {
+      const char *name;
+      unsigned bits;
+    };
+    const Mode modes[] = { { "FTZ", 0x8000u }, { "DAZ", 0x0040u }, { "FTZ and DAZ", 0x8040u } };
+    const unsigned ftz_daz = 0x8040u;
+
+    for (const Case& c : cases) {
+      for (const Mode& m : modes) {
+        for (const Direction& d : directions) {
+          set(d);
+          _mm_setcsr(_mm_getcsr() | m.bits);
+          const unsigned found = _mm_getcsr() & ftz_daz;
+          const interval r = c.run(c.x, c.y);
+          const unsigned left = _mm_getcsr() & ftz_daz;
+          _mm_setcsr(_mm_getcsr() & ~ftz_daz);
+          const auto describe = [&] {
+            return std::string(m.name) + " set, rounding direction " + d.name + ": FTZ and DAZ bits " + std::to_string(left)
+                 + " after it, " + std::to_string(found) + " before";
+          };
+          check(std::string(c.name) + " the tightest enclosure with FTZ or DAZ", is_tightest_enclosure(r, c.value),
+                [&] { return describe() + ", " + hex(r); });
+#if GAOL_PRESERVE_ROUNDING
+          check(std::string(c.name) + " FTZ and DAZ restored", left == found, describe);
+#else
+          check(std::string(c.name) + " FTZ and DAZ cleared", left == 0u, describe);
+#endif
+        }
+      }
+    }
+    set(directions[0]);
+  }
+#endif // GAOL_TESTS_SSE
 
   /*
     The floating-point exceptions stay masked (GAOL v5). CORE-MATH's cbrt, pow

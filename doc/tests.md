@@ -76,6 +76,14 @@ Codac.
   an empty interval to be told empty after them: the `fesetexceptflag()` of
   mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
   the NaN bounds of an empty interval then killed the program (GAOL v5).
+  On x86, with the flush-to-zero and denormals-are-zero modes of the SSE
+  instructions set, FTZ, DAZ or both, and the rounding direction upward or
+  not, products, sums, differences, quotients, squares and `exp` with a
+  subnormal operand or result have to be the tightest enclosures, computed
+  apart with exact rational arithmetic (and mpmath for `exp(-740)`), and the
+  two modes have to be cleared after the operation, or restored with
+  `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets them from
+  `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0] (GAOL v5).
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set

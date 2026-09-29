@@ -414,6 +414,29 @@ endif()
 string(REPLACE ";" " " GAOL_FMA_FLAGS_STRING "${GAOL_FMA_FLAGS}")
 message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
 
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and the releases 11.4 and 12.4; GCC 9.4 and Clang 18 refuse it, with an
+# error), which the code using GAOL is given (gaol::gaol, gaol.pc) (GAOL v5). GCC links crtfastmath.o into a
+# program linked with -Ofast, -ffast-math or -funsafe-math-optimizations, even
+# when -fno-fast-math follows, and its constructor sets the flush-to-zero and
+# denormals-are-zero modes of the SSE instructions, which make the bounds of
+# every operation with a subnormal operand or result wrong ([1e-300]*[1e-20] is
+# [0, 0]). -mno-daz-ftz keeps that file out of the link. It is no protection
+# against a plug-in built with -Ofast and loaded later, nor against the
+# other compilers: each operation of GAOL clears the two modes when it starts
+# (gaol/gaol_fpu.h). Checked by linking, since it is a link option.
+set(GAOL_LINK_FLAGS "")
+if(NOT MSVC)
+  set(CMAKE_REQUIRED_LINK_OPTIONS "-mno-daz-ftz")
+  check_cxx_source_compiles("int main() { return 0; }" GAOL_LINKER_TAKES_MNO_DAZ_FTZ)
+  unset(CMAKE_REQUIRED_LINK_OPTIONS)
+  if(GAOL_LINKER_TAKES_MNO_DAZ_FTZ)
+    list(APPEND GAOL_LINK_FLAGS -mno-daz-ftz)
+  endif()
+endif()
+string(REPLACE ";" " " GAOL_LINK_FLAGS_STRING "${GAOL_LINK_FLAGS}")
+message(STATUS "Link flags of the code using GAOL: ${GAOL_LINK_FLAGS_STRING}")
+
 
 ################################################################################
 # CORE-MATH
@@ -657,6 +680,11 @@ target_include_directories(gaol PUBLIC
 )
 target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
+# To the link of the code using GAOL, when it is built by GCC: a program built by
+# another compiler than the one that configured GAOL would fail on the option
+if(GAOL_LINK_FLAGS)
+  target_link_options(gaol INTERFACE "$<$<CXX_COMPILER_ID:GNU>:${GAOL_LINK_FLAGS}>")
+endif()
 # Without a build type, CMake gives no optimization flag at all. GAOL sets
 # Release when it is the top-level project, but brought in by a project that
 # sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled

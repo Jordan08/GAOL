@@ -339,6 +339,22 @@ if float_store_needed and cpp_comp.has_argument('-ffloat-store')
   pc_cflags += ['-ffloat-store']
 endif
 
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and the releases 11.4 and 12.4; GCC 9.4 and Clang 18 refuse it), which
+# the code using GAOL is given (gaol_dep, gaol.pc), as CMakeLists.txt gives it
+# (GAOL v5): GCC links
+# crtfastmath.o into a program linked with -Ofast, -ffast-math or
+# -funsafe-math-optimizations, and its constructor sets the flush-to-zero and
+# denormals-are-zero modes of the SSE instructions, which make the bounds of
+# every operation with a subnormal operand or result wrong. The option keeps
+# that file out of the link; each operation of GAOL clears the two modes when
+# it starts (gaol/gaol_fpu.h). Checked by linking, since it is a link option.
+gaol_link_args = []
+if not msvc and cpp_comp.has_link_argument('-mno-daz-ftz')
+  gaol_link_args += ['-mno-daz-ftz']
+endif
+message('Link flags of the code using GAOL: ' + ' '.join(gaol_link_args))
+
 subdir('gaol')
 
 # make test and make check, as with CMake and configure (GAOL v5): the unit
@@ -398,7 +414,7 @@ endif
 ## In a meson project: gaol_dep = dependency('gaol')
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: [gaollib] + (m_dep.found() ? ['-lm'] : []),
+  libraries: [gaollib] + (m_dep.found() ? ['-lm'] : []) + gaol_link_args,
   name: 'gaol',
   description: 'GAOL, Not Just Another Interval Library',
   url: gaol_url,
