@@ -510,6 +510,7 @@ namespace
       { "pow([-2,-1],[1e10])", [] { return pow(interval(-2., -1.), interval(1e10)); } },
       { "pow([-1,-0.5],[2^32+1])", [] { return pow(interval(-1., -0.5), interval(4294967297.0)); } },
       { "pow([2,3],[2^31]), with a positive base", [] { return pow(interval(2., 3.), interval(2147483648.0)); } },
+      { "pow([0.5,1],[2^31])", [] { return pow(interval(0.5, 1.), interval(2147483648.0)); } },
       { "pow([0.25,0.5],[-2^31-1]), with a positive base", [] { return pow(interval(0.25, 0.5), interval(-2147483649.0)); } },
       { "pow([-2,3],1e10)", [] { return pow(interval(-2., 3.), 1e10); } },
       { "pow([2,3],2^31)", [] { return pow(interval(2., 3.), 2147483648.0); } },
@@ -526,6 +527,9 @@ namespace
     check("pow([-1],[2^31-1]) and pow([-1],[-2^31]), at the bounds of the ints: exact",
           largest.left() == -1. && largest.right() == -1. && smallest.left() == 1. && smallest.right() == 1.,
           [&] { return hex(largest) + " and " + hex(smallest); });
+    const interval at_int_min = pow(interval(0.5, 1.), interval(-2147483648.0));
+    check("pow([0.5,1],[-2^31]), at the lower bound of the ints",
+          at_int_min.left() == 1. && at_int_min.right() == inf, [&] { return hex(at_int_min); });
 
     // Special cases of IEEE 1788-2015 (Table 9.1, footnotes b and c): pown(x,0)
     // is 1 for any x, 0 included, and pown(0,p) has no value for p < 0; pow(0,y)
