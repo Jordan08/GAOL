@@ -104,3 +104,44 @@ set_tests_properties(numbers PROPERTIES TIMEOUT 300)
 add_executable(gaol_performance performance.cpp)
 target_link_libraries(gaol_performance PRIVATE gaol::gaol)
 set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
+# The warning for a result thrown away, in each language standard (GAOL v5):
+# [[nodiscard]] is C++17, and gaol::gaol sets no standard, so that a project
+# with GCC 9 compiles in C++14 (GAOL_NODISCARD, gaol/gaol_config.h, then takes
+# the attribute of GCC and Clang). For each of C++11, C++14 and C++17,
+# nodiscard.cpp is compiled with -Werror=unused-result, where the compilers
+# give the warning, in two tests: nodiscard_discard_cxx<N> has it throw away
+# sqrt(x), and passes if the build fails with the message of the compiler;
+# nodiscard_used_cxx<N> has it use the result, and passes if the build
+# succeeds, GAOL's headers giving no warning of their own. The object is a
+# target of its own, left out of the build of GAOL and made by the test
+# (cmake --build), with the flags of GAOL's headers as gaol::gaol carries them,
+# written out here: only the headers are read, so that the test does not wait
+# for the library, which gaol::gaol would build first. The tests run in the C
+# locale, the message being translated otherwise. Not with Visual C++, whose
+# _Check_return_ only warns with /analyze. The autotools and meson builds have
+# no such test: the header it checks is the same.
+function(gaol_nodiscard_test standard)
+  foreach(kind discard used)
+    set(name nodiscard_${kind}_cxx${standard})
+    add_library(gaol_${name} OBJECT nodiscard.cpp)
+    set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE
+                          CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_include_directories(gaol_${name} PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} -Werror=unused-result)
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
+    # One build at a time in the build directory, whatever ctest -j says
+    set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
+                         ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
+    if(kind STREQUAL "discard")
+      target_compile_definitions(gaol_${name} PRIVATE GAOL_DISCARD)
+      set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "ignoring return value of")
+    endif()
+  endforeach()
+endfunction()
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  foreach(_standard 11 14 17)
+    gaol_nodiscard_test(${_standard})
+  endforeach()
+endif()

@@ -141,19 +141,32 @@
 #  define WORDS_BIGENDIAN 1
 #endif
 
-/* GAOL_NODISCARD: [[nodiscard]] on the functions whose result is all they do
+/* GAOL_NODISCARD: the attribute on the functions whose result is all they do
    (GAOL v5), so that the compiler warns about a call whose result is thrown
    away, as sqrt(I); or I.emptyset(); written to change I, which they leave
-   as it was. The attribute is C++17: with an earlier standard, which GAOL
-   itself is compiled with, the macro is empty, the compilers warning about
-   the attribute there (Clang with -pedantic, Visual C++ in C++14). Visual C++
-   keeps __cplusplus at 199711L without /Zc:__cplusplus, and gives the
-   standard in _MSVC_LANG. Defining GAOL_NODISCARD before including GAOL
-   replaces it, an empty definition removing the attribute. */
+   as it was. [[nodiscard]] is C++17, and a program using GAOL is compiled in
+   the standard its compiler defaults to, C++14 for GCC before 11 and Clang
+   before 16, unless the project sets another, as GAOL itself is in C++11:
+   with an earlier standard [[nodiscard]] is not used, Clang warning about it
+   with -pedantic and Visual C++ in C++14. The compilers have an attribute of
+   their own there, which makes a call thrown away warn in C++11 and C++14
+   too: __attribute__((warn_unused_result)) for GCC and Clang (-Wunused-result,
+   on by default), which GCC does not take a cast to void for a way to silence,
+   and _Check_return_ of <sal.h> for Visual C++, which the code analysis
+   (/analyze) reports and the compiler alone does not. Visual C++ keeps
+   __cplusplus at 199711L without /Zc:__cplusplus, and gives the standard in
+   _MSVC_LANG; Clang for Windows defines __clang__ and _MSC_VER. Defining
+   GAOL_NODISCARD before including GAOL replaces it, an empty definition
+   removing the attribute. */
 #ifndef GAOL_NODISCARD
 #  if defined(__cplusplus) \
       && (__cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
 #    define GAOL_NODISCARD [[nodiscard]]
+#  elif defined(__GNUC__) || defined(__clang__)
+#    define GAOL_NODISCARD __attribute__((warn_unused_result))
+#  elif defined(_MSC_VER) && _MSC_VER >= 1400
+#    include <sal.h>
+#    define GAOL_NODISCARD _Check_return_
 #  else
 #    define GAOL_NODISCARD
 #  endif
