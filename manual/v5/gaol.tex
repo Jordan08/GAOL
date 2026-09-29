@@ -477,7 +477,10 @@ CPack makes them from the CMake build, in the directory of the build:
 \item \code{package\_source} gives \file{gaol-\var{version}.tar.gz}, the
   sources, which the three builds build. CPack takes the source tree as it is,
   less what git ignores and the builds made within it: the archive is made
-  from a clean checkout;
+  from a clean checkout, and holds \file{configure} as it was generated. CMake
+  warns, when it configures, if that was for another version than
+  \file{VERSION.txt} holds: \cmd{configure --version} would give the old one
+  in the archive;
 \item \code{package} gives \file{gaol-\var{version}-\var{system}.tar.gz},
   what \cmd{cmake --install} installs, to extract anywhere, and on Linux
   \file{libgaol-dev\_\var{version}\_\var{arch}.deb}, the same files in
@@ -2502,7 +2505,10 @@ cout << tanpi(interval(0.5)) << ' '
 \end{deffun}
 
 \begin{deffun}{interval}{atanh}{(const interval\& \var{I})}
-  Returns the hyperbolic arctangent of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+  Returns the hyperbolic arctangent of \var{I}, defined on $\left]-1,1\right[$,
+  $-\infty$ and $+\infty$ being its limits at $-1$ and $1$: the part of \var{I}
+  outside is left out, and an interval with no point of it gives the empty set,
+  as \code{atanh(\itv{1}{5})} and \code{atanh(\itv{-1}{-1})} do.
 
   The six functions are those of CORE-MATH, where GAOL~4 took them from the
   mathematical library of the system, which is sometimes further than one
@@ -2511,9 +2517,10 @@ cout << tanpi(interval(0.5)) << ' '
 cout << cosh(interval(-1,2)) << ' '
      << tanh(interval(20,30)) << endl
      << acosh(interval(0,1)) << ' '
-     << atanh(interval(-2,2)) << endl;
+     << atanh(interval(-2,2)) << ' '
+     << atanh(interval(1,5)) << endl;
 @outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
-@outputs^<0, 0> [-inf, inf]~
+@outputs^<0, 0> [-inf, inf] [empty]~
 \end{example}
 \end{deffun}
 
@@ -2654,11 +2661,15 @@ cout << asin_rel(interval(0.0), interval(1,7)) << endl
   Return the \emph{relational hyperbolic arcsine} and \emph{arctangent} of
   \var{J} w.r.t. \var{I}, that is, $\operatorname{asinh}(J)\cap I$ and
   $\operatorname{atanh}(J)\cap I$, $\sinh$ and $\tanh$ being one-to-one.
+  As $\tanh$ takes its values in $\left]-1,1\right[$, \code{atanh\_rel} gives
+  the empty set for a \var{J} with no point of it, as \itv{1}{1}.
 \begin{example}
 cout << acosh_rel(interval(1,2), interval::universe()) << endl
-     << asinh_rel(interval(0,1), interval::universe()) << endl;
+     << asinh_rel(interval(0,1), interval::universe()) << endl
+     << atanh_rel(interval(1), interval::universe()) << endl;
 @outputs^[-1.316957896924817, 1.316957896924817]~
 @outputs^[0, 0.8813735870195431]~
+@outputs^[empty]~
 \end{example}
 \end{deffun}
 
@@ -4183,12 +4194,15 @@ if (@emph^[some condition]~) {
 \end{defmacro}
 
 All GAOL exceptions can be sent to an output stream through the ``\code{<{}<}''
-operator.
+operator, which writes the name of the file, the line and the explanation, as
+in \code{file.cpp, line 12:\ exception thrown:\ some explanation}, and nothing
+after \code{thrown} if there is no explanation.\newinvfive
 
 \subsection{The \code{gaol\_exception} exception}\label{sec:gaol_exception}
 %%...............................................
 The \code{gaol\_exception} class is the base class from which derive all
-GAOL exceptions. It inherits from the C++ standard class \code{exception}.
+GAOL exceptions. It inherits from the C++ standard class \code{exception},
+and overrides its \code{what()} method.\newinvfive
 
 Every exception class deriving from it must at least provide the name of
 the file and the line where the corresponding exception was thrown. As a
@@ -4211,9 +4225,18 @@ The class offers the following accessors:
   Returns the line number in the file from where the exception was thrown.
 \end{defmethod}
 
-\begin{defmethod}{gaol\_exception}{const char* const}{explanation}{(void) const}
+\begin{defmethod}{gaol\_exception}{std::string}{explanation}{(void) const}
   Returns a string explaining why the exception was thrown. Returns an empty
   string if no additional information was provided.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{const char*}{what}{(void) const noexcept}
+  Returns the explanation, as a C string, or the text \code{gaol\_exception}
+  if no additional information was provided, so that it is never empty. It
+  overrides the \code{what()} of \code{std::exception}: a handler of
+  \code{std::exception}, and the message of an exception that nothing catches,
+  now say what went wrong, where GAOL~4 gave \code{std::exception} whatever the
+  error.\newinvfive{} The text is valid as long as the exception is.
 \end{defmethod}
 
 \subsection{The \code{input\_format\_error} exception}

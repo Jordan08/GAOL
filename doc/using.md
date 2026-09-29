@@ -250,6 +250,45 @@ the warnings defines `GAOL_NODISCARD` empty before including GAOL
 (`-DGAOL_NODISCARD=`). The compound assignments (`x += y`), which do change x,
 do not carry it.
 
+## Errors
+
+GAOL reports an error by throwing an exception, of one of the three classes of
+`gaol/gaol_exceptions.h`, which `gaol::` names as it names `interval`:
+
+- `input_format_error`: a string that is no interval, given to
+  `gaol::textToInterval()` or read by `operator>>`;
+- `invalid_action_error`: a function called with an argument it does not take,
+  `nb_fp_numbers()` with a NaN, or `nth_root(8, 1.5)` in a string;
+- `unavailable_feature_error`: a feature that is not available; no operation
+  of GAOL v5 throws it.
+
+They all derive from `gaol_exception`, which derives from `std::exception`, and
+their `what()` is the explanation of the error, so that a handler that knows
+nothing of GAOL says what went wrong:
+
+```cpp
+try {
+  interval x = gaol::textToInterval("[1, 2");
+} catch (const std::exception& e) {
+  std::cerr << e.what() << '\n';   // Syntax error in interval initialization: [1, 2
+}
+```
+
+An exception that nothing catches ends the program with the same text (with
+libstdc++: `terminate called after throwing an instance of
+'gaol_core::input_format_error'`, then `what():  Syntax error in interval
+initialization: [1, 2`). GAOL 4 wrote `std::exception` in both places, whatever
+the error, `gaol_exception` not overriding `what()`. Where an exception has no
+explanation, `what()` is `gaol_exception`, never an empty text. A handler of
+`gaol_exception` also has `explanation()`, the same text in a `std::string`,
+and `file()` and `line()`, where GAOL threw the exception; `std::cerr << e`
+writes the three, as `file.cpp, line 12: exception thrown: <explanation>`.
+
+A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
+`configure`, `-Denable-exception=false` of meson; see
+[Building GAOL](building.md)) prints a message and aborts instead of throwing.
+The CMake build always throws.
+
 ## The rounding direction
 
 Each operation of GAOL sets the rounding direction upward when it is not, and
