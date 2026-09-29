@@ -4187,12 +4187,15 @@ if (@emph^[some condition]~) {
 \end{defmacro}
 
 All GAOL exceptions can be sent to an output stream through the ``\code{<{}<}''
-operator.
+operator, which writes the name of the file, the line and the explanation, as
+in \code{file.cpp, line 12:\ exception thrown:\ some explanation}, and nothing
+after \code{thrown} if there is no explanation.\newinvfive
 
 \subsection{The \code{gaol\_exception} exception}\label{sec:gaol_exception}
 %%...............................................
 The \code{gaol\_exception} class is the base class from which derive all
-GAOL exceptions. It inherits from the C++ standard class \code{exception}.
+GAOL exceptions. It inherits from the C++ standard class \code{exception},
+and overrides its \code{what()} method.\newinvfive
 
 Every exception class deriving from it must at least provide the name of
 the file and the line where the corresponding exception was thrown. As a
@@ -4215,9 +4218,18 @@ The class offers the following accessors:
   Returns the line number in the file from where the exception was thrown.
 \end{defmethod}
 
-\begin{defmethod}{gaol\_exception}{const char* const}{explanation}{(void) const}
+\begin{defmethod}{gaol\_exception}{std::string}{explanation}{(void) const}
   Returns a string explaining why the exception was thrown. Returns an empty
   string if no additional information was provided.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{const char*}{what}{(void) const noexcept}
+  Returns the explanation, as a C string, or the text \code{gaol\_exception}
+  if no additional information was provided, so that it is never empty. It
+  overrides the \code{what()} of \code{std::exception}: a handler of
+  \code{std::exception}, and the message of an exception that nothing catches,
+  now say what went wrong, where GAOL~4 gave \code{std::exception} whatever the
+  error.\newinvfive{} The text is valid as long as the exception is.
 \end{defmethod}
 
 \subsection{The \code{input\_format\_error} exception}
