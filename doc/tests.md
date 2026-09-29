@@ -53,7 +53,13 @@ Codac.
   double of the tightest bounds at every magnitude, `sin([1e-10])` and
   `cos([2^60])` included, and over 649 intervals next to their extrema and
   poles, of width about π and 2π, and of consecutive doubles up to the largest,
-  -1, 1 and `[-oo, +oo]` being exact. `exp2`, `exp10`, `log2` and `log10` have
+  -1, 1 and `[-oo, +oo]` being exact. `tan([-M_PI_2, M_PI_2])` has to be the
+  tightest enclosure, ±1.63e16: its width is the double below π, and it holds
+  no pole. tan has to be within one double of the tightest bounds over 158
+  intervals whose bounds are next to two consecutive poles, of a width within
+  two doubles of the one below π or drawn at random, five of which,
+  `[-M_PI_2, M_PI_2]` included, hold no pole and have a width that rounds up to
+  the double below π (GAOL v5). `exp2`, `exp10`, `log2` and `log10` have
   to be the tightest enclosures, and the exact values themselves where they are
   doubles (`exp2` of a whole number, `exp10` of 0 to 22, `log2` of a power of
   two, `log10` of a power of ten up to 10^22). `nth_root(I, q)` has to be an

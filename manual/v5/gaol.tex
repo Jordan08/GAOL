@@ -2392,7 +2392,10 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
 
 \begin{deffun}{interval}{tan}{(const interval\& \var{I})}
   Returns the tangent of \var{I}: \itv{-\infty}{+\infty} when \var{I} holds a
-  pole.
+  pole. No double is a pole: \code{M\_PI\_2}, the double below $\pi/2$, is
+  $6.1\cdot10^{-17}$ short of it, and \itv{-\code{M\_PI\_2}}{\code{M\_PI\_2}},
+  whose width is that of the double below $\pi$ and which holds no pole, has a
+  finite tangent (fourth result of the example).
 
   The three functions find the pieces of \var{I} on which they are monotonic
   by dividing its bounds by an enclosure of $\pi$ and, where the quotients
@@ -2405,11 +2408,14 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
 cout << cos(interval(1,4)) << endl
      << sin(interval(1,2)) << endl
      << tan(interval(1,2)) << endl
+     @rem^// 1.5707963267948966 is M_PI_2, the double below pi/2~
+     << tan(interval(-1.5707963267948966, 1.5707963267948966)) << endl
      @rem^// 1152921504606846976 is 2 to the 60~
      << cos(interval(1152921504606846976.0)) << endl;
 @outputs^[-1, 0.5403023058681398]~
 @outputs^[0.8414709848078965, 1]~
 @outputs^[-inf, inf]~
+@outputs^[-1.633123935319537e+16, 1.633123935319537e+16]~
 @outputs^[-0.5567960822766418, -0.5567960822766416]~
 \end{example}
 \end{deffun}
@@ -3873,7 +3879,7 @@ every compiler alike. The intervals of floats are not covered.
   \hline
   \multicolumn{2}{l}{\textit{Trigonometric and hyperbolic functions: valid required, accurate recommended}}\\
   \code{cos}, \code{sin} & tightest where the function is evaluated at the bounds, at every magnitude; $-1$ and $1$ exactly at the extrema; \itv{-1}{1} from the width $2\underline{\pi}$ on, $\underline{\pi}$ being the double below $\pi$\\
-  \code{tan} & tightest between two poles, at every magnitude; \itv{-\infty}{+\infty} exactly when a pole is within $x$, but for the widths between $\underline{\pi}$ and $\pi$\\
+  \code{tan} & tightest between two poles, at every magnitude; \itv{-\infty}{+\infty} exactly when a pole is within $x$, but for the widths above $\underline{\pi}$ and below $\pi$\\
   \code{asin}, \code{acos}, \code{atan}, \code{atan2} & tightest; exactly 0, or the tightest enclosures of $\pm\pi/4$, $\pm\pi/2$ and $\pi$, where the value is one of them\\
   \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh} & tightest\\
   \hline

@@ -2376,11 +2376,21 @@ interval nth_root(const interval& I, int q)
     // and / on intervals, which checked it five times more
     GAOL_RND_ENTER();
     const double l = I.left(), r = I.right();
-    // Rounded upward, as width(). Also for a NaN width, from [+oo, +oo] or
-    // [-oo, -oo] built from SSE2 registers, which the constructors refuse:
-    // GAOL gave [-oo, +oo] for them too
+    /*
+      The width of I, rounded upward as width() does: the exact width is at
+      most w, and w <= pi_dn, the double below pi, proves it below pi, so that
+      I holds at most one pole (GAOL v5, review #8 of examples/examples.md: the
+      test was w < pi_dn, and [-M_PI_2, M_PI_2], of width pi_dn, gave
+      [-oo, +oo], as did the intervals whose exact width lies between the
+      double below pi_dn and pi_dn, which round up to it, though none holds a
+      pole). Above pi_dn, I may hold two poles, the cosine having the same sign
+      at both bounds: [-oo, +oo], the tightest bound but for the intervals
+      holding no pole whose exact width is below pi. Also for a NaN width, from
+      [+oo, +oo] or [-oo, -oo] built from SSE2 registers, which the
+      constructors refuse: GAOL gave [-oo, +oo] for them too
+    */
     const double w = r - l;
-    if (!(w < pi_up)) {
+    if (!(w <= pi_dn)) {
       GAOL_RND_LEAVE();
       return interval::universe();
     }
@@ -2393,12 +2403,12 @@ interval nth_root(const interval& I, int q)
       upper bound of A and the lower bound of B. When the quotients cannot
       tell, a bound of I being within about |x| 2^-52 of a pole, or beyond
       2^52, the signs of the cosine at the bounds do (GAOL v5, issue #6,
-      see cos_or_sin()): I being narrower than pi, there is a pole within I
-      exactly when they differ. GAOL gave [-oo, +oo] then, as for the double
-      below pi/2, whose tangent is 0x1.9153d9443ed0bp+51, and for every
-      interval beyond 2^52.
+      see cos_or_sin()): I being narrower than pi, as w <= pi_dn shows, there
+      is a pole within I exactly when they differ. GAOL gave [-oo, +oo] then,
+      as for the double below pi/2, whose tangent is 0x1.9153d9443ed0bp+51, and
+      for every interval beyond 2^52.
     */
-    // l and r are finite, w being below pi_up
+    // l and r are finite, w being at most pi_dn
     const double A_left = lower_of_x_plus_half_pi_over_pi(l), A_right = upper_of_x_plus_half_pi_over_pi(l),
       B_left = lower_of_x_plus_half_pi_over_pi(r), B_right = upper_of_x_plus_half_pi_over_pi(r);
     bool no_pole = (std::floor(A_left) == std::floor(B_right));
@@ -2407,10 +2417,8 @@ interval nth_root(const interval& I, int q)
       GAOL_RND_LEAVE();
       return interval::universe();
     }
-    // Rounded upward
-    const bool narrower_than_pi = (w < pi_dn);
     // The rounding direction is upward already, set at the top of tan()
-    if (!told && narrower_than_pi) {
+    if (!told) {
       no_pole = (sign_of_cos(l) == sign_of_cos(r));
     }
     double u = -GAOL_INFINITY, v = GAOL_INFINITY;
