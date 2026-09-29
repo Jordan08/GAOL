@@ -477,7 +477,10 @@ CPack makes them from the CMake build, in the directory of the build:
 \item \code{package\_source} gives \file{gaol-\var{version}.tar.gz}, the
   sources, which the three builds build. CPack takes the source tree as it is,
   less what git ignores and the builds made within it: the archive is made
-  from a clean checkout;
+  from a clean checkout, and holds \file{configure} as it was generated. CMake
+  warns, when it configures, if that was for another version than
+  \file{VERSION.txt} holds: \cmd{configure --version} would give the old one
+  in the archive;
 \item \code{package} gives \file{gaol-\var{version}-\var{system}.tar.gz},
   what \cmd{cmake --install} installs, to extract anywhere, and on Linux
   \file{libgaol-dev\_\var{version}\_\var{arch}.deb}, the same files in

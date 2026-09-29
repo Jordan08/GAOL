@@ -314,6 +314,23 @@ Codac.
   at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
   did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
   which no header included (GAOL v5).
+- **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
+  itself, where the tree has a `configure`): a script, not a program
+  (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive
+  of the sources as it is committed, and `configure --version` gives the version
+  it was generated for: after a change of `VERSION.txt` without a new
+  generation of `configure`, the archive of the new version holds a
+  `configure` that says the old one. The script configures copies of the tree
+  with the compiler that built GAOL, and CMake has to warn of it, naming the
+  two versions, whether `configure` has the line ends of Unix or of Windows,
+  and not otherwise: not when `configure` was generated for the version
+  `VERSION.txt` holds, not when it has no line `PACKAGE_VERSION=`, and not
+  when there is no `configure`, which CMake has to configure all the same. The
+  version `configure` was generated for is asked of `configure --version`, not
+  read as `CMakeLists.txt` reads it. The copies are made of symbolic links to
+  the files of the tree, but for `CMakeLists.txt`, `VERSION.txt` and
+  `configure`, which are copied; the test takes a few seconds on an ordinary
+  machine, a configuration and four that reuse its checks (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
