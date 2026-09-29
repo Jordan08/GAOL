@@ -1517,19 +1517,24 @@ interval nth_root(const interval& I, int q)
       return 1;
     }
 
+    /*
+      The doubles are numbered by the bits of their absolute values, which
+      grow with the doubles, -0 and +0 being one number. With the bits of a
+      and b themselves, the sign bit of a lower bound -0 (which [1, 2] - 1 has,
+      and -0 >= 0), or of a negative a with b = +0, made the difference wrap
+      around: GAOL 4 returned 13830554455654793217 for nb_fp_numbers(-0.0, 1.0).
+    */
     ullidouble ai, bi;
-    ai.d = a;
-    bi.d = b;
+    ai.d = std::fabs(a);
+    bi.d = std::fabs(b);
     if (a >= 0) {
       return (bi.i-ai.i)+1;
     }
     if (b <= 0) {
       return (ai.i-bi.i)+1;
     }
-    ullidouble zi;
-    zi.d = 0.0;
-    ai.d = -ai.d;
-    return (bi.i-zi.i)+(ai.i-zi.i)+1;
+    // a < 0 < b: the doubles from a to -0 and from +0 to b, zero being counted once
+    return bi.i+ai.i+1;
   }
 
   /*
