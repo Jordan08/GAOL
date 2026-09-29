@@ -138,7 +138,10 @@ Codac.
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it hang
-  again (GAOL v5).
+  again (GAOL v5). The Ubuntu runners of the continuous integration have no
+  such locale: its Linux jobs generate `fr_FR.UTF-8` for the test, and fail if
+  it did not check under it (see
+  [Continuous integration](continuous-integration.md)).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
