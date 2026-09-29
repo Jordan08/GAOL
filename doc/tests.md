@@ -304,6 +304,23 @@ Codac.
   at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
   did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
   which no header included (GAOL v5).
+- **`version_file`** (CMake only: a script of CMake, not a program): the
+  reading of `VERSION.txt` by `CMakeLists.txt`, `gaol_read_version()` of
+  `cmake/gaol_version.cmake`, has to ignore a UTF-8 byte order mark at the
+  start of the file, which some editors of Windows write, the line ends of
+  Windows (CR LF), and the blanks and empty lines around the version, to
+  refuse anything but three numbers without leading zeros, and to give the
+  first bytes of a refused file in hexadecimal in its message. It refused a file
+  starting with a byte order mark as `VERSION.txt holds "5.0.0"`, the mark being
+  a character that is not seen; configure and meson did the same. A file of
+  UTF-16 characters (`tests/version_file/`, which CMake could not write: it
+  holds NUL bytes) has to be refused with all of its message, a NUL byte having
+  cut the text quoted, and a NUL byte after `5.0.0` has to make the file
+  refused, the regular expression stopping at it. The files are written by the
+  script, which expects the versions it writes, not the ones the code reads
+  back. configure and meson, which read the file their own way, have no such
+  test: `.github/scripts/version-file.sh` runs them on a copy of the sources, in
+  the continuous integration (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
