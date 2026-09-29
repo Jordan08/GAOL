@@ -53,7 +53,11 @@ of `3rd/math-core`, compiled as they do it (see
 headers compiled with the flags of interval arithmetic (see
 [Using GAOL](using.md)); for the SSE2 intervals and the FPU intervals alike;
 whatever the rounding direction the calling code left
-(`tests/rounding_direction.cpp`). They hold on every architecture and with
+(`tests/rounding_direction.cpp`), and with the floating-point exceptions
+masked, as a program starts: an operation that raises an enabled exception
+stops the program rather than give its bounds (see
+[The floating-point exceptions](using.md#the-floating-point-exceptions)). They
+hold on every architecture and with
 every compiler alike, CORE-MATH giving the same bits everywhere: there is no
 other mathematical library to build GAOL with (see
 [What differs from GAOL](differences.md)). The float intervals `gaol::intervalf` and `gaol::interval2f`,
