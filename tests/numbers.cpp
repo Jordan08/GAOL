@@ -23,6 +23,22 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
+// GCC 12 on 64-bit ARM processors (Debian 12: c++ 12.2.0, aarch64) miscompiles
+// decimal_output() below at -O2 and -O3: the function ends up with the local
+// array `precisions` read at the wrong address (the first precision is -1 or
+// garbage, so "1e-" + std::to_string(precision) is "1e--1" and std::stol()
+// throws), and constants() reads garbage pointers from its local table. The
+// bug follows GCC's inlining, not this file or GAOL: no undefined behaviour
+// shows with AddressSanitizer and UndefinedBehaviorSanitizer on x86-64, the
+// test passes at -O1, at -O0 and on Debian 13 (GCC 14) on aarch64, and it
+// passes at -O3 with -fno-inline-functions, -finline-limit=40 or
+// --param max-inline-insns-single=20. The pragma turns off the inlining of
+// functions that are not declared inline for this file, on that compiler and
+// that architecture only.
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 12 && defined(__aarch64__)
+#  pragma GCC optimize("no-inline-functions")
+#endif
+
 #include "gaol_tests.h"
 
 #include <clocale>

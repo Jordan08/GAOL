@@ -2582,7 +2582,13 @@ interval nth_root(const interval& I, int q)
   interval atanh(const interval& I)
   {
 	  interval J = I & interval::minus_one_plus_one();
-    if (J.is_empty()) {
+    // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
+    // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
+    // no point of it, and gives the empty set. The value of CORE-MATH at 1 is
+    // +oo, and the lower bound the double below the value: [1] was [MAX,+oo]
+    // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
+    // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
+    if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
       return interval::emptyset();
     }
     GAOL_RND_ENTER();

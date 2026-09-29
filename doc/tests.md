@@ -37,8 +37,9 @@ Codac.
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
-  poles, domains, `log` of intervals holding no positive number being empty,
-  `exp(0)`, `log(1)` and `1^y` exact). The functions have to be the tightest
+  poles, domains, `log` of intervals holding no positive number and `atanh` of
+  intervals with no point of (-1, 1) being empty, `exp(0)`, `log(1)` and `1^y`
+  exact). The functions have to be the tightest
   enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
@@ -232,7 +233,16 @@ Codac.
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
-  first and the right bound of the second. The reading of
+  first and the right bound of the second. What the exceptions of GAOL say
+  has to be their explanation, or `gaol_exception` where there is none: the
+  `what()` of a `gaol_exception`, an `input_format_error`, an
+  `unavailable_feature_error` and an `invalid_action_error` built with a known
+  explanation, and of what the reader, `operator>>` and `nb_fp_numbers()`
+  throw, read through a `std::exception`; and `operator<<` has to write the
+  explanation once. `what()` was `std::exception`, which a handler of
+  `std::exception` printed and an exception that nothing catches ended the
+  program with, and `operator<<` wrote it next to the explanation (GAOL v5).
+  The reading of
   strings by four threads at once, where the reader, whose state was global,
   crashed before its lexer became reentrant and its parser pure, is commented
   out: the tests run no thread
@@ -304,6 +314,23 @@ Codac.
   at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
   did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
   which no header included (GAOL v5).
+- **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
+  itself, where the tree has a `configure`): a script, not a program
+  (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive
+  of the sources as it is committed, and `configure --version` gives the version
+  it was generated for: after a change of `VERSION.txt` without a new
+  generation of `configure`, the archive of the new version holds a
+  `configure` that says the old one. The script configures copies of the tree
+  with the compiler that built GAOL, and CMake has to warn of it, naming the
+  two versions, whether `configure` has the line ends of Unix or of Windows,
+  and not otherwise: not when `configure` was generated for the version
+  `VERSION.txt` holds, not when it has no line `PACKAGE_VERSION=`, and not
+  when there is no `configure`, which CMake has to configure all the same. The
+  version `configure` was generated for is asked of `configure --version`, not
+  read as `CMakeLists.txt` reads it. The copies are made of symbolic links to
+  the files of the tree, but for `CMakeLists.txt`, `VERSION.txt` and
+  `configure`, which are copied; the test takes a few seconds on an ordinary
+  machine, a configuration and four that reuse its checks (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
