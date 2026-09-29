@@ -129,7 +129,13 @@ Codac.
   nothing thrown and the interval unchanged, and a line that is no interval,
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
   `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
-  too (GAOL v5). Numbers with a million zeros after their point and an
+  too (GAOL v5). Blank lines have to be skipped, as the blanks before a number
+  are, with or without `std::noskipws`: a file ending with an empty line, an
+  empty line or a line of blanks between two intervals, and `in >> d >> x` over
+  the two lines `1.5` and `[1, 2]` have to read what is there, and to end at the
+  end of the input as `while (in >> d)` does over numbers, whatever the
+  `exceptions()` of the stream; an interval written on two lines is still no
+  interval (GAOL v5). Numbers with a million zeros after their point and an
   exponent of 7 digits (`0.00…01e1000001`, and in hexadecimal and in the
   uncertain form) have to be read exactly: the exponent was cut at 100000
   (GAOL v5). Under a locale writing a decimal comma, where one is installed
