@@ -133,6 +133,16 @@ Codac.
   point intervals.
   `operator<<` has to leave the precision of the stream as it was, and
   `std::setw` to pad the whole interval, adjusted to the right or to the left.
+  The width and center formats have to write the `midpoint()` and the `rad()`
+  of IEEE 1788-2015: with every precision and flag, over the special values,
+  the subnormals, the largest doubles, unbounded intervals and random
+  intervals, the radius written has to be `rad()` rounded upward, so that
+  midpoint plus or minus it contains the interval, and never 0 for an interval
+  that is not a point, which is written as its midpoint alone. GAOL wrote
+  (l+r)/2 and (r-l)/2 rounded to nearest, which do not contain the interval,
+  a radius 0 for [0, 5·10^-324] and `inf` for the midpoint of [10^308,
+  1.7·10^308]. The empty set has to be `[empty]` in the five formats, and in
+  the conversion to a string: two of them wrote `empty` (GAOL v5).
   `while (in >> x)` has to stop at the end of the input with `failbit` set,
   nothing thrown and the interval unchanged, and a line that is no interval,
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
@@ -179,6 +189,13 @@ Codac.
   thread writing intervals meanwhile is commented out, the tests running no
   thread. `textToInterval(intervalToText(x))` has to contain x for a point
   interval x, `interval(0.1)` first: it was the empty set (GAOL v5).
+  `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`
+  or `[empty]`, whatever the global format, the precision of the intervals and
+  the locale: in each of the five formats, with 1 to 30 digits, and under a
+  locale writing a decimal comma where one is installed, where `operator<<`
+  writes `1.5 (+/- 0.5)`, `<4, 4>` and `[0,25, 0,5]`; a grammar of the literals
+  of Tables 9.5 and 12.2 checks the text, and `textToInterval` has to read it
+  back as an interval containing x (GAOL v5).
   `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
