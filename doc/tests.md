@@ -144,10 +144,21 @@ Codac.
   nothing thrown and the interval unchanged, and a line that is no interval,
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
   `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
-  too (GAOL v5). Numbers with a million zeros after their point and an
-  exponent of 7 digits (`0.00…01e1000001`, and in hexadecimal and in the
-  uncertain form) have to be read exactly: the exponent was cut at 100000
-  (GAOL v5). Under a locale writing a decimal comma, where one is installed
+  too (GAOL v5). Blank lines have to be skipped, as the blanks before a number
+  are, with or without `std::noskipws`: a file ending with an empty line, an
+  empty line or a line of blanks between two intervals, and `in >> d >> x` over
+  the two lines `1.5` and `[1, 2]` have to read what is there, and to end at the
+  end of the input as `while (in >> d)` does over numbers, on a stream throwing
+  on nothing, on `failbit`, or on `badbit` and `failbit`; an interval written on
+  two lines is still no interval (GAOL v5). The skipping must not replace the
+  checks that open any extraction: a stream that is not good, one without buffer
+  included, is not read and keeps all its text, and the stream tied to the input
+  is flushed before the first character is read, as for a number, so that a
+  prompt shows before the user types (`std::ws` alone does none of this).
+  Numbers with a million zeros after their point and an exponent of 7 digits
+  (`0.00…01e1000001`, and in hexadecimal and in the uncertain form) have to be
+  read exactly: the exponent was cut at 100000 (GAOL v5). Under a locale
+  writing a decimal comma, where one is installed
   (`fr_FR.UTF-8`, `de_DE.UTF-8`, `French_France.1252`...), numbers have to be
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest

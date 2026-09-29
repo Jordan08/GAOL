@@ -45,7 +45,12 @@
 #include <chrono>
 #include <clocale>
 #include <cstdlib>
+#include <exception>
 #include <iomanip>
+#include <ios>
+#include <istream>
+#include <ostream>
+#include <streambuf>
 #include <type_traits>
 
 // The control register of the SSE instructions, where the flush-to-zero and
@@ -861,12 +866,202 @@ namespace
     interval::format(saved_format);
   }
 
+  // What while (in >> x) reads from text, and how it ends
+  struct loop_result
+  {
+    std::vector<interval> read;   // The intervals, in the order they were read
+    std::string ended;            // The exception that ended the loop, if any
+    bool fail = false, eof = false;   // The state of the stream at the end
+  };
+
+  std::string ended_by(const std::exception_ptr& e)
+  {
+    if (!e) {
+      return "no exception";
+    }
+    try {
+      std::rethrow_exception(e);
+    } catch (const input_format_error&) {
+      return "input_format_error";
+    } catch (const std::ios_base::failure&) {
+      return "std::ios_base::failure";
+    } catch (...) {
+      return "another exception";
+    }
+  }
+
+  // while (in >> x) over text, on a stream that throws on the bits of mask,
+  // and that skips the blanks unless noskipws
+  loop_result read_intervals(const std::string& text, std::ios_base::iostate mask = std::ios_base::goodbit,
+                             bool noskipws = false)
+  {
+    std::istringstream in(text);
+    if (noskipws) {
+      in >> std::noskipws;
+    }
+    in.exceptions(mask);
+    loop_result r;
+    std::exception_ptr e;
+    try {
+      interval x;
+      while (in >> x) {
+        r.read.push_back(x);
+      }
+    } catch (...) {
+      e = std::current_exception();
+    }
+    r.ended = ended_by(e);
+    r.fail = in.fail();
+    r.eof = in.eof();
+    return r;
+  }
+
+  // The same over doubles, the model of what a stream does at the end of its input
+  loop_result read_doubles(const std::string& text, std::ios_base::iostate mask)
+  {
+    std::istringstream in(text);
+    in.exceptions(mask);
+    loop_result r;
+    std::exception_ptr e;
+    try {
+      double d;
+      while (in >> d) {
+        r.read.push_back(interval(d));
+      }
+    } catch (...) {
+      e = std::current_exception();
+    }
+    r.ended = ended_by(e);
+    r.fail = in.fail();
+    r.eof = in.eof();
+    return r;
+  }
+
+  std::string describe(const loop_result& r)
+  {
+    std::string s = std::to_string(r.read.size()) + " read";
+    for (const interval& x : r.read) {
+      s += " " + hex(x);
+    }
+    return s + ", " + r.ended + (r.fail ? ", failbit" : "") + (r.eof ? ", eofbit" : "");
+  }
+
+  // r is the intervals [a0, b0], [a1, b1]... in that order (expected holds
+  // a0, b0, a1, b1...), and ended with the end of the input: no exception,
+  // failbit and eofbit
+  bool ended_at_the_end(const loop_result& r, const std::vector<double>& expected)
+  {
+    if (r.read.size()*2 != expected.size() || r.ended != "no exception" || !r.fail || !r.eof) {
+      return false;
+    }
+    for (std::size_t i = 0; i < r.read.size(); ++i) {
+      if (r.read[i].left() != expected[2*i] || r.read[i].right() != expected[2*i + 1]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // in >> d >> x over text, d and x starting at -1 and [7, 8]
+  struct pair_result
+  {
+    double d = -1.0;
+    interval x = interval(7.0, 8.0);
+    std::string ended;
+    bool fail = false, eof = false;
+  };
+
+  pair_result read_number_and_interval(const std::string& text)
+  {
+    std::istringstream in(text);
+    pair_result r;
+    std::exception_ptr e;
+    try {
+      in >> r.d >> r.x;
+    } catch (...) {
+      e = std::current_exception();
+    }
+    r.ended = ended_by(e);
+    r.fail = in.fail();
+    r.eof = in.eof();
+    return r;
+  }
+
+  std::string describe(const pair_result& r)
+  {
+    return "d = " + hex(r.d) + ", x = " + hex(r.x) + ", " + r.ended + (r.fail ? ", failbit" : "") +
+           (r.eof ? ", eofbit" : "");
+  }
+
+  // A stream buffer with a put area, that notes that it was flushed: the
+  // stream tied to an input has something to flush
+  class flush_noted : public std::streambuf
+  {
+  public:
+    flush_noted()
+    {
+      setp(area, area + sizeof(area));
+    }
+
+    bool flushed = false;
+
+  protected:
+    int sync() override
+    {
+      flushed = true;
+      setp(area, area + sizeof(area));
+      return 0;
+    }
+
+  private:
+    char area[64];
+  };
+
+  // The text of an input, given one character at a time, that notes whether
+  // the buffer of the tied stream was flushed when it was first asked for a
+  // character
+  class input_noted : public std::streambuf
+  {
+  public:
+    input_noted(const flush_noted& tied_buffer, const std::string& content) : tied(tied_buffer), text(content) {}
+
+    bool asked = false, flushed_before = false;
+
+  protected:
+    int_type underflow() override
+    {
+      if (!asked) {
+        asked = true;
+        flushed_before = tied.flushed;
+      }
+      if (next == text.size()) {
+        return traits_type::eof();
+      }
+      current = text[next++];
+      setg(&current, &current, &current + 1);
+      return traits_type::to_int_type(current);
+    }
+
+  private:
+    const flush_noted& tied;
+    std::string text;
+    std::size_t next = 0;
+    char current = 0;
+  };
+
   /*
     operator>> reads an interval from a line. At the end of the input it sets
     failbit, leaves the interval as it was and throws nothing, as for a double,
     so that while (in >> x) ends there (GAOL v5): it threw input_format_error
     and emptied the interval, and such a loop always ended with an exception.
     A line that is no interval sets failbit, then throws input_format_error.
+    The blanks before the line, the end of the previous line included, are
+    skipped, as before a number: a blank line was read as the empty text, which
+    is no interval, so that a file ending with an empty line, or "in >> d >> x"
+    over "1.5\n[1, 2]\n", threw input_format_error (GAOL v5).
+    Before that, the sentry of any extraction is constructed: a stream that is
+    not good is not read, nothing is consumed from it, and the stream tied to
+    the input is flushed before the first character is read.
   */
   void stream_input()
   {
@@ -943,6 +1138,204 @@ namespace
       check("operator>> of a line that is no interval, on a stream throwing on failbit: input_format_error",
             format_error && in.fail(), [&] { return std::string(format_error ? "input_format_error" : "another exception"); });
     }
+
+    // Blank lines: a file ending with an empty line, and blank lines, or lines
+    // of blanks, before and between the intervals, whatever their line ends
+    struct { const char *name; const char *text; std::vector<double> expected; } const blanks[] = {
+      { "lines with blanks before the interval", "  [1, 2]\n\t[3, 4]\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "an empty line at the end", "[1, 2]\n[3, 4]\n\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "several empty lines at the end", "[1, 2]\n[3, 4]\n\n\n\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "an empty line between two intervals", "[1, 2]\n\n[3, 4]\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "a line of blanks between two intervals", "[1, 2]\n  \t \n[3, 4]\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "empty lines before the first interval", "\n\n[1, 2]\n[3, 4]", { 1.0, 2.0, 3.0, 4.0 } },
+      { "blank lines and a line of blanks at the end", "[1, 2]\n[3, 4]\n\n   \n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "blanks after the last interval, with no line end", "[1, 2]\n[3, 4]   ", { 1.0, 2.0, 3.0, 4.0 } },
+      { "empty lines with the line ends of Windows", "[1, 2]\r\n\r\n[3, 4]\r\n\r\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "only empty lines", "\n\n", { } },
+      { "only blanks", "  \t\n \n", { } },
+    };
+    for (const auto& b : blanks) {
+      for (int noskipws = 0; noskipws < 2; ++noskipws) {
+        // std::noskipws stops the blanks before a number, not the reading of the lines
+        const loop_result r = read_intervals(b.text, std::ios_base::goodbit, noskipws != 0);
+        check(std::string("while (in >> x) over ") + b.name + (noskipws ? ", with std::noskipws" : "") +
+              ": the intervals, then the end of the input",
+              ended_at_the_end(r, b.expected), [&] { return describe(r); });
+      }
+    }
+    {
+      // Nothing to read: x is left as it was, as at the end of an empty stream
+      std::istringstream in("\n  \n");
+      interval x(1.0, 2.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      check("operator>> over blank lines only: failbit, the interval unchanged, nothing thrown",
+            !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
+            [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
+    }
+    // An interval written on two lines is two lines, of which the first is no interval
+    {
+      const loop_result r = read_intervals("\n[1,\n2]\n");
+      check("operator>> of an interval spread over two lines: failbit, then input_format_error",
+            r.read.empty() && r.ended == "input_format_error" && r.fail, [&] { return describe(r); });
+    }
+    // A line that is no interval is refused after the blank lines that precede it
+    {
+      const loop_result r = read_intervals("[1, 2]\n\n\n[3, 4\n[5, 6]\n");
+      check("operator>> of a line that is no interval after blank lines: the intervals before, then input_format_error",
+            r.read.size() == 1 && r.read[0].left() == 1.0 && r.read[0].right() == 2.0 &&
+            r.ended == "input_format_error" && r.fail,
+            [&] { return describe(r); });
+    }
+
+    // GAOL leaves the rounding direction upward, and the C runtime of Windows reads 1.5 in that
+    // direction one double above (1.5 + 2^-52) where glibc reads it exactly: what these checks are
+    // about is where the stream stops, so a double that is read is taken for the number when it is
+    // that number or the double above
+    const auto is_number = [](double read, double number) { return read == number || read == std::nextafter(number, GAOL_INFINITY); };
+    // "in >> d >> x": the interval is read from the next line when the number
+    // ends its line, as a second number would be
+    struct { const char *name; const char *text; double d; double left, right; bool read, eof; } const after_number[] = {
+      { "1.5 [1, 2]\\n", "1.5 [1, 2]\n", 1.5, 1.0, 2.0, true, false },
+      { "1.5\\n[1, 2]\\n", "1.5\n[1, 2]\n", 1.5, 1.0, 2.0, true, false },
+      { "1.5\\n\\n\\n[1, 2]\\n", "1.5\n\n\n[1, 2]\n", 1.5, 1.0, 2.0, true, false },
+      { "1.5 \\n  \\n[1, 2]", "1.5 \n  \n[1, 2]", 1.5, 1.0, 2.0, true, true },
+      // Nothing left for the interval: failbit, x as it was, nothing thrown
+      { "1.5\\n", "1.5\n", 1.5, 7.0, 8.0, false, true },
+      { "1.5\\n\\n", "1.5\n\n", 1.5, 7.0, 8.0, false, true },
+      { "1.5", "1.5", 1.5, 7.0, 8.0, false, true },
+    };
+    for (const auto& a : after_number) {
+      const pair_result r = read_number_and_interval(a.text);
+      check(std::string("in >> d >> x over \"") + a.name + "\": " + (a.read ? "d and x read" : "d read, then the end of the input"),
+            is_number(r.d, a.d) && r.x.left() == a.left && r.x.right() == a.right && r.ended == "no exception" &&
+            r.fail == !a.read && r.eof == a.eof,
+            [&] { return describe(r); });
+    }
+    {
+      // The other way round: an interval, the empty lines, a number
+      std::istringstream in("[1, 2]\n\n\n1.5\n");
+      interval x;
+      double d = -1.0;
+      in >> x >> d;
+      check("in >> x >> d over \"[1, 2]\\n\\n\\n1.5\\n\": both read",
+            !in.fail() && x.left() == 1.0 && x.right() == 2.0 && is_number(d, 1.5),
+            [&] { return hex(x) + ", d = " + hex(d) + (in.fail() ? ", failbit" : ""); });
+    }
+
+    // The end of the input as for a double, on a stream throwing on nothing, on
+    // failbit, or on badbit and failbit: while (in >> x) over the intervals ends
+    // as while (in >> d) does over the numbers, at the end, with the same
+    // exception and state
+    {
+      const std::ios_base::iostate masks[] = { std::ios_base::goodbit, std::ios_base::failbit,
+                                                std::ios_base::badbit | std::ios_base::failbit };
+      for (const std::ios_base::iostate mask : masks) {
+        const loop_result x = read_intervals("[1, 1]\n\n[2, 2]\n\n", mask);
+        const loop_result d = read_doubles("1\n\n2\n\n", mask);
+        check(std::string("while (in >> x) ends as while (in >> d) does, with exceptions() ") +
+              (mask == std::ios_base::goodbit ? "none" : (mask == std::ios_base::failbit ? "failbit" : "badbit and failbit")),
+              x.read.size() == 2 && x.read.size() == d.read.size() && x.ended == d.ended && x.fail == d.fail &&
+              x.eof == d.eof,
+              [&] { return describe(x) + " against " + describe(d); });
+      }
+    }
+
+    // A stream that already failed is not read: nothing is thrown, and the
+    // intervals are read again once its state is cleared
+    {
+      std::istringstream in("\n[1, 2]\n");
+      in.setstate(std::ios_base::failbit);
+      interval x(5.0, 6.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      const bool unread = !threw && in.fail() && x.left() == 5.0 && x.right() == 6.0;
+      in.clear();
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      check("operator>> on a stream in failbit state reads nothing, and reads on after clear()",
+            unread && !threw && !in.fail() && x.left() == 1.0 && x.right() == 2.0,
+            [&] { return std::string(unread ? "read on after clear(): " : "read or threw: ") + hex(x) + (threw ? ", threw" : ""); });
+    }
+    // ... and nothing is consumed from its buffer: std::ws reads the buffer whatever the state of
+    // the stream (libstdc++), and would skip the blank lines that the next read then does not find
+    for (const std::ios_base::iostate bit : { std::ios_base::failbit, std::ios_base::badbit }) {
+      std::istringstream in("\n\n[1, 2]\nrest\n");
+      in.setstate(bit);
+      interval x(5.0, 6.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      const bool unread = !threw && in.fail() && x.left() == 5.0 && x.right() == 6.0;
+      in.clear();
+      std::string line;
+      std::getline(in, line);
+      check(std::string("operator>> on a stream in ") + (bit == std::ios_base::failbit ? "failbit" : "badbit") +
+            " state consumes nothing: the first line is still there after clear()",
+            unread && line.empty(),
+            [&] { return std::string(unread ? "unread, " : "read or threw, ") + "the first line is \"" + line + "\""; });
+    }
+
+    // The stream tied to the input, cout for cin, is flushed before the first character is asked
+    // for, for an interval as for a number: the prompt has to show before the user types. The
+    // flush is required only where the put area is not empty, hence the text written on it.
+    {
+      const auto flushed_first = [](bool number) {
+        flush_noted prompt;
+        std::ostream out(&prompt);
+        input_noted input(prompt, number ? "1.5\n" : "[1, 2]\n");
+        std::istream in(&input);
+        in.tie(&out);
+        out << "x = ";
+        if (number) {
+          double d = 0.0;
+          in >> d;
+        } else {
+          interval x;
+          in >> x;
+        }
+        return input.asked && input.flushed_before;
+      };
+      if (flushed_first(true)) {
+        check("operator>> flushes the stream tied to the input before it reads, as for a number",
+              flushed_first(false));
+      } else {
+        std::printf("This library does not flush the stream tied to the input before it reads a number: "
+                    "the flush before an interval is not checked\n");
+      }
+    }
+  }
+
+  // An istream without buffer, which std::ws would read whatever the state of the stream, and
+  // crash (libstdc++): it is the last test, since a crash ends the program
+  void stream_without_buffer()
+  {
+    std::istream in(nullptr);
+    interval x(1.0, 2.0);
+    bool threw = false;
+    try {
+      in >> x;
+    } catch (...) {
+      threw = true;
+    }
+    check("operator>> on a stream without buffer: failbit and badbit, the interval unchanged, nothing thrown",
+          !threw && in.fail() && in.bad() && x.left() == 1.0 && x.right() == 2.0,
+          [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") +
+                       (in.bad() ? "badbit, " : "no badbit, ") + hex(x); });
   }
 
   /*
@@ -1120,6 +1513,7 @@ int main()
   long_exponents();
   long_numbers_c_locale();
   comma_locale();
+  stream_without_buffer();
   const int status = summary();
   gaol::cleanup();
   return status;
