@@ -103,13 +103,16 @@ namespace gaol_core {
     The power is kept as h + l, l being small: a product h*y, rounded upward,
     is p, and fma(h, y, -p) is the rest h*y - p <= 0, a double, exactly. The
     upper bound keeps h + l above the power, l <= 0 being rounded upward. The
-    lower bound keeps h - nl below it, nl >= 0 being rounded upward, and the
-    square of nl, which would raise it, left out. The power is only rounded at the
-    end, h + l upward and h - nl downward: the bounds are the tightest, or one
-    double beyond where the power is within n 2^-104 of a double, and exact
-    where the power is a double. false when a product is not finite, or is
-    below 2^-968, its rest being no double then: the rounded products handle
-    these powers, 0 included.
+    lower bound keeps h - nl below it, nl >= 0 being rounded upward. Squaring
+    h - nl gives p - nl' with nl' = (p - h*h) + nl*(2h - nl): the square of nl
+    raises the lower bound, and has to be kept. Left out, nl' is too large by
+    nl^2, about (n 2^-52)^2 h, and the lower bound was 8 doubles below the
+    tightest at n = 2^28 - 1, 557 at 2^31 - 1, 1962 at 2^32 - 1. The power is
+    only rounded at the end, h + l upward and h - nl downward: the bounds are
+    the tightest, or one double beyond where the power is within n 2^-104 of a
+    double, and exact where the power is a double. false when a product is not
+    finite, or is below 2^-968, its rest being no double then: the rounded
+    products handle these powers, 0 included.
   */
   // Whether the rest of the product rounded to p is a double for sure: a
   // multiple of 2^-105 p, it is one from p = 2^-968 on. Not for an infinite p
@@ -157,7 +160,7 @@ namespace gaol_core {
       if (!is_normal_product(p)) {
 	return false;
       }
-      nl = std::fma(-h,h,p) + (2.0*h)*nl; // p - h*h, rounded upward in an underflow only
+      nl = std::fma(-h,h,p) + nl*(2.0*h - nl); // p - (h - nl)^2, rounded upward: 2h - nl and the product are
       h = p;
       if (n & bit) {
 	p = h*x;
