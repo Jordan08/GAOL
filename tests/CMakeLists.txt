@@ -91,6 +91,17 @@ set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
 # its own (the project does not include CTest)
 set_tests_properties(numbers PROPERTIES TIMEOUT 300)
 
+# The reading of VERSION.txt by CMakeLists.txt, in cmake/gaol_version.cmake,
+# which has to ignore a UTF-8 byte order mark and the line ends of Windows
+# (GAOL v5). A script of CMake, run by CMake: neither configure nor meson, which
+# have their own reading, has this test; .github/scripts/version-file.sh checks
+# theirs
+add_test(NAME version_file
+  COMMAND "${CMAKE_COMMAND}" "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+          "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/version_file"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/version_file.cmake")
+set_tests_properties(version_file PROPERTIES LABELS unit)
+
 # Commented out: the tests run no thread (GAOL v5)
 # # ieee1788 calls intervalToExact() in a thread of its own (std::thread), and
 # # expressions reads strings in four threads at once, which needs -pthread with
