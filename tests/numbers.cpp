@@ -25,6 +25,7 @@
 
 #include "gaol_tests.h"
 
+#include <cctype>
 #include <clocale>
 #include <cstdlib>
 #include <iomanip>
@@ -709,6 +710,199 @@ namespace
   }
 
   /*
+    The width and center formats write the midpoint c and the radius w of
+    IEEE 1788-2015 (12.12.8), midpoint() and rad(): [c-w, c+w] contains the
+    interval, w being the smallest double that makes it so, written rounded
+    upward to the digits of the precision, and c rounded to nearest (GAOL
+    v5). GAOL wrote (l+r)/2 and (r-l)/2, both rounded to nearest: c and w did
+    not contain the interval ([1, 1+2^-52] was "1 (+/- 1.11e-16)", whose
+    radius stops short of the upper bound), w was 0 for [0, 5e-324], l+r
+    overflowed for [1e308, 1.7e308], written "inf (+/- 3.5e+307)", and the
+    point interval 0.1 was written 0.1000000000000001, as the center was
+    rounded upward there. The empty set is [empty] in every format, as the
+    manual says: these two formats wrote "empty", which is no literal of the
+    standard (12.11.3).
+  */
+  void width_and_center_output()
+  {
+    const interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    const std::ios_base::fmtflags general = std::ios_base::fmtflags(), scientific = std::ios_base::scientific,
+      fixed = std::ios_base::fixed, showpoint = std::ios_base::showpoint, showpos = std::ios_base::showpos;
+    const int precisions[] = { 1, 2, 4, 6, 15, 16, 17, 20 };
+    const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+
+    // The unit of the last digit of the text s that the stream wrote for x
+    // with the flags and the precision given, as expect_output() takes it
+    const auto unit_of = [](const std::string& s, double x, std::ios_base::fmtflags flags, int precision) {
+      Exact unit = decimal("1e-" + std::to_string(precision));
+      const std::ios_base::fmtflags floatfield = flags & std::ios_base::floatfield;
+      if (floatfield == std::ios_base::scientific && s.find('e') != std::string::npos) {
+        unit = unit*decimal("1" + s.substr(s.find('e')));
+      } else if (floatfield != std::ios_base::fixed && floatfield != std::ios_base::scientific) {
+        unit = ((x < 0.0) ? -exact(x) : exact(x))*decimal("1e" + std::to_string(1 - precision));
+      }
+      return unit;
+    };
+    const auto is_infinite_text = [](const std::string& s) { return s == "inf" || s == "+inf"; };
+    // Whether s is a decimal number, a sign, digits with a point and an exponent, and not inf or nan
+    const auto is_decimal_text = [](const std::string& s) {
+      std::size_t i = (!s.empty() && (s[0] == '+' || s[0] == '-')) ? 1 : 0, digits = 0;
+      for (; i < s.size() && (std::isdigit(static_cast<unsigned char>(s[i])) || s[i] == '.'); ++i) {
+        digits += (s[i] != '.') ? 1 : 0;
+      }
+      if (digits == 0) {
+        return false;
+      }
+      if (i < s.size() && s[i] == 'e') {
+        ++i;
+        i += (i < s.size() && (s[i] == '+' || s[i] == '-')) ? 1 : 0;
+        std::size_t exponent = 0;
+        for (; i < s.size() && std::isdigit(static_cast<unsigned char>(s[i])); ++i) {
+          ++exponent;
+        }
+        return exponent > 0 && i == s.size();
+      }
+      return i == s.size();
+    };
+
+    const auto expect_width = [&](const interval& x, std::ios_base::fmtflags flags, int p) {
+      const std::string name = "operator<< in the width format";
+      const double l = x.left(), r = x.right(), m = x.midpoint(), rad = x.rad();
+      const auto write = [&](interval_format::format_t format) {
+        std::ostringstream os;
+        os.flags(flags);
+        interval::precision(p);
+        interval::format(format);
+        os << x;
+        return os.str();
+      };
+      const std::string s = write(interval_format::width), centered = write(interval_format::center);
+      const auto describe = [&] { return hex(x) + " with the precision " + std::to_string(p) + " written " + s; };
+      const std::size_t sep = s.find(" (+/- ");
+      if (l == r) {
+        check(name + " of a point interval: the center alone, as the center format writes it",
+              sep == std::string::npos && s == centered, describe);
+      } else {
+        if (!check(name + ": the center, then the radius", sep != std::string::npos && s[s.size() - 1] == ')', describe)) {
+          return;
+        }
+        const std::string sc = s.substr(0, sep), sw = s.substr(sep + 6, s.size() - sep - 7);
+        check("operator<< in the center format: the center of the width format", centered == sc,
+              [&] { return describe() + ", and " + centered + " in the center format"; });
+        if (!check(name + ": the center is a number", is_decimal_text(sc), describe)) {
+          return;
+        }
+        if (std::isinf(rad)) {
+          check(name + " of an unbounded interval: an infinite radius", is_infinite_text(sw), describe);
+        } else {
+          if (!check(name + ": the radius is a number", is_decimal_text(sw), describe)) {
+            return;
+          }
+          const Exact vw = written(sw), unit_w = unit_of(sw, rad, flags, p);
+          // [c-w, c+w] contains the interval, c being the midpoint, and w is
+          // at least half its width, whatever the center
+          check(name + ": [midpoint-radius, midpoint+radius] contains the interval",
+                compare(l, exact(m) + (-vw)) >= 0 && compare(r, exact(m) + vw) <= 0, describe);
+          check(name + ": the radius is at least half the width",
+                compare(quotient(dyadic(r) - dyadic(l), dyadic(2.0)), vw) <= 0, describe);
+          check(name + ": the radius is rad() rounded upward, less than one unit of its last digit",
+                compare(rad, vw) <= 0 && compare(rad, vw + (-unit_w)) > 0, describe);
+          check(name + ": a radius written for an interval that is not a point is not 0", compare(0.0, vw) < 0, describe);
+        }
+        const Exact vc = written(sc), unit_c = unit_of(sc, m, flags, p);
+        check(name + ": the center is the midpoint, less than one unit of its last digit away",
+              (m == 0.0) ? compare(0.0, vc) == 0 : (compare(m, vc + unit_c) < 0 && compare(m, vc + (-unit_c)) > 0), describe);
+      }
+    };
+
+    const double eps_above_one = next_double(1.0);
+    const interval specials[] = {
+      interval(1.0, eps_above_one), interval(previous_double(1.0), 1.0), interval(0.0, smallest),
+      interval(-smallest, smallest), interval(smallest, 2.0*smallest), interval(1e-310, 3e-310),
+      interval(0x1p-1022, 0x1.0000000000001p-1022), interval(1e308, 1.7e308), interval(-largest, largest),
+      interval(-largest, 1e308), interval(previous_double(largest), largest), interval(0.1, 0.3),
+      interval::pi(), interval(1.0, 3.0), interval(-1.0, 2.0), interval(9.999999999999998, 10.0),
+      interval(4.0, 5.0), interval(3.452, 3.453), interval(0.1), interval(1.0), interval(-0.0, 0.0),
+      interval(smallest), interval(-largest), interval(1e22, 1e23),
+      interval(-inf, 3.0), interval(3.0, inf), interval(-inf, -1e300), interval(0.0, inf), interval::universe(),
+    };
+    const std::ios_base::fmtflags all_flags[] = { general, general | showpoint, scientific, fixed, general | showpos };
+    const auto expect_each_flag = [&](const interval& x) {
+      const double magnitude = std::fmax(std::fabs(x.left()), std::fabs(x.right()));
+      const bool extreme = (magnitude > 1e30 && std::isfinite(magnitude)) || (x.rad() < 1e-30 && x.rad() > 0.0)
+                           || (magnitude < 1e-30 && magnitude > 0.0);
+      for (int p : precisions) {
+        for (std::ios_base::fmtflags flags : all_flags) {
+          if (flags == fixed && extreme) {
+            continue; // Hundreds of digits
+          }
+          expect_width(x, flags, p);
+        }
+      }
+    };
+    for (const interval& x : specials) {
+      expect_each_flag(x);
+    }
+    Random random;
+    for (int i = 0; i < 300; ++i) {
+      const double a = random.any();
+      expect_each_flag(hull(random.any(), random.any()));
+      expect_each_flag(hull(random.uniform(-1000.0, 1000.0), random.uniform(-1.0, 1.0)));
+      if (std::isfinite(a) && a != largest) {
+        expect_each_flag(interval(a, next_double(a)));
+      }
+    }
+
+    // The forms of the manual, and the values that were wrong
+    interval::precision(16);
+    const struct { const char *name; interval x; const char *width, *center; } forms[] = {
+      { "[4, 5]", interval(4.0, 5.0), "4.5 (+/- 0.5)", "4.5" },
+      { "[1, 3]", interval(1.0, 3.0), "2 (+/- 1)", "2" },
+      { "[1, 1+2^-52]", interval(1.0, eps_above_one), "1 (+/- 2.220446049250314e-16)", "1" },
+      { "[0, 5e-324]", interval(0.0, smallest), "0 (+/- 4.940656458412466e-324)", "0" },
+      { "pi", interval::pi(), "3.141592653589793 (+/- 4.440892098500627e-16)", "3.141592653589793" },
+      { "interval(0.1)", interval(0.1), "0.1", "0.1" },
+      { "interval(4)", interval(4.0), "4", "4" },
+      { "interval(-0, 0)", interval(-0.0, 0.0), "0", "0" },
+      { "[-oo, 3]", interval(-inf, 3.0), "-1.797693134862316e+308 (+/- inf)", "-1.797693134862316e+308" },
+      { "[3, +oo]", interval(3.0, inf), "1.797693134862316e+308 (+/- inf)", "1.797693134862316e+308" },
+      { "[-oo, +oo]", interval::universe(), "0 (+/- inf)", "0" },
+      { "[-MAX, MAX]", interval(-largest, largest), "0 (+/- 1.797693134862316e+308)", "0" },
+    };
+    for (const auto& f : forms) {
+      std::ostringstream w, c;
+      interval::format(interval_format::width);
+      w << f.x;
+      interval::format(interval_format::center);
+      c << f.x;
+      check(std::string("operator<< in the width format of ") + f.name + ": the form expected", w.str() == f.width,
+            [&] { return "\"" + w.str() + "\" rather than \"" + f.width + "\""; });
+      check(std::string("operator<< in the center format of ") + f.name + ": the form expected", c.str() == f.center,
+            [&] { return "\"" + c.str() + "\" rather than \"" + f.center + "\""; });
+    }
+
+    // The empty set is [empty] in every format
+    const struct { const char *name; interval_format::format_t format; } formats[] = {
+      { "bounds", interval_format::bounds }, { "width", interval_format::width },
+      { "center", interval_format::center }, { "hexa", interval_format::hexa },
+      { "agreeing", interval_format::agreeing },
+    };
+    for (const auto& f : formats) {
+      interval::format(f.format);
+      std::ostringstream os;
+      os << interval::emptyset();
+      const std::string as_string = interval::emptyset();
+      check(std::string("operator<< in the ") + f.name + " format: the empty set is [empty]", os.str() == "[empty]",
+            [&] { return "\"" + os.str() + "\""; });
+      check(std::string("the conversion to string in the ") + f.name + " format: the empty set is [empty]",
+            as_string == "[empty]", [&] { return "\"" + as_string + "\""; });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+  }
+
+  /*
     operator>> reads an interval from a line. At the end of the input it sets
     failbit, leaves the interval as it was and throws nothing, as for a double,
     so that while (in >> x) ends there (GAOL v5): it threw input_format_error
@@ -869,6 +1063,7 @@ int main()
   hexadecimal_output();
   decimal_output();
   stream_output();
+  width_and_center_output();
   stream_input();
   long_exponents();
   comma_locale();

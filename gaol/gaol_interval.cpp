@@ -720,15 +720,18 @@ namespace gaol_core {
     exactly, of either sign, and the reader takes <-0, 0>, -0 being 0: [-0, 0],
     which interval::zero() and x - x are with the SSE2 intervals, keeps its
     angles.
+
+    The angles are no literal of IEEE 1788-2015: with `angles` false, as
+    intervalToText() has it, a point interval is written [a, a] like any other.
   */
-  void display_bounds(double l, double r, ostream& os)
+  void display_bounds(double l, double r, ostream& os, bool angles = true)
   {
     if (!(l <= r)) {
       os << "[empty]";
     } else {
       const std::string left = bound_to_text(l, false, os);
       const std::string right = bound_to_text(r, true, os);
-      if (l == r && (left == right || l == 0.0)) {
+      if (angles && l == r && (left == right || l == 0.0)) {
 				os << '<' << left << ", " << right << '>';
       } else {
 				os << '[' << left << ", " << right << ']';
@@ -818,61 +821,50 @@ namespace gaol_core {
 	round_upward();
 
     double l = I.left(), r = I.right();
+    const interval_format::format_t format = interval::format();
 
-    switch (interval::format()) {
+    switch (format) {
     case interval_format::bounds: // Display in the form "[ l, r ]"
       display_bounds(l,r,out);
       break;
     case interval_format::hexa: // The exact text representation of 13.4
       out << exact_string(I);
       break;
-    case interval_format::width: // Display in the form "c (+/- w)"
-      if (I.is_empty()) {
-				out << "empty";
-      } else {
-				if (l == r) {
-	  			out << l;
-				} else {
-	  			round_nearest();
-	  			if (l == -GAOL_INFINITY) {
-	    			if (r == GAOL_INFINITY) { // [-oo, +oo]
-	      			out << 0.0;
-	    			} else {                        // [-oo, x]
-	      			out << -std::numeric_limits<double>::max();
-	    			}
-	  			} else {
-	    			if (r == GAOL_INFINITY) { // [x, +oo]
-	      			out << std::numeric_limits<double>::max();
-	    			} else {                        // [x, y]
-	      			out << ((l+r)/2.0);
-	    			}
-	  			}
-	  				out << " (+/- " << ((r-l)/2.0) << ")";
-				}
-      }
-      break;
+    case interval_format::width:  // Display in the form "c (+/- w)"
     case interval_format::center: // Display in the form "c"
       if (I.is_empty()) {
-				out << "empty";
+        out << "[empty]";
       } else {
-				if (l == r) {
-	  			out << l;
-				} else {
-	  			round_nearest();
-	  			if (l == -GAOL_INFINITY) {
-	    			if (r == GAOL_INFINITY) { // [-oo, +oo]
-	      			out << 0.0;
-	    			} else {                        // [-oo, x]
-	      			out << -std::numeric_limits<double>::max();
-	    			}
-	  			} else {
-	    			if (r == GAOL_INFINITY) { // [x, +oo]
-	      			out << std::numeric_limits<double>::max();
-	    			} else {                        // [x, y]
-	      			out << ((l+r)/2.0);
-	    			}
-	  			}
-				}
+        /*
+          The midpoint c and the radius w of IEEE 1788-2015 (12.12.8),
+          midpoint() and rad() (GAOL v5): [c-w, c+w] contains the interval, w
+          being the smallest double that makes it so, and +oo for an
+          unbounded interval, whose midpoint is 0 or plus or minus the
+          largest double. c is written rounded to nearest, and w upward, so
+          that a radius that is not 0 is never written 0. GAOL wrote (l+r)/2
+          and (r-l)/2, both rounded to nearest: c and w did not contain the
+          interval ([1, 1+2^-52] was "1 (+/- 1.11e-16)"), w was 0 for
+          [0, 5e-324], l+r overflowed for [1e308, 1.7e308], and the center of
+          a point interval was written rounded upward (0.1 was
+          0.1000000000000001).
+          A point interval has no radius: it is written as its center, which
+          tells it from an interval too narrow for the digits of its center.
+          These formats are for the eye: c has the digits of the precision, so
+          that c (+/- w) written need not contain the interval, where the
+          bounds format does. A radius that made the digits of c enclose it
+          would show 0.1 (+/- 5.6e-18) for the point interval 0.1, and a
+          radius worth the resolution of the digits of c for any interval
+          narrower than that: the formats could no longer show that an
+          interval is narrower than its digits (the manual, Output format).
+        */
+        double c, w;
+        I.mid_rad(c, w);
+        round_nearest();
+        out << c;
+        round_upward();
+        if (format == interval_format::width && w != 0.0) {
+          out << " (+/- " << bound_to_text(w, true, out) << ")";
+        }
       }
       break;
     case interval_format::agreeing:
@@ -3257,6 +3249,31 @@ namespace gaol_ieee1788 {
       return interval((l > 0.0) ? l : 0.0, r);
     }
     return ::gaol_core::gaol_pow_hybrid(xp, y);
+  }
+
+  /*
+    intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
+    bounds of x rounded outward, [l, r], or [empty], in a stream of the C
+    locale with the flags it starts with and 16 digits, the default of
+    interval::precision(), so that the text is a portable literal (12.11.5)
+    whatever the global output format, the precision of the intervals and the
+    locale of the program (GAOL v5). It is the text operator<< writes in the
+    bounds format under these settings, but for the angles <a, a>, which are
+    no literal of the standard. GAOL wrote what operator<< writes: the width
+    format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the
+    locale of a program that sets one, the digits of the precision another
+    part of the program set, and <4, 4> for the point interval 4, none of them
+    a literal, and the text changed with the format another thread was setting.
+  */
+  std::string intervalToText(const interval& x)
+  {
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out.precision(16);
+    GAOL_RND_ENTER();
+    ::gaol_core::display_bounds(x.left(), x.right(), out, false);
+    GAOL_RND_LEAVE();
+    return out.str();
   }
 
 } // namespace gaol_ieee1788

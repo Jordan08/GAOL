@@ -62,9 +62,20 @@ namespace gaol_core {
     the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
     read back as an interval containing it (GAOL v5: GAOL wrote
     "<0.1, 0.1000000000000001>", which it refused to read)
-    - width: the interval is output in the form "c (+/- w)" where
-    c is its center and w its width
-    - center: the interval is output as a single value, its center.
+    - width: the interval is output in the form "c (+/- w)" where c is its
+    midpoint() and w its radius rad(), the smallest radius such that
+    [c-w, c+w] contains the interval (IEEE 1788-2015, 12.12.8): c is written
+    rounded to nearest and w rounded upward, so that a radius that is not zero
+    is never written 0. A point interval is output as c alone, and an
+    unbounded interval has an infinite radius. It is a format for the eye, not
+    one to read back: c has the digits of the precision, so that the text does
+    not necessarily contain the interval, which the formats bounds, agreeing
+    and hexa do, and its radius shows how narrow the interval is even where
+    the digits of c do not (GAOL v5: GAOL wrote (l+r)/2 and (r-l)/2 rounded to
+    nearest, so that [1, 1+2^-52] was "1 (+/- 1.11e-16)" and [0, 5e-324] had
+    a radius 0; this comment called w the width, which it was not)
+    - center: the interval is output as a single value, its midpoint(), as in
+    the width format.
     - hexa: same as "bounds" except that bounds are printed in the
     hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids the
     round-off error of a binary-to-decimal conversion and which
@@ -75,6 +86,11 @@ namespace gaol_core {
     left and right bounds, and where l and r are the disagreeing
     remaining digits. See "Factored Notation for Interval I/O", Maarten
     Herman van Emden, CoRR index=cs.NA/0102023.
+
+    The empty set is output "[empty]" in every format (GAOL v5: the formats
+    width and center wrote "empty", which is no literal of IEEE 1788-2015,
+    12.11.3). intervalToText() of gaol_ieee1788 writes the bounds whatever the
+    format.
   */
   struct __GAOL_PUBLIC__ interval_format {
     enum format_t {
