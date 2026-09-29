@@ -263,8 +263,8 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
-  # GAOL refuses -ffast-math and doubles computed on the x87 unit at compile
-  # time (gaol/gaol_config.h): the flags above keep both away.
+  # GAOL refuses -ffast-math, -ffinite-math-only and doubles computed on the
+  # x87 unit at compile time (gaol/gaol_config.h): the flags above keep them away.
 
   # -ffloat-store only where doubles are still computed on the x87 unit
   # (FLT_EVAL_METHOD not 0: a 32-bit x86 target without SSE2), whose 80-bit

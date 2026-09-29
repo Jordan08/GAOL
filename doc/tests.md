@@ -53,7 +53,13 @@ Codac.
   double of the tightest bounds at every magnitude, `sin([1e-10])` and
   `cos([2^60])` included, and over 649 intervals next to their extrema and
   poles, of width about π and 2π, and of consecutive doubles up to the largest,
-  -1, 1 and `[-oo, +oo]` being exact. `exp2`, `exp10`, `log2` and `log10` have
+  -1, 1 and `[-oo, +oo]` being exact. `tan([-M_PI_2, M_PI_2])` has to be the
+  tightest enclosure, ±1.63e16: its width is the double below π, and it holds
+  no pole. tan has to be within one double of the tightest bounds over 158
+  intervals whose bounds are next to two consecutive poles, of a width within
+  two doubles of the one below π or drawn at random, five of which,
+  `[-M_PI_2, M_PI_2]` included, hold no pole and have a width that rounds up to
+  the double below π (GAOL v5). `exp2`, `exp10`, `log2` and `log10` have
   to be the tightest enclosures, and the exact values themselves where they are
   doubles (`exp2` of a whole number, `exp10` of 0 to 22, `log2` of a power of
   two, `log10` of a power of ten up to 10^22). `nth_root(I, q)` has to be an
@@ -167,6 +173,12 @@ Codac.
   ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 89 boxes, each
+  reaching a branch of the pow of Table 9.1, which the two share, or of what
+  `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
+  they have to be bit for bit those the two functions gave when each had its
+  own copy of the pow, each an enclosure of the exact power within one double
+  of the tightest bounds, and the same with the exponent given as a double;
   and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
   standard's too. GAOL's functions on intervals and on an interval and a
   number; the functions of C on numbers, by `static_assert`.
@@ -339,6 +351,20 @@ Codac.
   code reads back. configure and meson, which read the file their own way, have
   no such test: `.github/scripts/version-file.sh` runs them on a copy of the
   sources, in the continuous integration (GAOL v5).
+- **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
+  by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
+  a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and
+  with `-ffast-math`, put after the flags of interval arithmetic, and the
+  compilation has to fail with the message of `gaol/gaol_config.h`, which the
+  test looks for in the output of the build. With `-ffinite-math-only` the
+  compiler takes NaN and infinities never to occur, in the inline functions of
+  the headers too, and the empty interval, whose bounds are NaN, is no longer
+  told empty: `([1, 2] & [3, 4]).is_empty()` was false with GCC 9 and Clang 18.
+  The header did not refuse `-ffinite-math-only`, nor `-Ofast` or `-ffast-math`
+  followed by `-frounding-math` with Clang, which leave `__FAST_MATH__`
+  undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5). The autotools and meson
+  builds have no such test, the header being the same; `tests/fp_strict` is
+  the check of Visual C++ without `/fp:strict`.
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive

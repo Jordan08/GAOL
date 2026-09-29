@@ -205,6 +205,43 @@ namespace
     }
   }
 
+  // tan over [-M_PI_2, M_PI_2], and over the intervals between two poles whose
+  // width is about the same (review #8 of examples/examples.md; GAOL v5).
+  // tan() takes an interval for narrower than pi, so that it holds at most one
+  // pole, when its width rounded upward is at most the double below pi: it
+  // took that width itself for a wider one, and gave [-oo,+oo] for
+  // [-M_PI_2, M_PI_2] and for four other intervals holding no pole
+  void tan_next_to_two_poles()
+  {
+    // M_PI_2 is 6.1e-17 below pi/2: [-M_PI_2, M_PI_2] holds no pole, and its
+    // width is exactly the double below pi. tan(M_PI_2) is
+    // 16331239353195369.756, between 0x1.d02967c31cdb4p+53 and
+    // 0x1.d02967c31cdb5p+53: the tightest interval is [-0x1.d02967c31cdb5p+53,
+    // 0x1.d02967c31cdb5p+53]
+    const double half_pi_below = 0x1.921fb54442d18p+0;
+    const double lower = value("tan", -half_pi_below).below, upper = value("tan", half_pi_below).above;
+    const interval r = evaluate("tan([-M_PI_2,M_PI_2])", [&] { return tan(interval(-half_pi_below, half_pi_below)); },
+                                [] { return std::string(); });
+    check("tan([-M_PI_2,M_PI_2]): the tightest bounds", r.left() == lower && r.right() == upper,
+          [&] { return hex(r) + " rather than [" + hex(lower) + ", " + hex(upper) + "]"; });
+
+    // The intervals whose bounds are the doubles next to two consecutive
+    // poles, and whose width rounded upward is the double below pi or one of
+    // the two doubles on each side of it (the ones holding no pole having a
+    // finite tangent, the others [-oo,+oo]), and 64 drawn at random about
+    // other poles
+    for (const TrigInterval& t : tan_pole_intervals) {
+      const interval X(t.a, t.b);
+      const std::string name = "tan([a,b]) next to two consecutive poles";
+      const auto arguments = [&] { return "tan(" + hex(X) + ")"; };
+      const interval y = evaluate(name, [&] { return tan(X); }, arguments);
+      expect_close(name, y, t.least_below, t.greatest_above, [&] {
+        return arguments() + " = " + hex(y) + ", the hull of the values being within ["
+          + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
+      });
+    }
+  }
+
   // atan2 of IEEE 1788-2015 over boxes [yl, yu] x [xl, xu] in every position
   // about the axes and the half-line y = 0, x < 0, where the angle jumps from
   // pi to -pi, and at the boxes whose hull is known: those with infinite
@@ -731,6 +768,7 @@ int main()
   pow_of_boxes();
   atan2_of_boxes();
   trigonometric_intervals();
+  tan_next_to_two_poles();
   powers();
   integer_functions();
   std::fesetround(FE_UPWARD);
