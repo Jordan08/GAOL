@@ -2868,9 +2868,16 @@ cout << interval(4,5).mag() << ' '
                           |\rightBound{I_1}-\rightBound{I_2}|)
 \end{equation*}
 rounded upward: the tightest upper bound of the distance.\newinvfive
+
+Two equal bounds, infinite ones included, are at distance 0: the distance of
+\itv{1}{+\infty} to itself is 0, and to \itv{2}{+\infty} is 1
+(GAOL~4 returned $+\infty$ for both). It is $+\infty$ when a bound is infinite in
+one of the two intervals only, and a NaN when one of them is empty.\newinvfive
 \begin{example}
-cout << hausdorff(interval(4,8),interval(5,10));
-@outputs^2~
+cout << hausdorff(interval(4,8),interval(5,10)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(2,GAOL_INFINITY)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(1,2));
+@outputs^2 1 inf~
 \end{example}
 \end{deffun}
 
@@ -4002,6 +4009,10 @@ Returns the number of floating-point numbers in the interval
 \item \code{nb\_fp\_numbers(a,next\_float(a)) == 2}
 \item \code{nb\_fp\_numbers(a,a) == 1}
 \end{itemize}
+The two zeros are the same number: \code{nb\_fp\_numbers(-0.0,0.0)} is 1, and
+\code{nb\_fp\_numbers(-0.0,1.0)}, \code{nb\_fp\_numbers(-1.0,0.0)} and
+\code{nb\_fp\_numbers(0.0,1.0)} are all $4607182418800017409$ (GAOL~4 returned
+$13830554455654793217$ for the first two).\newinvfive
 
 \paragraph{Note.} As a precondition, \var{a} shall be lower or equal to \var{b}.
 

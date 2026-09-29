@@ -824,6 +824,8 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int
 
     - nb_fp_numbers(a,a+) == 2
     - nb_fp_numbers(a,a) == 1
+    - -0 and +0 are the same number: nb_fp_numbers(-0.0,0.0) == 1 and
+      nb_fp_numbers(-0.0,1.0) == nb_fp_numbers(0.0,1.0)
 
     \warning Returns numeric_limits<ULONGLONGINT>::max() if either
     a or b is a NaN or +/-oo. In addition, raises an invalid_action_error
@@ -1324,6 +1326,11 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ bool feven(double d);
     \brief Hausdorff distance between two intervals:
 
     hausdorff([a,b],[c,d]) = max(|a-c|,|b-d|)
+
+    rounded upward: the tightest upper bound of the distance. Equal bounds,
+    infinite ones included, are at distance 0: hausdorff([1,+oo],[1,+oo]) == 0
+    and hausdorff([1,+oo],[2,+oo]) == 1, while hausdorff([1,+oo],[1,2]) == +oo.
+    The distance is a NaN if either interval is empty.
    */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ double hausdorff(const interval &I1, const interval &I2);
 

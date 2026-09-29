@@ -140,7 +140,8 @@ Codac.
   again (GAOL v5).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
-  distances, splitting, integer parts, the comparisons of IEEE 1788-2015
+  distances (of intervals with infinite bounds too, equal bounds being at
+  distance 0), `nb_fp_numbers()` (across the two zeros), splitting, integer parts, the comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
