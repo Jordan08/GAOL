@@ -148,6 +148,15 @@ Codac.
   such locale: its Linux jobs generate `fr_FR.UTF-8` for the test, and fail if
   it did not check under it (see
   [Continuous integration](continuous-integration.md)).
+  With flush-to-zero, denormals-are-zero or both set in MXCSR
+  (x86 only, and where the processor honours them), the numbers from 0 to the
+  least normal double, in decimal and in hexadecimal, alone, in intervals and
+  in the uncertain form, have to be read as the tightest intervals enclosing
+  them, and the doubles among them, 0 included, as themselves: the reader
+  compared each number with the doubles around it as doubles, and
+  denormals-are-zero reads a subnormal as 0, so that 1e-310 was read as the
+  interval from the greatest subnormal to the least normal double, which does
+  not enclose it, and 0 as the greatest subnormal (GAOL v5).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances, splitting, integer parts, the comparisons of IEEE 1788-2015
