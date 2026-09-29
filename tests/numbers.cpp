@@ -42,6 +42,7 @@
 
 #include "gaol_tests.h"
 
+#include <chrono>
 #include <clocale>
 #include <cstdlib>
 #include <iomanip>
@@ -872,14 +873,99 @@ namespace
           [&] { return hex(u); });
   }
 
+  // A number of some thousands of characters, and the tightest interval of
+  // doubles enclosing it, which is known without reading it: 1.5 followed by
+  // zeros is 1.5, and followed by zeros and a 1, is between 1.5 and the next
+  // double
+  struct Long_number
+  {
+    std::string text;
+    double left, right;
+  };
+
+  std::vector<Long_number> long_numbers(std::size_t n)
+  {
+    const std::string zeros(n, '0'), nines(n, '9'), digits = std::to_string(n);
+    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    return {
+      { "1.5" + zeros, 1.5, 1.5 },
+      { "1.5" + zeros + "1", 1.5, next_double(1.5) },
+      { "1." + nines, previous_double(2.0), 2.0 },
+      { "1" + zeros + "e-" + digits, 1.0, 1.0 },
+      { "15" + zeros + "e-" + std::to_string(n + 1), 1.5, 1.5 },
+      { "0." + zeros + "1e" + digits, previous_double(0.1), 0.1 }, // 0.1 is above 1/10
+      { "0x1." + zeros + "8p0", 1.0, next_double(1.0) },
+      { "0x1.8" + zeros + "p1", 3.0, 3.0 },
+      { "1" + zeros, dmax, inf },
+      { "0." + zeros + "1", 0.0, dmin },
+      // The uncertain form: half a unit of the last place, then one unit
+      { "1.5" + zeros + "?", previous_double(1.5), next_double(1.5) },
+      { "1.5" + zeros + "?1", previous_double(1.5), next_double(1.5) },
+    };
+  }
+
+  // The long number that took the longest to read under a locale writing a
+  // decimal comma (20000 characters)
+  Long_number slowest_long_number()
+  {
+    return { "1.5" + std::string(20000, '0') + "1", 1.5, next_double(1.5) };
+  }
+
+  void check_long_number(const std::string& where, const Long_number& l)
+  {
+    const interval x = textToInterval(l.text);
+    check("textToInterval(long number) " + where + ": the tightest enclosure", x.left() == l.left && x.right() == l.right,
+          [&] { return "\"" + l.text.substr(0, 12) + "...\" of " + std::to_string(l.text.size()) + " characters: " + hex(x); });
+  }
+
+  void check_long_numbers(const std::string& where)
+  {
+    for (const Long_number& l : long_numbers(5000)) {
+      check_long_number(where, l);
+    }
+    check_long_number(where, slowest_long_number());
+  }
+
+  // The least time, in seconds, that three readings of the text s take
+  double reading_time(const std::string& s)
+  {
+    double least = inf;
+    for (int i = 0; i < 3; ++i) {
+      const auto start = std::chrono::steady_clock::now();
+      static_cast<void>(textToInterval(s));
+      const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+      if (elapsed.count() < least) {
+        least = elapsed.count();
+      }
+    }
+    return least;
+  }
+
+  /*
+    Long numbers, under the C locale: the reading takes the digits apart once,
+    for the comparisons with the doubles around the number (GAOL v5).
+  */
+  void long_numbers_c_locale()
+  {
+    check_long_numbers("under the C locale");
+  }
+
   /*
     Numbers read, and exact texts written, under a locale writing a decimal
     comma, which a program sets with setlocale(LC_ALL, "") (GAOL v5): strtod()
     stops there at the '.' of "0.1" and gives 0, from which the reader moved
     one double at a time, about 4.6e18 of them, and never returned; and
     exact_string() wrote the '.' of printf("%a") as a comma,
-    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. Nothing is checked
-    where no such locale is installed.
+    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. The reader then
+    compared the number with about 125 doubles, and read its text again for
+    each of them, in a time quadratic in the length of the text: seconds for
+    20000 characters, where the C locale, which needs two comparisons, took a
+    twentieth of a second. The long numbers have to be read as under the C
+    locale, and in about the same time: the reading under the C locale is
+    timed on the same machine, and the one under the comma locale has to take
+    at most 10 times as long, and 50 ms more, a margin that a slow or a busy
+    machine does not exhaust (the fault made it 50 times as long). Nothing is
+    checked where no such locale is installed.
   */
   void comma_locale()
   {
@@ -912,6 +998,14 @@ namespace
       check("exact_string() read back under a locale writing a decimal comma", y.left() == x && y.right() == x,
             [&] { return exact_string(interval(x)) + " read " + hex(y); });
     }
+    check_long_numbers("under a locale writing a decimal comma");
+    const std::string slowest = slowest_long_number().text;
+    std::setlocale(LC_NUMERIC, "C");
+    const double in_c = reading_time(slowest);
+    std::setlocale(LC_NUMERIC, comma);
+    const double in_comma = reading_time(slowest);
+    check("textToInterval(long number) under a locale writing a decimal comma: the time of the C locale", in_comma <= 10*in_c + 0.05,
+          [&] { return std::string(comma) + ": " + std::to_string(in_comma) + " s, against " + std::to_string(in_c) + " s under the C locale"; });
     std::setlocale(LC_NUMERIC, saved.c_str());
   }
 }
@@ -930,6 +1024,7 @@ int main()
   stream_output();
   stream_input();
   long_exponents();
+  long_numbers_c_locale();
   comma_locale();
   const int status = summary();
   gaol::cleanup();

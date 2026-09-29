@@ -144,7 +144,16 @@ Codac.
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it hang
-  again (GAOL v5). The Ubuntu runners of the continuous integration have no
+  again (GAOL v5). Numbers of 5000 to 20000 characters, in decimal, in
+  hexadecimal and in the uncertain form, have to be read as the tightest
+  enclosures, known without reading them (`1.5` followed by zeros is 1.5, and
+  followed by zeros and a 1 is between 1.5 and the next double...), under the C
+  locale and under a locale writing a decimal comma; and under the comma
+  locale, the number of 20000 characters has to take at most 10 times the
+  time it takes under the C locale, and 50 ms more: the reader read the text
+  again for each of its 125 comparisons or so, in a time quadratic in its
+  length, and took 50 times as long (GAOL v5).
+  The Ubuntu runners of the continuous integration have no
   such locale: its Linux jobs generate `fr_FR.UTF-8` for the test, and fail if
   it did not check under it (see
   [Continuous integration](continuous-integration.md)).
