@@ -29,7 +29,9 @@ root=$(pwd)
 work=$(mktemp -d "${TMPDIR:-/tmp}/gaol-version.XXXXXX")
 trap 'rm -rf "$work"' EXIT INT TERM
 mkdir "$work/src"
-tar -c -f - --exclude=.git --exclude=autom4te.cache . | tar -x -f - -C "$work/src"
+# -h: README is a symbolic link to README.md, which tar of MSYS2 cannot create when it
+# extracts it ("Cannot create symlink"): the copy holds the file itself
+tar -c -h -f - --exclude=.git --exclude=autom4te.cache . | tar -x -f - -C "$work/src"
 cd "$work"
 
 # The version is not the one of GAOL: it is the file the build reads, not a
