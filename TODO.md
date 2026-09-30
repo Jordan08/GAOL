@@ -594,6 +594,18 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   - Le deuxième tiret du point 45 est à mettre à jour. `display_bounds()` compare maintenant les bornes par leurs bits (commit
     `6ad025a`, #57), si bien que sous DAZ [0, 5e-324] n'est plus écrit comme un point. De ce tiret ne reste que le chemin `x == 0.0`
     de `bound_to_text()`, que le quatrième tiret décrit déjà. (#40, #57)
+- **47** :
+  - Refuser clang-cl sans `/fp:strict` ? Il définit `_M_FP_STRICT` à partir de Clang 16 : `gaol_config.h` pourrait tester
+    `defined(_MSC_VER) && (!defined(__clang__) || __clang_major__ >= 16)`, et `tests/fp_strict` vérifier clang-cl aussi. Plus
+    urgent maintenant que clang-cl est dans la CI. (#59)
+  - Cygwin x64 reste faux (les `FE_*` de newlib valent 0 à 3, sans `_WIN32`) : prendre le correctif 6 en entier (la table), ou
+    refuser Cygwin dans `gaol_config.h` ? Cygwin n'est pas dans la CI. (#59)
+  - Citer clang-cl x64 dans le manuel (Prerequisites) et `doc/three-builds.md` une fois la CI verte ? Ajouter le clang-cl de VS
+    2026, et clang-cl x86 et arm64 (non concernés par le correctif) ? (#59)
+  - Chaque build clang-cl affiche 11 avertissements `/Zc:strictStrings-` : réserver l'option à Visual C++ ? (#59)
+- **49** :
+  - `GAOL_INFINITY` avec clang-cl : le corriger dans sa propre pull request, par `__builtin_huge_val()` ou
+    `std::numeric_limits<double>::infinity()` ? (#59)
 - **Hors liste** :
   - La branche jetable `ci-debug-numbers-arm64` (sorties de débogage et workflow de variantes du diagnostic de GCC 12 sur aarch64)
     est toujours sur le dépôt : à supprimer. (#34)
@@ -790,6 +802,15 @@ Supprimer les branches fusionnées encore présentes : `todo-01`, `05`, `10`, `1
     lève FE_INVALID ; en Debug et avec Clang les résultats sont justes. Correction proposée : `GAOL_RND_KEEP` sur `s1`, `e1`,
     `s2`, `e2`, un test de non-régression, et le commentaire de `GAOL_RND_NEAREST_ENTER` (`gaol/gaol_fpu.h`) à corriger.
     Relevé par les relectures des points 24 et 24b (#47, #50).
+
+49. **Compilé par clang-cl, `GAOL_INFINITY` n'est pas l'infini quand le programme arrondit vers le bas ou vers zéro.**
+    `gaol/gaol_port.h` le définit comme `HUGE_VAL`, que l'UCRT (SDK 10.0.26100) écrit `((double)(float)1e+300)` ; sous
+    `/fp:strict`, clang-cl fait cette conversion à l'exécution (`vcvtsd2ss`/`vcvtss2sd`), qui donne FLT_MAX vers le bas ou vers zéro
+    et lève dépassement et inexact dans les quatre sens. `interval()` et `[1]/[-1, 1]` valent alors
+    `[-0x1.fffffep+127, 0x1.fffffep+127]`, `pow(x, n)` donne `[-nan, nan]`, `interval(1e300)` est vide : 37 échecs de
+    `rounding_direction` avec clang-cl 18 sous wine, aucun avec `__builtin_huge_val()`. Visual C++, GCC, Clang et MinGW ne sont pas
+    concernés. Correction proposée : `GAOL_INFINITY` = `__builtin_huge_val()` sous `__GNUC__`/`__clang__`, ou
+    `std::numeric_limits<double>::infinity()`. Les jobs clang-cl de #59 en sont le test. Trouvé par la relecture du point 47.
 
 ## Plantages
 
