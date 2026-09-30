@@ -90,8 +90,16 @@ Codac.
   also computed and told empty in a child process that enabled the
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
-  without optimization. Where the processor does not trap an invalid
-  operation, the test says so and skips that part.
+  without optimization. The operations of the interface with an empty operand
+  on either side (about 190 calls, in 58 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in ten groups)
+  have to give the result of the empty set and raise no invalid-operation
+  flag, and, with glibc, not die in a child process that enabled the
+  exception (GAOL v5): 45 of the 48 died with the SSE2 intervals, and all 48
+  with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`, `min`, `max`,
+  `floor`, `set_contains()`, the output...).
+  Where the processor does not trap an invalid operation, the test says so
+  and skips that part.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set

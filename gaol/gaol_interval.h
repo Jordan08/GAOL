@@ -595,16 +595,26 @@ namespace gaol_core {
     return (left() == 0.0 && right() == 0.0);
   }
 
+  /*
+    The functions below that compare a bound of an interval that may be empty
+    use the quiet comparisons of <cmath> (std::islessequal()...), as
+    is_empty() does: false for the NaN bounds of the empty set, as <=, <, >=
+    and > are, but raising no invalid-operation exception, which kills with
+    SIGFPE a program that enabled it. On x86 each is one instruction, as the
+    comparison it replaces (ucomisd rather than comisd): Clang 18 compiles
+    these functions to as many instructions, at the same cost, GCC 13 to a
+    few more or a few fewer (GAOL v5)
+  */
   INLINE
   bool interval::straddles_zero(void) const
   {
-    return (left() <= 0.0 && right() >= 0.0);
+    return std::islessequal(left(), 0.0) && std::isgreaterequal(right(), 0.0);
   }
 
   INLINE
   bool interval::strictly_straddles_zero(void) const
   {
-    return (left() < 0.0 && right() > 0.0);
+    return std::isless(left(), 0.0) && std::isgreater(right(), 0.0);
   }
 
   INLINE
@@ -625,7 +635,7 @@ namespace gaol_core {
 
   INLINE bool interval::set_contains(const interval& I) const
   {
-    return (I.is_empty() || ((left()<=I.left()) && (right()>=I.right())));
+    return (I.is_empty() || (std::islessequal(left(), I.left()) && std::isgreaterequal(right(), I.right())));
   }
 
   /**
@@ -633,7 +643,7 @@ namespace gaol_core {
     */
   INLINE bool interval::set_contains(double d) const
   {
-    return ((left()<=d)&&(right()>=d));
+    return std::islessequal(left(), d) && std::isgreaterequal(right(), d);
   }
 
   /*
@@ -656,12 +666,12 @@ namespace gaol_core {
     */
   INLINE bool interval::set_strictly_contains(double d) const
   {
-    return ((left()<d) && (right()>d));
+    return std::isless(left(), d) && std::isgreater(right(), d);
   }
 
   INLINE bool interval::set_disjoint(const interval &I) const
   {
-      return (right() < I.left()) || (left() > I.right())
+      return std::isless(right(), I.left()) || std::isgreater(left(), I.right())
 	  || (is_empty() || I.is_empty());
   }
 
@@ -684,7 +694,7 @@ namespace gaol_core {
 
    INLINE bool interval::set_leq(const interval& I) const
    {
-       return is_empty() || (left()>=I.left() && right()<=I.right());
+       return is_empty() || (std::isgreaterequal(left(), I.left()) && std::islessequal(right(), I.right()));
    }
 
    INLINE bool interval::set_ge(const interval& I) const
@@ -697,21 +707,30 @@ namespace gaol_core {
     return set_contains(I);
   }
 
+  /*
+    The empty set is split into two empty sets, told by its midpoint, NaN:
+    built from its NaN bounds, they were empty too, but the constructor
+    compares them, which raises the invalid-operation exception (GAOL v5).
+    std::isnan() is a quiet test, and costs less than is_empty().
+  */
   INLINE void interval::split(interval &I1, interval &I2) const
   {
-    double l = left(), m = midpoint(), r = right();
-    I1 = interval(l,m);
-    I2 = interval(m,r);
+    const double l = left(), m = midpoint(), r = right();
+    const bool empty = std::isnan(m);
+    I1 = empty ? interval::emptyset() : interval(l,m);
+    I2 = empty ? interval::emptyset() : interval(m,r);
   }
 
   INLINE interval interval::split_left(void) const
   {
-    return interval(left(),midpoint());
+    const double m = midpoint();
+    return std::isnan(m) ? interval::emptyset() : interval(left(),m);
   }
 
   INLINE interval interval::split_right(void) const
   {
-    return interval(midpoint(),right());
+    const double m = midpoint();
+    return std::isnan(m) ? interval::emptyset() : interval(m,right());
   }
 
   //! \brief Prototypes
@@ -998,19 +1017,29 @@ GAOL_NODISCARD INLINE double gaol_sign_of(double d)
     return (d < 0.0) ? -1.0 : ((d > 0.0) ? 1.0 : 0.0);
   }
 
+  /*
+    The bounds floor, ceil and integer compute from the NaN bounds of the
+    empty set are NaN, which give the empty set: told by a quiet comparison
+    rather than by the constructor, which compares them and raises the
+    invalid-operation exception (GAOL v5). One comparison, the cheapest
+    test: is_empty() first cost more.
+  */
 GAOL_NODISCARD INLINE interval floor(const interval &I)
   {
-    return interval(std::floor(I.left()),std::floor(I.right()));
+    const double l = std::floor(I.left()), r = std::floor(I.right());
+    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
   }
 
 GAOL_NODISCARD INLINE interval ceil(const interval &I)
   {
-    return interval(std::ceil(I.left()),std::ceil(I.right()));
+    const double l = std::ceil(I.left()), r = std::ceil(I.right());
+    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
   }
 
 GAOL_NODISCARD INLINE interval integer(const interval &I)
   {
-    return interval(std::ceil(I.left()),std::floor(I.right()));
+    const double l = std::ceil(I.left()), r = std::floor(I.right());
+    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
   }
 
 /*
@@ -1034,11 +1063,13 @@ GAOL_NODISCARD INLINE interval integer(const interval &I)
   Each tests the empty set first. GAOL holds the empty interval as the two
   bounds NaN, in both of its representations (interval::emptyset() of
   gaol/gaol_interval_sse.h and of gaol/gaol_interval_fpu.h), and
-  is_empty() reads it as !(left() <= right()), which a NaN makes true. trunc
-  and the two roundings send a NaN to itself, so they would give the empty set
-  back without the test; sign would not, a NaN comparing false both to 0 and
-  above it, so sign(empty) would be the interval [0, 0]. The test is made in
-  the four all the same, rather than relying on how the empty set is held.
+  is_empty() reads it as !std::islessequal(left(), right()), which a NaN makes
+  true. trunc and the two roundings send a NaN to itself, so they would give
+  the empty set back without the test, but the constructor would compare the
+  NaN bounds, which raises the invalid-operation exception; sign would not, a
+  NaN comparing false both to 0 and above it, so sign(empty) would be the
+  interval [0, 0]. The test is made in the four all the same, rather than
+  relying on how the empty set is held.
 
   (IEEE 1788-2015 says of the empty set at Level 1 that inf is +oo and sup is
   -oo, 10.2, which is its convention for the mathematical object, not the way

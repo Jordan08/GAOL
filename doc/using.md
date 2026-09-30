@@ -336,14 +336,25 @@ bounds.
   1 + 2^-60, whose result is inexact (see
   [The rounding direction](#the-rounding-direction)), even an operation whose
   bounds are exact raises it.
-- The operations on the empty interval, whose bounds are NaN, raise the
-  invalid-operation exception where they compare a bound: `sqrt` of the empty
-  interval does, for instance. `is_empty()`, which almost every operation
-  calls first, uses a quiet comparison (`std::islessequal`) and raises
-  nothing, and so does `interval::emptyset()` (GAOL v5): with the
-  invalid-operation exception enabled, the first killed the program at each
-  emptiness test of an empty interval, and the second in a build without
-  optimization.
+- An empty operand raises no invalid-operation exception, though the bounds
+  of the empty interval are NaN (GAOL v5): every operation, relation, function
+  and output of `gaol::interval` and of `gaol_ieee1788` takes it without
+  raising that exception. `is_empty()` and the relations compare the bounds
+  with the quiet comparisons of `<cmath>` (`std::islessequal()`...), each one
+  instruction, as `<=` is, with GCC and Clang on x86-64, and the functions
+  that build their result from the bounds of their operand tell the empty set
+  before they give them to the constructor, which compares its bounds. With
+  the invalid-operation exception enabled, `is_empty()` of an empty interval
+  killed the program, and so did about 50 operations with an empty operand,
+  which compared its NaN bounds: `x & y` for an empty `y`, `sqrt`, `exp`,
+  `min`, `max`, `floor`, `set_contains()`, `set_disjoint()`, the output of the
+  empty set...; and `interval::emptyset()` itself in a build without
+  optimization. A NaN the program gives GAOL still raises it: `interval(NAN)`
+  and `interval(NAN, 1)`, which give the empty set, compare it. An empty
+  operand may still raise the other exceptions: the sum of two empty
+  intervals raises the inexact one where GAOL checks the rounding direction
+  with an addition, and `atanh_rel([-1, 2], x)` for an empty `x` raises the
+  divide-by-zero one while it computes `atanh([-1, 2])`.
 - Nonempty operands raise the invalid-operation exception as well. With the
   SSE2 intervals, multiplying a zero bound by an infinite one does:
   `[0]*[1, +oo]` and `[0, +oo]*[0]` (the FPU intervals give the same product
@@ -355,9 +366,9 @@ bounds.
   an infinite bound also does, through that product (`pow([1], [1, +oo])`).
   This list is not exhaustive.
 
-`is_empty()` being quiet therefore does not make the invalid-operation
-exception safe to leave enabled: every exception stays disabled while GAOL
-computes.
+An empty operand raising no invalid-operation exception therefore does not
+make that exception safe to leave enabled: every exception stays disabled
+while GAOL computes.
 
 The flags tell nothing of the results: after an operation of GAOL,
 `fetestexcept(FE_INEXACT)` is raised whatever the result, and `FE_OVERFLOW` or
