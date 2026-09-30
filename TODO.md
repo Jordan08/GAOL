@@ -58,15 +58,14 @@ mêmes blancs, octet NUL refusé, UTF-16 nommé dans le message, CMake 3.14 à 3
 
 La pull request #29 (`configure-clean` vers `MATH-CORE`) est toujours ouverte.
 
-### Pull requests ouvertes vers `MATH-CORE` (30 septembre)
+### Pull requests du 30 septembre
 
-Faites à partir de `configure-clean`, elles **dépendent de #29** et montrent ses commits tant que #29 n'est pas fusionnée : à fusionner
-après #29.
+Les pull requests des corrections vont vers `configure-clean`.
 
-| Point | Pull request | Branche |
-| --- | --- | --- |
-| 24 (suite) : aucune opération ne lève FE_INVALID sur un opérande vide | #50 | `todo-24b-quiet-empty-operands` |
-| 6 (suite) : MinGW-w64 sur x86-64 refusé avant 12 ou lié à msvcrt, pour la vraie raison (`fma()` et `round()`) | #51 | `todo-06b-mingw-msvcrt-refused` |
+| Point | Pull request | Branche | État |
+| --- | --- | --- | --- |
+| 24 (suite) : aucune opération ne lève FE_INVALID sur un opérande vide | #50 | `todo-24b-quiet-empty-operands` | fusionnée dans `configure-clean` |
+| 6 (suite) : MinGW-w64 sur x86-64 refusé avant 12 ou lié à msvcrt, pour la vraie raison (`fma()` et `round()`) | #51 | `todo-06b-mingw-msvcrt-refused` | ouverte vers `configure-clean`, sans conflit |
 
 ### Poussé et relu, sans pull request
 
@@ -125,7 +124,7 @@ demande une décision de votre part, de même que l'envoi des correctifs du 31.
 - **13** : `operator<<` et `intervalToText` écrivent `[a]` au lieu de `<a, a>` (branche du 16).
 - **15** : la lecture par mot devient le point 46.
 - **18** : l'analyse des chiffres reste quadratique : on ne fait rien.
-- **24** : les opérations qui levaient encore FE_INVALID sur un opérande vide sont corrigées (#50).
+- **24** : les opérations qui levaient encore FE_INVALID sur un opérande vide sont corrigées (#50, fusionnée).
 - **31** : les correctifs pour CORE-MATH et la glibc sont écrits dans `3rd/README.md` (branche du 31).
 - **39, 42, 43** : les cas restants sont corrigés directement dans `configure-clean`.
 
@@ -136,7 +135,7 @@ Le détail est dans `todo-notes/NN.md`.
 - **16** : `intervalToText` écrit toujours 16 chiffres ; suivre `interval::precision()` est un changement d'une ligne. Sous `showpos`, le
   rayon porte aussi un signe ; sous une locale qui groupe les chiffres, le centre est groupé et le rayon non. Le format hexa écrit
   toujours un point `[a, a]`.
-- **24b** (#50) : `floor`, `ceil` et `integer` coûtent +0,17 ns sur des opérandes non vides ; les rendre gratuits demande de rendre
+- **24b** (#50, fusionnée) : `floor`, `ceil` et `integer` coûtent +0,17 ns sur des opérandes non vides ; les rendre gratuits demande de rendre
   silencieuse la première comparaison du constructeur, ou des fonctions amies. Visual C++ pourrait appeler une fonction pour
   `std::islessequal`.
 - **6b** (#51) : garder ou supprimer `GAOL_RND_MINGW_FENV_ONLY`, qui ne paraît plus nécessaire ; mingw-w64 ARM64 avant 12.
@@ -147,7 +146,8 @@ Le détail est dans `todo-notes/NN.md`.
 
 ### Reprise
 
-Ouvrir, si vous le voulez, les pull requests des branches 16, 39, 40, 6 et 31 vers `configure-clean` ; fusionner #29, puis #50 et #51.
+Fusionner #51 ; ouvrir, si vous le voulez, les pull requests des branches 16, 39, 40, 6 et 31 vers `configure-clean` (aucune n'a de
+conflit avec `configure-clean` après la fusion de #50) ; fusionner #29 (`configure-clean` vers `MATH-CORE`).
 Reprendre les branches inachevées (3, 4, 8, 12, 17, 36 : relire, terminer, lancer la CI), en fusionnant d'abord `configure-clean` dans
 celles qui ont un conflit (fusion, jamais de réécriture d'une branche poussée) ; commencer les points non commencés ; écrire la pull
 request de synthèse (retirer les points faits de ce fichier, consigner les changements dans `ChangeLog` et `doc/differences.md`,
