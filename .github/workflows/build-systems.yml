@@ -69,6 +69,16 @@ jobs:
             echo "configure was not generated again for GAOL $version (see doc/building.md)"; exit 1; }
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         run: sh .github/scripts/version-file.sh configure
+      - name: VERSION.txt read by autoconf, as by configure
+        if: runner.os == 'Linux'
+        run: |
+          # autoconf reads VERSION.txt for the version of configure --version
+          # when it generates configure, which no build does: the script
+          # generates configure in a copy of the sources (the autoconf of
+          # Ubuntu, 2.71, warns that aclocal.m4 was generated for autoconf
+          # 2.72, and works)
+          sudo apt-get install -y -q autoconf
+          sh .github/scripts/version-file.sh autoconf
       - name: Configure, build and install
         run: |
           # The same date on every file, as in a release archive: make then

@@ -37,9 +37,10 @@ GAOL they install, which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by
 FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
 installs; check that the three builds agree on each of these machines; check
-that configure and meson read a `VERSION.txt` that starts with a byte order
-mark or has the line ends of Windows (`.github/scripts/version-file.sh`), and
-that meson reads it with no Python on `PATH` (Linux); check that the builds
+that configure and meson, and autoconf when it generates configure (Linux),
+read a `VERSION.txt` that starts with a byte order mark or has the line ends
+of Windows (`.github/scripts/version-file.sh`), and that meson reads it with
+no Python on `PATH` (Linux); check that the builds
 refuse Clang on 32-bit ARM and Clang 14 on 64-bit ARM, that
 `gaol/gaol_config.h` refuses MinGW-w64 GCC 11 to 13 on x64 and GCC 11 on x86,
 `-ffinite-math-only` and `-ffast-math` with GCC and Clang (the tests

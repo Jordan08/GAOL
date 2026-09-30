@@ -49,7 +49,7 @@ function(gaol_read_version file version error)
   # _shown is the text up to the first NUL byte, which the message quotes: a
   # message stops at a NUL byte too. The regular expression is not run on an
   # empty text (a file holding a mark alone, or nothing), where string(REGEX
-  # MATCH) of CMake 3.14.7 and 3.16.3 stops with an error
+  # MATCH) of CMake before 4.1 stops with an error
   set(_shown "")
   if(_text MATCHES "^.")
     string(REGEX MATCH "^.*" _shown "${_text}")

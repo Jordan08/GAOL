@@ -130,10 +130,11 @@ check_accepted("vertical tabs and form feeds around" "${vt}${ff}5.0.0${vt}${ff}\
 
 # In the bytes: 35 2e 30 2e 30 is 5.0.0, 78 is x, 20 is a blank, 0a the line
 # end (which a platform may write as 0d 0a)
-# A mark alone and an empty file leave no text: string(REGEX MATCH) of CMake
-# 3.14.7 and 3.16.3 stops with an error on an empty match, which is why
-# gaol_read_version() runs no regular expression on an empty text; without
-# that, these two checks fail with those versions only
+# A mark alone and an empty file leave no text: string(REGEX MATCH) stops
+# with an error on an empty match in CMake before 4.1 (3.14.7, 3.16.3, 3.28.3,
+# 3.30.0 and 4.0.0 checked), which is why gaol_read_version() runs no regular
+# expression on an empty text; without that, the test stops with that error
+# here with every CMake before 4.1
 check_refused("a mark alone" "${bom}" "ef bb bf")
 check_refused("two marks" "${bom}${bom}5.0.0" "ef bb bf ef bb bf 35 2e 30 2e 30")
 check_refused("a mark inside" "5.${bom}0.0" "35 2e ef bb bf 30 2e 30")

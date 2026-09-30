@@ -398,16 +398,19 @@ Codac.
   `the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII` for
   one that holds a NUL byte without it, and with neither for the others. A
   file holding a mark alone, or nothing, has to be refused with its message
-  too: it stopped CMake 3.14.7 and 3.16.3 with an error of
-  `string(REGEX MATCH)` on an empty match, which is why `gaol_read_version()`
-  runs no regular expression on an empty text; without that, these two checks
-  fail with those versions only. The files are written by the script, which
-  expects the versions it writes, not the ones the code reads back. configure
-  and meson, which read the file their own way, have no such test:
-  `.github/scripts/version-file.sh` runs them on a copy of the sources, in the
-  continuous integration, with the same cases and a few more (configure
-  dropped a CR within the version and read a file holding NUL bytes, meson
-  stripped the blanks of Unicode) (GAOL v5).
+  too: `string(REGEX MATCH)` stops with an error on an empty match in CMake
+  before 4.1 (3.14.7, 3.16.3, 3.28.3, 3.30.0 and 4.0.0 checked), which is why
+  `gaol_read_version()` runs no regular expression on an empty text; without
+  that, the test stops with that error on these checks with every CMake
+  before 4.1. The files are written by the script, which expects the
+  versions it writes, not the ones the code reads back. configure and meson,
+  which read the file their own way, and autoconf, which reads it for
+  `configure --version`, have no such test: `.github/scripts/version-file.sh`
+  runs them on a copy of the sources, in the continuous integration, with
+  the same cases and a few more (configure dropped a CR within the version
+  and read a file holding NUL bytes, meson stripped the blanks of Unicode,
+  autoconf dropped the blanks within the version and let NUL bytes through,
+  took `5.0.0)` for 5.0.0 and stopped on a bracket) (GAOL v5).
 - **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
   by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
   a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and

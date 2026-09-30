@@ -83,14 +83,15 @@ CMake and configure quote a second byte order mark, or a zero-width space, as
 it is, and it cannot be seen (meson writes it `\ufeff`, `\u200b`). A file of
 UTF-16 characters, which Windows PowerShell 5 writes for a redirection
 (`"5.0.0" > VERSION.txt`), is not decoded but refused, whether it starts with
-its byte order mark (FF FE, FE FF) or not (it then holds NUL bytes, which no
-text of UTF-8 or ASCII holds): the message gives its bytes
+its byte order mark (FF FE, FE FF) or not (it then holds NUL bytes, which a
+text file does not hold): the message gives its bytes
 (`ff fe 35 00 2e 00`...) and ends with
 `the file is UTF-16: save it as UTF-8 or ASCII`, or, without the mark,
 `the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII`. The
 test `version_file` (`ctest -R version_file`) checks the reading of CMake,
-and `.github/scripts/version-file.sh configure|meson`, which the continuous
-integration runs on a copy of the sources, those of configure and meson.
+and `.github/scripts/version-file.sh configure|meson|autoconf`, which the
+continuous integration runs on a copy of the sources, those of configure,
+meson and autoconf.
 
 The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
 set in `configure.ac` and `manual/meson.build`.
@@ -251,12 +252,13 @@ The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
 
 `meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
-[The version of GAOL](#the-version-of-gaol)): the first of `python3` and
-`python` that it finds in `PATH` or, when it finds neither, the Python that
-runs meson (the case of the `meson.exe` of the Windows installer when no
-Python is installed). `meson.build` names `python3` first because meson
-falls back on its own Python for that name alone; the continuous integration
-checks it with a `meson setup` whose `PATH` holds no Python.
+[The version of GAOL](#the-version-of-gaol)), and twice more for the message
+of a file it refuses: the first of `python3` and `python` that it finds in
+`PATH` or, when it finds neither, the Python that runs meson (the case of the
+`meson.exe` of the Windows installer when no Python is installed).
+`meson.build` names `python3` first because meson falls back on its own
+Python for that name alone; the continuous integration checks it on Linux
+with a `meson setup` whose `PATH` holds no Python.
 
 On Windows, the directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`
 holds the aliases `python.exe` and `python3.exe`, which only open the
