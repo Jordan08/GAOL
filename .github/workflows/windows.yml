@@ -125,15 +125,25 @@ jobs:
           cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
       - name: Build
         run: cmake --build build -j 4
+      # The programs are run with the MinGW-w64 first in PATH: bash starts with the
+      # mingw64/bin of Git for Windows before it, and the libstdc++-6.dll there (x64
+      # only: an x86 program skips a 64-bit DLL) is older than the compiler's, without
+      # std::streambuf::seekpos, so that gaol_test_numbers did not start (exit code
+      # 0xc0000139, entry point not found).
       - name: Tests (make test)
-        run: cmake --build build --target test
+        run: |
+          export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
+          cmake --build build --target test
       - name: Performance
         if: matrix.cfg.config == 'Release'
-        run: build/tests/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
+          build/tests/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build
       - name: Tests built with the installed GAOL
         run: |
+          export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
           cmake -S tests/find_package -B build-find-package -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DCMAKE_CXX_COMPILER=g++ -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
           cmake --build build-find-package --target test
