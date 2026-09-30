@@ -102,17 +102,27 @@ namespace gaol_core {
 
     The power is kept as h + l, l being small: a product h*y, rounded upward,
     is p, and fma(h, y, -p) is the rest h*y - p <= 0, a double, exactly. The
-    upper bound keeps h + l above the power, l <= 0 being rounded upward. The
-    lower bound keeps h - nl below it, nl >= 0 being rounded upward. Squaring
-    h - nl gives p - nl' with nl' = (p - h*h) + nl*(2h - nl): the square of nl
-    raises the lower bound, and has to be kept. Left out, nl' is too large by
-    nl^2, about (n 2^-52)^2 h, and the lower bound was 8 doubles below the
-    tightest at n = 2^28 - 1, 557 at 2^31 - 1, 1962 at 2^32 - 1. The power is
-    only rounded at the end, h + l upward and h - nl downward: the bounds are
-    the tightest, or one double beyond where the power is within n 2^-104 of a
-    double, and exact where the power is a double. false when a product is not
-    finite, or is below 2^-968, its rest being no double then: the rounded
-    products handle these powers, 0 included.
+    upper bound keeps h + l above the power, l <= 0 being rounded upward:
+    (h + l)^2 = p + (h*h - p) + l*(2h + l). The lower bound keeps h - nl below
+    it, nl >= 0 being rounded upward: (h - nl)^2 = p - ((p - h*h) +
+    nl*(2h - nl)). The square of nl raises the lower bound: left out (GAOL
+    v5, review #7 of examples/examples.md), the lower bound of x^n was 8
+    doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
+    2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
+    2^27.
+
+    The power is only rounded at the end, h + l upward and h - nl downward.
+    The rest of x^k is below (k - 1) 2^-52 x^k; squaring x^k rounds three
+    terms below twice that and the rest of p, 2^-104 x^2k at most, and a
+    product by x rounds two, relatively: h + l and h - nl are within
+    (3s + 2m) n 2^-104 of x^n, relatively, s and m being the numbers of
+    squarings and of products by x, 5 log2(n) n 2^-104 at most (1.7 log2(n)
+    n 2^-104 found, over 20 000 random x and n up to 2^32 - 1). The bounds
+    are thus the tightest, or one double beyond where the power is within
+    5 log2(n) n 2^-104 of a double, relatively, and exact where the power is
+    a double. false when a product is not finite, or is below 2^-968, its
+    rest being no double then: the rounded products handle these powers, 0
+    included.
   */
   // Whether the rest of the product rounded to p is a double for sure: a
   // multiple of 2^-105 p, it is one from p = 2^-968 on. Not for an infinite p
@@ -160,7 +170,7 @@ namespace gaol_core {
       if (!is_normal_product(p)) {
 	return false;
       }
-      nl = std::fma(-h,h,p) + nl*(2.0*h - nl); // p - (h - nl)^2, rounded upward: 2h - nl and the product are
+      nl = std::fma(-h,h,p) + nl*(2.0*h - nl); // p - (h - nl)^2 rounded upward, as are 2h - nl and nl*(2h - nl), nl >= 0
       h = p;
       if (n & bit) {
 	p = h*x;
