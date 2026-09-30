@@ -105,18 +105,29 @@ Codac.
   `floor`, `set_contains()`, the output...).
   Where the processor does not trap an invalid operation, the test says so
   and skips that part.
-  On x86, with the flush-to-zero and denormals-are-zero modes of the SSE
-  instructions set, FTZ, DAZ or both, and the rounding direction upward or
-  not, products, sums, differences, quotients, squares and `exp` with a
-  subnormal operand or result have to be the tightest enclosures, computed
-  apart with exact rational arithmetic (and mpmath for `exp(-740)`), and the
-  two modes have to be cleared after the operation, or restored with
-  `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets them from
-  `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0] (GAOL v5).
+  With a mode that flushes the subnormal numbers to zero set (on x86,
+  flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
+  and FIZ where the processor has it), and the rounding direction upward or
+  not, products, sums, differences, quotients by an interval and by a double,
+  squares and `exp` with a subnormal operand or result have to be the tightest
+  enclosures, computed apart with exact rational arithmetic (and mpmath for
+  `exp(-740)`), and the modes have to be cleared after the operation, or
+  restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
+  them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
+  intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
+  compared before the check (GAOL v5).
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
   it upward before `main()`: GAOL has to initialize itself before.
+- **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
+  GCC and Clang), which links `crtfastmath.o` and the modes flushing the
+  subnormals to zero it sets, unless `-mno-daz-ftz` keeps it out. Where the
+  build gives the link `-mno-daz-ftz`, the modes have to be clear when `main()`
+  starts; otherwise, and where they are clear, the test sets them, as a plug-in
+  built with `-Ofast` does. Products, a difference and `exp` with subnormal
+  operands or results have then to be the tightest enclosures, and the modes
+  cleared after them, or restored with `GAOL_PRESERVE_ROUNDING` (GAOL v5).
 - **`automatic_cleanup`** (Linux only): after the end of `main()`, which leaves
   the rounding direction downward, GAOL's automatic cleanup has to set back
   the direction to nearest, as the program started, or to leave it downward
