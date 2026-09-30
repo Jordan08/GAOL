@@ -411,7 +411,9 @@ relations, the constructor from two bounds, `abs()`, `mid()`, `split()`,
 `div_rel()`, and the tests of the domain that `sqrt()`, `log()` and the like
 make before their check), read a subnormal bound as a zero for as long as a
 mode flushing the operands (DAZ, FZ) is set, that is until an operation that
-computes has cleared it: `log(interval(1e-310, 1e-309))` and
+computes has cleared it, or, with `GAOL_PRESERVE_ROUNDING`, which sets the
+modes back after each operation, for as long as the program keeps them:
+`log(interval(1e-310, 1e-309))` and
 `sqrt(interval(-1e-310, 4.0))` are then the empty set. The modes of other
 processors, and of ARM with Visual C++, are neither checked nor cleared; GCC
 links `crtfastmath.o` for none of the other processors GAOL is tested on.
