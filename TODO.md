@@ -412,7 +412,7 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
     width ». (#57)
   - Le runtime C Debug de Visual C++ déclenche sa propre assertion (« unexpected input value; log10 failed », `cfout.cpp`) quand
     il écrit un sous-normal sous denormals-are-zero : `numbers` bloquait sur sa boîte de dialogue. Un programme Debug qui a mis DAZ
-    et écrit un intervalle à borne sous-normale la reçoit aussi, par `operator<<`, et sur x86 le runtime écrit alors « 0 » pour la
+    et écrit un intervalle à borne sous-normale la reçoit aussi, par `operator<<`, et le runtime écrit alors « 0 » pour la
     borne (la sortie n'est plus un encadrement, relue « [0] »). GAOL doit-il retirer DAZ de MXCSR le temps
     d'écrire ses bornes ? À décider avec le point 45. (#58)
 - **18** :
