@@ -200,12 +200,15 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
-# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
-# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
-# its own rather than from the registers, before version 12 on x86-64 (the
-# MinGW-w64 GCC 11 to 13 of Chocolatey) and before 11 on 32-bit x86 (GCC 11).
-# CORE-MATH's functions read fegetround() to know the rounding direction GAOL
-# set by writing the registers.
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
+# fma() and round() of the programs are those of mingw-w64's own math library:
+# on x86-64, before version 12 (the MinGW-w64 GCC 11 to 13 of Chocolatey) and
+# linked with msvcrt.dll rather than the UCRT (MSYS2 MINGW64, the cross
+# compilers of Debian and Ubuntu), and on 32-bit x86 before 11 (GCC 11
+# of WinLibs). That fma() is not correctly rounded, and CORE-MATH's functions
+# compute with it where the compiler has no -mfma (GCC for Windows, see
+# below); that round() depends on the rounding direction. From version 12 on,
+# a toolchain linking the UCRT takes those of ucrtbase.dll, which are right.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -214,8 +217,9 @@ endif()
 # - the math library of mingw-w64 before version 12 was not accurate enough for
 #   the hyperbolic functions GAOL took from it (acosh() near 1 was up to 25
 #   million floats away from the exact value, and asinh() of large negative
-#   numbers NaN). GAOL takes no function from the math library of the system any
-#   more: CORE-MATH gives them all, correctly rounded, whatever the system;
+#   numbers NaN). GAOL takes no elementary function from the math library of
+#   the system any more: CORE-MATH gives them all, correctly rounded, whatever
+#   the system;
 # - fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which
 #   takes microseconds in a virtual machine (3.5 against 130 nanoseconds with
 #   mingw-w64 13), and GAOL changed the rounding direction four times for each
@@ -224,9 +228,10 @@ endif()
 #   GAOL calls them in the upward rounding it keeps (gaol/gaol_double_op.h).
 #
 # The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
-# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, runs the
-# tests with them, and checks that GCC 11.2.0 to 13.2.0 are refused on x86-64
-# and 11.2.0 on 32-bit x86 (.github/workflows/windows.yml).
+# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
+# MSYS2 UCRT64 and CLANG64, runs the tests with them, and checks that GCC
+# 11.2.0 to 13.2.0 and MSYS2 MINGW64 are refused on x86-64 and GCC 11.2.0 on
+# 32-bit x86 (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)

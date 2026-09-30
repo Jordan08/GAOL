@@ -70,9 +70,10 @@ cpp_comp = meson.get_compiler('cpp')
 c_comp = meson.get_compiler('c')
 
 gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
-# mingw-w64 is no longer refused for its version: GAOL takes no function from
-# the math library of the system, and no longer changes the rounding direction
-# for its elementary functions (see CMakeLists.txt)
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
+# before version 12 or linked with msvcrt.dll, on 32-bit x86 before 11, where
+# the fma() and round() of the programs are those of mingw-w64's own math
+# library, which are not right (see CMakeLists.txt)
 
 msvc = cpp_comp.get_argument_syntax() == 'msvc'
 

@@ -250,7 +250,7 @@
    the headers of a UCRT toolchain define it (__MSVCRT_VERSION__ 0xE00, the
    default of mingw-w64 12 and later), and GCC 14 and later with
    -mcrtdll=ucrt; nothing defines it for msvcrt.dll (MSYS2 MINGW64, the msvcrt
-   builds of MinGW-Builds, the cross compilers of Debian, Ubuntu and Fedora).
+   builds of MinGW-Builds, the cross compilers of Debian and Ubuntu).
    A program defining _UCRT itself while linking msvcrt.dll is not refused
    here, and fails tests/core_math.cpp. The continuous integration builds and
    tests MinGW-Builds GCC 14 and 15 of Chocolatey, MSYS2 UCRT64 (GCC) and

@@ -273,8 +273,8 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
   (musl) on x86-64 and 64-bit ARM; Debian 13 on s390x, ppc64le and riscv64;
 \item macOS 14, 15 and 26, on arm64 and x86-64, with AppleClang, the Clang of LLVM
   and GCC;
-\item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 12 to 15;
-  MSYS2 (UCRT64 with GCC, CLANG64 with Clang).
+\item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 GCC 14
+  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 with Clang).
 \end{itemize}
 
 \noindent
@@ -328,10 +328,14 @@ but the second one, which no macro of the compiler shows:
 \item a compiler saying of \option{-frounding-math} ``overriding currently
   unsupported rounding mode on this target'', as Clang 14 for 64-bit ARM
   (Clang 18 honours the rounding direction there);
-\item a MinGW-w64 whose \file{<fenv.h>} answers \code{fegetround()} from a
-  state of its own, before mingw-w64 12 on x64 and before 11 on 32-bit x86:
-  GAOL sets the rounding direction by writing the registers of the processor,
-  and CORE-MATH reads \code{fegetround()} to know it;
+\item a MinGW-w64 whose \code{fma()} and \code{round()} are those of the
+  math library of mingw-w64: on x64, before mingw-w64 12, and linked with
+  \file{msvcrt.dll} rather than the UCRT (MSYS2 MINGW64, the cross compilers
+  of Debian and Ubuntu); on 32-bit x86, before mingw-w64 11. That
+  \code{fma()} is not correctly rounded, and CORE-MATH computes with it; that
+  \code{round()} depends on the rounding direction. A toolchain of mingw-w64
+  12 or later linking the UCRT (MinGW-Builds GCC 14 and 15, MSYS2 UCRT64 and
+  CLANG64) takes those of \file{ucrtbase.dll}, which are right;
 \item \option{-ffast-math}, \option{-Ofast} and \option{/fp:fast}, with which
   the compiler rounds to nearest and drops the checks of NaN and infinities;
 \item \option{-ffinite-math-only}, which \option{-ffast-math} and
