@@ -632,12 +632,14 @@ INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
+      // The rounding direction checked before d is compared: with the modes
+      // that flush the subnormals to zero, a subnormal d was 0 (GAOL v5)
+      GAOL_RND_ENTER_SSE();
       if (d == 0.0) {
         xmmbounds = interval::m128_zero;
+        GAOL_RND_LEAVE_SSE();
         return *this;
       }
-
-      GAOL_RND_ENTER_SSE();
       if (d > 0.0) {
         xmmbounds = _mm_mul_pd(xmmbounds, _mm_set1_pd(d)); // <-l*d, r*d>
       } else { // d < 0.0
@@ -649,12 +651,19 @@ INLINE uint32_t reverse_bits(uint32_t v)
 
   interval& interval::operator/=(double d)
     {
-      if (is_empty() || d == 0.0 || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+      if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
         *this = interval::emptyset();
         return *this;
       }
 
+      // The rounding direction checked before d is compared, as in
+      // operator*=(double) (GAOL v5)
       GAOL_RND_ENTER_SSE();
+      if (d == 0.0) {
+        *this = interval::emptyset();
+        GAOL_RND_LEAVE_SSE();
+        return *this;
+      }
       if (d > 0.0) {
         xmmbounds = _mm_div_pd(xmmbounds, _mm_set1_pd(d)); // <-l/d, r/d>
       } else { // d < 0.0
@@ -670,12 +679,14 @@ INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
+      // The rounding direction checked before d and the bounds are compared, as
+      // in operator*=(double) (GAOL v5)
+      GAOL_RND_ENTER_SSE();
       if (d == 0.0) { // x*0 is in [this] for any x when [this] contains 0
         *this = straddles_zero() ? interval::universe() : interval::emptyset();
+        GAOL_RND_LEAVE_SSE();
         return *this;
       }
-
-      GAOL_RND_ENTER_SSE();
       if (d > 0.0) {
         xmmbounds = _mm_div_pd(xmmbounds, _mm_set1_pd(d)); // <-l/d, r/d>
       } else { // d < 0.0

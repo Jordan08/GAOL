@@ -40,10 +40,35 @@
    // there, is read and written through their control register: fegetround()
    // may only read the one of the x87 unit (glibc on x86-64)
 #  define GAOL_RND_SSE_REGISTER 1
-   // The flush-to-zero (bit 15) and denormals-are-zero (bit 6) bits of that
-   // register (_MM_FLUSH_ZERO_MASK, and _MM_DENORMALS_ZERO_MASK of
-   // <pmmintrin.h>), which GAOL clears: see round_upward_if_needed()
-#  define GAOL_MXCSR_FTZ_DAZ 0x8040u
+#endif
+
+/* The modes that flush the subnormal numbers to zero, as bits of the control
+   register holding them, where GAOL can read and write them (GAOL v5). With
+   them, an operation with a subnormal operand or result gives a zero:
+   [1e-300]*[1e-20] is [0, 0]. GCC links crtfastmath.o into a program linked
+   with -Ofast, -ffast-math or -funsafe-math-optimizations, whose constructor
+   sets them on x86 and on ARM Linux; so does Clang on Linux. GAOL clears them
+   (see round_upward_if_needed()):
+   - on x86 processors, flush-to-zero (FTZ, bit 15), which flushes the
+     subnormal results, and denormals-are-zero (DAZ, bit 6), which reads the
+     subnormal operands as zeros, of MXCSR (_MM_FLUSH_ZERO_MASK, and
+     _MM_DENORMALS_ZERO_MASK of <pmmintrin.h>);
+   - on 64-bit ARM processors, with GCC and Clang, FZ (bit 24), which flushes
+     the subnormal operands and results, and FIZ (bit 0, from Armv8.7 on),
+     which flushes the subnormal operands, of FPCR (instructions mrs and msr).
+     Not with Visual C++, whose C runtime sets them only when the program asks
+     for it (_controlfp());
+   - on 32-bit ARM processors with a floating-point unit, FZ (bit 24) of FPSCR
+     (instructions vmrs and vmsr), with GCC, the only compiler GAOL takes
+     there. */
+#if GAOL_RND_SSE_REGISTER
+#  define GAOL_RND_FLUSH_BITS 0x8040u
+#elif defined(__aarch64__) && defined(__GNUC__)
+#  define GAOL_RND_FPCR_REGISTER 1
+#  define GAOL_RND_FLUSH_BITS 0x1000001u
+#elif defined(__arm__) && defined(__ARM_FP) && defined(__GNUC__)
+#  define GAOL_RND_FPSCR_REGISTER 1
+#  define GAOL_RND_FLUSH_BITS 0x1000000u
 #endif
 
 // Doubles computed in double precision, whose rounding direction an addition
@@ -81,15 +106,15 @@
   GAOL_RND_PRESERVE() and GAOL_RND_RESTORE() frame the computations made in
   another direction, after which the direction is set upward again.
 
-  On x86 processors, GAOL_RND_ENTER() also clears the flush-to-zero and
-  denormals-are-zero modes of the SSE instructions (FTZ and DAZ in MXCSR),
-  which make a result below 2^-1022 and a subnormal operand zeros: with them,
-  [1e-300]*[1e-20] is [0, 0]. A program linked with -Ofast, -ffast-math or
+  On x86 and ARM processors, GAOL_RND_ENTER() also clears the modes that
+  flush the subnormal numbers to zero (GAOL_RND_FLUSH_BITS above), which make
+  a subnormal operand or result a zero: with them, [1e-300]*[1e-20] is
+  [0, 0]. A program linked with -Ofast, -ffast-math or
   -funsafe-math-optimizations gets them from crtfastmath.o, whose constructor
-  runs after GAOL initializes itself, and so does one that loads a plug-in
-  built so. The probe of the direction sees them too (see
+  runs after GAOL initializes itself with GCC, and so does one that loads a
+  plug-in built so. The probe of the direction sees them too (see
   round_upward_if_needed()), and GAOL leaves them cleared, as it leaves the
-  direction upward.
+  direction upward (GAOL v5).
 
   Each operation checks the direction once, at its entry. What it calls after
   its GAOL_RND_ENTER() takes the direction to be upward and does not check it
@@ -102,8 +127,8 @@
   and a restore of the direction with GAOL_PRESERVE_ROUNDING.
 
   With GAOL_PRESERVE_ROUNDING defined, the operations also restore the
-  direction they found, and the FTZ and DAZ modes they cleared, which makes the
-  arithmetic operations several times slower.
+  direction they found, and the flush-to-zero modes they cleared, which makes
+  the arithmetic operations several times slower.
 
   GCC does not honour #pragma STDC FENV_ACCESS ON, even with -frounding-math
   (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678): it may compute a
@@ -117,13 +142,13 @@
 */
 #if GAOL_PRESERVE_ROUNDING
 #  define GAOL_RND_ENTER()      const gaol_core::rounding_state _save_state = gaol_core::get_rounding(); gaol_core::round_upward_if_needed()
-#  define GAOL_RND_LEAVE()      gaol_core::set_rounding_and_denormals(_save_state)
+#  define GAOL_RND_LEAVE()      gaol_core::set_rounding_and_flush_modes(_save_state)
 #  define GAOL_RND_PRESERVE()   const gaol_core::rounding_state _save_state = gaol_core::get_rounding()
-#  define GAOL_RND_RESTORE()    gaol_core::set_rounding_and_denormals(_save_state)
+#  define GAOL_RND_RESTORE()    gaol_core::set_rounding_and_flush_modes(_save_state)
 #  define GAOL_RND_KEEP(x)      ((x) = gaol_core::rnd_keep(x))
 #  if USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_MXCSR_FTZ_DAZ); gaol_core::round_upward_sse()
-#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_MXCSR_FTZ_DAZ)) | _save_state_sse)
+#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS); gaol_core::round_upward_sse()
+#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | _save_state_sse)
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
 #  define GAOL_RND_ENTER()      gaol_core::round_upward_if_needed()
@@ -171,26 +196,73 @@ namespace gaol_core {
 
   /*!
     \brief The rounding direction GAOL_RND_ENTER() and GAOL_RND_PRESERVE()
-    find, which GAOL_RND_LEAVE() and GAOL_RND_RESTORE() restore, with the FTZ
-    and DAZ modes that round_upward_if_needed() clears
+    find, which GAOL_RND_LEAVE() and GAOL_RND_RESTORE() restore, with the
+    flush-to-zero modes that round_upward_if_needed() clears
   */
   struct rounding_state
   {
     int direction; // fegetround()
 #if GAOL_RND_SSE_REGISTER
-    unsigned int sse;       // The rounding bits of the SSE control register
-    unsigned int denormals; // Its FTZ and DAZ bits
+    unsigned int sse; // The rounding bits of the SSE control register
+#endif
+#if defined(GAOL_RND_FLUSH_BITS)
+    unsigned int flush; // The flush-to-zero modes (get_flush_modes())
 #endif
   };
+
+#if defined(GAOL_RND_FLUSH_BITS)
+  //! The flush-to-zero modes set, as their bits of GAOL_RND_FLUSH_BITS
+  INLINE unsigned int get_flush_modes()
+  {
+#  if GAOL_RND_SSE_REGISTER
+    return _mm_getcsr() & GAOL_RND_FLUSH_BITS;
+#  elif GAOL_RND_FPCR_REGISTER
+    unsigned long long fpcr; // mrs and msr take a 64-bit register
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    return (unsigned int)fpcr & GAOL_RND_FLUSH_BITS;
+#  else
+    unsigned int fpscr;
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    return fpscr & GAOL_RND_FLUSH_BITS;
+#  endif
+  }
+
+  //! Sets the flush-to-zero modes as modes has them, and nothing else
+  INLINE void set_flush_modes(unsigned int modes)
+  {
+#  if GAOL_RND_SSE_REGISTER
+    _mm_setcsr((_mm_getcsr() & ~GAOL_RND_FLUSH_BITS) | modes);
+#  elif GAOL_RND_FPCR_REGISTER
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    fpcr = (fpcr & ~(unsigned long long)GAOL_RND_FLUSH_BITS) | modes;
+    __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+#  else
+    unsigned int fpscr;
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    fpscr = (fpscr & ~GAOL_RND_FLUSH_BITS) | modes;
+    __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpscr) : "memory");
+#  endif
+  }
+
+  //! Clears the flush-to-zero modes, and nothing else
+  INLINE void clear_flush_to_zero()
+  {
+    set_flush_modes(0u);
+  }
+#endif
 
   INLINE rounding_state get_rounding()
   {
     rounding_state s;
     s.direction = fegetround();
 #if GAOL_RND_SSE_REGISTER
+    // One read of MXCSR, which cost 800 ns under Rosetta 2 (see below)
     const unsigned int csr = _mm_getcsr();
     s.sse = csr & _MM_ROUND_MASK;
-    s.denormals = csr & GAOL_MXCSR_FTZ_DAZ;
+    s.flush = csr & GAOL_RND_FLUSH_BITS;
+#elif defined(GAOL_RND_FLUSH_BITS)
+    s.flush = get_flush_modes();
 #endif
     return s;
   }
@@ -204,26 +276,20 @@ namespace gaol_core {
 #endif
   }
 
-  //! set_rounding(), and the FTZ and DAZ modes of the SSE instructions as well
-  INLINE void set_rounding_and_denormals(const rounding_state& s)
+  //! set_rounding(), and the flush-to-zero modes as well
+  INLINE void set_rounding_and_flush_modes(const rounding_state& s)
   {
     fesetround(s.direction);
 #if GAOL_RND_SSE_REGISTER
-    _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_MXCSR_FTZ_DAZ)) | s.sse | s.denormals);
+    _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | s.sse | s.flush);
+#elif defined(GAOL_RND_FLUSH_BITS)
+    set_flush_modes(s.flush);
 #endif
   }
-
-#if GAOL_RND_SSE_REGISTER
-  //! Clears the FTZ and DAZ modes of the SSE instructions, and nothing else
-  INLINE void clear_flush_to_zero()
-  {
-    _mm_setcsr(_mm_getcsr() & ~(unsigned int)GAOL_MXCSR_FTZ_DAZ);
-  }
-#endif
 
   /*!
     \brief Sets the rounding direction upward, unless it already is, and on x86
-    processors clears the flush-to-zero and denormals-are-zero modes
+    and ARM processors clears the modes that flush the subnormals to zero
 
     Where doubles are computed in double precision (GAOL_RND_PROBE), the
     direction is shown by 1 + 2^-60, above 1 only when rounded upward, in the
@@ -240,32 +306,40 @@ namespace gaol_core {
     results in the direction fegetround() gives, read it from MXCSR there
     (gaol/core_math_port.h).
 
-    On x86 processors, the probe is 1 + (2^-1060 + 0), which shows the
-    flush-to-zero and denormals-are-zero modes as well as the direction, in one
-    comparison: 2^-1060 is a subnormal, and 2^-1060 + 0 is 0 under DAZ (the
-    operand is read as 0) and under FTZ (the subnormal result is written as 0),
-    and 1 + 2^-1060 is above 1 only when rounded upward. With either mode set,
-    every operation with a subnormal operand or result gives a wrong bound
-    ([1e-300]*[1e-20] is [0, 0]): a program linked with -Ofast, -ffast-math or
-    -funsafe-math-optimizations gets them from crtfastmath.o, whose constructor
-    runs after GAOL initializes itself, and so does one that loads a plug-in
-    built so. -mno-daz-ftz, which gaol.pc and gaol::gaol give to the link with
-    the GCC that has it (13 and later, 11.4 and 12.4), only keeps crtfastmath.o
-    out of it: this probe is the one defence against the plug-in (GAOL v5,
-    tests/rounding_direction.cpp).
+    Where GAOL can clear the modes that flush the subnormals to zero
+    (GAOL_RND_FLUSH_BITS: x86, and ARM with GCC and Clang), the probe is
+    1 + (2^-1060 + 0), which shows them as well as the direction, in one
+    comparison: 2^-1060 is a subnormal, and 2^-1060 + 0 is 0 when the
+    subnormal operands are read as 0 (DAZ on x86, FZ and FIZ on ARM) and when
+    the subnormal results are written as 0 (FTZ on x86, FZ on ARM), and
+    1 + 2^-1060 is above 1 only when rounded upward. The sum with +0 is exact,
+    and no compiler may drop it without -fno-signed-zeros, -0 + 0 being +0.
+    With one of these modes set, every operation with a subnormal operand or
+    result gives a wrong bound ([1e-300]*[1e-20] is [0, 0]): a program linked
+    with -Ofast, -ffast-math or -funsafe-math-optimizations gets them from
+    crtfastmath.o, whose constructor runs after GAOL initializes itself with
+    GCC, and so does one that loads a plug-in built so. -mno-daz-ftz, which gaol.pc and
+    gaol::gaol give to the link where the compiler has it (GCC 13 and later,
+    11.4 and 12.4, on x86), only keeps crtfastmath.o out of the program: this
+    probe is the one defence against the plug-in, and against the other
+    platforms (GAOL v5, tests/rounding_direction.cpp,
+    tests/fast_math_link.cpp).
 
-    On an Intel i7-1185G7 an addition with a subnormal operand and result
-    took as much time as one of normal doubles, so that the probe costs its
-    second addition, about 0.2 ns in front of the addition of two SSE2 intervals,
-    and nothing that x + y, x * y, exp and sin measured through the library
-    told from the noise. Reading MXCSR instead cost 0.4 ns more than the
-    probe there. An addition with a subnormal can be slower on other x86
-    processors, where a subnormal takes a microcode assist: none of them was
-    measured (GAOL v5).
+    On an Intel Xeon of the Cascade Lake generation (Clang 18), as on the Intel
+    i7-1185G7 of the review of 2026-09-27, an addition with a subnormal operand
+    and result took as long as one of normal doubles (1.2 ns in a chain of
+    dependent additions), and the probe as long as 1 + 2^-60 in front of the
+    addition of two SSE2 intervals. Through the library, x * y took 4.0 ns
+    rather than 3.45 ns, and 4.2 ns with the same probe made of 2^-60: the
+    cost of the second addition there, not of the subnormal; x + y, x / y,
+    sqrt, exp, sin and the others stayed within the noise (0.3 ns). Some x86
+    processors take a microcode assist, of the order of a hundred cycles, for
+    an operation with a subnormal operand or result, which each operation
+    would pay there: none was measured (GAOL v5).
   */
   INLINE void round_upward_if_needed()
   {
-#if GAOL_RND_PROBE && GAOL_RND_SSE_REGISTER
+#if GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
     // 2^-1060, as a literal for the reason of the one of 2^-60 below
     static const volatile double subnormal = 8.0947715414629834e-320;
     if (1.0 + (subnormal + 0.0) == 1.0) {
@@ -290,9 +364,9 @@ namespace gaol_core {
        unit. Either being elsewhere, round_upward() sets both (GAOL v5,
        found by tests/rounding_direction.cpp in the continuous integration,
        which leaves the two differing on purpose). The control register is read
-       already: FTZ and DAZ are checked in the same read. */
+       already: FTZ and DAZ are checked in the same read (GAOL v5). */
     if (fegetround() != FE_UPWARD
-        || (_mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_MXCSR_FTZ_DAZ)) != (unsigned int)_MM_ROUND_UP) {
+        || (_mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) != (unsigned int)_MM_ROUND_UP) {
       clear_flush_to_zero();
       round_upward();
     }

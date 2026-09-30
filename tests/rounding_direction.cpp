@@ -20,13 +20,14 @@
  * be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
  * itself in the direction fegetround() gives, have to be the tightest
  * enclosures whatever the direction, with the x87 unit and the SSE
- * instructions differing too (GAOL v5). On x86, the same holds with the
- * flush-to-zero and denormals-are-zero modes of the SSE instructions set (what
- * a program linked with -Ofast gets from crtfastmath.o, and a plug-in built
- * so): the bounds of the operations with a subnormal operand or result are the
- * tightest ones, and the modes are cleared after them, or restored with
- * GAOL_PRESERVE_ROUNDING (GAOL v5). At the end, gaol::cleanup() has to set
- * back the direction the first gaol::init() found (GAOL v5).
+ * instructions differing too (GAOL v5). On x86 and ARM, the same holds with
+ * the modes that flush the subnormals to zero set, flush-to-zero and
+ * denormals-are-zero of the SSE instructions, FZ of ARM (what a program linked
+ * with -Ofast gets from crtfastmath.o, and a plug-in built so): the bounds of
+ * the operations with a subnormal operand or result are the tightest ones, and
+ * the modes are cleared after them, or restored with GAOL_PRESERVE_ROUNDING
+ * (GAOL v5). At the end, gaol::cleanup() has to set back the direction the
+ * first gaol::init() found (GAOL v5).
  *
  * The rest of the floating-point environment is checked too: the exceptions
  * stay masked, and an empty interval is told empty, with interval::emptyset(),
@@ -45,7 +46,6 @@
 
 #include <exception>
 #include <functional>
-#include <limits>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -688,96 +688,108 @@ int main()
     }
   }
 
-#if GAOL_TESTS_SSE
+#if GAOL_TESTS_FLUSH
   /*
-    Flush-to-zero and denormals-are-zero (GAOL v5). With FTZ, DAZ or both set
-    in MXCSR, an operation whose result or operand is subnormal gave a zero:
-    [1e-300]*[1e-20] was [0, 0], when a program linked with -Ofast, whose
-    crtfastmath.o sets them after GAOL initialized itself, or a plug-in built
-    so, set them, and the rounding direction upward that the probe of each
-    operation looked at was still there. The direction is tried with each of
-    the modes, upward included, which is what such a program has. The bounds
-    have to be the tightest ones, computed apart with exact rational
-    arithmetic, or with mpmath for the exponential: the operands, the exact
-    values and the bounds are read with the modes cleared, which change
-    frexp(), on which the exact arithmetic of the tests relies, for a subnormal.
-    The modes are cleared after the operation, or restored with
-    GAOL_PRESERVE_ROUNDING. Not testable here: -mno-daz-ftz, which keeps
-    crtfastmath.o out of the link with GCC 12 and later.
+    The modes that flush the subnormals to zero (GAOL v5): flush-to-zero,
+    denormals-are-zero and both on x86, FZ (and FIZ, where the processor has
+    it) on ARM. With one of them set, an operation whose result or operand is
+    subnormal gave a zero: [1e-300]*[1e-20] was [0, 0], when a program linked
+    with -Ofast, whose crtfastmath.o sets them after GAOL initialized itself,
+    or a plug-in built so, set them, and the rounding direction upward that the
+    probe of each operation looked at was still there; the FPU intervals
+    compared the bounds, and the operations with a double the double, with 0
+    before their probe: [1e-300]/[100*2^-1074] was the empty set. The direction
+    is tried with each of the modes, upward included, which is what such a
+    program has. The bounds have to be the tightest ones, computed apart with
+    exact rational arithmetic, or with mpmath for the exponential: the operands,
+    the exact values and the bounds are read with the modes cleared, which
+    change frexp(), on which the exact arithmetic of the tests relies, for a
+    subnormal. The modes are cleared after the operation, or restored with
+    GAOL_PRESERVE_ROUNDING. tests/fast_math_link.cpp checks the program linked
+    with -ffast-math.
   */
   {
-    const double dm = std::numeric_limits<double>::denorm_min(); // 2^-1074
     const Dyadic half = dyadic(0.5);
     struct Case
     {
       const char *name;
       interval x, y;
       interval (*run)(const interval&, const interval&);
-      Exact value; // the exact result, or a number of the same two doubles
+      Exact value; // the exact result, or a number between the same two doubles
     };
     const Case cases[] = {
-      // subnormal results of normal operands
+      // Subnormal results of normal operands
       { "[1e-300]*[1e-20]", interval(1e-300), interval(1e-20),
         [](const interval& x, const interval& y) { return x*y; },
         exact(dyadic(1e-300)*dyadic(1e-20)) },
-      // the exact difference, a subnormal
+      { "[1e-300]/[1e20]", interval(1e-300), interval(1e20),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(1e20)) },
+      // The exact difference, a subnormal
       { "[3e-308]-[2.9e-308]", interval(3e-308), interval(2.9e-308),
         [](const interval& x, const interval& y) { return x - y; },
         exact(dyadic(3e-308) - dyadic(2.9e-308)) },
       { "sqr([1e-160])", interval(1e-160), interval(),
         [](const interval& x, const interval&) { return sqr(x); },
         exact(dyadic(1e-160)*dyadic(1e-160)) },
-      // subnormal operands
-      { "[100*2^-1074]*[1e10]", interval(100.0*dm), interval(1e10),
+      // Subnormal operands
+      { "[100*2^-1074]*[1e10]", interval(subnormal(100)), interval(1e10),
         [](const interval& x, const interval& y) { return x*y; },
-        exact(dyadic(100.0*dm)*dyadic(1e10)) },
-      { "[100*2^-1074]+[3*2^-1074]", interval(100.0*dm), interval(3.0*dm),
+        exact(dyadic(subnormal(100))*dyadic(1e10)) },
+      { "[100*2^-1074]+[3*2^-1074]", interval(subnormal(100)), interval(subnormal(3)),
         [](const interval& x, const interval& y) { return x + y; },
-        exact(dyadic(100.0*dm) + dyadic(3.0*dm)) },
-      // a normal result of a subnormal divisor
-      { "[1e-300]/[100*2^-1074]", interval(1e-300), interval(100.0*dm),
+        exact(dyadic(subnormal(100)) + dyadic(subnormal(3))) },
+      { "[100*2^-1074]/[3]", interval(subnormal(100)), interval(3.0),
         [](const interval& x, const interval& y) { return x/y; },
-        quotient(dyadic(1e-300), dyadic(100.0*dm)) },
-      // exp(-740) = 84.78 * 2^-1074 (mpmath), between 84 and 85 of them
+        quotient(dyadic(subnormal(100)), dyadic(3.0)) },
+      // A normal result of a subnormal divisor
+      { "[1e-300]/[100*2^-1074]", interval(1e-300), interval(subnormal(100)),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(subnormal(100))) },
+      // A subnormal double, a literal rather than subnormal(100), which the
+      // modes would flush: the operations compared it with 0 before their check
+      // of the rounding direction, and it was 0
+      { "[1e10]*(100*2^-1074)", interval(1e10), interval(),
+        [](const interval& x, const interval&) { return x*0x64p-1074; },
+        exact(dyadic(1e10)*dyadic(subnormal(100))) },
+      { "[1e-300]/(100*2^-1074)", interval(1e-300), interval(),
+        [](const interval& x, const interval&) { return x/0x64p-1074; },
+        quotient(dyadic(1e-300), dyadic(subnormal(100))) },
+      // exp(-740) is 84.78 times 2^-1074 (mpmath), between the same two
+      // doubles as 84.5 times 2^-1074
       { "exp([-740])", interval(-740.0), interval(),
         [](const interval& x, const interval&) { return exp(x); },
-        exact(dyadic(169.0*dm)*half) },
+        exact(dyadic(subnormal(169))*half) },
     };
 
-    struct Mode
-    {
-      const char *name;
-      unsigned bits;
-    };
-    const Mode modes[] = { { "FTZ", 0x8000u }, { "DAZ", 0x0040u }, { "FTZ and DAZ", 0x8040u } };
-    const unsigned ftz_daz = 0x8040u;
-
-    for (const Case& c : cases) {
-      for (const Mode& m : modes) {
+    for (const FlushMode& m : flush_modes()) {
+      for (const Case& c : cases) {
         for (const Direction& d : directions) {
           set(d);
-          _mm_setcsr(_mm_getcsr() | m.bits);
-          const unsigned found = _mm_getcsr() & ftz_daz;
+          set_flush_bits(m.bits);
+          const unsigned int found = flush_bits();
           const interval r = c.run(c.x, c.y);
-          const unsigned left = _mm_getcsr() & ftz_daz;
-          _mm_setcsr(_mm_getcsr() & ~ftz_daz);
+          const unsigned int left = flush_bits();
+          set_flush_bits(0u);
           const auto describe = [&] {
-            return std::string(m.name) + " set, rounding direction " + d.name + ": FTZ and DAZ bits " + std::to_string(left)
-                 + " after it, " + std::to_string(found) + " before";
+            return m.name + " set, rounding direction " + d.name + ": modes " + std::to_string(left) + " after it, "
+                 + std::to_string(found) + " before";
           };
-          check(std::string(c.name) + " the tightest enclosure with FTZ or DAZ", is_tightest_enclosure(r, c.value),
+          check(std::string(c.name) + " the tightest enclosure with a flush-to-zero mode", is_tightest_enclosure(r, c.value),
                 [&] { return describe() + ", " + hex(r); });
 #if GAOL_PRESERVE_ROUNDING
-          check(std::string(c.name) + " FTZ and DAZ restored", left == found, describe);
+          check(std::string(c.name) + ": flush-to-zero modes restored", left == found, describe);
 #else
-          check(std::string(c.name) + " FTZ and DAZ cleared", left == 0u, describe);
+          check(std::string(c.name) + ": flush-to-zero modes cleared", left == 0u, describe);
 #endif
         }
       }
     }
     set(directions[0]);
   }
-#endif // GAOL_TESTS_SSE
+#else
+  std::printf("No mode flushing the subnormals to zero that the test can set: the operations under one are not checked\n");
+#endif // GAOL_TESTS_FLUSH
 
   /*
     The floating-point exceptions stay masked (GAOL v5). CORE-MATH's cbrt, pow
