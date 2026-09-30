@@ -67,10 +67,11 @@ Les pull requests des corrections vont vers `configure-clean`.
 | 24 (suite) : aucune opération ne lève FE_INVALID sur un opérande vide | #50 | `todo-24b-quiet-empty-operands` | fusionnée dans `configure-clean` |
 | 6 (suite) : MinGW-w64 sur x86-64 refusé avant 12 ou lié à msvcrt, pour la vraie raison (`fma()` et `round()`) | #51 | `todo-06b-mingw-msvcrt-refused` | fusionnée dans `configure-clean` |
 
-### Poussé et relu, pull requests ouvertes le 30 septembre
+### Fusionnés le 30 septembre (#53 à #57)
 
-Chaque branche a été relue par un relecteur indépendant, dont les points bloquants sont corrigés, puis poussée. Aucune n'a de conflit
-avec `configure-clean` tel qu'il est maintenant.
+Chaque branche a été relue par un relecteur indépendant, dont les points bloquants sont corrigés, poussée, puis fusionnée dans
+`configure-clean`. La CI de `configure-clean` après ces fusions reste à vérifier : elle est rouge sur armhf depuis #50 (6 échecs
+de `rounding_direction`, `operator&=` des intervalles FPU sur ARM 32 bits), correction en cours dans `fix-24b-armhf-fe-invalid`.
 
 | Point | Branche (pull request) | Ce qui a été fait le 30 septembre |
 | --- | --- | --- |
@@ -84,6 +85,8 @@ avec `configure-clean` tel qu'il est maintenant.
 `core_math` passent).
 
 ### Travail inachevé (commit « WIP », non relu, poussé sans lancer la CI)
+
+Reprises le 30 septembre au soir (fusion de `configure-clean`, fin du travail, relecture), avant leurs pull requests :
 
 3 exactitude de `pow(x, y)` aux coins (`todo-03-pow-exact-corner`, sans conflit) · 4 flush-to-zero (`todo-04-ftz-daz` ; conflits dans
 `doc/tests.md`, `doc/three-builds.md`, `doc/using.md`, `gaol.pc.in`, `manual/v5/gaol.tex` et `tests/rounding_direction.cpp`) · 8
@@ -131,27 +134,531 @@ demande une décision de votre part, de même que l'envoi des correctifs du 31.
 ### Questions ouvertes
 
 Les questions laissées ouvertes par chaque pull request (la sienne ou ses relectures) sont reportées ici dès qu'elles sont écrites,
-avec le numéro de la pull request. Le détail est dans `todo-notes/NN.md`.
+avec le numéro de la pull request. Le relevé du 30 septembre reprend celles des pull requests #31 à #57 et des rapports de
+`todo-notes/` qui restent ouvertes : celles que vos décisions ont tranchées, qu'un commit a réglées ou qui sont déjà un point de ce
+fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/2026-09-30/`.
 
-- **16** (#57) :
-  - `intervalToText` a toujours 16 chiffres ; suivre `interval::precision()` tiendrait en une ligne.
-  - Le format hexa écrit toujours un point `[a, a]`, bit à bit, avec les signes des zéros.
-  - Sous `std::showpos`, le rayon s'écrit `+2 (+/- +1)` ; sous une locale qui groupe les chiffres, le milieu est groupé et le
-    rayon non.
-  - `bound_to_text()` sous denormals-are-zero compare à 0.0 : à 1 chiffre, [22 × 5e-324] s'écrit `[1e-322]` (point 45).
-- **24b** (#50, fusionnée) : `floor`, `ceil` et `integer` coûtent +0,17 ns sur des opérandes non vides ; les rendre gratuits demande de rendre
-  silencieuse la première comparaison du constructeur, ou des fonctions amies. Visual C++ pourrait appeler une fonction pour
-  `std::islessequal`.
-- **6b** (#51, fusionnée) : garder ou supprimer `GAOL_RND_MINGW_FENV_ONLY`, qui ne paraît plus nécessaire ; mingw-w64 ARM64 avant 12.
-- **31** : envoyer les correctifs à CORE-MATH (merge request sur gitlab.inria.fr, ou `git format-patch` à core-math@inria.fr) demande
-  votre accord ; `sinpi.c` et `log1p.c` embarqués gardent `~0ul>>12`, sans effet mesuré.
-- **9** (fusionné) : un intervalle sans pôle dont la largeur exacte est entre `pi_dn` et π donne encore `[-oo, +oo]`.
-- **24** (fusionné) : `GAOL_PRESERVE_ROUNDING` masque de nouveau les exceptions dans les opérations SSE2.
+- **1** :
+  - Choix de conception : `pow_standard()` contient aussi le bloc « au-delà des int » et le pown « dans les int » sur x coupé à [0,
+    +oo], que `gaol_pow_hybrid()` n'atteint jamais puisqu'il prend `[n]` avant. Le TODO les laissait dans `gaol_ieee1788::pow`, qui
+    aurait alors dû refaire la coupe de x et le cas x = {0}. (#37)
+  - Dans `gaol_pow_hybrid()`, la garde de l'exposant `[+oo]`/`[-oo]` est inatteignable : `interval(±oo)` est vide, donc pris d'abord
+    par `is_empty()`. Le cas `at_upper == 1.0` du bloc au-delà des int est redondant, `pow(1, n)` de CORE-MATH valant exactement 1.
+    Et le `is_empty()` de `gaol_pow_hybrid()` refait celui de `pow_standard()` ; un relecteur le juge nécessaire avant `J.left()`,
+    l'autre non. Retirer ces vérifications compléterait « vérifié une fois » et reprendrait une part des +2 à 3 % (2 à 3 ns sur 100)
+    de `gaol::pow` à exposant non entier, mesurés avec GCC 9.4 seulement. (#37)
+  - `pown` aux grandes puissances n'était pas identique bit à bit entre SSE2 et FPU. Borne haute de `pown([-2, 3], 100)` :
+    `0x1.69194f299cdddp+158` en FPU, `0x1.69194f299cddbp+158` en SSE2 ; 1 762 lignes du différentiel, mesuré à `a2ca992` avec GCC
+    9.4. `doc/differences.md` ne le promet pas pour `pown`. Ce n'est pas reproduit sur `configure-clean` avec GCC 13.3 (SSE2 et FPU,
+    avec et sans `GAOL_FMA`) : `0x1.69194f299cddbp+158` partout. À revérifier avec GCC 9.4. Le point 8 ne couvre que les puissances
+    hors de la plage des doubles. (#37)
+  - Le chemin `exp(y*log(x))` de `pow_standard()` (borne infinie, ou base partant de 0 avec y ≤ 0) peut être large de centaines de
+    doubles. `gaol_ieee1788::pow([-oo, 2^-1000], [-oo, -1])` vaut `[0x1.ffffffffffd97p+999, +oo]`, soit 617 doubles sous 2^1000, qui
+    est la borne la plus serrée. Ni le point 2 ni le point 3 ne couvrent ce cas. (#37)
+  - `doc/tests.md` (test `ieee1788`) et `tests/ieee1788.cpp` (en-tête, commentaire de `pow_on_boxes()`) disent que les bornes sont «
+    bit for bit » celles d'avant, alors que `==` ne distingue pas −0 de +0. Ils racontent aussi l'histoire (« when each had its own
+    copy of the pow », « as on 70 500 more boxes », un différentiel resté hors de l'arbre). Mieux vaut dire ce que sont les
+    littéraux : relevés sur l'ancien code et vérifiés avec mpmath à 500 bits. (#37)
+  - Le commentaire d'en-tête de `pow_standard()` raconte l'histoire (« This was the second half of gaol_pow_hybrid(), which
+    gaol_ieee1788::pow went through… ») au lieu de dire ce que fait la fonction. (#37)
+  - Le Doxygen de `gaol_pow_hybrid()` (`gaol/gaol_interval.h`) dit que la partie standard est `exp(J log(I))`. Or les coins de `pow`
+    de CORE-MATH servent aux bornes finies. C'était déjà faux avant #37. (#37)
+  - `tests/ieee1788.cpp` utilise maintenant des littéraux flottants hexadécimaux : il ne compile plus en C++11 ou C++14 strict. Les
+    trois builds compilent les tests en C++17, mais les commentaires de `tests/CMakeLists.txt`, `tests/Makefile.am` et
+    `tests/meson.build` justifient C++17 par « les littéraux de `elementary_values.h` » seulement. Parler des tests en général.
+    (#37)
+  - Les scripts de différentiel et de mutation du point 1 (`diffpow.cpp`, `run_mutations.py`, `mutate2.py`, `checkrows.py`,
+    `gen_table.py`) sont restés dans l'espace de travail de l'agent : ils ne sont ni dans l'arbre ni dans `todo-notes/`. Ils
+    serviraient à régénérer la table de `pow_on_boxes()` après le point 3. (#37)
+- **3** :
+  - Le point 3 se fait maintenant dans `pow_standard()` (`gaol/gaol_interval.cpp`). Il change la borne basse attendue de la boîte
+    `{[0.1, 2], [-2, 0.5]}` de `pow_on_boxes()` (`0x1.fffffffffffffp-3` devient `0x1p-2`), et rend fausse la phrase « where the
+    corners below are one double wide » de `pow_standard()`. Le texte du point 3 ne le dit pas. (#37)
+- **5** :
+  - Avec GCC, `-Ofast` n'est pas refusé dès que `-fno-fast-math` est sur la ligne de commande, avant ou après (GCC 9.4 :
+    `-fno-fast-math -Ofast` laisse `__FAST_MATH__` indéfini et `__FINITE_MATH_ONLY__` à 0), et le résultat est juste.
+    `doc/three-builds.md` (tableau, lignes 137-138) et `doc/using.md` disent pourtant `-Ofast` refusé. Faut-il le préciser à côté du
+    paragraphe sur `-fno-fast-math` ? (#39)
+  - Aucune macro ne montre ces options, qui sont donc seulement documentées et non refusées : `-funsafe-math-optimizations` et
+    `-ffast-math -fno-finite-math-only` (GCC), `-fno-honor-nans` seul (Clang, qui fausse l'ensemble vide comme
+    `-ffinite-math-only`), et sans doute `#pragma GCC optimize`, `__attribute__((optimize))` et `#pragma clang fp` (non testés).
+    Idée non essayée : une vérification à l'exécution dans l'objet statique que contient chaque fichier incluant GAOL
+    (`gaol/gaol_init_cleanup.h`), compilé avec les options de ce fichier. (#39)
+  - GCC 9.4 avec `-funsafe-math-optimizations` compile la sonde `1.0 + tiny == 1.0` de `round_upward_if_needed()` en `tiny == 0.0`,
+    bien que `tiny` soit `volatile`. La sonde sous-normale du point 4 subit le même sort (vu dans l'assembleur). Ranger la somme
+    dans un double `volatile` avant de comparer garde l'addition (coût non mesuré). Les tests compilés avec cette option échouent :
+    `rounding_direction` 2 sur 16 772 (sur `width()`), `arithmetic` 93 773 sur 1 240 155 (les références sont compilées avec
+    l'option elles aussi). Faut-il traiter cela avec le point 4 ? (#39)
+  - Les bornes de `tests/refused_options.cpp` sont des constantes. Si on passe le refus (en-tête sans `#error`, avec
+    `-ffinite-math-only`), Clang 18 à -O2 calcule l'intersection à la compilation et le programme rend 0, donc juste ; GCC à -O3
+    rend 1. Avec des doubles `volatile`, comme dans `repro.cpp`, le défaut se verrait avec les deux compilateurs. Non bloquant : les
+    tests ne vérifient que le message du refus. (#39)
+  - La phrase « `([1, 2] & [3, 4]).is_empty()` est faux (GCC 9.4, Clang 18) » figure dans `gaol/gaol_config.h`,
+    `doc/three-builds.md`, `doc/tests.md` et `tests/refused_options.cpp`. Elle n'est vraie qu'en code optimisé (à -O0, GCC donne le
+    bon résultat) et pour des bornes que le compilateur ne calcule pas à la compilation. Faut-il écrire « en code optimisé, pour des
+    bornes inconnues à la compilation » ? (#39)
+  - Il n'y a pas de témoin positif : `tests/refused_options.cpp` n'est compilé qu'avec les options refusées. Sa phrase « compilé
+    sans elles, ce programme est juste et rend 0 » n'est vérifiée qu'à la main, et son corps peut se dégrader sans que rien ne le
+    voie. Options : un troisième test sans option (environ 1 s de plus dans `make test`), ou retirer la phrase. (#39)
+  - Deux phrases sont ambiguës : dans `doc/three-builds.md`, « the code including GAOL's headers is refused when the option follows
+    it » (ligne 145), et dans `doc/using.md`, « where the compilation stops » (ligne 33). Le « it » peut désigner `-fno-fast-math`.
+    Proposition : « quand `-ffast-math` ou `-ffinite-math-only` vient après `-fno-fast-math` ». (#39)
+  - Le `#error` de `__FAST_MATH__` (`gaol/gaol_config.h:203`) ne donne aucun remède, alors que celui de `__FINITE_MATH_ONLY__` dit
+    de mettre `-fno-fast-math` après l'option. (#39)
+  - `.github/audit` (`compare.py:25`, `make_probe.py:15`) compare `__FAST_MATH__` mais pas `__FINITE_MATH_ONLY__`. Cela reste sans
+    effet tant que l'option `-fno-fast-math` elle-même est comparée. (#39)
+  - Le tableau des cibles de `doc/building.md` (ligne 280, « The unit tests of `tests/` ») donne le même `make test` pour les trois
+    builds, sans dire que celui de CMake lance aussi les tests de compilation. Une phrase suffirait ; elle est facultative puisque
+    `doc/tests.md` et `doc/three-builds.md` le disent déjà. (#39)
+  - Le n° 4 de l'annexe B de `examples/examples.md` (lignes 1071-1072) dit que `tests/fp_strict` enregistre des cas avec
+    `PASS_REGULAR_EXPRESSION`. C'est faux : il fait `try_compile()` et `message(FATAL_ERROR)` à la configuration, pour Visual C++
+    seulement, et ne vérifie que `/fp:precise` et le modèle par défaut. (#39)
+- **Points 5, 24** :
+  - Le commentaire du refus de `-ffinite-math-only` dans `gaol/gaol_config.h` dit encore que `is_empty()` lit l'ensemble vide comme
+    `!(left() <= right())`, que le compilateur replie. Depuis #47, `is_empty()` vaut `!std::islessequal(left(), right())` : le
+    commentaire est à mettre à jour (et l'affirmation que `([1, 2] & [3, 4]).is_empty()` est faux à revérifier avec la comparaison
+    silencieuse). (#39, #47)
+- **6** :
+  - x86 32 bits avec SSE2 : la lecture de MXCSR de `core_math_port.h` est limitée à x86-64 (`__x86_64__ || _M_X64`), GAOL réglant
+    les deux unités sur i386. L'étendre (`__i386__ && __SSE2_MATH__`, MSVC x86 /arch:SSE2) en défense de plus, non testable ici ?
+    (#54)
+  - Le `#warning The floating point rounding constants have an unknown value` de `cbrt.c`, `rsqrt.c` et `asinpi.c` s'affiche
+    toujours avec mingw-w64 (texte amont gardé) ; le correctif 6 de 3rd/README.md le supprime en amont. (#54)
+  - 3rd/README.md, « How the changes are checked » : le premier tiret dit que chaque fonction dont le fichier a changé donne les
+    mêmes bits que l'amont sur 40 millions d'arguments ; `cbrt.c` a changé et diffère par construction avec mingw-w64 x64. Dire que
+    le changement 6 est vérifié par tests/core_math.cpp dans les jobs MinGW/MSYS2 x64 (210 échecs sans lui sous wine). (#54)
+  - Commentaire de `round_upward_if_needed()` : « it computes none of GAOL's doubles » est faux au pied de la lettre avec mingw-w64
+    x64, dont `ldexp()` est le `fscale` x87 (appelé par gaol_interval.cpp et exp2m1.c, pour des résultats exacts). Écrire « none of
+    GAOL's doubles but exact ones ». (#54)
+  - `gaol/core_math_port.h` : « as the get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does » vaut pour GCC et Clang
+    (`__x86_64__`), pas pour Visual C++ x64, où ces fichiers appellent le `fegetround()` générique (devenu la lecture de MXCSR).
+    Même effet ; précision de texte. (#54)
+  - `examples/examples.md` décrit encore le défaut de `pow` sous-normal comme ouvert : ligne 3 du tableau 5.1 (« GAOL's own test
+    lists that state … but no subnormal pow »), non marquée Fixed, et annexe B n° 3. (#54)
+  - Les vérifications `cbrt_hard_cases()` de tests/core_math.cpp n'échouent qu'avec mingw-w64 sur x64 et n'ont tourné que sous wine
+    (mingw-w64 11) ; pour MSYS2 le défaut est déduit des en-têtes. À confirmer par les jobs MinGW-w64 x64 et MSYS2 UCRT64/CLANG64.
+    (#54)
+- **6b** :
+  - `GAOL_RND_MINGW_FENV_ONLY` (`gaol/gaol_fpu_fenv.h` l. 163-166 : x86, mingw-w64 avant 12, sens d'arrondi par `fesetround()`) ne
+    paraît plus nécessaire : avec les registres écrits directement, le mingw-w64 11 i686 d'Ubuntu passe tout ctest sous wine32. Le
+    garder (prudent, c'est ce que teste la CI) ou le supprimer (plus rapide). (#51)
+  - mingw-w64 ARM64 lié à `msvcrt.dll`, ou 11 avec l'UCRT, est accepté alors que son `round()` est celui de mingw-w64, calculé en
+    doubles ; Clang 18 pour aarch64 compile `round()` en `frinta` et `fma()` en `fmadd` même à -O0, donc ni GAOL ni CORE-MATH ne les
+    appellent, et `tests/core_math.cpp` attraperait une chaîne qui le ferait. Refuser ARM64 avant 12 ou sans `_UCRT`, comme sur
+    x86-64, ou laisser. (#51)
+  - Le refus de mingw-w64 ARM avant 11 (`gaol_config.h` l. 305-306) est un reste de l'ancienne condition `!__x86_64__ && < 11`,
+    visant le x86 32 bits : rien de testé ne montre une borne fausse sur ARM64 avant 11. Le garder (prudent, c'est le cas) ou le
+    lever. (#51)
+  - Le refus du x86 32 bits se fait par version (avant 11) alors que la preuve vient d'une seule chaîne : WinLibs GCC 11.2
+    (mingw-w64 9), dont le `fma()` est compilé sans optimisation. Un autre mingw-w64 i686 avant 11 compilé avec optimisation aurait
+    le `fma()` x87 du 11, accepté ; le message dit « as the mingw-w64 9 of WinLibs » pour cela. Garder le refus par version, ou le
+    restreindre. (#51)
+  - Un programme qui définit lui-même `_UCRT` (ou `__MSVCRT_VERSION__=0x1400`) tout en se liant à `msvcrt.dll` n'est pas refusé :
+    aucune macro ne le montre, seul `tests/core_math.cpp` échoue. Accepter la limite (c'est écrit dans `gaol_config.h`), ou autre
+    chose. (#51)
+  - Un instantané git de mingw-w64 qui se dit 12 mais date d'avant le déplacement de `math/fma.c` et `math/round.c` dans
+    `src_msvcrt_common` passerait avec les en-têtes UCRT tout en liant ceux de libmingwex (théorique, date du déplacement non
+    vérifiée) ; le test de `tests/core_math.cpp` l'attraperait. (#51)
+  - Le `fma()` de mingw-w64 (quatre produits de moitiés, quatre arrondis) et son `round()` (dépend du sens d'arrondi, faux en
+    0x1.fffffffffffffp-2) sont des défauts de mingw-w64, encore là pour msvcrt dans les versions 13 et 14 : les signaler à mingw-w64
+    ? Rien n'est envoyé, et `3rd/README.md` (point 31) ne traite que CORE-MATH. (#51)
+  - Le `fma()` de `ucrtbase.dll` n'a été vérifié que sur les runners de la CI, qui ont FMA3 : son chemin logiciel, sur un processeur
+    sans FMA3, ne l'a jamais été (le texte dit maintenant « which pass the tests »). Le test de `tests/core_math.cpp` ne le verrait
+    que sur une telle machine. (#51)
+- **7** :
+  - Le résultat de GAOL 4 pour `atanh([1])` n'a pas été mesuré : sa variante libm ne compile pas, et ni CRLibm ni APMathlib ne sont
+    installés. La puce proposée pour `doc/differences.md` dit seulement que GAOL v5 donnait `[DBL_MAX, +oo]` pour `atanh([1])` et
+    `atanh([1, 5])`, et que `atanh([-1])` était déjà vide. La garder, l'adapter ou la retirer. (#31)
+  - Dans le manuel, la phrase sur le domaine ]−1, 1[ de `atanh` (entrée `atanh`) doit-elle porter `\newinvfive` ? Pour l'instant,
+    seul le paragraphe suivant, sur les fonctions de CORE-MATH, la porte. (#31)
+  - `doc/compare/special_cases.md` ne contient que `atanh([-1, 1])` et `atanh([2, 3])` (cas 124 et 125). Ajouter `atanh([1])` et
+    `atanh([-1])` à `doc/compare/code/cases.py` obligerait à relancer les cinq bibliothèques. Non fait. (#31)
+  - Les tests de `atanh_rel` se limitent à `TEST_EMPTY` et à des `TEST_EQ` à bornes finies, parce que `hausdorff(x, x)` valait +oo
+    pour une borne infinie. Ce n'est plus le cas depuis le point 10 : un `TEST_EQ` à borne infinie (par exemple `atanh_rel([0.5, 1],
+    [0, +oo])`) peut maintenant être ajouté (facultatif). (#31)
+  - Aucune vérification n'échoue quand on retire la clause `J.right() == -1.0` de `atanh()`. `atanh([-1])`, `atanh([-5, -1])` et
+    `atanh([-oo, -1])` sont vides par le constructeur, `interval(-oo, -oo)` étant vide. La clause ne serait protégée que si cette
+    règle du constructeur changeait. (#31)
+- **Points 7, 9, 14** :
+  - `examples/examples.md` compte encore ouverts les numéros 5 (atanh, #31), 8 (tan, #36) et 15 (`what()`, #32). Pour le 8, l'annexe
+    B nomme le drapeau `narrower_than_pi = (w <= pi_dn)`, appliqué sous forme repliée. Pour le 15 : ligne 15 du tableau 5.2, item 15
+    de l'annexe B, et item 9 de la priorité 3. Les phrases qui comptent les numéros appliqués (« 1, 9, 11, 13, 14 and 18 ») sont
+    aussi à mettre à jour. C'est laissé à la pull request de synthèse, mais la « Reprise » de TODO.md ne cite pas ce fichier. (#31,
+    #32, #36)
+- **9** :
+  - Le drapeau `narrower_than_pi` est supprimé, et le test du haut de `tan()` devient `!(w <= pi_dn)`, au lieu de corriger le
+    drapeau en `(w <= pi_dn)` comme l'écrivait le TODO. Même comportement, moins de code. Le garder à la lettre est trivial si vous
+    le préférez. (#36)
+  - Un intervalle sans pôle dont la largeur exacte est strictement entre `pi_dn` et π donne encore `[-oo, +oo]` (`w` s'arrondit à
+    `pi_up`). Le rendre serré demanderait de comparer `r - l` à π en double-double. On n'en connaît aucun, ni sur les 600 premiers
+    pôles (3 à 20 doubles autour de chacun), ni sur 120 000 pôles en relecture : il faudrait que les distances des deux bornes à
+    leurs pôles fassent ensemble moins de π − `pi_dn` ≈ 1,22·10^-16. Garder « above π̲ and below π » dans la documentation, ou dire
+    que le cas est théorique. (#36)
+  - Le commentaire de `tan()` au-dessus de `const double w` dit « the test was `w < pi_dn` », alors que l'ancien code testait `!(w <
+    pi_up)`, puis `w < pi_dn` pour le drapeau. Il dit aussi « though none holds a pole », qui se lit comme si aucun intervalle de
+    cette largeur n'avait de pôle (`[0, pi_dn]` contient π/2). Enfin, l'entrée `tan` du manuel dit `[-oo, +oo]` « quand I contient
+    un pôle », sans les largeurs entre π̲ et π, que seul le tableau d'exactitude mentionne. (#36)
+  - `cos_or_sin()` garde ses tests `w < pi_dn` et `w < 2.0*pi_dn`. Selon l'auteur, `narrow_halves` et la platitude du cosinus près
+    d'un extremum donnent de toute façon le résultat le plus serré. Ce n'est pas démontré, seulement mesuré : 29 400 intervalles de
+    largeur voisine de π, 0 mauvais résultat pour sin et cos. (#36)
+- **10** :
+  - `hausdorff()` sur un intervalle à borne infinie coûte maintenant environ 14 ns au lieu d'environ 4,5 ns (test du sens d'arrondi
+    et arithmétique). Une sortie anticipée est possible : rendre +oo quand une borne n'est infinie que dans un des deux intervalles,
+    et n'entrer dans l'arrondi que pour les paires finies. L'auteur a gardé la formule unique, plus simple. (#41)
+  - `doc/differences.md` (ligne 288) a déjà une puce sur `hausdorff()` (arrondi vers le haut). Le texte sur les bornes infinies et
+    sur `nb_fp_numbers()` avec −0 sera-t-il une puce à part, ou fusionné avec elle, dans la pull request de synthèse ? (#41)
+  - L'entrée `hausdorff` du manuel (`gaol.tex`, lignes 3021-3034) porte deux `\newinvfive` de suite, après « rounded upward » et
+    après le paragraphe sur les bornes infinies. On pourrait fondre ce paragraphe dans la première phrase pour n'en garder qu'une.
+    (#41)
+- **11** :
+  - Dans le manuel (`gaol.tex`, paragraphe « Numbers », lignes 3418-3422), la phrase sur flush-to-zero et denormals-are-zero porte
+    `\newinvfive` sans dire ce que faisait GAOL 4 (`strtod()` en arrondi dirigé), qui n'a pas été testé sous DAZ. Retirer la marque,
+    ou tester GAOL 4 (`GAOL_V1`) ? (#40)
+  - Le manuel écrit `\code{-Ofast}` à la ligne 3420, alors qu'il écrit partout ailleurs les options de compilation avec
+    `\option{...}` (30 usages, dont les lignes 345 et 348). (#40)
+  - Dans `tests/numbers.cpp`, `#if GAOL_TESTS_HAVE_MXCSR` (lignes 176, 238 et 320) teste une macro indéfinie hors x86, ce qui
+    avertit sous `-Wundef`. `#ifdef` serait plus propre. (#40)
+  - Sous Rosetta (jobs macOS 14 et 26 x86_64), on ne sait pas si le test DAZ de `numbers` s'exécute ou se saute avec son message.
+    ctest n'affiche pas la sortie d'un test réussi. Les deux issues sont sûres, mais c'est à vérifier une fois, par exemple avec
+    `ctest -V -R numbers`. (#40)
+- **13** :
+  - `[a]` suppose que `bound_to_text()` arrondit exactement vers l'extérieur, de sorte que deux textes égaux soient le double
+    lui-même. C'est vérifié sur 11 788 textes, mais pas avec le drapeau `std::hexfloat`, où c'est la bibliothèque C qui écrit les
+    chiffres, dans le sens d'arrondi courant. (#43)
+- **14** :
+  - Sans explication, `what()` renvoie le texte fixe `gaol_exception`. Un autre texte (`GAOL exception`, ou le nom de la classe par
+    `typeid`) demanderait une ligne dans `gaol/gaol_exceptions.cpp` et une dans `tests/expressions.cpp`. (#32)
+  - `operator<<` d'une exception écrit `file, line n: exception thrown: explication`. La forme plus courte `file, line n:
+    explication` est possible. (#32)
+  - `doc/using.md`, `doc/tests.md` et le manuel disent sans réserve que GAOL 4 donnait `std::exception`. C'est le texte de libstdc++
+    et de libc++ ; le `what()` de `std::exception` sous Visual C++ est `Unknown exception`. Reformulation facultative. (#32)
+  - `what()` renvoie `explanation_.c_str()`. Une explication qui contient un NUL est coupée à cet endroit, et une qui commence par
+    NUL donne un texte vide, contre le « never empty » du commentaire. GAOL ne lève jamais une telle explication : c'est une
+    question de formulation. (#32)
+  - Les constructeurs qui prennent une explication `const char*` (`input_format_error`, `unavailable_feature_error`,
+    `invalid_action_error`) passent un pointeur nul à `std::string`. C'est un comportement indéfini : libstdc++ lève
+    `std::logic_error` « basic_string::_M_construct null not valid » pendant la construction, y compris par `gaol_ERROR(excep,
+    NULL)`. Aucun appel de GAOL ne le fait. (#32)
+  - Le manuel ne documente que les constructeurs de `gaol_exception` à `const char* e`. Les classes prennent aussi une `const
+    string&`. (#32)
+  - La macro `\defmethod` de `manual/v5/manual.cls` peut laisser l'en-tête d'une entrée seul en bas de page : c'est le cas de
+    l'entrée `what()`, aux pages 80-81 de la mise en page de #32. À revoir quand le PDF sera régénéré. (#32)
+  - Dans `doc/tests.md`, paragraphe du test `expressions`, « The reading of » reste seul sur une ligne courte : il faut refaire les
+    retours à la ligne. (#32)
+  - `operator<<` d'une exception appelle `explanation()` deux fois, et copie donc la chaîne deux fois. Sans conséquence. (#32)
+- **15** :
+  - Avec `exceptions(eofbit)` seul, un intervalle lu en fin d'entrée lève depuis `std::ws` avec l'état `eofbit` seul, là où un
+    double reçoit `eofbit | failbit` ; et une dernière ligne sans fin de ligne est perdue (`getline` lève avant l'analyse, déjà vrai
+    avant). Accepter (c'est documenté : `doc/tests.md` ne revendique l'équivalence avec double que pour rien, `failbit` et `badbit |
+    failbit`), ou ajouter le code. (#46)
+  - Le commentaire de `operator>>` (`gaol/gaol_interval.cpp` l. 541, « std::ws is no extraction: it constructs no sentry ») et
+    `doc/tests.md` l. 194 (« std::ws alone does none of this ») présentent comme un fait général ce qui est vrai de libstdc++ 9 et
+    10 ; C++11 fait de `ws` une entrée non formatée qui construit une sentinelle, et libc++ le fait. Écrire « le std::ws de
+    libstdc++ », pour que personne ne retire la sentinelle au nom de la norme. (#46)
+  - L'exemple du manuel `cout << d << ' ' << x << ' ' << (in >> x ? "more" : "end");` (`gaol.tex` l. 3342) lit et écrit `x` dans la
+    même expression ; il n'affiche `1.5 [1, 2] end` que parce que la lecture qui échoue laisse `x` inchangé. En faire deux
+    instructions. (#46)
+  - L'entrée `operator>>` du manuel (`gaol.tex` l. 3311-3313) enchaîne dans une phrase « n'est pas une ligne à lire, avec ou sans
+    `std::noskipws` » et « un intervalle ne s'écrit pas sur plusieurs lignes » : en faire deux phrases. (#46)
+  - `doc/tests.md` l. 184-185, « Blank lines have to be skipped, as the blanks before a number are, with or without `std::noskipws`
+    », se lit comme si un nombre sautait les blancs sous `noskipws`, ce qui est faux. Proposé : « blank lines have to be skipped,
+    with or without std::noskipws, which stops the blanks before a number but not the reading of a line ». (#46)
+  - `stream_without_buffer()` (`tests/numbers.cpp`, appelée en dernier dans `main()`) : en cas de régression le programme meurt par
+    SIGSEGV, et comme stdout est tamponné, aucun des échecs précédents ne s'affiche. Ajouter `std::fflush(stdout)` avant l'appel.
+    (#46)
+  - `std::ws` saute `\v` et `\f` en tête de ligne, alors que le lexeur ne les compte pas comme blancs (règle `SPACE` = `[ \t\r\n]+`)
+    et les refuse en fin de ligne : asymétrie sans conséquence pour la lecture ; aligner le lexeur, ou laisser. (#46)
+  - Des textes disent encore qu'une ligne vide fait lever `input_format_error` : `examples/examples.md` l. 62-63 (« blank lines,
+    which operator>> refuses »), l. 457-459 et la ligne 14 du tableau 5.2 (l. 634), et la puce « operator>> ends with the input » de
+    `doc/differences.md` (l. 402-403, « a blank one included »). À corriger dans la pull request de synthèse. (#46)
+  - Le commentaire Doxygen de `operator>>` (`gaol/gaol_interval.h` l. 790-800) ne dit pas, contrairement au manuel (l. 3318),
+    qu'avec les exceptions désactivées une ligne refusée écrit un message sur `cerr` et arrête le programme (facultatif). (#46)
+- **16** :
+  - `intervalToText` a toujours 16 chiffres ; suivre `interval::precision()` tiendrait en une ligne. (#57)
+  - Le format hexa écrit toujours un point `[a, a]`, bit à bit, avec les signes des zéros. (#43, #57)
+  - Sous `std::showpos`, le rayon s'écrit `+2 (+/- +1)` ; sous une locale qui groupe les chiffres, le milieu est groupé et le rayon
+    non. (#57)
+  - `bound_to_text()` sous denormals-are-zero compare à 0.0 : à 1 chiffre, [22 × 5e-324] s'écrit `[1e-322]` (point 45 du TODO).
+    (#57)
+  - Point nul : `[0]` quels que soient les signes des bornes (choisi : un seul texte pour {0}, le même en SSE2 et en FPU), ou `[-0]`
+    quand les deux bornes sont -0 (une ligne). Les deux se relisent {0}. (#57)
+  - Formats width et center : le milieu s'écrit `-0` quand `midpoint()` vaut -0 ([-2^-1073, 2^-1074], [-2^-1074, 0] donnent `-0 (+/-
+    4.94e-324)`), alors que le manuel montre 0 pour [-0, 0] et que le format bounds écrit maintenant `[0]`. (#57)
+  - `#include <sstream>` ne sert plus dans `gaol/gaol_ieee1788.h` depuis que `intervalToText` est dans libgaol ; gardé, des
+    programmes pouvant compter dessus. Le retirer ? (#57)
+  - Le format width sous une locale à virgule n'est pas testé ; il écrirait `0,2 (+/- 0,1000000000000001)`. (#57)
+  - `tests/rounding_direction.cpp` tire deux `random.uniform()` dans les arguments d'un même `std::make_pair` : l'ordre d'évaluation
+    non spécifié donne d'autres opérandes selon le compilateur (corrigé par #57 pour `Random` et `numbers.cpp`, pas ici). (#57)
+  - Locale à virgule : la garde de `display_bounds()` teste le texte (`left.find(',')`), pas `numpunct::decimal_point()` :
+    `interval(4)` reste `[4]`, -2.5 s'écrit `[-2,5, -2,5]` (refusé) ; un zéro s'écrit avec le texte de +0 deux fois (`[0,000,
+    0,000]`). Garder ? (#57)
+  - Le format agreeing écrit encore les zéros avec leurs signes : `~[-0., 0.]` pour `interval::zero()` en SSE2, `-0.000000000000000`
+    pour `interval(-0.0)`, contre la règle `[0]` du format bounds. (#57)
+  - Défaut du format agreeing : [1, 10] s'écrit `1~[., 0.]`. `I.right() > 10*I.left()` est faux à l'égalité, et le préfixe commun
+    `1` coupe `1.000000000000000` et `10.00000000000000`. (#57)
+  - Sous une locale à virgule, `gaol_tests::hex()` suit la locale globale et écrit `0x1,4p+2` dans les messages d'échec. Cosmétique,
+    antérieur à #57. (#57)
+  - On ne sait pas si l'UCRT écrit un sous-normal sous DAZ comme sans : sinon `subnormal_output()` (tests/numbers.cpp) imprime son
+    message et saute au lieu de vérifier. (#57)
+  - Formats width et center documentés comme des affichages. L'alternative gardée en réserve : un rayon qui absorbe l'arrondi des
+    chiffres du milieu, sûr mais `0.1 (+/- 5.6e-18)` pour le point 0.1 et `3.5 (+/- 0.049)` pour [3.452, 3.453] à 2 chiffres. En
+    faire un format à part ? (#57)
+  - CI de #57 : `numbers` dépassait 300 s dans les quatre jobs Visual Studio Debug x86 et x64 ; `d78af72` tire 30 intervalles au
+    lieu de 300 sans `NDEBUG`. À confirmer par la CI. (#57)
+  - `examples/examples.md` décrit encore le point 13 avec `<a, b>` / `<a, a>` (l. 62, ligne 12 du tableau 5.1 non marquée Fixed,
+    annexe B n° 12 l. 1131) : noter que c'est devenu `[a]`. (#57)
+  - `examples/examples.md` décrit encore la revue n° 21 (formats width et center, intervalToText) comme ouverte : ligne 21 du
+    tableau (l. 641, non marquée Fixed) et annexe B (l. 1187) ; l. 566 dit encore que le format width est décrit « midpoint and
+    width ». (#57)
+- **18** :
+  - `gaol_read_uncertain()` fait ses sommes avec `gaol_decimal_add_sub()`, qui insère en tête d'une `std::string`, ce qui est
+    quadratique aussi. 20 000 chiffres prennent 0,07 s contre 0,045 s sous la forme simple, et 100 000 chiffres 1,3 s contre 0,5 s.
+    La décision 18 vise-t-elle aussi la forme incertaine ? (#42)
+  - Dans `tests/numbers.cpp`, le message d'échec du test de temps est construit avec `std::to_string` pendant que la locale à
+    virgule est active : il affiche « 2,112549 s ». On peut construire le message avant les `setlocale`, ou dans un flux de la
+    locale C. (#42)
+  - Le commentaire de `gaol_number::beyond` (`gaol_interval_lexer.lpp:216`) laisse croire qu'il est positionné dès que v est sous le
+    plus petit double positif ou au-dessus du plus grand. En fait il ne l'est que loin au-delà (10^311 et plus, ou sous 10^-330). La
+    ligne fait aussi 119 colonnes : mettre le commentaire au-dessus du membre. (#42)
+  - Le commentaire de `gaol_enclose_number()` (`gaol_interval_lexer.lpp`, lignes 370-372) dit que la lecture sous une locale à
+    virgule prend le temps de la locale C. Mesuré : un rapport de 1,0 à 1,2. Écrire « à peu près le temps ». (#42)
+- **24** :
+  - FE_INVALID levée sur des opérandes non vides : `0 × oo` dans l'`operator*=` des intervalles SSE2 (`[0]*[1, +oo]`, `[0,
+    +oo]*[0]`, et `pow([1], [1, +oo])` qui l'appelle), et le `pow` de CORE-MATH pour un exposant de magnitude extrême dans tous les
+    builds (`pow([1, 2], [4.9e-324])`, `[1e-300]`, `[1e300, 1e308]`). Documenté dans `doc/using.md` et le manuel (« This list is not
+    exhaustive »), non corrigé et sans test : le corriger, ou le laisser documenté. (#47, #50)
+  - Avec `GAOL_PRESERVE_ROUNDING` et les intervalles SSE2, `GAOL_RND_ENTER_SSE()` écrit MXCSR avec `GAOL_SSE_MASK | _MM_ROUND_UP` et
+    `GAOL_RND_LEAVE_SSE()` ne rend que les bits d'arrondi : `+`, `-`, `*`, `/`, `sqr()`, `inverse()`, `%`, `div_rel` et les formes à
+    opérande double masquent de nouveau les exceptions du programme (MXCSR 0x1d80 avant, 0x1f80 après) et effacent ses indicateurs.
+    Le build « preserve » ne devrait changer que les bits d'arrondi (proche du point 27). (#47)
+  - `doc/using.md` (fin de « The floating-point exceptions ») et le manuel (`gaol.tex` l. 1078) listent `+`, `-`, `*`, `/`, `sqr()`
+    et `inverse()` comme les opérations qui masquent les exceptions sous `GAOL_PRESERVE_ROUNDING` : il manque `%`, `div_rel` et les
+    formes `+= d`, `-= d`, `*= d`, `/= d`, `%= d`. Les ajouter, ou écrire « entre autres » ; dire aussi qu'elles effacent les
+    indicateurs. (#47)
+  - « after an operation of GAOL, `fetestexcept(FE_INEXACT)` is raised whatever the result » (`doc/using.md` l. 384, `gaol.tex` l.
+    1064) est trop fort : `-X`, `abs`, `&`, `|`, `floor` et `max(X, Y)` ne lèvent pas FE_INEXACT, et sous `GAOL_PRESERVE_ROUNDING`
+    un `X+Y` exact laisse tous les indicateurs à zéro. Écrire « after most operations », comme la puce au-dessus. (#47)
+  - `interval(double)` et `interval(double, double)` comparent leurs arguments par des comparaisons signalantes : `interval(NAN)`,
+    `interval(NAN, 1)`, `x += NAN`, `set_contains(NAN)` lèvent FE_INVALID (on peut défendre le piège, puisque le NaN vient du
+    programme). Les garder, ou rendre silencieuse la première comparaison du constructeur, ce qui rendrait aussi `floor`, `ceil` et
+    `integer` gratuits (voir 24b). (#47, #50)
+  - `gaol/gaol_intervalf.h` appelle `std::islessequal` (l. 168) sans inclure `<cmath>` (il n'inclut que `<iosfwd>`, `<new>`,
+    `<limits>`) : l'en-tête ne compile plus seul avec `-DGAOL_FLOAT_INTERVALS=1`. Ajouter `#include <cmath>`, ou retirer ce
+    changement des intervalles de flottants. (#47)
+  - `doc/accuracy.md` garde une ligne courte (« hold on every architecture and with », l. 60) après l'ajout de la condition sur les
+    exceptions : re-justifier le paragraphe. (#47)
+  - Dans `tests/rounding_direction.cpp`, la structure `EmptySet` (l. 230) porte aussi le tableau `nonempty_sets` (l. 248) : un nom
+    neutre (`SampleInterval`) serait plus lisible. (#47)
+  - Manuel, section 3.3 « The floating-point exceptions » (`gaol.tex` l. 995-1080), toute nouvelle en v5 : `\newinvfive` marque
+    l'introduction et les puces, pas les derniers paragraphes (indicateurs, initialisation, `GAOL_PRESERVE_ROUNDING`). (#47)
+- **24b** :
+  - La CI de #50 est rouge sur armhf (Debian 12 et 13, GCC 14.2, intervalles FPU, `-mfpu=neon-vfpv4`) : `rounding_direction` compte
+    6 échecs sur 58 « raises no invalid-operation flag » (`x & empty`, `gaol_ieee1788::intersection(x, empty)`, `nth_root_rel(x, 1,
+    empty)`, `asinh_rel(x, empty)`, `atanh_rel(x, empty)` nommés) : l'`operator&=` FPU (`std::islessequal`/`std::isgreaterequal`,
+    `gaol/gaol_interval_fpu.h` l. 127-149) y lève encore FE_INVALID quand le second opérande est vide. La PR a été fusionnée avant
+    la fin de la CI et les runs de `configure-clean` ont tous été annulés depuis : corriger (cause à trouver dans le code ARM de
+    GCC), ou sauter la vérification sur ARM 32 bits. (#50)
+  - `floor`, `ceil` et `integer` coûtent +0,17 ns sur des opérandes non vides (1,52 → 1,69 ns avec clang-18, 1,43 → 1,60 avec GCC ;
+    +8 à +17 % selon la relecture) à cause d'un `std::isunordered` ajouté avant le constructeur. Pour les rendre gratuits : (a)
+    rendre silencieuse la première comparaison de `interval(l, r)`, mais `interval(NaN, x)` devient silencieux aussi ; (b)
+    construire le résultat sans le constructeur (fonctions amies, `_mm_set_pd` ou `lb_`/`rb_`), `integer` ne gardant que
+    `std::islessequal(ceil(l), floor(r))`. (#50)
+  - Avec GCC 13, `x &= y` est de 13 à 29 % plus lent dans une boucle de débit (SSE2 1,82 → 2,05-2,33 ns, FPU 1,53 → 1,74-1,98 ns) :
+    `ucomisd`, `cmov` et un branchement remplacent `vcmplesd`/`vblendvpd`, SSE2 n'ayant pas de `<=` ordonné silencieux (`_CMP_LE_OQ`
+    est AVX) ; `set_leq` passe de 0,97 à 1,04-1,08 ns. Clang 18 est inchangé. Le texte de la PR #50 annonce encore un gain (6,4 →
+    2,5 ns) : accepter, ou chercher une forme sans branchement. (#50)
+  - Visual C++ : `std::islessequal()` et ses sœurs de l'UCRT passent sans doute par `_fpcomp()`/`_dpcomp()`, un appel là où GCC et
+    Clang émettent un `ucomisd` ; l'`&=` FPU, que compile Visual C++, en fait maintenant quatre. `gaol_performance` ne mesure ni
+    `&=` ni les relations. Mesurer, et au besoin un assistant GAOL avec `_mm_ucomile_sd` (pour `is_empty()` aussi). (#50)
+  - Les intervalles de flottants, réservés au développement (`gaol_intervalf.h`, `gaol_interval2f.h`), gardent des comparaisons
+    signalantes dans `&=` et les relations : les aligner sur `gaol::interval`, ou les laisser. (#50)
+- **29** :
+  - macOS et Windows lancent sans doute déjà la partie « locale à virgule » de `numbers` (`fr_FR.UTF-8`, `French_France.1252`), mais
+    rien ne le montre. Lancer `sh .github/scripts/comma-locale.sh check build` après leurs tests le prouverait, sans rien changer au
+    script sur macOS. (#35)
+  - Conteneurs (`containers.yml`). Debian demande `apt-get install locales` puis une ligne dans `/etc/locale.gen` ou `localedef`,
+    son `locale-gen` ne prenant pas de nom (vérifié sur 2.36-9+deb12u9 et 2.41-12+deb13u4). Alpine (musl) et les images manylinux
+    n'ont pas de locale à virgule à générer. (#35)
+  - `build-systems.yml` : les jobs Ubuntu d'autotools et de meson lancent aussi `numbers`. Leurs journaux sont `tests/numbers.log`,
+    `build-meson/meson-logs/testlog.txt` et `numbers.log` : le contrôle demanderait un autre chemin de journal. (#35)
+  - Variante écartée : une variable d'environnement (`GAOL_TESTS_REQUIRE_COMMA_LOCALE`) lue par `tests/numbers.cpp`, qui ferait
+    échouer le test lui-même sur toutes les plateformes sans lire le journal de ctest. Elle avait été écartée parce que le point 18
+    éditait ce code. Le point 18 est fusionné depuis : à reprendre si l'on veut le contrôle partout. (#35)
+  - Si le contrôle reste réservé à Linux, faut-il garder un point 29 réduit dans `TODO.md` ? Texte proposé : « Le test sous une
+    locale à virgule n'est vérifié que dans `linux.yml` : macOS, Windows, les conteneurs (le `locale-gen` de Debian ne prend pas de
+    nom : `/etc/locale.gen` ou `localedef`) et `build-systems.yml` ne génèrent ni ne vérifient rien. Correction : `sh
+    .github/scripts/comma-locale.sh check <build>` après `make test` là où la locale existe. » (#35)
+  - `tests/fetch_content` et `tests/find_package` ne donnent aucun `TIMEOUT` à `numbers` : les 300 s ne sont fixées que dans
+    `tests/CMakeLists.txt`. Un blocage y durerait jusqu'à la limite de 60 minutes du job. (#35)
+  - D'après la note de l'image Ubuntu 26.04, la dépréciation des images Ubuntu 22 a commencé le 17 septembre, et elles ne seront
+    plus prises en charge d'ici le 17 avril. Les jobs 22.04 de `linux.yml` disparaîtront (x86_64 GCC et Clang, arm64 GCC, arm64
+    Clang 14 refusé, `cmake-3-14`, `gcc-9`) : que prendre à leur place ? (#35)
+- **31** :
+  - Envoyer les six correctifs à CORE-MATH demande votre accord : merge request sur gitlab.inria.fr (compte nécessaire) ou `git
+    format-patch` à core-math@inria.fr ; qui envoie, avec ou sans `Signed-off-by`. (#56)
+  - `sinpi.c` et `log1p.c` embarqués gardent `~0ul>>12`, sans effet mesuré : même changement `/* GAOL */` que sinh, cosh, tanh, ou
+    attendre l'import du correctif amont ? (#56)
+  - asinpi : le décalage sur 128 bits (correctif 2, et le portage de GAOL) déborde quand `asinpi_acc()` est appelé directement en
+    ±(1 − 2^-53) vers le bas et vers zéro (ss = 76) ; `cr_asinpi` n'y passe jamais. La borne de ss de la preuve est à montrer aux
+    auteurs (écrit dans le README). (#56)
+  - Le master de CORE-MATH échoue à son propre `./check.sh --worst --rndd pow` : underflow parasite pour x = -0x1.10a688680a753p-93,
+    y = 11 (argument ajouté par 8c2bc708, que 708e86ef devait corriger). Le signaler avec les correctifs ? (#56)
+  - Correctif 6 proposé à CORE-MATH sous sa forme large (lire le champ d'arrondi de MXCSR quelles que soient les `FE_*`, dans cbrt,
+    rsqrt, asinpi), plutôt que la petite (`mode = fegetround();` dans cbrt.c et `|| defined(_WIN32)` pour clang-cl), citée dans le
+    README. À valider avant l'envoi. (#56)
+  - `binary80/pow/powl.c` a la même chaîne de branches (rend des `FE_*`) : non examiné, GAOL ne s'en servant pas ; l'ajouter au
+    correctif 6 ? (#56)
+  - Les `~0ul` et `1ul<<52` de `binary80/atan2/atan2l.c` et `binary128/expm1/expm1q.c` (formats que GAOL n'utilise pas) n'ont pas
+    été examinés. (#56)
+  - 3rd/README.md après #54 et #56 : « Four of the changes above … (2 to 5) » ne compte pas le changement 6 (cbrt), qui est aussi un
+    correctif ; l'item 6 dit que `rsqrt.c` et `asinpi.c` « are right », ce que le correctif 6 nuance (clang-cl, Cygwin) ; les
+    statuts des correctifs 5 et 6 ne disent pas ce que fait la copie de GAOL. (#54, #56)
+- **36** :
+  - Point 36 : ajouter à sa documentation les mesures de TwoSum et TwoProd en arrondi dirigé (erreur inexacte dans 0,9 % et 3,8 %
+    des cas, toujours trop petite ; exacte avec `fma`). (#49 (issue))
+- **39** :
+  - `examples/03_dependency_problem.cpp` et `06_global_optimization.cpp` écrivent le maximum de Goldstein-Price comme un double
+    (1015690.2717980589, 2,97e-11 sous le vrai maximum) : leur « l'enveloppe contient l'image » teste un intervalle un peu plus
+    étroit que l'image. Sans effet ici ; `textToInterval` comme dans 16 arrondirait vers l'extérieur. (#53)
+  - `examples/16_Goldstein_Price.cpp` écrit le maximum `1015690.2717980589082988423`, 1,2e-20 sous la vraie valeur ; le lecteur
+    arrondit vers l'extérieur (borne M + 8,7e-11), donc `range` contient l'image. Écrire `…0829884232` rendrait le texte lui-même
+    majorant. Cosmétique. (#53)
+  - L'exemple 16 garde dans `main()` le style de GAOL 4 : `x(-2,2)`, `y(-2,2)`, `z(0.1)`, `interval(0.,0.)` au lieu de
+    `interval(0.0)`. (#53)
+  - `examples/examples.md` §1.1 : « Their outputs are the same on every build » oublie le temps qu'imprime 16 ; « All 16 examples
+    compile without a warning (-Wall -Wextra) » n'est vrai qu'avec les en-têtes de GAOL en -isystem (avertissements dans 04 à 11, 15
+    et 16, surtout -Wdeprecated-copy). (#53)
+  - `examples/CMakeLists.txt` : dans « a timing loop that checks its enclosure too, which the autotools and meson builds of GAOL
+    also compile », « which » semble renvoyer à l'enveloppe. (#53)
+  - Le manuel donne un avertissement de makeindex (entrées en conflit pour « canonical interval »), antérieur au point 39. (#53)
+  - `examples/examples.md` §3 décrit le programme relu (sans le +1) ; depuis #53 le manuel a le +1 et la recommandation 16 dit «
+    applied ». Dire que c'est corrigé ? (commit direct)
+- **40** :
+  - `examples/examples.md` §3 dit encore « three formatting slips » (29 booléens et un nan, corrigés par #55) et donne comme ouverts
+    `chi([0,0]) = 0`, les 400 bits et `[[nodiscard]]` C++17 seulement, corrigés par #55. (#55)
+  - `chi([-oo,+oo])` vaut 1, alors que chi vaut -1 pour tout autre intervalle symétrique autour de 0 : comportement de GAOL 4 et du
+    manuel, gardé. (#55)
+  - La doc Doxygen de `parse_interval()` (gaol/gaol_parser.h) ne liste que les formats de GAOL 4 : pas de `<a, b>`, pas
+    d'expressions, `[l, f]` pour `[l, r]`, `\emp inf`. (#55)
+  - Les tests de compilation `refused_*` du point 5 prennent `CMAKE_BINARY_DIR` et `CMAKE_SOURCE_DIR` comme répertoires d'inclusion
+    (et `--build "${CMAKE_BINARY_DIR}"`) : faux quand GAOL est un sous-projet avec `WITH_TESTS`. Les tests nodiscard prennent
+    `PROJECT_*`. (#55)
+  - Un test `nodiscard_discard_*` reste en échec une fois son objet compilé avec succès (en-tête restauré avec son ancienne date) :
+    il faut effacer l'objet. Seulement en développement ; correctif possible par `FIXTURES_SETUP` ou `cmake -E rm -f`, non essayé
+    sous les générateurs Visual Studio. (#55)
+  - Le programme qui compare les 88 sorties du manuel au programme (`run_examples.py`) est hors du dépôt : le garder avec le point
+    39 ou dans `manual/` ? (#55)
+  - `tests/gaol_tests.h` ne cite pas la vérification à 500 bits (mpmath) des boîtes de `pow` de tests/ieee1788.cpp, bornes
+    enregistrées et non calculées par un script. (#55)
+  - Visual C++ 2017 15.8 et 15.9 ne sont pas sur Compiler Explorer : la garde `_MSC_VER >= 1924` leur donne `_Check_return_` quoi
+    que dise `__has_cpp_attribute`, non vérifié. (#55)
+- **42** :
+  - Que `WindowsApps` contienne un alias `python.exe` en plus de `python3.exe` n'a pas été testé sous Windows : l'affirmation vient
+    de la connaissance des alias d'exécution de Windows 10 et 11. Elle est écrite dans le commentaire de `meson.build`, dans
+    `doc/building.md` et dans le manuel. (#44)
+- **43** :
+  - Aucune étape Windows native (meson avec Visual C++, sous `pwsh`) ne lance `.github/scripts/version-file.sh` : le `sh` de Git for
+    Windows passerait avant le `link` de Visual C++ dans le `PATH` ; seul le job meson MSYS2 exécute le script. À dire si une étape
+    `pwsh` est voulue. (#45)
+  - Les commandes Python de `meson.build` (l. 32, 53, 60) ouvrent `VERSION.txt` sans le fermer (`open(sys.argv[-1]).read()`) : sans
+    effet sous CPython ; un `with` au besoin. (#45)
+- **44** :
+  - Avec les générateurs Makefile, `package_source` ne relance pas CMake après un changement de `VERSION.txt` (Ninja le fait).
+    L'archive porte alors le nom de l'ancienne version et contient le nouveau `VERSION.txt` (observé : `gaol-5.0.0.tar.gz` avec
+    `VERSION.txt` à 5.0.2). C'est documenté. Faut-il une vérification au moment de l'archive ? Elle demanderait
+    `CPACK_PRE_BUILD_SCRIPTS` (CMake 3.19, alors que le minimum est 3.14) ou une dépendance de `package_source` sur une
+    reconfiguration. (#33)
+  - Le contrôle est un test CTest, `cpack_stale_configure`, qui configure des copies de l'arbre : de 1,3 à 4,4 s sous Linux, jusqu'à
+    52,3 s sous QEMU ppc64le. Il n'est enregistré que sur un Unix qui construit pour lui-même, donc ni sous Windows ni sous MSYS2.
+    L'autre choix serait une étape de workflow, à la façon de `linux.yml` qui lit `configure.log`. (#33)
+  - `cpack_stale_configure` ne vérifie pas que l'arbre réel est cohérent (`configure` généré pour la version de `VERSION.txt`). Le
+    job autotools de `build-systems.yml` le fait déjà. (#33)
+  - Le test ne passe au configure imbriqué que `CMAKE_C_COMPILER` et `CMAKE_CXX_COMPILER`. Un parent dont le compilateur porte un
+    argument (`CC="env gcc"`, donc `CMAKE_CXX_COMPILER_ARG1` non vide), ou un Ninja hors du `PATH`, configure bien mais fait échouer
+    le test (« CMake did not configure the copy »). Correction : ne pas enregistrer le test quand `CMAKE_*_COMPILER_ARG1` est non
+    vide, ou passer les compilateurs par `cmake -E env CC=... CXX=...`. (#33)
+  - `cpack_stale_configure` a besoin de `sh` et de liens symboliques, et il échoue (`FATAL_ERROR`) quand l'un manque. La règle du
+    dépôt est pourtant de vérifier à l'exécution ce qu'un test exige de la plate-forme, et de le dire ignoré. Aucun job de la CI
+    n'est concerné. (#33)
+  - Le commentaire de `tests/cpack_stale_configure.cmake` dit « removes what it made in this directory, and nothing else ». Or
+    `file(REMOVE_RECURSE "${GAOL_WORK_DIR}")` retire tout le répertoire, avec pour seule garde le suffixe `/cpack_stale_configure`.
+    La suppression est sûre ; c'est le commentaire qui est inexact. (#33)
+  - `doc/tests.md` dit « CMake build » sans expliquer pourquoi autotools et meson n'ont pas `cpack_stale_configure` : seul CMake
+    fait l'archive, et le job autotools compare déjà `configure --version` à `VERSION.txt`. (#33)
+- **45** :
+  - Le deuxième tiret du point 45 est à mettre à jour. `display_bounds()` compare maintenant les bornes par leurs bits (commit
+    `6ad025a`, #57), si bien que sous DAZ [0, 5e-324] n'est plus écrit comme un point. De ce tiret ne reste que le chemin `x == 0.0`
+    de `bound_to_text()`, que le quatrième tiret décrit déjà. (#40, #57)
+- **Hors liste** :
+  - La branche jetable `ci-debug-numbers-arm64` (sorties de débogage et workflow de variantes du diagnostic de GCC 12 sur aarch64)
+    est toujours sur le dépôt : à supprimer. (#34)
+  - Le `#pragma GCC optimize("no-inline-functions")` de `tests/numbers.cpp` n'est gardé que pour `__GNUC__ == 12 && __aarch64__`,
+    seul cas observé (Debian 12, GCC 12.2, à `-O2` et `-O3`). D'autres versions ou d'autres architectures peuvent être touchées sans
+    que la CI le montre ; GCC 13 (Ubuntu 24.04 arm64) et GCC 14 (Debian 13 arm64) passent. (#34)
+  - GCC 12.2 sur aarch64 compile mal `tests/numbers.cpp` : la variable de boucle `for (int p : precisions)` est lue à une mauvaise
+    adresse, d'où `"1e--1"`. Le défaut n'est pas signalé à GCC, faute de cas minimal. (#34)
+  - La pull request #38, brouillon de Copilot vers `master` pour l'échec de Visual Studio 2026 x86 Release du point 1, est fermée
+    sans fusion. Elle laisse la branche `copilot/fix-visual-studio-2026-x86-release-job` sur le dépôt : à supprimer. La « Reprise »
+    de TODO.md ne la cite pas. (#38)
+  - Clang 18 avertit dans le parser généré par bison 3.5.1 (`gaol/gaol_interval_parser.cpp:1538`) : `gaol_nerrs` est affecté mais
+    jamais utilisé (`-Wunused-but-set-variable`). Chaque point l'a relevé. Faut-il le faire taire ou le laisser ? (#39, #40, #41,
+    #42, #43)
+  - L'en-tête de `TODO.md` dit « Ses numéros 1, 5, 6, 8, 9, 10, 11, 13, 14, 15 et 18 sont corrigés ». Les numéros de la revue que
+    #39, #43 et #41 ont corrigés et qui sont fusionnés n'y figurent pas : 4 (`-ffinite-math-only`, #39), 12 (point écrit `<a, b>`,
+    #43), 19 et 20 (`hausdorff()` et `nb_fp_numbers()`, #41) ; ni ceux de #53 à #57 (3 : `pow` sous-normal, #54 ; 21 : formats
+    largeur et centre, #57). (#39, #41, #43)
+  - `examples/examples.md` décrit encore l'ancien comportement : lignes 61-62 (« apart from point intervals written `<a, b>` »),
+    section 2.7 à la ligne 464 (« One point still breaks the round trip »), numéros 4, 12, 19 et 20 du tableau de la section 5 sans
+    la marque **Fixed**, et « Numbers 1, 9, 11, 13, 14 and 18 are fixed » à la ligne 607. Les n° 4, 12, 19 et 20 de l'annexe B sont
+    aussi à marquer appliqués. Ce travail a été laissé à la pull request de synthèse. (#39, #41, #43)
+  - Le manuel a un `Overfull \hbox` de 22,4 pt dans le paragraphe du paquet `libgaol-dev_version_arch.deb` (`gaol.tex`, lignes
+    511-515, anciennement 481-485). Le défaut est antérieur à ces points. (#40, #44)
+  - Mise en forme de `doc/tests.md` : des lignes de plus de 100 colonnes (24, 52, 233, 235, 243), alors que les voisines font
+    environ 80, et une ligne orpheline (216 : « With flush-to-zero, denormals-are-zero or both set in MXCSR »). (#39, #41, #42)
+  - Dans `tests/input_output.cpp`, `test_input()` a des assertions mortes (relevé au point 13). Le `try` attrape
+    `input_format_error` et se contente de l'afficher. La ligne `<-inf,-inf>` lève une erreur (`inf` se lit [dmax, +oo], donc les
+    deux bornes diffèrent), si bien que les assertions suivantes ne s'exécutent jamais : `[-inf, -inf]`, `[-inf]`, `inf`, `[inf]`,
+    `[inf,inf]`, `<inf,inf>`. Correction : retirer le `try/catch`, et corriger ou retirer les deux cas `<inf,...>`. (#43)
+  - Dans le format `agreeing`, la condition `I.right() > 10*I.left()` est vraie pour tout intervalle négatif, pour tout intervalle
+    contenant 0 et pour [0, x] (relevé au point 13). Ces intervalles sont donc toujours écrits dans le format des bornes, jamais
+    avec leurs chiffres communs. Seuls les intervalles positifs avec r ≤ 10 l sont écrits en `agreeing`. (#43)
+  - `cancel_minus`/`cancel_plus` sont faux avec la bibliothèque Release compilée par GCC (`-O3`) : dans `difference_at_least()`
+    (`gaol/gaol_interval.cpp` l. 2309), GCC déplace les termes d'erreur de `two_sum` après `GAOL_RND_NEAREST_LEAVE()`, donc calculés
+    vers le haut. `cancel_minus([0.5], [4.9e-324, 1e-300])` donne [0x1.fffffffffffffp-2, 0.5] au lieu de [-oo, +oo],
+    `cancel_minus([DBL_MAX], [0.5])` donne [-oo, +oo] au lieu de [pred(DBL_MAX), DBL_MAX], et `cancel_minus([DBL_MAX], [1])` lève
+    FE_INVALID ; Debug et Clang sont justes. Correction proposée : `GAOL_RND_KEEP` sur `s1`, `e1`, `s2`, `e2`, un test, et le
+    commentaire de `GAOL_RND_NEAREST_ENTER` (`gaol/gaol_fpu.h`) à corriger ; à ajouter comme point du TODO. (#47, #50)
+  - La branche jetable `ci-debug-mingw-numbers` (diagnostic de #48) est encore sur le dépôt ; la liste des branches à supprimer de
+    TODO.md ne la cite pas. (#48)
+  - `numbers` a dépassé son délai (Timeout) sur « macOS 15 x86_64 GCC Debug ASan+UBSan » dans un des deux runs de #50 (job
+    110043631810), et passé dans l'autre (job 110043346835) : test trop long en Debug avec sanitizers sur ce runner, à surveiller ou
+    à alléger comme pour Visual C++ (d78af72). (#50)
+  - Messages d'autoconf contraints par m4 : le texte cité écrit `?` pour tout caractère autre que chiffres, points et blancs (les
+    octets en hexadécimal restent exacts ; une citation exacte demanderait des quadrigraphes), et les indices n'ont pas de virgule,
+    dans les quatre lecteurs pour qu'ils restent pareils. (commit direct)
+  - Le manuel ne donne pas le cas résiduel de WindowsApps (profil dont le répertoire diffère de `USERPROFILE`) que doc/building.md
+    donne ; son « turn off the aliases » le couvre. (commit direct)
+  - L'indice « the file is UTF-16 » est donné pour tout fichier commençant par FF FE ou FE FF, y compris UTF-32LE et FF FE suivi
+    d'ASCII. Heuristique jugée sans danger, gardée. (commit direct)
+  - L'étape de CI « VERSION.txt read by autoconf, as by configure » coûte environ 10 s sur les quatre entrées Linux du job
+    autotools, dont les deux à sens d'arrondi préservé ; la limiter à `matrix.cfg.configure == ''` ? (commit direct)
+  - Les descriptions de #50, #51 et #53 à #57 finissent par « 🤖 Generated with Claude Code » et le lien de la session Claude, alors
+    que `.claude/CLAUDE.md` interdit tout ce qui crédite Claude (règle écrite pour les commits). Retirer ces lignes des
+    descriptions, et étendre la règle aux pull requests ? (#50, #51, #53, #54, #55, #56, #57)
+  - La pull request #52 (branche de session vers `master`, `doc/math-libraries.md`, fichier déjà identique dans `configure-clean`)
+    est fermée sans fusion ; sa branche `claude/todo-md-contents-xfervz` reste sur le dépôt : à supprimer. Ni TODO.md ni la liste de
+    ménage de #49 ne la citent. (#52)
+  - Avant la réécriture de `TODO.md` (a2ca992), la PR #29 laissait cinq choix des trois builds « à confirmer » : 8, la référence
+    HTML de Doxygen supprimée ; 9, meson sans `enable-debug` ni `enable-optimize` (le type de build les remplace) ; 10, la CI ne
+    lance que `make test`, pas les exemples (#53 le rappelle : aucun job ne compile les exemples) ; 11, `make test` n'écarte les
+    exemples qu'à partir de CMake 3.17 et meson 0.57 ; 12, le premier `make perf` déplace les colonnes des autres bibliothèques
+    (`results.csv`). S'y ajoutait le point 7, passer GAOL v5 sous licence MIT. Le TODO actuel ne les reprend pas : acceptés,
+    abandonnés, ou à reporter ? (#29)
 
 ### Reprise
 
-Fusionner #53 à #57 quand leur CI est verte (le 16 a dû réduire en Debug la partie aléatoire de son test, qui dépassait 300 s
-sous Visual C++) ; fusionner #29 (`configure-clean` vers `MATH-CORE`).
+Vérifier la CI de `configure-clean` après les fusions de #50 à #57 (armhf : correction en cours) ; ouvrir les pull requests du
+point 47 (clang-cl) et des branches 3, 4, 8, 12, 17 et 36 en cours de reprise ; corriger le point 48 ; fusionner #29 (`configure-clean` vers `MATH-CORE`).
 Reprendre les branches inachevées (3, 4, 8, 12, 17, 36 : relire, terminer, lancer la CI), en fusionnant d'abord `configure-clean` dans
 celles qui ont un conflit (fusion, jamais de réécriture d'une branche poussée) ; commencer les points non commencés ; écrire la pull
 request de synthèse (retirer les points faits de ce fichier, consigner les changements dans `ChangeLog` et `doc/differences.md`,
@@ -269,6 +776,15 @@ Supprimer les branches fusionnées encore présentes : `todo-01`, `05`, `10`, `1
     refuser clang-cl sur x64 dans `gaol_config.h`. Le correctif 6 de
     `3rd/README.md` (branche du 31) propose la même correction à CORE-MATH.
     Voir `todo-notes/06.md`.
+
+48. **`cancel_minus` et `cancel_plus` sont faux avec la bibliothèque compilée par GCC à `-O3`.** Dans
+    `difference_at_least()` (`gaol/gaol_interval.cpp`), GCC déplace les termes d'erreur de `two_sum` après
+    `GAOL_RND_NEAREST_LEAVE()` : ils sont calculés vers le haut, où TwoSum n'est plus exact.
+    `cancel_minus([0.5], [4.9e-324, 1e-300])` donne [0x1.fffffffffffffp-2, 0.5] au lieu de [-oo, +oo],
+    `cancel_minus([DBL_MAX], [0.5])` donne [-oo, +oo] au lieu de [pred(DBL_MAX), DBL_MAX], et `cancel_minus([DBL_MAX], [1])`
+    lève FE_INVALID ; en Debug et avec Clang les résultats sont justes. Correction proposée : `GAOL_RND_KEEP` sur `s1`, `e1`,
+    `s2`, `e2`, un test de non-régression, et le commentaire de `GAOL_RND_NEAREST_ENTER` (`gaol/gaol_fpu.h`) à corriger.
+    Relevé par les relectures des points 24 et 24b (#47, #50).
 
 ## Plantages
 
