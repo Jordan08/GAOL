@@ -725,10 +725,10 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  properly installed, and that the libraries and header files are
  accessible to your compiler.
 
- Let us consider the following program to compute the
- range of the function
+ Let us consider the following program to enclose the
+ range of the Goldstein-Price function
  \begin{align*}
- f(x,y)=&\bigl(1+(x+y)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
+ f(x,y)=&\bigl(1+(x+y+1)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
  &\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
  \end{align*}
  for $x\in\itv{-2}{2}$ and $y\in \itv{-2}{2}$.
@@ -744,7 +744,7 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
      x(-2,2),
      y(-2,2), z;
 
-   z=(1+sqr(x+y)*(19-14*x+3*sqr(x)-14*y+6*x*y+3*sqr(y)))*
+   z=(1+sqr(x+y+1)*(19-14*x+3*sqr(x)-14*y+6*x*y+3*sqr(y)))*
      (30+sqr(2*x-3*y)*(18-32*x+12*sqr(x)+
         48*y-36*x*y+27*sqr(y)));
 
@@ -801,11 +801,21 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  Executing \file{f}, we obtain:
 
  \begin{onscreen}
-  z = [-56254330, 94177270]
+  z = [-87881320, 147125080]
  \end{onscreen}
 
- We then know that $f(x,y)$ ranges over
- \itv{-56254330}{94177270} when $x$ and $y$ range over \itv{-2}{2} independently.
+ We then know that $f(x,y)$ lies in \itv{-87881320}{147125080} for
+ every $x$ and $y$ in \itv{-2}{2}: \code{z} \emph{encloses} the range of $f$.
+ It is not the range, which is \itv{3}{1015690.27\ldots}: the minimum is
+ $f(0,-1)=3$, and the maximum is reached on the edge $y=2$. \code{z} is 231
+ times wider. Each occurrence of $x$ and of $y$ in the formula ranges over
+ \itv{-2}{2} on its own, as if the others did not exist: this is the
+ \emph{dependency problem}, which makes an enclosure wider than the range.
+\cindex{dependency problem}%
+ Cutting $x$ and $y$ into smaller intervals, and taking the hull of the
+ values of $f$ over the pieces, narrows the enclosure, at the price of more
+ evaluations (\file{examples/03\_dependency\_problem.cpp} of the sources
+ does it).
 
 \section{Compiling a program using GAOL}\label{sec:compiling}
 %%--------------------------------------
