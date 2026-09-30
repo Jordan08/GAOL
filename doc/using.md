@@ -245,21 +245,24 @@ expressions.
 ```cpp
 sqrt(x);          // warning: the result is thrown away, x is unchanged
 x = sqrt(x);      // what was meant
-(void)sqrt(x);    // thrown away on purpose: no warning in C++17, or with Clang
+(void)sqrt(x);    // thrown away on purpose: no warning, but with GCC before 7
 ```
 
 The attribute is `GAOL_NODISCARD`, of `gaol/gaol_config.h`. It is
 `[[nodiscard]]` in C++17 and later. A program is compiled in the standard its
 project sets, or else in the one of its compiler, which is C++14 for GCC 6 to
-10, Clang 6 to 15 and Visual C++. Before C++17, `GAOL_NODISCARD` is the
-attribute of the compiler: `__attribute__((warn_unused_result))` for GCC and
-Clang, whose warning is `-Wunused-result` (on by default), and `_Check_return_`
-of `<sal.h>` for Visual C++, which only the code analysis reports (`/analyze`,
-warning C6031), not the compiler. There, GCC also warns about a cast to void
-(`(void)sqrt(x);`), which Clang and `[[nodiscard]]` take as on purpose: keep
-the result in a variable instead. A program that does not want the warnings
-defines `GAOL_NODISCARD` empty before including GAOL (`-DGAOL_NODISCARD=`). The
-compound assignments (`x += y`), which do change x, do not carry it.
+10, Clang 6 to 15 and Visual C++. Before C++17, `GAOL_NODISCARD` is
+`[[nodiscard]]` too where the compiler takes it there: GCC 7 and later, and
+Visual C++ 2019 16.4 and later, whose warning is C4834. Clang, which warns
+about `[[nodiscard]]` before C++17 with `-pedantic`, and GCC before 7 take
+`__attribute__((warn_unused_result))`, whose warning is `-Wunused-result` (on
+by default); older Visual C++ takes `_Check_return_` of `<sal.h>`, which only
+the code analysis reports (`/analyze`, warning C6031), not the compiler. A
+cast to void (`(void)sqrt(x);`) silences each of them, but the attribute of
+GCC before 7: keep the result in a variable there. A program that does not
+want the warnings defines `GAOL_NODISCARD` empty before including GAOL
+(`-DGAOL_NODISCARD=`). The compound assignments (`x += y`), which do change x,
+do not carry it.
 
 ## Errors
 

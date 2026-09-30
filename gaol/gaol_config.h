@@ -144,15 +144,22 @@
 /* GAOL_NODISCARD: the attribute on the functions whose result is all they do
    (GAOL v5), so that the compiler warns about a call whose result is thrown
    away, as sqrt(I); or I.emptyset(); written to change I, which they leave
-   as it was. It is [[nodiscard]] from C++17 on. A program is compiled in the
-   standard its project sets, or else in the one of its compiler, C++14 for
-   GCC 6 to 10, Clang 6 to 15 and Visual C++; GAOL itself is compiled in
-   C++11. Before C++17, where Clang warns about [[nodiscard]] with -pedantic
-   and Visual C++ ignores it with a warning, the macro is the attribute of the
-   compiler: __attribute__((warn_unused_result)) for GCC and Clang
-   (-Wunused-result, on by default), whose warning GCC, unlike Clang and
-   [[nodiscard]], gives for a cast to void too; _Check_return_ of <sal.h> for
-   Visual C++, which only its code analysis reports (/analyze, warning C6031).
+   as it was. A program is compiled in the standard its project sets, or else
+   in the one of its compiler, C++14 for GCC 6 to 10, Clang 6 to 15 and Visual
+   C++; GAOL itself is compiled in C++11, in C++14 with Visual C++, which has
+   no C++11 mode. The macro is [[nodiscard]] from C++17 on, and before C++17
+   where __has_cpp_attribute(nodiscard) says the compiler takes it there: GCC
+   7 and later, silent about it even with -pedantic, and Visual C++ 2019 16.4
+   (_MSC_VER 1924) and later, whose warning is C4834. Clang says so too, but
+   warns about it with -pedantic (-Wc++17-attribute-extensions): it takes
+   __attribute__((warn_unused_result)), whose warning is -Wunused-result (on
+   by default), as GCC before 7 does. Visual C++ 2017 and 2019 16.0 refuse
+   [[nodiscard]] before C++17 (error C2429), and 2019 16.1 to 16.3 ignore it
+   (warning C5051): __has_cpp_attribute(nodiscard) is 0 in 2019 16.0 to 16.3,
+   but 2017 15.8 and 15.9, the first to have __has_cpp_attribute, were not
+   checked, and the macro asks for _MSC_VER 1924 too. Older Visual C++ takes
+   _Check_return_ of <sal.h>, which only the code analysis reports (/analyze,
+   warning C6031). A cast to void silences them all but GCC's attribute.
    Visual C++ keeps __cplusplus at 199711L without /Zc:__cplusplus, and gives
    the standard in _MSVC_LANG; Clang for Windows defines __clang__ and
    _MSC_VER, and takes the attribute of Clang. Defining GAOL_NODISCARD before
@@ -161,13 +168,21 @@
 #  if defined(__cplusplus) \
       && (__cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
 #    define GAOL_NODISCARD [[nodiscard]]
-#  elif defined(__GNUC__) || defined(__clang__)
-#    define GAOL_NODISCARD __attribute__((warn_unused_result))
-#  elif defined(_MSC_VER) && _MSC_VER >= 1400
-#    include <sal.h>
-#    define GAOL_NODISCARD _Check_return_
-#  else
-#    define GAOL_NODISCARD
+#  elif defined(__cplusplus) && defined(__has_cpp_attribute) && !defined(__clang__) \
+        && (!defined(_MSC_VER) || _MSC_VER >= 1924)
+#    if __has_cpp_attribute(nodiscard)
+#      define GAOL_NODISCARD [[nodiscard]]
+#    endif
+#  endif
+#  ifndef GAOL_NODISCARD
+#    if defined(__GNUC__) || defined(__clang__)
+#      define GAOL_NODISCARD __attribute__((warn_unused_result))
+#    elif defined(_MSC_VER) && _MSC_VER >= 1400
+#      include <sal.h>
+#      define GAOL_NODISCARD _Check_return_
+#    else
+#      define GAOL_NODISCARD
+#    endif
 #  endif
 #endif
 
