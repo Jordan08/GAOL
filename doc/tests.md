@@ -136,11 +136,14 @@ Codac.
   read back, they have to enclose the intervals written, and so do the two
   numbers the format of the agreeing digits stands for. The text of a point
   interval, written with 1 to 25 digits in each of these formats, has to be
-  read back as an interval enclosing it: the angles `<a, a>`, which the reader
-  takes for one double only, are written for a number that is the point itself
-  (`<4, 4>`, and for a zero, whatever the signs of its bounds, `<0, 0>` or
-  `<-0, 0>`), and the two bounds `[a, b]` otherwise (`[0.1, 0.1000000000000001]`
-  for `interval(0.1)`). GAOL wrote `<a, b>` for every point interval, and the
+  read back as an interval enclosing it: the literal `[a]` of IEEE 1788-2015
+  is written for a number that is the point itself, and read back as the
+  point (`[4]`, and `[0]` for a zero, whatever the signs of its bounds), and
+  the two bounds `[l, r]` otherwise, neither of them the point
+  (`[0.1, 0.1000000000000001]` for `interval(0.1)`); the largest doubles and
+  the subnormals, written with all their digits (309 digits, 1074 after the
+  point), are written `[a]` and read back as the point where the C++ library
+  writes them exactly. GAOL wrote `<a, b>` for every point interval, and the
   reader refused most of them (GAOL v5). In hexadecimal, the
   bounds have to be written in the hexadecimal-significand form of
   IEEE 1788-2015 (13.4.1) and read back bit for bit, which is the recovery
@@ -205,7 +208,11 @@ Codac.
   compared each number with the doubles around it as doubles, and
   denormals-are-zero reads a subnormal as 0, so that 1e-310 was read as the
   interval from the greatest subnormal to the least normal double, which does
-  not enclose it, and 0 as the greatest subnormal (GAOL v5).
+  not enclose it, and 0 as the greatest subnormal (GAOL v5). Intervals of
+  subnormals (`[0, 5e-324]`, `[5e-324]`, `[-5e-324, 0]`...) written with 16
+  digits under denormals-are-zero have to be read back, the mode restored, as
+  intervals enclosing them: `operator<<` compares their bounds by their bits,
+  and does not write them `[0]` (GAOL v5).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances (of intervals with infinite bounds too, equal bounds being at
@@ -245,14 +252,15 @@ Codac.
   to leave the global output format alone; the check of it by a second
   thread writing intervals meanwhile is commented out, the tests running no
   thread. `textToInterval(intervalToText(x))` has to contain x for a point
-  interval x, `interval(0.1)` first: it was the empty set (GAOL v5).
-  `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`
-  or `[empty]`, whatever the global format, the precision of the intervals and
-  the locale: in each of the five formats, with 1 to 30 digits, and under a
-  locale writing a decimal comma where one is installed, where `operator<<`
-  writes `1.5 (+/- 0.5)`, `<4, 4>` and `[0,25, 0,5]`; a grammar of the literals
-  of Tables 9.5 and 12.2 checks the text, and `textToInterval` has to read it
-  back as an interval containing x (GAOL v5).
+  interval x, `interval(0.1)` first: it was the empty set (GAOL v5); and to be
+  x itself for a text `[a]`.
+  `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`,
+  `[a]` (`[4]`, `[0]`) or `[empty]`, whatever the global format, the precision
+  of the intervals and the locale: in each of the five formats, with 1 to 30
+  digits, and under a locale writing a decimal comma where one is installed,
+  where `operator<<` writes `1.5 (+/- 0.5)` and `[0,25, 0,5]`; a grammar of
+  the literals of Tables 9.5 and 12.2 checks the text, and `textToInterval`
+  has to read it back as an interval containing x (GAOL v5).
   `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the

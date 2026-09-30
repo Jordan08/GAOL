@@ -130,7 +130,7 @@ int main()
   // interval(0.1) holds that one double, 0.1000000000000000055..., and cannot
   // hold 1/10, which is no double (its denominator is not a power of 2). GAOL
   // writes it [a, b]: one double, between the decimal numbers a and b (a point
-  // that the digits write exactly is <a, a>, as <0.5, 0.5>).
+  // that the digits write exactly is [a], as [0.5]).
   const interval double_tenth(0.1);
   show("interval(0.1): a point, the double nearest 1/10, which is not 1/10", double_tenth);
   check(double_tenth.left() == double_tenth.right(), "interval(0.1) is a point");
