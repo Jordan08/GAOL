@@ -233,9 +233,9 @@ namespace
     The operations of GAOL's interface with an empty operand, each on either
     side, run with the invalid-operation exception enabled below (GAOL v5).
     Each returns whether its result is the one it gives for the empty set.
-    The first 47 compared a bound of the empty set with <, <=, >= or >, or
+    The first 48 compared a bound of the empty set with <, <=, >= or >, or
     gave its NaN bounds to the constructor, which compares them: each raised
-    the exception, and died on SIGFPE where it was enabled (all 47 with the
+    the exception, and died on SIGFPE where it was enabled (all 48 with the
     FPU intervals, all but the negations with the SSE2 ones). The groups after
     them were already quiet.
   */
@@ -292,6 +292,7 @@ namespace
         double k_left = 0.0, k_right = 0.0;
         return modulo_k_pi(E(), k_left, k_right) == 0 && std::isnan(k_left) && std::isnan(k_right); } },
     { "textToInterval(\"[empty]\", \"[1, 2]\")", [] { return textToInterval("[empty]", "[1, 2]").is_empty(); } },
+    { "textToInterval(\"[1, 2]\", \"[empty]\")", [] { return textToInterval("[1, 2]", "[empty]").is_empty(); } },
     // The negation of the FPU intervals, and cancel_plus, which negates
     { "-empty", [] { return (-E()).is_empty(); } },
     { "gaol_ieee1788::neg(empty)", [] { return gaol_ieee1788::neg(E()).is_empty(); } },

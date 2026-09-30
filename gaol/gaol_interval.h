@@ -600,8 +600,10 @@ namespace gaol_core {
     use the quiet comparisons of <cmath> (std::islessequal()...), as
     is_empty() does: false for the NaN bounds of the empty set, as <=, <, >=
     and > are, but raising no invalid-operation exception, which kills with
-    SIGFPE a program that enabled it; as many instructions (ucomisd rather
-    than comisd on x86), at the same cost (GAOL v5)
+    SIGFPE a program that enabled it. On x86 each is one instruction, as the
+    comparison it replaces (ucomisd rather than comisd): Clang 18 compiles
+    these functions to as many instructions, at the same cost, GCC 13 to a
+    few more or a few fewer (GAOL v5)
   */
   INLINE
   bool interval::straddles_zero(void) const
