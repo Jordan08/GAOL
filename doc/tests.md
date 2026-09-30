@@ -303,13 +303,15 @@ Codac.
   values GAOL treats apart, at the powers of two and their neighbours, at the
   subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
   the tightest at the corner of a box, `[x]` by `[y]`, the lower bound being
-  the power itself where it is a double (GAOL v5): 31 313 pairs, the powers of
+  the power itself where it is a double (GAOL v5): 81 422 pairs, the powers of
   two to the powers t/p (2<sup>p</sup> to the power t/p, t around the ends of
   the doubles), the numbers c<sup>2<sup>k</sup></sup>·2<sup>f·2<sup>k</sup></sup>
-  to the powers a/2<sup>k</sup>, the integers to the integers and random pairs,
-  each with the neighbours of its base and of its exponent, 1 961 of them with
-  a power that is a double. Among the others is 8 to the double nearest 1/3,
-  whose product 3y rounds to 1 without being 1. The functions of
+  to the powers a/2<sup>k</sup>, with subnormal bases and powers and powers
+  just beyond the largest double, the integers from 2 to 100 to the powers
+  a/2<sup>k</sup>, k ≤ 3, and random pairs, each with the neighbours of its
+  base and of its exponent; 3 062 of them have a power that is a double, and
+  at least 3 000 must. Among the others is 8 to the double nearest 1/3, whose
+  product 3y rounds to 1 without being 1. The functions of
   Table 10.5 GAOL provides have to be the tightest enclosures over intervals
   too: the hull of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,

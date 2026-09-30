@@ -388,20 +388,25 @@ namespace
 
   /* The bounds of pow(x, y) at the corners of a box, where x^y is a double
      (GAOL v5). GAOL takes CORE-MATH's value in the upward rounding as the upper
-     bound and the double below it as the lower one, unless x^y is a double, in
-     which case the lower bound is x^y: pow([4], 0.5) was [2 - 2^-52, 2]. The
-     exponent is a double, so the power is one for a power of two, x = 2^p and
-     y = t/p with t an integer of [-1074, 1023], and for x = c^(2^k) 2^(f 2^k),
-     c odd, and y = a/2^k, c^a below 2^53; every other pair is not, however near
-     it. The pairs below are those, their neighbours (the double above and below
-     x, then y), a power of two whose product p y is not an integer but rounds to
-     one (8^(1/3): 3 y = 1 - 2^-54, and the same for the double above 1/3), and
-     random pairs; the bounds have to be the tightest ones, CORE-MATH called in the
-     two directed roundings, apart from GAOL, at every one. The exponent of a box
-     [x] x [y] is an integer for some y, where pow takes pown for a degenerate
-     interval: the box is then [y, next(y)] for x > 1, [prev(y), y] for x < 1,
-     where the lower bound is x^y all the same; the upper one is then not, and
-     left out. */
+     bound and the double below it as the lower one, unless x^y is a double,
+     which is then the lower bound: pow([4], 0.5) was [2 - 2^-52, 2]. x^y is a
+     double for x = 2^p and y = t/p, t an integer of [-1074, 1023], and for
+     x = c^(2^k) 2^(f 2^k), c odd, and y = a/2^k, a > 0, where c^a < 2^53 and
+     c^a 2^(f a) is within the doubles; for no other pair, however near. The
+     pairs below are those, at the edges of the doubles too (subnormal bases
+     and powers, 2^-1074, the largest powers and the first beyond, 3^33 and
+     3^34), the integers from 2 to 100 to the powers a/2^k, k <= 3 (the roots
+     of the squares and of the fourth powers, 81^(3/4) among them, and 17,
+     33..., 1 modulo 8 but no squares), the neighbours of each (the double
+     above and below x, then y), a power of two whose product p*y rounds to an
+     integer without being one (8 to the double nearest 1/3, whose 3y is
+     1 - 2^-54, and to the double above), and random pairs. The bounds have to
+     be the tightest ones, CORE-MATH called in the two directed roundings
+     apart from GAOL: the lower bound is RD(x^y) at every pair, which is x^y
+     where it is a double, and the upper one RU(x^y). The box [x] x [y] is
+     degenerate, and pow takes pown for an integer y: the box is then
+     [y, next(y)] for x > 1 and [prev(y), y] for x < 1, whose lower bound is
+     still at y, and the upper bound is not checked. */
   void pow_exact_at_corners()
   {
     std::vector<std::pair<double, double>> pairs;
@@ -421,34 +426,51 @@ namespace
         add(std::ldexp(1.0, p), y);
       }
     }
-    // The other powers: c^(2^k) 2^(f 2^k) to the power a/2^k. c^a is below 2^53 for a <= 33 at c = 3
-    // (3^33 = 5559060566555523), and above it for a = 34
+    // c^(2^k) 2^(f 2^k) to the powers a/2^k. c^a is below 2^53 up to a = 33 for c = 3
+    // (3^33 = 5559060566555523), and above it for a = 34. f = -537 and -358 give subnormal bases and
+    // powers, 3 2^-537 = (9 2^-1074)^(1/2) and 27 2^-1074 = (9 2^-716)^(3/2) among them, and f = 340 a power
+    // beyond the largest double whose exponent f a is not: (9 2^680)^(3/2) = 27 2^1020
     for (int k = 0; k <= 6; ++k) {
       const double q = std::ldexp(1.0, k);
       for (int c : {3, 5, 7, 9, 15, 255, 257, 65537, 67108865}) {
-        for (int f : {-30, -1, 0, 1, 20}) {
-          const double x = std::pow((double)c, q)*std::ldexp(1.0, f*(1 << k));
-          if (std::isfinite(x) && x > 0.0 && std::pow((double)c, q) < 9007199254740992.0) {
-            for (int a : {1, 2, 3, 5, 7, 9, 31, 32, 33, 34, -1, -3}) {
-              if (k == 0 || a % 2 != 0) {
-                add(x, (double)a/q);
-              }
+        double m = c;
+        for (int i = 0; i < k; ++i) {
+          m *= m; // c^(2^k), exact below 2^53
+        }
+        if (!(m < 9007199254740992.0)) {
+          continue;
+        }
+        for (int f : {-537, -358, -30, -1, 0, 1, 20, 340}) {
+          const double x = std::ldexp(m, f*(1 << k));
+          for (int a : {1, 2, 3, 5, 7, 9, 31, 32, 33, 34, -1, -3}) {
+            if (k == 0 || a % 2 != 0) {
+              add(x, (double)a/q);
             }
           }
         }
       }
     }
-    // Small integers to small integer powers, 2^(3 * 17) among them
-    for (int x = 2; x <= 40; ++x) {
-      for (int y = 1; y <= 40; ++y) {
-        add((double)x, (double)y);
+    // The integers from 2 to 100 to the powers a/2^k, k <= 3
+    for (int x = 2; x <= 100; ++x) {
+      for (int k = 0; k <= 3; ++k) {
+        for (int a = -3; a <= 34; ++a) {
+          if (a != 0 && (k == 0 || a % 2 != 0)) {
+            add((double)x, (double)a/(double)(1 << k));
+          }
+        }
       }
     }
+    // Random pairs, drawn one number at a time, the same whatever the order in which a compiler evaluates
+    // the arguments of a function
     std::mt19937_64 gen(20260929u);
     for (int i = 0; i < 4000; ++i) {
-      add(std::ldexp(1.0 + (double)(gen() >> 11)/9007199254740992.0, (int)(gen() % 200) - 100),
-          (double)(int)(gen() % 2049 - 1024)/(double)(1 << (gen() % 6)));
+      const double significand = 1.0 + (double)(gen() >> 11)/9007199254740992.0;
+      const int exponent = (int)(gen() % 200) - 100;
+      const double numerator = (double)((int)(gen() % 2049) - 1024);
+      const int k = (int)(gen() % 6);
+      add(std::ldexp(significand, exponent), numerator/(double)(1 << k));
     }
+    int doubles = 0;
     for (const std::pair<double, double>& xy : pairs) {
       const double x = xy.first, y = xy.second;
       if (!(x > 0.0) || x == 1.0 || y == 0.0 || !std::isfinite(x) || !std::isfinite(y)) {
@@ -458,9 +480,7 @@ namespace
       const double lo = gaol_cr_pow(x, y);
       std::fesetround(FE_UPWARD);
       const double hi = gaol_cr_pow(x, y);
-      if (!std::isfinite(hi)) {
-        continue; // beyond the largest double: CORE-MATH's value is +oo
-      }
+      doubles += (lo == hi);
       const bool integer = std::floor(y) == y;
       const interval box_y = !integer ? interval(y, y) : (x > 1.0 ? interval(y, next_float(y)) : interval(previous_float(y), y));
       const auto describe = [&] { return "pow(" + show(x) + ", " + show(y) + ")"; };
@@ -479,6 +499,8 @@ namespace
               });
       }
     }
+    check("pow: powers that are doubles among the pairs", doubles >= 3000,
+          [&] { return std::to_string(doubles) + " of them"; });
   }
 
   /* The bounds GAOL gives of the exponentials and the logarithms in base 2 and

@@ -139,10 +139,10 @@ namespace
     (as on 70 500 more boxes, under the four rounding directions, with SSE2 and
     FPU intervals; but for the lower bound of gaol::pow([0], y), y > 0, which
     was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow, and for a
-    lower bound that is a power at a corner, which is a double: the double
-    itself now, 2^-2 for the box [0.1, 2] x [-2, 0.5], where it was the double
-    below), each checked against the exact power computed with 500 bits
-    (mpmath): it encloses it, within one double of the tightest bound.
+    lower bound at a corner where the power is a double, which is that double
+    now and was the double below, as 2^-2 for the box [0.1, 2] x [-2, 0.5]),
+    each checked against the exact power computed with 500 bits (mpmath): it
+    encloses it, within one double of the tightest bound.
   */
   void pow_on_boxes()
   {

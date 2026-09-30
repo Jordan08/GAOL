@@ -71,11 +71,11 @@ unless the power there is a double, which is then the lower bound itself:
 `pow([4], 0.5)` is [2] and `pow([3, 4], [2, 3])` is [9, 64] (149 to 152, 163;
 [accuracy](../accuracy.md) gives the tightness of each operation). sin, cos,
 tan, acos, acosh, `atan2`, the integer powers and the n-th roots are the
-tightest: `sin([1, 2])` and
-`cos([2^52−1])` are the tightest intervals (84, 91), `acos([1, 3])` and
-`acosh([0, 1])` are [0], `pow([10], −400)` is [0, 2^-1074], `pow([−15], 17)`
-is exact and `nth_root([−8, 27], 3)` is [−2, 3] (the powers are computed from
-exact products, and the roots proved with integer powers, since issue #7).
+tightest: `sin([1, 2])` and `cos([2^52−1])` are the tightest intervals (84,
+91), `acos([1, 3])` and `acosh([0, 1])` are [0], `pow([10], −400)` is
+[0, 2^-1074], `pow([−15], 17)` is exact and `nth_root([−8, 27], 3)` is
+[−2, 3] (the powers are computed from exact products, and the roots proved
+with integer powers, since issue #7).
 Across the half-line y = 0, x < 0, where the angle jumps from π to −π,
 `atan2` is [−π, π], as in libieeep1788 (260 to 288).
 
