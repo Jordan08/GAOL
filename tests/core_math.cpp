@@ -23,6 +23,10 @@
  * them, on the values GAOL treats apart, on the powers of two and their
  * neighbours, on the subnormals, and on random doubles of every magnitude.
  *
+ * First, the test checks the fma() and round() of the C library, which
+ * CORE-MATH and GAOL call, against values computed apart: where they are
+ * wrong, so are the bounds, whatever the platform.
+ *
  * Copyright (c) 2026 ENSTA, France
  *
  * Created 2026-09-20 by Jordan NININ
@@ -156,6 +160,88 @@ namespace
                        return name + "(" + show(x) + ") = [..., " + show(got.right()) + "] rather than [..., "
                             + show(hi) + "]";
                      });
+    }
+  }
+
+  /*
+    The fma() and round() of the C library, which CORE-MATH and GAOL call.
+
+    CORE-MATH computes with __builtin_fma(), one instruction where the
+    compiler has the fused multiply-add instructions (GAOL_FMA) and a call to
+    fma() otherwise, as std::fma() is in the exact products of
+    gaol/gaol_interval.cpp: the functions and the bounds are right only if that
+    fma() is correctly rounded, in the four rounding directions. round() is
+    roundTiesToAway (round_ties_to_away() of gaol/gaol_interval.h, and pow of
+    CORE-MATH), which does not depend on the rounding direction.
+
+    The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds
+    the products of the halves of x and y to z with four roundings. That of
+    mingw-w64 11 for x86-64, under wine, got wrong the three error-free
+    products fma(a, b, -a*b) below, on which double-double arithmetic is
+    built, the next two triples in every direction, and x + x*2^-54, what
+    cr_tan() gives for a tiny x, rounded upward to two doubles above x (the
+    MinGW-w64 GCC 11 to 13 of Chocolatey gave wrong bounds so); its round() of
+    +-0x1.fffffffffffffp-2 was +-1 in every direction but upward. The fma()
+    of mingw-w64 11 for 32-bit x86, computed in extended precision, passes
+    these checks, though not correctly rounded everywhere (see
+    gaol/gaol_config.h), and so does its round(). The expected values were
+    computed with exact rational arithmetic, and checked with mpmath.
+  */
+  void c_library_fma_and_round()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+    struct Triple { double a, b, c; double rounded[4]; }; // in the order of directions
+    const Triple triples[] = {
+      {0x1.eb7817f86ead9p+10, -0x1.69a347dd2966bp+16, 0x1.5b22e89dbe07ap+27,
+       {0x1.f617413fd629ap-27, 0x1.f617413fd629ap-27, 0x1.f617413fd629ap-27, 0x1.f617413fd629ap-27}},
+      {-0x1.541e25d0dba6bp+12, 0x1.b7bb54e687499p+0, 0x1.241c4ad579bbbp+13,
+       {-0x1.c4af65649cbe6p-41, -0x1.c4af65649cbe6p-41, -0x1.c4af65649cbe6p-41, -0x1.c4af65649cbe6p-41}},
+      {-0x1.12a265e560f2bp-14, -0x1.fb5204d248917p+18, -0x1.101fce7f05914p+5,
+       {0x1.d89f131cabfbap-49, 0x1.d89f131cabfbap-49, 0x1.d89f131cabfbap-49, 0x1.d89f131cabfbap-49}},
+      {-0x1.5db89d6bd603fp+1, -0x1.c75e3f76eee27p+3, 0x1.cb29218b1d2c3p-19,
+       {0x1.3709f1eed8b4ep+5, 0x1.3709f1eed8b4ep+5, 0x1.3709f1eed8b4dp+5, 0x1.3709f1eed8b4dp+5}},
+      {-0x1.4c7fec7446f29p+0, 0x1.debe6f4813504p-10, -0x1.741bfc46048bep-40,
+       {-0x1.36e71980bfe61p-9, -0x1.36e71980bfe61p-9, -0x1.36e71980bfe62p-9, -0x1.36e71980bfe61p-9}},
+      {0x1.56e1fc2f8f359p-997, 0x1p-54, 0x1.56e1fc2f8f359p-997,
+       {0x1.56e1fc2f8f359p-997, 0x1.56e1fc2f8f35ap-997, 0x1.56e1fc2f8f359p-997, 0x1.56e1fc2f8f359p-997}},
+    };
+    for (const Triple& t : triples) {
+      for (int d = 0; d < 4; ++d) {
+        // read at run time, so that the compiler does not compute the fma, and
+        // kept by rnd_keep() before the direction changes back (see
+        // tests/arithmetic.cpp)
+        volatile double a = t.a, b = t.b, c = t.c;
+        std::fesetround(directions[d]);
+        const double got = gaol::rnd_keep(std::fma(a, b, c));
+        std::fesetround(FE_UPWARD);
+        check("the fma() of the C library: correctly rounded", got == t.rounded[d],
+              [&] {
+                return "fma(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") rounded "
+                     + names[d] + " = " + show(got) + " rather than " + show(t.rounded[d]);
+              });
+      }
+    }
+
+    struct Rounded { double x, value; };
+    const Rounded values[] = {
+      {0x1.fffffffffffffp-2, 0.0}, {-0x1.fffffffffffffp-2, -0.0},
+      {0.5, 1.0}, {-0.5, -1.0}, {2.5, 3.0}, {-2.5, -3.0},
+      {0x1.fffffffffffffp+51, 0x1p+52}, // 2^52 - 1/2
+    };
+    for (const Rounded& v : values) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = v.x;
+        std::fesetround(directions[d]);
+        const double got = gaol::rnd_keep(std::round(x));
+        std::fesetround(FE_UPWARD);
+        check("the round() of the C library: the same in every rounding direction", got == v.value,
+              [&] {
+                return "round(" + show(v.x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(v.value);
+              });
+      }
     }
   }
 
@@ -851,6 +937,7 @@ namespace
 int main()
 {
   gaol::init();
+  c_library_fma_and_round();
   elementary_functions();
   exact_values();
   two_arguments();
