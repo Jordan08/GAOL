@@ -60,12 +60,13 @@ public:
       TEST_TRUE(hausdorff(interval(3,4),interval(-GAOL_INFINITY,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(3,4),interval::universe())==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(5,6))==GAOL_INFINITY);
-      TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(5,GAOL_INFINITY))==GAOL_INFINITY);
+      // Equal infinite bounds are at distance 0 (GAOL 4: +oo, whatever the other bounds)
+      TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(5,GAOL_INFINITY))==2);
       TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(-GAOL_INFINITY,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval::universe())==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(5,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(5,GAOL_INFINITY))==GAOL_INFINITY);
-      TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(-GAOL_INFINITY,6))==GAOL_INFINITY);
+      TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(-GAOL_INFINITY,6))==2);
       TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval::universe())==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval::universe(),interval(5,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval::universe(),interval(5,GAOL_INFINITY))==GAOL_INFINITY);
@@ -115,9 +116,16 @@ public:
       TEST_TRUE(chi(interval::zero())==-1);
       TEST_TRUE(chi(interval(-0.0,+0.0))==-1);
       TEST_TRUE(std::isnan(chi(interval::emptyset())));
+      // The NaN of width() and mig(), which cout writes nan as the manual
+      // shows: not -nan, as the quotient of the NaN bounds gave with GCC on
+      // x86 (GAOL v5)
+      TEST_TRUE(!std::signbit(chi(interval::emptyset())));
+      TEST_TRUE(!std::signbit(chi(sqrt(interval(-2,-1)))));
       TEST_TRUE(chi(interval::universe())==1);
       TEST_TRUE(chi(interval(-5,10))==-0.5);
       TEST_TRUE(chi(interval(-5,GAOL_INFINITY))==0.0);
+      TEST_TRUE(chi(interval(-GAOL_INFINITY,5))==0.0);
+      TEST_TRUE(chi(interval(-4,4))==-1);
       TEST_TRUE(chi(interval(3,6))==0.5);
       TEST_TRUE(chi(interval(-6,3))==-0.5);
 

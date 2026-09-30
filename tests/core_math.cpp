@@ -23,6 +23,10 @@
  * them, on the values GAOL treats apart, on the powers of two and their
  * neighbours, on the subnormals, and on random doubles of every magnitude.
  *
+ * First, the test checks the fma() and round() of the C library, which
+ * CORE-MATH and GAOL call, against values computed apart: where they are
+ * wrong, so are the bounds, whatever the platform.
+ *
  * Copyright (c) 2026 ENSTA, France
  *
  * Created 2026-09-20 by Jordan NININ
@@ -156,6 +160,88 @@ namespace
                        return name + "(" + show(x) + ") = [..., " + show(got.right()) + "] rather than [..., "
                             + show(hi) + "]";
                      });
+    }
+  }
+
+  /*
+    The fma() and round() of the C library, which CORE-MATH and GAOL call.
+
+    CORE-MATH computes with __builtin_fma(), one instruction where the
+    compiler has the fused multiply-add instructions (GAOL_FMA) and a call to
+    fma() otherwise, as std::fma() is in the exact products of
+    gaol/gaol_interval.cpp: the functions and the bounds are right only if that
+    fma() is correctly rounded, in the four rounding directions. round() is
+    roundTiesToAway (round_ties_to_away() of gaol/gaol_interval.h, and pow of
+    CORE-MATH), which does not depend on the rounding direction.
+
+    The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds
+    the products of the halves of x and y to z with four roundings. That of
+    mingw-w64 11 for x86-64, under wine, got wrong the three error-free
+    products fma(a, b, -a*b) below, on which double-double arithmetic is
+    built, the next two triples in every direction, and x + x*2^-54, what
+    cr_tan() gives for a tiny x, rounded upward to two doubles above x (the
+    MinGW-w64 GCC 11 to 13 of Chocolatey gave wrong bounds so); its round() of
+    +-0x1.fffffffffffffp-2 was +-1 in every direction but upward. The fma()
+    of mingw-w64 11 for 32-bit x86, computed in extended precision, passes
+    these checks, though not correctly rounded everywhere (see
+    gaol/gaol_config.h), and so does its round(). The expected values were
+    computed with exact rational arithmetic, and checked with mpmath.
+  */
+  void c_library_fma_and_round()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+    struct Triple { double a, b, c; double rounded[4]; }; // in the order of directions
+    const Triple triples[] = {
+      {0x1.eb7817f86ead9p+10, -0x1.69a347dd2966bp+16, 0x1.5b22e89dbe07ap+27,
+       {0x1.f617413fd629ap-27, 0x1.f617413fd629ap-27, 0x1.f617413fd629ap-27, 0x1.f617413fd629ap-27}},
+      {-0x1.541e25d0dba6bp+12, 0x1.b7bb54e687499p+0, 0x1.241c4ad579bbbp+13,
+       {-0x1.c4af65649cbe6p-41, -0x1.c4af65649cbe6p-41, -0x1.c4af65649cbe6p-41, -0x1.c4af65649cbe6p-41}},
+      {-0x1.12a265e560f2bp-14, -0x1.fb5204d248917p+18, -0x1.101fce7f05914p+5,
+       {0x1.d89f131cabfbap-49, 0x1.d89f131cabfbap-49, 0x1.d89f131cabfbap-49, 0x1.d89f131cabfbap-49}},
+      {-0x1.5db89d6bd603fp+1, -0x1.c75e3f76eee27p+3, 0x1.cb29218b1d2c3p-19,
+       {0x1.3709f1eed8b4ep+5, 0x1.3709f1eed8b4ep+5, 0x1.3709f1eed8b4dp+5, 0x1.3709f1eed8b4dp+5}},
+      {-0x1.4c7fec7446f29p+0, 0x1.debe6f4813504p-10, -0x1.741bfc46048bep-40,
+       {-0x1.36e71980bfe61p-9, -0x1.36e71980bfe61p-9, -0x1.36e71980bfe62p-9, -0x1.36e71980bfe61p-9}},
+      {0x1.56e1fc2f8f359p-997, 0x1p-54, 0x1.56e1fc2f8f359p-997,
+       {0x1.56e1fc2f8f359p-997, 0x1.56e1fc2f8f35ap-997, 0x1.56e1fc2f8f359p-997, 0x1.56e1fc2f8f359p-997}},
+    };
+    for (const Triple& t : triples) {
+      for (int d = 0; d < 4; ++d) {
+        // read at run time, so that the compiler does not compute the fma, and
+        // kept by rnd_keep() before the direction changes back (see
+        // tests/arithmetic.cpp)
+        volatile double a = t.a, b = t.b, c = t.c;
+        std::fesetround(directions[d]);
+        const double got = gaol::rnd_keep(std::fma(a, b, c));
+        std::fesetround(FE_UPWARD);
+        check("the fma() of the C library: correctly rounded", got == t.rounded[d],
+              [&] {
+                return "fma(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") rounded "
+                     + names[d] + " = " + show(got) + " rather than " + show(t.rounded[d]);
+              });
+      }
+    }
+
+    struct Rounded { double x, value; };
+    const Rounded values[] = {
+      {0x1.fffffffffffffp-2, 0.0}, {-0x1.fffffffffffffp-2, -0.0},
+      {0.5, 1.0}, {-0.5, -1.0}, {2.5, 3.0}, {-2.5, -3.0},
+      {0x1.fffffffffffffp+51, 0x1p+52}, // 2^52 - 1/2
+    };
+    for (const Rounded& v : values) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = v.x;
+        std::fesetround(directions[d]);
+        const double got = gaol::rnd_keep(std::round(x));
+        std::fesetround(FE_UPWARD);
+        check("the round() of the C library: the same in every rounding direction", got == v.value,
+              [&] {
+                return "round(" + show(v.x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(v.value);
+              });
+      }
     }
   }
 
@@ -690,6 +776,64 @@ namespace
     }
   }
 
+  /* cbrt at the seven arguments of wlist in CORE-MATH's cbrt.c, whose cube
+     roots are less than 10^-15 ulp above a double: cr_cbrt() rounds them
+     apart, away from zero when get_rounding_mode() gives it 2, the upward
+     rounding, for a positive x (1, downward, for a negative one). With
+     mingw-w64 on x86-64 (MinGW-w64, MSYS2), get_rounding_mode() returned
+     FE_UPWARD itself, 0x800, where 0 to 3 are expected, and the upper bound
+     of nth_root(x, 3) was below the cube root (3rd/README.md). The roundings
+     are computed apart, with mpmath at 2000 bits: below and above are the
+     doubles on each side of the cube root of x, the nearest being below. The
+     cube root of x 8^k is that of x times 2^k, exactly, and so are its
+     roundings. */
+  void cbrt_hard_cases()
+  {
+    struct Value { double x, below, above; };
+    const Value values[] = {
+      {0x1.3a9ccd7f022dbp+0, 0x1.1236160ba9b93p+0, 0x1.1236160ba9b94p+0},
+      {0x1.7845d2faac6fep+0, 0x1.23115e657e49cp+0, 0x1.23115e657e49dp+0},
+      {0x1.d1ef81cbbbe71p+0, 0x1.388fb44cdcf5ap+0, 0x1.388fb44cdcf5bp+0},
+      {0x1.0a2014f62987cp+1, 0x1.46bcbf47dc1e8p+0, 0x1.46bcbf47dc1e9p+0},
+      {0x1.fe18a044a5501p+1, 0x1.95decfec9c904p+0, 0x1.95decfec9c905p+0},
+      {0x1.a6bb8c803147bp+2, 0x1.e05335a6401dep+0, 0x1.e05335a6401dfp+0},
+      {0x1.ac8538a031cbdp+2, 0x1.e281d87098de8p+0, 0x1.e281d87098de9p+0},
+    };
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (const Value& e : values) {
+      for (int k : {0, 1, -1, 340, -340}) {
+        for (double s : {1.0, -1.0}) {
+          const double x = s * std::ldexp(e.x, 3 * k);
+          // the roundings to nearest and toward zero are the double nearer to 0
+          const double to_zero = s * std::ldexp(e.below, k), away = s * std::ldexp(e.above, k);
+          const double lo = (s > 0.0) ? to_zero : away, hi = (s > 0.0) ? away : to_zero;
+          const double want[4] = {to_zero, hi, lo, to_zero};
+          double v[4];
+          for (int d = 0; d < 4; ++d) {
+            std::fesetround(directions[d]);
+            v[d] = gaol_cr_cbrt(x);
+          }
+          std::fesetround(FE_UPWARD);
+          check("cbrt at the hard cases of cbrt.c: the roundings of the cube root",
+                v[0] == want[0] && v[1] == want[1] && v[2] == want[2] && v[3] == want[3],
+                [&] {
+                  return "cbrt(" + show(x) + ") = " + show(v[0]) + ", " + show(v[1]) + ", " + show(v[2]) + ", "
+                       + show(v[3]) + " rather than " + show(want[0]) + ", " + show(want[1]) + ", "
+                       + show(want[2]) + ", " + show(want[3]);
+                });
+          const interval got = nth_root(interval(x), 3u);
+          check("nth_root(x, 3) at the hard cases of cbrt.c: the tightest bounds",
+                !got.is_empty() && got.left() == lo && got.right() == hi,
+                [&] { return "nth_root([" + show(x) + "], 3) = " + hex(got); });
+          const interval std_got = gaol_ieee1788::rootn(interval(x), 3);
+          check("rootn(x, 3) of gaol_ieee1788 at the hard cases of cbrt.c: the tightest bounds",
+                !std_got.is_empty() && std_got.left() == lo && std_got.right() == hi,
+                [&] { return "rootn([" + show(x) + "], 3) = " + hex(std_got); });
+        }
+      }
+    }
+  }
+
   void recommended_tightest()
   {
     std::mt19937_64 gen(20260921u);
@@ -946,6 +1090,7 @@ namespace
 int main()
 {
   gaol::init();
+  c_library_fma_and_round();
   elementary_functions();
   exact_values();
   two_arguments();
@@ -955,6 +1100,7 @@ int main()
   recommended_intervals();
   recommended_tightest();
   sin_accurate_path();
+  cbrt_hard_cases();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();

@@ -13,7 +13,8 @@
  *   hexadecimal, the bounds given apart);
  * - the operators and the functions, alone and nested;
  * - the strings the parser refuses, which have to raise an exception rather
- *   than give an interval.
+ *   than give an interval, and what the exceptions of GAOL say (what() and
+ *   operator<<).
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -344,6 +345,87 @@ namespace
     refused("[1,2]+[nth_root(8,1.5)]");
   }
 
+  /* What an exception of GAOL says as a std::exception (GAOL v5). Its what()
+     was the one of the standard class, "std::exception" with libstdc++ and
+     libc++ whatever went wrong: the text that a handler of std::exception
+     printed, and the one that a program ends with when nothing catches the
+     exception ("what():  std::exception"), where explanation() had the
+     explanation. what() is now the explanation, or "gaol_exception" where
+     there is none, and operator<< writes the explanation once, where it
+     wrote what() and the explanation. The exceptions are built here with a
+     known explanation, so that what they say does not depend on the text of
+     the reader. */
+  template<class Exception>
+  void says(const char* name)
+  {
+    const unsigned line = __LINE__;
+    const Exception with_text(__FILE__, line, "boom");
+    const Exception with_string(__FILE__, line, std::string("boom"));
+    const Exception without(__FILE__, line);
+
+    // Through the base class, as a handler of std::exception reads them
+    const std::exception& a = with_text;
+    const std::exception& b = with_string;
+    const std::exception& c = without;
+    check("exception: what() is the explanation, given as a text",
+          std::string(a.what()) == "boom", [&] { return std::string(name) + ": \"" + a.what() + "\""; });
+    check("exception: what() is the explanation, given as a string",
+          std::string(b.what()) == "boom", [&] { return std::string(name) + ": \"" + b.what() + "\""; });
+    check("exception: what() says gaol_exception where there is no explanation",
+          std::string(c.what()) == "gaol_exception", [&] { return std::string(name) + ": \"" + c.what() + "\""; });
+
+    const std::string where = std::string(__FILE__) + ", line " + std::to_string(line) + ": exception thrown";
+    std::ostringstream shown, shown_without;
+    shown << with_text;
+    shown_without << without;
+    check("exception: operator<< writes the file, the line and the explanation, once",
+          shown.str() == where + ": boom", [&] { return std::string(name) + ": " + shown.str(); });
+    check("exception: operator<< writes no explanation where there is none",
+          shown_without.str() == where, [&] { return std::string(name) + ": " + shown_without.str(); });
+  }
+
+  /* f, which has to throw an exception of GAOL, caught as a std::exception
+     as a program that knows nothing of GAOL does: its what() has to be the
+     explanation that the exception gives */
+  template<class F>
+  void thrown_says(const std::string& done, const F& f)
+  {
+    bool caught = false, from_gaol = false;
+    std::string what, explanation;
+    try {
+      f();
+    } catch (const std::exception& e) {
+      caught = true;
+      what = e.what();
+      if (const gaol_exception* g = dynamic_cast<const gaol_exception*>(&e)) {
+        from_gaol = true;
+        explanation = g->explanation();
+      }
+    }
+    check("exception: GAOL throws a gaol_exception, which a handler of std::exception catches",
+          caught && from_gaol,
+          [&] { return done + (caught ? " threw an exception that is no gaol_exception" : " threw nothing"); });
+    check("exception: what() is the explanation of what GAOL threw",
+          from_gaol && !explanation.empty() && what == explanation,
+          [&] { return done + ": what() is \"" + what + "\", explanation() \"" + explanation + "\""; });
+  }
+
+  void exception_messages()
+  {
+    says<gaol_exception>("gaol_exception");
+    says<input_format_error>("input_format_error");
+    says<unavailable_feature_error>("unavailable_feature_error");
+    says<invalid_action_error>("invalid_action_error");
+
+    // What GAOL throws: a string the reader refuses, as it reads it or at its
+    // end, a function called with an argument it does not take, and operator>>
+    thrown_says("textToInterval(\"sin(1)+\")", [] { const interval x = textToInterval("sin(1)+"); (void)x; });
+    thrown_says("textToInterval(\"[1, 2\")", [] { const interval x = textToInterval("[1, 2"); (void)x; });
+    thrown_says("textToInterval(\"nth_root(8,1.5)\")", [] { const interval x = textToInterval("nth_root(8,1.5)"); (void)x; });
+    thrown_says("nb_fp_numbers(NaN, 1)", [] { (void)nb_fp_numbers(std::numeric_limits<double>::quiet_NaN(), 1.0); });
+    thrown_says("operator>> of \"[1, 2\"", [] { std::istringstream in("[1, 2"); interval x; in >> x; });
+  }
+
   /* Many decimal intervals, whose bounds are no doubles: the interval read has
      to hold them, and to be no wider than the two doubles around them. */
   void decimals()
@@ -587,6 +669,7 @@ int main()
   step("operators");         operators();
   step("functions");         functions();
   step("wrong_strings");     wrong_strings();
+  step("exception_messages"); exception_messages();
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();

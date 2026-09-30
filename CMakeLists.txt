@@ -41,11 +41,13 @@ cmake_minimum_required(VERSION 3.14...3.25)
 # macros write as C integers. The file is not named VERSION: the root of the
 # sources is on the include path, and on file systems that ignore case (macOS,
 # Windows) #include <version>, which libc++ includes from <vector> or <cmath>,
-# would find it (GAOL v5)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version)
-string(STRIP "${_gaol_version}" _gaol_version)
-if(NOT _gaol_version MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
-  message(FATAL_ERROR "VERSION.txt holds \"${_gaol_version}\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0")
+# would find it. The reading, which ignores a byte order mark and the line ends
+# of Windows, is in cmake/gaol_version.cmake, where the test version_file
+# checks it (GAOL v5)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/gaol_version.cmake")
+gaol_read_version("${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version _gaol_version_error)
+if(_gaol_version_error)
+  message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
@@ -198,12 +200,19 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
-# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
-# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
-# its own rather than from the registers, before version 12 on x86-64 (the
-# MinGW-w64 GCC 11 to 13 of Chocolatey) and before 11 on 32-bit x86 (GCC 11).
-# CORE-MATH's functions read fegetround() to know the rounding direction GAOL
-# set by writing the registers.
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
+# fma() or round() of the programs is wrong. On x86-64, before version 12 (the
+# MinGW-w64 GCC 11 to 13 of Chocolatey) and linked with msvcrt.dll rather than
+# the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are
+# those of mingw-w64's own math library, computed in doubles: that fma() is not
+# correctly rounded, and CORE-MATH's functions compute with it where the
+# compiler has no -mfma (GCC for Windows, see below); that round() depends on
+# the rounding direction. On 32-bit x86, where mingw-w64 computes them on the
+# x87 unit, before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose
+# fma() rounds each of its partial sums to a double (the one of mingw-w64 11,
+# accepted, keeps them in extended precision and passes the tests, though not
+# correctly rounded). On ARM, before 11, not tested. From version 12 on, a
+# toolchain linking the UCRT takes those of ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -212,8 +221,9 @@ endif()
 # - the math library of mingw-w64 before version 12 was not accurate enough for
 #   the hyperbolic functions GAOL took from it (acosh() near 1 was up to 25
 #   million floats away from the exact value, and asinh() of large negative
-#   numbers NaN). GAOL takes no function from the math library of the system any
-#   more: CORE-MATH gives them all, correctly rounded, whatever the system;
+#   numbers NaN). GAOL takes no elementary function from the math library of
+#   the system any more: CORE-MATH gives them all, correctly rounded, whatever
+#   the system;
 # - fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which
 #   takes microseconds in a virtual machine (3.5 against 130 nanoseconds with
 #   mingw-w64 13), and GAOL changed the rounding direction four times for each
@@ -222,9 +232,10 @@ endif()
 #   GAOL calls them in the upward rounding it keeps (gaol/gaol_double_op.h).
 #
 # The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
-# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, runs the
-# tests with them, and checks that GCC 11.2.0 to 13.2.0 are refused on x86-64
-# and 11.2.0 on 32-bit x86 (.github/workflows/windows.yml).
+# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
+# MSYS2 UCRT64 and CLANG64, runs the tests with them, and checks that GCC
+# 11.2.0 to 13.2.0 and MSYS2 MINGW64 are refused on x86-64 and GCC 11.2.0 on
+# 32-bit x86 (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
@@ -261,8 +272,8 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
-  # GAOL refuses -ffast-math and doubles computed on the x87 unit at compile
-  # time (gaol/gaol_config.h): the flags above keep both away.
+  # GAOL refuses -ffast-math, -ffinite-math-only and doubles computed on the
+  # x87 unit at compile time (gaol/gaol_config.h): the flags above keep them away.
 
   # -ffloat-store only where doubles are still computed on the x87 unit
   # (FLT_EVAL_METHOD not 0: a 32-bit x86 target without SSE2), whose 80-bit
@@ -807,6 +818,31 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
   )
+
+  # The archive holds configure as it is committed, and configure says the
+  # version autoconf read from VERSION.txt when it generated it (the line
+  # PACKAGE_VERSION= of the script; configure --version and --help give it).
+  # After a change of VERSION.txt without a new generation of configure, the
+  # archive of the new version holds a configure that says the old one, and
+  # warns when it runs: only the continuous integration reported it. CMake can
+  # warn while it configures only, so it does here, whether or not the archive
+  # is made. A tree without configure, or with a configure that has no such
+  # line, has nothing to compare (tests/cpack_stale_configure.cmake checks it,
+  # GAOL v5).
+  if(EXISTS "${PROJECT_SOURCE_DIR}/configure")
+    file(STRINGS "${PROJECT_SOURCE_DIR}/configure" _gaol_configure_version REGEX "^PACKAGE_VERSION='" LIMIT_COUNT 1)
+    if(_gaol_configure_version MATCHES "^PACKAGE_VERSION='([^']*)'")
+      set(_gaol_configure_version "${CMAKE_MATCH_1}")
+      if(NOT _gaol_configure_version STREQUAL PROJECT_VERSION)
+        message(WARNING
+          "configure was generated for GAOL ${_gaol_configure_version}, and VERSION.txt holds ${PROJECT_VERSION}: "
+          "the archive of the sources (package_source) would hold configure as it is, which says "
+          "${_gaol_configure_version} for --version and --help. Generate configure again before "
+          "VERSION.txt is committed, as doc/building.md says.")
+      endif()
+    endif()
+  endif()
+
   include(CPack)
 endif()
 

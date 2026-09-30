@@ -6,7 +6,8 @@
  * On random intervals, and for the midpoints on intervals of subnormal bounds,
  * compared exactly with the exact results: midpoints (of gaol::intervalf too,
  * where a developer of GAOL compiles it, see gaol/gaol_config.h),
- * widths, magnitudes and mignitudes, Hausdorff distances, splitting, integer
+ * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
+ * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
  * parts, radii; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
  * values they are given and bound them within a few doubles.
@@ -180,6 +181,108 @@ namespace
     for (const interval& X : mixed) {
       midpoints(X, " (subnormal and huge bounds)");
     }
+  }
+
+  // The Hausdorff distance of intervals with infinite bounds, and with zeros of
+  // both signs, from the exact distances of their bounds: two equal bounds, the
+  // infinite ones too (whose difference is a NaN), are at distance 0, and a bound
+  // infinite in one interval only is at distance +oo. GAOL 4 gave +oo as soon
+  // as a bound was infinite, but for two entire intervals: hausdorff(x, x) for
+  // x = [1, +oo], and hausdorff([1, +oo], [2, +oo]), which is 1, so that a
+  // fixed-point loop on a box with an unbounded side never stopped
+  void hausdorff_of_infinite_bounds()
+  {
+    const double bounds[] = { -inf, -2., -1., -0., 0., 1., 2., inf };
+    std::vector<interval> xs;
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u && l < inf && u > -inf) {
+          xs.push_back(interval(l, u));
+        }
+      }
+    }
+    for (const interval& a : xs) {
+      for (const interval& b : xs) {
+        const double h = hausdorff(a, b);
+        const double ab[] = { a.left(), a.right() }, bb[] = { b.left(), b.right() };
+        bool unbounded = false;
+        std::vector<Exact> distances = { exact(0.0) };
+        for (int i = 0; i < 2; ++i) {
+          if (ab[i] == bb[i] && std::isinf(ab[i])) {
+            continue;
+          }
+          if (std::isinf(ab[i]) || std::isinf(bb[i])) {
+            unbounded = true;
+          } else {
+            const Exact d = exact(dyadic(ab[i]) - dyadic(bb[i]));
+            distances.push_back(d);
+            distances.push_back(-d);
+          }
+        }
+        const auto describe = [&] { return "a=" + hex(a) + " b=" + hex(b) + ": " + hex(h); };
+        check("hausdorff() with infinite bounds: +oo for a bound infinite in one interval only, else the tightest upper bound",
+              !std::isnan(h) && (unbounded ? h == inf : is_tightest_upper_bound(h, max(distances))), describe);
+        check("hausdorff() with infinite bounds: symmetric", hausdorff(b, a) == h, describe);
+      }
+    }
+    check("hausdorff([1, +oo], [1, +oo]) is 0", hausdorff(interval(1., inf), interval(1., inf)) == 0.0);
+    check("hausdorff([1, +oo], [2, +oo]) is 1", hausdorff(interval(1., inf), interval(2., inf)) == 1.0);
+    check("hausdorff([-oo, 1], [-oo, 3]) is 2", hausdorff(interval(-inf, 1.), interval(-inf, 3.)) == 2.0);
+    check("hausdorff([1, +oo], [1, 2]) is +oo", hausdorff(interval(1., inf), interval(1., 2.)) == inf);
+    check("hausdorff([1, +oo], [-oo, 1]) is +oo", hausdorff(interval(1., inf), interval(-inf, 1.)) == inf);
+    for (const interval& x : { interval::universe(), interval(-inf, 1.), interval(1., inf), interval(-inf, -0.) }) {
+      check("hausdorff(x, x) is 0 for an unbounded x", hausdorff(x, x) == 0.0, [&] { return hex(x); });
+    }
+  }
+
+  // nb_fp_numbers() where a bound is a zero: -0 is +0, one number. GAOL 4 numbered
+  // the doubles by the bits of a and b, sign bit included, and the difference of
+  // the bits of -0 and of 1 wrapped around: nb_fp_numbers(-0.0, 1.0) was
+  // 13830554455654793217, as nb_fp_numbers(-1.0, 0.0) was, and so was the number
+  // of doubles of [1, 2] - 1, whose lower bound is -0
+  void nb_fp_numbers_across_zero()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), huge = std::numeric_limits<double>::max();
+    // The multiples of the smallest subnormal are consecutive doubles, the zeros
+    // being the one multiple 0: [i, j] holds j - i + 1 doubles. With the zeros
+    // of both signs at i = 0 and at j = 0
+    const auto multiples = [&](int i) {
+      return (i == 0) ? std::vector<double>{ 0.0, -0.0 } : std::vector<double>{ static_cast<double>(i)*tiny };
+    };
+    for (int i = -6; i <= 6; ++i) {
+      for (int j = i; j <= 6; ++j) {
+        for (double a : multiples(i)) {
+          for (double b : multiples(j)) {
+            const unsigned long long n = nb_fp_numbers(a, b);
+            check("nb_fp_numbers() of [i, j] times the smallest double", n == static_cast<unsigned long long>(j - i + 1),
+                  [&] { return "[" + hex(a) + ", " + hex(b) + "]: " + std::to_string(n); });
+          }
+        }
+      }
+    }
+    // The doubles from 0 to x are numbered by the bits of x, from 0, and there
+    // are these plus the one of 0, or the two counts of that for [-x, x], 0 once
+    const struct { double a, b; unsigned long long n; } counts[] = {
+      { 0.0, 1.0, 0x3FF0000000000001ull }, { -0.0, 1.0, 0x3FF0000000000001ull },
+      { -1.0, 0.0, 0x3FF0000000000001ull }, { -1.0, -0.0, 0x3FF0000000000001ull },
+      { -1.0, 1.0, 2*0x3FF0000000000000ull + 1 },
+      { 0.0, huge, 0x7FEFFFFFFFFFFFFFull + 1 }, { -0.0, huge, 0x7FEFFFFFFFFFFFFFull + 1 },
+      { -huge, 0.0, 0x7FEFFFFFFFFFFFFFull + 1 }, { -huge, -0.0, 0x7FEFFFFFFFFFFFFFull + 1 },
+      { -huge, huge, 2*0x7FEFFFFFFFFFFFFFull + 1 },
+      { -0.0, -0.0, 1 }, { 0.0, -0.0, 1 }, { -0.0, 0.0, 1 }, { 0.0, 0.0, 1 },
+    };
+    for (const auto& c : counts) {
+      const unsigned long long n = nb_fp_numbers(c.a, c.b);
+      check("nb_fp_numbers() across zero", n == c.n,
+            [&] { return "[" + hex(c.a) + ", " + hex(c.b) + "]: " + std::to_string(n) + " rather than " + std::to_string(c.n); });
+    }
+    const interval above = interval(1., 2.) - 1., below = interval(1.) - interval(1., 2.);
+    check("nb_fp_numbers() of [1, 2] - 1, whatever the sign of its lower bound zero",
+          above.set_eq(interval(0., 1.)) && nb_fp_numbers(above.left(), above.right()) == 0x3FF0000000000001ull,
+          [&] { return hex(above); });
+    check("nb_fp_numbers() of 1 - [1, 2], whatever the sign of its upper bound zero",
+          below.set_eq(interval(-1., 0.)) && nb_fp_numbers(below.left(), below.right()) == 0x3FF0000000000001ull,
+          [&] { return hex(below); });
   }
 
 #ifdef GAOL_FLOAT_INTERVALS
@@ -694,6 +797,8 @@ int main()
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
   subnormal_bounds();
+  hausdorff_of_infinite_bounds();
+  nb_fp_numbers_across_zero();
   comparisons();
   intersections();
 #ifdef GAOL_FLOAT_INTERVALS

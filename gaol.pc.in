@@ -5,7 +5,7 @@
 # the fused multiply-add instructions GAOL is compiled with (--enable-fma), and
 # Libs the libraries to link: the elementary functions of CORE-MATH are
 # compiled into libgaol itself, so only the math library of the system.
-# Version is the one configure read from VERSION (GAOL v5).
+# Version is the one configure read from VERSION.txt (GAOL v5).
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
