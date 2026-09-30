@@ -60,11 +60,14 @@ jobs:
           # configure reads VERSION.txt when it runs, but configure --version
           # and --help give the version of the last generation of configure,
           # which is to be generated again when VERSION.txt changes
-          # (doc/building.md)
-          version=$(tr -d ' \t\r\n' < VERSION.txt)
+          # (doc/building.md). As configure does, without the byte order
+          # mark that an editor may have written at the start of the file
+          version=$(LC_ALL=C sed -e "1s/^$(printf '\357\273\277')//" VERSION.txt | tr -d ' \t\r\n')
           ./configure --version | head -n 1
           test "$(./configure --version | head -n 1)" = "gaol configure $version" || {
             echo "configure was not generated again for GAOL $version (see doc/building.md)"; exit 1; }
+      - name: VERSION.txt with a byte order mark and the line ends of Windows
+        run: sh .github/scripts/version-file.sh configure
       - name: Configure, build and install
         run: |
           # The same date on every file, as in a release archive: make then
@@ -118,6 +121,8 @@ jobs:
           pipx install meson
           pipx install ninja
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: VERSION.txt with a byte order mark and the line ends of Windows
+        run: sh .github/scripts/version-file.sh meson
       - name: Configure, build and install
         run: |
           meson --version
@@ -246,6 +251,9 @@ jobs:
         with:
           msystem: UCRT64
           install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson make libtool
+      - name: VERSION.txt with a byte order mark and the line ends of Windows
+        if: matrix.cfg.build == 'meson'
+        run: sh .github/scripts/version-file.sh meson
       - name: Configure, build and install
         run: |
           prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"

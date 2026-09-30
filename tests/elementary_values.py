@@ -338,6 +338,45 @@ for x in (2.0 ** 52, 2.0 ** 53, 2.0 ** 54, 2.0 ** 55, 2.0 ** 60, 1e22, 1e300, ne
     trig_intervals.append((-next_up(x), -x))
 
 
+# Intervals of tan whose bounds are doubles next to two consecutive poles,
+# j pi + pi/2 and (j + 1) pi + pi/2, where GAOL tells a pole from the width of
+# the interval, rounded upward, and from the signs of the cosine at its bounds
+# (review #8 of examples/examples.md). The first ones are within two doubles of
+# the double nearest to each pole, from -7 pi/2 to 9 pi/2, and keep those whose
+# width rounded upward is the double below pi, PI_DN, or one of the two doubles
+# on each side of it. GAOL took an interval of width PI_DN for one that may hold
+# two poles, and gave [-oo, +oo] for [-M_PI_2, M_PI_2], whose bounds are 6.1e-17
+# below pi/2 and above -pi/2: it and 4 others hold no pole, all next to the poles
+# from -3 pi/2 to 3 pi/2, the only ones with doubles close enough for it. The
+# others hold one pole, or two, the cosine then having the same sign at both
+# bounds, from the width pi up: they are [-oo, +oo]. Then 64 intervals whose
+# bounds are within 3 doubles of two consecutive poles drawn from -2000 pi to
+# 2000 pi.
+TAN_WIDTHS = [move(PI_DN, n) for n in range(-2, 3)]
+tan_pole_intervals = []
+for j in range(-4, 4):
+    c0, c1 = float((j + m(0.5)) * mpmath.pi), float((j + m(1.5)) * mpmath.pi)
+    for a in (move(c0, i) for i in range(-2, 3)):
+        for b in (move(c1, i) for i in range(-2, 3)):
+            if neighbours(m(b) - m(a))[1] in TAN_WIDTHS:
+                tan_pole_intervals.append((a, b))
+tan_rng = random.Random(20260929)
+for _ in range(64):
+    j = tan_rng.randint(-2000, 2000)
+    c0, c1 = float((j + m(0.5)) * mpmath.pi), float((j + m(1.5)) * mpmath.pi)
+    tan_pole_intervals.append((move(c0, tan_rng.randint(-3, 3)), move(c1, tan_rng.randint(-3, 3))))
+
+
+def holds_no_pole(a, b):
+    return trig_hull("tan", a, b)[1] != mpmath.inf
+
+
+# The intervals GAOL gave [-oo, +oo] for, though their tangent is finite
+assert (-PI / 2, PI / 2) in tan_pole_intervals
+assert sum(1 for a, b in tan_pole_intervals
+           if neighbours(m(b) - m(a))[1] == PI_DN and holds_no_pole(a, b)) == 5
+
+
 def literal(x):
     if x == math.inf:
         return "gaol_tests::inf"
@@ -399,4 +438,12 @@ for name in ("sin", "cos", "tan"):
     for a, b in trig_intervals:
         least, greatest = trig_hull(name, a, b)
         print('  { "%s", %s },' % (name, ", ".join(literal(v) for v in (a, b) + neighbours(least) + neighbours(greatest))))
+print("};")
+print()
+print("// The hull of tan over [a, b], the bounds of which are next to two consecutive poles: as")
+print("// trig_intervals, with the function \"tan\" only")
+print("const TrigInterval tan_pole_intervals[] = {")
+for a, b in tan_pole_intervals:
+    least, greatest = trig_hull("tan", a, b)
+    print('  { "tan", %s },' % ", ".join(literal(v) for v in (a, b) + neighbours(least) + neighbours(greatest)))
 print("};")

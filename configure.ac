@@ -35,10 +35,13 @@ AC_PREREQ(2.64)
 # before VERSION.txt is committed (see doc/building.md); configure warns
 # meanwhile. The m4 macro is not named gaol_version, which m4 replaced in
 # manual/v5/gaol_version.tex, giving config.status "manual/v5/5.0.0.tex"
-# (GAOL v5).
-m4_define([gaol_m4_version], m4_esyscmd_s([tr -d ' \t\r\n' < VERSION.txt]))
+# (GAOL v5). A UTF-8 byte order mark at the start of VERSION.txt, which some
+# editors of Windows write, is removed, as the blanks and the line ends are;
+# the bytes of the mark, EF BB BF, are made by printf: sed has no escape for
+# them that every sed knows, and the C locale makes it read bytes.
+m4_define([gaol_m4_version], m4_esyscmd_s([LC_ALL=C sed -e "1s/^`printf '\357\273\277'`//" < VERSION.txt | tr -d ' \t\r\n']))
 m4_bmatch(gaol_m4_version, [^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$], [],
-          [m4_fatal([VERSION.txt holds "]gaol_m4_version[", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])])
+          [m4_fatal([VERSION.txt holds "]gaol_m4_version[" (bytes in hexadecimal: ]m4_esyscmd_s([od -An -v -tx1 -N 32 < VERSION.txt | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'])[), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])])
 dnl autom4te (its cache) and automake follow the files that m4_include reads,
 dnl not those of m4_esyscmd_s: VERSION.txt is included too, into the diversion
 dnl KILL, which m4 discards, so that a change of VERSION.txt generates configure
@@ -64,10 +67,15 @@ AUTOHEADER=true
 AC_CONFIG_SRCDIR([gaol/gaol_config.h])
 
 # The version of GAOL, read from VERSION.txt when configure runs, without the
-# blanks and the empty lines around it: GAOL_VERSION, and its three numbers
-# gaol_major, gaol_minor and gaol_micro, refused unless they are three numbers
-# without leading zeros, as with CMake and meson (GAOL v5)
-GAOL_VERSION=`tr -d '\r' < "$srcdir/VERSION.txt" | sed -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d'`
+# UTF-8 byte order mark that some editors of Windows write at the start of a
+# file (EF BB BF, made by printf as above), nor the CR of the line ends of
+# Windows, nor the blanks and the empty lines around it: GAOL_VERSION, and its
+# three numbers gaol_major, gaol_minor and gaol_micro, refused unless they are
+# three numbers without leading zeros, as with CMake and meson; the error gives
+# the first bytes of the file in hexadecimal, for the characters it does not
+# show (GAOL v5)
+gaol_bom=`printf '\357\273\277'`
+GAOL_VERSION=`LC_ALL=C sed -e "1s/^$gaol_bom//" < "$srcdir/VERSION.txt" | tr -d '\r' | sed -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d'`
 gaol_version_ok=no
 if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then
   case .$GAOL_VERSION in
@@ -76,7 +84,8 @@ if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$'
   esac
 fi
 if test "${gaol_version_ok}" = no; then
-  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])
+  gaol_version_bytes=`od -An -v -tx1 -N 32 < "$srcdir/VERSION.txt" | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'`
+  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION" (bytes in hexadecimal: $gaol_version_bytes), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([[0-9]]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.\([[0-9]]*\)'`

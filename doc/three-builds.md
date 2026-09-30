@@ -123,7 +123,7 @@ there is no option for this, and `gaol.pc` and `gaol::gaol` carry no such flag.
 
 Each of these gave bounds not enclosing the exact results, or worse. The three
 builds refuse the compilers of the first two rows when configuring, with a
-message naming what to use instead, and keep the options of the last three away
+message naming what to use instead, and keep the options of the last four away
 by giving GAOL the flags of [Using GAOL](using.md). `gaol/gaol_config.h`
 refuses them again at compile time, for the code including GAOL's headers too,
 all but the second row, which no macro of the compiler shows; the third row it
@@ -135,8 +135,31 @@ alone refuses, when compiling:
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
 | MinGW-w64 whose `<fenv.h>` answers `fegetround()` from a state of its own: before mingw-w64 12 on x64 (GCC 11 to 13 of MinGW-Builds), before 11 on 32-bit x86 (GCC 11) | GAOL sets the rounding direction by writing the registers, and CORE-MATH reads `fegetround()` to know it: its results would be rounded in another direction than GAOL's bounds need. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86, and MSYS2 are built and tested. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. |
+| `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4, Clang 18). |
 | Visual C++ without `/fp:strict` (`/fp:precise`, its default) | Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly: no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | CORE-MATH assumes every operation on doubles rounded to a double. Computed in extended precision, its results rounded to nearest are rounded twice, and 175 arguments gave the other neighbour of the exact value with GCC 12 on Debian 12 i386; with GCC 9, which rounds to nearest at compile time the constants CORE-MATH rounds in the direction in effect, GAOL's bounds of `exp2(-1075)`, `expm1(-800)` or `atan2()` of a tiny and a huge number did not enclose the exact values. `tests/extended_precision.cpp` checks these arguments. |
+
+`-fno-fast-math`, one of the flags of interval arithmetic, turns `-ffast-math`
+and `-ffinite-math-only` off when it comes after them on the command line, and
+not when it comes before: `gaol.pc` and `gaol::gaol` give it, and the code
+including GAOL's headers is refused when the option follows it. The CMake tests
+`refused_finite_math_only` and `refused_fast_math` compile
+`tests/refused_options.cpp` with each of the two options, after the flags of
+interval arithmetic, and check that `gaol/gaol_config.h` refuses it (GCC and
+Clang).
+
+No macro of the compiler shows the following, which `gaol/gaol_config.h`
+cannot refuse and which give wrong results all the same: the code using GAOL
+is not to be compiled with them.
+
+- `-funsafe-math-optimizations`, and `-ffast-math -fno-finite-math-only`, with
+  GCC (9.4): the compiler rewrites the addition `1.0 + tiny == 1.0`, by which
+  GAOL sees the rounding direction, as `tiny == 0.0`, so that an operation does
+  not set the direction upward again after the code using GAOL left it to
+  nearest, and `width()` is below the exact width. Clang 18 does not rewrite it.
+- `-fno-honor-nans` alone, with Clang, which does to the empty interval what
+  `-ffinite-math-only` does: `__FINITE_MATH_ONLY__` is 1 only with
+  `-fno-honor-infinities` too.
 
 Two reasons that had GAOL refuse MinGW-w64 are gone with CORE-MATH (GAOL v5):
 the math library of mingw-w64 older than version 12 gave `acosh()` near 1 up

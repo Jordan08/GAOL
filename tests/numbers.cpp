@@ -5,8 +5,9 @@
  *
  * An interval read from a number, textToInterval("0.1"), has to be the
  * tightest interval of doubles enclosing it, and the double itself when the
- * number is one, whatever the C library. Each number is compared exactly with
- * the bounds read. The constants have to be the tightest intervals enclosing
+ * number is one, whatever the C library, and whether the processor flushes the
+ * subnormals to zero or not. Each number is compared exactly with the bounds
+ * read. The constants have to be the tightest intervals enclosing
  * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
@@ -23,12 +24,41 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
+// GCC 12 on 64-bit ARM processors (Debian 12: c++ 12.2.0, aarch64) miscompiles
+// decimal_output() below at -O2 and -O3: the function ends up with the local
+// array `precisions` read at the wrong address (the first precision is -1 or
+// garbage, so "1e-" + std::to_string(precision) is "1e--1" and std::stol()
+// throws), and constants() reads garbage pointers from its local table. The
+// bug follows GCC's inlining, not this file or GAOL: no undefined behaviour
+// shows with AddressSanitizer and UndefinedBehaviorSanitizer on x86-64, the
+// test passes at -O1, at -O0 and on Debian 13 (GCC 14) on aarch64, and it
+// passes at -O3 with -fno-inline-functions, -finline-limit=40 or
+// --param max-inline-insns-single=20. The pragma turns off the inlining of
+// functions that are not declared inline for this file, on that compiler and
+// that architecture only.
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 12 && defined(__aarch64__)
+#  pragma GCC optimize("no-inline-functions")
+#endif
+
 #include "gaol_tests.h"
 
+#include <chrono>
 #include <clocale>
 #include <cstdlib>
+#include <exception>
 #include <iomanip>
+#include <ios>
+#include <istream>
+#include <ostream>
+#include <streambuf>
 #include <type_traits>
+
+// The control register of the SSE instructions, where the flush-to-zero and
+// denormals-are-zero modes are set
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_HAVE_MXCSR 1
+#endif
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -139,6 +169,134 @@ namespace
           [&] { return hex(two); });
     const interval sum = textToInterval("0.1+0.2");
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
+  }
+
+#if GAOL_TESTS_HAVE_MXCSR
+  // The bits of MXCSR that flush the subnormals: flush-to-zero (bit 15), which
+  // flushes the subnormal results of the operations to 0, and
+  // denormals-are-zero (bit 6), which makes the operations and the
+  // comparisons read a subnormal as 0
+  const unsigned int flush_to_zero = 0x8000u, denormals_are_zero = 0x0040u;
+
+  // Sets the bits of MXCSR it is given for its lifetime, and restores them as
+  // it found them afterwards, the rounding direction and the flags being left
+  // alone
+  class Flushing
+  {
+    public:
+
+      explicit Flushing(unsigned int bits)
+        : bits_(bits), saved_(_mm_getcsr() & bits)
+      {
+        _mm_setcsr(_mm_getcsr() | bits_);
+      }
+
+      ~Flushing()
+      {
+        _mm_setcsr((_mm_getcsr() & ~bits_) | saved_);
+      }
+
+    private:
+
+      const unsigned int bits_, saved_;
+  };
+
+  // Whether the processor reads a subnormal as 0 with denormals-are-zero: the
+  // least positive double is then not above 0. The result of the comparison is
+  // written to volatile memory before the mode is restored: GCC and Clang do
+  // not model MXCSR, and made the comparison after the destructor of Flushing
+  // otherwise, where the mode is not set anymore.
+  bool honours_denormals_are_zero()
+  {
+    volatile double least = std::numeric_limits<double>::denorm_min();
+    volatile bool not_above_zero;
+    {
+      Flushing flushing(denormals_are_zero);
+      not_above_zero = !(least > 0.0);
+    }
+    return not_above_zero;
+  }
+#endif
+
+  /*
+    Numbers read with flush-to-zero and denormals-are-zero set (GAOL v5), as a
+    program linked with -Ofast has them (crtfastmath.o), or which loads code
+    that has them set. The reader compared each number with the doubles around
+    it, taken as doubles, and with denormals-are-zero a subnormal is 0 in the
+    comparisons and for std::frexp(): 1e-310 was above every subnormal, and
+    read as [0x0.fffffffffffffp-1022, 0x1p-1022], the interval from the
+    greatest subnormal to the least normal double, which does not enclose it,
+    and 0 was equal to every subnormal, and read as the greatest one. The mode
+    is set for the reading only, the exact arithmetic of the checks reading
+    doubles as doubles too. x86 only, where MXCSR is: nothing is checked
+    elsewhere, nor where the processor does not honour denormals-are-zero.
+  */
+  void subnormal_numbers()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    if (!honours_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is not honoured: the reading of numbers with it is not checked\n");
+      return;
+    }
+    const struct { const char *name; unsigned int bits; } modes[] = {
+      { "flush-to-zero", flush_to_zero },
+      { "denormals-are-zero", denormals_are_zero },
+      { "flush-to-zero and denormals-are-zero", flush_to_zero | denormals_are_zero },
+    };
+    // The exact value of the number read, or the exact bounds of the interval
+    struct Text { std::string s; Exact lo, hi; };
+    const auto number = [](const std::string& s) { return Text{ s, decimal(s), decimal(s) }; };
+    // 2^-1075, half the least positive double, which is no double
+    Dyadic half_least;
+    half_least.sign = 1;
+    half_least.m = Natural(1);
+    half_least.e = -1075;
+    std::vector<Text> texts = {
+      number("0"),
+      number("0.0"),
+      number("1e-400"),                   // Below the least subnormal
+      number("2.5e-324"),                 // Between 0 and the least subnormal, 4.94e-324
+      number("5e-324"),                   // Between the two least subnormals
+      number("1e-320"),
+      number("1e-310"),
+      number("1e-309"),
+      number("2.2250738585072008e-308"),  // Below the greatest subnormal
+      number("2.2250738585072011e-308"),  // Between it and the least normal double
+      number("2.2250738585072014e-308"),  // Just above the least normal double
+      number("1e-300"),
+      { "-1e-310", -decimal("1e-310"), -decimal("1e-310") },
+      { "[1e-310, 1e-309]", decimal("1e-310"), decimal("1e-309") },
+      { "1?e-310", decimal("0.5e-310"), decimal("1.5e-310") },
+      // Hexadecimal: the least subnormal, half the least normal double and the
+      // greatest subnormal, which are doubles, and a number between the
+      // greatest subnormal and the least normal double
+      { "0x1p-1074", exact(0x1p-1074), exact(0x1p-1074) },
+      { "0x0.8p-1022", exact(0x0.8p-1022), exact(0x0.8p-1022) },
+      { "0x0.fffffffffffffp-1022", exact(0x0.fffffffffffffp-1022), exact(0x0.fffffffffffffp-1022) },
+      { "0x1.fffffffffffffp-1023", exact(dyadic(0x1p-1022) - half_least), exact(dyadic(0x1p-1022) - half_least) },
+    };
+    // Subnormals and the least normal doubles, written with 17 digits, and
+    // their exact decimal expansions, whose reading gives them back
+    Random random;
+    for (int i = 0; i < 100; ++i) {
+      const double x = random.positive(-1023, -1023), y = random.positive(-1023, -1021);
+      for (double d : { x, y }) {
+        texts.push_back(number(format("%.16e", d)));
+        texts.push_back(number(format("%.1100f", d)));
+      }
+    }
+    for (const auto& mode : modes) {
+      const std::string name = std::string("textToInterval(number) with ") + mode.name + ": the tightest enclosure";
+      for (const auto& t : texts) {
+        const interval r = evaluate(name, [&] { Flushing flushing(mode.bits); return textToInterval(t.s); },
+                                    [&] { return t.s.substr(0, 40); });
+        check(name, !r.is_empty() && is_tightest_enclosure(r, t.lo, t.hi),
+              [&] { return "\"" + t.s.substr(0, 40) + "\": " + hex(r); });
+      }
+    }
+#else
+    std::printf("No control register of the SSE instructions: the reading of numbers with flush-to-zero and denormals-are-zero is not checked\n");
+#endif
   }
 
   void constants()
@@ -432,6 +590,12 @@ namespace
     round_trip(interval(smallest, 4.0 * smallest), "subnormal");
     round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
     round_trip(interval::pi(), "pi");
+    // Point intervals, which are written [a, a] in this format, never in the
+    // angles whose two numbers have to be the same double
+    round_trip(interval(0.1), "[0.1]");
+    round_trip(interval(-1.0 / 3.0), "[-1/3]");
+    round_trip(interval(smallest), "[smallest]");
+    round_trip(interval(max_double), "[MAX]");
     interval::format(saved);
   }
 
@@ -482,6 +646,47 @@ namespace
     }
   }
 
+  /*
+    The point interval given, written by operator<< with the flags and the
+    precision given, has to be read back by textToInterval(), as an interval
+    enclosing it (GAOL v5). GAOL wrote every point interval <a, b>, the text
+    of its double rounded downward and upward, which the reader takes for the
+    same double only: <0.1, 0.1000000000000001> was refused, and the text of
+    interval(0.1) read back as the empty set with textToInterval() of IEEE
+    1788-2015. The form <a, a> has to write the point itself, twice, and to be
+    read as the point; the other point intervals are written [a, b], which
+    encloses it. A zero is written exactly whatever the sign of its bounds, and
+    keeps the angles: [-0, 0], which interval::zero() and x - x are with the
+    SSE2 intervals, is written <-0, 0>, which the reader takes, -0 being 0.
+  */
+  void expect_point_output(const interval& point, std::ios_base::fmtflags flags, int precision)
+  {
+    const std::string name = "operator<< of a point interval";
+    const double x = point.left();
+    std::ostringstream os;
+    os.flags(flags);
+    interval::precision(precision);
+    os << point;
+    const std::string s = os.str();
+    const auto describe = [&] { return hex(point) + " with the precision " + std::to_string(precision) + " written " + s; };
+    const interval back = evaluate(name + ", read back", [&] { return textToInterval(s); }, describe);
+    check(name + ", read back: encloses the point", back.set_contains(point), describe);
+    if (x == 0.0) {
+      check(name + " of zero: in angles", s[0] == '<', describe);
+    }
+    if (s[0] == '<') {
+      const std::size_t comma = s.find(", ");
+      if (!check(name + " in angles: two bounds", comma != std::string::npos && s.size() >= comma + 4
+                 && s[s.size() - 1] == '>', describe)) {
+        return;
+      }
+      const Exact vl = written(s.substr(1, comma - 1)), vr = written(s.substr(comma + 2, s.size() - comma - 3));
+      check(name + " in angles: both bounds are the point", compare(x, vl) == 0 && compare(x, vr) == 0, describe);
+      check(name + " in angles: read back as the point", back.left() == x && back.right() == x,
+            [&] { return describe() + " read " + hex(back); });
+    }
+  }
+
   void decimal_output()
   {
     const interval_format::format_t saved_format = interval::format();
@@ -511,6 +716,53 @@ namespace
           expect_output("operator<< in decimal, near powers of ten", -x, x, flags, p);
         }
       }
+    }
+
+    // The text of a point interval is read back, and encloses it, whatever the
+    // precision: the digits write some of the points exactly (1, 0.5, 1e22,
+    // and the doubles with few digits, from the precision that holds them),
+    // and not the others (0.1, 1/3, all of them with a precision of 1)
+    const std::ios_base::fmtflags point_flags[] = { general, general | showpoint, scientific, fixed,
+                                                    general | std::ios_base::showpos,
+                                                    scientific | std::ios_base::uppercase };
+    for (double x : special) {
+      for (int p = 1; p <= 25; ++p) {
+        for (std::ios_base::fmtflags flags : point_flags) {
+          if (flags == fixed && (std::fabs(x) > 1e30 || std::fabs(x) < 1e-30)) {
+            continue; // Hundreds of digits
+          }
+          expect_point_output(interval(x), flags, p);
+          expect_point_output(interval(-x), flags, p);
+        }
+      }
+    }
+    const interval zeros[] = { interval(0.0), interval(-0.0), interval(-0.0, 0.0), interval(0.0, -0.0),
+                               interval::zero(), interval(1.0) - interval(1.0) };
+    for (const interval& z : zeros) {
+      for (int p : precisions) {
+        for (std::ios_base::fmtflags flags : point_flags) {
+          expect_point_output(z, flags, p);
+        }
+      }
+    }
+    // The forms of the manual: angles where the digits write the point, and the
+    // bounds of any other interval where they do not
+    interval::precision(16);
+    const struct { const char *name; interval x; const char *text; } forms[] = {
+      { "interval(4)", interval(4.0), "<4, 4>" },
+      { "interval(0.5)", interval(0.5), "<0.5, 0.5>" },
+      { "interval(-1024)", interval(-1024.0), "<-1024, -1024>" },
+      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
+      { "interval(-0.1)", interval(-0.1), "[-0.1000000000000001, -0.1]" },
+      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
+      { "the double nearest 2/3", interval(0x1.5555555555555p-1), "[0.6666666666666666, 0.6666666666666667]" },
+      { "interval(1, 2)", interval(1.0, 2.0), "[1, 2]" },
+    };
+    for (const auto& f : forms) {
+      std::ostringstream os;
+      os << f.x;
+      check(std::string("operator<< of ") + f.name + ": the form of the manual", os.str() == f.text,
+            [&] { return "\"" + os.str() + "\" rather than \"" + f.text + "\""; });
     }
 
     Random random;
@@ -614,12 +866,202 @@ namespace
     interval::format(saved_format);
   }
 
+  // What while (in >> x) reads from text, and how it ends
+  struct loop_result
+  {
+    std::vector<interval> read;   // The intervals, in the order they were read
+    std::string ended;            // The exception that ended the loop, if any
+    bool fail = false, eof = false;   // The state of the stream at the end
+  };
+
+  std::string ended_by(const std::exception_ptr& e)
+  {
+    if (!e) {
+      return "no exception";
+    }
+    try {
+      std::rethrow_exception(e);
+    } catch (const input_format_error&) {
+      return "input_format_error";
+    } catch (const std::ios_base::failure&) {
+      return "std::ios_base::failure";
+    } catch (...) {
+      return "another exception";
+    }
+  }
+
+  // while (in >> x) over text, on a stream that throws on the bits of mask,
+  // and that skips the blanks unless noskipws
+  loop_result read_intervals(const std::string& text, std::ios_base::iostate mask = std::ios_base::goodbit,
+                             bool noskipws = false)
+  {
+    std::istringstream in(text);
+    if (noskipws) {
+      in >> std::noskipws;
+    }
+    in.exceptions(mask);
+    loop_result r;
+    std::exception_ptr e;
+    try {
+      interval x;
+      while (in >> x) {
+        r.read.push_back(x);
+      }
+    } catch (...) {
+      e = std::current_exception();
+    }
+    r.ended = ended_by(e);
+    r.fail = in.fail();
+    r.eof = in.eof();
+    return r;
+  }
+
+  // The same over doubles, the model of what a stream does at the end of its input
+  loop_result read_doubles(const std::string& text, std::ios_base::iostate mask)
+  {
+    std::istringstream in(text);
+    in.exceptions(mask);
+    loop_result r;
+    std::exception_ptr e;
+    try {
+      double d;
+      while (in >> d) {
+        r.read.push_back(interval(d));
+      }
+    } catch (...) {
+      e = std::current_exception();
+    }
+    r.ended = ended_by(e);
+    r.fail = in.fail();
+    r.eof = in.eof();
+    return r;
+  }
+
+  std::string describe(const loop_result& r)
+  {
+    std::string s = std::to_string(r.read.size()) + " read";
+    for (const interval& x : r.read) {
+      s += " " + hex(x);
+    }
+    return s + ", " + r.ended + (r.fail ? ", failbit" : "") + (r.eof ? ", eofbit" : "");
+  }
+
+  // r is the intervals [a0, b0], [a1, b1]... in that order (expected holds
+  // a0, b0, a1, b1...), and ended with the end of the input: no exception,
+  // failbit and eofbit
+  bool ended_at_the_end(const loop_result& r, const std::vector<double>& expected)
+  {
+    if (r.read.size()*2 != expected.size() || r.ended != "no exception" || !r.fail || !r.eof) {
+      return false;
+    }
+    for (std::size_t i = 0; i < r.read.size(); ++i) {
+      if (r.read[i].left() != expected[2*i] || r.read[i].right() != expected[2*i + 1]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // in >> d >> x over text, d and x starting at -1 and [7, 8]
+  struct pair_result
+  {
+    double d = -1.0;
+    interval x = interval(7.0, 8.0);
+    std::string ended;
+    bool fail = false, eof = false;
+  };
+
+  pair_result read_number_and_interval(const std::string& text)
+  {
+    std::istringstream in(text);
+    pair_result r;
+    std::exception_ptr e;
+    try {
+      in >> r.d >> r.x;
+    } catch (...) {
+      e = std::current_exception();
+    }
+    r.ended = ended_by(e);
+    r.fail = in.fail();
+    r.eof = in.eof();
+    return r;
+  }
+
+  std::string describe(const pair_result& r)
+  {
+    return "d = " + hex(r.d) + ", x = " + hex(r.x) + ", " + r.ended + (r.fail ? ", failbit" : "") +
+           (r.eof ? ", eofbit" : "");
+  }
+
+  // A stream buffer with a put area, that notes that it was flushed: the
+  // stream tied to an input has something to flush
+  class flush_noted : public std::streambuf
+  {
+  public:
+    flush_noted()
+    {
+      setp(area, area + sizeof(area));
+    }
+
+    bool flushed = false;
+
+  protected:
+    int sync() override
+    {
+      flushed = true;
+      setp(area, area + sizeof(area));
+      return 0;
+    }
+
+  private:
+    char area[64];
+  };
+
+  // The text of an input, given one character at a time, that notes whether
+  // the buffer of the tied stream was flushed when it was first asked for a
+  // character
+  class input_noted : public std::streambuf
+  {
+  public:
+    input_noted(const flush_noted& tied_buffer, const std::string& content) : tied(tied_buffer), text(content) {}
+
+    bool asked = false, flushed_before = false;
+
+  protected:
+    int_type underflow() override
+    {
+      if (!asked) {
+        asked = true;
+        flushed_before = tied.flushed;
+      }
+      if (next == text.size()) {
+        return traits_type::eof();
+      }
+      current = text[next++];
+      setg(&current, &current, &current + 1);
+      return traits_type::to_int_type(current);
+    }
+
+  private:
+    const flush_noted& tied;
+    std::string text;
+    std::size_t next = 0;
+    char current = 0;
+  };
+
   /*
     operator>> reads an interval from a line. At the end of the input it sets
     failbit, leaves the interval as it was and throws nothing, as for a double,
     so that while (in >> x) ends there (GAOL v5): it threw input_format_error
     and emptied the interval, and such a loop always ended with an exception.
     A line that is no interval sets failbit, then throws input_format_error.
+    The blanks before the line, the end of the previous line included, are
+    skipped, as before a number: a blank line was read as the empty text, which
+    is no interval, so that a file ending with an empty line, or "in >> d >> x"
+    over "1.5\n[1, 2]\n", threw input_format_error (GAOL v5).
+    Before that, the sentry of any extraction is constructed: a stream that is
+    not good is not read, nothing is consumed from it, and the stream tied to
+    the input is flushed before the first character is read.
   */
   void stream_input()
   {
@@ -696,6 +1138,204 @@ namespace
       check("operator>> of a line that is no interval, on a stream throwing on failbit: input_format_error",
             format_error && in.fail(), [&] { return std::string(format_error ? "input_format_error" : "another exception"); });
     }
+
+    // Blank lines: a file ending with an empty line, and blank lines, or lines
+    // of blanks, before and between the intervals, whatever their line ends
+    struct { const char *name; const char *text; std::vector<double> expected; } const blanks[] = {
+      { "lines with blanks before the interval", "  [1, 2]\n\t[3, 4]\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "an empty line at the end", "[1, 2]\n[3, 4]\n\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "several empty lines at the end", "[1, 2]\n[3, 4]\n\n\n\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "an empty line between two intervals", "[1, 2]\n\n[3, 4]\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "a line of blanks between two intervals", "[1, 2]\n  \t \n[3, 4]\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "empty lines before the first interval", "\n\n[1, 2]\n[3, 4]", { 1.0, 2.0, 3.0, 4.0 } },
+      { "blank lines and a line of blanks at the end", "[1, 2]\n[3, 4]\n\n   \n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "blanks after the last interval, with no line end", "[1, 2]\n[3, 4]   ", { 1.0, 2.0, 3.0, 4.0 } },
+      { "empty lines with the line ends of Windows", "[1, 2]\r\n\r\n[3, 4]\r\n\r\n", { 1.0, 2.0, 3.0, 4.0 } },
+      { "only empty lines", "\n\n", { } },
+      { "only blanks", "  \t\n \n", { } },
+    };
+    for (const auto& b : blanks) {
+      for (int noskipws = 0; noskipws < 2; ++noskipws) {
+        // std::noskipws stops the blanks before a number, not the reading of the lines
+        const loop_result r = read_intervals(b.text, std::ios_base::goodbit, noskipws != 0);
+        check(std::string("while (in >> x) over ") + b.name + (noskipws ? ", with std::noskipws" : "") +
+              ": the intervals, then the end of the input",
+              ended_at_the_end(r, b.expected), [&] { return describe(r); });
+      }
+    }
+    {
+      // Nothing to read: x is left as it was, as at the end of an empty stream
+      std::istringstream in("\n  \n");
+      interval x(1.0, 2.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      check("operator>> over blank lines only: failbit, the interval unchanged, nothing thrown",
+            !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
+            [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
+    }
+    // An interval written on two lines is two lines, of which the first is no interval
+    {
+      const loop_result r = read_intervals("\n[1,\n2]\n");
+      check("operator>> of an interval spread over two lines: failbit, then input_format_error",
+            r.read.empty() && r.ended == "input_format_error" && r.fail, [&] { return describe(r); });
+    }
+    // A line that is no interval is refused after the blank lines that precede it
+    {
+      const loop_result r = read_intervals("[1, 2]\n\n\n[3, 4\n[5, 6]\n");
+      check("operator>> of a line that is no interval after blank lines: the intervals before, then input_format_error",
+            r.read.size() == 1 && r.read[0].left() == 1.0 && r.read[0].right() == 2.0 &&
+            r.ended == "input_format_error" && r.fail,
+            [&] { return describe(r); });
+    }
+
+    // GAOL leaves the rounding direction upward, and the C runtime of Windows reads 1.5 in that
+    // direction one double above (1.5 + 2^-52) where glibc reads it exactly: what these checks are
+    // about is where the stream stops, so a double that is read is taken for the number when it is
+    // that number or the double above
+    const auto is_number = [](double read, double number) { return read == number || read == std::nextafter(number, GAOL_INFINITY); };
+    // "in >> d >> x": the interval is read from the next line when the number
+    // ends its line, as a second number would be
+    struct { const char *name; const char *text; double d; double left, right; bool read, eof; } const after_number[] = {
+      { "1.5 [1, 2]\\n", "1.5 [1, 2]\n", 1.5, 1.0, 2.0, true, false },
+      { "1.5\\n[1, 2]\\n", "1.5\n[1, 2]\n", 1.5, 1.0, 2.0, true, false },
+      { "1.5\\n\\n\\n[1, 2]\\n", "1.5\n\n\n[1, 2]\n", 1.5, 1.0, 2.0, true, false },
+      { "1.5 \\n  \\n[1, 2]", "1.5 \n  \n[1, 2]", 1.5, 1.0, 2.0, true, true },
+      // Nothing left for the interval: failbit, x as it was, nothing thrown
+      { "1.5\\n", "1.5\n", 1.5, 7.0, 8.0, false, true },
+      { "1.5\\n\\n", "1.5\n\n", 1.5, 7.0, 8.0, false, true },
+      { "1.5", "1.5", 1.5, 7.0, 8.0, false, true },
+    };
+    for (const auto& a : after_number) {
+      const pair_result r = read_number_and_interval(a.text);
+      check(std::string("in >> d >> x over \"") + a.name + "\": " + (a.read ? "d and x read" : "d read, then the end of the input"),
+            is_number(r.d, a.d) && r.x.left() == a.left && r.x.right() == a.right && r.ended == "no exception" &&
+            r.fail == !a.read && r.eof == a.eof,
+            [&] { return describe(r); });
+    }
+    {
+      // The other way round: an interval, the empty lines, a number
+      std::istringstream in("[1, 2]\n\n\n1.5\n");
+      interval x;
+      double d = -1.0;
+      in >> x >> d;
+      check("in >> x >> d over \"[1, 2]\\n\\n\\n1.5\\n\": both read",
+            !in.fail() && x.left() == 1.0 && x.right() == 2.0 && is_number(d, 1.5),
+            [&] { return hex(x) + ", d = " + hex(d) + (in.fail() ? ", failbit" : ""); });
+    }
+
+    // The end of the input as for a double, on a stream throwing on nothing, on
+    // failbit, or on badbit and failbit: while (in >> x) over the intervals ends
+    // as while (in >> d) does over the numbers, at the end, with the same
+    // exception and state
+    {
+      const std::ios_base::iostate masks[] = { std::ios_base::goodbit, std::ios_base::failbit,
+                                                std::ios_base::badbit | std::ios_base::failbit };
+      for (const std::ios_base::iostate mask : masks) {
+        const loop_result x = read_intervals("[1, 1]\n\n[2, 2]\n\n", mask);
+        const loop_result d = read_doubles("1\n\n2\n\n", mask);
+        check(std::string("while (in >> x) ends as while (in >> d) does, with exceptions() ") +
+              (mask == std::ios_base::goodbit ? "none" : (mask == std::ios_base::failbit ? "failbit" : "badbit and failbit")),
+              x.read.size() == 2 && x.read.size() == d.read.size() && x.ended == d.ended && x.fail == d.fail &&
+              x.eof == d.eof,
+              [&] { return describe(x) + " against " + describe(d); });
+      }
+    }
+
+    // A stream that already failed is not read: nothing is thrown, and the
+    // intervals are read again once its state is cleared
+    {
+      std::istringstream in("\n[1, 2]\n");
+      in.setstate(std::ios_base::failbit);
+      interval x(5.0, 6.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      const bool unread = !threw && in.fail() && x.left() == 5.0 && x.right() == 6.0;
+      in.clear();
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      check("operator>> on a stream in failbit state reads nothing, and reads on after clear()",
+            unread && !threw && !in.fail() && x.left() == 1.0 && x.right() == 2.0,
+            [&] { return std::string(unread ? "read on after clear(): " : "read or threw: ") + hex(x) + (threw ? ", threw" : ""); });
+    }
+    // ... and nothing is consumed from its buffer: std::ws reads the buffer whatever the state of
+    // the stream (libstdc++), and would skip the blank lines that the next read then does not find
+    for (const std::ios_base::iostate bit : { std::ios_base::failbit, std::ios_base::badbit }) {
+      std::istringstream in("\n\n[1, 2]\nrest\n");
+      in.setstate(bit);
+      interval x(5.0, 6.0);
+      bool threw = false;
+      try {
+        in >> x;
+      } catch (...) {
+        threw = true;
+      }
+      const bool unread = !threw && in.fail() && x.left() == 5.0 && x.right() == 6.0;
+      in.clear();
+      std::string line;
+      std::getline(in, line);
+      check(std::string("operator>> on a stream in ") + (bit == std::ios_base::failbit ? "failbit" : "badbit") +
+            " state consumes nothing: the first line is still there after clear()",
+            unread && line.empty(),
+            [&] { return std::string(unread ? "unread, " : "read or threw, ") + "the first line is \"" + line + "\""; });
+    }
+
+    // The stream tied to the input, cout for cin, is flushed before the first character is asked
+    // for, for an interval as for a number: the prompt has to show before the user types. The
+    // flush is required only where the put area is not empty, hence the text written on it.
+    {
+      const auto flushed_first = [](bool number) {
+        flush_noted prompt;
+        std::ostream out(&prompt);
+        input_noted input(prompt, number ? "1.5\n" : "[1, 2]\n");
+        std::istream in(&input);
+        in.tie(&out);
+        out << "x = ";
+        if (number) {
+          double d = 0.0;
+          in >> d;
+        } else {
+          interval x;
+          in >> x;
+        }
+        return input.asked && input.flushed_before;
+      };
+      if (flushed_first(true)) {
+        check("operator>> flushes the stream tied to the input before it reads, as for a number",
+              flushed_first(false));
+      } else {
+        std::printf("This library does not flush the stream tied to the input before it reads a number: "
+                    "the flush before an interval is not checked\n");
+      }
+    }
+  }
+
+  // An istream without buffer, which std::ws would read whatever the state of the stream, and
+  // crash (libstdc++): it is the last test, since a crash ends the program
+  void stream_without_buffer()
+  {
+    std::istream in(nullptr);
+    interval x(1.0, 2.0);
+    bool threw = false;
+    try {
+      in >> x;
+    } catch (...) {
+      threw = true;
+    }
+    check("operator>> on a stream without buffer: failbit and badbit, the interval unchanged, nothing thrown",
+          !threw && in.fail() && in.bad() && x.left() == 1.0 && x.right() == 2.0,
+          [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") +
+                       (in.bad() ? "badbit, " : "no badbit, ") + hex(x); });
   }
 
   /*
@@ -720,14 +1360,99 @@ namespace
           [&] { return hex(u); });
   }
 
+  // A number of some thousands of characters, and the tightest interval of
+  // doubles enclosing it, which is known without reading it: 1.5 followed by
+  // zeros is 1.5, and followed by zeros and a 1, is between 1.5 and the next
+  // double
+  struct Long_number
+  {
+    std::string text;
+    double left, right;
+  };
+
+  std::vector<Long_number> long_numbers(std::size_t n)
+  {
+    const std::string zeros(n, '0'), nines(n, '9'), digits = std::to_string(n);
+    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    return {
+      { "1.5" + zeros, 1.5, 1.5 },
+      { "1.5" + zeros + "1", 1.5, next_double(1.5) },
+      { "1." + nines, previous_double(2.0), 2.0 },
+      { "1" + zeros + "e-" + digits, 1.0, 1.0 },
+      { "15" + zeros + "e-" + std::to_string(n + 1), 1.5, 1.5 },
+      { "0." + zeros + "1e" + digits, previous_double(0.1), 0.1 }, // 0.1 is above 1/10
+      { "0x1." + zeros + "8p0", 1.0, next_double(1.0) },
+      { "0x1.8" + zeros + "p1", 3.0, 3.0 },
+      { "1" + zeros, dmax, inf },
+      { "0." + zeros + "1", 0.0, dmin },
+      // The uncertain form: half a unit of the last place, then one unit
+      { "1.5" + zeros + "?", previous_double(1.5), next_double(1.5) },
+      { "1.5" + zeros + "?1", previous_double(1.5), next_double(1.5) },
+    };
+  }
+
+  // The long number that took the longest to read under a locale writing a
+  // decimal comma (20000 characters)
+  Long_number slowest_long_number()
+  {
+    return { "1.5" + std::string(20000, '0') + "1", 1.5, next_double(1.5) };
+  }
+
+  void check_long_number(const std::string& where, const Long_number& l)
+  {
+    const interval x = textToInterval(l.text);
+    check("textToInterval(long number) " + where + ": the tightest enclosure", x.left() == l.left && x.right() == l.right,
+          [&] { return "\"" + l.text.substr(0, 12) + "...\" of " + std::to_string(l.text.size()) + " characters: " + hex(x); });
+  }
+
+  void check_long_numbers(const std::string& where)
+  {
+    for (const Long_number& l : long_numbers(5000)) {
+      check_long_number(where, l);
+    }
+    check_long_number(where, slowest_long_number());
+  }
+
+  // The least time, in seconds, that three readings of the text s take
+  double reading_time(const std::string& s)
+  {
+    double least = inf;
+    for (int i = 0; i < 3; ++i) {
+      const auto start = std::chrono::steady_clock::now();
+      static_cast<void>(textToInterval(s));
+      const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+      if (elapsed.count() < least) {
+        least = elapsed.count();
+      }
+    }
+    return least;
+  }
+
+  /*
+    Long numbers, under the C locale: the reading takes the digits apart once,
+    for the comparisons with the doubles around the number (GAOL v5).
+  */
+  void long_numbers_c_locale()
+  {
+    check_long_numbers("under the C locale");
+  }
+
   /*
     Numbers read, and exact texts written, under a locale writing a decimal
     comma, which a program sets with setlocale(LC_ALL, "") (GAOL v5): strtod()
     stops there at the '.' of "0.1" and gives 0, from which the reader moved
     one double at a time, about 4.6e18 of them, and never returned; and
     exact_string() wrote the '.' of printf("%a") as a comma,
-    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. Nothing is checked
-    where no such locale is installed.
+    "[0x1,8p+0, 0x1,4p+1]", which cannot be read back. The reader then
+    compared the number with about 125 doubles, and read its text again for
+    each of them, in a time quadratic in the length of the text: seconds for
+    20000 characters, where the C locale, which needs two comparisons, took a
+    twentieth of a second. The long numbers have to be read as under the C
+    locale, and in about the same time: the reading under the C locale is
+    timed on the same machine, and the one under the comma locale has to take
+    at most 10 times as long, and 50 ms more, a margin that a slow or a busy
+    machine does not exhaust (the fault made it 50 times as long). Nothing is
+    checked where no such locale is installed.
   */
   void comma_locale()
   {
@@ -760,6 +1485,14 @@ namespace
       check("exact_string() read back under a locale writing a decimal comma", y.left() == x && y.right() == x,
             [&] { return exact_string(interval(x)) + " read " + hex(y); });
     }
+    check_long_numbers("under a locale writing a decimal comma");
+    const std::string slowest = slowest_long_number().text;
+    std::setlocale(LC_NUMERIC, "C");
+    const double in_c = reading_time(slowest);
+    std::setlocale(LC_NUMERIC, comma);
+    const double in_comma = reading_time(slowest);
+    check("textToInterval(long number) under a locale writing a decimal comma: the time of the C locale", in_comma <= 10*in_c + 0.05,
+          [&] { return std::string(comma) + ": " + std::to_string(in_comma) + " s, against " + std::to_string(in_c) + " s under the C locale"; });
     std::setlocale(LC_NUMERIC, saved.c_str());
   }
 }
@@ -768,6 +1501,7 @@ int main()
 {
   gaol::init();
   numbers();
+  subnormal_numbers();
   constants();
   constructors();
   ieee_literals();
@@ -777,7 +1511,9 @@ int main()
   stream_output();
   stream_input();
   long_exponents();
+  long_numbers_c_locale();
   comma_locale();
+  stream_without_buffer();
   const int status = summary();
   gaol::cleanup();
   return status;

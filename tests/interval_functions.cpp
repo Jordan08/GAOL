@@ -60,12 +60,13 @@ public:
       TEST_TRUE(hausdorff(interval(3,4),interval(-GAOL_INFINITY,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(3,4),interval::universe())==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(5,6))==GAOL_INFINITY);
-      TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(5,GAOL_INFINITY))==GAOL_INFINITY);
+      // Equal infinite bounds are at distance 0 (GAOL 4: +oo, whatever the other bounds)
+      TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(5,GAOL_INFINITY))==2);
       TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval(-GAOL_INFINITY,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(3,GAOL_INFINITY),interval::universe())==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(5,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(5,GAOL_INFINITY))==GAOL_INFINITY);
-      TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(-GAOL_INFINITY,6))==GAOL_INFINITY);
+      TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval(-GAOL_INFINITY,6))==2);
       TEST_TRUE(hausdorff(interval(-GAOL_INFINITY,4),interval::universe())==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval::universe(),interval(5,6))==GAOL_INFINITY);
       TEST_TRUE(hausdorff(interval::universe(),interval(5,GAOL_INFINITY))==GAOL_INFINITY);

@@ -41,11 +41,13 @@ cmake_minimum_required(VERSION 3.14...3.25)
 # macros write as C integers. The file is not named VERSION: the root of the
 # sources is on the include path, and on file systems that ignore case (macOS,
 # Windows) #include <version>, which libc++ includes from <vector> or <cmath>,
-# would find it (GAOL v5)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version)
-string(STRIP "${_gaol_version}" _gaol_version)
-if(NOT _gaol_version MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
-  message(FATAL_ERROR "VERSION.txt holds \"${_gaol_version}\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0")
+# would find it. The reading, which ignores a byte order mark and the line ends
+# of Windows, is in cmake/gaol_version.cmake, where the test version_file
+# checks it (GAOL v5)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/gaol_version.cmake")
+gaol_read_version("${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version _gaol_version_error)
+if(_gaol_version_error)
+  message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
@@ -261,8 +263,8 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
-  # GAOL refuses -ffast-math and doubles computed on the x87 unit at compile
-  # time (gaol/gaol_config.h): the flags above keep both away.
+  # GAOL refuses -ffast-math, -ffinite-math-only and doubles computed on the
+  # x87 unit at compile time (gaol/gaol_config.h): the flags above keep them away.
 
   # -ffloat-store only where doubles are still computed on the x87 unit
   # (FLT_EVAL_METHOD not 0: a 32-bit x86 target without SSE2), whose 80-bit
@@ -807,6 +809,31 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
   )
+
+  # The archive holds configure as it is committed, and configure says the
+  # version autoconf read from VERSION.txt when it generated it (the line
+  # PACKAGE_VERSION= of the script; configure --version and --help give it).
+  # After a change of VERSION.txt without a new generation of configure, the
+  # archive of the new version holds a configure that says the old one, and
+  # warns when it runs: only the continuous integration reported it. CMake can
+  # warn while it configures only, so it does here, whether or not the archive
+  # is made. A tree without configure, or with a configure that has no such
+  # line, has nothing to compare (tests/cpack_stale_configure.cmake checks it,
+  # GAOL v5).
+  if(EXISTS "${PROJECT_SOURCE_DIR}/configure")
+    file(STRINGS "${PROJECT_SOURCE_DIR}/configure" _gaol_configure_version REGEX "^PACKAGE_VERSION='" LIMIT_COUNT 1)
+    if(_gaol_configure_version MATCHES "^PACKAGE_VERSION='([^']*)'")
+      set(_gaol_configure_version "${CMAKE_MATCH_1}")
+      if(NOT _gaol_configure_version STREQUAL PROJECT_VERSION)
+        message(WARNING
+          "configure was generated for GAOL ${_gaol_configure_version}, and VERSION.txt holds ${PROJECT_VERSION}: "
+          "the archive of the sources (package_source) would hold configure as it is, which says "
+          "${_gaol_configure_version} for --version and --help. Generate configure again before "
+          "VERSION.txt is committed, as doc/building.md says.")
+      endif()
+    endif()
+  endif()
+
   include(CPack)
 endif()
 

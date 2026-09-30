@@ -55,7 +55,13 @@ namespace gaol_core {
 
     The supported formats so far are the following:
     - bounds: the interval is output in the form "[l, r]" where l and r
-    are respectively its left and right bounds
+    are respectively its left and right bounds, rounded outward, and in the
+    form "<a, a>" for a point interval that the digits write exactly, as
+    "<4, 4>". textToInterval() reads <a, b> for one double only: the point
+    interval of a double that the digits do not write exactly is output in
+    the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
+    read back as an interval containing it (GAOL v5: GAOL wrote
+    "<0.1, 0.1000000000000001>", which it refused to read)
     - width: the interval is output in the form "c (+/- w)" where
     c is its center and w its width
     - center: the interval is output as a single value, its center.
@@ -222,6 +228,12 @@ namespace gaol_core {
     GAOL_NODISCARD bool less(const interval& I) const;
     GAOL_NODISCARD bool strictly_less(const interval& I) const;
 
+    /*!
+      isEmpty of IEEE 1788-2015: *this is the empty set, whose bounds are NaN.
+      It raises no floating-point exception, the invalid-operation one
+      included: a program that enabled it is not stopped by this call (GAOL
+      v5, see doc/using.md)
+    */
     GAOL_NODISCARD bool is_empty(void) const;
     //! isEntire of IEEE 1788-2015 (10.5.10): *this is [-oo, +oo] (GAOL v5)
     GAOL_NODISCARD bool is_entire(void) const;
@@ -412,10 +424,20 @@ namespace gaol_core {
   }
 
 
- INLINE
+  /*
+    The empty set has NaN bounds, which a comparison operator answers false
+    to, and !(left() <= right()) is true for it. <= is a signaling comparison,
+    though: on a quiet NaN it raises the invalid-operation exception, which
+    kills with SIGFPE a program that enabled it (feenableexcept() of glibc) at
+    each emptiness test of an empty interval, and sets FE_INVALID for a
+    program reading the flags. std::islessequal() is the same comparison,
+    false for a NaN, that raises nothing: ucomisd rather than comisd on x86,
+    with no more instruction with GCC 9 and Clang 18 (GAOL v5).
+  */
+  INLINE
   bool interval::is_empty(void) const
   {
-    return !(left() <= right()); // Negation to handle NaNs
+    return !std::islessequal(left(), right()); // Negation to handle NaNs
   }
 
   INLINE
@@ -724,6 +746,17 @@ namespace gaol_core {
 
   extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& os,
 					     const interval& I);
+  /*!
+    \brief Reads an interval, written on a line, from is
+
+    The blanks before the line, line ends included, are skipped as before a
+    number (GAOL v5): an empty line is no line to read. At the end of the
+    input, failbit is set, I is left as it was and nothing is thrown, so that
+    while (is >> I) ends there; a stream that is not good is not read, and
+    loses none of its text. A line that is no interval sets failbit, empties
+    I and throws input_format_error (invalid_action_error for a function
+    called with an argument it does not take).
+  */
   extern __GAOL_PUBLIC__ std::istream& operator>>(std::istream& is,
 					     interval& I);
   /*!
@@ -827,6 +860,8 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int
 
     - nb_fp_numbers(a,a+) == 2
     - nb_fp_numbers(a,a) == 1
+    - -0 and +0 are the same number: nb_fp_numbers(-0.0,0.0) == 1 and
+      nb_fp_numbers(-0.0,1.0) == nb_fp_numbers(0.0,1.0)
 
     \warning Returns numeric_limits<ULONGLONGINT>::max() if either
     a or b is a NaN or +/-oo. In addition, raises an invalid_action_error
@@ -1327,6 +1362,11 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ bool feven(double d);
     \brief Hausdorff distance between two intervals:
 
     hausdorff([a,b],[c,d]) = max(|a-c|,|b-d|)
+
+    rounded upward: the tightest upper bound of the distance. Equal bounds,
+    infinite ones included, are at distance 0: hausdorff([1,+oo],[1,+oo]) == 0
+    and hausdorff([1,+oo],[2,+oo]) == 1, while hausdorff([1,+oo],[1,2]) == +oo.
+    The distance is a NaN if either interval is empty.
    */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ double hausdorff(const interval &I1, const interval &I2);
 

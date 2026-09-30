@@ -188,6 +188,31 @@
 #if defined(__FAST_MATH__)
 #  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results"
 #endif
+/* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
+   take NaN and infinities never to occur, in the inline functions of GAOL's
+   headers as anywhere else: the empty interval has NaN bounds, and is_empty()
+   reads it as !(left() <= right()). The compiler then folds the test away, and
+   ([1, 2] & [3, 4]).is_empty() is false (GCC 9, Clang 18): the tests
+   refused_finite_math_only and refused_fast_math (tests/CMakeLists.txt) check
+   the refusal. GCC and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual
+   C++ defines nothing of the kind (its /fp:fast is refused below). This also
+   refuses what __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math
+   followed by -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at
+   1. -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the
+   option off when it comes after it on the command line, and does nothing when
+   it comes before.
+
+   No macro shows what follows, which GAOL cannot refuse:
+   -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
+   which GCC rewrites the probe 1.0 + tiny == 1.0 of round_upward_if_needed()
+   (gaol/gaol_fpu.h) as tiny == 0.0, so that an operation does not set the
+   rounding direction upward again after the code using GAOL left it elsewhere,
+   and width() is below the exact width; and -fno-honor-nans of Clang, given
+   without -fno-honor-infinities, which does to the empty interval what
+   -ffinite-math-only does. */
+#if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
+#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (-fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns it off when it comes after)"
+#endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
 #endif
