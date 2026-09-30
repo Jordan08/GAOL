@@ -884,8 +884,13 @@ namespace gaol_core {
           narrower than that: the formats could no longer show that an
           interval is narrower than its digits (the manual, Output format).
         */
-        double c, w;
-        I.mid_rad(c, w);
+        // The center format writes no radius: midpoint() alone
+        double c, w = 0.0;
+        if (format == interval_format::width) {
+          I.mid_rad(c, w);
+        } else {
+          c = I.midpoint();
+        }
         round_nearest();
         out << c;
         round_upward();

@@ -382,6 +382,8 @@ int main()
     { "operator<< (hexa)", [](const interval& x, const interval&) { return write(x, interval_format::hexa); } },
     { "operator<< (agreeing)", [](const interval& x, const interval&) { return write(x, interval_format::agreeing); } },
     { "operator<< of a degenerate interval", [](const interval&, const interval&) { return write(interval(0.1), interval_format::bounds); } },
+    { "gaol_ieee1788::intervalToText", [](const interval& x, const interval&) {
+        return gaol_ieee1788::intervalToText(x) + " " + gaol_ieee1788::intervalToText(interval(0.1)); } },
     { "operator>>", [](const interval&, const interval&) { std::istringstream s("[0.1, 0.3]"); interval z; s >> z; return S(z); } },
     { "sqr", [](const interval& x, const interval&) { return S(sqr(x)); } },
     { "pow(x,int)", [](const interval&, const interval& y) { return S(pow(y, 3)); } },
