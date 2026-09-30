@@ -6,9 +6,10 @@
 # one installed with Visual Studio 2026: the label windows-11-arm runs the image
 # of Visual Studio 2026 since September 2026 (actions/runner-images#14602), and
 # no image of GitHub has Visual Studio 2022 on arm64 any more.
-# Checks that gaol/gaol_config.h refuses the MinGW-w64 whose fma() and round()
-# are those of mingw-w64's own math library: GCC 11 to 13 and MSYS2 MINGW64
-# (linked with msvcrt.dll) on x64, GCC 11 on x86.
+# Checks that gaol/gaol_config.h refuses the MinGW-w64 whose fma() or round()
+# is wrong: on x64, GCC 11 to 13 and MSYS2 MINGW64 (linked with msvcrt.dll),
+# whose fma() and round() are those of mingw-w64's own math library; on x86,
+# GCC 11, whose fma() rounds each of its partial sums to a double.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -104,11 +105,13 @@ jobs:
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Debug,   desc: 'MinGW-w64 15.2.0 x86 Debug' }
           # The older MinGW-w64 GAOL builds with: GAOL v5 takes no elementary
           # function from the math library of the system and no longer calls
-          # fesetround() for its elementary functions. Those whose fma() and
-          # round() are those of mingw-w64's own math library are refused, that
-          # fma() not being correctly rounded and CORE-MATH computing with it
+          # fesetround() for its elementary functions. Those whose fma() or
+          # round() is wrong are refused, CORE-MATH computing with that fma()
           # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and GCC
-          # 11 on 32-bit x86, which the job mingw-refused checks.
+          # 11 on 32-bit x86, which the job mingw-refused checks. GCC 12 and 13
+          # on 32-bit x86 compute the fma() of mingw-w64 11 on the x87 unit,
+          # in extended precision: it passes the tests, though it is not
+          # correctly rounded.
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 14.2.0 x64 Release' }
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 14.2.0 x86 Release' }
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 13.2.0 x86 Release' }
@@ -180,12 +183,14 @@ jobs:
       - name: Performance
         run: build/tests/gaol_performance.exe
 
-  # The mingw-w64 whose fma() and round() are those of mingw-w64's own math
-  # library are refused when compiling (gaol/gaol_config.h): that fma() is not
-  # correctly rounded and CORE-MATH computes with it, so that the bounds would
-  # not enclose the exact values. GCC 11 to 13 of Chocolatey on x86-64 are
-  # mingw-w64 before 12 (UCRT, 13.2.0 being mingw-w64 11), GCC 11 on 32-bit x86
-  # is mingw-w64 9 (WinLibs). Each job looks for the reason in the message.
+  # The mingw-w64 whose fma() or round() is wrong are refused when compiling
+  # (gaol/gaol_config.h): CORE-MATH computes with that fma(), so that the
+  # bounds would not enclose the exact values. On x86-64, GCC 12.2.0 and
+  # 13.2.0 of Chocolatey are MinGW-Builds of mingw-w64 11 (UCRT) and GCC 11.2.0
+  # is WinLibs mingw-w64 9 (msvcrt.dll), all before 12: their fma() and
+  # round() are those of mingw-w64's own math library. On 32-bit x86, GCC
+  # 11.2.0 is WinLibs mingw-w64 9, whose fma() rounds each of its partial sums
+  # to a double. Each job looks for the reason in the message.
   mingw-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
@@ -200,7 +205,7 @@ jobs:
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MinGW-w64 13.2.0 x64, refused' }
           - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MinGW-w64 12.2.0 x64, refused' }
           - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MinGW-w64 11.2.0 x64, refused' }
-          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', message: "before version 11: its fma() is that of mingw-w64's own math library", desc: 'MinGW-w64 11.2.0 x86, refused' }
+          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', message: "whose fma(), which CORE-MATH computes with, rounds each of its partial sums to a double", desc: 'MinGW-w64 11.2.0 x86, refused' }
     steps:
       - uses: actions/checkout@v7
       - name: MinGW-w64, from Chocolatey
@@ -247,7 +252,7 @@ jobs:
       - name: The version and the C runtime of mingw-w64, and a build that has to fail
         run: |
           ${{ matrix.cfg.cxx }} --version
-          echo '#include <stdlib.h>' | ${{ matrix.cfg.cxx }} -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) |__MSVCRT_VERSION__ |define _UCRT$'
+          echo '#include <stdlib.h>' | ${{ matrix.cfg.cxx }} -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) |__MSVCRT_VERSION__ |define _UCRT( |$)'
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }}
           if cmake --build build > build.log 2>&1; then
             cat build.log
