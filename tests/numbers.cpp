@@ -309,6 +309,11 @@ namespace
     [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
     or, as the literal [a] of a point, [0]. It compares their bits. x86 only,
     where MXCSR is.
+    A subnormal bound, which compares equal to 0 under the mode, is then
+    written by the C library, which has to write it as it does without the
+    mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS calls,
+    tests the number against 0 first, and writes 0 for every subnormal under
+    denormals-are-zero. Nothing is checked where the C library does so.
   */
   void subnormal_output()
   {
@@ -317,13 +322,36 @@ namespace
       std::printf("Denormals-are-zero is not honoured: the output of subnormals with it is not checked\n");
       return;
     }
+    const double least = std::numeric_limits<double>::denorm_min();
+    const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
+                              interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
+    // Each bound written as operator<< leaves it to the C library under the
+    // mode: to nearest, with 16 digits, by a stream as the one of the test
+    const auto written = [](double d, bool flushing) {
+      RoundingToNearest nearest;
+      std::ostringstream os;
+      os.precision(16);
+      if (flushing) {
+        Flushing daz(denormals_are_zero);
+        os << d;
+      } else {
+        os << d;
+      }
+      return os.str();
+    };
+    for (const interval& x : tiny) {
+      for (double d : { x.left(), x.right() }) {
+        if (written(d, true) != written(d, false)) {
+          std::printf("The C library writes %s under denormals-are-zero, and %s without it: the output of subnormals "
+                      "with the mode is not checked\n", written(d, true).c_str(), written(d, false).c_str());
+          return;
+        }
+      }
+    }
     const interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
     interval::format(interval_format::bounds);
     interval::precision(16);
-    const double least = std::numeric_limits<double>::denorm_min();
-    const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
-                              interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
     for (const interval& x : tiny) {
       std::ostringstream os;
       {
