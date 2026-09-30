@@ -371,15 +371,15 @@ namespace gaol_ieee1788 {
   // ----------------------------------------------------------------------
 
   /*!
-    intervalToText(x): the bounds of x rounded outward, "[l, r]", and
-    "[empty]" for the empty set, with 16 significant digits at most. It is an
-    interval literal of the standard (12.11), which textToInterval() reads back
-    as an interval containing x (13.3), whatever the global output format, the
-    precision of interval::precision() and the locale of the program: it is
-    not what operator<< writes in the current format, which may be neither a
-    literal (the width format) nor written with a decimal point. A point
-    interval is written [a, a], where operator<< writes <a, a> for a number
-    the digits write exactly, which is no literal of the standard.
+    intervalToText(x): the bounds of x rounded outward, "[l, r]", "[a]" for a
+    point interval whose double the digits write exactly, as "[4]" or "[0]",
+    and "[empty]" for the empty set, with 16 significant digits at most. It is
+    an interval literal of the standard (12.11), which textToInterval() reads
+    back as an interval containing x (13.3), and as x itself for "[a]",
+    whatever the global output format, the precision of interval::precision()
+    and the locale of the program: it is not what operator<< writes in the
+    current format, which may be neither a literal (the width format) nor
+    written with a decimal point.
   */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ std::string intervalToText(const interval& x);
 

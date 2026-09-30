@@ -414,7 +414,9 @@ namespace
     interval(0.1)) was <0.1, 0.1000000000000001>, whose two numbers are not the
     same double, which the reader takes for a point only, so that
     textToInterval() gave the empty set, where the recovery requirement of
-    IEEE 1788-2015 (13.4) asks for an interval containing the one written.
+    IEEE 1788-2015 (13.4) asks for an interval containing the one written. A
+    point that the digits write exactly is written [a], the literal of the
+    standard for a point, and read back as the point itself.
   */
   void text_of_a_point_interval()
   {
@@ -431,16 +433,20 @@ namespace
       const interval y = textToInterval(text);
       check("textToInterval(intervalToText(point)) contains the point", y.set_contains(x),
             [&] { return text + " read " + hex(y); });
+      if (text.find(',') == std::string::npos) {
+        check("textToInterval(intervalToText(point)) written [a]: the point itself", y.left() == x && y.right() == x,
+              [&] { return text + " read " + hex(y); });
+      }
     }
     interval::format(saved);
   }
 
   /*
     Whether s is an interval literal of the standard that intervalToText()
-    writes: [ ], [empty] or [l, u], l and u being decimal numbers, or inf, with
-    a sign, as in Tables 9.5 and 12.2 (12.11.5), whose letters may be of either
-    case. The angles <a, a> of GAOL, a width "c (+/- w)", the agreeing digits
-    and a decimal comma are none.
+    writes: [ ], [empty], [m] or [l, u], m, l and u being decimal numbers, or
+    inf, with a sign, as in Tables 9.5 and 12.2 (12.11.5), whose letters may be
+    of either case. The angles <a, a> of GAOL, a width "c (+/- w)", the
+    agreeing digits and a decimal comma are none.
   */
   bool is_portable_literal(const std::string& text)
   {
@@ -504,14 +510,15 @@ namespace
 
   /*
     intervalToText(x) is an interval literal that textToInterval() reads back
-    as an interval containing x, [l, r], and [empty] for the empty set, whatever
-    the global output format, the precision and the locale of the program
-    (GAOL v5), as the standard asks of it (13.3): it wrote what operator<< does,
-    the width "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the
-    locale of a program that sets one, fewer digits when the precision of the
-    intervals was lowered, and <4, 4> for the point interval 4, which is no
-    literal of the standard. Where no locale writing a decimal comma is
-    installed, that part is not checked.
+    as an interval containing x, [l, r], [a] for a point that the digits write
+    exactly, and [empty] for the empty set, whatever the global output format,
+    the precision and the locale of the program (GAOL v5), as the standard
+    asks of it (13.3): it wrote what operator<< does, the width
+    "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the locale of a
+    program that sets one, fewer digits when the precision of the intervals
+    was lowered, and <4, 4> for the point interval 4, which is no literal of
+    the standard. Where no locale writing a decimal comma is installed, that
+    part is not checked.
   */
   void text_independent_of_the_output_settings()
   {
@@ -521,10 +528,13 @@ namespace
     // The texts to expect, written by hand ("" for none)
     const struct { const char *name; interval x; const char *text; } forms[] = {
       { "[1, 2]", interval(1.0, 2.0), "[1, 2]" },
-      { "interval(4)", interval(4.0), "[4, 4]" },
-      { "interval(0.5)", interval(0.5), "[0.5, 0.5]" },
+      { "interval(4)", interval(4.0), "[4]" },
+      { "interval(0.5)", interval(0.5), "[0.5]" },
+      { "interval(-1024)", interval(-1024.0), "[-1024]" },
       { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
-      { "[-0, 0]", interval(-0.0, 0.0), "" }, // "[-0, 0]" or "[0, 0]": the sign of the bound is the build's
+      { "[-0, 0]", interval(-0.0, 0.0), "[0]" },
+      { "interval(-0.0)", interval(-0.0), "[0]" },
+      { "interval::zero()", interval::zero(), "[0]" },
       { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
       { "[1, +oo]", interval(1.0, oo), "[1, inf]" },
       { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]" },

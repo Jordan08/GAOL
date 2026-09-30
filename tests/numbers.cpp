@@ -301,6 +301,47 @@ namespace
 #endif
   }
 
+  /*
+    Intervals of subnormals written under denormals-are-zero, with the default
+    16 digits, and read back once the mode is restored: they have to be read
+    as intervals enclosing them (GAOL v5). A subnormal then compares equal to
+    0: operator<< compared the bounds as doubles, and wrote [0, 5e-324],
+    [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
+    or, as the literal [a] of a point, [0]. It compares their bits. x86 only,
+    where MXCSR is.
+  */
+  void subnormal_output()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    if (!honours_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is not honoured: the output of subnormals with it is not checked\n");
+      return;
+    }
+    const interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    interval::format(interval_format::bounds);
+    interval::precision(16);
+    const double least = std::numeric_limits<double>::denorm_min();
+    const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
+                              interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
+    for (const interval& x : tiny) {
+      std::ostringstream os;
+      {
+        Flushing flushing(denormals_are_zero);
+        os << x;
+      }
+      const std::string s = os.str();
+      const std::string name = "operator<< of subnormals with denormals-are-zero, read back";
+      const interval back = evaluate(name, [&] { return textToInterval(s); }, [&] { return hex(x) + " written " + s; });
+      check(name + ": encloses them", back.set_contains(x), [&] { return hex(x) + " written " + s + " read " + hex(back); });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+#else
+    std::printf("No control register of the SSE instructions: the output of subnormals with denormals-are-zero is not checked\n");
+#endif
+  }
+
   void constants()
   {
     const double pi_below = 0x1.921fb54442d18p+1, pi_above = 0x1.921fb54442d19p+1;
@@ -592,8 +633,7 @@ namespace
     round_trip(interval(smallest, 4.0 * smallest), "subnormal");
     round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
     round_trip(interval::pi(), "pi");
-    // Point intervals, which are written [a, a] in this format, never in the
-    // angles whose two numbers have to be the same double
+    // Point intervals, which this format writes with their two bounds, [a, a]
     round_trip(interval(0.1), "[0.1]");
     round_trip(interval(-1.0 / 3.0), "[-1/3]");
     round_trip(interval(smallest), "[smallest]");
@@ -622,10 +662,15 @@ namespace
     const std::string s = os.str();
     const std::size_t comma = s.find(", ");
     const auto describe = [&] { return hex(interval(l, r)) + " with the precision " + std::to_string(precision) + " written " + s; };
-    if (!check(name + ": two bounds", comma != std::string::npos && s.size() >= comma + 4, describe)) {
+    // A point interval that the digits write exactly is written [a], a
+    // standing for both bounds
+    const bool point = (l == r && comma == std::string::npos);
+    if (!check(name + ": two bounds, or one for a point", s.size() >= 3 && s[0] == '[' && s[s.size() - 1] == ']'
+               && (point || s.size() >= comma + 4), describe)) {
       return;
     }
-    const std::string sl = s.substr(1, comma - 1), sr = s.substr(comma + 2, s.size() - comma - 3);
+    const std::string sl = point ? s.substr(1, s.size() - 2) : s.substr(1, comma - 1);
+    const std::string sr = point ? sl : s.substr(comma + 2, s.size() - comma - 3);
     const Exact vl = written(sl), vr = written(sr);
     check(name + ": encloses the interval", compare(l, vl) >= 0 && compare(r, vr) <= 0, describe);
 
@@ -655,11 +700,14 @@ namespace
     of its double rounded downward and upward, which the reader takes for the
     same double only: <0.1, 0.1000000000000001> was refused, and the text of
     interval(0.1) read back as the empty set with textToInterval() of IEEE
-    1788-2015. The form <a, a> has to write the point itself, twice, and to be
-    read as the point; the other point intervals are written [a, b], which
-    encloses it. A zero is written exactly whatever the sign of its bounds, and
-    keeps the angles: [-0, 0], which interval::zero() and x - x are with the
-    SSE2 intervals, is written <-0, 0>, which the reader takes, -0 being 0.
+    1788-2015. A point interval that the digits write exactly is written [a],
+    the literal of the standard for a point, a being the double itself, and is
+    read back as the point; the others are written [l, r], neither bound being
+    the point, which encloses it. A zero is written [0], the text of +0,
+    whatever the signs of its bounds: [-0, 0], which interval::zero() and
+    x - x are with the SSE2 intervals, [0, 0] and [-0, -0] are the same set.
+    The angles <a, a>, which GAOL v5 wrote for the points written exactly
+    before, and which the reader takes, are no literal of the standard.
   */
   void expect_point_output(const interval& point, std::ios_base::fmtflags flags, int precision)
   {
@@ -673,19 +721,22 @@ namespace
     const auto describe = [&] { return hex(point) + " with the precision " + std::to_string(precision) + " written " + s; };
     const interval back = evaluate(name + ", read back", [&] { return textToInterval(s); }, describe);
     check(name + ", read back: encloses the point", back.set_contains(point), describe);
-    if (x == 0.0) {
-      check(name + " of zero: in angles", s[0] == '<', describe);
+    if (!check(name + ": in square brackets", s.size() >= 3 && s[0] == '[' && s[s.size() - 1] == ']', describe)) {
+      return;
     }
-    if (s[0] == '<') {
-      const std::size_t comma = s.find(", ");
-      if (!check(name + " in angles: two bounds", comma != std::string::npos && s.size() >= comma + 4
-                 && s[s.size() - 1] == '>', describe)) {
-        return;
-      }
-      const Exact vl = written(s.substr(1, comma - 1)), vr = written(s.substr(comma + 2, s.size() - comma - 3));
-      check(name + " in angles: both bounds are the point", compare(x, vl) == 0 && compare(x, vr) == 0, describe);
-      check(name + " in angles: read back as the point", back.left() == x && back.right() == x,
+    const std::size_t comma = s.find(", ");
+    if (x == 0.0) {
+      check(name + " of zero: [0], without a sign", comma == std::string::npos && s[1] != '-', describe);
+    }
+    if (comma == std::string::npos) {
+      check(name + " written [a]: a is the point", compare(x, written(s.substr(1, s.size() - 2))) == 0, describe);
+      check(name + " written [a]: read back as the point", back.left() == x && back.right() == x,
             [&] { return describe() + " read " + hex(back); });
+    } else {
+      // Two bounds only where the digits cannot write the point, the text of
+      // each being then on its side of it
+      const Exact vl = written(s.substr(1, comma - 1)), vr = written(s.substr(comma + 2, s.size() - comma - 3));
+      check(name + " written [l, r]: neither bound is the point", compare(x, vl) > 0 && compare(x, vr) < 0, describe);
     }
   }
 
@@ -747,13 +798,50 @@ namespace
         }
       }
     }
-    // The forms of the manual: angles where the digits write the point, and the
-    // bounds of any other interval where they do not
+    // With all their digits, the digits write every double: the largest
+    // doubles in the fixed format, and the subnormals and the least normal
+    // double with 1074 digits after the point, are written [a] and read back
+    // as the point itself, where the C++ library writes them exactly (the text
+    // of a stream of its own compared with the exact value of the double)
+    const double max_double = std::numeric_limits<double>::max(), smallest = std::numeric_limits<double>::denorm_min();
+    const struct { double x; std::ios_base::fmtflags flags; int precision; } all_digits[] = {
+      { max_double, fixed, 0 }, { -max_double, fixed, 2 }, { max_double, scientific, 308 },
+      { smallest, fixed, 1074 }, { -smallest, fixed, 1074 }, { 3.0 * smallest, fixed, 1080 },
+      { 0x0.fffffffffffffp-1022, fixed, 1074 }, { 0x1p-1022, fixed, 1074 }, { -0x1p-1022, scientific, 714 },
+    };
+    for (const auto& a : all_digits) {
+      std::ostringstream plain;
+      plain.imbue(std::locale::classic());
+      plain.flags(a.flags);
+      plain.precision(a.precision);
+      plain << a.x;
+      if (compare(a.x, written(plain.str())) != 0) {
+        std::printf("The C++ library does not write %a exactly with %d digits: its text [a] is not checked\n",
+                    a.x, a.precision);
+        continue;
+      }
+      expect_point_output(interval(a.x), a.flags, a.precision);
+      std::ostringstream os;
+      os.flags(a.flags);
+      interval::precision(a.precision);
+      os << interval(a.x);
+      check("operator<< of a point interval with all its digits: [a], a being its double", os.str() == "[" + plain.str() + "]",
+            [&] { return hex(interval(a.x)) + " with the precision " + std::to_string(a.precision) + " written " + os.str(); });
+    }
+
+    // The forms of the manual: [a] where the digits write the point, and the
+    // bounds of any other interval where they do not; the infinities are no
+    // points
     interval::precision(16);
     const struct { const char *name; interval x; const char *text; } forms[] = {
-      { "interval(4)", interval(4.0), "<4, 4>" },
-      { "interval(0.5)", interval(0.5), "<0.5, 0.5>" },
-      { "interval(-1024)", interval(-1024.0), "<-1024, -1024>" },
+      { "interval(4)", interval(4.0), "[4]" },
+      { "interval(0.5)", interval(0.5), "[0.5]" },
+      { "interval(-1024)", interval(-1024.0), "[-1024]" },
+      { "interval::zero()", interval::zero(), "[0]" },
+      { "interval(-0.0)", interval(-0.0), "[0]" },
+      { "interval(0.0, -0.0)", interval(0.0, -0.0), "[0]" },
+      { "interval(+oo)", interval(GAOL_INFINITY), "[empty]" },
+      { "interval(-oo)", interval(-GAOL_INFINITY), "[empty]" },
       { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
       { "interval(-0.1)", interval(-0.1), "[-0.1000000000000001, -0.1]" },
       { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
@@ -765,6 +853,18 @@ namespace
       os << f.x;
       check(std::string("operator<< of ") + f.name + ": the form of the manual", os.str() == f.text,
             [&] { return "\"" + os.str() + "\" rather than \"" + f.text + "\""; });
+    }
+    // The angles that GAOL wrote for a point interval are still read, as the
+    // point
+    const struct { const char *text; double x; } angles[] = {
+      { "<4, 4>", 4.0 }, { "<0.5, 0.5>", 0.5 }, { "<-1024, -1024>", -1024.0 }, { "<-0, 0>", 0.0 }, { "<0, 0>", 0.0 },
+      { "<1e+22, 1e+22>", 1e22 },
+    };
+    for (const auto& a : angles) {
+      const std::string name = "textToInterval() of the angles GAOL wrote for a point interval";
+      const interval back = evaluate(name, [&] { return textToInterval(a.text); }, [&] { return std::string(a.text); });
+      check(name + ": the point", back.left() == a.x && back.right() == a.x,
+            [&] { return std::string(a.text) + " read " + hex(back); });
     }
 
     Random random;
@@ -800,7 +900,7 @@ namespace
       const auto describe = [&] { return hex(interval(l, r)) + " with the precision " + std::to_string(p) + " written " + s; };
       const std::size_t tilde = s.find("~[");
       std::string sl = s, sr = s;
-      if (s[0] == '[' || s[0] == '<') { // As the format of the bounds, tested above
+      if (s[0] == '[') { // As the format of the bounds, tested above
         return;
       }
       if (tilde != std::string::npos) {
@@ -827,6 +927,13 @@ namespace
       const double a = random.positive(-30, 30), w = std::ldexp(random.uniform(0.0, 1.0), -(i % 40));
       expect_agreeing(a, a*(1.0 + w), precisions[i % 8]);
     }
+    // A negative interval is written as the format of the bounds writes it, a
+    // point that the digits write exactly as [a]
+    interval::precision(16);
+    std::ostringstream negative;
+    negative << interval(-4.0) << ' ' << interval(-0.1) << ' ' << interval(-2.0, -1.0);
+    check("operator<< with agreeing digits of a negative interval: as the format of the bounds",
+          negative.str() == "[-4] [-0.1000000000000001, -0.1] [-2, -1]", [&] { return negative.str(); });
     interval::precision(saved_precision);
     interval::format(saved_format);
   }
@@ -1714,6 +1821,7 @@ int main()
   gaol::init();
   numbers();
   subnormal_numbers();
+  subnormal_output();
   constants();
   constructors();
   ieee_literals();

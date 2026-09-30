@@ -733,35 +733,45 @@ namespace gaol_core {
   }
 
   /*
-    The interval [l, r] as two bounds rounded outward, in square brackets, or
-    in angles, <a, a>, for a point interval whose double the text writes
-    exactly (GAOL v5). The reader takes <a, b> for two expressions that are the
-    same double, exactly: a decimal that is no double is read as the two
-    doubles around it, and <0.1, 0.1> is refused. GAOL wrote every point
-    interval <a, b>, the text of its double rounded downward and upward, so
-    that <0.1, 0.1000000000000001> for interval(0.1) was refused, and
-    textToInterval(intervalToText(interval(0.1))) was the empty set; it is now
-    [0.1, 0.1000000000000001], which is read as an interval enclosing it. The
-    text of the lower bound being at most it, and that of the upper bound at
-    least it, two equal texts are the double itself. A zero is written
-    exactly, of either sign, and the reader takes <-0, 0>, -0 being 0: [-0, 0],
-    which interval::zero() and x - x are with the SSE2 intervals, keeps its
-    angles.
-
-    The angles are no literal of IEEE 1788-2015: with `angles` false, as
-    intervalToText() has it, a point interval is written [a, a] like any other.
+    The interval [l, r] as two bounds rounded outward, [l, r], or as [a], the
+    literal of IEEE 1788-2015 for a point (12.11), for a point interval whose
+    double the text writes exactly (GAOL v5). The text of the lower bound being
+    at most it, and that of the upper bound at least it, two equal texts are
+    the double itself, which the reader reads back as the point; the other
+    point intervals are written as any other interval, [0.1, 0.1000000000000001]
+    for interval(0.1), which is read back as an interval enclosing it. A zero
+    is written exactly, and a point interval of zero, [-0, +0], [+0, +0] or
+    [-0, -0], is written [0], the text of +0: the three are the set {0}, which
+    [0] and [-0] are both read back as, and the text of interval::zero() is
+    then the same whatever the build ([-0, +0] with the SSE2 intervals,
+    [+0, +0] with the FPU ones); the hexadecimal format writes the signs of the
+    bounds. The bounds are compared by their bits: under denormals-are-zero,
+    which a program may set, a subnormal compares equal to 0, and l == r and
+    l == 0.0 would have [0, 5e-324] written [0].
+    GAOL wrote every point interval <a, b>, the text of its double rounded
+    downward and upward, which the reader takes for two numbers that are the
+    same double only: <0.1, 0.1000000000000001> for interval(0.1) was refused,
+    and textToInterval(intervalToText(interval(0.1))) was the empty set. The
+    reader still takes the angles, which are no literal of the standard.
   */
-  void display_bounds(double l, double r, ostream& os, bool angles = true)
+  void display_bounds(double l, double r, ostream& os)
   {
     if (!(l <= r)) {
       os << "[empty]";
     } else {
-      const std::string left = bound_to_text(l, false, os);
-      const std::string right = bound_to_text(r, true, os);
-      if (angles && l == r && (left == right || l == 0.0)) {
-				os << '<' << left << ", " << right << '>';
+      std::uint64_t lbits, rbits;
+      std::memcpy(&lbits, &l, sizeof lbits);
+      std::memcpy(&rbits, &r, sizeof rbits);
+      if ((lbits << 1) == 0 && (rbits << 1) == 0) { // +0 or -0, both
+        os << '[' << bound_to_text(0.0, true, os) << ']';
       } else {
-				os << '[' << left << ", " << right << ']';
+        const std::string left = bound_to_text(l, false, os);
+        const std::string right = bound_to_text(r, true, os);
+        if (lbits == rbits && left == right) {
+          os << '[' << left << ']';
+        } else {
+          os << '[' << left << ", " << right << ']';
+        }
       }
     }
   }
@@ -3323,15 +3333,15 @@ namespace gaol_ieee1788 {
 
   /*
     intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
-    bounds of x rounded outward, [l, r], or [empty], in a stream of the C
-    locale with the flags it starts with and 16 digits, the default of
+    bounds of x rounded outward, [l, r], [a] for a point interval whose double
+    the digits write exactly, as [4], or [empty], in a stream of the C locale
+    with the flags it starts with and 16 digits, the default of
     interval::precision(), so that the text is a portable literal (12.11.5)
     whatever the global output format, the precision of the intervals and the
     locale of the program (GAOL v5). It is the text operator<< writes in the
-    bounds format under these settings, but for the angles <a, a>, which are
-    no literal of the standard. GAOL wrote what operator<< writes: the width
-    format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the
-    locale of a program that sets one, the digits of the precision another
+    bounds format under these settings. GAOL wrote what operator<< writes: the
+    width format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
+    the locale of a program that sets one, the digits of the precision another
     part of the program set, and <4, 4> for the point interval 4, none of them
     a literal, and the text changed with the format another thread was setting.
   */
@@ -3341,7 +3351,7 @@ namespace gaol_ieee1788 {
     out.imbue(std::locale::classic());
     out.precision(16);
     GAOL_RND_ENTER();
-    ::gaol_core::display_bounds(x.left(), x.right(), out, false);
+    ::gaol_core::display_bounds(x.left(), x.right(), out);
     GAOL_RND_LEAVE();
     return out.str();
   }

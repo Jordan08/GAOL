@@ -56,12 +56,14 @@ namespace gaol_core {
     The supported formats so far are the following:
     - bounds: the interval is output in the form "[l, r]" where l and r
     are respectively its left and right bounds, rounded outward, and in the
-    form "<a, a>" for a point interval that the digits write exactly, as
-    "<4, 4>". textToInterval() reads <a, b> for one double only: the point
-    interval of a double that the digits do not write exactly is output in
-    the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
+    form "[a]" of IEEE 1788-2015 (12.11) for a point interval that the digits
+    write exactly, as "[4]", which textToInterval() reads back as that point;
+    a point interval of zero is "[0]", whatever the signs of its bounds. The
+    point interval of a double that the digits do not write exactly is output
+    in the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
     read back as an interval containing it (GAOL v5: GAOL wrote
-    "<0.1, 0.1000000000000001>", which it refused to read)
+    "<0.1, 0.1000000000000001>", which it refused to read, and "<4, 4>",
+    which textToInterval() still reads)
     - width: the interval is output in the form "c (+/- w)" where c is its
     midpoint() and w its radius rad(), the smallest radius such that
     [c-w, c+w] contains the interval (IEEE 1788-2015, 12.12.8): c is written
@@ -80,7 +82,8 @@ namespace gaol_core {
     hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids the
     round-off error of a binary-to-decimal conversion and which
     textToInterval() reads back bit for bit: the exact text
-    representation of 13.4 (GAOL v5)
+    representation of 13.4 (GAOL v5). A point interval is output with its
+    two bounds, "[0x1p+2, 0x1p+2]", which keep the signs of a zero
     - agreeing: the interval is output in the form "r [l, r]" where
     r is the number containing all the digits that are the same in both
     left and right bounds, and where l and r are the disagreeing
