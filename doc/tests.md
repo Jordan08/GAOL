@@ -271,7 +271,17 @@ Codac.
   the upward rounding, which computes with the 128-bit integer GAOL ports
   (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
   the rest of the test cannot see a fault of that port, which the jobs
-  computing with the two 64-bit halves would then find here.
+  computing with the two 64-bit halves would then find here. First of all,
+  the test checks the `fma()` and `round()` of the C library, which CORE-MATH
+  and GAOL call (`fma()` wherever the compiler has no fused multiply-add
+  instruction, as GCC for Windows): `fma()` correctly rounded in the four
+  rounding directions at six triples, three error-free products
+  `fma(a, b, -a*b)` among them and `x + x*2^-54` as `cr_tan()` computes it, and
+  `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
+  and 2<sup>52</sup> − 1/2, against values computed with exact rational
+  arithmetic. The `fma()` and `round()` of mingw-w64's own math library, which
+  `gaol/gaol_config.h` refuses, fail 21 and 6 of these checks under wine
+  (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
