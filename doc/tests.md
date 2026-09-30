@@ -21,7 +21,16 @@ Codac.
   for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
   intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
   enclosures. `gaol::pow(x, n)` for an unsigned n has to give what it gives
-  for an int n, `[1]` for n = 0 and the empty set for an empty x. The operators of an interval with a double have to give, on
+  for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
+  powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
+  against bounds computed with mpmath: the lower bound left out the square of
+  the rest it carries, and was 1962 doubles below the tightest for
+  `pow([1.0000001], 2^32 − 1)`. Where `pow(x, n)` takes the products rounded
+  outward (n = 1 and 2, a bound 0 or infinite, the power of a bound below
+  2^-968 or beyond the largest double), they have to be those of the binary
+  exponentiation from the lowest bit of n, each rounded in the direction set
+  for it: the SSE2 intervals multiplied from the highest bit, and their bounds
+  were not those of the FPU intervals (GAOL v5). The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
