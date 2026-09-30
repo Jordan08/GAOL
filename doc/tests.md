@@ -336,7 +336,14 @@ Codac.
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its
   `get_rounding_mode()` gave `FE_UPWARD` where 0 to 3 were expected, and the
-  upper bound was below the cube root (GAOL v5).
+  upper bound was below the cube root (GAOL v5). `rsqrt` is checked in the four
+  rounding directions, and has to be the tightest enclosure, at the successors
+  of the powers of 4, 4<sup>k</sup> (1 + 2<sup>−52</sup>), where 1/sqrt(x) is
+  just above the double below 2<sup>−k</sup>, as the series of
+  (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them
+  upward from the direction its `get_rounding_mode()` reads, which clang-cl on
+  x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
+  being below 1/sqrt(x) (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
