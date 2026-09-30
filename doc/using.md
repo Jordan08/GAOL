@@ -25,8 +25,12 @@ With Visual C++, `/fp:strict`, and `/arch:AVX2` for x64 with `GAOL_FMA`. Each bu
 `gaol::gaol` and `gaol.pc` (below). `gaol/gaol_config.h` refuses code compiled
 by Visual C++ without `/fp:strict`. GCC and Clang do not tell the code whether
 `-frounding-math` and `-ffp-contract=off` were given: there, it only refuses
-what contradicts them, `-ffast-math` and doubles computed on the x87 unit (see
+what contradicts them, `-ffast-math`, `-ffinite-math-only` and doubles computed
+on the x87 unit (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)).
+`-fno-fast-math` turns the first two off when it comes after them on the
+command line, and does nothing when it comes before them, where the
+compilation stops.
 
 ## From CMake
 
@@ -250,6 +254,45 @@ the warnings defines `GAOL_NODISCARD` empty before including GAOL
 (`-DGAOL_NODISCARD=`). The compound assignments (`x += y`), which do change x,
 do not carry it.
 
+## Errors
+
+GAOL reports an error by throwing an exception, of one of the three classes of
+`gaol/gaol_exceptions.h`, which `gaol::` names as it names `interval`:
+
+- `input_format_error`: a string that is no interval, given to
+  `gaol::textToInterval()` or read by `operator>>`;
+- `invalid_action_error`: a function called with an argument it does not take,
+  `nb_fp_numbers()` with a NaN, or `nth_root(8, 1.5)` in a string;
+- `unavailable_feature_error`: a feature that is not available; no operation
+  of GAOL v5 throws it.
+
+They all derive from `gaol_exception`, which derives from `std::exception`, and
+their `what()` is the explanation of the error, so that a handler that knows
+nothing of GAOL says what went wrong:
+
+```cpp
+try {
+  interval x = gaol::textToInterval("[1, 2");
+} catch (const std::exception& e) {
+  std::cerr << e.what() << '\n';   // Syntax error in interval initialization: [1, 2
+}
+```
+
+An exception that nothing catches ends the program with the same text (with
+libstdc++: `terminate called after throwing an instance of
+'gaol_core::input_format_error'`, then `what():  Syntax error in interval
+initialization: [1, 2`). GAOL 4 wrote `std::exception` in both places, whatever
+the error, `gaol_exception` not overriding `what()`. Where an exception has no
+explanation, `what()` is `gaol_exception`, never an empty text. A handler of
+`gaol_exception` also has `explanation()`, the same text in a `std::string`,
+and `file()` and `line()`, where GAOL threw the exception; `std::cerr << e`
+writes the three, as `file.cpp, line 12: exception thrown: <explanation>`.
+
+A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
+`configure`, `-Denable-exception=false` of meson; see
+[Building GAOL](building.md)) prints a message and aborts instead of throwing.
+The CMake build always throws.
+
 ## The rounding direction
 
 Each operation of GAOL sets the rounding direction upward when it is not, and
@@ -272,3 +315,67 @@ that the first `gaol::init()` found when GAOL initialized itself: to nearest,
 as a program starts, on x86 for the x87 unit and the SSE instructions each, in
 the thread calling it. The rest of the floating-point
 environment is left as it is, the exception flags raised in particular.
+
+## The floating-point exceptions
+
+GAOL computes with the floating-point exceptions masked, as a program starts,
+and leaves them so: an operation that raises one only sets its flag. **A
+program that enables them (`feenableexcept()` of glibc, `_controlfp_s()` of
+Visual C++, `fesetenv()` with an environment that traps) disables them while
+GAOL computes**, and enables them again afterwards if it wants them: GAOL's
+operations raise some, as listed below, and the processor then stops the
+program (with SIGFPE on Linux) instead of letting the operation give its
+bounds.
+
+- An infinite bound comes from a division by zero or from an overflow:
+  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception, and
+  so does `1/[0, 1]`, which is `[1, +oo]`, with the SSE2 intervals;
+  `[1e308]*10`, which is `[DBL_MAX, +oo]`, raises the overflow exception.
+- Almost every operation raises the inexact exception: most bounds are rounded
+  results, and where GAOL checks the rounding direction with an addition,
+  1 + 2^-60, whose result is inexact (see
+  [The rounding direction](#the-rounding-direction)), even an operation whose
+  bounds are exact raises it.
+- The operations on the empty interval, whose bounds are NaN, raise the
+  invalid-operation exception where they compare a bound: `sqrt` of the empty
+  interval does, for instance. `is_empty()`, which almost every operation
+  calls first, uses a quiet comparison (`std::islessequal`) and raises
+  nothing, and so does `interval::emptyset()` (GAOL v5): with the
+  invalid-operation exception enabled, the first killed the program at each
+  emptiness test of an empty interval, and the second in a build without
+  optimization.
+- Nonempty operands raise the invalid-operation exception as well. With the
+  SSE2 intervals, multiplying a zero bound by an infinite one does:
+  `[0]*[1, +oo]` and `[0, +oo]*[0]` (the FPU intervals give the same product
+  without it, and so does a build with `GAOL_PRESERVE_ROUNDING`, whose product
+  masks the exceptions, see below). `pow` does in every build, through
+  CORE-MATH's `pow`, for an exponent of extreme magnitude (`pow([1, 2],
+  [4.9e-324])`, `pow([1, 2], [1e-300])`, an exponent interval with a bound near
+  `DBL_MAX` such as `[1e300, 1e308]`); with the SSE2 intervals, an exponent with
+  an infinite bound also does, through that product (`pow([1], [1, +oo])`).
+  This list is not exhaustive.
+
+`is_empty()` being quiet therefore does not make the invalid-operation
+exception safe to leave enabled: every exception stays disabled while GAOL
+computes.
+
+The flags tell nothing of the results: after an operation of GAOL,
+`fetestexcept(FE_INEXACT)` is raised whatever the result, and `FE_OVERFLOW` or
+`FE_DIVBYZERO` stands for an infinite bound of the interval, not for an
+infinite number the program computed. IEEE 1788-2015 leaves the flags of its
+operations unspecified. A program that reads them for its own computations
+clears them (`std::feclearexcept(FE_ALL_EXCEPT)`) just before, and reads them
+before its next operation of GAOL.
+
+GAOL's initialization, which runs before `main()`, sets the default
+environment (`fesetenv(FE_DFL_ENV)`), which masks every exception, unless GAOL
+is built with `GAOL_PRESERVE_ROUNDING`: the initialization then leaves the
+whole environment as it found it, and an exception a static object enabled
+before it stays enabled. A program enables the exceptions in `main()` or later,
+whichever the build, not in a static object initialized before GAOL.
+`gaol::cleanup()` leaves the exceptions and the flags as they are. With
+`GAOL_PRESERVE_ROUNDING` and the SSE2 intervals, `+`, `-`, `*`, `/`, `sqr()`
+and `inverse()` also write the SSE control register with every exception
+masked, which masks again the ones a program enabled: they stop nothing after
+the first of these operations. Disable them all the same, the other builds not
+masking them.

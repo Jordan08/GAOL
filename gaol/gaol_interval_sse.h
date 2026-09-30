@@ -42,9 +42,12 @@
       return interval(interval::m128_zero);
     }
 
+  // Both bounds NaN, as interval(double) sets them for a NaN, but without the
+  // comparisons that decide it: they signal the invalid-operation exception on
+  // a NaN, and a build without optimization runs them (GAOL v5)
   INLINE interval interval::emptyset(void)
     {
-      return interval(std::numeric_limits<double>::quiet_NaN());
+      return interval(_mm_set1_pd(std::numeric_limits<double>::quiet_NaN()));
     }
 
   INLINE interval::interval(const __m128d& xmm)
