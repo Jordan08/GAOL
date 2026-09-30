@@ -30,8 +30,12 @@
 #include "gaol_tests.h"
 #include "gaol/gaol_expr_eval.h"
 
+#include <cctype>
+#include <clocale>
 #include <cstdlib>
+#include <locale>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -410,7 +414,9 @@ namespace
     interval(0.1)) was <0.1, 0.1000000000000001>, whose two numbers are not the
     same double, which the reader takes for a point only, so that
     textToInterval() gave the empty set, where the recovery requirement of
-    IEEE 1788-2015 (13.4) asks for an interval containing the one written.
+    IEEE 1788-2015 (13.4) asks for an interval containing the one written. A
+    point that the digits write exactly is written [a], the literal of the
+    standard for a point, and read back as the point itself.
   */
   void text_of_a_point_interval()
   {
@@ -427,8 +433,238 @@ namespace
       const interval y = textToInterval(text);
       check("textToInterval(intervalToText(point)) contains the point", y.set_contains(x),
             [&] { return text + " read " + hex(y); });
+      if (text.find(',') == std::string::npos) {
+        check("textToInterval(intervalToText(point)) written [a]: the point itself", y.left() == x && y.right() == x,
+              [&] { return text + " read " + hex(y); });
+      }
     }
     interval::format(saved);
+  }
+
+  /*
+    Whether s is an interval literal of the standard that intervalToText()
+    writes: [ ], [empty], [m] or [l, u], m, l and u being decimal numbers, or
+    inf, with a sign, as in Tables 9.5 and 12.2 (12.11.5), whose letters may be
+    of either case. The angles <a, a> of GAOL, a width "c (+/- w)", the
+    agreeing digits and a decimal comma are none.
+  */
+  bool is_portable_literal(const std::string& text)
+  {
+    std::string s;
+    for (char c : text) {
+      s += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    std::size_t i = 0;
+    const auto spaces = [&] { while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) { ++i; } };
+    const auto digits = [&] { const std::size_t from = i; while (i < s.size() && std::isdigit(static_cast<unsigned char>(s[i]))) { ++i; } return i - from; };
+    const auto expect = [&](char c) { if (i < s.size() && s[i] == c) { ++i; return true; } return false; };
+    const auto number = [&] {
+      if (i < s.size() && (s[i] == '+' || s[i] == '-')) {
+        ++i;
+      }
+      if (s.compare(i, 3, "inf") == 0) {
+        i += 3;
+        return true;
+      }
+      const std::size_t before = digits();
+      std::size_t after = 0;
+      if (expect('.')) {
+        after = digits();
+      }
+      if (before + after == 0) {
+        return false;
+      }
+      if (expect('e')) {
+        if (i < s.size() && (s[i] == '+' || s[i] == '-')) {
+          ++i;
+        }
+        return digits() > 0;
+      }
+      return true;
+    };
+    if (!expect('[')) {
+      return false;
+    }
+    spaces();
+    if (expect(']')) {
+      return i == s.size();
+    }
+    if (s.compare(i, 5, "empty") == 0) {
+      i += 5;
+      spaces();
+      return expect(']') && i == s.size();
+    }
+    if (!number()) {
+      return false;
+    }
+    spaces();
+    if (expect(',')) {
+      spaces();
+      if (!number()) {
+        return false;
+      }
+      spaces();
+    }
+    return expect(']') && i == s.size();
+  }
+
+  /*
+    intervalToText(x) is an interval literal that textToInterval() reads back
+    as an interval containing x, [l, r], [a] for a point that the digits write
+    exactly, and [empty] for the empty set, whatever the global output format,
+    the precision and the locale of the program (GAOL v5), as the standard
+    asks of it (13.3): it wrote what operator<< does, the width
+    "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the locale of a
+    program that sets one, fewer digits when the precision of the intervals
+    was lowered, and <4, 4> for the point interval 4, which is no literal of
+    the standard. Under a locale writing a decimal comma, the text operator<<
+    writes for a point has to be refused, or read back as an interval
+    containing it: the literal [a] made interval(-2.5) [-2,5], read as the
+    interval [-2, 5]. Where no such locale is installed, that part is not
+    checked.
+  */
+  void text_independent_of_the_output_settings()
+  {
+    const gaol::interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    // The texts to expect, written by hand ("" for none)
+    const struct { const char *name; interval x; const char *text; } forms[] = {
+      { "[1, 2]", interval(1.0, 2.0), "[1, 2]" },
+      { "interval(4)", interval(4.0), "[4]" },
+      { "interval(0.5)", interval(0.5), "[0.5]" },
+      { "interval(-1024)", interval(-1024.0), "[-1024]" },
+      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
+      { "[-0, 0]", interval(-0.0, 0.0), "[0]" },
+      { "interval(-0.0)", interval(-0.0), "[0]" },
+      { "interval::zero()", interval::zero(), "[0]" },
+      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
+      { "[1, +oo]", interval(1.0, oo), "[1, inf]" },
+      { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]" },
+      { "the universe", interval::universe(), "[-inf, inf]" },
+      { "the empty set", interval::emptyset(), "[empty]" },
+      { "[5e-324, 1e-323]", interval(smallest, 2.0*smallest), "[4.940656458412465e-324, 9.881312916824931e-324]" },
+      { "[-MAX, MAX]", interval(-largest, largest), "[-1.797693134862316e+308, 1.797693134862316e+308]" },
+    };
+    const interval others[] = { interval(0.1, 0.3), interval::pi(), interval(1.25, 1.2567), interval(-2.0/3.0, 1e23),
+                                interval(1e-5, 2e-5) };
+
+    const auto expect_text = [&](const interval& x, const std::string& expected, const std::string& situation) {
+      const std::string text = intervalToText(x);
+      const auto describe = [&] { return hex(x) + " " + situation + ": \"" + text + "\""; };
+      if (!expected.empty()) {
+        check("intervalToText: the text of the manual, whatever the output settings", text == expected,
+              [&] { return describe() + " rather than \"" + expected + "\""; });
+      }
+      check("intervalToText: an interval literal of IEEE 1788-2015", is_portable_literal(text), describe);
+      const interval back = textToInterval(text);
+      check("intervalToText: read back as an interval containing x",
+            x.is_empty() ? back.is_empty() : back.set_contains(x), [&] { return describe() + " read " + hex(back); });
+    };
+
+    interval::format(gaol::interval_format::bounds);
+    interval::precision(16);
+    // The text under the default settings, which the others have to give too
+    std::string reference[sizeof others / sizeof others[0]];
+    for (std::size_t i = 0; i < sizeof others / sizeof others[0]; ++i) {
+      reference[i] = intervalToText(others[i]);
+    }
+
+    const struct { const char *name; gaol::interval_format::format_t format; } formats[] = {
+      { "bounds", gaol::interval_format::bounds }, { "width", gaol::interval_format::width },
+      { "center", gaol::interval_format::center }, { "hexa", gaol::interval_format::hexa },
+      { "agreeing", gaol::interval_format::agreeing },
+    };
+    const auto expect_all = [&](const std::string& where) {
+      for (const auto& f : formats) {
+        for (std::streamsize precision : { 1, 3, 8, 16, 17, 30 }) {
+          interval::format(f.format);
+          interval::precision(precision);
+          const std::string situation = "in the " + std::string(f.name) + " format with the precision "
+                                        + std::to_string(precision) + where;
+          for (const auto& form : forms) {
+            expect_text(form.x, form.text, situation);
+          }
+          for (std::size_t i = 0; i < sizeof others / sizeof others[0]; ++i) {
+            expect_text(others[i], reference[i], situation);
+          }
+          check("intervalToText leaves the global format as it was", interval::format() == f.format, [&] { return situation; });
+          check("intervalToText leaves the global precision as it was", interval::precision() == precision, [&] { return situation; });
+        }
+      }
+    };
+    expect_all("");
+
+    // Under a locale writing a decimal comma, which a program sets for all its
+    // streams with std::locale::global()
+    const std::locale saved_locale;
+    const std::string saved_c_locale = std::setlocale(LC_ALL, nullptr);
+    bool commas = false;
+    for (const char *name : { "fr_FR.UTF-8", "fr_FR.utf8", "de_DE.UTF-8", "de_DE.utf8", "French_France.1252", "fr_FR" }) {
+      try {
+        std::locale::global(std::locale(name));
+      } catch (const std::runtime_error&) {
+        continue;
+      }
+      std::ostringstream probe;
+      probe << 1.5;
+      if (probe.str() == "1,5") {
+        commas = true;
+        break;
+      }
+    }
+    if (commas) {
+      expect_all(" under a locale writing a decimal comma");
+      std::ostringstream os;
+      interval::format(gaol::interval_format::bounds);
+      interval::precision(16);
+      os << interval(0.25, 0.5);
+      check("operator<< writes a decimal comma under that locale, the text of intervalToText none",
+            os.str() == "[0,25, 0,5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
+            [&] { return os.str() + " and " + intervalToText(interval(0.25, 0.5)); });
+      // A point written by operator<< under that locale: the literal [a] of a
+      // number with a decimal comma would be two numbers, which the reader
+      // takes, [-2,5] being [-2, 5], [12,5] the empty set and [0,] (no digit,
+      // showpoint) [0, +oo]; the text has to be refused, or read back as an
+      // interval containing the point, and as the point itself when it is one
+      // number
+      const struct { const char *name; std::ios_base::fmtflags flags; std::streamsize precision; } settings[] = {
+        { "with 16 digits", std::ios_base::fmtflags(), 16 },
+        { "in the fixed format with the showpoint flag and no digit", std::ios_base::fixed | std::ios_base::showpoint, 0 },
+        { "in the fixed format with 1074 digits", std::ios_base::fixed, 1074 },
+      };
+      for (const auto& setting : settings) {
+        interval::precision(setting.precision);
+        for (double x : { -2.5, -0.5, 12.5, 0.5, 4.0, 0.0, -smallest }) {
+          std::ostringstream point;
+          point.setf(setting.flags);
+          point << interval(x);
+          const std::string text = point.str();
+          bool refused = false;
+          interval back;
+          try {
+            back = gaol::textToInterval(text);
+          } catch (const gaol::input_format_error&) {
+            refused = true;
+          }
+          const bool one_number = (text.find(", ") == std::string::npos);
+          check("operator<< of a point under that locale: refused, or read back as an interval containing it, [a] as the point",
+                refused || (back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x))),
+                [&] { return text.substr(0, 60) + " " + setting.name + ", read " + hex(back); });
+        }
+      }
+      interval::precision(16);
+      std::ostringstream four;
+      four << interval(4.0);
+      check("operator<< of a point without a comma under that locale: [a]", four.str() == "[4]",
+            [&] { return four.str(); });
+    } else {
+      std::printf("No locale writing a decimal comma: intervalToText under such a locale is not checked\n");
+    }
+    std::locale::global(saved_locale);
+    std::setlocale(LC_ALL, saved_c_locale.c_str());
+    interval::precision(saved_precision);
+    interval::format(saved_format);
   }
 
 // Commented out: the tests run no thread (GAOL v5)
@@ -480,6 +716,7 @@ int main()
   text_with_the_names_of_the_standard();
   exact_text();
   text_of_a_point_interval();
+  text_independent_of_the_output_settings();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   exact_text_in_another_thread();

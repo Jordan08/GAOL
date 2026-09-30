@@ -2428,7 +2428,7 @@ cout << pow(interval(-4,-1), 2) << ' '
 cout << pow(interval(0.0), interval(0.0)) << ' '
      << pow(interval(-2,2), -2) << ' '
      << pow(interval(4), 0.5) << endl;
-@outputs^<1, 1> [0.25, inf] [1.999999999999999, 2]~
+@outputs^[1] [0.25, inf] [1.999999999999999, 2]~
 \end{example}
 \end{deffun}
 
@@ -2511,12 +2511,12 @@ $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
 cout << exp(interval(0.0)) << ' ' << log(interval(1)) << ' '
      << log(interval(-4,0.0)) << ' '
      << log(interval(-4,1)) << endl;
-@outputs^<1, 1> <0, 0> [empty] [-inf, 0]~
+@outputs^[1] [0] [empty] [-inf, 0]~
 cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
      << log10(interval(0.0,1000)) << ' '
      << expm1(interval(-1e300,0.0)) << ' '
      << log1p(interval(-2,0.0)) << endl;
-@outputs^<8, 8> <-2, -2> [-inf, 3] [-1, 0] [-inf, 0]~
+@outputs^[8] [-2] [-inf, 3] [-1, 0] [-inf, 0]~
 \end{example}
 \end{deffun}
 
@@ -2574,7 +2574,7 @@ cout << cos(interval(1,4)) << endl
 \begin{example}
 cout << acos(interval(1,3)) << ' ' << asin(interval(1)) << ' '
      << atan(interval(1));
-@outputs^<0, 0> [1.570796326794896, 1.570796326794897]~
+@outputs^[0] [1.570796326794896, 1.570796326794897]~
 @outputs^[0.7853981633974482, 0.7853981633974484]~
 \end{example}
 \end{deffun}
@@ -2619,12 +2619,12 @@ cout << atan2(interval(0.0), interval(0.0)) << endl
 \begin{example}
 cout << sinpi(interval(1e17)) << ' '
      << sin(interval::pi() * 1e17) << endl;
-@outputs^<0, 0> [-1, 1]~
+@outputs^[0] [-1, 1]~
 cout << tanpi(interval(0.5)) << ' '
      << tanpi(interval(0.25,0.75)) << ' '
      << asinpi(interval(1)) << ' '
      << atan2pi(interval(1), interval(-1)) << endl;
-@outputs^[empty] [-inf, inf] <0.5, 0.5> <0.75, 0.75>~
+@outputs^[empty] [-inf, inf] [0.5] [0.75]~
 \end{example}
 \end{deffun}
 
@@ -2667,7 +2667,7 @@ cout << cosh(interval(-1,2)) << ' '
      << atanh(interval(-2,2)) << ' '
      << atanh(interval(1,5)) << endl;
 @outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
-@outputs^<0, 0> [-inf, inf] [empty]~
+@outputs^[0] [-inf, inf] [empty]~
 \end{example}
 \end{deffun}
 
@@ -2689,7 +2689,7 @@ cout << hypot(interval(3), interval(4)) << ' '
      << hypot(interval(-3,1), interval(4,5)) << endl
      << rsqrt(interval(4,16)) << ' '
      << rsqrt(interval(0.0,4)) << endl;
-@outputs^<5, 5> [4, 5.830951894845301]~
+@outputs^[5] [4, 5.830951894845301]~
 @outputs^[0.25, 0.5] [0.5, inf]~
 \end{example}
 \end{deffun}
@@ -3476,8 +3476,11 @@ appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}. It is the form in which \code{operator<{}<} writes the
-degenerate intervals whose digits are exact (\pxref{sec:output-format}).
+\code{"<0.1, 0.1>"}. GAOL~4 wrote the degenerate intervals in that form, and
+the texts it wrote for those whose digits are exact, as \code{<4, 4>}, are
+still read; \code{operator<{}<} writes such an interval \code{[a]}, the
+literal of IEEE 1788-2015 for a point, and any other with its two bounds
+(\pxref{sec:output-format}).
 
 \paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
 whose right bound is $-\infty$ is the empty set, as \code{numsToInterval} of
@@ -3521,7 +3524,10 @@ by using the ``\code{<{}<}'' operator.
 \begin{deffun}{ostream\&}{operator<{}<}{(ostream\& \var{out}, const interval\& I)}
 Prints the interval \var{I} to the output stream \var{out}. The way the intervals
 are actually displayed depends on the active format (see next section).
-However, whatever the format, an empty interval is always displayed as \code{[empty]}
+However, whatever the format, an empty interval is always displayed as \code{[empty]},
+as IEEE 1788-2015 writes the empty set (12.11.3).\newinvfive{} The formats
+\element{width} and \element{center} of GAOL~4 wrote \code{empty}, which is no
+interval literal.
 \cindex{empty!interval: printing}%
 \index[idx]{empty@\code{[empty]}}%
 \end{deffun}
@@ -3587,30 +3593,61 @@ the last character of the left one that is not a zero, and wrote
 \end{example}
 
 \item[\element{bounds}.] By printing the bounds between square brackets.
-Degenerate intervals whose left and right bound are equal, and are written
-exactly by the digits displayed, are printed with angles:
+A degenerate interval whose value is written exactly by the digits displayed
+is printed as that value alone between square brackets, the literal of IEEE
+1788-2015 for a point (12.11), which \code{textToInterval()} reads back as
+the same point (but see below for a locale writing a decimal comma):
 \begin{example}
  interval::format(interval_format::bounds);
  std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
- @outputs^[3, 5] <4, 4>~
+ @outputs^[3, 5] [4]~
 \end{example}
-A degenerate interval whose value has more digits than those displayed is
-printed like any other interval, with its two bounds rounded outward between
-square brackets: \code{interval(0.1)} is printed
-\code{[0.1, 0.1000000000000001]}. The reader takes the angles for one double
-only (\pxref{sec:input-format}), so that the text of a degenerate interval is
-read back, as any other, as an interval containing it.\newinvfive{} GAOL~4 printed
-\code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its reader
-refused (\code{input\_format\_error}).
+A zero is printed \code{[0]} whatever the signs of its bounds: \itv{-0}{+0},
+which \code{interval::zero()} is with the SSE2 intervals, \itv{+0}{+0} and
+\itv{-0}{-0} are the same set, which \code{[0]} and \code{[-0]} are both read
+back as, and the text is then the same on every build (the format
+\element{hexa} shows the signs of the bounds). A degenerate interval whose
+value has more digits than those displayed is printed like any other interval,
+with its two bounds rounded outward: \code{interval(0.1)} is printed
+\code{[0.1, 0.1000000000000001]}, which is read back, as any other text, as an
+interval containing it. Under a locale writing a decimal comma, the reader,
+whose decimal point is a point whatever the locale, would take
+\code{[-2,5]} for the interval \itv{-2}{5}: a degenerate interval whose text
+has a comma is printed with its two bounds, \code{[-2,5, -2,5]}, which the
+reader refuses, as it refuses every bound written with a decimal comma
+(\code{interval(4)} is still \code{[4]}).\newinvfive{} GAOL~4 printed every
+degenerate interval between angles, the text of its value rounded downward and
+upward: \code{interval(4)} was \code{<4, 4>}, a form of GAOL that is no literal
+of the standard, and \code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its
+reader refused (\code{input\_format\_error}), the angles standing for one
+double only. The reader still takes the angles (\pxref{sec:input-format}): a
+text such as \code{<4, 4>}, written by GAOL~4, is read back.
 
-\item[\element{width}.] by printing their midpoint and their width:
+\item[\element{width}.] by printing their midpoint and their radius, the
+\code{midpoint()} and the \code{rad()} of IEEE 1788-2015 (12.12.8): the
+interval is contained in the midpoint plus or minus the radius, which is the
+smallest number that makes it so:
 \begin{example}
  interval::format(interval_format::width);
  std::cout << interval(4,5) << std::endl;
  @outputs^4.5 (+/- 0.5)~
 \end{example}
+The midpoint is written rounded to nearest and the radius rounded upward, so
+that a radius that is not zero is never written 0. Rounded upward, a radius
+may look noisy with the default 16 digits: \itv{0.1}{0.3} is written
+\code{0.2 (+/- 0.1000000000000001)}, its radius being the double nearest to
+$0.1$, which is a little above $0.1$; this is intended. A degenerate interval has
+no radius: it is written as its midpoint alone, and an unbounded interval has an
+infinite radius, its midpoint being $0$ or plus or minus the largest double
+(\code{[3, inf]} is \code{1.797693134862316e+308 (+/- inf)}).\newinvfive{}
+GAOL~4 wrote $(a+b)/2$ and $(b-a)/2$ rounded to nearest, which do not contain the
+interval (\itv{1}{1+2^{-52}} was \code{1 (+/- 1.11e-16)}), a radius 0 for
+\itv{0}{5\cdot10^{-324}}, and \code{inf} for the midpoint of
+\itv{10^{308}}{1.7\cdot10^{308}}; the manual and the header described this
+number as the width.
 
-\item[\element{center}.] by printing their midpoint only.
+\item[\element{center}.] by printing their midpoint only, as the width format
+does.\newinvfive
 
 \item[\element{hexa}.] by printing their left and right bounds in the
 hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which is exact and which
@@ -3628,7 +3665,15 @@ its parser did not read.\newinvfive
 
 \medskip
 Note that \emph{the \element{bounds} and \element{hexa} formats are the ones
-read back as an input} (see previous section).
+read back as an input} (see previous section), the format \element{bounds}
+where the stream writes a decimal point. The formats \element{width} and
+\element{center} are for the eye: the midpoint is written with the digits of the
+precision, so that the text \code{c (+/- w)} does not necessarily contain the
+interval, where the text of the formats \element{bounds}, \element{agreeing}
+and \element{hexa} does. A radius that took the rounding of the midpoint into
+account would show the interval \code{0.1}, which is one number, as
+\code{0.1 (+/- 5.6e-18)}, and would not show that an interval is narrower than the
+digits of its midpoint, which is what the format is for.
 \medskip
 
 The choice of the format to use is made through the following static methods:
@@ -3669,7 +3714,7 @@ The choice of the format to use is made through the following static methods:
   @smallskip
   interval::format(interval_format::width);
   cout << I << "\n";
-  @rem^// Prints 3.141592653589793 (+/- 2.220446049250313e-16)~
+  @rem^// Prints 3.141592653589793 (+/- 4.440892098500627e-16)~
   @smallskip
   interval::format(interval_format::center);
   cout << I << "\n";
@@ -3740,7 +3785,7 @@ The previous program has the following output:
 
 \begin{onscreen}
 [3.141, 3.142]
-3.141592653589793 (+/- 2.220446049250313e-16)
+3.141592653589793 (+/- 4.440892098500627e-16)
 \end{onscreen}
 
 The first call to \code{interval::format()} is unnecessary
@@ -3752,17 +3797,18 @@ rounded outward; the fewer the digits, the wider. The format \code{hexa} gives
 the same interval back, bit for bit.
 
 The \code{interval::pi()} constant is a predefined \dfn{canonical}
-interval containing $\pi$ (\pxref{sec:interval-constants}). Here,
-the width of the interval is equal to the $\epsilon$ of
-the format.
+interval containing $\pi$ (\pxref{sec:interval-constants}). Here, its bounds
+are two consecutive doubles, $2^{-51}$ apart: the midpoint written is one of
+them, and the radius is their distance, the smallest that has the interval
+within the midpoint plus or minus it.\newinvfive{} GAOL~4 wrote half of it.
 
 The \code{interval\_format::width} format may be useful whenever the number of
 digits displayed is insufficient to know whether the result is a single
 floating-point number or an interval whose size is very small (consider
 for example the first result above), because \emph{we have the guarantee that
-if the actual width of an interval is greater than zero, the width
-displayed will also be different from zero}. Another indication is that a degenerate
-interval is displayed between angles.
+if an interval is not a single number, the radius displayed will be different
+from zero}, whatever its size and the number of digits: the radius is rounded
+upward. A degenerate interval is displayed without a radius.
 
 
 \chapter{The names of IEEE 1788-2015}\label{chap:ieee1788}
@@ -3829,6 +3875,16 @@ The functions of GAOL that have the name and the meaning the standard gives them
   set (Table 10.2), where \code{left()} and \code{right()} are NaN, and
   \code{inf} returns $-0$ for a left bound 0 (12.12.8);
 \item \code{isMember(m, x)} is \code{false} for an infinite $m$ (10.6.3);
+\item \code{intervalToText(x)} writes the bounds of \code{x} rounded outward,
+  \code{[l, r]}, \code{[a]} for a degenerate interval whose value the digits
+  write exactly, as \code{[4]}, or \code{[empty]}, with 16 digits at most, an
+  interval literal of the standard (12.11) that \code{textToInterval} reads
+  back as an interval containing \code{x} (13.3): whatever the output format
+  that \code{interval::format()} sets, the precision of
+  \code{interval::precision()} and the locale of the program, where
+  \code{operator<{}<} writes the current format, which is no literal in the
+  format \element{width}, nor with a decimal point under a locale writing a
+  comma;\newinvfive
 \item \code{textToInterval} and \code{exactToInterval} read the names of the
   functions of the standard, and return the empty set for a string that is no
   interval (12.1.3), where \code{gaol::textToInterval} reads the names of
@@ -3916,7 +3972,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{isMember(m, x)} & \code{x.set\_contains(m)}, false for an infinite $m$\\
   \hline
   \multicolumn{2}{l}{\textit{Input and output (Clause 13)}}\\
-  \code{intervalToText(x)} & \code{operator<{}<} in the current format\\
+  \code{intervalToText(x)} & the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, whatever the current format, precision and locale\\
   \code{intervalToExact(x)} & \code{exact\_string(x)}\\
   \code{exactToInterval(s)} & \code{textToInterval(s)}\\
   \hline

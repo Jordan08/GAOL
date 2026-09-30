@@ -305,7 +305,7 @@ namespace {
     }
     // A point interval that the digits do not write exactly is written [a, b]:
     // the double it holds lies between the two decimal numbers, the output
-    // being rounded outward (<a, a> where they are exact, as <3, 3>). The
+    // being rounded outward ([a] where they are exact, as [3]). The
     // point is written with 7 digits, interval::precision() setting how many
     // digits GAOL writes.
     std::cout << "  each one holds f* = " << fstar_ref << ", computed apart\n";
