@@ -66,8 +66,13 @@ int main()
   check("-mno-daz-ftz: the modes that flush the subnormals to zero clear when main() starts", at_start == 0u,
         [&] { return "bits " + std::to_string(at_start); });
 #  endif
-  // Those of the link, or all of them, as a plug-in sets them
+  // Those of the link, or all of them, as a plug-in sets them; their clearing
+  // is not checked where the processor keeps them without honouring them
   const unsigned int modes = (at_start != 0u) ? at_start : all_flush_bits;
+  const bool honoured = flush_honoured(modes);
+  if (!honoured) {
+    std::printf("The processor does not flush the subnormals with the modes %#x: their clearing is not checked\n", modes);
+  }
 #else
   std::printf("No mode flushing the subnormals to zero that the test can read: the operations are checked as they are\n");
 #endif
@@ -99,11 +104,13 @@ int main()
     const unsigned int left = flush_bits();
     set_flush_bits(0u);
     const auto describe = [&] { return "modes " + std::to_string(left) + " after it, " + std::to_string(found) + " before"; };
+    if (honoured) {
 #  if GAOL_PRESERVE_ROUNDING
-    check(std::string(c.name) + ": flush-to-zero modes restored", left == found, describe);
+      check(std::string(c.name) + ": flush-to-zero modes restored", left == found, describe);
 #  else
-    check(std::string(c.name) + ": flush-to-zero modes cleared", left == 0u, describe);
+      check(std::string(c.name) + ": flush-to-zero modes cleared", left == 0u, describe);
 #  endif
+    }
 #endif
     check(std::string(c.name) + " the tightest enclosure", is_tightest_enclosure(r, c.value), [&] { return hex(r); });
   }

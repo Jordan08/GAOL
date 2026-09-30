@@ -264,33 +264,50 @@ namespace gaol_tests
 #  endif
   }
 
+  // Whether the modes of bits, set, make 2^-1060 + 0 a zero, as the probe of
+  // GAOL sees them: an emulator may keep the bits without honouring them. The
+  // sum is written to volatile memory before the modes are restored, the
+  // compilers not modelling the control register.
+  inline bool flush_honoured(unsigned int bits)
+  {
+    volatile double subnormal = 0x1p-1060, zero = 0.0;
+    volatile double sum;
+    const unsigned int saved = flush_bits();
+    set_flush_bits(bits);
+    const bool kept = flush_bits() == bits;
+    sum = subnormal + zero;
+    set_flush_bits(saved);
+    return kept && sum == 0.0;
+  }
+
   struct FlushMode
   {
     std::string name;
     unsigned int bits;
   };
 
-  // The modes of the processor, alone and together; FIZ where the processor
-  // keeps it, its bit being reserved, and read as 0, before Armv8.7
+  // The modes of the processor, alone and together, that it honours (FIZ, whose
+  // bit is reserved before Armv8.7, where it has it); the others are named on
+  // the standard output
   inline std::vector<FlushMode> flush_modes()
   {
 #  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
-    return { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
-             { "flush-to-zero and denormals-are-zero", 0x8040u } };
+    const std::vector<FlushMode> all = { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
+                                         { "flush-to-zero and denormals-are-zero", 0x8040u } };
 #  elif defined(__aarch64__)
-    std::vector<FlushMode> modes = { { "FZ", 0x1000000u } };
-    const unsigned int saved = flush_bits();
-    set_flush_bits(0x1u);
-    const bool has_fiz = flush_bits() == 0x1u;
-    set_flush_bits(saved);
-    if (has_fiz) {
-      modes.push_back({ "FIZ", 0x1u });
-      modes.push_back({ "FZ and FIZ", 0x1000001u });
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u }, { "FIZ", 0x1u }, { "FZ and FIZ", 0x1000001u } };
+#  else
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };
+#  endif
+    std::vector<FlushMode> modes;
+    for (const FlushMode& m : all) {
+      if (flush_honoured(m.bits)) {
+        modes.push_back(m);
+      } else {
+        std::printf("The processor does not flush the subnormals with %s: not checked\n", m.name.c_str());
+      }
     }
     return modes;
-#  else
-    return { { "FZ", 0x1000000u } };
-#  endif
   }
 #endif
 
