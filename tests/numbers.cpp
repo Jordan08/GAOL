@@ -317,7 +317,7 @@ namespace
     under the Debug C runtime of Visual C++, which reports a failed assertion
     of its own first ("unexpected input value; log10 failed", cfout.cpp), the
     logarithm of the subnormal being taken under the mode, and then writes
-    them right on x64, but 0 on x86.
+    0, on x86 as on x64.
   */
   void subnormal_output()
   {
