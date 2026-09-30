@@ -210,31 +210,34 @@ defect, the `__builtin_roundeven()` of `sin.c` (see
 patches against the current upstream sources, with three more found while
 preparing them or since: the masks of item 2 in three other files, the rounding
 direction `pow` reads for its subnormal results, and the one `cbrt.c`,
-`rsqrt.c` and `asinpi.c` read with mingw-w64 and with clang-cl. Through
-CORE-MATH they would reach glibc too, which takes functions from it since
-version 2.41, so each defect was looked for there as well.
+`rsqrt.c` and `asinpi.c` read with mingw-w64, with clang-cl and on Cygwin.
+Through CORE-MATH they would reach glibc too, which takes functions from it
+since version 2.41, so each defect was looked for there as well.
 
 **Nothing has been sent**, neither to CORE-MATH nor to glibc: sending them is
 for the maintainer of GAOL v5, as said in each part below.
 
 | Defect | CORE-MATH master, `b1a4badf` | glibc master (`30f988f`), 2.41 to 2.44 |
 | --- | --- | --- |
-| [masks of `long`](#1-masks-written-with-long) | present | absent: its copies write `MANTISSA_MASK` |
-| [shift of `asinpi_acc()`](#2-the-shift-of-asinpi_acc) | present | no `asinpi` of CORE-MATH |
+| [masks of `long`](#1-masks-written-with-long) | present | absent: its copies write `MANTISSA_MASK` or `~UINT64_C(0) >> 12` |
+| [shift of `asinpi_acc()`](#2-the-shift-of-asinpi_acc) | present | no `asinpi` of doubles from CORE-MATH |
 | [`__builtin_expect` of `rsqrt.c`](#3-the-__builtin_expect-of-rsqrtc) | present | no `rsqrt` of CORE-MATH |
 | [`__builtin_roundeven` of `sin.c`](#4-the-__builtin_roundeven-of-sinc) | present | no `sin` of CORE-MATH |
 | [rounding direction of `pow`](#5-the-rounding-direction-of-pow) | present | no `pow` of CORE-MATH; the x87 unit by design |
 | [rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c`](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic) | present | absent: its `cbrt` maps glibc's own `FE_*` values with a switch |
-| [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of CORE-MATH |
+| [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
 
 ### CORE-MATH
 
-Each patch is a commit of its own on upstream master,
-`b1a4badf6765d761873ee31f7419d1cc1cac19f8` (29 September 2026), written in the
-style of the file it changes, with the subject given; the diff blocks below
-are what `git diff` prints for it, but for the blank lines of context, written
-without their leading space, and `git apply` or `patch -p1` take them as they
-are there (line numbers below are those of that commit). To send them: a
+The patches are a series of six commits on upstream master,
+`b1a4badf6765d761873ee31f7419d1cc1cac19f8` (29 September 2026), in this order,
+each written in the style of the file it changes, with the subject given; the
+diff blocks below are what `git diff` prints for each, but for the blank lines
+of context, written without their leading space, and `git apply` or
+`patch -p1` take them as they are there (line numbers below are those of
+`b1a4badf`). Each block also applies alone to `b1a4badf`, but the `index`
+lines of patch 6 are those of the files patches 2 and 3 leave, which
+`git am` and `git apply --3way` rely on. To send them: a
 merge request on <https://gitlab.inria.fr/core-math/core-math>, or the output
 of `git format-patch` mailed to core-math@inria.fr, the address the sources
 give for reports, with the defect, the reproduction and the checks of each
@@ -244,7 +247,8 @@ They were compiled with GCC 13.3 and Clang 18 on x86-64 Linux, and with
 MinGW-w64 11 (GCC 13, and Clang 18 for patches 5 and 6) for Windows x64, whose
 `long` has 32 bits, the programs being run under wine and compiled with
 `-mfma`: CORE-MATH needs a correctly rounded `fma()`, which the instruction of
-the processor is and the function the programs reach under wine is not. With
+the processor is and the `fma()` of the `libmingwex.a` of mingw-w64 11, linked
+into the programs, is not. With
 MPFR 4.2.1, CORE-MATH's own checks pass on the patched tree:
 `./check.sh --worst`, which checks every argument of the `.wc` file in the
 four rounding directions, for every function a patch touches, and
@@ -277,6 +281,10 @@ assumption is in the `1l << (a->ex + 1073)` of `cos.c` (401), `tan.c` (530) and
 bits; no argument reaches it, since their accurate phases never give a
 subnormal, and the patch writes it `1ll`, as `pow.h` does. The `~0ul` of
 `binary80/atan2/atan2l.c` and `binary128/expm1/expm1q.c` were not examined.
+For the authors: at line 753 of `lgamma.c` the masked value goes into an
+`unsigned`, so that the test there sees 32 bits with the patch, as master does
+where `long` has 64 bits, and never 52; if 52 are meant, `ft` wants the type
+`uint64_t`.
 
 The patch, to commit as
 `[binary64] do not assume that long has 64 bits`:
@@ -514,8 +522,8 @@ index 226a7fd8..ce089f18 100644
 
 **How it was checked.** `cr_asinpi()` from master and from the patched tree,
 with GCC and with Clang, give the same results over a million arguments next to
-±1 (1 − |x| from 2<sup>−54</sup> to 2<sup>−30</sup>) in the four directions.
-Over 4 million more (1 − |x| from 2<sup>−55</sup> to 2<sup>−1</sup>) and the
+±1 (1 − |x| from 2<sup>−53</sup> to 2<sup>−30</sup>) in the four directions.
+Over 3.9 million more (1 − |x| from 2<sup>−53</sup> to 2<sup>−1</sup>) and the
 8,193 doubles nearest to √(1 − 4<sup>−j</sup>) for j = 1 to 27, 19,041 calls
 took `asinpi_acc()` in one of the four directions, down to
 1 − |x| ≈ 2<sup>−46</sup>, 2,172 of them with ss > 63: master and the patch
@@ -665,14 +673,15 @@ where the compiler has none, in `gaol/core_math_port.h`.
 direction of MXCSR, x86-64 computing the doubles with SSE. The `fegetround()`
 of glibc reads the control word of the x87 unit only
 (`sysdeps/x86_64/fpu/fegetround.c`: "We only check the x87 FPU unit. The SSE
-unit should be the same"), and so does that of mingw-w64 (`fnstcw` alone, in
-the `libmingwex.a` of mingw-w64 11), so a program that sets MXCSR without the
-x87 unit, with `_mm_setcsr()` as interval libraries do, gets its subnormal
-powers rounded in the direction of the x87 unit. This is how GAOL's `pow` was
-found to miss the exact value of such results with the x87 unit to nearest and
-MXCSR upward. `cbrt.c`, `rsqrt.c` and `asinpi.c` read MXCSR already, with
-their `get_rounding_mode()`, but with mingw-w64 they call `fegetround()`, and
-with clang-cl they read it wrong
+unit should be the same"), and so do those of mingw-w64 (`fnstcw` alone, in
+the `libmingwex.a` of mingw-w64 11) and of newlib, which Cygwin uses
+(`newlib/libm/machine/shared_x86/fenv.c`), so a program that sets MXCSR
+without the x87 unit, with `_mm_setcsr()` as interval libraries do, gets its
+subnormal powers rounded in the direction of the x87 unit. This is how GAOL's
+`pow` was found to miss the exact value of such results with the x87 unit to
+nearest and MXCSR upward. `cbrt.c`, `rsqrt.c` and `asinpi.c` read MXCSR
+already, with their `get_rounding_mode()`, but with mingw-w64 they call
+`fegetround()`, and with clang-cl and on Cygwin they read it wrong
 ([patch 6](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic)): the
 patch gives `pow.h` a `get_rounding_mode()` of the form patch 6 gives them,
 which on x86-64 reads the rounding field of MXCSR and looks its `FE_*` value up
@@ -686,20 +695,21 @@ The patch, to commit as
 
 ```diff
 diff --git a/src/binary64/pow/pow.h b/src/binary64/pow/pow.h
-index 84513b3e..5f21bdf3 100644
+index 84513b3e..e55896d4 100644
 --- a/src/binary64/pow/pow.h
 +++ b/src/binary64/pow/pow.h
-@@ -219,6 +219,23 @@ static inline int64_t dint_toi(const dint64_t *a) {
+@@ -219,6 +219,24 @@ static inline int64_t dint_toi(const dint64_t *a) {
    return a->sgn ? -r : r;
  }
 
 +/* The doubles are rounded by the SSE unit on x86-64: read the rounding mode
-+   from MXCSR. The fegetround() of some C libraries (GNU libc, mingw-w64)
-+   reads the control word of the x87 unit, which differs from MXCSR if a
-+   program changed one without the other. The rounding field of MXCSR is 0
-+   to nearest, 1 downward, 2 upward and 3 toward zero, whatever values the C
-+   library gives FE_TONEAREST, ... (0x400 for FE_DOWNWARD with GNU libc and
-+   mingw-w64, 0x100 with the UCRT of Windows): look them up. */
++   from MXCSR. The fegetround() of some C libraries (GNU libc, mingw-w64,
++   newlib) reads the control word of the x87 unit, which differs from MXCSR
++   if a program changed one without the other. The rounding field of MXCSR
++   is 0 to nearest, 1 downward, 2 upward and 3 toward zero, whatever values
++   the C library gives FE_TONEAREST, ... (0x400 for FE_DOWNWARD with GNU
++   libc and mingw-w64, 0x100 with the UCRT of Windows, 1 with newlib): look
++   them up. */
 +static inline int get_rounding_mode (void)
 +{
 +#if defined(__x86_64__)
@@ -713,7 +723,7 @@ index 84513b3e..5f21bdf3 100644
  // round a, assuming a is in the subnormal range
  // exact is non-zero iff x^y is exact
  static inline double dint_tod_subnormal(dint64_t *a, int exact) {
-@@ -233,7 +250,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+@@ -233,7 +251,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
    uint64_t rb, sb;
 
    if (ex >= 64) { // all bits disappear: |a| < 2^-1074
@@ -722,7 +732,7 @@ index 84513b3e..5f21bdf3 100644
      case FE_TONEAREST:
        rb = (a->hi >> 63);        // only used when e=64
        sb = (a->hi << 1) | a->lo; // idem
-@@ -258,7 +275,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+@@ -258,7 +276,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
    rb = (a->hi >> (ex - 1)) & 0x1; // round bit
    sb = (a->hi << (65 - ex)) || a->lo; // sticky bit
 
@@ -731,7 +741,7 @@ index 84513b3e..5f21bdf3 100644
    case FE_TONEAREST:
      // if ex=12 there is no underflow when hi rounds to 2^52 and rb=1
      // and the next bit is 1 too
-@@ -405,7 +422,7 @@ static inline void subnormalize_qint(qint64_t *a) {
+@@ -405,7 +423,7 @@ static inline void subnormalize_qint(qint64_t *a) {
    uint64_t md = (a->hh >> (ex - 1)) & 0x1;
    uint64_t lo = (a->hh & (~0ull >> ex)) || a->hl || a->lh || a->ll;
 
@@ -753,10 +763,11 @@ calls `fegetround()`. Over 1.2 million pairs (those of `pow.wc`, and 200,000
 whose power is next to 2<sup>−1022</sup> or below), with the x87 unit to
 nearest and MXCSR set to each direction, master gives about 97,000 results per
 directed rounding other than those it gives with both units set, with GCC and
-Clang on Linux and with MinGW-w64 (GCC and Clang) under wine; the patched `pow`
-gives none. With clang-cl, emulated as for patch 6, the patched `pow` gives the
-results of Linux, where a copy of the `get_rounding_mode()` of `rsqrt.c` gives
-193,196 wrong results upward and 1,168 downward.
+Clang on Linux, with MinGW-w64 (GCC and Clang) under wine, and with Cygwin,
+emulated as for patch 6; the patched `pow` gives none. With clang-cl, emulated
+in the same way, the patched `pow` gives the results of Linux, where a copy of
+the `get_rounding_mode()` of `rsqrt.c` gives 193,196 wrong results upward and
+1,168 downward.
 
 **Status.** Present in master.
 
@@ -769,7 +780,8 @@ to 101, `asinpi.c` 93 to 110): by 3 for the values of glibc (`FE_DOWNWARD`
 0x400, `FE_UPWARD` 0x800); where `__WIN32__` or `__WIN64__` is defined, by 5 or
 through a table for the two layouts of the UCRT of Windows (`FE_UPWARD` 0x200,
 or 0x100 before Windows 10 14393, as the comment there says), and otherwise
-with a `#warning` and `return fegetround();`. Two compilers get it wrong:
+with a `#warning` and `return fegetround();`. Two compilers and Cygwin get it
+wrong:
 
 - **mingw-w64** (GCC, and Clang for the CLANG64 environment of MSYS2) defines
   `__WIN32__` and gives `FE_*` the values of glibc (`fenv.h` of mingw-w64 11):
@@ -791,27 +803,33 @@ with a `#warning` and `return fegetround();`. Two compilers get it wrong:
   the three files shift by 3 and compare 0x400, 0x800 and 0xc00 with the
   UCRT's 0x100, 0x200 and 0x300, so that the downward and upward roundings are
   taken for toward zero.
+- **Cygwin**, where GCC and Clang define `__x86_64__` but neither `__WIN32__`
+  nor `__WIN64__`, uses the `fenv.h` of newlib
+  (`newlib/libc/machine/shared_x86/sys/fenv.h`), which gives `FE_*` the values
+  0 to 3: the three files shift by 3, as with clang-cl, and the downward and
+  upward roundings are taken for toward zero in the same way. Upward,
+  `cr_cbrt(0x1.3a9ccd7f022dbp+0)` is `0x1.1236160ba9b93p+0` there too.
 
-Visual C++ defines no `__x86_64__` and calls `fegetround()`, and the other
-systems are right. The rounding field of MXCSR is 0 to nearest, 1 downward,
-2 upward and 3 toward zero whatever the system: the patch reads it so in the
-three files, whatever values the C library gives `FE_*`, as the table of the
-branch `FE_UPWARD == 0x0100` already does, and as the `binary128` functions do
-with `_MM_ROUND_*`. `cbrt.c` returns the field itself, which is its 0 to 3;
+Visual C++ defines no `__x86_64__` and calls `fegetround()`, and glibc, musl,
+macOS and the BSDs, whose `FE_*` are the values of the rounding field in the
+x87 control word, are right. The rounding field of MXCSR is 0 to nearest, 1
+downward, 2 upward and 3 toward zero whatever the system: the patch reads it so
+in the three files, whatever values the C library gives `FE_*`, as the table of
+the branch `FE_UPWARD == 0x0100` already does, and as the `binary128` functions
+do with `_MM_ROUND_*`. `cbrt.c` returns the field itself, which is its 0 to 3;
 `rsqrt.c` and `asinpi.c` look their `FE_*` value up in that table. The
 `#warning` and the call to `fegetround()` go, so that `rsqrt` and `asinpi` read
 MXCSR with mingw-w64 too, as they mean to (see patch 5). The smallest change,
-`mode = fegetround();` for `return fegetround();` in `cbrt.c`, would fix
-`cbrt` with mingw-w64 only, while the two units agree. `binary80/pow/powl.c`
-has the same branches, returning `FE_*` as `rsqrt.c` does, and was not
-examined.
+`mode = fegetround();` for `return fegetround();` in `cbrt.c`, would fix `cbrt`
+with mingw-w64 only, while the two units agree. `binary80/pow/powl.c` has the
+same branches, returning `FE_*` as `rsqrt.c` does, and was not examined.
 
 The patch, to commit as
 `[cbrt,rsqrt,asinpi] read the rounding field of MXCSR whatever the values of FE_*`:
 
 ```diff
 diff --git a/src/binary64/asinpi/asinpi.c b/src/binary64/asinpi/asinpi.c
-index ce089f18..e6b13ece 100644
+index ce089f18..65607be1 100644
 --- a/src/binary64/asinpi/asinpi.c
 +++ b/src/binary64/asinpi/asinpi.c
 @@ -90,24 +90,13 @@ inline static unsigned int get_arm_rounding_mode(void)
@@ -839,15 +857,15 @@ index ce089f18..e6b13ece 100644
 +  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
 +  // 3 toward zero, whatever values the C library gives FE_TONEAREST, ...
 +  // (0x400 for FE_DOWNWARD with GNU libc and mingw-w64, 0x100 with the UCRT
-+  // of Windows, which clang-cl uses with __x86_64__ defined and __WIN32__
-+  // not): look them up.
++  // of Windows, 1 with newlib; clang-cl and Cygwin define __x86_64__ and
++  // not __WIN32__): look them up.
 +  static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
 +  return lut[_MM_GET_ROUNDING_MODE()>>13];
  #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
    return get_arm_rounding_mode();
  #else
 diff --git a/src/binary64/cbrt/cbrt.c b/src/binary64/cbrt/cbrt.c
-index b416c6f0..9323ab21 100644
+index b416c6f0..c398e49f 100644
 --- a/src/binary64/cbrt/cbrt.c
 +++ b/src/binary64/cbrt/cbrt.c
 @@ -81,24 +81,12 @@ static inline int get_rounding_mode (fexcept_t *flagp)
@@ -875,14 +893,14 @@ index b416c6f0..9323ab21 100644
 +  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
 +  // 3 toward zero, the values this function returns, whatever values the C
 +  // library gives FE_TONEAREST, ... (0x400 for FE_DOWNWARD with GNU libc and
-+  // mingw-w64, 0x100 with the UCRT of Windows, which clang-cl uses with
-+  // __x86_64__ defined and __WIN32__ not).
++  // mingw-w64, 0x100 with the UCRT of Windows, 1 with newlib; clang-cl and
++  // Cygwin define __x86_64__ and not __WIN32__).
 +  return (*flagp & _MM_ROUND_MASK)>>13;
  #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
    fegetexceptflag (flagp, FE_ALL_EXCEPT);
    mode = get_arm_rounding_mode();
 diff --git a/src/binary64/rsqrt/rsqrt.c b/src/binary64/rsqrt/rsqrt.c
-index 6bc8cf64..998b5f98 100644
+index 6bc8cf64..07579525 100644
 --- a/src/binary64/rsqrt/rsqrt.c
 +++ b/src/binary64/rsqrt/rsqrt.c
 @@ -81,24 +81,13 @@ inline static unsigned int get_arm_rounding_mode(void)
@@ -910,8 +928,8 @@ index 6bc8cf64..998b5f98 100644
 +  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
 +  // 3 toward zero, whatever values the C library gives FE_TONEAREST, ...
 +  // (0x400 for FE_DOWNWARD with GNU libc and mingw-w64, 0x100 with the UCRT
-+  // of Windows, which clang-cl uses with __x86_64__ defined and __WIN32__
-+  // not): look them up.
++  // of Windows, 1 with newlib; clang-cl and Cygwin define __x86_64__ and
++  // not __WIN32__): look them up.
 +  static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
 +  return lut[_MM_GET_ROUNDING_MODE()>>13];
  #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
@@ -938,14 +956,21 @@ directed rounding, and the patched ones none. clang-cl, emulated with Clang 18
 on Linux (the `FE_*` values of the UCRT put over those of glibc, `__WIN32__`
 undefined as there): master gives 42 wrong `cbrt` results downward and 42
 upward, 1,338 wrong `rsqrt` results upward, and 499,838 and 526,673 wrong
-`asinpi` results downward and upward; the patched files none. The patched
-files compile without a warning with GCC 13 and Clang 18, for Linux and for
-MinGW-w64, where master's `#warning` fires, and their object code no longer
-calls `fegetround()` on x86-64. With MPFR, `./check.sh --worst` (212,508,
-19,844 and 116,822 arguments per direction) and `./check.sh --special` with
-2,000,000 random arguments pass for the three functions. On x86-64 Linux the
-patched `cbrt` is as fast as master (about 12 ns a call with GCC 13, within
-the noise of the measure).
+`asinpi` results downward and upward; the patched files none. Cygwin,
+emulated in the same way with GCC 13 and Clang 18 (the `FE_*` values of
+newlib, 0 to 3, put over those of glibc, and a `fegetround()` that reads the
+x87 unit, as newlib's does): master gives 42 wrong `cbrt` results downward and
+42 upward, 1,338 (Clang) and 1,341 (GCC) wrong `rsqrt` results upward, and
+499,838 and 526,673 different `asinpi` results downward and upward (mpmath:
+all those of `cbrt` and `rsqrt` and 3,000 sampled of `asinpi` are wrong); the
+patched files none, the direction being set in both units or in MXCSR alone.
+The patched files compile without a warning with GCC 13 and Clang 18, for Linux
+and for MinGW-w64, where master's `#warning` fires, and their object code no
+longer calls `fegetround()` on x86-64. With MPFR, `./check.sh --worst`
+(212,508, 19,844 and 116,822 arguments per direction) and
+`./check.sh --special` with 2,000,000 random arguments pass for the three
+functions. On x86-64 Linux the patched `cbrt` is as fast as master (about 12 ns
+a call with GCC 13, within the noise of the measure).
 
 **Status.** Present in master.
 
