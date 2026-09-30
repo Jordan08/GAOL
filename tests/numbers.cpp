@@ -1331,8 +1331,17 @@ namespace
     for (const interval& x : specials) {
       expect_each_flag(x);
     }
+    // 300 random draws take a few seconds in an optimized build, but more
+    // than the 300 s the test has in the Debug builds of Visual C++, whose
+    // streams and checked iterators are much slower: those builds, which do
+    // not define NDEBUG, draw 30.
+#ifdef NDEBUG
+    const int nb_random_draws = 300;
+#else
+    const int nb_random_draws = 30;
+#endif
     Random random;
-    for (int i = 0; i < 300; ++i) {
+    for (int i = 0; i < nb_random_draws; ++i) {
       // Drawn one at a time, so that every compiler checks the same
       // intervals: the order in which the arguments of a call are evaluated
       // is unspecified. The order kept is the one of GCC.
