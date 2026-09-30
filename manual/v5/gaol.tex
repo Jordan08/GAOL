@@ -328,14 +328,17 @@ but the second one, which no macro of the compiler shows:
 \item a compiler saying of \option{-frounding-math} ``overriding currently
   unsupported rounding mode on this target'', as Clang 14 for 64-bit ARM
   (Clang 18 honours the rounding direction there);
-\item a MinGW-w64 whose \code{fma()} and \code{round()} are those of the
-  math library of mingw-w64: on x64, before mingw-w64 12, and linked with
-  \file{msvcrt.dll} rather than the UCRT (MSYS2 MINGW64, the cross compilers
-  of Debian and Ubuntu); on 32-bit x86, before mingw-w64 11. That
-  \code{fma()} is not correctly rounded, and CORE-MATH computes with it; that
-  \code{round()} depends on the rounding direction. A toolchain of mingw-w64
-  12 or later linking the UCRT (MinGW-Builds GCC 14 and 15, MSYS2 UCRT64 and
-  CLANG64) takes those of \file{ucrtbase.dll}, which are right;
+\item a MinGW-w64 whose \code{fma()} or \code{round()} is wrong. On x64,
+  before mingw-w64 12, and linked with \file{msvcrt.dll} rather than the UCRT
+  (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are those
+  of the math library of mingw-w64, computed in doubles: that \code{fma()} is
+  not correctly rounded, and CORE-MATH computes with it; that \code{round()}
+  depends on the rounding direction. On 32-bit x86, before mingw-w64 11, as
+  the mingw-w64 9 of WinLibs, whose \code{fma()} rounds each of its partial
+  sums to a double. On ARM, before mingw-w64 11, not tested. A toolchain of
+  mingw-w64 12 or later linking the UCRT (MinGW-Builds GCC 14 and 15, MSYS2
+  UCRT64 and CLANG64) takes those of \file{ucrtbase.dll}, which pass the
+  tests;
 \item \option{-ffast-math}, \option{-Ofast} and \option{/fp:fast}, with which
   the compiler rounds to nearest and drops the checks of NaN and infinities;
 \item \option{-ffinite-math-only}, which \option{-ffast-math} and

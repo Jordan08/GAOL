@@ -71,9 +71,10 @@ c_comp = meson.get_compiler('c')
 
 gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
 # mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
-# before version 12 or linked with msvcrt.dll, on 32-bit x86 before 11, where
-# the fma() and round() of the programs are those of mingw-w64's own math
-# library, which are not right (see CMakeLists.txt)
+# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
+# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
+# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM before 11, not tested
+# (see CMakeLists.txt)
 
 msvc = cpp_comp.get_argument_syntax() == 'msvc'
 

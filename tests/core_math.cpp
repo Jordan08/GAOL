@@ -182,9 +182,10 @@ namespace
     cr_tan() gives for a tiny x, rounded upward to two doubles above x (the
     MinGW-w64 GCC 11 to 13 of Chocolatey gave wrong bounds so); its round() of
     +-0x1.fffffffffffffp-2 was +-1 in every direction but upward. The fma()
-    of mingw-w64 11 for 32-bit x86, computed in extended precision, passes.
-    The expected values were computed with exact rational arithmetic, and
-    checked with mpmath.
+    of mingw-w64 11 for 32-bit x86, computed in extended precision, passes
+    these checks, though not correctly rounded everywhere (see
+    gaol/gaol_config.h), and so does its round(). The expected values were
+    computed with exact rational arithmetic, and checked with mpmath.
   */
   void c_library_fma_and_round()
   {

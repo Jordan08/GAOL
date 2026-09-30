@@ -279,9 +279,9 @@ Codac.
   `fma(a, b, -a*b)` among them and `x + x*2^-54` as `cr_tan()` computes it, and
   `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
-  arithmetic. The `fma()` and `round()` of mingw-w64's own math library, which
-  `gaol/gaol_config.h` refuses, fail 21 and 6 of these checks under wine
-  (GAOL v5).
+  arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
+  x64, which `gaol/gaol_config.h` refuses there, fail 21 and 6 of these checks
+  under wine (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:

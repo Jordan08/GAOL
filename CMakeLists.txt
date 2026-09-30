@@ -201,14 +201,18 @@ if(GAOL_TARGET_IS_ARM32)
 endif()
 
 # mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
-# fma() and round() of the programs are those of mingw-w64's own math library:
-# on x86-64, before version 12 (the MinGW-w64 GCC 11 to 13 of Chocolatey) and
-# linked with msvcrt.dll rather than the UCRT (MSYS2 MINGW64, the cross
-# compilers of Debian and Ubuntu), and on 32-bit x86 before 11 (GCC 11
-# of WinLibs). That fma() is not correctly rounded, and CORE-MATH's functions
-# compute with it where the compiler has no -mfma (GCC for Windows, see
-# below); that round() depends on the rounding direction. From version 12 on,
-# a toolchain linking the UCRT takes those of ucrtbase.dll, which are right.
+# fma() or round() of the programs is wrong. On x86-64, before version 12 (the
+# MinGW-w64 GCC 11 to 13 of Chocolatey) and linked with msvcrt.dll rather than
+# the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are
+# those of mingw-w64's own math library, computed in doubles: that fma() is not
+# correctly rounded, and CORE-MATH's functions compute with it where the
+# compiler has no -mfma (GCC for Windows, see below); that round() depends on
+# the rounding direction. On 32-bit x86, where mingw-w64 computes them on the
+# x87 unit, before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose
+# fma() rounds each of its partial sums to a double (the one of mingw-w64 11,
+# accepted, keeps them in extended precision and passes the tests, though not
+# correctly rounded). On ARM, before 11, not tested. From version 12 on, a
+# toolchain linking the UCRT takes those of ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
