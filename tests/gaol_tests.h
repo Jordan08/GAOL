@@ -43,6 +43,10 @@
 
 #include "gaol/gaol"
 
+#if defined(_MSC_VER) && defined(_DEBUG)
+#  include <crtdbg.h>
+#endif
+
 namespace gaol_tests
 {
   const double inf = std::numeric_limits<double>::infinity();
@@ -127,10 +131,59 @@ namespace gaol_tests
     return gaol::interval::emptyset();
   }
 
+#if defined(_MSC_VER) && defined(_DEBUG)
+  /*
+    The Debug C runtime of Visual C++ reports a failed assertion, of its own
+    or of the checked iterators of its library, and an invalid parameter, in
+    a dialog box, which waits for a click that never comes on a machine of the
+    CI: the test hangs until ctest stops it at 300 s, and its output, which is
+    buffered, is lost. The reports are written to stderr instead, where the
+    test goes on, and counted: summary() makes a failure of them.
+  */
+  inline long& debug_runtime_reports()
+  {
+    static long n = 0;
+    return n;
+  }
+
+  inline int __cdecl count_report(int type, char*, int*)
+  {
+    debug_runtime_reports() += (type != _CRT_WARN) ? 1 : 0;
+    return 0; // Reported as _CrtSetReportMode() says
+  }
+
+  inline int __cdecl count_wide_report(int type, wchar_t*, int*)
+  {
+    debug_runtime_reports() += (type != _CRT_WARN) ? 1 : 0;
+    return 0;
+  }
+
+  struct DebugRuntimeReports
+  {
+    DebugRuntimeReports()
+    {
+      const int types[] = { _CRT_WARN, _CRT_ERROR, _CRT_ASSERT };
+      for (int type : types) {
+        _CrtSetReportMode(type, _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(type, _CRTDBG_FILE_STDERR);
+      }
+      _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, count_report);
+      _CrtSetReportHookW2(_CRT_RPTHOOK_INSTALL, count_wide_report);
+      _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    }
+  };
+
+  const DebugRuntimeReports debug_runtime_reports_to_stderr;
+#endif
+
   // Prints the number of checks and failures of each name, and returns the
   // exit status of the test
   inline int summary()
   {
+#if defined(_MSC_VER) && defined(_DEBUG)
+    check("the Debug C runtime of Visual C++ reports no assertion and no error", debug_runtime_reports() == 0,
+          [] { return std::to_string(debug_runtime_reports()) + " reports, written to stderr"; });
+#endif
     for (const auto& d : largest_distances()) {
       std::printf("%-60s at most %d doubles from the tightest bounds\n", d.first.c_str(), d.second);
     }
