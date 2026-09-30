@@ -410,10 +410,10 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   - `examples/examples.md` décrit encore la revue n° 21 (formats width et center, intervalToText) comme ouverte : ligne 21 du
     tableau (l. 641, non marquée Fixed) et annexe B (l. 1187) ; l. 566 dit encore que le format width est décrit « midpoint and
     width ». (#57)
-  - `numbers` dépasse 300 s sous Visual C++ en Debug, x86 et x64, depuis `subnormal_output()` (sous-normaux écrits sous
-    denormals-are-zero) : une boîte de dialogue du runtime Debug est soupçonnée, sans Visual C++ pour le vérifier ici. Le harnais
-    envoie maintenant ses rapports sur stderr ; selon le log de la CI, l'assertion sera à corriger dans GAOL, ou dans le test si elle
-    vient du runtime lui-même. (#58)
+  - Le runtime C Debug de Visual C++ déclenche sa propre assertion (« unexpected input value; log10 failed », `cfout.cpp`) quand
+    il écrit un sous-normal sous denormals-are-zero : `numbers` bloquait sur sa boîte de dialogue. Un programme Debug qui a mis DAZ
+    et écrit un intervalle à borne sous-normale la reçoit aussi, par `operator<<`. GAOL doit-il retirer DAZ de MXCSR le temps
+    d'écrire ses bornes ? À décider avec le point 45. (#58)
 - **18** :
   - `gaol_read_uncertain()` fait ses sommes avec `gaol_decimal_add_sub()`, qui insère en tête d'une `std::string`, ce qui est
     quadratique aussi. 20 000 chiffres prennent 0,07 s contre 0,045 s sous la forme simple, et 100 000 chiffres 1,3 s contre 0,5 s.
