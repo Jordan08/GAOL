@@ -184,28 +184,33 @@ kept as a patch to reapply.
 7. **The rounding direction of `cbrt`, `rsqrt` and `asinpi` with clang-cl on
    x86-64** in `cbrt/cbrt.c`, `rsqrt/rsqrt.c` and `asinpi/asinpi.c`
    (`get_rounding_mode()`). Where `__x86_64__` is defined, the three functions
-   make the `FE_*` value of the direction from the rounding field of MXCSR,
-   shifted by 5 for the values of the UCRT of Windows (`FE_UPWARD` 0x200, or
-   through a table for 0x100) where `__WIN32__` or `__WIN64__` is defined, and
-   by 3 for those of glibc (`FE_UPWARD` 0x800) otherwise. clang-cl defines
-   `__x86_64__` and `_WIN32`, but neither `__WIN32__` nor `__WIN64__`, and
-   takes the `fenv.h` of the UCRT: the three shifted by 3 and compared 0x400,
-   0x800 and 0xc00 with the UCRT's 0x100, 0x200 and 0x300, so that the downward
-   and the upward roundings were taken for toward zero. The line testing the
-   two macros now tests `_WIN32` as well, which sends clang-cl to the branch of
-   Windows, and changes nothing for the other compilers: Visual C++ defines no
+   make the `FE_*` value of the direction from the rounding field of MXCSR:
+   where `__WIN32__` or `__WIN64__` is defined, shifted by 5 for the values of
+   the UCRT of Windows (`FE_UPWARD` 0x200), through a table for those of its
+   versions before 14393 (`FE_UPWARD` 0x100), and by `fegetround()` for other
+   values, the path of mingw-w64 (item 6); otherwise, shifted by 3 for those
+   of glibc (`FE_UPWARD` 0x800). clang-cl defines `__x86_64__` and `_WIN32`,
+   but neither `__WIN32__` nor `__WIN64__`, and takes the `fenv.h` of the
+   UCRT: the three shifted by 3 and compared 0x400, 0x800 and 0xc00 with the
+   UCRT's 0x100, 0x200 and 0x300, so that the downward and the upward
+   roundings were taken for toward zero. The line testing the two macros now
+   tests `_WIN32` as well, which sends clang-cl to the branch of Windows, and
+   changes nothing for the other compilers: Visual C++ defines no
    `__x86_64__`, mingw-w64 defines `__WIN32__` already, and Cygwin defines no
    `_WIN32`. The three sources, compiled by clang-cl 18 with the flags of GAOL
    (`/fp:strict /arch:AVX2`) and the values of the `fenv.h` and `float.h` of
    the UCRT, and run under wine over the arguments of patch 6 below, gave 42
    wrong `cbrt` results downward and 42 upward, 1,338 wrong `rsqrt` results
    upward and 499,838 and 526,673 different `asinpi` results downward and
-   upward, all those checked with mpmath being wrong, and every wrong upward
-   result below the exact value; with the change, the results of x86-64 Linux.
-   The upper bounds of `nth_root(x, 3)`, `rsqrt` and `asinpi` did not enclose
-   the exact values there: `tests/core_math.cpp` checks `cbrt` at the arguments
-   of item 6, `asinpi` next to ±1 and `rsqrt` at the successors of the powers
-   of 4, which failed so (the same checks, run on the three objects under wine:
+   upward, all those checked with mpmath being wrong: every wrong upward
+   result, at a positive argument, below the exact value, and every wrong
+   downward one, at a negative argument, above it; with the change, the
+   results of x86-64 Linux. The bound of `nth_root(x, 3)` farther from zero
+   (the root of a negative number being the opposite of the upward root of its
+   magnitude) and the upper bounds of `rsqrt` and `asinpi` did not enclose the
+   exact values there: `tests/core_math.cpp` checks `cbrt` at the arguments of
+   item 6, `asinpi` next to ±1 and `rsqrt` at the successors of the powers of
+   4, which failed so (the same checks, run on the three objects under wine:
    70 of 70, 22 of 22 and 1,023 of 1,023), and the continuous integration
    builds and tests GAOL with clang-cl on x64. The fix is
    [proposed to CORE-MATH](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic),
