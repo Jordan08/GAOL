@@ -313,7 +313,11 @@ namespace
     written by the C library, which has to write it as it does without the
     mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS calls,
     tests the number against 0 first, and writes 0 for every subnormal under
-    denormals-are-zero. Nothing is checked where the C library does so.
+    denormals-are-zero. Nothing is checked where the C library does so, nor
+    under the Debug C runtime of Visual C++, which writes them right but
+    reports a failed assertion of its own first ("unexpected input value;
+    log10 failed", cfout.cpp), the logarithm of the subnormal being taken
+    under the mode.
   */
   void subnormal_output()
   {
@@ -339,6 +343,9 @@ namespace
       }
       return os.str();
     };
+#if defined(_MSC_VER) && defined(_DEBUG)
+    const long reports = debug_runtime_reports();
+#endif
     for (const interval& x : tiny) {
       for (double d : { x.left(), x.right() }) {
         if (written(d, true) != written(d, false)) {
@@ -346,6 +353,14 @@ namespace
                       "with the mode is not checked\n", written(d, true).c_str(), written(d, false).c_str());
           return;
         }
+#if defined(_MSC_VER) && defined(_DEBUG)
+        if (debug_runtime_reports() != reports) {
+          debug_runtime_reports() = reports; // The runtime's, not GAOL's
+          std::printf("The Debug C runtime of Visual C++ reports an assertion when it writes a subnormal under "
+                      "denormals-are-zero: the output of subnormals with the mode is not checked\n");
+          return;
+        }
+#endif
       }
     }
     const interval_format::format_t saved_format = interval::format();
