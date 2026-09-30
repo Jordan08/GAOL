@@ -130,11 +130,15 @@ demande une décision de votre part, de même que l'envoi des correctifs du 31.
 
 ### Questions ouvertes
 
-Le détail est dans `todo-notes/NN.md`.
+Les questions laissées ouvertes par chaque pull request (la sienne ou ses relectures) sont reportées ici dès qu'elles sont écrites,
+avec le numéro de la pull request. Le détail est dans `todo-notes/NN.md`.
 
-- **16** : `intervalToText` écrit toujours 16 chiffres ; suivre `interval::precision()` est un changement d'une ligne. Sous `showpos`, le
-  rayon porte aussi un signe ; sous une locale qui groupe les chiffres, le centre est groupé et le rayon non. Le format hexa écrit
-  toujours un point `[a, a]`.
+- **16** (#57) :
+  - `intervalToText` a toujours 16 chiffres ; suivre `interval::precision()` tiendrait en une ligne.
+  - Le format hexa écrit toujours un point `[a, a]`, bit à bit, avec les signes des zéros.
+  - Sous `std::showpos`, le rayon s'écrit `+2 (+/- +1)` ; sous une locale qui groupe les chiffres, le milieu est groupé et le
+    rayon non.
+  - `bound_to_text()` sous denormals-are-zero compare à 0.0 : à 1 chiffre, [22 × 5e-324] s'écrit `[1e-322]` (point 45).
 - **24b** (#50, fusionnée) : `floor`, `ceil` et `integer` coûtent +0,17 ns sur des opérandes non vides ; les rendre gratuits demande de rendre
   silencieuse la première comparaison du constructeur, ou des fonctions amies. Visual C++ pourrait appeler une fonction pour
   `std::islessequal`.
