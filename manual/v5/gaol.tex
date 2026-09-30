@@ -244,10 +244,6 @@ otherwise than in GAOL~4.
 
 The examples of the reference show what they print. An example that writes a
 \code{bool} sets \code{boolalpha} first: without it, \code{cout} writes 1 and 0.
-A NaN is written \code{nan} or \code{-nan} by the C++ library, according to its
-sign, which the operation that gave it decides: the manual shows \code{nan},
-where \code{chi(interval::emptyset())} prints \code{-nan} with the GNU C library
-on x86.
 
 Classes, methods, functions, macros, constants and variables available in the
 library but not described in this document are likely to change or to
@@ -3091,6 +3087,8 @@ characterizes the degree of symmetry of intervals. Its definition is as follows:
     b/a & \text{otherwise}
   \end{array}\right.
 \end{equation*}
+It is NaN for the empty set, 1 for \itv{-\infty}{+\infty}, and 0 for the other
+intervals with an infinite bound.
 \begin{example}
 cout << chi(interval(3,6)) << ' '
      << chi(interval(-6,3)) << ' '
@@ -3099,8 +3097,6 @@ cout << chi(interval(3,6)) << ' '
      << chi(interval(-5,GAOL_INFINITY));
 @outputs^0.5 -0.5 nan 1 0~
 \end{example}
-\paragraph{Note.} The NaN for the empty set is written \code{-nan} with the GNU C
-library on x86: its sign is the one the operation leaves it.
 \end{deffun}
 
 \begin{deffun}{interval}{min}{(const interval \&I, const interval \&J)}

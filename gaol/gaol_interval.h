@@ -732,7 +732,8 @@ namespace gaol_core {
 
     chi([0,0]) is -1, the value of chi([-a,a]) for a > 0: [0,0] is symmetric
     about 0. For an interval with an infinite bound, chi([-oo,+oo]) is 1 and
-    chi is 0 otherwise; chi is NaN for the empty set.
+    chi is 0 otherwise. chi is NaN for the empty set, the positive NaN of
+    width(), which cout writes nan (GAOL v5).
    */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ double chi(const interval &I);
   /*!
