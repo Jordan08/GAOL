@@ -218,24 +218,61 @@
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
-/* mingw-w64 whose <fenv.h> answers fegetround() from a state of its own rather
-   than from the registers. GAOL sets the rounding direction by writing the
-   registers, and the elementary functions of CORE-MATH read fegetround() to
-   know it: those versions then computed for another direction, and the bounds
-   did not enclose the exact values (tan, asin and atan of small arguments, in
-   the continuous integration).
+/* mingw-w64 whose fma() and round() are those of its own math library
+   (math/fma.c and math/round.c of its C runtime, whose code for x86 is the
+   same from version 9 to 13), which are not right:
 
-   The two reasons that had GAOL refuse mingw-w64 before are gone (the
-   hyperbolic functions of its math library, which GAOL no longer uses, and the
-   cost of its fesetround(), which GAOL no longer calls for its elementary
-   functions), so more versions are accepted than before: MinGW-w64 GCC 14 and
-   15 on x86-64 (mingw-w64 12 and 13), and GCC 12 to 15 on 32-bit x86
-   (mingw-w64 11 and later), where GAOL sets both units itself. GAOL was built
-   and tested with each of them (GAOL v5). */
-#if defined(__MINGW64_VERSION_MAJOR) \
-    && ((defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12) \
-        || (!defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 11))
-#  error "GAOL cannot be compiled with this mingw-w64: its <fenv.h> answers fegetround() from a state of its own rather than from the registers, and the elementary functions of CORE-MATH read fegetround() to know the rounding direction GAOL set by writing the registers, so that the bounds would not enclose the exact values. Build GAOL with the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0), or the one of MSYS2, or with Visual Studio"
+   - fma() splits x and y into halves of 26 and 27 bits and adds their four
+     products to z with four roundings: it is not correctly rounded. With
+     mingw-w64 11 on x86-64 under wine, 10.7 % of the error-free products
+     fma(a, b, -a*b), on which double-double arithmetic is built, and 25 to
+     73 % of other triples, depending on the rounding direction, were wrong.
+     CORE-MATH computes with __builtin_fma(), a call to fma() where GAOL gives
+     the compiler no -mfma (GCC for Windows, see CMakeLists.txt), and GAOL's
+     exact products with std::fma(): tan(0x1.56e1fc2f8f359p-997) rounded
+     upward was two doubles above its argument, and GAOL's lower bound above
+     the exact value; 136,591 checks of tests/core_math.cpp, 29 of
+     tests/elementary.cpp and 4 of tests/reverse.cpp failed, bounds not
+     enclosing the exact values (tan, asin and atan of small arguments, in the
+     continuous integration, with GCC 11 to 13 of Chocolatey on x86-64);
+   - round() is ceil(x), less 1 where that is more than 1/2 above x, a
+     difference rounded in the rounding direction in effect:
+     round(0x1.fffffffffffffp-2) is 1 rather than 0 in every direction but
+     upward on x86-64, and round_ties_to_away() (gaol_interval.h) calls it in
+     the direction of the code using GAOL.
+
+   On x86-64, before version 12 both are in libmingwex, which every program
+   links before the C runtime. From version 12 on, they are only in the
+   library of msvcrt.dll, which has neither: a toolchain linking the UCRT takes
+   those of ucrtbase.dll, which are right, and one linking msvcrt.dll still
+   takes mingw-w64's (the objects of MSYS2 MINGW64, mingw-w64 13, gave the
+   same wrong bounds). _UCRT tells the two apart, with GCC and Clang alike:
+   the headers of a UCRT toolchain define it (__MSVCRT_VERSION__ 0xE00, the
+   default of mingw-w64 12 and later), and GCC 14 and later with
+   -mcrtdll=ucrt; nothing defines it for msvcrt.dll (MSYS2 MINGW64, the msvcrt
+   builds of MinGW-Builds, the cross compilers of Debian, Ubuntu and Fedora).
+   A program defining _UCRT itself while linking msvcrt.dll is not refused
+   here, and fails tests/core_math.cpp. The continuous integration builds and
+   tests MinGW-Builds GCC 14 and 15 of Chocolatey, MSYS2 UCRT64 (GCC) and
+   CLANG64 (Clang), all UCRT, and checks the refusal of GCC 11 to 13 of
+   Chocolatey and of MSYS2 MINGW64.
+
+   On 32-bit x86, fma() computes on the x87 unit. The GCC 11.2 of WinLibs
+   (mingw-w64 9) compiled it without optimization, each partial sum rounded to
+   a double: the continuous integration saw the same wrong bounds as on
+   x86-64. MinGW-Builds GCC 12 and 13 (mingw-w64 11) and the mingw-w64 11 of
+   Ubuntu keep the partial sums in extended precision: the error-free products
+   are exact and the tests pass (under wine too), but the fma() is not
+   correctly rounded either, 125 of 400,000 other results being one double
+   off. round() is right there, computed in extended precision. On 64-bit
+   ARM, where fma() is the instruction, mingw-w64 before 11 stays refused, as
+   it was (not tested). */
+#if defined(__MINGW64_VERSION_MAJOR) && defined(__x86_64__) \
+    && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
+#  error "GAOL cannot be compiled with this mingw-w64: before version 12, or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library, whose fma() is not correctly rounded and whose round() depends on the rounding direction, and the bounds of the elementary functions (CORE-MATH computes with fma()) would not enclose the exact values. Build GAOL with a toolchain of mingw-w64 12 or later linking the UCRT: the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0), MSYS2 UCRT64 or CLANG64 (pacman -S mingw-w64-ucrt-x86_64-gcc), or with Visual Studio"
+#endif
+#if defined(__MINGW64_VERSION_MAJOR) && !defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 11
+#  error "GAOL cannot be compiled with this mingw-w64 before version 11: its fma() is that of mingw-w64's own math library, which is not correctly rounded (the one of the mingw-w64 9 of WinLibs for 32-bit x86 rounds each of its partial sums to a double), and the bounds of the elementary functions (CORE-MATH computes with fma()) would not enclose the exact values. Build GAOL with the MinGW-w64 GCC 12 to 15 of MinGW-Builds (choco install mingw --version=15.2.0 --x86), or with Visual Studio"
 #endif
 
 #endif /* __gaol_config_h__ */
