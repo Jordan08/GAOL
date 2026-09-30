@@ -67,18 +67,18 @@ Les pull requests des corrections vont vers `configure-clean`.
 | 24 (suite) : aucune opération ne lève FE_INVALID sur un opérande vide | #50 | `todo-24b-quiet-empty-operands` | fusionnée dans `configure-clean` |
 | 6 (suite) : MinGW-w64 sur x86-64 refusé avant 12 ou lié à msvcrt, pour la vraie raison (`fma()` et `round()`) | #51 | `todo-06b-mingw-msvcrt-refused` | fusionnée dans `configure-clean` |
 
-### Poussé et relu, sans pull request
+### Poussé et relu, pull requests ouvertes le 30 septembre
 
 Chaque branche a été relue par un relecteur indépendant, dont les points bloquants sont corrigés, puis poussée. Aucune n'a de conflit
 avec `configure-clean` tel qu'il est maintenant.
 
-| Point | Branche | Ce qui a été fait le 30 septembre |
+| Point | Branche (pull request) | Ce qui a été fait le 30 septembre |
 | --- | --- | --- |
-| 16 formats largeur et centre, et la décision du 13 | `todo-16-display-formats` | `configure-clean` fusionné ; remarques des relecteurs ; un intervalle ponctuel s'écrit `[a]` (et un zéro `[0]`) au lieu de `<a, a>`, par `operator<<` comme par `intervalToText` ; le lecteur accepte toujours `<a, b>` ; sous une locale à virgule, un point s'écrit avec ses deux bornes, que le lecteur refuse, au lieu de `[-2,5]` qu'il lisait [-2, 5] |
-| 39 Goldstein-Price | `todo-39-goldstein-price` | exemple 16 au style du fichier, temps en ms, sources des valeurs (sympy, mpmath) |
-| 40 petites erreurs | `todo-40-small-errors` | les trois commits de l'agent interrompu vérifiés et complétés ; `GAOL_NODISCARD` prend `[[nodiscard]]` avant C++17 avec GCC 7 et plus et Visual C++ 16.4 et plus ; `chi()` du vide écrit `nan` ; commentaire de `jail_parser.h` |
-| 6 `fegetround()` lu dans MXCSR | `todo-06-fegetround-mxcsr` | `configure-clean` fusionné, relu ; **`cbrt.c` corrigé** : sous MinGW-w64 x64, `get_rounding_mode()` rendait `FE_UPWARD` = 0x800 au lieu de 0 à 3, et `nth_root(x, 3)` ne contenait pas la racine cubique en sept cas difficiles, avec toutes les toolchains MinGW acceptées (MinGW-Builds UCRT, MSYS2 UCRT64 et CLANG64) |
-| 31 correctifs à proposer en amont | `todo-31-upstream-patches` | `3rd/README.md`, section « Changes to propose upstream » : six correctifs contre le master de CORE-MATH, vérifiés ; la glibc n'a aucun de ces défauts ; rien n'est envoyé |
+| 16 formats largeur et centre, et la décision du 13 | `todo-16-display-formats` (#57) | `configure-clean` fusionné ; remarques des relecteurs ; un intervalle ponctuel s'écrit `[a]` (et un zéro `[0]`) au lieu de `<a, a>`, par `operator<<` comme par `intervalToText` ; le lecteur accepte toujours `<a, b>` ; sous une locale à virgule, un point s'écrit avec ses deux bornes, que le lecteur refuse, au lieu de `[-2,5]` qu'il lisait [-2, 5] |
+| 39 Goldstein-Price | `todo-39-goldstein-price` (#53) | exemple 16 au style du fichier, temps en ms, sources des valeurs (sympy, mpmath) |
+| 40 petites erreurs | `todo-40-small-errors` (#55) | les trois commits de l'agent interrompu vérifiés et complétés ; `GAOL_NODISCARD` prend `[[nodiscard]]` avant C++17 avec GCC 7 et plus et Visual C++ 16.4 et plus ; `chi()` du vide écrit `nan` ; commentaire de `jail_parser.h` |
+| 6 `fegetround()` lu dans MXCSR | `todo-06-fegetround-mxcsr` (#54) | `configure-clean` fusionné, relu ; **`cbrt.c` corrigé** : sous MinGW-w64 x64, `get_rounding_mode()` rendait `FE_UPWARD` = 0x800 au lieu de 0 à 3, et `nth_root(x, 3)` ne contenait pas la racine cubique en sept cas difficiles, avec toutes les toolchains MinGW acceptées (MinGW-Builds UCRT, MSYS2 UCRT64 et CLANG64) |
+| 31 correctifs à proposer en amont | `todo-31-upstream-patches` (#56) | `3rd/README.md`, section « Changes to propose upstream » : six correctifs contre le master de CORE-MATH, vérifiés ; la glibc n'a aucun de ces défauts ; rien n'est envoyé |
 
 `configure-clean`, avec #51, a été fusionné dans la branche 6 (conflit dans `doc/tests.md` résolu en gardant les deux ajouts ; ctest et
 `core_math` passent).
@@ -146,8 +146,8 @@ Le détail est dans `todo-notes/NN.md`.
 
 ### Reprise
 
-Ouvrir, si vous le voulez, les pull requests des branches 16, 39, 40, 6 et 31 vers `configure-clean` (aucune n'a de
-conflit avec `configure-clean` après la fusion de #50) ; fusionner #29 (`configure-clean` vers `MATH-CORE`).
+Fusionner #53 à #57 quand leur CI est verte (le 16 a dû réduire en Debug la partie aléatoire de son test, qui dépassait 300 s
+sous Visual C++) ; fusionner #29 (`configure-clean` vers `MATH-CORE`).
 Reprendre les branches inachevées (3, 4, 8, 12, 17, 36 : relire, terminer, lancer la CI), en fusionnant d'abord `configure-clean` dans
 celles qui ont un conflit (fusion, jamais de réécriture d'une branche poussée) ; commencer les points non commencés ; écrire la pull
 request de synthèse (retirer les points faits de ce fichier, consigner les changements dans `ChangeLog` et `doc/differences.md`,
