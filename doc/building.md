@@ -28,11 +28,19 @@ and on file systems that ignore case (macOS, Windows), `#include <version>`,
 which the headers of libc++ write, would find it instead of the standard
 header.
 
-- CMake reads it before `project()`, which gives it to `PROJECT_VERSION`; a
-  change of `VERSION.txt` configures again.
-- meson reads it in `project()`, with Python, which works with meson 0.53 as
-  with later ones (`version: files()` needs meson 0.57); a change of
-  `VERSION.txt` configures again.
+- CMake reads it before `project()`, which gives it to `PROJECT_VERSION`, with
+  `gaol_read_version()` of `cmake/gaol_version.cmake`; a change of
+  `VERSION.txt` configures again. Where GAOL is the project built,
+  it reads the line `PACKAGE_VERSION=` of `configure` too, and warns when it
+  configures that `configure` was generated for another version than
+  `VERSION.txt` holds: the archive of the sources that CPack makes holds
+  `configure` as it is committed (see
+  [below](#the-archive-of-the-sources-and-the-packages)). It says nothing for
+  a tree without `configure`, or with a `configure` that has no such line.
+- meson reads it in `project()`, with Python (see [With meson](#with-meson)
+  for the Python it takes), which works with meson 0.53 as with later ones
+  (`version: files()` needs meson 0.57); a change of `VERSION.txt` configures
+  again.
 - `configure` reads it when it runs, whence all that follows, and make runs it
   again when `VERSION.txt` changes (`CONFIG_STATUS_DEPENDENCIES` of
   `Makefile.am`). Only what `AC_INIT` writes when autoconf generates
@@ -61,9 +69,32 @@ the `Version` of `gaol.pc`, `gaolConfigVersion.cmake` (`find_package(gaol
 asked for), the names of the archive and of the packages of CPack, and the
 `\version` of the manuals (configure, meson). Each build refuses a
 `VERSION.txt` that does not hold three numbers without leading zeros, which
-the macros write as C integers; blanks and empty lines around them are
-ignored. The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are
-their own, set in `configure.ac` and `manual/meson.build`.
+the macros write as C integers, and the three read it by the same rules, as
+autoconf does for `configure --version`. The blanks and empty lines around
+the version are ignored, the blanks being the six of ASCII (space, tab, line
+feed, vertical tab, form feed and carriage return, the CR of the line ends of
+Windows), not those of Unicode such as a no-break space; so is a UTF-8 byte
+order mark (the bytes EF BB BF) at the start of the file, which some editors
+of Windows write. The message of a build that refuses the file quotes
+what it read and gives the first bytes of the file in hexadecimal,
+`VERSION.txt holds "5.0.x" (bytes in hexadecimal: 35 2e 30 2e 78 0a), where it
+should hold the version of GAOL...`, which show what the quotation may hide:
+CMake and configure quote a second byte order mark, or a zero-width space, as
+it is, and it cannot be seen (meson writes it `\ufeff`, `\u200b`). A file of
+UTF-16 characters, which Windows PowerShell 5 writes for a redirection
+(`"5.0.0" > VERSION.txt`), is not decoded but refused, whether it starts with
+its byte order mark (FF FE, FE FF) or not (it then holds NUL bytes, which a
+text file does not hold): the message gives its bytes
+(`ff fe 35 00 2e 00`...) and ends with
+`the file is UTF-16: save it as UTF-8 or ASCII`, or, without the mark,
+`the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII`. The
+test `version_file` (`ctest -R version_file`) checks the reading of CMake,
+and `.github/scripts/version-file.sh configure|meson|autoconf`, which the
+continuous integration runs on a copy of the sources, those of configure,
+meson and autoconf.
+
+The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
+set in `configure.ac` and `manual/meson.build`.
 
 ## With CMake
 
@@ -112,9 +143,15 @@ cmake --build build --target package
 
 | File | What it holds |
 |---|---|
-| `gaol-<version>.tar.gz` (`package_source`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. CPack takes the source tree as it is, less what git ignores and the builds made within it, so that made from a clean checkout, the archive holds the files of the commit. |
+| `gaol-<version>.tar.gz` (`package_source`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. CPack takes the source tree as it is, less what git ignores and the builds made within it, so that made from a clean checkout, the archive holds the files of the commit, `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
 | `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL and `gaol.pc`, to extract anywhere, `gaol.pc` finding its directories from where it is. |
 | `libgaol-dev_<version>_<arch>.deb` (`package`, on Linux) | The same files in `/usr`, for `apt install ./libgaol-dev_<version>_<arch>.deb`: by default a static library and its headers, hence the name and the section `libdevel` of the development packages of Debian. |
+
+The archive takes its name from the version CMake read when it configured, and
+CMake warns of a `configure` generated for another version at that moment.
+After a change of `VERSION.txt`, configure the build directory again
+(`cmake -S . -B build`) before `package_source`: Ninja does it by itself, the
+Makefile generators do not.
 
 The packages hold `libgaol` as the build compiled it: with `GAOL_FMA` `ON`,
 the default, only the processors that have the fused multiply-add
@@ -213,6 +250,26 @@ project). The summary of `meson setup` gives the address for the bug reports,
 jordan.ninin@ensta.fr, and the page of GAOL v5, https://github.com/Jordan08/GAOL.
 The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
+
+`meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
+[The version of GAOL](#the-version-of-gaol)), and twice more for the message
+of a file it refuses: the first of `python3` and `python` that it finds in
+`PATH` or, when it finds neither, the Python that runs meson (the case of the
+`meson.exe` of the Windows installer when no Python is installed).
+`meson.build` names `python3` first because meson falls back on its own
+Python for that name alone; the continuous integration checks it on Linux
+with a `meson setup` whose `PATH` holds no Python.
+
+On Windows, the directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`
+holds the aliases `python.exe` and `python3.exe`, which only open the
+Microsoft Store when Python was not installed from it. meson 0.53.1 and later
+(the 0.53.2 of Ubuntu 20.04 and the meson of pip among them) leave that
+directory out of their search for programs, as long as `PATH` names it by
+that path (not for a profile whose directory differs from `USERPROFILE`).
+meson 0.53.0 and earlier take the alias, and `meson setup` stops on the
+failure of the command that reads `VERSION.txt`: use a later meson
+(`pip install meson`), or turn off the aliases of `python.exe` and
+`python3.exe` in the Windows settings ("Manage app execution aliases").
 
 ## Tests, examples, performance and the parser
 

@@ -242,6 +242,9 @@ change GAOL v5 brings, with its measures (\pxref{chap:documentation}). The
 mark \textcolor{blue}{\textsf{\scriptsize[GAOL~v5]}} follows what behaves
 otherwise than in GAOL~4.
 
+The examples of the reference show what they print. An example that writes a
+\code{bool} sets \code{boolalpha} first: without it, \code{cout} writes 1 and 0.
+
 Classes, methods, functions, macros, constants and variables available in the
 library but not described in this document are likely to change or to
 be removed. Consequently, they should be used with caution, if at all. Among
@@ -273,8 +276,8 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
   (musl) on x86-64 and 64-bit ARM; Debian 13 on s390x, ppc64le and riscv64;
 \item macOS 14, 15 and 26, on arm64 and x86-64, with AppleClang, the Clang of LLVM
   and GCC;
-\item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 12 to 15;
-  MSYS2 (UCRT64 with GCC, CLANG64 with Clang).
+\item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 GCC 14
+  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 with Clang).
 \end{itemize}
 
 \noindent
@@ -328,18 +331,42 @@ but the second one, which no macro of the compiler shows:
 \item a compiler saying of \option{-frounding-math} ``overriding currently
   unsupported rounding mode on this target'', as Clang 14 for 64-bit ARM
   (Clang 18 honours the rounding direction there);
-\item a MinGW-w64 whose \file{<fenv.h>} answers \code{fegetround()} from a
-  state of its own, before mingw-w64 12 on x64 and before 11 on 32-bit x86:
-  GAOL sets the rounding direction by writing the registers of the processor,
-  and CORE-MATH reads \code{fegetround()} to know it;
+\item a MinGW-w64 whose \code{fma()} or \code{round()} is wrong. On x64,
+  before mingw-w64 12, and linked with \file{msvcrt.dll} rather than the UCRT
+  (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are those
+  of the math library of mingw-w64, computed in doubles: that \code{fma()} is
+  not correctly rounded, and CORE-MATH computes with it; that \code{round()}
+  depends on the rounding direction. On 32-bit x86, before mingw-w64 11, as
+  the mingw-w64 9 of WinLibs, whose \code{fma()} rounds each of its partial
+  sums to a double. On ARM, before mingw-w64 11, not tested. A toolchain of
+  mingw-w64 12 or later linking the UCRT (MinGW-Builds GCC 14 and 15, MSYS2
+  UCRT64 and CLANG64) takes those of \file{ucrtbase.dll}, which pass the
+  tests;
 \item \option{-ffast-math}, \option{-Ofast} and \option{/fp:fast}, with which
   the compiler rounds to nearest and drops the checks of NaN and infinities;
+\item \option{-ffinite-math-only}, which \option{-ffast-math} and
+  \option{-Ofast} turn on: the compiler takes NaN and infinities never to
+  occur, in the inline functions of GAOL too, and the empty interval, whose
+  bounds are NaN, is no longer told empty;
 \item Visual C++ without \option{/fp:strict}, which then assumes rounding to
   nearest;
 \item doubles computed on the x87 unit of 32-bit x86 processors, in extended
   precision (without \option{-msse2 -mfpmath=sse}, or \option{/arch:SSE2}):
   CORE-MATH assumes every operation on doubles rounded to a double.
 \end{itemize}
+
+\noindent
+\option{-fno-fast-math}, one of the flags of interval arithmetic, turns
+\option{-ffast-math} and \option{-ffinite-math-only} off when it comes after
+them on the command line, and does nothing when it comes before them, where the
+compilation stops. No macro of the compiler shows the following, which
+\file{gaol/gaol\_config.h} cannot refuse and which give wrong results all the
+same: \option{-funsafe-math-optimizations} and \option{-ffast-math
+-fno-finite-math-only} with GCC, which rewrites the addition by which GAOL sees
+the rounding direction, so that an operation does not set it upward again after
+the code using GAOL left it elsewhere; and \option{-fno-honor-nans} alone with
+Clang, which does to the empty interval what \option{-ffinite-math-only} does.
+The code using GAOL is not to be compiled with them.
 
 \subsection{Tools for maintainers}
 %%................................
@@ -477,7 +504,10 @@ CPack makes them from the CMake build, in the directory of the build:
 \item \code{package\_source} gives \file{gaol-\var{version}.tar.gz}, the
   sources, which the three builds build. CPack takes the source tree as it is,
   less what git ignores and the builds made within it: the archive is made
-  from a clean checkout;
+  from a clean checkout, and holds \file{configure} as it was generated. CMake
+  warns, when it configures, if that was for another version than
+  \file{VERSION.txt} holds: \cmd{configure --version} would give the old one
+  in the archive;
 \item \code{package} gives \file{gaol-\var{version}-\var{system}.tar.gz},
   what \cmd{cmake --install} installs, to extract anywhere, and on Linux
   \file{libgaol-dev\_\var{version}\_\var{arch}.deb}, the same files in
@@ -621,6 +651,15 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
   \end{tabular}
 \end{center}
 
+\noindent
+\cmd{meson setup} runs Python to read the version of GAOL in
+\file{VERSION.txt}: the first of \cmd{python3} and \cmd{python} found in the
+\code{PATH}, or, if there is none, the Python that runs meson. On Windows,
+meson 0.53.0 and earlier may take the \file{python.exe} or \file{python3.exe}
+alias of the Microsoft Store (in \file{WindowsApps}), which only opens the
+Store, and \cmd{meson setup} then stops; use meson 0.53.1 or later, or turn off
+the aliases in the Windows settings (\emph{Manage app execution aliases}).
+
 \section{Tests}\label{sec:tests}
 %%-------------
 \cindex{tests}%
@@ -689,10 +728,10 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  properly installed, and that the libraries and header files are
  accessible to your compiler.
 
- Let us consider the following program to compute the
- range of the function
+ Let us consider the following program to enclose the
+ range of the Goldstein-Price function
  \begin{align*}
- f(x,y)=&\bigl(1+(x+y)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
+ f(x,y)=&\bigl(1+(x+y+1)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
  &\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
  \end{align*}
  for $x\in\itv{-2}{2}$ and $y\in \itv{-2}{2}$.
@@ -708,7 +747,7 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
      x(-2,2),
      y(-2,2), z;
 
-   z=(1+sqr(x+y)*(19-14*x+3*sqr(x)-14*y+6*x*y+3*sqr(y)))*
+   z=(1+sqr(x+y+1)*(19-14*x+3*sqr(x)-14*y+6*x*y+3*sqr(y)))*
      (30+sqr(2*x-3*y)*(18-32*x+12*sqr(x)+
         48*y-36*x*y+27*sqr(y)));
 
@@ -765,11 +804,21 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  Executing \file{f}, we obtain:
 
  \begin{onscreen}
-  z = [-56254330, 94177270]
+  z = [-87881320, 147125080]
  \end{onscreen}
 
- We then know that $f(x,y)$ ranges over
- \itv{-56254330}{94177270} when $x$ and $y$ range over \itv{-2}{2} independently.
+ We then know that $f(x,y)$ lies in \itv{-87881320}{147125080} for
+ every $x$ and $y$ in \itv{-2}{2}: \code{z} \emph{encloses} the range of $f$.
+ It is not the range, which is \itv{3}{1015690.27\ldots}: the minimum is
+ $f(0,-1)=3$, and the maximum is reached on the edge $y=2$. \code{z} is 231
+ times wider. Each occurrence of $x$ and of $y$ in the formula ranges over
+ \itv{-2}{2} on its own, as if the others did not exist: this is the
+ \emph{dependency problem}, which makes an enclosure wider than the range.
+\cindex{dependency problem}%
+ Cutting $x$ and $y$ into smaller intervals, and taking the hull of the
+ values of $f$ over the pieces, narrows the enclosure, at the price of more
+ evaluations (\file{examples/03\_dependency\_problem.cpp} of the sources
+ does it).
 
 \section{Compiling a program using GAOL}\label{sec:compiling}
 %%--------------------------------------
@@ -803,8 +852,9 @@ With Visual C++, \option{/fp:strict}, and \option{/arch:AVX2} for x64 with
 \code{gaol::gaol} and \file{gaol.pc}. \file{gaol/gaol\_config.h} refuses code
 compiled by Visual C++ without \option{/fp:strict}. GCC and Clang do not tell
 the code whether \option{-frounding-math} and \option{-ffp-contract=off} were
-given: there, it only refuses what contradicts them, \option{-ffast-math} and
-doubles computed on the x87 unit (\pxref{sec:refused}).
+given: there, it only refuses what contradicts them, \option{-ffast-math},
+\option{-ffinite-math-only} and doubles computed on the x87 unit
+(\pxref{sec:refused}).
 
 \subsection{From CMake}
 %%.....................
@@ -941,6 +991,95 @@ after an operation of GAOL, \code{std::cout~<{}<~pi\_dn} writes
 \code{3.141592653589794} with 16 digits, and \code{3.141592653589793} once
 \code{round\_nearest()} has been called. The intervals themselves are written
 by GAOL rounded outward, whatever the direction (\pxref{sec:writing}).
+
+\section{The floating-point exceptions}\label{sec:fp-exceptions}
+%%--------------------------------------------------
+\cindex{floating-point exceptions}\cindex{exceptions!floating-point}%
+\cindex{flags!floating-point}%
+
+GAOL computes with the floating-point exceptions masked, as a program starts,
+and leaves them so: an operation that raises one only sets its flag.
+\emph{A program that enables them} (\code{feenableexcept()} of the GNU C
+library, \code{\_controlfp\_s()} of Visual C++, \code{fesetenv()} with an
+environment that traps) \emph{disables them while GAOL computes}, and enables
+them again afterwards if it wants them: the operations of GAOL raise some, as
+listed below, and the processor then stops the program (with \code{SIGFPE} on
+Linux) instead of letting the operation give its bounds.\newinvfive
+
+\begin{itemize}
+\item An infinite bound comes from a division by zero or from an overflow:
+  \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
+  divide-by-zero exception, and so does \code{1/interval(0,~1)}, which is
+  \itv{1}{+\infty}, with the SSE2 intervals; \code{interval(1e308)*10}, which
+  is \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
+\item Almost every operation raises the inexact exception: most bounds are
+  rounded results, and where GAOL checks the rounding direction with an
+  addition, $1+2^{-60}$, whose result is inexact
+  (\pxref{sec:rounding-direction}), even an operation whose bounds are exact
+  raises it.
+\item An empty operand raises no invalid-operation exception, though the
+  bounds of the empty interval are NaN: every operation, relation, function
+  and output of \code{gaol::interval} and of \code{gaol\_ieee1788} takes it
+  without raising that exception. \code{is\_empty()} and the relations
+  compare the bounds with the quiet comparisons of \file{<cmath>}
+  (\code{std::islessequal()}\dots), each one instruction, as \code{<=} is,
+  with GCC and Clang on x86-64, and the functions that build their result
+  from the bounds of their operand tell the empty set before they give them
+  to the constructor, which compares its bounds. With the invalid-operation
+  exception enabled, \code{is\_empty()} of an empty interval killed the
+  program, and so did about 50 operations with an empty operand, which
+  compared its NaN bounds: \code{x~\&~y} for an empty \code{y}, \code{sqrt},
+  \code{exp}, \code{min}, \code{max}, \code{floor}, \code{set\_contains()},
+  \code{set\_disjoint()}, the output of the empty set\dots; and
+  \code{interval::emptyset()} itself in a build without optimization. A NaN
+  the program gives GAOL still raises it: \code{interval(NAN)} and
+  \code{interval(NAN,~1)}, which give the empty set, compare it. An empty
+  operand may still raise the other exceptions: the sum of two empty
+  intervals raises the inexact one where GAOL checks the rounding direction
+  with an addition, and \code{atanh\_rel(interval(-1,~2),~x)} for an empty
+  \code{x} raises the divide-by-zero one while it computes
+  \code{atanh(interval(-1,~2))}.\newinvfive
+\item Nonempty operands raise the invalid-operation exception as well. With
+  the SSE2 intervals, multiplying a zero bound by an infinite one does:
+  \code{interval(0)*interval::one\_plus\_infinity()} and
+  \code{interval::positive()*interval(0)} (the FPU intervals give the same
+  product without it, and so does a build with
+  \option{GAOL\_PRESERVE\_ROUNDING}, whose product masks the exceptions, see
+  below). \code{pow} does in every build, through the \code{pow} of
+  CORE-MATH, for an exponent of extreme magnitude
+  (\code{pow(interval(1,~2),~interval(4.9e-324))},
+  \code{pow(interval(1,~2),~interval(1e-300))}, an exponent interval with a
+  bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}); with the SSE2
+  intervals, an exponent with an infinite bound also does, through that product
+  (\code{pow(interval(1),~interval::one\_plus\_infinity())}). This list is not
+  exhaustive.\newinvfive
+\end{itemize}
+
+\noindent
+An empty operand raising no invalid-operation exception therefore does not
+make that exception safe to leave enabled: every exception stays disabled
+while GAOL computes.
+
+The flags tell nothing of the results: after an operation of GAOL,
+\code{fetestexcept(FE\_INEXACT)} is raised whatever the result, and
+\code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO} stands for an infinite bound of the
+interval, not for an infinite number the program computed. IEEE 1788-2015
+leaves the flags of its operations unspecified. A program that reads them for
+its own computations clears them (\code{std::feclearexcept(FE\_ALL\_EXCEPT)})
+just before, and reads them before its next operation of GAOL.
+
+GAOL's initialization, which runs before \code{main()}, sets the default
+environment (\code{fesetenv(FE\_DFL\_ENV)}), which masks every exception,
+unless GAOL is built with \option{GAOL\_PRESERVE\_ROUNDING}: the initialization
+then leaves the whole environment as it found it, and an exception a static
+object enabled before it stays enabled. A program enables the exceptions in
+\code{main()} or later, whichever the build, not in a static object initialized
+before GAOL. \code{cleanup()} leaves the exceptions and the flags as they are.
+With \option{GAOL\_PRESERVE\_ROUNDING} and the SSE2 intervals, \code{+},
+\code{-}, \code{*}, \code{/}, \code{sqr()} and \code{inverse()} also write the
+SSE control register with every exception masked, which masks again the ones a
+program enabled: they stop nothing after the first of these operations.
+Disable them all the same, the other builds not masking them.
 
 \section{The namespaces}\label{sec:namespaces}
 %%----------------------
@@ -1109,7 +1248,10 @@ computes would not enclose the exact results"
 \end{onscreen}
 
 \noindent
-Taking the flags from \code{gaol::gaol} or \file{gaol.pc} avoids the question.
+It stops \option{-ffinite-math-only} in the same way, with which the compiler
+takes NaN, the bounds of the empty interval, and infinities never to occur
+(\pxref{sec:refused}). Taking the flags from \code{gaol::gaol} or
+\file{gaol.pc} avoids the question.
 
 \chapter{Initialization and cleanup}\label{chap:init}
 %%==================================
@@ -1595,7 +1737,7 @@ too:\newinvfive{} \ieee{equal}, \ieee{subset}, \ieee{interior},
 \begin{example}
 interval x(-12,34), y(-12,5);
 
-cout << x.set_contains(y) << ' '
+cout << boolalpha << x.set_contains(y) << ' '
      << x.set_contains(interval::emptyset()) << ' '
      << y.set_contains(x) << ' '
      << interval::emptyset().set_contains(x) << ' '
@@ -1641,7 +1783,7 @@ Returns \code{true} if the intersection of \code{self} and \var{I} is empty:
 
 \begin{example}
 interval a(2,4), b(6,8);
-cout << a.set_disjoint(b) << ' '
+cout << boolalpha << a.set_disjoint(b) << ' '
      << interval::emptyset().set_disjoint(interval::emptyset());
 @outputs^true true~
 \end{example}
@@ -1654,7 +1796,7 @@ cout << a.set_disjoint(b) << ' '
 Returns \code{true} if intervals \code{self} and \var{I} are equal
 when considered as sets of reals: \ieee{equal} of IEEE 1788-2015.
 \begin{example}
-cout << interval(4,8).set_eq(interval(4,8)) << ' '
+cout << boolalpha << interval(4,8).set_eq(interval(4,8)) << ' '
      << interval::emptyset().set_eq(interval::emptyset()) << endl;
 @outputs^true true~
 \end{example}
@@ -1667,7 +1809,7 @@ cout << interval(4,8).set_eq(interval(4,8)) << ' '
     Returns \code{true} if \code{self} and \var{I} are not equal when
     considered as sets of reals.
     \begin{example}
-cout << interval::universe().set_neq(interval::emptyset());
+cout << boolalpha << interval::universe().set_neq(interval::emptyset());
 @outputs^true~
     \end{example}
 \end{defmethod}
@@ -1681,7 +1823,7 @@ Returns \code{true} if \code{self} is interior to \var{I}:
 IEEE 1788-2015.\newinvfive
 \begin{example}
 interval a(2,GAOL_INFINITY), b(1,GAOL_INFINITY);
-cout << interval(-4.5,3).set_le(interval(-10,10)) << ' '
+cout << boolalpha << interval(-4.5,3).set_le(interval(-10,10)) << ' '
      << interval::emptyset().set_le(interval(5,6)) << ' '
      << interval::emptyset().set_le(interval::emptyset()) << ' '
      << interval::universe().set_le(interval::universe()) << ' '
@@ -1697,7 +1839,7 @@ cout << interval(-4.5,3).set_le(interval(-10,10)) << ' '
 Returns \code{true} if the real set defined by \code{self} is included in \var{I}:
 \ieee{subset}(\code{self}, \var{I}) of IEEE 1788-2015.
 \begin{example}
-cout << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
+cout << boolalpha << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
      << interval(3.5,9).set_leq(interval(2,6)) << ' '
      << interval::emptyset().set_leq(interval::emptyset());
 @outputs^true false true~
@@ -1710,7 +1852,7 @@ cout << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
   \end{operation}
 Returns \code{true} if \var{I} is interior to \code{self}: \code{set\_strictly\_contains(\var{I})}.
 \begin{example}
-cout << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
+cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
      << interval(1,2).set_ge(interval(1,2));
 @outputs^true false~
 \end{example}
@@ -1736,7 +1878,7 @@ Returns \code{true} if the real set defined by \code{self} contains \var{I}:
   \ieee{strictPrecedes} of IEEE 1788-2015, true when either interval is
   empty.\newinvfive
   \begin{example}
-cout << interval(4,5).certainly_le(interval(6,9)) << ' '
+cout << boolalpha << interval(4,5).certainly_le(interval(6,9)) << ' '
      << interval(4,5).certainly_le(interval(5,9)) << ' '
      << interval::emptyset().certainly_le(interval(4,6)) << ' '
      << interval(4,6).certainly_le(interval::emptyset());
@@ -1752,7 +1894,7 @@ cout << interval(4,5).certainly_le(interval(6,9)) << ' '
   \ieee{precedes} of IEEE 1788-2015, true when either interval is
   empty.\newinvfive
   \begin{example}
-cout << interval(4,5).certainly_leq(interval(6,9)) << ' '
+cout << boolalpha << interval(4,5).certainly_leq(interval(6,9)) << ' '
      << interval(4,5).certainly_leq(interval(5,9)) << ' '
      << interval(5,9).certainly_leq(interval(4,5)) << ' '
      << interval(4,8).certainly_leq(interval(5,9)) << ' '
@@ -1769,7 +1911,7 @@ cout << interval(4,5).certainly_leq(interval(6,9)) << ' '
   Returns \code{true} if \code{self} is certainly strictly greater than \var{I},
   or if either interval is empty.
   \begin{example}
-cout << interval(8,10).certainly_ge(interval(4,8)) << ' '
+cout << boolalpha << interval(8,10).certainly_ge(interval(4,8)) << ' '
      << interval(8,10).certainly_ge(interval(4,7)) << ' '
      << interval::emptyset().certainly_ge(interval::emptyset());
 @outputs^false true true~
@@ -1783,7 +1925,7 @@ cout << interval(8,10).certainly_ge(interval(4,8)) << ' '
   Returns \code{true} if \code{self} is certainly greater or equal to \var{I},
   or if either interval is empty.
   \begin{example}
-cout << interval(8,10).certainly_geq(interval(4,8)) << ' '
+cout << boolalpha << interval(8,10).certainly_geq(interval(4,8)) << ' '
      << interval::emptyset().certainly_geq(interval::emptyset());
 @outputs^true true~
   \end{example}
@@ -1796,7 +1938,7 @@ cout << interval(8,10).certainly_geq(interval(4,8)) << ' '
 Returns \code{true} if the left bound of \code{self} is greater or equal to zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_positive() << ' '
+cout << boolalpha << interval::emptyset().certainly_positive() << ' '
      << interval(4,5).certainly_positive() << ' '
      << interval(-0.0,6).certainly_positive() << ' '
      << interval(-6,0).certainly_positive();
@@ -1811,7 +1953,7 @@ cout << interval::emptyset().certainly_positive() << ' '
 Returns \code{true} if the left bound of \code{self} is strictly greater than zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_strictly_positive() << ' '
+cout << boolalpha << interval::emptyset().certainly_strictly_positive() << ' '
      << interval(4,5).certainly_strictly_positive() << ' '
      << interval(-0.0,6).certainly_strictly_positive() << ' '
      << interval(-6,0).certainly_strictly_positive();
@@ -1826,7 +1968,7 @@ cout << interval::emptyset().certainly_strictly_positive() << ' '
 Returns \code{true} if the right bound of \code{self} is lower or equal to zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_negative() << ' '
+cout << boolalpha << interval::emptyset().certainly_negative() << ' '
      << interval(4,5).certainly_negative() << ' '
      << interval(-6,0).certainly_negative() << ' '
      << interval(-6,-5).certainly_negative();
@@ -1841,7 +1983,7 @@ cout << interval::emptyset().certainly_negative() << ' '
 Returns \code{true} if the right bound of \code{self} is strictly lower than zero,
 or if \code{self} is empty.
 \begin{example}
-cout << interval::emptyset().certainly_strictly_negative() << ' '
+cout << boolalpha << interval::emptyset().certainly_strictly_negative() << ' '
      << interval(4,5).certainly_strictly_negative() << ' '
      << interval(-6,0).certainly_strictly_negative() << ' '
      << interval(-6,-5).certainly_strictly_negative();
@@ -1862,7 +2004,7 @@ cout << interval::emptyset().certainly_strictly_negative() << ' '
   not (Table 10.4).\newinvfive
 \begin{example}
 interval e = interval::emptyset();
-cout << interval(1,2).less(interval(1,3)) << ' '
+cout << boolalpha << interval(1,2).less(interval(1,3)) << ' '
      << interval(1,4).less(interval(2,3)) << ' '
      << e.less(e) << ' ' << e.less(interval(1,2));
 @outputs^true false true false~
@@ -1879,7 +2021,7 @@ cout << interval(1,2).less(interval(1,3)) << ' '
   \code{less()}.\newinvfive
 \begin{example}
 interval a(-GAOL_INFINITY,1), b(-GAOL_INFINITY,2);
-cout << interval(1,2).strictly_less(interval(1,3)) << ' '
+cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
      << a.strictly_less(b) << ' '
      << interval(0,1).strictly_less(interval(2,3));
 @outputs^false true true~
@@ -1913,7 +2055,7 @@ them with \code{set\_eq()}, \code{set\_disjoint()} or \code{less()}.
 \begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Returns \code{\var{I1}.certainly\_geq(\var{I2})}.
 \begin{example}
-cout << (interval(1,2) < interval(3,4)) << ' '
+cout << boolalpha << (interval(1,2) < interval(3,4)) << ' '
      << (interval(1,2) <= interval(2,4)) << ' '
      << (interval(1,3) <= interval(2,4)) << ' '
      << (interval(3,4) > interval(1,2));
@@ -2007,9 +2149,11 @@ cout << boolalpha << x.is_canonical() << ' '
     \op{$\code{self} = \emptyset$}
   \end{operation}
   Returns \code{true} if \code{self} is an empty interval: \ieee{isEmpty} of
-  IEEE 1788-2015.
+  IEEE 1788-2015. It raises no floating-point exception, the invalid-operation
+  one included, though the bounds of the empty set are NaN
+  (\pxref{sec:fp-exceptions}).\newinvfive
   \begin{example}
-cout << interval(4,5).is_empty() << ' '
+cout << boolalpha << interval(4,5).is_empty() << ' '
      << interval(5,4).is_empty() << ' '
      << interval::emptyset().is_empty();
 @outputs^false true true~
@@ -2023,7 +2167,7 @@ cout << interval(4,5).is_empty() << ' '
   Returns \code{true} if \code{self} is the whole real line: \ieee{isEntire} of
   IEEE 1788-2015.\newinvfive
   \begin{example}
-cout << interval::universe().is_entire() << ' '
+cout << boolalpha << interval::universe().is_entire() << ' '
      << interval::positive().is_entire() << ' '
      << interval::emptyset().is_entire();
 @outputs^true false false~
@@ -2034,7 +2178,7 @@ cout << interval::universe().is_entire() << ' '
   Returns \code{true} if \code{self} is nonempty and bounded:
   \ieee{isCommonInterval} of IEEE 1788-2015.\newinvfive
   \begin{example}
-cout << interval(1,2).is_common_interval() << ' '
+cout << boolalpha << interval(1,2).is_common_interval() << ' '
      << interval::positive().is_common_interval() << ' '
      << interval::emptyset().is_common_interval();
 @outputs^true false false~
@@ -2047,7 +2191,7 @@ cout << interval(1,2).is_common_interval() << ' '
   \end{operation}
   Returns \code{true} if \code{self} is equal to the interval containing only $0$.
   \begin{example}
-cout << interval::zero().is_zero() << ' '
+cout << boolalpha << interval::zero().is_zero() << ' '
      << interval(0.0,0.0).is_zero() << ' '
      << interval(-0.0,+0.0).is_zero() << ' '
      << interval(0,5).is_zero() << ' '
@@ -2061,7 +2205,7 @@ cout << interval::zero().is_zero() << ' '
   right bound. An empty interval is not symmetric.
 
 \begin{example}
-cout << interval(-5,5).is_symmetric() << ' '
+cout << boolalpha << interval(-5,5).is_symmetric() << ' '
      << interval::emptyset().is_symmetric() << endl;
 @outputs^true false~
 \end{example}
@@ -2072,7 +2216,7 @@ cout << interval(-5,5).is_symmetric() << ' '
   are NaN, is finite; \code{is\_common\_interval()} is not true of it.
 
 \begin{example}
-cout << interval(4,GAOL_INFINITY).is_finite() << ' '
+cout << boolalpha << interval(4,GAOL_INFINITY).is_finite() << ' '
      << interval::emptyset().is_finite() << ' '
      << interval(5,80).is_finite();
 @outputs^false true true~
@@ -2284,7 +2428,7 @@ cout << pow(interval(-4,-1), 2) << ' '
 cout << pow(interval(0.0), interval(0.0)) << ' '
      << pow(interval(-2,2), -2) << ' '
      << pow(interval(4), 0.5) << endl;
-@outputs^<1, 1> [0.25, inf] [1.999999999999999, 2]~
+@outputs^[1] [0.25, inf] [1.999999999999999, 2]~
 \end{example}
 \end{deffun}
 
@@ -2367,12 +2511,12 @@ $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
 cout << exp(interval(0.0)) << ' ' << log(interval(1)) << ' '
      << log(interval(-4,0.0)) << ' '
      << log(interval(-4,1)) << endl;
-@outputs^<1, 1> <0, 0> [empty] [-inf, 0]~
+@outputs^[1] [0] [empty] [-inf, 0]~
 cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
      << log10(interval(0.0,1000)) << ' '
      << expm1(interval(-1e300,0.0)) << ' '
      << log1p(interval(-2,0.0)) << endl;
-@outputs^<8, 8> <-2, -2> [-inf, 3] [-1, 0] [-inf, 0]~
+@outputs^[8] [-2] [-inf, 3] [-1, 0] [-inf, 0]~
 \end{example}
 \end{deffun}
 
@@ -2389,7 +2533,10 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
 
 \begin{deffun}{interval}{tan}{(const interval\& \var{I})}
   Returns the tangent of \var{I}: \itv{-\infty}{+\infty} when \var{I} holds a
-  pole.
+  pole. No double is a pole: \code{M\_PI\_2}, the double below $\pi/2$, is
+  $6.1\cdot10^{-17}$ short of it, and \itv{-\code{M\_PI\_2}}{\code{M\_PI\_2}},
+  whose width is that of the double below $\pi$ and which holds no pole, has a
+  finite tangent (fourth result of the example).
 
   The three functions find the pieces of \var{I} on which they are monotonic
   by dividing its bounds by an enclosure of $\pi$ and, where the quotients
@@ -2402,11 +2549,14 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
 cout << cos(interval(1,4)) << endl
      << sin(interval(1,2)) << endl
      << tan(interval(1,2)) << endl
+     @rem^// 1.5707963267948966 is M_PI_2, the double below pi/2~
+     << tan(interval(-1.5707963267948966, 1.5707963267948966)) << endl
      @rem^// 1152921504606846976 is 2 to the 60~
      << cos(interval(1152921504606846976.0)) << endl;
 @outputs^[-1, 0.5403023058681398]~
 @outputs^[0.8414709848078965, 1]~
 @outputs^[-inf, inf]~
+@outputs^[-1.633123935319537e+16, 1.633123935319537e+16]~
 @outputs^[-0.5567960822766418, -0.5567960822766416]~
 \end{example}
 \end{deffun}
@@ -2424,7 +2574,7 @@ cout << cos(interval(1,4)) << endl
 \begin{example}
 cout << acos(interval(1,3)) << ' ' << asin(interval(1)) << ' '
      << atan(interval(1));
-@outputs^<0, 0> [1.570796326794896, 1.570796326794897]~
+@outputs^[0] [1.570796326794896, 1.570796326794897]~
 @outputs^[0.7853981633974482, 0.7853981633974484]~
 \end{example}
 \end{deffun}
@@ -2469,12 +2619,12 @@ cout << atan2(interval(0.0), interval(0.0)) << endl
 \begin{example}
 cout << sinpi(interval(1e17)) << ' '
      << sin(interval::pi() * 1e17) << endl;
-@outputs^<0, 0> [-1, 1]~
+@outputs^[0] [-1, 1]~
 cout << tanpi(interval(0.5)) << ' '
      << tanpi(interval(0.25,0.75)) << ' '
      << asinpi(interval(1)) << ' '
      << atan2pi(interval(1), interval(-1)) << endl;
-@outputs^[empty] [-inf, inf] <0.5, 0.5> <0.75, 0.75>~
+@outputs^[empty] [-inf, inf] [0.5] [0.75]~
 \end{example}
 \end{deffun}
 
@@ -2502,7 +2652,10 @@ cout << tanpi(interval(0.5)) << ' '
 \end{deffun}
 
 \begin{deffun}{interval}{atanh}{(const interval\& \var{I})}
-  Returns the hyperbolic arctangent of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+  Returns the hyperbolic arctangent of \var{I}, defined on $\left]-1,1\right[$,
+  $-\infty$ and $+\infty$ being its limits at $-1$ and $1$: the part of \var{I}
+  outside is left out, and an interval with no point of it gives the empty set,
+  as \code{atanh(\itv{1}{5})} and \code{atanh(\itv{-1}{-1})} do.
 
   The six functions are those of CORE-MATH, where GAOL~4 took them from the
   mathematical library of the system, which is sometimes further than one
@@ -2511,9 +2664,10 @@ cout << tanpi(interval(0.5)) << ' '
 cout << cosh(interval(-1,2)) << ' '
      << tanh(interval(20,30)) << endl
      << acosh(interval(0,1)) << ' '
-     << atanh(interval(-2,2)) << endl;
+     << atanh(interval(-2,2)) << ' '
+     << atanh(interval(1,5)) << endl;
 @outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
-@outputs^<0, 0> [-inf, inf]~
+@outputs^[0] [-inf, inf] [empty]~
 \end{example}
 \end{deffun}
 
@@ -2535,7 +2689,7 @@ cout << hypot(interval(3), interval(4)) << ' '
      << hypot(interval(-3,1), interval(4,5)) << endl
      << rsqrt(interval(4,16)) << ' '
      << rsqrt(interval(0.0,4)) << endl;
-@outputs^<5, 5> [4, 5.830951894845301]~
+@outputs^[5] [4, 5.830951894845301]~
 @outputs^[0.25, 0.5] [0.5, inf]~
 \end{example}
 \end{deffun}
@@ -2654,11 +2808,15 @@ cout << asin_rel(interval(0.0), interval(1,7)) << endl
   Return the \emph{relational hyperbolic arcsine} and \emph{arctangent} of
   \var{J} w.r.t. \var{I}, that is, $\operatorname{asinh}(J)\cap I$ and
   $\operatorname{atanh}(J)\cap I$, $\sinh$ and $\tanh$ being one-to-one.
+  As $\tanh$ takes its values in $\left]-1,1\right[$, \code{atanh\_rel} gives
+  the empty set for a \var{J} with no point of it, as \itv{1}{1}.
 \begin{example}
 cout << acosh_rel(interval(1,2), interval::universe()) << endl
-     << asinh_rel(interval(0,1), interval::universe()) << endl;
+     << asinh_rel(interval(0,1), interval::universe()) << endl
+     << atanh_rel(interval(1), interval::universe()) << endl;
 @outputs^[-1.316957896924817, 1.316957896924817]~
 @outputs^[0, 0.8813735870195431]~
+@outputs^[empty]~
 \end{example}
 \end{deffun}
 
@@ -2805,7 +2963,7 @@ Returns the width of \code{self}: \ieee{wid} of IEEE 1788-2015. Returns NaN
 whenever the interval is empty, as the standard has it, where GAOL~4 returned
 $-1$.\newinvfive
 \begin{example}
-cout << interval(4,6).width() << ' '
+cout << boolalpha << interval(4,6).width() << ' '
      << (interval(1,next_float(1)).width()
          == std::numeric_limits<double>::epsilon()) << ' '
      << interval::emptyset().width();
@@ -2868,9 +3026,16 @@ cout << interval(4,5).mag() << ' '
                           |\rightBound{I_1}-\rightBound{I_2}|)
 \end{equation*}
 rounded upward: the tightest upper bound of the distance.\newinvfive
+
+Two equal bounds, infinite ones included, are at distance 0: the distance of
+\itv{1}{+\infty} to itself is 0, and to \itv{2}{+\infty} is 1
+(GAOL~4 returned $+\infty$ for both). It is $+\infty$ when a bound is infinite in
+one of the two intervals only, and a NaN when one of them is empty.\newinvfive
 \begin{example}
-cout << hausdorff(interval(4,8),interval(5,10));
-@outputs^2~
+cout << hausdorff(interval(4,8),interval(5,10)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(2,GAOL_INFINITY)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(1,2));
+@outputs^2 1 inf~
 \end{example}
 \end{deffun}
 
@@ -2953,6 +3118,8 @@ characterizes the degree of symmetry of intervals. Its definition is as follows:
     b/a & \text{otherwise}
   \end{array}\right.
 \end{equation*}
+It is NaN for the empty set, 1 for \itv{-\infty}{+\infty}, and 0 for the other
+intervals with an infinite bound.
 \begin{example}
 cout << chi(interval(3,6)) << ' '
      << chi(interval(-6,3)) << ' '
@@ -3070,7 +3237,7 @@ interval I1a, I2a,
          I1b, I2b;
 interval(4,5).split(I1a,I2a);
 I3.split(I1b,I2b);
-cout << I1a << ' ' << I2a << ' '
+cout << boolalpha << I1a << ' ' << I2a << ' '
      << I1b.set_eq(interval(1.0)) << ' ' << I2b.set_eq(I3) << endl;
 @outputs^[4, 4.5] [4.5, 5] true true~
   \end{example}
@@ -3140,25 +3307,40 @@ cout << (interval(3,6) | interval(9,12));
 
 \begin{deffun}{istream\&}{operator>{}>}{(istream\& \var{in}, interval\& I)}
   Reads a line from the input stream \var{in}, and assigns to \var{I} the
-  interval it writes. If the line is syntactically ill-formed, \var{I} is set
+  interval it writes. The blanks before the line, the ends of lines included,
+  are skipped first, as before a number: an empty line, or one holding only
+  blanks, is not a line to read, whether \code{std::noskipws} is set or not,
+  and an interval cannot be written on several lines. If the line is
+  syntactically ill-formed, \var{I} is set
   to the empty set, and an \code{input\_format\_error} exception is thrown
   (\pxref{sec:exceptions}) if the library was compiled with exceptions
   enabled (\pxref{sec:configuration}); alternatively, it prints an
   error message to \code{cerr} and aborts if exceptions were disabled.
-  An ill-formed line, a blank one included, also sets the \code{failbit} of
+  An ill-formed line also sets the \code{failbit} of
   \var{in}, which \code{in.clear()} resets before reading on; a function
   called with an argument it does not take throws
   \code{invalid\_action\_error} instead. Where no line is left, \var{in} gets
   its \code{failbit}, \var{I} is left as it was, and nothing is thrown, as
-  for a number: \code{while (in >{}> x)} reads the lines one after the other
-  and ends with the input.\newinvfive{} GAOL~4 read the empty text left, and
-  threw \code{input\_format\_error}.
+  for a number: \code{while (in >{}> x)} reads the lines one after the other,
+  the blank ones skipped, and ends with the input, a file ending with an empty
+  line included.\newinvfive{} GAOL~4 read the empty text left, and threw
+  \code{input\_format\_error}, as it did on an empty line, so that
+  \code{in >{}> d >{}> x} over the lines \code{1.5} and \code{[1, 2]} threw
+  at the end of the first one.
 \begin{example}
 std::istringstream in("[1, 2]\n[0.1, 0.2]\n");
 interval a, b;
 in >> a >> b;
 cout << a << ' ' << b;
 @outputs^[1, 2] [0.09999999999999999, 0.2000000000000001]~
+\end{example}
+\begin{example}
+std::istringstream in("1.5\n\n[1, 2]\n\n");
+double d;
+interval x;
+in >> d >> x;
+cout << d << ' ' << x << ' ' << (in >> x ? "more" : "end");
+@outputs^1.5 [1, 2] end~
 \end{example}
 \end{deffun}
 
@@ -3233,7 +3415,11 @@ direction (the C runtime of Windows, musl on 64-bit ARM processors).
 The point of a number is a point whatever the locale of the program, a locale
 writing a decimal comma included (as \code{setlocale(LC\_ALL, "")} sets under
 a French one).\newinvfive{} GAOL~4 read \code{0.1} as 0 there,
-\code{strtod()} stopping at the point.
+\code{strtod()} stopping at the point. The modes of the processor that flush
+the subnormal numbers to zero (flush-to-zero and denormals-are-zero, which a
+program linked with \code{-Ofast} has) do not change what a number is read as:
+\code{1e-310} is read as the tightest interval of doubles containing it, and
+\code{0} as 0.\newinvfive{}
 \cindex{number!reading}%
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} of IEEE 1788-2015
@@ -3290,7 +3476,11 @@ appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}.
+\code{"<0.1, 0.1>"}. GAOL~4 wrote the degenerate intervals in that form, and
+the texts it wrote for those whose digits are exact, as \code{<4, 4>}, are
+still read; \code{operator<{}<} writes such an interval \code{[a]}, the
+literal of IEEE 1788-2015 for a point, and any other with its two bounds
+(\pxref{sec:output-format}).
 
 \paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
 whose right bound is $-\infty$ is the empty set, as \code{numsToInterval} of
@@ -3334,7 +3524,10 @@ by using the ``\code{<{}<}'' operator.
 \begin{deffun}{ostream\&}{operator<{}<}{(ostream\& \var{out}, const interval\& I)}
 Prints the interval \var{I} to the output stream \var{out}. The way the intervals
 are actually displayed depends on the active format (see next section).
-However, whatever the format, an empty interval is always displayed as \code{[empty]}
+However, whatever the format, an empty interval is always displayed as \code{[empty]},
+as IEEE 1788-2015 writes the empty set (12.11.3).\newinvfive{} The formats
+\element{width} and \element{center} of GAOL~4 wrote \code{empty}, which is no
+interval literal.
 \cindex{empty!interval: printing}%
 \index[idx]{empty@\code{[empty]}}%
 \end{deffun}
@@ -3400,24 +3593,61 @@ the last character of the left one that is not a zero, and wrote
 \end{example}
 
 \item[\element{bounds}.] By printing the bounds between square brackets.
-Degenerate intervals whose left and right bound are equal are printed with angles:
+A degenerate interval whose value is written exactly by the digits displayed
+is printed as that value alone between square brackets, the literal of IEEE
+1788-2015 for a point (12.11), which \code{textToInterval()} reads back as
+the same point (but see below for a locale writing a decimal comma):
 \begin{example}
  interval::format(interval_format::bounds);
  std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
- @outputs^[3, 5] <4, 4>~
+ @outputs^[3, 5] [4]~
 \end{example}
-A degenerate interval whose value has more digits than those displayed is
-printed with its two bounds rounded outward: \code{interval(0.1)} is printed
-\code{<0.1, 0.1000000000000001>}.
+A zero is printed \code{[0]} whatever the signs of its bounds: \itv{-0}{+0},
+which \code{interval::zero()} is with the SSE2 intervals, \itv{+0}{+0} and
+\itv{-0}{-0} are the same set, which \code{[0]} and \code{[-0]} are both read
+back as, and the text is then the same on every build (the format
+\element{hexa} shows the signs of the bounds). A degenerate interval whose
+value has more digits than those displayed is printed like any other interval,
+with its two bounds rounded outward: \code{interval(0.1)} is printed
+\code{[0.1, 0.1000000000000001]}, which is read back, as any other text, as an
+interval containing it. Under a locale writing a decimal comma, the reader,
+whose decimal point is a point whatever the locale, would take
+\code{[-2,5]} for the interval \itv{-2}{5}: a degenerate interval whose text
+has a comma is printed with its two bounds, \code{[-2,5, -2,5]}, which the
+reader refuses, as it refuses every bound written with a decimal comma
+(\code{interval(4)} is still \code{[4]}).\newinvfive{} GAOL~4 printed every
+degenerate interval between angles, the text of its value rounded downward and
+upward: \code{interval(4)} was \code{<4, 4>}, a form of GAOL that is no literal
+of the standard, and \code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its
+reader refused (\code{input\_format\_error}), the angles standing for one
+double only. The reader still takes the angles (\pxref{sec:input-format}): a
+text such as \code{<4, 4>}, written by GAOL~4, is read back.
 
-\item[\element{width}.] by printing their midpoint and their width:
+\item[\element{width}.] by printing their midpoint and their radius, the
+\code{midpoint()} and the \code{rad()} of IEEE 1788-2015 (12.12.8): the
+interval is contained in the midpoint plus or minus the radius, which is the
+smallest number that makes it so:
 \begin{example}
  interval::format(interval_format::width);
  std::cout << interval(4,5) << std::endl;
  @outputs^4.5 (+/- 0.5)~
 \end{example}
+The midpoint is written rounded to nearest and the radius rounded upward, so
+that a radius that is not zero is never written 0. Rounded upward, a radius
+may look noisy with the default 16 digits: \itv{0.1}{0.3} is written
+\code{0.2 (+/- 0.1000000000000001)}, its radius being the double nearest to
+$0.1$, which is a little above $0.1$; this is intended. A degenerate interval has
+no radius: it is written as its midpoint alone, and an unbounded interval has an
+infinite radius, its midpoint being $0$ or plus or minus the largest double
+(\code{[3, inf]} is \code{1.797693134862316e+308 (+/- inf)}).\newinvfive{}
+GAOL~4 wrote $(a+b)/2$ and $(b-a)/2$ rounded to nearest, which do not contain the
+interval (\itv{1}{1+2^{-52}} was \code{1 (+/- 1.11e-16)}), a radius 0 for
+\itv{0}{5\cdot10^{-324}}, and \code{inf} for the midpoint of
+\itv{10^{308}}{1.7\cdot10^{308}}; the manual and the header described this
+number as the width.
 
-\item[\element{center}.] by printing their midpoint only.
+\item[\element{center}.] by printing their midpoint only, as the width format
+does.\newinvfive
 
 \item[\element{hexa}.] by printing their left and right bounds in the
 hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which is exact and which
@@ -3435,7 +3665,15 @@ its parser did not read.\newinvfive
 
 \medskip
 Note that \emph{the \element{bounds} and \element{hexa} formats are the ones
-read back as an input} (see previous section).
+read back as an input} (see previous section), the format \element{bounds}
+where the stream writes a decimal point. The formats \element{width} and
+\element{center} are for the eye: the midpoint is written with the digits of the
+precision, so that the text \code{c (+/- w)} does not necessarily contain the
+interval, where the text of the formats \element{bounds}, \element{agreeing}
+and \element{hexa} does. A radius that took the rounding of the midpoint into
+account would show the interval \code{0.1}, which is one number, as
+\code{0.1 (+/- 5.6e-18)}, and would not show that an interval is narrower than the
+digits of its midpoint, which is what the format is for.
 \medskip
 
 The choice of the format to use is made through the following static methods:
@@ -3476,7 +3714,7 @@ The choice of the format to use is made through the following static methods:
   @smallskip
   interval::format(interval_format::width);
   cout << I << "\n";
-  @rem^// Prints 3.141592653589793 (+/- 2.220446049250313e-16)~
+  @rem^// Prints 3.141592653589793 (+/- 4.440892098500627e-16)~
   @smallskip
   interval::format(interval_format::center);
   cout << I << "\n";
@@ -3547,7 +3785,7 @@ The previous program has the following output:
 
 \begin{onscreen}
 [3.141, 3.142]
-3.141592653589793 (+/- 2.220446049250313e-16)
+3.141592653589793 (+/- 4.440892098500627e-16)
 \end{onscreen}
 
 The first call to \code{interval::format()} is unnecessary
@@ -3559,17 +3797,18 @@ rounded outward; the fewer the digits, the wider. The format \code{hexa} gives
 the same interval back, bit for bit.
 
 The \code{interval::pi()} constant is a predefined \dfn{canonical}
-interval containing $\pi$ (\pxref{sec:interval-constants}). Here,
-the width of the interval is equal to the $\epsilon$ of
-the format.
+interval containing $\pi$ (\pxref{sec:interval-constants}). Here, its bounds
+are two consecutive doubles, $2^{-51}$ apart: the midpoint written is one of
+them, and the radius is their distance, the smallest that has the interval
+within the midpoint plus or minus it.\newinvfive{} GAOL~4 wrote half of it.
 
 The \code{interval\_format::width} format may be useful whenever the number of
 digits displayed is insufficient to know whether the result is a single
 floating-point number or an interval whose size is very small (consider
 for example the first result above), because \emph{we have the guarantee that
-if the actual width of an interval is greater than zero, the width
-displayed will also be different from zero}. Another indication is that a degenerate
-interval is displayed between angles.
+if an interval is not a single number, the radius displayed will be different
+from zero}, whatever its size and the number of digits: the radius is rounded
+upward. A degenerate interval is displayed without a radius.
 
 
 \chapter{The names of IEEE 1788-2015}\label{chap:ieee1788}
@@ -3636,6 +3875,16 @@ The functions of GAOL that have the name and the meaning the standard gives them
   set (Table 10.2), where \code{left()} and \code{right()} are NaN, and
   \code{inf} returns $-0$ for a left bound 0 (12.12.8);
 \item \code{isMember(m, x)} is \code{false} for an infinite $m$ (10.6.3);
+\item \code{intervalToText(x)} writes the bounds of \code{x} rounded outward,
+  \code{[l, r]}, \code{[a]} for a degenerate interval whose value the digits
+  write exactly, as \code{[4]}, or \code{[empty]}, with 16 digits at most, an
+  interval literal of the standard (12.11) that \code{textToInterval} reads
+  back as an interval containing \code{x} (13.3): whatever the output format
+  that \code{interval::format()} sets, the precision of
+  \code{interval::precision()} and the locale of the program, where
+  \code{operator<{}<} writes the current format, which is no literal in the
+  format \element{width}, nor with a decimal point under a locale writing a
+  comma;\newinvfive
 \item \code{textToInterval} and \code{exactToInterval} read the names of the
   functions of the standard, and return the empty set for a string that is no
   interval (12.1.3), where \code{gaol::textToInterval} reads the names of
@@ -3650,7 +3899,7 @@ cout << pow(interval(-4,-1), interval(2.0)) << ' '
      << pown(interval(-4,-1), 2) << ' '
      << pow(interval(2,3), interval(1e10)) << endl;
 @outputs^[empty] [1, 16] [1.797693134862315e+308, inf]~
-cout << inf(empty()) << ' ' << sup(empty()) << ' '
+cout << boolalpha << inf(empty()) << ' ' << sup(empty()) << ' '
      << isMember(GAOL_INFINITY, entire()) << ' '
      << textToInterval("[1, 2") << endl;
 @outputs^inf -inf false [empty]~
@@ -3723,7 +3972,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{isMember(m, x)} & \code{x.set\_contains(m)}, false for an infinite $m$\\
   \hline
   \multicolumn{2}{l}{\textit{Input and output (Clause 13)}}\\
-  \code{intervalToText(x)} & \code{operator<{}<} in the current format\\
+  \code{intervalToText(x)} & the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, whatever the current format, precision and locale\\
   \code{intervalToExact(x)} & \code{exact\_string(x)}\\
   \code{exactToInterval(s)} & \code{textToInterval(s)}\\
   \hline
@@ -3833,8 +4082,10 @@ the interval are therefore the tightest ones.
 The statements hold for GAOL as the three builds make it, with the code
 including its headers compiled with the flags of interval arithmetic
 (\pxref{sec:compiling}), for the SSE2 and the FPU intervals, whatever the
-rounding direction the calling code left, and on every architecture and with
-every compiler alike. The intervals of floats are not covered.
+rounding direction the calling code left, with the floating-point exceptions
+masked as a program starts (\pxref{sec:fp-exceptions}), and on every
+architecture and with every compiler alike. The intervals of floats are not
+covered.
 
 \section{Tightness of each operation}
 %%-----------------------------------
@@ -3862,7 +4113,7 @@ every compiler alike. The intervals of floats are not covered.
   \hline
   \multicolumn{2}{l}{\textit{Trigonometric and hyperbolic functions: valid required, accurate recommended}}\\
   \code{cos}, \code{sin} & tightest where the function is evaluated at the bounds, at every magnitude; $-1$ and $1$ exactly at the extrema; \itv{-1}{1} from the width $2\underline{\pi}$ on, $\underline{\pi}$ being the double below $\pi$\\
-  \code{tan} & tightest between two poles, at every magnitude; \itv{-\infty}{+\infty} exactly when a pole is within $x$, but for the widths between $\underline{\pi}$ and $\pi$\\
+  \code{tan} & tightest between two poles, at every magnitude; \itv{-\infty}{+\infty} exactly when a pole is within $x$, but for the widths above $\underline{\pi}$ and below $\pi$\\
   \code{asin}, \code{acos}, \code{atan}, \code{atan2} & tightest; exactly 0, or the tightest enclosures of $\pm\pi/4$, $\pm\pi/2$ and $\pi$, where the value is one of them\\
   \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh} & tightest\\
   \hline
@@ -3944,7 +4195,7 @@ GAOL defines the following \code{double} constants:
   This function should not be used with infinity and NaN arguments.
 
   \begin{example}
-cout << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
+cout << boolalpha << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
 @outputs^false true false~
   \end{example}
 \end{deffun}
@@ -4002,6 +4253,10 @@ Returns the number of floating-point numbers in the interval
 \item \code{nb\_fp\_numbers(a,next\_float(a)) == 2}
 \item \code{nb\_fp\_numbers(a,a) == 1}
 \end{itemize}
+The two zeros are the same number: \code{nb\_fp\_numbers(-0.0,0.0)} is 1, and
+\code{nb\_fp\_numbers(-0.0,1.0)}, \code{nb\_fp\_numbers(-1.0,0.0)} and
+\code{nb\_fp\_numbers(0.0,1.0)} are all $4607182418800017409$ (GAOL~4 returned
+$13830554455654793217$ for the first two).\newinvfive
 
 \paragraph{Note.} As a precondition, \var{a} shall be lower or equal to \var{b}.
 
@@ -4179,12 +4434,15 @@ if (@emph^[some condition]~) {
 \end{defmacro}
 
 All GAOL exceptions can be sent to an output stream through the ``\code{<{}<}''
-operator.
+operator, which writes the name of the file, the line and the explanation, as
+in \code{file.cpp, line 12:\ exception thrown:\ some explanation}, and nothing
+after \code{thrown} if there is no explanation.\newinvfive
 
 \subsection{The \code{gaol\_exception} exception}\label{sec:gaol_exception}
 %%...............................................
 The \code{gaol\_exception} class is the base class from which derive all
-GAOL exceptions. It inherits from the C++ standard class \code{exception}.
+GAOL exceptions. It inherits from the C++ standard class \code{exception},
+and overrides its \code{what()} method.\newinvfive
 
 Every exception class deriving from it must at least provide the name of
 the file and the line where the corresponding exception was thrown. As a
@@ -4207,9 +4465,18 @@ The class offers the following accessors:
   Returns the line number in the file from where the exception was thrown.
 \end{defmethod}
 
-\begin{defmethod}{gaol\_exception}{const char* const}{explanation}{(void) const}
+\begin{defmethod}{gaol\_exception}{std::string}{explanation}{(void) const}
   Returns a string explaining why the exception was thrown. Returns an empty
   string if no additional information was provided.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{const char*}{what}{(void) const noexcept}
+  Returns the explanation, as a C string, or the text \code{gaol\_exception}
+  if no additional information was provided, so that it is never empty. It
+  overrides the \code{what()} of \code{std::exception}: a handler of
+  \code{std::exception}, and the message of an exception that nothing catches,
+  now say what went wrong, where GAOL~4 gave \code{std::exception} whatever the
+  error.\newinvfive{} The text is valid as long as the exception is.
 \end{defmethod}
 
 \subsection{The \code{input\_format\_error} exception}
@@ -4488,8 +4755,8 @@ choices:
 \item \file{doc/compare/README.md}: GAOL compared with libieeep1788, filib++,
   PROFIL/BIAS and Solaris Studio, their special cases against IEEE 1788-2015 and
   their performance;
-\item \file{3rd/README.md}: the version of CORE-MATH GAOL takes, and what differs
-  from it.
+\item \file{3rd/README.md}: the version of CORE-MATH GAOL takes, what differs
+  from it, and the fixes to propose upstream.
 \end{itemize}
 
 \noindent
