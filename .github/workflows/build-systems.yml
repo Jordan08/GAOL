@@ -60,14 +60,25 @@ jobs:
           # configure reads VERSION.txt when it runs, but configure --version
           # and --help give the version of the last generation of configure,
           # which is to be generated again when VERSION.txt changes
-          # (doc/building.md). As configure does, without the byte order
-          # mark that an editor may have written at the start of the file
-          version=$(LC_ALL=C sed -e "1s/^$(printf '\357\273\277')//" VERSION.txt | tr -d ' \t\r\n')
+          # (doc/building.md). With the commands of configure.ac, without the
+          # byte order mark that an editor may have written at the start of
+          # the file, nor the blanks around the version
+          version=$(LC_ALL=C tr -d '\000' < VERSION.txt | LC_ALL=C sed -e "1s/^$(printf '\357\273\277')//" -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//')
           ./configure --version | head -n 1
           test "$(./configure --version | head -n 1)" = "gaol configure $version" || {
             echo "configure was not generated again for GAOL $version (see doc/building.md)"; exit 1; }
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         run: sh .github/scripts/version-file.sh configure
+      - name: VERSION.txt read by autoconf, as by configure
+        if: runner.os == 'Linux'
+        run: |
+          # autoconf reads VERSION.txt for the version of configure --version
+          # when it generates configure, which no build does: the script
+          # generates configure in a copy of the sources (the autoconf of
+          # Ubuntu, 2.71, warns that aclocal.m4 was generated for autoconf
+          # 2.72, and works)
+          sudo apt-get install -y -q autoconf
+          sh .github/scripts/version-file.sh autoconf
       - name: Configure, build and install
         run: |
           # The same date on every file, as in a release archive: make then
@@ -123,6 +134,31 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         run: sh .github/scripts/version-file.sh meson
+      - name: meson setup with no Python on PATH
+        if: runner.os == 'Linux'
+        run: |
+          # meson.build reads VERSION.txt with find_program('python3', 'python'):
+          # when PATH holds neither, meson takes the Python that runs it, as the
+          # meson.exe of the Windows installer does on a machine without Python,
+          # but only for a first name that ends with python3 (doc/building.md).
+          # PATH is here a directory of links to the programs of PATH but
+          # Python's; meson itself runs, the interpreter of its script being
+          # named by its absolute path
+          nopython="$RUNNER_TEMP/no-python"
+          mkdir "$nopython"
+          echo "$PATH" | tr ':' '\n' | while read -r dir; do
+            for program in "$dir"/*; do
+              name=${program##*/}
+              case "$name" in python*) continue ;; esac
+              if [ -f "$program" ] && [ -x "$program" ] && [ ! -e "$nopython/$name" ]; then
+                ln -s "$program" "$nopython/$name"
+              fi
+            done
+          done
+          if PATH="$nopython" command -v python3 || PATH="$nopython" command -v python; then
+            echo "a Python is on PATH"; exit 1
+          fi
+          PATH="$nopython" meson setup "$RUNNER_TEMP/build-no-python"
       - name: Configure, build and install
         run: |
           meson --version

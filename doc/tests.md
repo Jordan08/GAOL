@@ -95,8 +95,16 @@ Codac.
   also computed and told empty in a child process that enabled the
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
-  without optimization. Where the processor does not trap an invalid
-  operation, the test says so and skips that part.
+  without optimization. The operations of the interface with an empty operand
+  on either side (about 190 calls, in 58 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in ten groups)
+  have to give the result of the empty set and raise no invalid-operation
+  flag, and, with glibc, not die in a child process that enabled the
+  exception (GAOL v5): 45 of the 48 died with the SSE2 intervals, and all 48
+  with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`, `min`, `max`,
+  `floor`, `set_contains()`, the output...).
+  Where the processor does not trap an invalid operation, the test says so
+  and skips that part.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
@@ -276,13 +284,22 @@ Codac.
   the upward rounding, which computes with the 128-bit integer GAOL ports
   (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
   the rest of the test cannot see a fault of that port, which the jobs
-  computing with the two 64-bit halves would then find here. `cbrt` is
-  checked in the four rounding directions, and `nth_root(x, 3)` and `rootn`
-  have to be the tightest enclosures, at the seven arguments `cbrt.c` rounds
-  apart (its `wlist`), scaled by powers of 8 and on both signs, against
-  mpmath: with mingw-w64 on x86-64, its `get_rounding_mode()` gave
-  `FE_UPWARD` where 0 to 3 were expected, and the upper bound was below the
-  cube root (GAOL v5).
+  computing with the two 64-bit halves would then find here. First of all,
+  the test checks the `fma()` and `round()` of the C library, which CORE-MATH
+  and GAOL call (`fma()` wherever the compiler has no fused multiply-add
+  instruction, as GCC for Windows): `fma()` correctly rounded in the four
+  rounding directions at six triples, three error-free products
+  `fma(a, b, -a*b)` among them and `x + x*2^-54` as `cr_tan()` computes it, and
+  `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
+  and 2<sup>52</sup> − 1/2, against values computed with exact rational
+  arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
+  x64, which `gaol/gaol_config.h` refuses there, fail 21 and 6 of these checks
+  under wine (GAOL v5). `cbrt` is checked in the four rounding directions, and
+  `nth_root(x, 3)` and `rootn` have to be the tightest enclosures, at the
+  seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
+  and on both signs, against mpmath: with mingw-w64 on x86-64, its
+  `get_rounding_mode()` gave `FE_UPWARD` where 0 to 3 were expected, and the
+  upper bound was below the cube root (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
@@ -393,24 +410,35 @@ Codac.
   reading of `VERSION.txt` by `CMakeLists.txt`, `gaol_read_version()` of
   `cmake/gaol_version.cmake`, has to ignore a UTF-8 byte order mark at the
   start of the file, which some editors of Windows write, the line ends of
-  Windows (CR LF), and the blanks and empty lines around the version, to
-  refuse anything but three numbers without leading zeros, and to give the
-  first bytes of a refused file in hexadecimal in its message. It refused a file
-  starting with a byte order mark as `VERSION.txt holds "5.0.0"`, the mark being
-  a character that is not seen; configure and meson did the same. A file of
-  UTF-16 characters (`tests/version_file/`, which CMake could not write: it
-  holds NUL bytes) has to be refused with all of its message, a NUL byte having
-  cut the text quoted, and a NUL byte after `5.0.0` has to make the file
-  refused, whether `file(READ)` cuts the text at the NUL byte (CMake 3.14.7 and
-  3.16.3) or keeps it and a regular expression stops there (4.4.3). A file
-  holding a mark alone, or nothing, has to be refused with its message too: it
-  stopped CMake 3.14.7 and 3.16.3 with an error of `string(REGEX MATCH)` on an
-  empty match, so these two checks fail only there, in the job of the
-  continuous integration that runs the tests with CMake 3.14. The files are
-  written by the script, which expects the versions it writes, not the ones the
-  code reads back. configure and meson, which read the file their own way, have
-  no such test: `.github/scripts/version-file.sh` runs them on a copy of the
-  sources, in the continuous integration (GAOL v5).
+  Windows (CR LF), and the blanks and empty lines around the version (the six
+  blanks of ASCII, not those of Unicode), to refuse anything but three numbers
+  without leading zeros, and to give the first bytes of a refused file in
+  hexadecimal in its message. It refused a file starting with a byte order
+  mark as `VERSION.txt holds "5.0.0"`, the mark being a character that is not
+  seen; configure and meson did the same. A file of UTF-16 characters
+  (`tests/version_file/`, which CMake could not write: it holds NUL bytes) has
+  to be refused with all of its message, a NUL byte having cut the text
+  quoted, and a NUL byte after `5.0.0` has to make the file refused, whether
+  `file(READ)` cuts the text at the NUL byte (CMake 3.14.7 and 3.16.3) or keeps
+  it and a regular expression stops there (3.28.3, 4.4.3); the message has to
+  end with `the file is UTF-16: save it as UTF-8 or ASCII` for a file that
+  starts with the byte order mark of UTF-16 (FF FE, FE FF), and with
+  `the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII` for
+  one that holds a NUL byte without it, and with neither for the others. A
+  file holding a mark alone, or nothing, has to be refused with its message
+  too: `string(REGEX MATCH)` stops with an error on an empty match in CMake
+  before 4.1 (3.14.7, 3.16.3, 3.28.3, 3.30.0 and 4.0.0 checked), which is why
+  `gaol_read_version()` runs no regular expression on an empty text; without
+  that, the test stops with that error on these checks with every CMake
+  before 4.1. The files are written by the script, which expects the
+  versions it writes, not the ones the code reads back. configure and meson,
+  which read the file their own way, and autoconf, which reads it for
+  `configure --version`, have no such test: `.github/scripts/version-file.sh`
+  runs them on a copy of the sources, in the continuous integration, with
+  the same cases and a few more (configure dropped a CR within the version
+  and read a file holding NUL bytes, meson stripped the blanks of Unicode,
+  autoconf dropped the blanks within the version and let NUL bytes through,
+  took `5.0.0)` for 5.0.0 and stopped on a bracket) (GAOL v5).
 - **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
   by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
   a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and

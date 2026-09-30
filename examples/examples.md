@@ -73,10 +73,12 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   those of `x op= x` in the FPU build, of the reader under a comma locale, of
   `operator<<` and `operator>>`, and of the expressions (threads, `/=`) are
   applied, the others are not (Appendix B).
-- **The documentation** is precise and its 86 examples of the manual are
-  right, but it has no tutorial and no example of an interval algorithm, and
-  its FetchContent recipe fetches the public `master`, which is GAOL 4.2.3,
-  121 commits behind GAOL v5 (section 3).
+- **The documentation** is precise and its 86 examples of the manual print
+  what it shows (though its overview program evaluated another function than
+  Goldstein-Price's, without the +1: recommendation 16), but it has no
+  tutorial and no example of an interval algorithm, and its FetchContent
+  recipe fetches the public `master`, which is GAOL 4.2.3, 121 commits behind
+  GAOL v5 (section 3).
 
 ## 1. The examples
 
@@ -517,12 +519,14 @@ manual carried, at `605728e`, 81 `[GAOL v5]` markers and 41 mentions of GAOL 4, 
 newcomer does not need. `doc/accuracy.md`, the tightness of each operation as
 IEEE 1788 (12.10.3) asks, is rare among interval libraries.
 
-**The manual's examples are right.** The 86 example blocks of
-`manual/v5/gaol.tex` with an expected output (102 outputs) were extracted,
-compiled with GCC and Clang in C++11 and C++17, and run: all match, apart from
-three formatting slips (`true`/`false` printed without `std::boolalpha`, and
-`nan` printed `-nan`). All 172 names the manual documents exist in the
-headers.
+**The manual's examples print almost exactly what it shows.** The 86 example
+blocks of `manual/v5/gaol.tex` with an expected output (102 outputs) were
+extracted, compiled with GCC and Clang in C++11 and C++17, and run: all match,
+apart from three formatting slips (`true`/`false` printed without
+`std::boolalpha`, and `nan` printed `-nan`). But the function of the overview
+chapter's program is the Goldstein-Price function of GAOL 4's example
+(`16_Goldstein_Price.cpp`) without the +1 of (x + y + 1)² (recommendation 16).
+All 172 names the manual documents exist in the headers.
 
 **What a newcomer trips on:**
 
