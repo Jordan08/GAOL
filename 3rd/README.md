@@ -61,6 +61,19 @@ their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
 well, which unmasks the exceptions and makes the first comparison of the NaN
 bounds of an empty interval trap.
 
+On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
+that rounds their doubles, rather than the control word of the x87 unit, which
+the `fegetround()` of glibc reads. `pow`, and `cos` and `tan`, whose accurate
+phases carry the same code, round a subnormal result themselves, in the
+direction `fegetround()` gives: with the x87 unit to nearest and MXCSR upward,
+the state the `exactinit()` of the predicates of Shewchuk and of Triangle
+leaves, `pow` rounded to nearest and its upper bound was below the exact value
+for about half of the arguments with a subnormal result. `<fenv.h>` is included
+first and the sources see `fegetround` renamed by a macro, which changes
+nothing for the rest of GAOL; `tests/rounding_direction.cpp` checks it. On a
+32-bit x86 processor, GAOL reads both units and sets both when one is not
+upward, so that they never differ when CORE-MATH runs.
+
 They are compiled with the flags of interval arithmetic, as CORE-MATH asks
 (`-frounding-math -ffp-contract=off`, `/fp:strict` for Visual C++), and with the
 GNU extensions of C (`atan2` uses inline assembly), not with `-std=c99`.
@@ -140,6 +153,28 @@ kept as a patch to reapply.
    sources GAOL compiles take a comparison, or an integer of 32 bits or less.
    This is a fix to propose to CORE-MATH.
 
+6. **The rounding direction of `cbrt` with mingw-w64 on x86-64** in
+   `cbrt/cbrt.c` (`get_rounding_mode()`). `cr_cbrt()` takes the direction as 0
+   to 3 (to nearest, downward, upward, toward zero): it indexes `off[4]` with
+   it, and rounds the seven hardest arguments of `wlist` away from zero when it
+   is 2 minus the sign. Where `__x86_64__` is defined (GCC and Clang), the
+   function computes the `FE_*` value of the direction from MXCSR, for the
+   values of glibc, or for those of Windows where `__WIN32__` is defined
+   (`FE_UPWARD` 0x200 or 0x100), then maps it to 0 to 3 by a switch; under
+   `__WIN32__` with other values, which are those of mingw-w64 (`FE_UPWARD`
+   0x800, as glibc), it returned `fegetround()` itself, past the switch. In the
+   directed roundings `off[]` was then read kilobytes beyond its four elements,
+   and the seven arguments were rounded toward zero: rounding upward,
+   `cr_cbrt(0x1.3a9ccd7f022dbp+0)` was `0x1.1236160ba9b93p+0`, below the cube
+   root (`0x1.1236160ba9b930000000000001e7e8fap+0`), and `nth_root(x, 3)` did
+   not enclose it, with MinGW-w64 and MSYS2 on x64. That `fegetround()` now
+   goes through the switch like the other branches. `tests/core_math.cpp`
+   checks `cbrt` and `nth_root(x, 3)` at these arguments, scaled by powers of 8
+   and on both signs, against mpmath. `rsqrt.c` and `asinpi.c`, whose
+   `get_rounding_mode()` has the same branch, compare its result with the
+   `FE_*` values themselves, and are right. This is a fix to propose to
+   CORE-MATH.
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
@@ -189,6 +224,6 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the five changes
+Copy the upstream tree again without the `.wc` files, then make the six changes
 above. `git diff` against the previous version shows them: they are marked
 `/* GAOL */`, and no other line differs.

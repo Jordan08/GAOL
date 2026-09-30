@@ -78,11 +78,16 @@ Codac.
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
   have to be the tightest enclosures, also when computed in a loop that changes
-  the rounding direction before each of them. `cbrt`, `pow` and `atan2` have to
-  leave the exception masks of the SSE control register as they found them, and
-  an empty interval to be told empty after them: the `fesetexceptflag()` of
-  mingw-w64 for 32-bit Windows unmasked the exceptions, and the comparison of
-  the NaN bounds of an empty interval then killed the program (GAOL v5).
+  the rounding direction before each of them. `pow` with a subnormal result,
+  which CORE-MATH rounds by itself in the direction `fegetround()` gives, has to
+  be the tightest enclosure, computed apart with mpmath, in each of them, the
+  x87 unit to nearest and the SSE instructions upward included: `fegetround()`
+  of glibc reads the x87 unit, and the upper bound was below the exact value
+  (GAOL v5). `cbrt`, `pow` and `atan2` have to leave the exception masks of the
+  SSE control register as they found them, and an empty interval to be told
+  empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit Windows
+  unmasked the exceptions, and the comparison of the NaN bounds of an empty
+  interval then killed the program (GAOL v5).
   `is_empty()` has to be true for six empty sets (`interval::emptyset()`,
   `[3, 2]`, `sqrt([-2, -1])`, `log([-2, -1])` and the two orders of
   `[1, 2] & [3, 4]`) and false for three nonempty intervals, and to raise no
@@ -289,7 +294,12 @@ Codac.
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
   x64, which `gaol/gaol_config.h` refuses there, fail 21 and 6 of these checks
-  under wine (GAOL v5).
+  under wine (GAOL v5). `cbrt` is checked in the four rounding directions, and
+  `nth_root(x, 3)` and `rootn` have to be the tightest enclosures, at the
+  seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
+  and on both signs, against mpmath: with mingw-w64 on x86-64, its
+  `get_rounding_mode()` gave `FE_UPWARD` where 0 to 3 were expected, and the
+  upper bound was below the cube root (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:

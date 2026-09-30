@@ -681,6 +681,64 @@ namespace
     }
   }
 
+  /* cbrt at the seven arguments of wlist in CORE-MATH's cbrt.c, whose cube
+     roots are less than 10^-15 ulp above a double: cr_cbrt() rounds them
+     apart, away from zero when get_rounding_mode() gives it 2, the upward
+     rounding, for a positive x (1, downward, for a negative one). With
+     mingw-w64 on x86-64 (MinGW-w64, MSYS2), get_rounding_mode() returned
+     FE_UPWARD itself, 0x800, where 0 to 3 are expected, and the upper bound
+     of nth_root(x, 3) was below the cube root (3rd/README.md). The roundings
+     are computed apart, with mpmath at 2000 bits: below and above are the
+     doubles on each side of the cube root of x, the nearest being below. The
+     cube root of x 8^k is that of x times 2^k, exactly, and so are its
+     roundings. */
+  void cbrt_hard_cases()
+  {
+    struct Value { double x, below, above; };
+    const Value values[] = {
+      {0x1.3a9ccd7f022dbp+0, 0x1.1236160ba9b93p+0, 0x1.1236160ba9b94p+0},
+      {0x1.7845d2faac6fep+0, 0x1.23115e657e49cp+0, 0x1.23115e657e49dp+0},
+      {0x1.d1ef81cbbbe71p+0, 0x1.388fb44cdcf5ap+0, 0x1.388fb44cdcf5bp+0},
+      {0x1.0a2014f62987cp+1, 0x1.46bcbf47dc1e8p+0, 0x1.46bcbf47dc1e9p+0},
+      {0x1.fe18a044a5501p+1, 0x1.95decfec9c904p+0, 0x1.95decfec9c905p+0},
+      {0x1.a6bb8c803147bp+2, 0x1.e05335a6401dep+0, 0x1.e05335a6401dfp+0},
+      {0x1.ac8538a031cbdp+2, 0x1.e281d87098de8p+0, 0x1.e281d87098de9p+0},
+    };
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (const Value& e : values) {
+      for (int k : {0, 1, -1, 340, -340}) {
+        for (double s : {1.0, -1.0}) {
+          const double x = s * std::ldexp(e.x, 3 * k);
+          // the roundings to nearest and toward zero are the double nearer to 0
+          const double to_zero = s * std::ldexp(e.below, k), away = s * std::ldexp(e.above, k);
+          const double lo = (s > 0.0) ? to_zero : away, hi = (s > 0.0) ? away : to_zero;
+          const double want[4] = {to_zero, hi, lo, to_zero};
+          double v[4];
+          for (int d = 0; d < 4; ++d) {
+            std::fesetround(directions[d]);
+            v[d] = gaol_cr_cbrt(x);
+          }
+          std::fesetround(FE_UPWARD);
+          check("cbrt at the hard cases of cbrt.c: the roundings of the cube root",
+                v[0] == want[0] && v[1] == want[1] && v[2] == want[2] && v[3] == want[3],
+                [&] {
+                  return "cbrt(" + show(x) + ") = " + show(v[0]) + ", " + show(v[1]) + ", " + show(v[2]) + ", "
+                       + show(v[3]) + " rather than " + show(want[0]) + ", " + show(want[1]) + ", "
+                       + show(want[2]) + ", " + show(want[3]);
+                });
+          const interval got = nth_root(interval(x), 3u);
+          check("nth_root(x, 3) at the hard cases of cbrt.c: the tightest bounds",
+                !got.is_empty() && got.left() == lo && got.right() == hi,
+                [&] { return "nth_root([" + show(x) + "], 3) = " + hex(got); });
+          const interval std_got = gaol_ieee1788::rootn(interval(x), 3);
+          check("rootn(x, 3) of gaol_ieee1788 at the hard cases of cbrt.c: the tightest bounds",
+                !std_got.is_empty() && std_got.left() == lo && std_got.right() == hi,
+                [&] { return "rootn([" + show(x) + "], 3) = " + hex(std_got); });
+        }
+      }
+    }
+  }
+
   void recommended_tightest()
   {
     std::mt19937_64 gen(20260921u);
@@ -946,6 +1004,7 @@ int main()
   recommended_intervals();
   recommended_tightest();
   sin_accurate_path();
+  cbrt_hard_cases();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();
