@@ -175,13 +175,16 @@ namespace
     CORE-MATH), which does not depend on the rounding direction.
 
     The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds
-    the products of the halves of x and y to z with four roundings: under wine,
-    it got wrong the three error-free products fma(a, b, -a*b) below, on which
-    double-double arithmetic is built, the next two triples in every
-    direction, and x + x*2^-54, what cr_tan() gives for a tiny x, rounded
-    upward to two doubles above x; its round() of 0x1.fffffffffffffp-2 was 1
-    in every direction but upward. The expected values were computed with
-    exact rational arithmetic, and checked with mpmath.
+    the products of the halves of x and y to z with four roundings. That of
+    mingw-w64 11 for x86-64, under wine, got wrong the three error-free
+    products fma(a, b, -a*b) below, on which double-double arithmetic is
+    built, the next two triples in every direction, and x + x*2^-54, what
+    cr_tan() gives for a tiny x, rounded upward to two doubles above x (the
+    MinGW-w64 GCC 11 to 13 of Chocolatey gave wrong bounds so); its round() of
+    +-0x1.fffffffffffffp-2 was +-1 in every direction but upward. The fma()
+    of mingw-w64 11 for 32-bit x86, computed in extended precision, passes.
+    The expected values were computed with exact rational arithmetic, and
+    checked with mpmath.
   */
   void c_library_fma_and_round()
   {

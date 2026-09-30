@@ -219,54 +219,44 @@
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
 /* mingw-w64 whose fma() and round() are those of its own math library
-   (math/fma.c and math/round.c of its C runtime, whose code for x86 is the
-   same from version 9 to 13), which are not right:
+   (math/fma.c and math/round.c, the same code for x86 from version 9 to 13),
+   which are wrong:
 
-   - fma() splits x and y into halves of 26 and 27 bits and adds their four
-     products to z with four roundings: it is not correctly rounded. With
-     mingw-w64 11 on x86-64 under wine, 10.7 % of the error-free products
-     fma(a, b, -a*b), on which double-double arithmetic is built, and 25 to
-     73 % of other triples, depending on the rounding direction, were wrong.
-     CORE-MATH computes with __builtin_fma(), a call to fma() where GAOL gives
-     the compiler no -mfma (GCC for Windows, see CMakeLists.txt), and GAOL's
-     exact products with std::fma(): tan(0x1.56e1fc2f8f359p-997) rounded
-     upward was two doubles above its argument, and GAOL's lower bound above
-     the exact value; 136,591 checks of tests/core_math.cpp, 29 of
-     tests/elementary.cpp and 4 of tests/reverse.cpp failed, bounds not
-     enclosing the exact values (tan, asin and atan of small arguments, in the
-     continuous integration, with GCC 11 to 13 of Chocolatey on x86-64);
-   - round() is ceil(x), less 1 where that is more than 1/2 above x, a
-     difference rounded in the rounding direction in effect:
-     round(0x1.fffffffffffffp-2) is 1 rather than 0 in every direction but
-     upward on x86-64, and round_ties_to_away() (gaol_interval.h) calls it in
-     the direction of the code using GAOL.
+   - fma() adds the four products of the halves of x and y to z with four
+     roundings. With mingw-w64 11 on x86-64 (under wine), 10.7 % of the
+     error-free products fma(a, b, -a*b) and 25 to 73 % of other triples,
+     depending on the rounding direction, were wrong. CORE-MATH computes with
+     __builtin_fma(), a call to fma() without -mfma (GCC for Windows, see
+     CMakeLists.txt), and GAOL's exact products with std::fma(): bounds of
+     tan, asin, atan and others at small arguments did not enclose the exact
+     values (tan(0x1.56e1fc2f8f359p-997) rounded upward was two doubles above
+     the argument), in tests/core_math.cpp, elementary.cpp and reverse.cpp,
+     and in the continuous integration with GCC 11 to 13 of Chocolatey;
+   - round() is ceil(x), less 1 when that is more than 1/2 above x, a
+     difference rounded in the direction in effect: on x86-64,
+     round(0x1.fffffffffffffp-2) is 1 in every direction but upward, and
+     round_ties_to_away() (gaol_interval.h) calls it in the caller's.
 
    On x86-64, before version 12 both are in libmingwex, which every program
-   links before the C runtime. From version 12 on, they are only in the
-   library of msvcrt.dll, which has neither: a toolchain linking the UCRT takes
-   those of ucrtbase.dll, which are right, and one linking msvcrt.dll still
-   takes mingw-w64's (the objects of MSYS2 MINGW64, mingw-w64 13, gave the
-   same wrong bounds). _UCRT tells the two apart, with GCC and Clang alike:
-   the headers of a UCRT toolchain define it (__MSVCRT_VERSION__ 0xE00, the
-   default of mingw-w64 12 and later), and GCC 14 and later with
-   -mcrtdll=ucrt; nothing defines it for msvcrt.dll (MSYS2 MINGW64, the msvcrt
-   builds of MinGW-Builds, the cross compilers of Debian and Ubuntu).
-   A program defining _UCRT itself while linking msvcrt.dll is not refused
-   here, and fails tests/core_math.cpp. The continuous integration builds and
-   tests MinGW-Builds GCC 14 and 15 of Chocolatey, MSYS2 UCRT64 (GCC) and
-   CLANG64 (Clang), all UCRT, and checks the refusal of GCC 11 to 13 of
-   Chocolatey and of MSYS2 MINGW64.
+   links; from 12 on, only in the library of msvcrt.dll, which lacks them. A
+   toolchain linking the UCRT then takes the right ones of ucrtbase.dll; one
+   linking msvcrt.dll still takes mingw-w64's (those of MSYS2 MINGW64,
+   mingw-w64 13, gave the same wrong bounds). _UCRT tells them apart, for GCC
+   and Clang: the headers of a UCRT toolchain define it (__MSVCRT_VERSION__
+   0xE00, the default from mingw-w64 12 on), and so does -mcrtdll=ucrt of GCC
+   14 and later; nothing does for msvcrt.dll (MSYS2 MINGW64, the cross
+   compilers of Debian and Ubuntu). A program defining _UCRT itself while
+   linking msvcrt.dll is not refused here, and fails tests/core_math.cpp.
+   Accepted and tested: MinGW-Builds GCC 14 and 15, MSYS2 UCRT64 and CLANG64.
 
    On 32-bit x86, fma() computes on the x87 unit. The GCC 11.2 of WinLibs
    (mingw-w64 9) compiled it without optimization, each partial sum rounded to
    a double: the continuous integration saw the same wrong bounds as on
    x86-64. MinGW-Builds GCC 12 and 13 (mingw-w64 11) and the mingw-w64 11 of
-   Ubuntu keep the partial sums in extended precision: the error-free products
-   are exact and the tests pass (under wine too), but the fma() is not
-   correctly rounded either, 125 of 400,000 other results being one double
-   off. round() is right there, computed in extended precision. On 64-bit
-   ARM, where fma() is the instruction, mingw-w64 before 11 stays refused, as
-   it was (not tested). */
+   Ubuntu keep the sums in extended precision: the error-free products tried
+   were exact and the tests pass, but 125 of 400,000 other results were one
+   double off. round() is right there. On 64-bit ARM, whose fma() is the
+   instruction, mingw-w64 before 11 stays refused, as before (not tested). */
 #if defined(__MINGW64_VERSION_MAJOR) && defined(__x86_64__) \
     && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
 #  error "GAOL cannot be compiled with this mingw-w64: before version 12, or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library, whose fma() is not correctly rounded and whose round() depends on the rounding direction, and the bounds of the elementary functions (CORE-MATH computes with fma()) would not enclose the exact values. Build GAOL with a toolchain of mingw-w64 12 or later linking the UCRT: the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0), MSYS2 UCRT64 or CLANG64 (pacman -S mingw-w64-ucrt-x86_64-gcc), or with Visual Studio"
