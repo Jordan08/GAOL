@@ -115,7 +115,8 @@ Codac.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5).
+  compared before the check (GAOL v5). A mode the processor keeps without
+  honouring it, as an emulator may, is named and skipped.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
@@ -127,7 +128,8 @@ Codac.
   starts; otherwise, and where they are clear, the test sets them, as a plug-in
   built with `-Ofast` does. Products, a difference and `exp` with subnormal
   operands or results have then to be the tightest enclosures, and the modes
-  cleared after them, or restored with `GAOL_PRESERVE_ROUNDING` (GAOL v5).
+  cleared after them, or restored with `GAOL_PRESERVE_ROUNDING`, where the
+  processor honours them (GAOL v5).
 - **`automatic_cleanup`** (Linux only): after the end of `main()`, which leaves
   the rounding direction downward, GAOL's automatic cleanup has to set back
   the direction to nearest, as the program started, or to leave it downward
