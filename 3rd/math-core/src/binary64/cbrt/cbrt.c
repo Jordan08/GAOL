@@ -94,7 +94,7 @@ static inline int get_rounding_mode (fexcept_t *flagp)
       mode = lut[(*flagp & _MM_ROUND_MASK)>>13];
     #else
       #warning The floating point rounding constants have an unknown value. A slower path will be taken.
-      return fegetround();
+      mode = fegetround(); /* GAOL: mapped to 0..3 by the switch below, not returned */
     #endif
   #else
     mode = (*flagp & _MM_ROUND_MASK)>>3;

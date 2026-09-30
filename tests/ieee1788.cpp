@@ -13,11 +13,11 @@
  * an interval, an int or a double as exponent, and has to be the pow of
  * Table 9.1 for each, on intervals and on expressions, where GAOL's pow takes
  * pown for an integer exponent: pow(x, 2) is pow(x, [2]), the integer power
- * being pown(x, 2). The functions of C on
- * numbers have to remain those of C. intervalToExact() has to be
- * exact_string(), and to leave the global output format alone. The check of
- * it by a second thread writing intervals meanwhile is commented out: the
- * tests run no thread.
+ * being pown(x, 2). Their bounds on boxes that reach each branch of the
+ * function they share are checked bit for bit. The functions of C on numbers
+ * have to remain those of C. intervalToExact() has to be exact_string(), and
+ * to leave the global output format alone. The check of it by a second thread
+ * writing intervals meanwhile is commented out: the tests run no thread.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -124,6 +124,158 @@ namespace
     check("pow(e1, e2) and pown(e, n) on expressions are those of the standard",
           std_pow.is_empty() && std_pown.set_eq(numsToInterval(1.0, 16.0)) && gaol_pow.set_eq(numsToInterval(1.0, 16.0)),
           [&] { return hex(std_pow) + " " + hex(std_pown) + " " + hex(gaol_pow); });
+  }
+
+  /*
+    The pow of Table 9.1 is written once, in gaol/gaol_interval.cpp:
+    gaol_ieee1788::pow(x, y) is that function, and gaol::pow(x, y) calls it for
+    every exponent but a degenerate integer, which takes pown on the whole of x,
+    and [-oo, +oo] beyond the ints. The two were written apart, the first going
+    through the second after checks of its own (x cut to [0, +oo], the empty
+    sets, x = {0}): a check lost from either changes the bounds of a few boxes
+    only, most having the same. Each box below reaches a branch of the shared
+    function, or of what gaol::pow adds to it. The bounds are those the two
+    functions gave before the pow of the standard was written once, bit for bit
+    (as on 70 500 more boxes, under the four rounding directions, with SSE2 and
+    FPU intervals; but for the lower bound of gaol::pow([0], y), y > 0, which
+    was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow), each
+    checked against the exact power computed with 500 bits (mpmath): it
+    encloses it, within one double of the tightest bound.
+  */
+  void pow_on_boxes()
+  {
+    struct Box
+    {
+      interval x, y, standard, hybrid;
+      Box(const interval& x_, const interval& y_, const interval& s) : x(x_), y(y_), standard(s), hybrid(s) {}
+      Box(const interval& x_, const interval& y_, const interval& s, const interval& h)
+        : x(x_), y(y_), standard(s), hybrid(h) {}
+    };
+    const auto I = [](double l, double u) { return interval(l, u); };
+    const auto P = [](double p) { return interval(p); };
+    const interval none = interval::emptyset(), all = interval::universe();
+    // {x, y, gaol_ieee1788::pow(x, y)} where gaol::pow(x, y) is the same, {x, y, gaol_ieee1788::pow(x, y),
+    // gaol::pow(x, y)} where it is not
+    const Box boxes[] = {
+      // an empty base or exponent
+      {none, P(2), none},
+      {P(2), none, none},
+      // x < 0: no value for the pow of the standard, pown for a degenerate integer exponent of gaol::pow
+      {I(-4, -1), P(0.5), none},
+      {I(-4, -1), I(1.5, 2.5), none},
+      {I(-4, -1), P(2), none, I(1, 16)},
+      {I(-4, -1), P(3), none, I(-64, -1)},
+      {I(-4, -1), P(-2), none, I(0.0625, 1)},
+      {I(-oo, -1), P(2), none, I(1, oo)},
+      {I(-3, 5), P(0.5), I(0, 0x1.1e3779b97f4a8p+1)},
+      {I(-3, 5), I(0.5, 1.5), I(0, 0x1.65c55827df1d2p+3)},
+      {I(-3, 5), I(-0.5, 1.5), I(0, oo)},
+      // x cut to {0} (x = {0}, or x from below to 0): 0^y is 0 for y > 0, and has no value for y <= 0
+      {P(0), I(1, 2), P(0)},
+      {P(0), I(-1, 2), P(0)},
+      {P(0), P(0.5), P(0)},
+      {P(0), P(3), P(0)},
+      {P(0), P(-0.5), none},
+      {P(0), I(-2, 0), none},
+      {P(0), P(0), none, P(1)},
+      {P(0), P(-1), none},
+      {I(-1, -0.0), P(0.5), P(0)},
+      {I(-2, 0), P(2), P(0), I(0, 4)},
+      {P(0), P(1e10), P(0), all},
+      {P(0), P(-1e10), none, all},
+      // a degenerate integer exponent within the ints: pown, on x >= 0 for the standard's pow, on the whole of x for gaol::pow
+      {I(2, 3), P(5), I(32, 243)},
+      {I(-2, 3), P(3), I(0, 27), I(-8, 27)},
+      {I(-2, 3), P(2), I(0, 9)},
+      {I(-3, 2), P(2), I(0, 4), I(0, 9)},
+      {I(0, 4), P(0), P(1)},
+      {I(0, 4), P(-1), I(0.25, oo)},
+      {I(0, 4), P(2), I(0, 16)},
+      {I(0.5, 2), P(-3), I(0.125, 8)},
+      {P(1.1), P(3), I(0x1.54bc6a7ef9db3p+0, 0x1.54bc6a7ef9db4p+0)},
+      {P(1), P(7), P(1)},
+      {I(-oo, oo), P(2), I(0, oo)},
+      {I(-oo, oo), P(3), I(0, oo), all},
+      {I(1e-300, 1e300), P(3), I(0, oo)},
+      {I(-1, 2), P(2147483647.0), I(0, oo), I(-1, oo)},
+      {I(0.5, 1), P(-2147483648.0), I(1, oo)},
+      // an integer exponent beyond the ints: CORE-MATH's pow at the bounds of x for the standard's pow, [-oo, +oo] for gaol::pow
+      {I(2, 3), P(1e10), I(0x1.fffffffffffffp+1023, oo), all},
+      {I(0.5, 0.9), P(1e10), I(0, 0x1p-1074), all},
+      {I(2, 3), P(-1e10), I(0, 0x1p-1074), all},
+      {P(1), P(-1e12), P(1), all},
+      {I(-1, 1), P(2147483649.0), I(0, 1), all},
+      {I(-1, 0.5), P(-2147483649.0), I(0x1.fffffffffffffp+1023, oo), all},
+      {I(0, 2), P(1e10), I(0, oo), all},
+      {I(0, 0.5), P(-1e10), I(0x1.fffffffffffffp+1023, oo), all},
+      {I(2, oo), P(1e10), I(0x1.fffffffffffffp+1023, oo), all},
+      {I(0, oo), P(1e12), I(0, oo), all},
+      {I(1, 2), P(2147483648.0), I(1, oo), all},
+      {I(0, 0x1.00000004p+0), P(2147483649.0), I(0, 0x1.d8e64b8d4ddaep+2), all},
+      {I(0, 0x1.00000004p+0), P(-2147483649.0), I(0x1.152aaa3bf81cbp-3, oo), all},
+      {I(-0.0, 0x1.00000004p+0), P(-2147483649.0), I(0x1.152aaa3bf81cbp-3, oo), all},
+      {I(0x1.fffffff8p-1, oo), P(2147483649.0), I(0x1.152aaa334ec76p-3, oo), all},
+      {I(0x1.fffffff8p-1, oo), P(-2147483649.0), I(0, 0x1.d8e64b9c150d4p+2), all},
+      // CORE-MATH's pow at the corners of the box, from a base from 0, a base above 1, below 1, and around 1
+      {I(2, 3), P(0.5), I(0x1.6a09e667f3bccp+0, 0x1.bb67ae8584cabp+0)},
+      {I(0, 2), P(0.5), I(0, 0x1.6a09e667f3bcdp+0)},
+      {I(0, 0.5), I(0.5, 1.5), I(0, 0x1.6a09e667f3bcdp-1)},
+      {I(1.5, 2.5), I(0.5, 1.5), I(0x1.3988e1409212ep+0, 0x1.f9f6e4990f228p+1)},
+      {I(1.5, 2.5), I(-1.5, -0.5), I(0x1.030dc4ea03a72p-2, 0x1.a20bd700c2c3ep-1)},
+      {I(1.5, 2.5), I(-1, 2), I(0x1.9999999999999p-2, 6.25)},
+      {I(0.3, 0.7), I(0.5, 1.5), I(0x1.50854f2c3d222p-3, 0x1.ac5eb3f7ab2f8p-1)},
+      {I(0.3, 0.7), I(-1.5, -0.5), I(0x1.31fa808c55b43p+0, 0x1.857dd943cb7f5p+2)},
+      {I(0.3, 0.7), I(-1.5, 2.5), I(0x1.93d32bceafc29p-5, 0x1.857dd943cb7f5p+2)},
+      {I(0.5, 2), I(1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
+      {I(0.5, 2), I(-2.5, -1.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
+      {I(0.5, 2), I(-1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
+      {I(0.1, 2), I(-2, 0.5), I(0x1.fffffffffffffp-3, 100)},
+      {I(1, 2), I(-0.5, 1.5), I(0x1.6a09e667f3bccp-1, 0x1.6a09e667f3bcdp+1)},
+      {P(1), I(-0.5, 1.5), P(1)},
+      {I(0.3, 1), I(0.5, 1.5), I(0x1.50854f2c3d222p-3, 1)},
+      {I(0.3, 3), I(-0.5, 1.5), I(0x1.50854f2c3d222p-3, 0x1.4c8dc2e42398p+2)},
+      {I(3, 7), I(1.5, 2.5), I(0x1.4c8dc2e42397fp+2, 0x1.03489be058693p+7)},
+      {I(1e-5, 1e5), I(-2.5, 3.5), I(0x1.d2ab78e5b8624p-59, 0x1.18ddde9363225p+58)},
+      {P(2), P(1023.5), I(0x1.6a09e667f3bccp+1023, 0x1.6a09e667f3bcdp+1023)},
+      {I(2, 3), I(2147483647.0, 2147483649.0), I(0x1.fffffffffffffp+1023, oo)},
+      {P(1e-300), P(1.5), I(0, 0x1p-1074)},
+      {P(1e300), P(1.5), I(0x1.fffffffffffffp+1023, oo)},
+      // exp(y log(x)), for an infinite bound and for a base from 0 with an exponent that is not above 0
+      {I(2, oo), I(0.5, 1.5), I(0x1.6a09e667f3bccp+0, oo)},
+      {I(0, 2), I(-1.5, -0.5), I(0x1.6a09e667f3bcbp-2, oo)},
+      {I(0, 1), I(-1, 1), I(0, oo)},
+      {I(0, 1), I(0, 2), I(0, 1)},
+      {I(0.5, 2), I(0, oo), I(0, oo)},
+      {I(1, 3), I(-oo, 2), I(0, 0x1.2000000000001p+3)},
+      {I(0.25, 0.5), I(-oo, -1), I(0x1.fffffffffffffp+0, oo)},
+      {I(2, 4), I(1, oo), I(0x1.fffffffffffffp+0, oo)},
+      {I(-oo, oo), P(0.5), I(0, oo)},
+      {I(0, oo), I(1, 2), I(0, oo)},
+      {I(4, oo), P(-0.5), I(0, 0x1.0000000000001p-1)},
+      {I(0, 3), P(-0.5), I(0x1.279a74590331cp-1, oo)},
+    };
+    const auto same = [](const interval& a, const interval& b) {
+      return a.is_empty() ? b.is_empty() : (!b.is_empty() && a.left() == b.left() && a.right() == b.right());
+    };
+    const auto text = [](const interval& a) { return a.is_empty() ? std::string("[empty]") : hex(a); };
+    for (const Box& box : boxes) {
+      const interval s = gaol_ieee1788::pow(box.x, box.y), h = gaol::pow(box.x, box.y);
+      const std::string what = "pow(" + text(box.x) + ", " + text(box.y) + ")";
+      check("gaol_ieee1788::pow(x, y) on boxes: the pow of Table 9.1", same(s, box.standard),
+            [&] { return what + " is " + text(s) + " rather than " + text(box.standard); });
+      check("gaol::pow(x, y) on boxes: pown for a degenerate integer exponent, the pow of Table 9.1 otherwise",
+            same(h, box.hybrid), [&] { return what + " is " + text(h) + " rather than " + text(box.hybrid); });
+      if (!box.y.is_empty() && box.y.left() == box.y.right()) {
+        // With the exponent as a double: the same functions, gaol::pow(x, p) taking pown for an integer p
+        // within the ints without the call of gaol::pow(x, [p])
+        const double p = box.y.left();
+        const interval sp = gaol_ieee1788::pow(box.x, p), hp = gaol::pow(box.x, p);
+        check("gaol_ieee1788::pow(x, p) on boxes is gaol_ieee1788::pow(x, [p])", same(sp, box.standard),
+              [&] { return what + " is " + text(sp) + " rather than " + text(box.standard); });
+        check("gaol::pow(x, p) on boxes is gaol::pow(x, [p])", same(hp, box.hybrid),
+              [&] { return what + " is " + text(hp) + " rather than " + text(box.hybrid); });
+      }
+    }
   }
 
   void gaol_functions()
@@ -262,7 +414,9 @@ namespace
     interval(0.1)) was <0.1, 0.1000000000000001>, whose two numbers are not the
     same double, which the reader takes for a point only, so that
     textToInterval() gave the empty set, where the recovery requirement of
-    IEEE 1788-2015 (13.4) asks for an interval containing the one written.
+    IEEE 1788-2015 (13.4) asks for an interval containing the one written. A
+    point that the digits write exactly is written [a], the literal of the
+    standard for a point, and read back as the point itself.
   */
   void text_of_a_point_interval()
   {
@@ -279,16 +433,20 @@ namespace
       const interval y = textToInterval(text);
       check("textToInterval(intervalToText(point)) contains the point", y.set_contains(x),
             [&] { return text + " read " + hex(y); });
+      if (text.find(',') == std::string::npos) {
+        check("textToInterval(intervalToText(point)) written [a]: the point itself", y.left() == x && y.right() == x,
+              [&] { return text + " read " + hex(y); });
+      }
     }
     interval::format(saved);
   }
 
   /*
     Whether s is an interval literal of the standard that intervalToText()
-    writes: [ ], [empty] or [l, u], l and u being decimal numbers, or inf, with
-    a sign, as in Tables 9.5 and 12.2 (12.11.5), whose letters may be of either
-    case. The angles <a, a> of GAOL, a width "c (+/- w)", the agreeing digits
-    and a decimal comma are none.
+    writes: [ ], [empty], [m] or [l, u], m, l and u being decimal numbers, or
+    inf, with a sign, as in Tables 9.5 and 12.2 (12.11.5), whose letters may be
+    of either case. The angles <a, a> of GAOL, a width "c (+/- w)", the
+    agreeing digits and a decimal comma are none.
   */
   bool is_portable_literal(const std::string& text)
   {
@@ -352,14 +510,18 @@ namespace
 
   /*
     intervalToText(x) is an interval literal that textToInterval() reads back
-    as an interval containing x, [l, r], and [empty] for the empty set, whatever
-    the global output format, the precision and the locale of the program
-    (GAOL v5), as the standard asks of it (13.3): it wrote what operator<< does,
-    the width "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the
-    locale of a program that sets one, fewer digits when the precision of the
-    intervals was lowered, and <4, 4> for the point interval 4, which is no
-    literal of the standard. Where no locale writing a decimal comma is
-    installed, that part is not checked.
+    as an interval containing x, [l, r], [a] for a point that the digits write
+    exactly, and [empty] for the empty set, whatever the global output format,
+    the precision and the locale of the program (GAOL v5), as the standard
+    asks of it (13.3): it wrote what operator<< does, the width
+    "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the locale of a
+    program that sets one, fewer digits when the precision of the intervals
+    was lowered, and <4, 4> for the point interval 4, which is no literal of
+    the standard. Under a locale writing a decimal comma, the text operator<<
+    writes for a point has to be refused, or read back as an interval
+    containing it: the literal [a] made interval(-2.5) [-2,5], read as the
+    interval [-2, 5]. Where no such locale is installed, that part is not
+    checked.
   */
   void text_independent_of_the_output_settings()
   {
@@ -369,10 +531,13 @@ namespace
     // The texts to expect, written by hand ("" for none)
     const struct { const char *name; interval x; const char *text; } forms[] = {
       { "[1, 2]", interval(1.0, 2.0), "[1, 2]" },
-      { "interval(4)", interval(4.0), "[4, 4]" },
-      { "interval(0.5)", interval(0.5), "[0.5, 0.5]" },
+      { "interval(4)", interval(4.0), "[4]" },
+      { "interval(0.5)", interval(0.5), "[0.5]" },
+      { "interval(-1024)", interval(-1024.0), "[-1024]" },
       { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
-      { "[-0, 0]", interval(-0.0, 0.0), "" }, // "[-0, 0]" or "[0, 0]": the sign of the bound is the build's
+      { "[-0, 0]", interval(-0.0, 0.0), "[0]" },
+      { "interval(-0.0)", interval(-0.0), "[0]" },
+      { "interval::zero()", interval::zero(), "[0]" },
       { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
       { "[1, +oo]", interval(1.0, oo), "[1, inf]" },
       { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]" },
@@ -457,6 +622,42 @@ namespace
       check("operator<< writes a decimal comma under that locale, the text of intervalToText none",
             os.str() == "[0,25, 0,5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
             [&] { return os.str() + " and " + intervalToText(interval(0.25, 0.5)); });
+      // A point written by operator<< under that locale: the literal [a] of a
+      // number with a decimal comma would be two numbers, which the reader
+      // takes, [-2,5] being [-2, 5], [12,5] the empty set and [0,] (no digit,
+      // showpoint) [0, +oo]; the text has to be refused, or read back as an
+      // interval containing the point, and as the point itself when it is one
+      // number
+      const struct { const char *name; std::ios_base::fmtflags flags; std::streamsize precision; } settings[] = {
+        { "with 16 digits", std::ios_base::fmtflags(), 16 },
+        { "in the fixed format with the showpoint flag and no digit", std::ios_base::fixed | std::ios_base::showpoint, 0 },
+        { "in the fixed format with 1074 digits", std::ios_base::fixed, 1074 },
+      };
+      for (const auto& setting : settings) {
+        interval::precision(setting.precision);
+        for (double x : { -2.5, -0.5, 12.5, 0.5, 4.0, 0.0, -smallest }) {
+          std::ostringstream point;
+          point.setf(setting.flags);
+          point << interval(x);
+          const std::string text = point.str();
+          bool refused = false;
+          interval back;
+          try {
+            back = gaol::textToInterval(text);
+          } catch (const gaol::input_format_error&) {
+            refused = true;
+          }
+          const bool one_number = (text.find(", ") == std::string::npos);
+          check("operator<< of a point under that locale: refused, or read back as an interval containing it, [a] as the point",
+                refused || (back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x))),
+                [&] { return text.substr(0, 60) + " " + setting.name + ", read " + hex(back); });
+        }
+      }
+      interval::precision(16);
+      std::ostringstream four;
+      four << interval(4.0);
+      check("operator<< of a point without a comma under that locale: [a]", four.str() == "[4]",
+            [&] { return four.str(); });
     } else {
       std::printf("No locale writing a decimal comma: intervalToText under such a locale is not checked\n");
     }
@@ -509,6 +710,7 @@ int main()
 {
   gaol::init();
   pow_of_the_standard();
+  pow_on_boxes();
   gaol_functions();
   names_of_the_standard();
   text_with_the_names_of_the_standard();

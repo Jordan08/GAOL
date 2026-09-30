@@ -303,8 +303,8 @@ namespace {
     // as a proof that X holds exactly one root. It holds seven. The true
     // relation is (x - m) f'(xi) = -f(m) for some xi: with f'(xi) = 0 and
     // f(m) = 0 every x satisfies it, and the relational division, here the
-    // operator %, says so. GAOL prints the sign of a zero bound, and a point
-    // interval that the digits write exactly as <a, b>.
+    // operator %, says so. GAOL prints a point interval that the digits write
+    // exactly as [a], and the point 0 as [0], whatever the signs of its bounds.
     const interval naive = m - fm / D;
     const interval relational = m - fm % D;
     std::cout << "    X = " << X << ", f(m) = " << fm << ", F'(X) = " << D << " holds 0\n"

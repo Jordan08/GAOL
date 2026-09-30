@@ -19,12 +19,13 @@
  * [-2, 2]^2, whose true range is [3, 1015690.2717980589...]. Its minimum is
  * f(0, -1) = 3; its maximum lies on the edge y = 2, at
  * x = -1.7373725377583070..., found apart by solving df(x, 2)/dx = 0
- * exactly (sympy), and confirmed by a grid of 4001 x 4001 points (numpy)
- * and by an interval branch and bound. It ends on the wrapping effect
- * (R. E. Moore, 1965): rotating the box [-1, 1]^2 eight times by 45 degrees
- * gives a box 16 times wider, where the true image is the box itself. The
- * other true ranges follow from the monotony of the functions on the pieces
- * of their domains, and were checked with mpmath.
+ * exactly (sympy) and at 50 digits (mpmath), and confirmed by a grid of
+ * 4001 x 4001 points (numpy) and by an interval branch and bound. It ends
+ * on the wrapping effect (R. E. Moore, 1965): rotating the box [-1, 1]^2
+ * eight times by 45 degrees gives a box 16 times wider, where the true
+ * image is the box itself. The other true ranges follow from the monotony
+ * of the functions on the pieces of their domains, and were checked with
+ * mpmath.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -117,9 +118,8 @@ namespace {
   }
 
   /*
-    The Goldstein-Price function, a classic test of global optimization.
-    examples/Goldstein_Price.cpp and the manual of GAOL drop the + 1 of
-    (x + y + 1)^2, and compute another function.
+    The Goldstein-Price function, a classic test of global optimization, as
+    16_Goldstein_Price.cpp and the manual of GAOL evaluate it.
   */
   interval goldstein_price(const interval& x, const interval& y)
   {
