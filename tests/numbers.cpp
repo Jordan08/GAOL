@@ -314,10 +314,10 @@ namespace
     mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS calls,
     tests the number against 0 first, and writes 0 for every subnormal under
     denormals-are-zero. Nothing is checked where the C library does so, nor
-    under the Debug C runtime of Visual C++, which writes them right but
-    reports a failed assertion of its own first ("unexpected input value;
-    log10 failed", cfout.cpp), the logarithm of the subnormal being taken
-    under the mode.
+    under the Debug C runtime of Visual C++, which reports a failed assertion
+    of its own first ("unexpected input value; log10 failed", cfout.cpp), the
+    logarithm of the subnormal being taken under the mode, and then writes
+    them right on x64, but 0 on x86.
   */
   void subnormal_output()
   {
@@ -348,19 +348,21 @@ namespace
 #endif
     for (const interval& x : tiny) {
       for (double d : { x.left(), x.right() }) {
-        if (written(d, true) != written(d, false)) {
-          std::printf("The C library writes %s under denormals-are-zero, and %s without it: the output of subnormals "
-                      "with the mode is not checked\n", written(d, true).c_str(), written(d, false).c_str());
-          return;
-        }
+        const std::string flushed = written(d, true), plain = written(d, false);
 #if defined(_MSC_VER) && defined(_DEBUG)
         if (debug_runtime_reports() != reports) {
           debug_runtime_reports() = reports; // The runtime's, not GAOL's
           std::printf("The Debug C runtime of Visual C++ reports an assertion when it writes a subnormal under "
-                      "denormals-are-zero: the output of subnormals with the mode is not checked\n");
+                      "denormals-are-zero, and writes %s for %s: the output of subnormals with the mode is not "
+                      "checked\n", flushed.c_str(), plain.c_str());
           return;
         }
 #endif
+        if (flushed != plain) {
+          std::printf("The C library writes %s under denormals-are-zero, and %s without it: the output of subnormals "
+                      "with the mode is not checked\n", flushed.c_str(), plain.c_str());
+          return;
+        }
       }
     }
     const interval_format::format_t saved_format = interval::format();
