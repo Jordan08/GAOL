@@ -205,6 +205,43 @@ namespace
     }
   }
 
+  // tan over [-M_PI_2, M_PI_2], and over the intervals between two poles whose
+  // width is about the same (review #8 of examples/examples.md; GAOL v5).
+  // tan() takes an interval for narrower than pi, so that it holds at most one
+  // pole, when its width rounded upward is at most the double below pi: it
+  // took that width itself for a wider one, and gave [-oo,+oo] for
+  // [-M_PI_2, M_PI_2] and for four other intervals holding no pole
+  void tan_next_to_two_poles()
+  {
+    // M_PI_2 is 6.1e-17 below pi/2: [-M_PI_2, M_PI_2] holds no pole, and its
+    // width is exactly the double below pi. tan(M_PI_2) is
+    // 16331239353195369.756, between 0x1.d02967c31cdb4p+53 and
+    // 0x1.d02967c31cdb5p+53: the tightest interval is [-0x1.d02967c31cdb5p+53,
+    // 0x1.d02967c31cdb5p+53]
+    const double half_pi_below = 0x1.921fb54442d18p+0;
+    const double lower = value("tan", -half_pi_below).below, upper = value("tan", half_pi_below).above;
+    const interval r = evaluate("tan([-M_PI_2,M_PI_2])", [&] { return tan(interval(-half_pi_below, half_pi_below)); },
+                                [] { return std::string(); });
+    check("tan([-M_PI_2,M_PI_2]): the tightest bounds", r.left() == lower && r.right() == upper,
+          [&] { return hex(r) + " rather than [" + hex(lower) + ", " + hex(upper) + "]"; });
+
+    // The intervals whose bounds are the doubles next to two consecutive
+    // poles, and whose width rounded upward is the double below pi or one of
+    // the two doubles on each side of it (the ones holding no pole having a
+    // finite tangent, the others [-oo,+oo]), and 64 drawn at random about
+    // other poles
+    for (const TrigInterval& t : tan_pole_intervals) {
+      const interval X(t.a, t.b);
+      const std::string name = "tan([a,b]) next to two consecutive poles";
+      const auto arguments = [&] { return "tan(" + hex(X) + ")"; };
+      const interval y = evaluate(name, [&] { return tan(X); }, arguments);
+      expect_close(name, y, t.least_below, t.greatest_above, [&] {
+        return arguments() + " = " + hex(y) + ", the hull of the values being within ["
+          + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
+      });
+    }
+  }
+
   // atan2 of IEEE 1788-2015 over boxes [yl, yu] x [xl, xu] in every position
   // about the axes and the half-line y = 0, x < 0, where the angle jumps from
   // pi to -pi, and at the boxes whose hull is known: those with infinite
@@ -335,6 +372,12 @@ namespace
       { "sqrt([-4,4])", [] { return sqrt(interval(-4., 4.)); }, 0., 2. },
       { "tanh([-inf,inf])", [] { return tanh(interval::universe()); }, -1., 1. },
       { "atanh([-1,1])", [] { return atanh(interval(-1., 1.)); }, -inf, inf },
+      // The doubles next to -1 and 1 are in the domain (-1, 1) of atanh: the
+      // bound at -1 or 1 is the limit -oo or +oo, the other one is a value
+      { "atanh([1-2^-53,1])", [] { return atanh(interval(0x1.fffffffffffffp-1, 1.)); },
+        value("atanh", 0x1.fffffffffffffp-1).below, inf },
+      { "atanh([-1,-(1-2^-53)])", [] { return atanh(interval(-1., -0x1.fffffffffffffp-1)); },
+        -inf, value("atanh", -0x1.fffffffffffffp-1).above },
       { "cosh([-inf,inf])", [] { return cosh(interval::universe()); }, 1., inf },
     };
     for (const Known& k : known) {
@@ -380,6 +423,11 @@ namespace
       { "acosh([1])", [] { return acosh(interval(1.)); }, 0., 0. },
       { "acosh([0,1])", [] { return acosh(interval(0., 1.)); }, 0., 0. },
       { "atanh([0])", [] { return atanh(interval(0.)); }, 0., 0. },
+      // atanh tends to -oo at -1 and to +oo at 1, the ends of its domain
+      // (-1, 1): these limits are the bounds of the result
+      { "atanh([0,1])", [] { return atanh(interval(0., 1.)); }, 0., inf },
+      { "atanh([-1,0])", [] { return atanh(interval(-1., 0.)); }, -inf, 0. },
+      { "atanh([-2,2]), whose part outside (-1, 1) is left out", [] { return atanh(interval(-2., 2.)); }, -inf, inf },
     };
     for (const Known& e : exact) {
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
@@ -402,6 +450,16 @@ namespace
       { "acos([-3,-2])", [] { return acos(interval(-3., -2.)); } },
       { "acosh([-1,0.5])", [] { return acosh(interval(-1., 0.5)); } },
       { "atanh([2,3])", [] { return atanh(interval(2., 3.)); } },
+      // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1): its limits
+      // -oo and +oo at -1 and 1 are no values, so that an interval holding
+      // no point of (-1, 1) gives the empty set, [1] and [-1] included. GAOL
+      // gave [MAX,+oo] for the first three
+      { "atanh([1])", [] { return atanh(interval(1.)); } },
+      { "atanh([1,5])", [] { return atanh(interval(1., 5.)); } },
+      { "atanh([1,+oo])", [] { return atanh(interval(1., inf)); } },
+      { "atanh([-1])", [] { return atanh(interval(-1.)); } },
+      { "atanh([-5,-1])", [] { return atanh(interval(-5., -1.)); } },
+      { "atanh([-oo,-1])", [] { return atanh(interval(-inf, -1.)); } },
     };
     for (const Empty& e : empty) {
       bool threw = false;
@@ -710,6 +768,7 @@ int main()
   pow_of_boxes();
   atan2_of_boxes();
   trigonometric_intervals();
+  tan_next_to_two_poles();
   powers();
   integer_functions();
   std::fesetround(FE_UPWARD);

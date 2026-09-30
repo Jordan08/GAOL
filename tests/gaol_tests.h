@@ -5,8 +5,9 @@
  *
  * The tests check the bounds GAOL computes against the exact results of the
  * operations, independently of GAOL and of the floating-point environment:
- * the exact results are computed with integers, or were computed with 400
- * bits of precision (tests/elementary_values.py). A bound is right when it is
+ * the exact results are computed with integers, or were computed with 2000
+ * bits of precision (tests/elementary_values.py, tests/reverse_values.py), or
+ * 5000 (tests/extended_precision_values.py). A bound is right when it is
  * on the right side of the exact result, and as tight as it can be when no
  * double between it and the exact result is.
  *
@@ -595,7 +596,13 @@ namespace gaol_tests
       // emax
       double operator()(int emin, int emax)
       {
-        return make(bits() & 1u, static_cast<std::uint64_t>(1023 + integer(emin, emax)));
+        // The exponent, the sign, then the mantissa in make(), drawn one at a
+        // time: the order in which the arguments of a call are evaluated is
+        // unspecified, and GCC and Clang drew different doubles from
+        // make(bits() & 1u, ...). The order kept is the one of GCC.
+        const std::uint64_t biased_exponent = static_cast<std::uint64_t>(1023 + integer(emin, emax));
+        const std::uint64_t sign = bits() & 1u;
+        return make(sign, biased_exponent);
       }
 
       // A positive double with a random mantissa and an exponent from emin to
@@ -609,7 +616,10 @@ namespace gaol_tests
       // mantissa and exponent
       double any()
       {
-        return make(bits() & 1u, bits() % 2047u);
+        // Drawn one at a time, as in operator()
+        const std::uint64_t biased_exponent = bits() % 2047u;
+        const std::uint64_t sign = bits() & 1u;
+        return make(sign, biased_exponent);
       }
 
       // A double from lo to hi, about

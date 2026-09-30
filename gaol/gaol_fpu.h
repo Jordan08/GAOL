@@ -196,8 +196,12 @@ namespace gaol_core {
     direction cost more: reading MXCSR about 800 ns under Rosetta 2,
     fegetround() and MXCSR about 80 ns with 32-bit Visual C++, and Clang 18
     reused a single read of MXCSR in a loop that changed the rounding
-    direction. The C library computes in the direction GAOL sets before
-    calling it (round_nearest()), whatever the x87 unit had.
+    direction. On x86-64 the x87 unit may keep another direction without
+    changing GAOL's bounds: it computes none of GAOL's doubles, GAOL sets the
+    direction of both units before the C library reads or writes a number
+    (round_nearest()), and the sources of CORE-MATH, which round some of their
+    results in the direction fegetround() gives, read it from MXCSR there
+    (gaol/core_math_port.h).
   */
   INLINE void round_upward_if_needed()
   {
