@@ -997,14 +997,28 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   addition, $1+2^{-60}$, whose result is inexact
   (\pxref{sec:rounding-direction}), even an operation whose bounds are exact
   raises it.
-\item The operations on the empty interval, whose bounds are NaN, raise the
-  invalid-operation exception where they compare a bound: \code{sqrt} of the
-  empty interval does, for instance. \code{is\_empty()}, which almost every
-  operation calls first, uses a quiet comparison (\code{std::islessequal}) and
-  raises nothing, and so does \code{interval::emptyset()}: with the
-  invalid-operation exception enabled, the first killed the program at each
-  emptiness test of an empty interval, and the second in a build without
-  optimization.\newinvfive
+\item An empty operand raises no invalid-operation exception, though the
+  bounds of the empty interval are NaN: every operation, relation, function
+  and output of \code{gaol::interval} and of \code{gaol\_ieee1788} takes it
+  without raising that exception. \code{is\_empty()} and the relations
+  compare the bounds with the quiet comparisons of \file{<cmath>}
+  (\code{std::islessequal()}\dots), each one instruction, as \code{<=} is,
+  with GCC and Clang on x86-64, and the functions that build their result
+  from the bounds of their operand tell the empty set before they give them
+  to the constructor, which compares its bounds. With the invalid-operation
+  exception enabled, \code{is\_empty()} of an empty interval killed the
+  program, and so did about 50 operations with an empty operand, which
+  compared its NaN bounds: \code{x~\&~y} for an empty \code{y}, \code{sqrt},
+  \code{exp}, \code{min}, \code{max}, \code{floor}, \code{set\_contains()},
+  \code{set\_disjoint()}, the output of the empty set\dots; and
+  \code{interval::emptyset()} itself in a build without optimization. A NaN
+  the program gives GAOL still raises it: \code{interval(NAN)} and
+  \code{interval(NAN,~1)}, which give the empty set, compare it. An empty
+  operand may still raise the other exceptions: the sum of two empty
+  intervals raises the inexact one where GAOL checks the rounding direction
+  with an addition, and \code{atanh\_rel(interval(-1,~2),~x)} for an empty
+  \code{x} raises the divide-by-zero one while it computes
+  \code{atanh(interval(-1,~2))}.\newinvfive
 \item Nonempty operands raise the invalid-operation exception as well. With
   the SSE2 intervals, multiplying a zero bound by an infinite one does:
   \code{interval(0)*interval::one\_plus\_infinity()} and
@@ -1022,9 +1036,9 @@ Linux) instead of letting the operation give its bounds.\newinvfive
 \end{itemize}
 
 \noindent
-\code{is\_empty()} being quiet therefore does not make the invalid-operation
-exception safe to leave enabled: every exception stays disabled while GAOL
-computes.
+An empty operand raising no invalid-operation exception therefore does not
+make that exception safe to leave enabled: every exception stays disabled
+while GAOL computes.
 
 The flags tell nothing of the results: after an operation of GAOL,
 \code{fetestexcept(FE\_INEXACT)} is raised whatever the result, and
