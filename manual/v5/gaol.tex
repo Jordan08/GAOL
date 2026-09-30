@@ -3580,7 +3580,10 @@ smallest number that makes it so:
  @outputs^4.5 (+/- 0.5)~
 \end{example}
 The midpoint is written rounded to nearest and the radius rounded upward, so
-that a radius that is not zero is never written 0. A degenerate interval has
+that a radius that is not zero is never written 0. Rounded upward, a radius
+may look noisy with the default 16 digits: \itv{0.1}{0.3} is written
+\code{0.2 (+/- 0.1000000000000001)}, its radius being the double nearest to
+$0.1$, which is a little above $0.1$; this is intended. A degenerate interval has
 no radius: it is written as its midpoint alone, and an unbounded interval has an
 infinite radius, its midpoint being $0$ or plus or minus the largest double
 (\code{[3, inf]} is \code{1.797693134862316e+308 (+/- inf)}).\newinvfive{}
