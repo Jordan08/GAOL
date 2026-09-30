@@ -16,7 +16,7 @@ indépendants (`review-*.md`). `$SCR` est le répertoire de travail de la sessio
 | `40.md`, `review-40.md` | `todo-40-small-errors` | — |
 | `cc.md`, `review-cc.md` | commits directs sur `configure-clean` (39, 42, 43) | — |
 
-Les rapports parlent parfois de l'auteur des commits. Avant le push, les commits de `todo-24b-quiet-empty-operands` et le dernier de
-`todo-40-small-errors`, qu'un agent avait mis au nom de Jordan08, ont été remis à l'identité git de l'environnement
-(`Claude <noreply@anthropic.com>`), comme tous les autres commits du 30 septembre : leurs empreintes ont changé (`acb9714`, `7d7b1b1`,
-`fc4404f` sont devenus `25f083c`, `0ec378c`, `8714322` ; `e8a0ab2` est devenu `72b2960`).
+Les rapports parlent parfois de l'auteur des commits et citent les empreintes d'origine. Le 30 septembre au soir, tous les commits
+de la journée ont été remis au nom de `Jordan08 <jordan.ninin@gmail.com>` (auteur et committer), sans rien changer à leur contenu,
+et les branches ont été repoussées en force : les empreintes ont changé. `hashes.txt` donne, ligne par ligne, l'ancienne empreinte
+puis la nouvelle.
