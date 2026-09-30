@@ -3440,9 +3440,10 @@ appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}. It is the form in which GAOL~4 wrote the degenerate
-intervals, which the reader still takes; \code{operator<{}<} writes them
-\code{[a]}, the literal of IEEE 1788-2015 for a point
+\code{"<0.1, 0.1>"}. GAOL~4 wrote the degenerate intervals in that form, and
+the texts it wrote for those whose digits are exact, as \code{<4, 4>}, are
+still read; \code{operator<{}<} writes such an interval \code{[a]}, the
+literal of IEEE 1788-2015 for a point, and any other with its two bounds
 (\pxref{sec:output-format}).
 
 \paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
@@ -3559,7 +3560,7 @@ the last character of the left one that is not a zero, and wrote
 A degenerate interval whose value is written exactly by the digits displayed
 is printed as that value alone between square brackets, the literal of IEEE
 1788-2015 for a point (12.11), which \code{textToInterval()} reads back as
-the same point:
+the same point (but see below for a locale writing a decimal comma):
 \begin{example}
  interval::format(interval_format::bounds);
  std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
@@ -3573,10 +3574,15 @@ back as, and the text is then the same on every build (the format
 value has more digits than those displayed is printed like any other interval,
 with its two bounds rounded outward: \code{interval(0.1)} is printed
 \code{[0.1, 0.1000000000000001]}, which is read back, as any other text, as an
-interval containing it.\newinvfive{} GAOL~4 printed every degenerate interval
-between angles, the text of its value rounded downward and upward:
-\code{interval(4)} was \code{<4, 4>}, a form of GAOL that is no literal of the
-standard, and \code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its
+interval containing it. Under a locale writing a decimal comma, the reader,
+whose decimal point is a point whatever the locale, would take
+\code{[-2,5]} for the interval \itv{-2}{5}: a degenerate interval whose text
+has a comma is printed with its two bounds, \code{[-2,5, -2,5]}, which the
+reader refuses, as it refuses every bound written with a decimal comma
+(\code{interval(4)} is still \code{[4]}).\newinvfive{} GAOL~4 printed every
+degenerate interval between angles, the text of its value rounded downward and
+upward: \code{interval(4)} was \code{<4, 4>}, a form of GAOL that is no literal
+of the standard, and \code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its
 reader refused (\code{input\_format\_error}), the angles standing for one
 double only. The reader still takes the angles (\pxref{sec:input-format}): a
 text such as \code{<4, 4>}, written by GAOL~4, is read back.
@@ -3623,7 +3629,8 @@ its parser did not read.\newinvfive
 
 \medskip
 Note that \emph{the \element{bounds} and \element{hexa} formats are the ones
-read back as an input} (see previous section). The formats \element{width} and
+read back as an input} (see previous section), the format \element{bounds}
+where the stream writes a decimal point. The formats \element{width} and
 \element{center} are for the eye: the midpoint is written with the digits of the
 precision, so that the text \code{c (+/- w)} does not necessarily contain the
 interval, where the text of the formats \element{bounds}, \element{agreeing}

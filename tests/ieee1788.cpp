@@ -517,8 +517,11 @@ namespace
     "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the locale of a
     program that sets one, fewer digits when the precision of the intervals
     was lowered, and <4, 4> for the point interval 4, which is no literal of
-    the standard. Where no locale writing a decimal comma is installed, that
-    part is not checked.
+    the standard. Under a locale writing a decimal comma, the text operator<<
+    writes for a point has to be refused, or read back as an interval
+    containing it: the literal [a] made interval(-2.5) [-2,5], read as the
+    interval [-2, 5]. Where no such locale is installed, that part is not
+    checked.
   */
   void text_independent_of_the_output_settings()
   {
@@ -619,6 +622,42 @@ namespace
       check("operator<< writes a decimal comma under that locale, the text of intervalToText none",
             os.str() == "[0,25, 0,5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
             [&] { return os.str() + " and " + intervalToText(interval(0.25, 0.5)); });
+      // A point written by operator<< under that locale: the literal [a] of a
+      // number with a decimal comma would be two numbers, which the reader
+      // takes, [-2,5] being [-2, 5], [12,5] the empty set and [0,] (no digit,
+      // showpoint) [0, +oo]; the text has to be refused, or read back as an
+      // interval containing the point, and as the point itself when it is one
+      // number
+      const struct { const char *name; std::ios_base::fmtflags flags; std::streamsize precision; } settings[] = {
+        { "with 16 digits", std::ios_base::fmtflags(), 16 },
+        { "in the fixed format with the showpoint flag and no digit", std::ios_base::fixed | std::ios_base::showpoint, 0 },
+        { "in the fixed format with 1074 digits", std::ios_base::fixed, 1074 },
+      };
+      for (const auto& setting : settings) {
+        interval::precision(setting.precision);
+        for (double x : { -2.5, -0.5, 12.5, 0.5, 4.0, 0.0, -smallest }) {
+          std::ostringstream point;
+          point.setf(setting.flags);
+          point << interval(x);
+          const std::string text = point.str();
+          bool refused = false;
+          interval back;
+          try {
+            back = gaol::textToInterval(text);
+          } catch (const gaol::input_format_error&) {
+            refused = true;
+          }
+          const bool one_number = (text.find(", ") == std::string::npos);
+          check("operator<< of a point under that locale: refused, or read back as an interval containing it, [a] as the point",
+                refused || (back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x))),
+                [&] { return text.substr(0, 60) + " " + setting.name + ", read " + hex(back); });
+        }
+      }
+      interval::precision(16);
+      std::ostringstream four;
+      four << interval(4.0);
+      check("operator<< of a point without a comma under that locale: [a]", four.str() == "[4]",
+            [&] { return four.str(); });
     } else {
       std::printf("No locale writing a decimal comma: intervalToText under such a locale is not checked\n");
     }

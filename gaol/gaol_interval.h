@@ -61,7 +61,10 @@ namespace gaol_core {
     a point interval of zero is "[0]", whatever the signs of its bounds. The
     point interval of a double that the digits do not write exactly is output
     in the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
-    read back as an interval containing it (GAOL v5: GAOL wrote
+    read back as an interval containing it. Under a locale writing a decimal
+    comma, a point whose text has a comma is output in the first form too,
+    "[-2,5, -2,5]": textToInterval() refuses a bound written with a decimal
+    comma, and would read "[-2,5]" as [-2, 5] (GAOL v5: GAOL wrote
     "<0.1, 0.1000000000000001>", which it refused to read, and "<4, 4>",
     which textToInterval() still reads)
     - width: the interval is output in the form "c (+/- w)" where c is its

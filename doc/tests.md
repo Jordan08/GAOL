@@ -259,11 +259,18 @@ Codac.
   x itself for a text `[a]`.
   `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`,
   `[a]` (`[4]`, `[0]`) or `[empty]`, whatever the global format, the precision
-  of the intervals and the locale: in each of the five formats, with 1 to 30
-  digits, and under a locale writing a decimal comma where one is installed,
-  where `operator<<` writes `1.5 (+/- 0.5)` and `[0,25, 0,5]`; a grammar of
-  the literals of Tables 9.5 and 12.2 checks the text, and `textToInterval`
-  has to read it back as an interval containing x (GAOL v5).
+  of the intervals and the locale: in each of the five formats, with 1, 3, 8,
+  16, 17 and 30 digits, and under a locale writing a decimal comma where one
+  is installed, where `operator<<` writes `1.5 (+/- 0.5)` and `[0,25, 0,5]`; a
+  grammar of the literals of Tables 9.5 and 12.2 checks the text, and
+  `textToInterval` has to read it back as an interval containing x (GAOL v5).
+  Under that locale, the text `operator<<` writes for a point (`-2.5`, `12.5`,
+  `0`, minus the least subnormal..., with 16 digits, and in the fixed format
+  with no digit and the showpoint flag, and with 1074 digits) has to be refused
+  by `gaol::textToInterval`, or read back as an interval containing the point,
+  and as the point itself when it is one number: the literal `[a]` wrote
+  `[-2,5]`, read as `[-2, 5]`, `[12,5]`, read as the empty set, and `[0,]`,
+  read as `[0, +oo]` (GAOL v5).
   `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the

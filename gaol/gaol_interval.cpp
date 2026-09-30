@@ -747,7 +747,19 @@ namespace gaol_core {
     [+0, +0] with the FPU ones); the hexadecimal format writes the signs of the
     bounds. The bounds are compared by their bits: under denormals-are-zero,
     which a program may set, a subnormal compares equal to 0, and l == r and
-    l == 0.0 would have [0, 5e-324] written [0].
+    l == 0.0 would have [0, 5e-324] written [0]. (Under that mode,
+    bound_to_text() takes a subnormal bound for 0 as well, and writes it
+    rounded to nearest rather than outward, so that two equal texts need not
+    be the double: with 1 digit, [22u] (u = 5e-324) is written [1e-322],
+    which is read as [20u, 21u].)
+    A text with a comma is not written alone between the brackets: the
+    reader, whose decimal point is '.', takes the decimal comma a stream
+    writes under a locale that has one for the comma between two bounds, so
+    that [-2,5] for interval(-2.5) would be the interval [-2, 5], [12,5] the
+    empty set, and [0,] (a zero in the fixed format with the showpoint flag
+    and no digit) [0, +oo]. The point is written with its two bounds then,
+    [-2,5, -2,5], which the reader refuses, as it refuses every bound written
+    with a decimal comma.
     GAOL wrote every point interval <a, b>, the text of its double rounded
     downward and upward, which the reader takes for two numbers that are the
     same double only: <0.1, 0.1000000000000001> for interval(0.1) was refused,
@@ -762,16 +774,13 @@ namespace gaol_core {
       std::uint64_t lbits, rbits;
       std::memcpy(&lbits, &l, sizeof lbits);
       std::memcpy(&rbits, &r, sizeof rbits);
-      if ((lbits << 1) == 0 && (rbits << 1) == 0) { // +0 or -0, both
-        os << '[' << bound_to_text(0.0, true, os) << ']';
+      const bool zero = ((lbits << 1) == 0 && (rbits << 1) == 0); // +0 or -0, both
+      const std::string left = bound_to_text(zero ? 0.0 : l, false, os);
+      const std::string right = bound_to_text(zero ? 0.0 : r, true, os);
+      if ((zero || (lbits == rbits && left == right)) && left.find(',') == std::string::npos) {
+        os << '[' << left << ']';
       } else {
-        const std::string left = bound_to_text(l, false, os);
-        const std::string right = bound_to_text(r, true, os);
-        if (lbits == rbits && left == right) {
-          os << '[' << left << ']';
-        } else {
-          os << '[' << left << ", " << right << ']';
-        }
+        os << '[' << left << ", " << right << ']';
       }
     }
   }
