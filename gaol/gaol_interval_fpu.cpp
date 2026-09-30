@@ -29,25 +29,20 @@
   {
     if (I1.is_empty() || I2.is_empty()) {
       return GAOL_NAN;
-    } else {
-      if (std::isinf(I1.left()) || std::isinf(I1.right()) || std::isinf(I2.left()) || std::isinf(I2.right())) {
-	if (I1.set_eq(interval::universe()) && I2.set_eq(interval::universe())) {
-	  // hausdorff([-oo, +oo],[-oo,+oo]) = 0
-	  return 0.0;
-	}	else {
-	  return GAOL_INFINITY;
-	}
-      } else {
-	// The tightest upper bound of the distance, whatever the rounding direction
-	// of the caller: each difference is rounded upward both ways
-	GAOL_RND_ENTER();
-	double d = maximum(maximum(I1.left()-I2.left(),I2.left()-I1.left()),
-	                   maximum(I1.right()-I2.right(),I2.right()-I1.right()));
-	GAOL_RND_KEEP(d);
-	GAOL_RND_LEAVE();
-	return d;
-      }
     }
+    // The tightest upper bound of the distance, whatever the rounding direction
+    // of the caller: each difference is rounded upward both ways.
+    // Equal bounds, infinite ones included, are at distance 0 (inf - inf is a
+    // NaN): the distance of [1, +oo] to [1, +oo] is 0 and the one to [2, +oo] is
+    // 1, where GAOL 4 returned +oo. A bound infinite in one interval only is at
+    // distance +oo, as inf - x is.
+    GAOL_RND_ENTER();
+    const double a = I1.left(), b = I1.right(), c = I2.left(), e = I2.right();
+    double d = maximum((a == c) ? 0.0 : maximum(a - c, c - a),
+                       (b == e) ? 0.0 : maximum(b - e, e - b));
+    GAOL_RND_KEEP(d);
+    GAOL_RND_LEAVE();
+    return d;
   }
 
 	/*

@@ -37,13 +37,28 @@ GAOL they install, which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by
 FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
 installs; check that the three builds agree on each of these machines; check
+that configure and meson read a `VERSION.txt` that starts with a byte order
+mark or has the line ends of Windows (`.github/scripts/version-file.sh`); check
 that the builds refuse Clang on 32-bit ARM and Clang 14 on 64-bit ARM, that
 `gaol/gaol_config.h` refuses MinGW-w64 GCC 11 to 13 on x64 and GCC 11 on x86,
-and Visual C++ without `/fp:strict`. Jobs of each build
+`-ffinite-math-only` and `-ffast-math` with GCC and Clang (the tests
+`refused_finite_math_only` and `refused_fast_math` of `make test`), and Visual
+C++ without `/fp:strict`. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
 and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in
 their summary.
+
+The Linux jobs of CMake (`linux.yml`) that run the tests generate the locale
+`fr_FR.UTF-8` before them, with `locale-gen`
+(`.github/scripts/comma-locale.sh`): the Ubuntu runners have no locale writing
+a decimal comma, and `tests/numbers.cpp`, which reads numbers and writes exact
+texts under one where the system has one (see [Tests](tests.md)), says so and
+passes where it has none. After the tests, each of these jobs fails if the
+output of `numbers`, which ctest keeps in `Testing/Temporary/LastTest.log`,
+holds no check under a locale writing a decimal comma. The other jobs generate
+no locale and check nothing of the kind: `numbers` runs that part where the
+system has such a locale.
 
 The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
 (`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the

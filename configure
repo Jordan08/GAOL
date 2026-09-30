@@ -3958,10 +3958,15 @@ AUTOHEADER=true
 
 
 # The version of GAOL, read from VERSION.txt when configure runs, without the
-# blanks and the empty lines around it: GAOL_VERSION, and its three numbers
-# gaol_major, gaol_minor and gaol_micro, refused unless they are three numbers
-# without leading zeros, as with CMake and meson (GAOL v5)
-GAOL_VERSION=`tr -d '\r' < "$srcdir/VERSION.txt" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'`
+# UTF-8 byte order mark that some editors of Windows write at the start of a
+# file (EF BB BF, made by printf as above), nor the CR of the line ends of
+# Windows, nor the blanks and the empty lines around it: GAOL_VERSION, and its
+# three numbers gaol_major, gaol_minor and gaol_micro, refused unless they are
+# three numbers without leading zeros, as with CMake and meson; the error gives
+# the first bytes of the file in hexadecimal, for the characters it does not
+# show (GAOL v5)
+gaol_bom=`printf '\357\273\277'`
+GAOL_VERSION=`LC_ALL=C sed -e "1s/^$gaol_bom//" < "$srcdir/VERSION.txt" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'`
 gaol_version_ok=no
 if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null; then
   case .$GAOL_VERSION in
@@ -3970,7 +3975,8 @@ if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null
   esac
 fi
 if test "${gaol_version_ok}" = no; then
-  as_fn_error $? "VERSION.txt holds \"$GAOL_VERSION\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0" "$LINENO" 5
+  gaol_version_bytes=`od -An -v -tx1 -N 32 < "$srcdir/VERSION.txt" | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'`
+  as_fn_error $? "VERSION.txt holds \"$GAOL_VERSION\" (bytes in hexadecimal: $gaol_version_bytes), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0" "$LINENO" 5
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([0-9]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[0-9]*\.\([0-9]*\)'`
