@@ -123,6 +123,31 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         run: sh .github/scripts/version-file.sh meson
+      - name: meson setup with no Python on PATH
+        if: runner.os == 'Linux'
+        run: |
+          # meson.build reads VERSION.txt with find_program('python3', 'python'):
+          # when PATH holds neither, meson takes the Python that runs it, as the
+          # meson.exe of the Windows installer does on a machine without Python,
+          # but only for a first name that ends with python3 (doc/building.md).
+          # PATH is here a directory of links to the programs of PATH but
+          # Python's; meson itself runs, the interpreter of its script being
+          # named by its absolute path
+          nopython="$RUNNER_TEMP/no-python"
+          mkdir "$nopython"
+          echo "$PATH" | tr ':' '\n' | while read -r dir; do
+            for program in "$dir"/*; do
+              name=${program##*/}
+              case "$name" in python*) continue ;; esac
+              if [ -f "$program" ] && [ -x "$program" ] && [ ! -e "$nopython/$name" ]; then
+                ln -s "$program" "$nopython/$name"
+              fi
+            done
+          done
+          if PATH="$nopython" command -v python3 || PATH="$nopython" command -v python; then
+            echo "a Python is on PATH"; exit 1
+          fi
+          PATH="$nopython" meson setup "$RUNNER_TEMP/build-no-python"
       - name: Configure, build and install
         run: |
           meson --version

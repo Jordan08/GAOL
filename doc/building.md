@@ -245,19 +245,21 @@ gone, are refused.
 `meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
 [The version of GAOL](#the-version-of-gaol)): the first of `python3` and
 `python` that it finds in `PATH` or, when it finds neither, the Python that
-runs meson, which is what the `meson.exe` of the Windows installer does when
-no Python is installed. `meson.build` names `python3` first because meson
-falls back on its own Python for that name alone.
+runs meson (the case of the `meson.exe` of the Windows installer when no
+Python is installed). `meson.build` names `python3` first because meson
+falls back on its own Python for that name alone; the continuous integration
+checks it with a `meson setup` whose `PATH` holds no Python.
 
 On Windows, the directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`
 holds the aliases `python.exe` and `python3.exe`, which only open the
 Microsoft Store when Python was not installed from it. meson 0.53.1 and later
 (the 0.53.2 of Ubuntu 20.04 and the meson of pip among them) leave that
-directory out of their search for programs. meson 0.53.0 and earlier take the
-alias, and `meson setup` stops on the failure of the command that reads
-`VERSION.txt`: use a later meson (`pip install meson`), or turn off the
-aliases of `python.exe` and `python3.exe` in the Windows settings ("Manage app
-execution aliases").
+directory out of their search for programs, as long as `PATH` names it by
+that path (not for a profile whose directory differs from `USERPROFILE`).
+meson 0.53.0 and earlier take the alias, and `meson setup` stops on the
+failure of the command that reads `VERSION.txt`: use a later meson
+(`pip install meson`), or turn off the aliases of `python.exe` and
+`python3.exe` in the Windows settings ("Manage app execution aliases").
 
 ## Tests, examples, performance and the parser
 
