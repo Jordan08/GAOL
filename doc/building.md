@@ -69,20 +69,28 @@ the `Version` of `gaol.pc`, `gaolConfigVersion.cmake` (`find_package(gaol
 asked for), the names of the archive and of the packages of CPack, and the
 `\version` of the manuals (configure, meson). Each build refuses a
 `VERSION.txt` that does not hold three numbers without leading zeros, which
-the macros write as C integers; blanks and empty lines around them are
-ignored, and so are the line ends of Windows (CR LF) and a UTF-8 byte order
-mark (the bytes EF BB BF) at the start of the file, which some editors of
-Windows write. The message of a build that refuses the file quotes what it read
-and gives the first bytes of the file in hexadecimal, `VERSION.txt holds
-"5.0.x" (bytes in hexadecimal: 35 2e 30 2e 78 0a), where it should hold the
-version of GAOL...`: a second byte order mark, or a zero-width space, does not
-show in the quotation. A file of UTF-16 characters, which Windows PowerShell 5
-writes for a redirection (`"5.0.0" > VERSION.txt`), is refused the same way,
-with its bytes (`ff fe 35 00 2e 00`...): it is to be saved as UTF-8 or ASCII.
-The test `version_file` (`ctest -R version_file`) checks
-the reading of CMake, and `.github/scripts/version-file.sh configure|meson`,
-which the continuous integration runs on a copy of the sources, those of
-configure and meson.
+the macros write as C integers, and the three read it by the same rules, as
+autoconf does for `configure --version`. The blanks and empty lines around
+the version are ignored, the blanks being the six of ASCII (space, tab, line
+feed, vertical tab, form feed and carriage return, the CR of the line ends of
+Windows), not those of Unicode such as a no-break space; so is a UTF-8 byte
+order mark (the bytes EF BB BF) at the start of the file, which some editors
+of Windows write. The message of a build that refuses the file quotes
+what it read and gives the first bytes of the file in hexadecimal,
+`VERSION.txt holds "5.0.x" (bytes in hexadecimal: 35 2e 30 2e 78 0a), where it
+should hold the version of GAOL...`, which show what the quotation may hide:
+CMake and configure quote a second byte order mark, or a zero-width space, as
+it is, and it cannot be seen (meson writes it `\ufeff`, `\u200b`). A file of
+UTF-16 characters, which Windows PowerShell 5 writes for a redirection
+(`"5.0.0" > VERSION.txt`), is not decoded but refused, whether it starts with
+its byte order mark (FF FE, FE FF) or not (it then holds NUL bytes, which no
+text of UTF-8 or ASCII holds): the message gives its bytes
+(`ff fe 35 00 2e 00`...) and ends with
+`the file is UTF-16: save it as UTF-8 or ASCII`, or, without the mark,
+`the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII`. The
+test `version_file` (`ctest -R version_file`) checks the reading of CMake,
+and `.github/scripts/version-file.sh configure|meson`, which the continuous
+integration runs on a copy of the sources, those of configure and meson.
 
 The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
 set in `configure.ac` and `manual/meson.build`.

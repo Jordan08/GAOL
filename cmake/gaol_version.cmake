@@ -12,11 +12,14 @@
 # GAOL_*VERSION write as C integers, and nothing else. A UTF-8 byte order mark
 # (EF BB BF) at its start, which some editors of Windows write, the line ends
 # of Windows (CR LF), and the blanks and empty lines around the version are
-# ignored; a NUL byte, as a file of UTF-16 characters holds, is refused.
+# ignored, the blanks being the six of ASCII that string(STRIP) removes (space,
+# tab, line feed, vertical tab, form feed, carriage return), as configure and
+# meson do; a NUL byte, as a file of UTF-16 characters holds, is refused.
 # <version> is the version, or empty when the file is refused, and <error> is
 # empty, or the message that refuses the file: it gives the first bytes of the
 # file in hexadecimal, which show what the quoted text does not (a byte order
-# mark or a zero-width space cannot be seen).
+# mark or a zero-width space cannot be seen), and says to save a file of UTF-16
+# characters as UTF-8 or ASCII.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -57,6 +60,16 @@ function(gaol_read_version file version error)
     file(READ "${file}" _hex LIMIT 32 HEX)
     string(REGEX REPLACE "([0-9a-f][0-9a-f])" "\\1 " _hex "${_hex}")
     string(STRIP "${_hex}" _hex)
-    set(${error} "VERSION.txt holds \"${_shown}\" (bytes in hexadecimal: ${_hex}), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0" PARENT_SCOPE)
+    # A file of UTF-16 characters, which starts with its byte order mark (FF FE,
+    # FE FF) or holds NUL bytes, is not read as UTF-16: the message says so, as
+    # those of configure and meson do. The NUL byte, which the quoted text does
+    # not show, is named
+    set(_utf16 "")
+    if(_head MATCHES "^(fffe|feff)")
+      set(_utf16 "; the file is UTF-16: save it as UTF-8 or ASCII")
+    elseif(NOT _nul EQUAL -1)
+      set(_utf16 "; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII")
+    endif()
+    set(${error} "VERSION.txt holds \"${_shown}\" (bytes in hexadecimal: ${_hex}), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0${_utf16}" PARENT_SCOPE)
   endif()
 endfunction()
