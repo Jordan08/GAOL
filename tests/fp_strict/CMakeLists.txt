@@ -16,7 +16,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(gaol_fp_strict CXX)
 
-if(NOT MSVC)
+# MSVC is true for clang-cl too, which gaol/gaol_config.h does not refuse:
+# Visual C++ only
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   message(STATUS "Not Visual C++: nothing to check")
   return()
 endif()
