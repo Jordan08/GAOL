@@ -21,13 +21,15 @@ project(
   # leave that directory out (doc/building.md). The encoding utf-8-sig skips
   # the byte order mark that some editors of Windows write at
   # the start of a file, which the default encoding (the code page of Windows,
-  # cp1252) reads as three characters of the version. What is not the version
-  # is written as ASCII, with escapes (\u200b for a zero-width space, \udcff
-  # for a byte that is not UTF-8, \x00 for a NUL byte, \n), which show in the
-  # error message below, on one line, and which the pipe to meson carries
-  # whatever the code page (GAOL v5)
+  # cp1252) reads as three characters of the version. The blanks stripped are
+  # the six of ASCII (string.whitespace), which CMake and configure strip, not
+  # all those of Unicode, which strip() alone strips (a no-break space). What
+  # is not the version is written as ASCII, with escapes (\u200b for a
+  # zero-width space, \udcff for a byte that is not UTF-8, \x00 for a NUL
+  # byte, \n), which show in the error message below, on one line, and which
+  # the pipe to meson carries whatever the code page (GAOL v5)
   version: run_command(find_program('python3', 'python', native: true), '-c',
-                       'import sys; print(ascii(open(sys.argv[-1], encoding=\'utf-8-sig\', errors=\'surrogateescape\').read().strip())[1:-1])',
+                       'import string, sys; print(ascii(open(sys.argv[-1], encoding=\'utf-8-sig\', errors=\'surrogateescape\').read().strip(string.whitespace))[1:-1])',
                        join_paths(meson.current_source_dir(), 'VERSION.txt'),
                        check: true).stdout().strip(),
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
@@ -51,7 +53,20 @@ if not gaol_version_ok
                                    'import sys; print(*[\'%02x\' % b for b in open(sys.argv[-1], \'rb\').read(32)])',
                                    join_paths(meson.current_source_dir(), 'VERSION.txt'),
                                    check: false).stdout().strip()
-  error('VERSION.txt holds "' + meson.project_version() + '" (bytes in hexadecimal: ' + gaol_version_bytes + '), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0')
+  # A file of UTF-16 characters, which starts with its byte order mark (FF FE,
+  # FE FF) or holds NUL bytes, is not read as UTF-16: the message says so, as
+  # those of CMake and configure do
+  gaol_version_utf16 = run_command(find_program('python3', 'python', native: true), '-c',
+                                   'import sys; b = open(sys.argv[-1], \'rb\').read(); print(\'mark\' if b[:2] in (bytes([255, 254]), bytes([254, 255])) else \'nul\' if 0 in b else \'\')',
+                                   join_paths(meson.current_source_dir(), 'VERSION.txt'),
+                                   check: false).stdout().strip()
+  gaol_version_hint = ''
+  if gaol_version_utf16 == 'mark'
+    gaol_version_hint = '; the file is UTF-16: save it as UTF-8 or ASCII'
+  elif gaol_version_utf16 == 'nul'
+    gaol_version_hint = '; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII'
+  endif
+  error('VERSION.txt holds "' + meson.project_version() + '" (bytes in hexadecimal: ' + gaol_version_bytes + '), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0' + gaol_version_hint)
 endif
 major_version = gaol_version[0].to_int()
 minor_version = gaol_version[1].to_int()

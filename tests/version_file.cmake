@@ -13,8 +13,11 @@
 # numbers without leading zeros, telling the bytes it found in hexadecimal. It
 # refused a file starting with a byte order mark as VERSION.txt holds "5.0.0",
 # the mark, whose three bytes make no visible character, being part of the
-# text it quoted. The files are written here, and the versions expected are
-# too: they are not taken from the code under test.
+# text it quoted. The blanks it strips are the six of ASCII, as configure and
+# meson do (meson stripped those of Unicode too), and its message says to save
+# a file of UTF-16 characters as UTF-8 or ASCII. The files are written here,
+# and the versions expected are too: they are not taken from the code under
+# test.
 #
 # The line ends are not compared with the bytes of the files: a platform that
 # writes CR LF for LF changes none of what the checks ignore.
@@ -32,9 +35,19 @@ include("${GAOL_SOURCE_DIR}/cmake/gaol_version.cmake")
 file(MAKE_DIRECTORY "${WORK_DIR}")
 
 # The three bytes of a UTF-8 byte order mark, EF BB BF, and those of another
-# character that is not seen, a zero-width space, E2 80 8B
+# character that is not seen, a zero-width space, E2 80 8B; blanks of ASCII
+# that CMake has no escape for, a vertical tab and a form feed, and blanks
+# that are not of ASCII, a no-break space (C2 A0) and a file separator (1C,
+# which strip() of Python strips); the byte order marks of UTF-16, FF FE
+# (little-endian) and FE FF (big-endian)
 string(ASCII 239 187 191 bom)
 string(ASCII 226 128 139 zwsp)
+string(ASCII 11 vt)
+string(ASCII 12 ff)
+string(ASCII 194 160 nbsp)
+string(ASCII 28 fs)
+string(ASCII 255 254 utf16le)
+string(ASCII 254 255 utf16be)
 set(crlf "\r\n")
 set(file "${WORK_DIR}/VERSION.txt")
 
@@ -66,23 +79,34 @@ function(check_accepted title content expected)
 endfunction()
 
 # The file <file> has to be refused, with a message that gives its bytes:
-# <hex>, a regular expression, is what follows "bytes in hexadecimal: "
+# <hex>, a regular expression, is what follows "bytes in hexadecimal: ". The
+# message ends with the hint for a file of UTF-16 characters when a fourth
+# argument names it: utf-16 for a file that starts with the byte order mark
+# of UTF-16, nul for one that holds a NUL byte; without it, it has none
 function(check_refused_file title file hex)
+  set(hint "")
+  if(ARGC GREATER 3)
+    if(ARGV3 STREQUAL "utf-16")
+      set(hint "; the file is UTF-16: save it as UTF-8 or ASCII")
+    elseif(ARGV3 STREQUAL "nul")
+      set(hint "; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII")
+    endif()
+  endif()
   count(CHECKS)
   gaol_read_version("${file}" version error)
   if(NOT error)
     fail("${title}: accepted as \"${version}\"")
   elseif(version)
     fail("${title}: refused and read \"${version}\"")
-  elseif(NOT error MATCHES "^VERSION\\.txt holds .* \\(bytes in hexadecimal: ${hex}\\), where it should hold the version of GAOL")
-    fail("${title}: the message does not give the bytes ${hex}: ${error}")
+  elseif(NOT error MATCHES "^VERSION\\.txt holds .* \\(bytes in hexadecimal: ${hex}\\), where it should hold the version of GAOL, three numbers without leading zeros such as 5\\.0\\.0${hint}$")
+    fail("${title}: the message does not give the bytes ${hex}, or does not end with \"such as 5.0.0${hint}\": ${error}")
   endif()
 endfunction()
 
 # The file holds <content>, and has to be refused as above
 function(check_refused title content hex)
   file(WRITE "${file}" "${content}")
-  check_refused_file("${title}" "${file}" "${hex}")
+  check_refused_file("${title}" "${file}" "${hex}" ${ARGN})
 endfunction()
 
 # The mark has to be in the files below, where it is written: without it, the
@@ -102,12 +126,15 @@ check_accepted("a mark, CR LF" "${bom}5.0.0${crlf}" "5.0.0")
 check_accepted("a mark, empty lines and blanks" "${bom}${crlf}  5.0.0 \t${crlf}${crlf}" "5.0.0")
 check_accepted("numbers of several digits" "${bom}12.345.6789${crlf}" "12.345.6789")
 check_accepted("zeros" "${bom}0.0.0\n" "0.0.0")
+check_accepted("vertical tabs and form feeds around" "${vt}${ff}5.0.0${vt}${ff}\n" "5.0.0")
 
 # In the bytes: 35 2e 30 2e 30 is 5.0.0, 78 is x, 20 is a blank, 0a the line
 # end (which a platform may write as 0d 0a)
-# A mark alone and an empty file leave no text: string(REGEX MATCH) of CMake
-# 3.14.7 and 3.16.3 stops with an error on an empty match, so these two checks
-# fail only there, in the job of the continuous integration that has CMake 3.14
+# A mark alone and an empty file leave no text: string(REGEX MATCH) stops
+# with an error on an empty match in CMake before 4.1 (3.14.7, 3.16.3, 3.28.3,
+# 3.30.0 and 4.0.0 checked), which is why gaol_read_version() runs no regular
+# expression on an empty text; without that, the test stops with that error
+# here with every CMake before 4.1
 check_refused("a mark alone" "${bom}" "ef bb bf")
 check_refused("two marks" "${bom}${bom}5.0.0" "ef bb bf ef bb bf 35 2e 30 2e 30")
 check_refused("a mark inside" "5.${bom}0.0" "35 2e ef bb bf 30 2e 30")
@@ -117,6 +144,11 @@ check_refused("a leading zero" "${bom}05.0.0" "ef bb bf 30 35 2e 30 2e 30")
 check_refused("a letter" "5.0.0x" "35 2e 30 2e 30 78")
 check_refused("a zero-width space" "${bom}5.0.0${zwsp}" "ef bb bf 35 2e 30 2e 30 e2 80 8b")
 check_refused("a blank inside" "5. 0.0" "35 2e 20 30 2e 30")
+check_refused("a CR inside" "5.0.\r0" "35 2e 30 2e 0d 30")
+check_refused("a no-break space after" "5.0.0${nbsp}" "35 2e 30 2e 30 c2 a0")
+check_refused("a file separator after" "5.0.0${fs}" "35 2e 30 2e 30 1c")
+check_refused("the byte order mark of UTF-16, little-endian" "${utf16le}5.0.0" "ff fe 35 2e 30 2e 30" utf-16)
+check_refused("the byte order mark of UTF-16, big-endian" "${utf16be}5.0.0" "fe ff 35 2e 30 2e 30" utf-16)
 check_refused("two lines" "${bom}5.0.0\n6.0.0\n" "ef bb bf 35 2e 30 2e 30 .*36 2e 30 2e 30 .*")
 check_refused("an empty file" "" "")
 # CMake cannot write a NUL byte: tests/version_file/ holds two files that have
@@ -125,12 +157,12 @@ check_refused("an empty file" "" "")
 # message has to be all there, which a NUL byte in the text quoted cut. The
 # second is 5.0.0, a NUL byte and an x: the text read is 5.0.0, file(READ)
 # having cut it at the NUL byte (CMake 3.14.7 and 3.16.3) or a regular
-# expression stopping there (4.4.3), and the file has to be refused all the
-# same
+# expression stopping there (3.28.3, 4.4.3), and the file has to be refused
+# all the same, with a message that names the NUL byte
 check_refused_file("UTF-16" "${GAOL_SOURCE_DIR}/tests/version_file/utf16le_bom.txt"
-                   "ff fe 35 00 2e 00 30 00 2e 00 30 00 0a 00")
+                   "ff fe 35 00 2e 00 30 00 2e 00 30 00 0a 00" utf-16)
 check_refused_file("a NUL byte after the version" "${GAOL_SOURCE_DIR}/tests/version_file/nul_after_version.txt"
-                   "35 2e 30 2e 30 00 78")
+                   "35 2e 30 2e 30 00 78" nul)
 
 get_property(checks GLOBAL PROPERTY CHECKS)
 get_property(failures GLOBAL PROPERTY FAILURES)

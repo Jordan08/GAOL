@@ -3959,16 +3959,30 @@ AUTOHEADER=true
 
 # The version of GAOL, read from VERSION.txt when configure runs, without the
 # UTF-8 byte order mark that some editors of Windows write at the start of a
-# file (EF BB BF, made by printf as above), nor the CR of the line ends of
-# Windows, nor the blanks and the empty lines around it: GAOL_VERSION, and its
-# three numbers gaol_major, gaol_minor and gaol_micro, refused unless they are
-# three numbers without leading zeros, as with CMake and meson; the error gives
-# the first bytes of the file in hexadecimal, for the characters it does not
-# show (GAOL v5)
+# file (EF BB BF, made by printf as above), nor the blanks around it (the CR
+# of the line ends of Windows among them) and the empty lines: GAOL_VERSION,
+# and its three numbers gaol_major, gaol_minor and gaol_micro, refused unless
+# they are three numbers without leading zeros, as with CMake and meson. The
+# blanks are the six of ASCII, the class space of the C locale, which CMake
+# and meson strip too; the lines left are joined by a blank, as autoconf
+# joins them above. A file of UTF-16 characters starts with its byte order
+# mark (FF FE, FE FF) or holds NUL bytes, which the shell drops from the text
+# of a command (they are taken out of it before): od finds them, and the file
+# is refused. The error gives the first bytes of the file in hexadecimal, for
+# the characters it does not show, and says to save a file of UTF-16
+# characters as UTF-8 or ASCII (GAOL v5)
 gaol_bom=`printf '\357\273\277'`
-GAOL_VERSION=`LC_ALL=C sed -e "1s/^$gaol_bom//" < "$srcdir/VERSION.txt" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'`
+GAOL_VERSION=`LC_ALL=C tr -d '\000' < "$srcdir/VERSION.txt" | LC_ALL=C sed -e "1s/^$gaol_bom//" -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//'`
+gaol_version_utf16=
+case `od -An -v -tx1 -N 2 < "$srcdir/VERSION.txt" | tr -d ' \n'` in
+  fffe|feff) gaol_version_utf16="; the file is UTF-16: save it as UTF-8 or ASCII" ;;
+  *) if od -An -v -tx1 < "$srcdir/VERSION.txt" | grep ' 00' > /dev/null; then
+       gaol_version_utf16="; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII"
+     fi ;;
+esac
 gaol_version_ok=no
-if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null; then
+if test -z "$gaol_version_utf16" &&
+   expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null; then
   case .$GAOL_VERSION in
     *.0[0-9]*) ;;
     *) gaol_version_ok=yes ;;
@@ -3976,7 +3990,7 @@ if expr "x$GAOL_VERSION" : 'x[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' > /dev/null
 fi
 if test "${gaol_version_ok}" = no; then
   gaol_version_bytes=`od -An -v -tx1 -N 32 < "$srcdir/VERSION.txt" | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'`
-  as_fn_error $? "VERSION.txt holds \"$GAOL_VERSION\" (bytes in hexadecimal: $gaol_version_bytes), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0" "$LINENO" 5
+  as_fn_error $? "VERSION.txt holds \"$GAOL_VERSION\" (bytes in hexadecimal: $gaol_version_bytes), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0$gaol_version_utf16" "$LINENO" 5
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([0-9]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[0-9]*\.\([0-9]*\)'`
