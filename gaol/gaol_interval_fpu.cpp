@@ -49,7 +49,9 @@
 	  The n-th power, n > 0, of the interval of stored bounds lb (the opposite
 	  of its left bound) and rb, in [0, +oo] for uipow_dnup() and containing 0
 	  for uipow_upup(), as gaol_uipow() calls them: static, and no longer declared
-	  in gaol_interval.h (GAOL v5)
+	  in gaol_interval.h (GAOL v5). The SSE2 intervals compute the same
+	  products in the same order, from the lowest bit of n, and give the same
+	  bounds (gaol_interval_sse.cpp): change both or neither.
 	*/
 	static interval uipow_dnup(double lb, double rb, unsigned int n)
 	{
