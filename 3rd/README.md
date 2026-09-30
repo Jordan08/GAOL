@@ -105,8 +105,11 @@ kept as a patch to reapply.
 
 2. **`~0ul` written `~0ull`** in `sinh/sinh.c`, `cosh/cosh.c` and `tanh/tanh.c`
    (nine places). `unsigned long` has 32 bits on Windows, where `~0ul >> 12` is
-   not the mask of the 52 low bits of a double. Upstream writes `~0ull` in its
-   other sources: this is a fix to propose to CORE-MATH.
+   not the mask of the 52 low bits of a double. `sinpi/sinpi.c` and
+   `log1p/log1p.c`, which GAOL compiles too, have the same masks and are
+   unchanged: no result was found to change with a mask of 20 bits, in these
+   files or in the three above. The fix of every one of them is
+   [proposed to CORE-MATH](#1-masks-written-with-long).
 
 3. **Three signed shifts made unsigned** in `cospi/cospi.c` (the test of an
    integer or half-integer argument). `m` is a signed 64-bit integer holding
@@ -114,7 +117,8 @@ kept as a patch to reapply.
    places overflows: undefined behaviour in C, which UBSan reported in the tests
    run with the sanitizers. `sinpi.c` and `tanpi.c`, which do the same, convert
    `m` to `uint64_t` before shifting it; `cospi.c` now does too, and gives the
-   same values bit for bit. This is a fix to propose to CORE-MATH.
+   same values bit for bit. Upstream has made the same fix since
+   ([commit `b1a4badf`](#already-fixed-upstream-the-shifts-of-cospic)).
 
 4. **A 128-bit shift written on 128 bits** in `asinpi/asinpi.c`
    (`asinpi_acc`). `D`, the 64-bit integer `dc` times 2<sup>ss</sup>, was made
@@ -126,19 +130,20 @@ kept as a patch to reapply.
    0 < ss < 64 and the intended one beyond. On x86-64 the two versions gave
    the same results over 460 000 arguments next to ±1, the part of `D` lost
    being about 2<sup>−54</sup> of a small correction; the regression test is in
-   `tests/core_math.cpp`. This is a fix to propose to CORE-MATH.
+   `tests/core_math.cpp`. The fix is
+   [proposed to CORE-MATH](#2-the-shift-of-asinpi_acc).
 
 5. **A 64-bit test made a comparison** in `rsqrt/rsqrt.c` (`cr_rsqrt`, the
    subnormal x). `__builtin_expect(ix.u, 1)` passed the 64 bits of x where
    `__builtin_expect` takes a `long`, which has 32 bits on the 32-bit targets
    and on Windows: the high half was dropped, and a subnormal whose low 32
-   bits are 0, 2^-1040 to 2^-1024 among the powers of 4, was taken for +0,
-   its rsqrt being +oo rather than 2^520 to 2^512 (the continuous integration,
+   bits are 0, 2^-1042 to 2^-1024 among the powers of 4, was taken for +0,
+   its rsqrt being +oo rather than 2^521 to 2^512 (the continuous integration,
    Debian i386 and armhf, MinGW-w64 and MSYS2; Visual C++, where
    `__builtin_expect(x, y)` is `(x)`, was right). It is now
    `__builtin_expect(ix.u != 0, 1)`. The other `__builtin_expect` of the
    sources GAOL compiles take a comparison, or an integer of 32 bits or less.
-   This is a fix to propose to CORE-MATH.
+   The fix is [proposed to CORE-MATH](#3-the-__builtin_expect-of-rsqrtc).
 
 ### How the changes are checked
 
@@ -191,4 +196,611 @@ comparison rather than by reading:
 
 Copy the upstream tree again without the `.wc` files, then make the five changes
 above. `git diff` against the previous version shows them: they are marked
-`/* GAOL */`, and no other line differs.
+`/* GAOL */`, and no other line differs. A change upstream has made in the
+meantime is not made again: that of `cospi.c` from commit `b1a4badf` on, and
+those of the [patches below](#changes-to-propose-upstream) once upstream takes
+them.
+
+## Changes to propose upstream
+
+Four of the [changes above](#what-differs-from-upstream) are fixes rather than
+adaptations to GAOL (2 to 5), and `gaol/core_math_port.h` makes up for a fifth
+defect, the `__builtin_roundeven()` of `sin.c` (see
+[How GAOL builds them](#how-gaol-builds-them)). They are written below as
+patches against the current upstream sources, with two more found while
+preparing them: the masks of item 2 in three other files, and the rounding
+direction `pow` reads for its subnormal results. Through CORE-MATH they would
+reach glibc too, which takes functions from it since version 2.41, so each
+defect was looked for there as well.
+
+**Nothing has been sent**, neither to CORE-MATH nor to glibc: sending them is
+for the maintainer of GAOL v5, as said in each part below.
+
+| Defect | CORE-MATH master, `b1a4badf` | glibc master (`30f988f`), 2.41 to 2.44 |
+| --- | --- | --- |
+| [masks of `long`](#1-masks-written-with-long) | present | absent: its copies write `MANTISSA_MASK` |
+| [shift of `asinpi_acc()`](#2-the-shift-of-asinpi_acc) | present | no `asinpi` of CORE-MATH |
+| [`__builtin_expect` of `rsqrt.c`](#3-the-__builtin_expect-of-rsqrtc) | present | no `rsqrt` of CORE-MATH |
+| [`__builtin_roundeven` of `sin.c`](#4-the-__builtin_roundeven-of-sinc) | present | no `sin` of CORE-MATH |
+| [rounding direction of `pow`](#5-the-rounding-direction-of-pow) | present | no `pow` of CORE-MATH; the x87 unit by design |
+| [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of CORE-MATH |
+
+### CORE-MATH
+
+Each patch is a commit of its own on upstream master,
+`b1a4badf6765d761873ee31f7419d1cc1cac19f8` (29 September 2026), written in the
+style of the file it changes, with the subject given; the diff blocks below
+are what `git diff` prints for it, but for the blank lines of context, written
+without their leading space, and `git apply` or `patch -p1` take them as they
+are there (line numbers below are those of that commit). To send them: a
+merge request on <https://gitlab.inria.fr/core-math/core-math>, or the output
+of `git format-patch` mailed to core-math@inria.fr, the address the sources
+give for reports, with the defect, the reproduction and the checks of each
+part.
+
+They were compiled with GCC 13.3 and Clang 18 on x86-64 Linux, and with
+MinGW-w64 11 (GCC 13) for Windows x64, whose `long` has 32 bits, the programs
+being run under wine and compiled with `-mfma`: CORE-MATH needs a correctly
+rounded `fma()`, which the instruction of the processor is and the function the
+programs reach under wine is not. With MPFR 4.2.1, CORE-MATH's own checks pass
+on the patched tree: `./check.sh --worst`, which checks every argument of the
+`.wc` file in the four rounding directions, for every function a patch
+touches, and `./check.sh --special` with `CORE_MATH_TESTS=2000000` random
+arguments rather than the default, for all of them but `sincos` and `lgamma`,
+whose object code the patch does not change on x86-64 Linux (the random checks
+of `sincos` alone take more than an hour). The one exception is `pow` in the
+downward direction, where the worst-case check stops at a spurious underflow
+exception (`x = -0x1.10a688680a753p-93`, `y = 11`, a result of
+−2<sup>−1022</sup>, an argument added upstream on 22 September) that master
+raises as well: over the whole of `pow.wc` in the four directions, the patched
+`pow` gives the results and the exception flags of master.
+
+#### 1. Masks written with `long`
+
+**The defect.** `~0ul>>12` is meant as the mask of the 52 low bits of a double,
+but `unsigned long` has 32 bits on Windows and on the 32-bit targets, where the
+mask is `0xfffff`: in `sinh.c` (lines 113, 353, 413), `cosh.c` (107, 115, 314,
+374), `tanh.c` (136, 385), `sinpi.c` (99, 109), `log1p.c` (483) and `lgamma.c`
+(753). Elsewhere upstream writes `~0ull`. The tests these masks make become
+weaker rather than wrong: where 52 bits decide that the fast result may be hard
+to round (its low part a power of 2 or next to one), 20 bits decide it more
+often, and the code then takes a path that is right anyway, a look-up in the
+table of hard cases or a nudge of the low part by one of its own ulps, which
+cannot move the sum across a rounding boundary (at line 99 of `sinpi.c`, the
+mask builds a tiny constant whose value changes but not its effect). So no
+result changes (see below), but the code does not do what it says. The same
+assumption is in the `1l << (a->ex + 1073)` of `cos.c` (401), `tan.c` (530) and
+`sincos.c` (392), a shift by up to 51 places, undefined where `long` has 32
+bits; no argument reaches it, since their accurate phases never give a
+subnormal, and the patch writes it `1ll`, as `pow.h` does. The `~0ul` of
+`binary80/atan2/atan2l.c` and `binary128/expm1/expm1q.c` were not examined.
+
+The patch, to commit as
+`[binary64] do not assume that long has 64 bits`:
+
+```diff
+diff --git a/src/binary64/cos/cos.c b/src/binary64/cos/cos.c
+index 9a222dab..c4506539 100644
+--- a/src/binary64/cos/cos.c
++++ b/src/binary64/cos/cos.c
+@@ -398,7 +398,7 @@ static inline double dint_tod(dint64_t *a) {
+         e.f = 0x0.0000000000001p-1022;
+       }
+     } else {
+-      e.u = 1l << (a->ex + 1073);
++      e.u = 1ll << (a->ex + 1073);
+     }
+   }
+
+diff --git a/src/binary64/cosh/cosh.c b/src/binary64/cosh/cosh.c
+index b5e31cba..e97f623f 100644
+--- a/src/binary64/cosh/cosh.c
++++ b/src/binary64/cosh/cosh.c
+@@ -104,7 +104,7 @@ static double __attribute__((noinline)) as_cosh_zero(double x){
+   double y0 = fasttwosum(1.0, y1, &y1);
+   y1 = fasttwosum(y1, y2, &y2);
+   b64u64_u t = {.f = y1};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = y2};
+     if((w.u^t.u)>>63)
+       t.u--;
+@@ -112,7 +112,7 @@ static double __attribute__((noinline)) as_cosh_zero(double x){
+       t.u++;
+     y1 = t.f;
+   }
+-  if(__builtin_expect((t.u&(~0ul>>12))==(~0ul>>12), 0)) return as_cosh_database(x, y0 + y1);
++  if(__builtin_expect((t.u&(~0ull>>12))==(~0ull>>12), 0)) return as_cosh_database(x, y0 + y1);
+   return y0 + y1;
+ }
+
+@@ -311,7 +311,7 @@ double cr_cosh(double x){
+       th = as_exp_accurate(ax, t, th, tl, &tl);
+       th = fasttwosum(th, tl, &tl);
+       b64u64_u uh = {.f = th}, ul = {.f = tl};
+-      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+       th += tl;
+       th *= 2;
+       th *= sp.f;
+@@ -371,7 +371,7 @@ double cr_cosh(double x){
+   }
+   rh = fasttwosum(rh, rl, &rl);
+   b64u64_u uh = {.f = rh}, ul = {.f = rl};
+-  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+   rh += rl;
+   if(__builtin_expect(ml<=16 || eh-el>103,0)) return as_cosh_database(x, rh);
+   return rh;
+diff --git a/src/binary64/lgamma/lgamma.c b/src/binary64/lgamma/lgamma.c
+index 155ae62f..32bbf3d0 100644
+--- a/src/binary64/lgamma/lgamma.c
++++ b/src/binary64/lgamma/lgamma.c
+@@ -750,7 +750,7 @@ static __attribute__((noinline)) double as_lgamma_accurate(double x){
+   }
+
+   b64u64_u tl = {.f = fl};
+-  unsigned ft = (tl.u+2)&(~0ul>>12);
++  unsigned ft = (tl.u+2)&(~0ull>>12);
+   if(ft <= 2u) return as_lgamma_database(sx, fh + fl);
+   return fh + fl;
+ }
+diff --git a/src/binary64/log1p/log1p.c b/src/binary64/log1p/log1p.c
+index e45d2d1b..e55f1e41 100644
+--- a/src/binary64/log1p/log1p.c
++++ b/src/binary64/log1p/log1p.c
+@@ -480,7 +480,7 @@ static double __attribute__((noinline)) as_log1p_refine(double x, double a){
+   ln21 = fasttwosum(ln21,ln20, &ln20);
+
+   b64u64_u t = {.f = ln21};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = ln20};
+     if((w.u^t.u)>>63)
+       t.u--;
+diff --git a/src/binary64/sincos/sincos.c b/src/binary64/sincos/sincos.c
+index 10ba965a..29c425c9 100644
+--- a/src/binary64/sincos/sincos.c
++++ b/src/binary64/sincos/sincos.c
+@@ -389,7 +389,7 @@ static inline double dint_tod(dint64_t *a) {
+         e.f = 0x0.0000000000001p-1022;
+       }
+     } else {
+-      e.u = 1l << (a->ex + 1073);
++      e.u = 1ll << (a->ex + 1073);
+     }
+   }
+
+diff --git a/src/binary64/sinh/sinh.c b/src/binary64/sinh/sinh.c
+index e9b24d45..98526d40 100644
+--- a/src/binary64/sinh/sinh.c
++++ b/src/binary64/sinh/sinh.c
+@@ -110,7 +110,7 @@ static double __attribute__((noinline)) as_sinh_zero(double x){
+   double y0 = fasttwosum(x, y1, &y1);
+   y1 = fasttwosum(y1, y2, &y2);
+   b64u64_u t = {.f = y1};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = y2};
+     if((w.u^t.u)>>63)
+       t.u--;
+@@ -350,7 +350,7 @@ double cr_sinh(double x){
+       th *= __builtin_copysign(1, x);
+       tl *= __builtin_copysign(1, x);
+       b64u64_u uh = {.f = th}, ul = {.f = tl};
+-      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+       th += tl;
+       th *= 2;
+       th *= sp.f;
+@@ -410,7 +410,7 @@ double cr_sinh(double x){
+   }
+   rh = fasttwosum(rh, rl, &rl);
+   b64u64_u uh = {.f = rh}, ul = {.f = rl};
+-  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+   rh *= __builtin_copysign(1, x);
+   rl *= __builtin_copysign(1, x);
+   rh += rl;
+diff --git a/src/binary64/sinpi/sinpi.c b/src/binary64/sinpi/sinpi.c
+index bc72ea9f..fe8ab9f5 100644
+--- a/src/binary64/sinpi/sinpi.c
++++ b/src/binary64/sinpi/sinpi.c
+@@ -96,7 +96,7 @@ static double as_sinpi_zero(double x){
+   const double pi0 = 0x1.92p+1, pi1 = 0x1.fb54442d1846ap-11, pi2 = -0x1.d9cceba3f91f2p-65;
+   double y0 = pi0*x;
+   b64u64_u b = {.f = y0};
+-  b.u &= ~0ul>>12;
++  b.u &= ~0ull>>12;
+   b.u += (int64_t)85<<51;
+   y0 = (y0 + b.f) - b.f;
+   double y0l = __builtin_fma(pi0,x,-y0);
+@@ -106,7 +106,7 @@ static double as_sinpi_zero(double x){
+   y0 = fasttwosum(y0,y1, &y1);
+   y1 = fasttwosum(y1,y2, &y2);
+   b64u64_u t = {.f = y1};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = y2};
+     if((w.u^t.u)>>63)
+       t.u--;
+diff --git a/src/binary64/tan/tan.c b/src/binary64/tan/tan.c
+index fea7d730..041bb8c9 100644
+--- a/src/binary64/tan/tan.c
++++ b/src/binary64/tan/tan.c
+@@ -527,7 +527,7 @@ static inline double dint_tod(dint64_t *a) {
+         e.f = 0x0.0000000000001p-1022;
+       }
+     } else {
+-      e.u = 1l << (a->ex + 1073);
++      e.u = 1ll << (a->ex + 1073);
+     }
+   }
+
+diff --git a/src/binary64/tanh/tanh.c b/src/binary64/tanh/tanh.c
+index 9aea80b6..6b7ae8ee 100644
+--- a/src/binary64/tanh/tanh.c
++++ b/src/binary64/tanh/tanh.c
+@@ -133,7 +133,7 @@ static double __attribute__((noinline)) as_tanh_zero(double x){ // |x|<0.25
+     double y0 = fasttwosum(x, y1, &y1);
+     y1 = fasttwosum(y1, y2, &y2);
+     b64u64_u t = {.f = y1};
+-    if (__builtin_expect(!(t.u & (~0ul >> 12)), 0)) {
++    if (__builtin_expect(!(t.u & (~0ull >> 12)), 0)) {
+         b64u64_u w = {.f = y2};
+         if ((w.u ^ t.u) >> 63)
+             t.u--;
+@@ -382,6 +382,6 @@ double cr_tanh(double x){
+   rh = fasttwosum(rh, rl, &rl);
+   double res = __builtin_copysign(2,x)*rh + __builtin_copysign(2,x)*rl;
+   b64u64_u lu = {.f = rl};
+-  if(__builtin_expect(((lu.u+32)&(~0ul>>12))<65, 0)) return as_tanh_database(x, res);
++  if(__builtin_expect(((lu.u+32)&(~0ull>>12))<65, 0)) return as_tanh_database(x, res);
+   return res;
+ }
+```
+
+**How it was checked.** GCC 13 makes the same object code of the nine files
+before and after on x86-64 Linux, where `long` has 64 bits. With MinGW-w64 for
+Windows x64, `sinh`, `cosh`, `tanh`, `sinpi`, `log1p` and `lgamma` compiled
+from master and from the patched tree give the results of x86-64 Linux, bit for
+bit, in the four directions, over the arguments of their `.wc` files and a
+million random ones each. On random arguments, the masks of a 32-bit `long`
+made `sinh`, `cosh` and `tanh` look a hard case up 5, 11 and 1 times in
+4 million calls, against never with 64 bits.
+
+**Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c` and
+`tanh.c` only (item 2 above).
+
+#### 2. The shift of `asinpi_acc()`
+
+**The defect.** In `asinpi_acc()`, line 273,
+`D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))}` is dc·2<sup>ss</sup> on
+128 bits for 0 < ss < 64 only, but ss = 24 + `ixe` − `ce` grows as |x| nears 1,
+to 76 for 1 − |x| = 2<sup>−53</sup>, and passes 63 as soon as 1 − |x| is below
+about 2<sup>−39</sup>: both shifts are then undefined behaviour. UBSan (GCC 13,
+`-fsanitize=undefined`) stops on it for `cr_asinpi(0x1.ffffffffff0c7p-1)` in any
+rounding direction (`asinpi.c:273:26: runtime error: shift exponent 65 is too
+large for 64-bit type 'long unsigned int'`). On x86-64, which takes shift
+counts modulo 64, `D` is then about dc·2<sup>ss−64</sup>, a correction
+2<sup>64</sup> times too small, but a small one: on the arguments below, the
+results do not change. The patch shifts on 128 bits:
+`(u128)dc` extends the sign of `dc`, and the shift is defined up to 127
+places.
+
+The patch, to commit as
+`[asinpi] shift dc on 128 bits: ss exceeds 63 next to +-1`:
+
+```diff
+diff --git a/src/binary64/asinpi/asinpi.c b/src/binary64/asinpi/asinpi.c
+index 226a7fd8..ce089f18 100644
+--- a/src/binary64/asinpi/asinpi.c
++++ b/src/binary64/asinpi/asinpi.c
+@@ -269,8 +269,8 @@ static double asinpi_acc(double x){
+     sm2.a += dsm3.a;
+     int k = ixe-ce;
+     ss = 24 + k;
+-    u128_u Cm = {.bl = 0, .bh = cm},
+-      D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))};
++    // 25 <= ss <= 76: ss > 63 next to +-1, so shift on 128 bits
++    u128_u Cm = {.bl = 0, .bh = cm}, D = {.a = (u128)dc << ss};
+     Cm.a -= D.a;
+     h = sm2.a>>14;
+     dc = mh(h, ixm);
+```
+
+**How it was checked.** `cr_asinpi()` from master and from the patched tree,
+with GCC and with Clang, give the same results over a million arguments next to
+±1 (1 − |x| from 2<sup>−54</sup> to 2<sup>−30</sup>) in the four directions.
+Over 4 million more (1 − |x| from 2<sup>−55</sup> to 2<sup>−1</sup>) and the
+8,193 doubles nearest to √(1 − 4<sup>−j</sup>) for j = 1 to 27, 19,041 calls
+took `asinpi_acc()` in one of the four directions, down to
+1 − |x| ≈ 2<sup>−46</sup>, 2,172 of them with ss > 63: master and the patch
+give the same results there, all the correct rounding (mpmath, 300 bits).
+UBSan reports nothing on the patched file. For the authors:
+`asinpi_acc()` called directly, which `cr_asinpi()` does not do there, on
+x = ±0x1.fffffffffffffp-1 in the downward and toward-zero directions, finds
+c = √(1 − x²) rounded just below 2<sup>−26</sup>, `dc` = −2<sup>51</sup> and
+ss = 76, so that `Cm.a - D.a` wraps around 2<sup>128</sup> and the patched
+function returns a wrong result where master happens to return the right one;
+`cr_asinpi()` rounds these arguments in its fast phase, in every direction, but
+the bound on ss the proof relies on may deserve a look.
+
+**Status.** Present in master; GAOL computes the same 128-bit shift with
+`gaol_u128_shl(gaol_u128_of_i64(dc), ss)` (item 4 above).
+
+#### 3. The `__builtin_expect` of `rsqrt.c`
+
+**The defect.** In `cr_rsqrt()`, line 172, `__builtin_expect(ix.u, 1)` tests
+x ≠ +0 for a subnormal x, but the builtin takes a `long`: where `long` has
+32 bits, the test sees the low 32 bits of x only, and the subnormals
+m·2<sup>−1042</sup>, 1 ≤ m < 2<sup>20</sup>, are taken for +0: their `rsqrt`
+is +∞, with the divide-by-zero exception, rather than 2<sup>521</sup> and
+below. `exp2.c` writes `frac != 0` for the same reason (line 362, "on 32-bit
+machines, `__builtin_expect(frac,1)` does not work"), and so does the patch.
+
+The patch, to commit as
+`[rsqrt] pass __builtin_expect a comparison, not 64 bits`:
+
+```diff
+diff --git a/src/binary64/rsqrt/rsqrt.c b/src/binary64/rsqrt/rsqrt.c
+index 43ffbd18..6bc8cf64 100644
+--- a/src/binary64/rsqrt/rsqrt.c
++++ b/src/binary64/rsqrt/rsqrt.c
+@@ -169,7 +169,7 @@ double cr_rsqrt(double x){
+   b64u64_u ix = {.f = x};
+   double r;
+   if(__builtin_expect(ix.u < 1ll<<52, 0)){ // 0 <= x < 0x1p-1022
+-    if(__builtin_expect(ix.u, 1)){ // x <> +0
++    if(__builtin_expect(ix.u != 0, 1)){ // x <> +0
+       r = __builtin_sqrt(x)/x;
+     } else {
+ #ifdef CORE_MATH_SUPPORT_ERRNO
+```
+
+**How it was checked.** With MinGW-w64 for Windows x64 (a 32-bit `long`, and
+`__int128`), master returns +∞ in the four directions for all the 149,797
+subnormals tried whose low 32 bits are 0 (every seventh m); the patched
+`rsqrt` returns the results of x86-64 Linux for them and for 100,000 random
+subnormals. GCC 13 makes the same object code before and after on x86-64
+Linux. GAOL's continuous integration found it on Debian i386 and armhf, with
+MinGW-w64 and with MSYS2 (item 5 above).
+
+**Status.** Present in master; GAOL makes the same change.
+
+#### 4. The `__builtin_roundeven` of `sin.c`
+
+**The defect.** Since the rewrite of `sin.c` (merged in `6b84457`),
+`cr_sin_moderate()`, line 829, calls `__builtin_roundeven()` unconditionally.
+GCC has it from version 10 only (<https://gcc.gnu.org/gcc-10/changes.html>),
+and GCC 9.4 did not link the call. The other sources that round to an integer
+(`exp.c`, `exp2.c`, `expm1.c`, `acos.c`, `erfc.c`, `tgamma.c`...) take the
+builtin from GCC 10 and Clang 17 only, and call `roundeven_finite()` otherwise:
+the patch copies that block of `exp.c` into `sin.c` and calls it.
+
+The patch, to commit as
+`[sin] guard __builtin_roundeven as exp.c does`:
+
+```diff
+diff --git a/src/binary64/sin/sin.c b/src/binary64/sin/sin.c
+index 8e78fdc7..35fa7c0c 100644
+--- a/src/binary64/sin/sin.c
++++ b/src/binary64/sin/sin.c
+@@ -38,6 +38,43 @@ SOFTWARE.
+
+ #pragma STDC FENV_ACCESS ON
+
++/* __builtin_roundeven was introduced in gcc 10:
++   https://gcc.gnu.org/gcc-10/changes.html,
++   and in clang 17 */
++#if ((defined(__GNUC__) && __GNUC__ >= 10) || (defined(__clang__) && __clang_major__ >= 17)) && !defined(_MSC_VER) && (defined(__aarch64__) || defined(__x86_64__) || defined(__i386__))
++# define roundeven_finite(x) __builtin_roundeven (x)
++#else
++/* round x to nearest integer, breaking ties to even */
++static double
++roundeven_finite (double x)
++{
++  double ix;
++# if (defined(__GNUC__) || defined(__clang__)) && (defined(__AVX__) || defined(__SSE4_1__) || (__ARM_ARCH >= 8))
++#  if defined __AVX__
++   __asm__("vroundsd $0x8,%1,%1,%0":"=x"(ix):"x"(x));
++#  elif __ARM_ARCH >= 8
++   __asm__ ("frintn %d0, %d1":"=w"(ix):"w"(x));
++#  else /* __SSE4_1__ */
++   __asm__("roundsd $0x8,%1,%0":"=x"(ix):"x"(x));
++#  endif
++# else
++  ix = __builtin_round (x); /* nearest, away from 0 */
++  if (__builtin_fabs (ix - x) == 0.5)
++  {
++    /* if ix is odd, we should return ix-1 if x>0, and ix+1 if x<0 */
++    union { double f; uint64_t n; } u, v;
++    u.f = ix;
++    v.f = ix - __builtin_copysign (1.0, x);
++    /* Warning: v.n is 0 when x=0.5; while u.n cannot be zero since ix
++       is rounded away from zero. */
++    if (v.n == 0 || __builtin_ctzll (v.n) > __builtin_ctzll (u.n))
++      ix = v.f;
++  }
++# endif
++  return ix;
++}
++#endif
++
+ #if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
+ typedef unsigned _BitInt(128) u128;
+ #else
+@@ -826,7 +863,7 @@ cr_sin_moderate (double x, int sbit)
+   double ax = __builtin_fabs(x);
+   static const double invpi = 0x1.45f306dc9c883p+12;
+   // |invpi/2^14 - 1/pi| < 2^-55.496
+-  double k = __builtin_roundeven (invpi * ax);
++  double k = roundeven_finite (invpi * ax);
+   // |2^14*(pih + pil) + pi| < 2^-108.041
+   double rh = __builtin_fma (k, pih, ax), rl = k * pil; // rh is exact
+
+```
+
+**How it was checked.** GCC 13, which has the builtin, makes the same object
+code before and after on x86-64 Linux. With the condition made false, so that
+`roundeven_finite()` is the function in its three forms (`vroundsd` with AVX,
+`roundsd` with SSE 4.1, and the portable code), `cr_sin()` gives the results of
+master over 3 million arguments (any bit pattern, and 2<sup>−26</sup> to
+2<sup>31</sup>, where `cr_sin_moderate()` works) in the four directions, and
+`roundeven_finite()` gives those of `__builtin_roundeven()` over 16 million
+values, half of them halfway between two integers. No compiler without the
+builtin was at hand.
+
+**Status.** Present in master; GAOL gives the sources a `__builtin_roundeven()`
+where the compiler has none, in `gaol/core_math_port.h`.
+
+#### 5. The rounding direction of `pow`
+
+**The defect.** `dint_tod_subnormal()` and `subnormalize_qint()` of `pow.h`
+(lines 236, 261 and 408) round a subnormal result themselves, in the direction
+`fegetround()` returns, where every other operation of `pow` rounds in the
+direction of MXCSR, x86-64 computing the doubles with SSE. The `fegetround()`
+of glibc reads the control word of the x87 unit only
+(`sysdeps/x86_64/fpu/fegetround.c`: "We only check the x87 FPU unit. The SSE
+unit should be the same"), so a program that sets MXCSR without the x87 unit,
+with `_mm_setcsr()` as interval libraries do, gets its subnormal powers rounded
+in the direction of the x87 unit. This is how GAOL's `pow` was found to miss
+the exact value of such results with the x87 unit to nearest and MXCSR upward.
+`cbrt.c`, `rsqrt.c` and `asinpi.c` read MXCSR already, with their
+`get_rounding_mode()`: the patch gives `pow.h` the same function (the x86-64
+part of the one of `rsqrt.c`, and `fegetround()` elsewhere). `cos.c`, `tan.c`
+and `sincos.c` carry the same rounding code (`subnormalize_dint()`), but their
+accurate phases never give a subnormal, and they are left alone. Where
+`FE_UPWARD` has neither of the two values the function knows, MinGW-w64's
+among them, it warns at compile time and calls `fegetround()`, as `rsqrt.c`
+does.
+
+The patch, to commit as
+`[pow] read the rounding mode from MXCSR on x86-64, as rsqrt.c does`:
+
+```diff
+diff --git a/src/binary64/pow/pow.h b/src/binary64/pow/pow.h
+index 84513b3e..4a056b97 100644
+--- a/src/binary64/pow/pow.h
++++ b/src/binary64/pow/pow.h
+@@ -219,6 +219,36 @@ static inline int64_t dint_toi(const dint64_t *a) {
+   return a->sgn ? -r : r;
+ }
+
++/* The doubles are rounded by the SSE unit on x86-64: read the rounding mode
++   from MXCSR, as get_rounding_mode() of rsqrt.c does. The fegetround() of
++   some C libraries (GNU libc) reads the control word of the x87 unit, which
++   differs from MXCSR if a program changed one without the other. */
++static inline int get_rounding_mode (void)
++{
++#if defined(__x86_64__)
++  #if defined(__WIN32__) || defined(__WIN64__)
++    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
++    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
++    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
++    // The amount we need to shift changes depending on the value.
++    #if FE_UPWARD == 0x0200
++      return _MM_GET_ROUNDING_MODE()>>5;
++    #elif FE_UPWARD == 0x0100
++      // Lookup table used to eliminate branches.
++      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
++      return lut[_MM_GET_ROUNDING_MODE()>>13];
++    #else
++      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
++      return fegetround();
++    #endif
++  #else
++    return _MM_GET_ROUNDING_MODE()>>3;
++  #endif
++#else
++  return fegetround ();
++#endif
++}
++
+ // round a, assuming a is in the subnormal range
+ // exact is non-zero iff x^y is exact
+ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+@@ -233,7 +263,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+   uint64_t rb, sb;
+
+   if (ex >= 64) { // all bits disappear: |a| < 2^-1074
+-    switch (fegetround()) {
++    switch (get_rounding_mode ()) {
+     case FE_TONEAREST:
+       rb = (a->hi >> 63);        // only used when e=64
+       sb = (a->hi << 1) | a->lo; // idem
+@@ -258,7 +288,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+   rb = (a->hi >> (ex - 1)) & 0x1; // round bit
+   sb = (a->hi << (65 - ex)) || a->lo; // sticky bit
+
+-  switch (fegetround()) {
++  switch (get_rounding_mode ()) {
+   case FE_TONEAREST:
+     // if ex=12 there is no underflow when hi rounds to 2^52 and rb=1
+     // and the next bit is 1 too
+@@ -405,7 +435,7 @@ static inline void subnormalize_qint(qint64_t *a) {
+   uint64_t md = (a->hh >> (ex - 1)) & 0x1;
+   uint64_t lo = (a->hh & (~0ull >> ex)) || a->hl || a->lh || a->ll;
+
+-  switch (fegetround()) {
++  switch (get_rounding_mode ()) {
+   case FE_TONEAREST:
+     hi += lo ? md : hi & md;
+     break;
+```
+
+**How it was checked.** With the x87 unit to nearest and MXCSR upward,
+`pow(0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10)`, whose exact value is
+1458662373659.29·2<sup>−1074</sup>, is `0x0.001539f0d791bp-1022` with master
+rather than `0x0.001539f0d791cp-1022`, and two more powers of values
+567863.26·2<sup>−1074</sup> and 1.30·2<sup>−1074</sup> are rounded down too
+(references from mpmath); the patched `pow` rounds the three upward, with GCC
+and with Clang. The patched object code reads MXCSR (`stmxcsr`) and no longer
+calls `fegetround()`.
+
+**Status.** Present in master.
+
+#### Already fixed upstream: the shifts of `cospi.c`
+
+The three signed shifts of item 3 above (lines 179 to 181 at `6b84457`) were
+fixed upstream on 29 September 2026 by `b1a4badf` ("[cospi] make the sanitizer
+happy"), which declares `m` as `uint64_t` rather than converting it at each
+shift. Over 4 million arguments (integers and half-integers among them) in the
+four directions, `cospi` of master gives the results of GAOL's, and UBSan,
+which stops on `6b84457`, reports nothing. Nothing to send: GAOL's change goes
+at the next import.
+
+### glibc
+
+glibc takes functions from CORE-MATH, each file saying "copied from the
+CORE-MATH project": functions of floats from 2.41 (`sysdeps/ieee754/flt-32`),
+and functions of doubles from 2.43 (`sysdeps/ieee754/dbl-64`): `acosh`,
+`asinh`, `atanh`, `erf`, `erfc`, `lgamma` and `tgamma` in 2.43, `cosh`, `sinh`
+and `tanh` in 2.44, and `cbrt` on master (`30f988fbe795`, 29 September 2026).
+None of the defects above is in them, in any of these releases:
+
+- the masks: glibc's `cosh`, `sinh` and `tanh` write `MANTISSA_MASK`, which is
+  `UINT64_C(0x000fffffffffffff)` (`sysdeps/ieee754/dbl-64/math_config.h`),
+  where CORE-MATH writes `~0ul>>12` (on master, `e_cosh.c` lines 97, 106, 222
+  and 295, `e_sinh.c` 105, 213 and 286, `s_tanh.c` 104 and 284), and `lgamma`
+  writes `~UINT64_C(0) >> 12` (`e_lgamma_r.c` 1003); the `__glibc_likely()`
+  and `__glibc_unlikely()` of these files, glibc's `__builtin_expect()`, take
+  comparisons only;
+- `asinpi`, `rsqrt` and `cospi` of doubles are glibc's own generic code
+  (`math/s_asinpi_template.c`, `math/s_rsqrt_template.c`,
+  `math/s_cospi_template.c`), and its `sin` and `pow` are other code (`s_sin.c`
+  from the IBM Accurate Mathematical Library, `e_pow.c` from 2018);
+- the rounding direction: inside glibc it is read with `get_rounding_mode()`
+  (`sysdeps/generic/get-rounding-mode.h`), which on x86 reads the control word
+  of the x87 unit (`_FPU_GETCW`, `fnstcw`, in `sysdeps/x86/fpu_control.h`), as
+  `fegetround()` does, and of the functions of doubles it took from CORE-MATH,
+  only `cbrt` asks for it (`s_cbrt.c`, line 37). That the two units agree is
+  glibc's model, `fesetround()` setting both: a program that sets MXCSR alone
+  is outside it, and there is nothing to propose.
+
+So there is nothing to send to glibc. Were one of these defects to reach it
+with a later import, the patch would go by `git send-email` to
+libc-alpha@sourceware.org, its subject starting with `math:`, with a
+`Signed-off-by:` line under the Developer's Certificate of Origin (glibc has
+not required a copyright assignment to the FSF since August 2021), and a test
+in `math/auto-libm-test-in` for the arguments above.
