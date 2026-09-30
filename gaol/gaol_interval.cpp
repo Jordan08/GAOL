@@ -109,7 +109,7 @@ namespace gaol_core {
     v5, review #7 of examples/examples.md), the lower bound of x^n was 8
     doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
     2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
-    2^27.
+    2^28.
 
     The power is only rounded at the end, h + l upward and h - nl downward.
     The rest of x^k is below (k - 1) 2^-52 x^k; squaring x^k rounds three

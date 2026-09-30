@@ -677,7 +677,7 @@ namespace
     examples/examples.md, ipow_exact_dn()), and the lower bound of x^n was 8
     doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
     2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
-    2^27. The bounds are computed apart, with mpmath:
+    2^28. The bounds are computed apart, with mpmath:
 
       mpmath.mp.prec = 2000
       v = mpmath.mpf(x) ** n
