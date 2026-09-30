@@ -144,20 +144,19 @@
 /* GAOL_NODISCARD: the attribute on the functions whose result is all they do
    (GAOL v5), so that the compiler warns about a call whose result is thrown
    away, as sqrt(I); or I.emptyset(); written to change I, which they leave
-   as it was. [[nodiscard]] is C++17, and a program using GAOL is compiled in
-   the standard its compiler defaults to, C++14 for GCC before 11 and Clang
-   before 16, unless the project sets another, as GAOL itself is in C++11:
-   with an earlier standard [[nodiscard]] is not used, Clang warning about it
-   with -pedantic and Visual C++ in C++14. The compilers have an attribute of
-   their own there, which makes a call thrown away warn in C++11 and C++14
-   too: __attribute__((warn_unused_result)) for GCC and Clang (-Wunused-result,
-   on by default), which GCC does not take a cast to void for a way to silence,
-   and _Check_return_ of <sal.h> for Visual C++, which the code analysis
-   (/analyze) reports and the compiler alone does not. Visual C++ keeps
-   __cplusplus at 199711L without /Zc:__cplusplus, and gives the standard in
-   _MSVC_LANG; Clang for Windows defines __clang__ and _MSC_VER. Defining
-   GAOL_NODISCARD before including GAOL replaces it, an empty definition
-   removing the attribute. */
+   as it was. It is [[nodiscard]] from C++17 on. A program is compiled in the
+   standard its project sets, or else in the one of its compiler, C++14 for
+   GCC 6 to 10, Clang 6 to 15 and Visual C++; GAOL itself is compiled in
+   C++11. Before C++17, where Clang warns about [[nodiscard]] with -pedantic
+   and Visual C++ ignores it with a warning, the macro is the attribute of the
+   compiler: __attribute__((warn_unused_result)) for GCC and Clang
+   (-Wunused-result, on by default), whose warning GCC, unlike Clang and
+   [[nodiscard]], gives for a cast to void too; _Check_return_ of <sal.h> for
+   Visual C++, which only its code analysis reports (/analyze, warning C6031).
+   Visual C++ keeps __cplusplus at 199711L without /Zc:__cplusplus, and gives
+   the standard in _MSVC_LANG; Clang for Windows defines __clang__ and
+   _MSC_VER, and takes the attribute of Clang. Defining GAOL_NODISCARD before
+   including GAOL replaces it, an empty definition removing the attribute. */
 #ifndef GAOL_NODISCARD
 #  if defined(__cplusplus) \
       && (__cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))

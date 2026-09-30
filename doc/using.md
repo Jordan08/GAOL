@@ -248,15 +248,16 @@ x = sqrt(x);      // what was meant
 (void)sqrt(x);    // thrown away on purpose: no warning in C++17, or with Clang
 ```
 
-The attribute is `GAOL_NODISCARD`, of `gaol/gaol_config.h`. It is `[[nodiscard]]`
-in C++17 and later. Before, in C++11 and C++14, which are the standards of GCC
-before 11 and of Clang before 16 when the project sets none, it is the attribute
-the compiler has of its own: `__attribute__((warn_unused_result))` for GCC and
+The attribute is `GAOL_NODISCARD`, of `gaol/gaol_config.h`. It is
+`[[nodiscard]]` in C++17 and later. A program is compiled in the standard its
+project sets, or else in the one of its compiler, which is C++14 for GCC 6 to
+10, Clang 6 to 15 and Visual C++. Before C++17, `GAOL_NODISCARD` is the
+attribute of the compiler: `__attribute__((warn_unused_result))` for GCC and
 Clang, whose warning is `-Wunused-result` (on by default), and `_Check_return_`
-of `<sal.h>` for Visual C++, which the code analysis (`/analyze`) reports and
-the compiler alone does not. Before C++17, GCC still warns about a cast to
-void (`(void)sqrt(x);`), which Clang and `[[nodiscard]]` take as on purpose:
-keep the result in a variable there. A program that does not want the warnings
+of `<sal.h>` for Visual C++, which only the code analysis reports (`/analyze`,
+warning C6031), not the compiler. There, GCC also warns about a cast to void
+(`(void)sqrt(x);`), which Clang and `[[nodiscard]]` take as on purpose: keep
+the result in a variable instead. A program that does not want the warnings
 defines `GAOL_NODISCARD` empty before including GAOL (`-DGAOL_NODISCARD=`). The
 compound assignments (`x += y`), which do change x, do not carry it.
 

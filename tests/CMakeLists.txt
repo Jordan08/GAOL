@@ -124,8 +124,9 @@ function(gaol_refused_test name flag text)
   target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
   add_test(NAME ${name}
     COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-  # One build at a time in the build directory, whatever ctest -j says
-  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_refused_options
+  # One build at a time in the build directory, whatever ctest -j says: the
+  # lock of every compile test
+  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
                        PASS_REGULAR_EXPRESSION "${text}")
 endfunction()
 if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -177,11 +178,14 @@ set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_R
 # give the warning, in two tests: nodiscard_discard_cxx<N> has it throw away
 # sqrt(x), and passes if the build fails with the message of the compiler;
 # nodiscard_used_cxx<N> has it use the result, and passes if the build
-# succeeds, GAOL's headers giving no warning of their own. The object is a
-# target of its own, left out of the build of GAOL and made by the test
-# (cmake --build), with the flags of GAOL's headers as gaol::gaol carries them,
-# written out here: only the headers are read, so that the test does not wait
-# for the library, which gaol::gaol would build first. The tests run in the C
+# succeeds, GAOL's headers giving no warning of their own. -Werror=attributes
+# makes an attribute the compiler ignores, as [[nodiscard]] written after a
+# specifier of the declaration, fail them too. The object is a target of its
+# own, left out of the build of GAOL and made by the test (cmake --build),
+# with the flags and the include directories of GAOL's headers as gaol::gaol
+# carries them, written out here (those of the project GAOL, should another
+# include it): only the headers are read, so that the test does not wait for
+# the library, which gaol::gaol would build first. The tests run in the C
 # locale, the message being translated otherwise. Not with Visual C++, whose
 # _Check_return_ only warns with /analyze. The autotools and meson builds have
 # no such test: the header it checks is the same.
@@ -191,11 +195,13 @@ function(gaol_nodiscard_test standard)
     add_library(gaol_${name} OBJECT nodiscard.cpp)
     set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE
                           CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
-    target_include_directories(gaol_${name} PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
-    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} -Werror=unused-result)
+    target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS}
+                           -Werror=unused-result -Werror=attributes)
     add_test(NAME ${name}
       COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-    # One build at a time in the build directory, whatever ctest -j says
+    # One build at a time in the build directory, whatever ctest -j says: the
+    # lock of every compile test
     set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
                          ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
     if(kind STREQUAL "discard")
