@@ -42,6 +42,7 @@
 
 #include "gaol_tests.h"
 
+#include <algorithm>
 #include <cctype>
 #include <chrono>
 #include <clocale>
@@ -1073,17 +1074,25 @@ namespace
     const int precisions[] = { 1, 2, 4, 6, 15, 16, 17, 20 };
     const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
 
-    // The unit of the last digit of the text s that the stream wrote for x
-    // with the flags and the precision given, as expect_output() takes it
-    const auto unit_of = [](const std::string& s, double x, std::ios_base::fmtflags flags, int precision) {
-      Exact unit = decimal("1e-" + std::to_string(precision));
+    // The unit of the last digit of the number s that the stream wrote with
+    // the flags and the precision given: 10^-precision in the fixed format,
+    // and 10^(e - precision) in the scientific one, e being the power of ten
+    // of the first digit of s that is not a zero, or 10^(e + 1 - precision)
+    // in the general one, which writes that many significant digits
+    const auto unit_of = [](const std::string& s, std::ios_base::fmtflags flags, int precision) {
       const std::ios_base::fmtflags floatfield = flags & std::ios_base::floatfield;
-      if (floatfield == std::ios_base::scientific && s.find('e') != std::string::npos) {
-        unit = unit*decimal("1" + s.substr(s.find('e')));
-      } else if (floatfield != std::ios_base::fixed && floatfield != std::ios_base::scientific) {
-        unit = ((x < 0.0) ? -exact(x) : exact(x))*decimal("1e" + std::to_string(1 - precision));
+      if (floatfield == std::ios_base::fixed) {
+        return decimal("1e-" + std::to_string(precision));
       }
-      return unit;
+      const std::size_t exponent = s.find('e');
+      const std::string mantissa = s.substr(0, exponent);
+      const std::size_t point = std::min(mantissa.find('.'), mantissa.size()), first = mantissa.find_first_of("123456789");
+      long e = (exponent == std::string::npos) ? 0 : std::stol(s.substr(exponent + 1));
+      if (first != std::string::npos) {
+        e += (first < point) ? static_cast<long>(point - first) - 1 : -static_cast<long>(first - point);
+      }
+      const long significant = (floatfield == std::ios_base::scientific) ? precision + 1 : std::max(precision, 1);
+      return decimal("1e" + std::to_string(e + 1 - significant));
     };
     const auto is_infinite_text = [](const std::string& s) { return s == "inf" || s == "+inf"; };
     // Whether s is a decimal number, a sign, digits with a point and an exponent, and not inf or nan
@@ -1140,7 +1149,7 @@ namespace
           if (!check(name + ": the radius is a number", is_decimal_text(sw), describe)) {
             return;
           }
-          const Exact vw = written(sw), unit_w = unit_of(sw, rad, flags, p);
+          const Exact vw = written(sw), unit_w = unit_of(sw, flags, p);
           // [c-w, c+w] contains the interval, c being the midpoint, and w is
           // at least half its width, whatever the center
           check(name + ": [midpoint-radius, midpoint+radius] contains the interval",
@@ -1151,9 +1160,11 @@ namespace
                 compare(rad, vw) <= 0 && compare(rad, vw + (-unit_w)) > 0, describe);
           check(name + ": a radius written for an interval that is not a point is not 0", compare(0.0, vw) < 0, describe);
         }
-        const Exact vc = written(sc), unit_c = unit_of(sc, m, flags, p);
-        check(name + ": the center is the midpoint, less than one unit of its last digit away",
-              (m == 0.0) ? compare(0.0, vc) == 0 : (compare(m, vc + unit_c) < 0 && compare(m, vc + (-unit_c)) > 0), describe);
+        // The center is written rounded to nearest by the C library
+        const Exact vc = written(sc), half_unit_c = unit_of(sc, flags, p)*decimal("0.5");
+        check(name + ": the center is the midpoint rounded to nearest, at most half a unit of its last digit away",
+              (m == 0.0) ? compare(0.0, vc) == 0 : (compare(m, vc + half_unit_c) <= 0 && compare(m, vc + (-half_unit_c)) >= 0),
+              describe);
       }
     };
 
@@ -1187,9 +1198,16 @@ namespace
     }
     Random random;
     for (int i = 0; i < 300; ++i) {
+      // Drawn one at a time, so that every compiler checks the same
+      // intervals: the order in which the arguments of a call are evaluated
+      // is unspecified. The order kept is the one of GCC.
       const double a = random.any();
-      expect_each_flag(hull(random.any(), random.any()));
-      expect_each_flag(hull(random.uniform(-1000.0, 1000.0), random.uniform(-1.0, 1.0)));
+      const double b = random.any();
+      const double c = random.any();
+      const double v = random.uniform(-1.0, 1.0);
+      const double u = random.uniform(-1000.0, 1000.0);
+      expect_each_flag(hull(b, c));
+      expect_each_flag(hull(u, v));
       if (std::isfinite(a) && a != largest) {
         expect_each_flag(interval(a, next_double(a)));
       }

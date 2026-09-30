@@ -152,9 +152,11 @@ Codac.
   The width and center formats have to write the `midpoint()` and the `rad()`
   of IEEE 1788-2015: with every precision and flag, over the special values,
   the subnormals, the largest doubles, unbounded intervals and random
-  intervals, the radius written has to be `rad()` rounded upward, so that
-  midpoint plus or minus it contains the interval, and never 0 for an interval
-  that is not a point, which is written as its midpoint alone. GAOL wrote
+  intervals, the radius written has to be `rad()` rounded upward, less than
+  one unit of its last digit above it, so that midpoint plus or minus it
+  contains the interval, and never 0 for an interval that is not a point,
+  which is written as its midpoint alone; the midpoint has to be written
+  rounded to nearest, at most half a unit of its last digit away. GAOL wrote
   (l+r)/2 and (r-l)/2 rounded to nearest, which do not contain the interval,
   a radius 0 for [0, 5·10^-324] and `inf` for the midpoint of [10^308,
   1.7·10^308]. The empty set has to be `[empty]` in the five formats, and in

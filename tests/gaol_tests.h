@@ -595,7 +595,13 @@ namespace gaol_tests
       // emax
       double operator()(int emin, int emax)
       {
-        return make(bits() & 1u, static_cast<std::uint64_t>(1023 + integer(emin, emax)));
+        // The exponent, the sign, then the mantissa in make(), drawn one at a
+        // time: the order in which the arguments of a call are evaluated is
+        // unspecified, and GCC and Clang drew different doubles from
+        // make(bits() & 1u, ...). The order kept is the one of GCC.
+        const std::uint64_t biased_exponent = static_cast<std::uint64_t>(1023 + integer(emin, emax));
+        const std::uint64_t sign = bits() & 1u;
+        return make(sign, biased_exponent);
       }
 
       // A positive double with a random mantissa and an exponent from emin to
@@ -609,7 +615,10 @@ namespace gaol_tests
       // mantissa and exponent
       double any()
       {
-        return make(bits() & 1u, bits() % 2047u);
+        // Drawn one at a time, as in operator()
+        const std::uint64_t biased_exponent = bits() % 2047u;
+        const std::uint64_t sign = bits() & 1u;
+        return make(sign, biased_exponent);
       }
 
       // A double from lo to hi, about
