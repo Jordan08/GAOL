@@ -153,6 +153,28 @@ kept as a patch to reapply.
    sources GAOL compiles take a comparison, or an integer of 32 bits or less.
    This is a fix to propose to CORE-MATH.
 
+6. **The rounding direction of `cbrt` with mingw-w64 on x86-64** in
+   `cbrt/cbrt.c` (`get_rounding_mode()`). `cr_cbrt()` takes the direction as 0
+   to 3 (to nearest, downward, upward, toward zero): it indexes `off[4]` with
+   it, and rounds the seven hardest arguments of `wlist` away from zero when it
+   is 2 minus the sign. Where `__x86_64__` is defined (GCC and Clang), the
+   function computes the `FE_*` value of the direction from MXCSR, for the
+   values of glibc, or for those of Windows where `__WIN32__` is defined
+   (`FE_UPWARD` 0x200 or 0x100), then maps it to 0 to 3 by a switch; under
+   `__WIN32__` with other values, which are those of mingw-w64 (`FE_UPWARD`
+   0x800, as glibc), it returned `fegetround()` itself, past the switch. In the
+   directed roundings `off[]` was then read kilobytes beyond its four elements,
+   and the seven arguments were rounded toward zero: rounding upward,
+   `cr_cbrt(0x1.3a9ccd7f022dbp+0)` was `0x1.1236160ba9b93p+0`, below the cube
+   root (`0x1.1236160ba9b930000000000001e7e8fap+0`), and `nth_root(x, 3)` did
+   not enclose it, with MinGW-w64 and MSYS2 on x64. That `fegetround()` now
+   goes through the switch like the other branches. `tests/core_math.cpp`
+   checks `cbrt` and `nth_root(x, 3)` at these arguments, scaled by powers of 8
+   and on both signs, against mpmath. `rsqrt.c` and `asinpi.c`, whose
+   `get_rounding_mode()` has the same branch, compare its result with the
+   `FE_*` values themselves, and are right. This is a fix to propose to
+   CORE-MATH.
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
@@ -202,6 +224,6 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the five changes
+Copy the upstream tree again without the `.wc` files, then make the six changes
 above. `git diff` against the previous version shows them: they are marked
 `/* GAOL */`, and no other line differs.

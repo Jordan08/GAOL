@@ -193,11 +193,12 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
   So the sources of CORE-MATH read the direction from MXCSR here, as the
   get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does, since the
   processor computes their doubles there (with mingw-w64, whose FE_* values
-  it does not know, get_rounding_mode() calls fegetround() too). The rounding
-  field of MXCSR is the same on every x86 processor, but the values of
-  FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of Windows
-  are not those of glibc, and changed once), which the switch gives back
-  whichever they are.
+  it does not know, get_rounding_mode() calls fegetround() too, and the one
+  of cbrt.c maps its value to the 0 to 3 it returns, see 3rd/README.md). The
+  rounding field of MXCSR is the same on every x86 processor, but the values
+  of FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of
+  Windows are not those of glibc, and changed once), which the switch gives
+  back whichever they are.
 
   The standard lets fegetround() be a macro, and it is a function in the C
   libraries known here: what the sources call is renamed by a macro of ours,

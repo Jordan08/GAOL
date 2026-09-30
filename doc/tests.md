@@ -276,7 +276,13 @@ Codac.
   the upward rounding, which computes with the 128-bit integer GAOL ports
   (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
   the rest of the test cannot see a fault of that port, which the jobs
-  computing with the two 64-bit halves would then find here.
+  computing with the two 64-bit halves would then find here. `cbrt` is
+  checked in the four rounding directions, and `nth_root(x, 3)` and `rootn`
+  have to be the tightest enclosures, at the seven arguments `cbrt.c` rounds
+  apart (its `wlist`), scaled by powers of 8 and on both signs, against
+  mpmath: with mingw-w64 on x86-64, its `get_rounding_mode()` gave
+  `FE_UPWARD` where 0 to 3 were expected, and the upper bound was below the
+  cube root (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
