@@ -126,6 +126,32 @@
  INLINE
   interval& interval::operator&=(const interval& I)
   {
+#if defined(__arm__) && !defined(__aarch64__)
+    // GCC for 32-bit ARM processors (12 to 14) may compile the quiet
+    // comparisons of the code after #else into signaling ones: where it turns
+    // the choice of a bound into a conditional move, it reverses the
+    // comparison, "I.right() < right() or unordered" becoming "I.right() >=
+    // right()", and compiles the reversed one with vcmpe, which raises the
+    // invalid-operation exception on a NaN, rather than vcmp (GCC bug 52258 is
+    // of this kind): x & y, intersection() and the reverse functions
+    // intersecting with an empty y raised it on armhf. The empty sets are
+    // told first with isunordered(), which stays a vcmp when GCC reverses it
+    // (into "ordered"), so that the comparisons of the bounds never meet a
+    // NaN (GAOL v5)
+    if (std::isunordered(lb_, rb_)) {
+      return *this;
+    }
+    if (std::isunordered(I.lb_, I.rb_)) {
+      lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
+      return *this;
+    }
+    if (I.left() > left()) {
+      lb_ = I.lb_;
+    }
+    if (I.right() < right()) {
+      rb_ = I.rb_;
+    }
+#else
     if (is_empty()) {
       return *this;
     }
@@ -138,6 +164,7 @@
     if (!std::isgreaterequal(I.right(), right())) {
       rb_ = I.rb_;
     }
+#endif
     // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()
     // (GAOL v5): their bounds in the wrong order, [3, 2] for
     // [1, 2] & [3, 4], were empty for is_empty(), but the operations computing
