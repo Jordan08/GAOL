@@ -49,14 +49,14 @@ namespace {
   */
   interval goldstein_price(const interval& x, const interval& y)
   {
-    return (interval(1,1)+pow(x+y+interval(1,1),2)*(interval(19,19)-
-				   interval(14)*x+
-				   interval(3)*pow(x,2)-interval(14)*y+
-				   interval(6)*x*y+interval(3)*pow(y,2)))*
-      (interval(30,30)+pow(interval(2,2)*x-interval(3,3)*y,2)*
-       (interval(18,18)-interval(32,32)*x+
-	interval(12,12)*pow(x,2)+interval(48,48)*y-interval(36,36)*x*y+
-	interval(27,27)*pow(y,2)));
+    return (interval(1.0)
+            + pow(x + y + interval(1.0), 2)
+              * (interval(19.0) - interval(14.0) * x + interval(3.0) * pow(x, 2)
+                 - interval(14.0) * y + interval(6.0) * x * y + interval(3.0) * pow(y, 2)))
+         * (interval(30.0)
+            + pow(interval(2.0) * x - interval(3.0) * y, 2)
+              * (interval(18.0) - interval(32.0) * x + interval(12.0) * pow(x, 2)
+                 + interval(48.0) * y - interval(36.0) * x * y + interval(27.0) * pow(y, 2)));
   }
 
 } // namespace
@@ -80,7 +80,7 @@ int main(void)
     z=goldstein_price(x, y);
   }
   cout << "z = " << z << endl;
-  cout << "Elapsed time: " << elapsed_time() << endl;
+  cout << "Elapsed time: " << elapsed_time() << " ms" << endl;
 
   // The minimum of f over [-2, 2]^2, f(0, -1) = 3, is where the two factors
   // are 1 and 3: the values on a point are exact, integers
@@ -88,8 +88,8 @@ int main(void)
 
   // z encloses the range of f over [-2, 2]^2, which is [3, 1015690.27...]: 3
   // at (0, -1), and the maximum on the edge y = 2, at x = -1.73737253775830...
-  // (mpmath; see 03_dependency_problem.cpp), a decimal that a double cannot
-  // hold. It does not enclose it tightly: the natural extension is
+  // (sympy and mpmath; see 03_dependency_problem.cpp), a decimal that a double
+  // cannot hold. It does not enclose it tightly: the natural extension is
   // [-87881320, 147125080], computed by exact rational arithmetic in the order
   // of the expression. Every bound met on the way is an integer below 2^53
   // (the largest is 147125080), so that no operation rounds and the enclosure
