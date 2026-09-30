@@ -2376,10 +2376,14 @@ interval nth_root(const interval& I, int q)
     // (GAOL v5)
     const double l = I.left(), r = I.right();
     GAOL_RND_ENTER();
-    const double u = (l == 0.0) ? 1.0 : upward::exp_dn(l);
-    const double v = (r == 0.0) ? 1.0 : upward::exp_up(r);
+    // The maximum taken before GAOL_RND_LEAVE(): with GAOL_PRESERVE_ROUNDING,
+    // the denormals-are-zero mode it restores made the subnormal lower bound of
+    // exp([-740]) equal to 0, and 0 the bound (GAOL v5)
+    double u = (l == 0.0) ? 1.0 : maximum(0.0,upward::exp_dn(l));
+    double v = (r == 0.0) ? 1.0 : upward::exp_up(r);
+    GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
     GAOL_RND_LEAVE();
-    return interval(maximum(0.0,u), v);
+    return interval(u, v);
   }
 
   interval log(const interval& I)
