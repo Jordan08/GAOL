@@ -111,10 +111,12 @@
         _mm_store_pd(Ibd,I.xmmbounds);
 
     	// From now on, "this" is known to be nonempty.
-	    if (!(Ibd[0] >= bd[0])) { // I.left() == NaN => lb_ <- NaN
+        // The comparisons are quiet ones, which raise no invalid-operation
+        // exception on the NaN bounds of an empty I (GAOL v5)
+	    if (!std::isgreaterequal(Ibd[0], bd[0])) { // I.left() == NaN => lb_ <- NaN
       	bd[0] = Ibd[0];
     	}
-    	if (!(Ibd[1] >= bd[1])) {
+	if (!std::isgreaterequal(Ibd[1], bd[1])) {
 	      bd[1] = Ibd[1];
     	}
 
@@ -122,7 +124,7 @@
         // interval::emptyset() (GAOL v5): their bounds in the wrong
         // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
         // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
-        if (!(-bd[0] <= bd[1])) {
+        if (!std::islessequal(-bd[0], bd[1])) {
           xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
         } else {
           xmmbounds = _mm_load_pd(bd);

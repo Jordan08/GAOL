@@ -489,8 +489,9 @@ namespace gaol_core {
 #if defined (_MSC_VER)
     return !is_empty() && (next_float(left())>=right());
 #else
-    // emptyset handled thanks to unorderedness of NaNs
-    return next_float(left())>=right();
+    // emptyset handled thanks to unorderedness of NaNs, with a quiet
+    // comparison, which raises no invalid-operation exception on them (GAOL v5)
+    return std::isgreaterequal(next_float(left()),right());
 #endif
   }
 
@@ -750,7 +751,9 @@ namespace gaol_core {
   */
   void display_bounds(double l, double r, ostream& os)
   {
-    if (!(l <= r)) {
+    // A quiet comparison, which raises no invalid-operation exception on the
+    // NaN bounds of the empty set (GAOL v5)
+    if (!std::islessequal(l, r)) {
       os << "[empty]";
     } else {
       const std::string left = bound_to_text(l, false, os);
@@ -2343,6 +2346,12 @@ interval nth_root(const interval& I, int q)
 
   interval exp(const interval& I)
   {
+    // The empty set tested first: its NaN bounds would give the empty set
+    // too, but the constructor compares them, which raises the
+    // invalid-operation exception (GAOL v5)
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
 	/* We intersect the result with [0, +oo] to ensure that the result is strictly positive
  		Otherwise, we might have: exp([-oo, -MAX] = [-v, +v] with v very small.
 	*/
@@ -2426,6 +2435,13 @@ interval nth_root(const interval& I, int q)
   */
   unsigned short int modulo_k_pi(const interval &I, double &k_left, double &k_right)
   {
+    // The empty set, whose bounds are NaN, gives NaN and 0, tested first: the
+    // NaN divided by pi would be given to the constructor, which compares it
+    // and raises the invalid-operation exception (GAOL v5)
+    if (I.is_empty()) {
+      k_left = k_right = GAOL_NAN;
+      return 0;
+    }
     interval kl = floor(I.left()/interval::pi());
     interval kr = floor(I.right()/interval::pi());
     k_left  = kl.left();
@@ -2952,7 +2968,9 @@ interval nth_root(const interval& I, int q)
 	double res;
 	GAOL_RND_PRESERVE();
 	round_nearest();
-	if (std::fabs(I.left()) <= std::fabs(I.right())) {
+	// A quiet comparison: the empty set, whose bounds are NaN, gives NaN
+	// without the invalid-operation exception (GAOL v5)
+	if (std::islessequal(std::fabs(I.left()), std::fabs(I.right()))) {
 	  res = I.left() / I.right();
 	} else {
 	  res = I.right() / I.left();
@@ -2970,14 +2988,23 @@ interval nth_root(const interval& I, int q)
     return !std::isinf(left()) && !std::isinf(right());
   }
 
+  /*
+    maximum() and minimum() give NaN bounds for an empty I or J, which give
+    the empty set: told by a quiet comparison of the bounds, rather than by the
+    constructor, which compares them and raises the invalid-operation
+    exception on a NaN (GAOL v5). One comparison, where testing I and J
+    first made max() 5 to 10% slower (Clang 18).
+  */
   interval  max(const interval &I, const interval &J)
   {
-    return interval(maximum(I.left(),J.left()),maximum(I.right(),J.right()));
+    const double l = maximum(I.left(),J.left()), r = maximum(I.right(),J.right());
+    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
   }
 
   interval  min(const interval &I, const interval &J)
   {
-    return interval(minimum(I.left(),J.left()),minimum(I.right(),J.right()));
+    const double l = minimum(I.left(),J.left()), r = minimum(I.right(),J.right());
+    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
   }
 
 
@@ -3072,7 +3099,12 @@ interval nth_root(const interval& I, int q)
 
   interval sqrt(const interval& I)
   {
-    interval Ipos = interval(maximum(0.0,I.left()),I.right());
+    // The part of I in [0, +oo], as nth_root() takes it: the intersection
+    // compares the bounds with quiet comparisons, and keeps an empty I as it
+    // is, where the constructor, given its NaN bounds, raised the
+    // invalid-operation exception (GAOL v5). A lower bound -0 is taken as 0
+    // below.
+    const interval Ipos = I & interval::positive();
 
     if (Ipos.is_empty()) {
       return interval::emptyset();
@@ -3090,7 +3122,8 @@ interval nth_root(const interval& I, int q)
 
   interval sqrt_rel(const interval& J, const interval& I)
   {
-    interval Jpos = interval(maximum(0.0,J.left()),J.right());
+    // The part of J in [0, +oo], computed as in sqrt() (GAOL v5)
+    const interval Jpos = J & interval::positive();
 
     if (Jpos.is_empty() || I.is_empty()) {
       return interval::emptyset();
@@ -3362,6 +3395,12 @@ namespace gaol {
       err_msg += sr;
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
+      return interval::emptyset();
+    }
+    // An empty one gives the empty set, without giving its NaN bounds to the
+    // constructor, which compares them and raises the invalid-operation
+    // exception (GAOL v5)
+    if (tmpl.is_empty() || tmpr.is_empty()) {
       return interval::emptyset();
     }
     return interval(tmpl.left(), tmpr.right());
