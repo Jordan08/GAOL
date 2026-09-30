@@ -45,9 +45,14 @@
         return interval(-GAOL_INFINITY, GAOL_INFINITY);
     }
 
+    // Both bounds NaN, as interval(double) sets them for a NaN, but without the
+    // comparisons that decide it: they signal the invalid-operation exception
+    // on a NaN, and a build without optimization runs them (GAOL v5)
     INLINE interval interval::emptyset(void)
     {
-        return interval(std::numeric_limits<double>::quiet_NaN());
+        interval I;
+        I.lb_ = I.rb_ = std::numeric_limits<double>::quiet_NaN();
+        return I;
     }
 
     INLINE interval interval::positive(void) // [0, +oo]
@@ -105,10 +110,17 @@
     }
 
 
+  // [-right(), -left()]: the stored bounds exchanged, as with the SSE2
+  // intervals, rather than given to the constructor, which compares them and
+  // raises the invalid-operation exception on the NaN bounds of the empty set
+  // (GAOL v5)
   INLINE
   interval interval::operator-(void) const
   {
-    return interval(-right(),-left());
+    interval I;
+    I.lb_ = rb_;
+    I.rb_ = lb_;
+    return I;
   }
 
  INLINE
@@ -118,17 +130,19 @@
       return *this;
     }
     // From now on, "this" is known to be nonempty.
-    if (!(I.left() <= left())) { // I.left() == NaN => lb_ <- NaN
+    // The comparisons are quiet ones, which raise no invalid-operation
+    // exception on the NaN bounds of an empty I (GAOL v5)
+    if (!std::islessequal(I.left(), left())) { // I.left() == NaN => lb_ <- NaN
       lb_ = I.lb_;
     }
-    if (!(I.right() >= right())) {
+    if (!std::isgreaterequal(I.right(), right())) {
       rb_ = I.rb_;
     }
     // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()
     // (GAOL v5): their bounds in the wrong order, [3, 2] for
     // [1, 2] & [3, 4], were empty for is_empty(), but the operations computing
     // on the bounds gave [3, 2] + [0, 1] = [3, 3]
-    if (!(left() <= right())) {
+    if (is_empty()) {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
     }
     return *this;

@@ -64,7 +64,7 @@ namespace gaol_core {
     */
     gaol_exception(const char* f, unsigned l, const string& e);
 
-    ~gaol_exception() {}
+    ~gaol_exception() override {}
     /*!
       \brief Accessor for the file name
 
@@ -85,6 +85,21 @@ namespace gaol_core {
       the exception or the empty string if none was given.
     */
     string explanation() const;
+
+    /*!
+      \brief The explanation, as a C string: what a handler of std::exception
+      gets (GAOL v5)
+
+      GAOL 4 left the what() of std::exception, which gave the text of the
+      standard class ("std::exception" with libstdc++ and libc++) whatever
+      went wrong: that is what a catch (const std::exception&) printed, and
+      what a program ended with when nothing caught the exception.
+
+      \return the explanation, as explanation() gives it, or the text
+      "gaol_exception" if none was given, never an empty text. The text is
+      valid as long as the exception is.
+    */
+    const char* what() const noexcept override;
 
   protected:
     /*!
@@ -157,7 +172,10 @@ namespace gaol_core {
     \brief Display of an exception.
 
     Convenient operator to display the file, line and explanation for
-    the exception thrown.
+    the exception thrown: "file, line n: exception thrown: explanation",
+    without the colon and the explanation if none was given. The operator
+    wrote what() too, between "exception" and "thrown": what() being the
+    explanation now, it is written once (GAOL v5).
    */
   extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out,
 					      const gaol_exception &e);

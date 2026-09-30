@@ -35,10 +35,24 @@ AC_PREREQ(2.64)
 # before VERSION.txt is committed (see doc/building.md); configure warns
 # meanwhile. The m4 macro is not named gaol_version, which m4 replaced in
 # manual/v5/gaol_version.tex, giving config.status "manual/v5/5.0.0.tex"
-# (GAOL v5).
-m4_define([gaol_m4_version], m4_esyscmd_s([tr -d ' \t\r\n' < VERSION.txt]))
-m4_bmatch(gaol_m4_version, [^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$], [],
-          [m4_fatal([VERSION.txt holds "]gaol_m4_version[", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])])
+# (GAOL v5). autoconf reads it with the commands of configure below: a UTF-8
+# byte order mark at the start of VERSION.txt, which some editors of Windows
+# write, is removed, and so are the blanks around the version, not those
+# within it. The lines left are joined by a blank, which refuses a second
+# line: a regular expression of m4 matches at the end of any line. m4 reads
+# the text again, where a comma or a parenthesis would end an argument, a
+# bracket open a quotation, and a word such as dnl be a macro: the characters
+# other than digits, dots and blanks are written ?, which refuses them as the
+# other builds do (autoconf took "5.0.0)" for 5.0.0), the bytes in
+# hexadecimal of the message showing them. The bytes of the mark, EF BB BF,
+# are made by printf: sed has no escape for them that every sed knows, and
+# the C locale makes it read bytes. gaol_m4_version_utf16 is empty, or says
+# why a file of UTF-16 characters is refused (without a comma, for the same
+# reason).
+m4_define([gaol_m4_version], m4_esyscmd_s([LC_ALL=C tr -d '\000' < VERSION.txt | LC_ALL=C sed -e "1s/^`printf '\357\273\277'`//" -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//' | LC_ALL=C tr -c '0-9. \n' '?']))
+m4_define([gaol_m4_version_utf16], m4_esyscmd_s([case `od -An -v -tx1 -N 2 < VERSION.txt | tr -d ' \n'` in fffe|feff) echo '; the file is UTF-16: save it as UTF-8 or ASCII' ;; *) if od -An -v -tx1 < VERSION.txt | grep ' 00' > /dev/null; then echo '; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII'; fi ;; esac]))
+m4_bmatch(gaol_m4_version[]gaol_m4_version_utf16, [^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$], [],
+          [m4_fatal([VERSION.txt holds "]gaol_m4_version[" (bytes in hexadecimal: ]m4_esyscmd_s([od -An -v -tx1 -N 32 < VERSION.txt | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'])[), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0]gaol_m4_version_utf16)])
 dnl autom4te (its cache) and automake follow the files that m4_include reads,
 dnl not those of m4_esyscmd_s: VERSION.txt is included too, into the diversion
 dnl KILL, which m4 discards, so that a change of VERSION.txt generates configure
@@ -64,19 +78,39 @@ AUTOHEADER=true
 AC_CONFIG_SRCDIR([gaol/gaol_config.h])
 
 # The version of GAOL, read from VERSION.txt when configure runs, without the
-# blanks and the empty lines around it: GAOL_VERSION, and its three numbers
-# gaol_major, gaol_minor and gaol_micro, refused unless they are three numbers
-# without leading zeros, as with CMake and meson (GAOL v5)
-GAOL_VERSION=`tr -d '\r' < "$srcdir/VERSION.txt" | sed -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d'`
+# UTF-8 byte order mark that some editors of Windows write at the start of a
+# file (EF BB BF, made by printf as above), nor the blanks around it (the CR
+# of the line ends of Windows among them) and the empty lines: GAOL_VERSION,
+# and its three numbers gaol_major, gaol_minor and gaol_micro, refused unless
+# they are three numbers without leading zeros, as with CMake and meson. The
+# blanks are the six of ASCII, the class space of the C locale, which CMake
+# and meson strip too; the lines left are joined by a blank, as autoconf
+# joins them above. A file of UTF-16 characters starts with its byte order
+# mark (FF FE, FE FF) or holds NUL bytes, which the shell drops from the text
+# of a command (they are taken out of it before): od finds them, and the file
+# is refused. The error gives the first bytes of the file in hexadecimal, for
+# the characters it does not show, and says to save a file of UTF-16
+# characters as UTF-8 or ASCII (GAOL v5)
+gaol_bom=`printf '\357\273\277'`
+GAOL_VERSION=`LC_ALL=C tr -d '\000' < "$srcdir/VERSION.txt" | LC_ALL=C sed -e "1s/^$gaol_bom//" -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//'`
+gaol_version_utf16=
+case `od -An -v -tx1 -N 2 < "$srcdir/VERSION.txt" | tr -d ' \n'` in
+  fffe|feff) gaol_version_utf16="; the file is UTF-16: save it as UTF-8 or ASCII" ;;
+  *) if od -An -v -tx1 < "$srcdir/VERSION.txt" | grep ' 00' > /dev/null; then
+       gaol_version_utf16="; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII"
+     fi ;;
+esac
 gaol_version_ok=no
-if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then
+if test -z "$gaol_version_utf16" &&
+   expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then
   case .$GAOL_VERSION in
     *.0[[0-9]]*) ;;
     *) gaol_version_ok=yes ;;
   esac
 fi
 if test "${gaol_version_ok}" = no; then
-  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])
+  gaol_version_bytes=`od -An -v -tx1 -N 32 < "$srcdir/VERSION.txt" | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'`
+  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION" (bytes in hexadecimal: $gaol_version_bytes), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0$gaol_version_utf16])
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([[0-9]]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.\([[0-9]]*\)'`
@@ -219,9 +253,11 @@ Build GAOL with a compiler that honours the rounding direction on this target, s
     fi
 fi
 CXXFLAGS=$gaol_save_CXXFLAGS
-# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
-# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
-# its own, which CORE-MATH's functions read (see CMakeLists.txt)
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
+# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
+# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
+# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM before 11, not tested
+# (see CMakeLists.txt)
 AC_LANG_POP([C++])
 
 # --enable-simd

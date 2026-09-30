@@ -171,7 +171,9 @@ public:
 		interval::format(interval_format::width);
 		interval::precision(2);
 		os << I;
-		CPPUNIT_ASSERT(os.str() == string("3.5 (+/- 0.0005)"));
+		// The radius is rad(), rounded upward to the digits: 0.0005 rounded
+		// to nearest was below the radius about the midpoint (GAOL v5)
+		CPPUNIT_ASSERT(os.str() == string("3.5 (+/- 0.00051)"));
 
 		os.str("");
 		interval::format(interval_format::center);

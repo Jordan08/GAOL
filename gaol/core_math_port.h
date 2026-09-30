@@ -19,6 +19,8 @@
  *   with a program or a C library holding CORE-MATH's functions too;
  * - what Visual C++ has not of GCC: the builtins the sources call, and
  *   __attribute__; and __builtin_roundeven() where the compiler has not;
+ * - on x86-64, a fegetround() that reads MXCSR, where their doubles are
+ *   rounded, rather than the x87 unit, which the C library may read;
  * - silence for the warnings on conversions GAOL's library is compiled with.
  *
  * Copyright (c) 2026 ENSTA, France
@@ -172,6 +174,59 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #define fesetexceptflag(f, e) gaol_fesetexceptflag((f), (e))
 
 #endif /* a 32-bit x86 Windows */
+
+/*---------------------------------------------------------------------------
+  fegetround() on x86-64: the direction of the SSE instructions
+
+  pow, and cos and tan, whose accurate phases carry the same code, round a
+  subnormal result themselves, in the direction fegetround() gives, where every
+  other double they compute is rounded by the SSE instructions, in the
+  direction of MXCSR. On x86-64 the two are the same only if nothing left them
+  differing: the fegetround() of glibc reads the control word of the x87 unit
+  alone, and GAOL finds the direction upward when 1 + 2^-60, a sum of the SSE
+  instructions, is above 1, without looking at the x87 unit. A program that
+  leaves the x87 unit to nearest and MXCSR upward, as the exactinit() of the
+  predicates of Shewchuk and of Triangle does, then had pow() round its
+  subnormal results to nearest: the upper bound was below the exact value for
+  about half of the arguments (tests/rounding_direction.cpp).
+
+  So the sources of CORE-MATH read the direction from MXCSR here, as the
+  get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does, since the
+  processor computes their doubles there (with mingw-w64, whose FE_* values
+  it does not know, get_rounding_mode() calls fegetround() too, and the one
+  of cbrt.c maps its value to the 0 to 3 it returns, see 3rd/README.md). The
+  rounding field of MXCSR is the same on every x86 processor, but the values
+  of FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of
+  Windows are not those of glibc, and changed once), which the switch gives
+  back whichever they are.
+
+  The standard lets fegetround() be a macro, and it is a function in the C
+  libraries known here: what the sources call is renamed by a macro of ours,
+  after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
+  only ones this header is included in. Not on a 32-bit x86 processor, where
+  round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets both
+  when one is not upward, so that they never differ when CORE-MATH runs.
+ --------------------------------------------------------------------------*/
+
+#if defined(__x86_64__) || defined(_M_X64)
+
+#include <fenv.h>
+#include <xmmintrin.h>
+
+static inline int gaol_fegetround(void)
+{
+  switch (_mm_getcsr() & _MM_ROUND_MASK) {
+  case _MM_ROUND_NEAREST: return FE_TONEAREST;
+  case _MM_ROUND_DOWN: return FE_DOWNWARD;
+  case _MM_ROUND_UP: return FE_UPWARD;
+  default: return FE_TOWARDZERO;
+  }
+}
+
+#undef fegetround
+#define fegetround gaol_fegetround
+
+#endif /* x86-64 */
 
 /* The math library of Windows has no roundeven(), which the sources call
    through __builtin_roundeven(): GCC and Clang turn that builtin into one
