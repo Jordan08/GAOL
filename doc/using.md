@@ -236,21 +236,31 @@ provide.
 
 GAOL's functions do not change the interval they are given: they return
 another one. `sqrt(x);` alone leaves x as it was, and so do `x.mid();` and
-`x.emptyset();`, a static function that returns the empty set. In C++17 and
-later, the functions whose result is all they do carry `[[nodiscard]]` (GAOL
-v5): the functions and operators on intervals, their predicates, the names of
-`gaol_ieee1788` and the functions building expressions. The compiler then
-warns about such a call:
+`x.emptyset();`, a static function that returns the empty set. The functions
+whose result is all they do carry an attribute that makes the compiler warn
+about such a call (GAOL v5): the functions and operators on intervals, their
+predicates, the names of `gaol_ieee1788` and the functions building
+expressions.
 
 ```cpp
 sqrt(x);          // warning: the result is thrown away, x is unchanged
 x = sqrt(x);      // what was meant
-(void)sqrt(x);    // thrown away on purpose: no warning
+(void)sqrt(x);    // thrown away on purpose: no warning, but with GCC before 7
 ```
 
-The attribute is `GAOL_NODISCARD`, of `gaol/gaol_config.h`, which is empty
-before C++17: GAOL itself is compiled in C++11. A program that does not want
-the warnings defines `GAOL_NODISCARD` empty before including GAOL
+The attribute is `GAOL_NODISCARD`, of `gaol/gaol_config.h`. It is
+`[[nodiscard]]` in C++17 and later. A program is compiled in the standard its
+project sets, or else in the one of its compiler, which is C++14 for GCC 6 to
+10, Clang 6 to 15 and Visual C++. Before C++17, `GAOL_NODISCARD` is
+`[[nodiscard]]` too where the compiler takes it there: GCC 7 and later, and
+Visual C++ 2019 16.4 and later, whose warning is C4834. Clang, which warns
+about `[[nodiscard]]` before C++17 with `-pedantic`, and GCC before 7 take
+`__attribute__((warn_unused_result))`, whose warning is `-Wunused-result` (on
+by default); older Visual C++ takes `_Check_return_` of `<sal.h>`, which only
+the code analysis reports (`/analyze`, warning C6031), not the compiler. A
+cast to void (`(void)sqrt(x);`) silences each of them, but the attribute of
+GCC before 7: keep the result in a variable there. A program that does not
+want the warnings defines `GAOL_NODISCARD` empty before including GAOL
 (`-DGAOL_NODISCARD=`). The compound assignments (`x += y`), which do change x,
 do not carry it.
 

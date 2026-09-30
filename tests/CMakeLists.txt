@@ -124,8 +124,9 @@ function(gaol_refused_test name flag text)
   target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
   add_test(NAME ${name}
     COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-  # One build at a time in the build directory, whatever ctest -j says
-  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_refused_options
+  # One build at a time in the build directory, whatever ctest -j says: the
+  # lock of every compile test
+  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
                        PASS_REGULAR_EXPRESSION "${text}")
 endfunction()
 if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -168,3 +169,60 @@ endif()
 add_executable(gaol_performance performance.cpp)
 target_link_libraries(gaol_performance PRIVATE gaol::gaol)
 set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
+# The warning for a result thrown away, in each language standard (GAOL v5):
+# [[nodiscard]] is C++17, and gaol::gaol sets no standard, so that a project
+# with GCC 9 compiles in C++14 (GAOL_NODISCARD, gaol/gaol_config.h, then takes
+# [[nodiscard]] where the compiler has it before C++17, and the attribute of
+# the compiler otherwise). For each of C++11, C++14 and C++17 (C++14 for C++11
+# with Visual C++), nodiscard.cpp is compiled with the warning for a result
+# thrown away made an error (-Werror=unused-result, /we4834 of Visual C++), in
+# two tests: nodiscard_discard_cxx<N> has it throw away sqrt(x), and passes if
+# the build fails with the message of the compiler; nodiscard_used_cxx<N> has
+# it use the result, and passes if the build succeeds, GAOL's headers throwing
+# no result away. -Werror=attributes (/we5030 and /we5051 of Visual C++, an
+# attribute it does not know or ignores before C++17) makes an attribute the
+# compiler ignores fail them too, as [[nodiscard]] written after the
+# declarator, int f() [[nodiscard]];, of which GCC 13 only warns. The object
+# is a target of its own, left out of the build of GAOL and made by the test
+# (cmake --build), with the flags, the definitions (__GAOL_PUBLIC__ empty with
+# Visual C++) and the include directories of GAOL's headers as gaol::gaol
+# carries them, written out here (those of the project GAOL, should another
+# include it): only the headers are read, so that the test does not wait for
+# the library, which gaol::gaol would build first. The tests run in the C
+# locale, the message of GCC and Clang being translated otherwise; that of
+# Visual C++ is looked for by its number. Not with Visual C++ before 2019
+# 16.4, whose _Check_return_ before C++17 only /analyze reports, nor with
+# Clang for Windows. The autotools and meson builds have no such test: the
+# header it checks is the same.
+function(gaol_nodiscard_test standard flags message)
+  foreach(kind discard used)
+    set(name nodiscard_${kind}_cxx${standard})
+    add_library(gaol_${name} OBJECT nodiscard.cpp)
+    set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE
+                          CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flags})
+    target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
+    # One build at a time in the build directory, whatever ctest -j says: the
+    # lock of every compile test
+    set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
+                         ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
+    if(kind STREQUAL "discard")
+      target_compile_definitions(gaol_${name} PRIVATE GAOL_DISCARD)
+      set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${message}")
+    endif()
+  endforeach()
+endfunction()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT MSVC_VERSION LESS 1924)
+  foreach(_standard 11 14 17)
+    gaol_nodiscard_test(${_standard} "/we4834;/we5030;/we5051" "C4834")
+  endforeach()
+elseif(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  foreach(_standard 11 14 17)
+    gaol_nodiscard_test(${_standard} "-Werror=unused-result;-Werror=attributes"
+                        "ignoring return value of")
+  endforeach()
+endif()

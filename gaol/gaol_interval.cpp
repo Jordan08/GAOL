@@ -2955,6 +2955,12 @@ interval nth_root(const interval& I, int q)
 
   double chi(const interval &I)
   {
+    // NaN for the empty set, as width() and mig() give (GAOL v5): the
+    // quotient of its NaN bounds had the sign the generated code left it,
+    // -nan with GCC on x86 and nan with Clang
+    if (I.is_empty()) {
+      return GAOL_NAN;
+    }
     if (I.is_zero()) {
       return -1.0;
     } else {

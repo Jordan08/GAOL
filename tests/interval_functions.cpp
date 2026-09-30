@@ -116,9 +116,16 @@ public:
       TEST_TRUE(chi(interval::zero())==-1);
       TEST_TRUE(chi(interval(-0.0,+0.0))==-1);
       TEST_TRUE(std::isnan(chi(interval::emptyset())));
+      // The NaN of width() and mig(), which cout writes nan as the manual
+      // shows: not -nan, as the quotient of the NaN bounds gave with GCC on
+      // x86 (GAOL v5)
+      TEST_TRUE(!std::signbit(chi(interval::emptyset())));
+      TEST_TRUE(!std::signbit(chi(sqrt(interval(-2,-1)))));
       TEST_TRUE(chi(interval::universe())==1);
       TEST_TRUE(chi(interval(-5,10))==-0.5);
       TEST_TRUE(chi(interval(-5,GAOL_INFINITY))==0.0);
+      TEST_TRUE(chi(interval(-GAOL_INFINITY,5))==0.0);
+      TEST_TRUE(chi(interval(-4,4))==-1);
       TEST_TRUE(chi(interval(3,6))==0.5);
       TEST_TRUE(chi(interval(-6,3))==-0.5);
 

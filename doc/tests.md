@@ -489,6 +489,23 @@ Codac.
   which printed an interval, are gone, as is `check/performances.cpp`, the
   benchmark of GAOL 4, which `make perf` replaces (see
   [Building GAOL](building.md#tests-examples-performance-and-the-parser)).
+- **`nodiscard_discard_cxx11`, `nodiscard_discard_cxx14` and
+  `nodiscard_discard_cxx17`, `nodiscard_used_cxx11`, `nodiscard_used_cxx14` and
+  `nodiscard_used_cxx17`:** compile tests, made by the CMake build where the
+  compiler is GCC, Clang, or Visual C++ 2019 16.4 or later.
+  `tests/nodiscard.cpp`, a program including `<gaol/gaol>`, is compiled in
+  each of the three standards with `-Werror=unused-result` and
+  `-Werror=attributes` (`/we4834`, `/we5030` and `/we5051` with Visual C++):
+  throwing away the result of `sqrt(x)` has to fail the compilation with the
+  warning of the compiler, which the test looks for in the output of the
+  build, and using it has to compile, GAOL's headers throwing no result away,
+  nor carrying an attribute the compiler ignores where it is written.
+  `GAOL_NODISCARD` was empty before C++17, so that a CMake project with GCC 9,
+  which compiles in C++14 unless it says otherwise, got no warning for
+  `sqrt(x);`; it is now `[[nodiscard]]` there with GCC 7 and later and Visual
+  C++ 2019 16.4 and later, and the attribute of Clang with Clang (see
+  [Using GAOL](using.md#a-result-thrown-away)). The autotools and meson
+  builds have no such test, the header being the same.
 
 The three builds compile them with `WITH_TESTS` (CMake), `--with-tests`
 (configure) and `with-tests` (meson), all off by default, and run them with

@@ -745,10 +745,14 @@ namespace gaol_core {
     This function characterizes the degree of symmetry of intervals.
 
     Definition:
-    chi([a,b]) = 0,    if a==b==0
+    chi([a,b]) = -1,   if a==b==0
                = a/b,  if |a| <= |b|
                = b/a,  otherwise
 
+    chi([0,0]) is -1, the value of chi([-a,a]) for a > 0: [0,0] is symmetric
+    about 0. For an interval with an infinite bound, chi([-oo,+oo]) is 1 and
+    chi is 0 otherwise. chi is NaN for the empty set, the positive NaN of
+    width(), which cout writes nan (GAOL v5).
    */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ double chi(const interval &I);
   /*!
@@ -1460,10 +1464,11 @@ namespace gaol {
   /*!
     textToInterval(s): the interval s writes, read with the names of the
     functions of GAOL (GAOL v5), where GAOL 4 had the constructor
-    interval(const char*). A string that is no interval throws
-    input_format_error. gaol_ieee1788 has its own, which reads the names of
-    IEEE 1788-2015 and gives the empty set for such a string: as for pow, a
-    program opens one of the two namespaces.
+    interval(const char*). The syntax of s is given in the section "Input
+    format" of the manual of GAOL v5 (manual/v5/gaol.tex). A string that is
+    no interval throws input_format_error. gaol_ieee1788 has its own, which
+    reads the names of IEEE 1788-2015 and gives the empty set for such a
+    string: as for pow, a program opens one of the two namespaces.
   */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ interval textToInterval(const std::string& s);
   /*!
