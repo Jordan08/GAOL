@@ -10,6 +10,16 @@ The exact results are computed with integers, or were computed with 2000 bits of
 precision by [mpmath](https://mpmath.org). They follow the rounding tests of
 Codac.
 
+Under the Debug C runtime of Visual C++, a failed assertion of the runtime or of
+the checked iterators of its library, and an invalid parameter, are written to
+stderr, where the test goes on, and make it fail (`tests/gaol_tests.h`): the
+runtime showed them in a dialog box, which nobody closes on a machine of the
+CI, and the test hung, without output, until ctest stopped it at 300 s. That
+runtime reports such an assertion of its own when it writes a subnormal number
+under denormals-are-zero ("unexpected input value; log10 failed"), then writes
+0, on x86 as on x64: `numbers` does not check the output of subnormals with that
+mode there.
+
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
