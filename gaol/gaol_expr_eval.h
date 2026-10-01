@@ -39,15 +39,18 @@ namespace gaol_core {
   /*!
     \brief Evaluation of an expression: the interval it denotes
 
-    The tree is evaluated with stacks of the evaluator's own, not with the
-    stack of the program (GAOL v5). GAOL visited the operands of a node from
-    inside its own visit(), one call within another per level of the tree: a
-    sum of 100000 terms, a tree 100000 nodes deep, overflowed the stack of the
-    program. A node visited for the first time now only puts its operands, and
-    itself once more below them, on a stack of jobs: a loop visits the
-    operands from left to right, each leaving its value on the stack of values,
-    and the node, visited again, pops the values of its operands and pushes its
-    own. The operations, their operands and their order are those of the
+    The stack of the program an evaluation takes does not depend on the depth
+    of the tree (GAOL v5). GAOL visited the operands of a node from inside its
+    own visit(), one call within another per level of the tree: a sum of
+    100000 terms, a tree 100000 nodes deep, overflowed the stack of the
+    program. The evaluation still visits the operands so, which is the fastest
+    way for the short expressions, down to max_depth levels only. A node
+    deeper than that puts its operands, and itself once more below them, on a
+    stack of jobs of the evaluator's own, which grows in the heap: a loop
+    visits the operands from left to right, each leaving its value on the
+    stack of values, and the node, visited again, pops the values of its
+    operands and pushes its own. Every node below it is evaluated by the same
+    loop. The operations, their operands and their order are those of the
     recursion, and so are the bounds.
 
     A null node has no value: it sets error_occurred(), and the whole line
@@ -57,7 +60,7 @@ namespace gaol_core {
   */
   class expr_eval : public expr_visitor {
   public:
-    expr_eval() : running(false), combining(false) {}
+    expr_eval() : depth(0), running(false), combining(false) {}
     virtual void visit(null_node* node) {
       error = true;
       stack.push(interval());
@@ -79,7 +82,7 @@ namespace gaol_core {
       stack.push(node->get_val());
     }
     virtual void visit(add_node* node) {
-      if (postpone(node, node->get_left(), node->get_right())) {
+      if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
       interval r=stack.pop();
@@ -87,13 +90,13 @@ namespace gaol_core {
       stack.push(l+r);
     }
     virtual void visit(unary_minus_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(-stack.pop());
     }
     virtual void visit(sub_node* node) {
-      if (postpone(node, node->get_left(), node->get_right())) {
+      if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
       interval r=stack.pop();
@@ -101,7 +104,7 @@ namespace gaol_core {
       stack.push(l-r);
     }
     virtual void visit(mult_node* node) {
-      if (postpone(node, node->get_left(), node->get_right())) {
+      if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
       interval r=stack.pop();
@@ -109,7 +112,7 @@ namespace gaol_core {
       stack.push(l*r);
     }
     virtual void visit(div_node* node) {
-      if (postpone(node, node->get_left(), node->get_right())) {
+      if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
       interval r=stack.pop();
@@ -117,13 +120,13 @@ namespace gaol_core {
       stack.push(l/r);
     }
     virtual void visit(pow_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::gaol_pown(stack.pop(),node->get_exponent()));
     }
     virtual void visit(pow_itv_node* node) {
-      if (postpone(node, node->get_left(), node->get_right())) {
+      if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
       interval r = stack.pop();
@@ -131,31 +134,31 @@ namespace gaol_core {
       stack.push((*node->get_function())(l,r));
     }
     virtual void visit(nth_root_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::nth_root(stack.pop(),node->get_exponent()));
     }
     virtual void visit(cos_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::cos(stack.pop()));
     }
     virtual void visit(sin_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::sin(stack.pop()));
     }
     virtual void visit(tan_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::tan(stack.pop()));
     }
     virtual void visit(atan2_node* node) {
-      if (postpone(node, node->get_Y(), node->get_X())) {
+      if (operands(node, node->get_Y(), node->get_X())) {
         return;
       }
       interval X=stack.pop();
@@ -163,91 +166,91 @@ namespace gaol_core {
       stack.push(gaol_core::atan2(Y,X));
     }
     virtual void visit(acos_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::acos(stack.pop()));
     }
     virtual void visit(asin_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::asin(stack.pop()));
     }
     virtual void visit(atan_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::atan(stack.pop()));
     }
     virtual void visit(cosh_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::cosh(stack.pop()));
     }
     virtual void visit(sinh_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::sinh(stack.pop()));
     }
     virtual void visit(tanh_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::tanh(stack.pop()));
     }
     virtual void visit(acosh_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::acosh(stack.pop()));
     }
     virtual void visit(asinh_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::asinh(stack.pop()));
     }
     virtual void visit(atanh_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::atanh(stack.pop()));
     }
     virtual void visit(log_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::log(stack.pop()));
     }
     virtual void visit(exp_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::exp(stack.pop()));
     }
     virtual void visit(exp2_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::exp2(stack.pop()));
     }
     virtual void visit(log2_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::log2(stack.pop()));
     }
     virtual void visit(sign_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::sign(stack.pop()));
     }
     virtual void visit(trunc_node* node) {
-      if (postpone(node, node->get_subexpr())) {
+      if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::trunc(stack.pop()));
@@ -256,41 +259,61 @@ namespace gaol_core {
       return stack.pop();
     }
   private:
+    // The levels of the tree visited one call within another, beyond which
+    // the loop of run() takes over (see the class)
+    static const unsigned int max_depth = 32;
     /*
       What the loop of run() does with a node: visit it, or, when combine is
       true, visit it again once its operands are on the stack of values, to
-      combine them.
+      combine them. No constructor: the jobs a stack holds without
+      allocating are left as they are until pushed.
     */
     struct job {
-      job() : node(0), combine(false) {}
-      job(expr_node* n, bool c) : node(n), combine(c) {}
       expr_node* node;
       bool combine;
     };
+    // Counts a level of the recursion for as long as it lasts, an exception
+    // included
+    struct level {
+      explicit level(unsigned int& d) : depth(d) { ++depth; }
+      ~level() { --depth; }
+      unsigned int& depth;
+    };
     /*
-      Called first by the visit() of a node with operands, which returns if it
-      gives true: the node is visited again once its operands are on the stack,
-      then to compute. The first call puts the node, then its operands in
-      reverse, on the stack of jobs, so that they come out from left to right;
-      the call of a node visited from outside, which no loop is running for,
-      starts the loop.
+      Called first by the visit() of a node with operands: puts the values of
+      its operands, first then second, on the stack of values and gives false,
+      the node then computing its own; or gives true, and the node returns,
+      when the values are not there yet. Within max_depth levels, the operands
+      are visited here, one call within another. Deeper, or in the loop of
+      run(), the node, then its operands in reverse, go on the stack of jobs,
+      so that they come out from left to right, and the node is visited again
+      once its operands are on the stack of values, then to compute; the
+      first node that does so starts the loop.
     */
-    bool postpone(expr_node* node, expr_node* first, expr_node* second = 0) {
+    bool operands(expr_node* node, expr_node* first, expr_node* second = 0) {
       if (combining) {
         return false;
       }
-      jobs.push(job(node, true));
-      if (second != 0) {
-        jobs.push(job(second, false));
+      if (!running && depth < max_depth) {
+        const level l(depth);
+        first->accept(*this);
+        if (second != 0) {
+          second->accept(*this);
+        }
+        return false;
       }
-      jobs.push(job(first, false));
+      jobs.push(job{node, true});
+      if (second != 0) {
+        jobs.push(job{second, false});
+      }
+      jobs.push(job{first, false});
       if (!running) {
         run();
       }
       return true;
     }
-    // Visits the jobs until none is left, and leaves the value of the first
-    // node on the stack of values
+    // Visits the jobs until none is left, and leaves the value of the node
+    // that started the loop on the stack of values
     void run() {
       running = true;
       try {
@@ -312,8 +335,10 @@ namespace gaol_core {
     }
     //! The values of the nodes evaluated, which their parents have not combined yet
     eval_stack<interval> stack;
-    //! The nodes to visit, 16 of them held without allocating
+    //! The nodes the loop of run() has to visit, 16 of them held without allocating
     eval_stack<job, 16> jobs;
+    //! The levels of the recursion under way
+    unsigned int depth;
     //! True while run() visits the jobs
     bool running;
     //! True while the visit of a node computes from the values of its operands

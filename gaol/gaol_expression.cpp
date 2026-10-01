@@ -26,10 +26,10 @@
 #include <iostream>
 #include <cmath>
 #include <new>
-#include <vector>
 
 
 #include "gaol/gaol_expression.h"
+#include "gaol/gaol_eval_stack.h"
 #include "gaol/gaol_expr_eval.h"
 
 namespace gaol_core {
@@ -69,6 +69,12 @@ namespace gaol_core {
 
   namespace {
     /*
+      The nodes that wait to be deleted, 32 of them held without allocating
+      (GAOL v5)
+    */
+    typedef eval_stack<expr_node*, 32> node_list;
+
+    /*
       The nodes that wait to be deleted in this thread, while the outermost
       release_node() of the thread runs (GAOL v5): a pointer to a variable of
       that call, 0 the rest of the time. A pointer, and not the list itself:
@@ -78,7 +84,7 @@ namespace gaol_core {
       references are not atomic: the trees that two threads delete at once
       are apart.
     */
-    thread_local std::vector<expr_node*>* waiting_nodes = 0;
+    thread_local node_list* waiting_nodes = 0;
 
     /*
       Gives up the reference that a destructor holds to its operand e, and
@@ -101,19 +107,17 @@ namespace gaol_core {
       }
       if (waiting_nodes != 0) {
         try {
-          waiting_nodes->push_back(e);
+          waiting_nodes->push(e);
         } catch (const std::bad_alloc&) {
           delete e;
         }
         return;
       }
-      std::vector<expr_node*> waiting;
+      node_list waiting;
       waiting_nodes = &waiting;
       delete e;
       while (!waiting.empty()) {
-        expr_node* const node = waiting.back();
-        waiting.pop_back();
-        delete node;
+        delete waiting.pop();
       }
       waiting_nodes = 0;
     }

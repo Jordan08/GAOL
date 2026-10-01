@@ -42,9 +42,9 @@ namespace gaol_core {
     The first SZ elements are held in the stack itself, so that the evaluation
     of a small expression allocates nothing. A stack that is full moves its
     elements to a block of the heap twice as large (GAOL v5): the stack was an
-    array of SZ elements, which the evaluation of an expression fills as far
-    as the expression is deep, not as far as the program's stack lets it
-    recurse (see gaol/gaol_expr_eval.h).
+    array of SZ elements, and the evaluation of gaol/gaol_expr_eval.h now keeps
+    on it the values of the operands not combined yet, as many as the tree is
+    deep, where GAOL kept them on the stack of the program.
 
     \warning Underflows are not reported
 
@@ -117,12 +117,14 @@ namespace gaol_core {
   template<typename T, unsigned int SZ>
     void eval_stack<T,SZ>::push(const T& e)
     {
-      // e may be an element of the stack, which grow() moves
-      const T copy(e);
       if (next_pos == size) {
+        // e may be an element of the stack, which grow() moves
+        const T copy(e);
         grow();
+        the_stack[next_pos++] = copy;
+        return;
       }
-      the_stack[next_pos++] = copy;
+      the_stack[next_pos++] = e;
     }
 
   template<typename T, unsigned int SZ>
