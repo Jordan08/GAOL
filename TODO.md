@@ -674,14 +674,27 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
 
 ### Reprise
 
-Vérifier la CI de `configure-clean` après les fusions de #50 à #57 (armhf : correction en cours) ; ouvrir les pull requests du
-point 47 (clang-cl) et des branches 3, 4, 8, 12, 17 et 36 en cours de reprise ; corriger le point 48 ; fusionner #29 (`configure-clean` vers `MATH-CORE`).
-Reprendre les branches inachevées (3, 4, 8, 12, 17, 36 : relire, terminer, lancer la CI), en fusionnant d'abord `configure-clean` dans
-celles qui ont un conflit (fusion, jamais de réécriture d'une branche poussée) ; commencer les points non commencés ; écrire la pull
-request de synthèse (retirer les points faits de ce fichier, consigner les changements dans `ChangeLog` et `doc/differences.md`,
-régénérer une seule fois `manual/v5/gaol.pdf`) ; mesurer enfin le point 33 sur une machine au repos. Le 17 attend le 16, le 2 attend le 3.
-Supprimer les branches fusionnées encore présentes : `todo-01`, `05`, `10`, `11`, `13`, `15`, `18`, `24`, `29`, `42`, `43` et
-`ci-debug-numbers-arm64`.
+État au 1er octobre, 6 h UTC (travail arrêté à la demande du mainteneur, tout est poussé) :
+
+- **#58** (`fix-50-57-empty-output-test` → `configure-clean`) : l'entrée « the other outputs » attend `[empty]` ; le runtime Debug
+  de Visual C++ écrit ses assertions sur stderr au lieu d'une boîte de dialogue (`numbers` dépassait 300 s). CI verte sauf armhf.
+  À fusionner en premier.
+- **#59** (`todo-47-clang-cl-rounding-mode`, point 47) : contient les commits de #58. CI verte sauf armhf et les deux jobs clang-cl,
+  qui échouent seulement sur le point 49 (`interval()`, `operator/`, `pow(x, n)`) ; `core_math` passe sous clang-cl.
+- **`fix-24b-armhf-fe-invalid`** (375a822, poussé, pas de pull request) : `operator&=` teste `std::isunordered()` d'abord sur ARM 32
+  bits ; validé sous qemu (58 vérifications, 0 échec ; 0/4845 opérations lèvent FE_INVALID). Relecture indépendante à faire, puis
+  pull request vers `configure-clean`. Questions ouvertes du rapport : `is_empty()` dans le code du programme
+  sur ARM 32 bits, et une forme robuste partout ?
+- **Points 3, 4, 8** (`todo-03-pow-exact-corner`, `todo-04-ftz-daz`, `todo-08-pow-large-n`, poussés) : terminés et validés
+  localement ; relecture indépendante à faire, puis pull requests.
+- **Points 12, 17, 36** : `configure-clean` fusionné dans 12 et 17 ; le travail reste « WIP » (12 : dernier commit WIP 553e649 ;
+  17 : fusion 3b9311c ; 36 : inchangé). À terminer, relire, puis pull requests.
+- Corriger le point 48, décider du point 49, fusionner #29 (`configure-clean` vers `MATH-CORE`).
+
+Ensuite : commencer les points non commencés ; écrire la pull request de synthèse (retirer les points faits de ce fichier,
+consigner les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule fois `manual/v5/gaol.pdf`) ; mesurer enfin
+le point 33 sur une machine au repos. Le 2 attend le 3. Supprimer les branches fusionnées encore présentes : `todo-01`, `05`, `10`,
+`11`, `13`, `15`, `16`, `18`, `24`, `24b`, `06`, `06b`, `29`, `31`, `39`, `40`, `42`, `43` et `ci-debug-numbers-arm64`.
 
 ## Code
 
