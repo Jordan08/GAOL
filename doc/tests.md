@@ -312,16 +312,30 @@ mode there.
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
   subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
-  the tightest at the corner of a box, `[x]` by `[y]`, the lower bound being
-  the power itself where it is a double (GAOL v5): 81 422 pairs, the powers of
-  two to the powers t/p (2<sup>p</sup> to the power t/p, t around the ends of
-  the doubles), the numbers c<sup>2<sup>k</sup></sup>·2<sup>f·2<sup>k</sup></sup>
-  to the powers a/2<sup>k</sup>, with subnormal bases and powers and powers
-  just beyond the largest double, the integers from 2 to 100 to the powers
-  a/2<sup>k</sup>, k ≤ 3, and random pairs, each with the neighbours of its
-  base and of its exponent; 3 062 of them have a power that is a double, and
-  at least 3 000 must. Among the others is 8 to the double nearest 1/3, whose
-  product 3y rounds to 1 without being 1. The functions of
+  the tightest at the corner of a box, `[x]` by `[y]`, both bounds, the lower
+  one being the power itself where it is a double (GAOL v5): 84 070 pairs, the
+  powers of two to the powers t/p (2<sup>p</sup> to the power t/p, t around
+  the ends of the doubles), the numbers
+  c<sup>2<sup>k</sup></sup>·2<sup>f·2<sup>k</sup></sup> to the powers
+  a/2<sup>k</sup>, with subnormal bases and powers, powers just below the
+  least double and just beyond the largest one, and midpoints between two
+  doubles that CORE-MATH computes exactly, the integers from 2 to 100 to the
+  powers a/2<sup>k</sup>, k ≤ 3, and random pairs, each with the neighbours of
+  its base and of its exponent. Where x<sup>y</sup> is rational, 8 981 pairs,
+  3 211 of them a double (at least 8 000 and 3 000 must be), the reference is
+  x<sup>y</sup> itself, computed with integers apart from GAOL and from
+  CORE-MATH, whose values downward and upward have to be its roundings too.
+  Elsewhere x<sup>y</sup> is neither a double nor the midpoint of two, and the
+  reference is CORE-MATH's values downward and upward, which have to be two
+  neighbouring doubles, GAOL's bounds having to differ. A fault of CORE-MATH
+  is so told apart from one of GAOL's bounds: CORE-MATH's `pow` rounded to
+  nearest in every direction the midpoints of its exact phase on 32-bit ARM,
+  and compiled by Visual C++ it was -0 downward from 2<sup>−1075</sup> to
+  about 2<sup>−947</sup> and, on x86, rounded its square roots to nearest (see
+  `3rd/README.md` and `gaol/core_math_port.h`). Among the pairs is 8 to the
+  double nearest 1/3, whose product 3y rounds to 1 without being 1. With
+  flush-to-zero set (x86), the lower bound of `pow([0.5], [2^-1074])` has to
+  stay below 1, the product 1024y being flushed to 0. The functions of
   Table 10.5 GAOL provides have to be the tightest enclosures over intervals
   too: the hull of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
