@@ -276,9 +276,9 @@ namespace
     gave its NaN bounds to the constructor, which compares them: each raised
     the exception, and died on SIGFPE where it was enabled (all 48 with the
     FPU intervals, all but the negations with the SSE2 ones). The groups after
-    them were already quiet, but the last: a choice the program makes on the
-    result of an intersection with an empty left operand, which GCC for 32-bit
-    ARM compiled with a signaling comparison where operator&= told that
+    them were already quiet. The last three are choices the program makes on
+    is_empty() of an intersection with an empty left operand: GCC for 32-bit
+    ARM compiles them with a signaling comparison if operator&= tells that
     operand empty otherwise than is_empty() does.
   */
   struct EmptyOperand
