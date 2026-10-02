@@ -134,11 +134,15 @@
     // right()", and compiles the reversed one with vcmpe, which raises the
     // invalid-operation exception on a NaN, rather than vcmp (GCC bug 52258 is
     // of this kind): x & y, intersection() and the reverse functions
-    // intersecting with an empty y raised it on armhf. The empty sets are
-    // told first with isunordered(), which stays a vcmp when GCC reverses it
-    // (into "ordered"), so that the comparisons of the bounds never meet a
-    // NaN (GAOL v5)
-    if (std::isunordered(lb_, rb_)) {
+    // intersecting with an empty y raised it on armhf. The empty operands are
+    // told first, so that the comparisons of the bounds never meet a NaN:
+    // "this" with is_empty(), as after #else, whose islessequal() leaves both
+    // bounds ordered when it is false, and which is the test a caller makes
+    // of the result, so that GCC knows its answer where "this" is empty (with
+    // isunordered() there, GCC compared the NaN bounds again, with vcmpe, in
+    // the caller's (empty & x).is_empty() ? a : b); I with isunordered(),
+    // which stays a vcmp when GCC reverses it (into "ordered") (GAOL v5)
+    if (is_empty()) {
       return *this;
     }
     if (std::isunordered(I.lb_, I.rb_)) {
