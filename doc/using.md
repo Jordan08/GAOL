@@ -364,7 +364,13 @@ bounds.
   operand may still raise the other exceptions: the sum of two empty
   intervals raises the inexact one where GAOL checks the rounding direction
   with an addition, and `atanh_rel([-1, 2], x)` for an empty `x` raises the
-  divide-by-zero one while it computes `atanh([-1, 2])`.
+  divide-by-zero one while it computes `atanh([-1, 2])`. On 32-bit ARM, GCC
+  (12 to 14) may compile a quiet comparison into the signaling `vcmpe` where
+  it turns a choice into a conditional move
+  ([GCC bug 52258](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258) is of
+  this kind): GAOL's operations are written so that they stay quiet there, but
+  a choice the program makes itself, `x.is_empty() ? a : b` for an empty `x`,
+  may raise the invalid-operation flag.
 - Nonempty operands raise the invalid-operation exception as well. With the
   SSE2 intervals, multiplying a zero bound by an infinite one does:
   `[0]*[1, +oo]` and `[0, +oo]*[0]` (the FPU intervals give the same product
