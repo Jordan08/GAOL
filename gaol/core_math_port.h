@@ -270,7 +270,6 @@ static inline int gaol_fegetround(void)
 #define __builtin_fma(x, y, z) fma(x, y, z)
 #define __builtin_fabs(x) fabs(x)
 #define __builtin_copysign(x, y) copysign(x, y)
-#define __builtin_sqrt(x) sqrt(x)
 #define __builtin_floor(x) floor(x)
 #define __builtin_round(x) round(x)
 #define __builtin_trunc(x) trunc(x)
@@ -282,6 +281,46 @@ static inline int gaol_fegetround(void)
 #define __builtin_nan(s) nan(s)
 #define __builtin_inf() ((double)INFINITY)
 #define __attribute__(x)
+
+/* The square root of the C library of Visual C++ for 32-bit x86 is rounded to
+   nearest in every rounding direction (see gaol_sqrt_up() in
+   gaol/gaol_interval.cpp), and the sources call it through __builtin_sqrt():
+   pow.c for y = 0.5 where its first phase cannot round, so that pow(x, 0.5)
+   was below the root rounding upward, and above it rounding downward, at
+   subnormal x (tests/core_math.cpp, Visual C++ for x86). The square root of
+   SSE2 is taken there instead, which rounds in the direction of MXCSR, as
+   every other operation on doubles does there (gaol/gaol_config.h refuses an
+   x86 target that does not compute its doubles with SSE2). */
+#if defined(_M_IX86)
+#include <emmintrin.h>
+static __forceinline double gaol_sqrt(double x)
+{
+  return _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(x), _mm_set_sd(x)));
+}
+#define __builtin_sqrt(x) gaol_sqrt(x)
+#else
+#define __builtin_sqrt(x) sqrt(x)
+#endif
+
+/* NAN and INFINITY, which pow.c sets and returns, are no constants in a C
+   source compiled by Visual C++: the UCRT writes them
+   ((float)(_HUGE_ENUF * _HUGE_ENUF)) and
+   (-(float)(((float)(_HUGE_ENUF * _HUGE_ENUF)) * 0.0F)), _HUGE_ENUF being
+   1e+300, unless the compiler is compiling C++ or __has_builtin() names
+   __builtin_nanf, which Visual C++ has not. Under /fp:strict these products
+   and conversions are computed when the program runs, in the rounding
+   direction in effect, and give FLT_MAX and -0 downward and toward zero. The
+   NAN exp_1() of pow.c sets to send a power between 2^-1075 and about
+   2^-947 to the accurate phase was then -0, and so was the power: CORE-MATH's
+   pow rounded downward was -0 at (2^-1074)^1 (tests/core_math.cpp, with every
+   Visual C++ job). GAOL calls CORE-MATH upward, where both are right. They are
+   read here from their bits, which a load gives in every direction. */
+static const union { uint64_t u; double f; } gaol_infinity_bits = { 0x7ff0000000000000ull },
+                                             gaol_nan_bits = { 0x7ff8000000000000ull };
+#undef INFINITY
+#define INFINITY (gaol_infinity_bits.f)
+#undef NAN
+#define NAN (gaol_nan_bits.f)
 
 /* The number of leading and of trailing zero bits, undefined at 0 as the
    builtins of GCC are. _BitScanReverse64 and _BitScanForward64 are for the

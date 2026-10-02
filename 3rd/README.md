@@ -59,7 +59,14 @@ and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow` and `atan2` keep the exception flags around
 their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
 well, which unmasks the exceptions and makes the first comparison of the NaN
-bounds of an empty interval trap.
+bounds of an empty interval trap. With Visual C++, it gives them too `NAN` and
+`INFINITY` read from their bits, which the UCRT writes for C as products of
+`1e+300` that `/fp:strict` computes when the program runs, in the rounding
+direction in effect (`-0` and `FLT_MAX` downward and toward zero: `pow` rounded
+downward was `-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>), and on
+32-bit x86 the square root of SSE2 for `__builtin_sqrt()`, the one of its C
+library being rounded to nearest in every direction (`pow(x, 0.5)` was below
+the root, rounding upward, at subnormal x). `tests/core_math.cpp` checks both.
 
 On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
 that rounds their doubles, rather than the control word of the x87 unit, which
