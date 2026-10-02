@@ -174,6 +174,19 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   - Le point 3 se fait maintenant dans `pow_standard()` (`gaol/gaol_interval.cpp`). Il change la borne basse attendue de la boîte
     `{[0.1, 2], [-2, 0.5]}` de `pow_on_boxes()` (`0x1.fffffffffffffp-3` devient `0x1p-2`), et rend fausse la phrase « where the
     corners below are one double wide » de `pow_standard()`. Le texte du point 3 ne le dit pas. (#37)
+- **4** :
+  - Le moins unaire ne fait pas de vérification : il échange les bornes stockées, que les modes ne changent pas ; documenté. Lui
+    ajouter une sonde, au prix d'une addition sur une opération très courante, pour le seul effet d'effacer les modes ? (#62)
+  - Coût : `x * y`, `sqrt` et `pow(x, 3)` +0,6 à 0,7 ns (Xeon Cascade Lake, Clang 18 ; autant avec une sonde faite de 2^-60, donc la
+    seconde addition). Processeurs de la CI non mesurés : comparer le tableau de `gaol_performance` de la CI à celui de
+    `configure-clean`. (#62)
+  - `gaol.pc` porte `-mno-daz-ftz` : un programme lié par Clang, ou par GCC 12.0 à 12.3, avec le `gaol.pc` d'un GAOL compilé par
+    GCC 13 s'arrête sur l'option. La garder (documenté) ou la réserver à `gaol::gaol` ? (#62)
+  - Fonctions sans vérification (point 45) : constructeur, texte, relations, `&`, `|`, `max`, `min`, `abs`, `sign`, `floor`,
+    `ceil`, `integer`, `invabs_rel`, `mig`, `mag`, `midpoint`, `split` lisent un sous-normal comme 0 sous DAZ/FZ ; le résultat de
+    `|` (en ligne) dépend du compilateur du programme ([0, 0] avec GCC 13 -O2, juste avec Clang 18). (#62)
+  - Visual C++ n'a ni barrière ni `rnd_reread()` et compte sur `/fp:strict` ; le test différentiel le vérifie dans les jobs
+    Windows de la CI : à surveiller. (#62)
 - **5** :
   - Avec GCC, `-Ofast` n'est pas refusé dès que `-fno-fast-math` est sur la ligne de commande, avant ou après (GCC 9.4 :
     `-fno-fast-math -Ofast` laisse `__FAST_MATH__` indéfini et `__FINITE_MATH_ONLY__` à 0), et le résultat est juste.
@@ -285,6 +298,19 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
     de l'annexe B, et item 9 de la priorité 3. Les phrases qui comptent les numéros appliqués (« 1, 9, 11, 13, 14 and 18 ») sont
     aussi à mettre à jour. C'est laissé à la pull request de synthèse, mais la « Reprise » de TODO.md ne cite pas ce fichier. (#31,
     #32, #36)
+- **8** :
+  - Une borne nulle (`pow([0, b], n)`, `pow([a, 0], n)`) envoie les deux bornes aux produits arrondis : la borne supérieure dépasse
+    la plus serrée pour 88 % des b de [0,5, 2] (n = 3 à 10), jusqu'à 10 doubles. `ipow_exact_dn(0)` pourrait rendre 0 exactement
+    (une ligne). Plus généralement, une borne hors de la plage suffit pour que les deux bornes prennent les produits arrondis
+    (`pow([0, 1.0000001], 2^32 - 1)` a une borne haute à des milliards de doubles). À changer ? (#61)
+  - La garantie passe de n 2^-104 à 5 n log2(n) 2^-104 (borne prouvée (3s + 2m) n 2^-104, mesurée environ 1,8 n log2(n) 2^-104) :
+    relire la formulation. (#61)
+  - L'ancien code SSE2 par le bit de poids fort (`MSB_position()`, `reverse_bits()`) reste sous `#if 0` : le supprimer ? (#61)
+  - Le signe d'une borne nulle diffère toujours entre SSE2 et FPU (`sqr([-2, 3])` : `[-0, 9]` ou `[0, 9]`) ; documenté, laissé
+    selon la décision de ne pas normaliser les zéros. (#61)
+  - Formulation de `doc/accuracy.md` et du manuel : « les deux bornes quand l'une est 0 ou sous 2^-968 » est approximative pour une
+    puissance paire d'un intervalle contenant 0, dont la plus petite borne n'est jamais élevée (`pow([-2^-400, 2], 4)` prend les
+    produits exacts). (#61)
 - **9** :
   - Le drapeau `narrower_than_pi` est supprimé, et le test du haut de `tan()` devient `!(w <= pi_dn)`, au lieu de corriger le
     drapeau en `(w <= pi_dn)` comme l'écrivait le TODO. Même comportement, moins de code. Le garder à la lettre est trivial si vous
@@ -685,18 +711,19 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
 
 ### Reprise
 
-État au 1er octobre, 6 h UTC (travail arrêté à la demande du mainteneur, tout est poussé) :
+État au 2 octobre :
 
-- **#58** (`fix-50-57-empty-output-test` → `configure-clean`) : l'entrée « the other outputs » attend `[empty]` ; le runtime Debug
-  de Visual C++ écrit ses assertions sur stderr au lieu d'une boîte de dialogue (`numbers` dépassait 300 s). CI verte sauf armhf.
-  À fusionner en premier.
-- **#59** (`todo-47-clang-cl-rounding-mode`, point 47) : contient les commits de #58. CI verte sauf armhf et les deux jobs clang-cl,
-  qui échouent seulement sur le point 49 (`interval()`, `operator/`, `pow(x, n)`) ; `core_math` passe sous clang-cl.
+- **#58** et **#59** (point 47) sont fusionnées dans `configure-clean` (61c7503). Les deux jobs clang-cl x64 restent rouges par le
+  point 49 (`interval()`, `operator/`, `pow(x, n)`).
 - **#60** (`fix-24b-armhf-fe-invalid` → `configure-clean`, f4881f6) : `operator&=` reconnaît l'opérande vide avant de comparer
   les bornes, sur ARM 32 bits seulement. Trois relectures indépendantes, la dernière sans point bloquant ; 61 vérifications, 0 échec
   sous qemu avec GCC 12.4, 13.3 et 14.2, 6 échecs sur la base. Ouverte le 2 octobre.
-- **Points 3, 4, 8** (`todo-03-pow-exact-corner`, `todo-04-ftz-daz`, `todo-08-pow-large-n`, poussés) : terminés et validés
-  localement ; relecture indépendante à faire, puis pull requests.
+- **#61** (`todo-08-pow-large-n` → `configure-clean`, point 8) : approuvée par une relecture indépendante sans point bloquant ; ses
+  remarques de formulation reprises (341d2ae). Contient la branche de #60 pour que les jobs armhf passent. Ouverte le 2 octobre.
+- **#62** (`todo-04-ftz-daz` → `configure-clean`, point 4) : deux relectures indépendantes, les quatre points bloquants de la
+  première corrigés, les remarques de la seconde reprises (e7b9f18, 709486d). Contient la branche de #60. Ouverte le 2 octobre.
+- **Point 3** (`todo-03-pow-exact-corner`, 41cee63) : deuxième correction (racines carrées SSE2 de CORE-MATH sur Windows 32 bits,
+  comparaison exacte des coins) ; pull request à ouvrir après sa troisième vérification.
 - **Points 12, 17, 36** : `configure-clean` fusionné dans 12 et 17 ; le travail reste « WIP » (12 : dernier commit WIP 553e649 ;
   17 : fusion 3b9311c ; 36 : inchangé). À terminer, relire, puis pull requests.
 - Corriger le point 48, décider du point 49, fusionner #29 (`configure-clean` vers `MATH-CORE`).
