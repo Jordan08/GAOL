@@ -1043,8 +1043,9 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   into a conditional move (GCC bug 52258,
   \url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258}, is of this
   kind): the operations of GAOL are written so that they stay quiet there,
-  but a choice the program makes itself, \code{x.is\_empty() ? a : b} for an
-  empty \code{x}, may raise the invalid-operation flag.\newinvfive
+  but a choice the program makes itself on \code{is\_empty()} or on a
+  relation, \code{x.is\_empty() ? a : b} for an empty \code{x}, may raise
+  the invalid-operation flag.\newinvfive
 \item Nonempty operands raise the invalid-operation exception as well. With
   the SSE2 intervals, multiplying a zero bound by an infinite one does:
   \code{interval(0)*interval::one\_plus\_infinity()} and

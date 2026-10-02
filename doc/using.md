@@ -369,8 +369,9 @@ bounds.
   it turns a choice into a conditional move
   ([GCC bug 52258](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258) is of
   this kind): GAOL's operations are written so that they stay quiet there, but
-  a choice the program makes itself, `x.is_empty() ? a : b` for an empty `x`,
-  may raise the invalid-operation flag.
+  a choice the program makes itself on `is_empty()` or on a relation,
+  `x.is_empty() ? a : b` for an empty `x`, may raise the invalid-operation
+  flag.
 - Nonempty operands raise the invalid-operation exception as well. With the
   SSE2 intervals, multiplying a zero bound by an infinite one does:
   `[0]*[1, +oo]` and `[0, +oo]*[0]` (the FPU intervals give the same product
