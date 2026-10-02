@@ -174,6 +174,18 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   - Le point 3 se fait maintenant dans `pow_standard()` (`gaol/gaol_interval.cpp`). Il change la borne basse attendue de la boîte
     `{[0.1, 2], [-2, 0.5]}` de `pow_on_boxes()` (`0x1.fffffffffffffp-3` devient `0x1p-2`), et rend fausse la phrase « where the
     corners below are one double wide » de `pow_standard()`. Le texte du point 3 ne le dit pas. (#37)
+  - Correctifs de plateforme (Visual C++ et racine carrée de Windows 32 bits a8afd8b, 959b14b ; armhf 82367f0, 75a4f17) : les garder
+    dans la branche du point 3, ou les sortir dans une PR à fusionner d'abord ? (#63)
+  - Racine carrée de SSE2 seulement sur Windows 32 bits : l'étendre à tout x86 32 bits ? À -O0, GCC appelle sans doute aussi celle
+    de la bibliothèque C sur Debian i386 (non vérifié), et les jobs i386 de la CI sont en Release seulement. (#63)
+  - MinGW-w64 x86 en Release prenait la racine du runtime C (au plus près) dans les phases précises froides d'acos, asin et asinpi
+    jusqu'à 959b14b ; aucun test n'a montré de borne fausse. Chercher des cas durs ? (#63)
+  - Envoyer le patch 7 (`exact_pow()`, `3rd/README.md`) à CORE-MATH ? (#63)
+  - Bornes infinies : `pow([4, +oo], 0.5)` vaut toujours `[2 - 2^-52, +oo]` ; étendre les coins avec le point 2 ? (#63)
+  - Sous DAZ, `pow([0.5], [2^-1074])` vaut `[1, 1]` depuis le point 1 : relève du point 4 (#62) ? (#63)
+  - Le commit WIP `d353335` entre dans l'historique, sauf fusion squash ; de même `62e72c8` (point 8, #61) et le WIP du point 4
+    (#62). (#61, #62, #63)
+  - #61 et #63 modifient `doc/accuracy.md` et le manuel : la seconde fusionnée aura un conflit à résoudre. (#63)
 - **4** :
   - Le moins unaire ne fait pas de vérification : il échange les bornes stockées, que les modes ne changent pas ; documenté. Lui
     ajouter une sonde, au prix d'une addition sur une opération très courante, pour le seul effet d'effacer les modes ? (#62)
@@ -722,8 +734,9 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   remarques de formulation reprises (341d2ae). Contient la branche de #60 pour que les jobs armhf passent. Ouverte le 2 octobre.
 - **#62** (`todo-04-ftz-daz` → `configure-clean`, point 4) : deux relectures indépendantes, les quatre points bloquants de la
   première corrigés, les remarques de la seconde reprises (e7b9f18, 709486d). Contient la branche de #60. Ouverte le 2 octobre.
-- **Point 3** (`todo-03-pow-exact-corner`, 41cee63) : deuxième correction (racines carrées SSE2 de CORE-MATH sur Windows 32 bits,
-  comparaison exacte des coins) ; pull request à ouvrir après sa troisième vérification.
+- **#63** (`todo-03-pow-exact-corner` → `configure-clean`, point 3) : trois relectures indépendantes ; la dernière, sans point
+  bloquant, vérifie `pow_is_double()` contre son propre oracle sur 488 402 couples ; ses deux remarques reprises (5b50af1).
+  Contient la branche de #60. Ouverte le 2 octobre.
 - **Points 12, 17, 36** : `configure-clean` fusionné dans 12 et 17 ; le travail reste « WIP » (12 : dernier commit WIP 553e649 ;
   17 : fusion 3b9311c ; 36 : inchangé). À terminer, relire, puis pull requests.
 - Corriger le point 48, décider du point 49, fusionner #29 (`configure-clean` vers `MATH-CORE`).
