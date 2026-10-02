@@ -804,11 +804,12 @@ namespace
      rounding, for a positive x (1, downward, for a negative one). With
      mingw-w64 on x86-64 (MinGW-w64, MSYS2), get_rounding_mode() returned
      FE_UPWARD itself, 0x800, where 0 to 3 are expected, and the upper bound
-     of nth_root(x, 3) was below the cube root (3rd/README.md). The roundings
-     are computed apart, with mpmath at 2000 bits: below and above are the
-     doubles on each side of the cube root of x, the nearest being below. The
-     cube root of x 8^k is that of x times 2^k, exactly, and so are its
-     roundings. */
+     of nth_root(x, 3) was below the cube root (3rd/README.md); with clang-cl
+     on x86-64 it took the upward and the downward roundings for toward zero
+     (see rsqrt_hard_cases()). The roundings are computed apart, with mpmath
+     at 2000 bits: below and above are the doubles on each side of the cube
+     root of x, the nearest being below. The cube root of x 8^k is that of x
+     times 2^k, exactly, and so are its roundings. */
   void cbrt_hard_cases()
   {
     struct Value { double x, below, above; };
@@ -853,6 +854,45 @@ namespace
                 [&] { return "rootn([" + show(x) + "], 3) = " + hex(std_got); });
         }
       }
+    }
+  }
+
+  /* rsqrt at the successors of the powers of 4, x = 4^k (1 + 2^-52), for
+     every k where x and 2^-k are normal: 1/sqrt(x) is 2^-k (1 + 2^-52)^(-1/2),
+     strictly between 2^-k (1 - 2^-53), the double below 2^-k, and 2^-k, and
+     about 1.5 x 2^-53 of an ulp above the first, so that it rounds downward,
+     to nearest and toward zero to 2^-k (1 - 2^-53) and upward to 2^-k. The
+     fast phase of CORE-MATH's rsqrt cannot round them, and as_rsqrt_refine()
+     adds the last ulp when get_rounding_mode() says upward. With clang-cl on
+     x86-64, which defines __x86_64__ and _WIN32 but not __WIN32__, that
+     function compared the FE_UPWARD of glibc, 0x800, with that of the UCRT,
+     0x200, and the upper bound of rsqrt(x) was the double below 1/sqrt(x) at
+     every one of them (clang-cl 18, the program run under wine; see
+     3rd/README.md). */
+  void rsqrt_hard_cases()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (int k = -511; k <= 511; ++k) {
+      const double x = std::ldexp(1.0 + 0x1p-52, 2 * k);
+      const double below = std::ldexp(1.0 - 0x1p-53, -k), above = std::ldexp(1.0, -k);
+      const double want[4] = {below, above, below, below};
+      double v[4];
+      for (int d = 0; d < 4; ++d) {
+        std::fesetround(directions[d]);
+        v[d] = gaol_cr_rsqrt(x);
+      }
+      std::fesetround(FE_UPWARD);
+      check("rsqrt at the successors of the powers of 4: the roundings of 1/sqrt(x)",
+            v[0] == want[0] && v[1] == want[1] && v[2] == want[2] && v[3] == want[3],
+            [&] {
+              return "rsqrt(" + show(x) + ") = " + show(v[0]) + ", " + show(v[1]) + ", " + show(v[2]) + ", "
+                   + show(v[3]) + " rather than " + show(want[0]) + ", " + show(want[1]) + ", "
+                   + show(want[2]) + ", " + show(want[3]);
+            });
+      const interval got = rsqrt(interval(x));
+      check("rsqrt at the successors of the powers of 4: the tightest bounds",
+            !got.is_empty() && got.left() == below && got.right() == above,
+            [&] { return "rsqrt([" + show(x) + "]) = " + hex(got); });
     }
   }
 
@@ -1123,6 +1163,7 @@ int main()
   recommended_tightest();
   sin_accurate_path();
   cbrt_hard_cases();
+  rsqrt_hard_cases();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();
