@@ -390,29 +390,32 @@ bounds wrong**, and GAOL defends itself in two ways:
   `GAOL_PRESERVE_ROUNDING`, each operation sets the modes back as it found
   them, once it has made its result, its maxima and minima of bounds included.
   The bounds of every operation that makes the check are then the ones it gives
-  with the modes cleared, the tightest ones (GAOL v5, checked for each of them
-  by `tests/rounding_direction.cpp`). This is the only defence against a plug-in, which sets the modes after
-  GAOL initialized itself, and against the compilers and processors that have
-  no `-mno-daz-ftz`. On an Intel Xeon of the Cascade Lake generation, with
-  Clang 18, an addition with a subnormal operand and result took as long as one
-  of normal numbers (1.2 ns in a chain of dependent additions), as on the
-  Intel i7-1185G7 of the review of 2026-09-27, and the check as long as the one
-  of the direction alone, 1 + 2^-60, in front of the addition of two SSE2
-  intervals. Through the library, `x * y` took 4.0 ns rather than 3.45 ns, and
-  as long with the same check made of a normal number (4.2 ns): the cost of its
-  second addition there, not of the subnormal; `x + y`, `x / y`, `sqrt`,
-  `exp`, `sin` and the other operations measured stayed within the noise of the
-  machine (0.3 ns). Some x86 processors take a microcode assist, of the order
-  of a hundred cycles, for an operation with a subnormal operand or result:
-  each operation would pay it there. Neither they nor the processors of the
+  with the modes cleared, the tightest ones, and the modes are cleared, or set
+  back, after it (GAOL v5, checked for each of them by
+  `tests/rounding_direction.cpp`). This is the only defence against a plug-in,
+  which sets the modes after GAOL initialized itself, and against the compilers
+  and processors that have no `-mno-daz-ftz`. On an Intel Xeon of the Cascade
+  Lake generation, with Clang 18, an addition with a subnormal operand and
+  result took as long as one of normal numbers (1.2 ns in a chain of dependent
+  additions), as on the Intel i7-1185G7 of the review of 2026-09-27, and the
+  check as long as the one of the direction alone, 1 + 2^-60, in front of the
+  addition of two SSE2 intervals. Through the library (`gaol_performance`,
+  medians of 9 interleaved runs), `x * y` took 4.0 ns rather than 3.4 ns,
+  `sqrt` 11.0 ns rather than 10.3 ns and `pow(x, 3)` 13.7 ns rather than
+  13.0 ns, and as long with the same check made of a normal number: the cost
+  of its second addition, not of the subnormal; `x + y`, `x - y`, `x / y`,
+  `sqr`, `exp`, `log`, `sin` and `cos` stayed within the noise of the
+  machine. Some x86 processors take a microcode assist, of the order of a
+  hundred cycles, for an operation with a subnormal operand or result: each
+  operation would pay it there. Neither they nor the processors of the
   continuous integration (virtual machines, AMD EPYC or Intel Xeon) were
   measured; `tests/performance.cpp`, which it runs, prints the times there.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
   compiler accepts it: GCC 13 and later on x86, and from 11.4 and 12.4 in the
   series 11 and 12 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
-  builds test the compiler with a link, not with its version). It keeps `crtfastmath.o` out of
-  the link, so that a program linked with `-Ofast` does not get the modes at
-  all, its own code included.
+  builds test the compiler with a link, not with its version). It keeps
+  `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
+  not get the modes at all, its own code included.
 
 What remains: the functions that read or compare the bounds of an interval
 without computing make no check, and read a subnormal bound as a zero for as
@@ -424,13 +427,20 @@ text, the relations (`set_contains()`, `certainly_le()`, `==`...), the
 intersection `&` and the hull `|`, `max()`, `min()`, `abs()`, `sign()`,
 `floor()`, `ceil()`, `integer()` and the other roundings to an integer,
 `invabs_rel()`, `mig()`, `mag()`, `midpoint()` and `split()`. Under
-denormals-are-zero, `interval(3*2^-1074, 100*2^-1074) | interval(200*2^-1074)`
-is [0, 0], `max()` of the same two intervals is the first one, and
-`abs(interval(-1e-309, -1e-310))` stays negative. The modes of other
-processors, and of ARM with Visual C++, are neither checked nor cleared; GCC
-links `crtfastmath.o` for none of the other processors GAOL is tested on.
-Link a program that uses GAOL without these options, or with `-mno-daz-ftz`,
-and compile the code that needs them apart from it.
+denormals-are-zero, `max()` of `interval(3*2^-1074, 100*2^-1074)` and
+`interval(200*2^-1074)` is the first one, `abs(interval(-1e-309, -1e-310))`
+stays negative, and the hull `|` of the same two intervals, inline in the
+headers of GAOL, depends on how the compiler of the program arranges its
+comparisons: [0, 0] with GCC 13 at `-O2`, [3*2^-1074, 100*2^-1074] at
+`-O0`, the right hull with Clang 18 at `-O2`. The unary minus makes no check
+either, but it only exchanges the stored bounds, which the modes do not
+change, as they do not change the test of the empty set, made before the check
+of every operation (an operation with an empty operand may return before its
+check, the modes left as it found them). The modes of other processors, and
+of ARM with Visual C++, are neither checked nor cleared; GCC links
+`crtfastmath.o` for none of the other processors GAOL is tested on. Link a
+program that uses GAOL without these options, or with `-mno-daz-ftz`, and
+compile the code that needs them apart from it.
 
 ## The floating-point exceptions
 

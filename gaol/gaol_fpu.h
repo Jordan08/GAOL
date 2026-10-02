@@ -361,9 +361,10 @@ namespace gaol_core {
     and result took as long as one of normal doubles (1.2 ns in a chain of
     dependent additions), and the probe as long as 1 + 2^-60 in front of the
     addition of two SSE2 intervals. Through the library, x * y took 4.0 ns
-    rather than 3.45 ns, and 4.2 ns with the same probe made of 2^-60: the
-    cost of the second addition there, not of the subnormal; x + y, x / y,
-    sqrt, exp, sin and the others stayed within the noise (0.3 ns). Some x86
+    rather than 3.4 ns, sqrt 11.0 ns rather than 10.3 ns and pow(x, 3)
+    13.7 ns rather than 13.0 ns, and as long with the same probe made of
+    2^-60: the cost of the second addition, not of the subnormal; x + y,
+    x / y, sqr, exp, log, sin and cos stayed within the noise. Some x86
     processors take a microcode assist, of the order of a hundred cycles, for
     an operation with a subnormal operand or result, which each operation
     would pay there: none was measured (GAOL v5).

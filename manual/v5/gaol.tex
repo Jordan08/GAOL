@@ -1083,16 +1083,19 @@ in two ways:
   \option{GAOL\_PRESERVE\_ROUNDING}, each operation sets the modes back as it
   found them, once it has made its result, its maxima and minima of bounds
   included. The bounds of every operation that makes the check are then the
-  ones it gives with the modes cleared, the tightest ones. It is the only defence against a plug-in, which sets
-  the modes at any time, and against the compilers and processors without
-  \option{-mno-daz-ftz}. On an Intel Xeon of the Cascade Lake generation, an
-  addition with a subnormal operand and result took as long as one of normal
-  numbers, and the check as long as the one of the direction alone; through the
-  library, \code{x * y} took 4.0~ns rather than 3.45~ns, as with the same check
-  made of a normal number, and the other operations measured stayed within the
-  noise. Some x86 processors take a microcode assist, of the order of a hundred
-  cycles, for an operation with a subnormal operand or result, which each
-  operation would pay there: they were not measured;
+  ones it gives with the modes cleared, the tightest ones, and the modes are
+  cleared, or set back, after it. It is the only defence against a plug-in,
+  which sets the modes at any time, and against the compilers and processors
+  without \option{-mno-daz-ftz}. On an Intel Xeon of the Cascade Lake
+  generation, an addition with a subnormal operand and result took as long as
+  one of normal numbers, and the check as long as the one of the direction
+  alone; through the library, with Clang~18, \code{x * y} took 4.0~ns rather
+  than 3.4~ns, \code{sqrt} 11.0~ns rather than 10.3~ns and \code{pow(x, 3)}
+  13.7~ns rather than 13.0~ns, as with the same check made of a normal number,
+  and the other operations measured stayed within the noise. Some x86
+  processors take a microcode assist, of the order of a hundred cycles, for an
+  operation with a subnormal operand or result, which each operation would pay
+  there: they were not measured;
 \item \file{gaol.pc} and \code{gaol::gaol} give \option{-mno-daz-ftz} to the
   link, where the compiler accepts it (GCC 13 and later on x86, and from 11.4
   and 12.4 in the series 11 and 12; GCC~9.4, 12.3, GCC for ARM and Clang~18
@@ -1114,14 +1117,21 @@ intersection \code{\&} and the hull \code{|}, \code{max()}, \code{min()},
 \code{abs()}, \code{sign()}, \code{floor()}, \code{ceil()}, \code{integer()}
 and the other roundings to an integer, \code{invabs\_rel()}, \code{mig()},
 \code{mag()}, \code{midpoint()} and \code{split()}. Under
-denormals-are-zero, the hull of $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$ and
-$[200\cdot 2^{-1074}]$ is \itv{0}{0}, \code{max()} of the same two intervals
-is the first one, and \code{abs(interval(-1e-309, -1e-310))} stays negative.
-The modes of other processors, and of ARM with Visual
-C++, are neither checked nor cleared; GCC links \file{crtfastmath.o} for none
-of the other processors GAOL is tested on. Link a program that uses GAOL
-without these options, or with \option{-mno-daz-ftz}, and compile the code that
-needs them apart from it.
+denormals-are-zero, \code{max()} of $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$
+and $[200\cdot 2^{-1074}]$ is the first one,
+\code{abs(interval(-1e-309, -1e-310))} stays negative, and the hull \code{|}
+of the same two intervals, inline in the headers of GAOL, depends on how the
+compiler of the program arranges its comparisons: \itv{0}{0} with
+GCC~13 at \option{-O2}, $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$ at
+\option{-O0}, the right hull with Clang~18 at \option{-O2}. The unary minus
+makes no check either, but it only exchanges the stored bounds, which the
+modes do not change, as they do not change the test of the empty set, made
+before the check of every operation (an operation with an empty operand may
+return before its check, the modes left as it found them). The modes of other
+processors, and of ARM with Visual C++, are neither checked nor cleared; GCC
+links \file{crtfastmath.o} for none of the other processors GAOL is tested
+on. Link a program that uses GAOL without these options, or with
+\option{-mno-daz-ftz}, and compile the code that needs them apart from it.
 
 \section{The floating-point exceptions}\label{sec:fp-exceptions}
 %%--------------------------------------------------
