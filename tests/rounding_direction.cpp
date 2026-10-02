@@ -384,7 +384,7 @@ namespace
           && !E().set_eq(X()) && E().set_neq(X()) && E().set_leq(X()) && E().set_le(X()) && !X().set_le(E())
           && !E().less(X()) && !X().strictly_less(E()); } },
     { "the other outputs", [] {
-        return write(E(), interval_format::width) == "empty" && write(E(), interval_format::center) == "empty"
+        return write(E(), interval_format::width) == "[empty]" && write(E(), interval_format::center) == "[empty]"
           && write(E(), interval_format::hexa) == "[empty]" && write(E(), interval_format::agreeing) == "[empty]"
           && exact_string(E()) == "[empty]"; } },
   };
