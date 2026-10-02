@@ -21,6 +21,8 @@
  *   __attribute__; and __builtin_roundeven() where the compiler has not;
  * - on x86-64, a fegetround() that reads MXCSR, where their doubles are
  *   rounded, rather than the x87 unit, which the C library may read;
+ * - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
+ *   direction in effect, rather than the one of the C library;
  * - silence for the warnings on conversions GAOL's library is compiled with.
  *
  * Copyright (c) 2026 ENSTA, France
@@ -176,6 +178,41 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #endif /* a 32-bit x86 Windows */
 
 /*---------------------------------------------------------------------------
+  The square root on a 32-bit Windows, which the C library rounds to nearest
+
+  The sources take their square roots with __builtin_sqrt(): pow.c for
+  y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
+  atanh, hypot, rsqrt, asinpi and acospi. The square root of the C libraries
+  of Windows for 32-bit x86 is rounded to nearest in every rounding direction
+  (see gaol_sqrt_up() in gaol/gaol_interval.cpp). Visual C++ calls it for the
+  builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
+  the Debug builds) and in the accurate phases of acos, asin, acosh, asinpi
+  and acospi, which the sources mark cold, at -O2 too; elsewhere it writes
+  sqrtsd. pow(x, 0.5) was then below the root rounding upward, and above it
+  rounding downward, at subnormal x, and GAOL's upper bound of
+  pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
+  (tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The
+  square root of SSE2 is taken there instead, with every compiler and at
+  every optimization level, which rounds in the direction of MXCSR, as every
+  other operation on doubles does there (gaol/gaol_config.h refuses an x86
+  target that does not compute its doubles with SSE2, and the three builds
+  give these sources -msse2 -mfpmath=sse).
+ --------------------------------------------------------------------------*/
+
+#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
+
+#include <emmintrin.h>
+
+static inline double gaol_sqrt(double x)
+{
+  return _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(x), _mm_set_sd(x)));
+}
+
+#define __builtin_sqrt(x) gaol_sqrt(x)
+
+#endif /* a 32-bit x86 Windows */
+
+/*---------------------------------------------------------------------------
   fegetround() on x86-64: the direction of the SSE instructions
 
   pow, and cos and tan, whose accurate phases carry the same code, round a
@@ -282,23 +319,8 @@ static inline int gaol_fegetround(void)
 #define __builtin_inf() ((double)INFINITY)
 #define __attribute__(x)
 
-/* The square root of the C library of Visual C++ for 32-bit x86 is rounded to
-   nearest in every rounding direction (see gaol_sqrt_up() in
-   gaol/gaol_interval.cpp), and the sources call it through __builtin_sqrt():
-   pow.c for y = 0.5 where its first phase cannot round, so that pow(x, 0.5)
-   was below the root rounding upward, and above it rounding downward, at
-   subnormal x (tests/core_math.cpp, Visual C++ for x86). The square root of
-   SSE2 is taken there instead, which rounds in the direction of MXCSR, as
-   every other operation on doubles does there (gaol/gaol_config.h refuses an
-   x86 target that does not compute its doubles with SSE2). */
-#if defined(_M_IX86)
-#include <emmintrin.h>
-static __forceinline double gaol_sqrt(double x)
-{
-  return _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(x), _mm_set_sd(x)));
-}
-#define __builtin_sqrt(x) gaol_sqrt(x)
-#else
+/* On 32-bit x86, the square root of SSE2 (see above) */
+#if !defined(_M_IX86)
 #define __builtin_sqrt(x) sqrt(x)
 #endif
 
