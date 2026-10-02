@@ -186,9 +186,10 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
   of Windows for 32-bit x86 is rounded to nearest in every rounding direction
   (see gaol_sqrt_up() in gaol/gaol_interval.cpp). Visual C++ calls it for the
   builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
-  the Debug builds) and in the accurate phases of acos, asin, acosh, asinpi
-  and acospi, which the sources mark cold, at -O2 too; elsewhere it writes
-  sqrtsd. pow(x, 0.5) was then below the root rounding upward, and above it
+  the Debug builds) and in the accurate phases of acos, asin and asinpi,
+  which the sources mark cold, at -O2 too (GCC 13); elsewhere it writes
+  sqrtsd, and calls the C library for a negative argument only (acosh,
+  acospi). pow(x, 0.5) was then below the root rounding upward, and above it
   rounding downward, at subnormal x, and GAOL's upper bound of
   pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
   (tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The

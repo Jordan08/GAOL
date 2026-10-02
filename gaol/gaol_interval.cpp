@@ -1178,7 +1178,7 @@ namespace gaol_core {
     /*
       A degenerate integer exponent [n]: x^n on x >= 0, where pow and pown
       agree. Within the ints, pown gives the powers that are doubles exactly,
-      where the corners below are one double wide. Beyond the ints, which pown
+      as pow_is_double() does at the corners below. Beyond the ints, which pown
       cannot take, |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
       decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower bound 0
       is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd n < 0. x^n is
