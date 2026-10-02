@@ -263,10 +263,10 @@ namespace
     gave its NaN bounds to the constructor, which compares them: each raised
     the exception, and died on SIGFPE where it was enabled (all 48 with the
     FPU intervals, all but the negations with the SSE2 ones). The groups after
-    them, but the last, were already quiet. The last one is a choice the
-    program makes on the result of an intersection with an empty left
-    operand, which GCC for 32-bit ARM compiled with a signaling comparison
-    where operator&= told that operand empty otherwise than is_empty() does.
+    them were already quiet, but the last: a choice the program makes on the
+    result of an intersection with an empty left operand, which GCC for 32-bit
+    ARM compiled with a signaling comparison where operator&= told that
+    operand empty otherwise than is_empty() does.
   */
   struct EmptyOperand
   {
@@ -393,7 +393,10 @@ namespace
     // A value the program chooses with is_empty() of an intersection whose
     // left operand is empty: GCC for 32-bit ARM made the choice a conditional
     // move, and compared the NaN bounds again with the signaling vcmpe where
-    // it did not know the answer from operator&= (see gaol/gaol_interval_fpu.h)
+    // it did not know the answer from operator&= (see gaol/gaol_interval_fpu.h).
+    // Such a choice is not quiet everywhere (doc/using.md): the same one with
+    // an empty right operand is not checked, as GCC for POWER9 compiles it
+    // with a signaling comparison
     { "(empty & x).is_empty() ? 0 : right()", [] {
         const interval z = E() & X();
         const volatile double r = z.is_empty() ? 0.0 : z.right();
