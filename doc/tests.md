@@ -107,8 +107,15 @@ mode there.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 190 calls, in 58 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in ten groups)
+  on either side (about 190 calls, in 61 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in ten groups,
+  and three choices a program makes with `is_empty()` of an intersection
+  whose left operand is empty, which GCC for 32-bit ARM makes signaling if
+  `operator&=` tells that operand empty otherwise than `is_empty()` does; these
+  three are not checked where the compiler optimizes for size, as GCC 14 for
+  32-bit ARM and GCC 13 for POWER9 then call the intersection, and the choice
+  is made on `is_empty()` of an empty interval alone, which they make
+  signaling)
   have to give the result of the empty set and raise no invalid-operation
   flag, and, with glibc, not die in a child process that enabled the
   exception (GAOL v5): 45 of the 48 died with the SSE2 intervals, and all 48
