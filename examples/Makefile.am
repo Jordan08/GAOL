@@ -33,8 +33,10 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The library just built, by its libtool archive, rather than -lgaol with
 # -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
-# there may hold an installed GAOL too, which was then linked
-LDADD = $(top_builddir)/gaol/libgaol.la -lm
+# there may hold an installed GAOL too, which was then linked. With the link
+# option gaol.pc gives (-mno-daz-ftz, where the compiler takes it), as the
+# examples of CMake and meson get it from gaol::gaol and gaol_dep (GAOL v5)
+LDADD = $(top_builddir)/gaol/libgaol.la -lm $(GAOL_PC_LIBS)
 
 # The same list as examples/CMakeLists.txt
 GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \

@@ -143,7 +143,9 @@ PROGRAMS = $(noinst_PROGRAMS)
 01_first_steps_SOURCES = 01_first_steps.cpp
 01_first_steps_OBJECTS = 01_first_steps.$(OBJEXT)
 01_first_steps_LDADD = $(LDADD)
-01_first_steps_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+am__DEPENDENCIES_1 =
+01_first_steps_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -151,65 +153,78 @@ am__v_lt_1 =
 02_decimals_and_rump_SOURCES = 02_decimals_and_rump.cpp
 02_decimals_and_rump_OBJECTS = 02_decimals_and_rump.$(OBJEXT)
 02_decimals_and_rump_LDADD = $(LDADD)
-02_decimals_and_rump_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+02_decimals_and_rump_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 03_dependency_problem_SOURCES = 03_dependency_problem.cpp
 03_dependency_problem_OBJECTS = 03_dependency_problem.$(OBJEXT)
 03_dependency_problem_LDADD = $(LDADD)
-03_dependency_problem_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+03_dependency_problem_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 04_centered_form_SOURCES = 04_centered_form.cpp
 04_centered_form_OBJECTS = 04_centered_form.$(OBJEXT)
 04_centered_form_LDADD = $(LDADD)
-04_centered_form_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+04_centered_form_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 05_interval_newton_SOURCES = 05_interval_newton.cpp
 05_interval_newton_OBJECTS = 05_interval_newton.$(OBJEXT)
 05_interval_newton_LDADD = $(LDADD)
-05_interval_newton_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+05_interval_newton_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 06_global_optimization_SOURCES = 06_global_optimization.cpp
 06_global_optimization_OBJECTS = 06_global_optimization.$(OBJEXT)
 06_global_optimization_LDADD = $(LDADD)
-06_global_optimization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+06_global_optimization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 07_contractors_SOURCES = 07_contractors.cpp
 07_contractors_OBJECTS = 07_contractors.$(OBJEXT)
 07_contractors_LDADD = $(LDADD)
-07_contractors_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+07_contractors_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 08_sivia_SOURCES = 08_sivia.cpp
 08_sivia_OBJECTS = 08_sivia.$(OBJEXT)
 08_sivia_LDADD = $(LDADD)
-08_sivia_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+08_sivia_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 09_parameter_estimation_SOURCES = 09_parameter_estimation.cpp
 09_parameter_estimation_OBJECTS = 09_parameter_estimation.$(OBJEXT)
 09_parameter_estimation_LDADD = $(LDADD)
 09_parameter_estimation_DEPENDENCIES =  \
-	$(top_builddir)/gaol/libgaol.la
+	$(top_builddir)/gaol/libgaol.la $(am__DEPENDENCIES_1)
 10_krawczyk_SOURCES = 10_krawczyk.cpp
 10_krawczyk_OBJECTS = 10_krawczyk.$(OBJEXT)
 10_krawczyk_LDADD = $(LDADD)
-10_krawczyk_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+10_krawczyk_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 11_ode_enclosure_SOURCES = 11_ode_enclosure.cpp
 11_ode_enclosure_OBJECTS = 11_ode_enclosure.$(OBJEXT)
 11_ode_enclosure_LDADD = $(LDADD)
-11_ode_enclosure_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+11_ode_enclosure_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 12_affine_arithmetic_SOURCES = 12_affine_arithmetic.cpp
 12_affine_arithmetic_OBJECTS = 12_affine_arithmetic.$(OBJEXT)
 12_affine_arithmetic_LDADD = $(LDADD)
-12_affine_arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+12_affine_arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 13_rounding_environment_SOURCES = 13_rounding_environment.cpp
 13_rounding_environment_OBJECTS = 13_rounding_environment.$(OBJEXT)
 13_rounding_environment_LDADD = $(LDADD)
 13_rounding_environment_DEPENDENCIES =  \
-	$(top_builddir)/gaol/libgaol.la
+	$(top_builddir)/gaol/libgaol.la $(am__DEPENDENCIES_1)
 14_generic_programming_SOURCES = 14_generic_programming.cpp
 14_generic_programming_OBJECTS = 14_generic_programming.$(OBJEXT)
 14_generic_programming_LDADD = $(LDADD)
-14_generic_programming_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+14_generic_programming_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 15_text_and_ieee1788_SOURCES = 15_text_and_ieee1788.cpp
 15_text_and_ieee1788_OBJECTS = 15_text_and_ieee1788.$(OBJEXT)
 15_text_and_ieee1788_LDADD = $(LDADD)
-15_text_and_ieee1788_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+15_text_and_ieee1788_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 16_Goldstein_Price_SOURCES = 16_Goldstein_Price.cpp
 16_Goldstein_Price_OBJECTS = 16_Goldstein_Price.$(OBJEXT)
 16_Goldstein_Price_LDADD = $(LDADD)
-16_Goldstein_Price_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+16_Goldstein_Price_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -650,8 +665,10 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The library just built, by its libtool archive, rather than -lgaol with
 # -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
-# there may hold an installed GAOL too, which was then linked
-LDADD = $(top_builddir)/gaol/libgaol.la -lm
+# there may hold an installed GAOL too, which was then linked. With the link
+# option gaol.pc gives (-mno-daz-ftz, where the compiler takes it), as the
+# examples of CMake and meson get it from gaol::gaol and gaol_dep (GAOL v5)
+LDADD = $(top_builddir)/gaol/libgaol.la -lm $(GAOL_PC_LIBS)
 
 # The same list as examples/CMakeLists.txt
 GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \
