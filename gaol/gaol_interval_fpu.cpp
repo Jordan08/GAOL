@@ -223,8 +223,10 @@
     }
     // One check for both branches, which both compute, as in the SSE2 build,
     // before d is compared: with the modes that flush the subnormals to zero,
-    // a subnormal d was 0 (GAOL v5)
+    // a subnormal d was 0 (GAOL v5). d is read again after the check, which
+    // the compiler could otherwise compare it before (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
+    d = rnd_reread(d);
     if (d==0.0) {
       *this=interval::zero();
       GAOL_RND_LEAVE();
@@ -252,6 +254,7 @@
     // One check for both branches, which both compute, as in the SSE2 build,
     // before d is compared, as in operator*=(double) (GAOL v5)
     GAOL_RND_ENTER();
+    d = rnd_reread(d);
     if (d == 0.0) {
       *this = interval::emptyset();
       GAOL_RND_LEAVE();
@@ -280,6 +283,7 @@
     // One check for both branches, which both compute, as in the SSE2 build,
     // before d and the bounds are compared, as in operator*=(double) (GAOL v5)
     GAOL_RND_ENTER();
+    d = rnd_reread(d);
     if (d == 0.0) {
       if (straddles_zero()) {
 		*this = interval::universe();
@@ -873,6 +877,10 @@
 
   interval div_rel(const interval &K, const interval &J, const interval &I)
   {
+    // One check, before the bounds are compared, as in the SSE2 build (GAOL
+    // v5, see gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
+    interval res = [&]() -> interval {
     if (K.is_empty() || J.is_empty() || I.is_empty()) {
       return interval::emptyset();
     }
@@ -880,10 +888,7 @@
     if (K.right() < 0.0) { // [this] N1
       if (J.right() < 0.0) { // [J] N1
 	// I & [K.r/J.l, K.l/J.r]
-	GAOL_RND_ENTER();
 	interval tmp(-(K.rb_/J.lb_),K.lb_/(-J.rb_));
-	GAOL_RND_KEEP(tmp);
-	GAOL_RND_LEAVE();
 	return I & tmp; // N1 N1
       } else { // [J] P or Z
 	if (J.right() == 0.0) { // [J] N0 or Z
@@ -891,34 +896,22 @@
 	    return interval::emptyset(); // N1 Z
 	  }
 	  // I & [K.r/J.l,+oo]
-	  GAOL_RND_ENTER();
 	  interval tmp(-(K.rb_/J.lb_),GAOL_INFINITY);
-	  GAOL_RND_KEEP(tmp);
-	  GAOL_RND_LEAVE();
 	  return I & tmp; // N1 N0
 	} else { // [I] P or M
 	  if (J.left() < 0.0) { // [J] M
-	    GAOL_RND_ENTER();
 	    interval tmp(-GAOL_INFINITY,K.rb_/J.rb_);
 	    // The lower bound rounded downward, the rounding direction being
 	    // upward (GAOL v5: K.rb_/(-J.lb_) was rounded upward, and the
 	    // result left out the doubles below it that belong to the hull)
 	    interval tmp2(-(K.rb_/J.lb_),GAOL_INFINITY);
-	    GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
-	    GAOL_RND_LEAVE();
 	    return (I&tmp) | (I&tmp2); // N1 M
 	  } else { // [J] P0 or P1
 	    if (J.left() == 0.0) { // [J] P0
-	      GAOL_RND_ENTER();
 	      interval tmp2 = I & interval(-GAOL_INFINITY,K.right()/J.right()); // N1 P0
-	      GAOL_RND_KEEP(tmp2);
-	      GAOL_RND_LEAVE();
 	      return tmp2; // N1 P0
 	    } else { // [J] P1
-	      GAOL_RND_ENTER();
 	      interval tmp(-(K.lb_/(-J.lb_)),K.rb_/J.rb_);
-	      GAOL_RND_KEEP(tmp);
-	      GAOL_RND_LEAVE();
 	      return I & tmp; // N1 P1
 	    }
 	  }
@@ -934,10 +927,7 @@
 	  }
 	} else { // [this] N0
 	  if (J.right() < 0.0) { // [J] N1
-	    GAOL_RND_ENTER();
 	    interval tmp2 = I & interval(0.0,K.left()/J.right()); // N0 N1
-	    GAOL_RND_KEEP(tmp2);
-	    GAOL_RND_LEAVE();
 	    return tmp2;
 	  } else { // [J] P or Z
 	    if (J.right() == 0.0) { // [J] N0 or Z
@@ -952,10 +942,7 @@
 		if (J.left() == 0.0) { // [J] P0
 		  return I; // N0 P0
 		} else { // [J] P1
-		  GAOL_RND_ENTER();
 		  interval tmp(-(K.lb_/(-J.lb_)),0.0);
-		  GAOL_RND_KEEP(tmp);
-		  GAOL_RND_LEAVE();
 		  return I & tmp; // N0 P1
 		}
 	      }
@@ -965,10 +952,7 @@
       } else { // [this] M, P0, or P1
 	if (K.left() < 0.0) { // [this] M
 	  if (J.right() < 0.0) { // [J] N1
-	    GAOL_RND_ENTER();
 	    interval tmp(-(K.rb_/(-J.rb_)),K.lb_/(-J.rb_));
-	    GAOL_RND_KEEP(tmp);
-	    GAOL_RND_LEAVE();
 	    return I & tmp; // M N1
 	  } else { // [J] P or Z
 	    if (J.right() == 0.0) { // [J] N0 or Z
@@ -980,10 +964,7 @@
 		if (J.left() == 0.0) { // [J] P0
 		  return I; // M P0
 		} else { // [J] P1
-		  GAOL_RND_ENTER();
 		  interval tmp(-(K.lb_/(-J.lb_)),K.rb_/(-J.lb_));
-		  GAOL_RND_KEEP(tmp);
-		  GAOL_RND_LEAVE();
 		  return I & tmp; // M P1
 		}
 	      }
@@ -992,10 +973,7 @@
 	} else { // [this] P0 or P1
 	  if (K.left() == 0.0) { // [this] P0
 	    if (J.right() < 0.0) { // [J] N1
-	      GAOL_RND_ENTER();
 	      interval tmp(-(K.rb_/(-J.rb_)),0.0);
-	      GAOL_RND_KEEP(tmp);
-	      GAOL_RND_LEAVE();
 	      return I & tmp; // P0 N1
 	    } else { // [J] P or Z
 	      if (J.right() == 0.0) { // [J] N0 or Z
@@ -1007,10 +985,7 @@
 		  if (J.left() == 0.0) { // [J] P0
 		    return I; // P0 P0
 		  } else { // [J] P1
-		    GAOL_RND_ENTER();
 		    interval tmp2 = I & interval(0.0,K.right()/J.left()); // P0 P1
-		    GAOL_RND_KEEP(tmp2);
-		    GAOL_RND_LEAVE();
 		    return tmp2;
 		  }
 		}
@@ -1018,41 +993,26 @@
 	    }
 	  } else { // [this] P1
 	    if (J.right() < 0.0) { // [J] N1
-	      GAOL_RND_ENTER();
 	      interval tmp(-(K.rb_/(-J.rb_)),K.lb_/J.lb_);
-	      GAOL_RND_KEEP(tmp);
-	      GAOL_RND_LEAVE();
 	      return I & tmp; // P1 N1
 	    } else { // [J] P or Z
 	      if (J.right() == 0.0) { // [J] N0 or Z
 		if (J.left() == 0.0) { // [J] Z
 		  return interval::emptyset(); // P1 Z
 		}
-		GAOL_RND_ENTER();
 		interval tmp2 = I & interval(-GAOL_INFINITY,K.lb_/J.lb_); // P1 N0
-		GAOL_RND_KEEP(tmp2);
-		GAOL_RND_LEAVE();
 		return tmp2;
 	      } else { // [J] P or M
 		if (J.left() < 0.0) { // [J] M
-		  GAOL_RND_ENTER();
 		  interval tmp(-GAOL_INFINITY,K.lb_/J.lb_);
 		  interval tmp2 = interval(-(K.lb_/J.rb_),GAOL_INFINITY);
-		  GAOL_RND_KEEP(tmp); GAOL_RND_KEEP(tmp2);
-		  GAOL_RND_LEAVE();
 		  return (I&tmp) | (I&tmp2); // P1 M
 		} else { // [J] P0 or P1
 		  if (J.left() == 0.0) { // [J] P0
-		    GAOL_RND_ENTER();
 		    interval tmp(-(K.lb_/J.rb_),GAOL_INFINITY);
-		    GAOL_RND_KEEP(tmp);
-		    GAOL_RND_LEAVE();
 		    return I & tmp; // P1 P0
 		  } else { // [J] P1
-		    GAOL_RND_ENTER();
 		    interval tmp(-(K.lb_/J.rb_),K.rb_/(-J.lb_));
-		    GAOL_RND_KEEP(tmp);
-		    GAOL_RND_LEAVE();
 		    return I & tmp; // P1 P1
 		  }
 		}
@@ -1062,6 +1022,10 @@
 	}
       }
     }
+    }();
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
 
@@ -1095,16 +1059,20 @@
     if (is_empty()) {
       return interval::emptyset();
     }
+    // The check before the bounds are compared (see gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
     if (is_symmetric()) { // symmetric case handles [-oo, +oo]
+      GAOL_RND_LEAVE();
       return 0.0;
     }
     if (left() == -GAOL_INFINITY) {
+      GAOL_RND_LEAVE();
       return interval(-std::numeric_limits<double>::max());
     }
     if (right() == GAOL_INFINITY) {
+      GAOL_RND_LEAVE();
       return interval(std::numeric_limits<double>::max());
     }
-    GAOL_RND_ENTER();
     // As midpoint(), rounded outward: the half of the sum of the bounds, or the
     // sum of their halves when it overflows, each half rounded outward too
     // (halving a bound below 2^-1021 is not exact)

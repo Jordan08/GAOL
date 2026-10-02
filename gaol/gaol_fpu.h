@@ -71,6 +71,19 @@
 #  define GAOL_RND_FLUSH_BITS 0x1000000u
 #endif
 
+/* A compiler barrier: the memory read after it is read after it, and no
+   comparison of a bound read after it is made before it (see
+   round_upward_if_needed()). None for Visual C++, which keeps the
+   floating-point operations where the source puts them with respect to the
+   writes of the control register under /fp:strict, with which GAOL is
+   compiled (tests/rounding_direction.cpp checks it in the continuous
+   integration). */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_RND_BARRIER() __asm__ __volatile__ ("" : : : "memory")
+#else
+#  define GAOL_RND_BARRIER() ((void)0)
+#endif
+
 // Doubles computed in double precision, whose rounding direction an addition
 // shows (see round_upward_if_needed())
 #if (defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0) || defined(_M_X64) || defined(_M_ARM64) \
@@ -115,6 +128,24 @@
   plug-in built so. The probe of the direction sees them too (see
   round_upward_if_needed()), and GAOL leaves them cleared, as it leaves the
   direction upward (GAOL v5).
+
+  A comparison or a sum with a subnormal operand depends on these modes, and
+  no compiler models them: GCC 13 at -O3 computed the comparisons of asinpi()
+  with 0 before the check, on a lower bound read before it, and with the
+  modes still set asinpi([100 2^-1074]) was [32 2^-1074], above the exact
+  value. So an operation makes its check before it reads, compares or copies
+  a bound, the emptiness test aside, whose answer the modes do not change (a
+  NaN stays one, and flushing keeps two bounds in their order): its
+  bounds are read from memory after the check, which clears the modes with a
+  compiler barrier after it (round_upward_if_needed()), and a double it takes
+  by value goes through rnd_reread() after the check. With
+  GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
+  minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
+  and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
+  took the minimum of two subnormals as if they were zeros, and
+  sinpi([100, 1000] 2^-1074) was empty (GAOL v5, review of point 4,
+  tests/rounding_direction.cpp). The operations that make no check, which
+  compare bounds without clearing the modes, are listed in doc/using.md.
 
   Each operation checks the direction once, at its entry. What it calls after
   its GAOL_RND_ENTER() takes the direction to be upward and does not check it
@@ -318,12 +349,12 @@ namespace gaol_core {
     result gives a wrong bound ([1e-300]*[1e-20] is [0, 0]): a program linked
     with -Ofast, -ffast-math or -funsafe-math-optimizations gets them from
     crtfastmath.o, whose constructor runs after GAOL initializes itself with
-    GCC, and so does one that loads a plug-in built so. -mno-daz-ftz, which gaol.pc and
-    gaol::gaol give to the link where the compiler has it (GCC 13 and later,
-    11.4 and 12.4, on x86), only keeps crtfastmath.o out of the program: this
-    probe is the one defence against the plug-in, and against the other
-    platforms (GAOL v5, tests/rounding_direction.cpp,
-    tests/fast_math_link.cpp).
+    GCC, and so does one that loads a plug-in built so. -mno-daz-ftz, which
+    gaol.pc and gaol::gaol give to the link where the compiler has it (GCC 13
+    and later on x86, and from 11.4 and 12.4 in the series 11 and 12), only
+    keeps crtfastmath.o out of the program: this probe is the one defence
+    against the plug-in, and against the other platforms (GAOL v5,
+    tests/rounding_direction.cpp, tests/fast_math_link.cpp).
 
     On an Intel Xeon of the Cascade Lake generation (Clang 18), as on the Intel
     i7-1185G7 of the review of 2026-09-27, an addition with a subnormal operand
@@ -345,6 +376,7 @@ namespace gaol_core {
     if (1.0 + (subnormal + 0.0) == 1.0) {
       clear_flush_to_zero();
       round_upward();
+      GAOL_RND_BARRIER();
     }
 #elif GAOL_RND_PROBE
     // 2^-60, as a literal rather than 1.0/2^60: Visual C++ 2022 computed the
@@ -369,6 +401,7 @@ namespace gaol_core {
         || (_mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) != (unsigned int)_MM_ROUND_UP) {
       clear_flush_to_zero();
       round_upward();
+      GAOL_RND_BARRIER();
     }
 #else
     if (fegetround() != FE_UPWARD) {
@@ -409,6 +442,30 @@ namespace gaol_core {
   {
     volatile float kept = x;
     return kept;
+  }
+
+  /*!
+    \brief Returns x, a double an operation takes by value, as read after its
+    GAOL_RND_ENTER()
+
+    The compiler may otherwise compare x before the check, with the modes that
+    flush the subnormals to zero still set, x == 0.0 being true for a
+    subnormal (see above): the empty asm statement, which keeps its place
+    after the check, gives x back in the register it is computed in (SSE on
+    x86, the floating-point registers on ARM), at no cost. Not needed where
+    the doubles are computed by the x87 unit, which has no such mode, nor with
+    Visual C++ (see GAOL_RND_BARRIER()).
+  */
+  INLINE double rnd_reread(double x)
+  {
+#if (defined(__GNUC__) || defined(__clang__)) && GAOL_RND_SSE_REGISTER
+#  if defined(__SSE2_MATH__)
+    __asm__ __volatile__ ("" : "+x" (x));
+#  endif
+#elif (defined(__GNUC__) || defined(__clang__)) && defined(GAOL_RND_FLUSH_BITS)
+    __asm__ __volatile__ ("" : "+w" (x));
+#endif
+    return x;
   }
 
 } // namespace gaol_core
