@@ -1168,6 +1168,8 @@ x86-64 Linux, GCC 13.3, the two give the same bits in the four directions,
 all right. With MPFR, `./check.sh --worst` (1,003,179 arguments per direction)
 passes to nearest, toward zero and upward; downward it stops at the spurious
 underflow exception said above, where master stops as well.
+`./check.sh --special` with `CORE_MATH_TESTS=200000`, exact and midpoint values
+among its arguments, passes in the four directions.
 
 **Status.** Present in master (`b1a4badf`, and `284b3b0` of 1 October 2026,
 whose `pow.c` is the same); GAOL's copy makes the same change (item 8 above).
