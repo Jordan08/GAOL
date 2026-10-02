@@ -339,8 +339,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   that both give the same bounds. GAOL multiplied from the highest bit of n
   here (the code under #if 0 below): the bounds of the SSE2 and the FPU
   intervals differed for about half of the random intervals with such a
-  power, the two orders being as accurate, and this one is 1 to 2.5 ns
-  faster (Clang 18, Intel Xeon) (GAOL v5).
+  power, the two orders being as accurate, and this one is up to about
+  2.5 ns faster (Clang 18, Intel Xeon) (GAOL v5).
 */
 #if 1
 	/*

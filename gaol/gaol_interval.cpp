@@ -113,11 +113,11 @@ namespace gaol_core {
 
     The power is only rounded at the end, h + l upward and h - nl downward.
     The rest of x^k is below (k - 1) 2^-52 x^k; squaring x^k rounds three
-    terms below twice that and the rest of p, 2^-104 x^2k at most, and a
-    product by x rounds two, relatively: h + l and h - nl are within
-    (3s + 2m) n 2^-104 of x^n, relatively, s and m being the numbers of
-    squarings and of products by x, 5 log2(n) n 2^-104 at most (1.7 log2(n)
-    n 2^-104 found, over 20 000 random x and n up to 2^32 - 1). The bounds
+    terms below twice that, the rounding of the rest of p adding 2^-104
+    x^2k at most, and a product by x rounds two, relatively: h + l and h - nl
+    are within (3s + 2m) n 2^-104 of x^n, relatively, s and m being the
+    numbers of squarings and of products by x, 5 log2(n) n 2^-104 at most
+    (about 1.8 log2(n) n 2^-104 found, n up to 2^32 - 1). The bounds
     are thus the tightest, or one double beyond where the power is within
     5 log2(n) n 2^-104 of a double, relatively, and exact where the power is
     a double. false when a product is not finite, or is below 2^-968, its
