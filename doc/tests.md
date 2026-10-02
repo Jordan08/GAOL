@@ -325,17 +325,23 @@ mode there.
   3 211 of them a double (at least 8 000 and 3 000 must be), the reference is
   x<sup>y</sup> itself, computed with integers apart from GAOL and from
   CORE-MATH, whose values downward and upward have to be its roundings too.
-  Elsewhere x<sup>y</sup> is neither a double nor the midpoint of two, and the
-  reference is CORE-MATH's values downward and upward, which have to be two
-  neighbouring doubles, GAOL's bounds having to differ. A fault of CORE-MATH
-  is so told apart from one of GAOL's bounds: CORE-MATH's `pow` rounded to
-  nearest in every direction the midpoints of its exact phase on 32-bit ARM,
-  and compiled by Visual C++ it was -0 downward from 2<sup>−1075</sup> to
-  about 2<sup>−947</sup> and, on x86, rounded its square roots to nearest (see
-  `3rd/README.md` and `gaol/core_math_port.h`). Among the pairs is 8 to the
-  double nearest 1/3, whose product 3y rounds to 1 without being 1. With
-  flush-to-zero set (x86), the lower bound of `pow([0.5], [2^-1074])` has to
-  stay below 1, the product 1024y being flushed to 0. The functions of
+  Where x<sup>y</sup> is the 2<sup>k</sup>-th root of a rational, y being
+  A/2<sup>k</sup> with k ≤ 6, 12 540 pairs (at least 1 000 must be), the
+  doubles are compared with it exactly too, d<sup>2<sup>k</sup></sup> with
+  x<sup>A</sup>. Elsewhere x<sup>y</sup> is neither a double nor the midpoint
+  of two, and the reference is CORE-MATH's values downward and upward, which
+  have to be two neighbouring doubles, GAOL's bounds having to differ. A
+  fault of CORE-MATH is so told apart from one of GAOL's bounds: CORE-MATH's
+  `pow` rounded to nearest in every direction the midpoints of its exact phase
+  on 32-bit ARM, compiled by Visual C++ it was -0 downward from
+  2<sup>−1075</sup> to about 2<sup>−947</sup>, and on a 32-bit x86 Windows,
+  with Visual C++ and with MinGW-w64 at -O0, it rounded its square roots to
+  nearest, which put GAOL's upper bound of `pow([x], [0.5])` below the root at
+  subnormal x (see `3rd/README.md` and `gaol/core_math_port.h`). Among the
+  pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
+  being 1. With flush-to-zero set (x86), the lower bound of
+  `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y being flushed
+  to 0. The functions of
   Table 10.5 GAOL provides have to be the tightest enclosures over intervals
   too: the hull of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,

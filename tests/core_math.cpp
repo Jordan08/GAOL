@@ -461,14 +461,44 @@ namespace
      bits. Its value is kept where c^|A| < 2^200: beyond, which A > 200 gives,
      x^y is known to be neither a double nor a midpoint. A value beyond 2^1100,
      or below 2^-1100, is taken as 2^1100 or 2^-1100, which round to the same
-     doubles. */
+     doubles.
+     An irrational x^y, y = A/2^k, is the 2^k-th root of the rational x^A,
+     which is kept where k <= 6, m^|A| < 2^400 and |e A| <= 2^18: a double
+     d > 0 is above x^y where d^(2^k), exact, is above x^A, and no double is
+     x^y. These are the square roots of pow.c for y = 0.5, and the other
+     roots its first phase rounds. */
   struct Power
   {
     enum Kind { irrational, rational, beyond } kind = irrational; // beyond: rational, c^|A| >= 2^200
     bool is_double = false;
     Exact value;
-    std::string text; // c^A 2^s
+    int root = 0; // irrational, and x^y = radicand^(1/2^root) where root > 0
+    Exact radicand;
+    std::string text; // c^A 2^s, or (m^A 2^s)^(1/2^k)
   };
+
+  // Where x^y is irrational, y = A/2^k, k = -q, x = m 2^e: x^y = (x^A)^(1/2^k), x^A = m^A 2^(e A)
+  void root_of_rational(Power& r, std::uint64_t m, std::int64_t e, std::int64_t q, std::int64_t A)
+  {
+    const std::int64_t k = -q, magnitude = (A < 0) ? -A : A, limit = static_cast<std::int64_t>(1) << 18;
+    if (k > 6 || magnitude > limit || (e < 0 ? -e : e)*magnitude > limit) {
+      return;
+    }
+    const Natural bound = Natural(1u).shifted_left(400);
+    Natural p(1u); // m^|A|
+    for (std::int64_t i = 0; m != 1 && i < magnitude; ++i) {
+      p = p*Natural(m);
+      if (compare(p, bound) >= 0) {
+        return;
+      }
+    }
+    const std::int64_t s = e*A;
+    r.root = static_cast<int>(k);
+    r.radicand = (A > 0) ? exact(scaled(p, static_cast<long>(s)))
+                         : quotient(scaled(Natural(1u), static_cast<long>(s)), scaled(p, 0));
+    r.text = "(" + (m == 1 ? std::string() : std::to_string(m) + "^" + std::to_string(A) + " ") + "2^"
+           + std::to_string(s) + ")^(1/" + std::to_string(static_cast<std::int64_t>(1) << k) + ")";
+  }
 
   Power power_of(double x, double y)
   {
@@ -480,13 +510,15 @@ namespace
     std::uint64_t c = m;
     std::int64_t f = e;
     if (q < 0) {
-      const std::int64_t k = -q;
+      const std::int64_t k = -q, signed_a = (y < 0.0) ? -static_cast<std::int64_t>(a) : static_cast<std::int64_t>(a);
       if (k > (m == 1 ? 10 : 5) || e % (static_cast<std::int64_t>(1) << k) != 0) {
+        root_of_rational(r, m, e, q, signed_a);
         return r;
       }
       if (m != 1) {
         c = integer_root(m, static_cast<int>(k));
         if (c == 0) {
+          root_of_rational(r, m, e, q, signed_a);
           return r;
         }
       }
@@ -539,6 +571,26 @@ namespace
     return r;
   }
 
+  // The sign of d - x^y, d being a double, infinite or not, where power_of() knows x^y: rational, or the
+  // 2^k-th root of a rational
+  int compare_with(double d, const Power& power)
+  {
+    if (power.kind == Power::rational) {
+      return compare(d, power.value);
+    }
+    if (!(d > 0.0)) {
+      return -1;
+    }
+    if (d == inf) {
+      return 1;
+    }
+    Dyadic t = dyadic(d); // d^(2^k)
+    for (int i = 0; i < power.root; ++i) {
+      t = t*t;
+    }
+    return compare(exact(t), power.radicand);
+  }
+
   /* The bounds of pow(x, y) at the corners of a box, where x^y is a double
      (GAOL v5). GAOL takes CORE-MATH's value in the upward rounding as the upper
      bound and the double below it as the lower one, unless x^y is a double,
@@ -561,21 +613,26 @@ namespace
      The bounds have to be the tightest ones: the lower bound RD(x^y) at every
      pair, which is x^y where it is a double, and the upper one RU(x^y). Where
      x^y is rational, the reference is x^y itself, which power_of() computes
-     exactly, apart from GAOL and from CORE-MATH; CORE-MATH's values in the
-     two directed roundings have to be its roundings too. Where x^y is
-     irrational, or rational of too many digits, it is neither a double nor
-     the midpoint of two, and the reference is CORE-MATH's values downward and
-     upward, which have to be two neighbouring doubles. Wherever x^y is no
+     exactly, apart from GAOL and from CORE-MATH; where it is the 2^k-th root
+     of a rational, y = A/2^k with k <= 6, the doubles are compared with it
+     exactly too, d^(2^k) with x^A. CORE-MATH's values in the two directed
+     roundings have to be its roundings too. Elsewhere, x^y irrational with
+     more digits in y, or rational of too many digits, it is neither a double
+     nor the midpoint of two, and the reference is CORE-MATH's values downward
+     and upward, which have to be two neighbouring doubles. Wherever x^y is no
      double, GAOL's bounds have to differ, which needs no reference. So a
      fault of CORE-MATH is told apart from one of GAOL's bounds: on 32-bit
      ARM, CORE-MATH rounded to nearest in every direction the midpoints it
      computes exactly (see exact_pow() in
      3rd/math-core/src/binary64/pow/pow.c), and GAOL's upper bound, its value
      upward, was below x^y there; compiled by Visual C++, CORE-MATH returned
-     -0 rounding downward where x^y is between 2^-1075 and about 2^-947, and
-     on 32-bit x86 the square root it takes for y = 0.5 was rounded to nearest
-     in every direction (see gaol/core_math_port.h). A reference taken from
-     CORE-MATH alone took these for faults of the lower bound.
+     -0 rounding downward where x^y is between 2^-1075 and about 2^-947; and
+     on a 32-bit x86 Windows, with Visual C++ and with MinGW-w64 at -O0, the
+     square root it takes for y = 0.5 was rounded to nearest in every
+     direction, and GAOL's upper bound of pow([x], [0.5]) was below the root
+     at subnormal x (see gaol/core_math_port.h). A reference taken from
+     CORE-MATH alone took the first and the last for faults of the lower
+     bound, or checked no bound.
 
      The box [x] x [y] is degenerate, and pow takes pown for an integer y: the
      box is then [y, next(y)] or [prev(y), y], the one whose lower bound is at
@@ -657,7 +714,7 @@ namespace
       const int k = (int)(gen() % 6);
       add(std::ldexp(significand, exponent), numerator/(double)(1 << k));
     }
-    int doubles = 0, rationals = 0;
+    int doubles = 0, rationals = 0, roots = 0;
     for (const std::pair<double, double>& pair : pairs) {
       const double x = pair.first, y = pair.second;
       if (!(x > 0.0) || x == 1.0 || y == 0.0 || !std::isfinite(x) || !std::isfinite(y)) {
@@ -670,18 +727,23 @@ namespace
       std::fesetround(FE_UPWARD);
       const double hi = gaol_cr_pow(x, y);
       const auto describe = [&] { return "pow(" + show(x) + ", " + show(y) + ")"; };
-      const bool rational = power.kind == Power::rational;
+      const bool rational = power.kind == Power::rational, known = rational || power.root > 0;
       const auto power_text = [&] {
-        return std::string(", x^y being ") + (power.kind == Power::irrational ? "irrational" : power.text);
+        return std::string(", x^y being ") + (power.text.empty() ? "irrational" : power.text);
       };
+      // Where x^y is known: whether d <= x^y, and whether d >= x^y
+      const auto at_most = [&](double d) { return compare_with(d, power) <= 0; };
+      const auto at_least = [&](double d) { return compare_with(d, power) >= 0; };
       // CORE-MATH's values: x^y rounded where it is known exactly, two neighbouring doubles elsewhere,
       // x^y being then no double
       bool reference = true;
-      if (rational) {
-        ++rationals;
+      if (known) {
+        rationals += rational;
+        roots += !rational;
         doubles += power.is_double;
-        check("pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is rational",
-              is_tightest_lower_bound(lo, power.value) && is_tightest_upper_bound(hi, power.value),
+        check(rational ? "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is rational"
+                       : "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is a 2^k-th root, k <= 6",
+              at_most(lo) && !at_most(next_double(lo)) && at_least(hi) && !at_least(previous_double(hi)),
               [&] { return describe() + " is " + show(lo) + " downward and " + show(hi) + " upward" + power_text(); });
       } else {
         reference = !std::signbit(lo) && hi == next_double(lo);
@@ -699,29 +761,31 @@ namespace
         check("pow: the bounds differ where x^y is not a double", l < u,
               [&] { return describe() + " is [" + show(l) + ", " + show(u) + "]" + power_text(); });
       }
-      if (!rational && !reference) {
+      if (!known && !reference) {
         continue; // no reference
       }
       const auto lower = [&] {
-        return describe() + " has the lower bound " + show(l) + (rational ? power_text() : " rather than " + show(lo));
+        return describe() + " has the lower bound " + show(l) + (known ? power_text() : " rather than " + show(lo));
       };
       const auto upper = [&] {
-        return describe() + " has the upper bound " + show(u) + (rational ? power_text() : " rather than " + show(hi));
+        return describe() + " has the upper bound " + show(u) + (known ? power_text() : " rather than " + show(hi));
       };
-      const bool lower_sound = rational ? is_lower_bound(l, power.value) : l <= lo;
-      const bool upper_sound = rational ? is_upper_bound(u, power.value) : u >= hi;
+      const bool lower_sound = known ? at_most(l) : l <= lo;
+      const bool upper_sound = known ? at_least(u) : u >= hi;
       check("pow: the lower bound is at most x^y", lower_sound, lower);
       check(power.is_double ? "pow: the lower bound is x^y where it is a double"
                             : "pow: the lower bound is the tightest one where x^y is not a double",
-            lower_sound && (rational ? is_tightest_lower_bound(l, power.value) : l == lo), lower);
+            lower_sound && (known ? !at_most(next_double(l)) : l == lo), lower);
       check("pow: the upper bound is at least x^y", upper_sound, upper);
       check("pow: the upper bound is the tightest one",
-            upper_sound && (rational ? is_tightest_upper_bound(u, power.value) : u == hi), upper);
+            upper_sound && (known ? !at_least(previous_double(u)) : u == hi), upper);
     }
     check("pow: powers that are doubles among the pairs", doubles >= 3000,
           [&] { return std::to_string(doubles) + " of them"; });
     check("pow: powers known exactly among the pairs", rationals >= 8000,
           [&] { return std::to_string(rationals) + " of them"; });
+    check("pow: powers known as 2^k-th roots among the pairs", roots >= 1000,
+          [&] { return std::to_string(roots) + " of them"; });
   }
 
   /* pow(x, y) at a tiny exponent with flush-to-zero set (GAOL v5), as a
