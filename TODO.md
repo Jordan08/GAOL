@@ -655,6 +655,10 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
 - **49** :
   - `GAOL_INFINITY` avec clang-cl : le corriger dans sa propre pull request, par `__builtin_huge_val()` ou
     `std::numeric_limits<double>::infinity()` ? (#59)
+  - Sous clang-cl, `expm1([1e10])` (et `exp2m1`, `exp10m1`) était vide en arrondi vers le bas : `GAOL_INFINITY`, passé en
+    argument avant la vérification, y valait FLT_MAX. Corrigé dans #62 (ab9d2e0), qui lit +oo après la vérification ; l'ordre de
+    #62 rend aussi juste `operator/` par un intervalle contenant 0. Restent `interval()`, `pow(x, n)` par les produits arrondis et
+    le drapeau d'`interval::emptyset()` (25 échecs sur #62, 37 sur `configure-clean`). (#62)
 - **Hors liste** :
   - La branche jetable `ci-debug-numbers-arm64` (sorties de débogage et workflow de variantes du diagnostic de GCC 12 sur aarch64)
     est toujours sur le dépôt : à supprimer. (#34)
