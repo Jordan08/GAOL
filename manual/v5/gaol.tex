@@ -1038,14 +1038,16 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   intervals raises the inexact one where GAOL checks the rounding direction
   with an addition, and \code{atanh\_rel(interval(-1,~2),~x)} for an empty
   \code{x} raises the divide-by-zero one while it computes
-  \code{atanh(interval(-1,~2))}. On 32-bit ARM, GCC (12 to 14) may compile a
-  quiet comparison into the signaling \code{vcmpe} where it turns a choice
-  into a conditional move (GCC bug 52258,
+  \code{atanh(interval(-1,~2))}. GCC may compile a quiet comparison into a
+  signaling one where it turns a choice into a conditional move: into
+  \code{vcmpe} on 32-bit ARM (GCC 12 to 14; GCC bug 52258,
   \url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258}, is of this
-  kind): the operations of GAOL are written so that they stay quiet there,
-  but a choice the program makes itself on \code{is\_empty()} or on a
-  relation, \code{x.is\_empty() ? a : b} for an empty \code{x}, may raise
-  the invalid-operation flag.\newinvfive
+  kind), into \code{xscmpgedp} on POWER9 (GCC 13 with
+  \code{-mcpu=power9}). The operations of GAOL are written so that they stay
+  quiet on 32-bit ARM, but a choice the program makes itself on
+  \code{is\_empty()} or on a relation, \code{x.is\_empty() ? a : b} for an
+  empty \code{x}, may raise the invalid-operation flag on both processors,
+  and so may \code{x~\&=~y} for an empty \code{y} on POWER9.\newinvfive
 \item Nonempty operands raise the invalid-operation exception as well. With
   the SSE2 intervals, multiplying a zero bound by an infinite one does:
   \code{interval(0)*interval::one\_plus\_infinity()} and
