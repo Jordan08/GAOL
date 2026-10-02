@@ -1841,20 +1841,33 @@ interval nth_root(const interval& I, int q)
     return res;
   }
 
+  // Within [-1, +oo]: b^x - 1 exceeds -1, which it nears as x goes to -oo.
+  // +oo is read after the check: some C libraries compute HUGE_VAL when the
+  // program runs (the UCRT's under clang-cl), and it was FLT_MAX in the
+  // caller's downward rounding, which made expm1([1e10]) empty (GAOL v5)
+  static interval increasing_cr_from_minus_one(const interval& I, double (*f)(double),
+                                               bool (*exact)(double))
+  {
+    GAOL_RND_ENTER();
+    interval res = increasing_cr_upward(I, f, exact, -1.0, GAOL_INFINITY);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
   interval expm1(const interval& I)
   {
-    // within [-1, +oo]: b^x - 1 exceeds -1, which it nears as x goes to -oo
-    return increasing_cr(I, gaol_cr_expm1, expm1_is_exact, -1.0, GAOL_INFINITY);
+    return increasing_cr_from_minus_one(I, gaol_cr_expm1, expm1_is_exact);
   }
 
   interval exp2m1(const interval& I)
   {
-    return increasing_cr(I, gaol_cr_exp2m1, exp2m1_is_exact, -1.0, GAOL_INFINITY);
+    return increasing_cr_from_minus_one(I, gaol_cr_exp2m1, exp2m1_is_exact);
   }
 
   interval exp10m1(const interval& I)
   {
-    return increasing_cr(I, gaol_cr_exp10m1, exp10m1_is_exact, -1.0, GAOL_INFINITY);
+    return increasing_cr_from_minus_one(I, gaol_cr_exp10m1, exp10m1_is_exact);
   }
 
   interval atanpi(const interval& I)
