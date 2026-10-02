@@ -317,20 +317,24 @@ namespace gaol_tests
 #  endif
   }
 
-  // Whether the modes of bits, set, make 2^-1060 + 0 a zero, as the probe of
-  // GAOL sees them: an emulator may keep the bits without honouring them. The
-  // sum is written to volatile memory before the modes are restored, the
-  // compilers not modelling the control register.
+  // Whether the modes of bits, set, make 2^-1060 + 0 or 1e-300*1e-20 a zero:
+  // an emulator may keep the bits without honouring them. The inexact product
+  // is not the probe of GAOL, which an exact sum makes: a processor flushing
+  // only the inexact subnormal results would have its mode tried, and the
+  // test fail, rather than skip it. The results are written to volatile
+  // memory before the modes are restored, the compilers not modelling the
+  // control register.
   inline bool flush_honoured(unsigned int bits)
   {
-    volatile double subnormal = 0x1p-1060, zero = 0.0;
-    volatile double sum;
+    volatile double subnormal = 0x1p-1060, zero = 0.0, tiny = 1e-300, small = 1e-20;
+    volatile double sum, product;
     const unsigned int saved = flush_bits();
     set_flush_bits(bits);
     const bool kept = flush_bits() == bits;
     sum = subnormal + zero;
+    product = tiny*small;
     set_flush_bits(saved);
-    return kept && sum == 0.0;
+    return kept && (sum == 0.0 || product == 0.0);
   }
 
   struct FlushMode
