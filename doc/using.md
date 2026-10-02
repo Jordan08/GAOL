@@ -33,7 +33,8 @@ command line, and does nothing when it comes before them, where the
 compilation stops.
 
 The link of the program takes one option too, where the compiler accepts it
-(GCC 13 and later on x86, and its releases 11.4 and 12.4): `-mno-daz-ftz`,
+(GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
+`-mno-daz-ftz`,
 which keeps out of the link the file that sets the flush-to-zero and
 denormals-are-zero modes when a program is linked with `-Ofast` (see
 [Flush-to-zero and denormals-are-zero](#flush-to-zero-and-denormals-are-zero)).
@@ -48,9 +49,11 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
 `gaol::gaol` carries the include directory, the flags above, the link option
-above for the code built by the compiler that built GAOL, of its version or a
-later one (another compiler, as Clang 18, would stop on it), and, for Visual
-C++, `__GAOL_PUBLIC__=`, GAOL being a static library. There is no other library
+above for the code built by GCC 13 or a later one, or by the compiler that
+built GAOL, of its major version and not older (another compiler, as Clang 18,
+would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
+GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and, for
+Visual C++, `__GAOL_PUBLIC__=`, GAOL being a static library. There is no other library
 to link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
 include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
 get the flags, and its CMake package finds GAOL again (`find_dependency(gaol)`).
@@ -85,8 +88,8 @@ with Visual C++. Its `Cflags` carries the flags above with the include
 directory, and `Libs` GAOL itself with the C math library, CORE-MATH being
 compiled into `libgaol`, and the link option above where the compiler that
 built GAOL accepts it. `gaol.pc` is written for that compiler: a program linked
-by one that refuses `-mno-daz-ftz` (Clang 18, GCC before 11.4) stops on it, and
-is to be linked without it:
+by one that refuses `-mno-daz-ftz` (Clang 18, a GCC before 11.4, GCC 12.0 to
+12.3) stops on it, and is to be linked without it:
 
 ```bash
 export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig
@@ -376,13 +379,19 @@ bounds wrong**, and GAOL defends itself in two ways:
   of GAOL that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction (see
-  [The rounding direction](#the-rounding-direction)), so that the bounds
-  computed after the check are the tightest ones, and the modes stay cleared
-  for the rest of the program, as the rounding direction stays upward. The
-  arithmetic operations, `+`, `-`, `*`, `/` and `%` with an interval or a
-  double, make the check before they compare the bounds (GAOL v5). With
+  [The rounding direction](#the-rounding-direction)), and the modes stay
+  cleared for the rest of the program, as the rounding direction stays upward.
+  The check comes before the operation reads, compares or copies a bound, the
+  test of the empty set aside, and the compiler is kept from making a
+  comparison before it, which it would do, not knowing that the check changes
+  how a subnormal compares: with GCC 13 at `-O3`, `asinpi()` compared the
+  bounds it had read with 0 before its check, and with the modes set
+  `asinpi(interval(100*2^-1074))` was [32*2^-1074], above the exact value. With
   `GAOL_PRESERVE_ROUNDING`, each operation sets the modes back as it found
-  them. This is the only defence against a plug-in, which sets the modes after
+  them, once it has made its result, its maxima and minima of bounds included.
+  The bounds of every operation that makes the check are then the ones it gives
+  with the modes cleared, the tightest ones (GAOL v5, checked for each of them
+  by `tests/rounding_direction.cpp`). This is the only defence against a plug-in, which sets the modes after
   GAOL initialized itself, and against the compilers and processors that have
   no `-mno-daz-ftz`. On an Intel Xeon of the Cascade Lake generation, with
   Clang 18, an addition with a subnormal operand and result took as long as one
@@ -399,22 +408,25 @@ bounds wrong**, and GAOL defends itself in two ways:
   continuous integration (virtual machines, AMD EPYC or Intel Xeon) were
   measured; `tests/performance.cpp`, which it runs, prints the times there.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
-  compiler accepts it: GCC 13 and later on x86, and its releases 11.4 and 12.4
-  (GCC 9.4, GCC for ARM and Clang 18 refuse it, and the builds test the
-  compiler with a link, not with its version). It keeps `crtfastmath.o` out of
+  compiler accepts it: GCC 13 and later on x86, and from 11.4 and 12.4 in the
+  series 11 and 12 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
+  builds test the compiler with a link, not with its version). It keeps `crtfastmath.o` out of
   the link, so that a program linked with `-Ofast` does not get the modes at
   all, its own code included.
 
-What remains: the functions that read the bounds of an interval or compare them
-without computing, or that do so before the check of their operation (the
-relations, the constructor from two bounds, `abs()`, `mid()`, `split()`,
-`div_rel()`, and the tests of the domain that `sqrt()`, `log()` and the like
-make before their check), read a subnormal bound as a zero for as long as a
-mode flushing the operands (DAZ, FZ) is set, that is until an operation that
-computes has cleared it, or, with `GAOL_PRESERVE_ROUNDING`, which sets the
-modes back after each operation, for as long as the program keeps them:
-`log(interval(1e-310, 1e-309))` and
-`sqrt(interval(-1e-310, 4.0))` are then the empty set. The modes of other
+What remains: the functions that read or compare the bounds of an interval
+without computing make no check, and read a subnormal bound as a zero for as
+long as a mode flushing the operands (DAZ, FZ) is set, that is until an
+operation that checks has cleared it, or, with `GAOL_PRESERVE_ROUNDING`, which
+sets the modes back after each operation, for as long as the program keeps
+them. They are the constructor from two bounds, the reading and the writing of
+text, the relations (`set_contains()`, `certainly_le()`, `==`...), the
+intersection `&` and the hull `|`, `max()`, `min()`, `abs()`, `sign()`,
+`floor()`, `ceil()`, `integer()` and the other roundings to an integer,
+`invabs_rel()`, `mig()`, `mag()`, `midpoint()` and `split()`. Under
+denormals-are-zero, `interval(3*2^-1074, 100*2^-1074) | interval(200*2^-1074)`
+is [0, 0], `max()` of the same two intervals is the first one, and
+`abs(interval(-1e-309, -1e-310))` stays negative. The modes of other
 processors, and of ARM with Visual C++, are neither checked nor cleared; GCC
 links `crtfastmath.o` for none of the other processors GAOL is tested on.
 Link a program that uses GAOL without these options, or with `-mno-daz-ftz`,
@@ -442,7 +454,9 @@ bounds.
   bounds are exact raises it. On x86, the addition of the subnormal 2^-1060
   also raises the denormal-operand flag of the SSE instructions, which is none
   of the five flags of IEEE 754 (not in `FE_ALL_EXCEPT`), and its exception
-  stops the program where the program enabled it (GAOL v5).
+  stops the program where the program enabled it; and with flush-to-zero set,
+  the sum 2^-1060 + 0, flushed to zero, raises the underflow exception
+  (`FE_UNDERFLOW`) too, before the check clears the mode (GAOL v5).
 - An empty operand raises no invalid-operation exception, though the bounds
   of the empty interval are NaN (GAOL v5): every operation, relation, function
   and output of `gaol::interval` and of `gaol_ieee1788` takes it without
