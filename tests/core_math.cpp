@@ -41,6 +41,12 @@
 #include <functional>
 #include <random>
 
+// The control register of the SSE instructions, where flush-to-zero is set
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_HAVE_MXCSR 1
+#endif
+
 using namespace gaol;
 using namespace gaol_tests;
 
@@ -501,6 +507,40 @@ namespace
     }
     check("pow: powers that are doubles among the pairs", doubles >= 3000,
           [&] { return std::to_string(doubles) + " of them"; });
+  }
+
+  /* pow(x, y) at a tiny exponent with flush-to-zero set (GAOL v5), as a
+     program linked with -Ofast has it (crtfastmath.o): 1024 y, of which the
+     test of whether x^y is a double makes an integer, is then 0 for
+     |y| < 2^-1032, and x^y was taken for x^0 = 1, the lower bound of
+     pow([0.5], [2^-1074]), above 0.5^(2^-1074) < 1. x86 only, where MXCSR is,
+     and where the processor honours flush-to-zero; the other effects of
+     flush-to-zero on GAOL's bounds are not looked at here. */
+  void pow_with_flush_to_zero()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    const unsigned int flush_to_zero = 0x8000u, saved = _mm_getcsr() & flush_to_zero;
+    // Whether the processor flushes 1024 2^-1074 to 0. The product is written to volatile memory before
+    // the mode is cleared: GCC and Clang, which do not model MXCSR, might compute it afterwards otherwise
+    volatile double least = 0x1p-1074, product;
+    _mm_setcsr(_mm_getcsr() | flush_to_zero);
+    product = 1024.0*least;
+    _mm_setcsr((_mm_getcsr() & ~flush_to_zero) | saved);
+    if (product != 0.0) {
+      std::printf("Flush-to-zero is not honoured: pow with it is not checked\n");
+      return;
+    }
+    _mm_setcsr(_mm_getcsr() | flush_to_zero);
+    const interval point = pow(interval(0.5), interval(0x1p-1074));
+    const interval box = pow(interval(0.5, 0.75), interval(0x1p-1074, 0x1p-1070));
+    _mm_setcsr((_mm_getcsr() & ~flush_to_zero) | saved);
+    check("pow with flush-to-zero: the lower bound is below x^y < 1", !point.is_empty() && point.left() < 1.0,
+          [&] { return "pow([0.5], [0x1p-1074]) = " + hex(point); });
+    check("pow with flush-to-zero: the lower bound is below x^y < 1", !box.is_empty() && box.left() < 1.0,
+          [&] { return "pow([0.5, 0.75], [0x1p-1074, 0x1p-1070]) = " + hex(box); });
+#else
+    std::printf("No control register of the SSE instructions: pow with flush-to-zero is not checked\n");
+#endif
   }
 
   /* The bounds GAOL gives of the exponentials and the logarithms in base 2 and
@@ -1157,6 +1197,7 @@ int main()
   exact_values();
   two_arguments();
   pow_exact_at_corners();
+  pow_with_flush_to_zero();
   base_two_and_ten_exact();
   negative_roots();
   recommended_intervals();

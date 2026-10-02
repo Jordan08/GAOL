@@ -479,10 +479,10 @@ namespace gaol_core {
     if (!(y >= -1075.0 && y <= 1075.0)) {
       return false; // |e y| > 1074 for |e| >= 1
     }
-    const double scaled = 1024.0*y; // exact
+    const double scaled = 1024.0*y; // exact, unless flush-to-zero makes it 0 (|y| < 2^-1032)
     const int j = static_cast<int>(scaled);
-    if (static_cast<double>(j) != scaled) {
-      return false; // k > 10
+    if (j == 0 || static_cast<double>(j) != scaled) {
+      return false; // k > 10, j being 0 for y != 0 only where 1024 y was flushed to 0
     }
     std::uint64_t m;
     int e;
