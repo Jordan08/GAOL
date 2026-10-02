@@ -457,12 +457,23 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   - Manuel, section 3.3 « The floating-point exceptions » (`gaol.tex` l. 995-1080), toute nouvelle en v5 : `\newinvfive` marque
     l'introduction et les puces, pas les derniers paragraphes (indicateurs, initialisation, `GAOL_PRESERVE_ROUNDING`). (#47)
 - **24b** :
-  - La CI de #50 est rouge sur armhf (Debian 12 et 13, GCC 14.2, intervalles FPU, `-mfpu=neon-vfpv4`) : `rounding_direction` compte
-    6 échecs sur 58 « raises no invalid-operation flag » (`x & empty`, `gaol_ieee1788::intersection(x, empty)`, `nth_root_rel(x, 1,
-    empty)`, `asinh_rel(x, empty)`, `atanh_rel(x, empty)` nommés) : l'`operator&=` FPU (`std::islessequal`/`std::isgreaterequal`,
-    `gaol/gaol_interval_fpu.h` l. 127-149) y lève encore FE_INVALID quand le second opérande est vide. La PR a été fusionnée avant
-    la fin de la CI et les runs de `configure-clean` ont tous été annulés depuis : corriger (cause à trouver dans le code ARM de
-    GCC), ou sauter la vérification sur ARM 32 bits. (#50)
+  - La CI de #50 est rouge sur armhf : 6 échecs sur 58 « raises no invalid-operation flag » (`x & empty`,
+    `gaol_ieee1788::intersection(x, empty)`, `nth_root_rel`, `asinh_rel`, `atanh_rel`, `invabs_rel`). Cause : l'if-conversion de
+    GCC 12 à 14 rend signalante (`vcmpe`) la comparaison des bornes d'`operator&=`. Corrigé par #60, ouverte, après trois
+    relectures. (#50, #60)
+  - POWER9 (`-mcpu=power9`, défaut d'Ubuntu ppc64el) : `x &= empty` lève FE_INVALID à -O2 avec GCC 13 (`xscmpgedp`), déjà sur la
+    base (code `#else` de #50) ; la CI ppc64le (Debian, base POWER8) ne le voit pas. Prendre aussi le code ARM sous `_ARCH_PWR9` ?
+    Point à part. (#60)
+  - Les choix du programme sur `is_empty()` ou une relation d'un intervalle vide lèvent FE_INVALID sur ARM 32 bits et POWER9 (GCC
+    rend la comparaison signalante en l'if-convertissant) : durcir `is_empty()` sur ces cibles, ou signaler le chemin à GCC (bug
+    52258 ouvert) ? (#60)
+  - Le vectoriseur sur AArch64 et avec les intervalles FPU x86-64 : `set_le`, `set_strictly_contains`, `less`… lèvent FE_INVALID
+    dans les boucles du programme. Non documenté. (#60)
+  - Les trois vérifications de choix de `rounding_direction` (`is_empty()` d'une intersection à opérande gauche vide) sont fragiles :
+    elles passent parce que GCC enchaîne le choix avec le `is_empty()` d'`operator&=` ; un futur GCC peut les faire échouer sans
+    défaut de GAOL. Elles sont déjà sautées sous `__OPTIMIZE_SIZE__`. Les garder comme garde-fous ? (#60)
+  - Une seule forme d'`operator&=` pour tous les processeurs (`std::isunordered(lb_, I.lb_)` puis des comparaisons simples) : plus
+    rapide avec GCC sur x86-64, mitigée avec clang-18. Non retenue, x86 devant rester inchangé. (#60)
   - `floor`, `ceil` et `integer` coûtent +0,17 ns sur des opérandes non vides (1,52 → 1,69 ns avec clang-18, 1,43 → 1,60 avec GCC ;
     +8 à +17 % selon la relecture) à cause d'un `std::isunordered` ajouté avant le constructeur. Pour les rendre gratuits : (a)
     rendre silencieuse la première comparaison de `interval(l, r)`, mais `interval(NaN, x)` devient silencieux aussi ; (b)
@@ -681,10 +692,9 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   À fusionner en premier.
 - **#59** (`todo-47-clang-cl-rounding-mode`, point 47) : contient les commits de #58. CI verte sauf armhf et les deux jobs clang-cl,
   qui échouent seulement sur le point 49 (`interval()`, `operator/`, `pow(x, n)`) ; `core_math` passe sous clang-cl.
-- **`fix-24b-armhf-fe-invalid`** (375a822, poussé, pas de pull request) : `operator&=` teste `std::isunordered()` d'abord sur ARM 32
-  bits ; validé sous qemu (58 vérifications, 0 échec ; 0/4845 opérations lèvent FE_INVALID). Relecture indépendante à faire, puis
-  pull request vers `configure-clean`. Questions ouvertes du rapport : `is_empty()` dans le code du programme
-  sur ARM 32 bits, et une forme robuste partout ?
+- **#60** (`fix-24b-armhf-fe-invalid` → `configure-clean`, f4881f6) : `operator&=` reconnaît l'opérande vide avant de comparer
+  les bornes, sur ARM 32 bits seulement. Trois relectures indépendantes, la dernière sans point bloquant ; 61 vérifications, 0 échec
+  sous qemu avec GCC 12.4, 13.3 et 14.2, 6 échecs sur la base. Ouverte le 2 octobre.
 - **Points 3, 4, 8** (`todo-03-pow-exact-corner`, `todo-04-ftz-daz`, `todo-08-pow-large-n`, poussés) : terminés et validés
   localement ; relecture indépendante à faire, puis pull requests.
 - **Points 12, 17, 36** : `configure-clean` fusionné dans 12 et 17 ; le travail reste « WIP » (12 : dernier commit WIP 553e649 ;
