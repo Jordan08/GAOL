@@ -130,18 +130,20 @@ mode there.
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
   with each mode set just before it and each rounding direction, has to give
-  what it gives with the modes cleared: the compilers do not model the modes,
+  what it gives with the modes cleared, and leave the modes cleared, or set
+  back with `GAOL_PRESERVE_ROUNDING`: the compilers do not model the modes,
   and this checks what each of them emits. With GCC 13 at `-O3`, `asinpi()`
   compared bounds with 0 before its check, and `asinpi([100·2^-1074])` was
   [32·2^-1074], above the exact value; `sqrt([-1e-310, 4])`,
   `pow([-5·2^-1074, 1], 0.5)` and `atan2([100·2^-1074], [100·2^-1074])` were
   the empty set; with `GAOL_PRESERVE_ROUNDING`, `sinpi([100, 1000]·2^-1074)`
   was empty, its minimum taken once the modes were restored (GAOL v5, review
-  of point 4). The operations that make no check (`&`, `|`, `max`, `abs`,
-  the relations... see `doc/using.md`) are left out. A mode the processor
-  keeps without honouring it, as an emulator may, is named and skipped: one
-  that flushes neither the exact subnormal sum 2^-1060 + 0 nor the inexact
-  product 1e-300·1e-20.
+  of point 4); `acos_rel()` and `asin_rel()` of a J outside [-1, 1], or
+  containing it, returned before their check, the modes left set. The
+  operations that make no check (`&`, `|`, `max`, `abs`, the relations... see
+  `doc/using.md`) are left out. A mode the processor keeps without honouring
+  it, as an emulator may, is named and skipped: one that flushes neither the
+  exact subnormal sum 2^-1060 + 0 nor the inexact product 1e-300·1e-20.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set

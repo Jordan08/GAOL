@@ -27,8 +27,9 @@
  * the operations with a subnormal operand or result are the tightest ones, and
  * the modes are cleared after them, or restored with GAOL_PRESERVE_ROUNDING;
  * and every operation that checks the rounding direction gives, with a mode
- * set before it, what it gives with the modes cleared (GAOL v5). At the end, gaol::cleanup() has to set back the direction the
- * first gaol::init() found (GAOL v5).
+ * set before it, what it gives with the modes cleared, and clears or restores
+ * the modes (GAOL v5). At the end, gaol::cleanup() has to set back the
+ * direction the first gaol::init() found (GAOL v5).
  *
  * The rest of the floating-point environment is checked too: the exceptions
  * stay masked, and an empty interval is told empty, with interval::emptyset(),
@@ -794,7 +795,8 @@ int main()
   /*
     Every operation that checks the rounding direction, with each of the modes
     set just before it, gives what it gives with the modes cleared, which the
-    cases above show to be the tightest bounds (GAOL v5, review of point 4).
+    cases above show to be the tightest bounds, and leaves them cleared, or
+    restored with GAOL_PRESERVE_ROUNDING (GAOL v5, review of point 4).
     Its check clears the modes before it reads, compares or copies a bound, and
     with GAOL_PRESERVE_ROUNDING it makes its result before it restores them;
     the compilers do not model the modes, so this is checked on what each
@@ -805,7 +807,9 @@ int main()
     [0, +oo] kept -1e-310 under denormals-are-zero, was empty once the check
     had cleared it; atan2([100*2^-1074], [100*2^-1074]) was empty, the point
     taken for (0, 0); and with GAOL_PRESERVE_ROUNDING sinpi([100, 1000]*2^-1074)
-    was empty, its minimum taken once the modes were restored. The operations
+    was empty, its minimum taken once the modes were restored. acos_rel() and
+    asin_rel() of a J outside [-1, 1], or containing it, returned before their
+    check, with the right result but the modes still set. The operations
     that make no check, which compare the bounds under the modes, are left out
     (doc/using.md). Nothing of the C library runs while a mode is set: the
     results are read and written with the modes cleared.
@@ -919,6 +923,11 @@ int main()
     };
     for (const FlushOperation& op : flush_operations) {
       const std::string name = std::string(op.name) + " with a flush-to-zero mode set before it, as with the modes cleared";
+#if GAOL_PRESERVE_ROUNDING
+      const std::string modes_name = std::string(op.name) + ": flush-to-zero modes restored after it";
+#else
+      const std::string modes_name = std::string(op.name) + ": flush-to-zero modes cleared after it";
+#endif
       const std::size_t n = operands_of[op.arity];
       const std::size_t ny = (op.arity >= 2) ? n : 1, nz = (op.arity == 3) ? n : 1;
       for (std::size_t i = 0; i < n; ++i) {
@@ -935,18 +944,26 @@ int main()
                 set(d);
                 set_flush_bits(m.bits);
                 const interval r = op.run(x, y, z);
+                const unsigned int left = flush_bits();
                 set_flush_bits(0u);
-                check(name, same(r, cleared), [&] {
-                        std::string args = hex(x);
-                        if (op.arity >= 2) {
-                          args += ", " + hex(y);
-                        }
-                        if (op.arity == 3) {
-                          args += ", " + hex(z);
-                        }
-                        return m.name + " set, rounding direction " + d.name + ", (" + args + "): " + hex(r)
-                             + " rather than " + hex(cleared);
-                      });
+                const auto args = [&] {
+                  std::string a = hex(x);
+                  if (op.arity >= 2) {
+                    a += ", " + hex(y);
+                  }
+                  if (op.arity == 3) {
+                    a += ", " + hex(z);
+                  }
+                  return m.name + " set, rounding direction " + d.name + ", (" + a + ")";
+                };
+                check(name, same(r, cleared),
+                      [&] { return args() + ": " + hex(r) + " rather than " + hex(cleared); });
+                const auto modes_left = [&] { return args() + ": modes " + std::to_string(left) + " after it"; };
+#if GAOL_PRESERVE_ROUNDING
+                check(modes_name, left == m.bits, modes_left);
+#else
+                check(modes_name, left == 0u, modes_left);
+#endif
               }
             }
           }

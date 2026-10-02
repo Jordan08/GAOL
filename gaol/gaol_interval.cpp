@@ -2981,16 +2981,31 @@ interval nth_root(const interval& I, int q)
     their own) and the quotients x/pi + shift are computed after the check
     here, where the relational functions called acos(J), asin(J) or atan(J),
     and four operations of intervals, which checked it once more each.
+
+    For acos_rel() and asin_rel(), whose function has its image in [-1, 1]
+    (bounded), a J outside [-1, 1] has no preimage, and a J containing it has
+    the whole line: these are decided after the check too, though the modes
+    flushing the subnormals to zero do not change how J compares with -1 and
+    1, so that the check, which clears the modes, is made on every path of a
+    non-empty J and I (GAOL v5, second review of point 4).
   */
   template<class Inverse, class Piece, class Image>
-  static interval periodic_rel(const interval& J, const interval& I, double shift, Inverse inverse, Piece piece,
-                               Image image)
+  static interval periodic_rel(const interval& J, const interval& I, double shift, bool bounded, Inverse inverse,
+                               Piece piece, Image image)
   {
     if (J.is_empty() || I.is_empty()) {
       return interval::emptyset();
     }
     // The check before the bounds are compared (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
+    if (bounded && (J.left() > 1.0 || J.right() < -1.0)) {
+      GAOL_RND_LEAVE();
+      return interval::emptyset();
+    }
+    if (bounded && J.set_contains(interval::minus_one_plus_one())) {
+      GAOL_RND_LEAVE();
+      return I;
+    }
     if (I.left() == I.right()) {
       interval K = image(I) & J;
       GAOL_RND_KEEP(K);
@@ -3027,15 +3042,9 @@ interval nth_root(const interval& I, int q)
 
   interval acos_rel(const interval& J, const interval &I)
   {
-    if (J.is_empty() || I.is_empty() || J.left() > 1.0 || J.right() < -1.0) {
-      return interval::emptyset();
-    }
-    if (J.set_contains(interval::minus_one_plus_one())) {
-      return I;
-    }
     // The preimage of J: i pi + acos(J) for an even i, (i + 1) pi - acos(J)
     // for an odd i. acos(J) as acos() computes it, J & [-1, 1] being non-empty
-    return periodic_rel(J, I, 0.0,
+    return periodic_rel(J, I, 0.0, true,
 			[](const interval& X) {
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(acos_lo(K.right()), acos_hi(K.left()));
@@ -3046,17 +3055,11 @@ interval nth_root(const interval& I, int q)
 
   interval asin_rel(const interval& J, const interval &I)
   {
-    if (J.is_empty() || I.is_empty() || J.left() > 1.0 || J.right() < -1.0) {
-      return interval::emptyset();
-    }
-    if (J.set_contains(interval::minus_one_plus_one())) {
-      return I;
-    }
     // The preimage of J: i pi + asin(J) for an even i, i pi - asin(J) for an
     // odd i (GAOL v5: GAOL computed pi/2 + acos_rel(J, I - pi/2), two
     // additions of an enclosure of pi/2 more). asin(J) as asin() computes it,
     // J & [-1, 1] being non-empty
-    return periodic_rel(J, I, 0.5,
+    return periodic_rel(J, I, 0.5, true,
 			[](const interval& X) {
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(asin_lo(K.left()), asin_hi(K.right()));
@@ -3071,7 +3074,7 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
     // The preimage of J: i pi + atan(J), atan(J) as atan() computes it
-    return periodic_rel(J, I, 0.5,
+    return periodic_rel(J, I, 0.5, false,
 			[](const interval& X) { return interval(atan_lo(X.left()), atan_hi(X.right())); },
 			[](double i, const interval& Jatan) { return k_pi_plus(i, Jatan); },
 			[](const interval& X) { return tan(X); });
