@@ -177,8 +177,44 @@ kept as a patch to reapply.
    checks `cbrt` and `nth_root(x, 3)` at these arguments, scaled by powers of 8
    and on both signs, against mpmath. `rsqrt.c` and `asinpi.c`, whose
    `get_rounding_mode()` has the same branch, compare its result with the
-   `FE_*` values themselves, and are right. This is a fix to propose to
-   CORE-MATH.
+   `FE_*` values themselves, and are right. The fix is
+   [proposed to CORE-MATH](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic),
+   within a broader one.
+
+7. **The rounding direction of `cbrt`, `rsqrt` and `asinpi` with clang-cl on
+   x86-64** in `cbrt/cbrt.c`, `rsqrt/rsqrt.c` and `asinpi/asinpi.c`
+   (`get_rounding_mode()`). Where `__x86_64__` is defined, the three functions
+   make the `FE_*` value of the direction from the rounding field of MXCSR:
+   where `__WIN32__` or `__WIN64__` is defined, shifted by 5 for the values of
+   the UCRT of Windows (`FE_UPWARD` 0x200), through a table for those of its
+   versions before 14393 (`FE_UPWARD` 0x100), and by `fegetround()` for other
+   values, the path of mingw-w64 (item 6); otherwise, shifted by 3 for those
+   of glibc (`FE_UPWARD` 0x800). clang-cl defines `__x86_64__` and `_WIN32`,
+   but neither `__WIN32__` nor `__WIN64__`, and takes the `fenv.h` of the
+   UCRT: the three shifted by 3 and compared 0x400, 0x800 and 0xc00 with the
+   UCRT's 0x100, 0x200 and 0x300, so that the downward and the upward
+   roundings were taken for toward zero. The line testing the two macros now
+   tests `_WIN32` as well, which sends clang-cl to the branch of Windows, and
+   changes nothing for the other compilers: Visual C++ defines no
+   `__x86_64__`, mingw-w64 defines `__WIN32__` already, and Cygwin defines no
+   `_WIN32`. The three sources, compiled by clang-cl 18 with the flags of GAOL
+   (`/fp:strict /arch:AVX2`) and the values of the `fenv.h` and `float.h` of
+   the UCRT, and run under wine over the arguments of patch 6 below, gave 42
+   wrong `cbrt` results downward and 42 upward, 1,338 wrong `rsqrt` results
+   upward and 499,838 and 526,673 different `asinpi` results downward and
+   upward, all those checked with mpmath being wrong: every wrong upward
+   result, at a positive argument, below the exact value, and every wrong
+   downward one, at a negative argument, above it; with the change, the
+   results of x86-64 Linux. The bound of `nth_root(x, 3)` farther from zero
+   (the root of a negative number being the opposite of the upward root of its
+   magnitude) and the upper bounds of `rsqrt` and `asinpi` did not enclose the
+   exact values there: `tests/core_math.cpp` checks `cbrt` at the arguments of
+   item 6, `asinpi` next to ±1 and `rsqrt` at the successors of the powers of
+   4, which failed so (the same checks, run on the three objects under wine:
+   70 of 70, 22 of 22 and 1,023 of 1,023), and the continuous integration
+   builds and tests GAOL with clang-cl on x64. The fix is
+   [proposed to CORE-MATH](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic),
+   within a broader one.
 
 ### How the changes are checked
 
@@ -229,12 +265,12 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the six changes
-above. `git diff` against the previous version shows them: they are marked
-`/* GAOL */`, and no other line differs. A change upstream has made in the
-meantime is not made again: that of `cospi.c` from commit `b1a4badf` on, and
-those of the [patches below](#changes-to-propose-upstream) once upstream takes
-them.
+Copy the upstream tree again without the `.wc` files, then make the seven
+changes above. `git diff` against the previous version shows them: they are
+marked `/* GAOL */`, and no other line differs. A change upstream has made in
+the meantime is not made again: that of `cospi.c` from commit `b1a4badf` on,
+and those of the [patches below](#changes-to-propose-upstream) once upstream
+takes them.
 
 ## Changes to propose upstream
 
@@ -245,7 +281,8 @@ defect, the `__builtin_roundeven()` of `sin.c` (see
 patches against the current upstream sources, with three more found while
 preparing them or since: the masks of item 2 in three other files, the rounding
 direction `pow` reads for its subnormal results, and the one `cbrt.c`,
-`rsqrt.c` and `asinpi.c` read with mingw-w64, with clang-cl and on Cygwin.
+`rsqrt.c` and `asinpi.c` read with mingw-w64, with clang-cl and on Cygwin,
+which the smaller changes 6 and 7 above fix in GAOL's copy for the first two.
 Through CORE-MATH they would reach glibc too, which takes functions from it
 since version 2.41, so each defect was looked for there as well.
 
@@ -1007,7 +1044,10 @@ longer calls `fegetround()` on x86-64. With MPFR, `./check.sh --worst`
 functions. On x86-64 Linux the patched `cbrt` is as fast as master (about 12 ns
 a call with GCC 13, within the noise of the measure).
 
-**Status.** Present in master.
+**Status.** Present in master; GAOL's copy makes the two smallest changes
+instead, `mode = fegetround();` in `cbrt.c` for mingw-w64 (item 6 above) and
+`|| defined(_WIN32)` in the three files for clang-cl (item 7), which leave
+Cygwin as it is.
 
 #### Already fixed upstream: the shifts of `cospi.c`
 
