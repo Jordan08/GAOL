@@ -2239,8 +2239,8 @@ interval nth_root(const interval& I, int q)
   }
 
   // Within [-1, +oo]: b^x - 1 exceeds -1, which it nears as x goes to -oo.
-  // +oo is read after the check: some C libraries compute HUGE_VAL when the
-  // program runs (the UCRT's under clang-cl), and it was FLT_MAX in the
+  // +oo is read after the check: GAOL_INFINITY was the HUGE_VAL of the UCRT,
+  // which clang-cl computes when the program runs, and it was FLT_MAX in the
   // caller's downward rounding, which made expm1([1e10]) empty (GAOL v5)
   static interval increasing_cr_from_minus_one(const interval& I, double (*f)(double),
                                                bool (*exact)(double))
