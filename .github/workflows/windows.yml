@@ -1,6 +1,7 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
 # arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64; Release
-# and Debug), MinGW-w64 15 (x86, x64; Release and Debug), 14 (x86, x64), 12 and
+# and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86, x64;
+# Release and Debug), 14 (x86, x64), 12 and
 # 13 (x86), and MSYS2 (UCRT64 GCC, CLANG64 Clang), runs its tests, installs it,
 # and builds the tests again with the installed GAOL. On arm64, the compiler of
 # Visual Studio 2022 (toolset v143, MSVC 14.44) is the one installed with Visual
@@ -64,15 +65,20 @@ jobs:
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Debug,   desc: 'Visual Studio 2022 arm64 Debug' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved' }
           # clang-cl, the Clang of Visual Studio (toolset ClangCL, installed
-          # with Visual Studio 2022 in the image), for which CMake sets MSVC too
-          # and GAOL gives /fp:strict (-frounding-math -ffp-contract=off) and
-          # /arch:AVX2. It defines __x86_64__ and _WIN32 but not __WIN32__,
-          # which the sources of CORE-MATH test to read the rounding direction
-          # in cbrt, rsqrt and asinpi (3rd/README.md, item 7):
-          # tests/core_math.cpp checks them. gaol/gaol_config.h does not refuse
-          # it without /fp:strict, and tests/fp_strict checks Visual C++ only.
+          # with Visual Studio in the images), for which CMake sets MSVC too
+          # and GAOL gives /fp:strict (-frounding-math -ffp-contract=off),
+          # /arch:AVX2 on x64, and -msse2 on x86, where clang-cl computes
+          # doubles on the x87 unit otherwise, /arch:SSE2 included. On x64 it
+          # defines __x86_64__ and _WIN32 but not __WIN32__, which the sources
+          # of CORE-MATH test to read the rounding direction in cbrt, rsqrt and
+          # asinpi (3rd/README.md, item 7): tests/core_math.cpp checks them.
+          # gaol/gaol_config.h refuses it without /fp:strict from Clang 16, as
+          # it refuses Visual C++, and tests/fp_strict checks both (GAOL v5).
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', toolset: '-T ClangCL', clang_cl: true, arch: x64, config: Release, desc: 'Visual Studio 2022 clang-cl x64 Release' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', toolset: '-T ClangCL', clang_cl: true, arch: x64, config: Debug,   desc: 'Visual Studio 2022 clang-cl x64 Debug' }
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, desc: 'Visual Studio 2026 clang-cl x64 Release' }
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: Win32, config: Release, desc: 'Visual Studio 2026 clang-cl x86 Release' }
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, desc: 'Visual Studio 2026 clang-cl arm64 Release' }
     steps:
       - uses: actions/checkout@v7
       - name: Configure
