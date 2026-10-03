@@ -1264,12 +1264,14 @@ INLINE double interval::width(void) const
    */
 INLINE void interval::mid_rad(double& m, double& r) const
 {
-    m = midpoint();
     if (is_empty()) {
+        m = midpoint();
         r = GAOL_NAN;
         return;
     }
+    // midpoint() compares the bounds: after the check (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
+    m = midpoint();
     double below = m - left();
     double above = right() - m;
     double res = (below > above) ? below : above;

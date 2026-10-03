@@ -364,9 +364,19 @@ compilation stops. No macro of the compiler shows the following, which
 same: \option{-funsafe-math-optimizations} and \option{-ffast-math
 -fno-finite-math-only} with GCC, which rewrites the addition by which GAOL sees
 the rounding direction, so that an operation does not set it upward again after
-the code using GAOL left it elsewhere; and \option{-fno-honor-nans} alone with
+the code using GAOL left it elsewhere; \option{-fno-signed-zeros}, with which
+GCC and Clang drop the addition of 0 by which it sees the flush-to-zero mode
+(\pxref{sec:ftz}), and which the \option{-funsafe-math-optimizations} of
+Clang implies; and \option{-fno-honor-nans} alone with
 Clang, which does to the empty interval what \option{-ffinite-math-only} does.
 The code using GAOL is not to be compiled with them.
+
+\noindent
+The link of the program is not refused, and with the options
+\option{-Ofast}, \option{-ffast-math} and
+\option{-funsafe-math-optimizations} it makes the bounds wrong, whatever the
+flags the code using GAOL was compiled with: the modes it sets flush the
+subnormal results and operands to zero (\pxref{sec:ftz}).\newinvfive
 
 \subsection{Tools for maintainers}
 %%................................
@@ -856,6 +866,15 @@ given: there, it only refuses what contradicts them, \option{-ffast-math},
 \option{-ffinite-math-only} and doubles computed on the x87 unit
 (\pxref{sec:refused}).
 
+\noindent
+The link of the program takes one option too, where the compiler accepts it
+(GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
+\option{-mno-daz-ftz}, which keeps out of the link the file that sets the
+flush-to-zero and denormals-are-zero modes when a program is linked with
+\option{-Ofast} (\pxref{sec:ftz}). \code{gaol::gaol} and \file{gaol.pc} carry
+it too, where the compiler that built GAOL accepts it: the three builds test
+the compiler for it with a link.\newinvfive
+
 \subsection{From CMake}
 %%.....................
 
@@ -865,8 +884,13 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 \end{example}
 
 \noindent
-\code{gaol::gaol} carries the include directory, the flags above and, for Visual
-C++, the definition \code{\_\_GAOL\_PUBLIC\_\_=}, GAOL being a static library.
+\code{gaol::gaol} carries the include directory, the flags above, the link option
+above for the code built by GCC~13 or a later one, or by the compiler that
+built GAOL, of its major version and not older (another compiler, as Clang~18,
+would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
+GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and, for
+Visual C++, the definition \code{\_\_GAOL\_PUBLIC\_\_=}, GAOL being a static
+library.
 There is no other library to link. A library whose headers include those of
 GAOL links \code{gaol::gaol} \code{PUBLIC}, so that its own users get the
 flags, and its CMake package finds GAOL again (\code{find\_dependency(gaol)}).
@@ -894,7 +918,7 @@ GAOL. GAOL is compiled as position-independent code, so that
 Each build installs \file{gaol.pc} in the \file{pkgconfig} directory of its
 library directory, except the CMake build with Visual C++. Its \code{Cflags}
 carries the flags above with the include directory, and its \code{Libs} GAOL
-itself with the C mathematical library:
+itself with the C mathematical library and the link option above:
 \cindex{pkg-config}%
 
 \begin{cmdshell}
@@ -912,6 +936,12 @@ line:
 -frounding-math -fno-fast-math -ffp-contract=off
 -msse2 -msse3 -mfma -I@var^prefix~/include -L@var^prefix~/lib -lgaol -lm
 \end{cmdshell}
+
+\noindent
+(and \option{-mno-daz-ftz} after \option{-lm} where the compiler that built
+GAOL takes it: \file{gaol.pc} is written for that compiler, and a program
+linked by one that refuses the option, as Clang~18, a GCC before 11.4 or GCC
+12.0 to 12.3, is to be linked without it).
 
 \noindent
 In a meson project, \code{dependency('gaol')} finds it.
@@ -967,7 +997,10 @@ whatever rounding direction the calling code left. The check is an addition,
 $1+2^{-60}$, which is above 1 only when rounded upward, rather than a reading
 of the rounding direction, which cost far more on some platforms: under
 Rosetta~2, reading it made an addition of intervals take 800~ns rather than
-2.8~ns. Each function of intervals checks the direction once, and the
+2.8~ns. On x86 processors, and on ARM processors with GCC and Clang, it is
+$1+(2^{-1060}+0)$, which shows the modes that flush the subnormal numbers to
+zero as well (\pxref{sec:ftz}). Each function of intervals checks the
+direction once, and the
 functions it calls on doubles take it to be upward already.
 \cindex{trust rounding mode}%
 
@@ -976,7 +1009,9 @@ builds GAOL with the option \option{GAOL\_PRESERVE\_ROUNDING} of CMake, which is
 \loption{enable-preserve-rounding} with autotools and
 \option{-Denable-preserve-rounding=true} with meson: each operation then also
 restores the rounding direction it found, which makes the arithmetic
-operations several times slower. It is off by default in the three builds.
+operations several times slower; it also restores the modes flushing the
+subnormals to zero that the operation cleared (\pxref{sec:ftz}). It is off by
+default in the three builds.
 
 Without it, the rounding direction stays upward from the initialization of
 GAOL on, for the whole program, and \code{cleanup()} sets back the one that the
@@ -991,6 +1026,112 @@ after an operation of GAOL, \code{std::cout~<{}<~pi\_dn} writes
 \code{3.141592653589794} with 16 digits, and \code{3.141592653589793} once
 \code{round\_nearest()} has been called. The intervals themselves are written
 by GAOL rounded outward, whatever the direction (\pxref{sec:writing}).
+
+\subsection{Flush-to-zero and denormals-are-zero}\label{sec:ftz}
+%%...............................................
+\cindex{flush-to-zero}%
+\cindex{denormals-are-zero}%
+\cindex{subnormal numbers}%
+\cindex{-Ofast@\option{-Ofast}}%
+\cindex{crtfastmath.o@\file{crtfastmath.o}}%
+
+Processors have modes that flush the subnormal numbers, those below
+$2^{-1022}$ in magnitude, to zero. On x86, the \dfn{flush-to-zero} (FTZ) and
+\dfn{denormals-are-zero} (DAZ) modes of the SSE instructions, two bits of the
+control register MXCSR, make every subnormal result a zero (FTZ) and read
+every subnormal operand as a zero (DAZ), in the comparisons too; on ARM, the
+mode FZ of the control register (FPCR, FPSCR) does both. With one of them set,
+the bounds of every operation with a subnormal result or operand miss the
+exact result, whatever the rounding direction:
+\code{interval(1e-300) * interval(1e-20)} is \itv{0}{0}, and so are
+\code{sqr(interval(1e-160))} and \code{interval(3e-308) - interval(2.9e-308)}.\newinvfive
+
+A program linked with one of the options \option{-Ofast},
+\option{-ffast-math} and \option{-funsafe-math-optimizations} gets them: GCC
+and Clang then link
+\file{crtfastmath.o}, on x86 and on ARM Linux, whose constructor sets them for
+the whole program. GCC links it last, and it runs after GAOL initialized
+itself; Clang links it first, and the initialization of a static GAOL, which
+follows, clears the modes again, unless GAOL is built with
+\option{GAOL\_PRESERVE\_ROUNDING}, or is a shared library, initialized before
+the program. The option \option{-fno-fast-math} of \file{gaol.pc} and
+\code{gaol::gaol} does not prevent it: it cancels \option{-ffast-math} when it
+comes after it, but not \option{-Ofast} (GCC~13 and Clang~18 link
+\file{crtfastmath.o} all the same, and it silences the \code{\#error} of
+\file{gaol/gaol\_config.h} against \option{-ffast-math}, which
+\option{-Ofast} would raise), nor, with GCC~13, the option
+\option{-funsafe-math-optimizations}. Loading a plug-in or a Python module
+built with \option{-Ofast} sets the modes too, when it is loaded, where its
+compiler linked \file{crtfastmath.o} into it: Clang~18 does, GCC did before
+version 13. \emph{Linking a program that uses GAOL with these options, or
+loading code built with them, makes the bounds wrong}, and GAOL defends itself
+in two ways:
+
+\begin{itemize}
+\item on x86 processors, and on ARM processors with GCC and Clang, each
+  operation that computes bounds clears the modes when it starts, in the check
+  that sets the rounding direction upward: the check is one comparison with a
+  subnormal number, which shows the modes as well as the direction, and the
+  modes stay cleared for the rest of the program, as the rounding direction
+  stays upward. The check comes before the operation reads, compares or copies
+  a bound, the test of the empty set aside, and the compiler is kept from
+  making a comparison before it, which it would do, not knowing that the check
+  changes how a subnormal compares: with GCC~13 at \option{-O3},
+  \code{asinpi()} compared the bounds it had read with 0 before its check, and
+  with the modes set \code{asinpi()} of $[100\cdot 2^{-1074}]$ was
+  $[32\cdot 2^{-1074}]$, above the exact value. With
+  \option{GAOL\_PRESERVE\_ROUNDING}, each operation sets the modes back as it
+  found them, once it has made its result, its maxima and minima of bounds
+  included. The bounds of every operation that makes the check are then the
+  ones it gives with the modes cleared, the tightest ones, and the modes are
+  cleared, or set back, after it. It is the only defence against a plug-in,
+  which sets the modes at any time, and against the compilers and processors
+  without \option{-mno-daz-ftz}. On an Intel Xeon of the Cascade Lake
+  generation, an addition with a subnormal operand and result took as long as
+  one of normal numbers, and the check as long as the one of the direction
+  alone; through the library, with Clang~18, \code{x * y} took 4.0~ns rather
+  than 3.4~ns, \code{sqrt} 11.0~ns rather than 10.3~ns and \code{pow(x, 3)}
+  13.7~ns rather than 13.0~ns, as with the same check made of a normal number,
+  and the other operations measured stayed within the noise. Some x86
+  processors take a microcode assist, of the order of a hundred cycles, for an
+  operation with a subnormal operand or result, which each operation would pay
+  there: they were not measured;
+\item \file{gaol.pc} and \code{gaol::gaol} give \option{-mno-daz-ftz} to the
+  link, where the compiler accepts it (GCC 13 and later on x86, and from 11.4
+  and 12.4 in the series 11 and 12; GCC~9.4, 12.3, GCC for ARM and Clang~18
+  refuse it): it
+  keeps \file{crtfastmath.o} out of the link, so that the program does not get
+  the modes at all, its own code included.
+\end{itemize}
+
+\noindent
+What remains: the functions that read or compare the bounds of an interval
+without computing make no check, and read a subnormal bound as a zero for as
+long as a mode flushing the operands (DAZ, FZ) is set, that is until an
+operation that checks has cleared it, or, with
+\option{GAOL\_PRESERVE\_ROUNDING}, which sets the modes back after each
+operation, for as long as the program keeps them. They are the constructor
+from two bounds, the reading and the writing of text, the relations
+(\code{set\_contains()}, \code{certainly\_le()}, \code{==}\dots), the
+intersection \code{\&} and the hull \code{|}, \code{max()}, \code{min()},
+\code{abs()}, \code{sign()}, \code{floor()}, \code{ceil()}, \code{integer()}
+and the other roundings to an integer, \code{invabs\_rel()}, \code{mig()},
+\code{mag()}, \code{midpoint()} and \code{split()}. Under
+denormals-are-zero, \code{max()} of $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$
+and $[200\cdot 2^{-1074}]$ is the first one,
+\code{abs(interval(-1e-309, -1e-310))} stays negative, and the hull \code{|}
+of the same two intervals, inline in the headers of GAOL, depends on how the
+compiler of the program arranges its comparisons: \itv{0}{0} with
+GCC~13 at \option{-O2}, $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$ at
+\option{-O0}, the right hull with Clang~18 at \option{-O2}. The unary minus
+makes no check either, but it only exchanges the stored bounds, which the
+modes do not change, as they do not change the test of the empty set, made
+before the check of every operation (an operation with an empty operand may
+return before its check, the modes left as it found them). The modes of other
+processors, and of ARM with Visual C++, are neither checked nor cleared; GCC
+links \file{crtfastmath.o} for none of the other processors GAOL is tested
+on. Link a program that uses GAOL without these options, or with
+\option{-mno-daz-ftz}, and compile the code that needs them apart from it.
 
 \section{The floating-point exceptions}\label{sec:fp-exceptions}
 %%--------------------------------------------------
@@ -1014,9 +1155,14 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   is \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
 \item Almost every operation raises the inexact exception: most bounds are
   rounded results, and where GAOL checks the rounding direction with an
-  addition, $1+2^{-60}$, whose result is inexact
+  addition, $1+2^{-60}$ or $1+(2^{-1060}+0)$, whose result is inexact
   (\pxref{sec:rounding-direction}), even an operation whose bounds are exact
-  raises it.
+  raises it. On x86, the addition of the subnormal $2^{-1060}$ also raises
+  the denormal-operand flag of the SSE instructions, which is none of the five
+  flags of IEEE~754 (not in \code{FE\_ALL\_EXCEPT}), and its exception stops
+  the program where the program enabled it; and with flush-to-zero set, the
+  sum $2^{-1060}+0$, flushed to zero, raises the underflow exception
+  (\code{FE\_UNDERFLOW}) too, before the check clears the mode.
 \item An empty operand raises no invalid-operation exception, though the
   bounds of the empty interval are NaN: every operation, relation, function
   and output of \code{gaol::interval} and of \code{gaol\_ieee1788} takes it
@@ -1261,6 +1407,9 @@ It stops \option{-ffinite-math-only} in the same way, with which the compiler
 takes NaN, the bounds of the empty interval, and infinities never to occur
 (\pxref{sec:refused}). Taking the flags from \code{gaol::gaol} or
 \file{gaol.pc} avoids the question.
+The link is not seen by the header: a program linked with \option{-Ofast} gets
+the flush-to-zero mode, which makes the bounds of the operations with subnormal
+operands and results wrong (\pxref{sec:ftz}).\newinvfive
 
 \chapter{Initialization and cleanup}\label{chap:init}
 %%==================================
