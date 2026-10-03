@@ -39,6 +39,7 @@
 #include <locale>
 #include <cstdlib>
 #include <cstdio>
+#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <sstream>
@@ -762,9 +763,10 @@ namespace gaol_core {
 
   /*
     What GAOL takes from a stream to write a number: its flags, its precision
-    and its locale, whose facet numpunct gives the decimal point (GAOL v5). The
-    text of an interval is made from these in a character string, rather than
-    in std::ostringstreams, one for each interval and one for each bound: each
+    and its locale, whose facet numpunct gives the decimal point and, if
+    `grouped`, the grouping of the digits before it (GAOL v5). The text of an
+    interval is made from these in a character string, rather than in
+    std::ostringstreams, one for each interval and one for each bound: each
     built a locale and its cached facets, and destroyed them, a third of the
     work of writing an interval.
   */
@@ -773,9 +775,10 @@ namespace gaol_core {
     std::streamsize precision;
     std::locale loc;
     const std::numpunct<char>& punct; // The facet of loc, which the copy keeps
+    bool grouped;
 
-    text_format(std::ios_base::fmtflags f, std::streamsize p, const std::locale& l)
-      : flags(f), precision(p), loc(l), punct(std::use_facet<std::numpunct<char> >(loc))
+    text_format(std::ios_base::fmtflags f, std::streamsize p, const std::locale& l, bool g = false)
+      : flags(f), precision(p), loc(l), punct(std::use_facet<std::numpunct<char> >(loc)), grouped(g)
     {
     }
   };
@@ -789,8 +792,7 @@ namespace gaol_core {
     fmt, under the rounding direction asked: what number_to_text() leaves to
     the C library and the facets of the locale, whatever they are, as it
     cannot write it as the stream does. That is a NaN, the hexadecimal
-    floating-point format, the digits of a number written to nearest that the
-    locale groups, and a conversion of the C library that fails.
+    floating-point format, and a conversion of the C library that fails.
   */
   static std::string stream_text(double x, text_rounding rounding, const text_format& fmt)
   {
@@ -856,6 +858,34 @@ namespace gaol_core {
   }
 
   /*
+    The digits text starts with, those before its decimal point, grouped as
+    std::num_put groups those of a double: from the point leftward, each group
+    as long as its character of grouping() says, the last one repeated, and
+    no group past a size of 0, a negative one or CHAR_MAX, which the standard
+    takes as unlimited (22.4.3.1.2).
+  */
+  static void group_digits(std::string& text, const std::numpunct<char>& punct)
+  {
+    const std::string grouping = punct.grouping();
+    std::size_t pos = text.find_first_not_of("0123456789");
+    if (pos == std::string::npos) {
+      pos = text.size();
+    }
+    std::size_t g = 0;
+    while (g < grouping.size()) {
+      const char size = grouping[g];
+      if (size <= 0 || size == CHAR_MAX || pos <= static_cast<std::size_t>(size)) {
+        break;
+      }
+      pos -= static_cast<std::size_t>(size);
+      text.insert(pos, 1, punct.thousands_sep());
+      if (g + 1 < grouping.size()) {
+        ++g;
+      }
+    }
+  }
+
+  /*
     The text of a number x written as a stream with the flags, the precision
     and the locale of fmt would write it, and, for the bound of an interval,
     rounded downward, or upward, whatever the C library does. GAOL set the
@@ -871,18 +901,18 @@ namespace gaol_core {
     digits and the zeros kept "1.e+06", whose last digit is not the sixth.
     The text of a zero, or of an infinity, is made the same way, without
     the comparison: "inf" is "INF" with the flag uppercase, but in the fixed
-    format, whose conversion the standard has as %f. A number written to
-    nearest is the midpoint of the width and center formats, written as a
-    stream writes a double, which has the digits of its locale grouped; a
-    bound has never been.
+    format, whose conversion the standard has as %f. With fmt.grouped, the
+    digits before the point are grouped as the locale has them, as a stream
+    groups those of a double: the midpoint and the radius of the width and
+    center formats, both alike (GAOL v5: a stream wrote the midpoint, grouped,
+    and GAOL the radius, which was not). The other texts are never grouped.
     Left to a stream, with the rounding direction set (stream_text()): what
     the text cannot be made of.
   */
   std::string number_to_text(double x, text_rounding rounding, const text_format& fmt)
   {
     const std::ios_base::fmtflags floatfield = fmt.flags & std::ios_base::floatfield;
-    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)
-        || (rounding == text_nearest && !fmt.punct.grouping().empty())) {
+    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
       return stream_text(x, rounding, fmt);
     }
 
@@ -952,6 +982,10 @@ namespace gaol_core {
           text[i] = 'E';
         }
       }
+      // After the point is in place: the separator of the groups may be '.'
+      if (fmt.grouped) {
+        group_digits(text, fmt.punct);
+      }
     }
     if (std::signbit(x)) { // -0 is written -0, as a stream does
       text.insert(0, 1, '-');
@@ -986,14 +1020,15 @@ namespace gaol_core {
     rounded to nearest rather than outward, so that two equal texts need not
     be the double: with 1 digit, [22u] (u = 5e-324) is written [1e-322],
     which is read as [20u, 21u].)
-    A text with a comma is not written alone between the brackets: the
-    reader, whose decimal point is '.', takes the decimal comma a stream
-    writes under a locale that has one for the comma between two bounds, so
-    that [-2,5] for interval(-2.5) would be the interval [-2, 5], [12,5] the
-    empty set, and [0,] (a zero in the fixed format with the showpoint flag
-    and no digit) [0, +oo]. The point is written with its two bounds then,
-    [-2,5, -2,5], which the reader refuses, as it refuses every bound written
-    with a decimal comma.
+    fmt has the C locale, whose decimal point is '.', the reader's: operator<<
+    writes the bounds format with it whatever the locale of the stream (GAOL
+    v5). Under a locale writing a decimal comma, the reader took the comma of
+    [0,5, 2,5] for the one between two bounds and refused the text, and would
+    have read [-2,5] for interval(-2.5) as the interval [-2, 5], [12,5] as the
+    empty set and [0,] (a zero in the fixed format with the showpoint flag and
+    no digit) as [0, +oo]; GAOL wrote that point [-2,5, -2,5], which it
+    refused. A point is still written alone between the brackets only when
+    the decimal point of fmt is '.'.
     GAOL wrote every point interval <a, b>, the text of its double rounded
     downward and upward, which the reader takes for two numbers that are the
     same double only: <0.1, 0.1000000000000001> for interval(0.1) was refused,
@@ -1015,7 +1050,7 @@ namespace gaol_core {
       const std::string right = bound_to_text(zero ? 0.0 : r, true, fmt);
       out += '[';
       out += left;
-      if (!((zero || (lbits == rbits && left == right)) && left.find(',') == std::string::npos)) {
+      if (!((zero || (lbits == rbits && left == right)) && fmt.punct.decimal_point() == '.')) {
         out += ", ";
         out += right;
       }
@@ -1072,14 +1107,32 @@ namespace gaol_core {
                   (nb_digits > 0) ? "." : "", digits, exponent);
   }
 
+  /*
+    A point interval is written [a], as in the decimal format, and a point
+    interval of zero [0x0p+0], whatever the signs of its bounds, the three
+    being the set {0} (GAOL v5: it was written with its two bounds,
+    [0x1p+2, 0x1p+2], and [-0x0p+0, 0x0p+0] for interval::zero() with the
+    SSE2 intervals). The bounds are compared by their bits, which
+    denormals-are-zero does not change.
+  */
   std::string exact_string(const interval& I)
   {
     if (I.is_empty()) {
       return "[empty]";
     }
+    const double l = I.left(), r = I.right();
+    std::uint64_t lbits, rbits;
+    std::memcpy(&lbits, &l, sizeof lbits);
+    std::memcpy(&rbits, &r, sizeof rbits);
     char lo[64], hi[64];
-    write_hexa_bound(I.left(), lo, sizeof lo);
-    write_hexa_bound(I.right(), hi, sizeof hi);
+    if ((lbits << 1) == 0 && (rbits << 1) == 0) {
+      return "[0x0p+0]";
+    }
+    write_hexa_bound(l, lo, sizeof lo);
+    if (lbits == rbits) {
+      return std::string("[") + lo + "]";
+    }
+    write_hexa_bound(r, hi, sizeof hi);
     return std::string("[") + lo + ", " + hi + "]";
   }
 
@@ -1131,7 +1184,10 @@ namespace gaol_core {
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
-    const text_format fmt(os.flags(), interval::precision(), os.getloc());
+    // The bounds format, and the agreeing format where it writes bounds, in
+    // the C locale, whose decimal point is the reader's (GAOL v5); the width
+    // and center formats, which are for the eye, in the locale of os
+    const text_format fmt(os.flags(), interval::precision(), std::locale::classic());
     std::string text;
 
     GAOL_RND_PRESERVE();
@@ -1181,58 +1237,93 @@ namespace gaol_core {
         } else {
           c = I.midpoint();
         }
-        text = number_to_text(c, text_nearest, fmt);
+        // The decimal point of the locale of os, and its grouping of the
+        // digits, for c and w alike; a midpoint 0 is written 0, as the bounds
+        // format writes a zero, where midpoint() gives -0 for
+        // [-2^-1073, 2^-1074]: its bits, which denormals-are-zero leaves alone
+        const text_format shown(os.flags(), interval::precision(), os.getloc(), true);
+        std::uint64_t cbits;
+        std::memcpy(&cbits, &c, sizeof cbits);
+        if ((cbits << 1) == 0) {
+          c = 0.0;
+        }
+        text = number_to_text(c, text_nearest, shown);
         if (format == interval_format::width && w != 0.0) {
+          // The radius is never negative, and has no sign under showpos,
+          // which is for the midpoint: "+2 (+/- 1)" (GAOL v5: "+2 (+/- +1)")
+          text_format radius(shown);
+          radius.flags &= ~std::ios_base::showpos;
           text += " (+/- ";
-          text += bound_to_text(w, true, fmt);
+          text += bound_to_text(w, true, radius);
           text += ')';
         }
       }
       break;
     case interval_format::agreeing:
       if (I.is_empty()) {
-				text = "[empty]";
+        text = "[empty]";
       } else {
-				if (I.right() > 10*I.left()) {
-	  			display_bounds(l,r,text,fmt);
-				} else {
-	  			// Each bound is written with the digits of the precision and
-	  			// the flag showpoint, in the locale of the program, as a
-	  			// stream of its own, whose flags are the ones a stream starts
-	  			// with, would write it: the flags and the locale of os do not
-	  			// apply here
-	  			const text_format shown(std::ios_base::skipws | std::ios_base::dec | std::ios_base::showpoint,
-	  			                        interval::precision(), std::locale());
-	  			std::string itv;
-
-	  			// The characters both bounds start with, then what is left of
-	  			// each, without the zeros ending it (GAOL v5: GAOL dropped
-	  			// from both bounds the characters after the last one of the left
-	  			// bound that is not a zero, and wrote [1.25, 1.2567] "1.25~[, ]";
-	  			// zeros ending an exponent are not dropped)
-	  			const std::string lb = bound_to_text(I.left(), false, shown), rb = bound_to_text(I.right(), true, shown);
-	  			std::size_t i = 0;
-	  			while (i < lb.length() && i < rb.length() && lb[i] == rb[i]) {
-	    			itv += lb[i];
-	    			++i;
-	  			}
-	  			if (i < lb.length() || i < rb.length()) {
-	    			const std::string *bounds[2] = { &lb, &rb };
-	    			itv += "~[";
-	    			for (int k = 0; k < 2; ++k) {
-	      			const std::string& b = *bounds[k];
-	      			std::size_t end = b.length();
-	      			if (b.find_first_of("eE") == std::string::npos && b.find('.') != std::string::npos) {
-	        			while (end > i && end > b.find('.') + 1 && b[end - 1] == '0') {
-	          			--end;
-	        			}
-	      			}
-	      			itv += (end > i) ? b.substr(i, end - i) : std::string("0");
-	      			itv += (k == 0) ? ", " : "]";
-	    			}
-	  			}
-	  			text += itv;
-				}
+        // Each bound is written with the digits of the precision and the flag
+        // showpoint, in the locale of the program, as a stream of its own,
+        // whose flags are the ones a stream starts with, would write it: the
+        // flags and the locale of os do not apply here
+        const text_format shown(std::ios_base::skipws | std::ios_base::dec | std::ios_base::showpoint,
+                                interval::precision(), std::locale());
+        const char point = shown.punct.decimal_point();
+        const std::string lb = bound_to_text(l, false, shown), rb = bound_to_text(r, true, shown);
+        std::size_t i = 0;
+        while (i < lb.length() && i < rb.length() && lb[i] == rb[i]) {
+          ++i;
+        }
+        /*
+          The digits both bounds start with are written once, before the rest
+          of each, only where they line up and say something: two bounds
+          finite, not 0 and of the same sign, written with the same number of
+          digits before the point and the same exponent, that share their
+          first digit that is not 0. The other intervals are written as in
+          the bounds format (GAOL v5). GAOL tested r > 10 l, true for every
+          interval with a negative bound or 0, which were all written with
+          their bounds, and false for [1, 10], written 1~[., 0.], the 1 of 10
+          taken for the 1 of 1, or for [1, 2], written ~[1., 2.] with no
+          digit shared, and for zeros, written ~[-0., 0.] for
+          interval::zero() with the SSE2 intervals where the bounds format
+          writes [0].
+        */
+        std::uint64_t lbits, rbits;
+        std::memcpy(&lbits, &l, sizeof lbits);
+        std::memcpy(&rbits, &r, sizeof rbits);
+        const std::size_t le = lb.find_first_of("eE"), re = rb.find_first_of("eE");
+        const bool line_up = (lbits << 1) != 0 && (rbits << 1) != 0
+          && l > -GAOL_INFINITY && r < GAOL_INFINITY && std::signbit(l) == std::signbit(r)
+          && lb.find(point) == rb.find(point)
+          && ((le == std::string::npos) ? std::string() : lb.substr(le))
+             == ((re == std::string::npos) ? std::string() : rb.substr(re))
+          && lb.find_first_of("123456789") < i;
+        if (!line_up) {
+          display_bounds(l,r,text,fmt);
+        } else {
+          // The characters both bounds start with, then what is left of each,
+          // without the zeros ending it (GAOL v5: GAOL dropped from both
+          // bounds the characters after the last one of the left bound that is
+          // not a zero, and wrote [1.25, 1.2567] "1.25~[, ]"; zeros ending an
+          // exponent are not dropped)
+          text = lb.substr(0, i);
+          if (i < lb.length() || i < rb.length()) {
+            const std::string *bounds[2] = { &lb, &rb };
+            text += "~[";
+            for (int k = 0; k < 2; ++k) {
+              const std::string& b = *bounds[k];
+              std::size_t end = b.length();
+              if (b.find_first_of("eE") == std::string::npos && b.find(point) != std::string::npos) {
+                while (end > i && end > b.find(point) + 1 && b[end - 1] == '0') {
+                  --end;
+                }
+              }
+              text += (end > i) ? b.substr(i, end - i) : std::string("0");
+              text += (k == 0) ? ", " : "]";
+            }
+          }
+        }
       }
     }
     GAOL_RND_RESTORE();
@@ -3874,21 +3965,22 @@ namespace gaol_ieee1788 {
   /*
     intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
     bounds of x rounded outward, [l, r], [a] for a point interval whose double
-    the digits write exactly, as [4], or [empty], in a stream of the C locale
-    with the flags it starts with and 16 digits, the default of
-    interval::precision(), so that the text is a portable literal (12.11.5)
-    whatever the global output format, the precision of the intervals and the
+    the digits write exactly, as [4], or [empty], with the C locale, the flags
+    a stream starts with and the digits of interval::precision() (16 unless
+    the program sets another), so that the text is a portable literal
+    (12.11.5) whatever the global output format, the flags of a stream and the
     locale of the program (GAOL v5). It is the text operator<< writes in the
     bounds format under these settings. GAOL wrote what operator<< writes: the
     width format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
-    the locale of a program that sets one, the digits of the precision another
-    part of the program set, and <4, 4> for the point interval 4, none of them
-    a literal, and the text changed with the format another thread was setting.
+    the locale of a program that sets one, and <4, 4> for the point interval
+    4, none of them a literal, and the text changed with the format another
+    thread was setting.
   */
   std::string intervalToText(const interval& x)
   {
-    // The flags a new stream starts with, 16 digits and the C locale
-    const ::gaol_core::text_format fmt(std::ios_base::skipws | std::ios_base::dec, 16, std::locale::classic());
+    // The flags a new stream starts with, the digits of the intervals and the C locale
+    const ::gaol_core::text_format fmt(std::ios_base::skipws | std::ios_base::dec, interval::precision(),
+                                       std::locale::classic());
     std::string out;
     GAOL_RND_ENTER();
     ::gaol_core::display_bounds(x.left(), x.right(), out, fmt);

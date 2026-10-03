@@ -373,20 +373,21 @@ namespace gaol_ieee1788 {
   /*!
     intervalToText(x): the bounds of x rounded outward, "[l, r]", "[a]" for a
     point interval whose double the digits write exactly, as "[4]" or "[0]",
-    and "[empty]" for the empty set, with 16 significant digits at most. It is
-    an interval literal of the standard (12.11), which textToInterval() reads
+    and "[empty]" for the empty set, with the digits of interval::precision()
+    (16 unless the program sets another) and a decimal point. It is an
+    interval literal of the standard (12.11), which textToInterval() reads
     back as an interval containing x (13.3), and as x itself for "[a]",
-    whatever the global output format, the precision of interval::precision()
-    and the locale of the program: it is not what operator<< writes in the
-    current format, which may be neither a literal (the width format) nor
-    written with a decimal point.
+    whatever the global output format and the locale of the program: it is
+    not what operator<< writes in the current format, which may not be a
+    literal (the width format).
   */
   GAOL_NODISCARD extern __GAOL_PUBLIC__ std::string intervalToText(const interval& x);
 
   /*!
     intervalToExact(x): exact_string(x), what operator<< writes in
     interval_format::hexa, whose bounds in the hexadecimal-significand form
-    exactToInterval() reads back bit for bit (13.4). It leaves the global
+    exactToInterval() reads back bit for bit (13.4), "[a]" for a point
+    interval. It leaves the global
     output format alone: switching it to hexa and back left it in hexa if the
     output threw, and showed it to the other threads meanwhile.
   */
