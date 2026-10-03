@@ -252,7 +252,7 @@ namespace {
 
     // exact_string() reads back as the same doubles: the way to save an
     // interval and read it again, in a file or between programs
-    const interval saved[] = { third, interval(0.1), interval::pi(), interval(-0.0, 0.0),
+    const interval saved[] = { third, interval(0.1), interval::pi(), interval(-0.0, 1.0),
                                interval(1, std::numeric_limits<double>::infinity()), interval::emptyset() };
     bool exact = true;
     for (const interval& x : saved) {
@@ -260,7 +260,12 @@ namespace {
     }
     show("exact_string(pi)", exact_string(interval::pi()), "reads back as the same doubles",
          same_bits(gaol::textToInterval(exact_string(interval::pi())), interval::pi()));
-    show("the same round trip for", std::string("1/3, 0.1, [-0, 0], [1, +oo), [empty]"), "bit for bit", exact);
+    show("the same round trip for", std::string("1/3, 0.1, [-0, 1], [1, +oo), [empty]"), "bit for bit", exact);
+    // A point is written [a], as in decimal, and a zero [0x0p+0] whatever the
+    // signs of its bounds: [-0, 0] reads back as the same set, {0}
+    const interval zero(-0.0, 0.0);
+    show("exact_string([-0, 0])", exact_string(zero), "the set {0}, read back as [0, 0]",
+         gaol::textToInterval(exact_string(zero)).set_eq(zero));
   }
 
   // ==========================================================================

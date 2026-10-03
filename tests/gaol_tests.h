@@ -36,6 +36,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <locale>
 #include <map>
 #include <sstream>
 #include <string>
@@ -212,9 +213,12 @@ namespace gaol_tests
     return failures == 0 ? 0 : 1;
   }
 
+  // In the C locale: a test that sets a global locale writing a decimal comma
+  // got 0x1,4p+2 in its messages
   inline std::string hex(double x)
   {
     std::ostringstream s;
+    s.imbue(std::locale::classic());
     s << std::hexfloat << x;
     return s.str();
   }

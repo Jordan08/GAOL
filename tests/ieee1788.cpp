@@ -34,10 +34,12 @@
 #include <clocale>
 #include <cstdlib>
 #include <locale>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 // Commented out: the tests run no thread (GAOL v5)
 // // std::thread, which libstdc++ has only when built with a thread model
@@ -517,40 +519,46 @@ namespace
   /*
     intervalToText(x) is an interval literal that textToInterval() reads back
     as an interval containing x, [l, r], [a] for a point that the digits write
-    exactly, and [empty] for the empty set, whatever the global output format,
-    the precision and the locale of the program (GAOL v5), as the standard
-    asks of it (13.3): it wrote what operator<< does, the width
-    "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the locale of a
-    program that sets one, fewer digits when the precision of the intervals
-    was lowered, and <4, 4> for the point interval 4, which is no literal of
-    the standard. Under a locale writing a decimal comma, the text operator<<
-    writes for a point has to be refused, or read back as an interval
-    containing it: the literal [a] made interval(-2.5) [-2,5], read as the
-    interval [-2, 5]. Where no such locale is installed, that part is not
-    checked.
+    exactly, and [empty] for the empty set, whatever the global output format
+    and the locale of the program (GAOL v5), as the standard asks of it
+    (13.3), with the digits of interval::precision(): it wrote what operator<<
+    does, the width "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
+    the locale of a program that sets one, and <4, 4> for the point interval
+    4, which is no literal of the standard. The texts written by hand are
+    those of 16 digits and of 1 digit; with the other precisions, it has to be
+    the text operator<< writes in the bounds format. Under a locale writing a
+    decimal comma, operator<< writes the bounds format with a decimal point
+    too, and the text of a point has to be read back as the point, or as an
+    interval containing it when it has two bounds (GAOL v5: the literal [a]
+    made interval(-2.5) [-2,5], read as the interval [-2, 5], and GAOL wrote
+    [-2,5, -2,5], which the reader refused). Where no such locale is
+    installed, that part is not checked.
   */
   void text_independent_of_the_output_settings()
   {
     const gaol::interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
     const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
-    // The texts to expect, written by hand ("" for none)
-    const struct { const char *name; interval x; const char *text; } forms[] = {
-      { "[1, 2]", interval(1.0, 2.0), "[1, 2]" },
-      { "interval(4)", interval(4.0), "[4]" },
-      { "interval(0.5)", interval(0.5), "[0.5]" },
-      { "interval(-1024)", interval(-1024.0), "[-1024]" },
-      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
-      { "[-0, 0]", interval(-0.0, 0.0), "[0]" },
-      { "interval(-0.0)", interval(-0.0), "[0]" },
-      { "interval::zero()", interval::zero(), "[0]" },
-      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
-      { "[1, +oo]", interval(1.0, oo), "[1, inf]" },
-      { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]" },
-      { "the universe", interval::universe(), "[-inf, inf]" },
-      { "the empty set", interval::emptyset(), "[empty]" },
-      { "[5e-324, 1e-323]", interval(smallest, 2.0*smallest), "[4.940656458412465e-324, 9.881312916824931e-324]" },
-      { "[-MAX, MAX]", interval(-largest, largest), "[-1.797693134862316e+308, 1.797693134862316e+308]" },
+    // The texts to expect, written by hand, with 16 digits and with 1
+    const struct { const char *name; interval x; const char *text; const char *text1; } forms[] = {
+      { "[1, 2]", interval(1.0, 2.0), "[1, 2]", "[1, 2]" },
+      { "interval(4)", interval(4.0), "[4]", "[4]" },
+      { "interval(0.5)", interval(0.5), "[0.5]", "[0.5]" },
+      { "interval(-1024)", interval(-1024.0), "[-1024]", "[-2e+03, -1e+03]" },
+      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]", "[0.1, 0.2]" },
+      { "[-0, 0]", interval(-0.0, 0.0), "[0]", "[0]" },
+      { "interval(-0.0)", interval(-0.0), "[0]", "[0]" },
+      { "interval::zero()", interval::zero(), "[0]", "[0]" },
+      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]",
+        "[0.3, 0.4]" },
+      { "[1, +oo]", interval(1.0, oo), "[1, inf]", "[1, inf]" },
+      { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]", "[-inf, -1]" },
+      { "the universe", interval::universe(), "[-inf, inf]", "[-inf, inf]" },
+      { "the empty set", interval::emptyset(), "[empty]", "[empty]" },
+      { "[5e-324, 1e-323]", interval(smallest, 2.0*smallest), "[4.940656458412465e-324, 9.881312916824931e-324]",
+        "[4e-324, 1e-323]" },
+      { "[-MAX, MAX]", interval(-largest, largest), "[-1.797693134862316e+308, 1.797693134862316e+308]",
+        "[-2e+308, 2e+308]" },
     };
     const interval others[] = { interval(0.1, 0.3), interval::pi(), interval(1.25, 1.2567), interval(-2.0/3.0, 1e23),
                                 interval(1e-5, 2e-5) };
@@ -559,7 +567,7 @@ namespace
       const std::string text = intervalToText(x);
       const auto describe = [&] { return hex(x) + " " + situation + ": \"" + text + "\""; };
       if (!expected.empty()) {
-        check("intervalToText: the text of the manual, whatever the output settings", text == expected,
+        check("intervalToText: the text of the manual, whatever the format and the locale", text == expected,
               [&] { return describe() + " rather than \"" + expected + "\""; });
       }
       check("intervalToText: an interval literal of IEEE 1788-2015", is_portable_literal(text), describe);
@@ -568,12 +576,27 @@ namespace
             x.is_empty() ? back.is_empty() : back.set_contains(x), [&] { return describe() + " read " + hex(back); });
     };
 
+    const std::streamsize precisions[] = { 1, 3, 8, 16, 17, 30 };
+    const std::size_t nb_others = sizeof others / sizeof others[0];
+    // The text operator<< writes in the bounds format, in a stream of the C
+    // locale and its first flags, with each precision: what intervalToText()
+    // has to give with that precision whatever the other settings
+    std::map<std::streamsize, std::vector<std::string> > reference;
     interval::format(gaol::interval_format::bounds);
-    interval::precision(16);
-    // The text under the default settings, which the others have to give too
-    std::string reference[sizeof others / sizeof others[0]];
-    for (std::size_t i = 0; i < sizeof others / sizeof others[0]; ++i) {
-      reference[i] = intervalToText(others[i]);
+    for (std::streamsize precision : precisions) {
+      interval::precision(precision);
+      for (std::size_t i = 0; i < nb_others; ++i) {
+        std::ostringstream os;
+        os.imbue(std::locale::classic());
+        os << others[i];
+        reference[precision].push_back(os.str());
+      }
+      for (const auto& form : forms) {
+        std::ostringstream os;
+        os.imbue(std::locale::classic());
+        os << form.x;
+        reference[precision].push_back(os.str());
+      }
     }
 
     const struct { const char *name; gaol::interval_format::format_t format; } formats[] = {
@@ -583,16 +606,18 @@ namespace
     };
     const auto expect_all = [&](const std::string& where) {
       for (const auto& f : formats) {
-        for (std::streamsize precision : { 1, 3, 8, 16, 17, 30 }) {
+        for (std::streamsize precision : precisions) {
           interval::format(f.format);
           interval::precision(precision);
           const std::string situation = "in the " + std::string(f.name) + " format with the precision "
                                         + std::to_string(precision) + where;
-          for (const auto& form : forms) {
-            expect_text(form.x, form.text, situation);
+          std::size_t k = 0;
+          for (std::size_t i = 0; i < nb_others; ++i) {
+            expect_text(others[i], reference[precision][k++], situation);
           }
-          for (std::size_t i = 0; i < sizeof others / sizeof others[0]; ++i) {
-            expect_text(others[i], reference[i], situation);
+          for (const auto& form : forms) {
+            expect_text(form.x, (precision == 16) ? form.text : (precision == 1) ? form.text1 : "", situation);
+            expect_text(form.x, reference[precision][k++], situation);
           }
           check("intervalToText leaves the global format as it was", interval::format() == f.format, [&] { return situation; });
           check("intervalToText leaves the global precision as it was", interval::precision() == precision, [&] { return situation; });
@@ -625,15 +650,14 @@ namespace
       interval::format(gaol::interval_format::bounds);
       interval::precision(16);
       os << interval(0.25, 0.5);
-      check("operator<< writes a decimal comma under that locale, the text of intervalToText none",
-            os.str() == "[0,25, 0,5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
+      check("operator<< writes the bounds format with a decimal point under that locale, the text of intervalToText",
+            os.str() == "[0.25, 0.5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
             [&] { return os.str() + " and " + intervalToText(interval(0.25, 0.5)); });
       // A point written by operator<< under that locale: the literal [a] of a
       // number with a decimal comma would be two numbers, which the reader
       // takes, [-2,5] being [-2, 5], [12,5] the empty set and [0,] (no digit,
-      // showpoint) [0, +oo]; the text has to be refused, or read back as an
-      // interval containing the point, and as the point itself when it is one
-      // number
+      // showpoint) [0, +oo]; the text has to be read back as an interval
+      // containing the point, and as the point itself when it is one number
       const struct { const char *name; std::ios_base::fmtflags flags; std::streamsize precision; } settings[] = {
         { "with 16 digits", std::ios_base::fmtflags(), 16 },
         { "in the fixed format with the showpoint flag and no digit", std::ios_base::fixed | std::ios_base::showpoint, 0 },
@@ -654,8 +678,8 @@ namespace
             refused = true;
           }
           const bool one_number = (text.find(", ") == std::string::npos);
-          check("operator<< of a point under that locale: refused, or read back as an interval containing it, [a] as the point",
-                refused || (back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x))),
+          check("operator<< of a point under that locale: read back as an interval containing it, [a] as the point",
+                !refused && back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x)),
                 [&] { return text.substr(0, 60) + " " + setting.name + ", read " + hex(back); });
         }
       }

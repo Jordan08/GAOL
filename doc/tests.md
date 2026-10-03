@@ -212,7 +212,13 @@ mode there.
   the intervals, each bound less than one unit of its last digit away, near
   the powers of ten too, where a digit moved outward changes the exponent;
   read back, they have to enclose the intervals written, and so do the two
-  numbers the format of the agreeing digits stands for. The text of a point
+  numbers the format of the agreeing digits stands for, over positive and
+  negative intervals. That format has to write the digits two bounds share
+  only for bounds finite, not 0, of the same sign, with as many digits before
+  the point and the same exponent, that share their first digit that is not
+  0, and the bounds otherwise: `[1, 10]`, `[1, 2]`, `[0]` for a zero,
+  `-1.25~[67, 0]` (GAOL v5: `1~[., 0.]`, `~[1., 2.]`, `~[-0., 0.]`, and every
+  negative interval with its bounds). The text of a point
   interval, written with 1 to 25 digits in each of these formats, has to be
   read back as an interval enclosing it: the literal `[a]` of IEEE 1788-2015
   is written for a number that is the point itself, and read back as the
@@ -224,12 +230,30 @@ mode there.
   writes them exactly. GAOL wrote `<a, b>` for every point interval, and the
   reader refused most of them (GAOL v5). In hexadecimal, the
   bounds have to be written in the hexadecimal-significand form of
-  IEEE 1788-2015 (13.4.1) and read back bit for bit, which is the recovery
-  requirement of 13.4: over random intervals, and over the empty set, the
-  infinite bounds, the signed zeros, the subnormals, the largest doubles and
-  point intervals.
+  IEEE 1788-2015 (13.4.1) and read back as the same doubles, which is the
+  recovery requirement of 13.4: over random intervals, and over the empty
+  set, the infinite bounds, the signed zeros, the subnormals, the largest
+  doubles and point intervals, written `[a]` as in decimal, and `[0x0p+0]`
+  for a zero whatever the signs of its bounds, read back as the same set
+  (GAOL v5: `[0x1.8p+0, 0x1.8p+0]`, and `[-0x0p+0, 0x0p+0]` for
+  `interval::zero()` with the SSE2 intervals).
   `operator<<` has to leave the precision of the stream as it was, and
-  `std::setw` to pad the whole interval, adjusted to the right or to the left.
+  `std::setw` to pad the whole interval, adjusted to the right, to the left
+  or inside (with `std::internal`, the fill follows the sign of the midpoint
+  in the width and center formats, and that of the shared digits in the
+  agreeing format), and after `0x` in the hexadecimal floating-point format
+  of the stream. The texts written under the flags of the
+  stream (`showpoint`, `showpos`, `uppercase`, `fixed`, `scientific`), its
+  fill and a locale of its own (a decimal colon, digits grouped by three, or
+  a decimal comma) have to be those `operator<<` wrote in a stream of its
+  own, before it made the text in a character string, but for these
+  changes: the bounds format writes its bounds in the C locale whatever the
+  locale of the stream, so that the reader reads them back (it wrote
+  `[1234:5, 1234567:25]` and `[0,25, 0,5]`); the width format writes the
+  radius with the grouping of the locale, as the midpoint, and without a
+  sign under `showpos` (it wrote `+2 (+/- +1)`), and a midpoint 0 as `0` (it
+  wrote `-0` for [-2u, u]): 33 cases of four formats, over zeros,
+  infinities, the empty set and point intervals (GAOL v5).
   The width and center formats have to write the `midpoint()` and the `rad()`
   of IEEE 1788-2015: with every precision and flag, over the special values,
   the subnormals, the largest doubles, unbounded intervals and random
@@ -336,19 +360,23 @@ mode there.
   interval x, `interval(0.1)` first: it was the empty set (GAOL v5); and to be
   x itself for a text `[a]`.
   `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`,
-  `[a]` (`[4]`, `[0]`) or `[empty]`, whatever the global format, the precision
-  of the intervals and the locale: in each of the five formats, with 1, 3, 8,
-  16, 17 and 30 digits, and under a locale writing a decimal comma where one
-  is installed, where `operator<<` writes `1.5 (+/- 0.5)` and `[0,25, 0,5]`; a
-  grammar of the literals of Tables 9.5 and 12.2 checks the text, and
-  `textToInterval` has to read it back as an interval containing x (GAOL v5).
-  Under that locale, the text `operator<<` writes for a point (`-2.5`, `12.5`,
-  `0`, minus the least subnormal..., with 16 digits, and in the fixed format
-  with no digit and the showpoint flag, and with 1074 digits) has to be refused
-  by `gaol::textToInterval`, or read back as an interval containing the point,
-  and as the point itself when it is one number: the literal `[a]` wrote
-  `[-2,5]`, read as `[-2, 5]`, `[12,5]`, read as the empty set, and `[0,]`,
-  read as `[0, +oo]` (GAOL v5).
+  `[a]` (`[4]`, `[0]`) or `[empty]`, with the digits of the precision of the
+  intervals, whatever the global format and the locale: in each of the five
+  formats, with 1, 3, 8, 16, 17 and 30 digits, and under a locale writing a
+  decimal comma where one is installed, where `operator<<` writes
+  `1.5 (+/- 0.5)`; the texts written by hand with 16 digits and with 1, and
+  with the other precisions the text `operator<<` writes in the bounds
+  format; a grammar of the literals of Tables 9.5 and 12.2 checks the text,
+  and `textToInterval` has to read it back as an interval containing x (GAOL
+  v5). Under that locale, `operator<<` has to write the bounds format with a
+  decimal point, `[0.25, 0.5]`, and the text it writes for a point (`-2.5`,
+  `12.5`, `0`, minus the least subnormal..., with 16 digits, and in the fixed
+  format with no digit and the showpoint flag, and with 1074 digits) has to
+  be read back by `gaol::textToInterval` as an interval containing the
+  point, and as the point itself when it is one number (GAOL v5: the literal
+  `[a]` wrote `[-2,5]`, read as `[-2, 5]`, `[12,5]`, read as the empty set,
+  and `[0,]`, read as `[0, +oo]`, then a point with its two bounds,
+  `[-2,5, -2,5]`, which the reader refused).
   `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
