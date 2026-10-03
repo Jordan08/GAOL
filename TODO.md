@@ -134,12 +134,13 @@ points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
    inférieure perd le carré du reste (1962 doubles sous la plus serrée pour
    n = 2^32 − 1), et les builds SSE2 et FPU multiplient les produits arrondis
    dans des ordres différents, contre « les mêmes bornes sur toutes les
-   machines » de `doc/accuracy.md`. Fait par #61. Une borne nulle, ou une seule borne hors de
-   la plage, envoie les deux bornes aux produits arrondis (jusqu'à 10 doubles de
-   trop). Décidé le 3 octobre : rendre `ipow_exact_dn(0)` exact, sans traiter
-   chaque borne à part ; garder l'ancien code SSE2 sous `#if 0` ; garder la
-   garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre SSE2 et FPU
-   avec GCC 9.4 (#37) : à revérifier.
+   machines » de `doc/accuracy.md`. Fait par #61. Une borne nulle, ou une
+   seule borne hors de la plage, envoie les deux bornes aux produits arrondis
+   (jusqu'à 10 doubles de trop). Décidé le 3 octobre : rendre
+   `ipow_exact_dn(0)` exact, sans traiter chaque borne à part ; garder
+   l'ancien code SSE2 sous `#if 0` ; garder la garantie 5 n log2(n) 2^-104.
+   `pown([-2, 3], 100)` différait entre SSE2 et FPU avec GCC 9.4 (#37) : à
+   revérifier.
 
 9. **Suites de `tan([-M_PI_2, M_PI_2])`** (#36). `tan()` donne maintenant
    ±1,63·10^16. Un intervalle sans pôle dont la largeur exacte est entre
