@@ -230,16 +230,19 @@ mode there.
   writes them exactly. GAOL wrote `<a, b>` for every point interval, and the
   reader refused most of them (GAOL v5). In hexadecimal, the
   bounds have to be written in the hexadecimal-significand form of
-  IEEE 1788-2015 (13.4.1) and read back bit for bit, which is the recovery
-  requirement of 13.4: over random intervals, and over the empty set, the
-  infinite bounds, the signed zeros, the subnormals, the largest doubles and
-  point intervals, written `[a]` as in decimal, and `[0x0p+0]` for a zero
-  whatever the signs of its bounds (GAOL v5: `[0x1.8p+0, 0x1.8p+0]`, and
-  `[-0x0p+0, 0x0p+0]` for `interval::zero()` with the SSE2 intervals).
+  IEEE 1788-2015 (13.4.1) and read back as the same doubles, which is the
+  recovery requirement of 13.4: over random intervals, and over the empty
+  set, the infinite bounds, the signed zeros, the subnormals, the largest
+  doubles and point intervals, written `[a]` as in decimal, and `[0x0p+0]`
+  for a zero whatever the signs of its bounds, read back as the same set
+  (GAOL v5: `[0x1.8p+0, 0x1.8p+0]`, and `[-0x0p+0, 0x0p+0]` for
+  `interval::zero()` with the SSE2 intervals).
   `operator<<` has to leave the precision of the stream as it was, and
   `std::setw` to pad the whole interval, adjusted to the right, to the left
   or inside (with `std::internal`, the fill follows the sign of the midpoint
-  in the width and center formats). The texts written under the flags of the
+  in the width and center formats, and that of the shared digits in the
+  agreeing format), and after `0x` in the hexadecimal floating-point format
+  of the stream. The texts written under the flags of the
   stream (`showpoint`, `showpos`, `uppercase`, `fixed`, `scientific`), its
   fill and a locale of its own (a decimal colon, digits grouped by three, or
   a decimal comma) have to be those `operator<<` wrote in a stream of its

@@ -1083,9 +1083,10 @@ namespace
     the text before its digits as std::right does, where GAOL 4 put the fill
     after the sign of the midpoint written by the width and center formats, and
     does again, for the whole text: "-1.5" in a width of 8 is "-****1.5", and
-    the bounds, which start with '[', are padded before it. The fixed format
+    the bounds, which start with '[', are padded before it, and the fill goes
+    after the 0x of the hexadecimal floating-point format. The fixed format
     writes an infinity in lower case, as the conversion %f of the standard
-    does. The bounds are written in the C locale whatever the locale of the
+    does (a stream of libc++, which uses %F, wrote INF). The bounds are written in the C locale whatever the locale of the
     stream, with a decimal point and no grouping, so that the reader reads
     them back (GAOL v5: "[1234:5, 1234567:25]" under this locale, and a
     decimal comma, which the reader takes for the comma between two bounds);
@@ -1170,6 +1171,24 @@ namespace
       check("operator<< leaves the flags, the fill and the precision of the stream, and its width 0",
             os.flags() == c.flags && os.fill() == c.fill && os.precision() == 6 && os.width() == 0,
             [&] { return std::string("\"") + c.expected + "\""; });
+    }
+    // std::internal after the 0x of the hexadecimal floating-point format of
+    // the stream, whose digits the C++ library writes (they differ between
+    // libraries): the text expected is that of the library, the fill after 0x
+    interval::format(center);
+    interval::precision(6);
+    for (const double c : { 1.5, -1.5 }) {
+      std::ostringstream library;
+      library << std::hexfloat << c;
+      const std::string digits = library.str();
+      const std::size_t at = digits.find("0x") + 2;
+      std::ostringstream os;
+      os.flags(fixed | scientific | internal);
+      os.fill('*');
+      os << std::setw(static_cast<int>(digits.size()) + 4) << interval(c);
+      const std::string expected = digits.substr(0, at) + "****" + digits.substr(at);
+      check("operator<< under std::internal: the fill after the 0x of the hexadecimal format of the stream",
+            os.str() == expected, [&] { return "\"" + os.str() + "\" rather than \"" + expected + "\""; });
     }
     interval::precision(saved_precision);
     interval::format(saved_format);
