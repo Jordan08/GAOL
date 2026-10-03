@@ -921,6 +921,16 @@ namespace gaol_core {
     if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
       return stream_text(x, rounding, fmt);
     }
+    // A subnormal under denormals-are-zero, which a program may set, compares
+    // equal to 0: it is written by a stream, to nearest, as GAOL wrote it
+    // before and as tests/numbers.cpp checks against a stream, where the
+    // snprintf called below wrote 0 for 5e-324 with MSYS2 CLANG64 and the
+    // stream did not (point Q of TODO.md, issue #68, is to round it outward)
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    if (x == 0.0 && (bits << 1) != 0) {
+      return stream_text(x, text_nearest, fmt);
+    }
 
     const bool fixed = (floatfield == std::ios_base::fixed);
     const bool general = (floatfield == 0);
