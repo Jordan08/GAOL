@@ -1,46 +1,40 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `61c7503` de `configure-clean`. Les
+Ce qui reste à faire sur GAOL v5 au commit `a29c7b3` de `configure-clean`. Les
 points gardent les numéros de la liste d'origine : un numéro qui manque est un
 point fait. Le détail de chaque point, les questions ouvertes des pull requests
 fusionnées et le suivi (rapports, avancement) sont dans la branche `todo-status`
 (`todo-notes/2026-10-02/reste-detaille.md`, `TODO.md`, `todo-notes/`) ; la
 pull request de synthèse mettra à jour `ChangeLog` et `doc/differences.md`.
 Les relectures des pull requests fusionnées ont aussi laissé de petites
-corrections de commentaires, de documentation et de tests, rangées par point
-dans `reste-detaille.md` ; seules celles de `3rd/README.md`, à faire avant
-l'envoi à CORE-MATH, sont reprises ici (point 31).
+corrections de commentaires, de documentation et de tests : celles qui
+restaient à faire le 3 octobre sont les points 51 à 67, et celles de
+`3rd/README.md`, à faire avant l'envoi à CORE-MATH, sont au point 31.
 
 Les points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
-[examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro
-n de sa section 5) ; les points 41 à 44, de la vérification de `VERSION.txt`
-(2026-09-28) ; 45 à 49, des corrections et des relectures ; 50, d'une
-décision du 3 octobre. Les questions ouvertes ont été tranchées le 3 octobre :
-la décision est écrite dans chaque point (« Décidé le 3 octobre »), et une
-question reportée renvoie à son issue (#64 à #70).
+[examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro n
+de sa section 5) ; les points 41 à 44, de la vérification de `VERSION.txt`
+(2026-09-28) ; 45 à 49, des corrections et des relectures ; 50, d'une décision
+du 3 octobre ; 51 à 67, des relectures des pull requests. Les questions ouvertes
+ont été tranchées le 3 octobre : la décision est écrite dans chaque point
+(« Décidé le 3 octobre »), et une question reportée renvoie à son issue
+(#64 à #70).
 
 ## En cours
 
-Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
+Ces branches sont poussées, mais pas fusionnées dans `configure-clean`. Les
+points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
+3 octobre (#63, #62, #61 et #60).
 
-- **3**, `todo-03-pow-exact-corner` (defcd7a) : terminé ; restent la
-  relecture, la CI et la pull request ; conflit avec la branche du 8.
-- **4**, `todo-04-ftz-daz` (ec0ea03) : terminé ; restent la fusion de
-  `configure-clean` (conflit), la relecture, la CI et la pull request ;
-  conflit avec la branche du 36 dans `doc/using.md`.
-- **8**, `todo-08-pow-large-n` (d217170) : terminé ; restent la relecture, la
-  CI et la pull request.
 - **12**, `todo-12-long-sums` (553e649) : inachevé (commits « WIP ») ; restent
   la fin du travail, son rapport, la relecture, la CI et la pull request.
 - **17**, `todo-17-output-speed` (3b9311c) : inachevé (« WIP ») ; restent les
   mesures, la vérification du texte écrit, le rapport, la relecture, la CI et
   la pull request.
-- **24, armhf**, `fix-24b-armhf-fe-invalid` (375a822) : corrige la CI armhf,
-  rouge depuis #50 ; validé sous qemu ; restent la relecture et la pull
-  request.
 - **36**, `todo-36-upward-rounding-effects` (1559af5) : inachevé (« WIP » fait
-  sur `a2ca992`, conflits dans `doc/using.md`) ; voir le point 36 ; restent
-  aussi la fusion de `configure-clean`, la relecture et la pull request.
+  sur `a2ca992`, conflit avec `configure-clean` dans `doc/using.md`) ; voir le
+  point 36 ; restent aussi la fusion de `configure-clean`, la relecture et la
+  pull request.
 
 ## Code
 
@@ -72,15 +66,13 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 3. **`pow(x, y)` a la largeur d'un double là où la puissance en un coin est un
    double** : `pow([4], 0.5)` vaut [2 − 2^-52, 2], et les cas 149 à 152 et 163
    de [doc/compare/special_cases.md](doc/compare/special_cases.md) sont plus
-   larges que le résultat d'IEEE 1788. Fait dans la branche
-   `todo-03-pow-exact-corner` : `pow_is_double()` prouve par des opérations
-   exactes que x^y est un double, et `pow_lo()` le prend alors comme borne
-   inférieure. À corriger avec elle : la colonne GAOL des cas 184 à 188 de
-   `special_cases.md` ([−0] au lieu de [0] depuis #37), et une phrase du
-   commentaire de `pow_standard()` qui devient fausse. Décidé le 3 octobre
-   (#63) : la racine carrée de SSE2 sur tout x86 32 bits, et non plus sur
-   Windows 32 bits seulement ; pas de recherche de cas durs pour MinGW-w64
-   x86 avant #63.
+   larges que le résultat d'IEEE 1788. Fait par #63 : `pow_is_double()` prouve
+   par des opérations exactes que x^y est un double, et `pow_lo()` le prend
+   alors comme borne inférieure ; la colonne GAOL des cas 184 à 188 de
+   `special_cases.md` et le commentaire de `pow_standard()` sont corrigés.
+   Restent, décidés le 3 octobre (#63) : la racine carrée de SSE2 sur tout x86
+   32 bits, et non plus sur Windows 32 bits seulement ; pas de recherche de cas
+   durs pour MinGW-w64 x86 avant #63.
 
 <!-- -->
 
@@ -94,7 +86,7 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 4. **Le flush-to-zero et le denormals-are-zero rendent les bornes fausses**
    (revue n° 2) : `[1e-300] * [1e-20]` vaut [0, 0] dans un programme lié avec
    `-Ofast` (par `crtfastmath.o`) ou qui charge un plug-in compilé ainsi. Fait
-   dans la branche `todo-04-ftz-daz` : une sonde sous-normale qui efface FTZ et
+   par #62 : une sonde sous-normale qui efface FTZ et
    DAZ (FZ sur ARM), `-mno-daz-ftz` à l'édition de liens, un test et la
    documentation. Décidé le 3 octobre : `gaol.pc` garde `-mno-daz-ftz`, qui
    arrête l'édition de liens avec Clang 18 ou un GCC antérieur à 11.4 (c'est
@@ -138,17 +130,16 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
    (relancer les cinq bibliothèques) : décidé le 3 octobre, les ajouter au
    moment du point 33.
 
-8. **`pow(x, n)` pour n grand** (revue n° 7) : dans `ipow_exact_dn()`, la
-   borne inférieure perd le carré du reste (1962 doubles sous la plus serrée
-   pour n = 2^32 − 1), et les builds SSE2 et FPU multiplient les produits
-   arrondis dans des ordres différents, contre « les mêmes bornes sur toutes
-   les machines » de `doc/accuracy.md`. Fait dans la branche
-   `todo-08-pow-large-n`. Une borne nulle, ou une seule borne hors de la
-   plage, envoie les deux bornes aux produits arrondis (jusqu'à 10 doubles de
+8. **`pow(x, n)` pour n grand** (revue n° 7) : dans `ipow_exact_dn()`, la borne
+   inférieure perd le carré du reste (1962 doubles sous la plus serrée pour
+   n = 2^32 − 1), et les builds SSE2 et FPU multiplient les produits arrondis
+   dans des ordres différents, contre « les mêmes bornes sur toutes les
+   machines » de `doc/accuracy.md`. Fait par #61. Une borne nulle, ou une seule borne hors de
+   la plage, envoie les deux bornes aux produits arrondis (jusqu'à 10 doubles de
    trop). Décidé le 3 octobre : rendre `ipow_exact_dn(0)` exact, sans traiter
    chaque borne à part ; garder l'ancien code SSE2 sous `#if 0` ; garder la
-   garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre
-   SSE2 et FPU avec GCC 9.4 (#37) : à revérifier.
+   garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre SSE2 et FPU
+   avec GCC 9.4 (#37) : à revérifier.
 
 9. **Suites de `tan([-M_PI_2, M_PI_2])`** (#36). `tan()` donne maintenant
    ±1,63·10^16. Un intervalle sans pôle dont la largeur exacte est entre
@@ -179,7 +170,7 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     `interval(0x1p-1073, 0x1p-1074)` n'est pas vide, `bound_to_text()` écrit
     une borne sous-normale au plus proche (à un chiffre, [22·2^-1074] s'écrit
     `[1e-322]`, relu plus petit), et `log`, `sqrt`, `abs`, `div_rel`, `mid()`
-    et les relations se trompent : une fois le point 4 fusionné, avant la
+    et les relations se trompent : depuis #62 (point 4), avant la
     première opération qui sonde, et à chaque appel avec
     `GAOL_PRESERVE_ROUNDING`. Correction : comparer les bits, ou sonder avant
     de comparer, et régénérer le parser. Question de #58 : retirer DAZ et FTZ
@@ -366,7 +357,7 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     telle garde dans `examples/13_rounding_environment.cpp`.
 
 24. **Exceptions flottantes : ce qui reste après #47 et #50.** Après
-    `fix-24b-armhf-fe-invalid` (« En cours »), `is_empty()` reste compilé en
+    #60, `is_empty()` reste compilé en
     `vcmpe` sur armhf dans le code du programme : l'écrire avec
     `std::isunordered()` sur ARM 32 bits (décidé le 3 octobre).
     Avec `GAOL_PRESERVE_ROUNDING`, les opérations SSE2 masquent de nouveau les
@@ -425,19 +416,19 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 ## Tests et intégration continue
 
 29. **Le test sous une locale à virgule n'est vérifié que dans `linux.yml`**
-    (#35) : macOS, Windows, les conteneurs et `build-systems.yml` ne génèrent
-    ni ne vérifient de locale à virgule (Debian demande le paquet `locales` ;
+    (#35) : macOS, Windows, les conteneurs et `build-systems.yml` ne génèrent ni
+    ne vérifient de locale à virgule (Debian demande le paquet `locales` ;
     Alpine et manylinux n'en ont pas). Décidé le 3 octobre : un contrôle
     (`.github/scripts/comma-locale.sh check`) après les tests là où la locale
     existe. Au passage : `numbers` n'a pas de `TIMEOUT` dans
-    `tests/fetch_content` et `tests/find_package`, et prend 235 s de ses 300
-    sur macOS x86_64 Debug ASan+UBSan (délai dépassé une fois dans #50) :
-    décidé, un `TIMEOUT` de 400 s pour ce job, sans alléger les tests ; le
-    passage de 300 à 30 tirages en Debug (`d78af72`) est à remesurer, #58
-    ayant montré que les jobs Visual Studio Debug attendaient une boîte de
-    dialogue : décidé, revenir ensuite à 300 tirages (le job macOS ci-dessus
-    est à remesurer avec eux) ; les jobs Ubuntu 22.04 de `linux.yml` passent
-    sur `ubuntu-24.04` (décidé) avant le 17 avril 2027.
+    `tests/fetch_content` et `tests/find_package`, et prend 235 s de ses 300 sur
+    macOS x86_64 Debug ASan+UBSan (délai dépassé une fois dans #50) : décidé, un
+    `TIMEOUT` de 400 s pour ce job, sans alléger les tests ; le passage de 300 à
+    30 tirages en Debug (`d78af72`) reste (décidé le 3 octobre), mais son
+    commentaire, qui l'attribue à la lenteur des flux, est à corriger : #58 a
+    montré que les jobs Visual Studio Debug attendaient une boîte de dialogue ;
+    les jobs Ubuntu 22.04 de `linux.yml` passent sur `ubuntu-24.04` (décidé)
+    avant le 17 avril 2027.
 
 30. **Des suites de tests et des bancs d'essai où GAOL est absent** : passer
     ITF1788 (toutes les opérations d'IEEE 1788 ; seuls les cas des fonctions
@@ -590,6 +581,146 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     3.19) : décidé, faire dépendre `package_source` d'une reconfiguration ; le
     contrôle reste un test CTest (jusqu'à 52 s sous QEMU).
 
+## Corrections laissées par les relectures
+
+Relevées dans les descriptions et les relectures des pull requests
+fusionnées, et vérifiées le 3 octobre au commit `a29c7b3`.
+
+51. **Les commentaires et les textes de pow** (suite du point 1, #37) : le
+    commentaire d'en-tête de `pow_standard()` (`gaol/gaol_interval.cpp`)
+    raconte l'histoire (« This was the second half… ») au lieu de dire ce que
+    fait la fonction ; le Doxygen de `gaol_pow_hybrid()`
+    (`gaol/gaol_interval.h`, l. 835) dit la partie standard exp(J log(I)),
+    alors que les bornes finies viennent des coins du `pow` de CORE-MATH ;
+    `doc/tests.md` (l. 187 et 327) et `tests/ieee1788.cpp` (l. 133) disent
+    les bornes vérifiées « bit for bit », alors que `==` ne distingue pas −0
+    de +0, et racontent l'histoire : dire plutôt que les littéraux ont été
+    relevés sur l'ancien code et vérifiés avec mpmath à 500 bits, ce que
+    `tests/gaol_tests.h` doit citer aussi.
+
+52. **La raison de C++17 dans les tests** (#37) : `tests/CMakeLists.txt`,
+    `tests/Makefile.am` et `tests/meson.build` la donnent par les littéraux
+    de `elementary_values.h` seulement, alors que `ieee1788.cpp`,
+    `arithmetic.cpp`, `core_math.cpp` et d'autres en ont aussi : parler des
+    tests en général.
+
+53. **Le commentaire du refus de `-ffinite-math-only`** (suite du point 5,
+    #39, #47) : `gaol/gaol_config.h` (l. 208) dit encore que `is_empty()` lit
+    l'ensemble vide comme `!(left() <= right())`, alors que c'est
+    `!std::islessequal(left(), right())` depuis #47. La phrase qui dit
+    `([1, 2] & [3, 4]).is_empty()` faux (« GCC 9, Clang 18 » dans
+    `gaol_config.h`, « GCC 9.4, Clang 18 » dans `doc/three-builds.md`, « with
+    GCC 9 and Clang 18 » dans `doc/tests.md`) est à préciser : avec
+    `-ffinite-math-only`, GCC 13 le rend faux à -O0, -O2 et -O3, Clang 18 à
+    -O0, et à -O2 et -O3 seulement avec des bornes `volatile`.
+
+54. **L'annexe B n° 4 de `examples/examples.md`** (#39, l. 1072) dit qu'un
+    test de compilation vérifie le message avec `PASS_REGULAR_EXPRESSION`,
+    « as `tests/fp_strict` does » : c'est faux, `tests/fp_strict` fait un
+    `try_compile()` à la configuration, pour Visual C++ seulement.
+
+55. **`.github/audit`** (#39) : `compare.py` (l. 25) et `make_probe.py`
+    (l. 15) comparent `__FAST_MATH__` mais pas `__FINITE_MATH_ONLY__` ; sans
+    effet tant que `-fno-fast-math` lui-même est comparé.
+
+56. **Les commentaires du sens d'arrondi avec mingw-w64** (suite du point 6,
+    #54) : le commentaire de `round_upward_if_needed()` (`gaol/gaol_fpu.h`,
+    l. 334) dit que l'unité x87 « computes none of GAOL's doubles », ce qui
+    est faux avec mingw-w64 x64, dont `ldexp()` est le `fscale` x87 : écrire
+    « none of GAOL's doubles but exact ones » ; « as the get_rounding_mode()
+    of cbrt.c, rsqrt.c and asinpi.c does » (`gaol/core_math_port.h`, l. 232)
+    ne vaut que pour GCC et Clang, pas pour Visual C++ x64.
+
+57. **Le commentaire de `tan()`** (suite du point 9, #36) : au-dessus de
+    `const double w` (`gaol/gaol_interval.cpp`), « the test was w < pi_dn »
+    est inexact (l'ancien code testait `!(w < pi_up)`, puis `w < pi_dn` pour
+    le drapeau), et « though none holds a pole » se lit comme si aucun
+    intervalle de cette largeur n'avait de pôle, alors que `[0, pi_dn]`
+    contient π/2. L'entrée `tan` du manuel ne parle pas des largeurs entre
+    `pi_dn` et π : une phrase.
+
+58. **Deux restes du lecteur sous DAZ** (suite du point 11, #40) : le manuel
+    (`gaol.tex`, l. 3579) écrit `\code{-Ofast}` au lieu de `\option{-Ofast}` ;
+    `tests/numbers.cpp` teste `#if GAOL_TESTS_HAVE_MXCSR` (l. 176, 238…),
+    macro indéfinie hors x86, qui avertit sous `-Wundef` : écrire `#ifdef`.
+
+59. **Les textes d'`operator>>`** (suite du point 15, #46) :
+    `doc/differences.md` (l. 402-403) et `examples/examples.md` (l. 62, 459
+    et 634) disent encore qu'une ligne vide fait lever `input_format_error` ;
+    le commentaire d'`operator>>` (`gaol/gaol_interval.cpp`, l. 668, « std::ws
+    is no extraction: it constructs no sentry ») et `doc/tests.md` (l. 259)
+    donnent pour général ce qui est vrai du `std::ws` de libstdc++ 9 et 10 :
+    écrire « le `std::ws` de libstdc++ » ; `doc/tests.md` (l. 250, « with or
+    without `std::noskipws` ») se lit comme si un nombre sautait les blancs
+    sous `noskipws` ; l'exemple du manuel (`gaol.tex`, l. 3501) lit et écrit
+    `x` dans la même expression : en faire deux instructions, et couper en
+    deux la phrase voisine (ligne vide « avec ou sans `std::noskipws` »,
+    intervalle sur plusieurs lignes) ; le Doxygen d'`operator>>`
+    (`gaol/gaol_interval.h`) ne dit pas, comme le manuel, qu'avec les
+    exceptions désactivées une ligne refusée écrit un message sur `cerr` et
+    arrête le programme.
+
+60. **`stream_without_buffer()` en dernier** (#46) : `tests/numbers.cpp`
+    l'appelle en dernier (l. 1891) ; en cas de régression, le programme meurt
+    par SIGSEGV sans afficher les échecs précédents, stdout étant tamponné :
+    `std::fflush(stdout)` avant l'appel.
+
+61. **Les commentaires de la lecture des longs nombres** (suite du point 18,
+    #42) : le commentaire du membre `beyond` de `gaol_number`
+    (`gaol/gaol_interval_lexer.lpp`, l. 216, une ligne de 119 colonnes)
+    laisse croire qu'il est positionné dès que le nombre est sous le plus
+    petit double positif ou au-dessus du plus grand, alors qu'il ne l'est que
+    loin au-delà (10^311 et plus, ou sous 10^-330) : le corriger, au-dessus
+    du membre ; le commentaire de `gaol_enclose_number()` (l. 368-372) dit
+    qu'une lecture sous une locale à virgule prend le temps de la locale C :
+    écrire « à peu près » (rapport mesuré de 1,0 à 1,2) ; dans
+    `tests/numbers.cpp`, le message d'échec du test de temps est construit
+    par `std::to_string` sous la locale à virgule (« 2,112549 s ») : le
+    construire sous la locale C.
+
+62. **La documentation des exceptions flottantes** (suite du point 24, #47,
+    #50) : la liste des opérations qui, sous `GAOL_PRESERVE_ROUNDING`,
+    masquent de nouveau les exceptions du programme (`doc/using.md` l. 527,
+    manuel l. 1235) oublie `%`, `div_rel` et `+= d`, `-= d`, `*= d`, `/= d`,
+    `%= d`, et ne dit pas qu'elles effacent les indicateurs ;
+    « `fetestexcept(FE_INEXACT)` is raised whatever the result »
+    (`doc/using.md` l. 513, manuel l. 1219) est trop fort (`-X`, `abs`, `&`,
+    `|`, `floor`, `max(X, Y)` ne le lèvent pas) : « after most operations » ;
+    la ligne courte de `doc/accuracy.md` (l. 60) ; `\newinvfive` sur les
+    derniers paragraphes de la section 3.3 du manuel ; la structure
+    `EmptySet` de `tests/rounding_direction.cpp` (l. 252), qui porte aussi
+    `nonempty_sets` : un nom neutre.
+
+63. **Le commentaire de `cpack_stale_configure`** (suite du point 44, #33) :
+    « The script removes what it made in this directory, and nothing else »
+    (`tests/cpack_stale_configure.cmake`, l. 46) est inexact,
+    `file(REMOVE_RECURSE)` retirant tout le répertoire (la suppression est
+    sûre, c'est le commentaire qui est faux) ; `doc/tests.md` (l. 595) dit
+    « CMake build » sans dire pourquoi autotools et meson n'ont pas ce test
+    (seul CMake fait l'archive, et le job autotools compare déjà
+    `configure --version` à `VERSION.txt`).
+
+64. **La mise en page de `doc/tests.md`** (#32, #39, #41, #42) : cinq lignes
+    de plus de 100 colonnes (l. 43, 72, 298, 300 et 308) parmi des lignes
+    d'environ 80, une ligne orpheline (l. 281, « With flush-to-zero,
+    denormals-are-zero or both set in MXCSR ») et « The reading of » seul
+    sur une ligne (l. 476).
+
+65. **Les `open()` de `meson.build`** (#45) : `open(sys.argv[-1], …).read(…)`
+    (l. 32, 53 et 60) ne ferme pas le fichier ; sans effet sous CPython, un
+    `with` le ferait.
+
+66. **Les textes des exemples** (#53, #55) : `examples/CMakeLists.txt`
+    (l. 18, « which the autotools and meson builds also compile ») semble
+    renvoyer à l'enveloppe ; la section 3 de `examples/examples.md` (l. 533)
+    parle encore de « three formatting slips » (il y en avait 29, corrigés)
+    et donne comme ouverts `chi([0,0]) = 0`, les 400 bits et `[[nodiscard]]`
+    en C++17 seulement.
+
+67. **Le Doxygen du format `hexa`** (#43) : « same as "bounds" except… »
+    (`gaol/gaol_interval.h`, l. 84) était déjà inexact ; le réécrire avec la
+    décision du point 16 (un point s'écrit `[a]` en hexadécimal aussi).
+
 ## Décisions sans point
 
 Décidé le 3 octobre :
@@ -615,39 +746,33 @@ versions pourraient être touchées sans que la CI le montre. Décidé le
 
 ## Ménage
 
-- **Branches à supprimer sur GitHub.** Fusionnées : `todo-01-pow-norm-half`
-  (#37), `todo-05-finite-math-only` (#39), `todo-29-ci-comma-locale` (#35) et
-  `remove-string-constructor` (#30). Jetables : `ci-debug-numbers-arm64`
-  (#34), `ci-debug-mingw-numbers` (#48) et les branches de #38 et #52,
-  fermées. Abandonnée : `fix-path-core-math`, dont le travail a été repris ou
-  remplacé. Puis chaque branche de « En cours » une fois fusionnée. Décidé le
-  3 octobre : les supprimer toutes, `fix-path-core-math` comprise, après une
-  vérification de chacune.
+- **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
+  fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été
+  le 3 octobre).
 - **La CI tourne deux fois par pull request**, sur `push` (toutes les
   branches) et sur `pull_request` : le push de `61c7503` a lancé 114 jobs,
   environ 380 minutes de runner. Ne lancer `push` que sur les branches
   principales diviserait la charge par deux : décidé le 3 octobre, `push`
   seulement sur `master`, `MATH-CORE` et `configure-clean`.
-- **Les descriptions des pull requests** #50, #51, #53 à #57 et #59 (et un
-  commentaire de #59) finissent par une ligne de crédit et un lien : les
-  retirer, et étendre aux pull requests la règle qui l'interdit dans les
-  commits ? Décidé le 3 octobre : les retirer, ainsi que celle de l'issue #49 ;
-  la règle vaut désormais aussi pour les pull requests et les issues.
+- **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57
+  et #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le
+  3 octobre. Il en reste dans les descriptions de #60 à #63 et dans un
+  commentaire de chacune de #58 et #60 à #63.
 - **La pull request de synthèse**, une fois les branches de « En cours »
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
   le 28 septembre (les textes proposés sont dans `todo-notes/` de la branche
-  `todo-status`) ; `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5,
-  8, 10, 12, 15, 19, 20 et 21 de la section 5 et de l'annexe B, le n° 10
-  comme corrigé par la suppression des constructeurs à partir de chaînes
-  (#30), et la ligne vide du n° 14 ; reprendre ce qu'il dit des points
-  corrigés) ; une seule régénération de `manual/v5/gaol.pdf`, dont la
-  dernière date du 28 septembre, après avoir corrigé dans `gaol.tex` les
-  entrées d'index en conflit de « canonical interval » et l'`Overfull \hbox`
-  des l. 511-515. Décidé le 3 octobre, pour les points 7 et 10 : la puce de
+  `todo-status`) ; `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5, 8,
+  10, 12, 15, 19, 20 et 21 de la section 5 et de l'annexe B, le n° 10 comme
+  corrigé par la suppression des constructeurs à partir de chaînes (#30), et la
+  ligne vide du n° 14 ; reprendre ce qu'il dit des points corrigés) ; une seule
+  régénération de `manual/v5/gaol.pdf`, dont la dernière date du 28 septembre,
+  après avoir corrigé dans `gaol.tex` les entrées d'index en conflit de
+  « canonical interval » et l'`Overfull \hbox` des l. 511-515, et en vérifiant
+  que l'entrée de `what()` ne laisse pas son en-tête seul en bas de page (macro
+  `\defmethod`). Décidé le 3 octobre, pour les points 7 et 10 : la puce de
   `atanh` dans `doc/differences.md` reste, en disant que GAOL 4 n'est pas
-  mesuré ; les puces de `hausdorff()` sont fusionnées ; un seul
-  `\newinvfive` dans l'entrée `hausdorff` du manuel, et aucun sur la phrase du
-  domaine de `atanh`.
-- **L'issue #49** (suivi d'ensemble) est à jour du 3 octobre. Décidé le
-  3 octobre : elle reste ouverte, avec en commentaire les décisions du jour et
-  les liens vers les issues #64 à #70.
+  mesuré ; les puces de `hausdorff()` sont fusionnées ; un seul `\newinvfive`
+  dans l'entrée `hausdorff` du manuel, et aucun sur la phrase du domaine de
+  `atanh`.
+- **L'issue #49** reste ouverte comme suivi d'ensemble ; les décisions du
+  3 octobre et les liens vers les issues #64 à #70 y sont en commentaire.
