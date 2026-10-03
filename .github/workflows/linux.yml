@@ -18,7 +18,7 @@ name: Linux
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
   pull_request:
   workflow_dispatch:
 
@@ -53,9 +53,11 @@ jobs:
           - { os: ubuntu-24.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 24.04 x86_64 Clang' }
           - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 24.04 arm64 GCC' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 24.04 arm64 Clang' }
-          - { os: ubuntu-22.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 x86_64 GCC' }
-          - { os: ubuntu-22.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 22.04 x86_64 Clang' }
-          - { os: ubuntu-22.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 arm64 GCC' }
+          # The compilers of Ubuntu 22.04, whose images GitHub retires by
+          # April 2027, on Ubuntu 24.04, which has them too (GAOL v5)
+          - { os: ubuntu-24.04,     cc: gcc-11,   cxx: g++-11,     packages: 'gcc-11 g++-11', desc: 'Ubuntu 24.04 x86_64 GCC 11' }
+          - { os: ubuntu-24.04,     cc: clang-14, cxx: clang++-14, packages: 'clang-14',      desc: 'Ubuntu 24.04 x86_64 Clang 14' }
+          - { os: ubuntu-24.04-arm, cc: gcc-11,   cxx: g++-11,     packages: 'gcc-11 g++-11', desc: 'Ubuntu 24.04 arm64 GCC 11' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved' }
           # libgaol.so.5.0.0, as configure and meson build it: the tests link
@@ -66,7 +68,7 @@ jobs:
       - name: Tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q g++ clang cmake make
+          sudo apt-get install -y -q g++ clang cmake make ${{ matrix.cfg.packages }}
           ${{ matrix.cfg.cxx }} --version
           cmake --version
       - name: Locale writing a decimal comma
@@ -95,17 +97,17 @@ jobs:
           cmake --build build-find-package --target test
 
   clang-14-arm64:
-    name: Ubuntu 22.04 arm64 Clang 14, refused
-    runs-on: ubuntu-22.04-arm
+    name: Ubuntu 24.04 arm64 Clang 14, refused
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Configure with Clang 14, which does not honour the rounding direction on 64-bit ARM and has to be refused
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang cmake make
-          clang++ --version
-          if cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ > configure.log 2>&1; then
+          sudo apt-get install -y -q clang-14 cmake make
+          clang++-14 --version
+          if cmake -S . -B build -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 > configure.log 2>&1; then
             cat configure.log
             echo "Clang 14 was not refused"
             exit 1
@@ -152,8 +154,8 @@ jobs:
         run: sh .github/scripts/comma-locale.sh check build
 
   cmake-3-14:
-    name: Ubuntu 22.04 x86_64 GCC, CMake 3.14.7
-    runs-on: ubuntu-22.04
+    name: Ubuntu 24.04 x86_64 GCC, CMake 3.14.7
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
@@ -182,8 +184,8 @@ jobs:
           cmake --build build-find-package --target test
 
   gcc-9:
-    name: Ubuntu 22.04 x86_64 GCC 9, without __builtin_roundeven
-    runs-on: ubuntu-22.04
+    name: Ubuntu 24.04 x86_64 GCC 9, without __builtin_roundeven
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7

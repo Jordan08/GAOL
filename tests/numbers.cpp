@@ -1522,10 +1522,13 @@ namespace
     for (const interval& x : specials) {
       expect_each_flag(x);
     }
-    // 300 random draws take a few seconds in an optimized build, but more
-    // than the 300 s the test has in the Debug builds of Visual C++, whose
-    // streams and checked iterators are much slower: those builds, which do
-    // not define NDEBUG, draw 30.
+    // 300 random draws take a few seconds in an optimized build, and much
+    // longer in the builds that do not define NDEBUG, with their checked
+    // iterators and, in the jobs of the continuous integration, the
+    // sanitizers: those draw 30 (numbers takes 235 s with them on macOS
+    // x86_64 with GCC, ASan and UBSan). The Debug builds of Visual C++ that
+    // went past the 300 s of the test were waiting on a dialog box of their
+    // C runtime, which #58 removed, not on the draws.
 #ifdef NDEBUG
     const int nb_random_draws = 300;
 #else

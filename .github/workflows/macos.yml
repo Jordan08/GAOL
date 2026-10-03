@@ -1,6 +1,9 @@
 # Builds GAOL with CMake on macOS, arm64 and x86_64 (natively or under Rosetta),
 # runs its tests, installs it, and builds the tests again with the installed
-# GAOL. Also with the sanitizers, with AppleClang, LLVM's Clang and GCC.
+# GAOL. Also with the sanitizers, with AppleClang, LLVM's Clang and GCC. macOS
+# has fr_FR.UTF-8, a locale writing a decimal comma: each job checks after its
+# tests that numbers read and wrote numbers under it
+# (.github/scripts/comma-locale.sh) (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -10,7 +13,7 @@ name: macOS
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
   pull_request:
   workflow_dispatch:
 
@@ -59,6 +62,8 @@ jobs:
         run: |
           file build/tests/gaol_test_arithmetic
           cmake --build build --target test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
         run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
@@ -80,7 +85,8 @@ jobs:
           - { os: macos-26,       compiler: appleclang, desc: 'macOS 26 arm64 AppleClang Debug ASan+UBSan' }
           - { os: macos-26,       compiler: llvm,       desc: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan' }
           - { os: macos-26,       compiler: gcc,        desc: 'macOS 26 arm64 GCC Debug ASan+UBSan' }
-          - { os: macos-15-intel, compiler: gcc,        desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan' }
+          # numbers took 235 s of the 300 it is given, and once more: 400
+          - { os: macos-15-intel, compiler: gcc,        timeout: 400, desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan' }
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     steps:
@@ -112,8 +118,11 @@ jobs:
           # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
           # behaviour; none is suppressed
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags" \
+            -DGAOL_NUMBERS_TIMEOUT=${{ matrix.cfg.timeout || 300 }}
       - name: Build
         run: cmake --build build -j 4
       - name: Tests (make test)
         run: cmake --build build --target test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build

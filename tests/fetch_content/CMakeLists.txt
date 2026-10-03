@@ -66,3 +66,8 @@ foreach(test arithmetic elementary rounding_direction numbers other_functions re
   endif()
   add_test(NAME ${test} COMMAND gaol_test_${test})
 endforeach()
+# The time limit tests/CMakeLists.txt gives numbers, which none of these had
+# (GAOL v5): should the reading under a locale writing a decimal comma hang
+# again, the job would wait for its own limit
+set(GAOL_NUMBERS_TIMEOUT 300 CACHE STRING "Time limit of the test numbers, in seconds")
+set_tests_properties(numbers PROPERTIES TIMEOUT ${GAOL_NUMBERS_TIMEOUT})
