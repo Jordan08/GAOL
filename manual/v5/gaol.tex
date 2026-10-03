@@ -3702,7 +3702,8 @@ direction it set, which the C runtime of Windows and musl do not honour.
 \begin{deffun}{std::string}{exact\_string}{(const interval\& \var{I})}
   Returns what \code{operator<{}<} writes in the format \code{hexa} (see next
   section), without reading nor changing the global output format:
-  \code{"[empty]"} for the empty set, and otherwise the two bounds in the
+  \code{"[empty]"} for the empty set, \code{"[a]"} for a degenerate interval
+  (\code{"[0x0p+0]"} for a zero of either sign), and otherwise the two bounds in the
   hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
   \code{textToInterval()} reads back bit for bit. This is the exact text
   representation of the standard, its \ieee{intervalToExact}.\newinvfive{}
@@ -3740,22 +3741,31 @@ followed by an interval containing the remaining digits:
 ``\element{3.141\textasciitilde[5926, 6001]}'' stands for
 ``\element{\itv{3.1415926}{3.1416001}}''
 \end{center}
-Note that if the bounds do not have any agreeing digit, there will still be a tilde before the bracketed part.
+Each bound is written with the digits of the precision and the flag
+\code{showpoint}, in the global locale of the program. The digits are shared only
+by two bounds that are finite, not zero and of the same sign, written with as many
+digits before the point and the same exponent, and that share their first digit
+that is not 0: the other intervals are printed as in the format \element{bounds}.
 The digits of each bound are kept: GAOL~4 dropped from both bounds what followed
 the last character of the left one that is not a zero, and wrote
-\itv{1.25}{1.2567} \code{1.25\textasciitilde[, ]}.\newinvfive
+\itv{1.25}{1.2567} \code{1.25\textasciitilde[, ]}.\newinvfive{} It shared the
+digits of every interval whose right bound is at most ten times the left one,
+\itv{1}{10} being \code{1\textasciitilde[., 0.]}, \itv{4}{6}
+\code{\textasciitilde[4., 6.]}, without a shared digit, and a zero
+\code{\textasciitilde[-0., 0.]}, and printed every interval with a negative
+bound with its bounds.
 \begin{example}
  interval::format(interval_format::agreeing);
- std::cout << interval(4,6) << ' '
-           << interval(1.25,1.2567) << std::endl;
- @outputs^@textasciitilde[4., 6.] 1.25@textasciitilde[0, 67]~
+ std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << ' '
+           << interval(-1.2567,-1.25) << std::endl;
+ @outputs^[4, 6] 1.25@textasciitilde[0, 67] -1.25@textasciitilde[67, 0]~
 \end{example}
 
 \item[\element{bounds}.] By printing the bounds between square brackets.
 A degenerate interval whose value is written exactly by the digits displayed
 is printed as that value alone between square brackets, the literal of IEEE
 1788-2015 for a point (12.11), which \code{textToInterval()} reads back as
-the same point (but see below for a locale writing a decimal comma):
+the same point:
 \begin{example}
  interval::format(interval_format::bounds);
  std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
@@ -3765,16 +3775,15 @@ A zero is printed \code{[0]} whatever the signs of its bounds: \itv{-0}{+0},
 which \code{interval::zero()} is with the SSE2 intervals, \itv{+0}{+0} and
 \itv{-0}{-0} are the same set, which \code{[0]} and \code{[-0]} are both read
 back as, and the text is then the same on every build (the format
-\element{hexa} shows the signs of the bounds). A degenerate interval whose
+\element{hexa} prints it \code{[0x0p+0]}). A degenerate interval whose
 value has more digits than those displayed is printed like any other interval,
 with its two bounds rounded outward: \code{interval(0.1)} is printed
 \code{[0.1, 0.1000000000000001]}, which is read back, as any other text, as an
-interval containing it. Under a locale writing a decimal comma, the reader,
-whose decimal point is a point whatever the locale, would take
-\code{[-2,5]} for the interval \itv{-2}{5}: a degenerate interval whose text
-has a comma is printed with its two bounds, \code{[-2,5, -2,5]}, which the
-reader refuses, as it refuses every bound written with a decimal comma
-(\code{interval(4)} is still \code{[4]}).\newinvfive{} GAOL~4 printed every
+interval containing it. The bounds are printed with a decimal point,
+whatever the locale of the stream, so that the reader, whose decimal point is a
+point whatever the locale, reads the text back: under a locale writing a
+decimal comma, it would take \code{[-2,5]} for the interval \itv{-2}{5}, and
+refuses \code{[0,5, 2,5]}.\newinvfive{} GAOL~4 printed every
 degenerate interval between angles, the text of its value rounded downward and
 upward: \code{interval(4)} was \code{<4, 4>}, a form of GAOL that is no literal
 of the standard, and \code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its
@@ -3798,7 +3807,10 @@ may look noisy with the default 16 digits: \itv{0.1}{0.3} is written
 $0.1$, which is a little above $0.1$; this is intended. A degenerate interval has
 no radius: it is written as its midpoint alone, and an unbounded interval has an
 infinite radius, its midpoint being $0$ or plus or minus the largest double
-(\code{[3, inf]} is \code{1.797693134862316e+308 (+/- inf)}).\newinvfive{}
+(\code{[3, inf]} is \code{1.797693134862316e+308 (+/- inf)}). The midpoint and
+the radius are written with the decimal point of the locale of the stream and
+its grouping of the digits, the radius without a sign, even with the flag
+\code{showpos}, and a midpoint $0$ as \code{0}.\newinvfive{}
 GAOL~4 wrote $(a+b)/2$ and $(b-a)/2$ rounded to nearest, which do not contain the
 interval (\itv{1}{1+2^{-52}} was \code{1 (+/- 1.11e-16)}), a radius 0 for
 \itv{0}{5\cdot10^{-324}}, and \code{inf} for the midpoint of
@@ -3812,8 +3824,12 @@ does.\newinvfive
 hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which is exact and which
 \code{textToInterval()} reads back bit for bit, without the round-off error of a
 binary-to-decimal conversion: the recovery requirement of the standard
-(13.4). GAOL~4 printed the sixteen hexadecimal digits of each double, which
-its parser did not read.\newinvfive
+(13.4), whatever the precision, the flags and the locale of the stream. As
+in the format \element{bounds}, a degenerate interval is printed as its value
+alone between square brackets, \code{[0x1.8p+0]} for \code{interval(1.5)}, and
+a zero \code{[0x0p+0]} whatever the signs of its bounds. GAOL~4 printed the
+sixteen hexadecimal digits of each double, which its parser did not
+read.\newinvfive
 \begin{example}
  interval::format(interval_format::hexa);
  std::cout << textToInterval("0.1") << std::endl;
@@ -3824,8 +3840,8 @@ its parser did not read.\newinvfive
 
 \medskip
 Note that \emph{the \element{bounds} and \element{hexa} formats are the ones
-read back as an input} (see previous section), the format \element{bounds}
-where the stream writes a decimal point. The formats \element{width} and
+read back as an input} (see previous section), whatever the locale of the
+stream. The formats \element{width} and
 \element{center} are for the eye: the midpoint is written with the digits of the
 precision, so that the text \code{c (+/- w)} does not necessarily contain the
 interval, where the text of the formats \element{bounds}, \element{agreeing}
@@ -4038,14 +4054,13 @@ The functions of GAOL that have the name and the meaning the standard gives them
 \item \code{isMember(m, x)} is \code{false} for an infinite $m$ (10.6.3);
 \item \code{intervalToText(x)} writes the bounds of \code{x} rounded outward,
   \code{[l, r]}, \code{[a]} for a degenerate interval whose value the digits
-  write exactly, as \code{[4]}, or \code{[empty]}, with 16 digits at most, an
-  interval literal of the standard (12.11) that \code{textToInterval} reads
-  back as an interval containing \code{x} (13.3): whatever the output format
-  that \code{interval::format()} sets, the precision of
-  \code{interval::precision()} and the locale of the program, where
+  write exactly, as \code{[4]}, or \code{[empty]}, with the digits of
+  \code{interval::precision()} and a decimal point, an interval literal of the
+  standard (12.11) that \code{textToInterval} reads back as an interval
+  containing \code{x} (13.3): whatever the output format that
+  \code{interval::format()} sets and the locale of the program, where
   \code{operator<{}<} writes the current format, which is no literal in the
-  format \element{width}, nor with a decimal point under a locale writing a
-  comma;\newinvfive
+  format \element{width};\newinvfive
 \item \code{textToInterval} and \code{exactToInterval} read the names of the
   functions of the standard, and return the empty set for a string that is no
   interval (12.1.3), where \code{gaol::textToInterval} reads the names of
@@ -4133,7 +4148,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{isMember(m, x)} & \code{x.set\_contains(m)}, false for an infinite $m$\\
   \hline
   \multicolumn{2}{l}{\textit{Input and output (Clause 13)}}\\
-  \code{intervalToText(x)} & the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, whatever the current format, precision and locale\\
+  \code{intervalToText(x)} & the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, with the current precision, whatever the format and locale\\
   \code{intervalToExact(x)} & \code{exact\_string(x)}\\
   \code{exactToInterval(s)} & \code{textToInterval(s)}\\
   \hline
