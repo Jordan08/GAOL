@@ -61,6 +61,19 @@
 #  define GAOL_TESTS_TRAPS 0
 #endif
 
+// The choices a program makes on is_empty() of an intersection with an empty
+// operand (the last checks of empty_operands) stay quiet where the
+// intersection is inlined into them. Where the compiler optimizes for size
+// (-Os, -Oz), GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator& or
+// operator&= instead, and such a choice is then made on is_empty() of an empty
+// interval alone, which may raise the invalid-operation flag there
+// (doc/using.md): these choices are not checked, and the test says so.
+#if defined(__OPTIMIZE_SIZE__)
+#  define GAOL_TESTS_CHOICES 0
+#else
+#  define GAOL_TESTS_CHOICES 1
+#endif
+
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_SSE 1
@@ -263,7 +276,10 @@ namespace
     gave its NaN bounds to the constructor, which compares them: each raised
     the exception, and died on SIGFPE where it was enabled (all 48 with the
     FPU intervals, all but the negations with the SSE2 ones). The groups after
-    them were already quiet.
+    them were already quiet. The last three are choices the program makes on
+    is_empty() of an intersection with an empty left operand: GCC for 32-bit
+    ARM compiles them with a signaling comparison if operator&= tells that
+    operand empty otherwise than is_empty() does.
   */
   struct EmptyOperand
   {
@@ -387,6 +403,28 @@ namespace
         return write(E(), interval_format::width) == "[empty]" && write(E(), interval_format::center) == "[empty]"
           && write(E(), interval_format::hexa) == "[empty]" && write(E(), interval_format::agreeing) == "[empty]"
           && exact_string(E()) == "[empty]"; } },
+    // A value the program chooses with is_empty() of an intersection whose
+    // left operand is empty: GCC for 32-bit ARM made the choice a conditional
+    // move, and compared the NaN bounds again with the signaling vcmpe where
+    // it did not know the answer from operator&= (see gaol/gaol_interval_fpu.h).
+    // Such a choice is not quiet everywhere (doc/using.md): the same one with
+    // an empty right operand is not checked, as GCC for POWER9 compiles it
+    // with a signaling comparison, nor these where the compiler optimizes for
+    // size (GAOL_TESTS_CHOICES)
+#if GAOL_TESTS_CHOICES
+    { "(empty & x).is_empty() ? 0 : right()", [] {
+        const interval z = E() & X();
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+    { "(empty & empty).is_empty() ? 0 : right()", [] {
+        const interval z = E() & E();
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+    { "gaol_ieee1788::intersection(empty, x).is_empty() ? 0 : right()", [] {
+        const interval z = gaol_ieee1788::intersection(E(), X());
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+#endif
   };
 
 #if GAOL_TESTS_TRAPS
@@ -802,6 +840,10 @@ int main()
     check("an operation with an empty operand gives the result of the empty set", right,
           [&] { return std::string(e.name); });
   }
+#if !GAOL_TESTS_CHOICES
+  std::printf("Compiled for size, where the intersection may be called rather than inlined: the "
+              "choices on is_empty() of an intersection with an empty operand are not checked\n");
+#endif
 
 #if GAOL_TESTS_TRAPS
   // The empty sets, computed and told empty with the invalid-operation
