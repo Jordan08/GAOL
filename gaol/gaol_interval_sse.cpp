@@ -330,7 +330,19 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   }
 }
 
-#if 0
+/*
+  The powers rounded outward, which pow(x, n) takes for n = 1 and 2, and
+  where the exact products are not taken (a bound 0 or infinite, a power
+  below 2^-968 or beyond the largest double): the binary exponentiation from
+  the lowest bit of n, whose squarings do not wait for the products, as the
+  FPU intervals compute it (gaol_interval_fpu.cpp), product for product, so
+  that both give the same bounds. GAOL multiplied from the highest bit of n
+  here (the code under #if 0 below): the bounds of the SSE2 and the FPU
+  intervals differed for about half of the random intervals with such a
+  power, the two orders being as accurate, and this one is up to about
+  2.5 ns faster (Clang 18, Intel Xeon) (GAOL v5).
+*/
+#if 1
 	/*
 		uipow_dnup --
 		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), -rnddn(a^n)> 
@@ -377,7 +389,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
 #endif
 
-#if 1
+#if 0
 /*
   Returns the position of the Most Significant bit.
   Algorithm from: Bit Twiddling Hacks
