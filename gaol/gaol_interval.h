@@ -61,19 +61,21 @@ namespace gaol_core {
     a point interval of zero is "[0]", whatever the signs of its bounds. The
     point interval of a double that the digits do not write exactly is output
     in the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
-    read back as an interval containing it. Under a locale writing a decimal
-    comma, a point whose text has a comma is output in the first form too,
-    "[-2,5, -2,5]": textToInterval() refuses a bound written with a decimal
-    comma, and would read "[-2,5]" as [-2, 5] (GAOL v5: GAOL wrote
-    "<0.1, 0.1000000000000001>", which it refused to read, and "<4, 4>",
-    which textToInterval() still reads)
+    read back as an interval containing it. The bounds are written with a
+    decimal point '.', whatever the locale of the stream, so that
+    textToInterval() reads the text back: under a locale writing a decimal
+    comma, it would read "[-2,5]" as [-2, 5], and refuses "[0,5, 2,5]" (GAOL
+    v5: GAOL wrote "<0.1, 0.1000000000000001>", which it refused to read,
+    and "<4, 4>", which textToInterval() still reads)
     - width: the interval is output in the form "c (+/- w)" where c is its
     midpoint() and w its radius rad(), the smallest radius such that
     [c-w, c+w] contains the interval (IEEE 1788-2015, 12.12.8): c is written
     rounded to nearest and w rounded upward, so that a radius that is not zero
     is never written 0. A point interval is output as c alone, and an
-    unbounded interval has an infinite radius. It is a format for the eye, not
-    one to read back: c has the digits of the precision, so that the text does
+    unbounded interval has an infinite radius. c and w are written with the
+    decimal point of the locale of the stream and its grouping of the digits,
+    w without a sign, even under std::showpos, and a midpoint 0 as 0. It is a
+    format for the eye, not one to read back: c has the digits of the precision, so that the text does
     not necessarily contain the interval, which the formats bounds, agreeing
     and hexa do, and its radius shows how narrow the interval is even where
     the digits of c do not (GAOL v5: GAOL wrote (l+r)/2 and (r-l)/2 rounded to
@@ -81,17 +83,28 @@ namespace gaol_core {
     a radius 0; this comment called w the width, which it was not)
     - center: the interval is output as a single value, its midpoint(), as in
     the width format.
-    - hexa: same as "bounds" except that bounds are printed in the
-    hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids the
-    round-off error of a binary-to-decimal conversion and which
-    textToInterval() reads back bit for bit: the exact text
-    representation of 13.4 (GAOL v5). A point interval is output with its
-    two bounds, "[0x1p+2, 0x1p+2]", which keep the signs of a zero
-    - agreeing: the interval is output in the form "r [l, r]" where
-    r is the number containing all the digits that are the same in both
-    left and right bounds, and where l and r are the disagreeing
-    remaining digits. See "Factored Notation for Interval I/O", Maarten
-    Herman van Emden, CoRR index=cs.NA/0102023.
+    - hexa: the interval is output in the form "[l, r]", each bound in the
+    hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids
+    the round-off error of a binary-to-decimal conversion and which
+    textToInterval() reads back as the same doubles: the exact text
+    representation of 13.4, whatever the precision, the flags and the locale
+    of the stream (GAOL v5). As in the bounds format, a point interval is
+    output "[a]", "[0x1p+2]", and a point interval of zero "[0x0p+0]",
+    whatever the signs of its bounds, which is read back as [+0, +0], the same
+    set, {0} (GAOL v5: it was output with its two bounds, which kept the
+    signs of a zero)
+    - agreeing: the interval is output in the form "d~[l, r]" where d is
+    the digits both bounds start with, and l and r the rest of each, as
+    "1.25~[0, 67]" for [1.25, 1.2567], the bounds being written with the
+    digits of the precision and the flag showpoint in the global locale of
+    the program. See "Factored Notation for Interval I/O", Maarten Herman van
+    Emden, CoRR index=cs.NA/0102023. The digits are shared only between two
+    bounds that are finite, not zero and of the same sign, written with the
+    same number of digits before the point and the same exponent, and that
+    share their first digit that is not 0: the other intervals are output in
+    the bounds format, as "[1, 10]" or "[0]" (GAOL v5: GAOL wrote [1, 10]
+    "1~[., 0.]" and [1, 2] "~[1., 2.]", and every interval with a negative or
+    zero bound in the bounds format).
 
     The empty set is output "[empty]" in every format (GAOL v5: the formats
     width and center wrote "empty", which is no literal of IEEE 1788-2015,
@@ -805,8 +818,10 @@ namespace gaol_core {
     \brief The exact text of I (GAOL v5)
 
     What operator<< writes in interval_format::hexa: "[empty]" for the empty
-    set, and otherwise each bound in the hexadecimal-significand form, which
-    textToInterval() reads back bit for bit (IEEE 1788-2015, 13.4). It
+    set, "[a]" for a point interval ("[0x0p+0]" for a zero of either sign),
+    and otherwise each bound in the hexadecimal-significand form, which
+    textToInterval() reads back as the same doubles (IEEE 1788-2015, 13.4),
+    a zero point as [+0, +0], the same set. It
     neither reads nor changes the global output format, which
     interval::format() sets.
   */

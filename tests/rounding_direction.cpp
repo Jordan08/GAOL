@@ -533,8 +533,12 @@ int main()
   std::vector<std::pair<interval, interval> > operands;
   operands.push_back(std::make_pair(interval(0.1, 0.3), interval(1.5, 2.5)));
   for (int i = 0; i < 5; ++i) {
+    // One draw per declarator, in order: the two arguments of std::make_pair
+    // were evaluated in an order the compiler chose, and gave other operands
+    // with other compilers
     const double a = random.uniform(0.01, 0.6), b = random.uniform(1.1, 2.0);
-    operands.push_back(std::make_pair(interval(a, a + random.uniform(0.001, 0.39)), interval(b, b + random.uniform(0.001, 1.0))));
+    const double wa = random.uniform(0.001, 0.39), wb = random.uniform(0.001, 1.0);
+    operands.push_back(std::make_pair(interval(a, a + wa), interval(b, b + wb)));
   }
 
   const Operation operations[] = {

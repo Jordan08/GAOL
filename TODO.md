@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1a21755` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `fb69665` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -15,7 +15,8 @@ de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 45 à 49, des corrections et des relectures ; 50, d'une décision du 3 octobre ;
 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
 `TODO_mistral.md`. Les décisions du 3 octobre sont écrites dans chaque point
-(« Décidé le 3 octobre ») ; une question reportée renvoie à son issue.
+(« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
+depuis : le point C (anciens 16, 17 et 67), par #71.
 
 ## En cours
 
@@ -24,9 +25,6 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 - **E** (ancien 12), `todo-12-long-sums` (553e649) : inachevé (commits
   « WIP ») ; restent la fin du travail, son rapport, la relecture, la CI et la
   pull request.
-- **C** (ancien 17), `todo-17-output-speed` (3b9311c) : inachevé (« WIP ») ;
-  restent les mesures, la vérification du texte écrit, le rapport, la relecture,
-  la CI et la pull request.
 - **H** (ancien 36), `todo-36-upward-rounding-effects` (1559af5) : inachevé
   (« WIP » fait sur `a2ca992`, conflit avec `configure-clean` dans
   `doc/using.md`) ; voir le point H ; restent aussi la fusion de
@@ -128,42 +126,6 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   alors que `==` ne distingue pas −0 de +0, et racontent l'histoire : dire
   plutôt que les littéraux ont été relevés sur l'ancien code et vérifiés avec
   mpmath à 500 bits, ce que `tests/gaol_tests.h` doit citer aussi.
-
-### C. Les formats d'affichage et la vitesse d'`operator<<` (16, 17, 67)
-
-La branche `todo-17-output-speed` réécrit la façon dont `operator<<` forme son
-texte : y faire aussi les corrections des formats (16) et le Doxygen du format
-`hexa` (67), pour éviter un conflit.
-
-- **17.** **`operator<<` est plus lent depuis qu'il écrit dans un
-  `std::ostringstream` à lui** : environ 450 ns de plus par intervalle (mesurés
-  avant #57), et `std::internal` complète comme `std::right`. Le travail est
-  dans la branche `todo-17-output-speed`, inachevée : le texte est formé dans
-  une chaîne, et `std::internal` remplit entre le signe et les chiffres du
-  milieu. Reste à mesurer le gain sur des programmes qui écrivent beaucoup
-  d'intervalles, sur une machine au repos, et à vérifier que le texte reste
-  identique octet pour octet à celui de `configure-clean` (formats, précisions,
-  drapeaux, locales).
-- **16.** **Suites des formats d'affichage** (#57). Restent, vérifiés dans
-  `61c7503` : dans le format `width`, `+2 (+/- +1)` sous `std::showpos`, un
-  milieu groupé et un rayon non groupé sous une locale qui groupe les chiffres,
-  et un milieu `-0` ; le format `agreeing`, qui écrit [1, 10] `1~[., 0.]` et les
-  zéros avec leur signe, et ne donne de chiffres communs qu'aux intervalles
-  positifs de rapport au plus 10 ; des tests (le format `width` sous une locale
-  à virgule, un ordre d'évaluation non spécifié dans
-  `tests/rounding_direction.cpp`, `gaol_tests::hex()` sous la locale globale).
-  Décidé le 3 octobre : corriger les formats `width` (`std::showpos`,
-  groupement, milieu `-0`) et `agreeing` (sa condition, et les zéros écrits
-  `[0]`) ; `intervalToText` suit `interval::precision()` ; le format `hexa`
-  écrit lui aussi un point `[a]`, comme le décimal, et non plus `[a, a]` bit à
-  bit (à vérifier sous `std::hexfloat`), et un point nul s'écrit `[0]` quels que
-  soient les signes ; sous une locale à virgule, où -2.5 s'écrit `[-2,5, -2,5]`,
-  que le lecteur refuse, la garde de `display_bounds()` teste
-  `numpunct::decimal_point()` et le texte s'écrit avec un point ; pas de format
-  dont le rayon absorbe l'arrondi du milieu.
-- **67.** **Le Doxygen du format `hexa`** (#43) : « same as "bounds" except… »
-  (`gaol/gaol_interval.h`, l. 84) était déjà inexact ; le réécrire avec la
-  décision du point 16 (un point s'écrit `[a]` en hexadécimal aussi).
 
 ### D. Le constructeur et les exceptions flottantes (24, 21, 62)
 
@@ -636,7 +598,11 @@ partie parser avec le point E.
   ne tournent pas sur ARM (FPCR.FZ). Reporté le 3 octobre : la correction et la
   question de #58 sont dans l'issue #68. Sous DAZ, `pow([0.5], [2^-1074])` vaut
   [1, 1] depuis le point 1 (#63) : vérifier s'il le vaut encore après #62 ; s'il
-  le vaut, il relève de ce point.
+  le vaut, il relève de ce point. Depuis #71, `operator<<` écrit une borne qui
+  vaut 0 à la comparaison sans en avoir les bits, un sous-normal sous DAZ, par
+  un flux et au plus proche, comme avant, le `snprintf` qu'il appelle pour les
+  autres bornes l'ayant écrite 0 avec MSYS2 CLANG64 : c'est elle qu'il faut
+  arrondir vers l'extérieur.
 
 ### R. `atanh` et `hausdorff()` (7, 50)
 
@@ -743,8 +709,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **La pull request de synthèse**, une fois les branches de « En cours »
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
   le 28 septembre (les textes proposés sont dans `todo-notes/` de la branche
-  `todo-status`) ; `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5, 8,
-  10, 12, 15, 19, 20 et 21 de la section 5 et de l'annexe B, le n° 10 comme
+  `todo-status`, et dans la description de #71 pour le point C) ;
+  `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5, 8, 10, 12, 15, 19,
+  20 et 21 de la section 5 et de l'annexe B, le n° 10 comme
   corrigé par la suppression des constructeurs à partir de chaînes (#30), et la
   ligne vide du n° 14 ; reprendre ce qu'il dit des points corrigés) ; une seule
   régénération de `manual/v5/gaol.pdf`, dont la dernière date du 28 septembre,
@@ -802,10 +769,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 16 : C et J ; 17 : C ; 18 : F ; 19 : J ; 20 : J ;
-21 : D ; 22 : V ; 23 : H ; 24 : D ; 25 : P ; 26 : W ; 27 : H ; 28 : X ; 29 : L ;
-30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 36 : H ; 37 : I ; 38 : I ;
-39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 43 : L ; 44 : N ; 45 : Q ; 46 : F ;
+12 : E ; 14 : S ; 15 : F ; 16 : J ; 18 : F ; 19 : J ; 20 : J ; 21 : D ; 22 : V ;
+23 : H ; 24 : D ; 25 : P ; 26 : W ; 27 : H ; 28 : X ; 29 : L ; 30 : P ; 31 : A ;
+32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 36 : H ; 37 : I ; 38 : I ; 39 : T ;
+40 : E, G et U ; 41 : O ; 42 : O ; 43 : L ; 44 : N ; 45 : Q ; 46 : F ;
 47 : A et K ; 48 : H ; 49 : K ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ;
 55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ;
-64 : U ; 65 : O ; 66 : T ; 67 : C ; 68 : J ; 69 : L ; 70 : I ; 71 : Y.
+64 : U ; 65 : O ; 66 : T ; 68 : J ; 69 : L ; 70 : I ; 71 : Y.
