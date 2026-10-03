@@ -4,7 +4,11 @@
 # test), and the tests are built again with each installed GAOL, on Linux
 # (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
 # Windows (MSYS2, and Visual C++ with meson). Checks that the three builds give
-# GAOL the same configuration on each kind of machine (.github/audit).
+# GAOL the same configuration on each kind of machine (.github/audit). Each job
+# that runs the unit tests checks that numbers read and wrote numbers under a
+# locale writing a decimal comma, which the Linux jobs and the containers
+# generate first, macOS and Windows having one (.github/scripts/comma-locale.sh,
+# GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -14,7 +18,7 @@ name: Autotools and meson
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
   pull_request:
   workflow_dispatch:
 
@@ -70,7 +74,8 @@ jobs:
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         run: sh .github/scripts/version-file.sh configure
       - name: VERSION.txt read by autoconf, as by configure
-        if: runner.os == 'Linux'
+        # Once per runner: the jobs with configure's options read the same file
+        if: runner.os == 'Linux' && matrix.cfg.configure == ''
         run: |
           # autoconf reads VERSION.txt for the version of configure --version
           # when it generates configure, which no build does: the script
@@ -97,8 +102,13 @@ jobs:
           grep -q "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      - name: Locale writing a decimal comma
+        if: runner.os == 'Linux'
+        run: sh .github/scripts/comma-locale.sh generate
       - name: Tests (make test)
         run: make -j 4 test || { cat tests/test-suite.log; exit 1; }
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check tests/numbers.log
       - name: Tests built with the installed GAOL
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
@@ -169,8 +179,13 @@ jobs:
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      - name: Locale writing a decimal comma
+        if: runner.os == 'Linux'
+        run: sh .github/scripts/comma-locale.sh generate
       - name: Tests (ninja test, make test of meson)
         run: ninja -C build-meson test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
@@ -222,6 +237,9 @@ jobs:
         run: |
           ninja -C build-meson test
           if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+      - name: The test numbers ran under a locale writing a decimal comma
+        shell: bash
+        run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: A test built with the installed GAOL
         run: |
           $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
@@ -250,19 +268,22 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS -e MESON_TESTTHREADS ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build locales > /dev/null
             uname -m && c++ --version | head -1
+            sh .github/scripts/comma-locale.sh generate
             if [ ${{ matrix.cfg.build }} = autotools ]; then
               find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
               ./configure --prefix=/tmp/gaol --with-tests
               grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
               make -j 4 && make install
               make -j 4 test
+              sh .github/scripts/comma-locale.sh check tests/numbers.log
               sh .github/scripts/tests.sh /tmp/gaol static
             else
               meson setup build-meson --prefix=/tmp/gaol --libdir=lib -Dwith-tests=true
               meson compile -C build-meson && meson install -C build-meson
               ninja -C build-meson test
+              sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
               sh .github/scripts/tests.sh /tmp/gaol shared
             fi
             ./performance | tee /gaol/performance.md"
@@ -299,10 +320,12 @@ jobs:
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
             make -j 4 && make install
             make -j 4 test
+            sh .github/scripts/comma-locale.sh check tests/numbers.log
           else
             meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
             meson compile -C build-meson && meson install -C build-meson
             ninja -C build-meson test
+            sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
           fi
           # CORE-MATH is compiled into libgaol: no other library is installed
           ls "$prefix/lib"
