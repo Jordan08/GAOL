@@ -232,11 +232,16 @@
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
 #endif
-/* Visual C++, not clang-cl (which says __clang__, and whose macros of the
-   floating-point model are not checked): /fp:strict defines _M_FP_STRICT, on
-   x86, x64 and arm64 with Visual Studio 2022 and 2026, and nothing else does. */
-#if defined(_MSC_VER) && !defined(__clang__) && !defined(_M_FP_FAST) && !defined(_M_FP_STRICT)
-#  error "GAOL cannot be compiled by Visual C++ without /fp:strict: Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
+/* Visual C++, and clang-cl from Clang 16, which defines the same macros of the
+   floating-point model: /fp:strict defines _M_FP_STRICT, on x86, x64 and
+   arm64 with Visual Studio 2022 and 2026, and nothing else does (_M_FP_PRECISE
+   by default). Without it, clang-cl compiles with -fno-rounding-math and
+   -ffp-contract=on, as Visual C++ assumes rounding to nearest, and was not
+   refused (GAOL v5). clang-cl before 16 does not tell its model, and is not
+   checked. */
+#if defined(_MSC_VER) && (!defined(__clang__) || __clang_major__ >= 16) && !defined(_M_FP_FAST) \
+    && !defined(_M_FP_STRICT)
+#  error "GAOL cannot be compiled by Visual C++ or clang-cl without /fp:strict: they then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
 #endif
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__) && !defined(__SSE2_MATH__)
 #  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, CORE-MATH rounds some results twice and some of its bounds are wrong (see tests/extended_precision.cpp)"

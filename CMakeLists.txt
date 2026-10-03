@@ -240,6 +240,15 @@ endif()
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
   list(APPEND GAOL_INTERVAL_FLAGS /fp:strict)
+  # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
+  # /arch:SSE2 (_M_IX86_FP 1, clang-cl 18), which gaol/gaol_config.h refuses:
+  # -msse2 has it compute them in SSE2 (_M_IX86_FP 2, FLT_EVAL_METHOD 0), as
+  # Visual C++ does by default. Given to the code using GAOL too (gaol::gaol),
+  # which includes the headers the check is in.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_SIZEOF_VOID_P EQUAL 4
+     AND CMAKE_CXX_COMPILER_ARCHITECTURE_ID MATCHES "^[Xx]86$")
+    list(APPEND GAOL_INTERVAL_FLAGS -msse2)
+  endif()
 else()
   # From ibex_init_common(): each flag is kept where the compiler takes it
   foreach(flag -frounding-math -fno-fast-math -ffp-contract=off)
@@ -724,7 +733,11 @@ endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")
-  target_compile_options(gaol PRIVATE /Zc:strictStrings-)
+  # Visual C++ only: clang-cl does not know the option, and warned of it for
+  # each source (GAOL v5)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(gaol PRIVATE /Zc:strictStrings-)
+  endif()
   target_compile_definitions(gaol PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
   # gaol/gaol_config.h declares GAOL's classes and functions
   # __declspec(dllimport) for Visual C++ unless __GAOL_PUBLIC__ is defined, as

@@ -21,9 +21,11 @@ itself. With GCC and Clang, each where the compiler takes it:
   (`GAOL_FMA`, see [Building GAOL](building.md)): the code using GAOL runs only
   on a processor with them, as GAOL, and is compiled for it.
 
-With Visual C++, `/fp:strict`, and `/arch:AVX2` for x64 with `GAOL_FMA`. Each build installs them with GAOL, in
+With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
+`GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
+on the x87 unit with `/arch:SSE2`. Each build installs them with GAOL, in
 `gaol::gaol` and `gaol.pc` (below). `gaol/gaol_config.h` refuses code compiled
-by Visual C++ without `/fp:strict`. GCC and Clang do not tell the code whether
+by Visual C++, or by clang-cl from Clang 16, without `/fp:strict`. GCC and Clang do not tell the code whether
 `-frounding-math` and `-ffp-contract=off` were given: there, it only refuses
 what contradicts them, `-ffast-math`, `-ffinite-math-only` and doubles computed
 on the x87 unit (see

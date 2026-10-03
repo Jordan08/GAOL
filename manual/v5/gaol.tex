@@ -305,7 +305,8 @@ nothing else to download.
 
 \begin{itemize}
 \item A C++11 and C99 compiler: GCC, Clang, AppleClang, Visual C++ (Visual
-  Studio 2022 or later), or GCC and Clang for Windows (MinGW-w64, MSYS2).
+  Studio 2022 or later), clang-cl (the Clang of Visual Studio, Clang 16 or
+  later), or GCC and Clang for Windows (MinGW-w64, MSYS2).
 \index[idx]{c++!standard}%
 \item CMake 3.14 or later; or, for the autotools build, a shell and
   \cmd{make}; or, for the meson build, meson and ninja.
@@ -349,9 +350,12 @@ but the second one, which no macro of the compiler shows:
   occur, in the inline functions of GAOL too, and the empty interval, whose
   bounds are NaN, is no longer told empty;
 \item Visual C++ without \option{/fp:strict}, which then assumes rounding to
-  nearest;
+  nearest, and clang-cl from Clang 16 without it, which then compiles with
+  \option{-fno-rounding-math -ffp-contract=on};\newinvfive
 \item doubles computed on the x87 unit of 32-bit x86 processors, in extended
-  precision (without \option{-msse2 -mfpmath=sse}, or \option{/arch:SSE2}):
+  precision (without \option{-msse2 -mfpmath=sse}, \option{/arch:SSE2} with
+  Visual C++, or \option{-msse2} with clang-cl, which computes them on the x87
+  unit with \option{/arch:SSE2}):
   CORE-MATH assumes every operation on doubles rounded to a double.
 \end{itemize}
 
@@ -857,10 +861,11 @@ takes it:
 \end{itemize}
 
 \noindent
-With Visual C++, \option{/fp:strict}, and \option{/arch:AVX2} for x64 with
-\option{GAOL\_FMA}. Each build installs these flags with GAOL, in
-\code{gaol::gaol} and \file{gaol.pc}. \file{gaol/gaol\_config.h} refuses code
-compiled by Visual C++ without \option{/fp:strict}. GCC and Clang do not tell
+With Visual C++ and clang-cl, \option{/fp:strict}, \option{/arch:AVX2} for
+x64 with \option{GAOL\_FMA}, and \option{-msse2} with clang-cl for 32-bit x86.
+Each build installs these flags with GAOL, in \code{gaol::gaol} and
+\file{gaol.pc}. \file{gaol/gaol\_config.h} refuses code compiled by Visual C++,
+or by clang-cl from Clang 16, without \option{/fp:strict}. GCC and Clang do not tell
 the code whether \option{-frounding-math} and \option{-ffp-contract=off} were
 given: there, it only refuses what contradicts them, \option{-ffast-math},
 \option{-ffinite-math-only} and doubles computed on the x87 unit
