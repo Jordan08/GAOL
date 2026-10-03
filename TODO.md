@@ -130,6 +130,7 @@ demande une décision de votre part, de même que l'envoi des correctifs du 31.
 - **24** : les opérations qui levaient encore FE_INVALID sur un opérande vide sont corrigées (#50, fusionnée).
 - **31** : les correctifs pour CORE-MATH et la glibc sont écrits dans `3rd/README.md` (branche du 31).
 - **39, 42, 43** : les cas restants sont corrigés directement dans `configure-clean`.
+- **49** (décision du 3 octobre) : `GAOL_INFINITY` sera `std::numeric_limits<double>::infinity()`. Le point n'est pas encore traité.
 
 ### Questions ouvertes
 
@@ -653,8 +654,8 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
     2026, et clang-cl x86 et arm64 (non concernés par le correctif) ? (#59)
   - Chaque build clang-cl affiche 11 avertissements `/Zc:strictStrings-` : réserver l'option à Visual C++ ? (#59)
 - **49** :
-  - `GAOL_INFINITY` avec clang-cl : le corriger dans sa propre pull request, par `__builtin_huge_val()` ou
-    `std::numeric_limits<double>::infinity()` ? (#59)
+  - `GAOL_INFINITY` avec clang-cl : tranché le 3 octobre, ce sera `std::numeric_limits<double>::infinity()`, dans sa propre pull
+    request, plus tard. (#59)
   - Sous clang-cl, `expm1([1e10])` (et `exp2m1`, `exp10m1`) était vide en arrondi vers le bas : `GAOL_INFINITY`, passé en
     argument avant la vérification, y valait FLT_MAX. Corrigé dans #62 (ab9d2e0), qui lit +oo après la vérification ; l'ordre de
     #62 rend aussi juste `operator/` par un intervalle contenant 0. Restent `interval()`, `pow(x, n)` par les produits arrondis et
@@ -731,7 +732,8 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
 
 - **#58** et **#59** (point 47) sont fusionnées dans `configure-clean` (61c7503). Les deux jobs clang-cl x64 restent rouges par le
   point 49 (`interval()`, `operator/`, `pow(x, n)`).
-- **#60** (`fix-24b-armhf-fe-invalid` → `configure-clean`, f4881f6) : `operator&=` reconnaît l'opérande vide avant de comparer
+- **#60** (`fix-24b-armhf-fe-invalid` → `configure-clean`, f4881f6), **fusionnée le 3 octobre** (6271f51) ; `configure-clean` fusionné
+  ensuite dans les branches de #61, #62 et #63 (sans changement de contenu), qui ne montrent plus ses commits : `operator&=` reconnaît l'opérande vide avant de comparer
   les bornes, sur ARM 32 bits seulement. Trois relectures indépendantes, la dernière sans point bloquant ; 61 vérifications, 0 échec
   sous qemu avec GCC 12.4, 13.3 et 14.2, 6 échecs sur la base. Ouverte le 2 octobre.
 - **#61** (`todo-08-pow-large-n` → `configure-clean`, point 8) : approuvée par une relecture indépendante sans point bloquant ; ses
@@ -743,7 +745,7 @@ fichier n'y sont plus. Le détail est dans `todo-notes/NN.md` et `todo-notes/202
   Contient la branche de #60. Ouverte le 2 octobre.
 - **Points 12, 17, 36** : `configure-clean` fusionné dans 12 et 17 ; le travail reste « WIP » (12 : dernier commit WIP 553e649 ;
   17 : fusion 3b9311c ; 36 : inchangé). À terminer, relire, puis pull requests.
-- Corriger le point 48, décider du point 49, fusionner #29 (`configure-clean` vers `MATH-CORE`).
+- Corriger le point 48, faire le point 49 (décidé : `std::numeric_limits<double>::infinity()`), fusionner #29 (`configure-clean` vers `MATH-CORE`).
 
 Ensuite : commencer les points non commencés ; écrire la pull request de synthèse (retirer les points faits de ce fichier,
 consigner les changements dans `ChangeLog` et `doc/differences.md`, régénérer une seule fois `manual/v5/gaol.pdf`) ; mesurer enfin
@@ -878,6 +880,7 @@ le point 33 sur une machine au repos. Le 2 attend le 3. Supprimer les branches f
     `rounding_direction` avec clang-cl 18 sous wine, aucun avec `__builtin_huge_val()`. Visual C++, GCC, Clang et MinGW ne sont pas
     concernés. Correction proposée : `GAOL_INFINITY` = `__builtin_huge_val()` sous `__GNUC__`/`__clang__`, ou
     `std::numeric_limits<double>::infinity()`. Les jobs clang-cl de #59 en sont le test. Trouvé par la relecture du point 47.
+    **Décidé le 3 octobre : `std::numeric_limits<double>::infinity()`** ; à faire plus tard, pas encore commencé.
 
 ## Plantages
 
