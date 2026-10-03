@@ -59,7 +59,18 @@ and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow` and `atan2` keep the exception flags around
 their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
 well, which unmasks the exceptions and makes the first comparison of the NaN
-bounds of an empty interval trap.
+bounds of an empty interval trap. On a 32-bit x86 Windows, with every
+compiler, it gives them too the square root of SSE2 for `__builtin_sqrt()`: the
+one of the C library, rounded to nearest in every direction, is what Visual C++
+calls for it, and GCC where it does not optimize (`-O0`, the Debug builds) and,
+at `-O2` too, in the accurate phases the sources mark cold (`pow(x, 0.5)` was
+below the root, rounding upward, at subnormal x, and so was GAOL's upper bound
+of `pow([x], [0.5])`). With Visual C++, it gives them `NAN` and `INFINITY` read
+from their bits, which the UCRT writes for C as products of `1e+300` that
+`/fp:strict` computes when the program runs, in the rounding direction in
+effect (`-0` and `FLT_MAX` downward and toward zero: `pow` rounded downward was
+`-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). `tests/core_math.cpp`
+checks both.
 
 On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
 that rounds their doubles, rather than the control word of the x87 unit, which
@@ -177,8 +188,67 @@ kept as a patch to reapply.
    checks `cbrt` and `nth_root(x, 3)` at these arguments, scaled by powers of 8
    and on both signs, against mpmath. `rsqrt.c` and `asinpi.c`, whose
    `get_rounding_mode()` has the same branch, compare its result with the
-   `FE_*` values themselves, and are right. This is a fix to propose to
-   CORE-MATH.
+   `FE_*` values themselves, and are right. The fix is
+   [proposed to CORE-MATH](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic),
+   within a broader one.
+
+7. **The rounding direction of `cbrt`, `rsqrt` and `asinpi` with clang-cl on
+   x86-64** in `cbrt/cbrt.c`, `rsqrt/rsqrt.c` and `asinpi/asinpi.c`
+   (`get_rounding_mode()`). Where `__x86_64__` is defined, the three functions
+   make the `FE_*` value of the direction from the rounding field of MXCSR:
+   where `__WIN32__` or `__WIN64__` is defined, shifted by 5 for the values of
+   the UCRT of Windows (`FE_UPWARD` 0x200), through a table for those of its
+   versions before 14393 (`FE_UPWARD` 0x100), and by `fegetround()` for other
+   values, the path of mingw-w64 (item 6); otherwise, shifted by 3 for those
+   of glibc (`FE_UPWARD` 0x800). clang-cl defines `__x86_64__` and `_WIN32`,
+   but neither `__WIN32__` nor `__WIN64__`, and takes the `fenv.h` of the
+   UCRT: the three shifted by 3 and compared 0x400, 0x800 and 0xc00 with the
+   UCRT's 0x100, 0x200 and 0x300, so that the downward and the upward
+   roundings were taken for toward zero. The line testing the two macros now
+   tests `_WIN32` as well, which sends clang-cl to the branch of Windows, and
+   changes nothing for the other compilers: Visual C++ defines no
+   `__x86_64__`, mingw-w64 defines `__WIN32__` already, and Cygwin defines no
+   `_WIN32`. The three sources, compiled by clang-cl 18 with the flags of GAOL
+   (`/fp:strict /arch:AVX2`) and the values of the `fenv.h` and `float.h` of
+   the UCRT, and run under wine over the arguments of patch 6 below, gave 42
+   wrong `cbrt` results downward and 42 upward, 1,338 wrong `rsqrt` results
+   upward and 499,838 and 526,673 different `asinpi` results downward and
+   upward, all those checked with mpmath being wrong: every wrong upward
+   result, at a positive argument, below the exact value, and every wrong
+   downward one, at a negative argument, above it; with the change, the
+   results of x86-64 Linux. The bound of `nth_root(x, 3)` farther from zero
+   (the root of a negative number being the opposite of the upward root of its
+   magnitude) and the upper bounds of `rsqrt` and `asinpi` did not enclose the
+   exact values there: `tests/core_math.cpp` checks `cbrt` at the arguments of
+   item 6, `asinpi` next to ±1 and `rsqrt` at the successors of the powers of
+   4, which failed so (the same checks, run on the three objects under wine:
+   70 of 70, 22 of 22 and 1,023 of 1,023), and the continuous integration
+   builds and tests GAOL with clang-cl on x64. The fix is
+   [proposed to CORE-MATH](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic),
+   within a broader one.
+
+8. **The exact and midpoint powers of `pow` on 32-bit ARM** in `pow/pow.c`
+   (`exact_pow()`). Where its accurate phase cannot round, `pow` computes an
+   exact or midpoint power, c<sup>a</sup>·2<sup>s</sup>, as an integer of at
+   most 54 bits, and converts it with `(double)`, which has to round in the
+   direction in effect. On 32-bit ARM, VFP has no conversion of a 64-bit
+   integer: GCC calls `__aeabi_l2d` of libgcc, integer code that rounds to
+   nearest whatever FPSCR says. A midpoint, c<sup>a</sup> odd of 54 bits, was
+   then rounded to nearest in the directed roundings too: rounding upward,
+   `cr_pow(0x1.8p-29, 34)`, 3<sup>34</sup>·2<sup>−1020</sup>, was
+   `0x1.d9fe779881944p-967`, below the power, and the upper bound of
+   `pow([0x1.8p-29], [34, 35])` did not enclose it (the continuous
+   integration, Debian armhf). Only powers below about 2<sup>−950</sup> reach
+   `exact_pow()`; the first phases round the others. The integer is now
+   converted as its two 32-bit halves, whose conversions and product by
+   2<sup>32</sup> are exact, and one addition, which rounds in the direction
+   in effect on every processor (`i64_to_double()`). Over 13.3 million pairs
+   and 3,950 midpoints, against MPFR, the vendored `pow` gave 415 wrong
+   results downward and toward zero and 631 upward on armhf (GCC 13.3 under
+   qemu-arm), and the changed one none; on x86-64 the two give the same bits
+   in the four directions. `tests/core_math.cpp` checks five such midpoints
+   against their exact values. The fix is
+   [proposed to CORE-MATH](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm).
 
 ### How the changes are checked
 
@@ -225,27 +295,30 @@ comparison rather than by reading:
   is run at each change;
 - **against the tightest bounds.** `tests/core_math.cpp` compares the bounds
   GAOL computes with what CORE-MATH gives in the downward and the upward
-  rounding, which are the tightest bounds there are.
+  rounding, which are the tightest bounds there are, and those of `pow` at the
+  corners of a box with the power itself, computed exactly, where it is
+  rational, checking CORE-MATH's two values against it too (item 8).
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the six changes
-above. `git diff` against the previous version shows them: they are marked
-`/* GAOL */`, and no other line differs. A change upstream has made in the
-meantime is not made again: that of `cospi.c` from commit `b1a4badf` on, and
-those of the [patches below](#changes-to-propose-upstream) once upstream takes
-them.
+Copy the upstream tree again without the `.wc` files, then make the eight
+changes above. `git diff` against the previous version shows them: they are
+marked `/* GAOL */`, and no other line differs. A change upstream has made in
+the meantime is not made again: that of `cospi.c` from commit `b1a4badf` on,
+and those of the [patches below](#changes-to-propose-upstream) once upstream
+takes them.
 
 ## Changes to propose upstream
 
-Four of the [changes above](#what-differs-from-upstream) are fixes rather than
-adaptations to GAOL (2 to 5), and `gaol/core_math_port.h` makes up for a fifth
-defect, the `__builtin_roundeven()` of `sin.c` (see
+Five of the [changes above](#what-differs-from-upstream) are fixes rather than
+adaptations to GAOL (2 to 5, and 8), and `gaol/core_math_port.h` makes up for
+a sixth defect, the `__builtin_roundeven()` of `sin.c` (see
 [How GAOL builds them](#how-gaol-builds-them)). They are written below as
 patches against the current upstream sources, with three more found while
 preparing them or since: the masks of item 2 in three other files, the rounding
 direction `pow` reads for its subnormal results, and the one `cbrt.c`,
-`rsqrt.c` and `asinpi.c` read with mingw-w64, with clang-cl and on Cygwin.
+`rsqrt.c` and `asinpi.c` read with mingw-w64, with clang-cl and on Cygwin,
+which the smaller changes 6 and 7 above fix in GAOL's copy for the first two.
 Through CORE-MATH they would reach glibc too, which takes functions from it
 since version 2.41, so each defect was looked for there as well.
 
@@ -260,11 +333,12 @@ for the maintainer of GAOL v5, as said in each part below.
 | [`__builtin_roundeven` of `sin.c`](#4-the-__builtin_roundeven-of-sinc) | present | no `sin` of CORE-MATH |
 | [rounding direction of `pow`](#5-the-rounding-direction-of-pow) | present | no `pow` of CORE-MATH; the x87 unit by design |
 | [rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c`](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-and-asinpic) | present | absent: its `cbrt` maps glibc's own `FE_*` values with a switch |
+| [exact and midpoint powers of `pow` on 32-bit ARM](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm) | present | no `pow` of CORE-MATH |
 | [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
 
 ### CORE-MATH
 
-The patches are a series of six commits on upstream master,
+The patches are a series of seven commits on upstream master,
 `b1a4badf6765d761873ee31f7419d1cc1cac19f8` (29 September 2026), in this order,
 each written in the style of the file it changes, with the subject given; the
 diff blocks below are what `git diff` prints for each, but for the blank lines
@@ -295,7 +369,8 @@ where the worst-case check stops at a spurious underflow exception
 (`x = -0x1.10a688680a753p-93`, `y = 11`, a result of −2<sup>−1022</sup>, an
 argument added upstream on 22 September) that master raises as well: over the
 whole of `pow.wc` in the four directions, the patched `pow` gives the results
-and the exception flags of master.
+and the exception flags of master. Patch 7, written later, was checked on
+32-bit ARM and on x86-64, as its part says.
 
 #### 1. Masks written with `long`
 
@@ -1007,7 +1082,101 @@ longer calls `fegetround()` on x86-64. With MPFR, `./check.sh --worst`
 functions. On x86-64 Linux the patched `cbrt` is as fast as master (about 12 ns
 a call with GCC 13, within the noise of the measure).
 
-**Status.** Present in master.
+**Status.** Present in master; GAOL's copy makes the two smallest changes
+instead, `mode = fegetround();` in `cbrt.c` for mingw-w64 (item 6 above) and
+`|| defined(_WIN32)` in the three files for clang-cl (item 7), which leave
+Cygwin as it is.
+
+#### 7. The exact and midpoint powers of `pow` on 32-bit ARM
+
+**The defect.** Where the second phase of `cr_pow()` cannot round,
+`exact_pow()` (`pow.c`, lines 1231 to 1348) computes the exact and midpoint
+powers, c<sup>a</sup>·2<sup>s</sup> with c<sup>a</sup> of at most 54 bits, as
+a 64-bit integer, which `(double)` converts (lines 1306 and 1337) before
+`pow2()` scales it. The conversion of a midpoint, c<sup>a</sup> odd of 54
+bits, is the one rounding of the result, and has to be made in the rounding
+direction in effect. On 32-bit ARM, VFP has no instruction converting a 64-bit
+integer: GCC calls `__aeabi_l2d` of libgcc, integer code that rounds to
+nearest whatever the rounding mode of FPSCR is (a probe under qemu-arm:
+`(double)` of 3<sup>34</sup> is 16677181699666568 in the four directions, while
+the VFP addition 16677181699666568.0 + 1.0 gives 16677181699666570 upward). The
+midpoints that reach `exact_pow()`, powers below about 2<sup>−950</sup>, were
+so rounded to nearest in the directed roundings too: rounding upward,
+`cr_pow(0x1.8p-29, 34)`, 3<sup>34</sup>·2<sup>−1020</sup>, is
+`0x1.d9fe779881944p-967` with master, below the power, rather than
+`0x1.d9fe779881945p-967`. The patch converts the integer as its two 32-bit
+halves, whose conversions and product by 2<sup>32</sup> are exact, and one
+addition, the only rounding, which every floating-point unit makes in the
+direction in effect.
+
+The patch, to commit as
+`[pow] round the exact and midpoint results in the rounding mode on 32-bit ARM`:
+
+```diff
+diff --git a/src/binary64/pow/pow.c b/src/binary64/pow/pow.c
+index e5af998e..c29245ee 100644
+--- a/src/binary64/pow/pow.c
++++ b/src/binary64/pow/pow.c
+@@ -1215,6 +1215,21 @@ static void exp_3 (qint64_t *r, qint64_t *x) {
+    The only remaining one is the first one, where 2^-F divides E.
+ */
+
++/* Convert k, |k| <= 2^54, to double, rounding in the current rounding mode.
++   (double) k does not do so on every target: on 32-bit ARM, GCC converts a
++   64-bit integer with __aeabi_l2d from libgcc, which always rounds to
++   nearest, so that a midpoint k*2^g (k odd with 54 bits) was rounded to
++   nearest in the directed rounding modes too. The conversions of the two
++   32-bit halves of k are exact, and so is the product by 2^32: the sum is the
++   only rounding. */
++static inline double
++i64_to_double (int64_t k)
++{
++  double hi = (double) (int32_t) (k >> 32) * 0x1p32;
++  double lo = (double) (uint32_t) k;
++  return hi + lo;
++}
++
+ /*
+   Computes x^y and returns 1 if the result fits into 54 bits, i.e. computes
+   exactly x^y for exact and midpoint cases.
+@@ -1303,7 +1318,7 @@ exact_pow (double *r, double x, double y, const dint64_t *z,
+        to reduce to 2^X*r with odd r. It checks whether k is an odd number
+        multiplied by 2^(g-G). */
+     if (((k & ~(~1ull << (g - G))) == (1ull << (g - G)))) {
+-      *r = (double)((k >> (g - G)) * _s);
++      *r = i64_to_double ((k >> (g - G)) * _s);
+       pow2(r, g);
+       goto end;
+     }
+@@ -1334,7 +1349,7 @@ exact_pow (double *r, double x, double y, const dint64_t *z,
+   if (k >> 54)
+     return 0;
+
+-  *r = (double)(k * _s);
++  *r = i64_to_double (k * _s);
+   int64_t G = E * (n << F);
+   pow2(r, G);
+
+```
+
+**How it was checked.** Over 13,302,409 pairs (powers of two to the powers
+n/e at the ends of the exponents, perfect 2<sup>k</sup>-th powers to the
+powers a/2<sup>k</sup>, random pairs, and the neighbours of each, 579,436 of
+them with a power that is a double) and 3,950 midpoints c<sup>a</sup>·2<sup>s</sup>
+with c<sup>a</sup> odd of 54 bits, s from −1075 to 969, whose roundings
+downward and upward were computed with MPFR 4.2.1 and exactly: compiled by
+the GCC 13.3 cross compiler for armhf (`-mfpu=neon-vfpv4 -mfloat-abi=hard`)
+and run under qemu-arm 8.2.2, master gives 415 wrong results downward and
+toward zero and 631 upward, all at midpoints, and the patched `pow` none; on
+x86-64 Linux, GCC 13.3, the two give the same bits in the four directions,
+all right. With MPFR, `./check.sh --worst` (1,003,179 arguments per direction)
+passes to nearest, toward zero and upward; downward it stops at the spurious
+underflow exception said above, where master stops as well.
+`./check.sh --special` with `CORE_MATH_TESTS=200000`, exact and midpoint values
+among its arguments, passes in the four directions.
+
+**Status.** Present in master (`b1a4badf`, and `284b3b0` of 1 October 2026,
+whose `pow.c` is the same); GAOL's copy makes the same change (item 8 above).
 
 #### Already fixed upstream: the shifts of `cospi.c`
 

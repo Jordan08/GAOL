@@ -195,6 +195,7 @@ gaol_dep = declare_dependency(
   link_with: gaollib,
   include_directories: include_directories('..'),
   compile_args: gaol_public_args,
+  link_args: gaol_link_args,
   dependencies: deps,
 )
 

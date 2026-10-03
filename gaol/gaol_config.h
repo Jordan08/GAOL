@@ -219,11 +219,13 @@
    No macro shows what follows, which GAOL cannot refuse:
    -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
    which GCC rewrites the probe 1.0 + tiny == 1.0 of round_upward_if_needed()
-   (gaol/gaol_fpu.h) as tiny == 0.0, so that an operation does not set the
-   rounding direction upward again after the code using GAOL left it elsewhere,
-   and width() is below the exact width; and -fno-honor-nans of Clang, given
-   without -fno-honor-infinities, which does to the empty interval what
-   -ffinite-math-only does. */
+   (gaol/gaol_fpu.h) as tiny == 0.0, and 1.0 + (subnormal + 0.0) == 1.0 as
+   subnormal == 0.0, so that an operation does not set the rounding direction
+   upward again after the code using GAOL left it elsewhere, and width() is
+   below the exact width; -fno-signed-zeros, with which GCC and Clang drop the
+   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5); and
+   -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
+   the empty interval what -ffinite-math-only does. */
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
 #  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (-fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns it off when it comes after)"
 #endif

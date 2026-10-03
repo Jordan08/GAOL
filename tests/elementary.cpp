@@ -488,11 +488,6 @@ namespace
       double below, above;
     };
     const Close close[] = {
-      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
-      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
-      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
-      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
-      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
       { "pow([0,4],0.5)", [] { return pow(interval(0., 4.), 0.5); }, 0., 2. },
       { "pow([-4,9],0.5), whose negative part is out of the domain", [] { return pow(interval(-4., 9.), 0.5); }, 0., 3. },
       { "pow([-2,3],[1,2]), whose negative part is out of the domain", [] { return pow(interval(-2., 3.), interval(1., 2.)); }, 0., 9. },
@@ -509,7 +504,16 @@ namespace
       interval (*f)();
       double lo, hi;
     };
+    // The powers that are doubles at a corner of the box (GAOL v5): the lower bound is the power itself, not the
+    // double below it, as pow([4],0.5) was [2 - 2^-52, 2]
     const Equal equal[] = {
+      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
+      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
+      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
+      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
+      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
+      { "pow([3,4],[2,3])", [] { return pow(interval(3., 4.), interval(2., 3.)); }, 9., 64. },
+      { "pow([2,4],[-1,0.5]), 4^-1 and 4^0.5", [] { return pow(interval(2., 4.), interval(-1., 0.5)); }, 0.25, 2. },
       { "pow([-2,3],3.0), with a negative base and an integer exponent", [] { return pow(interval(-2., 3.), 3.0); }, -8., 27. },
       { "pow([-2],2.0)", [] { return pow(interval(-2.), 2.0); }, 4., 4. },
       { "pow([2,3],4.0)", [] { return pow(interval(2., 3.), 4.0); }, 16., 81. },

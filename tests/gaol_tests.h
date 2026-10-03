@@ -43,6 +43,25 @@
 
 #include "gaol/gaol"
 
+// The modes that flush the subnormal numbers to zero, which the tests set and
+// clear themselves, apart from GAOL (GAOL v5): flush-to-zero and
+// denormals-are-zero of MXCSR on x86 processors, FZ and FIZ of FPCR on 64-bit
+// ARM processors, FZ of FPSCR on 32-bit ARM processors with a floating-point
+// unit (the last two with GCC and Clang, whose asm reads and writes them).
+// GAOL_TESTS_FLUSH is 0 where the tests cannot set them.
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_FLUSH 1
+#elif (defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP))) && defined(__GNUC__)
+#  define GAOL_TESTS_FLUSH 1
+#else
+#  define GAOL_TESTS_FLUSH 0
+#endif
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+#  include <crtdbg.h>
+#endif
+
 namespace gaol_tests
 {
   const double inf = std::numeric_limits<double>::infinity();
@@ -127,10 +146,59 @@ namespace gaol_tests
     return gaol::interval::emptyset();
   }
 
+#if defined(_MSC_VER) && defined(_DEBUG)
+  /*
+    The Debug C runtime of Visual C++ reports a failed assertion, of its own
+    or of the checked iterators of its library, and an invalid parameter, in
+    a dialog box, which waits for a click that never comes on a machine of the
+    CI: the test hangs until ctest stops it at 300 s, and its output, which is
+    buffered, is lost. The reports are written to stderr instead, where the
+    test goes on, and counted: summary() makes a failure of them.
+  */
+  inline long& debug_runtime_reports()
+  {
+    static long n = 0;
+    return n;
+  }
+
+  inline int __cdecl count_report(int type, char*, int*)
+  {
+    debug_runtime_reports() += (type != _CRT_WARN) ? 1 : 0;
+    return 0; // Reported as _CrtSetReportMode() says
+  }
+
+  inline int __cdecl count_wide_report(int type, wchar_t*, int*)
+  {
+    debug_runtime_reports() += (type != _CRT_WARN) ? 1 : 0;
+    return 0;
+  }
+
+  struct DebugRuntimeReports
+  {
+    DebugRuntimeReports()
+    {
+      const int types[] = { _CRT_WARN, _CRT_ERROR, _CRT_ASSERT };
+      for (int type : types) {
+        _CrtSetReportMode(type, _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(type, _CRTDBG_FILE_STDERR);
+      }
+      _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, count_report);
+      _CrtSetReportHookW2(_CRT_RPTHOOK_INSTALL, count_wide_report);
+      _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    }
+  };
+
+  const DebugRuntimeReports debug_runtime_reports_to_stderr;
+#endif
+
   // Prints the number of checks and failures of each name, and returns the
   // exit status of the test
   inline int summary()
   {
+#if defined(_MSC_VER) && defined(_DEBUG)
+    check("the Debug C runtime of Visual C++ reports no assertion and no error", debug_runtime_reports() == 0,
+          [] { return std::to_string(debug_runtime_reports()) + " reports, written to stderr"; });
+#endif
     for (const auto& d : largest_distances()) {
       std::printf("%-60s at most %d doubles from the tightest bounds\n", d.first.c_str(), d.second);
     }
@@ -195,6 +263,110 @@ namespace gaol_tests
     RoundingToNearest nearest;
     return std::nextafter(x, -inf);
   }
+
+#if GAOL_TESTS_FLUSH
+  //---------------------------------------------------------------------------
+  // The modes that flush the subnormals to zero (GAOL v5)
+  //---------------------------------------------------------------------------
+
+  // The bits of the control register that set them: flush-to-zero (bit 15),
+  // which flushes the subnormal results, and denormals-are-zero (bit 6), which
+  // reads the subnormal operands as zeros, of MXCSR; FZ (bit 24), which flushes
+  // both, and FIZ (bit 0, Armv8.7), which flushes the operands, of FPCR; FZ
+  // (bit 24) of FPSCR
+#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+  const unsigned int all_flush_bits = 0x8040u;
+#  elif defined(__aarch64__)
+  const unsigned int all_flush_bits = 0x1000001u;
+#  else
+  const unsigned int all_flush_bits = 0x1000000u;
+#  endif
+
+  // The bits of all_flush_bits set in the control register
+  inline unsigned int flush_bits()
+  {
+#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    return _mm_getcsr() & all_flush_bits;
+#  elif defined(__aarch64__)
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    return static_cast<unsigned int>(fpcr) & all_flush_bits;
+#  else
+    unsigned int fpscr;
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    return fpscr & all_flush_bits;
+#  endif
+  }
+
+  // Sets the bits of all_flush_bits that bits has, and clears the others,
+  // leaving the rest of the control register alone
+  inline void set_flush_bits(unsigned int bits)
+  {
+#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    _mm_setcsr((_mm_getcsr() & ~all_flush_bits) | bits);
+#  elif defined(__aarch64__)
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    fpcr = (fpcr & ~static_cast<unsigned long long>(all_flush_bits)) | bits;
+    __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+#  else
+    unsigned int fpscr;
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    fpscr = (fpscr & ~all_flush_bits) | bits;
+    __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpscr) : "memory");
+#  endif
+  }
+
+  // Whether the modes of bits, set, make 2^-1060 + 0 or 1e-300*1e-20 a zero:
+  // an emulator may keep the bits without honouring them. The inexact product
+  // is not the probe of GAOL, which an exact sum makes: a processor flushing
+  // only the inexact subnormal results would have its mode tried, and the
+  // test fail, rather than skip it. The results are written to volatile
+  // memory before the modes are restored, the compilers not modelling the
+  // control register.
+  inline bool flush_honoured(unsigned int bits)
+  {
+    volatile double subnormal = 0x1p-1060, zero = 0.0, tiny = 1e-300, small = 1e-20;
+    volatile double sum, product;
+    const unsigned int saved = flush_bits();
+    set_flush_bits(bits);
+    const bool kept = flush_bits() == bits;
+    sum = subnormal + zero;
+    product = tiny*small;
+    set_flush_bits(saved);
+    return kept && (sum == 0.0 || product == 0.0);
+  }
+
+  struct FlushMode
+  {
+    std::string name;
+    unsigned int bits;
+  };
+
+  // The modes of the processor, alone and together, that it honours (FIZ, whose
+  // bit is reserved before Armv8.7, where it has it); the others are named on
+  // the standard output
+  inline std::vector<FlushMode> flush_modes()
+  {
+#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    const std::vector<FlushMode> all = { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
+                                         { "flush-to-zero and denormals-are-zero", 0x8040u } };
+#  elif defined(__aarch64__)
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u }, { "FIZ", 0x1u }, { "FZ and FIZ", 0x1000001u } };
+#  else
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };
+#  endif
+    std::vector<FlushMode> modes;
+    for (const FlushMode& m : all) {
+      if (flush_honoured(m.bits)) {
+        modes.push_back(m);
+      } else {
+        std::printf("The processor does not flush the subnormals with %s: not checked\n", m.name.c_str());
+      }
+    }
+    return modes;
+  }
+#endif
 
   //---------------------------------------------------------------------------
   // Exact arithmetic

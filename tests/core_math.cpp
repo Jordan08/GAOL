@@ -41,6 +41,12 @@
 #include <functional>
 #include <random>
 
+// The control register of the SSE instructions, where flush-to-zero is set
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_HAVE_MXCSR 1
+#endif
+
 using namespace gaol;
 using namespace gaol_tests;
 
@@ -386,6 +392,436 @@ namespace
     }
   }
 
+  // |x| = m 2^e, m an odd integer, for a finite x other than 0
+  void odd_times_power_of_two(double x, std::uint64_t& m, std::int64_t& e)
+  {
+    int ex;
+    const double f = std::frexp(std::fabs(x), &ex); // |x| = f 2^ex, 1/2 <= f < 1
+    m = static_cast<std::uint64_t>(std::ldexp(f, 53)); // exact
+    e = static_cast<std::int64_t>(ex) - 53;
+    while (m % 2 == 0) {
+      m /= 2;
+      ++e;
+    }
+  }
+
+  // The integer c whose 2^k-th power is m, or 0 where there is none, for an odd m < 2^53 and k >= 1: the
+  // largest c with c^(2^k) <= m, by a search over the integers
+  std::uint64_t integer_root(std::uint64_t m, int k)
+  {
+    const auto at_most_m = [&](std::uint64_t c) { // c^(2^k) <= m
+      std::uint64_t p = c;
+      for (int i = 0; i < k; ++i) {
+        if (p > 0xffffffffu || p*p > m) {
+          return false;
+        }
+        p *= p;
+      }
+      return p <= m;
+    };
+    std::uint64_t lo = 1, hi = static_cast<std::uint64_t>(1) << 27; // c^2 <= m < 2^53
+    while (lo < hi) {
+      const std::uint64_t mid = lo + (hi - lo + 1)/2;
+      if (at_most_m(mid)) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    std::uint64_t p = lo;
+    for (int i = 0; i < k; ++i) {
+      p *= p;
+    }
+    return (p == m) ? lo : 0;
+  }
+
+  // n 2^e
+  Dyadic scaled(const Natural& n, long e)
+  {
+    Dyadic d;
+    d.sign = 1;
+    d.m = n;
+    d.e = e;
+    return d;
+  }
+
+  /* What x^y is, for a finite x > 0 other than 1 and a finite y other than 0:
+     the reference of pow_exact_at_corners(), computed apart from GAOL, whose
+     pow_is_double() decides with square roots and products of doubles, and
+     from CORE-MATH, with integers and the exact arithmetic of gaol_tests.h.
+     x = m 2^e and y = a 2^q, m and a odd integers.
+     - q >= 0, y an integer: x^y = m^y 2^(e y), rational.
+     - q < 0, k = -q: a and 2^k are coprime, and x^y is rational where x is the
+       2^k-th power of a rational, which is c 2^f with c odd, x being dyadic:
+       m = c^(2^k), e = f 2^k, and x^y = c^a 2^(f a); irrational otherwise,
+       2^(e a/2^k) being so where 2^k does not divide e. As |e| <= 1074, k <= 10
+       for m = 1, and as 3 <= c, 3^(2^k) <= m < 2^53, k <= 5 for m >= 3.
+     A rational x^y, c^A 2^s, is a double where A > 0, c^A < 2^53, s >= -1074
+     and c^A 2^s < 2^1024, and the midpoint of two doubles where c^A has 54
+     bits. Its value is kept where c^|A| < 2^200: beyond, which A > 200 gives,
+     x^y is known to be neither a double nor a midpoint. A value beyond 2^1100,
+     or below 2^-1100, is taken as 2^1100 or 2^-1100, which round to the same
+     doubles.
+     An irrational x^y, y = A/2^k, is the 2^k-th root of the rational x^A,
+     which is kept where k <= 6, m^|A| < 2^400 and |e A| <= 2^18: a double
+     d > 0 is above x^y where d^(2^k), exact, is above x^A, and no double is
+     x^y. These are the square roots of pow.c for y = 0.5, and the other
+     roots its first phase rounds. */
+  struct Power
+  {
+    enum Kind { irrational, rational, beyond } kind = irrational; // beyond: rational, c^|A| >= 2^200
+    bool is_double = false;
+    Exact value;
+    int root = 0; // irrational, and x^y = radicand^(1/2^root) where root > 0
+    Exact radicand;
+    std::string text; // c^A 2^s, or (m^A 2^s)^(1/2^k)
+  };
+
+  // Where x^y is irrational, y = A/2^k, k = -q, x = m 2^e: x^y = (x^A)^(1/2^k), x^A = m^A 2^(e A)
+  void root_of_rational(Power& r, std::uint64_t m, std::int64_t e, std::int64_t q, std::int64_t A)
+  {
+    const std::int64_t k = -q, magnitude = (A < 0) ? -A : A, limit = static_cast<std::int64_t>(1) << 18;
+    if (k > 6 || magnitude > limit || (e < 0 ? -e : e)*magnitude > limit) {
+      return;
+    }
+    const Natural bound = Natural(1u).shifted_left(400);
+    Natural p(1u); // m^|A|
+    for (std::int64_t i = 0; m != 1 && i < magnitude; ++i) {
+      p = p*Natural(m);
+      if (compare(p, bound) >= 0) {
+        return;
+      }
+    }
+    const std::int64_t s = e*A;
+    r.root = static_cast<int>(k);
+    r.radicand = (A > 0) ? exact(scaled(p, static_cast<long>(s)))
+                         : quotient(scaled(Natural(1u), static_cast<long>(s)), scaled(p, 0));
+    r.text = "(" + (m == 1 ? std::string() : std::to_string(m) + "^" + std::to_string(A) + " ") + "2^"
+           + std::to_string(s) + ")^(1/" + std::to_string(static_cast<std::int64_t>(1) << k) + ")";
+  }
+
+  Power power_of(double x, double y)
+  {
+    Power r;
+    std::uint64_t m, a;
+    std::int64_t e, q;
+    odd_times_power_of_two(x, m, e);
+    odd_times_power_of_two(y, a, q);
+    std::uint64_t c = m;
+    std::int64_t f = e;
+    if (q < 0) {
+      const std::int64_t k = -q, signed_a = (y < 0.0) ? -static_cast<std::int64_t>(a) : static_cast<std::int64_t>(a);
+      if (k > (m == 1 ? 10 : 5) || e % (static_cast<std::int64_t>(1) << k) != 0) {
+        root_of_rational(r, m, e, q, signed_a);
+        return r;
+      }
+      if (m != 1) {
+        c = integer_root(m, static_cast<int>(k));
+        if (c == 0) {
+          root_of_rational(r, m, e, q, signed_a);
+          return r;
+        }
+      }
+      f = e/(static_cast<std::int64_t>(1) << k);
+    }
+    // x^y = c^A 2^(f A), A = a for q < 0 and y for q >= 0
+    const double magnitude = (q < 0) ? static_cast<double>(a) : std::fabs(y);
+    const int sign = (y < 0.0) ? -1 : 1;
+    const double limit = (c == 1) ? 2097152.0 : 200.0; // |f A| >= 2^21 for c = 1, c^|A| >= 3^201 for c >= 3
+    if (magnitude > limit) {
+      if (c != 1) {
+        r.kind = Power::beyond;
+        r.text = std::to_string(c) + "^" + (sign < 0 ? "-" : "") + "A, A > 200";
+        return r;
+      }
+      r.kind = Power::rational;
+      const bool above = (f > 0) == (sign > 0);
+      r.value = exact(scaled(Natural(1u), above ? 1100 : -1100));
+      r.text = std::string("2^") + (above ? "" : "-") + "s, s > 2^21";
+      return r;
+    }
+    const std::int64_t A = sign*static_cast<std::int64_t>(magnitude), s = f*A;
+    Natural p(1u); // c^|A|
+    std::uint64_t small = 1; // c^|A| while it is below 2^53, 0 beyond
+    for (std::int64_t i = 0; c != 1 && i < (A < 0 ? -A : A); ++i) {
+      p = p*Natural(c);
+      small = (small != 0 && small <= ((static_cast<std::uint64_t>(1) << 53) - 1)/c) ? small*c : 0;
+    }
+    if (compare(p, Natural(1u).shifted_left(200)) >= 0) {
+      r.kind = Power::beyond;
+      r.text = std::to_string(c) + "^" + std::to_string(A) + " 2^" + std::to_string(s);
+      return r;
+    }
+    r.kind = Power::rational;
+    r.text = (c == 1 ? "" : std::to_string(c) + "^" + std::to_string(A) + " ") + "2^" + std::to_string(s);
+    if (s > 1300 || s < -1300) { // c^|A| < 2^200: x^y beyond 2^1100, or below 2^-1100
+      r.value = exact(scaled(Natural(1u), (s > 0) ? 1100 : -1100));
+      return r;
+    }
+    if (A > 0 || c == 1) {
+      int bits = 0;
+      while (small >> bits != 0) {
+        ++bits;
+      }
+      r.is_double = small != 0 && s >= -1074 && s + bits <= 1024;
+      r.value = exact(scaled(p, static_cast<long>(s)));
+    } else {
+      r.value = quotient(scaled(Natural(1u), static_cast<long>(s)), scaled(p, 0));
+    }
+    return r;
+  }
+
+  // The sign of d - x^y, d being a double, infinite or not, where power_of() knows x^y: rational, or the
+  // 2^k-th root of a rational
+  int compare_with(double d, const Power& power)
+  {
+    if (power.kind == Power::rational) {
+      return compare(d, power.value);
+    }
+    if (!(d > 0.0)) {
+      return -1;
+    }
+    if (d == inf) {
+      return 1;
+    }
+    Dyadic t = dyadic(d); // d^(2^k)
+    for (int i = 0; i < power.root; ++i) {
+      t = t*t;
+    }
+    return compare(exact(t), power.radicand);
+  }
+
+  /* The bounds of pow(x, y) at the corners of a box, where x^y is a double
+     (GAOL v5). GAOL takes CORE-MATH's value in the upward rounding as the upper
+     bound and the double below it as the lower one, unless x^y is a double,
+     which is then the lower bound: pow([4], 0.5) was [2 - 2^-52, 2]. x^y is a
+     double for x = 2^p and y = t/p, t an integer of [-1074, 1023], and for
+     x = c^(2^k) 2^(f 2^k), c odd, and y = a/2^k, a > 0, where c^a < 2^53 and
+     c^a 2^(f a) is within the doubles; for no other pair, however near. The
+     pairs below are those, at the edges of the doubles too (subnormal bases
+     and powers, 2^-1074, f a from -1077 to -1074, the largest powers and the
+     first beyond, 3^33 and 3^34), the integers from 2 to 100 to the powers
+     a/2^k, k <= 3 (the roots of the squares and of the fourth powers, 81^(3/4)
+     among them, and 17, 33..., 1 modulo 8 but no squares), midpoints between
+     two doubles, c^a odd of 54 bits, whose power is small enough for
+     CORE-MATH to compute it exactly (3^34 2^-1020, 459^6 2^-1032, 197^7 2^-1008
+     and 2^-1015, 29^11 2^-1045), the neighbours of each (the double above and
+     below x, then y), a power of two whose product p*y rounds to an integer
+     without being one (8 to the double nearest 1/3, whose 3y is 1 - 2^-54, and
+     to the double above), and random pairs.
+
+     The bounds have to be the tightest ones: the lower bound RD(x^y) at every
+     pair, which is x^y where it is a double, and the upper one RU(x^y). Where
+     x^y is rational, the reference is x^y itself, which power_of() computes
+     exactly, apart from GAOL and from CORE-MATH; where it is the 2^k-th root
+     of a rational, y = A/2^k with k <= 6, the doubles are compared with it
+     exactly too, d^(2^k) with x^A. CORE-MATH's values in the two directed
+     roundings have to be its roundings too. Elsewhere, x^y irrational with
+     more digits in y, or rational of too many digits, it is neither a double
+     nor the midpoint of two, and the reference is CORE-MATH's values downward
+     and upward, which have to be two neighbouring doubles. Wherever x^y is no
+     double, GAOL's bounds have to differ, which needs no reference. So a
+     fault of CORE-MATH is told apart from one of GAOL's bounds: on 32-bit
+     ARM, CORE-MATH rounded to nearest in every direction the midpoints it
+     computes exactly (see exact_pow() in
+     3rd/math-core/src/binary64/pow/pow.c), and GAOL's upper bound, its value
+     upward, was below x^y there; compiled by Visual C++, CORE-MATH returned
+     -0 rounding downward where x^y is between 2^-1075 and about 2^-947; and
+     on a 32-bit x86 Windows, with Visual C++ and with MinGW-w64 at -O0, the
+     square root it takes for y = 0.5 was rounded to nearest in every
+     direction, and GAOL's upper bound of pow([x], [0.5]) was below the root
+     at subnormal x (see gaol/core_math_port.h). A reference taken from
+     CORE-MATH alone took the first and the last for faults of the lower
+     bound, or checked no bound.
+
+     The box [x] x [y] is degenerate, and pow takes pown for an integer y: the
+     box is then [y, next(y)] or [prev(y), y], the one whose lower bound is at
+     y, and the other for the upper bound. The pairs are made in the rounding to
+     nearest, whatever the direction the tests before left. */
+  void pow_exact_at_corners()
+  {
+    std::vector<std::pair<double, double>> pairs;
+    const auto add = [&](double x, double y) {
+      pairs.push_back({x, y});
+      pairs.push_back({next_float(x), y});
+      pairs.push_back({previous_float(x), y});
+      pairs.push_back({x, next_float(y)});
+      pairs.push_back({x, previous_float(y)});
+    };
+    std::fesetround(FE_TONEAREST);
+    // Powers of two: 2^p to the power t/p, t around the ends of the range of doubles
+    for (int p : {-1074, -1073, -1023, -1022, -538, -537, -100, -3, -2, -1, 1, 2, 3, 10, 511, 512, 1000, 1023}) {
+      const double x = std::ldexp(1.0, p);
+      for (int t : {-1075, -1074, -1073, -1022, -100, -3, -1, 1, 2, 3, 100, 1023, 1024}) {
+        add(x, (double)t / (double)p);
+      }
+      for (double y : {0.5, 0.25, 1.5, 2.0, 3.0, 33.0, -0.5, -1.0, -2.0, 0x1.5555555555555p-2, 0x1.5555555555556p-2}) {
+        add(x, y);
+      }
+    }
+    // c^(2^k) 2^(f 2^k) to the powers a/2^k. c^a is below 2^53 up to a = 33 for c = 3
+    // (3^33 = 5559060566555523), and above it for a = 34. f = -537 and -358 give subnormal bases and
+    // powers, 3 2^-537 = (9 2^-1074)^(1/2) and 27 2^-1074 = (9 2^-716)^(3/2) among them, f = -538, -359 and
+    // -215 the exponents f a = -1076, -1077 and -1075 just below the least double, and f = 340 a power
+    // beyond the largest double whose exponent f a is not: (9 2^680)^(3/2) = 27 2^1020
+    struct Corner
+    {
+      int c, f, k, a;
+    };
+    std::vector<Corner> corners;
+    for (int k = 0; k <= 6; ++k) {
+      for (int c : {3, 5, 7, 9, 15, 255, 257, 65537, 67108865}) {
+        for (int f : {-538, -537, -359, -358, -215, -30, -1, 0, 1, 20, 340}) {
+          for (int a : {1, 2, 3, 5, 7, 9, 31, 32, 33, 34, -1, -3}) {
+            if (k == 0 || a % 2 != 0) {
+              corners.push_back({c, f, k, a});
+            }
+          }
+        }
+      }
+    }
+    // Midpoints that CORE-MATH computes exactly, (3 2^-30)^34 among those above
+    corners.push_back({459, -172, 0, 6});
+    corners.push_back({197, -144, 0, 7});
+    corners.push_back({197, -145, 1, 7});
+    corners.push_back({29, -95, 2, 11});
+    for (const Corner& corner : corners) {
+      double m = corner.c;
+      for (int i = 0; i < corner.k; ++i) {
+        m *= m; // c^(2^k), exact below 2^53
+      }
+      if (m < 9007199254740992.0) {
+        add(std::ldexp(m, corner.f*(1 << corner.k)), (double)corner.a/std::ldexp(1.0, corner.k));
+      }
+    }
+    // The integers from 2 to 100 to the powers a/2^k, k <= 3
+    for (int x = 2; x <= 100; ++x) {
+      for (int k = 0; k <= 3; ++k) {
+        for (int a = -3; a <= 34; ++a) {
+          if (a != 0 && (k == 0 || a % 2 != 0)) {
+            add((double)x, (double)a/(double)(1 << k));
+          }
+        }
+      }
+    }
+    // Random pairs, drawn one number at a time, the same whatever the order in which a compiler evaluates
+    // the arguments of a function
+    std::mt19937_64 gen(20260929u);
+    for (int i = 0; i < 4000; ++i) {
+      const double significand = 1.0 + (double)(gen() >> 11)/9007199254740992.0;
+      const int exponent = (int)(gen() % 200) - 100;
+      const double numerator = (double)((int)(gen() % 2049) - 1024);
+      const int k = (int)(gen() % 6);
+      add(std::ldexp(significand, exponent), numerator/(double)(1 << k));
+    }
+    int doubles = 0, rationals = 0, roots = 0;
+    for (const std::pair<double, double>& pair : pairs) {
+      const double x = pair.first, y = pair.second;
+      if (!(x > 0.0) || x == 1.0 || y == 0.0 || !std::isfinite(x) || !std::isfinite(y)) {
+        continue;
+      }
+      std::fesetround(FE_TONEAREST);
+      const Power power = power_of(x, y);
+      std::fesetround(FE_DOWNWARD);
+      const double lo = gaol_cr_pow(x, y);
+      std::fesetround(FE_UPWARD);
+      const double hi = gaol_cr_pow(x, y);
+      const auto describe = [&] { return "pow(" + show(x) + ", " + show(y) + ")"; };
+      const bool rational = power.kind == Power::rational, known = rational || power.root > 0;
+      const auto power_text = [&] {
+        return std::string(", x^y being ") + (power.text.empty() ? "irrational" : power.text);
+      };
+      // Where x^y is known: whether d <= x^y, and whether d >= x^y
+      const auto at_most = [&](double d) { return compare_with(d, power) <= 0; };
+      const auto at_least = [&](double d) { return compare_with(d, power) >= 0; };
+      // CORE-MATH's values: x^y rounded where it is known exactly, two neighbouring doubles elsewhere,
+      // x^y being then no double
+      bool reference = true;
+      if (known) {
+        rationals += rational;
+        roots += !rational;
+        doubles += power.is_double;
+        check(rational ? "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is rational"
+                       : "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is a 2^k-th root, k <= 6",
+              at_most(lo) && !at_most(next_double(lo)) && at_least(hi) && !at_least(previous_double(hi)),
+              [&] { return describe() + " is " + show(lo) + " downward and " + show(hi) + " upward" + power_text(); });
+      } else {
+        reference = !std::signbit(lo) && hi == next_double(lo);
+        check("pow: CORE-MATH's pow downward and upward are neighbouring doubles where x^y is not known exactly",
+              reference,
+              [&] { return describe() + " is " + show(lo) + " downward and " + show(hi) + " upward" + power_text(); });
+      }
+      const bool integer = std::floor(y) == y;
+      const interval at_lower = !integer ? interval(y, y) : (x > 1.0 ? interval(y, next_float(y)) : interval(previous_float(y), y));
+      const interval at_upper = !integer ? interval(y, y) : (x > 1.0 ? interval(previous_float(y), y) : interval(y, next_float(y)));
+      const interval got = evaluate("pow", [&] { return pow(interval(x, x), at_lower); }, describe);
+      const interval got_upper = !integer ? got : evaluate("pow", [&] { return pow(interval(x, x), at_upper); }, describe);
+      const double l = got.is_empty() ? inf : got.left(), u = got_upper.is_empty() ? -inf : got_upper.right();
+      if (!integer && !power.is_double) {
+        check("pow: the bounds differ where x^y is not a double", l < u,
+              [&] { return describe() + " is [" + show(l) + ", " + show(u) + "]" + power_text(); });
+      }
+      if (!known && !reference) {
+        continue; // no reference
+      }
+      const auto lower = [&] {
+        return describe() + " has the lower bound " + show(l) + (known ? power_text() : " rather than " + show(lo));
+      };
+      const auto upper = [&] {
+        return describe() + " has the upper bound " + show(u) + (known ? power_text() : " rather than " + show(hi));
+      };
+      const bool lower_sound = known ? at_most(l) : l <= lo;
+      const bool upper_sound = known ? at_least(u) : u >= hi;
+      check("pow: the lower bound is at most x^y", lower_sound, lower);
+      check(power.is_double ? "pow: the lower bound is x^y where it is a double"
+                            : "pow: the lower bound is the tightest one where x^y is not a double",
+            lower_sound && (known ? !at_most(next_double(l)) : l == lo), lower);
+      check("pow: the upper bound is at least x^y", upper_sound, upper);
+      check("pow: the upper bound is the tightest one",
+            upper_sound && (known ? !at_least(previous_double(u)) : u == hi), upper);
+    }
+    check("pow: powers that are doubles among the pairs", doubles >= 3000,
+          [&] { return std::to_string(doubles) + " of them"; });
+    check("pow: powers known exactly among the pairs", rationals >= 8000,
+          [&] { return std::to_string(rationals) + " of them"; });
+    check("pow: powers known as 2^k-th roots among the pairs", roots >= 1000,
+          [&] { return std::to_string(roots) + " of them"; });
+  }
+
+  /* pow(x, y) at a tiny exponent with flush-to-zero set (GAOL v5), as a
+     program linked with -Ofast has it (crtfastmath.o): 1024 y, of which the
+     test of whether x^y is a double makes an integer, is then 0 for
+     |y| < 2^-1032, and x^y was taken for x^0 = 1, the lower bound of
+     pow([0.5], [2^-1074]), above 0.5^(2^-1074) < 1. x86 only, where MXCSR is,
+     and where the processor honours flush-to-zero; the other effects of
+     flush-to-zero on GAOL's bounds are not looked at here. */
+  void pow_with_flush_to_zero()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    const unsigned int flush_to_zero = 0x8000u, saved = _mm_getcsr() & flush_to_zero;
+    // Whether the processor flushes 1024 2^-1074 to 0. The product is written to volatile memory before
+    // the mode is cleared: GCC and Clang, which do not model MXCSR, might compute it afterwards otherwise
+    volatile double least = 0x1p-1074, product;
+    _mm_setcsr(_mm_getcsr() | flush_to_zero);
+    product = 1024.0*least;
+    _mm_setcsr((_mm_getcsr() & ~flush_to_zero) | saved);
+    if (product != 0.0) {
+      std::printf("Flush-to-zero is not honoured: pow with it is not checked\n");
+      return;
+    }
+    _mm_setcsr(_mm_getcsr() | flush_to_zero);
+    const interval point = pow(interval(0.5), interval(0x1p-1074));
+    const interval box = pow(interval(0.5, 0.75), interval(0x1p-1074, 0x1p-1070));
+    _mm_setcsr((_mm_getcsr() & ~flush_to_zero) | saved);
+    check("pow with flush-to-zero: the lower bound is below x^y < 1", !point.is_empty() && point.left() < 1.0,
+          [&] { return "pow([0.5], [0x1p-1074]) = " + hex(point); });
+    check("pow with flush-to-zero: the lower bound is below x^y < 1", !box.is_empty() && box.left() < 1.0,
+          [&] { return "pow([0.5, 0.75], [0x1p-1074, 0x1p-1070]) = " + hex(box); });
+#else
+    std::printf("No control register of the SSE instructions: pow with flush-to-zero is not checked\n");
+#endif
+  }
+
   /* The bounds GAOL gives of the exponentials and the logarithms in base 2 and
      10 where the value is a double: they are that double, not the one below it
      (GAOL v5). Where the value is not a double, the bounds are checked
@@ -687,11 +1123,12 @@ namespace
      rounding, for a positive x (1, downward, for a negative one). With
      mingw-w64 on x86-64 (MinGW-w64, MSYS2), get_rounding_mode() returned
      FE_UPWARD itself, 0x800, where 0 to 3 are expected, and the upper bound
-     of nth_root(x, 3) was below the cube root (3rd/README.md). The roundings
-     are computed apart, with mpmath at 2000 bits: below and above are the
-     doubles on each side of the cube root of x, the nearest being below. The
-     cube root of x 8^k is that of x times 2^k, exactly, and so are its
-     roundings. */
+     of nth_root(x, 3) was below the cube root (3rd/README.md); with clang-cl
+     on x86-64 it took the upward and the downward roundings for toward zero
+     (see rsqrt_hard_cases()). The roundings are computed apart, with mpmath
+     at 2000 bits: below and above are the doubles on each side of the cube
+     root of x, the nearest being below. The cube root of x 8^k is that of x
+     times 2^k, exactly, and so are its roundings. */
   void cbrt_hard_cases()
   {
     struct Value { double x, below, above; };
@@ -736,6 +1173,45 @@ namespace
                 [&] { return "rootn([" + show(x) + "], 3) = " + hex(std_got); });
         }
       }
+    }
+  }
+
+  /* rsqrt at the successors of the powers of 4, x = 4^k (1 + 2^-52), for
+     every k where x and 2^-k are normal: 1/sqrt(x) is 2^-k (1 + 2^-52)^(-1/2),
+     strictly between 2^-k (1 - 2^-53), the double below 2^-k, and 2^-k, and
+     about 1.5 x 2^-53 of an ulp above the first, so that it rounds downward,
+     to nearest and toward zero to 2^-k (1 - 2^-53) and upward to 2^-k. The
+     fast phase of CORE-MATH's rsqrt cannot round them, and as_rsqrt_refine()
+     adds the last ulp when get_rounding_mode() says upward. With clang-cl on
+     x86-64, which defines __x86_64__ and _WIN32 but not __WIN32__, that
+     function compared the FE_UPWARD of glibc, 0x800, with that of the UCRT,
+     0x200, and the upper bound of rsqrt(x) was the double below 1/sqrt(x) at
+     every one of them (clang-cl 18, the program run under wine; see
+     3rd/README.md). */
+  void rsqrt_hard_cases()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (int k = -511; k <= 511; ++k) {
+      const double x = std::ldexp(1.0 + 0x1p-52, 2 * k);
+      const double below = std::ldexp(1.0 - 0x1p-53, -k), above = std::ldexp(1.0, -k);
+      const double want[4] = {below, above, below, below};
+      double v[4];
+      for (int d = 0; d < 4; ++d) {
+        std::fesetround(directions[d]);
+        v[d] = gaol_cr_rsqrt(x);
+      }
+      std::fesetround(FE_UPWARD);
+      check("rsqrt at the successors of the powers of 4: the roundings of 1/sqrt(x)",
+            v[0] == want[0] && v[1] == want[1] && v[2] == want[2] && v[3] == want[3],
+            [&] {
+              return "rsqrt(" + show(x) + ") = " + show(v[0]) + ", " + show(v[1]) + ", " + show(v[2]) + ", "
+                   + show(v[3]) + " rather than " + show(want[0]) + ", " + show(want[1]) + ", "
+                   + show(want[2]) + ", " + show(want[3]);
+            });
+      const interval got = rsqrt(interval(x));
+      check("rsqrt at the successors of the powers of 4: the tightest bounds",
+            !got.is_empty() && got.left() == below && got.right() == above,
+            [&] { return "rsqrt([" + show(x) + "]) = " + hex(got); });
     }
   }
 
@@ -999,12 +1475,15 @@ int main()
   elementary_functions();
   exact_values();
   two_arguments();
+  pow_exact_at_corners();
+  pow_with_flush_to_zero();
   base_two_and_ten_exact();
   negative_roots();
   recommended_intervals();
   recommended_tightest();
   sin_accurate_path();
   cbrt_hard_cases();
+  rsqrt_hard_cases();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();

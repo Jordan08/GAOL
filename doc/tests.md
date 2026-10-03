@@ -10,6 +10,16 @@ The exact results are computed with integers, or were computed with 2000 bits of
 precision by [mpmath](https://mpmath.org). They follow the rounding tests of
 Codac.
 
+Under the Debug C runtime of Visual C++, a failed assertion of the runtime or of
+the checked iterators of its library, and an invalid parameter, are written to
+stderr, where the test goes on, and make it fail (`tests/gaol_tests.h`): the
+runtime showed them in a dialog box, which nobody closes on a machine of the
+CI, and the test hung, without output, until ctest stopped it at 300 s. That
+runtime reports such an assertion of its own when it writes a subnormal number
+under denormals-are-zero ("unexpected input value; log10 failed"), then writes
+0, on x86 as on x64: `numbers` does not check the output of subnormals with that
+mode there.
+
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
@@ -21,7 +31,16 @@ Codac.
   for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
   intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
   enclosures. `gaol::pow(x, n)` for an unsigned n has to give what it gives
-  for an int n, `[1]` for n = 0 and the empty set for an empty x. The operators of an interval with a double have to give, on
+  for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
+  powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
+  against bounds computed with mpmath: the lower bound left out the square of
+  the rest it carries, and was 1962 doubles below the tightest for
+  `pow([1.0000001], 2^32 − 1)`. Where `pow(x, n)` takes the products rounded
+  outward (n = 1 and 2, a bound 0 or infinite, the power of a bound below
+  2^-968 or beyond the largest double), they have to be those of the binary
+  exponentiation from the lowest bit of n, each rounded in the direction set
+  for it: the SSE2 intervals multiplied from the highest bit, and their bounds
+  were not those of the FPU intervals (GAOL v5). The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
@@ -45,8 +64,9 @@ Codac.
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
   near 1. `pow(x, y)` has to be within one double of the tightest bounds at
   points, `pow([2], [1023.5])` among them, and over 385 boxes of bases and
-  exponents in every position about the base 1 and the exponent 0. `atan2`
-  has to be within one double of the tightest bounds at
+  exponents in every position about the base 1 and the exponent 0, and the
+  power itself as lower bound where it is a double: `pow([4], 0.5)` is `[2]`.
+  `atan2` has to be within one double of the tightest bounds at
   points of the four quadrants and over 324 boxes in every position about the
   axes, and the tightest over the boxes with infinite bounds or on an axis,
   `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin, cos and tan have to be within one
@@ -96,8 +116,15 @@ Codac.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 190 calls, in 58 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in ten groups)
+  on either side (about 190 calls, in 61 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in ten groups,
+  and three choices a program makes with `is_empty()` of an intersection
+  whose left operand is empty, which GCC for 32-bit ARM makes signaling if
+  `operator&=` tells that operand empty otherwise than `is_empty()` does; these
+  three are not checked where the compiler optimizes for size, as GCC 14 for
+  32-bit ARM and GCC 13 for POWER9 then call the intersection, and the choice
+  is made on `is_empty()` of an empty interval alone, which they make
+  signaling)
   have to give the result of the empty set and raise no invalid-operation
   flag, and, with glibc, not die in a child process that enabled the
   exception (GAOL v5): 45 of the 48 died with the SSE2 intervals, and all 48
@@ -105,10 +132,48 @@ Codac.
   `floor`, `set_contains()`, the output...).
   Where the processor does not trap an invalid operation, the test says so
   and skips that part.
+  With a mode that flushes the subnormal numbers to zero set (on x86,
+  flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
+  and FIZ where the processor has it), and the rounding direction upward or
+  not, products, sums, differences, quotients by an interval and by a double,
+  squares and `exp` with a subnormal operand or result have to be the tightest
+  enclosures, computed apart with exact rational arithmetic (and mpmath for
+  `exp(-740)`), and the modes have to be cleared after the operation, or
+  restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
+  them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
+  intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
+  compared before the check (GAOL v5). Then each of the 79 operations that
+  check the rounding direction (the arithmetic, the elementary functions, the
+  powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
+  `width()`...), called on intervals with subnormal, mixed and normal bounds
+  with each mode set just before it and each rounding direction, has to give
+  what it gives with the modes cleared, and leave the modes cleared, or set
+  back with `GAOL_PRESERVE_ROUNDING`: the compilers do not model the modes,
+  and this checks what each of them emits. With GCC 13 at `-O3`, `asinpi()`
+  compared bounds with 0 before its check, and `asinpi([100·2^-1074])` was
+  [32·2^-1074], above the exact value; `sqrt([-1e-310, 4])`,
+  `pow([-5·2^-1074, 1], 0.5)` and `atan2([100·2^-1074], [100·2^-1074])` were
+  the empty set; with `GAOL_PRESERVE_ROUNDING`, `sinpi([100, 1000]·2^-1074)`
+  was empty, its minimum taken once the modes were restored (GAOL v5, review
+  of point 4); `acos_rel()` and `asin_rel()` of a J outside [-1, 1], or
+  containing it, returned before their check, the modes left set. The
+  operations that make no check (`&`, `|`, `max`, `abs`, the relations... see
+  `doc/using.md`) are left out. A mode the processor keeps without honouring
+  it, as an emulator may, is named and skipped: one that flushes neither the
+  exact subnormal sum 2^-1060 + 0 nor the inexact product 1e-300·1e-20.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
   it upward before `main()`: GAOL has to initialize itself before.
+- **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
+  GCC and Clang), which links `crtfastmath.o` and the modes flushing the
+  subnormals to zero it sets, unless `-mno-daz-ftz` keeps it out. Where the
+  build gives the link `-mno-daz-ftz`, the modes have to be clear when `main()`
+  starts; otherwise, and where they are clear, the test sets them, as a plug-in
+  built with `-Ofast` does. Products, a difference and `exp` with subnormal
+  operands or results have then to be the tightest enclosures, and the modes
+  cleared after them, or restored with `GAOL_PRESERVE_ROUNDING`, where the
+  processor honours them (GAOL v5).
 - **`automatic_cleanup`** (Linux only): after the end of `main()`, which leaves
   the rounding direction downward, GAOL's automatic cleanup has to set back
   the direction to nearest, as the program started, or to leave it downward
@@ -262,7 +327,7 @@ Codac.
   ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
-  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 89 boxes, each
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 92 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
   `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
   they have to be bit for bit those the two functions gave when each had its
@@ -307,7 +372,37 @@ Codac.
   exact value itself (`log(1)`, `sin(0)`, the bounds of π/2 at `asin(1)`...).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
-  subnormals, and at random doubles of every magnitude. The functions of
+  subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
+  the tightest at the corner of a box, `[x]` by `[y]`, both bounds, the lower
+  one being the power itself where it is a double (GAOL v5): 84 070 pairs, the
+  powers of two to the powers t/p (2<sup>p</sup> to the power t/p, t around
+  the ends of the doubles), the numbers
+  c<sup>2<sup>k</sup></sup>·2<sup>f·2<sup>k</sup></sup> to the powers
+  a/2<sup>k</sup>, with subnormal bases and powers, powers just below the
+  least double and just beyond the largest one, and midpoints between two
+  doubles that CORE-MATH computes exactly, the integers from 2 to 100 to the
+  powers a/2<sup>k</sup>, k ≤ 3, and random pairs, each with the neighbours of
+  its base and of its exponent. Where x<sup>y</sup> is rational, 8 981 pairs,
+  3 211 of them a double (at least 8 000 and 3 000 must be), the reference is
+  x<sup>y</sup> itself, computed with integers apart from GAOL and from
+  CORE-MATH, whose values downward and upward have to be its roundings too.
+  Where x<sup>y</sup> is the 2<sup>k</sup>-th root of a rational, y being
+  A/2<sup>k</sup> with k ≤ 6, 12 540 pairs (at least 1 000 must be), the
+  doubles are compared with it exactly too, d<sup>2<sup>k</sup></sup> with
+  x<sup>A</sup>. Elsewhere x<sup>y</sup> is neither a double nor the midpoint
+  of two, and the reference is CORE-MATH's values downward and upward, which
+  have to be two neighbouring doubles, GAOL's bounds having to differ. A
+  fault of CORE-MATH is so told apart from one of GAOL's bounds: CORE-MATH's
+  `pow` rounded to nearest in every direction the midpoints of its exact phase
+  on 32-bit ARM, compiled by Visual C++ it was -0 downward from
+  2<sup>−1075</sup> to about 2<sup>−947</sup>, and on a 32-bit x86 Windows,
+  with Visual C++ and with MinGW-w64 at -O0, it rounded its square roots to
+  nearest, which put GAOL's upper bound of `pow([x], [0.5])` below the root at
+  subnormal x (see `3rd/README.md` and `gaol/core_math_port.h`). Among the
+  pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
+  being 1. With flush-to-zero set (x86), the lower bound of
+  `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y being flushed
+  to 0. The functions of
   Table 10.5 GAOL provides have to be the tightest enclosures over intervals
   too: the hull of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
@@ -343,7 +438,14 @@ Codac.
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its
   `get_rounding_mode()` gave `FE_UPWARD` where 0 to 3 were expected, and the
-  upper bound was below the cube root (GAOL v5).
+  upper bound was below the cube root (GAOL v5). `rsqrt` is checked in the four
+  rounding directions, and has to be the tightest enclosure, at the successors
+  of the powers of 4, 4<sup>k</sup> (1 + 2<sup>−52</sup>), where 1/sqrt(x) is
+  just above the double below 2<sup>−k</sup>, as the series of
+  (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them
+  upward from the direction its `get_rounding_mode()` reads, which clang-cl on
+  x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
+  being below 1/sqrt(x) (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
