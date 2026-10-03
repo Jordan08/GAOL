@@ -437,10 +437,124 @@ namespace gaol_core {
     return minimum(upward::atan2_up(y,x), pi_up);
   }
 
-  // x^y for x > 0: 1 for x = 1 or y = 0, and at least 0
+  // x > 0 finite as m 2^e, m an odd integer, read from the bits of x (in
+  // pow_is_double() and hypot()): std::frexp(), std::ldexp() and a loop over
+  // the trailing zeros cost as much as CORE-MATH's pow. The lowest set bit of
+  // the significand is a power of two below 2^53, a double whose exponent is
+  // the number of trailing zeros
+  static inline void odd_significand(double x, std::uint64_t& m, int& e)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const int field = static_cast<int>(bits >> 52); // no sign bit; 0 for a subnormal
+    m = bits & ((static_cast<std::uint64_t>(1) << 52) - 1);
+    e = -1074;
+    if (field != 0) {
+      m |= static_cast<std::uint64_t>(1) << 52;
+      e = field - 1075;
+    }
+    const double lowest = static_cast<double>(m & (~m + 1)); // exact
+    std::memcpy(&bits, &lowest, sizeof bits);
+    const int zeros = static_cast<int>(bits >> 52) - 1023;
+    m >>= zeros;
+    e += zeros;
+  }
+
+  /*
+    Whether x^y is a double, and that double d, for a finite x > 0 other than
+    1 and a finite y other than 0 (GAOL v5). pow_lo() takes d as the lower
+    bound, where the double below CORE-MATH's value rounded upward is one
+    double below it: pow([4], 0.5) was [2 - 2^-52, 2]. Calling CORE-MATH
+    downward too would tell, at twice the cost of every power: this proves it
+    instead, with integers and with operations on doubles that are exact
+    whatever the rounding direction, and leaves at the first tests for nearly
+    every y. y is a/2^k, a an odd integer and k >= 1, or an integer a (k = 0),
+    and x is m 2^e, m an odd integer.
+    - m = 1: x^y = 2^(e y), a double where e y is an integer of [-1074, 1023],
+      and irrational elsewhere. As |e| <= 1074 < 2^11, e y is an integer only
+      where 2^k divides e, k <= 10: 1024 y is an integer j, and e j a multiple
+      of 1024. The product e*y of doubles could not tell: for e = 3 and y the
+      double nearest 1/3, 3 y = 1 - 2^-54 rounds to 1.
+    - m >= 3: x^y is rational only where x is the 2^k-th power of a rational
+      z (a and 2^k being coprime), which is c 2^f with c odd, x being dyadic:
+      m = c^(2^k), e = f 2^k, and x^y = z^a = c^a 2^(f a). That is no double
+      for a < 0 (c >= 3), and a double for a > 0 where c^a < 2^53,
+      f a >= -1074 and c^a 2^(f a) < 2^1024. c >= 3 gives a <= 33
+      (3^33 < 2^53 < 3^34) and 2^k <= 33 (3^(2^k) <= m < 2^53): y is a multiple
+      of 1/32 in (0, 33]. Then 2^k has to divide e, and m to be a 2^k-th
+      power: the square root of a double is exact at a perfect square below
+      2^53, and r*r is m for no integer r otherwise. c^a is a product of
+      doubles, exact below 2^53, and at least 2^53 above it, 2^53 being a
+      double.
+  */
+  static bool pow_is_double(double x, double y, double& d)
+  {
+    if (!(y >= -1075.0 && y <= 1075.0)) {
+      return false; // |e y| > 1074 for |e| >= 1
+    }
+    const double scaled = 1024.0*y; // exact, unless flush-to-zero makes it 0 (|y| < 2^-1032)
+    const int j = static_cast<int>(scaled);
+    if (j == 0 || static_cast<double>(j) != scaled) {
+      return false; // k > 10, j being 0 for y != 0 only where 1024 y was flushed to 0
+    }
+    std::uint64_t m;
+    int e;
+    odd_significand(x, m, e);
+    if (m == 1) {
+      const int t = e*j; // 1024 e y, below 1.2e9 in magnitude
+      if (t % 1024 != 0 || t < -1074*1024 || t > 1023*1024) {
+        return false;
+      }
+      d = std::ldexp(1.0, t/1024);
+      return true;
+    }
+    if (j <= 0 || j > 33*1024 || (j >= 2048 && m >= (static_cast<std::uint64_t>(1) << 27))) {
+      return false; // c^a = m^y >= 2^54 for y >= 2 and m >= 2^27, as for most x
+    }
+    // y = a/2^k: j = a 2^(10-k), whose lowest set bit is 2^(10-k) for k > 0
+    const double lowest = static_cast<double>(j & -j); // exact
+    std::uint64_t bits;
+    std::memcpy(&bits, &lowest, sizeof bits);
+    const int zeros = static_cast<int>(bits >> 52) - 1023;
+    const int k = (zeros >= 10) ? 0 : 10 - zeros, a = j >> (10 - k);
+    if (k > 5 || (static_cast<unsigned int>(e) & ((1u << k) - 1u)) != 0u) {
+      return false; // 2^k does not divide e
+    }
+    for (int i = 0; i < k; ++i) {
+      const std::uint64_t r = static_cast<std::uint64_t>(std::sqrt(static_cast<double>(m)));
+      if (r*r != m) {
+        return false;
+      }
+      m = r;
+    }
+    const double c = static_cast<double>(m);
+    double p = c; // c^a
+    for (int i = 1; i < a; ++i) {
+      p *= c;
+      if (!(p < 9007199254740992.0)) { // 2^53
+        return false;
+      }
+    }
+    std::memcpy(&bits, &p, sizeof bits);
+    const int b = static_cast<int>(bits >> 52) - 1022; // 2^(b-1) <= c^a < 2^b
+    const int s = e/(1 << k)*a; // f a
+    if (s < -1074 || s + b > 1024) {
+      return false;
+    }
+    d = std::ldexp(p, s); // exact
+    return true;
+  }
+
+  // x^y for x > 0: 1 for x = 1 or y = 0, x^y where it is a double
+  // (pow_is_double()), the double below CORE-MATH's value rounded upward
+  // otherwise, and at least 0
   static inline double pow_lo(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(upward::nthroot_dn(x,y), 0.0);
+    double d;
+    if (x == 1.0 || y == 0.0) {
+      return 1.0;
+    }
+    return pow_is_double(x, y, d) ? d : maximum(upward::nthroot_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
@@ -1077,10 +1191,14 @@ namespace gaol_core {
     /*
       A degenerate integer exponent [n]: x^n on x >= 0, where pow and pown
       agree. Within the ints, pown gives the powers that are doubles exactly,
-      where the corners below are one double wide. Beyond the ints, which pown
+      as pow_is_double() does at the corners below. Beyond the ints, which pown
       cannot take, |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
       decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower bound 0
-      is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd n < 0.
+      is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd n < 0. x^n is
+      a double at 0 and 1 only, taken apart here: for another x it is beyond the
+      doubles (2^(k n), for a power of two 2^k, k != 0) or not dyadic (1/m^|n|
+      for n < 0) or above 2^53 (m^n, m >= 3 odd), so that the double below
+      CORE-MATH's value is the tightest lower bound (see pow_is_double()).
       gaol_pow_hybrid() takes [n] before it comes here: its powers are those of
       the whole of x, and [-oo,+oo] beyond the ints.
     */
@@ -1105,9 +1223,12 @@ namespace gaol_core {
       its extrema over I x J are at corners, which the places of the bounds
       about 1 and 0 give. CORE-MATH's pow is correctly rounded in the upward
       rounding GAOL computes in, which gives the upper bound, and the double
-      below it the lower one: each bound is one double from the tightest one
-      at most, where exp(J*log(I)) multiplied the relative width of log(I) by
-      |y log(x)|: pow([2], [1023.5]) was 1425 doubles below and 748 above.
+      below it the lower one, unless the power is a double, which
+      pow_is_double() proves and which is then the lower bound itself: the
+      bounds are the tightest ones, where exp(J*log(I)) multiplied the relative
+      width of log(I) by |y log(x)|: pow([2], [1023.5]) was 1425 doubles below
+      and 748 above. The lower bound was the double below CORE-MATH's value
+      even where that value is exact: pow([4], 0.5) was [2 - 2^-52, 2].
       A base from 0, whose powers are from 0 for exponents above 0, takes its
       upper bound so. The other boxes (a base from 0 with an exponent that is
       not above 0, an infinite bound) keep exp(J*log(I)), which gives their
@@ -2230,18 +2351,6 @@ interval nth_root(const interval& I, int q)
     nearest to the origin, (mig X, mig Y), and its greatest at the farthest,
     (mag X, mag Y).
   */
-
-  // x > 0 finite as m 2^e, m an odd integer
-  static inline void odd_significand(double x, std::uint64_t& m, int& e)
-  {
-    const double f = std::frexp(x, &e);
-    m = static_cast<std::uint64_t>(std::ldexp(f, 53)); // below 2^53
-    e -= 53;
-    while ((m & 1) == 0) {
-      m >>= 1;
-      ++e;
-    }
-  }
 
   // Whether h^2 - b^2 = a^2 4^d, for odd integers h, b, a below 2^53: both
   // sides are integers below 2^107, which a double with the residual of its

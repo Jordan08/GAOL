@@ -21,6 +21,8 @@
  *   __attribute__; and __builtin_roundeven() where the compiler has not;
  * - on x86-64, a fegetround() that reads MXCSR, where their doubles are
  *   rounded, rather than the x87 unit, which the C library may read;
+ * - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
+ *   direction in effect, rather than the one of the C library;
  * - silence for the warnings on conversions GAOL's library is compiled with.
  *
  * Copyright (c) 2026 ENSTA, France
@@ -176,6 +178,42 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #endif /* a 32-bit x86 Windows */
 
 /*---------------------------------------------------------------------------
+  The square root on a 32-bit Windows, which the C library rounds to nearest
+
+  The sources take their square roots with __builtin_sqrt(): pow.c for
+  y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
+  atanh, hypot, rsqrt, asinpi and acospi. The square root of the C libraries
+  of Windows for 32-bit x86 is rounded to nearest in every rounding direction
+  (see gaol_sqrt_up() in gaol/gaol_interval.cpp). Visual C++ calls it for the
+  builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
+  the Debug builds) and in the accurate phases of acos, asin and asinpi,
+  which the sources mark cold, at -O2 too (GCC 13); elsewhere it writes
+  sqrtsd, and calls the C library for a negative argument only (acosh,
+  acospi). pow(x, 0.5) was then below the root rounding upward, and above it
+  rounding downward, at subnormal x, and GAOL's upper bound of
+  pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
+  (tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The
+  square root of SSE2 is taken there instead, with every compiler and at
+  every optimization level, which rounds in the direction of MXCSR, as every
+  other operation on doubles does there (gaol/gaol_config.h refuses an x86
+  target that does not compute its doubles with SSE2, and the three builds
+  give these sources -msse2 -mfpmath=sse).
+ --------------------------------------------------------------------------*/
+
+#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
+
+#include <emmintrin.h>
+
+static inline double gaol_sqrt(double x)
+{
+  return _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(x), _mm_set_sd(x)));
+}
+
+#define __builtin_sqrt(x) gaol_sqrt(x)
+
+#endif /* a 32-bit x86 Windows */
+
+/*---------------------------------------------------------------------------
   fegetround() on x86-64: the direction of the SSE instructions
 
   pow, and cos and tan, whose accurate phases carry the same code, round a
@@ -270,7 +308,6 @@ static inline int gaol_fegetround(void)
 #define __builtin_fma(x, y, z) fma(x, y, z)
 #define __builtin_fabs(x) fabs(x)
 #define __builtin_copysign(x, y) copysign(x, y)
-#define __builtin_sqrt(x) sqrt(x)
 #define __builtin_floor(x) floor(x)
 #define __builtin_round(x) round(x)
 #define __builtin_trunc(x) trunc(x)
@@ -282,6 +319,31 @@ static inline int gaol_fegetround(void)
 #define __builtin_nan(s) nan(s)
 #define __builtin_inf() ((double)INFINITY)
 #define __attribute__(x)
+
+/* On 32-bit x86, the square root of SSE2 (see above) */
+#if !defined(_M_IX86)
+#define __builtin_sqrt(x) sqrt(x)
+#endif
+
+/* NAN and INFINITY, which pow.c sets and returns, are no constants in a C
+   source compiled by Visual C++: the UCRT writes them
+   ((float)(_HUGE_ENUF * _HUGE_ENUF)) and
+   (-(float)(((float)(_HUGE_ENUF * _HUGE_ENUF)) * 0.0F)), _HUGE_ENUF being
+   1e+300, unless the compiler is compiling C++ or __has_builtin() names
+   __builtin_nanf, which Visual C++ has not. Under /fp:strict these products
+   and conversions are computed when the program runs, in the rounding
+   direction in effect, and give FLT_MAX and -0 downward and toward zero. The
+   NAN exp_1() of pow.c sets to send a power between 2^-1075 and about
+   2^-947 to the accurate phase was then -0, and so was the power: CORE-MATH's
+   pow rounded downward was -0 at (2^-1074)^1 (tests/core_math.cpp, with every
+   Visual C++ job). GAOL calls CORE-MATH upward, where both are right. They are
+   read here from their bits, which a load gives in every direction. */
+static const union { uint64_t u; double f; } gaol_infinity_bits = { 0x7ff0000000000000ull },
+                                             gaol_nan_bits = { 0x7ff8000000000000ull };
+#undef INFINITY
+#define INFINITY (gaol_infinity_bits.f)
+#undef NAN
+#define NAN (gaol_nan_bits.f)
 
 /* The number of leading and of trailing zero bits, undefined at 0 as the
    builtins of GCC are. _BitScanReverse64 and _BitScanForward64 are for the

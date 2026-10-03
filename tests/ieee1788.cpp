@@ -138,8 +138,10 @@ namespace
     functions gave before the pow of the standard was written once, bit for bit
     (as on 70 500 more boxes, under the four rounding directions, with SSE2 and
     FPU intervals; but for the lower bound of gaol::pow([0], y), y > 0, which
-    was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow), each
-    checked against the exact power computed with 500 bits (mpmath): it
+    was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow, and for a
+    lower bound at a corner where the power is a double, which is that double
+    now and was the double below, as 2^-2 for the box [0.1, 2] x [-2, 0.5]),
+    each checked against the exact power computed with 500 bits (mpmath): it
     encloses it, within one double of the tightest bound.
   */
   void pow_on_boxes()
@@ -218,6 +220,10 @@ namespace
       {I(0x1.fffffff8p-1, oo), P(-2147483649.0), I(0, 0x1.d8e64b9c150d4p+2), all},
       // CORE-MATH's pow at the corners of the box, from a base from 0, a base above 1, below 1, and around 1
       {I(2, 3), P(0.5), I(0x1.6a09e667f3bccp+0, 0x1.bb67ae8584cabp+0)},
+      // where the power at a corner is a double, the lower bound is that double
+      {P(4), P(0.5), P(2)},
+      {I(4, 16), P(-0.5), I(0.25, 0.5)},
+      {I(3, 4), I(2, 3), I(9, 64)},
       {I(0, 2), P(0.5), I(0, 0x1.6a09e667f3bcdp+0)},
       {I(0, 0.5), I(0.5, 1.5), I(0, 0x1.6a09e667f3bcdp-1)},
       {I(1.5, 2.5), I(0.5, 1.5), I(0x1.3988e1409212ep+0, 0x1.f9f6e4990f228p+1)},
@@ -229,7 +235,7 @@ namespace
       {I(0.5, 2), I(1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
       {I(0.5, 2), I(-2.5, -1.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
       {I(0.5, 2), I(-1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
-      {I(0.1, 2), I(-2, 0.5), I(0x1.fffffffffffffp-3, 100)},
+      {I(0.1, 2), I(-2, 0.5), I(0x1p-2, 100)},
       {I(1, 2), I(-0.5, 1.5), I(0x1.6a09e667f3bccp-1, 0x1.6a09e667f3bcdp+1)},
       {P(1), I(-0.5, 1.5), P(1)},
       {I(0.3, 1), I(0.5, 1.5), I(0x1.50854f2c3d222p-3, 1)},

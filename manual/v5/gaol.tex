@@ -2576,8 +2576,8 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
   $5n\log_2n\cdot2^{-104}$ of a double, relatively. The real power takes the
   power of CORE-MATH at the corners of the box $I\times J$ where it is the
   least and the greatest: the upper bound is the tightest one, and so is the
-  lower bound but where the power at the corner is a double, which it misses
-  by one double.
+  lower bound, which is the power itself where it is a double, as $4^{0.5}$,
+  $9^{1.5}$ or $2^{-3}$, and the double below CORE-MATH's value otherwise.
 \begin{example}
 cout << pow(interval(-4,-1), 2) << ' '
      << pow(interval(-4,-1), interval(2.0)) << ' '
@@ -2587,7 +2587,7 @@ cout << pow(interval(-4,-1), 2) << ' '
 cout << pow(interval(0.0), interval(0.0)) << ' '
      << pow(interval(-2,2), -2) << ' '
      << pow(interval(4), 0.5) << endl;
-@outputs^[1] [0.25, inf] [1.999999999999999, 2]~
+@outputs^[1] [0.25, inf] [2]~
 \end{example}
 \end{deffun}
 
@@ -4267,7 +4267,7 @@ covered.
   \hline
   \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid required, accurate recommended}}\\
   \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & $n=0$, 1, 2: tightest. $n\geq3$: the tightest bounds, or one double beyond where the power is within $5n\log_2n\cdot2^{-104}$ of a double, relatively; exact where the power is a double; within about $2(n-1)$ doubles below $2^{-968}$, at the overflow and for a bound 0 or infinite, the same bounds with the SSE2 and the FPU intervals. Negative $n$: valid, within 2 doubles where $x^n$ comes from the exact products\\
-  \code{pow(x, y)} (\ieee{pow}) & tightest at the corners of the box with finite bounds, but for a lower bound one double below where the power at the corner is a double; valid with infinite bounds\\
+  \code{pow(x, y)} (\ieee{pow}) & tightest at the corners of the box with finite bounds; valid with infinite bounds\\
   \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & tightest; exact where the value is a double ($\exp(0)$, $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
   \hline
   \multicolumn{2}{l}{\textit{Trigonometric and hyperbolic functions: valid required, accurate recommended}}\\
