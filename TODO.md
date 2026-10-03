@@ -15,10 +15,10 @@ Les points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 [examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro n
 de sa section 5) ; les points 41 à 44, de la vérification de `VERSION.txt`
 (2026-09-28) ; 45 à 49, des corrections et des relectures ; 50, d'une décision
-du 3 octobre ; 51 à 67, des relectures des pull requests. Les questions ouvertes
-ont été tranchées le 3 octobre : la décision est écrite dans chaque point
-(« Décidé le 3 octobre »), et une question reportée renvoie à son issue
-(#64 à #70).
+du 3 octobre ; 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
+`TODO_mistral.md`, le 3 octobre. Les questions ouvertes ont été tranchées le
+3 octobre : la décision est écrite dans chaque point (« Décidé le 3 octobre »),
+et une question reportée renvoie à son issue (#64 à #70).
 
 ## En cours
 
@@ -438,6 +438,15 @@ points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
     Boost.Interval, la bibliothèque que les utilisateurs prennent d'abord,
     dont les fonctions élémentaires ne sont pas sûres.
 
+<!-- -->
+
+68. **Une CI qui échoue sur un avertissement** (tâche 5.2.2 de
+    `TODO_mistral.md`) : la bibliothèque se compile avec `-Wall -Wconversion`
+    (`CMakeLists.txt` l. 603, `configure.ac` l. 495), sans `-Wextra`, et
+    aucun job n'échoue sur un avertissement. Décidé le 3 octobre : un job GCC
+    et un job Clang qui compilent la bibliothèque et les tests avec
+    `-Wall -Wextra -Werror`, après avoir corrigé ce qui en sort.
+
 ## CORE-MATH
 
 31. **Envoyer à CORE-MATH les correctifs écrits dans
@@ -479,7 +488,8 @@ points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
     Décidé le 3 octobre : une fois `configure-clean` fini, fusionner
     `configure-clean` dans `MATH-CORE`, puis `MATH-CORE` dans `master`, puis
     étiqueter `v5.0.0` ; les recettes et le test gardent `master` jusqu'à
-    l'étiquette, puis la citent.
+    l'étiquette, puis la citent. Après v5.0.0, le développement continue dans
+    `configure-clean`, et `master` ne reçoit que les versions.
 
 35. **Un premier programme avant les détails** : `README.md` n'a ni code C++
     ni renvoi à `examples/`, le premier programme est à la ligne 96 de
@@ -488,7 +498,8 @@ points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
     renvoie à `examples/` et à `examples/examples.md`, et un court tutoriel
     (encadrement d'image et subdivision, Newton avec `%` ou `div_rel`, un
     contracteur avec les fonctions `*_rel`, séparation et évaluation), tiré
-    des exemples 03, 05, 06 et 07.
+    des exemples 03, 05, 06 et 07, dans `examples/tutorial.md` (décidé le
+    3 octobre).
 
 36. **Ce que l'arrondi vers le haut fait au programme**, dans `doc/using.md`
     et dans « Common errors » du manuel, avec la table de la section 2.8 de
@@ -516,7 +527,9 @@ points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
     ouverts ; un ordre non entier de `nth_root` dans un texte, qui lève
     `invalid_action_error` ; `gaol_ieee1788::textToInterval`, qui rend
     l'ensemble vide pour un texte mal formé ; une borne nulle écrite `-0`,
-    dont le signe diffère entre les builds SSE2 et FPU.
+    dont le signe diffère entre les builds SSE2 et FPU. Décidé le 3 octobre :
+    les mettre aussi dans une section courte de `doc/using.md`, qui renvoie
+    au manuel pour le détail.
 
 39. **Les restes de Goldstein-Price** (le +1 et « encloses the range » sont
     corrigés par #53) : `examples/03_dependency_problem.cpp` et
@@ -541,6 +554,22 @@ points 3, 4 et 8, et la correction d'armhf du point 24, ont été fusionnés le
     compare les 88 sorties du manuel au programme (`run_examples.py`, hors du
     dépôt) va dans `manual/`. Non vérifié : `GAOL_NODISCARD` sous Visual C++
     2017 15.8 et 15.9.
+
+<!-- -->
+
+69. **Des badges de la CI dans `README.md`** (conseil de `TODO_mistral.md`) :
+    un badge par workflow (Linux, Windows, macOS…), fourni par GitHub, et pas
+    de badge de couverture (décidé le 3 octobre).
+
+70. **Un site de documentation sur GitHub Pages** (conseil de
+    `TODO_mistral.md`) : décidé le 3 octobre, un site généré depuis
+    `doc/*.md`, avec le PDF du manuel, publié par un workflow, sans la
+    référence HTML de Doxygen, supprimée par #29.
+
+71. **Annoncer GAOL v5.0.0 à Frédéric Goualard**, l'auteur de GAOL, une fois
+    l'étiquette posée (tâche 8.3 de `TODO_mistral.md`) : pas d'annonce
+    publique, et pas de GitHub Release, l'étiquette suffisant (décidé le
+    3 octobre).
 
 ## Les trois builds
 
