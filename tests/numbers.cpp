@@ -680,11 +680,26 @@ namespace
     round_trip(interval(smallest, 4.0 * smallest), "subnormal");
     round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
     round_trip(interval::pi(), "pi");
-    // Point intervals, which this format writes with their two bounds, [a, a]
+    // Point intervals, which this format writes [a], as the decimal one does
     round_trip(interval(0.1), "[0.1]");
     round_trip(interval(-1.0 / 3.0), "[-1/3]");
     round_trip(interval(smallest), "[smallest]");
     round_trip(interval(max_double), "[MAX]");
+    // The texts themselves: a point interval [a], and a point interval of
+    // zero [0x0p+0] whatever the signs of its bounds, the set {0} (GAOL v5:
+    // [0x1.8p+0, 0x1.8p+0], and [-0x0p+0, 0x0p+0] for interval::zero() with
+    // the SSE2 intervals)
+    const struct { interval x; const char *text; } texts[] = {
+      { interval(1.5), "[0x1.8p+0]" }, { interval(-0.5), "[-0x1p-1]" }, { interval(smallest), "[0x0.0000000000001p-1022]" },
+      { interval(-0.0, 0.0), "[0x0p+0]" }, { interval(-0.0), "[0x0p+0]" }, { interval::zero(), "[0x0p+0]" },
+      { interval(0.0), "[0x0p+0]" }, { interval(1.0, 2.0), "[0x1p+0, 0x1p+1]" }, { interval(-0.0, 1.0), "[-0x0p+0, 0x1p+0]" },
+    };
+    for (const auto& t : texts) {
+      std::ostringstream s;
+      s << t.x;
+      check("operator<< in hexadecimal: [a] for a point interval, [0x0p+0] for a zero", s.str() == t.text
+            && exact_string(t.x) == t.text, [&] { return hex(t.x) + " written " + s.str() + " rather than " + t.text; });
+    }
     interval::format(saved);
   }
 
@@ -970,17 +985,38 @@ namespace
     expect_agreeing(1.5, 1.5, 6);
     expect_agreeing(150000000.0, 150000010.0, 4);
     expect_agreeing(1e-5, 2e-5, 5);
+    expect_agreeing(-1.2567, -1.25, 5);
+    expect_agreeing(-100.47, -100.0, 5);
     for (int i = 0; i < nb_random_values; ++i) {
       const double a = random.positive(-30, 30), w = std::ldexp(random.uniform(0.0, 1.0), -(i % 40));
-      expect_agreeing(a, a*(1.0 + w), precisions[i % 8]);
+      if (i % 2 == 0) {
+        expect_agreeing(a, a*(1.0 + w), precisions[i % 8]);
+      } else {
+        expect_agreeing(-a*(1.0 + w), -a, precisions[i % 8]);
+      }
     }
-    // A negative interval is written as the format of the bounds writes it, a
-    // point that the digits write exactly as [a]
-    interval::precision(16);
-    std::ostringstream negative;
-    negative << interval(-4.0) << ' ' << interval(-0.1) << ' ' << interval(-2.0, -1.0);
-    check("operator<< with agreeing digits of a negative interval: as the format of the bounds",
-          negative.str() == "[-4] [-0.1000000000000001, -0.1] [-2, -1]", [&] { return negative.str(); });
+    /* The digits are shared between two bounds finite, not 0 and of the same
+       sign, written with as many digits before the point and the same
+       exponent, that share their first digit that is not 0; the other
+       intervals are written as the format of the bounds writes them (GAOL v5:
+       the test r > 10 l wrote [1, 10] 1~[., 0.], the 1 of 10 taken for the 1
+       of 1, [1, 2] ~[1., 2.], interval::zero() ~[-0., 0.] with the SSE2
+       intervals, and every interval with a negative bound with its bounds) */
+    const struct { interval x; int precision; const char *text; } agreeing[] = {
+      { interval(1.0, 10.0), 16, "[1, 10]" }, { interval(1.0, 2.0), 16, "[1, 2]" }, { interval(-2.0, -1.0), 16, "[-2, -1]" },
+      { interval::zero(), 16, "[0]" }, { interval(-0.0), 16, "[0]" }, { interval(0.0, 1.0), 16, "[0, 1]" },
+      { interval(-1.0, 1.0), 16, "[-1, 1]" }, { interval(1.0, GAOL_INFINITY), 16, "[1, inf]" },
+      { interval(1.25, 1.2567), 5, "1.25~[0, 67]" }, { interval(-1.2567, -1.25), 5, "-1.25~[67, 0]" },
+      { interval(-4.0), 16, "-4.000000000000000" }, { interval(4.0), 16, "4.000000000000000" },
+      { interval(-0.1), 16, "-0.100000000000000~[1, 0]" }, { interval(9.5, 10.5), 3, "[9.5, 10.5]" },
+    };
+    for (const auto& a : agreeing) {
+      std::ostringstream os;
+      interval::precision(a.precision);
+      os << a.x;
+      check("operator<< with agreeing digits only where the bounds line up, as the format of the bounds otherwise",
+            os.str() == a.text, [&] { return hex(a.x) + " written " + os.str() + " rather than " + a.text; });
+    }
     interval::precision(saved_precision);
     interval::format(saved_format);
   }
@@ -1031,6 +1067,13 @@ namespace
     std::string do_grouping() const override { return "\3"; }
   };
 
+  // A locale of C++ whose decimal point is a comma, which needs no locale installed: a stream that has it
+  // writes 0,5
+  struct comma_punct : std::numpunct<char>
+  {
+    char do_decimal_point() const override { return ','; }
+  };
+
   /*
     operator<< under the settings of the stream (GAOL v5): the flags showpoint,
     showpos, uppercase, fixed and scientific, the fill and the adjustment, and
@@ -1040,11 +1083,16 @@ namespace
     the text before its digits as std::right does, where GAOL 4 put the fill
     after the sign of the midpoint written by the width and center formats, and
     does again, for the whole text: "-1.5" in a width of 8 is "-****1.5", and
-    the bounds, which start with '[', are padded before it. The bounds are
-    written without the grouping of the locale, which would make a text no
-    reader takes, and the midpoint with it, as a stream writes a double; the
-    fixed format writes an infinity in lower case, as the conversion %f of the
-    standard does.
+    the bounds, which start with '[', are padded before it. The fixed format
+    writes an infinity in lower case, as the conversion %f of the standard
+    does. The bounds are written in the C locale whatever the locale of the
+    stream, with a decimal point and no grouping, so that the reader reads
+    them back (GAOL v5: "[1234:5, 1234567:25]" under this locale, and a
+    decimal comma, which the reader takes for the comma between two bounds);
+    the midpoint and the radius of the width format with the decimal point
+    and the grouping of the locale, both (GAOL v5: the radius was not
+    grouped), the radius without a sign under showpos (GAOL v5:
+    "+2 (+/- +1)"), and a midpoint 0 as 0 (GAOL v5: -0 for [-2u, u]).
   */
   void stream_settings()
   {
@@ -1066,39 +1114,50 @@ namespace
       ios::fmtflags flags;
       int width;
       char fill;
-      bool grouped;
+      int locale; // 0: the C locale, 1: grouping_punct, 2: comma_punct
       const char *expected;
     } cases[] = {
-      { halves, bounds, 0, general, 0, ' ', false, "[0.5, 3]" },
-      { halves, bounds, 0, fixed, 0, ' ', false, "[0, 3]" },
-      { halves, bounds, 0, fixed | showpoint, 0, ' ', false, "[0., 3.]" },
-      { halves, bounds, 1, scientific | uppercase, 0, ' ', false, "[5.0E-01, 2.5E+00]" },
-      { halves, bounds, 3, fixed | showpos, 0, ' ', false, "[+0.500, +2.500]" },
-      { from_zero, bounds, 2, fixed | uppercase, 0, ' ', false, "[0.00, inf]" },
-      { from_zero, bounds, 2, scientific | uppercase, 0, ' ', false, "[0.00E+00, INF]" },
-      { to_zero, bounds, 3, showpos, 0, ' ', false, "[-inf, +0]" },
-      { interval(-0.0, 0.0), bounds, 3, showpoint, 0, ' ', false, "[0.00]" },
-      { large, bounds, 16, general, 0, ' ', true, "[1234:5, 1234567:25]" },
-      { large, center, 16, general, 0, ' ', true, "617 900:875" },
-      { large, width, 3, general, 0, ' ', true, "6:18e+05 (+/- 6:17e+05)" },
-      { one_two, center, 5, showpos, 0, ' ', false, "+1.5" },
-      { one_two, width, 16, general, 0, ' ', false, "1.5 (+/- 0.5)" },
-      { one_one_and_half, width, 3, scientific | uppercase, 0, ' ', false, "1.250E+00 (+/- 2.500E-01)" },
-      { close, agreeing, 5, general, 0, ' ', false, "1.25~[0, 67]" },
-      { close, agreeing, 5, internal, 16, '.', false, "....1.25~[0, 67]" },
-      { negative, center, 16, right, 8, '*', false, "****-1.5" },
-      { negative, center, 16, left, 8, '*', false, "-1.5****" },
-      { negative, center, 16, internal, 8, '*', false, "-****1.5" },
-      { negative, bounds, 16, internal, 12, '*', false, "****[-2, -1]" },
-      { one_two, width, 16, showpos | internal, 20, '.', false, "+.....1.5 (+/- +0.5)" },
-      { one_two, center, 16, showpos | internal, 6, '0', false, "+001.5" },
-      { interval(3.0), center, 16, showpos | internal, 10, ' ', false, "+        3" },
-      { interval::emptyset(), center, 16, showpos | internal, 10, '*', false, "***[empty]" },
+      { halves, bounds, 0, general, 0, ' ', 0, "[0.5, 3]" },
+      { halves, bounds, 0, fixed, 0, ' ', 0, "[0, 3]" },
+      { halves, bounds, 0, fixed | showpoint, 0, ' ', 0, "[0., 3.]" },
+      { halves, bounds, 1, scientific | uppercase, 0, ' ', 0, "[5.0E-01, 2.5E+00]" },
+      { halves, bounds, 3, fixed | showpos, 0, ' ', 0, "[+0.500, +2.500]" },
+      { from_zero, bounds, 2, fixed | uppercase, 0, ' ', 0, "[0.00, inf]" },
+      { from_zero, bounds, 2, scientific | uppercase, 0, ' ', 0, "[0.00E+00, INF]" },
+      { to_zero, bounds, 3, showpos, 0, ' ', 0, "[-inf, +0]" },
+      { interval(-0.0, 0.0), bounds, 3, showpoint, 0, ' ', 0, "[0.00]" },
+      { large, bounds, 16, general, 0, ' ', 1, "[1234.5, 1234567.25]" },
+      { large, center, 16, general, 0, ' ', 1, "617 900:875" },
+      { large, width, 3, general, 0, ' ', 1, "6:18e+05 (+/- 6:17e+05)" },
+      { one_two, center, 5, showpos, 0, ' ', 0, "+1.5" },
+      { one_two, width, 16, general, 0, ' ', 0, "1.5 (+/- 0.5)" },
+      { one_one_and_half, width, 3, scientific | uppercase, 0, ' ', 0, "1.250E+00 (+/- 2.500E-01)" },
+      { close, agreeing, 5, general, 0, ' ', 0, "1.25~[0, 67]" },
+      { close, agreeing, 5, internal, 16, '.', 0, "....1.25~[0, 67]" },
+      { negative, center, 16, right, 8, '*', 0, "****-1.5" },
+      { negative, center, 16, left, 8, '*', 0, "-1.5****" },
+      { negative, center, 16, internal, 8, '*', 0, "-****1.5" },
+      { negative, bounds, 16, internal, 12, '*', 0, "****[-2, -1]" },
+      { one_two, width, 16, showpos | internal, 20, '.', 0, "+......1.5 (+/- 0.5)" },
+      { one_two, center, 16, showpos | internal, 6, '0', 0, "+001.5" },
+      { interval(3.0), center, 16, showpos | internal, 10, ' ', 0, "+        3" },
+      { interval::emptyset(), center, 16, showpos | internal, 10, '*', 0, "***[empty]" },
+      { large, width, 16, general, 0, ' ', 1, "617 900:875 (+/- 616 666:375)" },
+      { one_two, width, 16, showpos, 0, ' ', 0, "+1.5 (+/- 0.5)" },
+      { interval(-std::ldexp(1.0, -1073), std::ldexp(1.0, -1074)), width, 16, general, 0, ' ', 0,
+        "0 (+/- 9.881312916824931e-324)" },
+      { interval(-2.5), bounds, 16, general, 0, ' ', 2, "[-2.5]" },
+      { interval(0.25, 0.5), bounds, 16, general, 0, ' ', 2, "[0.25, 0.5]" },
+      { interval(0.0), bounds, 0, fixed | showpoint, 0, ' ', 2, "[0.]" },
+      { interval(0.1, 0.3), width, 16, general, 0, ' ', 2, "0,2 (+/- 0,1000000000000001)" },
+      { interval(0.1, 0.3), center, 3, general, 0, ' ', 2, "0,2" },
     };
     for (const auto& c : cases) {
       std::ostringstream os;
-      if (c.grouped) {
+      if (c.locale == 1) {
         os.imbue(std::locale(std::locale::classic(), new grouping_punct));
+      } else if (c.locale == 2) {
+        os.imbue(std::locale(std::locale::classic(), new comma_punct));
       }
       os.flags(c.flags);
       os.fill(c.fill);
