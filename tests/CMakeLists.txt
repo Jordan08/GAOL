@@ -39,6 +39,10 @@ set(GAOL_TESTS
   static_initialization
   # GAOL's headers with GAOL_DEBUGGING, which the Debug builds define (GAOL v5)
   debugging
+  # A program linked with -ffast-math, which links crtfastmath.o and the modes
+  # flushing the subnormals to zero that it sets, unless gaol::gaol keeps it
+  # out with -mno-daz-ftz (GAOL v5): see below
+  fast_math_link
   # The unit tests of GAOL 4 (check/), with the checks of unit_tests.h rather
   # than CppUnit (GAOL v5); arithmetic is arithmetic_operators, the name
   # arithmetic being taken
@@ -84,6 +88,15 @@ foreach(test ${GAOL_TESTS})
   list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
 set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
+# fast_math_link: -ffast-math to its link only, with GCC and Clang, its source
+# being compiled as any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where
+# gaol::gaol gives the link -mno-daz-ftz
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_link_options(gaol_test_fast_math_link PRIVATE -ffast-math)
+endif()
+if(GAOL_LINK_FLAGS)
+  target_compile_definitions(gaol_test_fast_math_link PRIVATE GAOL_TESTS_NO_DAZ_FTZ=1)
+endif()
 
 # Under a locale writing a decimal comma, the reading of a number never
 # returned (GAOL v5): numbers, which reads numbers under such a locale, fails

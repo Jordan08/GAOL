@@ -31,7 +31,16 @@ mode there.
   for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
   intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
   enclosures. `gaol::pow(x, n)` for an unsigned n has to give what it gives
-  for an int n, `[1]` for n = 0 and the empty set for an empty x. The operators of an interval with a double have to give, on
+  for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
+  powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
+  against bounds computed with mpmath: the lower bound left out the square of
+  the rest it carries, and was 1962 doubles below the tightest for
+  `pow([1.0000001], 2^32 − 1)`. Where `pow(x, n)` takes the products rounded
+  outward (n = 1 and 2, a bound 0 or infinite, the power of a bound below
+  2^-968 or beyond the largest double), they have to be those of the binary
+  exponentiation from the lowest bit of n, each rounded in the direction set
+  for it: the SSE2 intervals multiplied from the highest bit, and their bounds
+  were not those of the FPU intervals (GAOL v5). The operators of an interval with a double have to give, on
   bounds and doubles of special values (zeros of both signs, infinities, NaN),
   the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
@@ -123,10 +132,48 @@ mode there.
   `floor`, `set_contains()`, the output...).
   Where the processor does not trap an invalid operation, the test says so
   and skips that part.
+  With a mode that flushes the subnormal numbers to zero set (on x86,
+  flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
+  and FIZ where the processor has it), and the rounding direction upward or
+  not, products, sums, differences, quotients by an interval and by a double,
+  squares and `exp` with a subnormal operand or result have to be the tightest
+  enclosures, computed apart with exact rational arithmetic (and mpmath for
+  `exp(-740)`), and the modes have to be cleared after the operation, or
+  restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
+  them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
+  intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
+  compared before the check (GAOL v5). Then each of the 79 operations that
+  check the rounding direction (the arithmetic, the elementary functions, the
+  powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
+  `width()`...), called on intervals with subnormal, mixed and normal bounds
+  with each mode set just before it and each rounding direction, has to give
+  what it gives with the modes cleared, and leave the modes cleared, or set
+  back with `GAOL_PRESERVE_ROUNDING`: the compilers do not model the modes,
+  and this checks what each of them emits. With GCC 13 at `-O3`, `asinpi()`
+  compared bounds with 0 before its check, and `asinpi([100·2^-1074])` was
+  [32·2^-1074], above the exact value; `sqrt([-1e-310, 4])`,
+  `pow([-5·2^-1074, 1], 0.5)` and `atan2([100·2^-1074], [100·2^-1074])` were
+  the empty set; with `GAOL_PRESERVE_ROUNDING`, `sinpi([100, 1000]·2^-1074)`
+  was empty, its minimum taken once the modes were restored (GAOL v5, review
+  of point 4); `acos_rel()` and `asin_rel()` of a J outside [-1, 1], or
+  containing it, returned before their check, the modes left set. The
+  operations that make no check (`&`, `|`, `max`, `abs`, the relations... see
+  `doc/using.md`) are left out. A mode the processor keeps without honouring
+  it, as an emulator may, is named and skipped: one that flushes neither the
+  exact subnormal sum 2^-1060 + 0 nor the inexact product 1e-300·1e-20.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
   it upward before `main()`: GAOL has to initialize itself before.
+- **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
+  GCC and Clang), which links `crtfastmath.o` and the modes flushing the
+  subnormals to zero it sets, unless `-mno-daz-ftz` keeps it out. Where the
+  build gives the link `-mno-daz-ftz`, the modes have to be clear when `main()`
+  starts; otherwise, and where they are clear, the test sets them, as a plug-in
+  built with `-Ofast` does. Products, a difference and `exp` with subnormal
+  operands or results have then to be the tightest enclosures, and the modes
+  cleared after them, or restored with `GAOL_PRESERVE_ROUNDING`, where the
+  processor honours them (GAOL v5).
 - **`automatic_cleanup`** (Linux only): after the end of `main()`, which leaves
   the rounding direction downward, GAOL's automatic cleanup has to set back
   the direction to nearest, as the program started, or to leave it downward

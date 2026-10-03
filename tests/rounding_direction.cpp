@@ -20,8 +20,16 @@
  * be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
  * itself in the direction fegetround() gives, have to be the tightest
  * enclosures whatever the direction, with the x87 unit and the SSE
- * instructions differing too (GAOL v5). At the end, gaol::cleanup() has to set
- * back the direction the first gaol::init() found (GAOL v5).
+ * instructions differing too (GAOL v5). On x86 and ARM, the same holds with
+ * the modes that flush the subnormals to zero set, flush-to-zero and
+ * denormals-are-zero of the SSE instructions, FZ of ARM (what a program linked
+ * with -Ofast gets from crtfastmath.o, and a plug-in built so): the bounds of
+ * the operations with a subnormal operand or result are the tightest ones, and
+ * the modes are cleared after them, or restored with GAOL_PRESERVE_ROUNDING;
+ * and every operation that checks the rounding direction gives, with a mode
+ * set before it, what it gives with the modes cleared, and clears or restores
+ * the modes (GAOL v5). At the end, gaol::cleanup() has to set back the
+ * direction the first gaol::init() found (GAOL v5).
  *
  * The rest of the floating-point environment is checked too: the exceptions
  * stay masked, and an empty interval is told empty, with interval::emptyset(),
@@ -38,6 +46,7 @@
 
 #include "gaol_tests.h"
 
+#include <cstring>
 #include <exception>
 #include <functional>
 #include <sstream>
@@ -719,6 +728,291 @@ int main()
             is_tightest_enclosure(s[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(s[i]); });
     }
   }
+
+#if GAOL_TESTS_FLUSH
+  /*
+    The modes that flush the subnormals to zero (GAOL v5): flush-to-zero,
+    denormals-are-zero and both on x86, FZ (and FIZ, where the processor has
+    it) on ARM. With one of them set, an operation whose result or operand is
+    subnormal gave a zero: [1e-300]*[1e-20] was [0, 0], when a program linked
+    with -Ofast, whose crtfastmath.o sets them after GAOL initialized itself,
+    or a plug-in built so, set them, and the rounding direction upward that the
+    probe of each operation looked at was still there; the FPU intervals
+    compared the bounds, and the operations with a double the double, with 0
+    before their probe: [1e-300]/[100*2^-1074] was the empty set. The direction
+    is tried with each of the modes, upward included, which is what such a
+    program has. The bounds have to be the tightest ones, computed apart with
+    exact rational arithmetic, or with mpmath for the exponential: the operands,
+    the exact values and the bounds are read with the modes cleared, which
+    change frexp(), on which the exact arithmetic of the tests relies, for a
+    subnormal. The modes are cleared after the operation, or restored with
+    GAOL_PRESERVE_ROUNDING. tests/fast_math_link.cpp checks the program linked
+    with -ffast-math.
+  */
+  const std::vector<FlushMode> flush_modes_honoured = flush_modes();
+  {
+    const Dyadic half = dyadic(0.5);
+    struct Case
+    {
+      const char *name;
+      interval x, y;
+      interval (*run)(const interval&, const interval&);
+      Exact value; // the exact result, or a number between the same two doubles
+    };
+    const Case cases[] = {
+      // Subnormal results of normal operands
+      { "[1e-300]*[1e-20]", interval(1e-300), interval(1e-20),
+        [](const interval& x, const interval& y) { return x*y; },
+        exact(dyadic(1e-300)*dyadic(1e-20)) },
+      { "[1e-300]/[1e20]", interval(1e-300), interval(1e20),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(1e20)) },
+      // The exact difference, a subnormal
+      { "[3e-308]-[2.9e-308]", interval(3e-308), interval(2.9e-308),
+        [](const interval& x, const interval& y) { return x - y; },
+        exact(dyadic(3e-308) - dyadic(2.9e-308)) },
+      { "sqr([1e-160])", interval(1e-160), interval(),
+        [](const interval& x, const interval&) { return sqr(x); },
+        exact(dyadic(1e-160)*dyadic(1e-160)) },
+      // Subnormal operands
+      { "[100*2^-1074]*[1e10]", interval(subnormal(100)), interval(1e10),
+        [](const interval& x, const interval& y) { return x*y; },
+        exact(dyadic(subnormal(100))*dyadic(1e10)) },
+      { "[100*2^-1074]+[3*2^-1074]", interval(subnormal(100)), interval(subnormal(3)),
+        [](const interval& x, const interval& y) { return x + y; },
+        exact(dyadic(subnormal(100)) + dyadic(subnormal(3))) },
+      { "[100*2^-1074]/[3]", interval(subnormal(100)), interval(3.0),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(subnormal(100)), dyadic(3.0)) },
+      // A normal result of a subnormal divisor
+      { "[1e-300]/[100*2^-1074]", interval(1e-300), interval(subnormal(100)),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(subnormal(100))) },
+      // A subnormal double, a literal rather than subnormal(100), which the
+      // modes would flush: the operations compared it with 0 before their check
+      // of the rounding direction, and it was 0
+      { "[1e10]*(100*2^-1074)", interval(1e10), interval(),
+        [](const interval& x, const interval&) { return x*0x64p-1074; },
+        exact(dyadic(1e10)*dyadic(subnormal(100))) },
+      { "[1e-300]/(100*2^-1074)", interval(1e-300), interval(),
+        [](const interval& x, const interval&) { return x/0x64p-1074; },
+        quotient(dyadic(1e-300), dyadic(subnormal(100))) },
+      // exp(-740) is 84.78 times 2^-1074 (mpmath), between the same two
+      // doubles as 84.5 times 2^-1074
+      { "exp([-740])", interval(-740.0), interval(),
+        [](const interval& x, const interval&) { return exp(x); },
+        exact(dyadic(subnormal(169))*half) },
+    };
+
+    for (const FlushMode& m : flush_modes_honoured) {
+      for (const Case& c : cases) {
+        for (const Direction& d : directions) {
+          set(d);
+          set_flush_bits(m.bits);
+          const unsigned int found = flush_bits();
+          const interval r = c.run(c.x, c.y);
+          const unsigned int left = flush_bits();
+          set_flush_bits(0u);
+          const auto describe = [&] {
+            return m.name + " set, rounding direction " + d.name + ": modes " + std::to_string(left) + " after it, "
+                 + std::to_string(found) + " before";
+          };
+          check(std::string(c.name) + " the tightest enclosure with a flush-to-zero mode", is_tightest_enclosure(r, c.value),
+                [&] { return describe() + ", " + hex(r); });
+#if GAOL_PRESERVE_ROUNDING
+          check(std::string(c.name) + ": flush-to-zero modes restored", left == found, describe);
+#else
+          check(std::string(c.name) + ": flush-to-zero modes cleared", left == 0u, describe);
+#endif
+        }
+      }
+    }
+    set(directions[0]);
+  }
+
+  /*
+    Every operation that checks the rounding direction, with each of the modes
+    set just before it, gives what it gives with the modes cleared, which the
+    cases above show to be the tightest bounds, and leaves them cleared, or
+    restored with GAOL_PRESERVE_ROUNDING (GAOL v5, review of point 4).
+    Its check clears the modes before it reads, compares or copies a bound, and
+    with GAOL_PRESERVE_ROUNDING it makes its result before it restores them;
+    the compilers do not model the modes, so this is checked on what each
+    compiler of the continuous integration emits. With GCC 13 at -O3, asinpi()
+    compared the bounds it had read with 0 before the check, and with the modes
+    set asinpi([100*2^-1074]) was [32*2^-1074], above the exact value,
+    31.83*2^-1074 (mpmath); sqrt([-1e-310, 4]), whose intersection with
+    [0, +oo] kept -1e-310 under denormals-are-zero, was empty once the check
+    had cleared it; atan2([100*2^-1074], [100*2^-1074]) was empty, the point
+    taken for (0, 0); and with GAOL_PRESERVE_ROUNDING sinpi([100, 1000]*2^-1074)
+    was empty, its minimum taken once the modes were restored. acos_rel() and
+    asin_rel() of a J outside [-1, 1], or containing it, returned before their
+    check, with the right result but the modes still set. The operations
+    that make no check, which compare the bounds under the modes, are left out
+    (doc/using.md). Nothing of the C library runs while a mode is set: the
+    results are read and written with the modes cleared.
+  */
+  {
+    struct FlushOperation
+    {
+      const char *name;
+      int arity; // 1: x, 2: x and y, a double being y.left(), 3: x, y and z
+      interval (*run)(const interval& x, const interval& y, const interval& z);
+    };
+    const FlushOperation flush_operations[] = {
+      { "sqr(x)", 1, [](const interval& x, const interval&, const interval&) { return sqr(x); } },
+      { "sqrt(x)", 1, [](const interval& x, const interval&, const interval&) { return sqrt(x); } },
+      { "rsqrt(x)", 1, [](const interval& x, const interval&, const interval&) { return rsqrt(x); } },
+      { "inverse(x)", 1, [](const interval& x, const interval&, const interval&) { return inverse(x); } },
+      { "exp(x)", 1, [](const interval& x, const interval&, const interval&) { return exp(x); } },
+      { "exp2(x)", 1, [](const interval& x, const interval&, const interval&) { return exp2(x); } },
+      { "exp10(x)", 1, [](const interval& x, const interval&, const interval&) { return exp10(x); } },
+      { "expm1(x)", 1, [](const interval& x, const interval&, const interval&) { return expm1(x); } },
+      { "exp2m1(x)", 1, [](const interval& x, const interval&, const interval&) { return exp2m1(x); } },
+      { "exp10m1(x)", 1, [](const interval& x, const interval&, const interval&) { return exp10m1(x); } },
+      { "log(x)", 1, [](const interval& x, const interval&, const interval&) { return log(x); } },
+      { "log2(x)", 1, [](const interval& x, const interval&, const interval&) { return log2(x); } },
+      { "log10(x)", 1, [](const interval& x, const interval&, const interval&) { return log10(x); } },
+      { "log1p(x)", 1, [](const interval& x, const interval&, const interval&) { return log1p(x); } },
+      { "log2p1(x)", 1, [](const interval& x, const interval&, const interval&) { return log2p1(x); } },
+      { "log10p1(x)", 1, [](const interval& x, const interval&, const interval&) { return log10p1(x); } },
+      { "sin(x)", 1, [](const interval& x, const interval&, const interval&) { return sin(x); } },
+      { "cos(x)", 1, [](const interval& x, const interval&, const interval&) { return cos(x); } },
+      { "tan(x)", 1, [](const interval& x, const interval&, const interval&) { return tan(x); } },
+      { "sinpi(x)", 1, [](const interval& x, const interval&, const interval&) { return sinpi(x); } },
+      { "cospi(x)", 1, [](const interval& x, const interval&, const interval&) { return cospi(x); } },
+      { "tanpi(x)", 1, [](const interval& x, const interval&, const interval&) { return tanpi(x); } },
+      { "asin(x)", 1, [](const interval& x, const interval&, const interval&) { return asin(x); } },
+      { "acos(x)", 1, [](const interval& x, const interval&, const interval&) { return acos(x); } },
+      { "atan(x)", 1, [](const interval& x, const interval&, const interval&) { return atan(x); } },
+      { "asinpi(x)", 1, [](const interval& x, const interval&, const interval&) { return asinpi(x); } },
+      { "acospi(x)", 1, [](const interval& x, const interval&, const interval&) { return acospi(x); } },
+      { "atanpi(x)", 1, [](const interval& x, const interval&, const interval&) { return atanpi(x); } },
+      { "sinh(x)", 1, [](const interval& x, const interval&, const interval&) { return sinh(x); } },
+      { "cosh(x)", 1, [](const interval& x, const interval&, const interval&) { return cosh(x); } },
+      { "tanh(x)", 1, [](const interval& x, const interval&, const interval&) { return tanh(x); } },
+      { "asinh(x)", 1, [](const interval& x, const interval&, const interval&) { return asinh(x); } },
+      { "acosh(x)", 1, [](const interval& x, const interval&, const interval&) { return acosh(x); } },
+      { "atanh(x)", 1, [](const interval& x, const interval&, const interval&) { return atanh(x); } },
+      { "pow(x, 2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 2); } },
+      { "pow(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 3); } },
+      { "pow(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -2); } },
+      { "pow(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -3); } },
+      { "pow(x, 5u)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 5u); } },
+      { "nth_root(x, 2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 2); } },
+      { "nth_root(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 3); } },
+      { "nth_root(x, 4)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 4); } },
+      { "nth_root(x, 5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 5); } },
+      { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
+      { "x.mid()", 1, [](const interval& x, const interval&, const interval&) { return x.mid(); } },
+      { "x.width()", 1, [](const interval& x, const interval&, const interval&) { return interval(x.width()); } },
+      { "x.rad()", 1, [](const interval& x, const interval&, const interval&) { return interval(x.rad()); } },
+      { "x + y", 2, [](const interval& x, const interval& y, const interval&) { return x + y; } },
+      { "x - y", 2, [](const interval& x, const interval& y, const interval&) { return x - y; } },
+      { "x * y", 2, [](const interval& x, const interval& y, const interval&) { return x * y; } },
+      { "x / y", 2, [](const interval& x, const interval& y, const interval&) { return x / y; } },
+      { "x % y", 2, [](const interval& x, const interval& y, const interval&) { return x % y; } },
+      { "hypot(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return hypot(x, y); } },
+      { "atan2(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan2(x, y); } },
+      { "atan2pi(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan2pi(x, y); } },
+      { "pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return gaol::pow(x, y); } },
+      { "gaol_ieee1788::pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return gaol_ieee1788::pow(x, y); } },
+      { "pow(x, double)", 2, [](const interval& x, const interval& y, const interval&) { return gaol::pow(x, y.left()); } },
+      { "sqrt_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return sqrt_rel(x, y); } },
+      { "nth_root_rel(x, 3, y)", 2, [](const interval& x, const interval& y, const interval&) { return nth_root_rel(x, 3, y); } },
+      { "nth_root_rel(x, 4, y)", 2, [](const interval& x, const interval& y, const interval&) { return nth_root_rel(x, 4, y); } },
+      { "acos_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return acos_rel(x, y); } },
+      { "asin_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return asin_rel(x, y); } },
+      { "atan_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan_rel(x, y); } },
+      { "acosh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return acosh_rel(x, y); } },
+      { "asinh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return asinh_rel(x, y); } },
+      { "atanh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atanh_rel(x, y); } },
+      { "cancel_minus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_minus(x, y); } },
+      { "cancel_plus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_plus(x, y); } },
+      { "hausdorff(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return interval(hausdorff(x, y)); } },
+      { "x * double", 2, [](const interval& x, const interval& y, const interval&) { return x * y.left(); } },
+      { "double * x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() * x; } },
+      { "x / double", 2, [](const interval& x, const interval& y, const interval&) { return x / y.left(); } },
+      { "double / x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() / x; } },
+      { "x % double", 2, [](const interval& x, const interval& y, const interval&) { return x % y.left(); } },
+      { "x + double", 2, [](const interval& x, const interval& y, const interval&) { return x + y.left(); } },
+      { "double - x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() - x; } },
+      { "fma(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return fma(x, y, z); } },
+      { "div_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return div_rel(x, y, z); } },
+    };
+    // Subnormal, mixed and normal bounds; the first ones for two and three operands
+    const interval flush_operands[] = {
+      interval(subnormal(100)), interval(-subnormal(100)), interval(subnormal(3), subnormal(100)),
+      interval(-subnormal(100), subnormal(1000)), interval(0.0, subnormal(100)), interval(-1e-310, 4.0),
+      interval(1e-300), interval(1.0, 2.0), interval(-2.0, 3.0), interval(-1.0, subnormal(5)), interval(3.0),
+      interval(subnormal(100), subnormal(1000)), interval(-subnormal(100), -subnormal(3)), interval(0.5),
+      interval(-subnormal(100), 0.0), interval(1e-310, 1e-309), interval(-1e-309, -1e-310), interval(1e-310, 2.0),
+      interval(1e-160), interval(3e-308), interval(1e-308, 3e-308), interval(-740.0), interval(-1070.0),
+      interval(-320.0), interval(1e-300, 1e-200), interval(1e10), interval(0x1p-1022), interval(100.0, 1000.0),
+    };
+    const std::size_t all_operands = sizeof(flush_operands)/sizeof(flush_operands[0]);
+    const std::size_t operands_of[] = { 0, all_operands, 14, 6 }; // by arity
+    const auto same = [](const interval& a, const interval& b) {
+      if (a.is_empty() || b.is_empty()) {
+        return a.is_empty() && b.is_empty();
+      }
+      const double ab[2] = { a.left(), a.right() }, bb[2] = { b.left(), b.right() };
+      return std::memcmp(ab, bb, sizeof ab) == 0;
+    };
+    for (const FlushOperation& op : flush_operations) {
+      const std::string name = std::string(op.name) + " with a flush-to-zero mode set before it, as with the modes cleared";
+#if GAOL_PRESERVE_ROUNDING
+      const std::string modes_name = std::string(op.name) + ": flush-to-zero modes restored after it";
+#else
+      const std::string modes_name = std::string(op.name) + ": flush-to-zero modes cleared after it";
+#endif
+      const std::size_t n = operands_of[op.arity];
+      const std::size_t ny = (op.arity >= 2) ? n : 1, nz = (op.arity == 3) ? n : 1;
+      for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t j = 0; j < ny; ++j) {
+          for (std::size_t k = 0; k < nz; ++k) {
+            const interval& x = flush_operands[i];
+            const interval& y = flush_operands[j];
+            const interval& z = flush_operands[k];
+            set(directions[0]);
+            set_flush_bits(0u);
+            const interval cleared = op.run(x, y, z);
+            for (const FlushMode& m : flush_modes_honoured) {
+              for (const Direction& d : directions) {
+                set(d);
+                set_flush_bits(m.bits);
+                const interval r = op.run(x, y, z);
+                const unsigned int left = flush_bits();
+                set_flush_bits(0u);
+                const auto args = [&] {
+                  std::string a = hex(x);
+                  if (op.arity >= 2) {
+                    a += ", " + hex(y);
+                  }
+                  if (op.arity == 3) {
+                    a += ", " + hex(z);
+                  }
+                  return m.name + " set, rounding direction " + d.name + ", (" + a + ")";
+                };
+                check(name, same(r, cleared),
+                      [&] { return args() + ": " + hex(r) + " rather than " + hex(cleared); });
+                const auto modes_left = [&] { return args() + ": modes " + std::to_string(left) + " after it"; };
+#if GAOL_PRESERVE_ROUNDING
+                check(modes_name, left == m.bits, modes_left);
+#else
+                check(modes_name, left == 0u, modes_left);
+#endif
+              }
+            }
+          }
+        }
+      }
+    }
+    set(directions[0]);
+  }
+#else
+  std::printf("No mode flushing the subnormals to zero that the test can set: the operations under one are not checked\n");
+#endif // GAOL_TESTS_FLUSH
 
   /*
     The floating-point exceptions stay masked (GAOL v5). CORE-MATH's cbrt, pow
