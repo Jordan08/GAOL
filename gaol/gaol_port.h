@@ -32,6 +32,7 @@
 #include "gaol/gaol_limits.h"
 
 #include <cmath>
+#include <limits>
 
 // Alignment on an 'nbytes' bytes boundary
 #if defined(_MSC_VER)
@@ -138,11 +139,19 @@ namespace gaol_core {
 #define GAOL_NAN (gaol_core::NaN_val.d)
 #endif
 
-  // #define GAOL_INFINITY std::numeric_limits<double>::infinity()
-  /* We cannot use the definition above because some versions of libc++ do not
-     define the infinity() method correctly.
+  /*
+    +oo, a constant of the compiler (GAOL v5). GAOL took the HUGE_VAL of the C
+    library, which the UCRT of Windows writes ((double)(float)1e+300): Visual
+    C++ folds the conversion, but clang-cl under /fp:strict makes it when the
+    program runs, in the rounding direction of the moment, which gives FLT_MAX
+    downward or toward zero, and an overflow flag. interval() was then
+    [-FLT_MAX, FLT_MAX], interval(1e300) empty, and [1] / [-1, 1] did not
+    contain 1e300. GAOL_INFINITY is in the inline code of the public headers,
+    hence in the program too. numeric_limits had been put aside for versions
+    of libc++ that GAOL no longer builds with; it already gives the infinite
+    bounds of the SSE2 intervals.
   */
-#define GAOL_INFINITY HUGE_VAL
+#define GAOL_INFINITY (std::numeric_limits<double>::infinity())
 
   /*
     Various constants rounded up and down
