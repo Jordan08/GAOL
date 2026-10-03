@@ -14,7 +14,10 @@ l'envoi à CORE-MATH, sont reprises ici (point 31).
 Les points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 [examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro
 n de sa section 5) ; les points 41 à 44, de la vérification de `VERSION.txt`
-(2026-09-28) ; 45 à 49, des corrections et des relectures.
+(2026-09-28) ; 45 à 49, des corrections et des relectures ; 50, d'une
+décision du 3 octobre. Les questions ouvertes ont été tranchées le 3 octobre :
+la décision est écrite dans chaque point (« Décidé le 3 octobre »), et une
+question reportée renvoie à son issue (#64 à #70).
 
 ## En cours
 
@@ -47,10 +50,11 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
    `gaol_pow_hybrid()`, inatteignable, et le cas `at_upper == 1.0` du bloc
    au-delà des int de `pow_standard()`. Les retirer reprendrait une part des 2
    à 3 % perdus par `gaol::pow` à exposant non entier (mesurés avec GCC 9.4
-   seulement) ; le `is_empty()` de `gaol_pow_hybrid()` est à garder. À
-   confirmer : le bloc au-delà des int et le pown dans les int sur x coupé à
-   [0, +oo] sont dans `pow_standard()`, où `gaol_pow_hybrid()`, qui prend
-   `[n]` avant, ne les atteint jamais, et non dans `gaol_ieee1788::pow`.
+   seulement) ; le `is_empty()` de `gaol_pow_hybrid()` est à garder.
+   Décidé le 3 octobre : le bloc au-delà des int et le pown dans les int sur x
+   coupé à [0, +oo] restent dans `pow_standard()`, où `gaol_pow_hybrid()`,
+   qui prend `[n]` avant, ne les atteint jamais, et non dans
+   `gaol_ieee1788::pow`.
 
 2. **Le sens d'arrondi est encore vérifié plus d'une fois** : trois fois par
    `pow(x, y)` quand `pow_standard()` passe par exp(y log x) (une borne
@@ -58,9 +62,10 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
    de 0), deux fois par `nth_root(x, q)` pour q < 0 et par `modulo_k_pi()`.
    Correction : appeler les corps de ces opérations après une seule
    vérification, comme `tan()` et les puissances négatives ; les corps de
-   `log()`, `exp()` et `*` sans la vérification restent à écrire. Pour `pow`,
-   après le point 3, on peut plutôt étendre l'analyse des coins aux bornes
-   infinies et à une base partant de 0 : plus d'exp(y log x), et des boîtes
+   `log()`, `exp()` et `*` sans la vérification restent à écrire. Décidé le
+   3 octobre : les deux, dans cet ordre ; pour `pow`, après le point 3,
+   étendre ensuite l'analyse des coins aux bornes infinies et à une base
+   partant de 0 : plus d'exp(y log x), et des boîtes
    serrées (aujourd'hui, `pow([4, +oo], 0.5)` vaut [2 − 2^-52, +oo], et
    d'autres ont des centaines de doubles de trop), avec des tests aux limites.
 
@@ -72,7 +77,17 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
    exactes que x^y est un double, et `pow_lo()` le prend alors comme borne
    inférieure. À corriger avec elle : la colonne GAOL des cas 184 à 188 de
    `special_cases.md` ([−0] au lieu de [0] depuis #37), et une phrase du
-   commentaire de `pow_standard()` qui devient fausse.
+   commentaire de `pow_standard()` qui devient fausse. Décidé le 3 octobre
+   (#63) : la racine carrée de SSE2 sur tout x86 32 bits, et non plus sur
+   Windows 32 bits seulement ; pas de recherche de cas durs pour MinGW-w64
+   x86 avant #63.
+
+<!-- -->
+
+50. **`hausdorff()` à borne infinie** (suite de #41) : environ 14 ns au lieu
+    de 4,5 ns, la formule unique ayant été gardée. Décidé le 3 octobre :
+    ajouter la sortie anticipée (+oo dès qu'une borne n'est infinie que d'un
+    côté).
 
 ## Bornes fausses
 
@@ -81,14 +96,16 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
    `-Ofast` (par `crtfastmath.o`) ou qui charge un plug-in compilé ainsi. Fait
    dans la branche `todo-04-ftz-daz` : une sonde sous-normale qui efface FTZ et
    DAZ (FZ sur ARM), `-mno-daz-ftz` à l'édition de liens, un test et la
-   documentation. Restent : décider si `gaol.pc` garde `-mno-daz-ftz`, qui
-   arrête l'édition de liens avec Clang 18 ou un GCC antérieur à 11.4 ; mesurer
-   sur les processeurs de la CI le coût de la sonde (+0,5 ns sur `x * y` sur un
+   documentation. Décidé le 3 octobre : `gaol.pc` garde `-mno-daz-ftz`, qui
+   arrête l'édition de liens avec Clang 18 ou un GCC antérieur à 11.4 (c'est
+   documenté) ; GCC 9.4 sous `-funsafe-math-optimizations` réduit la sonde,
+   même sous-normale, à `tiny == 0.0` : c'est seulement documenté, sans double
+   `volatile` ; le moins unaire reste sans sonde (#62). Restent : mesurer sur
+   les processeurs de la CI le coût de la sonde (+0,5 ns sur `x * y` sur un
    Xeon) ; ARM avec Visual C++ ou clang-cl, et FIZ, ne sont pas couverts ;
-   GCC 9.4 sous `-funsafe-math-optimizations` réduit la sonde, même
-   sous-normale, à `tiny == 0.0` (ranger la somme dans un double `volatile` la
-   garderait) ; `-fno-signed-zeros` fait sauter le `+ 0.0` de la sonde dans le
-   code du programme (seulement documenté). La suite est au point 45.
+   `-fno-signed-zeros` fait sauter le `+ 0.0` de la sonde dans le code du
+   programme (seulement documenté). La suite est
+   au point 45.
 
 5. **Suites du refus de `-ffinite-math-only`** (#39), fait avec ses tests
    CMake. Restent : avec GCC, `-Ofast` n'est pas refusé dès que
@@ -100,43 +117,48 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
    `volatile`, laissent Clang calculer l'intersection à la compilation ; ce
    qu'aucune macro ne révèle (`-funsafe-math-optimizations`,
    `-fno-honor-nans`, les pragmas) n'est que documenté, et une vérification à
-   l'exécution dans `gaol/gaol_init_cleanup.h` reste à essayer.
+   l'exécution dans `gaol/gaol_init_cleanup.h` reste à essayer. Décidé le
+   3 octobre : ajouter le témoin positif, et essayer cette vérification
+   (prototype, ce qu'elle détecte et son coût, puis la garder ou non).
 
 6. **Suites de `fegetround()` lu dans MXCSR et du refus de MinGW-w64** (#54,
-   #51). Restent des choix de portabilité : lire MXCSR aussi sur x86 32 bits
-   avec SSE2 ; garder ou supprimer `GAOL_RND_MINGW_FENV_ONLY` (mingw-w64 11 i686
-   passe ctest sans lui sous wine) ; refuser mingw-w64 ARM64 avant 12 ou sans
-   `_UCRT`, comme sur x86-64 ; garder ou lever le refus de mingw-w64 ARM
-   avant 11, que rien de testé ne justifie, et restreindre ou non celui du x86
-   32 bits avant 11 à la chaîne WinLibs qui le prouve ; taire le `#warning` de
-   `cbrt.c`, `rsqrt.c` et `asinpi.c` en attendant le point 31 ; signaler à
-   mingw-w64 son `fma()` et son `round()` pour msvcrt. Le `fma()` logiciel de
-   `ucrtbase.dll` n'a jamais été vérifié.
+   #51). Décidé le 3 octobre : ne pas lire MXCSR sur x86 32 bits avec SSE2 ;
+   supprimer `GAOL_RND_MINGW_FENV_ONLY` (mingw-w64 11 i686 passe ctest sans
+   lui sous wine) ; refuser mingw-w64 ARM64 avant 12 ou sans `_UCRT`, comme
+   sur x86-64 (le refus actuel de mingw-w64 ARM avant 11 y est inclus) ;
+   garder le refus du x86 32 bits avant 11, par version ; taire le `#warning`
+   de `cbrt.c`, `rsqrt.c` et `asinpi.c` (changement `/* GAOL */`) en attendant
+   le point 31. Reporté : signaler à mingw-w64 son `fma()` et son `round()`
+   pour msvcrt (#69). Le `fma()` logiciel de `ucrtbase.dll` n'a jamais été
+   vérifié.
 
 7. **Suites de `atanh([1, x])`** (#31) : un `TEST_EQ` de `atanh_rel` à borne
    infinie (`atanh_rel([0.5, 1], [0, +oo])`), possible depuis le point 10 ;
    `atanh([1])` et `atanh([-1])` manquent à `doc/compare/special_cases.md`
-   (relancer les cinq bibliothèques).
+   (relancer les cinq bibliothèques) : décidé le 3 octobre, les ajouter au
+   moment du point 33.
 
 8. **`pow(x, n)` pour n grand** (revue n° 7) : dans `ipow_exact_dn()`, la
    borne inférieure perd le carré du reste (1962 doubles sous la plus serrée
    pour n = 2^32 − 1), et les builds SSE2 et FPU multiplient les produits
    arrondis dans des ordres différents, contre « les mêmes bornes sur toutes
    les machines » de `doc/accuracy.md`. Fait dans la branche
-   `todo-08-pow-large-n`. À décider : une borne nulle, ou une seule
-   borne hors de la plage, envoie les deux bornes aux produits arrondis
-   (jusqu'à 10 doubles de trop) : rendre `ipow_exact_dn(0)` exact, ou traiter
-   chaque borne à part ; supprimer l'ancien code SSE2 gardé sous `#if 0` ;
-   relire la garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre
+   `todo-08-pow-large-n`. Une borne nulle, ou une seule borne hors de la
+   plage, envoie les deux bornes aux produits arrondis (jusqu'à 10 doubles de
+   trop). Décidé le 3 octobre : rendre `ipow_exact_dn(0)` exact, sans traiter
+   chaque borne à part ; garder l'ancien code SSE2 sous `#if 0` ; garder la
+   garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre
    SSE2 et FPU avec GCC 9.4 (#37) : à revérifier.
 
 9. **Suites de `tan([-M_PI_2, M_PI_2])`** (#36). `tan()` donne maintenant
    ±1,63·10^16. Un intervalle sans pôle dont la largeur exacte est entre
    `pi_dn` et π donne encore [-oo, +oo] ; on n'en connaît aucun, et le rendre
-   serré demanderait de comparer `r - l` à π en double-double : garder la
-   phrase de `doc/accuracy.md`, ou dire le cas théorique. Que les tests
+   serré demanderait de comparer `r - l` à π en double-double. Décidé le
+   3 octobre : `doc/accuracy.md` dit le cas théorique, et `tan()` garde
+   `!(w <= pi_dn)` sans le drapeau `narrower_than_pi`. Que les tests
    `w < pi_dn` de `cos_or_sin()` donnent le plus serré est mesuré, pas
-   démontré.
+   démontré : décidé, le dire mesuré (29 400 intervalles) dans le commentaire
+   et dans `doc/accuracy.md`.
 
 <!-- -->
 
@@ -144,8 +166,10 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     sous FTZ et DAZ (comparaisons sur les bits) ; le reste est au point 45.
     Restent : vérifier une fois, avec `ctest -V -R numbers`, si les tests DAZ
     de `numbers` s'exécutent ou se sautent sur macOS x86_64 sous Rosetta et
-    avec l'UCRT en Release ; dans le manuel, retirer `\newinvfive` de la
-    phrase sur ces modes, ou tester GAOL 4 sous DAZ.
+    avec l'UCRT en Release ; dans le manuel, la phrase sur ces modes
+    garde sa marque `\newinvfive` (décidé le 3 octobre). Décidé aussi (#40) :
+    faire tourner les tests DAZ de `numbers` sur AArch64 et ARM32 (FPCR,
+    FPSCR), avec l'outil de `tests/gaol_tests.h` venu de #62.
 
 <!-- -->
 
@@ -158,9 +182,13 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     et les relations se trompent : une fois le point 4 fusionné, avant la
     première opération qui sonde, et à chaque appel avec
     `GAOL_PRESERVE_ROUNDING`. Correction : comparer les bits, ou sonder avant
-    de comparer, et régénérer le parser. À décider (#58) : retirer DAZ et FTZ
+    de comparer, et régénérer le parser. Question de #58 : retirer DAZ et FTZ
     le temps de l'écriture, gdtoa et le runtime Debug de Visual C++ écrivant 0
     un sous-normal sous DAZ. Les tests DAZ ne tournent pas sur ARM (FPCR.FZ).
+    Reporté le 3 octobre : la correction et la question de #58 sont dans
+    l'issue #68. Sous DAZ, `pow([0.5], [2^-1074])` vaut [1, 1] depuis le
+    point 1 (#63) : vérifier s'il le vaut encore après #62 ; s'il le vaut, il
+    relève de ce point.
 
 <!-- -->
 
@@ -168,12 +196,14 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     `asinpi`** (#59). Restent : refuser clang-cl sans `/fp:strict` (il compile
     alors en `-fno-rounding-math -ffp-contract=on`, et `gaol_config.h` ne refuse
     que Visual C++ ; `_M_FP_STRICT` existe à partir de Clang 16), et le vérifier
-    dans `tests/fp_strict` ; Cygwin x64, hors CI, reste faux (`FE_*` de newlib,
-    pas de `_WIN32`) : prendre le correctif 6 de `3rd/README.md` en entier, ou
-    refuser Cygwin ; citer clang-cl x64 dans le manuel et `doc/three-builds.md`
-    une fois ses jobs verts (point 49) ; réserver `/Zc:strictStrings-` à
-    Visual C++ (11 avertissements par build clang-cl, dans `CMakeLists.txt` et
-    `gaol/meson.build`).
+    dans `tests/fp_strict` (décidé le 3 octobre) ; Cygwin x64, hors CI, reste
+    faux (`FE_*` de newlib, pas de `_WIN32`) : décidé le 3 octobre, prendre le
+    correctif 6 de `3rd/README.md` en entier plutôt que refuser Cygwin ;
+    citer clang-cl x64 dans le manuel et `doc/three-builds.md` une fois ses
+    jobs verts (point 49) ; réserver `/Zc:strictStrings-` à Visual C++ (11
+    avertissements par build clang-cl, dans `CMakeLists.txt` et
+    `gaol/meson.build`). Décidé aussi (#59) : ajouter à la CI le clang-cl de
+    Visual Studio 2026 x64, et clang-cl x86 et arm64.
 
 48. **`cancel_minus` et `cancel_plus` sont faux avec la bibliothèque compilée
     par GCC à `-O3`** (le build Release par défaut) : dans
@@ -208,8 +238,8 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     par le parser régénéré, l'évaluation et la destruction des expressions par
     des boucles, l'imbrication bornée par `YYMAXDEPTH` (au-delà,
     `input_format_error`) et `operator<<` d'une expression encore récursif
-    (limite documentée). À la régénération, faire taire ou non l'avertissement
-    de Clang 18 sur `gaol_nerrs`.
+    (limite documentée). À la régénération, faire taire l'avertissement de
+    Clang 18 sur `gaol_nerrs` (décidé le 3 octobre).
 
 ## Flux et texte
 
@@ -217,18 +247,22 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     l'explication. Restent : les constructeurs à `const char*` des classes
     dérivées transmettent tel quel à `std::string` un pointeur nul
     (comportement indéfini, qu'aucun appel de GAOL ne fait) : le traiter comme
-    une absence d'explication, ou le dire ; le manuel ne documente que ces
-    constructeurs. À choisir : le texte de `what()` sans explication, la forme
-    courte d'`operator<<`, et une réserve là où la documentation dit que GAOL 4
-    donnait `std::exception` (`Unknown exception` sous Visual C++).
+    une absence d'explication (décidé le 3 octobre) ; le manuel ne documente
+    que ces constructeurs. Décidé le 3 octobre : sans explication, `what()`
+    renvoie le nom de la classe dérivée (`input_format_error`…), de même
+    quand le texte C de l'explication est vide (un NUL en tête), pour que
+    `what()` ne soit jamais vide ; la forme
+    courte d'`operator<<` reste, sans réserve là où la documentation dit que
+    GAOL 4 donnait `std::exception`.
 
 15. **Suites de la lecture des lignes vides par `operator>>`** (#46), qui lit
     par `std::getline(is >> std::ws, buffer)` : une ligne vide est sautée, et
-    `while (in >> x)` finit sans exception. À décider : sous
-    `exceptions(eofbit)`, un intervalle lu en fin d'entrée lève avec `eofbit`
-    seul (un double reçoit `eofbit | failbit`), et une dernière ligne sans fin
-    de ligne est perdue ; `std::ws` saute `\v` et `\f`, que le lecteur ne prend
-    pas pour des blancs.
+    `while (in >> x)` finit sans exception. Sous `exceptions(eofbit)`, un
+    intervalle lu en fin d'entrée lève avec `eofbit` seul (un double reçoit
+    `eofbit | failbit`), et une dernière ligne sans fin de ligne est perdue ;
+    `std::ws` saute `\v` et `\f`, que le lecteur ne prend pas pour des blancs.
+    Décidé le 3 octobre : on garde les deux comportements (le premier est
+    documenté, et le lecteur ne change pas).
 
 16. **Suites des formats d'affichage** (#57). Restent, vérifiés dans
     `61c7503` : dans le format `width`, `+2 (+/- +1)` sous `std::showpos`, un
@@ -239,10 +273,15 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     `width` sous une locale à virgule, un ordre d'évaluation non spécifié dans
     `tests/rounding_direction.cpp`, `gaol_tests::hex()` sous la locale
     globale) ; le `#include <sstream>`, inutile, à retirer de
-    `gaol/gaol_ieee1788.h`. À décider : la précision d'`intervalToText` ;
-    l'écriture d'un point en hexadécimal (non vérifiée sous `std::hexfloat`) ;
-    `[0]` ou `[-0]` pour un point nul ; sous une locale à virgule, -2.5 s'écrit
-    `[-2,5, -2,5]`, que le lecteur refuse ; un format dont le rayon absorbe
+    `gaol/gaol_ieee1788.h`. Décidé le 3 octobre : corriger les formats `width`
+    (`std::showpos`, groupement, milieu `-0`) et `agreeing` (sa condition, et
+    les zéros écrits `[0]`) ; `intervalToText` suit `interval::precision()` ;
+    le format `hexa` écrit lui aussi un point `[a]`, comme le décimal, et non
+    plus `[a, a]` bit à bit (à vérifier sous `std::hexfloat`), et un point nul
+    s'écrit `[0]` quels que soient les signes ; sous
+    une locale à virgule, où -2.5 s'écrit `[-2,5, -2,5]`, que le lecteur
+    refuse, la garde de `display_bounds()` teste `numpunct::decimal_point()` et
+    le texte s'écrit avec un point ; pas de format dont le rayon absorbe
     l'arrondi du milieu.
 
 17. **`operator<<` est plus lent depuis qu'il écrit dans un
@@ -258,10 +297,10 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 18. **Suites de la lecture des longs nombres** (#42). Le texte d'un nombre est
     analysé une fois : 20 000 caractères se lisent en 0,02 s sous toutes les
     locales, et l'analyse des chiffres reste quadratique (décision du 30
-    septembre). À décider : si cette décision vaut aussi pour la forme
+    septembre). Décidé le 3 octobre : cette décision vaut aussi pour la forme
     incertaine, dont les sommes passent par `gaol_decimal_add_sub()`, qui
     insère en tête d'une `std::string` (100 000 chiffres : 1,1 s, contre
-    0,46 s).
+    0,46 s) ; on n'y touche pas.
 
 <!-- -->
 
@@ -271,7 +310,7 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     littéraux imbriqués et des expressions (`[[1, 2], 3]`, `1 -2`). Il faut
     d'abord décider de la syntaxe acceptée : un intervalle par ligne (ce qui
     est documenté), les seuls littéraux lus jusqu'au crochet fermant, ou une
-    fonction à part.
+    fonction à part. Reporté le 3 octobre : issue #64.
 
 ## En-têtes
 
@@ -312,8 +351,9 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     les relations « certainement » d'IEEE 1788, vraies dès qu'un des deux
     intervalles est vide : `std::set` perd les intervalles qui se chevauchent,
     et `std::sort` d'un vecteur contenant un intervalle vide lit au-delà de sa
-    fin. Correction : un `gaol::lexicographic_less`, peut-être une
-    spécialisation de `std::less`, et une mise en garde dans `doc/using.md` et
+    fin. Correction : un `gaol::lexicographic_less` (spécialiser aussi
+    `std::less` ou non : reporté le 3 octobre, issue #70), et une mise en garde
+    dans `doc/using.md` et
     le manuel contre `std::sort`, `std::set`, `std::max`, `std::min` et
     `std::clamp` sans comparateur.
 
@@ -327,17 +367,26 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
 24. **Exceptions flottantes : ce qui reste après #47 et #50.** Après
     `fix-24b-armhf-fe-invalid` (« En cours »), `is_empty()` reste compilé en
-    `vcmpe` sur armhf dans le code du programme : le documenter, l'écrire avec
-    `std::isunordered()` sur ARM 32 bits, ou le signaler à GCC (bogue 52258).
+    `vcmpe` sur armhf dans le code du programme : l'écrire avec
+    `std::isunordered()` sur ARM 32 bits (décidé le 3 octobre).
     Avec `GAOL_PRESERVE_ROUNDING`, les opérations SSE2 masquent de nouveau les
     exceptions du programme et effacent ses indicateurs : à corriger. `0 × oo`
     dans l'`operator*=` SSE2 et le `pow` de CORE-MATH pour un exposant extrême
-    lèvent FE_INVALID, sans test : corriger, ou laisser documenté.
-    `gaol_intervalf.h` appelle `std::islessequal` sans inclure `<cmath>`. À
-    décider : le coût de `floor`, `ceil`, `integer` et `x &= y` (non mesuré
-    sous Visual C++), et les comparaisons signalantes des constructeurs
-    (`interval(NAN)`) et des intervalles de flottants (`gaol_intervalf.h`,
-    `gaol_interval2f.h`).
+    lèvent FE_INVALID, sans test : les corriger, avec un test et le coût de `*`
+    mesuré (décidé le 3 octobre). `gaol_intervalf.h` appelle
+    `std::islessequal` sans inclure `<cmath>`. Décidé le 3 octobre : la
+    première comparaison de `interval(l, r)` devient silencieuse, ce qui rend
+    gratuits `floor`, `ceil` et `integer` (`interval(NAN)`, `x += NAN` et
+    `set_contains(NAN)` ne lèvent plus FE_INVALID) ; `x &= y` s'écrit avec un
+    seul `std::isunordered()` (à vérifier avec Clang 18, et son coût sous
+    Visual C++ à mesurer) ; les intervalles de flottants (`gaol_intervalf.h`,
+    `gaol_interval2f.h`) gardent leurs comparaisons signalantes, mais
+    `intervalf::is_empty()` reste silencieux (#47). Décidé aussi (#60) :
+    `is_empty()` écrit avec `std::isunordered()` sous `_ARCH_PWR9`, comme sur
+    ARM 32 bits ; les relations en ligne (`set_le`, `set_strictly_contains`,
+    `less`…) corrigées pour ne plus lever FE_INVALID, même dans une boucle
+    vectorisée (AArch64, intervalles FPU x86-64) ; les trois vérifications de
+    choix de #60, fragiles par nature, gardées.
 
 25. **Les outils que chaque algorithme réécrit** : `mulRevToPair` (un
     `div_rel` en deux morceaux), `inflate`, `bisect(ratio)` et
@@ -355,7 +404,7 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     sont vides sans rien dire, et `gaol_ieee1788::textToInterval` rend
     l'ensemble vide pour un texte mal formé. GAOL n'a que des intervalles nus
     (clause 11 d'IEEE 1788-2015). À choisir : les décorations, ou un simple
-    indicateur.
+    indicateur (reporté le 3 octobre, issue #67).
 
 27. **Un sens d'arrondi qui ne fuit pas** : l'arrondi porté par chaque
     instruction (AVX-512, le FPCR d'AArch64 en assembleur), comme le fait
@@ -369,23 +418,26 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     boîte, la différentiation directe, les formes affines, dont se servent les
     exemples 03 à 14 et qui ne sont pas installés) en `gaol/box.h`,
     `gaol/dual.h` et `gaol/affine.h` ; ou des traits GAOL pour YalAA et un
-    backend intervalle pour VNODE-LP.
+    backend intervalle pour VNODE-LP. Décidé le 3 octobre : les traits pour
+    YalAA et le backend pour VNODE-LP, et non la promotion des en-têtes des
+    exemples.
 
 ## Tests et intégration continue
 
 29. **Le test sous une locale à virgule n'est vérifié que dans `linux.yml`**
     (#35) : macOS, Windows, les conteneurs et `build-systems.yml` ne génèrent
     ni ne vérifient de locale à virgule (Debian demande le paquet `locales` ;
-    Alpine et manylinux n'en ont pas). À décider : un contrôle
+    Alpine et manylinux n'en ont pas). Décidé le 3 octobre : un contrôle
     (`.github/scripts/comma-locale.sh check`) après les tests là où la locale
-    existe, une variable d'environnement qui fasse échouer `numbers` lui-même,
-    ou rien. Au passage : `numbers` n'a pas de `TIMEOUT` dans
+    existe. Au passage : `numbers` n'a pas de `TIMEOUT` dans
     `tests/fetch_content` et `tests/find_package`, et prend 235 s de ses 300
-    sur macOS x86_64 Debug ASan+UBSan (délai dépassé une fois dans #50) ; le
+    sur macOS x86_64 Debug ASan+UBSan (délai dépassé une fois dans #50) :
+    décidé, un `TIMEOUT` de 400 s pour ce job, sans alléger les tests ; le
     passage de 300 à 30 tirages en Debug (`d78af72`) est à remesurer, #58
     ayant montré que les jobs Visual Studio Debug attendaient une boîte de
-    dialogue ; les jobs Ubuntu 22.04 de `linux.yml` sont à remplacer avant le
-    17 avril 2027.
+    dialogue : décidé, revenir ensuite à 300 tirages (le job macOS ci-dessus
+    est à remesurer avec eux) ; les jobs Ubuntu 22.04 de `linux.yml` passent
+    sur `ubuntu-24.04` (décidé) avant le 17 avril 2027.
 
 30. **Des suites de tests et des bancs d'essai où GAOL est absent** : passer
     ITF1788 (toutes les opérations d'IEEE 1788 ; seuls les cas des fonctions
@@ -400,12 +452,14 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     [3rd/README.md](3rd/README.md)**, dont la section « Changes to propose
     upstream » donne six correctifs contre son master `b1a4badf`, vérifiés
     avec `./check.sh --worst` et `--special` ; la glibc n'a aucun de ces
-    défauts. Rien n'est envoyé. À décider : qui envoie et comment (merge
-    request sur gitlab.inria.fr, ou `git format-patch` à core-math@inria.fr) ;
-    la forme du correctif 6 (la table, ou la petite forme de la copie de
-    GAOL), et `binary80/pow/powl.c`, non examiné ; y joindre l'échec du master
-    à `./check.sh --worst --rndd pow` et la borne de `ss` dans `asinpi_acc()` ;
-    changer aussi les `sinpi.c` et `log1p.c` embarqués, ou attendre l'amont.
+    défauts. Rien n'est envoyé. Décidé le 3 octobre : le correctif 6 sous sa
+    forme large (la table), après examen de `binary80/pow/powl.c` ; changer
+    dès maintenant les `sinpi.c` et `log1p.c` embarqués (`/* GAOL */`, comme
+    sinh, cosh et tanh) ; envoyer aussi le patch 7 (`exact_pow()`, #63).
+    Reportés : qui envoie et comment (merge request sur
+    gitlab.inria.fr, ou `git format-patch` à core-math@inria.fr), #65 ; y
+    joindre ou non l'échec du master à `./check.sh --worst --rndd pow` et la
+    borne de `ss` dans `asinpi_acc()`, #66.
     Corriger d'abord les phrases inexactes de `3rd/README.md` relevées par les
     relectures de #54, #56 et #59.
 
@@ -425,14 +479,15 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     machine ne faisant rien d'autre (`doc/compare/code/run_bench.sh`, ou
     `make perf`), puis reprendre le tableau de `doc/compare/README.md`.
 
-34. **Les recettes FetchContent récupèrent GAOL 4** (décision à prendre) :
+34. **Les recettes FetchContent récupèrent GAOL 4** :
     `doc/using.md`, le manuel et `tests/fetch_content` prennent la branche
     `master` de `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la
     branche par défaut. `master` est GAOL 4.3.2, avec lequel les programmes de
     la documentation ne compilent pas, et il n'y a pas d'étiquette `v5.0.0`.
-    Correction : une fois #29 fusionnée, étiqueter `v5.0.0` ou fusionner
-    `MATH-CORE` dans `master`, et écrire l'étiquette dans les recettes et le
-    test.
+    Décidé le 3 octobre : une fois `configure-clean` fini, fusionner
+    `configure-clean` dans `MATH-CORE`, puis `MATH-CORE` dans `master`, puis
+    étiqueter `v5.0.0` ; les recettes et le test gardent `master` jusqu'à
+    l'étiquette, puis la citent.
 
 35. **Un premier programme avant les détails** : `README.md` n'a ni code C++
     ni renvoi à `examples/`, le premier programme est à la ligne 96 de
@@ -490,9 +545,10 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     (ils prennent `CMAKE_BINARY_DIR` et `CMAKE_SOURCE_DIR`) ; un test
     `nodiscard_discard_cxx*` qui reste en échec une fois son objet compilé ;
     `test_input()` de `tests/input_output.cpp`, dont le `try` avale une
-    exception et saute six assertions. À décider : où garder le programme qui
+    exception et saute six assertions. Décidé le 3 octobre : le programme qui
     compare les 88 sorties du manuel au programme (`run_examples.py`, hors du
-    dépôt). Non vérifié : `GAOL_NODISCARD` sous Visual C++ 2017 15.8 et 15.9.
+    dépôt) va dans `manual/`. Non vérifié : `GAOL_NODISCARD` sous Visual C++
+    2017 15.8 et 15.9.
 
 ## Les trois builds
 
@@ -503,44 +559,59 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     1.4.1), et mettre dans les `compile_args` de `gaol_dep` les options dont
     le code utilisant GAOL a besoin (celles de `pc_cflags`, que `gaol.pc`
     donne déjà : `-frounding-math`, `-ffp-contract=off`…), les arguments du
-    projet ne passant pas au projet parent ; sinon, retirer la promesse.
+    projet ne passant pas au projet parent (décidé le 3 octobre, plutôt que
+    retirer la promesse).
 
 42. **Suites du faux Python du Microsoft Store** (#44) : que `WindowsApps`
     ait un alias `python.exe` en plus de `python3.exe`, comme le disent
     `meson.build`, `doc/building.md` et le manuel, n'a pas été vérifié sous
-    Windows : le vérifier, ou adoucir le texte.
+    Windows : décidé le 3 octobre, adoucir le texte. Ajouter aussi au manuel le
+    cas résiduel que donne `doc/building.md` (l. 263-268) : un profil dont le
+    répertoire diffère de `USERPROFILE`. La documentation plutôt qu'un
+    changement de l'ordre `python3`, `python` (#44) est confirmée.
 
 43. **Suites du `VERSION.txt` à marque d'ordre des octets** (#45) : sous
     Windows, seul le job meson MSYS2 lance `.github/scripts/version-file.sh` ;
-    une étape native (meson avec Visual C++, sous `pwsh`) est-elle voulue ?
+    décidé le 3 octobre, il suffit, sans étape native (meson avec Visual C++,
+    sous `pwsh`). Décidé aussi : limiter l'étape « VERSION.txt read by
+    autoconf, as by configure » de `build-systems.yml` à
+    `matrix.cfg.configure == ''`, et garder les `?` du message de
+    `configure.ac` sur un `VERSION.txt` refusé, et laisser le `.strip()` de
+    meson, qui retire aussi les espaces Unicode (#45).
 
 44. **Les suites du test `cpack_stale_configure`** (#33), qui vérifie que
     CMake avertit d'un `configure` généré pour une autre version. Il échoue à
     tort quand le compilateur du parent porte un argument (`CC="ccache gcc"`)
-    ou que Ninja est hors du `PATH` : ne pas l'enregistrer dans ces cas, ou
-    passer les compilateurs par `cmake -E env`. Sans `sh` ou sans liens
-    symboliques, il s'arrête sur `FATAL_ERROR` au lieu de se dire ignoré. À
-    décider : avec les générateurs Makefile, `package_source` ne relance pas
-    CMake après un changement de `VERSION.txt` (documenté ; le vérifier à
-    l'archive demanderait CMake 3.19) ; garder le contrôle en test CTest
-    (jusqu'à 52 s sous QEMU), ou en faire une étape de la CI.
+    ou que Ninja est hors du `PATH` : décidé le 3 octobre, passer les
+    compilateurs par `cmake -E env`. Sans `sh` ou sans liens symboliques, il
+    s'arrête sur `FATAL_ERROR` au lieu de se dire ignoré. Avec les générateurs
+    Makefile, `package_source` ne relance pas CMake après un changement de
+    `VERSION.txt` (documenté ; le vérifier à l'archive demanderait CMake
+    3.19) : décidé, faire dépendre `package_source` d'une reconfiguration ; le
+    contrôle reste un test CTest (jusqu'à 52 s sous QEMU).
 
-## Décisions à prendre
+## Décisions sans point
 
-Les décisions propres à un point sont dans son texte (voir surtout les points
-29, 31, 34 et 46). Une seule n'a pas de point :
+Décidé le 3 octobre :
 
 - **Les choix « à confirmer » de #29** (la référence HTML de Doxygen, les
   options de meson, la CI sans les exemples, `make test` qui n'écarte les
-  exemples qu'à partir de CMake 3.17 et meson 0.57, `make perf`, la licence
-  MIT alors que GAOL v5 est sous LGPL) : acceptés, abandonnés ou reportés ?
+  exemples qu'à partir de CMake 3.17 et meson 0.57, `make perf`) sont
+  acceptés.
+- **La licence** : GAOL v5 reste sous LGPL, et `3rd/math-core` (CORE-MATH)
+  sous MIT. Reste à le dire clairement dans `README.md`, à côté de
+  `COPYING.LIB` et dans le manuel.
 
 ## Questions ouvertes
 
+Les questions reportées le 3 octobre ont chacune leur issue : #64 (point 46),
+#65 et #66 (point 31), #67 (point 26), #68 (point 45), #69 (point 6) et #70
+(point 22).
+
 GCC 12.2 sur aarch64 compile mal `tests/numbers.cpp` (#34) : le contournement
 (`no-inline-functions`) ne vaut que pour GCC 12 sur aarch64, et d'autres
-versions pourraient être touchées sans que la CI le montre. Réduire le cas et
-le signaler à GCC ?
+versions pourraient être touchées sans que la CI le montre. Décidé le
+3 octobre : on le laisse tel quel, sans réduire le cas ni le signaler.
 
 ## Ménage
 
@@ -549,15 +620,19 @@ le signaler à GCC ?
   `remove-string-constructor` (#30). Jetables : `ci-debug-numbers-arm64`
   (#34), `ci-debug-mingw-numbers` (#48) et les branches de #38 et #52,
   fermées. Abandonnée : `fix-path-core-math`, dont le travail a été repris ou
-  remplacé. Puis chaque branche de « En cours » une fois fusionnée.
+  remplacé. Puis chaque branche de « En cours » une fois fusionnée. Décidé le
+  3 octobre : les supprimer toutes, `fix-path-core-math` comprise, après une
+  vérification de chacune.
 - **La CI tourne deux fois par pull request**, sur `push` (toutes les
   branches) et sur `pull_request` : le push de `61c7503` a lancé 114 jobs,
   environ 380 minutes de runner. Ne lancer `push` que sur les branches
-  principales diviserait la charge par deux.
+  principales diviserait la charge par deux : décidé le 3 octobre, `push`
+  seulement sur `master`, `MATH-CORE` et `configure-clean`.
 - **Les descriptions des pull requests** #50, #51, #53 à #57 et #59 (et un
   commentaire de #59) finissent par une ligne de crédit et un lien : les
   retirer, et étendre aux pull requests la règle qui l'interdit dans les
-  commits ?
+  commits ? Décidé le 3 octobre : les retirer, ainsi que celle de l'issue #49 ;
+  la règle vaut désormais aussi pour les pull requests et les issues.
 - **La pull request de synthèse**, une fois les branches de « En cours »
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
   le 28 septembre (les textes proposés sont dans `todo-notes/` de la branche
@@ -568,8 +643,11 @@ le signaler à GCC ?
   corrigés) ; une seule régénération de `manual/v5/gaol.pdf`, dont la
   dernière date du 28 septembre, après avoir corrigé dans `gaol.tex` les
   entrées d'index en conflit de « canonical interval » et l'`Overfull \hbox`
-  des l. 511-515.
-- **L'issue #49** (suivi d'ensemble) est restée au 30 septembre : y reporter
-  #58, #59, le point 49 et la CI de `61c7503` (rouge sur armhf et sur les deux
-  jobs clang-cl seulement), et remplacer sa liste de branches ; ou la fermer
-  en renvoyant à ce `TODO.md`.
+  des l. 511-515. Décidé le 3 octobre, pour les points 7 et 10 : la puce de
+  `atanh` dans `doc/differences.md` reste, en disant que GAOL 4 n'est pas
+  mesuré ; les puces de `hausdorff()` sont fusionnées ; un seul
+  `\newinvfive` dans l'entrée `hausdorff` du manuel, et aucun sur la phrase du
+  domaine de `atanh`.
+- **L'issue #49** (suivi d'ensemble) est à jour du 3 octobre. Décidé le
+  3 octobre : elle reste ouverte, avec en commentaire les décisions du jour et
+  les liens vers les issues #64 à #70.
