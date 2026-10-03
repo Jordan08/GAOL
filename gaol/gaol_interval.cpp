@@ -712,7 +712,7 @@ namespace gaol_core {
     `scientific`: one digit, the others after a point, and an exponent with
     its sign.
   */
-  void move_to_side(std::string& text, double magnitude, bool away, bool scientific)
+  static void move_to_side(std::string& text, double magnitude, bool away, bool scientific)
   {
     for (int moves = 0; moves < 4; ++moves) {
       const std::size_t last = scientific ? text.find_first_of("eE") : text.size(); // One past the mantissa
@@ -770,6 +770,7 @@ namespace gaol_core {
     built a locale and its cached facets, and destroyed them, a third of the
     work of writing an interval.
   */
+  namespace {
   struct text_format {
     std::ios_base::fmtflags flags;
     std::streamsize precision;
@@ -786,6 +787,7 @@ namespace gaol_core {
   // How the text of a number is rounded: to nearest, as a stream writes a
   // double, or downward or upward for the bound of an interval
   enum text_rounding { text_nearest, text_downward, text_upward };
+  } // namespace
 
   /*
     x written by a stream that has the flags, the precision and the locale of
@@ -862,7 +864,10 @@ namespace gaol_core {
     std::num_put groups those of a double: from the point leftward, each group
     as long as its character of grouping() says, the last one repeated, and
     no group past a size of 0, a negative one or CHAR_MAX, which the standard
-    takes as unlimited (22.4.3.1.2).
+    takes as unlimited (22.4.3.1.2). libstdc++ differs there for a facet a
+    program defines: it repeats the size before a 0 ("\3\0" groups 1234567 as
+    1,234,567, where libc++ and GAOL write 1234,567), and takes the sizes 128
+    to 254 for negative ones where char is unsigned (ARM, ppc64le, s390x).
   */
   static void group_digits(std::string& text, const std::numpunct<char>& punct)
   {
@@ -901,7 +906,8 @@ namespace gaol_core {
     digits and the zeros kept "1.e+06", whose last digit is not the sixth.
     The text of a zero, or of an infinity, is made the same way, without
     the comparison: "inf" is "INF" with the flag uppercase, but in the fixed
-    format, whose conversion the standard has as %f. With fmt.grouped, the
+    format, whose conversion the standard has as %f (a stream of libc++, which
+    uses %F, wrote "INF" there). With fmt.grouped, the
     digits before the point are grouped as the locale has them, as a stream
     groups those of a double: the midpoint and the radius of the width and
     center formats, both alike (GAOL v5: a stream wrote the midpoint, grouped,
@@ -909,7 +915,7 @@ namespace gaol_core {
     Left to a stream, with the rounding direction set (stream_text()): what
     the text cannot be made of.
   */
-  std::string number_to_text(double x, text_rounding rounding, const text_format& fmt)
+  static std::string number_to_text(double x, text_rounding rounding, const text_format& fmt)
   {
     const std::ios_base::fmtflags floatfield = fmt.flags & std::ios_base::floatfield;
     if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
@@ -923,9 +929,10 @@ namespace gaol_core {
     if (x == GAOL_INFINITY || x == -GAOL_INFINITY) {
       text = ((fmt.flags & std::ios_base::uppercase) && !fixed) ? "INF" : "inf";
     } else {
-      // A stream writes 6 digits for a negative precision: the numbers written
-      // to nearest, and the zeros, which are written by a stream. A bound that
-      // is not 0 takes it as 0: 1 digit in the general format
+      // A stream writes 6 digits for a negative precision: so are the numbers
+      // written to nearest and the zeros. A bound that is not 0 takes it as 0
+      // in the general format, 1 digit, and as 6 in the fixed and scientific
+      // ones, as the stream that wrote it did
       const bool as_stream = (rounding == text_nearest || x == 0.0);
       const std::streamsize precision = (as_stream && fmt.precision < 0) ? 6 : fmt.precision;
       // %g takes a precision of 0 as 1, and writes that many significant digits
@@ -938,7 +945,19 @@ namespace gaol_core {
       }
       const double magnitude = std::fabs(x);
       if (!magnitude_text(text, magnitude, fixed, static_cast<int>(prec))) {
-        return stream_text(x, rounding, fmt);
+        // snprintf failed (a precision its buffer cannot hold), or its point
+        // was not found: the digits of a stream of the C locale, to nearest,
+        // as GAOL wrote them before, then moved outward as above. Never those
+        // of the C library under the directed rounding, which the C runtime of
+        // Windows and musl do not honour (issue #3)
+        std::ostringstream out;
+        out.imbue(std::locale::classic());
+        out.setf(fixed ? std::ios_base::fixed : std::ios_base::scientific, std::ios_base::floatfield);
+        out.precision(prec);
+        round_nearest();
+        out << magnitude;
+        round_upward();
+        text = out.str();
       }
       // The magnitude written has to be at least that of x when rounding away
       // from zero, and at most that of x otherwise
@@ -995,7 +1014,7 @@ namespace gaol_core {
     return text;
   }
 
-  std::string bound_to_text(double x, bool upward, const text_format& fmt)
+  static std::string bound_to_text(double x, bool upward, const text_format& fmt)
   {
     return number_to_text(x, upward ? text_upward : text_downward, fmt);
   }
@@ -1035,7 +1054,7 @@ namespace gaol_core {
     and textToInterval(intervalToText(interval(0.1))) was the empty set. The
     reader still takes the angles, which are no literal of the standard.
   */
-  void display_bounds(double l, double r, std::string& out, const text_format& fmt)
+  static void display_bounds(double l, double r, std::string& out, const text_format& fmt)
   {
     // A quiet comparison, which raises no invalid-operation exception on the
     // NaN bounds of the empty set (GAOL v5)
@@ -1146,11 +1165,11 @@ namespace gaol_core {
   {
     // std::internal puts the fill after the sign of a number and its 0x
     // prefix, before its digits. The text of the width and center formats
-    // starts with the sign of the midpoint, if it has one, and the fill goes
-    // after it, as std::internal padded the midpoint alone before the
-    // interval was written as a whole. The other texts start with '[' or '<',
-    // before which the fill goes, as with std::right, and std::complex writes
-    // its parentheses.
+    // starts with the sign of the midpoint, if it has one, and that of the
+    // agreeing digits with the sign of the bounds, and the fill goes after
+    // it, as std::internal padded the midpoint alone before the interval was
+    // written as a whole. The other texts start with '[', before which the
+    // fill goes, as with std::right, and std::complex writes its parentheses.
     const std::streamsize width = os.width();
     if ((os.flags() & std::ios_base::adjustfield) == std::ios_base::internal
         && width > static_cast<std::streamsize>(text.size())) {
@@ -1184,10 +1203,6 @@ namespace gaol_core {
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
-    // The bounds format, and the agreeing format where it writes bounds, in
-    // the C locale, whose decimal point is the reader's (GAOL v5); the width
-    // and center formats, which are for the eye, in the locale of os
-    const text_format fmt(os.flags(), interval::precision(), std::locale::classic());
     std::string text;
 
     GAOL_RND_PRESERVE();
@@ -1197,9 +1212,14 @@ namespace gaol_core {
     const interval_format::format_t format = interval::format();
 
     switch (format) {
-    case interval_format::bounds: // Display in the form "[ l, r ]"
+    case interval_format::bounds: { // Display in the form "[ l, r ]"
+      // The bounds format, and the agreeing format where it writes bounds,
+      // in the C locale, whose decimal point is the reader's (GAOL v5); the
+      // width and center formats, which are for the eye, in the locale of os
+      const text_format fmt(os.flags(), interval::precision(), std::locale::classic());
       display_bounds(l,r,text,fmt);
       break;
+    }
     case interval_format::hexa: // The exact text representation of 13.4
       text = exact_string(I);
       break;
@@ -1300,6 +1320,7 @@ namespace gaol_core {
              == ((re == std::string::npos) ? std::string() : rb.substr(re))
           && lb.find_first_of("123456789") < i;
         if (!line_up) {
+          const text_format fmt(os.flags(), interval::precision(), std::locale::classic());
           display_bounds(l,r,text,fmt);
         } else {
           // The characters both bounds start with, then what is left of each,
