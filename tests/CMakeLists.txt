@@ -101,8 +101,11 @@ endif()
 # Under a locale writing a decimal comma, the reading of a number never
 # returned (GAOL v5): numbers, which reads numbers under such a locale, fails
 # after 5 minutes should it hang again, ctest giving a test no time limit of
-# its own (the project does not include CTest)
-set_tests_properties(numbers PROPERTIES TIMEOUT 300)
+# its own (the project does not include CTest). A slower build can give it
+# more: numbers took 235 s of its 300 with GCC, ASan and UBSan in Debug on
+# macOS x86_64, whose job gives it 400 (.github/workflows/macos.yml)
+set(GAOL_NUMBERS_TIMEOUT 300 CACHE STRING "Time limit of the test numbers, in seconds")
+set_tests_properties(numbers PROPERTIES TIMEOUT ${GAOL_NUMBERS_TIMEOUT})
 
 # The reading of VERSION.txt by CMakeLists.txt, in cmake/gaol_version.cmake,
 # which has to ignore a UTF-8 byte order mark and the line ends of Windows
