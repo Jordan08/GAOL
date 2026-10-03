@@ -216,6 +216,13 @@ endforeach
 if msvc
   add_global_arguments(['/fp:strict'], language: ['c', 'cpp'])
   pc_cflags += ['/fp:strict']
+  # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
+  # /arch:SSE2, which gaol/gaol_config.h refuses: -msse2 has it compute them
+  # in SSE2, as CMakeLists.txt gives it
+  if cpp_comp.get_id() == 'clang-cl' and host_machine.cpu_family() == 'x86'
+    add_global_arguments(['-msse2'], language: ['c', 'cpp'])
+    pc_cflags += ['-msse2']
+  endif
 endif
 
 # The library compiled with hidden visibility, as configure builds it: GAOL's

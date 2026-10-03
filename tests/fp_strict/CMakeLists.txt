@@ -1,10 +1,12 @@
 # ==================================================================
-#  Refusal of Visual C++ without /fp:strict (GAOL v5)
+#  Refusal of Visual C++ and clang-cl without /fp:strict (GAOL v5)
 # ==================================================================
 #
-# Compiles a file including the headers of an installed GAOL with Visual C++:
-# it has to compile with /fp:strict, and gaol/gaol_config.h has to refuse it
-# with /fp:precise and without any /fp option, the default of Visual C++.
+# Compiles a file including the headers of an installed GAOL with Visual C++,
+# or with clang-cl from Clang 16, which defines the same macros of the
+# floating-point model: it has to compile with /fp:strict, and
+# gaol/gaol_config.h has to refuse it with /fp:precise and without any /fp
+# option, the default of both.
 # Configuring is the check, which fails otherwise:
 #
 #   cmake -S tests/fp_strict -B build-fp-strict -DCMAKE_PREFIX_PATH=<prefix of GAOL>
@@ -16,10 +18,15 @@
 cmake_minimum_required(VERSION 3.14)
 project(gaol_fp_strict CXX)
 
-# MSVC is true for clang-cl too, which gaol/gaol_config.h does not refuse:
-# Visual C++ only
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  message(STATUS "Not Visual C++: nothing to check")
+# MSVC is true for clang-cl too, whose model gaol/gaol_config.h checks from
+# Clang 16, the first to define _M_FP_STRICT (GAOL v5)
+set(_clang_cl FALSE)
+if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(_clang_cl TRUE)
+endif()
+if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
+        OR (_clang_cl AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)))
+  message(STATUS "Neither Visual C++ nor clang-cl from Clang 16: nothing to check")
   return()
 endif()
 
@@ -34,13 +41,19 @@ file(WRITE "${_source}" "#include <gaol/gaol>\nint main() { gaol::interval x(0.1
 # a CMAKE_CXX_FLAGS given in CMAKE_FLAGS.
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(_cxx_flags "${CMAKE_CXX_FLAGS}")
+# clang-cl for 32-bit x86 computes doubles in SSE2 with -msse2 only, which
+# gaol::gaol gives it: without it, gaol/gaol_config.h refuses the x87 unit
+set(_arch "")
+if(_clang_cl AND CMAKE_SIZEOF_VOID_P EQUAL 4 AND CMAKE_CXX_COMPILER_ARCHITECTURE_ID MATCHES "^[Xx]86$")
+  set(_arch "-msse2")
+endif()
 foreach(model strict precise default)
   if(model STREQUAL "default")
     set(_fp "")
   else()
     set(_fp "/fp:${model}")
   endif()
-  set(CMAKE_CXX_FLAGS "${_cxx_flags} /D__GAOL_PUBLIC__= ${_fp}")
+  set(CMAKE_CXX_FLAGS "${_cxx_flags} /D__GAOL_PUBLIC__= ${_arch} ${_fp}")
   try_compile(_compiled_${model} "${CMAKE_CURRENT_BINARY_DIR}/${model}" SOURCES "${_source}"
     CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${_gaol_include}"
     OUTPUT_VARIABLE _output_${model})

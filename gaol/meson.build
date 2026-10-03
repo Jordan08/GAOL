@@ -161,7 +161,11 @@ if msvc
   pc_cflags += gaol_public_args
   # The lexer includes <unistd.h>, which Visual C++ does not have
   # (cmake/msvc/unistd.h), and the warnings CMake turns off too
-  gaol_msvc_args = gaol_public_args + ['/Zc:strictStrings-', '-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
+  gaol_msvc_args = gaol_public_args + ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
+  # Visual C++ only: clang-cl does not know the option, and warns of it
+  if cpp_comp.get_id() == 'msvc'
+    gaol_msvc_args += ['/Zc:strictStrings-']
+  endif
   gaollib = static_library(
     'gaol',
     sources: gaol_SOURCES,
