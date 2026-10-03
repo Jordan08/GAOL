@@ -14,3 +14,5 @@ coverage/coverage.json
 
 # Written by the performance target of check/Makefile.am
 check/performances_result.txt
+
+build/*
