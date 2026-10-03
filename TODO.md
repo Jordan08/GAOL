@@ -194,9 +194,9 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
     FLT_MAX : `interval()` vaut [-FLT_MAX, FLT_MAX], `interval(1e300)` est vide
     (37 échecs de `rounding_direction` sous wine). Le défaut est aussi dans le
     code en ligne des en-têtes publics. Les deux jobs clang-cl de `windows.yml`
-    en sont le test et restent rouges d'ici là. À décider, dans sa propre pull
-    request : `__builtin_huge_val()` sous GCC et Clang, ou
-    `std::numeric_limits<double>::infinity()`.
+    en sont le test et restent rouges d'ici là. Décidé le 3 octobre :
+    `std::numeric_limits<double>::infinity()`, dans sa propre pull request,
+    pas encore faite.
 
 ## Plantages
 
@@ -528,7 +528,7 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 ## Décisions à prendre
 
 Les décisions propres à un point sont dans son texte (voir surtout les points
-29, 31, 34, 46 et 49). Une seule n'a pas de point :
+29, 31, 34 et 46). Une seule n'a pas de point :
 
 - **Les choix « à confirmer » de #29** (la référence HTML de Doxygen, les
   options de meson, la CI sans les exemples, `make test` qui n'écarte les
