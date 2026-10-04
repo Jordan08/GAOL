@@ -26,7 +26,7 @@ CI est verte.
     publication de v5.0.0 (point Y : `configure-clean` → `MATH-CORE` →
     `master`, puis l'étiquette `v5.0.0`).
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
-    supprimée le 4 octobre : son contenu est dans `todo-notes/`.
+    supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
 - **L'arbre de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`. Le
   mainteneur et d'autres agents y travaillent aussi. Des fichiers peuvent y être
   modifiés sans être à toi ; c'est souvent le cas de `TODO.md`, que le
@@ -39,7 +39,7 @@ CI est verte.
 | Les points à faire, regroupés par lettres (A à Z), avec leurs décisions | `TODO.md` de `configure-clean` |
 | Le suivi d'ensemble (fait, en cours, reste à faire) | issue #49 |
 | Les questions reportées | issues #64 à #70, et celles qui suivront |
-| Les rapports des agents, l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) |
+| Ce qui reste utile des rapports des agents (textes pour la synthèse, mesures, cas de test), l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) ; les rapports d'origine sont dans l'historique, au commit `16a2f60` |
 | La revue d'origine (« revue n° n » dans `TODO.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
 | La documentation : construire, utiliser, précision, tests, CI, écarts avec GAOL 4 | `doc/*.md`, `README.md` |
 | Le manuel de GAOL v5 | `manual/v5/gaol.tex` (`manual/v4` est celui de GAOL 4 : n'y touche jamais) |
@@ -174,8 +174,10 @@ un est refusée, quel que soit son gain.
    `.github/audit` vérifie dans la CI que les trois builds donnent la même
    configuration.
 7. **L'interface.**
-   - Les constructeurs d'`interval` sont `explicit` ; ne réintroduis pas de
-     conversion implicite.
+   - `interval(double)` et `interval(double, double)` ne sont pas encore
+     `explicit` : un entier y devient un double, inexact au-delà de 2^53. Le
+     point D.21 prévoit de les rendre `explicit`, avec des constructeurs pour
+     les entiers. N'ajoute pas de nouvelle conversion implicite.
    - Les fonctions `*_dn()` et `*_up()` sur les doubles sont privées
      (`gaol_double_op.h` n'est pas installé).
    - Les intervalles de floats restent désactivés (`GAOL_FLOAT_INTERVALS`).
@@ -328,11 +330,11 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 ## 7. La procédure, pas à pas
 
 1. **Comprendre le point.** Lis-le dans `TODO.md` avec ses sous-points, ses
-   décisions et les issues qu'il cite. Lis aussi les rapports qui le concernent
-   dans `todo-notes/` (son `README.md` dit où chercher), la revue
-   d'`examples/examples.md` s'il la cite, et le code concerné. Reproduis le
-   défaut avant de le corriger. S'il est déjà corrigé ou ne se reproduit pas,
-   dis-le avec la preuve, sans forcer de changement.
+   décisions et les issues qu'il cite. Lis aussi ce qui le concerne dans
+   `todo-notes/synthese.md` (et au besoin le rapport d'origine, au commit
+   `16a2f60`), la revue d'`examples/examples.md` s'il la cite, et le code
+   concerné. Reproduis le défaut avant de le corriger. S'il est déjà corrigé ou
+   ne se reproduit pas, dis-le avec la preuve, sans forcer de changement.
 2. **Poser les questions qui reviennent au mainteneur avant d'écrire du code.**
    C'est le cas d'un nom d'API publique, d'un compromis que ni le TODO, ni ses
    décisions, ni la section 4 ne tranchent, ou d'un changement d'interface ou

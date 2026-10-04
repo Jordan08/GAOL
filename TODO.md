@@ -1,13 +1,13 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `338f2b3` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `dcd3b11` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
 l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64 à
-#70) et les rapports de [todo-notes/](todo-notes/README.md) ; la table à la
-fin donne la lettre de chaque ancien numéro, et un numéro qui n'y est pas est un
-point fait.
+#70, #80) et les rapports des agents (ce qui en sert encore est dans
+[todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin donne la
+lettre de chaque ancien numéro, et un numéro qui n'y est pas est un point fait.
 
 Les anciens points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 [examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro n
@@ -72,7 +72,11 @@ dans les mêmes fichiers, `cbrt.c`, `rsqrt.c` et `asinpi.c`, et les commentaires
   core-math@inria.fr), #65 ; y joindre ou non l'échec du master à `./check.sh
   --worst --rndd pow` et la borne de `ss` dans `asinpi_acc()`, #66. Corriger
   d'abord les phrases inexactes de `3rd/README.md` relevées par les relectures
-  de #54, #56 et #59.
+  de #54, #56 et #59. Décidé le 4 octobre : avant d'envoyer le correctif 1,
+  examiner aussi les masques `~0ul` et `1ul<<52` de `binary80/atan2/atan2l.c`
+  et de `binary128/expm1/expm1q.c`, que GAOL n'utilise pas (`3rd/README.md`
+  dit « were not examined ») : les lire, lancer `./check.sh` là où `long` fait
+  32 bits, et les ajouter au correctif s'ils ont le même défaut.
 - **6.** **Suites de `fegetround()` lu dans MXCSR et du refus de MinGW-w64**
   (#54, #51). Décidé le 3 octobre : ne pas lire MXCSR sur x86 32 bits avec
   SSE2 ; supprimer `GAOL_RND_MINGW_FENV_ONLY` (mingw-w64 11 i686 passe ctest
@@ -82,6 +86,11 @@ dans les mêmes fichiers, `cbrt.c`, `rsqrt.c` et `asinpi.c`, et les commentaires
   `cbrt.c`, `rsqrt.c` et `asinpi.c` (changement `/* GAOL */`) en attendant le
   point 31. Reporté : signaler à mingw-w64 son `fma()` et son `round()` pour
   msvcrt (#69). Le `fma()` logiciel de `ucrtbase.dll` n'a jamais été vérifié.
+  Décidé le 4 octobre : le refus garde ses deux limites, un programme qui
+  définit `_UCRT` lui-même en se liant à `msvcrt.dll`, et un instantané git de
+  mingw-w64 qui se dit 12 mais date d'avant le déplacement de `fma.c` et
+  `round.c` ; écrire la seconde dans `gaol/gaol_config.h`, à côté de la
+  première (l. 282-284).
 - **56.** **Les commentaires du sens d'arrondi avec mingw-w64** (suite du
   point 6, #54) : le commentaire de `round_upward_if_needed()`
   (`gaol/gaol_fpu.h`, l. 334) dit que l'unité x87 « computes none of GAOL's
@@ -138,7 +147,13 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   10 doubles de trop). Décidé le 3 octobre : rendre `ipow_exact_dn(0)` exact,
   sans traiter chaque borne à part ; garder l'ancien code SSE2 sous `#if 0` ;
   garder la garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre
-  SSE2 et FPU avec GCC 9.4 (#37) : à revérifier.
+  SSE2 et FPU avec GCC 9.4 (#37) : à revérifier. Décidé le 4 octobre : avec
+  `ipow_exact_dn(0)`, réécrire la phrase de `doc/accuracy.md` (l. 94) et du
+  manuel (l. 4301) qui dit les deux bornes prises aux produits arrondis
+  « where one is 0 or infinite or its power is below 2^-968 » : elle est
+  approximative pour une puissance paire d'un intervalle qui contient 0, dont
+  la plus petite borne n'est jamais élevée (`pow([-2^-400, 2], 4)` prend les
+  produits exacts).
 - **51.** **Les commentaires et les textes de pow** (suite du point 1, #37) : le
   commentaire d'en-tête de `pow_standard()` (`gaol/gaol_interval.cpp`) raconte
   l'histoire (« This was the second half… ») au lieu de dire ce que fait la
@@ -170,6 +185,8 @@ laisser `allocator_traits` utiliser son placement-new par défaut.
 - **24.** **Exceptions flottantes : ce qui reste après #47 et #50.** Après #60,
   `is_empty()` reste compilé en `vcmpe` sur armhf dans le code du programme :
   l'écrire avec `std::isunordered()` sur ARM 32 bits (décidé le 3 octobre).
+  Reporté le 4 octobre : signaler à GCC la comparaison rendue signalante par
+  l'if-conversion, sur ARM 32 bits et POWER9 (#80).
   Avec `GAOL_PRESERVE_ROUNDING`, les opérations SSE2 masquent de nouveau les
   exceptions du programme et effacent ses indicateurs : à corriger. `0 × oo`
   dans l'`operator*=` SSE2 et le `pow` de CORE-MATH pour un exposant extrême
@@ -233,8 +250,9 @@ suffit si la partie parser du point Q (#68) est décidée avant.
   le même parcours, `gaol_ieee1788::textToInterval()` attrape tout
   `std::exception`, dont `std::bad_alloc`, et transforme ainsi un échec
   d'allocation en ensemble vide : laisser remonter au moins les erreurs
-  d'allocation. À la régénération, faire taire l'avertissement de Clang 18 sur
-  `gaol_nerrs` (décidé le 3 octobre).
+  d'allocation. À la régénération, garder le `#pragma` qui fait taire
+  l'avertissement de Clang 18 sur `gaol_nerrs`, que #76 a mis dans
+  `gaol/gaol_interval_parser.ypp` (décidé le 3 octobre).
 - **40** (une partie). Le commentaire Doxygen « Parse a string to create an
   interval » de `gaol/gaol_parser.h` est placé avant l'énumération et non avant
   `parse_interval()`, et ne liste que les formats de GAOL 4 (la branche ajoute
@@ -329,7 +347,14 @@ textes qui décrivent le refus.
   documenté, et une vérification à l'exécution dans `gaol/gaol_init_cleanup.h`
   reste à essayer. Décidé le 3 octobre : ajouter le témoin positif, et essayer
   cette vérification (prototype, ce qu'elle détecte et son coût, puis la garder
-  ou non).
+  ou non). Décidé le 4 octobre : corriger aussi deux phrases ambiguës sur
+  `-fno-fast-math`, « the code including GAOL's headers is refused when the
+  option follows it » (`doc/three-builds.md`, l. 147-150, où « it » peut
+  désigner `-fno-fast-math`) et « does nothing when it comes before them, where
+  the compilation stops » (`doc/using.md`, l. 33-35, et le manuel) : dire
+  « quand `-ffast-math` ou `-ffinite-math-only` vient après `-fno-fast-math` » ;
+  et dire dans `doc/building.md` que le `make test` de CMake lance aussi les
+  tests de compilation `refused_*` et `nodiscard_*`.
 - **53.** **Le commentaire du refus de `-ffinite-math-only`** (suite du point 5,
   #39, #47) : `gaol/gaol_config.h` (l. 208) dit encore que `is_empty()` lit
   l'ensemble vide comme `!(left() <= right())`, alors que c'est
@@ -588,7 +613,10 @@ partie parser avec le point E.
   de la classe dérivée (`input_format_error`…), de même quand le texte C de
   l'explication est vide (un NUL en tête), pour que `what()` ne soit jamais
   vide ; la forme courte d'`operator<<` reste, sans réserve là où la
-  documentation dit que GAOL 4 donnait `std::exception`.
+  documentation dit que GAOL 4 donnait `std::exception`. Décidé le 4 octobre :
+  `operator<<` d'une exception (`gaol/gaol_exceptions.cpp`, l. 86-87) appelle
+  `explanation()` deux fois, et copie donc la chaîne deux fois : une variable
+  locale, avec ce changement.
 
 ### T. Les exemples (39, 66)
 
@@ -615,7 +643,10 @@ partie parser avec le point E.
   avale une exception et saute six assertions. Décidé le 3 octobre : le
   programme qui compare les 88 sorties du manuel au programme
   (`run_examples.py`, hors du dépôt) va dans `manual/`. Non vérifié :
-  `GAOL_NODISCARD` sous Visual C++ 2017 15.8 et 15.9.
+  `GAOL_NODISCARD` sous Visual C++ 2017 15.8 et 15.9. Décidé le 4 octobre :
+  corriger le commentaire de `gaol/gaol_interval.cpp` (l. 1046) qui dit que le
+  format hexa écrit les signes des bornes, faux depuis #71 ; `chi([-oo, +oo])`
+  reste 1, comme dans GAOL 4 et le manuel.
 - **64.** **La mise en page de `doc/tests.md`** (#32, #39, #41, #42) : cinq
   lignes de plus de 100 colonnes (l. 43, 72, 298, 300 et 308) parmi des lignes
   d'environ 80, une ligne orpheline (l. 281, « With flush-to-zero,
@@ -669,13 +700,13 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **La pull request de synthèse**, une fois les branches de « En cours »
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
-  le 28 septembre (les textes proposés sont dans les rapports de
-  `todo-notes/`, et dans la description de #71 pour le point C ; pour le
+  le 28 septembre (les textes proposés sont dans `todo-notes/synthese.md`, et
+  dans la description de #71 pour le point C ; pour le
   point K, à écrire d'après #72 et #73 ; dans celles de #74, #75 et #76 pour les
   points L, `make distclean` et J, et pour les suites du point J, d'après les
   commits de `configure-clean` du 4 octobre) ;
-  `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5, 8, 10, 12, 15, 19,
-  20 et 21 de la section 5 et de l'annexe B, le n° 10 comme
+  `examples/examples.md` (marquer **Fixed** les n° 2, 3, 4, 5, 7, 8, 10, 12,
+  15, 16, 19, 20, 21 et 22 de la section 5 et de l'annexe B, le n° 10 comme
   corrigé par la suppression des constructeurs à partir de chaînes (#30), et la
   ligne vide du n° 14 ; reprendre ce qu'il dit des points corrigés) ; une seule
   régénération de `manual/v5/gaol.pdf`, dont la dernière date du 28 septembre,
@@ -729,7 +760,13 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
   chacune de #58 et #60 à #63.
 - **L'issue #49** reste ouverte comme suivi d'ensemble ; les décisions du
-  3 octobre et les liens vers les issues #64 à #70 y sont en commentaire.
+  3 octobre et les liens vers les issues #64 à #70 y sont en commentaire, comme
+  celles du 4 octobre sur les questions restées ouvertes dans les rapports
+  (#80).
+- **`todo-notes/`** : ramené de la branche `todo-status`, supprimée ensuite ;
+  ses rapports, relus le 4 octobre, sont retirés de l'arbre (ils restent au
+  commit `16a2f60`), et ce qui en sert encore est dans
+  `todo-notes/synthese.md`.
 
 ## Table des anciens numéros
 
