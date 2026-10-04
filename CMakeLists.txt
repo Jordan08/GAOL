@@ -669,6 +669,14 @@ set_target_properties(gaol_core_math PROPERTIES
 target_compile_options(gaol_core_math PRIVATE ${GAOL_CORE_MATH_FLAGS} ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_LIBRARY_FLAGS})
 target_include_directories(gaol_core_math PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+# /W4 of Visual C++ (the job warnings of windows.yml) on what CORE-MATH writes
+# on purpose (GAOL v5): its #pragma STDC FENV_ACCESS, which /fp:strict makes
+# redundant (C4068), the anonymous structures of its unions (C4201), masks
+# written as negative constants (C4245), and the volatile variables it
+# computes for the flags they raise alone (C4189)
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189)
+endif()
 
 if(MSVC)
   add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)

@@ -250,6 +250,18 @@ kept as a patch to reapply.
    against their exact values. The fix is
    [proposed to CORE-MATH](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm).
 
+9. **Shifts of a 64-bit result written on 64 bits** in `cos/cos.c`, `tan/tan.c`
+   and `hypot/hypot.c`, which the warnings of Visual C++ at `/W4` (C4334)
+   point at, in the job of the continuous integration that compiles GAOL with
+   `/W4 /WX`. In `cos.c` and `tan.c`, `1l << (a->ex + 1073)` is written
+   `1ll << ...`: the shift goes up to 51 places, undefined where `long` has 32
+   bits, as on Windows, though no argument reaches it (see the
+   [proposed fix](#1-masks-written-with-long), which writes it so). In
+   `hypot.c`, the two `1 << ...` subtracted from or masking a `u64` are
+   written `1ull << ...`, with no change of value: their shifts stay below 32.
+   The other warnings of `/W4` on these sources, of what they write on
+   purpose, are turned off for them alone (`CMakeLists.txt`).
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
