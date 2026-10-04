@@ -120,7 +120,11 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   0), deux fois par `nth_root(x, q)` pour q < 0 et par `modulo_k_pi()`.
   Correction : appeler les corps de ces opérations après une seule vérification,
   comme `tan()` et les puissances négatives ; les corps de `log()`, `exp()` et
-  `*` sans la vérification restent à écrire. Décidé le 3 octobre : les deux,
+  `*` sans la vérification restent à écrire. `nth_root(I, q)` calcule `|q|`
+  par `-static_cast<long>(q)` pour inclure `INT_MIN`, mais `long` fait aussi
+  32 bits sous MSVC et MinGW : `nth_root(I, INT_MIN)` déclenche alors un
+  dépassement signé indéfini ; calculer la magnitude sans négation signée et
+  couvrir ce cas dans les tests. Décidé le 3 octobre : les deux,
   dans cet ordre ; pour `pow`, après le point 3, étendre ensuite l'analyse des
   coins aux bornes infinies et à une base partant de 0 : plus d'exp(y log x), et
   des boîtes serrées (aujourd'hui, `pow([4, +oo], 0.5)` vaut [2 − 2^-52, +oo],
@@ -152,17 +156,25 @@ La première comparaison silencieuse (24), les constructeurs pour les entiers
 (21) et, si #68 la décide, la comparaison par les bits sous DAZ (point Q)
 touchent le même constructeur (`gaol_interval_sse.h`, `gaol_interval_fpu.h`,
 `gaol_interval.h`) ; la documentation des exceptions flottantes (62) va avec le
-24.
+24. `gaol_interval.h` contient aussi `using namespace gaol_core;` à corriger.
+Plusieurs headers utilisent des macros avec noms réservés comme `__GAOL_PUBLIC__`
+(à renommer en `GAOL_PUBLIC`) et des casts C-style à remplacer par `static_cast<>`.
+`gaol_allocator.h` utilise `= 0` au lieu de `= nullptr` ; son
+`aligned_allocator<T>` ne garantit que 16 octets d'alignement, donc ne convient
+pas aux types suralignés (`alignof(T) > 16`). Aligner selon `alignof(T)` ou
+refuser ces types explicitement. Son `construct(pointer, const T&)` bloque aussi
+la construction avec d'autres arguments via `allocator_traits`, notamment pour
+les types déplaçables mais non copiables : fournir un `construct` variadique ou
+laisser `allocator_traits` utiliser son placement-new par défaut.
 
 - **24.** **Exceptions flottantes : ce qui reste après #47 et #50.** Après #60,
   `is_empty()` reste compilé en `vcmpe` sur armhf dans le code du programme :
-  l'écrire avec `std::isunordered()` sur ARM 32 bits (décidé le 3 octobre). Avec
-  `GAOL_PRESERVE_ROUNDING`, les opérations SSE2 masquent de nouveau les
+  l'écrire avec `std::isunordered()` sur ARM 32 bits (décidé le 3 octobre).
+  Avec `GAOL_PRESERVE_ROUNDING`, les opérations SSE2 masquent de nouveau les
   exceptions du programme et effacent ses indicateurs : à corriger. `0 × oo`
   dans l'`operator*=` SSE2 et le `pow` de CORE-MATH pour un exposant extrême
   lèvent FE_INVALID, sans test : les corriger, avec un test et le coût de `*`
-  mesuré (décidé le 3 octobre). `gaol_intervalf.h` appelle `std::islessequal`
-  sans inclure `<cmath>`. Décidé le 3 octobre : la première comparaison de
+  mesuré (décidé le 3 octobre). Décidé le 3 octobre : la première comparaison de
   `interval(l, r)` devient silencieuse, ce qui rend gratuits `floor`, `ceil` et
   `integer` (`interval(NAN)`, `x += NAN` et `set_contains(NAN)` ne lèvent plus
   FE_INVALID) ; `x &= y` s'écrit avec un seul `std::isunordered()` (à vérifier
@@ -180,7 +192,9 @@ touchent le même constructeur (`gaol_interval_sse.h`, `gaol_interval_fpu.h`,
   puis retiré) : l'entier devient un double, et un entier au-delà de 2^53 un
   double qui ne le contient pas. Correction : des constructeurs templates sur
   les types entiers, contraints, dans les en-têtes, sans changement d'ABI ; pas
-  un simple `interval(int)`, qui rend `interval(5L)` ambigu.
+  un simple `interval(int)`, qui rend `interval(5L)` ambigu. De plus, les
+  constructeurs existants devraient être marqués `explicit` pour éviter les
+  conversions implicites dangereuses.
 - **62.** **La documentation des exceptions flottantes** (suite du point 24,
   #47, #50) : la liste des opérations qui, sous `GAOL_PRESERVE_ROUNDING`,
   masquent de nouveau les exceptions du programme (`doc/using.md` l. 527, manuel
@@ -205,9 +219,22 @@ suffit si la partie parser du point Q (#68) est décidée avant.
   `todo-12-long-sums`, inachevée : chaque opération calculée dès sa lecture par
   le parser régénéré, l'évaluation et la destruction des expressions par des
   boucles, l'imbrication bornée par `YYMAXDEPTH` (au-delà, `input_format_error`)
-  et `operator<<` d'une expression encore récursif (limite documentée). À la
-  régénération, faire taire l'avertissement de Clang 18 sur `gaol_nerrs` (décidé
-  le 3 octobre).
+  et `operator<<` d'une expression encore récursif (limite documentée). Faire
+  aussi remonter comme `std::bad_alloc` l'échec d'allocation du buffer Flex :
+  `gaol__scan_string()` appelle actuellement `yy_fatal_error()`, qui termine
+  tout le processus par `exit(2)`. Capturer également les `std::bad_alloc` de
+  l'analyse lexicale ou des actions du parser et les faire passer par son abort
+  contrôlé : si elles traversent `yyparse()`, `gaol_parse_string()` détruit le
+  scanner mais les `%destructor` de Bison ne libèrent pas les nœuds encore sur
+  sa pile. Traiter aussi les octets NUL dans les entrées `std::string` et
+  `operator>>` : ils sont tronqués par `yy_scan_string()` (`strlen`), donc une
+  entrée telle que `1\0texte` est acceptée comme `1` au lieu d'être rejetée ;
+  rejeter ces entrées ou transmettre une longueur explicite au scanner. Dans
+  le même parcours, `gaol_ieee1788::textToInterval()` attrape tout
+  `std::exception`, dont `std::bad_alloc`, et transforme ainsi un échec
+  d'allocation en ensemble vide : laisser remonter au moins les erreurs
+  d'allocation. À la régénération, faire taire l'avertissement de Clang 18 sur
+  `gaol_nerrs` (décidé le 3 octobre).
 - **40** (une partie). Le commentaire Doxygen « Parse a string to create an
   interval » de `gaol/gaol_parser.h` est placé avant l'énumération et non avant
   `parse_interval()`, et ne liste que les formats de GAOL 4 (la branche ajoute
@@ -345,7 +372,13 @@ s'écrit avec le point I.
   peut appeler autant de fois qu'on veut, une garde qui calcule un bloc au plus
   proche (environ 7 ns) et `rnd_keep()` documenté ; à faire avec le point 36,
   dont la branche documente déjà `rnd_keep()` et écrit une telle garde dans
-  `examples/13_rounding_environment.cpp`.
+  `examples/13_rounding_environment.cpp`. Les sauvegardes manuelles sautent
+  aussi si une allocation lève `std::bad_alloc` : après `round_nearest()`,
+  `gaol_enclose_number()` compare le nombre avec des `std::vector` sans garde ;
+  la construction du texte dans `operator<<` ou `intervalToText()` peut
+  également échouer avant `GAOL_RND_RESTORE()` ou `GAOL_RND_LEAVE()`. Le lecteur
+  peut alors laisser l'arrondi au plus proche même sans
+  `GAOL_PRESERVE_ROUNDING` ; protéger ces chemins par une garde RAII.
 - **48.** **`cancel_minus` et `cancel_plus` sont faux avec la bibliothèque
   compilée par GCC à `-O3`** (le build Release par défaut) : dans
   `difference_at_least()` (`gaol/gaol_interval.cpp`), GCC déplace les termes
@@ -387,9 +420,15 @@ ne régénérer le PDF qu'une fois (point Y) ; le site (70) vient après.
   ordre non entier de `nth_root` dans un texte, qui lève
   `invalid_action_error` ; `gaol_ieee1788::textToInterval`, qui rend l'ensemble
   vide pour un texte mal formé ; une borne nulle écrite `-0`, dont le signe
-  diffère entre les builds SSE2 et FPU. Décidé le 3 octobre : les mettre aussi
-  dans une section courte de `doc/using.md`, qui renvoie au manuel pour le
-  détail.
+  diffère entre les builds SSE2 et FPU ; les réglages globaux
+  `interval::format()` et `interval::precision()`, dont la modification
+  concurrente avec l'affichage (`operator<<` ou `intervalToText()`) crée une
+  data race : décider si l'API doit être rendue sûre entre threads ou si les
+  changements doivent être synchronisés par l'appelant, puis le documenter.
+  Décidé le 3 octobre : les pièges retenus sont aussi décrits dans une section
+  courte de `doc/using.md`, qui renvoie au manuel pour le détail. Les méthodes
+  `inverse()` de `interval`, `interval2f` et `intervalf` ont des commentaires
+  `// TODO: document inverse()` à résoudre.
 - **37.** **Une table des noms** pour les utilisateurs d'IBEX, de Codac, de
   C-XSC, de Boost et d'IEEE 1788, dans `doc/using.md` ou le manuel, avec ce que
   `<`, `<=` et `==` signifient dans chacun : dans C-XSC et PROFIL/BIAS, `<=` est
@@ -510,8 +549,9 @@ partie parser avec le point E.
   comme 0, avant toute sonde. Le parser accepte `<1e-310, 1e-309>`,
   `interval(0x1p-1073, 0x1p-1074)` n'est pas vide, `bound_to_text()` écrit une
   borne sous-normale au plus proche (à un chiffre, [22·2^-1074] s'écrit
-  `[1e-322]`, relu plus petit), et `log`, `sqrt`, `abs`, `div_rel`, `mid()` et
-  les relations se trompent : depuis #62 (point 4), avant la première opération
+  `[1e-322]`, relu plus petit), `sign(interval(-denorm_min))` donne `[0, 0]`
+  au lieu de `[-1, -1]`, et `log`, `sqrt`, `abs`, `div_rel`, `mid()` et les
+  relations se trompent : depuis #62 (point 4), avant la première opération
   qui sonde, et à chaque appel avec `GAOL_PRESERVE_ROUNDING`. Correction :
   comparer les bits, ou sonder avant de comparer, et régénérer le parser.
   Question de #58 : retirer DAZ et FTZ le temps de l'écriture, gdtoa et le
@@ -700,3 +740,31 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 45 : Q ; 46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ;
 55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ;
 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y.
+
+## Ordre proposé pour les tâches restantes
+
+1. **Débloquer la fin du parser : D, puis la décision parser de Q.** Traiter les
+   changements du constructeur et préciser la correction DAZ du lecteur avant
+   la régénération finale du parser. Les branches E et H peuvent avancer en
+   parallèle sur leurs parties indépendantes.
+2. **Terminer et fusionner E, puis H.** Inclure dans E la gestion récupérable de
+   l'échec d'allocation du scanner ; régénérer le parser une fois les décisions
+   de Q prises, puis relire les branches et résoudre le conflit de `doc/using.md`.
+3. **Finir Q et les corrections de puissance B.** Faire d'abord A.3, prérequis
+   noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce point.
+   Compléter ensuite les tests DAZ concernés par Q.
+4. **Achever les autres corrections mathématiques : M et R.** Garder les
+   mesures et les tests avec les changements de bornes concernés.
+5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
+   Faire F après la régénération du parser ; corriger `3rd/README.md` avant tout
+   envoi amont pour A et valider les plateformes prises en charge.
+6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
+   puis I.** Intégrer dans I la décision et la documentation sur la concurrence
+   des réglages de format ; coordonner V avec l'avertissement sur les
+   comparateurs.
+7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
+   de la documentation, couverture et mesures de performance ; faire ensuite
+   le ménage listé plus haut.
+8. **Après la version, reprendre les ajouts de portée plus large : P, W et X.**
+   Ils portent surtout sur de nouvelles fonctionnalités ou de nouveaux
+   mécanismes, plutôt que sur les corrections nécessaires à v5.0.0.
