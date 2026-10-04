@@ -110,8 +110,8 @@ jobs:
           - { os: macos-26,       compiler: appleclang, desc: 'macOS 26 arm64 AppleClang Debug ASan+UBSan' }
           - { os: macos-26,       compiler: llvm,       desc: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan' }
           - { os: macos-26,       compiler: gcc,        desc: 'macOS 26 arm64 GCC Debug ASan+UBSan' }
-          # numbers took 235 s of the 300 it is given, and once more: 400
-          - { os: macos-15-intel, compiler: gcc,        timeout: 400, desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan' }
+          # numbers took 146 to 367 s on the same code, and once more than 400: 600
+          - { os: macos-15-intel, compiler: gcc,        timeout: 600, desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan' }
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     steps:

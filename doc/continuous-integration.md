@@ -92,9 +92,9 @@ locale: the output ctest keeps in `Testing/Temporary/LastTest.log`,
 `tests/numbers.log` with the autotools, `meson-logs/testlog.txt` with meson
 (GAOL v5: only the CMake jobs of `linux.yml` checked it). Alpine and
 manylinux have no locale writing a decimal comma to generate, and check
-nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
-job of macOS 15 x86_64 GCC with the sanitizers, where it took 235 s and once
-more than 300.
+nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 600 in the
+job of macOS 15 x86_64 GCC with the sanitizers, where it took 146 to 367 s on
+the same code, and once more than 400.
 
 The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
 (`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
