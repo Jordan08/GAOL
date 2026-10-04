@@ -35,6 +35,7 @@
   gaol/gaol_interval_parser.h
  */
 using namespace gaol;
+using namespace gaol_core;
 
 #include "gaol/gaol_interval_parser.h"
 #include "gaol/gaol_exact.h"

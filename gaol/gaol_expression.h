@@ -1312,6 +1312,7 @@ typedef struct {
   gaol_ieee1788::pow(x, [3]).
 */
 namespace gaol {
+  using namespace gaol_core;
   GAOL_NODISCARD inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
   GAOL_NODISCARD inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
 } // namespace gaol

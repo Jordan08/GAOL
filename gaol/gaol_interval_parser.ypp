@@ -37,6 +37,7 @@
 void gaol_error_bison(void *scanner, void *context, const char *msg);
 
 using namespace gaol;
+using namespace gaol_core;
 
 /*
   The state of a reading of a string (GAOL v5), which the parser, a pure one,
