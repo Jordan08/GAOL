@@ -177,7 +177,7 @@
 #  define GAOL_RND_PRESERVE()   const gaol_core::rounding_state _save_state = gaol_core::get_rounding()
 #  define GAOL_RND_RESTORE()    gaol_core::set_rounding_and_flush_modes(_save_state)
 #  define GAOL_RND_KEEP(x)      ((x) = gaol_core::rnd_keep(x))
-#  if USING_SSE2_INSTRUCTIONS
+#  if GAOL_USING_SSE2_INSTRUCTIONS
 #     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS); gaol_core::round_upward_sse()
 #     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | _save_state_sse)
 #  endif
@@ -187,7 +187,7 @@
 #  define GAOL_RND_PRESERVE()
 #  define GAOL_RND_RESTORE()    gaol_core::round_upward()
 #  define GAOL_RND_KEEP(x)
-#  if USING_SSE2_INSTRUCTIONS
+#  if GAOL_USING_SSE2_INSTRUCTIONS
 #     define GAOL_RND_ENTER_SSE() gaol_core::round_upward_if_needed()
 #     define GAOL_RND_LEAVE_SSE()
 #  endif
@@ -214,14 +214,14 @@
 #endif
 
 
-#if HAVE_FENV_H
+#if GAOL_HAVE_FENV_H
 #  include "gaol/gaol_fpu_fenv.h"
 #elif defined (_MSC_VER)
 #  include <fenv.h>
 #  include "gaol/gaol_fpu_msvc.h"
 #else
 #  error "Don't know how to define FPU manipulation functions"
-#endif // HAVE_FENV_H
+#endif // GAOL_HAVE_FENV_H
 
 namespace gaol_core {
 
@@ -243,7 +243,7 @@ namespace gaol_core {
 
 #if defined(GAOL_RND_FLUSH_BITS)
   //! The flush-to-zero modes set, as their bits of GAOL_RND_FLUSH_BITS
-  INLINE unsigned int get_flush_modes()
+  GAOL_INLINE unsigned int get_flush_modes()
   {
 #  if GAOL_RND_SSE_REGISTER
     return _mm_getcsr() & GAOL_RND_FLUSH_BITS;
@@ -259,7 +259,7 @@ namespace gaol_core {
   }
 
   //! Sets the flush-to-zero modes as modes has them, and nothing else
-  INLINE void set_flush_modes(unsigned int modes)
+  GAOL_INLINE void set_flush_modes(unsigned int modes)
   {
 #  if GAOL_RND_SSE_REGISTER
     _mm_setcsr((_mm_getcsr() & ~GAOL_RND_FLUSH_BITS) | modes);
@@ -277,13 +277,13 @@ namespace gaol_core {
   }
 
   //! Clears the flush-to-zero modes, and nothing else
-  INLINE void clear_flush_to_zero()
+  GAOL_INLINE void clear_flush_to_zero()
   {
     set_flush_modes(0u);
   }
 #endif
 
-  INLINE rounding_state get_rounding()
+  GAOL_INLINE rounding_state get_rounding()
   {
     rounding_state s;
     s.direction = fegetround();
@@ -299,7 +299,7 @@ namespace gaol_core {
   }
 
   //! Sets the rounding direction back, and nothing else of the environment
-  INLINE void set_rounding(const rounding_state& s)
+  GAOL_INLINE void set_rounding(const rounding_state& s)
   {
     fesetround(s.direction);
 #if GAOL_RND_SSE_REGISTER
@@ -308,7 +308,7 @@ namespace gaol_core {
   }
 
   //! set_rounding(), and the flush-to-zero modes as well
-  INLINE void set_rounding_and_flush_modes(const rounding_state& s)
+  GAOL_INLINE void set_rounding_and_flush_modes(const rounding_state& s)
   {
     fesetround(s.direction);
 #if GAOL_RND_SSE_REGISTER
@@ -369,7 +369,7 @@ namespace gaol_core {
     an operation with a subnormal operand or result, which each operation
     would pay there: none was measured (GAOL v5).
   */
-  INLINE void round_upward_if_needed()
+  GAOL_INLINE void round_upward_if_needed()
   {
 #if GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
     // 2^-1060, as a literal for the reason of the one of 2^-60 below
@@ -433,13 +433,13 @@ namespace gaol_core {
     return y;
   }
 
-  INLINE double rnd_keep(double x)
+  GAOL_INLINE double rnd_keep(double x)
   {
     volatile double kept = x;
     return kept;
   }
 
-  INLINE float rnd_keep(float x)
+  GAOL_INLINE float rnd_keep(float x)
   {
     volatile float kept = x;
     return kept;
@@ -457,7 +457,7 @@ namespace gaol_core {
     the doubles are computed by the x87 unit, which has no such mode, nor with
     Visual C++ (see GAOL_RND_BARRIER()).
   */
-  INLINE double rnd_reread(double x)
+  GAOL_INLINE double rnd_reread(double x)
   {
 #if (defined(__GNUC__) || defined(__clang__)) && GAOL_RND_SSE_REGISTER
 #  if defined(__SSE2_MATH__)

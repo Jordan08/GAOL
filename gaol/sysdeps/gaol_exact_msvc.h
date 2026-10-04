@@ -24,7 +24,7 @@
 #define __gaol_exact_msvc_h__
 
 #if GAOL_USING_ASM
-INLINE int get_inexact(void)
+GAOL_INLINE int get_inexact(void)
 {
   unsigned int res_exact;
   __asm {
@@ -34,7 +34,7 @@ INLINE int get_inexact(void)
 }
 
 
-INLINE void clear_inexact(void)
+GAOL_INLINE void clear_inexact(void)
 {
   __asm {
     fnclex

@@ -119,7 +119,7 @@ namespace gaol_core {
 
 	__GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const intervalf& I);
 
-  INLINE intervalf inverse(const intervalf& I)
+  GAOL_INLINE intervalf inverse(const intervalf& I)
   {
     return I.inverse();
   }
@@ -188,7 +188,7 @@ namespace gaol_core {
 		return _left>0.0f && _right>0.0f;
 	}
 
-  INLINE bool intervalf::set_strictly_contains(const intervalf& I) const
+  GAOL_INLINE bool intervalf::set_strictly_contains(const intervalf& I) const
   {
     return (I.is_empty() || ((left()<I.left()) && (right()>I.right())));
   }
@@ -196,18 +196,18 @@ namespace gaol_core {
   /**
     @note d should not be a NaN
     */
-  INLINE bool intervalf::set_strictly_contains(float d) const
+  GAOL_INLINE bool intervalf::set_strictly_contains(float d) const
   {
     return ((left()<d) && (right()>d));
   }
 
-  INLINE bool intervalf::set_disjoint(const intervalf &I) const
+  GAOL_INLINE bool intervalf::set_disjoint(const intervalf &I) const
   {
       return (right() < I.left()) || (left() > I.right())
 	  || (is_empty() || I.is_empty());
   }
 
-  INLINE void intervalf::split(intervalf &I1, intervalf &I2) const
+  GAOL_INLINE void intervalf::split(intervalf &I1, intervalf &I2) const
   {
     float l = left(), m = midpoint(), r = right();
     I1 = intervalf(l,m);

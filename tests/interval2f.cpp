@@ -6,7 +6,7 @@
 // otherwise (exit status 77) (GAOL v5)
 #include "unit_tests.h"
 
-#if defined(GAOL_FLOAT_INTERVALS) && USING_SSE3_INSTRUCTIONS
+#if defined(GAOL_FLOAT_INTERVALS) && GAOL_USING_SSE3_INSTRUCTIONS
 
 #include "gaol/gaol_intervalf.h"
 #include "gaol/gaol_interval2f.h"

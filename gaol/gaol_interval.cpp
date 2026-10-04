@@ -44,7 +44,7 @@
 #include <cstring>
 #include <sstream>
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 #  include <pmmintrin.h>
 #endif
 
@@ -88,11 +88,11 @@ namespace gaol_core {
   // files included here, calls it
   static interval uipow_nonempty(const interval& I, unsigned int e);
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 #  include "gaol/gaol_interval_sse.cpp"
 #else
 #  include "gaol/gaol_interval_fpu.cpp"
-#endif // USING_SSE2_INSTRUCTIONS
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   /*
     x^n rounded upward and downward from exact products, x >= 0 and n >= 2, the
@@ -2006,12 +2006,12 @@ interval nth_root(const interval& I, int q)
 	return inverse(nth_root(I,n));
 }
 
-  ULONGLONGINT nb_fp_numbers(double a, double b)
+  unsigned long long nb_fp_numbers(double a, double b)
   {
     if (!is_finite(a) || !is_finite(b) || (a > b)) {
       // Either a or b is a NaN or +/-oo, or [a,b] is empty?
       gaol_ERROR(invalid_action_error,"invalid argument(s) in call to nb_fp_numbers()");
-      return std::numeric_limits<ULONGLONGINT>::max();
+      return std::numeric_limits<unsigned long long>::max();
     }
 
     if (a == b) {
@@ -4078,7 +4078,7 @@ namespace gaol {
 */
 #ifdef GAOL_FLOAT_INTERVALS
 #  include "gaol/gaol_intervalf.cpp"
-#  if USING_SSE3_INSTRUCTIONS
+#  if GAOL_USING_SSE3_INSTRUCTIONS
 #    include "gaol/gaol_interval2f.cpp"
 #  endif
 #endif // GAOL_FLOAT_INTERVALS

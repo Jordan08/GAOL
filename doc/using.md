@@ -57,7 +57,14 @@ the three that other headers include in the middle of their code
 `gaol_u128.h` and `gaol_parameters.h`. GAOL's headers compile
 without a warning under `-Wall -Wextra`, and put nothing into the global
 namespace: `gaol/gaol_exceptions.h` declared `string` and `exception` there,
-which a program now names `std::string` and `std::exception` (GAOL v5).
+which a program now names `std::string` and `std::exception` (GAOL v5). The
+macros they define start with `GAOL_` (or `gaol_`), so as not to meet those
+of the program or of another library (GAOL v5): `USING_SSE2_INSTRUCTIONS`,
+`HAVE_FENV_H`, `WORDS_BIGENDIAN`, `INLINE`, `MEMALIGN`, `__HI`... are now
+`GAOL_USING_SSE2_INSTRUCTIONS`, `GAOL_HAVE_FENV_H`, `GAOL_WORDS_BIGENDIAN`,
+`GAOL_INLINE`, `GAOL_MEMALIGN`, `GAOL_HI`..., `<stdlib.h>` is no longer
+included with `_XOPEN_SOURCE` defined again, and `nb_fp_numbers()` returns an
+`unsigned long long`, which GAOL 4 named with the macro `ULONGLONGINT`.
 
 ## From CMake
 

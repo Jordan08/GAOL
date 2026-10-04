@@ -32,12 +32,12 @@
 
   __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const __m128d& x);
 
-  INLINE interval interval::universe(void)
+  GAOL_INLINE interval interval::universe(void)
     {
       return interval(interval::m128_infinf);
     }
 
-  INLINE interval interval::zero(void)
+  GAOL_INLINE interval interval::zero(void)
     {
       return interval(interval::m128_zero);
     }
@@ -45,29 +45,29 @@
   // Both bounds NaN, as interval(double) sets them for a NaN, but without the
   // comparisons that decide it: they signal the invalid-operation exception on
   // a NaN, and a build without optimization runs them (GAOL v5)
-  INLINE interval interval::emptyset(void)
+  GAOL_INLINE interval interval::emptyset(void)
     {
       return interval(_mm_set1_pd(std::numeric_limits<double>::quiet_NaN()));
     }
 
-  INLINE interval::interval(const __m128d& xmm)
+  GAOL_INLINE interval::interval(const __m128d& xmm)
     {
       xmmbounds = xmm;
     }
 
-  INLINE interval interval::positive(void)
+  GAOL_INLINE interval interval::positive(void)
     {
       return interval(0.0,std::numeric_limits<double>::infinity());
     }
 
-  INLINE interval interval::negative(void)
+  GAOL_INLINE interval interval::negative(void)
     {
       return interval(-std::numeric_limits<double>::infinity(),0.0);
     }
 
   // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
   // interval [+oo, +oo] nor [-oo, -oo] (10.5.8)
-  INLINE interval::interval(double v)
+  GAOL_INLINE interval::interval(double v)
     {
       // The bounds are set in a register: written to a pair in memory, their
       // 16-byte load stalls on the two 8-byte stores, which costs several ns
@@ -80,7 +80,7 @@
 
   // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
   // the wrong order and NaN bounds, as in IBEX
-  INLINE interval::interval(double l, double r)
+  GAOL_INLINE interval::interval(double l, double r)
     {
       if (l <= r && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
         xmmbounds = _mm_set_pd(r, -l);
@@ -89,18 +89,18 @@
       }
     }
 
-  INLINE interval::interval()
+  GAOL_INLINE interval::interval()
     {
       xmmbounds = _mm_set1_pd(std::numeric_limits<double>::infinity());
     }
 
 
-  INLINE interval::interval(const interval& I)
+  GAOL_INLINE interval::interval(const interval& I)
     {
       xmmbounds = I.xmmbounds;
     }
 
-	 INLINE interval& interval::operator&=(const interval& I)
+	 GAOL_INLINE interval& interval::operator&=(const interval& I)
 	 {
 	   if (is_empty()) {
       	return *this;
@@ -132,7 +132,7 @@
     	return *this;
 	 }
 
-	 INLINE interval& interval::operator|=(const interval& I)
+	 GAOL_INLINE interval& interval::operator|=(const interval& I)
 	 {
 	   if (is_empty()) {
       	*this = I;
@@ -155,30 +155,30 @@
     	return *this;
    }
 
-  INLINE double interval::left_internal() const
+  GAOL_INLINE double interval::left_internal() const
     {
       GAOL_ALIGN16(double l);
       _mm_storel_pd(&l,xmmbounds);
       return l;
     }
-  INLINE double interval::right_internal() const
+  GAOL_INLINE double interval::right_internal() const
     {
       GAOL_ALIGN16(double r);
       _mm_storeh_pd(&r,xmmbounds);
       return r;
     }
 
- INLINE void interval::get_bounds(interval::xmm2d& b) const
+ GAOL_INLINE void interval::get_bounds(interval::xmm2d& b) const
     {
       _mm_store_pd(b,xmmbounds);
     }
 
-  INLINE const __m128d& interval::get_xmminterval(void) const
+  GAOL_INLINE const __m128d& interval::get_xmminterval(void) const
     {
       return xmmbounds;
     }
 
-  INLINE __m128d& interval::get_xmminterval(void)
+  GAOL_INLINE __m128d& interval::get_xmminterval(void)
     {
       return xmmbounds;
     }

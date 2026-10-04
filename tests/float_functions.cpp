@@ -181,7 +181,9 @@ public:
   }
   
   void test_types() {
-      CPPUNIT_ASSERT(sizeof(ULONGLONGINT)==8);
+      // The type of nb_fp_numbers(), unsigned long long, which GAOL 4 named
+      // ULONGLONGINT (GAOL v5)
+      CPPUNIT_ASSERT(sizeof(nb_fp_numbers(0.0, 1.0))==8);
   }
   // <-- End of tests
 };

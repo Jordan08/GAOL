@@ -33,11 +33,8 @@
 #include <cstddef>
 #include <limits>
 #include <new>
-#undef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
-#include <stdlib.h>
 
-// MEMALIGN() and MEMFREE(): this file compiles alone (GAOL v5)
+// GAOL_MEMALIGN() and GAOL_MEMFREE(): this file compiles alone (GAOL v5)
 #include "gaol/gaol_port.h"
 
 namespace gaol_core {
@@ -96,7 +93,7 @@ class aligned_allocator
 		pointer allocate ( size_type num, const void* = 0 )
 		{
 			void *buf;
-			if ( MEMALIGN( buf,16,num*sizeof ( value_type ) ) )   // Allocation error?
+			if ( GAOL_MEMALIGN( buf,16,num*sizeof ( value_type ) ) )   // Allocation error?
 			{
 				throw std::bad_alloc();
 			}
@@ -120,8 +117,8 @@ class aligned_allocator
 		// deallocate storage p of deleted elements
 		void deallocate ( pointer p, size_type )
 		{
-			// The memory MEMALIGN() allocated
-			MEMFREE((void*)p);
+			// The memory GAOL_MEMALIGN() allocated
+			GAOL_MEMFREE((void*)p);
 		}
 };
 

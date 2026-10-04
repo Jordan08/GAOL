@@ -48,7 +48,7 @@
 	void* interval::operator new(size_t sz)
 	{
 		void *buf;
-		if (MEMALIGN(buf,16,sz)) { // error ?
+		if (GAOL_MEMALIGN(buf,16,sz)) { // error ?
 			throw std::bad_alloc();
 		}
 		return buf;
@@ -56,13 +56,13 @@
 
     void interval::operator delete(void *p)
     {
-        MEMFREE(p);
+        GAOL_MEMFREE(p);
     }
 
 	void* interval::operator new[](size_t sz)
 	{
 		void *buf;
-		if (MEMALIGN(buf,16,sz)) { // error ?
+		if (GAOL_MEMALIGN(buf,16,sz)) { // error ?
 			throw std::bad_alloc();
 		}
 		return buf;
@@ -72,7 +72,7 @@
 
     void interval::operator delete[](void *p)
     {
-        MEMFREE(p);
+        GAOL_MEMFREE(p);
     }
 
 	void* interval::operator new(size_t sz, void *p)
@@ -312,7 +312,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		uipow_dnup --
 		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), -rnddn(a^n)> 
 	*/
-   INLINE __m128d uipow_dnup(const __m128d& I, unsigned int n)
+   GAOL_INLINE __m128d uipow_dnup(const __m128d& I, unsigned int n)
     { // On input, n is assumed to be non-null
       //__m128d _mm_lbsignmask = _mm_set_pd(0.0,-0.0);
 
@@ -336,7 +336,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		uipow_upup --
 		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), rndup(a^n)> 
 	*/
-  INLINE __m128d uipow_upup(const __m128d& I, unsigned int n)
+  GAOL_INLINE __m128d uipow_upup(const __m128d& I, unsigned int n)
     {
       __m128d y = _mm_set_pd(1.0,1.0);
       __m128d z = I;
@@ -383,7 +383,7 @@ unsigned char MSB_position(uint32_t v)
   Algorithm adapted from: Bit Twiddling Hacks
         (http://graphics.stanford.edu/~seander/bithacks.html)
 */
-INLINE uint32_t reverse_bits(uint32_t v)
+GAOL_INLINE uint32_t reverse_bits(uint32_t v)
 {
     static const unsigned char reverse_lookup[] =
     {
@@ -423,7 +423,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
 		uipow_dnup --
 		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), -rnddn(a^n)> 
 	*/
-  INLINE __m128d uipow_dnup(const __m128d& I, unsigned int n)
+  GAOL_INLINE __m128d uipow_dnup(const __m128d& I, unsigned int n)
     { // n assumed to be different from 0
 		__m128d res = _mm_xor_pd(I,interval::lbsignmask);
 		unsigned char cpt = MSB_position(n);
@@ -444,7 +444,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
 		uipow_upup --
 		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), rndup(a^n)> 
 	*/
-  INLINE __m128d uipow_upup(const __m128d& I, unsigned int n)
+  GAOL_INLINE __m128d uipow_upup(const __m128d& I, unsigned int n)
     { // n assumed to be different from 0
      	__m128d res = I;
 		unsigned char cpt = MSB_position(n);
@@ -475,7 +475,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
-  static INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
+  static GAOL_INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
     {
       __m128d res;
       __m128d Ix = I.get_xmminterval();
@@ -527,7 +527,7 @@ INLINE uint32_t reverse_bits(uint32_t v)
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
-  static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+  static GAOL_INLINE interval uipow_rounded(const interval& I, unsigned int e)
     {
       GAOL_RND_ENTER_SSE();
       __m128d res = uipow_rounded_upward(I,e).get_xmminterval();

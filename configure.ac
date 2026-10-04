@@ -303,13 +303,13 @@ if test "${target_x86}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
-            AC_DEFINE([USING_SSE2_INSTRUCTIONS],1,
+            AC_DEFINE([GAOL_USING_SSE2_INSTRUCTIONS],1,
                 [Define this to 1 if SSE2 instructions are to be used])
             GAOL_CHECK_CXX_FLAG([-msse3], [has_sse3])
             if test "${has_sse3}" = yes; then
                 CXXFLAGS="${CXXFLAGS} -msse3"
                 GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse3"
-                AC_DEFINE([USING_SSE3_INSTRUCTIONS],1,
+                AC_DEFINE([GAOL_USING_SSE3_INSTRUCTIONS],1,
                     [Define this to 1 if SSE3 instructions are to be used])
             fi
         fi
@@ -488,7 +488,7 @@ fi
 GAOL_CHECK_CXX_FLAG([-fvisibility-inlines-hidden -fvisibility=hidden], [has_visibility_opt])
 if test "${has_visibility_opt}" = yes; then
     CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
-    AC_DEFINE(HAVE_VISIBILITY_OPTIONS,1,
+    AC_DEFINE(GAOL_HAVE_VISIBILITY_OPTIONS,1,
                 [Define this to 1 if the compiler supports the "-fvisibility" option])
 fi
 
@@ -597,7 +597,7 @@ AM_CONDITIONAL(PDF_TO_LATEX,
 # by rpl_malloc() and rpl_realloc() in a cross-compilation (GAOL v5).
 AC_LANG([C++])
 AC_CHECK_HEADER([fenv.h],
-                [AC_DEFINE([HAVE_FENV_H],1,[Define to 1 if you have the <fenv.h> header file.])],
+                [AC_DEFINE([GAOL_HAVE_FENV_H],1,[Define to 1 if you have the <fenv.h> header file.])],
                 [], [/* fenv.h alone */])
 AC_MSG_CHECKING([for getrusage in sys/resource.h])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/resource.h>]],
@@ -605,13 +605,13 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/resource.h>]],
                [have_getrusage=yes], [have_getrusage=no])
 AC_MSG_RESULT([${have_getrusage}])
 if test "${have_getrusage}" = yes; then
-    AC_DEFINE([HAVE_GETRUSAGE],1,[Define to 1 if you have the `getrusage' function in <sys/resource.h>.])
+    AC_DEFINE([GAOL_HAVE_GETRUSAGE],1,[Define to 1 if you have the `getrusage' function in <sys/resource.h>.])
 fi
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where
 # the compiler accepts it, as CMakeLists.txt gives them: -frounding-math (GAOL
-# then negates a double with the minus sign, HAVE_ROUNDING_MATH_OPTION),
+# then negates a double with the minus sign, GAOL_HAVE_ROUNDING_MATH_OPTION),
 # -ffp-contract=off (without it, compilers contract a multiplication and an
 # addition into a fused one as if rounding to nearest: on 64-bit ARM,
 # -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
@@ -619,7 +619,7 @@ fi
 # nearest and drop the checks of NaN and infinities)
 AC_LANG([C])
 if test "${has_rounding_math_opt}" = yes; then
-    AC_DEFINE(HAVE_ROUNDING_MATH_OPTION,1,
+    AC_DEFINE(GAOL_HAVE_ROUNDING_MATH_OPTION,1,
         [Define this to 1 if the compiler supports the "-frounding-math" option])
 fi
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do

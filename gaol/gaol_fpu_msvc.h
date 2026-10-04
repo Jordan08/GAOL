@@ -43,7 +43,7 @@
 #define GAOL_FPU_MASK 0x0a3f
 
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 #  include <xmmintrin.h>
 #  include <intrin.h>
    // Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
@@ -55,36 +55,36 @@
 
 namespace gaol_core {
 
-INLINE double previous_float(double d)
+GAOL_INLINE double previous_float(double d)
 {
 	return nextafter(d,-GAOL_INFINITY);
 }
 
-INLINE double next_float(double d)
+GAOL_INLINE double next_float(double d)
 {
 	return nextafter(d,GAOL_INFINITY);
 }
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 	//! Sets rounding direction to -oo for SSE operations only
-	INLINE void round_downward_sse(void)
+	GAOL_INLINE void round_downward_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_DOWN);
 	}
 
 	//! Sets rounding direction to the nearest for SSE operations only
-	INLINE void round_to_nearest_sse(void)
+	GAOL_INLINE void round_to_nearest_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_NEAREST);
 	}
 
 
 	//! Sets rounding direction to +oo for SSE operations only
-	INLINE void round_upward_sse(void)
+	GAOL_INLINE void round_upward_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);
 	}
-#endif // USING_SSE2_INSTRUCTIONS
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
 
 
 /*
@@ -93,30 +93,30 @@ INLINE double next_float(double d)
   <fenv.h> only (gaol_fpu.h): with <fenv.h>, which Visual C++ has had since
   2013, gaol_fpu_fenv.h is used, and writes the control registers itself.
 */
-INLINE  void
+GAOL_INLINE  void
 round_downward(void)
 {
 	_control87(_RC_DOWN,_MCW_RC);
 }
 
-INLINE  void
+GAOL_INLINE  void
 round_upward(void)
 {
 	_control87(_RC_UP,_MCW_RC);
 }
 
-INLINE  void
+GAOL_INLINE  void
 round_nearest(void)
 {
 	_control87(_RC_NEAR,_MCW_RC);
 }
 
-INLINE unsigned short int get_fpu_cw()
+GAOL_INLINE unsigned short int get_fpu_cw()
 {
   return _control87(0,0);
 }
 
-INLINE void reset_fpu_cw(unsigned short int st)
+GAOL_INLINE void reset_fpu_cw(unsigned short int st)
 {
 	_control87(st,_MCW_DN|_MCW_EM|_MCW_IC|_MCW_RC|_MCW_PC);
 }
@@ -128,7 +128,7 @@ INLINE void reset_fpu_cw(unsigned short int st)
     for trust rounding.
    */
 #if GAOL_USING_ASM
-	INLINE double f_negate(double x)
+	GAOL_INLINE double f_negate(double x)
     {
 		__asm {
             fld x
@@ -138,11 +138,11 @@ INLINE void reset_fpu_cw(unsigned short int st)
          return x;
     }
 #else
-    INLINE double f_negate(double x)
+    GAOL_INLINE double f_negate(double x)
     {
         uintdouble id;
         id.d = x;
-        HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
+        GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
         return id.d;
     }
 #endif // GAOL_USING_ASM

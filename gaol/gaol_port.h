@@ -43,32 +43,29 @@
 #define GAOL_ALIGN16(what) GAOL_ALIGN(what,16)
 
 // Allocation of 'size' bytes on 'boundary' bytes.
-// NOTE: MEMALIGN() must return null value if no allocation error
-// MEMFREE() releases the memory MEMALIGN() allocated (gaol_allocator.h,
+// NOTE: GAOL_MEMALIGN() must return null value if no allocation error
+// GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (gaol_allocator.h,
 // gaol_interval_sse.cpp): the two have to match.
 #if defined (__MINGW32__) || defined (_MSC_VER)
 /* _aligned_malloc() and _aligned_free(), of the C runtime of Windows: malloc()
    aligns on 8 bytes only on 32-bit Windows, and GAOL's SSE2 intervals need
    memory aligned on 16 bytes. */
 #  include <malloc.h>
-#  define MEMALIGN(buf,boundary,size) (!(buf=_aligned_malloc(size,boundary)))
-#  define MEMFREE(buf) _aligned_free(buf)
-#elif defined(IX86_LINUX) || defined(AARCH64_LINUX)
-#  undef _XOPEN_SOURCE
-#  define _XOPEN_SOURCE 600
-#  include <stdlib.h>
-#  define MEMALIGN(buf,boundary,size) posix_memalign(&buf,boundary,size)
-#  define MEMFREE(buf) free(buf)
-#elif defined(IX86_MACOSX) || defined(ARM_MACOSX)
+#  define GAOL_MEMALIGN(buf,boundary,size) (!(buf=_aligned_malloc(size,boundary)))
+#  define GAOL_MEMFREE(buf) _aligned_free(buf)
+#elif defined(GAOL_IX86_MACOSX) || defined(GAOL_ARM_MACOSX)
 // According to man page, Intel/MacOSX's malloc aligns correctly for SSE-related types
 #  include <stdlib.h>
-#  define MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))
-#  define MEMFREE(buf) free(buf)
+#  define GAOL_MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))
+#  define GAOL_MEMFREE(buf) free(buf)
 #else
-/* Any other POSIX system, as Linux */
+/* Any other POSIX system, as Linux. _XOPEN_SOURCE is no longer defined again
+   here for x86 and ARM (GAOL v5): the code including GAOL had it changed, and
+   g++ and clang++ define _GNU_SOURCE there, under which <stdlib.h> declares
+   posix_memalign(). */
 #  include <stdlib.h>
-#  define MEMALIGN(buf,boundary,size) posix_memalign(&buf,boundary,size)
-#  define MEMFREE(buf) free(buf)
+#  define GAOL_MEMALIGN(buf,boundary,size) posix_memalign(&buf,boundary,size)
+#  define GAOL_MEMFREE(buf) free(buf)
 #endif
 
 
@@ -79,12 +76,12 @@
 
 namespace gaol_core {
 
-#if HAVE_ROUNDING_MATH_OPTION
-  INLINE double f_negate_simple(double x) { return -x; }
+#if GAOL_HAVE_ROUNDING_MATH_OPTION
+  GAOL_INLINE double f_negate_simple(double x) { return -x; }
 #  define gaol_opposite(x) f_negate_simple(x)
 #else
 #  define gaol_opposite(x) f_negate(x)
-#endif // HAVE_ROUNDING_MATH_OPTION
+#endif // GAOL_HAVE_ROUNDING_MATH_OPTION
 
   /*!
     \brief Sign of double
@@ -95,47 +92,47 @@ namespace gaol_core {
   extern __GAOL_PUBLIC__ int gaol_signbit(double);
 
 
-// SIZEOF_INT and SIZEOF_LONG_LONG_INT come from gaol/gaol_config.h; no build
+// GAOL_SIZEOF_INT and GAOL_SIZEOF_LONG_LONG_INT come from gaol/gaol_config.h; no build
 // defined SIZEOF_LONG_INT, whose branches are gone (GAOL v5)
-#if SIZEOF_INT==4
-#  define INT_FOR_DOUBLE int
+#if GAOL_SIZEOF_INT==4
+#  define GAOL_INT_FOR_DOUBLE int
 #else
 #  error "Cannot find a 32 bits integer type!"
 #endif
 
-#if SIZEOF_LONG_LONG_INT==8
-#  define ULONGLONGINT unsigned long long int
+#if GAOL_SIZEOF_LONG_LONG_INT==8
+#  define GAOL_ULONGLONGINT unsigned long long int
 #else
 #  error "Cannot find a 64 bits integer type!"
 #endif
 
   typedef union {
-    ULONGLONGINT i;
+    GAOL_ULONGLONGINT i;
     double d;
   } ullidouble;
 
   typedef union {
-    unsigned INT_FOR_DOUBLE i[2];
+    unsigned GAOL_INT_FOR_DOUBLE i[2];
     double d;
   } uintdouble;
 
 
-#if WORDS_BIGENDIAN
-#  define IFBIGENDIAN(a,b)   (a), (b)
-#  define __HI(x) (*(INT_FOR_DOUBLE*)&(x))
-#  define __LO(x) (*((INT_FOR_DOUBLE)1+(INT_FOR_DOUBLE*)&(x)))
-#  define LO_UINTDOUBLE(a) ((a).i[1])
-#  define HI_UINTDOUBLE(a) ((a).i[0])
+#if GAOL_WORDS_BIGENDIAN
+#  define GAOL_IFBIGENDIAN(a,b)   (a), (b)
+#  define GAOL_HI(x) (*(GAOL_INT_FOR_DOUBLE*)&(x))
+#  define GAOL_LO(x) (*((GAOL_INT_FOR_DOUBLE)1+(GAOL_INT_FOR_DOUBLE*)&(x)))
+#  define GAOL_LO_UINTDOUBLE(a) ((a).i[1])
+#  define GAOL_HI_UINTDOUBLE(a) ((a).i[0])
 #else
-#  define IFBIGENDIAN(a,b)   (b), (a)
-#  define __HI(x) *((INT_FOR_DOUBLE)1+(INT_FOR_DOUBLE*)&(x))
-#  define __LO(x) *(INT_FOR_DOUBLE*)&(x)
-#  define LO_UINTDOUBLE(a) ((a).i[0])
-#  define HI_UINTDOUBLE(a) ((a).i[1])
+#  define GAOL_IFBIGENDIAN(a,b)   (b), (a)
+#  define GAOL_HI(x) *((GAOL_INT_FOR_DOUBLE)1+(GAOL_INT_FOR_DOUBLE*)&(x))
+#  define GAOL_LO(x) *(GAOL_INT_FOR_DOUBLE*)&(x)
+#  define GAOL_LO_UINTDOUBLE(a) ((a).i[0])
+#  define GAOL_HI_UINTDOUBLE(a) ((a).i[1])
 #endif
 
 #ifndef GAOL_NAN
-  static const uintdouble NaN_val = {{IFBIGENDIAN(0x7ff80000, 0x0)}};
+  static const uintdouble NaN_val = {{GAOL_IFBIGENDIAN(0x7ff80000, 0x0)}};
 #define GAOL_NAN (gaol_core::NaN_val.d)
 #endif
 
@@ -157,17 +154,17 @@ namespace gaol_core {
     Various constants rounded up and down
   */
   //! Pi rounded towards -oo.
-  const uintdouble upi_dn = {{IFBIGENDIAN(1074340347,1413754136)}};
+  const uintdouble upi_dn = {{GAOL_IFBIGENDIAN(1074340347,1413754136)}};
   //! Pi rounded towards +oo.
-  const uintdouble upi_up   = {{IFBIGENDIAN(1074340347,1413754137)}};
+  const uintdouble upi_up   = {{GAOL_IFBIGENDIAN(1074340347,1413754137)}};
   //! Pi/2 rounded towards -oo.
-  const uintdouble uhalfpi_dn = {{IFBIGENDIAN(1073291771,1413754136)}};
+  const uintdouble uhalfpi_dn = {{GAOL_IFBIGENDIAN(1073291771,1413754136)}};
   //! Pi/2 rounded towards +oo.
-  const uintdouble uhalfpi_up = {{IFBIGENDIAN(1073291771,1413754137)}};
+  const uintdouble uhalfpi_up = {{GAOL_IFBIGENDIAN(1073291771,1413754137)}};
   // ln(2) rounded towards -oo
-  const uintdouble uln2_dn = {{IFBIGENDIAN(0x3fe62e42,0xFEFA39EF)}};
+  const uintdouble uln2_dn = {{GAOL_IFBIGENDIAN(0x3fe62e42,0xFEFA39EF)}};
   // ln(2) rounded towards +oo
-  const uintdouble uln2_up = {{IFBIGENDIAN(0x3fe62e42,0xFEFA39F0)}};
+  const uintdouble uln2_up = {{GAOL_IFBIGENDIAN(0x3fe62e42,0xFEFA39F0)}};
 
 
   /* The same doubles, written exactly in decimal (GAOL v5). Read from the
@@ -201,7 +198,7 @@ namespace gaol_core {
     library was used where the build system found it, and is not declared by
     every C library (Visual C++, recent C++ libraries with -std=c++11).
    */
-  INLINE int is_finite(double d)
+  GAOL_INLINE int is_finite(double d)
   {
     return std::isfinite(d);
   }

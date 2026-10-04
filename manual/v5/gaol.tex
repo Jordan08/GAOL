@@ -4425,12 +4425,7 @@ by using \code{std::isnan()}.
 \end{equation*}
 \end{deffun}
 
-\begin{defmacro}{ULONGLONGINT}
-  Macro standing for an unsigned integral data type with a size equal to 8 bytes
-  (usually \code{unsigned long long int}).
-\end{defmacro}
-
-\begin{deffun}{ULONGLONGINT}{nb\_fp\_numbers}{(double \var{a}, double \var{b})}
+\begin{deffun}{unsigned long long}{nb\_fp\_numbers}{(double \var{a}, double \var{b})}
 Returns the number of floating-point numbers in the interval
 \itv{\var{a}}{\var{b}}. In particular, we have:
 \begin{itemize}
@@ -4444,7 +4439,11 @@ $13830554455654793217$ for the first two).\newinvfive
 
 \paragraph{Note.} As a precondition, \var{a} shall be lower or equal to \var{b}.
 
-Returns \code{numeric\_limits<ULONGLONGINT>::max()} if either
+The result is an \code{unsigned long long}, where GAOL~4 named its type with the
+macro \code{ULONGLONGINT}, which GAOL v5 no longer defines, as it prefixes
+with \code{GAOL\_} the macros of its headers.\newinvfive
+
+Returns \code{numeric\_limits<unsigned long long>::max()} if either
 \var{a} or \var{b} is a NaN or an infinity, or if \var{a} is greater than
 \var{b}. In addition, raises
 an \code{invalid\_action\_error} exception (\pxref{sec:exceptions}) or calls

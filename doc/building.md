@@ -326,18 +326,20 @@ integration checks that they write the same header on each kind of machine
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
 | `GAOL_USING_ASM` | GAOL's assembly (32-bit x86 Linux and macOS); never with Visual C++ | `GAOL_ASM` (default) | `--enable-asm` (default) | `enable-asm` (default) |
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
-| `USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
-| `USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
-| `HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
-| `HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
-| `HAVE_GETRUSAGE` | `<sys/resource.h>` declares `getrusage()`, which `gaol/gaol_profile.cpp` measures the time with (`clock()` otherwise) | checked | checked | checked |
+| `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
+| `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
+| `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
+| `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
+| `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
+| `GAOL_HAVE_GETRUSAGE` | `<sys/resource.h>` declares `getrusage()`, which `gaol/gaol_profile.cpp` measures the time with (`clock()` otherwise) | checked | checked | checked |
 
 What GAOL needs to know of the processor and the system comes from the
-compiler, in `gaol/gaol_config.h`: `IX86_LINUX`, `AARCH64_LINUX`,
-`IX86_MACOSX` and `ARM_MACOSX`, the sizes of the integer types (`SIZEOF_INT`,
-`SIZEOF_LONG_LONG_INT`, from `<limits.h>`) and the order of the bytes
-(`WORDS_BIGENDIAN`).
+compiler, in `gaol/gaol_config.h`: `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`,
+`GAOL_IX86_MACOSX` and `GAOL_ARM_MACOSX`, the sizes of the integer types
+(`GAOL_SIZEOF_INT`, `GAOL_SIZEOF_LONG_LONG_INT`, from `<limits.h>`) and the
+order of the bytes (`GAOL_WORDS_BIGENDIAN`). These macros, and the
+`GAOL_USING_SSE*` and `GAOL_HAVE_*` of the table, were named without `GAOL_`
+before GAOL v5.
 
 The configure and meson builds defined some fifty other macros, of GAOL 4 or
 of autoconf, which nothing read, and they are gone (GAOL v5): the checks of

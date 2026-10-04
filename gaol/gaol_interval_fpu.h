@@ -35,12 +35,12 @@
     // the dynamic initialization of gaol/gaol_interval.cpp computed after the
     // static objects of a program linked with the static library GAOL, except
     // with MinGW-w64 (GAOL v5)
-    INLINE interval interval::zero(void)
+    GAOL_INLINE interval interval::zero(void)
     {
         return interval(0.0);
     }
 
-    INLINE interval interval::universe(void)
+    GAOL_INLINE interval interval::universe(void)
     {
         return interval(-GAOL_INFINITY, GAOL_INFINITY);
     }
@@ -48,26 +48,26 @@
     // Both bounds NaN, as interval(double) sets them for a NaN, but without the
     // comparisons that decide it: they signal the invalid-operation exception
     // on a NaN, and a build without optimization runs them (GAOL v5)
-    INLINE interval interval::emptyset(void)
+    GAOL_INLINE interval interval::emptyset(void)
     {
         interval I;
         I.lb_ = I.rb_ = std::numeric_limits<double>::quiet_NaN();
         return I;
     }
 
-    INLINE interval interval::positive(void) // [0, +oo]
+    GAOL_INLINE interval interval::positive(void) // [0, +oo]
     {
         return interval(0.0, GAOL_INFINITY);
     }
 
-    INLINE interval interval::negative(void) // [-oo, 0]
+    GAOL_INLINE interval interval::negative(void) // [-oo, 0]
     {
         return interval(-GAOL_INFINITY, 0.0);
     }
 
 
 
-  INLINE
+  GAOL_INLINE
   interval::interval(void)
   {
     lb_ = GAOL_INFINITY;
@@ -76,7 +76,7 @@
 
   // An infinite a gives the empty set, as in IBEX: IEEE 1788-2015 has no
   // interval [+oo, +oo] nor [-oo, -oo] (10.5.8)
-  INLINE
+  GAOL_INLINE
   interval::interval(double a)
   {
     // A branch rather than two conditional moves, which would make the bounds
@@ -91,7 +91,7 @@
 
   // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
   // the wrong order and NaN bounds, as in IBEX
-  INLINE
+  GAOL_INLINE
   interval::interval(double a, double b)
   {
     if (a <= b && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
@@ -102,7 +102,7 @@
     }
   }
 
-    INLINE
+    GAOL_INLINE
     interval::interval(const interval& I)
     {
         lb_ = I.lb_;
@@ -114,7 +114,7 @@
   // intervals, rather than given to the constructor, which compares them and
   // raises the invalid-operation exception on the NaN bounds of the empty set
   // (GAOL v5)
-  INLINE
+  GAOL_INLINE
   interval interval::operator-(void) const
   {
     interval I;
@@ -123,7 +123,7 @@
     return I;
   }
 
- INLINE
+ GAOL_INLINE
   interval& interval::operator&=(const interval& I)
   {
 #if defined(__arm__) && !defined(__aarch64__)
@@ -180,7 +180,7 @@
     return *this;
   }
 
-  INLINE
+  GAOL_INLINE
   interval& interval::operator|=(const interval& I)
   {
     if (is_empty()) {
@@ -201,13 +201,13 @@
   }
 
 
-INLINE double
+GAOL_INLINE double
 interval::left_internal() const
 {
     return lb_;
 }
 
-INLINE double
+GAOL_INLINE double
 interval::right_internal() const
 {
     return rb_;

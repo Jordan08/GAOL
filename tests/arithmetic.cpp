@@ -475,7 +475,7 @@ namespace
 
   // gaol::pow(x, n) for an unsigned n, gaol_uipow(), the pown of IEEE 1788
   // for an unsigned exponent, as for an int n: GAOL declared it public, as
-  // uipow(), but defined it INLINE with the SSE2 intervals, and a program
+  // uipow(), but defined it GAOL_INLINE with the SSE2 intervals, and a program
   // calling it did not link (GAOL v5)
   void unsigned_powers()
   {

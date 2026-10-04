@@ -40,8 +40,8 @@
 // Not the intervals of floats, gaol::intervalf and gaol::interval2f, which
 // only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
 
-#if USING_SSE3_INSTRUCTIONS
+#if GAOL_USING_SSE3_INSTRUCTIONS
 #include "gaol/gaol_allocator.h"
-#endif // USING_SSE3_INSTRUCTIONS
+#endif // GAOL_USING_SSE3_INSTRUCTIONS
 
 #endif /* __gaol__ */
