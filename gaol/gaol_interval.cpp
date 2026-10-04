@@ -3670,10 +3670,12 @@ interval nth_root(const interval& I, int q)
 
   interval::operator std::string() const
   {
-    std::ostringstream output;
-    output.precision(interval::precision());
-    output << *this;
-    return output.str();
+    // Not named output, the format of the intervals written, which Visual C++
+    // warned that it hid (C4458, GAOL v5)
+    std::ostringstream text;
+    text.precision(interval::precision());
+    text << *this;
+    return text.str();
   }
 
   std::streamsize interval::precision(void)
