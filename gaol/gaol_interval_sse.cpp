@@ -75,7 +75,7 @@
         GAOL_MEMFREE(p);
     }
 
-	void* interval::operator new(size_t sz, void *p)
+	void* interval::operator new(size_t, void *p)
 	{
 		if ((unsigned long long)p % 16 != 0) {
 			throw std::bad_alloc();
