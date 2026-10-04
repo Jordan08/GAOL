@@ -1,0 +1,27 @@
+{
+ "prs": {
+  "7": 31,
+  "14": 32,
+  "44": 33,
+  "00": 34,
+  "29": 35,
+  "9": 36
+ },
+ "branches": {
+  "7": "todo-07-atanh-domain",
+  "14": "todo-14-exception-what",
+  "44": "todo-44-cpack-stale-configure",
+  "29": "todo-29-ci-comma-locale",
+  "5": "todo-05-finite-math-only",
+  "9": "todo-09-tan-pi-half",
+  "11": "todo-11-lexer-subnormal",
+  "13": "todo-13-point-interval-text",
+  "00": "fix-numbers-gcc12-aarch64"
+ },
+ "files": {
+  "00": "00"
+ },
+ "overlaps": {},
+ "ci": {},
+ "arm64": "Ce job échoue sur `configure-clean` au commit de base de cette branche (`a2ca992`), et donc ici, sans rapport avec cette pull request : il est corrigé par la pull request #34 (test `numbers`, GCC 12 sur aarch64), fusionnée depuis dans `configure-clean`, que cette branche n'a pas encore."
+}

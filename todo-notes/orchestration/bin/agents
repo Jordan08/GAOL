@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""agents [workflow-id ...]: state of every agent of the given workflows (default: all of this session):
+description, phase, steps, minutes since its last activity, and DONE when it called StructuredOutput."""
+import json, os, sys, glob, time
+ROOT = "/home/jninin/.claude/projects/-home-jninin-Documents-WORK-DEV-GAOL-GAOL-V8/334ea319-d088-4702-9b10-e0628647c222/subagents/workflows"
+wfs = sys.argv[1:] or sorted(os.listdir(ROOT))
+now = time.time()
+for wf in wfs:
+    rows = []
+    for meta in sorted(glob.glob(os.path.join(ROOT, wf, "agent-*.meta.json"))):
+        jl = meta[:-len(".meta.json")] + ".jsonl"
+        m = json.load(open(meta))
+        steps = 0; done = False; result = None
+        for line in open(jl, errors="replace"):
+            steps += 1
+            try: e = json.loads(line)
+            except Exception: continue
+            c = (e.get("message") or {}).get("content")
+            if isinstance(c, list):
+                for b in c:
+                    if b.get("type") == "tool_use" and b.get("name") == "StructuredOutput":
+                        done = True; result = b.get("input")
+        age = (now - os.path.getmtime(jl)) / 60
+        st = ""
+        if done and isinstance(result, dict):
+            st = result.get("status") or result.get("verdict") or ""
+        rows.append((m.get("description"), m.get("workflowPhase"), steps, age, done, st))
+    print("== %s: %d agents, %d done" % (wf, len(rows), sum(1 for r in rows if r[4])))
+    for d, ph, steps, age, done, st in rows:
+        print("  %-22s %-10s %4d steps  idle %5.1f min  %s" % (d, ph, steps, age, ("DONE " + st) if done else "running"))

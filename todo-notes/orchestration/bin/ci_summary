@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""ci_summary [branch...]: one line per branch of ci/watch.list (or the given ones): per workflow S=success F=failure .=running q=queued."""
+import json, subprocess, sys, os
+SCR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+MAIN = "/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8"
+def gh(*a): return subprocess.run(["gh", *a], cwd=MAIN, capture_output=True, text=True).stdout
+brs = sys.argv[1:] or [l.split("#")[0].strip() for l in open(SCR + "/ci/watch.list") if l.split("#")[0].strip()]
+short = {"Linux": "Lin", "macOS": "Mac", "Windows": "Win", "Autotools and meson": "Aut", "Linux containers": "Ctn", "Manual": "Man"}
+for b in brs:
+    sha = gh("api", "repos/Jordan08/GAOL/git/ref/heads/" + b, "--jq", ".object.sha").strip()
+    runs = [r for r in json.loads(gh("run", "list", "--branch", b, "--limit", "60", "--json", "databaseId,name,event,status,conclusion,headSha")) if r["headSha"] == sha and r["event"] == "push"]
+    cells = []
+    for r in sorted(runs, key=lambda r: r["name"]):
+        c = {"success": "S", "failure": "F", "cancelled": "C", "skipped": "-"}.get(r["conclusion"], "." if r["status"] == "in_progress" else "q")
+        cells.append("%s:%s" % (short.get(r["name"], r["name"]), c))
+    print("%-34s %s  %s" % (b, sha[:7], " ".join(cells)))
