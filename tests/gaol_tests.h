@@ -25,8 +25,8 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_tests_h__
-#define __gaol_tests_h__
+#ifndef GAOL_TESTS_H
+#define GAOL_TESTS_H
 
 #include <cfenv>
 #include <cmath>
@@ -824,4 +824,4 @@ namespace gaol_tests
   }
 }
 
-#endif /* __gaol_tests_h__ */
+#endif /* GAOL_TESTS_H */
