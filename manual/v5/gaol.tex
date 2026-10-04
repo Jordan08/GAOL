@@ -4782,7 +4782,9 @@ The first message will be displayed whenever the debugging level is at least
 1, and the second one only if it is at least 2.
 
 \begin{defmacroA}{GAOL\_ASSERT}{(\var{cond})}
-Tests whether \var{cond} holds. Aborts with an error message if it is not the case.
+Tests whether \var{cond} holds. Aborts with an error message if it is not the
+case. Declared by \file{gaol/gaol\_assert.h}, which \file{gaol/gaol} does not
+include.
 
 This macro defaults to nothing if the library was not configured with the
 debugging facilities.

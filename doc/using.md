@@ -43,6 +43,22 @@ denormals-are-zero modes when a program is linked with `-Ofast` (see
 `gaol::gaol` and `gaol.pc` carry it too, where the compiler that built GAOL
 accepts it: the three builds test the compiler for it with a link.
 
+## The headers
+
+A program includes `gaol/gaol` (or `gaol/gaol.h`), and
+`gaol/gaol_expression.h` for the expressions, with `gaol/gaol_expr_eval.h` to
+evaluate them, and `gaol/gaol_assert.h` for `GAOL_ASSERT`. The three builds
+install these and the headers they include, each of which compiles alone but
+the three that other headers include in the middle of their code
+(`gaol_interval_fpu.h`, `gaol_interval_sse.h`) or for Visual C++ only
+(`gaol_fpu_msvc.h`), and not the headers of GAOL's sources (GAOL v5):
+`gaol_interval_parser.h`, which did not compile when included,
+`gaol_init_cleanup.h`, `gaol_exact.h` and `sysdeps/`, `gaol_core_math.h`,
+`gaol_u128.h` and `gaol_parameters.h`. GAOL's headers compile
+without a warning under `-Wall -Wextra`, and put nothing into the global
+namespace: `gaol/gaol_exceptions.h` declared `string` and `exception` there,
+which a program now names `std::string` and `std::exception` (GAOL v5).
+
 ## From CMake
 
 ```cmake

@@ -229,9 +229,13 @@ jobs:
           if ($LASTEXITCODE) { exit 1 }
           Get-ChildItem -Recurse -File $prefix | ForEach-Object { $_.FullName }
           # What the code using GAOL includes with Visual C++, and the
-          # configuration, in include/gaol under the prefix
-          foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h', 'sysdeps/gaol_exact_msvc.h') {
+          # configuration, in include/gaol under the prefix, but not the
+          # headers of the sources of GAOL only (GAOL v5)
+          foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h') {
             if (-not (Test-Path "$prefix/include/gaol/$f")) { Write-Output "$f is not installed"; exit 1 }
+          }
+          foreach ($f in 'gaol_interval_parser.h', 'gaol_exact.h', 'sysdeps') {
+            if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
       - name: Tests (ninja test, make test of meson)
         run: |

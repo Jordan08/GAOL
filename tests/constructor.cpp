@@ -7,7 +7,7 @@
        interval I = textToInterval(Istr); \
        TEST_EQ(I,Ires);           \
   } catch (const input_format_error&) {  \
-    CPPUNIT_FAIL(string("Wrong format: ")+string(Istr)); \
+    CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
 
 #define TEST_INOUT_SEQ(Istr,Ires) \
@@ -15,7 +15,7 @@
        interval I = textToInterval(Istr); \
        TEST_SEQ(I,Ires);          \
   } catch (const input_format_error&) {  \
-    CPPUNIT_FAIL(string("Wrong format: ")+string(Istr)); \
+    CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
 
 

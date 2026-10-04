@@ -92,44 +92,49 @@ if not msvc
   gaol_SOURCES += ['gaol_exact.c']
 endif
 
-gaol_HEADERS = []
-gaol_HEADERS += [
+# The headers a program includes, gaol, gaol_expression.h and
+# gaol_expr_eval.h for the expressions, gaol_assert.h for GAOL_ASSERT (see the
+# manual), and those they include,
+# gaol_fpu_msvc.h for Visual C++ among them: CMake and configure install the
+# same ones (GAOL v5)
+gaol_HEADERS = [
   'gaol',
+  'gaol.h',
+  'gaol_allocator.h',
   'gaol_assert.h',
-  'gaol_exact.h',
-  'gaol_core_math.h',
-  'gaol_interval.h',
   'gaol_common.h',
-  'gaol_exceptions.h',
   'gaol_config.h',
-  'gaol_expression.h',
-  'gaol_limits.h',
+  'gaol_eval_stack.h',
+  'gaol_exceptions.h',
   'gaol_expr_eval.h',
   'gaol_expr_visitor.h',
-  'gaol_parameters.h',
-  'gaol_u128.h',
-  'gaol_roundeven.h',
-  'gaol_ieee1788.h',
+  'gaol_expression.h',
   'gaol_flags.h',
-  'gaol_parser.h',
-  # The tokens of the parser committed, as configure and CMake install it
-  'gaol_interval_parser.h',
-  'gaol_port.h',
   'gaol_fpu.h',
   'gaol_fpu_fenv.h',
-  # What Visual C++ includes, as CMake and configure install it (GAOL v5)
   'gaol_fpu_msvc.h',
-  'gaol_profile.h',
-  'gaol.h',
-  'gaol_eval_stack.h',
-  'gaol_init_cleanup.h',
-  'gaol_version.h',
-  'gaol_allocator.h',
+  'gaol_ieee1788.h',
+  'gaol_interval.h',
   'gaol_interval_fpu.h',
   'gaol_interval_sse.h',
+  'gaol_limits.h',
+  'gaol_parser.h',
+  'gaol_port.h',
+  'gaol_profile.h',
+  'gaol_roundeven.h',
+  'gaol_version.h',
 ]
 
 EXTRA_DIST = [
+  # Headers of the sources of GAOL, not installed (GAOL v5):
+  # gaol_interval_parser.h, which did not compile when included, and the parts
+  # of the library
+  'gaol_core_math.h',
+  'gaol_exact.h',
+  'gaol_init_cleanup.h',
+  'gaol_interval_parser.h',
+  'gaol_parameters.h',
+  'gaol_u128.h',
   'sysdeps/gaol_exact_c99.h',
   'sysdeps/gaol_exact_msvc.h',
   's_nextafter.c',
@@ -204,4 +209,3 @@ gaol_dep = declare_dependency(
 )
 
 install_headers(gaol_HEADERS, subdir: 'gaol')
-install_headers('sysdeps/gaol_exact_c99.h', 'sysdeps/gaol_exact_msvc.h', subdir: 'gaol/sysdeps')

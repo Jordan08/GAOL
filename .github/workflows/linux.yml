@@ -228,8 +228,12 @@ jobs:
       - name: Install, which installs GAOL with the project
         run: |
           cmake --install build-fetch-content
-          for file in lib/libgaol.a include/gaol/gaol.h include/gaol/gaol_u128.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
+          for file in lib/libgaol.a include/gaol/gaol.h include/gaol/gaol_expression.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
             test -f "gaol-install/$file" || { echo "$file is not installed"; exit 1; }
+          done
+          # Not the headers of the sources of GAOL only (GAOL v5)
+          for file in include/gaol/gaol_u128.h include/gaol/gaol_interval_parser.h include/gaol/sysdeps; do
+            test ! -e "gaol-install/$file" || { echo "$file is installed"; exit 1; }
           done
       - name: Tests built with the installed GAOL
         run: |

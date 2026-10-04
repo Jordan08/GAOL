@@ -30,11 +30,15 @@
 #ifndef __gaol_allocator_h__
 #define __gaol_allocator_h__
 
+#include <cstddef>
 #include <limits>
 #include <new>
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600
 #include <stdlib.h>
+
+// MEMALIGN() and MEMFREE(): this file compiles alone (GAOL v5)
+#include "gaol/gaol_port.h"
 
 namespace gaol_core {
 
@@ -114,7 +118,7 @@ class aligned_allocator
 		}
 
 		// deallocate storage p of deleted elements
-		void deallocate ( pointer p, size_type num )
+		void deallocate ( pointer p, size_type )
 		{
 			// The memory MEMALIGN() allocated
 			MEMFREE((void*)p);

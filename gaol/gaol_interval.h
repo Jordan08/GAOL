@@ -139,6 +139,13 @@ namespace gaol_core {
     interval(double a);
     //! Creates a copy of I
     interval(const interval& I);
+    /*!
+      Copies I: the assignment the compiler declares, written out (GAOL v5).
+      With the copy constructor above, -Wextra warned at each x = y of the
+      code using GAOL that the assignment the compiler declares implicitly
+      is deprecated.
+    */
+    interval& operator=(const interval& I) = default;
 #if USING_SSE2_INSTRUCTIONS
     interval(const __m128d& xmm);
 #endif // USING_SSE2_INSTRUCTIONS
