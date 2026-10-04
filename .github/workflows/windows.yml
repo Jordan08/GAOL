@@ -1,13 +1,15 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
 # arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64; Release
 # and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86, x64;
-# Release and Debug), 14 (x86, x64), 12 and
-# 13 (x86), and MSYS2 (UCRT64 GCC, CLANG64 Clang), runs its tests, installs it,
-# and builds the tests again with the installed GAOL. On arm64, the compiler of
-# Visual Studio 2022 (toolset v143, MSVC 14.44) is the one installed with Visual
-# Studio 2026: the label windows-11-arm runs the image of Visual Studio 2026
-# since September 2026 (actions/runner-images#14602), and no image of GitHub has
-# Visual Studio 2022 on arm64 any more.
+# Release and Debug), 14 (x86, x64), 12 and 13 (x86), and MSYS2 (UCRT64 GCC,
+# CLANG64 Clang), runs its tests, installs it, and builds the tests again with
+# the installed GAOL. Windows has French_France.1252, a locale writing a decimal
+# comma: each job that runs the tests checks that numbers read and wrote numbers
+# under it (.github/scripts/comma-locale.sh) (GAOL v5). On arm64, the compiler
+# of Visual Studio 2022 (toolset v143, MSVC 14.44) is the one installed with
+# Visual Studio 2026: the label windows-11-arm runs the image of Visual Studio
+# 2026 since September 2026 (actions/runner-images#14602), and no image of
+# GitHub has Visual Studio 2022 on arm64 any more.
 # Checks that gaol/gaol_config.h refuses the MinGW-w64 whose fma() or round()
 # is wrong: on x64, GCC 11 to 13 and MSYS2 MINGW64 (linked with msvcrt.dll),
 # whose fma() and round() are those of mingw-w64's own math library; on x86,
@@ -21,7 +23,7 @@ name: Windows
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
   pull_request:
   workflow_dispatch:
 
@@ -96,6 +98,8 @@ jobs:
         run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
       - name: Tests (make test)
         run: cmake --build build --config ${{ matrix.cfg.config }} --target RUN_TESTS
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
         if: matrix.cfg.config == 'Release'
         run: build/tests/${{ matrix.cfg.config }}/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
@@ -160,6 +164,8 @@ jobs:
         run: |
           export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
           cmake --build build --target test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
         if: matrix.cfg.config == 'Release'
         run: |
@@ -201,6 +207,8 @@ jobs:
         run: cmake --build build -j 4
       - name: Tests (make test)
         run: cmake --build build --target test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
         run: build/tests/gaol_performance.exe
 

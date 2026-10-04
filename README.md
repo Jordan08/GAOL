@@ -4,6 +4,13 @@
 # GAOL
 <em>Not Just Another Interval Library</em>
 
+[![Linux](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml?query=branch%3Aconfigure-clean)
+[![macOS](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml?query=branch%3Aconfigure-clean)
+[![Windows](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml?query=branch%3Aconfigure-clean)
+[![Linux containers](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml?query=branch%3Aconfigure-clean)
+[![Autotools and meson](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml?query=branch%3Aconfigure-clean)
+[![Manual](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml?query=branch%3Aconfigure-clean)
+
 GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic) library that strives to offer fast and reliable operators for constraint solvers. 
 
 ## Authors

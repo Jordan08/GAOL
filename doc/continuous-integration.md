@@ -6,13 +6,18 @@ Part of the documentation of [GAOL v5](../README.md#documentation).
 
 The workflows of `.github/workflows/` build GAOL with CMake and run the tests,
 with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
-Visual Studio), on:
+Visual Studio). They run for each pull request, and for each push to the
+branches `master`, `MATH-CORE` and `configure-clean` only: a push to another
+branch runs nothing until it is proposed, which halves the jobs of a pull
+request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
+[README.md](../README.md) show their state on `configure-clean`. They build on:
 
-- **Linux:** Ubuntu 22.04, 24.04 and 26.04 on x86_64 and arm64, with GCC and
-  Clang, also with the address and undefined behaviour sanitizers, with
-  CMake 3.14, with GCC 9, which has no `__builtin_roundeven()` (see
-  [3rd/README.md](../3rd/README.md)), and as a shared library
-  (`BUILD_SHARED_LIBS`).
+- **Linux:** Ubuntu 24.04 and 26.04 on x86_64 and arm64, with GCC and Clang,
+  also with the address and undefined behaviour sanitizers, with CMake 3.14,
+  with the compilers of Ubuntu 22.04 (GCC 11 and Clang 14 on x86_64, GCC 11
+  on arm64), whose images GitHub retires by April 2027, with GCC 9, which has
+  no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
+  shared library (`BUILD_SHARED_LIBS`).
 - **Linux containers:**
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;
@@ -59,16 +64,20 @@ and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in
 their summary.
 
-The Linux jobs of CMake (`linux.yml`) that run the tests generate the locale
-`fr_FR.UTF-8` before them, with `locale-gen`
-(`.github/scripts/comma-locale.sh`): the Ubuntu runners have no locale writing
-a decimal comma, and `tests/numbers.cpp`, which reads numbers and writes exact
-texts under one where the system has one (see [Tests](tests.md)), says so and
-passes where it has none. After the tests, each of these jobs fails if the
-output of `numbers`, which ctest keeps in `Testing/Temporary/LastTest.log`,
-holds no check under a locale writing a decimal comma. The other jobs generate
-no locale and check nothing of the kind: `numbers` runs that part where the
-system has such a locale.
+`tests/numbers.cpp` reads numbers and writes exact texts under a locale
+writing a decimal comma where the system has one (see [Tests](tests.md)), and
+says so and passes where it has none. The jobs on Ubuntu and in the Debian
+containers generate `fr_FR.UTF-8` before the tests, with `localedef`
+(`.github/scripts/comma-locale.sh`): their systems have no such locale; macOS
+has `fr_FR.UTF-8`, and Windows `French_France.1252`. After the tests, each job
+that runs them fails if the output of `numbers` holds no check under such a
+locale: the output ctest keeps in `Testing/Temporary/LastTest.log`,
+`tests/numbers.log` with the autotools, `meson-logs/testlog.txt` with meson
+(GAOL v5: only the CMake jobs of `linux.yml` checked it). Alpine and
+manylinux have no locale writing a decimal comma to generate, and check
+nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
+job of macOS 15 x86_64 GCC with the sanitizers, where it took 235 s and once
+more than 300.
 
 The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
 (`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
@@ -88,7 +97,7 @@ refusal.
 | Configuration | Why | What GAOL v5 does |
 |---|---|---|
 | Clang for 32-bit ARM processors (Debian armhf) | **Wrong bounds.** Clang does not honour the rounding direction there. Built by Clang 19 (Debian 13) and Clang 21 (Debian sid), GAOL v5 fails `arithmetic`, `elementary`, `reverse`, `other_functions` and `rounding_direction`: bounds of `atan2()`, `sin()`, `cos()`, `pow()`, `nth_root()` and `div_rel()` do not enclose the exact values, and the products are not the tightest ones in any rounding direction. | Refused by the three builds and by `gaol/gaol_config.h`; a job checks that CMake refuses it (`containers.yml`). GCC builds the armhf jobs. |
-| Clang 14 on 64-bit ARM (Ubuntu 22.04 arm64), and any compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target" | **Wrong bounds.** Clang 14 does not honour the rounding direction on 64-bit ARM, and says so. Built by it, GAOL v5 fails `arithmetic`, `elementary`, `reverse` and `other_functions` in Release, bounds of `nth_root()`, `pow()`, `atan2()`, `cos()`, `div_rel()` and `mid()` not enclosing the exact values, and `elementary` in Debug, a bound of `atan2()`. Clang 18 honours the rounding direction there. | Refused by the three builds; a job checks the refusal (`linux.yml`). Ubuntu 22.04 arm64 is built with GCC only, Ubuntu 24.04 and 26.04 arm64 with Clang too. |
+| Clang 14 on 64-bit ARM (Ubuntu 22.04 arm64, and Clang 14 on Ubuntu 24.04 arm64), and any compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target" | **Wrong bounds.** Clang 14 does not honour the rounding direction on 64-bit ARM, and says so. Built by it, GAOL v5 fails `arithmetic`, `elementary`, `reverse` and `other_functions` in Release, bounds of `nth_root()`, `pow()`, `atan2()`, `cos()`, `div_rel()` and `mid()` not enclosing the exact values, and `elementary` in Debug, a bound of `atan2()`. Clang 18 honours the rounding direction there. | Refused by the three builds; a job checks the refusal (`linux.yml`). Ubuntu 22.04 arm64 is built with GCC only, Ubuntu 24.04 and 26.04 arm64 with Clang too. |
 | MinGW-w64 whose `fma()` or `round()` is wrong: on x64, GCC 11 to 13 of Chocolatey (mingw-w64 before 12) and the mingw-w64 linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, GCC 11 of WinLibs (mingw-w64 9); on ARM, mingw-w64 before 11 (not tested) | **Wrong bounds.** On x64, the `fma()` and `round()` are those of mingw-w64's own math library, computed in doubles. That `fma()` adds the products of the halves of its arguments with four roundings: it is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` and 25 to 73 % of other triples wrong, depending on the rounding direction), and CORE-MATH computes with it, GCC for Windows having no `-mfma`. That `round()` depends on the rounding direction: `round(0x1.fffffffffffffp-2)` is 1 except rounding upward. On 32-bit x86 the same `fma()` computes on the x87 unit, and the one of the mingw-w64 9 of WinLibs, compiled without optimization, rounds each of its partial sums to a double. GAOL v5 fails `elementary`, `reverse` and `core_math` there: bounds of `tan()`, `asin()`, `atan()`, `sinh()`, `cosh()`, `atanh()` and `atan2()` of small arguments do not enclose the exact values (the continuous integration, and mingw-w64 11 and the objects of MSYS2 MINGW64 under wine). From mingw-w64 12 on, a toolchain linking the UCRT takes the `fma()` and `round()` of `ucrtbase.dll`. | Refused by `gaol/gaol_config.h`; six jobs check the refusal, two of them MSYS2 MINGW64 with GCC and Clang (`windows.yml`). MinGW-w64 GCC 14 and 15 on x64, GCC 12 to 15 on 32-bit x86 (12 and 13 with the `fma()` of mingw-w64 11, which keeps its partial sums in extended precision and passes the tests, though not correctly rounded), and MSYS2 UCRT64 and CLANG64 are built and tested; `tests/core_math.cpp` checks `fma()` and `round()` first. |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | **Bounds not certified.** They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, while GAOL computes with the rounding direction set upward. | Refused by `gaol/gaol_config.h`; `gaol::gaol` gives `/fp:strict` to the code linking it, and each Visual Studio job checks the refusal (`tests/fp_strict`), those of clang-cl included (GAOL v5). |
 | The SSE2 intervals on 32-bit Windows | **Crash.** GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime of 32-bit Windows aligns on 8, and a `std::vector` of SSE2 intervals crashes on its first `movaps`: with MinGW-w64 14.2 and 15.2 for x86, in Release and in Debug, `arithmetic`, `other_functions`, `reverse` and `rounding_direction` crash. With `-faligned-new=8` the tests pass, but the code using GAOL would need that flag too. | The FPU intervals are compiled there by the three builds, as with Visual C++. On 64-bit Windows (MinGW-w64, MSYS2) the SSE2 intervals are compiled and pass the tests. |
