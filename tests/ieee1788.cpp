@@ -71,6 +71,19 @@ namespace
   static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const gaol::expression&>())), const gaol::expression>::value,
                 "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included after gaol/gaol_ieee1788.h");
 
+  /* A number converts neither to an interval nor to an expression (GAOL
+     v5): min(y, 1.0) or atan2(y, 1.0), which took [1] while it converted,
+     do not compile, and the interval is written interval(1.0) */
+  template <typename A, typename B, typename = void> struct has_min : std::false_type {};
+  template <typename A, typename B>
+  struct has_min<A, B, decltype(void(min(std::declval<const A&>(), std::declval<const B&>())))> : std::true_type {};
+  template <typename A, typename B, typename = void> struct has_atan2 : std::false_type {};
+  template <typename A, typename B>
+  struct has_atan2<A, B, decltype(void(atan2(std::declval<const A&>(), std::declval<const B&>())))> : std::true_type {};
+  static_assert(!has_min<interval, double>::value && !has_min<double, interval>::value, "min(y, 1.0) does not compile");
+  static_assert(!has_atan2<interval, double>::value && !has_atan2<double, interval>::value, "atan2(y, 1.0) does not compile");
+  static_assert(has_min<interval, interval>::value && has_atan2<interval, interval>::value, "the detection works");
+
   // The value of an expression, which the evaluator of GAOL computes
   interval value_of(const gaol::expression& e)
   {
@@ -303,10 +316,6 @@ namespace
           && min(x, y).set_eq(gaol::min(x, y)) && hypot(x, y).set_eq(gaol::hypot(x, y))
           && sinPi(x).set_eq(gaol::sinpi(x)),
           [&] { return hex(sin(x)); });
-    check("min, max, atan2 and hypot take an interval and a number",
-          min(y, 1.0).set_eq(gaol::min(y, interval(1.0))) && max(0.0, y).set_eq(gaol::max(interval(0.0), y))
-          && atan2(y, 1.0).set_eq(gaol::atan2(y, interval(1.0))) && hypot(3.0, x).set_eq(gaol::hypot(interval(3.0), x)),
-          [&] { return hex(min(y, 1.0)); });
     check("the qualified names take intervals",
           gaol_ieee1788::sin(x).set_eq(gaol::sin(x)) && gaol_ieee1788::min(x, y).set_eq(gaol::min(x, y)),
           [&] { return hex(gaol_ieee1788::sin(x)); });

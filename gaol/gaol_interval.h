@@ -135,8 +135,17 @@ namespace gaol_core {
       gives the empty set there (12.12.7).
     */
     interval(double a, double b);
-    //! Creates [a, a], and the empty set for an infinite a or a NaN
-    interval(double a);
+    /*!
+      \brief Creates [a, a], and the empty set for an infinite a or a NaN
+
+      Explicit (GAOL v5): a double no longer converts silently to an
+      interval, which made gaol::sin(0.5) the sin of [0.5] and, where
+      gaol/gaol_expression.h is included, ambiguous with the sin of an
+      expression. Assigning a double, &= and |= with one, and the relations
+      between an interval and a double have overloads of their own, which
+      take interval(d).
+    */
+    explicit interval(double a);
     //! Creates a copy of I
     interval(const interval& I);
     /*!
@@ -146,6 +155,8 @@ namespace gaol_core {
       is deprecated.
     */
     interval& operator=(const interval& I) = default;
+    //! Assigns interval(d): [d, d], and the empty set for an infinite d or a NaN
+    interval& operator=(double d);
 #if GAOL_USING_SSE2_INSTRUCTIONS
     interval(const __m128d& xmm);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
@@ -178,8 +189,12 @@ namespace gaol_core {
 
     //! Intersection of *this and I
     interval& operator&=(const interval& I);
+    //! Intersection of *this and interval(d)
+    interval& operator&=(double d);
     //! Union of *this and I
     interval& operator|=(const interval& I);
+    //! Union of *this and interval(d)
+    interval& operator|=(double d);
 
     GAOL_NODISCARD double left(void) const;
     GAOL_NODISCARD double right(void) const;
@@ -1422,7 +1437,71 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I1, const interval &I2
     return I1.certainly_ge(I2);
   }
 
+  /*
+    An interval and a double (GAOL v5): the relations with interval(d), which
+    the implicit conversion gave before interval(double) became explicit, an
+    infinite d or a NaN included (interval(d) is then empty). No == nor !=, as
+    between two intervals.
+  */
+GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I, double d)
+  {
+    return I <= interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<=(double d, const interval &I)
+  {
+    return interval(d) <= I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>=(const interval &I, double d)
+  {
+    return I >= interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>=(double d, const interval &I)
+  {
+    return interval(d) >= I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<(const interval &I, double d)
+  {
+    return I < interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<(double d, const interval &I)
+  {
+    return interval(d) < I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I, double d)
+  {
+    return I > interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>(double d, const interval &I)
+  {
+    return interval(d) > I;
+  }
+
   //@}
+
+  GAOL_INLINE interval&
+  interval::operator=(double d)
+  {
+    return *this = interval(d);
+  }
+
+  GAOL_INLINE interval&
+  interval::operator&=(double d)
+  {
+    return *this &= interval(d);
+  }
+
+  GAOL_INLINE interval&
+  interval::operator|=(double d)
+  {
+    return *this |= interval(d);
+  }
 
 GAOL_INLINE double
   interval::left(void) const

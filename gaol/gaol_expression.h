@@ -55,8 +55,14 @@ typedef struct {
     friend class expr_node;
   public:
     expression();
-    expression(double d);
-    expression(const interval& I);
+    /*
+      Explicit (GAOL v5), as interval(double): a double or an interval no
+      longer converts silently to an expression, which made gaol::sin(0.5)
+      ambiguous between the sin of an interval and that of an expression;
+      expression(d) and expression(x) are written out, e + expression(1.0)
+    */
+    explicit expression(double d);
+    explicit expression(const interval& I);
     expression(const expression& e);
     expression(const expr_node& e);
     virtual ~expression();

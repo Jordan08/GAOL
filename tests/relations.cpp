@@ -93,6 +93,38 @@ public:
       TEST_FALSE(interval(-4,5).certainly_strictly_negative());
  }
 
+  // <, <=, > and >= between an interval and a double: the relations with
+  // interval(d), interval(double) being explicit (GAOL v5)
+  void test_symbols_with_double() {
+    TEST_TRUE(interval(1,2) < 3.0);
+    TEST_FALSE(interval(1,3) < 3.0);
+    TEST_TRUE(interval(1,3) <= 3.0);
+    TEST_TRUE(0.0 < interval(1,2));
+    TEST_TRUE(2.0 <= interval(2,3));
+    TEST_FALSE(2.5 <= interval(2,3));
+    TEST_TRUE(interval(4,5) > 3);
+    TEST_TRUE(3 > interval(1,2));
+    TEST_TRUE(interval(2,3) >= 2.0);
+    TEST_FALSE(interval(1,3) >= 2.0);
+    TEST_TRUE(3.0 >= interval(1,3));
+    // No point of the empty set contradicts them
+    TEST_TRUE(interval::emptyset() < 0.0 && interval::emptyset() > 0.0);
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const interval xs[] = { interval(1,2), interval(-1,1), interval(0,GAOL_INFINITY),
+                            interval::universe(), interval::emptyset() };
+    const double ds[] = { -1.0, 0.0, 1.0, 2.0, GAOL_INFINITY, -GAOL_INFINITY, nan };
+    for (const interval& x : xs) {
+      for (double d : ds) {
+        const interval i(d);
+        TEST_TRUE((x < d) == (x < i) && (d < x) == (i < x));
+        TEST_TRUE((x <= d) == (x <= i) && (d <= x) == (i <= x));
+        TEST_TRUE((x > d) == (x > i) && (d > x) == (i > x));
+        TEST_TRUE((x >= d) == (x >= i) && (d >= x) == (i >= x));
+      }
+    }
+  }
+
   void test_misc() {
     // straddles_zero()
     TEST_TRUE(interval(-4,5).straddles_zero());
@@ -169,4 +201,5 @@ public:
 GAOL_UNIT_MAIN(relations_test, "relations",
                GAOL_UNIT_TEST(test_set),
                GAOL_UNIT_TEST(test_certainly),
+               GAOL_UNIT_TEST(test_symbols_with_double),
                GAOL_UNIT_TEST(test_misc))

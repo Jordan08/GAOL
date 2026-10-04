@@ -175,7 +175,9 @@ Three headers are shared:
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
 `textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
-1/10. `sqrt(2.0)` is the C library's double, while `sqrt(interval(2.0))`
+1/10. `sqrt(2.0)` is the C library's double, which no longer becomes an
+interval silently (`interval r = sqrt(2.0);` does not compile, `interval(double)`
+being explicit, but `interval r(sqrt(2.0))` does), while `sqrt(interval(2.0))`
 encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
 doubles, silently wrong, and [−5.9·10²¹, 4.7·10²¹] in intervals, which contains
@@ -333,7 +335,7 @@ it, and says for each idiom how it reads with GAOL v5.
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
 | A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return textToInterval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
 | A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
-| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` compile |
+| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0` and `T(0)` compile, `=` and the relations taking a double; `max(x, 0)` does not, `interval(double)` being explicit: `max(x, interval(0))` |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
 | m ± r | `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward); there is no mid-radius constructor |
 | From an integer beyond 2⁵³ | — | `interval(9007199254740993LL)` is one double that does not contain the integer |
@@ -1162,6 +1164,10 @@ is its explanation.
 using expressions includes `gaol_expression.h`, as with GAOL 4. Test
 (`tests/other_functions.cpp`):
 `static_assert(std::is_same<decltype(gaol::sin(0.5)), interval>::value, "")`.
+Since then, `interval(double)`, `expression(double)` and
+`expression(const interval&)` are explicit: `gaol::sin(0.5)` does not compile,
+with or without `gaol_expression.h`, which `tests/other_functions.cpp` and
+`tests/expressions.cpp` check, and is written `gaol::sin(interval(0.5))`.
 
 **17. Long sums.** In `gaol_interval_parser.ypp`, fold each binary operation
 when it is read (`$$ = gaol_leaf(gaol_value($1) + gaol_value($3))`), as calls

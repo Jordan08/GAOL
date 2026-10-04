@@ -57,6 +57,21 @@ namespace
   static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const expression&>())), const expression>::value,
                 "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included before gaol/gaol_ieee1788.h");
 
+  /* expression(double) and expression(const interval&) are explicit, as
+     interval(double) (GAOL v5): gaol::sin(0.5), which was ambiguous between
+     the sin of [0.5] and that of an expression, does not compile, and
+     gaol::sin(x) on an interval is the sin of the interval */
+  template <typename T, typename = void> struct has_gaol_sin : std::false_type {};
+  template <typename T>
+  struct has_gaol_sin<T, decltype(void(gaol::sin(std::declval<const T&>())))> : std::true_type {};
+  static_assert(!std::is_convertible<double, expression>::value, "a double does not convert implicitly to an expression");
+  static_assert(!std::is_convertible<interval, expression>::value, "an interval does not convert implicitly to an expression");
+  static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
+                "expression(d) and expression(x) build the expressions of [d, d] and x");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/gaol_expression.h included");
+  static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
+                "gaol::sin(x) on an interval is the sin of x, gaol/gaol_expression.h included");
+
   /* An empty expression of static storage, which refers to the node of the
      empty expression and is destroyed after main() has called
      gaol::cleanup(): cleanup() deleted that node, and the destructor of the

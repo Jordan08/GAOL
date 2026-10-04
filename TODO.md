@@ -208,15 +208,16 @@ laisser `allocator_traits` utiliser son placement-new par défaut.
   milieu est fini. Éviter ce débordement avant l'addition et ajouter un test
   qui vérifie que FE_OVERFLOW reste absent pour ce cas, y compris quand son
   piège est activé.
-- **21.** **Les entiers au-delà de 2^53** : `interval(0)`, `interval(0, 0)`, `x
-  = 0`, `x < 0` et `max(x, 0)` compilent, les constructeurs `interval(double)`
-  et `interval(double, double)` n'étant pas `explicit` (essayé le 28 septembre
-  puis retiré) : l'entier devient un double, et un entier au-delà de 2^53 un
-  double qui ne le contient pas. Correction : des constructeurs templates sur
-  les types entiers, contraints, dans les en-têtes, sans changement d'ABI ; pas
-  un simple `interval(int)`, qui rend `interval(5L)` ambigu. De plus, les
-  constructeurs existants devraient être marqués `explicit` pour éviter les
-  conversions implicites dangereuses.
+- **21.** **Les entiers au-delà de 2^53** : `interval(0)`, `interval(0, 0)`,
+  `x = 0` et `x < 0` compilent : l'entier devient un double, et un entier
+  au-delà de 2^53 un double qui ne le contient pas. `interval(double)` est
+  `explicit` depuis le 4 octobre (ainsi que `expression(double)` et
+  `expression(const interval&)`), `x = d`, `x &= d`, `x |= d` et les relations
+  avec un double ayant leurs propres surcharges ; `interval(double, double)`
+  ne l'est pas. Correction : des constructeurs templates sur les types
+  entiers, contraints, dans les en-têtes, sans changement d'ABI ; pas un
+  simple `interval(int)`, qui rend `interval(5L)` ambigu, et des surcharges
+  entières pour `=` et les relations.
 - **62.** **La documentation des exceptions flottantes** (suite du point 24,
   #47, #50) : la liste des opérations qui, sous `GAOL_PRESERVE_ROUNDING`,
   masquent de nouveau les exceptions du programme (`doc/using.md` l. 527, manuel

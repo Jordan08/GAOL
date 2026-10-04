@@ -1546,7 +1546,16 @@ One can create an interval with four constructors, or with
     interval x(@var^v~);
   \end{example}
   This is equivalent to: \code{interval x(\var{v},\var{v});}, and the empty set
-  for an infinite or NaN \var{v};
+  for an infinite or NaN \var{v}. The constructor is \code{explicit}: a
+  \code{double} no longer converts silently to an interval, and
+  \code{interval x = 0.5;}, \code{return 0.5;} in a function returning an
+  interval, \code{sin(0.5)} or \code{min(x, 1.0)} do not compile, where
+  \code{interval x(0.5)}, \code{interval(0.5)}, \code{sin(interval(0.5))} and
+  \code{min(x, interval(1.0))} do. The assignment (\pxref{sec:assignment}),
+  \code{\&=}, \code{|=} and the other assignments combined with an operation
+  (\pxref{sec:combined-assignment}), the arithmetic operators and the
+  relation symbols (\pxref{sec:relational-symbols}) take a \code{double} as
+  they take \code{interval(\var{d})};\newinvfive
 \item without providing any bound:
   \begin{example}
     interval x;
@@ -1656,7 +1665,7 @@ cout << textToInterval("inf") << ' ' << textToInterval("[inf]") << ' '
 The string \element{"<-inf, -inf>"} throws \code{input\_format\_error}, its two
 bounds being different values (\pxref{sec:input-format}).
 
-\section{Straight assignment}
+\section{Straight assignment}\label{sec:assignment}
 %%---------------------------
 
 It is possible to assign a new value to an already existing interval in
@@ -1679,7 +1688,9 @@ x = textToInterval("[-inf, 123]");
 GAOL~4 assigned the string itself, \code{x~=~"[-inf,~123]"}, which GAOL v5
 refuses, having no constructor from one string;\newinvfive
 
-\item by using a \code{double}:
+\item by using a \code{double}, which \code{operator=(double)} assigns as
+  \code{interval(\var{d})}, the constructor from one \code{double} being
+  explicit:\newinvfive
 
 \begin{example}
 interval x;
@@ -1695,7 +1706,7 @@ interval empties it.\newinvfive
 Note that there is no method for modifying a bound of an
 interval since intervals must be considered as an atomic concept.
 
-\section{Assignment combined with an operation}
+\section{Assignment combined with an operation}\label{sec:combined-assignment}
 %%=============================================
 
 The following assignment operators combine the value of the interval
@@ -1706,12 +1717,15 @@ interval.
     \code{this} is a pointer in C++.
 \cindex{this@\code{this}}\cindex{self@\code{self}}}
 
-\begin{defmethod}{interval}{interval\&}{operator\&=}{(const interval\& \var{I})}
+\defmethodx{interval}{interval\&}{operator\&=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator\&=}{(double \var{d})}
   \begin{operation}
     \op{$\code{self}\gets\code{self} \cap I$}
+    \op{$\code{self}\gets\code{self} \cap \code{interval}(d)$}
   \end{operation}
 Assigns to \code{self} the interval resulting from the intersection of
-\code{self} and \var{I}, which is the empty set when they are
+\code{self} and \var{I} (resp. \code{interval(\var{d})}, empty for an
+infinite or NaN \var{d}), which is the empty set when they are
 disjoint.\newinvfive
 
 \begin{example}
@@ -1721,11 +1735,15 @@ x &= interval(-6,23); @rem^// Now, @code^x~ is @itv^-6~^12~~
 
 \end{defmethod}
 
-\begin{defmethod}{interval}{interval\&}{operator|=}{(const interval\& \var{I})}
+\defmethodx{interval}{interval\&}{operator|=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator|=}{(double \var{d})}
   \begin{operation}
     \op{$\code{self}\gets\hull{(\code{self} \cup I)}$}
+    \op{$\code{self}\gets\hull{(\code{self} \cup \code{interval}(d))}$}
   \end{operation}
-  Assigns to \code{self} the interval hull of the union of \code{self} and \var{I}.
+  Assigns to \code{self} the interval hull of the union of \code{self} and
+  \var{I} (resp. \code{interval(\var{d})}, which leaves \code{self} as it is
+  for an infinite or NaN \var{d}).\newinvfive
 
 \begin{example}
   interval x(-12,12);
@@ -2208,20 +2226,35 @@ it.\newinvfive{} \code{==} and \code{!=} are not defined on intervals: compare
 them with \code{set\_eq()}, \code{set\_disjoint()} or \code{less()}.
 \cindex{relation!symbols}%
 
+An interval and a \code{double} \var{d} compare as the interval and
+\code{interval(\var{d})}, empty for an infinite or NaN \var{d}: \code{x < 0.0}
+is \code{x < interval(0.0)}, and still no \code{==} nor \code{!=}. These
+overloads are what the implicit conversion of a \code{double} to an interval
+gave before the constructor from one \code{double} became
+explicit.\newinvfive
+
+\deffunx{bool}{operator<}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator<}{(double \var{d}, const interval\& \var{I})}
 \begin{deffun}{bool}{operator<}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Returns \code{\var{I1}.certainly\_le(\var{I2})}: \ieee{strictPrecedes} of
   IEEE 1788-2015.
 \end{deffun}
 
+\deffunx{bool}{operator<=}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator<=}{(double \var{d}, const interval\& \var{I})}
 \begin{deffun}{bool}{operator<=}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Returns \code{\var{I1}.certainly\_leq(\var{I2})}: \ieee{precedes} of
   IEEE 1788-2015.
 \end{deffun}
 
+\deffunx{bool}{operator>}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator>}{(double \var{d}, const interval\& \var{I})}
 \begin{deffun}{bool}{operator>}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Returns \code{\var{I1}.certainly\_ge(\var{I2})}.
 \end{deffun}
 
+\deffunx{bool}{operator>=}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator>=}{(double \var{d}, const interval\& \var{I})}
 \begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Returns \code{\var{I1}.certainly\_geq(\var{I2})}.
 \begin{example}

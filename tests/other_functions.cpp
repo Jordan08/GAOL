@@ -387,13 +387,20 @@ namespace
   static_assert(!has_not_equal<interval>::value, "!= is not defined on intervals");
   static_assert(has_equal<double>::value, "the detection of == works");
 
-  /* gaol::sin(0.5) is the sin of the interval [0.5]: gaol/gaol does not
-     include gaol/gaol_expression.h (GAOL v5), whose overloads for the
-     expressions made each function of gaol ambiguous on a double, which
-     converts to an interval and to an expression */
-  static_assert(std::is_same<decltype(gaol::sin(0.5)), interval>::value, "gaol::sin(0.5) is the sin of [0.5]");
-  static_assert(std::is_same<decltype(gaol::exp(0.5)), interval>::value, "gaol::exp(0.5) is the exp of [0.5]");
-  static_assert(std::is_same<decltype(gaol_ieee1788::sin(0.5)), interval>::value, "gaol_ieee1788::sin(0.5) is the sin of [0.5]");
+  /* interval(double) is explicit (GAOL v5): a double does not convert to an
+     interval, and gaol::sin(0.5), the sin of [0.5] while it converted, does
+     not compile; gaol::sin(interval(0.5)) is that sin */
+  template <typename T, typename = void> struct has_gaol_sin : std::false_type {};
+  template <typename T>
+  struct has_gaol_sin<T, decltype(void(gaol::sin(std::declval<const T&>())))> : std::true_type {};
+  template <typename T, typename = void> struct has_ieee1788_sin : std::false_type {};
+  template <typename T>
+  struct has_ieee1788_sin<T, decltype(void(gaol_ieee1788::sin(std::declval<const T&>())))> : std::true_type {};
+  static_assert(!std::is_convertible<double, interval>::value, "a double does not convert implicitly to an interval");
+  static_assert(std::is_constructible<interval, double>::value, "interval(d) is [d, d]");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile");
+  static_assert(!has_ieee1788_sin<double>::value, "gaol_ieee1788::sin(0.5) does not compile");
+  static_assert(has_gaol_sin<interval>::value && has_ieee1788_sin<interval>::value, "the detection of sin works");
 
   // GAOL's relations, on the intervals whose bounds are zeros, infinities or
   // small integers, and the empty set: certainly_le() and certainly_leq() are

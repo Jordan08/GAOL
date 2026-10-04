@@ -1065,7 +1065,7 @@
     GAOL_RND_ENTER();
     if (is_symmetric()) { // symmetric case handles [-oo, +oo]
       GAOL_RND_LEAVE();
-      return 0.0;
+      return interval(0.0);
     }
     if (left() == -GAOL_INFINITY) {
       GAOL_RND_LEAVE();

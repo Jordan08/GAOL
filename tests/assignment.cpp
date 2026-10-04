@@ -75,10 +75,41 @@ public:
       TEST_SEQ(x,interval::universe());
   }
 
+  // =, &= and |= with a double: interval(d), empty for an infinite d or a
+  // NaN, interval(double) being explicit (GAOL v5)
+  void test_double_assignment() {
+      interval x(-5,4);
+
+      x = 1234.5;
+      TEST_SEQ(x,interval(1234.5,1234.5));
+      x = 0;
+      TEST_SEQ(x,interval::zero());
+      x = GAOL_INFINITY;
+      TEST_EMPTY(x);
+      x = interval(-5,4);
+      x = std::numeric_limits<double>::quiet_NaN();
+      TEST_EMPTY(x);
+
+      x = interval(-5,4);
+      x |= 7.0;
+      TEST_SEQ(x,interval(-5,7));
+      x |= -GAOL_INFINITY;
+      TEST_SEQ(x,interval(-5,7));
+      x &= 2.0;
+      TEST_SEQ(x,interval(2,2));
+      x &= 3.0;
+      TEST_EMPTY(x);
+      x |= 3.0;
+      TEST_SEQ(x,interval(3,3));
+      x &= GAOL_INFINITY;
+      TEST_EMPTY(x);
+  }
+
   // <-- End of tests
 };
 
 GAOL_UNIT_MAIN(assignment_test, "assignment",
                GAOL_UNIT_TEST(test_assignment),
                GAOL_UNIT_TEST(test_arithmetic_assignment),
-               GAOL_UNIT_TEST(test_logic_assignment))
+               GAOL_UNIT_TEST(test_logic_assignment),
+               GAOL_UNIT_TEST(test_double_assignment))

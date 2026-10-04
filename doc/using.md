@@ -262,8 +262,10 @@ standard:
   gives [−∞, +∞]. `pown(e, n)` and `pow(e1, e2)` build expressions computed
   with this `pown` and this `pow`, declared with the other expressions by
   `gaol/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
-  4: where it is included, `gaol::sin(0.5)` is ambiguous, a double converting
-  to an interval and to an expression;
+  4. A double converts neither to an interval nor to an expression, their
+  constructors from a double (and that of an expression from an interval)
+  being explicit: `gaol::sin(0.5)` does not compile, with or without
+  `gaol/gaol_expression.h`, and is written `gaol::sin(interval(0.5))`;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
 - `textToInterval` reads the names of the functions of the standard, those of

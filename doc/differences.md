@@ -871,6 +871,25 @@ where it comes from.
   [0, 1] was [2, 2] (review #6 of `examples/examples.md`, checked by
   `tests/expressions.cpp`). The literal 0 being a null pointer too, it made
   `interval(0, 0)` ambiguous, which now compiles.
+- **The constructor from one `double`, `interval(double)`, is explicit**, and
+  so are `expression(double)` and `expression(const interval&)`. A `double`
+  becomes an interval where the program writes `interval(d)`:
+  `interval x = 0.5;`, `return 0.5;` in a function returning an interval,
+  `min(x, 0.5)`, `hypot(3.0, x)` and `interval r = sqrt(2.0);` do not
+  compile, where GAOL 4 took the double for a point interval without saying
+  so, the `sqrt(2.0)` of the C library among them; `gaol::sin(0.5)`, which
+  was ambiguous between the sin of an interval and that of an expression,
+  does not compile either. The assignment `x = d`, `x &= d` and `x |= d`,
+  and the relations `<`, `<=`, `>` and `>=` between an interval and a
+  `double`, in either order, have overloads of their own, which take
+  `interval(d)` as the conversion did, empty for an infinite d or a NaN:
+  `x = 0.5` and `x < 0.0` still compile, and give the same results. So do the
+  arithmetic operators of an interval and a `double` (`x + 0.5`, `x *= 2.0`)
+  and `set_contains(d)`. `interval(double, double)` is not explicit.
+  `tests/other_functions.cpp`, `tests/expressions.cpp` and
+  `tests/ieee1788.cpp` check that a `double` converts neither to an interval
+  nor to an expression, `tests/assignment.cpp` and `tests/relations.cpp` the
+  overloads of a `double`.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **The three builds agree** (see [The three builds](three-builds.md)).
