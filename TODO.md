@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `0867109` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `338f2b3` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -24,13 +24,22 @@ les sources telles que git les a, par #75 ; le point J (anciens 19, 20, 68 et
 `configure-clean` : `nb_fp_numbers()` rend un `unsigned long long`, sans
 compatibilité pour `ULONGLONGINT` ni pour les anciens noms des macros ;
 `headers.sh` dans les seuls jobs d'avertissements ; des jobs AppleClang
-(`-Wall -Wextra -Werror`) et Visual C++ x64 (`/W4 /WX`) ; `gaol_parameters.h`
-supprimé ; `gaol_interval2f.h` et `manual/v5/relation-cos.tex` en LF.
+(`-Wall -Wextra -Werror`) et Visual C++ x64 et x86 (`/W4 /WX`, `size_t` ayant
+32 bits en x86) ; `gaol_parameters.h` supprimé ; `gaol_interval2f.h` et
+`manual/v5/relation-cos.tex` en LF. Décidé aussi le 4 octobre : les constantes
+`double` de `gaol/gaol_port.h` (`pi`, `half_pi`, `two_pi`, `ln2_dn`...), que le
+manuel documentait depuis GAOL 4, retirées de l'interface par #77 (avec `using
+namespace gaol`, un `pi` du programme était ambigu ; il ne reste que `pi_dn`,
+`pi_up`, `half_pi_dn` et `half_pi_up`, dans l'espace de noms `detail`, et le
+manuel renvoie à `interval::pi()`...) ; plus de `-lm` explicite dans les builds
+autotools et meson ni dans `gaol.pc`, par #78 : GAOL appelle toujours la
+bibliothèque mathématique du système (`<fenv.h>`, `sqrt()`, `floor()`, `fma()`
+sans FMA matériel...), que le compilateur C++ lie lui-même, comme le build
+CMake le supposait déjà.
 
 ## En cours
 
-Ces branches sont poussées, mais pas fusionnées dans `configure-clean`, et ces
-suites décidées sont commencées.
+Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
 - **E** (ancien 12), `todo-12-long-sums` (553e649) : inachevé (commits
   « WIP ») ; restent la fin du travail, son rapport, la relecture, la CI et la
@@ -39,13 +48,6 @@ suites décidées sont commencées.
   (« WIP » fait sur `a2ca992`, conflit avec `configure-clean` dans
   `doc/using.md`) ; voir le point H ; restent aussi la fusion de
   `configure-clean`, la relecture et la pull request.
-- **Suites du point J** (décidées le 4 octobre) : les constantes `double` de
-  `gaol/gaol_port.h` (`pi`, `half_pi`, `two_pi`, `pi_dn`, `ln2_dn`...), que le
-  manuel documente depuis GAOL 4 et que la bibliothèque n'utilise pas, retirées
-  de l'interface (avec `using namespace gaol`, un `pi` du programme était
-  ambigu ; le manuel renverra à `interval::pi()`...), dans une branche et sa
-  pull request ; un job Visual C++ x86 en `/W4 /WX`, `size_t` y ayant 32 bits,
-  dans `configure-clean`.
 
 ## Même changement, ou même code
 
@@ -680,7 +682,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
-  3 octobre, celles de C, K, L, J et `make distclean` après leur fusion).
+  3 octobre, celles de C, K, L, J, de `make distclean`, de #77 et de #78 après
+  leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
