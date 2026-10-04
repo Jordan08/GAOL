@@ -3,7 +3,8 @@
 # and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86, x64;
 # Release and Debug), 14 (x86, x64), 12 and 13 (x86), and MSYS2 (UCRT64 GCC,
 # CLANG64 Clang), runs its tests, installs it, and builds the tests again with
-# the installed GAOL. Windows has French_France.1252, a locale writing a decimal
+# the installed GAOL; with Visual Studio 2026 x64 and /W4 /WX too (GAOL v5).
+# Windows has French_France.1252, a locale writing a decimal
 # comma: each job that runs the tests checks that numbers read and wrote numbers
 # under it (.github/scripts/comma-locale.sh) (GAOL v5). On arm64, the compiler
 # of Visual Studio 2022 (toolset v143, MSVC 14.44) is the one installed with
@@ -112,6 +113,36 @@ jobs:
           cmake --build build-find-package --config ${{ matrix.cfg.config }} --target RUN_TESTS
       - name: GAOL's headers refused without /fp:strict
         run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+
+  # /W4 /WX with the Visual C++ of Visual Studio 2026 x64 (GAOL v5), as -Wall
+  # -Wextra -Werror with GCC and Clang (linux.yml) and AppleClang (macos.yml):
+  # the library, the sources of CORE-MATH included, the tests and the examples.
+  # /W4 goes to every compilation, through CFLAGS and CXXFLAGS, which CMake
+  # puts before the flags it gives Visual C++ (CMAKE_CXX_FLAGS on the command
+  # line would replace /GR /EHsc), and /WX to those of the targets only
+  # (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
+  # warning of its test program. In PowerShell, which passes /W4 as it is.
+  warnings:
+    name: Visual Studio 2026 x64 Release, /W4 /WX
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure
+        env:
+          CFLAGS: /W4
+          CXXFLAGS: /W4
+        run: |
+          cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          if ($LASTEXITCODE) { exit 1 }
+          Select-String -Path build/CMakeCache.txt -Pattern '^CMAKE_(C|CXX)_FLAGS:'
+      - name: Build
+        run: |
+          cmake --build build --config Release -j 4
+          if ($LASTEXITCODE) { exit 1 }
 
   mingw:
     name: ${{ matrix.cfg.desc }}
