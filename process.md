@@ -25,9 +25,8 @@ CI est verte.
   - `MATH-CORE` et `master` : elles ne recevront `configure-clean` qu'à la
     publication de v5.0.0 (point Y : `configure-clean` → `MATH-CORE` →
     `master`, puis l'étiquette `v5.0.0`).
-  - `todo-status` : l'ancienne branche des rapports et de l'outillage. Son
-    contenu est dans `todo-notes/` de `configure-clean` depuis le 4 octobre ;
-    elle n'est plus mise à jour.
+  - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
+    supprimée le 4 octobre : son contenu est dans `todo-notes/`.
 - **L'arbre de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`. Le
   mainteneur et d'autres agents y travaillent aussi. Des fichiers peuvent y être
   modifiés sans être à toi ; c'est souvent le cas de `TODO.md`, que le
