@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `fb69665` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `c0c1cc3` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -16,7 +16,8 @@ de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
 `TODO_mistral.md`. Les décisions du 3 octobre sont écrites dans chaque point
 (« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
-depuis : le point C (anciens 16, 17 et 67), par #71.
+depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
+47, hors Cygwin, resté au point A), par #72 et #73.
 
 ## En cours
 
@@ -29,6 +30,9 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
   (« WIP » fait sur `a2ca992`, conflit avec `configure-clean` dans
   `doc/using.md`) ; voir le point H ; restent aussi la fusion de
   `configure-clean`, la relecture et la pull request.
+- **L** (anciens 29, 43 et 69, et le `push` restreint du ménage),
+  `todo-l-ci-workflows` (ffbf4d4) : pull request #74 ; restent sa CI, la
+  relecture et la fusion.
 
 ## Même changement, ou même code
 
@@ -419,32 +423,6 @@ en-têtes (20) ; 19 et 20 modifient `gaol/gaol_ieee1788.h`, d'où le `#include
   Clang qui compilent la bibliothèque et les tests avec `-Wall -Wextra -Werror`,
   après avoir corrigé ce qui en sort.
 
-### K. clang-cl (49, 47)
-
-Les nouveaux jobs clang-cl et la mention de clang-cl dans le manuel (47)
-attendent que le 49 rende la CI verte.
-
-- **49.** **Compilé par clang-cl, `GAOL_INFINITY` n'est pas l'infini quand le
-  programme arrondit vers le bas ou vers zéro** : `gaol/gaol_port.h` le définit
-  comme `HUGE_VAL`, que l'UCRT écrit `((double)(float)1e+300)`, et clang-cl fait
-  cette conversion à l'exécution sous `/fp:strict`, ce qui donne FLT_MAX :
-  `interval()` vaut [-FLT_MAX, FLT_MAX], `interval(1e300)` est vide (37 échecs
-  de `rounding_direction` sous wine). Le défaut est aussi dans le code en ligne
-  des en-têtes publics. Les deux jobs clang-cl de `windows.yml` en sont le test
-  et restent rouges d'ici là. Décidé le 3 octobre :
-  `std::numeric_limits<double>::infinity()`, dans sa propre pull request, pas
-  encore faite.
-- **47.** **clang-cl : ce qui reste après le correctif de `cbrt`, `rsqrt` et
-  `asinpi`** (#59). Restent : refuser clang-cl sans `/fp:strict` (il compile
-  alors en `-fno-rounding-math -ffp-contract=on`, et `gaol_config.h` ne refuse
-  que Visual C++ ; `_M_FP_STRICT` existe à partir de Clang 16), et le vérifier
-  dans `tests/fp_strict` (décidé le 3 octobre) ; citer clang-cl x64 dans le
-  manuel et `doc/three-builds.md` une fois ses jobs verts (point 49) ; réserver
-  `/Zc:strictStrings-` à Visual C++ (11 avertissements par build clang-cl, dans
-  `CMakeLists.txt` et `gaol/meson.build`). Décidé aussi (#59) : ajouter à la CI
-  le clang-cl de Visual Studio 2026 x64, et clang-cl x86 et arm64. Cygwin : voir
-  le point A.
-
 ### L. Les workflows de la CI (29, 43, 69)
 
 Le même passage sur `.github/workflows/`, avec le `push` restreint du ménage ;
@@ -709,7 +687,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **La pull request de synthèse**, une fois les branches de « En cours »
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
   le 28 septembre (les textes proposés sont dans `todo-notes/` de la branche
-  `todo-status`, et dans la description de #71 pour le point C) ;
+  `todo-status`, et dans la description de #71 pour le point C ; pour le
+  point K, à écrire d'après #72 et #73) ;
   `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5, 8, 10, 12, 15, 19,
   20 et 21 de la section 5 et de l'annexe B, le n° 10 comme
   corrigé par la suppression des constructeurs à partir de chaînes (#30), et la
@@ -772,7 +751,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 12 : E ; 14 : S ; 15 : F ; 16 : J ; 18 : F ; 19 : J ; 20 : J ; 21 : D ; 22 : V ;
 23 : H ; 24 : D ; 25 : P ; 26 : W ; 27 : H ; 28 : X ; 29 : L ; 30 : P ; 31 : A ;
 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 36 : H ; 37 : I ; 38 : I ; 39 : T ;
-40 : E, G et U ; 41 : O ; 42 : O ; 43 : L ; 44 : N ; 45 : Q ; 46 : F ;
-47 : A et K ; 48 : H ; 49 : K ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ;
-55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ;
-64 : U ; 65 : O ; 66 : T ; 68 : J ; 69 : L ; 70 : I ; 71 : Y.
+40 : E, G et U ; 41 : O ; 42 : O ; 43 : L ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ;
+48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 57 : M ;
+58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ; 64 : U ; 65 : O ; 66 : T ;
+68 : J ; 69 : L ; 70 : I ; 71 : Y.
