@@ -71,3 +71,9 @@ perf: gaol_bench$(EXEEXT)
 BASH = bash
 
 .PHONY: perf
+
+# make distclean removes the files of the dependencies one by one and leaves
+# their directories: removed here, so that it gives the sources back as git has
+# them (GAOL v5)
+distclean-local:
+	-rm -rf ./$(DEPDIR)

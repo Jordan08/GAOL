@@ -118,11 +118,15 @@ jobs:
           # without configure; make distclean erases it too, the .deps and
           # .dirstamp of the dependencies and of CORE-MATH among them
           # (doc/building.md). Before tests.sh, which compiles its tests at the
-          # root of the sources
+          # root of the sources. git status shows no empty directory, as the
+          # .deps that make distclean left, emptied, before GAOL v5's
+          # distclean-local: find looks for them, a checkout having none
           make distclean
           git status --short --ignored
-          test -z "$(git status --porcelain --ignored)" || {
-            echo "make distclean left the files above, or changed them"; exit 1; }
+          empty=$(find . -path ./.git -prune -o -type d -empty -print)
+          echo "$empty"
+          test -z "$(git status --porcelain --ignored)$empty" || {
+            echo "make distclean left the files or the empty directories above, or changed files"; exit 1; }
       - name: Tests built with the installed GAOL
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
