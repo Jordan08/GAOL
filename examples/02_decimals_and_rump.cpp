@@ -201,15 +201,15 @@ int main()
   // ------------------------------------------------------------------------
   std::cout << "\nPi\n";
 
-  const interval pi = textToInterval("3.1415926535897932384626433832795028841971693993751");
+  const interval pi_digits = textToInterval("3.1415926535897932384626433832795028841971693993751");
   show("interval::pi(): contains pi", interval::pi());
-  check(interval::pi().set_contains(pi), "interval::pi() contains pi");
+  check(interval::pi().set_contains(pi_digits), "interval::pi() contains pi");
   // Machin's formula (1706). 1/5 and 1/239 are no doubles either:
   // interval(1.0) / 5.0 encloses 1/5, where atan(0.2) would take the
   // arctangent of a double near it
   const interval machin = 16.0 * atan(interval(1.0) / 5.0) - 4.0 * atan(interval(1.0) / 239.0);
   show("16 atan(1/5) - 4 atan(1/239) (Machin): contains pi", machin);
-  check(machin.set_contains(pi), "Machin's formula contains pi");
+  check(machin.set_contains(pi_digits), "Machin's formula contains pi");
   show("sin(interval::pi()): contains 0", sin(interval::pi()));
   check(sin(interval::pi()).set_contains(0.0), "sin(interval::pi()) contains 0");
   // M_PI is the double nearest pi, below it: its sine is positive, and the

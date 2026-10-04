@@ -1011,7 +1011,6 @@ namespace
 
     // The values given apart: the exact ones, the extrema and the poles at a
     // bound, the infinite bounds, the domain of acospi, and beyond 2^61
-    const double inf = GAOL_INFINITY;
     struct Case { const char *what; interval got; double lo, hi; bool empty; };
     const Case cases[] = {
       {"sinpi([1e17]) = 0, where sin(pi*x) gave [-1, 1]", sinpi(interval(1e17)), 0.0, 0.0, false},
@@ -1218,7 +1217,6 @@ namespace
   void recommended_tightest()
   {
     std::mt19937_64 gen(20260921u);
-    const double inf = GAOL_INFINITY;
     const auto rd = [](double (*f)(double), double x) {
       std::fesetround(FE_DOWNWARD);
       const double v = f(x);

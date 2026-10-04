@@ -595,7 +595,6 @@ namespace
   */
   void ieee1788_order()
   {
-    const double inf = GAOL_INFINITY;
     const interval empty = interval::emptyset();
     struct Case { const char *what; bool got, expected; };
     const Case cases[] = {
@@ -639,7 +638,6 @@ namespace
   void ieee1788_names()
   {
     namespace std1788 = ::gaol_ieee1788;
-    const double inf = GAOL_INFINITY;
     Random random;
 
     // <' of Table 10.3: < but for -oo <' -oo and +oo <' +oo

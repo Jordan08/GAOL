@@ -792,11 +792,11 @@ namespace
       for (const double root : { 2., 3., 7., 10., 1.5, 0.75, 0x1.8p-40, 0x1.4p+25 }) {
         const double x = std::pow(root, static_cast<double>(n));
         if (x > 0. && x < inf && compare(x, power(root, static_cast<int>(n))) == 0) {
-          const interval r = nth_root(interval(x), n), minus_r = nth_root(interval(-x), n);
-          const auto describe = [&] { return "x=" + hex(x) + " n=" + std::to_string(n) + ": " + hex(r); };
-          check("nth_root([a^n],n): [a]", !r.is_empty() && r.left() == root && r.right() == root, describe);
+          const interval rn = nth_root(interval(x), n), minus_rn = nth_root(interval(-x), n);
+          const auto describe = [&] { return "x=" + hex(x) + " n=" + std::to_string(n) + ": " + hex(rn); };
+          check("nth_root([a^n],n): [a]", !rn.is_empty() && rn.left() == root && rn.right() == root, describe);
           if (n % 2 == 1) {
-            check("nth_root([-a^n],n) for an odd n: [-a]", !minus_r.is_empty() && minus_r.left() == -root && minus_r.right() == -root,
+            check("nth_root([-a^n],n) for an odd n: [-a]", !minus_rn.is_empty() && minus_rn.left() == -root && minus_rn.right() == -root,
                   describe);
           }
         }

@@ -267,34 +267,34 @@ namespace
       }
     }
 
-    const interval pi = interval::pi(), half_pi = interval::half_pi();
+    const interval pi_itv = interval::pi(), half_pi_itv = interval::half_pi();
     const double oo = gaol_tests::inf;
     const struct { const char *name; interval Y, X; double l, r; } known[] = {
       { "atan2([0],[0])", interval(0.0), interval(0.0), 1.0, -1.0 },
       { "atan2([empty],[1])", interval::emptyset(), interval(1.0), 1.0, -1.0 },
       { "atan2([1],[empty])", interval(1.0), interval::emptyset(), 1.0, -1.0 },
       { "atan2([0],[1,2])", interval(0.0), interval(1.0, 2.0), 0.0, 0.0 },
-      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi.left(), pi.right() },
-      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi.left(), pi.right() },
+      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi_itv.left(), pi_itv.right() },
+      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi_itv.left(), pi_itv.right() },
       { "atan2([0],[0,2])", interval(0.0), interval(0.0, 2.0), 0.0, 0.0 },
-      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi.right() },
-      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
-      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
-      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi.right(), -half_pi.left() },
-      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi.right(), -half_pi.left() },
-      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi.right(), half_pi.right() },
-      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
-      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
-      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi.right()*0.5, 0.0 },
-      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi.right(), pi.right() },
-      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi.right() },
-      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi.left(), pi.right() },
-      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi.right(), -half_pi.left() },
-      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi.right(), 0.0 },
-      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi.right(), half_pi.right() },
-      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi.right() },
-      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi.left()*0.5, half_pi.right()*0.5 },
-      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi.right()*0.5, -half_pi.left()*0.5 },
+      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi_itv.right() },
+      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi_itv.left(), half_pi_itv.right() },
+      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi_itv.left(), half_pi_itv.right() },
+      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi_itv.right(), half_pi_itv.right() },
+      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi_itv.right(), pi_itv.right() },
+      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi_itv.right(), pi_itv.right() },
+      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi_itv.right()*0.5, 0.0 },
+      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi_itv.right(), pi_itv.right() },
+      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi_itv.right() },
+      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi_itv.left(), pi_itv.right() },
+      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi_itv.right(), 0.0 },
+      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi_itv.right(), half_pi_itv.right() },
+      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi_itv.right() },
+      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi_itv.left()*0.5, half_pi_itv.right()*0.5 },
+      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi_itv.right()*0.5, -half_pi_itv.left()*0.5 },
     };
     for (const auto& k : known) {
       const interval r = evaluate(k.name, [&] { return atan2(k.Y, k.X); }, [&] { return std::string(k.name); });

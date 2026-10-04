@@ -94,7 +94,7 @@ class reverse_mappings_test {
 		TI[i] = interval(Il,Ir);
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
-	   interval J = tan(TI[i]);
+	   J = tan(TI[i]);
 		TEST_EQ(atan_rel(J,TI[i]),TI[i]);
 	 }
 	 TEST_EQ(atan_rel(interval(-5,5),interval::universe()),interval::universe());
