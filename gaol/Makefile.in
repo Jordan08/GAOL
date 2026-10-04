@@ -427,11 +427,14 @@ libgaol_la_SOURCES = \
 
 # The elementary functions of CORE-MATH, compiled by 3rd/Makefile.am into a
 # convenience library and put into libgaol here: nothing is linked along with
-# GAOL.
+# GAOL. Not -lm (GAOL v5): GAOL and CORE-MATH still call functions of the math
+# library (those of <fenv.h>, sqrt, floor, round, fma where the processor has
+# no such instruction...), which the C++ compiler links itself, as CMake and
+# meson leave it to.
 
 # libgaol.so.5.0.0 and its soname libgaol.so.5 (see configure.ac)
 libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO)
-libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la -lm
+libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la
 library_includedir = $(includedir)/gaol
 
 # The headers a program includes, gaol, gaol_expression.h and
@@ -458,7 +461,6 @@ noinst_HEADERS = gaol_core_math.h gaol_exact.h \
 	gaol_u128.h sysdeps/gaol_exact_c99.h sysdeps/gaol_exact_msvc.h \
 	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h
 
-LDADD = -lm
 all: gaol_configuration.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 

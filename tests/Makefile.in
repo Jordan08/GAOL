@@ -746,7 +746,7 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = -std=c++17
 AM_LDFLAGS = -static
-LDADD = $(top_builddir)/gaol/libgaol.la -lm $(GAOL_PC_LIBS)
+LDADD = $(top_builddir)/gaol/libgaol.la $(GAOL_PC_LIBS)
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The same list as tests/CMakeLists.txt
@@ -1659,7 +1659,7 @@ uninstall-am:
 gaol_bench$(EXEEXT): $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la
 	$(LIBTOOL) --tag=CXX --mode=link $(CXX) $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	  -I$(top_srcdir)/doc/compare/code -DGAOL_BENCH_NAME='"gaol5"' $(GAOL_CXX_STD) $(CXXFLAGS) \
-	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -lm -o $@
+	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -o $@
 
 perf: gaol_bench$(EXEEXT)
 	$(BASH) $(top_srcdir)/doc/compare/code/run_perf.sh ./gaol_bench$(EXEEXT) autotools "$(CXX)"

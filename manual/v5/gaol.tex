@@ -942,14 +942,18 @@ line:
 \begin{cmdshell}
 % pkg-config --cflags --libs gaol
 -frounding-math -fno-fast-math -ffp-contract=off
--msse2 -msse3 -mfma -I@var^prefix~/include -L@var^prefix~/lib -lgaol -lm
+-msse2 -msse3 -mfma -I@var^prefix~/include -L@var^prefix~/lib -lgaol
 \end{cmdshell}
 
 \noindent
-(and \option{-mno-daz-ftz} after \option{-lm} where the compiler that built
+(and \option{-mno-daz-ftz} after \option{-lgaol} where the compiler that built
 GAOL takes it: \file{gaol.pc} is written for that compiler, and a program
 linked by one that refuses the option, as Clang~18, a GCC before 11.4 or GCC
-12.0 to 12.3, is to be linked without it).
+12.0 to 12.3, is to be linked without it). There is no \option{-lm}: GAOL
+still calls functions of the math library of the system (those of
+\file{fenv.h}, \code{sqrt()}, \code{floor()}, \code{fma()} where the processor
+has no such instruction\ldots), which the C++ compiler links
+itself.\newinvfive
 
 \noindent
 In a meson project, \code{dependency('gaol')} finds it.

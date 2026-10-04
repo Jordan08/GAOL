@@ -107,14 +107,16 @@ followed instead.
 ## From pkg-config
 
 Each build installs `gaol.pc` in the `pkgconfig` directory of its library
-directory (`<prefix>/lib/pkgconfig`, or `lib64` or `lib/<multiarch>` rather
-than `lib` on the systems whose libraries go there), except the CMake build
-with Visual C++. Its `Cflags` carries the flags above with the include
-directory, and `Libs` GAOL itself with the C math library, CORE-MATH being
-compiled into `libgaol`, and the link option above where the compiler that
-built GAOL accepts it. `gaol.pc` is written for that compiler: a program linked
-by one that refuses `-mno-daz-ftz` (Clang 18, a GCC before 11.4, GCC 12.0 to
-12.3) stops on it, and is to be linked without it:
+directory (`<prefix>/lib/pkgconfig`, or `lib64` or `lib/<multiarch>` rather than
+`lib` on the systems whose libraries go there), except the CMake build with
+Visual C++. Its `Cflags` carries the flags above with the include directory, and
+`Libs` GAOL itself, CORE-MATH being compiled into `libgaol`, and the link option
+above where the compiler that built GAOL accepts it. It names no math library
+(GAOL v5): GAOL still calls functions of the math library of the system (those
+of `<fenv.h>`, `sqrt()`, `floor()`, `fma()` where the processor has no such
+instruction...), which the C++ compiler links itself. `gaol.pc` is written for
+that compiler: a program linked by one that refuses `-mno-daz-ftz` (Clang 18, a
+GCC before 11.4, GCC 12.0 to 12.3) stops on it, and is to be linked without it:
 
 ```bash
 export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig

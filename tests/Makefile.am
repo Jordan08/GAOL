@@ -19,7 +19,7 @@
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = -std=c++17
 AM_LDFLAGS = -static
-LDADD = $(top_builddir)/gaol/libgaol.la -lm $(GAOL_PC_LIBS)
+LDADD = $(top_builddir)/gaol/libgaol.la $(GAOL_PC_LIBS)
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The same list as tests/CMakeLists.txt
@@ -62,7 +62,7 @@ gaol_performance_SOURCES = performance.cpp
 gaol_bench$(EXEEXT): $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la
 	$(LIBTOOL) --tag=CXX --mode=link $(CXX) $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	  -I$(top_srcdir)/doc/compare/code -DGAOL_BENCH_NAME='"gaol5"' $(GAOL_CXX_STD) $(CXXFLAGS) \
-	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -lm -o $@
+	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -o $@
 CLEANFILES = gaol_bench$(EXEEXT)
 
 perf: gaol_bench$(EXEEXT)
