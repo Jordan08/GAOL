@@ -25,8 +25,9 @@ CI est verte.
   - `MATH-CORE` et `master` : elles ne recevront `configure-clean` qu'à la
     publication de v5.0.0 (point Y : `configure-clean` → `MATH-CORE` →
     `master`, puis l'étiquette `v5.0.0`).
-  - `todo-status` : les rapports et l'outillage de l'orchestration
-    (`todo-notes/`).
+  - `todo-status` : l'ancienne branche des rapports et de l'outillage. Son
+    contenu est dans `todo-notes/` de `configure-clean` depuis le 4 octobre ;
+    elle n'est plus mise à jour.
 - **L'arbre de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`. Le
   mainteneur et d'autres agents y travaillent aussi. Des fichiers peuvent y être
   modifiés sans être à toi ; c'est souvent le cas de `TODO.md`, que le
@@ -39,7 +40,7 @@ CI est verte.
 | Les points à faire, regroupés par lettres (A à Z), avec leurs décisions | `TODO.md` de `configure-clean` |
 | Le suivi d'ensemble (fait, en cours, reste à faire) | issue #49 |
 | Les questions reportées | issues #64 à #70, et celles qui suivront |
-| Les rapports des agents, l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | branche `todo-status`, `todo-notes/` |
+| Les rapports des agents, l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) |
 | La revue d'origine (« revue n° n » dans `TODO.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
 | La documentation : construire, utiliser, précision, tests, CI, écarts avec GAOL 4 | `doc/*.md`, `README.md` |
 | Le manuel de GAOL v5 | `manual/v5/gaol.tex` (`manual/v4` est celui de GAOL 4 : n'y touche jamais) |
@@ -102,8 +103,8 @@ commits.
   `meson test --num-processes 4`. Jamais `-j$(nproc)`, ni `-j` sans nombre. La
   limite vaut pour la somme : deux builds en parallèle, ou des sous-agents qui
   compilent, se partagent ces 4 cœurs. Avec plusieurs agents, l'outil `gcore`
-  de `todo-status` (`todo-notes/orchestration/bin/gcore`) distribue des jetons
-  de cœur.
+  (`todo-notes/orchestration/bin/gcore`, à copier dans ton scratchpad)
+  distribue des jetons de cœur.
 - Les répertoires de build et les fichiers temporaires vont **hors de l'arbre**,
   dans ton scratchpad, jamais dans `/tmp` directement ni dans le dépôt. Les
   chemins `/tmp/claude-1001/...` des anciennes sessions sont éphémères : ne
@@ -329,7 +330,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
 1. **Comprendre le point.** Lis-le dans `TODO.md` avec ses sous-points, ses
    décisions et les issues qu'il cite. Lis aussi les rapports qui le concernent
-   dans `todo-notes/` (`git show origin/todo-status:todo-notes/...`), la revue
+   dans `todo-notes/` (son `README.md` dit où chercher), la revue
    d'`examples/examples.md` s'il la cite, et le code concerné. Reproduis le
    défaut avant de le corriger. S'il est déjà corrigé ou ne se reproduit pas,
    dis-le avec la preuve, sans forcer de changement.
@@ -375,8 +376,8 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    Corrige ses points bloquants et vérifie-les. La pull request dit ce qu'il a
    trouvé et vérifié.
 8. **Contrôler et commiter.** Lance `check_branch <branche>`
-   (`todo-notes/orchestration/bin/check_branch` de `todo-status`, à copier dans
-   ton scratchpad). Il vérifie les messages (deux lignes au plus, aucune mention
+   (`todo-notes/orchestration/bin/check_branch`, à copier dans ton
+   scratchpad). Il vérifie les messages (deux lignes au plus, aucune mention
    de Claude), l'absence des registres, du PDF et des produits de build, et les
    espaces. Commite par fichiers nommés (section 3.1). Plusieurs commits
    courts valent mieux qu'un fourre-tout.

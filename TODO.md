@@ -5,7 +5,7 @@ Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
 l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64 à
-#70) et les rapports de `todo-notes/` (branche `todo-status`) ; la table à la
+#70) et les rapports de [todo-notes/](todo-notes/README.md) ; la table à la
 fin donne la lettre de chaque ancien numéro, et un numéro qui n'y est pas est un
 point fait.
 
@@ -669,8 +669,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **La pull request de synthèse**, une fois les branches de « En cours »
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
-  le 28 septembre (les textes proposés sont dans `todo-notes/` de la branche
-  `todo-status`, et dans la description de #71 pour le point C ; pour le
+  le 28 septembre (les textes proposés sont dans les rapports de
+  `todo-notes/`, et dans la description de #71 pour le point C ; pour le
   point K, à écrire d'après #72 et #73 ; dans celles de #74, #75 et #76 pour les
   points L, `make distclean` et J, et pour les suites du point J, d'après les
   commits de `configure-clean` du 4 octobre) ;
