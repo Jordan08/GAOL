@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_exceptions_h__
-#define __gaol_exceptions_h__
+#ifndef GAOL_EXCEPTIONS_H
+#define GAOL_EXCEPTIONS_H
 
 #include "gaol/gaol_config.h"
 
@@ -181,4 +181,4 @@ namespace gaol_core {
 } // namespace gaol_core
 
 #endif /* GAOL_EXCEPTIONS_ENABLED */
-#endif /* __gaol_exceptions_h__ */
+#endif /* GAOL_EXCEPTIONS_H */

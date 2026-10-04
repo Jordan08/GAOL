@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_port_h__
-#define __gaol_port_h__
+#ifndef GAOL_PORT_H
+#define GAOL_PORT_H
 
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_limits.h"
@@ -206,4 +206,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_port_h__ */
+#endif /* GAOL_PORT_H */

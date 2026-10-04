@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_parser_h__
-#define __gaol_parser_h__
+#ifndef GAOL_PARSER_H
+#define GAOL_PARSER_H
 
 #include "gaol/gaol_config.h"
 #include <iosfwd>
@@ -87,4 +87,4 @@ namespace gaol {
 
 } // namespace gaol
 
-#endif /* __gaol_parser_h__ */
+#endif /* GAOL_PARSER_H */

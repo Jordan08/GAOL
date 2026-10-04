@@ -24,8 +24,8 @@
 */
 
 
-#ifndef __gaol_exact_c99_h__
-#define __gaol_exact_c99_h__
+#ifndef GAOL_EXACT_C99_H
+#define GAOL_EXACT_C99_H
 
 /*
  The test on the existence of fenv.h shall be made before including this
@@ -43,4 +43,4 @@ inline void clear_inexact(void)
   feclearexcept(FE_INEXACT);
 }
 
-#endif /* __gaol_exact_c99_h__ */
+#endif /* GAOL_EXACT_C99_H */

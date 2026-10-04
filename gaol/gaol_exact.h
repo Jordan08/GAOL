@@ -29,8 +29,8 @@
 */
 
 
-#ifndef __gaol_exact_h__
-#define __gaol_exact_h__
+#ifndef GAOL_EXACT_H
+#define GAOL_EXACT_H
 
 #include "gaol/gaol_config.h"
 
@@ -54,4 +54,4 @@ void clear_inexact(void);
 #  include "gaol/sysdeps/gaol_exact_c99.h"
 #endif
 
-#endif /* __gaol_exact_h__ */
+#endif /* GAOL_EXACT_H */

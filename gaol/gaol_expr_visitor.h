@@ -24,8 +24,8 @@
 */
 
 
-#ifndef __gaol_expr_visitor_h__
-#define __gaol_expr_visitor_h__
+#ifndef GAOL_EXPR_VISITOR_H
+#define GAOL_EXPR_VISITOR_H
 
 namespace gaol_core {
   // Forward declarations
@@ -177,4 +177,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_expr_visitor_h__ */
+#endif /* GAOL_EXPR_VISITOR_H */

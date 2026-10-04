@@ -25,11 +25,11 @@
 */
 
 
-#ifndef __gaol_h__
-#define __gaol_h__
+#ifndef GAOL_H
+#define GAOL_H
 
 #include "gaol"
 
 
 
-#endif /* __gaol_h__ */
+#endif /* GAOL_H */

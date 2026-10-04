@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_expression_h__
-#define __gaol_expression_h__
+#ifndef GAOL_EXPRESSION_H
+#define GAOL_EXPRESSION_H
 
 #include <iosfwd>
 
@@ -1366,4 +1366,4 @@ namespace gaol_ieee1788 {
   }
 } // namespace gaol_ieee1788
 
-#endif /* __gaol_expression_h__ */
+#endif /* GAOL_EXPRESSION_H */

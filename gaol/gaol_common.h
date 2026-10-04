@@ -23,8 +23,8 @@
 */
 
 
-#ifndef __gaol_common_h__
-#define __gaol_common_h__
+#ifndef GAOL_COMMON_H
+#define GAOL_COMMON_H
 
 #include <cmath>
 
@@ -188,4 +188,4 @@ extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *e
 
 } // namespace gaol_core
 
-#endif /* __gaol_common_h__ */
+#endif /* GAOL_COMMON_H */

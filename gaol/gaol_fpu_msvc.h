@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_fpu_msvc_h__
-#define __gaol_fpu_msvc_h__
+#ifndef GAOL_FPU_MSVC_H
+#define GAOL_FPU_MSVC_H
 
 #include "gaol/gaol_port.h"
 
@@ -149,4 +149,4 @@ GAOL_INLINE void reset_fpu_cw(unsigned short int st)
 
 } // namespace gaol_core
 
-#endif /* __gaol_fpu_msvc_h__ */
+#endif /* GAOL_FPU_MSVC_H */

@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_fpu_h__
-#define __gaol_fpu_h__
+#ifndef GAOL_FPU_H
+#define GAOL_FPU_H
 
 #include <cfloat>
 #include <cmath>
@@ -471,4 +471,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_fpu_h__ */
+#endif /* GAOL_FPU_H */

@@ -30,8 +30,8 @@
  * COPYING file for information.
  *----------------------------------------------------------------------------*/
 
-#ifndef __gaol_u128_h__
-#define __gaol_u128_h__
+#ifndef GAOL_U128_H
+#define GAOL_U128_H
 
 #include <stdint.h>
 
@@ -238,4 +238,4 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_sar(gaol_u128 a, int n) {
 
 #endif /* GAOL_U128_NATIVE */
 
-#endif /* __gaol_u128_h__ */
+#endif /* GAOL_U128_H */

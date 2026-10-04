@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_eval_stack_h__
-#define __gaol_eval_stack_h__
+#ifndef GAOL_EVAL_STACK_H
+#define GAOL_EVAL_STACK_H
 
 #include "gaol/gaol_common.h"
 
@@ -86,4 +86,4 @@ namespace gaol_core {
   
 } // namespace gaol_core
 
-#endif /* __gaol_eval_stack_h__ */
+#endif /* GAOL_EVAL_STACK_H */

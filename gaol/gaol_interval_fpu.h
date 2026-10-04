@@ -23,13 +23,13 @@
     This file contains all declarations related to the 'interval' class that consider
     the bounds to be a pair of 'double' variables.
 */
-#ifndef __gaol_interval_h__
+#ifndef GAOL_INTERVAL_H
 #  error "File gaol_interval_fpu.h shall only be included directly by gaol_interval.h"
 #endif
 
 
-#ifndef __gaol_interval_fpu_h__
-#define __gaol_interval_fpu_h__
+#ifndef GAOL_INTERVAL_FPU_H
+#define GAOL_INTERVAL_FPU_H
 
     // Built from constants rather than copied from static intervals, which
     // the dynamic initialization of gaol/gaol_interval.cpp computed after the
@@ -213,4 +213,4 @@ interval::right_internal() const
     return rb_;
 }
 
-#endif // __gaol_interval_fpu_h__
+#endif // GAOL_INTERVAL_FPU_H

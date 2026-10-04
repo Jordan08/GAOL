@@ -28,8 +28,8 @@
   \date   2002-12-03
 */
 
-#ifndef __gaol_config_h__
-#define __gaol_config_h__
+#ifndef GAOL_CONFIG_H
+#define GAOL_CONFIG_H
 
 /* The configuration the build wrote, the same macros with the three builds
    and every compiler (see doc/building.md): CMake from
@@ -314,4 +314,4 @@
 #  endif
 #endif
 
-#endif /* __gaol_config_h__ */
+#endif /* GAOL_CONFIG_H */

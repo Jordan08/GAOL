@@ -17,8 +17,8 @@
  *--------------------------------------------------------------------------*/
 
 
-#ifndef __gaol_interval2f_h__
-#define __gaol_interval2f_h__
+#ifndef GAOL_INTERVAL2F_H
+#define GAOL_INTERVAL2F_H
 
 // Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 // gaol/gaol_config.h) and SSE3 instructions are used, and empty otherwise
@@ -348,4 +348,4 @@ namespace gaol_core {
 
 #endif // GAOL_FLOAT_INTERVALS && GAOL_USING_SSE3_INSTRUCTIONS
 
-#endif // __gaol_interval2f_h__
+#endif // GAOL_INTERVAL2F_H

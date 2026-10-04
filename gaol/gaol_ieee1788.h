@@ -59,8 +59,8 @@
  * COPYING file for information.
  *----------------------------------------------------------------------------*/
 
-#ifndef __gaol_ieee1788_h__
-#define __gaol_ieee1788_h__
+#ifndef GAOL_IEEE1788_H
+#define GAOL_IEEE1788_H
 
 #include <cmath>
 #include <exception>
@@ -393,4 +393,4 @@ namespace gaol_ieee1788 {
 
 } // namespace gaol_ieee1788
 
-#endif /* __gaol_ieee1788_h__ */
+#endif /* GAOL_IEEE1788_H */

@@ -14,8 +14,8 @@
    interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/, Cyril Bouvier and Gilles
    Chabert), itself generated from GAOL's configure.ac. */
 
-#ifndef __gaol_configuration_h__
-#define __gaol_configuration_h__
+#ifndef GAOL_CONFIGURATION_H
+#define GAOL_CONFIGURATION_H
 
 /* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
 #define GAOL_MAJOR_VERSION @PROJECT_VERSION_MAJOR@
@@ -73,4 +73,4 @@
    gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
 #cmakedefine GAOL_HAVE_GETRUSAGE 1
 
-#endif /* __gaol_configuration_h__ */
+#endif /* GAOL_CONFIGURATION_H */

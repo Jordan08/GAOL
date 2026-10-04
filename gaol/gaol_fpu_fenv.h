@@ -56,8 +56,8 @@
      differing too.
 */
 
-#ifndef __gaol_fpu_fenv_h__
-#define __gaol_fpu_fenv_h__
+#ifndef GAOL_FPU_FENV_H
+#define GAOL_FPU_FENV_H
 
 #include "gaol/gaol_port.h"
 #include <fenv.h>
@@ -283,4 +283,4 @@ GAOL_INLINE void reset_fpu_cw(unsigned short int st)
 
 } // namespace gaol_core
 
-#endif /* __gaol_fpu_fenv_h__ */
+#endif /* GAOL_FPU_FENV_H */

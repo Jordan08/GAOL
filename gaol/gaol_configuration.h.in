@@ -12,8 +12,8 @@
    This template is written by hand, not by autoheader, which would add the
    macros of autoconf, automake and libtool (PACKAGE_NAME, LT_OBJDIR...). */
 
-#ifndef __gaol_configuration_h__
-#define __gaol_configuration_h__
+#ifndef GAOL_CONFIGURATION_H
+#define GAOL_CONFIGURATION_H
 
 /* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
 #undef GAOL_MAJOR_VERSION
@@ -71,4 +71,4 @@
    gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
 #undef GAOL_HAVE_GETRUSAGE
 
-#endif /* __gaol_configuration_h__ */
+#endif /* GAOL_CONFIGURATION_H */

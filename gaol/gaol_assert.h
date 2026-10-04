@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_assert_h__
-#define __gaol_assert_h__
+#ifndef GAOL_ASSERT_H
+#define GAOL_ASSERT_H
 
 #include "gaol/gaol_config.h"
 
@@ -38,4 +38,4 @@
 # define GAOL_ASSERT(a) 
 #endif  // GAOL_DEBUGGING
 
-#endif /* __gaol_assert_h__ */
+#endif /* GAOL_ASSERT_H */

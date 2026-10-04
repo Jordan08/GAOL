@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_limits_h__
-#define __gaol_limits_h__
+#ifndef GAOL_LIMITS_H
+#define GAOL_LIMITS_H
 
 #include "gaol/gaol_config.h"
 
@@ -35,4 +35,4 @@
 // compilers without it are gone (GAOL v5)
 #include <limits>
 
-#endif /* __gaol_limits_h__ */
+#endif /* GAOL_LIMITS_H */

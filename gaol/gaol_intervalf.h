@@ -16,8 +16,8 @@
  * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_intervalf_h__
-#define __gaol_intervalf_h__
+#ifndef GAOL_INTERVALF_H
+#define GAOL_INTERVALF_H
 
 // Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 // gaol/gaol_config.h), and empty otherwise (GAOL v5)
@@ -218,4 +218,4 @@ namespace gaol_core {
 
 #endif // GAOL_FLOAT_INTERVALS
 
-#endif // __gaol_intervalf_h__
+#endif // GAOL_INTERVALF_H

@@ -23,8 +23,8 @@
  * COPYING file for information.
  *----------------------------------------------------------------------------*/
 
-#ifndef __gaol_roundeven_h__
-#define __gaol_roundeven_h__
+#ifndef GAOL_ROUNDEVEN_H
+#define GAOL_ROUNDEVEN_H
 
 #include <math.h>
 #include <stdint.h>
@@ -66,4 +66,4 @@ GAOL_ROUNDEVEN_INLINE double gaol_roundeven(double x)
   }
 }
 
-#endif /* __gaol_roundeven_h__ */
+#endif /* GAOL_ROUNDEVEN_H */

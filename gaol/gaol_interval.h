@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_interval_h__
-#define __gaol_interval_h__
+#ifndef GAOL_INTERVAL_H
+#define GAOL_INTERVAL_H
 
 #include <cmath>
 #include <iosfwd>
@@ -1529,4 +1529,4 @@ namespace gaol {
 
 } // namespace gaol
 
-#endif /* __gaol_interval_h__ */
+#endif /* GAOL_INTERVAL_H */

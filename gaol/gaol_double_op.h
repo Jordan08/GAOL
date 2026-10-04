@@ -40,8 +40,8 @@
   \author Frederic Goualard, then GAOL v5
 */
 
-#ifndef __gaol_double_op_h__
-#define __gaol_double_op_h__
+#ifndef GAOL_DOUBLE_OP_H
+#define GAOL_DOUBLE_OP_H
 
 #include <cmath>
 #include "gaol/gaol_config.h"
@@ -252,4 +252,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_double_op_h__ */
+#endif /* GAOL_DOUBLE_OP_H */

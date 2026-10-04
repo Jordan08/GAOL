@@ -27,8 +27,8 @@
 	the ones that use SSE2 registers.
 */
 
-#ifndef __gaol_allocator_h__
-#define __gaol_allocator_h__
+#ifndef GAOL_ALLOCATOR_H
+#define GAOL_ALLOCATOR_H
 
 #include <cstddef>
 #include <limits>
@@ -123,4 +123,4 @@ class aligned_allocator
 };
 
 } // namespace gaol_core
-#endif // __gaol_allocator_h__
+#endif // GAOL_ALLOCATOR_H

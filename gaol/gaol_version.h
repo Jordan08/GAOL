@@ -24,8 +24,8 @@
 */
 
 
-#ifndef __gaol_version_h__
-#define __gaol_version_h__
+#ifndef GAOL_VERSION_H
+#define GAOL_VERSION_H
 
 // The version the build wrote into gaol/gaol_configuration.h, with every
 // compiler: MinGW included nothing, and GAOL_MAJOR_VERSION was undefined there
@@ -38,4 +38,4 @@ namespace gaol_core {
   const unsigned int version_micro = GAOL_MICRO_VERSION;
   const char *const version = GAOL_VERSION;
 }
-#endif /* __gaol_version_h__ */
+#endif /* GAOL_VERSION_H */

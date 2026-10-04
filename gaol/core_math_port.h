@@ -33,8 +33,8 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_core_math_port_h__
-#define __gaol_core_math_port_h__
+#ifndef GAOL_CORE_MATH_PORT_H
+#define GAOL_CORE_MATH_PORT_H
 
 /* GCC 14 for a 32-bit x86 target stopped on an internal compiler error in
    asinpi_acc() of asinpi.c ("in extract_bit_field_1, at expmed.cc:1838", at
@@ -407,4 +407,4 @@ static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t 
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
-#endif /* __gaol_core_math_port_h__ */
+#endif /* GAOL_CORE_MATH_PORT_H */

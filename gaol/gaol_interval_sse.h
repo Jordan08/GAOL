@@ -23,12 +23,12 @@
     the bounds to be an __m128d variable.
 **/
 
-#ifndef __gaol_interval_h__
+#ifndef GAOL_INTERVAL_H
 #  error "File gaol_interval_sse.h shall only be included directly by gaol_interval.h"
 #endif
 
-#ifndef __gaol_interval_sse_h__
-#define __gaol_interval_sse_h__
+#ifndef GAOL_INTERVAL_SSE_H
+#define GAOL_INTERVAL_SSE_H
 
   __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const __m128d& x);
 
@@ -185,4 +185,4 @@
 
 
 
-#endif // __gaol_interval_sse_h__
+#endif // GAOL_INTERVAL_SSE_H
