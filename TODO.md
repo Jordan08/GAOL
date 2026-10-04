@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `c0c1cc3` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `0867109` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -17,11 +17,20 @@ de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 `TODO_mistral.md`. Les décisions du 3 octobre sont écrites dans chaque point
 (« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
 depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
-47, hors Cygwin, resté au point A), par #72 et #73.
+47, hors Cygwin, resté au point A), par #72 et #73 ; le point L (anciens 29, 43
+et 69, et le `push` restreint du ménage), par #74 ; `make distclean`, qui rend
+les sources telles que git les a, par #75 ; le point J (anciens 19, 20, 68 et
+16), par #76. Décidé à la fin du point J, le 4 octobre, et fait dans
+`configure-clean` : `nb_fp_numbers()` rend un `unsigned long long`, sans
+compatibilité pour `ULONGLONGINT` ni pour les anciens noms des macros ;
+`headers.sh` dans les seuls jobs d'avertissements ; des jobs AppleClang
+(`-Wall -Wextra -Werror`) et Visual C++ x64 (`/W4 /WX`) ; `gaol_parameters.h`
+supprimé ; `gaol_interval2f.h` et `manual/v5/relation-cos.tex` en LF.
 
 ## En cours
 
-Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
+Ces branches sont poussées, mais pas fusionnées dans `configure-clean`, et ces
+suites décidées sont commencées.
 
 - **E** (ancien 12), `todo-12-long-sums` (553e649) : inachevé (commits
   « WIP ») ; restent la fin du travail, son rapport, la relecture, la CI et la
@@ -30,9 +39,13 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
   (« WIP » fait sur `a2ca992`, conflit avec `configure-clean` dans
   `doc/using.md`) ; voir le point H ; restent aussi la fusion de
   `configure-clean`, la relecture et la pull request.
-- **L** (anciens 29, 43 et 69, et le `push` restreint du ménage),
-  `todo-l-ci-workflows` (ffbf4d4) : pull request #74 ; restent sa CI, la
-  relecture et la fusion.
+- **Suites du point J** (décidées le 4 octobre) : les constantes `double` de
+  `gaol/gaol_port.h` (`pi`, `half_pi`, `two_pi`, `pi_dn`, `ln2_dn`...), que le
+  manuel documente depuis GAOL 4 et que la bibliothèque n'utilise pas, retirées
+  de l'interface (avec `using namespace gaol`, un `pi` du programme était
+  ambigu ; le manuel renverra à `interval::pi()`...), dans une branche et sa
+  pull request ; un job Visual C++ x86 en `/W4 /WX`, `size_t` y ayant 32 bits,
+  dans `configure-clean`.
 
 ## Même changement, ou même code
 
@@ -386,78 +399,6 @@ ne régénérer le PDF qu'une fois (point Y) ; le site (70) vient après.
   avec le PDF du manuel, publié par un workflow, sans la référence HTML de
   Doxygen, supprimée par #29.
 
-## Ordre imposé
-
-### J. Les en-têtes, puis `-Werror` (19, 20, 68, 16)
-
-Les avertissements à corriger avant le job `-Werror` (68) viennent surtout des
-en-têtes (20) ; 19 et 20 modifient `gaol/gaol_ieee1788.h`, d'où le `#include
-<sstream>` du 16 est aussi à retirer.
-
-- **19.** **`gaol::sin(0.5)` ne compile plus** (revue n° 16) : chaque fonction
-  de l'espace de noms `gaol` sur un double est ambiguë entre les surcharges pour
-  les intervalles et pour les expressions, parce que `gaol/gaol` inclut
-  `gaol_ieee1788.h`, qui inclut `gaol_expression.h` ; GAOL 4 le compilait.
-  Correction : ne plus inclure `gaol_expression.h` depuis `gaol_ieee1788.h`, et
-  déplacer ses deux surcharges d'expressions (`pown(e, n)`, `pow(e1, e2)`) à la
-  fin de `gaol_expression.h`, en gardant le choix des surcharges dans les deux
-  ordres d'inclusion et en corrigeant le commentaire d'en-tête de
-  `gaol_ieee1788.h`.
-- **20.** **Les en-têtes publics débordent dans le programme** (revue n° 22).
-  Les trois builds installent tous les en-têtes de `gaol/`, internes compris :
-  `gaol_interval_parser.h` ne compile pas quand on l'inclut, ni
-  `gaol_allocator.h` seul. `gaol_exceptions.h` met `using std::exception;` et
-  `using std::string;` à la portée globale, et les en-têtes définissent des
-  macros sans préfixe (`INLINE`, `MEMALIGN`, `__HI`, `HAVE_FENV_H`…). Avec
-  `-Wall -Wextra` et un simple `-I`, un programme reçoit 35 avertissements de
-  GCC 13 (`-Wunused-parameter` dans `gaol_expr_visitor.h`, `-Wdeprecated-copy` à
-  chaque `x = ...;`). Correction : ne plus installer les en-têtes internes,
-  supprimer les `using`, préfixer les macros, déclarer l'affectation de copie
-  par défaut, ne pas nommer les paramètres inutilisés.
-- **16** (une partie). Le `#include <sstream>` de `gaol/gaol_ieee1788.h`,
-  inutile depuis qu'`intervalToText` est dans libgaol, à retirer.
-- **68.** **Une CI qui échoue sur un avertissement** (tâche 5.2.2 de
-  `TODO_mistral.md`) : la bibliothèque se compile avec `-Wall -Wconversion`
-  (`CMakeLists.txt` l. 603, `configure.ac` l. 495), sans `-Wextra`, et aucun job
-  n'échoue sur un avertissement. Décidé le 3 octobre : un job GCC et un job
-  Clang qui compilent la bibliothèque et les tests avec `-Wall -Wextra -Werror`,
-  après avoir corrigé ce qui en sort.
-
-### L. Les workflows de la CI (29, 43, 69)
-
-Le même passage sur `.github/workflows/`, avec le `push` restreint du ménage ;
-les badges (69) après, une fois les noms des workflows fixés.
-
-- **29.** **Le test sous une locale à virgule n'est vérifié que dans
-  `linux.yml`** (#35) : macOS, Windows, les conteneurs et `build-systems.yml` ne
-  génèrent ni ne vérifient de locale à virgule (Debian demande le paquet
-  `locales` ; Alpine et manylinux n'en ont pas). Décidé le 3 octobre : un
-  contrôle (`.github/scripts/comma-locale.sh check`) après les tests là où la
-  locale existe. Au passage : `numbers` n'a pas de `TIMEOUT` dans
-  `tests/fetch_content` et `tests/find_package`, et prend 235 s de ses 300 sur
-  macOS x86_64 Debug ASan+UBSan (délai dépassé une fois dans #50) : décidé, un
-  `TIMEOUT` de 400 s pour ce job, sans alléger les tests ; le passage de 300 à
-  30 tirages en Debug (`d78af72`) reste (décidé le 3 octobre), mais son
-  commentaire, qui l'attribue à la lenteur des flux, est à corriger : #58 a
-  montré que les jobs Visual Studio Debug attendaient une boîte de dialogue ;
-  les jobs Ubuntu 22.04 de `linux.yml` passent sur `ubuntu-24.04` (décidé) avant
-  le 17 avril 2027.
-- **43.** **Suites du `VERSION.txt` à marque d'ordre des octets** (#45) : sous
-  Windows, seul le job meson MSYS2 lance `.github/scripts/version-file.sh` ;
-  décidé le 3 octobre, il suffit, sans étape native (meson avec Visual C++, sous
-  `pwsh`). Décidé aussi : limiter l'étape « VERSION.txt read by autoconf, as by
-  configure » de `build-systems.yml` à `matrix.cfg.configure == ''`, et garder
-  les `?` du message de `configure.ac` sur un `VERSION.txt` refusé, et laisser
-  le `.strip()` de meson, qui retire aussi les espaces Unicode (#45).
-- **La CI tourne deux fois par pull request** (ancien ménage), sur `push`
-  (toutes les branches) et sur `pull_request` : le push de `61c7503` a lancé 114
-  jobs, environ 380 minutes de runner. Ne lancer `push` que sur les branches
-  principales diviserait la charge par deux : décidé le 3 octobre, `push`
-  seulement sur `master`, `MATH-CORE` et `configure-clean`.
-- **69.** **Des badges de la CI dans `README.md`** (conseil de
-  `TODO_mistral.md`) : un badge par workflow (Linux, Windows, macOS…), fourni
-  par GitHub, et pas de badge de couverture (décidé le 3 octobre).
-
 ## Autres points
 
 ### M. `tan` (9, 57)
@@ -688,7 +629,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées : `ChangeLog` et `doc/differences.md`, que rien n'a touchés depuis
   le 28 septembre (les textes proposés sont dans `todo-notes/` de la branche
   `todo-status`, et dans la description de #71 pour le point C ; pour le
-  point K, à écrire d'après #72 et #73) ;
+  point K, à écrire d'après #72 et #73 ; dans celles de #74, #75 et #76 pour les
+  points L, `make distclean` et J, et pour les suites du point J, d'après les
+  commits de `configure-clean` du 4 octobre) ;
   `examples/examples.md` (marquer **Fixed** les n° 3, 4, 5, 8, 10, 12, 15, 19,
   20 et 21 de la section 5 et de l'annexe B, le n° 10 comme
   corrigé par la suppression des constructeurs à partir de chaînes (#30), et la
@@ -737,7 +680,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
-  3 octobre).
+  3 octobre, celles de C, K, L, J et `make distclean` après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -748,10 +691,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 16 : J ; 18 : F ; 19 : J ; 20 : J ; 21 : D ; 22 : V ;
-23 : H ; 24 : D ; 25 : P ; 26 : W ; 27 : H ; 28 : X ; 29 : L ; 30 : P ; 31 : A ;
-32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 36 : H ; 37 : I ; 38 : I ; 39 : T ;
-40 : E, G et U ; 41 : O ; 42 : O ; 43 : L ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ;
-48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 57 : M ;
-58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ; 64 : U ; 65 : O ; 66 : T ;
-68 : J ; 69 : L ; 70 : I ; 71 : Y.
+12 : E ; 14 : S ; 15 : F ; 18 : F ; 21 : D ; 22 : V ; 23 : H ; 24 : D ; 25 : P ;
+26 : W ; 27 : H ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
+36 : H ; 37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ;
+45 : Q ; 46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ;
+55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ;
+64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y.
