@@ -23,9 +23,9 @@ case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
 if [ "$linking" = shared ]; then
-  libs="-L$prefix/lib -lgaol -lm -Wl,-rpath,$prefix/lib"
+  libs="-L$prefix/lib -lgaol -Wl,-rpath,$prefix/lib"
 else
-  libs="$prefix/lib/libgaol.a -lm"
+  libs="$prefix/lib/libgaol.a"
 fi
 grep -H -E "GAOL_PRESERVE_ROUNDING|GAOL_USING_SSE2_INSTRUCTIONS|GAOL_USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
 status=0

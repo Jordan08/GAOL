@@ -118,10 +118,11 @@ doc = get_option('with-doc')
 build_tests = get_option('with-tests')
 build_examples = get_option('with-examples')
 
-# The math library of the system, which Visual C++ does not have apart
-m_dep = cpp_comp.find_library('m', required: false)
-
-deps = [m_dep]
+# No math library of the system (GAOL v5): GAOL and CORE-MATH still call its
+# functions (those of <fenv.h>, sqrt, floor, round, fma where the processor has
+# no such instruction...), which the C++ compiler links itself, as with CMake
+# and configure
+deps = []
 
 os_win = host_machine.system() == 'windows'
 
@@ -458,7 +459,7 @@ endif
 ## In a meson project: gaol_dep = dependency('gaol')
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: [gaollib] + (m_dep.found() ? ['-lm'] : []) + gaol_link_args,
+  libraries: [gaollib] + gaol_link_args,
   name: 'gaol',
   description: 'GAOL, Not Just Another Interval Library',
   url: gaol_url,
