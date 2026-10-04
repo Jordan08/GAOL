@@ -4,9 +4,10 @@ Ce répertoire garde la trace du travail fait sur les points de
 [TODO.md](../TODO.md) depuis le 29 septembre 2026 : rapports des agents,
 relectures, consignes et outils de l'orchestration. Il vient de la branche
 `todo-status`, où il a été écrit jusqu'au 3 octobre, et a été ramené dans
-`configure-clean` le 4 octobre, avant la suppression de cette branche. Les rapports sont copiés tels qu'ils ont été
-écrits, le plus souvent en anglais. Les chemins `/tmp/claude-1001/...` et
-`$SCR` qu'ils citent sont ceux de sessions passées et n'existent plus.
+`configure-clean` le 4 octobre, avant la suppression de cette branche. Les
+rapports sont copiés tels qu'ils ont été écrits, le plus souvent en anglais.
+Les chemins `/tmp/claude-1001/...` et `$SCR` qu'ils citent sont ceux de
+sessions passées et n'existent plus.
 
 La procédure en vigueur pour traiter un point est [process.md](../process.md).
 Là où elle diffère des consignes de `orchestration/`, c'est elle qui compte :
