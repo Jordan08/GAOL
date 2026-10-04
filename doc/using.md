@@ -43,6 +43,29 @@ denormals-are-zero modes when a program is linked with `-Ofast` (see
 `gaol::gaol` and `gaol.pc` carry it too, where the compiler that built GAOL
 accepts it: the three builds test the compiler for it with a link.
 
+## The headers
+
+A program includes `gaol/gaol` (or `gaol/gaol.h`), and
+`gaol/gaol_expression.h` for the expressions, with `gaol/gaol_expr_eval.h` to
+evaluate them, and `gaol/gaol_assert.h` for `GAOL_ASSERT`. The three builds
+install these and the headers they include, each of which compiles alone but
+the three that other headers include in the middle of their code
+(`gaol_interval_fpu.h`, `gaol_interval_sse.h`) or for Visual C++ only
+(`gaol_fpu_msvc.h`), and not the headers of GAOL's sources (GAOL v5):
+`gaol_interval_parser.h`, which did not compile when included,
+`gaol_init_cleanup.h`, `gaol_exact.h` and `sysdeps/`, `gaol_core_math.h`,
+`gaol_u128.h` and `gaol_parameters.h`. GAOL's headers compile
+without a warning under `-Wall -Wextra`, and put nothing into the global
+namespace: `gaol/gaol_exceptions.h` declared `string` and `exception` there,
+which a program now names `std::string` and `std::exception` (GAOL v5). The
+macros they define start with `GAOL_` (or `gaol_`), so as not to meet those
+of the program or of another library (GAOL v5): `USING_SSE2_INSTRUCTIONS`,
+`HAVE_FENV_H`, `WORDS_BIGENDIAN`, `INLINE`, `MEMALIGN`, `__HI`... are now
+`GAOL_USING_SSE2_INSTRUCTIONS`, `GAOL_HAVE_FENV_H`, `GAOL_WORDS_BIGENDIAN`,
+`GAOL_INLINE`, `GAOL_MEMALIGN`, `GAOL_HI`..., `<stdlib.h>` is no longer
+included with `_XOPEN_SOURCE` defined again, and `nb_fp_numbers()` returns an
+`unsigned long long`, which GAOL 4 named with the macro `ULONGLONGINT`.
+
 ## From CMake
 
 ```cmake
@@ -231,7 +254,10 @@ standard:
   An integer exponent beyond the ints gives the pow of CORE-MATH at the bounds
   of x, `pow([2, 3], [1e10])` being [DBL_MAX, +∞], where the `pow` of `gaol`
   gives [−∞, +∞]. `pown(e, n)` and `pow(e1, e2)` build expressions computed
-  with this `pown` and this `pow`;
+  with this `pown` and this `pow`, declared with the other expressions by
+  `gaol/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
+  4: where it is included, `gaol::sin(0.5)` is ambiguous, a double converting
+  to an interval and to an expression;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
 - `textToInterval` reads the names of the functions of the standard, those of

@@ -59,7 +59,7 @@ namespace gaol_core {
   \see even
   \warning Should be used only with integer-like types
 */
-template<typename T> GAOL_NODISCARD INLINE
+template<typename T> GAOL_NODISCARD GAOL_INLINE
 bool odd(const T& x)
 {
   return (x&1);
@@ -72,7 +72,7 @@ bool odd(const T& x)
   \return true if x is even.
   \see odd
 */
-template<typename T> GAOL_NODISCARD INLINE bool
+template<typename T> GAOL_NODISCARD GAOL_INLINE bool
 even(const T& x)
 {
   return (!odd(x));
@@ -84,7 +84,7 @@ even(const T& x)
   This functions returns true also for -0.0. The result is undefined
   if "a" is a NaN.
 */
-GAOL_NODISCARD INLINE bool is_signed(double a)
+GAOL_NODISCARD GAOL_INLINE bool is_signed(double a)
 {
   return gaol_signbit(a);
 }

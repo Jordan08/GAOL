@@ -109,12 +109,7 @@ namespace
   std::string S(double x) { return hex(x); }
   std::string S(bool b) { return b ? "true" : "false"; }
   std::string S(int n) { return std::to_string(n); }
-  std::string S(unsigned n) { return std::to_string(n); }
-  std::string S(long n) { return std::to_string(n); }
-  std::string S(unsigned long n) { return std::to_string(n); }
-  std::string S(long long n) { return std::to_string(n); }
   std::string S(unsigned long long n) { return std::to_string(n); }
-  std::string S(const std::string& s) { return s; }
 
   struct Operation
   {

@@ -27,7 +27,7 @@ if [ "$linking" = shared ]; then
 else
   libs="$prefix/lib/libgaol.a -lm"
 fi
-grep -H -E "GAOL_PRESERVE_ROUNDING|USING_SSE2_INSTRUCTIONS|USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
+grep -H -E "GAOL_PRESERVE_ROUNDING|GAOL_USING_SSE2_INSTRUCTIONS|GAOL_USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
 status=0
 # expressions: the classes and functions of gaol/gaol_expression.h, which a
 # shared libgaol did not export (GAOL v5)

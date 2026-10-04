@@ -41,7 +41,7 @@ namespace gaol_core {
     which_line_=l;
   }
 
-  gaol_exception::gaol_exception(const char* f, unsigned l, const string& e)
+  gaol_exception::gaol_exception(const char* f, unsigned l, const std::string& e)
   {
     which_file_=f;
     which_line_=l;
@@ -61,7 +61,7 @@ namespace gaol_core {
   }
 
 
-  string
+  std::string
   gaol_exception::explanation() const
   {
     return explanation_;

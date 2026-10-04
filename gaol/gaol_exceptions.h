@@ -32,13 +32,11 @@
 
 #if GAOL_EXCEPTIONS_ENABLED
 
+// std::exception and std::string by their names: no using-declaration puts
+// them in the global namespace of the code including GAOL any more (GAOL v5)
 #include <stdexcept>
-using std::exception;
-
 #include <iosfwd>
 #include <string>
-
-using std::string;
 
 namespace gaol_core {
 
@@ -49,7 +47,7 @@ namespace gaol_core {
     to provide a uniform framework. Every exception thrown should at
     least contain the file and line where the exception was thrown.
   */
-  class __GAOL_PUBLIC__ gaol_exception : public exception {
+  class __GAOL_PUBLIC__ gaol_exception : public std::exception {
   public:
     /*!
       \param f Name of the file where the exception is thrown
@@ -62,7 +60,7 @@ namespace gaol_core {
       \param l Line in the file where the exception is thrown
       \param e Explanation concerning the throwing
     */
-    gaol_exception(const char* f, unsigned l, const string& e);
+    gaol_exception(const char* f, unsigned l, const std::string& e);
 
     ~gaol_exception() override {}
     /*!
@@ -84,7 +82,7 @@ namespace gaol_core {
       \return the string providing some explanation for having thrown
       the exception or the empty string if none was given.
     */
-    string explanation() const;
+    std::string explanation() const;
 
     /*!
       \brief The explanation, as a C string: what a handler of std::exception
@@ -117,7 +115,7 @@ namespace gaol_core {
     /*!
       \brief Short explanation concerning the exception thrown.
      */
-    string explanation_;
+    std::string explanation_;
   };
 
 
@@ -133,7 +131,7 @@ namespace gaol_core {
     input_format_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     input_format_error(const char* f, unsigned l, const char* e) :
       gaol_exception(f,l,e) {}
-    input_format_error(const char* f, unsigned l, const string& e) :
+    input_format_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
   };
 
@@ -148,7 +146,7 @@ namespace gaol_core {
     unavailable_feature_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     unavailable_feature_error(const char* f, unsigned l, const char* e) :
       gaol_exception(f,l,e) {}
-    unavailable_feature_error(const char* f, unsigned l, const string& e) :
+    unavailable_feature_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
   };
 
@@ -164,7 +162,7 @@ namespace gaol_core {
     invalid_action_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     invalid_action_error(const char* f, unsigned l, const char* e) :
       gaol_exception(f,l,e) {}
-    invalid_action_error(const char* f, unsigned l, const string& e) :
+    invalid_action_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
   };
 

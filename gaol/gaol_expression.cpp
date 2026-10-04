@@ -211,7 +211,7 @@ namespace gaol_core {
     // nothing else to do
   }
 
-  expr_node::expr_node(const expr_node& e) : refcount(0)
+  expr_node::expr_node(const expr_node&) : refcount(0)
   {
     // nothing else to do
   }

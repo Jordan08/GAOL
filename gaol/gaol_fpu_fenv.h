@@ -78,7 +78,7 @@
 // 0x800), not every C library.
 #define GAOL_FPU_MASK 0x0a3f
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 #  include <xmmintrin.h>
    // Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
 #  define GAOL_SSE_MASK _MM_MASK_MASK
@@ -87,36 +87,36 @@
 
 namespace gaol_core {
 
-INLINE double previous_float(double d)
+GAOL_INLINE double previous_float(double d)
 {
 	return nextafter(d,-GAOL_INFINITY);
 }
 
-INLINE double next_float(double d)
+GAOL_INLINE double next_float(double d)
 {
 	return nextafter(d,GAOL_INFINITY);
 }
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 	//! Sets rounding direction to -oo for SSE operations only
-	INLINE void round_downward_sse(void)
+	GAOL_INLINE void round_downward_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_DOWN);
 	}
 
 	//! Sets rounding direction to the nearest for SSE operations only
-	INLINE void round_to_nearest_sse(void)
+	GAOL_INLINE void round_to_nearest_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_NEAREST);
 	}
 
 
 	//! Sets rounding direction to +oo for SSE operations only
-	INLINE void round_upward_sse(void)
+	GAOL_INLINE void round_upward_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);
 	}
-#endif // USING_SSE2_INSTRUCTIONS
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
 
 
 /*
@@ -169,7 +169,7 @@ INLINE double next_float(double d)
     && !defined(GAOL_RND_MINGW_FENV_ONLY)
 #  define GAOL_RND_X86_REGISTERS 1
 #  include <xmmintrin.h>
-INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
 {
   unsigned short cw;
   __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
@@ -180,7 +180,7 @@ INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
 #  define GAOL_RND_X86_REGISTERS 1
 #  include <xmmintrin.h>
-INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
 {
 #  if defined(_M_IX86)
   unsigned short cw;
@@ -195,37 +195,37 @@ INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
 #endif
 
 #if GAOL_RND_X86_REGISTERS
-INLINE  void
+GAOL_INLINE  void
 round_downward(void)
 {
   gaol_set_rounding_x86(0x0400, _MM_ROUND_DOWN);
 }
 
-INLINE  void
+GAOL_INLINE  void
 round_upward(void)
 {
   gaol_set_rounding_x86(0x0800, _MM_ROUND_UP);
 }
 
-INLINE  void
+GAOL_INLINE  void
 round_nearest(void)
 {
   gaol_set_rounding_x86(0x0000, _MM_ROUND_NEAREST);
 }
 #else
-INLINE  void
+GAOL_INLINE  void
 round_downward(void)
 {
   fesetround(FE_DOWNWARD);
 }
 
-INLINE  void
+GAOL_INLINE  void
 round_upward(void)
 {
   fesetround(FE_UPWARD);
 }
 
-INLINE  void
+GAOL_INLINE  void
 round_nearest(void)
 {
   fesetround(FE_TONEAREST);
@@ -239,12 +239,12 @@ round_nearest(void)
    the x87 unit on x86 Linux and macOS, which left the direction of the SSE
    instructions unrestored, and 16 bits of the FPCR on 64-bit ARM, which left
    out its rounding bits. */
-INLINE unsigned short int get_fpu_cw()
+GAOL_INLINE unsigned short int get_fpu_cw()
 {
   return (unsigned short int)fegetround();
 }
 
-INLINE void reset_fpu_cw(unsigned short int st)
+GAOL_INLINE void reset_fpu_cw(unsigned short int st)
 {
   fesetround(st);
 }
@@ -256,27 +256,27 @@ INLINE void reset_fpu_cw(unsigned short int st)
     for trust rounding.
    */
 #if GAOL_USING_ASM
-#   if IX86_LINUX || IX86_MACOSX
-        INLINE double f_negate(double x)
+#   if GAOL_IX86_LINUX || GAOL_IX86_MACOSX
+        GAOL_INLINE double f_negate(double x)
         {
             asm volatile ("fldl %1; fchs; fstpl %0" : "=m" (x) : "m" (x));
             return x;
         }
 #   else
-        INLINE double f_negate(double x)
+        GAOL_INLINE double f_negate(double x)
         {
             uintdouble id;
             id.d = x;
-            HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
+            GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
             return id.d;
         }
-#   endif // IX86_LINUX
+#   endif // GAOL_IX86_LINUX
 #else
-    INLINE double f_negate(double x)
+    GAOL_INLINE double f_negate(double x)
     {
         uintdouble id;
         id.d = x;
-        HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
+        GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
         return id.d;
     }
 #endif // GAOL_USING_ASM

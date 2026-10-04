@@ -387,6 +387,14 @@ namespace
   static_assert(!has_not_equal<interval>::value, "!= is not defined on intervals");
   static_assert(has_equal<double>::value, "the detection of == works");
 
+  /* gaol::sin(0.5) is the sin of the interval [0.5]: gaol/gaol does not
+     include gaol/gaol_expression.h (GAOL v5), whose overloads for the
+     expressions made each function of gaol ambiguous on a double, which
+     converts to an interval and to an expression */
+  static_assert(std::is_same<decltype(gaol::sin(0.5)), interval>::value, "gaol::sin(0.5) is the sin of [0.5]");
+  static_assert(std::is_same<decltype(gaol::exp(0.5)), interval>::value, "gaol::exp(0.5) is the exp of [0.5]");
+  static_assert(std::is_same<decltype(gaol_ieee1788::sin(0.5)), interval>::value, "gaol_ieee1788::sin(0.5) is the sin of [0.5]");
+
   // GAOL's relations, on the intervals whose bounds are zeros, infinities or
   // small integers, and the empty set: certainly_le() and certainly_leq() are
   // strictPrecedes and precedes, set_strictly_contains() and set_le() interior,

@@ -42,7 +42,7 @@
 #include "gaol/gaol_configuration.h"
 
 #define GAOL_ERRNO errno
-#define INLINE inline
+#define GAOL_INLINE inline
 
 #if defined (_MSC_VER)
 
@@ -57,7 +57,7 @@
 #elif defined (__GNUC__)
 
 # ifndef __GAOL_PUBLIC__
-#  if defined (HAVE_VISIBILITY_OPTIONS)
+#  if defined (GAOL_HAVE_VISIBILITY_OPTIONS)
 #     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
 #  else
 #     define __GAOL_PUBLIC__
@@ -82,7 +82,7 @@
    to compile them (GAOL v5). A developer of GAOL working on them defines
    GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
    gaol/gaol_interval.cpp then compiles them, gaol::interval2f where SSE3
-   instructions are used (USING_SSE3_INSTRUCTIONS), and the code using them
+   instructions are used (GAOL_USING_SSE3_INSTRUCTIONS), and the code using them
    includes their headers, gaol/gaol_intervalf.h and gaol/gaol_interval2f.h,
    which the builds do not install and gaol/gaol does not include.
    --------------------------------------------------------------------------- */
@@ -107,38 +107,38 @@
 
 #if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 /* Define this if your system is a Linux-based ix86 or compatible */
-#  define IX86_LINUX 1
+#  define GAOL_IX86_LINUX 1
 #elif defined(__linux__) && defined(__aarch64__)
 /* Define this if your system is an AARCH64-based computer under Linux */
-#  define AARCH64_LINUX 1
+#  define GAOL_AARCH64_LINUX 1
 #elif defined(__APPLE__) && (defined(__i386__) || defined(__x86_64__))
 /* Define this if your system is a ix86 running MacOSX */
-#  define IX86_MACOSX 1
+#  define GAOL_IX86_MACOSX 1
 #elif defined(__APPLE__) && (defined(__aarch64__) || defined(__arm__))
 /* Define this if your system is an ARM running MacOSX */
-#  define ARM_MACOSX 1
+#  define GAOL_ARM_MACOSX 1
 #endif
 
-#ifndef SIZEOF_INT
+#ifndef GAOL_SIZEOF_INT
 #  if UINT_MAX == 0xFFFFFFFFu
-#    define SIZEOF_INT 4
+#    define GAOL_SIZEOF_INT 4
 #  elif UINT_MAX == 0xFFFFFFFFFFFFFFFFu
-#    define SIZEOF_INT 8
+#    define GAOL_SIZEOF_INT 8
 #  endif
 #endif
-#ifndef SIZEOF_LONG_LONG_INT
+#ifndef GAOL_SIZEOF_LONG_LONG_INT
 #  if ULLONG_MAX == 0xFFFFFFFFFFFFFFFFull
-#    define SIZEOF_LONG_LONG_INT 8
+#    define GAOL_SIZEOF_LONG_LONG_INT 8
 #  endif
 #endif
 
-/* WORDS_BIGENDIAN: the processor stores words with the most significant byte
+/* GAOL_WORDS_BIGENDIAN: the processor stores words with the most significant byte
    first. The test on __BYTE_ORDER__, which GCC and Clang define, is the one of
    the fork of mathlib by Fabrice Le Bars (https://github.com/lebarsfa/mathlib,
    src/mathlib_endian.h); Visual C++ only targets little-endian processors. */
-#if !defined(WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
+#if !defined(GAOL_WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
     && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#  define WORDS_BIGENDIAN 1
+#  define GAOL_WORDS_BIGENDIAN 1
 #endif
 
 /* GAOL_NODISCARD: the attribute on the functions whose result is all they do

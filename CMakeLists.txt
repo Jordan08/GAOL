@@ -525,14 +525,14 @@ message(STATUS "Elementary functions: CORE-MATH, from 3rd/math-core (correctly r
 ################################################################################
 
 # GAOL sets the rounding direction with <fenv.h> (gaol/gaol_fpu.h)
-check_include_file_cxx(fenv.h HAVE_FENV_H)
-if(NOT HAVE_FENV_H)
+check_include_file_cxx(fenv.h GAOL_HAVE_FENV_H)
+if(NOT GAOL_HAVE_FENV_H)
   message(FATAL_ERROR "GAOL needs <fenv.h>, which this compiler does not provide")
 endif()
 
 # gaol/gaol_profile.cpp measures time with getrusage() where it exists, and with
 # clock() otherwise
-check_symbol_exists(getrusage "sys/resource.h" HAVE_GETRUSAGE)
+check_symbol_exists(getrusage "sys/resource.h" GAOL_HAVE_GETRUSAGE)
 
 # GAOL raises exceptions to signal errors, which --disable-exceptions of
 # configure and -Denable-exception=false of meson turn off
@@ -549,7 +549,7 @@ endif()
 
 # With -frounding-math, GAOL negates a double with the minus sign rather than by
 # flipping its sign bit (gaol_opposite() in gaol/gaol_port.h)
-set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
+set(GAOL_HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
@@ -561,8 +561,8 @@ set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 # that a std::vector of SSE2 intervals, aligned on 16 bytes, crashes on its
 # first movaps (MinGW-w64 15.2 for x86, rounding_direction). On 64-bit Windows
 # (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
-set(USING_SSE2_INSTRUCTIONS OFF)
-set(USING_SSE3_INSTRUCTIONS OFF)
+set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
+set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
 if(GAOL_SIMD AND NOT MSVC)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
@@ -579,11 +579,11 @@ if(GAOL_SIMD AND NOT MSVC)
   if(GAOL_SSE2_INTERVALS)
     check_cxx_compiler_flag(-msse2 GAOL_COMPILER_SUPPORTS_MSSE2)
     if(GAOL_COMPILER_SUPPORTS_MSSE2)
-      set(USING_SSE2_INSTRUCTIONS ON)
+      set(GAOL_USING_SSE2_INSTRUCTIONS ON)
       list(APPEND GAOL_INTERVAL_FLAGS -msse2)
       check_cxx_compiler_flag(-msse3 GAOL_COMPILER_SUPPORTS_MSSE3)
       if(GAOL_COMPILER_SUPPORTS_MSSE3)
-        set(USING_SSE3_INSTRUCTIONS ON)
+        set(GAOL_USING_SSE3_INSTRUCTIONS ON)
         list(APPEND GAOL_INTERVAL_FLAGS -msse3)
       endif()
     endif()
@@ -591,7 +591,7 @@ if(GAOL_SIMD AND NOT MSVC)
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
-message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3: ${USING_SSE3_INSTRUCTIONS}")
+message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -602,11 +602,11 @@ endif()
 
 # The library compiled with hidden visibility, as configure builds it, and with
 # the warnings of configure; GAOL's public declarations carry
-# __attribute__ ((visibility("default"))) (HAVE_VISIBILITY_OPTIONS)
+# __attribute__ ((visibility("default"))) (GAOL_HAVE_VISIBILITY_OPTIONS)
 set(GAOL_LIBRARY_FLAGS "")
 if(NOT MSVC)
-  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" HAVE_VISIBILITY_OPTIONS)
-  if(HAVE_VISIBILITY_OPTIONS)
+  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" GAOL_HAVE_VISIBILITY_OPTIONS)
+  if(GAOL_HAVE_VISIBILITY_OPTIONS)
     list(APPEND GAOL_LIBRARY_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>" -fvisibility=hidden)
   endif()
   foreach(flag -Wall -Wconversion)
@@ -637,7 +637,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # The sources listed in gaol/meson.build. gaol_interval.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
+# GAOL_USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
 # where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
 # gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
@@ -762,25 +762,33 @@ install(TARGETS gaol EXPORT gaolTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# GAOL's headers, including those gaol/gaol_config.h includes for Visual C++
-# and MinGW, which gaol/meson.build does not install
-file(GLOB GAOL_HEADERS gaol/*.h)
-# What CORE-MATH's sources need to compile within GAOL, and nothing else does
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_log_dint.h")
-# The headers of the sources of GAOL only: the bounds at doubles, *_dn() and
-# *_up(), which are not part of GAOL's interface, and the intervals of floats,
-# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_double_op.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
+# The headers a program includes, gaol/gaol, gaol/gaol_expression.h and
+# gaol/gaol_expr_eval.h for the expressions, gaol/gaol_assert.h for
+# GAOL_ASSERT (see the manual), and those they include,
+# gaol/gaol_fpu_msvc.h for Visual C++ among them: gaol/Makefile.am and
+# gaol/meson.build install the same ones. Not the headers of the sources of
+# GAOL only (GAOL v5): gaol/gaol_interval_parser.h, which did not compile when
+# included, the parts of the library (gaol_init_cleanup.h, gaol_exact.h and
+# sysdeps/, gaol_core_math.h, gaol_u128.h, gaol_parameters.h),
+# what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
+# core_math_log_dint.h), the bounds at doubles, *_dn() and *_up(), which are
+# not part of GAOL's interface (gaol_double_op.h), and the intervals of
+# floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
+set(GAOL_HEADERS
+  gaol/gaol.h gaol/gaol_allocator.h gaol/gaol_assert.h gaol/gaol_common.h
+  gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
+  gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
+  gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
+  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
+  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_parser.h
+  gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_version.h)
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}
   "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol
 )
-install(FILES gaol/sysdeps/gaol_exact_c99.h gaol/sysdeps/gaol_exact_msvc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/sysdeps)
 
 set(GAOL_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/gaol)
 install(EXPORT gaolTargets NAMESPACE gaol:: DESTINATION ${GAOL_INSTALL_CMAKEDIR})

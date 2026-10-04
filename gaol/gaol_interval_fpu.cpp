@@ -100,7 +100,7 @@
 	  below checks the direction for the other callers (GAOL v5). The stored
 	  bounds are the opposite of the left bound and the right bound.
 	*/
-	static INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
+	static GAOL_INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
 	{
 		interval res;
 		const double lb = -I.left(), rb = I.right();
@@ -140,7 +140,7 @@
 	}
 
 	// uipow_rounded_upward(), after a check of the rounding direction
-	static INLINE interval uipow_rounded(const interval& I, unsigned int e)
+	static GAOL_INLINE interval uipow_rounded(const interval& I, unsigned int e)
 	{
 		GAOL_RND_ENTER();
 		interval res = uipow_rounded_upward(I,e);

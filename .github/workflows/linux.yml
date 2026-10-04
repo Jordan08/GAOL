@@ -1,8 +1,9 @@
 # Builds GAOL with CMake on Ubuntu, runs its tests (make test), installs it, and
 # builds the tests again with the installed GAOL, also as a shared library
-# (BUILD_SHARED_LIBS). Also with the sanitizers, with the
-# minimum version of CMake GAOL declares, and as a part of another project,
-# brought in by FetchContent (tests/fetch_content).
+# (BUILD_SHARED_LIBS). Also with the sanitizers, with -Wall -Wextra -Werror,
+# checking the headers it installs too (GAOL v5), with the minimum version of
+# CMake GAOL declares, and as a part of another project, brought in by
+# FetchContent (tests/fetch_content).
 #
 # The runners have no locale writing a decimal comma, which tests/numbers.cpp
 # reads and writes numbers under where there is one, and where there is none it
@@ -153,6 +154,44 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
 
+  # -Wall -Wextra -Werror (GAOL v5): the library, CORE-MATH's sources among
+  # them, the tests and the examples compile without a warning with the GCC
+  # and the Clang of Ubuntu 26.04, and so does each header GAOL installs,
+  # included alone with -std=c++11, whose macros all start with GAOL_ or gaol_
+  # (.github/scripts/headers.sh). The flags of the warnings go to every
+  # compilation, and -Werror to those of the targets only
+  # (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
+  # warning of its test program.
+  warnings:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror' }
+          - { cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ clang cmake make pkg-config
+          ${{ matrix.cfg.cxx }} --version
+      - name: Configure
+        run: |
+          flags="-Wall -Wextra"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" \
+            -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Install
+        run: cmake --install build
+      - name: The headers of the installed GAOL, each alone, and their macros
+        run: CXX=${{ matrix.cfg.cxx }} sh .github/scripts/headers.sh "$PWD/gaol-install"
+
   cmake-3-14:
     name: Ubuntu 24.04 x86_64 GCC, CMake 3.14.7
     runs-on: ubuntu-24.04
@@ -228,8 +267,12 @@ jobs:
       - name: Install, which installs GAOL with the project
         run: |
           cmake --install build-fetch-content
-          for file in lib/libgaol.a include/gaol/gaol.h include/gaol/gaol_u128.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
+          for file in lib/libgaol.a include/gaol/gaol.h include/gaol/gaol_expression.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
             test -f "gaol-install/$file" || { echo "$file is not installed"; exit 1; }
+          done
+          # Not the headers of the sources of GAOL only (GAOL v5)
+          for file in include/gaol/gaol_u128.h include/gaol/gaol_interval_parser.h include/gaol/sysdeps; do
+            test ! -e "gaol-install/$file" || { echo "$file is installed"; exit 1; }
           done
       - name: Tests built with the installed GAOL
         run: |

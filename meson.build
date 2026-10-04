@@ -164,10 +164,10 @@ endif
 # gaol/gaol_fpu.h and gaol/gaol_exact.h: <fenv.h>; gaol/gaol_profile.cpp:
 # getrusage() where <sys/resource.h> declares it, clock() otherwise
 if cpp_comp.has_header('fenv.h')
-  conf_data.set('HAVE_FENV_H', 1)
+  conf_data.set('GAOL_HAVE_FENV_H', 1)
 endif
 if cpp_comp.has_function('getrusage', prefix: '#include <sys/resource.h>')
-  conf_data.set('HAVE_GETRUSAGE', 1)
+  conf_data.set('GAOL_HAVE_GETRUSAGE', 1)
 endif
 
 # The compilers CMakeLists.txt and configure refuse, for the same reasons (see
@@ -186,7 +186,7 @@ int main() { return 0; }
     + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
 endif
 if cpp_comp.has_argument('-frounding-math')
-  conf_data.set('HAVE_ROUNDING_MATH_OPTION', 1)
+  conf_data.set('GAOL_HAVE_ROUNDING_MATH_OPTION', 1)
   if not cpp_comp.compiles('int main() { return 0; }', args: ['-frounding-math', '-Werror'],
                            name: 'the C++ compiler honours the rounding direction on this target')
     error('GAOL cannot be built with ' + gaol_compiler + ' for this target.\n'
@@ -228,7 +228,7 @@ endif
 # The library compiled with hidden visibility, as configure builds it: GAOL's
 # public declarations carry __attribute__ ((visibility("default")))
 if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
-  conf_data.set('HAVE_VISIBILITY_OPTIONS', 1)
+  conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
   add_global_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
 endif
 if cpp_comp.has_argument('-Wconversion')
@@ -281,11 +281,11 @@ if target_x86
   endif
   if simd and not msvc and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
-    conf_data.set('USING_SSE2_INSTRUCTIONS', 1)
+    conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
     add_global_arguments(['-msse2'], language: 'cpp')
     pc_cflags += ['-msse2']
     if cpp_comp.has_argument('-msse3')
-      conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
+      conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
       add_global_arguments(['-msse3'], language: 'cpp')
       pc_cflags += ['-msse3']
     endif

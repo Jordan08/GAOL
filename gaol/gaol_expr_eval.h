@@ -47,7 +47,7 @@ namespace gaol_core {
   */
   class expr_eval : public expr_visitor {
   public:
-    virtual void visit(null_node* node) {
+    virtual void visit(null_node*) {
       error = true;
     }
     virtual void visit(double_node* node) {

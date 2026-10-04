@@ -48,9 +48,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   on the standard error when GAOL initializes and cleans up, unless
   `GAOL_VERBOSE_MODE` (`--enable-verbose-mode`, `-Denable-verbose-mode=true`)
   is asked for, where configure wrote it by default;
-- the processor and the system (`IX86_LINUX`, `AARCH64_LINUX`...), the sizes
-  of the integer types and the byte order are read from the macros of the
-  compiler, in `gaol/gaol_config.h`, rather than from the machine building;
+- the processor and the system (`GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`...),
+  the sizes of the integer types and the byte order are read from the macros
+  of the compiler, in `gaol/gaol_config.h`, rather than from the machine
+  building;
 - the three write the same macros into `gaol/gaol_configuration.h`, those
   GAOL's sources read and nothing else (see
   [Building GAOL](building.md#the-configuration-of-gaol)) (GAOL v5);
