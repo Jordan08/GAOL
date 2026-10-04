@@ -231,7 +231,10 @@ standard:
   An integer exponent beyond the ints gives the pow of CORE-MATH at the bounds
   of x, `pow([2, 3], [1e10])` being [DBL_MAX, +∞], where the `pow` of `gaol`
   gives [−∞, +∞]. `pown(e, n)` and `pow(e1, e2)` build expressions computed
-  with this `pown` and this `pow`;
+  with this `pown` and this `pow`, declared with the other expressions by
+  `gaol/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
+  4: where it is included, `gaol::sin(0.5)` is ambiguous, a double converting
+  to an interval and to an expression;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
 - `textToInterval` reads the names of the functions of the standard, those of

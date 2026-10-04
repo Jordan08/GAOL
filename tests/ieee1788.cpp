@@ -39,6 +39,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 // Commented out: the tests run no thread (GAOL v5)
@@ -63,6 +64,12 @@ namespace
   static_assert(std::is_same<decltype(floor(2.5)), double>::value, "floor(double) is C's");
   static_assert(std::is_same<decltype(atan2(1.0, 2.0)), double>::value, "atan2(double, double) is C's");
   static_assert(std::is_same<decltype(abs(-3)), int>::value, "abs(int) is C's");
+
+  /* The functions of gaol_ieee1788 take the overloads of the expressions,
+     gaol/gaol_expression.h being included here after gaol/gaol_ieee1788.h,
+     and before it in tests/expressions.cpp (GAOL v5) */
+  static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const gaol::expression&>())), const gaol::expression>::value,
+                "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included after gaol/gaol_ieee1788.h");
 
   // The value of an expression, which the evaluator of GAOL computes
   interval value_of(const gaol::expression& e)

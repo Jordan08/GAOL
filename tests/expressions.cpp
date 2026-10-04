@@ -28,10 +28,17 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
+/* Before gaol/gaol, which gaol_tests.h includes: gaol/gaol_expression.h is
+   included here before gaol/gaol_ieee1788.h, and after it in
+   tests/ieee1788.cpp, and the functions of gaol_ieee1788 take the overloads
+   of the expressions in both orders (GAOL v5) */
+#include "gaol/gaol_expr_eval.h"
+
 #include "gaol_tests.h"
 
 #include <cstdio>
-#include "gaol/gaol_expr_eval.h"
+#include <type_traits>
+#include <utility>
 
 // Commented out: the tests run no thread (GAOL v5)
 // // std::thread, which libstdc++ has only when built with a thread model
@@ -47,6 +54,9 @@ using namespace gaol_tests;
 
 namespace
 {
+  static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const expression&>())), const expression>::value,
+                "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included before gaol/gaol_ieee1788.h");
+
   /* An empty expression of static storage, which refers to the node of the
      empty expression and is destroyed after main() has called
      gaol::cleanup(): cleanup() deleted that node, and the destructor of the
