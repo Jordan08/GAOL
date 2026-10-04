@@ -13,7 +13,8 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
 [README.md](../README.md) show their state on `configure-clean`. They build on:
 
 - **Linux:** Ubuntu 24.04 and 26.04 on x86_64 and arm64, with GCC and Clang,
-  also with the address and undefined behaviour sanitizers, with CMake 3.14,
+  also with the address and undefined behaviour sanitizers, with `-Wall
+  -Wextra -Werror` (see below), with CMake 3.14,
   with the compilers of Ubuntu 22.04 (GCC 11 and Clang 14 on x86_64, GCC 11
   on arm64), whose images GitHub retires by April 2027, with GCC 9, which has
   no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
@@ -63,6 +64,17 @@ restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
 and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in
 their summary.
+
+Two jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04, build the
+library, the sources of CORE-MATH included, the tests and the examples with
+`-Wall -Wextra -Werror`, and check the headers GAOL installs with
+`.github/scripts/headers.sh` (GAOL v5): each compiles alone with `-std=c++11`,
+the oldest standard GAOL takes, and `-Wall -Wextra -Werror`, but the three
+that other headers include in the middle of their code or for Visual C++
+only, and the macros they define start with `GAOL_` or `gaol_`. `-Werror` goes to the targets only
+(`CMAKE_COMPILE_WARNING_AS_ERROR`), so that no check of CMake fails on a
+warning of its test program. Until then, the library was compiled with `-Wall
+-Wconversion`, and no job failed on a warning.
 
 `tests/numbers.cpp` reads numbers and writes exact texts under a locale
 writing a decimal comma where the system has one (see [Tests](tests.md)), and
