@@ -1120,8 +1120,10 @@ State in `configure-clean`:
   exp(y log x) rows `{I(1,3), I(-oo,2)}`, `{I(0.25,0.5), I(-oo,-1)}`,
   `{I(2,4), I(1,oo)}`, `{I(4,oo), P(-0.5)}`. These are the rows B.2 (corners
   extended to infinite bounds and to a base from 0) will change; their
-  expected values were checked with `checkrows.py` (mpmath, 500 bits), now
-  lost, so B.2 must recompute them independently.
+  expected values were checked with `checkrows.py` (mpmath, 500 bits), which
+  is now in `tests/tools/pow/` and rechecked them on 4 October: in the current
+  table, boxes 82, 86, 87, 88 and 91 are still one double from the tightest
+  bound.
 - **Test cases for B.2 and B.8** from the correctness review:
   `gaol_ieee1788::pow([-oo, 2^-1000], [-oo, -1])` = `[0x1.ffffffffffd97p+999,
   +oo]`, 617 doubles below the tightest bound 2^1000 (B.2 cites only
