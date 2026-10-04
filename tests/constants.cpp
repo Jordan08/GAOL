@@ -27,21 +27,16 @@ public:
   }
 
   void test_floating_point_const() {
-      TEST_EQ(two_pi,interval::two_pi());
-      TEST_EQ(pi,interval::pi());
-      TEST_EQ(half_pi,interval::half_pi());
-      TEST_EQ(pi_dn,interval::pi());
-      TEST_EQ(pi_up,interval::pi());
-      CPPUNIT_ASSERT(pi_dn < pi_up);
-      TEST_EQ(half_pi_dn,interval::half_pi());
-      TEST_EQ(half_pi_up,interval::half_pi());
-      CPPUNIT_ASSERT(half_pi_dn < half_pi_up);
-      TEST_EQ(ln2_dn,log(interval(2)));
-      TEST_EQ(ln2_up,log(interval(2)));
-      CPPUNIT_ASSERT(ln2_dn < ln2_up);
-      TEST_EQ(two_power_52,pow(interval(2),52));
-		TEST_EQ(two_power_51,pow(interval(2),51));
-		CPPUNIT_ASSERT(std::isnan(GAOL_NAN));
+      // The bounds of the constant intervals, which GAOL 4 declared as doubles
+      // too, for the code using it (pi_dn, pi_up, two_pi, ln2_dn...), and
+      // GAOL v5 no longer does
+      TEST_SEQ(interval::pi(),interval(0x1.921fb54442d18p+1,0x1.921fb54442d19p+1));
+      TEST_SEQ(interval::half_pi(),interval(0x1.921fb54442d18p+0,0x1.921fb54442d19p+0));
+      TEST_SEQ(interval::two_pi(),interval(0x1.921fb54442d18p+2,0x1.921fb54442d19p+2));
+      TEST_EQ(interval(0x1.62e42fefa39efp-1,0x1.62e42fefa39f0p-1),log(interval(2)));
+      TEST_SEQ(pow(interval(2),52),interval(0x1p+52));
+      TEST_SEQ(pow(interval(2),51),interval(0x1p+51));
+      CPPUNIT_ASSERT(std::isnan(GAOL_NAN));
       CPPUNIT_ASSERT(std::isinf(GAOL_INFINITY));
       CPPUNIT_ASSERT(GAOL_INFINITY > 0);
   }

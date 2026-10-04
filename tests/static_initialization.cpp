@@ -123,14 +123,11 @@ int main()
           [&] { return hex(before_main) + " before main(), " + hex(in_main) + " in it"; });
   }
 
-  // The doubles of gaol/gaol_port.h, written in decimal, are those the unions
-  // next to them write in bits
-  check("pi_dn and pi_up", pi_dn == upi_dn.d && pi_up == upi_up.d
-                           && pi_dn == 0x1.921fb54442d18p+1 && pi_up == 0x1.921fb54442d19p+1);
-  check("half_pi_dn and half_pi_up", half_pi_dn == uhalfpi_dn.d && half_pi_up == uhalfpi_up.d
-                                     && half_pi_dn == 0x1.921fb54442d18p+0 && half_pi_up == 0x1.921fb54442d19p+0);
-  check("ln2_dn and ln2_up", ln2_dn == uln2_dn.d && ln2_up == uln2_up.d
-                             && ln2_dn == 0x1.62e42fefa39efp-1 && ln2_up == 0x1.62e42fefa39f0p-1);
+  // The bounds of pi and pi/2 of gaol/gaol_port.h, written in decimal, are
+  // the doubles next to pi and pi/2, which the unions of GAOL 4 wrote in bits
+  using namespace gaol_core::detail;
+  check("pi_dn and pi_up", pi_dn == 0x1.921fb54442d18p+1 && pi_up == 0x1.921fb54442d19p+1);
+  check("half_pi_dn and half_pi_up", half_pi_dn == 0x1.921fb54442d18p+0 && half_pi_up == 0x1.921fb54442d19p+0);
 
   const int status = summary();
   gaol::cleanup();

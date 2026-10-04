@@ -151,45 +151,23 @@ namespace gaol_core {
 #define GAOL_INFINITY (std::numeric_limits<double>::infinity())
 
   /*
-    Various constants rounded up and down
+    The bounds of pi and pi/2, which interval::pi(), interval::two_pi() and
+    interval::half_pi() give (gaol/gaol_interval.h), written exactly in
+    decimal: a literal is converted when compiling, where the unions of GAOL 4
+    were read when the program started, by the dynamic initialization of each
+    file including this header, and a static object of the program calling
+    GAOL before found them 0 (tests/static_initialization.cpp). In their own
+    namespace (GAOL v5): GAOL 4 declared these doubles in the namespace of
+    GAOL, with two_pi, pi, half_pi, ln2_dn, ln2_up, two_power_51 and
+    two_power_52, which met the names of the program that opened it, a pi of
+    its own being ambiguous. The manual of GAOL v5 no longer documents them.
   */
-  //! Pi rounded towards -oo.
-  const uintdouble upi_dn = {{GAOL_IFBIGENDIAN(1074340347,1413754136)}};
-  //! Pi rounded towards +oo.
-  const uintdouble upi_up   = {{GAOL_IFBIGENDIAN(1074340347,1413754137)}};
-  //! Pi/2 rounded towards -oo.
-  const uintdouble uhalfpi_dn = {{GAOL_IFBIGENDIAN(1073291771,1413754136)}};
-  //! Pi/2 rounded towards +oo.
-  const uintdouble uhalfpi_up = {{GAOL_IFBIGENDIAN(1073291771,1413754137)}};
-  // ln(2) rounded towards -oo
-  const uintdouble uln2_dn = {{GAOL_IFBIGENDIAN(0x3fe62e42,0xFEFA39EF)}};
-  // ln(2) rounded towards +oo
-  const uintdouble uln2_up = {{GAOL_IFBIGENDIAN(0x3fe62e42,0xFEFA39F0)}};
-
-
-  /* The same doubles, written exactly in decimal (GAOL v5). Read from the
-     unions above, they were computed when the program started, by the
-     dynamic initialization of each file including this header: the
-     functions of the static library GAOL found them 0 when a static object of
-     the program called them before the files of GAOL were initialized, and
-     gave bounds that did not enclose the results. A literal is converted when
-     compiling, and the exact value of a double needs no rounding.
-     tests/static_initialization.cpp checks them against the bits above. */
-  const double pi_dn = 3.141592653589793115997963468544185161590576171875;
-  const double pi_up = 3.141592653589793560087173318606801331043243408203125;
-
-  const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
-  const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
-
-  const double two_pi = 6.28318530717958647693;
-  const double pi = 3.14159265358979323846;
-  const double half_pi = 1.57079632679489661923;
-
-  const double ln2_dn = 0.69314718055994528622676398299518041312694549560546875;
-  const double ln2_up = 0.6931471805599453972490664455108344554901123046875;
-
-  const double two_power_51 = 2251799813685248.0;
-  const double two_power_52 = 4503599627370496.0;
+  namespace detail {
+    const double pi_dn = 3.141592653589793115997963468544185161590576171875;
+    const double pi_up = 3.141592653589793560087173318606801331043243408203125;
+    const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
+    const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
+  } // namespace detail
 
   /*!
     \brief Returns 1 if d is neither a NaN nor an infinity

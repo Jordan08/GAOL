@@ -80,8 +80,11 @@ namespace gaol {
 
 namespace gaol_core {
 
-
-
+  // The bounds of pi and pi/2 (gaol/gaol_port.h), and 2^52, from which on the
+  // doubles are integers, which gaol_port.h declared for the code using GAOL
+  // too (GAOL v5)
+  using namespace detail;
+  const double two_power_52 = 4503599627370496.0;
 
   // I^e for a non-empty I and e > 0, defined below: gaol_uipow(), in the
   // files included here, calls it

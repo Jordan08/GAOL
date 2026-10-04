@@ -1030,7 +1030,7 @@ its last use of GAOL (\pxref{chap:init}).\newinvfive
 \paragraph{Note.} The rounding direction GAOL leaves applies to the rest of the
 program too. With the GNU C library, \code{printf()} and the streams of C++
 round the decimal digits they write of a double in the direction in effect:
-after an operation of GAOL, \code{std::cout~<{}<~pi\_dn} writes
+after an operation of GAOL, \code{std::cout~<{}<~interval::pi().left()} writes
 \code{3.141592653589794} with 16 digits, and \code{3.141592653589793} once
 \code{round\_nearest()} has been called. The intervals themselves are written
 by GAOL rounded outward, whatever the direction (\pxref{sec:writing}).
@@ -4356,22 +4356,22 @@ GAOL defines the following \code{double} constants:
     \hline
     \multicolumn{1}{c}{\bfseries Constant (\texttt{double})} & \multicolumn{1}{c}{\bfseries Value}\\
     \hline\hline
-    \element{two\_pi} & \roundNearest{2\pi}\\
-    \element{pi} & \roundNearest{\pi}\\
-    \element{half\_pi} & \roundNearest{\frac{\pi}{2}}\\
-    \element{pi\_dn} & \roundDn{\pi}\\
-    \element{pi\_up} & \roundUp{\pi}\\
-    \element{half\_pi\_dn} & \roundDn{\frac{\pi}{2}}\\
-    \element{half\_pi\_up} & \roundUp{\frac{\pi}{2}}\\
-    \element{ln2\_dn} & \roundDn{\ln 2}\\
-    \element{ln2\_up} & \roundUp{\ln 2}\\
-    \element{two\_power\_51} & $2^{51}$\\
-    \element{two\_power\_52} & $2^{52}$\\
     \element{GAOL\_NAN} & NaN (quiet)\\
     \element{GAOL\_INFINITY} & $+\infty$ \\
     \hline
   \end{tabular}
 \end{center}
+
+GAOL~4 also defined the doubles \code{two\_pi}, \code{pi}, \code{half\_pi},
+\code{pi\_dn}, \code{pi\_up}, \code{half\_pi\_dn}, \code{half\_pi\_up},
+\code{ln2\_dn}, \code{ln2\_up}, \code{two\_power\_51} and
+\code{two\_power\_52}, in the namespace of GAOL: a program opening it with
+\code{using namespace gaol} found them among its own names, and a \code{pi} of
+its own was ambiguous. GAOL v5 no longer declares them for the code using it.
+The bounds of $\pi$, $\pi/2$ and $2\pi$ are those of \code{interval::pi()},
+\code{interval::half\_pi()} and \code{interval::two\_pi()},
+\code{interval::pi().left()} being \roundDn{\pi}, and those of $\ln 2$ those of
+\code{log(interval(2.0))}.\newinvfive
 
 \section{Floating-point functions}
 %%--------------------------------
