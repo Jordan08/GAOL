@@ -769,7 +769,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/gaol_interval_parser.h, which did not compile when
 # included, the parts of the library (gaol_init_cleanup.h, gaol_exact.h and
-# sysdeps/, gaol_core_math.h, gaol_u128.h, gaol_parameters.h),
+# sysdeps/, gaol_core_math.h, gaol_u128.h),
 # what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
 # core_math_log_dint.h), the bounds at doubles, *_dn() and *_up(), which are
 # not part of GAOL's interface (gaol_double_op.h), and the intervals of

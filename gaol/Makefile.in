@@ -454,7 +454,7 @@ library_include_HEADERS = gaol gaol.h gaol_allocator.h gaol_assert.h \
 # interface, and the intervals of floats, which gaol_interval.cpp includes
 # where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see gaol_config.h)
 noinst_HEADERS = gaol_core_math.h gaol_exact.h \
-	gaol_init_cleanup.h gaol_interval_parser.h gaol_parameters.h \
+	gaol_init_cleanup.h gaol_interval_parser.h \
 	gaol_u128.h sysdeps/gaol_exact_c99.h sysdeps/gaol_exact_msvc.h \
 	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h
 

@@ -59,7 +59,6 @@
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_ieee1788.h"
-#include "gaol/gaol_parameters.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 

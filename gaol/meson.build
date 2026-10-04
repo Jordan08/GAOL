@@ -133,7 +133,6 @@ EXTRA_DIST = [
   'gaol_exact.h',
   'gaol_init_cleanup.h',
   'gaol_interval_parser.h',
-  'gaol_parameters.h',
   'gaol_u128.h',
   'sysdeps/gaol_exact_c99.h',
   'sysdeps/gaol_exact_msvc.h',
