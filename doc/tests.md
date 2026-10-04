@@ -689,6 +689,21 @@ GAOL's arithmetic and elementary functions, and of the same operations on
 doubles. It is not a test: the continuous integration prints its table in the
 summary of the jobs.
 
+`tests/tools/pow/` holds the tools that check a change of `pow` in
+`gaol/gaol_interval.cpp` (see [its README](../tests/tools/pow/README.md)).
+They are not tests either: no build compiles them and no job runs them.
+`diffpow.py` prints the bounds of `gaol_ieee1788::pow` and `gaol::pow` with
+two builds of GAOL, on 70 500 boxes and under the four rounding directions at
+the call, and compares them: the SSE2 and the FPU intervals give the same
+bounds, the sign of a zero aside. `gen_table.py` and `evalrows` read the table
+of `pow_on_boxes()` in `tests/ieee1788.cpp`, and write it again from the
+bounds of a build. `checkrows.py` checks those bounds against the exact
+powers, computed with 500 bits by mpmath. `mutate.py` builds GAOL with each
+of 40 deliberate errors in `pow`, which `ieee1788` and `elementary` have to
+catch, but for the 7 that give the same bounds, and runs `diffpow` on the
+errors no test catches. `bench.cpp` measures the time per call of each path
+of `pow`.
+
 What they show of GAOL, beyond the fixes of
 [What differs from GAOL](differences.md):
 
