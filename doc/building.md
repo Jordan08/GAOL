@@ -174,6 +174,15 @@ configure compiles the thirty-six sources of CORE-MATH into `libgaol`
 (`gaol/Makefile.am`), with the flags it gives GAOL's C code: there is nothing
 else to build, nothing else to install and nothing else to link.
 
+`make clean` erases what `make` built, and keeps what configure made, so that
+`make` builds again without configure: the `Makefile`, `config.status`,
+`config.log`, `libtool`, `gaol.pc`, `gaol/gaol_configuration.h`, the
+`manual/v*/gaol_version.tex`, the `.deps` directories of the dependencies and
+the `.dirstamp` of the directories of CORE-MATH. `make distclean` erases them
+too, the `.deps` directories included, which it left empty (GAOL v5), and
+gives the source tree back as git has it, configure to be run again; the
+continuous integration checks it (`build-systems.yml`).
+
 See also `INSTALL`. `configure`, `aclocal.m4`, the `Makefile.in`, `ltmain.sh`,
 `m4/*.m4` and the scripts `compile`, `config.guess`, `config.sub`, `depcomp`,
 `install-sh`, `missing` and `test-driver` are committed, so that a checkout

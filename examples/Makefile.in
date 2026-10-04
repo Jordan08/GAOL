@@ -1244,7 +1244,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/16_Goldstein_Price.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
-	distclean-tags
+	distclean-local distclean-tags
 
 dvi: dvi-am
 
@@ -1327,19 +1327,25 @@ uninstall-am:
 	check-am clean clean-generic clean-libtool \
 	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
 	distclean-compile distclean-generic distclean-libtool \
-	distclean-tags dvi dvi-am html html-am info info-am install \
-	install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am recheck tags tags-am uninstall \
-	uninstall-am
+	distclean-local distclean-tags dvi dvi-am html html-am info \
+	info-am install install-am install-data install-data-am \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-html install-html-am install-info install-info-am \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am recheck tags tags-am \
+	uninstall uninstall-am
 
 .PRECIOUS: Makefile
 
+
+# make distclean removes the files of the dependencies one by one and leaves
+# their directories: removed here, so that it gives the sources back as git has
+# them (GAOL v5)
+distclean-local:
+	-rm -rf ./$(DEPDIR)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
