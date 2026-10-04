@@ -202,7 +202,12 @@ laisser `allocator_traits` utiliser son placement-new par défaut.
   sur ARM 32 bits ; les relations en ligne (`set_le`, `set_strictly_contains`,
   `less`…) corrigées pour ne plus lever FE_INVALID, même dans une boucle
   vectorisée (AArch64, intervalles FPU x86-64) ; les trois vérifications de
-  choix de #60, fragiles par nature, gardées.
+  choix de #60, fragiles par nature, gardées. `interval::midpoint()` calcule
+  d'abord `0.5 * (left() + right())` : sur `[DBL_MAX, DBL_MAX]`, la somme
+  intermédiaire lève FE_OVERFLOW avant le calcul de secours, alors que le
+  milieu est fini. Éviter ce débordement avant l'addition et ajouter un test
+  qui vérifie que FE_OVERFLOW reste absent pour ce cas, y compris quand son
+  piège est activé.
 - **21.** **Les entiers au-delà de 2^53** : `interval(0)`, `interval(0, 0)`, `x
   = 0`, `x < 0` et `max(x, 0)` compilent, les constructeurs `interval(double)`
   et `interval(double, double)` n'étant pas `explicit` (essayé le 28 septembre
@@ -220,6 +225,8 @@ laisser `allocator_traits` utiliser son placement-new par défaut.
   raised whatever the result » (`doc/using.md` l. 513, manuel l. 1219) est trop
   fort (`-X`, `abs`, `&`, `|`, `floor`, `max(X, Y)` ne le lèvent pas) : « after
   most operations » ; la ligne courte de `doc/accuracy.md` (l. 60) ;
+  vérifier aussi que la phrase disant que FE_OVERFLOW indique une borne infinie
+  reste cohérente avec le comportement et le test de `midpoint()` du point 24 ;
   `\newinvfive` sur les derniers paragraphes de la section 3.3 du manuel ; la
   structure `EmptySet` de `tests/rounding_direction.cpp` (l. 252), qui porte
   aussi `nonempty_sets` : un nom neutre.
@@ -262,8 +269,13 @@ suffit si la partie parser du point Q (#68) est décidée avant.
 
 ### F. La lecture des nombres et `operator>>` (11, 15, 18, 46, 58, 59, 60, 61)
 
-Tous touchent `tests/numbers.cpp`, le lexeur ou `operator>>` ; la syntaxe d'une
-lecture par mot (46) est reportée (#64).
+Tous touchent `tests/numbers.cpp`, le lexeur, le parser ou `operator>>` ; la
+syntaxe d'une lecture par mot (46) est reportée (#64). Le parser compare les
+noms de fonctions avec `std::tolower()` dans `gaol_lookup_function()`
+(`gaol/gaol_interval_parser.ypp`) : cette conversion dépend de la locale C et
+peut refuser des noms en majuscules comme `SIN` dans une locale où `I` ne se
+convertit pas en `i` ASCII. Employer un pliage ASCII indépendant de la locale,
+conforme à la casse ignorée par le lexeur.
 
 - **11.** **Suites du lecteur sous denormals-are-zero** (#40). Le lecteur est
   juste sous FTZ et DAZ (comparaisons sur les bits) ; le reste est au point 45.

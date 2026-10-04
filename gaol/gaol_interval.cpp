@@ -3585,11 +3585,11 @@ interval nth_root(const interval& I, int q)
       return -1.0;
     } else {
       if (!I.is_finite()) {
-	if (I.set_eq(interval::universe())) {
-	  return 1.0;
-	} else {
-	  return 0.0;
-	}
+        if (I.set_eq(interval::universe())) {
+          return 1.0;
+        } else {
+          return 0.0;
+        }
       } else {
 	double res;
 	GAOL_RND_PRESERVE();
