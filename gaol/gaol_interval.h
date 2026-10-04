@@ -930,10 +930,10 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__   interval nth_root(const interval& I, int
     The result is an unsigned long long (GAOL v5), where GAOL 4 named its
     type with the macro ULONGLONGINT, which GAOL v5 no longer defines.
 
-    \warning Returns numeric_limits<unsigned long long>::max() if either
-    a or b is a NaN or +/-oo. In addition, raises an invalid_action_error
-    exception or calls gaol_error depending on the way the library was
-    configured.
+    \warning Raises an invalid_action_error exception if either a or b is a
+    NaN or +/-oo, or if a > b, or calls gaol_error and aborts where the
+    exceptions are disabled: it returns no number then (GAOL v5, where the
+    documentation said numeric_limits<unsigned long long>::max()).
     \precond a must be smaller or equal to b
   */
 GAOL_NODISCARD extern __GAOL_PUBLIC__   unsigned long long nb_fp_numbers(double a, double b);

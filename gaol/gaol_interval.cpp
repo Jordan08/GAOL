@@ -2008,9 +2008,10 @@ interval nth_root(const interval& I, int q)
   unsigned long long nb_fp_numbers(double a, double b)
   {
     if (!is_finite(a) || !is_finite(b) || (a > b)) {
-      // Either a or b is a NaN or +/-oo, or [a,b] is empty?
+      // Either a or b is a NaN or +/-oo, or [a,b] is empty? gaol_ERROR
+      // throws, or aborts where the exceptions are disabled: there is no
+      // value to return, whose line Visual C++ found unreachable (C4702)
       gaol_ERROR(invalid_action_error,"invalid argument(s) in call to nb_fp_numbers()");
-      return std::numeric_limits<unsigned long long>::max();
     }
 
     if (a == b) {

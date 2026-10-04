@@ -4446,11 +4446,11 @@ The result is an \code{unsigned long long}, where GAOL~4 named its type with the
 macro \code{ULONGLONGINT}, which GAOL v5 no longer defines, as it prefixes
 with \code{GAOL\_} the macros of its headers.\newinvfive
 
-Returns \code{numeric\_limits<unsigned long long>::max()} if either
-\var{a} or \var{b} is a NaN or an infinity, or if \var{a} is greater than
-\var{b}. In addition, raises
-an \code{invalid\_action\_error} exception (\pxref{sec:exceptions}) or calls
-\code{gaol\_error} depending on the way the library was configured.
+Raises an \code{invalid\_action\_error} exception (\pxref{sec:exceptions}) if
+either \var{a} or \var{b} is a NaN or an infinity, or if \var{a} is greater than
+\var{b}, or calls \code{gaol\_error} and aborts where the exceptions are
+disabled: it returns no number then, where this manual gave
+\code{numeric\_limits<unsigned long long>::max()}.\newinvfive
 \begin{example}
 cout << nb_fp_numbers(1.0, next_float(1.0)) << ' '
      << nb_fp_numbers(1.0, 2.0);

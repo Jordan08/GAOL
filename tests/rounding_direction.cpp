@@ -665,7 +665,7 @@ int main()
         return s; } },
     { "feven", [](const interval&, const interval&) { return S(feven(2.0)); } },
     { "interval::pi()", [](const interval&, const interval&) { return S(interval::pi()); } },
-    { "interval::precision(n)", [](const interval&, const interval&) { const int p = interval::precision(17); interval::precision(p); return S(p); } },
+    { "interval::precision(n)", [](const interval&, const interval&) { const int p = static_cast<int>(interval::precision(17)); interval::precision(p); return S(p); } },
   };
 
   set(directions[0]);
