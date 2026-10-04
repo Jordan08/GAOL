@@ -619,7 +619,10 @@ The targets of the \file{Makefile} in the root directory are \option{all},
 which builds \file{libgaol.a} and the shared library \file{libgaol.so.5.0.0}
 (soname \file{libgaol.so.5}), \option{test}, \option{check}, \option{perf} and
 \option{parser}, those of the three builds (\pxref{sec:tests}),
-\option{install}, \option{clean} and \option{distclean}. \cmd{make -C manual
+\option{install}, \option{clean} and \option{distclean}. \option{clean} erases
+what \cmd{make} built, and keeps what \cmd{configure} made, so that \cmd{make}
+builds again without it; \option{distclean} erases that too, which gives the
+source tree back as it was before \cmd{configure}. \cmd{make -C manual
 pdf} builds this manual and the manual of GAOL~4. \cmd{configure --help} ends
 with the address for the bug reports, \code{jordan.ninin@ensta.fr}, and the
 page of GAOL v5, \code{https://github.com/Jordan08/GAOL}.

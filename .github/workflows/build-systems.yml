@@ -8,7 +8,8 @@
 # that runs the unit tests checks that numbers read and wrote numbers under a
 # locale writing a decimal comma, which the Linux jobs and the containers
 # generate first, macOS and Windows having one (.github/scripts/comma-locale.sh,
-# GAOL v5).
+# GAOL v5). The autotools jobs check that make distclean gives the sources back
+# as git has them.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -89,7 +90,9 @@ jobs:
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-          ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ matrix.cfg.configure }} | tee configure.log
+          # The output of configure out of the sources, which make distclean
+          # is to give back as git has them
+          ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ matrix.cfg.configure }} | tee "$RUNNER_TEMP/configure.log"
           # config.status writes each of its files again when given its name,
           # as the rules of make that follow the templates do: the m4 macro of
           # the version named gaol_version made it refuse
@@ -99,7 +102,7 @@ jobs:
           make -j 4
           make install
           # CORE-MATH is compiled into libgaol: no other library is installed
-          grep -q "elementary functions" configure.log
+          grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
       - name: Locale writing a decimal comma
@@ -109,6 +112,17 @@ jobs:
         run: make -j 4 test || { cat tests/test-suite.log; exit 1; }
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check tests/numbers.log
+      - name: make distclean gives the sources back as git has them
+        run: |
+          # make clean keeps what configure made, for make to build again
+          # without configure; make distclean erases it too, the .deps and
+          # .dirstamp of the dependencies and of CORE-MATH among them
+          # (doc/building.md). Before tests.sh, which compiles its tests at the
+          # root of the sources
+          make distclean
+          git status --short --ignored
+          test -z "$(git status --porcelain --ignored)" || {
+            echo "make distclean left the files above, or changed them"; exit 1; }
       - name: Tests built with the installed GAOL
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
