@@ -343,6 +343,12 @@ namespace
     };
     double m, r;
     midRad(x, m, r);
+    check("pow and pown have the results of IEEE 1788",
+          forward[9].set_eq(numsToInterval(-1.0, 8.0))
+          && forward[10].set_eq(numsToInterval(1.0 / 16.0, 4.0))
+          && forward[11].set_eq(numsToInterval(1.0 / 64.0, 1.0 / 8.0))
+          && forward[12].set_eq(numsToInterval(0.5, 0x1.6a09e667f3bcdp-1)),
+          [&] { return hex(forward[9]) + " " + hex(forward[10]) + " " + hex(forward[11]) + " " + hex(forward[12]); });
     const bool b = isEmpty(empty()) && isEntire(entire()) && equal(x, x) && subset(x, y)
       && less(x, x) && !strictLess(x, x) && !precedes(y, x) && !strictPrecedes(x, y)
       && interior(x, y) && !disjoint(x, y) && isCommonInterval(x) && !isSingleton(x)

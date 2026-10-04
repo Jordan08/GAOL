@@ -685,7 +685,7 @@ namespace
         ref[3] = au <= bl;
         ref[4] = lt1(bl, al) && lt1(au, bu);
         ref[5] = lt1(al, bl) && lt1(au, bu);
-        ref[6] = au < bl;
+        ref[6] = lt1(au, bl);
         ref[7] = au < bl || bu < al;
       }
       const bool got[8] = {std1788::equal(a, b), std1788::subset(a, b), std1788::less(a, b),
