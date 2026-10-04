@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `dcd3b11` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `586c5b0` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -35,7 +35,9 @@ manuel renvoie à `interval::pi()`...) ; plus de `-lm` explicite dans les builds
 autotools et meson ni dans `gaol.pc`, par #78 : GAOL appelle toujours la
 bibliothèque mathématique du système (`<fenv.h>`, `sqrt()`, `floor()`, `fma()`
 sans FMA matériel...), que le compilateur C++ lie lui-même, comme le build
-CMake le supposait déjà.
+CMake le supposait déjà. Fait aussi le 4 octobre : `TODO.md`, `process.md` et
+`todo-notes/` hors de l'archive des sources de CPack, par #79 ; les outils qui
+ont vérifié `pow` au point 1, nettoyés, dans `tests/tools/pow/`, par #81.
 
 ## En cours
 
@@ -138,6 +140,16 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   coins aux bornes infinies et à une base partant de 0 : plus d'exp(y log x), et
   des boîtes serrées (aujourd'hui, `pow([4, +oo], 0.5)` vaut [2 − 2^-52, +oo],
   et d'autres ont des centaines de doubles de trop), avec des tests aux limites.
+  Les outils qui ont vérifié `pow` au point 1 (différentiel entre deux builds,
+  table de `pow_on_boxes()`, `checkrows.py` contre mpmath, mutations, temps)
+  sont dans `tests/tools/pow/` (#81). Décidé le 4 octobre : ajouter avec ce
+  changement à `pow_on_boxes()` les boîtes `{none, P(2147483648.0), none}` (le
+  test du vide de `gaol::pow`) et `{P(1), P(0.1), P(1)}` (le coin en 1), que
+  seul `elementary` protège aujourd'hui ; ne pas fixer le signe des zéros de
+  `pow` (décision du 30 septembre) ; à la régénération de la table, la boîte 70
+  s'écrit `0.25`. Les boîtes qui quittent exp(y log x) peuvent devenir plus
+  lentes (70 à 79 ns, contre 90 à 112 ns aux coins), et les mutants des coins de
+  `mutate.py` sont à réécrire.
 - **8.** **`pow(x, n)` pour n grand** (revue n° 7) : dans `ipow_exact_dn()`, la
   borne inférieure perd le carré du reste (1962 doubles sous la plus serrée pour
   n = 2^32 − 1), et les builds SSE2 et FPU multiplient les produits arrondis
@@ -766,8 +778,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
-  3 octobre, celles de C, K, L, J, de `make distclean`, de #77 et de #78 après
-  leur fusion).
+  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79 et #81
+  après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de

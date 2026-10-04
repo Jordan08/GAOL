@@ -174,10 +174,11 @@ un est refusée, quel que soit son gain.
    `.github/audit` vérifie dans la CI que les trois builds donnent la même
    configuration.
 7. **L'interface.**
-   - `interval(double)` et `interval(double, double)` ne sont pas encore
-     `explicit` : un entier y devient un double, inexact au-delà de 2^53. Le
-     point D.21 prévoit de les rendre `explicit`, avec des constructeurs pour
-     les entiers. N'ajoute pas de nouvelle conversion implicite.
+   - `interval(double)` est `explicit` depuis le 4 octobre, comme
+     `expression(double)` et `expression(const interval&)` ;
+     `interval(double, double)` ne l'est pas, et un entier y devient un double,
+     inexact au-delà de 2^53 (point D.21). N'ajoute pas de nouvelle conversion
+     implicite.
    - Les fonctions `*_dn()` et `*_up()` sur les doubles sont privées
      (`gaol_double_op.h` n'est pas installé).
    - Les intervalles de floats restent désactivés (`GAOL_FLOAT_INTERVALS`).
