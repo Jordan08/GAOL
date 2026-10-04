@@ -1464,17 +1464,17 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ bool feven(double d);
 
    GAOL_INLINE interval interval::pi(void)
 	{
-		return interval(pi_dn, pi_up);
+		return interval(detail::pi_dn, detail::pi_up);
 	}
 
    GAOL_INLINE interval interval::two_pi(void)
 	{
-		return interval(2.0*pi_dn, 2.0*pi_up); // No rounding when multiplying by 2
+		return interval(2.0*detail::pi_dn, 2.0*detail::pi_up); // No rounding when multiplying by 2
 	}
 
    GAOL_INLINE interval interval::half_pi(void)
 	{
-		return interval(half_pi_dn, half_pi_up);
+		return interval(detail::half_pi_dn, detail::half_pi_up);
 	}
 
    GAOL_INLINE interval interval::one_plus_infinity(void)

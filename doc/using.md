@@ -64,7 +64,11 @@ or of another library (GAOL v5): `USING_SSE2_INSTRUCTIONS`, `HAVE_FENV_H`,
 `GAOL_USING_SSE2_INSTRUCTIONS`, `GAOL_HAVE_FENV_H`, `GAOL_WORDS_BIGENDIAN`,
 `GAOL_INLINE`, `GAOL_MEMALIGN`, `GAOL_HI`..., `<stdlib.h>` is no longer included
 with `_XOPEN_SOURCE` defined again, and `nb_fp_numbers()` returns an
-`unsigned long long`, which GAOL 4 named with the macro `ULONGLONGINT`.
+`unsigned long long`, which GAOL 4 named with the macro `ULONGLONGINT`. The
+doubles `pi`, `half_pi`, `two_pi`, `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`,
+`ln2_dn`, `ln2_up`, `two_power_51` and `two_power_52` of GAOL 4 are no longer
+declared for the program, which found them with `using namespace gaol`, its own
+`pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`.
 
 ## From CMake
 

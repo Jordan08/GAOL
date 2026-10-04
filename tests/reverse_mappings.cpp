@@ -30,6 +30,8 @@ class reverse_mappings_test {
      TEST_SEQ(acos_rel(interval::minus_one_plus_one(),interval(-5,6)),interval(-5,6));
 	  TEST_EMPTY(acos_rel(interval(-3,-2),interval::universe()));
 	  TEST_EMPTY(acos_rel(interval(2,4),interval::universe()));
+	  // 2^52, which gaol/gaol_port.h no longer declares (GAOL v5)
+	  const double two_power_52 = 4503599627370496.0;
 	  I = interval(previous_float(two_power_52),two_power_52);
 	  J = cos(I);
 	  TEST_EQ(acos_rel(J,I),I);

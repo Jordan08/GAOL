@@ -192,9 +192,8 @@ mode there.
   were computed by its dynamic initialization: 25 of the 45 checks failed with
   the SSE2 intervals, 24 with the others, `pi()` giving [-0, 0] (GAOL v5). With
   MinGW-w64, which initializes GAOL's files first, the test passes with or
-  without the fix. `pi_dn`, `pi_up` and
-  the other doubles of `gaol/gaol_port.h`, now written in decimal, have to be
-  those their unions write in bits.
+  without the fix. The bounds of π and π/2 of `gaol/gaol_port.h`, now written
+  in decimal, have to be the doubles next to π and π/2.
 - **`numbers`:** `textToInterval("0.1")` has to be the tightest interval
   enclosing the number read, and the number itself when it is a double. The
   constants have to be the tightest enclosures of π, 2π and π/2. No
