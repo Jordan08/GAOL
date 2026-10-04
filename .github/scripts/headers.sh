@@ -14,8 +14,9 @@
 #   __gaol for the include guards): the macros those headers define are those
 #   the preprocessor has after them and not after the headers of the system
 #   they include, which an earlier file includes alone (with __has_include, for
-#   those of other systems, and only for Windows those of Windows: the
-#   intrin.h of Clang includes the one of the system).
+#   those of other systems, and only for Windows those of Windows, the intrin.h
+#   of Clang including the one of the system, and only on x86 those of SSE,
+#   which stop on an #error elsewhere, as on macOS arm64).
 #
 # The flags are those of pkg-config --cflags gaol, where the prefix has
 # gaol.pc, as the code using GAOL is compiled; TEST_FLAGS (see tests.sh)
@@ -65,6 +66,7 @@ sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$pre
   while read -r s; do
     case "$s" in
       intrin.h|sal.h) printf '#if defined(_WIN32) && __has_include(<%s>)\n' "$s" ;;
+      *mmintrin.h) printf '#if (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) && __has_include(<%s>)\n' "$s" ;;
       *) printf '#if __has_include(<%s>)\n' "$s" ;;
     esac
     printf '#  include <%s>\n#endif\n' "$s"
