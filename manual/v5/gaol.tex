@@ -907,9 +907,10 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 above for the code built by GCC~13 or a later one, or by the compiler that
 built GAOL, of its major version and not older (another compiler, as Clang~18,
 would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
-GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and, for
-Visual C++, the definition \code{\_\_GAOL\_PUBLIC\_\_=}, GAOL being a static
-library.
+GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and no
+longer, for Visual C++, the definition \code{\_\_GAOL\_PUBLIC\_\_=} of GAOL~4:
+GAOL being a static library there, its declarations carry no
+\code{\_\_declspec(dllimport)}.\newinvfive{}
 There is no other library to link. A library whose headers include those of
 GAOL links \code{gaol::gaol} \code{PUBLIC}, so that its own users get the
 flags, and its CMake package finds GAOL again (\code{find\_dependency(gaol)}).
@@ -5190,6 +5191,10 @@ change with its reasons and its measures.
   (\pxref{sec:namespaces}). The type and the functions are in
   \code{gaol\_core}, and the symbols of the library name it: a program compiled
   against the headers of GAOL~4 is compiled again.
+\item With Visual C++, the code using GAOL no longer defines
+  \code{\_\_GAOL\_PUBLIC\_\_} empty: GAOL is a static library there, and its
+  declarations carry no \code{\_\_declspec(dllimport)}. A definition left in
+  a project changes nothing. The macro is \code{GAOL\_PUBLIC} now.
 \item GAOL is the only library to link: the mathematical library GAOL~4 was
   built with is no longer used, CORE-MATH being compiled into GAOL, and the
   options of the builds that chose it are gone.

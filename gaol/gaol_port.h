@@ -96,7 +96,7 @@ namespace gaol_core {
     \return 0 if the argument is positive and 1 otherwise
     \note Returns 1 for -0.0
   */
-  extern __GAOL_PUBLIC__ int gaol_signbit(double);
+  extern GAOL_PUBLIC int gaol_signbit(double);
 
 
 // GAOL_SIZEOF_INT and GAOL_SIZEOF_LONG_LONG_INT come from gaol/gaol_config.h; no build

@@ -201,15 +201,14 @@ set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_R
 # compiler ignores fail them too, as [[nodiscard]] written after the
 # declarator, int f() [[nodiscard]];, of which GCC 13 only warns. The object
 # is a target of its own, left out of the build of GAOL and made by the test
-# (cmake --build), with the flags, the definitions (__GAOL_PUBLIC__ empty with
-# Visual C++) and the include directories of GAOL's headers as gaol::gaol
-# carries them, written out here (those of the project GAOL, should another
-# include it): only the headers are read, so that the test does not wait for
-# the library, which gaol::gaol would build first. The tests run in the C
-# locale, the message of GCC and Clang being translated otherwise; that of
-# Visual C++ is looked for by its number. Not with Visual C++ before 2019
-# 16.4, whose _Check_return_ before C++17 only /analyze reports, nor with
-# Clang for Windows. The autotools and meson builds have no such test: the
+# (cmake --build), with the flags, the definitions and the include directories
+# of GAOL's headers as gaol::gaol carries them, written out here (those of the
+# project GAOL, should another include it): only the headers are read, so that
+# the test does not wait for the library, which gaol::gaol would build first.
+# The tests run in the C locale, the message of GCC and Clang being translated
+# otherwise; that of Visual C++ is looked for by its number. Not with Visual C++
+# before 2019 16.4, whose _Check_return_ before C++17 only /analyze reports, nor
+# with Clang for Windows. The autotools and meson builds have no such test: the
 # header it checks is the same.
 function(gaol_nodiscard_test standard flags message)
   foreach(kind discard used)

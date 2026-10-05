@@ -43,7 +43,7 @@ namespace gaol_core {
 
   // defined in gaol_common.cpp; public, as GAOL_DEBUG reads it in the inline
   // functions of the headers, compiled into the code using GAOL (GAOL v5)
-  extern __GAOL_PUBLIC__ int debug_level;
+  extern GAOL_PUBLIC int debug_level;
 
 #if GAOL_DEBUGGING
 #  define GAOL_DEBUG(lvl,cmd) do { if (debug_level>=lvl) {cmd;} } while(0)
@@ -95,7 +95,7 @@ GAOL_NODISCARD GAOL_INLINE bool is_signed(double a)
   This version is commutative even when one of the operands is a NaN. It also returns
   +0 when comparing +0 and -0.
 */
-GAOL_NODISCARD extern __GAOL_PUBLIC__ double maximum(double a, double b);
+GAOL_NODISCARD extern GAOL_PUBLIC double maximum(double a, double b);
 
 /*!
   \brief computation of the minimum of two doubles
@@ -103,7 +103,7 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ double maximum(double a, double b);
   This version is commutative even when there is a NaN. It also returns
   -0 when comparing +0 and -0.
 */
-GAOL_NODISCARD extern __GAOL_PUBLIC__ double minimum(double a, double b);
+GAOL_NODISCARD extern GAOL_PUBLIC double minimum(double a, double b);
 
   /*!
     \brief Initialization of the library
@@ -113,7 +113,7 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__ double minimum(double a, double b);
     equal to the current debugging level. A debugging level equal to zero
     means that no debugging message will appear.
   */
-extern __GAOL_PUBLIC__  bool init(int dbg_lvl = 0);
+extern GAOL_PUBLIC  bool init(int dbg_lvl = 0);
 
   /*!
     \brief Cleanup function
@@ -125,7 +125,7 @@ extern __GAOL_PUBLIC__  bool init(int dbg_lvl = 0);
     frees what the initialization allocated.
     \return true the first time it is called and false afterwards
   */
-extern __GAOL_PUBLIC__ bool cleanup(void);
+extern GAOL_PUBLIC bool cleanup(void);
 
   /*!
     \brief Sets back the rounding direction that the first call of init()
@@ -137,7 +137,7 @@ extern __GAOL_PUBLIC__ bool cleanup(void);
     GAOL_PRESERVE_ROUNDING, GAOL leaves the direction of the program alone,
     and restore_rounding() does nothing.
   */
-extern __GAOL_PUBLIC__ void restore_rounding(void);
+extern GAOL_PUBLIC void restore_rounding(void);
 
 /*!
   \macro Position of an error/warning
@@ -150,8 +150,8 @@ extern __GAOL_PUBLIC__ void restore_rounding(void);
   \brief Reports a benign error
   \note this function only prints a message to the standard error stream.
  */
-extern __GAOL_PUBLIC__ void gaol_warning(const char *warn);
-extern __GAOL_PUBLIC__ void gaol_warning(const char *file, int line, const char *warn);
+extern GAOL_PUBLIC void gaol_warning(const char *warn);
+extern GAOL_PUBLIC void gaol_warning(const char *file, int line, const char *warn);
 
 
 /*!
@@ -159,8 +159,8 @@ extern __GAOL_PUBLIC__ void gaol_warning(const char *file, int line, const char 
   \note this function only prints a message to the standard error stream.
   It is up to the user to decide how and when to stop the program.
  */
-extern __GAOL_PUBLIC__ void gaol_error(const char *err);
-extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *err);
+extern GAOL_PUBLIC void gaol_error(const char *err);
+extern GAOL_PUBLIC void gaol_error(const char *file, int line, const char *err);
 
 #if GAOL_EXCEPTIONS_ENABLED
 #   define gaol_ERROR(excep,msg) do { throw gaol_core::excep(GAOL_FILE_POS,msg); } while (0)
@@ -191,7 +191,7 @@ extern __GAOL_PUBLIC__ void gaol_error(const char *file, int line, const char *e
     MinGW-w64, which runs them from the last linked to the first, and Visual
     C++ had none.
   */
-  class __GAOL_PUBLIC__ gaol_initializer {
+  class GAOL_PUBLIC gaol_initializer {
   public:
     gaol_initializer();
   };

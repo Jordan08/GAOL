@@ -91,9 +91,12 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 above for the code built by GCC 13 or a later one, or by the compiler that
 built GAOL, of its major version and not older (another compiler, as Clang 18,
 would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
-GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and, for
-Visual C++, `__GAOL_PUBLIC__=`, GAOL being a static library. There is no other library
-to link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
+GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and no
+longer `__GAOL_PUBLIC__=` for Visual C++ (GAOL v5): GAOL is a static library
+there, and its declarations no longer carry the `__declspec(dllimport)` that
+GAOL 4 gave them unless the code using it defined `__GAOL_PUBLIC__` empty; a
+definition left in a project changes nothing. There is no other library to
+link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
 include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
 get the flags, and its CMake package finds GAOL again (`find_dependency(gaol)`).
 `tests/find_package` is a project using an installed GAOL this way.

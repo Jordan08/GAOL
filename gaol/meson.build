@@ -156,16 +156,13 @@ EXTRA_DIST = [
 # The static library libgaol.a and the shared one, libgaol.so.5.0.0, whose
 # soname is libgaol.so.5, as CMake (BUILD_SHARED_LIBS) and configure name it
 # (GAOL v5). With Visual C++, the static library alone, as with CMake: GAOL's
-# declarations carry no __declspec(dllexport), and __GAOL_PUBLIC__ is defined
-# empty for GAOL and for the code using it (gaol/gaol_config.h), which
-# gaol_dep and gaol.pc give it.
-gaol_public_args = []
+# declarations carry no __declspec(dllexport) nor dllimport there (GAOL_PUBLIC
+# is empty, gaol/gaol_config.h), and gaol_dep and gaol.pc no longer give the
+# code using GAOL __GAOL_PUBLIC__ defined empty (GAOL v5).
 if msvc
-  gaol_public_args = ['-D__GAOL_PUBLIC__=']
-  pc_cflags += gaol_public_args
   # The lexer includes <unistd.h>, which Visual C++ does not have
   # (cmake/msvc/unistd.h), and the warnings CMake turns off too
-  gaol_msvc_args = gaol_public_args + ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
+  gaol_msvc_args = ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
   # Visual C++ only: clang-cl does not know the option, and warns of it
   if cpp_comp.get_id() == 'msvc'
     gaol_msvc_args += ['/Zc:strictStrings-']
@@ -202,7 +199,6 @@ endif
 gaol_dep = declare_dependency(
   link_with: gaollib,
   include_directories: include_directories('..'),
-  compile_args: gaol_public_args,
   link_args: gaol_link_args,
   dependencies: deps,
 )

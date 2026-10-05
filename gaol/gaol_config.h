@@ -44,32 +44,23 @@
 #define GAOL_ERRNO errno
 #define GAOL_INLINE inline
 
-#if defined (_MSC_VER)
-
-# ifndef __GAOL_PUBLIC__
-#   ifdef _COMPILING__GAOL_PUBLIC__
-#     define __GAOL_PUBLIC__ __declspec(dllexport)
-#   else
-#     define __GAOL_PUBLIC__ __declspec(dllimport)
-#   endif
-# endif
-
-#elif defined (__GNUC__)
-
-# ifndef __GAOL_PUBLIC__
-#  if defined (GAOL_HAVE_VISIBILITY_OPTIONS)
-#     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
+/* GAOL_PUBLIC: what GAOL's public declarations carry, __GAOL_PUBLIC__ in
+   GAOL 4 (GAOL v5). With GCC and Clang, the default visibility where the
+   library is compiled with -fvisibility=hidden (GAOL_HAVE_VISIBILITY_OPTIONS),
+   so that the shared library exports them. Nothing with Visual C++ and
+   clang-cl, with which GAOL is always a static library: GAOL 4 declared them
+   __declspec(dllimport) there, or __declspec(dllexport) with
+   _COMPILING__GAOL_PUBLIC__, which no build defined, so that GAOL and the code
+   using it had to define __GAOL_PUBLIC__ empty, as the CMake and meson builds,
+   gaol::gaol and gaol.pc did. No header reads __GAOL_PUBLIC__ any longer, and
+   a program still defining it changes nothing; one defining GAOL_PUBLIC before
+   including GAOL replaces it. */
+#ifndef GAOL_PUBLIC
+#  if defined(__GNUC__) && !defined(_MSC_VER) && defined(GAOL_HAVE_VISIBILITY_OPTIONS)
+#    define GAOL_PUBLIC __attribute__ ((visibility("default")))
 #  else
-#     define __GAOL_PUBLIC__
+#    define GAOL_PUBLIC
 #  endif
-# endif
-
-#else
-
-# ifndef __GAOL_PUBLIC__
-#  define __GAOL_PUBLIC__
-# endif
-
 #endif
 
 

@@ -253,10 +253,11 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 
 meson builds `libgaol.a` and the shared library `libgaol.so.5.0.0`, whose
 soname is `libgaol.so.5`, as configure and CMake name them; with Visual C++,
-the static library alone, as CMake does, and `__GAOL_PUBLIC__` defined empty
-for the code using it (`gaol.pc`, the dependency `gaol_dep` of a meson
-project). The summary of `meson setup` gives the address for the bug reports,
-jordan.ninin@ensta.fr, and the page of GAOL v5, https://github.com/Jordan08/GAOL.
+the static library alone, as CMake does, and `gaol_dep` and `gaol.pc` no
+longer give the code using it `__GAOL_PUBLIC__` defined empty (GAOL v5, see
+[Using GAOL](using.md#from-cmake)). The summary of `meson setup` gives the
+address for the bug reports, jordan.ninin@ensta.fr, and the page of GAOL v5,
+https://github.com/Jordan08/GAOL.
 The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
 

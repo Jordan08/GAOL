@@ -41,32 +41,32 @@ namespace gaol_core {
 	*/
 	class intervalf {
 		public:
-			__GAOL_PUBLIC__ intervalf();
-			__GAOL_PUBLIC__ intervalf(float v);
-			__GAOL_PUBLIC__ intervalf(float l, float r);
-			__GAOL_PUBLIC__ intervalf(const intervalf& I);
-			__GAOL_PUBLIC__ intervalf(const char* const s); // BEWARE: not fully supported at present.
+			GAOL_PUBLIC intervalf();
+			GAOL_PUBLIC intervalf(float v);
+			GAOL_PUBLIC intervalf(float l, float r);
+			GAOL_PUBLIC intervalf(const intervalf& I);
+			GAOL_PUBLIC intervalf(const char* const s); // BEWARE: not fully supported at present.
 			float left(void) const;
 			float right(void) const;
 
-			__GAOL_PUBLIC__ intervalf& operator=(const intervalf& I);
+			GAOL_PUBLIC intervalf& operator=(const intervalf& I);
 
-			__GAOL_PUBLIC__ intervalf& operator+=(const intervalf& I);
-			__GAOL_PUBLIC__ const intervalf operator+(const intervalf& I) const;
-			__GAOL_PUBLIC__ const intervalf operator+(void) const;
+			GAOL_PUBLIC intervalf& operator+=(const intervalf& I);
+			GAOL_PUBLIC const intervalf operator+(const intervalf& I) const;
+			GAOL_PUBLIC const intervalf operator+(void) const;
 
-			__GAOL_PUBLIC__ intervalf& operator-=(const intervalf& I);
-			__GAOL_PUBLIC__ const intervalf operator-(const intervalf& I) const;
-			__GAOL_PUBLIC__ const intervalf operator-(void) const;
+			GAOL_PUBLIC intervalf& operator-=(const intervalf& I);
+			GAOL_PUBLIC const intervalf operator-(const intervalf& I) const;
+			GAOL_PUBLIC const intervalf operator-(void) const;
 
-			__GAOL_PUBLIC__ intervalf& operator*=(const intervalf& I);
-			__GAOL_PUBLIC__ const intervalf operator*(const intervalf& I) const;
+			GAOL_PUBLIC intervalf& operator*=(const intervalf& I);
+			GAOL_PUBLIC const intervalf operator*(const intervalf& I) const;
 
-			__GAOL_PUBLIC__ intervalf& operator/=(const intervalf& I);
-			__GAOL_PUBLIC__ const intervalf operator/(const intervalf& I) const;
+			GAOL_PUBLIC intervalf& operator/=(const intervalf& I);
+			GAOL_PUBLIC const intervalf operator/(const intervalf& I) const;
 
 
-      __GAOL_PUBLIC__ intervalf inverse() const; // FIXME: document the inverse() method
+      GAOL_PUBLIC intervalf inverse() const; // FIXME: document the inverse() method
 
 	/*
      \brief Returns the midpoint of an interval.
@@ -78,10 +78,10 @@ namespace gaol_core {
      - [a, +oo]   -> midP = MAXREAL
      - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even
     		*/
-    		__GAOL_PUBLIC__ float midpoint(void) const;
+			GAOL_PUBLIC float midpoint(void) const;
     		void split(intervalf &I1, intervalf &I2) const;
 
-		    __GAOL_PUBLIC__ bool is_finite(void) const;
+		    GAOL_PUBLIC bool is_finite(void) const;
 			bool is_empty(void) const;
 			bool is_zero(void) const;
 
@@ -89,16 +89,16 @@ namespace gaol_core {
 			bool certainly_negative(void) const;
 			bool strictly_straddles_zero(void) const;
 
-			__GAOL_PUBLIC__ bool possibly_eq(const intervalf& I) const;
-			__GAOL_PUBLIC__ bool possibly_neq(const intervalf& I) const;
+			GAOL_PUBLIC bool possibly_eq(const intervalf& I) const;
+			GAOL_PUBLIC bool possibly_neq(const intervalf& I) const;
 
-		    __GAOL_PUBLIC__ bool set_strictly_contains(const intervalf& I) const;
-    		__GAOL_PUBLIC__ bool set_strictly_contains(float d) const;
-    		__GAOL_PUBLIC__ bool set_disjoint(const intervalf &I) const;
-			__GAOL_PUBLIC__ bool set_eq(const intervalf& I) const;
-			__GAOL_PUBLIC__ bool set_neq(const intervalf& I) const;
-			__GAOL_PUBLIC__ bool set_contains(const intervalf& I) const;
-			__GAOL_PUBLIC__ bool set_contains(float v) const;
+		    GAOL_PUBLIC bool set_strictly_contains(const intervalf& I) const;
+			GAOL_PUBLIC bool set_strictly_contains(float d) const;
+			GAOL_PUBLIC bool set_disjoint(const intervalf &I) const;
+			GAOL_PUBLIC bool set_eq(const intervalf& I) const;
+			GAOL_PUBLIC bool set_neq(const intervalf& I) const;
+			GAOL_PUBLIC bool set_contains(const intervalf& I) const;
+			GAOL_PUBLIC bool set_contains(float v) const;
 
 			friend intervalf sqrt(const intervalf& I);
 			friend intervalf uipow_dnup(const intervalf& I, unsigned int n);
@@ -114,18 +114,18 @@ namespace gaol_core {
 			float _left, _right;
 	};
 
-  __GAOL_PUBLIC__ intervalf operator+(float d, const intervalf& I2);
-  __GAOL_PUBLIC__ intervalf operator*(float d, const intervalf& I2);
-  __GAOL_PUBLIC__ intervalf operator-(float d, const intervalf& I2);
+  GAOL_PUBLIC intervalf operator+(float d, const intervalf& I2);
+  GAOL_PUBLIC intervalf operator*(float d, const intervalf& I2);
+  GAOL_PUBLIC intervalf operator-(float d, const intervalf& I2);
 
-	__GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const intervalf& I);
+	GAOL_PUBLIC std::ostream& operator<<(std::ostream& out, const intervalf& I);
 
   GAOL_INLINE intervalf inverse(const intervalf& I)
   {
     return I.inverse();
   }
 
-	__GAOL_PUBLIC__ intervalf pow(const intervalf& I, int n);
+	GAOL_PUBLIC intervalf pow(const intervalf& I, int n);
 
 	inline intervalf intervalf::universe(void)
 	{

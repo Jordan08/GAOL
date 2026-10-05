@@ -51,7 +51,7 @@ typedef struct {
 
   class expr_node;
 
-  class __GAOL_PUBLIC__ expression {
+  class GAOL_PUBLIC expression {
     friend class expr_node;
   public:
     expression();
@@ -100,7 +100,7 @@ typedef struct {
   /*!
     \brief Abstract class for a node of an arithmetic expression
    */
-  class __GAOL_PUBLIC__ expr_node {
+  class GAOL_PUBLIC expr_node {
     friend class expression;
   public:
     expr_node();
@@ -155,7 +155,7 @@ typedef struct {
     Avoids the need for testing whether an expression points to a
     node or not.
   */
-  class __GAOL_PUBLIC__ null_node : public expr_node {
+  class GAOL_PUBLIC null_node : public expr_node {
   public:
     null_node();
     ~null_node();
@@ -167,14 +167,14 @@ typedef struct {
     static const unsigned int precedence;
   };
 
-  extern __GAOL_PUBLIC__ null_node* the_null_expr;
+  extern GAOL_PUBLIC null_node* the_null_expr;
 
   /*!
     \brief floating-point number in IEEE754 double format
 
     Class coding a fp number in an expression.
   */
-  class __GAOL_PUBLIC__ double_node : public expr_node {
+  class GAOL_PUBLIC double_node : public expr_node {
   public:
     double_node(double d);
     ~double_node();
@@ -195,7 +195,7 @@ typedef struct {
     \brief Interval with floating-point bounds
 
   */
-  class __GAOL_PUBLIC__ interval_node : public expr_node {
+  class GAOL_PUBLIC interval_node : public expr_node {
   public:
     interval_node(const interval& I);
     ~interval_node();
@@ -216,7 +216,7 @@ typedef struct {
     \brief Node for an addition
 
   */
-  class __GAOL_PUBLIC__ add_node : public expr_node {
+  class GAOL_PUBLIC add_node : public expr_node {
   public:
     add_node(const expression &el, const expression &er);
     ~add_node();
@@ -239,7 +239,7 @@ typedef struct {
   /*
     \brief Node for a unary minus
   */
-  class __GAOL_PUBLIC__ unary_minus_node : public expr_node {
+  class GAOL_PUBLIC unary_minus_node : public expr_node {
   public:
     unary_minus_node(const expression &e);
     ~unary_minus_node();
@@ -260,7 +260,7 @@ typedef struct {
     \brief Node for a subtraction
 
   */
-  class __GAOL_PUBLIC__ sub_node : public expr_node {
+  class GAOL_PUBLIC sub_node : public expr_node {
   public:
     sub_node(const expression &el, const expression &er);
     ~sub_node();
@@ -284,7 +284,7 @@ typedef struct {
     \brief Node for a multiplication
 
   */
-  class __GAOL_PUBLIC__ mult_node : public expr_node {
+  class GAOL_PUBLIC mult_node : public expr_node {
   public:
     mult_node(const expression &el, const expression &er);
     ~mult_node();
@@ -307,7 +307,7 @@ typedef struct {
     \brief Node for a division
 
   */
-  class __GAOL_PUBLIC__ div_node : public expr_node {
+  class GAOL_PUBLIC div_node : public expr_node {
   public:
     div_node(const expression &el, const expression &er);
     ~div_node();
@@ -329,7 +329,7 @@ typedef struct {
   /*!
     \brief Node for an exponentiation (e^n)
   */
-  class __GAOL_PUBLIC__ pow_node : public expr_node {
+  class GAOL_PUBLIC pow_node : public expr_node {
   public:
     pow_node(const expression& e, int n);
     ~pow_node();
@@ -354,7 +354,7 @@ typedef struct {
     \brief Node for an interval power (I^J)
     \note e2 should evaluate to an interval.
   */
-  class __GAOL_PUBLIC__ pow_itv_node : public expr_node {
+  class GAOL_PUBLIC pow_itv_node : public expr_node {
   public:
     /*
       The power of the values of e1 and e2, which the node keeps (GAOL v5):
@@ -386,7 +386,7 @@ typedef struct {
   /*!
     \brief Node for an inverse exponentiation (e^(1/n))
   */
-  class __GAOL_PUBLIC__ nth_root_node : public expr_node {
+  class GAOL_PUBLIC nth_root_node : public expr_node {
   public:
     nth_root_node(const expression& e, unsigned int n);
     ~nth_root_node();
@@ -407,7 +407,7 @@ typedef struct {
     unsigned int exponent;
   };
 
-  class __GAOL_PUBLIC__ cos_node : public expr_node {
+  class GAOL_PUBLIC cos_node : public expr_node {
   public:
     cos_node(const expression& e);
     ~cos_node();
@@ -427,7 +427,7 @@ typedef struct {
   };
 
 
-  class __GAOL_PUBLIC__ sin_node : public expr_node {
+  class GAOL_PUBLIC sin_node : public expr_node {
   public:
     sin_node(const expression& e);
     ~sin_node();
@@ -447,7 +447,7 @@ typedef struct {
   };
 
 
-  class __GAOL_PUBLIC__ tan_node : public expr_node {
+  class GAOL_PUBLIC tan_node : public expr_node {
   public:
     tan_node(const expression& e);
     ~tan_node();
@@ -466,7 +466,7 @@ typedef struct {
     expr_node *e_tan;
   };
 
-  class __GAOL_PUBLIC__ atan2_node : public expr_node {
+  class GAOL_PUBLIC atan2_node : public expr_node {
   public:
     atan2_node(const expression& e1, const expression& e2);
     ~atan2_node();
@@ -486,7 +486,7 @@ typedef struct {
     expr_node *Y, *X;
   };
 
-  class __GAOL_PUBLIC__ acos_node : public expr_node {
+  class GAOL_PUBLIC acos_node : public expr_node {
   public:
     acos_node(const expression& e);
     ~acos_node();
@@ -505,7 +505,7 @@ typedef struct {
     expr_node *e_acos;
   };
 
-  class __GAOL_PUBLIC__ asin_node : public expr_node {
+  class GAOL_PUBLIC asin_node : public expr_node {
   public:
     asin_node(const expression& e);
     ~asin_node();
@@ -524,7 +524,7 @@ typedef struct {
     expr_node *e_asin;
   };
 
-  class __GAOL_PUBLIC__ atan_node : public expr_node {
+  class GAOL_PUBLIC atan_node : public expr_node {
   public:
     atan_node(const expression& e);
     ~atan_node();
@@ -544,7 +544,7 @@ typedef struct {
   };
 
 
-  class __GAOL_PUBLIC__ cosh_node : public expr_node {
+  class GAOL_PUBLIC cosh_node : public expr_node {
   public:
     cosh_node(const expression& e);
     ~cosh_node();
@@ -563,7 +563,7 @@ typedef struct {
     expr_node *e_cosh;
   };
 
-  class __GAOL_PUBLIC__ sinh_node : public expr_node {
+  class GAOL_PUBLIC sinh_node : public expr_node {
   public:
     sinh_node(const expression& e);
     ~sinh_node();
@@ -582,7 +582,7 @@ typedef struct {
     expr_node *e_sinh;
   };
 
-  class __GAOL_PUBLIC__ tanh_node : public expr_node {
+  class GAOL_PUBLIC tanh_node : public expr_node {
   public:
     tanh_node(const expression& e);
     ~tanh_node();
@@ -603,7 +603,7 @@ typedef struct {
 
 
 
-  class __GAOL_PUBLIC__ acosh_node : public expr_node {
+  class GAOL_PUBLIC acosh_node : public expr_node {
   public:
     acosh_node(const expression& e);
     ~acosh_node();
@@ -622,7 +622,7 @@ typedef struct {
     expr_node *e_acosh;
   };
 
-  class __GAOL_PUBLIC__ asinh_node : public expr_node {
+  class GAOL_PUBLIC asinh_node : public expr_node {
   public:
     asinh_node(const expression& e);
     ~asinh_node();
@@ -641,7 +641,7 @@ typedef struct {
     expr_node *e_asinh;
   };
 
-  class __GAOL_PUBLIC__ atanh_node : public expr_node {
+  class GAOL_PUBLIC atanh_node : public expr_node {
   public:
     atanh_node(const expression& e);
     ~atanh_node();
@@ -661,7 +661,7 @@ typedef struct {
   };
 
 
-  class __GAOL_PUBLIC__ exp_node : public expr_node {
+  class GAOL_PUBLIC exp_node : public expr_node {
   public:
     exp_node(const expression& e);
     ~exp_node();
@@ -680,7 +680,7 @@ typedef struct {
     expr_node *e_exp;
   };
 
-  class __GAOL_PUBLIC__ log_node : public expr_node {
+  class GAOL_PUBLIC log_node : public expr_node {
   public:
     log_node(const expression& e);
     ~log_node();
@@ -702,7 +702,7 @@ typedef struct {
   /*!
     \brief Node for 2^x (GAOL v5)
   */
-  class __GAOL_PUBLIC__ exp2_node : public expr_node {
+  class GAOL_PUBLIC exp2_node : public expr_node {
   public:
     exp2_node(const expression& e);
     ~exp2_node();
@@ -724,7 +724,7 @@ typedef struct {
   /*!
     \brief Node for the logarithm in base 2 (GAOL v5)
   */
-  class __GAOL_PUBLIC__ log2_node : public expr_node {
+  class GAOL_PUBLIC log2_node : public expr_node {
   public:
     log2_node(const expression& e);
     ~log2_node();
@@ -746,7 +746,7 @@ typedef struct {
   /*!
     \brief Node for the sign, an integer function of IEEE 1788-2015 (GAOL v5)
   */
-  class __GAOL_PUBLIC__ sign_node : public expr_node {
+  class GAOL_PUBLIC sign_node : public expr_node {
   public:
     sign_node(const expression& e);
     ~sign_node();
@@ -768,7 +768,7 @@ typedef struct {
   /*!
     \brief Node for the truncation, an integer function of IEEE 1788-2015 (GAOL v5)
   */
-  class __GAOL_PUBLIC__ trunc_node : public expr_node {
+  class GAOL_PUBLIC trunc_node : public expr_node {
   public:
     trunc_node(const expression& e);
     ~trunc_node();
@@ -792,41 +792,41 @@ typedef struct {
      declarations of GAOL: a shared libgaol, whose code is compiled with
      -fvisibility=hidden, did not export them, and a program building an
      expression did not link with it (GAOL v5) */
-  extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& os, const expression& e);
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, const expression& e);
 
   //! Construction operators
   //@{
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression operator+(const expression& el, const expression& er);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression operator-(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression operator-(const expression& el, const expression& er);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression operator*(const expression& el, const expression& er);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression operator/(const expression& el, const expression& er);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression operator+(const expression& el, const expression& er);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression operator-(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression operator-(const expression& el, const expression& er);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression operator*(const expression& el, const expression& er);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression operator/(const expression& el, const expression& er);
   //! gaol_pown_exp(e, n), gaol_pow_exp(e1, e2): e^n and e1^e2, gaol::pow(e, n) and gaol::pow(e1, e2)
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression gaol_pown_exp(const expression& e, int n);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression gaol_pow_exp(const expression& e1, const expression& e2);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression nth_root(const expression& e, unsigned int n);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression cos(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression sin(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression tan(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression atan2(const expression& e1, const expression& e2);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression acos(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression asin(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression atan(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression cosh(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression sinh(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression tanh(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression acosh(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression asinh(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression atanh(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression exp(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression log(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression gaol_pown_exp(const expression& e, int n);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression gaol_pow_exp(const expression& e1, const expression& e2);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression nth_root(const expression& e, unsigned int n);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression cos(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression sin(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression tan(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression atan2(const expression& e1, const expression& e2);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression acos(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression asin(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression atan(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression cosh(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression sinh(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression tanh(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression acosh(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression asinh(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression atanh(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression exp(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression log(const expression& e);
   /* The functions GAOL v5 adds, which the reader of strings builds too
      (gaol/gaol_interval_parser.ypp): cbrt(x) is nth_root(x, 3), as sqrt(x) is
      nth_root(x, 2), so it needs no node of its own */
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression exp2(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression log2(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression sign(const expression& e);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ const expression trunc(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression exp2(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression log2(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression sign(const expression& e);
+  GAOL_NODISCARD extern GAOL_PUBLIC const expression trunc(const expression& e);
   //@}
 
   /*!
@@ -868,9 +868,9 @@ typedef struct {
     \return true if the parsing was possible and flase otherwise
   */
   //@{
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ bool evaluate_left_right(const expression& el, const expression& er,
+  GAOL_NODISCARD extern GAOL_PUBLIC bool evaluate_left_right(const expression& el, const expression& er,
 			   interval* itv);
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ bool evaluate_left_right(const expression& e,
+  GAOL_NODISCARD extern GAOL_PUBLIC bool evaluate_left_right(const expression& e,
 			   interval* itv);
   //@}
   /*!
@@ -879,7 +879,7 @@ typedef struct {
 
     \return true if the parsing was possible and flase otherwise
   */
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ bool evaluate_expr(const expression& e,interval& itv);
+  GAOL_NODISCARD extern GAOL_PUBLIC bool evaluate_expr(const expression& e,interval& itv);
 
   /*
     GAOL_INLINE methods ---

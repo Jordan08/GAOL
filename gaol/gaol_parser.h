@@ -82,8 +82,8 @@ namespace gaol {
     namespace, as pow is the pow of each.
   */
   enum class parsing_names { gaol, ieee1788 };
-  extern __GAOL_PUBLIC__ bool parse_interval(const char* const s, gaol_core::interval& out,
-                                             parsing_names names = parsing_names::gaol);
+  extern GAOL_PUBLIC bool parse_interval(const char* const s, gaol_core::interval& out,
+                                         parsing_names names = parsing_names::gaol);
 
 } // namespace gaol
 

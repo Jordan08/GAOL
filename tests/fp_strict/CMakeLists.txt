@@ -53,7 +53,7 @@ foreach(model strict precise default)
   else()
     set(_fp "/fp:${model}")
   endif()
-  set(CMAKE_CXX_FLAGS "${_cxx_flags} /D__GAOL_PUBLIC__= ${_arch} ${_fp}")
+  set(CMAKE_CXX_FLAGS "${_cxx_flags} ${_arch} ${_fp}")
   try_compile(_compiled_${model} "${CMAKE_CURRENT_BINARY_DIR}/${model}" SOURCES "${_source}"
     CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${_gaol_include}"
     OUTPUT_VARIABLE _output_${model})
