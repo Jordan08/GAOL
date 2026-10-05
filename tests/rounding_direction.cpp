@@ -55,6 +55,7 @@
 #include <cstring>
 #include <exception>
 #include <functional>
+#include <initializer_list>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -501,9 +502,9 @@ namespace
     return (a == 0.0 || b == 0.0) ? 0.0 : a*b;
   }
 
-  bool products_with_zero_and_infinite_bounds_are_right()
+  // The nonempty intervals with bounds in bounds
+  std::vector<interval> intervals_with_bounds(std::initializer_list<double> bounds)
   {
-    const double bounds[] = { -GAOL_INFINITY, -2.0, -0.0, 0.0, 3.0, GAOL_INFINITY };
     std::vector<interval> intervals;
     for (double l : bounds) {
       for (double r : bounds) {
@@ -513,6 +514,12 @@ namespace
         }
       }
     }
+    return intervals;
+  }
+
+  bool products_with_zero_and_infinite_bounds_are_right()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 3.0, GAOL_INFINITY });
     bool right = true;
     for (const interval& x : intervals) {
       for (const interval& y : intervals) {
@@ -524,6 +531,44 @@ namespace
       }
     }
     return right && pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY))).set_eq(interval(1.0));
+  }
+
+  /*
+    div_rel(K, J, [-oo, +oo]) for every K and J with bounds in
+    {-oo, -2, -0, 0, 4, +oo} (GAOL v5, point D.24): with the SSE2 intervals,
+    the branches keeping one half of a division divided both halves, and the
+    half thrown away divided +oo by +oo, which raised the invalid-operation
+    exception (div_rel([4, +oo], [-oo, 4], I)), or a nonzero bound by a zero
+    one, which raised the division-by-zero one (div_rel([-2], [-2, 0], I)).
+    Where J does not contain 0, the bounds are compared with the extrema of
+    the quotients of the bounds, exact on these, the quotient of two infinite
+    bounds left out (any positive number is a limit of such quotients, and
+    the others reach 0 and +oo then), and computed apart from GAOL, without
+    raising anything.
+  */
+  bool quotients_with_zero_and_infinite_bounds_are_right()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    bool right = true;
+    for (const interval& k : intervals) {
+      for (const interval& j : intervals) {
+        const interval z = div_rel(opaque(k), opaque(j), opaque(interval::universe()));
+        if (j.left() > 0.0 || j.right() < 0.0) {
+          double l = GAOL_INFINITY, r = -GAOL_INFINITY;
+          for (double a : { k.left(), k.right() }) {
+            for (double b : { j.left(), j.right() }) {
+              if (!(std::isinf(a) && std::isinf(b))) {
+                const double q = a/b;
+                l = std::min(l, q);
+                r = std::max(r, q);
+              }
+            }
+          }
+          right = right && z.left() == l && z.right() == r;
+        }
+      }
+    }
+    return right;
   }
 
   /*
@@ -1561,6 +1606,14 @@ int main()
     check("the products with a zero and an infinite bound raise no invalid-operation flag", raised == 0);
     check("the products with a zero and an infinite bound are right", right);
   }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = quotients_with_zero_and_infinite_bounds_are_right();
+    const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+    check("div_rel with zero and infinite bounds raises no invalid-operation nor division-by-zero flag", raised == 0,
+          [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
+    check("div_rel with zero and infinite bounds: the quotients", right);
+  }
   for (const EmptyOperand& e : extreme_powers) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -1629,6 +1682,9 @@ int main()
     const Outcome op = run_with_exceptions_enabled(FE_INVALID, products_with_zero_and_infinite_bounds_are_right);
     check("the products with a zero and an infinite bound, FE_INVALID enabled", op == returned_true,
           [&] { return outcome_text(op); });
+    const Outcome oq = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, quotients_with_zero_and_infinite_bounds_are_right);
+    check("div_rel with zero and infinite bounds, FE_INVALID and FE_DIVBYZERO enabled", oq == returned_true,
+          [&] { return outcome_text(oq); });
     for (const EmptyOperand& e : extreme_powers) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
