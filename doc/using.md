@@ -34,6 +34,16 @@ on the x87 unit (see
 command line, and does nothing when it comes before them, where the
 compilation stops.
 
+With `-frounding-math` on x86, GCC 12.1 to 12.3 and 13.1 to 13.2 (Debian 12
+has GCC 12.2) initialize wrongly a double member of a static array of
+structures given `std::numeric_limits<double>::denorm_min()`: they store the
+long double 2^-1074 there, whose first eight bytes read -0 and whose last two
+overwrite the next member (`{ denorm_min(), DBL_MAX }` read `[-0, NaN]`, the
+empty set, on 32-bit x86). A double or an array of doubles initialized so is
+right, and so are GCC 12.4, 13.3 and later. A program built with these
+releases computes such a value at run time, as `tests/rounding_direction.cpp`
+does (GAOL v5).
+
 The link of the program takes one option too, where the compiler accepts it
 (GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
 `-mno-daz-ftz`,
@@ -510,7 +520,10 @@ bounds.
   with the quiet comparisons of `<cmath>` (`std::islessequal()`...), each one
   instruction, as `<=` is, with GCC and Clang on x86-64, and so does the first
   comparison of the constructor `interval(l, r)`, which gives the empty set
-  for NaN bounds. With the invalid-operation exception enabled, `is_empty()`
+  for NaN bounds. With Visual C++, where these are calls to the C library,
+  which made `x * y` and `sqrt()` 34 to 61% slower on x64, GAOL compiles them
+  itself into the same instruction, `ucomisd`, on x64 and on x86 with SSE2;
+  on arm64 they stay calls. With the invalid-operation exception enabled, `is_empty()`
   of an empty interval killed the program, and so did about 50 operations
   with an empty operand, which compared its NaN bounds: `x & y` for an empty
   `y`, `sqrt`, `exp`, `min`, `max`, `floor`, `set_contains()`,
@@ -530,12 +543,13 @@ bounds.
   (`vcmpe`, GCC 12 to 14;
   [GCC bug 52258](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258) is of
   this kind) and on POWER9 (`xscmpgedp`, GCC 13 with `-mcpu=power9`): there
-  `is_empty()` and the intersection tell an empty interval with
-  `std::isunordered()` first, which stays quiet, so that the choice a program
-  makes on `is_empty()` (`x.is_empty() ? a : b` for an empty `x`) and
-  `x &= y` for an empty `y` raise nothing (the armhf jobs of the continuous
-  integration check the first; no job compiles for POWER9, where this is
-  reasoned, not checked). GCC 9.4 at `-O3` computed the comparisons of the
+  `is_empty()`, the intersection and the constructors of the FPU intervals
+  tell NaN bounds with `std::isunordered()` first, which stays quiet, so that
+  the choice a program makes on `is_empty()` (`x.is_empty() ? a : b` for an
+  empty `x`), `x &= y` for an empty `y` and `floor()`, `max()`... of an empty
+  interval raise nothing (the armhf jobs of the continuous integration and a
+  POWER9 job under qemu check them, built for size too, where GCC calls the
+  intersection rather than inlining it). GCC 9.4 at `-O3` computed the comparisons of the
   bounds of `x &= y` before its test of the empty set, in a loop of
   intersections: they are quiet ones. And GCC vectorizes loops of comparisons
   of bounds into vector comparisons that raise the exception for an empty
@@ -562,11 +576,12 @@ bounds.
   `pow([1], [1, +oo])`; `pow` did in every build, through CORE-MATH's `pow`,
   for an exponent of extreme magnitude (`pow([1, 2], [4.9e-324])`,
   `pow([1, 2], [1e-300])`, an exponent interval with a bound near `DBL_MAX`
-  such as `[1e300, 1e308]`), whose power GAOL now computes itself. One case
-  is known to remain: with the SSE2 intervals, `div_rel(K, J, I)` divides an
-  infinite bound of `K` by an infinite bound of `J`, in a half of the
-  register it does not keep, where both have one (`div_rel([2, +oo],
-  [-oo, 2], I)`). This list is not exhaustive.
+  such as `[1e300, 1e308]`), whose power GAOL now computes itself; and with
+  the SSE2 intervals, `div_rel(K, J, I)` did where it divided an infinite
+  bound of `K` by an infinite bound of `J` in a half of the register it did
+  not keep (`div_rel([2, +oo], [-oo, 2], I)`), and raised the
+  division-by-zero exception where it divided a bound by a zero one there
+  (`div_rel([-2], [-2, 0], I)`). This list is not exhaustive.
 
 An empty operand, and the nonempty operands tested, raising no
 invalid-operation exception therefore does not make that exception safe to

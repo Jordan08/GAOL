@@ -122,9 +122,9 @@ mode there.
   three after an intersection whose left operand is empty, one after an
   intersection whose right operand is empty and one on the empty interval
   alone, which GCC for 32-bit ARM and for POWER9 made signaling when
-  `is_empty()` was one quiet comparison; these five are not checked where the
-  compiler optimizes for size, which no job of the continuous integration
-  does) have to give the result of the empty set and raise no
+  `is_empty()` was one quiet comparison, and which jobs of the continuous
+  integration also check built for size, where GCC calls the intersection
+  rather than inlining it: armhf, and POWER9 under qemu) have to give the result of the empty set and raise no
   invalid-operation flag, and, with glibc, not die in a child process that
   enabled the exception (GAOL v5): 45 of the 48 died with the SSE2 intervals,
   and all 48 with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`,
@@ -134,7 +134,12 @@ mode there.
   `x <= NAN`, `pow(x, NAN)`..., which compared it with `<` or `<=`); the
   products of the intervals with bounds in {-oo, -2, -0, 0, 3, +oo}, compared
   with the extrema of the products of their bounds, 0 for a zero by an
-  infinite one (the SSE2 product multiplied 0 by +oo); 13 powers with an
+  infinite one (the SSE2 product multiplied 0 by +oo); `div_rel(K, J, I)` for
+  K and J with bounds in {-oo, -2, -0, 0, 4, +oo}, which has to raise no
+  division-by-zero flag either, nor die with both exceptions enabled, and
+  where J does not contain 0, give the extrema of the quotients of the bounds
+  (the SSE2 intervals divided +oo by +oo, or a bound by a zero one, in the
+  half of a register they did not keep); 13 powers with an
   exponent of extreme magnitude, which have to be the tightest enclosures
   (CORE-MATH's `pow` compares a NaN it makes on purpose there); and 29 loops
   of 64 relations, constructions, intersections or `floor()`, with every

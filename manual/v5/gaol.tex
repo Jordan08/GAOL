@@ -875,6 +875,17 @@ given: there, it only refuses what contradicts them, \option{-ffast-math},
 (\pxref{sec:refused}).
 
 \noindent
+With \option{-frounding-math} on x86, GCC 12.1 to 12.3 and 13.1 to 13.2
+(Debian 12 has GCC 12.2) initialize wrongly a double member of a static array
+of structures given \code{std::numeric\_limits<double>::denorm\_min()}: they
+store the long double $2^{-1074}$ there, whose first eight bytes read $-0$ and
+whose last two overwrite the next member (\code{\{ denorm\_min(), DBL\_MAX \}}
+read $[-0, \mathrm{NaN}]$, the empty set, on 32-bit x86). A double or an array
+of doubles initialized so is right, and so are GCC 12.4, 13.3 and later. A
+program built with these releases computes such a value at run time, as
+\file{tests/rounding\_direction.cpp} does.\newinvfive
+
+\noindent
 The link of the program takes one option too, where the compiler accepts it
 (GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
 \option{-mno-daz-ftz}, which keeps out of the link the file that sets the
@@ -1183,6 +1194,10 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   (\code{std::islessequal()}\dots), each one instruction, as \code{<=} is,
   with GCC and Clang on x86-64, and so does the first comparison of the
   constructor \code{interval(l,~r)}, which gives the empty set for NaN bounds.
+  With Visual C++, where these are calls to the C library, which made
+  \code{x~*~y} and \code{sqrt()} 34 to 61\,\% slower on x64, GAOL compiles
+  them itself into the same instruction, \code{ucomisd}, on x64 and on x86
+  with SSE2; on arm64 they stay calls.
   With the invalid-operation exception enabled, \code{is\_empty()} of an empty
   interval killed the program, and so did about 50 operations with an empty
   operand, which compared its NaN bounds: \code{x~\&~y} for an empty
@@ -1205,12 +1220,14 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   ARM (\code{vcmpe}, GCC 12 to 14; GCC bug 52258,
   \url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258}, is of this kind)
   and on POWER9 (\code{xscmpgedp}, GCC 13 with \code{-mcpu=power9}): there
-  \code{is\_empty()} and the intersection tell an empty interval with
-  \code{std::isunordered()} first, which stays quiet, so that the choice a
-  program makes on \code{is\_empty()} (\code{x.is\_empty() ? a : b} for an
-  empty \code{x}) and \code{x~\&=~y} for an empty \code{y} raise nothing (the
-  armhf jobs of the continuous integration check the first; no job compiles
-  for POWER9, where this is reasoned, not checked). GCC~9.4 at \option{-O3}
+  \code{is\_empty()}, the intersection and the constructors of the FPU
+  intervals tell NaN bounds with \code{std::isunordered()} first, which stays
+  quiet, so that the choice a program makes on \code{is\_empty()}
+  (\code{x.is\_empty() ? a : b} for an empty \code{x}), \code{x~\&=~y} for an
+  empty \code{y} and \code{floor()}, \code{max()}\dots{} of an empty interval
+  raise nothing (the armhf jobs of the continuous integration and a POWER9 job
+  under qemu check them, built for size too, where GCC calls the intersection
+  rather than inlining it). GCC~9.4 at \option{-O3}
   computed the comparisons of the bounds
   of \code{x~\&=~y} before its test of the empty set, in a loop of
   intersections: they are quiet ones. And GCC vectorizes loops of comparisons
@@ -1244,11 +1261,13 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   extreme magnitude (\code{pow(interval(1,~2),~interval(4.9e-324))},
   \code{pow(interval(1,~2),~interval(1e-300))}, an exponent interval with a
   bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}), whose power
-  GAOL now computes itself. One case is known to remain: with the SSE2
-  intervals, \code{div\_rel(K,~J,~I)} divides an infinite bound of \code{K} by
-  an infinite bound of \code{J}, in a half of the register it does not keep,
-  where both have one ($K=\itv{2}{+\infty}$ and $J=\itv{-\infty}{2}$). This
-  list is not exhaustive.\newinvfive
+  GAOL now computes itself; and with the SSE2 intervals,
+  \code{div\_rel(K,~J,~I)} did where it divided an infinite bound of
+  \code{K} by an infinite bound of \code{J} in a half of the register it did
+  not keep ($K=\itv{2}{+\infty}$ and $J=\itv{-\infty}{2}$), and raised the
+  division-by-zero exception where it divided a bound by a zero one there
+  ($K=\itv{-2}{-2}$ and $J=\itv{-2}{0}$). This list is not
+  exhaustive.\newinvfive
 \end{itemize}
 
 \noindent
