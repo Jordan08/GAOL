@@ -180,22 +180,39 @@ namespace gaol_detail {
   GAOL_INLINE bool integer_is_double(T n) { return integer_is_double(n, integer_type_is_double<T>()); }
 
   /*
-    -1, 0 or 1 as d, static_cast<double>(n) in some rounding direction,
-    which is an integer, is below n, n itself or above n: compared as
-    integers, d being converted back to the type of n, where it is a value
-    of that type. d may be 2^digits, rounded up from the largest value of
-    the type, which is not one: 2^(digits - 1), the largest value halved
-    plus one, is a power of two, and a double, as twice it.
+    The doubles around the integer n of a type of more than 53 bits,
+    computed on integers alone, whatever the rounding direction and the
+    precision the conversions are made in: |n|, unsigned, keeps its 53
+    highest bits, t, which is a double, and the double above |n| is
+    t + 2^s, s being the number of bits dropped, which the addition of the
+    two doubles t and 2^s gives exactly, being a double (2^digits for the
+    largest value of the type). Not static_cast<double>(n) converted back to
+    the type of n and compared with n: GCC 12 and 13 for 32-bit x86 converted
+    it on the x87 unit, in extended precision, without rounding it to a
+    double in between, and found n again, taking 2^53 + 1 for a double
+    (Debian 12 i386, GAOL v5).
   */
   template <class T>
-  GAOL_INLINE int integer_order(T n, double d)
+  GAOL_INLINE void integer_neighbours(T n, double& below, double& above)
   {
-    const double above_type = static_cast<double>((std::numeric_limits<T>::max)() / 2 + 1) * 2.0;
-    if (d >= above_type) {
-      return 1;
+    typedef typename std::make_unsigned<T>::type U;
+    const bool negative = integer_is_negative(n);
+    const U u = negative ? static_cast<U>(U(0) - static_cast<U>(n)) : static_cast<U>(n);
+    double low, high;
+    if (u <= static_cast<U>(9007199254740992ULL)) {
+      low = high = static_cast<double>(u);
+    } else {
+      int length = 0;
+      for (U v = u; v != 0; v = static_cast<U>(v >> 1)) {
+        ++length;
+      }
+      const int s = length - std::numeric_limits<double>::digits;
+      const U t = static_cast<U>(static_cast<U>(u >> s) << s);
+      low = static_cast<double>(t);
+      high = t == u ? low : low + static_cast<double>(static_cast<U>(U(1) << s));
     }
-    const T m = static_cast<T>(d);
-    return m < n ? -1 : (m == n ? 0 : 1);
+    below = negative ? -high : low;
+    above = negative ? -low : high;
   }
 
   /*
@@ -208,8 +225,9 @@ namespace gaol_detail {
   template <class T>
   GAOL_INLINE double double_below(T n, std::false_type)
   {
-    const double d = static_cast<double>(n);
-    return integer_order(n, d) <= 0 ? d : std::nextafter(d, -GAOL_INFINITY);
+    double below, above;
+    integer_neighbours(n, below, above);
+    return below;
   }
   template <class T, if_integer<T> = 0>
   GAOL_INLINE double double_below(T n) { return double_below(n, integer_type_is_double<T>()); }
@@ -219,8 +237,9 @@ namespace gaol_detail {
   template <class T>
   GAOL_INLINE double double_above(T n, std::false_type)
   {
-    const double d = static_cast<double>(n);
-    return integer_order(n, d) >= 0 ? d : std::nextafter(d, GAOL_INFINITY);
+    double below, above;
+    integer_neighbours(n, below, above);
+    return above;
   }
   template <class T, if_integer<T> = 0>
   GAOL_INLINE double double_above(T n) { return double_above(n, integer_type_is_double<T>()); }
