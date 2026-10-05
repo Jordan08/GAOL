@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `566e02a` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `257a588` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -78,8 +78,11 @@ travail, et fait par #86 : la formule de Dekker de TwoProd à quatre termes
 (celle à trois est fausse même au plus proche pour des opérandes de
 magnitudes très différentes) ; TwoProd mesuré sur des paires de [1, 2), celles
 d'exposants très différents n'y perdant pas leur exactitude ; le nom
-`gaol_core::rounding_guard`. Restent du point H : le 27 (l'étude d'un arrondi
-porté par chaque instruction) et la partie manuel du 36, reportée au point I ;
+`gaol_core::rounding_guard`. Fait le 5 octobre : le point H (ancien 27),
+par #88. Décidé en fin de travail : le chemin AVX-512 des opérations de base
+(+, -, *, /, sqrt) ne touche plus au sens d'arrondi, pris à l'exécution par
+`GAOL_PREFER_AVX512` ; sqr et pown passent par uipow et gardent le
+comportement actuel ; la partie manuel du 36 est reportée au point I ;
 le « about 7 ns » d'`examples/examples.md` (l. 509) pour un bloc au plus proche
 était contredit par la mesure : corrigé en « about 13 ns » (2d80cc4). Les
 textes pour `ChangeLog` et `doc/differences.md` sont dans la description
@@ -443,19 +446,6 @@ textes qui décrivent le refus.
   quand GAOL est un sous-projet (ils prennent `CMAKE_BINARY_DIR` et
   `CMAKE_SOURCE_DIR`).
 
-### H. Le sens d'arrondi (27)
-
-Les anciens 23, 36 et 48 sont faits par #86, sauf la partie manuel du 36,
-reportée au point I ; reste l'étude du 27, qui rendrait les précautions du 23
-inutiles.
-
-- **27.** **Un sens d'arrondi qui ne fuit pas** : l'arrondi porté par chaque
-  instruction (AVX-512, le FPCR d'AArch64 en assembleur), comme le fait inari,
-  trois fois plus rapide sur les additions ; dans la direction de P2746.
-  Aujourd'hui GAOL laisse l'arrondi vers le haut au programme (`doc/using.md`,
-  par #86) ou, avec `GAOL_PRESERVE_ROUNDING`, le change et le rend à chaque
-  opération, plusieurs fois plus lentement.
-
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
 
 `README.md`, `doc/using.md` et « Common errors » du manuel : les écrire
@@ -785,10 +775,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Ménage
 
-- **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
+- **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86 et #87 après leur fusion).
+  #83, #84, #85, #86, #87 et #88 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -805,7 +795,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 27 : H ; 28 : X ;
+12 : E ; 14 : S ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ; 50 : R ;
 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ;
