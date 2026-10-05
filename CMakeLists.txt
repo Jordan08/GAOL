@@ -605,8 +605,7 @@ message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_US
 # and the processor has the instructions. Nothing of the rest is compiled
 # otherwise (GAOL v5).
 set(GAOL_HAVE_AVX512_TARGET OFF)
-if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8
-    AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   # The source in a bracket argument: verbatim, no quote to escape
   check_cxx_source_compiles([=[
     #include <immintrin.h>

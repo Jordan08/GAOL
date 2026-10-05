@@ -303,7 +303,7 @@ endif
 # the library runs on any processor of the architecture. gaol::init()
 # takes the path when the processor has the instructions.
 have_avx512_target = false
-if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64' and cpp_comp.get_id() in ['gcc', 'clang']
+if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
   avx512_target_source = '''
     #include <immintrin.h>
     __attribute__((target("avx512f"))) double er_add(double a, double b)
