@@ -55,13 +55,15 @@ et la vectorisation des comparaisons silencieuses par GCC commentés dans #65 et
 #80. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #83.
 Fait le 5 octobre aussi : l'ancien 21 du point D, les entiers au-delà de 2^53,
-par #84, sauf les fonctions à exposant entier autres que `pow` (voir le point
-D) ; avec lui, les fonctions internes de GAOL passent de `gaol_core::detail`
-(#77) à `gaol_detail`, qu'un `using namespace gaol` n'amène pas : un `namespace
-detail` du programme était ambigu. Décidé en fin de travail : une borne `long
-double` à côté d'un entier reste arrondie, ce que la documentation dit, et `x +
-n` pour un n au-delà de 2^53 reste un encadrement, sans être le plus étroit. Les
-textes pour `ChangeLog` et `doc/differences.md` sont dans la description de #84.
+par #84, et les fonctions à exposant entier autres que `pow` (`nth_root`,
+`rootn`, `pownRev` et les puissances d'expressions pour tout entier, les racines
+d'ordre au-delà des `unsigned` encadrées par `pow`) par #85 ; avec #84, les
+fonctions internes de GAOL passent de `gaol_core::detail` (#77) à `gaol_detail`,
+qu'un `using namespace gaol` n'amène pas : un `namespace detail` du programme
+était ambigu. Décidé en fin de travail : une borne `long double` à côté d'un
+entier reste arrondie, ce que la documentation dit, et `x + n` pour un n au-delà
+de 2^53 reste un encadrement, sans être le plus étroit. Les textes pour
+`ChangeLog` et `doc/differences.md` sont dans les descriptions de #84 et de #85.
 Fait le 5 octobre aussi : les anciens 23, 36 et 48 du point H, par #86 :
 `cancel_minus` et `cancel_plus` exacts à `-O3` (les termes de leur TwoSum
 passés par `rnd_keep()`, avec un test qui lève `FE_INVALID` sans la
@@ -269,22 +271,13 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
   type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
   qui dit [−∞, +∞] pour `gaol::pow`.
 
-### D. Les entiers, suite, et les en-têtes (21)
+### D. Le nettoyage des en-têtes
 
-Les anciens 24 et 62 sont faits par #83, et l'essentiel du 21 par #84 ; le
-signalement à GCC de la comparaison rendue signalante reste dans #80. Restent,
-dans cet ordre, deux pull requests. La comparaison par les bits sous DAZ (point
-Q), si #68 la décide, touchera le constructeur que le 21 a changé.
+Les anciens 24 et 62 sont faits par #83, et le 21 par #84 et #85 ; le
+signalement à GCC de la comparaison rendue signalante reste dans #80. Reste une
+pull request, le nettoyage des en-têtes. La comparaison par les bits sous DAZ
+(point Q), si #68 la décide, touchera le constructeur que le 21 a changé.
 
-- **21 (suite).** **Les fonctions à exposant entier autres que `pow`** :
-  `nth_root(x, q)`, `rootn(x, q)`, `pownRev(c, x, p)` et le `pow(e, n)`,
-  `pown(e, n)` et `nth_root(e, n)` des expressions ne prennent qu'un `int` ou un
-  `unsigned` : `nth_root(x, 3L)` est ambigu, `pownRev(c, 3000000000u)` lève une
-  exception, et `nth_root(e, -2)` prend l'ordre 4294967294. Décidé le 5
-  octobre : les traiter comme `pow`, dans une pull request à part (au-delà des
-  `unsigned`, les racines encadrées par `pow` avec l'exposant 1/q, en
-  intervalle) ; `nth_root_rel(J, n, I)` n'est pas concerné. Fait et vérifié en
-  local, à pousser.
 - **Le nettoyage des en-têtes.** Décidé le 5 octobre : `__GAOL_PUBLIC__` devient
   `GAOL_PUBLIC`, vide par défaut sous Visual C++, où GAOL est toujours une
   bibliothèque statique : plus de `__GAOL_PUBLIC__=` à passer (CMake, meson,
@@ -801,7 +794,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84 et #86 après leur fusion).
+  #83, #84, #85 et #86 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -818,12 +811,12 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 18 : F ; 21 : D ; 22 : V ; 25 : P ; 26 : W ;
-27 : H ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ;
-46 : F ; 47 : A ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ;
-56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ;
-66 : T ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
+12 : E ; 14 : S ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 27 : H ; 28 : X ;
+30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
+40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ; 50 : R ;
+51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ;
+60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y ; 72 : B ;
+73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
