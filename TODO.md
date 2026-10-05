@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `4b5b1ad` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `374d18c` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -14,7 +14,8 @@ Les anciens points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 45 à 49, des corrections et des relectures ; 50, d'une décision du 3 octobre ;
 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
-`TODO_mistral.md`. Les décisions du 3 octobre sont écrites dans chaque point
+`TODO_mistral.md` ; 72 à 74, d'une comparaison de `pown` avec le `pow` de
+CORE-MATH (5 octobre). Les décisions du 3 octobre sont écrites dans chaque point
 (« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
 depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
 47, hors Cygwin, resté au point A), par #72 et #73 ; le point L (anciens 29, 43
@@ -53,6 +54,14 @@ structures) dit dans `doc/using.md` et le manuel ; le `<` de `cr_pow` sur un NaN
 et la vectorisation des comparaisons silencieuses par GCC commentés dans #65 et
 #80. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #83.
+Fait le 5 octobre aussi : l'ancien 21 du point D, les entiers au-delà de 2^53,
+par #84, sauf les fonctions à exposant entier autres que `pow` (voir le point
+D) ; avec lui, les fonctions internes de GAOL passent de `gaol_core::detail`
+(#77) à `gaol_detail`, qu'un `using namespace gaol` n'amène pas : un `namespace
+detail` du programme était ambigu. Décidé en fin de travail : une borne `long
+double` à côté d'un entier reste arrondie, ce que la documentation dit, et `x +
+n` pour un n au-delà de 2^53 reste un encadrement, sans être le plus étroit. Les
+textes pour `ChangeLog` et `doc/differences.md` sont dans la description de #84.
 
 ## En cours
 
@@ -124,10 +133,11 @@ dans les mêmes fichiers, `cbrt.c`, `rsqrt.c` et `asinpi.c`, et les commentaires
   `_WIN32`) : décidé le 3 octobre, prendre le correctif 6 de `3rd/README.md` en
   entier plutôt que refuser Cygwin.
 
-### B. pow (1, 2, 8, 51)
+### B. pow (1, 2, 8, 51, 72, 73, 74)
 
-Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
-(`gaol/gaol_interval.cpp`), avec leurs commentaires et les tests de
+Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
+`ipow_exact_dn()` (`gaol/gaol_interval.cpp`), et `integer_power()`
+(`gaol/gaol_interval.h`) pour le 74, avec leurs commentaires et les tests de
 `tests/ieee1788.cpp` et `tests/arithmetic.cpp`.
 
 - **1.** **Suites du pow de la norme écrit une fois** (#37). `pow_standard()`
@@ -191,36 +201,89 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   alors que `==` ne distingue pas −0 de +0, et racontent l'histoire : dire
   plutôt que les littéraux ont été relevés sur l'ancien code et vérifiés avec
   mpmath à 500 bits, ce que `tests/gaol_tests.h` doit citer aussi.
+- **72.** **`pown(x, n)` pour n < 0 au plus serré, avec le `pow` de
+  CORE-MATH** : `gaol_pown()` calcule x^-m comme 1/x^m (ou (1/x)^m où x^m
+  déborde), soit deux arrondis. Sur 200 000 tirages par plage (x dans
+  [0.5, 2] pour n de −3 à −100, x près de 1 pour n de −10^3 à −10^6), environ
+  la moitié de chaque borne a 1 ou 2 doubles de trop (« within 2 doubles » de
+  `doc/accuracy.md`, l. 93). CORE-MATH n'a ni pown ni rootn en binary64 au
+  commit `6b84457`, mais `cr_pow(x, (double)n)` est un pown pour tout `int` :
+  n est exact en double, et `cr_pow` donne à une base négative le signe de la
+  parité de n (vérifié pour n impair : `cr_pow(-x, n)` vers le haut est
+  l'opposé de `cr_pow(x, n)` vers le bas). Correction : les bornes de
+  `pow_lo()` et `pow_hi()`, comme `pow_standard()` : la valeur de `cr_pow`
+  arrondie vers le haut, et le double au-dessous, sauf où la puissance est un
+  double, ce que `pow_is_double()` prouve déjà pour un exposant entier
+  (k = 0). Le découpage de x selon le signe et le 0 intérieur reste celui de
+  `gaol_pown()`, et une borne 0 est prise à part : `cr_pow(0, n)` vaut +oo
+  pour n < 0 et lève la division par zéro. Coût pour un intervalle (x86-64,
+  GCC, Release, deux appels de `cr_pow` sans `pow_is_double()`) : 55 ns au
+  lieu de 24 pour n = −3, 54 au lieu de 40 pour n = −30, 58 au lieu de 81
+  pour n = −1000. À décider : `cr_pow` pour tout n < 0 (les bornes les plus
+  serrées, deux fois plus lent aux petits |n|), ou seulement au-dessus du
+  seuil du point 73.
+- **73.** **`pown(x, n)` pour n grand avec le `pow` de CORE-MATH** : pour
+  n ≥ 3, les produits exacts de `ipow_exact_up()` et `ipow_exact_dn()`
+  donnent déjà les bornes les plus serrées (aucun écart sur 200 000 tirages
+  par plage pour n de 3 à 10^6 ; un double de trop à 0,003 % des bornes
+  inférieures pour n de 2^28 à 2^31 − 1, x près de 1), mais leur coût croît
+  avec log2(n) : pour un intervalle, 17 ns à n = 3, 54 ns à n = 100, 77 ns à
+  n = 1000, 118 ns à n = 10^5 et 262 ns à n = 2·10^9, contre 51 à 90 ns pour
+  deux appels de `cr_pow`, quel que soit n. Correction : au-dessus d'un seuil
+  à mesurer (vers 100 à 200, sur plusieurs machines), les bornes de `cr_pow`
+  comme au point 72 : plus rapides, toujours les plus serrées, les mêmes sur
+  toutes les machines, sans la garantie 5 n log2(n) 2^-104 ni le repli sur
+  les produits arrondis d'une borne nulle ou hors de la plage ; sous le seuil,
+  les produits exacts. À faire avant la fin du point 8, dont le repli ne
+  resterait que sous le seuil. Réécrire avec les points 72 et 73 la ligne de
+  `pown` de `doc/accuracy.md` (l. 93) et le manuel.
+- **74.** **`pow(x, n)` pour un entier au-delà des 32 bits** : `gaol::pow(x,
+  n)` et `gaol_ieee1788::pown(x, n)` pour un entier hors des `int` et des
+  `unsigned int` (`integer_power()`, `gaol/gaol_interval.h`, l. 1309), et
+  `gaol::pow(x, y)` pour un `[n]` dégénéré entier hors des `int`
+  (`gaol_pow_hybrid()`), donnent [−oo, +oo] ; seul `gaol_ieee1788::pow` les
+  calcule, sur x ≥ 0 (le bloc au-delà des int de `pow_standard()`). x^n y est
+  pourtant fini et non trivial pour x près de 1 : `pow(interval(1 + 2^-30),
+  1LL << 33)`, environ e^8, vaut [−oo, +oo], alors que `cr_pow` donne
+  [2980.9579759367944, 2980.9579759367948]. Correction : pour |n| ≤ 2^53, où
+  n est un double, les bornes de `cr_pow` comme aux points 72 et 73, base
+  négative comprise ; au-delà, où n n'est pas toujours un double, encadrer
+  |x|^n, par exemple par x^h · x^l avec n = h + l, h et l des doubles (à
+  vérifier aux bords de la plage), le signe venant de la parité de n lue sur
+  l'entier. Prolonge le 21, fait par #84, qui a donné `pow(x, n)` pour tout
+  type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
+  qui dit [−∞, +∞] pour `gaol::pow`.
 
-### D. Le constructeur pour les entiers et les en-têtes (21)
+### D. Les entiers, suite, et les en-têtes (21)
 
-Les anciens 24 et 62 sont faits par #83 ; le signalement à GCC de la comparaison
-rendue signalante reste dans #80. Restent, dans cet ordre (décidé le 4 octobre),
-deux pull requests : les constructeurs pour les entiers (21), puis le nettoyage
-des en-têtes. Le 21 et, si #68 la décide, la comparaison par les bits sous DAZ
-(point Q) touchent le même constructeur (`gaol_interval_sse.h`,
-`gaol_interval_fpu.h`, `gaol_interval.h`). Le nettoyage des en-têtes :
-`gaol_interval.h` contient `using namespace gaol_core;` à corriger. Plusieurs
-headers utilisent des macros avec noms réservés comme `__GAOL_PUBLIC__` (à
-renommer en `GAOL_PUBLIC`) et des casts C-style à remplacer par `static_cast<>`.
-`gaol_allocator.h` utilise `= 0` au lieu de `= nullptr` ; son
-`aligned_allocator<T>` ne garantit que 16 octets d'alignement, donc ne convient
-pas aux types suralignés (`alignof(T) > 16`). Aligner selon `alignof(T)` ou
-refuser ces types explicitement. Son `construct(pointer, const T&)` bloque aussi
-la construction avec d'autres arguments via `allocator_traits`, notamment pour
-les types déplaçables mais non copiables : fournir un `construct` variadique ou
-laisser `allocator_traits` utiliser son placement-new par défaut.
+Les anciens 24 et 62 sont faits par #83, et l'essentiel du 21 par #84 ; le
+signalement à GCC de la comparaison rendue signalante reste dans #80. Restent,
+dans cet ordre, deux pull requests. La comparaison par les bits sous DAZ (point
+Q), si #68 la décide, touchera le constructeur que le 21 a changé.
 
-- **21.** **Les entiers au-delà de 2^53** : `interval(0)`, `interval(0, 0)`,
-  `x = 0` et `x < 0` compilent : l'entier devient un double, et un entier
-  au-delà de 2^53 un double qui ne le contient pas. `interval(double)` est
-  `explicit` depuis le 4 octobre (ainsi que `expression(double)` et
-  `expression(const interval&)`), `x = d`, `x &= d`, `x |= d` et les relations
-  avec un double ayant leurs propres surcharges ; `interval(double, double)`
-  ne l'est pas. Correction : des constructeurs templates sur les types
-  entiers, contraints, dans les en-têtes, sans changement d'ABI ; pas un
-  simple `interval(int)`, qui rend `interval(5L)` ambigu, et des surcharges
-  entières pour `=` et les relations.
+- **21 (suite).** **Les fonctions à exposant entier autres que `pow`** :
+  `nth_root(x, q)`, `rootn(x, q)`, `pownRev(c, x, p)` et le `pow(e, n)`,
+  `pown(e, n)` et `nth_root(e, n)` des expressions ne prennent qu'un `int` ou un
+  `unsigned` : `nth_root(x, 3L)` est ambigu, `pownRev(c, 3000000000u)` lève une
+  exception, et `nth_root(e, -2)` prend l'ordre 4294967294. Décidé le 5
+  octobre : les traiter comme `pow`, dans une pull request à part (au-delà des
+  `unsigned`, les racines encadrées par `pow` avec l'exposant 1/q, en
+  intervalle) ; `nth_root_rel(J, n, I)` n'est pas concerné. Fait et vérifié en
+  local, à pousser.
+- **Le nettoyage des en-têtes.** Décidé le 5 octobre : `__GAOL_PUBLIC__` devient
+  `GAOL_PUBLIC`, vide par défaut sous Visual C++, où GAOL est toujours une
+  bibliothèque statique : plus de `__GAOL_PUBLIC__=` à passer (CMake, meson,
+  `gaol.pc`, la CI, la documentation), et la branche
+  `_COMPILING__GAOL_PUBLIC__`, définie nulle part, retirée ; `using namespace
+  gaol_core;` (`gaol_interval.h`, `gaol_expression.h`) devient des
+  using-declarations, nom par nom : les noms de GAOL 4 et les nouvelles
+  fonctions sur les intervalles de GAOL v5 (`exp2`, `log2`, `hypot`, `trunc`,
+  `sinpi`...), pas les internes, `gaol` restant compatible avec GAOL 4 et
+  `gaol_ieee1788` avec IEEE 1788-2015 (restent à trancher : `exact_string`,
+  `version()`, les nœuds d'expression des nouvelles fonctions et les noms de
+  GAOL 4.3.2 seulement) ; `gaol_allocator.h` est supprimé, ni GAOL v5, ni Codac,
+  ni IBEX ne s'en servant ; les casts à la C des en-têtes deviennent des
+  `static_cast<>`.
 
 ### E. Le parser et les longues sommes (12, 40)
 
@@ -756,8 +819,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
-  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81
-  et #83 après leur fusion).
+  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
+  #83 et #84 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -779,7 +842,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ;
 46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ;
 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ;
-66 : T ; 70 : I ; 71 : Y.
+66 : T ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 

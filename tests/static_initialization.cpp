@@ -125,7 +125,7 @@ int main()
 
   // The bounds of pi and pi/2 of gaol/gaol_port.h, written in decimal, are
   // the doubles next to pi and pi/2, which the unions of GAOL 4 wrote in bits
-  using namespace gaol_core::detail;
+  using namespace gaol_detail;
   check("pi_dn and pi_up", pi_dn == 0x1.921fb54442d18p+1 && pi_up == 0x1.921fb54442d19p+1);
   check("half_pi_dn and half_pi_up", half_pi_dn == 0x1.921fb54442d18p+0 && half_pi_up == 0x1.921fb54442d19p+0);
 

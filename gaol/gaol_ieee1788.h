@@ -90,6 +90,9 @@ namespace gaol_ieee1788 {
 
   //! numsToInterval(l, u): interval(l, u), the empty set for l > u, l = +oo, u = -oo or a NaN
   GAOL_NODISCARD inline interval numsToInterval(double l, double u) { return interval(l, u); }
+  //! numsToInterval(l, u) with an integer bound: interval(l, u), which contains the integers given (GAOL v5)
+  template <class A, class B, ::gaol_detail::if_integer_bounds<A, B> = 0>
+  GAOL_NODISCARD inline interval numsToInterval(A l, B u) { return interval(l, u); }
 
   /*!
     textToInterval(s): the interval s writes, read with the names of the
@@ -134,6 +137,13 @@ namespace gaol_ieee1788 {
     interval (Table 9.1, footnote b), and pow has no such exponent.
   */
   GAOL_NODISCARD inline interval pown(const interval& x, int p) { return ::gaol_core::gaol_pown(x, p); }
+  /*!
+    pown(x, p) for an integer p of another type (GAOL v5), as gaol::pow(x, p):
+    an unsigned p beyond the ints was converted to a negative int, a long one
+    cut to an int; [-oo, +oo] beyond the unsigned ints for a nonempty x
+  */
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval pown(const interval& x, T p) { return ::gaol_detail::integer_power(x, p); }
 
   /*!
     pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
@@ -151,11 +161,14 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD extern __GAOL_PUBLIC__ interval pow(const interval& x, const interval& y);
   /*!
     pow(x, p): pow(x, [p]), the pow of the standard for a double as
-    exponent. An int exponent comes here too, pow(x, 2) being pow(x, [2]),
-    not the integer power pown(x, 2): pow([-4, -1], 2) is the empty set here,
-    and [1, 16] in gaol.
+    exponent. An integer exponent has its own, pow(x, interval(p)), interval(p)
+    containing an integer that is no double (GAOL v5); pow(x, 2) is pow(x,
+    [2]), not the integer power pown(x, 2): pow([-4, -1], 2) is the empty set
+    here, and [1, 16] in gaol.
   */
   GAOL_NODISCARD inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval pow(const interval& x, T p) { return pow(x, interval(p)); }
 
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
   using ::gaol_core::exp;
@@ -346,6 +359,12 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline bool isMember(double m, const interval& x)
   {
     return std::isfinite(m) && x.set_contains(m);
+  }
+  //! isMember(n, x) for an integer n: set_contains(n), n compared as the integer it is (GAOL v5)
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline bool isMember(T n, const interval& x)
+  {
+    return x.set_contains(n);
   }
 
   // ----------------------------------------------------------------------

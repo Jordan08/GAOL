@@ -83,7 +83,7 @@ namespace gaol_core {
   // The bounds of pi and pi/2 (gaol/gaol_port.h), and 2^52, from which on the
   // doubles are integers, which gaol_port.h declared for the code using GAOL
   // too (GAOL v5)
-  using namespace detail;
+  using namespace gaol_detail;
   const double two_power_52 = 4503599627370496.0;
 
   // I^e for a non-empty I and e > 0, defined below: gaol_uipow(), in the
@@ -669,7 +669,7 @@ namespace gaol_core {
 #else
     // emptyset handled thanks to unorderedness of NaNs, with a quiet
     // comparison, which raises no invalid-operation exception on them (GAOL v5)
-    return detail::quiet_greater_equal(next_float(left()),right());
+    return gaol_detail::quiet_greater_equal(next_float(left()),right());
 #endif
   }
 
@@ -1118,7 +1118,7 @@ namespace gaol_core {
   {
     // A quiet comparison, which raises no invalid-operation exception on the
     // NaN bounds of the empty set (GAOL v5)
-    if (!detail::quiet_less_equal(l, r)) {
+    if (!gaol_detail::quiet_less_equal(l, r)) {
       out += "[empty]";
     } else {
       std::uint64_t lbits, rbits;
@@ -1647,7 +1647,7 @@ namespace gaol_core {
   {
     // Infinite or NaN, told by a quiet comparison: <= raised the
     // invalid-operation exception for a NaN p (GAOL v5)
-    if (!detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
+    if (!gaol_detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
     // p compared after the check: with denormals-are-zero, the floor of a
@@ -3663,7 +3663,7 @@ interval nth_root(const interval& I, int q)
 	round_nearest();
 	// A quiet comparison: the empty set, whose bounds are NaN, gives NaN
 	// without the invalid-operation exception (GAOL v5)
-	if (detail::quiet_less_equal(std::fabs(I.left()), std::fabs(I.right()))) {
+	if (gaol_detail::quiet_less_equal(std::fabs(I.left()), std::fabs(I.right()))) {
 	  res = I.left() / I.right();
 	} else {
 	  res = I.right() / I.left();

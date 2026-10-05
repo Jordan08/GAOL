@@ -194,7 +194,7 @@
   // invalid-operation exception (GAOL v5)
   interval& interval::operator+=(double d)
   {
-    if (is_empty() || !(detail::quiet_less(-GAOL_INFINITY, d) && detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -208,7 +208,7 @@
 
   interval& interval::operator-=(double d)
   {
-    if (is_empty() || !(detail::quiet_less(-GAOL_INFINITY, d) && detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -222,7 +222,7 @@
 
   interval& interval::operator*=(double d)
   {
-    if (is_empty() || !(detail::quiet_less(-GAOL_INFINITY, d) && detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -252,7 +252,7 @@
 
   interval& interval::operator/=(double d)
   {
-    if (is_empty() || !(detail::quiet_less(-GAOL_INFINITY, d) && detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -280,7 +280,7 @@
 
   interval& interval::operator%=(double d)
   {
-    if (is_empty() || !(detail::quiet_less(-GAOL_INFINITY, d) && detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }

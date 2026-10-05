@@ -276,6 +276,54 @@ public:
     TEST_SEQ(inverse(interval(2,4)),interval(0.25,0.5));
  }
 
+  /* An interval and an integer, in either order (GAOL v5, point D.21): the
+     double n where n is one, interval(n), the two doubles around it,
+     otherwise. With n = 2^53 + 1 converted to the double 2^53, [1, 2] + n was
+     [2^53, 2^53 + 2], and n + 2 = 2^53 + 3 was not in it. Each result has to
+     contain the exact one, whose bounds are given as the doubles around them
+     where they are no doubles. */
+  void test_integer_operands() {
+    const double two53 = std::ldexp(1.0, 53), two54 = std::ldexp(1.0, 54);
+    const volatile long long n = 9007199254740993LL; // 2^53 + 1
+    const interval x(1.0, 2.0);
+    const auto encloses = [](const interval& z, double l, double r) { return z.left() <= l && z.right() >= r; };
+
+    TEST_TRUE(encloses(x + n, two53 + 2, two53 + 4));      // [n + 1, n + 2]
+    TEST_TRUE(encloses(n + x, two53 + 2, two53 + 4));
+    TEST_TRUE(encloses(x - n, -two53, -(two53 - 1)));      // [1 - n, 2 - n]
+    TEST_TRUE(encloses(n - x, two53 - 1, two53));          // [n - 2, n - 1]
+    TEST_TRUE(encloses(x * n, two53, two54 + 4));          // [n, 2n]
+    TEST_TRUE(encloses(n * x, two53, two54 + 4));
+    TEST_TRUE((x / n).left() < std::ldexp(1.0, -53));      // 1/n < 2^-53
+    TEST_TRUE(encloses(n / x, std::ldexp(1.0, 52), two53 + 2)); // [n/2, n]
+    interval y(x);
+    y += n;
+    TEST_SEQ(y, x + n);
+    y = x;
+    y -= n;
+    TEST_SEQ(y, x - n);
+    y = x;
+    y *= n;
+    TEST_SEQ(y, x * n);
+    y = x;
+    y /= n;
+    TEST_SEQ(y, x / n);
+    y = x;
+    y %= n;
+    TEST_SEQ(y, x % n);
+    TEST_SEQ(x % n, x % interval(n));
+    TEST_SEQ(n % x, interval(n) % x);
+
+    // An integer that is a double: the operation with that double
+    const interval z(-3.5, 7.25);
+    TEST_SEQ(z + 3, z + 3.0);
+    TEST_SEQ(3u - z, 3.0 - z);
+    TEST_SEQ(z * 3L, z * 3.0);
+    TEST_SEQ(-3LL / z, -3.0 / z);
+    TEST_SEQ(z / static_cast<short>(4), z / 4.0);
+    TEST_SEQ(z + 9007199254740992LL, z + two53);
+  }
+
   // <-- End of tests
 };
 
@@ -285,4 +333,5 @@ GAOL_UNIT_MAIN(arithmetic_test, "arithmetic_operators",
                GAOL_UNIT_TEST(test_multiplication),
                GAOL_UNIT_TEST(test_division),
                GAOL_UNIT_TEST(test_reldivision),
-               GAOL_UNIT_TEST(test_inverse))
+               GAOL_UNIT_TEST(test_inverse),
+               GAOL_UNIT_TEST(test_integer_operands))
