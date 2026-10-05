@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `257a588` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `13f4713` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -102,6 +102,7 @@ les `round_*_sse()`...), qui restent dans `gaol_core`. `gaol_allocator.h` est
 supprimé, et les en-têtes installés n'ont plus de cast à la C, ce que
 `headers.sh` vérifie avec `-Wold-style-cast`. Les textes pour `ChangeLog` et
 `doc/differences.md` sont dans la description de #87.
+Fait le 5 octobre aussi : le point M (anciens 9, 57), par #89.
 
 ## En cours
 
@@ -491,23 +492,6 @@ ne régénérer le PDF qu'une fois (point Y) ; le site (70) vient après.
 
 ## Autres points
 
-### M. `tan` (9, 57)
-
-- **9.** **Suites de `tan([-M_PI_2, M_PI_2])`** (#36). `tan()` donne maintenant
-  ±1,63·10^16. Un intervalle sans pôle dont la largeur exacte est entre `pi_dn`
-  et π donne encore [-oo, +oo] ; on n'en connaît aucun, et le rendre serré
-  demanderait de comparer `r - l` à π en double-double. Décidé le 3 octobre :
-  `doc/accuracy.md` dit le cas théorique, et `tan()` garde `!(w <= pi_dn)` sans
-  le drapeau `narrower_than_pi`. Que les tests `w < pi_dn` de `cos_or_sin()`
-  donnent le plus serré est mesuré, pas démontré : décidé, le dire mesuré (29
-  400 intervalles) dans le commentaire et dans `doc/accuracy.md`.
-- **57.** **Le commentaire de `tan()`** (suite du point 9, #36) : au-dessus de
-  `const double w` (`gaol/gaol_interval.cpp`), « the test was w < pi_dn » est
-  inexact (l'ancien code testait `!(w < pi_up)`, puis `w < pi_dn` pour le
-  drapeau), et « though none holds a pole » se lit comme si aucun intervalle de
-  cette largeur n'avait de pôle, alors que `[0, pi_dn]` contient π/2. L'entrée
-  `tan` du manuel ne parle pas des largeurs entre `pi_dn` et π : une phrase.
-
 ### N. `cpack_stale_configure` (44, 63)
 
 - **44.** **Les suites du test `cpack_stale_configure`** (#33), qui vérifie que
@@ -794,11 +778,11 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
+1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 11 : F ;
 12 : E ; 14 : S ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ; 50 : R ;
-51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ;
+51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 58 : F ; 59 : F ;
 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y ; 72 : B ;
 73 : B ; 74 : B.
 
