@@ -378,38 +378,53 @@ namespace
      libc++ whatever went wrong: the text that a handler of std::exception
      printed, and the one that a program ends with when nothing catches the
      exception ("what():  std::exception"), where explanation() had the
-     explanation. what() is now the explanation, or "gaol_exception" where
-     there is none, and operator<< writes the explanation once, where it
-     wrote what() and the explanation. The exceptions are built here with a
-     known explanation, so that what they say does not depend on the text of
-     the reader. */
+     explanation. what() is now the explanation, or the name of the class
+     where there is none, and operator<< writes the explanation once, where
+     it wrote what() and the explanation. A null pointer is no explanation,
+     where GAOL 4 built a std::string from it (undefined behavior), and an
+     explanation whose C string is empty (a NUL first) gives the name of the
+     class too, so that what() is never an empty text. The exceptions are
+     built here with a known explanation, so that what they say does not
+     depend on the text of the reader. */
   template<class Exception>
   void says(const char* name)
   {
     const unsigned line = __LINE__;
+    const char* const no_text = nullptr;
     const Exception with_text(__FILE__, line, "boom");
     const Exception with_string(__FILE__, line, std::string("boom"));
     const Exception without(__FILE__, line);
+    const Exception with_null(__FILE__, line, no_text);
+    const Exception with_nul_first(__FILE__, line, std::string("\0boom", 5));
 
     // Through the base class, as a handler of std::exception reads them
     const std::exception& a = with_text;
     const std::exception& b = with_string;
     const std::exception& c = without;
+    const std::exception& d = with_null;
+    const std::exception& z = with_nul_first;
     check("exception: what() is the explanation, given as a text",
           std::string(a.what()) == "boom", [&] { return std::string(name) + ": \"" + a.what() + "\""; });
     check("exception: what() is the explanation, given as a string",
           std::string(b.what()) == "boom", [&] { return std::string(name) + ": \"" + b.what() + "\""; });
-    check("exception: what() says gaol_exception where there is no explanation",
-          std::string(c.what()) == "gaol_exception", [&] { return std::string(name) + ": \"" + c.what() + "\""; });
+    check("exception: what() is the name of the class where there is no explanation",
+          std::string(c.what()) == name, [&] { return std::string(name) + ": \"" + c.what() + "\""; });
+    check("exception: a null pointer is no explanation",
+          with_null.explanation().empty() && std::string(d.what()) == name,
+          [&] { return std::string(name) + ": \"" + with_null.explanation() + "\", what() \"" + d.what() + "\""; });
+    check("exception: what() is the name of the class where the explanation starts with a NUL",
+          std::string(z.what()) == name, [&] { return std::string(name) + ": \"" + z.what() + "\""; });
 
     const std::string where = std::string(__FILE__) + ", line " + std::to_string(line) + ": exception thrown";
-    std::ostringstream shown, shown_without;
+    std::ostringstream shown, shown_without, shown_null;
     shown << with_text;
     shown_without << without;
+    shown_null << with_null;
     check("exception: operator<< writes the file, the line and the explanation, once",
           shown.str() == where + ": boom", [&] { return std::string(name) + ": " + shown.str(); });
     check("exception: operator<< writes no explanation where there is none",
-          shown_without.str() == where, [&] { return std::string(name) + ": " + shown_without.str(); });
+          shown_without.str() == where && shown_null.str() == where,
+          [&] { return std::string(name) + ": " + shown_without.str() + " | " + shown_null.str(); });
   }
 
   /* f, which has to throw an exception of GAOL, caught as a std::exception
