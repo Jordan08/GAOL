@@ -422,6 +422,8 @@ computes each row and checks it):
 | 20 000 doubles written with `%.17g`, read back by `std::strtod` | 20 000 come back different | none |
 | `TwoSum(1e20, 1e-20)`, the error of a sum | s + e ≠ a + b | s + e = a + b |
 | `TwoSum(a, b)`, 50 000 pairs of doubles of exponents from −60 to 60 | s + e ≠ a + b for 10 717 pairs | none |
+| `TwoProd(a, b)`, Dekker's splitting, 50 000 pairs of doubles of [1, 2) | p + e ≠ a·b for 1 888 pairs | none |
+| `TwoProd(a, b)`, `e = std::fma(a, b, -a*b)`, the same pairs | none | none |
 
 The quotient is the double above 1/3, where the program expects the nearest.
 The C library rounds in the direction in effect too, as the C standard
@@ -441,9 +443,16 @@ s = a + b;  bb = s - a;  e = (a - (s - bb)) + (b - bb);
 
 gives s + e = a + b only to nearest. Rounded upward, the exact error of
 10²⁰ + 10⁻²⁰, 10⁻²⁰ − 16384, is no double: s is 10²⁰ + 16384 and e is
-−16383.999999999998, whose sum is not 10²⁰ + 10⁻²⁰. Compensated sums, and the
-double-double arithmetic built on such algorithms, lose their accuracy the same
-way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand
+−16383.999999999998, whose sum is not 10²⁰ + 10⁻²⁰. TwoProd, which recovers
+the error of a product from Dekker's splitting of the operands, breaks the
+same way (1 888 of the 50 000 pairs of the table, drawn in [1, 2), lose their
+exactness upward; pairs of very different magnitudes keep it, the error of
+the product of the split parts they drop staying below the error of the
+rounded product), and is exact in every direction when it is computed with
+`std::fma` instead: the error of a rounded product is a double, which
+`std::fma` computes however it rounds. Compensated sums, and the
+double-double arithmetic built on such algorithms, lose their accuracy the
+same way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand
 column all the time.
 
 Other consequences:
@@ -490,7 +499,11 @@ What to do:
 - **Or build GAOL with `GAOL_PRESERVE_ROUNDING`**, and the program keeps its
   own direction: each operation reads it, sets it upward, and sets it back when
   it is done. Nothing else changes: the bounds are the same, and the program
-  still calls `gaol::cleanup()`. It costs time: XXCOSTXX
+  still calls `gaol::cleanup()`. It costs time: on an Intel i7-1185G7 with
+  GCC 9.4, `x + y`, `x - y`, `x * y` and `x / y` take 2.2 to 3.9 times
+  longer, `sqr(x)` 6.0 times, `sqrt(x)` 3.5 times, `exp(x)` 1.7 times,
+  `log(x)` 1.4 times, and `sin` and `cos` about 1.3 times
+  (`tests/performance.cpp`).
 
 ## Flush-to-zero and denormals-are-zero
 

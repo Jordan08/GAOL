@@ -207,6 +207,34 @@ namespace {
     return same;
   }
 
+  // Dekker's TwoProd: p = a * b, and the error e of the product, with p + e =
+  // a * b exactly when rounding to nearest. From the split of the operands
+  // (Veltkamp), which the directed roundings break as they break TwoSum
+  void two_prod_dekker(double a, double b, double& p, double& e)
+  {
+    const double split = 134217729.0;   // 2^27 + 1
+    const double ca = split*a - (split*a - a);
+    const double cb = split*b - (split*b - b);
+    p = a * b;
+    e = ca*cb - p + ca*(b - cb) + (a - ca)*cb + (a - ca)*(b - cb);
+  }
+
+  /*
+    Whether p + e is exactly a * b, in every rounding direction: the error of
+    a rounded product is a double, which std::fma computes exactly however
+    it rounds, so p + e is the product exactly when std::fma(a, b, -p) gives
+    e back. The check runs to nearest, whatever the direction of the pair.
+  */
+  bool is_exact_product(double a, double b, double p, double e)
+  {
+    bool same;
+    {
+      nearest_scope nearest;
+      same = keep(e == std::fma(keep(a), keep(b), -keep(p)));
+    }
+    return same;
+  }
+
   /*
     The other rows of the table of doc/using.md: what the direction does to a
     stream, a sum, a text round trip and an error-free transformation. They
@@ -220,9 +248,12 @@ namespace {
     std::size_t changed;              // doubles that %.17g, then strtod, give back different
     bool exact_sum;                   // s + e is a + b for TwoSum(1e20, 1e-20)
     std::size_t inexact_pairs;        // pairs of doubles whose TwoSum is not exact
+    std::size_t inexact_products;     // pairs whose TwoProd, from Dekker's splitting, is not exact
+    std::size_t inexact_fma_products; // pairs whose TwoProd, from std::fma, is not exact
   };
 
-  Consequences consequences(const std::vector<double>& values, const std::vector<std::pair<double, double>>& pairs)
+  Consequences consequences(const std::vector<double>& values, const std::vector<std::pair<double, double>>& pairs,
+                             const std::vector<std::pair<double, double>>& product_pairs)
   {
     Consequences c;
     std::ostringstream stream;
@@ -255,6 +286,26 @@ namespace {
       s = keep(s);
       e = keep(e);
       c.inexact_pairs += !is_exact_sum(ab.first, ab.second, s, e);
+    }
+
+    /* TwoProd, the error of a product: Dekker's, from the split operands,
+       which TwoSum's fate awaits (it is exact to nearest only), and the one
+       of std::fma, exact in every direction: the error of a rounded product
+       is a double, which std::fma computes however it rounds. That e is the
+       error is what is_exact_product() checks, from std::fma to nearest. */
+    c.inexact_products = 0;
+    c.inexact_fma_products = 0;
+    for (const std::pair<double, double>& ab : product_pairs) {
+      double p, err;
+      two_prod_dekker(ab.first, ab.second, p, err);
+      p = keep(p);
+      err = keep(err);
+      c.inexact_products += !is_exact_product(ab.first, ab.second, p, err);
+      p = ab.first * ab.second;
+      err = std::fma(ab.first, ab.second, -p);
+      p = keep(p);
+      err = keep(err);
+      c.inexact_fma_products += !is_exact_product(ab.first, ab.second, p, err);
     }
     return c;
   }
@@ -402,11 +453,20 @@ int main()
     const double b = random_double(60);
     pairs.emplace_back(a, b);
   }
-  const Consequences as_it_runs = consequences(values, pairs);
+  /* Pairs of doubles of [1, 2), full significands, for TwoProd: the pairs
+     above, of exponents spread over 120, meet no case where the directed
+     roundings break Dekker's product (the error of the split parts they
+     drop is then below the error of the rounded product), where about one
+     pair in 26 of [1, 2) does. */
+  std::vector<std::pair<double, double>> product_pairs;
+  for (int i = 0; i < 50000; ++i) {
+    product_pairs.emplace_back(1.0 + std::fabs(random_double(0)), 1.0 + std::fabs(random_double(0)));
+  }
+  const Consequences as_it_runs = consequences(values, pairs, product_pairs);
   Consequences to_nearest;
   {
     nearest_scope nearest;
-    to_nearest = consequences(values, pairs);
+    to_nearest = consequences(values, pairs, product_pairs);
   }
 
   // 1/3 lies between two doubles, a third of the gap above the lower one
@@ -464,6 +524,14 @@ int main()
   show("TwoSum, pairs of doubles", std::to_string(as_it_runs.inexact_pairs) + ", " + std::to_string(to_nearest.inexact_pairs),
        "of " + std::to_string(pairs.size()) + " with exponents within 60: not exact",
        to_nearest.inexact_pairs == 0 && (upward ? as_it_runs.inexact_pairs > 0 : as_it_runs.inexact_pairs == 0));
+  // TwoProd, the error of a product: Dekker's splitting breaks as TwoSum does,
+  // and the error of std::fma is exact in every rounding direction
+  show("TwoProd, Dekker's splitting", std::to_string(as_it_runs.inexact_products) + ", " + std::to_string(to_nearest.inexact_products),
+       "of " + std::to_string(product_pairs.size()) + " of [1, 2): not exact",
+       to_nearest.inexact_products == 0 && (upward ? as_it_runs.inexact_products > 0 : as_it_runs.inexact_products == 0));
+  show("TwoProd, std::fma", std::to_string(as_it_runs.inexact_fma_products) + ", " + std::to_string(to_nearest.inexact_fma_products),
+       "the error of a rounded product, exact in every direction",
+       as_it_runs.inexact_fma_products == 0 && to_nearest.inexact_fma_products == 0);
 
   // ------------------------------------------------------------------------
   std::cout << "2. GAOL's intervals do not depend on the direction the program leaves\n";
