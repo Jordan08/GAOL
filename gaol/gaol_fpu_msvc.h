@@ -79,7 +79,11 @@ GAOL_INLINE double next_float(double d)
 	}
 
 
-	//! Sets rounding direction to +oo for SSE operations only
+	/*! Sets rounding direction to +oo for SSE operations only, writing the
+	    whole of MXCSR: every exception masked, the flags and the modes
+	    flushing the subnormals to zero cleared. Only gaol::init() calls it,
+	    after fesetenv(FE_DFL_ENV); the operations write the rounding bits
+	    alone (gaol/gaol_fpu.h, GAOL v5) */
 	GAOL_INLINE void round_upward_sse(void)
 	{
 		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);

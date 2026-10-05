@@ -161,6 +161,18 @@
   direction they found, and the flush-to-zero modes they cleared, which makes
   the arithmetic operations several times slower.
 
+  The rest of the floating-point environment is the program's, whichever way
+  GAOL is built: an operation changes neither the exception masks nor the
+  exception flags the program had, and only adds the flags it raises itself
+  (doc/using.md). GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE() of the SSE2
+  operations with GAOL_PRESERVE_ROUNDING (+, -, *, /, %, div_rel(), sqr(),
+  inverse(), the integer powers and the operations with a double) write the
+  rounding and flush-to-zero bits of MXCSR only, as round_upward() and
+  set_rounding_and_flush_modes() do: they wrote MXCSR whole with
+  round_upward_sse(), every exception masked and every flag cleared, so that
+  an exception the program had enabled was masked again by the first of
+  these operations, and the flags it had raised were lost (GAOL v5).
+
   GCC does not honour #pragma STDC FENV_ACCESS ON, even with -frounding-math
   (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678): it may compute a
   result after a change of rounding direction that the source code writes
@@ -178,8 +190,8 @@
 #  define GAOL_RND_RESTORE()    gaol_core::set_rounding_and_flush_modes(_save_state)
 #  define GAOL_RND_KEEP(x)      ((x) = gaol_core::rnd_keep(x))
 #  if GAOL_USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS); gaol_core::round_upward_sse()
-#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | _save_state_sse)
+#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr(); _mm_setcsr((_save_state_sse & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | (unsigned int)_MM_ROUND_UP)
+#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | (_save_state_sse & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)))
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
 #  define GAOL_RND_ENTER()      gaol_core::round_upward_if_needed()
