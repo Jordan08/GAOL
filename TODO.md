@@ -81,8 +81,9 @@ d'exposants très différents n'y perdant pas leur exactitude ; le nom
 `gaol_core::rounding_guard`. Restent du point H : le 27 (l'étude d'un arrondi
 porté par chaque instruction) et la partie manuel du 36, reportée au point I ;
 le « about 7 ns » d'`examples/examples.md` (l. 509) pour un bloc au plus proche
-est contredit par la mesure (11 à 13 ns), à corriger au point I. Les textes
-pour `ChangeLog` et `doc/differences.md` sont dans la description de #86.
+était contredit par la mesure : corrigé en « about 13 ns » (2d80cc4). Les
+textes pour `ChangeLog` et `doc/differences.md` sont dans la description
+de #86.
 
 ## En cours
 
