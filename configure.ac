@@ -315,6 +315,51 @@ if test "${target_x86}" = yes; then
         fi
     fi
 fi
+# --enable-prefer-avx512: the AVX-512 path of +, -, *, / and sqrt, as
+# CMakeLists.txt and meson.build take it (see CMakeLists.txt). The path is
+# compiled into the library beside the SSE2 one whenever the compiler
+# accepts its instructions in a function with
+# __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which GCC
+# and Clang on x86-64 do: no flag, the attribute is per function, and the
+# library runs on any processor of the architecture. gaol::init() takes the
+# path when the program asks for it, with --enable-prefer-avx512, and the
+# processor has the instructions.
+AC_ARG_ENABLE(prefer-avx512,
+            [AS_HELP_STRING([--enable-prefer-avx512],
+                            [have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them @<:@default=no@:>@])],
+            [prefer_avx512=${enable_prefer_avx512}],
+            [prefer_avx512="no"])
+have_avx512_target=no
+if test "${using_sse2}" = yes; then
+    AC_LANG_PUSH([C++])
+    AC_MSG_CHECKING([whether the compiler takes the AVX-512 instructions in a function with the target attribute])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <immintrin.h>
+#if !defined(__x86_64__)
+#error not x86-64
+#endif
+__attribute__((target("avx512f"))) double er_add(double a, double b)
+{
+    const __m512d x = _mm512_set1_pd(a);
+    const __m512d y = _mm512_set1_pd(b);
+    return _mm_cvtsd_f64(_mm512_castpd512_pd128(
+        _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+}]], [[return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1;]])],
+        [have_avx512_target=yes], [have_avx512_target=no])
+    AC_MSG_RESULT(${have_avx512_target})
+    AC_LANG_POP([C++])
+    if test "${have_avx512_target}" = yes; then
+        AC_DEFINE([GAOL_HAVE_AVX512_TARGET],1,
+            [Define this to 1 if the compiler takes the AVX-512 instructions in a function with the target attribute])
+    fi
+fi
+if test "${prefer_avx512}" = yes; then
+    if test "${have_avx512_target}" = no; then
+        AC_MSG_ERROR([--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with GCC or Clang])
+    fi
+    AC_DEFINE([GAOL_PREFER_AVX512],1,
+        [Define this to 1 to have gaol::init() take the AVX-512 path of +, -, *, / and sqrt on a processor that has the instructions])
+fi
+
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 

@@ -97,6 +97,7 @@ msvc = cpp_comp.get_argument_syntax() == 'msvc'
 simd = get_option('enable-simd')
 asm = get_option('enable-asm')
 preserve_rounding = get_option('enable-preserve-rounding')
+prefer_avx512 = get_option('enable-prefer-avx512')
 exception = get_option('enable-exception')
 # The Debug build, as CMAKE_BUILD_TYPE=Debug and configure --enable-debug:
 # GAOL checks its assertions (GAOL_DEBUGGING). The option enable-debug, which
@@ -291,6 +292,38 @@ if target_x86
       pc_cflags += ['-msse3']
     endif
   endif
+endif
+
+# enable-prefer-avx512: the AVX-512 path of +, -, *, / and sqrt, as
+# CMakeLists.txt and configure take it (see CMakeLists.txt). The path is
+# compiled into the library beside the SSE2 one whenever the compiler
+# accepts its instructions in a function with
+# __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which
+# GCC and Clang on x86-64 do: no flag, the attribute is per function, and
+# the library runs on any processor of the architecture. gaol::init()
+# takes the path when the processor has the instructions.
+have_avx512_target = false
+if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64' and cpp_comp.get_id() in ['gcc', 'clang']
+  avx512_target_source = '''
+    #include <immintrin.h>
+    __attribute__((target("avx512f"))) double er_add(double a, double b)
+    {
+      const __m512d x = _mm512_set1_pd(a);
+      const __m512d y = _mm512_set1_pd(b);
+      return _mm_cvtsd_f64(_mm512_castpd512_pd128(
+          _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+    }
+    int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }'''
+  if cpp_comp.compiles(avx512_target_source)
+    have_avx512_target = true
+    conf_data.set('GAOL_HAVE_AVX512_TARGET', 1)
+  endif
+endif
+if prefer_avx512
+  if not have_avx512_target
+    error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang')
+  endif
+  conf_data.set('GAOL_PREFER_AVX512', 1)
 endif
 # enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and configure take them (see CMakeLists.txt): /arch:AVX2 with

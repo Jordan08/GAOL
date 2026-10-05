@@ -142,6 +142,8 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 
 option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
+option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them (OFF: the operations set the direction upward)" OFF)
+
 # As configure.ac and meson.build ask: -std=c++11; C99 for the sources of
 # CORE-MATH, with the GNU extensions (CMake's default), which the inline
 # assembly of atan2 needs (see 3rd/README.md)
@@ -592,6 +594,38 @@ endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
 message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
+
+# GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
+# the functions that carry __attribute__((target("avx512f"))), and
+# __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64 only. The
+# library is then compiled with the AVX-512 path of +, -, *, / and sqrt
+# (gaol/gaol_interval_avx512.cpp) beside the SSE2 one, for any processor of
+# the architecture: only the functions of the path carry the attribute, and
+# gaol::init() takes it when the program asks for it, with GAOL_PREFER_AVX512,
+# and the processor has the instructions. Nothing of the rest is compiled
+# otherwise (GAOL v5).
+set(GAOL_HAVE_AVX512_TARGET OFF)
+if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8
+    AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  # The source in a bracket argument: verbatim, no quote to escape
+  check_cxx_source_compiles([=[
+    #include <immintrin.h>
+    __attribute__((target("avx512f"))) double er_add(double a, double b)
+    {
+      const __m512d x = _mm512_set1_pd(a);
+      const __m512d y = _mm512_set1_pd(b);
+      return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+    }
+    int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }]=]
+    GAOL_COMPILER_TAKES_AVX512_TARGET)
+  if(GAOL_COMPILER_TAKES_AVX512_TARGET)
+    set(GAOL_HAVE_AVX512_TARGET ON)
+  endif()
+endif()
+if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
+  message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang")
+endif()
+message(STATUS "AVX-512 interval arithmetic compiled in: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++

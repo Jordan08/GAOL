@@ -13,6 +13,7 @@ option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL
 option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
+option('enable-prefer-avx512', type : 'boolean', value : false, description : 'Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them [default=no, as configure and CMake]')
 option('enable-exception', type: 'boolean', value: true, description: 'Raise exceptions to signal errors [default=yes]')
 option('with-tests', type: 'boolean', value: false, description: 'Build the unit tests of tests/, which meson test (make test) and ninja check (make check) run [default=no, as WITH_TESTS of CMake and --with-tests of configure]')
 option('with-examples', type: 'boolean', value: false, description: 'Build the examples of examples/, which ninja check (make check) runs [default=no, as WITH_EXAMPLES of CMake and --with-examples of configure]')

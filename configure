@@ -830,6 +830,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_simd
+enable_prefer_avx512
 enable_fma
 enable_verbose_mode
 enable_debug
@@ -1501,6 +1502,11 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-simd           use SIMD instructions to implement arithmetic
                           operations
+  --enable-prefer-avx512  have +, -, *, / and sqrt take the AVX-512
+                          instructions and the rounding direction they carry
+                          in themselves, which sets neither the rounding
+                          direction nor the flush-to-zero modes, on a
+                          processor that has them [default=no]
   --enable-fma            compile GAOL and CORE-MATH with the fused
                           multiply-add instructions of the processor, where
                           the compiler has a flag for them (no: a library for
@@ -19105,6 +19111,86 @@ printf "%s\n" "#define GAOL_USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
         fi
     fi
 fi
+# --enable-prefer-avx512: the AVX-512 path of +, -, *, / and sqrt, as
+# CMakeLists.txt and meson.build take it (see CMakeLists.txt). The path is
+# compiled into the library beside the SSE2 one whenever the compiler
+# accepts its instructions in a function with
+# __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which GCC
+# and Clang on x86-64 do: no flag, the attribute is per function, and the
+# library runs on any processor of the architecture. gaol::init() takes the
+# path when the program asks for it, with --enable-prefer-avx512, and the
+# processor has the instructions.
+# Check whether --enable-prefer-avx512 was given.
+if test ${enable_prefer_avx512+y}
+then :
+  enableval=$enable_prefer_avx512; prefer_avx512=${enable_prefer_avx512}
+else case e in #(
+  e) prefer_avx512="no" ;;
+esac
+fi
+
+have_avx512_target=no
+if test "${using_sse2}" = yes; then
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the compiler takes the AVX-512 instructions in a function with the target attribute" >&5
+printf %s "checking whether the compiler takes the AVX-512 instructions in a function with the target attribute... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <immintrin.h>
+#if !defined(__x86_64__)
+#error not x86-64
+#endif
+__attribute__((target("avx512f"))) double er_add(double a, double b)
+{
+    const __m512d x = _mm512_set1_pd(a);
+    const __m512d y = _mm512_set1_pd(b);
+    return _mm_cvtsd_f64(_mm512_castpd512_pd128(
+        _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+}
+int
+main (void)
+{
+return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  have_avx512_target=yes
+else case e in #(
+  e) have_avx512_target=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${have_avx512_target}" >&5
+printf "%s\n" "${have_avx512_target}" >&6; }
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    if test "${have_avx512_target}" = yes; then
+
+printf "%s\n" "#define GAOL_HAVE_AVX512_TARGET 1" >>confdefs.h
+
+    fi
+fi
+if test "${prefer_avx512}" = yes; then
+    if test "${have_avx512_target}" = no; then
+        as_fn_error $? "--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with GCC or Clang" "$LINENO" 5
+    fi
+
+printf "%s\n" "#define GAOL_PREFER_AVX512 1" >>confdefs.h
+
+fi
+
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 
