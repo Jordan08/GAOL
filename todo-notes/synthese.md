@@ -213,9 +213,33 @@ doc/differences.md:
   place: after the bullet on `operator>>`.)
 ```
 
-In `configure-clean`: **no**. To adapt once S.14 is done: without explanation
-(or with an empty one) `what()` will return the name of the derived class
-(`input_format_error`...), not `gaol_exception`.
+In `configure-clean`: **no**. Point S (the 14) has changed what `what()` gives
+without explanation, and a null explanation: take these texts instead.
+
+ChangeLog:
+
+```text
+* gaol/gaol_exceptions.h, gaol/gaol_exceptions.cpp: gaol_exception::what() returns the explanation, or the name of the class (gaol_exception, input_format_error...) if there is none or if it starts with a NUL, where GAOL 4 left "std::exception";
+a null const char* explanation is none, where GAOL 4 built a std::string from it; operator<< of the exceptions writes the explanation once.
+```
+
+doc/differences.md:
+
+```text
+- **`what()` of GAOL's exceptions is their explanation.** `gaol_exception`
+  overrides `what()`: it returns the explanation, or the name of the class of
+  the exception (`gaol_exception`, `input_format_error`,
+  `unavailable_feature_error` or `invalid_action_error`) where there is none
+  or where it starts with a NUL, so that `catch (const std::exception& e)` and
+  the message of an exception that nothing catches say what went wrong. GAOL
+  left the `what()` of `std::exception`, which is `std::exception` with
+  libstdc++ and libc++, whatever the error. A null pointer given as the
+  explanation is no explanation: GAOL built a `std::string` from it, which is
+  undefined behavior. `operator<<` of an exception writes the explanation
+  once, `file, line n: exception thrown: explanation`; it wrote `what()` next
+  to it, `file, line n: exception std::exception thrown: explanation`.
+  (Suggested place: after the bullet on `operator>>`.)
+```
 
 ### `15.md` (#46) — point 15, `operator>>` on an empty line
 
@@ -1210,14 +1234,6 @@ Nothing (the measurements are in TODO M.9 and PR #36).
   signs of the bounds", while since #71 a zero point is written `[0x0p+0]`
   whatever the signs (`gaol/gaol_interval.h` l.92-93, manual l.3718,
   `doc/accuracy.md` l.201).
-
----
-
-### `14.md` (#32) — point 14, `what()` of GAOL's exceptions
-
-- `operator<<` of an exception still calls `explanation()` twice, copying the
-  string twice (`gaol/gaol_exceptions.cpp` l.86-87). Harmless; could be
-  tidied while S.14 edits that file.
 
 ---
 

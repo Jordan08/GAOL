@@ -58,6 +58,15 @@ namespace gaol_core {
     /*!
       \param f Name of the file where the exception is thrown
       \param l Line in the file where the exception is thrown
+      \param e Explanation concerning the throwing; a null pointer is no
+      explanation (GAOL v5: GAOL 4 built a std::string from it, which is
+      undefined behavior)
+    */
+    gaol_exception(const char* f, unsigned l, const char* e);
+
+    /*!
+      \param f Name of the file where the exception is thrown
+      \param l Line in the file where the exception is thrown
       \param e Explanation concerning the throwing
     */
     gaol_exception(const char* f, unsigned l, const std::string& e);
@@ -93,9 +102,10 @@ namespace gaol_core {
       went wrong: that is what a catch (const std::exception&) printed, and
       what a program ended with when nothing caught the exception.
 
-      \return the explanation, as explanation() gives it, or the text
-      "gaol_exception" if none was given, never an empty text. The text is
-      valid as long as the exception is.
+      \return the explanation, as explanation() gives it, or the name of the
+      class ("gaol_exception", "input_format_error"...) if none was given or
+      if its text as a C string is empty (a NUL first), never an empty text.
+      The text is valid as long as the exception is.
     */
     const char* what() const noexcept override;
 
@@ -116,6 +126,13 @@ namespace gaol_core {
       \brief Short explanation concerning the exception thrown.
      */
     std::string explanation_;
+
+  private:
+    /*!
+      \brief The name of the class, which what() gives where there is no
+      explanation (GAOL v5)
+    */
+    virtual const char* class_name() const noexcept;
   };
 
 
@@ -133,6 +150,11 @@ namespace gaol_core {
       gaol_exception(f,l,e) {}
     input_format_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
+
+  private:
+    const char* class_name() const noexcept override {
+      return "input_format_error";
+    }
   };
 
 
@@ -148,6 +170,11 @@ namespace gaol_core {
       gaol_exception(f,l,e) {}
     unavailable_feature_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
+
+  private:
+    const char* class_name() const noexcept override {
+      return "unavailable_feature_error";
+    }
   };
 
 
@@ -164,6 +191,11 @@ namespace gaol_core {
       gaol_exception(f,l,e) {}
     invalid_action_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
+
+  private:
+    const char* class_name() const noexcept override {
+      return "invalid_action_error";
+    }
   };
 
   /*!

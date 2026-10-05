@@ -41,6 +41,17 @@ namespace gaol_core {
     which_line_=l;
   }
 
+  gaol_exception::gaol_exception(const char* f, unsigned l, const char* e)
+  {
+    which_file_=f;
+    which_line_=l;
+    // A null pointer is no explanation: the derived classes passed it on to
+    // the constructor of std::string, which is undefined behavior (GAOL v5)
+    if (e != nullptr) {
+      explanation_ = e;
+    }
+  }
+
   gaol_exception::gaol_exception(const char* f, unsigned l, const std::string& e)
   {
     which_file_=f;
@@ -67,24 +78,35 @@ namespace gaol_core {
     return explanation_;
   }
 
+  const char*
+  gaol_exception::class_name() const noexcept
+  {
+    return "gaol_exception";
+  }
+
   /*
-    The explanation, or a text of its own where there is none, so that what a
-    handler of std::exception prints, or the terminate handler of an exception
-    nothing catches, is never empty (GAOL v5). GAOL 4 left the what() of
-    std::exception, "std::exception", whatever went wrong.
+    The explanation, or the name of the class where there is none, so that
+    what a handler of std::exception prints, or the terminate handler of an
+    exception nothing catches, is never empty (GAOL v5). An explanation whose
+    C string is empty, a NUL first, is none: what() would be an empty text.
+    GAOL 4 left the what() of std::exception, "std::exception", whatever went
+    wrong.
   */
   const char*
   gaol_exception::what() const noexcept
   {
-    return explanation_.empty() ? "gaol_exception" : explanation_.c_str();
+    const char* text = explanation_.c_str();
+    return (*text != '\0') ? text : class_name();
   }
 
   std::ostream& operator<<(std::ostream& out, const gaol_exception &e)
   {
     // what() is the explanation now, written below: not here too (GAOL v5)
     out << e.file() << ", line " << e.line() << ": exception thrown";
-    if (e.explanation().length() != 0) { // Some explanation given?
-      out << ": " << e.explanation();
+    // explanation() returns a copy: one, not one per use
+    const std::string explanation = e.explanation();
+    if (explanation.length() != 0) { // Some explanation given?
+      out << ": " << explanation;
     }
     return out;
   }

@@ -4808,9 +4808,11 @@ the file and the line where the corresponding exception was thrown. As a
 consequence, the constructors for \code{gaol\_exception} are as follows:
 
 \defmethodx{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l})}
-\begin{defmethod}{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const char* \var{e})}
+\defmethodx{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const char* \var{e})}
+\begin{defmethod}{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const std::string\& \var{e})}
 Constructs a \code{gaol\_exception} being thrown from file \var{f} at
-line \var{l}. The second form permits adding some explanatory string \var{e}.
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}. A null pointer \var{e} is no explanation.\newinvfive
 \end{defmethod}
 
 \noindent
@@ -4830,8 +4832,10 @@ The class offers the following accessors:
 \end{defmethod}
 
 \begin{defmethod}{gaol\_exception}{const char*}{what}{(void) const noexcept}
-  Returns the explanation, as a C string, or the text \code{gaol\_exception}
-  if no additional information was provided, so that it is never empty. It
+  Returns the explanation, as a C string, or the name of the class of the
+  exception (\code{gaol\_exception}, \code{input\_format\_error}\ldots) if no
+  additional information was provided or if the explanation starts with a
+  NUL character, so that it is never empty. It
   overrides the \code{what()} of \code{std::exception}: a handler of
   \code{std::exception}, and the message of an exception that nothing catches,
   now say what went wrong, where GAOL~4 gave \code{std::exception} whatever the
@@ -4851,9 +4855,11 @@ This class, as all GAOL exceptions, derives from \code{gaol\_exception}
 than the ones for \code{gaol\_exception}, namely:
 
 \defmethodx{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l})}
-\begin{defmethod}{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+\defmethodx{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+\begin{defmethod}{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const std::string\& \var{e})}
 Constructs an \code{input\_format\_error} being thrown from file \var{f} at
-line \var{l}. The second form permits adding some explanatory string \var{e}.
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}.
 \end{defmethod}
 The methods of the class are inherited from \code{gaol\_exception}
 (\pxref{sec:gaol_exception}).
@@ -4879,9 +4885,11 @@ This class, as all GAOL exceptions, derives from \code{gaol\_exception}.
 than the ones for \code{gaol\_exception}, namely:
 
 \defmethodx{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l})}
-\begin{defmethod}{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+\defmethodx{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+\begin{defmethod}{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l}, const std::string\& \var{e})}
 Constructs an \code{unavailable\_feature\_error} being thrown from file \var{f} at
-line \var{l}. The second form permits adding some explanatory string \var{e}.
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}.
 \end{defmethod}
 
 The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:gaol_exception}).
@@ -4897,9 +4905,11 @@ This class, as all GAOL exceptions, derives from \code{gaol\_exception}
 than the ones for \code{gaol\_exception}, namely:
 
 \defmethodx{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l})}
-\begin{defmethod}{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l}, const char* \var{e})}
+\defmethodx{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l}, const char* \var{e})}
+\begin{defmethod}{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l}, const std::string\& \var{e})}
 Constructs an \code{invalid\_action\_error} being thrown from file \var{f} at
-line \var{l}. The second form permits adding some explanatory string \var{e}.
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}.
 \end{defmethod}
 
 The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:gaol_exception}).
