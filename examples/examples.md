@@ -506,7 +506,10 @@ Other consequences:
 `GAOL_PRESERVE_ROUNDING` removes all of this, at a measured cost of 4.8 times
 on x + y, 6.7 times on x/y, 1.4 to 1.6 times on exp and sin, and 12 times on
 a Horner polynomial mixing intervals and doubles. Switching to nearest for a
-block of the program's own code costs about 7 ns (example 13).
+block of the program's own code, as example 13's guard does, costs about
+13 ns: 11 to 13 ns measured on an Intel i7-1185G7 with GCC 9.4 and Clang 18,
+the guard saving the direction and setting it back (fegetround() and two
+fesetround()).
 
 ## 3. First contact: GAOL v5 through a newcomer's eyes
 
