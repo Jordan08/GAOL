@@ -189,9 +189,12 @@
   }
 
 
+  // The operations with a double tell an infinite d and a NaN with quiet
+  // comparisons, as interval(double): a NaN d, which < compared, raised the
+  // invalid-operation exception (GAOL v5)
   interval& interval::operator+=(double d)
   {
-    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(std::isless(-GAOL_INFINITY, d) && std::isless(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -205,7 +208,7 @@
 
   interval& interval::operator-=(double d)
   {
-    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(std::isless(-GAOL_INFINITY, d) && std::isless(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -219,7 +222,7 @@
 
   interval& interval::operator*=(double d)
   {
-    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(std::isless(-GAOL_INFINITY, d) && std::isless(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -249,7 +252,7 @@
 
   interval& interval::operator/=(double d)
   {
-    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(std::isless(-GAOL_INFINITY, d) && std::isless(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }
@@ -277,7 +280,7 @@
 
   interval& interval::operator%=(double d)
   {
-    if (is_empty() || !(-GAOL_INFINITY < d && d < GAOL_INFINITY)) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !(std::isless(-GAOL_INFINITY, d) && std::isless(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
       *this = interval::emptyset();
       return *this;
     }

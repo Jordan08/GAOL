@@ -132,11 +132,13 @@ namespace gaol_core {
       The empty set is the result for a lower bound of +oo, an upper bound of
       -oo, bounds in the wrong order and NaN bounds, as in IBEX: IEEE 1788-2015
       has no interval [+oo, +oo] nor [-oo, -oo] (10.5.8), and its constructor
-      gives the empty set there (12.12.7).
+      gives the empty set there (12.12.7). A NaN bound raises no
+      floating-point exception (GAOL v5).
     */
     interval(double a, double b);
     /*!
-      \brief Creates [a, a], and the empty set for an infinite a or a NaN
+      \brief Creates [a, a], and the empty set for an infinite a or a NaN,
+      which raises no floating-point exception (GAOL v5)
 
       Explicit (GAOL v5): a double no longer converts silently to an
       interval, which made gaol::sin(0.5) the sin of [0.5] and, where
@@ -288,8 +290,10 @@ namespace gaol_core {
     /*!
       isEmpty of IEEE 1788-2015: *this is the empty set, whose bounds are NaN.
       It raises no floating-point exception, the invalid-operation one
-      included: a program that enabled it is not stopped by this call (GAOL
-      v5, see doc/using.md)
+      included: a program that enabled it is not stopped by this call, nor by
+      a choice it makes on it, x.is_empty() ? a : b, which GCC compiled with a
+      signaling comparison on 32-bit ARM and POWER9 (GAOL v5, see
+      doc/using.md)
     */
     GAOL_NODISCARD bool is_empty(void) const;
     //! isEntire of IEEE 1788-2015 (10.5.10): *this is [-oo, +oo] (GAOL v5)
@@ -462,6 +466,26 @@ namespace gaol_core {
   };
 
 
+/* GCC compiles the quiet comparisons of a loop it vectorizes for x86 with
+   AVX into signaling predicates: vcmpnlepd for !std::islessequal(), vcmpnltpd
+   and vcmpltpd for std::isless() (GCC 9.4 at -O3 with -mfma, which turns AVX
+   on, and which the three builds give where the processor has FMA). They
+   raise the invalid-operation exception on the NaN bounds of an empty
+   interval: loops of is_empty(), of the relations testing it (less(),
+   certainly_positive()...) and of constructions raised it with the FPU
+   intervals (tests/rounding_direction.cpp). With GCC for x86 and the FPU
+   intervals, the bounds is_empty() compares and the doubles given to the
+   constructors therefore go through an empty asm statement, which leaves
+   them in their register at no cost but keeps GCC from vectorizing these
+   loops (GAOL v5); not the constants, which GCC still folds. Clang 18 keeps
+   such loops scalar, and the SSE2 intervals were not concerned. */
+#if !GAOL_USING_SSE2_INSTRUCTIONS && defined(__GNUC__) && !defined(__clang__) \
+    && (defined(__x86_64__) || defined(__i386__)) && defined(__SSE2_MATH__)
+#  define GAOL_FPU_SCALAR(x) do { if (!__builtin_constant_p(x)) { __asm__ ("" : "+x" (x)); } } while (0)
+#else
+#  define GAOL_FPU_SCALAR(x) ((void)0)
+#endif
+
 #if GAOL_USING_SSE2_INSTRUCTIONS
 #   include "gaol/gaol_interval_sse.h"
 #else
@@ -494,7 +518,44 @@ namespace gaol_core {
   GAOL_INLINE
   bool interval::is_empty(void) const
   {
-    return !std::islessequal(left(), right()); // Negation to handle NaNs
+#if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
+    /*
+      On 32-bit ARM and on POWER9, std::isunordered() first, then a plain
+      comparison of bounds that are no NaN (GAOL v5). There GCC compiles a
+      quiet comparison into a signaling one where it turns a choice made on it
+      into a conditional move: it reverses the comparison, and compiles the
+      reversed one with the signaling vcmpe on 32-bit ARM (GCC 12 to 14),
+      xscmpgedp on POWER9 (GCC 13 with -mcpu=power9), "unordered or greater"
+      becoming "less or equal": with !std::islessequal(), x.is_empty() ? a : b
+      in the program raised the invalid-operation exception for an empty x
+      (vcmpe; it ls; vmovls with GCC 13.3, #60). std::isunordered() stays
+      quiet when GCC reverses it, "ordered" being vcmp. The bounds go through
+      an empty asm statement, which leaves them in their register at no cost:
+      GCC can then not merge the two tests back into the single "unordered or
+      greater" of the bounds, which it may do with the same operands, and
+      their comparison is made only on bounds that are no NaN, where no
+      instruction raises anything. Elsewhere one quiet comparison, and its
+      bounds through GAOL_FPU_SCALAR() (above) against the loops GCC
+      vectorizes for x86.
+    */
+    if (std::isunordered(left_internal(), right_internal())) {
+      return true;
+    }
+    double l = left(), r = right();
+#  if defined(__arm__) && defined(__ARM_FP)
+    __asm__ ("" : "+w" (l), "+w" (r));
+#  elif defined(__arm__)
+    __asm__ ("" : "+r" (l), "+r" (r));
+#  else
+    __asm__ ("" : "+d" (l), "+d" (r));
+#  endif
+    return l > r;
+#else
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return !std::islessequal(l, r); // Negation to handle NaNs
+#endif
   }
 
   GAOL_INLINE
@@ -513,13 +574,25 @@ namespace gaol_core {
     return !is_empty() && is_finite();
   }
 
+  /*
+    The relations below compare the bounds with the quiet comparisons of
+    <cmath> (std::islessequal()...) wherever a bound may be NaN, even after a
+    test of the empty set that the comparison follows (GAOL v5): a compiler
+    that vectorizes or if-converts a loop of them computes the comparison for
+    the empty operands too, where <, <=, >= or > raise the invalid-operation
+    exception on their NaN bounds, as vcmplepd did in a loop of
+    certainly_positive() (GCC 9.4 at -O3 with -mavx2, FPU intervals; GCC 9.4
+    vectorizes the quiet comparisons into signaling predicates too, which
+    GAOL_FPU_SCALAR() above keeps it from doing there). == and != are quiet
+    comparisons already.
+  */
   GAOL_INLINE
   bool interval::less(const interval& I) const
   {
     if (is_empty() || I.is_empty()) {
       return is_empty() && I.is_empty();
     }
-    return left() <= I.left() && right() <= I.right();
+    return std::islessequal(left(), I.left()) && std::islessequal(right(), I.right());
   }
 
   /*
@@ -532,8 +605,8 @@ namespace gaol_core {
     if (is_empty() || I.is_empty()) {
       return is_empty() && I.is_empty();
     }
-    const bool lower = left() < I.left() || (left() == I.left() && left() == -GAOL_INFINITY);
-    const bool upper = right() < I.right() || (right() == I.right() && right() == GAOL_INFINITY);
+    const bool lower = std::isless(left(), I.left()) || (left() == I.left() && left() == -GAOL_INFINITY);
+    const bool upper = std::isless(right(), I.right()) || (right() == I.right() && right() == GAOL_INFINITY);
     return lower && upper;
   }
 
@@ -546,26 +619,26 @@ namespace gaol_core {
   GAOL_INLINE
   bool interval::certainly_positive(void) const
   {
-    return is_empty() || (left() >= 0.0);
+    return is_empty() || std::isgreaterequal(left(), 0.0);
   }
 
   GAOL_INLINE
   bool interval::certainly_negative(void) const
   {
-    return is_empty() || (right() <= 0.0);
+    return is_empty() || std::islessequal(right(), 0.0);
   }
 
   GAOL_INLINE
   bool interval::certainly_strictly_positive(void) const
   {
-    return is_empty() || (left() > 0.0);
+    return is_empty() || std::isgreater(left(), 0.0);
 
   }
 
   GAOL_INLINE
   bool interval::certainly_strictly_negative(void) const
   {
-    return is_empty() || (right() < 0.0);
+    return is_empty() || std::isless(right(), 0.0);
   }
 
   /*
@@ -577,22 +650,22 @@ namespace gaol_core {
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
-    return is_empty() || I.is_empty() || (left() > I.right());
+    return is_empty() || I.is_empty() || std::isgreater(left(), I.right());
   }
 
   GAOL_INLINE bool interval::certainly_geq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || (left() >= I.right());
+    return is_empty() || I.is_empty() || std::isgreaterequal(left(), I.right());
   }
 
   GAOL_INLINE bool interval::certainly_le(const interval &I) const
   {
-    return is_empty() || I.is_empty() || (right() < I.left());
+    return is_empty() || I.is_empty() || std::isless(right(), I.left());
   }
 
   GAOL_INLINE bool interval::certainly_leq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || (right() <= I.left());
+    return is_empty() || I.is_empty() || std::islessequal(right(), I.left());
   }
 
 
@@ -684,8 +757,8 @@ namespace gaol_core {
   bool interval::is_an_int(void) const
   {
     return (left() == right()) && (std::floor(left()) == left()) &&
-      (left() <= (std::numeric_limits<int>::max)() && // Strange call way needed by msvc++
-       left() >= (std::numeric_limits<int>::min)());
+      (std::islessequal(left(), static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
+       std::isgreaterequal(left(), static_cast<double>((std::numeric_limits<int>::min)())));
   }
 
 
@@ -714,8 +787,8 @@ namespace gaol_core {
   {
     return I.is_empty()
       || (!is_empty()
-          && (left() < I.left() || left() == -GAOL_INFINITY)
-          && (right() > I.right() || right() == GAOL_INFINITY));
+          && (std::isless(left(), I.left()) || left() == -GAOL_INFINITY)
+          && (std::isgreater(right(), I.right()) || right() == GAOL_INFINITY));
   }
 
   /**
@@ -765,29 +838,27 @@ namespace gaol_core {
   }
 
   /*
-    The empty set is split into two empty sets, told by its midpoint, NaN:
-    built from its NaN bounds, they were empty too, but the constructor
-    compares them, which raises the invalid-operation exception (GAOL v5).
-    std::isnan() is a quiet test, and costs less than is_empty().
+    The empty set is split into two empty sets, built from its NaN bounds and
+    its midpoint, NaN, which the constructor tells with a quiet comparison
+    (GAOL v5). They were told first by the midpoint, with std::isnan(), when
+    the constructor compared them with <=, which raises the invalid-operation
+    exception on a NaN.
   */
   GAOL_INLINE void interval::split(interval &I1, interval &I2) const
   {
     const double l = left(), m = midpoint(), r = right();
-    const bool empty = std::isnan(m);
-    I1 = empty ? interval::emptyset() : interval(l,m);
-    I2 = empty ? interval::emptyset() : interval(m,r);
+    I1 = interval(l,m);
+    I2 = interval(m,r);
   }
 
   GAOL_INLINE interval interval::split_left(void) const
   {
-    const double m = midpoint();
-    return std::isnan(m) ? interval::emptyset() : interval(left(),m);
+    return interval(left(),midpoint());
   }
 
   GAOL_INLINE interval interval::split_right(void) const
   {
-    const double m = midpoint();
-    return std::isnan(m) ? interval::emptyset() : interval(m,right());
+    return interval(midpoint(),right());
   }
 
   //! \brief Prototypes
@@ -1073,39 +1144,37 @@ GAOL_NODISCARD extern __GAOL_PUBLIC__   interval invabs_rel(const interval &J, c
     \brief Returns the sign of d: -1 below 0, 0 at 0 and at -0, 1 above
 
     A NaN has no sign and is returned as it is: the comparisons below are both
-    false for it, so without this it would be given the sign 0.
+    false for it, so without this it would be given the sign 0. They are
+    quiet ones, as in the relations (GAOL v5).
   */
 GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
   {
     if (std::isnan(d)) {
       return d;
     }
-    return (d < 0.0) ? -1.0 : ((d > 0.0) ? 1.0 : 0.0);
+    return std::isless(d, 0.0) ? -1.0 : (std::isgreater(d, 0.0) ? 1.0 : 0.0);
   }
 
   /*
     The bounds floor, ceil and integer compute from the NaN bounds of the
-    empty set are NaN, which give the empty set: told by a quiet comparison
-    rather than by the constructor, which compares them and raises the
-    invalid-operation exception (GAOL v5). One comparison, the cheapest
-    test: is_empty() first cost more.
+    empty set are NaN, which give the empty set: the constructor tells them
+    with a quiet comparison (GAOL v5). They told them first, with one more
+    comparison, when the constructor compared them with <=, which raises the
+    invalid-operation exception on a NaN.
   */
 GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
   {
-    const double l = std::floor(I.left()), r = std::floor(I.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(std::floor(I.left()), std::floor(I.right()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval ceil(const interval &I)
   {
-    const double l = std::ceil(I.left()), r = std::ceil(I.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(std::ceil(I.left()), std::ceil(I.right()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   {
-    const double l = std::ceil(I.left()), r = std::floor(I.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(std::ceil(I.left()), std::floor(I.right()));
   }
 
 /*

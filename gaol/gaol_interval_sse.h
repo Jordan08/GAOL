@@ -66,12 +66,13 @@
     }
 
   // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
-  // interval [+oo, +oo] nor [-oo, -oo] (10.5.8)
+  // interval [+oo, +oo] nor [-oo, -oo] (10.5.8). A NaN gives it too, told by
+  // a quiet first comparison (see interval(double, double))
   GAOL_INLINE interval::interval(double v)
     {
       // The bounds are set in a register: written to a pair in memory, their
       // 16-byte load stalls on the two 8-byte stores, which costs several ns
-      if (-GAOL_INFINITY < v && v < GAOL_INFINITY) { // false for a NaN
+      if (std::isless(-GAOL_INFINITY, v) && v < GAOL_INFINITY) { // false for a NaN
         xmmbounds = _mm_set_pd(v, -v);
       } else {
         xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
@@ -79,10 +80,19 @@
     }
 
   // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
-  // the wrong order and NaN bounds, as in IBEX
+  // the wrong order and NaN bounds, as in IBEX. The first comparison is a
+  // quiet one, as in is_empty(), ucomisd for comisd on x86, at the same
+  // cost: a NaN bound, which <= compared, raised the invalid-operation
+  // exception, and so did interval(NAN), x += NAN and the functions giving
+  // the constructor the NaN bounds of an empty operand (floor(), max()...),
+  // which had to tell the empty set first (GAOL v5, decided for point D.24 of
+  // TODO.md). The other two compare bounds that are no NaN once it is true:
+  // made quiet too, they cost GCC a conditional move through the integer
+  // registers where it if-converts them, and 30% more in a loop of
+  // constructions (GCC 9.4, FPU intervals)
   GAOL_INLINE interval::interval(double l, double r)
     {
-      if (l <= r && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
+      if (std::islessequal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
         xmmbounds = _mm_set_pd(r, -l);
       } else {
         xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());

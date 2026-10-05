@@ -1640,7 +1640,9 @@ namespace gaol_core {
   */
   interval  gaol_pow_real(const interval& I, double p)
   {
-    if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
+    // Infinite or NaN, told by a quiet comparison: <= raised the
+    // invalid-operation exception for a NaN p (GAOL v5)
+    if (!std::islessequal(std::fabs(p), (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
     // p compared after the check: with denormals-are-zero, the floor of a
@@ -2953,8 +2955,8 @@ interval nth_root(const interval& I, int q)
   interval exp(const interval& I)
   {
     // The empty set tested first: its NaN bounds would give the empty set
-    // too, but the constructor compares them, which raises the
-    // invalid-operation exception (GAOL v5)
+    // too, through the quiet comparison of the constructor, but after the
+    // check of the rounding direction and two calls of CORE-MATH (GAOL v5)
     if (I.is_empty()) {
       return interval::emptyset();
     }
@@ -3051,9 +3053,9 @@ interval nth_root(const interval& I, int q)
   */
   unsigned short int modulo_k_pi(const interval &I, double &k_left, double &k_right)
   {
-    // The empty set, whose bounds are NaN, gives NaN and 0, tested first: the
-    // NaN divided by pi would be given to the constructor, which compares it
-    // and raises the invalid-operation exception (GAOL v5)
+    // The empty set, whose bounds are NaN, gives NaN and 0, tested first
+    // (GAOL v5): the floor of its NaN bounds divided by pi would be the empty
+    // set too, but k_left its lower bound, a NaN of the other sign
     if (I.is_empty()) {
       k_left = k_right = GAOL_NAN;
       return 0;
@@ -3665,21 +3667,19 @@ interval nth_root(const interval& I, int q)
 
   /*
     maximum() and minimum() give NaN bounds for an empty I or J, which give
-    the empty set: told by a quiet comparison of the bounds, rather than by the
-    constructor, which compares them and raises the invalid-operation
-    exception on a NaN (GAOL v5). One comparison, where testing I and J
-    first made max() 5 to 10% slower (Clang 18).
+    the empty set: the constructor tells them with a quiet comparison (GAOL
+    v5). They were told first, with one more comparison, when the constructor
+    compared them with <=, which raises the invalid-operation exception on a
+    NaN; testing I and J first made max() 5 to 10% slower (Clang 18).
   */
   interval  max(const interval &I, const interval &J)
   {
-    const double l = maximum(I.left(),J.left()), r = maximum(I.right(),J.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(maximum(I.left(),J.left()), maximum(I.right(),J.right()));
   }
 
   interval  min(const interval &I, const interval &J)
   {
-    const double l = minimum(I.left(),J.left()), r = minimum(I.right(),J.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
 
 
@@ -4113,12 +4113,10 @@ namespace gaol {
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();
     }
-    // An empty one gives the empty set, without giving its NaN bounds to the
-    // constructor, which compares them and raises the invalid-operation
-    // exception (GAOL v5)
-    if (tmpl.is_empty() || tmpr.is_empty()) {
-      return interval::emptyset();
-    }
+    // An empty one gives the empty set, from its NaN bounds, which the
+    // constructor tells with a quiet comparison (GAOL v5: it was told first,
+    // when the constructor compared them with <=, which raises the
+    // invalid-operation exception on a NaN)
     return interval(tmpl.left(), tmpr.right());
   }
 
