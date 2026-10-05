@@ -1605,6 +1605,24 @@ int main()
           [&] { return std::string(e.name); });
     check("pow with an exponent of extreme magnitude: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  {
+    /* The differences of the bounds of cancel_minus() are computed by TwoSum
+       in the rounding to nearest, their terms kept before the direction
+       changes back: GCC computed them after it, upward, where TwoSum is no
+       longer exact, and the terms of the error of
+       cancel_minus([DBL_MAX], [1]) read +oo and inf - inf, and raised the
+       invalid-operation flag (GAOL v5, point 48; the bounds are checked in
+       tests/arithmetic.cpp) */
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("cancel_minus with a huge bound raises no invalid-operation flag", raised == 0,
+          [&] { return "flags " + std::to_string(raised) + " raised"; });
+    check("cancel_minus([DBL_MAX], [1]) is the hull of DBL_MAX",
+          z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
+              && z.right() == (std::numeric_limits<double>::max)(),
+          [&] { return hex(z); });
+  }
   const std::vector<HugeInterval> huge = huge_intervals();
   check("the intervals with a huge bound: the subnormal bound is 2^-1074",
         huge.back().l == std::ldexp(gaol::rnd_keep(1.0), -1074) && huge.back().r == (std::numeric_limits<double>::max)(),
@@ -1673,6 +1691,13 @@ int main()
       check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
+    const Outcome oc = run_with_exceptions_enabled(FE_INVALID, [] {
+      const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
+      return z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
+          && z.right() == (std::numeric_limits<double>::max)();
+    });
+    check("cancel_minus([DBL_MAX], [1]), FE_INVALID enabled", oc == returned_true,
+          [&] { return outcome_text(oc); });
     for (const RelationLoop& r : relation_loops) {
       const Outcome ol = run_with_exceptions_enabled(FE_INVALID, [&r] { return relation_loop_is_right(r); });
       check("a loop of relations with empty operands, FE_INVALID enabled", ol == returned_true,

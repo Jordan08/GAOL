@@ -937,6 +937,25 @@ namespace
           cancel_minus(interval(1.0, 5.0), interval(0.0, 2.0)).set_eq(interval(1.0, 3.0)), [] { return std::string(); });
     check("cancel_plus([1, 5], [0, 2]) = cancel_minus([1, 5], [-2, 0]) = [3, 5]",
           cancel_plus(interval(1.0, 5.0), interval(0.0, 2.0)).set_eq(interval(3.0, 5.0)), [] { return std::string(); });
+
+    /* The differences of the bounds that tell whether X is at least as wide as
+       Y are computed by TwoSum in the rounding to nearest, their terms kept
+       before the direction changes back: GCC computed them after it, upward,
+       where TwoSum is no longer exact, and [0.5] looked as wide as
+       [4.9e-324, 1e-300], whose rounded differences of the bounds are the
+       same; with a bound of DBL_MAX, the first sum read +oo and the terms of
+       the error inf - inf, which raised FE_INVALID (GAOL v5, point 48, the
+       flag checked in tests/rounding_direction.cpp) */
+    check("cancel_minus([0.5], [4.9e-324, 1e-300]) = entire: X narrower than Y, which the rounded differences do not show",
+          cancel_minus(interval(0.5), interval(4.9e-324, 1e-300)).is_entire(),
+          [&] { return hex(cancel_minus(interval(0.5), interval(4.9e-324, 1e-300))); });
+    const double largest = (std::numeric_limits<double>::max)();
+    check("cancel_minus([DBL_MAX], [0.5]) = [DBL_MAX one double below, DBL_MAX]",
+          cancel_minus(interval(largest), interval(0.5)).set_eq(interval(std::nextafter(largest, 0.0), largest)),
+          [&] { return hex(cancel_minus(interval(largest), interval(0.5))); });
+    check("cancel_plus([DBL_MAX], [-0.5]) is the same hull",
+          cancel_plus(interval(largest), interval(-0.5)).set_eq(interval(std::nextafter(largest, 0.0), largest)),
+          [&] { return hex(cancel_plus(interval(largest), interval(-0.5))); });
   }
 }
 

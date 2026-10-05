@@ -52,7 +52,12 @@ mode there.
   negations GAOL rounds its lower bound with, and the bound came one double
   above the exact one. `cancel_minus` and `cancel_plus` have to be the tightest
   and `y + cancel_minus(x, y)` to enclose x, over intervals of the same width
-  and one double wider, which rounding cannot tell apart (GAOL v5).
+  and one double wider, which rounding cannot tell apart, and at the corners
+  where the exact differences of the bounds are within a double of each other
+  (`[0.5]` against `[4.9e-324, 1e-300]`) or beyond the largest double
+  (`[DBL_MAX]` against `[0.5]` and `[1]`): GCC at `-O3` computed the terms of
+  their TwoSum after the direction was set back to upward, where it is no
+  longer exact (GAOL v5).
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
