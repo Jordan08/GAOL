@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `374d18c` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `baec3a1` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -62,6 +62,25 @@ detail` du programme était ambigu. Décidé en fin de travail : une borne `long
 double` à côté d'un entier reste arrondie, ce que la documentation dit, et `x +
 n` pour un n au-delà de 2^53 reste un encadrement, sans être le plus étroit. Les
 textes pour `ChangeLog` et `doc/differences.md` sont dans la description de #84.
+Fait le 5 octobre aussi : les anciens 23, 36 et 48 du point H, par #86 :
+`cancel_minus` et `cancel_plus` exacts à `-O3` (les termes de leur TwoSum
+passés par `rnd_keep()`, avec un test qui lève `FE_INVALID` sans la
+correction), `gaol::restore_rounding()` appelable autant de fois que voulu, la
+garde `gaol_core::rounding_guard` qui protège le lecteur, `operator<<` et
+`intervalToText()` d'un `std::bad_alloc` qui laissait l'arrondi au plus proche,
+et la section « What the upward rounding does to the program » de
+`doc/using.md` achevée : le coût de `GAOL_PRESERVE_ROUNDING` mesuré (2,2 à 3,9
+fois sur les quatre opérations, `exp` 1,7, `sin` et `cos` 1,3) et les mesures
+de TwoSum et TwoProd en arrondi dirigé dans l'exemple 13. Décidé en fin de
+travail, et fait par #86 : la formule de Dekker de TwoProd à quatre termes
+(celle à trois est fausse même au plus proche pour des opérandes de
+magnitudes très différentes) ; TwoProd mesuré sur des paires de [1, 2), celles
+d'exposants très différents n'y perdant pas leur exactitude ; le nom
+`gaol_core::rounding_guard`. Restent du point H : le 27 (l'étude d'un arrondi
+porté par chaque instruction) et la partie manuel du 36, reportée au point I ;
+le « about 7 ns » d'`examples/examples.md` (l. 509) pour un bloc au plus proche
+est contredit par la mesure (11 à 13 ns), à corriger au point I. Les textes
+pour `ChangeLog` et `doc/differences.md` sont dans la description de #86.
 
 ## En cours
 
@@ -70,10 +89,6 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 - **E** (ancien 12), `todo-12-long-sums` (553e649) : inachevé (commits
   « WIP ») ; restent la fin du travail, son rapport, la relecture, la CI et la
   pull request.
-- **H** (ancien 36), `todo-36-upward-rounding-effects` (1559af5) : inachevé
-  (« WIP » fait sur `a2ca992`, conflit avec `configure-clean` dans
-  `doc/using.md`) ; voir le point H ; restent aussi la fusion de
-  `configure-clean`, la relecture et la pull request.
 
 ## Même changement, ou même code
 
@@ -441,52 +456,18 @@ textes qui décrivent le refus.
   quand GAOL est un sous-projet (ils prennent `CMAKE_BINARY_DIR` et
   `CMAKE_SOURCE_DIR`).
 
-### H. Le sens d'arrondi (23, 36, 48, 27)
+### H. Le sens d'arrondi (27)
 
-`gaol_core::rnd_keep()`, que le 23 doit présenter comme une barrière, corrige le
-48 ; la branche du 36 documente déjà `rnd_keep()` et écrit une garde ; le 27 est
-l'étude qui rendrait ces précautions inutiles. La partie du 36 pour le manuel
-s'écrit avec le point I.
+Les anciens 23, 36 et 48 sont faits par #86, sauf la partie manuel du 36,
+reportée au point I ; reste l'étude du 27, qui rendrait les précautions du 23
+inutiles.
 
-- **36.** **Ce que l'arrondi vers le haut fait au programme**, dans
-  `doc/using.md` et dans « Common errors » du manuel, avec la table de la
-  section 2.8 de `examples/examples.md` (`printf`, `strtod`, `lrint`, les
-  allers-retours par le texte, TwoSum, un double calculé avant `cleanup()` et
-  réutilisé après), et `GAOL_PRESERVE_ROUNDING` avec son coût. Commencé dans la
-  branche `todo-36-upward-rounding-effects` (une section de `doc/using.md` et
-  des ajouts à `examples/13_rounding_environment.cpp`). Restent : le coût de
-  `GAOL_PRESERVE_ROUNDING` (la section finit sur `XXCOSTXX`), le manuel, et les
-  mesures de TwoSum et TwoProd en arrondi dirigé (exacts avec `fma`).
-- **23.** **Gérer le sens d'arrondi** : `gaol::cleanup()` ne le restaure qu'à
-  son premier appel, il n'y a pas de garde à portée, et `rnd_keep()` n'est pas
-  présenté comme une barrière. Correction : un `gaol::restore_rounding()` qu'on
-  peut appeler autant de fois qu'on veut, une garde qui calcule un bloc au plus
-  proche (environ 7 ns) et `rnd_keep()` documenté ; à faire avec le point 36,
-  dont la branche documente déjà `rnd_keep()` et écrit une telle garde dans
-  `examples/13_rounding_environment.cpp`. Les sauvegardes manuelles sautent
-  aussi si une allocation lève `std::bad_alloc` : après `round_nearest()`,
-  `gaol_enclose_number()` compare le nombre avec des `std::vector` sans garde ;
-  la construction du texte dans `operator<<` ou `intervalToText()` peut
-  également échouer avant `GAOL_RND_RESTORE()` ou `GAOL_RND_LEAVE()`. Le lecteur
-  peut alors laisser l'arrondi au plus proche même sans
-  `GAOL_PRESERVE_ROUNDING` ; protéger ces chemins par une garde RAII.
-- **48.** **`cancel_minus` et `cancel_plus` sont faux avec la bibliothèque
-  compilée par GCC à `-O3`** (le build Release par défaut) : dans
-  `difference_at_least()` (`gaol/gaol_interval.cpp`), GCC déplace les termes
-  d'erreur de `two_sum` après `GAOL_RND_NEAREST_LEAVE()`, où TwoSum n'est plus
-  exact. `cancel_minus([0.5], [4.9e-324, 1e-300])` donne [0x1.fffffffffffffp-2,
-  0.5] au lieu de [-oo, +oo], et `cancel_minus([DBL_MAX], [0.5])` [-oo, +oo].
-  Correction (essayée) : faire passer `s1`, `e1`, `s2` et `e2` par
-  `gaol_core::rnd_keep()` avant `GAOL_RND_NEAREST_LEAVE()` (`GAOL_RND_KEEP` ne
-  corrige rien), un test avec ces cas et `cancel_minus([DBL_MAX], [1])`, qui
-  lève aussi FE_INVALID, et le commentaire de `GAOL_RND_NEAREST_ENTER`
-  (`gaol/gaol_fpu.h`) à corriger.
 - **27.** **Un sens d'arrondi qui ne fuit pas** : l'arrondi porté par chaque
   instruction (AVX-512, le FPCR d'AArch64 en assembleur), comme le fait inari,
   trois fois plus rapide sur les additions ; dans la direction de P2746.
-  Aujourd'hui GAOL laisse l'arrondi vers le haut au programme (point 36) ou,
-  avec `GAOL_PRESERVE_ROUNDING`, le change et le rend à chaque opération,
-  plusieurs fois plus lentement.
+  Aujourd'hui GAOL laisse l'arrondi vers le haut au programme (`doc/using.md`,
+  par #86) ou, avec `GAOL_PRESERVE_ROUNDING`, le change et le rend à chaque
+  opération, plusieurs fois plus lentement.
 
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
 
@@ -820,7 +801,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83 et #84 après leur fusion).
+  #83, #84 et #86 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -837,10 +818,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 18 : F ; 21 : D ; 22 : V ; 23 : H ; 25 : P ; 26 : W ;
-27 : H ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 36 : H ;
+12 : E ; 14 : S ; 15 : F ; 18 : F ; 21 : D ; 22 : V ; 25 : P ; 26 : W ;
+27 : H ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
 37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ;
-46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ;
+46 : F ; 47 : A ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ;
 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ;
 66 : T ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
@@ -850,9 +831,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    changements du constructeur et préciser la correction DAZ du lecteur avant
    la régénération finale du parser. Les branches E et H peuvent avancer en
    parallèle sur leurs parties indépendantes.
-2. **Terminer et fusionner E, puis H.** Inclure dans E la gestion récupérable de
+2. **Terminer et fusionner E.** Inclure dans E la gestion récupérable de
    l'échec d'allocation du scanner ; régénérer le parser une fois les décisions
-   de Q prises, puis relire les branches et résoudre le conflit de `doc/using.md`.
+   de Q prises, puis relire la branche. Le point H est fait (#86), hors le 27
+   et la partie manuel reportée au point I.
 3. **Finir Q et les corrections de puissance B.** Faire d'abord A.3, prérequis
    noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce point.
    Compléter ensuite les tests DAZ concernés par Q.
