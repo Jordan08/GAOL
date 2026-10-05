@@ -1596,11 +1596,16 @@ One can create an interval with four constructors, or with
   castable into a \code{double}. The result is the empty set when
   \itv{l}{r} is not an interval: for a left bound $+\infty$, a right bound
   $-\infty$, bounds in the wrong order ($l>r$) and NaN bounds;\newinvfive{}
-  an integer bound is taken as the integer it is, whatever its type
-  (\code{bool} aside): the left bound is the largest double at most \var{l},
-  the right one the smallest double at least \var{r}, so that
+  an integer bound of any integer type but \code{bool}, the other bound
+  being an integer, a \code{double} or a \code{float}, is taken as the
+  integer it is: the left bound is the largest double at most \var{l}, the
+  right one the smallest double at least \var{r}, so that
   \code{interval(1, 9007199254740993LL)} contains $2^{53}+1$, which no double
-  is, and which its conversion to a double made $2^{53}$;\newinvfive
+  is, and which its conversion to a double made $2^{53}$ or $2^{53}+2$
+  according to the rounding direction; and the result is the empty set for
+  $l>r$ compared as numbers, \code{interval(9007199254740993LL,
+  9007199254740992LL)} being empty though both lie between the same two
+  doubles;\newinvfive
 \cindex{empty!interval: constructing}%
 
 \item by providing only one bound, for degenerate point intervals:
@@ -1622,10 +1627,13 @@ One can create an interval with four constructors, or with
   \itv{n}{n} where $n$ is a double, as every \code{int} is, and the two
   doubles around it otherwise: \code{interval(9007199254740993LL)} is
   \itv{2^{53}}{2^{53}+2}, where the conversion of $2^{53}+1$ to a double gave
-  \itv{2^{53}}{2^{53}}, and \code{interval(ULLONG\_MAX)} contains
-  $2^{64}-1$. This constructor is \code{explicit} too, and the same
-  operations take an integer as they take \code{interval(\var{n})}, the
-  relations comparing it as the integer it is (\pxref{sec:relational-symbols});\newinvfive
+  \itv{2^{53}}{2^{53}} or \itv{2^{53}+2}{2^{53}+2}, neither of which contains
+  it, and \code{interval(ULLONG\_MAX)} contains $2^{64}-1$. This constructor
+  is \code{explicit} too, and the same operations take an integer as they
+  take \code{interval(\var{n})}, the relations comparing it as the integer
+  it is (\pxref{sec:relational-symbols}), and \code{\&=} giving
+  \code{interval(\var{n})} where the interval contains $n$, the empty set
+  otherwise;\newinvfive
 \item without providing any bound:
   \begin{example}
     interval x;
@@ -1994,8 +2002,8 @@ too:\newinvfive{} \ieee{equal}, \ieee{subset}, \ieee{interior},
   IEEE 1788-2015 for a finite \var{d}. \var{d} shall not be a NaN. An
 integer of any integer type but \code{bool} is compared as the integer it is,
 here and in \code{set\_strictly\_contains()}: \itv{2^{53}}{2^{53}} does not
-contain $2^{53}+1$, which its conversion to a double made $2^{53}$, and
-\itv{2^{53}}{2^{53}+2} contains it strictly.\newinvfive
+contain $2^{53}+1$, which its conversion to a double made $2^{53}$ in the
+rounding to nearest, and \itv{2^{53}}{2^{53}+2} contains it strictly.\newinvfive
 
 \begin{example}
 interval x(-12,34), y(-12,5);
@@ -2313,8 +2321,8 @@ compare as the interval and the integer it is, where it is no double: a
 double is below $n$ if and only if it is at most the largest double below
 $n$, so that \code{interval(9007199254740992.0) < 9007199254740993LL},
 $\itv{2^{53}}{2^{53}} < 2^{53}+1$, is \code{true}, where the conversion of
-$2^{53}+1$ to the double $2^{53}$ made it \code{false}. An integer that is a
-double compares as that double.\newinvfive
+$2^{53}+1$ to the double $2^{53}$, in the rounding to nearest, made it
+\code{false}. An integer that is a double compares as that double.\newinvfive
 
 \deffunx{bool}{operator<}{(const interval\& \var{I}, double \var{d})}
 \deffunx{bool}{operator<}{(double \var{d}, const interval\& \var{I})}
@@ -2675,6 +2683,7 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
 \deffunx{interval}{pow}{(const interval\& \var{I}, unsigned int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, double \var{p})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, long \var{n})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, long long \var{n})}
 \begin{deffun}{interval}{pow}{(const interval\& \var{I}, const interval\& \var{J})}
   \begin{operation}
     \op{$I^n$}
