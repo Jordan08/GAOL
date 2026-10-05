@@ -830,12 +830,12 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_simd
+enable_preserve_rounding
 enable_prefer_avx512
 enable_fma
 enable_verbose_mode
 enable_debug
 enable_optimize
-enable_preserve_rounding
 enable_exceptions
 enable_asm
 with_tests
@@ -1502,11 +1502,15 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-simd           use SIMD instructions to implement arithmetic
                           operations
+  --enable-preserve-rounding
+                          restore the rounding direction after each operation,
+                          rather than leaving it upward [default=no]
   --enable-prefer-avx512  have +, -, *, / and sqrt take the AVX-512
                           instructions and the rounding direction they carry
                           in themselves, which sets neither the rounding
                           direction nor the flush-to-zero modes, on a
-                          processor that has them [default=no]
+                          processor that has them [default=as
+                          preserve-rounding]
   --enable-fma            compile GAOL and CORE-MATH with the fused
                           multiply-add instructions of the processor, where
                           the compiler has a flag for them (no: a library for
@@ -1519,9 +1523,6 @@ Optional Features:
                           then ignored [default=no]
   --enable-optimize       compile gaol with full optimization, as the Release
                           build of CMake [default=yes]
-  --enable-preserve-rounding
-                          restore the rounding direction after each operation,
-                          rather than leaving it upward [default=no]
   --enable-exceptions     raise exceptions to signal errors [default=yes]
   --enable-asm            use assembler code [default=yes]
 
@@ -19111,6 +19112,22 @@ printf "%s\n" "#define GAOL_USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
         fi
     fi
 fi
+# --enable-preserve-rounding, which --enable-prefer-avx512 follows by
+# default (GAOL v5)
+# Check whether --enable-preserve-rounding was given.
+if test ${enable_preserve_rounding+y}
+then :
+  enableval=$enable_preserve_rounding; preserve_rounding=${enable_preserve_rounding}
+else case e in #(
+  e) preserve_rounding="no" ;;
+esac
+fi
+
+if test "${preserve_rounding}" = yes; then
+
+printf "%s\n" "#define GAOL_PRESERVE_ROUNDING 1" >>confdefs.h
+
+fi
 # --enable-prefer-avx512: the AVX-512 path of +, -, *, / and sqrt, as
 # CMakeLists.txt and meson.build take it (see CMakeLists.txt). The path is
 # compiled into the library beside the SSE2 one whenever the compiler
@@ -19118,14 +19135,19 @@ fi
 # __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which GCC
 # and Clang on x86-64 do: no flag, the attribute is per function, and the
 # library runs on any processor of the architecture. gaol::init() takes the
-# path when the program asks for it, with --enable-prefer-avx512, and the
-# processor has the instructions.
+# path when the program asks for it, and the processor has the instructions:
+# on by default where --enable-preserve-rounding is, the path sparing the
+# store of the rounding direction every operation pays; what the command
+# line gave wins either way, --disable-prefer-avx512 refusing the path
+# under --enable-preserve-rounding. A default the compiler or the
+# architecture cannot take degrades silently, where --enable-prefer-avx512
+# without the path is an error (GAOL v5).
 # Check whether --enable-prefer-avx512 was given.
 if test ${enable_prefer_avx512+y}
 then :
-  enableval=$enable_prefer_avx512; prefer_avx512=${enable_prefer_avx512}
+  enableval=$enable_prefer_avx512; prefer_avx512=${enable_prefer_avx512}; prefer_avx512_explicit=yes
 else case e in #(
-  e) prefer_avx512="no" ;;
+  e) prefer_avx512=${preserve_rounding}; prefer_avx512_explicit=no ;;
 esac
 fi
 
@@ -19184,11 +19206,21 @@ printf "%s\n" "#define GAOL_HAVE_AVX512_TARGET 1" >>confdefs.h
 fi
 if test "${prefer_avx512}" = yes; then
     if test "${have_avx512_target}" = no; then
-        as_fn_error $? "--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with GCC or Clang" "$LINENO" 5
-    fi
+        if test "${prefer_avx512_explicit}" = yes; then
+            as_fn_error $? "--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with GCC or Clang" "$LINENO" 5
+        fi
+        # The default --enable-preserve-rounding derived, and the compiler
+        # or the architecture takes no path: the operations keep setting
+        # the direction upward and giving it back, as a build with
+        # --enable-preserve-rounding always did (GAOL v5)
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: no AVX-512 path of +, -, *, / and sqrt: the operations keep setting the rounding direction upward" >&5
+printf "%s\n" "$as_me: no AVX-512 path of +, -, *, / and sqrt: the operations keep setting the rounding direction upward" >&6;}
+        prefer_avx512="no"
+    else
 
 printf "%s\n" "#define GAOL_PREFER_AVX512 1" >>confdefs.h
 
+    fi
 fi
 
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
@@ -19851,22 +19883,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-
-# --enable-preserve-rounding
-# Check whether --enable-preserve-rounding was given.
-if test ${enable_preserve_rounding+y}
-then :
-  enableval=$enable_preserve_rounding; preserve_rounding=${enable_preserve_rounding}
-else case e in #(
-  e) preserve_rounding="no" ;;
-esac
-fi
-
-if test "${preserve_rounding}" = yes; then
-
-printf "%s\n" "#define GAOL_PRESERVE_ROUNDING 1" >>confdefs.h
-
-fi
 
 # --enable-exceptions
 # Check whether --enable-exceptions was given.
@@ -23031,6 +23047,7 @@ printf "elementary functions\t= CORE-MATH (3rd/math-core, correctly rounded)\n"
 printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"
+printf "prefer AVX-512\t\t= ${prefer_avx512}\n"
 printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"

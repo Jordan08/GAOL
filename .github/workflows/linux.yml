@@ -71,8 +71,11 @@ jobs:
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic' }
           # The same, with the rounding direction of the program preserved:
           # the AVX-512 path then spares the store of MXCSR that the SSE2
-          # one pays in every operation (GAOL v5)
-          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=ON', desc: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic, rounding direction preserved' }
+          # one pays in every operation, which GAOL_PRESERVE_ROUNDING takes
+          # by default. The job above takes the path, this one refuses it
+          # (-DGAOL_PREFER_AVX512=OFF), the SSE2 operations of the
+          # preserved direction staying covered (GAOL v5)
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools

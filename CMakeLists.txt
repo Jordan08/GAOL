@@ -142,7 +142,24 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 
 option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
-option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them (OFF: the operations set the direction upward)" OFF)
+# GAOL_PREFER_AVX512, whether gaol::init() takes the AVX-512 path of +, -,
+# *, / and sqrt on a processor that has the instructions (see the detection
+# below). ON by default where GAOL_PRESERVE_ROUNDING is: the path spares the
+# store of the rounding direction every operation pays, which is what
+# GAOL_PRESERVE_ROUNDING is about. What the command line gave wins either
+# way: -DGAOL_PREFER_AVX512=OFF refuses the path under
+# GAOL_PRESERVE_ROUNDING, as -DGAOL_PREFER_AVX512=ON takes it without it.
+# The default derives at every configure where the command line said
+# nothing, from GAOL_PRESERVE_ROUNDING above (GAOL v5).
+if(DEFINED GAOL_PREFER_AVX512)
+  set(GAOL_PREFER_AVX512_EXPLICIT ON)
+else()
+  set(GAOL_PREFER_AVX512_EXPLICIT OFF)
+endif()
+option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)" OFF)
+if(NOT GAOL_PREFER_AVX512_EXPLICIT AND GAOL_PRESERVE_ROUNDING)
+  set(GAOL_PREFER_AVX512 ON)
+endif()
 
 # As configure.ac and meson.build ask: -std=c++11; C99 for the sources of
 # CORE-MATH, with the GNU extensions (CMake's default), which the inline
@@ -622,7 +639,15 @@ if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   endif()
 endif()
 if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
-  message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang")
+  if(GAOL_PREFER_AVX512_EXPLICIT)
+    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang")
+  endif()
+  # The default GAOL_PRESERVE_ROUNDING derived, and the compiler or the
+  # architecture takes no path: the operations keep setting the direction
+  # upward and giving it back, as a build with GAOL_PRESERVE_ROUNDING
+  # always did (GAOL v5)
+  message(STATUS "GAOL_PREFER_AVX512, from GAOL_PRESERVE_ROUNDING: no AVX-512 path here, the operations keep setting the direction upward")
+  set(GAOL_PREFER_AVX512 OFF)
 endif()
 message(STATUS "AVX-512 interval arithmetic compiled in: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}")
 

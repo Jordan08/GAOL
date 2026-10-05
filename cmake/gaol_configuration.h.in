@@ -66,7 +66,8 @@
 
 /* Defined to 1 to have gaol::init() take that path when the processor has
    the AVX-512 instructions (GAOL_PREFER_AVX512, -DGAOL_PREFER_AVX512=ON,
-   --enable-prefer-avx512 elsewhere; off by default): +, -, *, / and sqrt
+   --enable-prefer-avx512 elsewhere; on by default where
+   GAOL_PRESERVE_ROUNDING is, off otherwise): +, -, *, / and sqrt
    then set neither the rounding direction nor the modes that flush the
    subnormals to zero, whatever the program left, and raise no exception flag */
 #cmakedefine GAOL_PREFER_AVX512 1

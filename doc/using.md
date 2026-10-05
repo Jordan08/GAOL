@@ -561,7 +561,11 @@ What to do:
 ### The AVX-512 path
 
 Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
-`-Denable-prefer-avx512=true`), on a processor that has the AVX-512
+`-Denable-prefer-avx512=true`), on by default where the rounding direction
+is preserved, whose every operation of `+`, `-`, `*`, `/` and `sqrt` the
+path relieves of the store of that direction — `--disable-prefer-avx512`
+and `-DGAOL_PREFER_AVX512=OFF` refuse it there —, on a processor that has
+the AVX-512
 instructions, GAOL has `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`, and
 the operations of `+`, `-`, `*` and `/` with a double, computed by the rounding
 direction the instructions carry in themselves (GAOL v5). These operations
