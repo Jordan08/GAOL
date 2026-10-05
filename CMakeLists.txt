@@ -782,7 +782,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # not part of GAOL's interface (gaol_double_op.h), and the intervals of
 # floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 set(GAOL_HEADERS
-  gaol/gaol.h gaol/gaol_allocator.h gaol/gaol_assert.h gaol/gaol_common.h
+  gaol/gaol.h gaol/gaol_assert.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
   gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
   gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h

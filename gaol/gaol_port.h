@@ -51,8 +51,11 @@
 
 // Allocation of 'size' bytes on 'boundary' bytes.
 // NOTE: GAOL_MEMALIGN() must return null value if no allocation error
-// GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (gaol_allocator.h,
-// gaol_interval_sse.cpp): the two have to match.
+// GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (operator new
+// and operator delete of the SSE2 intervals, gaol_interval_sse.cpp, and of
+// the intervals of floats, gaol_interval2f.cpp): the two have to match.
+// gaol_allocator.h, the allocator of the containers that used them too, is
+// gone (GAOL v5).
 #if defined (__MINGW32__) || defined (_MSC_VER)
 /* _aligned_malloc() and _aligned_free(), of the C runtime of Windows: malloc()
    aligns on 8 bytes only on 32-bit Windows, and GAOL's SSE2 intervals need

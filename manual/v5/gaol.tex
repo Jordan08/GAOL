@@ -5221,6 +5221,8 @@ change with its reasons and its measures.
   \code{\_\_GAOL\_PUBLIC\_\_} empty: GAOL is a static library there, and its
   declarations carry no \code{\_\_declspec(dllimport)}. A definition left in
   a project changes nothing. The macro is \code{GAOL\_PUBLIC} now.
+\item The allocator of containers \code{aligned\_allocator} is gone, with its
+  header, \file{gaol/gaol\_allocator.h}.
 \item GAOL is the only library to link: the mathematical library GAOL~4 was
   built with is no longer used, CORE-MATH being compiled into GAOL, and the
   options of the builds that chose it are gone.

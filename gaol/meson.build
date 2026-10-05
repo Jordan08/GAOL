@@ -100,7 +100,6 @@ endif
 gaol_HEADERS = [
   'gaol',
   'gaol.h',
-  'gaol_allocator.h',
   'gaol_assert.h',
   'gaol_common.h',
   'gaol_config.h',

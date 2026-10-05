@@ -442,7 +442,7 @@ library_includedir = $(includedir)/gaol
 # manual), and those they include,
 # gaol_fpu_msvc.h for Visual C++ among them: CMake and meson install the same
 # ones (GAOL v5)
-library_include_HEADERS = gaol gaol.h gaol_allocator.h gaol_assert.h \
+library_include_HEADERS = gaol gaol.h gaol_assert.h \
 	gaol_common.h gaol_config.h gaol_eval_stack.h gaol_exceptions.h \
 	gaol_expr_eval.h gaol_expr_visitor.h gaol_expression.h gaol_flags.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
