@@ -585,13 +585,31 @@ namespace
     double l, r;
   };
 
-  const HugeInterval huge_intervals[] = {
-    { "[DBL_MAX]", (std::numeric_limits<double>::max)(), (std::numeric_limits<double>::max)() },
-    { "[-DBL_MAX]", -(std::numeric_limits<double>::max)(), -(std::numeric_limits<double>::max)() },
-    { "[1e308, DBL_MAX]", 1e308, (std::numeric_limits<double>::max)() },
-    { "[-DBL_MAX, -2^1023]", -(std::numeric_limits<double>::max)(), -0x1p1023 },
-    { "[2^-1074, DBL_MAX]", std::numeric_limits<double>::denorm_min(), (std::numeric_limits<double>::max)() },
-  };
+  /*
+    The intervals, made at run time from doubles read back from volatile
+    memory: GCC 12 and 13 with -frounding-math initialized a double member of
+    an aggregate given std::numeric_limits<double>::denorm_min() with -0, as
+    a table at namespace scope or in a function, so that [2^-1074, DBL_MAX]
+    was [-0, DBL_MAX] on x86-64, and for 32-bit x86, where GCC 13 also wrote
+    the 12 bytes of the long double 2^-1074 over the next member, [-0, NaN],
+    the empty set: the checks of its midpoints failed (Debian 12 i386,
+    MinGW-w64 12.2 and 13.2 for x86), though midpoint() and mid() give the
+    right ones there. A scalar double initialized so, and the members of a
+    structure copied from it, have the right value.
+  */
+  std::vector<HugeInterval> huge_intervals()
+  {
+    const double largest = gaol::rnd_keep((std::numeric_limits<double>::max)());
+    const double smallest_subnormal = gaol::rnd_keep(std::numeric_limits<double>::denorm_min());
+    const double two_1023 = gaol::rnd_keep(0x1p1023);
+    std::vector<HugeInterval> intervals;
+    intervals.push_back(HugeInterval{ "[DBL_MAX]", largest, largest });
+    intervals.push_back(HugeInterval{ "[-DBL_MAX]", -largest, -largest });
+    intervals.push_back(HugeInterval{ "[1e308, DBL_MAX]", gaol::rnd_keep(1e308), largest });
+    intervals.push_back(HugeInterval{ "[-DBL_MAX, -2^1023]", -largest, -two_1023 });
+    intervals.push_back(HugeInterval{ "[2^-1074, DBL_MAX]", smallest_subnormal, largest });
+    return intervals;
+  }
 
   struct Midpoints
   {
@@ -1550,14 +1568,22 @@ int main()
           [&] { return std::string(e.name); });
     check("pow with an exponent of extreme magnitude: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  const std::vector<HugeInterval> huge = huge_intervals();
+  check("the intervals with a huge bound: the subnormal bound is 2^-1074",
+        huge.back().l == std::ldexp(gaol::rnd_keep(1.0), -1074) && huge.back().r == (std::numeric_limits<double>::max)(),
+        [&] { return "[" + hex(huge.back().l) + ", " + hex(huge.back().r) + "]"; });
   std::vector<Midpoints> huge_midpoints;
-  for (const HugeInterval& h : huge_intervals) {
+  for (const HugeInterval& h : huge) {
     std::feclearexcept(FE_ALL_EXCEPT);
     huge_midpoints.push_back(midpoints_of(h));
     const int raised = std::fetestexcept(FE_OVERFLOW);
+    const Midpoints& m = huge_midpoints.back();
     check("the midpoints of an interval with a huge bound raise no overflow flag", raised == 0, [&] { return std::string(h.name); });
-    check("the midpoints of an interval with a huge bound are right", midpoints_are_right(h, huge_midpoints.back()),
-          [&] { return std::string(h.name); });
+    check("the midpoints of an interval with a huge bound are right", midpoints_are_right(h, m),
+          [&] {
+            return std::string(h.name) + ": midpoint() " + hex(m.midpoint) + ", mid() " + hex(m.mid) + ", rad() " + hex(m.rad)
+                 + ", split() " + hex(m.split_l) + " " + hex(m.split_r);
+          });
   }
   for (const RelationLoop& r : relation_loops) {
     std::feclearexcept(FE_ALL_EXCEPT);
@@ -1636,9 +1662,9 @@ int main()
   } else {
     for (std::size_t i = 0; i < huge_midpoints.size(); ++i) {
       // The midpoints computed above, apart from the exception enabled
-      const Outcome oe = run_with_exceptions_enabled(FE_OVERFLOW, [&] { return midpoints_of(huge_intervals[i]) == huge_midpoints[i]; });
+      const Outcome oe = run_with_exceptions_enabled(FE_OVERFLOW, [&] { return midpoints_of(huge[i]) == huge_midpoints[i]; });
       check("the midpoints of an interval with a huge bound, FE_OVERFLOW enabled", oe == returned_true,
-            [&] { return std::string(huge_intervals[i].name) + ": " + outcome_text(oe); });
+            [&] { return std::string(huge[i].name) + ": " + outcome_text(oe); });
     }
   }
 #else
