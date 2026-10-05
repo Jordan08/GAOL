@@ -136,53 +136,45 @@
     return I;
   }
 
- GAOL_INLINE
+  /*
+    One quiet comparison, std::isunordered() of the two stored lower bounds,
+    tells whether either operand is empty, both bounds of the empty set being
+    NaN, and the intersection is then [NaN, NaN], interval::emptyset() (GAOL
+    v5, decided for point D.24 of TODO.md). Before it, *this was told empty
+    with is_empty() and returned as it was, with the NaN it held, and I with
+    the quiet comparisons of its bounds below, or on 32-bit ARM with
+    std::isunordered() of its bounds (#60): GCC for 32-bit ARM (12 to 14),
+    where it turns the choice of a bound into a conditional move, reverses
+    the comparison, "I.right() < right() or unordered" becoming "I.right() >=
+    right()", and compiles the reversed one with vcmpe, which raises the
+    invalid-operation exception on a NaN, rather than vcmp (GCC bug 52258 is
+    of this kind), and GCC 13 for POWER9 with xscmpgedp: x & y,
+    intersection() and the reverse functions intersecting with an empty y
+    raised it on armhf, and x &= y for an empty y on POWER9.
+    std::isunordered() stays quiet when GCC reverses it ("ordered" stays
+    vcmp), and no NaN reaches the comparisons after it. (An empty *this told
+    so made GCC compare its NaN bounds again with vcmpe in the program's
+    (empty & x).is_empty() ? a : b, where is_empty() was one quiet
+    comparison: is_empty() tells them with std::isunordered() first on 32-bit
+    ARM now, see gaol_interval.h.) The comparisons after it are quiet ones
+    all the same: GCC 9.4 at -O3 computed them before that test, for an empty
+    I, in a loop of intersections where it turned the function into
+    straight-line code, and compiled plain comparisons with comisd, which
+    raised the invalid-operation exception (tests/rounding_direction.cpp).
+  */
+  GAOL_INLINE
   interval& interval::operator&=(const interval& I)
   {
-#if defined(__arm__) && !defined(__aarch64__)
-    // GCC for 32-bit ARM processors (12 to 14) may compile the quiet
-    // comparisons of the code after #else into signaling ones: where it turns
-    // the choice of a bound into a conditional move, it reverses the
-    // comparison, "I.right() < right() or unordered" becoming "I.right() >=
-    // right()", and compiles the reversed one with vcmpe, which raises the
-    // invalid-operation exception on a NaN, rather than vcmp (GCC bug 52258 is
-    // of this kind): x & y, intersection() and the reverse functions
-    // intersecting with an empty y raised it on armhf. Both operands are
-    // therefore told empty before their bounds are compared, so that these
-    // comparisons never meet a NaN. "this" is told with is_empty(), as after
-    // #else: when it is false, both bounds of "this" are ordered, and it is
-    // the test a program makes of the result, which GCC then knows to be true
-    // on that path (told with isunordered(), an empty "this" made GCC compare
-    // the NaN bounds again, with vcmpe, in the program's
-    // (empty & x).is_empty() ? a : b). I is told with isunordered(), which
-    // stays a vcmp when GCC reverses it into "ordered" (GAOL v5)
-    if (is_empty()) {
-      return *this;
-    }
-    if (std::isunordered(I.lb_, I.rb_)) {
+    if (std::isunordered(lb_, I.lb_)) {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
       return *this;
     }
-    if (I.left() > left()) {
-      lb_ = I.lb_;
-    }
-    if (I.right() < right()) {
-      rb_ = I.rb_;
-    }
-#else
-    if (is_empty()) {
-      return *this;
-    }
-    // From now on, "this" is known to be nonempty.
-    // The comparisons are quiet ones, which raise no invalid-operation
-    // exception on the NaN bounds of an empty I (GAOL v5)
-    if (!std::islessequal(I.left(), left())) { // I.left() == NaN => lb_ <- NaN
+    if (!std::islessequal(I.left(), left())) {
       lb_ = I.lb_;
     }
     if (!std::isgreaterequal(I.right(), right())) {
       rb_ = I.rb_;
     }
-#endif
     // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()
     // (GAOL v5): their bounds in the wrong order, [3, 2] for
     // [1, 2] & [3, 4], were empty for is_empty(), but the operations computing

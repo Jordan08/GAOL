@@ -110,37 +110,49 @@
       xmmbounds = I.xmmbounds;
     }
 
-	 GAOL_INLINE interval& interval::operator&=(const interval& I)
-	 {
-	   if (is_empty()) {
-      	return *this;
-    	}
-		xmm2d bd;
-		_mm_store_pd(bd,xmmbounds);
-		xmm2d Ibd;
-        _mm_store_pd(Ibd,I.xmmbounds);
+  /*
+    One quiet comparison, std::isunordered() of the two stored lower bounds,
+    tells whether either operand is empty, both bounds of the empty set being
+    NaN, and the intersection is then [NaN, NaN], interval::emptyset() (GAOL
+    v5, decided for point D.24 of TODO.md): is_empty() of *this, and the NaN
+    bounds of an empty I carried through the comparisons below, took two
+    comparisons more. The bounds are compared after it with quiet comparisons
+    too: GCC 9.4 at -O3 computed them before that test, for an empty I, in a
+    loop of intersections where it turned the function into straight-line
+    code, and compiled plain comparisons with comisd, which raised the
+    invalid-operation exception (tests/rounding_direction.cpp). An empty
+    *this was returned as it was, with the NaN it held; telling it apart
+    again, after the test, made GCC 9.4 turn the whole function into
+    straight-line code, and x &= y 2.3 times slower. See gaol_interval_fpu.h
+    for 32-bit ARM and POWER9.
+  */
+  GAOL_INLINE interval& interval::operator&=(const interval& I)
+  {
+    xmm2d bd, Ibd;
+    _mm_store_pd(bd,xmmbounds);
+    _mm_store_pd(Ibd,I.xmmbounds);
+    if (std::isunordered(bd[0], Ibd[0])) {
+      xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+      return *this;
+    }
+    if (!std::isgreaterequal(Ibd[0], bd[0])) { // Left bounds negated
+      bd[0] = Ibd[0];
+    }
+    if (!std::isgreaterequal(Ibd[1], bd[1])) {
+      bd[1] = Ibd[1];
+    }
 
-    	// From now on, "this" is known to be nonempty.
-        // The comparisons are quiet ones, which raise no invalid-operation
-        // exception on the NaN bounds of an empty I (GAOL v5)
-	    if (!std::isgreaterequal(Ibd[0], bd[0])) { // I.left() == NaN => lb_ <- NaN
-      	bd[0] = Ibd[0];
-    	}
-	if (!std::isgreaterequal(Ibd[1], bd[1])) {
-	      bd[1] = Ibd[1];
-    	}
-
-        // Disjoint intervals give the empty set, [NaN, NaN] as
-        // interval::emptyset() (GAOL v5): their bounds in the wrong
-        // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
-        // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
-        if (!std::islessequal(-bd[0], bd[1])) {
-          xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
-        } else {
-          xmmbounds = _mm_load_pd(bd);
-        }
-    	return *this;
-	 }
+    // Disjoint intervals give the empty set, [NaN, NaN] as
+    // interval::emptyset() (GAOL v5): their bounds in the wrong
+    // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
+    // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
+    if (!std::islessequal(-bd[0], bd[1])) {
+      xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+    } else {
+      xmmbounds = _mm_load_pd(bd);
+    }
+    return *this;
+  }
 
 	 GAOL_INLINE interval& interval::operator|=(const interval& I)
 	 {
