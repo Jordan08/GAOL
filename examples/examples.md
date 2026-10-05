@@ -1072,9 +1072,10 @@ check:
 #endif
 ```
 
-and a row in the refused options of `doc/three-builds.md`. Test: a
-`try_compile()` at configure time, as `tests/fp_strict` does for other
-options (Visual C++ only).
+and a row in the refused options of `doc/three-builds.md`. Test: a compile
+test with `PASS_REGULAR_EXPRESSION "ffinite-math-only"` (`tests/fp_strict`,
+the check of Visual C++ and clang-cl without `/fp:strict`, is a
+`try_compile()` at configure time instead).
 
 **5. `atanh([1, x])`.** In `atanh()`, return the empty set when
 `J.left() == 1.0 || J.right() == -1.0` (J being `I & [-1, 1]`), and write the

@@ -31,8 +31,8 @@ what contradicts them, `-ffast-math`, `-ffinite-math-only` and doubles computed
 on the x87 unit (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)).
 `-fno-fast-math` turns the first two off when it comes after them on the
-command line, and does nothing when `-ffast-math` or `-ffinite-math-only` comes before it, where the
-compilation stops.
+command line, and does nothing when `-ffast-math` or `-ffinite-math-only` comes
+after `-fno-fast-math`, where the compilation stops.
 
 With `-frounding-math` on x86, GCC 12.1 to 12.3 and 13.1 to 13.2 (Debian 12
 has GCC 12.2) initialize wrongly a double member of a static array of

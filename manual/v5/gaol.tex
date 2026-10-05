@@ -362,7 +362,8 @@ but the second one, which no macro of the compiler shows:
 \noindent
 \option{-fno-fast-math}, one of the flags of interval arithmetic, turns
 \option{-ffast-math} and \option{-ffinite-math-only} off when it comes after
-them on the command line, and does nothing when it comes before them, where the
+them on the command line, and does nothing when \option{-ffast-math} or
+\option{-ffinite-math-only} comes after \option{-fno-fast-math}, where the
 compilation stops. No macro of the compiler shows the following, which
 \file{gaol/gaol\_config.h} cannot refuse and which give wrong results all the
 same: \option{-funsafe-math-optimizations} and \option{-ffast-math

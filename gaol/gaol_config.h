@@ -196,17 +196,19 @@
 /* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
    take NaN and infinities never to occur, in the inline functions of GAOL's
    headers as anywhere else: the empty interval has NaN bounds, and is_empty()
-   reads it as !std::islessequal(left(), right()). The compiler then folds the test away, and
-   ([1, 2] & [3, 4]).is_empty() is false with -ffinite-math-only: with GCC 13 at -O0, -O2 and -O3,
-   and with Clang 18 at -O0, and at -O2 and -O3 only with volatile bounds: the tests
-   refused_finite_math_only and refused_fast_math (tests/CMakeLists.txt) check
-   the refusal. GCC and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual
-   C++ defines nothing of the kind (its /fp:fast is refused below). This also
-   refuses what __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math
-   followed by -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at
-   1. -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the
-   option off when it comes after it on the command line, and does nothing when
-   it comes before.
+   reads it as !std::islessequal(left(), right()) (std::isunordered() first on
+   32-bit ARM and POWER9). The compiler then folds the test away, and
+   ([1, 2] & [3, 4]).is_empty() is false: with GCC 9.4 and 13 at -O0, -O2 and
+   -O3, with Clang 18 at -O0, and at -O2 and -O3 when the bounds are volatile.
+   The tests refused_finite_math_only and refused_fast_math
+   (tests/CMakeLists.txt) and tests/refused_options.sh check the refusal. GCC
+   and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual C++ defines nothing
+   of the kind (its /fp:fast is refused below). This also refuses what
+   __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math followed by
+   -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at 1.
+   -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the option
+   off when the option comes before it on the command line, and does nothing
+   when the option comes after it, where the compilation stops here.
 
    No macro shows what follows, which GAOL cannot refuse:
    -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
