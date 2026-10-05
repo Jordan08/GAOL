@@ -226,10 +226,10 @@ two namespaces, not both: with both open, `pow(x, y)` is ambiguous, and so is
 standard in `gaol_ieee1788`.
 
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
-base included: `pow(x, n)` for an `int` or an `unsigned` n, and `pow(x, p)` and
-`pow(x, y)` for a double p or a degenerate interval y that is an integer, one
-beyond the ints giving [−∞, +∞]; any other exponent takes the pow of IEEE
-1788-2015. `pow(e, n)` and `pow(e1, e2)` build the expressions of
+base included: `pow(x, n)` for an n of any integer type (see
+[Integers](#integers)), and `pow(x, p)` and `pow(x, y)` for a double p or a
+degenerate interval y that is an integer, one beyond the ints giving
+[−∞, +∞]; any other exponent takes the pow of IEEE 1788-2015. `pow(e, n)` and `pow(e1, e2)` build the expressions of
 `gaol/gaol_expression.h`, computed with the same powers. In `gaol_core`, these
 functions are named apart from `pow`: `gaol_pown()`, `gaol_uipow()`,
 `gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
@@ -293,6 +293,34 @@ next to `using namespace std;`, where it is ambiguous with the class template
 `std::less`. Only bare intervals are provided, GAOL having no decorations;
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
+
+## Integers
+
+An integer given to GAOL is taken as the integer it is (GAOL v5):
+`interval(n)` is the tightest interval containing n, [n, n] where n is a
+double, as every `int` is, and the two doubles around it otherwise.
+`interval(9007199254740993LL)`, 2^53 + 1, is [2^53, 2^53 + 2], where its
+conversion to a double gave [2^53, 2^53], which does not contain it, and
+`interval(ULLONG_MAX)` contains 2^64 − 1 rather than being [2^64, 2^64]. So
+do `interval(a, b)` with an integer bound, the assignment `x = n`, `x &= n`
+and `x |= n`, the arithmetic operators (`x + n`, `n * x`, `x += n`...),
+`set_contains(n)`, `expression(n)`, and `numsToInterval()` and `isMember()`
+in `gaol_ieee1788`. The relations and `set_strictly_contains(n)` compare n
+as the integer it is: `interval(9007199254740992.0) < 9007199254740993LL`,
+[2^53] < 2^53 + 1, is true, though no double lies between them. Every
+integer type is taken so, `bool` aside, whatever the rounding direction;
+for an integer that is a double, the operation is the one with that double,
+at the same cost. `interval(n)` and `expression(n)` are explicit, as their
+constructors from a double.
+
+`pow(x, n)` of `gaol` and `pown(x, n)` of `gaol_ieee1788` take an exponent of
+any integer type: `pow(x, 5L)` did not compile, a `long` being as far from an
+`int` as from an `unsigned` and a `double`, and `pown(x, 3000000000u)`
+converted the exponent to a negative `int`. An exponent within the ints is
+taken as an `int`, one within the unsigned ints as an `unsigned`, and one
+beyond them gives [−∞, +∞] for a nonempty x, as `pow(x, [n])` does.
+`rootn(x, q)`, `pownRev()` and `nth_root()` still take an `int` or an
+`unsigned` q.
 
 ## A result thrown away
 

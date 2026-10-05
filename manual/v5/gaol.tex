@@ -1595,7 +1595,12 @@ One can create an interval with four constructors, or with
   where \var{l} and \var{r} are \code{double}s or of a type that is
   castable into a \code{double}. The result is the empty set when
   \itv{l}{r} is not an interval: for a left bound $+\infty$, a right bound
-  $-\infty$, bounds in the wrong order ($l>r$) and NaN bounds;\newinvfive
+  $-\infty$, bounds in the wrong order ($l>r$) and NaN bounds;\newinvfive{}
+  an integer bound is taken as the integer it is, whatever its type
+  (\code{bool} aside): the left bound is the largest double at most \var{l},
+  the right one the smallest double at least \var{r}, so that
+  \code{interval(1, 9007199254740993LL)} contains $2^{53}+1$, which no double
+  is, and which its conversion to a double made $2^{53}$;\newinvfive
 \cindex{empty!interval: constructing}%
 
 \item by providing only one bound, for degenerate point intervals:
@@ -1612,7 +1617,15 @@ One can create an interval with four constructors, or with
   \code{\&=}, \code{|=} and the other assignments combined with an operation
   (\pxref{sec:combined-assignment}), the arithmetic operators and the
   relation symbols (\pxref{sec:relational-symbols}) take a \code{double} as
-  they take \code{interval(\var{d})};\newinvfive
+  they take \code{interval(\var{d})};\newinvfive{} an integer \var{n} of any
+  integer type but \code{bool} gives the tightest interval containing it,
+  \itv{n}{n} where $n$ is a double, as every \code{int} is, and the two
+  doubles around it otherwise: \code{interval(9007199254740993LL)} is
+  \itv{2^{53}}{2^{53}+2}, where the conversion of $2^{53}+1$ to a double gave
+  \itv{2^{53}}{2^{53}}, and \code{interval(ULLONG\_MAX)} contains
+  $2^{64}-1$. This constructor is \code{explicit} too, and the same
+  operations take an integer as they take \code{interval(\var{n})}, the
+  relations comparing it as the integer it is (\pxref{sec:relational-symbols});\newinvfive
 \item without providing any bound:
   \begin{example}
     interval x;
@@ -1758,7 +1771,8 @@ x = GAOL_INFINITY; @rem^// Now, x is empty~
 
 \noindent
 Both follow the rules of the previous section: assigning an infinity to an
-interval empties it.\newinvfive
+interval empties it. An integer \var{n} is assigned as
+\code{interval(\var{n})}, the tightest interval containing it.\newinvfive
 
 Note that there is no method for modifying a bound of an
 interval since intervals must be considered as an atomic concept.
@@ -1977,7 +1991,11 @@ too:\newinvfive{} \ieee{equal}, \ieee{subset}, \ieee{interior},
   \end{operation}
   Returns \code{true} if \var{I} (resp. \{\var{d}\}) is included in \code{self}:
   \ieee{subset}(\var{I}, \code{self}), and \ieee{isMember}(\var{d}, \code{self}) of
-  IEEE 1788-2015 for a finite \var{d}. \var{d} shall not be a NaN.
+  IEEE 1788-2015 for a finite \var{d}. \var{d} shall not be a NaN. An
+integer of any integer type but \code{bool} is compared as the integer it is,
+here and in \code{set\_strictly\_contains()}: \itv{2^{53}}{2^{53}} does not
+contain $2^{53}+1$, which its conversion to a double made $2^{53}$, and
+\itv{2^{53}}{2^{53}+2} contains it strictly.\newinvfive
 
 \begin{example}
 interval x(-12,34), y(-12,5);
@@ -2289,6 +2307,14 @@ is \code{x < interval(0.0)}, and still no \code{==} nor \code{!=}. These
 overloads are what the implicit conversion of a \code{double} to an interval
 gave before the constructor from one \code{double} became
 explicit.\newinvfive
+
+An interval and an integer \var{n} of any integer type but \code{bool}
+compare as the interval and the integer it is, where it is no double: a
+double is below $n$ if and only if it is at most the largest double below
+$n$, so that \code{interval(9007199254740992.0) < 9007199254740993LL},
+$\itv{2^{53}}{2^{53}} < 2^{53}+1$, is \code{true}, where the conversion of
+$2^{53}+1$ to the double $2^{53}$ made it \code{false}. An integer that is a
+double compares as that double.\newinvfive
 
 \deffunx{bool}{operator<}{(const interval\& \var{I}, double \var{d})}
 \deffunx{bool}{operator<}{(double \var{d}, const interval\& \var{I})}
@@ -2648,6 +2674,7 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
 \deffunx{interval}{pow}{(const interval\& \var{I}, int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, unsigned int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, double \var{p})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, long \var{n})}
 \begin{deffun}{interval}{pow}{(const interval\& \var{I}, const interval\& \var{J})}
   \begin{operation}
     \op{$I^n$}
@@ -2661,7 +2688,12 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
     included, $x^0=1$ for every $x$, 0 included, and no value at 0 for $n<0$;
     so do a double \var{p} and a degenerate interval $\var{J}=\itv{n}{n}$ whose
     value is an integer within the \code{int}s, an integer beyond them giving
-    \itv{-\infty}{+\infty};
+    \itv{-\infty}{+\infty}; an exponent \var{n} of another integer type
+    (\code{long}, \code{long long}, \code{short}\dots), with which
+    \code{pow} was ambiguous, is taken as an \code{int} within the
+    \code{int}s, as an \code{unsigned int} within those, and beyond them
+    gives \itv{-\infty}{+\infty} for a nonempty \var{I}, as the degenerate
+    interval \itv{n}{n} would;\newinvfive
   \item any other exponent takes the \emph{real power}, \ieee{pow} of
     IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty}, where $0^y$ is
     $0$ for $y>0$ and has no value for $y\leq0$. An exponent \itv{+\infty}{+\infty}
@@ -4150,7 +4182,8 @@ The functions of GAOL that have the name and the meaning the standard gives them
   for $x=0$ when $y>0$, where the \code{pow} of \code{gaol} takes the integer
   power for an integer exponent, a negative base included
   (\pxref{sec:powers}). \code{pow(x, p)} with a number $p$ is
-  \code{pow(x, [p])}, \code{pow(x, 2)} included: the power with an integer
+  \code{pow(x, [p])}, \code{pow(x, 2)} included, \code{[p]} containing an
+  integer that is no double: the power with an integer
   exponent is \code{pown(x, n)} in the standard, whose $n$ is an integer
   rather than an interval. An integer exponent beyond the \code{int}s gives
   the power of CORE-MATH at the bounds of $x$, where the \code{pow} of
@@ -4211,7 +4244,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} & \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
   \code{recip(x)} & \code{inverse(x)}\\
   \code{sqr}, \code{sqrt}, \code{fma} & the same\\
-  \code{pown(x, p)} & \code{gaol::pow(x, p)} for an \code{int} $p$\\
+  \code{pown(x, p)} & \code{gaol::pow(x, p)} for an integer $p$ of any type\\
   \code{pow(x, y)}, \code{pow(x, p)} & the \ieee{pow} of the standard\\
   \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & the same\\
   \code{sin}, \code{cos}, \code{tan}, \code{asin}, \code{acos}, \code{atan}, \code{atan2} & the same\\
