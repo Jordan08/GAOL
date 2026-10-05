@@ -4,21 +4,28 @@
  * The AVX-512 path of the SSE2 intervals (GAOL v5).
  *
  * This file is not meant to be compiled. It is only to be included
- *        by gaol/gaol_interval.cpp, after gaol/gaol_interval_sse.cpp.
+ *        by gaol/gaol_interval.cpp, before gaol/gaol_interval_sse.cpp: the
+ *        operations of the SSE2 fragments call the functions of this one.
  *
  * The AVX-512 instructions can carry the rounding direction of a
  * floating-point operation in themselves, in the imm8 the EVEX encoding
  * gives them (the embedded rounding): an operation that uses it sets
- * neither the rounding direction of the processor nor the modes that flush
- * the subnormal numbers to zero, which the embedded rounding ignores
- * (measured on an Intel i7-1185G7: with the modes set, 1 + 2^-1060 gives
- * the double above 1 through the embedded rounding, where the SSE2
- * instruction gives 1). The embedded rounding comes with the exception
- * suppression the architecture requires, which the compilers insist on:
- * these operations raise no exception flag. Their bounds are those of the
- * SSE2 path, bit for bit, the rounding rule being the same: checked against
- * it on 500 000 intervals of random bounds plus the empty set, and on every
- * value the tests of tests/ take (GAOL v5).
+ * neither the rounding direction of the processor nor the exception
+ * flags, the architecture requiring the exception suppression with the
+ * embedded rounding. Their bounds are those of the SSE2 path, bit for
+ * bit, the rounding rule being the same: checked against it on 500 000
+ * intervals of random bounds plus the empty set, on the zero corners of
+ * the products and of the quotients, the signs of their bounds included,
+ * and on every value the tests of tests/ take (GAOL v5).
+ *
+ * Of the modes that flush the subnormal numbers to zero, the embedded
+ * rounding ignores flush-to-zero, its subnormal results being computed
+ * exactly (measured on an Intel i7-1185G7: with the mode set, the product
+ * of 1e-300 by 1e-20 is the subnormal 1e-320), but it honours
+ * denormals-are-zero, which reads a subnormal operand as 0 (measured:
+ * the product of 1e-300 by 8.09e-320 is 0 with the mode set): the
+ * operations of the path clear the modes before they read a bound, as
+ * the SSE2 operations clear them at their entry.
  *
  * The functions of this file are compiled into the library built for any
  * processor of the architecture, as the SSE2 operations are: only they
@@ -181,38 +188,16 @@
 
   /*
     The signs and the zeros of the two stored bounds of a nonempty interval
-    x = <-l, r> (the low half holds -left, the high half right): those of
-    the products and of the divisions below, the classification the SSE2
-    path makes with is_zero(), certainly_positive(),
-    certainly_negative(), strictly_straddles_zero() and the comparisons of
-    operator/=() with 0.
+    x = <-l, r> (the low half holds -left, the high half right), which the
+    dispatch of the divisions below reads where the SSE2 path compares
+    left() and right() with 0.
   */
-  GAOL_INLINE bool stored_zero(__m128d x) // is_zero(): both bounds 0
-  {
-    return bit_zero(low_of(x)) && bit_zero(high_of(x));
-  }
-  // certainly_positive(): left >= 0, that is the low half -left not positive
-  GAOL_INLINE bool stored_certainly_positive(__m128d x)
-  {
-    return !bit_positive(low_of(x));
-  }
-  // certainly_negative(): right <= 0, that is the high half not positive
-  GAOL_INLINE bool stored_certainly_negative(__m128d x)
-  {
-    return !bit_positive(high_of(x));
-  }
-  // strictly_straddles_zero(): left < 0 and right > 0, that is both halves
-  // positive and not 0
-  GAOL_INLINE bool stored_strictly_straddles(__m128d x)
-  {
-    return bit_positive(low_of(x)) && bit_positive(high_of(x));
-  }
-  // left() < 0 of the dispatch of operator/=(): the low half positive
+  // left() < 0: the low half -left positive and not 0
   GAOL_INLINE bool stored_left_below_zero(__m128d x)
   {
     return bit_positive(low_of(x));
   }
-  // right() < 0 of the dispatch of operator/=()
+  // right() < 0, false for 0 of both signs
   GAOL_INLINE bool stored_right_below_zero(__m128d x)
   {
     return bit_negative(high_of(x));
@@ -293,11 +278,24 @@
     return back128(_mm512_add_round_pd(lo512(x), lo512(y), gaol_er));
   }
 
-  // x / y of the stored bounds: the bounds of y exchanged, as the SSE2 path
+  // x - y of the stored bounds: the bounds of y exchanged, as the SSE2 path
   GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_sub(__m128d x, __m128d y)
   {
     const flush_guard flush;
     return back128(_mm512_add_round_pd(lo512(x), lo512(_mm_shuffle_pd(y, y, 1)), gaol_er));
+  }
+
+  /*
+    x / d of the stored bounds, d a positive double: the bounds divided by
+    d lane by lane, as operator/=(double) divides them, whose zero bounds
+    keep the sign of their quotient where the dispatch of the quotient by
+    the interval [d, d] writes its own. The caller exchanges the bounds and
+    negates d for a negative one, as that operator does.
+  */
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_div_by(__m128d x, double d)
+  {
+    const flush_guard flush;
+    return back128(_mm512_div_round_pd(lo512(x), _mm512_set1_pd(d), gaol_er));
   }
 
   // The plain products of two stored pairs
@@ -314,18 +312,17 @@
     max of the straddling case by the bits (max_of_positive() above). The
     products go through the zero of a bound by an infinite one only where
     there is one, as the SSE2 path does with products_with_infinities(),
-    which product_of_bounds() takes for them. A zero operand gives the
-    stored zero, as operator*=() does before its dispatch.
+    which product_of_bounds() takes for them. A zero operand goes through
+    the dispatch as any other, the bounds it gives being those of the SSE2
+    path, the signs of its zeros included.
   */
   GAOL_AVX512_TARGET __m128d fast_mul(__m128d x, __m128d y)
   {
+    // No shortcut for a zero operand: the dispatch of product_of_bounds()
+    // computes the products of the lanes even there, and the signs of the
+    // zeros of its results are those of the SSE2 path, which this path
+    // keeps bit for bit
     const flush_guard flush;
-    if (stored_zero(x)) {
-      return x;
-    }
-    if (stored_zero(y)) {
-      return interval::m128_zero;
-    }
     const bool infinities = bit_infinite(low_of(x)) || bit_infinite(high_of(x))
                          || bit_infinite(low_of(y)) || bit_infinite(high_of(y));
     const auto product = [=](__m128d a, __m128d b) -> __m128d {

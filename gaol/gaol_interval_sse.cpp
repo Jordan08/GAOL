@@ -652,11 +652,19 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
          which the denormals-are-zero mode does not change, where the SSE2
          path checks the modes before comparing d (a subnormal d was 0), and
          the product itself needs neither the direction nor the modes */
-      // The product of the interval by [d, d], of either sign and zero:
-      // the dispatch of fast_mul() makes it, from the stored form of [d, d],
-      // and its check clears the flush-to-zero modes, which the SSE2 path
-      // checks before this branch
+      // The product of the interval by [d, d]: the dispatch of fast_mul()
+      // makes it, from the stored form of [d, d], its check clearing the
+      // flush-to-zero modes, which the SSE2 path checks before this branch.
+      // The zero of d, of either sign, gives the stored zero, as the SSE2
+      // path does: the dispatch would give the signs of its zeros instead,
+      // and the guard keeps the modes as the program left them, as the
+      // dispatch keeps them
       if (avx512_arithmetic) {
+        if (bit_zero(d)) {
+          const flush_guard flush;
+          xmmbounds = interval::m128_zero;
+          return *this;
+        }
         xmmbounds = fast_mul(xmmbounds, _mm_set_pd(d, -d));
         return *this;
       }
@@ -689,12 +697,21 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
       }
 
 #if GAOL_HAVE_AVX512_TARGET
-      /* The AVX-512 path: the quotient of the interval by [d, d], of
-         either sign and zero (the empty set of a zero divisor), the
-         dispatch and the check of fast_div() making it, from the stored
-         form of [d, d] */
+      /* The AVX-512 path: the quotients lane by lane, as the SSE2 path
+         divides them, the zero and the sign of d from its bits, the empty
+         set of a zero divisor; the modes of the zero case are cleared by
+         the guard, which gives them back as the program left them */
       if (avx512_arithmetic) {
-        xmmbounds = fast_div(xmmbounds, _mm_set_pd(d, -d));
+        if (bit_zero(d)) {
+          const flush_guard flush;
+          *this = interval::emptyset();
+          return *this;
+        }
+        if (bit_negative(d)) {
+          xmmbounds = fast_div_by(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), -d); // <r/(-d), -l/(-d)>
+        } else {
+          xmmbounds = fast_div_by(xmmbounds, d); // <-l/d, r/d>
+        }
         return *this;
       }
 #endif
