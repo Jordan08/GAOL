@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `586c5b0` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `4b5b1ad` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -38,6 +38,21 @@ sans FMA matériel...), que le compilateur C++ lie lui-même, comme le build
 CMake le supposait déjà. Fait aussi le 4 octobre : `TODO.md`, `process.md` et
 `todo-notes/` hors de l'archive des sources de CPack, par #79 ; les outils qui
 ont vérifié `pow` au point 1, nettoyés, dans `tests/tools/pow/`, par #81.
+Fait le 5 octobre : les anciens 24 et 62 du point D (les exceptions flottantes
+et leur documentation), par #83. Décidé en fin de travail, et fait par #83 :
+sous Visual C++ x64 et x86, les comparaisons silencieuses de GAOL sont des
+`ucomisd` en ligne (`detail::quiet_less()`... de `gaol/gaol_port.h`), plus des
+appels à `_dpcomp()` ; `div_rel` des intervalles SSE2 ne calcule plus la moitié
+de division qu'il jette (+oo/+oo, ou un réel divisé par une borne nulle) ; sur
+ARM 32 bits et POWER9, le constructeur des intervalles FPU teste
+`std::isunordered()` d'abord, comme `is_empty()` ; `GAOL_TESTS_CHOICES` retiré,
+des jobs armhf et POWER9 compilés pour la taille et un job POWER9 vérifiant les
+choix sur `is_empty()` ; le bug de GCC 12.1 à 12.3 et 13.1 à 13.2 (avec
+`-frounding-math` sur x86, `denorm_min()` dans un tableau statique de
+structures) dit dans `doc/using.md` et le manuel ; le `<` de `cr_pow` sur un NaN
+et la vectorisation des comparaisons silencieuses par GCC commentés dans #65 et
+#80. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
+description de #83.
 
 ## En cours
 
@@ -177,15 +192,17 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   plutôt que les littéraux ont été relevés sur l'ancien code et vérifiés avec
   mpmath à 500 bits, ce que `tests/gaol_tests.h` doit citer aussi.
 
-### D. Le constructeur et les exceptions flottantes (24, 21, 62)
+### D. Le constructeur pour les entiers et les en-têtes (21)
 
-La première comparaison silencieuse (24), les constructeurs pour les entiers
-(21) et, si #68 la décide, la comparaison par les bits sous DAZ (point Q)
-touchent le même constructeur (`gaol_interval_sse.h`, `gaol_interval_fpu.h`,
-`gaol_interval.h`) ; la documentation des exceptions flottantes (62) va avec le
-24. `gaol_interval.h` contient aussi `using namespace gaol_core;` à corriger.
-Plusieurs headers utilisent des macros avec noms réservés comme `__GAOL_PUBLIC__`
-(à renommer en `GAOL_PUBLIC`) et des casts C-style à remplacer par `static_cast<>`.
+Les anciens 24 et 62 sont faits par #83 ; le signalement à GCC de la comparaison
+rendue signalante reste dans #80. Restent, dans cet ordre (décidé le 4 octobre),
+deux pull requests : les constructeurs pour les entiers (21), puis le nettoyage
+des en-têtes. Le 21 et, si #68 la décide, la comparaison par les bits sous DAZ
+(point Q) touchent le même constructeur (`gaol_interval_sse.h`,
+`gaol_interval_fpu.h`, `gaol_interval.h`). Le nettoyage des en-têtes :
+`gaol_interval.h` contient `using namespace gaol_core;` à corriger. Plusieurs
+headers utilisent des macros avec noms réservés comme `__GAOL_PUBLIC__` (à
+renommer en `GAOL_PUBLIC`) et des casts C-style à remplacer par `static_cast<>`.
 `gaol_allocator.h` utilise `= 0` au lieu de `= nullptr` ; son
 `aligned_allocator<T>` ne garantit que 16 octets d'alignement, donc ne convient
 pas aux types suralignés (`alignof(T) > 16`). Aligner selon `alignof(T)` ou
@@ -194,32 +211,6 @@ la construction avec d'autres arguments via `allocator_traits`, notamment pour
 les types déplaçables mais non copiables : fournir un `construct` variadique ou
 laisser `allocator_traits` utiliser son placement-new par défaut.
 
-- **24.** **Exceptions flottantes : ce qui reste après #47 et #50.** Après #60,
-  `is_empty()` reste compilé en `vcmpe` sur armhf dans le code du programme :
-  l'écrire avec `std::isunordered()` sur ARM 32 bits (décidé le 3 octobre).
-  Reporté le 4 octobre : signaler à GCC la comparaison rendue signalante par
-  l'if-conversion, sur ARM 32 bits et POWER9 (#80).
-  Avec `GAOL_PRESERVE_ROUNDING`, les opérations SSE2 masquent de nouveau les
-  exceptions du programme et effacent ses indicateurs : à corriger. `0 × oo`
-  dans l'`operator*=` SSE2 et le `pow` de CORE-MATH pour un exposant extrême
-  lèvent FE_INVALID, sans test : les corriger, avec un test et le coût de `*`
-  mesuré (décidé le 3 octobre). Décidé le 3 octobre : la première comparaison de
-  `interval(l, r)` devient silencieuse, ce qui rend gratuits `floor`, `ceil` et
-  `integer` (`interval(NAN)`, `x += NAN` et `set_contains(NAN)` ne lèvent plus
-  FE_INVALID) ; `x &= y` s'écrit avec un seul `std::isunordered()` (à vérifier
-  avec Clang 18, et son coût sous Visual C++ à mesurer) ; les intervalles de
-  flottants (`gaol_intervalf.h`, `gaol_interval2f.h`) gardent leurs comparaisons
-  signalantes, mais `intervalf::is_empty()` reste silencieux (#47). Décidé aussi
-  (#60) : `is_empty()` écrit avec `std::isunordered()` sous `_ARCH_PWR9`, comme
-  sur ARM 32 bits ; les relations en ligne (`set_le`, `set_strictly_contains`,
-  `less`…) corrigées pour ne plus lever FE_INVALID, même dans une boucle
-  vectorisée (AArch64, intervalles FPU x86-64) ; les trois vérifications de
-  choix de #60, fragiles par nature, gardées. `interval::midpoint()` calcule
-  d'abord `0.5 * (left() + right())` : sur `[DBL_MAX, DBL_MAX]`, la somme
-  intermédiaire lève FE_OVERFLOW avant le calcul de secours, alors que le
-  milieu est fini. Éviter ce débordement avant l'addition et ajouter un test
-  qui vérifie que FE_OVERFLOW reste absent pour ce cas, y compris quand son
-  piège est activé.
 - **21.** **Les entiers au-delà de 2^53** : `interval(0)`, `interval(0, 0)`,
   `x = 0` et `x < 0` compilent : l'entier devient un double, et un entier
   au-delà de 2^53 un double qui ne le contient pas. `interval(double)` est
@@ -230,19 +221,6 @@ laisser `allocator_traits` utiliser son placement-new par défaut.
   entiers, contraints, dans les en-têtes, sans changement d'ABI ; pas un
   simple `interval(int)`, qui rend `interval(5L)` ambigu, et des surcharges
   entières pour `=` et les relations.
-- **62.** **La documentation des exceptions flottantes** (suite du point 24,
-  #47, #50) : la liste des opérations qui, sous `GAOL_PRESERVE_ROUNDING`,
-  masquent de nouveau les exceptions du programme (`doc/using.md` l. 527, manuel
-  l. 1235) oublie `%`, `div_rel` et `+= d`, `-= d`, `*= d`, `/= d`, `%= d`, et
-  ne dit pas qu'elles effacent les indicateurs ; « `fetestexcept(FE_INEXACT)` is
-  raised whatever the result » (`doc/using.md` l. 513, manuel l. 1219) est trop
-  fort (`-X`, `abs`, `&`, `|`, `floor`, `max(X, Y)` ne le lèvent pas) : « after
-  most operations » ; la ligne courte de `doc/accuracy.md` (l. 60) ;
-  vérifier aussi que la phrase disant que FE_OVERFLOW indique une borne infinie
-  reste cohérente avec le comportement et le test de `midpoint()` du point 24 ;
-  `\newinvfive` sur les derniers paragraphes de la section 3.3 du manuel ; la
-  structure `EmptySet` de `tests/rounding_direction.cpp` (l. 252), qui porte
-  aussi `nonempty_sets` : un nom neutre.
 
 ### E. Le parser et les longues sommes (12, 40)
 
@@ -778,8 +756,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
-  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79 et #81
-  après leur fusion).
+  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81
+  et #83 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -796,12 +774,12 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 9 : M ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 18 : F ; 21 : D ; 22 : V ; 23 : H ; 24 : D ; 25 : P ;
-26 : W ; 27 : H ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-36 : H ; 37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ;
-45 : Q ; 46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ;
-55 : G ; 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 62 : D ; 63 : N ;
-64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y.
+12 : E ; 14 : S ; 15 : F ; 18 : F ; 21 : D ; 22 : V ; 23 : H ; 25 : P ; 26 : W ;
+27 : H ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 36 : H ;
+37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ;
+46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ;
+56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ;
+66 : T ; 70 : I ; 71 : Y.
 
 ## Ordre proposé pour les tâches restantes
 
