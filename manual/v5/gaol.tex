@@ -2751,6 +2751,11 @@ cout << pow(interval(0.0), interval(0.0)) << ' '
   The bounds are the tightest ones, or one double beyond: each is proved with
   integer powers. The cube root is that of CORE-MATH, the tightest one, and the
   root of a double that is the \var{n}th power of a double is that double.
+  An order of another integer type (\code{long}, \code{long long}\dots), with
+  which \code{nth\_root} was ambiguous, is taken as an \code{int} or an
+  \code{unsigned int} where it is one; beyond them, the roots are enclosed
+  by \code{pow} with the exponent $1/q$, as an interval, $x^{1/q}$ being
+  within $2^{-21}$ of 1 for every double $x>0$ there.\newinvfive
 \begin{example}
 cout << nth_root(interval(-8,27), 3) << ' '
      << nth_root(interval(-4,16), 2) << ' '
@@ -4216,7 +4221,11 @@ The functions of GAOL that have the name and the meaning the standard gives them
   GAOL and throws (\pxref{sec:ieee1788-text});
 \item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
   $p\leq0$, which GAOL does not provide, rather than give an interval it has
-  not computed.
+  not computed. Its $p$, and the $q$ of \code{rootn(x, q)}, may be of any
+  integer type: \code{pownRev(c, 3000000000u)} converted $p$ to a negative
+  \code{int} and threw; beyond the \code{unsigned int}s, \code{pownRev}
+  intersects $x$ with the roots of order $p$ of $c$, of either sign for an even
+  $p$.\newinvfive
 \end{itemize}
 
 \begin{example}

@@ -327,9 +327,13 @@ any integer type: `pow(x, 5L)` did not compile, a `long` being as far from an
 converted the exponent to a negative `int`. An exponent within the ints is
 taken as an `int`, one within the unsigned ints as an `unsigned`, and one
 beyond them gives [−∞, +∞] for a nonempty x, as `gaol::pow(x, [n])` does.
-`rootn(x, q)`, `pownRev()`, `nth_root()`, and `pow(e, n)` and `pown(e, n)` of
-the expressions still take an `int` or an `unsigned` (`nth_root(x, 3L)` is
-ambiguous).
+So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the ints and the
+unsigned ints gives an enclosure of the roots, computed by `pow` with the
+exponent 1/q (x^(1/q) is within 2^−21 of 1 for every double x > 0 there),
+`pownRev(c, x, p)`, which intersects x with these roots, of either sign for an
+even p, and `pow(e, n)`, `pown(e, n)` and `nth_root(e, n)` of the expressions:
+`nth_root(x, 3L)` was ambiguous, `pownRev(c, 3000000000u)` converted p to a
+negative `int` and threw, and `nth_root(e, -2)` took the order 4294967294.
 
 ## A result thrown away
 
