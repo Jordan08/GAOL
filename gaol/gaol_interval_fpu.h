@@ -80,6 +80,19 @@
   GAOL_INLINE
   interval::interval(double a)
   {
+#if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
+    // std::isunordered() first, as in is_empty() and interval(double, double)
+    double b = a;
+    if (!detail::quiet_unordered(a, b)) {
+      detail::keep_ordered(a, b);
+      if (-GAOL_INFINITY < a && b < GAOL_INFINITY) {
+        lb_ = -a;
+        rb_ = b;
+        return;
+      }
+    }
+    lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
+#else
     GAOL_FPU_SCALAR(a);
     // A branch rather than two conditional moves, which would make the bounds
     // depend on the comparison and lengthen the loops accumulating intervals
@@ -89,6 +102,7 @@
     } else {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
     }
+#endif
   }
 
   // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
@@ -104,10 +118,27 @@
   // constructions (GCC 9.4, FPU intervals). GCC for 64-bit ARM computed them
   // for every element of a loop of constructions it vectorized, an empty one
   // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval.h),
-  // which keeps GCC from vectorizing that loop
+  // which keeps GCC from vectorizing that loop. On 32-bit ARM and on POWER9,
+  // the quiet first comparison has the form GCC reversed into a signaling one
+  // in is_empty(), and the constructor tells NaN bounds as is_empty() does,
+  // with std::isunordered() first, then compares the bounds, which are no NaN
+  // after it, through the empty asm statement of detail::keep_ordered() (GAOL
+  // v5): floor(), max(), min()... give it the NaN bounds of an empty operand
+  // without testing it first
   GAOL_INLINE
   interval::interval(double a, double b)
   {
+#if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
+    if (!detail::quiet_unordered(a, b)) {
+      detail::keep_ordered(a, b);
+      if (a <= b && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
+        lb_ = -a;
+        rb_ = b;
+        return;
+      }
+    }
+    lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
+#else
     GAOL_FPU_SCALAR(a);
     GAOL_FPU_SCALAR(b);
     if (detail::quiet_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
@@ -116,6 +147,7 @@
     } else {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
     }
+#endif
   }
 
     GAOL_INLINE

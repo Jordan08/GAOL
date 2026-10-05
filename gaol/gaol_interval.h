@@ -509,6 +509,30 @@ namespace gaol_core {
 #  define GAOL_FPU_SCALAR(x) ((void)0)
 #endif
 
+#if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
+  namespace detail {
+    /*
+      On 32-bit ARM and on POWER9, the two doubles go through an empty asm
+      statement, which leaves them in their register at no cost, once a
+      std::isunordered() of them told they are no NaN, in is_empty() and in
+      the constructors of the FPU intervals (GAOL v5): GCC can then not merge
+      that test and the comparison after it back into a single "unordered or
+      greater", which it reverses into a signaling comparison there (see
+      is_empty()).
+    */
+    GAOL_INLINE void keep_ordered(double& l, double& r)
+    {
+#  if defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8)
+      __asm__ ("" : "+w" (l), "+w" (r)); // a VFP register that holds a double
+#  elif defined(__arm__)
+      __asm__ ("" : "+r" (l), "+r" (r));
+#  else
+      __asm__ ("" : "+d" (l), "+d" (r));
+#  endif
+    }
+  } // namespace detail
+#endif
+
 #if GAOL_USING_SSE2_INSTRUCTIONS
 #   include "gaol/gaol_interval_sse.h"
 #else
@@ -567,13 +591,7 @@ namespace gaol_core {
       return true;
     }
     double l = left(), r = right();
-#  if defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8)
-    __asm__ ("" : "+w" (l), "+w" (r)); // a VFP register that holds a double
-#  elif defined(__arm__)
-    __asm__ ("" : "+r" (l), "+r" (r));
-#  else
-    __asm__ ("" : "+d" (l), "+d" (r));
-#  endif
+    detail::keep_ordered(l, r);
     return l > r;
 #else
     double l = left(), r = right();
