@@ -567,5 +567,3 @@
     const double hi = er_sqrt_up(right);
     return _mm_set_pd(hi, -lo);
   }
-
-

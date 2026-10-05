@@ -555,6 +555,39 @@ What to do:
   `log(x)` 1.4 times, and `sin` and `cos` about 1.3 times
   (`tests/performance.cpp`).
 
+### The AVX-512 path
+
+Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
+`-Denable-prefer-avx512=true`), on a processor that has the AVX-512
+instructions, GAOL has `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`, and
+the operations of `+`, `-` and `*` with a double, computed by the rounding
+direction the instructions carry in themselves (GAOL v5). These operations
+set no rounding direction: the program keeps its own, in the default build
+as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
+integer powers, the elementary functions, the reading of a number — leave it
+upward, as they always do. These operations raise no floating-point
+exception flag either, the architecture requiring the suppression with the
+embedded rounding. The modes that flush the subnormal numbers to zero,
+which the embedded rounding does not ignore on the operands (measured on an
+Intel i7-1185G7), are cleared before the operation reads a bound when a
+program or a plug-in has set them, as the other operations clear them; the
+subnormal results, which the embedded rounding computes exactly where
+flush-to-zero alone would flush them, are the tighter for it.
+
+The bounds are those of the other path, bit for bit: the rounding rule is
+the same, and the tests of `tests/`, which a job of the continuous
+integration runs with the option on, check it. The library built with the
+option runs on any processor of the architecture: `gaol::init()` takes the
+path only when the processor has the instructions, and the operations are
+those of the default build otherwise. The operations of the path cost more
+time on a processor that halves its AVX-512 instructions, where they cost
+less on one that does not: on an Intel i7-1185G7 (halved), `x + y` takes
+4.6 ns rather than 3.4 in the default build and `sqrt(x)` 16.6 rather than
+8.1, where with `GAOL_PRESERVE_ROUNDING` the same `x + y` takes 5.6 ns
+rather than 12.8; the processors that do not halve them, as the Xeon of
+the continuous integration, are expected to take less. Which of the paths a
+GAOL took, the example 13 tells.
+
 ## Flush-to-zero and denormals-are-zero
 
 Processors have modes that flush the subnormal numbers, those below 2^-1022 in

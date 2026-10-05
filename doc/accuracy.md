@@ -51,7 +51,9 @@ The statements hold for GAOL as the three builds make it: with the CORE-MATH
 of `3rd/math-core`, compiled as they do it (see
 [3rd/README.md](../3rd/README.md)), and the code including GAOL's
 headers compiled with the flags of interval arithmetic (see
-[Using GAOL](using.md)); for the SSE2 intervals and the FPU intervals alike;
+[Using GAOL](using.md)); for the SSE2 intervals and the FPU intervals alike, and for the AVX-512 path
+of `GAOL_PREFER_AVX512`, whose bounds are those of the SSE2 path, bit for
+bit;
 whatever the rounding direction the calling code left
 (`tests/rounding_direction.cpp`), and with the floating-point exceptions
 masked, as a program starts: an operation that raises an enabled exception
