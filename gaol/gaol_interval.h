@@ -469,22 +469,42 @@ namespace gaol_core {
   };
 
 
-/* GCC compiles the quiet comparisons of a loop it vectorizes for x86 with
-   AVX into signaling predicates: vcmpnlepd for !std::islessequal(), vcmpnltpd
-   and vcmpltpd for std::isless() (GCC 9.4 at -O3 with -mfma, which turns AVX
-   on, and which the three builds give where the processor has FMA). They
-   raise the invalid-operation exception on the NaN bounds of an empty
-   interval: loops of is_empty(), of the relations testing it (less(),
-   certainly_positive()...) and of constructions raised it with the FPU
-   intervals (tests/rounding_direction.cpp). With GCC for x86 and the FPU
-   intervals, the bounds is_empty() compares and the doubles given to the
-   constructors therefore go through an empty asm statement, which leaves
-   them in their register at no cost but keeps GCC from vectorizing these
-   loops (GAOL v5); not the constants, which GCC still folds. Clang 18 keeps
-   such loops scalar, and the SSE2 intervals were not concerned. */
-#if !GAOL_USING_SSE2_INSTRUCTIONS && defined(__GNUC__) && !defined(__clang__) \
-    && (defined(__x86_64__) || defined(__i386__)) && defined(__SSE2_MATH__)
-#  define GAOL_FPU_SCALAR(x) do { if (!__builtin_constant_p(x)) { __asm__ ("" : "+x" (x)); } } while (0)
+/* A loop of comparisons of bounds that GCC vectorizes raises the
+   invalid-operation exception on the NaN bounds of an empty interval, with
+   the FPU intervals, wherever the vector comparisons signal or where it
+   computes for every element a comparison that follows a test of the empty
+   set: GCC 9.4 and 13 at -O3 with -mfma (which turns AVX on, and which the
+   three builds give where the processor has FMA), and GCC 13 to 15 for 32-bit
+   x86 with SSE2 alone (MinGW-w64), make the quiet comparisons signaling
+   predicates (vcmpnlepd, cmpnlepd...); GCC 14 for POWER8 uses xvcmpgedp and
+   xvcmpgtdp, which signal on a quiet NaN; GCC 11 to 15 for 64-bit ARM keep
+   the quiet ones quiet, but compute the second and third comparisons of the
+   constructor (fcmgt) for an empty element too. Loops of is_empty(), of the
+   relations, of constructions and of floor() raised it there
+   (tests/rounding_direction.cpp, in the continuous integration). With GCC and
+   the FPU intervals, the bounds is_empty() compares, those of the relations
+   that do not call it, and the doubles given to the constructors therefore go
+   through an empty asm statement, which leaves them in their register at no
+   cost but keeps GCC from vectorizing these loops (GAOL v5), with a register
+   of the floating-point unit of each processor, memory elsewhere; not the
+   constants, which GCC still folds. The scalar code then makes the first,
+   quiet comparison before the others. Clang 18 keeps such loops scalar, and
+   the SSE2 intervals were not concerned. */
+#if !GAOL_USING_SSE2_INSTRUCTIONS && defined(__GNUC__) && !defined(__clang__)
+#  if (defined(__x86_64__) || defined(__i386__)) && defined(__SSE2_MATH__)
+#    define GAOL_FPU_SCALAR_ASM(x) __asm__ ("" : "+x" (x))
+#  elif defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8))
+#    define GAOL_FPU_SCALAR_ASM(x) __asm__ ("" : "+w" (x)) // a register that holds a double
+#  elif (defined(__powerpc__) || defined(__PPC__)) && !defined(_SOFT_FLOAT) && !defined(__NO_FPRS__)
+#    define GAOL_FPU_SCALAR_ASM(x) __asm__ ("" : "+d" (x))
+#  elif defined(__s390__) || defined(__loongarch_double_float) \
+      || (defined(__riscv) && defined(__riscv_flen) && __riscv_flen >= 64) \
+      || (defined(__mips__) && defined(__mips_hard_float))
+#    define GAOL_FPU_SCALAR_ASM(x) __asm__ ("" : "+f" (x))
+#  else
+#    define GAOL_FPU_SCALAR_ASM(x) __asm__ ("" : "+m" (x))
+#  endif
+#  define GAOL_FPU_SCALAR(x) do { if (!__builtin_constant_p(x)) { GAOL_FPU_SCALAR_ASM(x); } } while (0)
 #else
 #  define GAOL_FPU_SCALAR(x) ((void)0)
 #endif
@@ -539,7 +559,7 @@ namespace gaol_core {
       their comparison is made only on bounds that are no NaN, where no
       instruction raises anything. Elsewhere one quiet comparison, and its
       bounds through GAOL_FPU_SCALAR() (above) against the loops GCC
-      vectorizes for x86.
+      vectorizes.
     */
     if (std::isunordered(left_internal(), right_internal())) {
       return true;
@@ -584,10 +604,10 @@ namespace gaol_core {
     that vectorizes or if-converts a loop of them computes the comparison for
     the empty operands too, where <, <=, >= or > raise the invalid-operation
     exception on their NaN bounds, as vcmplepd did in a loop of
-    certainly_positive() (GCC 9.4 at -O3 with -mavx2, FPU intervals; GCC 9.4
-    vectorizes the quiet comparisons into signaling predicates too, which
-    GAOL_FPU_SCALAR() above keeps it from doing there). == and != are quiet
-    comparisons already.
+    certainly_positive() (GCC 9.4 at -O3 with -mavx2, FPU intervals; GCC for
+    x86 and POWER vectorizes the quiet comparisons into signaling ones too,
+    which GAOL_FPU_SCALAR() above keeps it from doing with the FPU
+    intervals). == and != are quiet comparisons already.
   */
   GAOL_INLINE
   bool interval::less(const interval& I) const
@@ -741,13 +761,19 @@ namespace gaol_core {
   GAOL_INLINE
   bool interval::straddles_zero(void) const
   {
-    return std::islessequal(left(), 0.0) && std::isgreaterequal(right(), 0.0);
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return std::islessequal(l, 0.0) && std::isgreaterequal(r, 0.0);
   }
 
   GAOL_INLINE
   bool interval::strictly_straddles_zero(void) const
   {
-    return std::isless(left(), 0.0) && std::isgreater(right(), 0.0);
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return std::isless(l, 0.0) && std::isgreater(r, 0.0);
   }
 
   GAOL_INLINE
@@ -759,9 +785,12 @@ namespace gaol_core {
   GAOL_INLINE
   bool interval::is_an_int(void) const
   {
-    return (left() == right()) && (std::floor(left()) == left()) &&
-      (std::islessequal(left(), static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
-       std::isgreaterequal(left(), static_cast<double>((std::numeric_limits<int>::min)())));
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return (l == r) && (std::floor(l) == l) &&
+      (std::islessequal(l, static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
+       std::isgreaterequal(l, static_cast<double>((std::numeric_limits<int>::min)())));
   }
 
 
@@ -776,7 +805,10 @@ namespace gaol_core {
     */
   GAOL_INLINE bool interval::set_contains(double d) const
   {
-    return std::islessequal(left(), d) && std::isgreaterequal(right(), d);
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return std::islessequal(l, d) && std::isgreaterequal(r, d);
   }
 
   /*
@@ -799,7 +831,10 @@ namespace gaol_core {
     */
   GAOL_INLINE bool interval::set_strictly_contains(double d) const
   {
-    return std::isless(left(), d) && std::isgreater(right(), d);
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return std::isless(l, d) && std::isgreater(r, d);
   }
 
   GAOL_INLINE bool interval::set_disjoint(const interval &I) const

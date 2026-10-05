@@ -101,7 +101,10 @@
   // TODO.md). The other two compare bounds that are no NaN once it is true:
   // made quiet too, they cost GCC a conditional move through the integer
   // registers where it if-converts them, and 30% more in a loop of
-  // constructions (GCC 9.4, FPU intervals)
+  // constructions (GCC 9.4, FPU intervals). GCC for 64-bit ARM computed them
+  // for every element of a loop of constructions it vectorized, an empty one
+  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval.h),
+  // which keeps GCC from vectorizing that loop
   GAOL_INLINE
   interval::interval(double a, double b)
   {
