@@ -47,7 +47,7 @@ namespace gaol_core {
     to provide a uniform framework. Every exception thrown should at
     least contain the file and line where the exception was thrown.
   */
-  class __GAOL_PUBLIC__ gaol_exception : public std::exception {
+  class GAOL_PUBLIC gaol_exception : public std::exception {
   public:
     /*!
       \param f Name of the file where the exception is thrown
@@ -126,7 +126,7 @@ namespace gaol_core {
     \see Refer to the documentation of the parser for intervals
     for the expected syntax (file gaol_interval_parser.ypp)
   */
-  class __GAOL_PUBLIC__ input_format_error : public gaol_exception {
+  class GAOL_PUBLIC input_format_error : public gaol_exception {
   public:
     input_format_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     input_format_error(const char* f, unsigned l, const char* e) :
@@ -141,7 +141,7 @@ namespace gaol_core {
     yet implemented, or is not available due to the way the library was
     configured.
   */
-  class __GAOL_PUBLIC__ unavailable_feature_error : public gaol_exception {
+  class GAOL_PUBLIC unavailable_feature_error : public gaol_exception {
   public:
     unavailable_feature_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     unavailable_feature_error(const char* f, unsigned l, const char* e) :
@@ -157,7 +157,7 @@ namespace gaol_core {
     two floating-point numbers, at least one of them being either a NaN or
     an infinite value).
   */
-  class __GAOL_PUBLIC__ invalid_action_error : public gaol_exception {
+  class GAOL_PUBLIC invalid_action_error : public gaol_exception {
   public:
     invalid_action_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     invalid_action_error(const char* f, unsigned l, const char* e) :
@@ -175,10 +175,20 @@ namespace gaol_core {
     wrote what() too, between "exception" and "thrown": what() being the
     explanation now, it is written once (GAOL v5).
    */
-  extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out,
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& out,
 					      const gaol_exception &e);
 
 } // namespace gaol_core
+
+// In the namespace gaol too, as in GAOL 4, with the operator<< of the
+// exceptions (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::gaol_exception;
+  using gaol_core::input_format_error;
+  using gaol_core::unavailable_feature_error;
+  using gaol_core::invalid_action_error;
+  using gaol_core::operator<<;
+} // namespace gaol
 
 #endif /* GAOL_EXCEPTIONS_ENABLED */
 #endif /* GAOL_EXCEPTIONS_H */

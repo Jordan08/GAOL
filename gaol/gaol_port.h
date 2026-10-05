@@ -51,8 +51,11 @@
 
 // Allocation of 'size' bytes on 'boundary' bytes.
 // NOTE: GAOL_MEMALIGN() must return null value if no allocation error
-// GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (gaol_allocator.h,
-// gaol_interval_sse.cpp): the two have to match.
+// GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (operator new
+// and operator delete of the SSE2 intervals, gaol_interval_sse.cpp, and of
+// the intervals of floats, gaol_interval2f.cpp): the two have to match.
+// gaol_allocator.h, the allocator of the containers that used them too, is
+// gone (GAOL v5).
 #if defined (__MINGW32__) || defined (_MSC_VER)
 /* _aligned_malloc() and _aligned_free(), of the C runtime of Windows: malloc()
    aligns on 8 bytes only on 32-bit Windows, and GAOL's SSE2 intervals need
@@ -96,7 +99,7 @@ namespace gaol_core {
     \return 0 if the argument is positive and 1 otherwise
     \note Returns 1 for -0.0
   */
-  extern __GAOL_PUBLIC__ int gaol_signbit(double);
+  extern GAOL_PUBLIC int gaol_signbit(double);
 
 
 // GAOL_SIZEOF_INT and GAOL_SIZEOF_LONG_LONG_INT come from gaol/gaol_config.h; no build
@@ -124,16 +127,21 @@ namespace gaol_core {
   } uintdouble;
 
 
+// The casts of C of GAOL_HI() and GAOL_LO() are written with those of C++
+// (GAOL v5): reinterpret_cast, to a const pointer so that a const double is
+// taken too, then const_cast, so that the word stays assignable as before
+#define GAOL_WORD_OF_DOUBLE(x) \
+  const_cast<GAOL_INT_FOR_DOUBLE*>(reinterpret_cast<const GAOL_INT_FOR_DOUBLE*>(&(x)))
 #if GAOL_WORDS_BIGENDIAN
 #  define GAOL_IFBIGENDIAN(a,b)   (a), (b)
-#  define GAOL_HI(x) (*(GAOL_INT_FOR_DOUBLE*)&(x))
-#  define GAOL_LO(x) (*((GAOL_INT_FOR_DOUBLE)1+(GAOL_INT_FOR_DOUBLE*)&(x)))
+#  define GAOL_HI(x) (*GAOL_WORD_OF_DOUBLE(x))
+#  define GAOL_LO(x) (*(1+GAOL_WORD_OF_DOUBLE(x)))
 #  define GAOL_LO_UINTDOUBLE(a) ((a).i[1])
 #  define GAOL_HI_UINTDOUBLE(a) ((a).i[0])
 #else
 #  define GAOL_IFBIGENDIAN(a,b)   (b), (a)
-#  define GAOL_HI(x) *((GAOL_INT_FOR_DOUBLE)1+(GAOL_INT_FOR_DOUBLE*)&(x))
-#  define GAOL_LO(x) *(GAOL_INT_FOR_DOUBLE*)&(x)
+#  define GAOL_HI(x) *(1+GAOL_WORD_OF_DOUBLE(x))
+#  define GAOL_LO(x) *GAOL_WORD_OF_DOUBLE(x)
 #  define GAOL_LO_UINTDOUBLE(a) ((a).i[0])
 #  define GAOL_HI_UINTDOUBLE(a) ((a).i[1])
 #endif
@@ -276,5 +284,13 @@ namespace gaol_core {
 
 
 } // namespace gaol_core
+
+// In the namespace gaol too, as in GAOL 4; not f_negate_simple(),
+// gaol_signbit(), ullidouble and uintdouble, which GAOL uses for itself (see
+// gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::NaN_val;
+  using gaol_core::is_finite;
+} // namespace gaol
 
 #endif /* GAOL_PORT_H */

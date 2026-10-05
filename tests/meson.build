@@ -37,7 +37,7 @@ endif
 tests_dep = declare_dependency(
   link_with: gaollib_static,
   include_directories: include_directories('..'),
-  compile_args: gaol_public_args + tests_args,
+  compile_args: tests_args,
   link_args: gaol_link_args,
   dependencies: deps,
 )

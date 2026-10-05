@@ -644,7 +644,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
 # C++, always a static one, GAOL's declarations being compiled without
-# __declspec(dllexport) or dllimport (see __GAOL_PUBLIC__ below).
+# __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
   gaol_interval.cpp gaol_profile.cpp gaol_common.cpp gaol_parser.cpp
@@ -747,10 +747,9 @@ if(MSVC)
     target_compile_options(gaol PRIVATE /Zc:strictStrings-)
   endif()
   target_compile_definitions(gaol PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
-  # gaol/gaol_config.h declares GAOL's classes and functions
-  # __declspec(dllimport) for Visual C++ unless __GAOL_PUBLIC__ is defined, as
-  # for a DLL: every file including GAOL's headers has to define it, empty
-  target_compile_definitions(gaol PUBLIC __GAOL_PUBLIC__=)
+  # No __GAOL_PUBLIC__= for GAOL and the code using it any longer:
+  # gaol/gaol_config.h declares GAOL's classes and functions without
+  # __declspec(dllimport) for Visual C++, where GAOL_PUBLIC is empty (GAOL v5)
 endif()
 if(FALSE)
 endif()
@@ -783,7 +782,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # not part of GAOL's interface (gaol_double_op.h), and the intervals of
 # floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 set(GAOL_HEADERS
-  gaol/gaol.h gaol/gaol_allocator.h gaol/gaol_assert.h gaol/gaol_common.h
+  gaol/gaol.h gaol/gaol_assert.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
   gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
   gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h

@@ -65,7 +65,7 @@ headers of GAOL's sources (GAOL v5): `gaol_interval_parser.h`, which did not
 compile when included, `gaol_init_cleanup.h`, `gaol_exact.h` and `sysdeps/`,
 `gaol_core_math.h` and `gaol_u128.h`; `gaol_parameters.h`, which declared
 nothing, is gone. GAOL's headers compile without a warning under
-`-Wall -Wextra`, and put nothing into the global namespace:
+`-Wall -Wextra -Wold-style-cast`, and put nothing into the global namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
 program now names `std::string` and `std::exception` (GAOL v5). The macros they
 define start with `GAOL_` (or `gaol_`), so as not to meet those of the program
@@ -91,9 +91,12 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 above for the code built by GCC 13 or a later one, or by the compiler that
 built GAOL, of its major version and not older (another compiler, as Clang 18,
 would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
-GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and, for
-Visual C++, `__GAOL_PUBLIC__=`, GAOL being a static library. There is no other library
-to link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
+GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and no
+longer `__GAOL_PUBLIC__=` for Visual C++ (GAOL v5): GAOL is a static library
+there, and its declarations no longer carry the `__declspec(dllimport)` that
+GAOL 4 gave them unless the code using it defined `__GAOL_PUBLIC__` empty; a
+definition left in a project changes nothing. There is no other library to
+link: CORE-MATH is compiled into `libgaol` itself. A library whose headers
 include GAOL's, as Codac's, links `gaol::gaol` `PUBLIC`, so that its own users
 get the flags, and its CMake package finds GAOL again (`find_dependency(gaol)`).
 `tests/find_package` is a project using an installed GAOL this way.
@@ -226,6 +229,27 @@ two namespaces, not both: with both open, `pow(x, y)` is ambiguous, and so is
 `textToInterval(s)`, which reads the names of GAOL in `gaol` and those of the
 standard in `gaol_ieee1788`.
 
+`gaol` names the type and the functions of `gaol_core` one by one (GAOL v5):
+the names GAOL 4 had in `gaol` that GAOL v5 still has (the classes, the
+exceptions, the expressions with their nodes and visitor, the functions and
+the operators of intervals, `round_upward()`, `next_float()`, `version`,
+`NaN_val`..., and `rnd_keep()` of GAOL 4.3.2), the functions on intervals GAOL
+v5 adds
+(`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `fma`, `cancel_minus`,
+`round_ties_to_even`... and the nodes of their expressions),
+`restore_rounding()` and `exact_string()`. What GAOL's code uses for itself is
+in `gaol_core` only, out of the way of the names of a program that opens
+`gaol`: the functions saving and setting the rounding direction and the
+flush-to-zero modes (`rounding_state`, `get_rounding()`, `set_rounding()`,
+`round_upward_if_needed()` and `gaol_set_rounding_x86()`, which GAOL 4.3.2 had
+in `gaol`, `get_flush_modes()`...), the functions computing the `pow` of
+`gaol` (below), and the internals GAOL 4 had in `gaol` without its manual
+documenting them (`f_negate()`, `f_negate_simple()`, `gaol_signbit()`,
+`uintdouble`, `ullidouble`, `Interval_struct`, `the_null_expr`, `prec_t`,
+`modulo_k_pi()`, `reset_fpu_cw()`, `round_upward_sse()` and the other
+`round_*_sse()`). A program calling one of them names it in `gaol_core`, as
+`gaol_core::get_rounding()`.
+
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
 base included: `pow(x, n)` for an n of any integer type (see
 [Integers](#integers)), and `pow(x, p)` and `pow(x, y)` for a double p or a
@@ -234,7 +258,7 @@ degenerate interval y that is an integer, one beyond the ints giving
 `gaol/gaol_expression.h`, computed with the same powers. In `gaol_core`, these
 functions are named apart from `pow`: `gaol_pown()`, `gaol_uipow()`,
 `gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
-`gaol_pow_exp()`.
+`gaol_pow_exp()`, which are not in `gaol`.
 
 ## The names of IEEE 1788-2015
 

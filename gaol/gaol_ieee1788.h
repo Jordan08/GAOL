@@ -158,7 +158,7 @@ namespace gaol_ieee1788 {
     takes for an integer exponent beyond the ints are not part of GAOL's
     interface (gaol/gaol_double_op.h).
   */
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ interval pow(const interval& x, const interval& y);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow(const interval& x, const interval& y);
   /*!
     pow(x, p): pow(x, [p]), the pow of the standard for a double as
     exponent. An integer exponent has its own, pow(x, interval(p)), interval(p)
@@ -406,7 +406,7 @@ namespace gaol_ieee1788 {
     not what operator<< writes in the current format, which may not be a
     literal (the width format).
   */
-  GAOL_NODISCARD extern __GAOL_PUBLIC__ std::string intervalToText(const interval& x);
+  GAOL_NODISCARD extern GAOL_PUBLIC std::string intervalToText(const interval& x);
 
   /*!
     intervalToExact(x): exact_string(x), what operator<< writes in

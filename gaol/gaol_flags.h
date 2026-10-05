@@ -47,4 +47,7 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+// prec_t, which GAOL 4 declared in its namespace gaol too, is not in gaol:
+// GAOL uses it for itself (see gaol/gaol_interval.h)
+
 #endif /* GAOL_FLAGS_H */

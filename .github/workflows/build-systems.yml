@@ -267,7 +267,7 @@ jobs:
           $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
           $lib = Get-ChildItem "$prefix/lib" | Where-Object { $_.Name -match 'gaol\.(lib|a)$' } | Select-Object -First 1
           # /MD: the C runtime of the DLLs, which meson builds libgaol with
-          cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D__GAOL_PUBLIC__= /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $lib.FullName /Fe:rounding_direction.exe
+          cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $lib.FullName /Fe:rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
           ./rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }

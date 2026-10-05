@@ -30,7 +30,7 @@
 #ifndef GAOL_INTERVAL_SSE_H
 #define GAOL_INTERVAL_SSE_H
 
-  __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const __m128d& x);
+  GAOL_PUBLIC std::ostream& operator<<(std::ostream& out, const __m128d& x);
 
   GAOL_INLINE interval interval::universe(void)
     {
