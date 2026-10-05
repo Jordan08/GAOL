@@ -52,7 +52,12 @@ mode there.
   negations GAOL rounds its lower bound with, and the bound came one double
   above the exact one. `cancel_minus` and `cancel_plus` have to be the tightest
   and `y + cancel_minus(x, y)` to enclose x, over intervals of the same width
-  and one double wider, which rounding cannot tell apart (GAOL v5).
+  and one double wider, which rounding cannot tell apart, and at the corners
+  where the exact differences of the bounds are within a double of each other
+  (`[0.5]` against `[4.9e-324, 1e-300]`) or beyond the largest double
+  (`[DBL_MAX]` against `[0.5]` and `[1]`): GCC at `-O3` computed the terms of
+  their TwoSum after the direction was set back to upward, where it is no
+  longer exact (GAOL v5).
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
   `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
   at intervals, and at intervals whose images are known exactly (extrema,
@@ -196,6 +201,15 @@ mode there.
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
   it upward before `main()`: GAOL has to initialize itself before.
+  `cancel_minus([DBL_MAX], [1])` has to give the hull of `DBL_MAX` and raise
+  no invalid-operation flag, nor die in a child process that enabled the
+  exception: the terms of its TwoSum, computed by GCC after the direction
+  was set back to upward, read +oo and made inf - inf. After `cleanup()` and
+  an operation of GAOL, `gaol::restore_rounding()` has to set the direction
+  to nearest again, as many times as it is called, where `cleanup()` does
+  so at its first call only, and to do nothing with
+  `GAOL_PRESERVE_ROUNDING`, the operations restoring the direction
+  themselves (GAOL v5).
 - **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
   GCC and Clang), which links `crtfastmath.o` and the modes flushing the
   subnormals to zero it sets, unless `-mno-daz-ftz` keeps it out. Where the

@@ -11,8 +11,9 @@
  * sets it upward when it initializes itself, before main(), and each of its
  * operations sets it upward again when it is not, until gaol::cleanup().
  * The example shows what this means for a program that also computes with
- * doubles. Its own quotients, std::lrint(), printf() and strtod() follow the
- * direction (section 1). GAOL's intervals do not depend on the direction the
+ * doubles. Its own quotients, std::lrint(), printf(), strtod(), sums, text
+ * round trips and error-free transformations follow the direction (section 1,
+ * the table of doc/using.md). GAOL's intervals do not depend on the direction the
  * program leaves, which it may therefore change freely (section 2). A small
  * RAII guard, nearest_scope, runs a block of the program's own double code
  * to nearest, with the two cautions it needs (section 3). A std::thread
@@ -48,8 +49,11 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <random>
+#include <sstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <gaol/gaol.h>
@@ -112,6 +116,10 @@ namespace {
   volatile double three = 3.0;
   volatile double two_point_three = 2.3;
   volatile double price = 2.675;   // the double 2.67499999999999982236431605997...
+  volatile double pi_digits = 3.14159265358979;
+  volatile double one_tenth = 0.1;
+  volatile double addend_big = 1e20;
+  volatile double addend_tiny = 1e-20;
 
   /* x, through volatile memory: x is computed where the source code computes
      it, before the change of rounding direction that follows. GCC does not
@@ -158,6 +166,149 @@ namespace {
     nearest_scope(const nearest_scope&) = delete;
     nearest_scope& operator=(const nearest_scope&) = delete;
   };
+
+  /*
+    A double written with 17 digits, which read back to nearest gives the
+    same double. Written in a nearest_scope: with the GNU C library, the
+    digits are rounded in the direction in effect.
+  */
+  std::string decimal(double d)
+  {
+    nearest_scope nearest;
+    char text[40];
+    std::snprintf(text, sizeof text, "%.17g", d);
+    return text;
+  }
+
+  // Knuth's TwoSum: s = a + b, and the error e of the sum, with s + e = a + b
+  // exactly when rounding to nearest
+  void two_sum(double a, double b, double& s, double& e)
+  {
+    s = a + b;
+    const double bb = s - a;
+    e = (a - (s - bb)) + (b - bb);
+  }
+
+  /*
+    Whether s + e is exactly a + b. To nearest, TwoSum gives the exact sum of
+    two doubles as a pair, the same pair for the same sum: s + e is a + b
+    when TwoSum of s and e gives the pair TwoSum of a and b does.
+  */
+  bool is_exact_sum(double a, double b, double s, double e)
+  {
+    bool same;
+    {
+      nearest_scope nearest;
+      double s1, e1, s2, e2;
+      two_sum(keep(a), keep(b), s1, e1);
+      two_sum(keep(s), keep(e), s2, e2);
+      same = keep(s1 == s2 && e1 == e2);
+    }
+    return same;
+  }
+
+  // Dekker's TwoProd: p = a * b, and the error e of the product, with p + e =
+  // a * b exactly when rounding to nearest. From the split of the operands
+  // (Veltkamp), which the directed roundings break as they break TwoSum
+  void two_prod_dekker(double a, double b, double& p, double& e)
+  {
+    const double split = 134217729.0;   // 2^27 + 1
+    const double ca = split*a - (split*a - a);
+    const double cb = split*b - (split*b - b);
+    p = a * b;
+    e = ca*cb - p + ca*(b - cb) + (a - ca)*cb + (a - ca)*(b - cb);
+  }
+
+  /*
+    Whether p + e is exactly a * b, in every rounding direction: the error of
+    a rounded product is a double, which std::fma computes exactly however
+    it rounds, so p + e is the product exactly when std::fma(a, b, -p) gives
+    e back. The check runs to nearest, whatever the direction of the pair.
+  */
+  bool is_exact_product(double a, double b, double p, double e)
+  {
+    bool same;
+    {
+      nearest_scope nearest;
+      same = keep(e == std::fma(keep(a), keep(b), -keep(p)));
+    }
+    return same;
+  }
+
+  /*
+    The other rows of the table of doc/using.md: what the direction does to a
+    stream, a sum, a text round trip and an error-free transformation. They
+    are computed once as main() runs, and once in a nearest_scope, from data
+    in memory and through keep(), so that the compiler cannot take a result
+    of one computation for the other's.
+  */
+  struct Consequences {
+    std::string stream;               // std::cout << std::setprecision(3) << pi
+    double sum;                       // 0.1 added ten million times
+    std::size_t changed;              // doubles that %.17g, then strtod, give back different
+    bool exact_sum;                   // s + e is a + b for TwoSum(1e20, 1e-20)
+    std::size_t inexact_pairs;        // pairs of doubles whose TwoSum is not exact
+    std::size_t inexact_products;     // pairs whose TwoProd, from Dekker's splitting, is not exact
+    std::size_t inexact_fma_products; // pairs whose TwoProd, from std::fma, is not exact
+  };
+
+  Consequences consequences(const std::vector<double>& values, const std::vector<std::pair<double, double>>& pairs,
+                             const std::vector<std::pair<double, double>>& product_pairs)
+  {
+    Consequences c;
+    std::ostringstream stream;
+    stream << std::setprecision(3) << pi_digits;
+    c.stream = stream.str();
+
+    const double tenth = one_tenth;
+    double sum = 0.0;
+    for (long i = 0; i < 10000000; ++i) {
+      sum += tenth;
+    }
+    c.sum = keep(sum);
+
+    c.changed = 0;
+    for (double x : values) {
+      char text[40];
+      std::snprintf(text, sizeof text, "%.17g", x);
+      c.changed += std::strtod(text, nullptr) != x;
+    }
+
+    double s, e;
+    two_sum(addend_big, addend_tiny, s, e);
+    s = keep(s);
+    e = keep(e);
+    c.exact_sum = is_exact_sum(addend_big, addend_tiny, s, e);
+
+    c.inexact_pairs = 0;
+    for (const std::pair<double, double>& ab : pairs) {
+      two_sum(ab.first, ab.second, s, e);
+      s = keep(s);
+      e = keep(e);
+      c.inexact_pairs += !is_exact_sum(ab.first, ab.second, s, e);
+    }
+
+    /* TwoProd, the error of a product: Dekker's, from the split operands,
+       which TwoSum's fate awaits (it is exact to nearest only), and the one
+       of std::fma, exact in every direction: the error of a rounded product
+       is a double, which std::fma computes however it rounds. That e is the
+       error is what is_exact_product() checks, from std::fma to nearest. */
+    c.inexact_products = 0;
+    c.inexact_fma_products = 0;
+    for (const std::pair<double, double>& ab : product_pairs) {
+      double p, err;
+      two_prod_dekker(ab.first, ab.second, p, err);
+      p = keep(p);
+      err = keep(err);
+      c.inexact_products += !is_exact_product(ab.first, ab.second, p, err);
+      p = ab.first * ab.second;
+      err = std::fma(ab.first, ab.second, -p);
+      p = keep(p);
+      err = keep(err);
+      c.inexact_fma_products += !is_exact_product(ab.first, ab.second, p, err);
+    }
+    return c;
+  }
 
   /*
     Does this GAOL leave the rounding direction upward after its operations,
@@ -281,10 +432,50 @@ int main()
     read_nearest = keep(std::strtod("0.3", nullptr));
   }
 
+  /* The other rows of the table of doc/using.md, computed the same way, from
+     doubles drawn with integer arithmetic and exact scalings, which do not
+     depend on the direction. */
+  std::mt19937_64 generator(1788);
+  // A significand in [-1, 1), and an exponent in [-spread, spread], drawn
+  // one after the other: the compilers evaluate arguments in another order
+  const auto random_double = [&generator](int spread) {
+    const double significand = std::ldexp(static_cast<double>(generator() >> 11), -52) - 1.0;
+    const int exponent = static_cast<int>(generator() % (2 * spread + 1)) - spread;
+    return std::ldexp(significand, exponent);
+  };
+  std::vector<double> values;
+  for (int i = 0; i < 20000; ++i) {
+    values.push_back(random_double(13));
+  }
+  std::vector<std::pair<double, double>> pairs;
+  for (int i = 0; i < 50000; ++i) {
+    const double a = random_double(60);
+    const double b = random_double(60);
+    pairs.emplace_back(a, b);
+  }
+  /* Pairs of doubles of [1, 2), full significands, for TwoProd: the pairs
+     above, of exponents spread over 120, meet no case where the directed
+     roundings break Dekker's product (the error of the split parts they
+     drop is then below the error of the rounded product), where about one
+     pair in 26 of [1, 2) does. */
+  std::vector<std::pair<double, double>> product_pairs;
+  for (int i = 0; i < 50000; ++i) {
+    product_pairs.emplace_back(1.0 + std::fabs(random_double(0)), 1.0 + std::fabs(random_double(0)));
+  }
+  const Consequences as_it_runs = consequences(values, pairs, product_pairs);
+  Consequences to_nearest;
+  {
+    nearest_scope nearest;
+    to_nearest = consequences(values, pairs, product_pairs);
+  }
+
   // 1/3 lies between two doubles, a third of the gap above the lower one
   // (mpmath): the lower one is the nearest, the upper one the rounding up
   const interval third_enclosure = interval(1.0) / 3.0;
   const interval tenths = textToInterval("0.3");
+  // The exact sum of ten million doubles 0.1 lies in this enclosure
+  const interval tenths_sum = interval(0.1) * 1e7;
+  const bool upward = at_start == FE_UPWARD;
 
   show("std::fegetround()", direction_name(at_start),
        at_start == FE_UPWARD ? "set by GAOL's initialization, before main()" : "GAOL did not change it",
@@ -306,6 +497,41 @@ int main()
   show("strtod(\"0.3\")", hex(read) + ", " + hex(read_nearest),
        read != read_nearest ? "and its decimal input: strtod(\"0.3\") != 0.3" : "the same double in both directions",
        is_bound_of(read, tenths) && is_bound_of(read_nearest, tenths) && (read == read_nearest || read != 0.3));
+  show("cout << setprecision(3) << pi", as_it_runs.stream + ", " + to_nearest.stream,
+       as_it_runs.stream != to_nearest.stream ? "and so do the C++ streams" : "the same text in both directions",
+       true);   // what the C++ library does, reported rather than checked
+  // Every addition rounded upward ends above the exact sum, and to nearest,
+  // this one ends below it
+  show("0.1 added 10^7 times", decimal(as_it_runs.sum) + ", " + decimal(to_nearest.sum),
+       upward ? "above the exact sum, then below it" : "below the exact sum, both times",
+       (upward ? as_it_runs.sum > tenths_sum.right() : as_it_runs.sum < tenths_sum.left())
+           && to_nearest.sum < tenths_sum.left());
+  // A text written with 17 digits and read back has to give the same double:
+  // it does to nearest, and no longer when both roundings go upward
+#ifdef __GLIBC__
+  const bool text_follows_direction = true;
+#else
+  const bool text_follows_direction = false;   // reported, not checked
+#endif
+  show("%.17g, then strtod", std::to_string(as_it_runs.changed) + ", " + std::to_string(to_nearest.changed),
+       "of " + std::to_string(values.size()) + " doubles come back different",
+       !text_follows_direction
+           || (as_it_runs.changed == (upward ? values.size() : 0) && to_nearest.changed == 0));
+  // TwoSum gives the error of a sum exactly to nearest, and not always upward
+  show("TwoSum(1e20, 1e-20)",
+       std::string(as_it_runs.exact_sum ? "exact" : "not exact") + ", " + (to_nearest.exact_sum ? "exact" : "not exact"),
+       "s + e is a + b only to nearest", to_nearest.exact_sum && as_it_runs.exact_sum == !upward);
+  show("TwoSum, pairs of doubles", std::to_string(as_it_runs.inexact_pairs) + ", " + std::to_string(to_nearest.inexact_pairs),
+       "of " + std::to_string(pairs.size()) + " with exponents within 60: not exact",
+       to_nearest.inexact_pairs == 0 && (upward ? as_it_runs.inexact_pairs > 0 : as_it_runs.inexact_pairs == 0));
+  // TwoProd, the error of a product: Dekker's splitting breaks as TwoSum does,
+  // and the error of std::fma is exact in every rounding direction
+  show("TwoProd, Dekker's splitting", std::to_string(as_it_runs.inexact_products) + ", " + std::to_string(to_nearest.inexact_products),
+       "of " + std::to_string(product_pairs.size()) + " of [1, 2): not exact",
+       to_nearest.inexact_products == 0 && (upward ? as_it_runs.inexact_products > 0 : as_it_runs.inexact_products == 0));
+  show("TwoProd, std::fma", std::to_string(as_it_runs.inexact_fma_products) + ", " + std::to_string(to_nearest.inexact_fma_products),
+       "the error of a rounded product, exact in every direction",
+       as_it_runs.inexact_fma_products == 0 && to_nearest.inexact_fma_products == 0);
 
   // ------------------------------------------------------------------------
   std::cout << "2. GAOL's intervals do not depend on the direction the program leaves\n";
@@ -472,10 +698,9 @@ int main()
      GAOL_PRESERVE_ROUNDING, GAOL never left it). It does so once only: an
      operation of GAOL after it sets the direction upward again, which this
      section does on purpose, and a second cleanup() does nothing. A program
-     that uses GAOL in phases, with its own double code between them,
-     therefore sets the direction to nearest itself after each phase
-     (std::fesetround(FE_TONEAREST), or gaol::round_nearest()), and calls
-     cleanup() after the last one. */
+     that uses GAOL in phases, with its own double code between them, calls
+     gaol::restore_rounding() after each phase, as many times as it needs
+     (GAOL v5), and cleanup() after the last one. */
   const bool first = gaol::cleanup();
   const int after_cleanup = std::fegetround();
   const double third_after = keep(one / three);
@@ -484,7 +709,8 @@ int main()
   // The last use of GAOL: cleanup() again, which now does nothing
   const bool second = gaol::cleanup();
   const int after_second = std::fegetround();
-  std::fesetround(FE_TONEAREST);
+  gaol::restore_rounding();
+  gaol::restore_rounding();
   const int final_direction = std::fegetround();
 
   show("gaol::cleanup()", std::string(first ? "true" : "false") + ", " + direction_name(after_cleanup),
@@ -499,13 +725,15 @@ int main()
   show("gaol::cleanup() again", std::string(second ? "true" : "false") + ", " + direction_name(after_second),
        leaves_upward ? "cleanup() sets the direction back once only" : "cleanup() has nothing left to do",
        !second && after_second == after_late);
-  show("std::fesetround(FE_TONEAREST)", direction_name(final_direction), "what the program does after each phase",
+  show("gaol::restore_rounding() twice", direction_name(final_direction),
+       leaves_upward ? "what the program calls after each phase, as many times as it needs"
+                     : "GAOL restores the direction itself: restore_rounding() has nothing to do",
        final_direction == FE_TONEAREST);
 
   std::cout << "What to do\n"
             << "  read data with textToInterval(\"0.3\"), which encloses 3/10 in every direction, not with strtod()\n"
             << "  write data with exact_string() or %a, read back to the same bits in every direction\n"
-            << "  call gaol::cleanup() right after the last use of GAOL, and set FE_TONEAREST after each phase\n";
+            << "  call gaol::cleanup() right after the last use of GAOL, and gaol::restore_rounding() after each phase\n";
 
   if (failures != 0) {
     return EXIT_FAILURE;

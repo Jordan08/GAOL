@@ -1265,7 +1265,11 @@ namespace gaol_core {
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
     std::string text;
 
-    GAOL_RND_PRESERVE();
+    // The guard, rather than GAOL_RND_PRESERVE() and GAOL_RND_RESTORE(): the
+    // construction of the text may fail (std::bad_alloc), and a program
+    // reading the exception found the direction left as this function had
+    // set it, to nearest (GAOL v5)
+    const rounding_guard rnd;
 	round_upward();
 
     double l = I.left(), r = I.right();
@@ -1407,7 +1411,8 @@ namespace gaol_core {
         }
       }
     }
-    GAOL_RND_RESTORE();
+    // No double is computed from here on: the text is written before the
+    // guard sets the direction back
     write_text(os, text);
     return os;
   }
@@ -2895,6 +2900,17 @@ interval nth_root(const interval& I, int q)
     GAOL_RND_NEAREST_ENTER();
     two_sum(a1, -b1, s1, e1);
     two_sum(a2, -b2, s2, e2);
+    /* The four doubles go through rnd_keep() before the direction changes
+       back: GCC computed them after GAOL_RND_NEAREST_LEAVE(), upward, where
+       TwoSum is no longer exact, and cancel_minus([0.5], [4.9e-324, 1e-300]),
+       whose exact differences are within a double of each other, took X to be
+       wider than Y; the terms of the error of cancel_minus([DBL_MAX], [0.5])
+       then read +oo and inf - inf, and raised FE_INVALID
+       (GAOL v5) */
+    s1 = gaol_core::rnd_keep(s1);
+    e1 = gaol_core::rnd_keep(e1);
+    s2 = gaol_core::rnd_keep(s2);
+    e2 = gaol_core::rnd_keep(e2);
     GAOL_RND_NEAREST_LEAVE();
     const bool inf1 = std::isinf(s1), inf2 = std::isinf(s2);
     if (inf1 || inf2) {
@@ -4082,9 +4098,12 @@ namespace gaol_ieee1788 {
     const ::gaol_core::text_format fmt(std::ios_base::skipws | std::ios_base::dec, interval::precision(),
                                        std::locale::classic());
     std::string out;
-    GAOL_RND_ENTER();
+    // The guard, rather than GAOL_RND_ENTER() and GAOL_RND_LEAVE():
+    // display_bounds() allocates, and a failed allocation left the direction
+    // upward, which GAOL_PRESERVE_ROUNDING promises to set back (GAOL v5)
+    const ::gaol_core::rounding_guard rnd;
+    ::gaol_core::round_upward_if_needed();
     ::gaol_core::display_bounds(x.left(), x.right(), out, fmt);
-    GAOL_RND_LEAVE();
     return out;
   }
 

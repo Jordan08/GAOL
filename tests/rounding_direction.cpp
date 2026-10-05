@@ -1605,6 +1605,24 @@ int main()
           [&] { return std::string(e.name); });
     check("pow with an exponent of extreme magnitude: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  {
+    /* The differences of the bounds of cancel_minus() are computed by TwoSum
+       in the rounding to nearest, their terms kept before the direction
+       changes back: GCC computed them after it, upward, where TwoSum is no
+       longer exact, and the terms of the error of
+       cancel_minus([DBL_MAX], [1]) read +oo and inf - inf, and raised the
+       invalid-operation flag (GAOL v5, point 48; the bounds are checked in
+       tests/arithmetic.cpp) */
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("cancel_minus with a huge bound raises no invalid-operation flag", raised == 0,
+          [&] { return "flags " + std::to_string(raised) + " raised"; });
+    check("cancel_minus([DBL_MAX], [1]) is the hull of DBL_MAX",
+          z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
+              && z.right() == (std::numeric_limits<double>::max)(),
+          [&] { return hex(z); });
+  }
   const std::vector<HugeInterval> huge = huge_intervals();
   check("the intervals with a huge bound: the subnormal bound is 2^-1074",
         huge.back().l == std::ldexp(gaol::rnd_keep(1.0), -1074) && huge.back().r == (std::numeric_limits<double>::max)(),
@@ -1673,6 +1691,13 @@ int main()
       check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
+    const Outcome oc = run_with_exceptions_enabled(FE_INVALID, [] {
+      const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
+      return z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
+          && z.right() == (std::numeric_limits<double>::max)();
+    });
+    check("cancel_minus([DBL_MAX], [1]), FE_INVALID enabled", oc == returned_true,
+          [&] { return outcome_text(oc); });
     for (const RelationLoop& r : relation_loops) {
       const Outcome ol = run_with_exceptions_enabled(FE_INVALID, [&r] { return relation_loop_is_right(r); });
       check("a loop of relations with empty operands, FE_INVALID enabled", ol == returned_true,
@@ -1729,6 +1754,37 @@ int main()
   const State to_nearest = { FE_TONEAREST, SSE_DIRECTION(_MM_ROUND_NEAREST) };
   check("rounding direction set back to nearest by gaol::cleanup()", after_cleanup == to_nearest,
         [&] { return text(after_cleanup) + " after it, " + text(before_cleanup) + " before"; });
+#endif
+
+  /*
+    gaol::restore_rounding() sets back the direction that the first
+    gaol::init() found, as many times as the program needs, where gaol::cleanup()
+    does so at its first call only (GAOL v5): a program that goes back to GAOL
+    after cleanup() calls it after each use, the operations of GAOL setting the
+    direction upward again. With GAOL_PRESERVE_ROUNDING, the operations restore
+    the direction themselves and restore_rounding() does nothing.
+  */
+#if !GAOL_PRESERVE_ROUNDING
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("rounding direction set back to nearest by gaol::restore_rounding()", after_restore == to_nearest,
+        [&] { return text(after_restore); });
+  const interval back = interval(1.0) + interval(1.0);   // sets the direction upward again
+  static_cast<void>(back);
+  const State after_operation = state();
+  gaol::restore_rounding();
+  gaol::restore_rounding();
+  const State after_twice = state();
+  check("rounding direction set back by gaol::restore_rounding() as many times as needed",
+        !(after_operation == to_nearest) && after_twice == to_nearest,
+        [&] {
+          return text(after_twice) + " after it, " + text(after_operation) + " after the operation";
+        });
+#else
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("gaol::restore_rounding() leaves the direction of the program with GAOL_PRESERVE_ROUNDING",
+        after_restore == after_cleanup, [&] { return text(after_restore); });
 #endif
   return summary();
 }
