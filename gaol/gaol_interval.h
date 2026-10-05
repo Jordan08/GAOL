@@ -129,10 +129,11 @@ namespace gaol_detail {
     the integer types but bool. An integer given where GAOL takes a double
     was converted to a double, the nearest one or the one of the rounding
     direction, which an integer beyond 2^53 is not: interval(2^53 + 1) was
-    [2^53, 2^53], which does not contain it, and [1, 2] + (2^53 + 1) was
-    [2^53, 2^53 + 2]. The constructors, =, &=, |=, the arithmetic
-    operators, the relations and set_contains() therefore have overloads for
-    them, which take the tightest interval containing the integer.
+    [2^53, 2^53] or [2^53 + 2, 2^53 + 2], neither of which contains it, and
+    [1, 2] - (2^53 + 1) did not contain [1 - n, 2 - n] in any rounding
+    direction. The constructors, =, &=, |=, the arithmetic operators, the
+    relations and set_contains() therefore have overloads for them, which
+    take the tightest interval containing the integer.
   */
   template <class T>
   struct is_integer
@@ -238,6 +239,53 @@ namespace gaol_detail {
   template <class A, class B>
   using if_integer_bounds = typename std::enable_if<(is_integer<A>::value || is_integer<B>::value)
                                                      && is_bound<A>::value && is_bound<B>::value, int>::type;
+
+  /*
+    Whether a <= b, the bounds of interval(a, b) with an integer among them,
+    compared as the numbers they are: interval(a, b) takes the double below
+    a and the double above b, which are in order where a > b lie between
+    the same two doubles (interval(2^53 + 1, 2^53) would be [2^53, 2^53]).
+    An integer a is at most a double b if and only if the double above a is,
+    and a double a at most an integer b if and only if a is at most the
+    double below b; a double is compared quietly, a NaN raising nothing.
+    Two integers are compared as integers, in the unsigned type of their
+    common type where neither is negative.
+  */
+  template <class A, class B>
+  GAOL_INLINE bool bounds_in_order(A a, B b, std::true_type, std::false_type)
+  {
+    return quiet_less_equal(double_above(a), static_cast<double>(b));
+  }
+  template <class A, class B>
+  GAOL_INLINE bool bounds_in_order(A a, B b, std::false_type, std::true_type)
+  {
+    return quiet_less_equal(static_cast<double>(a), double_below(b));
+  }
+  template <class A, class B>
+  GAOL_INLINE bool bounds_in_order(A a, B b, std::true_type, std::true_type)
+  {
+    if (integer_is_negative(a) != integer_is_negative(b)) {
+      return integer_is_negative(a);
+    }
+    typedef typename std::common_type<A, B>::type C;
+    typedef typename std::make_unsigned<C>::type U;
+    return integer_is_negative(a) ? static_cast<C>(a) <= static_cast<C>(b) : static_cast<U>(a) <= static_cast<U>(b);
+  }
+  // Bounds that are all doubles (a double, a float or an integer of 53 bits
+  // or less, every int) need no comparison here: interval(double, double)
+  // compares them as they are
+  template <class T>
+  struct bound_is_double
+    : std::integral_constant<bool, !is_integer<T>::value || integer_type_is_double<T>::value> {};
+  template <class A, class B>
+  GAOL_INLINE bool bounds_in_order(A, B, std::false_type) { return true; }
+  template <class A, class B>
+  GAOL_INLINE bool bounds_in_order(A a, B b, std::true_type) { return bounds_in_order(a, b, is_integer<A>(), is_integer<B>()); }
+  template <class A, class B>
+  GAOL_INLINE bool bounds_in_order(A a, B b)
+  {
+    return bounds_in_order(a, b, std::integral_constant<bool, !(bound_is_double<A>::value && bound_is_double<B>::value)>());
+  }
 } // namespace gaol_detail
 
 namespace gaol_core {
@@ -283,13 +331,18 @@ namespace gaol_core {
     /*!
       \brief Creates [a, b] where a bound is an integer (GAOL v5): the lower
       bound the largest double at most a, the upper one the smallest double at
-      least b, so that the interval contains the integers given
+      least b, so that the interval contains the integers given, and the
+      empty set for a > b, compared as the numbers they are
 
-      The other bound is a double or a float. interval(1, 2) and
-      interval(0, 0.5) take it.
+      The other bound is an integer, a double or a float (a long double
+      takes interval(double, double)). interval(1, 2) and interval(0, 0.5)
+      take it; interval(2^53 + 1, 2^53) is empty, though both lie between
+      the doubles 2^53 and 2^53 + 2.
     */
     template <class A, class B, gaol_detail::if_integer_bounds<A, B> = 0>
-    interval(A a, B b) : interval(gaol_detail::double_below(a), gaol_detail::double_above(b)) {}
+    interval(A a, B b)
+      : interval(gaol_detail::bounds_in_order(a, b) ? gaol_detail::double_below(a) : GAOL_INFINITY,
+                 gaol_detail::double_above(b)) {}
   private:
     // interval(n) for an integer n: interval(double) where every value of
     // the type is a double, as before (GAOL v5), the two doubles around n
@@ -362,9 +415,14 @@ namespace gaol_core {
     interval& operator&=(const interval& I);
     //! Intersection of *this and interval(d)
     interval& operator&=(double d);
-    //! Intersection of *this and interval(n), for an integer n (GAOL v5)
+    /*!
+      Intersection of *this and {n}, for an integer n (GAOL v5): interval(n)
+      where *this contains n, the empty set otherwise. *this & interval(n)
+      would contain a double next to n that *this does: [0, 2^53] &= 2^53 + 1
+      is empty, not [2^53, 2^53]
+    */
     template <class T, gaol_detail::if_integer<T> = 0>
-    interval& operator&=(T n) { return *this &= interval(n); }
+    interval& operator&=(T n) { return *this = set_contains(n) ? interval(n) : interval::emptyset(); }
     //! Union of *this and I
     interval& operator|=(const interval& I);
     //! Union of *this and interval(d)
@@ -1916,9 +1974,9 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(double d, const interval &I)
     it, and a double x is below n if and only if x <= lo, above n if and only
     if x >= hi: <= and >= are those with interval(n), and < and > are <= and
     >= with interval(n) then, < with interval(lo) being false for I = [lo, lo]
-    though lo < n. An integer that is a double for certain takes the
-    relation with that double, which a compiler does not see is a point
-    otherwise (Clang 18 made x < n 47 instructions rather than 28 for an int).
+    though lo < n. < and > take the relation with the double n where n is
+    one for certain (|n| <= 2^53, every int): Clang 18 does not see that
+    interval(n) is then a point, and compiled both choices for an int.
   */
 template <class T, gaol_detail::if_integer<T> = 0>
 GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I, T n)

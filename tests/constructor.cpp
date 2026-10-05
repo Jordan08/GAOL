@@ -81,6 +81,21 @@ public:
       TEST_EMPTY(l);
       TEST_TRUE(m.left() == 0 && m.right() == 0.5);
     }
+    // Bounds in the wrong order, compared as the numbers they are: empty,
+    // though both may lie between the same two doubles, where the double below
+    // a and the double above b are in order
+    const long long n1 = n - 1, n3 = n + 2; // 2^53, 2^53 + 3
+    TEST_EMPTY(interval(n, n1));
+    TEST_EMPTY(interval(n3, n));
+    TEST_EMPTY(interval(n, two53));
+    TEST_EMPTY(interval(two53 + 2, n));
+    TEST_EMPTY(interval(ullmax, two64 - 2048));
+    TEST_EMPTY(interval(1u, -1));
+    TEST_EMPTY(interval(n, std::numeric_limits<double>::quiet_NaN()));
+    TEST_TRUE(interval(two53, n).left() == two53 && interval(two53, n).right() == two53 + 2);
+    TEST_TRUE(interval(1.0f, n).left() == 1 && interval(1.0f, n).right() == two53 + 2);
+    TEST_TRUE(interval(-1LL, ullmax).left() == -1 && interval(-1LL, ullmax).right() == two64);
+    TEST_SEQ(interval(-1, 0u), interval(-1.0, 0.0));
     // Every integer type but bool, as the double it is for the small ones
     TEST_SEQ(interval(static_cast<short>(-5)), interval(-5.0));
     TEST_SEQ(interval('A'), interval(65.0));

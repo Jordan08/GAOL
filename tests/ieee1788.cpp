@@ -106,8 +106,12 @@ namespace
     const interval nums = numsToInterval(1, n);
     check("numsToInterval(1, 2^53 + 1) = [1, 2^53 + 2]", nums.left() == 1.0 && nums.right() == two53 + 2,
           [&] { return hex(nums); });
-    check("numsToInterval(2^53 + 1, 1.0) is empty", numsToInterval(n, 1.0).is_empty(),
-          [&] { return hex(numsToInterval(n, 1.0)); });
+    check("numsToInterval(2^53 + 1, 1.0) and numsToInterval(2^53 + 1, 2^53) are empty",
+          numsToInterval(n, 1.0).is_empty() && numsToInterval(n, n - 1).is_empty(),
+          [&] { return hex(numsToInterval(n, n - 1)); });
+    const interval negative = numsToInterval(-n, 1.0);
+    check("numsToInterval(-(2^53 + 1), 1.0) = [-(2^53 + 2), 1]",
+          negative.left() == -(two53 + 2) && negative.right() == 1.0, [&] { return hex(negative); });
     check("isMember(2^53 + 1, x)", isMember(n, around) && !isMember(n, at) && isMember(3, numsToInterval(1.0, 4.0)));
     const interval two(2.0), x = numsToInterval(-4.0, -1.0), y = numsToInterval(0.25, 0.5);
     const interval p = pown(two, 3000000000u);
@@ -116,6 +120,10 @@ namespace
           pown(x, 3L).set_eq(numsToInterval(-64.0, -1.0)) && gaol::pow(x, 3L).set_eq(numsToInterval(-64.0, -1.0))
           && gaol::pow(x, static_cast<short>(3)).set_eq(numsToInterval(-64.0, -1.0)),
           [&] { return hex(pown(x, 3L)); });
+    check("pown(x, -2L) and gaol::pow(x, -3LL): the negative powers, as for an int",
+          pown(x, -2L).set_eq(pown(x, -2)) && gaol::pow(x, -3LL).set_eq(gaol::pow(x, -3))
+          && pown(x, -2L).set_eq(numsToInterval(0.0625, 1.0)),
+          [&] { return hex(pown(x, -2L)); });
     check("gaol::pow([2], 3000000000ul) = gaol::pow([2], 3000000000u)",
           gaol::pow(two, 3000000000ul).set_eq(gaol::pow(two, 3000000000u)), [&] { return hex(gaol::pow(two, 3000000000ul)); });
     check("pown(x, 5e9) and gaol::pow(x, 5e9), beyond the unsigned ints: [-oo, +oo], empty for an empty x",

@@ -585,6 +585,18 @@ namespace
       delete clone;
     }
 
+    // expression(n) for an integer that is a double is expression(double),
+    // written as the double, and a visitor sees a double_node, as before the
+    // overload for the integers (GAOL v5)
+    {
+      std::ostringstream a, b;
+      a << expression(7) << ' ' << pow(expression(-2), 2);
+      b << expression(7.0) << ' ' << pow(expression(-2.0), 2);
+      check("expression(7) is expression(7.0)", a.str() == b.str()
+              && dynamic_cast<double_node*>(expression(7).get_root()) != nullptr,
+            [&] { return a.str() + " rather than " + b.str(); });
+    }
+
     // the operators that change the expression in place; /= was declared and
     // not defined, and a program using it did not link (GAOL v5)
     expression acc = expression(interval(1.0, 1.0));

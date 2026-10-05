@@ -64,12 +64,20 @@ typedef struct {
     explicit expression(double d);
     explicit expression(const interval& I);
     /*
-      expression(interval(n)) for an integer n (GAOL v5): the tightest
-      interval containing it, which expression(double) would round where n
-      is no double. Explicit, as expression(double)
+      expression(n) for an integer n (GAOL v5): expression(double) where n is
+      a double, the node of a double as before, written 7 and seen as a
+      double_node by a visitor; expression(interval(n)), the tightest
+      interval containing it, otherwise, which expression(double) would
+      round. Explicit, as expression(double)
     */
     template <class T, ::gaol_detail::if_integer<T> = 0>
-    explicit expression(T n) : expression(interval(n)) {}
+    explicit expression(T n) : expression(integer_expression(interval(n))) {}
+  private:
+    static expression integer_expression(const interval& N)
+    {
+      return N.left() == N.right() ? expression(N.left()) : expression(N);
+    }
+  public:
     expression(const expression& e);
     expression(const expr_node& e);
     virtual ~expression();

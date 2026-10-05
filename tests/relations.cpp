@@ -216,7 +216,9 @@ public:
     TEST_TRUE(around.set_contains(9007199254740994LL));
     const volatile unsigned long long m = ULLONG_MAX; // 2^64 - 1
     TEST_TRUE(interval(two64) > m && m < interval(two64) && interval(two64 - 2048) < m);
-    TEST_FALSE(interval(two64).set_contains(m));
+    TEST_FALSE(interval(two64).set_contains(m) || interval(two64).set_strictly_contains(m));
+    TEST_TRUE(interval(two64 - 2048, two64).set_strictly_contains(m));
+    TEST_FALSE(interval(two64 - 2048, two64 - 2048).set_strictly_contains(m));
     // No point of the empty set contradicts them
     TEST_TRUE(interval::emptyset() < n && interval::emptyset() > n && n <= interval::emptyset());
     TEST_FALSE(interval::emptyset().set_contains(n));

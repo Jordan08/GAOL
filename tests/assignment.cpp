@@ -124,10 +124,15 @@ public:
       TEST_TRUE(x.left() == 0 && x.right() == two53 + 2);
       x &= n;
       TEST_TRUE(x.left() == two53 && x.right() == two53 + 2);
+      // [0, 2^53] does not contain 2^53 + 1, though it contains a double of
+      // interval(n): x &= n is interval(n) or the empty set
       x = interval(0.0, two53);
       x &= n;
-      TEST_TRUE(x.left() == two53 && x.right() == two53);
+      TEST_EMPTY(x);
+      x = interval(-2.0, 2.0);
       x &= -1;
+      TEST_SEQ(x,interval(-1.0));
+      x &= 5;
       TEST_EMPTY(x);
   }
 
