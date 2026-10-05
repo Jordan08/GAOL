@@ -3761,12 +3761,27 @@ interval nth_root(const interval& I, int q)
       return std::numeric_limits<double>::max();
     }
 
+    /*
+      The half of the sum of the bounds, rounded to nearest, or the sum of
+      their halves where the sum may overflow, that is where a bound is 2^1023
+      or more in magnitude, which is tested first (GAOL v5): the sum was
+      computed first, and its overflow told the other case, so that
+      midpoint([DBL_MAX]) raised the overflow exception, though its midpoint
+      is DBL_MAX. The sum of the halves gives the same midpoint there: a half
+      is exact, unless the bound is below 2^-1021, where its rounding changes
+      no sum with a bound of 2^1023 or more, and a sum of halves is the half
+      of the sum, rounded, where no half is rounded.
+    */
     GAOL_RND_PRESERVE();
     round_nearest();
-    double middle = 0.5*(left()+right());
-	 if (std::isinf(middle)) {
-		middle = 0.5*left() + 0.5*right();
-	 }
+    const double l = left(), r = right();
+    double middle;
+    const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
+    if (std::fabs(l) >= big || std::fabs(r) >= big) {
+      middle = 0.5*l + 0.5*r;
+    } else {
+      middle = 0.5*(l + r);
+    }
     // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
     middle = gaol_core::rnd_keep(middle);
     GAOL_RND_RESTORE();

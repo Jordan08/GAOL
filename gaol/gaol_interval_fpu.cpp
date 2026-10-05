@@ -1079,12 +1079,15 @@
       return interval(std::numeric_limits<double>::max());
     }
     // As midpoint(), rounded outward: the half of the sum of the bounds, or the
-    // sum of their halves when it overflows, each half rounded outward too
-    // (halving a bound below 2^-1021 is not exact)
-    double sum = rb_ - lb_;     // a+b, rounded upward
-    double opp_sum = lb_ - rb_; // -(a+b), rounded upward
+    // sum of their halves where it may overflow, each half rounded outward too
+    // (halving a bound below 2^-1021 is not exact). The sum may overflow only
+    // where a bound is 2^1023 or more in magnitude, which is tested first, so
+    // that mid([DBL_MAX]) raises no overflow exception (GAOL v5: the sum was
+    // computed first, and its overflow told the other case); the sum of the
+    // halves gives the same bounds as the half of the sum there
     double mid_left, mid_right;
-    if (std::isinf(sum) || std::isinf(opp_sum)) {
+    const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
+    if (std::fabs(lb_) >= big || std::fabs(rb_) >= big) {
       // Each half with a negated factor goes through rnd_keep(), whose volatile
       // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
       // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
@@ -1092,6 +1095,8 @@
       mid_left  = -(.5*lb_ + gaol_core::rnd_keep((-.5)*rb_));
       mid_right = gaol_core::rnd_keep((-.5)*lb_) + .5*rb_;
     } else {
+      double sum = rb_ - lb_;     // a+b, rounded upward
+      double opp_sum = lb_ - rb_; // -(a+b), rounded upward
       mid_left  = -(.5*opp_sum);
       mid_right = .5*sum;
     }

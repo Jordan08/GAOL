@@ -704,15 +704,20 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
     double l = left_internal();
     double r = right_internal();
     // As midpoint(), rounded outward: the half of the sum of the bounds, or the
-    // sum of their halves when it overflows, each half rounded outward too
-    // (halving a bound below 2^-1021 is not exact)
-    double sum = r - l;     // a+b, rounded upward
-    double opp_sum = l - r; // -(a+b), rounded upward
+    // sum of their halves where it may overflow, each half rounded outward too
+    // (halving a bound below 2^-1021 is not exact). The sum may overflow only
+    // where a bound is 2^1023 or more in magnitude, which is tested first, so
+    // that mid([DBL_MAX]) raises no overflow exception (GAOL v5: the sum was
+    // computed first, and its overflow told the other case); the sum of the
+    // halves gives the same bounds as the half of the sum there
     double mid_left, mid_right;
-    if (std::isinf(sum) || std::isinf(opp_sum)) {
+    const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
+    if (std::fabs(l) >= big || std::fabs(r) >= big) {
       mid_left  = -(.5*l + (-.5)*r);
       mid_right = (-.5)*l + .5*r;
     } else {
+      double sum = r - l;     // a+b, rounded upward
+      double opp_sum = l - r; // -(a+b), rounded upward
       mid_left  = -(.5*opp_sum);
       mid_right = .5*sum;
     }

@@ -208,7 +208,9 @@ namespace gaol_core {
      - [-oo, +oo] -> midP = 0.0
      - [-oo, b]   -> midP = -MAXREAL
      - [a, +oo]   -> midP = MAXREAL
-     - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even
+     - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even, computed
+       as a/2 + b/2 where |a| or |b| is 2^1023 or more, so that a+b does not
+       overflow: midpoint() of [MAXREAL] raises no overflow exception (GAOL v5)
     */
     GAOL_NODISCARD double midpoint(void) const;
     /*!
@@ -221,6 +223,7 @@ namespace gaol_core {
      - mid([-oo,b])   = [-MAXREAL,-MAXREAL]
      - mid([a,+oo])   = [MAXREAL,MAXREAL]
      - mid([-oo,+oo]) = [0,0]
+     As midpoint(), it raises no overflow exception for [MAXREAL] (GAOL v5).
     */
     GAOL_NODISCARD interval mid(void) const;
     /*!
