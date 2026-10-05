@@ -630,10 +630,9 @@ int main()
      GAOL_PRESERVE_ROUNDING, GAOL never left it). It does so once only: an
      operation of GAOL after it sets the direction upward again, which this
      section does on purpose, and a second cleanup() does nothing. A program
-     that uses GAOL in phases, with its own double code between them,
-     therefore sets the direction to nearest itself after each phase
-     (std::fesetround(FE_TONEAREST), or gaol::round_nearest()), and calls
-     cleanup() after the last one. */
+     that uses GAOL in phases, with its own double code between them, calls
+     gaol::restore_rounding() after each phase, as many times as it needs
+     (GAOL v5), and cleanup() after the last one. */
   const bool first = gaol::cleanup();
   const int after_cleanup = std::fegetround();
   const double third_after = keep(one / three);
@@ -642,7 +641,8 @@ int main()
   // The last use of GAOL: cleanup() again, which now does nothing
   const bool second = gaol::cleanup();
   const int after_second = std::fegetround();
-  std::fesetround(FE_TONEAREST);
+  gaol::restore_rounding();
+  gaol::restore_rounding();
   const int final_direction = std::fegetround();
 
   show("gaol::cleanup()", std::string(first ? "true" : "false") + ", " + direction_name(after_cleanup),
@@ -657,13 +657,15 @@ int main()
   show("gaol::cleanup() again", std::string(second ? "true" : "false") + ", " + direction_name(after_second),
        leaves_upward ? "cleanup() sets the direction back once only" : "cleanup() has nothing left to do",
        !second && after_second == after_late);
-  show("std::fesetround(FE_TONEAREST)", direction_name(final_direction), "what the program does after each phase",
+  show("gaol::restore_rounding() twice", direction_name(final_direction),
+       leaves_upward ? "what the program calls after each phase, as many times as it needs"
+                     : "GAOL restores the direction itself: restore_rounding() has nothing to do",
        final_direction == FE_TONEAREST);
 
   std::cout << "What to do\n"
             << "  read data with textToInterval(\"0.3\"), which encloses 3/10 in every direction, not with strtod()\n"
             << "  write data with exact_string() or %a, read back to the same bits in every direction\n"
-            << "  call gaol::cleanup() right after the last use of GAOL, and set FE_TONEAREST after each phase\n";
+            << "  call gaol::cleanup() right after the last use of GAOL, and gaol::restore_rounding() after each phase\n";
 
   if (failures != 0) {
     return EXIT_FAILURE;

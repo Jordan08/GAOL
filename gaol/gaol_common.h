@@ -127,6 +127,18 @@ extern __GAOL_PUBLIC__  bool init(int dbg_lvl = 0);
   */
 extern __GAOL_PUBLIC__ bool cleanup(void);
 
+  /*!
+    \brief Sets back the rounding direction that the first call of init()
+    found (GAOL v5)
+
+    cleanup() does so at its first call only: a program that goes back to
+    GAOL after it, whose operations set the direction upward again, calls
+    restore_rounding() as many times as it needs. With
+    GAOL_PRESERVE_ROUNDING, GAOL leaves the direction of the program alone,
+    and restore_rounding() does nothing.
+  */
+extern __GAOL_PUBLIC__ void restore_rounding(void);
+
 /*!
   \macro Position of an error/warning
 

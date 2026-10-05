@@ -106,6 +106,18 @@ namespace gaol_core {
     }
   }
 
+  void restore_rounding(void)
+  {
+#if !GAOL_PRESERVE_ROUNDING
+    // Only the rounding direction, as cleanup() above: the exception flags
+    // raised since init() are the program's. As many times as the program
+    // needs, where cleanup() sets it back at its first call only
+    if (_already_initialized) {
+      set_rounding(_initial_rounding);
+    }
+#endif
+  }
+
   /* What init() allocated, freed by the automatic cleanup only, when the
      program ends or the library is unloaded, after the static objects
      constructed since GAOL initialized itself are destroyed (GAOL v5).

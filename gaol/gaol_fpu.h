@@ -428,10 +428,57 @@ namespace gaol_core {
   }
 
   /*!
+    \brief Sets back, when it is destroyed, the rounding state it found, as
+    GAOL_RND_RESTORE() does, by an exception as well (GAOL v5)
+
+    A computation that changes the rounding direction and may leave by an
+    exception holds one, rather than GAOL_RND_PRESERVE() followed by
+    GAOL_RND_RESTORE(): the reading of a number compares it with std::vector
+    and std::string, and the construction of a text allocates, and a failed
+    allocation left the direction as the computation had set it, to nearest
+    for the reader, even without GAOL_PRESERVE_ROUNDING. The destructor sets
+    back what GAOL_RND_RESTORE() sets: the state of the program, the
+    flush-to-zero modes included, when the direction is preserved, and the
+    direction upward otherwise. What the computation keeps goes through
+    rnd_keep() as before.
+  */
+  class rounding_guard
+  {
+  public:
+    rounding_guard()
+#if GAOL_PRESERVE_ROUNDING
+      : _saved(get_rounding())
+#endif
+    {
+    }
+
+    ~rounding_guard()
+    {
+#if GAOL_PRESERVE_ROUNDING
+      set_rounding_and_flush_modes(_saved);
+#else
+      round_upward();
+#endif
+    }
+
+    rounding_guard(const rounding_guard&) = delete;
+    rounding_guard& operator=(const rounding_guard&) = delete;
+
+  private:
+#if GAOL_PRESERVE_ROUNDING
+    rounding_state _saved;
+#endif
+  };
+
+  /*!
     \brief Returns x, having written it to volatile memory
 
-    x is then computed before the change of rounding direction that follows
-    (see above).
+    x is then computed before the change of rounding direction that follows:
+    rnd_keep() is the barrier against a compiler that computes x after the
+    change, in the direction it sets back (see above, and doc/using.md). GCC
+    does so even with -frounding-math, and the terms of the TwoSum of the
+    differences of the bounds of cancel_minus(), kept this way, are the ones
+    computed to nearest (gaol/gaol_interval.cpp).
   */
   template<class T>
   T rnd_keep(const T& x)

@@ -375,7 +375,10 @@ namespace {
   bool gaol_enclose_number(const char *s, double& l, double& r)
   {
     const gaol_number v = gaol_take_apart(s); // Before the rounding mode changes
-    GAOL_RND_PRESERVE();
+    // The guard, rather than GAOL_RND_PRESERVE() and GAOL_RND_RESTORE(): the
+    // comparisons of the number allocate (std::vector, std::string), and a
+    // failed allocation left the direction to nearest (GAOL v5)
+    const rounding_guard rnd;
     round_nearest();
     const uint64_t guess = gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
     const uint64_t top = gaol_bits_of(std::numeric_limits<double>::infinity());
@@ -418,7 +421,7 @@ namespace {
         hi = middle;
       }
     }
-    GAOL_RND_RESTORE();
+    // The direction is set back when the guard is destroyed, at the return
     l = gaol_double_of(lo);
     r = (sign_lo == 0) ? l : gaol_double_of(hi);
     return sign_lo == 0;

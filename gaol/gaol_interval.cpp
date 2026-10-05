@@ -1265,7 +1265,11 @@ namespace gaol_core {
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
     std::string text;
 
-    GAOL_RND_PRESERVE();
+    // The guard, rather than GAOL_RND_PRESERVE() and GAOL_RND_RESTORE(): the
+    // construction of the text may fail (std::bad_alloc), and a program
+    // reading the exception found the direction left as this function had
+    // set it, to nearest (GAOL v5)
+    const rounding_guard rnd;
 	round_upward();
 
     double l = I.left(), r = I.right();
@@ -1407,7 +1411,8 @@ namespace gaol_core {
         }
       }
     }
-    GAOL_RND_RESTORE();
+    // No double is computed from here on: the text is written before the
+    // guard sets the direction back
     write_text(os, text);
     return os;
   }
@@ -4093,9 +4098,12 @@ namespace gaol_ieee1788 {
     const ::gaol_core::text_format fmt(std::ios_base::skipws | std::ios_base::dec, interval::precision(),
                                        std::locale::classic());
     std::string out;
-    GAOL_RND_ENTER();
+    // The guard, rather than GAOL_RND_ENTER() and GAOL_RND_LEAVE():
+    // display_bounds() allocates, and a failed allocation left the direction
+    // upward, which GAOL_PRESERVE_ROUNDING promises to set back (GAOL v5)
+    const ::gaol_core::rounding_guard rnd;
+    ::gaol_core::round_upward_if_needed();
     ::gaol_core::display_bounds(x.left(), x.right(), out, fmt);
-    GAOL_RND_LEAVE();
     return out;
   }
 

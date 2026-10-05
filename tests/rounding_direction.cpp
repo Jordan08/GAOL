@@ -1755,5 +1755,36 @@ int main()
   check("rounding direction set back to nearest by gaol::cleanup()", after_cleanup == to_nearest,
         [&] { return text(after_cleanup) + " after it, " + text(before_cleanup) + " before"; });
 #endif
+
+  /*
+    gaol::restore_rounding() sets back the direction that the first
+    gaol::init() found, as many times as the program needs, where gaol::cleanup()
+    does so at its first call only (GAOL v5): a program that goes back to GAOL
+    after cleanup() calls it after each use, the operations of GAOL setting the
+    direction upward again. With GAOL_PRESERVE_ROUNDING, the operations restore
+    the direction themselves and restore_rounding() does nothing.
+  */
+#if !GAOL_PRESERVE_ROUNDING
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("rounding direction set back to nearest by gaol::restore_rounding()", after_restore == to_nearest,
+        [&] { return text(after_restore); });
+  const interval back = interval(1.0) + interval(1.0);   // sets the direction upward again
+  static_cast<void>(back);
+  const State after_operation = state();
+  gaol::restore_rounding();
+  gaol::restore_rounding();
+  const State after_twice = state();
+  check("rounding direction set back by gaol::restore_rounding() as many times as needed",
+        !(after_operation == to_nearest) && after_twice == to_nearest,
+        [&] {
+          return text(after_twice) + " after it, " + text(after_operation) + " after the operation";
+        });
+#else
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("gaol::restore_rounding() leaves the direction of the program with GAOL_PRESERVE_ROUNDING",
+        after_restore == after_cleanup, [&] { return text(after_restore); });
+#endif
   return summary();
 }

@@ -178,10 +178,11 @@ unloaded: until then, the code after the last use of GAOL (the rest of
 `main()`, the destructors of static objects, the functions registered with
 `std::atexit()`) computes its doubles rounded upward. Only the first call sets
 the direction back: an operation of GAOL after it sets the direction upward
-again. What the initialization allocated is freed by the automatic cleanup
-only, after the static objects are destroyed, so that the expressions of
-`gaol/gaol_expression.h` still alive when the program calls `gaol::cleanup()`
-remain valid.
+again, and **`gaol::restore_rounding()` sets it back as many times as the
+program needs** (GAOL v5). What the initialization allocated is freed by the
+automatic cleanup only, after the static objects are destroyed, so that the
+expressions of `gaol/gaol_expression.h` still alive when the program calls
+`gaol::cleanup()` remain valid.
 
 The direction set back is the one GAOL found when it initialized itself. It is
 not the one the program started with when an operation of GAOL came first: in
@@ -466,8 +467,8 @@ What to do:
 - **Call `gaol::cleanup()` right after the last use of GAOL**, before the
   program prints, converts or sums what it computed: its doubles are then
   computed to nearest. A program that goes back to GAOL afterwards calls
-  `std::fesetround(FE_TONEAREST)` (or `gaol::round_nearest()`) after each use,
-  since an operation of GAOL sets the direction upward again and
+  `gaol::restore_rounding()` (or `std::fesetround(FE_TONEAREST)`) after each
+  use, since an operation of GAOL sets the direction upward again and
   `gaol::cleanup()` sets it back once only.
 - **Read and write numbers through GAOL**, not through the C library:
   `gaol::textToInterval("0.3")` encloses 3/10 in every direction, where
