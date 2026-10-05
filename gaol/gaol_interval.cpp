@@ -548,6 +548,54 @@ namespace gaol_core {
     return true;
   }
 
+  /*
+    x^y rounded upward for x >= 0 and a finite y, the rounding direction
+    being upward: CORE-MATH's pow, which is correctly rounded in that
+    direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
+    |y| >= 2^1014, and a finite x > 0 other than 1, whose power is computed
+    here (GAOL v5). For those, the first phase of CORE-MATH's pow makes its
+    approximation of log(x) a NaN on purpose (the exponent field of y below
+    0x36 or from 0x7f5 on), so that its rounding test fails, and compares the
+    NaN product with 2^-1022 with <, which raises the invalid-operation
+    exception: pow([1, 2], [1e-300]) and pow([1, 2], [1e300, 1e308]) raised
+    it, and killed a program that enabled it. The value is known there,
+    |log(x)| being between 2^-54 and 745 for a positive double x other than 1:
+    - |y| < 2^-969: 0 < |y log(x)| < 2^-959, and x^y is within 2^-958 of 1,
+      above 1 where y log(x) > 0: x^y rounded upward is the double above 1
+      there, and 1 otherwise;
+    - |y| >= 2^1014: |y log(x)| > 2^960, and x^y is above DBL_MAX where
+      y log(x) > 0, rounded upward to +oo, and below 2^-1074 otherwise,
+      rounded upward to 2^-1074.
+    These are the values CORE-MATH gives, and the double below each the lower
+    bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
+    and +oo apart before its first phase.
+  */
+  static inline double pow_rounded_up(double x, double y)
+  {
+    // 2^-969 and 2^1014, written in decimal with the digits that give them
+    // exactly: C++11 has no hexadecimal floating literal
+    const double magnitude = std::fabs(y);
+    if (magnitude >= 2.0041683600089728e-292 && magnitude < 1.7555597020139804e+305) {
+      return upward::nthroot_up(x, y);
+    }
+    if (x == 1.0 || y == 0.0) {
+      return 1.0;
+    }
+    if (x == 0.0 || x == GAOL_INFINITY) {
+      return upward::nthroot_up(x, y);
+    }
+    const bool above_one = (x > 1.0) == (y > 0.0);
+    if (magnitude < 1.0) {
+      return above_one ? 1.0 + std::numeric_limits<double>::epsilon() : 1.0;
+    }
+    return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+  }
+
+  static inline double pow_rounded_dn(double x, double y)
+  {
+    return previous_float(pow_rounded_up(x, y));
+  }
+
   // x^y for x > 0: 1 for x = 1 or y = 0, x^y where it is a double
   // (pow_is_double()), the double below CORE-MATH's value rounded upward
   // otherwise, and at least 0
@@ -557,12 +605,12 @@ namespace gaol_core {
     if (x == 1.0 || y == 0.0) {
       return 1.0;
     }
-    return pow_is_double(x, y, d) ? d : maximum(upward::nthroot_dn(x,y), 0.0);
+    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : upward::nthroot_up(x,y);
+    return (x == 1.0 || y == 0.0) ? 1.0 : pow_rounded_up(x,y);
   }
 
   static inline double sinh_lo(double x)
@@ -621,7 +669,7 @@ namespace gaol_core {
 #else
     // emptyset handled thanks to unorderedness of NaNs, with a quiet
     // comparison, which raises no invalid-operation exception on them (GAOL v5)
-    return std::isgreaterequal(next_float(left()),right());
+    return detail::quiet_greater_equal(next_float(left()),right());
 #endif
   }
 
@@ -1070,7 +1118,7 @@ namespace gaol_core {
   {
     // A quiet comparison, which raises no invalid-operation exception on the
     // NaN bounds of the empty set (GAOL v5)
-    if (!std::islessequal(l, r)) {
+    if (!detail::quiet_less_equal(l, r)) {
       out += "[empty]";
     } else {
       std::uint64_t lbits, rbits;
@@ -1475,9 +1523,10 @@ namespace gaol_core {
       const double xl = (base.left() == 0.0) ? 0.0 : base.left(), xu = base.right();
       const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
       // The bounds of namespace upward, which do not check the rounding
-      // direction again (GAOL v5)
-      const double l = (at_lower == 1.0) ? 1.0 : upward::nthroot_dn(at_lower, n);
-      const double r = (at_upper == 1.0) ? 1.0 : upward::nthroot_up(at_upper, n);
+      // direction again, through pow_rounded_dn() and pow_rounded_up(),
+      // which compute the powers for an n from 2^1014 on themselves (GAOL v5)
+      const double l = (at_lower == 1.0) ? 1.0 : pow_rounded_dn(at_lower, n);
+      const double r = (at_upper == 1.0) ? 1.0 : pow_rounded_up(at_upper, n);
       return interval((l > 0.0) ? l : 0.0, r);
     }
 
@@ -1591,7 +1640,9 @@ namespace gaol_core {
   */
   interval  gaol_pow_real(const interval& I, double p)
   {
-    if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
+    // Infinite or NaN, told by a quiet comparison: <= raised the
+    // invalid-operation exception for a NaN p (GAOL v5)
+    if (!detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
     // p compared after the check: with denormals-are-zero, the floor of a
@@ -2904,8 +2955,8 @@ interval nth_root(const interval& I, int q)
   interval exp(const interval& I)
   {
     // The empty set tested first: its NaN bounds would give the empty set
-    // too, but the constructor compares them, which raises the
-    // invalid-operation exception (GAOL v5)
+    // too, through the quiet comparison of the constructor, but after the
+    // check of the rounding direction and two calls of CORE-MATH (GAOL v5)
     if (I.is_empty()) {
       return interval::emptyset();
     }
@@ -3002,9 +3053,9 @@ interval nth_root(const interval& I, int q)
   */
   unsigned short int modulo_k_pi(const interval &I, double &k_left, double &k_right)
   {
-    // The empty set, whose bounds are NaN, gives NaN and 0, tested first: the
-    // NaN divided by pi would be given to the constructor, which compares it
-    // and raises the invalid-operation exception (GAOL v5)
+    // The empty set, whose bounds are NaN, gives NaN and 0, tested first
+    // (GAOL v5): the floor of its NaN bounds divided by pi would be the empty
+    // set too, but k_left its lower bound, a NaN of the other sign
     if (I.is_empty()) {
       k_left = k_right = GAOL_NAN;
       return 0;
@@ -3596,7 +3647,7 @@ interval nth_root(const interval& I, int q)
 	round_nearest();
 	// A quiet comparison: the empty set, whose bounds are NaN, gives NaN
 	// without the invalid-operation exception (GAOL v5)
-	if (std::islessequal(std::fabs(I.left()), std::fabs(I.right()))) {
+	if (detail::quiet_less_equal(std::fabs(I.left()), std::fabs(I.right()))) {
 	  res = I.left() / I.right();
 	} else {
 	  res = I.right() / I.left();
@@ -3616,21 +3667,19 @@ interval nth_root(const interval& I, int q)
 
   /*
     maximum() and minimum() give NaN bounds for an empty I or J, which give
-    the empty set: told by a quiet comparison of the bounds, rather than by the
-    constructor, which compares them and raises the invalid-operation
-    exception on a NaN (GAOL v5). One comparison, where testing I and J
-    first made max() 5 to 10% slower (Clang 18).
+    the empty set: the constructor tells them with a quiet comparison (GAOL
+    v5). They were told first, with one more comparison, when the constructor
+    compared them with <=, which raises the invalid-operation exception on a
+    NaN; testing I and J first made max() 5 to 10% slower (Clang 18).
   */
   interval  max(const interval &I, const interval &J)
   {
-    const double l = maximum(I.left(),J.left()), r = maximum(I.right(),J.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(maximum(I.left(),J.left()), maximum(I.right(),J.right()));
   }
 
   interval  min(const interval &I, const interval &J)
   {
-    const double l = minimum(I.left(),J.left()), r = minimum(I.right(),J.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
 
 
@@ -3712,12 +3761,27 @@ interval nth_root(const interval& I, int q)
       return std::numeric_limits<double>::max();
     }
 
+    /*
+      The half of the sum of the bounds, rounded to nearest, or the sum of
+      their halves where the sum may overflow, that is where a bound is 2^1023
+      or more in magnitude, which is tested first (GAOL v5): the sum was
+      computed first, and its overflow told the other case, so that
+      midpoint([DBL_MAX]) raised the overflow exception, though its midpoint
+      is DBL_MAX. The sum of the halves gives the same midpoint there: a half
+      is exact, unless the bound is below 2^-1021, where its rounding changes
+      no sum with a bound of 2^1023 or more, and a sum of halves is the half
+      of the sum, rounded, where no half is rounded.
+    */
     GAOL_RND_PRESERVE();
     round_nearest();
-    double middle = 0.5*(left()+right());
-	 if (std::isinf(middle)) {
-		middle = 0.5*left() + 0.5*right();
-	 }
+    const double l = left(), r = right();
+    double middle;
+    const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
+    if (std::fabs(l) >= big || std::fabs(r) >= big) {
+      middle = 0.5*l + 0.5*r;
+    } else {
+      middle = 0.5*(l + r);
+    }
     // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
     middle = gaol_core::rnd_keep(middle);
     GAOL_RND_RESTORE();
@@ -4064,12 +4128,10 @@ namespace gaol {
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();
     }
-    // An empty one gives the empty set, without giving its NaN bounds to the
-    // constructor, which compares them and raises the invalid-operation
-    // exception (GAOL v5)
-    if (tmpl.is_empty() || tmpr.is_empty()) {
-      return interval::emptyset();
-    }
+    // An empty one gives the empty set, from its NaN bounds, which the
+    // constructor tells with a quiet comparison (GAOL v5: it was told first,
+    // when the constructor compared them with <=, which raises the
+    // invalid-operation exception on a NaN)
     return interval(tmpl.left(), tmpr.right());
   }
 

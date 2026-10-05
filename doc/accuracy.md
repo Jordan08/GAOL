@@ -57,12 +57,11 @@ whatever the rounding direction the calling code left
 masked, as a program starts: an operation that raises an enabled exception
 stops the program rather than give its bounds (see
 [The floating-point exceptions](using.md#the-floating-point-exceptions)). They
-hold on every architecture and with
-every compiler alike, CORE-MATH giving the same bits everywhere: there is no
-other mathematical library to build GAOL with (see
-[What differs from GAOL](differences.md)). The float intervals `gaol::intervalf` and `gaol::interval2f`,
-unfinished, which only a developer of GAOL compiles (`gaol/gaol_config.h`), are
-not covered.
+hold on every architecture and with every compiler alike, CORE-MATH giving the
+same bits everywhere: there is no other mathematical library to build GAOL with
+(see [What differs from GAOL](differences.md)). The float intervals
+`gaol::intervalf` and `gaol::interval2f`, unfinished, which only a developer of
+GAOL compiles (`gaol/gaol_config.h`), are not covered.
 
 ## Basic operations (Table 9.1): tightest required
 
@@ -185,7 +184,7 @@ arithmetic, 11 524 of them of exactly equal widths (GAOL v5).
 | `numsToInterval(l, u)` | `interval(l, u)`, `interval(d)` | The bounds; the empty set where l > u, l = +∞, u = −∞ or a bound is NaN | tightest (exact) | exact |
 | `textToInterval(s)` | `gaol::textToInterval(s)`, `interval(sl, su)`, `operator>>` | Numbers, decimal or hexadecimal, compared exactly with the doubles around them; rational numbers p/q divided as intervals; the uncertain form read as its exact decimal bounds; the literals `[ ]`, `[empty]`, `[entire]`, infinite and missing bounds; any case of letters. GAOL also reads expressions (`"sin(1)+0.1"`), computed with the operations above | tightest for the literals of IEEE 1788, p and q being doubles; valid for expressions | tightest |
 | `inf`, `sup` | `left()`, `right()` | The stored bounds; NaN for the empty set, where IEEE 1788 has +∞ and −∞ | exact | exact |
-| `mid` | `midpoint()` | (l + u)/2 rounded to nearest, ties to even, or l/2 + u/2 when l + u overflows; 0, −MAX and MAX for unbounded intervals; NaN for the empty set | as 12.12.8 requires | exact |
+| `mid` | `midpoint()` | (l + u)/2 rounded to nearest, ties to even, or l/2 + u/2 where l + u may overflow, a bound being 2<sup>1023</sup> or more in magnitude, which is tested first (no overflow exception for [MAX], GAOL v5); 0, −MAX and MAX for unbounded intervals; NaN for the empty set | as 12.12.8 requires | exact |
 | — | `mid()` | The same midpoint, rounded outward | tightest | tightest |
 | `wid` | `width()` | u − l rounded upward; NaN for the empty set | as 12.12.8 requires | exact |
 | `rad`, `midRad` | `rad()`, `mid_rad(m, r)` | The greater of m − l and u − m rounded upward, m being `midpoint()`; +∞ for unbounded intervals, NaN for the empty set | as 12.12.8 requires | exact |

@@ -23,7 +23,12 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;
   - Alpine (musl) on x86_64 and aarch64;
-  - Debian 13 under qemu on s390x, ppc64le and riscv64.
+  - Debian 13 under qemu on s390x, ppc64le and riscv64, and Ubuntu 24.04
+    (GCC 13) under qemu for POWER9 (`-mcpu=power9`);
+  - built for size (`MinSizeRel`, `-Os`) on Debian 13 armhf and for POWER9,
+    where GCC calls the intersection rather than inlining it, and
+    `tests/rounding_direction.cpp` checks the choices a program makes on
+    `is_empty()` of an empty interval there too.
 - **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), and
   with the sanitizers with AppleClang, LLVM's Clang and GCC.
 - **Windows:**

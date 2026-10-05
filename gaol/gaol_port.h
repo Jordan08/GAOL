@@ -34,6 +34,13 @@
 #include <cmath>
 #include <limits>
 
+// _mm_ucomigt_sd() and the others, for the quiet comparisons of Visual C++
+// below
+#if defined(_MSC_VER) && !defined(__clang__) \
+    && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+#  include <emmintrin.h>
+#endif
+
 // Alignment on an 'nbytes' bytes boundary
 #if defined(_MSC_VER)
 #	define GAOL_ALIGN(what,nbytes)	__declspec(align(nbytes)) what
@@ -167,6 +174,79 @@ namespace gaol_core {
     const double pi_up = 3.141592653589793560087173318606801331043243408203125;
     const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
     const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
+  } // namespace detail
+
+  /*
+    The quiet comparisons of <cmath>, false for a NaN operand, which they
+    compare without raising the invalid-operation exception, and which GAOL
+    makes wherever a bound may be NaN (GAOL v5): std::isless(),
+    std::islessequal(), std::isgreater(), std::isgreaterequal() and
+    std::isunordered() are one instruction with GCC and Clang (ucomisd on
+    x86), but calls to _dpcomp() of the C library with Visual C++, which made
+    x * y and sqrt() 34 to 61% slower once the first comparison of the
+    constructors and is_empty() were quiet ones (Visual Studio 2022 and 2026,
+    x64, continuous integration). With Visual C++ for x64, and for x86 with
+    SSE2, they are therefore ucomisd in line, through _mm_ucomigt_sd() and
+    _mm_ucomige_sd(), the operands exchanged for "less", and cmpunordsd for
+    std::isunordered(): "greater" and "greater or equal" are false for
+    unordered operands with every compiler, where _mm_ucomilt_sd(),
+    _mm_ucomile_sd() and _mm_ucomieq_sd() are true for them with GCC 9.4,
+    which reads the flags ucomisd sets without its parity flag. Elsewhere they
+    are those of <cmath>.
+  */
+  namespace detail {
+#if defined(_MSC_VER) && !defined(__clang__) \
+    && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+    GAOL_INLINE bool quiet_less(double x, double y)
+    {
+      return _mm_ucomigt_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
+    }
+
+    GAOL_INLINE bool quiet_less_equal(double x, double y)
+    {
+      return _mm_ucomige_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
+    }
+
+    GAOL_INLINE bool quiet_greater(double x, double y)
+    {
+      return _mm_ucomigt_sd(_mm_set_sd(x), _mm_set_sd(y)) != 0;
+    }
+
+    GAOL_INLINE bool quiet_greater_equal(double x, double y)
+    {
+      return _mm_ucomige_sd(_mm_set_sd(x), _mm_set_sd(y)) != 0;
+    }
+
+    GAOL_INLINE bool quiet_unordered(double x, double y)
+    {
+      return (_mm_movemask_pd(_mm_cmpunord_sd(_mm_set_sd(x), _mm_set_sd(y))) & 1) != 0;
+    }
+#else
+    GAOL_INLINE bool quiet_less(double x, double y)
+    {
+      return std::isless(x, y);
+    }
+
+    GAOL_INLINE bool quiet_less_equal(double x, double y)
+    {
+      return std::islessequal(x, y);
+    }
+
+    GAOL_INLINE bool quiet_greater(double x, double y)
+    {
+      return std::isgreater(x, y);
+    }
+
+    GAOL_INLINE bool quiet_greater_equal(double x, double y)
+    {
+      return std::isgreaterequal(x, y);
+    }
+
+    GAOL_INLINE bool quiet_unordered(double x, double y)
+    {
+      return std::isunordered(x, y);
+    }
+#endif
   } // namespace detail
 
   /*!

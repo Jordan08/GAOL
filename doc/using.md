@@ -34,6 +34,16 @@ on the x87 unit (see
 command line, and does nothing when it comes before them, where the
 compilation stops.
 
+With `-frounding-math` on x86, GCC 12.1 to 12.3 and 13.1 to 13.2 (Debian 12
+has GCC 12.2) initialize wrongly a double member of a static array of
+structures given `std::numeric_limits<double>::denorm_min()`: they store the
+long double 2^-1074 there, whose first eight bytes read -0 and whose last two
+overwrite the next member (`{ denorm_min(), DBL_MAX }` read `[-0, NaN]`, the
+empty set, on 32-bit x86). A double or an array of doubles initialized so is
+right, and so are GCC 12.4, 13.3 and later. A program built with these
+releases computes such a value at run time, as `tests/rounding_direction.cpp`
+does (GAOL v5).
+
 The link of the program takes one option too, where the compiler accepts it
 (GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
 `-mno-daz-ftz`,
@@ -508,50 +518,86 @@ bounds.
   and output of `gaol::interval` and of `gaol_ieee1788` takes it without
   raising that exception. `is_empty()` and the relations compare the bounds
   with the quiet comparisons of `<cmath>` (`std::islessequal()`...), each one
-  instruction, as `<=` is, with GCC and Clang on x86-64, and the functions
-  that build their result from the bounds of their operand tell the empty set
-  before they give them to the constructor, which compares its bounds. With
-  the invalid-operation exception enabled, `is_empty()` of an empty interval
-  killed the program, and so did about 50 operations with an empty operand,
-  which compared its NaN bounds: `x & y` for an empty `y`, `sqrt`, `exp`,
-  `min`, `max`, `floor`, `set_contains()`, `set_disjoint()`, the output of the
-  empty set...; and `interval::emptyset()` itself in a build without
-  optimization. A NaN the program gives GAOL still raises it: `interval(NAN)`
-  and `interval(NAN, 1)`, which give the empty set, compare it. An empty
-  operand may still raise the other exceptions: the sum of two empty
+  instruction, as `<=` is, with GCC and Clang on x86-64, and so does the first
+  comparison of the constructor `interval(l, r)`, which gives the empty set
+  for NaN bounds. With Visual C++, where these are calls to the C library,
+  which made `x * y` and `sqrt()` 34 to 61% slower on x64, GAOL compiles them
+  itself into the same instruction, `ucomisd`, on x64 and on x86 with SSE2;
+  on arm64 they stay calls. With the invalid-operation exception enabled, `is_empty()`
+  of an empty interval killed the program, and so did about 50 operations
+  with an empty operand, which compared its NaN bounds: `x & y` for an empty
+  `y`, `sqrt`, `exp`, `min`, `max`, `floor`, `set_contains()`,
+  `set_disjoint()`, the output of the empty set...; and `interval::emptyset()`
+  itself in a build without optimization. A NaN the program gives GAOL, the
+  empty set for `interval(d)`, raises it no longer either: `interval(NAN)`,
+  `interval(NAN, 1)`, `x = NAN`, `x += NAN` (and `-=`, `*=`, `/=`, `%=`),
+  `x &= NAN`, `x <= NAN` and `pow(x, NAN)` compared it with `<` or `<=`. An
+  empty operand may still raise the other exceptions: the sum of two empty
   intervals raises the inexact one where GAOL checks the rounding direction
   with an addition, and `atanh_rel([-1, 2], x)` for an empty `x` raises the
-  divide-by-zero one while it computes `atanh([-1, 2])`. GCC may compile a
-  quiet comparison into a signaling one where it turns a choice into a
-  conditional move: into `vcmpe` on 32-bit ARM (GCC 12 to 14;
+  divide-by-zero one while it computes `atanh([-1, 2])`.
+- A compiler may compile a quiet comparison into a signaling one, or compute
+  a comparison that follows a test of the empty set before it, and GAOL is
+  written against the cases seen. GCC turns a choice made on a quiet
+  comparison into a conditional move with a signaling comparison on 32-bit ARM
+  (`vcmpe`, GCC 12 to 14;
   [GCC bug 52258](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258) is of
-  this kind), into `xscmpgedp` on POWER9 (GCC 13 with `-mcpu=power9`). GAOL's
-  operations are written so that they stay quiet on 32-bit ARM, but a choice
-  the program makes itself on `is_empty()` or on a relation,
-  `x.is_empty() ? a : b` for an empty `x`, may raise the invalid-operation
-  flag on both processors, and so may `x &= y` for an empty `y` on POWER9.
-- Nonempty operands raise the invalid-operation exception as well. With the
-  SSE2 intervals, multiplying a zero bound by an infinite one does:
-  `[0]*[1, +oo]` and `[0, +oo]*[0]` (the FPU intervals give the same product
-  without it, and so does a build with `GAOL_PRESERVE_ROUNDING`, whose product
-  masks the exceptions, see below). `pow` does in every build, through
-  CORE-MATH's `pow`, for an exponent of extreme magnitude (`pow([1, 2],
-  [4.9e-324])`, `pow([1, 2], [1e-300])`, an exponent interval with a bound near
-  `DBL_MAX` such as `[1e300, 1e308]`); with the SSE2 intervals, an exponent with
-  an infinite bound also does, through that product (`pow([1], [1, +oo])`).
-  This list is not exhaustive.
+  this kind) and on POWER9 (`xscmpgedp`, GCC 13 with `-mcpu=power9`): there
+  `is_empty()`, the intersection and the constructors of the FPU intervals
+  tell NaN bounds with `std::isunordered()` first, which stays quiet, so that
+  the choice a program makes on `is_empty()` (`x.is_empty() ? a : b` for an
+  empty `x`), `x &= y` for an empty `y` and `floor()`, `max()`... of an empty
+  interval raise nothing (the armhf jobs of the continuous integration and a
+  POWER9 job under qemu check them, built for size too, where GCC calls the
+  intersection rather than inlining it). GCC 9.4 at `-O3` computed the comparisons of the
+  bounds of `x &= y` before its test of the empty set, in a loop of
+  intersections: they are quiet ones. And GCC vectorizes loops of comparisons
+  of bounds into vector comparisons that raise the exception for an empty
+  element: GCC 9.4 and 13 where AVX is on (`-mavx`, or `-mfma`, which the
+  three builds give where the processor has FMA) and GCC 13 to 15 for 32-bit
+  x86 with SSE2 alone (MinGW-w64) make the quiet comparisons signaling
+  predicates (`vcmpnlepd`, `cmpnlepd`...), GCC 14 for POWER8 uses `xvcmpgedp`,
+  and GCC 11 to 15 for 64-bit ARM compute the second and third comparisons of
+  the constructor for an empty element too. With GCC and the FPU intervals, on
+  every processor, the bounds `is_empty()` compares, those of the relations
+  that do not call it (`straddles_zero()`, `set_contains(d)`...) and the
+  doubles given to the constructors go through an empty asm statement, which
+  keeps GCC from vectorizing such loops: loops of `x.set_contains(d)` and of
+  `x.straddles_zero()` took 0.8 and 1.3 ns per element rather than 0.5 ns with
+  GCC 13 on x86-64, about as long as with GCC 9.4, which did not vectorize
+  them and took as long as before. A choice the program makes on a relation,
+  `x.set_contains(y) ? a : b`, and a loop of relations other than those of
+  `tests/rounding_direction.cpp` are not known to raise the exception, but
+  nothing keeps a compiler from compiling them so.
+- Nonempty operands raised the invalid-operation exception as well, and the
+  cases found no longer do (GAOL v5): with the SSE2 intervals, multiplying a
+  zero bound by an infinite one did, `[0]*[1, +oo]` and `[0, +oo]*[0]` (the
+  FPU intervals gave the same product without it), and through that product
+  `pow([1], [1, +oo])`; `pow` did in every build, through CORE-MATH's `pow`,
+  for an exponent of extreme magnitude (`pow([1, 2], [4.9e-324])`,
+  `pow([1, 2], [1e-300])`, an exponent interval with a bound near `DBL_MAX`
+  such as `[1e300, 1e308]`), whose power GAOL now computes itself; and with
+  the SSE2 intervals, `div_rel(K, J, I)` did where it divided an infinite
+  bound of `K` by an infinite bound of `J` in a half of the register it did
+  not keep (`div_rel([2, +oo], [-oo, 2], I)`), and raised the
+  division-by-zero exception where it divided a bound by a zero one there
+  (`div_rel([-2], [-2, 0], I)`). This list is not exhaustive.
 
-An empty operand raising no invalid-operation exception therefore does not
-make that exception safe to leave enabled: every exception stays disabled
-while GAOL computes.
+An empty operand, and the nonempty operands tested, raising no
+invalid-operation exception therefore does not make that exception safe to
+leave enabled: every exception stays disabled while GAOL computes.
 
-The flags tell nothing of the results: after an operation of GAOL,
-`fetestexcept(FE_INEXACT)` is raised whatever the result, and `FE_OVERFLOW` or
-`FE_DIVBYZERO` stands for an infinite bound of the interval, not for an
-infinite number the program computed. IEEE 1788-2015 leaves the flags of its
-operations unspecified. A program that reads them for its own computations
-clears them (`std::feclearexcept(FE_ALL_EXCEPT)`) just before, and reads them
-before its next operation of GAOL.
+The flags tell nothing of the results: after most operations of GAOL,
+`fetestexcept(FE_INEXACT)` is raised whatever the result (not after `-x`,
+`abs()`, `&`, `|`, `floor()`, `max()` or `min()`, which round nothing and
+check no rounding direction), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
+an infinite bound of the interval, or an infinite result of `width()` or
+`rad()`, not for an infinite number the program computed: `midpoint()` and
+`mid()` of `[DBL_MAX]`, which overflowed the sum of the bounds, raise none
+(GAOL v5). IEEE 1788-2015 leaves the flags of its operations unspecified. A
+program that reads them for its own computations clears them
+(`std::feclearexcept(FE_ALL_EXCEPT)`) just before, and reads them before its
+next operation of GAOL.
 
 GAOL's initialization, which runs before `main()`, sets the default
 environment (`fesetenv(FE_DFL_ENV)`), which masks every exception, unless GAOL
@@ -559,9 +605,12 @@ is built with `GAOL_PRESERVE_ROUNDING`: the initialization then leaves the
 whole environment as it found it, and an exception a static object enabled
 before it stays enabled. A program enables the exceptions in `main()` or later,
 whichever the build, not in a static object initialized before GAOL.
-`gaol::cleanup()` leaves the exceptions and the flags as they are. With
-`GAOL_PRESERVE_ROUNDING` and the SSE2 intervals, `+`, `-`, `*`, `/`, `sqr()`
-and `inverse()` also write the SSE control register with every exception
-masked, which masks again the ones a program enabled: they stop nothing after
-the first of these operations. Disable them all the same, the other builds not
-masking them.
+`gaol::cleanup()` leaves the exceptions and the flags as they are, and so does
+every operation, whichever way GAOL is built: it leaves the exceptions the
+program enabled enabled, and the flags it raised raised, and adds the flags it
+raises itself. With `GAOL_PRESERVE_ROUNDING` and the SSE2 intervals, `+`, `-`,
+`*`, `/`, `%`, `div_rel()`, `sqr()`, `inverse()`, the integer powers and
+`+= d`, `-= d`, `*= d`, `/= d`, `%= d` wrote the SSE control register whole,
+every exception masked and every flag cleared: an exception the program had
+enabled was masked again by the first of these operations, and the flags it
+had raised were lost (GAOL v5, checked by `tests/rounding_direction.cpp`).
