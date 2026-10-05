@@ -1372,10 +1372,8 @@ typedef struct {
   gaol_ieee1788::pow(x, [3]).
 */
 namespace gaol {
-  using gaol_core::Interval_struct;
   using gaol_core::expression;
   using gaol_core::expr_node;
-  using gaol_core::the_null_expr;
   using gaol_core::evaluate_left_right;
   using gaol_core::evaluate_expr;
   // Named again, with their overloads for the expressions

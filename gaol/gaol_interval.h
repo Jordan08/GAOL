@@ -2211,9 +2211,14 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
   GAOL 4.3.2 declared in gaol, get_flush_modes()...), the functions computing
   GAOL's powers, which gaol names pow (gaol_pown(), gaol_uipow(),
   gaol_pow_real(), gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and
-  the other internals (NaN_val of GAOL 4, rnd_reread(), gaol_sign_of(),
-  rounding_guard, gaol_initializer). gaol took gaol_core whole before (using
-  namespace gaol_core), and a program opening gaol met all of these names.
+  the other internals, those GAOL 4 declared in gaol too (f_negate(),
+  f_negate_simple(), gaol_signbit(), uintdouble, ullidouble, Interval_struct,
+  the_null_expr, prec_t, modulo_k_pi(), reset_fpu_cw(), round_downward_sse(),
+  round_to_nearest_sse() and round_upward_sse(), which its manual did not
+  document) and rnd_reread(), gaol_sign_of(), rounding_guard and
+  gaol_initializer; NaN_val of GAOL 4, which the macro GAOL_NAN names, stays
+  in gaol. gaol took gaol_core whole before (using namespace gaol_core), and
+  a program opening gaol met all of these names.
 
   A using-declaration names the overloads declared before it: each header
   names in gaol what it declares, at its end (gaol_version.h, gaol_common.h,
@@ -2276,7 +2281,6 @@ namespace gaol {
   using gaol_core::log;
   using gaol_core::max;
   using gaol_core::min;
-  using gaol_core::modulo_k_pi;
   using gaol_core::nb_fp_numbers;
   using gaol_core::nth_root;
   using gaol_core::nth_root_rel;

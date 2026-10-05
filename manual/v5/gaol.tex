@@ -1336,7 +1336,7 @@ those of the standard in \code{gaol\_ieee1788} (\pxref{sec:constructors}).
 one: the names GAOL~4 had in \code{gaol} that GAOL v5 still has (the classes,
 the exceptions, the expressions with their nodes and visitor, the functions
 and the operators of intervals, \code{round\_upward()}, \code{next\_float()},
-\code{version}\ldots, and \code{rnd\_keep()} of GAOL~4.3.2), the functions on
+\code{version}, \code{NaN\_val}\ldots, and \code{rnd\_keep()} of GAOL~4.3.2), the functions on
 intervals GAOL v5 adds (\code{exp2}, \code{log2}, \code{hypot}, \code{trunc},
 \code{sinpi}, \code{fma}, \code{cancel\_minus},
 \code{round\_ties\_to\_even}\ldots{} and the nodes of their expressions),
@@ -1348,9 +1348,14 @@ flush-to-zero modes (\code{rounding\_state},
 \code{get\_rounding()}, \code{set\_rounding()},
 \code{round\_upward\_if\_needed()} and \code{gaol\_set\_rounding\_x86()},
 which GAOL~4.3.2 had in \code{gaol}, \code{get\_flush\_modes()}\ldots), the
-functions computing the \code{pow} of \code{gaol} (below), and
-\code{NaN\_val} of GAOL~4. A program calling one of them names it in
-\code{gaol\_core}, as \code{gaol\_core::get\_rounding()}.
+functions computing the \code{pow} of \code{gaol} (below), and the internals
+GAOL~4 had in \code{gaol} without its manual documenting them: the functions
+\code{f\_negate()}, \code{f\_negate\_simple()}, \code{gaol\_signbit()},
+\code{modulo\_k\_pi()}, \code{reset\_fpu\_cw()} and the
+\code{round\_*\_sse()}, the types \code{uintdouble}, \code{ullidouble},
+\code{Interval\_struct} and \code{prec\_t}, and the variable
+\code{the\_null\_expr}. A program calling one of them names it in
+\code{gaol\_core}: \code{gaol\_core::get\_rounding()}, for instance.
 
 The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
 a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
@@ -5214,7 +5219,11 @@ change with its reasons and its measures.
 \item \code{gaol} holds the names GAOL~4 had there that GAOL v5 still has,
   except those GAOL uses for itself, which a program names in
   \code{gaol\_core} (\pxref{sec:namespaces}):
-  \code{NaN\_val}, and, of GAOL~4.3.2, \code{rounding\_state},
+  \code{f\_negate()}, \code{f\_negate\_simple()}, \code{gaol\_signbit()},
+  \code{uintdouble}, \code{ullidouble}, \code{Interval\_struct},
+  \code{the\_null\_expr}, \code{prec\_t}, \code{modulo\_k\_pi()},
+  \code{reset\_fpu\_cw()}, the \code{round\_*\_sse()}, which the manual of
+  GAOL~4 did not document, and, of GAOL~4.3.2, \code{rounding\_state},
   \code{get\_rounding()}, \code{set\_rounding()},
   \code{round\_upward\_if\_needed()} and \code{gaol\_set\_rounding\_x86()}.
 \item With Visual C++, the code using GAOL no longer defines

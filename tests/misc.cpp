@@ -214,6 +214,8 @@ namespace gaol_names
                 && same<decltype(gaol::round_downward()), void>() && same<decltype(gaol::round_nearest()), void>()
                 && same<decltype(gaol::rnd_keep(1.0)), double>(),
                 "gaol::init, gaol::round_upward, gaol::restore_rounding, gaol::rnd_keep...");
+  // NaN_val of GAOL 4, which the macro GAOL_NAN names
+  static_assert(same<decltype(gaol::NaN_val), const gaol_core::uintdouble>(), "gaol::NaN_val");
 }
 
 /*
@@ -249,10 +251,23 @@ namespace gaol_names_absent
   absent gaol_pow_exp(...);
   absent gaol_sign_of(...);
   absent rnd_reread(...);
+  // The internals GAOL 4 declared in gaol too, which its manual did not document
+  absent f_negate(...);
+  absent f_negate_simple(...);
+  absent gaol_signbit(...);
+  absent modulo_k_pi(...);
+  absent reset_fpu_cw(...);
+  template <class T = void> absent round_downward_sse();
+  template <class T = void> absent round_to_nearest_sse();
+  template <class T = void> absent round_upward_sse();
+  using uintdouble = absent;
+  using ullidouble = absent;
+  using Interval_struct = absent;
+  using prec_t = absent;
+  constexpr absent the_null_expr{};
   using rounding_state = absent;
   using rounding_guard = absent;
   using gaol_initializer = absent;
-  constexpr absent NaN_val{};
   constexpr absent _gaol_initializer{};
   // For the check that the fallbacks lose to the functions of gaol
   absent next_float(...);
@@ -281,11 +296,21 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((gaol_pow_exp)(e(), e()));
   GAOL_NAMES_ABSENT((gaol_sign_of)(1.0));
   GAOL_NAMES_ABSENT((rnd_reread)(1.0));
+  GAOL_NAMES_ABSENT((f_negate)(1.0));
+  GAOL_NAMES_ABSENT((f_negate_simple)(1.0));
+  GAOL_NAMES_ABSENT((gaol_signbit)(1.0));
+  GAOL_NAMES_ABSENT((modulo_k_pi)(x(), std::declval<double&>(), std::declval<double&>()));
+  GAOL_NAMES_ABSENT((reset_fpu_cw)(static_cast<unsigned short>(0)));
+  GAOL_NAMES_ABSENT((round_downward_sse)());
+  GAOL_NAMES_ABSENT((round_to_nearest_sse)());
+  GAOL_NAMES_ABSENT((round_upward_sse)());
 #undef GAOL_NAMES_ABSENT
+  static_assert(same<uintdouble, absent>() && same<ullidouble, absent>() && same<Interval_struct, absent>()
+                && same<prec_t, absent>() && same<decltype(the_null_expr), const absent>(),
+                "uintdouble, ullidouble, Interval_struct, prec_t, the_null_expr: not in gaol");
   static_assert(same<rounding_state, absent>() && same<rounding_guard, absent>() && same<gaol_initializer, absent>(),
                 "rounding_state, rounding_guard, gaol_initializer: not in gaol");
-  static_assert(same<decltype(NaN_val), const absent>() && same<decltype(_gaol_initializer), const absent>(),
-                "NaN_val, _gaol_initializer: not in gaol");
+  static_assert(same<decltype(_gaol_initializer), const absent>(), "_gaol_initializer: not in gaol");
   // The detection works: the functions of gaol beat the fallbacks
   static_assert(same<decltype((next_float)(1.0)), double>() && same<decltype((rnd_keep)(1.0)), double>()
                 && same<decltype((round_upward)()), void>(),

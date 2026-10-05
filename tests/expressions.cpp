@@ -677,7 +677,7 @@ namespace
      expressions are built, copied, assigned, extended and divided. */
   void null_node_not_counted()
   {
-    const unsigned int before = the_null_expr->references();
+    const unsigned int before = gaol_core::the_null_expr->references();
     unsigned int during = 0;
     {
       expression e, f = e;
@@ -686,9 +686,9 @@ namespace
       g += expression(1.0);
       expression h;
       h /= expression(2.0);
-      during = the_null_expr->references();
+      during = gaol_core::the_null_expr->references();
     }
-    const unsigned int after = the_null_expr->references();
+    const unsigned int after = gaol_core::the_null_expr->references();
     check("expression: the empty expressions do not count their references to the_null_expr",
           before == during && during == after,
           [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
@@ -759,7 +759,7 @@ int main()
   {
     std::ostringstream text;
     text << static_expression;
-    check("a static empty expression", static_expression.get_root() == the_null_expr && text.str() == ":null:",
+    check("a static empty expression", static_expression.get_root() == gaol_core::the_null_expr && text.str() == ":null:",
           [&] { return text.str(); });
   }
   step("summary");

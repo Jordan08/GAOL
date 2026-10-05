@@ -232,8 +232,9 @@ standard in `gaol_ieee1788`.
 `gaol` names the type and the functions of `gaol_core` one by one (GAOL v5):
 the names GAOL 4 had in `gaol` that GAOL v5 still has (the classes, the
 exceptions, the expressions with their nodes and visitor, the functions and
-the operators of intervals, `round_upward()`, `next_float()`, `version`...,
-and `rnd_keep()` of GAOL 4.3.2), the functions on intervals GAOL v5 adds
+the operators of intervals, `round_upward()`, `next_float()`, `version`,
+`NaN_val`..., and `rnd_keep()` of GAOL 4.3.2), the functions on intervals GAOL
+v5 adds
 (`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. What GAOL's code uses for itself is
@@ -242,8 +243,12 @@ in `gaol_core` only, out of the way of the names of a program that opens
 flush-to-zero modes (`rounding_state`, `get_rounding()`, `set_rounding()`,
 `round_upward_if_needed()` and `gaol_set_rounding_x86()`, which GAOL 4.3.2 had
 in `gaol`, `get_flush_modes()`...), the functions computing the `pow` of
-`gaol` (below), and `NaN_val` of GAOL 4. A program calling one of them names
-it in `gaol_core`, as `gaol_core::get_rounding()`.
+`gaol` (below), and the internals GAOL 4 had in `gaol` without its manual
+documenting them (`f_negate()`, `f_negate_simple()`, `gaol_signbit()`,
+`uintdouble`, `ullidouble`, `Interval_struct`, `the_null_expr`, `prec_t`,
+`modulo_k_pi()`, `reset_fpu_cw()`, `round_upward_sse()` and the other
+`round_*_sse()`). A program calling one of them names it in `gaol_core`, as
+`gaol_core::get_rounding()`.
 
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
 base included: `pow(x, n)` for an n of any integer type (see

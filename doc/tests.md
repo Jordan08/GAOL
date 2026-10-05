@@ -733,13 +733,15 @@ mode there.
   (`gaol::operator+`, `gaol::operator|`, `gaol::round_upward`,
   `gaol::nth_root`, `gaol::div_rel`, `gaol::init`...), the other classes of
   GAOL 4, the functions on intervals GAOL v5 adds and the nodes of their
-  expressions, `restore_rounding()`, `exact_string()` and `rnd_keep()`, and
+  expressions, `restore_rounding()`, `exact_string()`, `rnd_keep()` and
+  `NaN_val`, and
   the overloads of every function and operator of the expressions; that what
   GAOL uses for itself is not found through `using namespace gaol`: the
   functions (`get_rounding()`, `get_flush_modes()`, `gaol_pown()`...), their
   name between parentheses so that argument-dependent lookup does not find
   them in `gaol_core`, lose to fallbacks that any function of GAOL beats, and
-  the types and the variables (`rounding_state`, `NaN_val`...) to fallbacks of
+  the types and the variables (`rounding_state`, `uintdouble`, `the_null_expr`,
+  the internals GAOL 4 had in `gaol` too...) to fallbacks of
   the same name, with which they would be ambiguous. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
