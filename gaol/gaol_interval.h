@@ -121,6 +121,123 @@ namespace gaol_core {
     };
   };
 
+  namespace detail {
+    /*
+      The integers GAOL takes as they are (GAOL v5, point D.21 of TODO.md):
+      the integer types but bool. An integer given where GAOL takes a double
+      was converted to a double, the nearest one or the one of the rounding
+      direction, which an integer beyond 2^53 is not: interval(2^53 + 1) was
+      [2^53, 2^53], which does not contain it, and [1, 2] + (2^53 + 1) was
+      [2^53, 2^53 + 2]. The constructors, =, &=, |=, the arithmetic
+      operators, the relations and set_contains() therefore have overloads for
+      them, which take the tightest interval containing the integer.
+    */
+    template <class T>
+    struct is_integer
+      : std::integral_constant<bool, std::is_integral<T>::value
+                                     && !std::is_same<typename std::remove_cv<T>::type, bool>::value> {};
+
+    template <class T>
+    using if_integer = typename std::enable_if<is_integer<T>::value, int>::type;
+
+    // Whether every value of the integer type T is a double: the types of 53
+    // bits or less (int, short, char...)
+    template <class T>
+    struct integer_type_is_double
+      : std::integral_constant<bool, std::numeric_limits<T>::digits <= std::numeric_limits<double>::digits> {};
+
+    // n < 0, without comparing an unsigned n with 0
+    template <class T>
+    GAOL_INLINE bool integer_is_negative(T n, std::true_type) { return n < 0; }
+    template <class T>
+    GAOL_INLINE bool integer_is_negative(T, std::false_type) { return false; }
+    template <class T>
+    GAOL_INLINE bool integer_is_negative(T n) { return integer_is_negative(n, std::is_signed<T>()); }
+
+    // Whether the integer n is a value of the integer type R
+    template <class R, class T>
+    GAOL_INLINE bool integer_fits(T n)
+    {
+      const R r = static_cast<R>(n);
+      return static_cast<T>(r) == n && integer_is_negative(r) == integer_is_negative(n);
+    }
+
+    // Whether n is a double for certain: every value of a type of 53 bits or
+    // less, |n| <= 2^53 for a wider one. A wider n may be one too (2^60),
+    // where interval(n) is a point as well
+    template <class T>
+    GAOL_INLINE bool integer_is_double(T, std::true_type) { return true; }
+    template <class T>
+    GAOL_INLINE bool integer_is_double(T n, std::false_type)
+    {
+      return integer_fits<long long>(n) && static_cast<long long>(n) <= 9007199254740992LL
+        && static_cast<long long>(n) >= -9007199254740992LL;
+    }
+    template <class T>
+    GAOL_INLINE bool integer_is_double(T n) { return integer_is_double(n, integer_type_is_double<T>()); }
+
+    /*
+      -1, 0 or 1 as d, static_cast<double>(n) in some rounding direction,
+      which is an integer, is below n, n itself or above n: compared as
+      integers, d being converted back to the type of n, where it is a value
+      of that type. d may be 2^digits, rounded up from the largest value of
+      the type, which is not one: 2^(digits - 1), the largest value halved
+      plus one, is a power of two, and a double, as twice it.
+    */
+    template <class T>
+    GAOL_INLINE int integer_order(T n, double d)
+    {
+      const double above_type = static_cast<double>((std::numeric_limits<T>::max)() / 2 + 1) * 2.0;
+      if (d >= above_type) {
+        return 1;
+      }
+      const T m = static_cast<T>(d);
+      return m < n ? -1 : (m == n ? 0 : 1);
+    }
+
+    /*
+      The largest double at most n and the smallest one at least n, whatever
+      the rounding direction: n itself where it is a double, the two doubles
+      around it otherwise, as interval(n) takes them
+    */
+    template <class T>
+    GAOL_INLINE double double_below(T n, std::true_type) { return static_cast<double>(n); }
+    template <class T>
+    GAOL_INLINE double double_below(T n, std::false_type)
+    {
+      const double d = static_cast<double>(n);
+      return integer_order(n, d) <= 0 ? d : std::nextafter(d, -GAOL_INFINITY);
+    }
+    template <class T, if_integer<T> = 0>
+    GAOL_INLINE double double_below(T n) { return double_below(n, integer_type_is_double<T>()); }
+
+    template <class T>
+    GAOL_INLINE double double_above(T n, std::true_type) { return static_cast<double>(n); }
+    template <class T>
+    GAOL_INLINE double double_above(T n, std::false_type)
+    {
+      const double d = static_cast<double>(n);
+      return integer_order(n, d) >= 0 ? d : std::nextafter(d, GAOL_INFINITY);
+    }
+    template <class T, if_integer<T> = 0>
+    GAOL_INLINE double double_above(T n) { return double_above(n, integer_type_is_double<T>()); }
+
+    // A bound given as a double (or a float) is that double
+    GAOL_INLINE double double_below(double d) { return d; }
+    GAOL_INLINE double double_above(double d) { return d; }
+
+    // The bounds of interval(a, b) with an integer bound: integers, and
+    // doubles or floats
+    template <class T>
+    struct is_bound
+      : std::integral_constant<bool, is_integer<T>::value || std::is_same<T, double>::value
+                                     || std::is_same<T, float>::value> {};
+
+    template <class A, class B>
+    using if_integer_bounds = typename std::enable_if<(is_integer<A>::value || is_integer<B>::value)
+                                                       && is_bound<A>::value && is_bound<B>::value, int>::type;
+  } // namespace detail
+
 
   class __GAOL_PUBLIC__ interval {
   public:
@@ -148,6 +265,36 @@ namespace gaol_core {
       take interval(d).
     */
     explicit interval(double a);
+    /*!
+      \brief Creates the tightest interval containing the integer n (GAOL v5)
+
+      [n, n] where n is a double, as every int is; for an integer beyond 2^53
+      that is no double, the two doubles around it: interval(2^53 + 1) is
+      [2^53, 2^53 + 2], where the conversion to a double gave [2^53, 2^53],
+      which does not contain it. Explicit, as interval(double). Any integer
+      type but bool.
+    */
+    template <class T, detail::if_integer<T> = 0>
+    explicit interval(T n) : interval(integer_interval(n, detail::integer_type_is_double<T>())) {}
+    /*!
+      \brief Creates [a, b] where a bound is an integer (GAOL v5): the lower
+      bound the largest double at most a, the upper one the smallest double at
+      least b, so that the interval contains the integers given
+
+      The other bound is a double or a float. interval(1, 2) and
+      interval(0, 0.5) take it.
+    */
+    template <class A, class B, detail::if_integer_bounds<A, B> = 0>
+    interval(A a, B b) : interval(detail::double_below(a), detail::double_above(b)) {}
+  private:
+    // interval(n) for an integer n: interval(double) where every value of
+    // the type is a double, as before (GAOL v5), the two doubles around n
+    // otherwise
+    template <class T>
+    static interval integer_interval(T n, std::true_type) { return interval(static_cast<double>(n)); }
+    template <class T>
+    static interval integer_interval(T n, std::false_type) { return interval(detail::double_below(n), detail::double_above(n)); }
+  public:
     //! Creates a copy of I
     interval(const interval& I);
     /*!
@@ -159,6 +306,9 @@ namespace gaol_core {
     interval& operator=(const interval& I) = default;
     //! Assigns interval(d): [d, d], and the empty set for an infinite d or a NaN
     interval& operator=(double d);
+    //! Assigns interval(n), the tightest interval containing the integer n (GAOL v5)
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator=(T n) { return *this = interval(n); }
 #if GAOL_USING_SSE2_INSTRUCTIONS
     interval(const __m128d& xmm);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
@@ -178,6 +328,21 @@ namespace gaol_core {
     interval& operator/=(double d);
     //! Relational division
     interval& operator%=(double d);
+    /*
+      With an integer n (GAOL v5): the operation with the double n where n is
+      one for certain (|n| <= 2^53, every int), with interval(n) otherwise,
+      which contains it
+    */
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator+=(T n) { return detail::integer_is_double(n) ? (*this += static_cast<double>(n)) : (*this += interval(n)); }
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator-=(T n) { return detail::integer_is_double(n) ? (*this -= static_cast<double>(n)) : (*this -= interval(n)); }
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator*=(T n) { return detail::integer_is_double(n) ? (*this *= static_cast<double>(n)) : (*this *= interval(n)); }
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator/=(T n) { return detail::integer_is_double(n) ? (*this /= static_cast<double>(n)) : (*this /= interval(n)); }
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator%=(T n) { return detail::integer_is_double(n) ? (*this %= static_cast<double>(n)) : (*this %= interval(n)); }
     interval& operator+=(const interval& I);
     interval& operator-=(const interval& I);
     interval& operator*=(const interval& I);
@@ -193,10 +358,16 @@ namespace gaol_core {
     interval& operator&=(const interval& I);
     //! Intersection of *this and interval(d)
     interval& operator&=(double d);
+    //! Intersection of *this and interval(n), for an integer n (GAOL v5)
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator&=(T n) { return *this &= interval(n); }
     //! Union of *this and I
     interval& operator|=(const interval& I);
     //! Union of *this and interval(d)
     interval& operator|=(double d);
+    //! Union of *this and interval(n), for an integer n (GAOL v5)
+    template <class T, detail::if_integer<T> = 0>
+    interval& operator|=(T n) { return *this |= interval(n); }
 
     GAOL_NODISCARD double left(void) const;
     GAOL_NODISCARD double right(void) const;
@@ -272,6 +443,31 @@ namespace gaol_core {
     GAOL_NODISCARD bool set_contains(double d) const;
     GAOL_NODISCARD bool set_strictly_contains(const interval& I) const;
     GAOL_NODISCARD bool set_strictly_contains(double d) const;
+    /*!
+      \brief Whether the integer n belongs to *this (GAOL v5), n compared as
+      the integer it is, where it is no double: *this contains
+      interval(n), the two doubles around it
+    */
+    template <class T, detail::if_integer<T> = 0>
+    GAOL_NODISCARD bool set_contains(T n) const
+    {
+      return detail::integer_is_double(n) ? set_contains(static_cast<double>(n)) : set_contains(interval(n));
+    }
+    /*!
+      \brief Whether the integer n belongs to the interior of *this (GAOL v5):
+      where n is no double, left() < n < right() if and only if *this
+      contains interval(n), the two doubles around it, no double lying between
+      n and either
+    */
+    template <class T, detail::if_integer<T> = 0>
+    GAOL_NODISCARD bool set_strictly_contains(T n) const
+    {
+      if (detail::integer_is_double(n)) {
+        return set_strictly_contains(static_cast<double>(n));
+      }
+      const interval N(n);
+      return N.left() == N.right() ? set_strictly_contains(N.left()) : set_contains(N);
+    }
     GAOL_NODISCARD bool set_disjoint(const interval &I) const;
     GAOL_NODISCARD bool set_eq(const interval& I) const;
     GAOL_NODISCARD bool set_neq(const interval& I) const;
@@ -1008,6 +1204,33 @@ namespace gaol_core {
   */
   GAOL_NODISCARD extern __GAOL_PUBLIC__   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
+  namespace detail {
+    /*
+      I^n for an integer n of a type other than int and unsigned int,
+      gaol::pow(I, n) and gaol_ieee1788::pown(x, n) (GAOL v5): pow(x, 5L) and
+      pow(x, 5LL) were ambiguous, a long being as far from an int as from an
+      unsigned int and a double. gaol_pown() for an n within the ints,
+      gaol_uipow() for one within the unsigned ints, as pow(I, int) and
+      pow(I, unsigned int), and beyond them gaol_pow_hybrid() of the
+      degenerate integer exponent [d], d being n converted to a double, an
+      integer beyond the ints as n: [-oo, +oo] for a nonempty I, as
+      gaol_pow_hybrid() gives for such an exponent, which the program would
+      otherwise write. Not interval(n), which is no degenerate exponent where
+      n is no double, and loses the negative bases (pow of IEEE 1788).
+    */
+    template <class T>
+    GAOL_INLINE interval integer_power(const interval& I, T n)
+    {
+      if (integer_fits<int>(n)) {
+        return gaol_pown(I, static_cast<int>(n));
+      }
+      if (integer_fits<unsigned int>(n)) {
+        return gaol_uipow(I, static_cast<unsigned int>(n));
+      }
+      return gaol_pow_hybrid(I, interval(static_cast<double>(n)));
+    }
+  } // namespace detail
+
 
   /*!
     \brief I^p for a floating-point p, gaol::pow(I, p) (GAOL v5)
@@ -1366,6 +1589,71 @@ GAOL_NODISCARD GAOL_INLINE interval operator%(double d, const interval& I)
     return interval(d)%=I;
   }
 
+  /*
+    An interval and an integer n, in either order (GAOL v5): with the double
+    n where it is one for certain, with interval(n), the tightest interval
+    containing it, otherwise (see interval::operator+=(T))
+  */
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, T n)
+  {
+    return interval(I)+=n;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I, T n)
+  {
+    return interval(I)-=n;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I, T n)
+  {
+    return interval(I)*=n;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I, T n)
+  {
+    return interval(I)/=n;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator%(const interval& I, T n)
+  {
+    return interval(I)%=n;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator+(T n, const interval& I)
+  {
+    return interval(n)+=I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator-(T n, const interval& I)
+  {
+    return interval(n)-=I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator*(T n, const interval& I)
+  {
+    return interval(n)*=I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator/(T n, const interval& I)
+  {
+    return interval(n)/=I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
+  {
+    return interval(n)%=I;
+  }
+
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
     return interval(I1) += I2;
@@ -1610,6 +1898,80 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(double d, const interval &I)
     return interval(d) > I;
   }
 
+  /*
+    An interval and an integer n (GAOL v5): n compared as the integer it is.
+    Where it is no double, interval(n) is [lo, hi], the two doubles around
+    it, and a double x is below n if and only if x <= lo, above n if and only
+    if x >= hi: <= and >= are those with interval(n), and < and > are <= and
+    >= with interval(n) then, < with interval(lo) being false for I = [lo, lo]
+    though lo < n. An integer that is a double for certain takes the
+    relation with that double, which a compiler does not see is a point
+    otherwise (Clang 18 made x < n 47 instructions rather than 28 for an int).
+  */
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I, T n)
+  {
+    return I <= interval(n);
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<=(T n, const interval &I)
+  {
+    return interval(n) <= I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>=(const interval &I, T n)
+  {
+    return I >= interval(n);
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>=(T n, const interval &I)
+  {
+    return interval(n) >= I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<(const interval &I, T n)
+  {
+    if (detail::integer_is_double(n)) {
+      return I < static_cast<double>(n);
+    }
+    const interval N(n);
+    return N.left() == N.right() ? I < N : I <= N;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<(T n, const interval &I)
+  {
+    if (detail::integer_is_double(n)) {
+      return static_cast<double>(n) < I;
+    }
+    const interval N(n);
+    return N.left() == N.right() ? N < I : N <= I;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I, T n)
+  {
+    if (detail::integer_is_double(n)) {
+      return I > static_cast<double>(n);
+    }
+    const interval N(n);
+    return N.left() == N.right() ? I > N : I >= N;
+  }
+
+template <class T, detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>(T n, const interval &I)
+  {
+    if (detail::integer_is_double(n)) {
+      return static_cast<double>(n) > I;
+    }
+    const interval N(n);
+    return N.left() == N.right() ? N > I : N >= I;
+  }
+
   //@}
 
   GAOL_INLINE interval&
@@ -1715,6 +2077,9 @@ namespace gaol {
   GAOL_NODISCARD inline interval pow(const interval& I, double p) { return gaol_core::gaol_pow_real(I, p); }
   //! pow(I, e): gaol_uipow(I, e), I^e for an unsigned e
   GAOL_NODISCARD inline interval pow(const interval& I, unsigned int e) { return gaol_core::gaol_uipow(I, e); }
+  //! pow(I, n) for an integer n of another type, long, long long, short... (GAOL v5): see gaol_core::detail::integer_power()
+  template <class T, gaol_core::detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval pow(const interval& I, T n) { return gaol_core::detail::integer_power(I, n); }
 
   /*!
     textToInterval(s): the interval s writes, read with the names of the

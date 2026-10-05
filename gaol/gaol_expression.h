@@ -63,6 +63,13 @@ typedef struct {
     */
     explicit expression(double d);
     explicit expression(const interval& I);
+    /*
+      expression(interval(n)) for an integer n (GAOL v5): the tightest
+      interval containing it, which expression(double) would round where n
+      is no double. Explicit, as expression(double)
+    */
+    template <class T, ::gaol_core::detail::if_integer<T> = 0>
+    explicit expression(T n) : expression(interval(n)) {}
     expression(const expression& e);
     expression(const expr_node& e);
     virtual ~expression();
