@@ -1210,7 +1210,8 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   program makes on \code{is\_empty()} (\code{x.is\_empty() ? a : b} for an
   empty \code{x}) and \code{x~\&=~y} for an empty \code{y} raise nothing (the
   armhf jobs of the continuous integration check the first; no job compiles
-  for POWER9). GCC~9.4 at \option{-O3} computed the comparisons of the bounds
+  for POWER9, where this is reasoned, not checked). GCC~9.4 at \option{-O3}
+  computed the comparisons of the bounds
   of \code{x~\&=~y} before its test of the empty set, in a loop of
   intersections: they are quiet ones. And GCC~9.4, where AVX is on
   (\option{-mavx}, or \option{-mfma}, which the three builds give where the

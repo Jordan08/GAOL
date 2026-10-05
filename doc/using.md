@@ -534,9 +534,10 @@ bounds.
   `std::isunordered()` first, which stays quiet, so that the choice a program
   makes on `is_empty()` (`x.is_empty() ? a : b` for an empty `x`) and
   `x &= y` for an empty `y` raise nothing (the armhf jobs of the continuous
-  integration check the first; no job compiles for POWER9). GCC 9.4 at `-O3`
-  computed the comparisons of the bounds of `x &= y` before its test of the
-  empty set, in a loop of intersections: they are quiet ones. And GCC 9.4,
+  integration check the first; no job compiles for POWER9, where this is
+  reasoned, not checked). GCC 9.4 at `-O3` computed the comparisons of the
+  bounds of `x &= y` before its test of the empty set, in a loop of
+  intersections: they are quiet ones. And GCC 9.4,
   where AVX is on (`-mavx`, or `-mfma`, which the three builds give where the
   processor has FMA), vectorizes a loop of quiet comparisons into signaling
   predicates (`vcmpnlepd`, `vcmpnltpd`): with the FPU intervals, the bounds

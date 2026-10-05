@@ -140,7 +140,7 @@ mode there.
   of 64 relations, constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
   (GCC 9.4 at `-O3`, with `-mfma`, made them raise the exception for the FPU
-  intervals, and `x &= y` for the SSE2 ones), compared with each relation
+  intervals, and the construction of an interval for the SSE2 ones), compared with each relation
   computed on its own. The midpoints of five intervals with a bound of 2^1023
   or more in magnitude, `[DBL_MAX]` among them, (`midpoint()`, `mid()`,
   `rad()`, `mid_rad()`, `split()`...) have to be right, `mid()` the tightest

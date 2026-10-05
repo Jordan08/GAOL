@@ -545,8 +545,8 @@ namespace gaol_core {
       return true;
     }
     double l = left(), r = right();
-#  if defined(__arm__) && defined(__ARM_FP)
-    __asm__ ("" : "+w" (l), "+w" (r));
+#  if defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8)
+    __asm__ ("" : "+w" (l), "+w" (r)); // a VFP register that holds a double
 #  elif defined(__arm__)
     __asm__ ("" : "+r" (l), "+r" (r));
 #  else
