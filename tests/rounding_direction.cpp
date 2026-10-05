@@ -77,21 +77,6 @@
 #  define GAOL_TESTS_TRAPS 0
 #endif
 
-// The choices a program makes on is_empty() of an empty interval (the last
-// checks of empty_operands). Where the compiler optimizes for size (-Os, -Oz),
-// GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator& or operator&=
-// instead of inlining it, and such a choice is then made on is_empty() of an
-// empty interval alone, which raised the invalid-operation flag there before
-// is_empty() told the NaN bounds with std::isunordered() first (GAOL v5, point
-// D.24 of TODO.md). That it no longer does was never checked, no job of the
-// continuous integration optimizing for size: these choices are not checked
-// there, and the test says so.
-#if defined(__OPTIMIZE_SIZE__)
-#  define GAOL_TESTS_CHOICES 0
-#else
-#  define GAOL_TESTS_CHOICES 1
-#endif
-
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_SSE 1
@@ -426,9 +411,12 @@ namespace
     // operand is empty where it did not know the answer from operator&= (#60),
     // and on the empty interval alone, as GCC for POWER9 did with xscmpgedp;
     // is_empty() now tells the NaN bounds with std::isunordered() first there
-    // (see gaol/gaol_interval.h). Not checked where the compiler optimizes for
-    // size (GAOL_TESTS_CHOICES)
-#if GAOL_TESTS_CHOICES
+    // (see gaol/gaol_interval.h). Where the compiler optimizes for size (-Os),
+    // GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator& or operator&=
+    // rather than inlining it, and the choice is then made on is_empty() of an
+    // empty interval alone: these choices were not checked there
+    // (GAOL_TESTS_CHOICES) until jobs of the continuous integration built the
+    // tests for size, on armhf and for POWER9 (containers.yml)
     { "(empty & x).is_empty() ? 0 : right()", [] {
         const interval z = E() & X();
         const volatile double r = z.is_empty() ? 0.0 : z.right();
@@ -449,7 +437,6 @@ namespace
         const interval z = X() & E();
         const volatile double r = z.is_empty() ? 0.0 : z.right();
         return r == 0.0; } },
-#endif
   };
 
   /*
@@ -1583,10 +1570,6 @@ int main()
     check("an operation with an empty operand gives the result of the empty set", right,
           [&] { return std::string(e.name); });
   }
-#if !GAOL_TESTS_CHOICES
-  std::printf("Compiled for size, where the intersection may be called rather than inlined: the "
-              "choices on is_empty() of an empty interval are not checked\n");
-#endif
 
   // A NaN the program gives, the products with a zero and an infinite bound,
   // the powers with an exponent of extreme magnitude and the relations in
