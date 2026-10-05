@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `13f4713` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `40c33e6` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -103,6 +103,7 @@ supprimé, et les en-têtes installés n'ont plus de cast à la C, ce que
 `headers.sh` vérifie avec `-Wold-style-cast`. Les textes pour `ChangeLog` et
 `doc/differences.md` sont dans la description de #87.
 Fait le 5 octobre aussi : le point M (anciens 9, 57), par #89.
+Fait le 5 octobre aussi : le point S (ancien 14), par #90.
 
 ## En cours
 
@@ -610,22 +611,6 @@ le point D a changé (#84), sa partie parser se fait avec le point E.
   ajouter la sortie anticipée (+oo dès qu'une borne n'est infinie que d'un
   côté).
 
-### S. Les exceptions de GAOL (14)
-
-- **14.** **Suites de `what()` des exceptions** (#32). `what()` renvoie
-  l'explication. Restent : les constructeurs à `const char*` des classes
-  dérivées transmettent tel quel à `std::string` un pointeur nul (comportement
-  indéfini, qu'aucun appel de GAOL ne fait) : le traiter comme une absence
-  d'explication (décidé le 3 octobre) ; le manuel ne documente que ces
-  constructeurs. Décidé le 3 octobre : sans explication, `what()` renvoie le nom
-  de la classe dérivée (`input_format_error`…), de même quand le texte C de
-  l'explication est vide (un NUL en tête), pour que `what()` ne soit jamais
-  vide ; la forme courte d'`operator<<` reste, sans réserve là où la
-  documentation dit que GAOL 4 donnait `std::exception`. Décidé le 4 octobre :
-  `operator<<` d'une exception (`gaol/gaol_exceptions.cpp`, l. 86-87) appelle
-  `explanation()` deux fois, et copie donc la chaîne deux fois : une variable
-  locale, avec ce changement.
-
 ### T. Les exemples (39, 66)
 
 - **39.** **Les restes de Goldstein-Price** (le +1 et « encloses the range »
@@ -779,7 +764,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 11 : F ;
-12 : E ; 14 : S ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
+12 : E ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ; 50 : R ;
 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 58 : F ; 59 : F ;
