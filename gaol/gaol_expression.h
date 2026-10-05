@@ -68,7 +68,7 @@ typedef struct {
       interval containing it, which expression(double) would round where n
       is no double. Explicit, as expression(double)
     */
-    template <class T, ::gaol_core::detail::if_integer<T> = 0>
+    template <class T, ::gaol_detail::if_integer<T> = 0>
     explicit expression(T n) : expression(interval(n)) {}
     expression(const expression& e);
     expression(const expr_node& e);

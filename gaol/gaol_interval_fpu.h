@@ -83,8 +83,8 @@
 #if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
     // std::isunordered() first, as in is_empty() and interval(double, double)
     double b = a;
-    if (!detail::quiet_unordered(a, b)) {
-      detail::keep_ordered(a, b);
+    if (!gaol_detail::quiet_unordered(a, b)) {
+      gaol_detail::keep_ordered(a, b);
       if (-GAOL_INFINITY < a && b < GAOL_INFINITY) {
         lb_ = -a;
         rb_ = b;
@@ -96,7 +96,7 @@
     GAOL_FPU_SCALAR(a);
     // A branch rather than two conditional moves, which would make the bounds
     // depend on the comparison and lengthen the loops accumulating intervals
-    if (detail::quiet_less(-GAOL_INFINITY, a) && a < GAOL_INFINITY) { // false for a NaN
+    if (gaol_detail::quiet_less(-GAOL_INFINITY, a) && a < GAOL_INFINITY) { // false for a NaN
       lb_ = -a;
       rb_ = a;
     } else {
@@ -122,15 +122,15 @@
   // the quiet first comparison has the form GCC reversed into a signaling one
   // in is_empty(), and the constructor tells NaN bounds as is_empty() does,
   // with std::isunordered() first, then compares the bounds, which are no NaN
-  // after it, through the empty asm statement of detail::keep_ordered() (GAOL
+  // after it, through the empty asm statement of gaol_detail::keep_ordered() (GAOL
   // v5): floor(), max(), min()... give it the NaN bounds of an empty operand
   // without testing it first
   GAOL_INLINE
   interval::interval(double a, double b)
   {
 #if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
-    if (!detail::quiet_unordered(a, b)) {
-      detail::keep_ordered(a, b);
+    if (!gaol_detail::quiet_unordered(a, b)) {
+      gaol_detail::keep_ordered(a, b);
       if (a <= b && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
         lb_ = -a;
         rb_ = b;
@@ -141,7 +141,7 @@
 #else
     GAOL_FPU_SCALAR(a);
     GAOL_FPU_SCALAR(b);
-    if (detail::quiet_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
+    if (gaol_detail::quiet_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
       lb_ = -a;
       rb_ = b;
     } else {
@@ -200,14 +200,14 @@
   GAOL_INLINE
   interval& interval::operator&=(const interval& I)
   {
-    if (detail::quiet_unordered(lb_, I.lb_)) {
+    if (gaol_detail::quiet_unordered(lb_, I.lb_)) {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
       return *this;
     }
-    if (!detail::quiet_less_equal(I.left(), left())) {
+    if (!gaol_detail::quiet_less_equal(I.left(), left())) {
       lb_ = I.lb_;
     }
-    if (!detail::quiet_greater_equal(I.right(), right())) {
+    if (!gaol_detail::quiet_greater_equal(I.right(), right())) {
       rb_ = I.rb_;
     }
     // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()

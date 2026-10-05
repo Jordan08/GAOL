@@ -91,7 +91,7 @@ namespace gaol_ieee1788 {
   //! numsToInterval(l, u): interval(l, u), the empty set for l > u, l = +oo, u = -oo or a NaN
   GAOL_NODISCARD inline interval numsToInterval(double l, double u) { return interval(l, u); }
   //! numsToInterval(l, u) with an integer bound: interval(l, u), which contains the integers given (GAOL v5)
-  template <class A, class B, ::gaol_core::detail::if_integer_bounds<A, B> = 0>
+  template <class A, class B, ::gaol_detail::if_integer_bounds<A, B> = 0>
   GAOL_NODISCARD inline interval numsToInterval(A l, B u) { return interval(l, u); }
 
   /*!
@@ -142,8 +142,8 @@ namespace gaol_ieee1788 {
     an unsigned p beyond the ints was converted to a negative int, a long one
     cut to an int; [-oo, +oo] beyond the unsigned ints for a nonempty x
   */
-  template <class T, ::gaol_core::detail::if_integer<T> = 0>
-  GAOL_NODISCARD inline interval pown(const interval& x, T p) { return ::gaol_core::detail::integer_power(x, p); }
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval pown(const interval& x, T p) { return ::gaol_detail::integer_power(x, p); }
 
   /*!
     pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
@@ -167,7 +167,7 @@ namespace gaol_ieee1788 {
     here, and [1, 16] in gaol.
   */
   GAOL_NODISCARD inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
-  template <class T, ::gaol_core::detail::if_integer<T> = 0>
+  template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pow(const interval& x, T p) { return pow(x, interval(p)); }
 
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
@@ -361,7 +361,7 @@ namespace gaol_ieee1788 {
     return std::isfinite(m) && x.set_contains(m);
   }
   //! isMember(n, x) for an integer n: set_contains(n), n compared as the integer it is (GAOL v5)
-  template <class T, ::gaol_core::detail::if_integer<T> = 0>
+  template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline bool isMember(T n, const interval& x)
   {
     return x.set_contains(n);
