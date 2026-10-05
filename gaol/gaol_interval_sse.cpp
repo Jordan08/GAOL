@@ -861,19 +861,52 @@ interval& interval::operator*=(const interval& I)
 #endif
 
 #if 1
-// Test algorithm (9 cases, à la Wolff von Gudenberg)
-interval& interval::operator*=(const interval& I)
-{
-  if (is_empty() || I.is_empty()) {
-	*this = interval::emptyset();
-	return *this;
-  }
-  
-  GAOL_RND_ENTER_SSE();
-  
-  int signs = (_mm_movemask_pd(I.xmmbounds) << 2) | _mm_movemask_pd(xmmbounds);
-  // signs: bits 0 and 2 shall be negated since the left bounds are stored negated
-  switch (signs) {
+/*
+  The products of the pairs of stored bounds u and v, lane by lane, for
+  operator*= below. Where neither has an infinite lane, the plain products,
+  which are never NaN. Otherwise a lane with a factor 0 and the other infinite
+  gives +0, the product of such bounds in interval arithmetic, as the
+  ordered-mask of the products gave from the NaN of 0*oo; the multiplication
+  itself is then made with both factors +0 there, since 0*oo raised the
+  invalid-operation exception, which killed a program that enabled it:
+  [0]*[1, +oo], [0, +oo]*[0], and pow([1], [1, +oo]) through them (GAOL v5).
+  The other lanes are the plain products, so that every product has the bits
+  it had (checked against the former code on the products of the intervals
+  with bounds among 23 special values: the infinities, the largest doubles,
+  2^1023, the subnormals, the zeros of both signs...).
+*/
+namespace {
+  struct finite_products
+  {
+    __m128d operator()(__m128d u, __m128d v) const
+    {
+      return _mm_mul_pd(u, v);
+    }
+  };
+
+  struct products_with_infinities
+  {
+    __m128d operator()(__m128d u, __m128d v) const
+    {
+      // Quiet comparisons (cmpeqpd), on bounds that are not NaN anyway
+      const __m128d abs_u = _mm_andnot_pd(interval::lbrbsignmask, u);
+      const __m128d abs_v = _mm_andnot_pd(interval::lbrbsignmask, v);
+      const __m128d zero_by_infinity =
+        _mm_or_pd(_mm_and_pd(_mm_cmpeq_pd(u, interval::m128_zero), _mm_cmpeq_pd(abs_v, interval::m128_infinf)),
+                  _mm_and_pd(_mm_cmpeq_pd(v, interval::m128_zero), _mm_cmpeq_pd(abs_u, interval::m128_infinf)));
+      return _mm_mul_pd(_mm_andnot_pd(zero_by_infinity, u), _mm_andnot_pd(zero_by_infinity, v));
+    }
+  };
+
+  // Test algorithm (9 cases, à la Wolff von Gudenberg): the product of the
+  // nonempty x and y, from the products mul makes of their stored bounds
+  template<class Products>
+  GAOL_INLINE __m128d product_of_bounds(__m128d x, __m128d y, const Products& mul)
+  {
+    __m128d res = interval::m128_zero;
+    int signs = (_mm_movemask_pd(y) << 2) | _mm_movemask_pd(x);
+    // signs: bits 0 and 2 shall be negated since the left bounds are stored negated
+    switch (signs) {
 	case 3:	 // 0011b -> 0110b
 	case 7:  // 0111b -> 0010b
 	case 11: // 1011b -> 1110b
@@ -883,104 +916,121 @@ interval& interval::operator*=(const interval& I)
 	case 14: // 1110b -> 1011b
 	  // [0, 0]
 	  {
-		xmmbounds = interval::m128_zero;
+		res = interval::m128_zero;
 	  }
 	  break;
-	case 0:  // 0000b -> 0101b 
+	case 0:  // 0000b -> 0101b
 	  // (5) [min(ad,bc), max(ac, bd)]
 	  {
-		__m128d r0 = _mm_unpacklo_pd(xmmbounds,xmmbounds);
-		__m128d r1 = _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1);
-		__m128d r2 = _mm_mul_pd(r0, r1);
-		__m128d ordr2 = _mm_cmpord_pd(r2,r2);
-		r2 = _mm_and_pd(r2,ordr2);
-			
-		__m128d r3 = _mm_unpackhi_pd(xmmbounds,xmmbounds);
-		__m128d r4 = _mm_mul_pd(r3, I.xmmbounds);
-		__m128d ordr4 = _mm_cmpord_pd(r4,r4);
-		r4 = _mm_and_pd(r4,ordr4);
-		xmmbounds = _mm_max_pd(r2,r4);
+		__m128d r0 = _mm_unpacklo_pd(x,x);
+		__m128d r1 = _mm_shuffle_pd(y,y,1);
+		__m128d r2 = mul(r0, r1);
+		__m128d r3 = _mm_unpackhi_pd(x,x);
+		__m128d r4 = mul(r3, y);
+		res = _mm_max_pd(r2,r4);
 	  }
-	  break;		
+	  break;
 	case 1:  // 0001b -> 0100b
 	  // (8) [bc, bd]
 	  {
-		__m128d r0 = _mm_unpackhi_pd(xmmbounds,xmmbounds);
-		__m128d r1 = _mm_mul_pd(r0,I.xmmbounds);
-		__m128d ordr1= _mm_cmpord_pd(r1,r1);
-		xmmbounds = _mm_and_pd(r1,ordr1);
+		__m128d r0 = _mm_unpackhi_pd(x,x);
+		res = mul(r0,y);
 	  }
 	  break;
 	case 2:  // 0010b -> 0111b
 	  // (2) [ad, ac]
 	  {
-		__m128d r0 = _mm_unpacklo_pd(xmmbounds,xmmbounds);
-		__m128d r1 = _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1);
-		__m128d r2 = _mm_mul_pd(r0, r1);
-		__m128d ordr2 = _mm_cmpord_pd(r2,r2);
-		xmmbounds = _mm_and_pd(r2,ordr2);
+		__m128d r0 = _mm_unpacklo_pd(x,x);
+		__m128d r1 = _mm_shuffle_pd(y,y,1);
+		res = mul(r0, r1);
 	  }
 	  break;
 	case 4:  // 0100b -> 0001b
 	  // (6) [ad, bd]
 	  {
-		__m128d r0 = _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds);
-		__m128d r1 = _mm_mul_pd(xmmbounds, r0);
-		__m128d ordr1 = _mm_cmpord_pd(r1,r1);
-		xmmbounds = _mm_and_pd(r1,ordr1);
+		__m128d r0 = _mm_unpackhi_pd(y,y);
+		res = mul(x, r0);
 	  }
 	  break;
 	case 5:  // 0101b -> 0000b
 	  // (9) [ac, bd]
 	  {
-		__m128d r0 = _mm_xor_pd(xmmbounds,lbsignmask);
-		__m128d r1 = _mm_mul_pd(r0,I.xmmbounds);
-		__m128d ordr1 = _mm_cmpord_pd(r1,r1);
-		xmmbounds = _mm_and_pd(r1,ordr1);
+		__m128d r0 = _mm_xor_pd(x,interval::lbsignmask);
+		res = mul(r0,y);
 	  }
 	  break;
 	case 6:  // 0110b -> 0011b
 	  // (3) [ad, bc]
 	  {
-		__m128d r0 = _mm_xor_pd(I.xmmbounds,lbsignmask);
+		__m128d r0 = _mm_xor_pd(y,interval::lbsignmask);
 		__m128d r1 = _mm_shuffle_pd(r0,r0,1);
-		__m128d r2 = _mm_mul_pd(xmmbounds,r1);
-		__m128d ordr2 = _mm_cmpord_pd(r2,r2);
-		xmmbounds = _mm_and_pd(r2,ordr2);
+		res = mul(x,r1);
 	  }
 	  break;
 	case 8:  // 1000b -> 1101b
 	  // (4) [bc, ac]
 	  {
-		__m128d r0 = _mm_shuffle_pd(xmmbounds,xmmbounds,1);	
-		__m128d r1 = _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds);
-		__m128d r2 = _mm_mul_pd(r0, r1);
-		__m128d ordr2 = _mm_cmpord_pd(r2,r2);
-		xmmbounds = _mm_and_pd(r2,ordr2);
+		__m128d r0 = _mm_shuffle_pd(x,x,1);
+		__m128d r1 = _mm_unpacklo_pd(y,y);
+		res = mul(r0, r1);
 	  }
 	  break;
 	case 9:  // 1001b -> 1100b
 	  // (7) [bc, ad]
 	  {
-		__m128d r0 = _mm_xor_pd(xmmbounds,lbsignmask);
+		__m128d r0 = _mm_xor_pd(x,interval::lbsignmask);
 		__m128d r1 = _mm_shuffle_pd(r0,r0,1);
-		__m128d r2 = _mm_mul_pd(r1,I.xmmbounds);
-		__m128d ordr2 = _mm_cmpord_pd(r2,r2);
-		xmmbounds = _mm_and_pd(r2,ordr2);
+		res = mul(r1,y);
 	  }
 	  break;
 	case 10: // 1010b -> 1111b
 	  // (1) [bd, ac]
-	  {	
-		__m128d r0 = _mm_shuffle_pd(xmmbounds,xmmbounds,1);
-		__m128d r1 = _mm_xor_pd(r0, lbsignmask);
-		__m128d r2 = _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1);
-		__m128d r3 = _mm_mul_pd(r1,r2);
-		__m128d ordr3 = _mm_cmpord_pd(r3,r3);
-		xmmbounds = _mm_and_pd(r3,ordr3);
+	  {
+		__m128d r0 = _mm_shuffle_pd(x,x,1);
+		__m128d r1 = _mm_xor_pd(r0, interval::lbsignmask);
+		__m128d r2 = _mm_shuffle_pd(y,y,1);
+		res = mul(r1,r2);
 	  }
 	  break;
+    }
+    return res;
   }
+
+  // x *= y for nonempty x and y with an infinite bound, out of operator*=,
+  // where it is rare: operator*= calls it last, as a tail call, and keeps
+  // the code and the stack frame of a function calling none (the SSE2
+  // intervals are compiled by GCC and Clang only)
+  __attribute__((noinline, cold)) interval& multiply_with_infinities(interval& x, const interval& y)
+  {
+    x.get_xmminterval() = product_of_bounds(x.get_xmminterval(), y.get_xmminterval(), products_with_infinities());
+    return x;
+  }
+}
+
+interval& interval::operator*=(const interval& I)
+{
+  if (is_empty() || I.is_empty()) {
+	*this = interval::emptyset();
+	return *this;
+  }
+
+  GAOL_RND_ENTER_SSE();
+
+  /*
+    An infinite bound in either operand: their stored bounds are -l and r,
+    so that +oo is the only infinity they hold, GAOL building no interval
+    [+oo, +oo] nor [-oo, -oo]. maxpd and cmpeqpd raise nothing, no bound
+    being NaN in nonempty operands. That test costs the product of two
+    intervals 0.15 to 0.35 ns on an Intel i7-1185G7 (gaol_performance,
+    medians of 9 interleaved runs: 4.22 ns rather than 3.88 ns with Clang 18,
+    4.93 to 5.16 ns rather than 4.80 ns with GCC 9.4, in two series; GAOL v5).
+  */
+  if (_mm_movemask_pd(_mm_cmpeq_pd(_mm_max_pd(xmmbounds, I.xmmbounds), interval::m128_infinf)) != 0) {
+    interval& res = multiply_with_infinities(*this, I);
+    GAOL_RND_LEAVE_SSE();
+    return res;
+  }
+  xmmbounds = product_of_bounds(xmmbounds, I.xmmbounds, finite_products());
   GAOL_RND_LEAVE_SSE();
   return *this;
 }
