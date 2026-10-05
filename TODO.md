@@ -14,7 +14,8 @@ Les anciens points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 45 à 49, des corrections et des relectures ; 50, d'une décision du 3 octobre ;
 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
-`TODO_mistral.md`. Les décisions du 3 octobre sont écrites dans chaque point
+`TODO_mistral.md` ; 72 à 74, d'une comparaison de `pown` avec le `pow` de
+CORE-MATH (5 octobre). Les décisions du 3 octobre sont écrites dans chaque point
 (« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
 depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
 47, hors Cygwin, resté au point A), par #72 et #73 ; le point L (anciens 29, 43
@@ -132,10 +133,11 @@ dans les mêmes fichiers, `cbrt.c`, `rsqrt.c` et `asinpi.c`, et les commentaires
   `_WIN32`) : décidé le 3 octobre, prendre le correctif 6 de `3rd/README.md` en
   entier plutôt que refuser Cygwin.
 
-### B. pow (1, 2, 8, 51)
+### B. pow (1, 2, 8, 51, 72, 73, 74)
 
-Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
-(`gaol/gaol_interval.cpp`), avec leurs commentaires et les tests de
+Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
+`ipow_exact_dn()` (`gaol/gaol_interval.cpp`), et `integer_power()`
+(`gaol/gaol_interval.h`) pour le 74, avec leurs commentaires et les tests de
 `tests/ieee1788.cpp` et `tests/arithmetic.cpp`.
 
 - **1.** **Suites du pow de la norme écrit une fois** (#37). `pow_standard()`
@@ -199,6 +201,58 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   alors que `==` ne distingue pas −0 de +0, et racontent l'histoire : dire
   plutôt que les littéraux ont été relevés sur l'ancien code et vérifiés avec
   mpmath à 500 bits, ce que `tests/gaol_tests.h` doit citer aussi.
+- **72.** **`pown(x, n)` pour n < 0 au plus serré, avec le `pow` de
+  CORE-MATH** : `gaol_pown()` calcule x^-m comme 1/x^m (ou (1/x)^m où x^m
+  déborde), soit deux arrondis. Sur 200 000 tirages par plage (x dans
+  [0.5, 2] pour n de −3 à −100, x près de 1 pour n de −10^3 à −10^6), environ
+  la moitié de chaque borne a 1 ou 2 doubles de trop (« within 2 doubles » de
+  `doc/accuracy.md`, l. 93). CORE-MATH n'a ni pown ni rootn en binary64 au
+  commit `6b84457`, mais `cr_pow(x, (double)n)` est un pown pour tout `int` :
+  n est exact en double, et `cr_pow` donne à une base négative le signe de la
+  parité de n (vérifié pour n impair : `cr_pow(-x, n)` vers le haut est
+  l'opposé de `cr_pow(x, n)` vers le bas). Correction : les bornes de
+  `pow_lo()` et `pow_hi()`, comme `pow_standard()` : la valeur de `cr_pow`
+  arrondie vers le haut, et le double au-dessous, sauf où la puissance est un
+  double, ce que `pow_is_double()` prouve déjà pour un exposant entier
+  (k = 0). Le découpage de x selon le signe et le 0 intérieur reste celui de
+  `gaol_pown()`, et une borne 0 est prise à part : `cr_pow(0, n)` vaut +oo
+  pour n < 0 et lève la division par zéro. Coût pour un intervalle (x86-64,
+  GCC, Release, deux appels de `cr_pow` sans `pow_is_double()`) : 55 ns au
+  lieu de 24 pour n = −3, 54 au lieu de 40 pour n = −30, 58 au lieu de 81
+  pour n = −1000. À décider : `cr_pow` pour tout n < 0 (les bornes les plus
+  serrées, deux fois plus lent aux petits |n|), ou seulement au-dessus du
+  seuil du point 73.
+- **73.** **`pown(x, n)` pour n grand avec le `pow` de CORE-MATH** : pour
+  n ≥ 3, les produits exacts de `ipow_exact_up()` et `ipow_exact_dn()`
+  donnent déjà les bornes les plus serrées (aucun écart sur 200 000 tirages
+  par plage pour n de 3 à 10^6 ; un double de trop à 0,003 % des bornes
+  inférieures pour n de 2^28 à 2^31 − 1, x près de 1), mais leur coût croît
+  avec log2(n) : pour un intervalle, 17 ns à n = 3, 54 ns à n = 100, 77 ns à
+  n = 1000, 118 ns à n = 10^5 et 262 ns à n = 2·10^9, contre 51 à 90 ns pour
+  deux appels de `cr_pow`, quel que soit n. Correction : au-dessus d'un seuil
+  à mesurer (vers 100 à 200, sur plusieurs machines), les bornes de `cr_pow`
+  comme au point 72 : plus rapides, toujours les plus serrées, les mêmes sur
+  toutes les machines, sans la garantie 5 n log2(n) 2^-104 ni le repli sur
+  les produits arrondis d'une borne nulle ou hors de la plage ; sous le seuil,
+  les produits exacts. À faire avant la fin du point 8, dont le repli ne
+  resterait que sous le seuil. Réécrire avec les points 72 et 73 la ligne de
+  `pown` de `doc/accuracy.md` (l. 93) et le manuel.
+- **74.** **`pow(x, n)` pour un entier au-delà des 32 bits** : `gaol::pow(x,
+  n)` et `gaol_ieee1788::pown(x, n)` pour un entier hors des `int` et des
+  `unsigned int` (`integer_power()`, `gaol/gaol_interval.h`, l. 1309), et
+  `gaol::pow(x, y)` pour un `[n]` dégénéré entier hors des `int`
+  (`gaol_pow_hybrid()`), donnent [−oo, +oo] ; seul `gaol_ieee1788::pow` les
+  calcule, sur x ≥ 0 (le bloc au-delà des int de `pow_standard()`). x^n y est
+  pourtant fini et non trivial pour x près de 1 : `pow(interval(1 + 2^-30),
+  1LL << 33)`, environ e^8, vaut [−oo, +oo], alors que `cr_pow` donne
+  [2980.9579759367944, 2980.9579759367948]. Correction : pour |n| ≤ 2^53, où
+  n est un double, les bornes de `cr_pow` comme aux points 72 et 73, base
+  négative comprise ; au-delà, où n n'est pas toujours un double, encadrer
+  |x|^n, par exemple par x^h · x^l avec n = h + l, h et l des doubles (à
+  vérifier aux bords de la plage), le signe venant de la parité de n lue sur
+  l'entier. Prolonge le 21, fait par #84, qui a donné `pow(x, n)` pour tout
+  type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
+  qui dit [−∞, +∞] pour `gaol::pow`.
 
 ### D. Les entiers, suite, et les en-têtes (21)
 
@@ -788,7 +842,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 37 : I ; 38 : I ; 39 : T ; 40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ;
 46 : F ; 47 : A ; 48 : H ; 50 : R ; 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ;
 56 : A ; 57 : M ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ;
-66 : T ; 70 : I ; 71 : Y.
+66 : T ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
