@@ -41,6 +41,26 @@ tests_dep = declare_dependency(
   link_args: gaol_link_args,
   dependencies: deps,
 )
+# Compile tests: refused_options.cpp with -ffinite-math-only and -ffast-math
+# (GAOL v5). Not with Visual C++, which has neither option nor macro.
+if not msvc
+  # Test -ffinite-math-only refusal
+  test('refused_finite_math_only',
+       compile: ['-ffinite-math-only', '-c', 'refused_options.cpp'],
+       should_fail: true,
+       stdout: 'GAOL cannot be compiled with -ffinite-math-only',
+       dependencies: tests_dep)
+  # Test -ffast-math refusal
+  test('refused_fast_math',
+       compile: ['-ffast-math', '-c', 'refused_options.cpp'],
+       should_fail: true,
+       stdout: 'GAOL cannot be compiled with -ffast-math',
+       dependencies: tests_dep)
+endif
+# Positive witness: compilation succeeds without refused options
+test('refused_positive',
+     compile: ['-c', 'refused_options.cpp'],
+     dependencies: tests_dep)
 foreach t : gaol_tests
   # fast_math_link: -ffast-math to its link only, its source being compiled as
   # any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where its link has
