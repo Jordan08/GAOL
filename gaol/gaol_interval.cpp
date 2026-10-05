@@ -548,6 +548,54 @@ namespace gaol_core {
     return true;
   }
 
+  /*
+    x^y rounded upward for x >= 0 and a finite y, the rounding direction
+    being upward: CORE-MATH's pow, which is correctly rounded in that
+    direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
+    |y| >= 2^1014, and a finite x > 0 other than 1, whose power is computed
+    here (GAOL v5). For those, the first phase of CORE-MATH's pow makes its
+    approximation of log(x) a NaN on purpose (the exponent field of y below
+    0x36 or from 0x7f5 on), so that its rounding test fails, and compares the
+    NaN product with 2^-1022 with <, which raises the invalid-operation
+    exception: pow([1, 2], [1e-300]) and pow([1, 2], [1e300, 1e308]) raised
+    it, and killed a program that enabled it. The value is known there,
+    |log(x)| being between 2^-54 and 745 for a positive double x other than 1:
+    - |y| < 2^-969: 0 < |y log(x)| < 2^-959, and x^y is within 2^-958 of 1,
+      above 1 where y log(x) > 0: x^y rounded upward is the double above 1
+      there, and 1 otherwise;
+    - |y| >= 2^1014: |y log(x)| > 2^960, and x^y is above DBL_MAX where
+      y log(x) > 0, rounded upward to +oo, and below 2^-1074 otherwise,
+      rounded upward to 2^-1074.
+    These are the values CORE-MATH gives, and the double below each the lower
+    bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
+    and +oo apart before its first phase.
+  */
+  static inline double pow_rounded_up(double x, double y)
+  {
+    // 2^-969 and 2^1014, written in decimal with the digits that give them
+    // exactly: C++11 has no hexadecimal floating literal
+    const double magnitude = std::fabs(y);
+    if (magnitude >= 2.0041683600089728e-292 && magnitude < 1.7555597020139804e+305) {
+      return upward::nthroot_up(x, y);
+    }
+    if (x == 1.0 || y == 0.0) {
+      return 1.0;
+    }
+    if (x == 0.0 || x == GAOL_INFINITY) {
+      return upward::nthroot_up(x, y);
+    }
+    const bool above_one = (x > 1.0) == (y > 0.0);
+    if (magnitude < 1.0) {
+      return above_one ? 1.0 + std::numeric_limits<double>::epsilon() : 1.0;
+    }
+    return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+  }
+
+  static inline double pow_rounded_dn(double x, double y)
+  {
+    return previous_float(pow_rounded_up(x, y));
+  }
+
   // x^y for x > 0: 1 for x = 1 or y = 0, x^y where it is a double
   // (pow_is_double()), the double below CORE-MATH's value rounded upward
   // otherwise, and at least 0
@@ -557,12 +605,12 @@ namespace gaol_core {
     if (x == 1.0 || y == 0.0) {
       return 1.0;
     }
-    return pow_is_double(x, y, d) ? d : maximum(upward::nthroot_dn(x,y), 0.0);
+    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : upward::nthroot_up(x,y);
+    return (x == 1.0 || y == 0.0) ? 1.0 : pow_rounded_up(x,y);
   }
 
   static inline double sinh_lo(double x)
@@ -1475,9 +1523,10 @@ namespace gaol_core {
       const double xl = (base.left() == 0.0) ? 0.0 : base.left(), xu = base.right();
       const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
       // The bounds of namespace upward, which do not check the rounding
-      // direction again (GAOL v5)
-      const double l = (at_lower == 1.0) ? 1.0 : upward::nthroot_dn(at_lower, n);
-      const double r = (at_upper == 1.0) ? 1.0 : upward::nthroot_up(at_upper, n);
+      // direction again, through pow_rounded_dn() and pow_rounded_up(),
+      // which compute the powers for an n from 2^1014 on themselves (GAOL v5)
+      const double l = (at_lower == 1.0) ? 1.0 : pow_rounded_dn(at_lower, n);
+      const double r = (at_upper == 1.0) ? 1.0 : pow_rounded_up(at_upper, n);
       return interval((l > 0.0) ? l : 0.0, r);
     }
 
