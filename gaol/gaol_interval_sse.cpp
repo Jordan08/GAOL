@@ -574,6 +574,14 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
 
  interval& interval::operator+=(const interval& I)
     {
+#if GAOL_HAVE_AVX512_TARGET
+      // The AVX-512 path: no rounding direction, no flush-to-zero mode
+      // (gaol/gaol_interval_avx512.cpp)
+      if (avx512_arithmetic) {
+        xmmbounds = fast_add(xmmbounds, I.xmmbounds);
+        return *this;
+      }
+#endif
       GAOL_RND_ENTER_SSE();
       xmmbounds = _mm_add_pd(xmmbounds, I.xmmbounds);
       GAOL_RND_LEAVE_SSE();
@@ -582,6 +590,12 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
 
   interval& interval::operator-=(const interval& I)
     {
+#if GAOL_HAVE_AVX512_TARGET
+      if (avx512_arithmetic) {
+        xmmbounds = fast_sub(xmmbounds, I.xmmbounds);
+        return *this;
+      }
+#endif
       GAOL_RND_ENTER_SSE();
       xmmbounds = _mm_add_pd(xmmbounds, _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,_MM_SHUFFLE2(0,1)));
       GAOL_RND_LEAVE_SSE();
@@ -597,6 +611,12 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
+#if GAOL_HAVE_AVX512_TARGET
+      if (avx512_arithmetic) {
+        xmmbounds = fast_add(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
+        return *this;
+      }
+#endif
       GAOL_RND_ENTER_SSE();
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
       GAOL_RND_LEAVE_SSE();
@@ -609,6 +629,12 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
+#if GAOL_HAVE_AVX512_TARGET
+      if (avx512_arithmetic) {
+        xmmbounds = fast_add(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
+        return *this;
+      }
+#endif
       GAOL_RND_ENTER_SSE();
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
       GAOL_RND_LEAVE_SSE();
@@ -621,6 +647,20 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
+#if GAOL_HAVE_AVX512_TARGET
+      /* The AVX-512 path: the zero and the sign of d read from its bits,
+         which the denormals-are-zero mode does not change, where the SSE2
+         path checks the modes before comparing d (a subnormal d was 0), and
+         the product itself needs neither the direction nor the modes */
+      // The product of the interval by [d, d], of either sign and zero:
+      // the dispatch of fast_mul() makes it, from the stored form of [d, d],
+      // and its check clears the flush-to-zero modes, which the SSE2 path
+      // checks before this branch
+      if (avx512_arithmetic) {
+        xmmbounds = fast_mul(xmmbounds, _mm_set_pd(d, -d));
+        return *this;
+      }
+#endif
       // The rounding direction checked before d is compared: with the modes
       // that flush the subnormals to zero, a subnormal d was 0 (GAOL v5). d
       // is read again after the check, which the compiler could otherwise
@@ -648,6 +688,16 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         return *this;
       }
 
+#if GAOL_HAVE_AVX512_TARGET
+      /* The AVX-512 path: the quotient of the interval by [d, d], of
+         either sign and zero (the empty set of a zero divisor), the
+         dispatch and the check of fast_div() making it, from the stored
+         form of [d, d] */
+      if (avx512_arithmetic) {
+        xmmbounds = fast_div(xmmbounds, _mm_set_pd(d, -d));
+        return *this;
+      }
+#endif
       // The rounding direction checked before d is compared, as in
       // operator*=(double) (GAOL v5)
       GAOL_RND_ENTER_SSE();
@@ -1031,6 +1081,17 @@ interval& interval::operator*=(const interval& I)
 	return *this;
   }
 
+#if GAOL_HAVE_AVX512_TARGET
+  /* The AVX-512 path: the products by the embedded rounding, the dispatch
+     and the infinite bounds by the sign and the magnitude bits, which the
+     denormals-are-zero mode does not change (the SSE2 path checks the
+     modes for the comparisons below) */
+  if (avx512_arithmetic) {
+    xmmbounds = fast_mul(xmmbounds, I.xmmbounds);
+    return *this;
+  }
+#endif
+
   GAOL_RND_ENTER_SSE();
 
   /*
@@ -1060,6 +1121,14 @@ interval& interval::operator/=(const interval& I)
 		*this = interval::emptyset();
 		return *this;
 	}
+#if GAOL_HAVE_AVX512_TARGET
+	/* The AVX-512 path: the quotients by the embedded rounding, the
+	   dispatch by the sign and the magnitude bits (see operator*= above) */
+	if (avx512_arithmetic) {
+		xmmbounds = fast_div(xmmbounds, I.xmmbounds);
+		return *this;
+	}
+#endif
 	GAOL_RND_ENTER_SSE();
 
 	if ( right() < 0.0 ) { // [this] N1
