@@ -132,6 +132,38 @@ namespace
           [&] { return hex(gaol::pow(x, 5000000000LL)); });
     check("pow(y, 2LL) is pow(y, [2])", pow(y, 2LL).set_eq(pow(y, interval(2.0))) && pow(x, 2LL).is_empty(),
           [&] { return hex(pow(y, 2LL)); });
+
+    // rootn(), gaol::nth_root() and pownRev() for an integer of another type
+    // (GAOL v5): nth_root(x, 3L) was ambiguous, and pownRev(c, 3000000000u)
+    // converted p to a negative int and threw. Beyond the unsigned ints, the
+    // roots are enclosed through pow: 8^(1/q) is 1 + 4.1589e-10 for
+    // q = 5 10^9 + 1, and 2^(1/q) 1 + 1.3863e-10
+    const interval c8(2.0, 8.0), m8(-8.0, 8.0);
+    check("rootn(x, 3L), rootn(x, -3LL), gaol::nth_root(x, 3L) and gaol::nth_root(x, 3000000000ul) as for an int",
+          rootn(m8, 3L).set_eq(rootn(m8, 3)) && rootn(c8, -3LL).set_eq(rootn(c8, -3))
+          && gaol::nth_root(m8, 3L).set_eq(gaol::nth_root(m8, 3))
+          && gaol::nth_root(c8, 3000000000ul).set_eq(gaol::nth_root(c8, 3000000000u)),
+          [&] { return hex(rootn(m8, 3L)); });
+    const auto near = [](double v, double lo, double hi) { return lo <= v && v <= hi; };
+    const interval odd = gaol::nth_root(m8, 5000000001LL), even = gaol::nth_root(m8, 5000000000LL);
+    const interval inverse = gaol::nth_root(c8, -5000000000LL);
+    check("nth_root(x, q) beyond the unsigned ints encloses the roots",
+          near(odd.left(), -(1 + 4.17e-10), -(1 + 4.15e-10)) && near(odd.right(), 1 + 4.15e-10, 1 + 4.17e-10)
+          && even.left() == 0.0 && near(even.right(), 1 + 4.15e-10, 1 + 4.17e-10)
+          && near(inverse.left(), 1 - 4.17e-10, 1 - 4.15e-10) && near(inverse.right(), 1 - 1.39e-10, 1 - 1.38e-10),
+          [&] { return hex(odd) + " " + hex(even) + " " + hex(inverse); });
+    bool threw = false;
+    try {
+      static_cast<void>(pownRev(c8, 0L));
+    } catch (const std::invalid_argument&) {
+      threw = true;
+    }
+    const interval rev = pownRev(c8, 5000000001LL), rev_even = pownRev(c8, 5000000000LL);
+    check("pownRev(c, 3000000000u) is nth_root_rel(), pownRev(c, 0L) throws, and beyond the unsigned ints the roots",
+          pownRev(c8, 3000000000u).set_eq(gaol_core::nth_root_rel(c8, 3000000000u, interval::universe())) && threw
+          && near(rev.left(), 1 + 1.38e-10, 1 + 1.39e-10) && near(rev.right(), 1 + 4.15e-10, 1 + 4.17e-10)
+          && near(rev_even.left(), -(1 + 4.17e-10), -(1 + 4.15e-10)) && near(rev_even.right(), 1 + 4.15e-10, 1 + 4.17e-10),
+          [&] { return hex(rev) + " " + hex(rev_even); });
   }
 
   void pow_of_the_standard()

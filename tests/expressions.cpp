@@ -542,6 +542,14 @@ namespace
       {n, interval(two53, two53 + 2), "expression(2^53+1)"},
       {x + n, interval(1.0, 2.0) + interval(two53, two53 + 2), "x+expression(2^53+1)"},
       {expression(7), interval(7.0), "expression(7)"},
+      // pow(e, n) and nth_root(e, n) for an integer of another type (GAOL v5):
+      // ambiguous for a long, and nth_root(e, -2) took 4294967294
+      {pow(x, 3L), pow(interval(1.0, 2.0), 3), "x^3L"},
+      {pow(x, 5000000000LL), interval::universe(), "x^5e9"},
+      {nth_root(x, 3L), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3L)"},
+      {nth_root(y, -2), interval(1.0) / nth_root(interval(3.0, 4.0), 2u), "nth_root(y,-2)"},
+      {nth_root(x, 5000000000LL), nth_root(interval(1.0, 2.0), 5000000000LL), "nth_root(x,5e9)"},
+      {nth_root(x, 5000000001LL), nth_root(interval(1.0, 2.0), 5000000001LL), "nth_root(x,5e9+1)"},
       {cos(x) + sin(y) * exp(x), cos(interval(1.0, 2.0)) + sin(interval(3.0, 4.0)) * exp(interval(1.0, 2.0)), "nested"},
     };
 
