@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `baec3a1` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `566e02a` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -84,6 +84,21 @@ le « about 7 ns » d'`examples/examples.md` (l. 509) pour un bloc au plus proch
 était contredit par la mesure : corrigé en « about 13 ns » (2d80cc4). Les
 textes pour `ChangeLog` et `doc/differences.md` sont dans la description
 de #86.
+Fait le 5 octobre aussi : le nettoyage des en-têtes, qui finit le point D, par
+#87. `__GAOL_PUBLIC__` devient `GAOL_PUBLIC`, vide sous Visual C++ et clang-cl,
+où GAOL est toujours une bibliothèque statique : plus de `__GAOL_PUBLIC__=` à
+passer, et plus de branche `_COMPILING__GAOL_PUBLIC__`. `gaol` nomme un par un
+les noms de `gaol_core`, au lieu de `using namespace gaol_core;` : les noms de
+GAOL 4 que GAOL v5 a encore (`NaN_val` et `rnd_keep()` de 4.3.2 compris), les
+fonctions sur les intervalles de GAOL v5 et les nœuds de leurs expressions,
+`restore_rounding()` et `exact_string()` ; pas les fonctions de l'arrondi et du
+flush, ni les fonctions qui calculent les puissances, ni les internes que le
+manuel de GAOL 4 ne documentait pas (`f_negate()`, `uintdouble`,
+`Interval_struct`, `the_null_expr`, `prec_t`, `modulo_k_pi()`, `reset_fpu_cw()`,
+les `round_*_sse()`...), qui restent dans `gaol_core`. `gaol_allocator.h` est
+supprimé, et les en-têtes installés n'ont plus de cast à la C, ce que
+`headers.sh` vérifie avec `-Wold-style-cast`. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #87.
 
 ## En cours
 
@@ -271,28 +286,6 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
   l'entier. Prolonge le 21, fait par #84, qui a donné `pow(x, n)` pour tout
   type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
   qui dit [−∞, +∞] pour `gaol::pow`.
-
-### D. Le nettoyage des en-têtes
-
-Les anciens 24 et 62 sont faits par #83, et le 21 par #84 et #85 ; le
-signalement à GCC de la comparaison rendue signalante reste dans #80. Reste une
-pull request, le nettoyage des en-têtes. La comparaison par les bits sous DAZ
-(point Q), si #68 la décide, touchera le constructeur que le 21 a changé.
-
-- **Le nettoyage des en-têtes.** Décidé le 5 octobre : `__GAOL_PUBLIC__` devient
-  `GAOL_PUBLIC`, vide par défaut sous Visual C++, où GAOL est toujours une
-  bibliothèque statique : plus de `__GAOL_PUBLIC__=` à passer (CMake, meson,
-  `gaol.pc`, la CI, la documentation), et la branche
-  `_COMPILING__GAOL_PUBLIC__`, définie nulle part, retirée ; `using namespace
-  gaol_core;` (`gaol_interval.h`, `gaol_expression.h`) devient des
-  using-declarations, nom par nom : les noms de GAOL 4 et les nouvelles
-  fonctions sur les intervalles de GAOL v5 (`exp2`, `log2`, `hypot`, `trunc`,
-  `sinpi`...), pas les internes, `gaol` restant compatible avec GAOL 4 et
-  `gaol_ieee1788` avec IEEE 1788-2015 (restent à trancher : `exact_string`,
-  `version()`, les nœuds d'expression des nouvelles fonctions et les noms de
-  GAOL 4.3.2 seulement) ; `gaol_allocator.h` est supprimé, ni GAOL v5, ni Codac,
-  ni IBEX ne s'en servant ; les casts à la C des en-têtes deviennent des
-  `static_cast<>`.
 
 ### E. Le parser et les longues sommes (12, 40)
 
@@ -593,8 +586,8 @@ ITF1788 a des tests pour les fonctions réciproques à ajouter (`mulRevToPair`,
 
 ### Q. Le flush-to-zero et DAZ hors du lecteur (4, 45)
 
-Le 45 est reporté (#68) ; sa partie constructeur se fait avec le point D, sa
-partie parser avec le point E.
+Le 45 est reporté (#68) ; sa partie constructeur touchera le constructeur que
+le point D a changé (#84), sa partie parser se fait avec le point E.
 
 - **4.** **Le flush-to-zero et le denormals-are-zero rendent les bornes
   fausses** (revue n° 2) : `[1e-300] * [1e-20]` vaut [0, 0] dans un programme
@@ -795,7 +788,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85 et #86 après leur fusion).
+  #83, #84, #85, #86 et #87 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -821,8 +814,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Ordre proposé pour les tâches restantes
 
-1. **Débloquer la fin du parser : D, puis la décision parser de Q.** Traiter les
-   changements du constructeur et préciser la correction DAZ du lecteur avant
+1. **Débloquer la fin du parser : la décision parser de Q.** Le point D est
+   fait (#83, #84, #85 et #87) ; préciser la correction DAZ du lecteur avant
    la régénération finale du parser. Les branches E et H peuvent avancer en
    parallèle sur leurs parties indépendantes.
 2. **Terminer et fusionner E.** Inclure dans E la gestion récupérable de
