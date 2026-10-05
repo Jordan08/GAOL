@@ -2869,7 +2869,9 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
   pole. No double is a pole: \code{M\_PI\_2}, the double below $\pi/2$, is
   $6.1\cdot10^{-17}$ short of it, and \itv{-\code{M\_PI\_2}}{\code{M\_PI\_2}},
   whose width is that of the double below $\pi$ and which holds no pole, has a
-  finite tangent (fourth result of the example).
+  finite tangent (fourth result of the example); the width of
+  \itv{-\code{M\_PI\_2}}{\code{M\_PI\_2}} is the double below $\pi$, and intervals
+  of width between that and $\pi$ are a theoretical case.
 
   The three functions find the pieces of \var{I} on which they are monotonic
   by dividing its bounds by an enclosure of $\pi$ and, where the quotients
