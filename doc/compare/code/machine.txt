@@ -4,7 +4,7 @@ System:          Linux 5.15.0-194-generic, Ubuntu 20.04.6 LTS
 C++ compiler:    Ubuntu clang version 18.1.8 (11~20.04.2)
 C++ flags:       -std=c++11 -O3 -DNDEBUG -mfma (GAOL: -frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3 -mfma; libieeep1788, filib++ and PROFIL/BIAS: -frounding-math -fno-fast-math -ffp-contract=off)
 Fortran:         f90: Sun Fortran 95 8.7 Linux_i386 2014/10/20, flags: -O3 -xia
-GAOL V5.0.0:     measured again on 2026-10-03 by make perf (CMake Release build), the branch of this checkout (v4.3.2-363-g4abc35b-dirty), c++ (Ubuntu 9.4.0-1ubuntu1~20.04.3) 9.4.0, on 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, CORE-MATH of 3rd/math-core compiled into the library
+GAOL V5.0.0:     measured again on 2026-10-05 by make perf (CMake Release build), the branch of this checkout (v4.3.2-493-gdae886b), c++ (Ubuntu 9.4.0-1ubuntu1~20.04.3) 9.4.0, on 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, CORE-MATH of 3rd/math-core compiled into the library
 GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://github.com/goualard-f/GAOL), its configure, the rounding direction not preserved, mathlib 2.1.1
 libieeep1788:    1f10b89, MPFR 4.2.1, GMP 6.3.0
 filib++:         3.0.2.2, interval<double, native_switched, i_mode_extended_flag>
