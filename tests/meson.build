@@ -41,26 +41,6 @@ tests_dep = declare_dependency(
   link_args: gaol_link_args,
   dependencies: deps,
 )
-# Compile tests: refused_options.cpp with -ffinite-math-only and -ffast-math
-# (GAOL v5). Not with Visual C++, which has neither option nor macro.
-if not msvc
-  # Test -ffinite-math-only refusal
-  test('refused_finite_math_only',
-       compile: ['-ffinite-math-only', '-c', 'refused_options.cpp'],
-       should_fail: true,
-       stdout: 'GAOL cannot be compiled with -ffinite-math-only',
-       dependencies: tests_dep)
-  # Test -ffast-math refusal
-  test('refused_fast_math',
-       compile: ['-ffast-math', '-c', 'refused_options.cpp'],
-       should_fail: true,
-       stdout: 'GAOL cannot be compiled with -ffast-math',
-       dependencies: tests_dep)
-endif
-# Positive witness: compilation succeeds without refused options
-test('refused_positive',
-     compile: ['-c', 'refused_options.cpp'],
-     dependencies: tests_dep)
 foreach t : gaol_tests
   # fast_math_link: -ffast-math to its link only, its source being compiled as
   # any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where its link has
@@ -83,6 +63,29 @@ foreach t : gaol_tests
   test(t, exe, suite: 'unit', timeout: 300)
   check_targets += [exe]
 endforeach
+
+# The options gaol/gaol_config.h refuses, which the compile tests refused_* of
+# tests/CMakeLists.txt check in the CMake build (GAOL v5): refused_options.sh
+# compiles refused_options.cpp with the compiler, the cpp_args and the language
+# standard of the build, and the flags gaol.pc gives the code using GAOL. Not
+# with Visual C++, which has neither option nor macro, nor clang-cl, which
+# ignores the options (gaol_config.h refuses the /fp:fast of both).
+if not msvc
+  refused_args = get_option('cpp_args')
+  if get_option('cpp_std') != 'none'
+    refused_args += ['-std=' + get_option('cpp_std')]
+  endif
+  refused_args += pc_cflags + [
+    '-I' + join_paths(meson.current_build_dir(), '..'),
+    '-I' + join_paths(meson.current_source_dir(), '..')]
+  test('refused_options', find_program('sh'),
+    args: [files('refused_options.sh')],
+    env: {
+      'GAOL_CXX': ' '.join(cpp_comp.cmd_array()),
+      'GAOL_CXXFLAGS': ' '.join(refused_args),
+    },
+    suite: 'unit', timeout: 300)
+endif
 
 # The time per operation of GAOL and of the same operation on doubles, which
 # the continuous integration prints: not a test

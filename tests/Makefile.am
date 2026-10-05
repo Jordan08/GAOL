@@ -46,37 +46,18 @@ else
 fast_math_link_CPPFLAGS = $(AM_CPPFLAGS)
 endif
 
+# refused_options.sh: the options gaol/gaol_config.h refuses, which the
+# compile tests refused_* of tests/CMakeLists.txt check in the CMake build
+# (GAOL v5), compiled with the compiler and the flags of the tests
+TEST_EXTENSIONS = .sh
+SH_LOG_COMPILER = $(SHELL)
+AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
+	GAOL_CXXFLAGS='$(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)'; \
+	export GAOL_CXX GAOL_CXXFLAGS;
+
 if WITH_TESTS
 noinst_PROGRAMS = $(GAOL_TESTS) gaol_performance
-TESTS = $(GAOL_TESTS)
-# Compile tests: refused_options.cpp with -ffinite-math-only and -ffast-math
-# (GAOL v5). autotools builds GAOL with -frounding-math and its link option,
-# whose -fno-fast-math turns -ffinite-math-only off when it comes after it,
-# so these options come before the flags of interval arithmetic. The test
-# passes if the compilation fails with the message of gaol_config.h.
-# No such test for Visual C++, which has neither option nor macro.
-if HOST_LINUX
-# GCC and Clang on Linux refuse -ffinite-math-only and -ffast-math
-check-refused_finite_math_only:
-	@echo "Testing -ffinite-math-only refusal..."
-	@$(CXX) $(DEFS) -ffinite-math-only $(AM_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) \
-	  -I$(top_builddir) -I$(top_srcdir) -c $(top_srcdir)/tests/refused_options.cpp -o /dev/null 2>&1 | \
-	  grep -q "GAOL cannot be compiled with -ffinite-math-only" || exit 1
-
-check-refused_fast_math:
-	@echo "Testing -ffast-math refusal..."
-	@$(CXX) $(DEFS) -ffast-math $(AM_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) \
-	  -I$(top_builddir) -I$(top_srcdir) -c $(top_srcdir)/tests/refused_options.cpp -o /dev/null 2>&1 | \
-	  grep -q "GAOL cannot be compiled with -ffast-math" || exit 1
-
-# Positive witness: compilation succeeds without refused options
-check-refused_positive:
-	@echo "Testing compilation without refused options..."
-	@$(CXX) $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) \
-	  -I$(top_builddir) -I$(top_srcdir) -c $(top_srcdir)/tests/refused_options.cpp -o /dev/null
-
-TESTS += check-refused_finite_math_only check-refused_fast_math check-refused_positive
-endif
+TESTS = $(GAOL_TESTS) refused_options.sh
 else
 check-local:
 	@echo "No unit tests: configure with --with-tests"
