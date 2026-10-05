@@ -12,7 +12,7 @@ config = ['GAOL_AARCH64_LINUX', 'GAOL_ARM_MACOSX', 'GAOL_IX86_LINUX', 'GAOL_IX86
           'GAOL_USING_SSE2_INSTRUCTIONS', 'GAOL_USING_SSE3_INSTRUCTIONS', 'GAOL_WORDS_BIGENDIAN', 'GAOL_RND_PROBE', 'GAOL_RND_SSE_REGISTER']
 # Compared by value only (GAOL_VERSION is a string, which #if cannot read)
 text = ['GAOL_INLINE', 'GAOL_PUBLIC', 'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION', 'GAOL_MICRO_VERSION', 'GAOL_VERSION']
-compiler = ['__cplusplus', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', 'FLT_EVAL_METHOD',
+compiler = ['__cplusplus', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__FINITE_MATH_ONLY__', 'FLT_EVAL_METHOD',
             '__SSE2__', '__SSE3__', '__SSE2_MATH__', '__PIC__', '__x86_64__', '__i386__', '__aarch64__', '__arm__', '__APPLE__',
             '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR']
 lines = ['#include <cfloat>', '#include "gaol/gaol.h"']

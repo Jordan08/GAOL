@@ -196,8 +196,9 @@
 /* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
    take NaN and infinities never to occur, in the inline functions of GAOL's
    headers as anywhere else: the empty interval has NaN bounds, and is_empty()
-   reads it as !(left() <= right()). The compiler then folds the test away, and
-   ([1, 2] & [3, 4]).is_empty() is false (GCC 9, Clang 18): the tests
+   reads it as !std::islessequal(left(), right()). The compiler then folds the test away, and
+   ([1, 2] & [3, 4]).is_empty() is false with -ffinite-math-only: with GCC 13 at -O0, -O2 and -O3,
+   and with Clang 18 at -O0, and at -O2 and -O3 only with volatile bounds: the tests
    refused_finite_math_only and refused_fast_math (tests/CMakeLists.txt) check
    the refusal. GCC and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual
    C++ defines nothing of the kind (its /fp:fast is refused below). This also

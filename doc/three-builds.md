@@ -155,8 +155,8 @@ alone refuses, when compiling:
 
 `-fno-fast-math`, one of the flags of interval arithmetic, turns `-ffast-math`
 and `-ffinite-math-only` off when it comes after them on the command line, and
-not when it comes before: `gaol.pc` and `gaol::gaol` give it, and the code
-including GAOL's headers is refused when the option follows it. The CMake tests
+not when `-ffast-math` or `-ffinite-math-only` comes before it: `gaol.pc` and `gaol::gaol` give it, and the code
+including GAOL's headers is refused when `-ffast-math` or `-ffinite-math-only` follows it. The CMake tests
 `refused_finite_math_only` and `refused_fast_math` compile
 `tests/refused_options.cpp` with each of the two options, after the flags of
 interval arithmetic, and check that `gaol/gaol_config.h` refuses it (GCC and

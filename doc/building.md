@@ -300,7 +300,7 @@ The three builds have the same targets:
   CppUnit: they are in `tests/` now, and need nothing (see
   [The tests](tests.md)). `ctest` runs the tests and the examples of a CMake
   build; `make test` leaves the examples out (label `example`, CMake 3.17 and
-  later). With meson before 0.57, `meson test` runs the examples too, and
+  later) and also runs the compile tests `refused_*` and `nodiscard_*`. With meson before 0.57, `meson test` runs the examples too, and
   `meson test --suite unit` the tests alone.
 - **The examples** check what they print and fail otherwise (see
   [examples/examples.md](../examples/examples.md)).

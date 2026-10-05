@@ -136,7 +136,7 @@ set_tests_properties(version_file PROPERTIES LABELS unit)
 function(gaol_refused_test name flag text)
   add_library(gaol_${name} OBJECT refused_options.cpp)
   set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-  target_include_directories(gaol_${name} PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+  target_link_libraries(gaol_${name} PRIVATE gaol::gaol)
   target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
   add_test(NAME ${name}
     COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
@@ -150,6 +150,14 @@ if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
                     "GAOL cannot be compiled with -ffinite-math-only")
   gaol_refused_test(refused_fast_math -ffast-math
                     "GAOL cannot be compiled with -ffast-math")
+  # Positive witness: compilation succeeds without refused options
+  add_library(gaol_refused_positive OBJECT refused_options.cpp)
+  set_target_properties(gaol_refused_positive PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  target_link_libraries(gaol_refused_positive PRIVATE gaol::gaol)
+  target_compile_options(gaol_refused_positive PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
+  add_test(NAME refused_positive
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_refused_positive)
+  set_tests_properties(refused_positive PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests)
 endif()
 
 # The warning of the CPack block of CMakeLists.txt, when the configure that the
