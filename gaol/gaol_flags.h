@@ -47,4 +47,9 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::prec_t;
+} // namespace gaol
+
 #endif /* GAOL_FLAGS_H */

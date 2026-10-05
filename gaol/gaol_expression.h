@@ -1355,6 +1355,15 @@ typedef struct {
 } // namespace gaol_core
 
 /*
+  The expressions in the namespace gaol, as in GAOL 4 (see
+  gaol/gaol_interval.h): the classes and the functions building and
+  evaluating expressions, the nodes being named by gaol/gaol_expr_visitor.h.
+  A using-declaration names the overloads declared before it: the functions
+  and the operators of intervals that this file overloads for the expressions
+  are named again here, after their overloads, so that gaol::sin(e) takes the
+  one of expressions; those of gaol/gaol_interval.h, which this file includes
+  first, name the overloads of intervals only.
+
   pow(e, n), pow(e1, e2): the expressions of GAOL's power, gaol_pow_exp(), in
   the namespace gaol as the pow of intervals (gaol/gaol_interval.h), no pow
   being in gaol_core (GAOL v5). An interval converting to an expression,
@@ -1363,7 +1372,39 @@ typedef struct {
   gaol_ieee1788::pow(x, [3]).
 */
 namespace gaol {
-  using namespace gaol_core;
+  using gaol_core::Interval_struct;
+  using gaol_core::expression;
+  using gaol_core::expr_node;
+  using gaol_core::the_null_expr;
+  using gaol_core::evaluate_left_right;
+  using gaol_core::evaluate_expr;
+  // Named again, with their overloads for the expressions
+  using gaol_core::operator<<;
+  using gaol_core::operator+;
+  using gaol_core::operator-;
+  using gaol_core::operator*;
+  using gaol_core::operator/;
+  using gaol_core::nth_root;
+  using gaol_core::cos;
+  using gaol_core::sin;
+  using gaol_core::tan;
+  using gaol_core::atan2;
+  using gaol_core::acos;
+  using gaol_core::asin;
+  using gaol_core::atan;
+  using gaol_core::cosh;
+  using gaol_core::sinh;
+  using gaol_core::tanh;
+  using gaol_core::acosh;
+  using gaol_core::asinh;
+  using gaol_core::atanh;
+  using gaol_core::exp;
+  using gaol_core::log;
+  using gaol_core::exp2;
+  using gaol_core::log2;
+  using gaol_core::sign;
+  using gaol_core::trunc;
+
   GAOL_NODISCARD inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
   /*
     pow(e, n) for an integer n of another type (GAOL v5), which an unsigned

@@ -277,4 +277,16 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4, but for NaN_val, which GAOL uses
+// for itself (see gaol/gaol_interval.h)
+namespace gaol {
+#if GAOL_HAVE_ROUNDING_MATH_OPTION
+  using gaol_core::f_negate_simple;
+#endif
+  using gaol_core::gaol_signbit;
+  using gaol_core::ullidouble;
+  using gaol_core::uintdouble;
+  using gaol_core::is_finite;
+} // namespace gaol
+
 #endif /* GAOL_PORT_H */

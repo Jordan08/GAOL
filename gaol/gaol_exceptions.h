@@ -180,5 +180,15 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4, with the operator<< of the
+// exceptions (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::gaol_exception;
+  using gaol_core::input_format_error;
+  using gaol_core::unavailable_feature_error;
+  using gaol_core::invalid_action_error;
+  using gaol_core::operator<<;
+} // namespace gaol
+
 #endif /* GAOL_EXCEPTIONS_ENABLED */
 #endif /* GAOL_EXCEPTIONS_H */

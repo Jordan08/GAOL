@@ -70,4 +70,13 @@ extern GAOL_PUBLIC long intermediate_elapsed_time(void);
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::timepiece;
+  using gaol_core::get_time;
+  using gaol_core::reset_time;
+  using gaol_core::elapsed_time;
+  using gaol_core::intermediate_elapsed_time;
+} // namespace gaol
+
 #endif /* GAOL_PROFILE_H */

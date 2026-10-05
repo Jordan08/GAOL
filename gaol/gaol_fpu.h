@@ -534,4 +534,13 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+/* In the namespace gaol too, rnd_keep(), as in GAOL 4.3.2, which doc/using.md
+   documents for the code that changes the rounding direction itself; not
+   rounding_state, get_rounding(), set_rounding() and round_upward_if_needed()
+   of GAOL 4.3.2, nor the other functions above, which GAOL's operations use
+   for themselves (see gaol/gaol_interval.h) */
+namespace gaol {
+  using gaol_core::rnd_keep;
+} // namespace gaol
+
 #endif /* GAOL_FPU_H */

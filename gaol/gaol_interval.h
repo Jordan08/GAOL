@@ -2196,19 +2196,125 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
 /*
   The namespace gaol: GAOL under its own names (GAOL v5).
 
-  The type interval and GAOL's functions are in gaol_core, which gaol takes
-  whole: gaol::interval and gaol::sin(x) name them. A call sin(x) on an
-  interval finds by argument-dependent lookup the functions of gaol_core only,
-  the namespace where interval is defined, never those of gaol or of
-  gaol_ieee1788 (gaol/gaol_ieee1788.h). pow and textToInterval, which are not
-  the same functions in the two, are therefore in each of them rather than in
+  The type interval and GAOL's functions are in gaol_core, and gaol names them
+  one by one, with using-declarations (GAOL v5): gaol::interval and
+  gaol::sin(x) are those of gaol_core. gaol holds the names GAOL 4 declared in
+  its namespace gaol that GAOL v5 still has, so that a program written for
+  GAOL 4 compiles, rnd_keep() of GAOL 4.3.2 among them; the functions on
+  intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, fma, cancel_minus,
+  round_ties_to_even...) and the nodes of the expressions it adds; and
+  restore_rounding() and exact_string() of GAOL v5.
+  It does not hold what GAOL's code uses for itself, which stays in gaol_core:
+  the functions saving and setting the rounding direction and the modes
+  flushing the subnormals to zero (rounding_state, get_rounding(),
+  set_rounding(), round_upward_if_needed() and gaol_set_rounding_x86(), which
+  GAOL 4.3.2 declared in gaol, get_flush_modes()...), the functions computing
+  GAOL's powers, which gaol names pow (gaol_pown(), gaol_uipow(),
+  gaol_pow_real(), gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and
+  the other internals (NaN_val of GAOL 4, rnd_reread(), gaol_sign_of(),
+  rounding_guard, gaol_initializer). gaol took gaol_core whole before (using
+  namespace gaol_core), and a program opening gaol met all of these names.
+
+  A using-declaration names the overloads declared before it: each header
+  names in gaol what it declares, at its end (gaol_version.h, gaol_common.h,
+  gaol_port.h, gaol_fpu.h...), and gaol/gaol_expression.h names again the
+  functions and the operators it overloads for the expressions. A call sin(x)
+  on an interval finds by argument-dependent lookup the functions of gaol_core
+  only, the namespace where interval is defined, never those of gaol or of
+  gaol_ieee1788 (gaol/gaol_ieee1788.h): the same functions, whichever
+  namespace the program opens. pow and textToInterval, which are not the same
+  functions in the two, are therefore in each of them rather than in
   gaol_core, as plain functions of the same parameters: a program opens one of
   the two namespaces and gets its pow; with both open, pow(x, y) is ambiguous,
   and so is textToInterval(s).
 */
 namespace gaol {
 
-  using namespace gaol_core;
+  // The type, its output format, and the functions and operators on intervals
+  // of GAOL 4
+  using gaol_core::interval;
+  using gaol_core::interval_format;
+  using gaol_core::operator+;
+  using gaol_core::operator-;
+  using gaol_core::operator*;
+  using gaol_core::operator/;
+  using gaol_core::operator%;
+  using gaol_core::operator&;
+  using gaol_core::operator|;
+  using gaol_core::operator<;
+  using gaol_core::operator<=;
+  using gaol_core::operator>;
+  using gaol_core::operator>=;
+  using gaol_core::operator<<;
+  using gaol_core::operator>>;
+  using gaol_core::abs;
+  using gaol_core::acos;
+  using gaol_core::acos_rel;
+  using gaol_core::acosh;
+  using gaol_core::acosh_rel;
+  using gaol_core::asin;
+  using gaol_core::asin_rel;
+  using gaol_core::asinh;
+  using gaol_core::asinh_rel;
+  using gaol_core::atan;
+  using gaol_core::atan2;
+  using gaol_core::atan_rel;
+  using gaol_core::atanh;
+  using gaol_core::atanh_rel;
+  using gaol_core::ceil;
+  using gaol_core::chi;
+  using gaol_core::cos;
+  using gaol_core::cosh;
+  using gaol_core::div_rel;
+  using gaol_core::exp;
+  using gaol_core::feven;
+  using gaol_core::floor;
+  using gaol_core::hausdorff;
+  using gaol_core::integer;
+  using gaol_core::invabs_rel;
+  using gaol_core::inverse;
+  using gaol_core::log;
+  using gaol_core::max;
+  using gaol_core::min;
+  using gaol_core::modulo_k_pi;
+  using gaol_core::nb_fp_numbers;
+  using gaol_core::nth_root;
+  using gaol_core::nth_root_rel;
+  using gaol_core::sin;
+  using gaol_core::sinh;
+  using gaol_core::sqr;
+  using gaol_core::sqrt;
+  using gaol_core::sqrt_rel;
+  using gaol_core::tan;
+  using gaol_core::tanh;
+  // The functions on intervals of GAOL v5, and the exact text of an interval
+  using gaol_core::acospi;
+  using gaol_core::asinpi;
+  using gaol_core::atan2pi;
+  using gaol_core::atanpi;
+  using gaol_core::cancel_minus;
+  using gaol_core::cancel_plus;
+  using gaol_core::cospi;
+  using gaol_core::exp10;
+  using gaol_core::exp10m1;
+  using gaol_core::exp2;
+  using gaol_core::exp2m1;
+  using gaol_core::expm1;
+  using gaol_core::fma;
+  using gaol_core::hypot;
+  using gaol_core::log10;
+  using gaol_core::log10p1;
+  using gaol_core::log1p;
+  using gaol_core::log2;
+  using gaol_core::log2p1;
+  using gaol_core::round_ties_to_away;
+  using gaol_core::round_ties_to_even;
+  using gaol_core::rsqrt;
+  using gaol_core::sign;
+  using gaol_core::sinpi;
+  using gaol_core::tanpi;
+  using gaol_core::trunc;
+  using gaol_core::exact_string;
 
   //! pow(I, e), pow(I, J), pow(I, p): GAOL's power, gaol_pown(I, e), gaol_pow_hybrid(I, J), gaol_pow_real(I, p)
   GAOL_NODISCARD inline interval pow(const interval& I, int e) { return gaol_core::gaol_pown(I, e); }

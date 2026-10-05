@@ -217,6 +217,18 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h): the
+// pow of intervals of floats is the one of gaol_core
+namespace gaol {
+  using gaol_core::intervalf;
+  using gaol_core::operator+;
+  using gaol_core::operator-;
+  using gaol_core::operator*;
+  using gaol_core::operator<<;
+  using gaol_core::inverse;
+  using gaol_core::pow;
+} // namespace gaol
+
 #endif // GAOL_FLOAT_INTERVALS
 
 #endif // GAOL_INTERVALF_H

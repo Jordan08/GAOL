@@ -346,6 +346,14 @@ namespace gaol_core {
 
 } // namespace cell
 
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::interval2f;
+  using gaol_core::operator<<;
+  using gaol_core::inverse;
+  using gaol_core::pow;
+} // namespace gaol
+
 #endif // GAOL_FLOAT_INTERVALS && GAOL_USING_SSE3_INSTRUCTIONS
 
 #endif // GAOL_INTERVAL2F_H

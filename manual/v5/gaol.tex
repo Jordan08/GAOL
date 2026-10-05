@@ -1332,11 +1332,31 @@ namespaces, not both: with both open, \code{pow(x,~y)} is ambiguous, and so is
 \code{textToInterval(s)}, which reads the names of GAOL in \code{gaol} and
 those of the standard in \code{gaol\_ieee1788} (\pxref{sec:constructors}).
 
+\code{gaol} names the type and the functions of \code{gaol\_core} one by
+one: the names GAOL~4 had in \code{gaol} that GAOL v5 still has (the classes,
+the exceptions, the expressions with their nodes and visitor, the functions
+and the operators of intervals, \code{round\_upward()}, \code{next\_float()},
+\code{version}\ldots, and \code{rnd\_keep()} of GAOL~4.3.2), the functions on
+intervals GAOL v5 adds (\code{exp2}, \code{log2}, \code{hypot}, \code{trunc},
+\code{sinpi}, \code{fma}, \code{cancel\_minus},
+\code{round\_ties\_to\_even}\ldots{} and the nodes of their expressions),
+\code{restore\_rounding()} and \code{exact\_string()}.\newinvfive{} What
+GAOL's code uses for itself is in
+\code{gaol\_core} only, out of the way of the names of a program that opens
+\code{gaol}: the functions saving and setting the rounding direction and the
+flush-to-zero modes (\code{rounding\_state},
+\code{get\_rounding()}, \code{set\_rounding()},
+\code{round\_upward\_if\_needed()} and \code{gaol\_set\_rounding\_x86()},
+which GAOL~4.3.2 had in \code{gaol}, \code{get\_flush\_modes()}\ldots), the
+functions computing the \code{pow} of \code{gaol} (below), and
+\code{NaN\_val} of GAOL~4. A program calling one of them names it in
+\code{gaol\_core}, as \code{gaol\_core::get\_rounding()}.
+
 The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
 a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
 exponent (\pxref{sec:powers}). In \code{gaol\_core}, its versions are named
 apart: \code{gaol\_pown()}, \code{gaol\_uipow()}, \code{gaol\_pow\_real()},
-\code{gaol\_pow\_hybrid()}.
+\code{gaol\_pow\_hybrid()}, which are not in \code{gaol}.
 
 \section{Common errors}
 %%---------------------
@@ -4903,8 +4923,8 @@ checks its assertions.
 \begin{deffun}{int}{debug\_level}{}
   Global variable used to remember the current value of the debugging
   level.  This variable is set when initializing the library. The
-  variable is declared in the \code{gaol\_core} namespace, which \code{gaol}
-  imports.
+  variable is declared in the \code{gaol\_core} namespace, and named in
+  \code{gaol} too.
 \end{deffun}
 
 \begin{defmacroA}{GAOL\_DEBUG}{(\var{lvl},\var{cmd})}
@@ -5191,6 +5211,12 @@ change with its reasons and its measures.
   (\pxref{sec:namespaces}). The type and the functions are in
   \code{gaol\_core}, and the symbols of the library name it: a program compiled
   against the headers of GAOL~4 is compiled again.
+\item \code{gaol} holds the names GAOL~4 had there that GAOL v5 still has,
+  except those GAOL uses for itself, which a program names in
+  \code{gaol\_core} (\pxref{sec:namespaces}):
+  \code{NaN\_val}, and, of GAOL~4.3.2, \code{rounding\_state},
+  \code{get\_rounding()}, \code{set\_rounding()},
+  \code{round\_upward\_if\_needed()} and \code{gaol\_set\_rounding\_x86()}.
 \item With Visual C++, the code using GAOL no longer defines
   \code{\_\_GAOL\_PUBLIC\_\_} empty: GAOL is a static library there, and its
   declarations carry no \code{\_\_declspec(dllimport)}. A definition left in

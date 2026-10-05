@@ -153,4 +153,21 @@ GAOL_INLINE void reset_fpu_cw(unsigned short int st)
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::previous_float;
+  using gaol_core::next_float;
+#if GAOL_USING_SSE2_INSTRUCTIONS
+  using gaol_core::round_downward_sse;
+  using gaol_core::round_to_nearest_sse;
+  using gaol_core::round_upward_sse;
+#endif
+  using gaol_core::round_downward;
+  using gaol_core::round_upward;
+  using gaol_core::round_nearest;
+  using gaol_core::get_fpu_cw;
+  using gaol_core::reset_fpu_cw;
+  using gaol_core::f_negate;
+} // namespace gaol
+
 #endif /* GAOL_FPU_MSVC_H */

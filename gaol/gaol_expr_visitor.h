@@ -177,4 +177,40 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+// In the namespace gaol too, as in GAOL 4, with the nodes, those of the
+// functions GAOL v5 adds among them (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::expr_visitor;
+  using gaol_core::null_node;
+  using gaol_core::double_node;
+  using gaol_core::interval_node;
+  using gaol_core::add_node;
+  using gaol_core::unary_minus_node;
+  using gaol_core::sub_node;
+  using gaol_core::mult_node;
+  using gaol_core::div_node;
+  using gaol_core::pow_node;
+  using gaol_core::pow_itv_node;
+  using gaol_core::nth_root_node;
+  using gaol_core::cos_node;
+  using gaol_core::sin_node;
+  using gaol_core::tan_node;
+  using gaol_core::atan2_node;
+  using gaol_core::acos_node;
+  using gaol_core::asin_node;
+  using gaol_core::atan_node;
+  using gaol_core::cosh_node;
+  using gaol_core::sinh_node;
+  using gaol_core::tanh_node;
+  using gaol_core::acosh_node;
+  using gaol_core::asinh_node;
+  using gaol_core::atanh_node;
+  using gaol_core::exp_node;
+  using gaol_core::log_node;
+  using gaol_core::exp2_node;
+  using gaol_core::log2_node;
+  using gaol_core::sign_node;
+  using gaol_core::trunc_node;
+} // namespace gaol
+
 #endif /* GAOL_EXPR_VISITOR_H */

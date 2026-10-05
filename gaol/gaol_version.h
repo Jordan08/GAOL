@@ -38,4 +38,12 @@ namespace gaol_core {
   const unsigned int version_micro = GAOL_MICRO_VERSION;
   const char *const version = GAOL_VERSION;
 }
+
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::version_major;
+  using gaol_core::version_minor;
+  using gaol_core::version_micro;
+  using gaol_core::version;
+}
 #endif /* GAOL_VERSION_H */

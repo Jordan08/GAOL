@@ -726,9 +726,26 @@ mode there.
   a double made wrong; and that an integer that is a double gives what the
   double gives. `misc` declares a `namespace detail` of its own, which
   `using namespace gaol` made ambiguous while GAOL's helpers were in
-  `gaol_core::detail`. `check/fpu.cpp`, an empty test, and `check/essai.cpp`,
-  which printed an interval, are gone, as is `check/performances.cpp`, the
-  benchmark of GAOL 4, which `make perf` replaces (see
+  `gaol_core::detail`, and checks the names of `gaol`, which names those of
+  `gaol_core` one by one (GAOL v5). `static_assert` checks that `gaol::f`
+  compiles, a class being that of `gaol_core` and a function returning the
+  type expected, for the names of GAOL 4 that Codac and IBEX use
+  (`gaol::operator+`, `gaol::operator|`, `gaol::round_upward`,
+  `gaol::nth_root`, `gaol::div_rel`, `gaol::init`...), the other classes of
+  GAOL 4, the functions on intervals GAOL v5 adds and the nodes of their
+  expressions, `restore_rounding()`, `exact_string()` and `rnd_keep()`, and
+  the overloads of every function and operator of the expressions; that what
+  GAOL uses for itself is not found through `using namespace gaol`: the
+  functions (`get_rounding()`, `get_flush_modes()`, `gaol_pown()`...), their
+  name between parentheses so that argument-dependent lookup does not find
+  them in `gaol_core`, lose to fallbacks that any function of GAOL beats, and
+  the types and the variables (`rounding_state`, `NaN_val`...) to fallbacks of
+  the same name, with which they would be ambiguous. The test did not compile
+  while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
+  finds the function of `gaol_core` by argument-dependent lookup.
+  `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
+  interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
+  which `make perf` replaces (see
   [Building GAOL](building.md#tests-examples-performance-and-the-parser)).
 - **`nodiscard_discard_cxx11`, `nodiscard_discard_cxx14` and
   `nodiscard_discard_cxx17`, `nodiscard_used_cxx11`, `nodiscard_used_cxx14` and
