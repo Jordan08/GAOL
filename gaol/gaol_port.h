@@ -127,16 +127,21 @@ namespace gaol_core {
   } uintdouble;
 
 
+// The casts of C of GAOL_HI() and GAOL_LO() are written with those of C++
+// (GAOL v5): reinterpret_cast, to a const pointer so that a const double is
+// taken too, then const_cast, so that the word stays assignable as before
+#define GAOL_WORD_OF_DOUBLE(x) \
+  const_cast<GAOL_INT_FOR_DOUBLE*>(reinterpret_cast<const GAOL_INT_FOR_DOUBLE*>(&(x)))
 #if GAOL_WORDS_BIGENDIAN
 #  define GAOL_IFBIGENDIAN(a,b)   (a), (b)
-#  define GAOL_HI(x) (*(GAOL_INT_FOR_DOUBLE*)&(x))
-#  define GAOL_LO(x) (*((GAOL_INT_FOR_DOUBLE)1+(GAOL_INT_FOR_DOUBLE*)&(x)))
+#  define GAOL_HI(x) (*GAOL_WORD_OF_DOUBLE(x))
+#  define GAOL_LO(x) (*(1+GAOL_WORD_OF_DOUBLE(x)))
 #  define GAOL_LO_UINTDOUBLE(a) ((a).i[1])
 #  define GAOL_HI_UINTDOUBLE(a) ((a).i[0])
 #else
 #  define GAOL_IFBIGENDIAN(a,b)   (b), (a)
-#  define GAOL_HI(x) *((GAOL_INT_FOR_DOUBLE)1+(GAOL_INT_FOR_DOUBLE*)&(x))
-#  define GAOL_LO(x) *(GAOL_INT_FOR_DOUBLE*)&(x)
+#  define GAOL_HI(x) *(1+GAOL_WORD_OF_DOUBLE(x))
+#  define GAOL_LO(x) *GAOL_WORD_OF_DOUBLE(x)
 #  define GAOL_LO_UINTDOUBLE(a) ((a).i[0])
 #  define GAOL_HI_UINTDOUBLE(a) ((a).i[1])
 #endif

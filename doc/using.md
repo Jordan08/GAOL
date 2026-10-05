@@ -65,7 +65,7 @@ headers of GAOL's sources (GAOL v5): `gaol_interval_parser.h`, which did not
 compile when included, `gaol_init_cleanup.h`, `gaol_exact.h` and `sysdeps/`,
 `gaol_core_math.h` and `gaol_u128.h`; `gaol_parameters.h`, which declared
 nothing, is gone. GAOL's headers compile without a warning under
-`-Wall -Wextra`, and put nothing into the global namespace:
+`-Wall -Wextra -Wold-style-cast`, and put nothing into the global namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
 program now names `std::string` and `std::exception` (GAOL v5). The macros they
 define start with `GAOL_` (or `gaol_`), so as not to meet those of the program

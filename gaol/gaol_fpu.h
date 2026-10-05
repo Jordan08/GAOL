@@ -190,8 +190,8 @@
 #  define GAOL_RND_RESTORE()    gaol_core::set_rounding_and_flush_modes(_save_state)
 #  define GAOL_RND_KEEP(x)      ((x) = gaol_core::rnd_keep(x))
 #  if GAOL_USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr(); _mm_setcsr((_save_state_sse & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | (unsigned int)_MM_ROUND_UP)
-#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | (_save_state_sse & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)))
+#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr(); _mm_setcsr((_save_state_sse & ~static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | static_cast<unsigned int>(_MM_ROUND_UP))
+#     define GAOL_RND_LEAVE_SSE() _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | (_save_state_sse & static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)))
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
 #  define GAOL_RND_ENTER()      gaol_core::round_upward_if_needed()
@@ -266,7 +266,7 @@ namespace gaol_core {
 #  elif GAOL_RND_FPCR_REGISTER
     unsigned long long fpcr; // mrs and msr take a 64-bit register
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
-    return (unsigned int)fpcr & GAOL_RND_FLUSH_BITS;
+    return static_cast<unsigned int>(fpcr) & GAOL_RND_FLUSH_BITS;
 #  else
     unsigned int fpscr;
     __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
@@ -282,7 +282,7 @@ namespace gaol_core {
 #  elif GAOL_RND_FPCR_REGISTER
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
-    fpcr = (fpcr & ~(unsigned long long)GAOL_RND_FLUSH_BITS) | modes;
+    fpcr = (fpcr & ~static_cast<unsigned long long>(GAOL_RND_FLUSH_BITS)) | modes;
     __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
 #  else
     unsigned int fpscr;
@@ -319,7 +319,7 @@ namespace gaol_core {
   {
     fesetround(s.direction);
 #if GAOL_RND_SSE_REGISTER
-    _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | s.sse);
+    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | s.sse);
 #endif
   }
 
@@ -328,7 +328,7 @@ namespace gaol_core {
   {
     fesetround(s.direction);
 #if GAOL_RND_SSE_REGISTER
-    _mm_setcsr((_mm_getcsr() & ~(unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | s.sse | s.flush);
+    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) | s.sse | s.flush);
 #elif defined(GAOL_RND_FLUSH_BITS)
     set_flush_modes(s.flush);
 #endif
@@ -415,7 +415,8 @@ namespace gaol_core {
        which leaves the two differing on purpose). The control register is read
        already: FTZ and DAZ are checked in the same read (GAOL v5). */
     if (fegetround() != FE_UPWARD
-        || (_mm_getcsr() & (unsigned int)(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS)) != (unsigned int)_MM_ROUND_UP) {
+        || (_mm_getcsr() & static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS))
+           != static_cast<unsigned int>(_MM_ROUND_UP)) {
       clear_flush_to_zero();
       round_upward();
       GAOL_RND_BARRIER();

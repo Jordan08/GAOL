@@ -79,15 +79,24 @@ typedef struct { uint64_t l; uint64_t h; } gaol_u128;
 #  define GAOL_U128_INLINE static inline
 #endif
 
+/* A conversion: static_cast in C++ (tests/u128.cpp), where the casts of C are
+   warned of (-Wold-style-cast), and the cast of C for the sources of
+   CORE-MATH (GAOL v5) */
+#if defined(__cplusplus)
+#  define GAOL_U128_CAST(type, x) static_cast<type>(x)
+#else
+#  define GAOL_U128_CAST(type, x) ((type)(x))
+#endif
+
 #if GAOL_U128_NATIVE
 
 /* h*2^64 + l, which the two halves had and the native type had not: the port
    of rsqrt builds a 128-bit integer from its halves (GAOL v5) */
-GAOL_U128_INLINE gaol_u128 gaol_u128_make(uint64_t h, uint64_t l) { return ((gaol_u128)h << 64) | l; }
-GAOL_U128_INLINE gaol_u128 gaol_u128_of(uint64_t a) { return (gaol_u128)a; }
-GAOL_U128_INLINE uint64_t gaol_u128_lo(gaol_u128 a) { return (uint64_t)a; }
-GAOL_U128_INLINE uint64_t gaol_u128_hi(gaol_u128 a) { return (uint64_t)(a >> 64); }
-GAOL_U128_INLINE gaol_u128 gaol_u128_mul64(uint64_t a, uint64_t b) { return (gaol_u128)a * (gaol_u128)b; }
+GAOL_U128_INLINE gaol_u128 gaol_u128_make(uint64_t h, uint64_t l) { return (GAOL_U128_CAST(gaol_u128, h) << 64) | l; }
+GAOL_U128_INLINE gaol_u128 gaol_u128_of(uint64_t a) { return GAOL_U128_CAST(gaol_u128, a); }
+GAOL_U128_INLINE uint64_t gaol_u128_lo(gaol_u128 a) { return GAOL_U128_CAST(uint64_t, a); }
+GAOL_U128_INLINE uint64_t gaol_u128_hi(gaol_u128 a) { return GAOL_U128_CAST(uint64_t, a >> 64); }
+GAOL_U128_INLINE gaol_u128 gaol_u128_mul64(uint64_t a, uint64_t b) { return GAOL_U128_CAST(gaol_u128, a) * GAOL_U128_CAST(gaol_u128, b); }
 GAOL_U128_INLINE gaol_u128 gaol_u128_mul(gaol_u128 a, gaol_u128 b) { return a * b; }
 GAOL_U128_INLINE gaol_u128 gaol_u128_add(gaol_u128 a, gaol_u128 b) { return a + b; }
 GAOL_U128_INLINE gaol_u128 gaol_u128_add64(gaol_u128 a, uint64_t b) { return a + b; }
@@ -97,7 +106,7 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_shl(gaol_u128 a, int n) { return a << n; }
 GAOL_U128_INLINE gaol_u128 gaol_u128_shr(gaol_u128 a, int n) { return a >> n; }
 GAOL_U128_INLINE gaol_u128 gaol_u128_or(gaol_u128 a, gaol_u128 b) { return a | b; }
 GAOL_U128_INLINE gaol_u128 gaol_u128_and64(gaol_u128 a, uint64_t b) { return a & b; }
-GAOL_U128_INLINE gaol_u128 gaol_u128_bit(int n) { return (gaol_u128)1 << n; }
+GAOL_U128_INLINE gaol_u128 gaol_u128_bit(int n) { return GAOL_U128_CAST(gaol_u128, 1) << n; }
 GAOL_U128_INLINE int gaol_u128_lt(gaol_u128 a, gaol_u128 b) { return a < b; }
 GAOL_U128_INLINE int gaol_u128_gt(gaol_u128 a, gaol_u128 b) { return a > b; }
 GAOL_U128_INLINE int gaol_u128_eq(gaol_u128 a, gaol_u128 b) { return a == b; }
@@ -108,9 +117,9 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_and(gaol_u128 a, gaol_u128 b) { return a & 
    make of >> on a negative value of the signed type (the C standard leaves
    it to the compiler, and so does the conversion to the signed type of a
    value above its maximum, which they make modulo 2^128). */
-GAOL_U128_INLINE gaol_u128 gaol_u128_of_i64(int64_t a) { return (gaol_u128)a; }
-GAOL_U128_INLINE gaol_u128 gaol_u128_imul64(int64_t a, int64_t b) { return (gaol_u128)((gaol_s128)a * b); }
-GAOL_U128_INLINE gaol_u128 gaol_u128_sar(gaol_u128 a, int n) { return (gaol_u128)((gaol_s128)a >> n); }
+GAOL_U128_INLINE gaol_u128 gaol_u128_of_i64(int64_t a) { return GAOL_U128_CAST(gaol_u128, a); }
+GAOL_U128_INLINE gaol_u128 gaol_u128_imul64(int64_t a, int64_t b) { return GAOL_U128_CAST(gaol_u128, GAOL_U128_CAST(gaol_s128, a) * b); }
+GAOL_U128_INLINE gaol_u128 gaol_u128_sar(gaol_u128 a, int n) { return GAOL_U128_CAST(gaol_u128, GAOL_U128_CAST(gaol_s128, a) >> n); }
 
 #else /* the two halves */
 
@@ -134,13 +143,13 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_mul64(uint64_t a, uint64_t b) {
      (Visual C++ has no _umul128 there) */
   return gaol_u128_make(__umulh(a, b), a * b);
 #else
-  uint64_t a0 = (uint32_t)a, a1 = a >> 32;
-  uint64_t b0 = (uint32_t)b, b1 = b >> 32;
+  uint64_t a0 = GAOL_U128_CAST(uint32_t, a), a1 = a >> 32;
+  uint64_t b0 = GAOL_U128_CAST(uint32_t, b), b1 = b >> 32;
   uint64_t p00 = a0 * b0, p01 = a0 * b1, p10 = a1 * b0, p11 = a1 * b1;
   /* The two middle products are added on 65 bits, the carry going to p11. */
-  uint64_t mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
+  uint64_t mid = (p00 >> 32) + GAOL_U128_CAST(uint32_t, p01) + GAOL_U128_CAST(uint32_t, p10);
   uint64_t h = p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32);
-  uint64_t l = (mid << 32) | (uint32_t)p00;
+  uint64_t l = (mid << 32) | GAOL_U128_CAST(uint32_t, p00);
   return gaol_u128_make(h, l);
 #endif
 }
@@ -197,8 +206,9 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_and64(gaol_u128 a, uint64_t b) {
   return gaol_u128_make(0, a.l & b);
 }
 GAOL_U128_INLINE gaol_u128 gaol_u128_bit(int n) {
-  return n >= 64 ? gaol_u128_make((uint64_t)1 << (n - 64), 0)
-                 : gaol_u128_make(0, (uint64_t)1 << n);
+  const uint64_t one = 1;
+  return n >= 64 ? gaol_u128_make(one << (n - 64), 0)
+                 : gaol_u128_make(0, one << n);
 }
 GAOL_U128_INLINE int gaol_u128_lt(gaol_u128 a, gaol_u128 b) {
   return a.h != b.h ? a.h < b.h : a.l < b.l;
@@ -216,13 +226,13 @@ GAOL_U128_INLINE gaol_u128 gaol_u128_and(gaol_u128 a, gaol_u128 b) {
 /* The signed values, in two's complement (the port of asinpi, GAOL v5). */
 /* a, its sign extended to the high half */
 GAOL_U128_INLINE gaol_u128 gaol_u128_of_i64(int64_t a) {
-  return gaol_u128_make(a < 0 ? UINT64_MAX : 0, (uint64_t)a);
+  return gaol_u128_make(a < 0 ? UINT64_MAX : 0, GAOL_U128_CAST(uint64_t, a));
 }
 /* With A and B the bits of a and b read as unsigned, a = A - 2^64 when a < 0,
    and so a*b = A*B - 2^64*(B when a < 0, plus A when b < 0) modulo 2^128. */
 GAOL_U128_INLINE gaol_u128 gaol_u128_imul64(int64_t a, int64_t b) {
-  gaol_u128 r = gaol_u128_mul64((uint64_t)a, (uint64_t)b);
-  r.h -= (a < 0 ? (uint64_t)b : 0) + (b < 0 ? (uint64_t)a : 0);
+  gaol_u128 r = gaol_u128_mul64(GAOL_U128_CAST(uint64_t, a), GAOL_U128_CAST(uint64_t, b));
+  r.h -= (a < 0 ? GAOL_U128_CAST(uint64_t, b) : 0) + (b < 0 ? GAOL_U128_CAST(uint64_t, a) : 0);
   return r;
 }
 /* Shifting right, the sign bit copied into the bits vacated: shifts of

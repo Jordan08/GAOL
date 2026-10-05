@@ -36,12 +36,21 @@
 #  define GAOL_ROUNDEVEN_INLINE static inline
 #endif
 
+/* A conversion: static_cast in C++, where the casts of C are warned of
+   (-Wold-style-cast, which .github/scripts/headers.sh gives), and the cast of
+   C for the sources of CORE-MATH (GAOL v5) */
+#ifdef __cplusplus
+#  define GAOL_ROUNDEVEN_CAST(type, x) static_cast<type>(x)
+#else
+#  define GAOL_ROUNDEVEN_CAST(type, x) ((type)(x))
+#endif
+
 GAOL_ROUNDEVEN_INLINE double gaol_roundeven(double x)
 {
   uint64_t u;
   int e;
   memcpy(&u, &x, sizeof u);
-  e = (int)((u >> 52) & 0x7ff) - 1023;
+  e = GAOL_ROUNDEVEN_CAST(int, (u >> 52) & 0x7ff) - 1023;
   if (e >= 52) {
     return x; /* an integer already, or an infinity or a NaN */
   }
@@ -55,11 +64,12 @@ GAOL_ROUNDEVEN_INLINE double gaol_roundeven(double x)
   }
   {
     const int shift = 52 - e;
-    const uint64_t half = (uint64_t)1 << (shift - 1);
-    const uint64_t frac = u & (((uint64_t)1 << shift) - 1);
+    const uint64_t one = 1;
+    const uint64_t half = one << (shift - 1);
+    const uint64_t frac = u & ((one << shift) - 1);
     uint64_t r = u - frac;
-    if (frac > half || (frac == half && (u & ((uint64_t)1 << shift)) != 0)) {
-      r += (uint64_t)1 << shift;
+    if (frac > half || (frac == half && (u & (one << shift)) != 0)) {
+      r += one << shift;
     }
     memcpy(&x, &r, sizeof x);
     return x;

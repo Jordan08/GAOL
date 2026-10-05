@@ -177,9 +177,9 @@ GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_r
 {
   unsigned short cw;
   __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
-  cw = (unsigned short)((cw & 0xF3FFu) | x87_rc);
+  cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
   __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
-  _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | sse_rc);
+  _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
 }
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
 #  define GAOL_RND_X86_REGISTERS 1
@@ -191,12 +191,12 @@ GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_r
   __asm fnstcw cw
   // The mask of the 16 bits of the control word, which the cast of
   // ~0x0C00u truncated (C4310 of Visual C++, GAOL v5)
-  cw = (unsigned short)((cw & 0xF3FFu) | x87_rc);
+  cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
   __asm fldcw cw
 #  else
   (void)x87_rc;
 #  endif
-  _mm_setcsr((_mm_getcsr() & ~(unsigned int)_MM_ROUND_MASK) | sse_rc);
+  _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
 }
 #endif
 
@@ -247,7 +247,7 @@ round_nearest(void)
    out its rounding bits. */
 GAOL_INLINE unsigned short int get_fpu_cw()
 {
-  return (unsigned short int)fegetround();
+  return static_cast<unsigned short int>(fegetround());
 }
 
 GAOL_INLINE void reset_fpu_cw(unsigned short int st)
