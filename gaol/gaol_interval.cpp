@@ -669,7 +669,7 @@ namespace gaol_core {
 #else
     // emptyset handled thanks to unorderedness of NaNs, with a quiet
     // comparison, which raises no invalid-operation exception on them (GAOL v5)
-    return std::isgreaterequal(next_float(left()),right());
+    return detail::quiet_greater_equal(next_float(left()),right());
 #endif
   }
 
@@ -1118,7 +1118,7 @@ namespace gaol_core {
   {
     // A quiet comparison, which raises no invalid-operation exception on the
     // NaN bounds of the empty set (GAOL v5)
-    if (!std::islessequal(l, r)) {
+    if (!detail::quiet_less_equal(l, r)) {
       out += "[empty]";
     } else {
       std::uint64_t lbits, rbits;
@@ -1642,7 +1642,7 @@ namespace gaol_core {
   {
     // Infinite or NaN, told by a quiet comparison: <= raised the
     // invalid-operation exception for a NaN p (GAOL v5)
-    if (!std::islessequal(std::fabs(p), (std::numeric_limits<double>::max)())) {
+    if (!detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
     // p compared after the check: with denormals-are-zero, the floor of a
@@ -3647,7 +3647,7 @@ interval nth_root(const interval& I, int q)
 	round_nearest();
 	// A quiet comparison: the empty set, whose bounds are NaN, gives NaN
 	// without the invalid-operation exception (GAOL v5)
-	if (std::islessequal(std::fabs(I.left()), std::fabs(I.right()))) {
+	if (detail::quiet_less_equal(std::fabs(I.left()), std::fabs(I.right()))) {
 	  res = I.left() / I.right();
 	} else {
 	  res = I.right() / I.left();

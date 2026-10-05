@@ -536,7 +536,9 @@ namespace gaol_core {
     each emptiness test of an empty interval, and sets FE_INVALID for a
     program reading the flags. std::islessequal() is the same comparison,
     false for a NaN, that raises nothing: ucomisd rather than comisd on x86,
-    with no more instruction with GCC 9 and Clang 18 (GAOL v5).
+    with no more instruction with GCC 9 and Clang 18 (GAOL v5), and with
+    Visual C++ through detail::quiet_less_equal() (gaol_port.h), as the other
+    quiet comparisons of GAOL.
   */
   GAOL_INLINE
   bool interval::is_empty(void) const
@@ -561,7 +563,7 @@ namespace gaol_core {
       bounds through GAOL_FPU_SCALAR() (above) against the loops GCC
       vectorizes.
     */
-    if (std::isunordered(left_internal(), right_internal())) {
+    if (detail::quiet_unordered(left_internal(), right_internal())) {
       return true;
     }
     double l = left(), r = right();
@@ -577,7 +579,7 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return !std::islessequal(l, r); // Negation to handle NaNs
+    return !detail::quiet_less_equal(l, r); // Negation to handle NaNs
 #endif
   }
 
@@ -615,7 +617,7 @@ namespace gaol_core {
     if (is_empty() || I.is_empty()) {
       return is_empty() && I.is_empty();
     }
-    return std::islessequal(left(), I.left()) && std::islessequal(right(), I.right());
+    return detail::quiet_less_equal(left(), I.left()) && detail::quiet_less_equal(right(), I.right());
   }
 
   /*
@@ -628,8 +630,8 @@ namespace gaol_core {
     if (is_empty() || I.is_empty()) {
       return is_empty() && I.is_empty();
     }
-    const bool lower = std::isless(left(), I.left()) || (left() == I.left() && left() == -GAOL_INFINITY);
-    const bool upper = std::isless(right(), I.right()) || (right() == I.right() && right() == GAOL_INFINITY);
+    const bool lower = detail::quiet_less(left(), I.left()) || (left() == I.left() && left() == -GAOL_INFINITY);
+    const bool upper = detail::quiet_less(right(), I.right()) || (right() == I.right() && right() == GAOL_INFINITY);
     return lower && upper;
   }
 
@@ -642,26 +644,26 @@ namespace gaol_core {
   GAOL_INLINE
   bool interval::certainly_positive(void) const
   {
-    return is_empty() || std::isgreaterequal(left(), 0.0);
+    return is_empty() || detail::quiet_greater_equal(left(), 0.0);
   }
 
   GAOL_INLINE
   bool interval::certainly_negative(void) const
   {
-    return is_empty() || std::islessequal(right(), 0.0);
+    return is_empty() || detail::quiet_less_equal(right(), 0.0);
   }
 
   GAOL_INLINE
   bool interval::certainly_strictly_positive(void) const
   {
-    return is_empty() || std::isgreater(left(), 0.0);
+    return is_empty() || detail::quiet_greater(left(), 0.0);
 
   }
 
   GAOL_INLINE
   bool interval::certainly_strictly_negative(void) const
   {
-    return is_empty() || std::isless(right(), 0.0);
+    return is_empty() || detail::quiet_less(right(), 0.0);
   }
 
   /*
@@ -673,22 +675,22 @@ namespace gaol_core {
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
-    return is_empty() || I.is_empty() || std::isgreater(left(), I.right());
+    return is_empty() || I.is_empty() || detail::quiet_greater(left(), I.right());
   }
 
   GAOL_INLINE bool interval::certainly_geq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || std::isgreaterequal(left(), I.right());
+    return is_empty() || I.is_empty() || detail::quiet_greater_equal(left(), I.right());
   }
 
   GAOL_INLINE bool interval::certainly_le(const interval &I) const
   {
-    return is_empty() || I.is_empty() || std::isless(right(), I.left());
+    return is_empty() || I.is_empty() || detail::quiet_less(right(), I.left());
   }
 
   GAOL_INLINE bool interval::certainly_leq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || std::islessequal(right(), I.left());
+    return is_empty() || I.is_empty() || detail::quiet_less_equal(right(), I.left());
   }
 
 
@@ -764,7 +766,7 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return std::islessequal(l, 0.0) && std::isgreaterequal(r, 0.0);
+    return detail::quiet_less_equal(l, 0.0) && detail::quiet_greater_equal(r, 0.0);
   }
 
   GAOL_INLINE
@@ -773,7 +775,7 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return std::isless(l, 0.0) && std::isgreater(r, 0.0);
+    return detail::quiet_less(l, 0.0) && detail::quiet_greater(r, 0.0);
   }
 
   GAOL_INLINE
@@ -789,15 +791,15 @@ namespace gaol_core {
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
     return (l == r) && (std::floor(l) == l) &&
-      (std::islessequal(l, static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
-       std::isgreaterequal(l, static_cast<double>((std::numeric_limits<int>::min)())));
+      (detail::quiet_less_equal(l, static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
+       detail::quiet_greater_equal(l, static_cast<double>((std::numeric_limits<int>::min)())));
   }
 
 
 
   GAOL_INLINE bool interval::set_contains(const interval& I) const
   {
-    return (I.is_empty() || (std::islessequal(left(), I.left()) && std::isgreaterequal(right(), I.right())));
+    return (I.is_empty() || (detail::quiet_less_equal(left(), I.left()) && detail::quiet_greater_equal(right(), I.right())));
   }
 
   /**
@@ -808,7 +810,7 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return std::islessequal(l, d) && std::isgreaterequal(r, d);
+    return detail::quiet_less_equal(l, d) && detail::quiet_greater_equal(r, d);
   }
 
   /*
@@ -822,8 +824,8 @@ namespace gaol_core {
   {
     return I.is_empty()
       || (!is_empty()
-          && (std::isless(left(), I.left()) || left() == -GAOL_INFINITY)
-          && (std::isgreater(right(), I.right()) || right() == GAOL_INFINITY));
+          && (detail::quiet_less(left(), I.left()) || left() == -GAOL_INFINITY)
+          && (detail::quiet_greater(right(), I.right()) || right() == GAOL_INFINITY));
   }
 
   /**
@@ -834,12 +836,12 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return std::isless(l, d) && std::isgreater(r, d);
+    return detail::quiet_less(l, d) && detail::quiet_greater(r, d);
   }
 
   GAOL_INLINE bool interval::set_disjoint(const interval &I) const
   {
-      return std::isless(right(), I.left()) || std::isgreater(left(), I.right())
+      return detail::quiet_less(right(), I.left()) || detail::quiet_greater(left(), I.right())
 	  || (is_empty() || I.is_empty());
   }
 
@@ -862,7 +864,7 @@ namespace gaol_core {
 
    GAOL_INLINE bool interval::set_leq(const interval& I) const
    {
-       return is_empty() || (std::isgreaterequal(left(), I.left()) && std::islessequal(right(), I.right()));
+       return is_empty() || (detail::quiet_greater_equal(left(), I.left()) && detail::quiet_less_equal(right(), I.right()));
    }
 
    GAOL_INLINE bool interval::set_ge(const interval& I) const
@@ -1190,7 +1192,7 @@ GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
     if (std::isnan(d)) {
       return d;
     }
-    return std::isless(d, 0.0) ? -1.0 : (std::isgreater(d, 0.0) ? 1.0 : 0.0);
+    return detail::quiet_less(d, 0.0) ? -1.0 : (detail::quiet_greater(d, 0.0) ? 1.0 : 0.0);
   }
 
   /*

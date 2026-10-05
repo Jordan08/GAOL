@@ -83,7 +83,7 @@
     GAOL_FPU_SCALAR(a);
     // A branch rather than two conditional moves, which would make the bounds
     // depend on the comparison and lengthen the loops accumulating intervals
-    if (std::isless(-GAOL_INFINITY, a) && a < GAOL_INFINITY) { // false for a NaN
+    if (detail::quiet_less(-GAOL_INFINITY, a) && a < GAOL_INFINITY) { // false for a NaN
       lb_ = -a;
       rb_ = a;
     } else {
@@ -110,7 +110,7 @@
   {
     GAOL_FPU_SCALAR(a);
     GAOL_FPU_SCALAR(b);
-    if (std::islessequal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
+    if (detail::quiet_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
       lb_ = -a;
       rb_ = b;
     } else {
@@ -168,14 +168,14 @@
   GAOL_INLINE
   interval& interval::operator&=(const interval& I)
   {
-    if (std::isunordered(lb_, I.lb_)) {
+    if (detail::quiet_unordered(lb_, I.lb_)) {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
       return *this;
     }
-    if (!std::islessequal(I.left(), left())) {
+    if (!detail::quiet_less_equal(I.left(), left())) {
       lb_ = I.lb_;
     }
-    if (!std::isgreaterequal(I.right(), right())) {
+    if (!detail::quiet_greater_equal(I.right(), right())) {
       rb_ = I.rb_;
     }
     // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()

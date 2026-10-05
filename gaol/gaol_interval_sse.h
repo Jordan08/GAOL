@@ -72,7 +72,7 @@
     {
       // The bounds are set in a register: written to a pair in memory, their
       // 16-byte load stalls on the two 8-byte stores, which costs several ns
-      if (std::isless(-GAOL_INFINITY, v) && v < GAOL_INFINITY) { // false for a NaN
+      if (detail::quiet_less(-GAOL_INFINITY, v) && v < GAOL_INFINITY) { // false for a NaN
         xmmbounds = _mm_set_pd(v, -v);
       } else {
         xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
@@ -92,7 +92,7 @@
   // constructions (GCC 9.4, FPU intervals)
   GAOL_INLINE interval::interval(double l, double r)
     {
-      if (std::islessequal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
+      if (detail::quiet_less_equal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
         xmmbounds = _mm_set_pd(r, -l);
       } else {
         xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
@@ -131,14 +131,14 @@
     xmm2d bd, Ibd;
     _mm_store_pd(bd,xmmbounds);
     _mm_store_pd(Ibd,I.xmmbounds);
-    if (std::isunordered(bd[0], Ibd[0])) {
+    if (detail::quiet_unordered(bd[0], Ibd[0])) {
       xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
       return *this;
     }
-    if (!std::isgreaterequal(Ibd[0], bd[0])) { // Left bounds negated
+    if (!detail::quiet_greater_equal(Ibd[0], bd[0])) { // Left bounds negated
       bd[0] = Ibd[0];
     }
-    if (!std::isgreaterequal(Ibd[1], bd[1])) {
+    if (!detail::quiet_greater_equal(Ibd[1], bd[1])) {
       bd[1] = Ibd[1];
     }
 
@@ -146,7 +146,7 @@
     // interval::emptyset() (GAOL v5): their bounds in the wrong
     // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
     // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
-    if (!std::islessequal(-bd[0], bd[1])) {
+    if (!detail::quiet_less_equal(-bd[0], bd[1])) {
       xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
     } else {
       xmmbounds = _mm_load_pd(bd);
