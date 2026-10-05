@@ -1181,59 +1181,82 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   without raising that exception. \code{is\_empty()} and the relations
   compare the bounds with the quiet comparisons of \file{<cmath>}
   (\code{std::islessequal()}\dots), each one instruction, as \code{<=} is,
-  with GCC and Clang on x86-64, and the functions that build their result
-  from the bounds of their operand tell the empty set before they give them
-  to the constructor, which compares its bounds. With the invalid-operation
-  exception enabled, \code{is\_empty()} of an empty interval killed the
-  program, and so did about 50 operations with an empty operand, which
-  compared its NaN bounds: \code{x~\&~y} for an empty \code{y}, \code{sqrt},
-  \code{exp}, \code{min}, \code{max}, \code{floor}, \code{set\_contains()},
-  \code{set\_disjoint()}, the output of the empty set\dots; and
-  \code{interval::emptyset()} itself in a build without optimization. A NaN
-  the program gives GAOL still raises it: \code{interval(NAN)} and
-  \code{interval(NAN,~1)}, which give the empty set, compare it. An empty
-  operand may still raise the other exceptions: the sum of two empty
-  intervals raises the inexact one where GAOL checks the rounding direction
-  with an addition, and \code{atanh\_rel(interval(-1,~2),~x)} for an empty
-  \code{x} raises the divide-by-zero one while it computes
-  \code{atanh(interval(-1,~2))}. GCC may compile a quiet comparison into a
-  signaling one where it turns a choice into a conditional move: into
-  \code{vcmpe} on 32-bit ARM (GCC 12 to 14; GCC bug 52258,
-  \url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258}, is of this
-  kind), into \code{xscmpgedp} on POWER9 (GCC 13 with
-  \code{-mcpu=power9}). The operations of GAOL are written so that they stay
-  quiet on 32-bit ARM, but a choice the program makes itself on
-  \code{is\_empty()} or on a relation, \code{x.is\_empty() ? a : b} for an
-  empty \code{x}, may raise the invalid-operation flag on both processors,
-  and so may \code{x~\&=~y} for an empty \code{y} on POWER9.\newinvfive
-\item Nonempty operands raise the invalid-operation exception as well. With
-  the SSE2 intervals, multiplying a zero bound by an infinite one does:
+  with GCC and Clang on x86-64, and so does the first comparison of the
+  constructor \code{interval(l,~r)}, which gives the empty set for NaN bounds.
+  With the invalid-operation exception enabled, \code{is\_empty()} of an empty
+  interval killed the program, and so did about 50 operations with an empty
+  operand, which compared its NaN bounds: \code{x~\&~y} for an empty
+  \code{y}, \code{sqrt}, \code{exp}, \code{min}, \code{max}, \code{floor},
+  \code{set\_contains()}, \code{set\_disjoint()}, the output of the empty
+  set\dots; and \code{interval::emptyset()} itself in a build without
+  optimization. A NaN the program gives GAOL, the empty set for
+  \code{interval(d)}, raises it no longer either: \code{interval(NAN)},
+  \code{interval(NAN,~1)}, \code{x~=~NAN}, \code{x~+=~NAN} (and \code{-=},
+  \code{*=}, \code{/=}, \code{\%=}), \code{x~\&=~NAN}, \code{x~<=~NAN} and
+  \code{pow(x,~NAN)} compared it with \code{<} or \code{<=}. An empty operand
+  may still raise the other exceptions: the sum of two empty intervals raises
+  the inexact one where GAOL checks the rounding direction with an addition,
+  and \code{atanh\_rel(interval(-1,~2),~x)} for an empty \code{x} raises the
+  divide-by-zero one while it computes \code{atanh(interval(-1,~2))}.\newinvfive
+\item A compiler may compile a quiet comparison into a signaling one, or
+  compute a comparison that follows a test of the empty set before it, and
+  GAOL is written against the cases seen. GCC turns a choice made on a quiet
+  comparison into a conditional move with a signaling comparison on 32-bit
+  ARM (\code{vcmpe}, GCC 12 to 14; GCC bug 52258,
+  \url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52258}, is of this kind)
+  and on POWER9 (\code{xscmpgedp}, GCC 13 with \code{-mcpu=power9}): there
+  \code{is\_empty()} and the intersection tell an empty interval with
+  \code{std::isunordered()} first, which stays quiet, so that the choice a
+  program makes on \code{is\_empty()} (\code{x.is\_empty() ? a : b} for an
+  empty \code{x}) and \code{x~\&=~y} for an empty \code{y} raise nothing (the
+  armhf jobs of the continuous integration check the first; no job compiles
+  for POWER9). GCC~9.4 at \option{-O3} computed the comparisons of the bounds
+  of \code{x~\&=~y} before its test of the empty set, in a loop of
+  intersections: they are quiet ones. And GCC~9.4, where AVX is on
+  (\option{-mavx}, or \option{-mfma}, which the three builds give where the
+  processor has FMA), vectorizes a loop of quiet comparisons into signaling
+  predicates (\code{vcmpnlepd}, \code{vcmpnltpd}): with the FPU intervals, the
+  bounds \code{is\_empty()} compares and the doubles given to the
+  constructors go through an empty asm statement, which keeps GCC from
+  vectorizing such loops. A choice the program makes on a relation,
+  \code{x.set\_contains(y) ? a : b}, and a loop of relations other than those
+  of \file{tests/rounding\_direction.cpp} are not known to raise the
+  exception, but nothing keeps a compiler from compiling them so.\newinvfive
+\item Nonempty operands raised the invalid-operation exception as well, and
+  the cases found no longer do. With the SSE2 intervals, the products
   \code{interval(0)*interval::one\_plus\_infinity()} and
-  \code{interval::positive()*interval(0)} (the FPU intervals give the same
-  product without it, and so does a build with
-  \option{GAOL\_PRESERVE\_ROUNDING}, whose product masks the exceptions, see
-  below). \code{pow} does in every build, through the \code{pow} of
-  CORE-MATH, for an exponent of extreme magnitude
-  (\code{pow(interval(1,~2),~interval(4.9e-324))},
+  \code{interval::positive()*interval(0)}, which multiply a zero bound by an
+  infinite one, did (the FPU intervals gave the same products without it),
+  and so did, through them, \code{pow} of the base \code{interval(1)} and the
+  exponent \code{interval::one\_plus\_infinity()}; \code{pow} did in
+  every build, through the \code{pow} of CORE-MATH, for an exponent of
+  extreme magnitude (\code{pow(interval(1,~2),~interval(4.9e-324))},
   \code{pow(interval(1,~2),~interval(1e-300))}, an exponent interval with a
-  bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}); with the SSE2
-  intervals, an exponent with an infinite bound also does, through that product
-  (\code{pow(interval(1),~interval::one\_plus\_infinity())}). This list is not
-  exhaustive.\newinvfive
+  bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}), whose power
+  GAOL now computes itself. One case is known to remain: with the SSE2
+  intervals, \code{div\_rel(K,~J,~I)} divides an infinite bound of \code{K} by
+  an infinite bound of \code{J}, in a half of the register it does not keep,
+  where both have one ($K=\itv{2}{+\infty}$ and $J=\itv{-\infty}{2}$). This
+  list is not exhaustive.\newinvfive
 \end{itemize}
 
 \noindent
-An empty operand raising no invalid-operation exception therefore does not
-make that exception safe to leave enabled: every exception stays disabled
-while GAOL computes.
+An empty operand, and the nonempty operands tested, raising no
+invalid-operation exception therefore does not make that exception safe to
+leave enabled: every exception stays disabled while GAOL computes.\newinvfive
 
-The flags tell nothing of the results: after an operation of GAOL,
-\code{fetestexcept(FE\_INEXACT)} is raised whatever the result, and
+The flags tell nothing of the results: after most operations of GAOL,
+\code{fetestexcept(FE\_INEXACT)} is raised whatever the result (not after
+\code{-x}, \code{abs()}, \code{\&}, \code{|}, \code{floor()}, \code{max()} or
+\code{min()}, which round nothing and check no rounding direction), and
 \code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO} stands for an infinite bound of the
-interval, not for an infinite number the program computed. IEEE 1788-2015
-leaves the flags of its operations unspecified. A program that reads them for
-its own computations clears them (\code{std::feclearexcept(FE\_ALL\_EXCEPT)})
-just before, and reads them before its next operation of GAOL.
+interval, or an infinite result of \code{width()} or \code{rad()}, not for an
+infinite number the program computed: \code{midpoint()} and \code{mid()} of
+\itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}, which overflowed the sum of the bounds,
+raise none. IEEE 1788-2015 leaves the flags of its operations unspecified. A
+program that reads them for its own computations clears them
+(\code{std::feclearexcept(FE\_ALL\_EXCEPT)}) just before, and reads them before
+its next operation of GAOL.\newinvfive
 
 GAOL's initialization, which runs before \code{main()}, sets the default
 environment (\code{fesetenv(FE\_DFL\_ENV)}), which masks every exception,
@@ -1241,12 +1264,16 @@ unless GAOL is built with \option{GAOL\_PRESERVE\_ROUNDING}: the initialization
 then leaves the whole environment as it found it, and an exception a static
 object enabled before it stays enabled. A program enables the exceptions in
 \code{main()} or later, whichever the build, not in a static object initialized
-before GAOL. \code{cleanup()} leaves the exceptions and the flags as they are.
-With \option{GAOL\_PRESERVE\_ROUNDING} and the SSE2 intervals, \code{+},
-\code{-}, \code{*}, \code{/}, \code{sqr()} and \code{inverse()} also write the
-SSE control register with every exception masked, which masks again the ones a
-program enabled: they stop nothing after the first of these operations.
-Disable them all the same, the other builds not masking them.
+before GAOL. \code{cleanup()} leaves the exceptions and the flags as they are,
+and so does every operation, whichever way GAOL is built: it leaves the
+exceptions the program enabled enabled, and the flags it raised raised, and
+adds the flags it raises itself. With \option{GAOL\_PRESERVE\_ROUNDING} and the
+SSE2 intervals, \code{+}, \code{-}, \code{*}, \code{/}, \code{\%},
+\code{div\_rel()}, \code{sqr()}, \code{inverse()}, the integer powers and
+\code{+=~d}, \code{-=~d}, \code{*=~d}, \code{/=~d}, \code{\%=~d} wrote the SSE
+control register whole, every exception masked and every flag cleared: an
+exception the program had enabled was masked again by the first of these
+operations, and the flags it had raised were lost.\newinvfive
 
 \section{The namespaces}\label{sec:namespaces}
 %%----------------------
@@ -3258,8 +3285,10 @@ cout << hausdorff(interval(4,8),interval(5,10)) << ' '
 \end{array}\right.
 \end{equation*}
 The midpoint of \itv{a}{b} is rounded to nearest, ties to even: it is the half
-of $a+b$, or the sum of the halves of $a$ and $b$ when $a+b$
-overflows~\margincite*{Goualard:TOMS2014}.
+of $a+b$, or the sum of the halves of $a$ and $b$ where $a+b$ may
+overflow~\margincite*{Goualard:TOMS2014}, that is where $|a|$ or $|b|$ is
+$2^{1023}$ or more, which is tested first: \code{midpoint()} of
+\itv{\text{MAX}}{\text{MAX}} raises no overflow exception.\newinvfive
 \end{defmethod}
 
 \begin{defmethod}{interval}{interval}{mid}{(void) const}

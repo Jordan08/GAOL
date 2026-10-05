@@ -116,22 +116,43 @@ mode there.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 190 calls, in 61 checks: one for each of the 48 calls
+  on either side (about 190 calls, in 63 checks: one for each of the 48 calls
   that compared the NaN bounds of the empty set, the others in ten groups,
-  and three choices a program makes with `is_empty()` of an intersection
-  whose left operand is empty, which GCC for 32-bit ARM makes signaling if
-  `operator&=` tells that operand empty otherwise than `is_empty()` does; these
-  three are not checked where the compiler optimizes for size, as GCC 14 for
-  32-bit ARM and GCC 13 for POWER9 then call the intersection, and the choice
-  is made on `is_empty()` of an empty interval alone, which they make
-  signaling)
-  have to give the result of the empty set and raise no invalid-operation
-  flag, and, with glibc, not die in a child process that enabled the
-  exception (GAOL v5): 45 of the 48 died with the SSE2 intervals, and all 48
-  with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`, `min`, `max`,
-  `floor`, `set_contains()`, the output...).
-  Where the processor does not trap an invalid operation, the test says so
-  and skips that part.
+  and five choices a program makes with `is_empty()` of an empty interval,
+  three after an intersection whose left operand is empty, one after an
+  intersection whose right operand is empty and one on the empty interval
+  alone, which GCC for 32-bit ARM and for POWER9 made signaling when
+  `is_empty()` was one quiet comparison; these five are not checked where the
+  compiler optimizes for size, which no job of the continuous integration
+  does) have to give the result of the empty set and raise no
+  invalid-operation flag, and, with glibc, not die in a child process that
+  enabled the exception (GAOL v5): 45 of the 48 died with the SSE2 intervals,
+  and all 48 with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`,
+  `min`, `max`, `floor`, `set_contains()`, the output...). So do (GAOL v5,
+  point D.24 of `TODO.md`) 18 operations given a NaN double, the empty set
+  for `interval(d)` (`interval(NAN)`, `interval(NAN, 1)`, `x += NAN`,
+  `x <= NAN`, `pow(x, NAN)`..., which compared it with `<` or `<=`); the
+  products of the intervals with bounds in {-oo, -2, -0, 0, 3, +oo}, compared
+  with the extrema of the products of their bounds, 0 for a zero by an
+  infinite one (the SSE2 product multiplied 0 by +oo); 13 powers with an
+  exponent of extreme magnitude, which have to be the tightest enclosures
+  (CORE-MATH's `pow` compares a NaN it makes on purpose there); and 29 loops
+  of 64 relations, constructions, intersections or `floor()`, with every
+  third x and every fifth y empty, which a compiler vectorizes or if-converts
+  (GCC 9.4 at `-O3`, with `-mfma`, made them raise the exception for the FPU
+  intervals, and `x &= y` for the SSE2 ones), compared with each relation
+  computed on its own. The midpoints of five intervals with a bound of 2^1023
+  or more in magnitude, `[DBL_MAX]` among them, (`midpoint()`, `mid()`,
+  `rad()`, `mid_rad()`, `split()`...) have to be right, `mid()` the tightest
+  enclosure of the exact midpoint, and raise no overflow flag, nor die with
+  the overflow exception enabled: the sum of the bounds overflowed. Every
+  operation has to keep the exception flags the program raised (the five of
+  IEEE 754, and on x86 the six of the SSE control register) and the exception
+  masks, and the invalid-operation exception the program enabled has to stay
+  enabled after each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2
+  operations masked the exceptions again and cleared the flags. Where the
+  processor does not trap an invalid operation (an overflow), or keeps no
+  flag `feraiseexcept()` raises, the test says so and skips that part.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or
@@ -685,9 +706,12 @@ builds some of the same tests with an installed GAOL, and
 `.github/scripts/tests.sh` with a GAOL installed by configure or meson.
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
-GAOL's arithmetic and elementary functions, and of the same operations on
-doubles. It is not a test: the continuous integration prints its table in the
-summary of the jobs.
+GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
+`floor()`, `x &= y` and two relations, which compare bounds with the quiet
+comparisons of `<cmath>` (one instruction each with GCC and Clang on x86,
+perhaps a call with Visual C++), and of the same operations on doubles. It is
+not a test: the continuous integration prints its table in the summary of the
+jobs.
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
 `gaol/gaol_interval.cpp` (see [its README](../tests/tools/pow/README.md)).
