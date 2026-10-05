@@ -600,15 +600,15 @@ namespace
   */
   std::vector<HugeInterval> huge_intervals()
   {
-    const double largest = gaol::rnd_keep((std::numeric_limits<double>::max)());
+    const double dbl_max = gaol::rnd_keep((std::numeric_limits<double>::max)());
     const double smallest_subnormal = gaol::rnd_keep(std::numeric_limits<double>::denorm_min());
     const double two_1023 = gaol::rnd_keep(0x1p1023);
     std::vector<HugeInterval> intervals;
-    intervals.push_back(HugeInterval{ "[DBL_MAX]", largest, largest });
-    intervals.push_back(HugeInterval{ "[-DBL_MAX]", -largest, -largest });
-    intervals.push_back(HugeInterval{ "[1e308, DBL_MAX]", gaol::rnd_keep(1e308), largest });
-    intervals.push_back(HugeInterval{ "[-DBL_MAX, -2^1023]", -largest, -two_1023 });
-    intervals.push_back(HugeInterval{ "[2^-1074, DBL_MAX]", smallest_subnormal, largest });
+    intervals.push_back(HugeInterval{ "[DBL_MAX]", dbl_max, dbl_max });
+    intervals.push_back(HugeInterval{ "[-DBL_MAX]", -dbl_max, -dbl_max });
+    intervals.push_back(HugeInterval{ "[1e308, DBL_MAX]", gaol::rnd_keep(1e308), dbl_max });
+    intervals.push_back(HugeInterval{ "[-DBL_MAX, -2^1023]", -dbl_max, -two_1023 });
+    intervals.push_back(HugeInterval{ "[2^-1074, DBL_MAX]", smallest_subnormal, dbl_max });
     return intervals;
   }
 
