@@ -69,6 +69,9 @@ namespace
   static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
                 "expression(d) and expression(x) build the expressions of [d, d] and x");
   static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/gaol_expression.h included");
+  // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5, point D.21)
+  static_assert(!std::is_convertible<long long, expression>::value && std::is_constructible<expression, long long>::value,
+                "expression(n) builds the expression of interval(n)");
   static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
                 "gaol::sin(x) on an interval is the sin of x, gaol/gaol_expression.h included");
 
@@ -499,6 +502,10 @@ namespace
     const expression x = expression(interval(1.0, 2.0));
     const expression y = expression(interval(3.0, 4.0));
     const expression d = expression(2.5);
+    // 2^53 + 1, which expression(double) made the double 2^53: expression(n)
+    // is the interval of the two doubles around it (GAOL v5, point D.21)
+    const double two53 = std::ldexp(1.0, 53);
+    const expression n = expression(9007199254740993LL);
 
     struct Case { expression e; interval value; const char* name; };
     const Case cases[] = {
@@ -532,6 +539,9 @@ namespace
       {sign(x), sign(interval(1.0, 2.0)), "sign"},
       {trunc(x), trunc(interval(1.0, 2.0)), "trunc"},
       {nth_root(x, 3), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3)"},
+      {n, interval(two53, two53 + 2), "expression(2^53+1)"},
+      {x + n, interval(1.0, 2.0) + interval(two53, two53 + 2), "x+expression(2^53+1)"},
+      {expression(7), interval(7.0), "expression(7)"},
       {cos(x) + sin(y) * exp(x), cos(interval(1.0, 2.0)) + sin(interval(3.0, 4.0)) * exp(interval(1.0, 2.0)), "nested"},
     };
 

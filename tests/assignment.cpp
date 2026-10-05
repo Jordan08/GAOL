@@ -105,6 +105,32 @@ public:
       TEST_EMPTY(x);
   }
 
+  // =, &= and |= with an integer: interval(n), the tightest interval
+  // containing it, the two doubles around 2^53 + 1, which the double 2^53
+  // did not contain (GAOL v5, point D.21)
+  void test_integer_assignment() {
+      const double two53 = std::ldexp(1.0, 53);
+      const volatile long long n = 9007199254740993LL; // 2^53 + 1
+      interval x(-5,4);
+
+      x = n;
+      TEST_TRUE(x.left() == two53 && x.right() == two53 + 2);
+      x = 3;
+      TEST_SEQ(x,interval(3.0));
+      x = 7u;
+      TEST_SEQ(x,interval(7.0));
+      x = interval(0.0, two53);
+      x |= n;
+      TEST_TRUE(x.left() == 0 && x.right() == two53 + 2);
+      x &= n;
+      TEST_TRUE(x.left() == two53 && x.right() == two53 + 2);
+      x = interval(0.0, two53);
+      x &= n;
+      TEST_TRUE(x.left() == two53 && x.right() == two53);
+      x &= -1;
+      TEST_EMPTY(x);
+  }
+
   // <-- End of tests
 };
 
@@ -112,4 +138,5 @@ GAOL_UNIT_MAIN(assignment_test, "assignment",
                GAOL_UNIT_TEST(test_assignment),
                GAOL_UNIT_TEST(test_arithmetic_assignment),
                GAOL_UNIT_TEST(test_logic_assignment),
-               GAOL_UNIT_TEST(test_double_assignment))
+               GAOL_UNIT_TEST(test_double_assignment),
+               GAOL_UNIT_TEST(test_integer_assignment))

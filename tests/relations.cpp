@@ -2,6 +2,8 @@
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
 
+#include <climits>
+
 class relations_test {
 public:
   void setUp() {
@@ -194,6 +196,47 @@ public:
     TEST_TRUE(interval::emptyset().is_finite());
   }
 
+  /* <, <=, > and >= between an interval and an integer, set_contains() and
+     set_strictly_contains() of an integer (GAOL v5, point D.21): n compared
+     as the integer it is. 2^53 + 1, converted to the double 2^53, was not
+     above [2^53], and [2^53] contained it. */
+  void test_symbols_with_integers() {
+    const double two53 = std::ldexp(1.0, 53), two64 = std::ldexp(1.0, 64);
+    const volatile long long n = 9007199254740993LL; // 2^53 + 1
+    const interval below(two53), above(two53 + 2), around(two53, two53 + 2);
+    TEST_TRUE(below < n && below <= n && n > below && n >= below);
+    TEST_FALSE(below > n || below >= n || n < below || n <= below);
+    TEST_TRUE(above > n && above >= n && n < above && n <= above);
+    TEST_FALSE(above < n || above <= n || n > above || n >= above);
+    TEST_FALSE(around < n || around <= n || around > n || around >= n);
+    TEST_FALSE(n < around || n <= around || n > around || n >= around);
+    TEST_TRUE(around.set_contains(n) && around.set_strictly_contains(n));
+    TEST_FALSE(below.set_contains(n) || above.set_contains(n) || below.set_strictly_contains(n));
+    TEST_FALSE(around.set_strictly_contains(9007199254740994LL));
+    TEST_TRUE(around.set_contains(9007199254740994LL));
+    const volatile unsigned long long m = ULLONG_MAX; // 2^64 - 1
+    TEST_TRUE(interval(two64) > m && m < interval(two64) && interval(two64 - 2048) < m);
+    TEST_FALSE(interval(two64).set_contains(m));
+    // No point of the empty set contradicts them
+    TEST_TRUE(interval::emptyset() < n && interval::emptyset() > n && n <= interval::emptyset());
+    TEST_FALSE(interval::emptyset().set_contains(n));
+
+    // An integer that is a double: the relations with that double
+    const interval xs[] = { interval(1,2), interval(-1,1), interval(0,GAOL_INFINITY),
+                            interval::universe(), interval::emptyset() };
+    for (const interval& x : xs) {
+      for (int k = -2; k <= 3; ++k) {
+        const double d = k;
+        const long long ll = k;
+        TEST_TRUE((x < k) == (x < d) && (k < x) == (d < x) && (x < ll) == (x < d) && (ll < x) == (d < x));
+        TEST_TRUE((x <= k) == (x <= d) && (k <= x) == (d <= x) && (x <= ll) == (x <= d) && (ll <= x) == (d <= x));
+        TEST_TRUE((x > k) == (x > d) && (k > x) == (d > x) && (x > ll) == (x > d) && (ll > x) == (d > x));
+        TEST_TRUE((x >= k) == (x >= d) && (k >= x) == (d >= x) && (x >= ll) == (x >= d) && (ll >= x) == (d >= x));
+        TEST_TRUE(x.set_contains(k) == x.set_contains(d) && x.set_strictly_contains(ll) == x.set_strictly_contains(d));
+      }
+    }
+  }
+
   // <-- End of tests
 };
 
@@ -202,4 +245,5 @@ GAOL_UNIT_MAIN(relations_test, "relations",
                GAOL_UNIT_TEST(test_set),
                GAOL_UNIT_TEST(test_certainly),
                GAOL_UNIT_TEST(test_symbols_with_double),
+               GAOL_UNIT_TEST(test_symbols_with_integers),
                GAOL_UNIT_TEST(test_misc))

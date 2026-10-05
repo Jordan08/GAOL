@@ -92,6 +92,40 @@ namespace
     return eval.result();
   }
 
+  /*
+    Integers (GAOL v5, point D.21): numsToInterval() and isMember() take an
+    integer as the integer it is, 2^53 + 1 being in no double; pown() and
+    gaol::pow() take an exponent of any integer type: pown(x, 3000000000u)
+    converted it to a negative int, and gaol::pow(x, 5L) was ambiguous.
+  */
+  void integers()
+  {
+    const double two53 = std::ldexp(1.0, 53), dmax = std::numeric_limits<double>::max();
+    const volatile long long n = 9007199254740993LL; // 2^53 + 1
+    const interval around(two53, two53 + 2), at(two53);
+    const interval nums = numsToInterval(1, n);
+    check("numsToInterval(1, 2^53 + 1) = [1, 2^53 + 2]", nums.left() == 1.0 && nums.right() == two53 + 2,
+          [&] { return hex(nums); });
+    check("numsToInterval(2^53 + 1, 1.0) is empty", numsToInterval(n, 1.0).is_empty(),
+          [&] { return hex(numsToInterval(n, 1.0)); });
+    check("isMember(2^53 + 1, x)", isMember(n, around) && !isMember(n, at) && isMember(3, numsToInterval(1.0, 4.0)));
+    const interval two(2.0), x = numsToInterval(-4.0, -1.0), y = numsToInterval(0.25, 0.5);
+    const interval p = pown(two, 3000000000u);
+    check("pown([2], 3000000000u) = [DBL_MAX, +oo]", p.left() == dmax && p.right() == oo, [&] { return hex(p); });
+    check("pown(x, 3L) and gaol::pow(x, 3L) = [-64, -1]",
+          pown(x, 3L).set_eq(numsToInterval(-64.0, -1.0)) && gaol::pow(x, 3L).set_eq(numsToInterval(-64.0, -1.0))
+          && gaol::pow(x, static_cast<short>(3)).set_eq(numsToInterval(-64.0, -1.0)),
+          [&] { return hex(pown(x, 3L)); });
+    check("gaol::pow([2], 3000000000ul) = gaol::pow([2], 3000000000u)",
+          gaol::pow(two, 3000000000ul).set_eq(gaol::pow(two, 3000000000u)), [&] { return hex(gaol::pow(two, 3000000000ul)); });
+    check("pown(x, 5e9) and gaol::pow(x, 5e9), beyond the unsigned ints: [-oo, +oo], empty for an empty x",
+          pown(x, 5000000000LL).set_eq(interval::universe()) && gaol::pow(x, -5000000000LL).set_eq(interval::universe())
+          && gaol::pow(interval::emptyset(), 5000000000LL).is_empty(),
+          [&] { return hex(gaol::pow(x, 5000000000LL)); });
+    check("pow(y, 2LL) is pow(y, [2])", pow(y, 2LL).set_eq(pow(y, interval(2.0))) && pow(x, 2LL).is_empty(),
+          [&] { return hex(pow(y, 2LL)); });
+  }
+
   void pow_of_the_standard()
   {
     // With a number as exponent, the pow of gaol was found here too, and gave
@@ -762,6 +796,7 @@ int main()
 {
   gaol::init();
   pow_of_the_standard();
+  integers();
   pow_on_boxes();
   gaol_functions();
   names_of_the_standard();
