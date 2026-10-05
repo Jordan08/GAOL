@@ -204,7 +204,13 @@ mode there.
   `cancel_minus([DBL_MAX], [1])` has to give the hull of `DBL_MAX` and raise
   no invalid-operation flag, nor die in a child process that enabled the
   exception: the terms of its TwoSum, computed by GCC after the direction
-  was set back to upward, read +oo and made inf - inf. After `cleanup()` and
+  was set back to upward, read +oo and made inf - inf.
+  The suite takes the AVX-512 path of `GAOL_PREFER_AVX512` whole, when a
+  processor has the instructions: the bounds of `x + y`, `x - y`, `x*y`,
+  `x/y` and `sqrt(x)` are then those of the SSE2 path, bit for bit, and
+  these operations leave the rounding direction as the program set it,
+  checked where the SSE2 path checks it left upward, and clear the
+  flush-to-zero modes when a plug-in has set them (GAOL v5). After `cleanup()` and
   an operation of GAOL, `gaol::restore_rounding()` has to set the direction
   to nearest again, as many times as it is called, where `cleanup()` does
   so at its first call only, and to do nothing with

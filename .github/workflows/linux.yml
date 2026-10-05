@@ -64,6 +64,18 @@ jobs:
           # libgaol.so.5.0.0, as configure and meson build it: the tests link
           # with it, the expressions included, which it did not export (GAOL v5)
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DBUILD_SHARED_LIBS=ON', desc: 'Ubuntu 24.04 x86_64 GCC, shared library' }
+          # The AVX-512 path of +, -, *, / and sqrt (GAOL_PREFER_AVX512):
+          # the runners of GitHub are Xeon processors with the instructions,
+          # and the whole suite of tests then takes that path, its bounds
+          # being those of the SSE2 path, bit for bit (GAOL v5)
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic' }
+          # The same, with the rounding direction of the program preserved:
+          # the AVX-512 path then spares the store of MXCSR that the SSE2
+          # one pays in every operation, which GAOL_PRESERVE_ROUNDING takes
+          # by default. The job above takes the path, this one refuses it
+          # (-DGAOL_PREFER_AVX512=OFF), the SSE2 operations of the
+          # preserved direction staying covered (GAOL v5)
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools

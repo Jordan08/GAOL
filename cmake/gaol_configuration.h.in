@@ -57,6 +57,20 @@
 /* Defined to 1 where they are compiled with -msse3 too */
 #cmakedefine GAOL_USING_SSE3_INSTRUCTIONS 1
 
+/* Defined to 1 where the compiler accepts the AVX-512 instructions in the
+   functions that carry __attribute__((target("avx512f"))) and
+   __builtin_cpu_supports("avx512f"): the library is then compiled with the
+   AVX-512 path of +, -, *, / and sqrt (gaol/gaol_interval_avx512.cpp)
+   beside the SSE2 one, for any processor of the architecture (GAOL v5) */
+#cmakedefine GAOL_HAVE_AVX512_TARGET 1
+
+/* Defined to 1 to have gaol::init() take that path when the processor has
+   the AVX-512 instructions (GAOL_PREFER_AVX512, -DGAOL_PREFER_AVX512=ON,
+   --enable-prefer-avx512 elsewhere; on by default where
+   GAOL_PRESERVE_ROUNDING is, off otherwise): +, -, *, / and sqrt
+   then set neither the rounding direction nor the modes that flush the
+   subnormals to zero, whatever the program left, and raise no exception flag */
+#cmakedefine GAOL_PREFER_AVX512 1
 /* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
    a double with the minus sign (gaol/gaol_port.h) */
 #cmakedefine GAOL_HAVE_ROUNDING_MATH_OPTION 1

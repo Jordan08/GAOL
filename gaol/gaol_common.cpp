@@ -43,6 +43,15 @@ namespace gaol_core {
   static bool _already_cleaned = false;
   static bool _already_initialized = false;
 
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
+  /* Whether +, -, *, / and sqrt take the AVX-512 path of
+     gaol/gaol_interval_avx512.cpp: init() sets it, from the
+     GAOL_PREFER_AVX512 of the build and the instructions the processor
+     has, which __builtin_cpu_supports() tells. The operations read it,
+     nothing else (GAOL v5). */
+  bool avx512_arithmetic = false;
+#endif
+
 #if !GAOL_PRESERVE_ROUNDING
   /* The rounding direction the first call of init() found, before setting it
      upward: cleanup() sets it back, the x87 unit and the SSE instructions
@@ -71,6 +80,13 @@ namespace gaol_core {
 #   if GAOL_USING_SSE2_INSTRUCTIONS
             round_upward_sse();
 #   endif
+#endif
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
+#  if GAOL_PREFER_AVX512
+            // The AVX-512 path of +, -, *, / and sqrt, when the processor
+            // has the instructions (GAOL v5, gaol/gaol_interval_avx512.cpp)
+            avx512_arithmetic = __builtin_cpu_supports("avx512f") != 0;
+#  endif
 #endif
 	  		// Not counted: expr_node::inc_refcount() leaves it alone (GAOL v5)
 	  		the_null_expr = new null_node;

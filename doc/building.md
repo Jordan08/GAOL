@@ -127,6 +127,7 @@ all the same (`/O2` with Visual C++).
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
+| `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, which sets neither the rounding direction nor the flush-to-zero modes (GAOL v5, see [The rounding direction](using.md#the-avx-512-path)) |
 
 ### The archive of the sources and the packages
 
@@ -211,6 +212,7 @@ their defaults:
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
 | `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
+| `--enable-prefer-avx512` | `no`, `yes` with `--enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, as `GAOL_PREFER_AVX512` (GAOL v5) |
 | `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
 | `--with-tests` | `no` | Build the unit tests of `tests/`, which `make test` and `make check` run, as `WITH_TESTS` |
 | `--with-examples` | `no` | Build the examples of `examples/`, which `make check` runs, as `WITH_EXAMPLES` |
@@ -246,6 +248,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
 | `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
+| `enable-prefer-avx512` | `false`, `true` with `enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, as `GAOL_PREFER_AVX512`; meson cannot refuse the path under `enable-preserve-rounding`, which `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5) |
 | `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
 | `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
 | `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
@@ -334,6 +337,7 @@ integration checks that they write the same header on each kind of machine
 | `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG` runs its commands | `CMAKE_BUILD_TYPE=Debug` | `--enable-debug` | `--buildtype=debug` |
 | `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
+| `GAOL_PREFER_AVX512` | +, -, *, / and sqrt take the AVX-512 instructions on a processor that has them | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
 | `GAOL_USING_ASM` | GAOL's assembly (32-bit x86 Linux and macOS); never with Visual C++ | `GAOL_ASM` (default) | `--enable-asm` (default) | `enable-asm` (default) |
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |

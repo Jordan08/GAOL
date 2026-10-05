@@ -315,6 +315,75 @@ if test "${target_x86}" = yes; then
         fi
     fi
 fi
+# --enable-preserve-rounding, which --enable-prefer-avx512 follows by
+# default (GAOL v5)
+AC_ARG_ENABLE(preserve-rounding,
+            [AS_HELP_STRING([--enable-preserve-rounding],
+                            [restore the rounding direction after each operation, rather than leaving it upward @<:@default=no@:>@])],
+            [preserve_rounding=${enable_preserve_rounding}],
+            [preserve_rounding="no"])
+if test "${preserve_rounding}" = yes; then
+   AC_DEFINE([GAOL_PRESERVE_ROUNDING],1,[define this to 1 if rounding direction should be preserved])
+fi
+# --enable-prefer-avx512: the AVX-512 path of +, -, *, / and sqrt, as
+# CMakeLists.txt and meson.build take it (see CMakeLists.txt). The path is
+# compiled into the library beside the SSE2 one whenever the compiler
+# accepts its instructions in a function with
+# __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which GCC
+# and Clang on x86-64 do: no flag, the attribute is per function, and the
+# library runs on any processor of the architecture. gaol::init() takes the
+# path when the program asks for it, and the processor has the instructions:
+# on by default where --enable-preserve-rounding is, the path sparing the
+# store of the rounding direction every operation pays; what the command
+# line gave wins either way, --disable-prefer-avx512 refusing the path
+# under --enable-preserve-rounding. A default the compiler or the
+# architecture cannot take degrades silently, where --enable-prefer-avx512
+# without the path is an error (GAOL v5).
+AC_ARG_ENABLE(prefer-avx512,
+            [AS_HELP_STRING([--enable-prefer-avx512],
+                            [have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them @<:@default=as preserve-rounding@:>@])],
+            [prefer_avx512=${enable_prefer_avx512}; prefer_avx512_explicit=yes],
+            [prefer_avx512=${preserve_rounding}; prefer_avx512_explicit=no])
+have_avx512_target=no
+if test "${using_sse2}" = yes; then
+    AC_LANG_PUSH([C++])
+    AC_MSG_CHECKING([whether the compiler takes the AVX-512 instructions in a function with the target attribute])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <immintrin.h>
+#if !defined(__x86_64__)
+#error not x86-64
+#endif
+__attribute__((target("avx512f"))) double er_add(double a, double b)
+{
+    const __m512d x = _mm512_set1_pd(a);
+    const __m512d y = _mm512_set1_pd(b);
+    return _mm_cvtsd_f64(_mm512_castpd512_pd128(
+        _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+}]], [[return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1;]])],
+        [have_avx512_target=yes], [have_avx512_target=no])
+    AC_MSG_RESULT(${have_avx512_target})
+    AC_LANG_POP([C++])
+    if test "${have_avx512_target}" = yes; then
+        AC_DEFINE([GAOL_HAVE_AVX512_TARGET],1,
+            [Define this to 1 if the compiler takes the AVX-512 instructions in a function with the target attribute])
+    fi
+fi
+if test "${prefer_avx512}" = yes; then
+    if test "${have_avx512_target}" = no; then
+        if test "${prefer_avx512_explicit}" = yes; then
+            AC_MSG_ERROR([--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with GCC or Clang])
+        fi
+        # The default --enable-preserve-rounding derived, and the compiler
+        # or the architecture takes no path: the operations keep setting
+        # the direction upward and giving it back, as a build with
+        # --enable-preserve-rounding always did (GAOL v5)
+        AC_MSG_NOTICE([no AVX-512 path of +, -, *, / and sqrt: the operations keep setting the rounding direction upward])
+        prefer_avx512="no"
+    else
+        AC_DEFINE([GAOL_PREFER_AVX512],1,
+            [Define this to 1 to have gaol::init() take the AVX-512 path of +, -, *, / and sqrt on a processor that has the instructions])
+    fi
+fi
+
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 
@@ -516,16 +585,6 @@ else
 fi
 AC_LANG_POP([C++])
 
-# --enable-preserve-rounding
-AC_ARG_ENABLE(preserve-rounding,
-            [AS_HELP_STRING([--enable-preserve-rounding],
-                            [restore the rounding direction after each operation, rather than leaving it upward @<:@default=no@:>@])],
-            [preserve_rounding=${enable_preserve_rounding}],
-            [preserve_rounding="no"])
-if test "${preserve_rounding}" = yes; then
-   AC_DEFINE(GAOL_PRESERVE_ROUNDING,1,[define this to 1 if rounding direction should be preserved])
-fi
-
 # --enable-exceptions
 AC_ARG_ENABLE(exceptions,
               [AS_HELP_STRING([--enable-exceptions],
@@ -676,6 +735,7 @@ printf "elementary functions\t= CORE-MATH (3rd/math-core, correctly rounded)\n"
 printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"
+printf "prefer AVX-512\t\t= ${prefer_avx512}\n"
 printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"

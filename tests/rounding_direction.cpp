@@ -1775,11 +1775,27 @@ int main()
   gaol::restore_rounding();
   gaol::restore_rounding();
   const State after_twice = state();
+  /* With GAOL_PREFER_AVX512, on a processor that has the AVX-512
+     instructions, the addition takes the embedded rounding: it sets no
+     direction, and the one the program left stays (to nearest here, as
+     restore_rounding() set it), as it stays with GAOL_PRESERVE_ROUNDING
+     (GAOL v5, gaol/gaol_interval_avx512.cpp) */
+#if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS \
+    && defined(GAOL_HAVE_AVX512_TARGET) && GAOL_HAVE_AVX512_TARGET && GAOL_PREFER_AVX512
+  const bool embedded_add = __builtin_cpu_supports("avx512f") != 0;
+  check("rounding direction set back by gaol::restore_rounding() as many times as needed",
+        embedded_add ? (after_operation == to_nearest && after_twice == to_nearest)
+                     : (!(after_operation == to_nearest) && after_twice == to_nearest),
+        [&] {
+          return text(after_twice) + " after it, " + text(after_operation) + " after the operation";
+        });
+#else
   check("rounding direction set back by gaol::restore_rounding() as many times as needed",
         !(after_operation == to_nearest) && after_twice == to_nearest,
         [&] {
           return text(after_twice) + " after it, " + text(after_operation) + " after the operation";
         });
+#endif
 #else
   gaol::restore_rounding();
   const State after_restore = state();
