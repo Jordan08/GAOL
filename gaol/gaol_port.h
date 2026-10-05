@@ -168,13 +168,22 @@ namespace gaol_core {
     GAOL, with two_pi, pi, half_pi, ln2_dn, ln2_up, two_power_51 and
     two_power_52, which met the names of the program that opened it, a pi of
     its own being ambiguous. The manual of GAOL v5 no longer documents them.
+    That namespace, gaol_detail, holds what GAOL's headers define for their
+    own use; it is a namespace of its own, not gaol_core::detail, which the
+    namespace gaol took whole: a program with a namespace detail of its own
+    writing using namespace gaol; found two, and detail::f() did not compile
+    ("reference to 'detail' is ambiguous", GAOL v5 before its release).
   */
-  namespace detail {
-    const double pi_dn = 3.141592653589793115997963468544185161590576171875;
-    const double pi_up = 3.141592653589793560087173318606801331043243408203125;
-    const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
-    const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
-  } // namespace detail
+} // namespace gaol_core
+
+namespace gaol_detail {
+  const double pi_dn = 3.141592653589793115997963468544185161590576171875;
+  const double pi_up = 3.141592653589793560087173318606801331043243408203125;
+  const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
+  const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   /*
     The quiet comparisons of <cmath>, false for a NaN operand, which they
@@ -194,60 +203,64 @@ namespace gaol_core {
     which reads the flags ucomisd sets without its parity flag. Elsewhere they
     are those of <cmath>.
   */
-  namespace detail {
+} // namespace gaol_core
+
+namespace gaol_detail {
 #if defined(_MSC_VER) && !defined(__clang__) \
-    && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
-    GAOL_INLINE bool quiet_less(double x, double y)
-    {
-      return _mm_ucomigt_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
-    }
+  && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+  GAOL_INLINE bool quiet_less(double x, double y)
+  {
+    return _mm_ucomigt_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
+  }
 
-    GAOL_INLINE bool quiet_less_equal(double x, double y)
-    {
-      return _mm_ucomige_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
-    }
+  GAOL_INLINE bool quiet_less_equal(double x, double y)
+  {
+    return _mm_ucomige_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
+  }
 
-    GAOL_INLINE bool quiet_greater(double x, double y)
-    {
-      return _mm_ucomigt_sd(_mm_set_sd(x), _mm_set_sd(y)) != 0;
-    }
+  GAOL_INLINE bool quiet_greater(double x, double y)
+  {
+    return _mm_ucomigt_sd(_mm_set_sd(x), _mm_set_sd(y)) != 0;
+  }
 
-    GAOL_INLINE bool quiet_greater_equal(double x, double y)
-    {
-      return _mm_ucomige_sd(_mm_set_sd(x), _mm_set_sd(y)) != 0;
-    }
+  GAOL_INLINE bool quiet_greater_equal(double x, double y)
+  {
+    return _mm_ucomige_sd(_mm_set_sd(x), _mm_set_sd(y)) != 0;
+  }
 
-    GAOL_INLINE bool quiet_unordered(double x, double y)
-    {
-      return (_mm_movemask_pd(_mm_cmpunord_sd(_mm_set_sd(x), _mm_set_sd(y))) & 1) != 0;
-    }
+  GAOL_INLINE bool quiet_unordered(double x, double y)
+  {
+    return (_mm_movemask_pd(_mm_cmpunord_sd(_mm_set_sd(x), _mm_set_sd(y))) & 1) != 0;
+  }
 #else
-    GAOL_INLINE bool quiet_less(double x, double y)
-    {
-      return std::isless(x, y);
-    }
+  GAOL_INLINE bool quiet_less(double x, double y)
+  {
+    return std::isless(x, y);
+  }
 
-    GAOL_INLINE bool quiet_less_equal(double x, double y)
-    {
-      return std::islessequal(x, y);
-    }
+  GAOL_INLINE bool quiet_less_equal(double x, double y)
+  {
+    return std::islessequal(x, y);
+  }
 
-    GAOL_INLINE bool quiet_greater(double x, double y)
-    {
-      return std::isgreater(x, y);
-    }
+  GAOL_INLINE bool quiet_greater(double x, double y)
+  {
+    return std::isgreater(x, y);
+  }
 
-    GAOL_INLINE bool quiet_greater_equal(double x, double y)
-    {
-      return std::isgreaterequal(x, y);
-    }
+  GAOL_INLINE bool quiet_greater_equal(double x, double y)
+  {
+    return std::isgreaterequal(x, y);
+  }
 
-    GAOL_INLINE bool quiet_unordered(double x, double y)
-    {
-      return std::isunordered(x, y);
-    }
+  GAOL_INLINE bool quiet_unordered(double x, double y)
+  {
+    return std::isunordered(x, y);
+  }
 #endif
-  } // namespace detail
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   /*!
     \brief Returns 1 if d is neither a NaN nor an infinity

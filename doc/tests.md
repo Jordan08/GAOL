@@ -375,7 +375,14 @@ mode there.
   provides is called unqualified, which compiles only if none of them is
   ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
-  NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power;
+  NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power,
+  for an exponent of any integer type too (GAOL v5): `pown([2], 3000000000u)`
+  is the overflowing power, which the conversion of the exponent to a negative
+  `int` made a tiny one, `gaol::pow(x, 3L)`, which was ambiguous, the cube,
+  `pown(x, -2L)` and `gaol::pow(x, -3LL)` the negative powers, and an exponent
+  beyond the unsigned ints [-oo, +oo]; `numsToInterval()` and `isMember()`
+  take ±(2^53 + 1) as the integer it is, and bounds in the wrong order give the
+  empty set;
   the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 92 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
   `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
@@ -517,7 +524,9 @@ mode there.
   A negative exponent of `nth_root` has to give the root of C++,
   1/x<sup>1/|q|</sup>, alone and in a bound: the reader converted it to an
   unsigned int (GAOL v5). The expressions built in C++ go through every node
-  too, `pow(e, 3)` and `/=` included, which did not link, and have to be
+  too, `pow(e, 3)` and `/=` included, which did not link, and `expression(n)`
+  of 2^53 + 1, the interval of the two doubles around it, and `expression(7)`,
+  the node of the double 7, written `7` (GAOL v5), and have to be
   printed as written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
@@ -684,7 +693,18 @@ mode there.
   that its checks are the same at each run. `intervalf` and `interval2f` test
   the intervals of floats where a developer of GAOL compiles them
   (`GAOL_FLOAT_INTERVALS`, see `gaol/gaol_config.h`), and are skipped otherwise
-  (exit status 77). `check/fpu.cpp`, an empty test, and `check/essai.cpp`,
+  (exit status 77). `constructor`, `assignment`, `arithmetic_operators` and
+  `relations` also check the integers (GAOL v5, point D.21): `interval(n)` and
+  `interval(a, b)` around 2^53, 2^63 and 2^64, for integers of every width
+  and in the four rounding directions, and empty for bounds in the wrong
+  order that lie between the same two doubles (`interval(2^53 + 1, 2^53)`),
+  `=`, `&=` (empty for `[0, 2^53] &= 2^53 + 1`) and `|=`, each arithmetic
+  operator in both orders, and the relations, `set_contains()` and
+  `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to
+  a double made wrong; and that an integer that is a double gives what the
+  double gives. `misc` declares a `namespace detail` of its own, which
+  `using namespace gaol` made ambiguous while GAOL's helpers were in
+  `gaol_core::detail`. `check/fpu.cpp`, an empty test, and `check/essai.cpp`,
   which printed an interval, are gone, as is `check/performances.cpp`, the
   benchmark of GAOL 4, which `make perf` replaces (see
   [Building GAOL](building.md#tests-examples-performance-and-the-parser)).

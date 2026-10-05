@@ -2,6 +2,15 @@
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
 
+// A namespace detail of the program's own, with using namespace gaol (in
+// unit_tests.h): GAOL's helpers were in gaol_core::detail, which the namespace
+// gaol took whole, and detail::of_the_program() did not compile, "reference
+// to 'detail' is ambiguous" (GAOL v5, before its release). They are in
+// gaol_detail, a namespace of its own
+namespace detail {
+  inline int of_the_program() { return 1; }
+}
+
 class misc_test {
 public:
   void setUp() {
@@ -10,6 +19,10 @@ public:
   }
 
   // --> Beginning of tests
+
+  void test_namespace_detail_of_the_program() {
+    TEST_TRUE(detail::of_the_program() == 1);
+  }
 
   // Tests of logical predicates ===================================================================
   void test_predicates() {
@@ -47,4 +60,5 @@ public:
 
 GAOL_UNIT_MAIN(misc_test, "misc",
                GAOL_UNIT_TEST(test_constants),
-               GAOL_UNIT_TEST(test_predicates))
+               GAOL_UNIT_TEST(test_predicates),
+               GAOL_UNIT_TEST(test_namespace_detail_of_the_program))
