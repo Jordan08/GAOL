@@ -139,20 +139,24 @@ mode there.
   (CORE-MATH's `pow` compares a NaN it makes on purpose there); and 29 loops
   of 64 relations, constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
-  (GCC 9.4 at `-O3`, with `-mfma`, made them raise the exception for the FPU
-  intervals, and the construction of an interval for the SSE2 ones), compared with each relation
-  computed on its own. The midpoints of five intervals with a bound of 2^1023
-  or more in magnitude, `[DBL_MAX]` among them, (`midpoint()`, `mid()`,
-  `rad()`, `mid_rad()`, `split()`...) have to be right, `mid()` the tightest
-  enclosure of the exact midpoint, and raise no overflow flag, nor die with
-  the overflow exception enabled: the sum of the bounds overflowed. Every
-  operation has to keep the exception flags the program raised (the five of
-  IEEE 754, and on x86 the six of the SSE control register) and the exception
-  masks, and the invalid-operation exception the program enabled has to stay
-  enabled after each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2
-  operations masked the exceptions again and cleared the flags. Where the
-  processor does not trap an invalid operation (an overflow), or keeps no
-  flag `feraiseexcept()` raises, the test says so and skips that part.
+  (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
+  for 32-bit x86, GCC 14 for POWER8 and GCC 11 to 15 for 64-bit ARM made some
+  of them raise the exception, and with the SSE2 intervals the construction of an
+  interval), compared with each relation computed on its own. The midpoints
+  of five intervals with a bound of 2^1023 or more in magnitude, `[DBL_MAX]`
+  among them, (`midpoint()`, `mid()`, `rad()`, `mid_rad()`, `split()`...)
+  have to be right, `mid()` the tightest enclosure of the exact midpoint, and
+  raise no overflow flag, nor die with the overflow exception enabled: the sum
+  of the bounds overflowed. The test makes these intervals at run time: GCC 12
+  and 13 with `-frounding-math` initialized a member of an aggregate given
+  `std::numeric_limits<double>::denorm_min()` with -0. Every operation has to
+  keep the exception flags the program raised (the five of IEEE 754, and on
+  x86 the six of the SSE control register) and the exception masks, and the
+  invalid-operation exception the program enabled has to stay enabled after
+  each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2 operations masked the
+  exceptions again and cleared the flags. Where the processor does not trap
+  an invalid operation (an overflow), or keeps no flag `feraiseexcept()`
+  raises, the test says so and skips that part.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or

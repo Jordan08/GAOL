@@ -537,16 +537,24 @@ bounds.
   integration check the first; no job compiles for POWER9, where this is
   reasoned, not checked). GCC 9.4 at `-O3` computed the comparisons of the
   bounds of `x &= y` before its test of the empty set, in a loop of
-  intersections: they are quiet ones. And GCC 9.4,
-  where AVX is on (`-mavx`, or `-mfma`, which the three builds give where the
-  processor has FMA), vectorizes a loop of quiet comparisons into signaling
-  predicates (`vcmpnlepd`, `vcmpnltpd`): with the FPU intervals, the bounds
-  `is_empty()` compares and the doubles given to the constructors go through
-  an empty asm statement, which keeps GCC from vectorizing such loops. A
-  choice the program makes on a relation, `x.set_contains(y) ? a : b`, and a
-  loop of relations other than those of `tests/rounding_direction.cpp` are
-  not known to raise the exception, but nothing keeps a compiler from
-  compiling them so.
+  intersections: they are quiet ones. And GCC vectorizes loops of comparisons
+  of bounds into vector comparisons that raise the exception for an empty
+  element: GCC 9.4 and 13 where AVX is on (`-mavx`, or `-mfma`, which the
+  three builds give where the processor has FMA) and GCC 13 to 15 for 32-bit
+  x86 with SSE2 alone (MinGW-w64) make the quiet comparisons signaling
+  predicates (`vcmpnlepd`, `cmpnlepd`...), GCC 14 for POWER8 uses `xvcmpgedp`,
+  and GCC 11 to 15 for 64-bit ARM compute the second and third comparisons of
+  the constructor for an empty element too. With GCC and the FPU intervals, on
+  every processor, the bounds `is_empty()` compares, those of the relations
+  that do not call it (`straddles_zero()`, `set_contains(d)`...) and the
+  doubles given to the constructors go through an empty asm statement, which
+  keeps GCC from vectorizing such loops: loops of `x.set_contains(d)` and of
+  `x.straddles_zero()` took 0.8 and 1.3 ns per element rather than 0.5 ns with
+  GCC 13 on x86-64, about as long as with GCC 9.4, which did not vectorize
+  them and took as long as before. A choice the program makes on a relation,
+  `x.set_contains(y) ? a : b`, and a loop of relations other than those of
+  `tests/rounding_direction.cpp` are not known to raise the exception, but
+  nothing keeps a compiler from compiling them so.
 - Nonempty operands raised the invalid-operation exception as well, and the
   cases found no longer do (GAOL v5): with the SSE2 intervals, multiplying a
   zero bound by an infinite one did, `[0]*[1, +oo]` and `[0, +oo]*[0]` (the
