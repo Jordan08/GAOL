@@ -95,12 +95,24 @@
 		if (I1.is_empty() || I2.is_empty()) {
 			return std::numeric_limits<double>::quiet_NaN();
 		}
+		// A bound infinite in one interval only puts them at distance +oo,
+		// returned before the check of the rounding direction (GAOL v5, point
+		// R.50 of TODO.md; GAOL 4 returned +oo there for every infinite bound):
+		// the check and the differences made it two to four times as long
+		// (Intel i7-1185G7, GCC 9.4 and Clang 18). Whether a bound is infinite
+		// depends neither on the rounding direction nor on the flush-to-zero
+		// modes, which read a subnormal bound as a zero, no infinity either. The
+		// bounds compared after the check are read after it (GAOL_RND_BARRIER()
+		// of gaol/gaol_fpu.h, and /fp:strict with Visual C++)
+		if ((std::fabs(I1.left()) == GAOL_INFINITY) != (std::fabs(I2.left()) == GAOL_INFINITY)
+		    || (std::fabs(I1.right()) == GAOL_INFINITY) != (std::fabs(I2.right()) == GAOL_INFINITY)) {
+			return GAOL_INFINITY;
+		}
 		// The tightest upper bound of the distance, whatever the rounding
 		// direction of the caller: each difference is rounded upward both ways.
 		// Equal bounds, infinite ones included, are at distance 0 (inf - inf is a
 		// NaN): the distance of [1, +oo] to [1, +oo] is 0 and the one to [2, +oo] is
-		// 1, where GAOL 4 returned +oo. A bound infinite in one interval only is at
-		// distance +oo, as inf - x is.
+		// 1, where GAOL 4 returned +oo.
 		GAOL_RND_ENTER();
 		const double a = I1.left(), b = I1.right(), c = I2.left(), e = I2.right();
 		double d = fmax((a == c) ? 0.0 : fmax(a - c, c - a),

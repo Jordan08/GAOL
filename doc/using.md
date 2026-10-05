@@ -711,7 +711,9 @@ comparisons: [0, 0] with GCC 13 at `-O2`, [3*2^-1074, 100*2^-1074] at
 either, but it only exchanges the stored bounds, which the modes do not
 change, as they do not change the test of the empty set, made before the check
 of every operation (an operation with an empty operand may return before its
-check, the modes left as it found them). The modes of other processors, and
+check, the modes left as it found them), nor the test by which `hausdorff()`
+returns +oo before its check when a bound is infinite in one of its two
+intervals only. The modes of other processors, and
 of ARM with Visual C++, are neither checked nor cleared; GCC links
 `crtfastmath.o` for none of the other processors GAOL is tested on. Link a
 program that uses GAOL without these options, or with `-mno-daz-ftz`, and
