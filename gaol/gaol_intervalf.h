@@ -24,6 +24,7 @@
 #include "gaol/gaol_config.h"
 #ifdef GAOL_FLOAT_INTERVALS
 
+#include <cmath> // std::islessequal() of is_empty() (GAOL v5)
 #include <iosfwd>
 #include <new>
 
