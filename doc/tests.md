@@ -147,16 +147,17 @@ mode there.
   among them, (`midpoint()`, `mid()`, `rad()`, `mid_rad()`, `split()`...)
   have to be right, `mid()` the tightest enclosure of the exact midpoint, and
   raise no overflow flag, nor die with the overflow exception enabled: the sum
-  of the bounds overflowed. The test makes these intervals at run time: GCC 12
-  and 13 with `-frounding-math` initialized a member of an aggregate given
-  `std::numeric_limits<double>::denorm_min()` with -0. Every operation has to
-  keep the exception flags the program raised (the five of IEEE 754, and on
-  x86 the six of the SSE control register) and the exception masks, and the
-  invalid-operation exception the program enabled has to stay enabled after
-  each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2 operations masked the
-  exceptions again and cleared the flags. Where the processor does not trap
-  an invalid operation (an overflow), or keeps no flag `feraiseexcept()`
-  raises, the test says so and skips that part.
+  of the bounds overflowed. The test makes these intervals at run time: GCC
+  12.1 to 12.3 and 13.1 to 13.2 with `-frounding-math` initialized a member of
+  an aggregate given `std::numeric_limits<double>::denorm_min()` with -0, and
+  overwrote the next one (`[-0, NaN]`, the empty set, for 32-bit x86). Every
+  operation has to keep the exception flags the program raised (the five of
+  IEEE 754, and on x86 the six of the SSE control register) and the exception
+  masks, and the invalid-operation exception the program enabled has to stay
+  enabled after each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2
+  operations masked the exceptions again and cleared the flags. Where the
+  processor does not trap an invalid operation (an overflow), or keeps no flag
+  `feraiseexcept()` raises, the test says so and skips that part.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or

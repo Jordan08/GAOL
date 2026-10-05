@@ -587,15 +587,16 @@ namespace
 
   /*
     The intervals, made at run time from doubles read back from volatile
-    memory: GCC 12 and 13 with -frounding-math initialized a double member of
-    an aggregate given std::numeric_limits<double>::denorm_min() with -0, as
-    a table at namespace scope or in a function, so that [2^-1074, DBL_MAX]
-    was [-0, DBL_MAX] on x86-64, and for 32-bit x86, where GCC 13 also wrote
-    the 12 bytes of the long double 2^-1074 over the next member, [-0, NaN],
-    the empty set: the checks of its midpoints failed (Debian 12 i386,
-    MinGW-w64 12.2 and 13.2 for x86), though midpoint() and mid() give the
-    right ones there. A scalar double initialized so, and the members of a
-    structure copied from it, have the right value.
+    memory: GCC 12.1 to 12.3 and 13.1 to 13.2 with -frounding-math wrote the
+    long double 2^-1074 into a double member of an aggregate given
+    std::numeric_limits<double>::denorm_min(), as a table at namespace scope
+    or in a function. Its significand read as -0 and the rest overwrote the
+    next member, so that [2^-1074, DBL_MAX] was [-0, 0x3bcd 2^-1074] on
+    x86-64, where its checks passed, and [-0, NaN], the empty set, for 32-bit
+    x86, where the checks of its midpoints failed (Debian 12 i386 with GCC
+    12.2, MinGW-w64 12.2 and 13.2 for x86), though midpoint() and mid() give
+    the right ones there. A scalar double or an array of doubles initialized
+    so have the right value, as with GCC 12.4, 13.3 and 14.
   */
   std::vector<HugeInterval> huge_intervals()
   {
