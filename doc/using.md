@@ -330,10 +330,19 @@ beyond them gives [−∞, +∞] for a nonempty x, as `gaol::pow(x, [n])` does.
 So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the ints and the
 unsigned ints gives an enclosure of the roots, computed by `pow` with the
 exponent 1/q (x^(1/q) is within 2^−21 of 1 for every double x > 0 there),
-`pownRev(c, x, p)`, which intersects x with these roots, of either sign for an
-even p, and `pow(e, n)`, `pown(e, n)` and `nth_root(e, n)` of the expressions:
-`nth_root(x, 3L)` was ambiguous, `pownRev(c, 3000000000u)` converted p to a
-negative `int` and threw, and `nth_root(e, -2)` took the order 4294967294.
+`pownRev(c, x, p)`, which gives the hull of the parts of x in these roots and,
+for an even p, in their opposites, and `pow(e, n)`, `pown(e, n)` and
+`nth_root(e, n)` of the expressions. `nth_root(x, 3L)` was ambiguous;
+`rootn(x, 3000000000u)` and `pownRev(c, 3000000000u)` converted the order to a
+negative `int`, the first giving a wrong interval ([0.99999999839,
+0.99999999946] for [2, 8], rather than [1.00000000023, 1.00000000069]) and the
+second throwing; `rootn(x, 5000000001LL)` and the powers of expressions cut a
+`long` to an `int`; and `nth_root(e, -2)` took the order 4294967294. `pow(e, n)`
+and `pown(e, n)` of the expressions give [−∞, +∞] for an n beyond the ints,
+where the powers of intervals take the unsigned power up to the unsigned ints,
+which no node of an expression computes; beyond the unsigned ints,
+`nth_root(e, n)` is the root of the interval but where e contains 0, where it
+is wider.
 
 ## A result thrown away
 

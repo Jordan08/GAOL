@@ -4224,8 +4224,8 @@ The functions of GAOL that have the name and the meaning the standard gives them
   not computed. Its $p$, and the $q$ of \code{rootn(x, q)}, may be of any
   integer type: \code{pownRev(c, 3000000000u)} converted $p$ to a negative
   \code{int} and threw; beyond the \code{unsigned int}s, \code{pownRev}
-  intersects $x$ with the roots of order $p$ of $c$, of either sign for an even
-  $p$.\newinvfive
+  gives the hull of the parts of $x$ in the roots of order $p$ of $c$ and, for
+  an even $p$, in their opposites.\newinvfive
 \end{itemize}
 
 \begin{example}
@@ -4452,7 +4452,7 @@ covered.
   \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh} & tightest\\
   \hline
   \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\
-  \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise accurate: the tightest bounds or one double beyond, proved with integer powers\\
+  \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise accurate: the tightest bounds or one double beyond, proved with integer powers; beyond the \code{unsigned int}s, CORE-MATH's \code{pow} at the corners, within one double\\
   \code{nth\_root(x, q)}, $q<0$ & accurate: the root above, then the tightest division\\
   \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
   \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\
