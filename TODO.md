@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `4b5b1ad` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `374d18c` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -53,6 +53,14 @@ structures) dit dans `doc/using.md` et le manuel ; le `<` de `cr_pow` sur un NaN
 et la vectorisation des comparaisons silencieuses par GCC commentés dans #65 et
 #80. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #83.
+Fait le 5 octobre aussi : l'ancien 21 du point D, les entiers au-delà de 2^53,
+par #84, sauf les fonctions à exposant entier autres que `pow` (voir le point
+D) ; avec lui, les fonctions internes de GAOL passent de `gaol_core::detail`
+(#77) à `gaol_detail`, qu'un `using namespace gaol` n'amène pas : un `namespace
+detail` du programme était ambigu. Décidé en fin de travail : une borne `long
+double` à côté d'un entier reste arrondie, ce que la documentation dit, et `x +
+n` pour un n au-delà de 2^53 reste un encadrement, sans être le plus étroit. Les
+textes pour `ChangeLog` et `doc/differences.md` sont dans la description de #84.
 
 ## En cours
 
@@ -192,35 +200,36 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()` et `ipow_exact_dn()`
   plutôt que les littéraux ont été relevés sur l'ancien code et vérifiés avec
   mpmath à 500 bits, ce que `tests/gaol_tests.h` doit citer aussi.
 
-### D. Le constructeur pour les entiers et les en-têtes (21)
+### D. Les entiers, suite, et les en-têtes (21)
 
-Les anciens 24 et 62 sont faits par #83 ; le signalement à GCC de la comparaison
-rendue signalante reste dans #80. Restent, dans cet ordre (décidé le 4 octobre),
-deux pull requests : les constructeurs pour les entiers (21), puis le nettoyage
-des en-têtes. Le 21 et, si #68 la décide, la comparaison par les bits sous DAZ
-(point Q) touchent le même constructeur (`gaol_interval_sse.h`,
-`gaol_interval_fpu.h`, `gaol_interval.h`). Le nettoyage des en-têtes :
-`gaol_interval.h` contient `using namespace gaol_core;` à corriger. Plusieurs
-headers utilisent des macros avec noms réservés comme `__GAOL_PUBLIC__` (à
-renommer en `GAOL_PUBLIC`) et des casts C-style à remplacer par `static_cast<>`.
-`gaol_allocator.h` utilise `= 0` au lieu de `= nullptr` ; son
-`aligned_allocator<T>` ne garantit que 16 octets d'alignement, donc ne convient
-pas aux types suralignés (`alignof(T) > 16`). Aligner selon `alignof(T)` ou
-refuser ces types explicitement. Son `construct(pointer, const T&)` bloque aussi
-la construction avec d'autres arguments via `allocator_traits`, notamment pour
-les types déplaçables mais non copiables : fournir un `construct` variadique ou
-laisser `allocator_traits` utiliser son placement-new par défaut.
+Les anciens 24 et 62 sont faits par #83, et l'essentiel du 21 par #84 ; le
+signalement à GCC de la comparaison rendue signalante reste dans #80. Restent,
+dans cet ordre, deux pull requests. La comparaison par les bits sous DAZ (point
+Q), si #68 la décide, touchera le constructeur que le 21 a changé.
 
-- **21.** **Les entiers au-delà de 2^53** : `interval(0)`, `interval(0, 0)`,
-  `x = 0` et `x < 0` compilent : l'entier devient un double, et un entier
-  au-delà de 2^53 un double qui ne le contient pas. `interval(double)` est
-  `explicit` depuis le 4 octobre (ainsi que `expression(double)` et
-  `expression(const interval&)`), `x = d`, `x &= d`, `x |= d` et les relations
-  avec un double ayant leurs propres surcharges ; `interval(double, double)`
-  ne l'est pas. Correction : des constructeurs templates sur les types
-  entiers, contraints, dans les en-têtes, sans changement d'ABI ; pas un
-  simple `interval(int)`, qui rend `interval(5L)` ambigu, et des surcharges
-  entières pour `=` et les relations.
+- **21 (suite).** **Les fonctions à exposant entier autres que `pow`** :
+  `nth_root(x, q)`, `rootn(x, q)`, `pownRev(c, x, p)` et le `pow(e, n)`,
+  `pown(e, n)` et `nth_root(e, n)` des expressions ne prennent qu'un `int` ou un
+  `unsigned` : `nth_root(x, 3L)` est ambigu, `pownRev(c, 3000000000u)` lève une
+  exception, et `nth_root(e, -2)` prend l'ordre 4294967294. Décidé le 5
+  octobre : les traiter comme `pow`, dans une pull request à part (au-delà des
+  `unsigned`, les racines encadrées par `pow` avec l'exposant 1/q, en
+  intervalle) ; `nth_root_rel(J, n, I)` n'est pas concerné. Fait et vérifié en
+  local, à pousser.
+- **Le nettoyage des en-têtes.** Décidé le 5 octobre : `__GAOL_PUBLIC__` devient
+  `GAOL_PUBLIC`, vide par défaut sous Visual C++, où GAOL est toujours une
+  bibliothèque statique : plus de `__GAOL_PUBLIC__=` à passer (CMake, meson,
+  `gaol.pc`, la CI, la documentation), et la branche
+  `_COMPILING__GAOL_PUBLIC__`, définie nulle part, retirée ; `using namespace
+  gaol_core;` (`gaol_interval.h`, `gaol_expression.h`) devient des
+  using-declarations, nom par nom : les noms de GAOL 4 et les nouvelles
+  fonctions sur les intervalles de GAOL v5 (`exp2`, `log2`, `hypot`, `trunc`,
+  `sinpi`...), pas les internes, `gaol` restant compatible avec GAOL 4 et
+  `gaol_ieee1788` avec IEEE 1788-2015 (restent à trancher : `exact_string`,
+  `version()`, les nœuds d'expression des nouvelles fonctions et les noms de
+  GAOL 4.3.2 seulement) ; `gaol_allocator.h` est supprimé, ni GAOL v5, ni Codac,
+  ni IBEX ne s'en servant ; les casts à la C des en-têtes deviennent des
+  `static_cast<>`.
 
 ### E. Le parser et les longues sommes (12, 40)
 
@@ -756,8 +765,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
-  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81
-  et #83 après leur fusion).
+  3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
+  #83 et #84 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
