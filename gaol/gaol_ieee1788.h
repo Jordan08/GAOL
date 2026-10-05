@@ -24,9 +24,11 @@
  * it finds neither gaol's functions nor these. The functions of GAOL that
  * have the name and the meaning the standard gives them (sin, exp, sqrt,
  * min...) are brought in by using-declarations of those of gaol_core, which
- * name the functions argument-dependent lookup finds too; gaol/gaol_expression.h
- * is included first, so that they take its overloads whatever the order of
- * the includes.
+ * name the functions argument-dependent lookup finds too. This file does not
+ * include gaol/gaol_expression.h (GAOL v5): a program using the expressions
+ * includes it, as with GAOL 4, and it declares them again for its overloads,
+ * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
+ * in this namespace.
  *
  * Where the standard and GAOL differ, these functions follow the standard:
  *   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
@@ -57,22 +59,20 @@
  * COPYING file for information.
  *----------------------------------------------------------------------------*/
 
-#ifndef __gaol_ieee1788_h__
-#define __gaol_ieee1788_h__
+#ifndef GAOL_IEEE1788_H
+#define GAOL_IEEE1788_H
 
 #include <cmath>
 #include <exception>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_expression.h"
 #include "gaol/gaol_parser.h"
 
 namespace gaol_ieee1788 {
 
-  //! The interval of GAOL, the type of the operations below, but for the expressions of pown and pow
+  //! The interval of GAOL, the type of the operations below
   using ::gaol_core::interval;
 
   /* Each function below calls the operation of GAOL by its full name,
@@ -156,24 +156,6 @@ namespace gaol_ieee1788 {
     and [1, 16] in gaol.
   */
   GAOL_NODISCARD inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
-
-  /*!
-    pown(e, n), pow(e1, e2): the expressions of pown and pow
-    (gaol/gaol_expression.h). pown(e, n) is gaol_pown_exp(e, n), whose node
-    is computed by gaol_pown(), the pown of the standard. The node of
-    pow(e1, e2) keeps the function computing it: pow(x, y) above here, where
-    gaol_pow_exp(e1, e2), which is gaol::pow(e1, e2), keeps GAOL's pow,
-    [1, 16] for [-4, -1]^[2].
-  */
-  GAOL_NODISCARD inline const ::gaol_core::expression pown(const ::gaol_core::expression& e, int n)
-  {
-    return ::gaol_core::gaol_pown_exp(e, n);
-  }
-  GAOL_NODISCARD inline const ::gaol_core::expression pow(const ::gaol_core::expression& e1, const ::gaol_core::expression& e2)
-  {
-    const ::gaol_core::pow_itv_node::power_function standard_pow = pow;
-    return *(new ::gaol_core::pow_itv_node(e1, e2, standard_pow));
-  }
 
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
   using ::gaol_core::exp;
@@ -370,20 +352,27 @@ namespace gaol_ieee1788 {
   // Input and output (Clause 13)
   // ----------------------------------------------------------------------
 
-  //! intervalToText(x): operator<< in the current format of GAOL
-  GAOL_NODISCARD inline std::string intervalToText(const interval& x)
-  {
-    std::ostringstream s;
-    s << x;
-    return s.str();
-  }
+  /*!
+    intervalToText(x): the bounds of x rounded outward, "[l, r]", "[a]" for a
+    point interval whose double the digits write exactly, as "[4]" or "[0]",
+    and "[empty]" for the empty set, with the digits of interval::precision()
+    (16 unless the program sets another) and a decimal point. It is an
+    interval literal of the standard (12.11), which textToInterval() reads
+    back as an interval containing x (13.3), and as x itself for "[a]",
+    whatever the global output format and the locale of the program: it is
+    not what operator<< writes in the current format, which may not be a
+    literal (the width format).
+  */
+  GAOL_NODISCARD extern __GAOL_PUBLIC__ std::string intervalToText(const interval& x);
 
   /*!
     intervalToExact(x): exact_string(x), what operator<< writes in
     interval_format::hexa, whose bounds in the hexadecimal-significand form
-    exactToInterval() reads back bit for bit (13.4). It leaves the global
-    output format alone: switching it to hexa and back left it in hexa if the
-    output threw, and showed it to the other threads meanwhile.
+    exactToInterval() reads back as the same doubles (13.4), "[a]" for a
+    point interval, and "[0x0p+0]" for a zero one, read back as the same set.
+    It leaves the global output format alone: switching it to hexa and back
+    left it in hexa if the output threw, and showed it to the other threads
+    meanwhile.
   */
   GAOL_NODISCARD inline std::string intervalToExact(const interval& x) { return ::gaol_core::exact_string(x); }
 
@@ -404,4 +393,4 @@ namespace gaol_ieee1788 {
 
 } // namespace gaol_ieee1788
 
-#endif /* __gaol_ieee1788_h__ */
+#endif /* GAOL_IEEE1788_H */

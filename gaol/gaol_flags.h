@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_flags_h__
-#define __gaol_flags_h__
+#ifndef GAOL_FLAGS_H
+#define GAOL_FLAGS_H
 
 namespace gaol_core {
 
@@ -47,4 +47,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_flags_h__ */
+#endif /* GAOL_FLAGS_H */

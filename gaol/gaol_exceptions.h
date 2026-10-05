@@ -25,20 +25,18 @@
 */
 
 
-#ifndef __gaol_exceptions_h__
-#define __gaol_exceptions_h__
+#ifndef GAOL_EXCEPTIONS_H
+#define GAOL_EXCEPTIONS_H
 
 #include "gaol/gaol_config.h"
 
 #if GAOL_EXCEPTIONS_ENABLED
 
+// std::exception and std::string by their names: no using-declaration puts
+// them in the global namespace of the code including GAOL any more (GAOL v5)
 #include <stdexcept>
-using std::exception;
-
 #include <iosfwd>
 #include <string>
-
-using std::string;
 
 namespace gaol_core {
 
@@ -49,7 +47,7 @@ namespace gaol_core {
     to provide a uniform framework. Every exception thrown should at
     least contain the file and line where the exception was thrown.
   */
-  class __GAOL_PUBLIC__ gaol_exception : public exception {
+  class __GAOL_PUBLIC__ gaol_exception : public std::exception {
   public:
     /*!
       \param f Name of the file where the exception is thrown
@@ -62,9 +60,9 @@ namespace gaol_core {
       \param l Line in the file where the exception is thrown
       \param e Explanation concerning the throwing
     */
-    gaol_exception(const char* f, unsigned l, const string& e);
+    gaol_exception(const char* f, unsigned l, const std::string& e);
 
-    ~gaol_exception() {}
+    ~gaol_exception() override {}
     /*!
       \brief Accessor for the file name
 
@@ -84,7 +82,22 @@ namespace gaol_core {
       \return the string providing some explanation for having thrown
       the exception or the empty string if none was given.
     */
-    string explanation() const;
+    std::string explanation() const;
+
+    /*!
+      \brief The explanation, as a C string: what a handler of std::exception
+      gets (GAOL v5)
+
+      GAOL 4 left the what() of std::exception, which gave the text of the
+      standard class ("std::exception" with libstdc++ and libc++) whatever
+      went wrong: that is what a catch (const std::exception&) printed, and
+      what a program ended with when nothing caught the exception.
+
+      \return the explanation, as explanation() gives it, or the text
+      "gaol_exception" if none was given, never an empty text. The text is
+      valid as long as the exception is.
+    */
+    const char* what() const noexcept override;
 
   protected:
     /*!
@@ -102,7 +115,7 @@ namespace gaol_core {
     /*!
       \brief Short explanation concerning the exception thrown.
      */
-    string explanation_;
+    std::string explanation_;
   };
 
 
@@ -118,7 +131,7 @@ namespace gaol_core {
     input_format_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     input_format_error(const char* f, unsigned l, const char* e) :
       gaol_exception(f,l,e) {}
-    input_format_error(const char* f, unsigned l, const string& e) :
+    input_format_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
   };
 
@@ -133,7 +146,7 @@ namespace gaol_core {
     unavailable_feature_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     unavailable_feature_error(const char* f, unsigned l, const char* e) :
       gaol_exception(f,l,e) {}
-    unavailable_feature_error(const char* f, unsigned l, const string& e) :
+    unavailable_feature_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
   };
 
@@ -149,7 +162,7 @@ namespace gaol_core {
     invalid_action_error(const char* f, unsigned l) : gaol_exception(f,l) {}
     invalid_action_error(const char* f, unsigned l, const char* e) :
       gaol_exception(f,l,e) {}
-    invalid_action_error(const char* f, unsigned l, const string& e) :
+    invalid_action_error(const char* f, unsigned l, const std::string& e) :
       gaol_exception(f,l,e) {}
   };
 
@@ -157,7 +170,10 @@ namespace gaol_core {
     \brief Display of an exception.
 
     Convenient operator to display the file, line and explanation for
-    the exception thrown.
+    the exception thrown: "file, line n: exception thrown: explanation",
+    without the colon and the explanation if none was given. The operator
+    wrote what() too, between "exception" and "thrown": what() being the
+    explanation now, it is written once (GAOL v5).
    */
   extern __GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out,
 					      const gaol_exception &e);
@@ -165,4 +181,4 @@ namespace gaol_core {
 } // namespace gaol_core
 
 #endif /* GAOL_EXCEPTIONS_ENABLED */
-#endif /* __gaol_exceptions_h__ */
+#endif /* GAOL_EXCEPTIONS_H */

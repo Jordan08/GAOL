@@ -57,6 +57,12 @@
 	* gaol/gaol_interval.h: the constructor from two strings is gone:
 	textToInterval(sl, sr) takes its place, and gives the empty set for
 	bounds in the wrong order, where the constructor kept [2, 1].
+	* gaol/gaol_interval.h: interval(double) is explicit: a double
+	becomes an interval where the program writes interval(d).  The
+	assignment, &= and |= of a double, and <, <=, > and >= between an
+	interval and a double take interval(d), as the conversion did.
+	* gaol/gaol_expression.h: expression(double) and
+	expression(const interval&) are explicit.
 	* gaol/gaol_common.cpp (minimum, maximum): two zeros of different
 	signs give -0 and +0 with Visual C++ too, which compiled the
 	comparison as minsd and gave the other zero.

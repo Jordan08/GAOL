@@ -24,8 +24,8 @@
 */
 
 
-#ifndef __gaol_expr_visitor_h__
-#define __gaol_expr_visitor_h__
+#ifndef GAOL_EXPR_VISITOR_H
+#define GAOL_EXPR_VISITOR_H
 
 namespace gaol_core {
   // Forward declarations
@@ -80,94 +80,94 @@ namespace gaol_core {
     void reset() {
       error = false;
     }
-    virtual void visit(null_node* node) {
+    virtual void visit(null_node*) {
       error = true;
     }
-    virtual void visit(double_node* node) {
+    virtual void visit(double_node*) {
       error = true;
     }
-    virtual void visit(interval_node* node) {
+    virtual void visit(interval_node*) {
       error = true;
     }
-    virtual void visit(add_node* node) {
+    virtual void visit(add_node*) {
       error = true;
     }
-    virtual void visit(unary_minus_node* node) {
+    virtual void visit(unary_minus_node*) {
       error = true;
     }
-    virtual void visit(sub_node* node) {
+    virtual void visit(sub_node*) {
       error = true;
     }
-    virtual void visit(mult_node* node) {
+    virtual void visit(mult_node*) {
       error = true;
     }
-    virtual void visit(div_node* node) {
+    virtual void visit(div_node*) {
       error = true;
     }
-    virtual void visit(pow_node* node) {
+    virtual void visit(pow_node*) {
       error = true;
     }
-    virtual void visit(pow_itv_node* node) {
+    virtual void visit(pow_itv_node*) {
       error = true;
     }
-    virtual void visit(nth_root_node* node) {
+    virtual void visit(nth_root_node*) {
       error = true;
     }
-    virtual void visit(cos_node* node) {
+    virtual void visit(cos_node*) {
       error = true;
     }
-    virtual void visit(sin_node* node) {
+    virtual void visit(sin_node*) {
       error = true;
     }
-    virtual void visit(tan_node* node) {
+    virtual void visit(tan_node*) {
       error = true;
     }
-    virtual void visit(atan2_node* node) {
+    virtual void visit(atan2_node*) {
       error = true;
     }
-    virtual void visit(acos_node* node) {
+    virtual void visit(acos_node*) {
       error = true;
     }
-    virtual void visit(asin_node* node) {
+    virtual void visit(asin_node*) {
       error = true;
     }
-    virtual void visit(atan_node* node) {
+    virtual void visit(atan_node*) {
       error = true;
     }
-    virtual void visit(cosh_node* node) {
+    virtual void visit(cosh_node*) {
       error = true;
     }
-    virtual void visit(sinh_node* node) {
+    virtual void visit(sinh_node*) {
       error = true;
     }
-    virtual void visit(tanh_node* node) {
+    virtual void visit(tanh_node*) {
       error = true;
     }
-    virtual void visit(acosh_node* node) {
+    virtual void visit(acosh_node*) {
       error = true;
     }
-    virtual void visit(asinh_node* node) {
+    virtual void visit(asinh_node*) {
       error = true;
     }
-    virtual void visit(atanh_node* node) {
+    virtual void visit(atanh_node*) {
       error = true;
     }
-    virtual void visit(log_node* node) {
+    virtual void visit(log_node*) {
       error = true;
     }
-    virtual void visit(exp_node* node) {
+    virtual void visit(exp_node*) {
       error = true;
     }
-    virtual void visit(exp2_node* node) {
+    virtual void visit(exp2_node*) {
       error = true;
     }
-    virtual void visit(log2_node* node) {
+    virtual void visit(log2_node*) {
       error = true;
     }
-    virtual void visit(sign_node* node) {
+    virtual void visit(sign_node*) {
       error = true;
     }
-    virtual void visit(trunc_node* node) {
+    virtual void visit(trunc_node*) {
       error = true;
     }
   protected:
@@ -177,4 +177,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_expr_visitor_h__ */
+#endif /* GAOL_EXPR_VISITOR_H */

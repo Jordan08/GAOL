@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_expr_eval_h__
-#define __gaol_expr_eval_h__
+#ifndef GAOL_EXPR_EVAL_H
+#define GAOL_EXPR_EVAL_H
 
 #include "gaol/gaol_eval_stack.h"
 #include "gaol/gaol_interval.h"
@@ -47,7 +47,7 @@ namespace gaol_core {
   */
   class expr_eval : public expr_visitor {
   public:
-    virtual void visit(null_node* node) {
+    virtual void visit(null_node*) {
       error = true;
     }
     virtual void visit(double_node* node) {
@@ -199,4 +199,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-#endif /* __gaol_expr_eval_h__ */
+#endif /* GAOL_EXPR_EVAL_H */

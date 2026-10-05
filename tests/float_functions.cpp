@@ -81,9 +81,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_NAN,5);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -94,9 +94,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(5,GAOL_NAN);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -106,9 +106,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_NAN,-5);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -118,9 +118,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(-5,GAOL_NAN);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -132,9 +132,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_INFINITY,5);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -145,9 +145,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(5,GAOL_INFINITY);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -157,9 +157,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_INFINITY,-5);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -169,9 +169,9 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(-5,GAOL_INFINITY);
-	  } catch (invalid_action_error &e) {
+	  } catch (invalid_action_error &) {
 	      ok = true;
-	  } catch (gaol_exception &e) {
+	  } catch (gaol_exception &) {
 	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
@@ -181,7 +181,9 @@ public:
   }
   
   void test_types() {
-      CPPUNIT_ASSERT(sizeof(ULONGLONGINT)==8);
+      // The type of nb_fp_numbers(), unsigned long long, which GAOL 4 named
+      // ULONGLONGINT (GAOL v5)
+      CPPUNIT_ASSERT(sizeof(nb_fp_numbers(0.0, 1.0))==8);
   }
   // <-- End of tests
 };

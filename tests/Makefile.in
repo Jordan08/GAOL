@@ -20,9 +20,10 @@
 # make test run them (see ../Makefile.am). They are compiled as any code using
 # GAOL, with the flags of interval arithmetic configure gives, in C++17 for the
 # hexadecimal floating literals of elementary_values.h, and linked with the
-# static libgaol just built (-static: a libtool library not installed), as
-# CMake links them. Exit status 77 is a test skipped (intervalf and interval2f
-# where the intervals of floats are not compiled).
+# static libgaol just built (-static: a libtool library not installed), and
+# with the link option gaol.pc gives (-mno-daz-ftz, where the compiler takes
+# it), as CMake links them. Exit status 77 is a test skipped (intervalf and
+# interval2f where the intervals of floats are not compiled).
 #
 # make perf measures GAOL v5 on the benchmark of doc/compare/performance.md
 # (doc/compare/code/run_perf.sh).
@@ -133,8 +134,9 @@ am__EXEEXT_2 = arithmetic$(EXEEXT) elementary$(EXEEXT) \
 	other_functions$(EXEEXT) ieee1788$(EXEEXT) reverse$(EXEEXT) \
 	u128$(EXEEXT) core_math$(EXEEXT) expressions$(EXEEXT) \
 	extended_precision$(EXEEXT) static_initialization$(EXEEXT) \
-	debugging$(EXEEXT) arithmetic_operators$(EXEEXT) \
-	assignment$(EXEEXT) constants$(EXEEXT) constructor$(EXEEXT) \
+	debugging$(EXEEXT) fast_math_link$(EXEEXT) \
+	arithmetic_operators$(EXEEXT) assignment$(EXEEXT) \
+	constants$(EXEEXT) constructor$(EXEEXT) \
 	float_functions$(EXEEXT) generic_functions$(EXEEXT) \
 	input_output$(EXEEXT) interval_functions$(EXEEXT) \
 	misc$(EXEEXT) non_arithmetic$(EXEEXT) relations$(EXEEXT) \
@@ -144,7 +146,9 @@ PROGRAMS = $(noinst_PROGRAMS)
 arithmetic_SOURCES = arithmetic.cpp
 arithmetic_OBJECTS = arithmetic.$(OBJEXT)
 arithmetic_LDADD = $(LDADD)
-arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+am__DEPENDENCIES_1 =
+arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -152,119 +156,157 @@ am__v_lt_1 =
 arithmetic_operators_SOURCES = arithmetic_operators.cpp
 arithmetic_operators_OBJECTS = arithmetic_operators.$(OBJEXT)
 arithmetic_operators_LDADD = $(LDADD)
-arithmetic_operators_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+arithmetic_operators_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 assignment_SOURCES = assignment.cpp
 assignment_OBJECTS = assignment.$(OBJEXT)
 assignment_LDADD = $(LDADD)
-assignment_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+assignment_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 automatic_cleanup_SOURCES = automatic_cleanup.cpp
 automatic_cleanup_OBJECTS = automatic_cleanup.$(OBJEXT)
 automatic_cleanup_LDADD = $(LDADD)
-automatic_cleanup_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+automatic_cleanup_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 constants_SOURCES = constants.cpp
 constants_OBJECTS = constants.$(OBJEXT)
 constants_LDADD = $(LDADD)
-constants_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+constants_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 constructor_SOURCES = constructor.cpp
 constructor_OBJECTS = constructor.$(OBJEXT)
 constructor_LDADD = $(LDADD)
-constructor_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+constructor_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 core_math_SOURCES = core_math.cpp
 core_math_OBJECTS = core_math.$(OBJEXT)
 core_math_LDADD = $(LDADD)
-core_math_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+core_math_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 debugging_SOURCES = debugging.cpp
 debugging_OBJECTS = debugging.$(OBJEXT)
 debugging_LDADD = $(LDADD)
-debugging_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+debugging_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 elementary_SOURCES = elementary.cpp
 elementary_OBJECTS = elementary.$(OBJEXT)
 elementary_LDADD = $(LDADD)
-elementary_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+elementary_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 expressions_SOURCES = expressions.cpp
 expressions_OBJECTS = expressions.$(OBJEXT)
 expressions_LDADD = $(LDADD)
-expressions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+expressions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 extended_precision_SOURCES = extended_precision.cpp
 extended_precision_OBJECTS = extended_precision.$(OBJEXT)
 extended_precision_LDADD = $(LDADD)
-extended_precision_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+extended_precision_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
+fast_math_link_SOURCES = fast_math_link.cpp
+fast_math_link_OBJECTS = fast_math_link-fast_math_link.$(OBJEXT)
+fast_math_link_LDADD = $(LDADD)
+fast_math_link_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
+fast_math_link_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(AM_CXXFLAGS) $(CXXFLAGS) $(fast_math_link_LDFLAGS) \
+	$(LDFLAGS) -o $@
 float_functions_SOURCES = float_functions.cpp
 float_functions_OBJECTS = float_functions.$(OBJEXT)
 float_functions_LDADD = $(LDADD)
-float_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+float_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 am_gaol_performance_OBJECTS = performance.$(OBJEXT)
 gaol_performance_OBJECTS = $(am_gaol_performance_OBJECTS)
 gaol_performance_LDADD = $(LDADD)
-gaol_performance_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+gaol_performance_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 generic_functions_SOURCES = generic_functions.cpp
 generic_functions_OBJECTS = generic_functions.$(OBJEXT)
 generic_functions_LDADD = $(LDADD)
-generic_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+generic_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 ieee1788_SOURCES = ieee1788.cpp
 ieee1788_OBJECTS = ieee1788.$(OBJEXT)
 ieee1788_LDADD = $(LDADD)
-ieee1788_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+ieee1788_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 input_output_SOURCES = input_output.cpp
 input_output_OBJECTS = input_output.$(OBJEXT)
 input_output_LDADD = $(LDADD)
-input_output_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+input_output_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 interval2f_SOURCES = interval2f.cpp
 interval2f_OBJECTS = interval2f.$(OBJEXT)
 interval2f_LDADD = $(LDADD)
-interval2f_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+interval2f_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 interval_functions_SOURCES = interval_functions.cpp
 interval_functions_OBJECTS = interval_functions.$(OBJEXT)
 interval_functions_LDADD = $(LDADD)
-interval_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+interval_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 intervalf_SOURCES = intervalf.cpp
 intervalf_OBJECTS = intervalf.$(OBJEXT)
 intervalf_LDADD = $(LDADD)
-intervalf_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+intervalf_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 misc_SOURCES = misc.cpp
 misc_OBJECTS = misc.$(OBJEXT)
 misc_LDADD = $(LDADD)
-misc_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+misc_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 non_arithmetic_SOURCES = non_arithmetic.cpp
 non_arithmetic_OBJECTS = non_arithmetic.$(OBJEXT)
 non_arithmetic_LDADD = $(LDADD)
-non_arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+non_arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 numbers_SOURCES = numbers.cpp
 numbers_OBJECTS = numbers.$(OBJEXT)
 numbers_LDADD = $(LDADD)
-numbers_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+numbers_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 other_functions_SOURCES = other_functions.cpp
 other_functions_OBJECTS = other_functions.$(OBJEXT)
 other_functions_LDADD = $(LDADD)
-other_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+other_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 relations_SOURCES = relations.cpp
 relations_OBJECTS = relations.$(OBJEXT)
 relations_LDADD = $(LDADD)
-relations_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+relations_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 reverse_SOURCES = reverse.cpp
 reverse_OBJECTS = reverse.$(OBJEXT)
 reverse_LDADD = $(LDADD)
-reverse_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+reverse_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 reverse_mappings_SOURCES = reverse_mappings.cpp
 reverse_mappings_OBJECTS = reverse_mappings.$(OBJEXT)
 reverse_mappings_LDADD = $(LDADD)
-reverse_mappings_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+reverse_mappings_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 rounding_direction_SOURCES = rounding_direction.cpp
 rounding_direction_OBJECTS = rounding_direction.$(OBJEXT)
 rounding_direction_LDADD = $(LDADD)
-rounding_direction_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+rounding_direction_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 static_initialization_SOURCES = static_initialization.cpp
 static_initialization_OBJECTS = static_initialization.$(OBJEXT)
 static_initialization_LDADD = $(LDADD)
-static_initialization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+static_initialization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 trigonometric_SOURCES = trigonometric.cpp
 trigonometric_OBJECTS = trigonometric.$(OBJEXT)
 trigonometric_LDADD = $(LDADD)
-trigonometric_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+trigonometric_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 u128_SOURCES = u128.cpp
 u128_OBJECTS = u128.$(OBJEXT)
 u128_LDADD = $(LDADD)
-u128_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la
+u128_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -286,6 +328,7 @@ am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/core_math.Po \
 	./$(DEPDIR)/debugging.Po ./$(DEPDIR)/elementary.Po \
 	./$(DEPDIR)/expressions.Po ./$(DEPDIR)/extended_precision.Po \
+	./$(DEPDIR)/fast_math_link-fast_math_link.Po \
 	./$(DEPDIR)/float_functions.Po \
 	./$(DEPDIR)/generic_functions.Po ./$(DEPDIR)/ieee1788.Po \
 	./$(DEPDIR)/input_output.Po ./$(DEPDIR)/interval2f.Po \
@@ -319,7 +362,7 @@ am__v_CXXLD_1 =
 SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
 	automatic_cleanup.cpp constants.cpp constructor.cpp \
 	core_math.cpp debugging.cpp elementary.cpp expressions.cpp \
-	extended_precision.cpp float_functions.cpp \
+	extended_precision.cpp fast_math_link.cpp float_functions.cpp \
 	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
 	input_output.cpp interval2f.cpp interval_functions.cpp \
 	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
@@ -596,6 +639,7 @@ FILECMD = @FILECMD@
 GAOL_CXX_STD = @GAOL_CXX_STD@
 GAOL_EDITION = @GAOL_EDITION@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
+GAOL_PC_LIBS = @GAOL_PC_LIBS@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
@@ -702,18 +746,25 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = -std=c++17
 AM_LDFLAGS = -static
-LDADD = $(top_builddir)/gaol/libgaol.la -lm
+LDADD = $(top_builddir)/gaol/libgaol.la $(GAOL_PC_LIBS)
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The same list as tests/CMakeLists.txt
 GAOL_TESTS = arithmetic elementary rounding_direction numbers \
 	other_functions ieee1788 reverse u128 core_math expressions \
 	extended_precision static_initialization debugging \
-	arithmetic_operators assignment constants constructor \
-	float_functions generic_functions input_output \
+	fast_math_link arithmetic_operators assignment constants \
+	constructor float_functions generic_functions input_output \
 	interval_functions misc non_arithmetic relations \
 	reverse_mappings trigonometric intervalf interval2f \
 	$(am__append_1)
+
+# fast_math_link: -ffast-math to its link only, its source being compiled as
+# any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where its link has
+# -mno-daz-ftz (GAOL v5)
+fast_math_link_LDFLAGS = $(AM_LDFLAGS) -ffast-math
+@GAOL_NO_DAZ_FTZ_FALSE@fast_math_link_CPPFLAGS = $(AM_CPPFLAGS)
+@GAOL_NO_DAZ_FTZ_TRUE@fast_math_link_CPPFLAGS = $(AM_CPPFLAGS) -DGAOL_TESTS_NO_DAZ_FTZ=1
 gaol_performance_SOURCES = performance.cpp
 CLEANFILES = gaol_bench$(EXEEXT)
 BASH = bash
@@ -798,6 +849,10 @@ expressions$(EXEEXT): $(expressions_OBJECTS) $(expressions_DEPENDENCIES) $(EXTRA
 extended_precision$(EXEEXT): $(extended_precision_OBJECTS) $(extended_precision_DEPENDENCIES) $(EXTRA_extended_precision_DEPENDENCIES) 
 	@rm -f extended_precision$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(extended_precision_OBJECTS) $(extended_precision_LDADD) $(LIBS)
+
+fast_math_link$(EXEEXT): $(fast_math_link_OBJECTS) $(fast_math_link_DEPENDENCIES) $(EXTRA_fast_math_link_DEPENDENCIES) 
+	@rm -f fast_math_link$(EXEEXT)
+	$(AM_V_CXXLD)$(fast_math_link_LINK) $(fast_math_link_OBJECTS) $(fast_math_link_LDADD) $(LIBS)
 
 float_functions$(EXEEXT): $(float_functions_OBJECTS) $(float_functions_DEPENDENCIES) $(EXTRA_float_functions_DEPENDENCIES) 
 	@rm -f float_functions$(EXEEXT)
@@ -892,6 +947,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elementary.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expressions.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extended_precision.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fast_math_link-fast_math_link.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/float_functions.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generic_functions.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee1788.Po@am__quote@ # am--include-marker
@@ -941,6 +997,20 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
+
+fast_math_link-fast_math_link.o: fast_math_link.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fast_math_link_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT fast_math_link-fast_math_link.o -MD -MP -MF $(DEPDIR)/fast_math_link-fast_math_link.Tpo -c -o fast_math_link-fast_math_link.o `test -f 'fast_math_link.cpp' || echo '$(srcdir)/'`fast_math_link.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fast_math_link-fast_math_link.Tpo $(DEPDIR)/fast_math_link-fast_math_link.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='fast_math_link.cpp' object='fast_math_link-fast_math_link.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fast_math_link_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o fast_math_link-fast_math_link.o `test -f 'fast_math_link.cpp' || echo '$(srcdir)/'`fast_math_link.cpp
+
+fast_math_link-fast_math_link.obj: fast_math_link.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fast_math_link_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT fast_math_link-fast_math_link.obj -MD -MP -MF $(DEPDIR)/fast_math_link-fast_math_link.Tpo -c -o fast_math_link-fast_math_link.obj `if test -f 'fast_math_link.cpp'; then $(CYGPATH_W) 'fast_math_link.cpp'; else $(CYGPATH_W) '$(srcdir)/fast_math_link.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fast_math_link-fast_math_link.Tpo $(DEPDIR)/fast_math_link-fast_math_link.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='fast_math_link.cpp' object='fast_math_link-fast_math_link.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fast_math_link_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o fast_math_link-fast_math_link.obj `if test -f 'fast_math_link.cpp'; then $(CYGPATH_W) 'fast_math_link.cpp'; else $(CYGPATH_W) '$(srcdir)/fast_math_link.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1257,6 +1327,13 @@ debugging.log: debugging$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+fast_math_link.log: fast_math_link$(EXEEXT)
+	@p='fast_math_link$(EXEEXT)'; \
+	b='fast_math_link'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 arithmetic_operators.log: arithmetic_operators$(EXEEXT)
 	@p='arithmetic_operators$(EXEEXT)'; \
 	b='arithmetic_operators'; \
@@ -1440,6 +1517,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/elementary.Po
 	-rm -f ./$(DEPDIR)/expressions.Po
 	-rm -f ./$(DEPDIR)/extended_precision.Po
+	-rm -f ./$(DEPDIR)/fast_math_link-fast_math_link.Po
 	-rm -f ./$(DEPDIR)/float_functions.Po
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/ieee1788.Po
@@ -1461,7 +1539,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/u128.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
-	distclean-tags
+	distclean-local distclean-tags
 
 dvi: dvi-am
 
@@ -1515,6 +1593,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/elementary.Po
 	-rm -f ./$(DEPDIR)/expressions.Po
 	-rm -f ./$(DEPDIR)/extended_precision.Po
+	-rm -f ./$(DEPDIR)/fast_math_link-fast_math_link.Po
 	-rm -f ./$(DEPDIR)/float_functions.Po
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/ieee1788.Po
@@ -1558,16 +1637,16 @@ uninstall-am:
 	check-am check-local clean clean-generic clean-libtool \
 	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
 	distclean-compile distclean-generic distclean-libtool \
-	distclean-tags dvi dvi-am html html-am info info-am install \
-	install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am recheck tags tags-am uninstall \
-	uninstall-am
+	distclean-local distclean-tags dvi dvi-am html html-am info \
+	info-am install install-am install-data install-data-am \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-html install-html-am install-info install-info-am \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am recheck tags tags-am \
+	uninstall uninstall-am
 
 .PRECIOUS: Makefile
 
@@ -1580,12 +1659,18 @@ uninstall-am:
 gaol_bench$(EXEEXT): $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la
 	$(LIBTOOL) --tag=CXX --mode=link $(CXX) $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) \
 	  -I$(top_srcdir)/doc/compare/code -DGAOL_BENCH_NAME='"gaol5"' $(GAOL_CXX_STD) $(CXXFLAGS) \
-	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -lm -o $@
+	  $(LDFLAGS) -static $(top_srcdir)/doc/compare/code/bench_gaol.cpp $(top_builddir)/gaol/libgaol.la -o $@
 
 perf: gaol_bench$(EXEEXT)
 	$(BASH) $(top_srcdir)/doc/compare/code/run_perf.sh ./gaol_bench$(EXEEXT) autotools "$(CXX)"
 
 .PHONY: perf
+
+# make distclean removes the files of the dependencies one by one and leaves
+# their directories: removed here, so that it gives the sources back as git has
+# them (GAOL v5)
+distclean-local:
+	-rm -rf ./$(DEPDIR)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

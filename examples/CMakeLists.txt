@@ -15,8 +15,9 @@
 # Examples 01 to 15 check what they print (the enclosures contain the values
 # computed apart, the proofs hold) and exit with a failure otherwise, so that
 # ctest runs them as tests. 16_Goldstein_Price is the example of GAOL 4, a
-# timing loop, which the autotools and meson builds of GAOL also compile
-# (Makefile.am, meson.build). examples.md describes them all.
+# timing loop that checks its enclosure too, which the autotools and meson
+# builds of GAOL also compile (Makefile.am, meson.build). examples.md describes
+# them all.
 #
 # Copyright (c) 2026 ENSTA, France
 #

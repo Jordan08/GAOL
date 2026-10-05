@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_init_cleanup_h__
-#define __gaol_init_cleanup_h__
+#ifndef GAOL_INIT_CLEANUP_H
+#define GAOL_INIT_CLEANUP_H
 
 namespace gaol_core {
 
@@ -39,4 +39,4 @@ namespace gaol_core {
   
 } // namespace gaol_core
 
-#endif /* __gaol_init_cleanup_h__ */
+#endif /* GAOL_INIT_CLEANUP_H */

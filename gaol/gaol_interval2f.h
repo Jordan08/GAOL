@@ -17,14 +17,14 @@
  *--------------------------------------------------------------------------*/
 
 
-#ifndef __gaol_interval2f_h__
-#define __gaol_interval2f_h__
+#ifndef GAOL_INTERVAL2F_H
+#define GAOL_INTERVAL2F_H
 
 // Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 // gaol/gaol_config.h) and SSE3 instructions are used, and empty otherwise
 // (GAOL v5)
 #include "gaol/gaol_config.h"
-#if defined(GAOL_FLOAT_INTERVALS) && USING_SSE3_INSTRUCTIONS
+#if defined(GAOL_FLOAT_INTERVALS) && GAOL_USING_SSE3_INSTRUCTIONS
 
 #include <new>
 #include <iosfwd>
@@ -346,6 +346,6 @@ namespace gaol_core {
 
 } // namespace cell
 
-#endif // GAOL_FLOAT_INTERVALS && USING_SSE3_INSTRUCTIONS
+#endif // GAOL_FLOAT_INTERVALS && GAOL_USING_SSE3_INSTRUCTIONS
 
-#endif // __gaol_interval2f_h__
+#endif // GAOL_INTERVAL2F_H

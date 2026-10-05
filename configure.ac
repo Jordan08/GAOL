@@ -35,10 +35,24 @@ AC_PREREQ(2.64)
 # before VERSION.txt is committed (see doc/building.md); configure warns
 # meanwhile. The m4 macro is not named gaol_version, which m4 replaced in
 # manual/v5/gaol_version.tex, giving config.status "manual/v5/5.0.0.tex"
-# (GAOL v5).
-m4_define([gaol_m4_version], m4_esyscmd_s([tr -d ' \t\r\n' < VERSION.txt]))
-m4_bmatch(gaol_m4_version, [^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$], [],
-          [m4_fatal([VERSION.txt holds "]gaol_m4_version[", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])])
+# (GAOL v5). autoconf reads it with the commands of configure below: a UTF-8
+# byte order mark at the start of VERSION.txt, which some editors of Windows
+# write, is removed, and so are the blanks around the version, not those
+# within it. The lines left are joined by a blank, which refuses a second
+# line: a regular expression of m4 matches at the end of any line. m4 reads
+# the text again, where a comma or a parenthesis would end an argument, a
+# bracket open a quotation, and a word such as dnl be a macro: the characters
+# other than digits, dots and blanks are written ?, which refuses them as the
+# other builds do (autoconf took "5.0.0)" for 5.0.0), the bytes in
+# hexadecimal of the message showing them. The bytes of the mark, EF BB BF,
+# are made by printf: sed has no escape for them that every sed knows, and
+# the C locale makes it read bytes. gaol_m4_version_utf16 is empty, or says
+# why a file of UTF-16 characters is refused (without a comma, for the same
+# reason).
+m4_define([gaol_m4_version], m4_esyscmd_s([LC_ALL=C tr -d '\000' < VERSION.txt | LC_ALL=C sed -e "1s/^`printf '\357\273\277'`//" -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//' | LC_ALL=C tr -c '0-9. \n' '?']))
+m4_define([gaol_m4_version_utf16], m4_esyscmd_s([case `od -An -v -tx1 -N 2 < VERSION.txt | tr -d ' \n'` in fffe|feff) echo '; the file is UTF-16: save it as UTF-8 or ASCII' ;; *) if od -An -v -tx1 < VERSION.txt | grep ' 00' > /dev/null; then echo '; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII'; fi ;; esac]))
+m4_bmatch(gaol_m4_version[]gaol_m4_version_utf16, [^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$], [],
+          [m4_fatal([VERSION.txt holds "]gaol_m4_version[" (bytes in hexadecimal: ]m4_esyscmd_s([od -An -v -tx1 -N 32 < VERSION.txt | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'])[), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0]gaol_m4_version_utf16)])
 dnl autom4te (its cache) and automake follow the files that m4_include reads,
 dnl not those of m4_esyscmd_s: VERSION.txt is included too, into the diversion
 dnl KILL, which m4 discards, so that a change of VERSION.txt generates configure
@@ -64,19 +78,39 @@ AUTOHEADER=true
 AC_CONFIG_SRCDIR([gaol/gaol_config.h])
 
 # The version of GAOL, read from VERSION.txt when configure runs, without the
-# blanks and the empty lines around it: GAOL_VERSION, and its three numbers
-# gaol_major, gaol_minor and gaol_micro, refused unless they are three numbers
-# without leading zeros, as with CMake and meson (GAOL v5)
-GAOL_VERSION=`tr -d '\r' < "$srcdir/VERSION.txt" | sed -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d'`
+# UTF-8 byte order mark that some editors of Windows write at the start of a
+# file (EF BB BF, made by printf as above), nor the blanks around it (the CR
+# of the line ends of Windows among them) and the empty lines: GAOL_VERSION,
+# and its three numbers gaol_major, gaol_minor and gaol_micro, refused unless
+# they are three numbers without leading zeros, as with CMake and meson. The
+# blanks are the six of ASCII, the class space of the C locale, which CMake
+# and meson strip too; the lines left are joined by a blank, as autoconf
+# joins them above. A file of UTF-16 characters starts with its byte order
+# mark (FF FE, FE FF) or holds NUL bytes, which the shell drops from the text
+# of a command (they are taken out of it before): od finds them, and the file
+# is refused. The error gives the first bytes of the file in hexadecimal, for
+# the characters it does not show, and says to save a file of UTF-16
+# characters as UTF-8 or ASCII (GAOL v5)
+gaol_bom=`printf '\357\273\277'`
+GAOL_VERSION=`LC_ALL=C tr -d '\000' < "$srcdir/VERSION.txt" | LC_ALL=C sed -e "1s/^$gaol_bom//" -e 's/^[[[:space:]]]*//' -e 's/[[[:space:]]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//'`
+gaol_version_utf16=
+case `od -An -v -tx1 -N 2 < "$srcdir/VERSION.txt" | tr -d ' \n'` in
+  fffe|feff) gaol_version_utf16="; the file is UTF-16: save it as UTF-8 or ASCII" ;;
+  *) if od -An -v -tx1 < "$srcdir/VERSION.txt" | grep ' 00' > /dev/null; then
+       gaol_version_utf16="; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII"
+     fi ;;
+esac
 gaol_version_ok=no
-if expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then
+if test -z "$gaol_version_utf16" &&
+   expr "x$GAOL_VERSION" : 'x[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*\.[[0-9]][[0-9]]*$' > /dev/null; then
   case .$GAOL_VERSION in
     *.0[[0-9]]*) ;;
     *) gaol_version_ok=yes ;;
   esac
 fi
 if test "${gaol_version_ok}" = no; then
-  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0])
+  gaol_version_bytes=`od -An -v -tx1 -N 32 < "$srcdir/VERSION.txt" | tr -s ' \n' ' ' | sed -e 's/^ *//' -e 's/ *$//'`
+  AC_MSG_ERROR([VERSION.txt holds "$GAOL_VERSION" (bytes in hexadecimal: $gaol_version_bytes), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0$gaol_version_utf16])
 fi
 gaol_major=`expr "x$GAOL_VERSION" : 'x\([[0-9]]*\)'`
 gaol_minor=`expr "x$GAOL_VERSION" : 'x[[0-9]]*\.\([[0-9]]*\)'`
@@ -219,9 +253,11 @@ Build GAOL with a compiler that honours the rounding direction on this target, s
     fi
 fi
 CXXFLAGS=$gaol_save_CXXFLAGS
-# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
-# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
-# its own, which CORE-MATH's functions read (see CMakeLists.txt)
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
+# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
+# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
+# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM before 11, not tested
+# (see CMakeLists.txt)
 AC_LANG_POP([C++])
 
 # --enable-simd
@@ -267,13 +303,13 @@ if test "${target_x86}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
-            AC_DEFINE([USING_SSE2_INSTRUCTIONS],1,
+            AC_DEFINE([GAOL_USING_SSE2_INSTRUCTIONS],1,
                 [Define this to 1 if SSE2 instructions are to be used])
             GAOL_CHECK_CXX_FLAG([-msse3], [has_sse3])
             if test "${has_sse3}" = yes; then
                 CXXFLAGS="${CXXFLAGS} -msse3"
                 GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse3"
-                AC_DEFINE([USING_SSE3_INSTRUCTIONS],1,
+                AC_DEFINE([GAOL_USING_SSE3_INSTRUCTIONS],1,
                     [Define this to 1 if SSE3 instructions are to be used])
             fi
         fi
@@ -452,7 +488,7 @@ fi
 GAOL_CHECK_CXX_FLAG([-fvisibility-inlines-hidden -fvisibility=hidden], [has_visibility_opt])
 if test "${has_visibility_opt}" = yes; then
     CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
-    AC_DEFINE(HAVE_VISIBILITY_OPTIONS,1,
+    AC_DEFINE(GAOL_HAVE_VISIBILITY_OPTIONS,1,
                 [Define this to 1 if the compiler supports the "-fvisibility" option])
 fi
 
@@ -561,7 +597,7 @@ AM_CONDITIONAL(PDF_TO_LATEX,
 # by rpl_malloc() and rpl_realloc() in a cross-compilation (GAOL v5).
 AC_LANG([C++])
 AC_CHECK_HEADER([fenv.h],
-                [AC_DEFINE([HAVE_FENV_H],1,[Define to 1 if you have the <fenv.h> header file.])],
+                [AC_DEFINE([GAOL_HAVE_FENV_H],1,[Define to 1 if you have the <fenv.h> header file.])],
                 [], [/* fenv.h alone */])
 AC_MSG_CHECKING([for getrusage in sys/resource.h])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/resource.h>]],
@@ -569,13 +605,13 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/resource.h>]],
                [have_getrusage=yes], [have_getrusage=no])
 AC_MSG_RESULT([${have_getrusage}])
 if test "${have_getrusage}" = yes; then
-    AC_DEFINE([HAVE_GETRUSAGE],1,[Define to 1 if you have the `getrusage' function in <sys/resource.h>.])
+    AC_DEFINE([GAOL_HAVE_GETRUSAGE],1,[Define to 1 if you have the `getrusage' function in <sys/resource.h>.])
 fi
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where
 # the compiler accepts it, as CMakeLists.txt gives them: -frounding-math (GAOL
-# then negates a double with the minus sign, HAVE_ROUNDING_MATH_OPTION),
+# then negates a double with the minus sign, GAOL_HAVE_ROUNDING_MATH_OPTION),
 # -ffp-contract=off (without it, compilers contract a multiplication and an
 # addition into a fused one as if rounding to nearest: on 64-bit ARM,
 # -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
@@ -583,13 +619,40 @@ fi
 # nearest and drop the checks of NaN and infinities)
 AC_LANG([C])
 if test "${has_rounding_math_opt}" = yes; then
-    AC_DEFINE(HAVE_ROUNDING_MATH_OPTION,1,
+    AC_DEFINE(GAOL_HAVE_ROUNDING_MATH_OPTION,1,
         [Define this to 1 if the compiler supports the "-frounding-math" option])
 fi
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
 AC_SUBST([GAOL_PC_CFLAGS])
+
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and from 11.4 and 12.4 in the series 11 and 12; GCC 9.4, 12.3, GCC for
+# ARM and Clang 18 refuse it), which gaol.pc gives the code using GAOL in Libs,
+# as CMakeLists.txt gives it to gaol::gaol, and the tests are linked with (GAOL
+# v5). GCC links crtfastmath.o into a program linked with -Ofast, -ffast-math
+# or -funsafe-math-optimizations, and its constructor sets the flush-to-zero and
+# denormals-are-zero modes of the SSE instructions, which make the bounds of
+# every operation with a subnormal operand or result wrong. The option keeps
+# that file out of the link; each operation of GAOL clears the modes when it
+# starts (gaol/gaol_fpu.h). Checked by linking, since it is a link option
+# (tests/fast_math_link.cpp), with the LDFLAGS of the user, which a cross
+# build may need to link at all.
+GAOL_PC_LIBS=""
+AC_LANG_PUSH([C++])
+gaol_save_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -Werror -mno-daz-ftz"
+AC_MSG_CHECKING([whether the C++ compiler links with -mno-daz-ftz])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[gaol_takes_mno_daz_ftz=yes],[gaol_takes_mno_daz_ftz=no])
+AC_MSG_RESULT([${gaol_takes_mno_daz_ftz}])
+LDFLAGS=$gaol_save_LDFLAGS
+AC_LANG_POP([C++])
+if test "${gaol_takes_mno_daz_ftz}" = yes; then
+    GAOL_PC_LIBS="-mno-daz-ftz"
+fi
+AC_SUBST([GAOL_PC_LIBS])
+AM_CONDITIONAL([GAOL_NO_DAZ_FTZ], [test "${gaol_takes_mno_daz_ftz}" = yes])
 
 
 AC_CONFIG_FILES([gaol.pc

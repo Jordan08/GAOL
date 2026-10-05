@@ -30,6 +30,8 @@ class reverse_mappings_test {
      TEST_SEQ(acos_rel(interval::minus_one_plus_one(),interval(-5,6)),interval(-5,6));
 	  TEST_EMPTY(acos_rel(interval(-3,-2),interval::universe()));
 	  TEST_EMPTY(acos_rel(interval(2,4),interval::universe()));
+	  // 2^52, which gaol/gaol_port.h no longer declares (GAOL v5)
+	  const double two_power_52 = 4503599627370496.0;
 	  I = interval(previous_float(two_power_52),two_power_52);
 	  J = cos(I);
 	  TEST_EQ(acos_rel(J,I),I);
@@ -94,7 +96,7 @@ class reverse_mappings_test {
 		TI[i] = interval(Il,Ir);
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
-	   interval J = tan(TI[i]);
+	   J = tan(TI[i]);
 		TEST_EQ(atan_rel(J,TI[i]),TI[i]);
 	 }
 	 TEST_EQ(atan_rel(interval(-5,5),interval::universe()),interval::universe());
@@ -213,6 +215,20 @@ class reverse_mappings_test {
 	 TEST_EMPTY(atanh_rel(interval::universe(),interval::emptyset()));
 	 TEST_EMPTY(atanh_rel(interval::emptyset(),interval(0,2)));
 	 TEST_EMPTY(atanh_rel(interval::emptyset(),interval::universe()));
+
+	 // tanh takes its values in (-1, 1), where atanh is defined (IEEE
+	 // 1788-2015, Table 9.1): no x has its tanh in [1], [1,5], [1,+oo], [-1]
+	 // or [-5,-1]. GAOL gave [MAX,+oo] for the first three
+	 TEST_EMPTY(atanh_rel(interval(1.0),interval::universe()));
+	 TEST_EMPTY(atanh_rel(interval(1.0,5.0),interval::universe()));
+	 TEST_EMPTY(atanh_rel(interval(1.0,GAOL_INFINITY),interval(0.0,GAOL_INFINITY)));
+	 TEST_EMPTY(atanh_rel(interval(-1.0),interval::universe()));
+	 TEST_EMPTY(atanh_rel(interval(-5.0,-1.0),interval::universe()));
+	 // ... while a J that holds points of (-1, 1) keeps its preimage, whose
+	 // end is +oo where J ends at 1: tanh(x) is in [0.5,1] from atanh(0.5)
+	 // on, and every x has its tanh in [-1,1]
+	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,100.0)),interval(0.5493061443340548457,100.0));
+	 TEST_EQ(atanh_rel(interval(-1.0,1.0),interval(1.0,2.0)),interval(1.0,2.0));
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {

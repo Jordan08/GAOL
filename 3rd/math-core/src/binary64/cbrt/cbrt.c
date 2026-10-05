@@ -81,7 +81,7 @@ static inline int get_rounding_mode (fexcept_t *flagp)
   unsigned int mode;
 #if defined(__x86_64__)
   *flagp = _mm_getcsr ();
-  #if defined(__WIN32__) || defined(__WIN64__)
+  #if defined(__WIN32__) || defined(__WIN64__) || defined(_WIN32) /* GAOL */
     // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
     // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
     // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
@@ -94,7 +94,7 @@ static inline int get_rounding_mode (fexcept_t *flagp)
       mode = lut[(*flagp & _MM_ROUND_MASK)>>13];
     #else
       #warning The floating point rounding constants have an unknown value. A slower path will be taken.
-      return fegetround();
+      mode = fegetround(); /* GAOL: mapped to 0..3 by the switch below, not returned */
     #endif
   #else
     mode = (*flagp & _MM_ROUND_MASK)>>3;

@@ -21,7 +21,7 @@
   of GAOL defines GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h) (GAOL v5)
 */
 #include "gaol/gaol_config.h"
-#if defined(GAOL_FLOAT_INTERVALS) && USING_SSE3_INSTRUCTIONS
+#if defined(GAOL_FLOAT_INTERVALS) && GAOL_USING_SSE3_INSTRUCTIONS
 
 #include <iostream>
 #include <cmath>
@@ -48,7 +48,7 @@ namespace gaol_core {
 	void* interval2f::operator new(size_t sz)
 	{
 		void *buf;
-		if (MEMALIGN(buf,16,sz)) { // error ?
+		if (GAOL_MEMALIGN(buf,16,sz)) { // error ?
 			throw std::bad_alloc();
 		}
 		return buf;
@@ -56,13 +56,13 @@ namespace gaol_core {
 
     void interval2f::operator delete(void *p)
     {
-        MEMFREE(p);
+        GAOL_MEMFREE(p);
     }
 
 	void* interval2f::operator new[](size_t sz)
 	{
 		void *buf;
-		if (MEMALIGN(buf,16,sz)) { // error ?
+		if (GAOL_MEMALIGN(buf,16,sz)) { // error ?
 			throw std::bad_alloc();
 		}
 		return buf;
@@ -72,7 +72,7 @@ namespace gaol_core {
 
     void interval2f::operator delete[](void *p)
     {
-        MEMFREE(p);
+        GAOL_MEMFREE(p);
     }
 
 	void* interval2f::operator new(size_t sz, void *p)
@@ -3123,4 +3123,4 @@ interval2f interval2f::inverse() const
 
 } // namespace gaol_core
 
-#endif // GAOL_FLOAT_INTERVALS && USING_SSE3_INSTRUCTIONS
+#endif // GAOL_FLOAT_INTERVALS && GAOL_USING_SSE3_INSTRUCTIONS

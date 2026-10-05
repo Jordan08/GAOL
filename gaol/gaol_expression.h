@@ -26,8 +26,8 @@
 */
 
 
-#ifndef __gaol_expression_h__
-#define __gaol_expression_h__
+#ifndef GAOL_EXPRESSION_H
+#define GAOL_EXPRESSION_H
 
 #include <iosfwd>
 
@@ -55,8 +55,14 @@ typedef struct {
     friend class expr_node;
   public:
     expression();
-    expression(double d);
-    expression(const interval& I);
+    /*
+      Explicit (GAOL v5), as interval(double): a double or an interval no
+      longer converts silently to an expression, which made gaol::sin(0.5)
+      ambiguous between the sin of an interval and that of an expression;
+      expression(d) and expression(x) are written out, e + expression(1.0)
+    */
+    explicit expression(double d);
+    explicit expression(const interval& I);
     expression(const expression& e);
     expression(const expr_node& e);
     virtual ~expression();
@@ -141,7 +147,7 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
   protected:
     static const unsigned int precedence;
   };
@@ -160,10 +166,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
 
     //! Accessor
-    INLINE double get_val() const;
+    GAOL_INLINE double get_val() const;
   protected:
     static const unsigned int precedence;
   private:
@@ -181,10 +187,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
 
     //! Accessor
-    INLINE interval get_val() const;
+    GAOL_INLINE interval get_val() const;
   protected:
     static const unsigned int precedence;
   private:
@@ -202,12 +208,12 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
 
     //! Accessors
     //@{
-    INLINE expr_node* get_left();
-    INLINE expr_node* get_right();
+    GAOL_INLINE expr_node* get_left();
+    GAOL_INLINE expr_node* get_right();
     //@}
   protected:
     static const unsigned int precedence;
@@ -225,10 +231,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
 
     // Accessor -
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
   protected:
     static const unsigned int precedence;
   private:
@@ -246,11 +252,11 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_left();
-    INLINE expr_node* get_right();
+    GAOL_INLINE expr_node* get_left();
+    GAOL_INLINE expr_node* get_right();
     //@}
   protected:
     static const unsigned int precedence;
@@ -270,11 +276,11 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_left();
-    INLINE expr_node* get_right();
+    GAOL_INLINE expr_node* get_left();
+    GAOL_INLINE expr_node* get_right();
     //@}
   protected:
     static const unsigned int precedence;
@@ -293,11 +299,11 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_left();
-    INLINE expr_node* get_right();
+    GAOL_INLINE expr_node* get_left();
+    GAOL_INLINE expr_node* get_right();
     //@}
   protected:
     static const unsigned int precedence;
@@ -315,11 +321,11 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
-    INLINE int get_exponent() const;
+    GAOL_INLINE expr_node* get_subexpr();
+    GAOL_INLINE int get_exponent() const;
     //@}
 
   protected:
@@ -346,12 +352,12 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_left();
-    INLINE expr_node* get_right();
-    INLINE power_function get_function() const;
+    GAOL_INLINE expr_node* get_left();
+    GAOL_INLINE expr_node* get_right();
+    GAOL_INLINE power_function get_function() const;
     //@}
 
   protected:
@@ -372,11 +378,11 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
-    INLINE unsigned int get_exponent() const;
+    GAOL_INLINE expr_node* get_subexpr();
+    GAOL_INLINE unsigned int get_exponent() const;
     //@}
 
   protected:
@@ -393,10 +399,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -413,10 +419,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -433,10 +439,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -452,11 +458,11 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_Y();
-     INLINE expr_node* get_X();
+    GAOL_INLINE expr_node* get_Y();
+     GAOL_INLINE expr_node* get_X();
    //@}
 
   protected:
@@ -472,10 +478,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -491,10 +497,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -510,10 +516,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -530,10 +536,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -549,10 +555,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -568,10 +574,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -589,10 +595,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -608,10 +614,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -627,10 +633,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -647,10 +653,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -666,10 +672,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -688,10 +694,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -710,10 +716,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -732,10 +738,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -754,10 +760,10 @@ typedef struct {
     expr_node* clone() const;
     std::ostream& display(std::ostream& os) const;
     unsigned int get_precedence() const;
-    INLINE void accept(expr_visitor& visitor);
+    GAOL_INLINE void accept(expr_visitor& visitor);
     //! Accessors
     //@{
-    INLINE expr_node* get_subexpr();
+    GAOL_INLINE expr_node* get_subexpr();
     //@}
 
   protected:
@@ -831,13 +837,13 @@ typedef struct {
   GAOL_NODISCARD extern __GAOL_PUBLIC__ bool evaluate_expr(const expression& e,interval& itv);
 
   /*
-    INLINE methods ---
+    GAOL_INLINE methods ---
    */
 
   /*
     null_node --
   */
-  INLINE void null_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void null_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "null_node accepting visitor" << std::endl);
     visitor.visit(this);
@@ -847,13 +853,13 @@ typedef struct {
   /*
     double_node --
   */
-  INLINE void double_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void double_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "double_node accepting visitor" << std::endl);
     visitor.visit(this);
   }
 
-  INLINE double double_node::get_val() const
+  GAOL_INLINE double double_node::get_val() const
   {
     return val;
   }
@@ -861,13 +867,13 @@ typedef struct {
   /*
     interval_node --
   */
-  INLINE void interval_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void interval_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "interval_node accepting visitor" << std::endl);
     visitor.visit(this);
   }
 
-  INLINE interval interval_node::get_val() const
+  GAOL_INLINE interval interval_node::get_val() const
   {
     return *val;
   }
@@ -876,18 +882,18 @@ typedef struct {
   /*
     add_node --
   */
-  INLINE void add_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void add_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "add_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* add_node::get_left()
+  GAOL_INLINE expr_node* add_node::get_left()
   {
     return e_left;
   }
 
-  INLINE expr_node* add_node::get_right()
+  GAOL_INLINE expr_node* add_node::get_right()
   {
     return e_right;
   }
@@ -895,14 +901,14 @@ typedef struct {
   /*
     unary_minus_node --
   */
-  INLINE void unary_minus_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void unary_minus_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "unary_minus_node accepting visitor"
 		<< std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* unary_minus_node::get_subexpr()
+  GAOL_INLINE expr_node* unary_minus_node::get_subexpr()
   {
     return e_uminus;
   }
@@ -910,18 +916,18 @@ typedef struct {
   /*
     sub_node --
   */
-  INLINE void sub_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void sub_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "sub_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* sub_node::get_left()
+  GAOL_INLINE expr_node* sub_node::get_left()
   {
     return e_left;
   }
 
-  INLINE expr_node* sub_node::get_right()
+  GAOL_INLINE expr_node* sub_node::get_right()
   {
     return e_right;
   }
@@ -929,18 +935,18 @@ typedef struct {
   /*
     mult_node --
   */
-  INLINE void mult_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void mult_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "mult_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* mult_node::get_left()
+  GAOL_INLINE expr_node* mult_node::get_left()
   {
     return e_left;
   }
 
-  INLINE expr_node* mult_node::get_right()
+  GAOL_INLINE expr_node* mult_node::get_right()
   {
     return e_right;
   }
@@ -948,18 +954,18 @@ typedef struct {
   /*
     div_node --
   */
-  INLINE void div_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void div_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "div_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* div_node::get_left()
+  GAOL_INLINE expr_node* div_node::get_left()
   {
     return e_left;
   }
 
-  INLINE expr_node* div_node::get_right()
+  GAOL_INLINE expr_node* div_node::get_right()
   {
     return e_right;
   }
@@ -967,19 +973,19 @@ typedef struct {
   /*
     pow_node --
   */
-  INLINE void pow_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void pow_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "pow_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* pow_node::get_subexpr()
+  GAOL_INLINE expr_node* pow_node::get_subexpr()
   {
     return e_pow;
   }
 
 
-  INLINE int pow_node::get_exponent() const
+  GAOL_INLINE int pow_node::get_exponent() const
   {
     return exponent;
   }
@@ -987,23 +993,23 @@ typedef struct {
   /*
     pow_itv_node --
   */
-  INLINE void pow_itv_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void pow_itv_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "pow_itv_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* pow_itv_node::get_left()
+  GAOL_INLINE expr_node* pow_itv_node::get_left()
   {
     return e_left;
   }
 
-  INLINE expr_node* pow_itv_node::get_right()
+  GAOL_INLINE expr_node* pow_itv_node::get_right()
   {
     return e_right;
   }
 
-  INLINE pow_itv_node::power_function pow_itv_node::get_function() const
+  GAOL_INLINE pow_itv_node::power_function pow_itv_node::get_function() const
   {
     return f;
   }
@@ -1012,19 +1018,19 @@ typedef struct {
   /*
     nth_root_node --
   */
-  INLINE void nth_root_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void nth_root_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "nth_root_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* nth_root_node::get_subexpr()
+  GAOL_INLINE expr_node* nth_root_node::get_subexpr()
   {
     return e_nth_root;
   }
 
 
-  INLINE unsigned int nth_root_node::get_exponent() const
+  GAOL_INLINE unsigned int nth_root_node::get_exponent() const
   {
     return exponent;
   }
@@ -1032,13 +1038,13 @@ typedef struct {
   /*
     cos_node --
   */
-  INLINE void cos_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void cos_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "cos_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* cos_node::get_subexpr()
+  GAOL_INLINE expr_node* cos_node::get_subexpr()
   {
     return e_cos;
   }
@@ -1046,13 +1052,13 @@ typedef struct {
   /*
     sin_node --
   */
-  INLINE void sin_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void sin_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "sin_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* sin_node::get_subexpr()
+  GAOL_INLINE expr_node* sin_node::get_subexpr()
   {
     return e_sin;
   }
@@ -1060,13 +1066,13 @@ typedef struct {
   /*
     tan_node --
   */
-  INLINE void tan_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void tan_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "tan_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* tan_node::get_subexpr()
+  GAOL_INLINE expr_node* tan_node::get_subexpr()
   {
     return e_tan;
   }
@@ -1074,18 +1080,18 @@ typedef struct {
   /*
     atan2_node --
   */
-  INLINE void atan2_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void atan2_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "atan2_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* atan2_node::get_Y()
+  GAOL_INLINE expr_node* atan2_node::get_Y()
   {
     return Y;
   }
 
-  INLINE expr_node* atan2_node::get_X()
+  GAOL_INLINE expr_node* atan2_node::get_X()
   {
     return X;
   }
@@ -1093,13 +1099,13 @@ typedef struct {
   /*
     acos_node --
   */
-  INLINE void acos_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void acos_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "acos_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* acos_node::get_subexpr()
+  GAOL_INLINE expr_node* acos_node::get_subexpr()
   {
     return e_acos;
   }
@@ -1107,13 +1113,13 @@ typedef struct {
   /*
     asin_node --
   */
-  INLINE void asin_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void asin_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "asin_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* asin_node::get_subexpr()
+  GAOL_INLINE expr_node* asin_node::get_subexpr()
   {
     return e_asin;
   }
@@ -1121,13 +1127,13 @@ typedef struct {
   /*
     atan_node --
   */
-  INLINE void atan_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void atan_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "atan_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* atan_node::get_subexpr()
+  GAOL_INLINE expr_node* atan_node::get_subexpr()
   {
     return e_atan;
   }
@@ -1135,13 +1141,13 @@ typedef struct {
   /*
     cosh_node --
   */
-  INLINE void cosh_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void cosh_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "cosh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* cosh_node::get_subexpr()
+  GAOL_INLINE expr_node* cosh_node::get_subexpr()
   {
     return e_cosh;
   }
@@ -1149,13 +1155,13 @@ typedef struct {
   /*
     sinh_node --
   */
-  INLINE void sinh_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void sinh_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "sinh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* sinh_node::get_subexpr()
+  GAOL_INLINE expr_node* sinh_node::get_subexpr()
   {
     return e_sinh;
   }
@@ -1163,13 +1169,13 @@ typedef struct {
   /*
     tanh_node --
   */
-  INLINE void tanh_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void tanh_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "tanh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* tanh_node::get_subexpr()
+  GAOL_INLINE expr_node* tanh_node::get_subexpr()
   {
     return e_tanh;
   }
@@ -1177,13 +1183,13 @@ typedef struct {
   /*
     acosh_node --
   */
-  INLINE void acosh_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void acosh_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "acosh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* acosh_node::get_subexpr()
+  GAOL_INLINE expr_node* acosh_node::get_subexpr()
   {
     return e_acosh;
   }
@@ -1191,13 +1197,13 @@ typedef struct {
   /*
     asinh_node --
   */
-  INLINE void asinh_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void asinh_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "asinh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* asinh_node::get_subexpr()
+  GAOL_INLINE expr_node* asinh_node::get_subexpr()
   {
     return e_asinh;
   }
@@ -1205,13 +1211,13 @@ typedef struct {
   /*
     atanh_node --
   */
-  INLINE void atanh_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void atanh_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "atanh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* atanh_node::get_subexpr()
+  GAOL_INLINE expr_node* atanh_node::get_subexpr()
   {
     return e_atanh;
   }
@@ -1219,13 +1225,13 @@ typedef struct {
   /*
     exp_node --
   */
-  INLINE void exp_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void exp_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "exp_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* exp_node::get_subexpr()
+  GAOL_INLINE expr_node* exp_node::get_subexpr()
   {
     return e_exp;
   }
@@ -1233,13 +1239,13 @@ typedef struct {
   /*
     log_node --
   */
-  INLINE void log_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void log_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "log_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* log_node::get_subexpr()
+  GAOL_INLINE expr_node* log_node::get_subexpr()
   {
     return e_log;
   }
@@ -1247,13 +1253,13 @@ typedef struct {
   /*
     exp2_node --
   */
-  INLINE void exp2_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void exp2_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "exp2_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* exp2_node::get_subexpr()
+  GAOL_INLINE expr_node* exp2_node::get_subexpr()
   {
     return e_exp2;
   }
@@ -1261,13 +1267,13 @@ typedef struct {
   /*
     log2_node --
   */
-  INLINE void log2_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void log2_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "log2_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* log2_node::get_subexpr()
+  GAOL_INLINE expr_node* log2_node::get_subexpr()
   {
     return e_log2;
   }
@@ -1275,13 +1281,13 @@ typedef struct {
   /*
     sign_node --
   */
-  INLINE void sign_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void sign_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "sign_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* sign_node::get_subexpr()
+  GAOL_INLINE expr_node* sign_node::get_subexpr()
   {
     return e_sign;
   }
@@ -1289,13 +1295,13 @@ typedef struct {
   /*
     trunc_node --
   */
-  INLINE void trunc_node::accept(expr_visitor& visitor)
+  GAOL_INLINE void trunc_node::accept(expr_visitor& visitor)
   {
     GAOL_DEBUG(2,std::cout << "trunc_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
-  INLINE expr_node* trunc_node::get_subexpr()
+  GAOL_INLINE expr_node* trunc_node::get_subexpr()
   {
     return e_trunc;
   }
@@ -1312,8 +1318,59 @@ typedef struct {
   gaol_ieee1788::pow(x, [3]).
 */
 namespace gaol {
+  using namespace gaol_core;
   GAOL_NODISCARD inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
   GAOL_NODISCARD inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
 } // namespace gaol
 
-#endif /* __gaol_expression_h__ */
+/*
+  The expressions in gaol_ieee1788 (gaol/gaol_ieee1788.h), which no longer
+  includes this file (GAOL v5): gaol::sin(0.5) was ambiguous between the sin
+  of intervals and that of expressions, a double converting to both, wherever
+  gaol/gaol was included. A using-declaration names the overloads declared
+  before it: those of gaol_ieee1788 are declared again here, after the
+  overloads of expressions, so that gaol_ieee1788::sin(e) takes them whichever
+  of the two files is included first.
+*/
+#include "gaol/gaol_ieee1788.h"
+
+namespace gaol_ieee1788 {
+  using ::gaol_core::exp;
+  using ::gaol_core::exp2;
+  using ::gaol_core::log;
+  using ::gaol_core::log2;
+  using ::gaol_core::sin;
+  using ::gaol_core::cos;
+  using ::gaol_core::tan;
+  using ::gaol_core::asin;
+  using ::gaol_core::acos;
+  using ::gaol_core::atan;
+  using ::gaol_core::atan2;
+  using ::gaol_core::sinh;
+  using ::gaol_core::cosh;
+  using ::gaol_core::tanh;
+  using ::gaol_core::asinh;
+  using ::gaol_core::acosh;
+  using ::gaol_core::atanh;
+  using ::gaol_core::sign;
+  using ::gaol_core::trunc;
+
+  /*!
+    pown(e, n), pow(e1, e2): the expressions of pown and pow. pown(e, n) is
+    gaol_pown_exp(e, n), whose node is computed by gaol_pown(), the pown of
+    the standard. The node of pow(e1, e2) keeps the function computing it:
+    gaol_ieee1788::pow(x, y), where gaol_pow_exp(e1, e2), which is
+    gaol::pow(e1, e2), keeps GAOL's pow, [1, 16] for [-4, -1]^[2].
+  */
+  GAOL_NODISCARD inline const ::gaol_core::expression pown(const ::gaol_core::expression& e, int n)
+  {
+    return ::gaol_core::gaol_pown_exp(e, n);
+  }
+  GAOL_NODISCARD inline const ::gaol_core::expression pow(const ::gaol_core::expression& e1, const ::gaol_core::expression& e2)
+  {
+    const ::gaol_core::pow_itv_node::power_function standard_pow = pow;
+    return *(new ::gaol_core::pow_itv_node(e1, e2, standard_pow));
+  }
+} // namespace gaol_ieee1788
+
+#endif /* GAOL_EXPRESSION_H */

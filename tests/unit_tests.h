@@ -23,8 +23,8 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_unit_tests_h__
-#define __gaol_unit_tests_h__
+#ifndef GAOL_UNIT_TESTS_H
+#define GAOL_UNIT_TESTS_H
 
 #include <cmath>
 #include <cstdint>
@@ -177,4 +177,4 @@ const interval m_min_zero(-std::numeric_limits<double>::min(),0);
 const interval zero_min(0.0,std::numeric_limits<double>::min());
 const interval m_min_min(-std::numeric_limits<double>::min(),std::numeric_limits<double>::min());
 
-#endif /* __gaol_unit_tests_h__ */
+#endif /* GAOL_UNIT_TESTS_H */

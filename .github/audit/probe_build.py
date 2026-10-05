@@ -68,7 +68,7 @@ for kind in ('cmake', 'autotools', 'meson'):
     if os.path.exists(header):
         entry['configuration'] = {m.group(1): m.group(2).strip() for m in
                                   re.finditer(r'^#define (\w+)[ \t]*(.*)$', open(header).read(), re.M)
-                                  if m.group(1) != '__gaol_configuration_h__'}
+                                  if m.group(1) != 'GAOL_CONFIGURATION_H'}
     v = subprocess.run([tokens[0], '--version'], capture_output=True, text=True)
     entry['version'] = (v.stdout.splitlines() or [''])[0]
 print(json.dumps(result, indent=1))

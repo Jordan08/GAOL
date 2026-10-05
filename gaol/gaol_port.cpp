@@ -36,8 +36,8 @@ namespace gaol_core {
 	//std::cout <<  d << std::endl;
 	uintdouble v;
 	v.d = d;
-	return (HI_UINTDOUBLE(v) & 0x80000000)!=0;
-    //return ((unsigned int)(__HI(d)) & 0x80000000)!=0;
+	return (GAOL_HI_UINTDOUBLE(v) & 0x80000000)!=0;
+    //return ((unsigned int)(GAOL_HI(d)) & 0x80000000)!=0;
   }
 
 } // namespace gaol_core

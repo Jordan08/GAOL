@@ -23,8 +23,8 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_core_math_h__
-#define __gaol_core_math_h__
+#ifndef GAOL_CORE_MATH_H
+#define GAOL_CORE_MATH_H
 
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_CORE_MATH_PUBLIC __attribute__ ((visibility("default")))
@@ -78,4 +78,4 @@ GAOL_CORE_MATH_PUBLIC double gaol_cr_atan2pi(double y, double x);
 }
 #endif
 
-#endif /* __gaol_core_math_h__ */
+#endif /* GAOL_CORE_MATH_H */

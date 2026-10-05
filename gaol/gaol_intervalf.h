@@ -16,14 +16,15 @@
  * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_intervalf_h__
-#define __gaol_intervalf_h__
+#ifndef GAOL_INTERVALF_H
+#define GAOL_INTERVALF_H
 
 // Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 // gaol/gaol_config.h), and empty otherwise (GAOL v5)
 #include "gaol/gaol_config.h"
 #ifdef GAOL_FLOAT_INTERVALS
 
+#include <cmath> // std::islessequal() of is_empty() (GAOL v5)
 #include <iosfwd>
 #include <new>
 
@@ -119,7 +120,7 @@ namespace gaol_core {
 
 	__GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const intervalf& I);
 
-  INLINE intervalf inverse(const intervalf& I)
+  GAOL_INLINE intervalf inverse(const intervalf& I)
   {
     return I.inverse();
   }
@@ -162,8 +163,10 @@ namespace gaol_core {
 
 	inline bool intervalf::is_empty(void) const
 	{
-		// Testing the logical inverse to handle NaNs
-		return !(left() <= right());
+		// Testing the logical inverse to handle NaNs, with the quiet
+		// comparison: <= signals the invalid-operation exception on a NaN,
+		// as interval::is_empty() explains (GAOL v5)
+		return !std::islessequal(left(), right());
 	}
 
 	inline bool intervalf::is_zero(void) const
@@ -186,7 +189,7 @@ namespace gaol_core {
 		return _left>0.0f && _right>0.0f;
 	}
 
-  INLINE bool intervalf::set_strictly_contains(const intervalf& I) const
+  GAOL_INLINE bool intervalf::set_strictly_contains(const intervalf& I) const
   {
     return (I.is_empty() || ((left()<I.left()) && (right()>I.right())));
   }
@@ -194,18 +197,18 @@ namespace gaol_core {
   /**
     @note d should not be a NaN
     */
-  INLINE bool intervalf::set_strictly_contains(float d) const
+  GAOL_INLINE bool intervalf::set_strictly_contains(float d) const
   {
     return ((left()<d) && (right()>d));
   }
 
-  INLINE bool intervalf::set_disjoint(const intervalf &I) const
+  GAOL_INLINE bool intervalf::set_disjoint(const intervalf &I) const
   {
       return (right() < I.left()) || (left() > I.right())
 	  || (is_empty() || I.is_empty());
   }
 
-  INLINE void intervalf::split(intervalf &I1, intervalf &I2) const
+  GAOL_INLINE void intervalf::split(intervalf &I1, intervalf &I2) const
   {
     float l = left(), m = midpoint(), r = right();
     I1 = intervalf(l,m);
@@ -216,4 +219,4 @@ namespace gaol_core {
 
 #endif // GAOL_FLOAT_INTERVALS
 
-#endif // __gaol_intervalf_h__
+#endif // GAOL_INTERVALF_H

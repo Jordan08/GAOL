@@ -73,10 +73,12 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   those of `x op= x` in the FPU build, of the reader under a comma locale, of
   `operator<<` and `operator>>`, and of the expressions (threads, `/=`) are
   applied, the others are not (Appendix B).
-- **The documentation** is precise and its 86 examples of the manual are
-  right, but it has no tutorial and no example of an interval algorithm, and
-  its FetchContent recipe fetches the public `master`, which is GAOL 4.2.3,
-  121 commits behind GAOL v5 (section 3).
+- **The documentation** is precise and its 86 examples of the manual print
+  what it shows (though its overview program evaluated another function than
+  Goldstein-Price's, without the +1: recommendation 16), but it has no
+  tutorial and no example of an interval algorithm, and its FetchContent
+  recipe fetches the public `master`, which is GAOL 4.2.3, 121 commits behind
+  GAOL v5 (section 3).
 
 ## 1. The examples
 
@@ -105,7 +107,9 @@ a value computed apart (mpmath, closed forms, exact fractions), each proof
 wide", "the excess is divided by 100") is proved with interval arithmetic. A
 failed check prints `FAILED: <claim>` and the program returns a failure, so
 that ctest runs the examples as tests. The checks test containments and
-qualitative facts, never digits: they pass on every build.
+qualitative facts, never digits: they pass on every build. Example 16 checks
+its output too, with the digits of an enclosure that no operation rounds (see
+below).
 
 All 16 examples compile without a warning (`-Wall -Wextra`, GCC 9.4 and
 Clang 18) and pass their checks with the four builds of GAOL tried: SSE2 (the
@@ -139,7 +143,7 @@ Every program follows GAOL v5's rules: `#include <gaol/gaol.h>`, no call to
 | `13_rounding_environment.cpp` | The program's own doubles, printf, lrint, strtod, threads, `cleanup()` | What GAOL's rounding direction does to the rest of the program, and how to live with it | `doc/using.md` |
 | `14_generic_programming.cpp` | One template evaluated with `double`, `interval` and `Dual<1>` | Argument-dependent lookup, `using gaol::pow`, `T(0.0)`, the standard algorithms and containers with intervals | Boost.Interval and kv style |
 | `15_text_and_ieee1788.cpp` | Intervals read and written as text; one contractor step with the names of IEEE 1788 | The literals GAOL reads, reading a file, exact output, the namespace `gaol_ieee1788` | IEEE 1788-2015, clauses 12 and 13 |
-| `16_Goldstein_Price.cpp` | A million evaluations of a Goldstein-Price function, timed | The example of GAOL 4, kept as it was | GAOL 4 |
+| `16_Goldstein_Price.cpp` | A million evaluations of the Goldstein-Price function, timed | The example of GAOL 4, with the true function: the enclosure contains the range, 231 times wider | GAOL 4 |
 
 Three headers are shared:
 
@@ -171,7 +175,9 @@ Three headers are shared:
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
 `textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
-1/10. `sqrt(2.0)` is the C library's double, while `sqrt(interval(2.0))`
+1/10. `sqrt(2.0)` is the C library's double, which no longer becomes an
+interval silently (`interval r = sqrt(2.0);` does not compile, `interval(double)`
+being explicit, but `interval r(sqrt(2.0))` does), while `sqrt(interval(2.0))`
 encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
 doubles, silently wrong, and [−5.9·10²¹, 4.7·10²¹] in intervals, which contains
@@ -304,12 +310,18 @@ for bit. The second part writes one contractor step with the names of the
 standard (`numsToInterval`, `pown`, `mulRev`, `sqrRev`, `precedes`…) in a
 function that opens `gaol_ieee1788` alone.
 
-**16 — The example of GAOL 4.** It times a million evaluations and prints
-`z = [-56254330, 94177270]` and `Elapsed time: 197` (no unit). Its function
-drops the +1 of the Goldstein-Price function ((x + y)² instead of
-(x + y + 1)²), and GAOL's manual, which shows the same program, calls the
-enclosure "the range" of f, whose true range is about 150 times narrower.
-Examples 03 and 06 use the true function.
+**16 — The example of GAOL 4.** It times a million evaluations of the
+Goldstein-Price function and prints `z = [-87881320, 147125080]`, the natural
+extension over [−2, 2]², and the time (`Elapsed time:`, in milliseconds).
+The example of GAOL 4 dropped the +1 of the function ((x + y)² instead of
+(x + y + 1)²), and so did GAOL's manual, which showed the same program and
+called the enclosure the range of f, whose true range is about 150 times
+narrower. Both now have the true function. The enclosure contains the range
+[3, 1015690.27…], and is 231 times wider than it, for lack of a link between
+the occurrences of x and y (the dependency problem, example 03). The example
+checks f(0, −1) = 3, the enclosure, computed by exact arithmetic (its bounds
+are integers that no operation rounds), the enclosure of the program of the
+manual, and the ratio of the widths.
 
 ## 2. How intervals are used, and what GAOL v5 gives for it
 
@@ -323,7 +335,7 @@ it, and says for each idiom how it reads with GAOL v5.
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
 | A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return textToInterval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
 | A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
-| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` compile |
+| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0` and `T(0)` compile, `=` and the relations taking a double; `max(x, 0)` does not, `interval(double)` being explicit: `max(x, interval(0))` |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
 | m ± r | `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward); there is no mid-radius constructor |
 | From an integer beyond 2⁵³ | — | `interval(9007199254740993LL)` is one double that does not contain the integer |
@@ -517,12 +529,14 @@ manual carried, at `605728e`, 81 `[GAOL v5]` markers and 41 mentions of GAOL 4, 
 newcomer does not need. `doc/accuracy.md`, the tightness of each operation as
 IEEE 1788 (12.10.3) asks, is rare among interval libraries.
 
-**The manual's examples are right.** The 86 example blocks of
-`manual/v5/gaol.tex` with an expected output (102 outputs) were extracted,
-compiled with GCC and Clang in C++11 and C++17, and run: all match, apart from
-three formatting slips (`true`/`false` printed without `std::boolalpha`, and
-`nan` printed `-nan`). All 172 names the manual documents exist in the
-headers.
+**The manual's examples print almost exactly what it shows.** The 86 example
+blocks of `manual/v5/gaol.tex` with an expected output (102 outputs) were
+extracted, compiled with GCC and Clang in C++11 and C++17, and run: all match,
+apart from three formatting slips (`true`/`false` printed without
+`std::boolalpha`, and `nan` printed `-nan`). But the function of the overview
+chapter's program is the Goldstein-Price function of GAOL 4's example
+(`16_Goldstein_Price.cpp`) without the +1 of (x + y + 1)² (recommendation 16).
+All 172 names the manual documents exist in the headers.
 
 **What a newcomer trips on:**
 
@@ -950,7 +964,8 @@ To take:
     domain without decorations, `split()` of canonical intervals,
     `/` against `%` in Newton's method.
 16. Fix the Goldstein-Price function of the manual (the missing +1) and say
-    "encloses the range", not "ranges over".
+    "encloses the range", not "ranges over" (applied, with
+    `16_Goldstein_Price.cpp`).
 
 ### Priority 5: longer term
 
@@ -1149,6 +1164,10 @@ is its explanation.
 using expressions includes `gaol_expression.h`, as with GAOL 4. Test
 (`tests/other_functions.cpp`):
 `static_assert(std::is_same<decltype(gaol::sin(0.5)), interval>::value, "")`.
+Since then, `interval(double)`, `expression(double)` and
+`expression(const interval&)` are explicit: `gaol::sin(0.5)` does not compile,
+with or without `gaol_expression.h`, which `tests/other_functions.cpp` and
+`tests/expressions.cpp` check, and is written `gaol::sin(interval(0.5))`.
 
 **17. Long sums.** In `gaol_interval_parser.ypp`, fold each binary operation
 when it is read (`$$ = gaol_leaf(gaol_value($1) + gaol_value($3))`), as calls

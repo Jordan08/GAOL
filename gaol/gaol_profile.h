@@ -25,8 +25,8 @@
 */
 
 
-#ifndef __gaol_profile_h__
-#define __gaol_profile_h__
+#ifndef GAOL_PROFILE_H
+#define GAOL_PROFILE_H
 
 #include "gaol/gaol_config.h"
 
@@ -70,4 +70,4 @@ extern __GAOL_PUBLIC__ long intermediate_elapsed_time(void);
 
 } // namespace gaol_core
 
-#endif /* __gaol_profile_h__ */
+#endif /* GAOL_PROFILE_H */

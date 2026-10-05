@@ -68,7 +68,7 @@ namespace gaol_core {
 	round_upward();
 	// next instruction crashes on MacOS ARM64 platform
 	//reset_fpu_cw(GAOL_FPU_MASK); // 53 bits precision, all exceptions masked, rounding to +oo
-#   if USING_SSE2_INSTRUCTIONS
+#   if GAOL_USING_SSE2_INSTRUCTIONS
             round_upward_sse();
 #   endif
 #endif

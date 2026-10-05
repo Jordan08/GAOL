@@ -14,8 +14,8 @@
    interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/, Cyril Bouvier and Gilles
    Chabert), itself generated from GAOL's configure.ac. */
 
-#ifndef __gaol_configuration_h__
-#define __gaol_configuration_h__
+#ifndef GAOL_CONFIGURATION_H
+#define GAOL_CONFIGURATION_H
 
 /* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
 #define GAOL_MAJOR_VERSION @PROJECT_VERSION_MAJOR@
@@ -52,25 +52,25 @@
 /* Defined to 1 where the intervals are computed with SSE2 instructions
    (x86 processors, but 32-bit Windows and Visual C++; GAOL_SIMD,
    --enable-simd, -Denable-simd, on by default) */
-#cmakedefine USING_SSE2_INSTRUCTIONS 1
+#cmakedefine GAOL_USING_SSE2_INSTRUCTIONS 1
 
 /* Defined to 1 where they are compiled with -msse3 too */
-#cmakedefine USING_SSE3_INSTRUCTIONS 1
+#cmakedefine GAOL_USING_SSE3_INSTRUCTIONS 1
 
 /* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
    a double with the minus sign (gaol/gaol_port.h) */
-#cmakedefine HAVE_ROUNDING_MATH_OPTION 1
+#cmakedefine GAOL_HAVE_ROUNDING_MATH_OPTION 1
 
 /* Defined to 1 where the library is compiled with -fvisibility=hidden:
    GAOL's public declarations then carry __attribute__ ((visibility("default")))
    (gaol/gaol_config.h) */
-#cmakedefine HAVE_VISIBILITY_OPTIONS 1
+#cmakedefine GAOL_HAVE_VISIBILITY_OPTIONS 1
 
 /* Defined to 1 where the compiler has <fenv.h> */
-#cmakedefine HAVE_FENV_H 1
+#cmakedefine GAOL_HAVE_FENV_H 1
 
 /* Defined to 1 where <sys/resource.h> declares getrusage(), which
    gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
-#cmakedefine HAVE_GETRUSAGE 1
+#cmakedefine GAOL_HAVE_GETRUSAGE 1
 
-#endif /* __gaol_configuration_h__ */
+#endif /* GAOL_CONFIGURATION_H */

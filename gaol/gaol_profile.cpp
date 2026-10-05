@@ -32,7 +32,7 @@ namespace gaol_core {
   static long last_reset_time;
 } // namespace gaol_core
 
-#if HAVE_GETRUSAGE
+#if GAOL_HAVE_GETRUSAGE
 //================
 
 #  include <cstdlib>
@@ -55,7 +55,7 @@ namespace gaol_core {
 #else
 //==============
 // clock(), which the C standard provides: where getrusage() is not
-// (HAVE_GETRUSAGE, which the three builds check in <sys/resource.h>, as Visual
+// (GAOL_HAVE_GETRUSAGE, which the three builds check in <sys/resource.h>, as Visual
 // C++) (GAOL v5)
 #  include <time.h>
 
@@ -67,7 +67,7 @@ namespace gaol_core {
   }
 } // namespace gaol_core
 
-#endif /* HAVE_GETRUSAGE */
+#endif /* GAOL_HAVE_GETRUSAGE */
 
 namespace gaol_core {
 

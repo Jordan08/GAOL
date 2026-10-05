@@ -1,7 +1,9 @@
 # Builds GAOL with CMake and runs its tests in containers of official images:
 # Debian (amd64, arm64, armhf, i386), manylinux_2_28, Alpine (musl), and under
-# qemu on s390x (big-endian), ppc64le and riscv64. Checks that Clang is refused
-# for 32-bit ARM processors.
+# qemu on s390x (big-endian), ppc64le, POWER9 (Ubuntu 24.04) and riscv64, and
+# on armhf and POWER9 built for size too. Checks that Clang is refused
+# for 32-bit ARM processors. On Debian, numbers reads and writes numbers under
+# a locale writing a decimal comma, which the job generates and checks.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -11,7 +13,7 @@ name: Linux containers
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
   pull_request:
   workflow_dispatch:
 
@@ -57,14 +59,33 @@ jobs:
           - { os: ubuntu-24.04,     platform: linux/riscv64, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie riscv64 (qemu)' }
           - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 12 Bookworm i386, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 13 Trixie armhf, rounding direction preserved' }
+          # POWER9, where GCC 13 reversed the quiet comparison of is_empty()
+          # into a signaling one (#60), and builds for size (MinSizeRel, -Os),
+          # where GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator&
+          # rather than inlining it: tests/rounding_direction.cpp checks the
+          # choices a program makes on is_empty() of an empty interval there
+          # too (GAOL v5)
+          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, opts: '-DCMAKE_BUILD_TYPE=MinSizeRel', desc: 'Debian 13 Trixie armhf, built for size' }
+          - { os: ubuntu-24.04,     platform: linux/ppc64le, image: 'ubuntu:24.04',    tools: apt, qemu: true, opts: '-DCMAKE_C_FLAGS=-mcpu=power9 -DCMAKE_CXX_FLAGS=-mcpu=power9', desc: 'Ubuntu 24.04 ppc64le POWER9 (qemu)' }
+          - { os: ubuntu-24.04,     platform: linux/ppc64le, image: 'ubuntu:24.04',    tools: apt, qemu: true, opts: '-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_C_FLAGS=-mcpu=power9 -DCMAKE_CXX_FLAGS=-mcpu=power9', desc: 'Ubuntu 24.04 ppc64le POWER9, built for size (qemu)' }
     steps:
       - uses: actions/checkout@v7
       - if: matrix.cfg.qemu
         uses: docker/setup-qemu-action@v4
       - name: Build and tests
         run: |
+          # Debian has no locale writing a decimal comma until one is
+          # generated, which numbers reads and writes numbers under, and the
+          # job checks it did; Alpine and manylinux have none to generate
+          # (.github/scripts/comma-locale.sh) (GAOL v5)
+          comma_generate=true
+          comma_check=true
           case "${{ matrix.cfg.tools }}" in
-            apt) tools='apt-get update -qq && apt-get install -y -qq g++ cmake make ca-certificates > /dev/null' ;;
+            apt)
+              tools='apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make ca-certificates locales > /dev/null'
+              comma_generate='sh .github/scripts/comma-locale.sh generate'
+              comma_check='sh .github/scripts/comma-locale.sh check /tmp/build'
+              ;;
             apk) tools='apk add --no-cache build-base cmake linux-headers ca-certificates > /dev/null' ;;
             *) tools='true' ;;
           esac
@@ -74,9 +95,11 @@ jobs:
             uname -m
             c++ --version
             cmake --version
+            $comma_generate
             cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON ${{ matrix.cfg.opts }}
             cmake --build /tmp/build -j 4
             cmake --build /tmp/build --target test
+            $comma_check
             cd /tmp/build
             ./tests/gaol_performance | tee /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"

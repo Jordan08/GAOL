@@ -9,8 +9,8 @@
    the macros of the compiler (gaol/gaol_config.h). Every compiler includes
    this header, through gaol/gaol_config.h. (GAOL v5) */
 
-#ifndef __gaol_configuration_h__
-#define __gaol_configuration_h__
+#ifndef GAOL_CONFIGURATION_H
+#define GAOL_CONFIGURATION_H
 
 /* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
 #mesondefine GAOL_MAJOR_VERSION
@@ -47,25 +47,25 @@
 /* Defined to 1 where the intervals are computed with SSE2 instructions
    (x86 processors, but 32-bit Windows and Visual C++; GAOL_SIMD,
    --enable-simd, -Denable-simd, on by default) */
-#mesondefine USING_SSE2_INSTRUCTIONS
+#mesondefine GAOL_USING_SSE2_INSTRUCTIONS
 
 /* Defined to 1 where they are compiled with -msse3 too */
-#mesondefine USING_SSE3_INSTRUCTIONS
+#mesondefine GAOL_USING_SSE3_INSTRUCTIONS
 
 /* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
    a double with the minus sign (gaol/gaol_port.h) */
-#mesondefine HAVE_ROUNDING_MATH_OPTION
+#mesondefine GAOL_HAVE_ROUNDING_MATH_OPTION
 
 /* Defined to 1 where the library is compiled with -fvisibility=hidden:
    GAOL's public declarations then carry __attribute__ ((visibility("default")))
    (gaol/gaol_config.h) */
-#mesondefine HAVE_VISIBILITY_OPTIONS
+#mesondefine GAOL_HAVE_VISIBILITY_OPTIONS
 
 /* Defined to 1 where the compiler has <fenv.h> */
-#mesondefine HAVE_FENV_H
+#mesondefine GAOL_HAVE_FENV_H
 
 /* Defined to 1 where <sys/resource.h> declares getrusage(), which
    gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
-#mesondefine HAVE_GETRUSAGE
+#mesondefine GAOL_HAVE_GETRUSAGE
 
-#endif /* __gaol_configuration_h__ */
+#endif /* GAOL_CONFIGURATION_H */

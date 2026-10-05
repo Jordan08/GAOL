@@ -12,9 +12,24 @@ project(
   # CMakeLists.txt); Python reads it, with meson 0.53 as later ones
   # (version: files() needs meson 0.57). The Python of the machine building,
   # even in a cross build (native), and the path as the last argument, which
-  # the meson.exe of 0.53 gives to runpython after its own ones (GAOL v5)
+  # the meson.exe of 0.53 gives to runpython after its own ones (GAOL v5).
+  # python3 stays first: only when the first name ends with python3 does
+  # meson fall back on its own Python (the meson.exe of the Windows installer)
+  # if it finds none. Looking for python first would lose that fallback, and
+  # would not avoid the Microsoft Store aliases of meson 0.53.0, which
+  # WindowsApps holds for python.exe as for python3.exe: meson 0.53.1 and later
+  # leave that directory out (doc/building.md). The encoding utf-8-sig skips
+  # the byte order mark that some editors of Windows write at
+  # the start of a file, which the default encoding (the code page of Windows,
+  # cp1252) reads as three characters of the version. The blanks stripped are
+  # the six of ASCII (string.whitespace), which CMake and configure strip, not
+  # all those of Unicode, which strip() alone strips (a no-break space). What
+  # is not the version is written as ASCII, with escapes (\u200b for a
+  # zero-width space, \udcff for a byte that is not UTF-8, \x00 for a NUL
+  # byte, \n), which show in the error message below, on one line, and which
+  # the pipe to meson carries whatever the code page (GAOL v5)
   version: run_command(find_program('python3', 'python', native: true), '-c',
-                       'import sys; print(open(sys.argv[-1]).read().strip())',
+                       'import string, sys; print(ascii(open(sys.argv[-1], encoding=\'utf-8-sig\', errors=\'surrogateescape\').read().strip(string.whitespace))[1:-1])',
                        join_paths(meson.current_source_dir(), 'VERSION.txt'),
                        check: true).stdout().strip(),
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
@@ -32,7 +47,26 @@ foreach n : gaol_version
   endif
 endforeach
 if not gaol_version_ok
-  error('VERSION.txt holds "' + meson.project_version() + '", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0')
+  # The first bytes of the file in hexadecimal, which show what the quoted text
+  # does not (a zero-width space, a second byte order mark)
+  gaol_version_bytes = run_command(find_program('python3', 'python', native: true), '-c',
+                                   'import sys; print(*[\'%02x\' % b for b in open(sys.argv[-1], \'rb\').read(32)])',
+                                   join_paths(meson.current_source_dir(), 'VERSION.txt'),
+                                   check: false).stdout().strip()
+  # A file of UTF-16 characters, which starts with its byte order mark (FF FE,
+  # FE FF) or holds NUL bytes, is not read as UTF-16: the message says so, as
+  # those of CMake and configure do
+  gaol_version_utf16 = run_command(find_program('python3', 'python', native: true), '-c',
+                                   'import sys; b = open(sys.argv[-1], \'rb\').read(); print(\'mark\' if b[:2] in (bytes([255, 254]), bytes([254, 255])) else \'nul\' if 0 in b else \'\')',
+                                   join_paths(meson.current_source_dir(), 'VERSION.txt'),
+                                   check: false).stdout().strip()
+  gaol_version_hint = ''
+  if gaol_version_utf16 == 'mark'
+    gaol_version_hint = '; the file is UTF-16: save it as UTF-8 or ASCII'
+  elif gaol_version_utf16 == 'nul'
+    gaol_version_hint = '; the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII'
+  endif
+  error('VERSION.txt holds "' + meson.project_version() + '" (bytes in hexadecimal: ' + gaol_version_bytes + '), where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0' + gaol_version_hint)
 endif
 major_version = gaol_version[0].to_int()
 minor_version = gaol_version[1].to_int()
@@ -51,9 +85,11 @@ cpp_comp = meson.get_compiler('cpp')
 c_comp = meson.get_compiler('c')
 
 gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
-# mingw-w64 is no longer refused for its version: GAOL takes no function from
-# the math library of the system, and no longer changes the rounding direction
-# for its elementary functions (see CMakeLists.txt)
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
+# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
+# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
+# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM before 11, not tested
+# (see CMakeLists.txt)
 
 msvc = cpp_comp.get_argument_syntax() == 'msvc'
 
@@ -82,10 +118,11 @@ doc = get_option('with-doc')
 build_tests = get_option('with-tests')
 build_examples = get_option('with-examples')
 
-# The math library of the system, which Visual C++ does not have apart
-m_dep = cpp_comp.find_library('m', required: false)
-
-deps = [m_dep]
+# No math library of the system (GAOL v5): GAOL and CORE-MATH still call its
+# functions (those of <fenv.h>, sqrt, floor, round, fma where the processor has
+# no such instruction...), which the C++ compiler links itself, as with CMake
+# and configure
+deps = []
 
 os_win = host_machine.system() == 'windows'
 
@@ -128,10 +165,10 @@ endif
 # gaol/gaol_fpu.h and gaol/gaol_exact.h: <fenv.h>; gaol/gaol_profile.cpp:
 # getrusage() where <sys/resource.h> declares it, clock() otherwise
 if cpp_comp.has_header('fenv.h')
-  conf_data.set('HAVE_FENV_H', 1)
+  conf_data.set('GAOL_HAVE_FENV_H', 1)
 endif
 if cpp_comp.has_function('getrusage', prefix: '#include <sys/resource.h>')
-  conf_data.set('HAVE_GETRUSAGE', 1)
+  conf_data.set('GAOL_HAVE_GETRUSAGE', 1)
 endif
 
 # The compilers CMakeLists.txt and configure refuse, for the same reasons (see
@@ -150,7 +187,7 @@ int main() { return 0; }
     + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
 endif
 if cpp_comp.has_argument('-frounding-math')
-  conf_data.set('HAVE_ROUNDING_MATH_OPTION', 1)
+  conf_data.set('GAOL_HAVE_ROUNDING_MATH_OPTION', 1)
   if not cpp_comp.compiles('int main() { return 0; }', args: ['-frounding-math', '-Werror'],
                            name: 'the C++ compiler honours the rounding direction on this target')
     error('GAOL cannot be built with ' + gaol_compiler + ' for this target.\n'
@@ -180,12 +217,19 @@ endforeach
 if msvc
   add_global_arguments(['/fp:strict'], language: ['c', 'cpp'])
   pc_cflags += ['/fp:strict']
+  # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
+  # /arch:SSE2, which gaol/gaol_config.h refuses: -msse2 has it compute them
+  # in SSE2, as CMakeLists.txt gives it
+  if cpp_comp.get_id() == 'clang-cl' and host_machine.cpu_family() == 'x86'
+    add_global_arguments(['-msse2'], language: ['c', 'cpp'])
+    pc_cflags += ['-msse2']
+  endif
 endif
 
 # The library compiled with hidden visibility, as configure builds it: GAOL's
 # public declarations carry __attribute__ ((visibility("default")))
 if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
-  conf_data.set('HAVE_VISIBILITY_OPTIONS', 1)
+  conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
   add_global_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
 endif
 if cpp_comp.has_argument('-Wconversion')
@@ -238,11 +282,11 @@ if target_x86
   endif
   if simd and not msvc and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
-    conf_data.set('USING_SSE2_INSTRUCTIONS', 1)
+    conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
     add_global_arguments(['-msse2'], language: 'cpp')
     pc_cflags += ['-msse2']
     if cpp_comp.has_argument('-msse3')
-      conf_data.set('USING_SSE3_INSTRUCTIONS', 1)
+      conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
       add_global_arguments(['-msse3'], language: 'cpp')
       pc_cflags += ['-msse3']
     endif
@@ -339,6 +383,23 @@ if float_store_needed and cpp_comp.has_argument('-ffloat-store')
   pc_cflags += ['-ffloat-store']
 endif
 
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and from 11.4 and 12.4 in the series 11 and 12; GCC 9.4, 12.3, GCC for
+# ARM and Clang 18 refuse it), which the code using GAOL is given (gaol_dep,
+# gaol.pc) and the tests are linked with, as CMakeLists.txt gives it (GAOL v5):
+# GCC links crtfastmath.o into a program linked with -Ofast, -ffast-math or
+# -funsafe-math-optimizations, and its constructor sets the flush-to-zero and
+# denormals-are-zero modes of the SSE instructions, which make the bounds of
+# every operation with a subnormal operand or result wrong. The option keeps
+# that file out of the link; each operation of GAOL clears the modes when it
+# starts (gaol/gaol_fpu.h). Checked by linking, since it is a link option
+# (tests/fast_math_link.cpp).
+gaol_link_args = []
+if not msvc and cpp_comp.has_link_argument('-mno-daz-ftz')
+  gaol_link_args += ['-mno-daz-ftz']
+endif
+message('Link flags of the code using GAOL: ' + ' '.join(gaol_link_args))
+
 subdir('gaol')
 
 # make test and make check, as with CMake and configure (GAOL v5): the unit
@@ -398,7 +459,7 @@ endif
 ## In a meson project: gaol_dep = dependency('gaol')
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: [gaollib] + (m_dep.found() ? ['-lm'] : []),
+  libraries: [gaollib] + gaol_link_args,
   name: 'gaol',
   description: 'GAOL, Not Just Another Interval Library',
   url: gaol_url,

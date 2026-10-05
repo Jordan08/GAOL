@@ -14,3 +14,15 @@ coverage/coverage.json
 
 # Written by the performance target of check/Makefile.am
 check/performances_result.txt
+
+build/*
+*/.deps/*
+*/*.lo
+*/*.o
+*/*.so
+*/*.a
+*/*.la
+*/*.dirstamp
+*/*.libs/
+*/*.loTAGS
+*/*.loTAGS.tmp

@@ -19,6 +19,10 @@
  *   with a program or a C library holding CORE-MATH's functions too;
  * - what Visual C++ has not of GCC: the builtins the sources call, and
  *   __attribute__; and __builtin_roundeven() where the compiler has not;
+ * - on x86-64, a fegetround() that reads MXCSR, where their doubles are
+ *   rounded, rather than the x87 unit, which the C library may read;
+ * - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
+ *   direction in effect, rather than the one of the C library;
  * - silence for the warnings on conversions GAOL's library is compiled with.
  *
  * Copyright (c) 2026 ENSTA, France
@@ -29,8 +33,8 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_core_math_port_h__
-#define __gaol_core_math_port_h__
+#ifndef GAOL_CORE_MATH_PORT_H
+#define GAOL_CORE_MATH_PORT_H
 
 /* GCC 14 for a 32-bit x86 target stopped on an internal compiler error in
    asinpi_acc() of asinpi.c ("in extract_bit_field_1, at expmed.cc:1838", at
@@ -173,6 +177,95 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 
 #endif /* a 32-bit x86 Windows */
 
+/*---------------------------------------------------------------------------
+  The square root on a 32-bit Windows, which the C library rounds to nearest
+
+  The sources take their square roots with __builtin_sqrt(): pow.c for
+  y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
+  atanh, hypot, rsqrt, asinpi and acospi. The square root of the C libraries
+  of Windows for 32-bit x86 is rounded to nearest in every rounding direction
+  (see gaol_sqrt_up() in gaol/gaol_interval.cpp). Visual C++ calls it for the
+  builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
+  the Debug builds) and in the accurate phases of acos, asin and asinpi,
+  which the sources mark cold, at -O2 too (GCC 13); elsewhere it writes
+  sqrtsd, and calls the C library for a negative argument only (acosh,
+  acospi). pow(x, 0.5) was then below the root rounding upward, and above it
+  rounding downward, at subnormal x, and GAOL's upper bound of
+  pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
+  (tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The
+  square root of SSE2 is taken there instead, with every compiler and at
+  every optimization level, which rounds in the direction of MXCSR, as every
+  other operation on doubles does there (gaol/gaol_config.h refuses an x86
+  target that does not compute its doubles with SSE2, and the three builds
+  give these sources -msse2 -mfpmath=sse).
+ --------------------------------------------------------------------------*/
+
+#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
+
+#include <emmintrin.h>
+
+static inline double gaol_sqrt(double x)
+{
+  return _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(x), _mm_set_sd(x)));
+}
+
+#define __builtin_sqrt(x) gaol_sqrt(x)
+
+#endif /* a 32-bit x86 Windows */
+
+/*---------------------------------------------------------------------------
+  fegetround() on x86-64: the direction of the SSE instructions
+
+  pow, and cos and tan, whose accurate phases carry the same code, round a
+  subnormal result themselves, in the direction fegetround() gives, where every
+  other double they compute is rounded by the SSE instructions, in the
+  direction of MXCSR. On x86-64 the two are the same only if nothing left them
+  differing: the fegetround() of glibc reads the control word of the x87 unit
+  alone, and GAOL finds the direction upward when 1 + 2^-60, a sum of the SSE
+  instructions, is above 1, without looking at the x87 unit. A program that
+  leaves the x87 unit to nearest and MXCSR upward, as the exactinit() of the
+  predicates of Shewchuk and of Triangle does, then had pow() round its
+  subnormal results to nearest: the upper bound was below the exact value for
+  about half of the arguments (tests/rounding_direction.cpp).
+
+  So the sources of CORE-MATH read the direction from MXCSR here, as the
+  get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does, since the
+  processor computes their doubles there (with mingw-w64, whose FE_* values
+  it does not know, get_rounding_mode() calls fegetround() too, and the one
+  of cbrt.c maps its value to the 0 to 3 it returns, see 3rd/README.md). The
+  rounding field of MXCSR is the same on every x86 processor, but the values
+  of FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of
+  Windows are not those of glibc, and changed once), which the switch gives
+  back whichever they are.
+
+  The standard lets fegetround() be a macro, and it is a function in the C
+  libraries known here: what the sources call is renamed by a macro of ours,
+  after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
+  only ones this header is included in. Not on a 32-bit x86 processor, where
+  round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets both
+  when one is not upward, so that they never differ when CORE-MATH runs.
+ --------------------------------------------------------------------------*/
+
+#if defined(__x86_64__) || defined(_M_X64)
+
+#include <fenv.h>
+#include <xmmintrin.h>
+
+static inline int gaol_fegetround(void)
+{
+  switch (_mm_getcsr() & _MM_ROUND_MASK) {
+  case _MM_ROUND_NEAREST: return FE_TONEAREST;
+  case _MM_ROUND_DOWN: return FE_DOWNWARD;
+  case _MM_ROUND_UP: return FE_UPWARD;
+  default: return FE_TOWARDZERO;
+  }
+}
+
+#undef fegetround
+#define fegetround gaol_fegetround
+
+#endif /* x86-64 */
+
 /* The math library of Windows has no roundeven(), which the sources call
    through __builtin_roundeven(): GCC and Clang turn that builtin into one
    instruction where the processor has it (roundsd of SSE4.1, frintn on ARM)
@@ -215,7 +308,6 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #define __builtin_fma(x, y, z) fma(x, y, z)
 #define __builtin_fabs(x) fabs(x)
 #define __builtin_copysign(x, y) copysign(x, y)
-#define __builtin_sqrt(x) sqrt(x)
 #define __builtin_floor(x) floor(x)
 #define __builtin_round(x) round(x)
 #define __builtin_trunc(x) trunc(x)
@@ -227,6 +319,31 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #define __builtin_nan(s) nan(s)
 #define __builtin_inf() ((double)INFINITY)
 #define __attribute__(x)
+
+/* On 32-bit x86, the square root of SSE2 (see above) */
+#if !defined(_M_IX86)
+#define __builtin_sqrt(x) sqrt(x)
+#endif
+
+/* NAN and INFINITY, which pow.c sets and returns, are no constants in a C
+   source compiled by Visual C++: the UCRT writes them
+   ((float)(_HUGE_ENUF * _HUGE_ENUF)) and
+   (-(float)(((float)(_HUGE_ENUF * _HUGE_ENUF)) * 0.0F)), _HUGE_ENUF being
+   1e+300, unless the compiler is compiling C++ or __has_builtin() names
+   __builtin_nanf, which Visual C++ has not. Under /fp:strict these products
+   and conversions are computed when the program runs, in the rounding
+   direction in effect, and give FLT_MAX and -0 downward and toward zero. The
+   NAN exp_1() of pow.c sets to send a power between 2^-1075 and about
+   2^-947 to the accurate phase was then -0, and so was the power: CORE-MATH's
+   pow rounded downward was -0 at (2^-1074)^1 (tests/core_math.cpp, with every
+   Visual C++ job). GAOL calls CORE-MATH upward, where both are right. They are
+   read here from their bits, which a load gives in every direction. */
+static const union { uint64_t u; double f; } gaol_infinity_bits = { 0x7ff0000000000000ull },
+                                             gaol_nan_bits = { 0x7ff8000000000000ull };
+#undef INFINITY
+#define INFINITY (gaol_infinity_bits.f)
+#undef NAN
+#define NAN (gaol_nan_bits.f)
 
 /* The number of leading and of trailing zero bits, undefined at 0 as the
    builtins of GCC are. _BitScanReverse64 and _BitScanForward64 are for the
@@ -290,4 +407,4 @@ static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t 
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
-#endif /* __gaol_core_math_port_h__ */
+#endif /* GAOL_CORE_MATH_PORT_H */

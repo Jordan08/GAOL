@@ -1215,6 +1215,21 @@ static void exp_3 (qint64_t *r, qint64_t *x) {
    The only remaining one is the first one, where 2^-F divides E.
 */
 
+/* GAOL: convert k, |k| <= 2^54, to double, rounding in the current rounding
+   mode. (double) k does not do so on every target: on 32-bit ARM, GCC
+   converts a 64-bit integer with __aeabi_l2d from libgcc, which always rounds
+   to nearest, so that a midpoint k*2^g (k odd with 54 bits) was rounded to
+   nearest in the directed rounding modes too. The conversions of the two
+   32-bit halves of k are exact, and so is the product by 2^32: the sum is the
+   only rounding. */
+static inline double /* GAOL */
+i64_to_double (int64_t k) /* GAOL */
+{ /* GAOL */
+  double hi = (double) (int32_t) (k >> 32) * 0x1p32; /* GAOL */
+  double lo = (double) (uint32_t) k; /* GAOL */
+  return hi + lo; /* GAOL */
+} /* GAOL */
+
 /*
   Computes x^y and returns 1 if the result fits into 54 bits, i.e. computes
   exactly x^y for exact and midpoint cases.
@@ -1303,7 +1318,7 @@ exact_pow (double *r, double x, double y, const dint64_t *z,
        to reduce to 2^X*r with odd r. It checks whether k is an odd number
        multiplied by 2^(g-G). */
     if (((k & ~(~1ull << (g - G))) == (1ull << (g - G)))) {
-      *r = (double)((k >> (g - G)) * _s);
+      *r = i64_to_double ((k >> (g - G)) * _s); /* GAOL */
       pow2(r, g);
       goto end;
     }
@@ -1334,7 +1349,7 @@ exact_pow (double *r, double x, double y, const dint64_t *z,
   if (k >> 54)
     return 0;
 
-  *r = (double)(k * _s);
+  *r = i64_to_double (k * _s); /* GAOL */
   int64_t G = E * (n << F);
   pow2(r, G);
 

@@ -29,8 +29,8 @@
 */
 
 
-#ifndef __gaol_exact_h__
-#define __gaol_exact_h__
+#ifndef GAOL_EXACT_H
+#define GAOL_EXACT_H
 
 #include "gaol/gaol_config.h"
 
@@ -50,8 +50,8 @@ void clear_inexact(void);
    defined in the lexer that uses them: gaol_exact.c would include their 32-bit
    x86 assembly version, and the CMake build does not compile it for Visual C++.
    As in the fork of GAOL by Fabrice Le Bars. */
-#if defined (_MSC_VER) && HAVE_FENV_H
+#if defined (_MSC_VER) && GAOL_HAVE_FENV_H
 #  include "gaol/sysdeps/gaol_exact_c99.h"
 #endif
 
-#endif /* __gaol_exact_h__ */
+#endif /* GAOL_EXACT_H */

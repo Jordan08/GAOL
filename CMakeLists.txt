@@ -41,11 +41,13 @@ cmake_minimum_required(VERSION 3.14...3.25)
 # macros write as C integers. The file is not named VERSION: the root of the
 # sources is on the include path, and on file systems that ignore case (macOS,
 # Windows) #include <version>, which libc++ includes from <vector> or <cmath>,
-# would find it (GAOL v5)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version)
-string(STRIP "${_gaol_version}" _gaol_version)
-if(NOT _gaol_version MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
-  message(FATAL_ERROR "VERSION.txt holds \"${_gaol_version}\", where it should hold the version of GAOL, three numbers without leading zeros such as 5.0.0")
+# would find it. The reading, which ignores a byte order mark and the line ends
+# of Windows, is in cmake/gaol_version.cmake, where the test version_file
+# checks it (GAOL v5)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/gaol_version.cmake")
+gaol_read_version("${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" _gaol_version _gaol_version_error)
+if(_gaol_version_error)
+  message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
@@ -198,12 +200,19 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
-# mingw-w64 is refused for its version by gaol/gaol_config.h only, when
-# compiling: the mingw-w64 whose <fenv.h> answers fegetround() from a state of
-# its own rather than from the registers, before version 12 on x86-64 (the
-# MinGW-w64 GCC 11 to 13 of Chocolatey) and before 11 on 32-bit x86 (GCC 11).
-# CORE-MATH's functions read fegetround() to know the rounding direction GAOL
-# set by writing the registers.
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
+# fma() or round() of the programs is wrong. On x86-64, before version 12 (the
+# MinGW-w64 GCC 11 to 13 of Chocolatey) and linked with msvcrt.dll rather than
+# the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are
+# those of mingw-w64's own math library, computed in doubles: that fma() is not
+# correctly rounded, and CORE-MATH's functions compute with it where the
+# compiler has no -mfma (GCC for Windows, see below); that round() depends on
+# the rounding direction. On 32-bit x86, where mingw-w64 computes them on the
+# x87 unit, before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose
+# fma() rounds each of its partial sums to a double (the one of mingw-w64 11,
+# accepted, keeps them in extended precision and passes the tests, though not
+# correctly rounded). On ARM, before 11, not tested. From version 12 on, a
+# toolchain linking the UCRT takes those of ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -212,8 +221,9 @@ endif()
 # - the math library of mingw-w64 before version 12 was not accurate enough for
 #   the hyperbolic functions GAOL took from it (acosh() near 1 was up to 25
 #   million floats away from the exact value, and asinh() of large negative
-#   numbers NaN). GAOL takes no function from the math library of the system any
-#   more: CORE-MATH gives them all, correctly rounded, whatever the system;
+#   numbers NaN). GAOL takes no elementary function from the math library of
+#   the system any more: CORE-MATH gives them all, correctly rounded, whatever
+#   the system;
 # - fesetround() of mingw-w64 12 runs the instruction cpuid at each call, which
 #   takes microseconds in a virtual machine (3.5 against 130 nanoseconds with
 #   mingw-w64 13), and GAOL changed the rounding direction four times for each
@@ -222,13 +232,23 @@ endif()
 #   GAOL calls them in the upward rounding it keeps (gaol/gaol_double_op.h).
 #
 # The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
-# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, runs the
-# tests with them, and checks that GCC 11.2.0 to 13.2.0 are refused on x86-64
-# and 11.2.0 on 32-bit x86 (.github/workflows/windows.yml).
+# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
+# MSYS2 UCRT64 and CLANG64, runs the tests with them, and checks that GCC
+# 11.2.0 to 13.2.0 and MSYS2 MINGW64 are refused on x86-64 and GCC 11.2.0 on
+# 32-bit x86 (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
   list(APPEND GAOL_INTERVAL_FLAGS /fp:strict)
+  # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
+  # /arch:SSE2 (_M_IX86_FP 1, clang-cl 18), which gaol/gaol_config.h refuses:
+  # -msse2 has it compute them in SSE2 (_M_IX86_FP 2, FLT_EVAL_METHOD 0), as
+  # Visual C++ does by default. Given to the code using GAOL too (gaol::gaol),
+  # which includes the headers the check is in.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_SIZEOF_VOID_P EQUAL 4
+     AND CMAKE_CXX_COMPILER_ARCHITECTURE_ID MATCHES "^[Xx]86$")
+    list(APPEND GAOL_INTERVAL_FLAGS -msse2)
+  endif()
 else()
   # From ibex_init_common(): each flag is kept where the compiler takes it
   foreach(flag -frounding-math -fno-fast-math -ffp-contract=off)
@@ -261,8 +281,8 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
-  # GAOL refuses -ffast-math and doubles computed on the x87 unit at compile
-  # time (gaol/gaol_config.h): the flags above keep both away.
+  # GAOL refuses -ffast-math, -ffinite-math-only and doubles computed on the
+  # x87 unit at compile time (gaol/gaol_config.h): the flags above keep them away.
 
   # -ffloat-store only where doubles are still computed on the x87 unit
   # (FLT_EVAL_METHOD not 0: a 32-bit x86 target without SSE2), whose 80-bit
@@ -414,6 +434,31 @@ endif()
 string(REPLACE ";" " " GAOL_FMA_FLAGS_STRING "${GAOL_FMA_FLAGS}")
 message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
 
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and from 11.4 and 12.4 in the series 11 and 12; GCC 9.4, 12.3, GCC for
+# ARM and Clang 18 refuse it, with an error), which the code using GAOL is given
+# (gaol::gaol, gaol.pc)
+# (GAOL v5). GCC links crtfastmath.o into a program linked with -Ofast,
+# -ffast-math or -funsafe-math-optimizations, even when -fno-fast-math follows,
+# and its constructor sets the flush-to-zero and denormals-are-zero modes of the
+# SSE instructions, which make the bounds of every operation with a subnormal
+# operand or result wrong ([1e-300]*[1e-20] is [0, 0]). -mno-daz-ftz keeps that
+# file out of the link. It is no protection against a plug-in built with -Ofast
+# and loaded later, nor against the other compilers and processors: each
+# operation of GAOL clears the modes when it starts (gaol/gaol_fpu.h). Checked
+# by linking, since it is a link option (tests/fast_math_link.cpp).
+set(GAOL_LINK_FLAGS "")
+if(NOT MSVC)
+  set(CMAKE_REQUIRED_LINK_OPTIONS "-mno-daz-ftz")
+  check_cxx_source_compiles("int main() { return 0; }" GAOL_LINKER_TAKES_MNO_DAZ_FTZ)
+  unset(CMAKE_REQUIRED_LINK_OPTIONS)
+  if(GAOL_LINKER_TAKES_MNO_DAZ_FTZ)
+    list(APPEND GAOL_LINK_FLAGS -mno-daz-ftz)
+  endif()
+endif()
+string(REPLACE ";" " " GAOL_LINK_FLAGS_STRING "${GAOL_LINK_FLAGS}")
+message(STATUS "Link flags of the code using GAOL: ${GAOL_LINK_FLAGS_STRING}")
+
 
 ################################################################################
 # CORE-MATH
@@ -480,14 +525,14 @@ message(STATUS "Elementary functions: CORE-MATH, from 3rd/math-core (correctly r
 ################################################################################
 
 # GAOL sets the rounding direction with <fenv.h> (gaol/gaol_fpu.h)
-check_include_file_cxx(fenv.h HAVE_FENV_H)
-if(NOT HAVE_FENV_H)
+check_include_file_cxx(fenv.h GAOL_HAVE_FENV_H)
+if(NOT GAOL_HAVE_FENV_H)
   message(FATAL_ERROR "GAOL needs <fenv.h>, which this compiler does not provide")
 endif()
 
 # gaol/gaol_profile.cpp measures time with getrusage() where it exists, and with
 # clock() otherwise
-check_symbol_exists(getrusage "sys/resource.h" HAVE_GETRUSAGE)
+check_symbol_exists(getrusage "sys/resource.h" GAOL_HAVE_GETRUSAGE)
 
 # GAOL raises exceptions to signal errors, which --disable-exceptions of
 # configure and -Denable-exception=false of meson turn off
@@ -504,7 +549,7 @@ endif()
 
 # With -frounding-math, GAOL negates a double with the minus sign rather than by
 # flipping its sign bit (gaol_opposite() in gaol/gaol_port.h)
-set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
+set(GAOL_HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
@@ -516,8 +561,8 @@ set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 # that a std::vector of SSE2 intervals, aligned on 16 bytes, crashes on its
 # first movaps (MinGW-w64 15.2 for x86, rounding_direction). On 64-bit Windows
 # (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
-set(USING_SSE2_INSTRUCTIONS OFF)
-set(USING_SSE3_INSTRUCTIONS OFF)
+set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
+set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
 if(GAOL_SIMD AND NOT MSVC)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
@@ -534,11 +579,11 @@ if(GAOL_SIMD AND NOT MSVC)
   if(GAOL_SSE2_INTERVALS)
     check_cxx_compiler_flag(-msse2 GAOL_COMPILER_SUPPORTS_MSSE2)
     if(GAOL_COMPILER_SUPPORTS_MSSE2)
-      set(USING_SSE2_INSTRUCTIONS ON)
+      set(GAOL_USING_SSE2_INSTRUCTIONS ON)
       list(APPEND GAOL_INTERVAL_FLAGS -msse2)
       check_cxx_compiler_flag(-msse3 GAOL_COMPILER_SUPPORTS_MSSE3)
       if(GAOL_COMPILER_SUPPORTS_MSSE3)
-        set(USING_SSE3_INSTRUCTIONS ON)
+        set(GAOL_USING_SSE3_INSTRUCTIONS ON)
         list(APPEND GAOL_INTERVAL_FLAGS -msse3)
       endif()
     endif()
@@ -546,7 +591,7 @@ if(GAOL_SIMD AND NOT MSVC)
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
-message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3: ${USING_SSE3_INSTRUCTIONS}")
+message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -557,11 +602,11 @@ endif()
 
 # The library compiled with hidden visibility, as configure builds it, and with
 # the warnings of configure; GAOL's public declarations carry
-# __attribute__ ((visibility("default"))) (HAVE_VISIBILITY_OPTIONS)
+# __attribute__ ((visibility("default"))) (GAOL_HAVE_VISIBILITY_OPTIONS)
 set(GAOL_LIBRARY_FLAGS "")
 if(NOT MSVC)
-  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" HAVE_VISIBILITY_OPTIONS)
-  if(HAVE_VISIBILITY_OPTIONS)
+  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" GAOL_HAVE_VISIBILITY_OPTIONS)
+  if(GAOL_HAVE_VISIBILITY_OPTIONS)
     list(APPEND GAOL_LIBRARY_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>" -fvisibility=hidden)
   endif()
   foreach(flag -Wall -Wconversion)
@@ -592,7 +637,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # The sources listed in gaol/meson.build. gaol_interval.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
+# GAOL_USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
 # where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
 # gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
@@ -624,6 +669,14 @@ set_target_properties(gaol_core_math PROPERTIES
 target_compile_options(gaol_core_math PRIVATE ${GAOL_CORE_MATH_FLAGS} ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_LIBRARY_FLAGS})
 target_include_directories(gaol_core_math PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+# /W4 of Visual C++ (the job warnings of windows.yml) on what CORE-MATH writes
+# on purpose (GAOL v5): its #pragma STDC FENV_ACCESS, which /fp:strict makes
+# redundant (C4068), the anonymous structures of its unions (C4201), masks
+# written as negative constants (C4245), and the volatile variables it
+# computes for the flags they raise alone (C4189)
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189)
+endif()
 
 if(MSVC)
   add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
@@ -657,6 +710,22 @@ target_include_directories(gaol PUBLIC
 )
 target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
+# To the link of the code using GAOL, when it is built by a compiler that takes
+# the option: GCC 13 or a later one, or the compiler that built GAOL, of its
+# major version and not older than it. Another compiler, as Clang 18, would stop
+# on the option, and the option is not in every later release: GCC has it from
+# 11.4 in the series 11 and from 12.4 in the series 12, so that a GAOL built by
+# GCC 11.4 (Ubuntu 22.04) and a program built by GCC 12.3 (its g++-12) have it
+# and do not (GAOL v5, review of point 4: gcc/config/i386/i386.opt of the
+# release tags)
+if(GAOL_LINK_FLAGS)
+  string(REGEX MATCH "^[0-9]+" GAOL_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+  math(EXPR GAOL_COMPILER_NEXT_MAJOR "${GAOL_COMPILER_MAJOR} + 1")
+  set(GAOL_LINK_FLAGS_SERIES "$<AND:$<CXX_COMPILER_ID:${CMAKE_CXX_COMPILER_ID}>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,${CMAKE_CXX_COMPILER_VERSION}>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,${GAOL_COMPILER_NEXT_MAJOR}>>")
+  set(GAOL_LINK_FLAGS_GCC13 "$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,13>>")
+  target_link_options(gaol INTERFACE
+    "$<$<OR:${GAOL_LINK_FLAGS_GCC13},${GAOL_LINK_FLAGS_SERIES}>:${GAOL_LINK_FLAGS}>")
+endif()
 # Without a build type, CMake gives no optimization flag at all. GAOL sets
 # Release when it is the top-level project, but brought in by a project that
 # sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
@@ -672,7 +741,11 @@ endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")
-  target_compile_options(gaol PRIVATE /Zc:strictStrings-)
+  # Visual C++ only: clang-cl does not know the option, and warned of it for
+  # each source (GAOL v5)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(gaol PRIVATE /Zc:strictStrings-)
+  endif()
   target_compile_definitions(gaol PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
   # gaol/gaol_config.h declares GAOL's classes and functions
   # __declspec(dllimport) for Visual C++ unless __GAOL_PUBLIC__ is defined, as
@@ -697,25 +770,33 @@ install(TARGETS gaol EXPORT gaolTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# GAOL's headers, including those gaol/gaol_config.h includes for Visual C++
-# and MinGW, which gaol/meson.build does not install
-file(GLOB GAOL_HEADERS gaol/*.h)
-# What CORE-MATH's sources need to compile within GAOL, and nothing else does
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_log_dint.h")
-# The headers of the sources of GAOL only: the bounds at doubles, *_dn() and
-# *_up(), which are not part of GAOL's interface, and the intervals of floats,
-# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_double_op.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
+# The headers a program includes, gaol/gaol, gaol/gaol_expression.h and
+# gaol/gaol_expr_eval.h for the expressions, gaol/gaol_assert.h for
+# GAOL_ASSERT (see the manual), and those they include,
+# gaol/gaol_fpu_msvc.h for Visual C++ among them: gaol/Makefile.am and
+# gaol/meson.build install the same ones. Not the headers of the sources of
+# GAOL only (GAOL v5): gaol/gaol_interval_parser.h, which did not compile when
+# included, the parts of the library (gaol_init_cleanup.h, gaol_exact.h and
+# sysdeps/, gaol_core_math.h, gaol_u128.h),
+# what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
+# core_math_log_dint.h), the bounds at doubles, *_dn() and *_up(), which are
+# not part of GAOL's interface (gaol_double_op.h), and the intervals of
+# floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
+set(GAOL_HEADERS
+  gaol/gaol.h gaol/gaol_allocator.h gaol/gaol_assert.h gaol/gaol_common.h
+  gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
+  gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
+  gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
+  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
+  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_parser.h
+  gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_version.h)
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}
   "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol
 )
-install(FILES gaol/sysdeps/gaol_exact_c99.h gaol/sysdeps/gaol_exact_msvc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/sysdeps)
 
 set(GAOL_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/gaol)
 install(EXPORT gaolTargets NAMESPACE gaol:: DESTINATION ${GAOL_INSTALL_CMAKEDIR})
@@ -794,7 +875,9 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_DEBIAN_PACKAGE_SECTION "libdevel")
 
   # The archive of the sources: the files of the repository, without what git
-  # ignores (.gitignore), the builds within the sources, and the packages
+  # ignores (.gitignore), the builds within the sources, the packages, and the
+  # notes of the work on GAOL v5 (TODO.md, process.md, todo-notes/), which
+  # serve its maintainers, not the users of a version
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
   string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
@@ -806,7 +889,33 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
+    "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/process\\.md$" "^${_gaol_source_regex}/todo-notes/"
   )
+
+  # The archive holds configure as it is committed, and configure says the
+  # version autoconf read from VERSION.txt when it generated it (the line
+  # PACKAGE_VERSION= of the script; configure --version and --help give it).
+  # After a change of VERSION.txt without a new generation of configure, the
+  # archive of the new version holds a configure that says the old one, and
+  # warns when it runs: only the continuous integration reported it. CMake can
+  # warn while it configures only, so it does here, whether or not the archive
+  # is made. A tree without configure, or with a configure that has no such
+  # line, has nothing to compare (tests/cpack_stale_configure.cmake checks it,
+  # GAOL v5).
+  if(EXISTS "${PROJECT_SOURCE_DIR}/configure")
+    file(STRINGS "${PROJECT_SOURCE_DIR}/configure" _gaol_configure_version REGEX "^PACKAGE_VERSION='" LIMIT_COUNT 1)
+    if(_gaol_configure_version MATCHES "^PACKAGE_VERSION='([^']*)'")
+      set(_gaol_configure_version "${CMAKE_MATCH_1}")
+      if(NOT _gaol_configure_version STREQUAL PROJECT_VERSION)
+        message(WARNING
+          "configure was generated for GAOL ${_gaol_configure_version}, and VERSION.txt holds ${PROJECT_VERSION}: "
+          "the archive of the sources (package_source) would hold configure as it is, which says "
+          "${_gaol_configure_version} for --version and --help. Generate configure again before "
+          "VERSION.txt is committed, as doc/building.md says.")
+      endif()
+    endif()
+  endif()
+
   include(CPack)
 endif()
 

@@ -205,6 +205,43 @@ namespace
     }
   }
 
+  // tan over [-M_PI_2, M_PI_2], and over the intervals between two poles whose
+  // width is about the same (review #8 of examples/examples.md; GAOL v5).
+  // tan() takes an interval for narrower than pi, so that it holds at most one
+  // pole, when its width rounded upward is at most the double below pi: it
+  // took that width itself for a wider one, and gave [-oo,+oo] for
+  // [-M_PI_2, M_PI_2] and for four other intervals holding no pole
+  void tan_next_to_two_poles()
+  {
+    // M_PI_2 is 6.1e-17 below pi/2: [-M_PI_2, M_PI_2] holds no pole, and its
+    // width is exactly the double below pi. tan(M_PI_2) is
+    // 16331239353195369.756, between 0x1.d02967c31cdb4p+53 and
+    // 0x1.d02967c31cdb5p+53: the tightest interval is [-0x1.d02967c31cdb5p+53,
+    // 0x1.d02967c31cdb5p+53]
+    const double half_pi_below = 0x1.921fb54442d18p+0;
+    const double lower = value("tan", -half_pi_below).below, upper = value("tan", half_pi_below).above;
+    const interval r = evaluate("tan([-M_PI_2,M_PI_2])", [&] { return tan(interval(-half_pi_below, half_pi_below)); },
+                                [] { return std::string(); });
+    check("tan([-M_PI_2,M_PI_2]): the tightest bounds", r.left() == lower && r.right() == upper,
+          [&] { return hex(r) + " rather than [" + hex(lower) + ", " + hex(upper) + "]"; });
+
+    // The intervals whose bounds are the doubles next to two consecutive
+    // poles, and whose width rounded upward is the double below pi or one of
+    // the two doubles on each side of it (the ones holding no pole having a
+    // finite tangent, the others [-oo,+oo]), and 64 drawn at random about
+    // other poles
+    for (const TrigInterval& t : tan_pole_intervals) {
+      const interval X(t.a, t.b);
+      const std::string name = "tan([a,b]) next to two consecutive poles";
+      const auto arguments = [&] { return "tan(" + hex(X) + ")"; };
+      const interval y = evaluate(name, [&] { return tan(X); }, arguments);
+      expect_close(name, y, t.least_below, t.greatest_above, [&] {
+        return arguments() + " = " + hex(y) + ", the hull of the values being within ["
+          + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
+      });
+    }
+  }
+
   // atan2 of IEEE 1788-2015 over boxes [yl, yu] x [xl, xu] in every position
   // about the axes and the half-line y = 0, x < 0, where the angle jumps from
   // pi to -pi, and at the boxes whose hull is known: those with infinite
@@ -230,34 +267,34 @@ namespace
       }
     }
 
-    const interval pi = interval::pi(), half_pi = interval::half_pi();
+    const interval pi_itv = interval::pi(), half_pi_itv = interval::half_pi();
     const double oo = gaol_tests::inf;
     const struct { const char *name; interval Y, X; double l, r; } known[] = {
       { "atan2([0],[0])", interval(0.0), interval(0.0), 1.0, -1.0 },
       { "atan2([empty],[1])", interval::emptyset(), interval(1.0), 1.0, -1.0 },
       { "atan2([1],[empty])", interval(1.0), interval::emptyset(), 1.0, -1.0 },
       { "atan2([0],[1,2])", interval(0.0), interval(1.0, 2.0), 0.0, 0.0 },
-      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi.left(), pi.right() },
-      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi.left(), pi.right() },
+      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi_itv.left(), pi_itv.right() },
+      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi_itv.left(), pi_itv.right() },
       { "atan2([0],[0,2])", interval(0.0), interval(0.0, 2.0), 0.0, 0.0 },
-      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi.right() },
-      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
-      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
-      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi.right(), -half_pi.left() },
-      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi.right(), -half_pi.left() },
-      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi.right(), half_pi.right() },
-      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
-      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
-      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi.right()*0.5, 0.0 },
-      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi.right(), pi.right() },
-      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi.right() },
-      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi.left(), pi.right() },
-      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi.right(), -half_pi.left() },
-      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi.right(), 0.0 },
-      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi.right(), half_pi.right() },
-      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi.right() },
-      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi.left()*0.5, half_pi.right()*0.5 },
-      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi.right()*0.5, -half_pi.left()*0.5 },
+      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi_itv.right() },
+      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi_itv.left(), half_pi_itv.right() },
+      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi_itv.left(), half_pi_itv.right() },
+      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi_itv.right(), half_pi_itv.right() },
+      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi_itv.right(), pi_itv.right() },
+      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi_itv.right(), pi_itv.right() },
+      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi_itv.right()*0.5, 0.0 },
+      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi_itv.right(), pi_itv.right() },
+      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi_itv.right() },
+      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi_itv.left(), pi_itv.right() },
+      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi_itv.right(), 0.0 },
+      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi_itv.right(), half_pi_itv.right() },
+      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi_itv.right() },
+      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi_itv.left()*0.5, half_pi_itv.right()*0.5 },
+      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi_itv.right()*0.5, -half_pi_itv.left()*0.5 },
     };
     for (const auto& k : known) {
       const interval r = evaluate(k.name, [&] { return atan2(k.Y, k.X); }, [&] { return std::string(k.name); });
@@ -335,6 +372,12 @@ namespace
       { "sqrt([-4,4])", [] { return sqrt(interval(-4., 4.)); }, 0., 2. },
       { "tanh([-inf,inf])", [] { return tanh(interval::universe()); }, -1., 1. },
       { "atanh([-1,1])", [] { return atanh(interval(-1., 1.)); }, -inf, inf },
+      // The doubles next to -1 and 1 are in the domain (-1, 1) of atanh: the
+      // bound at -1 or 1 is the limit -oo or +oo, the other one is a value
+      { "atanh([1-2^-53,1])", [] { return atanh(interval(0x1.fffffffffffffp-1, 1.)); },
+        value("atanh", 0x1.fffffffffffffp-1).below, inf },
+      { "atanh([-1,-(1-2^-53)])", [] { return atanh(interval(-1., -0x1.fffffffffffffp-1)); },
+        -inf, value("atanh", -0x1.fffffffffffffp-1).above },
       { "cosh([-inf,inf])", [] { return cosh(interval::universe()); }, 1., inf },
     };
     for (const Known& k : known) {
@@ -380,6 +423,11 @@ namespace
       { "acosh([1])", [] { return acosh(interval(1.)); }, 0., 0. },
       { "acosh([0,1])", [] { return acosh(interval(0., 1.)); }, 0., 0. },
       { "atanh([0])", [] { return atanh(interval(0.)); }, 0., 0. },
+      // atanh tends to -oo at -1 and to +oo at 1, the ends of its domain
+      // (-1, 1): these limits are the bounds of the result
+      { "atanh([0,1])", [] { return atanh(interval(0., 1.)); }, 0., inf },
+      { "atanh([-1,0])", [] { return atanh(interval(-1., 0.)); }, -inf, 0. },
+      { "atanh([-2,2]), whose part outside (-1, 1) is left out", [] { return atanh(interval(-2., 2.)); }, -inf, inf },
     };
     for (const Known& e : exact) {
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
@@ -402,6 +450,16 @@ namespace
       { "acos([-3,-2])", [] { return acos(interval(-3., -2.)); } },
       { "acosh([-1,0.5])", [] { return acosh(interval(-1., 0.5)); } },
       { "atanh([2,3])", [] { return atanh(interval(2., 3.)); } },
+      // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1): its limits
+      // -oo and +oo at -1 and 1 are no values, so that an interval holding
+      // no point of (-1, 1) gives the empty set, [1] and [-1] included. GAOL
+      // gave [MAX,+oo] for the first three
+      { "atanh([1])", [] { return atanh(interval(1.)); } },
+      { "atanh([1,5])", [] { return atanh(interval(1., 5.)); } },
+      { "atanh([1,+oo])", [] { return atanh(interval(1., inf)); } },
+      { "atanh([-1])", [] { return atanh(interval(-1.)); } },
+      { "atanh([-5,-1])", [] { return atanh(interval(-5., -1.)); } },
+      { "atanh([-oo,-1])", [] { return atanh(interval(-inf, -1.)); } },
     };
     for (const Empty& e : empty) {
       bool threw = false;
@@ -430,11 +488,6 @@ namespace
       double below, above;
     };
     const Close close[] = {
-      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
-      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
-      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
-      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
-      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
       { "pow([0,4],0.5)", [] { return pow(interval(0., 4.), 0.5); }, 0., 2. },
       { "pow([-4,9],0.5), whose negative part is out of the domain", [] { return pow(interval(-4., 9.), 0.5); }, 0., 3. },
       { "pow([-2,3],[1,2]), whose negative part is out of the domain", [] { return pow(interval(-2., 3.), interval(1., 2.)); }, 0., 9. },
@@ -451,7 +504,16 @@ namespace
       interval (*f)();
       double lo, hi;
     };
+    // The powers that are doubles at a corner of the box (GAOL v5): the lower bound is the power itself, not the
+    // double below it, as pow([4],0.5) was [2 - 2^-52, 2]
     const Equal equal[] = {
+      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
+      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
+      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
+      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
+      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
+      { "pow([3,4],[2,3])", [] { return pow(interval(3., 4.), interval(2., 3.)); }, 9., 64. },
+      { "pow([2,4],[-1,0.5]), 4^-1 and 4^0.5", [] { return pow(interval(2., 4.), interval(-1., 0.5)); }, 0.25, 2. },
       { "pow([-2,3],3.0), with a negative base and an integer exponent", [] { return pow(interval(-2., 3.), 3.0); }, -8., 27. },
       { "pow([-2],2.0)", [] { return pow(interval(-2.), 2.0); }, 4., 4. },
       { "pow([2,3],4.0)", [] { return pow(interval(2., 3.), 4.0); }, 16., 81. },
@@ -710,6 +772,7 @@ int main()
   pow_of_boxes();
   atan2_of_boxes();
   trigonometric_intervals();
+  tan_next_to_two_poles();
   powers();
   integer_functions();
   std::fesetround(FE_UPWARD);
