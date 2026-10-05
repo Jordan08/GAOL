@@ -380,7 +380,12 @@ mode there.
   is the overflowing power, which the conversion of the exponent to a negative
   `int` made a tiny one, `gaol::pow(x, 3L)`, which was ambiguous, the cube,
   `pown(x, -2L)` and `gaol::pow(x, -3LL)` the negative powers, and an exponent
-  beyond the unsigned ints [-oo, +oo]; `numsToInterval()` and `isMember()`
+  beyond the unsigned ints [-oo, +oo]; `rootn()`, `gaol::nth_root()` and
+  `pownRev()` with a `long`, `long long` or `unsigned long` order, and beyond
+  the unsigned ints the tightest enclosures of the roots, compared with
+  doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
+  `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,
+  [-oo, +oo]; `numsToInterval()` and `isMember()`
   take ±(2^53 + 1) as the integer it is, and bounds in the wrong order give the
   empty set;
   the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 92 boxes, each
@@ -526,7 +531,10 @@ mode there.
   unsigned int (GAOL v5). The expressions built in C++ go through every node
   too, `pow(e, 3)` and `/=` included, which did not link, and `expression(n)`
   of 2^53 + 1, the interval of the two doubles around it, and `expression(7)`,
-  the node of the double 7, written `7` (GAOL v5), and have to be
+  the node of the double 7, written `7`, and `pow(e, n)` and `nth_root(e, n)`
+  with a `long` n, an unsigned beyond the ints, a negative int and orders
+  beyond the unsigned ints, of positive, negative and mixed-sign expressions
+  (GAOL v5), and have to be
   printed as written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE

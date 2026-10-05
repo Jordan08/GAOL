@@ -2751,6 +2751,11 @@ cout << pow(interval(0.0), interval(0.0)) << ' '
   The bounds are the tightest ones, or one double beyond: each is proved with
   integer powers. The cube root is that of CORE-MATH, the tightest one, and the
   root of a double that is the \var{n}th power of a double is that double.
+  An order of another integer type (\code{long}, \code{long long}\dots), with
+  which \code{nth\_root} was ambiguous, is taken as an \code{int} or an
+  \code{unsigned int} where it is one; beyond them, the roots are enclosed
+  by \code{pow} with the exponent $1/q$, as an interval, $x^{1/q}$ being
+  within $2^{-21}$ of 1 for every double $x>0$ there.\newinvfive
 \begin{example}
 cout << nth_root(interval(-8,27), 3) << ' '
      << nth_root(interval(-4,16), 2) << ' '
@@ -4216,7 +4221,11 @@ The functions of GAOL that have the name and the meaning the standard gives them
   GAOL and throws (\pxref{sec:ieee1788-text});
 \item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
   $p\leq0$, which GAOL does not provide, rather than give an interval it has
-  not computed.
+  not computed. Its $p$, and the $q$ of \code{rootn(x, q)}, may be of any
+  integer type: \code{pownRev(c, 3000000000u)} converted $p$ to a negative
+  \code{int} and threw; beyond the \code{unsigned int}s, \code{pownRev}
+  gives the hull of the parts of $x$ in the roots of order $p$ of $c$ and, for
+  an even $p$, in their opposites.\newinvfive
 \end{itemize}
 
 \begin{example}
@@ -4443,7 +4452,7 @@ covered.
   \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh} & tightest\\
   \hline
   \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\
-  \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise accurate: the tightest bounds or one double beyond, proved with integer powers\\
+  \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise accurate: the tightest bounds or one double beyond, proved with integer powers; beyond the \code{unsigned int}s, CORE-MATH's \code{pow} at the corners, within one double\\
   \code{nth\_root(x, q)}, $q<0$ & accurate: the root above, then the tightest division\\
   \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
   \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\

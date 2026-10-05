@@ -214,6 +214,9 @@ namespace gaol_ieee1788 {
 
   //! rootn(x, q): nth_root(x, q), q may be negative
   GAOL_NODISCARD inline interval rootn(const interval& x, int q) { return ::gaol_core::nth_root(x, q); }
+  //! rootn(x, q) for an integer q of another type: nth_root(x, q) (GAOL v5)
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval rootn(const interval& x, T q) { return ::gaol_core::nth_root(x, q); }
   //! expm1, exp2m1, exp10m1, log2p1, log10p1 and hypot: the functions of GAOL
   using ::gaol_core::expm1;
   using ::gaol_core::exp2m1;
@@ -260,6 +263,27 @@ namespace gaol_ieee1788 {
     return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
   }
   GAOL_NODISCARD inline interval pownRev(const interval& c, int p) { return pownRev(c, interval::universe(), p); }
+  /*!
+    pownRev(c, x, p) for an integer p of another type (GAOL v5): an unsigned
+    p beyond the ints was converted to a negative int, and threw. For a p
+    within the unsigned ints, nth_root_rel(c, p, x); beyond them, the hull of
+    the parts of x in the roots of order p of c and, for an even p, in their
+    opposites (gaol_detail::huge_root()), which every x with x^p in c is in
+  */
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, T p)
+  {
+    if (::gaol_detail::integer_is_negative(p) || p == 0) {
+      throw std::invalid_argument("gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
+    }
+    if (::gaol_detail::integer_fits<unsigned int>(p)) {
+      return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
+    }
+    const interval roots = ::gaol_detail::huge_root(c, p);
+    return p % 2 == 0 ? (x & roots) | (x & -roots) : x & roots;
+  }
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline interval pownRev(const interval& c, T p) { return pownRev(c, interval::universe(), p); }
 
   //! sinRev(c, x), cosRev(c, x), tanRev(c, x): asin_rel(c, x), acos_rel(c, x), atan_rel(c, x)
   GAOL_NODISCARD inline interval sinRev(const interval& c, const interval& x) { return ::gaol_core::asin_rel(c, x); }

@@ -830,6 +830,36 @@ typedef struct {
   //@}
 
   /*!
+    nth_root(e, n) for an integer n of another type than unsigned int, an int
+    among them (GAOL v5), as nth_root(I, q) of intervals: nth_root(e, -3)
+    converted -3 to 4294967293, and a long beyond the unsigned ints was
+    reduced modulo 2^32. For an n within the unsigned ints, nth_root(e,
+    unsigned int); for a negative n within the ints, 1/nth_root(e, |n|);
+    beyond them, e^(1/n) by GAOL's pow, the exponent 1/n being an interval
+    with no integer in it, which takes the part of e in [0, +oo], and for an
+    odd n sign(e) (sign(e) e)^(1/n), sign(e) e containing |x| for every x of
+    e: an enclosure of the roots, the one of nth_root(I, n) of intervals but
+    where e contains 0
+  */
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline const expression nth_root(const expression& e, T n)
+  {
+    if (::gaol_detail::integer_fits<unsigned int>(n)) {
+      return nth_root(e, static_cast<unsigned int>(n));
+    }
+    if (::gaol_detail::integer_fits<int>(n)) {
+      return expression(1.0) / nth_root(e, static_cast<unsigned int>(0u - static_cast<unsigned int>(n)));
+    }
+    const interval magnitude = ::gaol_detail::integer_is_negative(n) ? -interval(n) : interval(n);
+    const interval inverse = interval(1.0) / magnitude;
+    const expression exponent(::gaol_detail::integer_is_negative(n) ? -inverse : inverse);
+    if (n % 2 == 0) {
+      return gaol_pow_exp(e, exponent);
+    }
+    return sign(e) * gaol_pow_exp(sign(e) * e, exponent);
+  }
+
+  /*!
     \brief Evaluation of trees for left and right bounds of intervals
 
     Proper rounding is ensured by performing the computation over intervals
@@ -1335,6 +1365,22 @@ typedef struct {
 namespace gaol {
   using namespace gaol_core;
   GAOL_NODISCARD inline const expression pow(const expression& e, int n) { return gaol_core::gaol_pown_exp(e, n); }
+  /*
+    pow(e, n) for an integer n of another type (GAOL v5), which an unsigned
+    beyond the ints, converted to a negative int, made [0, 1] for [1, 2]^n:
+    gaol_pown_exp(e, n) for an n within the ints, and beyond them the
+    expression of pow(e, [d]), d being n converted to a double, an integer
+    beyond the ints, for which GAOL's pow gives [-oo, +oo] for a nonempty e,
+    as gaol::pow(x, [n]) of intervals; gaol::pow(x, n) of intervals takes
+    gaol_uipow() within the unsigned ints, which no node of an expression
+    computes
+  */
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline const expression pow(const expression& e, T n)
+  {
+    return ::gaol_detail::integer_fits<int>(n) ? gaol_core::gaol_pown_exp(e, static_cast<int>(n))
+                                               : gaol_core::gaol_pow_exp(e, expression(static_cast<double>(n)));
+  }
   GAOL_NODISCARD inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
 } // namespace gaol
 
@@ -1380,6 +1426,14 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline const ::gaol_core::expression pown(const ::gaol_core::expression& e, int n)
   {
     return ::gaol_core::gaol_pown_exp(e, n);
+  }
+  //! pown(e, n) for an integer n of another type (GAOL v5), as gaol::pow(e, n)
+  template <class T, ::gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD inline const ::gaol_core::expression pown(const ::gaol_core::expression& e, T n)
+  {
+    return ::gaol_detail::integer_fits<int>(n)
+      ? ::gaol_core::gaol_pown_exp(e, static_cast<int>(n))
+      : ::gaol_core::gaol_pow_exp(e, ::gaol_core::expression(static_cast<double>(n)));
   }
   GAOL_NODISCARD inline const ::gaol_core::expression pow(const ::gaol_core::expression& e1, const ::gaol_core::expression& e2)
   {

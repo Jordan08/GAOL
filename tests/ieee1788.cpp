@@ -132,6 +132,50 @@ namespace
           [&] { return hex(gaol::pow(x, 5000000000LL)); });
     check("pow(y, 2LL) is pow(y, [2])", pow(y, 2LL).set_eq(pow(y, interval(2.0))) && pow(x, 2LL).is_empty(),
           [&] { return hex(pow(y, 2LL)); });
+
+    // rootn(), gaol::nth_root() and pownRev() for an integer of another type
+    // (GAOL v5): nth_root(x, 3L) was ambiguous, rootn(x, 3000000000u) and
+    // pownRev(c, 3000000000u) converted the order to a negative int (rootn
+    // gave [0.99999999839, 0.99999999946] for [2, 8], and pownRev threw), and
+    // rootn(x, 5000000001LL) cut it to an int. Beyond the unsigned ints, the
+    // roots are enclosed through pow, here the tightest ones: the doubles
+    // around 8^(1/q) and 2^(1/q), for q = 5 10^9 + 1 and 5 10^9 alike, and
+    // around 8^(-1/q) and 2^(-1/q) for q = 5 10^9 (mpmath, 400 bits)
+    const interval c8(2.0, 8.0), m8(-8.0, 8.0);
+    const double r8 = 0x1.00000001c9463p+0, r2 = 0x1.00000000986cbp+0;
+    const auto bounds_are = [](const interval& z, double l, double r) { return z.left() == l && z.right() == r; };
+    check("rootn(x, 3L), rootn(x, -3LL), gaol::nth_root(x, 3L) and gaol::nth_root(x, 3000000000ul) as for an int",
+          rootn(m8, 3L).set_eq(rootn(m8, 3)) && rootn(c8, -3LL).set_eq(rootn(c8, -3))
+          && gaol::nth_root(m8, 3L).set_eq(gaol::nth_root(m8, 3))
+          && gaol::nth_root(c8, 3000000000ul).set_eq(gaol::nth_root(c8, 3000000000u)),
+          [&] { return hex(rootn(m8, 3L)); });
+    const interval rootn_u = rootn(c8, 3000000000u), rootn_ll = rootn(c8, 5000000001LL);
+    check("rootn(x, 3000000000u) and rootn(x, 5000000001LL): the roots of that order",
+          rootn_u.set_eq(gaol::nth_root(c8, 3000000000u)) && bounds_are(rootn_ll, r2, r8),
+          [&] { return hex(rootn_u) + " " + hex(rootn_ll); });
+    const interval odd = gaol::nth_root(m8, 5000000001LL), even = gaol::nth_root(m8, 5000000000LL);
+    const interval inverse = gaol::nth_root(c8, -5000000000LL);
+    check("nth_root(x, q) beyond the unsigned ints: the tightest enclosures of the roots",
+          bounds_are(odd, -r8, r8) && bounds_are(even, 0.0, r8)
+          && bounds_are(inverse, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
+          [&] { return hex(odd) + " " + hex(even) + " " + hex(inverse); });
+    bool threw = false;
+    try {
+      static_cast<void>(pownRev(c8, 0L));
+    } catch (const std::invalid_argument&) {
+      threw = true;
+    }
+    const interval rev = pownRev(c8, 5000000001LL), rev_even = pownRev(c8, 5000000000LL);
+    const interval rev_positive = pownRev(c8, numsToInterval(0.0, oo), 5000000000LL);
+    check("pownRev(c, 3000000000u) is nth_root_rel(), pownRev(c, 0L) throws, and beyond the unsigned ints the roots",
+          pownRev(c8, 3000000000u).set_eq(gaol_core::nth_root_rel(c8, 3000000000u, interval::universe())) && threw
+          && bounds_are(rev, r2, r8) && bounds_are(rev_even, -r8, r8) && bounds_are(rev_positive, r2, r8),
+          [&] { return hex(rev) + " " + hex(rev_even) + " " + hex(rev_positive); });
+    // pown(e, n) of the expressions for an unsigned beyond the ints, which
+    // made [1, 2]^3000000000u [0, 1], converting n to a negative int
+    const interval pown_u = value_of(pown(gaol::expression(numsToInterval(1.0, 2.0)), 3000000000u));
+    check("pown(e, 3000000000u) of an expression: [-oo, +oo]", pown_u.set_eq(interval::universe()),
+          [&] { return hex(pown_u); });
   }
 
   void pow_of_the_standard()

@@ -1780,6 +1780,56 @@ GAOL_NODISCARD GAOL_INLINE interval operator|(const interval& I1, const interval
 
   //@}
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+  /*
+    The root of order q of I for an integer q beyond the ints and the
+    unsigned ints, nth_root(I, q) for such a q (GAOL v5): I^(1/q) by GAOL's pow,
+    the exponent 1/q being an interval with no integer in it, on the part of
+    I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in [-oo, 0]; for
+    a negative q, 1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int
+    q. pownRev() of gaol_ieee1788 takes it for such a p.
+  */
+  template <class T>
+  GAOL_INLINE gaol_core::interval huge_root(const gaol_core::interval& I, T q)
+  {
+    const gaol_core::interval magnitude = integer_is_negative(q) ? -gaol_core::interval(q) : gaol_core::interval(q);
+    const gaol_core::interval inverse = gaol_core::interval(1.0) / magnitude;
+    const gaol_core::interval exponent = integer_is_negative(q) ? -inverse : inverse;
+    const gaol_core::interval roots = gaol_core::gaol_pow_hybrid(I & gaol_core::interval::positive(), exponent);
+    if (q % 2 == 0) {
+      return roots;
+    }
+    return roots | -gaol_core::gaol_pow_hybrid(-(I & gaol_core::interval::negative()), exponent);
+  }
+} // namespace gaol_detail
+
+namespace gaol_core {
+
+  /*!
+    \brief nth_root(I, q) for an integer q of another type than int and
+    unsigned int (GAOL v5)
+
+    nth_root(x, 3L) was ambiguous, a long being as far from an int as from an
+    unsigned int. nth_root(I, int) for a q within the ints, nth_root(I,
+    unsigned int) for one within the unsigned ints, and beyond them the root
+    of order q computed by GAOL's pow with the exponent 1/q, see
+    gaol_detail::huge_root(): an enclosure of the roots, x^(1/q) being within
+    2^-21 of 1 for every double x > 0 there.
+  */
+  template <class T, gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD GAOL_INLINE interval nth_root(const interval& I, T q)
+  {
+    if (gaol_detail::integer_fits<int>(q)) {
+      return nth_root(I, static_cast<int>(q));
+    }
+    if (gaol_detail::integer_fits<unsigned int>(q)) {
+      return nth_root(I, static_cast<unsigned int>(q));
+    }
+    return gaol_detail::huge_root(I, q);
+  }
+
  /*!
     \brief Diameter of an interval
     Returns the width of the interval (rounded upward).
