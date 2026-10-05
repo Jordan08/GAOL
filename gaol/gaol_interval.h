@@ -1784,8 +1784,8 @@ GAOL_NODISCARD GAOL_INLINE interval operator|(const interval& I1, const interval
 
 namespace gaol_detail {
   /*
-    The root of order q of I for an integer q beyond the unsigned ints in
-    magnitude, nth_root(I, q) for such a q (GAOL v5): I^(1/q) by GAOL's pow,
+    The root of order q of I for an integer q beyond the ints and the
+    unsigned ints, nth_root(I, q) for such a q (GAOL v5): I^(1/q) by GAOL's pow,
     the exponent 1/q being an interval with no integer in it, on the part of
     I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in [-oo, 0]; for
     a negative q, 1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int
