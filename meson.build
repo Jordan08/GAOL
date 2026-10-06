@@ -202,27 +202,32 @@ endif
 # CMakeLists.txt and configure give them: -frounding-math; -ffp-contract=off
 # (without it, compilers contract a multiplication and an addition into a fused
 # one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
-# both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
+# both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math.
+# These flags, and the others below, are arguments of the project rather than
+# global ones, which meson refuses in a subproject: GAOL can then be a
+# subproject of a meson project, whose own targets they do not reach, and
+# gaol_dep gives that project's code the flags gaol.pc gives (pc_cflags, see
+# gaol/meson.build) (GAOL v5)
 pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
-    add_global_arguments([flag], language: 'cpp')
+    add_project_arguments([flag], language: 'cpp')
     pc_cflags += [flag]
   endif
   if c_comp.has_argument(flag)
-    add_global_arguments([flag], language: 'c')
+    add_project_arguments([flag], language: 'c')
   endif
 endforeach
 # Visual C++: /fp:strict, as CMakeLists.txt gives it to GAOL and to CORE-MATH,
 # without which gaol/gaol_config.h refuses to compile
 if msvc
-  add_global_arguments(['/fp:strict'], language: ['c', 'cpp'])
+  add_project_arguments(['/fp:strict'], language: ['c', 'cpp'])
   pc_cflags += ['/fp:strict']
   # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
   # /arch:SSE2, which gaol/gaol_config.h refuses: -msse2 has it compute them
   # in SSE2, as CMakeLists.txt gives it
   if cpp_comp.get_id() == 'clang-cl' and host_machine.cpu_family() == 'x86'
-    add_global_arguments(['-msse2'], language: ['c', 'cpp'])
+    add_project_arguments(['-msse2'], language: ['c', 'cpp'])
     pc_cflags += ['-msse2']
   endif
 endif
@@ -231,23 +236,23 @@ endif
 # public declarations carry __attribute__ ((visibility("default")))
 if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
   conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
-  add_global_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
+  add_project_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
 endif
 if cpp_comp.has_argument('-Wconversion')
-  add_global_arguments(['-Wconversion'], language: 'cpp')
+  add_project_arguments(['-Wconversion'], language: 'cpp')
 endif
 if c_comp.has_argument('-Wconversion')
-  add_global_arguments(['-Wconversion'], language: 'c')
+  add_project_arguments(['-Wconversion'], language: 'c')
 endif
 # The optimizations configure (--enable-optimize) and the Release build of
 # CMake add to -O3, in the release build type, where the compiler takes them
 if get_option('buildtype') == 'release'
   foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
     if cpp_comp.has_argument(flag)
-      add_global_arguments([flag], language: 'cpp')
+      add_project_arguments([flag], language: 'cpp')
     endif
     if c_comp.has_argument(flag)
-      add_global_arguments([flag], language: 'c')
+      add_project_arguments([flag], language: 'c')
     endif
   endforeach
 endif
@@ -277,18 +282,18 @@ int main() { return 0; }
 if target_x86
   if target_x86_32 and cpp_comp.has_multi_arguments('-msse2', '-mfpmath=sse')
     x86_args = ['-msse2', '-mfpmath=sse']
-    add_global_arguments(x86_args, language: 'cpp')
-    add_global_arguments(x86_args, language: 'c')
+    add_project_arguments(x86_args, language: 'cpp')
+    add_project_arguments(x86_args, language: 'c')
     pc_cflags += x86_args
   endif
   if simd and not msvc and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
     conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
-    add_global_arguments(['-msse2'], language: 'cpp')
+    add_project_arguments(['-msse2'], language: 'cpp')
     pc_cflags += ['-msse2']
     if cpp_comp.has_argument('-msse3')
       conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
-      add_global_arguments(['-msse3'], language: 'cpp')
+      add_project_arguments(['-msse3'], language: 'cpp')
       pc_cflags += ['-msse3']
     endif
   endif
@@ -399,8 +404,8 @@ if get_option('enable-fma')
     endif
   endif
   if fma_args.length() > 0
-    add_global_arguments(fma_args, language: 'c')
-    add_global_arguments(fma_args, language: 'cpp')
+    add_project_arguments(fma_args, language: 'c')
+    add_project_arguments(fma_args, language: 'cpp')
     pc_cflags += fma_args
   endif
 endif
@@ -409,7 +414,7 @@ message('Fused multiply-add flags: ' + ' '.join(fma_args))
 # -ffloat-store only where doubles are still computed on the x87 unit
 # (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
 # double (as CMakeLists.txt): checked with the flags of 32-bit x86 above, which
-# the checks of the compiler do not get from add_global_arguments()
+# the checks of the compiler do not get from add_project_arguments()
 float_store_needed = cpp_comp.compiles('''
   #include <cfloat>
   #if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
@@ -418,8 +423,8 @@ float_store_needed = cpp_comp.compiles('''
   int main() { return 0; }
 ''', args: x86_args, name: 'doubles computed in extended precision')
 if float_store_needed and cpp_comp.has_argument('-ffloat-store')
-  add_global_arguments(['-ffloat-store'], language: 'c')
-  add_global_arguments(['-ffloat-store'], language: 'cpp')
+  add_project_arguments(['-ffloat-store'], language: 'c')
+  add_project_arguments(['-ffloat-store'], language: 'cpp')
   pc_cflags += ['-ffloat-store']
 endif
 

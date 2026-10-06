@@ -194,11 +194,15 @@ else
   gaollib_static = gaollib.get_static_lib()
 endif
 
-# GAOL, for the tests and the examples of this build, and for a meson project
-# bringing GAOL in as a subproject
+# GAOL, for the examples of this build, and for a meson project bringing GAOL
+# in as a subproject: the flags of interval arithmetic and the link option
+# gaol.pc gives, which the code including GAOL's headers is to be compiled and
+# linked with, the arguments of this project not reaching the targets of
+# another one (GAOL v5)
 gaol_dep = declare_dependency(
   link_with: gaollib,
   include_directories: include_directories('..'),
+  compile_args: pc_cflags,
   link_args: gaol_link_args,
   dependencies: deps,
 )
