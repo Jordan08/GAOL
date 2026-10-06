@@ -18,7 +18,9 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
   with the compilers of Ubuntu 22.04 (GCC 11 and Clang 14 on x86_64, GCC 11
   on arm64), whose images GitHub retires by April 2027, with GCC 9, which has
   no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
-  shared library (`BUILD_SHARED_LIBS`).
+  shared library (`BUILD_SHARED_LIBS`); the test `cpack_stale_configure` also
+  runs with `CC="ccache gcc"` and a Ninja outside `PATH`, which it has to pass
+  on to the copies of the tree it configures.
 - **Linux containers:**
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;

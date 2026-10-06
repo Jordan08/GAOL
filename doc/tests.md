@@ -700,19 +700,31 @@ mode there.
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive
   of the sources as it is committed, and `configure --version` gives the version
-  it was generated for: after a change of `VERSION.txt` without a new
-  generation of `configure`, the archive of the new version holds a
-  `configure` that says the old one. The script configures copies of the tree
-  with the compiler that built GAOL, and CMake has to warn of it, naming the
-  two versions, whether `configure` has the line ends of Unix or of Windows,
-  and not otherwise: not when `configure` was generated for the version
-  `VERSION.txt` holds, not when it has no line `PACKAGE_VERSION=`, and not
-  when there is no `configure`, which CMake has to configure all the same. The
-  version `configure` was generated for is asked of `configure --version`, not
-  read as `CMakeLists.txt` reads it. The copies are made of symbolic links to
-  the files of the tree, but for `CMakeLists.txt`, `VERSION.txt` and
-  `configure`, which are copied; the test takes a few seconds on an ordinary
-  machine, a configuration and four that reuse its checks (GAOL v5).
+  it was generated for: after a change of `VERSION.txt` without a new generation
+  of `configure`, the archive of the new version holds a `configure` that says
+  the old one. The script configures copies of the tree with the generator and
+  the compilers that built GAOL, and CMake has to warn of it, naming the two
+  versions, whether `configure` has the line ends of Unix or of Windows, and not
+  otherwise: not when `configure` was generated for the version `VERSION.txt`
+  holds, not when it has no line `PACKAGE_VERSION=`, and not when there is no
+  `configure`, which CMake has to configure all the same. Then a copy configured
+  for the version `configure` was generated for has its `VERSION.txt` changed,
+  and CPack, run as `package_source` runs it, has to configure it again, warn,
+  and name the archive after the new version
+  (`cmake/gaol_package_source.cmake`), which the Makefile generators did not do.
+  The version `configure` was generated for is asked of `configure --version`,
+  not read as `CMakeLists.txt` reads it. The copies are made of symbolic links
+  to the files of the tree, but for `CMakeLists.txt`, `VERSION.txt` and
+  `configure`, which are copied. The compilers are given to CMake as `CC` and
+  `CXX` with their arguments (`CC="ccache gcc"` leaves `ccache` in
+  `CMAKE_C_COMPILER` and `gcc` in `CMAKE_C_COMPILER_ARG1`), and the generator
+  with its program (`CMAKE_MAKE_PROGRAM`, for a Ninja outside `PATH`), which a
+  job of `.github/workflows/linux.yml` checks; without `sh`, or where the system
+  makes no symbolic link, the test says it is skipped. It takes a few seconds on
+  an ordinary machine, a configuration and five that reuse its checks, and an
+  archive of links. Only the CMake build has it: CPack makes the archive, and
+  the autotools jobs of the continuous integration compare `configure --version`
+  with `VERSION.txt` already (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
