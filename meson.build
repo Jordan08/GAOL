@@ -128,7 +128,6 @@ gaol_build_options = []
 if get_option('enable-debug')
   gaol_build_options = ['optimization=0', 'debug=true', 'b_ndebug=false']
   debug = true
-  release = false
 elif meson.is_subproject() and meson.version().version_compare('<1.8.4') and not (msvc and meson.version().version_compare('<0.57'))
   debug = false
   release = get_option('optimization') == '3' and not get_option('debug')
@@ -513,9 +512,10 @@ endif
 
 # make perf, as with CMake and configure: GAOL v5 measured on the benchmark of
 # doc/compare/performance.md, whose tables get its new times (see
-# doc/compare/code/run_perf.sh). Linux only, as the benchmark (GAOL v5).
+# doc/compare/code/run_perf.sh). Linux only, as the benchmark, and not with
+# enable-debug, which would measure GAOL built for debugging (GAOL v5).
 bash = find_program('bash', required: false)
-if host_machine.system() == 'linux' and bash.found()
+if host_machine.system() == 'linux' and bash.found() and not get_option('enable-debug')
   bench_dir = meson.current_source_dir() + '/doc/compare/code'
   gaol_bench = executable('gaol_bench', bench_dir + '/bench_gaol.cpp',
     include_directories: include_directories('.', 'doc/compare/code'),
