@@ -719,7 +719,9 @@ mode there.
   values compared, and a failure no longer ends its test. `reverse_mappings`
   draws its random intervals from a seed of its own rather than from the
   process identifier (`srand48(getpid())`, which Visual C++ does not have), so
-  that its checks are the same at each run. `intervalf` and `interval2f` test
+  that its checks are the same at each run, and checks the infinite ends of
+  `atanh_rel(J, I)` where J ends at 1 or -1 (`atanh_rel([0.5, 1], [0, +oo])`),
+  which a bounded I hides (GAOL v5). `intervalf` and `interval2f` test
   the intervals of floats where a developer of GAOL compiles them
   (`GAOL_FLOAT_INTERVALS`, see `gaol/gaol_config.h`), and are skipped otherwise
   (exit status 77). `constructor`, `assignment`, `arithmetic_operators` and
