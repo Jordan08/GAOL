@@ -685,18 +685,22 @@ mode there.
   program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and
   with `-ffast-math`, put after the flags of interval arithmetic, and the
   compilation has to fail with the message of `gaol/gaol_config.h`, which the
-  test looks for in the output of the compiler; compiled with neither, it has
-  to compile. The CMake build makes each compilation a target of its own,
-  built by the test; `tests/refused_options.sh` runs the three compilations in
-  the autotools and meson builds, with the compiler and the flags of the code
-  using GAOL. With `-ffinite-math-only` the compiler takes NaN and infinities
-  never to occur, in the inline functions of the headers too, and the empty
-  interval, whose bounds are NaN, is no longer told empty:
-  `([1, 2] & [3, 4]).is_empty()` was false with GCC 9.4 and 13 at `-O0`, `-O2`
-  and `-O3`, and with Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds
-  are `volatile`. The header did not refuse `-ffinite-math-only`, nor `-Ofast`
-  or `-ffast-math` followed by `-frounding-math` with Clang, which leave
-  `__FAST_MATH__` undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5).
+  test looks for in the output of the compiler; compiled with neither, it has to
+  compile. The CMake build makes each compilation a target of its own, built by
+  the test; where the compilation has to fail, the target compiles a copy of the
+  source in the build tree, which `tests/compile_error.cmake` copies again and
+  touches before the build: an object compiled once stayed up to date, and the
+  test failed until it was removed, after a header or the source was restored
+  with its former modification time (GAOL v5). `tests/refused_options.sh` runs
+  the three compilations in the autotools and meson builds, with the compiler
+  and the flags of the code using GAOL. With `-ffinite-math-only` the compiler
+  takes NaN and infinities never to occur, in the inline functions of the
+  headers too, and the empty interval, whose bounds are NaN, is no longer told
+  empty: `([1, 2] & [3, 4]).is_empty()` was false with GCC 9.4 and 13 at `-O0`,
+  `-O2` and `-O3`, and with Clang 18 at `-O0`, and at `-O2` and `-O3` when the
+  bounds are `volatile`. The header did not refuse `-ffinite-math-only`, nor
+  `-Ofast` or `-ffast-math` followed by `-frounding-math` with Clang, which
+  leave `__FAST_MATH__` undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5).
   `tests/fp_strict` is the check of Visual C++ without `/fp:strict`.
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
@@ -798,14 +802,14 @@ mode there.
   `-Werror=attributes` (`/we4834`, `/we5030` and `/we5051` with Visual C++):
   throwing away the result of `sqrt(x)` has to fail the compilation with the
   warning of the compiler, which the test looks for in the output of the
-  build, and using it has to compile, GAOL's headers throwing no result away,
-  nor carrying an attribute the compiler ignores where it is written.
-  `GAOL_NODISCARD` was empty before C++17, so that a CMake project with GCC 9,
-  which compiles in C++14 unless it says otherwise, got no warning for
-  `sqrt(x);`; it is now `[[nodiscard]]` there with GCC 7 and later and Visual
-  C++ 2019 16.4 and later, and the attribute of Clang with Clang (see
-  [Using GAOL](using.md#a-result-thrown-away)). The autotools and meson
-  builds have no such test, the header being the same.
+  build (of a copy of the source, as `refused_fast_math`), and using it has to
+  compile, GAOL's headers throwing no result away, nor carrying an attribute the
+  compiler ignores where it is written. `GAOL_NODISCARD` was empty before C++17,
+  so that a CMake project with GCC 9, which compiles in C++14 unless it says
+  otherwise, got no warning for `sqrt(x);`; it is now `[[nodiscard]]` there with
+  GCC 7 and later and Visual C++ 2019 16.4 and later, and the attribute of Clang
+  with Clang (see [Using GAOL](using.md#a-result-thrown-away)). The autotools
+  and meson builds have no such test, the header being the same.
 
 The three builds compile them with `WITH_TESTS` (CMake), `--with-tests`
 (configure) and `with-tests` (meson), all off by default, and run them with
