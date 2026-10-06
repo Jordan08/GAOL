@@ -2,7 +2,10 @@
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
 
+#include <algorithm>
 #include <climits>
+#include <set>
+#include <vector>
 
 class relations_test {
 public:
@@ -239,6 +242,66 @@ public:
     }
   }
 
+  /* lexicographic_less (GAOL v5, point V): a total order for the containers
+     of the standard library. < is strictPrecedes of IEEE 1788-2015, true as
+     soon as either interval is empty: a std::set<interval> built on < loses
+     the intervals that overlap, and std::sort reads past the end of a vector
+     that holds an empty interval, which the sort with lexicographic_less()
+     checks here, an empty interval sorted to its place, at the front of
+     the vector. */
+  void test_lexicographic_less() {
+    // Strict: no interval is less than itself
+    const interval xs[] = { interval::emptyset(), interval(-GAOL_INFINITY, 1),
+                            interval(-GAOL_INFINITY, 2), interval::universe(),
+                            interval(-1, 1), interval(0, 1), interval(0, 2),
+                            interval(1, 1), interval(1, 2),
+                            interval(1, GAOL_INFINITY) };
+    gaol::lexicographic_less const less;
+    gaol_core::lexicographic_less const less_core;
+    for (const interval& x : xs) {
+      TEST_FALSE(less(x, x));
+      TEST_FALSE(less_core(x, x));
+    }
+    for (size_t i = 0; i < sizeof(xs)/sizeof(xs[0]); ++i) {
+      for (size_t j = 0; j < sizeof(xs)/sizeof(xs[0]); ++j) {
+        // The expected order of the list above, and a strict order: for two
+        // different intervals exactly one of less(a, b) and less(b, a),
+        // for two equal intervals neither
+        TEST_TRUE(less(xs[i], xs[j]) == (i < j));
+        TEST_TRUE(less(xs[i], xs[j]) != less(xs[j], xs[i]) || i == j);
+        TEST_TRUE(!(less(xs[i], xs[j]) && less(xs[j], xs[i])));
+      }
+    }
+    // The empty set comes first
+    TEST_TRUE(less(interval::emptyset(), interval::universe()));
+    TEST_FALSE(less(interval::emptyset(), interval::emptyset()));
+    TEST_FALSE(less(interval::universe(), interval::emptyset()));
+    // -0.0 and +0.0 are equal as bounds
+    TEST_FALSE(less(interval(-0.0, 0.0), interval(0.0, 0.0)));
+    TEST_FALSE(less(interval(0.0, 0.0), interval(-0.0, 0.0)));
+
+    // A std::set keeps the intervals that overlap and the empty set
+    std::set<interval, gaol::lexicographic_less> s;
+    s.insert(interval(0, 1));
+    s.insert(interval(0.5, 3));   // overlaps the first: < loses it
+    s.insert(interval(1, 2));    // overlaps both
+    s.insert(interval::emptyset());
+    TEST_TRUE(s.size() == 4);
+    TEST_TRUE(s.count(interval(0.5, 3)) == 1);
+    TEST_TRUE(s.begin()->is_empty());
+    // std::sort of a vector holding an empty interval, which reads past the
+    // end of the vector with < (certainly_le)
+    std::vector<interval> v;
+    v.push_back(interval(1, 2));
+    v.push_back(interval::emptyset());
+    v.push_back(interval(-3, 0));
+    std::sort(v.begin(), v.end(), less);
+    TEST_TRUE(v.size() == 3);
+    TEST_TRUE(v[0].is_empty());
+    TEST_TRUE(less(v[1], v[2]));
+    TEST_TRUE(v[1].set_eq(interval(-3, 0)) && v[2].set_eq(interval(1, 2)));
+  }
+
   // <-- End of tests
 };
 
@@ -248,4 +311,5 @@ GAOL_UNIT_MAIN(relations_test, "relations",
                GAOL_UNIT_TEST(test_certainly),
                GAOL_UNIT_TEST(test_symbols_with_double),
                GAOL_UNIT_TEST(test_symbols_with_integers),
+               GAOL_UNIT_TEST(test_lexicographic_less),
                GAOL_UNIT_TEST(test_misc))
