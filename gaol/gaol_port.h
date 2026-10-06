@@ -32,6 +32,8 @@
 #include "gaol/gaol_limits.h"
 
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 
 // _mm_ucomigt_sd() and the others, for the quiet comparisons of Visual C++
@@ -266,6 +268,88 @@ namespace gaol_detail {
     return std::isunordered(x, y);
   }
 #endif
+
+  /*
+    The comparisons of bounds that the modes flushing the subnormal numbers to
+    zero do not change (GAOL v5, point Q of TODO.md, issue #68). With
+    denormals-are-zero (DAZ of MXCSR on x86, FZ and FIZ on ARM), which a
+    program linked with -Ofast has (see gaol/gaol_fpu.h), a comparison reads
+    a subnormal operand as a zero of its sign: 3*2^-1074 < 5*2^-1074 is false,
+    and so is -2^-1074 < 0. The operations that compute clear these modes in
+    their check of the rounding direction before they compare a bound; the
+    functions that only compare or copy bounds make no check, which would cost
+    them 3 to 4.5 ns (measured on an Intel i7-1185G7, 2 to 3 times the
+    constructor or certainly_le()), and compare the bounds with these instead.
+    Reading a subnormal as a zero keeps the order of the doubles, x <= y
+    giving x' <= y': a comparison under these modes can find two different
+    doubles equal, both zero or subnormal, but never in the wrong order. So
+    the quiet comparison is made first, false for a NaN, and only where it
+    finds the two doubles equal are they compared as the integers of
+    bound_key(), which no mode changes. With the modes cleared, these
+    integers are only compared for two equal doubles. The comparisons are
+    quiet ones, as those above, and write nothing to the control register:
+    they are the same with GAOL_PRESERVE_ROUNDING, and right too where GAOL
+    cannot clear the modes (ARM with Visual C++).
+  */
+
+  //! The order of the doubles that are no NaN, as integers: -0 and +0 are 0
+  GAOL_INLINE std::int64_t bound_key(double x)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const std::int64_t magnitude = static_cast<std::int64_t>(bits & 0x7fffffffffffffffULL);
+    return (bits >> 63) != 0 ? -magnitude : magnitude;
+  }
+
+  GAOL_INLINE bool bound_less(double x, double y)
+  {
+    return quiet_less(x, y) || (x == y && bound_key(x) < bound_key(y));
+  }
+
+  GAOL_INLINE bool bound_less_equal(double x, double y)
+  {
+    return quiet_less(x, y) || (x == y && bound_key(x) <= bound_key(y));
+  }
+
+  GAOL_INLINE bool bound_greater(double x, double y)
+  {
+    return bound_less(y, x);
+  }
+
+  GAOL_INLINE bool bound_greater_equal(double x, double y)
+  {
+    return bound_less_equal(y, x);
+  }
+
+  GAOL_INLINE bool bound_equal(double x, double y)
+  {
+    return x == y && bound_key(x) == bound_key(y);
+  }
+
+  /*
+    std::floor() and std::ceil() of a bound, as without the modes that flush
+    the subnormals to zero (GAOL v5, point Q of TODO.md): under
+    denormals-are-zero, the instruction that rounds (roundsd on x86, which
+    glibc's floor() takes where the processor has SSE4.1) reads a subnormal
+    as a zero of its sign, so that the floor of -2^-1074 was -0 and the ceil
+    of 2^-1074 +0. Only these two are wrong: a zero result is then taken
+    back to -1, or 1, for a subnormal on that side of 0, which its integer
+    tells, the zero result telling that x is no NaN. No comparison of x as a
+    double: GCC vectorizes the loops of floor() into signaling comparisons,
+    which raise the invalid-operation exception on the NaN bounds of the
+    empty set (see GAOL_FPU_SCALAR() in gaol/gaol_interval.h).
+  */
+  GAOL_INLINE double bound_floor(double x)
+  {
+    const double f = std::floor(x);
+    return (f == 0.0 && bound_key(x) < 0) ? -1.0 : f;
+  }
+
+  GAOL_INLINE double bound_ceil(double x)
+  {
+    const double c = std::ceil(x);
+    return (c == 0.0 && bound_key(x) > 0) ? 1.0 : c;
+  }
 } // namespace gaol_detail
 
 namespace gaol_core {

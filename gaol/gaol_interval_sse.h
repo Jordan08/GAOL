@@ -89,10 +89,14 @@
   // TODO.md). The other two compare bounds that are no NaN once it is true:
   // made quiet too, they cost GCC a conditional move through the integer
   // registers where it if-converts them, and 30% more in a loop of
-  // constructions (GCC 9.4, FPU intervals)
+  // constructions (GCC 9.4, FPU intervals). The first one is also right with
+  // the modes that flush the subnormals to zero (gaol_detail::bound_less_equal(),
+  // gaol_port.h): under denormals-are-zero, interval(2^-1073, 2^-1074) kept
+  // its bounds in the wrong order (GAOL v5, point Q of TODO.md); the other two
+  // compare with an infinity, which these modes do not change
   GAOL_INLINE interval::interval(double l, double r)
     {
-      if (gaol_detail::quiet_less_equal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
+      if (gaol_detail::bound_less_equal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
         xmmbounds = _mm_set_pd(r, -l);
       } else {
         xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
@@ -124,7 +128,11 @@
     *this was returned as it was, with the NaN it held; telling it apart
     again, after the test, made GCC 9.4 turn the whole function into
     straight-line code, and x &= y 2.3 times slower. See gaol_interval_fpu.h
-    for 32-bit ARM and POWER9.
+    for 32-bit ARM and POWER9. They are the comparisons of bounds that the
+    modes flushing the subnormals to zero do not change (gaol_port.h): under
+    denormals-are-zero, [3, 100]*2^-1074 & [50, 200]*2^-1074 was
+    [3, 100]*2^-1074, and two disjoint intervals of subnormals were not
+    empty (GAOL v5, point Q of TODO.md).
   */
   GAOL_INLINE interval& interval::operator&=(const interval& I)
   {
@@ -135,10 +143,10 @@
       xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
       return *this;
     }
-    if (!gaol_detail::quiet_greater_equal(Ibd[0], bd[0])) { // Left bounds negated
+    if (!gaol_detail::bound_greater_equal(Ibd[0], bd[0])) { // Left bounds negated
       bd[0] = Ibd[0];
     }
-    if (!gaol_detail::quiet_greater_equal(Ibd[1], bd[1])) {
+    if (!gaol_detail::bound_greater_equal(Ibd[1], bd[1])) {
       bd[1] = Ibd[1];
     }
 
@@ -146,7 +154,7 @@
     // interval::emptyset() (GAOL v5): their bounds in the wrong
     // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
     // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
-    if (!gaol_detail::quiet_less_equal(-bd[0], bd[1])) {
+    if (!gaol_detail::bound_less_equal(-bd[0], bd[1])) {
       xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
     } else {
       xmmbounds = _mm_load_pd(bd);
@@ -154,6 +162,9 @@
     return *this;
   }
 
+  // The bounds compared as in operator&=() (GAOL v5): under
+  // denormals-are-zero, [3, 100]*2^-1074 | [200*2^-1074] was
+  // [3, 100]*2^-1074
 	 GAOL_INLINE interval& interval::operator|=(const interval& I)
 	 {
 	   if (is_empty()) {
@@ -167,10 +178,10 @@
 		_mm_store_pd(bd,xmmbounds);
         _mm_store_pd(Ibd,I.xmmbounds);
 
-    	if (Ibd[0] > bd[0]) { // Left bounds negated
+	if (gaol_detail::bound_greater(Ibd[0], bd[0])) { // Left bounds negated
       	bd[0] = Ibd[0];
     	}
-    	if (Ibd[1] > bd[1]) {
+	if (gaol_detail::bound_greater(Ibd[1], bd[1])) {
       	bd[1] = Ibd[1];
     	}
 		xmmbounds = _mm_load_pd(bd);

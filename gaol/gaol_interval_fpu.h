@@ -124,14 +124,19 @@
   // with std::isunordered() first, then compares the bounds, which are no NaN
   // after it, through the empty asm statement of gaol_detail::keep_ordered() (GAOL
   // v5): floor(), max(), min()... give it the NaN bounds of an empty operand
-  // without testing it first
+  // without testing it first. The bounds are compared with
+  // gaol_detail::bound_less_equal() (gaol_port.h), which the modes that flush
+  // the subnormals to zero do not change: under denormals-are-zero,
+  // interval(2^-1073, 2^-1074) kept its bounds in the wrong order (GAOL v5,
+  // point Q of TODO.md); the comparisons with an infinity are the same under
+  // these modes
   GAOL_INLINE
   interval::interval(double a, double b)
   {
 #if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
     if (!gaol_detail::quiet_unordered(a, b)) {
       gaol_detail::keep_ordered(a, b);
-      if (a <= b && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
+      if (gaol_detail::bound_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
         lb_ = -a;
         rb_ = b;
         return;
@@ -141,7 +146,7 @@
 #else
     GAOL_FPU_SCALAR(a);
     GAOL_FPU_SCALAR(b);
-    if (gaol_detail::quiet_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
+    if (gaol_detail::bound_less_equal(a, b) && a < GAOL_INFINITY && b > -GAOL_INFINITY) {
       lb_ = -a;
       rb_ = b;
     } else {
@@ -204,17 +209,29 @@
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
       return *this;
     }
-    if (!gaol_detail::quiet_less_equal(I.left(), left())) {
+    if (!gaol_detail::bound_less_equal(I.left(), left())) {
       lb_ = I.lb_;
     }
-    if (!gaol_detail::quiet_greater_equal(I.right(), right())) {
+    if (!gaol_detail::bound_greater_equal(I.right(), right())) {
       rb_ = I.rb_;
     }
     // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()
     // (GAOL v5): their bounds in the wrong order, [3, 2] for
     // [1, 2] & [3, 4], were empty for is_empty(), but the operations computing
-    // on the bounds gave [3, 2] + [0, 1] = [3, 3]
-    if (is_empty()) {
+    // on the bounds gave [3, 2] + [0, 1] = [3, 3]. The bounds are no NaN
+    // here, and compared as bounds (gaol_port.h) rather than by is_empty(),
+    // which took two disjoint intervals of subnormals, [5, 4]*2^-1074, for
+    // an interval under denormals-are-zero (GAOL v5, point Q of TODO.md).
+    // They go through gaol_detail::keep_ordered() on 32-bit ARM and on POWER9,
+    // GAOL_FPU_SCALAR() elsewhere, as in is_empty()
+    double l = left(), r = right();
+#if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
+    gaol_detail::keep_ordered(l, r);
+#else
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+#endif
+    if (!gaol_detail::bound_less_equal(l, r)) {
       lb_ = rb_ = std::numeric_limits<double>::quiet_NaN();
     }
     return *this;
@@ -231,10 +248,11 @@
       return *this;
     }
 
-    if (I.left() < left()) {
+    // Compared as bounds, as in operator&=() (GAOL v5)
+    if (gaol_detail::bound_less(I.left(), left())) {
       lb_ = I.lb_;
     }
-    if (I.right() > right()) {
+    if (gaol_detail::bound_greater(I.right(), right())) {
       rb_ = I.rb_;
     }
     return *this;
