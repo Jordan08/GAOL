@@ -101,11 +101,16 @@ preserve_rounding = get_option('enable-preserve-rounding')
 prefer_avx512_requested = get_option('enable-prefer-avx512')
 exception = get_option('enable-exception')
 # The Debug build, as CMAKE_BUILD_TYPE=Debug and configure --enable-debug:
-# GAOL checks its assertions (GAOL_DEBUGGING). The option enable-debug, which
-# only defined GAOL_DEBUGGING, is gone, as enable-optimize: the build type
-# gives both (GAOL v5)
+# GAOL checks its assertions (GAOL_DEBUGGING). The build type gives it with the
+# optimizations, and enable-optimize is gone (GAOL v5)
 debug = get_option('buildtype') == 'debug'
 release = get_option('buildtype') == 'release'
+# The options of the libraries of GAOL and CORE-MATH (gaol/meson.build)
+gaol_build_options = []
+# enable-debug builds them for debugging whatever the build type, a subproject
+# included, as GAOL_DEBUG of CMake: without optimization, without NDEBUG, and
+# with GAOL_DEBUGGING (GAOL v5: it defined GAOL_DEBUGGING alone, and was gone)
+#
 # Brought in as a subproject, GAOL is built in release by default, as CMake and
 # configure build it brought into another project (GAOL v5). meson 1.8.4 and
 # later give a subproject its own default build type, release here; earlier
@@ -120,15 +125,18 @@ release = get_option('buildtype') == 'release'
 # default_options gives where they apply. Not with Visual C++ before meson
 # 0.57, whose build type debug gives /RTC1, which cl refuses with the /O2 of
 # optimization=3, and whose C runtime follows the build type of the target.
-gaol_release_options = []
-if meson.is_subproject() and meson.version().version_compare('<1.8.4') and not (msvc and meson.version().version_compare('<0.57'))
+if get_option('enable-debug')
+  gaol_build_options = ['optimization=0', 'debug=true', 'b_ndebug=false']
+  debug = true
+  release = false
+elif meson.is_subproject() and meson.version().version_compare('<1.8.4') and not (msvc and meson.version().version_compare('<0.57'))
   debug = false
   release = get_option('optimization') == '3' and not get_option('debug')
   if get_option('optimization') == '0' and get_option('debug')
-    gaol_release_options = ['optimization=3', 'debug=false', 'b_ndebug=true']
+    gaol_build_options = ['optimization=3', 'debug=false', 'b_ndebug=true']
     release = true
   elif release
-    gaol_release_options = ['b_ndebug=true']
+    gaol_build_options = ['b_ndebug=true']
   endif
 endif
 # The mathematical library

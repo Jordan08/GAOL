@@ -6,14 +6,18 @@
 # The build type gives the optimizations and the debugging, as with CMake:
 # --buildtype=release (the default) for -O3 and the optimizations of
 # configure's --enable-optimize, --buildtype=debug for GAOL_DEBUGGING, as
-# configure's --enable-debug. The options enable-optimize and enable-debug,
-# and enable-relations, with-test and check-perf, are gone (GAOL v5).
+# configure's --enable-debug. enable-debug builds the libraries of GAOL for
+# debugging whatever the build type, as GAOL_DEBUG of CMake, a subproject
+# included, which meson before 1.8.4 builds in release otherwise (see
+# meson.build). The options enable-optimize, enable-relations, with-test and
+# check-perf are gone (GAOL v5).
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors [default=yes, as configure]')
 option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (false: a library for any processor of the architecture) [default=yes, as configure and CMake]')
 option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
 option('enable-prefer-avx512', type : 'boolean', value : false, description : 'Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them [default=false, true with enable-preserve-rounding on a compiler that takes the path; meson cannot refuse the path under enable-preserve-rounding, which -DGAOL_PREFER_AVX512=OFF of CMake and --disable-prefer-avx512 of configure do, as CMake and configure]')
+option('enable-debug', type: 'boolean', value: false, description: 'Build GAOL and CORE-MATH for debugging, without optimization and with GAOL_DEBUGGING, whatever the build type, a subproject included [default=no, as GAOL_DEBUG of CMake; configure --enable-debug]')
 option('enable-exception', type: 'boolean', value: true, description: 'Raise exceptions to signal errors [default=yes]')
 option('with-tests', type: 'boolean', value: false, description: 'Build the unit tests of tests/, which meson test (make test) and ninja check (make check) run [default=no, as WITH_TESTS of CMake and --with-tests of configure]')
 option('with-examples', type: 'boolean', value: false, description: 'Build the examples of examples/, which ninja check (make check) runs [default=no, as WITH_EXAMPLES of CMake and --with-examples of configure]')
