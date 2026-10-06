@@ -311,15 +311,16 @@ namespace
     [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
     or, as the literal [a] of a point, [0]. It compares their bits. x86 only,
     where MXCSR is.
-    A subnormal bound, which compares equal to 0 under the mode, is then
-    written by the C library, which has to write it as it does without the
-    mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS calls,
-    tests the number against 0 first, and writes 0 for every subnormal under
-    denormals-are-zero. Nothing is checked where the C library does so, nor
-    under the Debug C runtime of Visual C++, which reports a failed assertion
-    of its own first ("unexpected input value; log10 failed", cfout.cpp), the
-    logarithm of the subnormal being taken under the mode, and then writes
-    0, on x86 as on x64.
+    The text has to be the one written without the mode too: operator<<
+    clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
+    subnormal bound rounded to nearest, [0, 4.940656458412465e-324] for
+    [0, 5e-324], below the upper bound, and left it to the C library under
+    the mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS
+    calls, tests the number against 0 first, and writes 0 for every subnormal
+    under denormals-are-zero, and the Debug C runtime of Visual C++ reports a
+    failed assertion of its own ("unexpected input value; log10 failed",
+    cfout.cpp), the logarithm of the subnormal being taken under the mode,
+    and then writes 0. This test skipped both, which it now checks.
   */
   void subnormal_output()
   {
@@ -331,42 +332,6 @@ namespace
     const double least = std::numeric_limits<double>::denorm_min();
     const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
                               interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
-    // Each bound written as operator<< leaves it to the C library under the
-    // mode: to nearest, with 16 digits, by a stream as the one of the test
-    const auto written = [](double d, bool flushing) {
-      RoundingToNearest nearest;
-      std::ostringstream os;
-      os.precision(16);
-      if (flushing) {
-        Flushing daz(denormals_are_zero);
-        os << d;
-      } else {
-        os << d;
-      }
-      return os.str();
-    };
-#if defined(_MSC_VER) && defined(_DEBUG)
-    const long reports = debug_runtime_reports();
-#endif
-    for (const interval& x : tiny) {
-      for (double d : { x.left(), x.right() }) {
-        const std::string flushed = written(d, true), plain = written(d, false);
-#if defined(_MSC_VER) && defined(_DEBUG)
-        if (debug_runtime_reports() != reports) {
-          debug_runtime_reports() = reports; // The runtime's, not GAOL's
-          std::printf("The Debug C runtime of Visual C++ reports an assertion when it writes a subnormal under "
-                      "denormals-are-zero, and writes %s for %s: the output of subnormals with the mode is not "
-                      "checked\n", flushed.c_str(), plain.c_str());
-          return;
-        }
-#endif
-        if (flushed != plain) {
-          std::printf("The C library writes %s under denormals-are-zero, and %s without it: the output of subnormals "
-                      "with the mode is not checked\n", flushed.c_str(), plain.c_str());
-          return;
-        }
-      }
-    }
     const interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
     interval::format(interval_format::bounds);
@@ -378,6 +343,10 @@ namespace
         os << x;
       }
       const std::string s = os.str();
+      std::ostringstream plain;
+      plain << x;
+      check("operator<< of subnormals with denormals-are-zero, as without it", s == plain.str(),
+            [&] { return hex(x) + " written " + s + " rather than " + plain.str(); });
       const std::string name = "operator<< of subnormals with denormals-are-zero, read back";
       const interval back = evaluate(name, [&] { return textToInterval(s); }, [&] { return hex(x) + " written " + s; });
       check(name + ": encloses them", back.set_contains(x), [&] { return hex(x) + " written " + s + " read " + hex(back); });
