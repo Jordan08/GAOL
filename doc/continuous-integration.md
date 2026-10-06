@@ -82,9 +82,9 @@ restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
 and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. Jobs of autotools and of meson on Ubuntu x86_64 build GAOL
 without exceptions (`--disable-exceptions`, `-Denable-exception=false`),
-where an error of GAOL ends the program, and run the tests, which leave out
-there the checks of an exception (GAOL v5). The jobs built in Release print the
-time per operation in their summary.
+where an error of GAOL ends the program, and run the examples and the tests,
+which leave out there the checks of an exception (GAOL v5). The jobs built in
+Release print the time per operation in their summary.
 
 Two jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04, and one of
 `macos.yml`, with the AppleClang of macOS 26 arm64, build the library, the

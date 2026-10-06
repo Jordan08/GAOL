@@ -12,8 +12,8 @@
 # as git has them. One job builds GAOL as a subproject of a meson project
 # (tests/meson_subproject, GAOL v5). An autotools job (--disable-exceptions)
 # and a meson job (-Denable-exception=false) build GAOL without exceptions,
-# where an error ends the program, and run the tests, which leave out the
-# checks of an exception there (GAOL v5).
+# where an error ends the program, and run the examples and the tests, which
+# leave out the checks of an exception there (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -56,7 +56,7 @@ jobs:
           - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04,     configure: '--disable-exceptions',       desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions' }
+          - { os: ubuntu-24.04,     configure: '--disable-exceptions --with-examples', desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -116,6 +116,9 @@ jobs:
         run: sh .github/scripts/comma-locale.sh generate
       - name: Tests (make test)
         run: make -j 4 test || { cat tests/test-suite.log; exit 1; }
+      - name: The examples
+        if: contains(matrix.cfg.configure, '--with-examples')
+        run: make -j 4 -C examples check || { cat examples/test-suite.log; exit 1; }
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check tests/numbers.log
       - name: make distclean gives the sources back as git has them
@@ -155,7 +158,7 @@ jobs:
           - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04,     options: '-Denable-exception=false',        desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions' }
+          - { os: ubuntu-24.04,     options: '-Denable-exception=false -Dwith-examples=true', desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -212,6 +215,9 @@ jobs:
         run: sh .github/scripts/comma-locale.sh generate
       - name: Tests (ninja test, make test of meson)
         run: ninja -C build-meson test
+      - name: The examples
+        if: contains(matrix.cfg.options, '-Dwith-examples=true')
+        run: meson test -C build-meson --setup check --suite examples --print-errorlogs
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
