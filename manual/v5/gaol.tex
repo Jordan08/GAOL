@@ -444,8 +444,12 @@ The build compiles the thirty-six sources of CORE-MATH GAOL uses into
 \file{libgaol}, which is a static library unless \option{BUILD\_SHARED\_LIBS}
 is \code{ON}: there is nothing else to build and nothing else to install. The build type is \code{Release} unless another is
 given; brought in by a project that gives none (\code{add\_subdirectory},
-\code{FetchContent}), GAOL and CORE-MATH are compiled with \option{-O3} all
-the same (\option{/O2} with Visual C++).
+\code{FetchContent}), GAOL and CORE-MATH are compiled as in \code{Release}
+all the same: \option{-O3} (\option{/O2} with Visual C++), \code{NDEBUG} and
+the optimizations of \cmd{configure}. With a generator of several
+configurations, GAOL built alone puts \code{Release} first among them, which
+Ninja Multi-Config builds by default; \cmd{cmake --build} with Visual Studio
+builds \code{Debug} all the same without \option{-{}-config}.\newinvfive
 
 \subsection{Options}\label{sec:cmake-options}
 %%..................
@@ -490,6 +494,11 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \item \option{GAOL\_VERBOSE\_MODE}. \code{OFF} by default: writes a line on the
   standard error when GAOL initializes and cleans up;
 \cindex{verbose mode}%
+\item \option{GAOL\_DEBUG}. \code{OFF} by default: builds \file{libgaol} and
+  CORE-MATH for debugging, without optimization nor \code{NDEBUG} and with
+  \code{GAOL\_DEBUGGING}, whatever the build type or the configuration, a
+  project bringing GAOL in included, as \code{enable-debug} of meson and
+  \loption{enable-debug} of \cmd{configure};\newinvfive
 \item \option{GAOL\_PRESERVE\_ROUNDING}. \code{OFF} by default: each operation
   restores the rounding direction it found, rather than leaving it upward
   (\pxref{sec:rounding-direction});
@@ -672,6 +681,7 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \code{enable-asm} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
+    \code{enable-debug} & \code{false}; builds \file{libgaol} for debugging whatever the build type, as \option{GAOL\_DEBUG}\\
     \code{enable-exception} & \code{true}\\
     \code{with-tests} & \code{false}; builds the unit tests\\
     \code{with-examples} & \code{false}; builds the examples\\
@@ -684,10 +694,13 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
 \cmd{meson setup} runs Python to read the version of GAOL in
 \file{VERSION.txt}: the first of \cmd{python3} and \cmd{python} found in the
 \code{PATH}, or, if there is none, the Python that runs meson. On Windows,
-meson 0.53.0 and earlier may take the \file{python.exe} or \file{python3.exe}
-alias of the Microsoft Store (in \file{WindowsApps}), which only opens the
-Store, and \cmd{meson setup} then stops; use meson 0.53.1 or later, or turn off
-the aliases in the Windows settings (\emph{Manage app execution aliases}).
+meson 0.53.0 and earlier may take an alias of Python of the Microsoft Store
+(\file{python3.exe}, and perhaps \file{python.exe}, in \file{WindowsApps}; not
+checked on Windows), which only opens the Store, and \cmd{meson setup} then
+stops; use meson 0.53.1 or later, or turn off the aliases in the Windows
+settings (\emph{Manage app execution aliases}). Later versions of meson leave
+\file{WindowsApps} out only where the \code{PATH} names it under the directory
+of \code{USERPROFILE}, not for a profile whose directory differs from it.
 
 \section{Tests}\label{sec:tests}
 %%-------------
@@ -827,8 +840,9 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  \end{cmdshell}
 
  \noindent
- GAOL is the only library to link, with the C mathematical library: CORE-MATH,
- which computes its elementary functions, is compiled into it.
+ GAOL is the only library to link: CORE-MATH, which computes its elementary
+ functions, is compiled into it, and the C++ compiler links the mathematical
+ library of the system itself.
 
  Executing \file{f}, we obtain:
 
@@ -950,7 +964,7 @@ GAOL. GAOL is compiled as position-independent code, so that
 Each build installs \file{gaol.pc} in the \file{pkgconfig} directory of its
 library directory, except the CMake build with Visual C++. Its \code{Cflags}
 carries the flags above with the include directory, and its \code{Libs} GAOL
-itself with the C mathematical library and the link option above:
+itself and the link option above:
 \cindex{pkg-config}%
 
 \begin{cmdshell}
@@ -981,6 +995,29 @@ itself.\newinvfive
 
 \noindent
 In a meson project, \code{dependency('gaol')} finds it.
+
+A meson project can also build GAOL for itself, as a subproject, the sources
+of GAOL being in its \file{subprojects/gaol}:
+\cindex{meson!using gaol from}%
+
+\begin{example}
+gaol_dep = dependency('gaol', fallback: ['gaol', 'gaol_dep'])
+executable('program', 'program.cpp', dependencies: gaol_dep)
+\end{example}
+
+\noindent
+\code{dependency()} takes an installed GAOL where it finds one, and builds the
+subproject otherwise. \code{gaol\_dep} carries the include directory, the flags
+above and the link option above, as \file{gaol.pc} does. GAOL is built in
+\code{release}, as CMake and \cmd{configure} build it brought into another
+project, where the project leaves the build type to its default,
+\code{debug}: meson 1.8.4 and later give a subproject its own default build
+type, and GAOL compiles its libraries as in \code{release} with earlier ones,
+which give it the build type of the project; it cannot tell there the default
+from a \loption{buildtype=debug} asked for (but with Visual C++ before meson
+0.57, and with the Visual Studio backend of meson, which keep the build type
+of the project). \code{-Dgaol:enable-debug=true} builds it for
+debugging.\newinvfive
 
 \section{The rounding direction}\label{sec:rounding-direction}
 %%------------------------------
@@ -4950,8 +4987,10 @@ The debugging facilities described hereunder are available only if
 GAOL has been configured with the debugging facilities enabled, which the
 \code{Debug} build of each build does: \option{-DCMAKE\_BUILD\_TYPE=Debug}
 with CMake, the \option{-{}-enable-debug} option of \cmd{configure}
-(\pxref{sec:configuration}), or \option{-{}-buildtype=debug} with meson. They
-define \code{GAOL\_DEBUGGING} in \file{gaol/gaol\_configuration.h}: GAOL then
+(\pxref{sec:configuration}), or \option{-{}-buildtype=debug} with meson, and
+\option{-DGAOL\_DEBUG=ON} with CMake and \option{-Denable-debug=true} with
+meson whatever the build type.\newinvfive{} They define
+\code{GAOL\_DEBUGGING} in \file{gaol/gaol\_configuration.h}: GAOL then
 checks its assertions.
 
 \begin{deffun}{int}{debug\_level}{}
@@ -4961,9 +5000,11 @@ checks its assertions.
   \code{gaol} too.
 \end{deffun}
 
-\begin{defmacroA}{GAOL\_DEBUG}{(\var{lvl},\var{cmd})}
+\begin{defmacroA}{GAOL\_DEBUG\_VERBOSE}{(\var{lvl},\var{cmd})}
   Executes \var{cmd} if \var{lvl} is lower or equal to the current debugging
-  level (see the variable \code{debug\_level} above).
+  level (see the variable \code{debug\_level} above). It was named
+  \code{GAOL\_DEBUG} before GAOL v5, which is now the option of CMake that
+  builds GAOL for debugging.\newinvfive
 
   This macro defaults to nothing if the library was not configured with the
 debugging facilities.
@@ -4977,9 +5018,9 @@ interval x(-10,10);
 
 @emph^[Some code]~
 
-GAOL_DEBUG(1,cout << "The value of x is " << x);
+GAOL_DEBUG_VERBOSE(1,cout << "The value of x is " << x);
 x += interval(3.5,4.5);
-GAOL_DEBUG(2,cout << "Now the value of x is " << x);
+GAOL_DEBUG_VERBOSE(2,cout << "Now the value of x is " << x);
 \end{example}
 
 The first message will be displayed whenever the debugging level is at least

@@ -9,7 +9,8 @@
 # locale writing a decimal comma, which the Linux jobs and the containers
 # generate first, macOS and Windows having one (.github/scripts/comma-locale.sh,
 # GAOL v5). The autotools jobs check that make distclean gives the sources back
-# as git has them.
+# as git has them. One job builds GAOL as a subproject of a meson project
+# (tests/meson_subproject, GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -87,6 +88,7 @@ jobs:
           sh .github/scripts/version-file.sh autoconf
       - name: Configure, build and install
         run: |
+          set -o pipefail
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
@@ -131,7 +133,9 @@ jobs:
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   meson:
     name: ${{ matrix.cfg.desc }}
@@ -189,6 +193,7 @@ jobs:
           PATH="$nopython" meson setup "$RUNNER_TEMP/build-no-python"
       - name: Configure, build and install
         run: |
+          set -o pipefail
           meson --version
           meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true ${{ matrix.cfg.options }} | tee configure.log
           meson compile -C build-meson
@@ -207,7 +212,67 @@ jobs:
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # GAOL as a subproject of a meson project, tests/meson_subproject, which
+  # builds tests of tests/ with gaol_dep and checks that their code gets the
+  # flags of interval arithmetic, and that GAOL is built in release in the
+  # default build type of meson: meson refused the add_global_arguments() of
+  # meson.build in a subproject, and before 1.8.4 gives a subproject the build
+  # type of the project, which the meson of Ubuntu 24.04 (1.3.2) checks (GAOL
+  # v5)
+  meson-subproject:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { meson: pipx, desc: 'Meson, Ubuntu 24.04 x86_64, GAOL as a subproject' }
+          - { meson: apt,  desc: 'Meson of Ubuntu 24.04, x86_64, GAOL as a subproject' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          if [ "${{ matrix.cfg.meson }}" = pipx ]; then
+            sudo apt-get install -y -q g++ pipx
+            pipx install meson
+            pipx install ninja
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          else
+            sudo apt-get install -y -q g++ meson ninja-build
+          fi
+      - name: Configure tests/meson_subproject, a project bringing GAOL in as a subproject, from this checkout
+        run: |
+          set -o pipefail
+          meson --version
+          # The meson of Ubuntu has to be older than 1.8.4, which builds a
+          # subproject in its own default build type itself
+          if [ "${{ matrix.cfg.meson }}" = apt ]; then
+            python3 -c 'import sys; sys.exit(tuple(map(int, sys.argv[1].split(".")[:3])) >= (1, 8, 4))' "$(meson --version)"
+          fi
+          mkdir tests/meson_subproject/subprojects
+          ln -s "$PWD" tests/meson_subproject/subprojects/gaol
+          meson setup build-meson-subproject tests/meson_subproject | tee configure.log
+          grep -q "Elementary functions: CORE-MATH" configure.log
+      - name: Build
+        run: meson compile -C build-meson-subproject
+      - name: Locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh generate
+      - name: Tests (ninja test, make test of meson), the flags of their code among them
+        run: ninja -C build-meson-subproject test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build-meson-subproject/meson-logs/testlog.txt
+      - name: enable-debug builds GAOL for debugging, as a subproject and alone
+        run: |
+          meson setup build-meson-subproject-debug tests/meson_subproject -Dgaol:enable-debug=true
+          python3 tests/release_flags.py --debug build-meson-subproject-debug "$PWD/tests/meson_subproject/subprojects/gaol"
+          meson setup build-meson-debug -Denable-debug=true
+          python3 tests/release_flags.py --debug build-meson-debug "$PWD"
 
   # meson with Visual C++: the static libgaol, as CMake builds it, its tests,
   # and the installed GAOL, with which a test is compiled again (GAOL v5). In
@@ -308,7 +373,8 @@ jobs:
               sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
               sh .github/scripts/tests.sh /tmp/gaol shared
             fi
-            ./performance | tee /gaol/performance.md"
+            ./performance > /gaol/performance.md
+            cat /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
 
   msys2:
@@ -355,7 +421,9 @@ jobs:
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" static
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The three builds give GAOL the same configuration (.github/audit)
   agree:

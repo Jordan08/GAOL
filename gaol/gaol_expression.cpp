@@ -72,33 +72,33 @@ namespace gaol_core {
   expression::expression() : root(the_null_expr)
   {
     root->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "creating null expression" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "creating null expression" << std::endl);
   }
 
   expression::expression(double d)
   {
-    GAOL_DEBUG(3,std::cout << "creating expression from " << d << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "creating expression from " << d << std::endl);
     root= new double_node(d);
     root->inc_refcount();
   }
 
   expression::expression(const interval& I)
   {
-    GAOL_DEBUG(3,std::cout << "creating expression from " << I << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "creating expression from " << I << std::endl);
     root= new interval_node(I);
     root->inc_refcount();
   }
 
   expression::expression(const expression& e) : root(e.root)
   {
-    GAOL_DEBUG(3,std::cout << "creating expression from expression "
+    GAOL_DEBUG_VERBOSE(3,std::cout << "creating expression from expression "
 		<< std::endl);
     root->inc_refcount();
   }
 
   expression::expression(const expr_node& e)
   {
-    GAOL_DEBUG(3,std::cout << "creating expression from node " << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "creating expression from node " << std::endl);
     root = &const_cast<expr_node&>(e);
     root->inc_refcount();
   }
@@ -106,7 +106,7 @@ namespace gaol_core {
 
   expression::~expression()
   {
-    GAOL_DEBUG(3,std::cout << "deleting expression" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "deleting expression" << std::endl);
 
     if (root->dec_refcount() == 0) {
       delete root;
@@ -269,13 +269,13 @@ namespace gaol_core {
   */
   null_node::null_node()
   {
-    GAOL_DEBUG(3,std::cout << "null_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "null_node created" << std::endl);
   }
 
 
   null_node::~null_node()
   {
-    GAOL_DEBUG(3,std::cout << "null_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "null_node destroyed" << std::endl);
   }
 
   expr_node* null_node::clone() const
@@ -300,12 +300,12 @@ namespace gaol_core {
 
   double_node::double_node(double d) : val(d)
   {
-    GAOL_DEBUG(3,std::cout << "double_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "double_node created" << std::endl);
   }
 
   double_node::~double_node()
   {
-    GAOL_DEBUG(3,std::cout << "double_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "double_node destroyed" << std::endl);
   }
 
   std::ostream& double_node::display(std::ostream& os) const
@@ -336,13 +336,13 @@ namespace gaol_core {
   interval_node::interval_node(const interval& I)
   {
     val = new interval(I);
-    GAOL_DEBUG(3,std::cout << "interval_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "interval_node created" << std::endl);
   }
 
   interval_node::~interval_node()
   {
     delete val;
-    GAOL_DEBUG(3,std::cout << "interval_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "interval_node destroyed" << std::endl);
   }
 
   std::ostream& interval_node::display(std::ostream& os) const
@@ -372,7 +372,7 @@ namespace gaol_core {
   {
     e_left->inc_refcount();
     e_right->inc_refcount();
-     GAOL_DEBUG(3,std::cout << "add_node created" << std::endl);
+     GAOL_DEBUG_VERBOSE(3,std::cout << "add_node created" << std::endl);
   }
 
   add_node::~add_node()
@@ -383,7 +383,7 @@ namespace gaol_core {
     if (e_right->dec_refcount() == 0) {
       delete e_right;
     }
-    GAOL_DEBUG(3,std::cout << "add_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "add_node destroyed" << std::endl);
   }
 
   std::ostream& add_node::display(std::ostream& os) const
@@ -412,7 +412,7 @@ namespace gaol_core {
   unary_minus_node::unary_minus_node(const expression& e) : e_uminus(e.get_root())
   {
     e_uminus->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "unary_minus_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "unary_minus_node created" << std::endl);
   }
 
   unary_minus_node::~unary_minus_node()
@@ -420,7 +420,7 @@ namespace gaol_core {
     if (e_uminus->dec_refcount() == 0) {
       delete e_uminus;
     }
-    GAOL_DEBUG(3,std::cout << "unary_minus_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "unary_minus_node destroyed" << std::endl);
   }
 
   std::ostream& unary_minus_node::display(std::ostream& os) const
@@ -455,7 +455,7 @@ namespace gaol_core {
   {
     e_left->inc_refcount();
     e_right->inc_refcount();
-     GAOL_DEBUG(3,std::cout << "sub_node created" << std::endl);
+     GAOL_DEBUG_VERBOSE(3,std::cout << "sub_node created" << std::endl);
   }
 
   sub_node::~sub_node()
@@ -466,7 +466,7 @@ namespace gaol_core {
     if (e_right->dec_refcount() == 0) {
       delete e_right;
     }
-    GAOL_DEBUG(3,std::cout << "sub_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sub_node destroyed" << std::endl);
   }
 
   std::ostream& sub_node::display(std::ostream& os) const
@@ -499,7 +499,7 @@ namespace gaol_core {
   {
     e_left->inc_refcount();
     e_right->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "mult_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "mult_node created" << std::endl);
   }
 
   mult_node::~mult_node()
@@ -510,7 +510,7 @@ namespace gaol_core {
     if (e_right->dec_refcount() == 0) {
       delete e_right;
     }
-    GAOL_DEBUG(3,std::cout << "mult_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "mult_node destroyed" << std::endl);
   }
 
   std::ostream& mult_node::display(std::ostream& os) const
@@ -543,7 +543,7 @@ namespace gaol_core {
   {
     e_left->inc_refcount();
     e_right->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "div_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "div_node created" << std::endl);
   }
 
   div_node::~div_node()
@@ -554,7 +554,7 @@ namespace gaol_core {
     if (e_right->dec_refcount() == 0) {
       delete e_right;
     }
-    GAOL_DEBUG(3,std::cout << "div_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "div_node destroyed" << std::endl);
   }
 
   // '/', where GAOL wrote '*': x/(y*z) was shown as x*(y*z) (GAOL v5)
@@ -585,7 +585,7 @@ namespace gaol_core {
   {
     exponent = n;
     e_pow->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "pow_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "pow_node created" << std::endl);
   }
 
   pow_node::~pow_node()
@@ -593,7 +593,7 @@ namespace gaol_core {
     if (e_pow->dec_refcount() == 0) {
       delete e_pow;
     }
-    GAOL_DEBUG(3,std::cout << "pow_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "pow_node destroyed" << std::endl);
   }
 
   std::ostream& pow_node::display(std::ostream& os) const
@@ -624,7 +624,7 @@ namespace gaol_core {
   {
     e_left->inc_refcount();
     e_right->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "pow_itv_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "pow_itv_node created" << std::endl);
   }
 
   pow_itv_node::~pow_itv_node()
@@ -635,7 +635,7 @@ namespace gaol_core {
     if (e_right->dec_refcount() == 0) {
       delete e_right;
     }
-    GAOL_DEBUG(3,std::cout << "pow_itv_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "pow_itv_node destroyed" << std::endl);
   }
 
   std::ostream& pow_itv_node::display(std::ostream& os) const
@@ -665,7 +665,7 @@ namespace gaol_core {
   {
     exponent = n;
     e_nth_root->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "nth_root_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "nth_root_node created" << std::endl);
   }
 
   nth_root_node::~nth_root_node()
@@ -673,7 +673,7 @@ namespace gaol_core {
     if (e_nth_root->dec_refcount() == 0) {
       delete e_nth_root;
     }
-    GAOL_DEBUG(3,std::cout << "nth_root_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "nth_root_node destroyed" << std::endl);
   }
 
   std::ostream& nth_root_node::display(std::ostream& os) const
@@ -700,7 +700,7 @@ namespace gaol_core {
   cos_node::cos_node(const expression& e) : e_cos(e.get_root())
   {
     e_cos->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "cos_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "cos_node created" << std::endl);
   }
 
   cos_node::~cos_node()
@@ -708,7 +708,7 @@ namespace gaol_core {
     if (e_cos->dec_refcount() == 0) {
       delete e_cos;
     }
-    GAOL_DEBUG(3,std::cout << "cos_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "cos_node destroyed" << std::endl);
   }
 
   std::ostream& cos_node::display(std::ostream& os) const
@@ -736,7 +736,7 @@ namespace gaol_core {
   sin_node::sin_node(const expression& e) : e_sin(e.get_root())
   {
     e_sin->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "sin_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sin_node created" << std::endl);
   }
 
   sin_node::~sin_node()
@@ -744,7 +744,7 @@ namespace gaol_core {
     if (e_sin->dec_refcount() == 0) {
       delete e_sin;
     }
-    GAOL_DEBUG(3,std::cout << "sin_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sin_node destroyed" << std::endl);
   }
 
   std::ostream& sin_node::display(std::ostream& os) const
@@ -772,7 +772,7 @@ namespace gaol_core {
   tan_node::tan_node(const expression& e) : e_tan(e.get_root())
   {
     e_tan->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "tan_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "tan_node created" << std::endl);
   }
 
   tan_node::~tan_node()
@@ -780,7 +780,7 @@ namespace gaol_core {
     if (e_tan->dec_refcount() == 0) {
       delete e_tan;
     }
-    GAOL_DEBUG(3,std::cout << "tan_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "tan_node destroyed" << std::endl);
   }
 
   std::ostream& tan_node::display(std::ostream& os) const
@@ -810,7 +810,7 @@ namespace gaol_core {
   {
     Y->inc_refcount();
     X->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "atan2_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "atan2_node created" << std::endl);
   }
 
   atan2_node::~atan2_node()
@@ -821,7 +821,7 @@ namespace gaol_core {
      if (X->dec_refcount() == 0) {
       delete X;
     }
-   GAOL_DEBUG(3,std::cout << "atan2_node destroyed" << std::endl);
+   GAOL_DEBUG_VERBOSE(3,std::cout << "atan2_node destroyed" << std::endl);
   }
 
   std::ostream& atan2_node::display(std::ostream& os) const
@@ -851,7 +851,7 @@ namespace gaol_core {
   acos_node::acos_node(const expression& e) : e_acos(e.get_root())
   {
     e_acos->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "acos_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "acos_node created" << std::endl);
   }
 
   acos_node::~acos_node()
@@ -859,7 +859,7 @@ namespace gaol_core {
     if (e_acos->dec_refcount() == 0) {
       delete e_acos;
     }
-    GAOL_DEBUG(3,std::cout << "acos_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "acos_node destroyed" << std::endl);
   }
 
   std::ostream& acos_node::display(std::ostream& os) const
@@ -887,7 +887,7 @@ namespace gaol_core {
   asin_node::asin_node(const expression& e) : e_asin(e.get_root())
   {
     e_asin->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "asin_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "asin_node created" << std::endl);
   }
 
   asin_node::~asin_node()
@@ -895,7 +895,7 @@ namespace gaol_core {
     if (e_asin->dec_refcount() == 0) {
       delete e_asin;
     }
-    GAOL_DEBUG(3,std::cout << "asin_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "asin_node destroyed" << std::endl);
   }
 
   std::ostream& asin_node::display(std::ostream& os) const
@@ -923,7 +923,7 @@ namespace gaol_core {
   atan_node::atan_node(const expression& e) : e_atan(e.get_root())
   {
     e_atan->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "atan_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "atan_node created" << std::endl);
   }
 
   atan_node::~atan_node()
@@ -931,7 +931,7 @@ namespace gaol_core {
     if (e_atan->dec_refcount() == 0) {
       delete e_atan;
     }
-    GAOL_DEBUG(3,std::cout << "atan_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "atan_node destroyed" << std::endl);
   }
 
   std::ostream& atan_node::display(std::ostream& os) const
@@ -959,7 +959,7 @@ namespace gaol_core {
   cosh_node::cosh_node(const expression& e) : e_cosh(e.get_root())
   {
     e_cosh->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "cosh_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "cosh_node created" << std::endl);
   }
 
   cosh_node::~cosh_node()
@@ -967,7 +967,7 @@ namespace gaol_core {
     if (e_cosh->dec_refcount() == 0) {
       delete e_cosh;
     }
-    GAOL_DEBUG(3,std::cout << "cosh_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "cosh_node destroyed" << std::endl);
   }
 
   std::ostream& cosh_node::display(std::ostream& os) const
@@ -995,7 +995,7 @@ namespace gaol_core {
   sinh_node::sinh_node(const expression& e) : e_sinh(e.get_root())
   {
     e_sinh->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "sinh_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sinh_node created" << std::endl);
   }
 
   sinh_node::~sinh_node()
@@ -1003,7 +1003,7 @@ namespace gaol_core {
     if (e_sinh->dec_refcount() == 0) {
       delete e_sinh;
     }
-    GAOL_DEBUG(3,std::cout << "sinh_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sinh_node destroyed" << std::endl);
   }
 
   std::ostream& sinh_node::display(std::ostream& os) const
@@ -1031,7 +1031,7 @@ namespace gaol_core {
   tanh_node::tanh_node(const expression& e) : e_tanh(e.get_root())
   {
     e_tanh->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "tanh_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "tanh_node created" << std::endl);
   }
 
   tanh_node::~tanh_node()
@@ -1039,7 +1039,7 @@ namespace gaol_core {
     if (e_tanh->dec_refcount() == 0) {
       delete e_tanh;
     }
-    GAOL_DEBUG(3,std::cout << "tanh_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "tanh_node destroyed" << std::endl);
   }
 
   std::ostream& tanh_node::display(std::ostream& os) const
@@ -1068,7 +1068,7 @@ namespace gaol_core {
   acosh_node::acosh_node(const expression& e) : e_acosh(e.get_root())
   {
     e_acosh->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "acosh_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "acosh_node created" << std::endl);
   }
 
   acosh_node::~acosh_node()
@@ -1076,7 +1076,7 @@ namespace gaol_core {
     if (e_acosh->dec_refcount() == 0) {
       delete e_acosh;
     }
-    GAOL_DEBUG(3,std::cout << "acosh_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "acosh_node destroyed" << std::endl);
   }
 
   std::ostream& acosh_node::display(std::ostream& os) const
@@ -1104,7 +1104,7 @@ namespace gaol_core {
   asinh_node::asinh_node(const expression& e) : e_asinh(e.get_root())
   {
     e_asinh->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "asinh_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "asinh_node created" << std::endl);
   }
 
   asinh_node::~asinh_node()
@@ -1112,7 +1112,7 @@ namespace gaol_core {
     if (e_asinh->dec_refcount() == 0) {
       delete e_asinh;
     }
-    GAOL_DEBUG(3,std::cout << "asinh_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "asinh_node destroyed" << std::endl);
   }
 
   std::ostream& asinh_node::display(std::ostream& os) const
@@ -1140,7 +1140,7 @@ namespace gaol_core {
   atanh_node::atanh_node(const expression& e) : e_atanh(e.get_root())
   {
     e_atanh->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "atanh_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "atanh_node created" << std::endl);
   }
 
   atanh_node::~atanh_node()
@@ -1148,7 +1148,7 @@ namespace gaol_core {
     if (e_atanh->dec_refcount() == 0) {
       delete e_atanh;
     }
-    GAOL_DEBUG(3,std::cout << "atanh_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "atanh_node destroyed" << std::endl);
   }
 
   std::ostream& atanh_node::display(std::ostream& os) const
@@ -1177,7 +1177,7 @@ namespace gaol_core {
   exp_node::exp_node(const expression& e) : e_exp(e.get_root())
   {
     e_exp->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "exp_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "exp_node created" << std::endl);
   }
 
   exp_node::~exp_node()
@@ -1185,7 +1185,7 @@ namespace gaol_core {
     if (e_exp->dec_refcount() == 0) {
       delete e_exp;
     }
-    GAOL_DEBUG(3,std::cout << "exp_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "exp_node destroyed" << std::endl);
   }
 
   std::ostream& exp_node::display(std::ostream& os) const
@@ -1213,7 +1213,7 @@ namespace gaol_core {
   log_node::log_node(const expression& e) : e_log(e.get_root())
   {
     e_log->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "log_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "log_node created" << std::endl);
   }
 
   log_node::~log_node()
@@ -1221,7 +1221,7 @@ namespace gaol_core {
     if (e_log->dec_refcount() == 0) {
       delete e_log;
     }
-    GAOL_DEBUG(3,std::cout << "log_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "log_node destroyed" << std::endl);
   }
 
   std::ostream& log_node::display(std::ostream& os) const
@@ -1249,7 +1249,7 @@ namespace gaol_core {
   exp2_node::exp2_node(const expression& e) : e_exp2(e.get_root())
   {
     e_exp2->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "exp2_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "exp2_node created" << std::endl);
   }
 
   exp2_node::~exp2_node()
@@ -1257,7 +1257,7 @@ namespace gaol_core {
     if (e_exp2->dec_refcount() == 0) {
       delete e_exp2;
     }
-    GAOL_DEBUG(3,std::cout << "exp2_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "exp2_node destroyed" << std::endl);
   }
 
   std::ostream& exp2_node::display(std::ostream& os) const
@@ -1285,7 +1285,7 @@ namespace gaol_core {
   log2_node::log2_node(const expression& e) : e_log2(e.get_root())
   {
     e_log2->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "log2_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "log2_node created" << std::endl);
   }
 
   log2_node::~log2_node()
@@ -1293,7 +1293,7 @@ namespace gaol_core {
     if (e_log2->dec_refcount() == 0) {
       delete e_log2;
     }
-    GAOL_DEBUG(3,std::cout << "log2_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "log2_node destroyed" << std::endl);
   }
 
   std::ostream& log2_node::display(std::ostream& os) const
@@ -1321,7 +1321,7 @@ namespace gaol_core {
   sign_node::sign_node(const expression& e) : e_sign(e.get_root())
   {
     e_sign->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "sign_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sign_node created" << std::endl);
   }
 
   sign_node::~sign_node()
@@ -1329,7 +1329,7 @@ namespace gaol_core {
     if (e_sign->dec_refcount() == 0) {
       delete e_sign;
     }
-    GAOL_DEBUG(3,std::cout << "sign_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "sign_node destroyed" << std::endl);
   }
 
   std::ostream& sign_node::display(std::ostream& os) const
@@ -1357,7 +1357,7 @@ namespace gaol_core {
   trunc_node::trunc_node(const expression& e) : e_trunc(e.get_root())
   {
     e_trunc->inc_refcount();
-    GAOL_DEBUG(3,std::cout << "trunc_node created" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "trunc_node created" << std::endl);
   }
 
   trunc_node::~trunc_node()
@@ -1365,7 +1365,7 @@ namespace gaol_core {
     if (e_trunc->dec_refcount() == 0) {
       delete e_trunc;
     }
-    GAOL_DEBUG(3,std::cout << "trunc_node destroyed" << std::endl);
+    GAOL_DEBUG_VERBOSE(3,std::cout << "trunc_node destroyed" << std::endl);
   }
 
   std::ostream& trunc_node::display(std::ostream& os) const

@@ -117,7 +117,10 @@ target_link_libraries(my_target PUBLIC gaol::gaol)
 GAOL is then a target of the project (`gaol::gaol`), built with it, and
 `cmake --install` of the project installs it with it, CMake package and
 `gaol.pc` included; nothing is downloaded beyond GAOL's sources. `tests/fetch_content` is a project
-building GAOL this way.
+building GAOL this way. GAOL is built in Release where the project gives no
+build type, and `-DGAOL_DEBUG=ON` builds it for debugging whatever the build
+type or the configuration of the project, whose own code keeps them (see
+[Building GAOL](building.md#with-cmake)) (GAOL v5).
 
 GAOL, a static library, is compiled as position-independent code
 (`-fPIC`), so that `gaol::gaol` can be linked into a shared library, such as
@@ -145,6 +148,36 @@ c++ -std=c++17 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs g
 ```
 
 In a meson project, `dependency('gaol')`.
+
+A meson project can also build GAOL for itself, as a subproject, the sources
+of GAOL being in its `subprojects/gaol` (GAOL v5):
+
+```meson
+gaol_dep = dependency('gaol', fallback: ['gaol', 'gaol_dep'])
+executable('program', 'program.cpp', dependencies: gaol_dep)
+```
+
+`dependency()` takes an installed GAOL where it finds one, and builds the
+subproject otherwise; `subproject('gaol').get_variable('gaol_dep')` always
+builds it. `gaol_dep` carries the include directory, the flags above and the
+link option above, as `gaol.pc` does: the flags GAOL's `meson.build` gives its
+own targets do not reach those of the project. GAOL is built in `release`,
+as CMake and configure build it brought into another project, where the
+project leaves the build type to its default, `debug`. meson 1.8.4 and later
+give a subproject its own default build type, and a `--buildtype=debug` asked
+for builds GAOL for debugging. Earlier ones give it the build type of the
+project, which would have built GAOL without optimization, and before 1.8 with
+its assertions: there, where the options are those of `debug`, GAOL compiles
+its libraries as in `release` all the same, as it cannot tell the default
+from a `--buildtype=debug` asked for: `-Dgaol:enable-debug=true` (or
+`default_options: ['enable-debug=true']` in `subproject()` or `dependency()`)
+builds GAOL for debugging, with any meson. Two cases keep the build type of the
+project: Visual C++ with meson before 0.57, whose `debug` gives `/RTC1`, which
+`cl` refuses with `/O2`, and the Visual Studio backend of meson
+(`--backend=vs`), which takes the build type of the project for every target;
+the default backend, ninja, is not one. `tests/meson_subproject` is a project
+building GAOL this way. GAOL could not be a subproject before GAOL v5: meson
+refuses the `add_global_arguments()` its `meson.build` called in a subproject.
 
 ## Initialization and cleanup
 

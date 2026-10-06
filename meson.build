@@ -16,12 +16,13 @@ project(
   # python3 stays first: only when the first name ends with python3 does
   # meson fall back on its own Python (the meson.exe of the Windows installer)
   # if it finds none. Looking for python first would lose that fallback, and
-  # would not avoid the Microsoft Store aliases of meson 0.53.0, which
-  # WindowsApps holds for python.exe as for python3.exe: meson 0.53.1 and later
-  # leave that directory out (doc/building.md). The encoding utf-8-sig skips
-  # the byte order mark that some editors of Windows write at
-  # the start of a file, which the default encoding (the code page of Windows,
-  # cp1252) reads as three characters of the version. The blanks stripped are
+  # would not avoid the Microsoft Store aliases that meson 0.53.0 and earlier
+  # take where WindowsApps holds a python.exe as well as a python3.exe (not
+  # checked on Windows): meson 0.53.1 and later leave that directory out
+  # (doc/building.md). The encoding utf-8-sig skips the byte order mark that
+  # some editors of Windows write at the start of a file, which the default
+  # encoding (the code page of Windows, cp1252) reads as three characters of
+  # the version. The blanks stripped are
   # the six of ASCII (string.whitespace), which CMake and configure strip, not
   # all those of Unicode, which strip() alone strips (a no-break space). What
   # is not the version is written as ASCII, with escapes (\u200b for a
@@ -29,7 +30,7 @@ project(
   # byte, \n), which show in the error message below, on one line, and which
   # the pipe to meson carries whatever the code page (GAOL v5)
   version: run_command(find_program('python3', 'python', native: true), '-c',
-                       'import string, sys; print(ascii(open(sys.argv[-1], encoding=\'utf-8-sig\', errors=\'surrogateescape\').read().strip(string.whitespace))[1:-1])',
+                       'import string, sys\nwith open(sys.argv[-1], encoding=\'utf-8-sig\', errors=\'surrogateescape\') as f: print(ascii(f.read().strip(string.whitespace))[1:-1])',
                        join_paths(meson.current_source_dir(), 'VERSION.txt'),
                        check: true).stdout().strip(),
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
@@ -50,14 +51,14 @@ if not gaol_version_ok
   # The first bytes of the file in hexadecimal, which show what the quoted text
   # does not (a zero-width space, a second byte order mark)
   gaol_version_bytes = run_command(find_program('python3', 'python', native: true), '-c',
-                                   'import sys; print(*[\'%02x\' % b for b in open(sys.argv[-1], \'rb\').read(32)])',
+                                   'import sys\nwith open(sys.argv[-1], \'rb\') as f: print(*[\'%02x\' % b for b in f.read(32)])',
                                    join_paths(meson.current_source_dir(), 'VERSION.txt'),
                                    check: false).stdout().strip()
   # A file of UTF-16 characters, which starts with its byte order mark (FF FE,
   # FE FF) or holds NUL bytes, is not read as UTF-16: the message says so, as
   # those of CMake and configure do
   gaol_version_utf16 = run_command(find_program('python3', 'python', native: true), '-c',
-                                   'import sys; b = open(sys.argv[-1], \'rb\').read(); print(\'mark\' if b[:2] in (bytes([255, 254]), bytes([254, 255])) else \'nul\' if 0 in b else \'\')',
+                                   'import sys\nwith open(sys.argv[-1], \'rb\') as f: b = f.read()\nprint(\'mark\' if b[:2] in (bytes([255, 254]), bytes([254, 255])) else \'nul\' if 0 in b else \'\')',
                                    join_paths(meson.current_source_dir(), 'VERSION.txt'),
                                    check: false).stdout().strip()
   gaol_version_hint = ''
@@ -100,10 +101,43 @@ preserve_rounding = get_option('enable-preserve-rounding')
 prefer_avx512_requested = get_option('enable-prefer-avx512')
 exception = get_option('enable-exception')
 # The Debug build, as CMAKE_BUILD_TYPE=Debug and configure --enable-debug:
-# GAOL checks its assertions (GAOL_DEBUGGING). The option enable-debug, which
-# only defined GAOL_DEBUGGING, is gone, as enable-optimize: the build type
-# gives both (GAOL v5)
+# GAOL checks its assertions (GAOL_DEBUGGING). The build type gives it with the
+# optimizations, and enable-optimize is gone (GAOL v5)
 debug = get_option('buildtype') == 'debug'
+release = get_option('buildtype') == 'release'
+# The options of the libraries of GAOL and CORE-MATH (gaol/meson.build)
+gaol_build_options = []
+# enable-debug builds them for debugging whatever the build type, a subproject
+# included, as GAOL_DEBUG of CMake: without optimization, without NDEBUG, and
+# with GAOL_DEBUGGING (GAOL v5: it defined GAOL_DEBUGGING alone, and was gone)
+#
+# Brought in as a subproject, GAOL is built in release by default, as CMake and
+# configure build it brought into another project (GAOL v5). meson 1.8.4 and
+# later give a subproject its own default build type, release here; earlier
+# ones give it the build type of the project, without optimization in meson's
+# default, debug, and before 1.8 with GAOL_DEBUGGING too, while 1.8.0 to 1.8.3
+# have get_option('buildtype') read the release of GAOL: the options
+# optimization and debug tell the build type of the project there. A
+# subproject cannot tell meson's default from a --buildtype=debug asked for:
+# where they are those of debug, the libraries of GAOL and CORE-MATH are
+# compiled as in release (override_options, gaol/meson.build), and in the
+# release of the project with NDEBUG, which the b_ndebug=if-release of
+# default_options gives where they apply. Not with Visual C++ before meson
+# 0.57, whose build type debug gives /RTC1, which cl refuses with the /O2 of
+# optimization=3, and whose C runtime follows the build type of the target.
+if get_option('enable-debug')
+  gaol_build_options = ['optimization=0', 'debug=true', 'b_ndebug=false']
+  debug = true
+elif meson.is_subproject() and meson.version().version_compare('<1.8.4') and not (msvc and meson.version().version_compare('<0.57'))
+  debug = false
+  release = get_option('optimization') == '3' and not get_option('debug')
+  if get_option('optimization') == '0' and get_option('debug')
+    gaol_build_options = ['optimization=3', 'debug=false', 'b_ndebug=true']
+    release = true
+  elif release
+    gaol_build_options = ['b_ndebug=true']
+  endif
+endif
 # The mathematical library
 #
 # GAOL bounds every one of its elementary functions with CORE-MATH
@@ -202,27 +236,32 @@ endif
 # CMakeLists.txt and configure give them: -frounding-math; -ffp-contract=off
 # (without it, compilers contract a multiplication and an addition into a fused
 # one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
-# both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math
+# both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math.
+# These flags, and the others below, are arguments of the project rather than
+# global ones, which meson refuses in a subproject: GAOL can then be a
+# subproject of a meson project, whose own targets they do not reach, and
+# gaol_dep gives that project's code the flags gaol.pc gives (pc_cflags, see
+# gaol/meson.build) (GAOL v5)
 pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
-    add_global_arguments([flag], language: 'cpp')
+    add_project_arguments([flag], language: 'cpp')
     pc_cflags += [flag]
   endif
   if c_comp.has_argument(flag)
-    add_global_arguments([flag], language: 'c')
+    add_project_arguments([flag], language: 'c')
   endif
 endforeach
 # Visual C++: /fp:strict, as CMakeLists.txt gives it to GAOL and to CORE-MATH,
 # without which gaol/gaol_config.h refuses to compile
 if msvc
-  add_global_arguments(['/fp:strict'], language: ['c', 'cpp'])
+  add_project_arguments(['/fp:strict'], language: ['c', 'cpp'])
   pc_cflags += ['/fp:strict']
   # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
   # /arch:SSE2, which gaol/gaol_config.h refuses: -msse2 has it compute them
   # in SSE2, as CMakeLists.txt gives it
   if cpp_comp.get_id() == 'clang-cl' and host_machine.cpu_family() == 'x86'
-    add_global_arguments(['-msse2'], language: ['c', 'cpp'])
+    add_project_arguments(['-msse2'], language: ['c', 'cpp'])
     pc_cflags += ['-msse2']
   endif
 endif
@@ -231,23 +270,23 @@ endif
 # public declarations carry __attribute__ ((visibility("default")))
 if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
   conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
-  add_global_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
+  add_project_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
 endif
 if cpp_comp.has_argument('-Wconversion')
-  add_global_arguments(['-Wconversion'], language: 'cpp')
+  add_project_arguments(['-Wconversion'], language: 'cpp')
 endif
 if c_comp.has_argument('-Wconversion')
-  add_global_arguments(['-Wconversion'], language: 'c')
+  add_project_arguments(['-Wconversion'], language: 'c')
 endif
 # The optimizations configure (--enable-optimize) and the Release build of
 # CMake add to -O3, in the release build type, where the compiler takes them
-if get_option('buildtype') == 'release'
+if release
   foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
     if cpp_comp.has_argument(flag)
-      add_global_arguments([flag], language: 'cpp')
+      add_project_arguments([flag], language: 'cpp')
     endif
     if c_comp.has_argument(flag)
-      add_global_arguments([flag], language: 'c')
+      add_project_arguments([flag], language: 'c')
     endif
   endforeach
 endif
@@ -277,18 +316,18 @@ int main() { return 0; }
 if target_x86
   if target_x86_32 and cpp_comp.has_multi_arguments('-msse2', '-mfpmath=sse')
     x86_args = ['-msse2', '-mfpmath=sse']
-    add_global_arguments(x86_args, language: 'cpp')
-    add_global_arguments(x86_args, language: 'c')
+    add_project_arguments(x86_args, language: 'cpp')
+    add_project_arguments(x86_args, language: 'c')
     pc_cflags += x86_args
   endif
   if simd and not msvc and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
     use_sse2 = true
     conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
-    add_global_arguments(['-msse2'], language: 'cpp')
+    add_project_arguments(['-msse2'], language: 'cpp')
     pc_cflags += ['-msse2']
     if cpp_comp.has_argument('-msse3')
       conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
-      add_global_arguments(['-msse3'], language: 'cpp')
+      add_project_arguments(['-msse3'], language: 'cpp')
       pc_cflags += ['-msse3']
     endif
   endif
@@ -399,8 +438,8 @@ if get_option('enable-fma')
     endif
   endif
   if fma_args.length() > 0
-    add_global_arguments(fma_args, language: 'c')
-    add_global_arguments(fma_args, language: 'cpp')
+    add_project_arguments(fma_args, language: 'c')
+    add_project_arguments(fma_args, language: 'cpp')
     pc_cflags += fma_args
   endif
 endif
@@ -409,7 +448,7 @@ message('Fused multiply-add flags: ' + ' '.join(fma_args))
 # -ffloat-store only where doubles are still computed on the x87 unit
 # (FLT_EVAL_METHOD not 0), whose 80-bit registers keep more digits than a
 # double (as CMakeLists.txt): checked with the flags of 32-bit x86 above, which
-# the checks of the compiler do not get from add_global_arguments()
+# the checks of the compiler do not get from add_project_arguments()
 float_store_needed = cpp_comp.compiles('''
   #include <cfloat>
   #if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
@@ -418,8 +457,8 @@ float_store_needed = cpp_comp.compiles('''
   int main() { return 0; }
 ''', args: x86_args, name: 'doubles computed in extended precision')
 if float_store_needed and cpp_comp.has_argument('-ffloat-store')
-  add_global_arguments(['-ffloat-store'], language: 'c')
-  add_global_arguments(['-ffloat-store'], language: 'cpp')
+  add_project_arguments(['-ffloat-store'], language: 'c')
+  add_project_arguments(['-ffloat-store'], language: 'cpp')
   pc_cflags += ['-ffloat-store']
 endif
 
@@ -454,13 +493,17 @@ endif
 if build_examples
   subdir('examples')
 endif
-if meson.version().version_compare('>=0.57')
+# Not in a subproject, whose default test setup would be the project's, which
+# may have one of its own, and would leave out its tests of a suite examples;
+# nor its target check, which names the build directory of the project (GAOL v5)
+if meson.is_subproject()
+elif meson.version().version_compare('>=0.57')
   add_test_setup('unit', exclude_suites: ['examples'], is_default: true)
   add_test_setup('check')
 else
   message('meson ' + meson.version() + ': meson test and ninja test run the examples too (meson test --suite unit runs the unit tests only)')
 endif
-if build_tests or build_examples
+if (build_tests or build_examples) and not meson.is_subproject()
   run_target('check',
     command: [find_program('meson'), 'test', '-C', meson.current_build_dir(), '--no-rebuild', '--print-errorlogs']
              + (meson.version().version_compare('>=0.57') ? ['--setup', 'check'] : []),
@@ -469,9 +512,10 @@ endif
 
 # make perf, as with CMake and configure: GAOL v5 measured on the benchmark of
 # doc/compare/performance.md, whose tables get its new times (see
-# doc/compare/code/run_perf.sh). Linux only, as the benchmark (GAOL v5).
+# doc/compare/code/run_perf.sh). Linux only, as the benchmark, and not with
+# enable-debug, which would measure GAOL built for debugging (GAOL v5).
 bash = find_program('bash', required: false)
-if host_machine.system() == 'linux' and bash.found()
+if host_machine.system() == 'linux' and bash.found() and not get_option('enable-debug')
   bench_dir = meson.current_source_dir() + '/doc/compare/code'
   gaol_bench = executable('gaol_bench', bench_dir + '/bench_gaol.cpp',
     include_directories: include_directories('.', 'doc/compare/code'),
