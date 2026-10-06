@@ -1,0 +1,503 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c94a157..f20d666 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -45,8 +45,24 @@ target_link_libraries(intervals PUBLIC filib)
+ 
+ 
+ # add boost library for interval
+-find_package(Boost REQUIRED)
+-target_link_libraries(intervals PUBLIC Boost::boost)
++# GAOL v5: Boost.Interval is optional, so that the benchmark builds without
++# Boost; its lines are left out when it is not found (WITH_BOOST in interval.hpp)
++find_package(Boost)
++if (Boost_FOUND)
++	target_compile_definitions(intervals PUBLIC USE_BOOST)
++	target_link_libraries(intervals PUBLIC Boost::boost)
++endif()
++
++# GAOL v5: GAOL, found through its CMake package (CMAKE_PREFIX_PATH or gaol_DIR);
++# gaol::gaol gives the flags a program using GAOL is compiled with
++# (-frounding-math, -ffp-contract=off...), to the whole benchmark
++option(INTERVALS_WITH_GAOL "Benchmark GAOL too" ON)
++if (INTERVALS_WITH_GAOL)
++	find_package(gaol CONFIG REQUIRED)
++	message("GAOL ${gaol_VERSION} = ${gaol_DIR}")
++	target_compile_definitions(intervals PUBLIC USE_GAOL)
++	target_link_libraries(intervals PUBLIC gaol::gaol)
++endif()
+ 
+ # add filib c++ library for interval
+ find_library(prim prim "/usr/local/lib")
+diff --git a/src/flags.hpp b/src/flags.hpp
+index e721ff3..ee9de88 100644
+--- a/src/flags.hpp
++++ b/src/flags.hpp
+@@ -1,6 +1,13 @@
+ #pragma once
+ // #define USE_SYSTEM_RANDOM     // weather we will use the system random or a redefined set of random numbers
++// GAOL v5: the three sizes can be given on the command line (-DTEST_SIZE=...)
++#ifndef SPEED_TEST_SIZE
+ #define SPEED_TEST_SIZE 1000  // how many different set of value we do for speed test
++#endif
++#ifndef SPEED_TEST_LOOP
+ #define SPEED_TEST_LOOP 10000 // for each set of value, how many loops
++#endif
++#ifndef TEST_SIZE
+ #define TEST_SIZE 1000000     // how many differnt set of values we do for gap and queries
+-#define FPBENCH_TEST
+\ No newline at end of file
++#endif
++#define FPBENCH_TEST
+diff --git a/src/helper_functions.hpp b/src/helper_functions.hpp
+index 61ed14b..eb18d94 100644
+--- a/src/helper_functions.hpp
++++ b/src/helper_functions.hpp
+@@ -16,6 +16,8 @@
+ #include <fstream>
+ #include <stdio.h>
+ #include <sstream>
++#include <cstdlib>
++#include <cstdio>
+ 
+ // ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ // all the generator stuffs for random numbers
+@@ -59,6 +61,9 @@ std::vector<gmp::Rational> comp_gmp_rationals; // store the gmp rationals
+ // ******************************************************************************************************************************************************************************************************
+ std::vector<gmp::Rational> pre_defined_rationals; // store all the rationals that will be used
+ int global_used_rational_index = 0;               // to use the rationals stored
++// GAOL v5: the repository holds the recorded inputs of the 28 first expressions only, not
++// those of FPBench's; the inputs of an expression whose file is missing are drawn
++bool pre_defined_rationals_missing = false;
+ // ******************************************************************************************************************************************************************************************************
+ 
+ // ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+@@ -70,6 +75,8 @@ double random_double(std::uniform_real_distribution<double> distribution)
+     double number = distribution(generator);
+     return number;
+ #else
++    if (pre_defined_rationals_missing)
++        return distribution(generator);
+     if (global_used_rational_index >= pre_defined_rationals.size())
+     {
+         global_used_rational_index = 0;
+@@ -88,10 +95,11 @@ void read_rationals_from_file(const std::string &inputFileName)
+     infile.open(inputFileName);
+     std::vector<std::string> record;
+     record.resize(2);
++    pre_defined_rationals_missing = !infile.is_open();
+     if (!infile.is_open())
+     {
+-        std::cout << "Path Wrong or File Does Not Exist" << std::endl;
+-        std::cout << "path, " << inputFileName << std::endl;
++        // GAOL v5: on stderr, out of the queries, and the inputs are drawn
++        std::cerr << "no recorded inputs (" << inputFileName << "): drawn" << std::endl;
+     }
+     while (infile) // there is input overload classfile
+     {
+@@ -143,10 +151,23 @@ std::string rational_to_string(gmp::Rational r)
+     char *s_char = new char[mpz_sizeinbase(mpq_numref(r.value), 10) + mpz_sizeinbase(mpq_denref(r.value), 10) + 3];
+     mpq_get_str(s_char, 10, r.value);
+     std::string s = s_char;
++    delete[] s_char; // GAOL v5: was never freed, a few GB over a whole run
+     s = "(" + s + ")";
+     return s;
+ }
+ 
++// GAOL v5: a bound, or Infinity and -Infinity (as Mathematica reads them) for an infinite one,
++// which gmp::Rational(double) cannot take (mpq_set_d stops the program)
++void print_bound(double bound)
++{
++    if (bound == std::numeric_limits<double>::infinity())
++        printf("Infinity");
++    else if (bound == -std::numeric_limits<double>::infinity())
++        printf("-Infinity");
++    else
++        print_rational(gmp::Rational(bound));
++}
++
+ void print_query(double lower, double upper, std::string info)
+ {
+     if (lower != lower || upper < lower)
+@@ -160,13 +181,10 @@ void print_query(double lower, double upper, std::string info)
+     }
+     else
+     {
+-        gmp::Rational lower_rat = gmp::Rational(lower);
+-        gmp::Rational upper_rat = gmp::Rational(upper);
+-
+-        print_rational(lower_rat);
++        print_bound(lower);
+         printf(" <= %s", info.c_str());
+         printf(" <= ");
+-        print_rational(upper_rat);
++        print_bound(upper);
+         printf("\n");
+     }
+ }
+@@ -185,6 +203,50 @@ gmp::Rational interval_size(double lower, double upper)
+     return gap;
+ }
+ 
++// GAOL v5: the size of the interval, or Infinity for an unbounded one
++void print_gap(double lower, double upper)
++{
++    if (lower == lower && upper >= lower && (lower == -std::numeric_limits<double>::infinity() || upper == std::numeric_limits<double>::infinity()))
++        printf("Infinity");
++    else
++        print_rational(interval_size(lower, upper));
++}
++
++// GAOL v5: what the scripts of doc/compare/tang2021 of GAOL need around the tests
++// - INTERVALS_SHARD=k/n runs the expressions whose rank modulo n is k only, so that n
++//   processes share the expressions;
++// - the drawn inputs of each expression come from the generator seeded with the name of the
++//   expression, whatever the expressions run before it;
++// - the query lines are preceded by the name of the expression and by its inputs, exactly,
++//   that GAOL's checker reads (lines without ": ", which Mathematica's script skips).
++bool begin_expression(const char *name)
++{
++    static int rank = -1;
++    static int shard = 0, shards = 1;
++    if (rank < 0)
++    {
++        const char *s = std::getenv("INTERVALS_SHARD");
++        if (s == nullptr || std::sscanf(s, "%d/%d", &shard, &shards) != 2 || shards < 1 || shard < 0 || shard >= shards)
++            shard = 0, shards = 1;
++    }
++    rank++;
++    if (rank % shards != shard)
++        return false;
++    unsigned long seed = 5381; // djb2
++    for (const char *c = name; *c != '\0'; c++)
++        seed = seed * 33 + static_cast<unsigned char>(*c);
++    generator.seed(static_cast<std::default_random_engine::result_type>(seed % 2147483646UL + 1));
++    return true;
++}
++
++void print_inputs(int variable_count)
++{
++    printf("INPUT");
++    for (int i = 0; i < variable_count; i++)
++        printf(", %a", comp_doubles[i]);
++    printf("\n");
++}
++
+ inline double benchmarkTimer(std::function<void()> op)
+ {
+     igl::Timer t;
+@@ -261,7 +323,7 @@ inline double benchmarkTimer(std::function<void()> op)
+         {                                                                \
+             INTERVAL result = METHOD<INTERVAL>(used_variables);          \
+             printf("GAP, %s, %s, ", INFO, TYPE_NAME);                    \
+-            print_rational(interval_size(lower(result), upper(result))); \
++            print_gap(lower(result), upper(result));                     \
+             printf("\n");                                                \
+         }                                                                \
+         catch (int e)                                                    \
+diff --git a/src/interval.hpp b/src/interval.hpp
+index 6edd823..f8f0967 100644
+--- a/src/interval.hpp
++++ b/src/interval.hpp
+@@ -35,6 +35,10 @@ double upper(fic_interval v)
+ // ==============================================================================================
+ // ==============================================================================================
+ // include boost interval
++// GAOL v5: only when CMake found Boost (USE_BOOST); WITH_BOOST(...) keeps its
++// lines of the tests, and drops them otherwise
++#ifdef USE_BOOST
++#define WITH_BOOST(...) __VA_ARGS__
+ #if defined(__APPLE__)
+ #warning "__APPLE__ defined so explicitly defining __USE_ISOC99"
+ #define __USE_ISOC99
+@@ -70,6 +74,9 @@ double upper(boost_interval v)
+ {
+     return v.upper();
+ }
++#else
++#define WITH_BOOST(...)
++#endif
+ // ==============================================================================================
+ // ==============================================================================================
+ 
+@@ -95,3 +102,33 @@ double upper(T v)
+ #endif
+ // ==================================================================================================================
+ // ==================================================================================================================
++
++// ==================================================================================================================
++// ==================================================================================================================
++// GAOL v5: include GAOL (https://github.com/Jordan08/GAOL), when CMake found it (USE_GAOL)
++// GAOL computes with the rounding direction upward, and leaves it upward for the whole
++// program, from its initialization (before main()) on, unless it is built with
++// GAOL_PRESERVE_ROUNDING. GAOL_END(), after the lines of GAOL, sets the direction to nearest
++// again with gaol::restore_rounding(), as GAOL's documentation advises a program that needs
++// it: the other libraries (filib's C version is written for rounding to nearest) and the
++// doubles of the benchmark itself (the drawing and the checking of the inputs) are then
++// computed to nearest, as in a run without GAOL. GAOL's operations set the direction upward
++// themselves.
++#ifdef USE_GAOL
++#include <gaol/gaol.h>
++typedef gaol::interval gaol_interval;
++double lower(const gaol_interval &v)
++{
++    return v.left();
++}
++double upper(const gaol_interval &v)
++{
++    return v.right();
++}
++#define GAOL_END() gaol::restore_rounding()
++#define WITH_GAOL(...) __VA_ARGS__
++#else
++#define WITH_GAOL(...)
++#endif
++// ==================================================================================================================
++// ==================================================================================================================
+diff --git a/tests/gap/gap.cpp b/tests/gap/gap.cpp
+index 58c542e..048bed2 100644
+--- a/tests/gap/gap.cpp
++++ b/tests/gap/gap.cpp
+@@ -5,34 +5,43 @@
+ using namespace std;
+ 
+ // because filib c++ version is not supported everywhere
++// GAOL v5: GAOL's lines (WITH_GAOL), Boost's only when it is found (WITH_BOOST)
+ #ifdef USE_FILIB_PLUSPLUS
+-#define RUN_GAP(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                    \
+-    {                                                                                         \
+-        for (int i = 0; i < TEST_SIZE; i++)                                                   \
+-        {                                                                                     \
+-            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);             \
+-            COMPUTE_GAP(fic_interval, "FILIB C", METHOD, INFO, VARIABLE_COUNT);               \
+-            COMPUTE_GAP(boost_interval, "BOOST", METHOD, INFO, VARIABLE_COUNT);               \
+-            filib::fp_traits<double, filib::native_switched>::setup();                        \
+-            COMPUTE_GAP(fi_native_switched, "NATIVE SWITCHED", METHOD, INFO, VARIABLE_COUNT); \
+-            filib::fp_traits<double, filib::multiplicative>::setup();                         \
+-            COMPUTE_GAP(fi_multiplicative, "MULTIPLICATIVE", METHOD, INFO, VARIABLE_COUNT);   \
+-            filib::fp_traits<double, filib::pred_succ_rounding>::setup();                     \
+-            COMPUTE_GAP(fi_pred_succ, "PRED SUCC", METHOD, INFO, VARIABLE_COUNT);             \
+-        }                                                                                     \
+-    }                                                                                         \
+-    while (0)
++#define RUN_GAP(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                           \
++    do                                                                                               \
++    {                                                                                                \
++        if (!begin_expression(#METHOD))                                                              \
++            break;                                                                                   \
++        WITH_GAOL(GAOL_END());                                                                       \
++        for (int i = 0; i < TEST_SIZE; i++)                                                          \
++        {                                                                                            \
++            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                    \
++            COMPUTE_GAP(fic_interval, "FILIB C", METHOD, INFO, VARIABLE_COUNT);                      \
++            WITH_BOOST(COMPUTE_GAP(boost_interval, "BOOST", METHOD, INFO, VARIABLE_COUNT));          \
++            filib::fp_traits<double, filib::native_switched>::setup();                               \
++            COMPUTE_GAP(fi_native_switched, "NATIVE SWITCHED", METHOD, INFO, VARIABLE_COUNT);        \
++            filib::fp_traits<double, filib::multiplicative>::setup();                                \
++            COMPUTE_GAP(fi_multiplicative, "MULTIPLICATIVE", METHOD, INFO, VARIABLE_COUNT);          \
++            filib::fp_traits<double, filib::pred_succ_rounding>::setup();                            \
++            COMPUTE_GAP(fi_pred_succ, "PRED SUCC", METHOD, INFO, VARIABLE_COUNT);                    \
++            WITH_GAOL(COMPUTE_GAP(gaol_interval, "GAOL", METHOD, INFO, VARIABLE_COUNT); GAOL_END()); \
++        }                                                                                            \
++    } while (0)
+ #else
+-#define RUN_GAP(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)        \
+-    {                                                                             \
+-        for (int i = 0; i < TEST_SIZE; i++)                                       \
+-        {                                                                         \
+-            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD); \
+-            COMPUTE_GAP(fic_interval, "FILIB C", METHOD, INFO, VARIABLE_COUNT);   \
+-            COMPUTE_GAP(boost_interval, "BOOST", METHOD, INFO, VARIABLE_COUNT);   \
+-        }                                                                         \
+-    }                                                                             \
+-    while (0)
++#define RUN_GAP(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                           \
++    do                                                                                               \
++    {                                                                                                \
++        if (!begin_expression(#METHOD))                                                              \
++            break;                                                                                   \
++        WITH_GAOL(GAOL_END());                                                                       \
++        for (int i = 0; i < TEST_SIZE; i++)                                                          \
++        {                                                                                            \
++            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                    \
++            COMPUTE_GAP(fic_interval, "FILIB C", METHOD, INFO, VARIABLE_COUNT);                      \
++            WITH_BOOST(COMPUTE_GAP(boost_interval, "BOOST", METHOD, INFO, VARIABLE_COUNT));          \
++            WITH_GAOL(COMPUTE_GAP(gaol_interval, "GAOL", METHOD, INFO, VARIABLE_COUNT); GAOL_END()); \
++        }                                                                                            \
++    } while (0)
+ #endif
+ 
+ int main(int argc, char *argv[])
+diff --git a/tests/query/query.cpp b/tests/query/query.cpp
+index 899e98d..01f7d3b 100644
+--- a/tests/query/query.cpp
++++ b/tests/query/query.cpp
+@@ -3,33 +3,47 @@
+ #include "../../src/FPBench_methods.hpp"
+ #endif
+ using namespace std;
++// GAOL v5: GAOL's lines (WITH_GAOL), Boost's only when it is found (WITH_BOOST), and
++// the expression's name and inputs before the queries (see begin_expression())
+ #ifdef USE_FILIB_PLUSPLUS
+-#define RUN_QUERY(METHOD, PRINT_METHOD, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                    \
+-    do                                                                                                  \
+-    {                                                                                                   \
+-        for (int i = 0; i < TEST_SIZE; i++)                                                             \
+-        {                                                                                               \
+-            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                       \
+-            PRINT_QUERIES(fic_interval, "FILIB C", METHOD, PRINT_METHOD, VARIABLE_COUNT);               \
+-            PRINT_QUERIES(boost_interval, "BOOST", METHOD, PRINT_METHOD, VARIABLE_COUNT);               \
+-            filib::fp_traits<double, filib::native_switched>::setup();                                  \
+-            PRINT_QUERIES(fi_native_switched, "NATIVE SWITCHED", METHOD, PRINT_METHOD, VARIABLE_COUNT); \
+-            filib::fp_traits<double, filib::multiplicative>::setup();                                   \
+-            PRINT_QUERIES(fi_multiplicative, "MULTIPLICATIVE", METHOD, PRINT_METHOD, VARIABLE_COUNT);   \
+-            filib::fp_traits<double, filib::pred_succ_rounding>::setup();                               \
+-            PRINT_QUERIES(fi_pred_succ, "PRED SUCC", METHOD, PRINT_METHOD, VARIABLE_COUNT);             \
+-        }                                                                                               \
++#define RUN_QUERY(METHOD, PRINT_METHOD, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                           \
++    do                                                                                                         \
++    {                                                                                                          \
++        if (!begin_expression(#METHOD))                                                                        \
++            break;                                                                                             \
++        WITH_GAOL(GAOL_END());                                                                                 \
++        printf("EXPRESSION, %s\n", #METHOD);                                                                   \
++        for (int i = 0; i < TEST_SIZE; i++)                                                                    \
++        {                                                                                                      \
++            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                              \
++            print_inputs(VARIABLE_COUNT);                                                                      \
++            PRINT_QUERIES(fic_interval, "FILIB C", METHOD, PRINT_METHOD, VARIABLE_COUNT);                      \
++            WITH_BOOST(PRINT_QUERIES(boost_interval, "BOOST", METHOD, PRINT_METHOD, VARIABLE_COUNT));          \
++            filib::fp_traits<double, filib::native_switched>::setup();                                         \
++            PRINT_QUERIES(fi_native_switched, "NATIVE SWITCHED", METHOD, PRINT_METHOD, VARIABLE_COUNT);        \
++            filib::fp_traits<double, filib::multiplicative>::setup();                                          \
++            PRINT_QUERIES(fi_multiplicative, "MULTIPLICATIVE", METHOD, PRINT_METHOD, VARIABLE_COUNT);          \
++            filib::fp_traits<double, filib::pred_succ_rounding>::setup();                                      \
++            PRINT_QUERIES(fi_pred_succ, "PRED SUCC", METHOD, PRINT_METHOD, VARIABLE_COUNT);                    \
++            WITH_GAOL(PRINT_QUERIES(gaol_interval, "GAOL", METHOD, PRINT_METHOD, VARIABLE_COUNT); GAOL_END()); \
++        }                                                                                                      \
+     } while (0)
+ #else
+-#define RUN_QUERY(METHOD, PRINT_METHOD, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)      \
+-    do                                                                                    \
+-    {                                                                                     \
+-        for (int i = 0; i < TEST_SIZE; i++)                                               \
+-        {                                                                                 \
+-            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);         \
+-            PRINT_QUERIES(fic_interval, "FILIB C", METHOD, PRINT_METHOD, VARIABLE_COUNT); \
+-            PRINT_QUERIES(boost_interval, "BOOST", METHOD, PRINT_METHOD, VARIABLE_COUNT); \
+-        }                                                                                 \
++#define RUN_QUERY(METHOD, PRINT_METHOD, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                           \
++    do                                                                                                         \
++    {                                                                                                          \
++        if (!begin_expression(#METHOD))                                                                        \
++            break;                                                                                             \
++        WITH_GAOL(GAOL_END());                                                                                 \
++        printf("EXPRESSION, %s\n", #METHOD);                                                                   \
++        for (int i = 0; i < TEST_SIZE; i++)                                                                    \
++        {                                                                                                      \
++            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                              \
++            print_inputs(VARIABLE_COUNT);                                                                      \
++            PRINT_QUERIES(fic_interval, "FILIB C", METHOD, PRINT_METHOD, VARIABLE_COUNT);                      \
++            WITH_BOOST(PRINT_QUERIES(boost_interval, "BOOST", METHOD, PRINT_METHOD, VARIABLE_COUNT));          \
++            WITH_GAOL(PRINT_QUERIES(gaol_interval, "GAOL", METHOD, PRINT_METHOD, VARIABLE_COUNT); GAOL_END()); \
++        }                                                                                                      \
+     } while (0)
+ #endif
+ 
+diff --git a/tests/speed/speed.cpp b/tests/speed/speed.cpp
+index 0b446c2..f6cabe0 100644
+--- a/tests/speed/speed.cpp
++++ b/tests/speed/speed.cpp
+@@ -6,57 +6,70 @@
+ using namespace std;
+ 
+ // get a timer for each interval type we have
+-double boost_timer, fic_timer, native_switch_timer, multiplicative_timer, pred_succ_timer;
++double boost_timer, fic_timer, native_switch_timer, multiplicative_timer, pred_succ_timer, gaol_timer; // GAOL v5: gaol_timer
+ 
+ // although those definition seems redundant
+ // I'm just trying to make my life easier
+ // do whatever you want for the spped thest
+ // see the helper_functions.hpp for input and output deatail
++// GAOL v5: GAOL's lines (WITH_GAOL), Boost's only when it is found (WITH_BOOST)
+ #ifdef USE_FILIB_PLUSPLUS
+ #define RUN_SPEED(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                                                                                    \
++    do                                                                                                                                                          \
+     {                                                                                                                                                           \
++        if (!begin_expression(#METHOD))                                                                                                                         \
++            break;                                                                                                                                              \
++        WITH_GAOL(GAOL_END());                                                                                                                                  \
+         boost_timer = 0;                                                                                                                                        \
+         fic_timer = 0;                                                                                                                                          \
+         native_switch_timer = 0;                                                                                                                                \
+         multiplicative_timer = 0;                                                                                                                               \
+         pred_succ_timer = 0;                                                                                                                                    \
++        gaol_timer = 0;                                                                                                                                         \
+         for (int i = 0; i < SPEED_TEST_LOOP; i++)                                                                                                               \
+         {                                                                                                                                                       \
+             PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                                                                               \
+             COMPUTE_TIME(fic_interval, METHOD, VARIABLE_COUNT, fic_timer);                                                                                      \
+-            COMPUTE_TIME(boost_interval, METHOD, VARIABLE_COUNT, boost_timer);                                                                                  \
++            WITH_BOOST(COMPUTE_TIME(boost_interval, METHOD, VARIABLE_COUNT, boost_timer));                                                                      \
+             filib::fp_traits<double, filib::native_switched>::setup();                                                                                          \
+             COMPUTE_TIME(fi_native_switched, METHOD, VARIABLE_COUNT, native_switch_timer);                                                                      \
+             filib::fp_traits<double, filib::multiplicative>::setup();                                                                                           \
+             COMPUTE_TIME(fi_multiplicative, METHOD, VARIABLE_COUNT, multiplicative_timer);                                                                      \
+             filib::fp_traits<double, filib::pred_succ_rounding>::setup();                                                                                       \
+             COMPUTE_TIME(fi_pred_succ, METHOD, VARIABLE_COUNT, pred_succ_timer);                                                                                \
++            WITH_GAOL(COMPUTE_TIME(gaol_interval, METHOD, VARIABLE_COUNT, gaol_timer); GAOL_END());                                                             \
+         }                                                                                                                                                       \
+         printf("TIME, %s, FILIB C, %lf us, %lfx time that FILIB C version took\n", INFO, fic_timer, fic_timer / fic_timer);                                     \
+-        printf("TIME, %s, BOOST, %lf us, %lfx time that FILIB C version took\n", INFO, boost_timer, boost_timer / fic_timer);                                   \
++        WITH_BOOST(printf("TIME, %s, BOOST, %lf us, %lfx time that FILIB C version took\n", INFO, boost_timer, boost_timer / fic_timer));                       \
+         printf("TIME, %s, NATIVE SWITCHED METHOD, %lf us, %lfx time that FILIB C version took\n", INFO, native_switch_timer, native_switch_timer / fic_timer);  \
+         printf("TIME, %s, MULTIPLICATIVE METHOD, %lf us, %lfx time that FILIB C version took\n", INFO, multiplicative_timer, multiplicative_timer / fic_timer); \
+         printf("TIME, %s, PRED SUCC METHOD, %lf us, %lfx time that FILIB C version took\n", INFO, pred_succ_timer, pred_succ_timer / fic_timer);                \
+-    }                                                                                                                                                           \
+-    while (0)
++        WITH_GAOL(printf("TIME, %s, GAOL, %lf us, %lfx time that FILIB C version took\n", INFO, gaol_timer, gaol_timer / fic_timer));                           \
++    } while (0)
+ #else
+-#define RUN_SPEED(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                                                  \
+-    {                                                                                                                         \
+-        boost_timer = 0;                                                                                                      \
+-        fic_timer = 0;                                                                                                        \
+-        native_switch_timer = 0;                                                                                              \
+-        multiplicative_timer = 0;                                                                                             \
+-        pred_succ_timer = 0;                                                                                                  \
+-        for (int i = 0; i < SPEED_TEST_LOOP; i++)                                                                             \
+-        {                                                                                                                     \
+-            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                                             \
+-            COMPUTE_TIME(fic_interval, METHOD, VARIABLE_COUNT, fic_timer);                                                    \
+-            COMPUTE_TIME(boost_interval, METHOD, VARIABLE_COUNT, boost_timer);                                                \
+-        }                                                                                                                     \
+-        printf("TIME, %s, FILIB C, %lf us, %lfx time that FILIB C version took\n", INFO, fic_timer, fic_timer / fic_timer);   \
+-        printf("TIME, %s, BOOST, %lf us, %lfx time that FILIB C version took\n", INFO, boost_timer, boost_timer / fic_timer); \
+-    }                                                                                                                         \
+-    while (0)
++#define RUN_SPEED(METHOD, INFO, VARIABLE_COUNT, DISTRIBUTION, VERIFY_METHOD)                                                              \
++    do                                                                                                                                    \
++    {                                                                                                                                     \
++        if (!begin_expression(#METHOD))                                                                                                   \
++            break;                                                                                                                        \
++        WITH_GAOL(GAOL_END());                                                                                                            \
++        boost_timer = 0;                                                                                                                  \
++        fic_timer = 0;                                                                                                                    \
++        native_switch_timer = 0;                                                                                                          \
++        multiplicative_timer = 0;                                                                                                         \
++        pred_succ_timer = 0;                                                                                                              \
++        gaol_timer = 0;                                                                                                                   \
++        for (int i = 0; i < SPEED_TEST_LOOP; i++)                                                                                         \
++        {                                                                                                                                 \
++            PRE_FILL_RANDOM_DOUBLES(DISTRIBUTION, VARIABLE_COUNT, VERIFY_METHOD);                                                         \
++            COMPUTE_TIME(fic_interval, METHOD, VARIABLE_COUNT, fic_timer);                                                                \
++            WITH_BOOST(COMPUTE_TIME(boost_interval, METHOD, VARIABLE_COUNT, boost_timer));                                                \
++            WITH_GAOL(COMPUTE_TIME(gaol_interval, METHOD, VARIABLE_COUNT, gaol_timer); GAOL_END());                                       \
++        }                                                                                                                                 \
++        printf("TIME, %s, FILIB C, %lf us, %lfx time that FILIB C version took\n", INFO, fic_timer, fic_timer / fic_timer);               \
++        WITH_BOOST(printf("TIME, %s, BOOST, %lf us, %lfx time that FILIB C version took\n", INFO, boost_timer, boost_timer / fic_timer)); \
++        WITH_GAOL(printf("TIME, %s, GAOL, %lf us, %lfx time that FILIB C version took\n", INFO, gaol_timer, gaol_timer / fic_timer));     \
++    } while (0)
+ #endif
+ 
+ int main(int argc, char *argv[])
