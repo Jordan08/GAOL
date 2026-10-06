@@ -1,11 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `bcc1b6f` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `4ed659e` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
 l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64 à
-#70, #80) et les rapports des agents (ce qui en sert encore est dans
+#70, #80, #98) et les rapports des agents (ce qui en sert encore est dans
 [todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin donne la
 lettre de chaque ancien numéro, et un numéro qui n'y est pas est un point fait.
 
@@ -185,6 +185,26 @@ manuel ne dit plus que `gaol.pc` donne la bibliothèque mathématique.
 `tests/release_flags.py` et le job `build-types` de `linux.yml` vérifient le
 Release et le debug. Les textes pour `ChangeLog` et `doc/differences.md` sont
 dans la description de #95.
+
+Fait le 6 octobre aussi : le point U (anciens 40, hors sa partie du point E, et
+64), par #97 : les tests de compilation qui doivent échouer (`refused_*`,
+`nodiscard_discard_*`) compilent une copie de leur source, refaite et touchée
+avant le build (`tests/compile_error.cmake`), et ne restent plus en échec quand
+un en-tête ou leur source est rétabli avec son ancienne date ; `test_input()`
+ne cache plus l'exception de `<-inf,-inf>`, et ses six vérifications suivantes
+tournent ; `manual/check_examples.py` vérifie que les 88 exemples du manuel
+impriment ce qu'il montre, dans un job de `linux.yml` ; la sortie hexadécimale
+de `interval(0.1)` corrigée dans le manuel ; le commentaire du format
+hexadécimal ; `doc/tests.md` sans ligne de plus de 80 colonnes. Décidé pendant
+le travail, et fait par #97 : les tests compilent et passent sans exceptions
+(`--disable-exceptions`, `-Denable-exception=false`), ce que deux jobs de
+`build-systems.yml` vérifient, exemples compris, l'exemple 15 lisant alors avec
+`gaol_ieee1788::textToInterval` ; les sorties du manuel hors des `@outputs`
+restent non vérifiées. Reporté au point E : sans exceptions, un appel faux
+arrête le programme dans `gaol_ieee1788::textToInterval` (#98).
+`GAOL_NODISCARD` sous Visual C++ 2017 15.8 et 15.9 reste non vérifiable. Les
+textes pour `ChangeLog`, `doc/differences.md` et `examples/examples.md` sont
+dans la description de #97.
 
 ## En cours
 
@@ -408,6 +428,14 @@ suffit si la partie parser du point Q (#68) est décidée avant.
   interval » de `gaol/gaol_parser.h` est placé avant l'énumération et non avant
   `parse_interval()`, et ne liste que les formats de GAOL 4 (la branche ajoute
   une note au même commentaire).
+- **Sans exceptions** (#98, reporté par #97 le 6 octobre) :
+  `gaol_ieee1788::textToInterval` rend l'ensemble vide pour un nom inconnu, mais
+  arrête le programme sur un appel faux (`pown([2,5],2.5)`, `sin(1,2)`), refusé
+  dans une action du parser (`gaol_ERROR`, puis `abort()`), alors
+  qu'IEEE 1788-2015 (12.12.7) attend l'ensemble vide. À la régénération du
+  parser, faire échouer l'analyse comme pour une erreur de syntaxe ; les trois
+  appels faux de `tests/ieee1788.cpp` sortiront alors de leur garde
+  `GAOL_EXCEPTIONS_ENABLED`.
 
 ## Même fichier de test ou de documentation
 
@@ -596,24 +624,6 @@ le point D a changé (#84), sa partie parser se fait avec le point E.
   autres bornes l'ayant écrite 0 avec MSYS2 CLANG64 : c'est elle qu'il faut
   arrondir vers l'extérieur.
 
-### U. Petites erreurs (40, 64)
-
-- **40.** **Petites erreurs, suite** (la plupart sont corrigées par #55).
-  Restent : un test `nodiscard_discard_cxx*` qui reste en échec une fois son
-  objet compilé ; `test_input()` de `tests/input_output.cpp`, dont le `try`
-  avale une exception et saute six assertions. Décidé le 3 octobre : le
-  programme qui compare les 88 sorties du manuel au programme
-  (`run_examples.py`, hors du dépôt) va dans `manual/`. Non vérifié :
-  `GAOL_NODISCARD` sous Visual C++ 2017 15.8 et 15.9. Décidé le 4 octobre :
-  corriger le commentaire de `gaol/gaol_interval.cpp` (l. 1046) qui dit que le
-  format hexa écrit les signes des bornes, faux depuis #71 ; `chi([-oo, +oo])`
-  reste 1, comme dans GAOL 4 et le manuel.
-- **64.** **La mise en page de `doc/tests.md`** (#32, #39, #41, #42) : cinq
-  lignes de plus de 100 colonnes (l. 43, 72, 298, 300 et 308) parmi des lignes
-  d'environ 80, une ligne orpheline (l. 281, « With flush-to-zero,
-  denormals-are-zero or both set in MXCSR ») et « The reading of » seul sur une
-  ligne (l. 476).
-
 ### W. Des décorations (26)
 
 Reporté (#67).
@@ -700,11 +710,11 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Ménage
 
-- **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
+- **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #94, #95 et #96 après leur
-  fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96 et #97
+  après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -722,9 +732,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ; 12 : E ; 15 : F ;
 18 : F ; 25 : P ; 26 : W ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ;
-35 : I ; 37 : I ; 38 : I ; 40 : E et U ; 45 : Q ; 46 : F ; 47 : A ; 51 : B ;
-56 : A ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 64 : U ; 70 : I ; 71 : Y ; 72 : B ;
-73 : B ; 74 : B.
+35 : I ; 37 : I ; 38 : I ; 40 : E ; 45 : Q ; 46 : F ; 47 : A ; 51 : B ; 56 : A ;
+58 : F ; 59 : F ; 60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -737,8 +746,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    de Q prises, puis relire la branche. Le point H est fait (#86), hors le 27
    et la partie manuel reportée au point I.
 3. **Finir Q et les corrections de puissance B.** Faire d'abord A.3, prérequis
-   noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce point.
-   Compléter ensuite les tests DAZ concernés par Q.
+   noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce
+   point. Compléter ensuite les tests DAZ concernés par Q.
 4. **Achever les autres corrections mathématiques : M et R.** Garder les
    mesures et les tests avec les changements de bornes concernés. Faits par #89
    et #92.
@@ -749,7 +758,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
-   comparateurs.
+   comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
