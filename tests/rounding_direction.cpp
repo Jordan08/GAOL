@@ -108,6 +108,47 @@ namespace
   std::string S(int n) { return std::to_string(n); }
   std::string S(unsigned long long n) { return std::to_string(n); }
 
+  /*
+    The results of a function run with a mode flushing the subnormals to zero
+    set, kept as they are and written once the modes are cleared: the C
+    library writes the doubles (%a), and gdtoa (FreeBSD, macOS) writes a
+    subnormal 0 under denormals-are-zero, which reads it as 0 (GAOL v5). The
+    doubles are compared by their bits, the empty set by its NaN bounds.
+  */
+  struct Kept
+  {
+    std::vector<double> numbers;
+    std::string text; // what needs no double written
+  };
+
+  Kept kept(const interval& x) { Kept k; k.numbers.push_back(x.left()); k.numbers.push_back(x.right()); return k; }
+  Kept kept(const interval& x, const interval& y)
+  {
+    Kept k = kept(x);
+    k.numbers.push_back(y.left());
+    k.numbers.push_back(y.right());
+    return k;
+  }
+  Kept kept(double x) { Kept k; k.numbers.push_back(x); return k; }
+  Kept kept(bool b) { Kept k; k.text = b ? "true" : "false"; return k; }
+  Kept kept(unsigned long long n) { Kept k; k.text = std::to_string(n); return k; }
+  Kept kept_text(const std::string& s) { Kept k; k.text = s; return k; }
+
+  bool same_kept(const Kept& a, const Kept& b)
+  {
+    return a.numbers.size() == b.numbers.size() && a.text == b.text
+      && (a.numbers.empty() || std::memcmp(a.numbers.data(), b.numbers.data(), a.numbers.size()*sizeof(double)) == 0);
+  }
+
+  std::string written(const Kept& k)
+  {
+    std::string s;
+    for (double x : k.numbers) {
+      s += hex(x) + " ";
+    }
+    return s + k.text;
+  }
+
   struct Operation
   {
     const char *name;
@@ -1468,10 +1509,12 @@ int main()
       them, or restored with GAOL_PRESERVE_ROUNDING; under denormals-are-zero,
       the midpoint of [3, 100]*2^-1074 was 0, outside the interval, and
       [22*2^-1074] was written [1e-322] with 1 digit, below its bound. The
-      results are written exactly, the empty set with its NaN bounds, so that
-      bounds in the wrong order, which is_empty() takes for the empty set
-      with the modes cleared, are told apart. The check of <a, b> by the
-      parser, which compares the two numbers as doubles, is left to point E.
+      results are kept as they are and compared by their bits, the empty set
+      by its NaN bounds, so that bounds in the wrong order, which is_empty()
+      takes for the empty set with the modes cleared, are told apart; their
+      doubles are written once the modes are cleared (Kept). The check of
+      <a, b> by the parser, which compares the two numbers as doubles, is left
+      to point E.
     */
     {
       struct UncheckedFunction
@@ -1479,72 +1522,73 @@ int main()
         const char *name;
         int arity; // 1: x, 2: x and y, a double being y.left()
         bool checks; // checks the rounding direction, which clears the modes
-        std::string (*run)(const interval& x, const interval& y);
+        Kept (*run)(const interval& x, const interval& y);
       };
       const UncheckedFunction unchecked_functions[] = {
-        { "interval(x.left(), y.left())", 2, false, [](const interval& x, const interval& y) { return S(interval(x.left(), y.left())); } },
-        { "interval(x.right(), y.left())", 2, false, [](const interval& x, const interval& y) { return S(interval(x.right(), y.left())); } },
-        { "x & y", 2, false, [](const interval& x, const interval& y) { return S(x & y); } },
-        { "x | y", 2, false, [](const interval& x, const interval& y) { return S(x | y); } },
-        { "x &= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z &= y.left(); return S(z); } },
-        { "x |= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z |= y.left(); return S(z); } },
-        { "max(x, y)", 2, false, [](const interval& x, const interval& y) { return S(max(x, y)); } },
-        { "min(x, y)", 2, false, [](const interval& x, const interval& y) { return S(min(x, y)); } },
-        { "abs(x)", 1, false, [](const interval& x, const interval&) { return S(abs(x)); } },
-        { "invabs_rel(x, y)", 2, false, [](const interval& x, const interval& y) { return S(invabs_rel(x, y)); } },
-        { "sign(x)", 1, false, [](const interval& x, const interval&) { return S(sign(x)); } },
-        { "floor(x)", 1, false, [](const interval& x, const interval&) { return S(floor(x)); } },
-        { "ceil(x)", 1, false, [](const interval& x, const interval&) { return S(ceil(x)); } },
-        { "integer(x)", 1, false, [](const interval& x, const interval&) { return S(integer(x)); } },
-        { "trunc(x)", 1, false, [](const interval& x, const interval&) { return S(trunc(x)); } },
-        { "round_ties_to_even(x)", 1, false, [](const interval& x, const interval&) { return S(round_ties_to_even(x)); } },
-        { "round_ties_to_away(x)", 1, false, [](const interval& x, const interval&) { return S(round_ties_to_away(x)); } },
-        { "x.mig()", 1, false, [](const interval& x, const interval&) { return S(x.mig()); } },
-        { "x.smig()", 1, false, [](const interval& x, const interval&) { return S(x.smig()); } },
-        { "x.mag()", 1, false, [](const interval& x, const interval&) { return S(x.mag()); } },
-        { "gaol_ieee1788::inf(x)", 1, false, [](const interval& x, const interval&) { return S(gaol_ieee1788::inf(x)); } },
-        { "gaol_ieee1788::sup(x)", 1, false, [](const interval& x, const interval&) { return S(gaol_ieee1788::sup(x)); } },
+        { "interval(x.left(), y.left())", 2, false, [](const interval& x, const interval& y) { return kept(interval(x.left(), y.left())); } },
+        { "interval(x.right(), y.left())", 2, false, [](const interval& x, const interval& y) { return kept(interval(x.right(), y.left())); } },
+        { "x & y", 2, false, [](const interval& x, const interval& y) { return kept(x & y); } },
+        { "x | y", 2, false, [](const interval& x, const interval& y) { return kept(x | y); } },
+        { "x &= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z &= y.left(); return kept(z); } },
+        { "x |= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z |= y.left(); return kept(z); } },
+        { "max(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(max(x, y)); } },
+        { "min(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(min(x, y)); } },
+        { "abs(x)", 1, false, [](const interval& x, const interval&) { return kept(abs(x)); } },
+        { "invabs_rel(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(invabs_rel(x, y)); } },
+        { "sign(x)", 1, false, [](const interval& x, const interval&) { return kept(sign(x)); } },
+        { "floor(x)", 1, false, [](const interval& x, const interval&) { return kept(floor(x)); } },
+        { "ceil(x)", 1, false, [](const interval& x, const interval&) { return kept(ceil(x)); } },
+        { "integer(x)", 1, false, [](const interval& x, const interval&) { return kept(integer(x)); } },
+        { "trunc(x)", 1, false, [](const interval& x, const interval&) { return kept(trunc(x)); } },
+        { "round_ties_to_even(x)", 1, false, [](const interval& x, const interval&) { return kept(round_ties_to_even(x)); } },
+        { "round_ties_to_away(x)", 1, false, [](const interval& x, const interval&) { return kept(round_ties_to_away(x)); } },
+        { "x.mig()", 1, false, [](const interval& x, const interval&) { return kept(x.mig()); } },
+        { "x.smig()", 1, false, [](const interval& x, const interval&) { return kept(x.smig()); } },
+        { "x.mag()", 1, false, [](const interval& x, const interval&) { return kept(x.mag()); } },
+        { "gaol_ieee1788::inf(x)", 1, false, [](const interval& x, const interval&) { return kept(gaol_ieee1788::inf(x)); } },
+        { "gaol_ieee1788::sup(x)", 1, false, [](const interval& x, const interval&) { return kept(gaol_ieee1788::sup(x)); } },
         { "nb_fp_numbers(x.left(), x.right())", 1, false, [](const interval& x, const interval&) {
-            return x.is_common_interval() ? S(nb_fp_numbers(x.left(), x.right())) : std::string("not finite"); } },
-        { "x.certainly_le(y)", 2, false, [](const interval& x, const interval& y) { return S(x.certainly_le(y)); } },
-        { "x.certainly_leq(y)", 2, false, [](const interval& x, const interval& y) { return S(x.certainly_leq(y)); } },
-        { "x.certainly_ge(y)", 2, false, [](const interval& x, const interval& y) { return S(x.certainly_ge(y)); } },
-        { "x.certainly_geq(y)", 2, false, [](const interval& x, const interval& y) { return S(x.certainly_geq(y)); } },
-        { "x.certainly_positive()", 1, false, [](const interval& x, const interval&) { return S(x.certainly_positive()); } },
-        { "x.certainly_negative()", 1, false, [](const interval& x, const interval&) { return S(x.certainly_negative()); } },
-        { "x.certainly_strictly_positive()", 1, false, [](const interval& x, const interval&) { return S(x.certainly_strictly_positive()); } },
-        { "x.certainly_strictly_negative()", 1, false, [](const interval& x, const interval&) { return S(x.certainly_strictly_negative()); } },
-        { "x.set_contains(y)", 2, false, [](const interval& x, const interval& y) { return S(x.set_contains(y)); } },
-        { "x.set_contains(double)", 2, false, [](const interval& x, const interval& y) { return S(x.set_contains(y.left())); } },
-        { "x.set_strictly_contains(y)", 2, false, [](const interval& x, const interval& y) { return S(x.set_strictly_contains(y)); } },
-        { "x.set_strictly_contains(double)", 2, false, [](const interval& x, const interval& y) { return S(x.set_strictly_contains(y.left())); } },
-        { "x.set_disjoint(y)", 2, false, [](const interval& x, const interval& y) { return S(x.set_disjoint(y)); } },
-        { "x.set_eq(y)", 2, false, [](const interval& x, const interval& y) { return S(x.set_eq(y)); } },
-        { "x.set_leq(y)", 2, false, [](const interval& x, const interval& y) { return S(x.set_leq(y)); } },
-        { "x.set_le(y)", 2, false, [](const interval& x, const interval& y) { return S(x.set_le(y)); } },
-        { "x.less(y)", 2, false, [](const interval& x, const interval& y) { return S(x.less(y)); } },
-        { "x.strictly_less(y)", 2, false, [](const interval& x, const interval& y) { return S(x.strictly_less(y)); } },
-        { "lexicographic_less()(x, y)", 2, false, [](const interval& x, const interval& y) { return S(lexicographic_less()(x, y)); } },
-        { "x.is_zero()", 1, false, [](const interval& x, const interval&) { return S(x.is_zero()); } },
-        { "x.is_symmetric()", 1, false, [](const interval& x, const interval&) { return S(x.is_symmetric()); } },
-        { "x.straddles_zero()", 1, false, [](const interval& x, const interval&) { return S(x.straddles_zero()); } },
-        { "x.strictly_straddles_zero()", 1, false, [](const interval& x, const interval&) { return S(x.strictly_straddles_zero()); } },
-        { "x.is_a_double()", 1, false, [](const interval& x, const interval&) { return S(x.is_a_double()); } },
-        { "x.is_an_int()", 1, false, [](const interval& x, const interval&) { return S(x.is_an_int()); } },
-        { "x.is_canonical()", 1, false, [](const interval& x, const interval&) { return S(x.is_canonical()); } },
-        { "x.midpoint()", 1, true, [](const interval& x, const interval&) { return S(x.midpoint()); } },
-        { "x.split()", 1, true, [](const interval& x, const interval&) { interval l, r; x.split(l, r); return S(l) + " " + S(r); } },
-        { "x.split_left()", 1, true, [](const interval& x, const interval&) { return S(x.split_left()); } },
-        { "x.split_right()", 1, true, [](const interval& x, const interval&) { return S(x.split_right()); } },
-        { "chi(x)", 1, true, [](const interval& x, const interval&) { return S(chi(x)); } },
-        { "operator<< (bounds)", 1, true, [](const interval& x, const interval&) { return write(x, interval_format::bounds); } },
+            return x.is_common_interval() ? kept(nb_fp_numbers(x.left(), x.right())) : kept_text("not finite"); } },
+        { "x.certainly_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_le(y)); } },
+        { "x.certainly_leq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_leq(y)); } },
+        { "x.certainly_ge(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_ge(y)); } },
+        { "x.certainly_geq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_geq(y)); } },
+        { "x.certainly_positive()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_positive()); } },
+        { "x.certainly_negative()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_negative()); } },
+        { "x.certainly_strictly_positive()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_strictly_positive()); } },
+        { "x.certainly_strictly_negative()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_strictly_negative()); } },
+        { "x.set_contains(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_contains(y)); } },
+        { "x.set_contains(double)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_contains(y.left())); } },
+        { "x.set_strictly_contains(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_strictly_contains(y)); } },
+        { "x.set_strictly_contains(double)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_strictly_contains(y.left())); } },
+        { "x.set_disjoint(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_disjoint(y)); } },
+        { "x.set_eq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_eq(y)); } },
+        { "x.set_leq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_leq(y)); } },
+        { "x.set_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_le(y)); } },
+        { "x.less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.less(y)); } },
+        { "x.strictly_less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.strictly_less(y)); } },
+        { "lexicographic_less()(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(lexicographic_less()(x, y)); } },
+        { "x.is_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.is_zero()); } },
+        { "x.is_symmetric()", 1, false, [](const interval& x, const interval&) { return kept(x.is_symmetric()); } },
+        { "x.straddles_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.straddles_zero()); } },
+        { "x.strictly_straddles_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.strictly_straddles_zero()); } },
+        { "x.is_a_double()", 1, false, [](const interval& x, const interval&) { return kept(x.is_a_double()); } },
+        { "x.is_an_int()", 1, false, [](const interval& x, const interval&) { return kept(x.is_an_int()); } },
+        { "x.is_canonical()", 1, false, [](const interval& x, const interval&) { return kept(x.is_canonical()); } },
+        { "feven(x.left())", 1, false, [](const interval& x, const interval&) { return kept(feven(x.left())); } },
+        { "x.midpoint()", 1, true, [](const interval& x, const interval&) { return kept(x.midpoint()); } },
+        { "x.split()", 1, true, [](const interval& x, const interval&) { interval l, r; x.split(l, r); return kept(l, r); } },
+        { "x.split_left()", 1, true, [](const interval& x, const interval&) { return kept(x.split_left()); } },
+        { "x.split_right()", 1, true, [](const interval& x, const interval&) { return kept(x.split_right()); } },
+        { "chi(x)", 1, true, [](const interval& x, const interval&) { return kept(chi(x)); } },
+        { "operator<< (bounds)", 1, true, [](const interval& x, const interval&) { return kept_text(write(x, interval_format::bounds)); } },
         { "operator<< (bounds, 1 digit)", 1, true, [](const interval& x, const interval&) {
             const std::streamsize p = interval::precision(1);
             const std::string s = write(x, interval_format::bounds);
             interval::precision(p);
-            return s; } },
-        { "operator<< (center)", 1, true, [](const interval& x, const interval&) { return write(x, interval_format::center); } },
-        { "gaol_ieee1788::intervalToText(x)", 1, true, [](const interval& x, const interval&) { return gaol_ieee1788::intervalToText(x); } },
+            return kept_text(s); } },
+        { "operator<< (center)", 1, true, [](const interval& x, const interval&) { return kept_text(write(x, interval_format::center)); } },
+        { "gaol_ieee1788::intervalToText(x)", 1, true, [](const interval& x, const interval&) { return kept_text(gaol_ieee1788::intervalToText(x)); } },
       };
       // A point interval of subnormals, whose bounds 1 digit writes outward
       const interval point_of_subnormals = interval(subnormal(22));
@@ -1566,20 +1610,20 @@ int main()
             const interval& y = (j < all_operands) ? flush_operands[j] : point_of_subnormals;
             set(directions[0]);
             set_flush_bits(0u);
-            const std::string cleared = f.run(x, y);
+            const Kept cleared = f.run(x, y);
             for (const FlushMode& m : flush_modes_honoured) {
               for (std::size_t k = 0; k < nd; ++k) {
                 const Direction& d = directions[k];
                 set(d);
                 set_flush_bits(m.bits);
-                const std::string r = f.run(x, y);
+                const Kept r = f.run(x, y);
                 const unsigned int left = flush_bits();
                 set_flush_bits(0u);
                 const auto args = [&] {
                   return m.name + " set, rounding direction " + d.name + ", (" + hex(x)
                          + ((f.arity == 2) ? ", " + hex(y) : std::string()) + ")";
                 };
-                check(name, r == cleared, [&] { return args() + ": " + r + " rather than " + cleared; });
+                check(name, same_kept(r, cleared), [&] { return args() + ": " + written(r) + "rather than " + written(cleared); });
                 const unsigned int expected =
 #if GAOL_PRESERVE_ROUNDING
                   m.bits;
