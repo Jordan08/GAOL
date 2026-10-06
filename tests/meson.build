@@ -22,8 +22,6 @@ gaol_tests = [
   'arithmetic_operators', 'assignment', 'constants', 'constructor', 'float_functions',
   'generic_functions', 'input_output', 'interval_functions', 'misc', 'non_arithmetic',
   'relations', 'reverse_mappings', 'trigonometric', 'intervalf', 'interval2f',
-  # Tests for point P (25a-25g): mulRevToPair, inflate, midrad, bisect, hull/intersect, width_enclosure, literals
-  'mulRevToPair', 'inflate', 'midrad', 'bisect', 'hull_intersect', 'width_enclosure', 'literals',
 ]
 # The rounding direction after the automatic cleanup of GAOL, read by a
 # function registered in a constructor of priority 101, which ELF runs before

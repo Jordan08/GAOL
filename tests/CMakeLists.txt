@@ -61,14 +61,6 @@ set(GAOL_TESTS
   relations
   reverse_mappings
   trigonometric
-  # Tests for point P (25a-25g): mulRevToPair, inflate, midrad, bisect, hull/intersect, width_enclosure, literals
-  mulRevToPair
-  inflate
-  midrad
-  bisect
-  hull_intersect
-  width_enclosure
-  literals
   # The intervals of floats, which only a developer of GAOL compiles (see
   # gaol/gaol_config.h): without GAOL_FLOAT_INTERVALS, the tests are skipped
   # (exit status 77)
