@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `0f08295` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `f2e9540` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -152,6 +152,18 @@ exemples ; les phrases d'`examples.md` qui donnaient comme ouverts les 29
 « formatting slips », `chi([0,0])`, les 400 bits et `[[nodiscard]]` en
 C++17 seulement marquent ce qui est corrigé. Les textes pour `ChangeLog` et
 `doc/differences.md` sont dans la description de #93.
+
+Fait le 6 octobre aussi : le point V (ancien 22), par #96 :
+`gaol::lexicographic_less`, un foncteur qu'un `std::set`, un `std::map`, un
+`std::sort`... prennent comme comparateur, ordre total strict qui met
+l'ensemble vide d'abord puis les intervalles par leurs bornes ; `<` est
+`strictPrecedes` d'IEEE 1788 et n'en est pas un. `std::sort` avec `<` d'un
+vecteur contenant un intervalle vide lit au-delà de sa fin (vérifié sous
+AddressSanitizer), et un `std::set` avec `<` perd les intervalles qui se
+chevauchent. La spécialisation de `std::less` reste reportée (#70), et la
+mise en garde dans `doc/using.md` et le manuel se fera avec le point I. Les
+textes pour `ChangeLog` et `doc/differences.md` sont dans la description
+de #96.
 
 ## En cours
 
@@ -606,20 +618,6 @@ le point D a changé (#84), sa partie parser se fait avec le point E.
   denormals-are-zero or both set in MXCSR ») et « The reading of » seul sur une
   ligne (l. 476).
 
-### V. Un ordre total pour les conteneurs (22)
-
-Spécialiser ou non `std::less` est reporté (#70) ; la mise en garde se fait avec
-le point I.
-
-- **22.** **Pas d'ordre total pour les conteneurs** : `<`, `<=`, `>` et `>=`
-  sont les relations « certainement » d'IEEE 1788, vraies dès qu'un des deux
-  intervalles est vide : `std::set` perd les intervalles qui se chevauchent, et
-  `std::sort` d'un vecteur contenant un intervalle vide lit au-delà de sa fin.
-  Correction : un `gaol::lexicographic_less` (spécialiser aussi `std::less` ou
-  non : reporté le 3 octobre, issue #70), et une mise en garde dans
-  `doc/using.md` et le manuel contre `std::sort`, `std::set`, `std::max`,
-  `std::min` et `std::clamp` sans comparateur.
-
 ### W. Des décorations (26)
 
 Reporté (#67).
@@ -709,7 +707,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92 et #94 après leur fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #94 et #96 après leur
+  fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -726,7 +725,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ;
-12 : E ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
+12 : E ; 15 : F ; 18 : F ; 25 : P ; 26 : W ; 28 : X ;
 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 40 : E et U ; 41 : O ; 42 : O ; 45 : Q ; 46 : F ; 47 : A ;
 51 : B ; 52 : O ; 56 : A ; 58 : F ; 59 : F ;
 60 : F ; 61 : F ; 64 : U ; 65 : O ; 70 : I ; 71 : Y ; 72 : B ;
