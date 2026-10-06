@@ -151,8 +151,12 @@ namespace gaol_names
   GAOL_NAMES_BINARY(acosh_rel);
   GAOL_NAMES_BINARY(asinh_rel);
   GAOL_NAMES_BINARY(atanh_rel);
+  GAOL_NAMES_BINARY(sign_rel);
+  GAOL_NAMES_BINARY(floor_rel);
 #undef GAOL_NAMES_BINARY
   static_assert(same<decltype(gaol::div_rel(x(), x(), x())), interval>(), "gaol::div_rel(z, y, x)");
+  static_assert(same<decltype(gaol::max_rel(x(), x(), x())), interval>() && same<decltype(gaol::min_rel(x(), x(), x())), interval>(),
+                "gaol::max_rel(z, y, x), gaol::min_rel(z, y, x)");
   static_assert(same<decltype(gaol::fma(x(), x(), x())), interval>(), "gaol::fma(x, y, z)");
   static_assert(same<decltype(gaol::nth_root(x(), 3u)), interval>() && same<decltype(gaol::nth_root(x(), 3)), interval>(),
                 "gaol::nth_root(x, n)");

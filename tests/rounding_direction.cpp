@@ -383,7 +383,11 @@ namespace
           && atanh_rel(E(), X()).is_empty() && invabs_rel(E(), X()).is_empty() && sqrt_rel(X(), E()).is_empty()
           && nth_root_rel(E(), 3u, X()).is_empty() && nth_root_rel(X(), 3u, E()).is_empty()
           && div_rel(E(), X(), X()).is_empty() && div_rel(X(), E(), X()).is_empty()
-          && div_rel(X(), X(), E()).is_empty(); } },
+          && div_rel(X(), X(), E()).is_empty() && max_rel(E(), X(), X()).is_empty()
+          && max_rel(X(), E(), X()).is_empty() && max_rel(X(), X(), E()).is_empty()
+          && min_rel(E(), X(), X()).is_empty() && min_rel(X(), E(), X()).is_empty()
+          && min_rel(X(), X(), E()).is_empty() && sign_rel(E(), X()).is_empty() && sign_rel(X(), E()).is_empty()
+          && floor_rel(E(), X()).is_empty() && floor_rel(X(), E()).is_empty(); } },
     // The reverse functions of pow (GAOL v5)
     { "pow_rel and pow_exponent_rel", [] {
         return pow_rel(E(), X(), X()).is_empty() && pow_rel(X(), E(), X()).is_empty() && pow_rel(X(), X(), E()).is_empty()
@@ -1045,6 +1049,13 @@ int main()
     { "pow_exponent_rel", [](const interval& x, const interval& y) {
         return S(pow_exponent_rel(y, y, interval::universe())) + " " + S(pow_exponent_rel(y, x, interval::universe())) + " "
           + S(pow_exponent_rel(x, y + x, interval(-1.0, 0.5))); } },
+    { "max_rel", [](const interval& x, const interval& y) { return S(max_rel(y, x, y - 1.0)) + " " + S(max_rel(y, y, x + y)); } },
+    { "min_rel", [](const interval& x, const interval& y) { return S(min_rel(x, y, 2.0*x)) + " " + S(min_rel(x, x, y - x)); } },
+    { "sign_rel", [](const interval& x, const interval&) {
+        return S(sign_rel(interval(1.0), x - 0.5)) + " " + S(sign_rel(interval(-1.0, 0.0), x - 0.5)); } },
+    // floor(sup Z) + 1 rounded upward: 2^60 + 1 is 2^60 rounded to nearest
+    { "floor_rel", [](const interval& x, const interval& y) {
+        return S(floor_rel(y, x + y)) + " " + S(floor_rel(interval(0x1p60), interval::universe())); } },
     { "nb_fp_numbers", [](const interval& x, const interval&) { return S(nb_fp_numbers(x.left(), x.right())); } },
     // Operations that compute after their one check of the rounding direction
     // what they computed with operations of intervals checking it again, or
@@ -1390,6 +1401,8 @@ int main()
       { "acosh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return acosh_rel(x, y); } },
       { "asinh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return asinh_rel(x, y); } },
       { "atanh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atanh_rel(x, y); } },
+      { "sign_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return sign_rel(x, y); } },
+      { "floor_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return floor_rel(x, y); } },
       { "cancel_minus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_minus(x, y); } },
       { "cancel_plus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_plus(x, y); } },
       { "hausdorff(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return interval(hausdorff(x, y)); } },
@@ -1404,6 +1417,8 @@ int main()
       { "div_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return div_rel(x, y, z); } },
       { "pow_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_rel(x, y, z); } },
       { "pow_exponent_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_exponent_rel(x, y, z); } },
+      { "max_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return max_rel(x, y, z); } },
+      { "min_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return min_rel(x, y, z); } },
     };
     // Subnormal, mixed and normal bounds; the first ones for two and three operands
     const interval flush_operands[] = {
