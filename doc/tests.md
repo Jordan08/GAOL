@@ -752,7 +752,11 @@ mode there.
   process identifier (`srand48(getpid())`, which Visual C++ does not have), so
   that its checks are the same at each run, and checks the infinite ends of
   `atanh_rel(J, I)` where J ends at 1 or -1 (`atanh_rel([0.5, 1], [0, +oo])`),
-  which a bounded I hides (GAOL v5). `intervalf` and `interval2f` test
+  which a bounded I hides (GAOL v5). `input_output` checks that the
+  reader refuses `<-inf, -inf>` and `<inf, inf>`, whose bounds are not
+  one value (`-inf` reads [-oo, -MAX]), where the check of GAOL 4 expected
+  an interval: the exception went to a `try` around the checks, which
+  skipped the six after it (GAOL v5). `intervalf` and `interval2f` test
   the intervals of floats where a developer of GAOL compiles them
   (`GAOL_FLOAT_INTERVALS`, see `gaol/gaol_config.h`), and are skipped otherwise
   (exit status 77). `constructor`, `assignment`, `arithmetic_operators` and
