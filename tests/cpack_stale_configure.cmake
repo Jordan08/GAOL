@@ -24,7 +24,7 @@
 # then holds the next one, and CPack has to configure the build directory
 # again before it makes the archive (cmake/gaol_package_source.cmake), warn,
 # and name the archive after the new version, CMake giving no warning of its
-# own in the files of GAOL that CPack reads. CPack runs as the target
+# own in the files CPack reads. CPack runs as the target
 # package_source runs it, in the build directory, whatever the generator:
 # Ninja configured again before package_source, the Makefile generators did
 # not.
@@ -136,6 +136,10 @@ foreach(_entry ${_entries})
   endif()
 endforeach()
 file(COPY "${GAOL_SOURCE_DIR}/CMakeLists.txt" DESTINATION "${_tree}")
+# A file the regular expressions of CPACK_SOURCE_IGNORE_FILES do not match,
+# which the archive has to hold: \.lo$ read without its backslash, as CMake 4
+# read it without CPACK_VERBATIM_VARIABLES, matches it
+file(WRITE "${_tree}/keep.halo" "Not ignored by CPack\n")
 
 # The program of the generator, which CMake looks for in PATH otherwise: Ninja
 # can be elsewhere
@@ -194,10 +198,11 @@ set(_title "VERSION.txt ${_new} after a configuration for ${_old}, package_sourc
 if(NOT _status EQUAL 0)
   message(FATAL_ERROR "${_title}: CPack did not make the archive (status ${_status}):\n${_output}\n${_error}")
 endif()
-# Without a warning of CMake for the files of GAOL CPack reads, which it reads
-# without the policies of CMakeLists.txt
-if("${_output}\n${_error}" MATCHES "CMake Warning \\(dev\\) at [^\n]*cmake/gaol_[a-z_]+\\.cmake")
-  message(FATAL_ERROR "${_title}: CMake warned in a file of GAOL that CPack reads:\n${_output}\n${_error}")
+# Without a warning of CMake for the files CPack reads: those of GAOL, which it
+# reads without the policies of CMakeLists.txt, and the configuration CMake
+# writes for it (an invalid escape sequence with CMake 3, CMP0010)
+if("${_output}\n${_error}" MATCHES "CMake Warning \\(dev\\)")
+  message(FATAL_ERROR "${_title}: CMake warned in a file CPack reads:\n${_output}\n${_error}")
 endif()
 string(REGEX REPLACE "[ \t\r\n]+" " " _text "${_output} ${_error}")
 string(FIND "${_text}" "configure was generated for GAOL ${_old}, and VERSION.txt holds ${_new}:" _found)
@@ -210,6 +215,10 @@ execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tzf "gaol-${_new}.tar.gz"
   WORKING_DIRECTORY "${_build}" OUTPUT_VARIABLE _list)
 if(NOT _list MATCHES "(^|\n)gaol-${_new}/VERSION\\.txt\n")
   message(FATAL_ERROR "${_title}: gaol-${_new}.tar.gz holds no gaol-${_new}/VERSION.txt")
+endif()
+if(NOT _list MATCHES "(^|\n)gaol-${_new}/keep\\.halo\n")
+  message(FATAL_ERROR "${_title}: gaol-${_new}.tar.gz holds no gaol-${_new}/keep.halo, which "
+    "CPACK_SOURCE_IGNORE_FILES does not match (were its backslashes lost?)")
 endif()
 message(STATUS "${_title}: WARNS and gaol-${_new}.tar.gz, as expected")
 
