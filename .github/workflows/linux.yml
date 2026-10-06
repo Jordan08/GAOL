@@ -320,10 +320,40 @@ jobs:
         run: |
           cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DGAOL_DEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           python3 tests/release_flags.py --debug build-debug "$PWD"
-      - name: GAOL_DEBUG, GAOL brought in by FetchContent without a build type
+      - name: GAOL_DEBUG, GAOL brought in by FetchContent without a build type, and in Release
         run: |
           cmake -S tests/fetch_content -B build-fetch-content-debug -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DGAOL_DEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           python3 tests/release_flags.py --debug build-fetch-content-debug "$PWD"
+          cmake -S tests/fetch_content -B build-fetch-content-release-debug -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DGAOL_DEBUG=ON \
+            -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -DPROJECT_RELEASE" "-DCMAKE_CXX_FLAGS_DEBUG=-g -DPROJECT_DEBUG" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          python3 tests/release_flags.py --debug build-fetch-content-release-debug "$PWD"
+      - name: GAOL_DEBUG reaches the libraries of GAOL alone, and keeps the other flags of the configuration
+        run: |
+          # GAOL takes the flags of the configuration less the optimization and
+          # NDEBUG, never those of Debug, which may hold what the code of the
+          # project does not get (a sanitizer, a C runtime); the tests of GAOL
+          # and of the project keep theirs
+          python3 - "$PWD" <<'EOF'
+          import json, os, sys
+          src = os.path.normpath(sys.argv[1])
+          def commands(build):
+              for e in json.load(open(os.path.join(build, 'compile_commands.json'))):
+                  if e['file'].endswith('.cpp'):
+                      yield os.path.normpath(os.path.join(e['directory'], e['file'])), e['command'].split()
+          gaol, tests = os.path.join(src, 'gaol') + os.sep, os.path.join(src, 'tests') + os.sep
+          seen = 0
+          for path, flags in commands('build-debug'):
+              if path.startswith(tests):
+                  assert '-O3' in flags and '-DNDEBUG' in flags, (path, flags); seen += 1
+          for path, flags in commands('build-fetch-content-release-debug'):
+              if path.startswith(gaol):
+                  assert '-DPROJECT_RELEASE' in flags and '-DPROJECT_DEBUG' not in flags, (path, flags); seen += 1
+              elif path.startswith(tests):
+                  assert '-O3' in flags and '-DNDEBUG' in flags and '-DPROJECT_RELEASE' in flags, (path, flags); seen += 1
+          assert seen, 'no command checked'
+          print(seen, 'commands checked')
+          EOF
       - name: Ninja Multi-Config builds Release by default
         run: |
           cmake -G "Ninja Multi-Config" -S . -B build-multi
