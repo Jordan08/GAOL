@@ -1618,6 +1618,25 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval atan(const interval& I);
 
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2(const interval& Y, const interval& X);
 
+  /*!
+    \brief The relational atan2, atan2Rev1 and atan2Rev2 of IEEE 1788-2015
+    (10.5.4, Table 10.1) (GAOL v5)
+
+    atan2_rel_y(C, X, Y) = hull{y in Y | exists x in X: atan2(y, x) in C}
+    and atan2_rel_x(C, Y, X) = hull{x in X | exists y in Y: atan2(y, x) in C}:
+    the ordinates and the abscissas of the points of the box Y x X whose
+    angle is in C, the point (0, 0), which has no angle, left out. One
+    function per argument, atan2 not being symmetric; as in div_rel(K, J, I),
+    the image comes first, the interval contracted last, the other argument
+    of atan2 between them. The angles are those of atan2, in (-pi, pi]: the
+    half-line y = 0, x < 0 has the angle pi, and a C holding -pi but not pi
+    leaves it out. The slopes of the bounds of C are rounded once, and their
+    products with the bounds of the box once more: within 2 doubles of the
+    tightest bounds where the bound is not one of the box.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel_y(const interval& C, const interval& X, const interval& Y);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel_x(const interval& C, const interval& Y, const interval& X);
+
 GAOL_NODISCARD extern GAOL_PUBLIC   interval cosh(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval sinh(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval tanh(const interval& I);
@@ -2581,6 +2600,8 @@ namespace gaol {
   // The functions on intervals of GAOL v5, and the exact text of an interval
   using gaol_core::acospi;
   using gaol_core::asinpi;
+  using gaol_core::atan2_rel_x;
+  using gaol_core::atan2_rel_y;
   using gaol_core::atan2pi;
   using gaol_core::atanpi;
   using gaol_core::cancel_minus;

@@ -3828,6 +3828,156 @@ interval nth_root(const interval& I, int q)
     return res;
   }
 
+  /*
+    The relational atan2, atan2Rev1 and atan2Rev2 of IEEE 1788-2015 (GAOL v5).
+    The points of the box Y x X whose angle is in C, (0, 0) left out, are
+    taken quadrant by quadrant: the angles of C within (-pi, pi] are cut at
+    the axes into the pieces [0, pi/2], [pi/2, pi], (-pi, -pi/2] and
+    [-pi/2, 0], each the angles of a convex cone of a closed quadrant, whose
+    intersection with the box is convex. A symmetry takes each quadrant to
+    the first one, (u, v) being (x, y), (-x, y), (-x, -y) or (x, -y), and the
+    angle theta to phi = theta, pi - theta, theta + pi or -theta in
+    [0, pi/2]. The cone of a piece [phi_lo, phi_hi] is then
+      { (u, v) | u, v >= 0, u tan(phi_lo) <= v <= u tan(phi_hi) },
+    whose slopes are, up to their signs, tan(theta) at the bounds theta of C,
+    computed by CORE-MATH from theta itself, correctly rounded, without
+    rounding pi - theta nor theta + pi first; the ends of the pieces at the
+    axes have the slopes 0 and +oo exactly. Rounding the lower slope downward
+    and the upper one upward widens the cone, which keeps every point of it.
+    The bounds of C are compared with the doubles around pi/2 and pi, which
+    are no doubles: theta <= pi/2 is theta <= half_pi_dn.
+  */
+
+  // [a, b], or [-b, -a] when negated, a zero bound being +0 (the opposite of
+  // a zero bound, and the upper bound -0 of X or Y, gave -0)
+  static inline interval signed_interval(bool negated, double a, double b)
+  {
+    const double l = negated ? -b : a, u = negated ? -a : b;
+    return interval((l == 0.0) ? 0.0 : l, (u == 0.0) ? 0.0 : u);
+  }
+
+  /*
+    The points (u, v) of [ul, uu] x [vl, vu], in the first quadrant, with
+    t_lo u <= v <= t_hi u, t_lo being 0 or positive, and finite, t_hi being
+    0, positive or +oo; their u, with x = u or -u (x_negated), are added to
+    the hull Xr, and their v, with y = v or -v, to Yr. By elimination of v,
+    their u are those with vl / t_hi <= u <= vu / t_lo, and by elimination of
+    u, their v those with ul t_lo <= v <= uu t_hi, the products and quotients
+    rounded outward. At the slopes 0 and +oo these are the limits the cone
+    has, the slope +oo leaving the v of u = 0 free, and the slope 0 the u of
+    v = 0. The point (0, 0) is left out: a piece holding no other point adds
+    nothing, nor does a piece with no point off v = 0 when without_v_zero (the
+    half-line y = 0, x < 0, whose angle is pi, out of the third quadrant).
+    Neither projection is added when either is empty: the box and the cone do
+    not meet.
+    t_hi_above tells that t_hi is a subnormal angle theta itself, its
+    tangent being above it by less than theta^2/2 < 2^-2044 of it (see
+    upper_slope()): a product or a quotient with theta is then the tightest
+    bound with the tangent where it is inexact, its rounding moving it by more
+    than that, and is moved one double outward where it is exact.
+  */
+  static void atan2_rel_piece(double ul, double uu, double vl, double vu, double t_lo, double t_hi, bool t_hi_above,
+                              bool without_v_zero, bool x_negated, bool y_negated, interval& Xr, interval& Yr)
+  {
+    if (t_hi == 0.0 && vl > 0.0) { // The half-line v = 0 alone, which the v of V do not reach
+      return;
+    }
+    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : -((-vl)/t_hi);
+    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY : ((vu == 0.0) ? 0.0 : vu/t_lo);
+    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : -((-ul)*t_lo);
+    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : uu*t_hi);
+    if (t_hi_above) {
+      if (u_lo > 0.0 && std::fma(u_lo, t_hi, -vl) == 0.0) {
+        u_lo = previous_float(u_lo);
+      }
+      if (v_hi > 0.0 && v_hi < GAOL_INFINITY && std::fma(uu, t_hi, -v_hi) == 0.0) {
+        v_hi = next_float(v_hi);
+      }
+    }
+    const double a = maximum(ul, u_lo), b = minimum(uu, u_hi), c = maximum(vl, v_lo), d = minimum(vu, v_hi);
+    if (a > b || c > d || (b == 0.0 && d == 0.0) || (without_v_zero && d == 0.0)) {
+      return;
+    }
+    Xr |= signed_interval(x_negated, a, b);
+    Yr |= signed_interval(y_negated, c, d);
+  }
+
+  /*
+    The tangent of theta in [0, pi/2) rounded upward, the upper slope of a
+    cone, or theta itself for a subnormal theta, above being set: the
+    tangent rounded upward is then the next double, which can be twice theta,
+    when tan(theta) is above theta by theta^3/3 only (see atan2_rel_piece())
+  */
+  static inline double upper_slope(double theta, bool& above)
+  {
+    above = theta > 0.0 && theta < std::numeric_limits<double>::min();
+    return above ? theta : tan_hi(theta);
+  }
+
+  // The hulls Yr and Xr of the ordinates and of the abscissas, computed after
+  // the check of the rounding direction, before which no bound is compared
+  // (see atan2())
+  static void atan2_rel_upward(const interval& C, const interval& Y, const interval& X, interval& Yr, interval& Xr)
+  {
+    Yr = Xr = interval::emptyset();
+    if (C.is_empty() || Y.is_empty() || X.is_empty()) {
+      return;
+    }
+    const double cl = C.left(), cu = C.right(), yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+    // The parts of X and Y on either side of the axes, as magnitudes: X & [0, +oo]
+    // is [xp_l, xu] and -X & [0, +oo] is [xn_l, -xl] when not empty
+    const double xp_l = (xl > 0.0) ? xl : 0.0, xn_l = (xu < 0.0) ? -xu : 0.0;
+    const double yp_l = (yl > 0.0) ? yl : 0.0, yn_l = (yu < 0.0) ? -yu : 0.0;
+    // [0, pi/2]: (u, v) = (x, y), phi = theta
+    if (xu >= 0.0 && yu >= 0.0 && cu >= 0.0 && cl <= half_pi_dn) {
+      bool above = false;
+      const double t_lo = (cl <= 0.0) ? 0.0 : tan_lo(cl);
+      const double t_hi = (cu >= half_pi_up) ? GAOL_INFINITY : upper_slope(cu, above);
+      atan2_rel_piece(xp_l, xu, yp_l, yu, t_lo, t_hi, above, false, false, false, Xr, Yr);
+    }
+    // [pi/2, pi]: (u, v) = (-x, y), phi = pi - theta, whose slope is -tan(theta)
+    if (xl <= 0.0 && yu >= 0.0 && cu >= half_pi_up && cl <= pi_dn) {
+      const double t_lo = (cu >= pi_up) ? 0.0 : -tan_hi(cu);
+      const double t_hi = (cl <= half_pi_dn) ? GAOL_INFINITY : -tan_lo(cl);
+      atan2_rel_piece(xn_l, -xl, yp_l, yu, t_lo, t_hi, false, false, true, false, Xr, Yr);
+    }
+    // (-pi, -pi/2]: (u, v) = (-x, -y), phi = theta + pi, whose slope is
+    // tan(theta); -pi is no angle, the half-line y = 0, x < 0 having the angle pi
+    if (xl <= 0.0 && yl <= 0.0 && cu >= -pi_dn && cl <= -half_pi_up) {
+      const double t_lo = (cl <= -pi_up) ? 0.0 : tan_lo(cl);
+      const double t_hi = (cu >= -half_pi_dn) ? GAOL_INFINITY : tan_hi(cu);
+      atan2_rel_piece(xn_l, -xl, yn_l, -yl, t_lo, t_hi, false, true, true, true, Xr, Yr);
+    }
+    // [-pi/2, 0]: (u, v) = (x, -y), phi = -theta, whose slope is -tan(theta),
+    // tan(-theta)
+    if (xu >= 0.0 && yl <= 0.0 && cu >= -half_pi_dn && cl <= 0.0) {
+      bool above = false;
+      const double t_lo = (cu >= 0.0) ? 0.0 : -tan_hi(cu);
+      const double t_hi = (cl <= -half_pi_up) ? GAOL_INFINITY : upper_slope(-cl, above);
+      atan2_rel_piece(xp_l, xu, yn_l, -yl, t_lo, t_hi, above, false, false, true, Xr, Yr);
+    }
+  }
+
+  interval atan2_rel_y(const interval& C, const interval& X, const interval& Y)
+  {
+    GAOL_RND_ENTER();
+    interval Yr, Xr;
+    atan2_rel_upward(C, Y, X, Yr, Xr);
+    GAOL_RND_KEEP(Yr);
+    GAOL_RND_LEAVE();
+    return Yr;
+  }
+
+  interval atan2_rel_x(const interval& C, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval Yr, Xr;
+    atan2_rel_upward(C, Y, X, Yr, Xr);
+    GAOL_RND_KEEP(Xr);
+    GAOL_RND_LEAVE();
+    return Xr;
+  }
+
   interval cosh(const interval& I)
   {
 	if (I.is_empty()) {

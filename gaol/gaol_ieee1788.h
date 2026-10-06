@@ -293,6 +293,24 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval cosRev(const interval& c) { return ::gaol_core::acos_rel(c, interval::universe()); }
   GAOL_NODISCARD inline interval tanRev(const interval& c, const interval& x) { return ::gaol_core::atan_rel(c, x); }
   GAOL_NODISCARD inline interval tanRev(const interval& c) { return ::gaol_core::atan_rel(c, interval::universe()); }
+  //! atan2Rev1(b, c, x), atan2Rev2(a, c, x): atan2_rel_y(c, b, x), atan2_rel_x(c, a, x), the
+  //! arguments in another order: the y with atan2(y, b) in c, and the x with atan2(a, x) in c (GAOL v5)
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& b, const interval& c, const interval& x)
+  {
+    return ::gaol_core::atan2_rel_y(c, b, x);
+  }
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& b, const interval& c)
+  {
+    return ::gaol_core::atan2_rel_y(c, b, interval::universe());
+  }
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& a, const interval& c, const interval& x)
+  {
+    return ::gaol_core::atan2_rel_x(c, a, x);
+  }
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& a, const interval& c)
+  {
+    return ::gaol_core::atan2_rel_x(c, a, interval::universe());
+  }
   //! coshRev(c, x): acosh_rel(c, x)
   GAOL_NODISCARD inline interval coshRev(const interval& c, const interval& x) { return ::gaol_core::acosh_rel(c, x); }
   GAOL_NODISCARD inline interval coshRev(const interval& c) { return ::gaol_core::acosh_rel(c, interval::universe()); }
@@ -482,7 +500,7 @@ namespace gaol_ieee1788 {
   /*
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for p <= 0;
+      - pownRev for p <= 0 (Table 10.1);
       - compoundm1 of Table 10.5, which CORE-MATH has not;
       - the slope functions (Table 10.6) and overlap (10.6.4);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
