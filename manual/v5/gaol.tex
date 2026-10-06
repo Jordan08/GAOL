@@ -683,10 +683,13 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
 \cmd{meson setup} runs Python to read the version of GAOL in
 \file{VERSION.txt}: the first of \cmd{python3} and \cmd{python} found in the
 \code{PATH}, or, if there is none, the Python that runs meson. On Windows,
-meson 0.53.0 and earlier may take the \file{python.exe} or \file{python3.exe}
-alias of the Microsoft Store (in \file{WindowsApps}), which only opens the
-Store, and \cmd{meson setup} then stops; use meson 0.53.1 or later, or turn off
-the aliases in the Windows settings (\emph{Manage app execution aliases}).
+meson 0.53.0 and earlier may take an alias of Python of the Microsoft Store
+(\file{python3.exe}, and perhaps \file{python.exe}, in \file{WindowsApps}; not
+checked on Windows), which only opens the Store, and \cmd{meson setup} then
+stops; use meson 0.53.1 or later, or turn off the aliases in the Windows
+settings (\emph{Manage app execution aliases}). Later versions of meson leave
+\file{WindowsApps} out only where the \code{PATH} names it under the directory
+of \code{USERPROFILE}, not for a profile whose directory differs from it.
 
 \section{Tests}\label{sec:tests}
 %%-------------
@@ -981,9 +984,6 @@ itself.\newinvfive
 \noindent
 In a meson project, \code{dependency('gaol')} finds it.
 
-\section{The rounding direction}\label{sec:rounding-direction}
-%%------------------------------
-\cindex{rounding!direction}%
 A meson project can also build GAOL for itself, as a subproject, the sources
 of GAOL being in its \file{subprojects/gaol}:
 \cindex{meson!using gaol from}%
@@ -1003,6 +1003,9 @@ project is to be configured with \loption{buildtype=release}; meson 1.8.4 and
 later build it in \code{release}, the default of GAOL's
 \file{meson.build}.\newinvfive
 
+\section{The rounding direction}\label{sec:rounding-direction}
+%%------------------------------
+\cindex{rounding!direction}%
 
  Floating-point interval arithmetic requires \dfn{outward rounding} in
  order to fulfill the \dfn{containment property}: for example, to add
