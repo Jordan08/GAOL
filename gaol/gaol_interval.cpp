@@ -1000,16 +1000,25 @@ namespace gaol_core {
       return stream_text(x, rounding, fmt);
     }
     // A subnormal under denormals-are-zero, which a program may set, compares
-    // equal to 0: it is written by a stream, to nearest, as GAOL wrote it
-    // before and as tests/numbers.cpp checks against a stream, where the
-    // snprintf called below wrote 0 for 5e-324 with MSYS2 CLANG64 and the
-    // stream did not. operator<< and intervalToText() clear that mode before
+    // equal to 0. operator<< and intervalToText() clear that mode before
     // they write (GAOL v5, point Q of TODO.md), where GAOL can (x86, and ARM
-    // with GCC and Clang): only where it cannot does a subnormal come here
+    // with GCC and Clang): only where it cannot (ARM with Visual C++, the
+    // program having set FZ itself) does a subnormal come here. The C
+    // library may write it 0 under the mode (the snprintf called below did
+    // for 5e-324 with MSYS2 CLANG64, gdtoa does), and GAOL wrote it to
+    // nearest, below an upper bound: a bound is written as the double on its
+    // outer side that no mode changes, the smallest normal double, 2^-1022,
+    // away from zero, and 0 toward it, loose but outward (GAOL v5, point Q).
+    // A number written to nearest is written by a stream, as before.
     std::uint64_t bits;
     std::memcpy(&bits, &x, sizeof bits);
     if (x == 0.0 && (bits << 1) != 0) {
-      return stream_text(x, text_nearest, fmt);
+      if (rounding == text_nearest) {
+        return stream_text(x, text_nearest, fmt);
+      }
+      const bool away = (rounding == text_upward) == !std::signbit(x);
+      const double smallest_normal = std::numeric_limits<double>::min();
+      return number_to_text(away ? (std::signbit(x) ? -smallest_normal : smallest_normal) : 0.0, rounding, fmt);
     }
 
     const bool fixed = (floatfield == std::ios_base::fixed);
