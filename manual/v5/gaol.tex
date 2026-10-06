@@ -984,6 +984,25 @@ In a meson project, \code{dependency('gaol')} finds it.
 \section{The rounding direction}\label{sec:rounding-direction}
 %%------------------------------
 \cindex{rounding!direction}%
+A meson project can also build GAOL for itself, as a subproject, the sources
+of GAOL being in its \file{subprojects/gaol}:
+\cindex{meson!using gaol from}%
+
+\begin{example}
+gaol_dep = dependency('gaol', fallback: ['gaol', 'gaol_dep'])
+executable('program', 'program.cpp', dependencies: gaol_dep)
+\end{example}
+
+\noindent
+\code{dependency()} takes an installed GAOL where it finds one, and builds the
+subproject otherwise. \code{gaol\_dep} carries the include directory, the flags
+above and the link option above, as \file{gaol.pc} does. Where the project
+leaves the build type to its default, \code{debug}, meson before 1.8.4 builds
+GAOL without optimization, and before 1.8 with its assertions too, so that the
+project is to be configured with \loption{buildtype=release}; meson 1.8.4 and
+later build it in \code{release}, the default of GAOL's
+\file{meson.build}.\newinvfive
+
 
  Floating-point interval arithmetic requires \dfn{outward rounding} in
  order to fulfill the \dfn{containment property}: for example, to add

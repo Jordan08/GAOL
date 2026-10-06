@@ -146,6 +146,27 @@ c++ -std=c++17 -O2 $(pkg-config --cflags gaol) program.cpp $(pkg-config --libs g
 
 In a meson project, `dependency('gaol')`.
 
+A meson project can also build GAOL for itself, as a subproject, the sources
+of GAOL being in its `subprojects/gaol` (GAOL v5):
+
+```meson
+gaol_dep = dependency('gaol', fallback: ['gaol', 'gaol_dep'])
+executable('program', 'program.cpp', dependencies: gaol_dep)
+```
+
+`dependency()` takes an installed GAOL where it finds one, and builds the
+subproject otherwise; `subproject('gaol').get_variable('gaol_dep')` always
+builds it. `gaol_dep` carries the include directory, the flags above and the
+link option above, as `gaol.pc` does: the flags GAOL's `meson.build` gives its
+own targets do not reach those of the project. Where the project leaves the
+build type to its default, `debug`, meson before 1.8.4 builds GAOL without
+optimization, and before 1.8 with its assertions (`GAOL_DEBUGGING`) too, so
+that the project is to be configured with `--buildtype=release`; meson 1.8.4
+and later build it in `release`, the default of GAOL's `meson.build`.
+`tests/meson_subproject` is a project building GAOL this way. GAOL could not
+be a subproject before GAOL v5: meson refuses the `add_global_arguments()`
+its `meson.build` called in a subproject.
+
 ## Initialization and cleanup
 
 GAOL initializes itself before `main()`, with every compiler: `gaol::init()`

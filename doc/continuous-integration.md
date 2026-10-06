@@ -54,7 +54,10 @@ Visual Studio 2022 and 2026 (x64, x86), run the tests (`make test`,
 GAOL they install, which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by
 FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
-installs; check that the three builds agree on each of these machines; check
+installs; build GAOL as a subproject of a meson project
+(`tests/meson_subproject`, Ubuntu x86_64), whose code compiled with `gaol_dep`
+has to get the flags of `gaol.pc` (GAOL v5); check that the three builds agree
+on each of these machines; check
 that configure and meson, and autoconf when it generates configure (Linux),
 read a `VERSION.txt` that starts with a byte order mark or has the line ends
 of Windows (`.github/scripts/version-file.sh`), and that meson reads it with

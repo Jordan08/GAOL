@@ -790,6 +790,11 @@ the examples of `examples/` too, where they are built (see
 continuous integration runs `make test` in every job. `tests/find_package`
 builds some of the same tests with an installed GAOL, and
 `.github/scripts/tests.sh` with a GAOL installed by configure or meson.
+`tests/fetch_content` builds them with a GAOL brought in by FetchContent, and
+`tests/meson_subproject` with a GAOL brought in as a meson subproject, whose
+test `flags` checks that `gaol_dep` gives their compilation the flags of the
+`Cflags` of `gaol.pc`: meson refused GAOL as a subproject, and the tests pass
+without these flags (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
