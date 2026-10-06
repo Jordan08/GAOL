@@ -722,9 +722,11 @@ mode there.
   job of `.github/workflows/linux.yml` checks; without `sh`, or where the system
   makes no symbolic link, the test says it is skipped. It takes a few seconds on
   an ordinary machine, a configuration and five that reuse its checks, and an
-  archive of links. Only the CMake build has it: CPack makes the archive, and
-  the autotools jobs of the continuous integration compare `configure --version`
-  with `VERSION.txt` already (GAOL v5).
+  archive: of the links themselves with CMake 3.28 and after (170 KB), of the
+  files of the directories they point to with CMake 3.14 and 3.16 (5.6 MB). Only
+  the CMake build has it: CPack makes the archive, and the autotools jobs of the
+  continuous integration compare `configure --version` with `VERSION.txt`
+  already (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
