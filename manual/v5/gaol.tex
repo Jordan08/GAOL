@@ -446,7 +446,10 @@ is \code{ON}: there is nothing else to build and nothing else to install. The bu
 given; brought in by a project that gives none (\code{add\_subdirectory},
 \code{FetchContent}), GAOL and CORE-MATH are compiled as in \code{Release}
 all the same: \option{-O3} (\option{/O2} with Visual C++), \code{NDEBUG} and
-the optimizations of \cmd{configure}.\newinvfive
+the optimizations of \cmd{configure}. With a generator of several
+configurations, GAOL built alone puts \code{Release} first among them, which
+Ninja Multi-Config builds by default; \cmd{cmake --build} with Visual Studio
+builds \code{Debug} all the same without \option{-{}-config}.\newinvfive
 
 \subsection{Options}\label{sec:cmake-options}
 %%..................
@@ -491,6 +494,11 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \item \option{GAOL\_VERBOSE\_MODE}. \code{OFF} by default: writes a line on the
   standard error when GAOL initializes and cleans up;
 \cindex{verbose mode}%
+\item \option{GAOL\_DEBUG}. \code{OFF} by default: builds \file{libgaol} and
+  CORE-MATH for debugging, without optimization nor \code{NDEBUG} and with
+  \code{GAOL\_DEBUGGING}, whatever the build type or the configuration, a
+  project bringing GAOL in included, as \code{enable-debug} of meson and
+  \loption{enable-debug} of \cmd{configure};\newinvfive
 \item \option{GAOL\_PRESERVE\_ROUNDING}. \code{OFF} by default: each operation
   restores the rounding direction it found, rather than leaving it upward
   (\pxref{sec:rounding-direction});
@@ -672,6 +680,7 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \code{enable-asm} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
+    \code{enable-debug} & \code{false}; builds \file{libgaol} for debugging whatever the build type, as \option{GAOL\_DEBUG}\\
     \code{enable-exception} & \code{true}\\
     \code{with-tests} & \code{false}; builds the unit tests\\
     \code{with-examples} & \code{false}; builds the examples\\
@@ -1006,7 +1015,8 @@ type, and GAOL compiles its libraries as in \code{release} with earlier ones,
 which give it the build type of the project; it cannot tell there the default
 from a \loption{buildtype=debug} asked for (but with Visual C++ before meson
 0.57, and with the Visual Studio backend of meson, which keep the build type
-of the project).\newinvfive
+of the project). \code{-Dgaol:enable-debug=true} builds it for
+debugging.\newinvfive
 
 \section{The rounding direction}\label{sec:rounding-direction}
 %%------------------------------
@@ -4976,8 +4986,10 @@ The debugging facilities described hereunder are available only if
 GAOL has been configured with the debugging facilities enabled, which the
 \code{Debug} build of each build does: \option{-DCMAKE\_BUILD\_TYPE=Debug}
 with CMake, the \option{-{}-enable-debug} option of \cmd{configure}
-(\pxref{sec:configuration}), or \option{-{}-buildtype=debug} with meson. They
-define \code{GAOL\_DEBUGGING} in \file{gaol/gaol\_configuration.h}: GAOL then
+(\pxref{sec:configuration}), or \option{-{}-buildtype=debug} with meson, and
+\option{-DGAOL\_DEBUG=ON} with CMake and \option{-Denable-debug=true} with
+meson whatever the build type.\newinvfive{} They define
+\code{GAOL\_DEBUGGING} in \file{gaol/gaol\_configuration.h}: GAOL then
 checks its assertions.
 
 \begin{deffun}{int}{debug\_level}{}

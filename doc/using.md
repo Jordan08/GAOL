@@ -117,7 +117,10 @@ target_link_libraries(my_target PUBLIC gaol::gaol)
 GAOL is then a target of the project (`gaol::gaol`), built with it, and
 `cmake --install` of the project installs it with it, CMake package and
 `gaol.pc` included; nothing is downloaded beyond GAOL's sources. `tests/fetch_content` is a project
-building GAOL this way.
+building GAOL this way. GAOL is built in Release where the project gives no
+build type, and `-DGAOL_DEBUG=ON` builds it for debugging whatever the build
+type or the configuration of the project, whose own code keeps them (see
+[Building GAOL](building.md#with-cmake)) (GAOL v5).
 
 GAOL, a static library, is compiled as position-independent code
 (`-fPIC`), so that `gaol::gaol` can be linked into a shared library, such as
@@ -166,8 +169,9 @@ for builds GAOL for debugging. Earlier ones give it the build type of the
 project, which would have built GAOL without optimization, and before 1.8 with
 its assertions: there, where the options are those of `debug`, GAOL compiles
 its libraries as in `release` all the same, as it cannot tell the default
-from a `--buildtype=debug` asked for, so that building GAOL for debugging as
-a subproject takes meson 1.8.4 or later. Two cases keep the build type of the
+from a `--buildtype=debug` asked for: `-Dgaol:enable-debug=true` (or
+`default_options: ['enable-debug=true']` in `subproject()` or `dependency()`)
+builds GAOL for debugging, with any meson. Two cases keep the build type of the
 project: Visual C++ with meson before 0.57, whose `debug` gives `/RTC1`, which
 `cl` refuses with `/O2`, and the Visual Studio backend of meson
 (`--backend=vs`), which takes the build type of the project for every target;
