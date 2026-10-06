@@ -66,6 +66,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_parser.h"
@@ -422,10 +423,63 @@ namespace gaol_ieee1788 {
   //! exactToInterval(s): textToInterval(s)
   GAOL_NODISCARD inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
 
+  /*!
+    \brief mulRevToPair(b, c): the two-output division of IEEE 1788-2015 (10.5.5)
+
+    mulRevToPair(b, c) returns the solution set {x : b*x in c} as the union of
+    two intervals. When 0 is in b and c does not contain 0, the set is two
+    unbounded pieces; otherwise one piece and the empty set.
+    The first component of the pair is the part containing the positive x,
+    the second the part containing the negative x (IEEE 1788-2015, 10.5.5).
+    Each piece is the tightest enclosure computed with GAOL's directed rounding.
+    The hull of the two pieces equals b % c where it should be.
+  */
+  GAOL_NODISCARD inline std::pair<interval, interval> mulRevToPair(const interval& b, const interval& c)
+  {
+    // mulRevToPair(b, c) = {x | exists y in b: y*x in c}
+    // This is the same as div_rel(c, b, entire()) but split into two pieces
+    // when the solution set is disconnected (when 0 in b and 0 not in c).
+    
+    if (b.is_empty() || c.is_empty()) {
+      return {interval::emptyset(), interval::emptyset()};
+    }
+    
+    // Check if the solution set is disconnected: 0 in b and 0 not in c
+    bool zero_in_b = b.set_contains(0.0);
+    bool zero_in_c = c.set_contains(0.0);
+    
+    if (zero_in_b && !zero_in_c) {
+      // The solution set is disconnected: two unbounded intervals
+      // We split b into positive and negative parts and compute div_rel for each
+      
+      interval piece_pos, piece_neg;
+      
+      // Positive part of b: b ∩ [0, +∞)
+      interval b_pos = b & interval(0.0, interval::universe().right());
+      // Negative part of b: b ∩ (-∞, 0]
+      interval b_neg = b & interval(interval::universe().left(), 0.0);
+      
+      // For positive b: x = c / b where b > 0
+      if (!b_pos.is_empty()) {
+        piece_pos = ::gaol_core::div_rel(c, b_pos, interval::universe());
+      }
+      
+      // For negative b: x = c / b where b < 0
+      if (!b_neg.is_empty()) {
+        piece_neg = ::gaol_core::div_rel(c, b_neg, interval::universe());
+      }
+      
+      return {piece_pos, piece_neg};
+    } else {
+      // The solution set is connected: return it as the first piece
+      interval solution = ::gaol_core::div_rel(c, b, interval::universe());
+      return {solution, interval::emptyset()};
+    }
+  }
+
   /*
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - mulRevToPair (10.5.5), the two-output division;
       - powRev1, powRev2, atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for
         p <= 0;
       - compoundm1 of Table 10.5, which CORE-MATH has not;

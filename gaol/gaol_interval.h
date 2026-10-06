@@ -596,6 +596,26 @@ namespace gaol_core {
 
     ///! Size of the interval
     GAOL_NODISCARD double width(void) const;
+    
+    /*!
+      \brief Returns an interval enclosing the exact width.
+
+      Returns an interval [lower bound of width rounded downward,
+      upper bound of width rounded upward]. The upper bound equals width().
+      For the empty set, returns the empty set.
+    */
+    GAOL_NODISCARD interval width_enclosure(void) const;
+    
+    /*!
+      \brief Inflates the interval by an absolute radius.
+
+      Returns an interval that contains x widened outward by the absolute
+      radius r: the lower bound is moved down by r (rounded downward) and
+      the upper bound up by r (rounded upward). For r < 0, the result is
+      the empty set. For NaN r, the result is the empty set.
+      This is equivalent to x + interval(-r, r) when r >= 0.
+    */
+    GAOL_NODISCARD interval inflate(double r) const;
 
     /*!
      \brief Mignitude.
@@ -679,6 +699,16 @@ namespace gaol_core {
     GAOL_NODISCARD static interval two_pi(void);
     GAOL_NODISCARD static interval half_pi(void);
     GAOL_NODISCARD static interval one_plus_infinity(void);
+    
+    /*!
+      \brief Creates an interval from its midpoint and radius.
+
+      Returns the tightest interval enclosing [m-r, m+r], with the lower bound
+      rounded downward and the upper bound rounded upward. For r < 0, returns
+      the empty set. For NaN r, returns the empty set. For infinite m or r,
+      follows the rules for infinite bounds (IBEX's rules).
+    */
+    GAOL_NODISCARD static interval midrad(double m, double r);
 
     /*!
       @name Splitting methods
@@ -690,6 +720,28 @@ namespace gaol_core {
       Returns the left part in I1 and the right one in I2
     */
     void split(interval &I1, interval &I2) const;
+    
+    /*!
+      \brief Splits *this at a given ratio.
+
+      Returns the pair of intervals obtained by cutting *this at the point
+      x.l + ratio*(x.u - x.l) for 0 < ratio < 1. The two halves cover x exactly
+      (they share the cut point, a double inside x). For ratio = 0.5, this equals
+      split(). For ratio <= 0, returns (emptyset, *this); for ratio >= 1, returns
+      (*this, emptyset). For half-lines and the whole line, uses the same
+      convention as split(). For NaN ratio or empty interval, returns
+      (emptyset(), emptyset()).
+    */
+    GAOL_NODISCARD std::pair<interval, interval> bisect(double ratio) const;
+    
+    /*!
+      \brief Checks if the interval can be bisected.
+
+      Returns true when *this can be cut into two intervals that are both
+      non-empty and different from *this. This is true when the interval
+      has a positive width (i.e., it is not a point and not empty).
+    */
+    GAOL_NODISCARD bool is_bisectable() const;
 
     //! Returns the left part (i.e. [left,midpoint()] of the domain.
     GAOL_NODISCARD interval split_left(void) const;
@@ -699,6 +751,28 @@ namespace gaol_core {
 
     //! Conversion to std::string
     operator std::string() const;
+
+    //@{
+    /*!
+      \name Set operations as free functions
+    */
+    //@{
+    /*!
+      \brief Hull of two intervals (free function).
+
+      Returns the smallest interval containing both a and b, equivalent to a | b.
+      hull(empty, x) == x, hull(x, empty) == x.
+    */
+    friend GAOL_INLINE interval hull(const interval& a, const interval& b);
+    
+    /*!
+      \brief Intersection of two intervals (free function).
+
+      Returns the intersection of a and b, equivalent to a & b.
+      intersect(empty, x) == empty, intersect(x, empty) == empty.
+    */
+    friend GAOL_INLINE interval intersect(const interval& a, const interval& b);
+    //@}
 
     //! Returns the current number of digits used for display
     GAOL_NODISCARD static std::streamsize precision(void);
@@ -1188,6 +1262,37 @@ namespace gaol_core {
     const double l = left(), m = midpoint(), r = right();
     I1 = interval(l,m);
     I2 = interval(m,r);
+  }
+
+  GAOL_INLINE std::pair<interval, interval> interval::bisect(double ratio) const
+  {
+    if (is_empty() || std::isnan(ratio)) {
+        return {interval::emptyset(), interval::emptyset()};
+    }
+    if (ratio <= 0.0) {
+        return {interval::emptyset(), *this};
+    }
+    if (ratio >= 1.0) {
+        return {*this, interval::emptyset()};
+    }
+    
+    // Compute the cut point: x.l + ratio*(x.u - x.l)
+    // Use the current rounding mode for consistency with other operations
+    GAOL_RND_ENTER();
+    double cut = left() + ratio * (right() - left());
+    GAOL_RND_KEEP(cut);
+    GAOL_RND_LEAVE();
+    
+    // The two halves share the cut point
+    return {interval(left(), cut), interval(cut, right())};
+  }
+
+  GAOL_INLINE bool interval::is_bisectable() const
+  {
+    // An interval is bisectable if it can be cut into two intervals that are
+    // both non-empty and different from the original (not a point).
+    // This means it must have a positive width.
+    return !is_empty() && !is_a_double();
   }
 
   GAOL_INLINE interval interval::split_left(void) const
@@ -1778,6 +1883,17 @@ GAOL_NODISCARD GAOL_INLINE interval operator|(const interval& I1, const interval
     return interval(I1) |= I2;
   }
 
+  // Free function versions of hull and intersect
+GAOL_INLINE interval hull(const interval& a, const interval& b)
+  {
+    return a | b;
+  }
+
+GAOL_INLINE interval intersect(const interval& a, const interval& b)
+  {
+    return a & b;
+  }
+
   //@}
 
 } // namespace gaol_core
@@ -1847,6 +1963,53 @@ GAOL_INLINE double interval::width(void) const
         GAOL_RND_LEAVE();
         return res;
     }
+}
+
+GAOL_INLINE interval interval::width_enclosure(void) const
+{
+    if (is_empty()) {
+        return interval::emptyset();
+    }
+    // The width is right() - left(), and we need its enclosure.
+    // Compute it once and create the enclosure from below and above.
+    GAOL_RND_ENTER();
+    double w = right() - left();
+    double w_lower = gaol_detail::double_below(w);
+    double w_upper = gaol_detail::double_above(w);
+    GAOL_RND_LEAVE();
+    return interval(w_lower, w_upper);
+}
+
+GAOL_INLINE interval interval::inflate(double r) const
+{
+    if (is_empty() || r < 0.0 || std::isnan(r)) {
+        return interval::emptyset();
+    }
+    if (r == 0.0) {
+        return *this;
+    }
+    // x + [-r, r] with directed rounding
+    GAOL_RND_ENTER();
+    double new_left = gaol_detail::double_below(left() - r);
+    double new_right = gaol_detail::double_above(right() + r);
+    GAOL_RND_LEAVE();
+    return interval(new_left, new_right);
+}
+
+GAOL_INLINE interval interval::midrad(double m, double r)
+{
+    if (r < 0.0 || std::isnan(r) || std::isnan(m)) {
+        return interval::emptyset();
+    }
+    if (r == 0.0) {
+        return interval(m);
+    }
+    // [m-r, m+r] with directed rounding
+    GAOL_RND_ENTER();
+    double new_left = gaol_detail::double_below(m - r);
+    double new_right = gaol_detail::double_above(m + r);
+    GAOL_RND_LEAVE();
+    return interval(new_left, new_right);
 }
 
  /*!
