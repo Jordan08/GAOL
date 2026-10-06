@@ -424,57 +424,37 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
 
   /*!
-    \brief mulRevToPair(b, c): the two-output division of IEEE 1788-2015 (10.5.5)
-
-    mulRevToPair(b, c) returns the solution set {x : b*x in c} as the union of
-    two intervals. When 0 is in b and c does not contain 0, the set is two
-    unbounded pieces; otherwise one piece and the empty set.
-    The first component of the pair is the part containing the positive x,
-    the second the part containing the negative x (IEEE 1788-2015, 10.5.5).
-    Each piece is the tightest enclosure computed with GAOL's directed rounding.
-    The hull of the two pieces equals b % c where it should be.
+    mulRevToPair(b, c): the two-output division of IEEE 1788-2015 (10.5.5)
+    (GAOL v5). The set {x : b'x = c' for some b' of b and c' of c} is empty,
+    one interval, or two, on either side of 0, where 0 is strictly inside b
+    and not in c: c / [b', 0] and c / [0, b'']. The result is the pair (u, v)
+    of the standard, of the closures of the parts: (empty, empty), (u, empty)
+    for one part, and for two parts the lower one first, u < v (they share 0
+    where b is unbounded on both sides). Each part is div_rel(c, .,
+    entire()), the tightest enclosure of its set.
   */
   GAOL_NODISCARD inline std::pair<interval, interval> mulRevToPair(const interval& b, const interval& c)
   {
-    // mulRevToPair(b, c) = {x | exists y in b: y*x in c}
-    // This is the same as div_rel(c, b, entire()) but split into two pieces
-    // when the solution set is disconnected (when 0 in b and 0 not in c).
-    
     if (b.is_empty() || c.is_empty()) {
-      return {interval::emptyset(), interval::emptyset()};
+      return std::make_pair(interval::emptyset(), interval::emptyset());
     }
-    
-    // Check if the solution set is disconnected: 0 in b and 0 not in c
-    bool zero_in_b = b.set_contains(0.0);
-    bool zero_in_c = c.set_contains(0.0);
-    
-    if (zero_in_b && !zero_in_c) {
-      // The solution set is disconnected: two unbounded intervals
-      // We split b into positive and negative parts and compute div_rel for each
-      
-      interval piece_pos, piece_neg;
-      
-      // Positive part of b: b ∩ [0, +∞)
-      interval b_pos = b & interval(0.0, interval::universe().right());
-      // Negative part of b: b ∩ (-∞, 0]
-      interval b_neg = b & interval(interval::universe().left(), 0.0);
-      
-      // For positive b: x = c / b where b > 0
-      if (!b_pos.is_empty()) {
-        piece_pos = ::gaol_core::div_rel(c, b_pos, interval::universe());
+    if (b.set_contains(0.0) && !c.set_contains(0.0)) {
+      // b' of either sign: the part of b at most 0, then the part at least 0,
+      // either of which may be [0], which gives no x
+      const interval below = ::gaol_core::div_rel(c, b & interval(-GAOL_INFINITY, 0.0), interval::universe());
+      const interval above = ::gaol_core::div_rel(c, b & interval(0.0, GAOL_INFINITY), interval::universe());
+      if (below.is_empty()) {
+        return std::make_pair(above, below);
       }
-      
-      // For negative b: x = c / b where b < 0
-      if (!b_neg.is_empty()) {
-        piece_neg = ::gaol_core::div_rel(c, b_neg, interval::universe());
+      if (above.is_empty()) {
+        return std::make_pair(below, above);
       }
-      
-      return {piece_pos, piece_neg};
-    } else {
-      // The solution set is connected: return it as the first piece
-      interval solution = ::gaol_core::div_rel(c, b, interval::universe());
-      return {solution, interval::emptyset()};
+      // Two parts, one in x <= 0, the other in x >= 0, which share 0 only
+      // where b is unbounded on both sides (c / [-oo, 0] is [-oo, 0] for
+      // c > 0): the one with the lower bound below the other's comes first
+      return below.left() < above.left() ? std::make_pair(below, above) : std::make_pair(above, below);
     }
+    return std::make_pair(::gaol_core::div_rel(c, b, interval::universe()), interval::emptyset());
   }
 
   /*

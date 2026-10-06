@@ -18,6 +18,7 @@
  * have to remain those of C. intervalToExact() has to be exact_string(), and
  * to leave the global output format alone. The check of it by a second thread
  * writing intervals meanwhile is commented out: the tests run no thread.
+ * mulRevToPair() has to give the two parts of 10.5.5 in the standard's order.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -446,6 +447,88 @@ namespace
           [] { return std::string(); });
   }
 
+  /* mulRevToPair(b, c), the two-output division of 10.5.5 (GAOL v5): the
+     closures of the parts of {x : b'x = c', b' in b, c' in c} in the order of
+     the standard, u before v, against exact quotients on structured cases;
+     on integer b and c, every sampled x of the set, a dyadic number whose
+     products with the bounds of b are exact, in u or v, and the hull of the
+     two parts mulRev(b, c). Its first version put the part of the positive
+     x first, whatever the sign of c. */
+  void mul_rev_to_pair()
+  {
+    using gaol_tests::quotient;
+    using gaol_tests::dyadic;
+    const double oo = std::numeric_limits<double>::infinity();
+    const auto pair = [](double bl, double bu, double cl, double cu) {
+      return mulRevToPair(numsToInterval(bl, bu), numsToInterval(cl, cu));
+    };
+    const auto same = [](const interval& x, const interval& y) {
+      return (x.is_empty() && y.is_empty()) || x.set_eq(y);
+    };
+    const auto is = [&](const std::pair<interval, interval>& p, const interval& u, const interval& v) {
+      return same(p.first, u) && same(p.second, v);
+    };
+    const auto show = [](const std::pair<interval, interval>& p) { return hex(p.first) + " " + hex(p.second); };
+    const interval none = empty();
+
+    struct { double bl, bu, cl, cu; interval u, v; } const exact_parts[] = {
+      { -1.0, 1.0, 1.0, 2.0, numsToInterval(-oo, -1.0), numsToInterval(1.0, oo) },
+      { -1.0, 1.0, -2.0, -1.0, numsToInterval(-oo, -1.0), numsToInterval(1.0, oo) },
+      { -1.0, 1.0, 1.0, oo, numsToInterval(-oo, -1.0), numsToInterval(1.0, oo) },
+      { -oo, oo, 1.0, 2.0, numsToInterval(-oo, 0.0), numsToInterval(0.0, oo) },
+      { 0.0, 4.0, 1.0, 2.0, numsToInterval(0.25, oo), none },
+      { -2.0, 0.0, 1.0, 2.0, numsToInterval(-oo, -0.5), none },
+      { 0.0, 0.0, 1.0, 2.0, none, none },
+      { -1.0, 1.0, 0.0, 1.0, entire(), none },
+      { -1.0, 1.0, 0.0, 0.0, entire(), none },
+      { 1.0, 2.0, 0.0, 0.0, numsToInterval(0.0, 0.0), none },
+      { 1.0, 2.0, -2.0, 4.0, numsToInterval(-2.0, 4.0), none },
+      { -oo, -1.0, 1.0, 2.0, numsToInterval(-2.0, 0.0), none },
+    };
+    for (const auto& e : exact_parts) {
+      const std::pair<interval, interval> p = pair(e.bl, e.bu, e.cl, e.cu);
+      check("mulRevToPair(b, c): the parts of the standard, in its order", is(p, e.u, e.v),
+            [&] { return hex(numsToInterval(e.bl, e.bu)) + " " + hex(numsToInterval(e.cl, e.cu)) + ": " + show(p); });
+    }
+    const std::pair<interval, interval> thirds = pair(-3.0, 3.0, 1.0, 2.0), third = pair(1.0, 3.0, 1.0, 2.0);
+    check("mulRevToPair([-3, 3], [1, 2]): [-oo, -1/3] and [1/3, +oo], the tightest",
+          thirds.first.left() == -oo && gaol_tests::is_tightest_upper_bound(thirds.first.right(), quotient(dyadic(-1.0), dyadic(3.0)))
+          && gaol_tests::is_tightest_lower_bound(thirds.second.left(), quotient(dyadic(1.0), dyadic(3.0)))
+          && thirds.second.right() == oo, [&] { return show(thirds); });
+    check("mulRevToPair([1, 3], [1, 2]): [1/3, 2], the tightest",
+          gaol_tests::is_tightest_lower_bound(third.first.left(), quotient(dyadic(1.0), dyadic(3.0)))
+          && third.first.right() == 2.0 && third.second.is_empty(), [&] { return show(third); });
+    check("mulRevToPair() of the empty set",
+          is(mulRevToPair(empty(), numsToInterval(1.0, 2.0)), none, none)
+          && is(mulRevToPair(numsToInterval(1.0, 2.0), empty()), none, none));
+
+    // On integer intervals: the x of the set, sampled, and the hull
+    for (int bl = -3; bl <= 3; ++bl) {
+      for (int bu = bl; bu <= 3; ++bu) {
+        for (int cl = -3; cl <= 3; ++cl) {
+          for (int cu = cl; cu <= 3; ++cu) {
+            const interval b = numsToInterval(bl, bu), c = numsToInterval(cl, cu);
+            const std::pair<interval, interval> p = mulRevToPair(b, c);
+            const auto describe = [&] { return hex(b) + " " + hex(c) + ": " + show(p); };
+            bool kept = true;
+            for (int k = -48; k <= 48; ++k) {
+              // b'x for b' in b is the interval between bl x and bu x
+              const double x = k/4.0, low = std::min(bl*x, bu*x), high = std::max(bl*x, bu*x);
+              if (std::max(low, static_cast<double>(cl)) <= std::min(high, static_cast<double>(cu))) {
+                kept = kept && (p.first.set_contains(x) || p.second.set_contains(x));
+              }
+            }
+            check("mulRevToPair(b, c): every x of the set in its parts", kept, describe);
+            check("mulRevToPair(b, c): u before v, a second part only after a first",
+                  p.second.is_empty() || (!p.first.is_empty() && p.first.right() <= p.second.left()), describe);
+            check("mulRevToPair(b, c): the hull of the parts mulRev(b, c)",
+                  same(convexHull(p.first, p.second), mulRev(b, c)), describe);
+          }
+        }
+      }
+    }
+  }
+
   /* textToInterval reads the names of the standard (GAOL v5): each name of
      Tables 9.1 and 10.5 gives the function of the same name, pow the pow of
      Table 9.1, and a name of GAOL alone is no function, which gives the
@@ -865,6 +948,7 @@ int main()
   pow_on_boxes();
   gaol_functions();
   names_of_the_standard();
+  mul_rev_to_pair();
   text_with_the_names_of_the_standard();
   exact_text();
   text_of_a_point_interval();
