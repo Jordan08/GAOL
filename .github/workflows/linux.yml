@@ -276,13 +276,19 @@ jobs:
           sudo apt-get install -y -q ccache
           curl -sSL -o "$RUNNER_TEMP/ninja-linux.zip" https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip
           unzip -q "$RUNNER_TEMP/ninja-linux.zip" -d "$RUNNER_TEMP/ninja"
-          # A Ninja of the image, which CMake would find in PATH
-          for ninja in $(which -a ninja); do sudo rm -f "$ninja"; done
-          if command -v ninja; then exit 1; fi
+          # A Ninja of the image, under the names CMake looks for in PATH
+          for name in ninja-build ninja samu; do
+            for program in $(which -a "$name"); do sudo rm -f "$program"; done
+            if command -v "$name"; then exit 1; fi
+          done
       - name: Configure
         run: CC="ccache gcc" CXX="ccache g++" cmake -S . -B build -G Ninja -DCMAKE_MAKE_PROGRAM="$RUNNER_TEMP/ninja/ninja" -DWITH_TESTS=ON
-      - name: The test cpack_stale_configure
-        run: cd build && ctest -R cpack_stale_configure --no-tests=error
+      - name: The test cpack_stale_configure, which has to run, not be skipped
+        run: |
+          cd build
+          ctest -R cpack_stale_configure --no-tests=error > ctest.log 2>&1 || { cat ctest.log; exit 1; }
+          cat ctest.log
+          if grep -q Skipped ctest.log; then exit 1; fi
 
   fetch-content:
     name: Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent
