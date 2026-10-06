@@ -2111,6 +2111,43 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(T n, const interval &I)
     return N.left() == N.right() ? N > I : N >= I;
   }
 
+  /*!
+    lexicographic_less: a total order on the intervals, for the containers
+    and the algorithms of the standard library that ask one (std::set,
+    std::map, std::sort, std::max, std::min, std::clamp...), which < is
+    not: < is the certainly_le() of IEEE 1788-2015 (strictPrecedes), true
+    as soon as either interval is empty, so that std::set<interval> keeps
+    no two intervals that overlap and loses every interval once the empty
+    set is inserted, and std::sort reads past the end of a vector that
+    holds an empty interval (GAOL v5).
+
+    A class, which the standard library takes as a comparator:
+    std::set<interval, gaol::lexicographic_less>. The empty set comes
+    first, then the intervals by their left bound and by their right
+    bound, -oo of a left bound and +oo of a right one included, -0.0 and
+    +0.0 being equal as bounds. The order is strict: less(I, I) is false,
+    and two intervals of the same bounds, or two empty sets, are not less
+    than each other. Specializing std::less for
+    gaol::interval is left to the program (issue #70): a program passes
+    gaol::lexicographic_less to its containers explicitly.
+  */
+  struct lexicographic_less {
+    GAOL_NODISCARD GAOL_INLINE
+    bool operator()(const interval &I1, const interval &I2) const
+    {
+      if (I1.is_empty() || I2.is_empty()) {
+        return I1.is_empty() && !I2.is_empty();
+      }
+      if (gaol_detail::quiet_less(I1.left(), I2.left())) {
+        return true;
+      }
+      if (gaol_detail::quiet_less(I2.left(), I1.left())) {
+        return false;
+      }
+      return gaol_detail::quiet_less(I1.right(), I2.right());
+    }
+  };
+
   //@}
 
   GAOL_INLINE interval&
@@ -2278,6 +2315,7 @@ namespace gaol {
   using gaol_core::integer;
   using gaol_core::invabs_rel;
   using gaol_core::inverse;
+  using gaol_core::lexicographic_less;
   using gaol_core::log;
   using gaol_core::max;
   using gaol_core::min;
