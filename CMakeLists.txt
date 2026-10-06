@@ -50,6 +50,14 @@ if(_gaol_version_error)
   message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
+# Whether the configurations of a generator of several were given, on the
+# command line or in the environment, before project() sets their default
+if(DEFINED CMAKE_CONFIGURATION_TYPES OR DEFINED ENV{CMAKE_CONFIGURATION_TYPES})
+  set(_gaol_configuration_types_given ON)
+else()
+  set(_gaol_configuration_types_given OFF)
+endif()
+
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
 
 # A change of VERSION.txt configures again
@@ -68,6 +76,17 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(GAOL_IS_TOP_LEVEL ON)
   if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+  endif()
+  # With a generator of several configurations (Visual Studio, Xcode, Ninja
+  # Multi-Config), Release first among them, unless they were given: Ninja
+  # Multi-Config builds the first by default. cmake --build with Visual Studio
+  # builds Debug all the same without --config (GAOL v5)
+  get_property(_gaol_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(_gaol_multi_config AND NOT _gaol_configuration_types_given AND "Release" IN_LIST CMAKE_CONFIGURATION_TYPES)
+    set(_gaol_types ${CMAKE_CONFIGURATION_TYPES})
+    list(REMOVE_ITEM _gaol_types Release)
+    list(INSERT _gaol_types 0 Release)
+    set(CMAKE_CONFIGURATION_TYPES "${_gaol_types}" CACHE STRING "The configurations of the generator" FORCE)
   endif()
 endif()
 
@@ -103,6 +122,10 @@ option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OF
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
+# GAOL and CORE-MATH built for debugging whatever the build type or the
+# configuration, a project bringing GAOL in included, as enable-debug of meson
+# and --enable-debug of configure (GAOL v5; see the end of this file)
+option(GAOL_DEBUG "Build GAOL and CORE-MATH for debugging, without optimization and with GAOL_DEBUGGING, whatever the build type or the configuration" OFF)
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 # Coverage: the library and the tests compiled with the counters of gcov
@@ -562,7 +585,7 @@ set(GAOL_EXCEPTIONS_ENABLED ON)
 # generator of several configurations (Visual Studio, Xcode), whose
 # configurations share gaol/gaol_configuration.h, GAOL_DEBUGGING is given to
 # the sources of GAOL in the Debug configuration below.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
   set(GAOL_DEBUGGING ON)
 endif()
 
@@ -676,12 +699,15 @@ if(NOT MSVC)
     endif()
   endforeach()
   # The optimizations configure adds to -O3, in the Release configuration
+  # (not with GAOL_DEBUG)
+  set(GAOL_RELEASE_FLAGS "")
   foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
     string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
     check_cxx_compiler_flag("${flag}" ${_flag_var})
-    if(${_flag_var})
+    if(${_flag_var} AND NOT GAOL_DEBUG)
       list(APPEND GAOL_LIBRARY_FLAGS "$<$<CONFIG:Release>:${flag}>")
+      list(APPEND GAOL_RELEASE_FLAGS ${flag})
     endif()
   endforeach()
 endif()
@@ -787,14 +813,19 @@ endif()
 # Without a build type, CMake gives no optimization flag at all. GAOL sets
 # Release when it is the top-level project, but brought in by a project that
 # sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
-# without optimization: they are compiled with -O3 then, as in Release (/O2
-# with Visual C++).
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  if(MSVC)
-    target_compile_options(gaol PRIVATE /O2)
-  else()
-    target_compile_options(gaol PRIVATE -O3)
-  endif()
+# without optimization: they are compiled then as in Release, with -O3 (/O2
+# with Visual C++), NDEBUG and the optimizations configure adds, as configure
+# and meson build GAOL brought into another project (GAOL v5: GAOL alone had
+# -O3, and CORE-MATH, compiled apart, no optimization)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND NOT GAOL_DEBUG)
+  foreach(target gaol gaol_core_math)
+    if(MSVC)
+      target_compile_options(${target} PRIVATE /O2)
+    else()
+      target_compile_options(${target} PRIVATE -O3 ${GAOL_RELEASE_FLAGS})
+    endif()
+    target_compile_definitions(${target} PRIVATE NDEBUG)
+  endforeach()
 endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
@@ -946,7 +977,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_SOURCE_IGNORE_FILES
     "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
     "\\.swp$" "~$" "/#" "/\\.#"
-    "/autom4te\\.cache/" "/doc/compare/code/work/"
+    "/autom4te\\.cache/" "/doc/compare/code/work/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
     "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
@@ -1080,9 +1111,10 @@ endif()
 # doc/compare/code/results.csv holds (see doc/compare/code/run_perf.sh). It
 # needs bash and Python 3 with numpy, which draws the intervals. GAOL 4.2.3,
 # filib++, libieeep1788 and PROFIL/BIAS are not run: doc/compare/code/run_all.sh
-# measures them all again. Linux only, as the benchmark (GAOL v5).
+# measures them all again. Linux only, as the benchmark, and not with
+# GAOL_DEBUG, which would measure GAOL built for debugging (GAOL v5).
 
-if(GAOL_IS_TOP_LEVEL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(GAOL_IS_TOP_LEVEL AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT GAOL_DEBUG)
   find_program(GAOL_BASH bash)
   mark_as_advanced(GAOL_BASH)
   if(GAOL_BASH)
@@ -1166,4 +1198,48 @@ if(GAOL_COVERAGE)
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Running the tests and writing the coverage report in coverage/"
     VERBATIM)
+endif()
+
+# GAOL_DEBUG: the targets of this directory, libgaol and the sources of
+# CORE-MATH, compiled without optimization nor NDEBUG and with debugging
+# information in every configuration (GAOL v5). Each configuration keeps its
+# own flags but those of optimization and NDEBUG (the C runtime of Visual C++,
+# sanitizers, macros of the project...), so that GAOL still links with the
+# code of that configuration; where no build type is given, the flags are
+# added to those of the project. The flags of a configuration are those of the
+# directory of the target at its end: the tests and the examples, whose
+# directories were added before, keep theirs, as does a project bringing GAOL
+# in. With Visual C++, the debugging information is the property
+# MSVC_DEBUG_INFORMATION_FORMAT where CMP0141 is NEW (CMake 3.25 and later), and
+# /Zi otherwise.
+if(GAOL_DEBUG)
+  if(MSVC)
+    set(_gaol_debug_flags /Od /Ob0)
+    set(_gaol_cmp0141 OLD)
+    if(POLICY CMP0141)
+      cmake_policy(GET CMP0141 _gaol_cmp0141)
+    endif()
+    if(_gaol_cmp0141 STREQUAL "NEW")
+      set_property(TARGET gaol gaol_core_math PROPERTY MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
+    else()
+      list(APPEND _gaol_debug_flags /Zi)
+    endif()
+  else()
+    set(_gaol_debug_flags -O0 -g)
+  endif()
+  string(REPLACE ";" " " _gaol_debug_string "${_gaol_debug_flags}")
+  foreach(lang C CXX)
+    if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
+      foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES CMAKE_BUILD_TYPE)
+        string(TOUPPER "${config}" config)
+        separate_arguments(_gaol_flags UNIX_COMMAND "${CMAKE_${lang}_FLAGS_${config}}")
+        list(FILTER _gaol_flags EXCLUDE REGEX "^[-/](O[0-9sgdxz]?|Ofast|Ob[0-3]|DNDEBUG(=.*)?)$")
+        list(APPEND _gaol_flags ${_gaol_debug_flags})
+        string(REPLACE ";" " " _gaol_flags "${_gaol_flags}")
+        set(CMAKE_${lang}_FLAGS_${config} "${_gaol_flags}")
+      endforeach()
+    else()
+      set(CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS} ${_gaol_debug_string}")
+    endif()
+  endforeach()
 endif()

@@ -12,6 +12,10 @@ coverage/coverage.json
 3rd/math-core/**/.deps/
 3rd/math-core/**/.dirstamp
 
+# The link to the sources of GAOL that tests/meson_subproject takes as its
+# subproject (see its meson.build)
+tests/meson_subproject/subprojects/
+
 # Written by the performance target of check/Makefile.am
 check/performances_result.txt
 

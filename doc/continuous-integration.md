@@ -56,10 +56,19 @@ Visual Studio 2022 and 2026 (x64, x86), run the tests (`make test`,
 GAOL they install, which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by
 FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
-installs; check that the three builds agree on each of these machines; check
-that configure and meson, and autoconf when it generates configure (Linux),
-read a `VERSION.txt` that starts with a byte order mark or has the line ends
-of Windows (`.github/scripts/version-file.sh`), and that meson reads it with
+installs, and check that GAOL and CORE-MATH are compiled as in Release where
+that project gives no build type (`tests/release_flags.py`, GAOL v5); build
+GAOL as a subproject of a meson project (`tests/meson_subproject`, Ubuntu
+x86_64, with the meson of pipx and the meson 1.3 of Ubuntu), whose code
+compiled with `gaol_dep` has to get the flags of `gaol.pc`, and GAOL to be
+built in release in the default build type of meson (GAOL v5); check that
+`GAOL_DEBUG` and `enable-debug` build GAOL for debugging, alone and brought
+into another project, and that GAOL built alone with Ninja Multi-Config builds
+Release by default (`linux.yml`, `build-systems.yml`, configured only, GAOL
+v5); check that the three builds agree on each of these machines; check that
+configure and meson, and autoconf when it generates configure (Linux), read a
+`VERSION.txt` that starts with a byte order mark or has the line ends of
+Windows (`.github/scripts/version-file.sh`), and that meson reads it with
 no Python on `PATH` (Linux); check that `make distclean` gives the source tree
 back as git has it, after the autotools have built, installed and tested GAOL
 in it (Ubuntu, macOS); check that the builds

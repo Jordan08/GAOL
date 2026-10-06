@@ -890,7 +890,7 @@ typedef struct {
   */
   GAOL_INLINE void null_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "null_node accepting visitor" << std::endl);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "null_node accepting visitor" << std::endl);
     visitor.visit(this);
   }
 
@@ -900,7 +900,7 @@ typedef struct {
   */
   GAOL_INLINE void double_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "double_node accepting visitor" << std::endl);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "double_node accepting visitor" << std::endl);
     visitor.visit(this);
   }
 
@@ -914,7 +914,7 @@ typedef struct {
   */
   GAOL_INLINE void interval_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "interval_node accepting visitor" << std::endl);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "interval_node accepting visitor" << std::endl);
     visitor.visit(this);
   }
 
@@ -929,7 +929,7 @@ typedef struct {
   */
   GAOL_INLINE void add_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "add_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "add_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -948,7 +948,7 @@ typedef struct {
   */
   GAOL_INLINE void unary_minus_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "unary_minus_node accepting visitor"
+    GAOL_DEBUG_VERBOSE(2,std::cout << "unary_minus_node accepting visitor"
 		<< std::endl;);
     visitor.visit(this);
   }
@@ -963,7 +963,7 @@ typedef struct {
   */
   GAOL_INLINE void sub_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "sub_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sub_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -982,7 +982,7 @@ typedef struct {
   */
   GAOL_INLINE void mult_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "mult_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "mult_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1001,7 +1001,7 @@ typedef struct {
   */
   GAOL_INLINE void div_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "div_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "div_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1020,7 +1020,7 @@ typedef struct {
   */
   GAOL_INLINE void pow_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "pow_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "pow_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1040,7 +1040,7 @@ typedef struct {
   */
   GAOL_INLINE void pow_itv_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "pow_itv_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "pow_itv_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1065,7 +1065,7 @@ typedef struct {
   */
   GAOL_INLINE void nth_root_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "nth_root_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "nth_root_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1085,7 +1085,7 @@ typedef struct {
   */
   GAOL_INLINE void cos_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "cos_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "cos_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1099,7 +1099,7 @@ typedef struct {
   */
   GAOL_INLINE void sin_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "sin_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sin_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1113,7 +1113,7 @@ typedef struct {
   */
   GAOL_INLINE void tan_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "tan_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "tan_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1127,7 +1127,7 @@ typedef struct {
   */
   GAOL_INLINE void atan2_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "atan2_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "atan2_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1146,7 +1146,7 @@ typedef struct {
   */
   GAOL_INLINE void acos_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "acos_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "acos_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1160,7 +1160,7 @@ typedef struct {
   */
   GAOL_INLINE void asin_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "asin_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "asin_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1174,7 +1174,7 @@ typedef struct {
   */
   GAOL_INLINE void atan_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "atan_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "atan_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1188,7 +1188,7 @@ typedef struct {
   */
   GAOL_INLINE void cosh_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "cosh_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "cosh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1202,7 +1202,7 @@ typedef struct {
   */
   GAOL_INLINE void sinh_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "sinh_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sinh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1216,7 +1216,7 @@ typedef struct {
   */
   GAOL_INLINE void tanh_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "tanh_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "tanh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1230,7 +1230,7 @@ typedef struct {
   */
   GAOL_INLINE void acosh_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "acosh_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "acosh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1244,7 +1244,7 @@ typedef struct {
   */
   GAOL_INLINE void asinh_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "asinh_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "asinh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1258,7 +1258,7 @@ typedef struct {
   */
   GAOL_INLINE void atanh_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "atanh_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "atanh_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1272,7 +1272,7 @@ typedef struct {
   */
   GAOL_INLINE void exp_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "exp_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "exp_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1286,7 +1286,7 @@ typedef struct {
   */
   GAOL_INLINE void log_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "log_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "log_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1300,7 +1300,7 @@ typedef struct {
   */
   GAOL_INLINE void exp2_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "exp2_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "exp2_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1314,7 +1314,7 @@ typedef struct {
   */
   GAOL_INLINE void log2_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "log2_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "log2_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1328,7 +1328,7 @@ typedef struct {
   */
   GAOL_INLINE void sign_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "sign_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sign_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 
@@ -1342,7 +1342,7 @@ typedef struct {
   */
   GAOL_INLINE void trunc_node::accept(expr_visitor& visitor)
   {
-    GAOL_DEBUG(2,std::cout << "trunc_node accepting visitor" << std::endl;);
+    GAOL_DEBUG_VERBOSE(2,std::cout << "trunc_node accepting visitor" << std::endl;);
     visitor.visit(this);
   }
 

@@ -32,23 +32,27 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
 
-// The commands of GAOL_DEBUG (below) write on std::cout: gaol/gaol_expression.h
-// did not compile with GAOL_DEBUGGING, which configure --enable-debug defined,
-// without <iostream> (GAOL v5)
+// The commands of GAOL_DEBUG_VERBOSE (below) write on std::cout:
+// gaol/gaol_expression.h did not compile with GAOL_DEBUGGING, which configure
+// --enable-debug defined, without <iostream> (GAOL v5)
 #if GAOL_DEBUGGING
 #  include <iostream>
 #endif
 
 namespace gaol_core {
 
-  // defined in gaol_common.cpp; public, as GAOL_DEBUG reads it in the inline
-  // functions of the headers, compiled into the code using GAOL (GAOL v5)
+  // defined in gaol_common.cpp; public, as GAOL_DEBUG_VERBOSE reads it in the
+  // inline functions of the headers, compiled into the code using GAOL (GAOL
+  // v5)
   extern GAOL_PUBLIC int debug_level;
 
+  // GAOL_DEBUG before GAOL v5, now the option of CMake that builds GAOL for
+  // debugging (GAOL v5)
 #if GAOL_DEBUGGING
-#  define GAOL_DEBUG(lvl,cmd) do { if (debug_level>=lvl) {cmd;} } while(0)
+#  define GAOL_DEBUG_VERBOSE(lvl,cmd) \
+     do { if (debug_level>=lvl) {cmd;} } while(0)
 #else
-#  define GAOL_DEBUG(lvl,cmd)
+#  define GAOL_DEBUG_VERBOSE(lvl,cmd)
 #endif
 
 /*!
@@ -109,7 +113,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC double minimum(double a, double b);
     \brief Initialization of the library
     \return true if the library was not already initialized and false otherwise
     \param dbg_lvl current debugging level: a debugging code inside
-    a call to GAOL_DEBUG will be executed only if its level is lower or
+    a call to GAOL_DEBUG_VERBOSE will be executed only if its level is lower or
     equal to the current debugging level. A debugging level equal to zero
     means that no debugging message will appear.
   */

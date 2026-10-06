@@ -51,8 +51,10 @@ endif
 # which the c99 of the project refuses, but with Visual C++, which has no GNU
 # C and compiles them as CMake does. And b_lto=false keeps the interprocedural
 # optimization of -Db_lto=true away from them: reached by it, sin and cos took
-# half as long again (see doc/three-builds.md)
-core_math_overrides = ['b_lto=false']
+# half as long again (see doc/three-builds.md). The options of enable-debug, or
+# in a subproject those of release where meson gives it the build type of the
+# project (gaol_build_options, see meson.build)
+core_math_overrides = ['b_lto=false'] + gaol_build_options
 if not msvc
   core_math_overrides += ['c_std=gnu11']
 endif
@@ -177,6 +179,7 @@ if msvc
     include_directories: [incdir, include_directories('../cmake/msvc')],
     c_args: gaol_msvc_args,
     cpp_args: gaol_msvc_args,
+    override_options: gaol_build_options,
   )
   gaollib_static = gaollib
 else
@@ -190,15 +193,20 @@ else
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
+    override_options: gaol_build_options,
   )
   gaollib_static = gaollib.get_static_lib()
 endif
 
-# GAOL, for the tests and the examples of this build, and for a meson project
-# bringing GAOL in as a subproject
+# GAOL, for the examples of this build, and for a meson project bringing GAOL
+# in as a subproject: the flags of interval arithmetic and the link option
+# gaol.pc gives, which the code including GAOL's headers is to be compiled and
+# linked with, the arguments of this project not reaching the targets of
+# another one (GAOL v5)
 gaol_dep = declare_dependency(
   link_with: gaollib,
   include_directories: include_directories('..'),
+  compile_args: pc_cflags,
   link_args: gaol_link_args,
   dependencies: deps,
 )

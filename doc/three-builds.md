@@ -14,7 +14,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
   the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
-  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included;
+  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included.
+  Its libraries are compiled in release too where a project brings GAOL in
+  without choosing a build type, as by a configure calling GAOL's: a CMake
+  project without `CMAKE_BUILD_TYPE`, with a generator of one configuration
+  (with a generator of several, as Visual Studio, Release comes first among
+  the configurations of GAOL built alone, and a project bringing GAOL in
+  chooses its configuration), a meson project in the default build type of
+  meson, with its ninja backend (GAOL v5);
 - with the flags of interval arithmetic of [Using GAOL](using.md), and the code
   using GAOL, the tests included, is linked with `-mno-daz-ftz` where the
   compiler accepts it (GCC 13 and later on x86, and from 11.4 and 12.4 in the
@@ -78,7 +85,11 @@ optimization nor `NDEBUG`, and checks its assertions (`GAOL_DEBUGGING`). It was
 `configure --enable-debug` alone that defined `GAOL_DEBUGGING`, adding `-g
 -ansi -Weffc++ -pedantic` for `g++` alone to the optimizations of
 `--enable-optimize`; the Debug build of CMake did not define it, and meson
-defined it with its option `enable-debug`, now gone (GAOL v5).
+defined it with its option `enable-debug` (GAOL v5). `GAOL_DEBUG` of CMake and
+`enable-debug` of meson build the libraries of GAOL and CORE-MATH so whatever
+the build type or the configuration, a project bringing GAOL in included, as
+`configure --enable-debug` does for a configure calling GAOL's: the code of
+that project, and the tests and the examples, keep their own (GAOL v5).
 
 `.github/audit/` configures the three builds and compares the macros GAOL
 sees, the macros each writes into `gaol/gaol_configuration.h`, and the flags

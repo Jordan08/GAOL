@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `f2e9540` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `bcc1b6f` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -164,6 +164,27 @@ chevauchent. La spécialisation de `std::less` reste reportée (#70), et la
 mise en garde dans `doc/using.md` et le manuel se fera avec le point I. Les
 textes pour `ChangeLog` et `doc/differences.md` sont dans la description
 de #96.
+
+Fait le 6 octobre aussi : le point O (anciens 41, 42, 52 et 65), par #95 : GAOL
+peut être un sous-projet meson (`add_project_arguments`, les drapeaux de
+`gaol.pc` dans `gaol_dep`, plus de configuration de test dans un sous-projet ;
+`tests/meson_subproject` et un job de `build-systems.yml` le vérifient) ; le
+faux Python du Microsoft Store dit non vérifié ; la raison de C++17 des tests ;
+les `open()` de `meson.build` fermés par `with`. Décidé pendant le travail, et
+fait par #95 : GAOL se compile en Release par défaut dans les trois builds, en
+projet comme en sous-projet (meson avant 1.8.4 : Release forcé sur les
+bibliothèques, sauf avec Visual C++ avant meson 0.57 et le backend Visual
+Studio, ce que la documentation dit ; CMake sans type de build : CORE-MATH
+n'était pas optimisé ; avec plusieurs configurations, Release en tête pour GAOL
+seul, `cmake --build` de Visual Studio restant en Debug sans `--config`) ;
+`enable-debug` (meson) et `GAOL_DEBUG` (CMake) compilent les seules
+bibliothèques pour le débogage, quel que soit le type de build ; la macro
+`GAOL_DEBUG(lvl, cmd)` devient `GAOL_DEBUG_VERBOSE`, sans alias ;
+`set -o pipefail` dans les étapes des workflows qui passent par `tee` ; le
+manuel ne dit plus que `gaol.pc` donne la bibliothèque mathématique.
+`tests/release_flags.py` et le job `build-types` de `linux.yml` vérifient le
+Release et le debug. Les textes pour `ChangeLog` et `doc/differences.md` sont
+dans la description de #95.
 
 ## En cours
 
@@ -515,31 +536,6 @@ qu'elles l'ont trouvé.
 
 ## Autres points
 
-### O. meson et les fichiers de build (41, 42, 52, 65)
-
-- **41.** **GAOL ne peut pas être un sous-projet meson** : `meson.build` appelle
-  `add_global_arguments`, que meson refuse dans un sous-projet (de 0.53.2 à
-  1.11.2), alors que le commentaire de `gaol_dep` (`gaol/meson.build`) promet
-  cet usage. Correction : `add_project_arguments` (essayé avec meson 1.4.1), et
-  mettre dans les `compile_args` de `gaol_dep` les options dont le code
-  utilisant GAOL a besoin (celles de `pc_cflags`, que `gaol.pc` donne déjà :
-  `-frounding-math`, `-ffp-contract=off`…), les arguments du projet ne passant
-  pas au projet parent (décidé le 3 octobre, plutôt que retirer la promesse).
-- **42.** **Suites du faux Python du Microsoft Store** (#44) : que `WindowsApps`
-  ait un alias `python.exe` en plus de `python3.exe`, comme le disent
-  `meson.build`, `doc/building.md` et le manuel, n'a pas été vérifié sous
-  Windows : décidé le 3 octobre, adoucir le texte. Ajouter aussi au manuel le
-  cas résiduel que donne `doc/building.md` (l. 263-268) : un profil dont le
-  répertoire diffère de `USERPROFILE`. La documentation plutôt qu'un changement
-  de l'ordre `python3`, `python` (#44) est confirmée.
-- **65.** **Les `open()` de `meson.build`** (#45) : `open(sys.argv[-1],
-  …).read(…)` (l. 32, 53 et 60) ne ferme pas le fichier ; sans effet sous
-  CPython, un `with` le ferait.
-- **52.** **La raison de C++17 dans les tests** (#37) : `tests/CMakeLists.txt`,
-  `tests/Makefile.am` et `tests/meson.build` la donnent par les littéraux de
-  `elementary_values.h` seulement, alors que `ieee1788.cpp`, `arithmetic.cpp`,
-  `core_math.cpp` et d'autres en ont aussi : parler des tests en général.
-
 ### P. Les outils et ITF1788 (25, 30)
 
 ITF1788 a des tests pour les fonctions réciproques à ajouter (`mulRevToPair`,
@@ -707,7 +703,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #94 et #96 après leur
+  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #94, #95 et #96 après leur
   fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
@@ -724,11 +720,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ;
-12 : E ; 15 : F ; 18 : F ; 25 : P ; 26 : W ; 28 : X ;
-30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 40 : E et U ; 41 : O ; 42 : O ; 45 : Q ; 46 : F ; 47 : A ;
-51 : B ; 52 : O ; 56 : A ; 58 : F ; 59 : F ;
-60 : F ; 61 : F ; 64 : U ; 65 : O ; 70 : I ; 71 : Y ; 72 : B ;
+1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ; 12 : E ; 15 : F ;
+18 : F ; 25 : P ; 26 : W ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ;
+35 : I ; 37 : I ; 38 : I ; 40 : E et U ; 45 : Q ; 46 : F ; 47 : A ; 51 : B ;
+56 : A ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 64 : U ; 70 : I ; 71 : Y ; 72 : B ;
 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
@@ -750,7 +745,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
    Faire F après la régénération du parser ; corriger `3rd/README.md` avant tout
    envoi amont pour A et valider les plateformes prises en charge. G est fait
-   par #91, N par #94.
+   par #91, N par #94, O par #95.
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
