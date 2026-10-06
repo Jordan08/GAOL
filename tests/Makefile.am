@@ -4,7 +4,7 @@
 # make test run them (see ../Makefile.am). They are compiled as any code using
 # GAOL, with the flags of interval arithmetic configure gives, in C++17 for the
 # hexadecimal floating literals of the tests (those of gaol_tests.h, which all
-# but u128.cpp include, of the *_values.h, and of most of the programs; see
+# but u128.cpp include, of the *_values.h, and of several of the programs; see
 # CMakeLists.txt), and linked with the static libgaol just built (-static: a
 # libtool library not installed), and with the link option gaol.pc gives
 # (-mno-daz-ftz, where the compiler takes it), as CMake links them. Exit status

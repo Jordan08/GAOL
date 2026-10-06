@@ -9,7 +9,7 @@
 # test (make test) and meson test --setup check (make check) run. They are
 # compiled as any code using GAOL, in C++17 for the hexadecimal floating
 # literals of the tests (those of gaol_tests.h, which all but u128.cpp include,
-# of the *_values.h, and of most of the programs; see CMakeLists.txt), and
+# of the *_values.h, and of several of the programs; see CMakeLists.txt), and
 # linked with the static libgaol, as CMake links them. Exit status 77 is a test
 # skipped (intervalf and interval2f where the intervals of floats are not
 # compiled). check/, which built the unit tests of GAOL 4 with CppUnit, is
