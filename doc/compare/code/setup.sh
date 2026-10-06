@@ -128,8 +128,7 @@ else
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-build" -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
         -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" \
-        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" \
-        -DGAOL_FIND_MATHLIB=OFF > "$WORK/gaol-configure.log"
+        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" > "$WORK/gaol-configure.log"
   cmake --build "$WORK/gaol-build" -j"$JOBS" > "$WORK/gaol-build.log"
   cmake --install "$WORK/gaol-build" > "$WORK/gaol-install.log"
 fi
