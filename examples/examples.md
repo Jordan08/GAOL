@@ -321,7 +321,9 @@ narrower. Both now have the true function. The enclosure contains the range
 the occurrences of x and y (the dependency problem, example 03). The example
 checks f(0, −1) = 3, the enclosure, computed by exact arithmetic (its bounds
 are integers that no operation rounds), the enclosure of the program of the
-manual, and the ratio of the widths.
+manual, and the ratio of the widths. Its `main()` keeps the layout of GAOL 4
+(`endl`, `cout.precision(16)`, the timing loop on one line); the constants
+and the declarations follow the style of the other examples.
 
 ## 2. How intervals are used, and what GAOL v5 gives for it
 
@@ -535,8 +537,8 @@ IEEE 1788 (12.10.3) asks, is rare among interval libraries.
 **The manual's examples print almost exactly what it shows.** The 86 example
 blocks of `manual/v5/gaol.tex` with an expected output (102 outputs) were
 extracted, compiled with GCC and Clang in C++11 and C++17, and run: all match,
-apart from three formatting slips (`true`/`false` printed without
-`std::boolalpha`, and `nan` printed `-nan`). But the function of the overview
+apart from 29 formatting slips, since fixed (`true`/`false` printed without
+`std::boolalpha`, `nan` printed `-nan`...). But the function of the overview
 chapter's program is the Goldstein-Price function of GAOL 4's example
 (`16_Goldstein_Price.cpp`) without the +1 of (x + y + 1)² (recommendation 16).
 All 172 names the manual documents exist in the headers.
@@ -557,9 +559,10 @@ All 172 names the manual documents exist in the headers.
   `x = ...;` of the user's code (the class has a user-provided copy
   constructor and an implicit copy assignment). A 13-line `main.cpp` built
   through FetchContent printed 38 warnings.
-- `[[nodiscard]]` works in C++17 only, and `gaol::gaol` sets no language
-  standard, so a CMake project with GCC 9 compiles in C++14 and gets no
-  warning for `sqrt(x);`.
+- `[[nodiscard]]` worked in C++17 only; `GAOL_NODISCARD` now also takes the
+  attribute of GCC, Clang and Visual C++ before C++17. `gaol::gaol` still
+  sets no language standard, so a CMake project with GCC 9 compiles in C++14
+  and gets no warning for `sqrt(x);`.
 - `examples/` held one benchmark of 2006, which the recommended CMake build
   did not build and no document mentioned; `check/` holds the CppUnit tests of
   GAOL 4, not built by CMake, some for types no build compiles (they have been
@@ -568,11 +571,12 @@ All 172 names the manual documents exist in the headers.
   scope, define unprefixed macros (`INLINE`, `HAVE_FENV_H`, `MEMALIGN`,
   `__HI`… 25 in all) and `#undef PACKAGE` (gone since: the configuration no
   longer defines `PACKAGE`).
-- Smaller slips: the width output format is described as "midpoint and
-  width" but prints the radius; the header comment of `chi()` says
-  `chi([0,0]) = 0` while the code and the manual say −1; `tests/gaol_tests.h`
-  says the references use 400 bits where the scripts use 2000; the root file
-  `version.h` is a Code::Blocks file of 2009 that nothing uses (removed since).
+- Smaller slips, since fixed: the width output format is described as
+  "midpoint and width" but prints the radius; the header comment of `chi()`
+  said `chi([0,0]) = 0` while the code and the manual say −1;
+  `tests/gaol_tests.h` said the references use 400 bits where the scripts
+  use 2000; the root file `version.h` was a Code::Blocks file of 2009 that
+  nothing used (removed).
 
 ## 4. What was checked and found right
 
