@@ -18,14 +18,18 @@
  * the products and of the quotients, the signs of their bounds included,
  * and on every value the tests of tests/ take (GAOL v5).
  *
- * Of the modes that flush the subnormal numbers to zero, the embedded
- * rounding ignores flush-to-zero, its subnormal results being computed
- * exactly (measured on an Intel i7-1185G7: with the mode set, the product
- * of 1e-300 by 1e-20 is the subnormal 1e-320), but it honours
- * denormals-are-zero, which reads a subnormal operand as 0 (measured:
- * the product of 1e-300 by 8.09e-320 is 0 with the mode set): the
- * operations of the path clear the modes before they read a bound, as
- * the SSE2 operations clear them at their entry.
+ * The embedded rounding honours the modes that flush the subnormal
+ * numbers to zero, as the other operations do: flush-to-zero, which
+ * flushes a subnormal result (measured on an Intel i7-1185G7, GCC 9.4 and
+ * Clang 18: with the mode set, the product of 1e-300 by 1e-20 and the
+ * difference of 3e-308 and 2.9e-308 are 0), and denormals-are-zero, which
+ * reads a subnormal operand as 0 (measured: the product of 2^-1060 by 1e10
+ * is 0 with the mode set). It was thought to ignore flush-to-zero, from a
+ * measure the compiler had reordered. The operations of the path clear
+ * the modes before they read a bound, as the SSE2 operations clear them at
+ * their entry, and compute their results before the modes are set back
+ * with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5, point Q of
+ * TODO.md).
  *
  * The functions of this file are compiled into the library built for any
  * processor of the architecture, as the SSE2 operations are: only they
@@ -120,12 +124,10 @@
     sum of a subnormal with +0 is exact in every rounding direction, and 0
     only through denormals-are-zero, which reads the operand as 0, or
     flush-to-zero, which flushes its subnormal result. The embedded
-    rounding ignores flush-to-zero (a subnormal result is computed exactly,
-    measured on an i7-1185G7) but honours denormals-are-zero (a subnormal
-    operand is read as 0, measured): the operations of the path clear the
-    modes before they compute, as the SSE2 path does at its entry, and the
-    barrier keeps their place after the clearing (see GAOL_RND_BARRIER() of
-    gaol/gaol_fpu.h). The modes clear in the common case, one comparison
+    rounding honours both (see the head of this file): the operations of
+    the path clear the modes before they compute, as the SSE2 path does at
+    its entry, and the barrier keeps their place after the clearing (see
+    GAOL_RND_BARRIER() of gaol/gaol_fpu.h). The modes clear in the common case, one comparison
     and one branch: 0.3 ns measured against the 0.9 of an addition.
   */
   GAOL_INLINE bool flush_modes_set()
@@ -145,13 +147,35 @@
     The flush-to-zero modes of an operation of the path, cleared for its
     computation and left so, as the other operations clear them, or given
     back as they were with GAOL_PRESERVE_ROUNDING, as the SSE2 operations
-    give them back (GAOL_RND_LEAVE_SSE of gaol/gaol_fpu.h). Its results,
-    which the embedded rounding computes whatever the modes of the operands'
-    reading, need no rnd_keep() on the way out: no result of the path
-    depends on the modes.
+    give them back (GAOL_RND_LEAVE_SSE of gaol/gaol_fpu.h). The embedded
+    rounding honours both modes (see the head of this file), and no compiler
+    models them: the operands go through in() after the constructor, and
+    the result through out() before the destructor, two empty asm
+    statements, which keep their places with respect to the writes of the
+    control register and leave the doubles in their registers, at no cost.
+    Clang 18 computed the difference of fast_sub() after the destructor had
+    set flush-to-zero back, with GAOL_PRESERVE_ROUNDING, and
+    [3e-308] - [2.9e-308] was [0, 0] (GAOL v5, point Q of TODO.md,
+    tests/rounding_direction.cpp).
   */
   struct flush_guard
   {
+    static __m128d in(__m128d x)
+    {
+      __asm__ __volatile__ ("" : "+x" (x));
+      return x;
+    }
+    static double in(double x)
+    {
+      __asm__ __volatile__ ("" : "+x" (x));
+      return x;
+    }
+    static __m128d out(__m128d r)
+    {
+      __asm__ __volatile__ ("" : "+x" (r));
+      return r;
+    }
+
 #if GAOL_PRESERVE_ROUNDING
     unsigned int saved;
 #endif
@@ -275,14 +299,15 @@
   GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_add(__m128d x, __m128d y)
   {
     const flush_guard flush;
-    return back128(_mm512_add_round_pd(lo512(x), lo512(y), gaol_er));
+    return flush_guard::out(back128(_mm512_add_round_pd(lo512(flush_guard::in(x)), lo512(flush_guard::in(y)), gaol_er)));
   }
 
   // x - y of the stored bounds: the bounds of y exchanged, as the SSE2 path
   GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_sub(__m128d x, __m128d y)
   {
     const flush_guard flush;
-    return back128(_mm512_add_round_pd(lo512(x), lo512(_mm_shuffle_pd(y, y, 1)), gaol_er));
+    const __m128d a = flush_guard::in(x), b = flush_guard::in(y);
+    return flush_guard::out(back128(_mm512_add_round_pd(lo512(a), lo512(_mm_shuffle_pd(b, b, 1)), gaol_er)));
   }
 
   /*
@@ -295,7 +320,7 @@
   GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_div_by(__m128d x, double d)
   {
     const flush_guard flush;
-    return back128(_mm512_div_round_pd(lo512(x), _mm512_set1_pd(d), gaol_er));
+    return flush_guard::out(back128(_mm512_div_round_pd(lo512(flush_guard::in(x)), _mm512_set1_pd(flush_guard::in(d)), gaol_er)));
   }
 
   // The plain products of two stored pairs
@@ -316,13 +341,12 @@
     the dispatch as any other, the bounds it gives being those of the SSE2
     path, the signs of its zeros included.
   */
-  GAOL_AVX512_TARGET __m128d fast_mul(__m128d x, __m128d y)
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d mul_unguarded(__m128d x, __m128d y)
   {
     // No shortcut for a zero operand: the dispatch of product_of_bounds()
     // computes the products of the lanes even there, and the signs of the
     // zeros of its results are those of the SSE2 path, which this path
     // keeps bit for bit
-    const flush_guard flush;
     const bool infinities = bit_infinite(low_of(x)) || bit_infinite(high_of(x))
                          || bit_infinite(low_of(y)) || bit_infinite(high_of(y));
     const auto product = [=](__m128d a, __m128d b) -> __m128d {
@@ -405,9 +429,8 @@
     of the intervals it returns: the empty set, the universe,
     [0, +oo] and [-oo, 0].
   */
-  GAOL_AVX512_TARGET __m128d fast_div(__m128d x, __m128d y)
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d div_unguarded(__m128d x, __m128d y)
   {
-    const flush_guard flush;
     if (stored_right_below_zero(x)) { // [x] N1
       if (stored_right_below_zero(y)) { // [y] N1
         const __m128d r = _mm_xor_pd(x, interval::lbsignmask);
@@ -548,9 +571,8 @@
     above the upper one (both nonnegative, their bits order them as their
     values).
   */
-  GAOL_AVX512_TARGET __m128d fast_sqrt(__m128d x)
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d sqrt_unguarded(__m128d x)
   {
-    const flush_guard flush;
     const double left = -low_of(x); // the low half holds -left
     const double right = high_of(x);
     const double lpos = bit_negative(left) ? 0.0 : left;
@@ -563,4 +585,24 @@
     const double lo = bit_zero(lpos) ? 0.0 : er_sqrt_down(lpos);
     const double hi = er_sqrt_up(right);
     return _mm_set_pd(hi, -lo);
+  }
+
+  // x * y, x / y and the square root of x, with the modes that flush the
+  // subnormals to zero cleared around their computation (flush_guard above)
+  GAOL_AVX512_TARGET __m128d fast_mul(__m128d x, __m128d y)
+  {
+    const flush_guard flush;
+    return flush_guard::out(mul_unguarded(flush_guard::in(x), flush_guard::in(y)));
+  }
+
+  GAOL_AVX512_TARGET __m128d fast_div(__m128d x, __m128d y)
+  {
+    const flush_guard flush;
+    return flush_guard::out(div_unguarded(flush_guard::in(x), flush_guard::in(y)));
+  }
+
+  GAOL_AVX512_TARGET __m128d fast_sqrt(__m128d x)
+  {
+    const flush_guard flush;
+    return flush_guard::out(sqrt_unguarded(flush_guard::in(x)));
   }
