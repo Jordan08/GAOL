@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `0dfc9c6` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `0f08295` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -141,6 +141,17 @@ sans lequel CMake 3 avertissait (CMP0010) et CMake 4 relisait
 `CPACK_SOURCE_IGNORE_FILES` sans ses barres obliques inverses (`\.lo$` lu
 `.lo$`). Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #94.
+
+Fait le 6 octobre aussi : le point T (anciens 39 et 66), par #93 : le
+maximum de Goldstein-Price, qu'aucun double ne contient (le plus proche est
+2,97e-11 dessous), lu avec `textToInterval` dans les exemples 03 et 06, qui
+vérifient maintenant l'image réelle ; l'exemple 16 garde la mise en page de
+GAOL 4 dans `main()`, ses constantes suivant le style des autres exemples ;
+`examples/CMakeLists.txt` dit que les trois builds compilent les seize
+exemples ; les phrases d'`examples.md` qui donnaient comme ouverts les 29
+« formatting slips », `chi([0,0])`, les 400 bits et `[[nodiscard]]` en
+C++17 seulement marquent ce qui est corrigé. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #93.
 
 ## En cours
 
@@ -577,23 +588,6 @@ le point D a changé (#84), sa partie parser se fait avec le point E.
   autres bornes l'ayant écrite 0 avec MSYS2 CLANG64 : c'est elle qu'il faut
   arrondir vers l'extérieur.
 
-### T. Les exemples (39, 66)
-
-- **39.** **Les restes de Goldstein-Price** (le +1 et « encloses the range »
-  sont corrigés par #53) : `examples/03_dependency_problem.cpp` et
-  `examples/06_global_optimization.cpp` écrivent le maximum sur [-2, 2]² comme
-  un double, 2,97e-11 sous le vrai, si bien que leur vérification « l'enveloppe
-  contient l'image » teste un intervalle trop étroit : le lire avec
-  `textToInterval`, qui arrondit vers l'extérieur. L'exemple 16 garde le style
-  de GAOL 4 dans `main()`. Les phrases d'`examples/examples.md` qui en parlent
-  (des sorties identiques sur tous les builds, aucun avertissement avec `-Wall
-  -Wextra`, vrai seulement en `-isystem`) sont pour la pull request de synthèse.
-- **66.** **Les textes des exemples** (#53, #55) : `examples/CMakeLists.txt`
-  (l. 18, « which the autotools and meson builds also compile ») semble renvoyer
-  à l'enveloppe ; la section 3 de `examples/examples.md` (l. 533) parle encore
-  de « three formatting slips » (il y en avait 29, corrigés) et donne comme
-  ouverts `chi([0,0]) = 0`, les 400 bits et `[[nodiscard]]` en C++17 seulement.
-
 ### U. Petites erreurs (40, 64)
 
 - **40.** **Petites erreurs, suite** (la plupart sont corrigées par #55).
@@ -733,10 +727,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ;
 12 : E ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
-30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
-40 : E et U ; 41 : O ; 42 : O ; 45 : Q ; 46 : F ; 47 : A ;
+30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 40 : E et U ; 41 : O ; 42 : O ; 45 : Q ; 46 : F ; 47 : A ;
 51 : B ; 52 : O ; 56 : A ; 58 : F ; 59 : F ;
-60 : F ; 61 : F ; 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y ; 72 : B ;
+60 : F ; 61 : F ; 64 : U ; 65 : O ; 70 : I ; 71 : Y ; 72 : B ;
 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
