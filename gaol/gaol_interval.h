@@ -1307,6 +1307,39 @@ namespace gaol_core {
     \brief minimum of 2 intervals
    */
   GAOL_NODISCARD extern GAOL_PUBLIC interval min(const interval &I, const interval &J);
+  /*!
+    \brief The reverse function of max (GAOL v5): the hull of the x of X such
+    that max(x, y) is in Z for some y of Y
+
+    max_rel(Z, Y, X) = hull{x in X | exists y in Y: max(x, y) in Z}, the
+    arguments in the order of div_rel(K, J, I): the result Z, the other
+    operand Y, then the operand X it contracts; max being symmetric,
+    max_rel(Z, X, Y) contracts Y. max(x, y) is in Z when x and y are at most
+    sup Z and one of them at least inf Z, so that the set is empty when Y lies
+    above Z (inf Y > sup Z), X & [-oo, sup Z] when Y meets Z (a y of Y in Z is
+    the maximum of every x up to it), and X & Z when Y lies below Z
+    (sup Y < inf Z, the maximum being x): max_rel([1, 2], [3, 4], X) is
+    empty, max_rel([1, 2], [0, 1], [-5, 5]) is [-5, 2] and
+    max_rel([1, 2], [-1, 0], [-5, 5]) is [1, 2]. The bounds are those of X
+    and Z, unrounded: the result is the set itself, the tightest enclosure.
+    The empty set for an empty argument. Z is contracted by max itself,
+    max(X, Y) & Z. IEEE 1788-2015 names no reverse of max: it is its natural
+    reverse extension (10.5.4, (6)).
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval max_rel(const interval &Z, const interval &Y,
+                                                     const interval &X);
+  /*!
+    \brief The reverse function of min (GAOL v5): the hull of the x of X such
+    that min(x, y) is in Z for some y of Y
+
+    min_rel(Z, Y, X) = hull{x in X | exists y in Y: min(x, y) in Z},
+    max_rel() turned upside down: empty when Y lies below Z (sup Y < inf Z),
+    X & [inf Z, +oo] when Y meets Z, and X & Z when Y lies above Z
+    (inf Y > sup Z). The tightest enclosure, the bounds being those of X and
+    Z; the empty set for an empty argument.
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval min_rel(const interval &Z, const interval &Y,
+                                                     const interval &X);
 
   extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os,
 					     const interval& I);
@@ -1659,6 +1692,27 @@ GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
     return interval(std::floor(I.left()), std::floor(I.right()));
   }
 
+  /*!
+    \brief The reverse function of floor (GAOL v5): the hull of the x of X
+    whose floor is in Z
+
+    floor_rel(Z, X) = hull{x in X | floor(x) in Z}. floor(x) is the integer n
+    for x in [n, n + 1): the set is the part of X in
+    [ceil(inf Z), floor(sup Z) + 1), and the empty set when Z holds no
+    integer (floor_rel([0.5, 0.7], X)). That interval is open at its upper end
+    e = floor(sup Z) + 1, which its tightest closed enclosure takes all the
+    same, the reals just below e being in it: floor_rel([0, 2], [-5, 5]) is
+    [0, 3], and floor_rel([0], [1, 2]) is empty, X starting at e. e is
+    rounded upward where it is no double, beyond 2^53, every double being an
+    integer there: floor_rel([2^53], X) ends at 2^53 + 2, the double above
+    2^53 + 1, where X goes on to it, and at +oo for sup Z = DBL_MAX. The other
+    bounds are those of X and ceil(inf Z): the result is the tightest
+    enclosure, in every rounding direction. The empty set for an empty
+    argument. IEEE 1788-2015 names no reverse of floor: it is its natural
+    reverse extension (10.5.4, (5)).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval floor_rel(const interval &Z, const interval &X);
+
 GAOL_NODISCARD GAOL_INLINE interval ceil(const interval &I)
   {
     return interval(std::ceil(I.left()), std::ceil(I.right()));
@@ -1713,6 +1767,24 @@ GAOL_NODISCARD GAOL_INLINE interval sign(const interval &I)
     }
     return interval(gaol_sign_of(I.left()),gaol_sign_of(I.right()));
   }
+
+  /*!
+    \brief The reverse function of sign (GAOL v5): the hull of the x of X
+    whose sign is in Z
+
+    sign_rel(Z, X) = hull{x in X | sign(x) in Z}, the union of the negative x
+    of X where Z holds -1, of 0 where Z and X hold it, and of the positive x of
+    X where Z holds 1; the empty set where Z holds none of -1, 0 and 1
+    (sign_rel([0.5, 0.7], X)). The negative x of X go up to 0, which their
+    tightest closed enclosure takes although sign(0) is 0, the negative
+    doubles next to 0 being in the set: sign_rel([-1], [-2, 3]) is [-2, 0],
+    sign_rel([-1], [0, 3]) is empty, sign_rel([0], [-2, 3]) is [0], and
+    sign_rel([0, 1], [-2, 3]) is [0, 3]. -0 and +0 are the same number, of
+    sign 0. The bounds are those of X and 0: the tightest enclosure. The empty
+    set for an empty argument. IEEE 1788-2015 names no reverse of sign: it
+    is its natural reverse extension (10.5.4, (5)).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval sign_rel(const interval &Z, const interval &X);
 
   /*!
     \brief Returns an enclosure of the elements of I rounded toward zero
@@ -2521,6 +2593,7 @@ namespace gaol {
   using gaol_core::exp2;
   using gaol_core::exp2m1;
   using gaol_core::expm1;
+  using gaol_core::floor_rel;
   using gaol_core::fma;
   using gaol_core::hull;
   using gaol_core::hypot;
@@ -2530,12 +2603,15 @@ namespace gaol {
   using gaol_core::log1p;
   using gaol_core::log2;
   using gaol_core::log2p1;
+  using gaol_core::max_rel;
+  using gaol_core::min_rel;
   using gaol_core::pow_exponent_rel;
   using gaol_core::pow_rel;
   using gaol_core::round_ties_to_away;
   using gaol_core::round_ties_to_even;
   using gaol_core::rsqrt;
   using gaol_core::sign;
+  using gaol_core::sign_rel;
   using gaol_core::sinpi;
   using gaol_core::tanpi;
   using gaol_core::trunc;

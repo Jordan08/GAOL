@@ -4307,6 +4307,168 @@ interval nth_root(const interval& I, int q)
     return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
 
+  /*
+    The reverse functions of max, min, sign and floor (GAOL v5, point P.25 of
+    TODO.md), which IBEX wrote itself: each returns the hull of the x of X
+    that the function, given the other operand Y for max and min, sends into
+    Z, the natural reverse extension of IEEE 1788-2015 (10.5.4, (5) and (6)),
+    which names none of them. The sets are intervals, or unions of pieces,
+    whose ends are bounds of X and Z, 0 and integers: no bound is rounded but
+    the end floor(sup Z) + 1 of floor_rel(), and each result is the tightest
+    enclosure of its set.
+
+    Each makes the check of the rounding direction before it compares a bound,
+    as the relational functions above, though only floor_rel() computes: the
+    check clears the modes that flush the subnormal numbers to zero, under
+    which a subnormal bound compares as a zero, and
+    sign_rel([1], [-2^-1074, 2^-1074]), whose upper bound is then no longer
+    above 0, would be empty rather than [0, 2^-1074] (see gaol/gaol_fpu.h).
+    The bounds are compared with the quiet comparisons, as in the relations,
+    and only once the empty arguments, whose bounds are NaN, are put aside.
+  */
+
+  // max_rel() after its check. max(x, y) is in Z if and only if x and y are
+  // at most sup Z and one of them is at least inf Z.
+  static interval max_rel_upward(const interval& Z, const interval& Y, const interval& X)
+  {
+    if (Z.is_empty() || Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    // Every y above Z: max(x, y) >= y > sup Z
+    if (gaol_detail::quiet_greater(Y.left(), Z.right())) {
+      return interval::emptyset();
+    }
+    // A y of Y in Z: max(x, y) is y for x <= y and x for y < x <= sup Z, in Z
+    // both, so that every x up to sup Z is kept
+    if (gaol_detail::quiet_greater_equal(Y.right(), Z.left())) {
+      return X & interval(-GAOL_INFINITY, Z.right());
+    }
+    // Every y below Z: max(x, y) has to be x, in Z
+    return X & Z;
+  }
+
+  interval max_rel(const interval& Z, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = max_rel_upward(Z, Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  // min_rel() after its check, max_rel() turned upside down: min(x, y) is in Z
+  // if and only if x and y are at least inf Z and one of them is at most sup Z
+  static interval min_rel_upward(const interval& Z, const interval& Y, const interval& X)
+  {
+    if (Z.is_empty() || Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    // Every y below Z
+    if (gaol_detail::quiet_less(Y.right(), Z.left())) {
+      return interval::emptyset();
+    }
+    // A y of Y in Z: every x from inf Z on is kept
+    if (gaol_detail::quiet_less_equal(Y.left(), Z.right())) {
+      return X & interval(Z.left(), GAOL_INFINITY);
+    }
+    // Every y above Z: min(x, y) has to be x, in Z
+    return X & Z;
+  }
+
+  interval min_rel(const interval& Z, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = min_rel_upward(Z, Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    sign_rel() after its check. The x of X whose sign is in Z are the union of
+    the negative x of X if Z holds -1, of 0 if Z holds 0 and X does, and of the
+    positive x of X if Z holds 1; Z holding none of them gives the empty set
+    (Z = [0.5, 0.7]). The negative x of X, where X has some, are
+    [inf X, min(sup X, 0)), open at 0 when X goes on to 0 or beyond: their
+    tightest closed enclosure ends at 0 all the same, every negative double
+    next to 0 being in the set (sign_rel([-1], [-2, 3]) is [-2, 0], and
+    sign_rel([-1], [0, 3]) is empty, sign(0) being 0). The positive x are
+    their mirror image. Z cannot hold -1 and 1 without 0, being an interval.
+  */
+  static interval sign_rel_upward(const interval& Z, const interval& X)
+  {
+    if (Z.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double zl = Z.left(), zu = Z.right(), xl = X.left(), xu = X.right();
+    const bool negative = gaol_detail::quiet_less_equal(zl, -1.0) && gaol_detail::quiet_less_equal(-1.0, zu)
+      && gaol_detail::quiet_less(xl, 0.0);
+    const bool zero = gaol_detail::quiet_less_equal(zl, 0.0) && gaol_detail::quiet_less_equal(0.0, zu)
+      && gaol_detail::quiet_less_equal(xl, 0.0) && gaol_detail::quiet_less_equal(0.0, xu);
+    const bool positive = gaol_detail::quiet_less_equal(zl, 1.0) && gaol_detail::quiet_less_equal(1.0, zu)
+      && gaol_detail::quiet_greater(xu, 0.0);
+    if (!negative && !zero && !positive) {
+      return interval::emptyset();
+    }
+    // The lower bound of the first piece, the upper bound of the last one
+    const double l = negative ? xl : ((zero || gaol_detail::quiet_less_equal(xl, 0.0)) ? 0.0 : xl);
+    const double u = positive ? xu : ((zero || gaol_detail::quiet_greater_equal(xu, 0.0)) ? 0.0 : xu);
+    return interval(l, u);
+  }
+
+  interval sign_rel(const interval& Z, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = sign_rel_upward(Z, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    floor_rel() after its check. floor(x) is the integer n for x in [n, n + 1):
+    the x whose floor is in Z make [ceil(inf Z), floor(sup Z) + 1), and Z
+    holding no integer (ceil(inf Z) > floor(sup Z), as for Z = [0.5, 0.7])
+    gives the empty set. That set is open at its upper end e = floor(sup Z) + 1:
+    a closed interval containing it contains e as well, the reals just below e
+    being in it, so that the tightest closed enclosure of its part in X ends at
+    min(sup X, e), and an X that starts at e or above holds none of it
+    (floor_rel([0], [1, 2]) is empty, where [0, 1] & [1, 2] would be [1]).
+    e is rounded upward. Where it is no double, beyond 2^53 in magnitude,
+    every double is an integer and none lies between floor(sup Z) and e: the
+    rounded e is the double above floor(sup Z), the smallest double at least
+    e, the tightest bound, and a double is below e if and only if it is below
+    the rounded e, so that inf X < e and min(sup X, e) are decided on it
+    exactly. The rounded e is +oo for sup Z = DBL_MAX, the tightest bound of
+    [DBL_MAX, DBL_MAX + 1), and for sup Z = +oo.
+  */
+  static interval floor_rel_upward(const interval& Z, const interval& X)
+  {
+    if (Z.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double first = std::ceil(Z.left()), last = std::floor(Z.right());
+    if (gaol_detail::quiet_greater(first, last)) {
+      return interval::emptyset();
+    }
+    const double end = last + 1.0; // rounded upward
+    const double xl = X.left(), xu = X.right();
+    if (gaol_detail::quiet_greater(first, xu) || gaol_detail::quiet_greater_equal(xl, end)) {
+      return interval::emptyset();
+    }
+    return interval(gaol_detail::quiet_greater(first, xl) ? first : xl,
+                    gaol_detail::quiet_less(end, xu) ? end : xu);
+  }
+
+  interval floor_rel(const interval& Z, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = floor_rel_upward(Z, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
 
   double interval::smig(void) const
   {
