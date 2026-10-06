@@ -50,6 +50,14 @@ if(_gaol_version_error)
   message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
+# Whether the configurations of a generator of several were given, on the
+# command line or in the environment, before project() sets their default
+if(DEFINED CMAKE_CONFIGURATION_TYPES OR DEFINED ENV{CMAKE_CONFIGURATION_TYPES})
+  set(_gaol_configuration_types_given ON)
+else()
+  set(_gaol_configuration_types_given OFF)
+endif()
+
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
 
 # A change of VERSION.txt configures again
@@ -68,6 +76,18 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(GAOL_IS_TOP_LEVEL ON)
   if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+  endif()
+  # With a generator of several configurations (Visual Studio, Xcode, Ninja
+  # Multi-Config), Release first among them, unless they were given: Ninja
+  # Multi-Config builds the first by default, and the IDEs show it first.
+  # cmake --build with Visual Studio builds Debug all the same without --config
+  # (GAOL v5)
+  get_property(_gaol_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(_gaol_multi_config AND NOT _gaol_configuration_types_given AND "Release" IN_LIST CMAKE_CONFIGURATION_TYPES)
+    set(_gaol_types ${CMAKE_CONFIGURATION_TYPES})
+    list(REMOVE_ITEM _gaol_types Release)
+    list(INSERT _gaol_types 0 Release)
+    set(CMAKE_CONFIGURATION_TYPES "${_gaol_types}" CACHE STRING "The configurations of the generator" FORCE)
   endif()
 endif()
 
