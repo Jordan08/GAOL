@@ -387,7 +387,10 @@ namespace gaol_core {
     x / y, sqr, exp, log, sin and cos stayed within the noise. Some x86
     processors take a microcode assist, of the order of a hundred cycles, for
     an operation with a subnormal operand or result, which each operation
-    would pay there: none was measured (GAOL v5).
+    would pay there: none of those of the continuous integration did, where
+    the probe took 0.35 to 1.43 ns, as long as the same probe made of 2^-60
+    within the noise (gaol_performance, 68 jobs on x86-64, i386, arm64 and
+    armhf; GAOL v5, point Q of TODO.md).
   */
   GAOL_INLINE void round_upward_if_needed()
   {

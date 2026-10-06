@@ -723,9 +723,14 @@ bounds wrong**, and GAOL defends itself in two ways:
   `sqr`, `exp`, `log`, `sin` and `cos` stayed within the noise of the
   machine. Some x86 processors take a microcode assist, of the order of a
   hundred cycles, for an operation with a subnormal operand or result: each
-  operation would pay it there. Neither they nor the processors of the
-  continuous integration (virtual machines, AMD EPYC or Intel Xeon) were
-  measured; `tests/performance.cpp`, which it runs, prints the times there.
+  operation would pay it there. `gaol_performance` (`tests/performance.cpp`)
+  prints the time of the check and of the same check made of 2^-60, a
+  normal double: on the 68 jobs of the continuous integration that run on
+  processors (x86-64, i386, arm64 and armhf, under Linux, Windows and macOS,
+  Rosetta 2 included), the first took 0.35 to 1.43 ns and the second 0.40 to
+  1.38 ns, the two differing by -0.63 to +0.44 ns, either way from one job
+  to another: none of these processors took such an assist (GAOL v5, point
+  Q). Under qemu (ppc64le, riscv64, s390x), both took 25 to 83 ns.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
   compiler accepts it: GCC 13 and later on x86, and from 11.4 and 12.4 in the
   series 11 and 12 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
