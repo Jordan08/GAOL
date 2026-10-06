@@ -747,7 +747,11 @@ intersection `&` and the hull `|`, `max()`, `min()`, `abs()`, `sign()`,
 to an integer round a subnormal bound from its bits, which musl's `floor()`
 and `ceil()` would return as it is. They give the results they give with the
 modes cleared, and leave the modes as they found them, writing nothing to
-the control register, with `GAOL_PRESERVE_ROUNDING` or without. Before, under
+the control register, with `GAOL_PRESERVE_ROUNDING` or without. On the Intel
+i7-1185G7, with Clang 18 (`gaol_performance`, medians of 9 interleaved runs),
+this left the constructor as fast as before, and made `x <= y`,
+`x.set_contains(y)`, `x &= y` and `x | y` 0.5 to 0.8 ns slower, and
+`floor()` 1.7 ns. Before, under
 denormals-are-zero, `max()` of `interval(3*2^-1074, 100*2^-1074)` and
 `interval(200*2^-1074)` was the first one, `abs(interval(-1e-309, -1e-310))`
 stayed negative, `interval(2^-1073, 2^-1074)` kept its bounds in the wrong
@@ -755,7 +759,8 @@ order, and the hull `|` of the same two intervals, inline in the headers of
 GAOL, depended on how the compiler of the program arranged its comparisons.
 `midpoint()`, `split()` and `chi()`, which compute, and the writing of an
 interval (`operator<<`, `intervalToText()`) make the check, which clears the
-modes, or sets them back after them with `GAOL_PRESERVE_ROUNDING`: the
+modes, or sets them back after them with `GAOL_PRESERVE_ROUNDING` (1.3 ns
+more for `midpoint()`): the
 midpoint of `interval(2*2^-1074, 4*2^-1074)` was 0, outside it, and a
 subnormal upper bound was written rounded to nearest, below the bound, where
 gdtoa (FreeBSD, macOS) and the Debug runtime of Visual C++ write it 0

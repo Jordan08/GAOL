@@ -1199,7 +1199,10 @@ integer round a subnormal bound from its bits, which the \code{floor()} and
 \code{ceil()} of musl would return as it is. They give the results they give
 with the modes cleared, and leave the modes as they found them, writing
 nothing to the control register, with \option{GAOL\_PRESERVE\_ROUNDING} or
-without.
+without. On the Intel i7-1185G7, with Clang~18, this left the constructor as
+fast as before, and made \code{x <= y}, \code{x.set\_contains(y)},
+\code{x \&= y} and \code{x | y} 0.5 to 0.8~ns slower, and \code{floor()}
+1.7~ns.
 \code{midpoint()}, \code{split()} and \code{chi()}, which compute, and the
 writing of an interval (\code{operator<{}<}, \code{intervalToText()}) make the
 check, which clears the modes, or sets them back after them with
