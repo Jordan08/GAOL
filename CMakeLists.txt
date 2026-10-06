@@ -934,7 +934,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # The archive of the sources: the files of the repository, without what git
   # ignores (.gitignore), the builds within the sources, the packages, and the
   # notes of the work on GAOL v5 (TODO.md, process.md, todo-notes/), which
-  # serve its maintainers, not the users of a version
+  # serve its maintainers, not the users of a version. CPack writes the CPACK_*
+  # variables into CPackConfig.cmake and CPackSourceConfig.cmake, which it reads
+  # when it runs: CPACK_VERBATIM_VARIABLES has it escape them, so that the
+  # backslashes of these regular expressions reach it as they are, where CMake
+  # 3 warned of an invalid escape sequence, \. (CMP0010, GAOL v5)
+  set(CPACK_VERBATIM_VARIABLES ON)
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
   string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
