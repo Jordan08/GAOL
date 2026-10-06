@@ -235,6 +235,82 @@ binary = [
 ]
 
 
+# The error function and its complement (GAOL v5). Their arguments are drawn
+# from a random generator of their own, and their values printed after those
+# of the functions above, so that these keep the values they had. erf(x) is
+# 1 - erfc(|x|) for x > 0, which is closer to 1 than 2000 bits tell once |x|
+# is beyond 35 or so, and taken for 1 itself by neighbours(): where erfc(|x|)
+# is below 2^-60, erf(x) lies between 1 - 2^-53, the double below 1, and 1,
+# which erfc(|x|), computed by mpmath with its full relative precision, tells
+# apart from 1; and so do erfc(x) for x < 0, between 2 - 2^-52 and 2, and
+# erfc(x) next to 1, where erf(x) is below 2^-60.
+erf_rng = random.Random(20261006)
+
+
+def erf_neighbours(x):
+    if x < 0.0:
+        below, above = erf_neighbours(-x)
+        return -above, -below
+    if x > 0.0 and mpmath.erfc(m(x)) < mpmath.ldexp(1, -60):
+        return next_down(1.0), 1.0
+    return neighbours(mpmath.erf(m(x)))
+
+
+def erfc_neighbours(x):
+    if x != 0.0 and abs(mpmath.erf(m(x))) < mpmath.ldexp(1, -60):
+        return (next_down(1.0), 1.0) if x > 0.0 else (1.0, next_up(1.0))
+    if x < 0.0 and mpmath.erfc(m(-x)) < mpmath.ldexp(1, -60):
+        return next_down(2.0), 2.0
+    return neighbours(mpmath.erfc(m(x)))
+
+
+def with_neighbours(xs):
+    return [y for x in xs for y in (next_down(x), x, next_up(x))]
+
+
+# The arguments at which CORE-MATH's erfc.c gives the value from a table, its
+# accurate phase not rounding them (https://gitlab.inria.fr/core-math/core-math,
+# src/binary64/erfc/erfc.c): some of the hardest to round, next to 1, between
+# 1.7 and 27.3, and one of a subnormal value
+ERFC_HARD_ARGUMENTS = [float.fromhex(x) for x in """
+    -0x1.c5bf891b4ef6bp-54 -0x1.fe777a3eb8d58p-51 -0x1.cea935ba73f4cp-32 -0x1.4a943c917ed26p-12
+    -0x1.d4af8adb90116p-4 -0x1.f9a4a209ca0e4p+0 0x1.c5bf891b4ef6bp-55 0x1.fe777a3eb8d58p-52
+    0x1.52b18fe8fbad1p-36 0x1.cf0ed5959b276p-28 0x1.b8940788b825dp+0 0x1.0ca37ce17afa6p+1
+    0x1.76957728f1f31p+1 0x1.16ffd71e2d8c6p+2 0x1.651c78cec84f6p+2 0x1.ef72633933d36p+2
+    0x1.4a42b163f7a7dp+3 0x1.a631d4bc7f56bp+3 0x1.1b2588f5d972ep+4 0x1.391f434b53d18p+4
+    0x1.48de452fb1a15p+4 0x1.a8f7bfbd15495p+4
+""".split()]
+
+# Tiny arguments, where erf(x) is about 2x/sqrt(pi), subnormal ones among them;
+# the powers of two about the binades of the arguments; the arguments past
+# which erf(x) rounds upward to 1 (5.8636), erfc(x) is subnormal (26.5433),
+# below 2^-1074 (27.2133) and below 2^-1075 (27.2260), and those at which
+# CORE-MATH's sources change their method (2^-61, 5.9216, -5.8636...), with
+# their neighbours; and random arguments, uniform and of every magnitude
+ERF_TINY = [TINY, 2 * TINY, 3 * TINY, 100 * TINY, 2.0**-1022, next_down(2.0**-1022), 1e-300, 2.0**-61, 2.0**-54,
+            1e-20, 1e-10]
+ERF_BINADES = [2.0**k for k in range(-8, 6)]
+error_functions = [
+    ("erf", erf_neighbours,
+     [0.0, 0.5, 1.5, 3.0, 6.0, 10.0, 27.0, 1e10, 1e300, MAX]
+     + with_neighbours(ERF_TINY + ERF_BINADES + [float.fromhex("0x1.7744f8f74e94ap+2"),
+                                                 float.fromhex("0x1.7afb48dc96626p+2")])
+     + [-x for x in with_neighbours(ERF_TINY + [1.0, 2.0, float.fromhex("0x1.7744f8f74e94ap+2")]) + [3.0, 6.0, MAX]]
+     + [erf_rng.uniform(-6.0, 6.0) for _ in range(40)] + [erf_rng.uniform(-1.0, 1.0) * 2.0**erf_rng.randint(-60, 2)
+                                                         for _ in range(20)]),
+    ("erfc", erfc_neighbours,
+     [0.0, 0.5, 1.5, 3.0, 6.0, 10.0, 26.5, 27.0, 27.5, 28.0, 30.0, 100.0, 1e10, 1e300, MAX, -1.0, -3.0, -6.0,
+      -10.0, -27.0, -1e300, -MAX]
+     + with_neighbours(ERF_TINY + ERF_BINADES + [float.fromhex(x) for x in (
+         "0x1.c5bf891b4ef6ap-55", "0x1.a8b12fc6e4892p+4", "0x1.b369a6244e684p+4", "0x1.b39dc41e48bfcp+4")])
+     + [-x for x in with_neighbours(ERF_TINY + [1.0, 2.0] + [float.fromhex(x) for x in (
+         "0x1.c5bf891b4ef6ap-54", "0x1.7744f8f74e94bp+2")])]
+     + ERFC_HARD_ARGUMENTS
+     + [erf_rng.uniform(-6.0, 27.3) for _ in range(40)] + [erf_rng.uniform(26.5, 27.3) for _ in range(10)]
+     + [erf_rng.uniform(-1.0, 1.0) * 2.0**erf_rng.randint(-60, 4) for _ in range(20)]),
+]
+
+
 def atan2_hull(yl, yu, xl, xu):
     """The least and the greatest angle of the points of [yl, yu] x [xl, xu]
     other than (0, 0), ordinates first. In each quadrant the angle is monotonic
@@ -397,6 +473,10 @@ print("const UnaryValue unary_values[] = {")
 for name, f, xs in unary:
     for x in sorted(set(xs)):
         below, above = neighbours(f(m(x)))
+        print('  { "%s", %s, %s, %s },' % (name, literal(x), literal(below), literal(above)))
+for name, f, xs in error_functions:
+    for x in sorted(set(xs)):
+        below, above = f(x)
         print('  { "%s", %s, %s, %s },' % (name, literal(x), literal(below), literal(above)))
 print("};")
 print()

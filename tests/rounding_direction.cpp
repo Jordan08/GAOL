@@ -372,6 +372,7 @@ namespace
           && atan2pi(X(), E()).is_empty() && cosh(E()).is_empty() && sinh(E()).is_empty() && tanh(E()).is_empty()
           && acosh(E()).is_empty() && asinh(E()).is_empty() && atanh(E()).is_empty() && hypot(E(), X()).is_empty()
           && hypot(X(), E()).is_empty(); } },
+    { "erf and erfc", [] { return erf(E()).is_empty() && erfc(E()).is_empty(); } },
     { "abs, sign and the roundings", [] {
         return abs(E()).is_empty() && sign(E()).is_empty() && trunc(E()).is_empty()
           && round_ties_to_even(E()).is_empty() && round_ties_to_away(E()).is_empty(); } },
@@ -1017,6 +1018,8 @@ int main()
     { "acosh", [](const interval&, const interval& y) { return S(acosh(y)); } },
     { "asinh", [](const interval& x, const interval&) { return S(asinh(x)); } },
     { "atanh", [](const interval& x, const interval&) { return S(atanh(x)); } },
+    { "erf", [](const interval& x, const interval&) { return S(erf(x)); } },
+    { "erfc", [](const interval& x, const interval&) { return S(erfc(x)); } },
     { "abs", [](const interval& x, const interval&) { return S(abs(x)); } },
     { "min", [](const interval& x, const interval& y) { return S(min(x, y)); } },
     { "max", [](const interval& x, const interval& y) { return S(max(x, y)); } },
@@ -1251,6 +1254,15 @@ int main()
       { "exp([-740])", interval(-740.0), interval(),
         [](const interval& x, const interval&) { return exp(x); },
         exact(dyadic(subnormal(169))*half) },
+      // erf(100*2^-1074) is 112.84 times 2^-1074, and erfc(27) 105999.05
+      // times 2^-1074 (mpmath): between the same two doubles as 112.5 and
+      // 105999.5 times 2^-1074 (GAOL v5)
+      { "erf([100*2^-1074])", interval(subnormal(100)), interval(),
+        [](const interval& x, const interval&) { return erf(x); },
+        exact(dyadic(subnormal(225))*half) },
+      { "erfc([27])", interval(27.0), interval(),
+        [](const interval& x, const interval&) { return erfc(x); },
+        exact(dyadic(subnormal(211999))*half) },
     };
 
     for (const FlushMode& m : flush_modes_honoured) {
@@ -1343,6 +1355,8 @@ int main()
       { "asinh(x)", 1, [](const interval& x, const interval&, const interval&) { return asinh(x); } },
       { "acosh(x)", 1, [](const interval& x, const interval&, const interval&) { return acosh(x); } },
       { "atanh(x)", 1, [](const interval& x, const interval&, const interval&) { return atanh(x); } },
+      { "erf(x)", 1, [](const interval& x, const interval&, const interval&) { return erf(x); } },
+      { "erfc(x)", 1, [](const interval& x, const interval&, const interval&) { return erfc(x); } },
       { "pow(x, 2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 2); } },
       { "pow(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 3); } },
       { "pow(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -2); } },

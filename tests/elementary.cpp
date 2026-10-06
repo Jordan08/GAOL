@@ -65,6 +65,8 @@ namespace
       { "acosh", { [](const interval& x) { return acosh(x); }, Variation::increasing } },
       { "atanh", { [](const interval& x) { return atanh(x); }, Variation::increasing } },
       { "sqrt", { [](const interval& x) { return sqrt(x); }, Variation::increasing } },
+      { "erf", { [](const interval& x) { return erf(x); }, Variation::increasing } },
+      { "erfc", { [](const interval& x) { return erfc(x); }, Variation::decreasing } },
     };
     return functions;
   }
@@ -476,6 +478,113 @@ namespace
 
 namespace
 {
+  /*
+    erf and erfc (GAOL v5), which GAOL bounds with CORE-MATH's values at the
+    bounds, correctly rounded: the value at one bound rounded upward, and the
+    double below the value at the other one, but at 0 and at the infinities,
+    where the value is exact. Their results have to be the tightest
+    enclosures themselves, where the other functions of the table may be one
+    double wider: at each double of the table, from the tiny arguments where
+    erf(x) is about 2x/sqrt(pi), through the changes of binade, to those
+    where erf(x) rounds to +-1 and erfc(x) is subnormal or below 2^-1074; over
+    the intervals between two consecutive ones; at 0 and at the infinite
+    bounds, which are exact; on the empty set. A lower bound one double too
+    low, as the double below an exact value, or one double too high, as the
+    value itself where it is not exact, fails, and so does a bound taken at
+    the wrong end of the interval. The tightest enclosures of symmetric sets
+    are symmetric: erf(-X) has to be -erf(X) exactly, and erfc(-X), the
+    tightest enclosure of 2 - erfc(X), to lie within 2 - erfc(X) computed with
+    intervals.
+  */
+  void error_functions()
+  {
+    const std::size_t n = sizeof(unary_values)/sizeof(unary_values[0]);
+    std::size_t count = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+      const UnaryValue& u = unary_values[i];
+      const bool is_erf = std::strcmp(u.function, "erf") == 0;
+      if (!is_erf && std::strcmp(u.function, "erfc") != 0) {
+        continue;
+      }
+      ++count;
+      const std::string f = u.function;
+      const Unary g = unary_functions().at(f).f;
+      const interval X(u.x);
+      const interval r = g(X);
+      check(f + "([x]): the tightest enclosure", r.left() == u.below && r.right() == u.above,
+            [&] { return f + "(" + hex(u.x) + ") = " + hex(r) + " rather than [" + hex(u.below) + ", " + hex(u.above) + "]"; });
+      // The opposite argument, in the table or not
+      const interval s = g(-X);
+      if (is_erf) {
+        check("erf(-[x]) = -erf([x])", s.set_eq(-r), [&] { return "erf(" + hex(-u.x) + ") = " + hex(s) + ", erf(" + hex(u.x) + ") = " + hex(r); });
+      } else {
+        check("erfc(-[x]) within 2 - erfc([x])", !s.is_empty() && s.set_leq(interval(2.0) - r),
+              [&] { return "erfc(" + hex(-u.x) + ") = " + hex(s) + ", erfc(" + hex(u.x) + ") = " + hex(r); });
+      }
+      if (i + 1 == n || std::strcmp(unary_values[i+1].function, u.function) != 0) {
+        continue;
+      }
+      const UnaryValue& v = unary_values[i+1];
+      const interval Y(u.x, v.x);
+      const interval t = g(Y);
+      const double below = is_erf ? u.below : v.below, above = is_erf ? v.above : u.above;
+      check(f + "([a,b]): the tightest enclosure", t.left() == below && t.right() == above,
+            [&] { return f + "(" + hex(Y) + ") = " + hex(t) + " rather than [" + hex(below) + ", " + hex(above) + "]"; });
+      const interval w = g(-Y);
+      if (is_erf) {
+        check("erf(-[a,b]) = -erf([a,b])", w.set_eq(-t), [&] { return "erf(" + hex(-Y) + ") = " + hex(w); });
+      } else {
+        check("erfc(-[a,b]) within 2 - erfc([a,b])", !w.is_empty() && w.set_leq(interval(2.0) - t),
+              [&] { return "erfc(" + hex(-Y) + ") = " + hex(w) + ", erfc(" + hex(Y) + ") = " + hex(t); });
+      }
+    }
+    check("erf and erfc: the values of elementary_values.h", count >= 400, [&] { return std::to_string(count); });
+
+    // The exact values at 0 and at the infinities, and the bounds of the
+    // functions beyond the arguments where they round to their limits
+    const double below_one = 0x1.fffffffffffffp-1, below_two = 0x1.fffffffffffffp+0, tiny = 0x1p-1074;
+    struct Known
+    {
+      const char *name;
+      interval (*f)();
+      double below, above;
+    };
+    const Known known[] = {
+      { "erf([0])", [] { return erf(interval(0.)); }, 0., 0. },
+      { "erf([-0,0])", [] { return erf(interval(-0., 0.)); }, 0., 0. },
+      { "erf([0,1])", [] { return erf(interval(0., 1.)); }, 0., value("erf", 1.).above },
+      { "erf([-1,0])", [] { return erf(interval(-1., 0.)); }, value("erf", -1.).below, 0. },
+      { "erf([-oo,+oo])", [] { return erf(interval::universe()); }, -1., 1. },
+      { "erf([0,+oo])", [] { return erf(interval(0., inf)); }, 0., 1. },
+      { "erf([-oo,0])", [] { return erf(interval(-inf, 0.)); }, -1., 0. },
+      { "erf([6,+oo])", [] { return erf(interval(6., inf)); }, below_one, 1. },
+      { "erf([-oo,-6])", [] { return erf(interval(-inf, -6.)); }, -1., -below_one },
+      { "erf([MAX,+oo])", [] { return erf(interval(std::numeric_limits<double>::max(), inf)); }, below_one, 1. },
+      { "erf([-2^-1074,2^-1074])", [] { return erf(interval(-0x1p-1074, 0x1p-1074)); }, -2*tiny, 2*tiny },
+      { "erfc([0])", [] { return erfc(interval(0.)); }, 1., 1. },
+      { "erfc([-0,0])", [] { return erfc(interval(-0., 0.)); }, 1., 1. },
+      { "erfc([0,1])", [] { return erfc(interval(0., 1.)); }, value("erfc", 1.).below, 1. },
+      { "erfc([-1,0])", [] { return erfc(interval(-1., 0.)); }, 1., value("erfc", -1.).above },
+      { "erfc([-oo,+oo])", [] { return erfc(interval::universe()); }, 0., 2. },
+      { "erfc([0,+oo])", [] { return erfc(interval(0., inf)); }, 0., 1. },
+      { "erfc([-oo,0])", [] { return erfc(interval(-inf, 0.)); }, 1., 2. },
+      { "erfc([28,+oo])", [] { return erfc(interval(28., inf)); }, 0., tiny },
+      { "erfc([1e300])", [] { return erfc(interval(1e300)); }, 0., tiny },
+      { "erfc([-oo,-6])", [] { return erfc(interval(-inf, -6.)); }, below_two, 2. },
+      { "erfc([-2^-1074,2^-1074])", [] { return erfc(interval(-0x1p-1074, 0x1p-1074)); }, below_one, 0x1.0000000000001p+0 },
+    };
+    for (const Known& k : known) {
+      const interval r = evaluate(k.name, k.f, [] { return std::string(); });
+      check(std::string(k.name) + ": the tightest bounds", !r.is_empty() && r.left() == k.below && r.right() == k.above,
+            [&] { return hex(r); });
+    }
+    check("erf and erfc: empty of the empty set", erf(interval::emptyset()).is_empty() && erfc(interval::emptyset()).is_empty(),
+          [] { return std::string("erf(empty), erfc(empty)"); });
+  }
+}
+
+namespace
+{
   // pow() with a floating-point exponent, and with negative bases, after the
   // tests of Codac for the fix ported to GAOL
   // (tests/core/domains/interval/codac2_tests_Interval_operations.cpp)
@@ -775,6 +884,7 @@ int main()
   tan_next_to_two_poles();
   powers();
   integer_functions();
+  error_functions();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();
