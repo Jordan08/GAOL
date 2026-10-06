@@ -666,6 +666,14 @@ namespace gaol_core {
     \brief test for evenness
     \warning d should not be +/-oo
   */
+  // feven() of an integer i that an operation computed after its check of
+  // the rounding direction, which cleared the modes that flush the
+  // subnormals to zero
+  static bool integer_is_even(double i)
+  {
+    return (std::floor(0.5*i)*2.0 == i);
+  }
+
   bool feven(double d)
   {
     // A subnormal is no integer, which its bits tell whatever the modes that
@@ -675,7 +683,7 @@ namespace gaol_core {
     if (gaol_detail::bound_is_subnormal(d)) {
       return false;
     }
-    return (std::floor(0.5*d)*2.0 == d);
+    return integer_is_even(d);
   }
 
 
@@ -3550,7 +3558,7 @@ interval nth_root(const interval& I, int q)
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(acos_lo(K.right()), acos_hi(K.left()));
 			},
-			[](double i, const interval& Jacos) { return feven(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
+			[](double i, const interval& Jacos) { return integer_is_even(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
 			[](const interval& X) { return cos(X); });
   }
 
@@ -3565,7 +3573,7 @@ interval nth_root(const interval& I, int q)
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(asin_lo(K.left()), asin_hi(K.right()));
 			},
-			[](double i, const interval& Jasin) { return k_pi_plus(i, feven(i) ? Jasin : -Jasin); },
+			[](double i, const interval& Jasin) { return k_pi_plus(i, integer_is_even(i) ? Jasin : -Jasin); },
 			[](const interval& X) { return sin(X); });
   }
 
@@ -4002,7 +4010,7 @@ interval nth_root(const interval& I, int q)
 
     if (nm < 2.0) {
       // even(m)? No conversion to int in order to avoid overflow
-      const bool even_m = feven(m);
+      const bool even_m = integer_is_even(m);
       if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
 	u = sine ? sin_lo(Iright) : cos_lo(Iright);
 	v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
@@ -4039,7 +4047,7 @@ interval nth_root(const interval& I, int q)
 	GAOL_RND_LEAVE();
 	return interval::minus_one_plus_one();
       }
-      const bool even_m = feven(m);
+      const bool even_m = integer_is_even(m);
 
       // -1: a minimum within I; 1: a maximum; 0: none; 2: both
       int extremum;

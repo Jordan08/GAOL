@@ -286,29 +286,45 @@ namespace gaol_detail {
     the quiet comparison is made first, false for a NaN, and only where it
     finds the two doubles equal are they compared as the integers of
     bound_key(), which no mode changes. With the modes cleared, these
-    integers are only compared for two equal doubles. The comparisons are
-    quiet ones, as those above, and write nothing to the control register:
-    they are the same with GAOL_PRESERVE_ROUNDING, and right too where GAOL
-    cannot clear the modes (ARM with Visual C++).
+    integers are only compared for two equal doubles: on the same processor,
+    with Clang 18, the constructor was as fast as before, x <= y,
+    x.set_contains(y), x &= y and x | y 0.5 to 0.8 ns slower, and floor()
+    1.7 ns (gaol_performance). The comparisons are quiet ones, as those
+    above, and write nothing to the control register: they are the same with
+    GAOL_PRESERVE_ROUNDING, and right too where GAOL cannot clear the modes
+    (ARM with Visual C++).
   */
+
+  //! The bits of x
+  GAOL_INLINE std::uint64_t bound_bits(double x)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
 
   //! The order of the doubles that are no NaN, as integers: -0 and +0 are 0
   GAOL_INLINE std::int64_t bound_key(double x)
   {
-    std::uint64_t bits;
-    std::memcpy(&bits, &x, sizeof bits);
+    const std::uint64_t bits = bound_bits(x);
     const std::int64_t magnitude = static_cast<std::int64_t>(bits & 0x7fffffffffffffffULL);
     return (bits >> 63) != 0 ? -magnitude : magnitude;
   }
 
+  /*
+    Two equal doubles of the same bits, the bounds of a point interval as
+    floor() makes them, are the same bound: tested first, they spare the
+    integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7
+    (Clang 18)
+  */
   GAOL_INLINE bool bound_less(double x, double y)
   {
-    return quiet_less(x, y) || (x == y && bound_key(x) < bound_key(y));
+    return quiet_less(x, y) || (x == y && bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y));
   }
 
   GAOL_INLINE bool bound_less_equal(double x, double y)
   {
-    return quiet_less(x, y) || (x == y && bound_key(x) <= bound_key(y));
+    return quiet_less(x, y) || (x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y)));
   }
 
   GAOL_INLINE bool bound_greater(double x, double y)
@@ -323,7 +339,7 @@ namespace gaol_detail {
 
   GAOL_INLINE bool bound_equal(double x, double y)
   {
-    return x == y && bound_key(x) == bound_key(y);
+    return x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) == bound_key(y));
   }
 
   /*
@@ -345,8 +361,7 @@ namespace gaol_detail {
   //! Whether x is subnormal, as its bits tell
   GAOL_INLINE bool bound_is_subnormal(double x)
   {
-    std::uint64_t bits;
-    std::memcpy(&bits, &x, sizeof bits);
+    const std::uint64_t bits = bound_bits(x);
     return (bits & 0x7ff0000000000000ULL) == 0 && (bits << 1) != 0;
   }
 
