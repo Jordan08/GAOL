@@ -662,18 +662,18 @@ namespace gaol_core {
   static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : upward::atanh_dn(x); }
   static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : upward::atanh_up(x); }
 
-  /*
-    \brief test for evenness
-    \warning d should not be +/-oo
-  */
-  // feven() of an integer i that an operation computed after its check of
-  // the rounding direction, which cleared the modes that flush the
-  // subnormals to zero
+  // feven() of an integer i that an operation computed: neither i nor its
+  // half is subnormal, so that the modes that flush the subnormals to zero
+  // change nothing here
   static bool integer_is_even(double i)
   {
     return (std::floor(0.5*i)*2.0 == i);
   }
 
+  /*
+    \brief test for evenness
+    \warning d should not be +/-oo
+  */
   bool feven(double d)
   {
     // A subnormal is no integer, which its bits tell whatever the modes that
@@ -996,9 +996,6 @@ namespace gaol_core {
   static std::string number_to_text(double x, text_rounding rounding, const text_format& fmt)
   {
     const std::ios_base::fmtflags floatfield = fmt.flags & std::ios_base::floatfield;
-    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
-      return stream_text(x, rounding, fmt);
-    }
     // A subnormal under denormals-are-zero, which a program may set, compares
     // equal to 0. operator<< and intervalToText() clear that mode before
     // they write (GAOL v5, point Q of TODO.md), where GAOL can (x86, and ARM
@@ -1009,7 +1006,8 @@ namespace gaol_core {
     // nearest, below an upper bound: a bound is written as the double on its
     // outer side that no mode changes, the smallest normal double, 2^-1022,
     // away from zero, and 0 toward it, loose but outward (GAOL v5, point Q).
-    // A number written to nearest is written by a stream, as before.
+    // A number written to nearest is written by a stream, as before. Tested
+    // before the hexadecimal format, which a stream writes too.
     std::uint64_t bits;
     std::memcpy(&bits, &x, sizeof bits);
     if (x == 0.0 && (bits << 1) != 0) {
@@ -1019,6 +1017,9 @@ namespace gaol_core {
       const bool away = (rounding == text_upward) == !std::signbit(x);
       const double smallest_normal = std::numeric_limits<double>::min();
       return number_to_text(away ? (std::signbit(x) ? -smallest_normal : smallest_normal) : 0.0, rounding, fmt);
+    }
+    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
+      return stream_text(x, rounding, fmt);
     }
 
     const bool fixed = (floatfield == std::ios_base::fixed);
@@ -1134,11 +1135,13 @@ namespace gaol_core {
     bounds. The bounds are compared by their bits: under denormals-are-zero,
     which a program may set, a subnormal compares equal to 0, and l == r and
     l == 0.0 would have [0, 5e-324] written [0]. (Under that mode,
-    bound_to_text() takes a subnormal bound for 0 as well, and writes it
+    bound_to_text() took a subnormal bound for 0 as well, and wrote it
     rounded to nearest rather than outward, so that two equal texts need not
-    be the double: with 1 digit, [22u] (u = 5e-324) was written [1e-322],
-    which is read as [20u, 21u]. operator<< and intervalToText() clear that
-    mode before they write, where GAOL can: GAOL v5, point Q of TODO.md.)
+    have been the double: with 1 digit, [22u] (u = 5e-324) was written
+    [1e-322], which is read as [20u, 21u]. operator<< and intervalToText()
+    clear that mode before they write, where GAOL can, and number_to_text()
+    writes such a bound outward where it cannot: GAOL v5, point Q of
+    TODO.md.)
     fmt has the C locale, whose decimal point is '.', the reader's: operator<<
     writes the bounds format with it whatever the locale of the stream (GAOL
     v5). Under a locale writing a decimal comma, the reader took the comma of
