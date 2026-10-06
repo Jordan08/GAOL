@@ -11,7 +11,10 @@
  * that no double holds. A malformed text throws gaol::input_format_error,
  * where gaol_ieee1788::textToInterval() returns the empty set. A file of
  * intervals is read line by line, each line in a try block, so that one bad
- * line is reported and skipped. Written in decimal, the bounds are rounded
+ * line is reported and skipped. Where GAOL is built without exceptions
+ * (configure --disable-exceptions, meson -Denable-exception=false), its
+ * reader ends the program on such a text, and sections 1.2 and 1.3 read with
+ * gaol_ieee1788::textToInterval(). Written in decimal, the bounds are rounded
  * outward, so that the text still encloses the interval; the hexadecimal
  * text of exact_string() reads back bit for bit. Part 2 writes one step of a
  * contractor (the HC4-revise of 2 x^2 in c over x, as IBEX's and Codac's
@@ -167,6 +170,7 @@ namespace {
        signals UndefinedOperation then, and GAOL has neither this signal nor
        the decorations: a malformed text cannot be told from "[empty]". */
     std::cout << "1.2 A malformed text\n";
+#if GAOL_EXCEPTIONS_ENABLED
     bool thrown = false;
     try {
       const interval x = gaol::textToInterval("[1, 2");
@@ -176,6 +180,10 @@ namespace {
       std::cout << "  \"[1, 2\": input_format_error: " << e.explanation() << '\n';
     }
     check(thrown, "\"[1, 2\" throws input_format_error");
+#else
+    // Without exceptions, gaol::textToInterval("[1, 2") ends the program
+    std::cout << "  GAOL built without exceptions: gaol::textToInterval would end the program\n";
+#endif
     show("textToInterval(\"[1, 2\")", gaol_ieee1788::textToInterval("[1, 2"), "of gaol_ieee1788: nothing thrown",
          gaol_ieee1788::textToInterval("[1, 2").is_empty());
   }
@@ -208,6 +216,7 @@ namespace {
         continue;
       }
       const std::string where = "line " + std::to_string(number) + ": " + line;
+#if GAOL_EXCEPTIONS_ENABLED
       try {
         const interval m = gaol::textToInterval(line);
         // Each measurement holds R: so does their intersection
@@ -218,6 +227,21 @@ namespace {
         ++errors;
         std::cout << "  " << std::left << std::setw(29) << where << "skipped: " << e.explanation() << '\n';
       }
+#else
+      /* Without exceptions, gaol::textToInterval would end the program on
+         the bad line: the reader of gaol_ieee1788 returns the empty set for
+         a text that is no interval. It still ends the program on a call it
+         refuses, as pown([2, 5], 2.5) (issue #98). */
+      const interval m = gaol_ieee1788::textToInterval(line);
+      if (m.is_empty()) {
+        ++errors;
+        std::cout << "  " << std::left << std::setw(29) << where << "skipped: not an interval\n";
+      } else {
+        r &= m;
+        ++measurements;
+        show(where, m, "read: a bounded interval", m.is_common_interval());
+      }
+#endif
     }
     check(measurements == 3 && errors == 1, "three measurements read, one line skipped");
     // [99.5, 100.5] & [99.7, 100.7] & [99.5, 100.3]: R is in [99.7, 100.3]

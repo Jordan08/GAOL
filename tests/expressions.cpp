@@ -139,6 +139,7 @@ namespace
   // A string the parser has to refuse
   void refused(const std::string& text)
   {
+#if GAOL_EXCEPTIONS_ENABLED
     bool threw = false;
     try {
       const interval got = textToInterval(text);
@@ -150,6 +151,12 @@ namespace
     }
     check("expression: a string that is wrong raises an exception", threw,
           [&] { return text + " gave an interval"; });
+#else
+    // Without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), the string would end the program: not
+    // checked (GAOL v5)
+    (void)text;
+#endif
   }
 
   void numbers()
@@ -325,6 +332,7 @@ namespace
     check("gaol::textToInterval(\"2\", \"1\") is the empty set, which stays empty",
           textToInterval("2", "1").is_empty() && (textToInterval("2", "1") + interval(0.0, 1.0)).is_empty(),
           [] { return hex(textToInterval("2", "1") + interval(0.0, 1.0)); });
+#if GAOL_EXCEPTIONS_ENABLED
     bool threw = false;
     try {
       const interval z = textToInterval("pown([2,5],5)");
@@ -333,6 +341,7 @@ namespace
       threw = true;
     }
     check("gaol::textToInterval throws input_format_error for a name of IEEE 1788-2015 alone", threw);
+#endif
   }
 
   void wrong_strings()
@@ -373,6 +382,7 @@ namespace
     refused("[1,2]+[nth_root(8,1.5)]");
   }
 
+#if GAOL_EXCEPTIONS_ENABLED
   /* What an exception of GAOL says as a std::exception (GAOL v5). Its what()
      was the one of the standard class, "std::exception" with libstdc++ and
      libc++ whatever went wrong: the text that a handler of std::exception
@@ -468,6 +478,7 @@ namespace
     thrown_says("nb_fp_numbers(NaN, 1)", [] { (void)nb_fp_numbers(std::numeric_limits<double>::quiet_NaN(), 1.0); });
     thrown_says("operator>> of \"[1, 2\"", [] { std::istringstream in("[1, 2"); interval x; in >> x; });
   }
+#endif
 
   /* Many decimal intervals, whose bounds are no doubles: the interval read has
      to hold them, and to be no wider than the two doubles around them. */
@@ -763,7 +774,9 @@ int main()
   step("operators");         operators();
   step("functions");         functions();
   step("wrong_strings");     wrong_strings();
+#if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
+#endif
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();

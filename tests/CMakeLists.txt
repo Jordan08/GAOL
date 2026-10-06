@@ -127,38 +127,58 @@ add_test(NAME version_file
           "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/version_file"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/version_file.cmake")
 set_tests_properties(version_file PROPERTIES LABELS unit)
+# A compile test (GAOL v5): the object of the target gaol_<name>, compiled from
+# source, left out of the build of GAOL and made by the test (cmake --build),
+# so that it gets the compiler and the flags of the platform as the files of
+# GAOL do. Without a message, the compilation has to succeed. With one, it has
+# to fail, and the test passes if the output of the build holds the message: a
+# build fails for many reasons, so its exit status is not looked at. The target
+# then compiles a copy of source in the build tree, which compile_error.cmake
+# copies again and touches before the build: an object whose compilation
+# succeeded once stayed up to date, and failed the test, once the header or
+# the source was restored with its former modification time (cp -p). The
+# definitions and the include directories gaol::gaol carries are written out
+# (those of the project GAOL, should another include it): gaol::gaol is not
+# linked, so that the test does not wait for the library, which it would build
+# first; the caller adds the flags.
+function(gaol_compile_test name source message)
+  if(message)
+    configure_file(${source} ${name}.cpp COPYONLY)
+    add_library(gaol_${name} OBJECT "${CMAKE_CURRENT_BINARY_DIR}/${name}.cpp")
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" "-DORIGINAL=${CMAKE_CURRENT_SOURCE_DIR}/${source}"
+              "-DSOURCE=${CMAKE_CURRENT_BINARY_DIR}/${name}.cpp"
+              "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DCONFIG=$<CONFIG>" "-DTARGET=gaol_${name}"
+              -P "${CMAKE_CURRENT_SOURCE_DIR}/compile_error.cmake")
+    set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${message}")
+  else()
+    add_library(gaol_${name} OBJECT ${source})
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
+  endif()
+  set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
+  target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
+  # One build at a time in the build directory, whatever ctest -j says: the
+  # lock of every compile test
+  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests)
+endfunction()
 # The options gaol/gaol_config.h refuses where GCC and Clang define a macro for
 # them (GAOL v5): the tests refused_finite_math_only and refused_fast_math
 # compile refused_options.cpp, a program using GAOL, with -ffinite-math-only
 # and with -ffast-math, and the compilation has to fail with the message of the
 # refusal; refused_positive compiles it with neither, and the compilation has
-# to succeed. The object is a target of its own, left out of the build of GAOL
-# and made by the test (cmake --build), so that it gets the compiler and the
-# flags of the platform as the files of GAOL do. A build fails for many
-# reasons, so the tests of a refused option do not look at its exit status:
-# they pass if the output of the build holds the message.
+# to succeed. Each is a compile test (gaol_compile_test() above).
 #
 # The option has to come after the flags of interval arithmetic, whose
-# -fno-fast-math turns it off otherwise. gaol::gaol is therefore not linked,
-# CMake putting the options of a linked library after those of the target: the
-# flags, the definitions and the include directories it carries are written
-# out here, as for the tests nodiscard_* below. Not with Visual C++, which has
-# neither option nor macro (see doc/three-builds.md). The autotools and meson
-# builds run the same checks with tests/refused_options.sh.
+# -fno-fast-math turns it off otherwise: CMake would put the options of a
+# linked gaol::gaol after those of the target, which is one more reason to
+# write out what it carries. Not with Visual C++, which has neither option nor
+# macro (see doc/three-builds.md). The autotools and meson builds run the same
+# checks with tests/refused_options.sh.
 function(gaol_refused_test name flag text)
-  add_library(gaol_${name} OBJECT refused_options.cpp)
-  set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-  target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
+  gaol_compile_test(${name} refused_options.cpp "${text}")
   target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
-  target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
-  add_test(NAME ${name}
-    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-  # One build at a time in the build directory, whatever ctest -j says: the
-  # lock of every compile test
-  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests)
-  if(text)
-    set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${text}")
-  endif()
 endfunction()
 if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   gaol_refused_test(refused_finite_math_only -ffinite-math-only
@@ -226,12 +246,8 @@ set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_R
 # no result away. -Werror=attributes (/we5030 and /we5051 of Visual C++, an
 # attribute it does not know or ignores before C++17) makes an attribute the
 # compiler ignores fail them too, as [[nodiscard]] written after the
-# declarator, int f() [[nodiscard]];, of which GCC 13 only warns. The object
-# is a target of its own, left out of the build of GAOL and made by the test
-# (cmake --build), with the flags, the definitions and the include directories
-# of GAOL's headers as gaol::gaol carries them, written out here (those of the
-# project GAOL, should another include it): only the headers are read, so that
-# the test does not wait for the library, which gaol::gaol would build first.
+# declarator, int f() [[nodiscard]];, of which GCC 13 only warns. Each is a
+# compile test (gaol_compile_test() above), which reads GAOL's headers only.
 # The tests run in the C locale, the message of GCC and Clang being translated
 # otherwise; that of Visual C++ is looked for by its number. Not with Visual C++
 # before 2019 16.4, whose _Check_return_ before C++17 only /analyze reports, nor
@@ -240,22 +256,15 @@ set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_R
 function(gaol_nodiscard_test standard flags message)
   foreach(kind discard used)
     set(name nodiscard_${kind}_cxx${standard})
-    add_library(gaol_${name} OBJECT nodiscard.cpp)
-    set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE
-                          CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
-    target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
-    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flags})
-    target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
-    add_test(NAME ${name}
-      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-    # One build at a time in the build directory, whatever ctest -j says: the
-    # lock of every compile test
-    set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
-                         ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
     if(kind STREQUAL "discard")
+      gaol_compile_test(${name} nodiscard.cpp "${message}")
       target_compile_definitions(gaol_${name} PRIVATE GAOL_DISCARD)
-      set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${message}")
+    else()
+      gaol_compile_test(${name} nodiscard.cpp "")
     endif()
+    set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flags})
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
   endforeach()
 endfunction()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT MSVC_VERSION LESS 1924)

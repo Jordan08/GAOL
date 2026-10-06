@@ -77,6 +77,10 @@ public:
       CPPUNIT_ASSERT(nb_fp_numbers(-3.5,next_float(-3.5))==2);
       CPPUNIT_ASSERT(nb_fp_numbers(4,4)==1);
       
+#if GAOL_EXCEPTIONS_ENABLED
+      // GAOL raises invalid_action_error where it raises exceptions; without
+      // them (configure --disable-exceptions, meson -Denable-exception=false),
+      // the error ends the program (GAOL v5)
       { 
 	  bool ok = false;
 	  try {	
@@ -177,6 +181,7 @@ public:
 	  }
 	  CPPUNIT_ASSERT(ok);
       }
+#endif
 
   }
   
