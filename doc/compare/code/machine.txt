@@ -9,3 +9,4 @@ GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://git
 libieeep1788:    1f10b89, MPFR 4.2.1, GMP 6.3.0
 filib++:         3.0.2.2, interval<double, native_switched, i_mode_extended_flag>
 PROFIL/BIAS:     2.0.8, x86-64-Linux-compat-gcc configuration, built by clang-18 and clang++-18
+Boost.Interval:  Boost 1.92.0, interval<double> with save_state<rounded_transc_opp<double> > and checking_strict<double>, the elementary functions of the C library, glibc 2.31; measured on 2026-10-06 by run_bench.sh with GAOL v5 alone (LIBS="gaol5 boost"), on a machine running other programs (load average 6 to 8): indicative times
