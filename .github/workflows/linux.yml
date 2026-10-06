@@ -3,7 +3,8 @@
 # (BUILD_SHARED_LIBS). Also with the sanitizers, with -Wall -Wextra -Werror,
 # checking the headers it installs too (GAOL v5), with the minimum version of
 # CMake GAOL declares, and as a part of another project, brought in by
-# FetchContent (tests/fetch_content).
+# FetchContent (tests/fetch_content), which builds GAOL as in Release where it
+# gives no build type (tests/release_flags.py, GAOL v5).
 #
 # The runners have no locale writing a decimal comma, which tests/numbers.cpp
 # reads and writes numbers under where there is one, and where there is none it
@@ -270,6 +271,12 @@ jobs:
         run: |
           cmake -S tests/fetch_content -B build-fetch-content -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" | tee configure.log
           grep -q "Elementary functions: CORE-MATH" configure.log
+      - name: Without a build type, GAOL and CORE-MATH compiled as in Release all the same
+        run: |
+          # configure only: tests/release_flags.py reads compile_commands.json
+          # (GAOL v5: CORE-MATH was compiled without optimization)
+          cmake -S tests/fetch_content -B build-fetch-content-default -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          python3 tests/release_flags.py build-fetch-content-default "$PWD"
       - name: Build
         run: cmake --build build-fetch-content -j 4
       - name: Tests (make test)
