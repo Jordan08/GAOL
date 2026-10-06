@@ -229,12 +229,17 @@ int main()
   std::cout << "    10 times more pieces, about 10 times less excess: linear convergence\n";
 
   // ------------------------------------------------------------------------
-  std::cout << "\nGoldstein-Price on n x n boxes of [-2, 2]^2 (true range [3, 1015690.2717980589])\n";
+  std::cout << "\nGoldstein-Price on n x n boxes of [-2, 2]^2 (true range [3, 1015690.2717980589...])\n";
 
   // In two dimensions, n x n boxes: dividing the excess by 4 costs 16 times
   // as many evaluations
   const interval side(-2.0, 2.0);
-  const interval gp_range = interval(3.0) | interval(1015690.2717980589082988423120822331039464707651154);
+  // The maximum is a decimal that no double holds: the nearest one is
+  // 2.97e-11 under it, and a range read from that double would be too narrow
+  // for the checks below. Read from its text, the interval encloses the real
+  // number, textToInterval rounding outward, as [0.4, 0.6] above already does
+  const interval gp_range = textToInterval("[3, 1015690.2717980589082988423120822331039464707651154]");
+  check(gp_range.right() > 1015690.2717980589, "the range of f is read above the double nearest its maximum");
   // The minimum 3 is f(0, -1): this point evaluation is exact
   check(goldstein_price(interval(0.0), interval(-1.0)).set_eq(interval(3.0)), "f(0, -1) = 3");
   excess_before = 0.0;

@@ -332,10 +332,14 @@ int main()
   // The Goldstein-Price function: f(0, -1) = 1 * (30 + 9 * (18 - 48 + 27)) = 3,
   // its global minimum over [-2, 2]^2; its maximum there is at
   // (-1.7373725377583070, 2), computed by mpmath.
+  // The upper bound of the range is a decimal that no double holds: the
+  // nearest one is 2.97e-11 under it, and a range read from that double would
+  // be too narrow for the check of the natural extension. Read from its text,
+  // the interval encloses the real number, textToInterval rounding outward.
+  const interval gp_range = textToInterval("[3, 1015690.2717980589082988423120822331039464707651154]");
   ok &= compare(
     "Goldstein-Price", [](const auto& x, const auto& y) { return goldstein_price(x, y); },
-    Box{ interval(-2.0, 2.0), interval(-2.0, 2.0) }, interval(3.0),
-    interval(3.0, 1015690.2717980589082989));
+    Box{ interval(-2.0, 2.0), interval(-2.0, 2.0) }, interval(3.0), gp_range);
   std::cout << "\n";
 
   // The six-hump camel: f* computed by mpmath with 60 digits at the zero of
