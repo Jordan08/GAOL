@@ -73,6 +73,8 @@ namespace gaol_names
   GAOL_NAMES_CLASS(log2_node);
   GAOL_NAMES_CLASS(sign_node);
   GAOL_NAMES_CLASS(trunc_node);
+  // The comparator of the containers of the standard library (GAOL v5, point V)
+  GAOL_NAMES_CLASS(lexicographic_less);
 #undef GAOL_NAMES_CLASS
 
   static_assert(same<decltype(gaol::version), const char *const>() && gaol::version_major == GAOL_MAJOR_VERSION,
