@@ -44,10 +44,14 @@ namespace gaol_names
 #define GAOL_NAMES_CLASS(c) static_assert(same<gaol::c, gaol_core::c>(), "gaol::" #c)
   GAOL_NAMES_CLASS(interval);
   GAOL_NAMES_CLASS(interval_format);
+#if GAOL_EXCEPTIONS_ENABLED
+  // The exceptions exist only where GAOL raises them (not with configure
+  // --disable-exceptions nor meson -Denable-exception=false)
   GAOL_NAMES_CLASS(gaol_exception);
   GAOL_NAMES_CLASS(input_format_error);
   GAOL_NAMES_CLASS(invalid_action_error);
   GAOL_NAMES_CLASS(unavailable_feature_error);
+#endif
   GAOL_NAMES_CLASS(timepiece);
   GAOL_NAMES_CLASS(expression);
   GAOL_NAMES_CLASS(expr_node);
@@ -201,9 +205,12 @@ namespace gaol_names
                 && same<decltype(gaol::operator*(e(), e())), const expression>()
                 && same<decltype(gaol::operator/(e(), e())), const expression>(),
                 "gaol::atan2(e1, e2), gaol::nth_root(e, n), gaol::pow(e, n), gaol::operator+(e1, e2)...");
-  static_assert(same<decltype(gaol::operator<<(out(), e())), std::ostream&>()
-                && same<decltype(gaol::operator<<(out(), std::declval<const gaol::gaol_exception&>())), std::ostream&>(),
-                "gaol::operator<< of the expressions and of the exceptions");
+  static_assert(same<decltype(gaol::operator<<(out(), e())), std::ostream&>(),
+                "gaol::operator<< of the expressions");
+#if GAOL_EXCEPTIONS_ENABLED
+  static_assert(same<decltype(gaol::operator<<(out(), std::declval<const gaol::gaol_exception&>())), std::ostream&>(),
+                "gaol::operator<< of the exceptions");
+#endif
   static_assert(same<decltype(gaol::evaluate_expr(e(), std::declval<interval&>())), bool>(), "gaol::evaluate_expr");
 
   // The functions of doubles, the initialization and the rounding of GAOL 4,

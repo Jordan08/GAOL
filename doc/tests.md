@@ -819,8 +819,11 @@ The three builds compile them with `WITH_TESTS` (CMake), `--with-tests`
 (configure) and `with-tests` (meson), all off by default, and run them with
 `make test` (`meson test`, or `ninja test`); `make check` (`ninja check`) runs
 the examples of `examples/` too, where they are built (see
-[Building GAOL](building.md#tests-examples-performance-and-the-parser)). The
-continuous integration runs `make test` in every job. `tests/find_package`
+[Building GAOL](building.md#tests-examples-performance-and-the-parser)). Built
+without exceptions (configure `--disable-exceptions`, meson
+`-Denable-exception=false`), where an error of GAOL ends the program, the tests
+leave out the checks of an exception and of a text the reader refuses (GAOL v5).
+The continuous integration runs `make test` in every job. `tests/find_package`
 builds some of the same tests with an installed GAOL, and
 `.github/scripts/tests.sh` with a GAOL installed by configure or meson.
 

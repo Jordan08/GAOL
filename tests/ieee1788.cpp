@@ -492,11 +492,19 @@ namespace
       check("textToInterval reads the names of IEEE 1788-2015", got.set_eq(c.value),
             [&] { return std::string(c.text) + ": " + hex(got) + " rather than " + hex(c.value); });
     }
-    // The names of GAOL alone, and the calls that are wrong: the empty set
-    const char *const not_the_standard[] = {
+    // The names of GAOL alone, and the calls that are wrong: the empty set.
+    // textToInterval turns the exception of the reader into the empty set:
+    // without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), the error of a wrong call, as pown([2,5],2.5),
+    // ends the program, where a name the reader does not know is still the
+    // empty set
+    std::vector<const char*> not_the_standard = {
       "nth_root(8,3)", "cbrt(8)", "inverse(2)", "integer([1.5,3])", "log1p(0)",
-      "round_ties_to_even(1)", "pown([2,5],2.5)", "sin(1,2)", "fma(1,2)",
+      "round_ties_to_even(1)",
     };
+#if GAOL_EXCEPTIONS_ENABLED
+    not_the_standard.insert(not_the_standard.end(), { "pown([2,5],2.5)", "sin(1,2)", "fma(1,2)" });
+#endif
     for (const char *t : not_the_standard) {
       const interval got = textToInterval(t);
       check("textToInterval gives the empty set for a name of GAOL alone or a wrong call",
@@ -780,11 +788,16 @@ namespace
           const std::string text = point.str();
           bool refused = false;
           interval back;
+#if GAOL_EXCEPTIONS_ENABLED
           try {
             back = gaol::textToInterval(text);
           } catch (const gaol::input_format_error&) {
             refused = true;
           }
+#else
+          // Without exceptions, a text the reader refuses ends the program
+          back = gaol::textToInterval(text);
+#endif
           const bool one_number = (text.find(", ") == std::string::npos);
           check("operator<< of a point under that locale: read back as an interval containing it, [a] as the point",
                 !refused && back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x)),
