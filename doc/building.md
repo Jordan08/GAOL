@@ -347,7 +347,7 @@ integration checks that they write the same header on each kind of machine
 | Macro | Defined | CMake | configure | meson |
 |---|---|---|---|---|
 | `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION.txt` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `VERSION.txt`, read when configure runs | `project()` |
-| `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and the macro `GAOL_DEBUG(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
+| `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
 | `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
 | `GAOL_PREFER_AVX512` | +, -, *, / and sqrt take the AVX-512 instructions on a processor that has them | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |

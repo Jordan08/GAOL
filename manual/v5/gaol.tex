@@ -5000,9 +5000,11 @@ checks its assertions.
   \code{gaol} too.
 \end{deffun}
 
-\begin{defmacroA}{GAOL\_DEBUG}{(\var{lvl},\var{cmd})}
+\begin{defmacroA}{GAOL\_DEBUG\_VERBOSE}{(\var{lvl},\var{cmd})}
   Executes \var{cmd} if \var{lvl} is lower or equal to the current debugging
-  level (see the variable \code{debug\_level} above).
+  level (see the variable \code{debug\_level} above). It was named
+  \code{GAOL\_DEBUG} before GAOL v5, which is now the option of CMake that
+  builds GAOL for debugging.\newinvfive
 
   This macro defaults to nothing if the library was not configured with the
 debugging facilities.
@@ -5016,9 +5018,9 @@ interval x(-10,10);
 
 @emph^[Some code]~
 
-GAOL_DEBUG(1,cout << "The value of x is " << x);
+GAOL_DEBUG_VERBOSE(1,cout << "The value of x is " << x);
 x += interval(3.5,4.5);
-GAOL_DEBUG(2,cout << "Now the value of x is " << x);
+GAOL_DEBUG_VERBOSE(2,cout << "Now the value of x is " << x);
 \end{example}
 
 The first message will be displayed whenever the debugging level is at least

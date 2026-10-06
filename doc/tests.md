@@ -640,10 +640,11 @@ mode there.
 - **`debugging`:** GAOL's headers compiled with `GAOL_DEBUGGING`, which the
   Debug builds define (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
   `meson setup --buildtype=debug`), whatever the build: an expression is built
-  and evaluated, its nodes calling `GAOL_DEBUG`, which has to run its command
-  at the level given to `gaol::init()` and not above. `gaol/gaol_expression.h`
-  did not compile with `GAOL_DEBUGGING`: its `GAOL_DEBUG` wrote on `std::cout`,
-  which no header included (GAOL v5).
+  and evaluated, its nodes calling `GAOL_DEBUG_VERBOSE` (`GAOL_DEBUG` before
+  GAOL v5), which has to run its command at the level given to `gaol::init()`
+  and not above. `gaol/gaol_expression.h` did not compile with
+  `GAOL_DEBUGGING`: its `GAOL_DEBUG_VERBOSE` wrote on `std::cout`, which no
+  header included (GAOL v5).
 - **`version_file`** (CMake only: a script of CMake, not a program): the
   reading of `VERSION.txt` by `CMakeLists.txt`, `gaol_read_version()` of
   `cmake/gaol_version.cmake`, has to ignore a UTF-8 byte order mark at the
