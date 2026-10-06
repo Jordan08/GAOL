@@ -79,6 +79,8 @@ and Clang) on x64 and GCC 11 on x86,
 `refused_*` of the three builds, see [Tests](tests.md)), and Visual C++ and
 clang-cl without `/fp:strict`. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
+and Clang (which take the AVX-512 path where the processor has it, Clang having
+computed a difference of that path once flush-to-zero was set back, GAOL v5)
 and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in
 their summary.
