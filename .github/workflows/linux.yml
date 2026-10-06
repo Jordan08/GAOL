@@ -4,7 +4,8 @@
 # checking the headers it installs too (GAOL v5), with the minimum version of
 # CMake GAOL declares, and as a part of another project, brought in by
 # FetchContent (tests/fetch_content), which builds GAOL as in Release where it
-# gives no build type (tests/release_flags.py, GAOL v5).
+# gives no build type (tests/release_flags.py, GAOL v5). The test
+# cpack_stale_configure also runs with ccache in CC and Ninja outside PATH.
 #
 # The runners have no locale writing a decimal comma, which tests/numbers.cpp
 # reads and writes numbers under where there is one, and where there is none it
@@ -260,6 +261,37 @@ jobs:
         run: cmake --build build --target test
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
+
+  # The test cpack_stale_configure configures copies of the tree with the
+  # compilers and the generator that configured GAOL: with a compiler given
+  # with an argument, which CMake keeps in CMAKE_C_COMPILER_ARG1, and Ninja
+  # outside PATH, where CMake finds it by CMAKE_MAKE_PROGRAM only. The test
+  # needs no build (GAOL v5)
+  launcher-ninja:
+    name: Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: ccache, and Ninja outside PATH
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ccache
+          curl -sSL -o "$RUNNER_TEMP/ninja-linux.zip" https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip
+          unzip -q "$RUNNER_TEMP/ninja-linux.zip" -d "$RUNNER_TEMP/ninja"
+          # A Ninja of the image, under the names CMake looks for in PATH
+          for name in ninja-build ninja samu; do
+            for program in $(which -a "$name"); do sudo rm -f "$program"; done
+            if command -v "$name"; then exit 1; fi
+          done
+      - name: Configure
+        run: CC="ccache gcc" CXX="ccache g++" cmake -S . -B build -G Ninja -DCMAKE_MAKE_PROGRAM="$RUNNER_TEMP/ninja/ninja" -DWITH_TESTS=ON
+      - name: The test cpack_stale_configure, which has to run, not be skipped
+        run: |
+          cd build
+          ctest -R cpack_stale_configure --no-tests=error > ctest.log 2>&1 || { cat ctest.log; exit 1; }
+          cat ctest.log
+          if grep -q Skipped ctest.log; then exit 1; fi
 
   fetch-content:
     name: Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent

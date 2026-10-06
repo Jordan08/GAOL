@@ -12,12 +12,12 @@
 # is ON (see CMakeLists.txt): make check then runs the examples, with the unit
 # tests, and make test leaves them out (label example).
 #
-# Examples 01 to 15 check what they print (the enclosures contain the values
-# computed apart, the proofs hold) and exit with a failure otherwise, so that
-# ctest runs them as tests. 16_Goldstein_Price is the example of GAOL 4, a
-# timing loop that checks its enclosure too, which the autotools and meson
-# builds of GAOL also compile (Makefile.am, meson.build). examples.md describes
-# them all.
+# The sixteen examples check what they print (the enclosures contain the
+# values computed apart, the proofs hold) and exit with a failure otherwise,
+# so that ctest runs them as tests. 16_Goldstein_Price is the example of
+# GAOL 4, a timing loop that checks its enclosure too. The autotools and
+# meson builds compile the sixteen as well (Makefile.am, meson.build).
+# examples.md describes them all.
 #
 # Copyright (c) 2026 ENSTA, France
 #

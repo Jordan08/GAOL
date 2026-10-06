@@ -158,9 +158,11 @@ cmake --build build --target package
 
 The archive takes its name from the version CMake read when it configured, and
 CMake warns of a `configure` generated for another version at that moment.
-After a change of `VERSION.txt`, configure the build directory again
-(`cmake -S . -B build`) before `package_source`: Ninja does it by itself, the
-Makefile generators do not.
+After a change of `VERSION.txt`, `package_source` configures the build
+directory again first, whatever the generator: Ninja does before it runs CPack,
+and CPack does when `VERSION.txt` holds another version than the build
+directory was configured for (`cmake/gaol_package_source.cmake`, GAOL v5),
+where the Makefile generators ran CPack at once.
 
 The packages hold `libgaol` as the build compiled it: with `GAOL_FMA` `ON`,
 the default, only the processors that have the fused multiply-add

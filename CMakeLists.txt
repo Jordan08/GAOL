@@ -965,7 +965,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # The archive of the sources: the files of the repository, without what git
   # ignores (.gitignore), the builds within the sources, the packages, and the
   # notes of the work on GAOL v5 (TODO.md, process.md, todo-notes/), which
-  # serve its maintainers, not the users of a version
+  # serve its maintainers, not the users of a version. CPack writes the CPACK_*
+  # variables into CPackConfig.cmake and CPackSourceConfig.cmake, which it reads
+  # when it runs: CPACK_VERBATIM_VARIABLES has it escape them, so that the
+  # backslashes of these regular expressions reach it as they are, where CMake
+  # 3 warned of an invalid escape sequence, \. (CMP0010, GAOL v5)
+  set(CPACK_VERBATIM_VARIABLES ON)
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
   string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
@@ -989,7 +994,15 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # warn while it configures only, so it does here, whether or not the archive
   # is made. A tree without configure, or with a configure that has no such
   # line, has nothing to compare (tests/cpack_stale_configure.cmake checks it,
-  # GAOL v5).
+  # GAOL v5). As the archive takes its name from the version CMake read when it
+  # configured, CPack includes cmake/gaol_package_source.cmake, which configures
+  # the build directory again first when VERSION.txt holds another version:
+  # Ninja does before package_source, the Makefile generators did not.
+  set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/cmake/gaol_package_source.cmake")
+  set(CPACK_GAOL_VERSION "${PROJECT_VERSION}")
+  set(CPACK_GAOL_CMAKE_COMMAND "${CMAKE_COMMAND}")
+  set(CPACK_GAOL_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
+  set(CPACK_GAOL_BINARY_DIR "${PROJECT_BINARY_DIR}")
   if(EXISTS "${PROJECT_SOURCE_DIR}/configure")
     file(STRINGS "${PROJECT_SOURCE_DIR}/configure" _gaol_configure_version REGEX "^PACKAGE_VERSION='" LIMIT_COUNT 1)
     if(_gaol_configure_version MATCHES "^PACKAGE_VERSION='([^']*)'")

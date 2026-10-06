@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `ccf694a` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `0f08295` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -128,6 +128,30 @@ sans `abort()`. Trouvé en fin de travail : avec Clang, `-ffast-math` et `-Ofast
 coupent `-frounding-math`, que `-fno-fast-math` ne rétablit pas (documenté dans
 `doc/three-builds.md`). La description de #91, écrite avant la fin du travail,
 ne donne pas les textes pour `ChangeLog` et `doc/differences.md`.
+Fait le 6 octobre aussi : le point N (anciens 44 et 63), par #94 :
+`cpack_stale_configure` passe aux copies de l'arbre les compilateurs avec leurs
+arguments (`CC="ccache gcc"`) et le programme du générateur (un Ninja hors du
+`PATH`), ce que vérifie un job de `linux.yml`, et se dit ignoré sans `sh` ou
+sans liens symboliques ; `package_source` reconfigure quand `VERSION.txt` donne
+une autre version que la configuration (`cmake/gaol_package_source.cmake`, que
+CPack inclut, dès CMake 3.14 : il ne fallait pas CMake 3.19), avec les
+générateurs Makefile aussi. Décidé en fin de travail : la reconfiguration reste
+limitée à ce changement de version ; ajouté à #94, `CPACK_VERBATIM_VARIABLES`,
+sans lequel CMake 3 avertissait (CMP0010) et CMake 4 relisait
+`CPACK_SOURCE_IGNORE_FILES` sans ses barres obliques inverses (`\.lo$` lu
+`.lo$`). Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
+description de #94.
+
+Fait le 6 octobre aussi : le point T (anciens 39 et 66), par #93 : le
+maximum de Goldstein-Price, qu'aucun double ne contient (le plus proche est
+2,97e-11 dessous), lu avec `textToInterval` dans les exemples 03 et 06, qui
+vérifient maintenant l'image réelle ; l'exemple 16 garde la mise en page de
+GAOL 4 dans `main()`, ses constantes suivant le style des autres exemples ;
+`examples/CMakeLists.txt` dit que les trois builds compilent les seize
+exemples ; les phrases d'`examples.md` qui donnaient comme ouverts les 29
+« formatting slips », `chi([0,0])`, les 400 bits et `[[nodiscard]]` en
+C++17 seulement marquent ce qui est corrigé. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #93.
 
 ## En cours
 
@@ -479,27 +503,6 @@ qu'elles l'ont trouvé.
 
 ## Autres points
 
-### N. `cpack_stale_configure` (44, 63)
-
-- **44.** **Les suites du test `cpack_stale_configure`** (#33), qui vérifie que
-  CMake avertit d'un `configure` généré pour une autre version. Il échoue à tort
-  quand le compilateur du parent porte un argument (`CC="ccache gcc"`) ou que
-  Ninja est hors du `PATH` : décidé le 3 octobre, passer les compilateurs par
-  `cmake -E env`. Sans `sh` ou sans liens symboliques, il s'arrête sur
-  `FATAL_ERROR` au lieu de se dire ignoré. Avec les générateurs Makefile,
-  `package_source` ne relance pas CMake après un changement de `VERSION.txt`
-  (documenté ; le vérifier à l'archive demanderait CMake 3.19) : décidé, faire
-  dépendre `package_source` d'une reconfiguration ; le contrôle reste un test
-  CTest (jusqu'à 52 s sous QEMU).
-- **63.** **Le commentaire de `cpack_stale_configure`** (suite du point 44,
-  #33) : « The script removes what it made in this directory, and nothing else »
-  (`tests/cpack_stale_configure.cmake`, l. 46) est inexact,
-  `file(REMOVE_RECURSE)` retirant tout le répertoire (la suppression est sûre,
-  c'est le commentaire qui est faux) ; `doc/tests.md` (l. 595) dit « CMake
-  build » sans dire pourquoi autotools et meson n'ont pas ce test (seul CMake
-  fait l'archive, et le job autotools compare déjà `configure --version` à
-  `VERSION.txt`).
-
 ### O. meson et les fichiers de build (41, 42, 52, 65)
 
 - **41.** **GAOL ne peut pas être un sous-projet meson** : `meson.build` appelle
@@ -584,23 +587,6 @@ le point D a changé (#84), sa partie parser se fait avec le point E.
   un flux et au plus proche, comme avant, le `snprintf` qu'il appelle pour les
   autres bornes l'ayant écrite 0 avec MSYS2 CLANG64 : c'est elle qu'il faut
   arrondir vers l'extérieur.
-
-### T. Les exemples (39, 66)
-
-- **39.** **Les restes de Goldstein-Price** (le +1 et « encloses the range »
-  sont corrigés par #53) : `examples/03_dependency_problem.cpp` et
-  `examples/06_global_optimization.cpp` écrivent le maximum sur [-2, 2]² comme
-  un double, 2,97e-11 sous le vrai, si bien que leur vérification « l'enveloppe
-  contient l'image » teste un intervalle trop étroit : le lire avec
-  `textToInterval`, qui arrondit vers l'extérieur. L'exemple 16 garde le style
-  de GAOL 4 dans `main()`. Les phrases d'`examples/examples.md` qui en parlent
-  (des sorties identiques sur tous les builds, aucun avertissement avec `-Wall
-  -Wextra`, vrai seulement en `-isystem`) sont pour la pull request de synthèse.
-- **66.** **Les textes des exemples** (#53, #55) : `examples/CMakeLists.txt`
-  (l. 18, « which the autotools and meson builds also compile ») semble renvoyer
-  à l'enveloppe ; la section 3 de `examples/examples.md` (l. 533) parle encore
-  de « three formatting slips » (il y en avait 29, corrigés) et donne comme
-  ouverts `chi([0,0]) = 0`, les 400 bits et `[[nodiscard]]` en C++17 seulement.
 
 ### U. Petites erreurs (40, 64)
 
@@ -723,7 +709,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90, #91 et #92 après leur fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92 et #94 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -741,10 +727,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ;
 12 : E ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
-30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
-40 : E et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ;
+30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 40 : E et U ; 41 : O ; 42 : O ; 45 : Q ; 46 : F ; 47 : A ;
 51 : B ; 52 : O ; 56 : A ; 58 : F ; 59 : F ;
-60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y ; 72 : B ;
+60 : F ; 61 : F ; 64 : U ; 65 : O ; 70 : I ; 71 : Y ; 72 : B ;
 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
@@ -766,7 +751,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
    Faire F après la régénération du parser ; corriger `3rd/README.md` avant tout
    envoi amont pour A et valider les plateformes prises en charge. G est fait
-   par #91.
+   par #91, N par #94.
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les

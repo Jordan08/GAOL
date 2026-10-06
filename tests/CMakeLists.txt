@@ -163,21 +163,32 @@ endif()
 # The warning of the CPack block of CMakeLists.txt, when the configure that the
 # archive of the sources holds was generated for another version than VERSION.txt
 # holds (GAOL v5): not a program, a script that configures copies of the tree
-# with the compiler that built GAOL (cpack_stale_configure.cmake). Only the CMake
-# build makes the archive; the copies are made of symbolic links, so the script
-# runs on the machine that builds, where the system has them, and it asks the
-# configure of the tree its version, so there has to be one. The time limit is
-# that of a few configurations, on a slow machine.
+# with the compilers that built GAOL, and makes the archive after a change of
+# VERSION.txt (cpack_stale_configure.cmake). Only the CMake build makes the
+# archive; the copies are made of symbolic links, so the script runs on the
+# machine that builds, and it asks the configure of the tree its version, so
+# there has to be one. The compilers are passed with their arguments, which
+# CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and
+# CMAKE_C_COMPILER_ARG1 gcc. Without sh, or on a system that makes no symbolic
+# link, the script says it is skipped, which CTest reads from CMake 3.16 (the
+# test passes before). The time limit is that of a few configurations, on a
+# slow machine.
 if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR}/configure")
+  foreach(_lang C CXX)
+    string(STRIP "${CMAKE_${_lang}_COMPILER_ARG1}" _gaol_arguments)
+    string(STRIP "${CMAKE_${_lang}_COMPILER} ${_gaol_arguments}" _gaol_${_lang}_compiler)
+  endforeach()
   add_test(NAME cpack_stale_configure
     COMMAND "${CMAKE_COMMAND}"
       "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
       "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/cpack_stale_configure"
       "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
-      "-DGAOL_C_COMPILER=${CMAKE_C_COMPILER}"
-      "-DGAOL_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+      "-DGAOL_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DGAOL_C_COMPILER=${_gaol_C_compiler}"
+      "-DGAOL_CXX_COMPILER=${_gaol_CXX_compiler}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cpack_stale_configure.cmake")
-  set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600)
+  set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600
+    SKIP_REGULAR_EXPRESSION "cpack_stale_configure: skipped")
 endif()
 
 # Commented out: the tests run no thread (GAOL v5)

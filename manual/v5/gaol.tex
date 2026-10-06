@@ -541,7 +541,8 @@ CPack makes them from the CMake build, in the directory of the build:
   from a clean checkout, and holds \file{configure} as it was generated. CMake
   warns, when it configures, if that was for another version than
   \file{VERSION.txt} holds: \cmd{configure --version} would give the old one
-  in the archive;
+  in the archive. After a change of \file{VERSION.txt}, \code{package\_source}
+  configures the build directory again first, whatever the generator;
 \item \code{package} gives \file{gaol-\var{version}-\var{system}.tar.gz},
   what \cmd{cmake --install} installs, to extract anywhere, and on Linux
   \file{libgaol-dev\_\var{version}\_\var{arch}.deb}, the same files in
