@@ -1101,8 +1101,8 @@ namespace gaol_core {
     [-0, -0], is written [0], the text of +0: the three are the set {0}, which
     [0] and [-0] are both read back as, and the text of interval::zero() is
     then the same whatever the build ([-0, +0] with the SSE2 intervals,
-    [+0, +0] with the FPU ones); the hexadecimal format writes the signs of the
-    bounds. The bounds are compared by their bits: under denormals-are-zero,
+    [+0, +0] with the FPU ones), and the hexadecimal format writes it [0x0p+0].
+    The bounds are compared by their bits: under denormals-are-zero,
     which a program may set, a subnormal compares equal to 0, and l == r and
     l == 0.0 would have [0, 5e-324] written [0]. (Under that mode,
     bound_to_text() takes a subnormal bound for 0 as well, and writes it

@@ -555,6 +555,9 @@ namespace
     /* An uncertain number is an interval literal of its own, not a bound:
        [5?1], and the uncertain numbers as bounds in the other forms, which
        the grammar reading every string as an expression accepted (GAOL v5) */
+#if GAOL_EXCEPTIONS_ENABLED
+    // Without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), a text the reader refuses ends the program
     const char *const invalid[] = { "[5?1]", "[1 000 000]", "[ganz]", "[entire!comment]", "5???u", "[1,2,3]", "3.56?1?",
                                     "[5?1, 6]", "[1, 3.56?1]", "[3.56?1,]", "[,3.56?1]", "[- 3.56?1]" };
     for (const char *s : invalid) {
@@ -568,6 +571,7 @@ namespace
       }
       check("IEEE 1788 literals: input_format_error for what is not one", threw, [&] { return std::string(s); });
     }
+#endif
 
     // Doubles written in hexadecimal, with 13 digits after the point, are read
     // exactly; with a 14th digit 8, half a unit above them, as the tightest
@@ -608,6 +612,8 @@ namespace
       }
       check("textToInterval(expression) read again: the same interval", same, [&] { return std::string(s); });
     }
+#if GAOL_EXCEPTIONS_ENABLED
+    // Without exceptions, a text the reader refuses ends the program
     const char *const invalid[] = { "nth_root(8, 1.5)", "nth_root(8, 1.5)+1", "[nth_root(8, 1.5), 2]",
                                     "sin(1)+", "[sin(1), cos(", "(1+2", "[1, 2*(3+4]", "pow(2, 1)+*3",
                                     "<1, 2>", "exp(1) exp(2)", "nth_root([1,2], 1.5)",
@@ -624,6 +630,7 @@ namespace
         check("textToInterval(expression) not computed: an exception", threw, [&] { return std::string(s); });
       }
     }
+#endif
     // atan2(y, x) in expressions: 4 atan2(1, 1) is the tightest enclosure of
     // pi, and atan2(0, 0), which has no value, is empty
     const interval four_angles = textToInterval("4*atan2(1, 1)"), none = textToInterval("atan2(0, 0)"),
@@ -1209,8 +1216,10 @@ namespace
     }
     try {
       std::rethrow_exception(e);
+#if GAOL_EXCEPTIONS_ENABLED
     } catch (const input_format_error&) {
       return "input_format_error";
+#endif
     } catch (const std::ios_base::failure&) {
       return "std::ios_base::failure";
     } catch (...) {
@@ -1644,6 +1653,9 @@ namespace
             !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
             [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
+#if GAOL_EXCEPTIONS_ENABLED
+    // A line the reader refuses: input_format_error where GAOL raises
+    // exceptions; without them, the error ends the program
     {
       std::istringstream in("[1, 2\n");
       interval x(1.0, 2.0);
@@ -1688,6 +1700,7 @@ namespace
       check("operator>> of a line that is no interval, on a stream throwing on failbit: input_format_error",
             format_error && in.fail(), [&] { return std::string(format_error ? "input_format_error" : "another exception"); });
     }
+#endif
 
     // Blank lines: a file ending with an empty line, and blank lines, or lines
     // of blanks, before and between the intervals, whatever their line ends
@@ -1727,6 +1740,9 @@ namespace
             !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
             [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
+#if GAOL_EXCEPTIONS_ENABLED
+    // Lines that are no interval: input_format_error where GAOL raises
+    // exceptions; without them, the error ends the program
     // An interval written on two lines is two lines, of which the first is no interval
     {
       const loop_result r = read_intervals("\n[1,\n2]\n");
@@ -1741,6 +1757,7 @@ namespace
             r.ended == "input_format_error" && r.fail,
             [&] { return describe(r); });
     }
+#endif
 
     // GAOL leaves the rounding direction upward, and the C runtime of Windows reads 1.5 in that
     // direction one double above (1.5 + 2^-52) where glibc reads it exactly: what these checks are

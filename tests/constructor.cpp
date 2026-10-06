@@ -6,6 +6,7 @@
 #include <climits>
 #include <type_traits>
 
+#if GAOL_EXCEPTIONS_ENABLED
 #define TEST_INOUT_EQ(Istr,Ires)  \
   try {                           \
        interval I = textToInterval(Istr); \
@@ -21,6 +22,16 @@
   } catch (const input_format_error&) {  \
     CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
+#else
+// Without exceptions (configure --disable-exceptions, meson
+// -Denable-exception=false), input_format_error does not exist, and a string
+// the reader refused would end the program (GAOL v5)
+#define TEST_INOUT_EQ(Istr,Ires)  \
+  do { interval I = textToInterval(Istr); TEST_EQ(I,Ires); } while (0)
+
+#define TEST_INOUT_SEQ(Istr,Ires) \
+  do { interval I = textToInterval(Istr); TEST_SEQ(I,Ires); } while (0)
+#endif
 
 
 class constructor_test {

@@ -63,9 +63,6 @@ public:
 		}
 #endif
 
-#if GAOL_EXCEPTIONS_ENABLED
-		try {
-#endif
 			instr.clear();
 			instr.str("<3,3>");
 			instr >> I;
@@ -118,10 +115,21 @@ public:
       instr.str("-inf");
       instr >> I;
       CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+#if GAOL_EXCEPTIONS_ENABLED
+      // -inf reads [-oo, -MAX], which is no double: the two bounds of
+      // <-inf, -inf> are not one value, and the reader refuses it, as
+      // <inf, inf> below, where the checks of GAOL 4 expected [-oo, -MAX] and
+      // [MAX, +oo]. The exception went to the try that held these checks,
+      // which printed it and skipped the six after it (GAOL v5)
       instr.clear();
       instr.str("<-inf,-inf>");
-      instr >> I;
-      CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+      try {
+        instr >> I;
+        CPPUNIT_FAIL("no exception for <-inf,-inf>");
+      } catch (const input_format_error& e) {
+        CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
+      }
+#endif
       instr.clear();
       // A lower bound +oo or an upper bound -oo leaves no interval, as
       // numsToInterval of IEEE 1788-2015 (10.5.8)
@@ -144,14 +152,15 @@ public:
       instr.str("[inf,inf]");
       instr >> I;
       TEST_EMPTY(I);
+#if GAOL_EXCEPTIONS_ENABLED
       instr.clear();
       instr.str("<inf,inf>");
-      instr >> I;
-      CPPUNIT_ASSERT(I.left()==std::numeric_limits<double>::max() && I.right()==GAOL_INFINITY);
-#if GAOL_EXCEPTIONS_ENABLED
-		} catch (const input_format_error& e) {
-	  		std::cerr <<  e;
-      	}
+      try {
+        instr >> I;
+        CPPUNIT_FAIL("no exception for <inf,inf>");
+      } catch (const input_format_error& e) {
+        CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
+      }
 #endif
 	}
 
