@@ -114,10 +114,10 @@ Release all the same: `-O3` (`/O2` with Visual C++), `NDEBUG` and the
 optimizations of configure (GAOL v5: GAOL had `-O3` alone, and CORE-MATH no
 optimization). With a generator of several configurations (Visual Studio,
 Xcode, Ninja Multi-Config), GAOL built alone puts Release first among them,
-which Ninja Multi-Config builds by default and the IDEs show first, unless
-`CMAKE_CONFIGURATION_TYPES` is given; `cmake --build` with Visual Studio
-builds Debug all the same without `--config` (GAOL v5). `GAOL_DEBUG` builds
-GAOL for debugging whatever the build type or the configuration (below).
+which Ninja Multi-Config builds by default, unless `CMAKE_CONFIGURATION_TYPES`
+is given; `cmake --build` with Visual Studio builds Debug all the same without
+`--config` (GAOL v5). `GAOL_DEBUG` builds GAOL for debugging whatever the
+build type or the configuration (below).
 
 | Option | Default | |
 |---|---|---|
@@ -133,7 +133,7 @@ GAOL for debugging whatever the build type or the configuration (below).
 | `GAOL_FMA` | `ON` | Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them and the machine building runs a program compiled with it (not checked when cross-compiling): `-mfma` on x86 (not with GCC for Windows), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then needs a processor with them (on x86, Intel Haswell and AMD Piledriver, 2012-2013, and later); `OFF` builds it for any processor of the architecture. The code using GAOL is given the flag too, in `gaol::gaol` and `gaol.pc`, and `-ffp-contract=off` stays (see [The three builds](three-builds.md)) |
 | `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
-| `GAOL_DEBUG` | `OFF` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG` and with `GAOL_DEBUGGING`, whatever the build type or the configuration, a project bringing GAOL in included, as `enable-debug` of meson and `--enable-debug` of configure; the tests and the examples, and the code of that project, keep their build type (GAOL v5) |
+| `GAOL_DEBUG` | `OFF` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG`, with debugging information and `GAOL_DEBUGGING`, whatever the build type or the configuration, a project bringing GAOL in included, as `enable-debug` of meson and `--enable-debug` of configure. Each configuration keeps its other flags (the C runtime of Visual C++, sanitizers...); the tests and the examples, and the code of that project, keep their build type; there is no target `perf` (GAOL v5) |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
 | `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, which sets neither the rounding direction nor the flush-to-zero modes (GAOL v5, see [The rounding direction](using.md#the-avx-512-path)) |
 
@@ -214,7 +214,7 @@ their defaults:
 | Option | Default | |
 |---|---|---|
 | `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`, for the C++ and C sources alike (GAOL and CORE-MATH), as the Release build of CMake; `--disable-optimize` compiles with `-O` |
-| `--enable-debug` | `no` | The Debug build of CMake: `-g`, no optimization and no `NDEBUG` (`--enable-optimize` is then ignored), and GAOL's assertions (`GAOL_DEBUGGING`); brought into another project with `AC_CONFIG_SUBDIRS`, the `--enable-debug` of its configure, which passes on its options, as `GAOL_DEBUG` of CMake and `enable-debug` of meson |
+| `--enable-debug` | `no` | The Debug build of CMake: `-g`, no optimization and no `NDEBUG` (`--enable-optimize` is then ignored), and GAOL's assertions (`GAOL_DEBUGGING`); brought into another project with `AC_CONFIG_SUBDIRS`, the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well, where `GAOL_DEBUG` of CMake and `enable-debug` of meson build the libraries alone so |
 | `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `--enable-fma` | `yes` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
@@ -254,7 +254,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `enable-fma` | `true` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
-| `enable-debug` | `false` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG` and with `GAOL_DEBUGGING`, whatever the build type, a subproject included (`-Dgaol:enable-debug=true`), as `GAOL_DEBUG` of CMake and `--enable-debug` of configure (GAOL v5: it defined `GAOL_DEBUGGING` alone, and was gone) |
+| `enable-debug` | `false` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG` and with `GAOL_DEBUGGING`, whatever the build type, a subproject included (`-Dgaol:enable-debug=true`), as `GAOL_DEBUG` of CMake and `--enable-debug` of configure; the tests and the examples keep the build type, and there is no target `perf` (GAOL v5: it defined `GAOL_DEBUGGING` alone, and was gone) |
 | `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
 | `enable-prefer-avx512` | `false`, `true` with `enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, as `GAOL_PREFER_AVX512`; meson cannot refuse the path under `enable-preserve-rounding`, which `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5) |
@@ -345,7 +345,7 @@ integration checks that they write the same header on each kind of machine
 | Macro | Defined | CMake | configure | meson |
 |---|---|---|---|---|
 | `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION.txt` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `VERSION.txt`, read when configure runs | `project()` |
-| `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
+| `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and the macro `GAOL_DEBUG(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
 | `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
 | `GAOL_PREFER_AVX512` | +, -, *, / and sqrt take the AVX-512 instructions on a processor that has them | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
