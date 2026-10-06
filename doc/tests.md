@@ -387,10 +387,13 @@ mode there.
   subnormals (`[0, 5e-324]`, `[5e-324]`, `[-5e-324, 0]`...) written with 16
   digits under denormals-are-zero have to be read back, the mode restored, as
   intervals enclosing them: `operator<<` compares their bounds by their bits,
-  and does not write them `[0]` (GAOL v5). A subnormal bound is then written
-  by the C library, which compares it with 0 too where it uses gdtoa (FreeBSD,
-  macOS), and writes 0: nothing is checked where the C library does not write
-  the bounds of the test under the mode as it does without it.
+  and does not write them `[0]` (GAOL v5). The text has to be the one written
+  without the mode: `operator<<` clears it before it writes (GAOL v5, point
+  Q). It wrote a subnormal bound rounded to nearest, `[0, 4.94e-324]` with 3
+  digits, below the upper bound, by the C library, which compares it with 0
+  too where it uses gdtoa (FreeBSD, macOS) and writes 0, and whose Debug
+  runtime of Visual C++ reports a failed assertion: the test skipped them,
+  and now checks them.
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances (of intervals with infinite bounds too, equal bounds being at

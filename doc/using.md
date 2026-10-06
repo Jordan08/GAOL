@@ -635,12 +635,15 @@ as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
 integer powers, the elementary functions, the reading of a number — leave it
 upward, as they always do. These operations raise no floating-point
 exception flag of their own, the architecture requiring the exception
-suppression with the embedded rounding. The modes that flush the subnormal numbers to zero,
-which the embedded rounding does not ignore on the operands (measured on an
-Intel i7-1185G7), are cleared before the operation reads a bound when a
-program or a plug-in has set them, as the other operations clear them; the
-subnormal results, which the embedded rounding computes exactly where
-flush-to-zero alone would flush them, are the tighter for it.
+suppression with the embedded rounding. The modes that flush the subnormal
+numbers to zero, which the embedded rounding honours as the other
+instructions do (measured on an Intel i7-1185G7: with flush-to-zero set,
+the difference of 3e-308 and 2.9e-308 is 0), are cleared before the
+operation reads a bound when a program or a plug-in has set them, as the
+other operations clear them, and set back after its result with
+`GAOL_PRESERVE_ROUNDING`: with Clang 18, the difference of `x - y` was
+computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
+[0, 0] (GAOL v5).
 
 The bounds are those of the other path, bit for bit: the rounding rule is
 the same, and the tests of `tests/`, which a job of the continuous
@@ -777,7 +780,8 @@ check, the modes left as it found them), nor the test by which `hausdorff()`
 returns +oo before its check when a bound is infinite in one of its two
 intervals only. The modes of other processors, and
 of ARM with Visual C++, are neither checked nor cleared, though the functions
-above compare the bounds right there too; GCC links
+above compare the bounds right there too, and `operator<<` writes a subnormal
+bound outward, as 2^-1022 away from zero and 0 toward it; GCC links
 `crtfastmath.o` for none of the other processors GAOL is tested on. Link a
 program that uses GAOL without these options, or with `-mno-daz-ftz`, and
 compile the code that needs them apart from it.

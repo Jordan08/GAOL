@@ -1221,8 +1221,9 @@ an empty operand may return before its check, the modes left as it found
 them), nor the test by which \code{hausdorff()} returns $+\infty$ before its
 check when a bound is infinite in one of its two intervals only. The modes of
 other processors, and of ARM with Visual C++, are neither checked nor
-cleared, though the functions above compare the bounds right there too; GCC
-links \file{crtfastmath.o} for none of the other processors GAOL is tested
+cleared, though the functions above compare the bounds right there too, and
+\code{operator<{}<} writes a subnormal bound outward, as $2^{-1022}$ away from
+zero and 0 toward it; GCC links \file{crtfastmath.o} for none of the other processors GAOL is tested
 on. Link a program that uses GAOL without these options, or with
 \option{-mno-daz-ftz}, and compile the code that needs them apart from it.
 
