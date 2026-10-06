@@ -124,6 +124,8 @@ namespace gaol_names
   GAOL_NAMES_UNARY(asinpi);
   GAOL_NAMES_UNARY(acospi);
   GAOL_NAMES_UNARY(atanpi);
+  GAOL_NAMES_UNARY(erf);
+  GAOL_NAMES_UNARY(erfc);
   GAOL_NAMES_UNARY(trunc);
   GAOL_NAMES_UNARY(sign);
   GAOL_NAMES_UNARY(round_ties_to_even);

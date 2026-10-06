@@ -408,6 +408,12 @@ namespace
           [&] { return hex(gaol_ieee1788::sin(x)); });
     check("the functions of C on numbers are C's", sqrt(4.0) == 2.0 && floor(2.5) == 2.0 && abs(-3) == 3,
           [] { return std::string(); });
+    // erf and erfc, which IEEE 1788-2015 does not name and gaol_ieee1788
+    // does not hold: argument-dependent lookup finds those of gaol_core on an
+    // interval, and erf(0.0) remains C's (GAOL v5)
+    check("erf and erfc on an interval are GAOL's, on a number C's",
+          erf(x).set_eq(gaol::erf(x)) && erfc(y).set_eq(gaol::erfc(y)) && erf(0.0) == 0.0 && erfc(0.0) == 1.0,
+          [&] { return hex(erf(x)) + " " + hex(erfc(y)); });
   }
 
   // Every name of the standard gaol_ieee1788 provides, called unqualified

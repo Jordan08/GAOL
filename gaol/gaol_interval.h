@@ -1593,6 +1593,23 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval acosh(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asinh(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atanh(const interval& I);
 
+  /*!
+    \brief The error function and its complement (GAOL v5)
+
+    erf(x) = 2/sqrt(pi) int_0^x exp(-t^2) dt, increasing from -1 to 1, and
+    erfc(x) = 1 - erf(x), decreasing from 2 to 0, on R: the erf and erfc of
+    C, which IEEE 1788-2015 does not name, so that gaol_ieee1788 does not
+    either (a call erf(x) on an interval finds them all the same, by
+    argument-dependent lookup). The bounds are the values of CORE-MATH at the
+    bounds of I, correctly rounded: the tightest enclosure, exact at 0 and
+    at the infinities, erf([0]) being [0], erfc([0]) [1], erf([-oo, +oo])
+    [-1, 1] and erfc([-oo, +oo]) [0, 2]. erfc(x) is subnormal from
+    x = 26.55 on, and below the least subnormal from x = 27.22 on, where the
+    lower bound is 0.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval erf(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval erfc(const interval& I);
+
 GAOL_NODISCARD extern GAOL_PUBLIC   interval acos_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asin_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atan_rel(const interval& J, const interval &I);
@@ -2497,6 +2514,8 @@ namespace gaol {
   using gaol_core::cancel_minus;
   using gaol_core::cancel_plus;
   using gaol_core::cospi;
+  using gaol_core::erf;
+  using gaol_core::erfc;
   using gaol_core::exp10;
   using gaol_core::exp10m1;
   using gaol_core::exp2;

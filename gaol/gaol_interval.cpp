@@ -3927,6 +3927,62 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
+    The error function and its complement (GAOL v5)
+
+    erf(x) = 2/sqrt(pi) int_0^x exp(-t^2) dt and erfc(x) = 1 - erf(x), the
+    erf and erfc of C, which IEEE 1788-2015 does not name, defined on R: erf
+    is increasing, from its limit -1 at -oo to its limit 1 at +oo, and erfc
+    decreasing, from 2 to 0. CORE-MATH computes both correctly rounded in the
+    rounding direction in effect, so they are bounded as exp2 is: in the
+    upward rounding GAOL keeps, the value at one bound is a bound, and the
+    double below the value at the other bound the other one, unless that
+    value is itself a double. erf(0) = 0 and erfc(0) = 1 are: without the
+    test below, the lower bound of erf([0, 1]) would be -2^-1074, and that of
+    erfc([-1, 0]) the double below 1. So are the limits at an infinite bound,
+    erf(-oo) = -1, erf(+oo) = 1, erfc(-oo) = 2 and erfc(+oo) = 0, which
+    CORE-MATH returns exactly, and which the range of each function would
+    bring the lower bound back to as well. No other double is known where erf
+    or erfc takes a value that is a double, and CORE-MATH's sources treat no
+    such case: the bounds are the tightest ones.
+  */
+  // The points where erf and erfc take a value that is a double
+  static inline bool erf_is_exact(double x)
+  {
+    return x == 0.0 || !is_finite(x);
+  }
+
+  interval erf(const interval& I)
+  {
+    // Within [-1, 1]: |erf(x)| < 1 at every finite x, and above 1 - 2^-53,
+    // the double below 1, from |x| = 5.87 on, where CORE-MATH rounds erf(x)
+    // upward to 1 and the lower bound is 1 - 2^-53
+    return increasing_cr(I, gaol_cr_erf, erf_is_exact, -1.0, 1.0);
+  }
+
+  interval erfc(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    // The check before the bounds are read, and the result made before
+    // GAOL_RND_LEAVE(), as acospi() does (see gaol/gaol_fpu.h): erfc(x) is
+    // subnormal from x = 26.55 on, and with GAOL_PRESERVE_ROUNDING the
+    // denormals-are-zero mode it restores would compare such bounds as 0
+    GAOL_RND_ENTER();
+    const double l = I.left(), r = I.right();
+    // Decreasing: the upper bound at the left bound, the lower one at the
+    // right, within [0, 2]. erfc(x) is below 2^-1074 from x = 27.22 on, where
+    // CORE-MATH rounds it upward to 2^-1074 and the lower bound is 0
+    const double v = gaol_cr_erfc(l);
+    const double w = gaol_cr_erfc(r);
+    const double u = erf_is_exact(r) ? w : previous_float(w);
+    interval res(maximum(0.0, u), minimum(2.0, v));
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     k pi + X, k being an integer double and X a bounded interval, enclosed
     within about one double (GAOL v5, issue #6): pi = pi_hi + pi_lo,
     pi_hi being the double below pi, and pi_lo lying between two consecutive
