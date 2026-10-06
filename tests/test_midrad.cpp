@@ -29,14 +29,9 @@ namespace {
     // midrad(1.0, 0.5) should give [0.5, 1.5]
     interval x = interval::midrad(1.0, 0.5);
 
-    check("midrad(1.0, 0.5) = [0.5, 1.5]",
-          x.left() >= 0.5 && x.right() <= 1.5,
-          [&] { return hex(x); });
-
-    // Check that it equals [m-r, m+r] with directed rounding
     interval expected(0.5, 1.5);
-    check("midrad(1.0, 0.5) equals [0.5, 1.5]",
-          x == expected,
+    check("midrad(1.0, 0.5) = [0.5, 1.5]",
+          x.set_eq(expected),
           [&] { return hex(x) + " vs " + hex(expected); });
   }
 
@@ -112,9 +107,10 @@ namespace {
   {
     interval x = interval::midrad(-1.0, 0.5);
 
+    interval expected(-1.5, -0.5);
     check("midrad(-1.0, 0.5) = [-1.5, -0.5]",
-          x.left() >= -1.5 && x.right() <= -0.5,
-          [&] { return hex(x); });
+          x.set_eq(expected),
+          [&] { return hex(x) + " vs " + hex(expected); });
   }
 
   // Test midrad with large radius
@@ -122,9 +118,10 @@ namespace {
   {
     interval x = interval::midrad(1.0, 100.0);
 
+    interval expected(-99.0, 101.0);
     check("midrad(1.0, 100.0) = [-99.0, 101.0]",
-          x.left() >= -99.0 && x.right() <= 101.0,
-          [&] { return hex(x); });
+          x.set_eq(expected),
+          [&] { return hex(x) + " vs " + hex(expected); });
   }
 
   // Test midrad with subnormal radius
@@ -160,7 +157,7 @@ namespace {
     interval x2(m - r, m + r);
 
     check("midrad(m, r) equals interval(m-r, m+r)",
-          x1 == x2,
+          x1.set_eq(x2),
           [&] { return hex(x1) + " vs " + hex(x2); });
   }
 
@@ -172,11 +169,12 @@ namespace {
     double r = 0.1;
 
     interval x = interval::midrad(m, r);
+    interval expected(m - r, m + r);
 
     // The bounds should be the tightest enclosure of [m-r, m+r]
     check("midrad uses directed rounding",
-          x.left() <= m - r && x.right() >= m + r,
-          [&] { return hex(x); });
+          x.set_eq(expected),
+          [&] { return hex(x) + " vs " + hex(expected); });
   }
 
 } // namespace

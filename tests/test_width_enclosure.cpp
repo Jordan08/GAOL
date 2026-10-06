@@ -136,7 +136,7 @@ namespace {
           [&] { return hex(we) + " vs width " + hex(x.width()); });
   }
 
-  // Test width_enclosure is an enclosure
+  // Test width_enclosure is an enclosure and minimal
   void test_is_enclosure()
   {
     interval x(0.0, 1.0);
@@ -147,6 +147,12 @@ namespace {
     check("width_enclosure contains exact width",
           we.left() <= exact_width && we.right() >= exact_width,
           [&] { return hex(we) + " vs exact " + std::to_string(exact_width); });
+
+    // Test minimality: we should be the tightest enclosure
+    // For width = 1.0, the tightest enclosure is [1.0, 1.0]
+    check("width_enclosure is minimal for width=1.0",
+          we.left() == 1.0 && we.right() == 1.0,
+          [&] { return hex(we); });
   }
 
   // Test width_enclosure with very narrow interval
@@ -173,23 +179,40 @@ namespace {
           [&] { return hex(we); });
   }
 
-  // Test width_enclosure upper bound equals width()
+  // Test width_enclosure upper bound equals width and minimality
   void test_upper_bound_equals_width()
   {
     // Test with various intervals
-    interval intervals[] = {
-      interval(0.0, 1.0),
-      interval(-1.0, 1.0),
-      interval(10.0, 20.0),
-      interval(-100.0, -50.0),
-      interval(0.0, 0.5)
+    struct TestCase {
+      interval x;
+      double expected_width;
+    };
+    TestCase cases[] = {
+      {interval(0.0, 1.0), 1.0},
+      {interval(-1.0, 1.0), 2.0},
+      {interval(10.0, 20.0), 10.0},
+      {interval(-100.0, -50.0), 50.0},
+      {interval(0.0, 0.5), 0.5}
     };
 
-    for (const interval& x : intervals) {
-      interval we = x.width_enclosure();
-      check("width_enclosure().right() == width() for " + gaol_tests::hex(x),
-            we.right() == x.width(),
-            [&] { return hex(we.right()) + " vs " + hex(x.width()); });
+    for (const auto& tc : cases) {
+      interval we = tc.x.width_enclosure();
+      check("width_enclosure().right() == width() for " + gaol_tests::hex(tc.x),
+            we.right() == tc.x.width(),
+            [&] { return hex(we.right()) + " vs " + hex(tc.x.width()); });
+      
+      // Test minimality
+      check("width_enclosure lower bound is the greatest double <= width for " + gaol_tests::hex(tc.x),
+            we.left() <= tc.expected_width &&
+            (we.left() == tc.expected_width || 
+             std::nextafter(we.left(), std::numeric_limits<double>::infinity()) > tc.expected_width),
+            [&] { return hex(we.left()) + " vs " + std::to_string(tc.expected_width); });
+      
+      check("width_enclosure upper bound is the smallest double >= width for " + gaol_tests::hex(tc.x),
+            we.right() >= tc.expected_width &&
+            (we.right() == tc.expected_width || 
+             std::nextafter(we.right(), -std::numeric_limits<double>::infinity()) < tc.expected_width),
+            [&] { return hex(we.right()) + " vs " + std::to_string(tc.expected_width); });
     }
   }
 

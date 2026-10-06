@@ -30,15 +30,16 @@ namespace {
     interval inflated = x.inflate(0.5);
 
     // [1, 2] inflated by 0.5 should be [0.5, 2.5]
+    interval expected(0.5, 2.5);
     check("inflate([1,2], 0.5) = [0.5, 2.5]",
-          inflated.left() >= 0.5 && inflated.right() <= 2.5,
-          [&] { return hex(inflated); });
+          inflated.set_eq(expected),
+          [&] { return hex(inflated) + " vs " + hex(expected); });
 
     // Check that it equals x + [-0.5, 0.5]
-    interval expected = x + interval(-0.5, 0.5);
+    interval expected2 = x + interval(-0.5, 0.5);
     check("inflate(x, 0.5) equals x + [-0.5, 0.5]",
-          inflated == expected,
-          [&] { return hex(inflated) + " vs " + hex(expected); });
+          inflated.set_eq(expected2),
+          [&] { return hex(inflated) + " vs " + hex(expected2); });
   }
 
   // Test inflate with radius 0
@@ -163,9 +164,10 @@ namespace {
     interval inflated = x.inflate(0.5);
 
     // [-2, -1] inflated by 0.5 should be [-2.5, -0.5]
+    interval expected(-2.5, -0.5);
     check("inflate([-2,-1], 0.5) = [-2.5, -0.5]",
-          inflated.left() >= -2.5 && inflated.right() <= -0.5,
-          [&] { return hex(inflated); });
+          inflated.set_eq(expected),
+          [&] { return hex(inflated) + " vs " + hex(expected); });
   }
 
   // Test inflate crossing zero
@@ -175,9 +177,10 @@ namespace {
     interval inflated = x.inflate(1.0);
 
     // [-0.5, 0.5] inflated by 1.0 should be [-1.5, 1.5]
+    interval expected(-1.5, 1.5);
     check("inflate([-0.5,0.5], 1.0) = [-1.5, 1.5]",
-          inflated.left() >= -1.5 && inflated.right() <= 1.5,
-          [&] { return hex(inflated); });
+          inflated.set_eq(expected),
+          [&] { return hex(inflated) + " vs " + hex(expected); });
 
     check("inflated interval contains zero",
           inflated.set_contains(0.0));

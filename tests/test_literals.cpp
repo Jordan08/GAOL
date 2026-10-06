@@ -124,6 +124,17 @@ namespace {
     check("\"0.1\"_iv contains 0.1_iv",
           (x_str & x_num) == x_num,
           [&] { return hex(x_str & x_num) + " vs " + hex(x_num); });
+
+    // Verify that "0.1"_iv contains the exact decimal 0.1
+    check("\"0.1\"_iv contains exact decimal 0.1",
+          x_str.set_contains(0.1),
+          [&] { return hex(x_str); });
+
+    // Verify that 0.1_iv equals interval(0.1)
+    double d01 = 0.1;
+    check("0.1_iv equals interval(0.1)",
+          x_num == gaol_core::interval(d01),
+          [&] { return hex(x_num) + " vs " + hex(gaol_core::interval(d01)); });
   }
 
   // Test literals with negative numbers
@@ -142,6 +153,11 @@ namespace {
     check("\"-5\"_iv is [-5,-5]",
           x2.is_a_double() && x2.left() == -5.0 && x2.right() == -5.0,
           [&] { return hex(x2); });
+
+    // Verify that -0.5_iv equals interval(-0.5)
+    check("-0.5_iv equals interval(-0.5)",
+          x1 == gaol_core::interval(-0.5),
+          [&] { return hex(x1) + " vs " + hex(gaol_core::interval(-0.5)); });
   }
 
   // Test literals with special values

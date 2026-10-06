@@ -37,7 +37,7 @@ namespace {
       interval hull_result = pieces.first | pieces.second;
       interval div_result = ::gaol_core::div_rel(c, b, interval::universe());
       check("hull of pieces equals div_rel when b does not contain 0",
-            hull_result == div_result,
+            hull_result.set_eq(div_result),
             [&] { return hex(hull_result) + " vs " + hex(div_result); });
     }
 
@@ -49,7 +49,7 @@ namespace {
       interval hull_result = pieces.first | pieces.second;
       interval div_result = ::gaol_core::div_rel(c, b, interval::universe());
       check("hull of pieces equals div_rel when 0 in b and 0 in c",
-            hull_result == div_result,
+            hull_result.set_eq(div_result),
             [&] { return hex(hull_result) + " vs " + hex(div_result); });
     }
 
@@ -61,7 +61,7 @@ namespace {
       interval hull_result = pieces.first | pieces.second;
       interval div_result = ::gaol_core::div_rel(c, b, interval::universe());
       check("hull of pieces equals div_rel when 0 in b and 0 not in c",
-            hull_result == div_result,
+            hull_result.set_eq(div_result),
             [&] { return hex(hull_result) + " vs " + hex(div_result); });
     }
   }
@@ -100,12 +100,19 @@ namespace {
       check("disconnected: second piece is non-empty (negative part)",
             !pieces.second.is_empty());
 
-      // The first piece should contain positive values
-      check("disconnected: first piece contains positive values",
-            pieces.first.left() >= 2.0);
-      // The second piece should contain negative values
-      check("disconnected: second piece contains negative values",
-            pieces.second.right() <= -2.0);
+      // The first piece should be [2, +oo) - the tightest enclosure of c / b_pos
+      interval b_pos = b & interval(0.0, interval::universe().right());
+      interval expected_pos = ::gaol_core::div_rel(c, b_pos, interval::universe());
+      check("disconnected: first piece equals div_rel(c, b_pos, entire())",
+            pieces.first.set_eq(expected_pos),
+            [&] { return hex(pieces.first) + " vs " + hex(expected_pos); });
+      
+      // The second piece should be (-oo, -2] - the tightest enclosure of c / b_neg
+      interval b_neg = b & interval(interval::universe().left(), 0.0);
+      interval expected_neg = ::gaol_core::div_rel(c, b_neg, interval::universe());
+      check("disconnected: second piece equals div_rel(c, b_neg, entire())",
+            pieces.second.set_eq(expected_neg),
+            [&] { return hex(pieces.second) + " vs " + hex(expected_neg); });
     }
 
     // b = [-2, 2], c = [1, 3]
@@ -150,8 +157,10 @@ namespace {
           pieces.second.is_empty());
 
     // x = c / b, so for b=[1,2] and c=[2,4], x should be [1,4]
-    check("positive b: result is [1,4]",
-          pieces.first.left() >= 1.0 && pieces.first.right() <= 4.0);
+    interval expected = ::gaol_core::div_rel(c, b, interval::universe());
+    check("positive b: result equals div_rel(c, b, entire())",
+          pieces.first.set_eq(expected),
+          [&] { return hex(pieces.first) + " vs " + hex(expected); });
   }
 
   // Test with b strictly negative
@@ -167,8 +176,10 @@ namespace {
           !pieces.second.is_empty());
 
     // x = c / b where b < 0, so for b=[-2,-1] and c=[2,4], x should be [-4,-1]
-    check("negative b: result is negative",
-          pieces.second.right() <= -1.0);
+    interval expected = ::gaol_core::div_rel(c, b, interval::universe());
+    check("negative b: second piece equals div_rel(c, b, entire())",
+          pieces.second.set_eq(expected),
+          [&] { return hex(pieces.second) + " vs " + hex(expected); });
   }
 
   // Test with b = [0, 0]
