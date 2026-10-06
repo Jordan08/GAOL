@@ -191,7 +191,7 @@
    --------------------------------------------------------------------------- */
 
 #if defined(__FAST_MATH__)
-#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results"
+#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results (remove the option, or put -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, after it)"
 #endif
 /* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
    take NaN and infinities never to occur, in the inline functions of GAOL's
@@ -221,7 +221,7 @@
    -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
    the empty interval what -ffinite-math-only does. */
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
-#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (-fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns it off when it comes after)"
+#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option, or put -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, after the option that turns it on)"
 #endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
