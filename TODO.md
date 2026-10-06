@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `47b776e` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `ccf694a` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -113,6 +113,21 @@ la phrase de `doc/using.md` (l. 445) et du manuel qui dit que chaque opération
 laisse le sens d'arrondi vers le haut est à compléter au point I ; la double
 vérification de `asinh_rel()` et `atanh_rel()` va au point B.2. Les textes
 pour `ChangeLog` et `doc/differences.md` sont dans la description de #92.
+Fait le 6 octobre aussi : le point G (anciens 5, 53, 54, 55, 40), par #91, et
+par c7915a7 et ccf694a, entrés dans `configure-clean` sans pull request (une
+branche qui suivait `origin/configure-clean` y a été poussée) : le remède des
+deux `#error`, qui est de redonner tous les drapeaux de GAOL après l'option, et
+ce que GCC 9.4 fait des sondes du sens d'arrondi et du flush. Décidé le
+5 octobre : les tests `refused_*` dans les trois builds
+(`tests/refused_options.sh` pour autotools et meson). Décidé le 6 octobre : la
+vérification à l'exécution n'est pas gardée ; son prototype (une fonction
+`static` par unité de traduction, à la fin de `gaol/gaol_interval.h`) voyait
+`-funsafe-math-optimizations`, `-fno-signed-zeros` et `-fno-honor-nans`, pour
+55 ns par unité au démarrage ; si la question revenait, un message seulement,
+sans `abort()`. Trouvé en fin de travail : avec Clang, `-ffast-math` et `-Ofast`
+coupent `-frounding-math`, que `-fno-fast-math` ne rétablit pas (documenté dans
+`doc/three-builds.md`). La description de #91, écrite avant la fin du travail,
+ne donne pas les textes pour `ChangeLog` et `doc/differences.md`.
 
 ## En cours
 
@@ -414,51 +429,6 @@ conforme à la casse ignorée par le lexeur.
   qui est documenté), les seuls littéraux lus jusqu'au crochet fermant, ou une
   fonction à part. Reporté le 3 octobre : issue #64.
 
-### G. Les options refusées (5, 53, 54, 55, 40)
-
-`tests/refused_options.cpp`, `gaol/gaol_config.h`, `tests/CMakeLists.txt` et les
-textes qui décrivent le refus.
-
-- **5.** **Suites du refus de `-ffinite-math-only`** (#39), fait avec ses tests
-  CMake. Restent : avec GCC, `-Ofast` n'est pas refusé dès que `-fno-fast-math`
-  est sur la ligne de commande, avant ou après, alors que `doc/three-builds.md`
-  et `doc/using.md` le disent refusé ; le `#error` de `__FAST_MATH__` ne donne
-  pas de remède, contrairement à celui de `__FINITE_MATH_ONLY__` ;
-  `tests/refused_options.cpp` n'a pas de témoin positif (un test sans option,
-  environ 1 s), et ses bornes constantes, et non `volatile`, laissent Clang
-  calculer l'intersection à la compilation ; ce qu'aucune macro ne révèle
-  (`-funsafe-math-optimizations`, `-fno-honor-nans`, les pragmas) n'est que
-  documenté, et une vérification à l'exécution dans `gaol/gaol_init_cleanup.h`
-  reste à essayer. Décidé le 3 octobre : ajouter le témoin positif, et essayer
-  cette vérification (prototype, ce qu'elle détecte et son coût, puis la garder
-  ou non). Décidé le 4 octobre : corriger aussi deux phrases ambiguës sur
-  `-fno-fast-math`, « the code including GAOL's headers is refused when the
-  option follows it » (`doc/three-builds.md`, l. 147-150, où « it » peut
-  désigner `-fno-fast-math`) et « does nothing when it comes before them, where
-  the compilation stops » (`doc/using.md`, l. 33-35, et le manuel) : dire
-  « quand `-ffast-math` ou `-ffinite-math-only` vient après `-fno-fast-math` » ;
-  et dire dans `doc/building.md` que le `make test` de CMake lance aussi les
-  tests de compilation `refused_*` et `nodiscard_*`.
-- **53.** **Le commentaire du refus de `-ffinite-math-only`** (suite du point 5,
-  #39, #47) : `gaol/gaol_config.h` (l. 208) dit encore que `is_empty()` lit
-  l'ensemble vide comme `!(left() <= right())`, alors que c'est
-  `!std::islessequal(left(), right())` depuis #47. La phrase qui dit `([1, 2] &
-  [3, 4]).is_empty()` faux (« GCC 9, Clang 18 » dans `gaol_config.h`, « GCC 9.4,
-  Clang 18 » dans `doc/three-builds.md`, « with GCC 9 and Clang 18 » dans
-  `doc/tests.md`) est à préciser : avec `-ffinite-math-only`, GCC 13 le rend
-  faux à -O0, -O2 et -O3, Clang 18 à -O0, et à -O2 et -O3 seulement avec des
-  bornes `volatile`.
-- **54.** **L'annexe B n° 4 de `examples/examples.md`** (#39, l. 1072) dit qu'un
-  test de compilation vérifie le message avec `PASS_REGULAR_EXPRESSION`, « as
-  `tests/fp_strict` does » : c'est faux, `tests/fp_strict` fait un
-  `try_compile()` à la configuration, pour Visual C++ seulement.
-- **55.** **`.github/audit`** (#39) : `compare.py` (l. 25) et `make_probe.py`
-  (l. 15) comparent `__FAST_MATH__` mais pas `__FINITE_MATH_ONLY__` ; sans effet
-  tant que `-fno-fast-math` lui-même est comparé.
-- **40** (une partie). Les tests `refused_*` de `tests/CMakeLists.txt` sont faux
-  quand GAOL est un sous-projet (ils prennent `CMAKE_BINARY_DIR` et
-  `CMAKE_SOURCE_DIR`).
-
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
 
 `README.md`, `doc/using.md` et « Common errors » du manuel : les écrire
@@ -753,7 +723,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90 et #92 après leur fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90, #91 et #92 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -769,11 +739,11 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 8 : B ; 11 : F ;
+1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ;
 12 : E ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
-40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ;
-51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 58 : F ; 59 : F ;
+40 : E et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ;
+51 : B ; 52 : O ; 56 : A ; 58 : F ; 59 : F ;
 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y ; 72 : B ;
 73 : B ; 74 : B.
 
@@ -795,7 +765,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    et #92.
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
    Faire F après la régénération du parser ; corriger `3rd/README.md` avant tout
-   envoi amont pour A et valider les plateformes prises en charge.
+   envoi amont pour A et valider les plateformes prises en charge. G est fait
+   par #91.
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
