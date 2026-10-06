@@ -23,7 +23,8 @@
 # the copy configured for the version configure was generated for, VERSION.txt
 # then holds the next one, and CPack has to configure the build directory
 # again before it makes the archive (cmake/gaol_package_source.cmake), warn,
-# and name the archive after the new version. CPack runs as the target
+# and name the archive after the new version, CMake giving no warning of its
+# own in the files of GAOL that CPack reads. CPack runs as the target
 # package_source runs it, in the build directory, whatever the generator:
 # Ninja configured again before package_source, the Makefile generators did
 # not.
@@ -36,8 +37,8 @@
 # read as CMakeLists.txt reads it, so that the two do not share a mistake. The
 # copy is configured with the generator, its program and the compilers that
 # built GAOL, the compilers given to CMake as CC and CXX, the way CMake reads
-# them with their arguments (CC="ccache gcc"). Where sh cannot run configure,
-# or the system makes no symbolic link, the script says that it is skipped
+# them with their arguments (CC="ccache gcc"). Without sh, or where the system
+# makes no symbolic link, the script says that it is skipped
 # (SKIP_REGULAR_EXPRESSION of tests/CMakeLists.txt) rather than failing.
 #
 # ctest runs it (tests/CMakeLists.txt), and by hand:
@@ -58,8 +59,9 @@ foreach(_name GAOL_SOURCE_DIR GAOL_WORK_DIR GAOL_GENERATOR GAOL_C_COMPILER GAOL_
     message(FATAL_ERROR "${_name} is not given (see the head of this file)")
   endif()
 endforeach()
-# The script removes the whole of this directory, when it starts and when it
-# ends: it has to be the directory of this test
+# The script removes the whole of this directory, when it starts, and when it
+# passes or is skipped (a failure leaves it to be looked at): it has to be the
+# directory of this test
 if(NOT GAOL_WORK_DIR MATCHES "/cpack_stale_configure$")
   message(FATAL_ERROR "GAOL_WORK_DIR, ${GAOL_WORK_DIR}, is not a directory of this test (cpack_stale_configure)")
 endif()
@@ -67,8 +69,10 @@ endif()
 set(_tree "${GAOL_WORK_DIR}/tree")
 set(_build "${GAOL_WORK_DIR}/build")
 
-# Removes the directory, the links of the copy one by one first, so that
-# nothing is ever removed through them
+# Removes the directory, the links of the copy one by one first. file(REMOVE)
+# and file(REMOVE_RECURSE) remove a symbolic link, not what it points to,
+# which holds also for the links CPack copies into the build directory: nothing
+# is ever removed through them
 macro(remove_work_dir)
   file(GLOB _links "${_tree}/*")
   foreach(_path ${_links})
@@ -85,11 +89,12 @@ macro(skip why)
   return()
 endmacro()
 
-# The version configure was generated for, and the next one. A status that is
-# no number is a command that did not run
+# The version configure was generated for, and the next one. Without sh, the
+# status is the message of a command that could not start
 execute_process(COMMAND sh "${GAOL_SOURCE_DIR}/configure" --version
   OUTPUT_VARIABLE _output RESULT_VARIABLE _status)
-if(NOT _status MATCHES "^[0-9]+$")
+string(TOLOWER "${_status}" _lower)
+if(_lower MATCHES "no such file")
   skip("sh did not run configure --version (${_status})")
 endif()
 if(NOT _status EQUAL 0 OR NOT _output MATCHES "^gaol configure ([0-9]+)\\.([0-9]+)\\.([0-9]+)\n")
@@ -188,6 +193,11 @@ execute_process(COMMAND "${CMAKE_CPACK_COMMAND}" --config CPackSourceConfig.cmak
 set(_title "VERSION.txt ${_new} after a configuration for ${_old}, package_source")
 if(NOT _status EQUAL 0)
   message(FATAL_ERROR "${_title}: CPack did not make the archive (status ${_status}):\n${_output}\n${_error}")
+endif()
+# Without a warning of CMake for the files of GAOL CPack reads, which it reads
+# without the policies of CMakeLists.txt
+if("${_output}\n${_error}" MATCHES "CMake Warning \\(dev\\) at [^\n]*cmake/gaol_[a-z_]+\\.cmake")
+  message(FATAL_ERROR "${_title}: CMake warned in a file of GAOL that CPack reads:\n${_output}\n${_error}")
 endif()
 string(REGEX REPLACE "[ \t\r\n]+" " " _text "${_output} ${_error}")
 string(FIND "${_text}" "configure was generated for GAOL ${_old}, and VERSION.txt holds ${_new}:" _found)
