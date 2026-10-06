@@ -339,8 +339,9 @@ mode there.
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it hang
-  again (GAOL v5), in `tests/find_package` and `tests/fetch_content` too; the
-  cache variable `GAOL_NUMBERS_TIMEOUT` gives it more time on a slower build
+  again (GAOL v5), in `tests/find_package`, `tests/fetch_content` and
+  `tests/meson_subproject` too; the cache variable `GAOL_NUMBERS_TIMEOUT`
+  gives it more time on a slower build
   (600 s with GCC and the sanitizers on macOS x86_64). Numbers of 5000 to 20000 characters, in decimal, in
   hexadecimal and in the uncertain form, have to be read as the tightest
   enclosures, known without reading them (`1.5` followed by zeros is 1.5, and
@@ -791,10 +792,15 @@ continuous integration runs `make test` in every job. `tests/find_package`
 builds some of the same tests with an installed GAOL, and
 `.github/scripts/tests.sh` with a GAOL installed by configure or meson.
 `tests/fetch_content` builds them with a GAOL brought in by FetchContent, and
-`tests/meson_subproject` with a GAOL brought in as a meson subproject, whose
-test `flags` checks that `gaol_dep` gives their compilation the flags of the
-`Cflags` of `gaol.pc`: meson refused GAOL as a subproject, and the tests pass
-without these flags (GAOL v5).
+`tests/meson_subproject` with a GAOL brought in as a meson subproject (GAOL
+v5), which meson refused. Its test `flags` checks that `gaol_dep` gives their
+compilation the flags of the `Cflags` of `gaol.pc`, without which the tests
+pass all the same, and its test `release` that GAOL is built in release in
+the default build type of meson, debug: `tests/release_flags.py` checks that
+the sources of GAOL and CORE-MATH are compiled with `-O3` and `NDEBUG`, and
+that `GAOL_DEBUGGING` is left undefined. The continuous integration runs it on
+`tests/fetch_content` configured without a build type too, where CORE-MATH
+was compiled without optimization.
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,

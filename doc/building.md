@@ -109,8 +109,10 @@ CMake 3.14 or later. The build compiles the thirty-six sources of CORE-MATH into
 `libgaol`, which is static unless `BUILD_SHARED_LIBS` is `ON`: there is
 nothing else to build and nothing else to install. The build type is Release
 unless another is given; brought in by a project that gives none
-(`add_subdirectory`, FetchContent), GAOL and CORE-MATH are compiled with `-O3`
-all the same (`/O2` with Visual C++).
+(`add_subdirectory`, FetchContent), GAOL and CORE-MATH are compiled as in
+Release all the same: `-O3` (`/O2` with Visual C++), `NDEBUG` and the
+optimizations of configure (GAOL v5: GAOL had `-O3` alone, and CORE-MATH no
+optimization).
 
 | Option | Default | |
 |---|---|---|
@@ -242,7 +244,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 
 | Option | Default | |
 |---|---|---|
-| `buildtype` | `release` | `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and GAOL checks its assertions (`GAOL_DEBUGGING`), as the Debug build of CMake and `configure --enable-debug`. The options `enable-optimize` and `enable-debug` are gone |
+| `buildtype` | `release` | `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and GAOL checks its assertions (`GAOL_DEBUGGING`), as the Debug build of CMake and `configure --enable-debug`. The options `enable-optimize` and `enable-debug` are gone. Brought in as a subproject, GAOL is built in `release` too where the project leaves the build type to its default (GAOL v5, see [Using GAOL](using.md#from-pkg-config)) |
 | `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `enable-fma` | `true` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |

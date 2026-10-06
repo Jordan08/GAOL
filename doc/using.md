@@ -158,14 +158,22 @@ executable('program', 'program.cpp', dependencies: gaol_dep)
 subproject otherwise; `subproject('gaol').get_variable('gaol_dep')` always
 builds it. `gaol_dep` carries the include directory, the flags above and the
 link option above, as `gaol.pc` does: the flags GAOL's `meson.build` gives its
-own targets do not reach those of the project. Where the project leaves the
-build type to its default, `debug`, meson before 1.8.4 builds GAOL without
-optimization, and before 1.8 with its assertions (`GAOL_DEBUGGING`) too, so
-that the project is to be configured with `--buildtype=release`; meson 1.8.4
-and later build it in `release`, the default of GAOL's `meson.build`.
-`tests/meson_subproject` is a project building GAOL this way. GAOL could not
-be a subproject before GAOL v5: meson refuses the `add_global_arguments()`
-its `meson.build` called in a subproject.
+own targets do not reach those of the project. GAOL is built in `release`,
+as CMake and configure build it brought into another project, where the
+project leaves the build type to its default, `debug`. meson 1.8.4 and later
+give a subproject its own default build type, and a `--buildtype=debug` asked
+for builds GAOL for debugging. Earlier ones give it the build type of the
+project, which would have built GAOL without optimization, and before 1.8 with
+its assertions: there, where the options are those of `debug`, GAOL compiles
+its libraries as in `release` all the same, as it cannot tell the default
+from a `--buildtype=debug` asked for, so that building GAOL for debugging as
+a subproject takes meson 1.8.4 or later. Two cases keep the build type of the
+project: Visual C++ with meson before 0.57, whose `debug` gives `/RTC1`, which
+`cl` refuses with `/O2`, and the Visual Studio backend of meson
+(`--backend=vs`), which takes the build type of the project for every target;
+the default backend, ninja, is not one. `tests/meson_subproject` is a project
+building GAOL this way. GAOL could not be a subproject before GAOL v5: meson
+refuses the `add_global_arguments()` its `meson.build` called in a subproject.
 
 ## Initialization and cleanup
 

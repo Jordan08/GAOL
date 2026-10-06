@@ -81,7 +81,8 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 `gaol::gaol`, and `gaol.pc` for pkg-config, carry the flags of interval
 arithmetic that the code including GAOL's headers has to be compiled with. A
 project can also build GAOL for itself, with FetchContent (see
-[Using GAOL](doc/using.md#from-cmake)).
+[Using GAOL](doc/using.md#from-cmake)), or as a meson subproject (see
+[Using GAOL](doc/using.md#from-pkg-config)).
 
 A program calls `gaol::cleanup()` right after its last use of GAOL:
 GAOL's initialization, which runs by itself before `main()`, sets the

@@ -444,8 +444,9 @@ The build compiles the thirty-six sources of CORE-MATH GAOL uses into
 \file{libgaol}, which is a static library unless \option{BUILD\_SHARED\_LIBS}
 is \code{ON}: there is nothing else to build and nothing else to install. The build type is \code{Release} unless another is
 given; brought in by a project that gives none (\code{add\_subdirectory},
-\code{FetchContent}), GAOL and CORE-MATH are compiled with \option{-O3} all
-the same (\option{/O2} with Visual C++).
+\code{FetchContent}), GAOL and CORE-MATH are compiled as in \code{Release}
+all the same: \option{-O3} (\option{/O2} with Visual C++), \code{NDEBUG} and
+the optimizations of \cmd{configure}.\newinvfive
 
 \subsection{Options}\label{sec:cmake-options}
 %%..................
@@ -996,12 +997,15 @@ executable('program', 'program.cpp', dependencies: gaol_dep)
 \noindent
 \code{dependency()} takes an installed GAOL where it finds one, and builds the
 subproject otherwise. \code{gaol\_dep} carries the include directory, the flags
-above and the link option above, as \file{gaol.pc} does. Where the project
-leaves the build type to its default, \code{debug}, meson before 1.8.4 builds
-GAOL without optimization, and before 1.8 with its assertions too, so that the
-project is to be configured with \loption{buildtype=release}; meson 1.8.4 and
-later build it in \code{release}, the default of GAOL's
-\file{meson.build}.\newinvfive
+above and the link option above, as \file{gaol.pc} does. GAOL is built in
+\code{release}, as CMake and \cmd{configure} build it brought into another
+project, where the project leaves the build type to its default,
+\code{debug}: meson 1.8.4 and later give a subproject its own default build
+type, and GAOL compiles its libraries as in \code{release} with earlier ones,
+which give it the build type of the project; it cannot tell there the default
+from a \loption{buildtype=debug} asked for (but with Visual C++ before meson
+0.57, and with the Visual Studio backend of meson, which keep the build type
+of the project).\newinvfive
 
 \section{The rounding direction}\label{sec:rounding-direction}
 %%------------------------------

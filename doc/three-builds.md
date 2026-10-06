@@ -14,7 +14,13 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
   the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
-  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included;
+  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included.
+  Its libraries are compiled in release too where a project brings GAOL in
+  without choosing a build type, as by a configure calling GAOL's: a CMake
+  project without `CMAKE_BUILD_TYPE`, with a generator of one configuration
+  (a generator of several, as Visual Studio, builds the configuration
+  `cmake --build --config` asks for, Debug without one), a meson project in
+  the default build type of meson, with its ninja backend (GAOL v5);
 - with the flags of interval arithmetic of [Using GAOL](using.md), and the code
   using GAOL, the tests included, is linked with `-mno-daz-ftz` where the
   compiler accepts it (GCC 13 and later on x86, and from 11.4 and 12.4 in the
