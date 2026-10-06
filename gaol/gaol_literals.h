@@ -1,110 +1,137 @@
-/*-*-C++-*----------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
- * User-defined literals for intervals: gaol::literals.
+ *--------------------------------------------------------------------------
+ * The literal _iv of intervals, in the namespace gaol::literals (GAOL v5).
  *
- * This header provides user-defined literals so that `using namespace gaol::literals;`
- * allows writing interval literals as `0.1_iv`, `1e-3_iv`, `3_iv`,
- * etc. The RAW STRING literal operator ("..."_iv) parses the text using
- * textToInterval(), ensuring the interval ENCLOSING the exact value of the
- * literal text. The INTEGER and FLOATING-POINT literal operators return point
- * intervals for the given value.
+ * With using namespace gaol::literals, a number written with the suffix _iv
+ * is the tightest interval enclosing the number the program writes, not the
+ * double the compiler would make of it: 0.1_iv is the interval of the two
+ * doubles around the decimal 0.1, as textToInterval("0.1") is, where
+ * interval(0.1) is the point of the double 0.1, which is not 0.1;
+ * 9007199254740993_iv encloses 2^53 + 1, which no double is. The literal
+ * operator is the raw one, which receives the text of the literal as written
+ * rather than its value: decimal and hexadecimal floating literals and
+ * decimal integers are read by textToInterval(), the integers written in
+ * hexadecimal, octal (010_iv is 8, as 010 is) and binary are taken as the
+ * integers they are, and the digit separators of C++14 (1'000_iv) are left
+ * out. A string literal with the suffix, "[1, 2]"_iv, is the interval
+ * textToInterval() reads in it, and throws input_format_error if it is no
+ * interval. Nothing is visible without the using-directive: the operators
+ * are in gaol::literals only.
  *
- * Note on behavior:
- *   - "0.1"_iv encloses the decimal 0.1 (not the double 0.1), via textToInterval
- *   - 3_iv returns the point interval [3, 3]
- *   - 0.1_iv returns the point interval [0.1, 0.1] (the double 0.1)
- *
- * For an enclosure of a floating-point literal, use the string form: "0.1"_iv
- * instead of 0.1_iv.
- *
- * The operators are header-only and inline, and compile as C++11 on GCC 9, Clang 18
- * and Visual C++. They give no warning under -Wall -Wextra -Wpedantic.
- *
- * Usage:
- *   #include "gaol/gaol_literals.h"
+ *   #include <gaol/gaol_literals.h>
  *   using namespace gaol::literals;
- *   auto x = "0.1"_iv;  // interval enclosing the decimal 0.1
- *   auto y = 1e-3_iv;   // point interval [0.001, 0.001]
- *   auto z = 3_iv;      // point interval [3, 3]
+ *   const gaol::interval x = 0.1_iv, y = "[1, 2]"_iv;
+ *
+ * The operators are written operator""_iv, without a blank before the suffix:
+ * C++23 deprecates the form with a blank, and C++11 takes both.
  *
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026 by Jordan NININ
- *------------------------------------------------------------------------------
+ * Created 2026-10-06 by Jordan NININ
+ *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_LITERALS_H
 #define GAOL_LITERALS_H
 
+#include <climits>
 #include <cstddef>
 #include <string>
 
 #include "gaol/gaol_interval.h"
 
+namespace gaol_detail {
+
+  /*
+    The integer written with the digits of an integer literal of C++ in the
+    given base, its prefix left out (GAOL v5): interval(n), the tightest
+    interval enclosing it, where it holds in an unsigned long long, and an
+    enclosure computed with the operations of intervals beyond, sound but
+    not always the tightest.
+  */
+  inline ::gaol_core::interval literal_integer(const std::string& digits, unsigned int base)
+  {
+    unsigned long long n = 0;
+    bool fits = true;
+    for (std::string::size_type i = 0; i < digits.size(); ++i) {
+      const char ch = digits[i];
+      const unsigned int d = (ch >= '0' && ch <= '9') ? static_cast<unsigned int>(ch - '0')
+                             : (ch >= 'a' && ch <= 'f') ? static_cast<unsigned int>(ch - 'a' + 10)
+                             : static_cast<unsigned int>(ch - 'A' + 10);
+      if (n > (ULLONG_MAX - d) / base) {
+        fits = false;
+        break;
+      }
+      n = n*base + d;
+    }
+    if (fits) {
+      return ::gaol_core::interval(n);
+    }
+    ::gaol_core::interval x(0.0);
+    for (std::string::size_type i = 0; i < digits.size(); ++i) {
+      const char ch = digits[i];
+      const double d = (ch >= '0' && ch <= '9') ? static_cast<double>(ch - '0')
+                       : (ch >= 'a' && ch <= 'f') ? static_cast<double>(ch - 'a' + 10)
+                       : static_cast<double>(ch - 'A' + 10);
+      x = x*static_cast<double>(base) + ::gaol_core::interval(d);
+    }
+    return x;
+  }
+
+  // The interval of the text of a numeric literal of C++ (see gaol_literals.h)
+  inline ::gaol_core::interval literal_interval(const char* text)
+  {
+    std::string t;
+    for (; *text != '\0'; ++text) {
+      if (*text != '\'') {
+        t += *text;
+      }
+    }
+    if (t.size() > 1 && t[0] == '0') {
+      if (t[1] == 'x' || t[1] == 'X') {
+        if (t.find_first_of("pP") != std::string::npos) {
+          return ::gaol::textToInterval(t);
+        }
+        return literal_integer(t.substr(2), 16);
+      }
+      if (t[1] == 'b' || t[1] == 'B') {
+        return literal_integer(t.substr(2), 2);
+      }
+      if (t.find_first_of(".eE") == std::string::npos) {
+        return literal_integer(t.substr(1), 8);
+      }
+    }
+    return ::gaol::textToInterval(t);
+  }
+
+} // namespace gaol_detail
+
 namespace gaol {
 
   /*!
-    \brief Namespace for user-defined literals.
-
-    This namespace contains the user-defined literal operators for interval
-    literals. Use `using namespace gaol::literals;` to enable them.
-    
-    \note The RAW STRING operator ("..."_iv) gives an enclosure via textToInterval.
-    The INTEGER and FLOATING-POINT operators return point intervals.
-    For an enclosure of a numeric literal, use the string form: "0.1"_iv.
+    \brief The literal _iv of intervals (GAOL v5): using namespace gaol::literals.
   */
   namespace literals {
 
     /*!
-      \brief Raw literal operator for interval literals.
-
-      Converts a string literal to an interval using textToInterval().
-      The literal text is parsed exactly as it appears, so `"0.1"_iv` reads
-      the decimal 0.1 (not the double 0.1), `"1e-3"_iv` reads 0.001, etc.
-      This gives an ENCLOSING interval.
-      
-      \tparam N The length of the literal string.
-      \param str The literal string (without the _iv suffix).
-      \return An interval enclosing the value of the literal text.
+      \brief A numeric literal with the suffix _iv: the tightest interval
+      enclosing the number written (0.1_iv, 9007199254740993_iv, 0x1p-3_iv).
     */
-    GAOL_NODISCARD inline ::gaol_core::interval operator"" _iv(const char* str, std::size_t N)
+    GAOL_NODISCARD inline ::gaol_core::interval operator""_iv(const char* text)
     {
-      return ::gaol::textToInterval(std::string(str, N));
+      return ::gaol_detail::literal_interval(text);
     }
 
     /*!
-      \brief Integer literal operator for interval literals.
-
-      Converts an unsigned long long integer literal to a point interval.
-      This is a point interval [n, n], not an enclosure.
-      
-      \param n The integer value.
-      \return A point interval [n, n].
-      \see For an enclosure, use the string form: "3"_iv
+      \brief A string literal with the suffix _iv: the interval
+      textToInterval() reads in it ("[1, 2]"_iv, "1/3"_iv).
     */
-    GAOL_NODISCARD inline ::gaol_core::interval operator"" _iv(unsigned long long n)
+    GAOL_NODISCARD inline ::gaol_core::interval operator""_iv(const char* text, std::size_t length)
     {
-      return ::gaol_core::interval(static_cast<double>(n));
-    }
-
-    /*!
-      \brief Floating-point literal operator for interval literals.
-
-      Converts a long double floating-point literal to a point interval.
-      This is a point interval [d, d] where d is converted to double, not an
-      enclosure.
-      
-      \param d The floating-point value.
-      \return A point interval [d, d] where d is converted to double.
-      \see For an enclosure, use the string form: "0.1"_iv
-    */
-    GAOL_NODISCARD inline ::gaol_core::interval operator"" _iv(long double d)
-    {
-      double val = static_cast<double>(d);
-      return ::gaol_core::interval(val);
+      return ::gaol::textToInterval(std::string(text, length));
     }
 
   } // namespace literals

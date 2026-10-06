@@ -1,6 +1,7 @@
 // GAOL 4's unit test check/constructor.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
+#include "gaol/gaol_literals.h"
 
 #include <cfenv>
 #include <climits>
@@ -130,6 +131,38 @@ public:
     TEST_INOUT_EQ("1.0/10",interval(1.0)/interval(10.0));
     TEST_INOUT_EQ("1.0/10.0",textToInterval("[0.1,0.1]","[0.1,0.1]"));
 }
+
+  /* The literal _iv of gaol/gaol_literals.h (GAOL v5): the tightest interval
+     enclosing the number written, not the double the compiler makes of it,
+     read by textToInterval(); the integers written in hexadecimal, octal and
+     binary taken as the integers they are, beyond 64 bits enclosed by the
+     operations of intervals; the digit separators left out; and "..."_iv the
+     interval textToInterval() reads. Its first version gave the points of
+     the doubles 0.1 and 2^53 for 0.1_iv and 9007199254740993_iv, which
+     enclose neither 0.1 nor 2^53 + 1. */
+  void test_literals() {
+    using namespace gaol::literals;
+    TEST_SEQ(0.1_iv, textToInterval("0.1"));
+    CPPUNIT_ASSERT(!(0.1_iv).is_a_double());
+    TEST_SEQ(1e-3_iv, textToInterval("1e-3"));
+    TEST_SEQ(2.5_iv, interval(2.5));
+    TEST_SEQ(3_iv, interval(3.0));
+    TEST_SEQ(0_iv, interval(0.0));
+    TEST_SEQ(9007199254740993_iv, interval(9007199254740992.0, 9007199254740994.0));
+    TEST_SEQ(123456789012345678901234567890_iv, textToInterval("123456789012345678901234567890"));
+    TEST_SEQ(0x1p-3_iv, interval(0.125));
+    TEST_SEQ(0x1.8p1_iv, interval(3.0));
+    TEST_SEQ(0x10_iv, interval(16.0));
+    TEST_SEQ(010_iv, interval(8.0));
+    TEST_SEQ(0b101_iv, interval(5.0));
+    TEST_SEQ(1'000'000_iv, interval(1000000.0));
+    TEST_SEQ(0xFFFFFFFFFFFFFFFF_iv, interval(0xFFFFFFFFFFFFFFFFULL));
+    // 2^65 - 1, which no unsigned long long holds
+    const interval big = 0x1FFFFFFFFFFFFFFFF_iv;
+    CPPUNIT_ASSERT(big.left() < std::ldexp(1.0, 65) && big.right() >= std::ldexp(1.0, 65));
+    TEST_SEQ("[1, 2]"_iv, interval(1.0, 2.0));
+    TEST_SEQ("1/3"_iv, textToInterval("1/3"));
+  }
   // <-- End of tests
 };
 
@@ -137,4 +170,5 @@ public:
 GAOL_UNIT_MAIN(constructor_test, "constructor",
                GAOL_UNIT_TEST(test_constructor_string),
                GAOL_UNIT_TEST(test_constructor_numbers),
-               GAOL_UNIT_TEST(test_constructor_integers))
+               GAOL_UNIT_TEST(test_constructor_integers),
+               GAOL_UNIT_TEST(test_literals))

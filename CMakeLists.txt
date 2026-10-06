@@ -876,8 +876,8 @@ set(GAOL_HEADERS
   gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
   gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
-  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_parser.h
-  gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_literals.h
+  gaol/gaol_parser.h gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
 install(FILES
   gaol/gaol
