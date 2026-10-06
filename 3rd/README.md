@@ -23,26 +23,27 @@ library it uses: the other libraries GAOL could be built with are gone (see
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
 | Commit | `6b84457310ad90b644b3335af2faa8c7301e1c47` (25 September 2026) |
 | Taken | the whole tree, without the `.wc` files |
-| Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-six functions below, compiled into libgaol itself |
+| Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-eight functions below, compiled into libgaol itself |
 
 The `.wc` files, which hold the hardest-to-round arguments CORE-MATH checks
 itself against, are 542 of the 555 MB of the upstream tree and are not needed
 to build: they are left out, and the commit above is what to clone to get them.
 
-The thirty-six functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
+The thirty-eight functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
 `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`,
 `acosh` and `atanh`, then `cbrt`, which `nth_root(x, 3)` takes, `exp2`,
 `exp10`, `log2` and `log10`, which IEEE 1788-2015 requires among the forward
-elementary functions (Table 9.1), and the fifteen of its recommended ones
+elementary functions (Table 9.1), the fifteen of its recommended ones
 (Table 10.5) CORE-MATH has: `expm1`, `exp2m1`, `exp10m1`, `log1p`, `log2p1`,
 `log10p1`, `hypot`, `rsqrt`, `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
-`atanpi` and `atan2pi`. The other formats and functions of the tree are kept
-as they are, so that importing a newer CORE-MATH is a plain copy, but nothing
-compiles them.
+`atanpi` and `atan2pi`, and `erf` and `erfc`, the error function and its
+complement, which the standard does not name. The other formats and functions
+of the tree are kept as they are, so that importing a newer CORE-MATH is a
+plain copy, but nothing compiles them.
 
 ### How GAOL builds them
 
-The three builds compile the thirty-six sources into `libgaol` and include
+The three builds compile the thirty-eight sources into `libgaol` and include
 `gaol/core_math_port.h` first in each of them, **by the compiler rather than by
 the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
 never name that header, so that importing a newer CORE-MATH stays a copy. That

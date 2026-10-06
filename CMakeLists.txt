@@ -532,7 +532,10 @@ set(GAOL_CORE_MATH_FUNCTIONS
   # avoid the loss of accuracy of pi being irrational for the *Pi family
   # and of cancellation for the m1/p1 family (GAOL v5)
   expm1 exp2m1 exp10m1 sinpi cospi tanpi acospi atanpi
-  log1p log2p1 log10p1 hypot rsqrt asinpi atan2pi)
+  log1p log2p1 log10p1 hypot rsqrt asinpi atan2pi
+  # The error function and its complement, which IEEE 1788-2015 does not
+  # name (GAOL v5)
+  erf erfc)
 
 set(GAOL_CORE_MATH_SOURCES "")
 foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)

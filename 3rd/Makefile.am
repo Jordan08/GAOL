@@ -1,9 +1,9 @@
 #-*-Makefile-*-----------------------------------------------------------------
 # The third-party sources, for the autotools build of GAOL
 #------------------------------------------------------------------------------
-# The sixteen sources of CORE-MATH (3rd/math-core) GAOL bounds its elementary
-# functions with, compiled into a convenience library that gaol/Makefile.am
-# puts into libgaol: nothing is installed from here.
+# The thirty-eight sources of CORE-MATH (3rd/math-core) GAOL bounds its
+# elementary functions with, compiled into a convenience library that
+# gaol/Makefile.am puts into libgaol: nothing is installed from here.
 #
 # They are compiled here rather than from gaol/Makefile.am so that libtool
 # never sees a source under "../", which it does not place in .libs (the link
@@ -43,7 +43,8 @@ libgaolcoremath_la_SOURCES = \
 	$(CORE_MATH_DIR)/log1p/log1p.c $(CORE_MATH_DIR)/log2p1/log2p1.c \
 	$(CORE_MATH_DIR)/log10p1/log10p1.c $(CORE_MATH_DIR)/hypot/hypot.c \
 	$(CORE_MATH_DIR)/rsqrt/rsqrt.c $(CORE_MATH_DIR)/asinpi/asinpi.c \
-	$(CORE_MATH_DIR)/atan2pi/atan2pi.c
+	$(CORE_MATH_DIR)/atan2pi/atan2pi.c \
+	$(CORE_MATH_DIR)/erf/erf.c $(CORE_MATH_DIR)/erfc/erfc.c
 
 libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # -fno-lto keeps the interprocedural optimization away from these sources, where

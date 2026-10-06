@@ -91,6 +91,8 @@
 #define cr_rsqrt gaol_cr_rsqrt
 #define cr_asinpi gaol_cr_asinpi
 #define cr_atan2pi gaol_cr_atan2pi
+#define cr_erf gaol_cr_erf
+#define cr_erfc gaol_cr_erfc
 
 #include "gaol/gaol_core_math.h"
 
