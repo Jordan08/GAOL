@@ -676,12 +676,14 @@ if(NOT MSVC)
     endif()
   endforeach()
   # The optimizations configure adds to -O3, in the Release configuration
+  set(GAOL_RELEASE_FLAGS "")
   foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
     string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
     check_cxx_compiler_flag("${flag}" ${_flag_var})
     if(${_flag_var})
       list(APPEND GAOL_LIBRARY_FLAGS "$<$<CONFIG:Release>:${flag}>")
+      list(APPEND GAOL_RELEASE_FLAGS ${flag})
     endif()
   endforeach()
 endif()
@@ -787,14 +789,19 @@ endif()
 # Without a build type, CMake gives no optimization flag at all. GAOL sets
 # Release when it is the top-level project, but brought in by a project that
 # sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
-# without optimization: they are compiled with -O3 then, as in Release (/O2
-# with Visual C++).
+# without optimization: they are compiled then as in Release, with -O3 (/O2
+# with Visual C++), NDEBUG and the optimizations configure adds, as configure
+# and meson build GAOL brought into another project (GAOL v5: GAOL alone had
+# -O3, and CORE-MATH, compiled apart, no optimization)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  if(MSVC)
-    target_compile_options(gaol PRIVATE /O2)
-  else()
-    target_compile_options(gaol PRIVATE -O3)
-  endif()
+  foreach(target gaol gaol_core_math)
+    if(MSVC)
+      target_compile_options(${target} PRIVATE /O2)
+    else()
+      target_compile_options(${target} PRIVATE -O3 ${GAOL_RELEASE_FLAGS})
+    endif()
+    target_compile_definitions(${target} PRIVATE NDEBUG)
+  endforeach()
 endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
