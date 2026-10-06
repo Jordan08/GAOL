@@ -7,8 +7,10 @@
 # check/ and ran with CppUnit, check the results of the operations on chosen
 # intervals (see unit_tests.h). They are compiled as any code using GAOL, with
 # the flags gaol::gaol carries, and in C++17 for the hexadecimal floating
-# literals of elementary_values.h. WITH_TESTS builds them (CMakeLists.txt);
-# make test and make check run them, with the label unit.
+# literals of the tests, such as 0x1p-1060: those of gaol_tests.h, which all
+# but u128.cpp include, of the *_values.h, and of most of the programs.
+# WITH_TESTS builds them (CMakeLists.txt); make test and make check run them,
+# with the label unit.
 #
 # Copyright (c) 2026 ENSTA, France
 #

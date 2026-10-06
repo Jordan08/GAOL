@@ -8,10 +8,12 @@
 # Built where with-tests is true; each is a test of the suite unit, which meson
 # test (make test) and meson test --setup check (make check) run. They are
 # compiled as any code using GAOL, in C++17 for the hexadecimal floating
-# literals of elementary_values.h, and linked with the static libgaol, as CMake
-# links them. Exit status 77 is a test skipped (intervalf and interval2f where
-# the intervals of floats are not compiled). check/, which built the unit tests
-# of GAOL 4 with CppUnit, is gone: they are among these (GAOL v5).
+# literals of the tests (those of gaol_tests.h, which all but u128.cpp include,
+# of the *_values.h, and of most of the programs; see CMakeLists.txt), and
+# linked with the static libgaol, as CMake links them. Exit status 77 is a test
+# skipped (intervalf and interval2f where the intervals of floats are not
+# compiled). check/, which built the unit tests of GAOL 4 with CppUnit, is
+# gone: they are among these (GAOL v5).
 gaol_tests = [
   'arithmetic', 'elementary', 'rounding_direction', 'numbers', 'other_functions',
   'ieee1788', 'reverse', 'u128', 'core_math', 'expressions', 'extended_precision',
