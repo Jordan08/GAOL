@@ -174,16 +174,17 @@ is not to be compiled with them.
 
 - `-funsafe-math-optimizations`, and `-ffast-math -fno-finite-math-only`, with
   GCC (9.4): the compiler rewrites the addition `1.0 + tiny == 1.0`, by which
-  GAOL sees the rounding direction, as `tiny == 0.0` (and, with GCC 13,
-  `1.0 + (subnormal + 0.0) == 1.0`, which sees the modes flushing the
+  GAOL sees the rounding direction, as `tiny == 0.0` (and, with GCC 9.4 and
+  13, `1.0 + (subnormal + 0.0) == 1.0`, which sees the modes flushing the
   subnormals to zero too, as `subnormal == 0.0`), so that an operation does
   not set the direction upward again after the code using GAOL left it to
   nearest, and `width()` is below the exact width. Clang 18 does not rewrite
   the first addition, but its `-funsafe-math-optimizations` implies
   `-fno-signed-zeros` (below): the second addition loses its `+ 0.0` there
   too, one `addsd` and one `ucomisd` being left.
-- `-fno-signed-zeros`, with which GCC 13 and Clang 18 drop the `+ 0.0` of the
-  second addition, which then misses the flush-to-zero mode (GAOL v5).
+- `-fno-signed-zeros`, with which GCC 9.4 (from `-O0`) and 13, and Clang 18
+  at `-O2` and `-O3`, drop the `+ 0.0` of the second addition, which then
+  misses the flush-to-zero mode (GAOL v5).
 - `-fno-honor-nans` alone, with Clang, which does to the empty interval what
   `-ffinite-math-only` does: `__FINITE_MATH_ONLY__` is 1 only with
   `-fno-honor-infinities` too.
