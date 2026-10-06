@@ -1193,10 +1193,13 @@ are the constructor from two bounds, the relations
 \code{\&} and the hull \code{|}, \code{max()}, \code{min()}, \code{abs()},
 \code{sign()}, \code{floor()}, \code{ceil()}, \code{integer()} and the other
 roundings to an integer, \code{invabs\_rel()}, \code{mig()}, \code{mag()},
-\code{is\_canonical()}, \code{nb\_fp\_numbers()}, and \code{inf()} and
-\code{sup()} of \code{gaol\_ieee1788}. They give the results they give with
-the modes cleared, and leave the modes as they found them, writing nothing to
-the control register, with \option{GAOL\_PRESERVE\_ROUNDING} or without.
+\code{is\_canonical()}, \code{feven()}, \code{nb\_fp\_numbers()}, and
+\code{inf()} and \code{sup()} of \code{gaol\_ieee1788}; the roundings to an
+integer round a subnormal bound from its bits, which the \code{floor()} and
+\code{ceil()} of musl would return as it is. They give the results they give
+with the modes cleared, and leave the modes as they found them, writing
+nothing to the control register, with \option{GAOL\_PRESERVE\_ROUNDING} or
+without.
 \code{midpoint()}, \code{split()} and \code{chi()}, which compute, and the
 writing of an interval (\code{operator<{}<}, \code{intervalToText()}) make the
 check, which clears the modes, or sets them back after them with

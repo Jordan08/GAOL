@@ -742,9 +742,11 @@ are the constructor from two bounds, the relations (`set_contains()`,
 `certainly_le()`, `set_eq()`, `is_zero()`, `lexicographic_less`...), the
 intersection `&` and the hull `|`, `max()`, `min()`, `abs()`, `sign()`,
 `floor()`, `ceil()`, `integer()` and the other roundings to an integer,
-`invabs_rel()`, `mig()`, `mag()`, `is_canonical()`, `nb_fp_numbers()`, and
-`inf()` and `sup()` of `gaol_ieee1788`. They give the results they give with
-the modes cleared, and leave the modes as they found them, writing nothing to
+`invabs_rel()`, `mig()`, `mag()`, `is_canonical()`, `feven()`,
+`nb_fp_numbers()`, and `inf()` and `sup()` of `gaol_ieee1788`; the roundings
+to an integer round a subnormal bound from its bits, which musl's `floor()`
+and `ceil()` would return as it is. They give the results they give with the
+modes cleared, and leave the modes as they found them, writing nothing to
 the control register, with `GAOL_PRESERVE_ROUNDING` or without. Before, under
 denormals-are-zero, `max()` of `interval(3*2^-1074, 100*2^-1074)` and
 `interval(200*2^-1074)` was the first one, `abs(interval(-1e-309, -1e-310))`
