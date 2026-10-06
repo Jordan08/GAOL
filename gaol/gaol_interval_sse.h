@@ -90,10 +90,11 @@
   // made quiet too, they cost GCC a conditional move through the integer
   // registers where it if-converts them, and 30% more in a loop of
   // constructions (GCC 9.4, FPU intervals). The first one is also right with
-  // the modes that flush the subnormals to zero (gaol_detail::bound_less_equal(),
-  // gaol_port.h): under denormals-are-zero, interval(2^-1073, 2^-1074) kept
-  // its bounds in the wrong order (GAOL v5, point Q of TODO.md); the other two
-  // compare with an infinity, which these modes do not change
+  // the modes that flush the subnormals to zero
+  // (gaol_detail::bound_less_equal(), gaol_port.h): under denormals-are-zero,
+  // interval(2^-1073, 2^-1074) kept its bounds in the wrong order (GAOL v5,
+  // point Q of TODO.md); the other two compare with an infinity, which these
+  // modes do not change
   GAOL_INLINE interval::interval(double l, double r)
     {
       if (gaol_detail::bound_less_equal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {

@@ -668,6 +668,13 @@ namespace gaol_core {
   */
   bool feven(double d)
   {
+    // A subnormal is no integer, which its bits tell whatever the modes that
+    // flush the subnormals to zero: under denormals-are-zero, 0.5*d and d
+    // were 0 for the comparison, and feven(2^-1074) was true (GAOL v5,
+    // point Q of TODO.md)
+    if (gaol_detail::bound_is_subnormal(d)) {
+      return false;
+    }
     return (std::floor(0.5*d)*2.0 == d);
   }
 
@@ -3687,7 +3694,8 @@ interval nth_root(const interval& I, int q)
 	double res;
 	// The check first, which clears the modes that flush the subnormals to
 	// zero, as in midpoint(): under denormals-are-zero, the quotient of two
-	// subnormal bounds was 0/0 (GAOL v5, point Q of TODO.md)
+	// subnormal bounds is 0/0 (GAOL v5, point Q of TODO.md). Before,
+	// is_zero() took them for zeros, and chi([2, 4]*2^-1074) was -1
 	GAOL_RND_PRESERVE();
 	round_upward_if_needed();
 	round_nearest();

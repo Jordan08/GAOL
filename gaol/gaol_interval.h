@@ -1091,15 +1091,16 @@ namespace gaol_core {
     return gaol_detail::bound_equal(left(), right());
   }
 
-  // The floor of a subnormal l is 0 or -1, which no subnormal equals:
-  // compared as bounds, it is not taken for l under denormals-are-zero
+  // The floor of a subnormal l is 0 or -1 (gaol_detail::bound_floor(),
+  // gaol_port.h), which no subnormal equals: compared as bounds, it is not
+  // taken for l under denormals-are-zero (GAOL v5, point Q of TODO.md)
   GAOL_INLINE
   bool interval::is_an_int(void) const
   {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return gaol_detail::bound_equal(l, r) && gaol_detail::bound_equal(std::floor(l), l) &&
+    return gaol_detail::bound_equal(l, r) && gaol_detail::bound_equal(gaol_detail::bound_floor(l), l) &&
       (gaol_detail::quiet_less_equal(l, static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
        gaol_detail::quiet_greater_equal(l, static_cast<double>((std::numeric_limits<int>::min)())));
   }
@@ -1579,6 +1580,10 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   are the ones that do read it, and are not used; roundTiesToEven, which no
   function of C++ gives, is gaol/gaol_roundeven.h, which reads the bits.
   tests/elementary.cpp checks the four in the four rounding directions.
+  std::trunc and std::round are called through gaol_detail::bound_trunc() and
+  bound_round() (gaol_port.h), which round a subnormal from its bits, as
+  floor and ceil do, whatever the modes that flush the subnormals to zero
+  (GAOL v5, point Q of TODO.md).
 
   Each tests the empty set first. GAOL holds the empty interval as the two
   bounds NaN, in both of its representations (interval::emptyset() of
@@ -1615,7 +1620,7 @@ GAOL_NODISCARD GAOL_INLINE interval trunc(const interval &I)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    return interval(std::trunc(I.left()),std::trunc(I.right()));
+    return interval(gaol_detail::bound_trunc(I.left()),gaol_detail::bound_trunc(I.right()));
   }
 
   /*!
@@ -1639,7 +1644,7 @@ GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    return interval(std::round(I.left()),std::round(I.right()));
+    return interval(gaol_detail::bound_round(I.left()),gaol_detail::bound_round(I.right()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, double d)

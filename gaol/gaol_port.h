@@ -327,28 +327,60 @@ namespace gaol_detail {
   }
 
   /*
-    std::floor() and std::ceil() of a bound, as without the modes that flush
-    the subnormals to zero (GAOL v5, point Q of TODO.md): under
-    denormals-are-zero, the instruction that rounds (roundsd on x86, which
-    glibc's floor() takes where the processor has SSE4.1) reads a subnormal
-    as a zero of its sign, so that the floor of -2^-1074 was -0 and the ceil
-    of 2^-1074 +0. Only these two are wrong: a zero result is then taken
-    back to -1, or 1, for a subnormal on that side of 0, which its integer
-    tells, the zero result telling that x is no NaN. No comparison of x as a
-    double: GCC vectorizes the loops of floor() into signaling comparisons,
-    which raise the invalid-operation exception on the NaN bounds of the
-    empty set (see GAOL_FPU_SCALAR() in gaol/gaol_interval.h).
+    The roundings of a bound to an integer, as without the modes that flush
+    the subnormals to zero (GAOL v5, point Q of TODO.md). Under
+    denormals-are-zero, the instruction that rounds (roundsd on x86) reads a
+    subnormal as a zero of its sign, so that the floor of -2^-1074 was -0 and
+    the ceil of 2^-1074 +0; and musl's floor() and ceil() return x itself
+    where x == 0, which a subnormal is under that mode. A subnormal x, whose
+    exponent bits are 0, is therefore rounded from its bits: its floor is -1
+    below 0, its ceil 1 above 0, and its other roundings a zero of its sign.
+    The other doubles are rounded by the C library: these modes change
+    neither them, which are no subnormal, nor their results, which are
+    integers or zeros. No comparison of x as a double: GCC vectorizes the
+    loops of floor() into signaling comparisons, which raise the
+    invalid-operation exception on the NaN bounds of the empty set (see
+    GAOL_FPU_SCALAR() in gaol/gaol_interval.h).
   */
+  //! Whether x is subnormal, as its bits tell
+  GAOL_INLINE bool bound_is_subnormal(double x)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return (bits & 0x7ff0000000000000ULL) == 0 && (bits << 1) != 0;
+  }
+
   GAOL_INLINE double bound_floor(double x)
   {
-    const double f = std::floor(x);
-    return (f == 0.0 && bound_key(x) < 0) ? -1.0 : f;
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -1.0 : 0.0;
+    }
+    return std::floor(x);
   }
 
   GAOL_INLINE double bound_ceil(double x)
   {
-    const double c = std::ceil(x);
-    return (c == 0.0 && bound_key(x) > 0) ? 1.0 : c;
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -0.0 : 1.0;
+    }
+    return std::ceil(x);
+  }
+
+  GAOL_INLINE double bound_trunc(double x)
+  {
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -0.0 : 0.0;
+    }
+    return std::trunc(x);
+  }
+
+  //! std::round(), halfway values away from zero
+  GAOL_INLINE double bound_round(double x)
+  {
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -0.0 : 0.0;
+    }
+    return std::round(x);
   }
 } // namespace gaol_detail
 
