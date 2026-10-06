@@ -107,7 +107,11 @@ the same code, and once more than 400.
 The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
 (`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
 autotools and the meson builds, when `manual/` changes (`manual.yml`); the
-PDFs are artifacts of the run.
+PDFs are artifacts of the run. The examples of the manual of GAOL v5 that show
+what they print are compiled in C++11 with the GAOL that the job Ubuntu 24.04
+x86_64 GCC of `linux.yml` installs, at each run, so that a change of the
+library that changes one of their outputs shows, and have to print what the
+manual shows (`manual/check_examples.py`, GAOL v5).
 
 ## Configurations refused or left out, and why
 

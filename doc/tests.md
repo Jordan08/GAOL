@@ -847,6 +847,14 @@ catch, but for the 7 that give the same bounds, and runs `diffpow` on the
 errors no test catches. `bench.cpp` measures the time per call of each path
 of `pow`.
 
+`manual/check_examples.py` compiles each example of the manual of GAOL v5
+(`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed
+GAOL and the flags of `pkg-config gaol`, runs it, and compares what it prints
+with the manual, line by line (GAOL v5): until #55, the examples printed 1 and
+0 where the manual showed `true` and `false`. It is no test of the builds; the
+job Ubuntu 24.04 x86_64 GCC of `linux.yml` runs it, in C++11, on the GAOL it
+installs (see [Continuous integration](continuous-integration.md)).
+
 What they show of GAOL, beyond the fixes of
 [What differs from GAOL](differences.md):
 
