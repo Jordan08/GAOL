@@ -958,7 +958,14 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # warn while it configures only, so it does here, whether or not the archive
   # is made. A tree without configure, or with a configure that has no such
   # line, has nothing to compare (tests/cpack_stale_configure.cmake checks it,
-  # GAOL v5).
+  # GAOL v5). As the archive takes its name from the version CMake read when it
+  # configured, CPack includes cmake/gaol_package_source.cmake, which configures
+  # the build directory again first when VERSION.txt holds another version:
+  # Ninja does before package_source, the Makefile generators did not.
+  set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/cmake/gaol_package_source.cmake")
+  set(CPACK_GAOL_CMAKE_COMMAND "${CMAKE_COMMAND}")
+  set(CPACK_GAOL_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
+  set(CPACK_GAOL_BINARY_DIR "${PROJECT_BINARY_DIR}")
   if(EXISTS "${PROJECT_SOURCE_DIR}/configure")
     file(STRINGS "${PROJECT_SOURCE_DIR}/configure" _gaol_configure_version REGEX "^PACKAGE_VERSION='" LIMIT_COUNT 1)
     if(_gaol_configure_version MATCHES "^PACKAGE_VERSION='([^']*)'")
