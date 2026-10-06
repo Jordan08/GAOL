@@ -460,13 +460,17 @@ endif
 if build_examples
   subdir('examples')
 endif
-if meson.version().version_compare('>=0.57')
+# Not in a subproject, whose default test setup would be the project's, which
+# may have one of its own, and would leave out its tests of a suite examples;
+# nor its target check, which names the build directory of the project (GAOL v5)
+if meson.is_subproject()
+elif meson.version().version_compare('>=0.57')
   add_test_setup('unit', exclude_suites: ['examples'], is_default: true)
   add_test_setup('check')
 else
   message('meson ' + meson.version() + ': meson test and ninja test run the examples too (meson test --suite unit runs the unit tests only)')
 endif
-if build_tests or build_examples
+if (build_tests or build_examples) and not meson.is_subproject()
   run_target('check',
     command: [find_program('meson'), 'test', '-C', meson.current_build_dir(), '--no-rebuild', '--print-errorlogs']
              + (meson.version().version_compare('>=0.57') ? ['--setup', 'check'] : []),
