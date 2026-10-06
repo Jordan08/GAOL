@@ -687,17 +687,46 @@ namespace gaol_core {
   }
 
 
-  // The bounds compared as the relations compare them, whatever the modes
-  // that flush the subnormals to zero: under denormals-are-zero,
-  // [2^-1074, 3*2^-1074] was canonical (GAOL v5, point Q of TODO.md)
+  /*
+    The double above x, from its bits: the next one away from -oo, -0 above
+    the least negative subnormal, the least positive subnormal above a zero,
+    +oo above DBL_MAX; a NaN and +oo stay as they are. nextafter() of the C
+    library computes with doubles, which the modes that flush the subnormals
+    to zero change: under denormals-are-zero, the UCRT of Windows and the
+    libm of macOS (arm64 and x86_64) did not give the subnormal above 100
+    times 2^-1074 (GAOL v5, point Q of TODO.md, continuous integration)
+  */
+  static double next_double_above(double x)
+  {
+    if (!(x == x) || x == GAOL_INFINITY) {
+      return x;
+    }
+    std::uint64_t bits = gaol_detail::bound_bits(x);
+    if ((bits << 1) == 0) {
+      return std::numeric_limits<double>::denorm_min();
+    }
+    if ((bits >> 63) != 0) {
+      --bits; // a smaller magnitude
+    } else {
+      ++bits;
+    }
+    double above;
+    std::memcpy(&above, &bits, sizeof above);
+    return above;
+  }
+
+  // The bounds compared as the relations compare them, and the double above
+  // the left one taken from its bits, whatever the modes that flush the
+  // subnormals to zero: under denormals-are-zero, [2^-1074, 3*2^-1074] was
+  // canonical (GAOL v5, point Q of TODO.md)
   bool interval::is_canonical(void) const
   {
 #if defined (_MSC_VER)
-    return !is_empty() && gaol_detail::bound_greater_equal(next_float(left()), right());
+    return !is_empty() && gaol_detail::bound_greater_equal(next_double_above(left()), right());
 #else
     // emptyset handled thanks to unorderedness of NaNs, with a quiet
     // comparison, which raises no invalid-operation exception on them (GAOL v5)
-    return gaol_detail::bound_greater_equal(next_float(left()),right());
+    return gaol_detail::bound_greater_equal(next_double_above(left()),right());
 #endif
   }
 
