@@ -192,9 +192,26 @@ mode there.
   the empty set; with `GAOL_PRESERVE_ROUNDING`, `sinpi([100, 1000]·2^-1074)`
   was empty, its minimum taken once the modes were restored (GAOL v5, review
   of point 4); `acos_rel()` and `asin_rel()` of a J outside [-1, 1], or
-  containing it, returned before their check, the modes left set. The
-  operations that make no check (`&`, `|`, `max`, `abs`, the relations... see
-  `doc/using.md`) are left out. A mode the processor keeps without honouring
+  containing it, returned before their check, the modes left set. Then each
+  of the 49 functions that make no check (the constructor from two bounds,
+  the relations, `&`, `|`, `max`, `abs`, `sign`, `floor`, `mig`,
+  `nb_fp_numbers`, `inf` and `sup` of `gaol_ieee1788`...), called on the same
+  intervals and on [22·2^-1074], each mode set just before it, has to give,
+  written exactly, what it gives with the modes cleared, and leave the modes
+  as it found them: it compares the bounds as bounds, by their bits where
+  they compare equal; and `midpoint()`, `split()`, `chi()` and the writing of
+  an interval (`operator<<`, `intervalToText()`), which make the check, in
+  each rounding direction, have to clear them, or set them back with
+  `GAOL_PRESERVE_ROUNDING` (GAOL v5, point Q). Under denormals-are-zero,
+  `interval(2^-1073, 2^-1074)` kept its bounds in the wrong order, which
+  `is_empty()` takes for the empty set once the modes are cleared (the empty
+  set is told by its NaN bounds here), `max([3, 100]·2^-1074,
+  [200·2^-1074])` was the first one, `[2, 5]·2^-1074` contained
+  7·2^-1074, the midpoint of `[3, 100]·2^-1074` was 0 and `[22·2^-1074]` was
+  written `[1e-322]` with 1 digit, below its upper bound: with the sources
+  of `configure-clean` before point Q, 10 874 of these checks fail. The check
+  of `<a, b>` by the parser, which compares the two numbers as doubles, is
+  left out. A mode the processor keeps without honouring
   it, as an emulator may, is named and skipped: one that flushes neither the
   exact subnormal sum 2^-1060 + 0 nor the inexact product 1e-300·1e-20.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
@@ -835,11 +852,15 @@ integration configures (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
-`floor()`, `x &= y` and two relations, which compare bounds with the quiet
-comparisons of `<cmath>` (one instruction each with GCC and Clang on x86,
-perhaps a call with Visual C++), and of the same operations on doubles. It is
-not a test: the continuous integration prints its table in the summary of the
-jobs.
+`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()` and two relations, which
+compare bounds with the quiet comparisons of `<cmath>` (one instruction each
+with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
+compare equal, by their bits (GAOL v5, point Q), and of the same operations on
+doubles. After the table, it prints the time of the check each operation
+makes, 1 + (2^-1060 + 0) == 1, and of the same check made of 2^-60, a normal
+double: a processor that takes a microcode assist for a subnormal operand or
+result shows it there (GAOL v5, point Q). It is not a test: the continuous
+integration prints its table in the summary of the jobs.
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
 `gaol/gaol_interval.cpp` (see [its README](../tests/tools/pow/README.md)).
