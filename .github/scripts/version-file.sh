@@ -40,8 +40,10 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/gaol-version.XXXXXX")
 trap 'rm -rf "$work"' EXIT INT TERM
 mkdir "$work/src"
 # -h: README is a symbolic link to README.md, which tar of MSYS2 cannot create when it
-# extracts it ("Cannot create symlink"): the copy holds the file itself
-tar -c -h -f - --exclude=.git --exclude=autom4te.cache . | tar -x -f - -C "$work/src"
+# extracts it ("Cannot create symlink"): the copy holds the file itself. Not
+# the link that tests/meson_subproject takes as its subproject, which leads
+# back to the root of the sources, and which -h would follow without end
+tar -c -h -f - --exclude=.git --exclude=autom4te.cache --exclude=./tests/meson_subproject/subprojects . | tar -x -f - -C "$work/src"
 cd "$work"
 
 # The version is not the one of GAOL: it is the file the build reads, not a
