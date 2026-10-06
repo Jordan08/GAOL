@@ -758,7 +758,13 @@ mode there.
   operator in both orders, and the relations, `set_contains()` and
   `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to
   a double made wrong; and that an integer that is a double gives what the
-  double gives. `misc` declares a `namespace detail` of its own, which
+  double gives. `relations` also checks `gaol::lexicographic_less`
+  (GAOL v5, point V): a strict total order that puts the empty set first and
+  the intervals by their bounds, which `<` is not, being the `strictPrecedes`
+  of IEEE 1788-2015, true as soon as either interval is empty; it sorts a
+  `std::vector` holding an empty interval, which `<` reads past the end of,
+  and fills a `std::set` with intervals that overlap, which `<` loses.
+  `misc` declares a `namespace detail` of its own, which
   `using namespace gaol` made ambiguous while GAOL's helpers were in
   `gaol_core::detail`, and checks the names of `gaol`, which names those of
   `gaol_core` one by one (GAOL v5). `static_assert` checks that `gaol::f`
