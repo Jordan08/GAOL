@@ -711,17 +711,22 @@ mode there.
   for the version `configure` was generated for has its `VERSION.txt` changed,
   and CPack, run as `package_source` runs it, has to configure it again, warn,
   and name the archive after the new version
-  (`cmake/gaol_package_source.cmake`), which the Makefile generators did not do.
-  The version `configure` was generated for is asked of `configure --version`,
-  not read as `CMakeLists.txt` reads it. The copies are made of symbolic links
-  to the files of the tree, but for `CMakeLists.txt`, `VERSION.txt` and
-  `configure`, which are copied. The compilers are given to CMake as `CC` and
-  `CXX` with their arguments (`CC="ccache gcc"` leaves `ccache` in
-  `CMAKE_C_COMPILER` and `gcc` in `CMAKE_C_COMPILER_ARG1`), and the generator
-  with its program (`CMAKE_MAKE_PROGRAM`, for a Ninja outside `PATH`), which a
-  job of `.github/workflows/linux.yml` checks; without `sh`, or where the system
-  makes no symbolic link, the test says it is skipped. It takes a few seconds on
-  an ordinary machine, a configuration and five that reuse its checks, and an
+  (`cmake/gaol_package_source.cmake`), which the Makefile generators did not do,
+  CMake giving no warning of its own meanwhile (CMake 3 warned of the
+  backslashes of `CPACK_SOURCE_IGNORE_FILES` in the configuration it writes for
+  CPack); the archive has to hold `keep.halo`, a file of the copy that these
+  regular expressions do not match, but would without their backslashes, as
+  CMake 4 read them without `CPACK_VERBATIM_VARIABLES`. The version `configure`
+  was generated for is asked of `configure --version`, not read as
+  `CMakeLists.txt` reads it. The copies are made of symbolic links to the files
+  of the tree, but for `CMakeLists.txt`, `VERSION.txt` and `configure`, which
+  are copied. The compilers are given to CMake as `CC` and `CXX` with their
+  arguments (`CC="ccache gcc"` leaves `ccache` in `CMAKE_C_COMPILER` and `gcc`
+  in `CMAKE_C_COMPILER_ARG1`), and the generator with its program
+  (`CMAKE_MAKE_PROGRAM`, for a Ninja outside `PATH`), which a job of
+  `.github/workflows/linux.yml` checks; without `sh`, or where the system makes
+  no symbolic link, the test says it is skipped. It takes a few seconds on an
+  ordinary machine, a configuration and five that reuse its checks, and an
   archive: of the links themselves with CMake 3.28 and after (170 KB), of the
   files of the directories they point to with CMake 3.14 and 3.16 (5.6 MB). Only
   the CMake build has it: CPack makes the archive, and the autotools jobs of the
