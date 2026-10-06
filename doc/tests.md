@@ -40,9 +40,9 @@ mode there.
   2^-968 or beyond the largest double), they have to be those of the binary
   exponentiation from the lowest bit of n, each rounded in the direction set
   for it: the SSE2 intervals multiplied from the highest bit, and their bounds
-  were not those of the FPU intervals (GAOL v5). The operators of an interval with a double have to give, on
-  bounds and doubles of special values (zeros of both signs, infinities, NaN),
-  the sets the operators with `interval(d)` give.
+  were not those of the FPU intervals (GAOL v5). The operators of an interval
+  with a double have to give, on bounds and doubles of special values (zeros of
+  both signs, infinities, NaN), the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
   the products of the bounds, a zero bound times an infinite one counting as 0.
   The constructors have to give the empty set for a lower bound of `+oo`, an
@@ -59,11 +59,11 @@ mode there.
   their TwoSum after the direction was set back to upward, where it is no
   longer exact (GAOL v5).
 - **`elementary`:** `exp`, `log`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
-  `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and `pow` at doubles,
-  at intervals, and at intervals whose images are known exactly (extrema,
-  poles, domains, `log` of intervals holding no positive number and `atanh` of
-  intervals with no point of (-1, 1) being empty, `exp(0)`, `log(1)` and `1^y`
-  exact). The functions have to be the tightest
+  `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `sqrt` and
+  `pow` at doubles, at intervals, and at intervals whose images
+  are known exactly (extrema, poles, domains, `log` of intervals holding no
+  positive number and `atanh` of intervals with no point of (-1, 1) being empty,
+  `exp(0)`, `log(1)` and `1^y` exact). The functions have to be the tightest
   enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
@@ -72,9 +72,10 @@ mode there.
   exponents in every position about the base 1 and the exponent 0, and the
   power itself as lower bound where it is a double: `pow([4], 0.5)` is `[2]`.
   `atan2` has to be within one double of the tightest bounds at
-  points of the four quadrants and over 324 boxes in every position about the
-  axes, and the tightest over the boxes with infinite bounds or on an axis,
-  `[-pi, pi]` across the half-line y = 0, x < 0, and empty at (0, 0). sin, cos and tan have to be within one
+  points of the four quadrants and over 324 boxes in every position
+  about the axes, and the tightest over the boxes with infinite
+  bounds or on an axis, `[-pi, pi]` across the half-line y = 0,
+  x < 0, and empty at (0, 0). sin, cos and tan have to be within one
   double of the tightest bounds at every magnitude, `sin([1e-10])` and
   `cos([2^60])` included, and over 649 intervals next to their extrema and
   poles, of width about π and 2π, and of consecutive doubles up to the largest,
@@ -97,8 +98,8 @@ mode there.
   the whole numbers and the doubles on either side of them, and over the
   magnitudes beyond 2^52, on both signs and on the empty set. The
   values are in `elementary_values.h`, which `elementary_values.py` generates.
-- **`rounding_direction`:** about 110 operations of GAOL's interface,
-  called with the rounding direction upward, to nearest, downward and toward zero (and
+- **`rounding_direction`:** about 110 operations of GAOL's interface, called
+  with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
@@ -110,9 +111,9 @@ mode there.
   of glibc reads the x87 unit, and the upper bound was below the exact value
   (GAOL v5). `cbrt`, `pow` and `atan2` have to leave the exception masks of the
   SSE control register as they found them, and an empty interval to be told
-  empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit Windows
-  unmasked the exceptions, and the comparison of the NaN bounds of an empty
-  interval then killed the program (GAOL v5).
+  empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
+  Windows unmasked the exceptions, and the comparison of the NaN
+  bounds of an empty interval then killed the program (GAOL v5).
   `is_empty()` has to be true for six empty sets (`interval::emptyset()`,
   `[3, 2]`, `sqrt([-2, -1])`, `log([-2, -1])` and the two orders of
   `[1, 2] & [3, 4]`) and false for three nonempty intervals, and to raise no
@@ -129,9 +130,10 @@ mode there.
   alone, which GCC for 32-bit ARM and for POWER9 made signaling when
   `is_empty()` was one quiet comparison, and which jobs of the continuous
   integration also check built for size, where GCC calls the intersection
-  rather than inlining it: armhf, and POWER9 under qemu) have to give the result of the empty set and raise no
-  invalid-operation flag, and, with glibc, not die in a child process that
-  enabled the exception (GAOL v5): 45 of the 48 died with the SSE2 intervals,
+  rather than inlining it: armhf, and POWER9 under qemu) have to
+  give the result of the empty set and raise no invalid-operation
+  flag, and, with glibc, not die in a child process that enabled
+  the exception (GAOL v5): 45 of the 48 died with the SSE2 intervals,
   and all 48 with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`,
   `min`, `max`, `floor`, `set_contains()`, the output...). So do (GAOL v5,
   point D.24 of `TODO.md`) 18 operations given a NaN double, the empty set
@@ -143,16 +145,16 @@ mode there.
   K and J with bounds in {-oo, -2, -0, 0, 4, +oo}, which has to raise no
   division-by-zero flag either, nor die with both exceptions enabled, and
   where J does not contain 0, give the extrema of the quotients of the bounds
-  (the SSE2 intervals divided +oo by +oo, or a bound by a zero one, in the
-  half of a register they did not keep); 13 powers with an
+  (the SSE2 intervals divided +oo by +oo, or a bound by a zero
+  one, in the half of a register they did not keep); 13 powers with an
   exponent of extreme magnitude, which have to be the tightest enclosures
   (CORE-MATH's `pow` compares a NaN it makes on purpose there); and 29 loops
   of 64 relations, constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
   (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
   for 32-bit x86, GCC 14 for POWER8 and GCC 11 to 15 for 64-bit ARM made some
-  of them raise the exception, and with the SSE2 intervals the construction of an
-  interval), compared with each relation computed on its own. The midpoints
+  of them raise the exception, and with the SSE2 intervals the construction of
+  an interval), compared with each relation computed on its own. The midpoints
   of five intervals with a bound of 2^1023 or more in magnitude, `[DBL_MAX]`
   among them, (`midpoint()`, `mid()`, `rad()`, `mid_rad()`, `split()`...)
   have to be right, `mid()` the tightest enclosure of the exact midpoint, and
@@ -203,17 +205,17 @@ mode there.
   it upward before `main()`: GAOL has to initialize itself before.
   `cancel_minus([DBL_MAX], [1])` has to give the hull of `DBL_MAX` and raise
   no invalid-operation flag, nor die in a child process that enabled the
-  exception: the terms of its TwoSum, computed by GCC after the direction
-  was set back to upward, read +oo and made inf - inf.
+  exception: the terms of its TwoSum, computed by GCC after the
+  direction was set back to upward, read +oo and made inf - inf.
   The suite takes the AVX-512 path of `GAOL_PREFER_AVX512` whole, when a
   processor has the instructions: the bounds of `x + y`, `x - y`, `x*y`,
   `x/y` and `sqrt(x)` are then those of the SSE2 path, bit for bit, and
   these operations leave the rounding direction as the program set it,
   checked where the SSE2 path checks it left upward, and clear the
-  flush-to-zero modes when a plug-in has set them (GAOL v5). After `cleanup()` and
-  an operation of GAOL, `gaol::restore_rounding()` has to set the direction
-  to nearest again, as many times as it is called, where `cleanup()` does
-  so at its first call only, and to do nothing with
+  flush-to-zero modes when a plug-in has set them (GAOL v5). After
+  `cleanup()` and an operation of GAOL, `gaol::restore_rounding()`
+  has to set the direction to nearest again, as many times as it is called,
+  where `cleanup()` does so at its first call only, and to do nothing with
   `GAOL_PRESERVE_ROUNDING`, the operations restoring the direction
   themselves (GAOL v5).
 - **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
@@ -249,8 +251,8 @@ mode there.
   enclosing the number read, and the number itself when it is a double. The
   constants have to be the tightest enclosures of π, 2π and π/2. No
   `const char*` nor `nullptr` may convert to an interval, and `interval(0)` has
-  to be `[0, 0]`: the constructor from one string, which made it ambiguous, is
-  gone (GAOL v5). The literals of IEEE 1788-2015
+  to be `[0, 0]`: the constructor from one string, which made it
+  ambiguous, is gone (GAOL v5). The literals of IEEE 1788-2015
   (`[entire]`, `[ ]`, `[1,]`, `3.56?1`, hexadecimal numbers...) have to be read
   as the tightest intervals enclosing them, whatever the case of their letters,
   and `[inf]` and the like as the empty set. Expressions read again and again
@@ -267,8 +269,8 @@ mode there.
   only for bounds finite, not 0, of the same sign, with as many digits before
   the point and the same exponent, that share their first digit that is not
   0, and the bounds otherwise: `[1, 10]`, `[1, 2]`, `[0]` for a zero,
-  `-1.25~[67, 0]` (GAOL v5: `1~[., 0.]`, `~[1., 2.]`, `~[-0., 0.]`, and every
-  negative interval with its bounds). The text of a point
+  `-1.25~[67, 0]` (GAOL v5: `1~[., 0.]`, `~[1., 2.]`, `~[-0., 0.]`,
+  and every negative interval with its bounds). The text of a point
   interval, written with 1 to 25 digits in each of these formats, has to be
   read back as an interval enclosing it: the literal `[a]` of IEEE 1788-2015
   is written for a number that is the point itself, and read back as the
@@ -277,8 +279,8 @@ mode there.
   (`[0.1, 0.1000000000000001]` for `interval(0.1)`); the largest doubles and
   the subnormals, written with all their digits (309 digits, 1074 after the
   point), are written `[a]` and read back as the point where the C++ library
-  writes them exactly. GAOL wrote `<a, b>` for every point interval, and the
-  reader refused most of them (GAOL v5). In hexadecimal, the
+  writes them exactly. GAOL wrote `<a, b>` for every point interval,
+  and the reader refused most of them (GAOL v5). In hexadecimal, the
   bounds have to be written in the hexadecimal-significand form of
   IEEE 1788-2015 (13.4.1) and read back as the same doubles, which is the
   recovery requirement of 13.4: over random intervals, and over the empty
@@ -286,13 +288,13 @@ mode there.
   doubles and point intervals, written `[a]` as in decimal, and `[0x0p+0]`
   for a zero whatever the signs of its bounds, read back as the same set
   (GAOL v5: `[0x1.8p+0, 0x1.8p+0]`, and `[-0x0p+0, 0x0p+0]` for
-  `interval::zero()` with the SSE2 intervals).
-  `operator<<` has to leave the precision of the stream as it was, and
-  `std::setw` to pad the whole interval, adjusted to the right, to the left
+  `interval::zero()` with the SSE2 intervals). `operator<<` has
+  to leave the precision of the stream as it was, and `std::setw`
+  to pad the whole interval, adjusted to the right, to the left
   or inside (with `std::internal`, the fill follows the sign of the midpoint
   in the width and center formats, and that of the shared digits in the
-  agreeing format), and after `0x` in the hexadecimal floating-point format
-  of the stream. The texts written under the flags of the
+  agreeing format), and after `0x` in the hexadecimal floating-point
+  format of the stream. The texts written under the flags of the
   stream (`showpoint`, `showpos`, `uppercase`, `fixed`, `scientific`), its
   fill and a locale of its own (a decimal colon, digits grouped by three, or
   a decimal comma) have to be those `operator<<` wrote in a stream of its
@@ -303,8 +305,8 @@ mode there.
   radius with the grouping of the locale, as the midpoint, and without a
   sign under `showpos` (it wrote `+2 (+/- +1)`), and a midpoint 0 as `0` (it
   wrote `-0` for [-2u, u]): 33 cases of four formats, over zeros,
-  infinities, the empty set and point intervals (GAOL v5).
-  The width and center formats have to write the `midpoint()` and the `rad()`
+  infinities, the empty set and point intervals (GAOL v5). The
+  width and center formats have to write the `midpoint()` and the `rad()`
   of IEEE 1788-2015: with every precision and flag, over the special values,
   the subnormals, the largest doubles, unbounded intervals and random
   intervals, the radius written has to be `rad()` rounded upward, less than
@@ -332,16 +334,17 @@ mode there.
   is flushed before the first character is read, as for a number, so that a
   prompt shows before the user types (`std::ws` alone does none of this).
   Numbers with a million zeros after their point and an exponent of 7 digits
-  (`0.00…01e1000001`, and in hexadecimal and in the uncertain form) have to be
-  read exactly: the exponent was cut at 100000 (GAOL v5). Under a locale
-  writing a decimal comma, where one is installed
+  (`0.00…01e1000001`, and in hexadecimal and in the uncertain form)
+  have to be read exactly: the exponent was cut at 100000 (GAOL v5).
+  Under a locale writing a decimal comma, where one is installed
   (`fr_FR.UTF-8`, `de_DE.UTF-8`, `French_France.1252`...), numbers have to be
   read as in the C locale, and `exact_string()` has to write points and read
   back bit for bit: the reading never ended there, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it hang
-  again (GAOL v5), in `tests/find_package` and `tests/fetch_content` too; the
-  cache variable `GAOL_NUMBERS_TIMEOUT` gives it more time on a slower build
-  (600 s with GCC and the sanitizers on macOS x86_64). Numbers of 5000 to 20000 characters, in decimal, in
+  again (GAOL v5), in `tests/find_package` and `tests/fetch_content`
+  too; the cache variable `GAOL_NUMBERS_TIMEOUT` gives it more
+  time on a slower build (600 s with GCC and the sanitizers on
+  macOS x86_64). Numbers of 5000 to 20000 characters, in decimal, in
   hexadecimal and in the uncertain form, have to be read as the tightest
   enclosures, known without reading them (`1.5` followed by zeros is 1.5, and
   followed by zeros and a 1 is between 1.5 and the next double...), under the C
@@ -349,13 +352,12 @@ mode there.
   locale, the number of 20000 characters has to take at most 10 times the
   time it takes under the C locale, and 50 ms more: the reader read the text
   again for each of its 125 comparisons or so, in a time quadratic in its
-  length, and took 50 times as long (GAOL v5).
-  The Ubuntu runners of the continuous integration have no
-  such locale: its Linux jobs generate `fr_FR.UTF-8` for the test, and fail if
-  it did not check under it (see
-  [Continuous integration](continuous-integration.md)).
-  With flush-to-zero, denormals-are-zero or both set in MXCSR
-  (x86 only, and where the processor honours them), the numbers from 0 to the
+  length, and took 50 times as long (GAOL v5). The Ubuntu runners
+  of the continuous integration have no such locale: its Linux
+  jobs generate `fr_FR.UTF-8` for the test, and fail if it did
+  not check under it (see [Continuous integration](continuous-integration.md)).
+  With flush-to-zero, denormals-are-zero or both set in MXCSR (x86
+  only, and where the processor honours them), the numbers from 0 to the
   least normal double, in decimal and in hexadecimal, alone, in intervals and
   in the uncertain form, have to be read as the tightest intervals enclosing
   them, and the doubles among them, 0 included, as themselves: the reader
@@ -371,17 +373,20 @@ mode there.
   macOS), and writes 0: nothing is checked where the C library does not write
   the bounds of the test under the mode as it does without it.
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
-  where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
-  distances (of intervals with infinite bounds too, equal bounds being at
-  distance 0), `nb_fp_numbers()` (across the two zeros), splitting, integer parts, the comparisons of IEEE 1788-2015
+  where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`),
+  widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes,
+  Hausdorff distances (of intervals with infinite bounds too, equal
+  bounds being at distance 0), `nb_fp_numbers()` (across the two
+  zeros), splitting, integer parts, the comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
   and decide an interval of a single double beyond 2^53. `less`,
-  `strictly_less`, `is_entire` and `is_common_interval` have to give the values
-  of Tables 10.3 and 10.4, and `==` and `!=` must not compile on intervals,
-  `certainly_neq()` and the possibly relations being gone. Each name of `gaol_ieee1788` has to be the operation
+  `strictly_less`, `is_entire` and `is_common_interval` have to
+  give the values of Tables 10.3 and 10.4, and `==` and `!=` must
+  not compile on intervals, `certainly_neq()` and the possibly
+  relations being gone. Each name of `gaol_ieee1788` has to be the operation
   of the standard it names, which a wrong translation would not show at
   compilation: the eight comparisons against the bounds of Table 10.3 and the
   empty cases of Table 10.4, over 20 000 pairs; `inf`, `sup` and the numeric
@@ -391,9 +396,9 @@ mode there.
   base, and at integer exponents beyond the ints, where it has to give the
   tightest bounds and GAOL's own `pow` gives [-oo, +oo] (GAOL v5).
 - **`ieee1788`:** `gaol_ieee1788` as a program uses it, under
-  `using namespace gaol_ieee1788;` alone. Every name of the standard it
-  provides is called unqualified, which compiles only if none of them is
-  ambiguous with a function of `gaol_core`. `pow` has to be the standard's with an interval, an
+  `using namespace gaol_ieee1788;` alone. Every name of the standard it provides
+  is called unqualified, which compiles only if none of them is ambiguous with
+  a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power,
   for an exponent of any integer type too (GAOL v5): `pown([2], 3000000000u)`
@@ -405,9 +410,8 @@ mode there.
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
   `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,
-  [-oo, +oo]; `numsToInterval()` and `isMember()`
-  take ±(2^53 + 1) as the integer it is, and bounds in the wrong order give the
-  empty set;
+  [-oo, +oo]; `numsToInterval()` and `isMember()` take ±(2^53 + 1)
+  as the integer it is, and bounds in the wrong order give the empty set;
   the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 92 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
   `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
@@ -415,14 +419,14 @@ mode there.
   own copy of the pow, each an enclosure of the exact power within one double
   of the tightest bounds, and the same with the exponent given as a double;
   and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
-  standard's too. GAOL's functions on intervals and on an interval and a
-  number; the functions of C on numbers, by `static_assert`.
+  standard's too. GAOL's functions on intervals and on an interval
+  and a number; the functions of C on numbers, by `static_assert`.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
   to leave the global output format alone; the check of it by a second
-  thread writing intervals meanwhile is commented out, the tests running no
-  thread. `textToInterval(intervalToText(x))` has to contain x for a point
-  interval x, `interval(0.1)` first: it was the empty set (GAOL v5); and to be
-  x itself for a text `[a]`.
+  thread writing intervals meanwhile is commented out, the tests
+  running no thread. `textToInterval(intervalToText(x))` has to
+  contain x for a point interval x, `interval(0.1)` first: it was
+  the empty set (GAOL v5); and to be x itself for a text `[a]`.
   `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`,
   `[a]` (`[4]`, `[0]`) or `[empty]`, with the digits of the precision of the
   intervals, whatever the global format and the locale: in each of the five
@@ -438,10 +442,9 @@ mode there.
   format with no digit and the showpoint flag, and with 1074 digits) has to
   be read back by `gaol::textToInterval` as an interval containing the
   point, and as the point itself when it is one number (GAOL v5: the literal
-  `[a]` wrote `[-2,5]`, read as `[-2, 5]`, `[12,5]`, read as the empty set,
-  and `[0,]`, read as `[0, +oo]`, then a point with its two bounds,
-  `[-2,5, -2,5]`, which the reader refused).
-  `textToInterval` has to read each name of
+  `[a]` wrote `[-2,5]`, read as `[-2, 5]`, `[12,5]`, read as the empty set, and
+  `[0,]`, read as `[0, +oo]`, then a point with its two bounds, `[-2,5, -2,5]`,
+  which the reader refused). `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
@@ -486,10 +489,10 @@ mode there.
   subnormal x (see `3rd/README.md` and `gaol/core_math_port.h`). Among the
   pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
   being 1. With flush-to-zero set (x86), the lower bound of
-  `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y being flushed
-  to 0. The functions of
-  Table 10.5 GAOL provides have to be the tightest enclosures over intervals
-  too: the hull of their image, computed from the values at the bounds of the
+  `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y
+  being flushed to 0. The functions of Table 10.5 GAOL provides
+  have to be the tightest enclosures over intervals too: the hull
+  of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
   `log2p1`, `log10p1`, `rsqrt`, `atanpi`, `asinpi`, `acospi`), at the points of
   the box nearest to the origin and farthest from it (`hypot`), at the
@@ -552,10 +555,10 @@ mode there.
   too, `pow(e, 3)` and `/=` included, which did not link, and `expression(n)`
   of 2^53 + 1, the interval of the two doubles around it, and `expression(7)`,
   the node of the double 7, written `7`, and `pow(e, n)` and `nth_root(e, n)`
-  with a `long` n, an unsigned beyond the ints, a negative int and orders
-  beyond the unsigned ints, of positive, negative and mixed-sign expressions
-  (GAOL v5), and have to be
-  printed as written, `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
+  with a `long` n, an unsigned beyond the ints, a negative int
+  and orders beyond the unsigned ints, of positive, negative and
+  mixed-sign expressions (GAOL v5), and have to be printed as written,
+  `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
   not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
@@ -568,13 +571,12 @@ mode there.
   explanation, without one, with a null pointer (no explanation) and with an
   explanation that starts with a NUL, and of what the reader, `operator>>` and
   `nb_fp_numbers()` throw, read through a `std::exception`; and `operator<<` has
-  to write the explanation once. `what()` was `std::exception`, which a handler of
-  `std::exception` printed and an exception that nothing catches ended the
+  to write the explanation once. `what()` was `std::exception`, which a handler
+  of `std::exception` printed and an exception that nothing catches ended the
   program with, and `operator<<` wrote it next to the explanation (GAOL v5).
-  The reading of
-  strings by four threads at once, where the reader, whose state was global,
-  crashed before its lexer became reentrant and its parser pure, is commented
-  out: the tests run no thread
+  The reading of strings by four threads at once, where the reader,
+  whose state was global, crashed before its lexer became reentrant
+  and its parser pure, is commented out: the tests run no thread
   (GAOL v5). Each value is compared with the same computation written in C++,
   which the other tests check against the exact results: what is tested here is
   the lexer, the parser and the evaluation, not the operations. An empty
@@ -586,9 +588,9 @@ mode there.
   (`expr_node::references()` does not change as they are built, copied,
   assigned and extended): the count, changed by several threads at once, came
   down to 0 and the node was deleted twice (GAOL v5).
-- **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`, `cos`, `tan`,
-  `atan2` and `pow`, and of `log10` and seven functions of Table 10.5, compute
-  with a 128-bit unsigned integer, which Visual C++
+- **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`,
+  `cos`, `tan`, `atan2` and `pow`, and of `log10` and seven functions
+  of Table 10.5, compute with a 128-bit unsigned integer, which Visual C++
   has on no architecture and GCC has on no 32-bit target; there GAOL computes
   with the two 64-bit halves of `gaol/gaol_u128.h`. The test compiles those
   halves (`GAOL_U128_FORCE_EMULATION`) and compares every operation with the
@@ -756,32 +758,30 @@ mode there.
   order that lie between the same two doubles (`interval(2^53 + 1, 2^53)`),
   `=`, `&=` (empty for `[0, 2^53] &= 2^53 + 1`) and `|=`, each arithmetic
   operator in both orders, and the relations, `set_contains()` and
-  `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to
-  a double made wrong; and that an integer that is a double gives what the
-  double gives. `relations` also checks `gaol::lexicographic_less`
-  (GAOL v5, point V): a strict total order that puts the empty set first and
-  the intervals by their bounds, which `<` is not, being the `strictPrecedes`
-  of IEEE 1788-2015, true as soon as either interval is empty; it sorts a
-  `std::vector` holding an empty interval, which `<` reads past the end of,
-  and fills a `std::set` with intervals that overlap, which `<` loses.
-  `misc` declares a `namespace detail` of its own, which
-  `using namespace gaol` made ambiguous while GAOL's helpers were in
-  `gaol_core::detail`, and checks the names of `gaol`, which names those of
-  `gaol_core` one by one (GAOL v5). `static_assert` checks that `gaol::f`
+  `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to a
+  double made wrong; and that an integer that is a double gives what the double
+  gives. `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
+  a strict total order that puts the empty set first and the intervals by their
+  bounds, which `<` is not, being the `strictPrecedes` of IEEE 1788-2015, true
+  as soon as either interval is empty; it sorts a `std::vector` holding an
+  empty interval, which `<` reads past the end of, and fills a `std::set` with
+  intervals that overlap, which `<` loses. `misc` declares a `namespace detail`
+  of its own, which `using namespace gaol` made ambiguous while GAOL's helpers
+  were in `gaol_core::detail`, and checks the names of `gaol`, which names those
+  of `gaol_core` one by one (GAOL v5). `static_assert` checks that `gaol::f`
   compiles, a class being that of `gaol_core` and a function returning the
   type expected, for the names of GAOL 4 that Codac and IBEX use
-  (`gaol::operator+`, `gaol::operator|`, `gaol::round_upward`,
-  `gaol::nth_root`, `gaol::div_rel`, `gaol::init`...), the other classes of
-  GAOL 4, the functions on intervals GAOL v5 adds and the nodes of their
-  expressions, `restore_rounding()`, `exact_string()`, `rnd_keep()` and
-  `NaN_val`, and
+  (`gaol::operator+`, `gaol::operator|`, `gaol::round_upward`, `gaol::nth_root`,
+  `gaol::div_rel`, `gaol::init`...), the other classes of GAOL 4, the
+  functions on intervals GAOL v5 adds and the nodes of their expressions,
+  `restore_rounding()`, `exact_string()`, `rnd_keep()` and `NaN_val`, and
   the overloads of every function and operator of the expressions; that what
   GAOL uses for itself is not found through `using namespace gaol`: the
   functions (`get_rounding()`, `get_flush_modes()`, `gaol_pown()`...), their
   name between parentheses so that argument-dependent lookup does not find
-  them in `gaol_core`, lose to fallbacks that any function of GAOL beats, and
-  the types and the variables (`rounding_state`, `uintdouble`, `the_null_expr`,
-  the internals GAOL 4 had in `gaol` too...) to fallbacks of
+  them in `gaol_core`, lose to fallbacks that any function of GAOL
+  beats, and the types and the variables (`rounding_state`, `uintdouble`,
+  `the_null_expr`, the internals GAOL 4 had in `gaol` too...) to fallbacks of
   the same name, with which they would be ambiguous. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
