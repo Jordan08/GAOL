@@ -129,8 +129,8 @@ mode there.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 210 calls, in 65 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in twelve groups,
+  on either side (about 220 calls, in 66 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in thirteen groups,
   and five choices a program makes with `is_empty()` of an empty interval,
   three after an intersection whose left operand is empty, one after an
   intersection whose right operand is empty and one on the empty interval
@@ -191,7 +191,7 @@ mode there.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5). Then each of the 83 operations that
+  compared before the check (GAOL v5). Then each of the 85 operations that
   check the rounding direction (the arithmetic, the elementary functions, the
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
@@ -694,7 +694,27 @@ mode there.
   computed from the definition of each function with exact rational
   arithmetic, and with mpmath for the periodic ones, not from GAOL nor from
   the results libieeep1788 expects, which the generator checks are
-  enclosures of them.
+  enclosures of them. `atan2_rel_y` and `atan2_rel_x` (`atan2Rev1` and
+  `atan2Rev2`, GAOL v5), which libieeep1788 does not test, have a table of
+  their own, `atan2_rel_values.h`, which `atan2_rel_values.py` generates with
+  mpmath at 3000 bits: 1 969 cases, 1 263 of them with points, of angles at,
+  next to and around the multiples of π/4, across the half-line y = 0, x < 0
+  where atan2 jumps from π to −π, outside [−π, π], subnormal and infinite, on
+  boxes in and across the quadrants with zero, subnormal, huge and infinite
+  bounds, and random ones. The hulls are computed otherwise than GAOL does:
+  from the vertices of the polygon of the points of each convex cone in the
+  box, the corners of the box whose angle mpmath gives and the points where
+  the sides of the cone cross those of the box. Each result has to be empty
+  when an argument is, valid, accurate, and within 2 doubles of the tightest
+  bounds where both are nonempty, and the names of `gaol_ieee1788` have to give
+  it, with and without their last argument. Over the boxes of the table and
+  3 000 random ones, about 600 000 sampled points whose angle is in c (the
+  corners, points of the sides and of the axes, random points, and the doubles
+  next to where the sides of the cones of c cross those of the box) have to be
+  in both results, whether the angle of a point is in c being decided exactly
+  from `atan2()` of the point, whose bounds are the two doubles around the
+  angle. Boxes with bounds in {-oo, -2, -0, 0, 3, +oo} and angles with zero
+  and infinite bounds raise no invalid-operation flag.
   The reverse functions of pow (GAOL v5), `pow_rel` (`powRev1`) and
   `pow_exponent_rel` (`powRev2`), are checked apart, on the cases of
   `pow_rel_values.h`, which `pow_rel_values.py` generates: the 804 cases of

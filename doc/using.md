@@ -368,6 +368,30 @@ next to `using namespace std;`, where it is ambiguous with the class template
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
 
+### The reverse functions of atan2
+
+`atan2_rel_y(c, x, y)` and `atan2_rel_x(c, y, x)` (GAOL v5), `atan2Rev1(x, c,
+y)` and `atan2Rev2(y, c, x)` in `gaol_ieee1788`, are the hulls of the
+ordinates and of the abscissas of the points of the box x × y whose angle
+`atan2(y, x)` is in c, the point (0, 0), which has no angle, left out. As in
+`div_rel(c, b, x)`, the interval contracted comes last and the other argument
+of `atan2` before it, so that the constraint θ = atan2(y, x) contracts its
+three variables with
+
+```cpp
+theta &= atan2(y, x);
+y = atan2_rel_y(theta, x, y);
+x = atan2_rel_x(theta, y, x);
+```
+
+The angles are those of `atan2`, in (−π, π]: the half-line y = 0, x < 0 has
+the angle π, not −π, and a c holding −π but not π leaves it out
+(`atan2_rel_x([-4, -3], [0], [-2, 2])` is empty), while the angles of c
+beyond π are no angle of any point (`atan2_rel_y([3, 4], [-1], [-1, 1])` is
+[0, −tan(3)], about [0, 0.1425], the points of angles 3 to π only). A
+program whose angles go around past π gives the two sides of the jump apart,
+[3, π] and [−π, 4 − 2π] for [3, 4], and takes the hull of the two results.
+
 ## Tools of interval algorithms
 
 GAOL v5 provides the operations that interval algorithms otherwise write for
