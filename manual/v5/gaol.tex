@@ -3386,6 +3386,75 @@ cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
   the tightest result for \var{I} one double wider.
 \end{deffun}
 
+\deffunx{interval}{max\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+\begin{deffun}{interval}{min\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+  \begin{operation}
+    \op{$\code{max\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon \max(x,y)\in Z\}}$}
+    \op{$\code{min\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon \min(x,y)\in Z\}}$}
+  \end{operation}
+  Return the \emph{relational maximum} and \emph{minimum} of \var{Z} given
+  \var{Y} w.r.t. \var{X}, the arguments in the order of \code{div\_rel}: the
+  result, the other operand, then the operand contracted;
+  \code{max\_rel(Z,~X,~Y)} contracts \var{Y}, and \code{max(X,~Y)~\&~Z}
+  contracts \var{Z}. $\max(x,y)$ is in \var{Z} when $x$ and $y$ are at most
+  $\rightBound{Z}$ and one of them at least $\leftBound{Z}$: the set is empty
+  when \var{Y} lies above \var{Z}, $X\cap\itv{-\infty}{\rightBound{Z}}$ when
+  \var{Y} meets \var{Z}, and $X\cap Z$ when \var{Y} lies below \var{Z}, the
+  maximum being $x$; \code{min\_rel} is its mirror image. The bounds are those
+  of \var{X} and \var{Z}: each result is the tightest enclosure.\newinvfive
+\begin{example}
+cout << max_rel(interval(1,2), interval(3,4), interval(-5,5)) << ' '
+     << max_rel(interval(1,2), interval(0,1), interval(-5,5)) << ' '
+     << max_rel(interval(1,2), interval(-1,0), interval(-5,5)) << endl
+     << min_rel(interval(1,2), interval(2,3), interval(-5,5)) << endl;
+@outputs^[empty] [-5, 2] [1, 2]~
+@outputs^[1, 5]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sign\_rel}{(const interval\& Z, const interval\& X)}
+  \begin{operation}
+    \op{$\code{sign\_rel}(Z,X)=\hull{\{x\in X\mid \operatorname{sign}(x)\in Z\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse sign} of \var{Z} w.r.t. \var{X}: the
+  negative $x$ of \var{X} where \var{Z} holds $-1$, 0 where \var{Z} and
+  \var{X} hold it, and the positive $x$ of \var{X} where \var{Z} holds 1; the
+  empty set where \var{Z} holds none of them, as \itv{0.5}{0.7}. The negative
+  $x$ go up to 0, which their tightest enclosure takes although
+  $\operatorname{sign}(0)=0$, the negative doubles next to 0 being in the
+  set.\newinvfive
+\begin{example}
+cout << sign_rel(interval(-1), interval(-2,3)) << ' '
+     << sign_rel(interval(-1), interval(0,3)) << ' '
+     << sign_rel(interval(0,1), interval(-2,3)) << endl;
+@outputs^[-2, 0] [empty] [0, 3]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{floor\_rel}{(const interval\& Z, const interval\& X)}
+  \begin{operation}
+    \op{$\code{floor\_rel}(Z,X)=\hull{\{x\in X\mid \lfloor x\rfloor\in Z\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse floor} of \var{Z} w.r.t. \var{X}: the
+  part of \var{X} in
+  $\left[\lceil\leftBound{Z}\rceil,\lfloor\rightBound{Z}\rfloor+1\right[$,
+  the $x$ whose floor is an integer of \var{Z}, and the empty set when
+  \var{Z} holds no integer. That interval is open at its upper end, which its
+  tightest closed enclosure takes all the same, the reals just below it being
+  in the set: \code{floor\_rel(interval(0), interval(1,~2))} is empty, \var{X}
+  starting at that end. Beyond $2^{53}$, where every double is an integer,
+  $\lfloor\rightBound{Z}\rfloor+1$ is no double, and the bound is the double
+  above it: \code{floor\_rel} of \itv{2^{53}}{2^{53}} ends at $2^{53}+2$,
+  and at $+\infty$ for \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}. Each result
+  is the tightest enclosure.\newinvfive
+\begin{example}
+cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
+     << floor_rel(interval(0), interval(1,2)) << ' '
+     << floor_rel(interval(0.5,0.7), interval(-5,5)) << endl;
+@outputs^[0, 3] [empty] [empty]~
+\end{example}
+\end{deffun}
+
 \noindent
 The correspondence with the reverse functions of IEEE 1788-2015, whose
 last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
@@ -3412,6 +3481,11 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
 namespace \code{gaol\_ieee1788} under its name
 (Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{atan2Rev1},
 \ieee{atan2Rev2} and \ieee{pownRev} for $p\leq0$ are not provided.
+\code{max\_rel}, \code{min\_rel}, \code{sign\_rel} and \code{floor\_rel} are
+the reverse functions of $\max$, $\min$, $\operatorname{sign}$ and
+$\operatorname{floor}$ as the standard defines them (10.5.4), which it
+neither names nor requires, Table~10.1 not listing them: the namespace
+\code{gaol\_ieee1788} has no name for them.\newinvfive
 
 \section{Cancellative addition and subtraction}
 %%---------------------------------------------
@@ -4772,6 +4846,7 @@ covered.
   \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid required, accurate recommended}}\\
   \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel}, \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
   \code{invabs\_rel} & tightest\\
+  \code{max\_rel}, \code{min\_rel}, \code{sign\_rel}, \code{floor\_rel} (not in Table~10.1) & tightest\\
   \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
   \code{div\_rel}, \code{\%} & accurate; tightest where the bounds of the quotients are doubles\\
   \code{pow\_rel}, \code{pow\_exponent\_rel} & tightest, but for a bound of $x$ next to the solutions whose power is within one double of $c$, which is kept: the tightest result for $x$ one double wider\newinvfive\\
