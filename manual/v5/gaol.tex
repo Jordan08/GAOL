@@ -1390,7 +1390,7 @@ the exceptions, the expressions with their nodes and visitor, the functions
 and the operators of intervals, \code{round\_upward()}, \code{next\_float()},
 \code{version}, \code{NaN\_val}\ldots, and \code{rnd\_keep()} of GAOL~4.3.2), the functions on
 intervals GAOL v5 adds (\code{exp2}, \code{log2}, \code{hypot}, \code{trunc},
-\code{sinpi}, \code{fma}, \code{cancel\_minus},
+\code{sinpi}, \code{erf}, \code{fma}, \code{cancel\_minus},
 \code{round\_ties\_to\_even}\ldots{} and the nodes of their expressions),
 \code{restore\_rounding()} and \code{exact\_string()}.\newinvfive{} What
 GAOL's code uses for itself is in
@@ -3140,6 +3140,27 @@ cout << hypot(interval(3), interval(4)) << ' '
 Among the functions IEEE 1788-2015 recommends (Table~10.5), \ieee{compoundm1}
 alone is not provided, CORE-MATH having no version of it for doubles.
 
+\deffunx{interval}{erf}{(const interval\& \var{I})}
+\begin{deffun}{interval}{erfc}{(const interval\& \var{I})}
+  The error function $\operatorname{erf}(x)=\frac{2}{\sqrt{\pi}}\int_0^x
+  e^{-t^2}\,dt$, increasing from $-1$ to 1, and its complement
+  $\operatorname{erfc}(x)=1-\operatorname{erf}(x)$, decreasing from 2 to 0,
+  for $x$ in \var{I}: the \code{erf} and \code{erfc} of C, which CORE-MATH
+  computes, and the tightest bounds, exact at 0 and at the infinities.
+  $\operatorname{erfc}(x)$ is subnormal from $x=26.55$ on, and below the
+  least subnormal from $x=27.22$ on, where the lower bound is 0. IEEE
+  1788-2015 does not name them, and \code{gaol\_ieee1788} does not hold them:
+  a call \code{erf(\var{x})} on an interval finds them all the same, by
+  argument-dependent lookup.\newinvfive
+\begin{example}
+cout << erf(interval(0.0)) << ' ' << erf(interval(-1,1)) << ' '
+     << erf(interval(6,7)) << endl
+     << erfc(interval(0.0,1)) << ' ' << erfc(interval(28,30)) << endl;
+@outputs^[0] [-0.8427007929497149, 0.8427007929497149] [0.9999999999999998, 1]~
+@outputs^[0.1572992070502851, 1] [0, 4.940656458412466e-324]~
+\end{example}
+\end{deffun}
+
 \section{Relational Arithmetic}\label{sec:relational-arithmetic}
 %%-----------------------------
 \cindex{reverse functions|see{relational arithmetic}}%
@@ -4744,6 +4765,9 @@ covered.
   \code{nth\_root(x, q)}, $q<0$ & accurate: the root above, then the tightest division\\
   \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
   \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\
+  \hline
+  \multicolumn{2}{l}{\textit{The error functions, which IEEE 1788-2015 does not name}}\\
+  \code{erf}, \code{erfc} & tightest; exact at 0 and at the infinities\newinvfive\\
   \hline
   \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid required, accurate recommended}}\\
   \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel}, \code{asinh\_rel}, \code{atanh\_rel} & accurate\\

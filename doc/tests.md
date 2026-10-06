@@ -96,8 +96,15 @@ mode there.
   calling code left, which `std::nearbyint` and `std::rint` would not: they are
   compared with a reference computed arithmetically, over the halfway values,
   the whole numbers and the doubles on either side of them, and over the
-  magnitudes beyond 2^52, on both signs and on the empty set. The
-  values are in `elementary_values.h`, which `elementary_values.py` generates.
+  magnitudes beyond 2^52, on both signs and on the empty set. `erf` and `erfc`
+  have to be the tightest enclosures themselves, against mpmath, at 409 doubles
+  (tiny arguments, where erf(x) is about 2x/√π, subnormal ones among them,
+  changes of binade, the arguments past which erf(x) is within 2^-53 of ±1 and
+  erfc(x) is subnormal or below 2^-1074, and hard cases of the `erfc.c` of
+  CORE-MATH) and over the intervals between them, exact at 0 and at the infinite
+  bounds, `erf(-X)` being `-erf(X)` and `erfc(-X)` within `2 - erfc(X)`, and
+  empty for the empty set (GAOL v5). The values are in `elementary_values.h`,
+  which `elementary_values.py` generates.
 - **`rounding_direction`:** about 110 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
@@ -122,8 +129,8 @@ mode there.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 190 calls, in 63 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in ten groups,
+  on either side (about 190 calls, in 65 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in twelve groups,
   and five choices a program makes with `is_empty()` of an empty interval,
   three after an intersection whose left operand is empty, one after an
   intersection whose right operand is empty and one on the empty interval
@@ -180,7 +187,7 @@ mode there.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5). Then each of the 79 operations that
+  compared before the check (GAOL v5). Then each of the 83 operations that
   check the rounding direction (the arithmetic, the elementary functions, the
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
@@ -217,7 +224,10 @@ mode there.
   has to set the direction to nearest again, as many times as it is called,
   where `cleanup()` does so at its first call only, and to do nothing with
   `GAOL_PRESERVE_ROUNDING`, the operations restoring the direction
-  themselves (GAOL v5).
+  themselves (GAOL v5). `erf([100·2^-1074])` and `erfc([27])`, whose values are
+  subnormal, have to be the tightest enclosures with the modes that flush the
+  subnormals set too, against mpmath, and `erf` and `erfc` are among the
+  operations called with each mode set (GAOL v5).
 - **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
   GCC and Clang), which links `crtfastmath.o` and the modes flushing the
   subnormals to zero it sets, unless `-mno-daz-ftz` keeps it out. Where the
@@ -466,7 +476,9 @@ mode there.
   quotients, and on every b and c with integer bounds in [−3, 3], each
   x = k/4 of the set in one of the two parts, the convex hull of the two
   being `mulRev(b, c)` (the first version of the point put the part above
-  first).
+  first). `erf` and `erfc`, which the standard does not name and
+  `gaol_ieee1788` does not hold, have to be found on an interval by
+  argument-dependent lookup, and to remain those of C on a number (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -551,7 +563,14 @@ mode there.
   (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them
   upward from the direction its `get_rounding_mode()` reads, which clang-cl on
   x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
-  being below 1/sqrt(x) (GAOL v5).
+  being below 1/sqrt(x) (GAOL v5). `erf` and `erfc` have to be the tightest
+  enclosures over 80 000 intervals, whose bounds are drawn among 0, the
+  infinities, the subnormals, the arguments past which their values are within
+  2^-53 of ±1 or of 2, subnormal or below 2^-1074, and those at which CORE-MATH
+  changes its method, with their neighbours, and random doubles; and at 22
+  hard-to-round arguments of the `erfc.c` of CORE-MATH, its values in the four
+  rounding directions have to be consistent with each other, and the bounds of
+  GAOL the tightest (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:

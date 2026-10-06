@@ -2415,9 +2415,9 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
   gaol::sin(x) are those of gaol_core. gaol holds the names GAOL 4 declared in
   its namespace gaol that GAOL v5 still has, so that a program written for
   GAOL 4 compiles, rnd_keep() of GAOL 4.3.2 among them; the functions on
-  intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, fma, cancel_minus,
-  round_ties_to_even...) and the nodes of the expressions it adds; and
-  restore_rounding() and exact_string() of GAOL v5.
+  intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, erf, fma,
+  cancel_minus, round_ties_to_even...) and the nodes of the expressions it
+  adds; and restore_rounding() and exact_string() of GAOL v5.
   It does not hold what GAOL's code uses for itself, which stays in gaol_core:
   the functions saving and setting the rounding direction and the modes
   flushing the subnormals to zero (rounding_state, get_rounding(),

@@ -275,7 +275,7 @@ exceptions, the expressions with their nodes and visitor, the functions and
 the operators of intervals, `round_upward()`, `next_float()`, `version`,
 `NaN_val`..., and `rnd_keep()` of GAOL 4.3.2), the functions on intervals GAOL
 v5 adds
-(`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `fma`, `cancel_minus`,
+(`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. What GAOL's code uses for itself is
 in `gaol_core` only, out of the way of the names of a program that opens
@@ -355,6 +355,11 @@ standard:
   replaces the constructor `interval(const char*)` of GAOL 4, reads the names
   of GAOL and throws: as for `pow`, a program calls the one of the namespace
   it opens.
+
+`erf` and `erfc`, the error function and its complement, which the standard
+does not name, are not in `gaol_ieee1788` (GAOL v5): a call `erf(x)` on an
+interval finds them all the same in `gaol_core`, by argument-dependent lookup,
+and `erf(0.5)` remains the `erf` of C.
 
 A name of the program's own that one of the standard shadows, a constant `inf`
 for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`

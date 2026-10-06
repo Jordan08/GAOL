@@ -138,6 +138,12 @@ double outward.
 | `atan2Pi` | `atan2pi(y, x)` | The analysis of the box of `atan2`, the angles divided by π: [−1, 1] for a box crossing the half-line y = 0, x < 0, the corners elsewhere. The values at the multiples of 1/4 (0, ±1/4, ±1/2, ±3/4, 1, and −1 as a limit) are exact, CORE-MATH's atan2pi giving the others, which are irrational (GAOL v5) | tightest | tightest, over 200 000 boxes |
 | `compoundm1` | — | Not provided: CORE-MATH has no binary64 version | | |
 
+## The error functions, which IEEE 1788-2015 does not name
+
+| IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
+|---|---|---|---|---|
+| — | `erf(x)`, `erfc(x)` | CORE-MATH's erf and erfc at the bounds, correctly rounded upward, erf being increasing and erfc decreasing: the value at one bound, and the double below the value at the other one unless that value is a double, which it is at 0 (erf(0) = 0, erfc(0) = 1) and at ±∞ (the limits ±1 of erf, 2 and 0 of erfc); within [−1, 1] and [0, 2]. erf(x) is within 2<sup>−53</sup> of ±1 from \|x\| = 5.87 on, where its bounds are 1 − 2<sup>−53</sup> and 1, or −1 and −(1 − 2<sup>−53</sup>), and erfc(x) is subnormal from x = 26.55 on, and below 2<sup>−1074</sup> from x = 27.22 on, where its lower bound is 0. erf and erfc are not known to take a value that is a double at any other double, and CORE-MATH's sources treat no such case (GAOL v5) | tightest | tightest, at the 409 doubles of `elementary_values.h` (tiny arguments, changes of binade, the arguments where the values round to ±1, 2 or 0 or become subnormal, hard cases of CORE-MATH's erfc.c) and over the intervals between them, against mpmath; over 9 225 doubles and 80 000 intervals against CORE-MATH in both directed roundings |
+
 ## Reverse functions (Table 10.1): accurate
 
 GAOL's relational functions compute `f_rel(J, I)`, the hull of the x of I
