@@ -56,6 +56,9 @@
 #include <ostream>
 #include <streambuf>
 #include <type_traits>
+#if defined(_MSC_VER) && defined(_M_ARM64)
+#  include <float.h>
+#endif
 
 // The control register of the SSE instructions, where the flush-to-zero and
 // denormals-are-zero modes are set
@@ -376,6 +379,68 @@ namespace
     interval::format(saved_format);
 #else
     std::printf("No control register of the SSE instructions: the output of subnormals with denormals-are-zero is not checked\n");
+#endif
+  }
+
+  /*
+    Visual C++ for 64-bit ARM, where GAOL cannot clear the modes that flush
+    the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
+    _DN_FLUSH) has operator<< write a subnormal bound outward, as 2^-1022 away
+    from zero and 0 toward it, without the C library, which may write it 0
+    under the mode; it was written to nearest, below an upper bound (GAOL v5,
+    point Q of TODO.md). Read back once the mode is cleared, the text of each
+    bound has to be on its side of the bound, and the interval read to
+    enclose the one written. The mode is checked first, with a product whose
+    subnormal result it flushes.
+  */
+  void subnormal_output_flush_not_cleared()
+  {
+#if defined(_MSC_VER) && defined(_M_ARM64)
+    unsigned int saved = 0, ignored = 0;
+    if (_controlfp_s(&saved, 0, 0) != 0) {
+      std::printf("_controlfp_s() does not read the control word: the output of subnormals with FZ is not checked\n");
+      return;
+    }
+    volatile double tiny = 1e-300, small = 1e-20;
+    volatile double product;
+    _controlfp_s(&ignored, _DN_FLUSH, _MCW_DN);
+    product = tiny * small;
+    _controlfp_s(&ignored, saved & _MCW_DN, _MCW_DN);
+    if (product != 0.0) {
+      std::printf("FZ, set by _controlfp_s(), is not honoured: the output of subnormals with it is not checked\n");
+      return;
+    }
+    const double least = std::numeric_limits<double>::denorm_min();
+    const interval tiny_intervals[] = { interval(0.0, least), interval(-least, 0.0), interval(least),
+                                        interval(-least), interval(21.0 * least, 22.0 * least) };
+    const std::streamsize saved_precision = interval::precision();
+    const interval_format::format_t saved_format = interval::format();
+    interval::format(interval_format::bounds);
+    interval::precision(16);
+    for (const interval& x : tiny_intervals) {
+      std::ostringstream os;
+      _controlfp_s(&ignored, _DN_FLUSH, _MCW_DN);
+      os << x;
+      _controlfp_s(&ignored, saved & _MCW_DN, _MCW_DN);
+      const std::string s = os.str();
+      const std::string name = "operator<< of subnormals with FZ set by the program (Visual C++, ARM64)";
+      const auto describe = [&] { return hex(x) + " written " + s; };
+      // "[l, r]", or "[a]" for both bounds
+      const std::string inside = (s.size() >= 2) ? s.substr(1, s.size() - 2) : s;
+      const std::size_t comma = inside.find(", ");
+      const std::string lt = inside.substr(0, comma);
+      const std::string rt = (comma == std::string::npos) ? lt : inside.substr(comma + 2);
+      const interval lo = evaluate(name, [&] { return textToInterval(lt); }, describe);
+      const interval hi = evaluate(name, [&] { return textToInterval(rt); }, describe);
+      check(name + ": the lower bound written at most it", !lo.is_empty() && lo.right() <= x.left(), describe);
+      check(name + ": the upper bound written at least it", !hi.is_empty() && hi.left() >= x.right(), describe);
+      const interval back = evaluate(name, [&] { return textToInterval(s); }, describe);
+      check(name + ", read back: encloses them", back.set_contains(x), [&] { return describe() + " read " + hex(back); });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+#else
+    std::printf("Not Visual C++ for 64-bit ARM: the output of subnormals where GAOL cannot clear FZ is not checked\n");
 #endif
   }
 
@@ -2043,6 +2108,7 @@ int main()
   numbers();
   subnormal_numbers();
   subnormal_output();
+  subnormal_output_flush_not_cleared();
   constants();
   constructors();
   ieee_literals();

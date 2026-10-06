@@ -393,7 +393,12 @@ point Q), which `numbers` checks there too.
   digits, below the upper bound, by the C library, which compares it with 0
   too where it uses gdtoa (FreeBSD, macOS) and writes 0, and whose Debug
   runtime of Visual C++ reports a failed assertion: the test skipped them,
-  and now checks them.
+  and now checks them, where the sum 2^-1060 + 0 by which GAOL checks the
+  mode is 0 under it. With Visual C++ for 64-bit ARM, where GAOL cannot
+  clear the modes, FZ is set by `_controlfp_s()` as a program would, and the
+  bounds written have to be on their side of the subnormal bounds, which
+  `operator<<` writes as 2^-1022 or 0: written to nearest, the upper bound of
+  `[0, 5e-324]` was below it (GAOL v5, point Q).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`), widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes, Hausdorff
   distances (of intervals with infinite bounds too, equal bounds being at
