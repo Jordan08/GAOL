@@ -734,9 +734,9 @@ bounds wrong**, and GAOL defends itself in two ways:
   not get the modes at all, its own code included.
 
 The functions that only read, compare or copy the bounds of an interval make
-no check, which would cost each of them 3 to 4.5 ns on an Intel i7-1185G7,
-two to three times the constructor or `certainly_le()`: they compare the
-bounds as bounds, whatever the modes (GAOL v5). A mode that reads a subnormal
+no check, which made each of them 3 to 4.5 ns slower in a micro-benchmark on
+an Intel i7-1185G7, two to three times the constructor or `certainly_le()`:
+they compare the bounds as bounds, whatever the modes (GAOL v5). A mode that reads a subnormal
 operand as a zero (DAZ, FZ) can make two different doubles compare equal,
 both zero or subnormal, but never puts two doubles in the wrong order: the
 doubles are compared first, and only where they compare equal are they

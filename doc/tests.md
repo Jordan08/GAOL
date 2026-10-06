@@ -17,8 +17,8 @@ runtime showed them in a dialog box, which nobody closes on a machine of the
 CI, and the test hung, without output, until ctest stopped it at 300 s. That
 runtime reports such an assertion of its own when it writes a subnormal number
 under denormals-are-zero ("unexpected input value; log10 failed"), then writes
-0, on x86 as on x64: `numbers` does not check the output of subnormals with that
-mode there.
+0, on x86 as on x64: `operator<<` clears that mode before it writes (GAOL v5,
+point Q), which `numbers` checks there too.
 
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,

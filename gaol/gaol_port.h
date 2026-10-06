@@ -277,9 +277,11 @@ namespace gaol_detail {
     a subnormal operand as a zero of its sign: 3*2^-1074 < 5*2^-1074 is false,
     and so is -2^-1074 < 0. The operations that compute clear these modes in
     their check of the rounding direction before they compare a bound; the
-    functions that only compare or copy bounds make no check, which would cost
-    them 3 to 4.5 ns (measured on an Intel i7-1185G7, 2 to 3 times the
-    constructor or certainly_le()), and compare the bounds with these instead.
+    functions that only compare or copy bounds make no check, which made them
+    3 to 4.5 ns slower in a micro-benchmark of the constructor,
+    certainly_le(), set_contains() and |= (Intel i7-1185G7, Clang 18 and GCC
+    9.4), two to three times their time, and compare the bounds with these
+    instead.
     Reading a subnormal as a zero keeps the order of the doubles, x <= y
     giving x' <= y': a comparison under these modes can find two different
     doubles equal, both zero or subnormal, but never in the wrong order. So
