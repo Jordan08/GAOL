@@ -830,8 +830,9 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  \end{cmdshell}
 
  \noindent
- GAOL is the only library to link, with the C mathematical library: CORE-MATH,
- which computes its elementary functions, is compiled into it.
+ GAOL is the only library to link: CORE-MATH, which computes its elementary
+ functions, is compiled into it, and the C++ compiler links the mathematical
+ library of the system itself.
 
  Executing \file{f}, we obtain:
 
@@ -953,7 +954,7 @@ GAOL. GAOL is compiled as position-independent code, so that
 Each build installs \file{gaol.pc} in the \file{pkgconfig} directory of its
 library directory, except the CMake build with Visual C++. Its \code{Cflags}
 carries the flags above with the include directory, and its \code{Libs} GAOL
-itself with the C mathematical library and the link option above:
+itself and the link option above:
 \cindex{pkg-config}%
 
 \begin{cmdshell}
