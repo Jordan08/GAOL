@@ -144,8 +144,12 @@
   and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
   took the minimum of two subnormals as if they were zeros, and
   sinpi([100, 1000] 2^-1074) was empty (GAOL v5, review of point 4,
-  tests/rounding_direction.cpp). The operations that make no check, which
-  compare bounds without clearing the modes, are listed in doc/using.md.
+  tests/rounding_direction.cpp). The functions that make no check, the
+  constructor from two bounds, the relations, & and |, max(), abs()...,
+  compare the bounds as bounds (gaol_detail::bound_less()..., gaol_port.h),
+  which these modes do not change, and leave them as they found them;
+  midpoint(), chi() and the writing of an interval make the check (GAOL v5,
+  point Q of TODO.md, doc/using.md).
 
   Each operation checks the direction once, at its entry. What it calls after
   its GAOL_RND_ENTER() takes the direction to be upward and does not check it
@@ -383,7 +387,10 @@ namespace gaol_core {
     x / y, sqr, exp, log, sin and cos stayed within the noise. Some x86
     processors take a microcode assist, of the order of a hundred cycles, for
     an operation with a subnormal operand or result, which each operation
-    would pay there: none was measured (GAOL v5).
+    would pay there: none of those of the continuous integration did, where
+    the probe took 0.35 to 1.43 ns, as long as the same probe made of 2^-60
+    within the noise (gaol_performance, 68 jobs on x86-64, i386, arm64 and
+    armhf; GAOL v5, point Q of TODO.md).
   */
   GAOL_INLINE void round_upward_if_needed()
   {

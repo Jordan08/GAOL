@@ -1507,9 +1507,8 @@ Optional Features:
                           rather than leaving it upward [default=no]
   --enable-prefer-avx512  have +, -, *, / and sqrt take the AVX-512
                           instructions and the rounding direction they carry
-                          in themselves, which sets neither the rounding
-                          direction nor the flush-to-zero modes, on a
-                          processor that has them [default=as
+                          in themselves, which sets no rounding direction, on
+                          a processor that has them [default=as
                           preserve-rounding]
   --enable-fma            compile GAOL and CORE-MATH with the fused
                           multiply-add instructions of the processor, where

@@ -635,12 +635,15 @@ as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
 integer powers, the elementary functions, the reading of a number — leave it
 upward, as they always do. These operations raise no floating-point
 exception flag of their own, the architecture requiring the exception
-suppression with the embedded rounding. The modes that flush the subnormal numbers to zero,
-which the embedded rounding does not ignore on the operands (measured on an
-Intel i7-1185G7), are cleared before the operation reads a bound when a
-program or a plug-in has set them, as the other operations clear them; the
-subnormal results, which the embedded rounding computes exactly where
-flush-to-zero alone would flush them, are the tighter for it.
+suppression with the embedded rounding. The modes that flush the subnormal
+numbers to zero, which the embedded rounding honours as the other
+instructions do (measured on an Intel i7-1185G7: with flush-to-zero set,
+the difference of 3e-308 and 2.9e-308 is 0), are cleared before the
+operation reads a bound when a program or a plug-in has set them, as the
+other operations clear them, and set back after its result with
+`GAOL_PRESERVE_ROUNDING`: with Clang 18, the difference of `x - y` was
+computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
+[0, 0] (GAOL v5).
 
 The bounds are those of the other path, bit for bit: the rounding rule is
 the same, and the tests of `tests/`, which a job of the continuous
@@ -720,9 +723,14 @@ bounds wrong**, and GAOL defends itself in two ways:
   `sqr`, `exp`, `log`, `sin` and `cos` stayed within the noise of the
   machine. Some x86 processors take a microcode assist, of the order of a
   hundred cycles, for an operation with a subnormal operand or result: each
-  operation would pay it there. Neither they nor the processors of the
-  continuous integration (virtual machines, AMD EPYC or Intel Xeon) were
-  measured; `tests/performance.cpp`, which it runs, prints the times there.
+  operation would pay it there. `gaol_performance` (`tests/performance.cpp`)
+  prints the time of the check and of the same check made of 2^-60, a
+  normal double: on the 68 jobs of the continuous integration that run on
+  processors (x86-64, i386, arm64 and armhf, under Linux, Windows and macOS,
+  Rosetta 2 included), the first took 0.35 to 1.43 ns and the second 0.40 to
+  1.38 ns, the two differing by -0.63 to +0.44 ns, either way from one job
+  to another: none of these processors took such an assist (GAOL v5, point
+  Q). Under qemu (ppc64le, riscv64, s390x), both took 25 to 83 ns.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
   compiler accepts it: GCC 13 and later on x86, and from 11.4 and 12.4 in the
   series 11 and 12 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
@@ -730,29 +738,55 @@ bounds wrong**, and GAOL defends itself in two ways:
   `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
   not get the modes at all, its own code included.
 
-What remains: the functions that read or compare the bounds of an interval
-without computing make no check, and read a subnormal bound as a zero for as
-long as a mode flushing the operands (DAZ, FZ) is set, that is until an
-operation that checks has cleared it, or, with `GAOL_PRESERVE_ROUNDING`, which
-sets the modes back after each operation, for as long as the program keeps
-them. They are the constructor from two bounds, the reading and the writing of
-text, the relations (`set_contains()`, `certainly_le()`, `==`...), the
+The functions that only read, compare or copy the bounds of an interval make
+no check, which made each of them 3 to 4.5 ns slower in a micro-benchmark on
+an Intel i7-1185G7, two to three times the constructor or `certainly_le()`:
+they compare the bounds as bounds, whatever the modes (GAOL v5). A mode that reads a subnormal
+operand as a zero (DAZ, FZ) can make two different doubles compare equal,
+both zero or subnormal, but never puts two doubles in the wrong order: the
+doubles are compared first, and only where they compare equal are they
+compared as integers, by their bits, which no mode changes. These functions
+are the constructor from two bounds, the relations (`set_contains()`,
+`certainly_le()`, `set_eq()`, `is_zero()`, `lexicographic_less`...), the
 intersection `&` and the hull `|`, `max()`, `min()`, `abs()`, `sign()`,
 `floor()`, `ceil()`, `integer()` and the other roundings to an integer,
-`invabs_rel()`, `mig()`, `mag()`, `midpoint()` and `split()`. Under
+`invabs_rel()`, `mig()`, `mag()`, `is_canonical()`, `feven()`,
+`nb_fp_numbers()`, and `inf()` and `sup()` of `gaol_ieee1788`; the roundings
+to an integer round a subnormal bound from its bits, which musl's `floor()`
+and `ceil()` would return as it is. They give the results they give with the
+modes cleared, and leave the modes as they found them, writing nothing to
+the control register, with `GAOL_PRESERVE_ROUNDING` or without. On the Intel
+i7-1185G7, with Clang 18 (`gaol_performance`, medians of 9 interleaved runs),
+this left the constructor as fast as before, and made `x <= y`,
+`x.set_contains(y)`, `x &= y` and `x | y` 0.5 to 0.8 ns slower, and
+`floor()` 1.7 ns. Before, under
 denormals-are-zero, `max()` of `interval(3*2^-1074, 100*2^-1074)` and
-`interval(200*2^-1074)` is the first one, `abs(interval(-1e-309, -1e-310))`
-stays negative, and the hull `|` of the same two intervals, inline in the
-headers of GAOL, depends on how the compiler of the program arranges its
-comparisons: [0, 0] with GCC 13 at `-O2`, [3*2^-1074, 100*2^-1074] at
-`-O0`, the right hull with Clang 18 at `-O2`. The unary minus makes no check
+`interval(200*2^-1074)` was the first one, `abs(interval(-1e-309, -1e-310))`
+stayed negative, `interval(2^-1073, 2^-1074)` kept its bounds in the wrong
+order, and the hull `|` of the same two intervals, inline in the headers of
+GAOL, depended on how the compiler of the program arranged its comparisons.
+`midpoint()`, `split()` and `chi()`, which compute, and the writing of an
+interval (`operator<<`, `intervalToText()`) make the check, which clears the
+modes, or sets them back after them with `GAOL_PRESERVE_ROUNDING` (1.3 ns
+more for `midpoint()`): the
+midpoint of `interval(2*2^-1074, 4*2^-1074)` was 0, outside it, and a
+subnormal upper bound was written rounded to nearest, below the bound, where
+gdtoa (FreeBSD, macOS) and the Debug runtime of Visual C++ write it 0
+(`tests/rounding_direction.cpp` checks all of them).
+
+What remains: the reader takes the numbers apart by their bits, whatever the
+modes, but compares the two numbers of `<a, b>`, which have to be the same
+double, as doubles, so that under denormals-are-zero `<1e-310, 1e-309>` is
+read as [1e-310, 1e-309] rather than refused. The unary minus makes no check
 either, but it only exchanges the stored bounds, which the modes do not
 change, as they do not change the test of the empty set, made before the check
 of every operation (an operation with an empty operand may return before its
 check, the modes left as it found them), nor the test by which `hausdorff()`
 returns +oo before its check when a bound is infinite in one of its two
 intervals only. The modes of other processors, and
-of ARM with Visual C++, are neither checked nor cleared; GCC links
+of ARM with Visual C++, are neither checked nor cleared, though the functions
+above compare the bounds right there too, and `operator<<` writes a subnormal
+bound outward, as 2^-1022 away from zero and 0 toward it; GCC links
 `crtfastmath.o` for none of the other processors GAOL is tested on. Link a
 program that uses GAOL without these options, or with `-mno-daz-ftz`, and
 compile the code that needs them apart from it.

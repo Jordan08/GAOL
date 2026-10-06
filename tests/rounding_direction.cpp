@@ -28,8 +28,11 @@
  * the modes are cleared after them, or restored with GAOL_PRESERVE_ROUNDING;
  * and every operation that checks the rounding direction gives, with a mode
  * set before it, what it gives with the modes cleared, and clears or restores
- * the modes (GAOL v5). At the end, gaol::cleanup() has to set back the
- * direction the first gaol::init() found (GAOL v5).
+ * the modes (GAOL v5); so do the functions that make no check, the relations,
+ * the constructor from two bounds, max(), abs(), floor()..., which leave the
+ * modes as they found them (GAOL v5, point Q of TODO.md). At the end,
+ * gaol::cleanup() has to set back the direction the first gaol::init()
+ * found (GAOL v5).
  *
  * The rest of the floating-point environment is checked too: the exceptions
  * stay masked, and an empty interval is told empty, with interval::emptyset(),
@@ -104,6 +107,47 @@ namespace
   std::string S(bool b) { return b ? "true" : "false"; }
   std::string S(int n) { return std::to_string(n); }
   std::string S(unsigned long long n) { return std::to_string(n); }
+
+  /*
+    The results of a function run with a mode flushing the subnormals to zero
+    set, kept as they are and written once the modes are cleared: the C
+    library writes the doubles (%a), and gdtoa (FreeBSD, macOS) writes a
+    subnormal 0 under denormals-are-zero, which reads it as 0 (GAOL v5). The
+    doubles are compared by their bits, the empty set by its NaN bounds.
+  */
+  struct Kept
+  {
+    std::vector<double> numbers;
+    std::string text; // what needs no double written
+  };
+
+  Kept kept(const interval& x) { Kept k; k.numbers.push_back(x.left()); k.numbers.push_back(x.right()); return k; }
+  Kept kept(const interval& x, const interval& y)
+  {
+    Kept k = kept(x);
+    k.numbers.push_back(y.left());
+    k.numbers.push_back(y.right());
+    return k;
+  }
+  Kept kept(double x) { Kept k; k.numbers.push_back(x); return k; }
+  Kept kept(bool b) { Kept k; k.text = b ? "true" : "false"; return k; }
+  Kept kept(unsigned long long n) { Kept k; k.text = std::to_string(n); return k; }
+  Kept kept_text(const std::string& s) { Kept k; k.text = s; return k; }
+
+  bool same_kept(const Kept& a, const Kept& b)
+  {
+    return a.numbers.size() == b.numbers.size() && a.text == b.text
+      && (a.numbers.empty() || std::memcmp(a.numbers.data(), b.numbers.data(), a.numbers.size()*sizeof(double)) == 0);
+  }
+
+  std::string written(const Kept& k)
+  {
+    std::string s;
+    for (double x : k.numbers) {
+      s += hex(x) + " ";
+    }
+    return s + k.text;
+  }
 
   struct Operation
   {
@@ -1283,10 +1327,10 @@ int main()
     taken for (0, 0); and with GAOL_PRESERVE_ROUNDING sinpi([100, 1000]*2^-1074)
     was empty, its minimum taken once the modes were restored. acos_rel() and
     asin_rel() of a J outside [-1, 1], or containing it, returned before their
-    check, with the right result but the modes still set. The operations
-    that make no check, which compare the bounds under the modes, are left out
-    (doc/using.md). Nothing of the C library runs while a mode is set: the
-    results are read and written with the modes cleared.
+    check, with the right result but the modes still set. The functions
+    that make no check are tried after these. Nothing of the C library runs
+    while a mode is set: the results are read and written with the modes
+    cleared.
   */
   {
     struct FlushOperation
@@ -1445,6 +1489,155 @@ int main()
       }
     }
     set(directions[0]);
+
+    /*
+      The functions that make no check of the rounding direction, which only
+      compare or copy bounds (the constructor from two bounds, the relations,
+      &, |, max(), min(), abs(), sign(), floor(), ceil()...), give with a mode
+      set before them what they give with the modes cleared, and leave the
+      modes as they found them: they compare the bounds as bounds
+      (gaol_detail::bound_less()..., gaol_port.h), which no mode changes, and
+      write nothing to the control register (GAOL v5, point Q of TODO.md,
+      issue #68). Under denormals-are-zero, interval(2^-1073, 2^-1074) kept
+      its bounds in the wrong order, max([3, 100]*2^-1074, [200*2^-1074]) was
+      the first one, abs([-1e-309, -1e-310]) stayed negative, sign([-2^-1074])
+      was [0], floor([-1e-310]) [-0], [3*2^-1074] < [5*2^-1074] false and
+      [2, 5]*2^-1074 contained 7*2^-1074. They do not depend on the rounding
+      direction, and are run with it upward. midpoint(), split(), chi() and
+      the writing of an interval compute: they check the direction, which
+      clears the modes, and are run in each direction, the modes cleared after
+      them, or restored with GAOL_PRESERVE_ROUNDING; under denormals-are-zero,
+      the midpoint of [3, 100]*2^-1074 was 0, outside the interval, and
+      [22*2^-1074] was written [1e-322] with 1 digit, below its bound. The
+      results are kept as they are and compared by their bits, the empty set
+      by its NaN bounds, so that bounds in the wrong order, which is_empty()
+      takes for the empty set with the modes cleared, are told apart; their
+      doubles are written once the modes are cleared (Kept). The check of
+      <a, b> by the parser, which compares the two numbers as doubles, is left
+      to point E.
+    */
+    {
+      struct UncheckedFunction
+      {
+        const char *name;
+        int arity; // 1: x, 2: x and y, a double being y.left()
+        bool checks; // checks the rounding direction, which clears the modes
+        Kept (*run)(const interval& x, const interval& y);
+      };
+      const UncheckedFunction unchecked_functions[] = {
+        { "interval(x.left(), y.left())", 2, false, [](const interval& x, const interval& y) { return kept(interval(x.left(), y.left())); } },
+        { "interval(x.right(), y.left())", 2, false, [](const interval& x, const interval& y) { return kept(interval(x.right(), y.left())); } },
+        { "x & y", 2, false, [](const interval& x, const interval& y) { return kept(x & y); } },
+        { "x | y", 2, false, [](const interval& x, const interval& y) { return kept(x | y); } },
+        { "x &= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z &= y.left(); return kept(z); } },
+        { "x |= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z |= y.left(); return kept(z); } },
+        { "max(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(max(x, y)); } },
+        { "min(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(min(x, y)); } },
+        { "abs(x)", 1, false, [](const interval& x, const interval&) { return kept(abs(x)); } },
+        { "invabs_rel(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(invabs_rel(x, y)); } },
+        { "sign(x)", 1, false, [](const interval& x, const interval&) { return kept(sign(x)); } },
+        { "floor(x)", 1, false, [](const interval& x, const interval&) { return kept(floor(x)); } },
+        { "ceil(x)", 1, false, [](const interval& x, const interval&) { return kept(ceil(x)); } },
+        { "integer(x)", 1, false, [](const interval& x, const interval&) { return kept(integer(x)); } },
+        { "trunc(x)", 1, false, [](const interval& x, const interval&) { return kept(trunc(x)); } },
+        { "round_ties_to_even(x)", 1, false, [](const interval& x, const interval&) { return kept(round_ties_to_even(x)); } },
+        { "round_ties_to_away(x)", 1, false, [](const interval& x, const interval&) { return kept(round_ties_to_away(x)); } },
+        { "x.mig()", 1, false, [](const interval& x, const interval&) { return kept(x.mig()); } },
+        { "x.smig()", 1, false, [](const interval& x, const interval&) { return kept(x.smig()); } },
+        { "x.mag()", 1, false, [](const interval& x, const interval&) { return kept(x.mag()); } },
+        { "gaol_ieee1788::inf(x)", 1, false, [](const interval& x, const interval&) { return kept(gaol_ieee1788::inf(x)); } },
+        { "gaol_ieee1788::sup(x)", 1, false, [](const interval& x, const interval&) { return kept(gaol_ieee1788::sup(x)); } },
+        { "nb_fp_numbers(x.left(), x.right())", 1, false, [](const interval& x, const interval&) {
+            return x.is_common_interval() ? kept(nb_fp_numbers(x.left(), x.right())) : kept_text("not finite"); } },
+        { "x.certainly_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_le(y)); } },
+        { "x.certainly_leq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_leq(y)); } },
+        { "x.certainly_ge(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_ge(y)); } },
+        { "x.certainly_geq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_geq(y)); } },
+        { "x.certainly_positive()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_positive()); } },
+        { "x.certainly_negative()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_negative()); } },
+        { "x.certainly_strictly_positive()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_strictly_positive()); } },
+        { "x.certainly_strictly_negative()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_strictly_negative()); } },
+        { "x.set_contains(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_contains(y)); } },
+        { "x.set_contains(double)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_contains(y.left())); } },
+        { "x.set_strictly_contains(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_strictly_contains(y)); } },
+        { "x.set_strictly_contains(double)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_strictly_contains(y.left())); } },
+        { "x.set_disjoint(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_disjoint(y)); } },
+        { "x.set_eq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_eq(y)); } },
+        { "x.set_leq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_leq(y)); } },
+        { "x.set_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_le(y)); } },
+        { "x.less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.less(y)); } },
+        { "x.strictly_less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.strictly_less(y)); } },
+        { "lexicographic_less()(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(lexicographic_less()(x, y)); } },
+        { "x.is_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.is_zero()); } },
+        { "x.is_symmetric()", 1, false, [](const interval& x, const interval&) { return kept(x.is_symmetric()); } },
+        { "x.straddles_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.straddles_zero()); } },
+        { "x.strictly_straddles_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.strictly_straddles_zero()); } },
+        { "x.is_a_double()", 1, false, [](const interval& x, const interval&) { return kept(x.is_a_double()); } },
+        { "x.is_an_int()", 1, false, [](const interval& x, const interval&) { return kept(x.is_an_int()); } },
+        { "x.is_canonical()", 1, false, [](const interval& x, const interval&) { return kept(x.is_canonical()); } },
+        { "feven(x.left())", 1, false, [](const interval& x, const interval&) { return kept(feven(x.left())); } },
+        { "x.midpoint()", 1, true, [](const interval& x, const interval&) { return kept(x.midpoint()); } },
+        { "x.split()", 1, true, [](const interval& x, const interval&) { interval l, r; x.split(l, r); return kept(l, r); } },
+        { "x.split_left()", 1, true, [](const interval& x, const interval&) { return kept(x.split_left()); } },
+        { "x.split_right()", 1, true, [](const interval& x, const interval&) { return kept(x.split_right()); } },
+        { "chi(x)", 1, true, [](const interval& x, const interval&) { return kept(chi(x)); } },
+        { "operator<< (bounds)", 1, true, [](const interval& x, const interval&) { return kept_text(write(x, interval_format::bounds)); } },
+        { "operator<< (bounds, 1 digit)", 1, true, [](const interval& x, const interval&) {
+            const std::streamsize p = interval::precision(1);
+            const std::string s = write(x, interval_format::bounds);
+            interval::precision(p);
+            return kept_text(s); } },
+        { "operator<< (center)", 1, true, [](const interval& x, const interval&) { return kept_text(write(x, interval_format::center)); } },
+        { "gaol_ieee1788::intervalToText(x)", 1, true, [](const interval& x, const interval&) { return kept_text(gaol_ieee1788::intervalToText(x)); } },
+      };
+      // A point interval of subnormals, whose bounds 1 digit writes outward
+      const interval point_of_subnormals = interval(subnormal(22));
+      for (const UncheckedFunction& f : unchecked_functions) {
+        const std::string name = std::string(f.name) + " with a flush-to-zero mode set before it, as with the modes cleared";
+        const std::string modes_name = std::string(f.name) + (f.checks ?
+#if GAOL_PRESERVE_ROUNDING
+          ": flush-to-zero modes restored after it" :
+#else
+          ": flush-to-zero modes cleared after it" :
+#endif
+          ": flush-to-zero modes left as they were after it");
+        const std::size_t n = all_operands + 1;
+        const std::size_t ny = (f.arity == 2) ? n : 1;
+        const std::size_t nd = f.checks ? sizeof(directions)/sizeof(directions[0]) : 1;
+        for (std::size_t i = 0; i < n; ++i) {
+          for (std::size_t j = 0; j < ny; ++j) {
+            const interval& x = (i < all_operands) ? flush_operands[i] : point_of_subnormals;
+            const interval& y = (j < all_operands) ? flush_operands[j] : point_of_subnormals;
+            set(directions[0]);
+            set_flush_bits(0u);
+            const Kept cleared = f.run(x, y);
+            for (const FlushMode& m : flush_modes_honoured) {
+              for (std::size_t k = 0; k < nd; ++k) {
+                const Direction& d = directions[k];
+                set(d);
+                set_flush_bits(m.bits);
+                const Kept r = f.run(x, y);
+                const unsigned int left = flush_bits();
+                set_flush_bits(0u);
+                const auto args = [&] {
+                  return m.name + " set, rounding direction " + d.name + ", (" + hex(x)
+                         + ((f.arity == 2) ? ", " + hex(y) : std::string()) + ")";
+                };
+                check(name, same_kept(r, cleared), [&] { return args() + ": " + written(r) + "rather than " + written(cleared); });
+                const unsigned int expected =
+#if GAOL_PRESERVE_ROUNDING
+                  m.bits;
+#else
+                  f.checks ? 0u : m.bits;
+#endif
+                check(modes_name, left == expected, [&] { return args() + ": modes " + std::to_string(left) + " after it"; });
+              }
+            }
+          }
+        }
+      }
+      set(directions[0]);
+    }
   }
 #else
   std::printf("No mode flushing the subnormals to zero that the test can set: the operations under one are not checked\n");

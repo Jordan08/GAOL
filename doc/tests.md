@@ -17,8 +17,8 @@ runtime showed them in a dialog box, which nobody closes on a machine of the
 CI, and the test hung, without output, until ctest stopped it at 300 s. That
 runtime reports such an assertion of its own when it writes a subnormal number
 under denormals-are-zero ("unexpected input value; log10 failed"), then writes
-0, on x86 as on x64: `numbers` does not check the output of subnormals with that
-mode there.
+0, on x86 as on x64: `operator<<` clears that mode before it writes (GAOL v5,
+point Q), which `numbers` checks there too.
 
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
@@ -194,11 +194,31 @@ mode there.
   the empty set; with `GAOL_PRESERVE_ROUNDING`, `sinpi([100, 1000]·2^-1074)`
   was empty, its minimum taken once the modes were restored (GAOL v5, review
   of point 4); `acos_rel()` and `asin_rel()` of a J outside [-1, 1], or
-  containing it, returned before their check, the modes left set. The
-  operations that make no check (`&`, `|`, `max`, `abs`, the relations... see
-  `doc/using.md`) are left out. A mode the processor keeps without honouring
-  it, as an emulator may, is named and skipped: one that flushes neither the
-  exact subnormal sum 2^-1060 + 0 nor the inexact product 1e-300·1e-20.
+  containing it, returned before their check, the modes left set. Then each
+  of the 50 functions that make no check (the constructor from two bounds,
+  the relations, `&`, `|`, `max`, `abs`, `sign`, `floor`, `trunc`, `mig`,
+  `feven`, `nb_fp_numbers`, `inf` and `sup` of `gaol_ieee1788`...), called on
+  the same intervals and on [22·2^-1074], each mode set just before it, has
+  to give what it gives with the modes cleared, its doubles compared by their
+  bits, and leave the modes as it found them: it compares the bounds as
+  bounds, by their bits where they compare equal, and rounds a subnormal to
+  an integer from its bits; and `midpoint()`, `split()`, `chi()` and the
+  writing of an interval (`operator<<`, `intervalToText()`), which make the
+  check, in each rounding direction, have to clear them, or set them back
+  with `GAOL_PRESERVE_ROUNDING` (GAOL v5, point Q). The doubles are written
+  once the modes are cleared: gdtoa (FreeBSD, macOS) writes a subnormal 0
+  under denormals-are-zero. Under denormals-are-zero,
+  `interval(2^-1073, 2^-1074)` kept its bounds in the wrong order, which
+  `is_empty()` takes for the empty set once the modes are cleared (the empty
+  set is told by its NaN bounds here), `max([3, 100]·2^-1074,
+  [200·2^-1074])` was the first one, `[2, 5]·2^-1074` contained 7·2^-1074,
+  the midpoint of `[3, 100]·2^-1074` was 0 and `[22·2^-1074]` was written
+  `[1e-322]` with 1 digit, below its upper bound: with the sources of
+  `configure-clean` before point Q, 10 900 of these checks fail. The check of
+  `<a, b>` by the parser, which compares the two numbers as doubles, is left
+  out. A mode the processor keeps without honouring it, as an emulator may,
+  is named and skipped: one that flushes neither the exact subnormal sum
+  2^-1060 + 0 nor the inexact product 1e-300·1e-20.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
@@ -368,10 +388,18 @@ mode there.
   subnormals (`[0, 5e-324]`, `[5e-324]`, `[-5e-324, 0]`...) written with 16
   digits under denormals-are-zero have to be read back, the mode restored, as
   intervals enclosing them: `operator<<` compares their bounds by their bits,
-  and does not write them `[0]` (GAOL v5). A subnormal bound is then written
-  by the C library, which compares it with 0 too where it uses gdtoa (FreeBSD,
-  macOS), and writes 0: nothing is checked where the C library does not write
-  the bounds of the test under the mode as it does without it.
+  and does not write them `[0]` (GAOL v5). The text has to be the one written
+  without the mode: `operator<<` clears it before it writes (GAOL v5, point
+  Q). It wrote a subnormal bound rounded to nearest, `[0, 4.94e-324]` with 3
+  digits, below the upper bound, by the C library, which compares it with 0
+  too where it uses gdtoa (FreeBSD, macOS) and writes 0, and whose Debug
+  runtime of Visual C++ reports a failed assertion: the test skipped them,
+  and now checks them, where the sum 2^-1060 + 0 by which GAOL checks the
+  mode is 0 under it. With Visual C++ for 64-bit ARM, where GAOL cannot
+  clear the modes, FZ is set by `_controlfp_s()` as a program would, and the
+  bounds written have to be on their side of the subnormal bounds, which
+  `operator<<` writes as 2^-1022 or 0: written to nearest, the upper bound of
+  `[0, 5e-324]` was below it (GAOL v5, point Q).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`),
   widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes,
@@ -845,11 +873,15 @@ integration configures (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
-`floor()`, `x &= y` and two relations, which compare bounds with the quiet
-comparisons of `<cmath>` (one instruction each with GCC and Clang on x86,
-perhaps a call with Visual C++), and of the same operations on doubles. It is
-not a test: the continuous integration prints its table in the summary of the
-jobs.
+`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()` and two relations, which
+compare bounds with the quiet comparisons of `<cmath>` (one instruction each
+with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
+compare equal, by their bits (GAOL v5, point Q), and of the same operations on
+doubles. After the table, it prints the time of the check each operation
+makes, 1 + (2^-1060 + 0) == 1, and of the same check made of 2^-60, a normal
+double: a processor that takes a microcode assist for a subnormal operand or
+result shows it there (GAOL v5, point Q). It is not a test: the continuous
+integration prints its table in the summary of the jobs.
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
 `gaol/gaol_interval.cpp` (see [its README](../tests/tools/pow/README.md)).

@@ -26,6 +26,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
+#include <cstdint>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_common.h"
@@ -172,7 +173,12 @@ namespace gaol_core {
      instruction minsd, which gives its second operand for two zeros, and
      minimum(0.0, -0.0) was +0 and maximum(0.0, -0.0) -0, which
      tests/float_functions.cpp (check/ of GAOL 4) found once built with it
-     (GAOL v5). */
+     (GAOL v5). Two values the comparisons find equal are compared as bounds
+     first (gaol_detail::bound_key(), gaol_port.h): under denormals-are-zero,
+     which max(), min(), abs() and mag() leave set, two subnormals compare
+     equal, and maximum(3*2^-1074, 100*2^-1074) was 3*2^-1074 (GAOL v5,
+     point Q of TODO.md). Where the modes are cleared, this is made only for
+     equal values. */
   double maximum(double a, double b)
   {
     if (std::isnan(a) || std::isnan(b)) {
@@ -184,7 +190,11 @@ namespace gaol_core {
     if (b > a) {
       return b;
     }
-    // Equal: +0 where one of them is +0
+    // Equal as doubles: the greater as bounds, +0 where one of them is +0
+    const std::int64_t ka = gaol_detail::bound_key(a), kb = gaol_detail::bound_key(b);
+    if (ka != kb) {
+      return (ka > kb) ? a : b;
+    }
     return is_signed(a) ? b : a;
   }
 
@@ -199,7 +209,11 @@ namespace gaol_core {
     if (b < a) {
       return b;
     }
-    // Equal: -0 where one of them is -0
+    // Equal as doubles: the smaller as bounds, -0 where one of them is -0
+    const std::int64_t ka = gaol_detail::bound_key(a), kb = gaol_detail::bound_key(b);
+    if (ka != kb) {
+      return (ka < kb) ? a : b;
+    }
     return is_signed(a) ? a : b;
   }
 

@@ -327,13 +327,19 @@ namespace gaol_ieee1788 {
   // Numeric functions of intervals (Table 10.2, 12.12.8)
   // ----------------------------------------------------------------------
 
-  //! inf(x): left(); +oo for the empty set, and -0 for a lower bound 0
+  /*!
+    inf(x): left(); +oo for the empty set, and -0 for a lower bound 0. The
+    bound is compared with 0 as the relations compare it, whatever the modes
+    that flush the subnormals to zero: under denormals-are-zero, inf() of
+    [2^-1074, 1] was -0, and sup() of [-1, 2^-1074] +0, below the interval
+    (GAOL v5, point Q of TODO.md)
+  */
   GAOL_NODISCARD inline double inf(const interval& x)
   {
     if (x.is_empty()) {
       return GAOL_INFINITY;
     }
-    return (x.left() == 0.0) ? -0.0 : x.left();
+    return ::gaol_detail::bound_equal(x.left(), 0.0) ? -0.0 : x.left();
   }
   //! sup(x): right(); -oo for the empty set, and +0 for an upper bound 0
   GAOL_NODISCARD inline double sup(const interval& x)
@@ -341,7 +347,7 @@ namespace gaol_ieee1788 {
     if (x.is_empty()) {
       return -GAOL_INFINITY;
     }
-    return (x.right() == 0.0) ? 0.0 : x.right();
+    return ::gaol_detail::bound_equal(x.right(), 0.0) ? 0.0 : x.right();
   }
   //! mid(x): midpoint(); NaN for the empty set, 0 for [-oo, +oo]
   GAOL_NODISCARD inline double mid(const interval& x) { return x.midpoint(); }

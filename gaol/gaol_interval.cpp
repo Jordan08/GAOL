@@ -662,24 +662,71 @@ namespace gaol_core {
   static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : upward::atanh_dn(x); }
   static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : upward::atanh_up(x); }
 
+  // feven() of an integer i that an operation computed: neither i nor its
+  // half is subnormal, so that the modes that flush the subnormals to zero
+  // change nothing here
+  static bool integer_is_even(double i)
+  {
+    return (std::floor(0.5*i)*2.0 == i);
+  }
+
   /*
     \brief test for evenness
     \warning d should not be +/-oo
   */
   bool feven(double d)
   {
-    return (std::floor(0.5*d)*2.0 == d);
+    // A subnormal is no integer, which its bits tell whatever the modes that
+    // flush the subnormals to zero: under denormals-are-zero, 0.5*d and d
+    // were 0 for the comparison, and feven(2^-1074) was true (GAOL v5,
+    // point Q of TODO.md)
+    if (gaol_detail::bound_is_subnormal(d)) {
+      return false;
+    }
+    return integer_is_even(d);
   }
 
 
+  /*
+    The double above x, from its bits: the next one away from -oo, -0 above
+    the least negative subnormal, the least positive subnormal above a zero,
+    +oo above DBL_MAX; a NaN and +oo stay as they are. nextafter() of the C
+    library computes with doubles, which the modes that flush the subnormals
+    to zero change: under denormals-are-zero, the UCRT of Windows and the
+    libm of macOS (arm64 and x86_64) did not give the subnormal above 100
+    times 2^-1074 (GAOL v5, point Q of TODO.md, continuous integration)
+  */
+  static double next_double_above(double x)
+  {
+    if (!(x == x) || x == GAOL_INFINITY) {
+      return x;
+    }
+    std::uint64_t bits = gaol_detail::bound_bits(x);
+    if ((bits << 1) == 0) {
+      return std::numeric_limits<double>::denorm_min();
+    }
+    if ((bits >> 63) != 0) {
+      --bits; // a smaller magnitude
+    } else {
+      ++bits;
+    }
+    double above;
+    std::memcpy(&above, &bits, sizeof above);
+    return above;
+  }
+
+  // The bounds compared as the relations compare them, and the double above
+  // the left one taken from its bits, whatever the modes that flush the
+  // subnormals to zero: under denormals-are-zero, [2^-1074, 3*2^-1074] was
+  // canonical (GAOL v5, point Q of TODO.md)
   bool interval::is_canonical(void) const
   {
 #if defined (_MSC_VER)
-    return !is_empty() && (next_float(left())>=right());
+    return !is_empty() && gaol_detail::bound_greater_equal(next_double_above(left()), right());
 #else
     // emptyset handled thanks to unorderedness of NaNs, with a quiet
     // comparison, which raises no invalid-operation exception on them (GAOL v5)
-    return gaol_detail::quiet_greater_equal(next_float(left()),right());
+    return gaol_detail::bound_greater_equal(next_double_above(left()),right());
 #endif
   }
 
@@ -978,18 +1025,30 @@ namespace gaol_core {
   static std::string number_to_text(double x, text_rounding rounding, const text_format& fmt)
   {
     const std::ios_base::fmtflags floatfield = fmt.flags & std::ios_base::floatfield;
-    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
-      return stream_text(x, rounding, fmt);
-    }
     // A subnormal under denormals-are-zero, which a program may set, compares
-    // equal to 0: it is written by a stream, to nearest, as GAOL wrote it
-    // before and as tests/numbers.cpp checks against a stream, where the
-    // snprintf called below wrote 0 for 5e-324 with MSYS2 CLANG64 and the
-    // stream did not (point Q of TODO.md, issue #68, is to round it outward)
+    // equal to 0. operator<< and intervalToText() clear that mode before
+    // they write (GAOL v5, point Q of TODO.md), where GAOL can (x86, and ARM
+    // with GCC and Clang): only where it cannot (ARM with Visual C++, the
+    // program having set FZ itself) does a subnormal come here. The C
+    // library may write it 0 under the mode (the snprintf called below did
+    // for 5e-324 with MSYS2 CLANG64, gdtoa does), and GAOL wrote it to
+    // nearest, below an upper bound: a bound is written as the double on its
+    // outer side that no mode changes, the smallest normal double, 2^-1022,
+    // away from zero, and 0 toward it, loose but outward (GAOL v5, point Q).
+    // A number written to nearest is written by a stream, as before. Tested
+    // before the hexadecimal format, which a stream writes too.
     std::uint64_t bits;
     std::memcpy(&bits, &x, sizeof bits);
     if (x == 0.0 && (bits << 1) != 0) {
-      return stream_text(x, text_nearest, fmt);
+      if (rounding == text_nearest) {
+        return stream_text(x, text_nearest, fmt);
+      }
+      const bool away = (rounding == text_upward) == !std::signbit(x);
+      const double smallest_normal = std::numeric_limits<double>::min();
+      return number_to_text(away ? (std::signbit(x) ? -smallest_normal : smallest_normal) : 0.0, rounding, fmt);
+    }
+    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
+      return stream_text(x, rounding, fmt);
     }
 
     const bool fixed = (floatfield == std::ios_base::fixed);
@@ -1105,10 +1164,13 @@ namespace gaol_core {
     The bounds are compared by their bits: under denormals-are-zero,
     which a program may set, a subnormal compares equal to 0, and l == r and
     l == 0.0 would have [0, 5e-324] written [0]. (Under that mode,
-    bound_to_text() takes a subnormal bound for 0 as well, and writes it
+    bound_to_text() took a subnormal bound for 0 as well, and wrote it
     rounded to nearest rather than outward, so that two equal texts need not
-    be the double: with 1 digit, [22u] (u = 5e-324) is written [1e-322],
-    which is read as [20u, 21u].)
+    have been the double: with 1 digit, [22u] (u = 5e-324) was written
+    [1e-322], which is read as [20u, 21u]. operator<< and intervalToText()
+    clear that mode before they write, where GAOL can, and number_to_text()
+    writes such a bound outward where it cannot: GAOL v5, point Q of
+    TODO.md.)
     fmt has the C locale, whose decimal point is '.', the reader's: operator<<
     writes the bounds format with it whatever the locale of the stream (GAOL
     v5). Under a locale writing a decimal comma, the reader took the comma of
@@ -1278,9 +1340,15 @@ namespace gaol_core {
     // The guard, rather than GAOL_RND_PRESERVE() and GAOL_RND_RESTORE(): the
     // construction of the text may fail (std::bad_alloc), and a program
     // reading the exception found the direction left as this function had
-    // set it, to nearest (GAOL v5)
+    // set it, to nearest (GAOL v5). The check of the direction, as in
+    // intervalToText(), clears the modes that flush the subnormals to zero,
+    // which the guard sets back with GAOL_PRESERVE_ROUNDING: under
+    // denormals-are-zero, a subnormal bound was 0 for the comparisons and
+    // was written to nearest, [22*2^-1074] as [1e-322] with 1 digit, and the
+    // C library writes it 0 (gdtoa of FreeBSD and macOS, the Debug runtime
+    // of Visual C++, issue #68; GAOL v5, point Q of TODO.md)
     const rounding_guard rnd;
-	round_upward();
+	round_upward_if_needed();
 
     double l = I.left(), r = I.right();
     const interval_format::format_t format = interval::format();
@@ -2076,14 +2144,17 @@ interval nth_root(const interval& I, int q)
 
   unsigned long long nb_fp_numbers(double a, double b)
   {
-    if (!is_finite(a) || !is_finite(b) || (a > b)) {
+    // a and b compared as bounds, whatever the modes that flush the
+    // subnormals to zero (gaol_port.h): under denormals-are-zero,
+    // nb_fp_numbers(2^-1074, 2*2^-1074) was 1 (GAOL v5, point Q of TODO.md)
+    if (!is_finite(a) || !is_finite(b) || gaol_detail::bound_greater(a, b)) {
       // Either a or b is a NaN or +/-oo, or [a,b] is empty? gaol_ERROR
       // throws, or aborts where the exceptions are disabled: there is no
       // value to return, whose line Visual C++ found unreachable (C4702)
       gaol_ERROR(invalid_action_error,"invalid argument(s) in call to nb_fp_numbers()");
     }
 
-    if (a == b) {
+    if (gaol_detail::bound_equal(a, b)) {
       return 1;
     }
 
@@ -2097,10 +2168,10 @@ interval nth_root(const interval& I, int q)
     ullidouble ai, bi;
     ai.d = std::fabs(a);
     bi.d = std::fabs(b);
-    if (a >= 0) {
+    if (gaol_detail::bound_greater_equal(a, 0.0)) {
       return (bi.i-ai.i)+1;
     }
-    if (b <= 0) {
+    if (gaol_detail::bound_less_equal(b, 0.0)) {
       return (ai.i-bi.i)+1;
     }
     // a < 0 < b: the doubles from a to -0 and from +0 to b, zero being counted once
@@ -3528,7 +3599,7 @@ interval nth_root(const interval& I, int q)
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(acos_lo(K.right()), acos_hi(K.left()));
 			},
-			[](double i, const interval& Jacos) { return feven(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
+			[](double i, const interval& Jacos) { return integer_is_even(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
 			[](const interval& X) { return cos(X); });
   }
 
@@ -3543,7 +3614,7 @@ interval nth_root(const interval& I, int q)
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(asin_lo(K.left()), asin_hi(K.right()));
 			},
-			[](double i, const interval& Jasin) { return k_pi_plus(i, feven(i) ? Jasin : -Jasin); },
+			[](double i, const interval& Jasin) { return k_pi_plus(i, integer_is_even(i) ? Jasin : -Jasin); },
 			[](const interval& X) { return sin(X); });
   }
 
@@ -3670,7 +3741,12 @@ interval nth_root(const interval& I, int q)
         }
       } else {
 	double res;
+	// The check first, which clears the modes that flush the subnormals to
+	// zero, as in midpoint(): under denormals-are-zero, the quotient of two
+	// subnormal bounds is 0/0 (GAOL v5, point Q of TODO.md). Before,
+	// is_zero() took them for zeros, and chi([2, 4]*2^-1074) was -1
 	GAOL_RND_PRESERVE();
+	round_upward_if_needed();
 	round_nearest();
 	// A quiet comparison: the empty set, whose bounds are NaN, gives NaN
 	// without the invalid-operation exception (GAOL v5)
@@ -3718,7 +3794,9 @@ interval nth_root(const interval& I, int q)
       if (set_contains(0)) {
 	return 0.0;
       }
-      if (right() < 0.0) {
+      // Compared as in the relations (gaol_port.h), whatever the modes that
+      // flush the subnormals to zero (GAOL v5, point Q of TODO.md)
+      if (gaol_detail::bound_less(right(), 0.0)) {
 	return right();
       } else { // left() > 0.0
 	return left();
@@ -3734,7 +3812,9 @@ interval nth_root(const interval& I, int q)
       if (set_contains(0)) {
 	return 0.0;
       }
-      if (right() < 0.0) {
+      // Compared as in the relations (gaol_port.h): under denormals-are-zero,
+      // mig([-3, -2]*2^-1074) was 0 (GAOL v5, point Q of TODO.md)
+      if (gaol_detail::bound_less(right(), 0.0)) {
 	return -right();
       } else { // left() > 0.0
 	return left();
@@ -3798,8 +3878,15 @@ interval nth_root(const interval& I, int q)
       is exact, unless the bound is below 2^-1021, where its rounding changes
       no sum with a bound of 2^1023 or more, and a sum of halves is the half
       of the sum, rounded, where no half is rounded.
+      The check of the rounding direction first, which clears the modes that
+      flush the subnormals to zero, and which GAOL_RND_RESTORE() sets back
+      with GAOL_PRESERVE_ROUNDING: under denormals-are-zero, the midpoint of
+      [2, 4]*2^-1074 was 0, outside the interval, and split() made an empty
+      half of it (GAOL v5, point Q of TODO.md). The comparisons above are
+      those of the relations, which these modes do not change.
     */
     GAOL_RND_PRESERVE();
+    round_upward_if_needed();
     round_nearest();
     const double l = left(), r = right();
     double middle;
@@ -3964,7 +4051,7 @@ interval nth_root(const interval& I, int q)
 
     if (nm < 2.0) {
       // even(m)? No conversion to int in order to avoid overflow
-      const bool even_m = feven(m);
+      const bool even_m = integer_is_even(m);
       if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
 	u = sine ? sin_lo(Iright) : cos_lo(Iright);
 	v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
@@ -4001,7 +4088,7 @@ interval nth_root(const interval& I, int q)
 	GAOL_RND_LEAVE();
 	return interval::minus_one_plus_one();
       }
-      const bool even_m = feven(m);
+      const bool even_m = integer_is_even(m);
 
       // -1: a minimum within I; 1: a maximum; 0: none; 2: both
       int extremum;
