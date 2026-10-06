@@ -1630,9 +1630,11 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2(const interval& Y, const inte
     the image comes first, the interval contracted last, the other argument
     of atan2 between them. The angles are those of atan2, in (-pi, pi]: the
     half-line y = 0, x < 0 has the angle pi, and a C holding -pi but not pi
-    leaves it out. The slopes of the bounds of C are rounded once, and their
-    products with the bounds of the box once more: within 2 doubles of the
-    tightest bounds where the bound is not one of the box.
+    leaves it out. The slopes tan(c) of the bounds c of C are rounded once,
+    and their products and quotients with the bounds of the box once more:
+    the bounds are within 2 doubles of the tightest ones, accurate in the
+    sense of IEEE 1788, but for a box within such a rounding of the cone of
+    C, whose points may be kept where the tightest result is empty.
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel_y(const interval& C, const interval& X, const interval& Y);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel_x(const interval& C, const interval& Y, const interval& X);
