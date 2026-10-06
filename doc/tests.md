@@ -815,7 +815,8 @@ builds some of the same tests with an installed GAOL, and
 `tests/meson_subproject` with a GAOL brought in as a meson subproject (GAOL
 v5), which meson refused. Its test `flags` checks that `gaol_dep` gives their
 compilation the flags of the `Cflags` of `gaol.pc`, without which the tests
-pass all the same, and its test `release` that GAOL is built in release in
+pass all the same, and their link the options of its `Libs` (`-mno-daz-ftz`,
+where the compiler takes it), and its test `release` that GAOL is built in release in
 the default build type of meson, debug: `tests/release_flags.py` checks that
 the sources of GAOL and CORE-MATH are compiled with `-O3` and `NDEBUG`, and
 that `GAOL_DEBUGGING` is left undefined. The continuous integration runs it on

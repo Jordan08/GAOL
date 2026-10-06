@@ -44,8 +44,9 @@ endforeach
 
 # The arguments GAOL gives its own targets do not reach those of this project:
 # the commands that compile the tests above have to hold the flags of the
-# gaol.pc the subproject wrote, which only gaol_dep gives them. Without them,
-# the tests pass all the same (GCC 9.4, x86_64)
+# gaol.pc the subproject wrote, and those that link them its link option
+# (-mno-daz-ftz, where the compiler takes it), which only gaol_dep gives them.
+# Without them, the tests pass all the same (GCC 9.4, x86_64)
 test('flags', find_program('python3'),
   args: [files('check_flags.py'), meson.current_build_dir(),
          meson.current_source_dir()])
