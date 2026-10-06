@@ -3815,6 +3815,55 @@ interval nth_root(const interval& I, int q)
     return middle;
   }
 
+  /*
+    The cut point c of bisect(ratio) (GAOL v5). Any double of [l, r] gives two
+    parts that cover [l, r] exactly, sharing c: c is computed in GAOL's
+    rounding direction and put back within [l, r], where the two rounded
+    products may have taken it; l (1 - ratio) + r ratio cannot overflow where
+    l + ratio (r - l) does, as for [-MAX, MAX]. GAOL_RND_ENTER() clears the
+    flush-to-zero and denormals-are-zero modes, so that the cut between two
+    subnormal bounds is not read as 0. When a double lies strictly between l
+    and r, c is moved to the nearest one where it fell on a bound, so that
+    both parts are smaller than [l, r]. ratio = 0.5 and the unbounded
+    intervals are cut at midpoint(), as split() cuts them, midpoint() being
+    strictly between the bounds of a bisectable interval: rounded to nearest,
+    it would be l only for an exact midpoint at most half the distance from
+    l to the next double. The ratio is compared quietly, a NaN raising no
+    invalid-operation exception before it is refused.
+  */
+  std::pair<interval, interval> interval::bisect(double ratio) const
+  {
+    if (!(std::isgreater(ratio, 0.0) && std::isless(ratio, 1.0))) {
+      gaol_ERROR(invalid_action_error, "bisect(): the ratio is not in (0, 1)");
+    }
+    if (is_empty()) {
+      return std::make_pair(*this, *this);
+    }
+    const double l = left(), r = right();
+    double c;
+    if (ratio == 0.5 || std::isinf(l) || std::isinf(r)) {
+      c = midpoint();
+    } else {
+      GAOL_RND_ENTER();
+      c = l*(1.0 - ratio) + r*ratio;
+      GAOL_RND_KEEP(c);
+      GAOL_RND_LEAVE();
+      if (c < l) {
+        c = l;
+      } else if (c > r) {
+        c = r;
+      }
+      if (is_bisectable()) {
+        if (c == l) {
+          c = std::nextafter(l, r);
+        } else if (c == r) {
+          c = std::nextafter(r, l);
+        }
+      }
+    }
+    return std::make_pair(interval(l, c), interval(c, r));
+  }
+
 
   interval sqrt(const interval& I)
   {

@@ -8,7 +8,9 @@
  * where a developer of GAOL compiles it, see gaol/gaol_config.h),
  * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
  * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
- * parts, radii; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
+ * parts, radii; the tools of TODO point P: width_enclosure(), inflate(),
+ * interval::midrad(), bisect(), is_bisectable(), hull() and intersect(); the
+ * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
  * values they are given and bound them within a few doubles.
  *
@@ -121,6 +123,43 @@ namespace
             [&] { return describe() + ": " + hex(left) + " " + hex(right); });
       check("split_left() and split_right()" + in, X.split_left().set_eq(left) && X.split_right().set_eq(right), describe);
 
+      // The tools of TODO point P (GAOL v5): the enclosure of the width, X
+      // widened by a radius and the interval of a midpoint and a radius, each
+      // the tightest enclosure of its exact bounds, which GAOL computed
+      // rounding both upward; the parts of bisect(), and hull() and
+      // intersect(), the operators | and &
+      const interval we = X.width_enclosure();
+      check("width_enclosure() the tightest enclosure of the width, width() its upper bound" + in,
+            is_tightest_enclosure(we, exact(dr - dl)) && we.right() == w,
+            [&] { return describe() + ": " + hex(we); });
+      const double rad = std::fabs(Y.right());
+      const Dyadic drad = dyadic(rad);
+      const interval wider = X.inflate(rad);
+      check("inflate(r) the tightest enclosure of [l - r, r + r]" + in,
+            is_tightest_enclosure(wider, exact(dl - drad), exact(dr + drad)),
+            [&] { return describe() + " r=" + hex(rad) + ": " + hex(wider); });
+      const interval around = interval::midrad(l, rad);
+      check("interval::midrad(m, r) the tightest enclosure of [m - r, m + r]" + in,
+            is_tightest_enclosure(around, exact(dl - drad), exact(dl + drad)),
+            [&] { return describe() + " r=" + hex(rad) + ": " + hex(around); });
+      const double ratios[] = { 0.5, 0.25, 0.75, 1.0/3.0, 1e-9, 1.0 - 1e-9 };
+      const double ratio = ratios[i % 6];
+      const std::pair<interval, interval> parts = X.bisect(ratio);
+      const double c = parts.first.right();
+      const bool bisectable = next_double(l) < r;
+      const auto describe_parts = [&] { return describe() + " ratio " + hex(ratio) + ": " + hex(parts.first) + " "
+                                               + hex(parts.second); };
+      check("bisect(ratio): two parts sharing a point of X, which they cover" + in,
+            parts.first.left() == l && parts.second.left() == c && parts.second.right() == r && l <= c && c <= r,
+            describe_parts);
+      check("is_bisectable(): a double strictly between the bounds" + in, X.is_bisectable() == bisectable, describe);
+      check("bisect(ratio) of a bisectable interval: two parts smaller than X" + in, !bisectable || (l < c && c < r),
+            describe_parts);
+      check("bisect(0.5) cuts as split()" + in, X.bisect(0.5).first.set_eq(left) && X.bisect(0.5).second.set_eq(right),
+            describe);
+      check("hull() and intersect(): X | Y and X & Y" + in, hull(X, Y).set_eq(X | Y) && intersect(X, Y).set_eq(X & Y),
+            describe);
+
       // Integer parts, exact
       check("floor()" + in, floor(X).left() == std::floor(l) && floor(X).right() == std::floor(r), describe);
       check("ceil()" + in, ceil(X).left() == std::ceil(l) && ceil(X).right() == std::ceil(r), describe);
@@ -157,6 +196,110 @@ namespace
                             && !interval(a, next_double(next_double(a))).is_canonical());
     check("nb_fp_numbers()", nb_fp_numbers(a, a) == 1 && nb_fp_numbers(a, next_double(a)) == 2
                              && nb_fp_numbers(1.0, 2.0) == 4503599627370497ull);
+  }
+
+  /* The tools of TODO point P on special intervals and arguments (GAOL v5):
+     the empty set, points, zeros, infinite bounds and radii, NaN, the
+     largest double, and the cases the random draws seldom give: an inexact
+     bound, which GAOL rounded upward on both sides (the lower bound of
+     [1, 2] inflated by 1e-20 was 1), the whole line, which bisect() cut into
+     two empty sets, and two consecutive doubles. */
+  void tools_of_point_p()
+  {
+    const double max = std::numeric_limits<double>::max();
+    const interval empty = interval::emptyset(), one_two(1.0, 2.0);
+
+    // The width: [MAX, +oo] for +oo, as textToInterval() reads inf
+    check("width_enclosure() of the empty set", empty.width_enclosure().is_empty());
+    check("width_enclosure() of points", interval(3.0).width_enclosure().set_eq(interval(0.0))
+                                         && interval(-0.0, 0.0).width_enclosure().set_eq(interval(0.0)));
+    const interval w = interval(1e-20, 1.0).width_enclosure();
+    check("width_enclosure() of [1e-20, 1]: [1 - u/2, 1]", w.left() == previous_double(1.0) && w.right() == 1.0,
+          [&] { return hex(w); });
+    const interval unbounded[] = { interval::universe(), interval(-inf, 1.0), interval(1.0, inf) };
+    for (const interval& x : unbounded) {
+      check("width_enclosure() of an unbounded interval: [MAX, +oo]", x.width_enclosure().set_eq(interval(max, inf)),
+            [&] { return hex(x) + ": " + hex(x.width_enclosure()); });
+    }
+
+    // Widened by a radius, and built from a midpoint and a radius
+    const interval wider = one_two.inflate(1e-20);
+    check("[1, 2].inflate(1e-20): [1 - u/2, 2 + 2u]", wider.left() == previous_double(1.0)
+                                                       && wider.right() == next_double(2.0),
+          [&] { return hex(wider); });
+    check("inflate(0) keeps the interval", one_two.inflate(0.0).set_eq(one_two));
+    check("inflate(r) for r < 0 or NaN: the empty set",
+          one_two.inflate(-1.0).is_empty() && one_two.inflate(std::numeric_limits<double>::quiet_NaN()).is_empty());
+    check("inflate(+oo): the whole line", one_two.inflate(inf).is_entire());
+    check("inflate() of the empty set", empty.inflate(1.0).is_empty() && empty.inflate(inf).is_empty());
+    check("inflate() past the largest double", interval(max).inflate(max).set_eq(interval(0.0, inf))
+                                               && interval(1.0, inf).inflate(1.0).set_eq(interval(0.0, inf)));
+    const interval around = interval::midrad(1.0, 1e-20);
+    check("interval::midrad(1, 1e-20): [1 - u/2, 1 + u]", around.left() == previous_double(1.0)
+                                                          && around.right() == next_double(1.0),
+          [&] { return hex(around); });
+    check("interval::midrad(m, 0): the point m", interval::midrad(0.1, 0.0).set_eq(interval(0.1)));
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    check("interval::midrad() for r < 0, or a NaN r or m: the empty set",
+          interval::midrad(1.0, -1.0).is_empty() && interval::midrad(1.0, nan).is_empty()
+          && interval::midrad(nan, 1.0).is_empty());
+    check("interval::midrad() of an infinite m: the empty set, as interval(m)",
+          interval::midrad(inf, 1.0).is_empty() && interval::midrad(-inf, 1.0).is_empty());
+    check("interval::midrad(m, +oo): the whole line", interval::midrad(1.0, inf).is_entire());
+    check("interval::midrad(MAX, MAX): [0, +oo]", interval::midrad(max, max).set_eq(interval(0.0, inf)));
+
+    // The parts of bisect(), unbounded intervals cut where split() cuts them
+    struct { interval x; double ratio; interval first, second; } const cuts[] = {
+      { interval::universe(), 0.25, interval(-inf, 0.0), interval(0.0, inf) },
+      { interval(0.0, inf), 0.5, interval(0.0, max), interval(max, inf) },
+      { interval(-inf, 0.0), 0.75, interval(-inf, -max), interval(-max, 0.0) },
+      { interval(max, inf), 0.5, interval(max), interval(max, inf) },
+      { interval(0.0, 4.0), 0.25, interval(0.0, 1.0), interval(1.0, 4.0) },
+      { interval(2.5), 0.25, interval(2.5), interval(2.5) },
+      { interval(1.0, next_double(next_double(1.0))), 1e-300, interval(1.0, next_double(1.0)),
+        interval(next_double(1.0), next_double(next_double(1.0))) },
+    };
+    for (const auto& cut : cuts) {
+      const std::pair<interval, interval> parts = cut.x.bisect(cut.ratio);
+      check("bisect(ratio) of special intervals", parts.first.set_eq(cut.first) && parts.second.set_eq(cut.second),
+            [&] { return hex(cut.x) + " ratio " + hex(cut.ratio) + ": " + hex(parts.first) + " " + hex(parts.second); });
+    }
+    const std::pair<interval, interval> none = empty.bisect(0.5);
+    check("bisect() of the empty set: two empty sets", none.first.is_empty() && none.second.is_empty());
+    const double c = interval(-max, max).bisect(0.25).first.right();
+    check("bisect(0.25) of [-MAX, MAX]: a finite cut, where l + ratio (r - l) overflowed", c > -max && c < 0.0,
+          [&] { return hex(c); });
+
+    // Bisectable: a double strictly between the bounds
+    const interval bisectable[] = { interval(1.0, next_double(next_double(1.0))), interval::universe(),
+                                    interval(0.0, inf), interval(-inf, 0.0), interval(-max, max) };
+    for (const interval& x : bisectable) {
+      check("is_bisectable()", x.is_bisectable(), [&] { return hex(x); });
+    }
+    const interval not_bisectable[] = { empty, interval(1.0), interval(-0.0, 0.0), interval(1.0, next_double(1.0)),
+                                        interval(max, inf), interval(-inf, -max) };
+    for (const interval& x : not_bisectable) {
+      check("not is_bisectable()", !x.is_bisectable(), [&] { return hex(x); });
+    }
+
+#if GAOL_EXCEPTIONS_ENABLED
+    // A ratio outside (0, 1), or NaN: invalid_action_error
+    const double wrong[] = { 0.0, 1.0, -0.5, 1.5, nan, inf };
+    for (double ratio : wrong) {
+      bool thrown = false;
+      try {
+        (void)one_two.bisect(ratio);
+      } catch (const invalid_action_error&) {
+        thrown = true;
+      }
+      check("bisect(ratio) for a ratio outside (0, 1): invalid_action_error", thrown, [&] { return hex(ratio); });
+    }
+#endif
+
+    // hull() and intersect() with the empty set
+    check("hull() and intersect() with the empty set",
+          hull(empty, one_two).set_eq(one_two) && hull(one_two, empty).set_eq(one_two)
+          && intersect(empty, one_two).is_empty() && intersect(one_two, interval(3.0, 4.0)).is_empty());
   }
 
   // Midpoints of intervals whose bounds are multiples of the smallest subnormal
@@ -809,6 +952,7 @@ int main()
   Random random;
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
+  tools_of_point_p();
   subnormal_bounds();
   hausdorff_of_infinite_bounds();
   nb_fp_numbers_across_zero();
