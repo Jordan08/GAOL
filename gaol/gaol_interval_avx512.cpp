@@ -38,8 +38,9 @@
  * compiled as before. gaol::init() then takes the AVX-512 path when the
  * program asks for it, with GAOL_PREFER_AVX512, and the processor has the
  * instructions, which __builtin_cpu_supports() tells: +, -, *, / and sqrt
- * never touch the rounding direction nor the flush-to-zero modes on that
- * path, whatever the program left. The divisions and the square roots take
+ * never touch the rounding direction on that path, whatever the program
+ * left, and clear the modes that flush the subnormals to zero only where
+ * they are set, as the other operations do. The divisions and the square roots take
  * it too, the embedded rounding of their 512-bit form being slower only
  * on the processors that halve it (the i7-1185G7 measures 6.0 ns against
  * 1.8 for a division, 8.0 against 2.0 for a square root, where an
@@ -127,8 +128,9 @@
     rounding honours both (see the head of this file): the operations of
     the path clear the modes before they compute, as the SSE2 path does at
     its entry, and the barrier keeps their place after the clearing (see
-    GAOL_RND_BARRIER() of gaol/gaol_fpu.h). The modes clear in the common case, one comparison
-    and one branch: 0.3 ns measured against the 0.9 of an addition.
+    GAOL_RND_BARRIER() of gaol/gaol_fpu.h). The modes clear in the common
+    case, one comparison and one branch: 0.3 ns measured against the 0.9 of
+    an addition.
   */
   GAOL_INLINE bool flush_modes_set()
   {
@@ -291,7 +293,9 @@
     gaol::init() has set avx512_arithmetic (GAOL_PREFER_AVX512 and a
     processor that has the instructions). Each of them rounds every
     floating-point operation in itself: no rounding direction to set, no
-    flush-to-zero mode to clear, no exception flag raised. Their results
+    exception flag raised; the modes that flush the subnormals to zero,
+    which the embedded rounding honours, are cleared where they are set
+    (flush_guard above). Their results
     are those of the SSE2 path, bit for bit (see the head of this file).
   */
 
@@ -299,7 +303,8 @@
   GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_add(__m128d x, __m128d y)
   {
     const flush_guard flush;
-    return flush_guard::out(back128(_mm512_add_round_pd(lo512(flush_guard::in(x)), lo512(flush_guard::in(y)), gaol_er)));
+    const __m128d a = flush_guard::in(x), b = flush_guard::in(y);
+    return flush_guard::out(back128(_mm512_add_round_pd(lo512(a), lo512(b), gaol_er)));
   }
 
   // x - y of the stored bounds: the bounds of y exchanged, as the SSE2 path
@@ -320,7 +325,9 @@
   GAOL_AVX512_TARGET GAOL_INLINE __m128d fast_div_by(__m128d x, double d)
   {
     const flush_guard flush;
-    return flush_guard::out(back128(_mm512_div_round_pd(lo512(flush_guard::in(x)), _mm512_set1_pd(flush_guard::in(d)), gaol_er)));
+    const __m128d a = flush_guard::in(x);
+    const double divisor = flush_guard::in(d);
+    return flush_guard::out(back128(_mm512_div_round_pd(lo512(a), _mm512_set1_pd(divisor), gaol_er)));
   }
 
   // The plain products of two stored pairs

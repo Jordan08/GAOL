@@ -341,7 +341,7 @@ fi
 # without the path is an error (GAOL v5).
 AC_ARG_ENABLE(prefer-avx512,
             [AS_HELP_STRING([--enable-prefer-avx512],
-                            [have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets neither the rounding direction nor the flush-to-zero modes, on a processor that has them @<:@default=as preserve-rounding@:>@])],
+                            [have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, on a processor that has them @<:@default=as preserve-rounding@:>@])],
             [prefer_avx512=${enable_prefer_avx512}; prefer_avx512_explicit=yes],
             [prefer_avx512=${preserve_rounding}; prefer_avx512_explicit=no])
 have_avx512_target=no
