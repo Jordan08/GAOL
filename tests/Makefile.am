@@ -46,9 +46,18 @@ else
 fast_math_link_CPPFLAGS = $(AM_CPPFLAGS)
 endif
 
+# refused_options.sh: the options gaol/gaol_config.h refuses, which the
+# compile tests refused_* of tests/CMakeLists.txt check in the CMake build
+# (GAOL v5), compiled with the compiler and the flags of the tests
+TEST_EXTENSIONS = .sh
+SH_LOG_COMPILER = $(SHELL)
+AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
+	GAOL_CXXFLAGS='$(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)'; \
+	export GAOL_CXX GAOL_CXXFLAGS;
+
 if WITH_TESTS
 noinst_PROGRAMS = $(GAOL_TESTS) gaol_performance
-TESTS = $(GAOL_TESTS)
+TESTS = $(GAOL_TESTS) refused_options.sh
 else
 check-local:
 	@echo "No unit tests: configure with --with-tests"

@@ -65,8 +65,8 @@ refuse Clang on 32-bit ARM and Clang 14 on 64-bit ARM, that
 `gaol/gaol_config.h` refuses MinGW-w64 GCC 11 to 13 and MSYS2 MINGW64 (GCC
 and Clang) on x64 and GCC 11 on x86,
 `-ffinite-math-only` and `-ffast-math` with GCC and Clang (the tests
-`refused_finite_math_only` and `refused_fast_math` of `make test`), and Visual
-C++ and clang-cl without `/fp:strict`. Jobs of each build
+`refused_*` of the three builds, see [Tests](tests.md)), and Visual C++ and
+clang-cl without `/fp:strict`. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
 and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
 autotools and meson. The jobs built in Release print the time per operation in

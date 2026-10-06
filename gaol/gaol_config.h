@@ -191,21 +191,24 @@
    --------------------------------------------------------------------------- */
 
 #if defined(__FAST_MATH__)
-#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results"
+#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results (remove the option, or put -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, after it)"
 #endif
 /* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
    take NaN and infinities never to occur, in the inline functions of GAOL's
    headers as anywhere else: the empty interval has NaN bounds, and is_empty()
-   reads it as !(left() <= right()). The compiler then folds the test away, and
-   ([1, 2] & [3, 4]).is_empty() is false (GCC 9, Clang 18): the tests
-   refused_finite_math_only and refused_fast_math (tests/CMakeLists.txt) check
-   the refusal. GCC and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual
-   C++ defines nothing of the kind (its /fp:fast is refused below). This also
-   refuses what __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math
-   followed by -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at
-   1. -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the
-   option off when it comes after it on the command line, and does nothing when
-   it comes before.
+   reads it as !std::islessequal(left(), right()) (std::isunordered() first on
+   32-bit ARM and POWER9). The compiler then folds the test away, and
+   ([1, 2] & [3, 4]).is_empty() is false: with GCC 9.4 and 13 at -O0, -O2 and
+   -O3, with Clang 18 at -O0, and at -O2 and -O3 when the bounds are volatile.
+   The tests refused_finite_math_only and refused_fast_math
+   (tests/CMakeLists.txt) and tests/refused_options.sh check the refusal. GCC
+   and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual C++ defines nothing
+   of the kind (its /fp:fast is refused below). This also refuses what
+   __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math followed by
+   -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at 1.
+   -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the option
+   off when the option comes before it on the command line, and does nothing
+   when the option comes after it, where the compilation stops here.
 
    No macro shows what follows, which GAOL cannot refuse:
    -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
@@ -218,7 +221,7 @@
    -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
    the empty interval what -ffinite-math-only does. */
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
-#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (-fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns it off when it comes after)"
+#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option, or put -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, after the option that turns it on)"
 #endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"

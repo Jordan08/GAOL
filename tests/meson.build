@@ -64,6 +64,29 @@ foreach t : gaol_tests
   check_targets += [exe]
 endforeach
 
+# The options gaol/gaol_config.h refuses, which the compile tests refused_* of
+# tests/CMakeLists.txt check in the CMake build (GAOL v5): refused_options.sh
+# compiles refused_options.cpp with the compiler, the cpp_args and the language
+# standard of the build, and the flags gaol.pc gives the code using GAOL. Not
+# with Visual C++, which has neither option nor macro, nor clang-cl, which
+# ignores the options (gaol_config.h refuses the /fp:fast of both).
+if not msvc
+  refused_args = get_option('cpp_args')
+  if get_option('cpp_std') != 'none'
+    refused_args += ['-std=' + get_option('cpp_std')]
+  endif
+  refused_args += pc_cflags + [
+    '-I' + join_paths(meson.current_build_dir(), '..'),
+    '-I' + join_paths(meson.current_source_dir(), '..')]
+  test('refused_options', find_program('sh'),
+    args: [files('refused_options.sh')],
+    env: {
+      'GAOL_CXX': ' '.join(cpp_comp.cmd_array()),
+      'GAOL_CXXFLAGS': ' '.join(refused_args),
+    },
+    suite: 'unit', timeout: 300)
+endif
+
 # The time per operation of GAOL and of the same operation on doubles, which
 # the continuous integration prints: not a test
 executable('gaol_performance', 'performance.cpp',

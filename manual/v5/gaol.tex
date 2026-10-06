@@ -362,8 +362,13 @@ but the second one, which no macro of the compiler shows:
 \noindent
 \option{-fno-fast-math}, one of the flags of interval arithmetic, turns
 \option{-ffast-math} and \option{-ffinite-math-only} off when it comes after
-them on the command line, and does nothing when it comes before them, where the
-compilation stops. No macro of the compiler shows the following, which
+them on the command line, and does nothing when \option{-ffast-math} or
+\option{-ffinite-math-only} comes after \option{-fno-fast-math}, where the
+compilation stops. With GCC, it turns the fast-math optimizations of
+\option{-Ofast} off wherever it stands on the command line, before
+\option{-Ofast} too, and \option{-Ofast} is not refused there: of them, GCC~9.4
+keeps only \option{-fcx-limited-range}, which changes the arithmetic of complex
+numbers alone. No macro of the compiler shows the following, which
 \file{gaol/gaol\_config.h} cannot refuse and which give wrong results all the
 same: \option{-funsafe-math-optimizations} and \option{-ffast-math
 -fno-finite-math-only} with GCC, which rewrites the addition by which GAOL sees
@@ -1496,7 +1501,9 @@ compilation where it can tell:
 % c++ -ffast-math -c program.cpp
 gaol/gaol_config.h: error: #error "GAOL cannot be
 compiled with -ffast-math (nor -Ofast): the bounds it
-computes would not enclose the exact results"
+computes would not enclose the exact results (remove
+the option, or put -fno-fast-math, one of the flags of
+gaol.pc and gaol::gaol, after it)"
 \end{onscreen}
 
 \noindent

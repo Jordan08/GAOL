@@ -676,20 +676,26 @@ mode there.
   and read a file holding NUL bytes, meson stripped the blanks of Unicode,
   autoconf dropped the blanks within the version and let NUL bytes through,
   took `5.0.0)` for 5.0.0 and stopped on a bracket) (GAOL v5).
-- **`refused_finite_math_only` and `refused_fast_math`:** compile tests, made
-  by the CMake build where the compiler is GCC or Clang. `tests/refused_options.cpp`,
-  a program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and
+- **`refused_finite_math_only`, `refused_fast_math` and `refused_positive`**
+  (CMake build), **`refused_options.sh`** (autotools build) and
+  **`refused_options`** (meson build): compile tests, where the compiler is GCC
+  or Clang (the script skips another one). `tests/refused_options.cpp`, a
+  program including `<gaol/gaol>`, is compiled with `-ffinite-math-only` and
   with `-ffast-math`, put after the flags of interval arithmetic, and the
   compilation has to fail with the message of `gaol/gaol_config.h`, which the
-  test looks for in the output of the build. With `-ffinite-math-only` the
-  compiler takes NaN and infinities never to occur, in the inline functions of
-  the headers too, and the empty interval, whose bounds are NaN, is no longer
-  told empty: `([1, 2] & [3, 4]).is_empty()` was false with GCC 9 and Clang 18.
-  The header did not refuse `-ffinite-math-only`, nor `-Ofast` or `-ffast-math`
-  followed by `-frounding-math` with Clang, which leave `__FAST_MATH__`
-  undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5). The autotools and meson
-  builds have no such test, the header being the same; `tests/fp_strict` is
-  the check of Visual C++ without `/fp:strict`.
+  test looks for in the output of the compiler; compiled with neither, it has
+  to compile. The CMake build makes each compilation a target of its own,
+  built by the test; `tests/refused_options.sh` runs the three compilations in
+  the autotools and meson builds, with the compiler and the flags of the code
+  using GAOL. With `-ffinite-math-only` the compiler takes NaN and infinities
+  never to occur, in the inline functions of the headers too, and the empty
+  interval, whose bounds are NaN, is no longer told empty:
+  `([1, 2] & [3, 4]).is_empty()` was false with GCC 9.4 and 13 at `-O0`, `-O2`
+  and `-O3`, and with Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds
+  are `volatile`. The header did not refuse `-ffinite-math-only`, nor `-Ofast`
+  or `-ffast-math` followed by `-frounding-math` with Clang, which leave
+  `__FAST_MATH__` undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5).
+  `tests/fp_strict` is the check of Visual C++ without `/fp:strict`.
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive
