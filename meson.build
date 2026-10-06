@@ -105,6 +105,32 @@ exception = get_option('enable-exception')
 # only defined GAOL_DEBUGGING, is gone, as enable-optimize: the build type
 # gives both (GAOL v5)
 debug = get_option('buildtype') == 'debug'
+release = get_option('buildtype') == 'release'
+# Brought in as a subproject, GAOL is built in release by default, as CMake and
+# configure build it brought into another project (GAOL v5). meson 1.8.4 and
+# later give a subproject its own default build type, release here; earlier
+# ones give it the build type of the project, without optimization in meson's
+# default, debug, and before 1.8 with GAOL_DEBUGGING too, while 1.8.0 to 1.8.3
+# have get_option('buildtype') read the release of GAOL: the options
+# optimization and debug tell the build type of the project there. A
+# subproject cannot tell meson's default from a --buildtype=debug asked for:
+# where they are those of debug, the libraries of GAOL and CORE-MATH are
+# compiled as in release (override_options, gaol/meson.build), and in the
+# release of the project with NDEBUG, which the b_ndebug=if-release of
+# default_options gives where they apply. Not with Visual C++ before meson
+# 0.57, whose build type debug gives /RTC1, which cl refuses with the /O2 of
+# optimization=3, and whose C runtime follows the build type of the target.
+gaol_release_options = []
+if meson.is_subproject() and meson.version().version_compare('<1.8.4') and not (msvc and meson.version().version_compare('<0.57'))
+  debug = false
+  release = get_option('optimization') == '3' and not get_option('debug')
+  if get_option('optimization') == '0' and get_option('debug')
+    gaol_release_options = ['optimization=3', 'debug=false', 'b_ndebug=true']
+    release = true
+  elif release
+    gaol_release_options = ['b_ndebug=true']
+  endif
+endif
 # The mathematical library
 #
 # GAOL bounds every one of its elementary functions with CORE-MATH
@@ -247,7 +273,7 @@ if c_comp.has_argument('-Wconversion')
 endif
 # The optimizations configure (--enable-optimize) and the Release build of
 # CMake add to -O3, in the release build type, where the compiler takes them
-if get_option('buildtype') == 'release'
+if release
   foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
     if cpp_comp.has_argument(flag)
       add_project_arguments([flag], language: 'cpp')
