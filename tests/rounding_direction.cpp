@@ -394,6 +394,11 @@ namespace
           && pow_exponent_rel(E(), X(), X()).is_empty() && pow_exponent_rel(X(), E(), X()).is_empty()
           && pow_exponent_rel(X(), X(), E()).is_empty() && gaol_ieee1788::powRev1(X(), E()).is_empty()
           && gaol_ieee1788::powRev2(E(), X()).is_empty(); } },
+    { "atan2_rel_y and atan2_rel_x", [] {
+        return atan2_rel_y(E(), X(), X()).is_empty() && atan2_rel_y(X(), E(), X()).is_empty()
+          && atan2_rel_y(X(), X(), E()).is_empty() && atan2_rel_x(E(), X(), X()).is_empty()
+          && atan2_rel_x(X(), E(), X()).is_empty() && atan2_rel_x(X(), X(), E()).is_empty()
+          && gaol_ieee1788::atan2Rev1(E(), X()).is_empty() && gaol_ieee1788::atan2Rev2(X(), E()).is_empty(); } },
     { "the numeric functions", [] {
         double m, r;
         E().mid_rad(m, r);
@@ -1073,6 +1078,8 @@ int main()
     // floor(sup Z) + 1 rounded upward: 2^60 + 1 is 2^60 rounded to nearest
     { "floor_rel", [](const interval& x, const interval& y) {
         return S(floor_rel(y, x + y)) + " " + S(floor_rel(interval(0x1p60), interval::universe())); } },
+    { "atan2_rel_y", [](const interval& x, const interval& y) { return S(atan2_rel_y(x, y, y)); } },
+    { "atan2_rel_x", [](const interval& x, const interval& y) { return S(atan2_rel_x(x, y, y)); } },
     { "nb_fp_numbers", [](const interval& x, const interval&) { return S(nb_fp_numbers(x.left(), x.right())); } },
     // Operations that compute after their one check of the rounding direction
     // what they computed with operations of intervals checking it again, or
@@ -1081,6 +1088,9 @@ int main()
         return S(tan(x + 1.0)) + " " + S(tan(interval(1.5, 0x1.921fb54442d18p+0))); } },
     { "acos_rel, asin_rel and atan_rel on their pieces", [](const interval& x, const interval& y) {
         return S(acos_rel(x, y)) + " " + S(acos_rel(x + 0.8, y)) + " " + S(asin_rel(x - 1.5, y)) + " " + S(atan_rel(y, x + 4.0)); } },
+    { "atan2_rel_y and atan2_rel_x in the four quadrants", [](const interval& x, const interval& y) {
+        return S(atan2_rel_y(x + 2.0, -y, y)) + " " + S(atan2_rel_x(-x - 2.0, -y, -y)) + " " + S(atan2_rel_y(-x, y, -y))
+          + " " + S(atan2_rel_x(x - 4.0, -y, -y)) + " " + S(atan2_rel_y(x*0x1p-1070, y, y)); } },
     { "nth_root(x,n) for n >= 4", [](const interval&, const interval& y) { return S(nth_root(y, 4)) + " " + S(nth_root(-y, 5)); } },
     { "pow(x,n) from the rounded products", [](const interval&, const interval& y) {
         return S(pow(y*0x1p-330, 3)) + " " + S(pow(interval(0., 1.)*y, 3)) + " " + S(pow(y*1e200, 3)); } },
@@ -1436,6 +1446,8 @@ int main()
       { "pow_exponent_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_exponent_rel(x, y, z); } },
       { "max_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return max_rel(x, y, z); } },
       { "min_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return min_rel(x, y, z); } },
+      { "atan2_rel_y(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return atan2_rel_y(x, y, z); } },
+      { "atan2_rel_x(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return atan2_rel_x(x, y, z); } },
     };
     // Subnormal, mixed and normal bounds; the first ones for two and three operands
     const interval flush_operands[] = {

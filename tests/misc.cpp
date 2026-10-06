@@ -157,6 +157,9 @@ namespace gaol_names
   static_assert(same<decltype(gaol::div_rel(x(), x(), x())), interval>(), "gaol::div_rel(z, y, x)");
   static_assert(same<decltype(gaol::max_rel(x(), x(), x())), interval>() && same<decltype(gaol::min_rel(x(), x(), x())), interval>(),
                 "gaol::max_rel(z, y, x), gaol::min_rel(z, y, x)");
+  static_assert(same<decltype(gaol::atan2_rel_y(x(), x(), x())), interval>()
+                && same<decltype(gaol::atan2_rel_x(x(), x(), x())), interval>(),
+                "gaol::atan2_rel_y(c, x, y), gaol::atan2_rel_x(c, y, x)");
   static_assert(same<decltype(gaol::fma(x(), x(), x())), interval>(), "gaol::fma(x, y, z)");
   static_assert(same<decltype(gaol::nth_root(x(), 3u)), interval>() && same<decltype(gaol::nth_root(x(), 3)), interval>(),
                 "gaol::nth_root(x, n)");

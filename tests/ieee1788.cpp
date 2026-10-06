@@ -460,6 +460,13 @@ namespace
           && powRev1(numsToInterval(2.0, 2.0), numsToInterval(4.0, 9.0)).set_eq(numsToInterval(2.0, 3.0))
           && powRev1(numsToInterval(2.0, 2.0), numsToInterval(4.0, 9.0), y).set_eq(numsToInterval(2.0, 2.0)),
           [&] { return hex(reverse[17]) + " " + hex(reverse[18]); });
+    // atan2Rev1(b, c, x) and atan2Rev2(a, c, x), x being [-oo, +oo] when left
+    // out (GAOL v5): the angle 0 is that of the points (x, 0), x > 0
+    const interval zero = numsToInterval(0.0, 0.0), positive = numsToInterval(1.0, 2.0);
+    check("atan2Rev1 and atan2Rev2, with and without their last argument",
+          atan2Rev1(positive, zero).set_eq(zero) && atan2Rev1(-positive, zero, y).is_empty()
+          && atan2Rev2(zero, zero).set_eq(numsToInterval(0.0, oo)) && atan2Rev2(zero, zero, y).set_eq(numsToInterval(0.0, 2.0)),
+          [&] { return hex(atan2Rev1(positive, zero)) + " " + hex(atan2Rev2(zero, zero, y)); });
   }
 
   /* mulRevToPair(b, c), the two-output division of 10.5.5 (GAOL v5): the

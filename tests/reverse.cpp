@@ -26,6 +26,10 @@
  * The summary also gives how far from the tightest bounds the results were,
  * where both are nonempty.
  *
+ * atan2_rel_y and atan2_rel_x (atan2Rev1 and atan2Rev2, GAOL v5) have their
+ * own section below, their own table (atan2_rel_values.h), and checks of
+ * soundness on points of the boxes.
+ *
  * Copyright (c) 2026 ENSTA, France
  *
  * Created 2026-09-20 by Jordan NININ
@@ -37,8 +41,10 @@
 #include "gaol_tests.h"
 #include "reverse_values.h"
 #include "pow_rel_values.h"
+#include "atan2_rel_values.h"
 
 #include <algorithm>
+#include <cfenv>
 #include <cmath>
 #include <functional>
 #include <string>
@@ -353,6 +359,277 @@ namespace
   }
 }
 
+//---------------------------------------------------------------------------
+// atan2_rel_y and atan2_rel_x: atan2Rev1 and atan2Rev2 (GAOL v5)
+//---------------------------------------------------------------------------
+/*
+  atan2_rel_y(c, x, y) and atan2_rel_x(c, y, x), atan2Rev1(x, c, y) and
+  atan2Rev2(y, c, x) of IEEE 1788, are the hulls of the ordinates and of the
+  abscissas of the points (x, y) of the box y x x, (0, 0) left out, whose angle
+  atan2(y, x), in (-pi, pi], is in c.
+   - In each case of atan2_rel_values.h (angles at, next to and around the
+     multiples of pi/4, the axes, the half-line y = 0, x < 0, angles outside
+     [-pi, pi], boxes in and across the quadrants, with zero, tiny, huge and
+     infinite bounds, and random cases: see atan2_rel_values.py), the results
+     have to be empty when an argument is, valid (enclose the tightest
+     enclosures of the hulls, computed with mpmath) and accurate (within
+     nextOut(tightest(nextOut(arguments)))), and the functions of
+     gaol_ieee1788 have to give them, with and without their last argument.
+   - Soundness, on points: in each case of the table and in random ones, the
+     corners of the box, points of its sides and of the axes, random points,
+     and the points of the sides next to where the half-lines bounding the
+     angles of c cross them, where the bounds of the results are made. Each
+     point whose angle is in c has to be in both results. Whether it is, is
+     decided exactly from atan2() of the point, whose bounds are the two
+     doubles around its angle (the tightest enclosure, CORE-MATH's atan2
+     rounded both ways), or the angle itself where it is 0, the only angle of
+     a point of doubles that is a double: a bound of c, a double, is never
+     strictly between them.
+   - No invalid-operation flag for boxes and angles with zero and infinite
+     bounds.
+*/
+namespace
+{
+  interval make(const atan2_rel_values::I& a)
+  {
+    return a.empty ? interval::emptyset() : interval(a.l, a.u);
+  }
+
+  // The number of doubles from a up to b, stopping beyond limit
+  int atan2_doubles_from(double a, double b, int limit)
+  {
+    int n = 0;
+    for (double t = a; t < b && n <= limit; t = next_double(t)) {
+      ++n;
+    }
+    return n;
+  }
+
+  // Checks the result r, whose tightest value is t and whose accurate
+  // results are within a, and, where both are nonempty, no more than 2
+  // doubles from it, as doc/accuracy.md says: the slopes of the bounds of c
+  // are rounded once, and their products with the bounds of the box once
+  // more (or exactly, at a subnormal angle, see atan2_rel_piece())
+  template<class Describe>
+  void atan2_expect(const std::string& name, const interval& r, const atan2_rel_values::I& t,
+                    const atan2_rel_values::I& a, bool empty_argument, const Describe& describe)
+  {
+    if (empty_argument) {
+      check(name + ": empty for an empty argument", r.is_empty(), describe);
+      return;
+    }
+    check(name + ": valid, encloses the hull",
+          t.empty || (!r.is_empty() && r.left() <= t.l && t.u <= r.right()), describe);
+    check(name + ": no more than the accurate bounds, nextOut(tightest(nextOut(arguments)))",
+          r.is_empty() || (!a.empty && a.l <= r.left() && r.right() <= a.u), describe);
+    if (!t.empty && !r.is_empty() && r.left() <= t.l && t.u <= r.right()) {
+      check_distance(name, std::max(atan2_doubles_from(r.left(), t.l, 1000), atan2_doubles_from(t.u, r.right(), 1000)),
+                     2, describe);
+    }
+  }
+
+  bool same(const interval& a, const interval& b)
+  {
+    return (a.is_empty() && b.is_empty()) || a.set_eq(b);
+  }
+
+  /*
+    Whether the angle of the point (x, y), not (0, 0), is in c: 1 if it is,
+    0 if not, -1 where atan2() of the point is neither the angle 0 nor two
+    adjacent doubles, which the decision needs
+  */
+  int angle_in(double y, double x, const interval& c)
+  {
+    const interval a = atan2(interval(y), interval(x));
+    if (a.is_empty() || !(a.left() == a.right() || next_double(a.left()) == a.right())) {
+      return -1;
+    }
+    return (c.left() <= a.left() && a.right() <= c.right()) ? 1 : 0;
+  }
+
+  // The coordinates of the points sampled on one axis of the box: its bounds,
+  // or doubles of large magnitudes where they are infinite, 0, +-1 and the
+  // least subnormals where they are within, and random ones
+  std::vector<double> coordinates(const interval& v, Random& random)
+  {
+    std::vector<double> out;
+    const double l = v.left(), u = v.right(), max = std::numeric_limits<double>::max();
+    const double candidates[] = { l, u, 0.0, 1.0, -1.0, 0x1p-1074, -0x1p-1074, max, -max, 1e300, -1e300,
+                                  0x1p-1022, -0x1p-1022 };
+    for (double d : candidates) {
+      if (std::isfinite(d) && l <= d && d <= u) {
+        out.push_back(d);
+      }
+    }
+    const double lo = std::isfinite(l) ? l : -1e10, hi = std::isfinite(u) ? u : 1e10;
+    for (int i = 0; i < 6; ++i) {
+      const double d = (lo < hi) ? random.uniform(lo, hi) : lo;
+      if (l <= d && d <= u) {
+        out.push_back(d);
+      }
+    }
+    return out;
+  }
+
+  /*
+    Checks that each sampled point of the box y x x whose angle is in c is in
+    ry = atan2_rel_y(c, x, y) and rx = atan2_rel_x(c, y, x): the points of
+    coordinates() of y and of x, and, for each bound of c and each of these
+    coordinates, the doubles next to the point where the half-line of that
+    angle crosses the side through it (e tan(theta) for an abscissa e, and
+    e / tan(theta) for an ordinate e), computed rounding to nearest
+  */
+  void sample(const interval& c, const interval& y, const interval& x, Random& random, long& undecided)
+  {
+    if (c.is_empty() || y.is_empty() || x.is_empty()) {
+      return;
+    }
+    const interval ry = atan2_rel_y(c, x, y), rx = atan2_rel_x(c, y, x);
+    const std::vector<double> ys = coordinates(y, random), xs = coordinates(x, random);
+    std::vector<std::pair<double, double> > points; // (y, x)
+    for (double py : ys) {
+      for (double px : xs) {
+        points.push_back(std::make_pair(py, px));
+      }
+    }
+    {
+      RoundingToNearest nearest;
+      for (double theta : { c.left(), c.right() }) {
+        if (!std::isfinite(theta)) {
+          continue;
+        }
+        const double t = std::tan(theta);
+        for (double e : xs) {
+          double py = e*t;
+          for (int k = 0; k < 3 && std::isfinite(py); ++k) {
+            py = std::nextafter(py, -inf);
+          }
+          for (int k = 0; k < 7 && std::isfinite(py); ++k, py = std::nextafter(py, inf)) {
+            if (y.left() <= py && py <= y.right()) {
+              points.push_back(std::make_pair(py, e));
+            }
+          }
+        }
+        for (double e : ys) {
+          double px = e/t;
+          for (int k = 0; k < 3 && std::isfinite(px); ++k) {
+            px = std::nextafter(px, -inf);
+          }
+          for (int k = 0; k < 7 && std::isfinite(px); ++k, px = std::nextafter(px, inf)) {
+            if (x.left() <= px && px <= x.right()) {
+              points.push_back(std::make_pair(e, px));
+            }
+          }
+        }
+      }
+    }
+    for (const std::pair<double, double>& p : points) {
+      if (p.first == 0.0 && p.second == 0.0) {
+        continue;
+      }
+      const int in = angle_in(p.first, p.second, c);
+      if (in < 0) {
+        ++undecided;
+        continue;
+      }
+      if (in == 1) {
+        const auto describe = [&] {
+          return "c = " + hex(c) + ", y = " + hex(y) + ", x = " + hex(x) + ": the point (x, y) = (" + hex(p.second)
+            + ", " + hex(p.first) + "), atan2_rel_y " + hex(ry) + ", atan2_rel_x " + hex(rx);
+        };
+        check("atan2_rel_y(c, x, y): every sampled y whose point has its angle in c", ry.set_contains(p.first), describe);
+        check("atan2_rel_x(c, y, x): every sampled x whose point has its angle in c", rx.set_contains(p.second), describe);
+      }
+    }
+  }
+
+  // An interval of random bounds, of magnitudes from 2^emin to 2^emax, zero
+  // or infinite now and then
+  interval random_box_side(Random& random, int emin, int emax)
+  {
+    double b[2];
+    for (double& d : b) {
+      const int kind = random.integer(0, 9);
+      d = (kind == 0) ? 0.0 : (kind == 1) ? ((random.integer(0, 1) == 0) ? -inf : inf) : random(emin, emax);
+    }
+    const interval v = gaol_tests::hull(b[0], b[1]);
+    return v.is_empty() ? interval(-1.0, 1.0) : v;
+  }
+
+  void atan2_rel_functions()
+  {
+    Random random;
+    long undecided = 0;
+    for (const atan2_rel_values::Case& k : atan2_rel_values::cases) {
+      const interval c = make(k.c), y = make(k.y), x = make(k.x);
+      const bool empty_argument = k.c.empty || k.y.empty || k.x.empty;
+      const interval ry = evaluate("atan2_rel_y(c, x, y)", [&] { return atan2_rel_y(c, x, y); }, [] { return std::string(); });
+      const interval rx = evaluate("atan2_rel_x(c, y, x)", [&] { return atan2_rel_x(c, y, x); }, [] { return std::string(); });
+      const auto describe = [&] {
+        return "c = " + hex(c) + ", y = " + hex(y) + ", x = " + hex(x) + " (" + k.from + "): atan2_rel_y " + hex(ry)
+          + ", tightest " + hex(make(k.y_tightest)) + ", accurate within " + hex(make(k.y_accurate)) + "; atan2_rel_x "
+          + hex(rx) + ", tightest " + hex(make(k.x_tightest)) + ", accurate within " + hex(make(k.x_accurate));
+      };
+      atan2_expect("atan2_rel_y(c, x, y)", ry, k.y_tightest, k.y_accurate, empty_argument, describe);
+      atan2_expect("atan2_rel_x(c, y, x)", rx, k.x_tightest, k.x_accurate, empty_argument, describe);
+      // The names of IEEE 1788, the last argument [-oo, +oo] when left out
+      check("gaol_ieee1788::atan2Rev1(x, c, y) is atan2_rel_y(c, x, y), atan2Rev2(y, c, x) atan2_rel_x(c, y, x)",
+            same(gaol_ieee1788::atan2Rev1(x, c, y), ry) && same(gaol_ieee1788::atan2Rev2(y, c, x), rx), describe);
+      check("gaol_ieee1788::atan2Rev1(x, c) and atan2Rev2(y, c): the last argument [-oo, +oo]",
+            same(gaol_ieee1788::atan2Rev1(x, c), atan2_rel_y(c, x, interval::universe()))
+            && same(gaol_ieee1788::atan2Rev2(y, c), atan2_rel_x(c, y, interval::universe()))
+            && (!y.is_entire() || same(gaol_ieee1788::atan2Rev1(x, c), ry))
+            && (!x.is_entire() || same(gaol_ieee1788::atan2Rev2(y, c), rx)), describe);
+      sample(c, y, x, random, undecided);
+    }
+    // Random angles and boxes, sampled
+    for (int i = 0; i < 3000; ++i) {
+      double a = random.uniform(-4.0, 4.0), b = random.uniform(-4.0, 4.0);
+      if (random.integer(0, 4) == 0) {
+        b = a;
+      }
+      const interval c = gaol_tests::hull(a, b);
+      const bool any = random.integer(0, 2) == 0;
+      const interval y = random_box_side(random, any ? -1074 : -20, any ? 1023 : 20);
+      const interval x = random_box_side(random, any ? -1074 : -20, any ? 1023 : 20);
+      sample(c, y, x, random, undecided);
+    }
+
+    // Zero and infinite bounds raise no invalid-operation flag (0 times +oo,
+    // +oo / +oo...), and give no NaN bound
+    std::vector<interval> sides;
+    const double bounds[] = { -inf, -2.0, -0.0, 0.0, 3.0, inf };
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (!interval(l, u).is_empty()) {
+          sides.push_back(interval(l, u));
+        }
+      }
+    }
+    const interval angles[] = { interval::universe(), interval(0.0), interval(-0.0, 0.0), interval::pi(), -interval::pi(),
+                                interval::half_pi(), -interval::half_pi(), interval(1.0, inf), interval(-inf, -1.0),
+                                interval(0.0, inf), interval(-inf, 0.0), interval(0x1p-1074, 1.0) };
+    for (const interval& c : angles) {
+      for (const interval& y : sides) {
+        for (const interval& x : sides) {
+          std::feclearexcept(FE_INVALID);
+          const interval ry = atan2_rel_y(c, x, y), rx = atan2_rel_x(c, y, x);
+          const bool raised = std::fetestexcept(FE_INVALID) != 0;
+          check("atan2_rel_y and atan2_rel_x of zero and infinite bounds raise no invalid-operation flag", !raised,
+                [&] { return "c = " + hex(c) + ", y = " + hex(y) + ", x = " + hex(x); });
+          check("atan2_rel_y and atan2_rel_x: no NaN bound, results within y and x",
+                (ry.is_empty() || (!std::isnan(ry.left()) && !std::isnan(ry.right()) && y.set_contains(ry)))
+                && (rx.is_empty() || (!std::isnan(rx.left()) && !std::isnan(rx.right()) && x.set_contains(rx))),
+                [&] { return "c = " + hex(c) + ", y = " + hex(y) + ", x = " + hex(x) + ": " + hex(ry) + ", " + hex(rx); });
+          sample(c, y, x, random, undecided);
+        }
+      }
+    }
+    check("atan2_rel: whether the angle of a sampled point is in c is always decided", undecided == 0,
+          [&] { return std::to_string(undecided) + " points undecided"; });
+  }
+}
+
 int main()
 {
   gaol::init();
@@ -360,6 +637,7 @@ int main()
   pow_reverse_cases();
   pow_reverse_sampling();
   pow_reverse_examples();
+  atan2_rel_functions();
   const int status = summary();
   gaol::cleanup();
   return status;
