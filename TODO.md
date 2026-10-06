@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `40c33e6` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `47b776e` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -104,6 +104,15 @@ supprimé, et les en-têtes installés n'ont plus de cast à la C, ce que
 `doc/differences.md` sont dans la description de #87.
 Fait le 5 octobre aussi : le point M (anciens 9, 57), par #89.
 Fait le 5 octobre aussi : le point S (ancien 14), par #90.
+Fait le 6 octobre : le point R (anciens 7 et 50), par #92 : `hausdorff()`
+rend +oo avant de vérifier le sens d'arrondi quand une borne n'est infinie que
+d'un côté (2,5 à 4,4 fois plus rapide dans ce cas), et `atanh_rel` est comparé
+à ses bornes infinies ; `atanh([1])` et `atanh([-1])` dans
+`doc/compare/special_cases.md` restent au point 33. Décidé en fin de travail :
+la phrase de `doc/using.md` (l. 445) et du manuel qui dit que chaque opération
+laisse le sens d'arrondi vers le haut est à compléter au point I ; la double
+vérification de `asinh_rel()` et `atanh_rel()` va au point B.2. Les textes
+pour `ChangeLog` et `doc/differences.md` sont dans la description de #92.
 
 ## En cours
 
@@ -191,7 +200,9 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
 - **2.** **Le sens d'arrondi est encore vérifié plus d'une fois** : trois fois
   par `pow(x, y)` quand `pow_standard()` passe par exp(y log x) (une borne
   infinie, ou une base partant de 0 avec un exposant qui n'est pas au-dessus de
-  0), deux fois par `nth_root(x, q)` pour q < 0 et par `modulo_k_pi()`.
+  0), deux fois par `nth_root(x, q)` pour q < 0, par `modulo_k_pi()`, et par
+  `asinh_rel()` et `atanh_rel()`, qui appellent `asinh()` et `atanh()` après
+  leur propre vérification (relevé par #92, décidé le 6 octobre).
   Correction : appeler les corps de ces opérations après une seule vérification,
   comme `tan()` et les puissances négatives ; les corps de `log()`, `exp()` et
   `*` sans la vérification restent à écrire. `nth_root(I, q)` calcule `|q|`
@@ -453,6 +464,11 @@ textes qui décrivent le refus.
 `README.md`, `doc/using.md` et « Common errors » du manuel : les écrire
 ensemble, avec la mise en garde du point V et la partie manuel du point H, pour
 ne régénérer le PDF qu'une fois (point Y) ; le site (70) vient après.
+Décidé le 6 octobre (#92) : y compléter aussi la phrase de `doc/using.md`
+(l. 445) et du manuel selon laquelle chaque opération laisse le sens d'arrondi
+vers le haut : celles qui rendent avant leur vérification (un opérande vide,
+`hausdorff()` quand une borne n'est infinie que d'un côté) le laissent tel
+qu'elles l'ont trouvé.
 
 - **35.** **Un premier programme avant les détails** : `README.md` n'a ni code
   C++ ni renvoi à `examples/`, le premier programme est à la ligne 96 de
@@ -599,18 +615,6 @@ le point D a changé (#84), sa partie parser se fait avec le point E.
   autres bornes l'ayant écrite 0 avec MSYS2 CLANG64 : c'est elle qu'il faut
   arrondir vers l'extérieur.
 
-### R. `atanh` et `hausdorff()` (7, 50)
-
-- **7.** **Suites de `atanh([1, x])`** (#31) : un `TEST_EQ` de `atanh_rel` à
-  borne infinie (`atanh_rel([0.5, 1], [0, +oo])`), possible depuis le point 10 ;
-  `atanh([1])` et `atanh([-1])` manquent à `doc/compare/special_cases.md`
-  (relancer les cinq bibliothèques) : décidé le 3 octobre, les ajouter au moment
-  du point 33.
-- **50.** **`hausdorff()` à borne infinie** (suite de #41) : environ 14 ns au
-  lieu de 4,5 ns, la formule unique ayant été gardée. Décidé le 3 octobre :
-  ajouter la sortie anticipée (+oo dès qu'une borne n'est infinie que d'un
-  côté).
-
 ### T. Les exemples (39, 66)
 
 - **39.** **Les restes de Goldstein-Price** (le +1 et « encloses the range »
@@ -726,7 +730,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   et les opérations ont changé depuis (#37, #50, #54). À remesurer en dernier,
   sur le commit propre de la version, la machine ne faisant rien d'autre
   (`doc/compare/code/run_bench.sh`, ou `make perf`), puis reprendre le tableau
-  de `doc/compare/README.md`.
+  de `doc/compare/README.md`. Au même moment, ajouter `atanh([1])` et
+  `atanh([-1])` aux cas de `doc/compare/special_cases.md` en relançant les cinq
+  bibliothèques (ancien 7, décidé le 3 octobre).
 - **34.** **Les recettes FetchContent récupèrent GAOL 4** : `doc/using.md`, le
   manuel et `tests/fetch_content` prennent la branche `master` de
   `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par défaut.
@@ -747,7 +753,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d (« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87 et #88 après leur fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90 et #92 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -763,10 +769,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 7 : R ; 8 : B ; 11 : F ;
+1 : B ; 2 : B ; 3 : A ; 4 : Q ; 5 : G ; 6 : A ; 8 : B ; 11 : F ;
 12 : E ; 15 : F ; 18 : F ; 22 : V ; 25 : P ; 26 : W ; 28 : X ;
 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 39 : T ;
-40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ; 50 : R ;
+40 : E, G et U ; 41 : O ; 42 : O ; 44 : N ; 45 : Q ; 46 : F ; 47 : A ;
 51 : B ; 52 : O ; 53 : G ; 54 : G ; 55 : G ; 56 : A ; 58 : F ; 59 : F ;
 60 : F ; 61 : F ; 63 : N ; 64 : U ; 65 : O ; 66 : T ; 70 : I ; 71 : Y ; 72 : B ;
 73 : B ; 74 : B.
@@ -785,7 +791,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce point.
    Compléter ensuite les tests DAZ concernés par Q.
 4. **Achever les autres corrections mathématiques : M et R.** Garder les
-   mesures et les tests avec les changements de bornes concernés.
+   mesures et les tests avec les changements de bornes concernés. Faits par #89
+   et #92.
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
    Faire F après la régénération du parser ; corriger `3rd/README.md` avant tout
    envoi amont pour A et valider les plateformes prises en charge.
