@@ -61,23 +61,22 @@ namespace {
 
 } // namespace
 
-int main(void)
+int main()
 {
   // No gaol::init(): GAOL initialized itself before main()
 
-  interval
-    x(-2,2),
-    y(-2,2), z(0.1);
-
+  const interval x(-2.0, 2.0);
+  const interval y(-2.0, 2.0);
+  interval z(0.1);
 
   cout.precision(16);
 
-  const interval zero = interval::universe()*interval(0.,0.);
+  const interval zero = interval::universe() * interval(0.0, 0.0);
   cout << zero << endl;
   check(zero.set_eq(interval(0.0)), "the whole line times 0 is {0}");
   reset_time();
-  for (unsigned int i=0;i<1000000;++i) {
-    z=goldstein_price(x, y);
+  for (unsigned int i = 0; i < 1000000; ++i) {
+    z = goldstein_price(x, y);
   }
   cout << "z = " << z << endl;
   cout << "Elapsed time: " << elapsed_time() << " ms" << endl;
@@ -100,8 +99,8 @@ int main(void)
 
   // The program of the overview of the manual, with sqr and integers, prints
   // that enclosure
-  const interval w=(1+sqr(x+y+1)*(19-14*x+3*sqr(x)-14*y+6*x*y+3*sqr(y)))*
-    (30+sqr(2*x-3*y)*(18-32*x+12*sqr(x)+48*y-36*x*y+27*sqr(y)));
+  const interval w = (1.0 + sqr(x + y + 1.0) * (19.0 - 14.0 * x + 3.0 * sqr(x) - 14.0 * y + 6.0 * x * y + 3.0 * sqr(y)))
+                     * (30.0 + sqr(2.0 * x - 3.0 * y) * (18.0 - 32.0 * x + 12.0 * sqr(x) + 48.0 * y - 36.0 * x * y + 27.0 * sqr(y)));
   check(w.set_eq(z), "the program of the manual gives the same enclosure");
 
   // Each occurrence of x and of y ranges over [-2, 2] on its own: the
