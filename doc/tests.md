@@ -129,7 +129,7 @@ mode there.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 190 calls, in 65 checks: one for each of the 48 calls
+  on either side (about 210 calls, in 65 checks: one for each of the 48 calls
   that compared the NaN bounds of the empty set, the others in twelve groups,
   and five choices a program makes with `is_empty()` of an empty interval,
   three after an intersection whose left operand is empty, one after an
@@ -416,6 +416,22 @@ mode there.
   against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
   base, and at integer exponents beyond the ints, where it has to give the
   tightest bounds and GAOL's own `pow` gives [-oo, +oo] (GAOL v5).
+  The reverse functions of max, min, sign and floor (`max_rel`, `min_rel`,
+  `sign_rel`, `floor_rel`, GAOL v5) have to be the hulls of their sets, read
+  from the definitions of the functions apart from the code: on every interval
+  whose bounds are among -oo, -2, -1.5, ..., 2, +oo, -0 and +0, and the empty
+  set (among -oo, -1, -0.5, -0, +0, 0.5, 1 and +oo, for every z, y and x of
+  `max_rel` and `min_rel`), the sets then being unions of intervals whose ends
+  are multiples of 1/2, read at the multiples of 1/4 from -4 to 4; on 64
+  cases written out (disjoint, touching and nested intervals, infinite bounds,
+  -0 and +0, subnormal bounds, a z holding no sign or no integer, and
+  `floor_rel` beyond 2^53, where floor(sup z) + 1 is no double and the bound
+  is the double above it); `floor_rel` at every magnitude up to DBL_MAX,
+  against floor(sup z) + 1 computed exactly; and on 20 000 random intervals of
+  every magnitude, where every double of x sampled that the definition puts
+  in the set has to be in the result, which has to lie within x with its
+  finite bounds in the set, or at its open end (0 for `sign_rel`,
+  floor(sup z) + 1 for `floor_rel`).
 - **`ieee1788`:** `gaol_ieee1788` as a program uses it, under
   `using namespace gaol_ieee1788;` alone. Every name of the standard it provides
   is called unqualified, which compiles only if none of them is ambiguous with

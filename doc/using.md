@@ -471,6 +471,47 @@ would settle: `pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51])` is
 within the accuracy the standard recommends (see
 [Accuracy of the operations](accuracy.md)).
 
+## The reverse functions of max, min, sign and floor
+
+`max_rel(z, y, x)`, `min_rel(z, y, x)`, `sign_rel(z, x)` and `floor_rel(z, x)`
+contract x under the constraints z = max(x, y), z = min(x, y), z = sign(x) and
+z = floor(x), which IBEX wrote itself (GAOL v5). Each returns the hull of the
+x of `x` that the function sends into `z`, with some y of `y` for max and min:
+the reverse functions IEEE 1788-2015 defines for every function (10.5.4), with
+the arguments in the order of GAOL's relational functions (`div_rel(c, b, x)`,
+`sqrt_rel(c, x)`...), the result first and the operand contracted last. max
+and min being symmetric, `max_rel(z, x, y)` contracts y, and `max(x, y) & z`
+contracts z.
+
+```cpp
+#include <gaol/gaol.h>
+using namespace gaol;
+
+interval x(-5.0, 5.0), z(1.0, 2.0);
+interval a = max_rel(z, interval(0.0, 1.0), x);   // [-5, 2]: y meets z
+interval b = max_rel(z, interval(-1.0, 0.0), x);  // [1, 2]: y below z
+interval c = max_rel(z, interval(3.0, 4.0), x);   // empty: y above z
+interval s = sign_rel(interval(-1.0), x);         // [-5, 0]
+interval f = floor_rel(interval(0.0, 2.0), x);    // [0, 3]
+```
+
+Each result is the tightest enclosure of its set, whose bounds are those of x
+and z, 0 and integers. Two of these sets are open at an end, which the
+tightest closed enclosure takes all the same: the negative x of `sign_rel` go
+up to 0, whose sign is 0, so that `sign_rel([-1], [-5, 5])` is [-5, 0] and
+`sign_rel([-1], [0, 5])` is empty; and the x whose floor is in z make
+[ceil(inf z), floor(sup z) + 1), so that `floor_rel([0], [0.5, 2])` is
+[0.5, 1] and `floor_rel([0], [1, 2])` is empty. Beyond 2^53, where every
+double is an integer, floor(sup z) + 1 is no double, and the upper bound is
+the double above it: `floor_rel([2^53], x)` ends at 2^53 + 2 where x goes on
+to it, and `floor_rel([DBL_MAX], x)` at +oo. A z that holds no value of the
+function gives the empty set: `sign_rel([0.5, 0.7], x)` and
+`floor_rel([0.5, 0.7], x)`. IEEE 1788-2015 names and requires only the reverse
+functions of its Table 10.1, which these four are not in: `gaol_ieee1788`
+has no name for them, and a program that opens it calls them as
+`max_rel(z, y, x)` all the same, argument-dependent lookup finding them in
+`gaol_core` (see [The namespaces](#the-namespaces)).
+
 ## Integers
 
 An integer given to GAOL is taken as the integer it is (GAOL v5):
