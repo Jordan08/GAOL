@@ -123,6 +123,10 @@ option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OF
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
+# GAOL and CORE-MATH built for debugging whatever the build type or the
+# configuration, a project bringing GAOL in included, as enable-debug of meson
+# and --enable-debug of configure (GAOL v5; see the end of this file)
+option(GAOL_DEBUG "Build GAOL and CORE-MATH for debugging, without optimization and with GAOL_DEBUGGING, whatever the build type or the configuration" OFF)
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 # Coverage: the library and the tests compiled with the counters of gcov
@@ -582,7 +586,7 @@ set(GAOL_EXCEPTIONS_ENABLED ON)
 # generator of several configurations (Visual Studio, Xcode), whose
 # configurations share gaol/gaol_configuration.h, GAOL_DEBUGGING is given to
 # the sources of GAOL in the Debug configuration below.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
   set(GAOL_DEBUGGING ON)
 endif()
 
@@ -696,12 +700,13 @@ if(NOT MSVC)
     endif()
   endforeach()
   # The optimizations configure adds to -O3, in the Release configuration
+  # (not with GAOL_DEBUG)
   set(GAOL_RELEASE_FLAGS "")
   foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
     string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
     check_cxx_compiler_flag("${flag}" ${_flag_var})
-    if(${_flag_var})
+    if(${_flag_var} AND NOT GAOL_DEBUG)
       list(APPEND GAOL_LIBRARY_FLAGS "$<$<CONFIG:Release>:${flag}>")
       list(APPEND GAOL_RELEASE_FLAGS ${flag})
     endif()
@@ -813,7 +818,7 @@ endif()
 # with Visual C++), NDEBUG and the optimizations configure adds, as configure
 # and meson build GAOL brought into another project (GAOL v5: GAOL alone had
 # -O3, and CORE-MATH, compiled apart, no optimization)
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND NOT GAOL_DEBUG)
   foreach(target gaol gaol_core_math)
     if(MSVC)
       target_compile_options(${target} PRIVATE /O2)
@@ -1180,4 +1185,28 @@ if(GAOL_COVERAGE)
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Running the tests and writing the coverage report in coverage/"
     VERBATIM)
+endif()
+
+# GAOL_DEBUG: the targets of this directory, libgaol and the sources of
+# CORE-MATH, compiled with the flags of Debug in every configuration, or
+# with them added to those of the project where it gives no build type, so
+# that they are built without optimization nor NDEBUG (GAOL v5). The flags of a
+# configuration are those of the directory of the target at its end: the
+# tests and the examples, whose directories were added before, keep theirs, as
+# does a project bringing GAOL in. /RTC1 of Visual C++ is left out of
+# configurations whose C runtime is not the Debug one.
+if(GAOL_DEBUG)
+  foreach(lang C CXX)
+    string(REPLACE "/RTC1" "" _gaol_debug_flags "${CMAKE_${lang}_FLAGS_DEBUG}")
+    if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
+      foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES CMAKE_BUILD_TYPE)
+        string(TOUPPER "${config}" config)
+        if(NOT config STREQUAL "DEBUG")
+          set(CMAKE_${lang}_FLAGS_${config} "${_gaol_debug_flags}")
+        endif()
+      endforeach()
+    else()
+      set(CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS} ${_gaol_debug_flags}")
+    endif()
+  endforeach()
 endif()
