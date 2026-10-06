@@ -220,6 +220,22 @@ namespace
     }
     return not_above_zero;
   }
+
+  // Whether the sum 2^-1060 + 0, by which GAOL checks the modes before it
+  // writes, is 0 under denormals-are-zero: GAOL clears the mode only where
+  // it sees it there, and an emulator could honour it in the comparisons and
+  // not in the additions (GAOL v5). The sum goes to volatile memory, as the
+  // comparison above.
+  bool check_sees_denormals_are_zero()
+  {
+    volatile double subnormal = 8.0947715414629834e-320, zero = 0.0;
+    volatile double sum;
+    {
+      Flushing flushing(denormals_are_zero);
+      sum = subnormal + zero;
+    }
+    return sum == 0.0;
+  }
 #endif
 
   /*
@@ -327,6 +343,11 @@ namespace
 #if GAOL_TESTS_HAVE_MXCSR
     if (!honours_denormals_are_zero()) {
       std::printf("Denormals-are-zero is not honoured: the output of subnormals with it is not checked\n");
+      return;
+    }
+    if (!check_sees_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is honoured by the comparisons, not by the sum that GAOL checks it with: "
+                  "the output of subnormals with it is not checked\n");
       return;
     }
     const double least = std::numeric_limits<double>::denorm_min();
