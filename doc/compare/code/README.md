@@ -6,10 +6,12 @@ The scripts of this directory compare GAOL (this repository), the last
 version of [Frédéric Goualard's GAOL](https://github.com/goualard-f/GAOL),
 [libieeep1788](https://github.com/nehmeier/libieeep1788),
 [filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html),
-[PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) and
-the intervals of Solaris Studio's Fortran (`f90 -xia`), and write the tables
-of
-[special_cases.md](../special_cases.md) and
+[PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/),
+the intervals of Solaris Studio's Fortran (`f90 -xia`) and
+[Boost.Interval](https://www.boost.org/libs/numeric/interval), and write the
+tables of
+[special_cases.md](../special_cases.md),
+[enclosure.md](../enclosure.md) and
 [performance.md](../performance.md). They run on Linux x86-64.
 
 ## What they need
@@ -32,8 +34,11 @@ master branch of his repository) with
 [mathlib 2.1.1](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
 from his site, built with their configure, without the preservation of the
 rounding direction, as GAOL v5, and with the flags GAOL v5 is built with,
-which his configure gives to `g++` alone. All of them are compiled by `CC` and
-`CXX` with `-O3` (GMP, MPFR and PROFIL/BIAS compile with `-O2` on their own,
+which his configure gives to `g++` alone, and the headers of Boost.Interval
+of Boost 1.92.0, with those of Config and Detail, the two modules of Boost
+they include, from the archives of the three modules at the tag of the release
+on GitHub. All of them are compiled by `CC` and `CXX` with `-O3` (GMP, MPFR
+and PROFIL/BIAS compile with `-O2` on their own,
 and the configure of filib++ without any optimization) and with the fused
 multiply-add instructions of the processor, `-mfma` (`FMA_FLAGS`), as GAOL is
 by default (`GAOL_FMA`), filib++ and PROFIL/BIAS in C++11: Clang 16 and GCC 11
@@ -53,20 +58,22 @@ export PATH=/path/to/solarisstudio12.4/bin:$PATH
 FILIB_DIR=/path/to/filib ./setup.sh   # once; without FILIB_DIR, it builds filib++
                         # FORCE_GAOL=1 ./setup.sh rebuilds GAOL after a change
 ./run_cases.sh          # the special cases        -> ../special_cases.md
+./run_enclosure.sh      # the test of enclosure    -> ../enclosure.md
 CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance.md
 ```
 
-The tables of [performance.md](../performance.md) and
-[special_cases.md](../special_cases.md) were computed with Clang 18, in a work
+The tables of [performance.md](../performance.md),
+[special_cases.md](../special_cases.md) and [enclosure.md](../enclosure.md)
+were computed with Clang 18, in a work
 directory of its own (GCC 9.4 gives the same special cases; its timings differ,
 the libraries not being compiled the same way):
 
 ```bash
 export CC=clang-18 CXX=clang++-18 WORK=$PWD/work/clang
-./setup.sh && ./run_cases.sh && CPU=2 ./run_bench.sh
+./setup.sh && ./run_cases.sh && ./run_enclosure.sh && CPU=2 ./run_bench.sh
 ```
 
-`./run_all.sh` runs the three in turn. The scripts rewrite only the tables
+`./run_all.sh` runs the four in turn. The scripts rewrite only the tables
 between the `<!-- BEGIN GENERATED TABLES -->` and `<!-- END GENERATED TABLES -->`
 markers of the reports: the text around them, which comments on the results,
 has to be checked by hand against the new tables.
@@ -82,7 +89,7 @@ variables:
 | `REPEATS` | `5` | Runs of each operation in a round |
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
-| `LIBS` | `double gaol5 gaol filib profil sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol` the last GAOL of Frédéric Goualard |
+| `LIBS` | `double gaol5 gaol filib profil boost sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol` the last GAOL of Frédéric Goualard |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
@@ -90,6 +97,7 @@ variables:
 | `WORK`, `PREFIX` | `work`, `work/prefix` | Where everything is built and installed |
 | `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
 | `PROFIL_TGZ` | | A copy of `Profil-2.0.8.tgz`, for `setup.sh` when the site of PROFIL/BIAS is down |
+| `ENCLOSURE_N` | `100000` | Arguments of each function for `run_enclosure.sh`, whose values mpmath computes with 2000 bits, about 5 minutes the first time for 100 000 |
 
 ## GAOL v5 alone: `make perf`
 
@@ -101,9 +109,9 @@ numpy, the same intervals as `run_bench.sh`), runs the program `ROUNDS` times,
 replaces the rows of GAOL v5 in `results.csv` by the new ones, and writes the
 tables of [performance.md](../performance.md) from them, the line of GAOL v5 of
 `machine.txt` saying when and how it was measured. GAOL 4.2.3, filib++,
-libieeep1788, PROFIL/BIAS, Solaris Studio and the doubles keep the times of
-the last whole run, which `results.csv` holds: the machine should be the one
-they were measured on (`machine.txt`), doing nothing else. `N`, `ROUNDS`,
+libieeep1788, PROFIL/BIAS, Solaris Studio, Boost.Interval and the doubles keep
+the times of the last whole run, which `results.csv` holds: the machine should
+be the one they were measured on (`machine.txt`), doing nothing else. `N`, `ROUNDS`,
 `REPEATS`, `OPS`, `CPU`, `WORK` (default: `perf` in the build directory) and
 `REPORT` apply as for `run_bench.sh`:
 
@@ -118,24 +126,30 @@ libraries, all the operations). The one committed holds a whole run of 27
 September 2026 on the machine of `performance.md` (Clang 18, three rounds,
 `605728e`), not the later run of six rounds that its tables were written
 from: the first `make perf` writes the columns of the other libraries from
-it, within a few per cent of the tables.
+it, within a few per cent of the tables. The rows of Boost.Interval were added
+to it from a run of 6 October 2026 with GAOL v5 alone (`LIBS="gaol5 boost"`),
+on a busy machine: their times are indicative until the next whole run.
 
 ## The files
 
 | File | |
 |---|---|
 | `env.sh` | The variables shared by the scripts: directories, versions, compiler flags |
-| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS, GAOL, and Goualard's GAOL with mathlib; checks `f90 -xia` |
+| `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS, GAOL, and Goualard's GAOL with mathlib, and downloads the headers of Boost.Interval; checks `f90 -xia` |
 | `cases.py` | The 291 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
-| `run_cases.sh` | Generates, compiles and runs the five programs of the special cases, and writes their table |
+| `run_cases.sh` | Generates, compiles and runs the six programs of the special cases, and writes their table |
 | `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) |
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations, written once for every C++ library |
-| `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_profil.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788, filib++ and PROFIL/BIAS, and on doubles for reference |
+| `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_profil.cpp`, `bench_boost.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788, filib++, PROFIL/BIAS and Boost.Interval, and on doubles for reference |
+| `boost_policies.h` | The intervals of Boost.Interval that the benchmark, the special cases and the test of enclosure use, and why |
 | `bench_sun.f90` | The same operations in Fortran, for Solaris Studio |
-| `run_bench.sh` | Draws the intervals, compiles and runs the six programs, and writes the tables; after a whole run, keeps its results in `results.csv` and `machine.txt` |
+| `run_bench.sh` | Draws the intervals, compiles and runs the seven programs, and writes the tables; after a whole run, keeps its results in `results.csv` and `machine.txt` |
+| `enclosure.py` | Draws the arguments of the elementary functions for the test of enclosure (`data`), and checks the results of the libraries against mpmath and writes their tables (`report`) |
+| `enclosure.h`, `enclosure_gaol.cpp`, `enclosure_boost.cpp` | The test of enclosure in C++, written once for every library, with GAOL, and with Boost.Interval under its two policies and with the C library alone |
+| `run_enclosure.sh` | Draws the arguments, compiles and runs the two programs of the test of enclosure, and writes its tables |
 | `run_perf.sh` | `make perf`: runs the benchmark of GAOL v5 alone and writes the tables with its new times (see below) |
 | `results.csv`, `machine.txt` | The results of the last whole run, and what it was measured on, which `run_perf.sh` keeps for the other libraries |
-| `run_all.sh` | `setup.sh`, `run_cases.sh` and `run_bench.sh` |
+| `run_all.sh` | `setup.sh`, `run_cases.sh`, `run_enclosure.sh` and `run_bench.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`
 to its group in `cases.py` (the expressions are built with `iv`, `op` and
@@ -162,3 +176,23 @@ x86-64 nonetheless. With `-xia`, `[a, b]` is an interval constant: the arrays
 are written `(/ ... /)`. Its intervals have neither `sqr` (`x**2` instead),
 nor `asinh`, `acosh`, `atanh`, nor n-th roots, and `system_clock` counts
 milliseconds only: `bench_sun.f90` calls `clock_gettime()` instead.
+
+## Boost.Interval's intervals
+
+`boost::numeric::interval<double>`, with its default policies, has no
+elementary function: its rounding policy, `rounded_math<double>`, is
+`save_state<rounded_arith_opp<double> >`, which has no `exp_down()` nor
+`sin_up()`, and `exp(x)` does not compile. The elementary functions come with
+one of the policies `rounded_transc_std` and `rounded_transc_opp`, which call
+the C library's `std::exp` or `std::sin` with the rounding direction set
+downward for the lower bound and upward for the upper one. The programs take
+`save_state<rounded_transc_opp<double> >`, built on the same
+`rounded_arith_opp<double>`, so that everything but the elementary functions
+is the code of the default `interval<double>`, as in the example of
+Boost.Interval that uses them (`examples/findroot_demo.cpp`), and keep the
+default checking, `checking_strict<double>`, which throws
+`std::runtime_error` where the empty set would be created
+(`boost_policies.h`). The test of enclosure measures `rounded_transc_std` too.
+Boost.Interval reads no interval from text, and has no real power: the
+benchmark computes `pow(x, y)` as exp(y·log(x)), and the special cases mark
+both n/a.
