@@ -302,6 +302,36 @@ jobs:
           cmake --build build-find-package -j 4
           cmake --build build-find-package --target test
 
+  # The build types, configured only: GAOL_DEBUG builds the libraries of GAOL
+  # and CORE-MATH for debugging whatever the build type, a project bringing
+  # GAOL in included, and a generator of several configurations builds Release
+  # by default (tests/release_flags.py, GAOL v5)
+  build-types:
+    name: Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ninja-build
+      - name: GAOL_DEBUG, GAOL built alone in Release
+        run: |
+          cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DGAOL_DEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          python3 tests/release_flags.py --debug build-debug "$PWD"
+      - name: GAOL_DEBUG, GAOL brought in by FetchContent without a build type
+        run: |
+          cmake -S tests/fetch_content -B build-fetch-content-debug -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DGAOL_DEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          python3 tests/release_flags.py --debug build-fetch-content-debug "$PWD"
+      - name: Ninja Multi-Config builds Release by default
+        run: |
+          cmake -G "Ninja Multi-Config" -S . -B build-multi
+          grep '^CMAKE_CONFIGURATION_TYPES:' build-multi/CMakeCache.txt
+          ninja -C build-multi -n > plan.txt
+          grep -q 'CMakeFiles/gaol.dir/Release/' plan.txt
+          if grep -q 'CMakeFiles/gaol.dir/Debug/' plan.txt; then echo "Debug built by default"; exit 1; fi
+
   # The 128-bit integer computed with two 64-bit halves, which is the code
   # Visual C++ and the 32-bit targets of GCC take: built and tested on an
   # ordinary machine, where the native type is there to compare with

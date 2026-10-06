@@ -267,6 +267,12 @@ jobs:
         run: ninja -C build-meson-subproject test
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build-meson-subproject/meson-logs/testlog.txt
+      - name: enable-debug builds GAOL for debugging, as a subproject and alone
+        run: |
+          meson setup build-meson-subproject-debug tests/meson_subproject -Dgaol:enable-debug=true
+          python3 tests/release_flags.py --debug build-meson-subproject-debug "$PWD/tests/meson_subproject/subprojects/gaol"
+          meson setup build-meson-debug -Denable-debug=true
+          python3 tests/release_flags.py --debug build-meson-debug "$PWD"
 
   # meson with Visual C++: the static libgaol, as CMake builds it, its tests,
   # and the installed GAOL, with which a test is compiled again (GAOL v5). In
