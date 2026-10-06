@@ -8,6 +8,7 @@
 #   - GAOL, this repository, built with CMake in Release and installed,
 #   - the last GAOL of Frédéric Goualard, at the commit GAOL_GOUALARD_COMMIT,
 #     with mathlib MATHLIB_VERSION, built with their configure,
+#   - Boost.Interval, of the Boost release BOOST_VERSION, header-only,
 # and checks that Solaris Studio's f90 compiles an interval program.
 # Everything is compiled by $CC and $CXX with -O3 and $FMA_FLAGS (-mfma, see
 # env.sh): GMP, MPFR and PROFIL/BIAS compile with -O2 on their own, and the
@@ -169,6 +170,24 @@ else
                CXXFLAGS="-O3 -DNDEBUG -std=c++11 $IA_CXXFLAGS -msse2 -msse3 $FMA_FLAGS -fvisibility-inlines-hidden -fvisibility=hidden -funroll-loops -fomit-frame-pointer" \
                > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
+fi
+
+## Boost.Interval: header-only. The archives of its module and of the two
+## modules its headers include, Config and Detail, at the tag of the release,
+## from GitHub; their headers are copied into $BOOST_DIR/include, and nothing
+## is installed on the system
+if [ -f "$BOOST_DIR/include/boost/numeric/interval.hpp" ]; then
+  echo "== Boost.Interval: already in $BOOST_DIR"
+else
+  echo "== Boost.Interval $BOOST_VERSION ($BOOST_MODULES)"
+  mkdir -p "$BOOST_DIR/include"
+  for module in $BOOST_MODULES; do
+    sha256="BOOST_SHA256_$module"
+    fetch "https://github.com/boostorg/$module/archive/refs/tags/boost-$BOOST_VERSION.tar.gz" \
+          "boost-$module-$BOOST_VERSION.tar.gz" "${!sha256}"
+    rm -rf "$module-boost-$BOOST_VERSION" && tar xzf "boost-$module-$BOOST_VERSION.tar.gz"
+    cp -R "$module-boost-$BOOST_VERSION/include/." "$BOOST_DIR/include/"
+  done
 fi
 
 ## Solaris Studio f90
