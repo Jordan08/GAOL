@@ -963,6 +963,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # the build directory again first when VERSION.txt holds another version:
   # Ninja does before package_source, the Makefile generators did not.
   set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/cmake/gaol_package_source.cmake")
+  set(CPACK_GAOL_VERSION "${PROJECT_VERSION}")
   set(CPACK_GAOL_CMAKE_COMMAND "${CMAKE_COMMAND}")
   set(CPACK_GAOL_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
   set(CPACK_GAOL_BINARY_DIR "${PROJECT_BINARY_DIR}")

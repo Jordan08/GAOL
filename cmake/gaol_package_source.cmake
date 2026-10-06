@@ -20,14 +20,20 @@
 #
 # Created 2026-10-06 by Jordan NININ
 
+# CPack reads this file without the policies of CMakeLists.txt: CMake 3 would
+# warn of CMP0007 at the list() of gaol_read_version() otherwise
+cmake_policy(PUSH)
+cmake_policy(VERSION 3.14...3.25)
+
 # CPack sets CPACK_INSTALLED_DIRECTORIES for the archive of the sources only:
-# the packages of the library install the build instead
+# the packages of the library install the build instead. The version compared
+# is GAOL's own, CPACK_PACKAGE_VERSION being that of cpack -R when it is given
 if(CPACK_INSTALLED_DIRECTORIES)
   include("${CPACK_GAOL_SOURCE_DIR}/cmake/gaol_version.cmake")
   gaol_read_version("${CPACK_GAOL_SOURCE_DIR}/VERSION.txt" _gaol_version _gaol_version_error)
   # A VERSION.txt refused configures again too, which fails with its message
-  if(NOT _gaol_version STREQUAL CPACK_PACKAGE_VERSION)
-    message(STATUS "VERSION.txt no longer holds ${CPACK_PACKAGE_VERSION}, the version "
+  if(NOT _gaol_version STREQUAL CPACK_GAOL_VERSION)
+    message(STATUS "VERSION.txt no longer holds ${CPACK_GAOL_VERSION}, the version "
       "${CPACK_GAOL_BINARY_DIR} was configured for: CMake configures it again")
     execute_process(
       COMMAND "${CPACK_GAOL_CMAKE_COMMAND}" -S "${CPACK_GAOL_SOURCE_DIR}" -B "${CPACK_GAOL_BINARY_DIR}"
@@ -38,3 +44,5 @@ if(CPACK_INSTALLED_DIRECTORIES)
     include("${CPACK_SOURCE_OUTPUT_CONFIG_FILE}")
   endif()
 endif()
+
+cmake_policy(POP)
