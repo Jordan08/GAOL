@@ -101,7 +101,8 @@ jobs:
             cmake --build /tmp/build --target test
             $comma_check
             cd /tmp/build
-            ./tests/gaol_performance | tee /gaol/performance.md"
+            ./tests/gaol_performance > /gaol/performance.md
+            cat /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
 
   clang-arm32:

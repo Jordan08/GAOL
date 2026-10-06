@@ -88,6 +88,7 @@ jobs:
           sh .github/scripts/version-file.sh autoconf
       - name: Configure, build and install
         run: |
+          set -o pipefail
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
@@ -132,7 +133,9 @@ jobs:
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   meson:
     name: ${{ matrix.cfg.desc }}
@@ -190,6 +193,7 @@ jobs:
           PATH="$nopython" meson setup "$RUNNER_TEMP/build-no-python"
       - name: Configure, build and install
         run: |
+          set -o pipefail
           meson --version
           meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true ${{ matrix.cfg.options }} | tee configure.log
           meson compile -C build-meson
@@ -208,7 +212,9 @@ jobs:
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   # GAOL as a subproject of a meson project, tests/meson_subproject, which
   # builds tests of tests/ with gaol_dep and checks that their code gets the
@@ -361,7 +367,8 @@ jobs:
               sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
               sh .github/scripts/tests.sh /tmp/gaol shared
             fi
-            ./performance | tee /gaol/performance.md"
+            ./performance > /gaol/performance.md
+            cat /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
 
   msys2:
@@ -408,7 +415,9 @@ jobs:
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" static
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The three builds give GAOL the same configuration (.github/audit)
   agree:

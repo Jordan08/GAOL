@@ -96,7 +96,9 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
-        run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build
       - name: Tests built with the installed GAOL
@@ -269,6 +271,7 @@ jobs:
         run: sh .github/scripts/comma-locale.sh generate
       - name: Configure tests/fetch_content, a project building GAOL for itself with FetchContent, from this checkout
         run: |
+          set -o pipefail
           cmake -S tests/fetch_content -B build-fetch-content -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" | tee configure.log
           grep -q "Elementary functions: CORE-MATH" configure.log
       - name: Without a build type, GAOL and CORE-MATH compiled as in Release all the same
@@ -320,6 +323,7 @@ jobs:
         run: sh .github/scripts/comma-locale.sh generate
       - name: Configure
         run: |
+          set -o pipefail
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
             -DGAOL_U128_EMULATION=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} | tee configure.log

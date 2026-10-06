@@ -65,7 +65,9 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
-        run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build
       - name: Tests built with the installed GAOL
