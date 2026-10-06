@@ -83,6 +83,9 @@ doubles `pi`, `half_pi`, `two_pi`, `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`,
 `ln2_dn`, `ln2_up`, `two_power_51` and `two_power_52` of GAOL 4 are no longer
 declared for the program, which found them with `using namespace gaol`, its own
 `pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`.
+`gaol/gaol_literals.h` holds the literal `_iv` (see
+[Tools of interval algorithms](#tools-of-interval-algorithms)), which a program
+includes itself (GAOL v5).
 
 ## From CMake
 
@@ -340,6 +343,10 @@ standard:
   `gaol/gaol_expression.h`, and is written `gaol::sin(interval(0.5))`;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
+- `mulRevToPair(b, c)`, the two-output division of 10.5.5, returns the pair
+  (u, v) of the closures of the parts of {x : b'x = c'}: (∅, ∅), (u, ∅), or
+  two parts on either side of 0, u before v, where 0 is strictly inside b and
+  not in c; the hull of u and v is `mulRev(b, c)` (GAOL v5);
 - `textToInterval` reads the names of the functions of the standard, those of
   Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
   `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
@@ -355,6 +362,61 @@ next to `using namespace std;`, where it is ambiguous with the class template
 `std::less`. Only bare intervals are provided, GAOL having no decorations;
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
+
+## Tools of interval algorithms
+
+GAOL v5 provides the operations that interval algorithms otherwise write for
+themselves:
+
+- `x.width_enclosure()`: the interval `interval(r) - interval(l)` enclosing the
+  exact width r − l of x = [l, r], whose upper bound is `width()`, the width
+  rounded upward; [MAX, +∞] for an unbounded x, as `textToInterval()` reads
+  `inf`, and the empty set for the empty set.
+- `x.inflate(r)`: x widened by the absolute radius r, `x + interval(-r, r)`,
+  each bound rounded outward; r = +∞ gives the whole line, and r < 0 or a NaN
+  r the empty set.
+- `interval::midrad(m, r)`: the interval of midpoint m and radius r,
+  `interval(m) + interval(-r, r)`, which encloses [m − r, m + r], where
+  `interval(m - r, m + r)` does not: both bounds are then computed in the
+  upward rounding of GAOL, the lower one above m − r where it is inexact. An
+  infinite m gives the empty set, as `interval(m)` does.
+- `x.bisect(ratio)`: the pair of the parts of x on either side of a cut point
+  at the given ratio of its width, 0 < ratio < 1, which share the cut point and
+  cover x; `bisect(0.5)` cuts where `split()` does, at `midpoint()`, and so does
+  every ratio for a half-line or the whole line. A ratio outside (0, 1), or
+  NaN, throws `invalid_action_error`. `x.is_bisectable()` tells whether a
+  double lies strictly between the bounds, both parts being then smaller than
+  x: not for two consecutive doubles, nor for [MAX, +∞].
+- `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
+  `gaol` as in `gaol_core`.
+- The literal `_iv` of `gaol/gaol_literals.h`, under
+  `using namespace gaol::literals`: a number written with the suffix is the
+  tightest interval enclosing the number written, `0.1_iv` the interval of the
+  two doubles around the decimal 0.1, as `textToInterval("0.1")`, not the
+  double 0.1, and `9007199254740993_iv` an interval enclosing 2^53 + 1, which no
+  double is. The integers written in hexadecimal, octal and binary are the
+  integers they are (`010_iv` is 8), the digit separators of C++14 are left
+  out, and `"[1, 2]"_iv` is the interval `textToInterval()` reads in the
+  string.
+
+```cpp
+#include <iostream>
+#include <gaol/gaol.h>
+#include <gaol/gaol_literals.h>
+using namespace gaol;
+using namespace gaol::literals;
+
+int main()
+{
+  const interval x = 0.1_iv;                       // encloses 0.1
+  const interval y = interval::midrad(1.0, 1e-20); // [1 - 1e-20, 1 + 1e-20]
+  const std::pair<interval, interval> parts = interval(0.0, 1.0).bisect(0.25);
+  std::cout << x.width_enclosure() << ' ' << y << ' ' << parts.first << ' '
+            << parts.second << ' ' << hull(x, y) << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+```
 
 ## Integers
 

@@ -1771,6 +1771,24 @@ interval x = textToInterval("[-23, inf]"),
   its sum with \itv{0}{1} was \itv{2}{2}.\newinvfive
 \end{deffun}
 
+\begin{defstaticmethod}{interval}{interval}{midrad}{(double \var{m}, double \var{r})}
+  \begin{operation}
+    \op{$\code{midrad}(m,r)=\itv{\roundDn{m-r}}{\roundUp{m+r}}$}
+  \end{operation}
+  Returns the interval of midpoint \var{m} and radius \var{r},
+  \code{interval(\var{m}) + interval(-\var{r}, \var{r})}, which encloses every
+  real of \itv{m-r}{m+r}, where \code{interval(\var{m} - \var{r}, \var{m} +
+  \var{r})} rounds both bounds upward. $r=0$ gives the point \var{m} and
+  $r=+\infty$ the whole line; a negative or NaN \var{r} gives the empty set,
+  and so does an infinite or NaN \var{m}, as \code{interval(\var{m})}
+  does.\newinvfive
+  \begin{example}
+cout << interval::midrad(1, 0.25) << ' '
+     << interval::midrad(1, -1);
+@outputs^[0.75, 1.25] [empty]~
+  \end{example}
+\end{defstaticmethod}
+
 \paragraph{Caution.} you have to be very careful when creating an interval
 from floating-point constants. Remember that a rational number that is
 perfectly representable in the decimal base may require rounding in the
@@ -1790,6 +1808,41 @@ In such a case, you have to read it from a string instead:
 
 \begin{example}
 interval x = textToInterval("0.1");
+\end{example}
+
+\cindex{literals}%
+\noindent
+or write it with the suffix \code{\_iv} that the header
+\file{gaol/gaol\_literals.h} declares in the namespace \code{gaol::literals}:
+neither \file{gaol/gaol.h} includes the header nor does
+\code{using namespace gaol;} open the namespace.\newinvfive{} The literal
+operator receives the number as the program writes it, not the double the
+compiler would make of it: \code{0.1\_iv} is the tightest interval enclosing
+the decimal $0.1$, as \code{textToInterval("0.1")} is, and
+\code{9007199254740993\_iv} the one enclosing $2^{53}+1$. The decimal and
+hexadecimal floating literals and the decimal integers are read by
+\code{textToInterval()}; the integers written in hexadecimal, in octal
+(\code{010\_iv} is \itv{8}{8}, as \code{010} is 8) and in binary are taken as
+the integers they are; the digit separators of C++14 (\code{1'000\_iv}) are
+left out. A string with the suffix, \code{"[1, 2]"\_iv}, is the interval
+\code{textToInterval()} reads in it, and throws \code{input\_format\_error}
+when it is no interval.
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+#include <gaol/gaol_literals.h>
+using namespace gaol::literals;
+
+int main(void)
+{
+  gaol::interval::precision(17);
+  std::cout << 0.1_iv << ' ' << gaol::interval(0.1) << std::endl
+            << 9007199254740993_iv << ' ' << "[1, 2]"_iv << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[0.099999999999999991, 0.10000000000000001] [0.1, 0.10000000000000001]~
+@outputs^[9007199254740992, 9007199254740994] [1, 2]~
 \end{example}
 
 \paragraph{Note.}\label{par:inf_inf_note}
@@ -3286,8 +3339,11 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
 \end{center}
 
 \noindent
-\ieee{powRev1}, \ieee{powRev2}, \ieee{atan2Rev1}, \ieee{atan2Rev2}, \ieee{pownRev}
-for $p\leq0$ and \ieee{mulRevToPair} are not provided.
+\ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in the
+namespace \code{gaol\_ieee1788} under its name
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{powRev1}, \ieee{powRev2},
+\ieee{atan2Rev1}, \ieee{atan2Rev2} and \ieee{pownRev} for $p\leq0$ are not
+provided.
 
 \section{Cancellative addition and subtraction}
 %%---------------------------------------------
@@ -3357,6 +3413,41 @@ cout << boolalpha << interval(4,6).width() << ' '
          == std::numeric_limits<double>::epsilon()) << ' '
      << interval::emptyset().width();
 @outputs^2 true nan~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{width\_enclosure}{(void) const}
+  \begin{operation}
+    \op{$\code{width\_enclosure}(\itv{a}{b})=\itv{\roundDn{b-a}}{\roundUp{b-a}}$}
+  \end{operation}
+Returns an interval enclosing the exact width of \code{self}, of which
+\code{width()} is the upper bound only: \code{interval(b) - interval(a)}, the
+point \itv{0}{0} for a point interval and the empty set for the empty set. The
+width of an unbounded interval, $+\infty$, being no real number, the result is
+then \itv{\text{MAX}}{+\infty}, MAX being the largest double, as
+\code{textToInterval("inf")} is.\newinvfive
+\begin{example}
+cout << interval(1,3).width_enclosure() << ' '
+     << interval(-1,1e16).width_enclosure() << endl
+     << interval(1,GAOL_INFINITY).width_enclosure();
+@outputs^[2] [1e+16, 1.000000000000001e+16]~
+@outputs^[1.797693134862315e+308, inf]~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{inflate}{(double \var{r}) const}
+  \begin{operation}
+    \op{$\code{inflate}(\itv{a}{b},r)=\itv{\roundDn{a-r}}{\roundUp{b+r}}$}
+  \end{operation}
+Returns \code{self} widened by the absolute radius \var{r},
+\code{self + interval(-\var{r}, \var{r})}, which encloses every $x+e$ for $x$ in
+\code{self} and $|e|\leq r$, however small $r$ is next to the bounds. $r=0$
+gives \code{self} and $r=+\infty$ the whole line; the empty set stays empty,
+and a negative or NaN \var{r} gives the empty set.\newinvfive
+\begin{example}
+cout << boolalpha << interval(1,2).inflate(0.5) << ' '
+     << interval(1,2).inflate(1e-20).set_eq(interval(1,2));
+@outputs^[0.5, 2.5] false~
 \end{example}
 \end{defmethod}
 
@@ -3658,6 +3749,42 @@ cout << interval(4,5).split_right();
   \end{example}
 \end{defmethod}
 
+\begin{defmethod}{interval}{std::pair<interval, interval>}{bisect}{(double \var{ratio}) const}
+  \begin{operation}
+    \op{$\code{bisect}(\itv{a}{b},\rho)=(\itv{a}{c},\itv{c}{b})$}
+  \end{operation}
+  Returns the two parts of \code{self} on either side of the cut point $c$, a
+  double of \itv{a}{b} that both parts share, so that they cover \code{self}
+  exactly. For $0<\rho<1$, $c$ is $a+\rho(b-a)$, computed as
+  $a(1-\rho)+b\rho$, which cannot overflow, and kept within \itv{a}{b}; when
+  \code{is\_bisectable()} is true, $c$ is moreover strictly between $a$ and
+  $b$, so that both parts are smaller than \code{self}. $\rho=0.5$ cuts at
+  \code{midpoint()}, as \code{split()} does, and so does every ratio for an
+  unbounded interval: a half-line is cut at the largest double or at its
+  opposite, the whole line at 0. The empty set gives two empty sets, and a
+  point interval itself twice. A ratio outside $(0,1)$, or NaN, throws
+  \code{invalid\_action\_error}.\newinvfive
+  \begin{example}
+std::pair<interval, interval> p = interval(0,4).bisect(0.25);
+cout << p.first << ' ' << p.second;
+@outputs^[0, 1] [1, 4]~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_bisectable}{(void) const}
+  Returns \code{true} when a double lies strictly between the bounds of
+  \code{self}, so that \code{bisect()} gives two parts, each smaller than
+  \code{self}; \code{false} for the empty set, a point interval, two
+  consecutive doubles, and the half-lines \itv{\text{MAX}}{+\infty} and
+  \itv{-\infty}{-\text{MAX}}, which \code{split()} cuts at their finite
+  bound.\newinvfive
+  \begin{example}
+cout << boolalpha << interval(1,2).is_bisectable() << ' '
+     << interval(1,next_float(1)).is_bisectable();
+@outputs^true false~
+  \end{example}
+\end{defmethod}
+
 \section{Union and intersection}
 %%------------------------------
 
@@ -3687,6 +3814,18 @@ cout << (interval(4,6) & interval(5,9)) << ' '
   \begin{example}
 cout << (interval(3,6) | interval(9,12));
 @outputs^[3, 12]~
+  \end{example}
+\end{deffun}
+
+\deffunx{interval}{hull}{(const interval\& I1, const interval\& I2)}
+\begin{deffun}{interval}{intersect}{(const interval\& I1, const interval\& I2)}
+  \code{I1 | I2} and \code{I1 \& I2} under a name, for an algorithm written
+  with names rather than operators, and for \code{std::accumulate} or a
+  pointer to a function. They are in the namespace \code{gaol} too.\newinvfive
+  \begin{example}
+cout << hull(interval(1,2), interval(4,5)) << ' '
+     << intersect(interval(1,3), interval(2,5));
+@outputs^[1, 5] [2, 3]~
   \end{example}
 \end{deffun}
 
@@ -4368,6 +4507,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
   \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
   \code{mulRev(b, c, x)} & \code{div\_rel(c, b, x)}\\
+  \code{mulRevToPair(b, c)} (10.5.5) & the two parts of \code{div\_rel(c, b)}, in a \code{std::pair}\\
   \hline
   \multicolumn{2}{l}{\textit{Cancellative operations and set operations (10.5.6, 10.5.7)}}\\
   \code{cancelMinus}, \code{cancelPlus} & \code{cancel\_minus}, \code{cancel\_plus}\\
@@ -4396,6 +4536,25 @@ The last argument $x$ of the reverse functions is optional, and
   \code{pown(e, n)}, \code{pow(e1, e2)} & the expressions of \code{pown} and of the \ieee{pow} of the standard, declared by \file{gaol/gaol\_expression.h}\\
 \end{longtable}
 \endgroup
+
+\noindent
+\code{mulRevToPair(b, c)} returns the set
+$\{x \mid \exists\beta\in b,\ \beta x\in c\}$ in two intervals, the pair
+$(u,v)$ of the standard: $u$ before $v$ when the set has two parts, which
+happens when 0 is strictly between the bounds of $b$ and $c$ does not contain
+0, $(u,\emptyset)$ when it is one interval, and $(\emptyset,\emptyset)$ when
+it is empty. The convex hull of $u$ and $v$ is
+\code{mulRev(b, c)}. Where $b$ is unbounded on both sides, the two parts
+share 0.\newinvfive
+\begin{example}
+std::pair<interval, interval> p = mulRevToPair(numsToInterval(-1, 1),
+                                               numsToInterval(1, 2));
+std::pair<interval, interval> q = mulRevToPair(numsToInterval(2, 4),
+                                               numsToInterval(1, 2));
+cout << p.first << ' ' << p.second << ' '
+     << q.first << ' ' << q.second << endl;
+@outputs^[-inf, -1] [1, inf] [0.25, 1] [empty]~
+\end{example}
 
 \section{Reading with the names of the standard}\label{sec:ieee1788-text}
 %%-----------------------------------------------
@@ -4445,7 +4604,7 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{mulRevToPair} (10.5.5), \ieee{powRev1}, \ieee{powRev2},
+it provide \ieee{powRev1}, \ieee{powRev2},
 \ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
 $p\leq0$, \ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},

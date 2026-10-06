@@ -377,7 +377,18 @@ mode there.
   widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes,
   Hausdorff distances (of intervals with infinite bounds too, equal
   bounds being at distance 0), `nb_fp_numbers()` (across the two
-  zeros), splitting, integer parts, the comparisons of IEEE 1788-2015
+  zeros), splitting, integer parts, the tools of interval algorithms (GAOL v5,
+  point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
+  have to be the tightest enclosures of the exact width, of [a − r, b + r] and
+  of [m − r, m + r], computed with exact rationals, on random intervals and
+  radii (the first version of the point rounded both bounds upward, and its
+  intervals did not contain them); `bisect(ratio)` has to give two parts that
+  cover the interval exactly, cut strictly inside where `is_bisectable()`, for
+  ratios from 10^-9 to 1 − 10^-9, `bisect(0.5)` being `split()`, and to throw
+  `invalid_action_error` for a ratio outside (0, 1) or NaN; `is_bisectable()`
+  to be true exactly when a double lies strictly between the bounds; `hull()`
+  and `intersect()` to be `|` and `&`; with infinite, NaN and largest bounds,
+  and the empty set. The comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
@@ -449,6 +460,13 @@ mode there.
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
   wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5).
+  `mulRevToPair(b, c)` has to be the pair of 10.5.5, the part below first,
+  `(u, empty)` for one part and two empty sets for none (GAOL v5, point P):
+  tight on cases whose parts have exact bounds and on thirds, against exact
+  quotients, and on every b and c with integer bounds in [−3, 3], each
+  x = k/4 of the set in one of the two parts, the convex hull of the two
+  being `mulRev(b, c)` (the first version of the point put the part above
+  first).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -769,7 +787,14 @@ mode there.
   operator in both orders, and the relations, `set_contains()` and
   `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to a
   double made wrong; and that an integer that is a double gives what the double
-  gives. `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
+  gives. `constructor` also checks the literal `_iv` of `gaol/gaol_literals.h`
+  (GAOL v5, point P), which has to enclose the number written rather than
+  the double the compiler makes of it: `0.1_iv` the decimal 0.1,
+  `9007199254740993_iv` 2^53 + 1, an integer of 30 digits, the hexadecimal
+  floating literals; the integers written in hexadecimal, octal (`010_iv` is
+  8) and binary the integers they are, beyond 64 bits too (2^65 − 1); the digit
+  separators left out; and `"[1, 2]"_iv`, `"1/3"_iv` read by `textToInterval()`.
+  `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
   a strict total order that puts the empty set first and the intervals by their
   bounds, which `<` is not, being the `strictPrecedes` of IEEE 1788-2015, true
   as soon as either interval is empty; it sorts a `std::vector` holding an
