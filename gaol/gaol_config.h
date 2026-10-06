@@ -191,7 +191,7 @@
    --------------------------------------------------------------------------- */
 
 #if defined(__FAST_MATH__)
-#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results (remove the option, or put -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, after it)"
+#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results (remove the option, or put the flags of gaol.pc and gaol::gaol after it)"
 #endif
 /* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
    take NaN and infinities never to occur, in the inline functions of GAOL's
@@ -208,7 +208,13 @@
    -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at 1.
    -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the option
    off when the option comes before it on the command line, and does nothing
-   when the option comes after it, where the compilation stops here.
+   when the option comes after it, where the compilation stops here. With
+   Clang, -ffast-math and -Ofast turn -frounding-math off too, which
+   -fno-fast-math does not turn on again: the remedy the two messages give is
+   all the flags of gaol.pc and gaol::gaol after the option, not -fno-fast-math
+   alone, with which Clang 18 compiled GAOL's operations as if rounding to
+   nearest (54 checks of tests/rounding_direction.cpp failed after -ffast-math
+   -fno-fast-math, 126 after -Ofast -fno-fast-math, none with the flags).
 
    No macro shows what follows, which GAOL cannot refuse:
    -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
@@ -217,11 +223,13 @@
    subnormal == 0.0, so that an operation does not set the rounding direction
    upward again after the code using GAOL left it elsewhere, and width() is
    below the exact width; -fno-signed-zeros, with which GCC and Clang drop the
-   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5); and
+   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5);
    -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
-   the empty interval what -ffinite-math-only does. */
+   the empty interval what -ffinite-math-only does; and -ffast-math or -Ofast
+   followed by -fno-fast-math with Clang, which leaves -frounding-math off
+   (above). */
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
-#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option, or put -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, after the option that turns it on)"
+#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"

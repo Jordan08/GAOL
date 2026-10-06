@@ -364,11 +364,15 @@ but the second one, which no macro of the compiler shows:
 \option{-ffast-math} and \option{-ffinite-math-only} off when it comes after
 them on the command line, and does nothing when \option{-ffast-math} or
 \option{-ffinite-math-only} comes after \option{-fno-fast-math}, where the
-compilation stops. With GCC, it turns the fast-math optimizations of
-\option{-Ofast} off wherever it stands on the command line, before
-\option{-Ofast} too, and \option{-Ofast} is not refused there: of them, GCC~9.4
-keeps only \option{-fcx-limited-range}, which changes the arithmetic of complex
-numbers alone. No macro of the compiler shows the following, which
+compilation stops. With Clang, \option{-ffast-math} and \option{-Ofast} turn
+\option{-frounding-math} off too, which \option{-fno-fast-math} does not turn
+on again: the remedy is all the flags of interval arithmetic after the option,
+not \option{-fno-fast-math} alone. With GCC, \option{-fno-fast-math} turns off
+all the fast-math optimizations of \option{-Ofast} but
+\option{-fcx-limited-range}, which changes the arithmetic of complex numbers
+alone (GCC~9.4), wherever it stands on the command line, before \option{-Ofast}
+too: \option{-frounding-math} stays, and \option{-Ofast} is not refused there.
+No macro of the compiler shows the following, which
 \file{gaol/gaol\_config.h} cannot refuse and which give wrong results all the
 same: \option{-funsafe-math-optimizations} and \option{-ffast-math
 -fno-finite-math-only} with GCC, which rewrites the addition by which GAOL sees
@@ -376,8 +380,10 @@ the rounding direction, so that an operation does not set it upward again after
 the code using GAOL left it elsewhere; \option{-fno-signed-zeros}, with which
 GCC and Clang drop the addition of 0 by which it sees the flush-to-zero mode
 (\pxref{sec:ftz}), and which the \option{-funsafe-math-optimizations} of
-Clang implies; and \option{-fno-honor-nans} alone with
-Clang, which does to the empty interval what \option{-ffinite-math-only} does.
+Clang implies; \option{-fno-honor-nans} alone with
+Clang, which does to the empty interval what \option{-ffinite-math-only} does;
+and \option{-ffast-math} or \option{-Ofast} followed by \option{-fno-fast-math}
+with Clang, which leaves \option{-frounding-math} off.
 The code using GAOL is not to be compiled with them.
 
 \noindent
@@ -1084,11 +1090,12 @@ itself; Clang links it first, and the initialization of a static GAOL, which
 follows, clears the modes again, unless GAOL is built with
 \option{GAOL\_PRESERVE\_ROUNDING}, or is a shared library, initialized before
 the program. The option \option{-fno-fast-math} of \file{gaol.pc} and
-\code{gaol::gaol} does not prevent it: it cancels \option{-ffast-math} when it
-comes after it, but not \option{-Ofast} (GCC~13 and Clang~18 link
-\file{crtfastmath.o} all the same, and it silences the \code{\#error} of
+\code{gaol::gaol} does not prevent it: it keeps \file{crtfastmath.o} out of
+the link when it comes after \option{-ffast-math}, but not after
+\option{-Ofast} (GCC~9.4 and 13 and Clang~18 link it all the same, and
+\option{-fno-fast-math} silences the \code{\#error} of
 \file{gaol/gaol\_config.h} against \option{-ffast-math}, which
-\option{-Ofast} would raise), nor, with GCC~13, the option
+\option{-Ofast} would raise), nor, with GCC~9.4 and 13, after the option
 \option{-funsafe-math-optimizations}. Loading a plug-in or a Python module
 built with \option{-Ofast} sets the modes too, when it is loaded, where its
 compiler linked \file{crtfastmath.o} into it: Clang~18 does, GCC did before
@@ -1502,8 +1509,8 @@ compilation where it can tell:
 gaol/gaol_config.h: error: #error "GAOL cannot be
 compiled with -ffast-math (nor -Ofast): the bounds it
 computes would not enclose the exact results (remove
-the option, or put -fno-fast-math, one of the flags of
-gaol.pc and gaol::gaol, after it)"
+the option, or put the flags of gaol.pc and gaol::gaol
+after it)"
 \end{onscreen}
 
 \noindent

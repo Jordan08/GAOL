@@ -157,37 +157,51 @@ alone refuses, when compiling:
 and `-ffinite-math-only` off when it comes after them on the command line, and
 not when it comes before them: `gaol.pc` and `gaol::gaol` give it, and the code
 including GAOL's headers is refused when `-ffast-math` or `-ffinite-math-only`
-comes after `-fno-fast-math`. The CMake tests `refused_finite_math_only` and
+comes after `-fno-fast-math`. With Clang, `-ffast-math` and `-Ofast` turn
+`-frounding-math` off too, which `-fno-fast-math` does not turn on again: the
+remedy is all the flags of interval arithmetic after the option, not
+`-fno-fast-math` alone (below). The CMake tests `refused_finite_math_only` and
 `refused_fast_math` compile `tests/refused_options.cpp` with each of the two
 options, after the flags of interval arithmetic, and check that
 `gaol/gaol_config.h` refuses it, and `refused_positive` that it compiles
 without them (GCC and Clang); `tests/refused_options.sh` does the same in the
-autotools and meson builds. With GCC, `-fno-fast-math` turns the fast-math
-optimizations of `-Ofast` off wherever it stands on the command line, before
-`-Ofast` too, and the header has nothing to refuse: of them, GCC 9.4 keeps
-only `-fcx-limited-range`, which changes the arithmetic of complex numbers
-alone. Clang turns them off only when `-fno-fast-math` comes after `-Ofast`.
+autotools and meson builds. With GCC, `-fno-fast-math` turns off all the
+fast-math optimizations of `-Ofast` but `-fcx-limited-range`, which changes
+the arithmetic of complex numbers alone (GCC 9.4), wherever it stands on the
+command line, before `-Ofast` too: `-frounding-math` stays, and the header has
+nothing to refuse. With Clang, `-fno-fast-math` turns them off only when it
+comes after `-Ofast`, and `-frounding-math` stays off.
 
 No macro of the compiler shows the following, which `gaol/gaol_config.h`
 cannot refuse and which give wrong results all the same: the code using GAOL
 is not to be compiled with them.
 
 - `-funsafe-math-optimizations`, and `-ffast-math -fno-finite-math-only`, with
-  GCC (9.4): the compiler rewrites the addition `1.0 + tiny == 1.0`, by which
-  GAOL sees the rounding direction, as `tiny == 0.0` (and, with GCC 9.4 and
-  13, `1.0 + (subnormal + 0.0) == 1.0`, which sees the modes flushing the
-  subnormals to zero too, as `subnormal == 0.0`), so that an operation does
-  not set the direction upward again after the code using GAOL left it to
-  nearest, and `width()` is below the exact width. Clang 18 does not rewrite
-  the first addition, but its `-funsafe-math-optimizations` implies
-  `-fno-signed-zeros` (below): the second addition loses its `+ 0.0` there
-  too, one `addsd` and one `ucomisd` being left.
-- `-fno-signed-zeros`, with which GCC 9.4 (from `-O0`) and 13, and Clang 18
-  at `-O2` and `-O3`, drop the `+ 0.0` of the second addition, which then
+  GCC: the compiler rewrites the addition `1.0 + tiny == 1.0`, by which GAOL
+  sees the rounding direction, as `tiny == 0.0` (GCC 9.4), and
+  `1.0 + (subnormal + 0.0) == 1.0`, which sees the modes flushing the
+  subnormals to zero too, as `subnormal == 0.0` (GCC 9.4 from `-O0`, and
+  GCC 13), so that an operation does not set the direction upward again
+  after the code using GAOL left it to nearest, and `width()` is below the
+  exact width. Clang 18 does not rewrite the first addition, but its
+  `-funsafe-math-optimizations` implies `-fno-signed-zeros` (below): at `-O2`
+  and `-O3`, the second addition loses its `+ 0.0` there too, one `addsd` and
+  one `ucomisd` being left.
+- `-fno-signed-zeros`, with which GCC (9.4 from `-O0`, and 13) and Clang 18
+  (at `-O2` and `-O3`) drop the `+ 0.0` of the second addition, which then
   misses the flush-to-zero mode (GAOL v5).
 - `-fno-honor-nans` alone, with Clang, which does to the empty interval what
   `-ffinite-math-only` does: `__FINITE_MATH_ONLY__` is 1 only with
   `-fno-honor-infinities` too.
+- `-ffast-math` or `-Ofast` followed by `-fno-fast-math`, after the flags of
+  interval arithmetic, with Clang (18): the macros show nothing, but
+  `-frounding-math` stays off, and the compiler takes the rounding direction
+  to be to nearest. `tests/rounding_direction.cpp`, compiled so, failed 54 of
+  its 292728 checks after `-ffast-math -fno-fast-math` (operations with an
+  empty operand raised the invalid-operation flag), and 126 after
+  `-Ofast -fno-fast-math` (bounds with subnormal results under flush-to-zero
+  too); with the flags of interval arithmetic given again after the option,
+  none.
 
 Two reasons that had GAOL refuse MinGW-w64 are gone with CORE-MATH (GAOL v5):
 the math library of mingw-w64 older than version 12 gave `acosh()` near 1 up
@@ -219,10 +233,11 @@ ARM, and loading a plug-in or a Python module built with `-Ofast` sets them
 too (built by Clang 18, or by GCC before 13). With one of them, every
 operation with a subnormal operand or result gives bounds that miss the exact
 result: `[1e-300] * [1e-20]` is [0, 0]. The `-fno-fast-math` of `gaol.pc` and
-`gaol::gaol` does not prevent it: it cancels `-ffast-math` when it comes after
-it, but not `-Ofast` (GCC 13 and Clang 18 link `crtfastmath.o` all the same,
-and it silences the `#error` of `gaol/gaol_config.h` against `-ffast-math`,
-which `-Ofast` would raise) nor, with GCC 13, `-funsafe-math-optimizations`.
+`gaol::gaol` does not prevent it: it keeps `crtfastmath.o` out of the link
+when it comes after `-ffast-math`, but not after `-Ofast` (GCC 9.4 and 13 and
+Clang 18 link it all the same, and `-fno-fast-math` silences the `#error` of
+`gaol/gaol_config.h` against `-ffast-math`, which `-Ofast` would raise) nor,
+with GCC 9.4 and 13, after `-funsafe-math-optimizations`.
 
 **Linking with them, or loading code built with them, makes the bounds wrong.**
 GAOL v5 defends itself:

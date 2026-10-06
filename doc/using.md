@@ -32,9 +32,11 @@ on the x87 unit (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)).
 `-fno-fast-math` turns the first two off when it comes after them on the
 command line, and does nothing when `-ffast-math` or `-ffinite-math-only` comes
-after `-fno-fast-math`, where the compilation stops. With GCC, it turns the
-fast-math optimizations of `-Ofast` off wherever it stands, and `-Ofast` is not
-refused there.
+after `-fno-fast-math`, where the compilation stops. `-Ofast`, which turns
+`-ffast-math` on, is refused with it, except with GCC when `-fno-fast-math` is
+anywhere on the command line. With Clang, `-ffast-math` and `-Ofast` also turn
+`-frounding-math` off, which `-fno-fast-math` does not turn on again: they
+have to come before the flags of interval arithmetic, not after them.
 
 With `-frounding-math` on x86, GCC 12.1 to 12.3 and 13.1 to 13.2 (Debian 12
 has GCC 12.2) initialize wrongly a double member of a static array of
@@ -640,10 +642,11 @@ it last, and it runs after GAOL initialized itself; Clang links it first, and
 the initialization of a static GAOL, which follows, clears the modes again,
 unless GAOL is built with `GAOL_PRESERVE_ROUNDING`, or is a shared library,
 initialized before the program. The `-fno-fast-math` of `gaol.pc` and
-`gaol::gaol` does not prevent it: it cancels `-ffast-math` when it comes after
-it, but not `-Ofast` (GCC 13 and Clang 18 link `crtfastmath.o` all the same,
-and the `#error` of `gaol/gaol_config.h` against `-ffast-math`, which `-Ofast`
-raises, is silenced) nor, with GCC 13, `-funsafe-math-optimizations`. Loading a
+`gaol::gaol` does not prevent it: it keeps `crtfastmath.o` out of the link when
+it comes after `-ffast-math`, but not after `-Ofast` (GCC 9.4 and 13 and
+Clang 18 link it all the same, and the `#error` of `gaol/gaol_config.h`
+against `-ffast-math`, which `-Ofast` raises, is silenced) nor, with GCC 9.4
+and 13, after `-funsafe-math-optimizations`. Loading a
 plug-in or a Python module built with `-Ofast` sets the modes too, when it is
 loaded, where its compiler linked `crtfastmath.o` into it: Clang 18 does, GCC
 did before version 13.
