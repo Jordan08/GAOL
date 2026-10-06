@@ -16,13 +16,13 @@ project(
   # python3 stays first: only when the first name ends with python3 does
   # meson fall back on its own Python (the meson.exe of the Windows installer)
   # if it finds none. Looking for python first would lose that fallback, and
-  # would not avoid the Microsoft Store aliases that meson 0.53.0 takes where
-  # WindowsApps holds a python.exe as well as a python3.exe (not checked on
-  # Windows): meson 0.53.1 and later leave that directory out
-  # (doc/building.md). The encoding utf-8-sig skips
-  # the byte order mark that some editors of Windows write at
-  # the start of a file, which the default encoding (the code page of Windows,
-  # cp1252) reads as three characters of the version. The blanks stripped are
+  # would not avoid the Microsoft Store aliases that meson 0.53.0 and earlier
+  # take where WindowsApps holds a python.exe as well as a python3.exe (not
+  # checked on Windows): meson 0.53.1 and later leave that directory out
+  # (doc/building.md). The encoding utf-8-sig skips the byte order mark that
+  # some editors of Windows write at the start of a file, which the default
+  # encoding (the code page of Windows, cp1252) reads as three characters of
+  # the version. The blanks stripped are
   # the six of ASCII (string.whitespace), which CMake and configure strip, not
   # all those of Unicode, which strip() alone strips (a no-break space). What
   # is not the version is written as ASCII, with escapes (\u200b for a

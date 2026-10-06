@@ -275,16 +275,17 @@ of a file it refuses: the first of `python3` and `python` that it finds in
 Python for that name alone; the continuous integration checks it on Linux
 with a `meson setup` whose `PATH` holds no Python.
 
-On Windows, the directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`
-can hold aliases of Python, `python3.exe` and perhaps `python.exe` too (not
-checked on Windows), which only open the Microsoft Store when Python was not
-installed from it. meson 0.53.1 and later (the 0.53.2 of Ubuntu 20.04 and the
-meson of pip among them) leave that directory out of their search for
-programs, as long as `PATH` names it by that path (not for a profile whose
-directory differs from `USERPROFILE`). meson 0.53.0 and earlier take such an
-alias, and `meson setup` stops on the failure of the command that reads
-`VERSION.txt`: use a later meson (`pip install meson`), or turn off the
-aliases of Python in the Windows settings ("Manage app execution aliases").
+On Windows, none of what follows was checked, but read in the sources of
+meson. The directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps` can
+hold aliases of Python, `python3.exe` and perhaps `python.exe` too, which only
+open the Microsoft Store when Python was not installed from it. meson 0.53.1
+and later (the 0.53.2 of Ubuntu 20.04 and the meson of pip among them) leave
+that directory out of their search for programs, as long as `PATH` names it
+by that path (not for a profile whose directory differs from `USERPROFILE`).
+meson 0.53.0 and earlier may take such an alias, and `meson setup` then stops
+on the failure of the command that reads `VERSION.txt`: use a later meson
+(`pip install meson`), or turn off the aliases of Python in the Windows
+settings ("Manage app execution aliases").
 
 ## Tests, examples, performance and the parser
 
