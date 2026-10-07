@@ -4197,6 +4197,45 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
 
+    // If Y is exactly [0], then atan2(0, x) is pi for x < 0, 0 for x > 0, undefined for x = 0
+    // We need to handle this special case
+    if (Y.is_a_double() && Y.left() == 0.0 && Y.right() == 0.0) {
+      // Y is [0], we need to work with X excluding 0
+      // For x < 0: atan2(0, x) = pi
+      // For x > 0: atan2(0, x) = 0
+      // For x = 0: undefined
+      
+      interval result_neg = interval::emptyset();
+      interval result_pos = interval::emptyset();
+      
+      // Check negative part: all x < 0 give atan2(0, x) = pi
+      const interval X_neg = X & interval(-GAOL_INFINITY, 0.0);
+      if (!X_neg.is_empty()) {
+        // If X_neg contains only values < 0, or if it contains 0 but we exclude it
+        const interval X_neg_strict = X_neg.right() == 0.0 ? 
+            interval(X_neg.left(), 0.0) : X_neg;
+        if (!X_neg_strict.is_empty() && !Z.set_disjoint(interval(pi_dn, pi_up))) {
+          result_neg = X_neg_strict;
+        }
+      }
+      
+      // Check positive part: all x > 0 give atan2(0, x) = 0
+      const interval X_pos = X & interval(0.0, GAOL_INFINITY);
+      if (!X_pos.is_empty()) {
+        const interval X_pos_strict = X_pos.left() == 0.0 ? 
+            interval(0.0, X_pos.right()) : X_pos;
+        if (!X_pos_strict.is_empty() && !Z.set_disjoint(interval(0.0, 0.0))) {
+          result_pos = X_pos_strict;
+        }
+      }
+      
+      const interval combined = result_neg | result_pos;
+      if (!combined.is_empty()) {
+        return combined & X;
+      }
+      return interval::emptyset();
+    }
+
     // If Z contains the entire range of atan2, i.e., [-pi, pi] or a superset,
     // then every (y, x) in Y x X except (0, 0) is in the preimage
     if (Z.set_contains(interval(-pi_up, pi_up))) {

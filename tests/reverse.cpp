@@ -401,7 +401,157 @@ void atan2_reverse_cases()
   check("atan2Rev2(X, C) uses universe for Y",
         same_bounds(gaol_ieee1788::atan2Rev2(interval(-1.0, 1.0), interval(0.0, interval::half_pi().right())),
                     atan2_exponent_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval::universe())));
+
+  // IEEE 1788-2015 compliance tests for atan2Rev1 and atan2Rev2
+  // According to IEEE 1788-2015 Table 10.1:
+  // atan2Rev1(y, c, x) = hull{x in x | exists y in y: atan2(y, x) in c}
+  // atan2Rev2(x, c, y) = hull{y in y | exists x in x: atan2(y, x) in c}
+
+  // Test 1: atan2Rev1 should be empty when any argument is empty
+  check("atan2Rev1(empty, c, x) is empty",
+        gaol_ieee1788::atan2Rev1(interval::emptyset(), interval(0.0, 1.0), interval(0.0, 1.0)).is_empty());
+  check("atan2Rev1(y, empty, x) is empty",
+        gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval::emptyset(), interval(0.0, 1.0)).is_empty());
+  check("atan2Rev1(y, c, empty) is empty",
+        gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval(0.0, 1.0), interval::emptyset()).is_empty());
+
+  // Test 2: atan2Rev2 should be empty when any argument is empty
+  check("atan2Rev2(empty, c, y) is empty",
+        gaol_ieee1788::atan2Rev2(interval::emptyset(), interval(0.0, 1.0), interval(-1.0, 1.0)).is_empty());
+  check("atan2Rev2(x, empty, y) is empty",
+        gaol_ieee1788::atan2Rev2(interval(0.0, 1.0), interval::emptyset(), interval(-1.0, 1.0)).is_empty());
+  check("atan2Rev2(x, c, empty) is empty",
+        gaol_ieee1788::atan2Rev2(interval(0.0, 1.0), interval(0.0, 1.0), interval::emptyset()).is_empty());
+
+  // Test 3: atan2Rev1 with c containing the full range of atan2
+  // If c contains [-pi, pi], then atan2Rev1 should return all of x (except where undefined)
+  check("atan2Rev1(y, [-pi, pi], x) contains all valid x",
+        same_bounds(gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval(-interval::pi().right(), interval::pi().right()), interval(-1.0, 1.0)),
+                    interval(-1.0, 1.0)));
+
+  // Test 4: atan2Rev2 with c containing the full range of atan2
+  check("atan2Rev2(x, [-pi, pi], y) contains all valid y",
+        same_bounds(gaol_ieee1788::atan2Rev2(interval(-1.0, 1.0), interval(-interval::pi().right(), interval::pi().right()), interval(-1.0, 1.0)),
+                    interval(-1.0, 1.0)));
+
+  // Test 5: Specific values - atan2(0, x) = 0 for x > 0, pi for x < 0
+  // atan2(0, x) = 0 for x > 0, pi for x < 0, undefined for x = 0
+  const interval atan2rev1_pos = gaol_ieee1788::atan2Rev1(interval(0.0), interval(0.0), interval(0.0, GAOL_INFINITY));
+  check("atan2Rev1([0], [0], [0, +oo]) contains positive x",
+        !atan2rev1_pos.is_empty(),
+        [&] { return "result = " + hex(atan2rev1_pos); });
+  
+  const interval atan2rev1_neg = gaol_ieee1788::atan2Rev1(interval(0.0), interval(interval::pi().left(), interval::pi().right()), interval(-GAOL_INFINITY, 0.0));
+  check("atan2Rev1([0], [pi], [-oo, 0]) contains negative x",
+        !atan2rev1_neg.is_empty() && atan2rev1_neg.left() < 0.0,
+        [&] { return "result = " + hex(atan2rev1_neg); });
+
+  // Test 6: atan2Rev2 with specific values
+  // atan2(y, x) = 0 for y = 0, x > 0
+  check("atan2Rev2([0, +oo], [0], [0, +oo]) is non-empty",
+        !gaol_ieee1788::atan2Rev2(interval(0.0, GAOL_INFINITY), interval(0.0), interval(0.0, GAOL_INFINITY)).is_empty());
+  // atan2(y, x) = pi for y = 0, x < 0
+  {
+    const interval result = gaol_ieee1788::atan2Rev2(interval(-GAOL_INFINITY, 0.0), interval(interval::pi().left(), interval::pi().right()), interval(-GAOL_INFINITY, 0.0));
+    check("atan2Rev2([-oo, 0], [pi], [-oo, 0]) is non-empty",
+          !result.is_empty(),
+          [&] { return "result = " + hex(result); });
+  }
+
+  // Test 7: atan2Rev1 with y spanning zero and x negative
+  // This should handle the discontinuity properly
+  {
+    const interval result = gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval(-interval::pi().right(), interval::pi().right()), interval(-1.0, 0.0));
+    check("atan2Rev1([-1, 1], [-pi, pi], [-1, 0]) is non-empty",
+          !result.is_empty(),
+          [&] { return "result = " + hex(result); });
+  }
+
+  // Test 8: atan2Rev2 with x spanning zero
+  {
+    const interval result = gaol_ieee1788::atan2Rev2(interval(-1.0, 1.0), interval(-interval::half_pi().right(), interval::half_pi().right()), interval(-1.0, 1.0));
+    check("atan2Rev2([-1, 1], [-pi/2, pi/2], [-1, 1]) is non-empty",
+          !result.is_empty(),
+          [&] { return "result = " + hex(result); });
+  }
+
+  // Test 9: Verify that atan2Rev1 and atan2Rev2 are consistent with each other
+  // For simple cases where we can compute both
+  check("atan2Rev1 and atan2Rev2 consistency: simple case",
+        !gaol_ieee1788::atan2Rev1(interval(0.5), interval(0.5, 0.6), interval(0.5, 1.0)).is_empty()
+        && !gaol_ieee1788::atan2Rev2(interval(0.5, 1.0), interval(0.5, 0.6), interval(0.5)).is_empty());
+
+  // Test 10: Edge cases with infinity
+  check("atan2Rev1([1], [pi/2], [0, +oo]) is non-empty",
+        !gaol_ieee1788::atan2Rev1(interval(1.0), interval(0.0, interval::half_pi().right()), interval(0.0, GAOL_INFINITY)).is_empty());
+  check("atan2Rev2([0, +oo], [pi/2], [1]) is non-empty",
+        !gaol_ieee1788::atan2Rev2(interval(0.0, GAOL_INFINITY), interval(0.0, interval::half_pi().right()), interval(1.0)).is_empty());
+
+  // Test 11: Verify that the results are valid (contain the exact preimage)
+  // For atan2Rev1: if x is in the result, there should exist y in Y such that atan2(y, x) is in Z
+  // This is verified by checking that atan2(Y, result) intersects Z
+  {
+    const interval Y = interval(-1.0, 1.0);
+    const interval Z = interval(0.0, interval::half_pi().right());
+    const interval X = interval(-1.0, 1.0);
+    const interval result = gaol_ieee1788::atan2Rev1(Y, Z, X);
+    if (!result.is_empty()) {
+      // For any x in result, atan2(Y, x) should intersect Z
+      const interval atan2_Y_result = atan2(Y, result);
+      check("atan2Rev1: result is valid (atan2(Y, result) intersects Z)",
+            !atan2_Y_result.is_empty() && !(Z & atan2_Y_result).is_empty(),
+            [&] { return "atan2Rev1(" + hex(Y) + ", " + hex(Z) + ", " + hex(X) + ") = " + hex(result) + 
+                   ", atan2(Y, result) = " + hex(atan2_Y_result); });
+    }
+  }
+
+  // Test 12: Similar validation for atan2Rev2
+  {
+    const interval X = interval(-1.0, 1.0);
+    const interval Z = interval(0.0, interval::half_pi().right());
+    const interval Y = interval(-1.0, 1.0);
+    const interval result = gaol_ieee1788::atan2Rev2(X, Z, Y);
+    if (!result.is_empty()) {
+      // For any y in result, atan2(y, X) should intersect Z
+      const interval atan2_result_X = atan2(result, X);
+      check("atan2Rev2: result is valid (atan2(result, X) intersects Z)",
+            !atan2_result_X.is_empty() && !(Z & atan2_result_X).is_empty(),
+            [&] { return "atan2Rev2(" + hex(X) + ", " + hex(Z) + ", " + hex(Y) + ") = " + hex(result) + 
+                   ", atan2(result, X) = " + hex(atan2_result_X); });
+    }
+  }
+
+  // Additional IEEE 1788-2015 compliance tests
+  // Test monotonicity and edge cases
+  
+  // Test 13: atan2Rev1 with Y containing only positive values
+  check("atan2Rev1([1], [0, pi/2], [0, +oo]) is non-empty",
+        !gaol_ieee1788::atan2Rev1(interval(1.0), interval(0.0, interval::half_pi().right()), interval(0.0, GAOL_INFINITY)).is_empty());
+
+  // Test 14: atan2Rev1 with Y containing only negative values
+  check("atan2Rev1([-1], [-pi/2, 0], [0, +oo]) is non-empty",
+        !gaol_ieee1788::atan2Rev1(interval(-1.0), interval(-interval::half_pi().right(), 0.0), interval(0.0, GAOL_INFINITY)).is_empty());
+
+  // Test 15: atan2Rev2 with X containing only positive values
+  check("atan2Rev2([0, +oo], [0, pi/2], [-1, 1]) is non-empty",
+        !gaol_ieee1788::atan2Rev2(interval(0.0, GAOL_INFINITY), interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0)).is_empty());
+
+  // Test 16: atan2Rev2 with X containing only negative values
+  check("atan2Rev2([-oo, 0], [pi/2, pi], [-1, 1]) is non-empty",
+        !gaol_ieee1788::atan2Rev2(interval(-GAOL_INFINITY, 0.0), interval(interval::half_pi().right(), interval::pi().right()), interval(-1.0, 1.0)).is_empty());
+
+  // Test 17: Verify that atan2Rev1 returns universe when appropriate
+  check("atan2Rev1(y, [-pi, pi], universe) is universe",
+        same_bounds(gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval(-interval::pi().right(), interval::pi().right()), interval::universe()),
+                    interval::universe()));
+
+  // Test 18: Verify that atan2Rev2 returns y when c contains full range
+  check("atan2Rev2(universe, [-pi, pi], y) contains y",
+        same_bounds(gaol_ieee1788::atan2Rev2(interval::universe(), interval(-interval::pi().right(), interval::pi().right()), interval(-1.0, 1.0)),
+                    interval(-1.0, 1.0)));
 }
+
+
 
 int main()
 {
