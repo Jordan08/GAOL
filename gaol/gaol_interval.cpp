@@ -1677,6 +1677,548 @@ namespace gaol_core {
   }
 
   /*
+    The reverse functions of pow (GAOL v5): pow_rel(K, J, I), the hull of the
+    x of I with an x^y in K for a y of J, and pow_exponent_rel(K, H, I), the
+    hull of the y of I with an x^y in K for an x of H, which are powRev1(J, K,
+    I) and powRev2(H, K, I) of IEEE 1788-2015 (10.5.4, Table 10.1).
+
+    They reverse the pow of the standard (Table 9.1), that of
+    gaol_ieee1788::pow and pow_standard(): x^y = e^(y log x) for x > 0, 0^y = 0
+    for y > 0, and no value elsewhere. gaol::pow takes the integer power for a
+    degenerate integer exponent [n], which has negative bases too: an
+    interval function that is not monotone in its exponent
+    (gaol_pow_hybrid()), and has no set of solutions to reverse; the reverse
+    of x^n is nth_root_rel(K, n, I).
+
+    The solutions are those of x = 0 (0^y = 0 in K for y > 0) and those of
+    x > 0, where x^y is in K, that is in K & ]0, +oo], exactly when y log(x) is
+    in log(K & ]0, +oo]): the reverse of a product, of y and log(x). Where 1
+    is in K and the other argument holds the value that makes the product 0
+    (y = 0, x^0 = 1; x = 1, 1^y = 1), every x > 0 of I, or every y of I, is a
+    solution. Otherwise, each sign of the other argument (y > 0 and y < 0;
+    x > 1 and x < 1) gives a piece over which x^y is monotone in both x and
+    y: the solutions of each piece are an interval, whose ends are reached
+    at the bounds of the other argument and of K, or are limits there, and
+    pieces of each sign are intersected with I, then joined.
+
+    The ends of the pieces are c^(1/y) for pow_rel and log(c)/log(x) for
+    pow_exponent_rel, c a bound of K and x or y a bound of the other argument;
+    1 for pow_rel and 0 for pow_exponent_rel where c is 1 (exactly reached);
+    0 and the infinities; and 1 (x^y -> 1 for y -> +oo or -oo) for pow_rel and
+    0 (log(c)/log(x) -> 0 for x -> 0 or +oo) for pow_exponent_rel, as limits:
+    a piece that ends at such a limit does not hold it, and a bound of I equal
+    to it leaves that piece out (pow_rel([2, 3], [1, +oo], [0, 1]) is empty:
+    x^y >= 2 for a y >= 1 asks x > 1).
+
+    c^(1/y) and log(c)/log(x) are irrational but where they are doubles, and
+    their bounds are proved with the power they reverse: d <= c^(1/y) exactly
+    when d^y <= c (y > 0), which holds exactly when d^y rounded upward,
+    CORE-MATH's pow in the upward rounding GAOL computes in, is at most c, c
+    being a double; d^y >= c exactly when d^y rounded downward is at least c,
+    which pow_lo() gives, taking the power itself where it is a double
+    (pow_is_double()). y < 0, which makes d^y decrease, swaps the two, and
+    log(c)/log(x) is bounded the same way by the powers x^e of a double e. The
+    lower bound is the largest double proved to be below the end, the upper
+    bound the smallest one proved to be above it: they are looked for by
+    steps that double then by bisection, from an approximation, on the
+    doubles taken in their order (double_key()), each step costing one pow.
+    The bounds are the tightest: a power rounded upward is CORE-MATH's,
+    correctly rounded, and pow_is_double() tells every power that is a double,
+    which only makes the bounds tighter, its answer that a power is no double
+    never being used to leave a point out.
+
+    A piece is left out only where it is proved to miss I: its lower end
+    proved above the upper bound u of I, or its upper end proved below the
+    lower bound. Where the bound of the end is u itself, c^(1/y) > u is
+    proved by u^y < c (y > 0), u^y rounded upward being below c, which holds
+    unless u^y is within one double below c: there, telling u^y < c from
+    u^y = c asks whether u^y is a double, which only pow_is_double() tells,
+    and the point u is kept rather than left out on that answer:
+    pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
+    empty, (1 + 2^-52)^2 being 1 + 2^-51 + 2^-104. The result is then the
+    tightest one for I widened by one double, which accurate (12.10.1)
+    allows.
+  */
+
+  /*
+    The doubles in their order, as unsigned integers: the key of d >= 0 is
+    2^63 plus the bits of d, and that of d < 0 is 2^63 minus the bits of -d,
+    so that the keys of -oo, -DBL_MAX, ..., -0 = +0, ..., DBL_MAX, +oo
+    increase with the doubles, consecutive doubles having consecutive keys,
+    from 2^52 to 2^64 - 2^52. The searches below step and bisect on the keys,
+    exactly, without nextafter() nor arithmetic on the doubles.
+  */
+  static inline std::uint64_t double_key(double d)
+  {
+    const double a = std::fabs(d);
+    std::uint64_t bits;
+    std::memcpy(&bits, &a, sizeof bits);
+    const std::uint64_t half = static_cast<std::uint64_t>(1) << 63;
+    return (d < 0.0) ? half - bits : half + bits;
+  }
+
+  static inline double key_double(std::uint64_t k)
+  {
+    const std::uint64_t half = static_cast<std::uint64_t>(1) << 63;
+    const std::uint64_t bits = (k >= half) ? k - half : half - k;
+    double a;
+    std::memcpy(&a, &bits, sizeof a);
+    return (k >= half) ? a : -a;
+  }
+
+  /*
+    The largest key of [a, b] at which holds() is true, holds() being true at
+    a, where it is not called, and false from some key on: from the key k of
+    an approximation, by steps that double, up while it holds and down while
+    it does not, then by bisection between the last key where it holds and the
+    first one where it does not. At most about 2 x 64 calls of holds(), and two
+    from a k next to the result.
+  */
+  template <class Holds>
+  static std::uint64_t last_key_holding(const Holds& holds, std::uint64_t a, std::uint64_t b, std::uint64_t k)
+  {
+    const std::uint64_t largest_step = static_cast<std::uint64_t>(1) << 62;
+    k = (k < a) ? a : ((k > b) ? b : k);
+    // holds(yes), and !holds(no) once failed is true
+    std::uint64_t yes = a, no = b;
+    bool failed = false;
+    if (k != a) {
+      if (holds(k)) {
+        yes = k;
+      } else {
+        no = k;
+        failed = true;
+      }
+    }
+    if (!failed) {
+      for (std::uint64_t step = 1;; step = (step < largest_step) ? 2*step : step) {
+        if (b - yes <= step) {
+          if (yes == b || holds(b)) {
+            return b;
+          }
+          no = b;
+          break;
+        }
+        if (holds(yes + step)) {
+          yes += step;
+        } else {
+          no = yes + step;
+          break;
+        }
+      }
+    } else {
+      for (std::uint64_t step = 1; no - a > step; step = (step < largest_step) ? 2*step : step) {
+        if (holds(no - step)) {
+          yes = no - step;
+          break;
+        }
+        no -= step;
+      }
+    }
+    while (no - yes > 1) {
+      const std::uint64_t m = yes + (no - yes)/2;
+      if (holds(m)) {
+        yes = m;
+      } else {
+        no = m;
+      }
+    }
+    return yes;
+  }
+
+  // The smallest key of [a, b] at which holds() is true, holds() being true at
+  // b, where it is not called, and false up to some key: the search above on
+  // the keys taken backward
+  template <class Holds>
+  static std::uint64_t first_key_holding(const Holds& holds, std::uint64_t a, std::uint64_t b, std::uint64_t k)
+  {
+    const std::uint64_t last = ~static_cast<std::uint64_t>(0);
+    return last - last_key_holding([&holds, last](std::uint64_t j) { return holds(last - j); }, last - b, last - a, last - k);
+  }
+
+  /*
+    An approximation of c^(1/y), c > 0 finite and other than 1 and y finite
+    and other than 0, which the bounds below are looked for from: CORE-MATH's
+    pow with the exponent 1/y rounded, |log(c^(1/y))| 2^-53 away relatively,
+    after a step of Newton's method on r^y = c, r - r (r^y - c)/(y r^y),
+    which brings it within about 2^-52/|y| relatively. pow_rounded_up() takes
+    the exponents of extreme magnitude apart, 1/y included (+oo for a
+    subnormal y), on which CORE-MATH's pow would raise the invalid-operation
+    exception. Rounding upward
+  */
+  static double root_of_power_near(double c, double y)
+  {
+    const double largest = std::numeric_limits<double>::max();
+    const double r = pow_rounded_up(c, 1.0/y);
+    if (r > 0.0 && r <= largest) {
+      const double p = pow_rounded_up(r, y);
+      const double q = y*p;
+      if (p != c && p >= std::numeric_limits<double>::min() && p <= largest && q != 0.0) {
+        const double s = r - r*((p - c)/q);
+        if (s > 0.0 && s <= largest) {
+          return s;
+        }
+      }
+    }
+    return r;
+  }
+
+  /*
+    The tightest bounds of c^(1/y), the x > 0 with x^y = c, for c > 0 finite
+    and other than 1, and y finite and other than 0: d <= c^(1/y) is proved
+    by d^y <= c for y > 0 and by d^y >= c for y < 0, and d >= c^(1/y) the
+    other way round. 0 is below c^(1/y), where pow() is not called (CORE-MATH
+    gives +oo for 0^y, y < 0, with the divide-by-zero exception), and +oo
+    above it: [DBL_MAX, +oo] for a c^(1/y) beyond the doubles, and
+    [0, 2^-1074] for one below them. Rounding upward
+  */
+  static double root_of_power_dn(double c, double y, double near)
+  {
+    const auto below = [c, y](std::uint64_t k) {
+      const double d = key_double(k);
+      return (y > 0.0) ? pow_hi(d, y) <= c : pow_lo(d, y) >= c;
+    };
+    return key_double(last_key_holding(below, double_key(0.0), double_key(std::numeric_limits<double>::max()),
+                                       double_key(near)));
+  }
+
+  static double root_of_power_up(double c, double y, double near)
+  {
+    const auto above = [c, y](std::uint64_t k) {
+      const double d = key_double(k);
+      return (y > 0.0) ? pow_lo(d, y) >= c : pow_hi(d, y) <= c;
+    };
+    return key_double(first_key_holding(above, double_key(std::numeric_limits<double>::denorm_min()),
+                                        double_key(GAOL_INFINITY), double_key(near)));
+  }
+
+  /*
+    The tightest bounds of log(c)/log(x), the y with x^y = c, for c > 0
+    finite and other than 1, and x > 0 finite and other than 1: e <=
+    log(c)/log(x) is proved by x^e <= c for x > 1 and by x^e >= c for x < 1,
+    and e >= log(c)/log(x) the other way round. The value is finite, below
+    2^63 in magnitude (|log(c)| < 745 and |log(x)| > 2^-53), and the
+    approximation log(c)/log(x) of CORE-MATH's logarithms is within a few
+    doubles of it. Rounding upward
+  */
+  static double log_ratio_near(double c, double x)
+  {
+    return upward::log_up(c)/upward::log_up(x);
+  }
+
+  static double log_ratio_dn(double c, double x)
+  {
+    const auto below = [c, x](std::uint64_t k) {
+      const double e = key_double(k);
+      return (x > 1.0) ? pow_hi(x, e) <= c : pow_lo(x, e) >= c;
+    };
+    return key_double(last_key_holding(below, double_key(-GAOL_INFINITY),
+                                       double_key(std::numeric_limits<double>::max()),
+                                       double_key(log_ratio_near(c, x))));
+  }
+
+  static double log_ratio_up(double c, double x)
+  {
+    const auto above = [c, x](std::uint64_t k) {
+      const double e = key_double(k);
+      return (x > 1.0) ? pow_lo(x, e) >= c : pow_hi(x, e) <= c;
+    };
+    return key_double(first_key_holding(above, double_key(-std::numeric_limits<double>::max()),
+                                        double_key(GAOL_INFINITY), double_key(log_ratio_near(c, x))));
+  }
+
+  /*
+    Whether c^(1/y) > d (above) or c^(1/y) < d (below) is proved, for a
+    double d > 0: d^y < c, or d^y > c, for y > 0, the other way round for
+    y < 0. A power rounded upward below c, or one rounded downward above it,
+    proves it without telling whether a power is a double. Rounding upward
+  */
+  static bool root_of_power_beyond(double c, double y, double d, bool above)
+  {
+    return (above == (y > 0.0)) ? pow_hi(d, y) < c : pow_lo(d, y) > c;
+  }
+
+  // The same for log(c)/log(x) and a double e: x^e < c, or x^e > c, for x > 1
+  static bool log_ratio_beyond(double c, double x, double e, bool above)
+  {
+    return (above == (x > 1.0)) ? pow_hi(x, e) < c : pow_lo(x, e) > c;
+  }
+
+  /*
+    An end of a piece of the solutions: for a lower end, a double at most the
+    end, and for an upper end, a double at least it; whether the piece only
+    comes as close to the end as one likes, without holding it (the limits
+    0, 1 and the infinities); and the end, c^(1/w) or log(c)/log(w), where
+    its bound is computed
+  */
+  enum pow_rel_value { pow_rel_exact, pow_rel_root, pow_rel_log_ratio };
+
+  struct pow_rel_end {
+    double bound;
+    bool limit;
+    pow_rel_value value;
+    double c, w;
+  };
+
+  static inline pow_rel_end reached(double d)
+  {
+    pow_rel_end e = { d, false, pow_rel_exact, 0.0, 0.0 };
+    return e;
+  }
+
+  static inline pow_rel_end approached(double d)
+  {
+    pow_rel_end e = { d, true, pow_rel_exact, 0.0, 0.0 };
+    return e;
+  }
+
+  // c^(1/y), below it for a lower end, above it for an upper one
+  static pow_rel_end root_end(double c, double y, bool lower)
+  {
+    const double near = root_of_power_near(c, y);
+    pow_rel_end e = { lower ? root_of_power_dn(c, y, near) : root_of_power_up(c, y, near), false, pow_rel_root, c, y };
+    return e;
+  }
+
+  // log(c)/log(x), below it for a lower end, above it for an upper one
+  static pow_rel_end log_ratio_end(double c, double x, bool lower)
+  {
+    pow_rel_end e = { lower ? log_ratio_dn(c, x) : log_ratio_up(c, x), false, pow_rel_log_ratio, c, x };
+    return e;
+  }
+
+  // Whether the end is proved to be above d (above) or below it
+  static bool pow_rel_beyond(const pow_rel_end& e, double d, bool above)
+  {
+    switch (e.value) {
+    case pow_rel_root:
+      return root_of_power_beyond(e.c, e.w, d, above);
+    case pow_rel_log_ratio:
+      return log_ratio_beyond(e.c, e.w, d, above);
+    default:
+      return false;
+    }
+  }
+
+  /*
+    Adds to the hull [lo, hi] the part of [l, u] in the piece from the lower
+    end to the upper end, unless the piece is proved to miss [l, u]: an end
+    beyond l or u, or a limit at it, or a computed end whose bound is l or u
+    and which is proved to be beyond it all the same. Where the power of l or
+    u is within one double of the bound of K, that proof would need to know
+    whether the power is a double, and the point is kept
+  */
+  static void add_pow_rel_piece(const pow_rel_end& lower, const pow_rel_end& upper, double l, double u,
+                                double& lo, double& hi)
+  {
+    if (lower.bound > u || (lower.limit && lower.bound >= u) || (lower.bound == u && pow_rel_beyond(lower, u, true))
+        || upper.bound < l || (upper.limit && upper.bound <= l) || (upper.bound == l && pow_rel_beyond(upper, l, false))) {
+      return;
+    }
+    lo = minimum(lo, maximum(lower.bound, l));
+    hi = maximum(hi, minimum(upper.bound, u));
+  }
+
+  /*
+    pow_rel() after its check, made before the bounds are compared (GAOL v5,
+    see gaol/gaol_fpu.h)
+  */
+  static interval pow_rel_upward(const interval& K, const interval& J, const interval& I)
+  {
+    if (K.is_empty() || J.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double xu = I.right(), cu = K.right();
+    if (xu < 0.0 || cu < 0.0) {
+      return interval::emptyset(); // No x >= 0, or no power
+    }
+    const double xl = (I.left() > 0.0) ? I.left() : 0.0, cl = K.left(), yl = J.left(), yu = J.right();
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+    if (xl == 0.0 && cl <= 0.0 && yu > 0.0) {
+      lo = hi = 0.0; // 0^y = 0 for y > 0
+    }
+    if (xu > 0.0 && cu > 0.0) {
+      if (cl <= 1.0 && cu >= 1.0 && yl <= 0.0 && yu >= 0.0) {
+        // x^0 = 1 for every x > 0
+        lo = minimum(lo, xl);
+        hi = xu;
+      } else {
+        const pow_rel_end zero = approached(0.0), one = approached(1.0), plus_infinity = approached(GAOL_INFINITY);
+        pow_rel_end lower, upper;
+        if (yu > 0.0) {
+          /*
+            y in [p1, p2], p1 > 0 or p1 = 0, which is then left out (x^0 = 1
+            is not in K): x in [cl^(1/y), cu^(1/y)], whose lower end
+            decreases with y for cl > 1 and increases for cl < 1, whose upper
+            end does the same with cu, and which tends to 1 for y -> +oo and
+            to 0 or +oo for y -> 0
+          */
+          const double p1 = (yl > 0.0) ? yl : 0.0, p2 = yu;
+          if (cl <= 0.0) {
+            lower = zero;
+          } else if (cl == 1.0) {
+            lower = reached(1.0);
+          } else if (cl > 1.0) {
+            lower = (p2 == GAOL_INFINITY) ? one : root_end(cl, p2, true);
+          } else {
+            lower = (p1 == 0.0) ? zero : root_end(cl, p1, true);
+          }
+          if (cu == GAOL_INFINITY) {
+            upper = plus_infinity;
+          } else if (cu == 1.0) {
+            upper = reached(1.0);
+          } else if (cu > 1.0) {
+            upper = (p1 == 0.0) ? plus_infinity : root_end(cu, p1, false);
+          } else {
+            upper = (p2 == GAOL_INFINITY) ? one : root_end(cu, p2, false);
+          }
+          add_pow_rel_piece(lower, upper, xl, xu, lo, hi);
+        }
+        if (yl < 0.0) {
+          /*
+            y in [n1, n2], n2 < 0 or n2 = 0, which is then left out: x^y
+            decreases with x, and x in [cu^(1/y), cl^(1/y)], whose lower end
+            decreases with y for cu > 1 and increases for cu < 1, whose upper
+            end does the same with cl, and which tends to 1 for y -> -oo and
+            to 0 or +oo for y -> 0
+          */
+          const double n1 = yl, n2 = (yu < 0.0) ? yu : 0.0;
+          if (cu == GAOL_INFINITY) {
+            lower = zero;
+          } else if (cu == 1.0) {
+            lower = reached(1.0);
+          } else if (cu > 1.0) {
+            lower = (n2 == 0.0) ? zero : root_end(cu, n2, true);
+          } else {
+            lower = (n1 == -GAOL_INFINITY) ? one : root_end(cu, n1, true);
+          }
+          if (cl <= 0.0) {
+            upper = plus_infinity;
+          } else if (cl == 1.0) {
+            upper = reached(1.0);
+          } else if (cl > 1.0) {
+            upper = (n1 == -GAOL_INFINITY) ? one : root_end(cl, n1, false);
+          } else {
+            upper = (n2 == 0.0) ? plus_infinity : root_end(cl, n2, false);
+          }
+          add_pow_rel_piece(lower, upper, xl, xu, lo, hi);
+        }
+      }
+    }
+    // Empty where nothing was added, lo being +oo and hi -oo
+    return interval(lo, hi);
+  }
+
+  interval pow_rel(const interval& K, const interval& J, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_rel_upward(K, J, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    pow_exponent_rel() after its check, made before the bounds are compared
+  */
+  static interval pow_exponent_rel_upward(const interval& K, const interval& H, const interval& I)
+  {
+    if (K.is_empty() || H.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double xu = H.right(), cu = K.right();
+    if (xu < 0.0 || cu < 0.0) {
+      return interval::emptyset(); // No base x >= 0, or no power
+    }
+    const double xl = (H.left() > 0.0) ? H.left() : 0.0, cl = K.left(), yl = I.left(), yu = I.right();
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+    if (xl == 0.0 && cl <= 0.0 && yu > 0.0) {
+      // 0^y = 0 for y > 0: the y > 0 of I
+      lo = (yl > 0.0) ? yl : 0.0;
+      hi = yu;
+    }
+    if (xu > 0.0 && cu > 0.0) {
+      if (cl <= 1.0 && cu >= 1.0 && xl <= 1.0 && xu >= 1.0) {
+        // 1^y = 1 for every y
+        lo = yl;
+        hi = yu;
+      } else {
+        const pow_rel_end zero = approached(0.0), plus_infinity = approached(GAOL_INFINITY),
+          minus_infinity = approached(-GAOL_INFINITY);
+        pow_rel_end lower, upper;
+        if (xu > 1.0) {
+          /*
+            x in [a1, a2], a1 > 1 or a1 = 1, which is then left out (1^y = 1
+            is not in K): y in [log(cl)/log(x), log(cu)/log(x)], whose lower
+            end decreases with x for cl > 1 and increases for cl < 1, whose
+            upper end does the same with cu, and which tends to 0 for
+            x -> +oo and to -oo or +oo for x -> 1
+          */
+          const double a1 = (xl > 1.0) ? xl : 1.0, a2 = xu;
+          if (cl <= 0.0) {
+            lower = minus_infinity;
+          } else if (cl == 1.0) {
+            lower = reached(0.0);
+          } else if (cl > 1.0) {
+            lower = (a2 == GAOL_INFINITY) ? zero : log_ratio_end(cl, a2, true);
+          } else {
+            lower = (a1 == 1.0) ? minus_infinity : log_ratio_end(cl, a1, true);
+          }
+          if (cu == GAOL_INFINITY) {
+            upper = plus_infinity;
+          } else if (cu == 1.0) {
+            upper = reached(0.0);
+          } else if (cu > 1.0) {
+            upper = (a1 == 1.0) ? plus_infinity : log_ratio_end(cu, a1, false);
+          } else {
+            upper = (a2 == GAOL_INFINITY) ? zero : log_ratio_end(cu, a2, false);
+          }
+          add_pow_rel_piece(lower, upper, yl, yu, lo, hi);
+        }
+        if (xl < 1.0) {
+          /*
+            x in [b1, b2], b1 > 0 or b1 = 0, b2 < 1 or b2 = 1, both then left
+            out: x^y decreases with y, and y in [log(cu)/log(x),
+            log(cl)/log(x)], whose lower end decreases with x for cu > 1 and
+            increases for cu < 1, whose upper end does the same with cl, and
+            which tends to 0 for x -> 0 and to -oo or +oo for x -> 1
+          */
+          const double b1 = xl, b2 = (xu < 1.0) ? xu : 1.0;
+          if (cu == GAOL_INFINITY) {
+            lower = minus_infinity;
+          } else if (cu == 1.0) {
+            lower = reached(0.0);
+          } else if (cu > 1.0) {
+            lower = (b2 == 1.0) ? minus_infinity : log_ratio_end(cu, b2, true);
+          } else {
+            lower = (b1 == 0.0) ? zero : log_ratio_end(cu, b1, true);
+          }
+          if (cl <= 0.0) {
+            upper = plus_infinity;
+          } else if (cl == 1.0) {
+            upper = reached(0.0);
+          } else if (cl > 1.0) {
+            upper = (b1 == 0.0) ? zero : log_ratio_end(cl, b1, false);
+          } else {
+            upper = (b2 == 1.0) ? plus_infinity : log_ratio_end(cl, b2, false);
+          }
+          add_pow_rel_piece(lower, upper, yl, yu, lo, hi);
+        }
+      }
+    }
+    return interval(lo, hi);
+  }
+
+  interval pow_exponent_rel(const interval& K, const interval& H, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_exponent_rel_upward(K, H, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     Code inspired by ia_math code by Timothy Hickey. The rounding direction
     is upward, after the check of nth_root_rel(), whose intersections and
     hulls are taken before the modes are restored with

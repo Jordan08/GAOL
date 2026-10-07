@@ -1412,6 +1412,34 @@ namespace gaol_core {
   GAOL_NODISCARD extern GAOL_PUBLIC  interval gaol_pow_real(const interval& I, double p);
 
   /*!
+    \brief The reverse functions of pow: the x of I, and the y of I, with an
+    x^y in K (GAOL v5)
+
+    pow_rel(K, J, I) = hull{x in I | exists y in J: x^y in K}, the base, and
+    pow_exponent_rel(K, H, I) = hull{y in I | exists x in H: x^y in K}, the
+    exponent: powRev1(J, K, I) and powRev2(H, K, I) of IEEE 1788-2015
+    (10.5.4, Table 10.1), the arguments in the order of div_rel(K, J, I).
+    x^y is the pow of the standard (Table 9.1), that of gaol_ieee1788::pow:
+    e^(y log x) for x > 0, 0 for x = 0 and y > 0, and no value elsewhere, so
+    that no x < 0 is a solution. gaol::pow takes the integer power for a
+    degenerate integer exponent [n], whose negative bases these functions
+    leave out: the reverse of x^n, n >= 1, is nth_root_rel(K, n, I).
+    pow_rel([4, 9], [2], interval::universe()) is [2, 3],
+    pow_rel([2, 3], [1, +oo], [0, 1]) is empty (x^y >= 2 asks x > 1), and
+    pow_exponent_rel([8], [2], interval::universe()) is [3].
+
+    The bounds are the tightest: those of c^(1/y) and log(c)/log(x) proved
+    with CORE-MATH's pow, correctly rounded. A bound of I is kept where the
+    solutions start between it and the next double and its power is within
+    one double of the bound of K, where proving that it is no solution
+    would take knowing whether that power is a double:
+    pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
+    empty, the tightest result for I one double wider.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_rel(const interval& K, const interval& J, const interval& I);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_exponent_rel(const interval& K, const interval& H, const interval& I);
+
+  /*!
     \brief relational square root of J w.r.t. I
     \f$sqrt_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^2}\f$
   */
@@ -2483,6 +2511,8 @@ namespace gaol {
   using gaol_core::log1p;
   using gaol_core::log2;
   using gaol_core::log2p1;
+  using gaol_core::pow_exponent_rel;
+  using gaol_core::pow_rel;
   using gaol_core::round_ties_to_away;
   using gaol_core::round_ties_to_even;
   using gaol_core::rsqrt;
