@@ -311,6 +311,28 @@ namespace gaol_ieee1788 {
   {
     return ::gaol_core::div_rel(c, b, interval::universe());
   }
+  /*!
+    powRev1(b, c, x): pow_rel(c, b, x), the hull of the x of x with x^y in c
+    for some y of b; powRev2(a, c, x): pow_exponent_rel(c, a, x), the hull of
+    the y of x with a^y in c for some a of a (GAOL v5). Both reverse pow(x, y)
+    of this namespace, the pow of the standard (Table 9.1)
+  */
+  GAOL_NODISCARD inline interval powRev1(const interval& b, const interval& c, const interval& x)
+  {
+    return ::gaol_core::pow_rel(c, b, x);
+  }
+  GAOL_NODISCARD inline interval powRev1(const interval& b, const interval& c)
+  {
+    return ::gaol_core::pow_rel(c, b, interval::universe());
+  }
+  GAOL_NODISCARD inline interval powRev2(const interval& a, const interval& c, const interval& x)
+  {
+    return ::gaol_core::pow_exponent_rel(c, a, x);
+  }
+  GAOL_NODISCARD inline interval powRev2(const interval& a, const interval& c)
+  {
+    return ::gaol_core::pow_exponent_rel(c, a, interval::universe());
+  }
 
   // ----------------------------------------------------------------------
   // Cancellative addition and subtraction (10.5.6), set operations (10.5.7)
@@ -460,8 +482,7 @@ namespace gaol_ieee1788 {
   /*
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - powRev1, powRev2, atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for
-        p <= 0;
+      - atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for p <= 0;
       - compoundm1 of Table 10.5, which CORE-MATH has not;
       - the slope functions (Table 10.6) and overlap (10.6.4);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
