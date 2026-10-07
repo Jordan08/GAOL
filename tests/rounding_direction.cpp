@@ -693,6 +693,23 @@ namespace
   }
 
   /*
+    floor_rel(Z, X) of a Z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
+    beyond the doubles (GAOL v5, point P.25): its upper end is +oo, which
+    floor_rel() takes without computing DBL_MAX + 1, whose overflow raised the
+    overflow exception where the result has no infinite bound:
+    floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1])
+    is [0, 1]
+  */
+  bool floor_rel_at_dbl_max_is_right()
+  {
+    const double dbl_max = gaol::rnd_keep((std::numeric_limits<double>::max)());
+    const interval x = opaque(interval(gaol::rnd_keep(0.0), gaol::rnd_keep(1.0)));
+    const interval a = floor_rel(opaque(interval(dbl_max)), x);
+    const interval b = floor_rel(opaque(interval(gaol::rnd_keep(0.0), dbl_max)), x);
+    return a.is_empty() && bounds_are(b, 0.0, 1.0);
+  }
+
+  /*
     The relations in loops, which a compiler vectorizes or if-converts (GAOL
     v5, point D.24): the comparison that follows a test of the empty set is
     then made for the empty operands too, and <, <=, >= or > raise the
@@ -1618,7 +1635,8 @@ int main()
   // A NaN the program gives, the products with a zero and an infinite bound,
   // the powers with an exponent of extreme magnitude and the relations in
   // loops raise no invalid-operation flag, and the midpoints of intervals
-  // with a huge bound no overflow flag (GAOL v5, point D.24)
+  // with a huge bound no overflow flag (GAOL v5, point D.24), nor floor_rel()
+  // of a Z ending at DBL_MAX (GAOL v5, point P.25)
   for (const EmptyOperand& e : nan_operands) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -1683,6 +1701,13 @@ int main()
             return std::string(h.name) + ": midpoint() " + hex(m.midpoint) + ", mid() " + hex(m.mid) + ", rad() " + hex(m.rad)
                  + ", split() " + hex(m.split_l) + " " + hex(m.split_r);
           });
+  }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = floor_rel_at_dbl_max_is_right();
+    const int raised = std::fetestexcept(FE_OVERFLOW);
+    check("floor_rel() of a Z ending at DBL_MAX raises no overflow flag where its result has no infinite bound", raised == 0);
+    check("floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1]) is [0, 1]", right);
   }
   for (const RelationLoop& r : relation_loops) {
     std::feclearexcept(FE_ALL_EXCEPT);
@@ -1775,6 +1800,9 @@ int main()
       check("the midpoints of an interval with a huge bound, FE_OVERFLOW enabled", oe == returned_true,
             [&] { return std::string(huge[i].name) + ": " + outcome_text(oe); });
     }
+    const Outcome of = run_with_exceptions_enabled(FE_OVERFLOW, floor_rel_at_dbl_max_is_right);
+    check("floor_rel() of a Z ending at DBL_MAX, without an infinite bound, FE_OVERFLOW enabled", of == returned_true,
+          [&] { return std::string(outcome_text(of)); });
   }
 #else
   std::printf("feenableexcept() and fork() are those of glibc: the checks with the exceptions enabled are skipped\n");

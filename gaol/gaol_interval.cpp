@@ -4440,7 +4440,11 @@ interval nth_root(const interval& I, int q)
     e, the tightest bound, and a double is below e if and only if it is below
     the rounded e, so that inf X < e and min(sup X, e) are decided on it
     exactly. The rounded e is +oo for sup Z = DBL_MAX, the tightest bound of
-    [DBL_MAX, DBL_MAX + 1), and for sup Z = +oo.
+    [DBL_MAX, DBL_MAX + 1), and for sup Z = +oo: it is taken as +oo there
+    rather than computed, DBL_MAX + 1 raising the overflow exception even where
+    the result has no infinite bound (floor_rel([DBL_MAX], [0, 1]) is empty),
+    and the overflow flag GAOL raises stands for an infinite bound of its
+    result only (doc/using.md).
   */
   static interval floor_rel_upward(const interval& Z, const interval& X)
   {
@@ -4451,7 +4455,8 @@ interval nth_root(const interval& I, int q)
     if (gaol_detail::quiet_greater(first, last)) {
       return interval::emptyset();
     }
-    const double end = last + 1.0; // rounded upward
+    const double end = gaol_detail::quiet_less(last, (std::numeric_limits<double>::max)()) ? last + 1.0 // rounded upward
+                                                                                          : GAOL_INFINITY;
     const double xl = X.left(), xu = X.right();
     if (gaol_detail::quiet_greater(first, xu) || gaol_detail::quiet_greater_equal(xl, end)) {
       return interval::emptyset();
