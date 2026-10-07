@@ -4211,9 +4211,11 @@ interval nth_root(const interval& I, int q)
       // Check negative part: all x < 0 give atan2(0, x) = pi
       const interval X_neg = X & interval(-GAOL_INFINITY, 0.0);
       if (!X_neg.is_empty()) {
-        // If X_neg contains only values < 0, or if it contains 0 but we exclude it
-        const interval X_neg_strict = X_neg.right() == 0.0 ? 
-            interval(X_neg.left(), 0.0) : X_neg;
+        // If X_neg contains 0, exclude it since atan2(0, 0) is undefined
+        interval X_neg_strict = X_neg;
+        if (X_neg.right() == 0.0) {
+          X_neg_strict = interval(X_neg.left(), 0.0);
+        }
         if (!X_neg_strict.is_empty() && !Z.set_disjoint(interval(pi_dn, pi_up))) {
           result_neg = X_neg_strict;
         }
@@ -4222,8 +4224,11 @@ interval nth_root(const interval& I, int q)
       // Check positive part: all x > 0 give atan2(0, x) = 0
       const interval X_pos = X & interval(0.0, GAOL_INFINITY);
       if (!X_pos.is_empty()) {
-        const interval X_pos_strict = X_pos.left() == 0.0 ? 
-            interval(0.0, X_pos.right()) : X_pos;
+        // If X_pos contains 0, exclude it since atan2(0, 0) is undefined
+        interval X_pos_strict = X_pos;
+        if (X_pos.left() == 0.0) {
+          X_pos_strict = interval(0.0, X_pos.right());
+        }
         if (!X_pos_strict.is_empty() && !Z.set_disjoint(interval(0.0, 0.0))) {
           result_pos = X_pos_strict;
         }
