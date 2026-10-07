@@ -3455,6 +3455,33 @@ cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
 \end{example}
 \end{deffun}
 
+\deffunx{interval}{atan2\_rel\_y}{(const interval\& \var{C}, const interval\& \var{X}, \\\hbox{}\hfill const interval\& \var{Y})}
+\begin{deffun}{interval}{atan2\_rel\_x}{(const interval\& \var{C}, const interval\& \var{Y}, \\\hbox{}\hfill const interval\& \var{X})}
+  \begin{operation}
+    \op{$\code{atan2\_rel\_y}(C,X,Y)=\hull{\{y\in Y\mid\exists x\in X\colon \operatorname{atan2}(y,x)\in C\}}$}
+    \op{$\code{atan2\_rel\_x}(C,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon \operatorname{atan2}(y,x)\in C\}}$}
+  \end{operation}
+  Return the \emph{relational} \code{atan2} with respect to its first and to
+  its second argument: the hulls of the ordinates and of the abscissas of the
+  points of the box $\var{X}\times\var{Y}$ whose angle is in \var{C}, the
+  point $(0,0)$, which has no angle, left out.\newinvfive{} As in
+  \code{div\_rel}, the interval contracted comes last, and the other argument
+  of \code{atan2} before it. The angles are those of \code{atan2}, in
+  $\left]-\pi,\pi\right]$: the half-line $y=0$, $x<0$ has the angle $\pi$,
+  and a \var{C} holding $-\pi$ but not $\pi$ leaves it out; the angles of
+  \var{C} beyond $\pi$ are no angle of any point. The bounds are within two
+  doubles of the tightest ones.
+\begin{example}
+interval c(1,2), x(-1,1), y(0,1);
+cout << atan2_rel_y(c, x, y) << ' '
+     << atan2_rel_x(c, y, x) << endl
+     << atan2_rel_x(interval(-4,-3), interval(0.0), x)
+     << endl;
+@outputs^[0, 1] [-0.4576575543602859, 0.6420926159343309]~
+@outputs^[empty]~
+\end{example}
+\end{deffun}
+
 \noindent
 The correspondence with the reverse functions of IEEE 1788-2015, whose
 last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
@@ -3472,6 +3499,8 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
     \ieee{mulRev}$(b,c,x)$ & \code{div\_rel(c, b, x)}\\
     \ieee{powRev1}$(b,c,x)$ & \code{pow\_rel(c, b, x)}\newinvfive\\
     \ieee{powRev2}$(a,c,x)$ & \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
+    \ieee{atan2Rev1}$(b,c,x)$ & \code{atan2\_rel\_y(c, b, x)}\newinvfive\\
+    \ieee{atan2Rev2}$(a,c,x)$ & \code{atan2\_rel\_x(c, a, x)}\newinvfive\\
     \hline
   \end{tabular}
 \end{center}
@@ -3479,8 +3508,8 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
 \noindent
 \ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in the
 namespace \code{gaol\_ieee1788} under its name
-(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{atan2Rev1},
-\ieee{atan2Rev2} and \ieee{pownRev} for $p\leq0$ are not provided.
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{pownRev} for $p\leq0$ is not
+provided.
 \code{max\_rel}, \code{min\_rel}, \code{sign\_rel} and \code{floor\_rel} are
 the reverse functions of $\max$, $\min$, $\operatorname{sign}$ and
 $\operatorname{floor}$ as the standard defines them (10.5.4), which it
@@ -4650,6 +4679,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
   \code{mulRev(b, c, x)} & \code{div\_rel(c, b, x)}\\
   \code{powRev1(b, c, x)}, \code{powRev2(a, c, x)} & \code{pow\_rel(c, b, x)}, \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
+  \code{atan2Rev1(b, c, x)}, \code{atan2Rev2(a, c, x)} & \code{atan2\_rel\_y(c, b, x)}, \code{atan2\_rel\_x(c, a, x)}\newinvfive\\
   \code{mulRevToPair(b, c)} (10.5.5) & the two parts of \code{div\_rel(c, b)}, in a \code{std::pair}\\
   \hline
   \multicolumn{2}{l}{\textit{Cancellative operations and set operations (10.5.6, 10.5.7)}}\\
@@ -4747,8 +4777,8 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
-$p\leq0$, \ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
+it provide \ieee{pownRev} for $p\leq0$ (Table 10.1), \ieee{compoundm1} (Table
+10.5), the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
 12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
@@ -4850,6 +4880,7 @@ covered.
   \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
   \code{div\_rel}, \code{\%} & accurate; tightest where the bounds of the quotients are doubles\\
   \code{pow\_rel}, \code{pow\_exponent\_rel} & tightest, but for a bound of $x$ next to the solutions whose power is within one double of $c$, which is kept: the tightest result for $x$ one double wider\newinvfive\\
+  \code{atan2\_rel\_y}, \code{atan2\_rel\_x} & accurate; within two doubles of the tightest bounds where these are not empty\\
   \code{cancel\_minus}, \code{cancel\_plus} & tightest\\
   \hline
   \multicolumn{2}{l}{\textit{Set operations, constructors, numeric and boolean functions}}\\
