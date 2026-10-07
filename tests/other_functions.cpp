@@ -973,11 +973,12 @@ namespace
      - floor_rel at every magnitude up to DBL_MAX, its upper bound against
        floor(sup Z) + 1 computed exactly;
      - on random intervals of every magnitude, by sampling: every double of X
-       that the definition puts in the set, the bounds of X, Y and Z, 0 and the
-       integers next to them and the doubles on either side of each included,
-       has to be in the result, which has to be within X, and its finite
-       bounds in the set, or the limit of the doubles of the set where the set
-       is open (sign_rel at 0, floor_rel at floor(sup Z) + 1).
+       that the definition puts in the set, the bounds of X, Y and Z, 0, -1,
+       1, ceil(inf Z), floor(sup Z) and floor(sup Z) + 1 and the doubles on
+       either side of each included, has to be in the result, which has to be
+       within X, and its finite bounds in the set, or the limit of the doubles
+       of the set where the set is open (sign_rel at 0, floor_rel at
+       floor(sup Z) + 1).
   */
 
   // Whether the real number t, finite, is in X
@@ -1238,6 +1239,10 @@ namespace
         floor_rel(interval(two_53 + 2.0), interval(two_53, 2.0*two_53)), interval(two_53 + 2.0, two_53 + 4.0) },
       { "floor_rel([-2^53 - 2], entire)",
         floor_rel(interval(-two_53 - 2.0), entire), interval(-two_53 - 2.0, -two_53) },
+      { "floor_rel([-2^53 - 2], [-2^53, 0]): X starting at the open end, the double above -2^53 - 1, empty",
+        floor_rel(interval(-two_53 - 2.0), interval(-two_53, 0.0)), empty },
+      { "floor_rel([-2^53 - 2], [-2^53 - 2, -2^53])",
+        floor_rel(interval(-two_53 - 2.0), interval(-two_53 - 2.0, -two_53)), interval(-two_53 - 2.0, -two_53) },
       { "floor_rel([2^60, 2^61], entire)",
         floor_rel(interval(128.0*two_53, 256.0*two_53), entire), interval(128.0*two_53, 256.0*two_53 + 512.0) },
       { "floor_rel([DBL_MAX], entire): up to +oo, DBL_MAX + 1 being beyond the doubles",
@@ -1254,22 +1259,34 @@ namespace
     }
   }
 
-  // floor_rel at every magnitude, its upper bound the smallest double at least
-  // floor(sup Z) + 1, computed exactly, where X goes on beyond it
+  /*
+    floor_rel at every magnitude, its upper bound the smallest double at least
+    floor(sup Z) + 1, computed exactly, where X goes on beyond it. X is the
+    whole line, random, or has its bounds among ceil(inf Z), floor(sup Z), the
+    doubles next to them and the two doubles above floor(sup Z), around
+    floor(sup Z) + 1, where the bounds of X decide the result
+  */
   void floor_rel_at_every_magnitude()
   {
     Random random;
-    for (int i = 0; i < 20000; ++i) {
+    for (int i = 0; i < 30000; ++i) {
       const int e = random.integer(-2, 1023);
       const double a = random(e, e), b = (random.integer(0, 1) == 0) ? a : random(e, e);
       const interval Z = hull(a, b);
-      const double c = random(-2, 1023), d = random(-2, 1023);
-      const interval X = (random.integer(0, 2) == 0) ? interval::universe() : hull(c, d);
-      const interval r = floor_rel(Z, X);
       const double first = std::ceil(Z.left()), last = std::floor(Z.right());
+      const double above = next_double(last);
+      // Not named near, an empty macro of <windows.h>
+      const double next_to_ends[] = { previous_double(first), first, next_double(first), previous_double(last), last,
+                                      above, next_double(above) };
+      const int kind = random.integer(0, 2);
+      const double c = (kind == 2) ? next_to_ends[random.integer(0, 6)] : random(-2, 1023);
+      const double d = (kind == 2) ? next_to_ends[random.integer(0, 6)] : random(-2, 1023);
+      const interval X = (kind == 0) ? interval::universe() : hull(c, d);
+      const interval r = floor_rel(Z, X);
       const Exact end = exact(dyadic(last) + dyadic(1.0));
       const auto describe = [&] { return "Z=" + hex(Z) + " X=" + hex(X) + ": " + hex(r); };
-      if (first > last || first > X.right() || compare(X.left(), end) >= 0) {
+      // X empty where its bounds are +oo, above DBL_MAX
+      if (X.is_empty() || first > last || first > X.right() || compare(X.left(), end) >= 0) {
         check("floor_rel(Z, X) at every magnitude: empty where Z holds no integer or X none of [ceil(inf Z), floor(sup Z) + 1)",
               r.is_empty(), describe);
         continue;

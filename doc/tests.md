@@ -169,7 +169,11 @@ mode there.
   of the bounds overflowed. The test makes these intervals at run time: GCC
   12.1 to 12.3 and 13.1 to 13.2 with `-frounding-math` initialized a member of
   an aggregate given `std::numeric_limits<double>::denorm_min()` with -0, and
-  overwrote the next one (`[-0, NaN]`, the empty set, for 32-bit x86). Every
+  overwrote the next one (`[-0, NaN]`, the empty set, for 32-bit x86). So does
+  `floor_rel(z, x)` of a z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
+  beyond the doubles, where its result has no infinite bound: it computed
+  DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
+  is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5). Every
   operation has to keep the exception flags the program raised (the five of
   IEEE 754, and on x86 the six of the SSE control register) and the exception
   masks, and the invalid-operation exception the program enabled has to stay
@@ -422,16 +426,17 @@ mode there.
   whose bounds are among -oo, -2, -1.5, ..., 2, +oo, -0 and +0, and the empty
   set (among -oo, -1, -0.5, -0, +0, 0.5, 1 and +oo, for every z, y and x of
   `max_rel` and `min_rel`), the sets then being unions of intervals whose ends
-  are multiples of 1/2, read at the multiples of 1/4 from -4 to 4; on 64
-  cases written out (disjoint, touching and nested intervals, infinite bounds,
+  are multiples of 1/2, read at the multiples of 1/4 from -4 to 4; on 66 cases
+  written out (disjoint, touching and nested intervals, infinite bounds,
   -0 and +0, subnormal bounds, a z holding no sign or no integer, and
-  `floor_rel` beyond 2^53, where floor(sup z) + 1 is no double and the bound
-  is the double above it); `floor_rel` at every magnitude up to DBL_MAX,
-  against floor(sup z) + 1 computed exactly; and on 20 000 random intervals of
-  every magnitude, where every double of x sampled that the definition puts
-  in the set has to be in the result, which has to lie within x with its
-  finite bounds in the set, or at its open end (0 for `sign_rel`,
-  floor(sup z) + 1 for `floor_rel`).
+  `floor_rel` beyond 2^53, where floor(sup z) + 1 is no double and the bound is
+  the double above it); `floor_rel` at every magnitude up to DBL_MAX, against
+  floor(sup z) + 1 computed exactly, x having its bounds next to ceil(inf z) and
+  floor(sup z) + 1 in a third of the cases; and on 20 000 random intervals of
+  every magnitude, where every double of x sampled that the definition puts in
+  the set has to be in the result, which has to lie within x with its finite
+  bounds in the set, or at its open end (0 for `sign_rel`, floor(sup z) + 1 for
+  `floor_rel`).
 - **`ieee1788`:** `gaol_ieee1788` as a program uses it, under
   `using namespace gaol_ieee1788;` alone. Every name of the standard it provides
   is called unqualified, which compiles only if none of them is ambiguous with

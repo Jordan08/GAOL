@@ -475,13 +475,12 @@ within the accuracy the standard recommends (see
 
 `max_rel(z, y, x)`, `min_rel(z, y, x)`, `sign_rel(z, x)` and `floor_rel(z, x)`
 contract x under the constraints z = max(x, y), z = min(x, y), z = sign(x) and
-z = floor(x), which IBEX wrote itself (GAOL v5). Each returns the hull of the
-x of `x` that the function sends into `z`, with some y of `y` for max and min:
-the reverse functions IEEE 1788-2015 defines for every function (10.5.4), with
-the arguments in the order of GAOL's relational functions (`div_rel(c, b, x)`,
-`sqrt_rel(c, x)`...), the result first and the operand contracted last. max
-and min being symmetric, `max_rel(z, x, y)` contracts y, and `max(x, y) & z`
-contracts z.
+z = floor(x) (GAOL v5). Each returns the hull of the x of `x` that the function
+sends into `z`, with some y of `y` for max and min: the reverse functions
+IEEE 1788-2015 defines for every function (10.5.4), with the arguments in the
+order of GAOL's relational functions (`div_rel(c, b, x)`, `sqrt_rel(c, x)`...),
+the result first and the operand contracted last. max and min being
+symmetric, `max_rel(z, x, y)` contracts y, and `max(x, y) & z` contracts z.
 
 ```cpp
 #include <gaol/gaol.h>

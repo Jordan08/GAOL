@@ -3445,8 +3445,8 @@ cout << sign_rel(interval(-1), interval(-2,3)) << ' '
   starting at that end. Beyond $2^{53}$, where every double is an integer,
   $\lfloor\rightBound{Z}\rfloor+1$ is no double, and the bound is the double
   above it: \code{floor\_rel} of \itv{2^{53}}{2^{53}} ends at $2^{53}+2$,
-  and at $+\infty$ for \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}. Each result
-  is the tightest enclosure.\newinvfive
+  and at $+\infty$ for \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}, where
+  \var{X} goes on to it. Each result is the tightest enclosure.\newinvfive
 \begin{example}
 cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
      << floor_rel(interval(0), interval(1,2)) << ' '
