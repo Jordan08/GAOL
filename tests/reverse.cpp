@@ -385,6 +385,9 @@ namespace
      rounded both ways), or the angle itself where it is 0, the only angle of
      a point of doubles that is a double: a bound of c, a double, is never
      strictly between them.
+   - The two results are both empty or neither, and the angles of the box
+     they make meet c, widened by 4 doubles: a box of (0, 0) alone, which has
+     no angle, is never a result, nor is a box away from the cone.
    - No invalid-operation flag for boxes and angles with zero and infinite
      bounds.
 */
@@ -485,6 +488,21 @@ namespace
       return;
     }
     const interval ry = atan2_rel_y(c, x, y), rx = atan2_rel_x(c, y, x);
+    // Both empty or neither, and a box of results holding points whose angle
+    // is in c, or next to it where the box is within a rounding of the cone
+    // and no point of it is in c; a box of (0, 0) alone, which has no angle,
+    // is not one of them
+    check("atan2_rel_y and atan2_rel_x: both empty or neither", ry.is_empty() == rx.is_empty(),
+          [&] { return "c = " + hex(c) + ", y = " + hex(y) + ", x = " + hex(x) + ": " + hex(ry) + ", " + hex(rx); });
+    if (!ry.is_empty() && !rx.is_empty()) {
+      interval near = c;
+      for (int k = 0; k < 4; ++k) {
+        near = interval(previous_double(near.left()), next_double(near.right()));
+      }
+      check("atan2_rel_y and atan2_rel_x: the angles of the box of the results meet c, widened by 4 doubles",
+            !(atan2(ry, rx) & near).is_empty(),
+            [&] { return "c = " + hex(c) + ", y = " + hex(y) + ", x = " + hex(x) + ": " + hex(ry) + ", " + hex(rx); });
+    }
     const std::vector<double> ys = coordinates(y, random), xs = coordinates(x, random);
     std::vector<std::pair<double, double> > points; // (y, x)
     for (double py : ys) {

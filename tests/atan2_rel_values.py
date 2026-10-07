@@ -279,7 +279,11 @@ def structured_boxes():
         ((TINY, 2 * TINY), (1e300, 1e308)), ((1e300, MAX), (TINY, math.ldexp(1.0, -1060))),
         ((-math.ldexp(1.0, -1060), math.ldexp(1.0, -1060)), (-1e300, -1e299)), ((MAX, INF), (1.0, 2.0)),
         ((3.0, 3.0), (4.0, 4.0)), ((1.0, 1.0), (1.0, 1.0)), ((-1.0, -1.0), (-1.0, -1.0)),
-        ((1.0, 1.0), (-1.0, -1.0)), ((-TINY, TINY), (-TINY, TINY)), ((-1.0, 1.0), EMPTY),
+        ((1.0, 1.0), (-1.0, -1.0)), ((-TINY, TINY), (-TINY, TINY)),
+        # Bounds that are powers of two, whose products and quotients with a
+        # subnormal angle are exact
+        (W, (1.0, math.ldexp(1.0, 20))), ((math.ldexp(1.0, -1000), 1.0), (0.0, INF)),
+        ((-1.0, -math.ldexp(1.0, -1000)), (0.0, INF)), ((-1.0, 1.0), EMPTY),
         (EMPTY, (1.0, 2.0)),
     ]
     return b
