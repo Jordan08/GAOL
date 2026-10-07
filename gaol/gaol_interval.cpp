@@ -4158,6 +4158,566 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
+    atan2_rel() and atan2_exponent_rel() after their check, made before the
+    bounds are compared (GAOL v5, see gaol/gaol_fpu.h).
+
+    atan2_rel(Z, Y, X) = hull{x in X | exists y in Y: atan2(y, x) in Z},
+    the reverse of atan2(y, x) of IEEE 1788-2015 (Table 9.1), which corresponds
+    to atan2Rev1(Y, Z, X) of Table 10.1. atan2(y, x) is defined on the plane but
+    (0, 0), with values in (-pi, pi].
+
+    The implementation considers the range of atan2(y, x) for y in Y as a function
+    of x, and finds the x in X for which this range intersects Z. For a fixed x,
+    the range depends on the sign of x and whether Y spans 0:
+    - x > 0: atan2(y, x) = atan(y/x), monotonic in y, range is
+      [atan(yl/x), atan(yu/x)]
+    - x < 0 and y >= 0: atan2(y, x) = pi + atan(y/x), y/x <= 0
+    - x < 0 and y <= 0: atan2(y, x) = -pi + atan(y/x), y/x >= 0
+    - x < 0 and Y spans 0: range spans from near -pi to near pi
+    - x = 0 and y > 0: atan2(y, 0) = pi/2
+    - x = 0 and y < 0: atan2(y, 0) = -pi/2
+    - x = 0 and y = 0: undefined
+
+    The discontinuity across y = 0, x < 0 means that if Z spans the jump
+    (contains values near both pi and -pi) and Y x X contains points on both
+    sides of the half-line y = 0, x < 0, then the entire X is in the preimage.
+
+    For the preimage to be non-empty, we need the range of atan2(y, x) for y in
+    Y to intersect Z. We handle this by cases on the sign of x.
+  */
+  static interval atan2_rel_upward(const interval& Z, const interval& Y, const interval& X)
+  {
+    if (Z.is_empty() || Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+
+    // (0, 0) is undefined for atan2
+    if (Y.is_a_double() && Y.left() == 0.0 && X.is_a_double() && X.left() == 0.0) {
+      return interval::emptyset();
+    }
+
+    // If Z contains the entire range of atan2, i.e., [-pi, pi] or a superset,
+    // then every (y, x) in Y x X except (0, 0) is in the preimage
+    if (Z.set_contains(interval(-pi_up, pi_up))) {
+      return X;
+    }
+
+    // If Z contains values on both sides of the jump discontinuity (pi and -pi)
+    // and Y x X contains points on both sides of the half-line y = 0, x < 0,
+    // then the preimage is all of X
+    const bool z_spans_jump = Z.left() < -pi_dn && Z.right() > pi_dn;
+    const bool y_spans_zero = yl < 0.0 && yu > 0.0;
+    const bool x_contains_negative = xl < 0.0;
+
+    if (z_spans_jump && y_spans_zero && x_contains_negative) {
+      return X;
+    }
+
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+
+    // For x > 0: atan2(y, x) = atan(y/x) in (-pi/2, pi/2)
+    if (xu > 0.0) {
+      const double x_lo = (xl > 0.0) ? xl : 0.0;
+      const double x_hi = xu;
+
+      // The range of atan2 for x > 0 is (-pi/2, pi/2)
+      const interval atan2_pos_range = interval(-half_pi_up, half_pi_up);
+      const interval Z_pos = Z & atan2_pos_range;
+
+      if (!Z_pos.is_empty()) {
+        // For x > 0, we need: ∃y∈Y: atan(y/x) ∈ Z_pos
+        // Since atan is monotonic: y/x ∈ tan(Z_pos)
+        // y ∈ x * tan(Z_pos)
+        // For a solution to exist: (x * tan(Z_pos)) ∩ Y ≠ empty
+
+        const interval tan_Z_pos = tan(Z_pos);
+        if (!tan_Z_pos.is_empty()) {
+          const double tan_zl = tan_Z_pos.left(), tan_zu = tan_Z_pos.right();
+
+          if (tan_zl <= tan_zu) {
+            if (tan_zl > 0.0) {
+              // tan(Z_pos) ⊂ (0, +∞): y ≥ x * tan_zl and y ≤ x * tan_zu
+              // Need: max(yl, x * tan_zl) ≤ min(yu, x * tan_zu)
+              // x * tan_zl ≤ yu and x * tan_zu ≥ yl
+              // x ≤ yu / tan_zl and x ≥ yl / tan_zu
+              if (tan_zl > 0.0) {
+                const double x_max = (yu >= 0.0) ? yu / tan_zl : GAOL_INFINITY;
+                if (x_max > x_lo) {
+                  lo = std::min(lo, x_lo);
+                  hi = std::max(hi, std::min(x_hi, x_max));
+                }
+              }
+              if (tan_zu > 0.0) {
+                const double x_min = (yl <= 0.0) ? 0.0 : yl / tan_zu;
+                if (x_min < x_hi) {
+                  lo = std::min(lo, std::max(x_lo, x_min));
+                  hi = std::max(hi, x_hi);
+                }
+              }
+            } else if (tan_zu < 0.0) {
+              // tan(Z_pos) ⊂ (-∞, 0): y ≤ x * tan_zl and y ≥ x * tan_zu
+              // (since tan_zl ≤ tan_zu < 0, x > 0: x*tan_zl ≤ x*tan_zu ≤ 0)
+              // Need: max(yl, x * tan_zu) ≤ min(yu, x * tan_zl)
+              // x * tan_zu ≤ yu and x * tan_zl ≥ yl
+              // Since tan_zl, tan_zu < 0: x ≤ yu / tan_zu (negative, so x ≥ yu/tan_zu)
+              // and x ≥ yl / tan_zl (negative, so x ≤ yl/tan_zl)
+              // So: yu / tan_zu ≤ x ≤ yl / tan_zl
+              if (tan_zl < 0.0) {
+                const double x_max = (yl >= 0.0) ? yl / tan_zl : GAOL_INFINITY;
+                if (x_max > x_lo) {
+                  lo = std::min(lo, x_lo);
+                  hi = std::max(hi, std::min(x_hi, x_max));
+                }
+              }
+              if (tan_zu < 0.0) {
+                const double x_min = (yu <= 0.0) ? yu / tan_zu : -GAOL_INFINITY;
+                if (x_min < x_hi && x_min > 0.0) {
+                  lo = std::min(lo, std::max(x_lo, x_min));
+                  hi = std::max(hi, x_hi);
+                }
+              }
+            } else {
+              // tan(Z_pos) contains 0: for any x > 0, we can find y such that
+              // atan(y/x) ∈ Z_pos
+              lo = std::min(lo, x_lo);
+              hi = std::max(hi, x_hi);
+            }
+          } else {
+            // tan_zl > tan_zu, use the full interval
+            lo = std::min(lo, x_lo);
+            hi = std::max(hi, x_hi);
+          }
+        }
+      }
+    }
+
+    // For x < 0
+    if (xl < 0.0) {
+      const double x_lo = xl;
+      const double x_hi = (xu < 0.0) ? xu : 0.0;
+
+      if (y_spans_zero) {
+        // For x < 0 and Y spanning 0, atan2(y, x) covers values from
+        // near -pi to near pi, so if Z intersects this, all x < 0 are valid
+        lo = std::min(lo, x_lo);
+        hi = std::max(hi, x_hi);
+      } else if (yl >= 0.0) {
+        // y >= 0: atan2(y, x) = pi + atan(y/x), y/x <= 0
+        // Range: [pi + atan(yu/x), pi + atan(yl/x)]
+        // Need: pi + atan(yu/x) <= zu and pi + atan(yl/x) >= zl
+        // atan(yu/x) <= zu - pi and atan(yl/x) >= zl - pi
+
+        const interval Z_shifted = Z - interval(pi_dn, pi_up);
+        const interval Z_shifted_neg = Z_shifted & interval(-half_pi_up, 0.0);
+
+        if (!Z_shifted_neg.is_empty()) {
+          const interval tan_Z_shifted = tan(Z_shifted_neg);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu) {
+              // For x < 0, y >= 0: y/x <= 0
+              // We need: tan_zl <= y/x <= tan_zu (all <= 0)
+              // Since x < 0: y >= x * tan_zu and y <= x * tan_zl
+              // (x < 0, tan_zl <= tan_zu <= 0, so x*tan_zl >= x*tan_zu)
+              // For a solution y in [yl, yu] to exist:
+              // max(yl, x * tan_zu) <= min(yu, x * tan_zl)
+              // x * tan_zu <= yu and x * tan_zl >= yl
+              // Since tan_zl, tan_zu <= 0 and x < 0:
+              // |x| * |tan_zl| >= yl and |x| * |tan_zu| <= yu
+              // -x >= yl / |tan_zl| and -x <= yu / |tan_zu|
+              // But |tan_zl| = -tan_zl, |tan_zu| = -tan_zu (since tan_zl, tan_zu <= 0)
+              // So: -x >= yl / (-tan_zl) and -x <= yu / (-tan_zu)
+              // x <= -yl / (-tan_zl) = yl / tan_zl
+              // x >= -yu / (-tan_zu) = yu / tan_zu
+              // And since tan_zl <= tan_zu <= 0, we have yl/tan_zl <= yl/tan_zu
+              // and yu/tan_zu <= yu/tan_zl
+              // Both yl/tan_zl and yu/tan_zu are negative (yl, yu >= 0, tan_zl, tan_zu < 0)
+              // So the interval is [yu/tan_zu, yl/tan_zl]
+              // But we need x < 0, and both bounds are negative, so this is valid.
+
+              if (tan_zl < 0.0 && tan_zu < 0.0) {
+                const double x_lower = yu / tan_zu;
+                const double x_upper = yl / tan_zl;
+                if (x_lower <= x_upper) {
+                  const double effective_lo = std::max(x_lo, x_lower);
+                  const double effective_hi = std::min(x_hi, x_upper);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (yu <= 0.0) {
+        // y <= 0: atan2(y, x) = -pi + atan(y/x), y/x >= 0
+        // Range: [-pi + atan(yl/x), -pi + atan(yu/x)]
+        // Need: -pi + atan(yl/x) >= zl and -pi + atan(yu/x) <= zu
+        // atan(yl/x) >= zl + pi and atan(yu/x) <= zu + pi
+
+        const interval Z_shifted = Z + interval(pi_dn, pi_up);
+        const interval Z_shifted_pos = Z_shifted & interval(0.0, half_pi_up);
+
+        if (!Z_shifted_pos.is_empty()) {
+          const interval tan_Z_shifted = tan(Z_shifted_pos);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu && tan_zl >= 0.0) {
+              // For x < 0, y <= 0: y/x >= 0
+              // We need: tan_zl <= y/x <= tan_zu (all >= 0)
+              // y >= x * tan_zl and y <= x * tan_zu
+              // Since x < 0, tan_zl, tan_zu >= 0:
+              // x * tan_zl <= 0 and x * tan_zu <= 0
+              // So we need: y >= x * tan_zl (negative) and y <= x * tan_zu (negative)
+              // Since y <= 0, we need:
+              // x * tan_zl <= y <= x * tan_zu <= 0
+              // Since tan_zl <= tan_zu, we have x * tan_zl >= x * tan_zu (x < 0)
+              // So we need: x * tan_zl <= yu and x * tan_zu >= yl
+              // x >= yu / tan_zl (tan_zl > 0, x < 0, so x >= negative/positive = negative)
+              // x <= yl / tan_zu (tan_zu > 0, x < 0, so x <= negative/positive = negative)
+              // Since tan_zl <= tan_zu, we have yu/tan_zl >= yu/tan_zu and yl/tan_zl >= yl/tan_zu
+              // Both yu/tan_zl and yl/tan_zu are negative
+              // So: yl / tan_zu <= x <= yu / tan_zl
+
+              if (tan_zl > 0.0 && tan_zu > 0.0) {
+                const double x_lower = yl / tan_zu;
+                const double x_upper = yu / tan_zl;
+                if (x_lower <= x_upper) {
+                  const double effective_lo = std::max(x_lo, x_lower);
+                  const double effective_hi = std::min(x_hi, x_upper);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // For x = 0
+    if (xl <= 0.0 && xu >= 0.0) {
+      // atan2(y, 0) = pi/2 for y > 0, -pi/2 for y < 0
+      if (yu > 0.0 && !Z.set_disjoint(interval(half_pi_dn, half_pi_up))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+      if (yl < 0.0 && !Z.set_disjoint(interval(-half_pi_up, -half_pi_dn))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+    }
+
+    if (lo > hi) {
+      return interval::emptyset();
+    }
+    return interval(lo, hi) & X;
+  }
+
+  interval atan2_rel(const interval& Z, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = atan2_rel_upward(Z, Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    atan2_exponent_rel() after its check, made before the bounds are compared.
+
+    atan2_exponent_rel(Z, X, Y) = hull{y in Y | exists x in X: atan2(y, x) in Z},
+    the reverse with respect to y instead of x. This is symmetric to atan2_rel.
+
+    For a fixed y, the range of atan2(y, x) for x in X depends on the sign of y:
+    - y > 0: atan2(y, x) = atan(y/x) for x > 0, pi + atan(y/x) for x < 0, pi/2 for x = 0
+    - y < 0: atan2(y, x) = atan(y/x) for x > 0, -pi + atan(y/x) for x < 0, -pi/2 for x = 0
+    - y = 0: atan2(0, x) = pi for x < 0, 0 for x > 0
+
+    The logic is similar to atan2_rel but with x and y swapped.
+  */
+  static interval atan2_exponent_rel_upward(const interval& Z, const interval& X, const interval& Y)
+  {
+    if (Z.is_empty() || X.is_empty() || Y.is_empty()) {
+      return interval::emptyset();
+    }
+    const double yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+
+    // (0, 0) is undefined
+    if (Y.is_a_double() && Y.left() == 0.0 && X.is_a_double() && X.left() == 0.0) {
+      return interval::emptyset();
+    }
+
+    // If Z contains the entire range
+    if (Z.set_contains(interval(-pi_up, pi_up))) {
+      return Y;
+    }
+
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+
+    // Case 1: y > 0
+    if (yu > 0.0) {
+      const double y_lo = (yl > 0.0) ? yl : 0.0;
+      const double y_hi = yu;
+
+      // For y > 0, atan2(y, x) behavior:
+      // - x > 0: atan2(y, x) = atan(y/x) in (0, pi/2)
+      // - x < 0: atan2(y, x) = pi + atan(y/x) in (pi/2, pi)
+      // - x = 0: atan2(y, 0) = pi/2
+
+      if (xu > 0.0) {
+        // For x > 0 and y > 0: atan2(y, x) = atan(y/x)
+        const interval Z_pos = Z & interval(0.0, half_pi_up);
+        if (!Z_pos.is_empty()) {
+          const interval tan_Z = tan(Z_pos);
+          if (!tan_Z.is_empty()) {
+            const double tan_zl = tan_Z.left(), tan_zu = tan_Z.right();
+            if (tan_zl <= tan_zu && tan_zl > 0.0) {
+              // For y > 0 and x > 0: y/x in tan(Z_pos)
+              // For a fixed y, we need: ∃x∈X∩(0,+∞): y/x ∈ [tan_zl, tan_zu]
+              // x ∈ [y/tan_zu, y/tan_zl]
+              // This interval must intersect X ∩ (0, +∞)
+
+              const double x_lo_pos = (xl > 0.0) ? xl : 0.0;
+              const double x_hi_pos = (xu > 0.0) ? xu : GAOL_INFINITY;
+
+              // For y to be valid: [y/tan_zu, y/tan_zl] ∩ [x_lo_pos, x_hi_pos] ≠ empty
+              // y/tan_zu <= x_hi_pos and y/tan_zl >= x_lo_pos
+              // y <= x_hi_pos * tan_zu and y >= x_lo_pos * tan_zl
+
+              if (x_hi_pos > 0.0) {
+                const double y_upper = x_hi_pos * tan_zu;
+                if (y_upper > y_lo) {
+                  lo = std::min(lo, y_lo);
+                  hi = std::max(hi, std::min(y_hi, y_upper));
+                }
+              }
+              if (x_lo_pos > 0.0) {
+                const double y_lower = x_lo_pos * tan_zl;
+                if (y_lower < y_hi) {
+                  lo = std::min(lo, std::max(y_lo, y_lower));
+                  hi = std::max(hi, y_hi);
+                }
+              }
+            } else {
+              // tan_Z spans 0 or is empty
+              lo = std::min(lo, y_lo);
+              hi = std::max(hi, y_hi);
+            }
+          }
+        }
+      }
+
+      if (xl < 0.0) {
+        // For x < 0 and y > 0: atan2(y, x) = pi + atan(y/x)
+        // y/x < 0, atan(y/x) in (-pi/2, 0)
+        const interval Z_neg = Z & interval(half_pi_dn, pi_up);
+        if (!Z_neg.is_empty()) {
+          const interval Z_shifted = Z_neg - interval(pi_dn, pi_up);
+          const interval tan_Z_shifted = tan(Z_shifted);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu) {
+              // For y > 0 and x < 0: y/x < 0
+              // atan2(y, x) = pi + atan(y/x)
+              // We need: pi + atan(y/x) ∈ Z_neg
+              // atan(y/x) ∈ Z_neg - pi
+              // y/x ∈ tan(Z_neg - pi)
+              // Since y/x < 0 and tan values are negative:
+              // For a fixed y > 0: x <= y / tan_zl and x >= y / tan_zu
+              // (since tan_zl, tan_zu < 0, y > 0, dividing reverses inequalities)
+              // x must be in [y/tan_zu, y/tan_zl] ∩ X ∩ (-∞, 0)
+
+              const double x_lo_neg = xl;
+              const double x_hi_neg = (xu < 0.0) ? xu : 0.0;
+
+              if (tan_zl < 0.0 && tan_zu < 0.0) {
+                // y/tan_zu >= x_lo_neg and y/tan_zl <= x_hi_neg
+                // y <= x_lo_neg * tan_zu (negative * negative = positive)
+                // y >= x_hi_neg * tan_zl (negative * negative = positive)
+                const double y_upper = x_lo_neg * tan_zu;
+                const double y_lower = x_hi_neg * tan_zl;
+                if (y_lower <= y_upper) {
+                  const double effective_lo = std::max(y_lo, y_lower);
+                  const double effective_hi = std::min(y_hi, y_upper);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Case 2: y < 0
+    if (yl < 0.0) {
+      const double y_lo = yl;
+      const double y_hi = (yu < 0.0) ? yu : 0.0;
+
+      // For y < 0, atan2(y, x) behavior:
+      // - x > 0: atan2(y, x) = atan(y/x) in (-pi/2, 0)
+      // - x < 0: atan2(y, x) = -pi + atan(y/x) in (-pi, -pi/2)
+      // - x = 0: atan2(y, 0) = -pi/2
+
+      if (xu > 0.0) {
+        const interval Z_neg = Z & interval(-half_pi_up, 0.0);
+        if (!Z_neg.is_empty()) {
+          const interval tan_Z = tan(Z_neg);
+          if (!tan_Z.is_empty()) {
+            const double tan_zl = tan_Z.left(), tan_zu = tan_Z.right();
+            if (tan_zl <= tan_zu) {
+              // For y < 0 and x > 0: y/x < 0
+              // atan2(y, x) = atan(y/x)
+              // We need: atan(y/x) ∈ Z_neg
+              // y/x ∈ tan(Z_neg)
+              // Since y/x < 0 and tan values are negative:
+              // For a fixed y < 0: x >= y / tan_zu and x <= y / tan_zl
+              // But tan_zl <= tan_zu < 0, y < 0, so:
+              // y / tan_zu = (negative) / (negative) = positive
+              // y / tan_zl = (negative) / (negative) = positive
+              // And since tan_zl <= tan_zu < 0, we have |tan_zl| >= |tan_zu|, so
+              // y / tan_zl <= y / tan_zu (both positive, dividing by more negative gives smaller result)
+              // So the interval is [y/tan_zu, y/tan_zl]
+              // We need: [y/tan_zu, y/tan_zl] ∩ [x_lo_pos, x_hi_pos] ≠ empty
+              // y/tan_zu <= x_hi_pos and y/tan_zl >= x_lo_pos
+              // But we're solving for y, not x. For a fixed y < 0:
+              // We need: ∃x∈X∩(0,+∞): y/x ∈ [tan_zl, tan_zu]
+              // x ∈ [y/tan_zu, y/tan_zl]
+              // Need: [y/tan_zu, y/tan_zl] ∩ [x_lo_pos, x_hi_pos] ≠ empty
+
+              const double x_lo_pos = (xl > 0.0) ? xl : 0.0;
+              const double x_hi_pos = (xu > 0.0) ? xu : GAOL_INFINITY;
+
+              if (tan_zl < 0.0 && tan_zu < 0.0) {
+                // y/tan_zu <= x_hi_pos and y/tan_zl >= x_lo_pos
+                // Since tan_zl, tan_zu < 0 and y < 0:
+                // y/tan_zu = (negative)/(negative) = positive
+                // y/tan_zl = (negative)/(negative) = positive
+                // And since tan_zl <= tan_zu < 0, we have |tan_zl| >= |tan_zu|, so
+                // y/tan_zl <= y/tan_zu (both positive)
+                // So we need: y/tan_zl <= x_hi_pos and y/tan_zu >= x_lo_pos
+                // y <= x_hi_pos * tan_zl (but tan_zl < 0, so this is y >= x_hi_pos * tan_zl)
+                // y >= x_lo_pos * tan_zu (but tan_zu < 0, so this is y <= x_lo_pos * tan_zu)
+                // Since tan_zl <= tan_zu < 0, we have x_lo_pos * tan_zl >= x_lo_pos * tan_zu
+                // and x_hi_pos * tan_zl >= x_hi_pos * tan_zu
+                // So: max(x_hi_pos * tan_zl, x_lo_pos * tan_zu) <= y <= min(x_lo_pos * tan_zl, x_hi_pos * tan_zu)
+                // But all these are positive (negative * negative)
+                // Actually, let me use a simpler approach: since tan_zl <= tan_zu < 0,
+                // the condition y/x ∈ [tan_zl, tan_zu] with x > 0 and y < 0 means:
+                // tan_zl <= y/x <= tan_zu
+                // Since x > 0: x * tan_zl <= y <= x * tan_zu
+                // But tan_zl <= tan_zu < 0, so x * tan_zl <= x * tan_zu <= 0
+                // And y < 0, so we need:
+                // x * tan_zl <= y <= x * tan_zu <= 0
+                // For a solution to exist for some x in [x_lo_pos, x_hi_pos]:
+                // We need: ∃x∈[x_lo_pos, x_hi_pos]: x * tan_zl <= y <= x * tan_zu
+                // Since tan_zl <= tan_zu < 0, we have x * tan_zl <= x * tan_zu for all x > 0
+                // So we need: y >= x_lo_pos * tan_zl and y <= x_hi_pos * tan_zu
+                // (the tightest bounds from the extreme x values)
+
+                const double y_lower_bound = x_lo_pos * tan_zl;
+                const double y_upper_bound = x_hi_pos * tan_zu;
+                if (y_lower_bound <= y_upper_bound) {
+                  const double effective_lo = std::max(y_lo, y_lower_bound);
+                  const double effective_hi = std::min(y_hi, y_upper_bound);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (xl < 0.0) {
+        const interval Z_neg = Z & interval(-pi_up, -half_pi_dn);
+        if (!Z_neg.is_empty()) {
+          const interval Z_shifted = Z_neg + interval(pi_dn, pi_up);
+          const interval tan_Z_shifted = tan(Z_shifted);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu && tan_zl >= 0.0) {
+              // For y < 0 and x < 0: y/x > 0
+              // atan2(y, x) = -pi + atan(y/x)
+              // We need: -pi + atan(y/x) ∈ Z_neg
+              // atan(y/x) ∈ Z_neg + pi
+              // y/x ∈ tan(Z_neg + pi)
+              // For a fixed y < 0: x < 0, y/x > 0
+              // y/x ∈ [tan_zl, tan_zu] (both positive)
+              // x ∈ [y/tan_zu, y/tan_zl] (since y < 0, dividing by positive reverses)
+              // Need: [y/tan_zu, y/tan_zl] ∩ [xl, xu] ∩ (-∞, 0) ≠ empty
+              // But y/tan_zu and y/tan_zl are both negative (y < 0, tan_zl, tan_zu > 0)
+              // And y/tan_zu <= y/tan_zl (since tan_zl <= tan_zu and y < 0)
+
+              const double x_lo_neg = xl;
+              const double x_hi_neg = (xu < 0.0) ? xu : 0.0;
+
+              if (tan_zl > 0.0 && tan_zu > 0.0) {
+                // For y < 0 and x < 0: y/x > 0
+                // We need: tan_zl <= y/x <= tan_zu
+                // y >= x * tan_zl and y <= x * tan_zu
+                // Since x < 0, tan_zl, tan_zu > 0:
+                // x * tan_zl < 0 and x * tan_zu < 0
+                // So: x * tan_zl <= y <= x * tan_zu
+                // Since tan_zl <= tan_zu, we have x * tan_zl >= x * tan_zu (x < 0)
+                // So we need: y >= x_hi_neg * tan_zl and y <= x_lo_neg * tan_zu
+                // (the tightest bounds from the extreme x values)
+
+                const double y_lower_bound = x_hi_neg * tan_zl;
+                const double y_upper_bound = x_lo_neg * tan_zu;
+                if (y_lower_bound <= y_upper_bound) {
+                  const double effective_lo = std::max(y_lo, y_lower_bound);
+                  const double effective_hi = std::min(y_hi, y_upper_bound);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Case 3: y = 0
+    if (yl <= 0.0 && yu >= 0.0) {
+      // atan2(0, x) = pi for x < 0, 0 for x > 0
+      if (xl < 0.0 && !Z.set_disjoint(interval(pi_dn, pi_up))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+      if (xu > 0.0 && !Z.set_disjoint(interval(-0.0, 0.0))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+    }
+
+    if (lo > hi) {
+      return interval::emptyset();
+    }
+    return interval(lo, hi) & Y;
+  }
+
+  interval atan2_exponent_rel(const interval& Z, const interval& X, const interval& Y)
+  {
+    GAOL_RND_ENTER();
+    interval res = atan2_exponent_rel_upward(Z, X, Y);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     acosh_rel(), asinh_rel() and atanh_rel() check the rounding direction
     before they compare the bounds of the inverse image with those of I, which
     acosh(), asinh() and atanh() return with the modes that flush the

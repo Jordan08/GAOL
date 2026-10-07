@@ -3479,8 +3479,9 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
 \noindent
 \ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in the
 namespace \code{gaol\_ieee1788} under its name
-(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{atan2Rev1},
-\ieee{atan2Rev2} and \ieee{pownRev} for $p\leq0$ are not provided.
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{atan2Rev1} and \ieee{atan2Rev2}
+are \code{atan2\_rel} and \code{atan2\_exponent\_rel} in \code{gaol\_core}, and
+\ieee{pownRev} for $p\leq0$ is not provided.
 \code{max\_rel}, \code{min\_rel}, \code{sign\_rel} and \code{floor\_rel} are
 the reverse functions of $\max$, $\min$, $\operatorname{sign}$ and
 $\operatorname{floor}$ as the standard defines them (10.5.4), which it
@@ -4747,8 +4748,8 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
-$p\leq0$, \ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
+it provide \ieee{pownRev} for $p\leq0$,\newinvfive{} \ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1),
+\ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
 12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.

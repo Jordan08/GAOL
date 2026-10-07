@@ -1646,6 +1646,23 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval erfc(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval acos_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asin_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atan_rel(const interval& J, const interval &I);
+/*!
+    \brief relational atan2 of Z w.r.t. Y and X
+
+    atan2_rel(Z, Y, X) = hull{x in X | exists y in Y: atan2(y, x) in Z} (GAOL v5),
+    the reverse of atan2(y, x) of IEEE 1788-2015 (Table 9.1), which corresponds
+    to atan2Rev1(Y, Z, X) of Table 10.1. atan2(y, x) is defined on the plane but
+    (0, 0), with values in (-pi, pi].
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel(const interval& Z, const interval& Y, const interval& X);
+/*!
+    \brief relational atan2 of Z w.r.t. X and Y
+
+    atan2_exponent_rel(Z, X, Y) = hull{y in Y | exists x in X: atan2(y, x) in Z} (GAOL v5),
+    the reverse of atan2(y, x) with respect to y, which corresponds to
+    atan2Rev2(X, Z, Y) of Table 10.1.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_exponent_rel(const interval& Z, const interval& X, const interval& Y);
 
 GAOL_NODISCARD extern GAOL_PUBLIC   interval acosh_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asinh_rel(const interval& J, const interval &I);

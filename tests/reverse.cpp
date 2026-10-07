@@ -353,6 +353,56 @@ namespace
   }
 }
 
+
+// atan2_rel and atan2_exponent_rel tests (GAOL v5)
+void atan2_reverse_cases()
+{
+  // Test basic cases
+  check("atan2_rel([0, pi/2], [-1, 1], [-1, 1]) contains positive x",
+        !atan2_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval(-1.0, 1.0)).is_empty());
+  
+  check("atan2_rel([0, pi], [-1, 1], [-1, 1]) is entire X",
+        same_bounds(atan2_rel(interval(0.0, interval::pi().right()), interval(-1.0, 1.0), interval(-1.0, 1.0)),
+                    interval(-1.0, 1.0)));
+  
+  // Test with empty arguments
+  check("atan2_rel(empty, Y, X) is empty",
+        atan2_rel(interval::emptyset(), interval(-1.0, 1.0), interval(-1.0, 1.0)).is_empty());
+  check("atan2_rel(Z, empty, X) is empty",
+        atan2_rel(interval(0.0, interval::pi().right()), interval::emptyset(), interval(-1.0, 1.0)).is_empty());
+  check("atan2_rel(Z, Y, empty) is empty",
+        atan2_rel(interval(0.0, interval::pi().right()), interval(-1.0, 1.0), interval::emptyset()).is_empty());
+  
+  // Test (0,0) undefined case
+  check("atan2_rel([0], [0], [0]) is empty",
+        atan2_rel(interval(0.0), interval(0.0), interval(0.0)).is_empty());
+  
+  // Test atan2_exponent_rel
+  check("atan2_exponent_rel([0, pi/2], [-1, 1], [-1, 1]) contains positive y",
+        !atan2_exponent_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval(-1.0, 1.0)).is_empty());
+  
+  check("atan2_exponent_rel([-pi/2, pi/2], [-1, 1], [1, 2]) contains y in [-2, 2]",
+        !atan2_exponent_rel(interval(-interval::half_pi().right(), interval::half_pi().right()), interval(1.0, 2.0), interval(-2.0, 2.0)).is_empty());
+  
+  // Test with IEEE 1788 namespace wrappers
+  check("atan2Rev1([-1, 1], [0, pi/2], [-1, 1]) matches atan2_rel",
+        same_bounds(gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0)),
+                    atan2_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval(-1.0, 1.0))));
+  
+  check("atan2Rev2([-1, 1], [0, pi/2], [-1, 1]) matches atan2_exponent_rel",
+        same_bounds(gaol_ieee1788::atan2Rev2(interval(-1.0, 1.0), interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0)),
+                    atan2_exponent_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval(-1.0, 1.0))));
+  
+  // Test atan2Rev without third argument (universe)
+  check("atan2Rev1(Y, C) uses universe for X",
+        same_bounds(gaol_ieee1788::atan2Rev1(interval(-1.0, 1.0), interval(0.0, interval::half_pi().right())),
+                    atan2_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval::universe())));
+  
+  check("atan2Rev2(X, C) uses universe for Y",
+        same_bounds(gaol_ieee1788::atan2Rev2(interval(-1.0, 1.0), interval(0.0, interval::half_pi().right())),
+                    atan2_exponent_rel(interval(0.0, interval::half_pi().right()), interval(-1.0, 1.0), interval::universe())));
+}
+
 int main()
 {
   gaol::init();
@@ -360,6 +410,7 @@ int main()
   pow_reverse_cases();
   pow_reverse_sampling();
   pow_reverse_examples();
+  atan2_reverse_cases();
   const int status = summary();
   gaol::cleanup();
   return status;
