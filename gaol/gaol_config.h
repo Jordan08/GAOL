@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -24,7 +25,7 @@
   compiling gaol with Borland C++ Builder.
 
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2002-12-03
 */
 

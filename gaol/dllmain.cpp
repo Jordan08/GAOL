@@ -1,31 +1,32 @@
 /*--------------------------------------------------------------------------
- * gaol -- Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily
- * developed at the Swiss Federal Institute of Technology, Lausanne,
- * Switzerland, and is now developed at the Institut de Recherche
- * en Informatique de Nantes, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
- *--------------------------------------------------------------------------*/
+* gaol -- Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily
+* developed at the Swiss Federal Institute of Technology, Lausanne,
+* Switzerland, and is now developed at the Institut de Recherche
+* en Informatique de Nantes, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
+* COPYING file for information.
+*--------------------------------------------------------------------------
+* By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Joran NININ
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   dllmain.cpp
-  \brief Main function for a dll created with Visual C++
+\file   dllmain.cpp
+\brief Main function for a dll created with Visual C++
 
-  Automatic handling of initialization and cleanup of the library.
-  With gcc, this task is performed through the definition of a static
-  object of the class init_cleanup.
-  With Visual C++ we use a switch() in DllMain().
+Automatic handling of initialization and cleanup of the library.
+With gcc, this task is performed through the definition of a static
+object of the class init_cleanup.
+With Visual C++ we use a switch() in DllMain().
 
-  \author Frédéric Goualard
-  \date   2001-10-03
+\author Frederic Goualard, Joran NININ
+\date   2001-10-03
 */
 
 #if defined (_MSC_VER)
@@ -40,17 +41,17 @@
 
 
 BOOL WINAPI DllMain(HINSTANCE hModule,
-		      DWORD  ul_reason_for_call,
-	      LPVOID lpReserved)
-{
-  switch( ul_reason_for_call ) {
-  case DLL_PROCESS_ATTACH:
-    gaol::initialization_process();
-    break;
-  case DLL_PROCESS_DETACH:
-    gaol::cleanup_process();
-    break;
+  DWORD  ul_reason_for_call,
+  LPVOID lpReserved)
+  {
+    switch( ul_reason_for_call ) {
+      case DLL_PROCESS_ATTACH:
+      gaol::initialization_process();
+      break;
+      case DLL_PROCESS_DETACH:
+      gaol::cleanup_process();
+      break;
+    }
+    return TRUE;
   }
-  return TRUE;
-}
-#endif // _MSC_VER
+  #endif // _MSC_VER

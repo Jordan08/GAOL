@@ -1,27 +1,28 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily 
- * developed at the Swiss Federal Institute of Technology, Lausanne, 
- * Switzerland, and is now developed at the Laboratoire d'Informatique de 
- * Nantes-Atlantique, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
- *                         Nantes-Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------*/
+* gaol -- NOT Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily 
+* developed at the Swiss Federal Institute of Technology, Lausanne, 
+* Switzerland, and is now developed at the Laboratoire d'Informatique de 
+* Nantes-Atlantique, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de 
+*                         Nantes-Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
+* COPYING file for information.
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_expr_eval.h
-  \brief  Evaluation of an interval represented internally via an expression
+\file   gaol_expr_eval.h
+\brief  Evaluation of an interval represented internally via an expression
 
-  <long description>
+<long description>
 
-  \author Frederic Goualard
-  \date   2001-10-30
+\author Frederic Goualard, Joran NININ
+\date   2001-10-30
 */
 
 
@@ -38,15 +39,15 @@
 namespace gaol_core {
   // Forward declarations
   /*!
-    \brief Base class for all visitors that want to manipulate expressions
-    
-    A derived class can override only a subset of the visit() methods. It
-    is then assumed that all the non-overrided ones are illegal in the
-    context of this visitor. The error attribute is used to report such an
-    error.
+  \brief Base class for all visitors that want to manipulate expressions
+  
+  A derived class can override only a subset of the visit() methods. It
+  is then assumed that all the non-overrided ones are illegal in the
+  context of this visitor. The error attribute is used to report such an
+  error.
   */
   class expr_eval : public expr_visitor {
-  public:
+    public:
     virtual void visit(null_node*) {
       error = true;
     }
@@ -193,10 +194,10 @@ namespace gaol_core {
     interval result() {
       return stack.pop();
     }
-  private:
+    private:
     eval_stack<interval> stack;
   };
-
+  
 } // namespace gaol_core
 
 // In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)

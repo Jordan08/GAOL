@@ -1,59 +1,60 @@
 /*-*-C-*---------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------
- * What the sources of CORE-MATH (3rd/math-core) need to compile as a part of
- * GAOL, with every compiler GAOL is built with and on every architecture.
- *
- * The three builds include this header of themselves, before anything else,
- * in each source of CORE-MATH they compile (`-include` with GCC and Clang,
- * `/FI` with Visual C++): the sources themselves do not name it, so that
- * importing a newer CORE-MATH is a plain copy.
- *
- * It gives them:
- *
- * - the 128-bit integer their accurate phases compute with
- *   (gaol/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
- *   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
- *   32-bit targets too, where the compiler has no 128-bit type of its own;
- * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
- *   with a program or a C library holding CORE-MATH's functions too;
- * - what Visual C++ has not of GCC: the builtins the sources call, and
- *   __attribute__; and __builtin_roundeven() where the compiler has not;
- * - on x86-64, a fegetround() that reads MXCSR, where their doubles are
- *   rounded, rather than the x87 unit, which the C library may read;
- * - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
- *   direction in effect, rather than the one of the C library;
- * - silence for the warnings on conversions GAOL's library is compiled with.
- *
- * Copyright (c) 2026 ENSTA, France
- *
- * Created 2026-09-20 by Jordan NININ
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *--------------------------------------------------------------------------*/
+* gaol -- NOT Just Another Interval Library
+*--------------------------------------------------------------------------
+* What the sources of CORE-MATH (3rd/math-core) need to compile as a part of
+* GAOL, with every compiler GAOL is built with and on every architecture.
+*
+* The three builds include this header of themselves, before anything else,
+* in each source of CORE-MATH they compile (`-include` with GCC and Clang,
+* `/FI` with Visual C++): the sources themselves do not name it, so that
+* importing a newer CORE-MATH is a plain copy.
+*
+* It gives them:
+*
+* - the 128-bit integer their accurate phases compute with
+*   (gaol/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
+*   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
+*   32-bit targets too, where the compiler has no 128-bit type of its own;
+* - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
+*   with a program or a C library holding CORE-MATH's functions too;
+* - what Visual C++ has not of GCC: the builtins the sources call, and
+*   __attribute__; and __builtin_roundeven() where the compiler has not;
+* - on x86-64, a fegetround() that reads MXCSR, where their doubles are
+*   rounded, rather than the x87 unit, which the C library may read;
+* - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
+*   direction in effect, rather than the one of the C library;
+* - silence for the warnings on conversions GAOL's library is compiled with.
+*
+* Copyright (c) 2026 ENSTA, France
+* Modified by Joran NININ (GAOL v5)
+*
+* Created 2026-09-20 by Jordan NININ
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
+* COPYING file for information.
+*--------------------------------------------------------------------------*/
 
 #ifndef GAOL_CORE_MATH_PORT_H
 #define GAOL_CORE_MATH_PORT_H
 
 /* GCC 14 for a 32-bit x86 target stopped on an internal compiler error in
-   asinpi_acc() of asinpi.c ("in extract_bit_field_1, at expmed.cc:1838", at
-   -O2 and -O3): its SLP vectorizer puts the two 64-bit halves of the 128-bit
-   integer, a structure there, in a vector it cannot take them out of again
-   (the continuous integration, MinGW-w64 14.2 x86; reproduced with the GCC
-   14.2 of Ubuntu and -m32). GCC 12, 13 and 15 compile it. The SLP vectorizer
-   is turned off for the sources of CORE-MATH with that compiler only, which
-   compute on scalars. */
+asinpi_acc() of asinpi.c ("in extract_bit_field_1, at expmed.cc:1838", at
+-O2 and -O3): its SLP vectorizer puts the two 64-bit halves of the 128-bit
+integer, a structure there, in a vector it cannot take them out of again
+(the continuous integration, MinGW-w64 14.2 x86; reproduced with the GCC
+14.2 of Ubuntu and -m32). GCC 12, 13 and 15 compile it. The SLP vectorizer
+is turned off for the sources of CORE-MATH with that compiler only, which
+compute on scalars. */
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 14 \
-    && defined(__i386__) && !defined(__x86_64__)
+&& defined(__i386__) && !defined(__x86_64__)
 #pragma GCC optimize ("no-tree-slp-vectorize")
 #endif
 
 #include <stdint.h>
 
 /*---------------------------------------------------------------------------
-  The names of the functions
- --------------------------------------------------------------------------*/
+The names of the functions
+--------------------------------------------------------------------------*/
 
 #define cr_exp gaol_cr_exp
 #define cr_log gaol_cr_log
@@ -95,63 +96,63 @@
 #include "gaol/gaol_core_math.h"
 
 /*---------------------------------------------------------------------------
-  The 128-bit unsigned integer
+The 128-bit unsigned integer
 
-  The accurate phases of log, sin, cos, tan, atan2, pow, log2p1, log10p1,
-  atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned integer,
-  which their sources name u128, and asinpi with a signed one too, i128, held
-  in a u128 in two's complement. GCC and Clang have
-  one on 64-bit targets, and Clang has _BitInt(128) on 32-bit targets too;
-  Visual C++ has none, on no architecture, and neither has GCC for a 32-bit
-  target. There the sources take the structure of two 64-bit halves of
-  gaol/gaol_u128.h, which tests/u128.cpp checks against the native type, and
-  call its functions rather than the operators of the language.
+The accurate phases of log, sin, cos, tan, atan2, pow, log2p1, log10p1,
+atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned integer,
+which their sources name u128, and asinpi with a signed one too, i128, held
+in a u128 in two's complement. GCC and Clang have
+one on 64-bit targets, and Clang has _BitInt(128) on 32-bit targets too;
+Visual C++ has none, on no architecture, and neither has GCC for a 32-bit
+target. There the sources take the structure of two 64-bit halves of
+gaol/gaol_u128.h, which tests/u128.cpp checks against the native type, and
+call its functions rather than the operators of the language.
 
-  Each of these sources keeps its own definitions of uint128_t, addu_128,
-  subu_128, cmp and cmpu, whose signatures are not the same in all of them:
-  only the line naming the type is GAOL's.
- --------------------------------------------------------------------------*/
+Each of these sources keeps its own definitions of uint128_t, addu_128,
+subu_128, cmp and cmpu, whose signatures are not the same in all of them:
+only the line naming the type is GAOL's.
+--------------------------------------------------------------------------*/
 
 #include "gaol/gaol_u128.h"
 
 /*---------------------------------------------------------------------------
-  roundeven(), which the math library of Windows has not
+roundeven(), which the math library of Windows has not
 
-  The sources call __builtin_roundeven(). GCC and Clang turn it into one
-  instruction where the processor has it (roundsd of SSE4.1, frintn on ARM),
-  and into a call to roundeven() of C23 otherwise: the math library of glibc
-  has that function, those of mingw-w64 and of Visual C++ have not, and a
-  program linking GAOL there stopped on "undefined reference to roundeven"
-  (the continuous integration, with MinGW-w64 15 and MSYS2, where GAOL is
-  compiled without the AVX instructions).
+The sources call __builtin_roundeven(). GCC and Clang turn it into one
+instruction where the processor has it (roundsd of SSE4.1, frintn on ARM),
+and into a call to roundeven() of C23 otherwise: the math library of glibc
+has that function, those of mingw-w64 and of Visual C++ have not, and a
+program linking GAOL there stopped on "undefined reference to roundeven"
+(the continuous integration, with MinGW-w64 15 and MSYS2, where GAOL is
+compiled without the AVX instructions).
 
-  So on Windows the builtin is replaced by the function below, which reads the
-  bits: it is neither round() (halfway values away from zero) nor nearbyint()
-  (the rounding direction in effect, upward in GAOL), and it does not depend on
-  that direction.
- --------------------------------------------------------------------------*/
+So on Windows the builtin is replaced by the function below, which reads the
+bits: it is neither round() (halfway values away from zero) nor nearbyint()
+(the rounding direction in effect, upward in GAOL), and it does not depend on
+that direction.
+--------------------------------------------------------------------------*/
 
 #include "gaol/gaol_roundeven.h"
 
 /*---------------------------------------------------------------------------
-  fesetexceptflag() on a 32-bit Windows, which unmasks the exceptions
+fesetexceptflag() on a 32-bit Windows, which unmasks the exceptions
 
-  cbrt, pow and atan2 read the rounding direction and keep the exception flags
-  around their work, with _mm_getcsr() and _mm_setcsr() on x86-64 and with
-  fegetexceptflag() and fesetexceptflag() everywhere else. The
-  fesetexceptflag() of mingw-w64 for a 32-bit target does not write the flags
-  alone: it clears the mask bits of MXCSR with them, so that the invalid, the
-  divide-by-zero and the overflow exceptions become unmasked (the register went
-  from 0x5fb2 to 0x5932 in the continuous integration). An exception then traps
-  rather than raise a flag, and GAOL died on the first comparison of the bounds
-  of an empty interval, which are NaN and which is_empty() compares with <=, an
-  operation that signals invalid.
+cbrt, pow and atan2 read the rounding direction and keep the exception flags
+around their work, with _mm_getcsr() and _mm_setcsr() on x86-64 and with
+fegetexceptflag() and fesetexceptflag() everywhere else. The
+fesetexceptflag() of mingw-w64 for a 32-bit target does not write the flags
+alone: it clears the mask bits of MXCSR with them, so that the invalid, the
+divide-by-zero and the overflow exceptions become unmasked (the register went
+from 0x5fb2 to 0x5932 in the continuous integration). An exception then traps
+rather than raise a flag, and GAOL died on the first comparison of the bounds
+of an empty interval, which are NaN and which is_empty() compares with <=, an
+operation that signals invalid.
 
-  So on a 32-bit x86 Windows the two are written here, on MXCSR, where GAOL's
-  doubles are computed (gaol/gaol_config.h refuses an x86 target whose doubles
-  are not). The six flag bits of MXCSR are the FE_* values of x86 in the same
-  order, so no mapping is needed; the mask bits are left exactly as they are.
- --------------------------------------------------------------------------*/
+So on a 32-bit x86 Windows the two are written here, on MXCSR, where GAOL's
+doubles are computed (gaol/gaol_config.h refuses an x86 target whose doubles
+are not). The six flag bits of MXCSR are the FE_* values of x86 in the same
+order, so no mapping is needed; the mask bits are left exactly as they are.
+--------------------------------------------------------------------------*/
 
 #if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
 
@@ -178,27 +179,27 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #endif /* a 32-bit x86 Windows */
 
 /*---------------------------------------------------------------------------
-  The square root on a 32-bit Windows, which the C library rounds to nearest
+The square root on a 32-bit Windows, which the C library rounds to nearest
 
-  The sources take their square roots with __builtin_sqrt(): pow.c for
-  y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
-  atanh, hypot, rsqrt, asinpi and acospi. The square root of the C libraries
-  of Windows for 32-bit x86 is rounded to nearest in every rounding direction
-  (see gaol_sqrt_up() in gaol/gaol_interval.cpp). Visual C++ calls it for the
-  builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
-  the Debug builds) and in the accurate phases of acos, asin and asinpi,
-  which the sources mark cold, at -O2 too (GCC 13); elsewhere it writes
-  sqrtsd, and calls the C library for a negative argument only (acosh,
-  acospi). pow(x, 0.5) was then below the root rounding upward, and above it
-  rounding downward, at subnormal x, and GAOL's upper bound of
-  pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
-  (tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The
-  square root of SSE2 is taken there instead, with every compiler and at
-  every optimization level, which rounds in the direction of MXCSR, as every
-  other operation on doubles does there (gaol/gaol_config.h refuses an x86
-  target that does not compute its doubles with SSE2, and the three builds
-  give these sources -msse2 -mfpmath=sse).
- --------------------------------------------------------------------------*/
+The sources take their square roots with __builtin_sqrt(): pow.c for
+y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
+atanh, hypot, rsqrt, asinpi and acospi. The square root of the C libraries
+of Windows for 32-bit x86 is rounded to nearest in every rounding direction
+(see gaol_sqrt_up() in gaol/gaol_interval.cpp). Visual C++ calls it for the
+builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
+the Debug builds) and in the accurate phases of acos, asin and asinpi,
+which the sources mark cold, at -O2 too (GCC 13); elsewhere it writes
+sqrtsd, and calls the C library for a negative argument only (acosh,
+acospi). pow(x, 0.5) was then below the root rounding upward, and above it
+rounding downward, at subnormal x, and GAOL's upper bound of
+pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
+(tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The
+square root of SSE2 is taken there instead, with every compiler and at
+every optimization level, which rounds in the direction of MXCSR, as every
+other operation on doubles does there (gaol/gaol_config.h refuses an x86
+target that does not compute its doubles with SSE2, and the three builds
+give these sources -msse2 -mfpmath=sse).
+--------------------------------------------------------------------------*/
 
 #if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
 
@@ -214,37 +215,37 @@ static inline double gaol_sqrt(double x)
 #endif /* a 32-bit x86 Windows */
 
 /*---------------------------------------------------------------------------
-  fegetround() on x86-64: the direction of the SSE instructions
+fegetround() on x86-64: the direction of the SSE instructions
 
-  pow, and cos and tan, whose accurate phases carry the same code, round a
-  subnormal result themselves, in the direction fegetround() gives, where every
-  other double they compute is rounded by the SSE instructions, in the
-  direction of MXCSR. On x86-64 the two are the same only if nothing left them
-  differing: the fegetround() of glibc reads the control word of the x87 unit
-  alone, and GAOL finds the direction upward when 1 + 2^-60, a sum of the SSE
-  instructions, is above 1, without looking at the x87 unit. A program that
-  leaves the x87 unit to nearest and MXCSR upward, as the exactinit() of the
-  predicates of Shewchuk and of Triangle does, then had pow() round its
-  subnormal results to nearest: the upper bound was below the exact value for
-  about half of the arguments (tests/rounding_direction.cpp).
+pow, and cos and tan, whose accurate phases carry the same code, round a
+subnormal result themselves, in the direction fegetround() gives, where every
+other double they compute is rounded by the SSE instructions, in the
+direction of MXCSR. On x86-64 the two are the same only if nothing left them
+differing: the fegetround() of glibc reads the control word of the x87 unit
+alone, and GAOL finds the direction upward when 1 + 2^-60, a sum of the SSE
+instructions, is above 1, without looking at the x87 unit. A program that
+leaves the x87 unit to nearest and MXCSR upward, as the exactinit() of the
+predicates of Shewchuk and of Triangle does, then had pow() round its
+subnormal results to nearest: the upper bound was below the exact value for
+about half of the arguments (tests/rounding_direction.cpp).
 
-  So the sources of CORE-MATH read the direction from MXCSR here, as the
-  get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does, since the
-  processor computes their doubles there (with mingw-w64, whose FE_* values
-  it does not know, get_rounding_mode() calls fegetround() too, and the one
-  of cbrt.c maps its value to the 0 to 3 it returns, see 3rd/README.md). The
-  rounding field of MXCSR is the same on every x86 processor, but the values
-  of FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of
-  Windows are not those of glibc, and changed once), which the switch gives
-  back whichever they are.
+So the sources of CORE-MATH read the direction from MXCSR here, as the
+get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does, since the
+processor computes their doubles there (with mingw-w64, whose FE_* values
+it does not know, get_rounding_mode() calls fegetround() too, and the one
+of cbrt.c maps its value to the 0 to 3 it returns, see 3rd/README.md). The
+rounding field of MXCSR is the same on every x86 processor, but the values
+of FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of
+Windows are not those of glibc, and changed once), which the switch gives
+back whichever they are.
 
-  The standard lets fegetround() be a macro, and it is a function in the C
-  libraries known here: what the sources call is renamed by a macro of ours,
-  after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
-  only ones this header is included in. Not on a 32-bit x86 processor, where
-  round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets both
-  when one is not upward, so that they never differ when CORE-MATH runs.
- --------------------------------------------------------------------------*/
+The standard lets fegetround() be a macro, and it is a function in the C
+libraries known here: what the sources call is renamed by a macro of ours,
+after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
+only ones this header is included in. Not on a 32-bit x86 processor, where
+round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets both
+when one is not upward, so that they never differ when CORE-MATH runs.
+--------------------------------------------------------------------------*/
 
 #if defined(__x86_64__) || defined(_M_X64)
 
@@ -254,10 +255,10 @@ static inline double gaol_sqrt(double x)
 static inline int gaol_fegetround(void)
 {
   switch (_mm_getcsr() & _MM_ROUND_MASK) {
-  case _MM_ROUND_NEAREST: return FE_TONEAREST;
-  case _MM_ROUND_DOWN: return FE_DOWNWARD;
-  case _MM_ROUND_UP: return FE_UPWARD;
-  default: return FE_TOWARDZERO;
+    case _MM_ROUND_NEAREST: return FE_TONEAREST;
+    case _MM_ROUND_DOWN: return FE_DOWNWARD;
+    case _MM_ROUND_UP: return FE_UPWARD;
+    default: return FE_TOWARDZERO;
   }
 }
 
@@ -267,19 +268,19 @@ static inline int gaol_fegetround(void)
 #endif /* x86-64 */
 
 /* The math library of Windows has no roundeven(), which the sources call
-   through __builtin_roundeven(): GCC and Clang turn that builtin into one
-   instruction where the processor has it (roundsd of SSE4.1, frintn on ARM)
-   and into a call to roundeven() otherwise, and a program linking GAOL there
-   stopped on "undefined reference to roundeven" (the continuous integration,
-   with MinGW-w64 15 and MSYS2, where GAOL is compiled without the AVX
-   instructions). The function of gaol/gaol_roundeven.h is given instead.
+through __builtin_roundeven(): GCC and Clang turn that builtin into one
+instruction where the processor has it (roundsd of SSE4.1, frintn on ARM)
+and into a call to roundeven() otherwise, and a program linking GAOL there
+stopped on "undefined reference to roundeven" (the continuous integration,
+with MinGW-w64 15 and MSYS2, where GAOL is compiled without the AVX
+instructions). The function of gaol/gaol_roundeven.h is given instead.
 
-   It is given as well to the compilers that have no such builtin: GCC before
-   10 and the Clang whose __has_builtin() says so. The other sources of
-   CORE-MATH take __builtin_roundeven() only from GCC 10 and Clang 17 and
-   round by themselves before, but sin.c calls it unguarded since its rewrite
-   (upstream commit 6b844573), which GCC 9.4 took for an undeclared function
-   and did not link. */
+It is given as well to the compilers that have no such builtin: GCC before
+10 and the Clang whose __has_builtin() says so. The other sources of
+CORE-MATH take __builtin_roundeven() only from GCC 10 and Clang 17 and
+round by themselves before, but sin.c calls it unguarded since its rewrite
+(upstream commit 6b844573), which GCC 9.4 took for an undeclared function
+and did not link. */
 #if defined(_WIN32) || defined(__MINGW32__) || defined(__CYGWIN__)
 #define __builtin_roundeven(x) gaol_roundeven(x)
 #elif defined(__clang__)
@@ -293,8 +294,8 @@ static inline int gaol_fegetround(void)
 #endif /* Windows, or no __builtin_roundeven() */
 
 /*---------------------------------------------------------------------------
-  What Visual C++ has not of GCC and Clang
- --------------------------------------------------------------------------*/
+What Visual C++ has not of GCC and Clang
+--------------------------------------------------------------------------*/
 
 #if defined(_MSC_VER) && !defined(__clang__)
 
@@ -326,54 +327,54 @@ static inline int gaol_fegetround(void)
 #endif
 
 /* NAN and INFINITY, which pow.c sets and returns, are no constants in a C
-   source compiled by Visual C++: the UCRT writes them
-   ((float)(_HUGE_ENUF * _HUGE_ENUF)) and
-   (-(float)(((float)(_HUGE_ENUF * _HUGE_ENUF)) * 0.0F)), _HUGE_ENUF being
-   1e+300, unless the compiler is compiling C++ or __has_builtin() names
-   __builtin_nanf, which Visual C++ has not. Under /fp:strict these products
-   and conversions are computed when the program runs, in the rounding
-   direction in effect, and give FLT_MAX and -0 downward and toward zero. The
-   NAN exp_1() of pow.c sets to send a power between 2^-1075 and about
-   2^-947 to the accurate phase was then -0, and so was the power: CORE-MATH's
-   pow rounded downward was -0 at (2^-1074)^1 (tests/core_math.cpp, with every
-   Visual C++ job). GAOL calls CORE-MATH upward, where both are right. They are
-   read here from their bits, which a load gives in every direction. */
+source compiled by Visual C++: the UCRT writes them
+((float)(_HUGE_ENUF * _HUGE_ENUF)) and
+(-(float)(((float)(_HUGE_ENUF * _HUGE_ENUF)) * 0.0F)), _HUGE_ENUF being
+1e+300, unless the compiler is compiling C++ or __has_builtin() names
+__builtin_nanf, which Visual C++ has not. Under /fp:strict these products
+and conversions are computed when the program runs, in the rounding
+direction in effect, and give FLT_MAX and -0 downward and toward zero. The
+NAN exp_1() of pow.c sets to send a power between 2^-1075 and about
+2^-947 to the accurate phase was then -0, and so was the power: CORE-MATH's
+pow rounded downward was -0 at (2^-1074)^1 (tests/core_math.cpp, with every
+Visual C++ job). GAOL calls CORE-MATH upward, where both are right. They are
+read here from their bits, which a load gives in every direction. */
 static const union { uint64_t u; double f; } gaol_infinity_bits = { 0x7ff0000000000000ull },
-                                             gaol_nan_bits = { 0x7ff8000000000000ull };
+gaol_nan_bits = { 0x7ff8000000000000ull };
 #undef INFINITY
 #define INFINITY (gaol_infinity_bits.f)
 #undef NAN
 #define NAN (gaol_nan_bits.f)
 
 /* The number of leading and of trailing zero bits, undefined at 0 as the
-   builtins of GCC are. _BitScanReverse64 and _BitScanForward64 are for the
-   64-bit architectures only: on 32-bit Windows the halves are scanned. */
+builtins of GCC are. _BitScanReverse64 and _BitScanForward64 are for the
+64-bit architectures only: on 32-bit Windows the halves are scanned. */
 static __forceinline int gaol_clzll(uint64_t x)
 {
-#if defined(_M_X64) || defined(_M_ARM64) || defined(_M_ARM64EC)
+  #if defined(_M_X64) || defined(_M_ARM64) || defined(_M_ARM64EC)
   unsigned long i;
   _BitScanReverse64(&i, x);
   return 63 - (int)i;
-#else
+  #else
   unsigned long i;
   if (_BitScanReverse(&i, (unsigned long)(x >> 32))) return 31 - (int)i;
   _BitScanReverse(&i, (unsigned long)x);
   return 63 - (int)i;
-#endif
+  #endif
 }
 
 static __forceinline int gaol_ctzll(uint64_t x)
 {
-#if defined(_M_X64) || defined(_M_ARM64) || defined(_M_ARM64EC)
+  #if defined(_M_X64) || defined(_M_ARM64) || defined(_M_ARM64EC)
   unsigned long i;
   _BitScanForward64(&i, x);
   return (int)i;
-#else
+  #else
   unsigned long i;
   if (_BitScanForward(&i, (unsigned long)x)) return (int)i;
   _BitScanForward(&i, (unsigned long)(x >> 32));
   return 32 + (int)i;
-#endif
+  #endif
 }
 
 #define __builtin_clzll(x) gaol_clzll(x)
@@ -395,9 +396,9 @@ static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t 
 #endif /* _MSC_VER */
 
 /*---------------------------------------------------------------------------
-  The warnings GAOL's library is compiled with, which the sources of
-  CORE-MATH are not written for
- --------------------------------------------------------------------------*/
+The warnings GAOL's library is compiled with, which the sources of
+CORE-MATH are not written for
+--------------------------------------------------------------------------*/
 
 #if defined(__GNUC__) || defined(__clang__)
 #  pragma GCC diagnostic ignored "-Wconversion"

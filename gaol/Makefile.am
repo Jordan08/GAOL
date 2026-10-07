@@ -8,6 +8,7 @@
 #
 # Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
 # Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique, France
+# Copyright (c) 2026 ENSTA, France
 #------------------------------------------------------------------------------
 # gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 # COPYING file for information.
@@ -17,7 +18,7 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base
 # directory of gaol.
 #------------------------------------------------------------------------------
-# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
+# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Joran NININ
 #------------------------------------------------------------------------------
 
 .PHONY: tags

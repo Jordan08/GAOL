@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -20,7 +21,7 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-03
 */
 
@@ -38,8 +39,7 @@
 
 // _mm_ucomigt_sd() and the others, for the quiet comparisons of Visual C++
 // below
-#if defined(_MSC_VER) && !defined(__clang__) \
-    && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+#if defined(_MSC_VER) && !defined(__clang__)  && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
 #  include <emmintrin.h>
 #endif
 
@@ -132,8 +132,7 @@ namespace gaol_core {
 // The casts of C of GAOL_HI() and GAOL_LO() are written with those of C++
 // (GAOL v5): reinterpret_cast, to a const pointer so that a const double is
 // taken too, then const_cast, so that the word stays assignable as before
-#define GAOL_WORD_OF_DOUBLE(x) \
-  const_cast<GAOL_INT_FOR_DOUBLE*>(reinterpret_cast<const GAOL_INT_FOR_DOUBLE*>(&(x)))
+#define GAOL_WORD_OF_DOUBLE(x)  const_cast<GAOL_INT_FOR_DOUBLE*>(reinterpret_cast<const GAOL_INT_FOR_DOUBLE*>(&(x)))
 #if GAOL_WORDS_BIGENDIAN
 #  define GAOL_IFBIGENDIAN(a,b)   (a), (b)
 #  define GAOL_HI(x) (*GAOL_WORD_OF_DOUBLE(x))
@@ -216,8 +215,7 @@ namespace gaol_core {
 } // namespace gaol_core
 
 namespace gaol_detail {
-#if defined(_MSC_VER) && !defined(__clang__) \
-  && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
   GAOL_INLINE bool quiet_less(double x, double y)
   {
     return _mm_ucomigt_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;

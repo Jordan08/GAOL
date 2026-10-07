@@ -1,63 +1,64 @@
 /*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
- * The operations of IEEE 1788-2015 under their own names: gaol_ieee1788.
- *
- * GAOL names its operations its own way: the reverse function coshRev(c, x) of
- * the standard is acosh_rel(c, x) here, mulRev(b, c, x) is div_rel(c, b, x),
- * with its arguments in another order, and roundTiesToEven(x) is
- * round_ties_to_even(x). This namespace gives each operation of the standard
- * that GAOL provides the name the standard gives it, with its arguments in the
- * order the standard puts them, so that a reader of the standard finds it
- * without looking for its translation. Each one forwards to the operation of
- * GAOL, which the comment above it names.
- *
- * The namespace is not in gaol, and it holds GAOL's type interval as well: a
- * program that adds
- *
- *   using namespace gaol_ieee1788;
- *
- * uses GAOL under the names of the standard, without naming gaol: a program
- * opens one of the two namespaces, not both. The type interval and GAOL's
- * functions are in gaol_core (gaol/gaol_interval.h), the only namespace where
- * argument-dependent lookup looks for a call sin(x) on an interval, so that
- * it finds neither gaol's functions nor these. The functions of GAOL that
- * have the name and the meaning the standard gives them (sin, exp, sqrt,
- * min...) are brought in by using-declarations of those of gaol_core, which
- * name the functions argument-dependent lookup finds too. This file does not
- * include gaol/gaol_expression.h (GAOL v5): a program using the expressions
- * includes it, as with GAOL 4, and it declares them again for its overloads,
- * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
- * in this namespace.
- *
- * Where the standard and GAOL differ, these functions follow the standard:
- *   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
- *     for x = 0 when y > 0, [p] being the exponent for a number p, an int
- *     included: the power with an integer exponent is pown(x, p) in the
- *     standard. gaol::pow takes that integer power for an integer exponent,
- *     which is defined for x < 0 too, and gives [-oo, +oo] for an integer
- *     beyond the ints. Neither pow is in gaol_core: each namespace has its own.
- *     pown(e, n) and pow(e1, e2) build expressions (gaol/gaol_expression.h)
- *     computed with the pown and the pow of the standard;
- *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
- *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
- *   - isMember(m, x) is false for an infinite m (10.6.3);
- *   - textToInterval and exactToInterval read the names of the functions of
- *     the standard (pown, rootn, sinPi...), where gaol::textToInterval reads
- *     those of GAOL, and return the empty set for a string that is no
- *     interval literal (12.1.3), where GAOL throws.
- *
- * Only bare intervals are provided: GAOL has no decorations (Clause 11). The
- * operations of the standard GAOL does not provide are listed at the end of
- * this file.
- *
- * Copyright (c) 2026 ENSTA, France
- *
- * Created 2026-09-21 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+* gaol -- NOT Just Another Interval Library
+*------------------------------------------------------------------------------
+* The operations of IEEE 1788-2015 under their own names: gaol_ieee1788.
+*
+* GAOL names its operations its own way: the reverse function coshRev(c, x) of
+* the standard is acosh_rel(c, x) here, mulRev(b, c, x) is div_rel(c, b, x),
+* with its arguments in another order, and roundTiesToEven(x) is
+* round_ties_to_even(x). This namespace gives each operation of the standard
+* that GAOL provides the name the standard gives it, with its arguments in the
+* order the standard puts them, so that a reader of the standard finds it
+* without looking for its translation. Each one forwards to the operation of
+* GAOL, which the comment above it names.
+*
+* The namespace is not in gaol, and it holds GAOL's type interval as well: a
+* program that adds
+*
+*   using namespace gaol_ieee1788;
+*
+* uses GAOL under the names of the standard, without naming gaol: a program
+* opens one of the two namespaces, not both. The type interval and GAOL's
+* functions are in gaol_core (gaol/gaol_interval.h), the only namespace where
+* argument-dependent lookup looks for a call sin(x) on an interval, so that
+* it finds neither gaol's functions nor these. The functions of GAOL that
+* have the name and the meaning the standard gives them (sin, exp, sqrt,
+* min...) are brought in by using-declarations of those of gaol_core, which
+* name the functions argument-dependent lookup finds too. This file does not
+* include gaol/gaol_expression.h (GAOL v5): a program using the expressions
+* includes it, as with GAOL 4, and it declares them again for its overloads,
+* whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
+* in this namespace.
+*
+* Where the standard and GAOL differ, these functions follow the standard:
+*   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
+*     for x = 0 when y > 0, [p] being the exponent for a number p, an int
+*     included: the power with an integer exponent is pown(x, p) in the
+*     standard. gaol::pow takes that integer power for an integer exponent,
+*     which is defined for x < 0 too, and gives [-oo, +oo] for an integer
+*     beyond the ints. Neither pow is in gaol_core: each namespace has its own.
+*     pown(e, n) and pow(e1, e2) build expressions (gaol/gaol_expression.h)
+*     computed with the pown and the pow of the standard;
+*   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
+*     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
+*   - isMember(m, x) is false for an infinite m (10.6.3);
+*   - textToInterval and exactToInterval read the names of the functions of
+*     the standard (pown, rootn, sinPi...), where gaol::textToInterval reads
+*     those of GAOL, and return the empty set for a string that is no
+*     interval literal (12.1.3), where GAOL throws.
+*
+* Only bare intervals are provided: GAOL has no decorations (Clause 11). The
+* operations of the standard GAOL does not provide are listed at the end of
+* this file.
+*
+* Copyright (c) 2026 ENSTA, France
+* Modified by Joran NININ (GAOL v5)
+*
+* Created 2026-09-21 by Jordan NININ
+*------------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
+* COPYING file for information.
+*----------------------------------------------------------------------------*/
 
 #ifndef GAOL_IEEE1788_H
 #define GAOL_IEEE1788_H
@@ -71,34 +72,34 @@
 #include "gaol/gaol_parser.h"
 
 namespace gaol_ieee1788 {
-
+  
   //! The interval of GAOL, the type of the operations below
   using ::gaol_core::interval;
-
+  
   /* Each function below calls the operation of GAOL by its full name,
-     ::gaol_core::f: inside this namespace an unqualified f would be the
-     function of the same name defined here, and call itself. */
-
+  ::gaol_core::f: inside this namespace an unqualified f would be the
+  function of the same name defined here, and call itself. */
+  
   // ----------------------------------------------------------------------
   // Interval constants (10.5.2) and constructors (10.5.8, 12.12.7)
   // ----------------------------------------------------------------------
-
+  
   //! empty(): interval::emptyset()
   GAOL_NODISCARD inline interval empty() { return interval::emptyset(); }
   //! entire(): interval::universe()
   GAOL_NODISCARD inline interval entire() { return interval::universe(); }
-
+  
   //! numsToInterval(l, u): interval(l, u), the empty set for l > u, l = +oo, u = -oo or a NaN
   GAOL_NODISCARD inline interval numsToInterval(double l, double u) { return interval(l, u); }
   //! numsToInterval(l, u) with an integer bound: interval(l, u), which contains the integers given (GAOL v5)
   template <class A, class B, ::gaol_detail::if_integer_bounds<A, B> = 0>
   GAOL_NODISCARD inline interval numsToInterval(A l, B u) { return interval(l, u); }
-
+  
   /*!
-    textToInterval(s): the interval s writes, read with the names of the
-    functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
-    gaol::textToInterval() reads those of GAOL (GAOL v5); the empty set for a
-    string that is no interval (12.1.3), where GAOL throws
+  textToInterval(s): the interval s writes, read with the names of the
+  functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
+  gaol::textToInterval() reads those of GAOL (GAOL v5); the empty set for a
+  string that is no interval (12.1.3), where GAOL throws
   */
   GAOL_NODISCARD inline interval textToInterval(const std::string& s)
   {
@@ -109,11 +110,11 @@ namespace gaol_ieee1788 {
       return interval::emptyset();
     }
   }
-
+  
   // ----------------------------------------------------------------------
   // Forward elementary functions (Table 9.1)
   // ----------------------------------------------------------------------
-
+  
   //! neg(x): -x
   GAOL_NODISCARD inline interval neg(const interval& x) { return -x; }
   //! add(x, y): x + y
@@ -130,46 +131,46 @@ namespace gaol_ieee1788 {
   using ::gaol_core::sqr;
   using ::gaol_core::sqrt;
   using ::gaol_core::fma;
-
+  
   /*!
-    pown(x, p): gaol_pown(x, p), x^p for an int p, defined for x < 0 too. The
-    standard's power with an integer exponent: its p is an integer, not an
-    interval (Table 9.1, footnote b), and pow has no such exponent.
+  pown(x, p): gaol_pown(x, p), x^p for an int p, defined for x < 0 too. The
+  standard's power with an integer exponent: its p is an integer, not an
+  interval (Table 9.1, footnote b), and pow has no such exponent.
   */
   GAOL_NODISCARD inline interval pown(const interval& x, int p) { return ::gaol_core::gaol_pown(x, p); }
   /*!
-    pown(x, p) for an integer p of another type (GAOL v5), as gaol::pow(x, p):
-    an unsigned p beyond the ints was converted to a negative int, a long one
-    cut to an int; [-oo, +oo] beyond the unsigned ints for a nonempty x
+  pown(x, p) for an integer p of another type (GAOL v5), as gaol::pow(x, p):
+  an unsigned p beyond the ints was converted to a negative int, a long one
+  cut to an int; [-oo, +oo] beyond the unsigned ints for a nonempty x
   */
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pown(const interval& x, T p) { return ::gaol_detail::integer_power(x, p); }
-
+  
   /*!
-    pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
-    [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is that
-    pow there, but for a degenerate integer exponent [n], for which it takes
-    pown: the same on x >= 0 for an n within the ints, and [-oo, +oo] beyond
-    them, where pown cannot be called. x^n is monotone in x >= 0, so that its
-    bounds there are CORE-MATH's pow at the bounds of x, each one double at
-    most from the tightest one: pow([2, 3], [1e10]) is [DBL_MAX, +oo],
-    pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
-    Defined in gaol/gaol_interval.cpp (GAOL v5): the bounds at doubles it
-    takes for an integer exponent beyond the ints are not part of GAOL's
-    interface (gaol/gaol_double_op.h).
+  pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
+  [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is that
+  pow there, but for a degenerate integer exponent [n], for which it takes
+  pown: the same on x >= 0 for an n within the ints, and [-oo, +oo] beyond
+  them, where pown cannot be called. x^n is monotone in x >= 0, so that its
+  bounds there are CORE-MATH's pow at the bounds of x, each one double at
+  most from the tightest one: pow([2, 3], [1e10]) is [DBL_MAX, +oo],
+  pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
+  Defined in gaol/gaol_interval.cpp (GAOL v5): the bounds at doubles it
+  takes for an integer exponent beyond the ints are not part of GAOL's
+  interface (gaol/gaol_double_op.h).
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval pow(const interval& x, const interval& y);
   /*!
-    pow(x, p): pow(x, [p]), the pow of the standard for a double as
-    exponent. An integer exponent has its own, pow(x, interval(p)), interval(p)
-    containing an integer that is no double (GAOL v5); pow(x, 2) is pow(x,
-    [2]), not the integer power pown(x, 2): pow([-4, -1], 2) is the empty set
-    here, and [1, 16] in gaol.
+  pow(x, p): pow(x, [p]), the pow of the standard for a double as
+  exponent. An integer exponent has its own, pow(x, interval(p)), interval(p)
+  containing an integer that is no double (GAOL v5); pow(x, 2) is pow(x,
+  [2]), not the integer power pown(x, 2): pow([-4, -1], 2) is the empty set
+  here, and [1, 16] in gaol.
   */
   GAOL_NODISCARD inline interval pow(const interval& x, double p) { return pow(x, interval(p)); }
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pow(const interval& x, T p) { return pow(x, interval(p)); }
-
+  
   //! exp(x), exp2(x), exp10(x), log(x), log2(x), log10(x): the functions of GAOL
   using ::gaol_core::exp;
   using ::gaol_core::exp2;
@@ -177,7 +178,7 @@ namespace gaol_ieee1788 {
   using ::gaol_core::log;
   using ::gaol_core::log2;
   using ::gaol_core::log10;
-
+  
   //! The trigonometric and hyperbolic functions: the functions of GAOL, atan2(y, x) included
   using ::gaol_core::sin;
   using ::gaol_core::cos;
@@ -192,7 +193,7 @@ namespace gaol_ieee1788 {
   using ::gaol_core::asinh;
   using ::gaol_core::acosh;
   using ::gaol_core::atanh;
-
+  
   //! The integer functions: sign, ceil, floor and trunc of GAOL
   using ::gaol_core::sign;
   using ::gaol_core::ceil;
@@ -202,16 +203,16 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval roundTiesToEven(const interval& x) { return ::gaol_core::round_ties_to_even(x); }
   //! roundTiesToAway(x): round_ties_to_away(x)
   GAOL_NODISCARD inline interval roundTiesToAway(const interval& x) { return ::gaol_core::round_ties_to_away(x); }
-
+  
   //! The absmax functions: abs, min and max of GAOL
   using ::gaol_core::abs;
   using ::gaol_core::min;
   using ::gaol_core::max;
-
+  
   // ----------------------------------------------------------------------
   // Recommended forward functions (Table 10.5)
   // ----------------------------------------------------------------------
-
+  
   //! rootn(x, q): nth_root(x, q), q may be negative
   GAOL_NODISCARD inline interval rootn(const interval& x, int q) { return ::gaol_core::nth_root(x, q); }
   //! rootn(x, q) for an integer q of another type: nth_root(x, q) (GAOL v5)
@@ -237,23 +238,23 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval acosPi(const interval& x) { return ::gaol_core::acospi(x); }
   GAOL_NODISCARD inline interval atanPi(const interval& x) { return ::gaol_core::atanpi(x); }
   GAOL_NODISCARD inline interval atan2Pi(const interval& y, const interval& x) { return ::gaol_core::atan2pi(y, x); }
-
+  
   // ----------------------------------------------------------------------
   // Reverse functions (Table 10.1): the last argument x is optional and
   // [-oo, +oo] when absent (10.5.4)
   // ----------------------------------------------------------------------
-
+  
   //! sqrRev(c, x): sqrt_rel(c, x)
   GAOL_NODISCARD inline interval sqrRev(const interval& c, const interval& x) { return ::gaol_core::sqrt_rel(c, x); }
   GAOL_NODISCARD inline interval sqrRev(const interval& c) { return ::gaol_core::sqrt_rel(c, interval::universe()); }
   //! absRev(c, x): invabs_rel(c, x)
   GAOL_NODISCARD inline interval absRev(const interval& c, const interval& x) { return ::gaol_core::invabs_rel(c, x); }
   GAOL_NODISCARD inline interval absRev(const interval& c) { return ::gaol_core::invabs_rel(c, interval::universe()); }
-
+  
   /*!
-    pownRev(c, x, p): nth_root_rel(c, p, x), for p >= 1. GAOL has no reverse
-    of pown for p <= 0, which throws std::invalid_argument rather than give an
-    interval it has not computed.
+  pownRev(c, x, p): nth_root_rel(c, p, x), for p >= 1. GAOL has no reverse
+  of pown for p <= 0, which throws std::invalid_argument rather than give an
+  interval it has not computed.
   */
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, int p)
   {
@@ -264,11 +265,11 @@ namespace gaol_ieee1788 {
   }
   GAOL_NODISCARD inline interval pownRev(const interval& c, int p) { return pownRev(c, interval::universe(), p); }
   /*!
-    pownRev(c, x, p) for an integer p of another type (GAOL v5): an unsigned
-    p beyond the ints was converted to a negative int, and threw. For a p
-    within the unsigned ints, nth_root_rel(c, p, x); beyond them, the hull of
-    the parts of x in the roots of order p of c and, for an even p, in their
-    opposites (gaol_detail::huge_root()), which every x with x^p in c is in
+  pownRev(c, x, p) for an integer p of another type (GAOL v5): an unsigned
+  p beyond the ints was converted to a negative int, and threw. For a p
+  within the unsigned ints, nth_root_rel(c, p, x); beyond them, the hull of
+  the parts of x in the roots of order p of c and, for an even p, in their
+  opposites (gaol_detail::huge_root()), which every x with x^p in c is in
   */
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, T p)
@@ -284,7 +285,7 @@ namespace gaol_ieee1788 {
   }
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pownRev(const interval& c, T p) { return pownRev(c, interval::universe(), p); }
-
+  
   //! sinRev(c, x), cosRev(c, x), tanRev(c, x): asin_rel(c, x), acos_rel(c, x), atan_rel(c, x)
   GAOL_NODISCARD inline interval sinRev(const interval& c, const interval& x) { return ::gaol_core::asin_rel(c, x); }
   GAOL_NODISCARD inline interval sinRev(const interval& c) { return ::gaol_core::asin_rel(c, interval::universe()); }
@@ -310,11 +311,11 @@ namespace gaol_ieee1788 {
   {
     return ::gaol_core::div_rel(c, b, interval::universe());
   }
-
+  
   // ----------------------------------------------------------------------
   // Cancellative addition and subtraction (10.5.6), set operations (10.5.7)
   // ----------------------------------------------------------------------
-
+  
   //! cancelMinus(x, y), cancelPlus(x, y): cancel_minus(x, y), cancel_plus(x, y)
   GAOL_NODISCARD inline interval cancelMinus(const interval& x, const interval& y) { return ::gaol_core::cancel_minus(x, y); }
   GAOL_NODISCARD inline interval cancelPlus(const interval& x, const interval& y) { return ::gaol_core::cancel_plus(x, y); }
@@ -322,17 +323,17 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval intersection(const interval& x, const interval& y) { return x & y; }
   //! convexHull(x, y): x | y
   GAOL_NODISCARD inline interval convexHull(const interval& x, const interval& y) { return x | y; }
-
+  
   // ----------------------------------------------------------------------
   // Numeric functions of intervals (Table 10.2, 12.12.8)
   // ----------------------------------------------------------------------
-
+  
   /*!
-    inf(x): left(); +oo for the empty set, and -0 for a lower bound 0. The
-    bound is compared with 0 as the relations compare it, whatever the modes
-    that flush the subnormals to zero: under denormals-are-zero, inf() of
-    [2^-1074, 1] was -0, and sup() of [-1, 2^-1074] +0, below the interval
-    (GAOL v5, point Q of TODO.md)
+  inf(x): left(); +oo for the empty set, and -0 for a lower bound 0. The
+  bound is compared with 0 as the relations compare it, whatever the modes
+  that flush the subnormals to zero: under denormals-are-zero, inf() of
+  [2^-1074, 1] was -0, and sup() of [-1, 2^-1074] +0, below the interval
+  (GAOL v5, point Q of TODO.md)
   */
   GAOL_NODISCARD inline double inf(const interval& x)
   {
@@ -360,11 +361,11 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline double mig(const interval& x) { return x.mig(); }
   //! midRad(x, m, r): mid_rad(m, r), mid and rad at once (10.5.9)
   inline void midRad(const interval& x, double& m, double& r) { x.mid_rad(m, r); }
-
+  
   // ----------------------------------------------------------------------
   // Boolean functions of intervals (10.5.10, Tables 10.3 and 10.4; 10.6.3)
   // ----------------------------------------------------------------------
-
+  
   GAOL_NODISCARD inline bool isEmpty(const interval& x) { return x.is_empty(); }
   GAOL_NODISCARD inline bool isEntire(const interval& x) { return x.is_entire(); }
   //! equal(a, b): a.set_eq(b)
@@ -396,50 +397,50 @@ namespace gaol_ieee1788 {
   {
     return x.set_contains(n);
   }
-
+  
   // ----------------------------------------------------------------------
   // Input and output (Clause 13)
   // ----------------------------------------------------------------------
-
+  
   /*!
-    intervalToText(x): the bounds of x rounded outward, "[l, r]", "[a]" for a
-    point interval whose double the digits write exactly, as "[4]" or "[0]",
-    and "[empty]" for the empty set, with the digits of interval::precision()
-    (16 unless the program sets another) and a decimal point. It is an
-    interval literal of the standard (12.11), which textToInterval() reads
-    back as an interval containing x (13.3), and as x itself for "[a]",
-    whatever the global output format and the locale of the program: it is
-    not what operator<< writes in the current format, which may not be a
-    literal (the width format).
+  intervalToText(x): the bounds of x rounded outward, "[l, r]", "[a]" for a
+  point interval whose double the digits write exactly, as "[4]" or "[0]",
+  and "[empty]" for the empty set, with the digits of interval::precision()
+  (16 unless the program sets another) and a decimal point. It is an
+  interval literal of the standard (12.11), which textToInterval() reads
+  back as an interval containing x (13.3), and as x itself for "[a]",
+  whatever the global output format and the locale of the program: it is
+  not what operator<< writes in the current format, which may not be a
+  literal (the width format).
   */
   GAOL_NODISCARD extern GAOL_PUBLIC std::string intervalToText(const interval& x);
-
+  
   /*!
-    intervalToExact(x): exact_string(x), what operator<< writes in
-    interval_format::hexa, whose bounds in the hexadecimal-significand form
-    exactToInterval() reads back as the same doubles (13.4), "[a]" for a
-    point interval, and "[0x0p+0]" for a zero one, read back as the same set.
-    It leaves the global output format alone: switching it to hexa and back
-    left it in hexa if the output threw, and showed it to the other threads
-    meanwhile.
+  intervalToExact(x): exact_string(x), what operator<< writes in
+  interval_format::hexa, whose bounds in the hexadecimal-significand form
+  exactToInterval() reads back as the same doubles (13.4), "[a]" for a
+  point interval, and "[0x0p+0]" for a zero one, read back as the same set.
+  It leaves the global output format alone: switching it to hexa and back
+  left it in hexa if the output threw, and showed it to the other threads
+  meanwhile.
   */
   GAOL_NODISCARD inline std::string intervalToExact(const interval& x) { return ::gaol_core::exact_string(x); }
-
+  
   //! exactToInterval(s): textToInterval(s)
   GAOL_NODISCARD inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
-
+  
   /*
-    Not provided, GAOL having no such operation:
-      - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - mulRevToPair (10.5.5), the two-output division;
-      - powRev1, powRev2, atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for
-        p <= 0;
-      - compoundm1 of Table 10.5, which CORE-MATH has not;
-      - the slope functions (Table 10.6) and overlap (10.6.4);
-      - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
-        and the exact ones of 12.13.5.
+  Not provided, GAOL having no such operation:
+  - the decorations and every decorated operation (Clause 11, 12.12.11);
+  - mulRevToPair (10.5.5), the two-output division;
+  - powRev1, powRev2, atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for
+  p <= 0;
+  - compoundm1 of Table 10.5, which CORE-MATH has not;
+  - the slope functions (Table 10.6) and overlap (10.6.4);
+  - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
+  and the exact ones of 12.13.5.
   */
-
+  
 } // namespace gaol_ieee1788
 
 #endif /* GAOL_IEEE1788_H */

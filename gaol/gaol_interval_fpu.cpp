@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2009 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*
@@ -25,152 +26,152 @@
 //#include "cycle.h"
 
 
-  double hausdorff(const interval &I1, const interval &I2)
-  {
-    if (I1.is_empty() || I2.is_empty()) {
-      return GAOL_NAN;
-    }
-    // A bound infinite in one interval only puts them at distance +oo, returned
-    // before the check of the rounding direction (GAOL v5, point R.50 of
-    // TODO.md; GAOL 4 returned +oo there for every infinite bound): the check
-    // and the differences made it two to four times as long (Intel i7-1185G7,
-    // GCC 9.4 and Clang 18). Whether a bound is infinite depends neither on the
-    // rounding direction nor on the flush-to-zero modes, which read a subnormal
-    // bound as a zero, no infinity either. The bounds compared after the check
-    // are read after it (GAOL_RND_BARRIER() of gaol/gaol_fpu.h, and /fp:strict
-    // with Visual C++)
-    if ((std::fabs(I1.left()) == GAOL_INFINITY) != (std::fabs(I2.left()) == GAOL_INFINITY)
-        || (std::fabs(I1.right()) == GAOL_INFINITY) != (std::fabs(I2.right()) == GAOL_INFINITY)) {
-      return GAOL_INFINITY;
-    }
-    // The tightest upper bound of the distance, whatever the rounding direction
-    // of the caller: each difference is rounded upward both ways.
-    // Equal bounds, infinite ones included, are at distance 0 (inf - inf is a
-    // NaN): the distance of [1, +oo] to [1, +oo] is 0 and the one to [2, +oo] is
-    // 1, where GAOL 4 returned +oo.
-    GAOL_RND_ENTER();
-    const double a = I1.left(), b = I1.right(), c = I2.left(), e = I2.right();
-    double d = maximum((a == c) ? 0.0 : maximum(a - c, c - a),
-                       (b == e) ? 0.0 : maximum(b - e, e - b));
-    GAOL_RND_KEEP(d);
-    GAOL_RND_LEAVE();
-    return d;
-  }
-
-	/*
-	  The n-th power, n > 0, of the interval of stored bounds lb (the opposite
-	  of its left bound) and rb, in [0, +oo] for uipow_dnup() and containing 0
-	  for uipow_upup(), as gaol_uipow() calls them: static, and no longer declared
-	  in gaol_interval.h (GAOL v5). The SSE2 intervals compute the same
-	  products in the same order, from the lowest bit of n, and give the same
-	  bounds (gaol_interval_sse.cpp): change both or neither.
-	*/
-	static interval uipow_dnup(double lb, double rb, unsigned int n)
-	{
-		double ly = 1.0, ry = 1.0;
-		double lz2 = lb, rz2 = rb;
-		double lz1 = -lz2;
-		for (;;) {
-			if (odd(n)) {
-				ry *= rz2;
-				ly = -(ly*lz2);
-				if (n==1) { // On input, n is assumed to be non-null
-					return interval(ly, ry);
-				}
-			}
-			n >>= 1;
-			rz2 *= rz2;
-			lz2 *= lz1;
-			lz1 = -lz2;
-		}
+double hausdorff(const interval &I1, const interval &I2)
+{
+	if (I1.is_empty() || I2.is_empty()) {
+	return GAOL_NAN;
 	}
-
-	static interval uipow_upup(double lb, double rb, unsigned int n)
-	{
-		double ly = 1.0, ry = 1.0;
-
-		double lz = lb, rz = rb;
-
-		for (;;) {
-			if (odd(n)) {
-				ly *= lz;
-				ry *= rz;
-				if (n==1) { // On input, n is assumed to be non-null
-					return interval(-ly,ry);
-				}
-			}
-			n >>= 1;
-			lz *= lz;
-			rz *= rz;
-		}
+	// A bound infinite in one interval only puts them at distance +oo, returned
+	// before the check of the rounding direction (GAOL v5, point R.50 of
+	// TODO.md; GAOL 4 returned +oo there for every infinite bound): the check
+	// and the differences made it two to four times as long (Intel i7-1185G7,
+	// GCC 9.4 and Clang 18). Whether a bound is infinite depends neither on the
+	// rounding direction nor on the flush-to-zero modes, which read a subnormal
+	// bound as a zero, no infinity either. The bounds compared after the check
+	// are read after it (GAOL_RND_BARRIER() of gaol/gaol_fpu.h, and /fp:strict
+	// with Visual C++)
+	if ((std::fabs(I1.left()) == GAOL_INFINITY) != (std::fabs(I2.left()) == GAOL_INFINITY)
+		|| (std::fabs(I1.right()) == GAOL_INFINITY) != (std::fabs(I2.right()) == GAOL_INFINITY)) {
+	return GAOL_INFINITY;
 	}
+	// The tightest upper bound of the distance, whatever the rounding direction
+	// of the caller: each difference is rounded upward both ways.
+	// Equal bounds, infinite ones included, are at distance 0 (inf - inf is a
+	// NaN): the distance of [1, +oo] to [1, +oo] is 0 and the one to [2, +oo] is
+	// 1, where GAOL 4 returned +oo.
+	GAOL_RND_ENTER();
+	const double a = I1.left(), b = I1.right(), c = I2.left(), e = I2.right();
+	double d = maximum((a == c) ? 0.0 : maximum(a - c, c - a),
+					(b == e) ? 0.0 : maximum(b - e, e - b));
+	GAOL_RND_KEEP(d);
+	GAOL_RND_LEAVE();
+	return d;
+}
 
-	/*
-	  I^e for a non-empty I and e > 0 from the products rounded outward, the
-	  rounding direction being upward already: uipow_nonempty() and
-	  uipow_nonempty_upward() call it after their check, and uipow_rounded()
-	  below checks the direction for the other callers (GAOL v5). The stored
-	  bounds are the opposite of the left bound and the right bound.
-	*/
-	static GAOL_INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
-	{
-		interval res;
-		const double lb = -I.left(), rb = I.right();
-
-		int signI = ((rb < 0) << 1) |  (lb < 0);
-		switch (signI) { // Remember that the sign of the left bound is negated
-			case 0: // 00: I.straddles_zero()
-			{
-				res = uipow_upup(lb,rb,e);
-				if (!odd(e)) {
-					res = interval(0.0,fmax(-res.left(),res.right()));
-				}
-				break;
+/*
+	The n-th power, n > 0, of the interval of stored bounds lb (the opposite
+	of its left bound) and rb, in [0, +oo] for uipow_dnup() and containing 0
+	for uipow_upup(), as gaol_uipow() calls them: static, and no longer declared
+	in gaol_interval.h (GAOL v5). The SSE2 intervals compute the same
+	products in the same order, from the lowest bit of n, and give the same
+	bounds (gaol_interval_sse.cpp): change both or neither.
+*/
+static interval uipow_dnup(double lb, double rb, unsigned int n)
+{
+	double ly = 1.0, ry = 1.0;
+	double lz2 = lb, rz2 = rb;
+	double lz1 = -lz2;
+	for (;;) {
+		if (odd(n)) {
+			ry *= rz2;
+			ly = -(ly*lz2);
+			if (n==1) { // On input, n is assumed to be non-null
+				return interval(ly, ry);
 			}
-			case 1: // 01: I.positive()
-			{
-				res = uipow_dnup(lb,rb,e);
-				break;
-			}
-			case 2: // 10: I.negative()
-			{
-				const interval J = -I;
-				res = uipow_dnup(-J.left(),J.right(),e);
-				if (odd(e)) {
-					res = -res;
-				}
-				break;
-			}
-			case 3: // 11: I=[0, -0] (empty intervals have been filtered already)
-			{
-				res = interval(0.0);
-				break;
-			}
-			// No other meaningful cases
 		}
-		return res;
+		n >>= 1;
+		rz2 *= rz2;
+		lz2 *= lz1;
+		lz1 = -lz2;
 	}
+}
 
-	// uipow_rounded_upward(), after a check of the rounding direction
-	static GAOL_INLINE interval uipow_rounded(const interval& I, unsigned int e)
-	{
-		GAOL_RND_ENTER();
-		interval res = uipow_rounded_upward(I,e);
-		GAOL_RND_KEEP(res);
-		GAOL_RND_LEAVE();
-		return res;
-	}
+static interval uipow_upup(double lb, double rb, unsigned int n)
+{
+	double ly = 1.0, ry = 1.0;
 
-	interval gaol_uipow(const interval& I, unsigned int e)
-	{
-		if (I.is_empty()) {
-			return I;
+	double lz = lb, rz = rb;
+
+	for (;;) {
+		if (odd(n)) {
+			ly *= lz;
+			ry *= rz;
+			if (n==1) { // On input, n is assumed to be non-null
+				return interval(-ly,ry);
+			}
 		}
-		if (e == 0) {
-			return interval(1.0);
-		}
-		return uipow_nonempty(I,e);
+		n >>= 1;
+		lz *= lz;
+		rz *= rz;
 	}
+}
+
+/*
+	I^e for a non-empty I and e > 0 from the products rounded outward, the
+	rounding direction being upward already: uipow_nonempty() and
+	uipow_nonempty_upward() call it after their check, and uipow_rounded()
+	below checks the direction for the other callers (GAOL v5). The stored
+	bounds are the opposite of the left bound and the right bound.
+*/
+static GAOL_INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
+{
+	interval res;
+	const double lb = -I.left(), rb = I.right();
+
+	int signI = ((rb < 0) << 1) |  (lb < 0);
+	switch (signI) { // Remember that the sign of the left bound is negated
+		case 0: // 00: I.straddles_zero()
+		{
+			res = uipow_upup(lb,rb,e);
+			if (!odd(e)) {
+				res = interval(0.0,fmax(-res.left(),res.right()));
+			}
+			break;
+		}
+		case 1: // 01: I.positive()
+		{
+			res = uipow_dnup(lb,rb,e);
+			break;
+		}
+		case 2: // 10: I.negative()
+		{
+			const interval J = -I;
+			res = uipow_dnup(-J.left(),J.right(),e);
+			if (odd(e)) {
+				res = -res;
+			}
+			break;
+		}
+		case 3: // 11: I=[0, -0] (empty intervals have been filtered already)
+		{
+			res = interval(0.0);
+			break;
+		}
+		// No other meaningful cases
+	}
+	return res;
+}
+
+// uipow_rounded_upward(), after a check of the rounding direction
+static GAOL_INLINE interval uipow_rounded(const interval& I, unsigned int e)
+{
+	GAOL_RND_ENTER();
+	interval res = uipow_rounded_upward(I,e);
+	GAOL_RND_KEEP(res);
+	GAOL_RND_LEAVE();
+	return res;
+}
+
+interval gaol_uipow(const interval& I, unsigned int e)
+{
+	if (I.is_empty()) {
+		return I;
+	}
+	if (e == 0) {
+		return interval(1.0);
+	}
+	return uipow_nonempty(I,e);
+}
 
 
 
@@ -324,8 +325,6 @@
     GAOL_RND_LEAVE();
     return *this;
   }
-
-
 
 
 

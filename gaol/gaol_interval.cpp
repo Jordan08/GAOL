@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -4010,148 +4011,147 @@ interval nth_root(const interval& I, int q)
     middle of I tells, each half being narrower than pi. The bounds are then
     within one double of the tightest ones at every magnitude.
   */
-  template<bool sine>
-  static inline interval cos_or_sin(double Il, double Ir)
-  {
-    // I is not empty, Il being the opposite of its left bound, as the SSE2
-    // intervals store it, and Ir its right bound
-    // The only check of the rounding direction: nothing below changes it, and
-    // the bounds are computed with the functions of namespace upward (GAOL v5).
-    // Il and Ir, read before it, are compared after it (see gaol/gaol_fpu.h)
-    GAOL_RND_ENTER();
-    Il = rnd_reread(Il);
-    Ir = rnd_reread(Ir);
-    double a,b;
-    double Ileft = -Il;
-    double Iright = Ir;
-
-    // a <= Ileft/pi, b >= Iright/pi
-    if (Ileft >= 0) {
-      a = -(Il/pi_up);
+template<bool sine>
+static inline interval cos_or_sin(double Il, double Ir)
+{
+  // I is not empty, Il being the opposite of its left bound, as the SSE2
+  // intervals store it, and Ir its right bound
+  // The only check of the rounding direction: nothing below changes it, and
+  // the bounds are computed with the functions of namespace upward (GAOL v5).
+  // Il and Ir, read before it, are compared after it (see gaol/gaol_fpu.h)
+  GAOL_RND_ENTER();
+  Il = rnd_reread(Il);
+  Ir = rnd_reread(Ir);
+  double a,b;
+  double Ileft = -Il;
+  double Iright = Ir;
+  
+  // a <= Ileft/pi, b >= Iright/pi
+  if (Ileft >= 0) {
+    a = -(Il/pi_up);
+    b = Ir/pi_dn;
+  } else {
+    a = -(Il/pi_dn);
+    if (Iright > 0) {
       b = Ir/pi_dn;
     } else {
-      a = -(Il/pi_dn);
-      if (Iright > 0) {
-	b = Ir/pi_dn;
-      } else {
-	b = Ir/pi_up;
-      }
+      b = Ir/pi_up;
+    }
+  }
+  if (sine) {
+    // a <= (Ileft - pi/2)/pi, b >= (Iright - pi/2)/pi, rounded upward
+    a = -((-a) + 0.5);
+    b = b - 0.5;
+  }
+  
+  double m=std::floor(a),
+  n=std::ceil(b),
+  u = -1.0, v = 1.0;
+  
+  double nm = (n-m); // Must be rounded towards +oo
+  
+  if (nm < 2.0) {
+    // even(m)? No conversion to int in order to avoid overflow
+    const bool even_m = integer_is_even(m);
+    if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
+      u = sine ? sin_lo(Iright) : cos_lo(Iright);
+      v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
+    } else { // Increasing
+      u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
+      v = sine ? sin_hi(Iright) : cos_hi(Iright);
+    }
+  } else {
+    // The width of I, rounded upward: both extrema from 2 pi on, or for
+    // infinite bounds
+    const double w = Ir + Il;
+    if (!(w < 2.0*pi_dn)) {
+      GAOL_RND_LEAVE();
+      return interval::minus_one_plus_one();
+    }
+    // a_in >= Ileft/pi and b_in <= Iright/pi, minus 1/2 for the sine
+    double a_in, b_in;
+    if (Ileft >= 0) {
+      a_in = Ileft/pi_dn;
+      b_in = -((-Ir)/pi_up);
+    } else {
+      a_in = Ileft/pi_up;
+      b_in = (Iright > 0) ? -((-Ir)/pi_up) : -((-Ir)/pi_dn);
     }
     if (sine) {
-      // a <= (Ileft - pi/2)/pi, b >= (Iright - pi/2)/pi, rounded upward
-      a = -((-a) + 0.5);
-      b = b - 0.5;
+      a_in = a_in - 0.5;
+      b_in = -((-b_in) + 0.5);
     }
-
-    double m=std::floor(a),
-      n=std::ceil(b),
-      u = -1.0, v = 1.0;
-
-    double nm = (n-m); // Must be rounded towards +oo
-
-    if (nm < 2.0) {
-      // even(m)? No conversion to int in order to avoid overflow
-      const bool even_m = integer_is_even(m);
-      if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
-	u = sine ? sin_lo(Iright) : cos_lo(Iright);
-	v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
-      } else { // Increasing
-	u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
-	v = sine ? sin_hi(Iright) : cos_hi(Iright);
-      }
+    // The halves of I, for the sign at its middle
+    const double middle = 0.5*Ileft + 0.5*Iright;
+    const bool narrow_halves = (middle + Il < pi_dn) && (Ir - middle < pi_dn);
+    const bool sure = (std::floor(a_in) == m && std::ceil(b_in) == n);
+    if (sure && nm != 2.0) { // Both extrema
+      GAOL_RND_LEAVE();
+      return interval::minus_one_plus_one();
+    }
+    const bool even_m = integer_is_even(m);
+    
+    // -1: a minimum within I; 1: a maximum; 0: none; 2: both
+    int extremum;
+    if (sure) {
+        extremum = even_m ? -1 : 1;
     } else {
-      // The width of I, rounded upward: both extrema from 2 pi on, or for
-      // infinite bounds
-      const double w = Ir + Il;
-      if (!(w < 2.0*pi_dn)) {
-	GAOL_RND_LEAVE();
-	return interval::minus_one_plus_one();
-      }
-      // a_in >= Ileft/pi and b_in <= Iright/pi, minus 1/2 for the sine
-      double a_in, b_in;
-      if (Ileft >= 0) {
-	a_in = Ileft/pi_dn;
-	b_in = -((-Ir)/pi_up);
-      } else {
-	a_in = Ileft/pi_up;
-	b_in = (Iright > 0) ? -((-Ir)/pi_up) : -((-Ir)/pi_dn);
-      }
-      if (sine) {
-	a_in = a_in - 0.5;
-	b_in = -((-b_in) + 0.5);
-      }
-      // The halves of I, for the sign at its middle
-      const double middle = 0.5*Ileft + 0.5*Iright;
-      const bool narrow_halves = (middle + Il < pi_dn) && (Ir - middle < pi_dn);
-      const bool sure = (std::floor(a_in) == m && std::ceil(b_in) == n);
-      if (sure && nm != 2.0) { // Both extrema
-	GAOL_RND_LEAVE();
-	return interval::minus_one_plus_one();
-      }
-      const bool even_m = integer_is_even(m);
-
-      // -1: a minimum within I; 1: a maximum; 0: none; 2: both
-      int extremum;
-      if (sure) {
-	extremum = even_m ? -1 : 1;
-      } else {
-	// The derivatives are -sin and cos: s is the sign of the slope, taken
-	// on the side of I at a bound that is 0
-	int sl = sine ? sign_of_cos(Ileft) : -sign_of_sin(Ileft);
-	int sr = sine ? sign_of_cos(Iright) : -sign_of_sin(Iright);
-	if (sl == 0) {
-	  sl = -1; // cos decreases on the right of 0
-	}
-	if (sr == 0) {
-	  sr = 1; // and increases on its left
-	}
-	if (sl != sr) {
-	  extremum = sl; // Increasing then decreasing: a maximum
-	} else if (w < pi_dn
-		   || (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
-	  extremum = 0;
-	} else {
-	  extremum = 2;
-	}
-	if (extremum == 0) { // Monotonic
-	  if (sl < 0) {
-	    u = sine ? sin_lo(Iright) : cos_lo(Iright);
-	    v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
-	  } else {
-	    u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
-	    v = sine ? sin_hi(Iright) : cos_hi(Iright);
-	  }
-	}
+        // The derivatives are -sin and cos: s is the sign of the slope, taken
+        // on the side of I at a bound that is 0
+        int sl = sine ? sign_of_cos(Ileft) : -sign_of_sin(Ileft);
+        int sr = sine ? sign_of_cos(Iright) : -sign_of_sin(Iright);
+        if (sl == 0) {
+          sl = -1; // cos decreases on the right of 0
+        }
+        if (sr == 0) {
+          sr = 1; // and increases on its left
+        }
+        if (sl != sr) {
+            extremum = sl; // Increasing then decreasing: a maximum
+        } else if (w < pi_dn|| (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
+            extremum = 0;
+        } else {
+            extremum = 2;
+        }
+        if (extremum == 0) { // Monotonic
+            if (sl < 0) {
+              u = sine ? sin_lo(Iright) : cos_lo(Iright);
+              v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
+            } else {
+              u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
+              v = sine ? sin_hi(Iright) : cos_hi(Iright);
+            }
+          }
       }
       if (extremum == -1) {
-	const double
-	  u1 = sine ? sin_hi(Ileft) : cos_hi(Ileft),
-	  u2 = sine ? sin_hi(Iright) : cos_hi(Iright);
-	u = -1.0;
-	v = ((u1 > u2) ? u1 : u2);
+          const double
+          u1 = sine ? sin_hi(Ileft) : cos_hi(Ileft),
+          u2 = sine ? sin_hi(Iright) : cos_hi(Iright);
+          u = -1.0;
+          v = ((u1 > u2) ? u1 : u2);
       } else if (extremum == 1) {
-	const double
-	  u1 = sine ? sin_lo(Ileft) : cos_lo(Ileft),
-	  u2 = sine ? sin_lo(Iright) : cos_lo(Iright);
-	u = ((u1 < u2) ? u1 : u2);
-	v = 1.0;
+          const double
+          u1 = sine ? sin_lo(Ileft) : cos_lo(Ileft),
+          u2 = sine ? sin_lo(Iright) : cos_lo(Iright);
+          u = ((u1 < u2) ? u1 : u2);
+          v = 1.0;
       } else if (extremum == 2) {
-	u = -1.0;
-	v = 1.0;
+          u = -1.0;
+          v = 1.0;
       }
-    }
-    // The values of the mathematical library moved outward may leave [-1,1]
-    // (GAOL v5)
-    if (u < -1.0) {
-      u = -1.0;
-    }
-    if (v > 1.0) {
-      v = 1.0;
-    }
-    GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
-    GAOL_RND_LEAVE();
-    return interval(u,v);
   }
+  // The values of the mathematical library moved outward may leave [-1,1]
+  // (GAOL v5)
+  if (u < -1.0) {
+    u = -1.0;
+  }
+  if (v > 1.0) {
+    v = 1.0;
+  }
+  GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
+  GAOL_RND_LEAVE();
+  return interval(u,v);
+}
 
   interval cos(const interval& I)
   {

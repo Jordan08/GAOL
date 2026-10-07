@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -1242,8 +1243,7 @@ namespace gaol_core {
    */
   GAOL_NODISCARD extern GAOL_PUBLIC interval min(const interval &I, const interval &J);
 
-  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os,
-					     const interval& I);
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, const interval& I);
   /*!
     \brief Reads an interval, written on a line, from is
 
@@ -1255,8 +1255,7 @@ namespace gaol_core {
     I and throws input_format_error (invalid_action_error for a function
     called with an argument it does not take).
   */
-  extern GAOL_PUBLIC std::istream& operator>>(std::istream& is,
-					     interval& I);
+  extern GAOL_PUBLIC std::istream& operator>>(std::istream& is,  interval& I);
   /*!
     \brief The exact text of I (GAOL v5)
 
@@ -1356,8 +1355,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt_rel(const interval& J, const i
 
     div_rel(K,J,I) = hull(x\in I\mid\exists z\in K\exists y\in J:z=xy)
    */
-GAOL_NODISCARD extern GAOL_PUBLIC   interval div_rel(const interval &K,
-				      const interval &J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval div_rel(const interval &K,  const interval &J, const interval &I);
 
   /*!
     \brief square root of I
@@ -1367,8 +1365,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt(const interval& I);
     \brief relational nth root of J w.r.t. I, for a positive n
     \f$nthroot_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^n}\f$
   */
-GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J,
-					   unsigned int n, const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, unsigned int n, const interval& I);
   /*!
     \brief nth root of I for a positive n
 

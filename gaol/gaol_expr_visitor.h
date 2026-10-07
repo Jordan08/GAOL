@@ -1,26 +1,27 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily 
- * developed at the Swiss Federal Institute of Technology, Lausanne, 
- * Switzerland, and is now developed at the Laboratoire d'Informatique de 
- * Nantes-Atlantique, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
- *                         Nantes-Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------*/
+* gaol -- NOT Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily 
+* developed at the Swiss Federal Institute of Technology, Lausanne, 
+* Switzerland, and is now developed at the Laboratoire d'Informatique de 
+* Nantes-Atlantique, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de 
+*                         Nantes-Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
+* COPYING file for information.
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_expr_visitor.h
-  \brief  Base classes to represent visitors manipulating interval expressions
+\file   gaol_expr_visitor.h
+\brief  Base classes to represent visitors manipulating interval expressions
 
 
-  \author Frederic Goualard
-  \date   2001-10-30
+\author Frederic Goualard, Joran NININ
+\date   2001-10-30
 */
 
 
@@ -59,17 +60,17 @@ namespace gaol_core {
   class log2_node;
   class sign_node;
   class trunc_node;
-
+  
   /*!
-    \brief Base class for all visitors that want to manipulate expressions
-    
-    A derived class can override only a subset of the visit() methods. It
-    is then assumed that all the non-overrided ones are illegal in the
-    context of this visitor. The error attribute is used to report such an
-    error.
+  \brief Base class for all visitors that want to manipulate expressions
+  
+  A derived class can override only a subset of the visit() methods. It
+  is then assumed that all the non-overrided ones are illegal in the
+  context of this visitor. The error attribute is used to report such an
+  error.
   */
   class expr_visitor {
-  public:
+    public:
     expr_visitor() {
       error = false;
     }
@@ -170,11 +171,11 @@ namespace gaol_core {
     virtual void visit(trunc_node*) {
       error = true;
     }
-  protected:
+    protected:
     //! True if an error occurred during the last visit
     bool error;
   };
-
+  
 } // namespace gaol_core
 
 // In the namespace gaol too, as in GAOL 4, with the nodes, those of the

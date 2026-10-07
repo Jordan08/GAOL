@@ -1,59 +1,60 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily
- * developed at the Swiss Federal Institute of Technology, Lausanne,
- * Switzerland, and is now developed at the Institut de Recherche
- * en Informatique de Nantes, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2010 Laboratoire d'Informatique de Nantes Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
- *--------------------------------------------------------------------------*/
+* gaol -- Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily
+* developed at the Swiss Federal Institute of Technology, Lausanne,
+* Switzerland, and is now developed at the Institut de Recherche
+* en Informatique de Nantes, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2010 Laboratoire d'Informatique de Nantes Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
+* COPYING file for information.
+*--------------------------------------------------------------------------
+* By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Joran NININ
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_fpu_fenv.h
-  \brief
+\file   gaol_fpu_fenv.h
+\brief
 
-  FPU handling through C99 fenv.h facilities
+FPU handling through C99 fenv.h facilities
 
-  \author Frederic Goualard
-  \date   2010-04-22
+\author Frederic Goualard, Joran NININ
+\date   2010-04-22
 */
 
 /* fesetenv() on Linux
 
-   The original GAOL noted here that fesetenv() did not seem to work
-   correctly on Linux. fesetenv() was not at fault, but
-   what GAOL gave it: reset_fpu_cw() wrote GAOL_FPU_MASK into the control word
-   of fenv_t with fegetenv() and fesetenv(), the control word of the x87 unit
-   on x86 Linux and macOS, whereas GAOL's doubles are computed with SSE2
-   instructions, under MXCSR, which kept rounding to nearest. With glibc 2.31
-   on x86-64, the x87 control word then read 0x0a7f and fegetround(), which
-   reads it, returned FE_UPWARD, while MXCSR was 0x1f80 and 1 + 2^-60 was 1.
-   Only the x87 unit has a precision to set, and it computes none of GAOL's
-   doubles: gaol_config.h refuses doubles computed on it, and the three builds
-   give -msse2 -mfpmath=sse on 32-bit x86.
+The original GAOL noted here that fesetenv() did not seem to work
+correctly on Linux. fesetenv() was not at fault, but
+what GAOL gave it: reset_fpu_cw() wrote GAOL_FPU_MASK into the control word
+of fenv_t with fegetenv() and fesetenv(), the control word of the x87 unit
+on x86 Linux and macOS, whereas GAOL's doubles are computed with SSE2
+instructions, under MXCSR, which kept rounding to nearest. With glibc 2.31
+on x86-64, the x87 control word then read 0x0a7f and fegetround(), which
+reads it, returned FE_UPWARD, while MXCSR was 0x1f80 and 1 + 2^-60 was 1.
+Only the x87 unit has a precision to set, and it computes none of GAOL's
+doubles: gaol_config.h refuses doubles computed on it, and the three builds
+give -msse2 -mfpmath=sse on 32-bit x86.
 
-   Since then:
-   - get_fpu_cw() and reset_fpu_cw() (below) read and write the rounding
-     direction with fegetround() and fesetround(), and get_rounding() and
-     set_rounding() (gaol_fpu.h) the rounding bits of MXCSR as well.
-   - gaol::init() calls fesetenv(FE_DFL_ENV), then round_upward(), which sets
-     both units: with glibc 2.31 on x86-64, the x87 control word is then
-     0x0b7f and MXCSR 0x5f80, and 1 + 2^-60 is above 1. FE_DFL_ENV sets the
-     precision of the x87 unit back to 64 bits (control word 0x037f),
-     whatever Init_Lib() set: doubles computed on the x87 unit would be
-     wrong, which is why gaol_config.h refuses them.
-   - GAOL's bounds do not depend on the direction gaol::init() leaves: each
-     operation sets it upward when it is not (round_upward_if_needed() in
-     gaol_fpu.h), which tests/rounding_direction checks on each platform of
-     the continuous integration, on x86 with the x87 and SSE directions
-     differing too.
+Since then:
+- get_fpu_cw() and reset_fpu_cw() (below) read and write the rounding
+direction with fegetround() and fesetround(), and get_rounding() and
+set_rounding() (gaol_fpu.h) the rounding bits of MXCSR as well.
+- gaol::init() calls fesetenv(FE_DFL_ENV), then round_upward(), which sets
+both units: with glibc 2.31 on x86-64, the x87 control word is then
+0x0b7f and MXCSR 0x5f80, and 1 + 2^-60 is above 1. FE_DFL_ENV sets the
+precision of the x87 unit back to 64 bits (control word 0x037f),
+whatever Init_Lib() set: doubles computed on the x87 unit would be
+wrong, which is why gaol_config.h refuses them.
+- GAOL's bounds do not depend on the direction gaol::init() leaves: each
+operation sets it upward when it is not (round_upward_if_needed() in
+gaol_fpu.h), which tests/rounding_direction checks on each platform of
+the continuous integration, on x86 with the x87 and SSE directions
+differing too.
 */
 
 #ifndef GAOL_FPU_FENV_H
@@ -80,52 +81,52 @@
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
 #  include <xmmintrin.h>
-   // Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
+// Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
 #  define GAOL_SSE_MASK _MM_MASK_MASK
 #endif
 
 
 namespace gaol_core {
-
-GAOL_INLINE double previous_float(double d)
-{
-	return nextafter(d,-GAOL_INFINITY);
-}
-
-GAOL_INLINE double next_float(double d)
-{
-	return nextafter(d,GAOL_INFINITY);
-}
-
-#if GAOL_USING_SSE2_INSTRUCTIONS
-	//! Sets rounding direction to -oo for SSE operations only
-	GAOL_INLINE void round_downward_sse(void)
-	{
-		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_DOWN);
-	}
-
-	//! Sets rounding direction to the nearest for SSE operations only
-	GAOL_INLINE void round_to_nearest_sse(void)
-	{
-		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_NEAREST);
-	}
-
-
-	/*! Sets rounding direction to +oo for SSE operations only, writing the
-	    whole of MXCSR: every exception masked, the flags and the modes
-	    flushing the subnormals to zero cleared. Only gaol::init() calls it,
-	    after fesetenv(FE_DFL_ENV); the operations write the rounding bits
-	    alone (gaol/gaol_fpu.h, GAOL v5) */
-	GAOL_INLINE void round_upward_sse(void)
-	{
-		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);
-	}
-#endif // GAOL_USING_SSE2_INSTRUCTIONS
-
-
-/*
+  
+  GAOL_INLINE double previous_float(double d)
+  {
+    return nextafter(d,-GAOL_INFINITY);
+  }
+  
+  GAOL_INLINE double next_float(double d)
+  {
+    return nextafter(d,GAOL_INFINITY);
+  }
+  
+  #if GAOL_USING_SSE2_INSTRUCTIONS
+  //! Sets rounding direction to -oo for SSE operations only
+  GAOL_INLINE void round_downward_sse(void)
+  {
+    _mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_DOWN);
+  }
+  
+  //! Sets rounding direction to the nearest for SSE operations only
+  GAOL_INLINE void round_to_nearest_sse(void)
+  {
+    _mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_NEAREST);
+  }
+  
+  
+  /*! Sets rounding direction to +oo for SSE operations only, writing the
+  whole of MXCSR: every exception masked, the flags and the modes
+  flushing the subnormals to zero cleared. Only gaol::init() calls it,
+  after fesetenv(FE_DFL_ENV); the operations write the rounding bits
+  alone (gaol/gaol_fpu.h, GAOL v5) */
+  GAOL_INLINE void round_upward_sse(void)
+  {
+    _mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);
+  }
+  #endif // GAOL_USING_SSE2_INSTRUCTIONS
+  
+  
+  /*
   The rounding direction of the doubles computed from here on.
-
+  
   On x86 processors, the control registers of the two floating-point units
   are written directly: the rounding bits of the x87 control word (fnstcw,
   fldcw) and of the SSE control register MXCSR (stmxcsr, ldmxcsr), what
@@ -140,153 +141,153 @@ GAOL_INLINE double next_float(double d)
   Visual C++ for x64, MXCSR only: the x87 unit is not used there, and Visual
   C++ has no inline assembly for x64. Elsewhere, fesetround(), which the C
   library implements for the processor.
-
+  
   The asm statements are volatile, with memory clobbered: the compiler keeps
   them where they are written and does not move loads and stores across them.
   As with fesetround(), the values computed before a change of direction go
   through rnd_keep() (gaol_fpu.h): GCC does not model the rounding direction.
-*/
-/* The mingw-w64 of a 32-bit target before version 12 (MinGW-Builds GCC 12
-   and 13): there the direction is read and written with <fenv.h> only, as
-   the continuous integration builds and tests them.
-
-   A 32-bit x86 processor has two rounding directions, the one of the x87 unit
-   and the one of the SSE instructions, and they have to agree: GAOL computes
-   its bounds with SSE, and the elementary functions of CORE-MATH ask
-   fegetround(), which those mingw-w64 answer from the x87 control word
-   (fnstcw), fesetround() writing both. It was thought that they answered from
-   a state of their own, which writing the registers directly would leave
-   behind; the wrong bounds seen then came from their fma() (see
-   gaol/gaol_config.h), and with the mingw-w64 11 of Ubuntu under wine the
-   tests pass with the registers written directly as well.
-
-   Not on x86-64, where there is one direction and the registers are written
-   directly, which is faster: MinGW-w64 GCC 14 and 15 are tested so. The
-   mingw-w64 whose fma() or round() is wrong are refused in
-   gaol/gaol_config.h. */
-#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-    && !defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12
-#  define GAOL_RND_MINGW_FENV_ONLY 1
-#endif
-
-#if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__)) \
-    && !defined(GAOL_RND_MINGW_FENV_ONLY)
-#  define GAOL_RND_X86_REGISTERS 1
-#  include <xmmintrin.h>
-GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
-{
-  unsigned short cw;
-  __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
-  cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
-  __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
-  _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
-}
-#elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
-#  define GAOL_RND_X86_REGISTERS 1
-#  include <xmmintrin.h>
-GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
-{
-#  if defined(_M_IX86)
-  unsigned short cw;
-  __asm fnstcw cw
-  // The mask of the 16 bits of the control word, which the cast of
-  // ~0x0C00u truncated (C4310 of Visual C++, GAOL v5)
-  cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
-  __asm fldcw cw
-#  else
-  (void)x87_rc;
-#  endif
-  _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
-}
-#endif
-
-#if GAOL_RND_X86_REGISTERS
-GAOL_INLINE  void
-round_downward(void)
-{
-  gaol_set_rounding_x86(0x0400, _MM_ROUND_DOWN);
-}
-
-GAOL_INLINE  void
-round_upward(void)
-{
-  gaol_set_rounding_x86(0x0800, _MM_ROUND_UP);
-}
-
-GAOL_INLINE  void
-round_nearest(void)
-{
-  gaol_set_rounding_x86(0x0000, _MM_ROUND_NEAREST);
-}
-#else
-GAOL_INLINE  void
-round_downward(void)
-{
-  fesetround(FE_DOWNWARD);
-}
-
-GAOL_INLINE  void
-round_upward(void)
-{
-  fesetround(FE_UPWARD);
-}
-
-GAOL_INLINE  void
-round_nearest(void)
-{
-  fesetround(FE_TONEAREST);
-}
-#endif
-
-/* The rounding direction, with the functions of <fenv.h>. GAOL's operations
-   save and restore it with get_rounding() and set_rounding() (gaol_fpu.h),
-   which also read and write the one of the SSE instructions: these functions
-   are kept for the code using them. They read and wrote the control word of
-   the x87 unit on x86 Linux and macOS, which left the direction of the SSE
-   instructions unrestored, and 16 bits of the FPCR on 64-bit ARM, which left
-   out its rounding bits. */
-GAOL_INLINE unsigned short int get_fpu_cw()
-{
-  return static_cast<unsigned short int>(fegetround());
-}
-
-GAOL_INLINE void reset_fpu_cw(unsigned short int st)
-{
-  fesetround(st);
-}
-
+  */
+  /* The mingw-w64 of a 32-bit target before version 12 (MinGW-Builds GCC 12
+  and 13): there the direction is read and written with <fenv.h> only, as
+  the continuous integration builds and tests them.
+  
+  A 32-bit x86 processor has two rounding directions, the one of the x87 unit
+  and the one of the SSE instructions, and they have to agree: GAOL computes
+  its bounds with SSE, and the elementary functions of CORE-MATH ask
+  fegetround(), which those mingw-w64 answer from the x87 control word
+  (fnstcw), fesetround() writing both. It was thought that they answered from
+  a state of their own, which writing the registers directly would leave
+  behind; the wrong bounds seen then came from their fma() (see
+  gaol/gaol_config.h), and with the mingw-w64 11 of Ubuntu under wine the
+  tests pass with the registers written directly as well.
+  
+  Not on x86-64, where there is one direction and the registers are written
+  directly, which is faster: MinGW-w64 GCC 14 and 15 are tested so. The
+  mingw-w64 whose fma() or round() is wrong are refused in
+  gaol/gaol_config.h. */
+  #if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
+  && !defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12
+  #  define GAOL_RND_MINGW_FENV_ONLY 1
+  #endif
+  
+  #if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__)) \
+  && !defined(GAOL_RND_MINGW_FENV_ONLY)
+  #  define GAOL_RND_X86_REGISTERS 1
+  #  include <xmmintrin.h>
+  GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+  {
+    unsigned short cw;
+    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+    cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
+    __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
+    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
+  }
+  #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+  #  define GAOL_RND_X86_REGISTERS 1
+  #  include <xmmintrin.h>
+  GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+  {
+    #  if defined(_M_IX86)
+    unsigned short cw;
+    __asm fnstcw cw
+    // The mask of the 16 bits of the control word, which the cast of
+    // ~0x0C00u truncated (C4310 of Visual C++, GAOL v5)
+    cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
+    __asm fldcw cw
+    #  else
+    (void)x87_rc;
+    #  endif
+    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
+  }
+  #endif
+  
+  #if GAOL_RND_X86_REGISTERS
+  GAOL_INLINE  void
+  round_downward(void)
+  {
+    gaol_set_rounding_x86(0x0400, _MM_ROUND_DOWN);
+  }
+  
+  GAOL_INLINE  void
+  round_upward(void)
+  {
+    gaol_set_rounding_x86(0x0800, _MM_ROUND_UP);
+  }
+  
+  GAOL_INLINE  void
+  round_nearest(void)
+  {
+    gaol_set_rounding_x86(0x0000, _MM_ROUND_NEAREST);
+  }
+  #else
+  GAOL_INLINE  void
+  round_downward(void)
+  {
+    fesetround(FE_DOWNWARD);
+  }
+  
+  GAOL_INLINE  void
+  round_upward(void)
+  {
+    fesetround(FE_UPWARD);
+  }
+  
+  GAOL_INLINE  void
+  round_nearest(void)
+  {
+    fesetround(FE_TONEAREST);
+  }
+  #endif
+  
+  /* The rounding direction, with the functions of <fenv.h>. GAOL's operations
+  save and restore it with get_rounding() and set_rounding() (gaol_fpu.h),
+  which also read and write the one of the SSE instructions: these functions
+  are kept for the code using them. They read and wrote the control word of
+  the x87 unit on x86 Linux and macOS, which left the direction of the SSE
+  instructions unrestored, and 16 bits of the FPCR on 64-bit ARM, which left
+  out its rounding bits. */
+  GAOL_INLINE unsigned short int get_fpu_cw()
+  {
+    return static_cast<unsigned short int>(fegetround());
+  }
+  
+  GAOL_INLINE void reset_fpu_cw(unsigned short int st)
+  {
+    fesetround(st);
+  }
+  
   /*!
-    \brief Returns the opposite of the argument
-
-    This macro is used to avoid the optimization if the negation is required
-    for trust rounding.
-   */
-#if GAOL_USING_ASM
-#   if GAOL_IX86_LINUX || GAOL_IX86_MACOSX
-        GAOL_INLINE double f_negate(double x)
-        {
-            asm volatile ("fldl %1; fchs; fstpl %0" : "=m" (x) : "m" (x));
-            return x;
-        }
-#   else
-        GAOL_INLINE double f_negate(double x)
-        {
-            uintdouble id;
-            id.d = x;
-            GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
-            return id.d;
-        }
-#   endif // GAOL_IX86_LINUX
-#else
-    GAOL_INLINE double f_negate(double x)
-    {
-        uintdouble id;
-        id.d = x;
-        GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
-        return id.d;
-    }
-#endif // GAOL_USING_ASM
-
+  \brief Returns the opposite of the argument
+  
+  This macro is used to avoid the optimization if the negation is required
+  for trust rounding.
+  */
+  #if GAOL_USING_ASM
+  #   if GAOL_IX86_LINUX || GAOL_IX86_MACOSX
+  GAOL_INLINE double f_negate(double x)
+  {
+    asm volatile ("fldl %1; fchs; fstpl %0" : "=m" (x) : "m" (x));
+    return x;
+  }
+  #   else
+  GAOL_INLINE double f_negate(double x)
+  {
+    uintdouble id;
+    id.d = x;
+    GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
+    return id.d;
+  }
+  #   endif // GAOL_IX86_LINUX
+  #else
+  GAOL_INLINE double f_negate(double x)
+  {
+    uintdouble id;
+    id.d = x;
+    GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
+    return id.d;
+  }
+  #endif // GAOL_USING_ASM
+  
 } // namespace gaol_core
 
 // In the namespace gaol too, as in GAOL 4; not reset_fpu_cw(), f_negate() and

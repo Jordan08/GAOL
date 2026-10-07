@@ -1,27 +1,28 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily 
- * developed at the Swiss Federal Institute of Technology, Lausanne, 
- * Switzerland, and is now developed at the Laboratoire d'Informatique de 
- * Nantes-Atlantique, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
- *                         Nantes-Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------*/
+* gaol -- NOT Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily 
+* developed at the Swiss Federal Institute of Technology, Lausanne, 
+* Switzerland, and is now developed at the Laboratoire d'Informatique de 
+* Nantes-Atlantique, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de 
+*                         Nantes-Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
+* COPYING file for information.
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_flags.h
-  \brief  
+\file   gaol_flags.h
+\brief  
 
-  <long description>
+<long description>
 
-  \author Frederic Goualard
-  \date   2001-10-30
+\author Frederic Goualard, Joran NININ
+\date   2001-10-30
 */
 
 
@@ -29,13 +30,13 @@
 #define GAOL_FLAGS_H
 
 namespace gaol_core {
-
-
+  
+  
   /*!
-    \brief Type for priority of operators in expressions
-   */
+  \brief Type for priority of operators in expressions
+  */
   class prec_t {
-  public:
+    public:
     enum { 
       null_prec   =  0, // null node
       plus_prec   =  2, // +, -, 
@@ -44,7 +45,7 @@ namespace gaol_core {
       cst_prec    = 10  // constant, variable, sine, cosine, ...
     };
   };
-
+  
 } // namespace gaol_core
 
 // prec_t, which GAOL 4 declared in its namespace gaol too, is not in gaol:

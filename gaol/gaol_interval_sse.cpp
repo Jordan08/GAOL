@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2009 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*
@@ -70,10 +71,10 @@
 
 
 
-    void interval::operator delete[](void *p)
-    {
-        GAOL_MEMFREE(p);
-    }
+  void interval::operator delete[](void *p)
+  {
+      GAOL_MEMFREE(p);
+  }
 
 	void* interval::operator new(size_t, void *p)
 	{
@@ -83,12 +84,12 @@
 		return p;
 	}
 
-    // The placement delete, called when the constructor of an interval built
-    // by the placement new above throws: the memory is the caller's, and was
-    // freed with free(), which it may not have come from
-    void interval::operator delete(void *, void *)
-    {
-    }
+  // The placement delete, called when the constructor of an interval built
+  // by the placement new above throws: the memory is the caller's, and was
+  // freed with free(), which it may not have come from
+  void interval::operator delete(void *, void *)
+  {
+  }
 
 	double hausdorff(const interval &I1, const interval &I2)
 	{

@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -20,7 +21,7 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-02
 */
 
@@ -53,20 +54,20 @@ namespace gaol_core {
     long total_time;
   };
 
-extern GAOL_PUBLIC long get_time(void);
-  /*!
-    Sets the base for time tracking.
-   */
-extern GAOL_PUBLIC void reset_time(void);
-  /*!
-    Returns the elapsed time since the last call to reset_time()
-   */
-extern GAOL_PUBLIC long elapsed_time(void);
-  /*!
-    Returns the elapsed time since the last call to reset_time() or
-    to intermediate_elapsed_time.
-  */
-extern GAOL_PUBLIC long intermediate_elapsed_time(void);
+  extern GAOL_PUBLIC long get_time(void);
+    /*!
+      Sets the base for time tracking.
+    */
+  extern GAOL_PUBLIC void reset_time(void);
+    /*!
+      Returns the elapsed time since the last call to reset_time()
+    */
+  extern GAOL_PUBLIC long elapsed_time(void);
+    /*!
+      Returns the elapsed time since the last call to reset_time() or
+      to intermediate_elapsed_time.
+    */
+  extern GAOL_PUBLIC long intermediate_elapsed_time(void);
 
 } // namespace gaol_core
 
