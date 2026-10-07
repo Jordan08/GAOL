@@ -3319,6 +3319,52 @@ cout << div_rel(interval(1,2), interval(-1,1),
 \end{example}
 \end{deffun}
 
+\begin{deffun}{interval}{pow\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{pow\_rel}(K,J,I)=\hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=x^y\}}$}
+  \end{operation}
+  Returns the \emph{relational base} of the power $z=x^y$: the hull of the
+  $x$ of \var{I} with an $x^y$ in \var{K} for a $y$ of \var{J}, the arguments
+  in the order of \code{div\_rel()}.\newinvfive{} $x^y$ is the \code{pow} of
+  IEEE 1788-2015 (Table 9.1), that of \code{gaol\_ieee1788::pow}: $e^{y\log x}$
+  for $x>0$, $0$ for $x=0$ and $y>0$, and no value elsewhere, so that no
+  $x<0$ is a solution, in either namespace. The \code{pow} of \code{gaol}
+  takes the integer power for a degenerate integer exponent $[n]$, which
+  has negative bases too: the reverse of $x^n$, $n\geq1$, is
+  \code{nth\_root\_rel(K, n, I)}.
+\begin{example}
+cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
+     << pow_rel(interval(2,3), interval(1,GAOL_INFINITY), interval(0,1)) << ' '
+     << pow_rel(interval(1,4), interval(2), interval(-3,3));
+@outputs^[2, 3] [empty] [1, 2]~
+\end{example}
+  $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty.
+\end{deffun}
+
+\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& K, const interval\& H, \\\hbox{}\hfill const interval\& I)}
+  \begin{operation}
+    \op{$\code{pow\_exponent\_rel}(K,H,I)=\hull{\{y\in I\mid\exists z\in K,\exists x\in H\colon z=x^y\}}$}
+  \end{operation}
+  Returns the \emph{relational exponent} of the power $z=x^y$, the same
+  \code{pow} as \code{pow\_rel()}: the hull of the $y$ of \var{I} with an
+  $x^y$ in \var{K} for an $x$ of \var{H}.\newinvfive
+\begin{example}
+cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
+     << pow_exponent_rel(interval(3), interval(2,4), interval::universe());
+@outputs^[3] [0.792481250360578, 1.584962500721157]~
+\end{example}
+  The bounds of both are the tightest ones: the ends of the solutions,
+  $c^{1/y}$ and $\log c/\log x$ for bounds $c$, $x$ and $y$ of the arguments,
+  are bounded by the largest and the smallest doubles $d$ whose powers $d^y$,
+  or $x^d$, CORE-MATH's \code{pow}, correctly rounded, proves to be on either
+  side of $c$. A bound of \var{I} where the solutions start between it and
+  the next double is kept when its power is within one double of $c$, which
+  only knowing whether that power is a double would settle:
+  \code{pow\_rel(\itv{1+2^{-52}}{1+2^{-52}}, \itv{0.5}{0.5}, \itv{0}{1+2^{-51}})}
+  is \itv{1+2^{-51}}{1+2^{-51}}, where $(1+2^{-52})^2=1+2^{-51}+2^{-104}$:
+  the tightest result for \var{I} one double wider.
+\end{deffun}
+
 \noindent
 The correspondence with the reverse functions of IEEE 1788-2015, whose
 last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
@@ -3334,6 +3380,8 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
     \ieee{sinRev}, \ieee{cosRev}, \ieee{tanRev}$(c,x)$ & \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
     \ieee{coshRev}$(c,x)$ & \code{acosh\_rel(c, x)}\\
     \ieee{mulRev}$(b,c,x)$ & \code{div\_rel(c, b, x)}\\
+    \ieee{powRev1}$(b,c,x)$ & \code{pow\_rel(c, b, x)}\newinvfive\\
+    \ieee{powRev2}$(a,c,x)$ & \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
     \hline
   \end{tabular}
 \end{center}
@@ -3341,9 +3389,8 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
 \noindent
 \ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in the
 namespace \code{gaol\_ieee1788} under its name
-(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{powRev1}, \ieee{powRev2},
-\ieee{atan2Rev1}, \ieee{atan2Rev2} and \ieee{pownRev} for $p\leq0$ are not
-provided.
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{atan2Rev1},
+\ieee{atan2Rev2} and \ieee{pownRev} for $p\leq0$ are not provided.
 
 \section{Cancellative addition and subtraction}
 %%---------------------------------------------
@@ -4507,6 +4554,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
   \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
   \code{mulRev(b, c, x)} & \code{div\_rel(c, b, x)}\\
+  \code{powRev1(b, c, x)}, \code{powRev2(a, c, x)} & \code{pow\_rel(c, b, x)}, \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
   \code{mulRevToPair(b, c)} (10.5.5) & the two parts of \code{div\_rel(c, b)}, in a \code{std::pair}\\
   \hline
   \multicolumn{2}{l}{\textit{Cancellative operations and set operations (10.5.6, 10.5.7)}}\\
@@ -4604,8 +4652,7 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{powRev1}, \ieee{powRev2},
-\ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
+it provide \ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
 $p\leq0$, \ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
@@ -4703,6 +4750,7 @@ covered.
   \code{invabs\_rel} & tightest\\
   \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
   \code{div\_rel}, \code{\%} & accurate; tightest where the bounds of the quotients are doubles\\
+  \code{pow\_rel}, \code{pow\_exponent\_rel} & tightest, but for a bound of $x$ next to the solutions whose power is within one double of $c$, which is kept: the tightest result for $x$ one double wider\newinvfive\\
   \code{cancel\_minus}, \code{cancel\_plus} & tightest\\
   \hline
   \multicolumn{2}{l}{\textit{Set operations, constructors, numeric and boolean functions}}\\
