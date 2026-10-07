@@ -655,6 +655,28 @@ mode there.
   arithmetic, and with mpmath for the periodic ones, not from GAOL nor from
   the results libieeep1788 expects, which the generator checks are
   enclosures of them.
+  The reverse functions of pow (GAOL v5), `pow_rel` (`powRev1`) and
+  `pow_exponent_rel` (`powRev2`), are checked apart, on the cases of
+  `pow_rel_values.h`, which `pow_rel_values.py` generates: the 804 cases of
+  `pow_rev.itl` of ITF1788, random ones, ones whose solutions are doubles
+  (x^y = c exactly) and ones where a bound of x is the double next to an end
+  of the solutions. Each result has to be empty when an argument is, to
+  enclose the tightest enclosure of the hull, and to lie within the tightest
+  enclosure of the solutions in x widened by one double (it is the tightest
+  but in the cases next to an end, where a bound of x whose power is within
+  one double of c is kept); the names of the standard, with and without x,
+  give the same bounds. The hulls are computed with mpmath at 2000 bits, by
+  cells: whether a point is a solution is decided directly, and the answer
+  changes only at the points c^(1/y), log(c)/log(x), 0 and the bounds of x,
+  between which it is the answer at a middle point. The generator checks
+  that the results of ITF1788 enclose them: two are wider,
+  `powRev2([0.25, 0.5], [2, +∞])`, given as [−∞, +∞], and
+  `powRev2([0.25, 1], [2, +∞])`, given as [−∞, 0], whose tightest
+  enclosure is [−∞, −0.5]. Then, by sampling, over 6 000 random boxes: the
+  points (x, y) whose power, the `pow` of the standard on [x] and [y], is
+  within c, which proves x^y in c, have to be kept by both functions, c
+  being made of the powers of some of these points so that the solutions
+  reach its bounds (54 305 points).
 
 - **`debugging`:** GAOL's headers compiled with `GAOL_DEBUGGING`, which the
   Debug builds define (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,

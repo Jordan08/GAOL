@@ -418,6 +418,54 @@ int main()
 }
 ```
 
+### The reverse functions of pow (GAOL v5)
+
+`pow_rel(K, J, I)` is the hull of the x of I with an x^y in K for a y of J, and
+`pow_exponent_rel(K, H, I)` the hull of the y of I with an x^y in K for an x
+of H: they contract the base and the exponent of z = x^y, as `div_rel(K, J,
+I)` contracts a factor of z = x·y, with their arguments in the same order.
+`powRev1(b, c, x)` and `powRev2(a, c, x)` of IEEE 1788-2015 (Table 10.1) are
+`pow_rel(c, b, x)` and `pow_exponent_rel(c, a, x)`, x being [−∞, +∞] when left
+out.
+
+Both reverse the pow of the standard, that of `gaol_ieee1788::pow`, in either
+namespace: x^y is e^(y log x) for x > 0, 0 for x = 0 and y > 0, and has no
+value elsewhere, so that no x < 0 is a solution, and `pow_rel([1, 4], [2],
+[-3, 3])` is [1, 2]. The `pow` of `gaol` takes the integer power for a
+degenerate integer exponent [n], which has negative bases too: it is not one
+function of x and y, its result for [n] not being within its result for an
+exponent around n, and the reverse of x^n, n ≥ 1, is `nth_root_rel(K, n, I)`.
+
+```cpp
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main()
+{
+  interval x(0, 10), y(2, 3), z(4, 9);
+  x = pow_rel(z, y, x);             // the x of x with x^y in z for a y of y
+  y = pow_exponent_rel(z, x, y);    // the y of y with x^y in z for an x of x
+  std::cout << x << ' ' << y << std::endl;   // [1.587401051968199, 3] [2, 3]
+  std::cout << pow_exponent_rel(interval(3), interval(2, 4), interval::universe())
+            << std::endl;           // [0.792481250360578, 1.584962500721157]
+  gaol::cleanup();
+  return 0;
+}
+```
+
+The bounds are the tightest ones: the ends of the solutions, c^(1/y) and
+log(c)/log(x) for bounds c, x and y of the arguments, are bounded by the
+largest and the smallest doubles d whose powers d^y, or x^d, CORE-MATH's pow
+proves to be on either side of c. A bound of I where the solutions start
+between it and the next double is kept, rather than left out, when its power
+is within one double of c, which only knowing whether that power is a double
+would settle: `pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51])` is
+[1 + 2^-51], where (1 + 2^-52)^2 is 1 + 2^-51 + 2^-104 and no x of [0, 1 +
+2^-51] is a solution. That is the tightest result for I widened by one double,
+within the accuracy the standard recommends (see
+[Accuracy of the operations](accuracy.md)).
+
 ## Integers
 
 An integer given to GAOL is taken as the integer it is (GAOL v5):
