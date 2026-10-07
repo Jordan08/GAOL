@@ -102,3 +102,14 @@ that expect a result that is not the tightest); the others are of operations
 GAOL v5 does not provide, or of the decorated intervals.
 [itf1788/](itf1788/) holds the generator and the runner, which fetches
 ITF1788.
+
+[The benchmark of Tang et al. (2021) on GAOL v5](tang2021.md) runs the
+benchmark of interval libraries of Tang, Ferguson, Schneider, Zorin, Kamil
+and Panozzo (PPAM 2022) on GAOL v5, with the SSE2 and the FPU builds: on
+100 000 inputs of each of its 132 expressions, every interval of GAOL encloses
+the value of the expression computed, the single operations are the tightest,
+and the intervals are narrower than those of filib's C version, the paper's
+reference; the 9884 results that fail the paper's own check come from decimal
+constants that are not doubles, a defect of the benchmark (GAOL v5).
+[tang2021/](tang2021/) holds the patch that adds GAOL to the benchmark, the
+scripts that fetch and run it, and the checker that replaces Mathematica.
