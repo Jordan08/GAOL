@@ -96,8 +96,15 @@ point Q), which `numbers` checks there too.
   calling code left, which `std::nearbyint` and `std::rint` would not: they are
   compared with a reference computed arithmetically, over the halfway values,
   the whole numbers and the doubles on either side of them, and over the
-  magnitudes beyond 2^52, on both signs and on the empty set. The
-  values are in `elementary_values.h`, which `elementary_values.py` generates.
+  magnitudes beyond 2^52, on both signs and on the empty set. `erf` and `erfc`
+  have to be the tightest enclosures themselves, against mpmath, at 409 doubles
+  (tiny arguments, where erf(x) is about 2x/√π, subnormal ones among them,
+  changes of binade, the arguments past which erf(x) is within 2^-53 of ±1 and
+  erfc(x) is subnormal or below 2^-1074, and hard cases of the `erfc.c` of
+  CORE-MATH) and over the intervals between them, exact at 0 and at the infinite
+  bounds, `erf(-X)` being `-erf(X)` and `erfc(-X)` within `2 - erfc(X)`, and
+  empty for the empty set (GAOL v5). The values are in `elementary_values.h`,
+  which `elementary_values.py` generates.
 - **`rounding_direction`:** about 110 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
@@ -122,8 +129,8 @@ point Q), which `numbers` checks there too.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 190 calls, in 63 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in ten groups,
+  on either side (about 210 calls, in 65 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in twelve groups,
   and five choices a program makes with `is_empty()` of an empty interval,
   three after an intersection whose left operand is empty, one after an
   intersection whose right operand is empty and one on the empty interval
@@ -162,7 +169,11 @@ point Q), which `numbers` checks there too.
   of the bounds overflowed. The test makes these intervals at run time: GCC
   12.1 to 12.3 and 13.1 to 13.2 with `-frounding-math` initialized a member of
   an aggregate given `std::numeric_limits<double>::denorm_min()` with -0, and
-  overwrote the next one (`[-0, NaN]`, the empty set, for 32-bit x86). Every
+  overwrote the next one (`[-0, NaN]`, the empty set, for 32-bit x86). So does
+  `floor_rel(z, x)` of a z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
+  beyond the doubles, where its result has no infinite bound: it computed
+  DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
+  is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5). Every
   operation has to keep the exception flags the program raised (the five of
   IEEE 754, and on x86 the six of the SSE control register) and the exception
   masks, and the invalid-operation exception the program enabled has to stay
@@ -180,7 +191,7 @@ point Q), which `numbers` checks there too.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5). Then each of the 79 operations that
+  compared before the check (GAOL v5). Then each of the 83 operations that
   check the rounding direction (the arithmetic, the elementary functions, the
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
@@ -237,7 +248,10 @@ point Q), which `numbers` checks there too.
   has to set the direction to nearest again, as many times as it is called,
   where `cleanup()` does so at its first call only, and to do nothing with
   `GAOL_PRESERVE_ROUNDING`, the operations restoring the direction
-  themselves (GAOL v5).
+  themselves (GAOL v5). `erf([100·2^-1074])` and `erfc([27])`, whose values are
+  subnormal, have to be the tightest enclosures with the modes that flush the
+  subnormals set too, against mpmath, and `erf` and `erfc` are among the
+  operations called with each mode set (GAOL v5).
 - **`fast_math_link`:** a program linked with `-ffast-math` (its link only, with
   GCC and Clang), which links `crtfastmath.o` and the modes flushing the
   subnormals to zero it sets, unless `-mno-daz-ftz` keeps it out. Where the
@@ -405,7 +419,18 @@ point Q), which `numbers` checks there too.
   widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes,
   Hausdorff distances (of intervals with infinite bounds too, equal
   bounds being at distance 0), `nb_fp_numbers()` (across the two
-  zeros), splitting, integer parts, the comparisons of IEEE 1788-2015
+  zeros), splitting, integer parts, the tools of interval algorithms (GAOL v5,
+  point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
+  have to be the tightest enclosures of the exact width, of [a − r, b + r] and
+  of [m − r, m + r], computed with exact rationals, on random intervals and
+  radii (the first version of the point rounded both bounds upward, and its
+  intervals did not contain them); `bisect(ratio)` has to give two parts that
+  cover the interval exactly, cut strictly inside where `is_bisectable()`, for
+  ratios from 10^-9 to 1 − 10^-9, `bisect(0.5)` being `split()`, and to throw
+  `invalid_action_error` for a ratio outside (0, 1) or NaN; `is_bisectable()`
+  to be true exactly when a double lies strictly between the bounds; `hull()`
+  and `intersect()` to be `|` and `&`; with infinite, NaN and largest bounds,
+  and the empty set. The comparisons of IEEE 1788-2015
   (`precedes`, `interior`, `subset`, `equal`, `disjoint`, from Tables 10.3 and
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
@@ -423,6 +448,23 @@ point Q), which `numbers` checks there too.
   against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
   base, and at integer exponents beyond the ints, where it has to give the
   tightest bounds and GAOL's own `pow` gives [-oo, +oo] (GAOL v5).
+  The reverse functions of max, min, sign and floor (`max_rel`, `min_rel`,
+  `sign_rel`, `floor_rel`, GAOL v5) have to be the hulls of their sets, read
+  from the definitions of the functions apart from the code: on every interval
+  whose bounds are among -oo, -2, -1.5, ..., 2, +oo, -0 and +0, and the empty
+  set (among -oo, -1, -0.5, -0, +0, 0.5, 1 and +oo, for every z, y and x of
+  `max_rel` and `min_rel`), the sets then being unions of intervals whose ends
+  are multiples of 1/2, read at the multiples of 1/4 from -4 to 4; on 66 cases
+  written out (disjoint, touching and nested intervals, infinite bounds,
+  -0 and +0, subnormal bounds, a z holding no sign or no integer, and
+  `floor_rel` beyond 2^53, where floor(sup z) + 1 is no double and the bound is
+  the double above it); `floor_rel` at every magnitude up to DBL_MAX, against
+  floor(sup z) + 1 computed exactly, x having its bounds next to ceil(inf z) and
+  floor(sup z) + 1 in a third of the cases; and on 20 000 random intervals of
+  every magnitude, where every double of x sampled that the definition puts in
+  the set has to be in the result, which has to lie within x with its finite
+  bounds in the set, or at its open end (0 for `sign_rel`, floor(sup z) + 1 for
+  `floor_rel`).
 - **`ieee1788`:** `gaol_ieee1788` as a program uses it, under
   `using namespace gaol_ieee1788;` alone. Every name of the standard it provides
   is called unqualified, which compiles only if none of them is ambiguous with
@@ -477,6 +519,15 @@ point Q), which `numbers` checks there too.
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
   wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5).
+  `mulRevToPair(b, c)` has to be the pair of 10.5.5, the part below first,
+  `(u, empty)` for one part and two empty sets for none (GAOL v5, point P):
+  tight on cases whose parts have exact bounds and on thirds, against exact
+  quotients, and on every b and c with integer bounds in [−3, 3], each
+  x = k/4 of the set in one of the two parts, the convex hull of the two
+  being `mulRev(b, c)` (the first version of the point put the part above
+  first). `erf` and `erfc`, which the standard does not name and
+  `gaol_ieee1788` does not hold, have to be found on an interval by
+  argument-dependent lookup, and to remain those of C on a number (GAOL v5).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -561,7 +612,14 @@ point Q), which `numbers` checks there too.
   (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them
   upward from the direction its `get_rounding_mode()` reads, which clang-cl on
   x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
-  being below 1/sqrt(x) (GAOL v5).
+  being below 1/sqrt(x) (GAOL v5). `erf` and `erfc` have to be the tightest
+  enclosures over 80 000 intervals, whose bounds are drawn among 0, the
+  infinities, the subnormals, the arguments past which their values are within
+  2^-53 of ±1 or of 2, subnormal or below 2^-1074, and those at which CORE-MATH
+  changes its method, with their neighbours, and random doubles; and at 22
+  hard-to-round arguments of the `erfc.c` of CORE-MATH, its values in the four
+  rounding directions have to be consistent with each other, and the bounds of
+  GAOL the tightest (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
@@ -665,6 +723,28 @@ point Q), which `numbers` checks there too.
   arithmetic, and with mpmath for the periodic ones, not from GAOL nor from
   the results libieeep1788 expects, which the generator checks are
   enclosures of them.
+  The reverse functions of pow (GAOL v5), `pow_rel` (`powRev1`) and
+  `pow_exponent_rel` (`powRev2`), are checked apart, on the cases of
+  `pow_rel_values.h`, which `pow_rel_values.py` generates: the 804 cases of
+  `pow_rev.itl` of ITF1788, random ones, ones whose solutions are doubles
+  (x^y = c exactly) and ones where a bound of x is the double next to an end
+  of the solutions. Each result has to be empty when an argument is, to
+  enclose the tightest enclosure of the hull, and to lie within the tightest
+  enclosure of the solutions in x widened by one double (it is the tightest
+  but in the cases next to an end, where a bound of x whose power is within
+  one double of c is kept); the names of the standard, with and without x,
+  give the same bounds. The hulls are computed with mpmath at 2000 bits, by
+  cells: whether a point is a solution is decided directly, and the answer
+  changes only at the points c^(1/y), log(c)/log(x), 0 and the bounds of x,
+  between which it is the answer at a middle point. The generator checks
+  that the results of ITF1788 enclose them: two are wider,
+  `powRev2([0.25, 0.5], [2, +∞])`, given as [−∞, +∞], and
+  `powRev2([0.25, 1], [2, +∞])`, given as [−∞, 0], whose tightest
+  enclosure is [−∞, −0.5]. Then, by sampling, over 6 000 random boxes: the
+  points (x, y) whose power, the `pow` of the standard on [x] and [y], is
+  within c, which proves x^y in c, have to be kept by both functions, c
+  being made of the powers of some of these points so that the solutions
+  reach its bounds (54 305 points).
 
 - **`debugging`:** GAOL's headers compiled with `GAOL_DEBUGGING`, which the
   Debug builds define (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
@@ -797,7 +877,14 @@ point Q), which `numbers` checks there too.
   operator in both orders, and the relations, `set_contains()` and
   `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to a
   double made wrong; and that an integer that is a double gives what the double
-  gives. `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
+  gives. `constructor` also checks the literal `_iv` of `gaol/gaol_literals.h`
+  (GAOL v5, point P), which has to enclose the number written rather than
+  the double the compiler makes of it: `0.1_iv` the decimal 0.1,
+  `9007199254740993_iv` 2^53 + 1, an integer of 30 digits, the hexadecimal
+  floating literals; the integers written in hexadecimal, octal (`010_iv` is
+  8) and binary the integers they are, beyond 64 bits too (2^65 − 1); the digit
+  separators left out; and `"[1, 2]"_iv`, `"1/3"_iv` read by `textToInterval()`.
+  `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
   a strict total order that puts the empty set first and the intervals by their
   bounds, which `<` is not, being the `strictPrecedes` of IEEE 1788-2015, true
   as soon as either interval is empty; it sorts a `std::vector` holding an

@@ -83,6 +83,9 @@ doubles `pi`, `half_pi`, `two_pi`, `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`,
 `ln2_dn`, `ln2_up`, `two_power_51` and `two_power_52` of GAOL 4 are no longer
 declared for the program, which found them with `using namespace gaol`, its own
 `pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`.
+`gaol/gaol_literals.h` holds the literal `_iv` (see
+[Tools of interval algorithms](#tools-of-interval-algorithms)), which a program
+includes itself (GAOL v5).
 
 ## From CMake
 
@@ -272,7 +275,7 @@ exceptions, the expressions with their nodes and visitor, the functions and
 the operators of intervals, `round_upward()`, `next_float()`, `version`,
 `NaN_val`..., and `rnd_keep()` of GAOL 4.3.2), the functions on intervals GAOL
 v5 adds
-(`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `fma`, `cancel_minus`,
+(`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. What GAOL's code uses for itself is
 in `gaol_core` only, out of the way of the names of a program that opens
@@ -340,6 +343,10 @@ standard:
   `gaol/gaol_expression.h`, and is written `gaol::sin(interval(0.5))`;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
+- `mulRevToPair(b, c)`, the two-output division of 10.5.5, returns the pair
+  (u, v) of the closures of the parts of {x : b'x = c'}: (∅, ∅), (u, ∅), or
+  two parts on either side of 0, u before v, where 0 is strictly inside b and
+  not in c; the hull of u and v is `mulRev(b, c)` (GAOL v5);
 - `textToInterval` reads the names of the functions of the standard, those of
   Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
   `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
@@ -349,12 +356,160 @@ standard:
   of GAOL and throws: as for `pow`, a program calls the one of the namespace
   it opens.
 
+`erf` and `erfc`, the error function and its complement, which the standard
+does not name, are not in `gaol_ieee1788` (GAOL v5): a call `erf(x)` on an
+interval finds them all the same in `gaol_core`, by argument-dependent lookup,
+and `erf(0.5)` remains the `erf` of C.
+
 A name of the program's own that one of the standard shadows, a constant `inf`
 for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`
 next to `using namespace std;`, where it is ambiguous with the class template
 `std::less`. Only bare intervals are provided, GAOL having no decorations;
 `gaol/gaol_ieee1788.h` lists the operations of the standard GAOL does not
 provide.
+
+## Tools of interval algorithms
+
+GAOL v5 provides the operations that interval algorithms otherwise write for
+themselves:
+
+- `x.width_enclosure()`: the interval `interval(r) - interval(l)` enclosing the
+  exact width r − l of x = [l, r], whose upper bound is `width()`, the width
+  rounded upward; [MAX, +∞] for an unbounded x, as `textToInterval()` reads
+  `inf`, and the empty set for the empty set.
+- `x.inflate(r)`: x widened by the absolute radius r, `x + interval(-r, r)`,
+  each bound rounded outward; r = +∞ gives the whole line, and r < 0 or a NaN
+  r the empty set.
+- `interval::midrad(m, r)`: the interval of midpoint m and radius r,
+  `interval(m) + interval(-r, r)`, which encloses [m − r, m + r], where
+  `interval(m - r, m + r)` does not: both bounds are then computed in the
+  upward rounding of GAOL, the lower one above m − r where it is inexact. An
+  infinite m gives the empty set, as `interval(m)` does.
+- `x.bisect(ratio)`: the pair of the parts of x on either side of a cut point
+  at the given ratio of its width, 0 < ratio < 1, which share the cut point and
+  cover x; `bisect(0.5)` cuts where `split()` does, at `midpoint()`, and so does
+  every ratio for a half-line or the whole line. A ratio outside (0, 1), or
+  NaN, throws `invalid_action_error`. `x.is_bisectable()` tells whether a
+  double lies strictly between the bounds, both parts being then smaller than
+  x: not for two consecutive doubles, nor for [MAX, +∞].
+- `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
+  `gaol` as in `gaol_core`.
+- The literal `_iv` of `gaol/gaol_literals.h`, under
+  `using namespace gaol::literals`: a number written with the suffix is the
+  tightest interval enclosing the number written, `0.1_iv` the interval of the
+  two doubles around the decimal 0.1, as `textToInterval("0.1")`, not the
+  double 0.1, and `9007199254740993_iv` an interval enclosing 2^53 + 1, which no
+  double is. The integers written in hexadecimal, octal and binary are the
+  integers they are (`010_iv` is 8), the digit separators of C++14 are left
+  out, and `"[1, 2]"_iv` is the interval `textToInterval()` reads in the
+  string.
+
+```cpp
+#include <iostream>
+#include <gaol/gaol.h>
+#include <gaol/gaol_literals.h>
+using namespace gaol;
+using namespace gaol::literals;
+
+int main()
+{
+  const interval x = 0.1_iv;                       // encloses 0.1
+  const interval y = interval::midrad(1.0, 1e-20); // [1 - 1e-20, 1 + 1e-20]
+  const std::pair<interval, interval> parts = interval(0.0, 1.0).bisect(0.25);
+  std::cout << x.width_enclosure() << ' ' << y << ' ' << parts.first << ' '
+            << parts.second << ' ' << hull(x, y) << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+```
+
+### The reverse functions of pow (GAOL v5)
+
+`pow_rel(K, J, I)` is the hull of the x of I with an x^y in K for a y of J, and
+`pow_exponent_rel(K, H, I)` the hull of the y of I with an x^y in K for an x
+of H: they contract the base and the exponent of z = x^y, as `div_rel(K, J,
+I)` contracts a factor of z = x·y, with their arguments in the same order.
+`powRev1(b, c, x)` and `powRev2(a, c, x)` of IEEE 1788-2015 (Table 10.1) are
+`pow_rel(c, b, x)` and `pow_exponent_rel(c, a, x)`, x being [−∞, +∞] when left
+out.
+
+Both reverse the pow of the standard, that of `gaol_ieee1788::pow`, in either
+namespace: x^y is e^(y log x) for x > 0, 0 for x = 0 and y > 0, and has no
+value elsewhere, so that no x < 0 is a solution, and `pow_rel([1, 4], [2],
+[-3, 3])` is [1, 2]. The `pow` of `gaol` takes the integer power for a
+degenerate integer exponent [n], which has negative bases too: it is not one
+function of x and y, its result for [n] not being within its result for an
+exponent around n, and the reverse of x^n, n ≥ 1, is `nth_root_rel(K, n, I)`.
+
+```cpp
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main()
+{
+  interval x(0, 10), y(2, 3), z(4, 9);
+  x = pow_rel(z, y, x);             // the x of x with x^y in z for a y of y
+  y = pow_exponent_rel(z, x, y);    // the y of y with x^y in z for an x of x
+  std::cout << x << ' ' << y << std::endl;   // [1.587401051968199, 3] [2, 3]
+  std::cout << pow_exponent_rel(interval(3), interval(2, 4), interval::universe())
+            << std::endl;           // [0.792481250360578, 1.584962500721157]
+  gaol::cleanup();
+  return 0;
+}
+```
+
+The bounds are the tightest ones: the ends of the solutions, c^(1/y) and
+log(c)/log(x) for bounds c, x and y of the arguments, are bounded by the
+largest and the smallest doubles d whose powers d^y, or x^d, CORE-MATH's pow
+proves to be on either side of c. A bound of I where the solutions start
+between it and the next double is kept, rather than left out, when its power
+is within one double of c, which only knowing whether that power is a double
+would settle: `pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51])` is
+[1 + 2^-51], where (1 + 2^-52)^2 is 1 + 2^-51 + 2^-104 and no x of [0, 1 +
+2^-51] is a solution. That is the tightest result for I widened by one double,
+within the accuracy the standard recommends (see
+[Accuracy of the operations](accuracy.md)).
+
+## The reverse functions of max, min, sign and floor
+
+`max_rel(z, y, x)`, `min_rel(z, y, x)`, `sign_rel(z, x)` and `floor_rel(z, x)`
+contract x under the constraints z = max(x, y), z = min(x, y), z = sign(x) and
+z = floor(x) (GAOL v5). Each returns the hull of the x of `x` that the function
+sends into `z`, with some y of `y` for max and min: the reverse functions
+IEEE 1788-2015 defines for every function (10.5.4), with the arguments in the
+order of GAOL's relational functions (`div_rel(c, b, x)`, `sqrt_rel(c, x)`...),
+the result first and the operand contracted last. max and min being
+symmetric, `max_rel(z, x, y)` contracts y, and `max(x, y) & z` contracts z.
+
+```cpp
+#include <gaol/gaol.h>
+using namespace gaol;
+
+interval x(-5.0, 5.0), z(1.0, 2.0);
+interval a = max_rel(z, interval(0.0, 1.0), x);   // [-5, 2]: y meets z
+interval b = max_rel(z, interval(-1.0, 0.0), x);  // [1, 2]: y below z
+interval c = max_rel(z, interval(3.0, 4.0), x);   // empty: y above z
+interval s = sign_rel(interval(-1.0), x);         // [-5, 0]
+interval f = floor_rel(interval(0.0, 2.0), x);    // [0, 3]
+```
+
+Each result is the tightest enclosure of its set, whose bounds are those of x
+and z, 0 and integers. Two of these sets are open at an end, which the
+tightest closed enclosure takes all the same: the negative x of `sign_rel` go
+up to 0, whose sign is 0, so that `sign_rel([-1], [-5, 5])` is [-5, 0] and
+`sign_rel([-1], [0, 5])` is empty; and the x whose floor is in z make
+[ceil(inf z), floor(sup z) + 1), so that `floor_rel([0], [0.5, 2])` is
+[0.5, 1] and `floor_rel([0], [1, 2])` is empty. Beyond 2^53, where every
+double is an integer, floor(sup z) + 1 is no double, and the upper bound is
+the double above it: `floor_rel([2^53], x)` ends at 2^53 + 2 where x goes on
+to it, and `floor_rel([DBL_MAX], x)` at +oo. A z that holds no value of the
+function gives the empty set: `sign_rel([0.5, 0.7], x)` and
+`floor_rel([0.5, 0.7], x)`. IEEE 1788-2015 names and requires only the reverse
+functions of its Table 10.1, which these four are not in: `gaol_ieee1788`
+has no name for them, and a program that opens it calls them as
+`max_rel(z, y, x)` all the same, argument-dependent lookup finding them in
+`gaol_core` (see [The namespaces](#the-namespaces)).
 
 ## Integers
 

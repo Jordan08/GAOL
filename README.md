@@ -109,10 +109,12 @@ program started with (see
   where it comes from.
 - [Continuous integration](doc/continuous-integration.md): the systems,
   processors and compilers GAOL is built and tested on.
-- [Comparison with libieeep1788, filib++, PROFIL/BIAS and Solaris Studio](doc/compare/README.md):
-  the [special cases](doc/compare/special_cases.md) of the five libraries
-  against IEEE 1788-2015, and their [performance](doc/compare/performance.md),
-  with the scripts to run the comparison again.
+- [Comparison with libieeep1788, filib++, PROFIL/BIAS, Solaris Studio and Boost.Interval](doc/compare/README.md):
+  the [special cases](doc/compare/special_cases.md) of the six libraries
+  against IEEE 1788-2015, the [enclosure](doc/compare/enclosure.md) of the
+  elementary functions of GAOL and Boost.Interval, and their
+  [performance](doc/compare/performance.md), with the scripts to run the
+  comparison again.
 - The manual of GAOL v5: `manual/v5/gaol.pdf`, with its LaTeX sources in
   `manual/v5/`. It follows the manual of GAOL 4 by Frédéric Goualard, and
   describes GAOL v5: its installation, each operation with examples, the names

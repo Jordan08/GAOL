@@ -1,47 +1,54 @@
 <!-- Copyright (c) 2026 ENSTA, France
      Created 2026-09-20 by Jordan NININ -->
-# Comparison of GAOL with libieeep1788, filib++, PROFIL/BIAS and Solaris Studio
+# Comparison of GAOL with libieeep1788, filib++, PROFIL/BIAS, Solaris Studio and Boost.Interval
 
 Part of the documentation of [GAOL v5](../../README.md#documentation).
 
-Five implementations of interval arithmetic on doubles are compared:
+Six implementations of interval arithmetic on doubles are compared:
 
-| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
-|---|---|---|---|---|---|
-| What | [libieeep1788](https://github.com/nehmeier/libieeep1788), by Marco Nehmeier (University of Würzburg), last commit in 2015 | GAOL v5, by Jordan Ninin (ENSTA), which continues the GAOL of Frédéric Goualard | [filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html) 3.0.2.2 (University of Wuppertal), as IBEX distributes it, which IBEX computes with by default on Windows | The `interval(8)` type of Sun's Fortran 95 compiler, `f90 -xia`, in Solaris Studio 12.4 (2014) | [PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) 2.0.8 (2009), by Olaf Knüppel and Christian Keil (TU Hamburg-Harburg) |
-| Language | C++11, header-only | C++ | C++, templates and a small library | Fortran 95, intervals built into the compiler | C++ (PROFIL) over C (BIAS) |
-| Bounds | Computed by MPFR, correctly rounded | Computed with the rounding direction set upward; elementary functions with CORE-MATH, correctly rounded upward | Computed with the rounding direction set and restored by each operation (`native_switched`); elementary functions of its own | Computed by `libsunimath` | Computed by the BIAS routines, which set the rounding direction downward, then upward, then back to nearest; elementary functions from the libm, moved outward |
-| Arithmetic | The set-based flavor of the preliminary IEEE P1788, the prototype of IEEE 1788-2015 | Set-based, following IEEE 1788-2015 in most of its special cases, with the deviations the reports list | The extended mode of filib++ (`i_mode_extended_flag`, as IBEX uses it), where the empty set and the infinities are handled | The containment sets of Sun's interval arithmetic (G. W. Walster), where the infinities are values | The interval arithmetic before IEEE 1788: no empty set, and an argument outside the domain of a function is an error that aborts the program |
+| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval |
+|---|---|---|---|---|---|---|
+| What | [libieeep1788](https://github.com/nehmeier/libieeep1788), by Marco Nehmeier (University of Würzburg), last commit in 2015 | GAOL v5, by Jordan Ninin (ENSTA), which continues the GAOL of Frédéric Goualard | [filib++](https://www2.math.uni-wuppertal.de/wrswt/software/filib.html) 3.0.2.2 (University of Wuppertal), as IBEX distributes it, which IBEX computes with by default on Windows | The `interval(8)` type of Sun's Fortran 95 compiler, `f90 -xia`, in Solaris Studio 12.4 (2014) | [PROFIL/BIAS](https://www.tuhh.de/ti3/keil/profil/) 2.0.8 (2009), by Olaf Knüppel and Christian Keil (TU Hamburg-Harburg) | [Boost.Interval](https://www.boost.org/libs/numeric/interval) of Boost 1.92.0 (2026), by Hervé Brönnimann, Guillaume Melquiond and Sylvain Pion, the interval library C++ users find first |
+| Language | C++11, header-only | C++ | C++, templates and a small library | Fortran 95, intervals built into the compiler | C++ (PROFIL) over C (BIAS) | C++03 templates, header-only |
+| Bounds | Computed by MPFR, correctly rounded | Computed with the rounding direction set upward; elementary functions with CORE-MATH, correctly rounded upward | Computed with the rounding direction set and restored by each operation (`native_switched`); elementary functions of its own | Computed by `libsunimath` | Computed by the BIAS routines, which set the rounding direction downward, then upward, then back to nearest; elementary functions from the libm, moved outward | Computed with the rounding direction set upward by each operation, the lower bounds negated, and set back after it (the default policies, `save_state<rounded_arith_opp>`); elementary functions from the C library, called with the rounding direction set downward or upward (`rounded_transc_opp`), a direction glibc does not always honour |
+| Arithmetic | The set-based flavor of the preliminary IEEE P1788, the prototype of IEEE 1788-2015 | Set-based, following IEEE 1788-2015 in most of its special cases, with the deviations the reports list | The extended mode of filib++ (`i_mode_extended_flag`, as IBEX uses it), where the empty set and the infinities are handled | The containment sets of Sun's interval arithmetic (G. W. Walster), where the infinities are values | The interval arithmetic before IEEE 1788: no empty set, and an argument outside the domain of a function is an error that aborts the program | The interval arithmetic before IEEE 1788, without empty set: its default checking (`checking_strict`) throws an exception where an operation would create one |
 
-The comparison has two parts:
+The comparison has three parts:
 
 - [Special cases](special_cases.md): 288 special cases taken from GAOL's tests
   (infinities, zeros, NaN, empty sets, divisions by zero, `pow` and `pown`,
   `+=` and the other operators with doubles, reading from text, midpoints,
-  widths, radii, comparisons and `atan2`), computed by the five libraries and compared
+  widths, radii, comparisons and `atan2`), computed by the six libraries and compared
   with the results of IEEE 1788-2015.
+- [Enclosure](enclosure.md): whether the elementary functions of GAOL and
+  Boost.Interval enclose their values, at 100 000 random arguments for each
+  function, against mpmath.
 - [Performance](performance.md): the time of a million additions,
   subtractions, multiplications, divisions, sines, cosines, powers,
   one-line combinations, evaluations of Shekel 5 and five-line blocks.
 
 [code/](code/README.md) holds the scripts and programs, in C++, Fortran,
-Python and bash, that run both parts again and rewrite the tables of the
+Python and bash, that run the three parts again and rewrite the tables of the
 reports.
 
 ## In short
 
-| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
-|---|---|---|---|---|---|
-| Special cases with IEEE 1788's result | 279 of 279 | 275 of 286 | 126 of 243 | 150 of 261 | 56 of 221 |
-| … or an interval enclosing it | 0 | 5 | 50 | 41 | 22 |
-| … or another result | 0 | 6 | 67 | 70 | 143 |
-| Cases it has no operation for | 8 | 0 | 44 | 26 | 65 |
-| `x + y` | 208 ns | 3.2 ns | 7.8 ns | 24 ns | 22 ns |
-| `x * y` | 259 ns | 16 ns | 23 ns | 29 ns | 22 ns |
-| `sin(x)` | 8.6 µs | 70 ns | 51 ns | 59 ns | 173 ns |
-| `log(x)` | 2.7 µs | 30 ns | 41 ns | 56 ns | 15 ns |
-| `pow(x, 3)` | 343 ns | 21 ns | 27 ns | 214 ns | 49 ns |
-| Shekel 5 | 14 µs | 310 ns | 602 ns | 2.4 µs | 1.6 µs |
+| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval |
+|---|---|---|---|---|---|---|
+| Special cases with IEEE 1788's result | 279 of 279 | 275 of 286 | 126 of 243 | 150 of 261 | 56 of 221 | 93 of 166 |
+| … or an interval enclosing it | 0 | 5 | 50 | 41 | 22 | 9 |
+| … or another result | 0 | 6 | 67 | 70 | 143 | 64 |
+| Cases it has no operation for | 8 | 0 | 44 | 26 | 65 | 121 |
+| Elementary functions at random points: results missing the value | — | 0 of 1 600 000 | — | — | — | 41 % (27 % with `rounded_transc_std`) |
+| `x + y` | 208 ns | 3.2 ns | 7.8 ns | 24 ns | 22 ns | 18 ns\* |
+| `x * y` | 259 ns | 16 ns | 23 ns | 29 ns | 22 ns | 31 ns\* |
+| `sin(x)` | 8.6 µs | 70 ns | 51 ns | 59 ns | 173 ns | 97 ns\* |
+| `log(x)` | 2.7 µs | 30 ns | 41 ns | 56 ns | 15 ns | 40 ns\* |
+| `pow(x, 3)` | 343 ns | 21 ns | 27 ns | 214 ns | 49 ns | 27 ns\* |
+| Shekel 5 | 14 µs | 310 ns | 602 ns | 2.4 µs | 1.6 µs | 1.3 µs\* |
+
+\* Measured later, on a busy machine: indicative only (see
+[performance](performance.md)).
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
   as tightly as possible, and is 13 to 138 times slower than GAOL.
@@ -67,8 +74,42 @@ reports.
   on + and −, its sin and cos are the slowest after libieeep1788's (173 and
   195 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
   than the tightest on average.
+- **Boost.Interval**, the library of Boost, is the interval library C++
+  programmers find first. Its arithmetic gave the tightest intervals in the
+  benchmark, but its elementary functions are the C library's, called with the
+  rounding direction set downward or upward, which glibc does not always
+  honour: at the points of the test of enclosure, 41 % of its results miss the
+  value of the function, 27 % with its other policy, and `atan([−∞, +∞])`
+  misses π/2. With its default checking it has no empty set: an operation that
+  would create one throws an exception. In the same pass of the benchmark, it
+  was 5 times slower than GAOL on + and −, 1.3 to 3.1 times on ×, ÷ and the
+  formulas, 1.1 to 1.4 times on the elementary functions.
 - **Solaris Studio** is 1.2 to 1.4 times as fast as GAOL on sin and cos, but
   slow on integer powers and squares. Its containment sets give other results
   than IEEE 1788 wherever an infinity, a division by zero or an invalid
   argument is involved: `interval(+∞)` is [MAX, +∞], `[1, 2] / [0, 1]` is
   [−∞, +∞] and `interval(2, 1)` is [−∞, +∞].
+
+## Test suites
+
+[ITF1788 on GAOL v5](itf1788.md) runs the 9542 cases of
+[ITF1788](https://github.com/oheim/ITF1788), the test suite of the operations
+of IEEE 1788-2015, on GAOL v5 under the names of the standard
+(`gaol_ieee1788`), with the SSE2 and the FPU builds: 6400 cases pass, and the
+91 that fail show no bug of GAOL v5 (results valid and accurate but not the
+tightest, which the standard does not require of these operations, and cases
+that expect a result that is not the tightest); the others are of operations
+GAOL v5 does not provide, or of the decorated intervals.
+[itf1788/](itf1788/) holds the generator and the runner, which fetches
+ITF1788.
+
+[The benchmark of Tang et al. (2021) on GAOL v5](tang2021.md) runs the
+benchmark of interval libraries of Tang, Ferguson, Schneider, Zorin, Kamil
+and Panozzo (PPAM 2022) on GAOL v5, with the SSE2 and the FPU builds: on
+100 000 inputs of each of its 132 expressions, every interval of GAOL encloses
+the value of the expression computed, the single operations are the tightest,
+and the intervals are narrower than those of filib's C version, the paper's
+reference; the 9884 results that fail the paper's own check come from decimal
+constants that are not doubles, a defect of the benchmark (GAOL v5).
+[tang2021/](tang2021/) holds the patch that adds GAOL to the benchmark, the
+scripts that fetch and run it, and the checker that replaces Mathematica.

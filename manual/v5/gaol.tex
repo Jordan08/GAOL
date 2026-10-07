@@ -440,7 +440,7 @@ In the root directory of the sources:
 \end{cmdshell}
 
 \noindent
-The build compiles the thirty-six sources of CORE-MATH GAOL uses into
+The build compiles the thirty-eight sources of CORE-MATH GAOL uses into
 \file{libgaol}, which is a static library unless \option{BUILD\_SHARED\_LIBS}
 is \code{ON}: there is nothing else to build and nothing else to install. The build type is \code{Release} unless another is
 given; brought in by a project that gives none (\code{add\_subdirectory},
@@ -1412,7 +1412,7 @@ the exceptions, the expressions with their nodes and visitor, the functions
 and the operators of intervals, \code{round\_upward()}, \code{next\_float()},
 \code{version}, \code{NaN\_val}\ldots, and \code{rnd\_keep()} of GAOL~4.3.2), the functions on
 intervals GAOL v5 adds (\code{exp2}, \code{log2}, \code{hypot}, \code{trunc},
-\code{sinpi}, \code{fma}, \code{cancel\_minus},
+\code{sinpi}, \code{erf}, \code{fma}, \code{cancel\_minus},
 \code{round\_ties\_to\_even}\ldots{} and the nodes of their expressions),
 \code{restore\_rounding()} and \code{exact\_string()}.\newinvfive{} What
 GAOL's code uses for itself is in
@@ -1793,6 +1793,24 @@ interval x = textToInterval("[-23, inf]"),
   its sum with \itv{0}{1} was \itv{2}{2}.\newinvfive
 \end{deffun}
 
+\begin{defstaticmethod}{interval}{interval}{midrad}{(double \var{m}, double \var{r})}
+  \begin{operation}
+    \op{$\code{midrad}(m,r)=\itv{\roundDn{m-r}}{\roundUp{m+r}}$}
+  \end{operation}
+  Returns the interval of midpoint \var{m} and radius \var{r},
+  \code{interval(\var{m}) + interval(-\var{r}, \var{r})}, which encloses every
+  real of \itv{m-r}{m+r}, where \code{interval(\var{m} - \var{r}, \var{m} +
+  \var{r})} rounds both bounds upward. $r=0$ gives the point \var{m} and
+  $r=+\infty$ the whole line; a negative or NaN \var{r} gives the empty set,
+  and so does an infinite or NaN \var{m}, as \code{interval(\var{m})}
+  does.\newinvfive
+  \begin{example}
+cout << interval::midrad(1, 0.25) << ' '
+     << interval::midrad(1, -1);
+@outputs^[0.75, 1.25] [empty]~
+  \end{example}
+\end{defstaticmethod}
+
 \paragraph{Caution.} you have to be very careful when creating an interval
 from floating-point constants. Remember that a rational number that is
 perfectly representable in the decimal base may require rounding in the
@@ -1812,6 +1830,41 @@ In such a case, you have to read it from a string instead:
 
 \begin{example}
 interval x = textToInterval("0.1");
+\end{example}
+
+\cindex{literals}%
+\noindent
+or write it with the suffix \code{\_iv} that the header
+\file{gaol/gaol\_literals.h} declares in the namespace \code{gaol::literals}:
+neither \file{gaol/gaol.h} includes the header nor does
+\code{using namespace gaol;} open the namespace.\newinvfive{} The literal
+operator receives the number as the program writes it, not the double the
+compiler would make of it: \code{0.1\_iv} is the tightest interval enclosing
+the decimal $0.1$, as \code{textToInterval("0.1")} is, and
+\code{9007199254740993\_iv} the one enclosing $2^{53}+1$. The decimal and
+hexadecimal floating literals and the decimal integers are read by
+\code{textToInterval()}; the integers written in hexadecimal, in octal
+(\code{010\_iv} is \itv{8}{8}, as \code{010} is 8) and in binary are taken as
+the integers they are; the digit separators of C++14 (\code{1'000\_iv}) are
+left out. A string with the suffix, \code{"[1, 2]"\_iv}, is the interval
+\code{textToInterval()} reads in it, and throws \code{input\_format\_error}
+when it is no interval.
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+#include <gaol/gaol_literals.h>
+using namespace gaol::literals;
+
+int main(void)
+{
+  gaol::interval::precision(17);
+  std::cout << 0.1_iv << ' ' << gaol::interval(0.1) << std::endl
+            << 9007199254740993_iv << ' ' << "[1, 2]"_iv << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[0.099999999999999991, 0.10000000000000001] [0.1, 0.10000000000000001]~
+@outputs^[9007199254740992, 9007199254740994] [1, 2]~
 \end{example}
 
 \paragraph{Note.}\label{par:inf_inf_note}
@@ -3109,6 +3162,27 @@ cout << hypot(interval(3), interval(4)) << ' '
 Among the functions IEEE 1788-2015 recommends (Table~10.5), \ieee{compoundm1}
 alone is not provided, CORE-MATH having no version of it for doubles.
 
+\deffunx{interval}{erf}{(const interval\& \var{I})}
+\begin{deffun}{interval}{erfc}{(const interval\& \var{I})}
+  The error function $\operatorname{erf}(x)=\frac{2}{\sqrt{\pi}}\int_0^x
+  e^{-t^2}\,dt$, increasing from $-1$ to 1, and its complement
+  $\operatorname{erfc}(x)=1-\operatorname{erf}(x)$, decreasing from 2 to 0,
+  for $x$ in \var{I}: the \code{erf} and \code{erfc} of C, which CORE-MATH
+  computes, and the tightest bounds, exact at 0 and at the infinities.
+  $\operatorname{erfc}(x)$ is subnormal from $x=26.55$ on, and below the
+  least subnormal from $x=27.22$ on, where the lower bound is 0. IEEE
+  1788-2015 does not name them, and \code{gaol\_ieee1788} does not hold them:
+  a call \code{erf(\var{x})} on an interval finds them all the same, by
+  argument-dependent lookup.\newinvfive
+\begin{example}
+cout << erf(interval(0.0)) << ' ' << erf(interval(-1,1)) << ' '
+     << erf(interval(6,7)) << endl
+     << erfc(interval(0.0,1)) << ' ' << erfc(interval(28,30)) << endl;
+@outputs^[0] [-0.8427007929497149, 0.8427007929497149] [0.9999999999999998, 1]~
+@outputs^[0.1572992070502851, 1] [0, 4.940656458412466e-324]~
+\end{example}
+\end{deffun}
+
 \section{Relational Arithmetic}\label{sec:relational-arithmetic}
 %%-----------------------------
 \cindex{reverse functions|see{relational arithmetic}}%
@@ -3288,6 +3362,121 @@ cout << div_rel(interval(1,2), interval(-1,1),
 \end{example}
 \end{deffun}
 
+\begin{deffun}{interval}{pow\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{pow\_rel}(K,J,I)=\hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=x^y\}}$}
+  \end{operation}
+  Returns the \emph{relational base} of the power $z=x^y$: the hull of the
+  $x$ of \var{I} with an $x^y$ in \var{K} for a $y$ of \var{J}, the arguments
+  in the order of \code{div\_rel()}.\newinvfive{} $x^y$ is the \code{pow} of
+  IEEE 1788-2015 (Table 9.1), that of \code{gaol\_ieee1788::pow}: $e^{y\log x}$
+  for $x>0$, $0$ for $x=0$ and $y>0$, and no value elsewhere, so that no
+  $x<0$ is a solution, in either namespace. The \code{pow} of \code{gaol}
+  takes the integer power for a degenerate integer exponent $[n]$, which
+  has negative bases too: the reverse of $x^n$, $n\geq1$, is
+  \code{nth\_root\_rel(K, n, I)}.
+\begin{example}
+cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
+     << pow_rel(interval(2,3), interval(1,GAOL_INFINITY), interval(0,1)) << ' '
+     << pow_rel(interval(1,4), interval(2), interval(-3,3));
+@outputs^[2, 3] [empty] [1, 2]~
+\end{example}
+  $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty.
+\end{deffun}
+
+\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& K, const interval\& H, \\\hbox{}\hfill const interval\& I)}
+  \begin{operation}
+    \op{$\code{pow\_exponent\_rel}(K,H,I)=\hull{\{y\in I\mid\exists z\in K,\exists x\in H\colon z=x^y\}}$}
+  \end{operation}
+  Returns the \emph{relational exponent} of the power $z=x^y$, the same
+  \code{pow} as \code{pow\_rel()}: the hull of the $y$ of \var{I} with an
+  $x^y$ in \var{K} for an $x$ of \var{H}.\newinvfive
+\begin{example}
+cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
+     << pow_exponent_rel(interval(3), interval(2,4), interval::universe());
+@outputs^[3] [0.792481250360578, 1.584962500721157]~
+\end{example}
+  The bounds of both are the tightest ones: the ends of the solutions,
+  $c^{1/y}$ and $\log c/\log x$ for bounds $c$, $x$ and $y$ of the arguments,
+  are bounded by the largest and the smallest doubles $d$ whose powers $d^y$,
+  or $x^d$, CORE-MATH's \code{pow}, correctly rounded, proves to be on either
+  side of $c$. A bound of \var{I} where the solutions start between it and
+  the next double is kept when its power is within one double of $c$, which
+  only knowing whether that power is a double would settle:
+  \code{pow\_rel(\itv{1+2^{-52}}{1+2^{-52}}, \itv{0.5}{0.5}, \itv{0}{1+2^{-51}})}
+  is \itv{1+2^{-51}}{1+2^{-51}}, where $(1+2^{-52})^2=1+2^{-51}+2^{-104}$:
+  the tightest result for \var{I} one double wider.
+\end{deffun}
+
+\deffunx{interval}{max\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+\begin{deffun}{interval}{min\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+  \begin{operation}
+    \op{$\code{max\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon \max(x,y)\in Z\}}$}
+    \op{$\code{min\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon \min(x,y)\in Z\}}$}
+  \end{operation}
+  Return the \emph{relational maximum} and \emph{minimum} of \var{Z} given
+  \var{Y} w.r.t. \var{X}, the arguments in the order of \code{div\_rel}: the
+  result, the other operand, then the operand contracted;
+  \code{max\_rel(Z,~X,~Y)} contracts \var{Y}, and \code{max(X,~Y)~\&~Z}
+  contracts \var{Z}. $\max(x,y)$ is in \var{Z} when $x$ and $y$ are at most
+  $\rightBound{Z}$ and one of them at least $\leftBound{Z}$: the set is empty
+  when \var{Y} lies above \var{Z}, $X\cap\itv{-\infty}{\rightBound{Z}}$ when
+  \var{Y} meets \var{Z}, and $X\cap Z$ when \var{Y} lies below \var{Z}, the
+  maximum being $x$; \code{min\_rel} is its mirror image. The bounds are those
+  of \var{X} and \var{Z}: each result is the tightest enclosure.\newinvfive
+\begin{example}
+cout << max_rel(interval(1,2), interval(3,4), interval(-5,5)) << ' '
+     << max_rel(interval(1,2), interval(0,1), interval(-5,5)) << ' '
+     << max_rel(interval(1,2), interval(-1,0), interval(-5,5)) << endl
+     << min_rel(interval(1,2), interval(2,3), interval(-5,5)) << endl;
+@outputs^[empty] [-5, 2] [1, 2]~
+@outputs^[1, 5]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sign\_rel}{(const interval\& Z, const interval\& X)}
+  \begin{operation}
+    \op{$\code{sign\_rel}(Z,X)=\hull{\{x\in X\mid \operatorname{sign}(x)\in Z\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse sign} of \var{Z} w.r.t. \var{X}: the
+  negative $x$ of \var{X} where \var{Z} holds $-1$, 0 where \var{Z} and
+  \var{X} hold it, and the positive $x$ of \var{X} where \var{Z} holds 1; the
+  empty set where \var{Z} holds none of them, as \itv{0.5}{0.7}. The negative
+  $x$ go up to 0, which their tightest enclosure takes although
+  $\operatorname{sign}(0)=0$, the negative doubles next to 0 being in the
+  set.\newinvfive
+\begin{example}
+cout << sign_rel(interval(-1), interval(-2,3)) << ' '
+     << sign_rel(interval(-1), interval(0,3)) << ' '
+     << sign_rel(interval(0,1), interval(-2,3)) << endl;
+@outputs^[-2, 0] [empty] [0, 3]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{floor\_rel}{(const interval\& Z, const interval\& X)}
+  \begin{operation}
+    \op{$\code{floor\_rel}(Z,X)=\hull{\{x\in X\mid \lfloor x\rfloor\in Z\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse floor} of \var{Z} w.r.t. \var{X}: the
+  part of \var{X} in
+  $\left[\lceil\leftBound{Z}\rceil,\lfloor\rightBound{Z}\rfloor+1\right[$,
+  the $x$ whose floor is an integer of \var{Z}, and the empty set when
+  \var{Z} holds no integer. That interval is open at its upper end, which its
+  tightest closed enclosure takes all the same, the reals just below it being
+  in the set: \code{floor\_rel(interval(0), interval(1,~2))} is empty, \var{X}
+  starting at that end. Beyond $2^{53}$, where every double is an integer,
+  $\lfloor\rightBound{Z}\rfloor+1$ is no double, and the bound is the double
+  above it: \code{floor\_rel} of \itv{2^{53}}{2^{53}} ends at $2^{53}+2$,
+  and at $+\infty$ for \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}, where
+  \var{X} goes on to it. Each result is the tightest enclosure.\newinvfive
+\begin{example}
+cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
+     << floor_rel(interval(0), interval(1,2)) << ' '
+     << floor_rel(interval(0.5,0.7), interval(-5,5)) << endl;
+@outputs^[0, 3] [empty] [empty]~
+\end{example}
+\end{deffun}
+
 \noindent
 The correspondence with the reverse functions of IEEE 1788-2015, whose
 last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
@@ -3303,13 +3492,23 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
     \ieee{sinRev}, \ieee{cosRev}, \ieee{tanRev}$(c,x)$ & \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
     \ieee{coshRev}$(c,x)$ & \code{acosh\_rel(c, x)}\\
     \ieee{mulRev}$(b,c,x)$ & \code{div\_rel(c, b, x)}\\
+    \ieee{powRev1}$(b,c,x)$ & \code{pow\_rel(c, b, x)}\newinvfive\\
+    \ieee{powRev2}$(a,c,x)$ & \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
     \hline
   \end{tabular}
 \end{center}
 
 \noindent
-\ieee{powRev1}, \ieee{powRev2}, \ieee{atan2Rev1}, \ieee{atan2Rev2}, \ieee{pownRev}
-for $p\leq0$ and \ieee{mulRevToPair} are not provided.
+\ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in the
+namespace \code{gaol\_ieee1788} under its name
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{atan2Rev1} and \ieee{atan2Rev2}
+are \code{atan2\_rel} and \code{atan2\_exponent\_rel} in \code{gaol\_core}, and
+\ieee{pownRev} for $p\leq0$ is not provided.
+\code{max\_rel}, \code{min\_rel}, \code{sign\_rel} and \code{floor\_rel} are
+the reverse functions of $\max$, $\min$, $\operatorname{sign}$ and
+$\operatorname{floor}$ as the standard defines them (10.5.4), which it
+neither names nor requires, Table~10.1 not listing them: the namespace
+\code{gaol\_ieee1788} has no name for them.\newinvfive
 
 \section{Cancellative addition and subtraction}
 %%---------------------------------------------
@@ -3379,6 +3578,41 @@ cout << boolalpha << interval(4,6).width() << ' '
          == std::numeric_limits<double>::epsilon()) << ' '
      << interval::emptyset().width();
 @outputs^2 true nan~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{width\_enclosure}{(void) const}
+  \begin{operation}
+    \op{$\code{width\_enclosure}(\itv{a}{b})=\itv{\roundDn{b-a}}{\roundUp{b-a}}$}
+  \end{operation}
+Returns an interval enclosing the exact width of \code{self}, of which
+\code{width()} is the upper bound only: \code{interval(b) - interval(a)}, the
+point \itv{0}{0} for a point interval and the empty set for the empty set. The
+width of an unbounded interval, $+\infty$, being no real number, the result is
+then \itv{\text{MAX}}{+\infty}, MAX being the largest double, as
+\code{textToInterval("inf")} is.\newinvfive
+\begin{example}
+cout << interval(1,3).width_enclosure() << ' '
+     << interval(-1,1e16).width_enclosure() << endl
+     << interval(1,GAOL_INFINITY).width_enclosure();
+@outputs^[2] [1e+16, 1.000000000000001e+16]~
+@outputs^[1.797693134862315e+308, inf]~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{inflate}{(double \var{r}) const}
+  \begin{operation}
+    \op{$\code{inflate}(\itv{a}{b},r)=\itv{\roundDn{a-r}}{\roundUp{b+r}}$}
+  \end{operation}
+Returns \code{self} widened by the absolute radius \var{r},
+\code{self + interval(-\var{r}, \var{r})}, which encloses every $x+e$ for $x$ in
+\code{self} and $|e|\leq r$, however small $r$ is next to the bounds. $r=0$
+gives \code{self} and $r=+\infty$ the whole line; the empty set stays empty,
+and a negative or NaN \var{r} gives the empty set.\newinvfive
+\begin{example}
+cout << boolalpha << interval(1,2).inflate(0.5) << ' '
+     << interval(1,2).inflate(1e-20).set_eq(interval(1,2));
+@outputs^[0.5, 2.5] false~
 \end{example}
 \end{defmethod}
 
@@ -3680,6 +3914,42 @@ cout << interval(4,5).split_right();
   \end{example}
 \end{defmethod}
 
+\begin{defmethod}{interval}{std::pair<interval, interval>}{bisect}{(double \var{ratio}) const}
+  \begin{operation}
+    \op{$\code{bisect}(\itv{a}{b},\rho)=(\itv{a}{c},\itv{c}{b})$}
+  \end{operation}
+  Returns the two parts of \code{self} on either side of the cut point $c$, a
+  double of \itv{a}{b} that both parts share, so that they cover \code{self}
+  exactly. For $0<\rho<1$, $c$ is $a+\rho(b-a)$, computed as
+  $a(1-\rho)+b\rho$, which cannot overflow, and kept within \itv{a}{b}; when
+  \code{is\_bisectable()} is true, $c$ is moreover strictly between $a$ and
+  $b$, so that both parts are smaller than \code{self}. $\rho=0.5$ cuts at
+  \code{midpoint()}, as \code{split()} does, and so does every ratio for an
+  unbounded interval: a half-line is cut at the largest double or at its
+  opposite, the whole line at 0. The empty set gives two empty sets, and a
+  point interval itself twice. A ratio outside $(0,1)$, or NaN, throws
+  \code{invalid\_action\_error}.\newinvfive
+  \begin{example}
+std::pair<interval, interval> p = interval(0,4).bisect(0.25);
+cout << p.first << ' ' << p.second;
+@outputs^[0, 1] [1, 4]~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_bisectable}{(void) const}
+  Returns \code{true} when a double lies strictly between the bounds of
+  \code{self}, so that \code{bisect()} gives two parts, each smaller than
+  \code{self}; \code{false} for the empty set, a point interval, two
+  consecutive doubles, and the half-lines \itv{\text{MAX}}{+\infty} and
+  \itv{-\infty}{-\text{MAX}}, which \code{split()} cuts at their finite
+  bound.\newinvfive
+  \begin{example}
+cout << boolalpha << interval(1,2).is_bisectable() << ' '
+     << interval(1,next_float(1)).is_bisectable();
+@outputs^true false~
+  \end{example}
+\end{defmethod}
+
 \section{Union and intersection}
 %%------------------------------
 
@@ -3709,6 +3979,18 @@ cout << (interval(4,6) & interval(5,9)) << ' '
   \begin{example}
 cout << (interval(3,6) | interval(9,12));
 @outputs^[3, 12]~
+  \end{example}
+\end{deffun}
+
+\deffunx{interval}{hull}{(const interval\& I1, const interval\& I2)}
+\begin{deffun}{interval}{intersect}{(const interval\& I1, const interval\& I2)}
+  \code{I1 | I2} and \code{I1 \& I2} under a name, for an algorithm written
+  with names rather than operators, and for \code{std::accumulate} or a
+  pointer to a function. They are in the namespace \code{gaol} too.\newinvfive
+  \begin{example}
+cout << hull(interval(1,2), interval(4,5)) << ' '
+     << intersect(interval(1,3), interval(2,5));
+@outputs^[1, 5] [2, 3]~
   \end{example}
 \end{deffun}
 
@@ -4390,6 +4672,8 @@ The last argument $x$ of the reverse functions is optional, and
   \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
   \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
   \code{mulRev(b, c, x)} & \code{div\_rel(c, b, x)}\\
+  \code{powRev1(b, c, x)}, \code{powRev2(a, c, x)} & \code{pow\_rel(c, b, x)}, \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
+  \code{mulRevToPair(b, c)} (10.5.5) & the two parts of \code{div\_rel(c, b)}, in a \code{std::pair}\\
   \hline
   \multicolumn{2}{l}{\textit{Cancellative operations and set operations (10.5.6, 10.5.7)}}\\
   \code{cancelMinus}, \code{cancelPlus} & \code{cancel\_minus}, \code{cancel\_plus}\\
@@ -4418,6 +4702,25 @@ The last argument $x$ of the reverse functions is optional, and
   \code{pown(e, n)}, \code{pow(e1, e2)} & the expressions of \code{pown} and of the \ieee{pow} of the standard, declared by \file{gaol/gaol\_expression.h}\\
 \end{longtable}
 \endgroup
+
+\noindent
+\code{mulRevToPair(b, c)} returns the set
+$\{x \mid \exists\beta\in b,\ \beta x\in c\}$ in two intervals, the pair
+$(u,v)$ of the standard: $u$ before $v$ when the set has two parts, which
+happens when 0 is strictly between the bounds of $b$ and $c$ does not contain
+0, $(u,\emptyset)$ when it is one interval, and $(\emptyset,\emptyset)$ when
+it is empty. The convex hull of $u$ and $v$ is
+\code{mulRev(b, c)}. Where $b$ is unbounded on both sides, the two parts
+share 0.\newinvfive
+\begin{example}
+std::pair<interval, interval> p = mulRevToPair(numsToInterval(-1, 1),
+                                               numsToInterval(1, 2));
+std::pair<interval, interval> q = mulRevToPair(numsToInterval(2, 4),
+                                               numsToInterval(1, 2));
+cout << p.first << ' ' << p.second << ' '
+     << q.first << ' ' << q.second << endl;
+@outputs^[-inf, -1] [1, inf] [0.25, 1] [empty]~
+\end{example}
 
 \section{Reading with the names of the standard}\label{sec:ieee1788-text}
 %%-----------------------------------------------
@@ -4467,9 +4770,8 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{mulRevToPair} (10.5.5), \ieee{powRev1}, \ieee{powRev2},
-\ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1), \ieee{pownRev} for
-$p\leq0$, \ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
+it provide \ieee{pownRev} for $p\leq0$,\newinvfive{} \ieee{atan2Rev1} and \ieee{atan2Rev2} (Table 10.1),
+\ieee{compoundm1} (Table 10.5), the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
 12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
@@ -4561,11 +4863,16 @@ covered.
   \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
   \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\
   \hline
+  \multicolumn{2}{l}{\textit{The error functions, which IEEE 1788-2015 does not name}}\\
+  \code{erf}, \code{erfc} & tightest; exact at 0 and at the infinities\newinvfive\\
+  \hline
   \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid required, accurate recommended}}\\
   \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel}, \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
   \code{invabs\_rel} & tightest\\
+  \code{max\_rel}, \code{min\_rel}, \code{sign\_rel}, \code{floor\_rel} (not in Table~10.1) & tightest\\
   \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
   \code{div\_rel}, \code{\%} & accurate; tightest where the bounds of the quotients are doubles\\
+  \code{pow\_rel}, \code{pow\_exponent\_rel} & tightest, but for a bound of $x$ next to the solutions whose power is within one double of $c$, which is kept: the tightest result for $x$ one double wider\newinvfive\\
   \code{cancel\_minus}, \code{cancel\_plus} & tightest\\
   \hline
   \multicolumn{2}{l}{\textit{Set operations, constructors, numeric and boolean functions}}\\
@@ -5206,8 +5513,9 @@ choices:
 \item \file{doc/continuous-integration.md}: the systems, processors and compilers
   GAOL is built and tested on;
 \item \file{doc/compare/README.md}: GAOL compared with libieeep1788, filib++,
-  PROFIL/BIAS and Solaris Studio, their special cases against IEEE 1788-2015 and
-  their performance;
+  PROFIL/BIAS, Solaris Studio and Boost.Interval, their special cases against
+  IEEE 1788-2015, the enclosure of the elementary functions of GAOL and
+  Boost.Interval, and their performance;
 \item \file{3rd/README.md}: the version of CORE-MATH GAOL takes, what differs
   from it, and the fixes to propose upstream.
 \end{itemize}

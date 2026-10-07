@@ -532,7 +532,10 @@ set(GAOL_CORE_MATH_FUNCTIONS
   # avoid the loss of accuracy of pi being irrational for the *Pi family
   # and of cancellation for the m1/p1 family (GAOL v5)
   expm1 exp2m1 exp10m1 sinpi cospi tanpi acospi atanpi
-  log1p log2p1 log10p1 hypot rsqrt asinpi atan2pi)
+  log1p log2p1 log10p1 hypot rsqrt asinpi atan2pi
+  # The error function and its complement, which IEEE 1788-2015 does not
+  # name (GAOL v5)
+  erf erfc)
 
 set(GAOL_CORE_MATH_SOURCES "")
 foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)
@@ -876,8 +879,8 @@ set(GAOL_HEADERS
   gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
   gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
-  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_parser.h
-  gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_literals.h
+  gaol/gaol_parser.h gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
 install(FILES
   gaol/gaol
@@ -977,7 +980,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_SOURCE_IGNORE_FILES
     "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
     "\\.swp$" "~$" "/#" "/\\.#"
-    "/autom4te\\.cache/" "/doc/compare/code/work/" "/tests/meson_subproject/subprojects/"
+    "/autom4te\\.cache/" "/doc/compare/code/work/" "/doc/compare/itf1788/work/"
+    "/doc/compare/tang2021/work/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
     "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"

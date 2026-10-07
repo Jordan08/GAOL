@@ -1,0 +1,5 @@
+# The working tree of the benchmark: what fetch.sh downloads and run.sh builds,
+# which is not GAOL's and must not be committed
+work/
+work*/
+__pycache__/

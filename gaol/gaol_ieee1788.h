@@ -66,6 +66,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_parser.h"
@@ -310,6 +311,50 @@ namespace gaol_ieee1788 {
   {
     return ::gaol_core::div_rel(c, b, interval::universe());
   }
+  /*!
+    powRev1(b, c, x): pow_rel(c, b, x), the hull of the x of x with x^y in c
+    for some y of b; powRev2(a, c, x): pow_exponent_rel(c, a, x), the hull of
+    the y of x with a^y in c for some a of a (GAOL v5). Both reverse pow(x, y)
+    of this namespace, the pow of the standard (Table 9.1)
+  */
+  GAOL_NODISCARD inline interval powRev1(const interval& b, const interval& c, const interval& x)
+  {
+    return ::gaol_core::pow_rel(c, b, x);
+  }
+  GAOL_NODISCARD inline interval powRev1(const interval& b, const interval& c)
+  {
+    return ::gaol_core::pow_rel(c, b, interval::universe());
+  }
+  GAOL_NODISCARD inline interval powRev2(const interval& a, const interval& c, const interval& x)
+  {
+    return ::gaol_core::pow_exponent_rel(c, a, x);
+  }
+  GAOL_NODISCARD inline interval powRev2(const interval& a, const interval& c)
+  {
+    return ::gaol_core::pow_exponent_rel(c, a, interval::universe());
+  }
+  /*!
+    atan2Rev1(y, c, x): atan2_rel(c, y, x), the hull of the x in x with
+    atan2(y, x) in c for some y in y; atan2Rev2(x, c, y): atan2_exponent_rel(c, x, y),
+    the hull of the y in y with atan2(y, x) in c for some x in x (GAOL v5).
+    Both reverse atan2(y, x) of this namespace, the atan2 of the standard (Table 9.1)
+  */
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& y, const interval& c, const interval& x)
+  {
+    return ::gaol_core::atan2_rel(c, y, x);
+  }
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& y, const interval& c)
+  {
+    return ::gaol_core::atan2_rel(c, y, interval::universe());
+  }
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& x, const interval& c, const interval& y)
+  {
+    return ::gaol_core::atan2_exponent_rel(c, x, y);
+  }
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& x, const interval& c)
+  {
+    return ::gaol_core::atan2_exponent_rel(c, x, interval::universe());
+  }
 
   // ----------------------------------------------------------------------
   // Cancellative addition and subtraction (10.5.6), set operations (10.5.7)
@@ -428,12 +473,44 @@ namespace gaol_ieee1788 {
   //! exactToInterval(s): textToInterval(s)
   GAOL_NODISCARD inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
 
+  /*!
+    mulRevToPair(b, c): the two-output division of IEEE 1788-2015 (10.5.5)
+    (GAOL v5). The set {x : b'x = c' for some b' of b and c' of c} is empty,
+    one interval, or two, on either side of 0, where 0 is strictly inside b
+    and not in c: c / [b', 0] and c / [0, b'']. The result is the pair (u, v)
+    of the standard, of the closures of the parts: (empty, empty), (u, empty)
+    for one part, and for two parts the lower one first, u < v (they share 0
+    where b is unbounded on both sides). Each part is div_rel(c, .,
+    entire()), the tightest enclosure of its set.
+  */
+  GAOL_NODISCARD inline std::pair<interval, interval> mulRevToPair(const interval& b, const interval& c)
+  {
+    if (b.is_empty() || c.is_empty()) {
+      return std::make_pair(interval::emptyset(), interval::emptyset());
+    }
+    if (b.set_contains(0.0) && !c.set_contains(0.0)) {
+      // b' of either sign: the part of b at most 0, then the part at least 0,
+      // either of which may be [0], which gives no x
+      const interval below = ::gaol_core::div_rel(c, b & interval(-GAOL_INFINITY, 0.0), interval::universe());
+      const interval above = ::gaol_core::div_rel(c, b & interval(0.0, GAOL_INFINITY), interval::universe());
+      if (below.is_empty()) {
+        return std::make_pair(above, below);
+      }
+      if (above.is_empty()) {
+        return std::make_pair(below, above);
+      }
+      // Two parts, one in x <= 0, the other in x >= 0, which share 0 only
+      // where b is unbounded on both sides (c / [-oo, 0] is [-oo, 0] for
+      // c > 0): the one with the lower bound below the other's comes first
+      return below.left() < above.left() ? std::make_pair(below, above) : std::make_pair(above, below);
+    }
+    return std::make_pair(::gaol_core::div_rel(c, b, interval::universe()), interval::emptyset());
+  }
+
   /*
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - mulRevToPair (10.5.5), the two-output division;
-      - powRev1, powRev2, atan2Rev1, atan2Rev2 (Table 10.1), and pownRev for
-        p <= 0;
+      - pownRev for p <= 0;
       - compoundm1 of Table 10.5, which CORE-MATH has not;
       - the slope functions (Table 10.6) and overlap (10.6.4);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),

@@ -6,13 +6,13 @@
 #
 #   run_perf.sh <bench_gaol program> [<build>] [<C++ compiler>]
 #
-# GAOL 4.2.3, filib++, libieeep1788, PROFIL/BIAS, Solaris Studio and the
-# doubles are not run: their columns keep the times results.csv holds, which
-# run_bench.sh measured with them (run_all.sh measures them all again). The
-# new times of GAOL v5 replace its rows of results.csv, whose tables bench.py
-# then writes into the report, between its markers, and machine.txt says when
-# and how GAOL v5 was measured. The text around the tables, which comments on
-# them, is to be checked by hand.
+# GAOL 4.2.3, filib++, libieeep1788, PROFIL/BIAS, Solaris Studio,
+# Boost.Interval and the doubles are not run: their columns keep the times
+# results.csv holds, which run_bench.sh measured with them (run_all.sh
+# measures them all again). The new times of GAOL v5 replace its rows of
+# results.csv, whose tables bench.py then writes into the report, between its
+# markers, and machine.txt says when and how GAOL v5 was measured. The text
+# around the tables, which comments on them, is to be checked by hand.
 #
 # It needs Python 3 with numpy, which draws the intervals (bench.py data), the
 # same ones as run_bench.sh draws. The variables of run_bench.sh apply: N,

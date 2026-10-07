@@ -34,6 +34,7 @@
 #include <string>
 #include <limits>
 #include <type_traits>
+#include <utility>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_roundeven.h"
 #include "gaol/gaol_port.h"
@@ -598,6 +599,31 @@ namespace gaol_core {
     GAOL_NODISCARD double width(void) const;
 
     /*!
+      \brief An interval enclosing the exact width (GAOL v5).
+
+      The exact width r - l of [l, r] is generally no double, and width() is
+      its upper bound, rounded upward. width_enclosure() is the interval
+      interval(r) - interval(l): its lower bound is r - l rounded downward,
+      its upper bound width(). It is [0] for a point interval and the empty set
+      for the empty set. The width of an interval with an infinite bound is
+      +oo, which is no real number: the result is then [MAX, +oo], MAX the
+      largest double, as textToInterval() reads "inf".
+    */
+    GAOL_NODISCARD interval width_enclosure(void) const;
+
+    /*!
+      \brief The interval widened by the absolute radius r (GAOL v5).
+
+      The interval *this + [-r, r]: its lower bound is moved down by r,
+      rounded downward, and its upper bound up by r, rounded upward, so that
+      it encloses every x + e for x in *this and |e| <= r (+-oo past the
+      largest double). r = 0 gives *this, r = +oo the whole line; the empty
+      set stays empty, and r < 0 or NaN gives the empty set, as interval(-r, r)
+      is then empty.
+    */
+    GAOL_NODISCARD interval inflate(double r) const;
+
+    /*!
      \brief Mignitude.
 
      Returns the mignitude of '*this', that is, mig(*this)=
@@ -681,6 +707,18 @@ namespace gaol_core {
     GAOL_NODISCARD static interval one_plus_infinity(void);
 
     /*!
+      \brief The interval of midpoint m and radius r (GAOL v5).
+
+      interval(m) + [-r, r]: the lower bound m - r rounded downward, the upper
+      bound m + r rounded upward, so that it encloses every real of [m - r,
+      m + r] (+-oo past the largest double); interval(m - r, m + r) with
+      doubles does not, the two bounds being rounded upward. r = 0 gives the
+      point m and r = +oo the whole line; r < 0 or NaN, or m NaN, gives the
+      empty set, and so does an infinite m, as interval(m) does (IBEX's rules).
+    */
+    GAOL_NODISCARD static interval midrad(double m, double r);
+
+    /*!
       @name Splitting methods
     */
     //@{
@@ -690,6 +728,35 @@ namespace gaol_core {
       Returns the left part in I1 and the right one in I2
     */
     void split(interval &I1, interval &I2) const;
+
+    /*!
+      \brief *this cut at the given ratio of its width (GAOL v5).
+
+      The pair ([l, c], [c, r]) of the two parts of [l, r] on either side of
+      the cut point c, a double of [l, r] that both parts share, so that they
+      cover *this exactly. For 0 < ratio < 1, c is l + ratio (r - l), computed
+      as l (1 - ratio) + r ratio, which cannot overflow, and kept within
+      [l, r]; when is_bisectable(), c is moreover strictly between l and r, so
+      that both parts are smaller than *this. ratio = 0.5 cuts at midpoint(),
+      as split() does, and so does every ratio for a half-line ([l, +oo] at
+      the largest double, [-oo, r] at its opposite) and for the whole line
+      (at 0). The empty set gives two empty sets, and a point interval itself
+      twice. A ratio outside (0, 1), or NaN, is no ratio: it throws
+      invalid_action_error.
+    */
+    GAOL_NODISCARD std::pair<interval, interval> bisect(double ratio) const;
+
+    /*!
+      \brief Whether *this can be cut into two parts smaller than itself (GAOL v5).
+
+      True when a double lies strictly between the bounds: bisect() then
+      gives two non-empty parts, each different from *this. False for the
+      empty set, a point interval and two consecutive doubles [a, b], which
+      can only be cut into [a, a] and [a, b] or [a, b] and [b, b]; and for
+      [MAX, +oo] and [-oo, -MAX], MAX the largest double, the half-lines that
+      split() cuts at their finite bound.
+    */
+    GAOL_NODISCARD bool is_bisectable() const;
 
     //! Returns the left part (i.e. [left,midpoint()] of the domain.
     GAOL_NODISCARD interval split_left(void) const;
@@ -1201,6 +1268,16 @@ namespace gaol_core {
     I2 = interval(m,r);
   }
 
+  /*
+    A double strictly between the bounds (GAOL v5): the next double above the
+    lower bound is below the upper bound, -MAX above -oo for [-oo, b], +oo
+    above MAX for [MAX, +oo]. The bounds of a non-empty interval are no NaN.
+  */
+  GAOL_INLINE bool interval::is_bisectable() const
+  {
+    return !is_empty() && std::nextafter(left(), GAOL_INFINITY) < right();
+  }
+
   GAOL_INLINE interval interval::split_left(void) const
   {
     return interval(left(),midpoint());
@@ -1241,6 +1318,39 @@ namespace gaol_core {
     \brief minimum of 2 intervals
    */
   GAOL_NODISCARD extern GAOL_PUBLIC interval min(const interval &I, const interval &J);
+  /*!
+    \brief The reverse function of max (GAOL v5): the hull of the x of X such
+    that max(x, y) is in Z for some y of Y
+
+    max_rel(Z, Y, X) = hull{x in X | exists y in Y: max(x, y) in Z}, the
+    arguments in the order of div_rel(K, J, I): the result Z, the other
+    operand Y, then the operand X it contracts; max being symmetric,
+    max_rel(Z, X, Y) contracts Y. max(x, y) is in Z when x and y are at most
+    sup Z and one of them at least inf Z, so that the set is empty when Y lies
+    above Z (inf Y > sup Z), X & [-oo, sup Z] when Y meets Z (a y of Y in Z is
+    the maximum of every x up to it), and X & Z when Y lies below Z
+    (sup Y < inf Z, the maximum being x): max_rel([1, 2], [3, 4], X) is
+    empty, max_rel([1, 2], [0, 1], [-5, 5]) is [-5, 2] and
+    max_rel([1, 2], [-1, 0], [-5, 5]) is [1, 2]. The bounds are those of X
+    and Z, unrounded: the result is the set itself, the tightest enclosure.
+    The empty set for an empty argument. Z is contracted by max itself,
+    max(X, Y) & Z. IEEE 1788-2015 names no reverse of max: it is its natural
+    reverse extension (10.5.4, (6)).
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval max_rel(const interval &Z, const interval &Y,
+                                                     const interval &X);
+  /*!
+    \brief The reverse function of min (GAOL v5): the hull of the x of X such
+    that min(x, y) is in Z for some y of Y
+
+    min_rel(Z, Y, X) = hull{x in X | exists y in Y: min(x, y) in Z},
+    max_rel() turned upside down: empty when Y lies below Z (sup Y < inf Z),
+    X & [inf Z, +oo] when Y meets Z, and X & Z when Y lies above Z
+    (inf Y > sup Z). The tightest enclosure, the bounds being those of X and
+    Z; the empty set for an empty argument.
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval min_rel(const interval &Z, const interval &Y,
+                                                     const interval &X);
 
   extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os,
 					     const interval& I);
@@ -1344,6 +1454,34 @@ namespace gaol_core {
     from the fix of Codac (commit 74086ccb, Jordan Ninin).
   */
   GAOL_NODISCARD extern GAOL_PUBLIC  interval gaol_pow_real(const interval& I, double p);
+
+  /*!
+    \brief The reverse functions of pow: the x of I, and the y of I, with an
+    x^y in K (GAOL v5)
+
+    pow_rel(K, J, I) = hull{x in I | exists y in J: x^y in K}, the base, and
+    pow_exponent_rel(K, H, I) = hull{y in I | exists x in H: x^y in K}, the
+    exponent: powRev1(J, K, I) and powRev2(H, K, I) of IEEE 1788-2015
+    (10.5.4, Table 10.1), the arguments in the order of div_rel(K, J, I).
+    x^y is the pow of the standard (Table 9.1), that of gaol_ieee1788::pow:
+    e^(y log x) for x > 0, 0 for x = 0 and y > 0, and no value elsewhere, so
+    that no x < 0 is a solution. gaol::pow takes the integer power for a
+    degenerate integer exponent [n], whose negative bases these functions
+    leave out: the reverse of x^n, n >= 1, is nth_root_rel(K, n, I).
+    pow_rel([4, 9], [2], interval::universe()) is [2, 3],
+    pow_rel([2, 3], [1, +oo], [0, 1]) is empty (x^y >= 2 asks x > 1), and
+    pow_exponent_rel([8], [2], interval::universe()) is [3].
+
+    The bounds are the tightest: those of c^(1/y) and log(c)/log(x) proved
+    with CORE-MATH's pow, correctly rounded. A bound of I is kept where the
+    solutions start between it and the next double and its power is within
+    one double of the bound of K, where proving that it is no solution
+    would take knowing whether that power is a double:
+    pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
+    empty, the tightest result for I one double wider.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_rel(const interval& K, const interval& J, const interval& I);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_exponent_rel(const interval& K, const interval& H, const interval& I);
 
   /*!
     \brief relational square root of J w.r.t. I
@@ -1499,9 +1637,43 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval acosh(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asinh(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atanh(const interval& I);
 
+  /*!
+    \brief The error function and its complement (GAOL v5)
+
+    erf(x) = 2/sqrt(pi) int_0^x exp(-t^2) dt, increasing from -1 to 1, and
+    erfc(x) = 1 - erf(x), decreasing from 2 to 0, on R: the erf and erfc of
+    C, which IEEE 1788-2015 does not name, so that gaol_ieee1788 does not
+    either (a call erf(x) on an interval finds them all the same, by
+    argument-dependent lookup). The bounds are the values of CORE-MATH at the
+    bounds of I, correctly rounded: the tightest enclosure, exact at 0 and
+    at the infinities, erf([0]) being [0], erfc([0]) [1], erf([-oo, +oo])
+    [-1, 1] and erfc([-oo, +oo]) [0, 2]. erfc(x) is subnormal from
+    x = 26.55 on, and below the least subnormal from x = 27.22 on, where the
+    lower bound is 0.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval erf(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval erfc(const interval& I);
+
 GAOL_NODISCARD extern GAOL_PUBLIC   interval acos_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asin_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval atan_rel(const interval& J, const interval &I);
+/*!
+    \brief relational atan2 of Z w.r.t. Y and X
+
+    atan2_rel(Z, Y, X) = hull{x in X | exists y in Y: atan2(y, x) in Z} (GAOL v5),
+    the reverse of atan2(y, x) of IEEE 1788-2015 (Table 9.1), which corresponds
+    to atan2Rev1(Y, Z, X) of Table 10.1. atan2(y, x) is defined on the plane but
+    (0, 0), with values in (-pi, pi].
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel(const interval& Z, const interval& Y, const interval& X);
+/*!
+    \brief relational atan2 of Z w.r.t. X and Y
+
+    atan2_exponent_rel(Z, X, Y) = hull{y in Y | exists x in X: atan2(y, x) in Z} (GAOL v5),
+    the reverse of atan2(y, x) with respect to y, which corresponds to
+    atan2Rev2(X, Z, Y) of Table 10.1.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_exponent_rel(const interval& Z, const interval& X, const interval& Y);
 
 GAOL_NODISCARD extern GAOL_PUBLIC   interval acosh_rel(const interval& J, const interval &I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval asinh_rel(const interval& J, const interval &I);
@@ -1552,6 +1724,27 @@ GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
   {
     return interval(gaol_detail::bound_floor(I.left()), gaol_detail::bound_floor(I.right()));
   }
+
+  /*!
+    \brief The reverse function of floor (GAOL v5): the hull of the x of X
+    whose floor is in Z
+
+    floor_rel(Z, X) = hull{x in X | floor(x) in Z}. floor(x) is the integer n
+    for x in [n, n + 1): the set is the part of X in
+    [ceil(inf Z), floor(sup Z) + 1), and the empty set when Z holds no
+    integer (floor_rel([0.5, 0.7], X)). That interval is open at its upper end
+    e = floor(sup Z) + 1, which its tightest closed enclosure takes all the
+    same, the reals just below e being in it: floor_rel([0, 2], [-5, 5]) is
+    [0, 3], and floor_rel([0], [1, 2]) is empty, X starting at e. e is
+    rounded upward where it is no double, beyond 2^53, every double being an
+    integer there: floor_rel([2^53], X) ends at 2^53 + 2, the double above
+    2^53 + 1, where X goes on to it, and at +oo for sup Z = DBL_MAX. The other
+    bounds are those of X and ceil(inf Z): the result is the tightest
+    enclosure, in every rounding direction. The empty set for an empty
+    argument. IEEE 1788-2015 names no reverse of floor: it is its natural
+    reverse extension (10.5.4, (5)).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval floor_rel(const interval &Z, const interval &X);
 
 GAOL_NODISCARD GAOL_INLINE interval ceil(const interval &I)
   {
@@ -1611,6 +1804,24 @@ GAOL_NODISCARD GAOL_INLINE interval sign(const interval &I)
     }
     return interval(gaol_sign_of(I.left()),gaol_sign_of(I.right()));
   }
+
+  /*!
+    \brief The reverse function of sign (GAOL v5): the hull of the x of X
+    whose sign is in Z
+
+    sign_rel(Z, X) = hull{x in X | sign(x) in Z}, the union of the negative x
+    of X where Z holds -1, of 0 where Z and X hold it, and of the positive x of
+    X where Z holds 1; the empty set where Z holds none of -1, 0 and 1
+    (sign_rel([0.5, 0.7], X)). The negative x of X go up to 0, which their
+    tightest closed enclosure takes although sign(0) is 0, the negative
+    doubles next to 0 being in the set: sign_rel([-1], [-2, 3]) is [-2, 0],
+    sign_rel([-1], [0, 3]) is empty, sign_rel([0], [-2, 3]) is [0], and
+    sign_rel([0, 1], [-2, 3]) is [0, 3]. -0 and +0 are the same number, of
+    sign 0. The bounds are those of X and 0: the tightest enclosure. The empty
+    set for an empty argument. IEEE 1788-2015 names no reverse of sign: it
+    is its natural reverse extension (10.5.4, (5)).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval sign_rel(const interval &Z, const interval &X);
 
   /*!
     \brief Returns an enclosure of the elements of I rounded toward zero
@@ -1798,6 +2009,24 @@ GAOL_NODISCARD GAOL_INLINE interval operator|(const interval& I1, const interval
     return interval(I1) |= I2;
   }
 
+  /*!
+    \brief The hull of a and b, a | b, as a function (GAOL v5): the smallest
+    interval containing both; hull(emptyset, x) is x.
+  */
+GAOL_NODISCARD GAOL_INLINE interval hull(const interval& a, const interval& b)
+  {
+    return a | b;
+  }
+
+  /*!
+    \brief The intersection of a and b, a & b, as a function (GAOL v5);
+    intersect(emptyset, x) is the empty set.
+  */
+GAOL_NODISCARD GAOL_INLINE interval intersect(const interval& a, const interval& b)
+  {
+    return a & b;
+  }
+
   //@}
 
 } // namespace gaol_core
@@ -1867,6 +2096,43 @@ GAOL_INLINE double interval::width(void) const
         GAOL_RND_LEAVE();
         return res;
     }
+}
+
+/*
+  The bounds of interval(r) - interval(l) are r - l rounded downward and
+  upward (GAOL v5). interval(+oo) and interval(-oo) are the empty set (IBEX's
+  rules): the width of an unbounded interval, +oo, is given as [MAX, +oo].
+*/
+GAOL_INLINE interval interval::width_enclosure(void) const
+{
+    if (is_empty()) {
+        return *this;
+    }
+    if (std::isinf(left()) || std::isinf(right())) {
+        return interval(std::numeric_limits<double>::max(), GAOL_INFINITY);
+    }
+    return interval(right()) - interval(left());
+}
+
+/*
+  The operations of intervals round each bound in its own direction (GAOL v5):
+  the bounds of l - r and r + r computed in the rounding direction of GAOL,
+  upward, made the lower bound too large, [1, 2] inflated by 1e-20 being
+  [1, 2 + 2^-51]. interval(-r, r) is the empty set for r < 0 and for a NaN r,
+  and so is then the sum.
+*/
+GAOL_INLINE interval interval::inflate(double r) const
+{
+    return *this + interval(-r, r);
+}
+
+/*
+  interval(m) + [-r, r] (GAOL v5): see inflate(). interval(m) is the empty set
+  for an infinite or a NaN m, and interval(-r, r) for r < 0 or a NaN r.
+*/
+GAOL_INLINE interval interval::midrad(double m, double r)
+{
+    return interval(m) + interval(-r, r);
 }
 
  /*!
@@ -2258,9 +2524,9 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
   gaol::sin(x) are those of gaol_core. gaol holds the names GAOL 4 declared in
   its namespace gaol that GAOL v5 still has, so that a program written for
   GAOL 4 compiles, rnd_keep() of GAOL 4.3.2 among them; the functions on
-  intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, fma, cancel_minus,
-  round_ties_to_even...) and the nodes of the expressions it adds; and
-  restore_rounding() and exact_string() of GAOL v5.
+  intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, erf, fma,
+  cancel_minus, round_ties_to_even...) and the nodes of the expressions it
+  adds; and restore_rounding() and exact_string() of GAOL v5.
   It does not hold what GAOL's code uses for itself, which stays in gaol_core:
   the functions saving and setting the rounding direction and the modes
   flushing the subnormals to zero (rounding_state, get_rounding(),
@@ -2357,22 +2623,32 @@ namespace gaol {
   using gaol_core::cancel_minus;
   using gaol_core::cancel_plus;
   using gaol_core::cospi;
+  using gaol_core::erf;
+  using gaol_core::erfc;
   using gaol_core::exp10;
   using gaol_core::exp10m1;
   using gaol_core::exp2;
   using gaol_core::exp2m1;
   using gaol_core::expm1;
+  using gaol_core::floor_rel;
   using gaol_core::fma;
+  using gaol_core::hull;
   using gaol_core::hypot;
+  using gaol_core::intersect;
   using gaol_core::log10;
   using gaol_core::log10p1;
   using gaol_core::log1p;
   using gaol_core::log2;
   using gaol_core::log2p1;
+  using gaol_core::max_rel;
+  using gaol_core::min_rel;
+  using gaol_core::pow_exponent_rel;
+  using gaol_core::pow_rel;
   using gaol_core::round_ties_to_away;
   using gaol_core::round_ties_to_even;
   using gaol_core::rsqrt;
   using gaol_core::sign;
+  using gaol_core::sign_rel;
   using gaol_core::sinpi;
   using gaol_core::tanpi;
   using gaol_core::trunc;

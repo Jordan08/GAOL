@@ -8,9 +8,14 @@
  * where a developer of GAOL compiles it, see gaol/gaol_config.h),
  * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
  * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
- * parts, radii; the comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
+ * parts, radii; the tools of TODO point P: width_enclosure(), inflate(),
+ * interval::midrad(), bisect(), is_bisectable(), hull() and intersect(); the
+ * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
- * values they are given and bound them within a few doubles.
+ * values they are given and bound them within a few doubles; and the reverse
+ * functions of max, min, sign and floor (max_rel, min_rel, sign_rel,
+ * floor_rel), which have to be the hulls of their sets, read from their
+ * definitions on a grid and by sampling (GAOL v5).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -121,6 +126,43 @@ namespace
             [&] { return describe() + ": " + hex(left) + " " + hex(right); });
       check("split_left() and split_right()" + in, X.split_left().set_eq(left) && X.split_right().set_eq(right), describe);
 
+      // The tools of TODO point P (GAOL v5): the enclosure of the width, X
+      // widened by a radius and the interval of a midpoint and a radius, each
+      // the tightest enclosure of its exact bounds, which GAOL computed
+      // rounding both upward; the parts of bisect(), and hull() and
+      // intersect(), the operators | and &
+      const interval we = X.width_enclosure();
+      check("width_enclosure() the tightest enclosure of the width, width() its upper bound" + in,
+            is_tightest_enclosure(we, exact(dr - dl)) && we.right() == w,
+            [&] { return describe() + ": " + hex(we); });
+      const double rad = std::fabs(Y.right());
+      const Dyadic drad = dyadic(rad);
+      const interval wider = X.inflate(rad);
+      check("inflate(r) the tightest enclosure of [l - r, r + r]" + in,
+            is_tightest_enclosure(wider, exact(dl - drad), exact(dr + drad)),
+            [&] { return describe() + " r=" + hex(rad) + ": " + hex(wider); });
+      const interval around = interval::midrad(l, rad);
+      check("interval::midrad(m, r) the tightest enclosure of [m - r, m + r]" + in,
+            is_tightest_enclosure(around, exact(dl - drad), exact(dl + drad)),
+            [&] { return describe() + " r=" + hex(rad) + ": " + hex(around); });
+      const double ratios[] = { 0.5, 0.25, 0.75, 1.0/3.0, 1e-9, 1.0 - 1e-9 };
+      const double ratio = ratios[i % 6];
+      const std::pair<interval, interval> parts = X.bisect(ratio);
+      const double c = parts.first.right();
+      const bool bisectable = next_double(l) < r;
+      const auto describe_parts = [&] { return describe() + " ratio " + hex(ratio) + ": " + hex(parts.first) + " "
+                                               + hex(parts.second); };
+      check("bisect(ratio): two parts sharing a point of X, which they cover" + in,
+            parts.first.left() == l && parts.second.left() == c && parts.second.right() == r && l <= c && c <= r,
+            describe_parts);
+      check("is_bisectable(): a double strictly between the bounds" + in, X.is_bisectable() == bisectable, describe);
+      check("bisect(ratio) of a bisectable interval: two parts smaller than X" + in, !bisectable || (l < c && c < r),
+            describe_parts);
+      check("bisect(0.5) cuts as split()" + in, X.bisect(0.5).first.set_eq(left) && X.bisect(0.5).second.set_eq(right),
+            describe);
+      check("hull() and intersect(): X | Y and X & Y" + in, hull(X, Y).set_eq(X | Y) && intersect(X, Y).set_eq(X & Y),
+            describe);
+
       // Integer parts, exact
       check("floor()" + in, floor(X).left() == std::floor(l) && floor(X).right() == std::floor(r), describe);
       check("ceil()" + in, ceil(X).left() == std::ceil(l) && ceil(X).right() == std::ceil(r), describe);
@@ -157,6 +199,110 @@ namespace
                             && !interval(a, next_double(next_double(a))).is_canonical());
     check("nb_fp_numbers()", nb_fp_numbers(a, a) == 1 && nb_fp_numbers(a, next_double(a)) == 2
                              && nb_fp_numbers(1.0, 2.0) == 4503599627370497ull);
+  }
+
+  /* The tools of TODO point P on special intervals and arguments (GAOL v5):
+     the empty set, points, zeros, infinite bounds and radii, NaN, the
+     largest double, and the cases the random draws seldom give: an inexact
+     bound, which GAOL rounded upward on both sides (the lower bound of
+     [1, 2] inflated by 1e-20 was 1), the whole line, which bisect() cut into
+     two empty sets, and two consecutive doubles. */
+  void tools_of_point_p()
+  {
+    const double max = std::numeric_limits<double>::max();
+    const interval empty = interval::emptyset(), one_two(1.0, 2.0);
+
+    // The width: [MAX, +oo] for +oo, as textToInterval() reads inf
+    check("width_enclosure() of the empty set", empty.width_enclosure().is_empty());
+    check("width_enclosure() of points", interval(3.0).width_enclosure().set_eq(interval(0.0))
+                                         && interval(-0.0, 0.0).width_enclosure().set_eq(interval(0.0)));
+    const interval w = interval(1e-20, 1.0).width_enclosure();
+    check("width_enclosure() of [1e-20, 1]: [1 - u/2, 1]", w.left() == previous_double(1.0) && w.right() == 1.0,
+          [&] { return hex(w); });
+    const interval unbounded[] = { interval::universe(), interval(-inf, 1.0), interval(1.0, inf) };
+    for (const interval& x : unbounded) {
+      check("width_enclosure() of an unbounded interval: [MAX, +oo]", x.width_enclosure().set_eq(interval(max, inf)),
+            [&] { return hex(x) + ": " + hex(x.width_enclosure()); });
+    }
+
+    // Widened by a radius, and built from a midpoint and a radius
+    const interval wider = one_two.inflate(1e-20);
+    check("[1, 2].inflate(1e-20): [1 - u/2, 2 + 2u]", wider.left() == previous_double(1.0)
+                                                       && wider.right() == next_double(2.0),
+          [&] { return hex(wider); });
+    check("inflate(0) keeps the interval", one_two.inflate(0.0).set_eq(one_two));
+    check("inflate(r) for r < 0 or NaN: the empty set",
+          one_two.inflate(-1.0).is_empty() && one_two.inflate(std::numeric_limits<double>::quiet_NaN()).is_empty());
+    check("inflate(+oo): the whole line", one_two.inflate(inf).is_entire());
+    check("inflate() of the empty set", empty.inflate(1.0).is_empty() && empty.inflate(inf).is_empty());
+    check("inflate() past the largest double", interval(max).inflate(max).set_eq(interval(0.0, inf))
+                                               && interval(1.0, inf).inflate(1.0).set_eq(interval(0.0, inf)));
+    const interval around = interval::midrad(1.0, 1e-20);
+    check("interval::midrad(1, 1e-20): [1 - u/2, 1 + u]", around.left() == previous_double(1.0)
+                                                          && around.right() == next_double(1.0),
+          [&] { return hex(around); });
+    check("interval::midrad(m, 0): the point m", interval::midrad(0.1, 0.0).set_eq(interval(0.1)));
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    check("interval::midrad() for r < 0, or a NaN r or m: the empty set",
+          interval::midrad(1.0, -1.0).is_empty() && interval::midrad(1.0, nan).is_empty()
+          && interval::midrad(nan, 1.0).is_empty());
+    check("interval::midrad() of an infinite m: the empty set, as interval(m)",
+          interval::midrad(inf, 1.0).is_empty() && interval::midrad(-inf, 1.0).is_empty());
+    check("interval::midrad(m, +oo): the whole line", interval::midrad(1.0, inf).is_entire());
+    check("interval::midrad(MAX, MAX): [0, +oo]", interval::midrad(max, max).set_eq(interval(0.0, inf)));
+
+    // The parts of bisect(), unbounded intervals cut where split() cuts them
+    struct { interval x; double ratio; interval first, second; } const cuts[] = {
+      { interval::universe(), 0.25, interval(-inf, 0.0), interval(0.0, inf) },
+      { interval(0.0, inf), 0.5, interval(0.0, max), interval(max, inf) },
+      { interval(-inf, 0.0), 0.75, interval(-inf, -max), interval(-max, 0.0) },
+      { interval(max, inf), 0.5, interval(max), interval(max, inf) },
+      { interval(0.0, 4.0), 0.25, interval(0.0, 1.0), interval(1.0, 4.0) },
+      { interval(2.5), 0.25, interval(2.5), interval(2.5) },
+      { interval(1.0, next_double(next_double(1.0))), 1e-300, interval(1.0, next_double(1.0)),
+        interval(next_double(1.0), next_double(next_double(1.0))) },
+    };
+    for (const auto& cut : cuts) {
+      const std::pair<interval, interval> parts = cut.x.bisect(cut.ratio);
+      check("bisect(ratio) of special intervals", parts.first.set_eq(cut.first) && parts.second.set_eq(cut.second),
+            [&] { return hex(cut.x) + " ratio " + hex(cut.ratio) + ": " + hex(parts.first) + " " + hex(parts.second); });
+    }
+    const std::pair<interval, interval> none = empty.bisect(0.5);
+    check("bisect() of the empty set: two empty sets", none.first.is_empty() && none.second.is_empty());
+    const double c = interval(-max, max).bisect(0.25).first.right();
+    check("bisect(0.25) of [-MAX, MAX]: a finite cut, where l + ratio (r - l) overflowed", c > -max && c < 0.0,
+          [&] { return hex(c); });
+
+    // Bisectable: a double strictly between the bounds
+    const interval bisectable[] = { interval(1.0, next_double(next_double(1.0))), interval::universe(),
+                                    interval(0.0, inf), interval(-inf, 0.0), interval(-max, max) };
+    for (const interval& x : bisectable) {
+      check("is_bisectable()", x.is_bisectable(), [&] { return hex(x); });
+    }
+    const interval not_bisectable[] = { empty, interval(1.0), interval(-0.0, 0.0), interval(1.0, next_double(1.0)),
+                                        interval(max, inf), interval(-inf, -max) };
+    for (const interval& x : not_bisectable) {
+      check("not is_bisectable()", !x.is_bisectable(), [&] { return hex(x); });
+    }
+
+#if GAOL_EXCEPTIONS_ENABLED
+    // A ratio outside (0, 1), or NaN: invalid_action_error
+    const double wrong[] = { 0.0, 1.0, -0.5, 1.5, nan, inf };
+    for (double ratio : wrong) {
+      bool thrown = false;
+      try {
+        (void)one_two.bisect(ratio);
+      } catch (const invalid_action_error&) {
+        thrown = true;
+      }
+      check("bisect(ratio) for a ratio outside (0, 1): invalid_action_error", thrown, [&] { return hex(ratio); });
+    }
+#endif
+
+    // hull() and intersect() with the empty set
+    check("hull() and intersect() with the empty set",
+          hull(empty, one_two).set_eq(one_two) && hull(one_two, empty).set_eq(one_two)
+          && intersect(empty, one_two).is_empty() && intersect(one_two, interval(3.0, 4.0)).is_empty());
   }
 
   // Midpoints of intervals whose bounds are multiples of the smallest subnormal
@@ -801,6 +947,493 @@ namespace
           std1788::exactToInterval(exact).set_eq(third), [&] { return exact; });
     check("gaol_ieee1788::intervalToExact sets the format back", interval::format() == saved, [] { return std::string(); });
   }
+
+  // ---------------------------------------------------------------------------
+  // max_rel, min_rel, sign_rel and floor_rel (GAOL v5, point P.25 of TODO.md)
+  // ---------------------------------------------------------------------------
+
+  /*
+    The reverse functions of max, min, sign and floor: max_rel(Z, Y, X) and
+    min_rel(Z, Y, X) are the hull of the x of X such that max(x, y),
+    respectively min(x, y), is in Z for some y of Y; sign_rel(Z, X) and
+    floor_rel(Z, X) the hull of the x of X whose sign, respectively floor, is
+    in Z. Each has to be the tightest enclosure of its set, which is checked
+    apart from the reasoning of gaol/gaol_interval.cpp, from the definition of
+    the set:
+     - on every interval whose bounds are among -oo, -2, -1.5, ..., 2, +oo, -0
+       and +0, and the empty set (max_rel and min_rel: among -oo, -1, -0.5,
+       -0, +0, 0.5, 1 and +oo, every Z, Y and X): the set is then a union of
+       intervals whose ends are multiples of 1/2 within [-3, 3] (floor(2) + 1
+       is 3), so that its hull is read from the definition at the multiples of
+       1/4 from -4 to 4, a y being looked for among them too;
+     - on cases written out: disjoint, touching and nested intervals,
+       infinite bounds, -0 and +0, subnormal bounds, a Z holding no sign or no
+       integer, and floor_rel beyond 2^53, where every double is an integer
+       and the open end floor(sup Z) + 1 of its set is no double;
+     - floor_rel at every magnitude up to DBL_MAX, its upper bound against
+       floor(sup Z) + 1 computed exactly;
+     - on random intervals of every magnitude, by sampling: every double of X
+       that the definition puts in the set, the bounds of X, Y and Z, 0, -1,
+       1, ceil(inf Z), floor(sup Z) and floor(sup Z) + 1 and the doubles on
+       either side of each included, has to be in the result, which has to be
+       within X, and its finite bounds in the set, or the limit of the doubles
+       of the set where the set is open (sign_rel at 0, floor_rel at
+       floor(sup Z) + 1).
+  */
+
+  // Whether the real number t, finite, is in X
+  bool member(double t, const interval& X)
+  {
+    return std::isfinite(t) && !X.is_empty() && X.left() <= t && t <= X.right();
+  }
+
+  // The sign of t, -0 and +0 included, as sign() defines it
+  double sign_of_real(double t)
+  {
+    return (t < 0.0) ? -1.0 : ((t > 0.0) ? 1.0 : 0.0);
+  }
+
+  bool same_set(const interval& a, const interval& b)
+  {
+    if (a.is_empty() || b.is_empty()) {
+      return a.is_empty() && b.is_empty();
+    }
+    return a.left() == b.left() && a.right() == b.right();
+  }
+
+  // The empty set and the intervals [l, u] of the bounds given, l <= u: [-0, 0]
+  // and [0, -0] both, and [-oo, -oo] and [+oo, +oo], which are empty
+  std::vector<interval> intervals_of(const std::vector<double>& bounds)
+  {
+    std::vector<interval> xs(1, interval::emptyset());
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u) {
+          xs.push_back(interval(l, u));
+        }
+      }
+    }
+    return xs;
+  }
+
+  // The multiples of 1/4 from -4 to 4
+  std::vector<double> quarters()
+  {
+    std::vector<double> ts;
+    for (int k = -16; k <= 16; ++k) {
+      ts.push_back(k/4.0);
+    }
+    return ts;
+  }
+
+  /*
+    The hull of a set S, given by in_S(t) at the multiples t of 1/4 from -4 to
+    4, S being a union of intervals whose ends are multiples of 1/2 within
+    [-3, 3]: a multiple of 1/2 is in S or not, the reals between two of them
+    are all in S or none, which the multiple of 1/4 between them tells, and so
+    are the reals below -3 and those above 3, which -4 and 4 tell
+  */
+  template<class In>
+  interval grid_hull(const In& in_S)
+  {
+    double lo = inf, hi = -inf;
+    for (int k = -16; k <= 16; ++k) {
+      const double t = k/4.0;
+      if (!in_S(t)) {
+        continue;
+      }
+      double l = (k % 2 == 0) ? t : t - 0.25, u = (k % 2 == 0) ? t : t + 0.25;
+      if (k == -16) {
+        l = -inf;
+      }
+      if (k == 16) {
+        u = inf;
+      }
+      lo = std::min(lo, l);
+      hi = std::max(hi, u);
+    }
+    return (lo <= hi) ? interval(lo, hi) : interval::emptyset();
+  }
+
+  void max_min_sign_floor_rel_on_a_grid()
+  {
+    const std::vector<double> ts = quarters();
+    const std::vector<interval> unary = intervals_of({ -inf, -2.0, -1.5, -1.0, -0.5, -0.0, 0.0, 0.5, 1.0, 1.5, 2.0, inf });
+    for (const interval& Z : unary) {
+      for (const interval& X : unary) {
+        const auto describe = [&](const interval& r, const interval& h) {
+          return [&, r, h] { return "Z=" + hex(Z) + " X=" + hex(X) + ": " + hex(r) + " rather than " + hex(h); };
+        };
+        const interval s = sign_rel(Z, X), hs = grid_hull([&](double t) { return member(t, X) && member(sign_of_real(t), Z); });
+        check("sign_rel(Z, X): the hull of the x of X whose sign is in Z, on every Z and X of half-integer bounds",
+              same_set(s, hs), describe(s, hs));
+        const interval f = floor_rel(Z, X), hf = grid_hull([&](double t) { return member(t, X) && member(std::floor(t), Z); });
+        check("floor_rel(Z, X): the hull of the x of X whose floor is in Z, on every Z and X of half-integer bounds",
+              same_set(f, hf), describe(f, hf));
+      }
+    }
+    const std::vector<interval> binary = intervals_of({ -inf, -1.0, -0.5, -0.0, 0.0, 0.5, 1.0, inf });
+    for (const interval& Y : binary) {
+      std::vector<double> ys;
+      for (double t : ts) {
+        if (member(t, Y)) {
+          ys.push_back(t);
+        }
+      }
+      for (const interval& Z : binary) {
+        for (const interval& X : binary) {
+          const auto with = [&](double t, bool maximum) -> bool {
+            if (!member(t, X)) {
+              return false;
+            }
+            for (double y : ys) {
+              if (member(maximum ? std::max(t, y) : std::min(t, y), Z)) {
+                return true;
+              }
+            }
+            return false;
+          };
+          const interval m = max_rel(Z, Y, X), hm = grid_hull([&](double t) { return with(t, true); });
+          const interval n = min_rel(Z, Y, X), hn = grid_hull([&](double t) { return with(t, false); });
+          const auto describe = [&](const interval& r, const interval& h) {
+            return [&, r, h] {
+              return "Z=" + hex(Z) + " Y=" + hex(Y) + " X=" + hex(X) + ": " + hex(r) + " rather than " + hex(h);
+            };
+          };
+          check("max_rel(Z, Y, X): the hull of the x of X with max(x, y) in Z for a y of Y, "
+                "on every Z, Y and X of half-integer bounds", same_set(m, hm), describe(m, hm));
+          check("min_rel(Z, Y, X): the hull of the x of X with min(x, y) in Z for a y of Y, "
+                "on every Z, Y and X of half-integer bounds", same_set(n, hn), describe(n, hn));
+        }
+      }
+    }
+  }
+
+  void max_min_sign_floor_rel_cases()
+  {
+    const interval empty = interval::emptyset(), entire = interval::universe();
+    // Made at run time (see the GCC releases of doc/using.md)
+    const double tiny = next_double(0.0), two_52 = std::ldexp(1.0, 52), two_53 = std::ldexp(1.0, 53);
+    const double big = (std::numeric_limits<double>::max)();
+    struct Case { std::string what; interval got, expected; };
+    const Case cases[] = {
+      // max_rel: Y above Z, meeting it (touching, nested) and below it
+      { "max_rel([1, 2], [3, 4], [-5, 5]): Y above Z, empty",
+        max_rel(interval(1.0, 2.0), interval(3.0, 4.0), interval(-5.0, 5.0)), empty },
+      { "max_rel([1, 2], [0, 1], [-5, 5]): Y touching Z",
+        max_rel(interval(1.0, 2.0), interval(0.0, 1.0), interval(-5.0, 5.0)), interval(-5.0, 2.0) },
+      { "max_rel([0, 3], [1, 2], [-5, 5]): Y within Z",
+        max_rel(interval(0.0, 3.0), interval(1.0, 2.0), interval(-5.0, 5.0)), interval(-5.0, 3.0) },
+      { "max_rel([1, 2], [-1, 0], [-5, 5]): Y below Z, X & Z",
+        max_rel(interval(1.0, 2.0), interval(-1.0, 0.0), interval(-5.0, 5.0)), interval(1.0, 2.0) },
+      { "max_rel([1, 2], [-1, 0], [2, 4]): X touching Z",
+        max_rel(interval(1.0, 2.0), interval(-1.0, 0.0), interval(2.0, 4.0)), interval(2.0) },
+      { "max_rel([1, 2], [0, 1], [3, 4]): X above Z, empty",
+        max_rel(interval(1.0, 2.0), interval(0.0, 1.0), interval(3.0, 4.0)), empty },
+      { "max_rel([1, +oo], [-oo, 0], entire)",
+        max_rel(interval(1.0, inf), interval(-inf, 0.0), entire), interval(1.0, inf) },
+      { "max_rel([-oo, 0], [-1, 5], [-3, 3])",
+        max_rel(interval(-inf, 0.0), interval(-1.0, 5.0), interval(-3.0, 3.0)), interval(-3.0, 0.0) },
+      { "max_rel(entire, entire, [-3, 3])",
+        max_rel(entire, entire, interval(-3.0, 3.0)), interval(-3.0, 3.0) },
+      { "max_rel([-0], [+0], [-1, 1]): -0 and +0 are one number",
+        max_rel(interval(-0.0), interval(0.0), interval(-1.0, 1.0)), interval(-1.0, 0.0) },
+      { "max_rel([-0], [-1, -0.5], [-1, 1])",
+        max_rel(interval(-0.0), interval(-1.0, -0.5), interval(-1.0, 1.0)), interval(0.0) },
+      { "max_rel([0], [tiny, 1], [-1, 1]): Y above Z by one subnormal",
+        max_rel(interval(0.0), interval(tiny, 1.0), interval(-1.0, 1.0)), empty },
+      { "max_rel(empty, Y, X)",
+        max_rel(empty, entire, entire), empty },
+      { "max_rel(Z, empty, X)",
+        max_rel(entire, empty, entire), empty },
+      { "max_rel(Z, Y, empty)",
+        max_rel(entire, entire, empty), empty },
+      // min_rel
+      { "min_rel([1, 2], [-1, 0], [-5, 5]): Y below Z, empty",
+        min_rel(interval(1.0, 2.0), interval(-1.0, 0.0), interval(-5.0, 5.0)), empty },
+      { "min_rel([1, 2], [2, 3], [-5, 5]): Y touching Z",
+        min_rel(interval(1.0, 2.0), interval(2.0, 3.0), interval(-5.0, 5.0)), interval(1.0, 5.0) },
+      { "min_rel([1, 2], [3, 4], [-5, 5]): Y above Z, X & Z",
+        min_rel(interval(1.0, 2.0), interval(3.0, 4.0), interval(-5.0, 5.0)), interval(1.0, 2.0) },
+      { "min_rel([-oo, 0], [1, 2], entire)",
+        min_rel(interval(-inf, 0.0), interval(1.0, 2.0), entire), interval(-inf, 0.0) },
+      { "min_rel([-0], [+0], [-1, 1])",
+        min_rel(interval(-0.0), interval(0.0), interval(-1.0, 1.0)), interval(0.0, 1.0) },
+      { "min_rel(Z, Y, empty)",
+        min_rel(entire, entire, empty), empty },
+      { "min_rel(empty, Y, X)",
+        min_rel(empty, entire, entire), empty },
+      { "min_rel(Z, empty, X)",
+        min_rel(entire, empty, entire), empty },
+      // sign_rel
+      { "sign_rel([-1], [-2, 3]): up to 0, the limit of the negative x",
+        sign_rel(interval(-1.0), interval(-2.0, 3.0)), interval(-2.0, 0.0) },
+      { "sign_rel([-1], [0, 3]): sign(0) = 0, empty",
+        sign_rel(interval(-1.0), interval(0.0, 3.0)), empty },
+      { "sign_rel([0], [-2, 3])",
+        sign_rel(interval(0.0), interval(-2.0, 3.0)), interval(0.0) },
+      { "sign_rel([0, 1], [-2, 3])",
+        sign_rel(interval(0.0, 1.0), interval(-2.0, 3.0)), interval(0.0, 3.0) },
+      { "sign_rel([-1, 1], [-2, 3])",
+        sign_rel(interval(-1.0, 1.0), interval(-2.0, 3.0)), interval(-2.0, 3.0) },
+      { "sign_rel([0.5, 0.7], [-2, 3]): no sign in Z, empty",
+        sign_rel(interval(0.5, 0.7), interval(-2.0, 3.0)), empty },
+      { "sign_rel([-5, -2], entire): no sign in Z, empty",
+        sign_rel(interval(-5.0, -2.0), entire), empty },
+      { "sign_rel([1], [2, 3])",
+        sign_rel(interval(1.0), interval(2.0, 3.0)), interval(2.0, 3.0) },
+      { "sign_rel([-1], [2, 3]): empty",
+        sign_rel(interval(-1.0), interval(2.0, 3.0)), empty },
+      { "sign_rel([1], [-0, +0]): empty",
+        sign_rel(interval(1.0), interval(-0.0, 0.0)), empty },
+      { "sign_rel([-0], [-0, +0])",
+        sign_rel(interval(-0.0), interval(-0.0, 0.0)), interval(0.0) },
+      { "sign_rel([1], [-tiny, tiny])",
+        sign_rel(interval(1.0), interval(-tiny, tiny)), interval(0.0, tiny) },
+      { "sign_rel([-1], [-tiny, tiny])",
+        sign_rel(interval(-1.0), interval(-tiny, tiny)), interval(-tiny, 0.0) },
+      { "sign_rel([1], [tiny, 1])",
+        sign_rel(interval(1.0), interval(tiny, 1.0)), interval(tiny, 1.0) },
+      { "sign_rel([-oo, -1], entire)",
+        sign_rel(interval(-inf, -1.0), entire), interval(-inf, 0.0) },
+      { "sign_rel([1, +oo], entire)",
+        sign_rel(interval(1.0, inf), entire), interval(0.0, inf) },
+      { "sign_rel(empty, X)",
+        sign_rel(empty, entire), empty },
+      { "sign_rel(Z, empty)",
+        sign_rel(entire, empty), empty },
+      // floor_rel
+      { "floor_rel([0, 2], [-5, 5]): up to 3, the limit of [0, 3)",
+        floor_rel(interval(0.0, 2.0), interval(-5.0, 5.0)), interval(0.0, 3.0) },
+      { "floor_rel([0], [1, 2]): X starting at the open end, empty",
+        floor_rel(interval(0.0), interval(1.0, 2.0)), empty },
+      { "floor_rel([0], [0.5, 2])",
+        floor_rel(interval(0.0), interval(0.5, 2.0)), interval(0.5, 1.0) },
+      { "floor_rel([3], [0, 3]): X touching",
+        floor_rel(interval(3.0), interval(0.0, 3.0)), interval(3.0) },
+      { "floor_rel([0.5, 0.7], entire): no integer in Z, empty",
+        floor_rel(interval(0.5, 0.7), entire), empty },
+      { "floor_rel([-0.5, 0.5], entire)",
+        floor_rel(interval(-0.5, 0.5), entire), interval(0.0, 1.0) },
+      { "floor_rel([-0], entire)",
+        floor_rel(interval(-0.0), entire), interval(0.0, 1.0) },
+      { "floor_rel([-1], [-0.5, -0])",
+        floor_rel(interval(-1.0), interval(-0.5, -0.0)), interval(-0.5, 0.0) },
+      { "floor_rel([-oo, 2.5], entire)",
+        floor_rel(interval(-inf, 2.5), entire), interval(-inf, 3.0) },
+      { "floor_rel([1.5, +oo], entire)",
+        floor_rel(interval(1.5, inf), entire), interval(2.0, inf) },
+      { "floor_rel(entire, [-3.5, 7.25])",
+        floor_rel(entire, interval(-3.5, 7.25)), interval(-3.5, 7.25) },
+      { "floor_rel([2^52 - 0.5], entire): no integer in Z, empty",
+        floor_rel(interval(two_52 - 0.5), entire), empty },
+      { "floor_rel([2^53 - 1], entire)",
+        floor_rel(interval(two_53 - 1.0), entire), interval(two_53 - 1.0, two_53) },
+      { "floor_rel([2^53], entire): up to 2^53 + 2, the double above 2^53 + 1",
+        floor_rel(interval(two_53), entire), interval(two_53, two_53 + 2.0) },
+      { "floor_rel([2^53], [0, 2^53])",
+        floor_rel(interval(two_53), interval(0.0, two_53)), interval(two_53) },
+      { "floor_rel([2^53], [2^53 + 2, 2^54]): empty",
+        floor_rel(interval(two_53), interval(two_53 + 2.0, 2.0*two_53)), empty },
+      { "floor_rel([2^53 + 2], [2^53, 2^54])",
+        floor_rel(interval(two_53 + 2.0), interval(two_53, 2.0*two_53)), interval(two_53 + 2.0, two_53 + 4.0) },
+      { "floor_rel([-2^53 - 2], entire)",
+        floor_rel(interval(-two_53 - 2.0), entire), interval(-two_53 - 2.0, -two_53) },
+      { "floor_rel([-2^53 - 2], [-2^53, 0]): X starting at the open end, the double above -2^53 - 1, empty",
+        floor_rel(interval(-two_53 - 2.0), interval(-two_53, 0.0)), empty },
+      { "floor_rel([-2^53 - 2], [-2^53 - 2, -2^53])",
+        floor_rel(interval(-two_53 - 2.0), interval(-two_53 - 2.0, -two_53)), interval(-two_53 - 2.0, -two_53) },
+      { "floor_rel([2^60, 2^61], entire)",
+        floor_rel(interval(128.0*two_53, 256.0*two_53), entire), interval(128.0*two_53, 256.0*two_53 + 512.0) },
+      { "floor_rel([DBL_MAX], entire): up to +oo, DBL_MAX + 1 being beyond the doubles",
+        floor_rel(interval(big), entire), interval(big, inf) },
+      { "floor_rel([-DBL_MAX], entire)",
+        floor_rel(interval(-big), entire), interval(-big, -previous_double(big)) },
+      { "floor_rel(empty, X)",
+        floor_rel(empty, entire), empty },
+      { "floor_rel(Z, empty)",
+        floor_rel(entire, empty), empty },
+    };
+    for (const Case& c : cases) {
+      check(c.what, same_set(c.got, c.expected), [&] { return hex(c.got) + " rather than " + hex(c.expected); });
+    }
+  }
+
+  /*
+    floor_rel at every magnitude, its upper bound the smallest double at least
+    floor(sup Z) + 1, computed exactly, where X goes on beyond it. X is the
+    whole line, random, or has its bounds among ceil(inf Z), floor(sup Z), the
+    doubles next to them and the two doubles above floor(sup Z), around
+    floor(sup Z) + 1, where the bounds of X decide the result
+  */
+  void floor_rel_at_every_magnitude()
+  {
+    Random random;
+    for (int i = 0; i < 30000; ++i) {
+      const int e = random.integer(-2, 1023);
+      const double a = random(e, e), b = (random.integer(0, 1) == 0) ? a : random(e, e);
+      const interval Z = hull(a, b);
+      const double first = std::ceil(Z.left()), last = std::floor(Z.right());
+      const double above = next_double(last);
+      // Not named near, an empty macro of <windows.h>
+      const double next_to_ends[] = { previous_double(first), first, next_double(first), previous_double(last), last,
+                                      above, next_double(above) };
+      const int kind = random.integer(0, 2);
+      const double c = (kind == 2) ? next_to_ends[random.integer(0, 6)] : random(-2, 1023);
+      const double d = (kind == 2) ? next_to_ends[random.integer(0, 6)] : random(-2, 1023);
+      const interval X = (kind == 0) ? interval::universe() : hull(c, d);
+      const interval r = floor_rel(Z, X);
+      const Exact end = exact(dyadic(last) + dyadic(1.0));
+      const auto describe = [&] { return "Z=" + hex(Z) + " X=" + hex(X) + ": " + hex(r); };
+      // X empty where its bounds are +oo, above DBL_MAX
+      if (X.is_empty() || first > last || first > X.right() || compare(X.left(), end) >= 0) {
+        check("floor_rel(Z, X) at every magnitude: empty where Z holds no integer or X none of [ceil(inf Z), floor(sup Z) + 1)",
+              r.is_empty(), describe);
+        continue;
+      }
+      const bool to_end = compare(X.right(), end) >= 0;
+      check("floor_rel(Z, X) at every magnitude: [max(inf X, ceil(inf Z)), the double above min(sup X, floor(sup Z) + 1)]",
+            !r.is_empty() && r.left() == std::max(X.left(), first)
+            && (to_end ? is_tightest_upper_bound(r.right(), end) : r.right() == X.right()), describe);
+    }
+  }
+
+  // Random intervals of every magnitude, by sampling (see above)
+  void max_min_sign_floor_rel_sampled()
+  {
+    Random random;
+    const double big = (std::numeric_limits<double>::max)();
+    const auto bound = [&]() -> double {
+      switch (random.integer(0, 7)) {
+        case 0: { const double s[] = { -inf, inf, 0.0, -0.0, 1.0, -1.0, big, -big }; return s[random.integer(0, 7)]; }
+        case 1: {
+          // One draw per declarator, in order (see Random)
+          const int k = random.integer(-5, 5), h = random.integer(0, 1);
+          return k + 0.5*h;
+        }
+        case 2: return random.any();
+        default: return random(-30, 60);
+      }
+    };
+    const auto draw = [&]() -> interval {
+      if (random.integer(0, 30) == 0) {
+        return interval::emptyset();
+      }
+      const double a = bound(), b = bound();
+      return (a <= b) ? interval(a, b) : interval(b, a);
+    };
+    for (int i = 0; i < 20000; ++i) {
+      const interval Z = draw(), Y = draw(), X = draw();
+      // The doubles sampled: the bounds, 0, +-1, the integers next to the
+      // bounds of Z and floor(sup Z) + 1, the doubles on either side of each,
+      // and random doubles of X
+      std::vector<double> ts, ys;
+      for (const interval* I : { &Z, &Y, &X }) {
+        if (!I->is_empty()) {
+          ys.push_back(I->left());
+          ys.push_back(I->right());
+        }
+      }
+      std::vector<double> marks(ys);
+      marks.push_back(0.0);
+      marks.push_back(1.0);
+      marks.push_back(-1.0);
+      if (!Z.is_empty()) {
+        marks.push_back(std::ceil(Z.left()));
+        marks.push_back(std::floor(Z.right()));
+        marks.push_back(std::floor(Z.right()) + 1.0);
+      }
+      for (double m : marks) {
+        if (std::isfinite(m)) {
+          ts.push_back(m);
+          ts.push_back(next_double(m));
+          ts.push_back(previous_double(m));
+        }
+      }
+      if (!X.is_empty()) {
+        ts.push_back(X.midpoint());
+        const double width = X.right() - X.left();
+        for (int k = 0; k < 8; ++k) {
+          const double t = std::isfinite(width) ? X.left() + random.uniform(0.0, 1.0)*width : random.any();
+          ts.push_back(member(t, X) ? t : X.midpoint());
+        }
+      }
+      // A y of Y with max(t, y), respectively min(t, y), in Z: the set of them is
+      // an interval whose finite ends are bounds of Y and Z, or the whole line
+      const auto with = [&](double t, bool maximum) -> bool {
+        if (!member(t, X)) {
+          return false;
+        }
+        std::vector<double> candidates(ys);
+        candidates.push_back(t);
+        for (double y : candidates) {
+          if (member(y, Y) && member(maximum ? std::max(t, y) : std::min(t, y), Z)) {
+            return true;
+          }
+        }
+        return false;
+      };
+      const auto in_sign = [&](double t) { return member(t, X) && member(sign_of_real(t), Z); };
+      const auto in_floor = [&](double t) { return member(t, X) && member(std::floor(t), Z); };
+
+      const interval m = max_rel(Z, Y, X), n = min_rel(Z, Y, X), s = sign_rel(Z, X), f = floor_rel(Z, X);
+      const auto describe = [&](const interval& r, double t) {
+        return [&, r, t] { return "Z=" + hex(Z) + " Y=" + hex(Y) + " X=" + hex(X) + ": " + hex(r) + ", t=" + hex(t); };
+      };
+      for (double t : ts) {
+        if (with(t, true)) {
+          check("max_rel(Z, Y, X) sampled: keeps every x of the set", member(t, m), describe(m, t));
+        }
+        if (with(t, false)) {
+          check("min_rel(Z, Y, X) sampled: keeps every x of the set", member(t, n), describe(n, t));
+        }
+        if (in_sign(t)) {
+          check("sign_rel(Z, X) sampled: keeps every x of the set", member(t, s), describe(s, t));
+        }
+        if (in_floor(t)) {
+          check("floor_rel(Z, X) sampled: keeps every x of the set", member(t, f), describe(f, t));
+        }
+      }
+      // Within X, and the finite bounds in the set, or the limits of its
+      // doubles where it is open
+      const auto within = [&](const interval& r) {
+        return r.is_empty() || (!X.is_empty() && X.left() <= r.left() && r.right() <= X.right());
+      };
+      const auto closed = [&](double b, bool keeps) { return !std::isfinite(b) || keeps; };
+      check("max_rel(Z, Y, X) sampled: within X, its finite bounds in the set",
+            within(m) && (m.is_empty() || (closed(m.left(), with(m.left(), true)) && closed(m.right(), with(m.right(), true)))),
+            describe(m, 0.0));
+      check("min_rel(Z, Y, X) sampled: within X, its finite bounds in the set",
+            within(n) && (n.is_empty() || (closed(n.left(), with(n.left(), false)) && closed(n.right(), with(n.right(), false)))),
+            describe(n, 0.0));
+      // sign_rel open at 0: the set holds the doubles next to 0, X going on to it
+      const bool open_left = s.left() == 0.0 && X.left() <= 0.0 && in_sign(next_double(0.0));
+      const bool open_right = s.right() == 0.0 && X.right() >= 0.0 && in_sign(previous_double(0.0));
+      check("sign_rel(Z, X) sampled: within X, its finite bounds in the set or 0 where it is open there",
+            within(s) && (s.is_empty() || (closed(s.left(), in_sign(s.left()) || open_left)
+                                           && closed(s.right(), in_sign(s.right()) || open_right))),
+            describe(s, 0.0));
+      const auto open_end = [&](double b) {
+        const double below = previous_double(b);
+        return in_floor(below) && is_tightest_upper_bound(b, exact(dyadic(std::floor(below)) + dyadic(1.0)));
+      };
+      check("floor_rel(Z, X) sampled: within X, its lower bound in the set, its upper bound too or the double above its open end",
+            within(f) && (f.is_empty() || (closed(f.left(), in_floor(f.left()))
+                                           && closed(f.right(), in_floor(f.right()) || open_end(f.right())))),
+            describe(f, 0.0));
+    }
+  }
+
+  void max_min_sign_floor_rel()
+  {
+    max_min_sign_floor_rel_on_a_grid();
+    max_min_sign_floor_rel_cases();
+    floor_rel_at_every_magnitude();
+    max_min_sign_floor_rel_sampled();
+  }
+  // ---------------------------------------------------------------------------
+  // End of max_rel, min_rel, sign_rel and floor_rel
+  // ---------------------------------------------------------------------------
 }
 
 int main()
@@ -809,6 +1442,7 @@ int main()
   Random random;
   measures("exponents from -30 to 30", [&] { return random(-30, 30); });
   measures("any doubles", [&] { return random.any(); });
+  tools_of_point_p();
   subnormal_bounds();
   hausdorff_of_infinite_bounds();
   nb_fp_numbers_across_zero();
@@ -823,6 +1457,7 @@ int main()
   periodic_relations_at_every_magnitude();
   ieee1788_order();
   ieee1788_names();
+  max_min_sign_floor_rel();
   const int status = summary();
   gaol::cleanup();
   return status;

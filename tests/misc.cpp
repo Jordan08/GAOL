@@ -124,6 +124,8 @@ namespace gaol_names
   GAOL_NAMES_UNARY(asinpi);
   GAOL_NAMES_UNARY(acospi);
   GAOL_NAMES_UNARY(atanpi);
+  GAOL_NAMES_UNARY(erf);
+  GAOL_NAMES_UNARY(erfc);
   GAOL_NAMES_UNARY(trunc);
   GAOL_NAMES_UNARY(sign);
   GAOL_NAMES_UNARY(round_ties_to_even);
@@ -137,6 +139,8 @@ namespace gaol_names
   GAOL_NAMES_BINARY(atan2);
   GAOL_NAMES_BINARY(atan2pi);
   GAOL_NAMES_BINARY(hypot);
+  GAOL_NAMES_BINARY(hull);
+  GAOL_NAMES_BINARY(intersect);
   GAOL_NAMES_BINARY(cancel_minus);
   GAOL_NAMES_BINARY(cancel_plus);
   GAOL_NAMES_BINARY(sqrt_rel);
@@ -147,12 +151,19 @@ namespace gaol_names
   GAOL_NAMES_BINARY(acosh_rel);
   GAOL_NAMES_BINARY(asinh_rel);
   GAOL_NAMES_BINARY(atanh_rel);
+  GAOL_NAMES_BINARY(sign_rel);
+  GAOL_NAMES_BINARY(floor_rel);
 #undef GAOL_NAMES_BINARY
   static_assert(same<decltype(gaol::div_rel(x(), x(), x())), interval>(), "gaol::div_rel(z, y, x)");
+  static_assert(same<decltype(gaol::max_rel(x(), x(), x())), interval>() && same<decltype(gaol::min_rel(x(), x(), x())), interval>(),
+                "gaol::max_rel(z, y, x), gaol::min_rel(z, y, x)");
   static_assert(same<decltype(gaol::fma(x(), x(), x())), interval>(), "gaol::fma(x, y, z)");
   static_assert(same<decltype(gaol::nth_root(x(), 3u)), interval>() && same<decltype(gaol::nth_root(x(), 3)), interval>(),
                 "gaol::nth_root(x, n)");
   static_assert(same<decltype(gaol::nth_root_rel(x(), 3u, x())), interval>(), "gaol::nth_root_rel(y, n, x)");
+  static_assert(same<decltype(gaol::pow_rel(x(), x(), x())), interval>()
+                && same<decltype(gaol::pow_exponent_rel(x(), x(), x())), interval>(),
+                "gaol::pow_rel(z, y, x), gaol::pow_exponent_rel(z, x, y)");
   static_assert(same<decltype(gaol::pow(x(), 3)), interval>() && same<decltype(gaol::pow(x(), x())), interval>(),
                 "gaol::pow, declared in gaol");
   static_assert(same<decltype(gaol::textToInterval(std::string())), interval>(), "gaol::textToInterval, declared in gaol");
@@ -371,6 +382,8 @@ public:
     TEST_SEQ(gaol::pow(interval(-2.0), 3), interval(-8.0));
     TEST_SEQ(gaol::nth_root(interval(8.0), 3u), interval(2.0));
     TEST_SEQ(gaol::operator|(interval(1.0), interval(3.0)), interval(1.0, 3.0));
+    TEST_SEQ(gaol::hull(interval(1.0), interval(3.0)), interval(1.0, 3.0));
+    TEST_SEQ(gaol::intersect(interval(1.0, 3.0), interval(2.0, 4.0)), interval(2.0, 3.0));
     TEST_SEQ(gaol::textToInterval("[1, 2]"), interval(1.0, 2.0));
     TEST_TRUE(gaol::next_float(1.0) > 1.0 && gaol::previous_float(1.0) < 1.0);
     interval y;

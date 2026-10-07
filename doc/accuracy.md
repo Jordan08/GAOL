@@ -138,6 +138,12 @@ double outward.
 | `atan2Pi` | `atan2pi(y, x)` | The analysis of the box of `atan2`, the angles divided by π: [−1, 1] for a box crossing the half-line y = 0, x < 0, the corners elsewhere. The values at the multiples of 1/4 (0, ±1/4, ±1/2, ±3/4, 1, and −1 as a limit) are exact, CORE-MATH's atan2pi giving the others, which are irrational (GAOL v5) | tightest | tightest, over 200 000 boxes |
 | `compoundm1` | — | Not provided: CORE-MATH has no binary64 version | | |
 
+## The error functions, which IEEE 1788-2015 does not name
+
+| IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
+|---|---|---|---|---|
+| — | `erf(x)`, `erfc(x)` | CORE-MATH's erf and erfc at the bounds, correctly rounded upward, erf being increasing and erfc decreasing: the value at one bound, and the double below the value at the other one unless that value is a double, which it is at 0 (erf(0) = 0, erfc(0) = 1) and at ±∞ (the limits ±1 of erf, 2 and 0 of erfc); within [−1, 1] and [0, 2]. erf(x) is within 2<sup>−53</sup> of ±1 from \|x\| = 5.87 on, where its bounds are 1 − 2<sup>−53</sup> and 1, or −1 and −(1 − 2<sup>−53</sup>), and erfc(x) is subnormal from x = 26.55 on, and below 2<sup>−1074</sup> from x = 27.22 on, where its lower bound is 0. erf and erfc are not known to take a value that is a double at any other double, and CORE-MATH's sources treat no such case (GAOL v5) | tightest | tightest, at the 409 doubles of `elementary_values.h` (tiny arguments, changes of binade, the arguments where the values round to ±1, 2 or 0 or become subnormal, hard cases of CORE-MATH's erfc.c) and over the intervals between them, against mpmath; over 9 225 doubles and 80 000 intervals against CORE-MATH in both directed roundings |
+
 ## Reverse functions (Table 10.1): accurate
 
 GAOL's relational functions compute `f_rel(J, I)`, the hull of the x of I
@@ -160,7 +166,9 @@ the values they are given, within the number of doubles below.
 | `coshRev(c, x)` | `acosh_rel(c, x)` | accurate | accurate; within 16 doubles of the value it keeps |
 | `sinhRev`, `tanhRev` (not in Table 10.1, named after `coshRev`) | `asinh_rel`, `atanh_rel` | accurate; `atanh_rel(J, x)` is ∅ where J holds no point of (−1, 1), the values of tanh (GAOL v5) | within 10 and 26 doubles of the value they keep; ∅ for J = [1] and [−1] |
 | `mulRev(b, c, x)` | `div_rel(c, b, x)`, and `c % b` for x = [−∞, +∞] | accurate; tightest where the bounds of the quotients are doubles | accurate, the tightest bounds over the cases of `%`; within 2 doubles of the value `div_rel` keeps |
-| `powRev1`, `powRev2`, `atan2Rev1`, `atan2Rev2`, `pownRev` for p < 0 | — | | |
+| `powRev1(b, c, x)`, `powRev2(a, c, x)` | `pow_rel(c, b, x)`, `pow_exponent_rel(c, a, x)` (GAOL v5) | tightest: the pieces of the solutions over the signs of the other argument (y > 0, y < 0; x > 1, x < 1), with 0^y = 0 for y > 0, x^0 = 1 and 1^y = 1, end at c^(1/y) or log(c)/log(x), bounds c, x and y of the arguments, whose bounds are the largest double d with d^y (or x^d) proved by CORE-MATH's pow, correctly rounded, to be on one side of c, and the smallest one on the other side; but a bound of x where the solutions start between it and the next double, and whose power is within one double of c, is kept, which only knowing whether that power is a double would settle: the tightest result for x one double wider | tightest on the 804 cases of ITF1788 and on 1 244 others, random or whose solutions are doubles; within the tightest result for x one double wider on 966 cases where a bound of x is next to an end of the solutions; the 54 305 points of 6 000 random boxes whose power is within c kept by both |
+| — (not in Table 10.1, which names no reverse of max, min, sign and floor) | `max_rel(z, y, x)`, `min_rel(z, y, x)`, `sign_rel(z, x)`, `floor_rel(z, x)` (GAOL v5) | tightest: the bounds of x and z, 0, ceil(inf z) and floor(sup z) + 1, the open ends of the sets of `sign_rel` (0) and `floor_rel` (floor(sup z) + 1) included, the last rounded upward beyond 2<sup>53</sup> | tightest, against the definitions: on every interval of half-integer bounds, on cases written out, and by sampling; `floor_rel` at every magnitude, against floor(sup z) + 1 computed exactly (`tests/other_functions.cpp`) |
+| `atan2Rev1(y, c, x)`, `atan2Rev2(x, c, y)` | `atan2_rel(c, y, x)`, `atan2_exponent_rel(c, x, y)` (GAOL v5) | tightest: the bounds of the solutions of atan2(y, x) = c for the given arguments, by cases on the signs of x and y and the handling of the jump discontinuity at y = 0, x < 0 | |
 
 Where a bound of J is one double from the image of a bound of the preimage,
 these functions keep a point of I whose image is just outside J:

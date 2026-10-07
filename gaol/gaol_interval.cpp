@@ -1745,6 +1745,548 @@ namespace gaol_core {
   }
 
   /*
+    The reverse functions of pow (GAOL v5): pow_rel(K, J, I), the hull of the
+    x of I with an x^y in K for a y of J, and pow_exponent_rel(K, H, I), the
+    hull of the y of I with an x^y in K for an x of H, which are powRev1(J, K,
+    I) and powRev2(H, K, I) of IEEE 1788-2015 (10.5.4, Table 10.1).
+
+    They reverse the pow of the standard (Table 9.1), that of
+    gaol_ieee1788::pow and pow_standard(): x^y = e^(y log x) for x > 0, 0^y = 0
+    for y > 0, and no value elsewhere. gaol::pow takes the integer power for a
+    degenerate integer exponent [n], which has negative bases too: an
+    interval function that is not monotone in its exponent
+    (gaol_pow_hybrid()), and has no set of solutions to reverse; the reverse
+    of x^n is nth_root_rel(K, n, I).
+
+    The solutions are those of x = 0 (0^y = 0 in K for y > 0) and those of
+    x > 0, where x^y is in K, that is in K & ]0, +oo], exactly when y log(x) is
+    in log(K & ]0, +oo]): the reverse of a product, of y and log(x). Where 1
+    is in K and the other argument holds the value that makes the product 0
+    (y = 0, x^0 = 1; x = 1, 1^y = 1), every x > 0 of I, or every y of I, is a
+    solution. Otherwise, each sign of the other argument (y > 0 and y < 0;
+    x > 1 and x < 1) gives a piece over which x^y is monotone in both x and
+    y: the solutions of each piece are an interval, whose ends are reached
+    at the bounds of the other argument and of K, or are limits there, and
+    pieces of each sign are intersected with I, then joined.
+
+    The ends of the pieces are c^(1/y) for pow_rel and log(c)/log(x) for
+    pow_exponent_rel, c a bound of K and x or y a bound of the other argument;
+    1 for pow_rel and 0 for pow_exponent_rel where c is 1 (exactly reached);
+    0 and the infinities; and 1 (x^y -> 1 for y -> +oo or -oo) for pow_rel and
+    0 (log(c)/log(x) -> 0 for x -> 0 or +oo) for pow_exponent_rel, as limits:
+    a piece that ends at such a limit does not hold it, and a bound of I equal
+    to it leaves that piece out (pow_rel([2, 3], [1, +oo], [0, 1]) is empty:
+    x^y >= 2 for a y >= 1 asks x > 1).
+
+    c^(1/y) and log(c)/log(x) are irrational but where they are doubles, and
+    their bounds are proved with the power they reverse: d <= c^(1/y) exactly
+    when d^y <= c (y > 0), which holds exactly when d^y rounded upward,
+    CORE-MATH's pow in the upward rounding GAOL computes in, is at most c, c
+    being a double; d^y >= c exactly when d^y rounded downward is at least c,
+    which pow_lo() gives, taking the power itself where it is a double
+    (pow_is_double()). y < 0, which makes d^y decrease, swaps the two, and
+    log(c)/log(x) is bounded the same way by the powers x^e of a double e. The
+    lower bound is the largest double proved to be below the end, the upper
+    bound the smallest one proved to be above it: they are looked for by
+    steps that double then by bisection, from an approximation, on the
+    doubles taken in their order (double_key()), each step costing one pow.
+    The bounds are the tightest: a power rounded upward is CORE-MATH's,
+    correctly rounded, and pow_is_double() tells every power that is a double,
+    which only makes the bounds tighter, its answer that a power is no double
+    never being used to leave a point out.
+
+    A piece is left out only where it is proved to miss I: its lower end
+    proved above the upper bound u of I, or its upper end proved below the
+    lower bound. Where the bound of the end is u itself, c^(1/y) > u is
+    proved by u^y < c (y > 0), u^y rounded upward being below c, which holds
+    unless u^y is within one double below c: there, telling u^y < c from
+    u^y = c asks whether u^y is a double, which only pow_is_double() tells,
+    and the point u is kept rather than left out on that answer:
+    pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
+    empty, (1 + 2^-52)^2 being 1 + 2^-51 + 2^-104. The result is then the
+    tightest one for I widened by one double, which accurate (12.10.1)
+    allows.
+  */
+
+  /*
+    The doubles in their order, as unsigned integers: the key of d >= 0 is
+    2^63 plus the bits of d, and that of d < 0 is 2^63 minus the bits of -d,
+    so that the keys of -oo, -DBL_MAX, ..., -0 = +0, ..., DBL_MAX, +oo
+    increase with the doubles, consecutive doubles having consecutive keys,
+    from 2^52 to 2^64 - 2^52. The searches below step and bisect on the keys,
+    exactly, without nextafter() nor arithmetic on the doubles.
+  */
+  static inline std::uint64_t double_key(double d)
+  {
+    const double a = std::fabs(d);
+    std::uint64_t bits;
+    std::memcpy(&bits, &a, sizeof bits);
+    const std::uint64_t half = static_cast<std::uint64_t>(1) << 63;
+    return (d < 0.0) ? half - bits : half + bits;
+  }
+
+  static inline double key_double(std::uint64_t k)
+  {
+    const std::uint64_t half = static_cast<std::uint64_t>(1) << 63;
+    const std::uint64_t bits = (k >= half) ? k - half : half - k;
+    double a;
+    std::memcpy(&a, &bits, sizeof a);
+    return (k >= half) ? a : -a;
+  }
+
+  /*
+    The largest key of [a, b] at which holds() is true, holds() being true at
+    a, where it is not called, and false from some key on: from the key k of
+    an approximation, by steps that double, up while it holds and down while
+    it does not, then by bisection between the last key where it holds and the
+    first one where it does not. At most about 2 x 64 calls of holds(), and two
+    from a k next to the result.
+  */
+  template <class Holds>
+  static std::uint64_t last_key_holding(const Holds& holds, std::uint64_t a, std::uint64_t b, std::uint64_t k)
+  {
+    const std::uint64_t largest_step = static_cast<std::uint64_t>(1) << 62;
+    k = (k < a) ? a : ((k > b) ? b : k);
+    // holds(yes), and !holds(no) once failed is true
+    std::uint64_t yes = a, no = b;
+    bool failed = false;
+    if (k != a) {
+      if (holds(k)) {
+        yes = k;
+      } else {
+        no = k;
+        failed = true;
+      }
+    }
+    if (!failed) {
+      for (std::uint64_t step = 1;; step = (step < largest_step) ? 2*step : step) {
+        if (b - yes <= step) {
+          if (yes == b || holds(b)) {
+            return b;
+          }
+          no = b;
+          break;
+        }
+        if (holds(yes + step)) {
+          yes += step;
+        } else {
+          no = yes + step;
+          break;
+        }
+      }
+    } else {
+      for (std::uint64_t step = 1; no - a > step; step = (step < largest_step) ? 2*step : step) {
+        if (holds(no - step)) {
+          yes = no - step;
+          break;
+        }
+        no -= step;
+      }
+    }
+    while (no - yes > 1) {
+      const std::uint64_t m = yes + (no - yes)/2;
+      if (holds(m)) {
+        yes = m;
+      } else {
+        no = m;
+      }
+    }
+    return yes;
+  }
+
+  // The smallest key of [a, b] at which holds() is true, holds() being true at
+  // b, where it is not called, and false up to some key: the search above on
+  // the keys taken backward
+  template <class Holds>
+  static std::uint64_t first_key_holding(const Holds& holds, std::uint64_t a, std::uint64_t b, std::uint64_t k)
+  {
+    const std::uint64_t last = ~static_cast<std::uint64_t>(0);
+    return last - last_key_holding([&holds, last](std::uint64_t j) { return holds(last - j); }, last - b, last - a, last - k);
+  }
+
+  /*
+    An approximation of c^(1/y), c > 0 finite and other than 1 and y finite
+    and other than 0, which the bounds below are looked for from: CORE-MATH's
+    pow with the exponent 1/y rounded, |log(c^(1/y))| 2^-53 away relatively,
+    after a step of Newton's method on r^y = c, r - r (r^y - c)/(y r^y),
+    which brings it within about 2^-52/|y| relatively. pow_rounded_up() takes
+    the exponents of extreme magnitude apart, 1/y included (+oo for a
+    subnormal y), on which CORE-MATH's pow would raise the invalid-operation
+    exception. Rounding upward
+  */
+  static double root_of_power_near(double c, double y)
+  {
+    const double largest = std::numeric_limits<double>::max();
+    const double r = pow_rounded_up(c, 1.0/y);
+    if (r > 0.0 && r <= largest) {
+      const double p = pow_rounded_up(r, y);
+      const double q = y*p;
+      if (p != c && p >= std::numeric_limits<double>::min() && p <= largest && q != 0.0) {
+        const double s = r - r*((p - c)/q);
+        if (s > 0.0 && s <= largest) {
+          return s;
+        }
+      }
+    }
+    return r;
+  }
+
+  /*
+    The tightest bounds of c^(1/y), the x > 0 with x^y = c, for c > 0 finite
+    and other than 1, and y finite and other than 0: d <= c^(1/y) is proved
+    by d^y <= c for y > 0 and by d^y >= c for y < 0, and d >= c^(1/y) the
+    other way round. 0 is below c^(1/y), where pow() is not called (CORE-MATH
+    gives +oo for 0^y, y < 0, with the divide-by-zero exception), and +oo
+    above it: [DBL_MAX, +oo] for a c^(1/y) beyond the doubles, and
+    [0, 2^-1074] for one below them. Rounding upward
+  */
+  static double root_of_power_dn(double c, double y, double near)
+  {
+    const auto below = [c, y](std::uint64_t k) {
+      const double d = key_double(k);
+      return (y > 0.0) ? pow_hi(d, y) <= c : pow_lo(d, y) >= c;
+    };
+    return key_double(last_key_holding(below, double_key(0.0), double_key(std::numeric_limits<double>::max()),
+                                       double_key(near)));
+  }
+
+  static double root_of_power_up(double c, double y, double near)
+  {
+    const auto above = [c, y](std::uint64_t k) {
+      const double d = key_double(k);
+      return (y > 0.0) ? pow_lo(d, y) >= c : pow_hi(d, y) <= c;
+    };
+    return key_double(first_key_holding(above, double_key(std::numeric_limits<double>::denorm_min()),
+                                        double_key(GAOL_INFINITY), double_key(near)));
+  }
+
+  /*
+    The tightest bounds of log(c)/log(x), the y with x^y = c, for c > 0
+    finite and other than 1, and x > 0 finite and other than 1: e <=
+    log(c)/log(x) is proved by x^e <= c for x > 1 and by x^e >= c for x < 1,
+    and e >= log(c)/log(x) the other way round. The value is finite, below
+    2^63 in magnitude (|log(c)| < 745 and |log(x)| > 2^-53), and the
+    approximation log(c)/log(x) of CORE-MATH's logarithms is within a few
+    doubles of it. Rounding upward
+  */
+  static double log_ratio_near(double c, double x)
+  {
+    return upward::log_up(c)/upward::log_up(x);
+  }
+
+  static double log_ratio_dn(double c, double x)
+  {
+    const auto below = [c, x](std::uint64_t k) {
+      const double e = key_double(k);
+      return (x > 1.0) ? pow_hi(x, e) <= c : pow_lo(x, e) >= c;
+    };
+    return key_double(last_key_holding(below, double_key(-GAOL_INFINITY),
+                                       double_key(std::numeric_limits<double>::max()),
+                                       double_key(log_ratio_near(c, x))));
+  }
+
+  static double log_ratio_up(double c, double x)
+  {
+    const auto above = [c, x](std::uint64_t k) {
+      const double e = key_double(k);
+      return (x > 1.0) ? pow_lo(x, e) >= c : pow_hi(x, e) <= c;
+    };
+    return key_double(first_key_holding(above, double_key(-std::numeric_limits<double>::max()),
+                                        double_key(GAOL_INFINITY), double_key(log_ratio_near(c, x))));
+  }
+
+  /*
+    Whether c^(1/y) > d (above) or c^(1/y) < d (below) is proved, for a
+    double d > 0: d^y < c, or d^y > c, for y > 0, the other way round for
+    y < 0. A power rounded upward below c, or one rounded downward above it,
+    proves it without telling whether a power is a double. Rounding upward
+  */
+  static bool root_of_power_beyond(double c, double y, double d, bool above)
+  {
+    return (above == (y > 0.0)) ? pow_hi(d, y) < c : pow_lo(d, y) > c;
+  }
+
+  // The same for log(c)/log(x) and a double e: x^e < c, or x^e > c, for x > 1
+  static bool log_ratio_beyond(double c, double x, double e, bool above)
+  {
+    return (above == (x > 1.0)) ? pow_hi(x, e) < c : pow_lo(x, e) > c;
+  }
+
+  /*
+    An end of a piece of the solutions: for a lower end, a double at most the
+    end, and for an upper end, a double at least it; whether the piece only
+    comes as close to the end as one likes, without holding it (the limits
+    0, 1 and the infinities); and the end, c^(1/w) or log(c)/log(w), where
+    its bound is computed
+  */
+  enum pow_rel_value { pow_rel_exact, pow_rel_root, pow_rel_log_ratio };
+
+  struct pow_rel_end {
+    double bound;
+    bool limit;
+    pow_rel_value value;
+    double c, w;
+  };
+
+  static inline pow_rel_end reached(double d)
+  {
+    pow_rel_end e = { d, false, pow_rel_exact, 0.0, 0.0 };
+    return e;
+  }
+
+  static inline pow_rel_end approached(double d)
+  {
+    pow_rel_end e = { d, true, pow_rel_exact, 0.0, 0.0 };
+    return e;
+  }
+
+  // c^(1/y), below it for a lower end, above it for an upper one
+  static pow_rel_end root_end(double c, double y, bool lower)
+  {
+    const double near = root_of_power_near(c, y);
+    pow_rel_end e = { lower ? root_of_power_dn(c, y, near) : root_of_power_up(c, y, near), false, pow_rel_root, c, y };
+    return e;
+  }
+
+  // log(c)/log(x), below it for a lower end, above it for an upper one
+  static pow_rel_end log_ratio_end(double c, double x, bool lower)
+  {
+    pow_rel_end e = { lower ? log_ratio_dn(c, x) : log_ratio_up(c, x), false, pow_rel_log_ratio, c, x };
+    return e;
+  }
+
+  // Whether the end is proved to be above d (above) or below it
+  static bool pow_rel_beyond(const pow_rel_end& e, double d, bool above)
+  {
+    switch (e.value) {
+    case pow_rel_root:
+      return root_of_power_beyond(e.c, e.w, d, above);
+    case pow_rel_log_ratio:
+      return log_ratio_beyond(e.c, e.w, d, above);
+    default:
+      return false;
+    }
+  }
+
+  /*
+    Adds to the hull [lo, hi] the part of [l, u] in the piece from the lower
+    end to the upper end, unless the piece is proved to miss [l, u]: an end
+    beyond l or u, or a limit at it, or a computed end whose bound is l or u
+    and which is proved to be beyond it all the same. Where the power of l or
+    u is within one double of the bound of K, that proof would need to know
+    whether the power is a double, and the point is kept
+  */
+  static void add_pow_rel_piece(const pow_rel_end& lower, const pow_rel_end& upper, double l, double u,
+                                double& lo, double& hi)
+  {
+    if (lower.bound > u || (lower.limit && lower.bound >= u) || (lower.bound == u && pow_rel_beyond(lower, u, true))
+        || upper.bound < l || (upper.limit && upper.bound <= l) || (upper.bound == l && pow_rel_beyond(upper, l, false))) {
+      return;
+    }
+    lo = minimum(lo, maximum(lower.bound, l));
+    hi = maximum(hi, minimum(upper.bound, u));
+  }
+
+  /*
+    pow_rel() after its check, made before the bounds are compared (GAOL v5,
+    see gaol/gaol_fpu.h)
+  */
+  static interval pow_rel_upward(const interval& K, const interval& J, const interval& I)
+  {
+    if (K.is_empty() || J.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double xu = I.right(), cu = K.right();
+    if (xu < 0.0 || cu < 0.0) {
+      return interval::emptyset(); // No x >= 0, or no power
+    }
+    const double xl = (I.left() > 0.0) ? I.left() : 0.0, cl = K.left(), yl = J.left(), yu = J.right();
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+    if (xl == 0.0 && cl <= 0.0 && yu > 0.0) {
+      lo = hi = 0.0; // 0^y = 0 for y > 0
+    }
+    if (xu > 0.0 && cu > 0.0) {
+      if (cl <= 1.0 && cu >= 1.0 && yl <= 0.0 && yu >= 0.0) {
+        // x^0 = 1 for every x > 0
+        lo = minimum(lo, xl);
+        hi = xu;
+      } else {
+        const pow_rel_end zero = approached(0.0), one = approached(1.0), plus_infinity = approached(GAOL_INFINITY);
+        pow_rel_end lower, upper;
+        if (yu > 0.0) {
+          /*
+            y in [p1, p2], p1 > 0 or p1 = 0, which is then left out (x^0 = 1
+            is not in K): x in [cl^(1/y), cu^(1/y)], whose lower end
+            decreases with y for cl > 1 and increases for cl < 1, whose upper
+            end does the same with cu, and which tends to 1 for y -> +oo and
+            to 0 or +oo for y -> 0
+          */
+          const double p1 = (yl > 0.0) ? yl : 0.0, p2 = yu;
+          if (cl <= 0.0) {
+            lower = zero;
+          } else if (cl == 1.0) {
+            lower = reached(1.0);
+          } else if (cl > 1.0) {
+            lower = (p2 == GAOL_INFINITY) ? one : root_end(cl, p2, true);
+          } else {
+            lower = (p1 == 0.0) ? zero : root_end(cl, p1, true);
+          }
+          if (cu == GAOL_INFINITY) {
+            upper = plus_infinity;
+          } else if (cu == 1.0) {
+            upper = reached(1.0);
+          } else if (cu > 1.0) {
+            upper = (p1 == 0.0) ? plus_infinity : root_end(cu, p1, false);
+          } else {
+            upper = (p2 == GAOL_INFINITY) ? one : root_end(cu, p2, false);
+          }
+          add_pow_rel_piece(lower, upper, xl, xu, lo, hi);
+        }
+        if (yl < 0.0) {
+          /*
+            y in [n1, n2], n2 < 0 or n2 = 0, which is then left out: x^y
+            decreases with x, and x in [cu^(1/y), cl^(1/y)], whose lower end
+            decreases with y for cu > 1 and increases for cu < 1, whose upper
+            end does the same with cl, and which tends to 1 for y -> -oo and
+            to 0 or +oo for y -> 0
+          */
+          const double n1 = yl, n2 = (yu < 0.0) ? yu : 0.0;
+          if (cu == GAOL_INFINITY) {
+            lower = zero;
+          } else if (cu == 1.0) {
+            lower = reached(1.0);
+          } else if (cu > 1.0) {
+            lower = (n2 == 0.0) ? zero : root_end(cu, n2, true);
+          } else {
+            lower = (n1 == -GAOL_INFINITY) ? one : root_end(cu, n1, true);
+          }
+          if (cl <= 0.0) {
+            upper = plus_infinity;
+          } else if (cl == 1.0) {
+            upper = reached(1.0);
+          } else if (cl > 1.0) {
+            upper = (n1 == -GAOL_INFINITY) ? one : root_end(cl, n1, false);
+          } else {
+            upper = (n2 == 0.0) ? plus_infinity : root_end(cl, n2, false);
+          }
+          add_pow_rel_piece(lower, upper, xl, xu, lo, hi);
+        }
+      }
+    }
+    // Empty where nothing was added, lo being +oo and hi -oo
+    return interval(lo, hi);
+  }
+
+  interval pow_rel(const interval& K, const interval& J, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_rel_upward(K, J, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    pow_exponent_rel() after its check, made before the bounds are compared
+  */
+  static interval pow_exponent_rel_upward(const interval& K, const interval& H, const interval& I)
+  {
+    if (K.is_empty() || H.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+    const double xu = H.right(), cu = K.right();
+    if (xu < 0.0 || cu < 0.0) {
+      return interval::emptyset(); // No base x >= 0, or no power
+    }
+    const double xl = (H.left() > 0.0) ? H.left() : 0.0, cl = K.left(), yl = I.left(), yu = I.right();
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+    if (xl == 0.0 && cl <= 0.0 && yu > 0.0) {
+      // 0^y = 0 for y > 0: the y > 0 of I
+      lo = (yl > 0.0) ? yl : 0.0;
+      hi = yu;
+    }
+    if (xu > 0.0 && cu > 0.0) {
+      if (cl <= 1.0 && cu >= 1.0 && xl <= 1.0 && xu >= 1.0) {
+        // 1^y = 1 for every y
+        lo = yl;
+        hi = yu;
+      } else {
+        const pow_rel_end zero = approached(0.0), plus_infinity = approached(GAOL_INFINITY),
+          minus_infinity = approached(-GAOL_INFINITY);
+        pow_rel_end lower, upper;
+        if (xu > 1.0) {
+          /*
+            x in [a1, a2], a1 > 1 or a1 = 1, which is then left out (1^y = 1
+            is not in K): y in [log(cl)/log(x), log(cu)/log(x)], whose lower
+            end decreases with x for cl > 1 and increases for cl < 1, whose
+            upper end does the same with cu, and which tends to 0 for
+            x -> +oo and to -oo or +oo for x -> 1
+          */
+          const double a1 = (xl > 1.0) ? xl : 1.0, a2 = xu;
+          if (cl <= 0.0) {
+            lower = minus_infinity;
+          } else if (cl == 1.0) {
+            lower = reached(0.0);
+          } else if (cl > 1.0) {
+            lower = (a2 == GAOL_INFINITY) ? zero : log_ratio_end(cl, a2, true);
+          } else {
+            lower = (a1 == 1.0) ? minus_infinity : log_ratio_end(cl, a1, true);
+          }
+          if (cu == GAOL_INFINITY) {
+            upper = plus_infinity;
+          } else if (cu == 1.0) {
+            upper = reached(0.0);
+          } else if (cu > 1.0) {
+            upper = (a1 == 1.0) ? plus_infinity : log_ratio_end(cu, a1, false);
+          } else {
+            upper = (a2 == GAOL_INFINITY) ? zero : log_ratio_end(cu, a2, false);
+          }
+          add_pow_rel_piece(lower, upper, yl, yu, lo, hi);
+        }
+        if (xl < 1.0) {
+          /*
+            x in [b1, b2], b1 > 0 or b1 = 0, b2 < 1 or b2 = 1, both then left
+            out: x^y decreases with y, and y in [log(cu)/log(x),
+            log(cl)/log(x)], whose lower end decreases with x for cu > 1 and
+            increases for cu < 1, whose upper end does the same with cl, and
+            which tends to 0 for x -> 0 and to -oo or +oo for x -> 1
+          */
+          const double b1 = xl, b2 = (xu < 1.0) ? xu : 1.0;
+          if (cu == GAOL_INFINITY) {
+            lower = minus_infinity;
+          } else if (cu == 1.0) {
+            lower = reached(0.0);
+          } else if (cu > 1.0) {
+            lower = (b2 == 1.0) ? minus_infinity : log_ratio_end(cu, b2, true);
+          } else {
+            lower = (b1 == 0.0) ? zero : log_ratio_end(cu, b1, true);
+          }
+          if (cl <= 0.0) {
+            upper = plus_infinity;
+          } else if (cl == 1.0) {
+            upper = reached(0.0);
+          } else if (cl > 1.0) {
+            upper = (b1 == 0.0) ? zero : log_ratio_end(cl, b1, false);
+          } else {
+            upper = (b2 == 1.0) ? plus_infinity : log_ratio_end(cl, b2, false);
+          }
+          add_pow_rel_piece(lower, upper, yl, yu, lo, hi);
+        }
+      }
+    }
+    return interval(lo, hi);
+  }
+
+  interval pow_exponent_rel(const interval& K, const interval& H, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_exponent_rel_upward(K, H, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     Code inspired by ia_math code by Timothy Hickey. The rounding direction
     is upward, after the check of nth_root_rel(), whose intersections and
     hulls are taken before the modes are restored with
@@ -3456,6 +3998,62 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
+    The error function and its complement (GAOL v5)
+
+    erf(x) = 2/sqrt(pi) int_0^x exp(-t^2) dt and erfc(x) = 1 - erf(x), the
+    erf and erfc of C, which IEEE 1788-2015 does not name, defined on R: erf
+    is increasing, from its limit -1 at -oo to its limit 1 at +oo, and erfc
+    decreasing, from 2 to 0. CORE-MATH computes both correctly rounded in the
+    rounding direction in effect, so they are bounded as exp2 is: in the
+    upward rounding GAOL keeps, the value at one bound is a bound, and the
+    double below the value at the other bound the other one, unless that
+    value is itself a double. erf(0) = 0 and erfc(0) = 1 are: without the
+    test below, the lower bound of erf([0, 1]) would be -2^-1074, and that of
+    erfc([-1, 0]) the double below 1. So are the limits at an infinite bound,
+    erf(-oo) = -1, erf(+oo) = 1, erfc(-oo) = 2 and erfc(+oo) = 0, which
+    CORE-MATH returns exactly, and which the range of each function would
+    bring the lower bound back to as well. No other double is known where erf
+    or erfc takes a value that is a double, and CORE-MATH's sources treat no
+    such case: the bounds are the tightest ones.
+  */
+  // The points where erf and erfc take a value that is a double
+  static inline bool erf_is_exact(double x)
+  {
+    return x == 0.0 || !is_finite(x);
+  }
+
+  interval erf(const interval& I)
+  {
+    // Within [-1, 1]: |erf(x)| < 1 at every finite x, and above 1 - 2^-53,
+    // the double below 1, from |x| = 5.87 on, where CORE-MATH rounds erf(x)
+    // upward to 1 and the lower bound is 1 - 2^-53
+    return increasing_cr(I, gaol_cr_erf, erf_is_exact, -1.0, 1.0);
+  }
+
+  interval erfc(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    // The check before the bounds are read, and the result made before
+    // GAOL_RND_LEAVE(), as acospi() does (see gaol/gaol_fpu.h): erfc(x) is
+    // subnormal from x = 26.55 on, and with GAOL_PRESERVE_ROUNDING the
+    // denormals-are-zero mode it restores would compare such bounds as 0
+    GAOL_RND_ENTER();
+    const double l = I.left(), r = I.right();
+    // Decreasing: the upper bound at the left bound, the lower one at the
+    // right, within [0, 2]. erfc(x) is below 2^-1074 from x = 27.22 on, where
+    // CORE-MATH rounds it upward to 2^-1074 and the lower bound is 0
+    const double v = gaol_cr_erfc(l);
+    const double w = gaol_cr_erfc(r);
+    const double u = erf_is_exact(r) ? w : previous_float(w);
+    interval res(maximum(0.0, u), minimum(2.0, v));
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     k pi + X, k being an integer double and X a bounded interval, enclosed
     within about one double (GAOL v5, issue #6): pi = pi_hi + pi_lo,
     pi_hi being the double below pi, and pi_lo lying between two consecutive
@@ -3631,6 +4229,610 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
+    atan2_rel() and atan2_exponent_rel() after their check, made before the
+    bounds are compared (GAOL v5, see gaol/gaol_fpu.h).
+
+    atan2_rel(Z, Y, X) = hull{x in X | exists y in Y: atan2(y, x) in Z},
+    the reverse of atan2(y, x) of IEEE 1788-2015 (Table 9.1), which corresponds
+    to atan2Rev1(Y, Z, X) of Table 10.1. atan2(y, x) is defined on the plane but
+    (0, 0), with values in (-pi, pi].
+
+    The implementation considers the range of atan2(y, x) for y in Y as a function
+    of x, and finds the x in X for which this range intersects Z. For a fixed x,
+    the range depends on the sign of x and whether Y spans 0:
+    - x > 0: atan2(y, x) = atan(y/x), monotonic in y, range is
+      [atan(yl/x), atan(yu/x)]
+    - x < 0 and y >= 0: atan2(y, x) = pi + atan(y/x), y/x <= 0
+    - x < 0 and y <= 0: atan2(y, x) = -pi + atan(y/x), y/x >= 0
+    - x < 0 and Y spans 0: range spans from near -pi to near pi
+    - x = 0 and y > 0: atan2(y, 0) = pi/2
+    - x = 0 and y < 0: atan2(y, 0) = -pi/2
+    - x = 0 and y = 0: undefined
+
+    The discontinuity across y = 0, x < 0 means that if Z spans the jump
+    (contains values near both pi and -pi) and Y x X contains points on both
+    sides of the half-line y = 0, x < 0, then the entire X is in the preimage.
+
+    For the preimage to be non-empty, we need the range of atan2(y, x) for y in
+    Y to intersect Z. We handle this by cases on the sign of x.
+  */
+  static interval atan2_rel_upward(const interval& Z, const interval& Y, const interval& X)
+  {
+    if (Z.is_empty() || Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+
+    // (0, 0) is undefined for atan2
+    if (Y.is_a_double() && Y.left() == 0.0 && X.is_a_double() && X.left() == 0.0) {
+      return interval::emptyset();
+    }
+
+    // If Y is exactly [0], then atan2(0, x) is pi for x < 0, 0 for x > 0, undefined for x = 0
+    // We need to handle this special case
+    if (Y.is_a_double() && Y.left() == 0.0 && Y.right() == 0.0) {
+      // Y is [0], we need to work with X excluding 0
+      // For x < 0: atan2(0, x) = pi
+      // For x > 0: atan2(0, x) = 0
+      // For x = 0: undefined
+      
+      interval result_neg = interval::emptyset();
+      interval result_pos = interval::emptyset();
+      
+      // Check negative part: all x < 0 give atan2(0, x) = pi
+      const interval X_neg = X & interval(-GAOL_INFINITY, 0.0);
+      if (!X_neg.is_empty()) {
+        // If X_neg contains 0, exclude it since atan2(0, 0) is undefined
+        interval X_neg_strict = X_neg;
+        if (X_neg.right() == 0.0) {
+          X_neg_strict = interval(X_neg.left(), 0.0);
+        }
+        if (!X_neg_strict.is_empty() && !Z.set_disjoint(interval(pi_dn, pi_up))) {
+          result_neg = X_neg_strict;
+        }
+      }
+      
+      // Check positive part: all x > 0 give atan2(0, x) = 0
+      const interval X_pos = X & interval(0.0, GAOL_INFINITY);
+      if (!X_pos.is_empty()) {
+        // If X_pos contains 0, exclude it since atan2(0, 0) is undefined
+        interval X_pos_strict = X_pos;
+        if (X_pos.left() == 0.0) {
+          X_pos_strict = interval(0.0, X_pos.right());
+        }
+        if (!X_pos_strict.is_empty() && !Z.set_disjoint(interval(0.0, 0.0))) {
+          result_pos = X_pos_strict;
+        }
+      }
+      
+      const interval combined = result_neg | result_pos;
+      if (!combined.is_empty()) {
+        return combined & X;
+      }
+      return interval::emptyset();
+    }
+
+    // If Z contains the entire range of atan2, i.e., [-pi, pi] or a superset,
+    // then every (y, x) in Y x X except (0, 0) is in the preimage
+    if (Z.set_contains(interval(-pi_up, pi_up))) {
+      return X;
+    }
+
+    // If Z contains values on both sides of the jump discontinuity (pi and -pi)
+    // and Y x X contains points on both sides of the half-line y = 0, x < 0,
+    // then the preimage is all of X
+    const bool z_spans_jump = Z.left() < -pi_dn && Z.right() > pi_dn;
+    const bool y_spans_zero = yl < 0.0 && yu > 0.0;
+    const bool x_contains_negative = xl < 0.0;
+
+    if (z_spans_jump && y_spans_zero && x_contains_negative) {
+      return X;
+    }
+
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+
+    // For x > 0: atan2(y, x) = atan(y/x) in (-pi/2, pi/2)
+    if (xu > 0.0) {
+      const double x_lo = (xl > 0.0) ? xl : 0.0;
+      const double x_hi = xu;
+
+      // The range of atan2 for x > 0 is (-pi/2, pi/2)
+      const interval atan2_pos_range = interval(-half_pi_up, half_pi_up);
+      const interval Z_pos = Z & atan2_pos_range;
+
+      if (!Z_pos.is_empty()) {
+        // For x > 0, we need: ∃y∈Y: atan(y/x) ∈ Z_pos
+        // Since atan is monotonic: y/x ∈ tan(Z_pos)
+        // y ∈ x * tan(Z_pos)
+        // For a solution to exist: (x * tan(Z_pos)) ∩ Y ≠ empty
+
+        const interval tan_Z_pos = tan(Z_pos);
+        if (!tan_Z_pos.is_empty()) {
+          const double tan_zl = tan_Z_pos.left(), tan_zu = tan_Z_pos.right();
+
+          if (tan_zl <= tan_zu) {
+            if (tan_zl > 0.0) {
+              // tan(Z_pos) ⊂ (0, +∞): y ≥ x * tan_zl and y ≤ x * tan_zu
+              // Need: max(yl, x * tan_zl) ≤ min(yu, x * tan_zu)
+              // x * tan_zl ≤ yu and x * tan_zu ≥ yl
+              // x ≤ yu / tan_zl and x ≥ yl / tan_zu
+              if (tan_zl > 0.0) {
+                const double x_max = (yu >= 0.0) ? yu / tan_zl : GAOL_INFINITY;
+                if (x_max > x_lo) {
+                  lo = std::min(lo, x_lo);
+                  hi = std::max(hi, std::min(x_hi, x_max));
+                }
+              }
+              if (tan_zu > 0.0) {
+                const double x_min = (yl <= 0.0) ? 0.0 : yl / tan_zu;
+                if (x_min < x_hi) {
+                  lo = std::min(lo, std::max(x_lo, x_min));
+                  hi = std::max(hi, x_hi);
+                }
+              }
+            } else if (tan_zu < 0.0) {
+              // tan(Z_pos) ⊂ (-∞, 0): y ≤ x * tan_zl and y ≥ x * tan_zu
+              // (since tan_zl ≤ tan_zu < 0, x > 0: x*tan_zl ≤ x*tan_zu ≤ 0)
+              // Need: max(yl, x * tan_zu) ≤ min(yu, x * tan_zl)
+              // x * tan_zu ≤ yu and x * tan_zl ≥ yl
+              // Since tan_zl, tan_zu < 0: x ≤ yu / tan_zu (negative, so x ≥ yu/tan_zu)
+              // and x ≥ yl / tan_zl (negative, so x ≤ yl/tan_zl)
+              // So: yu / tan_zu ≤ x ≤ yl / tan_zl
+              if (tan_zl < 0.0) {
+                const double x_max = (yl >= 0.0) ? yl / tan_zl : GAOL_INFINITY;
+                if (x_max > x_lo) {
+                  lo = std::min(lo, x_lo);
+                  hi = std::max(hi, std::min(x_hi, x_max));
+                }
+              }
+              if (tan_zu < 0.0) {
+                const double x_min = (yu <= 0.0) ? yu / tan_zu : -GAOL_INFINITY;
+                if (x_min < x_hi && x_min > 0.0) {
+                  lo = std::min(lo, std::max(x_lo, x_min));
+                  hi = std::max(hi, x_hi);
+                }
+              }
+            } else {
+              // tan(Z_pos) contains 0: for any x > 0, we can find y such that
+              // atan(y/x) ∈ Z_pos
+              lo = std::min(lo, x_lo);
+              hi = std::max(hi, x_hi);
+            }
+          } else {
+            // tan_zl > tan_zu, use the full interval
+            lo = std::min(lo, x_lo);
+            hi = std::max(hi, x_hi);
+          }
+        }
+      }
+    }
+
+    // For x < 0
+    if (xl < 0.0) {
+      const double x_lo = xl;
+      const double x_hi = (xu < 0.0) ? xu : 0.0;
+
+      if (y_spans_zero) {
+        // For x < 0 and Y spanning 0, atan2(y, x) covers values from
+        // near -pi to near pi, so if Z intersects this, all x < 0 are valid
+        lo = std::min(lo, x_lo);
+        hi = std::max(hi, x_hi);
+      } else if (yl >= 0.0) {
+        // y >= 0: atan2(y, x) = pi + atan(y/x), y/x <= 0
+        // Range: [pi + atan(yu/x), pi + atan(yl/x)]
+        // Need: pi + atan(yu/x) <= zu and pi + atan(yl/x) >= zl
+        // atan(yu/x) <= zu - pi and atan(yl/x) >= zl - pi
+
+        const interval Z_shifted = Z - interval(pi_dn, pi_up);
+        const interval Z_shifted_neg = Z_shifted & interval(-half_pi_up, 0.0);
+
+        if (!Z_shifted_neg.is_empty()) {
+          const interval tan_Z_shifted = tan(Z_shifted_neg);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu) {
+              // For x < 0, y >= 0: y/x <= 0
+              // We need: tan_zl <= y/x <= tan_zu (all <= 0)
+              // Since x < 0: y >= x * tan_zu and y <= x * tan_zl
+              // (x < 0, tan_zl <= tan_zu <= 0, so x*tan_zl >= x*tan_zu)
+              // For a solution y in [yl, yu] to exist:
+              // max(yl, x * tan_zu) <= min(yu, x * tan_zl)
+              // x * tan_zu <= yu and x * tan_zl >= yl
+              // Since tan_zl, tan_zu <= 0 and x < 0:
+              // |x| * |tan_zl| >= yl and |x| * |tan_zu| <= yu
+              // -x >= yl / |tan_zl| and -x <= yu / |tan_zu|
+              // But |tan_zl| = -tan_zl, |tan_zu| = -tan_zu (since tan_zl, tan_zu <= 0)
+              // So: -x >= yl / (-tan_zl) and -x <= yu / (-tan_zu)
+              // x <= -yl / (-tan_zl) = yl / tan_zl
+              // x >= -yu / (-tan_zu) = yu / tan_zu
+              // And since tan_zl <= tan_zu <= 0, we have yl/tan_zl <= yl/tan_zu
+              // and yu/tan_zu <= yu/tan_zl
+              // Both yl/tan_zl and yu/tan_zu are negative (yl, yu >= 0, tan_zl, tan_zu < 0)
+              // So the interval is [yu/tan_zu, yl/tan_zl]
+              // But we need x < 0, and both bounds are negative, so this is valid.
+
+              if (tan_zl < 0.0 && tan_zu < 0.0) {
+                const double x_lower = yu / tan_zu;
+                const double x_upper = yl / tan_zl;
+                if (x_lower <= x_upper) {
+                  const double effective_lo = std::max(x_lo, x_lower);
+                  const double effective_hi = std::min(x_hi, x_upper);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (yu <= 0.0) {
+        // y <= 0: atan2(y, x) = -pi + atan(y/x), y/x >= 0
+        // Range: [-pi + atan(yl/x), -pi + atan(yu/x)]
+        // Need: -pi + atan(yl/x) >= zl and -pi + atan(yu/x) <= zu
+        // atan(yl/x) >= zl + pi and atan(yu/x) <= zu + pi
+
+        const interval Z_shifted = Z + interval(pi_dn, pi_up);
+        const interval Z_shifted_pos = Z_shifted & interval(0.0, half_pi_up);
+
+        if (!Z_shifted_pos.is_empty()) {
+          const interval tan_Z_shifted = tan(Z_shifted_pos);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu && tan_zl >= 0.0) {
+              // For x < 0, y <= 0: y/x >= 0
+              // We need: tan_zl <= y/x <= tan_zu (all >= 0)
+              // y >= x * tan_zl and y <= x * tan_zu
+              // Since x < 0, tan_zl, tan_zu >= 0:
+              // x * tan_zl <= 0 and x * tan_zu <= 0
+              // So we need: y >= x * tan_zl (negative) and y <= x * tan_zu (negative)
+              // Since y <= 0, we need:
+              // x * tan_zl <= y <= x * tan_zu <= 0
+              // Since tan_zl <= tan_zu, we have x * tan_zl >= x * tan_zu (x < 0)
+              // So we need: x * tan_zl <= yu and x * tan_zu >= yl
+              // x >= yu / tan_zl (tan_zl > 0, x < 0, so x >= negative/positive = negative)
+              // x <= yl / tan_zu (tan_zu > 0, x < 0, so x <= negative/positive = negative)
+              // Since tan_zl <= tan_zu, we have yu/tan_zl >= yu/tan_zu and yl/tan_zl >= yl/tan_zu
+              // Both yu/tan_zl and yl/tan_zu are negative
+              // So: yl / tan_zu <= x <= yu / tan_zl
+
+              if (tan_zl > 0.0 && tan_zu > 0.0) {
+                const double x_lower = yl / tan_zu;
+                const double x_upper = yu / tan_zl;
+                if (x_lower <= x_upper) {
+                  const double effective_lo = std::max(x_lo, x_lower);
+                  const double effective_hi = std::min(x_hi, x_upper);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // For x = 0
+    if (xl <= 0.0 && xu >= 0.0) {
+      // atan2(y, 0) = pi/2 for y > 0, -pi/2 for y < 0
+      if (yu > 0.0 && !Z.set_disjoint(interval(half_pi_dn, half_pi_up))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+      if (yl < 0.0 && !Z.set_disjoint(interval(-half_pi_up, -half_pi_dn))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+    }
+
+    if (lo > hi) {
+      return interval::emptyset();
+    }
+    return interval(lo, hi) & X;
+  }
+
+  interval atan2_rel(const interval& Z, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = atan2_rel_upward(Z, Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    atan2_exponent_rel() after its check, made before the bounds are compared.
+
+    atan2_exponent_rel(Z, X, Y) = hull{y in Y | exists x in X: atan2(y, x) in Z},
+    the reverse with respect to y instead of x. This is symmetric to atan2_rel.
+
+    For a fixed y, the range of atan2(y, x) for x in X depends on the sign of y:
+    - y > 0: atan2(y, x) = atan(y/x) for x > 0, pi + atan(y/x) for x < 0, pi/2 for x = 0
+    - y < 0: atan2(y, x) = atan(y/x) for x > 0, -pi + atan(y/x) for x < 0, -pi/2 for x = 0
+    - y = 0: atan2(0, x) = pi for x < 0, 0 for x > 0
+
+    The logic is similar to atan2_rel but with x and y swapped.
+  */
+  static interval atan2_exponent_rel_upward(const interval& Z, const interval& X, const interval& Y)
+  {
+    if (Z.is_empty() || X.is_empty() || Y.is_empty()) {
+      return interval::emptyset();
+    }
+    const double yl = Y.left(), yu = Y.right(), xl = X.left(), xu = X.right();
+
+    // (0, 0) is undefined
+    if (Y.is_a_double() && Y.left() == 0.0 && X.is_a_double() && X.left() == 0.0) {
+      return interval::emptyset();
+    }
+
+    // If Z contains the entire range
+    if (Z.set_contains(interval(-pi_up, pi_up))) {
+      return Y;
+    }
+
+    double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
+
+    // Case 1: y > 0
+    if (yu > 0.0) {
+      const double y_lo = (yl > 0.0) ? yl : 0.0;
+      const double y_hi = yu;
+
+      // For y > 0, atan2(y, x) behavior:
+      // - x > 0: atan2(y, x) = atan(y/x) in (0, pi/2)
+      // - x < 0: atan2(y, x) = pi + atan(y/x) in (pi/2, pi)
+      // - x = 0: atan2(y, 0) = pi/2
+
+      if (xu > 0.0) {
+        // For x > 0 and y > 0: atan2(y, x) = atan(y/x)
+        const interval Z_pos = Z & interval(0.0, half_pi_up);
+        if (!Z_pos.is_empty()) {
+          const interval tan_Z = tan(Z_pos);
+          if (!tan_Z.is_empty()) {
+            const double tan_zl = tan_Z.left(), tan_zu = tan_Z.right();
+            if (tan_zl <= tan_zu && tan_zl > 0.0) {
+              // For y > 0 and x > 0: y/x in tan(Z_pos)
+              // For a fixed y, we need: ∃x∈X∩(0,+∞): y/x ∈ [tan_zl, tan_zu]
+              // x ∈ [y/tan_zu, y/tan_zl]
+              // This interval must intersect X ∩ (0, +∞)
+
+              const double x_lo_pos = (xl > 0.0) ? xl : 0.0;
+              const double x_hi_pos = (xu > 0.0) ? xu : GAOL_INFINITY;
+
+              // For y to be valid: [y/tan_zu, y/tan_zl] ∩ [x_lo_pos, x_hi_pos] ≠ empty
+              // y/tan_zu <= x_hi_pos and y/tan_zl >= x_lo_pos
+              // y <= x_hi_pos * tan_zu and y >= x_lo_pos * tan_zl
+
+              if (x_hi_pos > 0.0) {
+                const double y_upper = x_hi_pos * tan_zu;
+                if (y_upper > y_lo) {
+                  lo = std::min(lo, y_lo);
+                  hi = std::max(hi, std::min(y_hi, y_upper));
+                }
+              }
+              if (x_lo_pos > 0.0) {
+                const double y_lower = x_lo_pos * tan_zl;
+                if (y_lower < y_hi) {
+                  lo = std::min(lo, std::max(y_lo, y_lower));
+                  hi = std::max(hi, y_hi);
+                }
+              }
+            } else {
+              // tan_Z spans 0 or is empty
+              lo = std::min(lo, y_lo);
+              hi = std::max(hi, y_hi);
+            }
+          }
+        }
+      }
+
+      if (xl < 0.0) {
+        // For x < 0 and y > 0: atan2(y, x) = pi + atan(y/x)
+        // y/x < 0, atan(y/x) in (-pi/2, 0)
+        const interval Z_neg = Z & interval(half_pi_dn, pi_up);
+        if (!Z_neg.is_empty()) {
+          const interval Z_shifted = Z_neg - interval(pi_dn, pi_up);
+          const interval tan_Z_shifted = tan(Z_shifted);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu) {
+              // For y > 0 and x < 0: y/x < 0
+              // atan2(y, x) = pi + atan(y/x)
+              // We need: pi + atan(y/x) ∈ Z_neg
+              // atan(y/x) ∈ Z_neg - pi
+              // y/x ∈ tan(Z_neg - pi)
+              // Since y/x < 0 and tan values are negative:
+              // For a fixed y > 0: x <= y / tan_zl and x >= y / tan_zu
+              // (since tan_zl, tan_zu < 0, y > 0, dividing reverses inequalities)
+              // x must be in [y/tan_zu, y/tan_zl] ∩ X ∩ (-∞, 0)
+
+              const double x_lo_neg = xl;
+              const double x_hi_neg = (xu < 0.0) ? xu : 0.0;
+
+              if (tan_zl < 0.0 && tan_zu < 0.0) {
+                // y/tan_zu >= x_lo_neg and y/tan_zl <= x_hi_neg
+                // y <= x_lo_neg * tan_zu (negative * negative = positive)
+                // y >= x_hi_neg * tan_zl (negative * negative = positive)
+                const double y_upper = x_lo_neg * tan_zu;
+                const double y_lower = x_hi_neg * tan_zl;
+                if (y_lower <= y_upper) {
+                  const double effective_lo = std::max(y_lo, y_lower);
+                  const double effective_hi = std::min(y_hi, y_upper);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Case 2: y < 0
+    if (yl < 0.0) {
+      const double y_lo = yl;
+      const double y_hi = (yu < 0.0) ? yu : 0.0;
+
+      // For y < 0, atan2(y, x) behavior:
+      // - x > 0: atan2(y, x) = atan(y/x) in (-pi/2, 0)
+      // - x < 0: atan2(y, x) = -pi + atan(y/x) in (-pi, -pi/2)
+      // - x = 0: atan2(y, 0) = -pi/2
+
+      if (xu > 0.0) {
+        const interval Z_neg = Z & interval(-half_pi_up, 0.0);
+        if (!Z_neg.is_empty()) {
+          const interval tan_Z = tan(Z_neg);
+          if (!tan_Z.is_empty()) {
+            const double tan_zl = tan_Z.left(), tan_zu = tan_Z.right();
+            if (tan_zl <= tan_zu) {
+              // For y < 0 and x > 0: y/x < 0
+              // atan2(y, x) = atan(y/x)
+              // We need: atan(y/x) ∈ Z_neg
+              // y/x ∈ tan(Z_neg)
+              // Since y/x < 0 and tan values are negative:
+              // For a fixed y < 0: x >= y / tan_zu and x <= y / tan_zl
+              // But tan_zl <= tan_zu < 0, y < 0, so:
+              // y / tan_zu = (negative) / (negative) = positive
+              // y / tan_zl = (negative) / (negative) = positive
+              // And since tan_zl <= tan_zu < 0, we have |tan_zl| >= |tan_zu|, so
+              // y / tan_zl <= y / tan_zu (both positive, dividing by more negative gives smaller result)
+              // So the interval is [y/tan_zu, y/tan_zl]
+              // We need: [y/tan_zu, y/tan_zl] ∩ [x_lo_pos, x_hi_pos] ≠ empty
+              // y/tan_zu <= x_hi_pos and y/tan_zl >= x_lo_pos
+              // But we're solving for y, not x. For a fixed y < 0:
+              // We need: ∃x∈X∩(0,+∞): y/x ∈ [tan_zl, tan_zu]
+              // x ∈ [y/tan_zu, y/tan_zl]
+              // Need: [y/tan_zu, y/tan_zl] ∩ [x_lo_pos, x_hi_pos] ≠ empty
+
+              const double x_lo_pos = (xl > 0.0) ? xl : 0.0;
+              const double x_hi_pos = (xu > 0.0) ? xu : GAOL_INFINITY;
+
+              if (tan_zl < 0.0 && tan_zu < 0.0) {
+                // y/tan_zu <= x_hi_pos and y/tan_zl >= x_lo_pos
+                // Since tan_zl, tan_zu < 0 and y < 0:
+                // y/tan_zu = (negative)/(negative) = positive
+                // y/tan_zl = (negative)/(negative) = positive
+                // And since tan_zl <= tan_zu < 0, we have |tan_zl| >= |tan_zu|, so
+                // y/tan_zl <= y/tan_zu (both positive)
+                // So we need: y/tan_zl <= x_hi_pos and y/tan_zu >= x_lo_pos
+                // y <= x_hi_pos * tan_zl (but tan_zl < 0, so this is y >= x_hi_pos * tan_zl)
+                // y >= x_lo_pos * tan_zu (but tan_zu < 0, so this is y <= x_lo_pos * tan_zu)
+                // Since tan_zl <= tan_zu < 0, we have x_lo_pos * tan_zl >= x_lo_pos * tan_zu
+                // and x_hi_pos * tan_zl >= x_hi_pos * tan_zu
+                // So: max(x_hi_pos * tan_zl, x_lo_pos * tan_zu) <= y <= min(x_lo_pos * tan_zl, x_hi_pos * tan_zu)
+                // But all these are positive (negative * negative)
+                // Actually, let me use a simpler approach: since tan_zl <= tan_zu < 0,
+                // the condition y/x ∈ [tan_zl, tan_zu] with x > 0 and y < 0 means:
+                // tan_zl <= y/x <= tan_zu
+                // Since x > 0: x * tan_zl <= y <= x * tan_zu
+                // But tan_zl <= tan_zu < 0, so x * tan_zl <= x * tan_zu <= 0
+                // And y < 0, so we need:
+                // x * tan_zl <= y <= x * tan_zu <= 0
+                // For a solution to exist for some x in [x_lo_pos, x_hi_pos]:
+                // We need: ∃x∈[x_lo_pos, x_hi_pos]: x * tan_zl <= y <= x * tan_zu
+                // Since tan_zl <= tan_zu < 0, we have x * tan_zl <= x * tan_zu for all x > 0
+                // So we need: y >= x_lo_pos * tan_zl and y <= x_hi_pos * tan_zu
+                // (the tightest bounds from the extreme x values)
+
+                const double y_lower_bound = x_lo_pos * tan_zl;
+                const double y_upper_bound = x_hi_pos * tan_zu;
+                if (y_lower_bound <= y_upper_bound) {
+                  const double effective_lo = std::max(y_lo, y_lower_bound);
+                  const double effective_hi = std::min(y_hi, y_upper_bound);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (xl < 0.0) {
+        const interval Z_neg = Z & interval(-pi_up, -half_pi_dn);
+        if (!Z_neg.is_empty()) {
+          const interval Z_shifted = Z_neg + interval(pi_dn, pi_up);
+          const interval tan_Z_shifted = tan(Z_shifted);
+          if (!tan_Z_shifted.is_empty()) {
+            const double tan_zl = tan_Z_shifted.left(), tan_zu = tan_Z_shifted.right();
+            if (tan_zl <= tan_zu && tan_zl >= 0.0) {
+              // For y < 0 and x < 0: y/x > 0
+              // atan2(y, x) = -pi + atan(y/x)
+              // We need: -pi + atan(y/x) ∈ Z_neg
+              // atan(y/x) ∈ Z_neg + pi
+              // y/x ∈ tan(Z_neg + pi)
+              // For a fixed y < 0: x < 0, y/x > 0
+              // y/x ∈ [tan_zl, tan_zu] (both positive)
+              // x ∈ [y/tan_zu, y/tan_zl] (since y < 0, dividing by positive reverses)
+              // Need: [y/tan_zu, y/tan_zl] ∩ [xl, xu] ∩ (-∞, 0) ≠ empty
+              // But y/tan_zu and y/tan_zl are both negative (y < 0, tan_zl, tan_zu > 0)
+              // And y/tan_zu <= y/tan_zl (since tan_zl <= tan_zu and y < 0)
+
+              const double x_lo_neg = xl;
+              const double x_hi_neg = (xu < 0.0) ? xu : 0.0;
+
+              if (tan_zl > 0.0 && tan_zu > 0.0) {
+                // For y < 0 and x < 0: y/x > 0
+                // We need: tan_zl <= y/x <= tan_zu
+                // y >= x * tan_zl and y <= x * tan_zu
+                // Since x < 0, tan_zl, tan_zu > 0:
+                // x * tan_zl < 0 and x * tan_zu < 0
+                // So: x * tan_zl <= y <= x * tan_zu
+                // Since tan_zl <= tan_zu, we have x * tan_zl >= x * tan_zu (x < 0)
+                // So we need: y >= x_hi_neg * tan_zl and y <= x_lo_neg * tan_zu
+                // (the tightest bounds from the extreme x values)
+
+                const double y_lower_bound = x_hi_neg * tan_zl;
+                const double y_upper_bound = x_lo_neg * tan_zu;
+                if (y_lower_bound <= y_upper_bound) {
+                  const double effective_lo = std::max(y_lo, y_lower_bound);
+                  const double effective_hi = std::min(y_hi, y_upper_bound);
+                  if (effective_lo <= effective_hi) {
+                    lo = std::min(lo, effective_lo);
+                    hi = std::max(hi, effective_hi);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Case 3: y = 0
+    if (yl <= 0.0 && yu >= 0.0) {
+      // atan2(0, x) = pi for x < 0, 0 for x > 0
+      if (xl < 0.0 && !Z.set_disjoint(interval(pi_dn, pi_up))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+      if (xu > 0.0 && !Z.set_disjoint(interval(-0.0, 0.0))) {
+        lo = std::min(lo, 0.0);
+        hi = std::max(hi, 0.0);
+      }
+    }
+
+    if (lo > hi) {
+      return interval::emptyset();
+    }
+    return interval(lo, hi) & Y;
+  }
+
+  interval atan2_exponent_rel(const interval& Z, const interval& X, const interval& Y)
+  {
+    GAOL_RND_ENTER();
+    interval res = atan2_exponent_rel_upward(Z, X, Y);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     acosh_rel(), asinh_rel() and atanh_rel() check the rounding direction
     before they compare the bounds of the inverse image with those of I, which
     acosh(), asinh() and atanh() return with the modes that flush the
@@ -3785,6 +4987,173 @@ interval nth_root(const interval& I, int q)
     return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
 
+  /*
+    The reverse functions of max, min, sign and floor (GAOL v5, point P.25 of
+    TODO.md), which IBEX wrote itself: each returns the hull of the x of X
+    that the function, given the other operand Y for max and min, sends into
+    Z, the natural reverse extension of IEEE 1788-2015 (10.5.4, (5) and (6)),
+    which names none of them. The sets are intervals, or unions of pieces,
+    whose ends are bounds of X and Z, 0 and integers: no bound is rounded but
+    the end floor(sup Z) + 1 of floor_rel(), and each result is the tightest
+    enclosure of its set.
+
+    Each makes the check of the rounding direction before it compares a bound,
+    as the relational functions above, though only floor_rel() computes: the
+    check clears the modes that flush the subnormal numbers to zero, under
+    which a subnormal bound compares as a zero, and
+    sign_rel([1], [-2^-1074, 2^-1074]), whose upper bound is then no longer
+    above 0, would be empty rather than [0, 2^-1074] (see gaol/gaol_fpu.h).
+    The bounds are compared with the quiet comparisons, as in the relations,
+    and only once the empty arguments, whose bounds are NaN, are put aside.
+  */
+
+  // max_rel() after its check. max(x, y) is in Z if and only if x and y are
+  // at most sup Z and one of them is at least inf Z.
+  static interval max_rel_upward(const interval& Z, const interval& Y, const interval& X)
+  {
+    if (Z.is_empty() || Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    // Every y above Z: max(x, y) >= y > sup Z
+    if (gaol_detail::quiet_greater(Y.left(), Z.right())) {
+      return interval::emptyset();
+    }
+    // A y of Y in Z: max(x, y) is y for x <= y and x for y < x <= sup Z, in Z
+    // both, so that every x up to sup Z is kept
+    if (gaol_detail::quiet_greater_equal(Y.right(), Z.left())) {
+      return X & interval(-GAOL_INFINITY, Z.right());
+    }
+    // Every y below Z: max(x, y) has to be x, in Z
+    return X & Z;
+  }
+
+  interval max_rel(const interval& Z, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = max_rel_upward(Z, Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  // min_rel() after its check, max_rel() turned upside down: min(x, y) is in Z
+  // if and only if x and y are at least inf Z and one of them is at most sup Z
+  static interval min_rel_upward(const interval& Z, const interval& Y, const interval& X)
+  {
+    if (Z.is_empty() || Y.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    // Every y below Z
+    if (gaol_detail::quiet_less(Y.right(), Z.left())) {
+      return interval::emptyset();
+    }
+    // A y of Y in Z: every x from inf Z on is kept
+    if (gaol_detail::quiet_less_equal(Y.left(), Z.right())) {
+      return X & interval(Z.left(), GAOL_INFINITY);
+    }
+    // Every y above Z: min(x, y) has to be x, in Z
+    return X & Z;
+  }
+
+  interval min_rel(const interval& Z, const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = min_rel_upward(Z, Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    sign_rel() after its check. The x of X whose sign is in Z are the union of
+    the negative x of X if Z holds -1, of 0 if Z holds 0 and X does, and of the
+    positive x of X if Z holds 1; Z holding none of them gives the empty set
+    (Z = [0.5, 0.7]). The negative x of X, where X has some, are
+    [inf X, min(sup X, 0)), open at 0 when X goes on to 0 or beyond: their
+    tightest closed enclosure ends at 0 all the same, every negative double
+    next to 0 being in the set (sign_rel([-1], [-2, 3]) is [-2, 0], and
+    sign_rel([-1], [0, 3]) is empty, sign(0) being 0). The positive x are
+    their mirror image. Z cannot hold -1 and 1 without 0, being an interval.
+  */
+  static interval sign_rel_upward(const interval& Z, const interval& X)
+  {
+    if (Z.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double zl = Z.left(), zu = Z.right(), xl = X.left(), xu = X.right();
+    const bool negative = gaol_detail::quiet_less_equal(zl, -1.0) && gaol_detail::quiet_less_equal(-1.0, zu)
+      && gaol_detail::quiet_less(xl, 0.0);
+    const bool zero = gaol_detail::quiet_less_equal(zl, 0.0) && gaol_detail::quiet_less_equal(0.0, zu)
+      && gaol_detail::quiet_less_equal(xl, 0.0) && gaol_detail::quiet_less_equal(0.0, xu);
+    const bool positive = gaol_detail::quiet_less_equal(zl, 1.0) && gaol_detail::quiet_less_equal(1.0, zu)
+      && gaol_detail::quiet_greater(xu, 0.0);
+    if (!negative && !zero && !positive) {
+      return interval::emptyset();
+    }
+    // The lower bound of the first piece, the upper bound of the last one
+    const double l = negative ? xl : ((zero || gaol_detail::quiet_less_equal(xl, 0.0)) ? 0.0 : xl);
+    const double u = positive ? xu : ((zero || gaol_detail::quiet_greater_equal(xu, 0.0)) ? 0.0 : xu);
+    return interval(l, u);
+  }
+
+  interval sign_rel(const interval& Z, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = sign_rel_upward(Z, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    floor_rel() after its check. floor(x) is the integer n for x in [n, n + 1):
+    the x whose floor is in Z make [ceil(inf Z), floor(sup Z) + 1), and Z
+    holding no integer (ceil(inf Z) > floor(sup Z), as for Z = [0.5, 0.7])
+    gives the empty set. That set is open at its upper end e = floor(sup Z) + 1:
+    a closed interval containing it contains e as well, the reals just below e
+    being in it, so that the tightest closed enclosure of its part in X ends at
+    min(sup X, e), and an X that starts at e or above holds none of it
+    (floor_rel([0], [1, 2]) is empty, where [0, 1] & [1, 2] would be [1]).
+    e is rounded upward. Where it is no double, beyond 2^53 in magnitude,
+    every double is an integer and none lies between floor(sup Z) and e: the
+    rounded e is the double above floor(sup Z), the smallest double at least
+    e, the tightest bound, and a double is below e if and only if it is below
+    the rounded e, so that inf X < e and min(sup X, e) are decided on it
+    exactly. The rounded e is +oo for sup Z = DBL_MAX, the tightest bound of
+    [DBL_MAX, DBL_MAX + 1), and for sup Z = +oo: it is taken as +oo there
+    rather than computed, DBL_MAX + 1 raising the overflow exception even where
+    the result has no infinite bound (floor_rel([DBL_MAX], [0, 1]) is empty),
+    and the overflow flag GAOL raises stands for an infinite bound of its
+    result only (doc/using.md).
+  */
+  static interval floor_rel_upward(const interval& Z, const interval& X)
+  {
+    if (Z.is_empty() || X.is_empty()) {
+      return interval::emptyset();
+    }
+    const double first = std::ceil(Z.left()), last = std::floor(Z.right());
+    if (gaol_detail::quiet_greater(first, last)) {
+      return interval::emptyset();
+    }
+    const double end = gaol_detail::quiet_less(last, (std::numeric_limits<double>::max)()) ? last + 1.0 // rounded upward
+                                                                                          : GAOL_INFINITY;
+    const double xl = X.left(), xu = X.right();
+    if (gaol_detail::quiet_greater(first, xu) || gaol_detail::quiet_greater_equal(xl, end)) {
+      return interval::emptyset();
+    }
+    return interval(gaol_detail::quiet_greater(first, xl) ? first : xl,
+                    gaol_detail::quiet_less(end, xu) ? end : xu);
+  }
+
+  interval floor_rel(const interval& Z, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = floor_rel_upward(Z, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
 
   double interval::smig(void) const
   {
@@ -3900,6 +5269,55 @@ interval nth_root(const interval& I, int q)
     middle = gaol_core::rnd_keep(middle);
     GAOL_RND_RESTORE();
     return middle;
+  }
+
+  /*
+    The cut point c of bisect(ratio) (GAOL v5). Any double of [l, r] gives two
+    parts that cover [l, r] exactly, sharing c: c is computed in GAOL's
+    rounding direction and put back within [l, r], where the two rounded
+    products may have taken it; l (1 - ratio) + r ratio cannot overflow where
+    l + ratio (r - l) does, as for [-MAX, MAX]. GAOL_RND_ENTER() clears the
+    flush-to-zero and denormals-are-zero modes, so that the cut between two
+    subnormal bounds is not read as 0. When a double lies strictly between l
+    and r, c is moved to the nearest one where it fell on a bound, so that
+    both parts are smaller than [l, r]. ratio = 0.5 and the unbounded
+    intervals are cut at midpoint(), as split() cuts them, midpoint() being
+    strictly between the bounds of a bisectable interval: rounded to nearest,
+    it would be l only for an exact midpoint at most half the distance from
+    l to the next double. The ratio is compared quietly, a NaN raising no
+    invalid-operation exception before it is refused.
+  */
+  std::pair<interval, interval> interval::bisect(double ratio) const
+  {
+    if (!(std::isgreater(ratio, 0.0) && std::isless(ratio, 1.0))) {
+      gaol_ERROR(invalid_action_error, "bisect(): the ratio is not in (0, 1)");
+    }
+    if (is_empty()) {
+      return std::make_pair(*this, *this);
+    }
+    const double l = left(), r = right();
+    double c;
+    if (ratio == 0.5 || std::isinf(l) || std::isinf(r)) {
+      c = midpoint();
+    } else {
+      GAOL_RND_ENTER();
+      c = l*(1.0 - ratio) + r*ratio;
+      GAOL_RND_KEEP(c);
+      GAOL_RND_LEAVE();
+      if (c < l) {
+        c = l;
+      } else if (c > r) {
+        c = r;
+      }
+      if (is_bisectable()) {
+        if (c == l) {
+          c = std::nextafter(l, r);
+        } else if (c == r) {
+          c = std::nextafter(r, l);
+        }
+      }
+    }
+    return std::make_pair(interval(l, c), interval(c, r));
   }
 
 

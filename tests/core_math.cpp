@@ -289,6 +289,10 @@ namespace
     compare("log10p1", gaol_cr_log10p1, [](const interval& x) { return log10p1(x); }, v);
     compare("rsqrt", gaol_cr_rsqrt, [](const interval& x) { return rsqrt(x); }, v);
     compare("asinpi", gaol_cr_asinpi, [](const interval& x) { return asinpi(x); }, v);
+    // The error function and its complement, which IEEE 1788-2015 does not
+    // name (GAOL v5)
+    compare("erf", gaol_cr_erf, [](const interval& x) { return erf(x); }, v);
+    compare("erfc", gaol_cr_erfc, [](const interval& x) { return erfc(x); }, v);
   }
 
   /* CORE-MATH gives the same value whatever the rounding direction it is called
@@ -335,6 +339,12 @@ namespace
       {"rsqrt(2^-1074)", gaol_cr_rsqrt, 0x1p-1074, 0x1p537},
       {"asinpi(1)", gaol_cr_asinpi, 1.0, 0.5},
       {"asinpi(-1)", gaol_cr_asinpi, -1.0, -0.5},
+      {"erf(0)", gaol_cr_erf, 0.0, 0.0},
+      {"erf(+oo)", gaol_cr_erf, GAOL_INFINITY, 1.0},
+      {"erf(-oo)", gaol_cr_erf, -GAOL_INFINITY, -1.0},
+      {"erfc(0)", gaol_cr_erfc, 0.0, 1.0},
+      {"erfc(+oo)", gaol_cr_erfc, GAOL_INFINITY, 0.0},
+      {"erfc(-oo)", gaol_cr_erfc, -GAOL_INFINITY, 2.0},
     };
     for (const Case& c : cases) {
       double lo, hi;
@@ -1466,6 +1476,129 @@ namespace
   }
 }
 
+namespace
+{
+  /*
+    erf and erfc over intervals (GAOL v5), claimed the tightest: each result
+    has to be the hull of the image, computed here apart from GAOL with
+    CORE-MATH in the two directed roundings, erf being increasing and erfc
+    decreasing, so that a bound taken at the wrong end of the interval, or
+    rounded the wrong way, fails. The bounds are drawn among 0, the infinities
+    and the subnormals, where the values are exact or tiny, the arguments past
+    which erf(x) rounds upward to +-1 and erfc(x) is subnormal or below
+    2^-1074, those at which CORE-MATH's sources change their method, with
+    their neighbours, the powers of two and random doubles. At 0 and at the
+    infinities the value is exact, and the lower bound is that value: taken
+    for inexact, it would be a double below the tightest one; and a value
+    taken for exact where it is not would give a lower bound above the
+    image. Then CORE-MATH's values in the four rounding directions at the
+    arguments its erfc.c takes from a table, some of the hardest to round,
+    have to be consistent with each other, and GAOL's bounds the tightest.
+  */
+  void error_functions()
+  {
+    std::mt19937_64 gen(20261006u);
+    const auto rd = [](double (*f)(double), double x) {
+      std::fesetround(FE_DOWNWARD);
+      const double v = f(x);
+      std::fesetround(FE_UPWARD);
+      return v;
+    };
+    const auto ru = [](double (*f)(double), double x) {
+      std::fesetround(FE_UPWARD);
+      return f(x);
+    };
+    const auto same = [](const interval& got, double lo, double hi) {
+      return !got.is_empty() && got.left() == lo && got.right() == hi;
+    };
+
+    std::vector<double> points = {0.0, -0.0, inf, -inf, 1e300, -1e300, 0x1.fffffffffffffp+1023, -0x1.fffffffffffffp+1023};
+    const auto with_neighbours = [&](double x) {
+      for (double y : {x, -x}) {
+        points.push_back(y);
+        points.push_back(next_float(y));
+        points.push_back(previous_float(y));
+      }
+    };
+    const double specials[] = {
+      0x1p-1074, 0x1p-1022, 0x1p-61, 0x1p-54, 1e-300, 1e-10,
+      0x1.7744f8f74e94ap+2,  // erf(x) rounds upward to 1 beyond, erfc(-x) to 2
+      0x1.7afb48dc96626p+2,  // CORE-MATH's erf: +-1 - 2^-54 +-1 beyond
+      0x1.c5bf891b4ef6ap-55, 0x1.c5bf891b4ef6ap-54, // CORE-MATH's erfc: 1 - x 2^-54 below
+      0x1.a8b12fc6e4892p+4,  // erfc(x) subnormal beyond
+      0x1.b369a6244e684p+4,  // erfc(x) below 2^-1074 beyond
+      0x1.b39dc41e48bfdp+4,  // CORE-MATH's erfc: 2^-1076 beyond
+    };
+    for (double x : specials) {
+      with_neighbours(x);
+    }
+    for (int k = -1074; k <= 6; k += 3) {
+      with_neighbours(std::ldexp(1.0, k));
+    }
+    for (int i = 0; i < 300; ++i) {
+      points.push_back(std::uniform_real_distribution<double>(-30.0, 30.0)(gen));
+      points.push_back(std::ldexp(std::uniform_real_distribution<double>(-1.0, 1.0)(gen), (int)(gen() % 80) - 70));
+    }
+
+    struct Monotonic { const char *name; double (*cr)(double); interval (*g)(const interval&); bool decreasing; };
+    const Monotonic monotonic[] = {
+      {"erf", gaol_cr_erf, erf, false},
+      {"erfc", gaol_cr_erfc, erfc, true},
+    };
+    for (const Monotonic& m : monotonic) {
+      for (int i = 0; i < 40000; ++i) {
+        double l = points[gen() % points.size()], r = points[gen() % points.size()];
+        if (i % 4 == 0) {
+          r = l; // a single point
+        }
+        if (l > r) {
+          std::swap(l, r);
+        }
+        if (l == inf || r == -inf) {
+          continue;
+        }
+        std::fesetround(FE_UPWARD);
+        const interval got = m.g(interval(l, r));
+        const double lo = m.decreasing ? rd(m.cr, r) : rd(m.cr, l);
+        const double hi = m.decreasing ? ru(m.cr, l) : ru(m.cr, r);
+        check(std::string(m.name) + " over an interval: the tightest bounds", same(got, lo, hi),
+              [&] {
+                return std::string(m.name) + "([" + show(l) + ", " + show(r) + "]) = " + hex(got) + " rather than ["
+                     + show(lo) + ", " + show(hi) + "]";
+              });
+      }
+    }
+
+    // Arguments of the tables of CORE-MATH's erfc.c (exceptions[] of
+    // cr_erfc_accurate() and of erfc_asympt_accurate()), next to 1, between
+    // 1.7 and 27.3, and one of a subnormal value
+    const double hard[] = {
+      -0x1.c5bf891b4ef6bp-54, -0x1.fe777a3eb8d58p-51, -0x1.cea935ba73f4cp-32, -0x1.4a943c917ed26p-12,
+      -0x1.d4af8adb90116p-4, -0x1.f9a4a209ca0e4p+0, 0x1.c5bf891b4ef6bp-55, 0x1.fe777a3eb8d58p-52,
+      0x1.52b18fe8fbad1p-36, 0x1.cf0ed5959b276p-28, 0x1.b8940788b825dp+0, 0x1.0ca37ce17afa6p+1,
+      0x1.76957728f1f31p+1, 0x1.16ffd71e2d8c6p+2, 0x1.651c78cec84f6p+2, 0x1.ef72633933d36p+2,
+      0x1.4a42b163f7a7dp+3, 0x1.a631d4bc7f56bp+3, 0x1.1b2588f5d972ep+4, 0x1.391f434b53d18p+4,
+      0x1.48de452fb1a15p+4, 0x1.a8f7bfbd15495p+4,
+    };
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (const Monotonic& m : monotonic) {
+      for (double x : hard) {
+        double v[4];
+        for (int d = 0; d < 4; ++d) {
+          std::fesetround(directions[d]);
+          v[d] = m.cr(x);
+        }
+        std::fesetround(FE_UPWARD);
+        const interval got = m.g(interval(x));
+        check(std::string(m.name) + " at the arguments of erfc.c's tables: the tightest bounds, the four roundings consistent",
+              same(got, v[2], v[1]) && v[2] <= v[0] && v[0] <= v[1] && (v[3] == v[1] || v[3] == v[2])
+              && next_float(v[2]) == v[1],
+              [&] { return std::string(m.name) + "(" + show(x) + ") = " + hex(got); });
+      }
+    }
+  }
+}
+
 int main()
 {
   gaol::init();
@@ -1482,6 +1615,7 @@ int main()
   sin_accurate_path();
   cbrt_hard_cases();
   rsqrt_hard_cases();
+  error_functions();
   std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();

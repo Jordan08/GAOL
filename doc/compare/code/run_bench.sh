@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The benchmark: draws the intervals (bench.py), compiles bench_gaol.cpp,
-# bench_p1788.cpp, bench_filib.cpp, bench_profil.cpp, bench_double.cpp and
-# bench_sun.f90, runs them, and writes
+# bench_p1788.cpp, bench_filib.cpp, bench_profil.cpp, bench_boost.cpp,
+# bench_double.cpp and bench_sun.f90, runs them, and writes
 # the tables of the results into doc/compare/performance.md (between its
 # markers). Run setup.sh first.
 #
@@ -14,7 +14,7 @@
 # OPS             a comma-separated list of operations (default: all of them,
 #                 see bench_ops.h)
 # CPU             a processor to run the programs on, with taskset
-# LIBS            the libraries to run (default: "double gaol5 gaol filib profil sun p1788"):
+# LIBS            the libraries to run (default: "double gaol5 gaol filib profil boost sun p1788"):
 #                 gaol5 is the GAOL of this repository, installed in PREFIX, and
 #                 gaol the last GAOL of Frédéric Goualard, in GAOL_GOUALARD_PREFIX
 #
@@ -30,7 +30,7 @@ REPEATS="${REPEATS:-5}"
 P1788_REPEATS="${P1788_REPEATS:-1}"
 OPS="${OPS:-}"
 CPU="${CPU:-}"
-LIBS="${LIBS:-double gaol5 gaol filib profil sun p1788}"
+LIBS="${LIBS:-double gaol5 gaol filib profil boost sun p1788}"
 OUT="$WORK/bench"
 REPORT="${REPORT:-$CODE_DIR/../performance.md}"
 mkdir -p "$OUT"
@@ -59,6 +59,8 @@ $CXX $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(filib_cflags) -I"$CODE_DIR" "$COD
      -o "$OUT/bench_filib" $(filib_libs)
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(profil_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_profil.cpp" \
      -o "$OUT/bench_profil" $(profil_libs)
+$CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(boost_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_boost.cpp" \
+     -o "$OUT/bench_boost"
 (cd "$OUT" && "$F90" $F90FLAGS_BENCH "$CODE_DIR/bench_sun.f90" -o bench_sun > f90.log 2>&1) \
   || { cat "$OUT/f90.log"; die "f90 failed"; }
 
@@ -74,6 +76,7 @@ for round in $(seq "$ROUNDS"); do
       p1788) run "$OUT/bench_p1788" "$DATA" "$P1788_REPEATS" "$OPS" ;;
       filib) run "$OUT/bench_filib" "$DATA" "$REPEATS" "$OPS" ;;
       profil) run "$OUT/bench_profil" "$DATA" "$REPEATS" "$OPS" ;;
+      boost) run "$OUT/bench_boost" "$DATA" "$REPEATS" "$OPS" ;;
       sun) run "$OUT/bench_sun" "$DATA" "$REPEATS" "$OPS" ;;
       *) die "unknown library $lib" ;;
     esac | tee -a "$RESULTS"
@@ -86,7 +89,7 @@ done
   echo "Processor:       $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ *//')${CPU:+ (taskset -c $CPU)}"
   echo "System:          $(uname -sr), $(. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")"
   echo "C++ compiler:    $($CXX --version | head -1)"
-  echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788, filib++ and PROFIL/BIAS: $IA_CXXFLAGS)"
+  echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS (GAOL: $(gaol_cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); libieeep1788, filib++, PROFIL/BIAS and Boost.Interval: $IA_CXXFLAGS)"
   echo "Fortran:         $("$F90" -V 2>&1 | head -1), flags: $F90FLAGS_BENCH"
   # -dirty only for what GAOL is built from: the reports of doc/ are being rewritten
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
@@ -96,13 +99,14 @@ done
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"
   echo "PROFIL/BIAS:     $PROFIL_VERSION, x86-64-Linux-compat-gcc configuration, built by $CC and $CXX"
+  echo "Boost.Interval:  Boost $BOOST_VERSION, interval<double> with save_state<rounded_transc_opp<double> > and checking_strict<double>, the elementary functions of the C library, $(getconf GNU_LIBC_VERSION 2>/dev/null || echo "?")"
 } > "$OUT/machine.txt"
 
 python3 "$CODE_DIR/bench.py" report "$RESULTS" "$OUT/machine.txt" "$REPORT"
 echo "== tables written to $REPORT"
 # The results of a whole run, which make perf (run_perf.sh) keeps for the
 # libraries other than GAOL v5 when it measures GAOL v5 alone again
-if [ -z "$OPS" ] && [ "$LIBS" = "double gaol5 gaol filib profil sun p1788" ]; then
+if [ -z "$OPS" ] && [ "$LIBS" = "double gaol5 gaol filib profil boost sun p1788" ]; then
   cp "$RESULTS" "$CODE_DIR/results.csv"
   cp "$OUT/machine.txt" "$CODE_DIR/machine.txt"
   echo "== results kept in $CODE_DIR/results.csv and machine.txt, for make perf"

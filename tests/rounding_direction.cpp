@@ -416,6 +416,7 @@ namespace
           && atan2pi(X(), E()).is_empty() && cosh(E()).is_empty() && sinh(E()).is_empty() && tanh(E()).is_empty()
           && acosh(E()).is_empty() && asinh(E()).is_empty() && atanh(E()).is_empty() && hypot(E(), X()).is_empty()
           && hypot(X(), E()).is_empty(); } },
+    { "erf and erfc", [] { return erf(E()).is_empty() && erfc(E()).is_empty(); } },
     { "abs, sign and the roundings", [] {
         return abs(E()).is_empty() && sign(E()).is_empty() && trunc(E()).is_empty()
           && round_ties_to_even(E()).is_empty() && round_ties_to_away(E()).is_empty(); } },
@@ -426,7 +427,17 @@ namespace
           && atanh_rel(E(), X()).is_empty() && invabs_rel(E(), X()).is_empty() && sqrt_rel(X(), E()).is_empty()
           && nth_root_rel(E(), 3u, X()).is_empty() && nth_root_rel(X(), 3u, E()).is_empty()
           && div_rel(E(), X(), X()).is_empty() && div_rel(X(), E(), X()).is_empty()
-          && div_rel(X(), X(), E()).is_empty(); } },
+          && div_rel(X(), X(), E()).is_empty() && max_rel(E(), X(), X()).is_empty()
+          && max_rel(X(), E(), X()).is_empty() && max_rel(X(), X(), E()).is_empty()
+          && min_rel(E(), X(), X()).is_empty() && min_rel(X(), E(), X()).is_empty()
+          && min_rel(X(), X(), E()).is_empty() && sign_rel(E(), X()).is_empty() && sign_rel(X(), E()).is_empty()
+          && floor_rel(E(), X()).is_empty() && floor_rel(X(), E()).is_empty(); } },
+    // The reverse functions of pow (GAOL v5)
+    { "pow_rel and pow_exponent_rel", [] {
+        return pow_rel(E(), X(), X()).is_empty() && pow_rel(X(), E(), X()).is_empty() && pow_rel(X(), X(), E()).is_empty()
+          && pow_exponent_rel(E(), X(), X()).is_empty() && pow_exponent_rel(X(), E(), X()).is_empty()
+          && pow_exponent_rel(X(), X(), E()).is_empty() && gaol_ieee1788::powRev1(X(), E()).is_empty()
+          && gaol_ieee1788::powRev2(E(), X()).is_empty(); } },
     { "the numeric functions", [] {
         double m, r;
         E().mid_rad(m, r);
@@ -723,6 +734,23 @@ namespace
       && m.mid_rad_m == c && m.mid_rad_r == m.rad && m.rad >= 0.0 && (h.l != h.r || m.rad == 0.0)
       && bounds_are(m.split_l, h.l, c) && bounds_are(m.split_r, c, h.r)
       && m.split_left.set_eq(m.split_l) && m.split_right.set_eq(m.split_r);
+  }
+
+  /*
+    floor_rel(Z, X) of a Z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
+    beyond the doubles (GAOL v5, point P.25): its upper end is +oo, which
+    floor_rel() takes without computing DBL_MAX + 1, whose overflow raised the
+    overflow exception where the result has no infinite bound:
+    floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1])
+    is [0, 1]
+  */
+  bool floor_rel_at_dbl_max_is_right()
+  {
+    const double dbl_max = gaol::rnd_keep((std::numeric_limits<double>::max)());
+    const interval x = opaque(interval(gaol::rnd_keep(0.0), gaol::rnd_keep(1.0)));
+    const interval a = floor_rel(opaque(interval(dbl_max)), x);
+    const interval b = floor_rel(opaque(interval(gaol::rnd_keep(0.0), dbl_max)), x);
+    return a.is_empty() && bounds_are(b, 0.0, 1.0);
   }
 
   /*
@@ -1055,6 +1083,8 @@ int main()
     { "acosh", [](const interval&, const interval& y) { return S(acosh(y)); } },
     { "asinh", [](const interval& x, const interval&) { return S(asinh(x)); } },
     { "atanh", [](const interval& x, const interval&) { return S(atanh(x)); } },
+    { "erf", [](const interval& x, const interval&) { return S(erf(x)); } },
+    { "erfc", [](const interval& x, const interval&) { return S(erfc(x)); } },
     { "abs", [](const interval& x, const interval&) { return S(abs(x)); } },
     { "min", [](const interval& x, const interval& y) { return S(min(x, y)); } },
     { "max", [](const interval& x, const interval& y) { return S(max(x, y)); } },
@@ -1073,6 +1103,20 @@ int main()
     { "asinh_rel", [](const interval& x, const interval&) { return S(asinh_rel(x, x)); } },
     { "atanh_rel", [](const interval& x, const interval&) { return S(atanh_rel(x, x)); } },
     { "invabs_rel", [](const interval& x, const interval& y) { return S(invabs_rel(x, y)); } },
+    // The reverse functions of pow, their bounds proved by powers (GAOL v5)
+    { "pow_rel", [](const interval& x, const interval& y) {
+        return S(pow_rel(y, x, interval::universe())) + " " + S(pow_rel(x, -y, interval::universe())) + " "
+          + S(pow_rel(y, x - y, interval(0.5, 4.0))); } },
+    { "pow_exponent_rel", [](const interval& x, const interval& y) {
+        return S(pow_exponent_rel(y, y, interval::universe())) + " " + S(pow_exponent_rel(y, x, interval::universe())) + " "
+          + S(pow_exponent_rel(x, y + x, interval(-1.0, 0.5))); } },
+    { "max_rel", [](const interval& x, const interval& y) { return S(max_rel(y, x, y - 1.0)) + " " + S(max_rel(y, y, x + y)); } },
+    { "min_rel", [](const interval& x, const interval& y) { return S(min_rel(x, y, 2.0*x)) + " " + S(min_rel(x, x, y - x)); } },
+    { "sign_rel", [](const interval& x, const interval&) {
+        return S(sign_rel(interval(1.0), x - 0.5)) + " " + S(sign_rel(interval(-1.0, 0.0), x - 0.5)); } },
+    // floor(sup Z) + 1 rounded upward: 2^60 + 1 is 2^60 rounded to nearest
+    { "floor_rel", [](const interval& x, const interval& y) {
+        return S(floor_rel(y, x + y)) + " " + S(floor_rel(interval(0x1p60), interval::universe())); } },
     { "nb_fp_numbers", [](const interval& x, const interval&) { return S(nb_fp_numbers(x.left(), x.right())); } },
     // Operations that compute after their one check of the rounding direction
     // what they computed with operations of intervals checking it again, or
@@ -1282,6 +1326,15 @@ int main()
       { "exp([-740])", interval(-740.0), interval(),
         [](const interval& x, const interval&) { return exp(x); },
         exact(dyadic(subnormal(169))*half) },
+      // erf(100*2^-1074) is 112.84 times 2^-1074, and erfc(27) 105999.05
+      // times 2^-1074 (mpmath): between the same two doubles as 112.5 and
+      // 105999.5 times 2^-1074 (GAOL v5)
+      { "erf([100*2^-1074])", interval(subnormal(100)), interval(),
+        [](const interval& x, const interval&) { return erf(x); },
+        exact(dyadic(subnormal(225))*half) },
+      { "erfc([27])", interval(27.0), interval(),
+        [](const interval& x, const interval&) { return erfc(x); },
+        exact(dyadic(subnormal(211999))*half) },
     };
 
     for (const FlushMode& m : flush_modes_honoured) {
@@ -1374,6 +1427,8 @@ int main()
       { "asinh(x)", 1, [](const interval& x, const interval&, const interval&) { return asinh(x); } },
       { "acosh(x)", 1, [](const interval& x, const interval&, const interval&) { return acosh(x); } },
       { "atanh(x)", 1, [](const interval& x, const interval&, const interval&) { return atanh(x); } },
+      { "erf(x)", 1, [](const interval& x, const interval&, const interval&) { return erf(x); } },
+      { "erfc(x)", 1, [](const interval& x, const interval&, const interval&) { return erfc(x); } },
       { "pow(x, 2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 2); } },
       { "pow(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 3); } },
       { "pow(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -2); } },
@@ -1407,6 +1462,8 @@ int main()
       { "acosh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return acosh_rel(x, y); } },
       { "asinh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return asinh_rel(x, y); } },
       { "atanh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atanh_rel(x, y); } },
+      { "sign_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return sign_rel(x, y); } },
+      { "floor_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return floor_rel(x, y); } },
       { "cancel_minus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_minus(x, y); } },
       { "cancel_plus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_plus(x, y); } },
       { "hausdorff(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return interval(hausdorff(x, y)); } },
@@ -1419,6 +1476,10 @@ int main()
       { "double - x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() - x; } },
       { "fma(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return fma(x, y, z); } },
       { "div_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return div_rel(x, y, z); } },
+      { "pow_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_rel(x, y, z); } },
+      { "pow_exponent_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_exponent_rel(x, y, z); } },
+      { "max_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return max_rel(x, y, z); } },
+      { "min_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return min_rel(x, y, z); } },
     };
     // Subnormal, mixed and normal bounds; the first ones for two and three operands
     const interval flush_operands[] = {
@@ -1767,7 +1828,8 @@ int main()
   // A NaN the program gives, the products with a zero and an infinite bound,
   // the powers with an exponent of extreme magnitude and the relations in
   // loops raise no invalid-operation flag, and the midpoints of intervals
-  // with a huge bound no overflow flag (GAOL v5, point D.24)
+  // with a huge bound no overflow flag (GAOL v5, point D.24), nor floor_rel()
+  // of a Z ending at DBL_MAX (GAOL v5, point P.25)
   for (const EmptyOperand& e : nan_operands) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -1832,6 +1894,13 @@ int main()
             return std::string(h.name) + ": midpoint() " + hex(m.midpoint) + ", mid() " + hex(m.mid) + ", rad() " + hex(m.rad)
                  + ", split() " + hex(m.split_l) + " " + hex(m.split_r);
           });
+  }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = floor_rel_at_dbl_max_is_right();
+    const int raised = std::fetestexcept(FE_OVERFLOW);
+    check("floor_rel() of a Z ending at DBL_MAX raises no overflow flag where its result has no infinite bound", raised == 0);
+    check("floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1]) is [0, 1]", right);
   }
   for (const RelationLoop& r : relation_loops) {
     std::feclearexcept(FE_ALL_EXCEPT);
@@ -1924,6 +1993,9 @@ int main()
       check("the midpoints of an interval with a huge bound, FE_OVERFLOW enabled", oe == returned_true,
             [&] { return std::string(huge[i].name) + ": " + outcome_text(oe); });
     }
+    const Outcome of = run_with_exceptions_enabled(FE_OVERFLOW, floor_rel_at_dbl_max_is_right);
+    check("floor_rel() of a Z ending at DBL_MAX, without an infinite bound, FE_OVERFLOW enabled", of == returned_true,
+          [&] { return std::string(outcome_text(of)); });
   }
 #else
   std::printf("feenableexcept() and fork() are those of glibc: the checks with the exceptions enabled are skipped\n");
