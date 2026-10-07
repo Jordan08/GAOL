@@ -426,7 +426,7 @@ namespace
     const interval reverse[] = {
       sqrRev(x), sqrRev(x, y), absRev(x), pownRev(x, 3), sinRev(x), cosRev(x), tanRev(x),
       coshRev(y), mulRev(x, y), cancelMinus(y, x), cancelPlus(y, x), intersection(x, y),
-      convexHull(x, y), empty(), entire(),
+      convexHull(x, y), empty(), entire(), powRev1(y, x), powRev1(y, x, y), powRev2(x, x), powRev2(x, x, y),
     };
     double m, r;
     midRad(x, m, r);
@@ -445,6 +445,15 @@ namespace
           && mag(y) == 2.0 && mig(y) == 0.0 && forward[0].set_eq(-x) && reverse[8].set_eq(y / x)
           && exactToInterval(intervalToExact(x)).set_eq(x) && !intervalToText(x).empty(),
           [] { return std::string(); });
+    // powRev1(b, c, x) and powRev2(a, c, x), x being [-oo, +oo] when left
+    // out (GAOL v5): x^y in [0.25, 0.5] for x, y in [0.25, 0.5] asks y in
+    // [log(0.5)/log(0.25), log(0.25)/log(0.5)] = [0.5, 2], and x^2 in [4, 9]
+    // x in [2, 3]
+    check("powRev1 and powRev2 have the results of IEEE 1788",
+          reverse[17].set_eq(numsToInterval(0.5, 2.0)) && reverse[18].set_eq(numsToInterval(0.5, 2.0))
+          && powRev1(numsToInterval(2.0, 2.0), numsToInterval(4.0, 9.0)).set_eq(numsToInterval(2.0, 3.0))
+          && powRev1(numsToInterval(2.0, 2.0), numsToInterval(4.0, 9.0), y).set_eq(numsToInterval(2.0, 2.0)),
+          [&] { return hex(reverse[17]) + " " + hex(reverse[18]); });
   }
 
   /* mulRevToPair(b, c), the two-output division of 10.5.5 (GAOL v5): the

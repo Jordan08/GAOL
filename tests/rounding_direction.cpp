@@ -383,6 +383,12 @@ namespace
           && nth_root_rel(E(), 3u, X()).is_empty() && nth_root_rel(X(), 3u, E()).is_empty()
           && div_rel(E(), X(), X()).is_empty() && div_rel(X(), E(), X()).is_empty()
           && div_rel(X(), X(), E()).is_empty(); } },
+    // The reverse functions of pow (GAOL v5)
+    { "pow_rel and pow_exponent_rel", [] {
+        return pow_rel(E(), X(), X()).is_empty() && pow_rel(X(), E(), X()).is_empty() && pow_rel(X(), X(), E()).is_empty()
+          && pow_exponent_rel(E(), X(), X()).is_empty() && pow_exponent_rel(X(), E(), X()).is_empty()
+          && pow_exponent_rel(X(), X(), E()).is_empty() && gaol_ieee1788::powRev1(X(), E()).is_empty()
+          && gaol_ieee1788::powRev2(E(), X()).is_empty(); } },
     { "the numeric functions", [] {
         double m, r;
         E().mid_rad(m, r);
@@ -1029,6 +1035,13 @@ int main()
     { "asinh_rel", [](const interval& x, const interval&) { return S(asinh_rel(x, x)); } },
     { "atanh_rel", [](const interval& x, const interval&) { return S(atanh_rel(x, x)); } },
     { "invabs_rel", [](const interval& x, const interval& y) { return S(invabs_rel(x, y)); } },
+    // The reverse functions of pow, their bounds proved by powers (GAOL v5)
+    { "pow_rel", [](const interval& x, const interval& y) {
+        return S(pow_rel(y, x, interval::universe())) + " " + S(pow_rel(x, -y, interval::universe())) + " "
+          + S(pow_rel(y, x - y, interval(0.5, 4.0))); } },
+    { "pow_exponent_rel", [](const interval& x, const interval& y) {
+        return S(pow_exponent_rel(y, y, interval::universe())) + " " + S(pow_exponent_rel(y, x, interval::universe())) + " "
+          + S(pow_exponent_rel(x, y + x, interval(-1.0, 0.5))); } },
     { "nb_fp_numbers", [](const interval& x, const interval&) { return S(nb_fp_numbers(x.left(), x.right())); } },
     // Operations that compute after their one check of the rounding direction
     // what they computed with operations of intervals checking it again, or
@@ -1375,6 +1388,8 @@ int main()
       { "double - x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() - x; } },
       { "fma(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return fma(x, y, z); } },
       { "div_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return div_rel(x, y, z); } },
+      { "pow_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_rel(x, y, z); } },
+      { "pow_exponent_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return pow_exponent_rel(x, y, z); } },
     };
     // Subnormal, mixed and normal bounds; the first ones for two and three operands
     const interval flush_operands[] = {
