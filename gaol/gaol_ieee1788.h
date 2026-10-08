@@ -351,6 +351,28 @@ namespace gaol_ieee1788 {
   {
     return ::gaol_core::pow_exponent_rel(c, a, interval::universe());
   }
+  /*!
+    atan2Rev1(y, c, x): atan2_rel(c, y, x), the hull of the x in x with
+    atan2(y, x) in c for some y in y; atan2Rev2(x, c, y): atan2_exponent_rel(c, x, y),
+    the hull of the y in y with atan2(y, x) in c for some x in x (GAOL v5).
+    Both reverse atan2(y, x) of this namespace, the atan2 of the standard (Table 9.1)
+  */
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& y, const interval& c, const interval& x)
+  {
+    return ::gaol_core::atan2_rel(c, y, x);
+  }
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& y, const interval& c)
+  {
+    return ::gaol_core::atan2_rel(c, y, interval::universe());
+  }
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& x, const interval& c, const interval& y)
+  {
+    return ::gaol_core::atan2_exponent_rel(c, x, y);
+  }
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& x, const interval& c)
+  {
+    return ::gaol_core::atan2_exponent_rel(c, x, interval::universe());
+  }
 
   // ----------------------------------------------------------------------
   // Cancellative addition and subtraction (10.5.6), set operations (10.5.7)

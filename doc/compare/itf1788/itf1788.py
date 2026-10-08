@@ -106,8 +106,6 @@ NOT_IN_STANDARD = "not an operation of IEEE 1788-2015, which GAOL v5 does not pr
 NOT_PROVIDED = {
     "powRev1": "powRev1 (Table 10.1): GAOL v5 has no reverse of pow(x, y)",
     "powRev2": "powRev2 (Table 10.1): GAOL v5 has no reverse of pow(x, y)",
-    "atan2Rev1": "atan2Rev1 (Table 10.1): GAOL v5 has no reverse of atan2",
-    "atan2Rev2": "atan2Rev2 (Table 10.1): GAOL v5 has no reverse of atan2",
     "compoundm1": "compoundm1 (Table 10.5): CORE-MATH has none",
     "overlap": "overlap (10.6.4): GAOL v5 has no interval overlapping",
 }
