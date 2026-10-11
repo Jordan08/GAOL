@@ -1901,7 +1901,10 @@ namespace gaol_core {
   template <class Holds>
   static std::uint64_t first_key_holding(const Holds& holds, std::uint64_t a, std::uint64_t b, std::uint64_t k)
   {
-    const std::uint64_t last = ~static_cast<std::uint64_t>(0);
+    // static, so that the lambda needs no capture of it: Clang warned of the
+    // capture as not required (-Wunused-lambda-capture), and Visual C++
+    // refused the constant uncaptured (C3493)
+    static constexpr std::uint64_t last = ~static_cast<std::uint64_t>(0);
     return last - last_key_holding([&holds](std::uint64_t j) { return holds(last - j); }, last - b, last - a, last - k);
   }
 
