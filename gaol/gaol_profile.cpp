@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -20,7 +21,7 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-02
 */
 
@@ -32,42 +33,42 @@ namespace gaol_core {
   static long last_reset_time;
 } // namespace gaol_core
 
-#if HAVE_GETRUSAGE
-//================
+#if GAOL_HAVE_GETRUSAGE
+  //================
 
-#  include <cstdlib>
-#  include <sys/time.h>
-#  include <sys/resource.h>
+  #  include <cstdlib>
+  #  include <sys/time.h>
+  #  include <sys/resource.h>
 
 
-#  include <unistd.h>
+  #  include <unistd.h>
 
-namespace gaol_core {
+  namespace gaol_core {
 
-  long get_time(void)
-  {
-    struct rusage RsrUsage;
-    getrusage(RUSAGE_SELF,&RsrUsage);
-    return (RsrUsage.ru_utime.tv_sec*1000 + RsrUsage.ru_utime.tv_usec/1000);
-  }
-} // namespace gaol_core
+    long get_time(void)
+    {
+      struct rusage RsrUsage;
+      getrusage(RUSAGE_SELF,&RsrUsage);
+      return (RsrUsage.ru_utime.tv_sec*1000 + RsrUsage.ru_utime.tv_usec/1000);
+    }
+  } // namespace gaol_core
 
 #else
-//==============
-// clock(), which the C standard provides: where getrusage() is not
-// (HAVE_GETRUSAGE, which the three builds check in <sys/resource.h>, as Visual
-// C++) (GAOL v5)
-#  include <time.h>
+  //==============
+  // clock(), which the C standard provides: where getrusage() is not
+  // (GAOL_HAVE_GETRUSAGE, which the three builds check in <sys/resource.h>, as Visual
+  // C++) (GAOL v5)
+  #  include <time.h>
 
-namespace gaol_core {
+  namespace gaol_core {
 
-  long get_time(void)
-  {
-    return long((1000.*clock())/CLOCKS_PER_SEC);
-  }
-} // namespace gaol_core
+    long get_time(void)
+    {
+      return long((1000.*clock())/CLOCKS_PER_SEC);
+    }
+  } // namespace gaol_core
 
-#endif /* HAVE_GETRUSAGE */
+#endif /* GAOL_HAVE_GETRUSAGE */
 
 namespace gaol_core {
 

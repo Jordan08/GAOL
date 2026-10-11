@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -20,13 +21,13 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-19
 */
 
 
-#ifndef __gaol_parser_h__
-#define __gaol_parser_h__
+#ifndef GAOL_PARSER_H
+#define GAOL_PARSER_H
 
 #include "gaol/gaol_config.h"
 #include <iosfwd>
@@ -91,9 +92,9 @@ namespace gaol {
     namespace, as pow is the pow of each.
   */
   enum class parsing_names { gaol, ieee1788 };
-  extern __GAOL_PUBLIC__ bool parse_interval(const char* const s, gaol_core::interval& out,
-                                             parsing_names names = parsing_names::gaol);
+  extern GAOL_PUBLIC bool parse_interval(const char* const s, gaol_core::interval& out,
+                                         parsing_names names = parsing_names::gaol);
 
 } // namespace gaol
 
-#endif /* __gaol_parser_h__ */
+#endif /* GAOL_PARSER_H */

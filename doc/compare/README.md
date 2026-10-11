@@ -32,8 +32,8 @@ reports.
 
 | | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
 |---|---|---|---|---|---|
-| Special cases with IEEE 1788's result | 279 of 279 | 270 of 286 | 126 of 243 | 150 of 261 | 56 of 221 |
-| … or an interval enclosing it | 0 | 10 | 50 | 41 | 22 |
+| Special cases with IEEE 1788's result | 279 of 279 | 275 of 286 | 126 of 243 | 150 of 261 | 56 of 221 |
+| … or an interval enclosing it | 0 | 5 | 50 | 41 | 22 |
 | … or another result | 0 | 6 | 67 | 70 | 143 |
 | Cases it has no operation for | 8 | 0 | 44 | 26 | 65 |
 | `x + y` | 208 ns | 3.2 ns | 7.8 ns | 24 ns | 22 ns |

@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -24,12 +25,12 @@
   compiling gaol with Borland C++ Builder.
 
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2002-12-03
 */
 
-#ifndef __gaol_config_h__
-#define __gaol_config_h__
+#ifndef GAOL_CONFIG_H
+#define GAOL_CONFIG_H
 
 /* The configuration the build wrote, the same macros with the three builds
    and every compiler (see doc/building.md): CMake from
@@ -42,34 +43,25 @@
 #include "gaol/gaol_configuration.h"
 
 #define GAOL_ERRNO errno
-#define INLINE inline
+#define GAOL_INLINE inline
 
-#if defined (_MSC_VER)
-
-# ifndef __GAOL_PUBLIC__
-#   ifdef _COMPILING__GAOL_PUBLIC__
-#     define __GAOL_PUBLIC__ __declspec(dllexport)
-#   else
-#     define __GAOL_PUBLIC__ __declspec(dllimport)
-#   endif
-# endif
-
-#elif defined (__GNUC__)
-
-# ifndef __GAOL_PUBLIC__
-#  if defined (HAVE_VISIBILITY_OPTIONS)
-#     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
+/* GAOL_PUBLIC: what GAOL's public declarations carry, __GAOL_PUBLIC__ in
+   GAOL 4 (GAOL v5). With GCC and Clang, the default visibility where the
+   library is compiled with -fvisibility=hidden (GAOL_HAVE_VISIBILITY_OPTIONS),
+   so that the shared library exports them. Nothing with Visual C++ and
+   clang-cl, with which GAOL is always a static library: GAOL 4 declared them
+   __declspec(dllimport) there, or __declspec(dllexport) with
+   _COMPILING__GAOL_PUBLIC__, which no build defined, so that GAOL and the code
+   using it had to define __GAOL_PUBLIC__ empty, as the CMake and meson builds,
+   gaol::gaol and gaol.pc did. No header reads __GAOL_PUBLIC__ any longer, and
+   a program still defining it changes nothing; one defining GAOL_PUBLIC before
+   including GAOL replaces it. */
+#ifndef GAOL_PUBLIC
+#  if defined(__GNUC__) && !defined(_MSC_VER) && defined(GAOL_HAVE_VISIBILITY_OPTIONS)
+#    define GAOL_PUBLIC __attribute__ ((visibility("default")))
 #  else
-#     define __GAOL_PUBLIC__
+#    define GAOL_PUBLIC
 #  endif
-# endif
-
-#else
-
-# ifndef __GAOL_PUBLIC__
-#  define __GAOL_PUBLIC__
-# endif
-
 #endif
 
 
@@ -82,7 +74,7 @@
    to compile them (GAOL v5). A developer of GAOL working on them defines
    GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
    gaol/gaol_interval.cpp then compiles them, gaol::interval2f where SSE3
-   instructions are used (USING_SSE3_INSTRUCTIONS), and the code using them
+   instructions are used (GAOL_USING_SSE3_INSTRUCTIONS), and the code using them
    includes their headers, gaol/gaol_intervalf.h and gaol/gaol_interval2f.h,
    which the builds do not install and gaol/gaol does not include.
    --------------------------------------------------------------------------- */
@@ -107,38 +99,38 @@
 
 #if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 /* Define this if your system is a Linux-based ix86 or compatible */
-#  define IX86_LINUX 1
+#  define GAOL_IX86_LINUX 1
 #elif defined(__linux__) && defined(__aarch64__)
 /* Define this if your system is an AARCH64-based computer under Linux */
-#  define AARCH64_LINUX 1
+#  define GAOL_AARCH64_LINUX 1
 #elif defined(__APPLE__) && (defined(__i386__) || defined(__x86_64__))
 /* Define this if your system is a ix86 running MacOSX */
-#  define IX86_MACOSX 1
+#  define GAOL_IX86_MACOSX 1
 #elif defined(__APPLE__) && (defined(__aarch64__) || defined(__arm__))
 /* Define this if your system is an ARM running MacOSX */
-#  define ARM_MACOSX 1
+#  define GAOL_ARM_MACOSX 1
 #endif
 
-#ifndef SIZEOF_INT
+#ifndef GAOL_SIZEOF_INT
 #  if UINT_MAX == 0xFFFFFFFFu
-#    define SIZEOF_INT 4
+#    define GAOL_SIZEOF_INT 4
 #  elif UINT_MAX == 0xFFFFFFFFFFFFFFFFu
-#    define SIZEOF_INT 8
+#    define GAOL_SIZEOF_INT 8
 #  endif
 #endif
-#ifndef SIZEOF_LONG_LONG_INT
+#ifndef GAOL_SIZEOF_LONG_LONG_INT
 #  if ULLONG_MAX == 0xFFFFFFFFFFFFFFFFull
-#    define SIZEOF_LONG_LONG_INT 8
+#    define GAOL_SIZEOF_LONG_LONG_INT 8
 #  endif
 #endif
 
-/* WORDS_BIGENDIAN: the processor stores words with the most significant byte
+/* GAOL_WORDS_BIGENDIAN: the processor stores words with the most significant byte
    first. The test on __BYTE_ORDER__, which GCC and Clang define, is the one of
    the fork of mathlib by Fabrice Le Bars (https://github.com/lebarsfa/mathlib,
    src/mathlib_endian.h); Visual C++ only targets little-endian processors. */
-#if !defined(WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
+#if !defined(GAOL_WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
     && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#  define WORDS_BIGENDIAN 1
+#  define GAOL_WORDS_BIGENDIAN 1
 #endif
 
 /* GAOL_NODISCARD: the attribute on the functions whose result is all they do
@@ -200,41 +192,59 @@
    --------------------------------------------------------------------------- */
 
 #if defined(__FAST_MATH__)
-#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results"
+#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results (remove the option, or put the flags of gaol.pc and gaol::gaol after it)"
 #endif
 /* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
    take NaN and infinities never to occur, in the inline functions of GAOL's
    headers as anywhere else: the empty interval has NaN bounds, and is_empty()
-   reads it as !(left() <= right()). The compiler then folds the test away, and
-   ([1, 2] & [3, 4]).is_empty() is false (GCC 9, Clang 18): the tests
-   refused_finite_math_only and refused_fast_math (tests/CMakeLists.txt) check
-   the refusal. GCC and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual
-   C++ defines nothing of the kind (its /fp:fast is refused below). This also
-   refuses what __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math
-   followed by -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at
-   1. -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the
-   option off when it comes after it on the command line, and does nothing when
-   it comes before.
+   reads it as !std::islessequal(left(), right()) (std::isunordered() first on
+   32-bit ARM and POWER9). The compiler then folds the test away, and
+   ([1, 2] & [3, 4]).is_empty() is false: with GCC 9.4 and 13 at -O0, -O2 and
+   -O3, with Clang 18 at -O0, and at -O2 and -O3 when the bounds are volatile.
+   The tests refused_finite_math_only and refused_fast_math
+   (tests/CMakeLists.txt) and tests/refused_options.sh check the refusal. GCC
+   and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual C++ defines nothing
+   of the kind (its /fp:fast is refused below). This also refuses what
+   __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math followed by
+   -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at 1.
+   -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the option
+   off when the option comes before it on the command line, and does nothing
+   when the option comes after it, where the compilation stops here. With
+   Clang, -ffast-math and -Ofast turn -frounding-math off too, which
+   -fno-fast-math does not turn on again: the remedy the two messages give is
+   all the flags of gaol.pc and gaol::gaol after the option, not -fno-fast-math
+   alone, with which Clang 18 compiled GAOL's operations as if rounding to
+   nearest (54 checks of tests/rounding_direction.cpp failed after -ffast-math
+   -fno-fast-math, 126 after -Ofast -fno-fast-math, none with the flags).
 
    No macro shows what follows, which GAOL cannot refuse:
    -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
    which GCC rewrites the probe 1.0 + tiny == 1.0 of round_upward_if_needed()
-   (gaol/gaol_fpu.h) as tiny == 0.0, so that an operation does not set the
-   rounding direction upward again after the code using GAOL left it elsewhere,
-   and width() is below the exact width; and -fno-honor-nans of Clang, given
-   without -fno-honor-infinities, which does to the empty interval what
-   -ffinite-math-only does. */
+   (gaol/gaol_fpu.h) as tiny == 0.0, and 1.0 + (subnormal + 0.0) == 1.0 as
+   subnormal == 0.0, so that an operation does not set the rounding direction
+   upward again after the code using GAOL left it elsewhere, and width() is
+   below the exact width; -fno-signed-zeros, with which GCC and Clang drop the
+   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5);
+   -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
+   the empty interval what -ffinite-math-only does; and -ffast-math or -Ofast
+   followed by -fno-fast-math with Clang, which leaves -frounding-math off
+   (above). */
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
-#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (-fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns it off when it comes after)"
+#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
 #endif
-/* Visual C++, not clang-cl (which says __clang__, and whose macros of the
-   floating-point model are not checked): /fp:strict defines _M_FP_STRICT, on
-   x86, x64 and arm64 with Visual Studio 2022 and 2026, and nothing else does. */
-#if defined(_MSC_VER) && !defined(__clang__) && !defined(_M_FP_FAST) && !defined(_M_FP_STRICT)
-#  error "GAOL cannot be compiled by Visual C++ without /fp:strict: Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
+/* Visual C++, and clang-cl from Clang 16, which defines the same macros of the
+   floating-point model: /fp:strict defines _M_FP_STRICT, on x86, x64 and
+   arm64 with Visual Studio 2022 and 2026, and nothing else does (_M_FP_PRECISE
+   by default). Without it, clang-cl compiles with -fno-rounding-math and
+   -ffp-contract=on, as Visual C++ assumes rounding to nearest, and was not
+   refused (GAOL v5). clang-cl before 16 does not tell its model, and is not
+   checked. */
+#if defined(_MSC_VER) && (!defined(__clang__) || __clang_major__ >= 16) && !defined(_M_FP_FAST) \
+    && !defined(_M_FP_STRICT)
+#  error "GAOL cannot be compiled by Visual C++ or clang-cl without /fp:strict: they then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
 #endif
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__) && !defined(__SSE2_MATH__)
 #  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, CORE-MATH rounds some results twice and some of its bounds are wrong (see tests/extended_precision.cpp)"
@@ -307,4 +317,4 @@
 #  endif
 #endif
 
-#endif /* __gaol_config_h__ */
+#endif /* GAOL_CONFIG_H */

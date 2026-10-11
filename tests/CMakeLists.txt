@@ -7,8 +7,10 @@
 # check/ and ran with CppUnit, check the results of the operations on chosen
 # intervals (see unit_tests.h). They are compiled as any code using GAOL, with
 # the flags gaol::gaol carries, and in C++17 for the hexadecimal floating
-# literals of elementary_values.h. WITH_TESTS builds them (CMakeLists.txt);
-# make test and make check run them, with the label unit.
+# literals of the tests, such as 0x1p-1060: those of gaol_tests.h, which all
+# but u128.cpp include, of the *_values.h, and of several of the programs.
+# WITH_TESTS builds them (CMakeLists.txt); make test and make check run them,
+# with the label unit.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -39,6 +41,10 @@ set(GAOL_TESTS
   static_initialization
   # GAOL's headers with GAOL_DEBUGGING, which the Debug builds define (GAOL v5)
   debugging
+  # A program linked with -ffast-math, which links crtfastmath.o and the modes
+  # flushing the subnormals to zero that it sets, unless gaol::gaol keeps it
+  # out with -mno-daz-ftz (GAOL v5): see below
+  fast_math_link
   # The unit tests of GAOL 4 (check/), with the checks of unit_tests.h rather
   # than CppUnit (GAOL v5); arithmetic is arithmetic_operators, the name
   # arithmetic being taken
@@ -84,12 +90,24 @@ foreach(test ${GAOL_TESTS})
   list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
 set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
+# fast_math_link: -ffast-math to its link only, with GCC and Clang, its source
+# being compiled as any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where
+# gaol::gaol gives the link -mno-daz-ftz
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_link_options(gaol_test_fast_math_link PRIVATE -ffast-math)
+endif()
+if(GAOL_LINK_FLAGS)
+  target_compile_definitions(gaol_test_fast_math_link PRIVATE GAOL_TESTS_NO_DAZ_FTZ=1)
+endif()
 
 # Under a locale writing a decimal comma, the reading of a number never
 # returned (GAOL v5): numbers, which reads numbers under such a locale, fails
 # after 5 minutes should it hang again, ctest giving a test no time limit of
-# its own (the project does not include CTest)
-set_tests_properties(numbers PROPERTIES TIMEOUT 300)
+# its own (the project does not include CTest). A slower build can give it
+# more: numbers took 235 s of its 300 with GCC, ASan and UBSan in Debug on
+# macOS x86_64, whose job gives it 400 (.github/workflows/macos.yml)
+set(GAOL_NUMBERS_TIMEOUT 300 CACHE STRING "Time limit of the test numbers, in seconds")
+set_tests_properties(numbers PROPERTIES TIMEOUT ${GAOL_NUMBERS_TIMEOUT})
 
 # The reading of VERSION.txt by CMakeLists.txt, in cmake/gaol_version.cmake,
 # which has to ignore a UTF-8 byte order mark and the line ends of Windows
@@ -101,59 +119,96 @@ add_test(NAME version_file
           "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/version_file"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/version_file.cmake")
 set_tests_properties(version_file PROPERTIES LABELS unit)
+# A compile test (GAOL v5): the object of the target gaol_<name>, compiled from
+# source, left out of the build of GAOL and made by the test (cmake --build),
+# so that it gets the compiler and the flags of the platform as the files of
+# GAOL do. Without a message, the compilation has to succeed. With one, it has
+# to fail, and the test passes if the output of the build holds the message: a
+# build fails for many reasons, so its exit status is not looked at. The target
+# then compiles a copy of source in the build tree, which compile_error.cmake
+# copies again and touches before the build: an object whose compilation
+# succeeded once stayed up to date, and failed the test, once the header or
+# the source was restored with its former modification time (cp -p). The
+# definitions and the include directories gaol::gaol carries are written out
+# (those of the project GAOL, should another include it): gaol::gaol is not
+# linked, so that the test does not wait for the library, which it would build
+# first; the caller adds the flags.
+function(gaol_compile_test name source message)
+  if(message)
+    configure_file(${source} ${name}.cpp COPYONLY)
+    add_library(gaol_${name} OBJECT "${CMAKE_CURRENT_BINARY_DIR}/${name}.cpp")
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" "-DORIGINAL=${CMAKE_CURRENT_SOURCE_DIR}/${source}"
+              "-DSOURCE=${CMAKE_CURRENT_BINARY_DIR}/${name}.cpp"
+              "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DCONFIG=$<CONFIG>" "-DTARGET=gaol_${name}"
+              -P "${CMAKE_CURRENT_SOURCE_DIR}/compile_error.cmake")
+    set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${message}")
+  else()
+    add_library(gaol_${name} OBJECT ${source})
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
+  endif()
+  set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
+  target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
+  # One build at a time in the build directory, whatever ctest -j says: the
+  # lock of every compile test
+  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests)
+endfunction()
 # The options gaol/gaol_config.h refuses where GCC and Clang define a macro for
 # them (GAOL v5): the tests refused_finite_math_only and refused_fast_math
 # compile refused_options.cpp, a program using GAOL, with -ffinite-math-only
 # and with -ffast-math, and the compilation has to fail with the message of the
-# refusal. The object is a target of its own, left out of the build of GAOL and
-# made by the test (cmake --build), so that it gets the compiler and the flags
-# of the platform as the files of GAOL do. A build fails for many reasons, so
-# the test does not look at its exit status: it passes if the output of the
-# build holds the message.
+# refusal; refused_positive compiles it with neither, and the compilation has
+# to succeed. Each is a compile test (gaol_compile_test() above).
 #
 # The option has to come after the flags of interval arithmetic, whose
-# -fno-fast-math turns it off otherwise. gaol::gaol is therefore not linked,
-# CMake putting the options of a linked library after those of the target: the
-# flags it carries are written out here. Not with Visual C++, which has neither
-# option nor macro (see doc/three-builds.md). The autotools and meson builds
-# have no such test: the header it checks is the same.
+# -fno-fast-math turns it off otherwise: CMake would put the options of a
+# linked gaol::gaol after those of the target, which is one more reason to
+# write out what it carries. Not with Visual C++, which has neither option nor
+# macro (see doc/three-builds.md). The autotools and meson builds run the same
+# checks with tests/refused_options.sh.
 function(gaol_refused_test name flag text)
-  add_library(gaol_${name} OBJECT refused_options.cpp)
-  set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-  target_include_directories(gaol_${name} PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+  gaol_compile_test(${name} refused_options.cpp "${text}")
   target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
-  add_test(NAME ${name}
-    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-  # One build at a time in the build directory, whatever ctest -j says: the
-  # lock of every compile test
-  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
-                       PASS_REGULAR_EXPRESSION "${text}")
 endfunction()
 if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   gaol_refused_test(refused_finite_math_only -ffinite-math-only
                     "GAOL cannot be compiled with -ffinite-math-only")
   gaol_refused_test(refused_fast_math -ffast-math
                     "GAOL cannot be compiled with -ffast-math")
+  gaol_refused_test(refused_positive "" "")
 endif()
 
 # The warning of the CPack block of CMakeLists.txt, when the configure that the
 # archive of the sources holds was generated for another version than VERSION.txt
 # holds (GAOL v5): not a program, a script that configures copies of the tree
-# with the compiler that built GAOL (cpack_stale_configure.cmake). Only the CMake
-# build makes the archive; the copies are made of symbolic links, so the script
-# runs on the machine that builds, where the system has them, and it asks the
-# configure of the tree its version, so there has to be one. The time limit is
-# that of a few configurations, on a slow machine.
+# with the compilers that built GAOL, and makes the archive after a change of
+# VERSION.txt (cpack_stale_configure.cmake). Only the CMake build makes the
+# archive; the copies are made of symbolic links, so the script runs on the
+# machine that builds, and it asks the configure of the tree its version, so
+# there has to be one. The compilers are passed with their arguments, which
+# CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and
+# CMAKE_C_COMPILER_ARG1 gcc. Without sh, or on a system that makes no symbolic
+# link, the script says it is skipped, which CTest reads from CMake 3.16 (the
+# test passes before). The time limit is that of a few configurations, on a
+# slow machine.
 if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR}/configure")
+  foreach(_lang C CXX)
+    string(STRIP "${CMAKE_${_lang}_COMPILER_ARG1}" _gaol_arguments)
+    string(STRIP "${CMAKE_${_lang}_COMPILER} ${_gaol_arguments}" _gaol_${_lang}_compiler)
+  endforeach()
   add_test(NAME cpack_stale_configure
     COMMAND "${CMAKE_COMMAND}"
       "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
       "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/cpack_stale_configure"
       "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
-      "-DGAOL_C_COMPILER=${CMAKE_C_COMPILER}"
-      "-DGAOL_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+      "-DGAOL_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DGAOL_C_COMPILER=${_gaol_C_compiler}"
+      "-DGAOL_CXX_COMPILER=${_gaol_CXX_compiler}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cpack_stale_configure.cmake")
-  set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600)
+  set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600
+    SKIP_REGULAR_EXPRESSION "cpack_stale_configure: skipped")
 endif()
 
 # Commented out: the tests run no thread (GAOL v5)
@@ -183,37 +238,25 @@ set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_R
 # no result away. -Werror=attributes (/we5030 and /we5051 of Visual C++, an
 # attribute it does not know or ignores before C++17) makes an attribute the
 # compiler ignores fail them too, as [[nodiscard]] written after the
-# declarator, int f() [[nodiscard]];, of which GCC 13 only warns. The object
-# is a target of its own, left out of the build of GAOL and made by the test
-# (cmake --build), with the flags, the definitions (__GAOL_PUBLIC__ empty with
-# Visual C++) and the include directories of GAOL's headers as gaol::gaol
-# carries them, written out here (those of the project GAOL, should another
-# include it): only the headers are read, so that the test does not wait for
-# the library, which gaol::gaol would build first. The tests run in the C
-# locale, the message of GCC and Clang being translated otherwise; that of
-# Visual C++ is looked for by its number. Not with Visual C++ before 2019
-# 16.4, whose _Check_return_ before C++17 only /analyze reports, nor with
-# Clang for Windows. The autotools and meson builds have no such test: the
+# declarator, int f() [[nodiscard]];, of which GCC 13 only warns. Each is a
+# compile test (gaol_compile_test() above), which reads GAOL's headers only.
+# The tests run in the C locale, the message of GCC and Clang being translated
+# otherwise; that of Visual C++ is looked for by its number. Not with Visual C++
+# before 2019 16.4, whose _Check_return_ before C++17 only /analyze reports, nor
+# with Clang for Windows. The autotools and meson builds have no such test: the
 # header it checks is the same.
 function(gaol_nodiscard_test standard flags message)
   foreach(kind discard used)
     set(name nodiscard_${kind}_cxx${standard})
-    add_library(gaol_${name} OBJECT nodiscard.cpp)
-    set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE
-                          CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
-    target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
-    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flags})
-    target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
-    add_test(NAME ${name}
-      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
-    # One build at a time in the build directory, whatever ctest -j says: the
-    # lock of every compile test
-    set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests
-                         ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
     if(kind STREQUAL "discard")
+      gaol_compile_test(${name} nodiscard.cpp "${message}")
       target_compile_definitions(gaol_${name} PRIVATE GAOL_DISCARD)
-      set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${message}")
+    else()
+      gaol_compile_test(${name} nodiscard.cpp "")
     endif()
+    set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flags})
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
   endforeach()
 endfunction()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT MSVC_VERSION LESS 1924)

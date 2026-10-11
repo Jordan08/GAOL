@@ -1,32 +1,33 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily 
- * developed at the Swiss Federal Institute of Technology, Lausanne, 
- * Switzerland, and is now developed at the Laboratoire d'Informatique de 
- * Nantes-Atlantique, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
- *                         Nantes-Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------*/
+* gaol -- NOT Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily 
+* developed at the Swiss Federal Institute of Technology, Lausanne, 
+* Switzerland, and is now developed at the Laboratoire d'Informatique de 
+* Nantes-Atlantique, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de 
+*                         Nantes-Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
+* COPYING file for information.
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_expr_eval.h
-  \brief  Evaluation of an interval represented internally via an expression
+\file   gaol_expr_eval.h
+\brief  Evaluation of an interval represented internally via an expression
 
-  <long description>
+<long description>
 
-  \author Frederic Goualard
-  \date   2001-10-30
+\author Frederic Goualard, Joran NININ
+\date   2001-10-30
 */
 
 
-#ifndef __gaol_expr_eval_h__
-#define __gaol_expr_eval_h__
+#ifndef GAOL_EXPR_EVAL_H
+#define GAOL_EXPR_EVAL_H
 
 #include "gaol/gaol_eval_stack.h"
 #include "gaol/gaol_interval.h"
@@ -37,31 +38,31 @@
 
 namespace gaol_core {
   /*!
-    \brief Evaluation of an expression: the interval it denotes
-
-    The stack of the program an evaluation takes does not depend on the depth
-    of the tree (GAOL v5). GAOL visited the operands of a node from inside its
-    own visit(), one call within another per level of the tree: a sum of
-    100000 terms, a tree 100000 nodes deep, overflowed the stack of the
-    program. The evaluation still visits the operands so, which is the fastest
-    way for the short expressions, down to max_depth levels only. A node
-    deeper than that puts its operands, and itself once more below them, on a
-    stack of jobs of the evaluator's own, which grows in the heap: a loop
-    visits the operands from left to right, each leaving its value on the
-    stack of values, and the node, visited again, pops the values of its
-    operands and pushes its own. Every node below it is evaluated by the same
-    loop. The operations, their operands and their order are those of the
-    recursion, and so are the bounds.
-
-    A null node has no value: it sets error_occurred(), and the whole line
-    stands for it on the stack of values, so that the operands of the other
-    nodes stay in place. The interval an evaluation that set it gives means
-    nothing.
+  \brief Evaluation of an expression: the interval it denotes
+  
+  The stack of the program an evaluation takes does not depend on the depth
+  of the tree (GAOL v5). GAOL visited the operands of a node from inside its
+  own visit(), one call within another per level of the tree: a sum of
+  100000 terms, a tree 100000 nodes deep, overflowed the stack of the
+  program. The evaluation still visits the operands so, which is the fastest
+  way for the short expressions, down to max_depth levels only. A node
+  deeper than that puts its operands, and itself once more below them, on a
+  stack of jobs of the evaluator's own, which grows in the heap: a loop
+  visits the operands from left to right, each leaving its value on the
+  stack of values, and the node, visited again, pops the values of its
+  operands and pushes its own. Every node below it is evaluated by the same
+  loop. The operations, their operands and their order are those of the
+  recursion, and so are the bounds.
+  
+  A null node has no value: it sets error_occurred(), and the whole line
+  stands for it on the stack of values, so that the operands of the other
+  nodes stay in place. The interval an evaluation that set it gives means
+  nothing.
   */
   class expr_eval : public expr_visitor {
-  public:
+    public:
     expr_eval() : depth(0), running(false), combining(false) {}
-    virtual void visit(null_node* node) {
+    virtual void visit(null_node*) {
       error = true;
       stack.push(interval());
     }
@@ -258,15 +259,15 @@ namespace gaol_core {
     interval result() {
       return stack.pop();
     }
-  private:
+    private:
     // The levels of the tree visited one call within another, beyond which
     // the loop of run() takes over (see the class)
     static const unsigned int max_depth = 32;
     /*
-      What the loop of run() does with a node: visit it, or, when combine is
-      true, visit it again once its operands are on the stack of values, to
-      combine them. No constructor: the jobs a stack holds without
-      allocating are left as they are until pushed.
+    What the loop of run() does with a node: visit it, or, when combine is
+    true, visit it again once its operands are on the stack of values, to
+    combine them. No constructor: the jobs a stack holds without
+    allocating are left as they are until pushed.
     */
     struct job {
       expr_node* node;
@@ -280,15 +281,15 @@ namespace gaol_core {
       unsigned int& depth;
     };
     /*
-      Called first by the visit() of a node with operands: puts the values of
-      its operands, first then second, on the stack of values and gives false,
-      the node then computing its own; or gives true, and the node returns,
-      when the values are not there yet. Within max_depth levels, the operands
-      are visited here, one call within another. Deeper, or in the loop of
-      run(), the node, then its operands in reverse, go on the stack of jobs,
-      so that they come out from left to right, and the node is visited again
-      once its operands are on the stack of values, then to compute; the
-      first node that does so starts the loop.
+    Called first by the visit() of a node with operands: puts the values of
+    its operands, first then second, on the stack of values and gives false,
+    the node then computing its own; or gives true, and the node returns,
+    when the values are not there yet. Within max_depth levels, the operands
+    are visited here, one call within another. Deeper, or in the loop of
+    run(), the node, then its operands in reverse, go on the stack of jobs,
+    so that they come out from left to right, and the node is visited again
+    once its operands are on the stack of values, then to compute; the
+    first node that does so starts the loop.
     */
     bool operands(expr_node* node, expr_node* first, expr_node* second = 0) {
       if (combining) {
@@ -344,7 +345,12 @@ namespace gaol_core {
     //! True while the visit of a node computes from the values of its operands
     bool combining;
   };
+  
+  } // namespace gaol_core
 
-} // namespace gaol_core
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::expr_eval;
+} // namespace gaol
 
-#endif /* __gaol_expr_eval_h__ */
+#endif /* GAOL_EXPR_EVAL_H */

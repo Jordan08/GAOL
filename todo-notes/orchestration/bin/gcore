@@ -1,0 +1,31 @@
+#!/bin/bash
+# gcore [-n N] <command...>
+#
+# Runs <command> while holding N (default 1) of the 4 core tokens that every
+# agent of this session shares, so that the compilations and the test runs that
+# go on at the same time never use more than 4 cores of the machine in total
+# (the machine has 8, and its owner works on it too). The command itself must
+# be single-threaded when N is 1: cmake --build <dir> -j1, ctest -j1, make -j1,
+# ninja -j1. Wait for a free token as long as it takes.
+N=1
+if [ "$1" = "-n" ]; then N=$2; shift 2; fi
+case "$N" in 1|2|3|4) ;; *) echo "gcore: N must be 1, 2, 3 or 4" >&2; exit 2;; esac
+[ $# -ge 1 ] || { echo "usage: gcore [-n N] <command...>" >&2; exit 2; }
+D="$(cd "$(dirname "$0")/.." && pwd)/corelocks"
+mkdir -p "$D"
+exec {gate}>"$D/gate"
+flock "$gate"                      # one agent at a time collects its tokens: no deadlock
+held=" "; count=0
+while [ "$count" -lt "$N" ]; do
+  progress=0
+  for i in 0 1 2 3; do
+    [ "$count" -ge "$N" ] && break
+    case "$held" in *" $i "*) continue ;; esac
+    exec {fd}>"$D/token$i"
+    if flock -n "$fd"; then held="$held$i "; count=$((count+1)); progress=1
+    else exec {fd}>&-; fi
+  done
+  [ "$progress" -eq 0 ] && sleep 1
+done
+exec {gate}>&-                     # the tokens stay locked by the descriptors the command inherits
+exec "$@"

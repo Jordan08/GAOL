@@ -22,6 +22,7 @@
 # directives of the committed files.
 #
 # Copyright (c) 2026 ENSTA, France
+# Modified by Joran NININ (GAOL v5)
 #
 # Created 2026-09-27 by Jordan NININ
 set -e

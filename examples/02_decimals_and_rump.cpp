@@ -185,13 +185,14 @@ int main()
   std::cout << "\nOn a number, sqrt is the C library's\n";
 
   // sqrt(2.0) calls sqrt(double) of <cmath>, which fits a double better than
-  // GAOL's sqrt(const interval&): it returns sqrt(2) rounded to a double,
-  // which converts silently to an interval, a point. sqrt(2) is irrational,
-  // and no double.
+  // GAOL's sqrt(const interval&): it returns sqrt(2) rounded to a double.
+  // interval r = sqrt(2.0) does not compile, interval(double) being explicit
+  // (GAOL v5), but interval r(sqrt(2.0)) still makes that double a point.
+  // sqrt(2) is irrational, and no double.
   const interval sqrt2 = textToInterval("1.4142135623730950488016887242096980785696718753769");
-  const interval root_point = sqrt(2.0);
-  show("interval r = sqrt(2.0): a point, the rounded double, which misses sqrt(2)", root_point);
-  check(root_point.left() == root_point.right(), "interval r = sqrt(2.0) is a point");
+  const interval root_point(sqrt(2.0));
+  show("interval r(sqrt(2.0)): a point, the rounded double, which misses sqrt(2)", root_point);
+  check(root_point.left() == root_point.right(), "interval r(sqrt(2.0)) is a point");
   show("sqrt(interval(2.0)): contains sqrt(2)", sqrt(interval(2.0)));
   check(sqrt(interval(2.0)).set_contains(sqrt2), "sqrt(interval(2.0)) contains sqrt(2)");
   // The parser computes the expressions it reads with intervals
@@ -201,15 +202,15 @@ int main()
   // ------------------------------------------------------------------------
   std::cout << "\nPi\n";
 
-  const interval pi = textToInterval("3.1415926535897932384626433832795028841971693993751");
+  const interval pi_digits = textToInterval("3.1415926535897932384626433832795028841971693993751");
   show("interval::pi(): contains pi", interval::pi());
-  check(interval::pi().set_contains(pi), "interval::pi() contains pi");
+  check(interval::pi().set_contains(pi_digits), "interval::pi() contains pi");
   // Machin's formula (1706). 1/5 and 1/239 are no doubles either:
   // interval(1.0) / 5.0 encloses 1/5, where atan(0.2) would take the
   // arctangent of a double near it
   const interval machin = 16.0 * atan(interval(1.0) / 5.0) - 4.0 * atan(interval(1.0) / 239.0);
   show("16 atan(1/5) - 4 atan(1/239) (Machin): contains pi", machin);
-  check(machin.set_contains(pi), "Machin's formula contains pi");
+  check(machin.set_contains(pi_digits), "Machin's formula contains pi");
   show("sin(interval::pi()): contains 0", sin(interval::pi()));
   check(sin(interval::pi()).set_contains(0.0), "sin(interval::pi()) contains 0");
   // M_PI is the double nearest pi, below it: its sine is positive, and the

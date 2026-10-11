@@ -14,7 +14,7 @@ name: Manual
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
     paths: ['manual/**', '.github/workflows/manual.yml']
   pull_request:
     paths: ['manual/**', '.github/workflows/manual.yml']

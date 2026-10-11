@@ -1,27 +1,31 @@
 #!/bin/sh
 # The locale writing a decimal comma that tests/numbers.cpp reads and writes
-# numbers under (GAOL v5), on the Ubuntu runners of the continuous integration.
-# The test sets the first of fr_FR.UTF-8, de_DE.UTF-8... the system has, and
-# where it has none, says "No locale writing a decimal comma" and passes
-# without a number read under such a locale, which is what the runners, which
-# have none, made it do. To be run from the root of GAOL's sources, in the job
-# of a runner:
+# numbers under (GAOL v5), in the jobs of the continuous integration. The test
+# sets the first of fr_FR.UTF-8, de_DE.UTF-8... French_France.1252 the system
+# has, and where it has none, says "No locale writing a decimal comma" and
+# passes without a number read under such a locale, which is what the Ubuntu
+# runners and the Debian images, which have none, made it do. To be run from
+# the root of GAOL's sources, in the job of a runner or in a container:
 #
-#   sh .github/scripts/comma-locale.sh generate            before the tests
-#   sh .github/scripts/comma-locale.sh check <build dir>   after the tests
+#   sh .github/scripts/comma-locale.sh generate        before the tests
+#   sh .github/scripts/comma-locale.sh check <build dir | log file>
+#                                                       after them
 #
-# generate makes fr_FR.UTF-8 with locale-gen, after installing the package
-# locales where the image has not got it, and fails if that locale does not
-# write a decimal comma afterwards: locale-gen succeeds, and says nothing,
-# where it generated nothing. It is meant for Ubuntu, whose locale-gen takes
-# the name of a locale (Debian's takes none, and reads /etc/locale.gen).
+# generate makes fr_FR.UTF-8 with localedef, after installing the package
+# locales where the system has not got it, on Ubuntu and on Debian (whose
+# locale-gen takes no name of a locale, and reads /etc/locale.gen), with sudo
+# unless it runs as root, as in a container; it fails if that locale does not
+# write a decimal comma afterwards. macOS and Windows have such a locale:
+# their jobs only check.
 #
-# check fails if the output of the tests that ctest ran in <build dir> has no
-# check of numbers under a locale writing a decimal comma. ctest keeps that
-# output, of the tests that passed too, in Testing/Temporary/LastTest.log, so
-# that the tests need not be run a second time (numbers takes more than two
-# minutes with the sanitizers); check has to run right after the tests, before
-# another ctest writes that file again.
+# check fails if the output of the tests has no check of numbers under a
+# locale writing a decimal comma. Given a build directory, it reads the output
+# that ctest ran there, which ctest keeps, of the tests that passed too, in
+# Testing/Temporary/LastTest.log, so that the tests need not be run a second
+# time (numbers takes minutes with the sanitizers): check has to run right
+# after the tests, before another ctest writes that file again. Given a file,
+# it reads it: tests/numbers.log of make test with the autotools,
+# meson-logs/testlog.txt of meson.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -30,10 +34,12 @@ set -e
 locale=fr_FR.UTF-8
 case "$1" in
   generate)
-    dpkg -s locales > /dev/null 2>&1 || { sudo apt-get update -q; sudo apt-get install -y -q locales; }
-    # The locales of the runner, before and after
+    # As root in a container, where there may be no sudo
+    as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi; }
+    dpkg -s locales > /dev/null 2>&1 || { as_root apt-get update -q; as_root apt-get install -y -q locales; }
+    # The locales of the system, before and after
     locale -a
-    sudo locale-gen "$locale"
+    as_root localedef -i fr_FR -f UTF-8 "$locale"
     locale -a
     if [ "$(LC_ALL=$locale locale decimal_point)" != , ]; then
       echo "$locale was not generated, or does not write a decimal comma"
@@ -41,7 +47,10 @@ case "$1" in
     fi
     ;;
   check)
-    log="${2:?the build directory of the tests}/Testing/Temporary/LastTest.log"
+    log="${2:?the build directory of the tests, or the file of their output}"
+    if [ -d "$log" ]; then
+      log="$log/Testing/Temporary/LastTest.log"
+    fi
     # The lines of the summary of the test (summary() of tests/gaol_tests.h):
     # the name of a check, which those of tests/numbers.cpp under that locale
     # end with, its number of checks and of failures. Its message where it
@@ -53,7 +62,7 @@ case "$1" in
     fi
     ;;
   *)
-    echo "usage: sh .github/scripts/comma-locale.sh generate | check <build dir>"
+    echo "usage: sh .github/scripts/comma-locale.sh generate | check <build dir | log file>"
     exit 2
     ;;
 esac

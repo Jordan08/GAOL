@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -39,11 +40,12 @@
 #include <locale>
 #include <cstdlib>
 #include <cstdio>
+#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <sstream>
 
-#if USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
 #  include <pmmintrin.h>
 #endif
 
@@ -58,7 +60,6 @@
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_ieee1788.h"
-#include "gaol/gaol_parameters.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 
@@ -80,18 +81,31 @@ namespace gaol {
 
 namespace gaol_core {
 
-
-
+  // The bounds of pi and pi/2 (gaol/gaol_port.h), and 2^52, from which on the
+  // doubles are integers, which gaol_port.h declared for the code using GAOL
+  // too (GAOL v5)
+  using namespace gaol_detail;
+  const double two_power_52 = 4503599627370496.0;
 
   // I^e for a non-empty I and e > 0, defined below: gaol_uipow(), in the
   // files included here, calls it
   static interval uipow_nonempty(const interval& I, unsigned int e);
 
-#if USING_SSE2_INSTRUCTIONS
+#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
+  // Set by init() (gaol/gaol_common.cpp), from the GAOL_PREFER_AVX512 of the
+  // build and the instructions the processor has: +, -, *, / and sqrt take
+  // the AVX-512 path of gaol/gaol_interval_avx512.cpp then, which sets
+  // neither the rounding direction nor the flush-to-zero modes (GAOL v5)
+  extern bool avx512_arithmetic;
+
+#  include <immintrin.h>   // the AVX-512 intrinsics of the path below
+#  include "gaol/gaol_interval_avx512.cpp"
+#endif
+#if GAOL_USING_SSE2_INSTRUCTIONS
 #  include "gaol/gaol_interval_sse.cpp"
 #else
 #  include "gaol/gaol_interval_fpu.cpp"
-#endif // USING_SSE2_INSTRUCTIONS
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   /*
     x^n rounded upward and downward from exact products, x >= 0 and n >= 2, the
@@ -102,14 +116,27 @@ namespace gaol_core {
 
     The power is kept as h + l, l being small: a product h*y, rounded upward,
     is p, and fma(h, y, -p) is the rest h*y - p <= 0, a double, exactly. The
-    upper bound keeps h + l above the power, l <= 0 being rounded upward. The
-    lower bound keeps h - nl below it, nl >= 0 being rounded upward, and the
-    square of nl, which would raise it, left out. The power is only rounded at the
-    end, h + l upward and h - nl downward: the bounds are the tightest, or one
-    double beyond where the power is within n 2^-104 of a double, and exact
-    where the power is a double. false when a product is not finite, or is
-    below 2^-968, its rest being no double then: the rounded products handle
-    these powers, 0 included.
+    upper bound keeps h + l above the power, l <= 0 being rounded upward:
+    (h + l)^2 = p + (h*h - p) + l*(2h + l). The lower bound keeps h - nl below
+    it, nl >= 0 being rounded upward: (h - nl)^2 = p - ((p - h*h) +
+    nl*(2h - nl)). The square of nl raises the lower bound: left out (GAOL
+    v5, review #7 of examples/examples.md), the lower bound of x^n was 8
+    doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
+    2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
+    2^28.
+
+    The power is only rounded at the end, h + l upward and h - nl downward.
+    The rest of x^k is below (k - 1) 2^-52 x^k; squaring x^k rounds three
+    terms below twice that, the rounding of the rest of p adding 2^-104
+    x^2k at most, and a product by x rounds two, relatively: h + l and h - nl
+    are within (3s + 2m) n 2^-104 of x^n, relatively, s and m being the
+    numbers of squarings and of products by x, 5 log2(n) n 2^-104 at most
+    (about 1.8 log2(n) n 2^-104 found, n up to 2^32 - 1). The bounds
+    are thus the tightest, or one double beyond where the power is within
+    5 log2(n) n 2^-104 of a double, relatively, and exact where the power is
+    a double. false when a product is not finite, or is below 2^-968, its
+    rest being no double then: the rounded products handle these powers, 0
+    included.
   */
   // Whether the rest of the product rounded to p is a double for sure: a
   // multiple of 2^-105 p, it is one from p = 2^-968 on. Not for an infinite p
@@ -157,7 +184,7 @@ namespace gaol_core {
       if (!is_normal_product(p)) {
 	return false;
       }
-      nl = std::fma(-h,h,p) + (2.0*h)*nl; // p - h*h, rounded upward in an underflow only
+      nl = std::fma(-h,h,p) + nl*(2.0*h - nl); // p - (h - nl)^2 rounded upward, as are 2h - nl and nl*(2h - nl), nl >= 0
       h = p;
       if (n & bit) {
 	p = h*x;
@@ -424,15 +451,177 @@ namespace gaol_core {
     return minimum(upward::atan2_up(y,x), pi_up);
   }
 
-  // x^y for x > 0: 1 for x = 1 or y = 0, and at least 0
+  // x > 0 finite as m 2^e, m an odd integer, read from the bits of x (in
+  // pow_is_double() and hypot()): std::frexp(), std::ldexp() and a loop over
+  // the trailing zeros cost as much as CORE-MATH's pow. The lowest set bit of
+  // the significand is a power of two below 2^53, a double whose exponent is
+  // the number of trailing zeros
+  static inline void odd_significand(double x, std::uint64_t& m, int& e)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const int field = static_cast<int>(bits >> 52); // no sign bit; 0 for a subnormal
+    m = bits & ((static_cast<std::uint64_t>(1) << 52) - 1);
+    e = -1074;
+    if (field != 0) {
+      m |= static_cast<std::uint64_t>(1) << 52;
+      e = field - 1075;
+    }
+    const double lowest = static_cast<double>(m & (~m + 1)); // exact
+    std::memcpy(&bits, &lowest, sizeof bits);
+    const int zeros = static_cast<int>(bits >> 52) - 1023;
+    m >>= zeros;
+    e += zeros;
+  }
+
+  /*
+    Whether x^y is a double, and that double d, for a finite x > 0 other than
+    1 and a finite y other than 0 (GAOL v5). pow_lo() takes d as the lower
+    bound, where the double below CORE-MATH's value rounded upward is one
+    double below it: pow([4], 0.5) was [2 - 2^-52, 2]. Calling CORE-MATH
+    downward too would tell, at twice the cost of every power: this proves it
+    instead, with integers and with operations on doubles that are exact
+    whatever the rounding direction, and leaves at the first tests for nearly
+    every y. y is a/2^k, a an odd integer and k >= 1, or an integer a (k = 0),
+    and x is m 2^e, m an odd integer.
+    - m = 1: x^y = 2^(e y), a double where e y is an integer of [-1074, 1023],
+      and irrational elsewhere. As |e| <= 1074 < 2^11, e y is an integer only
+      where 2^k divides e, k <= 10: 1024 y is an integer j, and e j a multiple
+      of 1024. The product e*y of doubles could not tell: for e = 3 and y the
+      double nearest 1/3, 3 y = 1 - 2^-54 rounds to 1.
+    - m >= 3: x^y is rational only where x is the 2^k-th power of a rational
+      z (a and 2^k being coprime), which is c 2^f with c odd, x being dyadic:
+      m = c^(2^k), e = f 2^k, and x^y = z^a = c^a 2^(f a). That is no double
+      for a < 0 (c >= 3), and a double for a > 0 where c^a < 2^53,
+      f a >= -1074 and c^a 2^(f a) < 2^1024. c >= 3 gives a <= 33
+      (3^33 < 2^53 < 3^34) and 2^k <= 33 (3^(2^k) <= m < 2^53): y is a multiple
+      of 1/32 in (0, 33]. Then 2^k has to divide e, and m to be a 2^k-th
+      power: the square root of a double is exact at a perfect square below
+      2^53, and r*r is m for no integer r otherwise. c^a is a product of
+      doubles, exact below 2^53, and at least 2^53 above it, 2^53 being a
+      double.
+  */
+  static bool pow_is_double(double x, double y, double& d)
+  {
+    if (!(y >= -1075.0 && y <= 1075.0)) {
+      return false; // |e y| > 1074 for |e| >= 1
+    }
+    const double scaled = 1024.0*y; // exact, unless flush-to-zero makes it 0 (|y| < 2^-1032)
+    const int j = static_cast<int>(scaled);
+    if (j == 0 || static_cast<double>(j) != scaled) {
+      return false; // k > 10, j being 0 for y != 0 only where 1024 y was flushed to 0
+    }
+    std::uint64_t m;
+    int e;
+    odd_significand(x, m, e);
+    if (m == 1) {
+      const int t = e*j; // 1024 e y, below 1.2e9 in magnitude
+      if (t % 1024 != 0 || t < -1074*1024 || t > 1023*1024) {
+        return false;
+      }
+      d = std::ldexp(1.0, t/1024);
+      return true;
+    }
+    if (j <= 0 || j > 33*1024 || (j >= 2048 && m >= (static_cast<std::uint64_t>(1) << 27))) {
+      return false; // c^a = m^y >= 2^54 for y >= 2 and m >= 2^27, as for most x
+    }
+    // y = a/2^k: j = a 2^(10-k), whose lowest set bit is 2^(10-k) for k > 0
+    const double lowest = static_cast<double>(j & -j); // exact
+    std::uint64_t bits;
+    std::memcpy(&bits, &lowest, sizeof bits);
+    const int zeros = static_cast<int>(bits >> 52) - 1023;
+    const int k = (zeros >= 10) ? 0 : 10 - zeros, a = j >> (10 - k);
+    if (k > 5 || (static_cast<unsigned int>(e) & ((1u << k) - 1u)) != 0u) {
+      return false; // 2^k does not divide e
+    }
+    for (int i = 0; i < k; ++i) {
+      const std::uint64_t r = static_cast<std::uint64_t>(std::sqrt(static_cast<double>(m)));
+      if (r*r != m) {
+        return false;
+      }
+      m = r;
+    }
+    const double c = static_cast<double>(m);
+    double p = c; // c^a
+    for (int i = 1; i < a; ++i) {
+      p *= c;
+      if (!(p < 9007199254740992.0)) { // 2^53
+        return false;
+      }
+    }
+    std::memcpy(&bits, &p, sizeof bits);
+    const int b = static_cast<int>(bits >> 52) - 1022; // 2^(b-1) <= c^a < 2^b
+    const int s = e/(1 << k)*a; // f a
+    if (s < -1074 || s + b > 1024) {
+      return false;
+    }
+    d = std::ldexp(p, s); // exact
+    return true;
+  }
+
+  /*
+    x^y rounded upward for x >= 0 and a finite y, the rounding direction
+    being upward: CORE-MATH's pow, which is correctly rounded in that
+    direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
+    |y| >= 2^1014, and a finite x > 0 other than 1, whose power is computed
+    here (GAOL v5). For those, the first phase of CORE-MATH's pow makes its
+    approximation of log(x) a NaN on purpose (the exponent field of y below
+    0x36 or from 0x7f5 on), so that its rounding test fails, and compares the
+    NaN product with 2^-1022 with <, which raises the invalid-operation
+    exception: pow([1, 2], [1e-300]) and pow([1, 2], [1e300, 1e308]) raised
+    it, and killed a program that enabled it. The value is known there,
+    |log(x)| being between 2^-54 and 745 for a positive double x other than 1:
+    - |y| < 2^-969: 0 < |y log(x)| < 2^-959, and x^y is within 2^-958 of 1,
+      above 1 where y log(x) > 0: x^y rounded upward is the double above 1
+      there, and 1 otherwise;
+    - |y| >= 2^1014: |y log(x)| > 2^960, and x^y is above DBL_MAX where
+      y log(x) > 0, rounded upward to +oo, and below 2^-1074 otherwise,
+      rounded upward to 2^-1074.
+    These are the values CORE-MATH gives, and the double below each the lower
+    bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
+    and +oo apart before its first phase.
+  */
+  static inline double pow_rounded_up(double x, double y)
+  {
+    // 2^-969 and 2^1014, written in decimal with the digits that give them
+    // exactly: C++11 has no hexadecimal floating literal
+    const double magnitude = std::fabs(y);
+    if (magnitude >= 2.0041683600089728e-292 && magnitude < 1.7555597020139804e+305) {
+      return upward::nthroot_up(x, y);
+    }
+    if (x == 1.0 || y == 0.0) {
+      return 1.0;
+    }
+    if (x == 0.0 || x == GAOL_INFINITY) {
+      return upward::nthroot_up(x, y);
+    }
+    const bool above_one = (x > 1.0) == (y > 0.0);
+    if (magnitude < 1.0) {
+      return above_one ? 1.0 + std::numeric_limits<double>::epsilon() : 1.0;
+    }
+    return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+  }
+
+  static inline double pow_rounded_dn(double x, double y)
+  {
+    return previous_float(pow_rounded_up(x, y));
+  }
+
+  // x^y for x > 0: 1 for x = 1 or y = 0, x^y where it is a double
+  // (pow_is_double()), the double below CORE-MATH's value rounded upward
+  // otherwise, and at least 0
   static inline double pow_lo(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : maximum(upward::nthroot_dn(x,y), 0.0);
+    double d;
+    if (x == 1.0 || y == 0.0) {
+      return 1.0;
+    }
+    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : upward::nthroot_up(x,y);
+    return (x == 1.0 || y == 0.0) ? 1.0 : pow_rounded_up(x,y);
   }
 
   static inline double sinh_lo(double x)
@@ -474,24 +663,71 @@ namespace gaol_core {
   static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : upward::atanh_dn(x); }
   static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : upward::atanh_up(x); }
 
+  // feven() of an integer i that an operation computed: neither i nor its
+  // half is subnormal, so that the modes that flush the subnormals to zero
+  // change nothing here
+  static bool integer_is_even(double i)
+  {
+    return (std::floor(0.5*i)*2.0 == i);
+  }
+
   /*
     \brief test for evenness
     \warning d should not be +/-oo
   */
   bool feven(double d)
   {
-    return (std::floor(0.5*d)*2.0 == d);
+    // A subnormal is no integer, which its bits tell whatever the modes that
+    // flush the subnormals to zero: under denormals-are-zero, 0.5*d and d
+    // were 0 for the comparison, and feven(2^-1074) was true (GAOL v5,
+    // point Q of TODO.md)
+    if (gaol_detail::bound_is_subnormal(d)) {
+      return false;
+    }
+    return integer_is_even(d);
   }
 
 
+  /*
+    The double above x, from its bits: the next one away from -oo, -0 above
+    the least negative subnormal, the least positive subnormal above a zero,
+    +oo above DBL_MAX; a NaN and +oo stay as they are. nextafter() of the C
+    library computes with doubles, which the modes that flush the subnormals
+    to zero change: under denormals-are-zero, the UCRT of Windows and the
+    libm of macOS (arm64 and x86_64) did not give the subnormal above 100
+    times 2^-1074 (GAOL v5, point Q of TODO.md, continuous integration)
+  */
+  static double next_double_above(double x)
+  {
+    if (!(x == x) || x == GAOL_INFINITY) {
+      return x;
+    }
+    std::uint64_t bits = gaol_detail::bound_bits(x);
+    if ((bits << 1) == 0) {
+      return std::numeric_limits<double>::denorm_min();
+    }
+    if ((bits >> 63) != 0) {
+      --bits; // a smaller magnitude
+    } else {
+      ++bits;
+    }
+    double above;
+    std::memcpy(&above, &bits, sizeof above);
+    return above;
+  }
+
+  // The bounds compared as the relations compare them, and the double above
+  // the left one taken from its bits, whatever the modes that flush the
+  // subnormals to zero: under denormals-are-zero, [2^-1074, 3*2^-1074] was
+  // canonical (GAOL v5, point Q of TODO.md)
   bool interval::is_canonical(void) const
   {
 #if defined (_MSC_VER)
-    return !is_empty() && (next_float(left())>=right());
+    return !is_empty() && gaol_detail::bound_greater_equal(next_double_above(left()), right());
 #else
     // emptyset handled thanks to unorderedness of NaNs, with a quiet
     // comparison, which raises no invalid-operation exception on them (GAOL v5)
-    return std::isgreaterequal(next_float(left()),right());
+    return gaol_detail::bound_greater_equal(next_double_above(left()),right());
 #endif
   }
 
@@ -584,7 +820,7 @@ namespace gaol_core {
     `scientific`: one digit, the others after a point, and an exponent with
     its sign.
   */
-  void move_to_side(std::string& text, double magnitude, bool away, bool scientific)
+  static void move_to_side(std::string& text, double magnitude, bool away, bool scientific)
   {
     for (int moves = 0; moves < 4; ++moves) {
       const std::size_t last = scientific ? text.find_first_of("eE") : text.size(); // One past the mantissa
@@ -634,103 +870,283 @@ namespace gaol_core {
   }
 
   /*
-    The text of the bound x of an interval, written as os would write it (its
-    precision, its flags), and rounded downward, or upward if `upward`,
-    whatever the C library does. GAOL set the rounding direction and let the C
-    library write x, but not every C library rounds its decimal conversions in
-    the rounding direction: the C runtime of Windows rounds the magnitude, so
-    that -2/3 rounded downward was written -0.6666, and musl on 64-bit ARM
-    processors rounds to nearest whatever the direction (issue #3). The
-    magnitude is now written rounding to nearest, in the fixed format or in
-    the scientific one, and compared exactly with x: when it is on the wrong
-    side of x, its last digit is moved by one. The general format is made from
-    the scientific one, by the rules of printf's %g, rather than asked of the
-    C library: glibc 2.31 writes 999999.5 with six digits and the zeros kept
-    "1.e+06", whose last digit is not the sixth.
-    Left to the C library, with the rounding direction set: what is not a
-    finite nonzero number, and the hexadecimal floating-point format.
+    What GAOL takes from a stream to write a number: its flags, its precision
+    and its locale, whose facet numpunct gives the decimal point and, if
+    `grouped`, the grouping of the digits before it (GAOL v5). The text of an
+    interval is made from these in a character string, rather than in
+    std::ostringstreams, one for each interval and one for each bound: each
+    built a locale and its cached facets, and destroyed them, a third of the
+    work of writing an interval.
   */
-  std::string bound_to_text(double x, bool upward, const ostream& os)
+  namespace {
+  struct text_format {
+    std::ios_base::fmtflags flags;
+    std::streamsize precision;
+    std::locale loc;
+    const std::numpunct<char>& punct; // The facet of loc, which the copy keeps
+    bool grouped;
+
+    text_format(std::ios_base::fmtflags f, std::streamsize p, const std::locale& l, bool g = false)
+      : flags(f), precision(p), loc(l), punct(std::use_facet<std::numpunct<char> >(loc)), grouped(g)
+    {
+    }
+  };
+
+  // How the text of a number is rounded: to nearest, as a stream writes a
+  // double, or downward or upward for the bound of an interval
+  enum text_rounding { text_nearest, text_downward, text_upward };
+  } // namespace
+
+  /*
+    x written by a stream that has the flags, the precision and the locale of
+    fmt, under the rounding direction asked: what number_to_text() leaves to
+    the C library and the facets of the locale, whatever they are, as it
+    cannot write it as the stream does. That is a NaN, the hexadecimal
+    floating-point format, and a conversion of the C library that fails.
+  */
+  static std::string stream_text(double x, text_rounding rounding, const text_format& fmt)
   {
-    const std::ios_base::fmtflags floatfield = os.flags() & std::ios_base::floatfield;
-    if (x == 0.0 || !is_finite(x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
-      std::ostringstream as_it_was;
-      as_it_was.copyfmt(os);
-      as_it_was.width(0);
-      // Zero has no digit to round, and the C runtime of Windows, asked to write
-      // it in the upward direction, writes 0.1 (the point interval [0, 0] came
-      // out as <0.0, 0.1>): it is written to nearest. The other cases keep the
-      // direction of the bound, the hexadecimal format being rounded by the C
-      // library when the stream limits its digits.
-      if (x == 0.0) {
-        round_nearest();
-      } else if (!upward) {
-        round_downward();
+    std::ostringstream out;
+    out.flags(fmt.flags);
+    out.precision(fmt.precision);
+    out.imbue(fmt.loc);
+    // Zero has no digit to round, and the C runtime of Windows, asked to write
+    // it in the upward direction, writes 0.1 (the point interval [0, 0] came
+    // out as <0.0, 0.1>): it is written to nearest. The other cases keep the
+    // direction of the bound, the hexadecimal format being rounded by the C
+    // library when the stream limits its digits.
+    if (x == 0.0 || rounding == text_nearest) {
+      round_nearest();
+    } else if (rounding == text_downward) {
+      round_downward();
+    }
+    out << x;
+    round_upward();
+    return out.str();
+  }
+
+  /*
+    The magnitude of a double written by the C library with `prec` digits after
+    the point, in the fixed format, or in the scientific one, rounded to
+    nearest: the same digits as the stream writes. printf follows the decimal
+    point of the C locale, a comma under some, where a stream of C++ follows
+    its own locale: the point is written as a '.' whatever the locale, from
+    its position among the digits, which the precision gives.
+  */
+  static bool magnitude_text(std::string& text, double magnitude, bool fixed, int prec)
+  {
+    char buffer[512];
+    const char *const format = fixed ? "%.*f" : "%.*e";
+    round_nearest();
+    int n = std::snprintf(buffer, sizeof buffer, format, prec, magnitude);
+    if (n >= 0 && static_cast<std::size_t>(n) < sizeof buffer) {
+      text.assign(buffer, static_cast<std::size_t>(n));
+    } else if (n >= 0) {
+      text.assign(static_cast<std::size_t>(n) + 1, '\0');
+      n = std::snprintf(&text[0], text.size(), format, prec, magnitude);
+      text.resize((n >= 0) ? static_cast<std::size_t>(n) : 0);
+    }
+    round_upward();
+    if (n < 0 || text.empty()) {
+      return false;
+    }
+    if (prec > 0) {
+      // 3.14e+00 or 3.14: the point is where the digits before it end, and it
+      // ends where the digits after it, of the precision, begin
+      const std::size_t point = fixed ? text.find_first_not_of("0123456789") : 1;
+      const std::size_t digits_end = fixed ? text.size() : text.find('e');
+      if (point == std::string::npos || digits_end == std::string::npos
+          || digits_end < point + static_cast<std::size_t>(prec) + 1) {
+        return false;
       }
-      as_it_was << x;
-      round_upward();
-      return as_it_was.str();
+      const std::size_t length = digits_end - static_cast<std::size_t>(prec) - point;
+      if (length != 1 || text[point] != '.') {
+        text.replace(point, length, 1, '.');
+      }
+    }
+    return true;
+  }
+
+  /*
+    The digits text starts with, those before its decimal point, grouped as
+    std::num_put groups those of a double: from the point leftward, each group
+    as long as its character of grouping() says, the last one repeated, and
+    no group past a size of 0, a negative one or CHAR_MAX, which the standard
+    takes as unlimited (22.4.3.1.2). libstdc++ differs there for a facet a
+    program defines: it repeats the size before a 0 ("\3\0" groups 1234567 as
+    1,234,567, where libc++ and GAOL write 1234,567), and takes the sizes 128
+    to 254 for negative ones where char is unsigned (ARM, ppc64le, s390x).
+  */
+  static void group_digits(std::string& text, const std::numpunct<char>& punct)
+  {
+    const std::string grouping = punct.grouping();
+    std::size_t pos = text.find_first_not_of("0123456789");
+    if (pos == std::string::npos) {
+      pos = text.size();
+    }
+    std::size_t g = 0;
+    while (g < grouping.size()) {
+      const char size = grouping[g];
+      if (size <= 0 || size == CHAR_MAX || pos <= static_cast<std::size_t>(size)) {
+        break;
+      }
+      pos -= static_cast<std::size_t>(size);
+      text.insert(pos, 1, punct.thousands_sep());
+      if (g + 1 < grouping.size()) {
+        ++g;
+      }
+    }
+  }
+
+  /*
+    The text of a number x written as a stream with the flags, the precision
+    and the locale of fmt would write it, and, for the bound of an interval,
+    rounded downward, or upward, whatever the C library does. GAOL set the
+    rounding direction and let the C library write x, but not every C library
+    rounds its decimal conversions in the rounding direction: the C runtime of
+    Windows rounds the magnitude, so that -2/3 rounded downward was written
+    -0.6666, and musl on 64-bit ARM processors rounds to nearest whatever the
+    direction (issue #3). The magnitude is now written rounding to nearest, in
+    the fixed format or in the scientific one, and compared exactly with x:
+    when it is on the wrong side of x, its last digit is moved by one. The
+    general format is made from the scientific one, by the rules of printf's
+    %g, rather than asked of the C library: glibc 2.31 writes 999999.5 with six
+    digits and the zeros kept "1.e+06", whose last digit is not the sixth.
+    The text of a zero, or of an infinity, is made the same way, without
+    the comparison: "inf" is "INF" with the flag uppercase, but in the fixed
+    format, whose conversion the standard has as %f (a stream of libc++, which
+    uses %F, wrote "INF" there). With fmt.grouped, the
+    digits before the point are grouped as the locale has them, as a stream
+    groups those of a double: the midpoint and the radius of the width and
+    center formats, both alike (GAOL v5: a stream wrote the midpoint, grouped,
+    and GAOL the radius, which was not). The other texts are never grouped.
+    Left to a stream, with the rounding direction set (stream_text()): what
+    the text cannot be made of.
+  */
+  static std::string number_to_text(double x, text_rounding rounding, const text_format& fmt)
+  {
+    const std::ios_base::fmtflags floatfield = fmt.flags & std::ios_base::floatfield;
+    // A subnormal under denormals-are-zero, which a program may set, compares
+    // equal to 0. operator<< and intervalToText() clear that mode before
+    // they write (GAOL v5, point Q of TODO.md), where GAOL can (x86, and ARM
+    // with GCC and Clang): only where it cannot (ARM with Visual C++, the
+    // program having set FZ itself) does a subnormal come here. The C
+    // library may write it 0 under the mode (the snprintf called below did
+    // for 5e-324 with MSYS2 CLANG64, gdtoa does), and GAOL wrote it to
+    // nearest, below an upper bound: a bound is written as the double on its
+    // outer side that no mode changes, the smallest normal double, 2^-1022,
+    // away from zero, and 0 toward it, loose but outward (GAOL v5, point Q).
+    // A number written to nearest is written by a stream, as before. Tested
+    // before the hexadecimal format, which a stream writes too.
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    if (x == 0.0 && (bits << 1) != 0) {
+      if (rounding == text_nearest) {
+        return stream_text(x, text_nearest, fmt);
+      }
+      const bool away = (rounding == text_upward) == !std::signbit(x);
+      const double smallest_normal = std::numeric_limits<double>::min();
+      return number_to_text(away ? (std::signbit(x) ? -smallest_normal : smallest_normal) : 0.0, rounding, fmt);
+    }
+    if (!(x == x) || floatfield == (std::ios_base::fixed | std::ios_base::scientific)) {
+      return stream_text(x, rounding, fmt);
     }
 
     const bool fixed = (floatfield == std::ios_base::fixed);
     const bool general = (floatfield == 0);
-    // %g takes a precision of 0 as 1, and writes that many significant digits
-    const std::streamsize digits = (general && os.precision() <= 0) ? 1 : os.precision();
-    std::ostringstream out;
-    out.imbue(std::locale::classic());
-    out.setf(fixed ? std::ios_base::fixed : std::ios_base::scientific, std::ios_base::floatfield);
-    out.precision(general ? digits - 1 : digits);
-    const double magnitude = std::fabs(x);
-    round_nearest();
-    out << magnitude;
-    round_upward();
-    std::string text = out.str();
-    // The magnitude written has to be at least that of x when rounding away
-    // from zero, and at most that of x otherwise
-    move_to_side(text, magnitude, upward == (x > 0.0), !fixed);
-
-    if (general) {
-      // d.ddde+XX as %g writes it: without an exponent when XX is from -4 to
-      // the precision, and without the zeros ending its fractional part,
-      // unless showpoint
-      const std::size_t e = text.find('e');
-      const long exponent = std::strtol(text.c_str() + e + 1, NULL, 10);
-      std::string mantissa = text.substr(0, e);
-      mantissa.erase(1, (mantissa.size() > 1) ? 1 : 0); // The digits
-      std::string tail;
-      if (exponent < -4 || exponent >= digits) {
-        tail = text.substr(e);
-        mantissa.insert(1, 1, '.');
-      } else if (exponent >= 0) {
-        mantissa.insert(static_cast<std::size_t>(exponent) + 1, 1, '.');
-      } else {
-        mantissa.insert(0, "0." + std::string(static_cast<std::size_t>(-exponent - 1), '0'));
+    const bool showpoint = ((fmt.flags & std::ios_base::showpoint) != 0);
+    std::string text;
+    if (x == GAOL_INFINITY || x == -GAOL_INFINITY) {
+      text = ((fmt.flags & std::ios_base::uppercase) && !fixed) ? "INF" : "inf";
+    } else {
+      // A stream writes 6 digits for a negative precision: so are the numbers
+      // written to nearest and the zeros. A bound that is not 0 takes it as 0
+      // in the general format, 1 digit, and as 6 in the fixed and scientific
+      // ones, as the stream that wrote it did
+      const bool as_stream = (rounding == text_nearest || x == 0.0);
+      const std::streamsize precision = (as_stream && fmt.precision < 0) ? 6 : fmt.precision;
+      // %g takes a precision of 0 as 1, and writes that many significant digits
+      const std::streamsize digits = (general && precision <= 0) ? 1 : precision;
+      std::streamsize prec = general ? digits - 1 : precision;
+      if (prec < 0) {
+        prec = 6;
+      } else if (prec > std::numeric_limits<int>::max() / 4) {
+        prec = std::numeric_limits<int>::max() / 4;
       }
-      if (!(os.flags() & std::ios_base::showpoint)) {
-        mantissa.erase(mantissa.find_last_not_of('0') + 1);
-        if (mantissa[mantissa.size() - 1] == '.') {
-          mantissa.erase(mantissa.size() - 1);
+      const double magnitude = std::fabs(x);
+      if (!magnitude_text(text, magnitude, fixed, static_cast<int>(prec))) {
+        // snprintf failed (a precision its buffer cannot hold), or its point
+        // was not found: the digits of a stream of the C locale, to nearest,
+        // as GAOL wrote them before, then moved outward as above. Never those
+        // of the C library under the directed rounding, which the C runtime of
+        // Windows and musl do not honour (issue #3)
+        std::ostringstream out;
+        out.imbue(std::locale::classic());
+        out.setf(fixed ? std::ios_base::fixed : std::ios_base::scientific, std::ios_base::floatfield);
+        out.precision(prec);
+        round_nearest();
+        out << magnitude;
+        round_upward();
+        text = out.str();
+      }
+      // The magnitude written has to be at least that of x when rounding away
+      // from zero, and at most that of x otherwise
+      if (rounding != text_nearest && x != 0.0) {
+        move_to_side(text, magnitude, (rounding == text_upward) == (x > 0.0), !fixed);
+      }
+
+      if (general) {
+        // d.ddde+XX as %g writes it: without an exponent when XX is from -4 to
+        // the precision, and without the zeros ending its fractional part,
+        // unless showpoint
+        const std::size_t e = text.find('e');
+        const long exponent = std::strtol(text.c_str() + e + 1, NULL, 10);
+        std::string mantissa = text.substr(0, e);
+        mantissa.erase(1, (mantissa.size() > 1) ? 1 : 0); // The digits
+        std::string tail;
+        if (exponent < -4 || exponent >= digits) {
+          tail = text.substr(e);
+          mantissa.insert(1, 1, '.');
+        } else if (exponent >= 0) {
+          mantissa.insert(static_cast<std::size_t>(exponent) + 1, 1, '.');
+        } else {
+          mantissa.insert(0, "0." + std::string(static_cast<std::size_t>(-exponent - 1), '0'));
+        }
+        if (!showpoint) {
+          mantissa.erase(mantissa.find_last_not_of('0') + 1);
+          if (mantissa[mantissa.size() - 1] == '.') {
+            mantissa.erase(mantissa.size() - 1);
+          }
+        }
+        text = mantissa + tail;
+      } else if (precision == 0 && showpoint) {
+        text.insert(fixed ? text.size() : text.find('e'), 1, '.');
+      }
+
+      const char point = fmt.punct.decimal_point();
+      for (std::size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '.') {
+          text[i] = point;
+        } else if (text[i] == 'e' && (fmt.flags & std::ios_base::uppercase)) {
+          text[i] = 'E';
         }
       }
-      text = mantissa + tail;
-    } else if (os.precision() == 0 && (os.flags() & std::ios_base::showpoint)) {
-      text.insert(fixed ? text.size() : text.find('e'), 1, '.');
-    }
-
-    const char point = std::use_facet<std::numpunct<char> >(os.getloc()).decimal_point();
-    for (std::size_t i = 0; i < text.size(); ++i) {
-      if (text[i] == '.') {
-        text[i] = point;
-      } else if (text[i] == 'e' && (os.flags() & std::ios_base::uppercase)) {
-        text[i] = 'E';
+      // After the point is in place: the separator of the groups may be '.'
+      if (fmt.grouped) {
+        group_digits(text, fmt.punct);
       }
     }
-    if (x < 0.0) {
+    if (std::signbit(x)) { // -0 is written -0, as a stream does
       text.insert(0, 1, '-');
-    } else if (os.flags() & std::ios_base::showpos) {
+    } else if (fmt.flags & std::ios_base::showpos) {
       text.insert(0, 1, '+');
     }
     return text;
+  }
+
+  static std::string bound_to_text(double x, bool upward, const text_format& fmt)
+  {
+    return number_to_text(x, upward ? text_upward : text_downward, fmt);
   }
 
   /*
@@ -745,46 +1161,52 @@ namespace gaol_core {
     [-0, -0], is written [0], the text of +0: the three are the set {0}, which
     [0] and [-0] are both read back as, and the text of interval::zero() is
     then the same whatever the build ([-0, +0] with the SSE2 intervals,
-    [+0, +0] with the FPU ones); the hexadecimal format writes the signs of the
-    bounds. The bounds are compared by their bits: under denormals-are-zero,
+    [+0, +0] with the FPU ones), and the hexadecimal format writes it [0x0p+0].
+    The bounds are compared by their bits: under denormals-are-zero,
     which a program may set, a subnormal compares equal to 0, and l == r and
     l == 0.0 would have [0, 5e-324] written [0]. (Under that mode,
-    bound_to_text() takes a subnormal bound for 0 as well, and writes it
+    bound_to_text() took a subnormal bound for 0 as well, and wrote it
     rounded to nearest rather than outward, so that two equal texts need not
-    be the double: with 1 digit, [22u] (u = 5e-324) is written [1e-322],
-    which is read as [20u, 21u].)
-    A text with a comma is not written alone between the brackets: the
-    reader, whose decimal point is '.', takes the decimal comma a stream
-    writes under a locale that has one for the comma between two bounds, so
-    that [-2,5] for interval(-2.5) would be the interval [-2, 5], [12,5] the
-    empty set, and [0,] (a zero in the fixed format with the showpoint flag
-    and no digit) [0, +oo]. The point is written with its two bounds then,
-    [-2,5, -2,5], which the reader refuses, as it refuses every bound written
-    with a decimal comma.
+    have been the double: with 1 digit, [22u] (u = 5e-324) was written
+    [1e-322], which is read as [20u, 21u]. operator<< and intervalToText()
+    clear that mode before they write, where GAOL can, and number_to_text()
+    writes such a bound outward where it cannot: GAOL v5, point Q of
+    TODO.md.)
+    fmt has the C locale, whose decimal point is '.', the reader's: operator<<
+    writes the bounds format with it whatever the locale of the stream (GAOL
+    v5). Under a locale writing a decimal comma, the reader took the comma of
+    [0,5, 2,5] for the one between two bounds and refused the text, and would
+    have read [-2,5] for interval(-2.5) as the interval [-2, 5], [12,5] as the
+    empty set and [0,] (a zero in the fixed format with the showpoint flag and
+    no digit) as [0, +oo]; GAOL wrote that point [-2,5, -2,5], which it
+    refused. A point is still written alone between the brackets only when
+    the decimal point of fmt is '.'.
     GAOL wrote every point interval <a, b>, the text of its double rounded
     downward and upward, which the reader takes for two numbers that are the
     same double only: <0.1, 0.1000000000000001> for interval(0.1) was refused,
     and textToInterval(intervalToText(interval(0.1))) was the empty set. The
     reader still takes the angles, which are no literal of the standard.
   */
-  void display_bounds(double l, double r, ostream& os)
+  static void display_bounds(double l, double r, std::string& out, const text_format& fmt)
   {
     // A quiet comparison, which raises no invalid-operation exception on the
     // NaN bounds of the empty set (GAOL v5)
-    if (!std::islessequal(l, r)) {
-      os << "[empty]";
+    if (!gaol_detail::quiet_less_equal(l, r)) {
+      out += "[empty]";
     } else {
       std::uint64_t lbits, rbits;
       std::memcpy(&lbits, &l, sizeof lbits);
       std::memcpy(&rbits, &r, sizeof rbits);
       const bool zero = ((lbits << 1) == 0 && (rbits << 1) == 0); // +0 or -0, both
-      const std::string left = bound_to_text(zero ? 0.0 : l, false, os);
-      const std::string right = bound_to_text(zero ? 0.0 : r, true, os);
-      if ((zero || (lbits == rbits && left == right)) && left.find(',') == std::string::npos) {
-        os << '[' << left << ']';
-      } else {
-        os << '[' << left << ", " << right << ']';
+      const std::string left = bound_to_text(zero ? 0.0 : l, false, fmt);
+      const std::string right = bound_to_text(zero ? 0.0 : r, true, fmt);
+      out += '[';
+      out += left;
+      if (!((zero || (lbits == rbits && left == right)) && fmt.punct.decimal_point() == '.')) {
+        out += ", ";
+        out += right;
       }
+      out += ']';
     }
   }
 
@@ -837,52 +1259,117 @@ namespace gaol_core {
                   (nb_digits > 0) ? "." : "", digits, exponent);
   }
 
+  /*
+    A point interval is written [a], as in the decimal format, and a point
+    interval of zero [0x0p+0], whatever the signs of its bounds, the three
+    being the set {0} (GAOL v5: it was written with its two bounds,
+    [0x1p+2, 0x1p+2], and [-0x0p+0, 0x0p+0] for interval::zero() with the
+    SSE2 intervals). The bounds are compared by their bits, which
+    denormals-are-zero does not change.
+  */
   std::string exact_string(const interval& I)
   {
     if (I.is_empty()) {
       return "[empty]";
     }
+    const double l = I.left(), r = I.right();
+    std::uint64_t lbits, rbits;
+    std::memcpy(&lbits, &l, sizeof lbits);
+    std::memcpy(&rbits, &r, sizeof rbits);
     char lo[64], hi[64];
-    write_hexa_bound(I.left(), lo, sizeof lo);
-    write_hexa_bound(I.right(), hi, sizeof hi);
+    if ((lbits << 1) == 0 && (rbits << 1) == 0) {
+      return "[0x0p+0]";
+    }
+    write_hexa_bound(l, lo, sizeof lo);
+    if (lbits == rbits) {
+      return std::string("[") + lo + "]";
+    }
+    write_hexa_bound(r, hi, sizeof hi);
     return std::string("[") + lo + ", " + hi + "]";
   }
 
   /*
-    The text is written in a stream of its own, with the flags and the locale
-    of os and the precision of interval::precision(), then into os at once
+    text into os as one item, padded to the width of os with its fill, to the
+    left, to the right, or inside (std::internal). os pads a string to the left
+    or to the right only: for std::internal, the fill is put where a number of
+    os has it (GAOL v5).
+  */
+  static void write_text(ostream& os, std::string& text)
+  {
+    // std::internal puts the fill after the sign of a number and its 0x
+    // prefix, before its digits. The text of the width and center formats
+    // starts with the sign of the midpoint, if it has one, and that of the
+    // agreeing digits with the sign of the bounds, and the fill goes after
+    // it, as std::internal padded the midpoint alone before the interval was
+    // written as a whole. The other texts start with '[', before which the
+    // fill goes, as with std::right, and std::complex writes its parentheses.
+    const std::streamsize width = os.width();
+    if ((os.flags() & std::ios_base::adjustfield) == std::ios_base::internal
+        && width > static_cast<std::streamsize>(text.size())) {
+      std::size_t at = (!text.empty() && (text[0] == '-' || text[0] == '+')) ? 1 : 0;
+      if (text.size() > at + 1 && text[at] == '0' && (text[at + 1] == 'x' || text[at + 1] == 'X')) {
+        at += 2;
+      }
+      if (at > 0) {
+        text.insert(at, static_cast<std::size_t>(width) - text.size(), os.fill());
+      }
+    }
+    os << text;
+  }
+
+  /*
+    The text is made in a character string, from the flags and the locale of
+    os and the precision of interval::precision(), then written into os at once
     (GAOL v5): os keeps its precision, and its width (std::setw) and
     adjustment apply to the whole interval. GAOL set the precision of os to
     interval::precision() and left it so, the doubles written afterwards
     getting 16 digits, and wrote the interval piece by piece, std::setw
     padding its '[' only.
+
+    The text is not written in a std::ostringstream of its own, whose locale
+    and cached facets, built and destroyed for each interval and each bound,
+    took a third of the work of writing an interval. os is only read, and is
+    never given another precision or width for the time of the writing: the
+    threads of a program writing to std::cout at once would race on them.
   */
   ostream& operator<<(ostream& os, const interval& I)
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
-    std::ostringstream out;
-    out.copyfmt(os);
-    out.width(0);
-    out.precision(interval::precision());
+    std::string text;
 
-    GAOL_RND_PRESERVE();
-	round_upward();
+    // The guard, rather than GAOL_RND_PRESERVE() and GAOL_RND_RESTORE(): the
+    // construction of the text may fail (std::bad_alloc), and a program
+    // reading the exception found the direction left as this function had
+    // set it, to nearest (GAOL v5). The check of the direction, as in
+    // intervalToText(), clears the modes that flush the subnormals to zero,
+    // which the guard sets back with GAOL_PRESERVE_ROUNDING: under
+    // denormals-are-zero, a subnormal bound was 0 for the comparisons and
+    // was written to nearest, [22*2^-1074] as [1e-322] with 1 digit, and the
+    // C library writes it 0 (gdtoa of FreeBSD and macOS, the Debug runtime
+    // of Visual C++, issue #68; GAOL v5, point Q of TODO.md)
+    const rounding_guard rnd;
+	round_upward_if_needed();
 
     double l = I.left(), r = I.right();
     const interval_format::format_t format = interval::format();
 
     switch (format) {
-    case interval_format::bounds: // Display in the form "[ l, r ]"
-      display_bounds(l,r,out);
+    case interval_format::bounds: { // Display in the form "[ l, r ]"
+      // The bounds format, and the agreeing format where it writes bounds,
+      // in the C locale, whose decimal point is the reader's (GAOL v5); the
+      // width and center formats, which are for the eye, in the locale of os
+      const text_format fmt(os.flags(), interval::precision(), std::locale::classic());
+      display_bounds(l,r,text,fmt);
       break;
+    }
     case interval_format::hexa: // The exact text representation of 13.4
-      out << exact_string(I);
+      text = exact_string(I);
       break;
     case interval_format::width:  // Display in the form "c (+/- w)"
     case interval_format::center: // Display in the form "c"
       if (I.is_empty()) {
-        out << "[empty]";
+        text = "[empty]";
       } else {
         /*
           The midpoint c and the radius w of IEEE 1788-2015 (12.12.8),
@@ -913,63 +1400,100 @@ namespace gaol_core {
         } else {
           c = I.midpoint();
         }
-        round_nearest();
-        out << c;
-        round_upward();
+        // The decimal point of the locale of os, and its grouping of the
+        // digits, for c and w alike; a midpoint 0 is written 0, as the bounds
+        // format writes a zero, where midpoint() gives -0 for
+        // [-2^-1073, 2^-1074]: its bits, which denormals-are-zero leaves alone
+        const text_format shown(os.flags(), interval::precision(), os.getloc(), true);
+        std::uint64_t cbits;
+        std::memcpy(&cbits, &c, sizeof cbits);
+        if ((cbits << 1) == 0) {
+          c = 0.0;
+        }
+        text = number_to_text(c, text_nearest, shown);
         if (format == interval_format::width && w != 0.0) {
-          out << " (+/- " << bound_to_text(w, true, out) << ")";
+          // The radius is never negative, and has no sign under showpos,
+          // which is for the midpoint: "+2 (+/- 1)" (GAOL v5: "+2 (+/- +1)")
+          text_format radius(shown);
+          radius.flags &= ~std::ios_base::showpos;
+          text += " (+/- ";
+          text += bound_to_text(w, true, radius);
+          text += ')';
         }
       }
       break;
     case interval_format::agreeing:
       if (I.is_empty()) {
-				out << "[empty]";
+        text = "[empty]";
       } else {
-				if (I.right() > 10*I.left()) {
-	  			display_bounds(l,r,out);
-				} else {
-	  			std::ostringstream lbound, rbound;
-	  			std::string itv;
-	  			lbound.precision(interval::precision());
-	  			rbound.precision(interval::precision());
-
-	  			lbound << std::showpoint;
-	  			rbound << std::showpoint;
-	  			lbound << bound_to_text(I.left(), false, lbound);
-	  			rbound << bound_to_text(I.right(), true, rbound);
-
-	  			// The characters both bounds start with, then what is left of
-	  			// each, without the zeros ending it (GAOL v5: GAOL dropped
-	  			// from both bounds the characters after the last one of the left
-	  			// bound that is not a zero, and wrote [1.25, 1.2567] "1.25~[, ]";
-	  			// zeros ending an exponent are not dropped)
-	  			const std::string lb = lbound.str(), rb = rbound.str();
-	  			std::size_t i = 0;
-	  			while (i < lb.length() && i < rb.length() && lb[i] == rb[i]) {
-	    			itv += lb[i];
-	    			++i;
-	  			}
-	  			if (i < lb.length() || i < rb.length()) {
-	    			const std::string *bounds[2] = { &lb, &rb };
-	    			itv += "~[";
-	    			for (int k = 0; k < 2; ++k) {
-	      			const std::string& b = *bounds[k];
-	      			std::size_t end = b.length();
-	      			if (b.find_first_of("eE") == std::string::npos && b.find('.') != std::string::npos) {
-	        			while (end > i && end > b.find('.') + 1 && b[end - 1] == '0') {
-	          			--end;
-	        			}
-	      			}
-	      			itv += (end > i) ? b.substr(i, end - i) : std::string("0");
-	      			itv += (k == 0) ? ", " : "]";
-	    			}
-	  			}
-	  			out << itv;
-				}
+        // Each bound is written with the digits of the precision and the flag
+        // showpoint, in the locale of the program, as a stream of its own,
+        // whose flags are the ones a stream starts with, would write it: the
+        // flags and the locale of os do not apply here
+        const text_format shown(std::ios_base::skipws | std::ios_base::dec | std::ios_base::showpoint,
+                                interval::precision(), std::locale());
+        const char point = shown.punct.decimal_point();
+        const std::string lb = bound_to_text(l, false, shown), rb = bound_to_text(r, true, shown);
+        std::size_t i = 0;
+        while (i < lb.length() && i < rb.length() && lb[i] == rb[i]) {
+          ++i;
+        }
+        /*
+          The digits both bounds start with are written once, before the rest
+          of each, only where they line up and say something: two bounds
+          finite, not 0 and of the same sign, written with the same number of
+          digits before the point and the same exponent, that share their
+          first digit that is not 0. The other intervals are written as in
+          the bounds format (GAOL v5). GAOL tested r > 10 l, true for every
+          interval with a negative bound or 0, which were all written with
+          their bounds, and false for [1, 10], written 1~[., 0.], the 1 of 10
+          taken for the 1 of 1, or for [1, 2], written ~[1., 2.] with no
+          digit shared, and for zeros, written ~[-0., 0.] for
+          interval::zero() with the SSE2 intervals where the bounds format
+          writes [0].
+        */
+        std::uint64_t lbits, rbits;
+        std::memcpy(&lbits, &l, sizeof lbits);
+        std::memcpy(&rbits, &r, sizeof rbits);
+        const std::size_t le = lb.find_first_of("eE"), re = rb.find_first_of("eE");
+        const bool line_up = (lbits << 1) != 0 && (rbits << 1) != 0
+          && l > -GAOL_INFINITY && r < GAOL_INFINITY && std::signbit(l) == std::signbit(r)
+          && lb.find(point) == rb.find(point)
+          && ((le == std::string::npos) ? std::string() : lb.substr(le))
+             == ((re == std::string::npos) ? std::string() : rb.substr(re))
+          && lb.find_first_of("123456789") < i;
+        if (!line_up) {
+          const text_format fmt(os.flags(), interval::precision(), std::locale::classic());
+          display_bounds(l,r,text,fmt);
+        } else {
+          // The characters both bounds start with, then what is left of each,
+          // without the zeros ending it (GAOL v5: GAOL dropped from both
+          // bounds the characters after the last one of the left bound that is
+          // not a zero, and wrote [1.25, 1.2567] "1.25~[, ]"; zeros ending an
+          // exponent are not dropped)
+          text = lb.substr(0, i);
+          if (i < lb.length() || i < rb.length()) {
+            const std::string *bounds[2] = { &lb, &rb };
+            text += "~[";
+            for (int k = 0; k < 2; ++k) {
+              const std::string& b = *bounds[k];
+              std::size_t end = b.length();
+              if (b.find_first_of("eE") == std::string::npos && b.find(point) != std::string::npos) {
+                while (end > i && end > b.find(point) + 1 && b[end - 1] == '0') {
+                  --end;
+                }
+              }
+              text += (end > i) ? b.substr(i, end - i) : std::string("0");
+              text += (k == 0) ? ", " : "]";
+            }
+          }
+        }
       }
     }
-    GAOL_RND_RESTORE();
-    return os << out.str();
+    // No double is computed from here on: the text is written before the
+    // guard sets the direction back
+    write_text(os, text);
+    return os;
   }
 
 
@@ -1032,13 +1556,13 @@ namespace gaol_core {
 
   /*
     The pow of IEEE 1788-2015 (Table 9.1) for an interval exponent, written
-    once (GAOL v5): gaol_ieee1788::pow(x, y) is this function, and
-    gaol_pow_hybrid() calls it for every exponent but a degenerate integer,
-    for which it takes pown. This was the second half of gaol_pow_hybrid(),
-    which gaol_ieee1788::pow went through after making its checks again: x cut
-    to [0,+oo], the empty sets, x = {0}.
+    once (GAOL v5): gaol_ieee1788::pow(x, y) is this function, after the
+    check of pow_standard(), and gaol_pow_hybrid() calls it for every exponent
+    but a degenerate integer, for which it takes pown. This was the second half
+    of gaol_pow_hybrid(), which gaol_ieee1788::pow went through after making
+    its checks again: x cut to [0,+oo], the empty sets, x = {0}.
   */
-  static interval pow_standard(const interval& x, const interval& y)
+  static interval pow_standard_upward(const interval& x, const interval& y)
   {
     if (x.is_empty() || y.is_empty()) {
       return interval::emptyset();
@@ -1064,10 +1588,14 @@ namespace gaol_core {
     /*
       A degenerate integer exponent [n]: x^n on x >= 0, where pow and pown
       agree. Within the ints, pown gives the powers that are doubles exactly,
-      where the corners below are one double wide. Beyond the ints, which pown
+      as pow_is_double() does at the corners below. Beyond the ints, which pown
       cannot take, |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
       decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower bound 0
-      is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd n < 0.
+      is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd n < 0. x^n is
+      a double at 0 and 1 only, taken apart here: for another x it is beyond the
+      doubles (2^(k n), for a power of two 2^k, k != 0) or not dyadic (1/m^|n|
+      for n < 0) or above 2^53 (m^n, m >= 3 odd), so that the double below
+      CORE-MATH's value is the tightest lower bound (see pow_is_double()).
       gaol_pow_hybrid() takes [n] before it comes here: its powers are those of
       the whole of x, and [-oo,+oo] beyond the ints.
     */
@@ -1078,16 +1606,11 @@ namespace gaol_core {
       }
       const double xl = (base.left() == 0.0) ? 0.0 : base.left(), xu = base.right();
       const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
-      double l, r;
       // The bounds of namespace upward, which do not check the rounding
-      // direction again (GAOL v5). l and r are used after GAOL_RND_LEAVE(),
-      // hence GAOL_RND_KEEP() (see gaol/gaol_fpu.h)
-      GAOL_RND_ENTER();
-      l = (at_lower == 1.0) ? 1.0 : upward::nthroot_dn(at_lower, n);
-      r = (at_upper == 1.0) ? 1.0 : upward::nthroot_up(at_upper, n);
-      GAOL_RND_KEEP(l);
-      GAOL_RND_KEEP(r);
-      GAOL_RND_LEAVE();
+      // direction again, through pow_rounded_dn() and pow_rounded_up(),
+      // which compute the powers for an n from 2^1014 on themselves (GAOL v5)
+      const double l = (at_lower == 1.0) ? 1.0 : pow_rounded_dn(at_lower, n);
+      const double r = (at_upper == 1.0) ? 1.0 : pow_rounded_up(at_upper, n);
       return interval((l > 0.0) ? l : 0.0, r);
     }
 
@@ -1098,9 +1621,12 @@ namespace gaol_core {
       its extrema over I x J are at corners, which the places of the bounds
       about 1 and 0 give. CORE-MATH's pow is correctly rounded in the upward
       rounding GAOL computes in, which gives the upper bound, and the double
-      below it the lower one: each bound is one double from the tightest one
-      at most, where exp(J*log(I)) multiplied the relative width of log(I) by
-      |y log(x)|: pow([2], [1023.5]) was 1425 doubles below and 748 above.
+      below it the lower one, unless the power is a double, which
+      pow_is_double() proves and which is then the lower bound itself: the
+      bounds are the tightest ones, where exp(J*log(I)) multiplied the relative
+      width of log(I) by |y log(x)|: pow([2], [1023.5]) was 1425 doubles below
+      and 748 above. The lower bound was the double below CORE-MATH's value
+      even where that value is exact: pow([4], 0.5) was [2 - 2^-52, 2].
       A base from 0, whose powers are from 0 for exponents above 0, takes its
       upper bound so. The other boxes (a base from 0 with an exponent that is
       not above 0, an infinite bound) keep exp(J*log(I)), which gives their
@@ -1110,7 +1636,6 @@ namespace gaol_core {
     const double dmax = (std::numeric_limits<double>::max)();
     if (xu <= dmax && yl >= -dmax && yu <= dmax && (xl > 0.0 || yl > 0.0)) {
       double l, r;
-      GAOL_RND_ENTER();
       if (xl == 0.0) {
         l = 0.0;
         r = pow_hi(xu, (xu >= 1.0) ? yu : yl);
@@ -1124,16 +1649,32 @@ namespace gaol_core {
         l = minimum(pow_lo(xl, yu), pow_lo(xu, yl));
         r = maximum(pow_hi(xl, yl), pow_hi(xu, yu));
       }
-      // Computed before the direction is set back (see gaol_fpu.h)
-      GAOL_RND_KEEP(l);
-      GAOL_RND_KEEP(r);
-      GAOL_RND_LEAVE();
       return interval(l,r);
     }
     return exp(y*log(base));
   }
 
-  interval gaol_pow_hybrid(const interval &I, const interval &J)
+  /*
+    pow_standard_upward() after one check of the rounding direction, made
+    before the bounds are compared: with denormals-are-zero, the lower bound
+    -5 2^-1074 of x stayed in x & [0, +oo], and pow([-5 2^-1074, 1], [0.5])
+    was empty once the check of the corners had cleared the mode (GAOL v5, see
+    gaol/gaol_fpu.h). Its powers and its exp(y*log(base)) check the
+    direction once more each.
+  */
+  static interval pow_standard(const interval& x, const interval& y)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_standard_upward(x, y);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  // gaol_pow_hybrid() after its check, made before the bounds of J are
+  // compared: with denormals-are-zero, [2^-1074, 2^-1073] was the degenerate
+  // integer exponent [0] (GAOL v5, see gaol/gaol_fpu.h)
+  static interval pow_hybrid_upward(const interval &I, const interval &J)
   {
     if (I.is_empty() || J.is_empty()) {
       return interval::emptyset();
@@ -1158,7 +1699,16 @@ namespace gaol_core {
       // An integer beyond the ints, which gaol_pown() cannot take
       return interval::universe();
     }
-    return pow_standard(I, J);
+    return pow_standard_upward(I, J);
+  }
+
+  interval gaol_pow_hybrid(const interval &I, const interval &J)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_hybrid_upward(I, J);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*!
@@ -1174,19 +1724,34 @@ namespace gaol_core {
   */
   interval  gaol_pow_real(const interval& I, double p)
   {
-    if (!(std::fabs(p) <= (std::numeric_limits<double>::max)())) { // Infinite or NaN
+    // Infinite or NaN, told by a quiet comparison: <= raised the
+    // invalid-operation exception for a NaN p (GAOL v5)
+    if (!gaol_detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
+    // p compared after the check: with denormals-are-zero, the floor of a
+    // subnormal p was p, and pow(I, p) the power [1] (GAOL v5, see
+    // gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
+    p = rnd_reread(p);
+    interval res;
     if (std::floor(p) == p && p >= (std::numeric_limits<int>::min)() && p <= (std::numeric_limits<int>::max)()) {
-      return gaol_pown(I, static_cast<int>(p));
+      res = gaol_pown(I, static_cast<int>(p));
+    } else {
+      res = pow_hybrid_upward(I, interval(p));
     }
-    return gaol_pow_hybrid(I, interval(p));
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*
-    Code inspired by ia_math code by Timothy Hickey
+    Code inspired by ia_math code by Timothy Hickey. The rounding direction
+    is upward, after the check of nth_root_rel(), whose intersections and
+    hulls are taken before the modes are restored with
+    GAOL_PRESERVE_ROUNDING (GAOL v5, see gaol/gaol_fpu.h)
   */
-  interval nth_root_rel(const interval& J, unsigned int n, const interval& I)
+  static interval nth_root_rel_upward(const interval& J, unsigned int n, const interval& I)
   {
     switch (n) {
     case 0:
@@ -1219,6 +1784,15 @@ namespace gaol_core {
       return (-tmp & I);
     }
     return ((tmp & I) | ((-tmp) & I));
+  }
+
+  interval nth_root_rel(const interval& J, unsigned int n, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = nth_root_rel_upward(J, n, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*
@@ -1524,13 +2098,15 @@ interval nth_root(const interval& I, unsigned int n)
 	default:
 		break;
 	}
+	// The check before the intersection, as in sqrt()
+	GAOL_RND_ENTER();
 	const interval J = odd(n) ? I : (I & interval::positive());
 	if (J.is_empty()) {
+		GAOL_RND_LEAVE();
 		return interval::emptyset();
 	}
 	// The roots of the magnitudes of the bounds, the root of x < 0 being
 	// -(-x)^(1/n)
-	GAOL_RND_ENTER();
 	const double a = std::fabs(J.left()), b = std::fabs(J.right());
 	double near_a, near_b;
 	near_roots(a,b,n,near_a,near_b);
@@ -1567,15 +2143,19 @@ interval nth_root(const interval& I, int q)
 	return inverse(nth_root(I,n));
 }
 
-  ULONGLONGINT nb_fp_numbers(double a, double b)
+  unsigned long long nb_fp_numbers(double a, double b)
   {
-    if (!is_finite(a) || !is_finite(b) || (a > b)) {
-      // Either a or b is a NaN or +/-oo, or [a,b] is empty?
+    // a and b compared as bounds, whatever the modes that flush the
+    // subnormals to zero (gaol_port.h): under denormals-are-zero,
+    // nb_fp_numbers(2^-1074, 2*2^-1074) was 1 (GAOL v5, point Q of TODO.md)
+    if (!is_finite(a) || !is_finite(b) || gaol_detail::bound_greater(a, b)) {
+      // Either a or b is a NaN or +/-oo, or [a,b] is empty? gaol_ERROR
+      // throws, or aborts where the exceptions are disabled: there is no
+      // value to return, whose line Visual C++ found unreachable (C4702)
       gaol_ERROR(invalid_action_error,"invalid argument(s) in call to nb_fp_numbers()");
-      return std::numeric_limits<ULONGLONGINT>::max();
     }
 
-    if (a == b) {
+    if (gaol_detail::bound_equal(a, b)) {
       return 1;
     }
 
@@ -1589,10 +2169,10 @@ interval nth_root(const interval& I, int q)
     ullidouble ai, bi;
     ai.d = std::fabs(a);
     bi.d = std::fabs(b);
-    if (a >= 0) {
+    if (gaol_detail::bound_greater_equal(a, 0.0)) {
       return (bi.i-ai.i)+1;
     }
-    if (b <= 0) {
+    if (gaol_detail::bound_less_equal(b, 0.0)) {
       return (ai.i-bi.i)+1;
     }
     // a < 0 < b: the doubles from a to -0 and from +0 to b, zero being counted once
@@ -1657,14 +2237,18 @@ interval nth_root(const interval& I, int q)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    const double l = I.left(), r = I.right();
+    // The check before the bounds are read, and the maximum taken before
+    // GAOL_RND_LEAVE(), as exp() does (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
+    const double l = I.left(), r = I.right();
     const double w = gaol_cr_exp2(l);
     const double u = exp2_is_exact(l) ? w : previous_float(w);
     const double v = gaol_cr_exp2(r);
-    GAOL_RND_LEAVE();
     // Within [0, +oo], as exp: 2^x is positive
-    return interval(maximum(0.0, u), v);
+    interval res(maximum(0.0, u), v);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval exp10(const interval& I)
@@ -1672,24 +2256,31 @@ interval nth_root(const interval& I, int q)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    const double l = I.left(), r = I.right();
     GAOL_RND_ENTER();
+    const double l = I.left(), r = I.right();
     const double w = gaol_cr_exp10(l);
     const double u = exp10_is_exact(l) ? w : previous_float(w);
     const double v = gaol_cr_exp10(r);
+    interval res(maximum(0.0, u), v);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
-    return interval(maximum(0.0, u), v);
+    return res;
   }
 
   interval log2(const interval& I)
   {
     // Defined on (0, +oo), as log: I holding no positive number gives the
-    // empty set (IEEE 1788-2015, Table 9.1)
-    if (I.is_empty() || !(I.right() > 0.0)) {
+    // empty set (IEEE 1788-2015, Table 9.1), the bounds being compared after
+    // the check, as in log()
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    GAOL_RND_ENTER();
+    if (!(I.right() > 0.0)) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
     const double l = maximum(0.0, I.left()), r = I.right();
-    GAOL_RND_ENTER();
     const double w = gaol_cr_log2(l);
     const double u = log2_is_exact(l) ? w : previous_float(w);
     const double v = gaol_cr_log2(r);
@@ -1699,11 +2290,15 @@ interval nth_root(const interval& I, int q)
 
   interval log10(const interval& I)
   {
-    if (I.is_empty() || !(I.right() > 0.0)) {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    GAOL_RND_ENTER();
+    if (!(I.right() > 0.0)) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
     const double l = maximum(0.0, I.left()), r = I.right();
-    GAOL_RND_ENTER();
     const double w = gaol_cr_log10(l);
     const double u = log10_is_exact(l) ? w : previous_float(w);
     const double v = gaol_cr_log10(r);
@@ -1758,36 +2353,59 @@ interval nth_root(const interval& I, int q)
 
   // An increasing function, whose range the bounds are brought back into: the
   // value at the right bound, the double below the value at the left bound
-  // unless it is a double
-  static interval increasing_cr(const interval& I, double (*f)(double),
-                                bool (*exact)(double), double lowest, double highest)
+  // unless it is a double. The rounding direction is upward, after the check
+  // of increasing_cr() or of the caller, made before I is computed (see
+  // gaol/gaol_fpu.h)
+  static interval increasing_cr_upward(const interval& I, double (*f)(double),
+                                       bool (*exact)(double), double lowest, double highest)
   {
     if (I.is_empty()) {
       return interval::emptyset();
     }
     const double l = I.left(), r = I.right();
-    GAOL_RND_ENTER();
     const double w = f(l);
     const double u = exact(l) ? w : previous_float(w);
     const double v = f(r);
-    GAOL_RND_LEAVE();
     return interval(maximum(lowest, u), minimum(highest, v));
+  }
+
+  static interval increasing_cr(const interval& I, double (*f)(double),
+                                bool (*exact)(double), double lowest, double highest)
+  {
+    GAOL_RND_ENTER();
+    interval res = increasing_cr_upward(I, f, exact, lowest, highest);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  // Within [-1, +oo]: b^x - 1 exceeds -1, which it nears as x goes to -oo.
+  // +oo is read after the check: GAOL_INFINITY was the HUGE_VAL of the UCRT,
+  // which clang-cl computes when the program runs, and it was FLT_MAX in the
+  // caller's downward rounding, which made expm1([1e10]) empty (GAOL v5)
+  static interval increasing_cr_from_minus_one(const interval& I, double (*f)(double),
+                                               bool (*exact)(double))
+  {
+    GAOL_RND_ENTER();
+    interval res = increasing_cr_upward(I, f, exact, -1.0, GAOL_INFINITY);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval expm1(const interval& I)
   {
-    // within [-1, +oo]: b^x - 1 exceeds -1, which it nears as x goes to -oo
-    return increasing_cr(I, gaol_cr_expm1, expm1_is_exact, -1.0, GAOL_INFINITY);
+    return increasing_cr_from_minus_one(I, gaol_cr_expm1, expm1_is_exact);
   }
 
   interval exp2m1(const interval& I)
   {
-    return increasing_cr(I, gaol_cr_exp2m1, exp2m1_is_exact, -1.0, GAOL_INFINITY);
+    return increasing_cr_from_minus_one(I, gaol_cr_exp2m1, exp2m1_is_exact);
   }
 
   interval exp10m1(const interval& I)
   {
-    return increasing_cr(I, gaol_cr_exp10m1, exp10m1_is_exact, -1.0, GAOL_INFINITY);
+    return increasing_cr_from_minus_one(I, gaol_cr_exp10m1, exp10m1_is_exact);
   }
 
   interval atanpi(const interval& I)
@@ -1800,17 +2418,23 @@ interval nth_root(const interval& I, int q)
   {
     // Defined on [-1, 1], as acos (IEEE 1788-2015, Table 10.5): the part of I
     // outside is left out, and I holding no point of it gives the empty set
-    if (I.is_empty() || I.right() < -1.0 || I.left() > 1.0) {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    GAOL_RND_ENTER();
+    if (I.right() < -1.0 || I.left() > 1.0) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
     const double l = maximum(-1.0, I.left()), r = minimum(1.0, I.right());
-    GAOL_RND_ENTER();
     // decreasing: the upper bound at the left bound, the lower one at the right
     const double v = gaol_cr_acospi(l);
     const double w = gaol_cr_acospi(r);
     const double u = acospi_is_exact(r) ? w : previous_float(w);
+    interval res(maximum(0.0, u), minimum(1.0, v));
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
-    return interval(maximum(0.0, u), minimum(1.0, v));
+    return res;
   }
 
   /*
@@ -1859,9 +2483,12 @@ interval nth_root(const interval& I, int q)
 
   // sin(pi*x) or cos(pi*x) over I: the maximum 1 where a t congruent to up
   // modulo 4 lies within, the minimum -1 where one congruent to down does, and
-  // the values at the bounds otherwise
-  static interval sin_or_cos_pi(const interval& I, double (*f)(double),
-                                std::int64_t up, std::int64_t down)
+  // the values at the bounds otherwise. The rounding direction is upward, after
+  // the check of sin_or_cos_pi(), made before the bounds are compared: 2 l,
+  // whose ceiling gives ka, is 0 for a subnormal l with the modes that flush
+  // them to zero (see gaol/gaol_fpu.h)
+  static interval sin_or_cos_pi_upward(const interval& I, double (*f)(double),
+                                       std::int64_t up, std::int64_t down)
   {
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1884,14 +2511,26 @@ interval nth_root(const interval& I, int q)
       has_max = holds_residue(ka, kb, up, 4);
       has_min = holds_residue(ka, kb, down, 4);
     }
-    GAOL_RND_ENTER();
     const double fl = f(l), fr = f(r);
     const double dl = is_multiple_of_inverse(l, 2.0) ? fl : previous_float(fl);
     const double dr = is_multiple_of_inverse(r, 2.0) ? fr : previous_float(fr);
-    GAOL_RND_LEAVE();
     const double lower = has_min ? -1.0 : maximum(-1.0, minimum(dl, dr));
     const double upper = has_max ? 1.0 : minimum(1.0, maximum(fl, fr));
     return interval(lower, upper);
+  }
+
+  /* The minimum and the maximum taken before GAOL_RND_LEAVE(): with
+     GAOL_PRESERVE_ROUNDING, the denormals-are-zero mode it restores made two
+     subnormal values equal, and sinpi([100, 1000] 2^-1074) was empty (GAOL v5,
+     review of point 4) */
+  static interval sin_or_cos_pi(const interval& I, double (*f)(double),
+                                std::int64_t up, std::int64_t down)
+  {
+    GAOL_RND_ENTER();
+    interval res = sin_or_cos_pi_upward(I, f, up, down);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval sinpi(const interval& I)
@@ -1906,7 +2545,9 @@ interval nth_root(const interval& I, int q)
     return sin_or_cos_pi(I, gaol_cr_cospi, 0, 2);
   }
 
-  interval tanpi(const interval& I)
+  // tanpi() after its check, made before the bounds are compared, as in
+  // sin_or_cos_pi()
+  static interval tanpi_upward(const interval& I)
   {
     if (I.is_empty()) {
       return interval::emptyset();
@@ -1939,7 +2580,6 @@ interval nth_root(const interval& I, int q)
     }
     // a pole at a bound is the limit -oo from its right, +oo from its left
     double lower = -GAOL_INFINITY, upper = GAOL_INFINITY;
-    GAOL_RND_ENTER();
     if (!pole_at_l) {
       const double fl = gaol_cr_tanpi(l);
       lower = is_multiple_of_inverse(l, 4.0) ? fl : previous_float(fl);
@@ -1947,8 +2587,16 @@ interval nth_root(const interval& I, int q)
     if (!pole_at_r) {
       upper = gaol_cr_tanpi(r);
     }
-    GAOL_RND_LEAVE();
     return interval(lower, upper);
+  }
+
+  interval tanpi(const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = tanpi_upward(I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*
@@ -2006,13 +2654,19 @@ interval nth_root(const interval& I, int q)
     return false;
   }
 
+  // The check before the interval cut at -1 is made (see increasing_cr())
   static interval log_p1(const interval& I, double (*f)(double), bool (*exact)(double))
   {
-    if (I.is_empty() || !(I.right() > -1.0)) {
+    if (I.is_empty()) {
       return interval::emptyset();
     }
-    return increasing_cr(interval(maximum(-1.0, I.left()), I.right()), f, exact,
-                         -GAOL_INFINITY, GAOL_INFINITY);
+    GAOL_RND_ENTER();
+    interval res = !(I.right() > -1.0) ? interval::emptyset()
+      : increasing_cr_upward(interval(maximum(-1.0, I.left()), I.right()), f, exact,
+                             -GAOL_INFINITY, GAOL_INFINITY);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval log1p(const interval& I)
@@ -2049,18 +2703,24 @@ interval nth_root(const interval& I, int q)
 
   interval rsqrt(const interval& I)
   {
-    if (I.is_empty() || !(I.right() > 0.0)) {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    GAOL_RND_ENTER();
+    if (!(I.right() > 0.0)) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
     // +0 rather than -0 for a left bound at or below 0: 1/sqrt(-0) is -oo
     const double l = (I.left() > 0.0) ? I.left() : 0.0, r = I.right();
-    GAOL_RND_ENTER();
     // decreasing: the upper bound at the left bound, the lower one at the right
     const double v = gaol_cr_rsqrt(l);
     const double w = gaol_cr_rsqrt(r);
     const double u = rsqrt_is_exact(r) ? w : previous_float(w);
+    interval res(maximum(0.0, u), v);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
-    return interval(maximum(0.0, u), v);
+    return res;
   }
 
   /*
@@ -2077,9 +2737,16 @@ interval nth_root(const interval& I, int q)
 
   interval asinpi(const interval& I)
   {
-    // the part of I outside [-1, 1] is left out, as with acospi
-    return increasing_cr(I & interval::minus_one_plus_one(), gaol_cr_asinpi,
-                         asinpi_is_exact, -0.5, 0.5);
+    // the part of I outside [-1, 1] is left out, as with acospi, after the
+    // check: GCC 13 compared the bounds of the intersection, held in
+    // registers, with 0 before it, and asinpi([100 2^-1074]) was
+    // [32 2^-1074] with the denormals-are-zero mode set (GAOL v5)
+    GAOL_RND_ENTER();
+    interval res = increasing_cr_upward(I & interval::minus_one_plus_one(), gaol_cr_asinpi,
+                                        asinpi_is_exact, -0.5, 0.5);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*
@@ -2088,18 +2755,6 @@ interval nth_root(const interval& I, int q)
     nearest to the origin, (mig X, mig Y), and its greatest at the farthest,
     (mag X, mag Y).
   */
-
-  // x > 0 finite as m 2^e, m an odd integer
-  static inline void odd_significand(double x, std::uint64_t& m, int& e)
-  {
-    const double f = std::frexp(x, &e);
-    m = static_cast<std::uint64_t>(std::ldexp(f, 53)); // below 2^53
-    e -= 53;
-    while ((m & 1) == 0) {
-      m >>= 1;
-      ++e;
-    }
-  }
 
   // Whether h^2 - b^2 = a^2 4^d, for odd integers h, b, a below 2^53: both
   // sides are integers below 2^107, which a double with the residual of its
@@ -2155,13 +2810,16 @@ interval nth_root(const interval& I, int q)
     if (X.is_empty() || Y.is_empty()) {
       return interval::emptyset();
     }
-    const double al = X.mig(), bl = Y.mig(), ar = X.mag(), br = Y.mag();
+    // mig and mag compare the bounds: after the check (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
+    const double al = X.mig(), bl = Y.mig(), ar = X.mag(), br = Y.mag();
     const double w = gaol_cr_hypot(al, bl);
     const double u = hypot_is_exact(al, bl, w) ? w : previous_float(w);
     const double v = gaol_cr_hypot(ar, br);
+    interval res(maximum(0.0, u), v);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
-    return interval(maximum(0.0, u), v);
+    return res;
   }
 
   /*
@@ -2207,7 +2865,9 @@ interval nth_root(const interval& I, int q)
     return atan2pi_special(y, x, v) ? v : minimum(gaol_cr_atan2pi(y, x), 1.0);
   }
 
-  interval atan2pi(const interval& Y, const interval& X)
+  // atan2pi() after its check, made before the bounds are compared, as in
+  // atan2()
+  static interval atan2pi_upward(const interval& Y, const interval& X)
   {
     if (Y.is_empty() || X.is_empty()) {
       return interval::emptyset();
@@ -2220,7 +2880,6 @@ interval nth_root(const interval& I, int q)
       return interval(-1.0, 1.0);
     }
     double l, r;
-    GAOL_RND_ENTER();
     if (yl >= 0.0) { // Upper half-plane: the angle decreases with x
       l = atan2pi_lo((xu > 0.0) ? yl : yu, xu);
       r = (xl == 0.0 && yu == 0.0) ? 0.0 : atan2pi_hi((xl >= 0.0) ? yu : yl, xl);
@@ -2231,8 +2890,16 @@ interval nth_root(const interval& I, int q)
       l = atan2pi_lo(yl, xl);
       r = (yu == 0.0) ? ((xu == 0.0) ? -0.5 : 0.0) : atan2pi_hi(yu, xl);
     }
-    GAOL_RND_LEAVE();
     return interval(l, r);
+  }
+
+  interval atan2pi(const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = atan2pi_upward(Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*
@@ -2270,10 +2937,12 @@ interval nth_root(const interval& I, int q)
     if (X.is_empty() || Y.is_empty() || Z.is_empty()) {
       return interval::emptyset();
     }
+    // The check before the bounds are read, fma_up() and fma_down() comparing
+    // them with 0 (see gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
     const double xl = X.left(), xr = X.right(), yl = Y.left(), yr = Y.right();
     const double zl = Z.left(), zr = Z.right();
     double lower = -GAOL_INFINITY, upper = GAOL_INFINITY;
-    GAOL_RND_ENTER();
     if (zl != -GAOL_INFINITY) {
       lower = minimum(minimum(fma_down(xl, yl, zl), fma_down(xl, yr, zl)),
                       minimum(fma_down(xr, yl, zl), fma_down(xr, yr, zl)));
@@ -2282,6 +2951,7 @@ interval nth_root(const interval& I, int q)
       upper = maximum(maximum(fma_up(xl, yl, zr), fma_up(xl, yr, zr)),
                       maximum(fma_up(xr, yl, zr), fma_up(xr, yr, zr)));
     }
+    GAOL_RND_KEEP(lower); GAOL_RND_KEEP(upper);
     GAOL_RND_LEAVE();
     return interval(lower, upper);
   }
@@ -2312,6 +2982,17 @@ interval nth_root(const interval& I, int q)
     GAOL_RND_NEAREST_ENTER();
     two_sum(a1, -b1, s1, e1);
     two_sum(a2, -b2, s2, e2);
+    /* The four doubles go through rnd_keep() before the direction changes
+       back: GCC computed them after GAOL_RND_NEAREST_LEAVE(), upward, where
+       TwoSum is no longer exact, and cancel_minus([0.5], [4.9e-324, 1e-300]),
+       whose exact differences are within a double of each other, took X to be
+       wider than Y; the terms of the error of cancel_minus([DBL_MAX], [0.5])
+       then read +oo and inf - inf, and raised FE_INVALID
+       (GAOL v5) */
+    s1 = gaol_core::rnd_keep(s1);
+    e1 = gaol_core::rnd_keep(e1);
+    s2 = gaol_core::rnd_keep(s2);
+    e2 = gaol_core::rnd_keep(e2);
     GAOL_RND_NEAREST_LEAVE();
     const bool inf1 = std::isinf(s1), inf2 = std::isinf(s2);
     if (inf1 || inf2) {
@@ -2329,7 +3010,9 @@ interval nth_root(const interval& I, int q)
     return e1 >= e2;
   }
 
-  interval cancel_minus(const interval& X, const interval& Y)
+  // cancel_minus() after its check, made before the differences of the bounds
+  // are compared (see gaol/gaol_fpu.h)
+  static interval cancel_minus_upward(const interval& X, const interval& Y)
   {
     const bool x_empty = X.is_empty(), y_empty = Y.is_empty();
     // no value at Level 1, which 12.12.5 has return [-oo, +oo]: an unbounded X
@@ -2347,12 +3030,19 @@ interval nth_root(const interval& I, int q)
     if (!difference_at_least(xr, yr, xl, yl)) {
       return interval::universe();
     }
-    GAOL_RND_ENTER();
     // [xl - yl, xr - yr] rounded outward: xl - yl downward as -(yl - xl)
     const double lower = -(yl - xl);
     const double upper = xr - yr;
-    GAOL_RND_LEAVE();
     return interval(lower, upper);
+  }
+
+  interval cancel_minus(const interval& X, const interval& Y)
+  {
+    GAOL_RND_ENTER();
+    interval res = cancel_minus_upward(X, Y);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval cancel_plus(const interval& X, const interval& Y)
@@ -2363,8 +3053,8 @@ interval nth_root(const interval& I, int q)
   interval exp(const interval& I)
   {
     // The empty set tested first: its NaN bounds would give the empty set
-    // too, but the constructor compares them, which raises the
-    // invalid-operation exception (GAOL v5)
+    // too, through the quiet comparison of the constructor, but after the
+    // check of the rounding direction and two calls of CORE-MATH (GAOL v5)
     if (I.is_empty()) {
       return interval::emptyset();
     }
@@ -2373,21 +3063,32 @@ interval nth_root(const interval& I, int q)
 	*/
     // exp(0) = 1 exactly, where the value of the mathematical library moved
     // outward gave exp([0]) a width, and pow([1], [-oo, +oo]) = [0, +oo]
-    // (GAOL v5)
-    const double l = I.left(), r = I.right();
+    // (GAOL v5). The bounds read after the check (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
-    const double u = (l == 0.0) ? 1.0 : upward::exp_dn(l);
-    const double v = (r == 0.0) ? 1.0 : upward::exp_up(r);
+    const double l = I.left(), r = I.right();
+    // The maximum taken before GAOL_RND_LEAVE(): with GAOL_PRESERVE_ROUNDING,
+    // the denormals-are-zero mode it restores made the subnormal lower bound of
+    // exp([-740]) equal to 0, and 0 the bound (GAOL v5)
+    double u = (l == 0.0) ? 1.0 : maximum(0.0,upward::exp_dn(l));
+    double v = (r == 0.0) ? 1.0 : upward::exp_up(r);
+    GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
     GAOL_RND_LEAVE();
-    return interval(maximum(0.0,u), v);
+    return interval(u, v);
   }
 
   interval log(const interval& I)
   {
     // log is defined on (0,+oo) (IEEE 1788-2015, Table 9.1, GAOL v5): I
     // holding no positive number, as [-4,0] and [0], gives the empty set, where
-    // GAOL kept its part in [0,+oo] and gave [-oo,-MAX]
-    if (I.is_empty() || !(I.right() > 0.0)) {
+    // GAOL kept its part in [0,+oo] and gave [-oo,-MAX]. The bounds compared
+    // after the check: with denormals-are-zero, [1e-310, 1e-309] held no
+    // positive number (GAOL v5)
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    GAOL_RND_ENTER();
+    if (!(I.right() > 0.0)) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
 
@@ -2398,7 +3099,6 @@ interval nth_root(const interval& I, int q)
     // right bound, and RD(log l) = pred(RU(log l)) the left one, log(l) being
     // no double for l other than 1. The tightest bounds, without switching the
     // rounding direction.
-    GAOL_RND_ENTER();
     const double u = (l == 1.0) ? 0.0 : previous_float(gaol_cr_log(l));
     const double v = (r == 1.0) ? 0.0 : gaol_cr_log(r);
     GAOL_RND_LEAVE();
@@ -2451,9 +3151,9 @@ interval nth_root(const interval& I, int q)
   */
   unsigned short int modulo_k_pi(const interval &I, double &k_left, double &k_right)
   {
-    // The empty set, whose bounds are NaN, gives NaN and 0, tested first: the
-    // NaN divided by pi would be given to the constructor, which compares it
-    // and raises the invalid-operation exception (GAOL v5)
+    // The empty set, whose bounds are NaN, gives NaN and 0, tested first
+    // (GAOL v5): the floor of its NaN bounds divided by pi would be the empty
+    // set too, but k_left its lower bound, a NaN of the other sign
     if (I.is_empty()) {
       k_left = k_right = GAOL_NAN;
       return 0;
@@ -2508,10 +3208,11 @@ interval nth_root(const interval& I, int q)
       The width of I, rounded upward as width() does: the exact width is at
       most w, and w <= pi_dn, the double below pi, proves it below pi, so that
       I holds at most one pole (GAOL v5, review #8 of examples/examples.md: the
-      test was w < pi_dn, and [-M_PI_2, M_PI_2], of width pi_dn, gave
+      test was !(w < pi_up) in GAOL 4, and [-M_PI_2, M_PI_2], of width pi_dn, gave
       [-oo, +oo], as did the intervals whose exact width lies between the
-      double below pi_dn and pi_dn, which round up to it, though none holds a
-      pole). Above pi_dn, I may hold two poles, the cosine having the same sign
+      double below pi_dn and pi_dn, which round up to it; that the signs
+      of cos at the bounds give the tightest bounds was measured on 29 400 intervals).
+      Above pi_dn, I may hold two poles, the cosine having the same sign
       at both bounds: [-oo, +oo], the tightest bound but for the intervals
       holding no pole whose exact width is below pi. Also for a NaN width, from
       [+oo, +oo] or [-oo, -oo] built from SSE2 registers, which the
@@ -2562,29 +3263,35 @@ interval nth_root(const interval& I, int q)
 
   interval acos(const interval& I)
   {
+    // The check before the intersection, whose bounds, held in registers,
+    // acos_lo() and acos_hi() compare (see asinpi())
+    GAOL_RND_ENTER();
     interval J = I & interval::minus_one_plus_one();
     // J <- I \cap [-1,1]
 
     if (J.is_empty()) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
 
-    GAOL_RND_ENTER();
-    const double l = acos_lo(J.right()), r = acos_hi(J.left());
+    double l = acos_lo(J.right()), r = acos_hi(J.left());
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
     GAOL_RND_LEAVE();
     return interval(l,r);
   }
 
   interval asin(const interval& I)
   {
+    GAOL_RND_ENTER();
     interval J= I & interval::minus_one_plus_one();
     // J <- I \cap [-1,1]
 
     if (J.is_empty()) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
-    GAOL_RND_ENTER();
-    const double l = asin_lo(J.left()), r = asin_hi(J.right());
+    double l = asin_lo(J.left()), r = asin_hi(J.right());
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
     GAOL_RND_LEAVE();
     return interval(l,r);
   }
@@ -2609,7 +3316,10 @@ interval nth_root(const interval& I, int q)
     box with points on that half-line and points below it has angles next to
     -pi and the angle pi, and [-pi, pi] is the hull of its angles.
   */
-  interval atan2(const interval& Y, const interval& X)
+  // atan2() after its check, made before the bounds are compared: with
+  // denormals-are-zero, atan2([100 2^-1074], [100 2^-1074]) was the empty
+  // set, the point taken for (0, 0) (GAOL v5, see gaol/gaol_fpu.h)
+  static interval atan2_upward(const interval& Y, const interval& X)
   {
     if (Y.is_empty() || X.is_empty()) {
       return interval::emptyset();
@@ -2622,7 +3332,6 @@ interval nth_root(const interval& I, int q)
       return interval(-pi_up, pi_up);
     }
     double l, r;
-    GAOL_RND_ENTER();
     if (yl >= 0.0) { // Upper half-plane: the angle decreases with x
       // The least angle is at the right of the box, at the bottom if x > 0
       // there and at the top otherwise, and the greatest at the left. The box
@@ -2637,8 +3346,16 @@ interval nth_root(const interval& I, int q)
       l = atan2_lo(yl, xl);
       r = (yu == 0.0) ? ((xu == 0.0) ? -half_pi_dn : 0.0) : atan2_hi(yu, xl);
     }
-    GAOL_RND_LEAVE();
     return interval(l,r);
+  }
+
+  interval atan2(const interval& Y, const interval& X)
+  {
+    GAOL_RND_ENTER();
+    interval res = atan2_upward(Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval cosh(const interval& I)
@@ -2688,14 +3405,17 @@ interval nth_root(const interval& I, int q)
 
   interval acosh(const interval& I)
   {
+    // The check before the intersection, as in acos()
+    GAOL_RND_ENTER();
     interval J = I &  interval::one_plus_infinity();
 
     if (J.is_empty()) {
+      GAOL_RND_LEAVE();
       return J;
     }
 
-  	GAOL_RND_ENTER();
-  	const double l = acosh_lo(J.left()), r = acosh_hi(J.right());
+    double l = acosh_lo(J.left()), r = acosh_hi(J.right());
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
   	GAOL_RND_LEAVE();
   	return interval(l,r);
   }
@@ -2717,6 +3437,8 @@ interval nth_root(const interval& I, int q)
 
   interval atanh(const interval& I)
   {
+    // The check before the intersection, as in acos()
+    GAOL_RND_ENTER();
 	  interval J = I & interval::minus_one_plus_one();
     // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
     // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
@@ -2725,10 +3447,11 @@ interval nth_root(const interval& I, int q)
     // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
     // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
     if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
-    GAOL_RND_ENTER();
-    const double l = atanh_lo(J.left()), r = atanh_hi(J.right());
+    double l = atanh_lo(J.left()), r = atanh_hi(J.right());
+    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
     GAOL_RND_LEAVE();
     return interval(l,r);
   }
@@ -2809,18 +3532,37 @@ interval nth_root(const interval& I, int q)
     their own) and the quotients x/pi + shift are computed after the check
     here, where the relational functions called acos(J), asin(J) or atan(J),
     and four operations of intervals, which checked it once more each.
+
+    For acos_rel() and asin_rel(), whose function has its image in [-1, 1]
+    (bounded), a J outside [-1, 1] has no preimage, and a J containing it has
+    the whole line: these are decided after the check too, though the modes
+    flushing the subnormals to zero do not change how J compares with -1 and
+    1, so that the check, which clears the modes, is made on every path of a
+    non-empty J and I (GAOL v5, second review of point 4).
   */
   template<class Inverse, class Piece, class Image>
-  static interval periodic_rel(const interval& J, const interval& I, double shift, Inverse inverse, Piece piece,
-                               Image image)
+  static interval periodic_rel(const interval& J, const interval& I, double shift, bool bounded, Inverse inverse,
+                               Piece piece, Image image)
   {
     if (J.is_empty() || I.is_empty()) {
       return interval::emptyset();
     }
-    if (I.left() == I.right()) {
-      return (image(I) & J).is_empty() ? interval::emptyset() : I;
-    }
+    // The check before the bounds are compared (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
+    if (bounded && (J.left() > 1.0 || J.right() < -1.0)) {
+      GAOL_RND_LEAVE();
+      return interval::emptyset();
+    }
+    if (bounded && J.set_contains(interval::minus_one_plus_one())) {
+      GAOL_RND_LEAVE();
+      return I;
+    }
+    if (I.left() == I.right()) {
+      interval K = image(I) & J;
+      GAOL_RND_KEEP(K);
+      GAOL_RND_LEAVE();
+      return K.is_empty() ? interval::emptyset() : I;
+    }
     const interval Jinv = inverse(J);
     interval Ileft, Iright;
     if (std::fabs(I.left()) > two_power_52) {
@@ -2851,41 +3593,29 @@ interval nth_root(const interval& I, int q)
 
   interval acos_rel(const interval& J, const interval &I)
   {
-    if (J.is_empty() || I.is_empty() || J.left() > 1.0 || J.right() < -1.0) {
-      return interval::emptyset();
-    }
-    if (J.set_contains(interval::minus_one_plus_one())) {
-      return I;
-    }
     // The preimage of J: i pi + acos(J) for an even i, (i + 1) pi - acos(J)
     // for an odd i. acos(J) as acos() computes it, J & [-1, 1] being non-empty
-    return periodic_rel(J, I, 0.0,
+    return periodic_rel(J, I, 0.0, true,
 			[](const interval& X) {
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(acos_lo(K.right()), acos_hi(K.left()));
 			},
-			[](double i, const interval& Jacos) { return feven(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
+			[](double i, const interval& Jacos) { return integer_is_even(i) ? k_pi_plus(i, Jacos) : k_pi_plus(i + 1.0, -Jacos); },
 			[](const interval& X) { return cos(X); });
   }
 
   interval asin_rel(const interval& J, const interval &I)
   {
-    if (J.is_empty() || I.is_empty() || J.left() > 1.0 || J.right() < -1.0) {
-      return interval::emptyset();
-    }
-    if (J.set_contains(interval::minus_one_plus_one())) {
-      return I;
-    }
     // The preimage of J: i pi + asin(J) for an even i, i pi - asin(J) for an
     // odd i (GAOL v5: GAOL computed pi/2 + acos_rel(J, I - pi/2), two
     // additions of an enclosure of pi/2 more). asin(J) as asin() computes it,
     // J & [-1, 1] being non-empty
-    return periodic_rel(J, I, 0.5,
+    return periodic_rel(J, I, 0.5, true,
 			[](const interval& X) {
 			  const interval K = X & interval::minus_one_plus_one();
 			  return interval(asin_lo(K.left()), asin_hi(K.right()));
 			},
-			[](double i, const interval& Jasin) { return k_pi_plus(i, feven(i) ? Jasin : -Jasin); },
+			[](double i, const interval& Jasin) { return k_pi_plus(i, integer_is_even(i) ? Jasin : -Jasin); },
 			[](const interval& X) { return sin(X); });
   }
 
@@ -2895,13 +3625,20 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
     // The preimage of J: i pi + atan(J), atan(J) as atan() computes it
-    return periodic_rel(J, I, 0.5,
+    return periodic_rel(J, I, 0.5, false,
 			[](const interval& X) { return interval(atan_lo(X.left()), atan_hi(X.right())); },
 			[](double i, const interval& Jatan) { return k_pi_plus(i, Jatan); },
 			[](const interval& X) { return tan(X); });
   }
 
-  interval acosh_rel(const interval &J, const interval &I)
+  /*
+    acosh_rel(), asinh_rel() and atanh_rel() check the rounding direction
+    before they compare the bounds of the inverse image with those of I, which
+    acosh(), asinh() and atanh() return with the modes that flush the
+    subnormals to zero restored, with GAOL_PRESERVE_ROUNDING (GAOL v5, see
+    gaol/gaol_fpu.h)
+  */
+  static interval acosh_rel_upward(const interval &J, const interval &I)
   {
     if (I.is_empty() || J.is_empty()) {
       return interval::emptyset();
@@ -2918,14 +3655,31 @@ interval nth_root(const interval& I, int q)
     return (I & -tmp) | (I & tmp);
   }
 
+  interval acosh_rel(const interval &J, const interval &I)
+  {
+    GAOL_RND_ENTER();
+    interval res = acosh_rel_upward(J, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
   interval asinh_rel(const interval &J, const interval &I)
   {
-    return asinh(J) & I;
+    GAOL_RND_ENTER();
+    interval res = asinh(J) & I;
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   interval atanh_rel(const interval &J, const interval &I)
   {
-    return atanh(J) & I;
+    GAOL_RND_ENTER();
+    interval res = atanh(J) & I;
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
   /*
@@ -2981,18 +3735,23 @@ interval nth_root(const interval& I, int q)
       return -1.0;
     } else {
       if (!I.is_finite()) {
-	if (I.set_eq(interval::universe())) {
-	  return 1.0;
-	} else {
-	  return 0.0;
-	}
+        if (I.set_eq(interval::universe())) {
+          return 1.0;
+        } else {
+          return 0.0;
+        }
       } else {
 	double res;
+	// The check first, which clears the modes that flush the subnormals to
+	// zero, as in midpoint(): under denormals-are-zero, the quotient of two
+	// subnormal bounds is 0/0 (GAOL v5, point Q of TODO.md). Before,
+	// is_zero() took them for zeros, and chi([2, 4]*2^-1074) was -1
 	GAOL_RND_PRESERVE();
+	round_upward_if_needed();
 	round_nearest();
 	// A quiet comparison: the empty set, whose bounds are NaN, gives NaN
 	// without the invalid-operation exception (GAOL v5)
-	if (std::islessequal(std::fabs(I.left()), std::fabs(I.right()))) {
+	if (gaol_detail::quiet_less_equal(std::fabs(I.left()), std::fabs(I.right()))) {
 	  res = I.left() / I.right();
 	} else {
 	  res = I.right() / I.left();
@@ -3012,21 +3771,19 @@ interval nth_root(const interval& I, int q)
 
   /*
     maximum() and minimum() give NaN bounds for an empty I or J, which give
-    the empty set: told by a quiet comparison of the bounds, rather than by the
-    constructor, which compares them and raises the invalid-operation
-    exception on a NaN (GAOL v5). One comparison, where testing I and J
-    first made max() 5 to 10% slower (Clang 18).
+    the empty set: the constructor tells them with a quiet comparison (GAOL
+    v5). They were told first, with one more comparison, when the constructor
+    compared them with <=, which raises the invalid-operation exception on a
+    NaN; testing I and J first made max() 5 to 10% slower (Clang 18).
   */
   interval  max(const interval &I, const interval &J)
   {
-    const double l = maximum(I.left(),J.left()), r = maximum(I.right(),J.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(maximum(I.left(),J.left()), maximum(I.right(),J.right()));
   }
 
   interval  min(const interval &I, const interval &J)
   {
-    const double l = minimum(I.left(),J.left()), r = minimum(I.right(),J.right());
-    return std::isunordered(l, r) ? interval::emptyset() : interval(l, r);
+    return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
 
 
@@ -3038,7 +3795,9 @@ interval nth_root(const interval& I, int q)
       if (set_contains(0)) {
 	return 0.0;
       }
-      if (right() < 0.0) {
+      // Compared as in the relations (gaol_port.h), whatever the modes that
+      // flush the subnormals to zero (GAOL v5, point Q of TODO.md)
+      if (gaol_detail::bound_less(right(), 0.0)) {
 	return right();
       } else { // left() > 0.0
 	return left();
@@ -3054,7 +3813,9 @@ interval nth_root(const interval& I, int q)
       if (set_contains(0)) {
 	return 0.0;
       }
-      if (right() < 0.0) {
+      // Compared as in the relations (gaol_port.h): under denormals-are-zero,
+      // mig([-3, -2]*2^-1074) was 0 (GAOL v5, point Q of TODO.md)
+      if (gaol_detail::bound_less(right(), 0.0)) {
 	return -right();
       } else { // left() > 0.0
 	return left();
@@ -3070,10 +3831,12 @@ interval nth_root(const interval& I, int q)
 
   interval::operator std::string() const
   {
-    std::ostringstream output;
-    output.precision(interval::precision());
-    output << *this;
-    return output.str();
+    // Not named output, the format of the intervals written, which Visual C++
+    // warned that it hid (C4458, GAOL v5)
+    std::ostringstream text;
+    text.precision(interval::precision());
+    text << *this;
+    return text.str();
   }
 
   std::streamsize interval::precision(void)
@@ -3106,12 +3869,34 @@ interval nth_root(const interval& I, int q)
       return std::numeric_limits<double>::max();
     }
 
+    /*
+      The half of the sum of the bounds, rounded to nearest, or the sum of
+      their halves where the sum may overflow, that is where a bound is 2^1023
+      or more in magnitude, which is tested first (GAOL v5): the sum was
+      computed first, and its overflow told the other case, so that
+      midpoint([DBL_MAX]) raised the overflow exception, though its midpoint
+      is DBL_MAX. The sum of the halves gives the same midpoint there: a half
+      is exact, unless the bound is below 2^-1021, where its rounding changes
+      no sum with a bound of 2^1023 or more, and a sum of halves is the half
+      of the sum, rounded, where no half is rounded.
+      The check of the rounding direction first, which clears the modes that
+      flush the subnormals to zero, and which GAOL_RND_RESTORE() sets back
+      with GAOL_PRESERVE_ROUNDING: under denormals-are-zero, the midpoint of
+      [2, 4]*2^-1074 was 0, outside the interval, and split() made an empty
+      half of it (GAOL v5, point Q of TODO.md). The comparisons above are
+      those of the relations, which these modes do not change.
+    */
     GAOL_RND_PRESERVE();
+    round_upward_if_needed();
     round_nearest();
-    double middle = 0.5*(left()+right());
-	 if (std::isinf(middle)) {
-		middle = 0.5*left() + 0.5*right();
-	 }
+    const double l = left(), r = right();
+    double middle;
+    const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
+    if (std::fabs(l) >= big || std::fabs(r) >= big) {
+      middle = 0.5*l + 0.5*r;
+    } else {
+      middle = 0.5*(l + r);
+    }
     // Computed rounding to nearest: kept before the direction changes (see gaol_fpu.h)
     middle = gaol_core::rnd_keep(middle);
     GAOL_RND_RESTORE();
@@ -3121,19 +3906,32 @@ interval nth_root(const interval& I, int q)
 
   interval sqrt(const interval& I)
   {
+#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
+    /* The AVX-512 path: the roots by the embedded rounding, the part of I
+       in [0, +oo] and its emptiness by the sign and the magnitude bits,
+       which the denormals-are-zero mode does not change (the SSE2 path
+       checks the modes for the intersection, a lower bound -1e-310 having
+       been compared equal to 0) */
+    if (avx512_arithmetic && !I.is_empty()) {
+      return interval(fast_sqrt(I.get_xmminterval()));
+    }
+#endif
     // The part of I in [0, +oo], as nth_root() takes it: the intersection
     // compares the bounds with quiet comparisons, and keeps an empty I as it
     // is, where the constructor, given its NaN bounds, raised the
     // invalid-operation exception (GAOL v5). A lower bound -0 is taken as 0
-    // below.
+    // below. The check before the intersection: with denormals-are-zero, a
+    // lower bound -1e-310 compared equal to 0 and stayed, and its root, once
+    // the check had cleared the mode, made the result empty (GAOL v5, see
+    // gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
     const interval Ipos = I & interval::positive();
 
     if (Ipos.is_empty()) {
+      GAOL_RND_LEAVE();
       return interval::emptyset();
     }
 
-    // One check for both branches, which both compute
-    GAOL_RND_ENTER();
     double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
     double r = gaol_sqrt_up(Ipos.right());
     GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
@@ -3142,7 +3940,9 @@ interval nth_root(const interval& I, int q)
   }
 
 
-  interval sqrt_rel(const interval& J, const interval& I)
+  // sqrt_rel() after its check, made before the bounds are compared, as in
+  // sqrt()
+  static interval sqrt_rel_upward(const interval& J, const interval& I)
   {
     // The part of J in [0, +oo], computed as in sqrt() (GAOL v5)
     const interval Jpos = J & interval::positive();
@@ -3156,7 +3956,6 @@ interval nth_root(const interval& I, int q)
     // The lower bound as sqrt() computes it, in the upward rounding: GAOL set
     // the direction downward for it, then upward again, two changes of
     // direction per call whichever way GAOL is built (GAOL v5)
-    GAOL_RND_ENTER();
     if (Jpos.left() == 0.0) {
       l = 0.0;
       r = gaol_sqrt_up(Jpos.right());
@@ -3165,9 +3964,6 @@ interval nth_root(const interval& I, int q)
       l = -gaol_minus_sqrt_down(x, gaol_sqrt_up(x));
       r = gaol_sqrt_up(Jpos.right());
     }
-    GAOL_RND_KEEP(l);
-    GAOL_RND_KEEP(r);
-    GAOL_RND_LEAVE();
 
 	interval Res(l,r);
 
@@ -3178,6 +3974,15 @@ interval nth_root(const interval& I, int q)
       return (-Res) & I;
     }
     return (I & Res) | (I & (-Res));
+  }
+
+  interval sqrt_rel(const interval& J, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = sqrt_rel_upward(J, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
 
@@ -3206,145 +4011,147 @@ interval nth_root(const interval& I, int q)
     middle of I tells, each half being narrower than pi. The bounds are then
     within one double of the tightest ones at every magnitude.
   */
-  template<bool sine>
-  static inline interval cos_or_sin(double Il, double Ir)
-  {
-    // I is not empty, Il being the opposite of its left bound, as the SSE2
-    // intervals store it, and Ir its right bound
-    // The only check of the rounding direction: nothing below changes it, and
-    // the bounds are computed with the functions of namespace upward (GAOL v5)
-    GAOL_RND_ENTER();
-    double a,b;
-    double Ileft = -Il;
-    double Iright = Ir;
-
-    // a <= Ileft/pi, b >= Iright/pi
-    if (Ileft >= 0) {
-      a = -(Il/pi_up);
+template<bool sine>
+static inline interval cos_or_sin(double Il, double Ir)
+{
+  // I is not empty, Il being the opposite of its left bound, as the SSE2
+  // intervals store it, and Ir its right bound
+  // The only check of the rounding direction: nothing below changes it, and
+  // the bounds are computed with the functions of namespace upward (GAOL v5).
+  // Il and Ir, read before it, are compared after it (see gaol/gaol_fpu.h)
+  GAOL_RND_ENTER();
+  Il = rnd_reread(Il);
+  Ir = rnd_reread(Ir);
+  double a,b;
+  double Ileft = -Il;
+  double Iright = Ir;
+  
+  // a <= Ileft/pi, b >= Iright/pi
+  if (Ileft >= 0) {
+    a = -(Il/pi_up);
+    b = Ir/pi_dn;
+  } else {
+    a = -(Il/pi_dn);
+    if (Iright > 0) {
       b = Ir/pi_dn;
     } else {
-      a = -(Il/pi_dn);
-      if (Iright > 0) {
-	b = Ir/pi_dn;
-      } else {
-	b = Ir/pi_up;
-      }
+      b = Ir/pi_up;
+    }
+  }
+  if (sine) {
+    // a <= (Ileft - pi/2)/pi, b >= (Iright - pi/2)/pi, rounded upward
+    a = -((-a) + 0.5);
+    b = b - 0.5;
+  }
+  
+  double m=std::floor(a),
+  n=std::ceil(b),
+  u = -1.0, v = 1.0;
+  
+  double nm = (n-m); // Must be rounded towards +oo
+  
+  if (nm < 2.0) {
+    // even(m)? No conversion to int in order to avoid overflow
+    const bool even_m = integer_is_even(m);
+    if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
+      u = sine ? sin_lo(Iright) : cos_lo(Iright);
+      v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
+    } else { // Increasing
+      u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
+      v = sine ? sin_hi(Iright) : cos_hi(Iright);
+    }
+  } else {
+    // The width of I, rounded upward: both extrema from 2 pi on, or for
+    // infinite bounds
+    const double w = Ir + Il;
+    if (!(w < 2.0*pi_dn)) {
+      GAOL_RND_LEAVE();
+      return interval::minus_one_plus_one();
+    }
+    // a_in >= Ileft/pi and b_in <= Iright/pi, minus 1/2 for the sine
+    double a_in, b_in;
+    if (Ileft >= 0) {
+      a_in = Ileft/pi_dn;
+      b_in = -((-Ir)/pi_up);
+    } else {
+      a_in = Ileft/pi_up;
+      b_in = (Iright > 0) ? -((-Ir)/pi_up) : -((-Ir)/pi_dn);
     }
     if (sine) {
-      // a <= (Ileft - pi/2)/pi, b >= (Iright - pi/2)/pi, rounded upward
-      a = -((-a) + 0.5);
-      b = b - 0.5;
+      a_in = a_in - 0.5;
+      b_in = -((-b_in) + 0.5);
     }
-
-    double m=std::floor(a),
-      n=std::ceil(b),
-      u = -1.0, v = 1.0;
-
-    double nm = (n-m); // Must be rounded towards +oo
-
-    if (nm < 2.0) {
-      // even(m)? No conversion to int in order to avoid overflow
-      const bool even_m = feven(m);
-      if (even_m) { // Decreasing, as cos on [m pi, (m+1) pi]; use of cos(x)=cos(-x)
-	u = sine ? sin_lo(Iright) : cos_lo(Iright);
-	v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
-      } else { // Increasing
-	u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
-	v = sine ? sin_hi(Iright) : cos_hi(Iright);
-      }
+    // The halves of I, for the sign at its middle
+    const double middle = 0.5*Ileft + 0.5*Iright;
+    const bool narrow_halves = (middle + Il < pi_dn) && (Ir - middle < pi_dn);
+    const bool sure = (std::floor(a_in) == m && std::ceil(b_in) == n);
+    if (sure && nm != 2.0) { // Both extrema
+      GAOL_RND_LEAVE();
+      return interval::minus_one_plus_one();
+    }
+    const bool even_m = integer_is_even(m);
+    
+    // -1: a minimum within I; 1: a maximum; 0: none; 2: both
+    int extremum;
+    if (sure) {
+        extremum = even_m ? -1 : 1;
     } else {
-      // The width of I, rounded upward: both extrema from 2 pi on, or for
-      // infinite bounds
-      const double w = Ir + Il;
-      if (!(w < 2.0*pi_dn)) {
-	GAOL_RND_LEAVE();
-	return interval::minus_one_plus_one();
-      }
-      // a_in >= Ileft/pi and b_in <= Iright/pi, minus 1/2 for the sine
-      double a_in, b_in;
-      if (Ileft >= 0) {
-	a_in = Ileft/pi_dn;
-	b_in = -((-Ir)/pi_up);
-      } else {
-	a_in = Ileft/pi_up;
-	b_in = (Iright > 0) ? -((-Ir)/pi_up) : -((-Ir)/pi_dn);
-      }
-      if (sine) {
-	a_in = a_in - 0.5;
-	b_in = -((-b_in) + 0.5);
-      }
-      // The halves of I, for the sign at its middle
-      const double middle = 0.5*Ileft + 0.5*Iright;
-      const bool narrow_halves = (middle + Il < pi_dn) && (Ir - middle < pi_dn);
-      const bool sure = (std::floor(a_in) == m && std::ceil(b_in) == n);
-      if (sure && nm != 2.0) { // Both extrema
-	GAOL_RND_LEAVE();
-	return interval::minus_one_plus_one();
-      }
-      const bool even_m = feven(m);
-
-      // -1: a minimum within I; 1: a maximum; 0: none; 2: both
-      int extremum;
-      if (sure) {
-	extremum = even_m ? -1 : 1;
-      } else {
-	// The derivatives are -sin and cos: s is the sign of the slope, taken
-	// on the side of I at a bound that is 0
-	int sl = sine ? sign_of_cos(Ileft) : -sign_of_sin(Ileft);
-	int sr = sine ? sign_of_cos(Iright) : -sign_of_sin(Iright);
-	if (sl == 0) {
-	  sl = -1; // cos decreases on the right of 0
-	}
-	if (sr == 0) {
-	  sr = 1; // and increases on its left
-	}
-	if (sl != sr) {
-	  extremum = sl; // Increasing then decreasing: a maximum
-	} else if (w < pi_dn
-		   || (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
-	  extremum = 0;
-	} else {
-	  extremum = 2;
-	}
-	if (extremum == 0) { // Monotonic
-	  if (sl < 0) {
-	    u = sine ? sin_lo(Iright) : cos_lo(Iright);
-	    v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
-	  } else {
-	    u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
-	    v = sine ? sin_hi(Iright) : cos_hi(Iright);
-	  }
-	}
+        // The derivatives are -sin and cos: s is the sign of the slope, taken
+        // on the side of I at a bound that is 0
+        int sl = sine ? sign_of_cos(Ileft) : -sign_of_sin(Ileft);
+        int sr = sine ? sign_of_cos(Iright) : -sign_of_sin(Iright);
+        if (sl == 0) {
+          sl = -1; // cos decreases on the right of 0
+        }
+        if (sr == 0) {
+          sr = 1; // and increases on its left
+        }
+        if (sl != sr) {
+            extremum = sl; // Increasing then decreasing: a maximum
+        } else if (w < pi_dn|| (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
+            extremum = 0;
+        } else {
+            extremum = 2;
+        }
+        if (extremum == 0) { // Monotonic
+            if (sl < 0) {
+              u = sine ? sin_lo(Iright) : cos_lo(Iright);
+              v = sine ? sin_hi(Ileft) : cos_hi(Ileft);
+            } else {
+              u = sine ? sin_lo(Ileft) : cos_lo(Ileft);
+              v = sine ? sin_hi(Iright) : cos_hi(Iright);
+            }
+          }
       }
       if (extremum == -1) {
-	const double
-	  u1 = sine ? sin_hi(Ileft) : cos_hi(Ileft),
-	  u2 = sine ? sin_hi(Iright) : cos_hi(Iright);
-	u = -1.0;
-	v = ((u1 > u2) ? u1 : u2);
+          const double
+          u1 = sine ? sin_hi(Ileft) : cos_hi(Ileft),
+          u2 = sine ? sin_hi(Iright) : cos_hi(Iright);
+          u = -1.0;
+          v = ((u1 > u2) ? u1 : u2);
       } else if (extremum == 1) {
-	const double
-	  u1 = sine ? sin_lo(Ileft) : cos_lo(Ileft),
-	  u2 = sine ? sin_lo(Iright) : cos_lo(Iright);
-	u = ((u1 < u2) ? u1 : u2);
-	v = 1.0;
+          const double
+          u1 = sine ? sin_lo(Ileft) : cos_lo(Ileft),
+          u2 = sine ? sin_lo(Iright) : cos_lo(Iright);
+          u = ((u1 < u2) ? u1 : u2);
+          v = 1.0;
       } else if (extremum == 2) {
-	u = -1.0;
-	v = 1.0;
+          u = -1.0;
+          v = 1.0;
       }
-    }
-    // The values of the mathematical library moved outward may leave [-1,1]
-    // (GAOL v5)
-    if (u < -1.0) {
-      u = -1.0;
-    }
-    if (v > 1.0) {
-      v = 1.0;
-    }
-    GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
-    GAOL_RND_LEAVE();
-    return interval(u,v);
   }
+  // The values of the mathematical library moved outward may leave [-1,1]
+  // (GAOL v5)
+  if (u < -1.0) {
+    u = -1.0;
+  }
+  if (v > 1.0) {
+    v = 1.0;
+  }
+  GAOL_RND_KEEP(u); GAOL_RND_KEEP(v);
+  GAOL_RND_LEAVE();
+  return interval(u,v);
+}
 
   interval cos(const interval& I)
   {
@@ -3371,8 +4178,8 @@ namespace gaol_ieee1788 {
     pow(x, y) of IEEE 1788-2015 (gaol/gaol_ieee1788.h), in the library rather
     than inline in its header, for the bounds at doubles of
     gaol/gaol_double_op.h, which no installed header includes (GAOL v5): it is
-    pow_standard(), which gaol_pow_hybrid() calls too, for every exponent but a
-    degenerate integer
+    pow_standard(), whose body gaol_pow_hybrid() calls too, for every exponent
+    but a degenerate integer
   */
   interval pow(const interval& x, const interval& y)
   {
@@ -3382,26 +4189,30 @@ namespace gaol_ieee1788 {
   /*
     intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
     bounds of x rounded outward, [l, r], [a] for a point interval whose double
-    the digits write exactly, as [4], or [empty], in a stream of the C locale
-    with the flags it starts with and 16 digits, the default of
-    interval::precision(), so that the text is a portable literal (12.11.5)
-    whatever the global output format, the precision of the intervals and the
+    the digits write exactly, as [4], or [empty], with the C locale, the flags
+    a stream starts with and the digits of interval::precision() (16 unless
+    the program sets another), so that the text is a portable literal
+    (12.11.5) whatever the global output format, the flags of a stream and the
     locale of the program (GAOL v5). It is the text operator<< writes in the
     bounds format under these settings. GAOL wrote what operator<< writes: the
     width format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
-    the locale of a program that sets one, the digits of the precision another
-    part of the program set, and <4, 4> for the point interval 4, none of them
-    a literal, and the text changed with the format another thread was setting.
+    the locale of a program that sets one, and <4, 4> for the point interval
+    4, none of them a literal, and the text changed with the format another
+    thread was setting.
   */
   std::string intervalToText(const interval& x)
   {
-    std::ostringstream out;
-    out.imbue(std::locale::classic());
-    out.precision(16);
-    GAOL_RND_ENTER();
-    ::gaol_core::display_bounds(x.left(), x.right(), out);
-    GAOL_RND_LEAVE();
-    return out.str();
+    // The flags a new stream starts with, the digits of the intervals and the C locale
+    const ::gaol_core::text_format fmt(std::ios_base::skipws | std::ios_base::dec, interval::precision(),
+                                       std::locale::classic());
+    std::string out;
+    // The guard, rather than GAOL_RND_ENTER() and GAOL_RND_LEAVE():
+    // display_bounds() allocates, and a failed allocation left the direction
+    // upward, which GAOL_PRESERVE_ROUNDING promises to set back (GAOL v5)
+    const ::gaol_core::rounding_guard rnd;
+    ::gaol_core::round_upward_if_needed();
+    ::gaol_core::display_bounds(x.left(), x.right(), out, fmt);
+    return out;
   }
 
 } // namespace gaol_ieee1788
@@ -3444,12 +4255,10 @@ namespace gaol {
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();
     }
-    // An empty one gives the empty set, without giving its NaN bounds to the
-    // constructor, which compares them and raises the invalid-operation
-    // exception (GAOL v5)
-    if (tmpl.is_empty() || tmpr.is_empty()) {
-      return interval::emptyset();
-    }
+    // An empty one gives the empty set, from its NaN bounds, which the
+    // constructor tells with a quiet comparison (GAOL v5: it was told first,
+    // when the constructor compared them with <=, which raises the
+    // invalid-operation exception on a NaN)
     return interval(tmpl.left(), tmpr.right());
   }
 
@@ -3463,7 +4272,7 @@ namespace gaol {
 */
 #ifdef GAOL_FLOAT_INTERVALS
 #  include "gaol/gaol_intervalf.cpp"
-#  if USING_SSE3_INSTRUCTIONS
+#  if GAOL_USING_SSE3_INSTRUCTIONS
 #    include "gaol/gaol_interval2f.cpp"
 #  endif
 #endif // GAOL_FLOAT_INTERVALS

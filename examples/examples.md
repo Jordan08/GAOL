@@ -175,7 +175,9 @@ Three headers are shared:
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
 `textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
-1/10. `sqrt(2.0)` is the C library's double, while `sqrt(interval(2.0))`
+1/10. `sqrt(2.0)` is the C library's double, which no longer becomes an
+interval silently (`interval r = sqrt(2.0);` does not compile, `interval(double)`
+being explicit, but `interval r(sqrt(2.0))` does), while `sqrt(interval(2.0))`
 encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
 doubles, silently wrong, and [−5.9·10²¹, 4.7·10²¹] in intervals, which contains
@@ -319,7 +321,9 @@ narrower. Both now have the true function. The enclosure contains the range
 the occurrences of x and y (the dependency problem, example 03). The example
 checks f(0, −1) = 3, the enclosure, computed by exact arithmetic (its bounds
 are integers that no operation rounds), the enclosure of the program of the
-manual, and the ratio of the widths.
+manual, and the ratio of the widths. Its `main()` keeps the layout of GAOL 4
+(`endl`, `cout.precision(16)`, the timing loop on one line); the constants
+and the declarations follow the style of the other examples.
 
 ## 2. How intervals are used, and what GAOL v5 gives for it
 
@@ -333,7 +337,7 @@ it, and says for each idiom how it reads with GAOL v5.
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
 | A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return textToInterval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
 | A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
-| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0`, `max(x, 0)` and `T(0)` compile |
+| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0` and `T(0)` compile, `=` and the relations taking a double; `max(x, 0)` does not, `interval(double)` being explicit: `max(x, interval(0))` |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
 | m ± r | `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward); there is no mid-radius constructor |
 | From an integer beyond 2⁵³ | — | `interval(9007199254740993LL)` is one double that does not contain the integer |
@@ -504,7 +508,10 @@ Other consequences:
 `GAOL_PRESERVE_ROUNDING` removes all of this, at a measured cost of 4.8 times
 on x + y, 6.7 times on x/y, 1.4 to 1.6 times on exp and sin, and 12 times on
 a Horner polynomial mixing intervals and doubles. Switching to nearest for a
-block of the program's own code costs about 7 ns (example 13).
+block of the program's own code, as example 13's guard does, costs about
+13 ns: 11 to 13 ns measured on an Intel i7-1185G7 with GCC 9.4 and Clang 18,
+the guard saving the direction and setting it back (fegetround() and two
+fesetround()).
 
 ## 3. First contact: GAOL v5 through a newcomer's eyes
 
@@ -530,8 +537,8 @@ IEEE 1788 (12.10.3) asks, is rare among interval libraries.
 **The manual's examples print almost exactly what it shows.** The 86 example
 blocks of `manual/v5/gaol.tex` with an expected output (102 outputs) were
 extracted, compiled with GCC and Clang in C++11 and C++17, and run: all match,
-apart from three formatting slips (`true`/`false` printed without
-`std::boolalpha`, and `nan` printed `-nan`). But the function of the overview
+apart from 29 formatting slips, since fixed (`true`/`false` printed without
+`std::boolalpha`, `nan` printed `-nan`...). But the function of the overview
 chapter's program is the Goldstein-Price function of GAOL 4's example
 (`16_Goldstein_Price.cpp`) without the +1 of (x + y + 1)² (recommendation 16).
 All 172 names the manual documents exist in the headers.
@@ -552,9 +559,10 @@ All 172 names the manual documents exist in the headers.
   `x = ...;` of the user's code (the class has a user-provided copy
   constructor and an implicit copy assignment). A 13-line `main.cpp` built
   through FetchContent printed 38 warnings.
-- `[[nodiscard]]` works in C++17 only, and `gaol::gaol` sets no language
-  standard, so a CMake project with GCC 9 compiles in C++14 and gets no
-  warning for `sqrt(x);`.
+- `[[nodiscard]]` worked in C++17 only; `GAOL_NODISCARD` now also takes the
+  attribute of GCC, Clang and Visual C++ before C++17. `gaol::gaol` still
+  sets no language standard, so a CMake project with GCC 9 compiles in C++14
+  and gets no warning for `sqrt(x);`.
 - `examples/` held one benchmark of 2006, which the recommended CMake build
   did not build and no document mentioned; `check/` holds the CppUnit tests of
   GAOL 4, not built by CMake, some for types no build compiles (they have been
@@ -563,11 +571,12 @@ All 172 names the manual documents exist in the headers.
   scope, define unprefixed macros (`INLINE`, `HAVE_FENV_H`, `MEMALIGN`,
   `__HI`… 25 in all) and `#undef PACKAGE` (gone since: the configuration no
   longer defines `PACKAGE`).
-- Smaller slips: the width output format is described as "midpoint and
-  width" but prints the radius; the header comment of `chi()` says
-  `chi([0,0]) = 0` while the code and the manual say −1; `tests/gaol_tests.h`
-  says the references use 400 bits where the scripts use 2000; the root file
-  `version.h` is a Code::Blocks file of 2009 that nothing uses (removed since).
+- Smaller slips, since fixed: the width output format is described as
+  "midpoint and width" but prints the radius; the header comment of `chi()`
+  said `chi([0,0]) = 0` while the code and the manual say −1;
+  `tests/gaol_tests.h` said the references use 400 bits where the scripts
+  use 2000; the root file `version.h` was a Code::Blocks file of 2009 that
+  nothing used (removed).
 
 ## 4. What was checked and found right
 
@@ -1068,8 +1077,9 @@ check:
 ```
 
 and a row in the refused options of `doc/three-builds.md`. Test: a compile
-test with `PASS_REGULAR_EXPRESSION "ffinite-math-only"`, as
-`tests/fp_strict` does for other options.
+test with `PASS_REGULAR_EXPRESSION "ffinite-math-only"` (`tests/fp_strict`,
+the check of Visual C++ and clang-cl without `/fp:strict`, is a
+`try_compile()` at configure time instead).
 
 **5. `atanh([1, x])`.** In `atanh()`, return the empty set when
 `J.left() == 1.0 || J.right() == -1.0` (J being `I & [-1, 1]`), and write the
@@ -1162,6 +1172,10 @@ is its explanation.
 using expressions includes `gaol_expression.h`, as with GAOL 4. Test
 (`tests/other_functions.cpp`):
 `static_assert(std::is_same<decltype(gaol::sin(0.5)), interval>::value, "")`.
+Since then, `interval(double)`, `expression(double)` and
+`expression(const interval&)` are explicit: `gaol::sin(0.5)` does not compile,
+with or without `gaol_expression.h`, which `tests/other_functions.cpp` and
+`tests/expressions.cpp` check, and is written `gaol::sin(interval(0.5))`.
 
 **17. Long sums.** In `gaol_interval_parser.ypp`, fold each binary operation
 when it is read (`$$ = gaol_leaf(gaol_value($1) + gaol_value($3))`), as calls

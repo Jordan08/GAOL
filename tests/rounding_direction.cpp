@@ -20,13 +20,29 @@
  * be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
  * itself in the direction fegetround() gives, have to be the tightest
  * enclosures whatever the direction, with the x87 unit and the SSE
- * instructions differing too (GAOL v5). At the end, gaol::cleanup() has to set
- * back the direction the first gaol::init() found (GAOL v5).
+ * instructions differing too (GAOL v5). On x86 and ARM, the same holds with
+ * the modes that flush the subnormals to zero set, flush-to-zero and
+ * denormals-are-zero of the SSE instructions, FZ of ARM (what a program linked
+ * with -Ofast gets from crtfastmath.o, and a plug-in built so): the bounds of
+ * the operations with a subnormal operand or result are the tightest ones, and
+ * the modes are cleared after them, or restored with GAOL_PRESERVE_ROUNDING;
+ * and every operation that checks the rounding direction gives, with a mode
+ * set before it, what it gives with the modes cleared, and clears or restores
+ * the modes (GAOL v5); so do the functions that make no check, the relations,
+ * the constructor from two bounds, max(), abs(), floor()..., which leave the
+ * modes as they found them (GAOL v5, point Q of TODO.md). At the end,
+ * gaol::cleanup() has to set back the direction the first gaol::init()
+ * found (GAOL v5).
  *
  * The rest of the floating-point environment is checked too: the exceptions
  * stay masked, and an empty interval is told empty, with interval::emptyset(),
  * and every operation computes with an empty operand, without raising the
  * invalid-operation exception, which kills a program that enabled it (GAOL v5).
+ * Nor do a NaN the program gives, the products with a zero and an infinite
+ * bound, pow with an exponent of extreme magnitude and the relations in loops
+ * a compiler vectorizes raise it, nor the midpoint of [DBL_MAX] the overflow
+ * exception; every operation keeps the exception flags and masks of the
+ * program (GAOL v5, point D.24 of TODO.md).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -38,8 +54,11 @@
 
 #include "gaol_tests.h"
 
+#include <algorithm>
+#include <cstring>
 #include <exception>
 #include <functional>
+#include <initializer_list>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -87,12 +106,48 @@ namespace
   std::string S(double x) { return hex(x); }
   std::string S(bool b) { return b ? "true" : "false"; }
   std::string S(int n) { return std::to_string(n); }
-  std::string S(unsigned n) { return std::to_string(n); }
-  std::string S(long n) { return std::to_string(n); }
-  std::string S(unsigned long n) { return std::to_string(n); }
-  std::string S(long long n) { return std::to_string(n); }
   std::string S(unsigned long long n) { return std::to_string(n); }
-  std::string S(const std::string& s) { return s; }
+
+  /*
+    The results of a function run with a mode flushing the subnormals to zero
+    set, kept as they are and written once the modes are cleared: the C
+    library writes the doubles (%a), and gdtoa (FreeBSD, macOS) writes a
+    subnormal 0 under denormals-are-zero, which reads it as 0 (GAOL v5). The
+    doubles are compared by their bits, the empty set by its NaN bounds.
+  */
+  struct Kept
+  {
+    std::vector<double> numbers;
+    std::string text; // what needs no double written
+  };
+
+  Kept kept(const interval& x) { Kept k; k.numbers.push_back(x.left()); k.numbers.push_back(x.right()); return k; }
+  Kept kept(const interval& x, const interval& y)
+  {
+    Kept k = kept(x);
+    k.numbers.push_back(y.left());
+    k.numbers.push_back(y.right());
+    return k;
+  }
+  Kept kept(double x) { Kept k; k.numbers.push_back(x); return k; }
+  Kept kept(bool b) { Kept k; k.text = b ? "true" : "false"; return k; }
+  Kept kept(unsigned long long n) { Kept k; k.text = std::to_string(n); return k; }
+  Kept kept_text(const std::string& s) { Kept k; k.text = s; return k; }
+
+  bool same_kept(const Kept& a, const Kept& b)
+  {
+    return a.numbers.size() == b.numbers.size() && a.text == b.text
+      && (a.numbers.empty() || std::memcmp(a.numbers.data(), b.numbers.data(), a.numbers.size()*sizeof(double)) == 0);
+  }
+
+  std::string written(const Kept& k)
+  {
+    std::string s;
+    for (double x : k.numbers) {
+      s += hex(x) + " ";
+    }
+    return s + k.text;
+  }
 
   struct Operation
   {
@@ -222,18 +277,19 @@ namespace
     return gaol::rnd_keep(x);
   }
 
-  // The empty sets of the checks below, each computed in a way of its own from
-  // operands the compiler does not know: the constant, an interval whose
-  // bounds are in the wrong order, a function outside its domain, disjoint
-  // intervals. None of them compares a NaN, so that each is computed without
-  // an exception with the invalid-operation exception enabled.
-  struct EmptySet
+  // An interval computed by make() from operands the compiler does not know
+  struct NamedInterval
   {
     const char *name;
     interval (*make)();
   };
 
-  const EmptySet empty_sets[] = {
+  // The empty sets of the checks below, each computed in a way of its own:
+  // the constant, an interval whose bounds are in the wrong order, a function
+  // outside its domain, disjoint intervals. None of them compares a NaN, so
+  // that each is computed without an exception with the invalid-operation
+  // exception enabled.
+  const NamedInterval empty_sets[] = {
     { "interval::emptyset()", [] { return opaque(interval::emptyset()); } },
     { "interval(3, 2)", [] { return opaque(interval(gaol::rnd_keep(3.0), gaol::rnd_keep(2.0))); } },
     { "sqrt([-2, -1])", [] { return opaque(sqrt(interval(gaol::rnd_keep(-2.0), gaol::rnd_keep(-1.0)))); } },
@@ -245,7 +301,7 @@ namespace
   };
 
   // The nonempty intervals is_empty() has to tell nonempty as well
-  const EmptySet nonempty_sets[] = {
+  const NamedInterval nonempty_sets[] = {
     { "[1, 2]", [] { return opaque(interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0))); } },
     { "[1]", [] { return opaque(interval(gaol::rnd_keep(1.0))); } },
     { "[-oo, +oo]", [] { return opaque(interval::universe()); } },
@@ -263,7 +319,13 @@ namespace
     gave its NaN bounds to the constructor, which compares them: each raised
     the exception, and died on SIGFPE where it was enabled (all 48 with the
     FPU intervals, all but the negations with the SSE2 ones). The groups after
-    them were already quiet.
+    them were already quiet. The last five are choices the program makes on
+    is_empty() of an empty interval: GCC for 32-bit ARM made them conditional
+    moves with a signaling comparison, of the NaN bounds of the left operand
+    of an intersection when operator&= told that operand empty otherwise than
+    is_empty() did (#60), and of the bounds of an empty interval itself in the
+    choice on its own is_empty(), and GCC for POWER9 (-mcpu=power9) too, where
+    is_empty() was one quiet comparison (GAOL v5, point D.24 of TODO.md).
   */
   struct EmptyOperand
   {
@@ -384,10 +446,417 @@ namespace
           && !E().set_eq(X()) && E().set_neq(X()) && E().set_leq(X()) && E().set_le(X()) && !X().set_le(E())
           && !E().less(X()) && !X().strictly_less(E()); } },
     { "the other outputs", [] {
-        return write(E(), interval_format::width) == "empty" && write(E(), interval_format::center) == "empty"
+        return write(E(), interval_format::width) == "[empty]" && write(E(), interval_format::center) == "[empty]"
           && write(E(), interval_format::hexa) == "[empty]" && write(E(), interval_format::agreeing) == "[empty]"
           && exact_string(E()) == "[empty]"; } },
+    // A value the program chooses with is_empty() of an empty interval: GCC
+    // for 32-bit ARM made the choice a conditional move, and compared the NaN
+    // bounds with the signaling vcmpe, after an intersection whose left
+    // operand is empty where it did not know the answer from operator&= (#60),
+    // and on the empty interval alone, as GCC for POWER9 did with xscmpgedp;
+    // is_empty() now tells the NaN bounds with std::isunordered() first there
+    // (see gaol/gaol_interval.h). Where the compiler optimizes for size (-Os),
+    // GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator& or operator&=
+    // rather than inlining it, and the choice is then made on is_empty() of an
+    // empty interval alone: these choices were not checked there
+    // (GAOL_TESTS_CHOICES) until jobs of the continuous integration built the
+    // tests for size, on armhf and for POWER9 (containers.yml)
+    { "(empty & x).is_empty() ? 0 : right()", [] {
+        const interval z = E() & X();
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+    { "(empty & empty).is_empty() ? 0 : right()", [] {
+        const interval z = E() & E();
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+    { "gaol_ieee1788::intersection(empty, x).is_empty() ? 0 : right()", [] {
+        const interval z = gaol_ieee1788::intersection(E(), X());
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+    { "empty.is_empty() ? 0 : right()", [] {
+        const interval z = E();
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
+    { "(x & empty).is_empty() ? 0 : right()", [] {
+        const interval z = X() & E();
+        const volatile double r = z.is_empty() ? 0.0 : z.right();
+        return r == 0.0; } },
   };
+
+  /*
+    A NaN the program gives GAOL, which interval(d) makes the empty set, to
+    the constructors, the operations and the relations with a double (GAOL v5,
+    point D.24 of TODO.md): the first comparison of the constructors, and of
+    the operations with a double testing d, compared the NaN with <, <= or >,
+    which raised the invalid-operation exception, and so did pow(x, d). Each
+    returns whether its result is the one of the empty set.
+  */
+  double nan_double() { return gaol::rnd_keep(std::numeric_limits<double>::quiet_NaN()); }
+
+  const EmptyOperand nan_operands[] = {
+    { "interval(NAN)", [] { return interval(nan_double()).is_empty(); } },
+    { "interval(NAN, 1)", [] { return interval(nan_double(), gaol::rnd_keep(1.0)).is_empty(); } },
+    { "interval(1, NAN)", [] { return interval(gaol::rnd_keep(1.0), nan_double()).is_empty(); } },
+    { "interval(NAN, NAN)", [] { return interval(nan_double(), nan_double()).is_empty(); } },
+    { "x = NAN", [] { interval z = X(); z = nan_double(); return z.is_empty(); } },
+    { "x += NAN", [] { interval z = X(); z += nan_double(); return z.is_empty(); } },
+    { "x -= NAN", [] { interval z = X(); z -= nan_double(); return z.is_empty(); } },
+    { "x *= NAN", [] { interval z = X(); z *= nan_double(); return z.is_empty(); } },
+    { "x /= NAN", [] { interval z = X(); z /= nan_double(); return z.is_empty(); } },
+    { "x %= NAN", [] { interval z = X(); z %= nan_double(); return z.is_empty(); } },
+    { "x &= NAN", [] { interval z = X(); z &= nan_double(); return z.is_empty(); } },
+    { "x |= NAN", [] { interval z = X(); z |= nan_double(); return z.set_eq(X()); } },
+    { "x + NAN, NAN - x, x * NAN, NAN / x, x % NAN", [] {
+        return (X() + nan_double()).is_empty() && (nan_double() - X()).is_empty() && (X()*nan_double()).is_empty()
+          && (nan_double()/X()).is_empty() && (X() % nan_double()).is_empty(); } },
+    { "x <= NAN, NAN < x, x >= NAN, NAN > x", [] {
+        return (X() <= nan_double()) && (nan_double() < X()) && (X() >= nan_double()) && (nan_double() > X()); } },
+    { "set_contains(NAN)", [] { return !X().set_contains(nan_double()); } },
+    { "set_strictly_contains(NAN)", [] { return !X().set_strictly_contains(nan_double()); } },
+    { "gaol_ieee1788::isMember(NAN, x)", [] { return !gaol_ieee1788::isMember(nan_double(), X()); } },
+    { "pow(x, NAN)", [] { return pow(X(), nan_double()).is_empty(); } },
+  };
+
+  /*
+    Products of intervals with a zero bound and an infinite one (GAOL v5,
+    point D.24): the product of the SSE2 intervals multiplied the bounds
+    pairwise, 0 by +oo among them, which raised the invalid-operation
+    exception, and made a 0 of the NaN afterwards: [0]*[1, +oo] and
+    [0, +oo]*[0] raised it, and so did pow([1], [1, +oo]) through them. The
+    bounds of every product of two intervals with bounds in
+    {-oo, -2, -0, 0, 3, +oo} are compared with the extrema of the products of
+    their bounds, a zero bound and an infinite one giving 0 (IEEE 1788-2015),
+    computed on these small integers, where they are exact.
+  */
+  double bound_product(double a, double b)
+  {
+    return (a == 0.0 || b == 0.0) ? 0.0 : a*b;
+  }
+
+  // The nonempty intervals with bounds in bounds
+  std::vector<interval> intervals_with_bounds(std::initializer_list<double> bounds)
+  {
+    std::vector<interval> intervals;
+    for (double l : bounds) {
+      for (double r : bounds) {
+        const interval z(l, r);
+        if (!z.is_empty()) {
+          intervals.push_back(z);
+        }
+      }
+    }
+    return intervals;
+  }
+
+  bool products_with_zero_and_infinite_bounds_are_right()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 3.0, GAOL_INFINITY });
+    bool right = true;
+    for (const interval& x : intervals) {
+      for (const interval& y : intervals) {
+        const double p[4] = { bound_product(x.left(), y.left()), bound_product(x.left(), y.right()),
+                              bound_product(x.right(), y.left()), bound_product(x.right(), y.right()) };
+        const interval z = opaque(x)*opaque(y);
+        right = right && z.left() == std::min(std::min(p[0], p[1]), std::min(p[2], p[3]))
+                && z.right() == std::max(std::max(p[0], p[1]), std::max(p[2], p[3]));
+      }
+    }
+    return right && pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY))).set_eq(interval(1.0));
+  }
+
+  /*
+    div_rel(K, J, [-oo, +oo]) for every K and J with bounds in
+    {-oo, -2, -0, 0, 4, +oo} (GAOL v5, point D.24): with the SSE2 intervals,
+    the branches keeping one half of a division divided both halves, and the
+    half thrown away divided +oo by +oo, which raised the invalid-operation
+    exception (div_rel([4, +oo], [-oo, 4], I)), or a nonzero bound by a zero
+    one, which raised the division-by-zero one (div_rel([-2], [-2, 0], I)).
+    Where J does not contain 0, the bounds are compared with the extrema of
+    the quotients of the bounds, exact on these, the quotient of two infinite
+    bounds left out (any positive number is a limit of such quotients, and
+    the others reach 0 and +oo then), and computed apart from GAOL, without
+    raising anything.
+  */
+  bool quotients_with_zero_and_infinite_bounds_are_right()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    bool right = true;
+    for (const interval& k : intervals) {
+      for (const interval& j : intervals) {
+        const interval z = div_rel(opaque(k), opaque(j), opaque(interval::universe()));
+        if (j.left() > 0.0 || j.right() < 0.0) {
+          double l = GAOL_INFINITY, r = -GAOL_INFINITY;
+          for (double a : { k.left(), k.right() }) {
+            for (double b : { j.left(), j.right() }) {
+              if (!(std::isinf(a) && std::isinf(b))) {
+                const double q = a/b;
+                l = std::min(l, q);
+                r = std::max(r, q);
+              }
+            }
+          }
+          right = right && z.left() == l && z.right() == r;
+        }
+      }
+    }
+    return right;
+  }
+
+  /*
+    pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
+    pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
+    |y| >= 2^1014, and compares the NaN product with <, which raised the
+    invalid-operation exception at the corners of these boxes. The bounds are
+    the tightest ones, known apart from any pow: for |y| < 2^-969 and a
+    positive x other than 1, |y log(x)| < 745 2^-969 < 2^-959, and x^y is
+    within 2^-958 of 1, above 1 where y log(x) > 0, so that its tightest
+    enclosure is [1, 1 + 2^-52] there and [1 - 2^-53, 1] otherwise; for
+    |y| >= 2^1014, |y log(x)| > 2^1014 2^-53, and x^y is above DBL_MAX or
+    below 2^-1074.
+  */
+  bool bounds_are(const interval& z, double l, double r)
+  {
+    return z.left() == l && z.right() == r;
+  }
+
+  const double above_one = 1.0 + std::numeric_limits<double>::epsilon();
+  const double below_one = 1.0 - 0.5*std::numeric_limits<double>::epsilon();
+  const double largest = (std::numeric_limits<double>::max)();
+  const double smallest = std::numeric_limits<double>::denorm_min();
+
+  // [l, r], an interval the compiler knows nothing about
+  interval make(double l, double r) { return opaque(interval(gaol::rnd_keep(l), gaol::rnd_keep(r))); }
+
+  const EmptyOperand extreme_powers[] = {
+    { "pow([1, 2], [2^-1074])", [] { return bounds_are(pow(make(1.0, 2.0), make(smallest, smallest)), 1.0, above_one); } },
+    { "pow([1, 2], [1e-300])", [] { return bounds_are(pow(make(1.0, 2.0), make(1e-300, 1e-300)), 1.0, above_one); } },
+    { "pow([0.5], [1e-300])", [] { return bounds_are(pow(make(0.5, 0.5), make(1e-300, 1e-300)), below_one, 1.0); } },
+    { "pow([0.5], [-1e-300])", [] { return bounds_are(pow(make(0.5, 0.5), make(-1e-300, -1e-300)), 1.0, above_one); } },
+    { "pow([2, 3], [-2^-1074, 2^-1074])", [] { return bounds_are(pow(make(2.0, 3.0), make(-smallest, smallest)), below_one, above_one); } },
+    { "pow([2], 1e-300)", [] { return bounds_are(pow(make(2.0, 2.0), gaol::rnd_keep(1e-300)), 1.0, above_one); } },
+    { "pow([1, 2], [1e300, 1e308])", [] { return bounds_are(pow(make(1.0, 2.0), make(1e300, 1e308)), 1.0, GAOL_INFINITY); } },
+    { "pow([1.5], [1e300, 1e308])", [] { return bounds_are(pow(make(1.5, 1.5), make(1e300, 1e308)), largest, GAOL_INFINITY); } },
+    { "pow([0.5], [1e300, 1e308])", [] { return bounds_are(pow(make(0.5, 0.5), make(1e300, 1e308)), 0.0, smallest); } },
+    { "pow([0.5], [-1e308, -1e300])", [] { return bounds_are(pow(make(0.5, 0.5), make(-1e308, -1e300)), largest, GAOL_INFINITY); } },
+    // An integer beyond the ints, from 2^1014 on, as gaol_ieee1788::pow takes it
+    { "gaol_ieee1788::pow([1.5], [1e308])", [] {
+        return bounds_are(gaol_ieee1788::pow(make(1.5, 1.5), make(1e308, 1e308)), largest, GAOL_INFINITY); } },
+    { "gaol_ieee1788::pow([0, 0.5], [1e308])", [] {
+        return bounds_are(gaol_ieee1788::pow(make(0.0, 0.5), make(1e308, 1e308)), 0.0, smallest); } },
+    { "gaol_ieee1788::pow([0.5, 2], [-1e308])", [] {
+        return bounds_are(gaol_ieee1788::pow(make(0.5, 2.0), make(-1e308, -1e308)), 0.0, GAOL_INFINITY); } },
+  };
+
+  /*
+    The midpoint of an interval with a bound of 2^1023 or more in magnitude,
+    finite (GAOL v5, point D.24): midpoint() and mid() computed the sum of the
+    bounds first, which overflowed for [DBL_MAX] and raised the overflow
+    exception, before they took the sum of the halves. The midpoints are
+    computed by midpoints_of(), which calls GAOL only, and checked against the
+    exact midpoint, computed with dyadic numbers, apart.
+  */
+  struct HugeInterval
+  {
+    const char *name;
+    double l, r;
+  };
+
+  /*
+    The intervals, made at run time from doubles read back from volatile
+    memory: GCC 12.1 to 12.3 and 13.1 to 13.2 with -frounding-math wrote the
+    long double 2^-1074 into a double member of an aggregate given
+    std::numeric_limits<double>::denorm_min(), as a table at namespace scope
+    or in a function. Its significand read as -0 and the rest overwrote the
+    next member, so that [2^-1074, DBL_MAX] was [-0, 0x3bcd 2^-1074] on
+    x86-64, where its checks passed, and [-0, NaN], the empty set, for 32-bit
+    x86, where the checks of its midpoints failed (Debian 12 i386 with GCC
+    12.2, MinGW-w64 12.2 and 13.2 for x86), though midpoint() and mid() give
+    the right ones there. A scalar double or an array of doubles initialized
+    so have the right value, as with GCC 12.4, 13.3 and 14.
+  */
+  std::vector<HugeInterval> huge_intervals()
+  {
+    const double dbl_max = gaol::rnd_keep((std::numeric_limits<double>::max)());
+    const double smallest_subnormal = gaol::rnd_keep(std::numeric_limits<double>::denorm_min());
+    const double two_1023 = gaol::rnd_keep(0x1p1023);
+    std::vector<HugeInterval> intervals;
+    intervals.push_back(HugeInterval{ "[DBL_MAX]", dbl_max, dbl_max });
+    intervals.push_back(HugeInterval{ "[-DBL_MAX]", -dbl_max, -dbl_max });
+    intervals.push_back(HugeInterval{ "[1e308, DBL_MAX]", gaol::rnd_keep(1e308), dbl_max });
+    intervals.push_back(HugeInterval{ "[-DBL_MAX, -2^1023]", -dbl_max, -two_1023 });
+    intervals.push_back(HugeInterval{ "[2^-1074, DBL_MAX]", smallest_subnormal, dbl_max });
+    return intervals;
+  }
+
+  struct Midpoints
+  {
+    double midpoint, rad, mid_rad_m, mid_rad_r;
+    interval mid, split_l, split_r, split_left, split_right;
+
+    bool operator==(const Midpoints& m) const
+    {
+      return std::memcmp(&midpoint, &m.midpoint, sizeof midpoint) == 0 && std::memcmp(&rad, &m.rad, sizeof rad) == 0
+        && mid_rad_m == m.mid_rad_m && mid_rad_r == m.mid_rad_r && mid.set_eq(m.mid) && split_l.set_eq(m.split_l)
+        && split_r.set_eq(m.split_r) && split_left.set_eq(m.split_left) && split_right.set_eq(m.split_right);
+    }
+  };
+
+  Midpoints midpoints_of(const HugeInterval& h)
+  {
+    const interval x = opaque(interval(gaol::rnd_keep(h.l), gaol::rnd_keep(h.r)));
+    Midpoints m;
+    m.midpoint = x.midpoint();
+    m.rad = x.rad();
+    x.mid_rad(m.mid_rad_m, m.mid_rad_r);
+    m.mid = x.mid();
+    x.split(m.split_l, m.split_r);
+    m.split_left = x.split_left();
+    m.split_right = x.split_right();
+    return m;
+  }
+
+  bool midpoints_are_right(const HugeInterval& h, const Midpoints& m)
+  {
+    const Exact middle = exact(dyadic(h.l)*dyadic(0.5) + dyadic(h.r)*dyadic(0.5));
+    const double c = m.midpoint;
+    return is_tightest_enclosure(m.mid, middle) && m.mid.set_contains(c) && (h.l != h.r || c == h.l)
+      && m.mid_rad_m == c && m.mid_rad_r == m.rad && m.rad >= 0.0 && (h.l != h.r || m.rad == 0.0)
+      && bounds_are(m.split_l, h.l, c) && bounds_are(m.split_r, c, h.r)
+      && m.split_left.set_eq(m.split_l) && m.split_right.set_eq(m.split_r);
+  }
+
+  /*
+    The relations in loops, which a compiler vectorizes or if-converts (GAOL
+    v5, point D.24): the comparison that follows a test of the empty set is
+    then made for the empty operands too, and <, <=, >= or > raise the
+    invalid-operation exception on their NaN bounds, as GCC 9.4 at -O3 made
+    for the FPU intervals the constructor raise it (and with -mavx2,
+    certainly_positive(), less() and others). Every third x and every fifth y
+    is empty; each result is compared with the relation computed on its own,
+    outside the loop.
+  */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_TESTS_NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#  define GAOL_TESTS_NOINLINE __declspec(noinline)
+#else
+#  define GAOL_TESTS_NOINLINE
+#endif
+
+  const int loop_size = 64;
+
+  // name() computes expression of the arrays x and y for each index i, and
+  // name_at() for one pair, outside any loop
+#define GAOL_TESTS_RELATION_LOOP(name, expression)                                                    \
+  GAOL_TESTS_NOINLINE void name(const interval *x, const interval *y, unsigned char *result)          \
+  {                                                                                                    \
+    static_cast<void>(y);                                                                              \
+    for (int i = 0; i < loop_size; ++i) {                                                              \
+      result[i] = static_cast<unsigned char>(expression);                                              \
+    }                                                                                                  \
+  }                                                                                                    \
+  unsigned char name##_at(const interval& x_at, const interval& y_at)                                  \
+  {                                                                                                    \
+    const interval *x = &x_at, *y = &y_at;                                                             \
+    static_cast<void>(y);                                                                              \
+    const int i = 0;                                                                                   \
+    return static_cast<unsigned char>(expression);                                                     \
+  }
+
+  GAOL_TESTS_RELATION_LOOP(loop_less, x[i].less(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_strictly_less, x[i].strictly_less(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_is_symmetric, x[i].is_symmetric())
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_positive, x[i].certainly_positive())
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_negative, x[i].certainly_negative())
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_strictly_positive, x[i].certainly_strictly_positive())
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_strictly_negative, x[i].certainly_strictly_negative())
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge, x[i].certainly_ge(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq, x[i].certainly_geq(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le, x[i].certainly_le(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq, x[i].certainly_leq(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_is_zero, x[i].is_zero())
+  GAOL_TESTS_RELATION_LOOP(loop_is_a_double, x[i].is_a_double())
+  GAOL_TESTS_RELATION_LOOP(loop_is_an_int, x[i].is_an_int())
+  GAOL_TESTS_RELATION_LOOP(loop_is_entire, x[i].is_entire())
+  GAOL_TESTS_RELATION_LOOP(loop_is_empty, x[i].is_empty())
+  GAOL_TESTS_RELATION_LOOP(loop_straddles_zero, x[i].straddles_zero())
+  GAOL_TESTS_RELATION_LOOP(loop_set_contains, x[i].set_contains(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_set_contains_double, x[i].set_contains(1.5))
+  GAOL_TESTS_RELATION_LOOP(loop_set_strictly_contains, x[i].set_strictly_contains(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_set_strictly_contains_double, x[i].set_strictly_contains(1.5))
+  GAOL_TESTS_RELATION_LOOP(loop_set_eq, x[i].set_eq(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_set_disjoint, x[i].set_disjoint(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_set_le, x[i].set_le(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_set_leq, x[i].set_leq(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_operators, (x[i] <= y[i]) + 2*(x[i] < y[i]) + 4*(x[i] >= 1.5) + 8*(x[i] > 1.5))
+  GAOL_TESTS_RELATION_LOOP(loop_constructor, interval(x[i].left(), y[i].right()).is_empty())
+  GAOL_TESTS_RELATION_LOOP(loop_intersection, (x[i] & y[i]).is_empty())
+  GAOL_TESTS_RELATION_LOOP(loop_floor, floor(x[i]).is_empty())
+
+  struct RelationLoop
+  {
+    const char *name;
+    void (*loop)(const interval *x, const interval *y, unsigned char *result);
+    unsigned char (*at)(const interval& x, const interval& y);
+  };
+
+  const RelationLoop relation_loops[] = {
+    { "less()", loop_less, loop_less_at },
+    { "strictly_less()", loop_strictly_less, loop_strictly_less_at },
+    { "is_symmetric()", loop_is_symmetric, loop_is_symmetric_at },
+    { "certainly_positive()", loop_certainly_positive, loop_certainly_positive_at },
+    { "certainly_negative()", loop_certainly_negative, loop_certainly_negative_at },
+    { "certainly_strictly_positive()", loop_certainly_strictly_positive, loop_certainly_strictly_positive_at },
+    { "certainly_strictly_negative()", loop_certainly_strictly_negative, loop_certainly_strictly_negative_at },
+    { "certainly_ge()", loop_certainly_ge, loop_certainly_ge_at },
+    { "certainly_geq()", loop_certainly_geq, loop_certainly_geq_at },
+    { "certainly_le()", loop_certainly_le, loop_certainly_le_at },
+    { "certainly_leq()", loop_certainly_leq, loop_certainly_leq_at },
+    { "is_zero()", loop_is_zero, loop_is_zero_at },
+    { "is_a_double()", loop_is_a_double, loop_is_a_double_at },
+    { "is_an_int()", loop_is_an_int, loop_is_an_int_at },
+    { "is_entire()", loop_is_entire, loop_is_entire_at },
+    { "is_empty()", loop_is_empty, loop_is_empty_at },
+    { "straddles_zero()", loop_straddles_zero, loop_straddles_zero_at },
+    { "set_contains()", loop_set_contains, loop_set_contains_at },
+    { "set_contains(double)", loop_set_contains_double, loop_set_contains_double_at },
+    { "set_strictly_contains()", loop_set_strictly_contains, loop_set_strictly_contains_at },
+    { "set_strictly_contains(double)", loop_set_strictly_contains_double, loop_set_strictly_contains_double_at },
+    { "set_eq()", loop_set_eq, loop_set_eq_at },
+    { "set_disjoint()", loop_set_disjoint, loop_set_disjoint_at },
+    { "set_le()", loop_set_le, loop_set_le_at },
+    { "set_leq()", loop_set_leq, loop_set_leq_at },
+    { "<=, < and >=, > with a double", loop_operators, loop_operators_at },
+    { "interval(l, r)", loop_constructor, loop_constructor_at },
+    { "&", loop_intersection, loop_intersection_at },
+    { "floor()", loop_floor, loop_floor_at },
+  };
+
+  // The operands of the loops, from operands the compiler does not know
+  void loop_operands(std::vector<interval>& x, std::vector<interval>& y)
+  {
+    x.resize(loop_size);
+    y.resize(loop_size);
+    for (int i = 0; i < loop_size; ++i) {
+      const double d = static_cast<double>(i);
+      x[i] = (i % 3 == 0) ? E() : make(d - 10.0, d + 0.5);
+      y[i] = (i % 5 == 0) ? E() : make(0.5*d, d + 1.0);
+    }
+  }
+
+  // Runs loop on the operands, and compares its results with at()
+  bool relation_loop_is_right(const RelationLoop& r)
+  {
+    std::vector<interval> x, y;
+    loop_operands(x, y);
+    unsigned char result[loop_size];
+    r.loop(x.data(), y.data(), result);
+    bool right = true;
+    for (int i = 0; i < loop_size; ++i) {
+      right = right && result[i] == r.at(opaque(x[i]), opaque(y[i]));
+    }
+    return right;
+  }
 
 #if GAOL_TESTS_TRAPS
   // How a child process that enabled the floating-point exceptions of excepts
@@ -471,6 +940,15 @@ namespace
     volatile double quotient = zero/zero;
     return quotient != quotient;
   }
+
+  // An overflow, 2 DBL_MAX: the control of the checks with the overflow
+  // exception enabled
+  bool overflow_operation()
+  {
+    volatile double big = (std::numeric_limits<double>::max)();
+    volatile double product = 2.0*big;
+    return product > big;
+  }
 #endif // GAOL_TESTS_TRAPS
 }
 
@@ -486,8 +964,12 @@ int main()
   std::vector<std::pair<interval, interval> > operands;
   operands.push_back(std::make_pair(interval(0.1, 0.3), interval(1.5, 2.5)));
   for (int i = 0; i < 5; ++i) {
+    // One draw per declarator, in order: the two arguments of std::make_pair
+    // were evaluated in an order the compiler chose, and gave other operands
+    // with other compilers
     const double a = random.uniform(0.01, 0.6), b = random.uniform(1.1, 2.0);
-    operands.push_back(std::make_pair(interval(a, a + random.uniform(0.001, 0.39)), interval(b, b + random.uniform(0.001, 1.0))));
+    const double wa = random.uniform(0.001, 0.39), wb = random.uniform(0.001, 1.0);
+    operands.push_back(std::make_pair(interval(a, a + wa), interval(b, b + wb)));
   }
 
   const Operation operations[] = {
@@ -619,7 +1101,7 @@ int main()
         return s; } },
     { "feven", [](const interval&, const interval&) { return S(feven(2.0)); } },
     { "interval::pi()", [](const interval&, const interval&) { return S(interval::pi()); } },
-    { "interval::precision(n)", [](const interval&, const interval&) { const int p = interval::precision(17); interval::precision(p); return S(p); } },
+    { "interval::precision(n)", [](const interval&, const interval&) { const int p = static_cast<int>(interval::precision(17)); interval::precision(p); return S(p); } },
   };
 
   set(directions[0]);
@@ -681,6 +1163,485 @@ int main()
             is_tightest_enclosure(s[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(s[i]); });
     }
   }
+
+  /*
+    The exception flags the program raised, and its exception masks, are
+    kept by every operation, whichever way GAOL is built (GAOL v5, point D.24
+    of TODO.md): with GAOL_PRESERVE_ROUNDING, the SSE2 operations (+, -, *,
+    /, %, sqr(), inverse(), the operations with a double...) wrote the SSE
+    control register whole, every exception masked and every flag cleared.
+    Each operation is run with the five flags of IEEE 754 raised, and on x86
+    the six of the SSE control register: they have to be raised after it, and
+    the masks unchanged. Where feraiseexcept() raises no flag that
+    fetestexcept() reads back (an emulator, a processor without the flags),
+    this is not checked, and the test says so. An exception the program
+    enabled is checked below, with the invalid-operation exception enabled.
+  */
+  std::feclearexcept(FE_ALL_EXCEPT);
+  std::feraiseexcept(FE_ALL_EXCEPT);
+  const bool flags_readable = std::fetestexcept(FE_ALL_EXCEPT) == FE_ALL_EXCEPT;
+  std::feclearexcept(FE_ALL_EXCEPT);
+  if (!flags_readable) {
+    std::printf("The exception flags raised by feraiseexcept() are not read back here: the flags kept by "
+                "the operations are not checked\n");
+  } else {
+    for (const Operation& op : operations) {
+      const std::string name = op.name;
+      set(directions[0]);
+      std::feraiseexcept(FE_ALL_EXCEPT);
+#if GAOL_TESTS_SSE
+      _mm_setcsr(_mm_getcsr() | 0x3fu); // the six flags of MXCSR, denormal-operand included
+      const unsigned masks_before = _mm_getcsr() & _MM_MASK_MASK;
+#endif
+      static_cast<void>(run(op, operands[0].first, operands[0].second));
+      const int raised = std::fetestexcept(FE_ALL_EXCEPT);
+#if GAOL_TESTS_SSE
+      const unsigned csr = _mm_getcsr();
+#endif
+      std::feclearexcept(FE_ALL_EXCEPT);
+      check("the exception flags the program raised kept by " + name, raised == FE_ALL_EXCEPT,
+            [&] { return "flags " + std::to_string(raised) + " after it"; });
+#if GAOL_TESTS_SSE
+      check("the SSE exception flags and masks kept by " + name, (csr & 0x3fu) == 0x3fu && (csr & _MM_MASK_MASK) == masks_before,
+            [&] { return "MXCSR " + std::to_string(csr) + " after it, masks " + std::to_string(masks_before) + " before"; });
+#endif
+    }
+    set(directions[0]);
+  }
+
+#if GAOL_TESTS_FLUSH
+  /*
+    The modes that flush the subnormals to zero (GAOL v5): flush-to-zero,
+    denormals-are-zero and both on x86, FZ (and FIZ, where the processor has
+    it) on ARM. With one of them set, an operation whose result or operand is
+    subnormal gave a zero: [1e-300]*[1e-20] was [0, 0], when a program linked
+    with -Ofast, whose crtfastmath.o sets them after GAOL initialized itself,
+    or a plug-in built so, set them, and the rounding direction upward that the
+    probe of each operation looked at was still there; the FPU intervals
+    compared the bounds, and the operations with a double the double, with 0
+    before their probe: [1e-300]/[100*2^-1074] was the empty set. The direction
+    is tried with each of the modes, upward included, which is what such a
+    program has. The bounds have to be the tightest ones, computed apart with
+    exact rational arithmetic, or with mpmath for the exponential: the operands,
+    the exact values and the bounds are read with the modes cleared, which
+    change frexp(), on which the exact arithmetic of the tests relies, for a
+    subnormal. The modes are cleared after the operation, or restored with
+    GAOL_PRESERVE_ROUNDING. tests/fast_math_link.cpp checks the program linked
+    with -ffast-math.
+  */
+  const std::vector<FlushMode> flush_modes_honoured = flush_modes();
+  {
+    const Dyadic half = dyadic(0.5);
+    struct Case
+    {
+      const char *name;
+      interval x, y;
+      interval (*run)(const interval&, const interval&);
+      Exact value; // the exact result, or a number between the same two doubles
+    };
+    const Case cases[] = {
+      // Subnormal results of normal operands
+      { "[1e-300]*[1e-20]", interval(1e-300), interval(1e-20),
+        [](const interval& x, const interval& y) { return x*y; },
+        exact(dyadic(1e-300)*dyadic(1e-20)) },
+      { "[1e-300]/[1e20]", interval(1e-300), interval(1e20),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(1e20)) },
+      // The exact difference, a subnormal
+      { "[3e-308]-[2.9e-308]", interval(3e-308), interval(2.9e-308),
+        [](const interval& x, const interval& y) { return x - y; },
+        exact(dyadic(3e-308) - dyadic(2.9e-308)) },
+      { "sqr([1e-160])", interval(1e-160), interval(),
+        [](const interval& x, const interval&) { return sqr(x); },
+        exact(dyadic(1e-160)*dyadic(1e-160)) },
+      // Subnormal operands
+      { "[100*2^-1074]*[1e10]", interval(subnormal(100)), interval(1e10),
+        [](const interval& x, const interval& y) { return x*y; },
+        exact(dyadic(subnormal(100))*dyadic(1e10)) },
+      { "[100*2^-1074]+[3*2^-1074]", interval(subnormal(100)), interval(subnormal(3)),
+        [](const interval& x, const interval& y) { return x + y; },
+        exact(dyadic(subnormal(100)) + dyadic(subnormal(3))) },
+      { "[100*2^-1074]/[3]", interval(subnormal(100)), interval(3.0),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(subnormal(100)), dyadic(3.0)) },
+      // A normal result of a subnormal divisor
+      { "[1e-300]/[100*2^-1074]", interval(1e-300), interval(subnormal(100)),
+        [](const interval& x, const interval& y) { return x/y; },
+        quotient(dyadic(1e-300), dyadic(subnormal(100))) },
+      // A subnormal double, a literal rather than subnormal(100), which the
+      // modes would flush: the operations compared it with 0 before their check
+      // of the rounding direction, and it was 0
+      { "[1e10]*(100*2^-1074)", interval(1e10), interval(),
+        [](const interval& x, const interval&) { return x*0x64p-1074; },
+        exact(dyadic(1e10)*dyadic(subnormal(100))) },
+      { "[1e-300]/(100*2^-1074)", interval(1e-300), interval(),
+        [](const interval& x, const interval&) { return x/0x64p-1074; },
+        quotient(dyadic(1e-300), dyadic(subnormal(100))) },
+      // exp(-740) is 84.78 times 2^-1074 (mpmath), between the same two
+      // doubles as 84.5 times 2^-1074
+      { "exp([-740])", interval(-740.0), interval(),
+        [](const interval& x, const interval&) { return exp(x); },
+        exact(dyadic(subnormal(169))*half) },
+    };
+
+    for (const FlushMode& m : flush_modes_honoured) {
+      for (const Case& c : cases) {
+        for (const Direction& d : directions) {
+          set(d);
+          set_flush_bits(m.bits);
+          const unsigned int found = flush_bits();
+          const interval r = c.run(c.x, c.y);
+          const unsigned int left = flush_bits();
+          set_flush_bits(0u);
+          const auto describe = [&] {
+            return m.name + " set, rounding direction " + d.name + ": modes " + std::to_string(left) + " after it, "
+                 + std::to_string(found) + " before";
+          };
+          check(std::string(c.name) + " the tightest enclosure with a flush-to-zero mode", is_tightest_enclosure(r, c.value),
+                [&] { return describe() + ", " + hex(r); });
+#if GAOL_PRESERVE_ROUNDING
+          check(std::string(c.name) + ": flush-to-zero modes restored", left == found, describe);
+#else
+          check(std::string(c.name) + ": flush-to-zero modes cleared", left == 0u, describe);
+#endif
+        }
+      }
+    }
+    set(directions[0]);
+  }
+
+  /*
+    Every operation that checks the rounding direction, with each of the modes
+    set just before it, gives what it gives with the modes cleared, which the
+    cases above show to be the tightest bounds, and leaves them cleared, or
+    restored with GAOL_PRESERVE_ROUNDING (GAOL v5, review of point 4).
+    Its check clears the modes before it reads, compares or copies a bound, and
+    with GAOL_PRESERVE_ROUNDING it makes its result before it restores them;
+    the compilers do not model the modes, so this is checked on what each
+    compiler of the continuous integration emits. With GCC 13 at -O3, asinpi()
+    compared the bounds it had read with 0 before the check, and with the modes
+    set asinpi([100*2^-1074]) was [32*2^-1074], above the exact value,
+    31.83*2^-1074 (mpmath); sqrt([-1e-310, 4]), whose intersection with
+    [0, +oo] kept -1e-310 under denormals-are-zero, was empty once the check
+    had cleared it; atan2([100*2^-1074], [100*2^-1074]) was empty, the point
+    taken for (0, 0); and with GAOL_PRESERVE_ROUNDING sinpi([100, 1000]*2^-1074)
+    was empty, its minimum taken once the modes were restored. acos_rel() and
+    asin_rel() of a J outside [-1, 1], or containing it, returned before their
+    check, with the right result but the modes still set. The functions
+    that make no check are tried after these. Nothing of the C library runs
+    while a mode is set: the results are read and written with the modes
+    cleared.
+  */
+  {
+    struct FlushOperation
+    {
+      const char *name;
+      int arity; // 1: x, 2: x and y, a double being y.left(), 3: x, y and z
+      interval (*run)(const interval& x, const interval& y, const interval& z);
+    };
+    const FlushOperation flush_operations[] = {
+      { "sqr(x)", 1, [](const interval& x, const interval&, const interval&) { return sqr(x); } },
+      { "sqrt(x)", 1, [](const interval& x, const interval&, const interval&) { return sqrt(x); } },
+      { "rsqrt(x)", 1, [](const interval& x, const interval&, const interval&) { return rsqrt(x); } },
+      { "inverse(x)", 1, [](const interval& x, const interval&, const interval&) { return inverse(x); } },
+      { "exp(x)", 1, [](const interval& x, const interval&, const interval&) { return exp(x); } },
+      { "exp2(x)", 1, [](const interval& x, const interval&, const interval&) { return exp2(x); } },
+      { "exp10(x)", 1, [](const interval& x, const interval&, const interval&) { return exp10(x); } },
+      { "expm1(x)", 1, [](const interval& x, const interval&, const interval&) { return expm1(x); } },
+      { "exp2m1(x)", 1, [](const interval& x, const interval&, const interval&) { return exp2m1(x); } },
+      { "exp10m1(x)", 1, [](const interval& x, const interval&, const interval&) { return exp10m1(x); } },
+      { "log(x)", 1, [](const interval& x, const interval&, const interval&) { return log(x); } },
+      { "log2(x)", 1, [](const interval& x, const interval&, const interval&) { return log2(x); } },
+      { "log10(x)", 1, [](const interval& x, const interval&, const interval&) { return log10(x); } },
+      { "log1p(x)", 1, [](const interval& x, const interval&, const interval&) { return log1p(x); } },
+      { "log2p1(x)", 1, [](const interval& x, const interval&, const interval&) { return log2p1(x); } },
+      { "log10p1(x)", 1, [](const interval& x, const interval&, const interval&) { return log10p1(x); } },
+      { "sin(x)", 1, [](const interval& x, const interval&, const interval&) { return sin(x); } },
+      { "cos(x)", 1, [](const interval& x, const interval&, const interval&) { return cos(x); } },
+      { "tan(x)", 1, [](const interval& x, const interval&, const interval&) { return tan(x); } },
+      { "sinpi(x)", 1, [](const interval& x, const interval&, const interval&) { return sinpi(x); } },
+      { "cospi(x)", 1, [](const interval& x, const interval&, const interval&) { return cospi(x); } },
+      { "tanpi(x)", 1, [](const interval& x, const interval&, const interval&) { return tanpi(x); } },
+      { "asin(x)", 1, [](const interval& x, const interval&, const interval&) { return asin(x); } },
+      { "acos(x)", 1, [](const interval& x, const interval&, const interval&) { return acos(x); } },
+      { "atan(x)", 1, [](const interval& x, const interval&, const interval&) { return atan(x); } },
+      { "asinpi(x)", 1, [](const interval& x, const interval&, const interval&) { return asinpi(x); } },
+      { "acospi(x)", 1, [](const interval& x, const interval&, const interval&) { return acospi(x); } },
+      { "atanpi(x)", 1, [](const interval& x, const interval&, const interval&) { return atanpi(x); } },
+      { "sinh(x)", 1, [](const interval& x, const interval&, const interval&) { return sinh(x); } },
+      { "cosh(x)", 1, [](const interval& x, const interval&, const interval&) { return cosh(x); } },
+      { "tanh(x)", 1, [](const interval& x, const interval&, const interval&) { return tanh(x); } },
+      { "asinh(x)", 1, [](const interval& x, const interval&, const interval&) { return asinh(x); } },
+      { "acosh(x)", 1, [](const interval& x, const interval&, const interval&) { return acosh(x); } },
+      { "atanh(x)", 1, [](const interval& x, const interval&, const interval&) { return atanh(x); } },
+      { "pow(x, 2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 2); } },
+      { "pow(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 3); } },
+      { "pow(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -2); } },
+      { "pow(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -3); } },
+      { "pow(x, 5u)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, 5u); } },
+      { "nth_root(x, 2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 2); } },
+      { "nth_root(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 3); } },
+      { "nth_root(x, 4)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 4); } },
+      { "nth_root(x, 5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 5); } },
+      { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
+      { "x.mid()", 1, [](const interval& x, const interval&, const interval&) { return x.mid(); } },
+      { "x.width()", 1, [](const interval& x, const interval&, const interval&) { return interval(x.width()); } },
+      { "x.rad()", 1, [](const interval& x, const interval&, const interval&) { return interval(x.rad()); } },
+      { "x + y", 2, [](const interval& x, const interval& y, const interval&) { return x + y; } },
+      { "x - y", 2, [](const interval& x, const interval& y, const interval&) { return x - y; } },
+      { "x * y", 2, [](const interval& x, const interval& y, const interval&) { return x * y; } },
+      { "x / y", 2, [](const interval& x, const interval& y, const interval&) { return x / y; } },
+      { "x % y", 2, [](const interval& x, const interval& y, const interval&) { return x % y; } },
+      { "hypot(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return hypot(x, y); } },
+      { "atan2(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan2(x, y); } },
+      { "atan2pi(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan2pi(x, y); } },
+      { "pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return gaol::pow(x, y); } },
+      { "gaol_ieee1788::pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return gaol_ieee1788::pow(x, y); } },
+      { "pow(x, double)", 2, [](const interval& x, const interval& y, const interval&) { return gaol::pow(x, y.left()); } },
+      { "sqrt_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return sqrt_rel(x, y); } },
+      { "nth_root_rel(x, 3, y)", 2, [](const interval& x, const interval& y, const interval&) { return nth_root_rel(x, 3, y); } },
+      { "nth_root_rel(x, 4, y)", 2, [](const interval& x, const interval& y, const interval&) { return nth_root_rel(x, 4, y); } },
+      { "acos_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return acos_rel(x, y); } },
+      { "asin_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return asin_rel(x, y); } },
+      { "atan_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan_rel(x, y); } },
+      { "acosh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return acosh_rel(x, y); } },
+      { "asinh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return asinh_rel(x, y); } },
+      { "atanh_rel(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atanh_rel(x, y); } },
+      { "cancel_minus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_minus(x, y); } },
+      { "cancel_plus(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return cancel_plus(x, y); } },
+      { "hausdorff(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return interval(hausdorff(x, y)); } },
+      { "x * double", 2, [](const interval& x, const interval& y, const interval&) { return x * y.left(); } },
+      { "double * x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() * x; } },
+      { "x / double", 2, [](const interval& x, const interval& y, const interval&) { return x / y.left(); } },
+      { "double / x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() / x; } },
+      { "x % double", 2, [](const interval& x, const interval& y, const interval&) { return x % y.left(); } },
+      { "x + double", 2, [](const interval& x, const interval& y, const interval&) { return x + y.left(); } },
+      { "double - x", 2, [](const interval& x, const interval& y, const interval&) { return y.left() - x; } },
+      { "fma(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return fma(x, y, z); } },
+      { "div_rel(x, y, z)", 3, [](const interval& x, const interval& y, const interval& z) { return div_rel(x, y, z); } },
+    };
+    // Subnormal, mixed and normal bounds; the first ones for two and three operands
+    const interval flush_operands[] = {
+      interval(subnormal(100)), interval(-subnormal(100)), interval(subnormal(3), subnormal(100)),
+      interval(-subnormal(100), subnormal(1000)), interval(0.0, subnormal(100)), interval(-1e-310, 4.0),
+      interval(1e-300), interval(1.0, 2.0), interval(-2.0, 3.0), interval(-1.0, subnormal(5)), interval(3.0),
+      interval(subnormal(100), subnormal(1000)), interval(-subnormal(100), -subnormal(3)), interval(0.5),
+      interval(-subnormal(100), 0.0), interval(1e-310, 1e-309), interval(-1e-309, -1e-310), interval(1e-310, 2.0),
+      interval(1e-160), interval(3e-308), interval(1e-308, 3e-308), interval(-740.0), interval(-1070.0),
+      interval(-320.0), interval(1e-300, 1e-200), interval(1e10), interval(0x1p-1022), interval(100.0, 1000.0),
+    };
+    const std::size_t all_operands = sizeof(flush_operands)/sizeof(flush_operands[0]);
+    const std::size_t operands_of[] = { 0, all_operands, 14, 6 }; // by arity
+    const auto same = [](const interval& a, const interval& b) {
+      if (a.is_empty() || b.is_empty()) {
+        return a.is_empty() && b.is_empty();
+      }
+      const double ab[2] = { a.left(), a.right() }, bb[2] = { b.left(), b.right() };
+      return std::memcmp(ab, bb, sizeof ab) == 0;
+    };
+    for (const FlushOperation& op : flush_operations) {
+      const std::string name = std::string(op.name) + " with a flush-to-zero mode set before it, as with the modes cleared";
+#if GAOL_PRESERVE_ROUNDING
+      const std::string modes_name = std::string(op.name) + ": flush-to-zero modes restored after it";
+#else
+      const std::string modes_name = std::string(op.name) + ": flush-to-zero modes cleared after it";
+#endif
+      const std::size_t n = operands_of[op.arity];
+      const std::size_t ny = (op.arity >= 2) ? n : 1, nz = (op.arity == 3) ? n : 1;
+      for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t j = 0; j < ny; ++j) {
+          for (std::size_t k = 0; k < nz; ++k) {
+            const interval& x = flush_operands[i];
+            const interval& y = flush_operands[j];
+            const interval& z = flush_operands[k];
+            set(directions[0]);
+            set_flush_bits(0u);
+            const interval cleared = op.run(x, y, z);
+            for (const FlushMode& m : flush_modes_honoured) {
+              for (const Direction& d : directions) {
+                set(d);
+                set_flush_bits(m.bits);
+                const interval r = op.run(x, y, z);
+                const unsigned int left = flush_bits();
+                set_flush_bits(0u);
+                const auto args = [&] {
+                  std::string a = hex(x);
+                  if (op.arity >= 2) {
+                    a += ", " + hex(y);
+                  }
+                  if (op.arity == 3) {
+                    a += ", " + hex(z);
+                  }
+                  return m.name + " set, rounding direction " + d.name + ", (" + a + ")";
+                };
+                check(name, same(r, cleared),
+                      [&] { return args() + ": " + hex(r) + " rather than " + hex(cleared); });
+                const auto modes_left = [&] { return args() + ": modes " + std::to_string(left) + " after it"; };
+#if GAOL_PRESERVE_ROUNDING
+                check(modes_name, left == m.bits, modes_left);
+#else
+                check(modes_name, left == 0u, modes_left);
+#endif
+              }
+            }
+          }
+        }
+      }
+    }
+    set(directions[0]);
+
+    /*
+      The functions that make no check of the rounding direction, which only
+      compare or copy bounds (the constructor from two bounds, the relations,
+      &, |, max(), min(), abs(), sign(), floor(), ceil()...), give with a mode
+      set before them what they give with the modes cleared, and leave the
+      modes as they found them: they compare the bounds as bounds
+      (gaol_detail::bound_less()..., gaol_port.h), which no mode changes, and
+      write nothing to the control register (GAOL v5, point Q of TODO.md,
+      issue #68). Under denormals-are-zero, interval(2^-1073, 2^-1074) kept
+      its bounds in the wrong order, max([3, 100]*2^-1074, [200*2^-1074]) was
+      the first one, abs([-1e-309, -1e-310]) stayed negative, sign([-2^-1074])
+      was [0], floor([-1e-310]) [-0], [3*2^-1074] < [5*2^-1074] false and
+      [2, 5]*2^-1074 contained 7*2^-1074. They do not depend on the rounding
+      direction, and are run with it upward. midpoint(), split(), chi() and
+      the writing of an interval compute: they check the direction, which
+      clears the modes, and are run in each direction, the modes cleared after
+      them, or restored with GAOL_PRESERVE_ROUNDING; under denormals-are-zero,
+      the midpoint of [3, 100]*2^-1074 was 0, outside the interval, and
+      [22*2^-1074] was written [1e-322] with 1 digit, below its bound. The
+      results are kept as they are and compared by their bits, the empty set
+      by its NaN bounds, so that bounds in the wrong order, which is_empty()
+      takes for the empty set with the modes cleared, are told apart; their
+      doubles are written once the modes are cleared (Kept). The check of
+      <a, b> by the parser, which compares the two numbers as doubles, is left
+      to point E.
+    */
+    {
+      struct UncheckedFunction
+      {
+        const char *name;
+        int arity; // 1: x, 2: x and y, a double being y.left()
+        bool checks; // checks the rounding direction, which clears the modes
+        Kept (*run)(const interval& x, const interval& y);
+      };
+      const UncheckedFunction unchecked_functions[] = {
+        { "interval(x.left(), y.left())", 2, false, [](const interval& x, const interval& y) { return kept(interval(x.left(), y.left())); } },
+        { "interval(x.right(), y.left())", 2, false, [](const interval& x, const interval& y) { return kept(interval(x.right(), y.left())); } },
+        { "x & y", 2, false, [](const interval& x, const interval& y) { return kept(x & y); } },
+        { "x | y", 2, false, [](const interval& x, const interval& y) { return kept(x | y); } },
+        { "x &= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z &= y.left(); return kept(z); } },
+        { "x |= double", 2, false, [](const interval& x, const interval& y) { interval z(x); z |= y.left(); return kept(z); } },
+        { "max(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(max(x, y)); } },
+        { "min(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(min(x, y)); } },
+        { "abs(x)", 1, false, [](const interval& x, const interval&) { return kept(abs(x)); } },
+        { "invabs_rel(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(invabs_rel(x, y)); } },
+        { "sign(x)", 1, false, [](const interval& x, const interval&) { return kept(sign(x)); } },
+        { "floor(x)", 1, false, [](const interval& x, const interval&) { return kept(floor(x)); } },
+        { "ceil(x)", 1, false, [](const interval& x, const interval&) { return kept(ceil(x)); } },
+        { "integer(x)", 1, false, [](const interval& x, const interval&) { return kept(integer(x)); } },
+        { "trunc(x)", 1, false, [](const interval& x, const interval&) { return kept(trunc(x)); } },
+        { "round_ties_to_even(x)", 1, false, [](const interval& x, const interval&) { return kept(round_ties_to_even(x)); } },
+        { "round_ties_to_away(x)", 1, false, [](const interval& x, const interval&) { return kept(round_ties_to_away(x)); } },
+        { "x.mig()", 1, false, [](const interval& x, const interval&) { return kept(x.mig()); } },
+        { "x.smig()", 1, false, [](const interval& x, const interval&) { return kept(x.smig()); } },
+        { "x.mag()", 1, false, [](const interval& x, const interval&) { return kept(x.mag()); } },
+        { "gaol_ieee1788::inf(x)", 1, false, [](const interval& x, const interval&) { return kept(gaol_ieee1788::inf(x)); } },
+        { "gaol_ieee1788::sup(x)", 1, false, [](const interval& x, const interval&) { return kept(gaol_ieee1788::sup(x)); } },
+        { "nb_fp_numbers(x.left(), x.right())", 1, false, [](const interval& x, const interval&) {
+            return x.is_common_interval() ? kept(nb_fp_numbers(x.left(), x.right())) : kept_text("not finite"); } },
+        { "x.certainly_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_le(y)); } },
+        { "x.certainly_leq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_leq(y)); } },
+        { "x.certainly_ge(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_ge(y)); } },
+        { "x.certainly_geq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.certainly_geq(y)); } },
+        { "x.certainly_positive()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_positive()); } },
+        { "x.certainly_negative()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_negative()); } },
+        { "x.certainly_strictly_positive()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_strictly_positive()); } },
+        { "x.certainly_strictly_negative()", 1, false, [](const interval& x, const interval&) { return kept(x.certainly_strictly_negative()); } },
+        { "x.set_contains(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_contains(y)); } },
+        { "x.set_contains(double)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_contains(y.left())); } },
+        { "x.set_strictly_contains(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_strictly_contains(y)); } },
+        { "x.set_strictly_contains(double)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_strictly_contains(y.left())); } },
+        { "x.set_disjoint(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_disjoint(y)); } },
+        { "x.set_eq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_eq(y)); } },
+        { "x.set_leq(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_leq(y)); } },
+        { "x.set_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_le(y)); } },
+        { "x.less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.less(y)); } },
+        { "x.strictly_less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.strictly_less(y)); } },
+        { "lexicographic_less()(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(lexicographic_less()(x, y)); } },
+        { "x.is_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.is_zero()); } },
+        { "x.is_symmetric()", 1, false, [](const interval& x, const interval&) { return kept(x.is_symmetric()); } },
+        { "x.straddles_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.straddles_zero()); } },
+        { "x.strictly_straddles_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.strictly_straddles_zero()); } },
+        { "x.is_a_double()", 1, false, [](const interval& x, const interval&) { return kept(x.is_a_double()); } },
+        { "x.is_an_int()", 1, false, [](const interval& x, const interval&) { return kept(x.is_an_int()); } },
+        { "x.is_canonical()", 1, false, [](const interval& x, const interval&) { return kept(x.is_canonical()); } },
+        { "feven(x.left())", 1, false, [](const interval& x, const interval&) { return kept(feven(x.left())); } },
+        { "x.midpoint()", 1, true, [](const interval& x, const interval&) { return kept(x.midpoint()); } },
+        { "x.split()", 1, true, [](const interval& x, const interval&) { interval l, r; x.split(l, r); return kept(l, r); } },
+        { "x.split_left()", 1, true, [](const interval& x, const interval&) { return kept(x.split_left()); } },
+        { "x.split_right()", 1, true, [](const interval& x, const interval&) { return kept(x.split_right()); } },
+        { "chi(x)", 1, true, [](const interval& x, const interval&) { return kept(chi(x)); } },
+        { "operator<< (bounds)", 1, true, [](const interval& x, const interval&) { return kept_text(write(x, interval_format::bounds)); } },
+        { "operator<< (bounds, 1 digit)", 1, true, [](const interval& x, const interval&) {
+            const std::streamsize p = interval::precision(1);
+            const std::string s = write(x, interval_format::bounds);
+            interval::precision(p);
+            return kept_text(s); } },
+        { "operator<< (center)", 1, true, [](const interval& x, const interval&) { return kept_text(write(x, interval_format::center)); } },
+        { "gaol_ieee1788::intervalToText(x)", 1, true, [](const interval& x, const interval&) { return kept_text(gaol_ieee1788::intervalToText(x)); } },
+      };
+      // A point interval of subnormals, whose bounds 1 digit writes outward
+      const interval point_of_subnormals = interval(subnormal(22));
+      for (const UncheckedFunction& f : unchecked_functions) {
+        const std::string name = std::string(f.name) + " with a flush-to-zero mode set before it, as with the modes cleared";
+        const std::string modes_name = std::string(f.name) + (f.checks ?
+#if GAOL_PRESERVE_ROUNDING
+          ": flush-to-zero modes restored after it" :
+#else
+          ": flush-to-zero modes cleared after it" :
+#endif
+          ": flush-to-zero modes left as they were after it");
+        const std::size_t n = all_operands + 1;
+        const std::size_t ny = (f.arity == 2) ? n : 1;
+        const std::size_t nd = f.checks ? sizeof(directions)/sizeof(directions[0]) : 1;
+        for (std::size_t i = 0; i < n; ++i) {
+          for (std::size_t j = 0; j < ny; ++j) {
+            const interval& x = (i < all_operands) ? flush_operands[i] : point_of_subnormals;
+            const interval& y = (j < all_operands) ? flush_operands[j] : point_of_subnormals;
+            set(directions[0]);
+            set_flush_bits(0u);
+            const Kept cleared = f.run(x, y);
+            for (const FlushMode& m : flush_modes_honoured) {
+              for (std::size_t k = 0; k < nd; ++k) {
+                const Direction& d = directions[k];
+                set(d);
+                set_flush_bits(m.bits);
+                const Kept r = f.run(x, y);
+                const unsigned int left = flush_bits();
+                set_flush_bits(0u);
+                const auto args = [&] {
+                  return m.name + " set, rounding direction " + d.name + ", (" + hex(x)
+                         + ((f.arity == 2) ? ", " + hex(y) : std::string()) + ")";
+                };
+                check(name, same_kept(r, cleared), [&] { return args() + ": " + written(r) + "rather than " + written(cleared); });
+                const unsigned int expected =
+#if GAOL_PRESERVE_ROUNDING
+                  m.bits;
+#else
+                  f.checks ? 0u : m.bits;
+#endif
+                check(modes_name, left == expected, [&] { return args() + ": modes " + std::to_string(left) + " after it"; });
+              }
+            }
+          }
+        }
+      }
+      set(directions[0]);
+    }
+  }
+#else
+  std::printf("No mode flushing the subnormals to zero that the test can set: the operations under one are not checked\n");
+#endif // GAOL_TESTS_FLUSH
 
   /*
     The floating-point exceptions stay masked (GAOL v5). CORE-MATH's cbrt, pow
@@ -763,7 +1724,7 @@ int main()
     invalid-operation one some raise on nonempty operands, are not checked
     here: the exceptions have to be masked while GAOL computes (doc/using.md).
   */
-  for (const EmptySet& e : empty_sets) {
+  for (const NamedInterval& e : empty_sets) {
     const interval empty = e.make();
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool told_empty = empty.is_empty();
@@ -772,7 +1733,7 @@ int main()
           [&] { return std::string(e.name) + ": flags " + std::to_string(raised) + " raised"; });
     check("is_empty() of an empty set is true", told_empty, [&] { return std::string(e.name); });
   }
-  for (const EmptySet& e : nonempty_sets) {
+  for (const NamedInterval& e : nonempty_sets) {
     const interval nonempty = e.make();
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool told_empty = nonempty.is_empty();
@@ -803,6 +1764,83 @@ int main()
           [&] { return std::string(e.name); });
   }
 
+  // A NaN the program gives, the products with a zero and an infinite bound,
+  // the powers with an exponent of extreme magnitude and the relations in
+  // loops raise no invalid-operation flag, and the midpoints of intervals
+  // with a huge bound no overflow flag (GAOL v5, point D.24)
+  for (const EmptyOperand& e : nan_operands) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("an operation with a NaN double raises no invalid-operation flag", raised == 0, [&] { return std::string(e.name); });
+    check("an operation with a NaN double gives the result of the empty set", right, [&] { return std::string(e.name); });
+  }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = products_with_zero_and_infinite_bounds_are_right();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("the products with a zero and an infinite bound raise no invalid-operation flag", raised == 0);
+    check("the products with a zero and an infinite bound are right", right);
+  }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = quotients_with_zero_and_infinite_bounds_are_right();
+    const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+    check("div_rel with zero and infinite bounds raises no invalid-operation nor division-by-zero flag", raised == 0,
+          [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
+    check("div_rel with zero and infinite bounds: the quotients", right);
+  }
+  for (const EmptyOperand& e : extreme_powers) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("pow with an exponent of extreme magnitude raises no invalid-operation flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("pow with an exponent of extreme magnitude: the tightest enclosure", right, [&] { return std::string(e.name); });
+  }
+  {
+    /* The differences of the bounds of cancel_minus() are computed by TwoSum
+       in the rounding to nearest, their terms kept before the direction
+       changes back: GCC computed them after it, upward, where TwoSum is no
+       longer exact, and the terms of the error of
+       cancel_minus([DBL_MAX], [1]) read +oo and inf - inf, and raised the
+       invalid-operation flag (GAOL v5, point 48; the bounds are checked in
+       tests/arithmetic.cpp) */
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("cancel_minus with a huge bound raises no invalid-operation flag", raised == 0,
+          [&] { return "flags " + std::to_string(raised) + " raised"; });
+    check("cancel_minus([DBL_MAX], [1]) is the hull of DBL_MAX",
+          z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
+              && z.right() == (std::numeric_limits<double>::max)(),
+          [&] { return hex(z); });
+  }
+  const std::vector<HugeInterval> huge = huge_intervals();
+  check("the intervals with a huge bound: the subnormal bound is 2^-1074",
+        huge.back().l == std::ldexp(gaol::rnd_keep(1.0), -1074) && huge.back().r == (std::numeric_limits<double>::max)(),
+        [&] { return "[" + hex(huge.back().l) + ", " + hex(huge.back().r) + "]"; });
+  std::vector<Midpoints> huge_midpoints;
+  for (const HugeInterval& h : huge) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    huge_midpoints.push_back(midpoints_of(h));
+    const int raised = std::fetestexcept(FE_OVERFLOW);
+    const Midpoints& m = huge_midpoints.back();
+    check("the midpoints of an interval with a huge bound raise no overflow flag", raised == 0, [&] { return std::string(h.name); });
+    check("the midpoints of an interval with a huge bound are right", midpoints_are_right(h, m),
+          [&] {
+            return std::string(h.name) + ": midpoint() " + hex(m.midpoint) + ", mid() " + hex(m.mid) + ", rad() " + hex(m.rad)
+                 + ", split() " + hex(m.split_l) + " " + hex(m.split_r);
+          });
+  }
+  for (const RelationLoop& r : relation_loops) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = relation_loop_is_right(r);
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("a loop of relations with empty operands raises no invalid-operation flag", raised == 0, [&] { return std::string(r.name); });
+    check("a loop of relations with empty operands gives the relations", right, [&] { return std::string(r.name); });
+  }
+
 #if GAOL_TESTS_TRAPS
   // The empty sets, computed and told empty with the invalid-operation
   // exception enabled: what the processor delivers where it can, which the
@@ -812,12 +1850,12 @@ int main()
     std::printf("The processor does not trap an invalid operation here: the checks with the "
                 "exception enabled are skipped\n");
   } else {
-    for (const EmptySet& e : empty_sets) {
+    for (const NamedInterval& e : empty_sets) {
       const Outcome o = run_with_exceptions_enabled(FE_INVALID, [&e] { return e.make().is_empty(); });
       check("is_empty() of an empty set, FE_INVALID enabled", o == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(o); });
     }
-    for (const EmptySet& e : nonempty_sets) {
+    for (const NamedInterval& e : nonempty_sets) {
       const Outcome o = run_with_exceptions_enabled(FE_INVALID, [&e] { return !e.make().is_empty(); });
       check("is_empty() of a nonempty interval, FE_INVALID enabled", o == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(o); });
@@ -829,6 +1867,62 @@ int main()
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("an operation with an empty operand, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    for (const EmptyOperand& e : nan_operands) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
+      check("an operation with a NaN double, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    const Outcome op = run_with_exceptions_enabled(FE_INVALID, products_with_zero_and_infinite_bounds_are_right);
+    check("the products with a zero and an infinite bound, FE_INVALID enabled", op == returned_true,
+          [&] { return outcome_text(op); });
+    const Outcome oq = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, quotients_with_zero_and_infinite_bounds_are_right);
+    check("div_rel with zero and infinite bounds, FE_INVALID and FE_DIVBYZERO enabled", oq == returned_true,
+          [&] { return outcome_text(oq); });
+    for (const EmptyOperand& e : extreme_powers) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
+      check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    const Outcome oc = run_with_exceptions_enabled(FE_INVALID, [] {
+      const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
+      return z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
+          && z.right() == (std::numeric_limits<double>::max)();
+    });
+    check("cancel_minus([DBL_MAX], [1]), FE_INVALID enabled", oc == returned_true,
+          [&] { return outcome_text(oc); });
+    for (const RelationLoop& r : relation_loops) {
+      const Outcome ol = run_with_exceptions_enabled(FE_INVALID, [&r] { return relation_loop_is_right(r); });
+      check("a loop of relations with empty operands, FE_INVALID enabled", ol == returned_true,
+            [&] { return std::string(r.name) + ": " + outcome_text(ol); });
+    }
+    // The exception the program enabled stays enabled after each operation
+    // (GAOL v5, point D.24): with GAOL_PRESERVE_ROUNDING, the SSE2 operations
+    // wrote the SSE control register with every exception masked
+    const Outcome om = run_with_exceptions_enabled(FE_INVALID, [&] {
+      bool enabled = true;
+      for (const Operation& o : operations) {
+        static_cast<void>(run(o, operands[0].first, operands[0].second));
+#if GAOL_TESTS_SSE
+        enabled = enabled && (_mm_getcsr() & _MM_MASK_INVALID) == 0u;
+#else
+        enabled = enabled && (fegetexcept() & FE_INVALID) != 0;
+#endif
+      }
+      return enabled;
+    });
+    check("the invalid-operation exception the program enabled stays enabled after every operation", om == returned_true,
+          [&] { return outcome_text(om); });
+  }
+  if (run_with_exceptions_enabled(FE_OVERFLOW, overflow_operation) != trapped) {
+    std::printf("The processor does not trap an overflow here: the midpoints with the overflow exception "
+                "enabled are not checked\n");
+  } else {
+    for (std::size_t i = 0; i < huge_midpoints.size(); ++i) {
+      // The midpoints computed above, apart from the exception enabled
+      const Outcome oe = run_with_exceptions_enabled(FE_OVERFLOW, [&] { return midpoints_of(huge[i]) == huge_midpoints[i]; });
+      check("the midpoints of an interval with a huge bound, FE_OVERFLOW enabled", oe == returned_true,
+            [&] { return std::string(huge[i].name) + ": " + outcome_text(oe); });
     }
   }
 #else
@@ -853,6 +1947,53 @@ int main()
   const State to_nearest = { FE_TONEAREST, SSE_DIRECTION(_MM_ROUND_NEAREST) };
   check("rounding direction set back to nearest by gaol::cleanup()", after_cleanup == to_nearest,
         [&] { return text(after_cleanup) + " after it, " + text(before_cleanup) + " before"; });
+#endif
+
+  /*
+    gaol::restore_rounding() sets back the direction that the first
+    gaol::init() found, as many times as the program needs, where gaol::cleanup()
+    does so at its first call only (GAOL v5): a program that goes back to GAOL
+    after cleanup() calls it after each use, the operations of GAOL setting the
+    direction upward again. With GAOL_PRESERVE_ROUNDING, the operations restore
+    the direction themselves and restore_rounding() does nothing.
+  */
+#if !GAOL_PRESERVE_ROUNDING
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("rounding direction set back to nearest by gaol::restore_rounding()", after_restore == to_nearest,
+        [&] { return text(after_restore); });
+  const interval back = interval(1.0) + interval(1.0);   // sets the direction upward again
+  static_cast<void>(back);
+  const State after_operation = state();
+  gaol::restore_rounding();
+  gaol::restore_rounding();
+  const State after_twice = state();
+  /* With GAOL_PREFER_AVX512, on a processor that has the AVX-512
+     instructions, the addition takes the embedded rounding: it sets no
+     direction, and the one the program left stays (to nearest here, as
+     restore_rounding() set it), as it stays with GAOL_PRESERVE_ROUNDING
+     (GAOL v5, gaol/gaol_interval_avx512.cpp) */
+#if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS \
+    && defined(GAOL_HAVE_AVX512_TARGET) && GAOL_HAVE_AVX512_TARGET && GAOL_PREFER_AVX512
+  const bool embedded_add = __builtin_cpu_supports("avx512f") != 0;
+  check("rounding direction set back by gaol::restore_rounding() as many times as needed",
+        embedded_add ? (after_operation == to_nearest && after_twice == to_nearest)
+                     : (!(after_operation == to_nearest) && after_twice == to_nearest),
+        [&] {
+          return text(after_twice) + " after it, " + text(after_operation) + " after the operation";
+        });
+#else
+  check("rounding direction set back by gaol::restore_rounding() as many times as needed",
+        !(after_operation == to_nearest) && after_twice == to_nearest,
+        [&] {
+          return text(after_twice) + " after it, " + text(after_operation) + " after the operation";
+        });
+#endif
+#else
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("gaol::restore_rounding() leaves the direction of the program with GAOL_PRESERVE_ROUNDING",
+        after_restore == after_cleanup, [&] { return text(after_restore); });
 #endif
   return summary();
 }

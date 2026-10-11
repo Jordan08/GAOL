@@ -2,6 +2,11 @@
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
 
+#include <algorithm>
+#include <climits>
+#include <set>
+#include <vector>
+
 class relations_test {
 public:
   void setUp() {
@@ -93,6 +98,38 @@ public:
       TEST_FALSE(interval(-4,5).certainly_strictly_negative());
  }
 
+  // <, <=, > and >= between an interval and a double: the relations with
+  // interval(d), interval(double) being explicit (GAOL v5)
+  void test_symbols_with_double() {
+    TEST_TRUE(interval(1,2) < 3.0);
+    TEST_FALSE(interval(1,3) < 3.0);
+    TEST_TRUE(interval(1,3) <= 3.0);
+    TEST_TRUE(0.0 < interval(1,2));
+    TEST_TRUE(2.0 <= interval(2,3));
+    TEST_FALSE(2.5 <= interval(2,3));
+    TEST_TRUE(interval(4,5) > 3);
+    TEST_TRUE(3 > interval(1,2));
+    TEST_TRUE(interval(2,3) >= 2.0);
+    TEST_FALSE(interval(1,3) >= 2.0);
+    TEST_TRUE(3.0 >= interval(1,3));
+    // No point of the empty set contradicts them
+    TEST_TRUE(interval::emptyset() < 0.0 && interval::emptyset() > 0.0);
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const interval xs[] = { interval(1,2), interval(-1,1), interval(0,GAOL_INFINITY),
+                            interval::universe(), interval::emptyset() };
+    const double ds[] = { -1.0, 0.0, 1.0, 2.0, GAOL_INFINITY, -GAOL_INFINITY, nan };
+    for (const interval& x : xs) {
+      for (double d : ds) {
+        const interval i(d);
+        TEST_TRUE((x < d) == (x < i) && (d < x) == (i < x));
+        TEST_TRUE((x <= d) == (x <= i) && (d <= x) == (i <= x));
+        TEST_TRUE((x > d) == (x > i) && (d > x) == (i > x));
+        TEST_TRUE((x >= d) == (x >= i) && (d >= x) == (i >= x));
+      }
+    }
+  }
+
   void test_misc() {
     // straddles_zero()
     TEST_TRUE(interval(-4,5).straddles_zero());
@@ -162,6 +199,109 @@ public:
     TEST_TRUE(interval::emptyset().is_finite());
   }
 
+  /* <, <=, > and >= between an interval and an integer, set_contains() and
+     set_strictly_contains() of an integer (GAOL v5, point D.21): n compared
+     as the integer it is. 2^53 + 1, converted to the double 2^53, was not
+     above [2^53], and [2^53] contained it. */
+  void test_symbols_with_integers() {
+    const double two53 = std::ldexp(1.0, 53), two64 = std::ldexp(1.0, 64);
+    const volatile long long n = 9007199254740993LL; // 2^53 + 1
+    const interval below(two53), above(two53 + 2), around(two53, two53 + 2);
+    TEST_TRUE(below < n && below <= n && n > below && n >= below);
+    TEST_FALSE(below > n || below >= n || n < below || n <= below);
+    TEST_TRUE(above > n && above >= n && n < above && n <= above);
+    TEST_FALSE(above < n || above <= n || n > above || n >= above);
+    TEST_FALSE(around < n || around <= n || around > n || around >= n);
+    TEST_FALSE(n < around || n <= around || n > around || n >= around);
+    TEST_TRUE(around.set_contains(n) && around.set_strictly_contains(n));
+    TEST_FALSE(below.set_contains(n) || above.set_contains(n) || below.set_strictly_contains(n));
+    TEST_FALSE(around.set_strictly_contains(9007199254740994LL));
+    TEST_TRUE(around.set_contains(9007199254740994LL));
+    const volatile unsigned long long m = ULLONG_MAX; // 2^64 - 1
+    TEST_TRUE(interval(two64) > m && m < interval(two64) && interval(two64 - 2048) < m);
+    TEST_FALSE(interval(two64).set_contains(m) || interval(two64).set_strictly_contains(m));
+    TEST_TRUE(interval(two64 - 2048, two64).set_strictly_contains(m));
+    TEST_FALSE(interval(two64 - 2048, two64 - 2048).set_strictly_contains(m));
+    // No point of the empty set contradicts them
+    TEST_TRUE(interval::emptyset() < n && interval::emptyset() > n && n <= interval::emptyset());
+    TEST_FALSE(interval::emptyset().set_contains(n));
+
+    // An integer that is a double: the relations with that double
+    const interval xs[] = { interval(1,2), interval(-1,1), interval(0,GAOL_INFINITY),
+                            interval::universe(), interval::emptyset() };
+    for (const interval& x : xs) {
+      for (int k = -2; k <= 3; ++k) {
+        const double d = k;
+        const long long ll = k;
+        TEST_TRUE((x < k) == (x < d) && (k < x) == (d < x) && (x < ll) == (x < d) && (ll < x) == (d < x));
+        TEST_TRUE((x <= k) == (x <= d) && (k <= x) == (d <= x) && (x <= ll) == (x <= d) && (ll <= x) == (d <= x));
+        TEST_TRUE((x > k) == (x > d) && (k > x) == (d > x) && (x > ll) == (x > d) && (ll > x) == (d > x));
+        TEST_TRUE((x >= k) == (x >= d) && (k >= x) == (d >= x) && (x >= ll) == (x >= d) && (ll >= x) == (d >= x));
+        TEST_TRUE(x.set_contains(k) == x.set_contains(d) && x.set_strictly_contains(ll) == x.set_strictly_contains(d));
+      }
+    }
+  }
+
+  /* lexicographic_less (GAOL v5, point V): a total order for the containers
+     of the standard library. < is strictPrecedes of IEEE 1788-2015, true as
+     soon as either interval is empty: a std::set<interval> built on < loses
+     the intervals that overlap, and std::sort reads past the end of a vector
+     that holds an empty interval, which the sort with lexicographic_less()
+     checks here, an empty interval sorted to its place, at the front of
+     the vector. */
+  void test_lexicographic_less() {
+    // Strict: no interval is less than itself
+    const interval xs[] = { interval::emptyset(), interval(-GAOL_INFINITY, 1),
+                            interval(-GAOL_INFINITY, 2), interval::universe(),
+                            interval(-1, 1), interval(0, 1), interval(0, 2),
+                            interval(1, 1), interval(1, 2),
+                            interval(1, GAOL_INFINITY) };
+    gaol::lexicographic_less const less;
+    gaol_core::lexicographic_less const less_core;
+    for (const interval& x : xs) {
+      TEST_FALSE(less(x, x));
+      TEST_FALSE(less_core(x, x));
+    }
+    for (size_t i = 0; i < sizeof(xs)/sizeof(xs[0]); ++i) {
+      for (size_t j = 0; j < sizeof(xs)/sizeof(xs[0]); ++j) {
+        // The expected order of the list above, and a strict order: for two
+        // different intervals exactly one of less(a, b) and less(b, a),
+        // for two equal intervals neither
+        TEST_TRUE(less(xs[i], xs[j]) == (i < j));
+        TEST_TRUE(less(xs[i], xs[j]) != less(xs[j], xs[i]) || i == j);
+        TEST_TRUE(!(less(xs[i], xs[j]) && less(xs[j], xs[i])));
+      }
+    }
+    // The empty set comes first
+    TEST_TRUE(less(interval::emptyset(), interval::universe()));
+    TEST_FALSE(less(interval::emptyset(), interval::emptyset()));
+    TEST_FALSE(less(interval::universe(), interval::emptyset()));
+    // -0.0 and +0.0 are equal as bounds
+    TEST_FALSE(less(interval(-0.0, 0.0), interval(0.0, 0.0)));
+    TEST_FALSE(less(interval(0.0, 0.0), interval(-0.0, 0.0)));
+
+    // A std::set keeps the intervals that overlap and the empty set
+    std::set<interval, gaol::lexicographic_less> s;
+    s.insert(interval(0, 1));
+    s.insert(interval(0.5, 3));   // overlaps the first: < loses it
+    s.insert(interval(1, 2));    // overlaps both
+    s.insert(interval::emptyset());
+    TEST_TRUE(s.size() == 4);
+    TEST_TRUE(s.count(interval(0.5, 3)) == 1);
+    TEST_TRUE(s.begin()->is_empty());
+    // std::sort of a vector holding an empty interval, which reads past the
+    // end of the vector with < (certainly_le)
+    std::vector<interval> v;
+    v.push_back(interval(1, 2));
+    v.push_back(interval::emptyset());
+    v.push_back(interval(-3, 0));
+    std::sort(v.begin(), v.end(), less);
+    TEST_TRUE(v.size() == 3);
+    TEST_TRUE(v[0].is_empty());
+    TEST_TRUE(less(v[1], v[2]));
+    TEST_TRUE(v[1].set_eq(interval(-3, 0)) && v[2].set_eq(interval(1, 2)));
+  }
+
   // <-- End of tests
 };
 
@@ -169,4 +309,7 @@ public:
 GAOL_UNIT_MAIN(relations_test, "relations",
                GAOL_UNIT_TEST(test_set),
                GAOL_UNIT_TEST(test_certainly),
+               GAOL_UNIT_TEST(test_symbols_with_double),
+               GAOL_UNIT_TEST(test_symbols_with_integers),
+               GAOL_UNIT_TEST(test_lexicographic_less),
                GAOL_UNIT_TEST(test_misc))

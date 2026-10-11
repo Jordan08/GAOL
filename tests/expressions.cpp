@@ -33,12 +33,19 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
+/* Before gaol/gaol, which gaol_tests.h includes: gaol/gaol_expression.h is
+   included here before gaol/gaol_ieee1788.h, and after it in
+   tests/ieee1788.cpp, and the functions of gaol_ieee1788 take the overloads
+   of the expressions in both orders (GAOL v5) */
+#include "gaol/gaol_expr_eval.h"
+
 #include "gaol_tests.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <random>
-#include "gaol/gaol_expr_eval.h"
+#include <type_traits>
+#include <utility>
 
 #if defined(_MSC_VER)
 #  include <intrin.h>
@@ -58,6 +65,27 @@ using namespace gaol_tests;
 
 namespace
 {
+  static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const expression&>())), const expression>::value,
+                "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included before gaol/gaol_ieee1788.h");
+
+  /* expression(double) and expression(const interval&) are explicit, as
+     interval(double) (GAOL v5): gaol::sin(0.5), which was ambiguous between
+     the sin of [0.5] and that of an expression, does not compile, and
+     gaol::sin(x) on an interval is the sin of the interval */
+  template <typename T, typename = void> struct has_gaol_sin : std::false_type {};
+  template <typename T>
+  struct has_gaol_sin<T, decltype(void(gaol::sin(std::declval<const T&>())))> : std::true_type {};
+  static_assert(!std::is_convertible<double, expression>::value, "a double does not convert implicitly to an expression");
+  static_assert(!std::is_convertible<interval, expression>::value, "an interval does not convert implicitly to an expression");
+  static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
+                "expression(d) and expression(x) build the expressions of [d, d] and x");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/gaol_expression.h included");
+  // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5, point D.21)
+  static_assert(!std::is_convertible<long long, expression>::value && std::is_constructible<expression, long long>::value,
+                "expression(n) builds the expression of interval(n)");
+  static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
+                "gaol::sin(x) on an interval is the sin of x, gaol/gaol_expression.h included");
+
   /* An empty expression of static storage, which refers to the node of the
      empty expression and is destroyed after main() has called
      gaol::cleanup(): cleanup() deleted that node, and the destructor of the
@@ -125,6 +153,7 @@ namespace
   // A string the parser has to refuse
   void refused(const std::string& text)
   {
+#if GAOL_EXCEPTIONS_ENABLED
     bool threw = false;
     try {
       const interval got = textToInterval(text);
@@ -136,6 +165,12 @@ namespace
     }
     check("expression: a string that is wrong raises an exception", threw,
           [&] { return text + " gave an interval"; });
+#else
+    // Without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), the string would end the program: not
+    // checked (GAOL v5)
+    (void)text;
+#endif
   }
 
   void numbers()
@@ -311,6 +346,7 @@ namespace
     check("gaol::textToInterval(\"2\", \"1\") is the empty set, which stays empty",
           textToInterval("2", "1").is_empty() && (textToInterval("2", "1") + interval(0.0, 1.0)).is_empty(),
           [] { return hex(textToInterval("2", "1") + interval(0.0, 1.0)); });
+#if GAOL_EXCEPTIONS_ENABLED
     bool threw = false;
     try {
       const interval z = textToInterval("pown([2,5],5)");
@@ -319,6 +355,7 @@ namespace
       threw = true;
     }
     check("gaol::textToInterval throws input_format_error for a name of IEEE 1788-2015 alone", threw);
+#endif
   }
 
   void wrong_strings()
@@ -359,43 +396,59 @@ namespace
     refused("[1,2]+[nth_root(8,1.5)]");
   }
 
+#if GAOL_EXCEPTIONS_ENABLED
   /* What an exception of GAOL says as a std::exception (GAOL v5). Its what()
      was the one of the standard class, "std::exception" with libstdc++ and
      libc++ whatever went wrong: the text that a handler of std::exception
      printed, and the one that a program ends with when nothing catches the
      exception ("what():  std::exception"), where explanation() had the
-     explanation. what() is now the explanation, or "gaol_exception" where
-     there is none, and operator<< writes the explanation once, where it
-     wrote what() and the explanation. The exceptions are built here with a
-     known explanation, so that what they say does not depend on the text of
-     the reader. */
+     explanation. what() is now the explanation, or the name of the class
+     where there is none, and operator<< writes the explanation once, where
+     it wrote what() and the explanation. A null pointer is no explanation,
+     where GAOL 4 built a std::string from it (undefined behavior), and an
+     explanation whose C string is empty (a NUL first) gives the name of the
+     class too, so that what() is never an empty text. The exceptions are
+     built here with a known explanation, so that what they say does not
+     depend on the text of the reader. */
   template<class Exception>
   void says(const char* name)
   {
     const unsigned line = __LINE__;
+    const char* const no_text = nullptr;
     const Exception with_text(__FILE__, line, "boom");
     const Exception with_string(__FILE__, line, std::string("boom"));
     const Exception without(__FILE__, line);
+    const Exception with_null(__FILE__, line, no_text);
+    const Exception with_nul_first(__FILE__, line, std::string("\0boom", 5));
 
     // Through the base class, as a handler of std::exception reads them
     const std::exception& a = with_text;
     const std::exception& b = with_string;
     const std::exception& c = without;
+    const std::exception& d = with_null;
+    const std::exception& z = with_nul_first;
     check("exception: what() is the explanation, given as a text",
           std::string(a.what()) == "boom", [&] { return std::string(name) + ": \"" + a.what() + "\""; });
     check("exception: what() is the explanation, given as a string",
           std::string(b.what()) == "boom", [&] { return std::string(name) + ": \"" + b.what() + "\""; });
-    check("exception: what() says gaol_exception where there is no explanation",
-          std::string(c.what()) == "gaol_exception", [&] { return std::string(name) + ": \"" + c.what() + "\""; });
+    check("exception: what() is the name of the class where there is no explanation",
+          std::string(c.what()) == name, [&] { return std::string(name) + ": \"" + c.what() + "\""; });
+    check("exception: a null pointer is no explanation",
+          with_null.explanation().empty() && std::string(d.what()) == name,
+          [&] { return std::string(name) + ": \"" + with_null.explanation() + "\", what() \"" + d.what() + "\""; });
+    check("exception: what() is the name of the class where the explanation starts with a NUL",
+          std::string(z.what()) == name, [&] { return std::string(name) + ": \"" + z.what() + "\""; });
 
     const std::string where = std::string(__FILE__) + ", line " + std::to_string(line) + ": exception thrown";
-    std::ostringstream shown, shown_without;
+    std::ostringstream shown, shown_without, shown_null;
     shown << with_text;
     shown_without << without;
+    shown_null << with_null;
     check("exception: operator<< writes the file, the line and the explanation, once",
           shown.str() == where + ": boom", [&] { return std::string(name) + ": " + shown.str(); });
     check("exception: operator<< writes no explanation where there is none",
-          shown_without.str() == where, [&] { return std::string(name) + ": " + shown_without.str(); });
+          shown_without.str() == where && shown_null.str() == where,
+          [&] { return std::string(name) + ": " + shown_without.str() + " | " + shown_null.str(); });
   }
 
   /* f, which has to throw an exception of GAOL, caught as a std::exception
@@ -439,6 +492,7 @@ namespace
     thrown_says("nb_fp_numbers(NaN, 1)", [] { (void)nb_fp_numbers(std::numeric_limits<double>::quiet_NaN(), 1.0); });
     thrown_says("operator>> of \"[1, 2\"", [] { std::istringstream in("[1, 2"); interval x; in >> x; });
   }
+#endif
 
   /* Many decimal intervals, whose bounds are no doubles: the interval read has
      to hold them, and to be no wider than the two doubles around them. */
@@ -488,6 +542,10 @@ namespace
     const expression x = expression(interval(1.0, 2.0));
     const expression y = expression(interval(3.0, 4.0));
     const expression d = expression(2.5);
+    // 2^53 + 1, which expression(double) made the double 2^53: expression(n)
+    // is the interval of the two doubles around it (GAOL v5, point D.21)
+    const double two53 = std::ldexp(1.0, 53);
+    const expression n = expression(9007199254740993LL);
 
     struct Case { expression e; interval value; const char* name; };
     const Case cases[] = {
@@ -521,6 +579,25 @@ namespace
       {sign(x), sign(interval(1.0, 2.0)), "sign"},
       {trunc(x), trunc(interval(1.0, 2.0)), "trunc"},
       {nth_root(x, 3), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3)"},
+      {n, interval(two53, two53 + 2), "expression(2^53+1)"},
+      {x + n, interval(1.0, 2.0) + interval(two53, two53 + 2), "x+expression(2^53+1)"},
+      {expression(7), interval(7.0), "expression(7)"},
+      // pow(e, n) and nth_root(e, n) for an integer of another type (GAOL v5):
+      // an unsigned beyond the ints became a negative int, [0, 1] for
+      // [1, 2]^3000000000u, nth_root(e, -2) took the order 4294967294, and a
+      // long beyond the unsigned ints was reduced modulo 2^32. Beyond them,
+      // the roots of an expression are those of the intervals but where e
+      // contains 0 (see roots_of_expressions())
+      {pow(x, 3L), pow(interval(1.0, 2.0), 3), "x^3L"},
+      {pow(x, 3000000000u), interval::universe(), "x^3000000000u"},
+      {pow(x, 5000000000LL), interval::universe(), "x^5e9"},
+      {nth_root(x, 3L), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3L)"},
+      {nth_root(y, -2), interval(1.0) / nth_root(interval(3.0, 4.0), 2u), "nth_root(y,-2)"},
+      {nth_root(x, 5000000000LL), nth_root(interval(1.0, 2.0), 5000000000LL), "nth_root(x,5e9)"},
+      {nth_root(x, 5000000001LL), nth_root(interval(1.0, 2.0), 5000000001LL), "nth_root(x,5e9+1)"},
+      {nth_root(-x, 5000000001LL), nth_root(interval(-2.0, -1.0), 5000000001LL), "nth_root(-x,5e9+1)"},
+      {nth_root(x, -3000000000LL), nth_root(interval(1.0, 2.0), -3000000000LL), "nth_root(x,-3e9)"},
+      {nth_root(-x, -5000000001LL), nth_root(interval(-2.0, -1.0), -5000000001LL), "nth_root(-x,-5e9-1)"},
       {cos(x) + sin(y) * exp(x), cos(interval(1.0, 2.0)) + sin(interval(3.0, 4.0)) * exp(interval(1.0, 2.0)), "nested"},
     };
 
@@ -562,6 +639,34 @@ namespace
             cl.left() == got.left() && cl.right() == got.right(),
             [&] { return std::string(c.name); });
       delete clone;
+    }
+
+    // expression(n) for an integer that is a double is expression(double),
+    // written as the double, and a visitor sees a double_node, as before the
+    // overload for the integers (GAOL v5)
+    {
+      std::ostringstream a, b;
+      a << expression(7) << ' ' << pow(expression(-2), 2);
+      b << expression(7.0) << ' ' << pow(expression(-2.0), 2);
+      check("expression(7) is expression(7.0)", a.str() == b.str()
+              && dynamic_cast<double_node*>(expression(7).get_root()) != nullptr,
+            [&] { return a.str() + " rather than " + b.str(); });
+    }
+
+    // The roots of an expression of order beyond the unsigned ints, where e
+    // contains 0: an enclosure of those of the intervals, sign(e) being
+    // [-1, 1] there (GAOL v5)
+    {
+      const interval z(-3.0, 2.0);
+      expr_eval ev;
+      nth_root(expression(z), 5000000001LL).get_root()->accept(ev);
+      const interval got = ev.result(), roots = nth_root(z, 5000000001LL);
+      check("nth_root(e, 5e9 + 1) of an expression containing 0 encloses the roots", got.set_contains(roots),
+            [&] {
+              std::ostringstream o;
+              o << got << " does not contain " << roots;
+              return o.str();
+            });
     }
 
     // the operators that change the expression in place; /= was declared and
@@ -612,7 +717,7 @@ namespace
      expressions are built, copied, assigned, extended and divided. */
   void null_node_not_counted()
   {
-    const unsigned int before = the_null_expr->references();
+    const unsigned int before = gaol_core::the_null_expr->references();
     unsigned int during = 0;
     {
       expression e, f = e;
@@ -621,9 +726,9 @@ namespace
       g += expression(1.0);
       expression h;
       h /= expression(2.0);
-      during = the_null_expr->references();
+      during = gaol_core::the_null_expr->references();
     }
-    const unsigned int after = the_null_expr->references();
+    const unsigned int after = gaol_core::the_null_expr->references();
     check("expression: the empty expressions do not count their references to the_null_expr",
           before == during && during == after,
           [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
@@ -1135,7 +1240,9 @@ int main()
   step("operators");         operators();
   step("functions");         functions();
   step("wrong_strings");     wrong_strings();
+#if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
+#endif
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();
@@ -1155,7 +1262,7 @@ int main()
   {
     std::ostringstream text;
     text << static_expression;
-    check("a static empty expression", static_expression.get_root() == the_null_expr && text.str() == ":null:",
+    check("a static empty expression", static_expression.get_root() == gaol_core::the_null_expr && text.str() == ":null:",
           [&] { return text.str(); });
   }
   step("summary");

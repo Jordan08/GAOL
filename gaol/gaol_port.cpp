@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
@@ -20,7 +21,7 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-03
 */
 
@@ -36,8 +37,8 @@ namespace gaol_core {
 	//std::cout <<  d << std::endl;
 	uintdouble v;
 	v.d = d;
-	return (HI_UINTDOUBLE(v) & 0x80000000)!=0;
-    //return ((unsigned int)(__HI(d)) & 0x80000000)!=0;
+	return (GAOL_HI_UINTDOUBLE(v) & 0x80000000)!=0;
+    //return ((unsigned int)(GAOL_HI(d)) & 0x80000000)!=0;
   }
 
 } // namespace gaol_core

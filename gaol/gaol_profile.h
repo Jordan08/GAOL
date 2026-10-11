@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -20,13 +21,13 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-02
 */
 
 
-#ifndef __gaol_profile_h__
-#define __gaol_profile_h__
+#ifndef GAOL_PROFILE_H
+#define GAOL_PROFILE_H
 
 #include "gaol/gaol_config.h"
 
@@ -35,7 +36,7 @@ namespace gaol_core {
   /*!
     \brief Object to record time for profiling purpose
    */
-  class __GAOL_PUBLIC__ timepiece {
+  class GAOL_PUBLIC timepiece {
   public:
     timepiece();
     //! Starts the chronometer
@@ -53,21 +54,30 @@ namespace gaol_core {
     long total_time;
   };
 
-extern __GAOL_PUBLIC__ long get_time(void);
-  /*!
-    Sets the base for time tracking.
-   */
-extern __GAOL_PUBLIC__ void reset_time(void);
-  /*!
-    Returns the elapsed time since the last call to reset_time()
-   */
-extern __GAOL_PUBLIC__ long elapsed_time(void);
-  /*!
-    Returns the elapsed time since the last call to reset_time() or
-    to intermediate_elapsed_time.
-  */
-extern __GAOL_PUBLIC__ long intermediate_elapsed_time(void);
+  extern GAOL_PUBLIC long get_time(void);
+    /*!
+      Sets the base for time tracking.
+    */
+  extern GAOL_PUBLIC void reset_time(void);
+    /*!
+      Returns the elapsed time since the last call to reset_time()
+    */
+  extern GAOL_PUBLIC long elapsed_time(void);
+    /*!
+      Returns the elapsed time since the last call to reset_time() or
+      to intermediate_elapsed_time.
+    */
+  extern GAOL_PUBLIC long intermediate_elapsed_time(void);
 
 } // namespace gaol_core
 
-#endif /* __gaol_profile_h__ */
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::timepiece;
+  using gaol_core::get_time;
+  using gaol_core::reset_time;
+  using gaol_core::elapsed_time;
+  using gaol_core::intermediate_elapsed_time;
+} // namespace gaol
+
+#endif /* GAOL_PROFILE_H */

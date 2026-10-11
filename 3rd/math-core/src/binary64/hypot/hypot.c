@@ -190,12 +190,12 @@ static double  __attribute__((noinline)) as_hypot_hard(double x, double y, const
     set_flags(flag);
   } else {
     if(__builtin_expect(op == om, 1)){
-      u64 tm = (rm << k) - (1<<(k-(rm<=(1ll<<53))));
+      u64 tm = (rm << k) - (1ull<<(k-(rm<=(1ll<<53)))); /* GAOL */
       D = m2 - tm*tm;
       if(__builtin_expect(D != 0, 1))
 	rm += D>>63;
       else
-	rm -= rm&(1<<(1-(rm<=(1ll<<53))));
+	rm -= rm&(1ull<<(1-(rm<=(1ll<<53)))); /* GAOL */
     } else {
       rm -= (op==1)<<(rm>(1ll<<53));
     }

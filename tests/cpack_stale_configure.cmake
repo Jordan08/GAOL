@@ -19,17 +19,33 @@
 #   - a configure without a line PACKAGE_VERSION=, and a tree without configure
 #     (an archive of another kind): no warning, and CMake configures.
 #
+# The archive takes its name from the version CMake read when it configured:
+# the copy configured for the version configure was generated for, VERSION.txt
+# then holds the next one, and CPack has to configure the build directory
+# again before it makes the archive (cmake/gaol_package_source.cmake), warn,
+# and name the archive after the new version, CMake giving no warning of its
+# own in the files CPack reads. CPack runs as the target
+# package_source runs it, in the build directory, whatever the generator:
+# Ninja configured again before package_source, the Makefile generators did
+# not.
+#
 # A copy is made of symbolic links to the files and directories of the tree,
 # but for CMakeLists.txt, VERSION.txt and configure, which are copies: CMake
 # reads them from the copy, and the script never writes through a link, into
 # the tree. The version the committed configure was generated for is asked of
 # configure itself (configure --version, as a user of the archive sees it), not
-# read as CMakeLists.txt reads it, so that the two do not share a mistake.
+# read as CMakeLists.txt reads it, so that the two do not share a mistake. The
+# copy is configured with the generator, its program and the compilers that
+# built GAOL, the compilers given to CMake as CC and CXX, the way CMake reads
+# them with their arguments (CC="ccache gcc"). Without sh, or where the system
+# makes no symbolic link, the script says that it is skipped
+# (SKIP_REGULAR_EXPRESSION of tests/CMakeLists.txt) rather than failing.
 #
 # ctest runs it (tests/CMakeLists.txt), and by hand:
 #
 #   cmake -DGAOL_SOURCE_DIR=<sources of GAOL> -DGAOL_WORK_DIR=<directory>/cpack_stale_configure \
-#         -DGAOL_GENERATOR=<generator> -DGAOL_C_COMPILER=<cc> -DGAOL_CXX_COMPILER=<c++> \
+#         -DGAOL_GENERATOR=<generator> [-DGAOL_MAKE_PROGRAM=<its program>] \
+#         "-DGAOL_C_COMPILER=<cc and its arguments>" "-DGAOL_CXX_COMPILER=<c++ and its arguments>" \
 #         -P tests/cpack_stale_configure.cmake
 #
 # Copyright (c) 2026 ENSTA, France
@@ -43,14 +59,44 @@ foreach(_name GAOL_SOURCE_DIR GAOL_WORK_DIR GAOL_GENERATOR GAOL_C_COMPILER GAOL_
     message(FATAL_ERROR "${_name} is not given (see the head of this file)")
   endif()
 endforeach()
-# The script removes what it made in this directory, and nothing else
+# The script removes the whole of this directory, when it starts, and when it
+# passes or is skipped (a failure leaves it to be looked at): it has to be the
+# directory of this test
 if(NOT GAOL_WORK_DIR MATCHES "/cpack_stale_configure$")
   message(FATAL_ERROR "GAOL_WORK_DIR, ${GAOL_WORK_DIR}, is not a directory of this test (cpack_stale_configure)")
 endif()
 
-# The version configure was generated for, and the next one
+set(_tree "${GAOL_WORK_DIR}/tree")
+set(_build "${GAOL_WORK_DIR}/build")
+
+# Removes the directory, the links of the copy one by one first. file(REMOVE)
+# and file(REMOVE_RECURSE) remove a symbolic link, not what it points to,
+# which holds also for the links CPack copies into the build directory: nothing
+# is ever removed through them
+macro(remove_work_dir)
+  file(GLOB _links "${_tree}/*")
+  foreach(_path ${_links})
+    file(REMOVE "${_path}")
+  endforeach()
+  file(REMOVE_RECURSE "${GAOL_WORK_DIR}")
+endmacro()
+
+# Ends the script, which passes, saying why it is skipped: ctest reads the
+# message (SKIP_REGULAR_EXPRESSION)
+macro(skip why)
+  remove_work_dir()
+  message(STATUS "cpack_stale_configure: skipped, ${why}")
+  return()
+endmacro()
+
+# The version configure was generated for, and the next one. Without sh, the
+# status is the message of a command that could not start
 execute_process(COMMAND sh "${GAOL_SOURCE_DIR}/configure" --version
   OUTPUT_VARIABLE _output RESULT_VARIABLE _status)
+string(TOLOWER "${_status}" _lower)
+if(_lower MATCHES "no such file")
+  skip("sh did not run configure --version (${_status})")
+endif()
 if(NOT _status EQUAL 0 OR NOT _output MATCHES "^gaol configure ([0-9]+)\\.([0-9]+)\\.([0-9]+)\n")
   message(FATAL_ERROR "configure --version, which tells the version configure was generated for, gave (status ${_status}):\n${_output}")
 endif()
@@ -61,18 +107,16 @@ math(EXPR _next_micro "${_micro} + 1")
 set(_old "${_major}.${_minor}.${_micro}")
 set(_new "${_major}.${_minor}.${_next_micro}")
 
-set(_tree "${GAOL_WORK_DIR}/tree")
-set(_build "${GAOL_WORK_DIR}/build")
-
-# What a run left is removed with its links one by one, so that nothing is
-# ever removed through them
-file(GLOB _left "${_tree}/*")
-foreach(_path ${_left})
-  file(REMOVE "${_path}")
-endforeach()
-file(REMOVE_RECURSE "${GAOL_WORK_DIR}")
+# What a run left
+remove_work_dir()
 
 file(MAKE_DIRECTORY "${_tree}")
+# Whether the system makes symbolic links here, which a file system may not
+file(CREATE_LINK "${GAOL_SOURCE_DIR}/VERSION.txt" "${GAOL_WORK_DIR}/probe" RESULT _result SYMBOLIC)
+if(NOT _result STREQUAL "0")
+  skip("the system made no symbolic link in ${GAOL_WORK_DIR}: ${_result}")
+endif()
+file(REMOVE "${GAOL_WORK_DIR}/probe")
 file(GLOB _entries RELATIVE "${GAOL_SOURCE_DIR}" "${GAOL_SOURCE_DIR}/*")
 foreach(_entry ${_entries})
   # The three files to copy, and the hidden ones (.git...), which no
@@ -92,16 +136,32 @@ foreach(_entry ${_entries})
   endif()
 endforeach()
 file(COPY "${GAOL_SOURCE_DIR}/CMakeLists.txt" DESTINATION "${_tree}")
+# A file the regular expressions of CPACK_SOURCE_IGNORE_FILES do not match,
+# which the archive has to hold: \.lo$ read without its backslash, as CMake 4
+# read it without CPACK_VERBATIM_VARIABLES, matches it
+file(WRITE "${_tree}/keep.halo" "Not ignored by CPack\n")
 
-# Configures the copy as it is, in the same directory of build each time (the
-# checks of the compiler are cached), with the compiler that built GAOL, and
-# checks its warning: <expected> is WARNS, with the versions it names, or SILENT
-function(check_configure title version expected)
+# The program of the generator, which CMake looks for in PATH otherwise: Ninja
+# can be elsewhere
+set(_make_program)
+if(NOT "${GAOL_MAKE_PROGRAM}" STREQUAL "")
+  set(_make_program "-DCMAKE_MAKE_PROGRAM=${GAOL_MAKE_PROGRAM}")
+endif()
+
+# Writes <version> in the VERSION.txt of the copy
+function(write_version version)
   file(REMOVE "${_tree}/VERSION.txt")
   file(WRITE "${_tree}/VERSION.txt" "${version}\n")
+endfunction()
+
+# Configures the copy as it is, in the same directory of build each time (the
+# checks of the compiler are cached), with the compilers that built GAOL, and
+# checks its warning: <expected> is WARNS, with the versions it names, or SILENT
+function(check_configure title version expected)
+  write_version("${version}")
   execute_process(
-    COMMAND "${CMAKE_COMMAND}" -S "${_tree}" -B "${_build}" -G "${GAOL_GENERATOR}"
-            "-DCMAKE_C_COMPILER=${GAOL_C_COMPILER}" "-DCMAKE_CXX_COMPILER=${GAOL_CXX_COMPILER}"
+    COMMAND "${CMAKE_COMMAND}" -E env "CC=${GAOL_C_COMPILER}" "CXX=${GAOL_CXX_COMPILER}"
+            "${CMAKE_COMMAND}" -S "${_tree}" -B "${_build}" -G "${GAOL_GENERATOR}" ${_make_program}
     RESULT_VARIABLE _status OUTPUT_VARIABLE _output ERROR_VARIABLE _error)
   if(NOT _status EQUAL 0)
     message(FATAL_ERROR "${title}: CMake did not configure the copy (status ${_status}):\n${_output}\n${_error}")
@@ -129,6 +189,39 @@ file(COPY "${GAOL_SOURCE_DIR}/configure" DESTINATION "${_tree}")
 check_configure("VERSION.txt ${_new}, configure generated for ${_old}" "${_new}" WARNS)
 check_configure("VERSION.txt ${_old}, configure generated for ${_old}" "${_old}" SILENT)
 
+# The archive of the sources after a change of VERSION.txt, the build directory
+# being configured for the version configure was generated for
+write_version("${_new}")
+execute_process(COMMAND "${CMAKE_CPACK_COMMAND}" --config CPackSourceConfig.cmake
+  WORKING_DIRECTORY "${_build}" RESULT_VARIABLE _status OUTPUT_VARIABLE _output ERROR_VARIABLE _error)
+set(_title "VERSION.txt ${_new} after a configuration for ${_old}, package_source")
+if(NOT _status EQUAL 0)
+  message(FATAL_ERROR "${_title}: CPack did not make the archive (status ${_status}):\n${_output}\n${_error}")
+endif()
+# Without a warning of CMake for the files CPack reads: those of GAOL, which it
+# reads without the policies of CMakeLists.txt, and the configuration CMake
+# writes for it (an invalid escape sequence with CMake 3, CMP0010)
+if("${_output}\n${_error}" MATCHES "CMake Warning \\(dev\\)")
+  message(FATAL_ERROR "${_title}: CMake warned in a file CPack reads:\n${_output}\n${_error}")
+endif()
+string(REGEX REPLACE "[ \t\r\n]+" " " _text "${_output} ${_error}")
+string(FIND "${_text}" "configure was generated for GAOL ${_old}, and VERSION.txt holds ${_new}:" _found)
+if(_found EQUAL -1 OR NOT EXISTS "${_build}/gaol-${_new}.tar.gz" OR EXISTS "${_build}/gaol-${_old}.tar.gz")
+  file(GLOB _archives RELATIVE "${_build}" "${_build}/*.tar.gz")
+  message(FATAL_ERROR "${_title}: CPack did not configure again, warn and make gaol-${_new}.tar.gz "
+    "(archives made: ${_archives}):\n${_output}\n${_error}")
+endif()
+execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tzf "gaol-${_new}.tar.gz"
+  WORKING_DIRECTORY "${_build}" OUTPUT_VARIABLE _list)
+if(NOT _list MATCHES "(^|\n)gaol-${_new}/VERSION\\.txt\n")
+  message(FATAL_ERROR "${_title}: gaol-${_new}.tar.gz holds no gaol-${_new}/VERSION.txt")
+endif()
+if(NOT _list MATCHES "(^|\n)gaol-${_new}/keep\\.halo\n")
+  message(FATAL_ERROR "${_title}: gaol-${_new}.tar.gz holds no gaol-${_new}/keep.halo, which "
+    "CPACK_SOURCE_IGNORE_FILES does not match (were its backslashes lost?)")
+endif()
+message(STATUS "${_title}: WARNS and gaol-${_new}.tar.gz, as expected")
+
 # The same, with the line ends of Windows
 file(READ "${GAOL_SOURCE_DIR}/configure" _script)
 string(REPLACE "\n" "\r\n" _script "${_script}")
@@ -143,8 +236,4 @@ check_configure("VERSION.txt ${_new}, configure without PACKAGE_VERSION=" "${_ne
 file(REMOVE "${_tree}/configure")
 check_configure("VERSION.txt ${_new}, no configure" "${_new}" SILENT)
 
-file(GLOB _made "${_tree}/*")
-foreach(_path ${_made})
-  file(REMOVE "${_path}")
-endforeach()
-file(REMOVE_RECURSE "${GAOL_WORK_DIR}")
+remove_work_dir()

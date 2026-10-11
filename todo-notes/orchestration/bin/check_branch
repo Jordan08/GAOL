@@ -1,0 +1,31 @@
+#!/bin/bash
+# check_branch <branch> [base]   (default base: origin/configure-clean)
+# Lints a branch before it is pushed: the maintainer's rules for commits and files.
+MAIN=/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8
+branch=$1; base=${2:-origin/configure-clean}
+[ -n "$branch" ] || { echo "usage: check_branch <branch> [base]" >&2; exit 2; }
+cd "$MAIN" || exit 1
+fail=0
+git rev-parse --verify --quiet "$branch" >/dev/null || { echo "FAIL: no branch $branch"; exit 1; }
+git merge-base --is-ancestor "$base" "$branch" || echo "note: $branch is behind $base (merge $base into it if the merge conflicts, before opening the pull request)"
+n=$(git rev-list --count "$base..$branch"); echo "branch $branch: $n commit(s) over $base"
+[ "$n" -ge 1 ] || { echo "FAIL: no commit"; fail=1; }
+git log --format='  %h %an | %s' "$base..$branch" | cut -c1-170
+for c in $(git rev-list "$base..$branch"); do
+  body=$(git log -1 --format=%B "$c" | sed '/^[[:space:]]*$/d')
+  lines=$(printf '%s\n' "$body" | wc -l)
+  [ "$lines" -gt 2 ] && { echo "FAIL $c: the message has $lines lines (two at most)"; fail=1; }
+  if printf '%s' "$body" | grep -qiE 'co-authored-by|generated with|claude|anthropic'; then echo "FAIL $c: the message credits Claude"; fail=1; fi
+done
+files=$(git diff --name-only "$base...$branch")
+echo "files changed: $(printf '%s\n' "$files" | grep -c .)"
+if printf '%s\n' "$files" | grep -Ex 'TODO\.md|ChangeLog|doc/differences\.md|manual/v5/gaol\.pdf|manual/v4/.*'; then
+  echo "FAIL: ledger files, the manual PDF or manual/v4 changed (see the house rules)"; fail=1; fi
+if printf '%s\n' "$files" | grep -E '(^|/)(build([-_.][^/]*)?|CMakeFiles|\.deps|\.libs|autom4te\.cache)/|\.(o|lo|a|so|log)$|CMakeCache\.txt|^(nohup|core)$'; then
+  echo "FAIL: build products or logs are committed"; fail=1; fi
+# whitespace errors, except in generated files
+if ! git diff --check "$base...$branch" -- . ':!gaol/gaol_interval_lexer.cpp' ':!gaol/gaol_interval_parser.cpp' ':!gaol/gaol_interval_parser.h' ':!configure' ':!*Makefile.in' ':!aclocal.m4' ':!ltmain.sh' ':!m4/*' > /tmp/check_branch_ws.$$ 2>&1; then
+  echo "WARN: whitespace problems (git diff --check):"; head -8 /tmp/check_branch_ws.$$; fi
+rm -f /tmp/check_branch_ws.$$
+[ "$fail" -eq 0 ] && echo "check_branch: OK" || echo "check_branch: FAILED"
+exit $fail

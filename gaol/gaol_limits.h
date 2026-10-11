@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
  * COPYING file for information.
@@ -20,13 +21,13 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-01
 */
 
 
-#ifndef __gaol_limits_h__
-#define __gaol_limits_h__
+#ifndef GAOL_LIMITS_H
+#define GAOL_LIMITS_H
 
 #include "gaol/gaol_config.h"
 
@@ -35,4 +36,4 @@
 // compilers without it are gone (GAOL v5)
 #include <limits>
 
-#endif /* __gaol_limits_h__ */
+#endif /* GAOL_LIMITS_H */

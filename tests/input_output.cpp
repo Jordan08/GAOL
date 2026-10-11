@@ -63,9 +63,6 @@ public:
 		}
 #endif
 
-#if GAOL_EXCEPTIONS_ENABLED
-		try {
-#endif
 			instr.clear();
 			instr.str("<3,3>");
 			instr >> I;
@@ -118,10 +115,21 @@ public:
       instr.str("-inf");
       instr >> I;
       CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+#if GAOL_EXCEPTIONS_ENABLED
+      // -inf reads [-oo, -MAX], which is no double: the two bounds of
+      // <-inf, -inf> are not one value, and the reader refuses it, as
+      // <inf, inf> below, where the checks of GAOL 4 expected [-oo, -MAX] and
+      // [MAX, +oo]. The exception went to the try that held these checks,
+      // which printed it and skipped the six after it (GAOL v5)
       instr.clear();
       instr.str("<-inf,-inf>");
-      instr >> I;
-      CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+      try {
+        instr >> I;
+        CPPUNIT_FAIL("no exception for <-inf,-inf>");
+      } catch (const input_format_error& e) {
+        CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
+      }
+#endif
       instr.clear();
       // A lower bound +oo or an upper bound -oo leaves no interval, as
       // numsToInterval of IEEE 1788-2015 (10.5.8)
@@ -144,14 +152,15 @@ public:
       instr.str("[inf,inf]");
       instr >> I;
       TEST_EMPTY(I);
+#if GAOL_EXCEPTIONS_ENABLED
       instr.clear();
       instr.str("<inf,inf>");
-      instr >> I;
-      CPPUNIT_ASSERT(I.left()==std::numeric_limits<double>::max() && I.right()==GAOL_INFINITY);
-#if GAOL_EXCEPTIONS_ENABLED
-		} catch (const input_format_error& e) {
-	  		std::cerr <<  e;
-      	}
+      try {
+        instr >> I;
+        CPPUNIT_FAIL("no exception for <inf,inf>");
+      } catch (const input_format_error& e) {
+        CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
+      }
 #endif
 	}
 
@@ -165,7 +174,7 @@ public:
 		os.str("");
 		interval::precision(2);
 		os << I;
-		CPPUNIT_ASSERT(os.str() == string("[3.4, 3.5]"));
+		CPPUNIT_ASSERT(os.str() == std::string("[3.4, 3.5]"));
 
 		os.str("");
 		interval::format(interval_format::width);
@@ -173,13 +182,13 @@ public:
 		os << I;
 		// The radius is rad(), rounded upward to the digits: 0.0005 rounded
 		// to nearest was below the radius about the midpoint (GAOL v5)
-		CPPUNIT_ASSERT(os.str() == string("3.5 (+/- 0.00051)"));
+		CPPUNIT_ASSERT(os.str() == std::string("3.5 (+/- 0.00051)"));
 
 		os.str("");
 		interval::format(interval_format::center);
 		interval::precision(2);
 		os << I;
-		CPPUNIT_ASSERT(os.str() == string("3.5"));
+		CPPUNIT_ASSERT(os.str() == std::string("3.5"));
 
 		os.str("");
 		interval::format(interval_format::hexa);
@@ -187,7 +196,7 @@ public:
 		os << I;
 		// the hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
 		// reads back bit for bit, rather than the digits of each double (GAOL v5)
-		CPPUNIT_ASSERT(os.str() == string("[0x1.b9db22d0e5604p+1, 0x1.b9fbe76c8b43ap+1]"));
+		CPPUNIT_ASSERT(os.str() == std::string("[0x1.b9db22d0e5604p+1, 0x1.b9fbe76c8b43ap+1]"));
 		{
 			interval R = textToInterval(os.str());
 			CPPUNIT_ASSERT(R.left() == I.left() && R.right() == I.right());
@@ -197,11 +206,11 @@ public:
 		interval::format(interval_format::agreeing);
 		interval::precision(4);
 		os << I;
-		CPPUNIT_ASSERT(os.str() == string("3.45~[1, 4]"));
+		CPPUNIT_ASSERT(os.str() == std::string("3.45~[1, 4]"));
 
       	interval J(3,4);
 		interval::format(interval_format::bounds);
-		string s = "test line embedding " + string(J) + " as a string";
+		std::string s = "test line embedding " + std::string(J) + " as a string";
       	CPPUNIT_ASSERT(s == "test line embedding [3, 4] as a string");
   	}
   // <-- End of tests

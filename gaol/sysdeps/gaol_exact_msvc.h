@@ -1,30 +1,31 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. It has been developed at
- * the Institut de Recherche en Informatique de Nantes, France
- * 
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>
- *--------------------------------------------------------------------------*/
+* gaol -- Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. It has been developed at
+* the Institut de Recherche en Informatique de Nantes, France
+* 
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
+* COPYING file for information.
+*--------------------------------------------------------------------------
+* By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>, Joran NININ
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_exact_msvc.h
-  \brief  functions get_inexact() and clear_inexact() for Microsoft Visual C++
+\file   gaol_exact_msvc.h
+\brief  functions get_inexact() and clear_inexact() for Microsoft Visual C++
 
-  \author Frederic Goualard
-  \date   2006-03-17
+\author Frederic Goualard, Joran NININ
+\date   2006-03-17
 */
 
-#ifndef __gaol_exact_msvc_h__
-#define __gaol_exact_msvc_h__
+#ifndef GAOL_EXACT_MSVC_H
+#define GAOL_EXACT_MSVC_H
 
 #if GAOL_USING_ASM
-INLINE int get_inexact(void)
+GAOL_INLINE int get_inexact(void)
 {
   unsigned int res_exact;
   __asm {
@@ -34,7 +35,7 @@ INLINE int get_inexact(void)
 }
 
 
-INLINE void clear_inexact(void)
+GAOL_INLINE void clear_inexact(void)
 {
   __asm {
     fnclex
@@ -44,4 +45,4 @@ INLINE void clear_inexact(void)
 # error "no C code for 'inexact' in Microsoft Visual C++"
 #endif // GAOL_USING_ASM
 
-#endif /* __gaol_exact_msvc_h__ */
+#endif /* GAOL_EXACT_MSVC_H */

@@ -34,10 +34,13 @@
 #include <clocale>
 #include <cstdlib>
 #include <locale>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 // Commented out: the tests run no thread (GAOL v5)
 // // std::thread, which libstdc++ has only when built with a thread model
@@ -62,12 +65,117 @@ namespace
   static_assert(std::is_same<decltype(atan2(1.0, 2.0)), double>::value, "atan2(double, double) is C's");
   static_assert(std::is_same<decltype(abs(-3)), int>::value, "abs(int) is C's");
 
+  /* The functions of gaol_ieee1788 take the overloads of the expressions,
+     gaol/gaol_expression.h being included here after gaol/gaol_ieee1788.h,
+     and before it in tests/expressions.cpp (GAOL v5) */
+  static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const gaol::expression&>())), const gaol::expression>::value,
+                "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included after gaol/gaol_ieee1788.h");
+
+  /* A number converts neither to an interval nor to an expression (GAOL
+     v5): min(y, 1.0) or atan2(y, 1.0), which took [1] while it converted,
+     do not compile, and the interval is written interval(1.0) */
+  template <typename A, typename B, typename = void> struct has_min : std::false_type {};
+  template <typename A, typename B>
+  struct has_min<A, B, decltype(void(min(std::declval<const A&>(), std::declval<const B&>())))> : std::true_type {};
+  template <typename A, typename B, typename = void> struct has_atan2 : std::false_type {};
+  template <typename A, typename B>
+  struct has_atan2<A, B, decltype(void(atan2(std::declval<const A&>(), std::declval<const B&>())))> : std::true_type {};
+  static_assert(!has_min<interval, double>::value && !has_min<double, interval>::value, "min(y, 1.0) does not compile");
+  static_assert(!has_atan2<interval, double>::value && !has_atan2<double, interval>::value, "atan2(y, 1.0) does not compile");
+  static_assert(has_min<interval, interval>::value && has_atan2<interval, interval>::value, "the detection works");
+
   // The value of an expression, which the evaluator of GAOL computes
   interval value_of(const gaol::expression& e)
   {
     gaol::expr_eval eval;
     e.get_root()->accept(eval);
     return eval.result();
+  }
+
+  /*
+    Integers (GAOL v5, point D.21): numsToInterval() and isMember() take an
+    integer as the integer it is, 2^53 + 1 being in no double; pown() and
+    gaol::pow() take an exponent of any integer type: pown(x, 3000000000u)
+    converted it to a negative int, and gaol::pow(x, 5L) was ambiguous.
+  */
+  void integers()
+  {
+    const double two53 = std::ldexp(1.0, 53), dmax = std::numeric_limits<double>::max();
+    const volatile long long n = 9007199254740993LL; // 2^53 + 1
+    const interval around(two53, two53 + 2), at(two53);
+    const interval nums = numsToInterval(1, n);
+    check("numsToInterval(1, 2^53 + 1) = [1, 2^53 + 2]", nums.left() == 1.0 && nums.right() == two53 + 2,
+          [&] { return hex(nums); });
+    check("numsToInterval(2^53 + 1, 1.0) and numsToInterval(2^53 + 1, 2^53) are empty",
+          numsToInterval(n, 1.0).is_empty() && numsToInterval(n, n - 1).is_empty(),
+          [&] { return hex(numsToInterval(n, n - 1)); });
+    const interval negative = numsToInterval(-n, 1.0);
+    check("numsToInterval(-(2^53 + 1), 1.0) = [-(2^53 + 2), 1]",
+          negative.left() == -(two53 + 2) && negative.right() == 1.0, [&] { return hex(negative); });
+    check("isMember(2^53 + 1, x)", isMember(n, around) && !isMember(n, at) && isMember(3, numsToInterval(1.0, 4.0)));
+    const interval two(2.0), x = numsToInterval(-4.0, -1.0), y = numsToInterval(0.25, 0.5);
+    const interval p = pown(two, 3000000000u);
+    check("pown([2], 3000000000u) = [DBL_MAX, +oo]", p.left() == dmax && p.right() == oo, [&] { return hex(p); });
+    check("pown(x, 3L) and gaol::pow(x, 3L) = [-64, -1]",
+          pown(x, 3L).set_eq(numsToInterval(-64.0, -1.0)) && gaol::pow(x, 3L).set_eq(numsToInterval(-64.0, -1.0))
+          && gaol::pow(x, static_cast<short>(3)).set_eq(numsToInterval(-64.0, -1.0)),
+          [&] { return hex(pown(x, 3L)); });
+    check("pown(x, -2L) and gaol::pow(x, -3LL): the negative powers, as for an int",
+          pown(x, -2L).set_eq(pown(x, -2)) && gaol::pow(x, -3LL).set_eq(gaol::pow(x, -3))
+          && pown(x, -2L).set_eq(numsToInterval(0.0625, 1.0)),
+          [&] { return hex(pown(x, -2L)); });
+    check("gaol::pow([2], 3000000000ul) = gaol::pow([2], 3000000000u)",
+          gaol::pow(two, 3000000000ul).set_eq(gaol::pow(two, 3000000000u)), [&] { return hex(gaol::pow(two, 3000000000ul)); });
+    check("pown(x, 5e9) and gaol::pow(x, 5e9), beyond the unsigned ints: [-oo, +oo], empty for an empty x",
+          pown(x, 5000000000LL).set_eq(interval::universe()) && gaol::pow(x, -5000000000LL).set_eq(interval::universe())
+          && gaol::pow(interval::emptyset(), 5000000000LL).is_empty(),
+          [&] { return hex(gaol::pow(x, 5000000000LL)); });
+    check("pow(y, 2LL) is pow(y, [2])", pow(y, 2LL).set_eq(pow(y, interval(2.0))) && pow(x, 2LL).is_empty(),
+          [&] { return hex(pow(y, 2LL)); });
+
+    // rootn(), gaol::nth_root() and pownRev() for an integer of another type
+    // (GAOL v5): nth_root(x, 3L) was ambiguous, rootn(x, 3000000000u) and
+    // pownRev(c, 3000000000u) converted the order to a negative int (rootn
+    // gave [0.99999999839, 0.99999999946] for [2, 8], and pownRev threw), and
+    // rootn(x, 5000000001LL) cut it to an int. Beyond the unsigned ints, the
+    // roots are enclosed through pow, here the tightest ones: the doubles
+    // around 8^(1/q) and 2^(1/q), for q = 5 10^9 + 1 and 5 10^9 alike, and
+    // around 8^(-1/q) and 2^(-1/q) for q = 5 10^9 (mpmath, 400 bits)
+    const interval c8(2.0, 8.0), m8(-8.0, 8.0);
+    const double r8 = 0x1.00000001c9463p+0, r2 = 0x1.00000000986cbp+0;
+    const auto bounds_are = [](const interval& z, double l, double r) { return z.left() == l && z.right() == r; };
+    check("rootn(x, 3L), rootn(x, -3LL), gaol::nth_root(x, 3L) and gaol::nth_root(x, 3000000000ul) as for an int",
+          rootn(m8, 3L).set_eq(rootn(m8, 3)) && rootn(c8, -3LL).set_eq(rootn(c8, -3))
+          && gaol::nth_root(m8, 3L).set_eq(gaol::nth_root(m8, 3))
+          && gaol::nth_root(c8, 3000000000ul).set_eq(gaol::nth_root(c8, 3000000000u)),
+          [&] { return hex(rootn(m8, 3L)); });
+    const interval rootn_u = rootn(c8, 3000000000u), rootn_ll = rootn(c8, 5000000001LL);
+    check("rootn(x, 3000000000u) and rootn(x, 5000000001LL): the roots of that order",
+          rootn_u.set_eq(gaol::nth_root(c8, 3000000000u)) && bounds_are(rootn_ll, r2, r8),
+          [&] { return hex(rootn_u) + " " + hex(rootn_ll); });
+    const interval odd = gaol::nth_root(m8, 5000000001LL), even = gaol::nth_root(m8, 5000000000LL);
+    const interval inverse = gaol::nth_root(c8, -5000000000LL);
+    check("nth_root(x, q) beyond the unsigned ints: the tightest enclosures of the roots",
+          bounds_are(odd, -r8, r8) && bounds_are(even, 0.0, r8)
+          && bounds_are(inverse, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
+          [&] { return hex(odd) + " " + hex(even) + " " + hex(inverse); });
+    bool threw = false;
+    try {
+      static_cast<void>(pownRev(c8, 0L));
+    } catch (const std::invalid_argument&) {
+      threw = true;
+    }
+    const interval rev = pownRev(c8, 5000000001LL), rev_even = pownRev(c8, 5000000000LL);
+    const interval rev_positive = pownRev(c8, numsToInterval(0.0, oo), 5000000000LL);
+    check("pownRev(c, 3000000000u) is nth_root_rel(), pownRev(c, 0L) throws, and beyond the unsigned ints the roots",
+          pownRev(c8, 3000000000u).set_eq(gaol_core::nth_root_rel(c8, 3000000000u, interval::universe())) && threw
+          && bounds_are(rev, r2, r8) && bounds_are(rev_even, -r8, r8) && bounds_are(rev_positive, r2, r8),
+          [&] { return hex(rev) + " " + hex(rev_even) + " " + hex(rev_positive); });
+    // pown(e, n) of the expressions for an unsigned beyond the ints, which
+    // made [1, 2]^3000000000u [0, 1], converting n to a negative int
+    const interval pown_u = value_of(pown(gaol::expression(numsToInterval(1.0, 2.0)), 3000000000u));
+    check("pown(e, 3000000000u) of an expression: [-oo, +oo]", pown_u.set_eq(interval::universe()),
+          [&] { return hex(pown_u); });
   }
 
   void pow_of_the_standard()
@@ -138,8 +246,10 @@ namespace
     functions gave before the pow of the standard was written once, bit for bit
     (as on 70 500 more boxes, under the four rounding directions, with SSE2 and
     FPU intervals; but for the lower bound of gaol::pow([0], y), y > 0, which
-    was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow), each
-    checked against the exact power computed with 500 bits (mpmath): it
+    was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow, and for a
+    lower bound at a corner where the power is a double, which is that double
+    now and was the double below, as 2^-2 for the box [0.1, 2] x [-2, 0.5]),
+    each checked against the exact power computed with 500 bits (mpmath): it
     encloses it, within one double of the tightest bound.
   */
   void pow_on_boxes()
@@ -218,6 +328,10 @@ namespace
       {I(0x1.fffffff8p-1, oo), P(-2147483649.0), I(0, 0x1.d8e64b9c150d4p+2), all},
       // CORE-MATH's pow at the corners of the box, from a base from 0, a base above 1, below 1, and around 1
       {I(2, 3), P(0.5), I(0x1.6a09e667f3bccp+0, 0x1.bb67ae8584cabp+0)},
+      // where the power at a corner is a double, the lower bound is that double
+      {P(4), P(0.5), P(2)},
+      {I(4, 16), P(-0.5), I(0.25, 0.5)},
+      {I(3, 4), I(2, 3), I(9, 64)},
       {I(0, 2), P(0.5), I(0, 0x1.6a09e667f3bcdp+0)},
       {I(0, 0.5), I(0.5, 1.5), I(0, 0x1.6a09e667f3bcdp-1)},
       {I(1.5, 2.5), I(0.5, 1.5), I(0x1.3988e1409212ep+0, 0x1.f9f6e4990f228p+1)},
@@ -229,7 +343,7 @@ namespace
       {I(0.5, 2), I(1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
       {I(0.5, 2), I(-2.5, -1.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
       {I(0.5, 2), I(-1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
-      {I(0.1, 2), I(-2, 0.5), I(0x1.fffffffffffffp-3, 100)},
+      {I(0.1, 2), I(-2, 0.5), I(0x1p-2, 100)},
       {I(1, 2), I(-0.5, 1.5), I(0x1.6a09e667f3bccp-1, 0x1.6a09e667f3bcdp+1)},
       {P(1), I(-0.5, 1.5), P(1)},
       {I(0.3, 1), I(0.5, 1.5), I(0x1.50854f2c3d222p-3, 1)},
@@ -288,10 +402,6 @@ namespace
           && min(x, y).set_eq(gaol::min(x, y)) && hypot(x, y).set_eq(gaol::hypot(x, y))
           && sinPi(x).set_eq(gaol::sinpi(x)),
           [&] { return hex(sin(x)); });
-    check("min, max, atan2 and hypot take an interval and a number",
-          min(y, 1.0).set_eq(gaol::min(y, interval(1.0))) && max(0.0, y).set_eq(gaol::max(interval(0.0), y))
-          && atan2(y, 1.0).set_eq(gaol::atan2(y, interval(1.0))) && hypot(3.0, x).set_eq(gaol::hypot(interval(3.0), x)),
-          [&] { return hex(min(y, 1.0)); });
     check("the qualified names take intervals",
           gaol_ieee1788::sin(x).set_eq(gaol::sin(x)) && gaol_ieee1788::min(x, y).set_eq(gaol::min(x, y)),
           [&] { return hex(gaol_ieee1788::sin(x)); });
@@ -319,6 +429,12 @@ namespace
     };
     double m, r;
     midRad(x, m, r);
+    check("pow and pown have the results of IEEE 1788",
+          forward[9].set_eq(numsToInterval(-1.0, 8.0))
+          && forward[10].set_eq(numsToInterval(1.0 / 16.0, 4.0))
+          && forward[11].set_eq(numsToInterval(1.0 / 64.0, 1.0 / 8.0))
+          && forward[12].set_eq(numsToInterval(0.5, 0x1.6a09e667f3bcdp-1)),
+          [&] { return hex(forward[9]) + " " + hex(forward[10]) + " " + hex(forward[11]) + " " + hex(forward[12]); });
     const bool b = isEmpty(empty()) && isEntire(entire()) && equal(x, x) && subset(x, y)
       && less(x, x) && !strictLess(x, x) && !precedes(y, x) && !strictPrecedes(x, y)
       && interior(x, y) && !disjoint(x, y) && isCommonInterval(x) && !isSingleton(x)
@@ -376,11 +492,19 @@ namespace
       check("textToInterval reads the names of IEEE 1788-2015", got.set_eq(c.value),
             [&] { return std::string(c.text) + ": " + hex(got) + " rather than " + hex(c.value); });
     }
-    // The names of GAOL alone, and the calls that are wrong: the empty set
-    const char *const not_the_standard[] = {
+    // The names of GAOL alone, and the calls that are wrong: the empty set.
+    // textToInterval turns the exception of the reader into the empty set:
+    // without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), the error of a wrong call, as pown([2,5],2.5),
+    // ends the program, where a name the reader does not know is still the
+    // empty set
+    std::vector<const char*> not_the_standard = {
       "nth_root(8,3)", "cbrt(8)", "inverse(2)", "integer([1.5,3])", "log1p(0)",
-      "round_ties_to_even(1)", "pown([2,5],2.5)", "sin(1,2)", "fma(1,2)",
+      "round_ties_to_even(1)",
     };
+#if GAOL_EXCEPTIONS_ENABLED
+    not_the_standard.insert(not_the_standard.end(), { "pown([2,5],2.5)", "sin(1,2)", "fma(1,2)" });
+#endif
     for (const char *t : not_the_standard) {
       const interval got = textToInterval(t);
       check("textToInterval gives the empty set for a name of GAOL alone or a wrong call",
@@ -511,40 +635,46 @@ namespace
   /*
     intervalToText(x) is an interval literal that textToInterval() reads back
     as an interval containing x, [l, r], [a] for a point that the digits write
-    exactly, and [empty] for the empty set, whatever the global output format,
-    the precision and the locale of the program (GAOL v5), as the standard
-    asks of it (13.3): it wrote what operator<< does, the width
-    "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under the locale of a
-    program that sets one, fewer digits when the precision of the intervals
-    was lowered, and <4, 4> for the point interval 4, which is no literal of
-    the standard. Under a locale writing a decimal comma, the text operator<<
-    writes for a point has to be refused, or read back as an interval
-    containing it: the literal [a] made interval(-2.5) [-2,5], read as the
-    interval [-2, 5]. Where no such locale is installed, that part is not
-    checked.
+    exactly, and [empty] for the empty set, whatever the global output format
+    and the locale of the program (GAOL v5), as the standard asks of it
+    (13.3), with the digits of interval::precision(): it wrote what operator<<
+    does, the width "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
+    the locale of a program that sets one, and <4, 4> for the point interval
+    4, which is no literal of the standard. The texts written by hand are
+    those of 16 digits and of 1 digit; with the other precisions, it has to be
+    the text operator<< writes in the bounds format. Under a locale writing a
+    decimal comma, operator<< writes the bounds format with a decimal point
+    too, and the text of a point has to be read back as the point, or as an
+    interval containing it when it has two bounds (GAOL v5: the literal [a]
+    made interval(-2.5) [-2,5], read as the interval [-2, 5], and GAOL wrote
+    [-2,5, -2,5], which the reader refused). Where no such locale is
+    installed, that part is not checked.
   */
   void text_independent_of_the_output_settings()
   {
     const gaol::interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
     const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
-    // The texts to expect, written by hand ("" for none)
-    const struct { const char *name; interval x; const char *text; } forms[] = {
-      { "[1, 2]", interval(1.0, 2.0), "[1, 2]" },
-      { "interval(4)", interval(4.0), "[4]" },
-      { "interval(0.5)", interval(0.5), "[0.5]" },
-      { "interval(-1024)", interval(-1024.0), "[-1024]" },
-      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]" },
-      { "[-0, 0]", interval(-0.0, 0.0), "[0]" },
-      { "interval(-0.0)", interval(-0.0), "[0]" },
-      { "interval::zero()", interval::zero(), "[0]" },
-      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]" },
-      { "[1, +oo]", interval(1.0, oo), "[1, inf]" },
-      { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]" },
-      { "the universe", interval::universe(), "[-inf, inf]" },
-      { "the empty set", interval::emptyset(), "[empty]" },
-      { "[5e-324, 1e-323]", interval(smallest, 2.0*smallest), "[4.940656458412465e-324, 9.881312916824931e-324]" },
-      { "[-MAX, MAX]", interval(-largest, largest), "[-1.797693134862316e+308, 1.797693134862316e+308]" },
+    // The texts to expect, written by hand, with 16 digits and with 1
+    const struct { const char *name; interval x; const char *text; const char *text1; } forms[] = {
+      { "[1, 2]", interval(1.0, 2.0), "[1, 2]", "[1, 2]" },
+      { "interval(4)", interval(4.0), "[4]", "[4]" },
+      { "interval(0.5)", interval(0.5), "[0.5]", "[0.5]" },
+      { "interval(-1024)", interval(-1024.0), "[-1024]", "[-2e+03, -1e+03]" },
+      { "interval(0.1)", interval(0.1), "[0.1, 0.1000000000000001]", "[0.1, 0.2]" },
+      { "[-0, 0]", interval(-0.0, 0.0), "[0]", "[0]" },
+      { "interval(-0.0)", interval(-0.0), "[0]", "[0]" },
+      { "interval::zero()", interval::zero(), "[0]", "[0]" },
+      { "the double nearest 1/3", interval(0x1.5555555555555p-2), "[0.3333333333333333, 0.3333333333333334]",
+        "[0.3, 0.4]" },
+      { "[1, +oo]", interval(1.0, oo), "[1, inf]", "[1, inf]" },
+      { "[-oo, -1.5]", interval(-oo, -1.5), "[-inf, -1.5]", "[-inf, -1]" },
+      { "the universe", interval::universe(), "[-inf, inf]", "[-inf, inf]" },
+      { "the empty set", interval::emptyset(), "[empty]", "[empty]" },
+      { "[5e-324, 1e-323]", interval(smallest, 2.0*smallest), "[4.940656458412465e-324, 9.881312916824931e-324]",
+        "[4e-324, 1e-323]" },
+      { "[-MAX, MAX]", interval(-largest, largest), "[-1.797693134862316e+308, 1.797693134862316e+308]",
+        "[-2e+308, 2e+308]" },
     };
     const interval others[] = { interval(0.1, 0.3), interval::pi(), interval(1.25, 1.2567), interval(-2.0/3.0, 1e23),
                                 interval(1e-5, 2e-5) };
@@ -553,7 +683,7 @@ namespace
       const std::string text = intervalToText(x);
       const auto describe = [&] { return hex(x) + " " + situation + ": \"" + text + "\""; };
       if (!expected.empty()) {
-        check("intervalToText: the text of the manual, whatever the output settings", text == expected,
+        check("intervalToText: the text of the manual, whatever the format and the locale", text == expected,
               [&] { return describe() + " rather than \"" + expected + "\""; });
       }
       check("intervalToText: an interval literal of IEEE 1788-2015", is_portable_literal(text), describe);
@@ -562,12 +692,27 @@ namespace
             x.is_empty() ? back.is_empty() : back.set_contains(x), [&] { return describe() + " read " + hex(back); });
     };
 
+    const std::streamsize precisions[] = { 1, 3, 8, 16, 17, 30 };
+    const std::size_t nb_others = sizeof others / sizeof others[0];
+    // The text operator<< writes in the bounds format, in a stream of the C
+    // locale and its first flags, with each precision: what intervalToText()
+    // has to give with that precision whatever the other settings
+    std::map<std::streamsize, std::vector<std::string> > reference;
     interval::format(gaol::interval_format::bounds);
-    interval::precision(16);
-    // The text under the default settings, which the others have to give too
-    std::string reference[sizeof others / sizeof others[0]];
-    for (std::size_t i = 0; i < sizeof others / sizeof others[0]; ++i) {
-      reference[i] = intervalToText(others[i]);
+    for (std::streamsize precision : precisions) {
+      interval::precision(precision);
+      for (std::size_t i = 0; i < nb_others; ++i) {
+        std::ostringstream os;
+        os.imbue(std::locale::classic());
+        os << others[i];
+        reference[precision].push_back(os.str());
+      }
+      for (const auto& form : forms) {
+        std::ostringstream os;
+        os.imbue(std::locale::classic());
+        os << form.x;
+        reference[precision].push_back(os.str());
+      }
     }
 
     const struct { const char *name; gaol::interval_format::format_t format; } formats[] = {
@@ -577,16 +722,18 @@ namespace
     };
     const auto expect_all = [&](const std::string& where) {
       for (const auto& f : formats) {
-        for (std::streamsize precision : { 1, 3, 8, 16, 17, 30 }) {
+        for (std::streamsize precision : precisions) {
           interval::format(f.format);
           interval::precision(precision);
           const std::string situation = "in the " + std::string(f.name) + " format with the precision "
                                         + std::to_string(precision) + where;
-          for (const auto& form : forms) {
-            expect_text(form.x, form.text, situation);
+          std::size_t k = 0;
+          for (std::size_t i = 0; i < nb_others; ++i) {
+            expect_text(others[i], reference[precision][k++], situation);
           }
-          for (std::size_t i = 0; i < sizeof others / sizeof others[0]; ++i) {
-            expect_text(others[i], reference[i], situation);
+          for (const auto& form : forms) {
+            expect_text(form.x, (precision == 16) ? form.text : (precision == 1) ? form.text1 : "", situation);
+            expect_text(form.x, reference[precision][k++], situation);
           }
           check("intervalToText leaves the global format as it was", interval::format() == f.format, [&] { return situation; });
           check("intervalToText leaves the global precision as it was", interval::precision() == precision, [&] { return situation; });
@@ -619,15 +766,14 @@ namespace
       interval::format(gaol::interval_format::bounds);
       interval::precision(16);
       os << interval(0.25, 0.5);
-      check("operator<< writes a decimal comma under that locale, the text of intervalToText none",
-            os.str() == "[0,25, 0,5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
+      check("operator<< writes the bounds format with a decimal point under that locale, the text of intervalToText",
+            os.str() == "[0.25, 0.5]" && intervalToText(interval(0.25, 0.5)) == "[0.25, 0.5]",
             [&] { return os.str() + " and " + intervalToText(interval(0.25, 0.5)); });
       // A point written by operator<< under that locale: the literal [a] of a
       // number with a decimal comma would be two numbers, which the reader
       // takes, [-2,5] being [-2, 5], [12,5] the empty set and [0,] (no digit,
-      // showpoint) [0, +oo]; the text has to be refused, or read back as an
-      // interval containing the point, and as the point itself when it is one
-      // number
+      // showpoint) [0, +oo]; the text has to be read back as an interval
+      // containing the point, and as the point itself when it is one number
       const struct { const char *name; std::ios_base::fmtflags flags; std::streamsize precision; } settings[] = {
         { "with 16 digits", std::ios_base::fmtflags(), 16 },
         { "in the fixed format with the showpoint flag and no digit", std::ios_base::fixed | std::ios_base::showpoint, 0 },
@@ -642,14 +788,19 @@ namespace
           const std::string text = point.str();
           bool refused = false;
           interval back;
+#if GAOL_EXCEPTIONS_ENABLED
           try {
             back = gaol::textToInterval(text);
           } catch (const gaol::input_format_error&) {
             refused = true;
           }
+#else
+          // Without exceptions, a text the reader refuses ends the program
+          back = gaol::textToInterval(text);
+#endif
           const bool one_number = (text.find(", ") == std::string::npos);
-          check("operator<< of a point under that locale: refused, or read back as an interval containing it, [a] as the point",
-                refused || (back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x))),
+          check("operator<< of a point under that locale: read back as an interval containing it, [a] as the point",
+                !refused && back.set_contains(x) && (!one_number || (back.left() == x && back.right() == x)),
                 [&] { return text.substr(0, 60) + " " + setting.name + ", read " + hex(back); });
         }
       }
@@ -710,6 +861,7 @@ int main()
 {
   gaol::init();
   pow_of_the_standard();
+  integers();
   pow_on_boxes();
   gaol_functions();
   names_of_the_standard();

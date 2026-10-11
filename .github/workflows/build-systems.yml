@@ -4,7 +4,16 @@
 # test), and the tests are built again with each installed GAOL, on Linux
 # (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
 # Windows (MSYS2, and Visual C++ with meson). Checks that the three builds give
-# GAOL the same configuration on each kind of machine (.github/audit).
+# GAOL the same configuration on each kind of machine (.github/audit). Each job
+# that runs the unit tests checks that numbers read and wrote numbers under a
+# locale writing a decimal comma, which the Linux jobs and the containers
+# generate first, macOS and Windows having one (.github/scripts/comma-locale.sh,
+# GAOL v5). The autotools jobs check that make distclean gives the sources back
+# as git has them. One job builds GAOL as a subproject of a meson project
+# (tests/meson_subproject, GAOL v5). An autotools job (--disable-exceptions)
+# and a meson job (-Denable-exception=false) build GAOL without exceptions,
+# where an error ends the program, and run the examples and the tests, which
+# leave out the checks of an exception there (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -14,7 +23,7 @@ name: Autotools and meson
 
 on:
   push:
-    branches: ['**']
+    branches: [master, MATH-CORE, configure-clean]
   pull_request:
   workflow_dispatch:
 
@@ -47,6 +56,7 @@ jobs:
           - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04,     configure: '--disable-exceptions --with-examples', desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -70,7 +80,8 @@ jobs:
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         run: sh .github/scripts/version-file.sh configure
       - name: VERSION.txt read by autoconf, as by configure
-        if: runner.os == 'Linux'
+        # Once per runner: the jobs with configure's options read the same file
+        if: runner.os == 'Linux' && matrix.cfg.configure == ''
         run: |
           # autoconf reads VERSION.txt for the version of configure --version
           # when it generates configure, which no build does: the script
@@ -81,10 +92,13 @@ jobs:
           sh .github/scripts/version-file.sh autoconf
       - name: Configure, build and install
         run: |
+          set -o pipefail
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure, the Makefile.in or the lexer
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-          ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ matrix.cfg.configure }} | tee configure.log
+          # The output of configure out of the sources, which make distclean
+          # is to give back as git has them
+          ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ matrix.cfg.configure }} | tee "$RUNNER_TEMP/configure.log"
           # config.status writes each of its files again when given its name,
           # as the rules of make that follow the templates do: the m4 macro of
           # the version named gaol_version made it refuse
@@ -94,16 +108,41 @@ jobs:
           make -j 4
           make install
           # CORE-MATH is compiled into libgaol: no other library is installed
-          grep -q "elementary functions" configure.log
+          grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      - name: Locale writing a decimal comma
+        if: runner.os == 'Linux'
+        run: sh .github/scripts/comma-locale.sh generate
       - name: Tests (make test)
         run: make -j 4 test || { cat tests/test-suite.log; exit 1; }
+      - name: The examples
+        if: contains(matrix.cfg.configure, '--with-examples')
+        run: make -j 4 -C examples check || { cat examples/test-suite.log; exit 1; }
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check tests/numbers.log
+      - name: make distclean gives the sources back as git has them
+        run: |
+          # make clean keeps what configure made, for make to build again
+          # without configure; make distclean erases it too, the .deps and
+          # .dirstamp of the dependencies and of CORE-MATH among them
+          # (doc/building.md). Before tests.sh, which compiles its tests at the
+          # root of the sources. git status shows no empty directory, as the
+          # .deps that make distclean left, emptied, before GAOL v5's
+          # distclean-local: find looks for them, a checkout having none
+          make distclean
+          git status --short --ignored
+          empty=$(find . -path ./.git -prune -o -type d -empty -print)
+          echo "$empty"
+          test -z "$(git status --porcelain --ignored)$empty" || {
+            echo "make distclean left the files or the empty directories above, or changed files"; exit 1; }
       - name: Tests built with the installed GAOL
         run: |
           sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   meson:
     name: ${{ matrix.cfg.desc }}
@@ -119,6 +158,7 @@ jobs:
           - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04,     options: '-Denable-exception=false -Dwith-examples=true', desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -161,6 +201,7 @@ jobs:
           PATH="$nopython" meson setup "$RUNNER_TEMP/build-no-python"
       - name: Configure, build and install
         run: |
+          set -o pipefail
           meson --version
           meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true ${{ matrix.cfg.options }} | tee configure.log
           meson compile -C build-meson
@@ -169,12 +210,80 @@ jobs:
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      - name: Locale writing a decimal comma
+        if: runner.os == 'Linux'
+        run: sh .github/scripts/comma-locale.sh generate
       - name: Tests (ninja test, make test of meson)
         run: ninja -C build-meson test
+      - name: The examples
+        if: contains(matrix.cfg.options, '-Dwith-examples=true')
+        run: meson test -C build-meson --setup check --suite examples --print-errorlogs
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # GAOL as a subproject of a meson project, tests/meson_subproject, which
+  # builds tests of tests/ with gaol_dep and checks that their code gets the
+  # flags of interval arithmetic, and that GAOL is built in release in the
+  # default build type of meson: meson refused the add_global_arguments() of
+  # meson.build in a subproject, and before 1.8.4 gives a subproject the build
+  # type of the project, which the meson of Ubuntu 24.04 (1.3.2) checks (GAOL
+  # v5)
+  meson-subproject:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { meson: pipx, desc: 'Meson, Ubuntu 24.04 x86_64, GAOL as a subproject' }
+          - { meson: apt,  desc: 'Meson of Ubuntu 24.04, x86_64, GAOL as a subproject' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          if [ "${{ matrix.cfg.meson }}" = pipx ]; then
+            sudo apt-get install -y -q g++ pipx
+            pipx install meson
+            pipx install ninja
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          else
+            sudo apt-get install -y -q g++ meson ninja-build
+          fi
+      - name: Configure tests/meson_subproject, a project bringing GAOL in as a subproject, from this checkout
+        run: |
+          set -o pipefail
+          meson --version
+          # The meson of Ubuntu has to be older than 1.8.4, which builds a
+          # subproject in its own default build type itself
+          if [ "${{ matrix.cfg.meson }}" = apt ]; then
+            python3 -c 'import sys; sys.exit(tuple(map(int, sys.argv[1].split(".")[:3])) >= (1, 8, 4))' "$(meson --version)"
+          fi
+          mkdir tests/meson_subproject/subprojects
+          ln -s "$PWD" tests/meson_subproject/subprojects/gaol
+          meson setup build-meson-subproject tests/meson_subproject | tee configure.log
+          grep -q "Elementary functions: CORE-MATH" configure.log
+      - name: Build
+        run: meson compile -C build-meson-subproject
+      - name: Locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh generate
+      - name: Tests (ninja test, make test of meson), the flags of their code among them
+        run: ninja -C build-meson-subproject test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build-meson-subproject/meson-logs/testlog.txt
+      - name: enable-debug builds GAOL for debugging, as a subproject and alone
+        run: |
+          meson setup build-meson-subproject-debug tests/meson_subproject -Dgaol:enable-debug=true
+          python3 tests/release_flags.py --debug build-meson-subproject-debug "$PWD/tests/meson_subproject/subprojects/gaol"
+          meson setup build-meson-debug -Denable-debug=true
+          python3 tests/release_flags.py --debug build-meson-debug "$PWD"
 
   # meson with Visual C++: the static libgaol, as CMake builds it, its tests,
   # and the installed GAOL, with which a test is compiled again (GAOL v5). In
@@ -214,20 +323,27 @@ jobs:
           if ($LASTEXITCODE) { exit 1 }
           Get-ChildItem -Recurse -File $prefix | ForEach-Object { $_.FullName }
           # What the code using GAOL includes with Visual C++, and the
-          # configuration, in include/gaol under the prefix
-          foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h', 'sysdeps/gaol_exact_msvc.h') {
+          # configuration, in include/gaol under the prefix, but not the
+          # headers of the sources of GAOL only (GAOL v5)
+          foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h') {
             if (-not (Test-Path "$prefix/include/gaol/$f")) { Write-Output "$f is not installed"; exit 1 }
+          }
+          foreach ($f in 'gaol_interval_parser.h', 'gaol_exact.h', 'sysdeps') {
+            if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
       - name: Tests (ninja test, make test of meson)
         run: |
           ninja -C build-meson test
           if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+      - name: The test numbers ran under a locale writing a decimal comma
+        shell: bash
+        run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: A test built with the installed GAOL
         run: |
           $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
           $lib = Get-ChildItem "$prefix/lib" | Where-Object { $_.Name -match 'gaol\.(lib|a)$' } | Select-Object -First 1
           # /MD: the C runtime of the DLLs, which meson builds libgaol with
-          cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D__GAOL_PUBLIC__= /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $lib.FullName /Fe:rounding_direction.exe
+          cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $lib.FullName /Fe:rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
           ./rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
@@ -250,22 +366,26 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS -e MESON_TESTTHREADS ${{ matrix.cfg.image }} sh -c "
             set -e
-            apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build > /dev/null
+            apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build locales > /dev/null
             uname -m && c++ --version | head -1
+            sh .github/scripts/comma-locale.sh generate
             if [ ${{ matrix.cfg.build }} = autotools ]; then
               find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
               ./configure --prefix=/tmp/gaol --with-tests
               grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
               make -j 4 && make install
               make -j 4 test
+              sh .github/scripts/comma-locale.sh check tests/numbers.log
               sh .github/scripts/tests.sh /tmp/gaol static
             else
               meson setup build-meson --prefix=/tmp/gaol --libdir=lib -Dwith-tests=true
               meson compile -C build-meson && meson install -C build-meson
               ninja -C build-meson test
+              sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
               sh .github/scripts/tests.sh /tmp/gaol shared
             fi
-            ./performance | tee /gaol/performance.md"
+            ./performance > /gaol/performance.md
+            cat /gaol/performance.md"
           cat performance.md >> "$GITHUB_STEP_SUMMARY"
 
   msys2:
@@ -299,10 +419,12 @@ jobs:
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
             make -j 4 && make install
             make -j 4 test
+            sh .github/scripts/comma-locale.sh check tests/numbers.log
           else
             meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
             meson compile -C build-meson && meson install -C build-meson
             ninja -C build-meson test
+            sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
           fi
           # CORE-MATH is compiled into libgaol: no other library is installed
           ls "$prefix/lib"
@@ -310,7 +432,9 @@ jobs:
       - name: Tests built with the installed GAOL
         run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" static
       - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The three builds give GAOL the same configuration (.github/audit)
   agree:

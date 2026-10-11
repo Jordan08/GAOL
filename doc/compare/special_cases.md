@@ -50,32 +50,32 @@ where IEEE 1788 defines one and libieeep1788 has the operation: it computes
 every bound with MPFR, correctly rounded. It has no n-th root (`rootn`), no
 operators with doubles and no compound assignments.
 
-**GAOL** gives the result of IEEE 1788 in 270 cases out of 286, an interval
-enclosing it in 10, and something else in 6, all from the hybrid `pow(x, y)`
+**GAOL** gives the result of IEEE 1788 in 275 cases out of 286, an interval
+enclosing it in 5, and something else in 6, all from the hybrid `pow(x, y)`
 of the namespace `gaol`, which takes the integer power `pown` for a degenerate
 integer exponent, where IEEE 1788's `pow` only takes the part of x in
 [0, +∞] (see [What differs from GAOL](../differences.md)): `pow([−2], 2.0)`
 is [4], `pow([0], [0])` is [1], `pow([−1], [2^31−1])` is [−1] and
 `pow([−2, 0], [−1])` is [−∞, −0.5], where IEEE 1788 has ∅ (cases 158, 178 to
 180, 183); `pow([−2, −1], [1e10])`, an integer beyond the ints, is [−∞, +∞]
-(173). Five of the wider cases come from the same `pow` (157, 161, 174 to
+(173). The five wider cases come from the same `pow` (157, 161, 174 to
 176). The `pow` of `gaol_ieee1788` follows IEEE 1788 there, taking only the
 part of x in [0, +∞] whatever the exponent (see
 [Using GAOL](../using.md#the-names-of-ieee-1788-2015)). GAOL reads a bare
 number, `textToInterval("0.1")`, as the interval enclosing it, an extension of
 the literals IEEE 1788 allows (19).
 
-Its other wider results are one double off, all from `pow(x, y)` where the
-power at a corner of the box is a double: CORE-MATH's value there, correctly
-rounded upward, is the upper bound, and the double below it the lower one,
-which is then one double below the exact power: `pow([4], 0.5)` is
-[2 − 2^-52, 2] (149 to 152, 163; [accuracy](../accuracy.md) gives the
-tightness of each operation). sin, cos, tan, acos, acosh, `atan2`, the
-integer powers and the n-th roots are the tightest: `sin([1, 2])` and
-`cos([2^52−1])` are the tightest intervals (84, 91), `acos([1, 3])` and
-`acosh([0, 1])` are [0], `pow([10], −400)` is [0, 2^-1074], `pow([−15], 17)`
-is exact and `nth_root([−8, 27], 3)` is [−2, 3] (the powers are computed from
-exact products, and the roots proved with integer powers, since issue #7).
+`pow(x, y)` takes CORE-MATH's value at the corners of the box, correctly
+rounded upward, as the upper bound, and the double below it as the lower one,
+unless the power there is a double, which is then the lower bound itself:
+`pow([4], 0.5)` is [2] and `pow([3, 4], [2, 3])` is [9, 64] (149 to 152, 163;
+[accuracy](../accuracy.md) gives the tightness of each operation). sin, cos,
+tan, acos, acosh, `atan2`, the integer powers and the n-th roots are the
+tightest: `sin([1, 2])` and `cos([2^52−1])` are the tightest intervals (84,
+91), `acos([1, 3])` and `acosh([0, 1])` are [0], `pow([10], −400)` is
+[0, 2^-1074], `pow([−15], 17)` is exact and `nth_root([−8, 27], 3)` is
+[−2, 3] (the powers are computed from exact products, and the roots proved
+with integer powers, since issue #7).
 Across the half-line y = 0, x < 0, where the angle jumps from π to −π,
 `atan2` is [−π, π], as in libieeep1788 (260 to 288).
 
@@ -221,8 +221,8 @@ give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
 
 | | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
 |---|---|---|---|---|---|
-| ✓ the result of IEEE 1788 | 279 | 270 | 126 | 150 | 56 |
-| ⊃ encloses it, wider | 0 | 10 | 50 | 41 | 22 |
+| ✓ the result of IEEE 1788 | 279 | 275 | 126 | 150 | 56 |
+| ⊃ encloses it, wider | 0 | 5 | 50 | 41 | 22 |
 | ✗ differs | 0 | 6 | 67 | 70 | 143 |
 | n/a no such operation | 8 | 0 | 44 | 26 | 65 |
 
@@ -436,10 +436,10 @@ From tests/elementary.cpp (powers).
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
 |---|---|---|---|---|---|---|---|---|
-| 149 | `pow([4], 0.5)` | [2] | [2] ✓ | [1.9999999999999998, 2] ⊃ | [1.9999999999999978, 2.0000000000000036] ⊃ | [2] ✓ | [1.9999999999999984, 2.0000000000000013] ⊃ | libieeep1788 and filib++: pow(x, [d]) |
-| 150 | `pow([4], 1.5)` | [8] | [8] ✓ | [7.999999999999999, 8] ⊃ | [7.999999999999982, 8.000000000000028] ⊃ | [7.999999999999999, 8.000000000000002] ⊃ | [7.999999999999988, 8.000000000000012] ⊃ |  |
-| 151 | `pow([4, 9], 0.5)` | [2, 3] | [2, 3] ✓ | [1.9999999999999998, 3] ⊃ | [1.9999999999999978, 3.000000000000007] ⊃ | [2, 3] ✓ | [1.9999999999999984, 3.000000000000003] ⊃ |  |
-| 152 | `pow([4], −0.5)` | [0.5] | [0.5] ✓ | [0.49999999999999994, 0.5] ⊃ | [0.4999999999999993, 0.5000000000000008] ⊃ | [0.49999999999999994, 0.5000000000000001] ⊃ | [0.4999999999999996, 0.5000000000000004] ⊃ |  |
+| 149 | `pow([4], 0.5)` | [2] | [2] ✓ | [2] ✓ | [1.9999999999999978, 2.0000000000000036] ⊃ | [2] ✓ | [1.9999999999999984, 2.0000000000000013] ⊃ | libieeep1788 and filib++: pow(x, [d]) |
+| 150 | `pow([4], 1.5)` | [8] | [8] ✓ | [8] ✓ | [7.999999999999982, 8.000000000000028] ⊃ | [7.999999999999999, 8.000000000000002] ⊃ | [7.999999999999988, 8.000000000000012] ⊃ |  |
+| 151 | `pow([4, 9], 0.5)` | [2, 3] | [2, 3] ✓ | [2, 3] ✓ | [1.9999999999999978, 3.000000000000007] ⊃ | [2, 3] ✓ | [1.9999999999999984, 3.000000000000003] ⊃ |  |
+| 152 | `pow([4], −0.5)` | [0.5] | [0.5] ✓ | [0.5] ✓ | [0.4999999999999993, 0.5000000000000008] ⊃ | [0.49999999999999994, 0.5000000000000001] ⊃ | [0.4999999999999996, 0.5000000000000004] ⊃ |  |
 | 153 | `pow([0, 4], 0.5)` | [0, 2] | [−0, 2] ✓ | [0, 2] ✓ | [0, 2.0000000000000036] ⊃ | [−0, 2] ✓ | [0, 2.0000000000000013] ⊃ |  |
 | 154 | `pow([−4, 9], 0.5)` | [0, 3] | [−0, 3] ✓ | [0, 3] ✓ | [0, 3.000000000000007] ⊃ | [−0, 3] ✓ | BIAS error, abort ✗ |  |
 | 155 | `pow([−2, 3], [1, 2])` | [0, 9] | [−0, 9] ✓ | [0, 9] ✓ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ |  |
@@ -450,7 +450,7 @@ From tests/elementary.cpp (powers).
 | 160 | `pow([4], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [0.9999999999999996, 1.0000000000000004] ⊃ |  |
 | 161 | `pow([−2, 3], [3])` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
 | 162 | `pow([−2, 3], [2])` | [0, 9] | [−0, 9] ✓ | [−0, 9] ✓ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ |  |
-| 163 | `pow([3, 4], [2, 3])` | [9, 64] | [9, 64] ✓ | [8.999999999999998, 64] ⊃ | [8.999999999999984, 64.00000000000038] ⊃ | [9, 64.00000000000001] ⊃ | [8.99999999999999, 64.00000000000017] ⊃ |  |
+| 163 | `pow([3, 4], [2, 3])` | [9, 64] | [9, 64] ✓ | [9, 64] ✓ | [8.999999999999984, 64.00000000000038] ⊃ | [9, 64.00000000000001] ⊃ | [8.99999999999999, 64.00000000000017] ⊃ |  |
 | 164 | `pow([−4, −1], 0.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
 | 165 | `pow([−4, −1], [0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
 | 166 | `pow([4], +∞)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | the exponent interval(+∞) is empty |
@@ -471,11 +471,11 @@ From tests/elementary.cpp (powers).
 | 181 | `pow([−∞, +∞], [0])` | [1] | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
 | 182 | `pow([0, 2], [−1])` | [0.5, +∞] | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.4999999999999993, +∞] ⊃ | [0.5, +∞] ✓ | BIAS error, abort ✗ |  |
 | 183 | `pow([−2, 0], [−1])` | ∅ | ∅ ✓ | [−∞, −0.5] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of GAOL v5), IEEE 1788's pow: x > 0 only |
-| 184 | `pow([0], [0.5])` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ | pow(0, y) = 0 for y > 0 |
-| 185 | `pow([0], 0.5)` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ |  |
-| 186 | `pow([−2, 0], [2.5])` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | BIAS error, abort ✗ |  |
-| 187 | `pow([0], [0, 1])` | [0] | [−0] ✓ | [−0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 188 | `pow([0], [−1, 1])` | [0] | [−0] ✓ | [−0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
+| 184 | `pow([0], [0.5])` | [0] | [−0] ✓ | [0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ | pow(0, y) = 0 for y > 0 |
+| 185 | `pow([0], 0.5)` | [0] | [−0] ✓ | [0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ |  |
+| 186 | `pow([−2, 0], [2.5])` | [0] | [−0] ✓ | [0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | BIAS error, abort ✗ |  |
+| 187 | `pow([0], [0, 1])` | [0] | [−0] ✓ | [0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
+| 188 | `pow([0], [−1, 1])` | [0] | [−0] ✓ | [0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
 | 189 | `pow([0], [−1])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ |  |
 | 190 | `pow([0], [−0.5])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ |  |
 | 191 | `pow([0], −0.5)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ |  |

@@ -81,7 +81,7 @@ static inline int get_rounding_mode (fexcept_t *flagp)
   unsigned int mode;
 #if defined(__x86_64__)
   *flagp = _mm_getcsr ();
-  #if defined(__WIN32__) || defined(__WIN64__)
+  #if defined(__WIN32__) || defined(__WIN64__) || defined(_WIN32) /* GAOL */
     // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
     // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
     // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100

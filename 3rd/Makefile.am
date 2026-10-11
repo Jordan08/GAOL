@@ -53,3 +53,9 @@ libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # (CORE_MATH_NO_LTO).
 libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ -include $(top_srcdir)/gaol/core_math_port.h
 
+
+# make distclean removes the files of the dependencies one by one and leaves
+# their directories: removed here, so that it gives the sources back as git has
+# them (GAOL v5)
+distclean-local:
+	-rm -rf $(CORE_MATH_DIR)/*/$(DEPDIR)

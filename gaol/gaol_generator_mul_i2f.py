@@ -3,6 +3,8 @@
 # Generator for the 256 cases based on signs of the operands
 # of the multiplication of 2 interval2f
 # (c) 2010 Frederic Goualard, LINA UMR CNRS 6241
+# Copyright (c) 2026 ENSTA, France
+# Modified by Joran NININ (GAOL v5)
 #
 # Run with python3 and ply (pip install ply); it writes the 256 cases of the
 # multiplication on the standard output, which are the ones of

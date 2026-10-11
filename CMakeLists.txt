@@ -50,6 +50,14 @@ if(_gaol_version_error)
   message(FATAL_ERROR "${_gaol_version_error}")
 endif()
 
+# Whether the configurations of a generator of several were given, on the
+# command line or in the environment, before project() sets their default
+if(DEFINED CMAKE_CONFIGURATION_TYPES OR DEFINED ENV{CMAKE_CONFIGURATION_TYPES})
+  set(_gaol_configuration_types_given ON)
+else()
+  set(_gaol_configuration_types_given OFF)
+endif()
+
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
 
 # A change of VERSION.txt configures again
@@ -68,6 +76,17 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(GAOL_IS_TOP_LEVEL ON)
   if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+  endif()
+  # With a generator of several configurations (Visual Studio, Xcode, Ninja
+  # Multi-Config), Release first among them, unless they were given: Ninja
+  # Multi-Config builds the first by default. cmake --build with Visual Studio
+  # builds Debug all the same without --config (GAOL v5)
+  get_property(_gaol_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(_gaol_multi_config AND NOT _gaol_configuration_types_given AND "Release" IN_LIST CMAKE_CONFIGURATION_TYPES)
+    set(_gaol_types ${CMAKE_CONFIGURATION_TYPES})
+    list(REMOVE_ITEM _gaol_types Release)
+    list(INSERT _gaol_types 0 Release)
+    set(CMAKE_CONFIGURATION_TYPES "${_gaol_types}" CACHE STRING "The configurations of the generator" FORCE)
   endif()
 endif()
 
@@ -103,6 +122,10 @@ option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OF
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
 option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
+# GAOL and CORE-MATH built for debugging whatever the build type or the
+# configuration, a project bringing GAOL in included, as enable-debug of meson
+# and --enable-debug of configure (GAOL v5; see the end of this file)
+option(GAOL_DEBUG "Build GAOL and CORE-MATH for debugging, without optimization and with GAOL_DEBUGGING, whatever the build type or the configuration" OFF)
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 # Coverage: the library and the tests compiled with the counters of gcov
@@ -141,6 +164,25 @@ option(GAOL_U128_EMULATION "Compute the 128-bit integer of the accurate phases w
 option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and add the target coverage, which runs the tests and writes the report in coverage/" OFF)
 
 option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
+
+# GAOL_PREFER_AVX512, whether gaol::init() takes the AVX-512 path of +, -,
+# *, / and sqrt on a processor that has the instructions (see the detection
+# below). ON by default where GAOL_PRESERVE_ROUNDING is: the path spares the
+# store of the rounding direction every operation pays, which is what
+# GAOL_PRESERVE_ROUNDING is about. What the command line gave wins either
+# way: -DGAOL_PREFER_AVX512=OFF refuses the path under
+# GAOL_PRESERVE_ROUNDING, as -DGAOL_PREFER_AVX512=ON takes it without it.
+# The default derives at every configure where the command line said
+# nothing, from GAOL_PRESERVE_ROUNDING above (GAOL v5).
+if(DEFINED GAOL_PREFER_AVX512)
+  set(GAOL_PREFER_AVX512_EXPLICIT ON)
+else()
+  set(GAOL_PREFER_AVX512_EXPLICIT OFF)
+endif()
+option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, on a processor that has them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)" OFF)
+if(NOT GAOL_PREFER_AVX512_EXPLICIT AND GAOL_PRESERVE_ROUNDING)
+  set(GAOL_PREFER_AVX512 ON)
+endif()
 
 # As configure.ac and meson.build ask: -std=c++11; C99 for the sources of
 # CORE-MATH, with the GNU extensions (CMake's default), which the inline
@@ -240,6 +282,15 @@ endif()
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
   list(APPEND GAOL_INTERVAL_FLAGS /fp:strict)
+  # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
+  # /arch:SSE2 (_M_IX86_FP 1, clang-cl 18), which gaol/gaol_config.h refuses:
+  # -msse2 has it compute them in SSE2 (_M_IX86_FP 2, FLT_EVAL_METHOD 0), as
+  # Visual C++ does by default. Given to the code using GAOL too (gaol::gaol),
+  # which includes the headers the check is in.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_SIZEOF_VOID_P EQUAL 4
+     AND CMAKE_CXX_COMPILER_ARCHITECTURE_ID MATCHES "^[Xx]86$")
+    list(APPEND GAOL_INTERVAL_FLAGS -msse2)
+  endif()
 else()
   # From ibex_init_common(): each flag is kept where the compiler takes it
   foreach(flag -frounding-math -fno-fast-math -ffp-contract=off)
@@ -425,6 +476,31 @@ endif()
 string(REPLACE ";" " " GAOL_FMA_FLAGS_STRING "${GAOL_FMA_FLAGS}")
 message(STATUS "Fused multiply-add flags: ${GAOL_FMA_FLAGS_STRING}")
 
+# The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
+# x86, and from 11.4 and 12.4 in the series 11 and 12; GCC 9.4, 12.3, GCC for
+# ARM and Clang 18 refuse it, with an error), which the code using GAOL is given
+# (gaol::gaol, gaol.pc)
+# (GAOL v5). GCC links crtfastmath.o into a program linked with -Ofast,
+# -ffast-math or -funsafe-math-optimizations, even when -fno-fast-math follows,
+# and its constructor sets the flush-to-zero and denormals-are-zero modes of the
+# SSE instructions, which make the bounds of every operation with a subnormal
+# operand or result wrong ([1e-300]*[1e-20] is [0, 0]). -mno-daz-ftz keeps that
+# file out of the link. It is no protection against a plug-in built with -Ofast
+# and loaded later, nor against the other compilers and processors: each
+# operation of GAOL clears the modes when it starts (gaol/gaol_fpu.h). Checked
+# by linking, since it is a link option (tests/fast_math_link.cpp).
+set(GAOL_LINK_FLAGS "")
+if(NOT MSVC)
+  set(CMAKE_REQUIRED_LINK_OPTIONS "-mno-daz-ftz")
+  check_cxx_source_compiles("int main() { return 0; }" GAOL_LINKER_TAKES_MNO_DAZ_FTZ)
+  unset(CMAKE_REQUIRED_LINK_OPTIONS)
+  if(GAOL_LINKER_TAKES_MNO_DAZ_FTZ)
+    list(APPEND GAOL_LINK_FLAGS -mno-daz-ftz)
+  endif()
+endif()
+string(REPLACE ";" " " GAOL_LINK_FLAGS_STRING "${GAOL_LINK_FLAGS}")
+message(STATUS "Link flags of the code using GAOL: ${GAOL_LINK_FLAGS_STRING}")
+
 
 ################################################################################
 # CORE-MATH
@@ -491,14 +567,14 @@ message(STATUS "Elementary functions: CORE-MATH, from 3rd/math-core (correctly r
 ################################################################################
 
 # GAOL sets the rounding direction with <fenv.h> (gaol/gaol_fpu.h)
-check_include_file_cxx(fenv.h HAVE_FENV_H)
-if(NOT HAVE_FENV_H)
+check_include_file_cxx(fenv.h GAOL_HAVE_FENV_H)
+if(NOT GAOL_HAVE_FENV_H)
   message(FATAL_ERROR "GAOL needs <fenv.h>, which this compiler does not provide")
 endif()
 
 # gaol/gaol_profile.cpp measures time with getrusage() where it exists, and with
 # clock() otherwise
-check_symbol_exists(getrusage "sys/resource.h" HAVE_GETRUSAGE)
+check_symbol_exists(getrusage "sys/resource.h" GAOL_HAVE_GETRUSAGE)
 
 # GAOL raises exceptions to signal errors, which --disable-exceptions of
 # configure and -Denable-exception=false of meson turn off
@@ -509,13 +585,13 @@ set(GAOL_EXCEPTIONS_ENABLED ON)
 # generator of several configurations (Visual Studio, Xcode), whose
 # configurations share gaol/gaol_configuration.h, GAOL_DEBUGGING is given to
 # the sources of GAOL in the Debug configuration below.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
   set(GAOL_DEBUGGING ON)
 endif()
 
 # With -frounding-math, GAOL negates a double with the minus sign rather than by
 # flipping its sign bit (gaol_opposite() in gaol/gaol_port.h)
-set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
+set(GAOL_HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
@@ -527,8 +603,8 @@ set(HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
 # that a std::vector of SSE2 intervals, aligned on 16 bytes, crashes on its
 # first movaps (MinGW-w64 15.2 for x86, rounding_direction). On 64-bit Windows
 # (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
-set(USING_SSE2_INSTRUCTIONS OFF)
-set(USING_SSE3_INSTRUCTIONS OFF)
+set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
+set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
 if(GAOL_SIMD AND NOT MSVC)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
@@ -545,11 +621,11 @@ if(GAOL_SIMD AND NOT MSVC)
   if(GAOL_SSE2_INTERVALS)
     check_cxx_compiler_flag(-msse2 GAOL_COMPILER_SUPPORTS_MSSE2)
     if(GAOL_COMPILER_SUPPORTS_MSSE2)
-      set(USING_SSE2_INSTRUCTIONS ON)
+      set(GAOL_USING_SSE2_INSTRUCTIONS ON)
       list(APPEND GAOL_INTERVAL_FLAGS -msse2)
       check_cxx_compiler_flag(-msse3 GAOL_COMPILER_SUPPORTS_MSSE3)
       if(GAOL_COMPILER_SUPPORTS_MSSE3)
-        set(USING_SSE3_INSTRUCTIONS ON)
+        set(GAOL_USING_SSE3_INSTRUCTIONS ON)
         list(APPEND GAOL_INTERVAL_FLAGS -msse3)
       endif()
     endif()
@@ -557,7 +633,46 @@ if(GAOL_SIMD AND NOT MSVC)
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
-message(STATUS "SSE2 intervals: ${USING_SSE2_INSTRUCTIONS}, SSE3: ${USING_SSE3_INSTRUCTIONS}")
+message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
+
+# GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
+# the functions that carry __attribute__((target("avx512f"))), and
+# __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64 only. The
+# library is then compiled with the AVX-512 path of +, -, *, / and sqrt
+# (gaol/gaol_interval_avx512.cpp) beside the SSE2 one, for any processor of
+# the architecture: only the functions of the path carry the attribute, and
+# gaol::init() takes it when the program asks for it, with GAOL_PREFER_AVX512,
+# and the processor has the instructions. Nothing of the rest is compiled
+# otherwise (GAOL v5).
+set(GAOL_HAVE_AVX512_TARGET OFF)
+if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  # The source in a bracket argument: verbatim, no quote to escape
+  check_cxx_source_compiles([=[
+    #include <immintrin.h>
+    __attribute__((target("avx512f"))) double er_add(double a, double b)
+    {
+      const __m512d x = _mm512_set1_pd(a);
+      const __m512d y = _mm512_set1_pd(b);
+      return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+    }
+    int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }]=]
+    GAOL_COMPILER_TAKES_AVX512_TARGET)
+  if(GAOL_COMPILER_TAKES_AVX512_TARGET)
+    set(GAOL_HAVE_AVX512_TARGET ON)
+  endif()
+endif()
+if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
+  if(GAOL_PREFER_AVX512_EXPLICIT)
+    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang")
+  endif()
+  # The default GAOL_PRESERVE_ROUNDING derived, and the compiler or the
+  # architecture takes no path: the operations keep setting the direction
+  # upward and giving it back, as a build with GAOL_PRESERVE_ROUNDING
+  # always did (GAOL v5)
+  message(STATUS "GAOL_PREFER_AVX512, from GAOL_PRESERVE_ROUNDING: no AVX-512 path here, the operations keep setting the direction upward")
+  set(GAOL_PREFER_AVX512 OFF)
+endif()
+message(STATUS "AVX-512 interval arithmetic compiled in: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -568,11 +683,11 @@ endif()
 
 # The library compiled with hidden visibility, as configure builds it, and with
 # the warnings of configure; GAOL's public declarations carry
-# __attribute__ ((visibility("default"))) (HAVE_VISIBILITY_OPTIONS)
+# __attribute__ ((visibility("default"))) (GAOL_HAVE_VISIBILITY_OPTIONS)
 set(GAOL_LIBRARY_FLAGS "")
 if(NOT MSVC)
-  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" HAVE_VISIBILITY_OPTIONS)
-  if(HAVE_VISIBILITY_OPTIONS)
+  check_cxx_compiler_flag("-fvisibility-inlines-hidden -fvisibility=hidden" GAOL_HAVE_VISIBILITY_OPTIONS)
+  if(GAOL_HAVE_VISIBILITY_OPTIONS)
     list(APPEND GAOL_LIBRARY_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>" -fvisibility=hidden)
   endif()
   foreach(flag -Wall -Wconversion)
@@ -584,12 +699,15 @@ if(NOT MSVC)
     endif()
   endforeach()
   # The optimizations configure adds to -O3, in the Release configuration
+  # (not with GAOL_DEBUG)
+  set(GAOL_RELEASE_FLAGS "")
   foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
     string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
     check_cxx_compiler_flag("${flag}" ${_flag_var})
-    if(${_flag_var})
+    if(${_flag_var} AND NOT GAOL_DEBUG)
       list(APPEND GAOL_LIBRARY_FLAGS "$<$<CONFIG:Release>:${flag}>")
+      list(APPEND GAOL_RELEASE_FLAGS ${flag})
     endif()
   endforeach()
 endif()
@@ -603,14 +721,14 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # The sources listed in gaol/meson.build. gaol_interval.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
+# GAOL_USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
 # where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
 # gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
 # C++, always a static one, GAOL's declarations being compiled without
-# __declspec(dllexport) or dllimport (see __GAOL_PUBLIC__ below).
+# __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
   gaol_interval.cpp gaol_profile.cpp gaol_common.cpp gaol_parser.cpp
@@ -635,6 +753,14 @@ set_target_properties(gaol_core_math PROPERTIES
 target_compile_options(gaol_core_math PRIVATE ${GAOL_CORE_MATH_FLAGS} ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_LIBRARY_FLAGS})
 target_include_directories(gaol_core_math PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+# /W4 of Visual C++ (the job warnings of windows.yml) on what CORE-MATH writes
+# on purpose (GAOL v5): its #pragma STDC FENV_ACCESS, which /fp:strict makes
+# redundant (C4068), the anonymous structures of its unions (C4201), masks
+# written as negative constants (C4245), and the volatile variables it
+# computes for the flags they raise alone (C4189)
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189)
+endif()
 
 if(MSVC)
   add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
@@ -668,27 +794,51 @@ target_include_directories(gaol PUBLIC
 )
 target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
+# To the link of the code using GAOL, when it is built by a compiler that takes
+# the option: GCC 13 or a later one, or the compiler that built GAOL, of its
+# major version and not older than it. Another compiler, as Clang 18, would stop
+# on the option, and the option is not in every later release: GCC has it from
+# 11.4 in the series 11 and from 12.4 in the series 12, so that a GAOL built by
+# GCC 11.4 (Ubuntu 22.04) and a program built by GCC 12.3 (its g++-12) have it
+# and do not (GAOL v5, review of point 4: gcc/config/i386/i386.opt of the
+# release tags)
+if(GAOL_LINK_FLAGS)
+  string(REGEX MATCH "^[0-9]+" GAOL_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+  math(EXPR GAOL_COMPILER_NEXT_MAJOR "${GAOL_COMPILER_MAJOR} + 1")
+  set(GAOL_LINK_FLAGS_SERIES "$<AND:$<CXX_COMPILER_ID:${CMAKE_CXX_COMPILER_ID}>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,${CMAKE_CXX_COMPILER_VERSION}>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,${GAOL_COMPILER_NEXT_MAJOR}>>")
+  set(GAOL_LINK_FLAGS_GCC13 "$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,13>>")
+  target_link_options(gaol INTERFACE
+    "$<$<OR:${GAOL_LINK_FLAGS_GCC13},${GAOL_LINK_FLAGS_SERIES}>:${GAOL_LINK_FLAGS}>")
+endif()
 # Without a build type, CMake gives no optimization flag at all. GAOL sets
 # Release when it is the top-level project, but brought in by a project that
 # sets none (add_subdirectory, FetchContent), GAOL and CORE-MATH were compiled
-# without optimization: they are compiled with -O3 then, as in Release (/O2
-# with Visual C++).
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  if(MSVC)
-    target_compile_options(gaol PRIVATE /O2)
-  else()
-    target_compile_options(gaol PRIVATE -O3)
-  endif()
+# without optimization: they are compiled then as in Release, with -O3 (/O2
+# with Visual C++), NDEBUG and the optimizations configure adds, as configure
+# and meson build GAOL brought into another project (GAOL v5: GAOL alone had
+# -O3, and CORE-MATH, compiled apart, no optimization)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND NOT GAOL_DEBUG)
+  foreach(target gaol gaol_core_math)
+    if(MSVC)
+      target_compile_options(${target} PRIVATE /O2)
+    else()
+      target_compile_options(${target} PRIVATE -O3 ${GAOL_RELEASE_FLAGS})
+    endif()
+    target_compile_definitions(${target} PRIVATE NDEBUG)
+  endforeach()
 endif()
 if(MSVC)
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")
-  target_compile_options(gaol PRIVATE /Zc:strictStrings-)
+  # Visual C++ only: clang-cl does not know the option, and warned of it for
+  # each source (GAOL v5)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(gaol PRIVATE /Zc:strictStrings-)
+  endif()
   target_compile_definitions(gaol PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
-  # gaol/gaol_config.h declares GAOL's classes and functions
-  # __declspec(dllimport) for Visual C++ unless __GAOL_PUBLIC__ is defined, as
-  # for a DLL: every file including GAOL's headers has to define it, empty
-  target_compile_definitions(gaol PUBLIC __GAOL_PUBLIC__=)
+  # No __GAOL_PUBLIC__= for GAOL and the code using it any longer:
+  # gaol/gaol_config.h declares GAOL's classes and functions without
+  # __declspec(dllimport) for Visual C++, where GAOL_PUBLIC is empty (GAOL v5)
 endif()
 if(FALSE)
 endif()
@@ -708,25 +858,33 @@ install(TARGETS gaol EXPORT gaolTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# GAOL's headers, including those gaol/gaol_config.h includes for Visual C++
-# and MinGW, which gaol/meson.build does not install
-file(GLOB GAOL_HEADERS gaol/*.h)
-# What CORE-MATH's sources need to compile within GAOL, and nothing else does
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_log_dint.h")
-# The headers of the sources of GAOL only: the bounds at doubles, *_dn() and
-# *_up(), which are not part of GAOL's interface, and the intervals of floats,
-# which only a developer of GAOL compiles (see gaol/gaol_config.h) (GAOL v5)
-list(REMOVE_ITEM GAOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_double_op.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_intervalf.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/gaol/gaol_interval2f.h")
+# The headers a program includes, gaol/gaol, gaol/gaol_expression.h and
+# gaol/gaol_expr_eval.h for the expressions, gaol/gaol_assert.h for
+# GAOL_ASSERT (see the manual), and those they include,
+# gaol/gaol_fpu_msvc.h for Visual C++ among them: gaol/Makefile.am and
+# gaol/meson.build install the same ones. Not the headers of the sources of
+# GAOL only (GAOL v5): gaol/gaol_interval_parser.h, which did not compile when
+# included, the parts of the library (gaol_init_cleanup.h, gaol_exact.h and
+# sysdeps/, gaol_core_math.h, gaol_u128.h),
+# what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
+# core_math_log_dint.h), the bounds at doubles, *_dn() and *_up(), which are
+# not part of GAOL's interface (gaol_double_op.h), and the intervals of
+# floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
+set(GAOL_HEADERS
+  gaol/gaol.h gaol/gaol_assert.h gaol/gaol_common.h
+  gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
+  gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
+  gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
+  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
+  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_parser.h
+  gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_version.h)
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}
   "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol
 )
-install(FILES gaol/sysdeps/gaol_exact_c99.h gaol/sysdeps/gaol_exact_msvc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/sysdeps)
 
 set(GAOL_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/gaol)
 install(EXPORT gaolTargets NAMESPACE gaol:: DESTINATION ${GAOL_INSTALL_CMAKEDIR})
@@ -805,18 +963,26 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_DEBIAN_PACKAGE_SECTION "libdevel")
 
   # The archive of the sources: the files of the repository, without what git
-  # ignores (.gitignore), the builds within the sources, and the packages
+  # ignores (.gitignore), the builds within the sources, the packages, and the
+  # notes of the work on GAOL v5 (TODO.md, process.md, todo-notes/), which
+  # serve its maintainers, not the users of a version. CPack writes the CPACK_*
+  # variables into CPackConfig.cmake and CPackSourceConfig.cmake, which it reads
+  # when it runs: CPACK_VERBATIM_VARIABLES has it escape them, so that the
+  # backslashes of these regular expressions reach it as they are, where CMake
+  # 3 warned of an invalid escape sequence, \. (CMP0010, GAOL v5)
+  set(CPACK_VERBATIM_VARIABLES ON)
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
   string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
   set(CPACK_SOURCE_IGNORE_FILES
     "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
     "\\.swp$" "~$" "/#" "/\\.#"
-    "/autom4te\\.cache/" "/doc/compare/code/work/"
+    "/autom4te\\.cache/" "/doc/compare/code/work/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
     "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
+    "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/process\\.md$" "^${_gaol_source_regex}/todo-notes/"
   )
 
   # The archive holds configure as it is committed, and configure says the
@@ -828,7 +994,15 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # warn while it configures only, so it does here, whether or not the archive
   # is made. A tree without configure, or with a configure that has no such
   # line, has nothing to compare (tests/cpack_stale_configure.cmake checks it,
-  # GAOL v5).
+  # GAOL v5). As the archive takes its name from the version CMake read when it
+  # configured, CPack includes cmake/gaol_package_source.cmake, which configures
+  # the build directory again first when VERSION.txt holds another version:
+  # Ninja does before package_source, the Makefile generators did not.
+  set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/cmake/gaol_package_source.cmake")
+  set(CPACK_GAOL_VERSION "${PROJECT_VERSION}")
+  set(CPACK_GAOL_CMAKE_COMMAND "${CMAKE_COMMAND}")
+  set(CPACK_GAOL_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
+  set(CPACK_GAOL_BINARY_DIR "${PROJECT_BINARY_DIR}")
   if(EXISTS "${PROJECT_SOURCE_DIR}/configure")
     file(STRINGS "${PROJECT_SOURCE_DIR}/configure" _gaol_configure_version REGEX "^PACKAGE_VERSION='" LIMIT_COUNT 1)
     if(_gaol_configure_version MATCHES "^PACKAGE_VERSION='([^']*)'")
@@ -937,9 +1111,10 @@ endif()
 # doc/compare/code/results.csv holds (see doc/compare/code/run_perf.sh). It
 # needs bash and Python 3 with numpy, which draws the intervals. GAOL 4.2.3,
 # filib++, libieeep1788 and PROFIL/BIAS are not run: doc/compare/code/run_all.sh
-# measures them all again. Linux only, as the benchmark (GAOL v5).
+# measures them all again. Linux only, as the benchmark, and not with
+# GAOL_DEBUG, which would measure GAOL built for debugging (GAOL v5).
 
-if(GAOL_IS_TOP_LEVEL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(GAOL_IS_TOP_LEVEL AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT GAOL_DEBUG)
   find_program(GAOL_BASH bash)
   mark_as_advanced(GAOL_BASH)
   if(GAOL_BASH)
@@ -1023,4 +1198,48 @@ if(GAOL_COVERAGE)
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Running the tests and writing the coverage report in coverage/"
     VERBATIM)
+endif()
+
+# GAOL_DEBUG: the targets of this directory, libgaol and the sources of
+# CORE-MATH, compiled without optimization nor NDEBUG and with debugging
+# information in every configuration (GAOL v5). Each configuration keeps its
+# own flags but those of optimization and NDEBUG (the C runtime of Visual C++,
+# sanitizers, macros of the project...), so that GAOL still links with the
+# code of that configuration; where no build type is given, the flags are
+# added to those of the project. The flags of a configuration are those of the
+# directory of the target at its end: the tests and the examples, whose
+# directories were added before, keep theirs, as does a project bringing GAOL
+# in. With Visual C++, the debugging information is the property
+# MSVC_DEBUG_INFORMATION_FORMAT where CMP0141 is NEW (CMake 3.25 and later), and
+# /Zi otherwise.
+if(GAOL_DEBUG)
+  if(MSVC)
+    set(_gaol_debug_flags /Od /Ob0)
+    set(_gaol_cmp0141 OLD)
+    if(POLICY CMP0141)
+      cmake_policy(GET CMP0141 _gaol_cmp0141)
+    endif()
+    if(_gaol_cmp0141 STREQUAL "NEW")
+      set_property(TARGET gaol gaol_core_math PROPERTY MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
+    else()
+      list(APPEND _gaol_debug_flags /Zi)
+    endif()
+  else()
+    set(_gaol_debug_flags -O0 -g)
+  endif()
+  string(REPLACE ";" " " _gaol_debug_string "${_gaol_debug_flags}")
+  foreach(lang C CXX)
+    if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
+      foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES CMAKE_BUILD_TYPE)
+        string(TOUPPER "${config}" config)
+        separate_arguments(_gaol_flags UNIX_COMMAND "${CMAKE_${lang}_FLAGS_${config}}")
+        list(FILTER _gaol_flags EXCLUDE REGEX "^[-/](O[0-9sgdxz]?|Ofast|Ob[0-3]|DNDEBUG(=.*)?)$")
+        list(APPEND _gaol_flags ${_gaol_debug_flags})
+        string(REPLACE ";" " " _gaol_flags "${_gaol_flags}")
+        set(CMAKE_${lang}_FLAGS_${config} "${_gaol_flags}")
+      endforeach()
+    else()
+      set(CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS} ${_gaol_debug_string}")
+    endif()
+  endforeach()
 endif()

@@ -30,6 +30,8 @@ class reverse_mappings_test {
      TEST_SEQ(acos_rel(interval::minus_one_plus_one(),interval(-5,6)),interval(-5,6));
 	  TEST_EMPTY(acos_rel(interval(-3,-2),interval::universe()));
 	  TEST_EMPTY(acos_rel(interval(2,4),interval::universe()));
+	  // 2^52, which gaol/gaol_port.h no longer declares (GAOL v5)
+	  const double two_power_52 = 4503599627370496.0;
 	  I = interval(previous_float(two_power_52),two_power_52);
 	  J = cos(I);
 	  TEST_EQ(acos_rel(J,I),I);
@@ -94,7 +96,7 @@ class reverse_mappings_test {
 		TI[i] = interval(Il,Ir);
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
-	   interval J = tan(TI[i]);
+	   J = tan(TI[i]);
 		TEST_EQ(atan_rel(J,TI[i]),TI[i]);
 	 }
 	 TEST_EQ(atan_rel(interval(-5,5),interval::universe()),interval::universe());
@@ -227,6 +229,11 @@ class reverse_mappings_test {
 	 // on, and every x has its tanh in [-1,1]
 	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,100.0)),interval(0.5493061443340548457,100.0));
 	 TEST_EQ(atanh_rel(interval(-1.0,1.0),interval(1.0,2.0)),interval(1.0,2.0));
+	 // The infinite ends themselves, which a bounded I hides: TEST_EQ can
+	 // compare them since hausdorff() puts two equal infinite bounds at
+	 // distance 0 (GAOL v5, point R.7 of TODO.md)
+	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,GAOL_INFINITY)),interval(0.5493061443340548457,GAOL_INFINITY));
+	 TEST_EQ(atanh_rel(interval(-1.0,-0.5),interval(-GAOL_INFINITY,0.0)),interval(-GAOL_INFINITY,-0.5493061443340548457));
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {

@@ -387,6 +387,21 @@ namespace
   static_assert(!has_not_equal<interval>::value, "!= is not defined on intervals");
   static_assert(has_equal<double>::value, "the detection of == works");
 
+  /* interval(double) is explicit (GAOL v5): a double does not convert to an
+     interval, and gaol::sin(0.5), the sin of [0.5] while it converted, does
+     not compile; gaol::sin(interval(0.5)) is that sin */
+  template <typename T, typename = void> struct has_gaol_sin : std::false_type {};
+  template <typename T>
+  struct has_gaol_sin<T, decltype(void(gaol::sin(std::declval<const T&>())))> : std::true_type {};
+  template <typename T, typename = void> struct has_ieee1788_sin : std::false_type {};
+  template <typename T>
+  struct has_ieee1788_sin<T, decltype(void(gaol_ieee1788::sin(std::declval<const T&>())))> : std::true_type {};
+  static_assert(!std::is_convertible<double, interval>::value, "a double does not convert implicitly to an interval");
+  static_assert(std::is_constructible<interval, double>::value, "interval(d) is [d, d]");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile");
+  static_assert(!has_ieee1788_sin<double>::value, "gaol_ieee1788::sin(0.5) does not compile");
+  static_assert(has_gaol_sin<interval>::value && has_ieee1788_sin<interval>::value, "the detection of sin works");
+
   // GAOL's relations, on the intervals whose bounds are zeros, infinities or
   // small integers, and the empty set: certainly_le() and certainly_leq() are
   // strictPrecedes and precedes, set_strictly_contains() and set_le() interior,
@@ -587,7 +602,6 @@ namespace
   */
   void ieee1788_order()
   {
-    const double inf = GAOL_INFINITY;
     const interval empty = interval::emptyset();
     struct Case { const char *what; bool got, expected; };
     const Case cases[] = {
@@ -631,7 +645,6 @@ namespace
   void ieee1788_names()
   {
     namespace std1788 = ::gaol_ieee1788;
-    const double inf = GAOL_INFINITY;
     Random random;
 
     // <' of Table 10.3: < but for -oo <' -oo and +oo <' +oo
@@ -672,7 +685,7 @@ namespace
         ref[3] = au <= bl;
         ref[4] = lt1(bl, al) && lt1(au, bu);
         ref[5] = lt1(al, bl) && lt1(au, bu);
-        ref[6] = au < bl;
+        ref[6] = lt1(au, bl);
         ref[7] = au < bl || bu < al;
       }
       const bool got[8] = {std1788::equal(a, b), std1788::subset(a, b), std1788::less(a, b),
@@ -715,13 +728,12 @@ namespace
             c.empty ? got.is_empty() : (!got.is_empty() && got.set_eq(c.expected)),
             [&] { return hex(got); });
     }
-    // pow([4], [0.5]) encloses 2 within one double: GAOL's pow does not tell
-    // that 4^0.5 is a double, and gives the double below as its lower bound
+    // pow([4], [0.5]) is [2]: 4^0.5 is a double, which GAOL's pow tells, where
+    // it gave the double below as its lower bound
     {
       const interval got = std1788::pow(interval(4.0), interval(0.5));
-      check("gaol_ieee1788::pow([4], [0.5]) encloses 2, within one double",
-            got.set_contains(2.0) && got.right() == 2.0 && got.left() >= std::nextafter(2.0, 0.0),
-            [&] { return hex(got); });
+      check("gaol_ieee1788::pow([4], [0.5]) is [2]",
+            got.left() == 2.0 && got.right() == 2.0, [&] { return hex(got); });
     }
     // and GAOL's pow wherever x > 0, whatever y
     for (int i = 0; i < 2000; ++i) {

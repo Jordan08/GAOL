@@ -51,9 +51,14 @@
 #include <iomanip>
 #include <ios>
 #include <istream>
+#include <limits>
+#include <locale>
 #include <ostream>
 #include <streambuf>
 #include <type_traits>
+#if defined(_MSC_VER) && defined(_M_ARM64)
+#  include <float.h>
+#endif
 
 // The control register of the SSE instructions, where the flush-to-zero and
 // denormals-are-zero modes are set
@@ -218,6 +223,22 @@ namespace
     }
     return not_above_zero;
   }
+
+  // Whether the sum 2^-1060 + 0, by which GAOL checks the modes before it
+  // writes, is 0 under denormals-are-zero: GAOL clears the mode only where
+  // it sees it there, and an emulator could honour it in the comparisons and
+  // not in the additions (GAOL v5). The sum goes to volatile memory, as the
+  // comparison above.
+  bool check_sees_denormals_are_zero()
+  {
+    volatile double subnormal = 8.0947715414629834e-320, zero = 0.0;
+    volatile double sum;
+    {
+      Flushing flushing(denormals_are_zero);
+      sum = subnormal + zero;
+    }
+    return sum == 0.0;
+  }
 #endif
 
   /*
@@ -309,11 +330,16 @@ namespace
     [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
     or, as the literal [a] of a point, [0]. It compares their bits. x86 only,
     where MXCSR is.
-    A subnormal bound, which compares equal to 0 under the mode, is then
-    written by the C library, which has to write it as it does without the
-    mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS calls,
-    tests the number against 0 first, and writes 0 for every subnormal under
-    denormals-are-zero. Nothing is checked where the C library does so.
+    The text has to be the one written without the mode too: operator<<
+    clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
+    subnormal bound rounded to nearest, [0, 4.940656458412465e-324] for
+    [0, 5e-324], below the upper bound, and left it to the C library under
+    the mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS
+    calls, tests the number against 0 first, and writes 0 for every subnormal
+    under denormals-are-zero, and the Debug C runtime of Visual C++ reports a
+    failed assertion of its own ("unexpected input value; log10 failed",
+    cfout.cpp), the logarithm of the subnormal being taken under the mode,
+    and then writes 0. This test skipped both, which it now checks.
   */
   void subnormal_output()
   {
@@ -322,32 +348,14 @@ namespace
       std::printf("Denormals-are-zero is not honoured: the output of subnormals with it is not checked\n");
       return;
     }
+    if (!check_sees_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is honoured by the comparisons, not by the sum that GAOL checks it with: "
+                  "the output of subnormals with it is not checked\n");
+      return;
+    }
     const double least = std::numeric_limits<double>::denorm_min();
     const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
                               interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
-    // Each bound written as operator<< leaves it to the C library under the
-    // mode: to nearest, with 16 digits, by a stream as the one of the test
-    const auto written = [](double d, bool flushing) {
-      RoundingToNearest nearest;
-      std::ostringstream os;
-      os.precision(16);
-      if (flushing) {
-        Flushing daz(denormals_are_zero);
-        os << d;
-      } else {
-        os << d;
-      }
-      return os.str();
-    };
-    for (const interval& x : tiny) {
-      for (double d : { x.left(), x.right() }) {
-        if (written(d, true) != written(d, false)) {
-          std::printf("The C library writes %s under denormals-are-zero, and %s without it: the output of subnormals "
-                      "with the mode is not checked\n", written(d, true).c_str(), written(d, false).c_str());
-          return;
-        }
-      }
-    }
     const interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
     interval::format(interval_format::bounds);
@@ -359,6 +367,10 @@ namespace
         os << x;
       }
       const std::string s = os.str();
+      std::ostringstream plain;
+      plain << x;
+      check("operator<< of subnormals with denormals-are-zero, as without it", s == plain.str(),
+            [&] { return hex(x) + " written " + s + " rather than " + plain.str(); });
       const std::string name = "operator<< of subnormals with denormals-are-zero, read back";
       const interval back = evaluate(name, [&] { return textToInterval(s); }, [&] { return hex(x) + " written " + s; });
       check(name + ": encloses them", back.set_contains(x), [&] { return hex(x) + " written " + s + " read " + hex(back); });
@@ -367,6 +379,68 @@ namespace
     interval::format(saved_format);
 #else
     std::printf("No control register of the SSE instructions: the output of subnormals with denormals-are-zero is not checked\n");
+#endif
+  }
+
+  /*
+    Visual C++ for 64-bit ARM, where GAOL cannot clear the modes that flush
+    the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
+    _DN_FLUSH) has operator<< write a subnormal bound outward, as 2^-1022 away
+    from zero and 0 toward it, without the C library, which may write it 0
+    under the mode; it was written to nearest, below an upper bound (GAOL v5,
+    point Q of TODO.md). Read back once the mode is cleared, the text of each
+    bound has to be on its side of the bound, and the interval read to
+    enclose the one written. The mode is checked first, with a product whose
+    subnormal result it flushes.
+  */
+  void subnormal_output_flush_not_cleared()
+  {
+#if defined(_MSC_VER) && defined(_M_ARM64)
+    unsigned int saved = 0, ignored = 0;
+    if (_controlfp_s(&saved, 0, 0) != 0) {
+      std::printf("_controlfp_s() does not read the control word: the output of subnormals with FZ is not checked\n");
+      return;
+    }
+    volatile double tiny = 1e-300, small = 1e-20;
+    volatile double product;
+    _controlfp_s(&ignored, _DN_FLUSH, _MCW_DN);
+    product = tiny * small;
+    _controlfp_s(&ignored, saved & _MCW_DN, _MCW_DN);
+    if (product != 0.0) {
+      std::printf("FZ, set by _controlfp_s(), is not honoured: the output of subnormals with it is not checked\n");
+      return;
+    }
+    const double least = std::numeric_limits<double>::denorm_min();
+    const interval tiny_intervals[] = { interval(0.0, least), interval(-least, 0.0), interval(least),
+                                        interval(-least), interval(21.0 * least, 22.0 * least) };
+    const std::streamsize saved_precision = interval::precision();
+    const interval_format::format_t saved_format = interval::format();
+    interval::format(interval_format::bounds);
+    interval::precision(16);
+    for (const interval& x : tiny_intervals) {
+      std::ostringstream os;
+      _controlfp_s(&ignored, _DN_FLUSH, _MCW_DN);
+      os << x;
+      _controlfp_s(&ignored, saved & _MCW_DN, _MCW_DN);
+      const std::string s = os.str();
+      const std::string name = "operator<< of subnormals with FZ set by the program (Visual C++, ARM64)";
+      const auto describe = [&] { return hex(x) + " written " + s; };
+      // "[l, r]", or "[a]" for both bounds
+      const std::string inside = (s.size() >= 2) ? s.substr(1, s.size() - 2) : s;
+      const std::size_t comma = inside.find(", ");
+      const std::string lt = inside.substr(0, comma);
+      const std::string rt = (comma == std::string::npos) ? lt : inside.substr(comma + 2);
+      const interval lo = evaluate(name, [&] { return textToInterval(lt); }, describe);
+      const interval hi = evaluate(name, [&] { return textToInterval(rt); }, describe);
+      check(name + ": the lower bound written at most it", !lo.is_empty() && lo.right() <= x.left(), describe);
+      check(name + ": the upper bound written at least it", !hi.is_empty() && hi.left() >= x.right(), describe);
+      const interval back = evaluate(name, [&] { return textToInterval(s); }, describe);
+      check(name + ", read back: encloses them", back.set_contains(x), [&] { return describe() + " read " + hex(back); });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+#else
+    std::printf("Not Visual C++ for 64-bit ARM: the output of subnormals where GAOL cannot clear FZ is not checked\n");
 #endif
   }
 
@@ -536,6 +610,9 @@ namespace
     /* An uncertain number is an interval literal of its own, not a bound:
        [5?1], and the uncertain numbers as bounds in the other forms, which
        the grammar reading every string as an expression accepted (GAOL v5) */
+#if GAOL_EXCEPTIONS_ENABLED
+    // Without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), a text the reader refuses ends the program
     const char *const invalid[] = { "[5?1]", "[1 000 000]", "[ganz]", "[entire!comment]", "5???u", "[1,2,3]", "3.56?1?",
                                     "[5?1, 6]", "[1, 3.56?1]", "[3.56?1,]", "[,3.56?1]", "[- 3.56?1]" };
     for (const char *s : invalid) {
@@ -549,6 +626,7 @@ namespace
       }
       check("IEEE 1788 literals: input_format_error for what is not one", threw, [&] { return std::string(s); });
     }
+#endif
 
     // Doubles written in hexadecimal, with 13 digits after the point, are read
     // exactly; with a 14th digit 8, half a unit above them, as the tightest
@@ -589,6 +667,8 @@ namespace
       }
       check("textToInterval(expression) read again: the same interval", same, [&] { return std::string(s); });
     }
+#if GAOL_EXCEPTIONS_ENABLED
+    // Without exceptions, a text the reader refuses ends the program
     const char *const invalid[] = { "nth_root(8, 1.5)", "nth_root(8, 1.5)+1", "[nth_root(8, 1.5), 2]",
                                     "sin(1)+", "[sin(1), cos(", "(1+2", "[1, 2*(3+4]", "pow(2, 1)+*3",
                                     "<1, 2>", "exp(1) exp(2)", "nth_root([1,2], 1.5)",
@@ -605,6 +685,7 @@ namespace
         check("textToInterval(expression) not computed: an exception", threw, [&] { return std::string(s); });
       }
     }
+#endif
     // atan2(y, x) in expressions: 4 atan2(1, 1) is the tightest enclosure of
     // pi, and atan2(0, 0), which has no value, is empty
     const interval four_angles = textToInterval("4*atan2(1, 1)"), none = textToInterval("atan2(0, 0)"),
@@ -661,11 +742,26 @@ namespace
     round_trip(interval(smallest, 4.0 * smallest), "subnormal");
     round_trip(interval(-max_double, max_double), "[-MAX, MAX]");
     round_trip(interval::pi(), "pi");
-    // Point intervals, which this format writes with their two bounds, [a, a]
+    // Point intervals, which this format writes [a], as the decimal one does
     round_trip(interval(0.1), "[0.1]");
     round_trip(interval(-1.0 / 3.0), "[-1/3]");
     round_trip(interval(smallest), "[smallest]");
     round_trip(interval(max_double), "[MAX]");
+    // The texts themselves: a point interval [a], and a point interval of
+    // zero [0x0p+0] whatever the signs of its bounds, the set {0} (GAOL v5:
+    // [0x1.8p+0, 0x1.8p+0], and [-0x0p+0, 0x0p+0] for interval::zero() with
+    // the SSE2 intervals)
+    const struct { interval x; const char *text; } texts[] = {
+      { interval(1.5), "[0x1.8p+0]" }, { interval(-0.5), "[-0x1p-1]" }, { interval(smallest), "[0x0.0000000000001p-1022]" },
+      { interval(-0.0, 0.0), "[0x0p+0]" }, { interval(-0.0), "[0x0p+0]" }, { interval::zero(), "[0x0p+0]" },
+      { interval(0.0), "[0x0p+0]" }, { interval(1.0, 2.0), "[0x1p+0, 0x1p+1]" }, { interval(-0.0, 1.0), "[-0x0p+0, 0x1p+0]" },
+    };
+    for (const auto& t : texts) {
+      std::ostringstream s;
+      s << t.x;
+      check("operator<< in hexadecimal: [a] for a point interval, [0x0p+0] for a zero", s.str() == t.text
+            && exact_string(t.x) == t.text, [&] { return hex(t.x) + " written " + s.str() + " rather than " + t.text; });
+    }
     interval::format(saved);
   }
 
@@ -951,17 +1047,38 @@ namespace
     expect_agreeing(1.5, 1.5, 6);
     expect_agreeing(150000000.0, 150000010.0, 4);
     expect_agreeing(1e-5, 2e-5, 5);
+    expect_agreeing(-1.2567, -1.25, 5);
+    expect_agreeing(-100.47, -100.0, 5);
     for (int i = 0; i < nb_random_values; ++i) {
       const double a = random.positive(-30, 30), w = std::ldexp(random.uniform(0.0, 1.0), -(i % 40));
-      expect_agreeing(a, a*(1.0 + w), precisions[i % 8]);
+      if (i % 2 == 0) {
+        expect_agreeing(a, a*(1.0 + w), precisions[i % 8]);
+      } else {
+        expect_agreeing(-a*(1.0 + w), -a, precisions[i % 8]);
+      }
     }
-    // A negative interval is written as the format of the bounds writes it, a
-    // point that the digits write exactly as [a]
-    interval::precision(16);
-    std::ostringstream negative;
-    negative << interval(-4.0) << ' ' << interval(-0.1) << ' ' << interval(-2.0, -1.0);
-    check("operator<< with agreeing digits of a negative interval: as the format of the bounds",
-          negative.str() == "[-4] [-0.1000000000000001, -0.1] [-2, -1]", [&] { return negative.str(); });
+    /* The digits are shared between two bounds finite, not 0 and of the same
+       sign, written with as many digits before the point and the same
+       exponent, that share their first digit that is not 0; the other
+       intervals are written as the format of the bounds writes them (GAOL v5:
+       the test r > 10 l wrote [1, 10] 1~[., 0.], the 1 of 10 taken for the 1
+       of 1, [1, 2] ~[1., 2.], interval::zero() ~[-0., 0.] with the SSE2
+       intervals, and every interval with a negative bound with its bounds) */
+    const struct { interval x; int precision; const char *text; } agreeing[] = {
+      { interval(1.0, 10.0), 16, "[1, 10]" }, { interval(1.0, 2.0), 16, "[1, 2]" }, { interval(-2.0, -1.0), 16, "[-2, -1]" },
+      { interval::zero(), 16, "[0]" }, { interval(-0.0), 16, "[0]" }, { interval(0.0, 1.0), 16, "[0, 1]" },
+      { interval(-1.0, 1.0), 16, "[-1, 1]" }, { interval(1.0, GAOL_INFINITY), 16, "[1, inf]" },
+      { interval(1.25, 1.2567), 5, "1.25~[0, 67]" }, { interval(-1.2567, -1.25), 5, "-1.25~[67, 0]" },
+      { interval(-4.0), 16, "-4.000000000000000" }, { interval(4.0), 16, "4.000000000000000" },
+      { interval(-0.1), 16, "-0.100000000000000~[1, 0]" }, { interval(9.5, 10.5), 3, "[9.5, 10.5]" },
+    };
+    for (const auto& a : agreeing) {
+      std::ostringstream os;
+      interval::precision(a.precision);
+      os << a.x;
+      check("operator<< with agreeing digits only where the bounds line up, as the format of the bounds otherwise",
+            os.str() == a.text, [&] { return hex(a.x) + " written " + os.str() + " rather than " + a.text; });
+    }
     interval::precision(saved_precision);
     interval::format(saved_format);
   }
@@ -1003,6 +1120,142 @@ namespace
     interval::format(saved_format);
   }
 
+  // A locale of C++ whose decimal point is a colon and whose digits are grouped by three: a stream that
+  // has it writes 617 900:875
+  struct grouping_punct : std::numpunct<char>
+  {
+    char do_decimal_point() const override { return ':'; }
+    char do_thousands_sep() const override { return ' '; }
+    std::string do_grouping() const override { return "\3"; }
+  };
+
+  // A locale of C++ whose decimal point is a comma, which needs no locale installed: a stream that has it
+  // writes 0,5
+  struct comma_punct : std::numpunct<char>
+  {
+    char do_decimal_point() const override { return ','; }
+  };
+
+  /*
+    operator<< under the settings of the stream (GAOL v5): the flags showpoint,
+    showpos, uppercase, fixed and scientific, the fill and the adjustment, and
+    the locale. The text of an interval used to be written in a stream of its
+    own, and is now made in a character string, which is much faster: the
+    expected texts are those the stream gave, but for std::internal. It padded
+    the text before its digits as std::right does, where GAOL 4 put the fill
+    after the sign of the midpoint written by the width and center formats, and
+    does again, for the whole text: "-1.5" in a width of 8 is "-****1.5", and
+    the bounds, which start with '[', are padded before it, and the fill goes
+    after the 0x of the hexadecimal floating-point format. The fixed format
+    writes an infinity in lower case, as the conversion %f of the standard
+    does (a stream of libc++, which uses %F, wrote INF). The bounds are written in the C locale whatever the locale of the
+    stream, with a decimal point and no grouping, so that the reader reads
+    them back (GAOL v5: "[1234:5, 1234567:25]" under this locale, and a
+    decimal comma, which the reader takes for the comma between two bounds);
+    the midpoint and the radius of the width format with the decimal point
+    and the grouping of the locale, both (GAOL v5: the radius was not
+    grouped), the radius without a sign under showpos (GAOL v5:
+    "+2 (+/- +1)"), and a midpoint 0 as 0 (GAOL v5: -0 for [-2u, u]).
+  */
+  void stream_settings()
+  {
+    const interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    typedef std::ios_base ios;
+    const ios::fmtflags general = ios::fmtflags(), fixed = ios::fixed, scientific = ios::scientific,
+      uppercase = ios::uppercase, showpos = ios::showpos, showpoint = ios::showpoint, left = ios::left,
+      right = ios::right, internal = ios::internal;
+    const double infinity = std::numeric_limits<double>::infinity();
+    const interval_format::format_t bounds = interval_format::bounds, width = interval_format::width,
+      center = interval_format::center, agreeing = interval_format::agreeing;
+    const interval halves(0.5, 2.5), from_zero(0.0, infinity), to_zero(-infinity, 0.0), negative(-2.0, -1.0),
+      one_two(1.0, 2.0), one_one_and_half(1.0, 1.5), large(1234.5, 1234567.25), close(1.25, 1.2567);
+    const struct {
+      interval x;
+      interval_format::format_t format;
+      int precision;
+      ios::fmtflags flags;
+      int width;
+      char fill;
+      int locale; // 0: the C locale, 1: grouping_punct, 2: comma_punct
+      const char *expected;
+    } cases[] = {
+      { halves, bounds, 0, general, 0, ' ', 0, "[0.5, 3]" },
+      { halves, bounds, 0, fixed, 0, ' ', 0, "[0, 3]" },
+      { halves, bounds, 0, fixed | showpoint, 0, ' ', 0, "[0., 3.]" },
+      { halves, bounds, 1, scientific | uppercase, 0, ' ', 0, "[5.0E-01, 2.5E+00]" },
+      { halves, bounds, 3, fixed | showpos, 0, ' ', 0, "[+0.500, +2.500]" },
+      { from_zero, bounds, 2, fixed | uppercase, 0, ' ', 0, "[0.00, inf]" },
+      { from_zero, bounds, 2, scientific | uppercase, 0, ' ', 0, "[0.00E+00, INF]" },
+      { to_zero, bounds, 3, showpos, 0, ' ', 0, "[-inf, +0]" },
+      { interval(-0.0, 0.0), bounds, 3, showpoint, 0, ' ', 0, "[0.00]" },
+      { large, bounds, 16, general, 0, ' ', 1, "[1234.5, 1234567.25]" },
+      { large, center, 16, general, 0, ' ', 1, "617 900:875" },
+      { large, width, 3, general, 0, ' ', 1, "6:18e+05 (+/- 6:17e+05)" },
+      { one_two, center, 5, showpos, 0, ' ', 0, "+1.5" },
+      { one_two, width, 16, general, 0, ' ', 0, "1.5 (+/- 0.5)" },
+      { one_one_and_half, width, 3, scientific | uppercase, 0, ' ', 0, "1.250E+00 (+/- 2.500E-01)" },
+      { close, agreeing, 5, general, 0, ' ', 0, "1.25~[0, 67]" },
+      { close, agreeing, 5, internal, 16, '.', 0, "....1.25~[0, 67]" },
+      { negative, center, 16, right, 8, '*', 0, "****-1.5" },
+      { negative, center, 16, left, 8, '*', 0, "-1.5****" },
+      { negative, center, 16, internal, 8, '*', 0, "-****1.5" },
+      { negative, bounds, 16, internal, 12, '*', 0, "****[-2, -1]" },
+      { one_two, width, 16, showpos | internal, 20, '.', 0, "+......1.5 (+/- 0.5)" },
+      { one_two, center, 16, showpos | internal, 6, '0', 0, "+001.5" },
+      { interval(3.0), center, 16, showpos | internal, 10, ' ', 0, "+        3" },
+      { interval::emptyset(), center, 16, showpos | internal, 10, '*', 0, "***[empty]" },
+      { large, width, 16, general, 0, ' ', 1, "617 900:875 (+/- 616 666:375)" },
+      { one_two, width, 16, showpos, 0, ' ', 0, "+1.5 (+/- 0.5)" },
+      { interval(-std::ldexp(1.0, -1073), std::ldexp(1.0, -1074)), width, 16, general, 0, ' ', 0,
+        "0 (+/- 9.881312916824931e-324)" },
+      { interval(-2.5), bounds, 16, general, 0, ' ', 2, "[-2.5]" },
+      { interval(0.25, 0.5), bounds, 16, general, 0, ' ', 2, "[0.25, 0.5]" },
+      { interval(0.0), bounds, 0, fixed | showpoint, 0, ' ', 2, "[0.]" },
+      { interval(0.1, 0.3), width, 16, general, 0, ' ', 2, "0,2 (+/- 0,1000000000000001)" },
+      { interval(0.1, 0.3), center, 3, general, 0, ' ', 2, "0,2" },
+    };
+    for (const auto& c : cases) {
+      std::ostringstream os;
+      if (c.locale == 1) {
+        os.imbue(std::locale(std::locale::classic(), new grouping_punct));
+      } else if (c.locale == 2) {
+        os.imbue(std::locale(std::locale::classic(), new comma_punct));
+      }
+      os.flags(c.flags);
+      os.fill(c.fill);
+      interval::precision(c.precision);
+      interval::format(c.format);
+      os << '|' << std::setw(c.width) << c.x << '|';
+      const std::string expected = std::string("|") + c.expected + "|";
+      check("operator<< under the flags, the fill and the locale of the stream", os.str() == expected,
+            [&] { return "\"" + os.str() + "\" rather than \"" + expected + "\""; });
+      check("operator<< leaves the flags, the fill and the precision of the stream, and its width 0",
+            os.flags() == c.flags && os.fill() == c.fill && os.precision() == 6 && os.width() == 0,
+            [&] { return std::string("\"") + c.expected + "\""; });
+    }
+    // std::internal after the 0x of the hexadecimal floating-point format of
+    // the stream, whose digits the C++ library writes (they differ between
+    // libraries): the text expected is that of the library, the fill after 0x
+    interval::format(center);
+    interval::precision(6);
+    for (const double c : { 1.5, -1.5 }) {
+      std::ostringstream library;
+      library << std::hexfloat << c;
+      const std::string digits = library.str();
+      const std::size_t at = digits.find("0x") + 2;
+      std::ostringstream os;
+      os.flags(fixed | scientific | internal);
+      os.fill('*');
+      os << std::setw(static_cast<int>(digits.size()) + 4) << interval(c);
+      const std::string expected = digits.substr(0, at) + "****" + digits.substr(at);
+      check("operator<< under std::internal: the fill after the 0x of the hexadecimal format of the stream",
+            os.str() == expected, [&] { return "\"" + os.str() + "\" rather than \"" + expected + "\""; });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+  }
+
   // What while (in >> x) reads from text, and how it ends
   struct loop_result
   {
@@ -1018,8 +1271,10 @@ namespace
     }
     try {
       std::rethrow_exception(e);
+#if GAOL_EXCEPTIONS_ENABLED
     } catch (const input_format_error&) {
       return "input_format_error";
+#endif
     } catch (const std::ios_base::failure&) {
       return "std::ios_base::failure";
     } catch (...) {
@@ -1331,10 +1586,13 @@ namespace
     for (const interval& x : specials) {
       expect_each_flag(x);
     }
-    // 300 random draws take a few seconds in an optimized build, but more
-    // than the 300 s the test has in the Debug builds of Visual C++, whose
-    // streams and checked iterators are much slower: those builds, which do
-    // not define NDEBUG, draw 30.
+    // 300 random draws take a few seconds in an optimized build, and much
+    // longer in the builds that do not define NDEBUG, with their checked
+    // iterators and, in the jobs of the continuous integration, the
+    // sanitizers: those draw 30 (numbers takes 235 s with them on macOS
+    // x86_64 with GCC, ASan and UBSan). The Debug builds of Visual C++ that
+    // went past the 300 s of the test were waiting on a dialog box of their
+    // C runtime, which #58 removed, not on the draws.
 #ifdef NDEBUG
     const int nb_random_draws = 300;
 #else
@@ -1450,6 +1708,9 @@ namespace
             !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
             [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
+#if GAOL_EXCEPTIONS_ENABLED
+    // A line the reader refuses: input_format_error where GAOL raises
+    // exceptions; without them, the error ends the program
     {
       std::istringstream in("[1, 2\n");
       interval x(1.0, 2.0);
@@ -1494,6 +1755,7 @@ namespace
       check("operator>> of a line that is no interval, on a stream throwing on failbit: input_format_error",
             format_error && in.fail(), [&] { return std::string(format_error ? "input_format_error" : "another exception"); });
     }
+#endif
 
     // Blank lines: a file ending with an empty line, and blank lines, or lines
     // of blanks, before and between the intervals, whatever their line ends
@@ -1533,6 +1795,9 @@ namespace
             !threw && in.fail() && x.left() == 1.0 && x.right() == 2.0,
             [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
+#if GAOL_EXCEPTIONS_ENABLED
+    // Lines that are no interval: input_format_error where GAOL raises
+    // exceptions; without them, the error ends the program
     // An interval written on two lines is two lines, of which the first is no interval
     {
       const loop_result r = read_intervals("\n[1,\n2]\n");
@@ -1547,6 +1812,7 @@ namespace
             r.ended == "input_format_error" && r.fail,
             [&] { return describe(r); });
     }
+#endif
 
     // GAOL leaves the rounding direction upward, and the C runtime of Windows reads 1.5 in that
     // direction one double above (1.5 + 2^-52) where glibc reads it exactly: what these checks are
@@ -1859,6 +2125,7 @@ int main()
   numbers();
   subnormal_numbers();
   subnormal_output();
+  subnormal_output_flush_not_cleared();
   constants();
   constructors();
   ieee_literals();
@@ -1866,6 +2133,7 @@ int main()
   hexadecimal_output();
   decimal_output();
   stream_output();
+  stream_settings();
   width_and_center_output();
   stream_input();
   long_exponents();

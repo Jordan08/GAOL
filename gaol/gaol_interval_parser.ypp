@@ -10,6 +10,8 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ * Modified by Joran NININ (GAOL v5)
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -51,6 +53,7 @@
 void gaol_error_bison(void *scanner, void *context, const char *msg);
 
 using namespace gaol;
+using namespace gaol_core;
 
 /*
   The state of a reading of a string (GAOL v5), which the parser, a pure one,
@@ -431,6 +434,14 @@ static expr_node *gaol_operation(void *context, char op, expr_node *a, expr_node
 // The lexer of flex, a reentrant one given the value of the token to set
 // (%option bison-bridge in gaol/gaol_interval_lexer.lpp)
 int gaol_lex(YYSTYPE *lval, void *scanner);
+
+/* gaol_parse() counts the syntax errors in yynerrs, which nothing reads:
+   Clang warned that the variable is set but not used (GAOL v5) */
+#if defined(__clang__) && defined(__has_warning)
+#  if __has_warning("-Wunused-but-set-variable")
+#    pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#  endif
+#endif
 %}
 
 
@@ -552,7 +563,7 @@ function_call
 
 %%
 
-void gaol_error_bison(void *scanner, void *context, const char *msg)
+void gaol_error_bison(void *, void *context, const char *)
 {
   gaol_context(context)->ok = false; // An error occurred
 }

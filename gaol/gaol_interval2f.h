@@ -9,22 +9,23 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2009 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 
-#ifndef __gaol_interval2f_h__
-#define __gaol_interval2f_h__
+#ifndef GAOL_INTERVAL2F_H
+#define GAOL_INTERVAL2F_H
 
 // Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 // gaol/gaol_config.h) and SSE3 instructions are used, and empty otherwise
 // (GAOL v5)
 #include "gaol/gaol_config.h"
-#if defined(GAOL_FLOAT_INTERVALS) && USING_SSE3_INSTRUCTIONS
+#if defined(GAOL_FLOAT_INTERVALS) && GAOL_USING_SSE3_INSTRUCTIONS
 
 #include <new>
 #include <iosfwd>
@@ -56,12 +57,12 @@ namespace gaol_core {
 			interval2f(float l1, float r1, float l2, float r2);
 			interval2f(const interval2f& I);
 			interval2f(const __m128& xmm);
-			__GAOL_PUBLIC__ interval2f(const char* const str);
-			__GAOL_PUBLIC__ interval2f(const interval& Il, const interval& Ir);
-			__GAOL_PUBLIC__ interval2f(const intervalf& Il, const intervalf& Ir);
+			GAOL_PUBLIC interval2f(const char* const str);
+			GAOL_PUBLIC interval2f(const interval& Il, const interval& Ir);
+			GAOL_PUBLIC interval2f(const intervalf& Il, const intervalf& Ir);
 
-			__GAOL_PUBLIC__ interval first(void) const; // Returns the first interval (rightmost in register)
-			__GAOL_PUBLIC__ interval second(void) const; // Returns the second interval (leftmost in register)
+			GAOL_PUBLIC interval first(void) const; // Returns the first interval (rightmost in register)
+			GAOL_PUBLIC interval second(void) const; // Returns the second interval (leftmost in register)
 
 			interval2f& operator=(const interval2f& I);
 
@@ -73,10 +74,10 @@ namespace gaol_core {
 			const interval2f operator-(const interval2f& I) const;
 			const interval2f operator-(void) const;
 
-			__GAOL_PUBLIC__ interval2f& operator*=(const interval2f& I);
+			GAOL_PUBLIC interval2f& operator*=(const interval2f& I);
 			const interval2f operator*(const interval2f& I) const;
 
-      __GAOL_PUBLIC__ interval2f inverse() const; // TODO: document inverse() method
+      GAOL_PUBLIC interval2f inverse() const; // TODO: document inverse() method
 
 			__m128& get_xmminterval(void);
 			const __m128& get_xmminterval(void) const;
@@ -90,21 +91,21 @@ namespace gaol_core {
 			/*
 				The following relations are true if both intervals verify them.
 			*/
-			__GAOL_PUBLIC__ bool possibly_eq_all(const interval2f& I) const;
-			__GAOL_PUBLIC__ bool set_eq_all(const interval2f& I) const;
-			__GAOL_PUBLIC__ bool set_contains_all(const interval2f& I) const;
-			__GAOL_PUBLIC__ int set_contains(float v) const;
+			GAOL_PUBLIC bool possibly_eq_all(const interval2f& I) const;
+			GAOL_PUBLIC bool set_eq_all(const interval2f& I) const;
+			GAOL_PUBLIC bool set_contains_all(const interval2f& I) const;
+			GAOL_PUBLIC int set_contains(float v) const;
 
 
       // Allocators defined to enforce alignment on a 16 bytes boundary
-		__GAOL_PUBLIC__ void *operator new(size_t sz);
-		__GAOL_PUBLIC__ void operator delete(void *p);
+		GAOL_PUBLIC void *operator new(size_t sz);
+		GAOL_PUBLIC void operator delete(void *p);
 
-		__GAOL_PUBLIC__ void *operator new[](size_t sz);
-		__GAOL_PUBLIC__ void operator delete[](void *p);
+		GAOL_PUBLIC void *operator new[](size_t sz);
+		GAOL_PUBLIC void operator delete[](void *p);
 
-		__GAOL_PUBLIC__ void *operator new(size_t sz, void *p);
-		__GAOL_PUBLIC__ void operator delete(void *p, void *place);
+		GAOL_PUBLIC void *operator new(size_t sz, void *p);
+		GAOL_PUBLIC void operator delete(void *p, void *place);
 
 			friend interval2f pow(const interval2f& I, int n);
 
@@ -134,8 +135,8 @@ namespace gaol_core {
     return I.inverse();
   }
 
-	__GAOL_PUBLIC__ std::ostream& operator<<(std::ostream& out, const interval2f& I);
-  __GAOL_PUBLIC__ interval2f pow(const interval2f& I, int n);
+	GAOL_PUBLIC std::ostream& operator<<(std::ostream& out, const interval2f& I);
+  GAOL_PUBLIC interval2f pow(const interval2f& I, int n);
 
 	inline void interval2f::get_bounds(xmm4& bounds) const
 	{
@@ -346,6 +347,14 @@ namespace gaol_core {
 
 } // namespace cell
 
-#endif // GAOL_FLOAT_INTERVALS && USING_SSE3_INSTRUCTIONS
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::interval2f;
+  using gaol_core::operator<<;
+  using gaol_core::inverse;
+  using gaol_core::pow;
+} // namespace gaol
 
-#endif // __gaol_interval2f_h__
+#endif // GAOL_FLOAT_INTERVALS && GAOL_USING_SSE3_INSTRUCTIONS
+
+#endif // GAOL_INTERVAL2F_H

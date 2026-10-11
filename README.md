@@ -4,6 +4,13 @@
 # GAOL
 <em>Not Just Another Interval Library</em>
 
+[![Linux](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml?query=branch%3Aconfigure-clean)
+[![macOS](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml?query=branch%3Aconfigure-clean)
+[![Windows](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml?query=branch%3Aconfigure-clean)
+[![Linux containers](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml?query=branch%3Aconfigure-clean)
+[![Autotools and meson](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml?query=branch%3Aconfigure-clean)
+[![Manual](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml?query=branch%3Aconfigure-clean)
+
 GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic) library that strives to offer fast and reliable operators for constraint solvers. 
 
 ## Authors
@@ -74,7 +81,8 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 `gaol::gaol`, and `gaol.pc` for pkg-config, carry the flags of interval
 arithmetic that the code including GAOL's headers has to be compiled with. A
 project can also build GAOL for itself, with FetchContent (see
-[Using GAOL](doc/using.md#from-cmake)).
+[Using GAOL](doc/using.md#from-cmake)), or as a meson subproject (see
+[Using GAOL](doc/using.md#from-pkg-config)).
 
 A program calls `gaol::cleanup()` right after its last use of GAOL:
 GAOL's initialization, which runs by itself before `main()`, sets the
