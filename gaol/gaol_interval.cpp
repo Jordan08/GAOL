@@ -89,6 +89,24 @@ namespace gaol {
 extern bool gaol_parse_string(const char* const s, std::size_t n, gaol::interval& out,
                               gaol::parsing_names names);
 
+namespace {
+  // The string s in an error message, its NUL characters written \0: what()
+  // is a C string, which stopped at the first, so that the message of
+  // "1\0junk" read as a refusal of 1 (GAOL v5)
+  std::string text_in_message(const std::string& s)
+  {
+    std::string text;
+    for (const char c : s) {
+      if (c == '\0') {
+        text += "\\0";
+      } else {
+        text += c;
+      }
+    }
+    return text;
+  }
+}
+
 namespace gaol_core {
 
   // The bounds of pi and pi/2 (gaol/gaol_port.h), and 2^52, from which on the
@@ -814,7 +832,7 @@ namespace gaol_core {
     }
     if (!read) {
       std::string err_msg("Syntax error in expression of interval: ");
-      err_msg += buffer;
+      err_msg += text_in_message(buffer);
       I = interval::emptyset();
       set_failbit(is);
       gaol_ERROR(input_format_error,err_msg.c_str());
@@ -4264,7 +4282,7 @@ namespace gaol {
     interval tmp;
     if (!gaol_parse_string(s.data(), s.size(), tmp, parsing_names::gaol)) {
       std::string err_msg("Syntax error in interval initialization: ");
-      err_msg += s;
+      err_msg += text_in_message(s);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
     }
@@ -4279,14 +4297,14 @@ namespace gaol {
     interval tmpl, tmpr;
     if (!gaol_parse_string(sl.data(), sl.size(), tmpl, parsing_names::gaol)) {
       std::string err_msg("Syntax error in left bound initialization: ");
-      err_msg += sl;
+      err_msg += text_in_message(sl);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();
     }
     if (!gaol_parse_string(sr.data(), sr.size(), tmpr, parsing_names::gaol)) {
       std::string err_msg("Syntax error in right bound initialization: ");
-      err_msg += sr;
+      err_msg += text_in_message(sr);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();

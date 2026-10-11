@@ -15,11 +15,13 @@
  * - the strings the parser refuses, which have to raise an exception rather
  *   than give an interval, and what the exceptions of GAOL say (what() and
  *   operator<<);
- * - the long and the deeply nested expressions: sums and products of 200000
- *   terms, differences and quotients of 20000, read from a string and built in
- *   C++, and chains of 200000 minus signs and 20000 sines, which have to be
- *   evaluated and deleted whatever their depth, on no more stack than a tree
- *   of two nodes takes, and the nesting the reader refuses.
+ * - the long and the deeply nested expressions: sums, and products and
+ *   quotients, of 200000 terms read from a string, sums and products of 200000
+ *   terms and differences and quotients of 20000 built in C++, and chains of
+ *   200000 minus signs and 20000 sines, which have to be evaluated and deleted
+ *   whatever their depth, on a stack that does not grow with it, and the
+ *   nesting the reader refuses;
+ * - the NUL characters of a std::string, and the allocations that fail.
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -1302,6 +1304,17 @@ namespace
               [&] { return shown(t); });
       };
       refused_by("textToInterval(s)", [&] { return textToInterval(t); });
+      // The message writes the whole string, its NUL characters as \0
+      std::string message;
+      try {
+        const interval y = textToInterval(t);
+        (void)y;
+      } catch (const input_format_error& e) {
+        message = e.what();
+      }
+      check("NUL character: the message of textToInterval(s) writes the string, the NUL as \\0",
+            message == "Syntax error in interval initialization: " + shown(t),
+            [&] { return shown(t) + ": " + message; });
       refused_by("textToInterval(s, \"2\") with the NUL on the left",
                  [&] { return textToInterval(t, "2"); });
       refused_by("textToInterval(\"0\", s) with the NUL on the right",
