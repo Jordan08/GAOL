@@ -323,6 +323,72 @@ namespace
   }
 
   /*
+    The two bounds of <a, b> have to be the same double, which the reader
+    tells by their bits under denormals-are-zero too (GAOL v5, point Q of
+    TODO.md): it compared them as doubles, which two subnormals are equal as
+    under the mode, and read <1e-310, 1e-309> as [1e-310, 1e-309], and
+    <0x1p-1074, 0x1p-1073> as [2^-1074, 2^-1073], which it refuses without
+    the mode. A refused string is the empty set of
+    gaol_ieee1788::textToInterval(), with or without exceptions, and the
+    input_format_error of gaol::textToInterval(). x86 only, where MXCSR is.
+  */
+  void degenerate_subnormals()
+  {
+#if GAOL_TESTS_HAVE_MXCSR
+    if (!honours_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is not honoured: <a, b> of subnormals with it is not checked\n");
+      return;
+    }
+    const char *const refused[] = {
+      "<1e-310, 1e-309>", "<0x1p-1074, 0x1p-1073>", "<0, 0x1p-1074>", "<-0x1p-1074, 0x1p-1074>",
+      "<0x0.fffffffffffffp-1022, 0x1p-1074>",
+    };
+    for (const char *t : refused) {
+      interval read;
+#if GAOL_EXCEPTIONS_ENABLED
+      bool threw = false;
+#endif
+      {
+        Flushing flushing(denormals_are_zero);
+        read = gaol_ieee1788::textToInterval(t);
+#if GAOL_EXCEPTIONS_ENABLED
+        try {
+          const interval x = textToInterval(t);
+          (void)x;
+        } catch (const input_format_error&) {
+          threw = true;
+        }
+#endif
+      }
+      check("<a, b> of two subnormals with denormals-are-zero: refused, as without it", read.is_empty(),
+            [&] { return std::string(t) + ": " + hex(read); });
+#if GAOL_EXCEPTIONS_ENABLED
+      check("<a, b> of two subnormals with denormals-are-zero: input_format_error", threw,
+            [&] { return std::string(t); });
+#endif
+    }
+    const double least = std::numeric_limits<double>::denorm_min();
+    const struct { const char *text; interval value; } accepted[] = {
+      { "<0x1p-1074, 0x1p-1074>", interval(least) },
+      { "<-0x1p-1074, -0x1p-1074>", interval(-least) },
+      { "<0x0.fffffffffffffp-1022, 0x0.fffffffffffffp-1022>", interval(0x0.fffffffffffffp-1022) },
+      { "<-0, 0>", interval(-0.0, 0.0) },
+    };
+    for (const auto& a : accepted) {
+      interval read;
+      {
+        Flushing flushing(denormals_are_zero);
+        read = gaol_ieee1788::textToInterval(a.text);
+      }
+      check("<a, b> of the same subnormal with denormals-are-zero: read", read.set_eq(a.value),
+            [&] { return std::string(a.text) + ": " + hex(read); });
+    }
+#else
+    std::printf("No control register of the SSE instructions: <a, b> of subnormals with denormals-are-zero is not checked\n");
+#endif
+  }
+
+  /*
     Intervals of subnormals written under denormals-are-zero, with the default
     16 digits, and read back once the mode is restored: they have to be read
     as intervals enclosing them (GAOL v5). A subnormal then compares equal to
@@ -2124,6 +2190,7 @@ int main()
   gaol::init();
   numbers();
   subnormal_numbers();
+  degenerate_subnormals();
   subnormal_output();
   subnormal_output_flush_not_cleared();
   constants();

@@ -35,6 +35,7 @@
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/gaol_parser.h"
+#include "gaol/gaol_port.h"
 #include <cctype>
 
 /*
@@ -637,7 +638,12 @@ enum gaol_literal_form {
   which it releases: the leaf of its interval, or 0 for an error, which the
   parsing aborts with (GAOL v5). No bound is an uncertain number. A left bound
   written inf, or a right bound written -inf, gives the empty set (see
-  gaol_literal_infinity()). The two bounds of <a, b> are the same double.
+  gaol_literal_infinity()). The two bounds of <a, b> are the same double: they
+  are compared by their bits, -0 and +0 being the same bound, as
+  gaol_detail::bound_equal() does, so that two subnormals that are equal as
+  doubles under denormals-are-zero are told apart (GAOL v5, point Q of
+  TODO.md): compared as doubles, <1e-310, 1e-309> was read [1e-310, 1e-309]
+  under that mode, and refused without it.
 */
 static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node *l, expr_node *r)
 {
@@ -653,7 +659,7 @@ static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node 
         result = gaol_leaf(infinite ? interval::emptyset() : lv);
       } else if (form != gaol_degenerate) {
         result = gaol_leaf(infinite ? interval::emptyset() : interval(lv.left(), rv.right()));
-      } else if (lv.left() == rv.right()) {
+      } else if (::gaol_detail::bound_equal(lv.left(), rv.right())) {
         result = gaol_leaf(interval(lv.left(), rv.right()));
       } else {
         GAOL_PARSING_ERROR(context, input_format_error,
