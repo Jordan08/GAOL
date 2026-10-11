@@ -37,7 +37,10 @@
 
 #include "gaol_tests.h"
 #include "gaol/gaol_core_math.h"
+#include "gaol/gaol_ldexp.h"
 
+#include <climits>
+#include <cstring>
 #include <functional>
 #include <random>
 
@@ -247,6 +250,144 @@ namespace
                 return "round(" + show(v.x) + ") rounding " + names[d] + " = " + show(got)
                      + " rather than " + show(v.value);
               });
+      }
+    }
+  }
+
+  /*
+    x * 2^n rounded once in the direction d, computed from the bits of x with
+    integers, without ldexp(): x = M 2^F with 2^52 <= M < 2^53, the result
+    being exact for -1074 <= F <= 971, beyond the largest double above, and
+    on the grid of the subnormals, 2^-1074, below. x is finite and not 0.
+  */
+  double ldexp_reference(double x, int n, int d)
+  {
+    std::uint64_t u;
+    std::memcpy(&u, &x, sizeof u);
+    const bool negative = (u >> 63) != 0;
+    const std::uint64_t biased = (u >> 52) & 0x7ff;
+    std::uint64_t m = u & 0x000fffffffffffffull;
+    std::int64_t f;
+    if (biased == 0) {
+      f = -1074;
+    } else {
+      m |= 0x0010000000000000ull;
+      f = static_cast<std::int64_t>(biased) - 1075;
+    }
+    while (m < 0x0010000000000000ull) {
+      m <<= 1;
+      --f;
+    }
+    f += n;
+    const bool away = (d == FE_UPWARD && !negative) || (d == FE_DOWNWARD && negative);
+    std::uint64_t r;
+    if (f > 971) {
+      // beyond the largest double: +-oo to nearest and away from 0, the
+      // largest double toward 0
+      r = (d == FE_TONEAREST || away) ? 0x7ff0000000000000ull : 0x7fefffffffffffffull;
+    } else if (f >= -1074) {
+      r = (static_cast<std::uint64_t>(f + 1075) << 52) | (m - 0x0010000000000000ull);
+    } else {
+      // q 2^-1074 and a rest below 2^-1074, whose bits, a subnormal or the
+      // least normal double for q = 2^52, are q itself
+      const std::int64_t s = -1074 - f;
+      const std::uint64_t q = s >= 64 ? 0 : m >> s;
+      const std::uint64_t rest = s >= 64 ? m : m & ((std::uint64_t(1) << s) - 1);
+      bool up = rest != 0 && away;
+      if (d == FE_TONEAREST && rest != 0 && s <= 53) {
+        const std::uint64_t half = std::uint64_t(1) << (s - 1);
+        up = rest > half || (rest == half && (q & 1) != 0);
+      }
+      r = q + (up ? 1 : 0);
+    }
+    r |= negative ? 0x8000000000000000ull : 0;
+    double v;
+    std::memcpy(&v, &r, sizeof v);
+    return v;
+  }
+
+  /*
+    The ldexp() CORE-MATH rounds the subnormal values of erfc with (GAOL v5):
+    gaol_ldexp() of gaol/gaol_ldexp.h, which gaol/core_math_port.h gives it
+    with Visual C++ and clang-cl, the ldexp() of the UCRT not rounding in the
+    direction in effect there (erfc(0x1.a8b12fc6e4892p+4) was the double below
+    its value, rounding upward), and the ldexp() of the C library elsewhere.
+    Each has to give x * 2^n rounded once in the four directions, computed
+    apart from the bits of x: at the halfway points between two subnormals,
+    next to the least subnormal and to the least normal double, where a
+    result first rounded and then scaled is rounded twice, across the whole
+    range of the exponents, beyond the largest double, and at random pairs.
+  */
+  void ldexp_of_core_math()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+    struct Pair { double x; int n; };
+    std::vector<Pair> pairs;
+    const double odd[] = {1.0, 3.0, 5.0, 0x1.fffffffffffffp+52, 0x1.0000000000001p+0, 0x1.8p+0, 0x1.fffffffffffffp+0};
+    for (double x : odd) {
+      for (int n : {-1078, -1077, -1076, -1075, -1074, -1073, -1060, -1023, -1022, -1021, -1127, -1128, -1129}) {
+        pairs.push_back({x, n});
+        pairs.push_back({-x, n});
+      }
+    }
+    const double tiny[] = {0x1p-1074, 0x1.8p-1073, 0x1.fffffffffffffp-1023, 0x1p-1022, 0x1.0000000000001p-1022};
+    for (double x : tiny) {
+      for (int n : {-60, -54, -53, -52, -2, -1, 0, 1, 52, 53, 54, 1000, 2000, 2097, 2098, 2100}) {
+        pairs.push_back({x, n});
+        pairs.push_back({-x, n});
+      }
+    }
+    const double huge[] = {0x1.fffffffffffffp+1023, 0x1p+1023, 1.0};
+    for (double x : huge) {
+      for (int n : {-2098, -2097, -2046, -2045, -1997, -1996, -1, 0, 1, 1023, 1024, 2046, 3000, 100000, -100000, INT_MAX, INT_MIN}) {
+        pairs.push_back({x, n});
+        pairs.push_back({-x, n});
+      }
+    }
+    std::mt19937_64 gen(20261011u);
+    for (int i = 0; i < 20000; ++i) {
+      std::uint64_t u = gen() & 0x7fefffffffffffffull;
+      double x;
+      std::memcpy(&x, &u, sizeof x);
+      if (x == 0.0) {
+        continue;
+      }
+      const int e = static_cast<int>((u >> 52) & 0x7ff) - 1023;
+      // results around the subnormals for three pairs in four, of any
+      // magnitude for the fourth
+      const int n = (i % 4 != 0) ? -1022 - e - static_cast<int>(gen() % 64) + 4 : static_cast<int>(gen() % 4400) - 2200;
+      pairs.push_back({(gen() & 1) ? -x : x, n});
+    }
+
+    struct Candidate { const char* name; double (*f)(double, int); };
+    std::vector<Candidate> candidates = {{"gaol_ldexp()", gaol_ldexp}};
+#if !defined(_MSC_VER)
+    // what CORE-MATH calls for __builtin_ldexp() but with Visual C++ and clang-cl
+    candidates.push_back({"the ldexp() of the C library", static_cast<double (*)(double, int)>(std::ldexp)});
+#endif
+    for (const Candidate& c : candidates) {
+      for (const Pair& p : pairs) {
+        for (int d = 0; d < 4; ++d) {
+          volatile double x = p.x;
+          volatile int n = p.n;
+          std::fesetround(directions[d]);
+          const double got = gaol::rnd_keep(c.f(x, n));
+          std::fesetround(FE_UPWARD);
+          const double expected = ldexp_reference(p.x, p.n, directions[d]);
+          check(std::string(c.name) + ": x * 2^n rounded once, in the direction in effect",
+                std::memcmp(&got, &expected, sizeof got) == 0,
+                [&] {
+                  return std::string(c.name) + " of " + show(p.x) + " and " + std::to_string(p.n) + " rounding "
+                       + names[d] + " = " + show(got) + " rather than " + show(expected);
+                });
+        }
+      }
+      for (double x : {0.0, -0.0, inf, -inf}) {
+        volatile double vx = x;
+        const double got = c.f(vx, -2000);
+        check(std::string(c.name) + ": 0 and the infinities unchanged", std::memcmp(&got, &x, sizeof got) == 0,
+              [&] { return show(x) + " gives " + show(got); });
       }
     }
   }
@@ -1603,6 +1744,7 @@ int main()
 {
   gaol::init();
   c_library_fma_and_round();
+  ldexp_of_core_math();
   elementary_functions();
   exact_values();
   two_arguments();

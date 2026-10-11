@@ -23,6 +23,8 @@
 *   rounded, rather than the x87 unit, which the C library may read;
 * - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
 *   direction in effect, rather than the one of the C library;
+* - with Visual C++ and clang-cl, the ldexp() of gaol/gaol_ldexp.h, rounded in
+*   the direction in effect, rather than the one of the UCRT;
 * - silence for the warnings on conversions GAOL's library is compiled with.
 *
 * Copyright (c) 2026 ENSTA, France
@@ -314,7 +316,6 @@ What Visual C++ has not of GCC and Clang
 #define __builtin_floor(x) floor(x)
 #define __builtin_round(x) round(x)
 #define __builtin_trunc(x) trunc(x)
-#define __builtin_ldexp(x, n) ldexp(x, n)
 #define __builtin_isnan(x) isnan(x)
 #define __builtin_isinf(x) isinf(x)
 #define __builtin_fmin(x, y) fmin(x, y)
@@ -395,6 +396,23 @@ static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t 
 
 #define __builtin_mul_overflow(a, b, r) gaol_mul_overflow_u64((uint64_t)(a), (uint64_t)(b), (uint64_t *)(r))
 
+#endif /* _MSC_VER */
+
+/*---------------------------------------------------------------------------
+ldexp() with Visual C++ and clang-cl
+
+The ldexp() of the UCRT, which Visual C++ calls and to which clang-cl turns
+__builtin_ldexp(), does not round in the direction in effect where the result
+is subnormal: erfc.c, which rounds its subnormal results with it, gave the
+double below erfc(x) rounding upward, from x = 26.54 on (GAOL v5). The
+function of gaol/gaol_ldexp.h is given instead; the other sources call
+__builtin_ldexp() with exact results only (powers of two).
+--------------------------------------------------------------------------*/
+
+#if defined(_MSC_VER)
+#include "gaol/gaol_ldexp.h"
+#undef __builtin_ldexp
+#define __builtin_ldexp(x, n) gaol_ldexp(x, n)
 #endif /* _MSC_VER */
 
 /*---------------------------------------------------------------------------

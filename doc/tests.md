@@ -602,7 +602,15 @@ point Q), which `numbers` checks there too.
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
   x64, which `gaol/gaol_config.h` refuses there, fail 21 and 6 of these checks
-  under wine (GAOL v5). `cbrt` is checked in the four rounding directions, and
+  under wine (GAOL v5). The `ldexp()` CORE-MATH rounds the subnormal values
+  of `erfc` with, `gaol_ldexp()` of `gaol/gaol_ldexp.h` with Visual C++ and
+  clang-cl, whose UCRT `ldexp()` does not round in the direction in effect,
+  and the one of the C library elsewhere, has to be x·2<sup>n</sup> rounded
+  once in the four directions, against the value computed from the bits of
+  x with integers: at the halfway points between two subnormals, next to the
+  least subnormal and to the least normal double, beyond the largest double,
+  and at 20 000 random pairs, three in four of them giving subnormals
+  (GAOL v5). `cbrt` is checked in the four rounding directions, and
   `nth_root(x, 3)` and `rootn` have to be the tightest enclosures, at the
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its

@@ -870,9 +870,10 @@ install(TARGETS gaol EXPORT gaolTargets
 # included, the parts of the library (gaol_init_cleanup.h, gaol_exact.h and
 # sysdeps/, gaol_core_math.h, gaol_u128.h),
 # what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
-# core_math_log_dint.h), the bounds at doubles, *_dn() and *_up(), which are
-# not part of GAOL's interface (gaol_double_op.h), and the intervals of
-# floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
+# core_math_log_dint.h, gaol_ldexp.h), the bounds at doubles, *_dn() and
+# *_up(), which are not part of GAOL's interface (gaol_double_op.h), and the
+# intervals of floats, which only a developer of GAOL compiles (see
+# gaol/gaol_config.h)
 set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_assert.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
