@@ -43,39 +43,61 @@ namespace gaol_core {
 namespace gaol {
 
   /*!
+    \brief The names of the functions a string calls (GAOL v5)
+
+    parsing_names::gaol, the names of GAOL, which gaol::textToInterval() and
+    operator>> read, and parsing_names::ieee1788, those of IEEE 1788-2015,
+    which gaol_ieee1788::textToInterval() reads: nth_root(8,3) is read with
+    the names of GAOL, rootn(8,3) with those of the standard, and pow is the
+    pow of each namespace.
+  */
+  enum class parsing_names { gaol, ieee1788 };
+
+  /*!
     \brief Parse a string to create an interval.
 
-    \param s   the string used for the input
+    \param s   the string used for the input, up to its first NUL character
     \param out	the interval created.
+    \param names the names of the functions s calls
     \return false if the input could not be parsed into a valid interval
     and true otherwise
 
-    An interval has one of the following formats:
+    The string is an expression, computed with interval arithmetic (GAOL v5):
+    numbers, constants and literals of intervals, combined in any order with
+    the operators +, -, * and /, the signs, the parentheses and the calls of
+    functions, a literal standing wherever a number may, in a bound too:
+    "1+[1,2]", "2*cos([0,1])" and "[cos([0,1]), 2]" are read. GAOL 4 read the
+    formats n, [n], [l, r], [l, +inf], [-inf, r] and [empty], and expressions
+    of numbers only.
 
-    - \f$"n"\f$ where \f$"n"\f$ is an integer or a rational number
-    - \f$"[n]"\f$ where \f$"n"\f$ is an integer or a rational number
-    - \f$"[l, f]"\f$ where \f$"l"\f$ and \f$"r"\f$ are integers or rational
-    numbers
-    - \f$[l,+\textrm{inf}]\f$, \f$[-\textrm{inf},r]\f$,
-      \f$[-\textrm{inf},+\textrm{inf}]\f$ where \f$"\textrm{inf}"\f$ stands
-      for the \emph{infinity}. The "plus" sign before \f$"\textrm{inf}"\f$ is
-      optional
-    - \f$[empty]\f$ to denote the empty interval
+    - A number is decimal ("12", "0.1", ".12e3") or hexadecimal, with a
+      binary exponent ("0x1.3p-1"). A number that is a double is read as that
+      double, any other one as the tightest interval of doubles containing
+      it, whatever its digits and the locale of the program: "0.1" is
+      [0.09999999...,0.100...01].
+    - The constants are pi, inf (or infinity), dmin and dmax, the least
+      positive normal double and the largest double. inf alone is
+      [dmax, +inf], and -inf [-inf, -dmax].
+    - The literals of IEEE 1788-2015 (12.11): [a], which is a, [a, b], [a, ]
+      and [, b], a bound left out being infinite, [ ] and [empty], the empty
+      set, [entire] and [,], the whole real line, and the uncertain form
+      3.56?1, [3.55, 3.57], which is no bound. A literal whose left bound is
+      +inf or whose right bound is -inf is the empty set. <a, b> is [a, b],
+      whose bounds have to be the same double.
+    - The functions are those of GAOL, or those of IEEE 1788-2015 with
+      parsing_names::ieee1788, with their arguments.
 
-    \note A rational number must be expressed in the usual format
-    for integral or non-integral numbers (e.g. "0.3", ".12e3", "12" and
-    so on).
-    If this number is not representable with floating-point numbers, it is
-    replaced by the smallest floating-point interval containing it. For
-    example, giving \f$[0.1]\f$ as input results in the creation of the
-    interval
-    \f$[0.09999999\dots,0.100\dots01]\f$. Notations \f$"[n]"\f$ and \f$"n"\f$
-    are equivalent. Note also that spaces are not significant except in numbers
-    and that case is significant for constants such as \em empty and
-    \emp inf. "+inf" (resp. "-inf") is not allowed to appear as a left
-    (resp. right) bound.
+    Spaces are not significant except in numbers, and the case of letters is
+    ignored: "[Empty]", "SIN(1)" and "1E3" are read.
 
     \note The out interval is not modified whenever an error occur.
+
+    \note A call with a wrong number of arguments, an uncertain number as a
+    bound and two different bounds in <a, b> throw input_format_error, and a
+    second argument of nth_root, pown or rootn that is no integer
+    invalid_action_error. Without exceptions, parse_interval() returns false
+    for them (GAOL v5), as for any other string that is no expression.
+    std::bad_alloc is thrown when memory runs out.
 
     \note A string may be as long as memory allows (GAOL v5): a sum of 100000
     terms is read in a time proportional to its length, and takes no more of
@@ -86,12 +108,11 @@ namespace gaol {
     parentheses, brackets or signs, and about 5000 nested calls, are read. A
     string nested deeper is refused, as any string that is no expression.
 
-    The names of the functions are those of GAOL, or those of IEEE 1788-2015
-    with parsing_names::ieee1788 (GAOL v5): gaol::textToInterval() and
-    gaol_ieee1788::textToInterval() read a string with the names of their
-    namespace, as pow is the pow of each.
+    The readers of a std::string, gaol::textToInterval(),
+    gaol_ieee1788::textToInterval() and operator>>, read the whole of it: a
+    NUL character is no character of any token, and a string holding one is
+    no expression (GAOL v5).
   */
-  enum class parsing_names { gaol, ieee1788 };
   extern GAOL_PUBLIC bool parse_interval(const char* const s, gaol_core::interval& out,
                                          parsing_names names = parsing_names::gaol);
 
