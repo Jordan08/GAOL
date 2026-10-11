@@ -98,6 +98,7 @@
 #include <cmath>
 #include <cstring>
 #include <exception>
+#include <limits>
 #include <new>
 #include <string>
 #include "gaol/gaol_common.h"
@@ -139,13 +140,17 @@ using namespace gaol_core;
   interval read and the success of the reading in globals, as flex and bison
   did their state: two threads reading a string each crashed.
 */
+union gaol_flex_block;
+
 struct gaol_parsing_context {
   interval result;                // the interval read, if ok is true
   bool ok;                        // the string is an expression, which was read
-  std::exception_ptr exception;   // the exception an action raised
+  std::exception_ptr exception;   // the exception an action or the lexer raised
   ::gaol::parsing_names names;    // the names of the functions
   const char *input;              // the characters the lexer has not read yet
   std::size_t input_left;         // their number, NUL characters included
+  bool out_of_memory;             // an allocation of the stack of the parser failed
+  gaol_flex_block *flex_blocks;   // the blocks flex allocated and has not freed
 };
 
 static gaol_parsing_context *gaol_context(void *context)
@@ -173,6 +178,118 @@ int gaol_read_input(void *context, char *buf, int max_size)
   c->input_left -= n;
   return static_cast<int>(n);
 }
+
+/*
+  The memory of the lexer (GAOL v5)
+
+  flex allocates the state of a scanner, the buffer of the characters read,
+  16 KiB doubled for a token longer, and the stack of its buffers. Where an
+  allocation failed, it wrote "out of dynamic memory" and ended the program
+  with exit(2). It throws std::bad_alloc now (YY_FATAL_ERROR,
+  gaol/gaol_interval_lexer.lpp), but leaves a block it holds in no variable:
+  the state of a buffer whose characters it could not allocate, or the
+  characters that a failed realloc() does not free while flex overwrites
+  their address. Each block it allocates for a reading is therefore linked to
+  the context of the reading, and those flex has not freed when the reading
+  ends are freed with it. The blocks come from the nothrow operator new, as
+  the other memory of GAOL, so that tests/expressions.cpp makes their
+  allocation fail too.
+*/
+struct gaol_flex_links {
+  gaol_flex_block *previous;
+  gaol_flex_block *next;
+  std::size_t size;               // the bytes flex asked for
+};
+
+// The head of a block, before the bytes flex asked for, aligned as malloc() aligns
+union gaol_flex_block {
+  gaol_flex_links links;
+  std::max_align_t alignment;
+};
+
+// size bytes for flex, or 0 if they could not be allocated
+void *gaol_flex_alloc(void *context, std::size_t size)
+{
+  if (size > std::numeric_limits<std::size_t>::max() - sizeof(gaol_flex_block)) {
+    return 0;
+  }
+  gaol_flex_block *const b =
+    static_cast<gaol_flex_block*>(::operator new(sizeof(gaol_flex_block) + size, std::nothrow));
+  if (b == 0) {
+    return 0;
+  }
+  gaol_parsing_context *c = gaol_context(context);
+  b->links.previous = 0;
+  b->links.next = c->flex_blocks;
+  b->links.size = size;
+  if (c->flex_blocks != 0) {
+    c->flex_blocks->links.previous = b;
+  }
+  c->flex_blocks = b;
+  return b + 1;
+}
+
+void gaol_flex_free(void *context, void *p)
+{
+  if (p == 0) {
+    return;
+  }
+  gaol_flex_block *const b = static_cast<gaol_flex_block*>(p) - 1;
+  if (b->links.previous != 0) {
+    b->links.previous->links.next = b->links.next;
+  } else {
+    gaol_context(context)->flex_blocks = b->links.next;
+  }
+  if (b->links.next != 0) {
+    b->links.next->links.previous = b->links.previous;
+  }
+  ::operator delete(b);
+}
+
+// As realloc(): p is left as it is when the new block cannot be allocated
+void *gaol_flex_realloc(void *context, void *p, std::size_t size)
+{
+  void *const q = gaol_flex_alloc(context, size);
+  if (q != 0 && p != 0) {
+    std::memcpy(q, p, std::min(size, (static_cast<gaol_flex_block*>(p) - 1)->links.size));
+    gaol_flex_free(context, p);
+  }
+  return q;
+}
+
+/*
+  The exception the lexer raised, an allocation that failed, for
+  gaol_parse_string() to throw again, as one an action raises: thrown through
+  the parser, it left the nodes on its stack (GAOL v5). Called in the handler.
+*/
+void gaol_lexer_failed(void *context)
+{
+  gaol_context(context)->exception = std::current_exception();
+}
+
+/*
+  The stack of the parser, beyond its 200 first entries, in blocks of the
+  heap (YYMALLOC, YYFREE), from the nothrow operator new as the blocks of
+  flex: a block that cannot be allocated makes the parser stop, as a string
+  nested deeper than YYMAXDEPTH does, and gaol_parse_string() throws
+  std::bad_alloc rather than input_format_error (GAOL v5)
+*/
+static void *gaol_parser_alloc(void *context, std::size_t size)
+{
+  void *const p = ::operator new(size, std::nothrow);
+  if (p == 0) {
+    gaol_context(context)->out_of_memory = true;
+  }
+  return p;
+}
+
+static void gaol_parser_free(void *p)
+{
+  ::operator delete(p);
+}
+
+#define YYMALLOC(size) gaol_parser_alloc(context, size)
+#define YYFREE(p) gaol_parser_free(p)
 
 /*
   One grammar, whose every string is an expression (GAOL v5)
@@ -265,6 +382,32 @@ static expr_node *gaol_leaf(const interval& I)
 }
 
 /*
+  The leaf of a number or of a constant, which an action gives: the node
+  built, or 0 when it could not be allocated, the parsing aborting then with
+  std::bad_alloc (GAOL v5). An action lets no exception through the parser,
+  which left the nodes on its stack.
+*/
+static expr_node *gaol_number(void *context, double d)
+{
+  try {
+    return gaol_node(new double_node(d));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
+
+static expr_node *gaol_constant(void *context, const interval& I)
+{
+  try {
+    return gaol_leaf(I);
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
+
+/*
   The leaf of an uncertain number, 3.56?1 (GAOL v5). IEEE 1788-2015 makes the
   uncertain form an interval literal of its own, not a number that can bound
   one: [5?1] is no interval literal (12.11.4). Its leaf is told apart from
@@ -274,6 +417,17 @@ class uncertain_node : public interval_node {
 public:
   explicit uncertain_node(const interval& I) : interval_node(I) {}
 };
+
+// The leaf of an uncertain number, as gaol_number()
+static expr_node *gaol_uncertain_number(void *context, const interval& I)
+{
+  try {
+    return gaol_node(new uncertain_node(I));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
 
 // e is an uncertain number, alone or behind a minus sign
 static bool gaol_uncertain(expr_node *e)
@@ -285,10 +439,10 @@ static bool gaol_uncertain(expr_node *e)
   return dynamic_cast<uncertain_node*>(e) != 0;
 }
 
-// e is an uncertain number written as a bound: the error the parsing aborts with
+// e, a bound or 0 for none, is an uncertain number: the error the parsing aborts with
 static bool gaol_uncertain_bound(expr_node *e, void *context)
 {
-  if (!gaol_uncertain(e)) {
+  if (e == 0 || !gaol_uncertain(e)) {
     return false;
   }
   GAOL_PARSING_ERROR(context, input_format_error,
@@ -512,7 +666,94 @@ static expr_node *gaol_operation(void *context, char op, expr_node *a, expr_node
   return result;
 }
 
-#line 516 "y.tab.c"
+/*
+  The minus sign before the expression e, which it releases: its node, or 0
+  when it could not be allocated (GAOL v5). A sign is the one operation that
+  stays a node, so that a bound written -inf, or an uncertain number behind
+  signs, is still told apart: the parser holds no other tree than a chain of
+  signs over a leaf, which is evaluated and deleted without recursion.
+*/
+static expr_node *gaol_negation(void *context, expr_node *e)
+{
+  expr_node *result = 0;
+  try {
+    result = gaol_node(new unary_minus_node(*e));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+  }
+  gaol_release(e);
+  return result;
+}
+
+// The forms of the literals with bounds
+enum gaol_literal_form {
+  gaol_point,                     // [a]
+  gaol_bounded,                   // [a, b]
+  gaol_left_only,                 // [a, ]
+  gaol_right_only,                // [, b]
+  gaol_degenerate                 // <a, b>
+};
+
+/*
+  The literal of the form given with the bounds l and r, 0 for one left out,
+  which it releases: the leaf of its interval, or 0 for an error, which the
+  parsing aborts with (GAOL v5). No bound is an uncertain number. A left bound
+  written inf, or a right bound written -inf, gives the empty set (see
+  gaol_literal_infinity()). The two bounds of <a, b> are the same double.
+*/
+static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node *l, expr_node *r)
+{
+  expr_node *result = 0;
+  try {
+    if (!gaol_uncertain_bound(l, context) && !gaol_uncertain_bound(r, context)) {
+      const interval lv = (l != 0) ? gaol_value(l) : interval::universe();
+      const interval rv = (r != 0) ? gaol_value(r) : interval::universe();
+      const bool infinite = (l != 0 && (form == gaol_point ? gaol_literal_infinity(l) != 0
+                                                           : gaol_literal_infinity(l) > 0))
+                            || (r != 0 && gaol_literal_infinity(r) < 0);
+      if (form == gaol_point) {
+        result = gaol_leaf(infinite ? interval::emptyset() : lv);
+      } else if (form != gaol_degenerate) {
+        result = gaol_leaf(infinite ? interval::emptyset() : interval(lv.left(), rv.right()));
+      } else if (lv.left() == rv.right()) {
+        result = gaol_leaf(interval(lv.left(), rv.right()));
+      } else {
+        GAOL_PARSING_ERROR(context, input_format_error,
+          "bounds of degenerate interval do not evaluate to the same value");
+      }
+    }
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    result = 0;
+  }
+  if (l != 0) {
+    gaol_release(l);
+  }
+  if (r != 0) {
+    gaol_release(r);
+  }
+  return result;
+}
+
+/*
+  The interval of the whole string, the value of e, which it releases: false
+  for an allocation that failed, which the parsing aborts with (GAOL v5)
+*/
+static bool gaol_result(void *context, expr_node *e)
+{
+  bool computed = false;
+  try {
+    gaol_context(context)->result = gaol_value(e);
+    gaol_context(context)->ok = true;
+    computed = true;
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+  }
+  gaol_release(e);
+  return computed;
+}
+
+#line 757 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -594,7 +835,7 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 442 "gaol_interval_parser.ypp"
+#line 683 "gaol_interval_parser.ypp"
 
   int i;
   double d;
@@ -602,7 +843,7 @@ union YYSTYPE
   expr_node* expr;
   const void* fn;
 
-#line 606 "y.tab.c"
+#line 847 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -617,7 +858,7 @@ int gaol_parse (void *scanner, void *context);
 #endif /* !YY_GAOL_Y_TAB_H_INCLUDED  */
 
 /* Second part of user prologue.  */
-#line 459 "gaol_interval_parser.ypp"
+#line 700 "gaol_interval_parser.ypp"
 
 // The lexer of flex, a reentrant one given the value of the token to set
 // (%option bison-bridge in gaol/gaol_interval_lexer.lpp)
@@ -631,7 +872,7 @@ int gaol_lex(YYSTYPE *lval, void *scanner);
 #  endif
 #endif
 
-#line 635 "y.tab.c"
+#line 876 "y.tab.c"
 
 
 #ifdef short
@@ -994,10 +1235,10 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   497,   497,   503,   504,   505,   506,   507,   508,   509,
-     510,   511,   512,   513,   514,   515,   516,   518,   519,   520,
-     529,   537,   547,   548,   549,   550,   559,   568,   583,   584,
-     586
+       0,   738,   738,   746,   747,   748,   749,   750,   751,   752,
+     753,   754,   755,   756,   757,   758,   759,   760,   761,   762,
+     771,   772,   773,   774,   775,   776,   777,   778,   782,   783,
+     785
 };
 #endif
 
@@ -1585,21 +1826,21 @@ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, void *scanner, voi
   switch (yytype)
     {
     case 29: /* expression  */
-#line 486 "gaol_interval_parser.ypp"
+#line 727 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1591 "y.tab.c"
+#line 1832 "y.tab.c"
         break;
 
     case 30: /* literal  */
-#line 486 "gaol_interval_parser.ypp"
+#line 727 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1597 "y.tab.c"
+#line 1838 "y.tab.c"
         break;
 
     case 31: /* function_call  */
-#line 486 "gaol_interval_parser.ypp"
+#line 727 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1603 "y.tab.c"
+#line 1844 "y.tab.c"
         break;
 
       default:
@@ -1871,227 +2112,181 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 497 "gaol_interval_parser.ypp"
-                                                        { gaol_context(context)->result = gaol_value((yyvsp[0].expr));
-							  gaol_release((yyvsp[0].expr));
-							  gaol_context(context)->ok = true; }
-#line 1879 "y.tab.c"
+#line 738 "gaol_interval_parser.ypp"
+                                                        { if (!gaol_result(context,(yyvsp[0].expr))) YYABORT; }
+#line 2118 "y.tab.c"
     break;
 
   case 3:
-#line 503 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_node(new double_node((yyvsp[0].d))); }
-#line 1885 "y.tab.c"
+#line 746 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_number(context,(yyvsp[0].d))) == 0) YYABORT; }
+#line 2124 "y.tab.c"
     break;
 
   case 4:
-#line 504 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_node(new double_node(std::numeric_limits<double>::min())); }
-#line 1891 "y.tab.c"
+#line 747 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_number(context,std::numeric_limits<double>::min())) == 0) YYABORT; }
+#line 2130 "y.tab.c"
     break;
 
   case 5:
-#line 505 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_node(new double_node(std::numeric_limits<double>::max())); }
-#line 1897 "y.tab.c"
+#line 748 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_number(context,std::numeric_limits<double>::max())) == 0) YYABORT; }
+#line 2136 "y.tab.c"
     break;
 
   case 6:
-#line 506 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_node(new double_node(GAOL_INFINITY)); }
-#line 1903 "y.tab.c"
+#line 749 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_number(context,GAOL_INFINITY)) == 0) YYABORT; }
+#line 2142 "y.tab.c"
     break;
 
   case 7:
-#line 507 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_leaf(interval::pi()); }
-#line 1909 "y.tab.c"
+#line 750 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_constant(context,interval::pi())) == 0) YYABORT; }
+#line 2148 "y.tab.c"
     break;
 
   case 8:
-#line 508 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_leaf(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r)); }
-#line 1915 "y.tab.c"
+#line 751 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_constant(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
+#line 2154 "y.tab.c"
     break;
 
   case 9:
-#line 509 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_node(new uncertain_node(interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))); }
-#line 1921 "y.tab.c"
+#line 752 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_uncertain_number(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
+#line 2160 "y.tab.c"
     break;
 
   case 10:
-#line 510 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_leaf(interval::emptyset()); }
-#line 1927 "y.tab.c"
+#line 753 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
+#line 2166 "y.tab.c"
     break;
 
   case 11:
-#line 511 "gaol_interval_parser.ypp"
+#line 754 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 1933 "y.tab.c"
+#line 2172 "y.tab.c"
     break;
 
   case 12:
-#line 512 "gaol_interval_parser.ypp"
+#line 755 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'+',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 1939 "y.tab.c"
+#line 2178 "y.tab.c"
     break;
 
   case 13:
-#line 513 "gaol_interval_parser.ypp"
+#line 756 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'-',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 1945 "y.tab.c"
+#line 2184 "y.tab.c"
     break;
 
   case 14:
-#line 514 "gaol_interval_parser.ypp"
+#line 757 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'*',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 1951 "y.tab.c"
+#line 2190 "y.tab.c"
     break;
 
   case 15:
-#line 515 "gaol_interval_parser.ypp"
+#line 758 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'/',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 1957 "y.tab.c"
+#line 2196 "y.tab.c"
     break;
 
   case 16:
-#line 516 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_node(new unary_minus_node(*(yyvsp[0].expr)));
-							  gaol_release((yyvsp[0].expr)); }
-#line 1964 "y.tab.c"
+#line 759 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_negation(context,(yyvsp[0].expr))) == 0) YYABORT; }
+#line 2202 "y.tab.c"
     break;
 
   case 17:
-#line 518 "gaol_interval_parser.ypp"
+#line 760 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 1970 "y.tab.c"
+#line 2208 "y.tab.c"
     break;
 
   case 18:
-#line 519 "gaol_interval_parser.ypp"
+#line 761 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 1976 "y.tab.c"
+#line 2214 "y.tab.c"
     break;
 
   case 19:
-#line 520 "gaol_interval_parser.ypp"
+#line 762 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[-1].expr); }
-#line 1982 "y.tab.c"
+#line 2220 "y.tab.c"
     break;
 
   case 20:
-#line 529 "gaol_interval_parser.ypp"
-                                                        { if (gaol_uncertain_bound((yyvsp[-1].expr), context)) {
-							    gaol_release((yyvsp[-1].expr));
-							    YYABORT;
-							  }
-							  const interval v = gaol_value((yyvsp[-1].expr));
-							  const bool infinite = (gaol_literal_infinity((yyvsp[-1].expr)) != 0);
-							  gaol_release((yyvsp[-1].expr));
-							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset() : v); }
-#line 1995 "y.tab.c"
+#line 771 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_literal(context,gaol_point,(yyvsp[-1].expr),0)) == 0) YYABORT; }
+#line 2226 "y.tab.c"
     break;
 
   case 21:
-#line 537 "gaol_interval_parser.ypp"
-                                                        { if (gaol_uncertain_bound((yyvsp[-3].expr), context) || gaol_uncertain_bound((yyvsp[-1].expr), context)) {
-							    gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
-							    YYABORT;
-							  }
-							  const interval l = gaol_value((yyvsp[-3].expr)), r = gaol_value((yyvsp[-1].expr));
-							  const bool infinite = (gaol_literal_infinity((yyvsp[-3].expr)) > 0
-										 || gaol_literal_infinity((yyvsp[-1].expr)) < 0);
-							  gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
-							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset()
-									 : interval(l.left(),r.right())); }
-#line 2010 "y.tab.c"
+#line 772 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_literal(context,gaol_bounded,(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
+#line 2232 "y.tab.c"
     break;
 
   case 22:
-#line 547 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_leaf(interval::emptyset()); }
-#line 2016 "y.tab.c"
+#line 773 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
+#line 2238 "y.tab.c"
     break;
 
   case 23:
-#line 548 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_leaf(interval::universe()); }
-#line 2022 "y.tab.c"
+#line 774 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_constant(context,interval::universe())) == 0) YYABORT; }
+#line 2244 "y.tab.c"
     break;
 
   case 24:
-#line 549 "gaol_interval_parser.ypp"
-                                                        { (yyval.expr) = gaol_leaf(interval::universe()); }
-#line 2028 "y.tab.c"
+#line 775 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_constant(context,interval::universe())) == 0) YYABORT; }
+#line 2250 "y.tab.c"
     break;
 
   case 25:
-#line 550 "gaol_interval_parser.ypp"
-                                                        { if (gaol_uncertain_bound((yyvsp[-2].expr), context)) {
-							    gaol_release((yyvsp[-2].expr));
-							    YYABORT;
-							  }
-							  const interval l = gaol_value((yyvsp[-2].expr));
-							  const bool infinite = (gaol_literal_infinity((yyvsp[-2].expr)) > 0);
-							  gaol_release((yyvsp[-2].expr));
-							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset()
-									 : interval(l.left(),GAOL_INFINITY)); }
-#line 2042 "y.tab.c"
+#line 776 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_literal(context,gaol_left_only,(yyvsp[-2].expr),0)) == 0) YYABORT; }
+#line 2256 "y.tab.c"
     break;
 
   case 26:
-#line 559 "gaol_interval_parser.ypp"
-                                                        { if (gaol_uncertain_bound((yyvsp[-1].expr), context)) {
-							    gaol_release((yyvsp[-1].expr));
-							    YYABORT;
-							  }
-							  const interval r = gaol_value((yyvsp[-1].expr));
-							  const bool infinite = (gaol_literal_infinity((yyvsp[-1].expr)) < 0);
-							  gaol_release((yyvsp[-1].expr));
-							  (yyval.expr) = gaol_leaf(infinite ? interval::emptyset()
-									 : interval(-GAOL_INFINITY,r.right())); }
-#line 2056 "y.tab.c"
+#line 777 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_literal(context,gaol_right_only,0,(yyvsp[-1].expr))) == 0) YYABORT; }
+#line 2262 "y.tab.c"
     break;
 
   case 27:
-#line 568 "gaol_interval_parser.ypp"
-                                                        { if (gaol_uncertain_bound((yyvsp[-3].expr), context) || gaol_uncertain_bound((yyvsp[-1].expr), context)) {
-							    gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
-							    YYABORT;
-							  }
-							  const interval l = gaol_value((yyvsp[-3].expr)), r = gaol_value((yyvsp[-1].expr));
-							  gaol_release((yyvsp[-3].expr)); gaol_release((yyvsp[-1].expr));
-							  if (l.left() != r.right()) {
-							    GAOL_PARSING_ERROR(context, input_format_error,
-							      "bounds of degenerate interval do not evaluate to the same value");
-							    YYABORT;
-							  }
-							  (yyval.expr) = gaol_leaf(interval(l.left(),r.right())); }
-#line 2073 "y.tab.c"
+#line 778 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_literal(context,gaol_degenerate,(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
+#line 2268 "y.tab.c"
     break;
 
   case 28:
-#line 583 "gaol_interval_parser.ypp"
+#line 782 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-3].fn),1,(yyvsp[-1].expr),0,0)) == 0) YYABORT; }
-#line 2079 "y.tab.c"
+#line 2274 "y.tab.c"
     break;
 
   case 29:
-#line 585 "gaol_interval_parser.ypp"
+#line 784 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-5].fn),2,(yyvsp[-3].expr),(yyvsp[-1].expr),0)) == 0) YYABORT; }
-#line 2085 "y.tab.c"
+#line 2280 "y.tab.c"
     break;
 
   case 30:
-#line 587 "gaol_interval_parser.ypp"
+#line 786 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-7].fn),3,(yyvsp[-5].expr),(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2091 "y.tab.c"
+#line 2286 "y.tab.c"
     break;
 
 
-#line 2095 "y.tab.c"
+#line 2290 "y.tab.c"
 
       default: break;
     }
@@ -2323,7 +2518,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 590 "gaol_interval_parser.ypp"
+#line 789 "gaol_interval_parser.ypp"
 
 
 void gaol_error_bison(void *, void *context, const char *)
@@ -2340,8 +2535,9 @@ extern void gaol_cleanup_parsing(void *scanner);
   Reads the n characters at s, NUL characters included, with the names of
   functions given: returns true, with out set to the interval read, if they
   are an expression, and false, with out unchanged, otherwise. Throws again
-  the exception an action raised (GAOL v5). Its scanner and its context are
-  its own, and several threads call it at once.
+  the exception an action or the lexer raised, and std::bad_alloc when the
+  stack of the parser could not grow (GAOL v5). Its scanner and its context
+  are its own, and several threads call it at once.
 */
 bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol::parsing_names names)
 {
@@ -2350,12 +2546,25 @@ bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol
   context.names = names;
   context.input = s;
   context.input_left = n;
+  context.out_of_memory = false;
+  context.flex_blocks = 0;
+  // Frees the blocks flex has not freed, after the scanner, whatever is thrown
+  struct flex_blocks_guard {
+    gaol_parsing_context& c;
+    ~flex_blocks_guard()
+    {
+      while (c.flex_blocks != 0) {
+        gaol_flex_free(&c, c.flex_blocks + 1);
+      }
+    }
+  } guard = { context };
   void *scanner = gaol_initialize_parsing(&context);
   if (scanner == 0) {
     throw std::bad_alloc();
   }
+  int status;
   try {
-    gaol_parse(scanner, &context);
+    status = gaol_parse(scanner, &context);
   } catch (...) {
     // The scanner is freed whatever the parser throws
     gaol_cleanup_parsing(scanner);
@@ -2365,6 +2574,9 @@ bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol
   if (context.exception) {
     // Thrown in the parser, which aborted to free its nodes
     std::rethrow_exception(context.exception);
+  }
+  if (status == 2 && context.out_of_memory) {
+    throw std::bad_alloc();
   }
   if (context.ok) {
     // The infinities read give [dmax, +oo] and [-oo, -dmax] already

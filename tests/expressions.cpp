@@ -51,6 +51,73 @@
 #if defined(_MSC_VER)
 #  include <intrin.h>
 #endif
+#include <cstdlib>
+#include <new>
+
+/* The allocations of the program, counted by a replacement of the global
+   operator new and operator delete, and one of them made to fail on purpose
+   (GAOL v5): allocation_failures() below makes each allocation of a reading
+   or an evaluation fail in turn. The replacement reaches the code of GAOL
+   where the library is static, or shared on Linux and macOS, whose loaders
+   bind the operator new of a shared library to that of the program; not with
+   a DLL on Windows, where the test sees it and says it skips the checks. */
+namespace
+{
+  std::size_t allocations_made = 0;    // by operator new, since the program started
+  std::size_t allocations_live = 0;    // made and not deleted yet
+  std::size_t allocations_peak = 0;    // the most live at once
+  std::size_t failing_allocation = 0;  // the number of the one that fails, 0 for none
+
+  void* counted_new(std::size_t size)
+  {
+    ++allocations_made;
+    if (allocations_made == failing_allocation) {
+      throw std::bad_alloc();
+    }
+    void* const p = std::malloc(size == 0 ? 1 : size);
+    if (p == nullptr) {
+      throw std::bad_alloc();
+    }
+    ++allocations_live;
+    allocations_peak = std::max(allocations_peak, allocations_live);
+    return p;
+  }
+
+  void counted_delete(void* p) noexcept
+  {
+    if (p != nullptr) {
+      --allocations_live;
+      std::free(p);
+    }
+  }
+}
+
+void* operator new(std::size_t size) { return counted_new(size); }
+void* operator new[](std::size_t size) { return counted_new(size); }
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept
+{
+  try {
+    return counted_new(size);
+  } catch (...) {
+    return nullptr;
+  }
+}
+void* operator new[](std::size_t size, const std::nothrow_t&) noexcept
+{
+  try {
+    return counted_new(size);
+  } catch (...) {
+    return nullptr;
+  }
+}
+void operator delete(void* p) noexcept { counted_delete(p); }
+void operator delete[](void* p) noexcept { counted_delete(p); }
+void operator delete(void* p, const std::nothrow_t&) noexcept { counted_delete(p); }
+void operator delete[](void* p, const std::nothrow_t&) noexcept { counted_delete(p); }
+#if defined(__cpp_sized_deallocation)
+void operator delete(void* p, std::size_t) noexcept { counted_delete(p); }
+void operator delete[](void* p, std::size_t) noexcept { counted_delete(p); }
+#endif
 
 // Commented out: the tests run no thread (GAOL v5)
 // // std::thread, which libstdc++ has only when built with a thread model
@@ -1242,6 +1309,133 @@ namespace
     }
   }
 
+  /* The allocations of a reading and of an evaluation that fail (GAOL v5):
+     each in turn, and the operation throws std::bad_alloc, or gives its result
+     where the allocation was not needed, and frees all it allocated. Before:
+     - flex wrote "out of dynamic memory" and called exit(2) where it could
+       not allocate its buffer, which ended the program;
+     - std::bad_alloc thrown by the lexer, or by an action of the parser,
+       went through the parser and left the nodes on its stack;
+     - the parser read a stack that could not grow as a string nested too
+       deep, and threw input_format_error;
+     - gaol_ieee1788::textToInterval() turned std::bad_alloc into the empty
+       set.
+     The count of the allocations live is the same before and after, and the
+     sanitizers of the continuous integration check that too. The strings
+     have a call, a literal of each form, a number of 20000 digits, longer than
+     the 16 KiB buffer of flex, which has to grow, read while the node of 1 is
+     on the stack of the parser, 300 nested parentheses,
+     beyond the 200 entries of the stack of the parser kept in the stack of
+     the program, and 300 minus signs, a chain of nodes deeper than the
+     evaluation goes by recursion (expr_eval::max_depth). */
+  void allocation_failures()
+  {
+    // The allocations of GAOL have to be those of this program
+    const std::size_t before = allocations_made;
+    const interval warm = textToInterval("sin([1,2])+<1,1>");
+    (void)warm;
+    if (allocations_made == before) {
+      std::printf("allocation failures: the allocations of GAOL are not those of this program "
+                  "(a DLL on Windows): skipped\n");
+      return;
+    }
+    /* A long sum is read with no more memory than a short one: each
+       operation is computed when it is read, and the parser holds no node of
+       it. It built one, and a sum of 10000 terms held 20000 nodes before it
+       was evaluated. */
+    {
+      const std::string sum = repeated(10000, "+", "1", "2");
+      const std::size_t base = allocations_live;
+      allocations_peak = base;
+      const interval x = textToInterval(sum);
+      const std::size_t peak = allocations_peak - base;
+      check("long expression: a sum of 10000 terms is read with no more than 64 allocations live at once",
+            peak <= 64 && x.set_eq(interval(15000.0)),
+            [&] { return std::to_string(peak) + " live at once, " + hex(x); });
+    }
+
+    const std::string digits(20000, '3');
+    const std::string texts[] = {
+      "1+2*sin([1,2])-pi/3", "[1, 2]", "[0.1, ]", "[, -inf]", "<0x1p-3, 0.125>", "3.56?1*2",
+      "nth_root(8, 3)+[empty]", "1+0." + digits, std::string(300, '(') + "1" + std::string(300, ')'),
+      std::string(300, '-') + "[1, 2]", "[" + std::string(299, '-') + "inf, 1]",
+    };
+    for (const std::string& t : texts) {
+      for (int standard = 0; standard < 2; ++standard) {
+        const auto read = [&] { return standard ? gaol_ieee1788::textToInterval(t) : textToInterval(t); };
+        const interval expected = read();
+        const std::string what = std::string(standard ? "gaol_ieee1788::" : "gaol::") + "textToInterval(\""
+                                 + t.substr(0, 40) + (t.size() > 40 ? "...\")" : "\")");
+        bool right = true, freed = true;
+        std::size_t failing = 1, wrong = 0;
+        for (;; ++failing) {
+          const std::size_t live = allocations_live;
+          failing_allocation = allocations_made + failing;
+          bool ran_out = false;
+          interval got;
+          try {
+            got = read();
+          } catch (const std::bad_alloc&) {
+            ran_out = true;
+          } catch (...) {
+            right = false;
+          }
+          const bool failed = allocations_made >= failing_allocation;
+          failing_allocation = 0;
+          if (allocations_live != live) {
+            freed = false;
+            wrong = failing;
+          }
+          if (ran_out != failed || (!ran_out && !got.set_eq(expected)) || !right) {
+            right = false;
+            wrong = failing;
+          }
+          if (!failed || !right || !freed || failing > 5000) {
+            break;
+          }
+        }
+        check("allocation failure: a reading throws std::bad_alloc, or gives the interval", right,
+              [&] { return what + ": allocation " + std::to_string(wrong); });
+        check("allocation failure: a reading frees all it allocated", freed,
+              [&] { return what + ": allocation " + std::to_string(wrong); });
+      }
+    }
+
+    /* The evaluation of a chain of 300 sums, 1 + (1 + (...)), whose values
+       and nodes left to combine fill the stacks of the evaluator, and then
+       its deletion, whose list of the nodes left to delete, as long as the
+       chain, cannot grow: the deletion deletes the node where it is */
+    for (std::size_t failing = 1; failing < 5000; ++failing) {
+      const std::size_t live = allocations_live;
+      bool ran_out = false, right = true, failed = false;
+      {
+        expression e(interval(1.0));
+        for (int i = 0; i < 299; ++i) {
+          e = expression(interval(1.0)) + e;
+        }
+        failing_allocation = allocations_made + failing;
+        interval got;
+        try {
+          right = evaluate_expr(e, got) && got.set_eq(interval(300.0));
+        } catch (const std::bad_alloc&) {
+          ran_out = true;
+        }
+        failed = allocations_made >= failing_allocation;
+        failing_allocation = failed ? 0 : allocations_made + 1;
+      }
+      failing_allocation = 0;
+      // Compared before check(), which allocates the first time it is called with a name
+      const bool freed = (allocations_live == live);
+      check("allocation failure: an evaluation throws std::bad_alloc, or gives the interval",
+            ran_out == failed && (ran_out || right), [&] { return "allocation " + std::to_string(failing); });
+      check("allocation failure: an evaluation and a deletion free all they allocated", freed,
+            [&] { return "allocation " + std::to_string(failing); });
+      if (!failed) {
+        break;
+      }
+    }
+  }
+
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   /* Strings read by four threads at once, with the names of GAOL and with
@@ -1312,6 +1506,7 @@ int main()
   step("long_strings");      long_strings();
   step("long_built");        long_built();
   step("nul_characters");    nul_characters();
+  step("allocation_failures"); allocation_failures();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   step("reading_in_threads"); reading_in_threads();

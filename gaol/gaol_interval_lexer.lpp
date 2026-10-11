@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstring>
 #include <limits>
+#include <new>
 #include <string>
 #include <vector>
 #include <stdint.h>
@@ -51,6 +52,25 @@ using namespace gaol_core;
 */
 extern int gaol_read_input(void *context, char *buf, int max_size);
 #define YY_INPUT(buf, result, max_size) { (result) = gaol_read_input(yyextra, (buf), (max_size)); }
+
+/*
+  An error of flex: an allocation that failed, the other errors it reports
+  being those of input it does not read here or of states it never reaches.
+  flex wrote it and called exit(2), which ended the program: it throws
+  std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5)
+*/
+#define YY_FATAL_ERROR(msg) throw std::bad_alloc()
+
+// The memory of flex, linked to the context of the reading, which frees what
+// flex leaves when an allocation fails (gaol/gaol_interval_parser.ypp)
+extern void *gaol_flex_alloc(void *context, std::size_t size);
+extern void *gaol_flex_realloc(void *context, void *p, std::size_t size);
+extern void gaol_flex_free(void *context, void *p);
+// Keeps the exception being handled for the parser to throw again
+extern void gaol_lexer_failed(void *context);
+
+// The lexer of flex, which gaol_lex() calls
+#define YY_DECL static int gaol_lex_tokens(YYSTYPE *yylval_param, yyscan_t yyscanner)
 
 // The function of a name, in the table of the names the string is read with,
 // which the context of the reading gives (gaol/gaol_interval_parser.ypp); 0
@@ -658,9 +678,9 @@ namespace gaol {
 %option reentrant bison-bridge noyywrap
 
 /* The input is the string given (YY_INPUT), never interactive: flex would
-   test whether stdin is a terminal, by isatty(), for the buffer it creates
-   (GAOL v5) */
-%option never-interactive
+   test whether stdin is a terminal, by isatty(), for the buffer it creates.
+   The memory of flex is that of the reading (GAOL v5) */
+%option never-interactive noyyalloc noyyrealloc noyyfree
 
 DIGIT		[0-9]
 HEXDIGIT	[0-9a-f]
@@ -726,4 +746,46 @@ void *gaol_initialize_parsing(void *context)
 void gaol_cleanup_parsing(void *scanner)
 {
   gaol_lex_destroy(scanner);
+}
+
+/*
+  The next token, for the parser: that of the lexer of flex, or, when it
+  threw, UNEXPECTED_CHAR, a syntax error, which makes the parser free the
+  nodes on its stack and stop, the exception being kept in the context of the
+  reading for gaol_parse_string() to throw (GAOL v5). Thrown through the
+  parser, it left them: std::bad_alloc from flex (YY_FATAL_ERROR) or from the
+  reading of a number.
+*/
+int gaol_lex(YYSTYPE *lval, yyscan_t scanner)
+{
+  try {
+    return gaol_lex_tokens(lval, scanner);
+  } catch (...) {
+    gaol_lexer_failed(gaol_get_extra(scanner));
+    return UNEXPECTED_CHAR;
+  }
+}
+
+/*
+  The allocation functions of flex (%option noyyalloc noyyrealloc noyyfree),
+  given the scanner, which is the state that yylex_init_extra() has made for
+  its first allocation, whose extra data is the context too. yy_fatal_error(),
+  which wrote the error and ended the program, is no longer called
+  (YY_FATAL_ERROR): its address is taken so that compilers do not warn that
+  it is unused.
+*/
+void *yyalloc(yy_size_t size, yyscan_t yyscanner)
+{
+  static_cast<void>(&yy_fatal_error);
+  return gaol_flex_alloc(gaol_get_extra(yyscanner), size);
+}
+
+void *yyrealloc(void *p, yy_size_t size, yyscan_t yyscanner)
+{
+  return gaol_flex_realloc(gaol_get_extra(yyscanner), p, size);
+}
+
+void yyfree(void *p, yyscan_t yyscanner)
+{
+  gaol_flex_free(gaol_get_extra(yyscanner), p);
 }

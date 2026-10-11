@@ -4200,16 +4200,26 @@ namespace gaol_ieee1788 {
     textToInterval(s) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 12.12.7), in
     the library rather than inline in its header, for the reading of the
     whole of s, NUL characters included (GAOL v5): the empty set for a string
-    that is no literal
+    that is no literal, as for one that the reader refuses with an exception of
+    GAOL, input_format_error or invalid_action_error. The other exceptions go
+    through, std::bad_alloc among them: the reader threw it where memory ran
+    out, and textToInterval() turned it into the empty set, the interval of no
+    literal, catching every std::exception.
   */
   interval textToInterval(const std::string& s)
   {
+#if GAOL_EXCEPTIONS_ENABLED
     try {
       interval x;
       return gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
-    } catch (const std::exception&) {
+    } catch (const ::gaol_core::gaol_exception&) {
       return interval::emptyset();
     }
+#else
+    // An error of the reader fails the reading, as a syntax error does
+    interval x;
+    return gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
+#endif
   }
 
   /*

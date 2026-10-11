@@ -100,7 +100,7 @@ namespace gaol_ieee1788 {
   functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
   gaol::textToInterval() reads those of GAOL (GAOL v5); the empty set for a
   string that is no interval (12.12.7), a NUL character included, where GAOL
-  throws
+  throws. Throws std::bad_alloc when memory runs out.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& s);
   

@@ -757,6 +757,7 @@ static const flex_int16_t yy_chk[291] =
 #include <cstddef>
 #include <cstring>
 #include <limits>
+#include <new>
 #include <string>
 #include <vector>
 #include <stdint.h>
@@ -785,6 +786,25 @@ using namespace gaol_core;
 */
 extern int gaol_read_input(void *context, char *buf, int max_size);
 #define YY_INPUT(buf, result, max_size) { (result) = gaol_read_input(yyextra, (buf), (max_size)); }
+
+/*
+  An error of flex: an allocation that failed, the other errors it reports
+  being those of input it does not read here or of states it never reaches.
+  flex wrote it and called exit(2), which ended the program: it throws
+  std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5)
+*/
+#define YY_FATAL_ERROR(msg) throw std::bad_alloc()
+
+// The memory of flex, linked to the context of the reading, which frees what
+// flex leaves when an allocation fails (gaol/gaol_interval_parser.ypp)
+extern void *gaol_flex_alloc(void *context, std::size_t size);
+extern void *gaol_flex_realloc(void *context, void *p, std::size_t size);
+extern void gaol_flex_free(void *context, void *p);
+// Keeps the exception being handled for the parser to throw again
+extern void gaol_lexer_failed(void *context);
+
+// The lexer of flex, which gaol_lex() calls
+#define YY_DECL static int gaol_lex_tokens(YYSTYPE *yylval_param, yyscan_t yyscanner)
 
 // The function of a name, in the table of the names the string is read with,
 // which the context of the reading gives (gaol/gaol_interval_parser.ypp); 0
@@ -1366,7 +1386,7 @@ namespace gaol {
     return gaol_compare_number(gaol_take_apart(s), x);
   }
 }
-#line 1370 "lex.gaol_.c"
+#line 1390 "lex.gaol_.c"
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
@@ -1381,9 +1401,9 @@ namespace gaol {
    is the context of the reading (gaol/gaol_interval_parser.ypp), which holds
    the names of the functions. No yywrap(): a string is read to its end. */
 /* The input is the string given (YY_INPUT), never interactive: flex would
-   test whether stdin is a terminal, by isatty(), for the buffer it creates
-   (GAOL v5) */
-#line 1387 "lex.gaol_.c"
+   test whether stdin is a terminal, by isatty(), for the buffer it creates.
+   The memory of flex is that of the reading (GAOL v5) */
+#line 1407 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1655,10 +1675,10 @@ YY_DECL
 		}
 
 	{
-#line 672 "gaol_interval_lexer.lpp"
+#line 692 "gaol_interval_lexer.lpp"
 
 
-#line 1662 "lex.gaol_.c"
+#line 1682 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1713,42 +1733,42 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 674 "gaol_interval_lexer.lpp"
+#line 694 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 675 "gaol_interval_lexer.lpp"
+#line 695 "gaol_interval_lexer.lpp"
 { return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 676 "gaol_interval_lexer.lpp"
+#line 696 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 677 "gaol_interval_lexer.lpp"
+#line 697 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 678 "gaol_interval_lexer.lpp"
+#line 698 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 679 "gaol_interval_lexer.lpp"
+#line 699 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 680 "gaol_interval_lexer.lpp"
+#line 700 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 681 "gaol_interval_lexer.lpp"
+#line 701 "gaol_interval_lexer.lpp"
 { /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
@@ -1760,97 +1780,97 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 689 "gaol_interval_lexer.lpp"
+#line 709 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 690 "gaol_interval_lexer.lpp"
+#line 710 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 691 "gaol_interval_lexer.lpp"
+#line 711 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 692 "gaol_interval_lexer.lpp"
+#line 712 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 693 "gaol_interval_lexer.lpp"
+#line 713 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 694 "gaol_interval_lexer.lpp"
+#line 714 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 695 "gaol_interval_lexer.lpp"
+#line 715 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 696 "gaol_interval_lexer.lpp"
+#line 716 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 697 "gaol_interval_lexer.lpp"
+#line 717 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 698 "gaol_interval_lexer.lpp"
+#line 718 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 699 "gaol_interval_lexer.lpp"
+#line 719 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 20:
-#line 702 "gaol_interval_lexer.lpp"
+#line 722 "gaol_interval_lexer.lpp"
 case 21:
-#line 703 "gaol_interval_lexer.lpp"
+#line 723 "gaol_interval_lexer.lpp"
 case 22:
-#line 704 "gaol_interval_lexer.lpp"
+#line 724 "gaol_interval_lexer.lpp"
 case 23:
 YY_RULE_SETUP
-#line 704 "gaol_interval_lexer.lpp"
+#line 724 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 705 "gaol_interval_lexer.lpp"
+#line 725 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 706 "gaol_interval_lexer.lpp"
+#line 726 "gaol_interval_lexer.lpp"
 { return gaol_read_uncertain(yytext, yylval); }
 	YY_BREAK
 case 26:
 /* rule 26 can match eol */
 YY_RULE_SETUP
-#line 707 "gaol_interval_lexer.lpp"
+#line 727 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 708 "gaol_interval_lexer.lpp"
+#line 728 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 709 "gaol_interval_lexer.lpp"
+#line 729 "gaol_interval_lexer.lpp"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 1854 "lex.gaol_.c"
+#line 1874 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2963,38 +2983,9 @@ static int yy_flex_strlen (const char * s , yyscan_t yyscanner)
 }
 #endif
 
-void *yyalloc (yy_size_t  size , yyscan_t yyscanner)
-{
-	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
-	(void)yyg;
-	return malloc(size);
-}
-
-void *yyrealloc  (void * ptr, yy_size_t  size , yyscan_t yyscanner)
-{
-	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
-	(void)yyg;
-
-	/* The cast to (char *) in the following accommodates both
-	 * implementations that use char* generic pointers, and those
-	 * that use void* generic pointers.  It works with the latter
-	 * because both ANSI C and C++ allow castless assignment from
-	 * any pointer type to void*, and deal with argument conversions
-	 * as though doing an assignment.
-	 */
-	return realloc(ptr, size);
-}
-
-void yyfree (void * ptr , yyscan_t yyscanner)
-{
-	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
-	(void)yyg;
-	free( (char *) ptr );	/* see yyrealloc() for (char *) cast */
-}
-
 #define YYTABLES_NAME "yytables"
 
-#line 709 "gaol_interval_lexer.lpp"
+#line 729 "gaol_interval_lexer.lpp"
 
 
 /*
@@ -3015,5 +3006,47 @@ void *gaol_initialize_parsing(void *context)
 void gaol_cleanup_parsing(void *scanner)
 {
   gaol_lex_destroy(scanner);
+}
+
+/*
+  The next token, for the parser: that of the lexer of flex, or, when it
+  threw, UNEXPECTED_CHAR, a syntax error, which makes the parser free the
+  nodes on its stack and stop, the exception being kept in the context of the
+  reading for gaol_parse_string() to throw (GAOL v5). Thrown through the
+  parser, it left them: std::bad_alloc from flex (YY_FATAL_ERROR) or from the
+  reading of a number.
+*/
+int gaol_lex(YYSTYPE *lval, yyscan_t scanner)
+{
+  try {
+    return gaol_lex_tokens(lval, scanner);
+  } catch (...) {
+    gaol_lexer_failed(gaol_get_extra(scanner));
+    return UNEXPECTED_CHAR;
+  }
+}
+
+/*
+  The allocation functions of flex (%option noyyalloc noyyrealloc noyyfree),
+  given the scanner, which is the state that yylex_init_extra() has made for
+  its first allocation, whose extra data is the context too. yy_fatal_error(),
+  which wrote the error and ended the program, is no longer called
+  (YY_FATAL_ERROR): its address is taken so that compilers do not warn that
+  it is unused.
+*/
+void *yyalloc(yy_size_t size, yyscan_t yyscanner)
+{
+  static_cast<void>(&yy_fatal_error);
+  return gaol_flex_alloc(gaol_get_extra(yyscanner), size);
+}
+
+void *yyrealloc(void *p, yy_size_t size, yyscan_t yyscanner)
+{
+  return gaol_flex_realloc(gaol_get_extra(yyscanner), p, size);
+}
+
+void yyfree(void *p, yyscan_t yyscanner)
+{
+  gaol_flex_free(gaol_get_extra(yyscanner), p);
 }
 

@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstring>
 #include <exception>
+#include <limits>
 #include <new>
 #include <string>
 #include "gaol/gaol_common.h"
@@ -65,13 +66,17 @@ using namespace gaol_core;
   interval read and the success of the reading in globals, as flex and bison
   did their state: two threads reading a string each crashed.
 */
+union gaol_flex_block;
+
 struct gaol_parsing_context {
   interval result;                // the interval read, if ok is true
   bool ok;                        // the string is an expression, which was read
-  std::exception_ptr exception;   // the exception an action raised
+  std::exception_ptr exception;   // the exception an action or the lexer raised
   ::gaol::parsing_names names;    // the names of the functions
   const char *input;              // the characters the lexer has not read yet
   std::size_t input_left;         // their number, NUL characters included
+  bool out_of_memory;             // an allocation of the stack of the parser failed
+  gaol_flex_block *flex_blocks;   // the blocks flex allocated and has not freed
 };
 
 static gaol_parsing_context *gaol_context(void *context)
@@ -99,6 +104,118 @@ int gaol_read_input(void *context, char *buf, int max_size)
   c->input_left -= n;
   return static_cast<int>(n);
 }
+
+/*
+  The memory of the lexer (GAOL v5)
+
+  flex allocates the state of a scanner, the buffer of the characters read,
+  16 KiB doubled for a token longer, and the stack of its buffers. Where an
+  allocation failed, it wrote "out of dynamic memory" and ended the program
+  with exit(2). It throws std::bad_alloc now (YY_FATAL_ERROR,
+  gaol/gaol_interval_lexer.lpp), but leaves a block it holds in no variable:
+  the state of a buffer whose characters it could not allocate, or the
+  characters that a failed realloc() does not free while flex overwrites
+  their address. Each block it allocates for a reading is therefore linked to
+  the context of the reading, and those flex has not freed when the reading
+  ends are freed with it. The blocks come from the nothrow operator new, as
+  the other memory of GAOL, so that tests/expressions.cpp makes their
+  allocation fail too.
+*/
+struct gaol_flex_links {
+  gaol_flex_block *previous;
+  gaol_flex_block *next;
+  std::size_t size;               // the bytes flex asked for
+};
+
+// The head of a block, before the bytes flex asked for, aligned as malloc() aligns
+union gaol_flex_block {
+  gaol_flex_links links;
+  std::max_align_t alignment;
+};
+
+// size bytes for flex, or 0 if they could not be allocated
+void *gaol_flex_alloc(void *context, std::size_t size)
+{
+  if (size > std::numeric_limits<std::size_t>::max() - sizeof(gaol_flex_block)) {
+    return 0;
+  }
+  gaol_flex_block *const b =
+    static_cast<gaol_flex_block*>(::operator new(sizeof(gaol_flex_block) + size, std::nothrow));
+  if (b == 0) {
+    return 0;
+  }
+  gaol_parsing_context *c = gaol_context(context);
+  b->links.previous = 0;
+  b->links.next = c->flex_blocks;
+  b->links.size = size;
+  if (c->flex_blocks != 0) {
+    c->flex_blocks->links.previous = b;
+  }
+  c->flex_blocks = b;
+  return b + 1;
+}
+
+void gaol_flex_free(void *context, void *p)
+{
+  if (p == 0) {
+    return;
+  }
+  gaol_flex_block *const b = static_cast<gaol_flex_block*>(p) - 1;
+  if (b->links.previous != 0) {
+    b->links.previous->links.next = b->links.next;
+  } else {
+    gaol_context(context)->flex_blocks = b->links.next;
+  }
+  if (b->links.next != 0) {
+    b->links.next->links.previous = b->links.previous;
+  }
+  ::operator delete(b);
+}
+
+// As realloc(): p is left as it is when the new block cannot be allocated
+void *gaol_flex_realloc(void *context, void *p, std::size_t size)
+{
+  void *const q = gaol_flex_alloc(context, size);
+  if (q != 0 && p != 0) {
+    std::memcpy(q, p, std::min(size, (static_cast<gaol_flex_block*>(p) - 1)->links.size));
+    gaol_flex_free(context, p);
+  }
+  return q;
+}
+
+/*
+  The exception the lexer raised, an allocation that failed, for
+  gaol_parse_string() to throw again, as one an action raises: thrown through
+  the parser, it left the nodes on its stack (GAOL v5). Called in the handler.
+*/
+void gaol_lexer_failed(void *context)
+{
+  gaol_context(context)->exception = std::current_exception();
+}
+
+/*
+  The stack of the parser, beyond its 200 first entries, in blocks of the
+  heap (YYMALLOC, YYFREE), from the nothrow operator new as the blocks of
+  flex: a block that cannot be allocated makes the parser stop, as a string
+  nested deeper than YYMAXDEPTH does, and gaol_parse_string() throws
+  std::bad_alloc rather than input_format_error (GAOL v5)
+*/
+static void *gaol_parser_alloc(void *context, std::size_t size)
+{
+  void *const p = ::operator new(size, std::nothrow);
+  if (p == 0) {
+    gaol_context(context)->out_of_memory = true;
+  }
+  return p;
+}
+
+static void gaol_parser_free(void *p)
+{
+  ::operator delete(p);
+}
+
+#define YYMALLOC(size) gaol_parser_alloc(context, size)
+#define YYFREE(p) gaol_parser_free(p)
 
 /*
   One grammar, whose every string is an expression (GAOL v5)
@@ -191,6 +308,32 @@ static expr_node *gaol_leaf(const interval& I)
 }
 
 /*
+  The leaf of a number or of a constant, which an action gives: the node
+  built, or 0 when it could not be allocated, the parsing aborting then with
+  std::bad_alloc (GAOL v5). An action lets no exception through the parser,
+  which left the nodes on its stack.
+*/
+static expr_node *gaol_number(void *context, double d)
+{
+  try {
+    return gaol_node(new double_node(d));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
+
+static expr_node *gaol_constant(void *context, const interval& I)
+{
+  try {
+    return gaol_leaf(I);
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
+
+/*
   The leaf of an uncertain number, 3.56?1 (GAOL v5). IEEE 1788-2015 makes the
   uncertain form an interval literal of its own, not a number that can bound
   one: [5?1] is no interval literal (12.11.4). Its leaf is told apart from
@@ -200,6 +343,17 @@ class uncertain_node : public interval_node {
 public:
   explicit uncertain_node(const interval& I) : interval_node(I) {}
 };
+
+// The leaf of an uncertain number, as gaol_number()
+static expr_node *gaol_uncertain_number(void *context, const interval& I)
+{
+  try {
+    return gaol_node(new uncertain_node(I));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
 
 // e is an uncertain number, alone or behind a minus sign
 static bool gaol_uncertain(expr_node *e)
@@ -211,10 +365,10 @@ static bool gaol_uncertain(expr_node *e)
   return dynamic_cast<uncertain_node*>(e) != 0;
 }
 
-// e is an uncertain number written as a bound: the error the parsing aborts with
+// e, a bound or 0 for none, is an uncertain number: the error the parsing aborts with
 static bool gaol_uncertain_bound(expr_node *e, void *context)
 {
-  if (!gaol_uncertain(e)) {
+  if (e == 0 || !gaol_uncertain(e)) {
     return false;
   }
   GAOL_PARSING_ERROR(context, input_format_error,
@@ -437,6 +591,93 @@ static expr_node *gaol_operation(void *context, char op, expr_node *a, expr_node
   gaol_release(b);
   return result;
 }
+
+/*
+  The minus sign before the expression e, which it releases: its node, or 0
+  when it could not be allocated (GAOL v5). A sign is the one operation that
+  stays a node, so that a bound written -inf, or an uncertain number behind
+  signs, is still told apart: the parser holds no other tree than a chain of
+  signs over a leaf, which is evaluated and deleted without recursion.
+*/
+static expr_node *gaol_negation(void *context, expr_node *e)
+{
+  expr_node *result = 0;
+  try {
+    result = gaol_node(new unary_minus_node(*e));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+  }
+  gaol_release(e);
+  return result;
+}
+
+// The forms of the literals with bounds
+enum gaol_literal_form {
+  gaol_point,                     // [a]
+  gaol_bounded,                   // [a, b]
+  gaol_left_only,                 // [a, ]
+  gaol_right_only,                // [, b]
+  gaol_degenerate                 // <a, b>
+};
+
+/*
+  The literal of the form given with the bounds l and r, 0 for one left out,
+  which it releases: the leaf of its interval, or 0 for an error, which the
+  parsing aborts with (GAOL v5). No bound is an uncertain number. A left bound
+  written inf, or a right bound written -inf, gives the empty set (see
+  gaol_literal_infinity()). The two bounds of <a, b> are the same double.
+*/
+static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node *l, expr_node *r)
+{
+  expr_node *result = 0;
+  try {
+    if (!gaol_uncertain_bound(l, context) && !gaol_uncertain_bound(r, context)) {
+      const interval lv = (l != 0) ? gaol_value(l) : interval::universe();
+      const interval rv = (r != 0) ? gaol_value(r) : interval::universe();
+      const bool infinite = (l != 0 && (form == gaol_point ? gaol_literal_infinity(l) != 0
+                                                           : gaol_literal_infinity(l) > 0))
+                            || (r != 0 && gaol_literal_infinity(r) < 0);
+      if (form == gaol_point) {
+        result = gaol_leaf(infinite ? interval::emptyset() : lv);
+      } else if (form != gaol_degenerate) {
+        result = gaol_leaf(infinite ? interval::emptyset() : interval(lv.left(), rv.right()));
+      } else if (lv.left() == rv.right()) {
+        result = gaol_leaf(interval(lv.left(), rv.right()));
+      } else {
+        GAOL_PARSING_ERROR(context, input_format_error,
+          "bounds of degenerate interval do not evaluate to the same value");
+      }
+    }
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    result = 0;
+  }
+  if (l != 0) {
+    gaol_release(l);
+  }
+  if (r != 0) {
+    gaol_release(r);
+  }
+  return result;
+}
+
+/*
+  The interval of the whole string, the value of e, which it releases: false
+  for an allocation that failed, which the parsing aborts with (GAOL v5)
+*/
+static bool gaol_result(void *context, expr_node *e)
+{
+  bool computed = false;
+  try {
+    gaol_context(context)->result = gaol_value(e);
+    gaol_context(context)->ok = true;
+    computed = true;
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+  }
+  gaol_release(e);
+  return computed;
+}
 %}
 
 %union {
@@ -494,27 +735,28 @@ int gaol_lex(YYSTYPE *lval, void *scanner);
 %%
 
 itv_expr
-	: expression					{ gaol_context(context)->result = gaol_value($1);
-							  gaol_release($1);
-							  gaol_context(context)->ok = true; }
+	: expression					{ if (!gaol_result(context,$1)) YYABORT; }
 	;
 
+/* Each action releases the nodes it is given, and gives the node of its
+   expression, or 0 for an error, which it aborts the parsing with: none lets
+   an exception through the parser, which left the nodes on its stack
+   (GAOL v5) */
 expression
-	: NUMBER					{ $$ = gaol_node(new double_node($1)); }
-	| DMIN_STR					{ $$ = gaol_node(new double_node(std::numeric_limits<double>::min())); }
-	| DMAX_STR					{ $$ = gaol_node(new double_node(std::numeric_limits<double>::max())); }
-	| INFINITY_STR					{ $$ = gaol_node(new double_node(GAOL_INFINITY)); }
-	| PI_STR					{ $$ = gaol_leaf(interval::pi()); }
-	| INTERVAL_CST					{ $$ = gaol_leaf(interval($1.l,$1.r)); }
-	| UNCERTAIN_CST					{ $$ = gaol_node(new uncertain_node(interval($1.l,$1.r))); }
-	| EMPTY_STR					{ $$ = gaol_leaf(interval::emptyset()); }
+	: NUMBER					{ if (($$ = gaol_number(context,$1)) == 0) YYABORT; }
+	| DMIN_STR					{ if (($$ = gaol_number(context,std::numeric_limits<double>::min())) == 0) YYABORT; }
+	| DMAX_STR					{ if (($$ = gaol_number(context,std::numeric_limits<double>::max())) == 0) YYABORT; }
+	| INFINITY_STR					{ if (($$ = gaol_number(context,GAOL_INFINITY)) == 0) YYABORT; }
+	| PI_STR					{ if (($$ = gaol_constant(context,interval::pi())) == 0) YYABORT; }
+	| INTERVAL_CST					{ if (($$ = gaol_constant(context,interval($1.l,$1.r))) == 0) YYABORT; }
+	| UNCERTAIN_CST					{ if (($$ = gaol_uncertain_number(context,interval($1.l,$1.r))) == 0) YYABORT; }
+	| EMPTY_STR					{ if (($$ = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
 	| literal					{ $$ = $1; }
 	| expression '+' expression			{ if (($$ = gaol_operation(context,'+',$1,$3)) == 0) YYABORT; }
 	| expression '-' expression			{ if (($$ = gaol_operation(context,'-',$1,$3)) == 0) YYABORT; }
 	| expression '*' expression			{ if (($$ = gaol_operation(context,'*',$1,$3)) == 0) YYABORT; }
 	| expression '/' expression			{ if (($$ = gaol_operation(context,'/',$1,$3)) == 0) YYABORT; }
-	| '-' expression %prec UMINUS			{ $$ = gaol_node(new unary_minus_node(*$2));
-							  gaol_release($2); }
+	| '-' expression %prec UMINUS			{ if (($$ = gaol_negation(context,$2)) == 0) YYABORT; }
 	| '+' expression %prec UPLUS			{ $$ = $2; }
 	| function_call					{ $$ = $1; }
 	| '(' expression ')'				{ $$ = $2; }
@@ -526,57 +768,14 @@ expression
    [a,b] whose bounds have to be the same double. No bound is an uncertain
    number, which is an interval literal of its own (12.11.4). */
 literal
-	: '[' expression ']'				{ if (gaol_uncertain_bound($2, context)) {
-							    gaol_release($2);
-							    YYABORT;
-							  }
-							  const interval v = gaol_value($2);
-							  const bool infinite = (gaol_literal_infinity($2) != 0);
-							  gaol_release($2);
-							  $$ = gaol_leaf(infinite ? interval::emptyset() : v); }
-	| '[' expression ',' expression ']'		{ if (gaol_uncertain_bound($2, context) || gaol_uncertain_bound($4, context)) {
-							    gaol_release($2); gaol_release($4);
-							    YYABORT;
-							  }
-							  const interval l = gaol_value($2), r = gaol_value($4);
-							  const bool infinite = (gaol_literal_infinity($2) > 0
-										 || gaol_literal_infinity($4) < 0);
-							  gaol_release($2); gaol_release($4);
-							  $$ = gaol_leaf(infinite ? interval::emptyset()
-									 : interval(l.left(),r.right())); }
-	| '[' ']'					{ $$ = gaol_leaf(interval::emptyset()); }
-	| '[' ENTIRE_STR ']'				{ $$ = gaol_leaf(interval::universe()); }
-	| '[' ',' ']'					{ $$ = gaol_leaf(interval::universe()); }
-	| '[' expression ',' ']'			{ if (gaol_uncertain_bound($2, context)) {
-							    gaol_release($2);
-							    YYABORT;
-							  }
-							  const interval l = gaol_value($2);
-							  const bool infinite = (gaol_literal_infinity($2) > 0);
-							  gaol_release($2);
-							  $$ = gaol_leaf(infinite ? interval::emptyset()
-									 : interval(l.left(),GAOL_INFINITY)); }
-	| '[' ',' expression ']'			{ if (gaol_uncertain_bound($3, context)) {
-							    gaol_release($3);
-							    YYABORT;
-							  }
-							  const interval r = gaol_value($3);
-							  const bool infinite = (gaol_literal_infinity($3) < 0);
-							  gaol_release($3);
-							  $$ = gaol_leaf(infinite ? interval::emptyset()
-									 : interval(-GAOL_INFINITY,r.right())); }
-	| '<' expression ',' expression '>'		{ if (gaol_uncertain_bound($2, context) || gaol_uncertain_bound($4, context)) {
-							    gaol_release($2); gaol_release($4);
-							    YYABORT;
-							  }
-							  const interval l = gaol_value($2), r = gaol_value($4);
-							  gaol_release($2); gaol_release($4);
-							  if (l.left() != r.right()) {
-							    GAOL_PARSING_ERROR(context, input_format_error,
-							      "bounds of degenerate interval do not evaluate to the same value");
-							    YYABORT;
-							  }
-							  $$ = gaol_leaf(interval(l.left(),r.right())); }
+	: '[' expression ']'				{ if (($$ = gaol_literal(context,gaol_point,$2,0)) == 0) YYABORT; }
+	| '[' expression ',' expression ']'		{ if (($$ = gaol_literal(context,gaol_bounded,$2,$4)) == 0) YYABORT; }
+	| '[' ']'					{ if (($$ = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
+	| '[' ENTIRE_STR ']'				{ if (($$ = gaol_constant(context,interval::universe())) == 0) YYABORT; }
+	| '[' ',' ']'					{ if (($$ = gaol_constant(context,interval::universe())) == 0) YYABORT; }
+	| '[' expression ',' ']'			{ if (($$ = gaol_literal(context,gaol_left_only,$2,0)) == 0) YYABORT; }
+	| '[' ',' expression ']'			{ if (($$ = gaol_literal(context,gaol_right_only,0,$3)) == 0) YYABORT; }
+	| '<' expression ',' expression '>'		{ if (($$ = gaol_literal(context,gaol_degenerate,$2,$4)) == 0) YYABORT; }
 	;
 
 function_call
@@ -603,8 +802,9 @@ extern void gaol_cleanup_parsing(void *scanner);
   Reads the n characters at s, NUL characters included, with the names of
   functions given: returns true, with out set to the interval read, if they
   are an expression, and false, with out unchanged, otherwise. Throws again
-  the exception an action raised (GAOL v5). Its scanner and its context are
-  its own, and several threads call it at once.
+  the exception an action or the lexer raised, and std::bad_alloc when the
+  stack of the parser could not grow (GAOL v5). Its scanner and its context
+  are its own, and several threads call it at once.
 */
 bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol::parsing_names names)
 {
@@ -613,12 +813,25 @@ bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol
   context.names = names;
   context.input = s;
   context.input_left = n;
+  context.out_of_memory = false;
+  context.flex_blocks = 0;
+  // Frees the blocks flex has not freed, after the scanner, whatever is thrown
+  struct flex_blocks_guard {
+    gaol_parsing_context& c;
+    ~flex_blocks_guard()
+    {
+      while (c.flex_blocks != 0) {
+        gaol_flex_free(&c, c.flex_blocks + 1);
+      }
+    }
+  } guard = { context };
   void *scanner = gaol_initialize_parsing(&context);
   if (scanner == 0) {
     throw std::bad_alloc();
   }
+  int status;
   try {
-    gaol_parse(scanner, &context);
+    status = gaol_parse(scanner, &context);
   } catch (...) {
     // The scanner is freed whatever the parser throws
     gaol_cleanup_parsing(scanner);
@@ -628,6 +841,9 @@ bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol
   if (context.exception) {
     // Thrown in the parser, which aborted to free its nodes
     std::rethrow_exception(context.exception);
+  }
+  if (status == 2 && context.out_of_memory) {
+    throw std::bad_alloc();
   }
   if (context.ok) {
     // The infinities read give [dmax, +oo] and [-oo, -dmax] already
