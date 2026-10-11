@@ -173,7 +173,9 @@ point Q), which `numbers` checks there too.
   `floor_rel(z, x)` of a z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
   beyond the doubles, where its result has no infinite bound: it computed
   DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
-  is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5). Every
+  is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5);
+  Clang for 64-bit ARM still did, computing the sum before the test that
+  leaves it out and choosing afterwards. Every
   operation has to keep the exception flags the program raised (the five of
   IEEE 754, and on x86 the six of the SSE control register) and the exception
   masks, and the invalid-operation exception the program enabled has to stay

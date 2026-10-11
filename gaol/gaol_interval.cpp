@@ -4671,7 +4671,12 @@ interval nth_root(const interval& I, int q)
     rather than computed, DBL_MAX + 1 raising the overflow exception even where
     the result has no infinite bound (floor_rel([DBL_MAX], [0, 1]) is empty),
     and the overflow flag GAOL raises stands for an infinite bound of its
-    result only (doc/using.md).
+    result only (doc/using.md). The sum reads floor(sup Z) through a volatile
+    in the branch that tests it, so that no compiler adds 1 before the test:
+    Clang 18 and 21 for 64-bit ARM, at -O3 with -frounding-math, and
+    AppleClang computed floor(sup Z) + 1 for every Z, then chose between it
+    and +oo with fcsel, and DBL_MAX + 1 raised the overflow flag (GAOL v5,
+    tests/rounding_direction.cpp).
   */
   static interval floor_rel_upward(const interval& Z, const interval& X)
   {
@@ -4682,8 +4687,11 @@ interval nth_root(const interval& I, int q)
     if (gaol_detail::quiet_greater(first, last)) {
       return interval::emptyset();
     }
-    const double end = gaol_detail::quiet_less(last, (std::numeric_limits<double>::max)()) ? last + 1.0 // rounded upward
-                                                                                          : GAOL_INFINITY;
+    double end = GAOL_INFINITY;
+    if (gaol_detail::quiet_less(last, (std::numeric_limits<double>::max)())) {
+      const volatile double before_end = last;
+      end = before_end + 1.0; // rounded upward
+    }
     const double xl = X.left(), xu = X.right();
     if (gaol_detail::quiet_greater(first, xu) || gaol_detail::quiet_greater_equal(xl, end)) {
       return interval::emptyset();
