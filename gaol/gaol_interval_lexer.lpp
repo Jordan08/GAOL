@@ -19,6 +19,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -52,6 +53,16 @@ using namespace gaol_core;
 */
 extern int gaol_read_input(void *context, char *buf, int max_size);
 #define YY_INPUT(buf, result, max_size) { (result) = gaol_read_input(yyextra, (buf), (max_size)); }
+
+/*
+  As many characters at a time as the buffer of flex holds, and not 8192: a
+  token longer than that, a number or a run of blanks, was scanned again from
+  its start at each refill of 8192 characters, in a time quadratic in its
+  length (2.9 s for 4 million blanks, 47 s for 16 million, with GCC 15.2), and
+  is now refilled once each time the buffer doubles (GAOL v5): 0.03 s and
+  0.11 s
+*/
+#define YY_READ_BUF_SIZE INT_MAX
 
 /*
   An error of flex: an allocation that failed, the other errors it reports
