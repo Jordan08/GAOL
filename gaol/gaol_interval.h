@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -976,6 +977,14 @@ namespace gaol_core {
     x86 and POWER vectorizes the quiet comparisons into signaling ones too,
     which GAOL_FPU_SCALAR() above keeps it from doing with the FPU
     intervals). == and != are quiet comparisons already.
+    The relations make no check of the rounding direction, which clears the
+    modes that flush the subnormals to zero (gaol/gaol_fpu.h), and compare
+    the bounds with the comparisons of gaol_port.h that these modes do not
+    change, quiet ones too (gaol_detail::bound_less()...): under
+    denormals-are-zero, [3*2^-1074] < [5*2^-1074] was false, [2, 5]*2^-1074
+    contained 7*2^-1074, and [2^-1074, 2*2^-1074] was zero (GAOL v5, point Q
+    of TODO.md). The test of the empty set is the same under these modes,
+    which keep two bounds in their order and a NaN a NaN.
   */
   GAOL_INLINE
   bool interval::less(const interval& I) const
@@ -983,7 +992,7 @@ namespace gaol_core {
     if (is_empty() || I.is_empty()) {
       return is_empty() && I.is_empty();
     }
-    return gaol_detail::quiet_less_equal(left(), I.left()) && gaol_detail::quiet_less_equal(right(), I.right());
+    return gaol_detail::bound_less_equal(left(), I.left()) && gaol_detail::bound_less_equal(right(), I.right());
   }
 
   /*
@@ -996,40 +1005,40 @@ namespace gaol_core {
     if (is_empty() || I.is_empty()) {
       return is_empty() && I.is_empty();
     }
-    const bool lower = gaol_detail::quiet_less(left(), I.left()) || (left() == I.left() && left() == -GAOL_INFINITY);
-    const bool upper = gaol_detail::quiet_less(right(), I.right()) || (right() == I.right() && right() == GAOL_INFINITY);
+    const bool lower = gaol_detail::bound_less(left(), I.left()) || (left() == I.left() && left() == -GAOL_INFINITY);
+    const bool upper = gaol_detail::bound_less(right(), I.right()) || (right() == I.right() && right() == GAOL_INFINITY);
     return lower && upper;
   }
 
   GAOL_INLINE
   bool interval::is_symmetric(void) const
   {
-    return !is_empty() && ((-left()) == right());
+    return !is_empty() && gaol_detail::bound_equal(-left(), right());
   }
 
   GAOL_INLINE
   bool interval::certainly_positive(void) const
   {
-    return is_empty() || gaol_detail::quiet_greater_equal(left(), 0.0);
+    return is_empty() || gaol_detail::bound_greater_equal(left(), 0.0);
   }
 
   GAOL_INLINE
   bool interval::certainly_negative(void) const
   {
-    return is_empty() || gaol_detail::quiet_less_equal(right(), 0.0);
+    return is_empty() || gaol_detail::bound_less_equal(right(), 0.0);
   }
 
   GAOL_INLINE
   bool interval::certainly_strictly_positive(void) const
   {
-    return is_empty() || gaol_detail::quiet_greater(left(), 0.0);
+    return is_empty() || gaol_detail::bound_greater(left(), 0.0);
 
   }
 
   GAOL_INLINE
   bool interval::certainly_strictly_negative(void) const
   {
-    return is_empty() || gaol_detail::quiet_less(right(), 0.0);
+    return is_empty() || gaol_detail::bound_less(right(), 0.0);
   }
 
   /*
@@ -1041,22 +1050,22 @@ namespace gaol_core {
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::quiet_greater(left(), I.right());
+    return is_empty() || I.is_empty() || gaol_detail::bound_greater(left(), I.right());
   }
 
   GAOL_INLINE bool interval::certainly_geq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::quiet_greater_equal(left(), I.right());
+    return is_empty() || I.is_empty() || gaol_detail::bound_greater_equal(left(), I.right());
   }
 
   GAOL_INLINE bool interval::certainly_le(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::quiet_less(right(), I.left());
+    return is_empty() || I.is_empty() || gaol_detail::bound_less(right(), I.left());
   }
 
   GAOL_INLINE bool interval::certainly_leq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::quiet_less_equal(right(), I.left());
+    return is_empty() || I.is_empty() || gaol_detail::bound_less_equal(right(), I.left());
   }
 
 
@@ -1113,7 +1122,7 @@ namespace gaol_core {
   GAOL_INLINE
   bool interval::is_zero(void) const
   {
-    return (left() == 0.0 && right() == 0.0);
+    return gaol_detail::bound_equal(left(), 0.0) && gaol_detail::bound_equal(right(), 0.0);
   }
 
   /*
@@ -1132,7 +1141,7 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return gaol_detail::quiet_less_equal(l, 0.0) && gaol_detail::quiet_greater_equal(r, 0.0);
+    return gaol_detail::bound_less_equal(l, 0.0) && gaol_detail::bound_greater_equal(r, 0.0);
   }
 
   GAOL_INLINE
@@ -1141,22 +1150,25 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return gaol_detail::quiet_less(l, 0.0) && gaol_detail::quiet_greater(r, 0.0);
+    return gaol_detail::bound_less(l, 0.0) && gaol_detail::bound_greater(r, 0.0);
   }
 
   GAOL_INLINE
   bool interval::is_a_double(void) const
   {
-    return left() == right();
+    return gaol_detail::bound_equal(left(), right());
   }
 
+  // The floor of a subnormal l is 0 or -1 (gaol_detail::bound_floor(),
+  // gaol_port.h), which no subnormal equals: compared as bounds, it is not
+  // taken for l under denormals-are-zero (GAOL v5, point Q of TODO.md)
   GAOL_INLINE
   bool interval::is_an_int(void) const
   {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return (l == r) && (std::floor(l) == l) &&
+    return gaol_detail::bound_equal(l, r) && gaol_detail::bound_equal(gaol_detail::bound_floor(l), l) &&
       (gaol_detail::quiet_less_equal(l, static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
        gaol_detail::quiet_greater_equal(l, static_cast<double>((std::numeric_limits<int>::min)())));
   }
@@ -1165,7 +1177,7 @@ namespace gaol_core {
 
   GAOL_INLINE bool interval::set_contains(const interval& I) const
   {
-    return (I.is_empty() || (gaol_detail::quiet_less_equal(left(), I.left()) && gaol_detail::quiet_greater_equal(right(), I.right())));
+    return (I.is_empty() || (gaol_detail::bound_less_equal(left(), I.left()) && gaol_detail::bound_greater_equal(right(), I.right())));
   }
 
   /**
@@ -1176,7 +1188,7 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return gaol_detail::quiet_less_equal(l, d) && gaol_detail::quiet_greater_equal(r, d);
+    return gaol_detail::bound_less_equal(l, d) && gaol_detail::bound_greater_equal(r, d);
   }
 
   /*
@@ -1190,8 +1202,8 @@ namespace gaol_core {
   {
     return I.is_empty()
       || (!is_empty()
-          && (gaol_detail::quiet_less(left(), I.left()) || left() == -GAOL_INFINITY)
-          && (gaol_detail::quiet_greater(right(), I.right()) || right() == GAOL_INFINITY));
+          && (gaol_detail::bound_less(left(), I.left()) || left() == -GAOL_INFINITY)
+          && (gaol_detail::bound_greater(right(), I.right()) || right() == GAOL_INFINITY));
   }
 
   /**
@@ -1202,18 +1214,18 @@ namespace gaol_core {
     double l = left(), r = right();
     GAOL_FPU_SCALAR(l);
     GAOL_FPU_SCALAR(r);
-    return gaol_detail::quiet_less(l, d) && gaol_detail::quiet_greater(r, d);
+    return gaol_detail::bound_less(l, d) && gaol_detail::bound_greater(r, d);
   }
 
   GAOL_INLINE bool interval::set_disjoint(const interval &I) const
   {
-      return gaol_detail::quiet_less(right(), I.left()) || gaol_detail::quiet_greater(left(), I.right())
+      return gaol_detail::bound_less(right(), I.left()) || gaol_detail::bound_greater(left(), I.right())
 	  || (is_empty() || I.is_empty());
   }
 
   GAOL_INLINE bool interval::set_eq(const interval& I) const
   {
-    return (is_empty() && I.is_empty()) || ((left()==I.left()) && (right()==I.right()));
+    return (is_empty() && I.is_empty()) || (gaol_detail::bound_equal(left(), I.left()) && gaol_detail::bound_equal(right(), I.right()));
   }
 
   GAOL_INLINE bool interval::set_neq(const interval& I) const
@@ -1230,7 +1242,7 @@ namespace gaol_core {
 
    GAOL_INLINE bool interval::set_leq(const interval& I) const
    {
-       return is_empty() || (gaol_detail::quiet_greater_equal(left(), I.left()) && gaol_detail::quiet_less_equal(right(), I.right()));
+       return is_empty() || (gaol_detail::bound_greater_equal(left(), I.left()) && gaol_detail::bound_less_equal(right(), I.right()));
    }
 
    GAOL_INLINE bool interval::set_ge(const interval& I) const
@@ -1341,8 +1353,7 @@ namespace gaol_core {
   GAOL_NODISCARD extern GAOL_PUBLIC interval min_rel(const interval &Z, const interval &Y,
                                                      const interval &X);
 
-  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os,
-					     const interval& I);
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, const interval& I);
   /*!
     \brief Reads an interval, written on a line, from is
 
@@ -1354,8 +1365,7 @@ namespace gaol_core {
     I and throws input_format_error (invalid_action_error for a function
     called with an argument it does not take).
   */
-  extern GAOL_PUBLIC std::istream& operator>>(std::istream& is,
-					     interval& I);
+  extern GAOL_PUBLIC std::istream& operator>>(std::istream& is,  interval& I);
   /*!
     \brief The exact text of I (GAOL v5)
 
@@ -1483,8 +1493,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt_rel(const interval& J, const i
 
     div_rel(K,J,I) = hull(x\in I\mid\exists z\in K\exists y\in J:z=xy)
    */
-GAOL_NODISCARD extern GAOL_PUBLIC   interval div_rel(const interval &K,
-				      const interval &J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval div_rel(const interval &K,  const interval &J, const interval &I);
 
   /*!
     \brief square root of I
@@ -1494,8 +1503,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt(const interval& I);
     \brief relational nth root of J w.r.t. I, for a positive n
     \f$nthroot_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^n}\f$
   */
-GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J,
-					   unsigned int n, const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, unsigned int n, const interval& I);
   /*!
     \brief nth root of I for a positive n
 
@@ -1690,14 +1698,16 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval invabs_rel(const interval &J, const
 
     A NaN has no sign and is returned as it is: the comparisons below are both
     false for it, so without this it would be given the sign 0. They are
-    quiet ones, as in the relations (GAOL v5).
+    quiet ones, as in the relations, and compare d as a bound, as the
+    relations do: under denormals-are-zero, the sign of -2^-1074 was 0
+    (GAOL v5, point Q of TODO.md).
   */
 GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
   {
     if (std::isnan(d)) {
       return d;
     }
-    return gaol_detail::quiet_less(d, 0.0) ? -1.0 : (gaol_detail::quiet_greater(d, 0.0) ? 1.0 : 0.0);
+    return gaol_detail::bound_less(d, 0.0) ? -1.0 : (gaol_detail::bound_greater(d, 0.0) ? 1.0 : 0.0);
   }
 
   /*
@@ -1705,11 +1715,14 @@ GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
     empty set are NaN, which give the empty set: the constructor tells them
     with a quiet comparison (GAOL v5). They told them first, with one more
     comparison, when the constructor compared them with <=, which raises the
-    invalid-operation exception on a NaN.
+    invalid-operation exception on a NaN. The floor and the ceil of a bound
+    are those of gaol_port.h, which the modes flushing the subnormals to zero
+    do not change: under denormals-are-zero, floor([-1e-310]) was [-0, -0]
+    (GAOL v5, point Q of TODO.md).
   */
 GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
   {
-    return interval(std::floor(I.left()), std::floor(I.right()));
+    return interval(gaol_detail::bound_floor(I.left()), gaol_detail::bound_floor(I.right()));
   }
 
   /*!
@@ -1735,12 +1748,12 @@ GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
 
 GAOL_NODISCARD GAOL_INLINE interval ceil(const interval &I)
   {
-    return interval(std::ceil(I.left()), std::ceil(I.right()));
+    return interval(gaol_detail::bound_ceil(I.left()), gaol_detail::bound_ceil(I.right()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   {
-    return interval(std::ceil(I.left()), std::floor(I.right()));
+    return interval(gaol_detail::bound_ceil(I.left()), gaol_detail::bound_floor(I.right()));
   }
 
 /*
@@ -1760,6 +1773,10 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   are the ones that do read it, and are not used; roundTiesToEven, which no
   function of C++ gives, is gaol/gaol_roundeven.h, which reads the bits.
   tests/elementary.cpp checks the four in the four rounding directions.
+  std::trunc and std::round are called through gaol_detail::bound_trunc() and
+  bound_round() (gaol_port.h), which round a subnormal from its bits, as
+  floor and ceil do, whatever the modes that flush the subnormals to zero
+  (GAOL v5, point Q of TODO.md).
 
   Each tests the empty set first. GAOL holds the empty interval as the two
   bounds NaN, in both of its representations (interval::emptyset() of
@@ -1814,7 +1831,7 @@ GAOL_NODISCARD GAOL_INLINE interval trunc(const interval &I)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    return interval(std::trunc(I.left()),std::trunc(I.right()));
+    return interval(gaol_detail::bound_trunc(I.left()),gaol_detail::bound_trunc(I.right()));
   }
 
   /*!
@@ -1838,7 +1855,7 @@ GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    return interval(std::round(I.left()),std::round(I.right()));
+    return interval(gaol_detail::bound_round(I.left()),gaol_detail::bound_round(I.right()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, double d)
@@ -2407,13 +2424,13 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(T n, const interval &I)
       if (I1.is_empty() || I2.is_empty()) {
         return I1.is_empty() && !I2.is_empty();
       }
-      if (gaol_detail::quiet_less(I1.left(), I2.left())) {
+      if (gaol_detail::bound_less(I1.left(), I2.left())) {
         return true;
       }
-      if (gaol_detail::quiet_less(I2.left(), I1.left())) {
+      if (gaol_detail::bound_less(I2.left(), I1.left())) {
         return false;
       }
-      return gaol_detail::quiet_less(I1.right(), I2.right());
+      return gaol_detail::bound_less(I1.right(), I2.right());
     }
   };
 

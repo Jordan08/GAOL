@@ -13,7 +13,16 @@
  * comparisons of <cmath> (std::islessequal(), std::isunordered()...), one
  * instruction each with GCC and Clang on x86 (GAOL v5): their rows show what
  * these comparisons cost with the other compilers of the continuous
- * integration, Visual C++ among them.
+ * integration, Visual C++ among them. They compare the bounds as bounds,
+ * as integers where two compare equal (gaol_port.h), which the modes that
+ * flush the subnormals to zero do not change (GAOL v5, point Q of TODO.md).
+ *
+ * After the table, the time of the check each operation makes, 1 + (2^-1060
+ * + 0) == 1, which shows the rounding direction and the modes that flush the
+ * subnormals to zero (gaol/gaol_fpu.h), and of the same check made of 2^-60,
+ * a normal double: a processor that takes a microcode assist for a subnormal
+ * operand or result shows it there, each operation of GAOL paying it (GAOL
+ * v5, point Q of TODO.md).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -39,6 +48,11 @@ using namespace gaol;
 namespace
 {
   volatile double sink;
+
+  // The doubles of the two checks, read from volatile memory, as GAOL reads
+  // its own: 2^-1060, the subnormal of gaol/gaol_fpu.h, and 2^-60
+  const volatile double check_subnormal = 8.0947715414629834e-320;
+  const volatile double check_normal = 8.67361737988403547205962240695953369140625e-19;
 
   template<class F>
   void repeat(const F& operation, std::size_t rounds, std::size_t n)
@@ -171,6 +185,12 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = std::floor(a[i]); }, n) },
     { "x &= y", nanoseconds_per_operation([&](std::size_t i) { interval z = X[i]; z &= W[i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "x | y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] | W[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "max(x, y)", nanoseconds_per_operation([&](std::size_t i) { const interval z = max(X[i], Y[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "x.midpoint()", nanoseconds_per_operation([&](std::size_t i) { sink = X[i].midpoint(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = 0.5*(a[i] + c[i]); }, n) },
     { "x <= y", nanoseconds_per_operation([&](std::size_t i) { sink = (X[i] <= Y[i]) ? 1.0 : 0.0; }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = (a[i] <= b[i]) ? 1.0 : 0.0; }, n) },
     { "x.set_contains(y)", nanoseconds_per_operation([&](std::size_t i) { sink = W[i].set_contains(X[i]) ? 1.0 : 0.0; }, n),
@@ -189,6 +209,13 @@ int main()
   for (const Row& row : rows) {
     std::printf("| %s | %.2f | %.2f | %.1f |\n", row.operation, row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
   }
+
+  const double check_subnormal_ns = nanoseconds_per_operation([&](std::size_t) {
+      sink = (1.0 + (check_subnormal + 0.0) == 1.0) ? 1.0 : 0.0; }, n);
+  const double check_normal_ns = nanoseconds_per_operation([&](std::size_t) {
+      sink = (1.0 + (check_normal + 0.0) == 1.0) ? 1.0 : 0.0; }, n);
+  std::printf("\nThe check of each operation, 1 + (2^-1060 + 0) == 1: %.2f ns; the same with 2^-60: %.2f ns\n",
+              check_subnormal_ns, check_normal_ns);
 
   gaol::cleanup();
   return 0;

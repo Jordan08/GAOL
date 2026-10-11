@@ -135,7 +135,7 @@ build type or the configuration (below).
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
 | `GAOL_DEBUG` | `OFF` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG`, with debugging information and `GAOL_DEBUGGING`, whatever the build type or the configuration, a project bringing GAOL in included, as `enable-debug` of meson and `--enable-debug` of configure. Each configuration keeps its other flags (the C runtime of Visual C++, sanitizers...); the tests and the examples, and the code of that project, keep their build type; there is no target `perf` (GAOL v5) |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
-| `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, which sets neither the rounding direction nor the flush-to-zero modes (GAOL v5, see [The rounding direction](using.md#the-avx-512-path)) |
+| `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, which sets no rounding direction (GAOL v5, see [The rounding direction](using.md#the-avx-512-path)) |
 
 ### The archive of the sources and the packages
 

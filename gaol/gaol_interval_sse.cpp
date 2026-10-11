@@ -9,11 +9,12 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2009 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
  *--------------------------------------------------------------------------*/
 
 /*
@@ -70,10 +71,10 @@
 
 
 
-    void interval::operator delete[](void *p)
-    {
-        GAOL_MEMFREE(p);
-    }
+  void interval::operator delete[](void *p)
+  {
+      GAOL_MEMFREE(p);
+  }
 
 	void* interval::operator new(size_t, void *p)
 	{
@@ -83,12 +84,12 @@
 		return p;
 	}
 
-    // The placement delete, called when the constructor of an interval built
-    // by the placement new above throws: the memory is the caller's, and was
-    // freed with free(), which it may not have come from
-    void interval::operator delete(void *, void *)
-    {
-    }
+  // The placement delete, called when the constructor of an interval built
+  // by the placement new above throws: the memory is the caller's, and was
+  // freed with free(), which it may not have come from
+  void interval::operator delete(void *, void *)
+  {
+  }
 
 	double hausdorff(const interval &I1, const interval &I2)
 	{
@@ -587,8 +588,8 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
  interval& interval::operator+=(const interval& I)
     {
 #if GAOL_HAVE_AVX512_TARGET
-      // The AVX-512 path: no rounding direction, no flush-to-zero mode
-      // (gaol/gaol_interval_avx512.cpp)
+      // The AVX-512 path: no rounding direction to set, the flush-to-zero
+      // modes cleared where they are set (gaol/gaol_interval_avx512.cpp)
       if (avx512_arithmetic) {
         xmmbounds = fast_add(xmmbounds, I.xmmbounds);
         return *this;
@@ -663,7 +664,7 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
       /* The AVX-512 path: the zero and the sign of d read from its bits,
          which the denormals-are-zero mode does not change, where the SSE2
          path checks the modes before comparing d (a subnormal d was 0), and
-         the product itself needs neither the direction nor the modes */
+         the product carries its rounding direction itself */
       // The product of the interval by [d, d]: the dispatch of fast_mul()
       // makes it, from the stored form of [d, d], its check clearing the
       // flush-to-zero modes, which the SSE2 path checks before this branch.

@@ -9,6 +9,7 @@
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
  *--------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -20,7 +21,7 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Joran NININ
   \date   2001-10-03
 */
 
@@ -32,12 +33,13 @@
 #include "gaol/gaol_limits.h"
 
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 
 // _mm_ucomigt_sd() and the others, for the quiet comparisons of Visual C++
 // below
-#if defined(_MSC_VER) && !defined(__clang__) \
-    && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+#if defined(_MSC_VER) && !defined(__clang__)  && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
 #  include <emmintrin.h>
 #endif
 
@@ -130,8 +132,7 @@ namespace gaol_core {
 // The casts of C of GAOL_HI() and GAOL_LO() are written with those of C++
 // (GAOL v5): reinterpret_cast, to a const pointer so that a const double is
 // taken too, then const_cast, so that the word stays assignable as before
-#define GAOL_WORD_OF_DOUBLE(x) \
-  const_cast<GAOL_INT_FOR_DOUBLE*>(reinterpret_cast<const GAOL_INT_FOR_DOUBLE*>(&(x)))
+#define GAOL_WORD_OF_DOUBLE(x)  const_cast<GAOL_INT_FOR_DOUBLE*>(reinterpret_cast<const GAOL_INT_FOR_DOUBLE*>(&(x)))
 #if GAOL_WORDS_BIGENDIAN
 #  define GAOL_IFBIGENDIAN(a,b)   (a), (b)
 #  define GAOL_HI(x) (*GAOL_WORD_OF_DOUBLE(x))
@@ -214,8 +215,7 @@ namespace gaol_core {
 } // namespace gaol_core
 
 namespace gaol_detail {
-#if defined(_MSC_VER) && !defined(__clang__) \
-  && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
   GAOL_INLINE bool quiet_less(double x, double y)
   {
     return _mm_ucomigt_sd(_mm_set_sd(y), _mm_set_sd(x)) != 0;
@@ -266,6 +266,137 @@ namespace gaol_detail {
     return std::isunordered(x, y);
   }
 #endif
+
+  /*
+    The comparisons of bounds that the modes flushing the subnormal numbers to
+    zero do not change (GAOL v5, point Q of TODO.md, issue #68). With
+    denormals-are-zero (DAZ of MXCSR on x86, FZ and FIZ on ARM), which a
+    program linked with -Ofast has (see gaol/gaol_fpu.h), a comparison reads
+    a subnormal operand as a zero of its sign: 3*2^-1074 < 5*2^-1074 is false,
+    and so is -2^-1074 < 0. The operations that compute clear these modes in
+    their check of the rounding direction before they compare a bound; the
+    functions that only compare or copy bounds make no check, which made them
+    3 to 4.5 ns slower in a micro-benchmark of the constructor,
+    certainly_le(), set_contains() and |= (Intel i7-1185G7, Clang 18 and GCC
+    9.4), two to three times their time, and compare the bounds with these
+    instead.
+    Reading a subnormal as a zero keeps the order of the doubles, x <= y
+    giving x' <= y': a comparison under these modes can find two different
+    doubles equal, both zero or subnormal, but never in the wrong order. So
+    the quiet comparison is made first, false for a NaN, and only where it
+    finds the two doubles equal are they compared as the integers of
+    bound_key(), which no mode changes. With the modes cleared, these
+    integers are only compared for two equal doubles: on the same processor,
+    with Clang 18, the constructor was as fast as before, x <= y,
+    x.set_contains(y), x &= y and x | y 0.5 to 0.8 ns slower, and floor()
+    1.7 ns (gaol_performance). The comparisons are quiet ones, as those
+    above, and write nothing to the control register: they are the same with
+    GAOL_PRESERVE_ROUNDING, and right too where GAOL cannot clear the modes
+    (ARM with Visual C++).
+  */
+
+  //! The bits of x
+  GAOL_INLINE std::uint64_t bound_bits(double x)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
+
+  //! The order of the doubles that are no NaN, as integers: -0 and +0 are 0
+  GAOL_INLINE std::int64_t bound_key(double x)
+  {
+    const std::uint64_t bits = bound_bits(x);
+    const std::int64_t magnitude = static_cast<std::int64_t>(bits & 0x7fffffffffffffffULL);
+    return (bits >> 63) != 0 ? -magnitude : magnitude;
+  }
+
+  /*
+    Two equal doubles of the same bits, the bounds of a point interval as
+    floor() makes them, are the same bound: tested first, they spare the
+    integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7
+    (Clang 18)
+  */
+  GAOL_INLINE bool bound_less(double x, double y)
+  {
+    return quiet_less(x, y) || (x == y && bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y));
+  }
+
+  GAOL_INLINE bool bound_less_equal(double x, double y)
+  {
+    return quiet_less(x, y) || (x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y)));
+  }
+
+  GAOL_INLINE bool bound_greater(double x, double y)
+  {
+    return bound_less(y, x);
+  }
+
+  GAOL_INLINE bool bound_greater_equal(double x, double y)
+  {
+    return bound_less_equal(y, x);
+  }
+
+  GAOL_INLINE bool bound_equal(double x, double y)
+  {
+    return x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) == bound_key(y));
+  }
+
+  /*
+    The roundings of a bound to an integer, as without the modes that flush
+    the subnormals to zero (GAOL v5, point Q of TODO.md). Under
+    denormals-are-zero, the instruction that rounds (roundsd on x86) reads a
+    subnormal as a zero of its sign, so that the floor of -2^-1074 was -0 and
+    the ceil of 2^-1074 +0; and musl's floor() and ceil() return x itself
+    where x == 0, which a subnormal is under that mode. A subnormal x, whose
+    exponent bits are 0, is therefore rounded from its bits: its floor is -1
+    below 0, its ceil 1 above 0, and its other roundings a zero of its sign.
+    The other doubles are rounded by the C library: these modes change
+    neither them, which are no subnormal, nor their results, which are
+    integers or zeros. No comparison of x as a double: GCC vectorizes the
+    loops of floor() into signaling comparisons, which raise the
+    invalid-operation exception on the NaN bounds of the empty set (see
+    GAOL_FPU_SCALAR() in gaol/gaol_interval.h).
+  */
+  //! Whether x is subnormal, as its bits tell
+  GAOL_INLINE bool bound_is_subnormal(double x)
+  {
+    const std::uint64_t bits = bound_bits(x);
+    return (bits & 0x7ff0000000000000ULL) == 0 && (bits << 1) != 0;
+  }
+
+  GAOL_INLINE double bound_floor(double x)
+  {
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -1.0 : 0.0;
+    }
+    return std::floor(x);
+  }
+
+  GAOL_INLINE double bound_ceil(double x)
+  {
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -0.0 : 1.0;
+    }
+    return std::ceil(x);
+  }
+
+  GAOL_INLINE double bound_trunc(double x)
+  {
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -0.0 : 0.0;
+    }
+    return std::trunc(x);
+  }
+
+  //! std::round(), halfway values away from zero
+  GAOL_INLINE double bound_round(double x)
+  {
+    if (bound_is_subnormal(x)) {
+      return std::signbit(x) ? -0.0 : 0.0;
+    }
+    return std::round(x);
+  }
 } // namespace gaol_detail
 
 namespace gaol_core {

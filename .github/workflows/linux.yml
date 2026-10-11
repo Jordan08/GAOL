@@ -67,6 +67,11 @@ jobs:
           - { os: ubuntu-24.04-arm, cc: gcc-11,   cxx: g++-11,     packages: 'gcc-11 g++-11', desc: 'Ubuntu 24.04 arm64 GCC 11' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved' }
+          # With Clang on x86_64, which takes the AVX-512 path by default
+          # there: Clang 18 computed the difference of that path after its
+          # guard had set flush-to-zero back, and [3e-308] - [2.9e-308] was
+          # [0, 0], which the GCC jobs did not show (GAOL v5, point Q)
+          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 Clang, rounding direction preserved' }
           # libgaol.so.5.0.0, as configure and meson build it: the tests link
           # with it, the expressions included, which it did not export (GAOL v5)
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DBUILD_SHARED_LIBS=ON', desc: 'Ubuntu 24.04 x86_64 GCC, shared library' }

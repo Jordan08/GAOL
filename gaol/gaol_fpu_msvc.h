@@ -1,28 +1,29 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily
- * developed at the Swiss Federal Institute of Technology, Lausanne,
- * Switzerland, and is now developed at the Institut de Recherche
- * en Informatique de Nantes, France.
- *
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2010 Laboratoire d'Informatique de Nantes Atlantique, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
- *--------------------------------------------------------------------------*/
+* gaol -- Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. Gaol was primarily
+* developed at the Swiss Federal Institute of Technology, Lausanne,
+* Switzerland, and is now developed at the Institut de Recherche
+* en Informatique de Nantes, France.
+*
+* Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+* Copyright (c) 2002-2010 Laboratoire d'Informatique de Nantes Atlantique, France
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
+* COPYING file for information.
+*--------------------------------------------------------------------------
+* By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_fpu_msvc.h
-  \brief
+\file   gaol_fpu_msvc.h
+\brief
 
-  FPU Handling when compiling with Microsoft Visual C++
+FPU Handling when compiling with Microsoft Visual C++
 
-  \author Frederic Goualard
-  \date   2001-10-01
+\author Frederic Goualard, Joran NININ
+\date   2001-10-01
 */
 
 
@@ -46,7 +47,7 @@
 #if GAOL_USING_SSE2_INSTRUCTIONS
 #  include <xmmintrin.h>
 #  include <intrin.h>
-   // Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
+// Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
 #  define GAOL_SSE_MASK _MM_MASK_MASK
 #endif
 
@@ -54,105 +55,105 @@
 
 
 namespace gaol_core {
-
-GAOL_INLINE double previous_float(double d)
-{
-	return nextafter(d,-GAOL_INFINITY);
-}
-
-GAOL_INLINE double next_float(double d)
-{
-	return nextafter(d,GAOL_INFINITY);
-}
-
-#if GAOL_USING_SSE2_INSTRUCTIONS
-	//! Sets rounding direction to -oo for SSE operations only
-	GAOL_INLINE void round_downward_sse(void)
-	{
-		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_DOWN);
-	}
-
-	//! Sets rounding direction to the nearest for SSE operations only
-	GAOL_INLINE void round_to_nearest_sse(void)
-	{
-		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_NEAREST);
-	}
-
-
-	/*! Sets rounding direction to +oo for SSE operations only, writing the
-	    whole of MXCSR: every exception masked, the flags and the modes
-	    flushing the subnormals to zero cleared. Only gaol::init() calls it,
-	    after fesetenv(FE_DFL_ENV); the operations write the rounding bits
-	    alone (gaol/gaol_fpu.h, GAOL v5) */
-	GAOL_INLINE void round_upward_sse(void)
-	{
-		_mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);
-	}
-#endif // GAOL_USING_SSE2_INSTRUCTIONS
-
-
-/*
+  
+  GAOL_INLINE double previous_float(double d)
+  {
+    return nextafter(d,-GAOL_INFINITY);
+  }
+  
+  GAOL_INLINE double next_float(double d)
+  {
+    return nextafter(d,GAOL_INFINITY);
+  }
+  
+  #if GAOL_USING_SSE2_INSTRUCTIONS
+  //! Sets rounding direction to -oo for SSE operations only
+  GAOL_INLINE void round_downward_sse(void)
+  {
+    _mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_DOWN);
+  }
+  
+  //! Sets rounding direction to the nearest for SSE operations only
+  GAOL_INLINE void round_to_nearest_sse(void)
+  {
+    _mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_NEAREST);
+  }
+  
+  
+  /*! Sets rounding direction to +oo for SSE operations only, writing the
+  whole of MXCSR: every exception masked, the flags and the modes
+  flushing the subnormals to zero cleared. Only gaol::init() calls it,
+  after fesetenv(FE_DFL_ENV); the operations write the rounding bits
+  alone (gaol/gaol_fpu.h, GAOL v5) */
+  GAOL_INLINE void round_upward_sse(void)
+  {
+    _mm_setcsr(GAOL_SSE_MASK|_MM_ROUND_UP);
+  }
+  #endif // GAOL_USING_SSE2_INSTRUCTIONS
+  
+  
+  /*
   The rounding direction of the doubles computed from here on, with
   _control87() of the C runtime. This header serves a Visual C++ without
   <fenv.h> only (gaol_fpu.h): with <fenv.h>, which Visual C++ has had since
   2013, gaol_fpu_fenv.h is used, and writes the control registers itself.
-*/
-GAOL_INLINE  void
-round_downward(void)
-{
-	_control87(_RC_DOWN,_MCW_RC);
-}
-
-GAOL_INLINE  void
-round_upward(void)
-{
-	_control87(_RC_UP,_MCW_RC);
-}
-
-GAOL_INLINE  void
-round_nearest(void)
-{
-	_control87(_RC_NEAR,_MCW_RC);
-}
-
-GAOL_INLINE unsigned short int get_fpu_cw()
-{
-  // The unsigned int of _control87() on the 16 bits this function returns, as
-  // before, but written out: warning C4244 of /W4 otherwise (GAOL v5)
-  return static_cast<unsigned short int>(_control87(0,0));
-}
-
-GAOL_INLINE void reset_fpu_cw(unsigned short int st)
-{
-	_control87(st,_MCW_DN|_MCW_EM|_MCW_IC|_MCW_RC|_MCW_PC);
-}
-
+  */
+  GAOL_INLINE  void
+  round_downward(void)
+  {
+    _control87(_RC_DOWN,_MCW_RC);
+  }
+  
+  GAOL_INLINE  void
+  round_upward(void)
+  {
+    _control87(_RC_UP,_MCW_RC);
+  }
+  
+  GAOL_INLINE  void
+  round_nearest(void)
+  {
+    _control87(_RC_NEAR,_MCW_RC);
+  }
+  
+  GAOL_INLINE unsigned short int get_fpu_cw()
+  {
+    // The unsigned int of _control87() on the 16 bits this function returns, as
+    // before, but written out: warning C4244 of /W4 otherwise (GAOL v5)
+    return static_cast<unsigned short int>(_control87(0,0));
+  }
+  
+  GAOL_INLINE void reset_fpu_cw(unsigned short int st)
+  {
+    _control87(st,_MCW_DN|_MCW_EM|_MCW_IC|_MCW_RC|_MCW_PC);
+  }
+  
   /*!
-    \brief Returns the opposite of the argument
-
-    This macro is used to avoid the optimization if the negation is required
-    for trust rounding.
-   */
-#if GAOL_USING_ASM
-	GAOL_INLINE double f_negate(double x)
-    {
-		__asm {
-            fld x
-            fchs
-            fstp x
-        }
-         return x;
+  \brief Returns the opposite of the argument
+  
+  This macro is used to avoid the optimization if the negation is required
+  for trust rounding.
+  */
+  #if GAOL_USING_ASM
+  GAOL_INLINE double f_negate(double x)
+  {
+    __asm {
+      fld x
+      fchs
+      fstp x
     }
-#else
-    GAOL_INLINE double f_negate(double x)
-    {
-        uintdouble id;
-        id.d = x;
-        GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
-        return id.d;
-    }
-#endif // GAOL_USING_ASM
-
+    return x;
+  }
+  #else
+  GAOL_INLINE double f_negate(double x)
+  {
+    uintdouble id;
+    id.d = x;
+    GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
+    return id.d;
+  }
+  #endif // GAOL_USING_ASM
+  
 } // namespace gaol_core
 
 // In the namespace gaol too, as in GAOL 4; not reset_fpu_cw(), f_negate() and

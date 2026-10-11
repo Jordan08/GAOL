@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `4ed659e` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `762b106` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -206,6 +206,30 @@ arrête le programme dans `gaol_ieee1788::textToInterval` (#98).
 textes pour `ChangeLog`, `doc/differences.md` et `examples/examples.md` sont
 dans la description de #97.
 
+Fait le 6 octobre aussi : le point Q (anciens 4 et 45), par #100. Décidé au
+début du travail (#68) : les fonctions qui comparent des bornes sans calculer
+(le constructeur à deux bornes, les relations, `&`, `|`, `max`, `min`, `abs`,
+`sign`, `mig`, `mag`, `invabs_rel`) les comparent par leurs bits là où les
+doubles se comparent égaux (`gaol_detail::bound_less()`... de
+`gaol/gaol_port.h`), sans écrire dans MXCSR, plutôt que par la sonde (3 à
+4,5 ns de plus par appel) ; l'écriture, `midpoint()`, `split()` et `chi()`
+effacent les modes le temps de l'opération (la question de #58) ; le test de
+`<a, b>` du parser va au point E ; `gaol_performance` imprime dans la CI le
+temps de la sonde avec 2^-1060 et avec 2^-60 : aussi long sur les 68 jobs qui
+tournent sur un processeur, aucun ne prenant d'assistance microcode. Décidé en
+fin de travail, et fait par #100 : les arrondis à un entier, `is_an_int`,
+`is_canonical` (dont le `nextafter()` de l'UCRT et de macOS se trompait sous
+DAZ), `feven`, `nb_fp_numbers`, et `inf` et `sup` de `gaol_ieee1788` par les
+bits aussi ; le chemin AVX-512, dont l'arrondi porté par l'instruction
+applique FTZ, calculait `x - y` après avoir rétabli FTZ avec Clang 18 et
+`GAOL_PRESERVE_ROUNDING` (`[3e-308] - [2.9e-308]` valait [0, 0]) : corrigé,
+avec un job Clang de `linux.yml` qui le prend ; là où GAOL ne peut pas
+effacer les modes (Visual C++ pour ARM64), `operator<<` écrit une borne
+sous-normale vers l'extérieur (2^-1022 ou 0), ce que `numbers` vérifie sous
+`_controlfp_s()`. ARM avec Visual C++ hors de l'écriture, FIZ et
+`-fno-signed-zeros` restent seulement documentés. Les textes pour `ChangeLog`
+et `doc/differences.md` sont dans la description de #100.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
@@ -397,8 +421,8 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
 
 ### E. Le parser et les longues sommes (12, 40)
 
-La branche `todo-12-long-sums` régénère le parser : une seule régénération
-suffit si la partie parser du point Q (#68) est décidée avant.
+La branche `todo-12-long-sums` régénère le parser : elle y corrige aussi le
+test de `<a, b>`, que le point Q (#100) lui a laissé.
 
 - **12.** **Les longues sommes débordent la pile** (revue n° 17) :
   `textToInterval()` d'une somme de 100 000 termes plante encore, comme les
@@ -436,6 +460,12 @@ suffit si la partie parser du point Q (#68) est décidée avant.
   parser, faire échouer l'analyse comme pour une erreur de syntaxe ; les trois
   appels faux de `tests/ieee1788.cpp` sortiront alors de leur garde
   `GAOL_EXCEPTIONS_ENABLED`.
+- **45** (la partie du parser, laissée par le point Q, #100). Le parser
+  compare les deux nombres de `<a, b>` comme des doubles
+  (`gaol/gaol_interval_parser.ypp`) : sous denormals-are-zero,
+  `<1e-310, 1e-309>` est lu [1e-310, 1e-309] au lieu d'être refusé. Décidé le
+  6 octobre : les comparer par leurs bits (`gaol_detail::bound_equal()` de
+  `gaol/gaol_port.h`), à la régénération du parser, avec un test sous DAZ.
 
 ## Même fichier de test ou de documentation
 
@@ -450,13 +480,14 @@ convertit pas en `i` ASCII. Employer un pliage ASCII indépendant de la locale,
 conforme à la casse ignorée par le lexeur.
 
 - **11.** **Suites du lecteur sous denormals-are-zero** (#40). Le lecteur est
-  juste sous FTZ et DAZ (comparaisons sur les bits) ; le reste est au point 45.
-  Restent : vérifier une fois, avec `ctest -V -R numbers`, si les tests DAZ de
-  `numbers` s'exécutent ou se sautent sur macOS x86_64 sous Rosetta et avec
-  l'UCRT en Release ; dans le manuel, la phrase sur ces modes garde sa marque
-  `\newinvfive` (décidé le 3 octobre). Décidé aussi (#40) : faire tourner les
-  tests DAZ de `numbers` sur AArch64 et ARM32 (FPCR, FPSCR), avec l'outil de
-  `tests/gaol_tests.h` venu de #62.
+  juste sous FTZ et DAZ (comparaisons sur les bits), et le point Q (#100) a fait
+  le reste, hors `<a, b>` (point E). Restent : vérifier une fois, avec
+  `ctest -V -R numbers`, si les tests DAZ de `numbers` s'exécutent ou se sautent
+  sur macOS x86_64 sous Rosetta et avec l'UCRT en Release, et, pour FZ posé par
+  `_controlfp_s()` (#100), dans les jobs Visual C++ arm64 ; dans le manuel, la
+  phrase sur ces modes garde sa marque `\newinvfive` (décidé le 3 octobre).
+  Décidé aussi (#40) : faire tourner les tests DAZ de `numbers` sur AArch64 et
+  ARM32 (FPCR, FPSCR), avec l'outil de `tests/gaol_tests.h` venu de #62.
 - **58.** **Deux restes du lecteur sous DAZ** (suite du point 11, #40) : le
   manuel (`gaol.tex`, l. 3579) écrit `\code{-Ofast}` au lieu de
   `\option{-Ofast}` ; `tests/numbers.cpp` teste `#if GAOL_TESTS_HAVE_MXCSR`
@@ -584,46 +615,6 @@ ITF1788 a des tests pour les fonctions réciproques à ajouter (`mulRevToPair`,
   Boost.Interval, la bibliothèque que les utilisateurs prennent d'abord, dont
   les fonctions élémentaires ne sont pas sûres.
 
-### Q. Le flush-to-zero et DAZ hors du lecteur (4, 45)
-
-Le 45 est reporté (#68) ; sa partie constructeur touchera le constructeur que
-le point D a changé (#84), sa partie parser se fait avec le point E.
-
-- **4.** **Le flush-to-zero et le denormals-are-zero rendent les bornes
-  fausses** (revue n° 2) : `[1e-300] * [1e-20]` vaut [0, 0] dans un programme
-  lié avec `-Ofast` (par `crtfastmath.o`) ou qui charge un plug-in compilé
-  ainsi. Fait par #62 : une sonde sous-normale qui efface FTZ et DAZ (FZ sur
-  ARM), `-mno-daz-ftz` à l'édition de liens, un test et la documentation. Décidé
-  le 3 octobre : `gaol.pc` garde `-mno-daz-ftz`, qui arrête l'édition de liens
-  avec Clang 18 ou un GCC antérieur à 11.4 (c'est documenté) ; GCC 9.4 sous
-  `-funsafe-math-optimizations` réduit la sonde, même sous-normale, à `tiny ==
-  0.0` : c'est seulement documenté, sans double `volatile` ; le moins unaire
-  reste sans sonde (#62). Restent : mesurer sur les processeurs de la CI le coût
-  de la sonde (+0,5 ns sur `x * y` sur un Xeon) ; ARM avec Visual C++ ou
-  clang-cl, et FIZ, ne sont pas couverts ; `-fno-signed-zeros` fait sauter le `+
-  0.0` de la sonde dans le code du programme (seulement documenté). La suite est
-  au point 45.
-- **45.** **Le denormals-are-zero fausse encore des bornes hors du lecteur**
-  (suite du point 11) : des fonctions comparent des sous-normaux, que DAZ lit
-  comme 0, avant toute sonde. Le parser accepte `<1e-310, 1e-309>`,
-  `interval(0x1p-1073, 0x1p-1074)` n'est pas vide, `bound_to_text()` écrit une
-  borne sous-normale au plus proche (à un chiffre, [22·2^-1074] s'écrit
-  `[1e-322]`, relu plus petit), `sign(interval(-denorm_min))` donne `[0, 0]`
-  au lieu de `[-1, -1]`, et `log`, `sqrt`, `abs`, `div_rel`, `mid()` et les
-  relations se trompent : depuis #62 (point 4), avant la première opération
-  qui sonde, et à chaque appel avec `GAOL_PRESERVE_ROUNDING`. Correction :
-  comparer les bits, ou sonder avant de comparer, et régénérer le parser.
-  Question de #58 : retirer DAZ et FTZ le temps de l'écriture, gdtoa et le
-  runtime Debug de Visual C++ écrivant 0 un sous-normal sous DAZ. Les tests DAZ
-  ne tournent pas sur ARM (FPCR.FZ). Reporté le 3 octobre : la correction et la
-  question de #58 sont dans l'issue #68. Sous DAZ, `pow([0.5], [2^-1074])` vaut
-  [1, 1] depuis le point 1 (#63) : vérifier s'il le vaut encore après #62 ; s'il
-  le vaut, il relève de ce point. Depuis #71, `operator<<` écrit une borne qui
-  vaut 0 à la comparaison sans en avoir les bits, un sous-normal sous DAZ, par
-  un flux et au plus proche, comme avant, le `snprintf` qu'il appelle pour les
-  autres bornes l'ayant écrite 0 avec MSYS2 CLANG64 : c'est elle qu'il faut
-  arrondir vers l'extérieur.
-
 ### W. Des décorations (26)
 
 Reporté (#67).
@@ -713,8 +704,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96 et #97
-  après leur fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97 et
+  #100 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -730,24 +721,24 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 4 : Q ; 6 : A ; 8 : B ; 11 : F ; 12 : E ; 15 : F ;
-18 : F ; 25 : P ; 26 : W ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ;
-35 : I ; 37 : I ; 38 : I ; 40 : E ; 45 : Q ; 46 : F ; 47 : A ; 51 : B ; 56 : A ;
+1 : B ; 2 : B ; 3 : A ; 6 : A ; 8 : B ; 11 : F ; 12 : E ; 15 : F ; 18 : F ;
+25 : P ; 26 : W ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
+37 : I ; 38 : I ; 40 : E ; 45 : E ; 46 : F ; 47 : A ; 51 : B ; 56 : A ;
 58 : F ; 59 : F ; 60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
-1. **Débloquer la fin du parser : la décision parser de Q.** Le point D est
-   fait (#83, #84, #85 et #87) ; préciser la correction DAZ du lecteur avant
-   la régénération finale du parser. Les branches E et H peuvent avancer en
-   parallèle sur leurs parties indépendantes.
+1. **Débloquer la fin du parser.** Fait : le point D (#83, #84, #85 et #87),
+   et la décision parser de Q (#100 : le test de `<a, b>` par les bits, au
+   point E). Les branches E et H peuvent avancer en parallèle sur leurs
+   parties indépendantes.
 2. **Terminer et fusionner E.** Inclure dans E la gestion récupérable de
-   l'échec d'allocation du scanner ; régénérer le parser une fois les décisions
-   de Q prises, puis relire la branche. Le point H est fait (#86), hors le 27
-   et la partie manuel reportée au point I.
-3. **Finir Q et les corrections de puissance B.** Faire d'abord A.3, prérequis
+   l'échec d'allocation du scanner ; régénérer le parser avec le test de
+   `<a, b>` du point Q, puis relire la branche. Le point H est fait (#86),
+   hors le 27 et la partie manuel reportée au point I.
+3. **Finir les corrections de puissance B.** Faire d'abord A.3, prérequis
    noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce
-   point. Compléter ensuite les tests DAZ concernés par Q.
+   point. Q est fait par #100.
 4. **Achever les autres corrections mathématiques : M et R.** Garder les
    mesures et les tests avec les changements de bornes concernés. Faits par #89
    et #92.

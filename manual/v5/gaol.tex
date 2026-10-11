@@ -1169,7 +1169,10 @@ in two ways:
   and the other operations measured stayed within the noise. Some x86
   processors take a microcode assist, of the order of a hundred cycles, for an
   operation with a subnormal operand or result, which each operation would pay
-  there: they were not measured;
+  there: on the processors of the continuous integration (x86-64, i386, arm64
+  and armhf, under Linux, Windows and macOS), the check took 0.35 to
+  1.43~ns, as long as the same check made of a normal number, within the
+  noise, and none took such an assist;
 \item \file{gaol.pc} and \code{gaol::gaol} give \option{-mno-daz-ftz} to the
   link, where the compiler accepts it (GCC 13 and later on x86, and from 11.4
   and 12.4 in the series 11 and 12; GCC~9.4, 12.3, GCC for ARM and Clang~18
@@ -1179,33 +1182,52 @@ in two ways:
 \end{itemize}
 
 \noindent
-What remains: the functions that read or compare the bounds of an interval
-without computing make no check, and read a subnormal bound as a zero for as
-long as a mode flushing the operands (DAZ, FZ) is set, that is until an
-operation that checks has cleared it, or, with
-\option{GAOL\_PRESERVE\_ROUNDING}, which sets the modes back after each
-operation, for as long as the program keeps them. They are the constructor
-from two bounds, the reading and the writing of text, the relations
-(\code{set\_contains()}, \code{certainly\_le()}, \code{==}\dots), the
-intersection \code{\&} and the hull \code{|}, \code{max()}, \code{min()},
-\code{abs()}, \code{sign()}, \code{floor()}, \code{ceil()}, \code{integer()}
-and the other roundings to an integer, \code{invabs\_rel()}, \code{mig()},
-\code{mag()}, \code{midpoint()} and \code{split()}. Under
-denormals-are-zero, \code{max()} of $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$
-and $[200\cdot 2^{-1074}]$ is the first one,
-\code{abs(interval(-1e-309, -1e-310))} stays negative, and the hull \code{|}
-of the same two intervals, inline in the headers of GAOL, depends on how the
-compiler of the program arranges its comparisons: \itv{0}{0} with
-GCC~13 at \option{-O2}, $[3\cdot 2^{-1074}, 100\cdot 2^{-1074}]$ at
-\option{-O0}, the right hull with Clang~18 at \option{-O2}. The unary minus
-makes no check either, but it only exchanges the stored bounds, which the
-modes do not change, as they do not change the test of the empty set, made
-before the check of every operation (an operation with an empty operand may
-return before its check, the modes left as it found them), nor the test by
-which \code{hausdorff()} returns $+\infty$ before its check when a bound is
-infinite in one of its two intervals only. The modes of other
-processors, and of ARM with Visual C++, are neither checked nor cleared; GCC
-links \file{crtfastmath.o} for none of the other processors GAOL is tested
+The functions that only read, compare or copy the bounds of an interval make
+no check, which made each of them 3 to 4.5~ns slower in a micro-benchmark on
+an Intel i7-1185G7, two to three times the constructor or
+\code{certainly\_le()}: they compare the bounds as bounds, whatever the
+modes.\newinvfive{} A mode that reads a
+subnormal operand as a zero (DAZ, FZ) can make two different doubles compare
+equal, both zero or subnormal, but never puts two doubles in the wrong order:
+the doubles are compared first, and only where they compare equal are they
+compared as integers, by their bits, which no mode changes. These functions
+are the constructor from two bounds, the relations
+(\code{set\_contains()}, \code{certainly\_le()}, \code{set\_eq()},
+\code{is\_zero()}, \code{lexicographic\_less}\dots), the intersection
+\code{\&} and the hull \code{|}, \code{max()}, \code{min()}, \code{abs()},
+\code{sign()}, \code{floor()}, \code{ceil()}, \code{integer()} and the other
+roundings to an integer, \code{invabs\_rel()}, \code{mig()}, \code{mag()},
+\code{is\_canonical()}, \code{feven()}, \code{nb\_fp\_numbers()}, and
+\code{inf()} and \code{sup()} of \code{gaol\_ieee1788}; the roundings to an
+integer round a subnormal bound from its bits, which the \code{floor()} and
+\code{ceil()} of musl would return as it is. They give the results they give
+with the modes cleared, and leave the modes as they found them, writing
+nothing to the control register, with \option{GAOL\_PRESERVE\_ROUNDING} or
+without. On the Intel i7-1185G7, with Clang~18, this left the constructor as
+fast as before, and made \code{x <= y}, \code{x.set\_contains(y)},
+\code{x \&= y} and \code{x | y} 0.5 to 0.8~ns slower, and \code{floor()}
+1.7~ns.
+\code{midpoint()}, \code{split()} and \code{chi()}, which compute, and the
+writing of an interval (\code{operator<{}<}, \code{intervalToText()}) make the
+check, which clears the modes, or sets them back after them with
+\option{GAOL\_PRESERVE\_ROUNDING}: the C library writes a subnormal 0 under
+denormals-are-zero with gdtoa (FreeBSD, macOS) and with the Debug runtime of
+Visual C++.
+
+What remains: the reader takes the numbers apart by their bits, whatever the
+modes, but compares the two numbers of \code{<a, b>}, which have to be the
+same double, as doubles, so that under denormals-are-zero
+\code{<1e-310, 1e-309>} is read as $[10^{-310}, 10^{-309}]$ rather than
+refused. The unary minus makes no check either, but it only exchanges the
+stored bounds, which the modes do not change, as they do not change the test
+of the empty set, made before the check of every operation (an operation with
+an empty operand may return before its check, the modes left as it found
+them), nor the test by which \code{hausdorff()} returns $+\infty$ before its
+check when a bound is infinite in one of its two intervals only. The modes of
+other processors, and of ARM with Visual C++, are neither checked nor
+cleared, though the functions above compare the bounds right there too, and
+\code{operator<{}<} writes a subnormal bound outward, as $2^{-1022}$ away from
+zero and 0 toward it; GCC links \file{crtfastmath.o} for none of the other processors GAOL is tested
 on. Link a program that uses GAOL without these options, or with
 \option{-mno-daz-ftz}, and compile the code that needs them apart from it.
 

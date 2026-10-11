@@ -16,6 +16,7 @@
  * including gaol/core_math_port.h in each of them (`-include`, `/FI`).
  *
  * Copyright (c) 2026 ENSTA, France
+ * Modified by Joran NININ (GAOL v5)
  *
  * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------

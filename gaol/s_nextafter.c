@@ -8,6 +8,7 @@
  * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
+ * Copyright (c) 2026 ENSTA, France
  */
 
 /* IEEE functions
@@ -36,7 +37,6 @@ __declspec(dllexport)
 __attribute__ ((visibility("default")))
 #endif
 double s_nextafter(double x, double y)
-
 {
 	unsigned long long ux,uy,ax,ay;
 	/* volatile: the product x*x stored in it only raises the underflow flag,

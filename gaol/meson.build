@@ -1,3 +1,5 @@
+# Copyright (c) 2026 ENSTA, France
+# Modified by Joran NININ (GAOL v5)
 # Meson build of GAOL: libgaol
 #
 # Created 2025-11-25 by Raphaël Chenouard

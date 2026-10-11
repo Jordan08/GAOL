@@ -1,23 +1,24 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- Just Another Interval Library
- *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. It has been developed at
- * the Institut de Recherche en Informatique de Nantes, France
- * 
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>
- *--------------------------------------------------------------------------*/
+* gaol -- Just Another Interval Library
+*--------------------------------------------------------------------------
+* This file is part of the gaol distribution. It has been developed at
+* the Institut de Recherche en Informatique de Nantes, France
+* 
+* Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique
+* Copyright (c) 2026 ENSTA, France
+*--------------------------------------------------------------------------
+* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
+* COPYING file for information.
+*--------------------------------------------------------------------------
+* By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>, Joran NININ
+*--------------------------------------------------------------------------*/
 
 /*!
-  \file   gaol_exact_msvc.h
-  \brief  functions get_inexact() and clear_inexact() for Microsoft Visual C++
+\file   gaol_exact_msvc.h
+\brief  functions get_inexact() and clear_inexact() for Microsoft Visual C++
 
-  \author Frederic Goualard
-  \date   2006-03-17
+\author Frederic Goualard, Joran NININ
+\date   2006-03-17
 */
 
 #ifndef GAOL_EXACT_MSVC_H

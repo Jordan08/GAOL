@@ -56,6 +56,9 @@
 #include <ostream>
 #include <streambuf>
 #include <type_traits>
+#if defined(_MSC_VER) && defined(_M_ARM64)
+#  include <float.h>
+#endif
 
 // The control register of the SSE instructions, where the flush-to-zero and
 // denormals-are-zero modes are set
@@ -220,6 +223,22 @@ namespace
     }
     return not_above_zero;
   }
+
+  // Whether the sum 2^-1060 + 0, by which GAOL checks the modes before it
+  // writes, is 0 under denormals-are-zero: GAOL clears the mode only where
+  // it sees it there, and an emulator could honour it in the comparisons and
+  // not in the additions (GAOL v5). The sum goes to volatile memory, as the
+  // comparison above.
+  bool check_sees_denormals_are_zero()
+  {
+    volatile double subnormal = 8.0947715414629834e-320, zero = 0.0;
+    volatile double sum;
+    {
+      Flushing flushing(denormals_are_zero);
+      sum = subnormal + zero;
+    }
+    return sum == 0.0;
+  }
 #endif
 
   /*
@@ -311,15 +330,16 @@ namespace
     [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
     or, as the literal [a] of a point, [0]. It compares their bits. x86 only,
     where MXCSR is.
-    A subnormal bound, which compares equal to 0 under the mode, is then
-    written by the C library, which has to write it as it does without the
-    mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS calls,
-    tests the number against 0 first, and writes 0 for every subnormal under
-    denormals-are-zero. Nothing is checked where the C library does so, nor
-    under the Debug C runtime of Visual C++, which reports a failed assertion
-    of its own first ("unexpected input value; log10 failed", cfout.cpp), the
-    logarithm of the subnormal being taken under the mode, and then writes
-    0, on x86 as on x64.
+    The text has to be the one written without the mode too: operator<<
+    clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
+    subnormal bound rounded to nearest, [0, 4.940656458412465e-324] for
+    [0, 5e-324], below the upper bound, and left it to the C library under
+    the mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS
+    calls, tests the number against 0 first, and writes 0 for every subnormal
+    under denormals-are-zero, and the Debug C runtime of Visual C++ reports a
+    failed assertion of its own ("unexpected input value; log10 failed",
+    cfout.cpp), the logarithm of the subnormal being taken under the mode,
+    and then writes 0. This test skipped both, which it now checks.
   */
   void subnormal_output()
   {
@@ -328,45 +348,14 @@ namespace
       std::printf("Denormals-are-zero is not honoured: the output of subnormals with it is not checked\n");
       return;
     }
+    if (!check_sees_denormals_are_zero()) {
+      std::printf("Denormals-are-zero is honoured by the comparisons, not by the sum that GAOL checks it with: "
+                  "the output of subnormals with it is not checked\n");
+      return;
+    }
     const double least = std::numeric_limits<double>::denorm_min();
     const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
                               interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
-    // Each bound written as operator<< leaves it to the C library under the
-    // mode: to nearest, with 16 digits, by a stream as the one of the test
-    const auto written = [](double d, bool flushing) {
-      RoundingToNearest nearest;
-      std::ostringstream os;
-      os.precision(16);
-      if (flushing) {
-        Flushing daz(denormals_are_zero);
-        os << d;
-      } else {
-        os << d;
-      }
-      return os.str();
-    };
-#if defined(_MSC_VER) && defined(_DEBUG)
-    const long reports = debug_runtime_reports();
-#endif
-    for (const interval& x : tiny) {
-      for (double d : { x.left(), x.right() }) {
-        const std::string flushed = written(d, true), plain = written(d, false);
-#if defined(_MSC_VER) && defined(_DEBUG)
-        if (debug_runtime_reports() != reports) {
-          debug_runtime_reports() = reports; // The runtime's, not GAOL's
-          std::printf("The Debug C runtime of Visual C++ reports an assertion when it writes a subnormal under "
-                      "denormals-are-zero, and writes %s for %s: the output of subnormals with the mode is not "
-                      "checked\n", flushed.c_str(), plain.c_str());
-          return;
-        }
-#endif
-        if (flushed != plain) {
-          std::printf("The C library writes %s under denormals-are-zero, and %s without it: the output of subnormals "
-                      "with the mode is not checked\n", flushed.c_str(), plain.c_str());
-          return;
-        }
-      }
-    }
     const interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
     interval::format(interval_format::bounds);
@@ -378,6 +367,10 @@ namespace
         os << x;
       }
       const std::string s = os.str();
+      std::ostringstream plain;
+      plain << x;
+      check("operator<< of subnormals with denormals-are-zero, as without it", s == plain.str(),
+            [&] { return hex(x) + " written " + s + " rather than " + plain.str(); });
       const std::string name = "operator<< of subnormals with denormals-are-zero, read back";
       const interval back = evaluate(name, [&] { return textToInterval(s); }, [&] { return hex(x) + " written " + s; });
       check(name + ": encloses them", back.set_contains(x), [&] { return hex(x) + " written " + s + " read " + hex(back); });
@@ -386,6 +379,68 @@ namespace
     interval::format(saved_format);
 #else
     std::printf("No control register of the SSE instructions: the output of subnormals with denormals-are-zero is not checked\n");
+#endif
+  }
+
+  /*
+    Visual C++ for 64-bit ARM, where GAOL cannot clear the modes that flush
+    the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
+    _DN_FLUSH) has operator<< write a subnormal bound outward, as 2^-1022 away
+    from zero and 0 toward it, without the C library, which may write it 0
+    under the mode; it was written to nearest, below an upper bound (GAOL v5,
+    point Q of TODO.md). Read back once the mode is cleared, the text of each
+    bound has to be on its side of the bound, and the interval read to
+    enclose the one written. The mode is checked first, with a product whose
+    subnormal result it flushes.
+  */
+  void subnormal_output_flush_not_cleared()
+  {
+#if defined(_MSC_VER) && defined(_M_ARM64)
+    unsigned int saved = 0, ignored = 0;
+    if (_controlfp_s(&saved, 0, 0) != 0) {
+      std::printf("_controlfp_s() does not read the control word: the output of subnormals with FZ is not checked\n");
+      return;
+    }
+    volatile double tiny = 1e-300, small = 1e-20;
+    volatile double product;
+    _controlfp_s(&ignored, _DN_FLUSH, _MCW_DN);
+    product = tiny * small;
+    _controlfp_s(&ignored, saved & _MCW_DN, _MCW_DN);
+    if (product != 0.0) {
+      std::printf("FZ, set by _controlfp_s(), is not honoured: the output of subnormals with it is not checked\n");
+      return;
+    }
+    const double least = std::numeric_limits<double>::denorm_min();
+    const interval tiny_intervals[] = { interval(0.0, least), interval(-least, 0.0), interval(least),
+                                        interval(-least), interval(21.0 * least, 22.0 * least) };
+    const std::streamsize saved_precision = interval::precision();
+    const interval_format::format_t saved_format = interval::format();
+    interval::format(interval_format::bounds);
+    interval::precision(16);
+    for (const interval& x : tiny_intervals) {
+      std::ostringstream os;
+      _controlfp_s(&ignored, _DN_FLUSH, _MCW_DN);
+      os << x;
+      _controlfp_s(&ignored, saved & _MCW_DN, _MCW_DN);
+      const std::string s = os.str();
+      const std::string name = "operator<< of subnormals with FZ set by the program (Visual C++, ARM64)";
+      const auto describe = [&] { return hex(x) + " written " + s; };
+      // "[l, r]", or "[a]" for both bounds
+      const std::string inside = (s.size() >= 2) ? s.substr(1, s.size() - 2) : s;
+      const std::size_t comma = inside.find(", ");
+      const std::string lt = inside.substr(0, comma);
+      const std::string rt = (comma == std::string::npos) ? lt : inside.substr(comma + 2);
+      const interval lo = evaluate(name, [&] { return textToInterval(lt); }, describe);
+      const interval hi = evaluate(name, [&] { return textToInterval(rt); }, describe);
+      check(name + ": the lower bound written at most it", !lo.is_empty() && lo.right() <= x.left(), describe);
+      check(name + ": the upper bound written at least it", !hi.is_empty() && hi.left() >= x.right(), describe);
+      const interval back = evaluate(name, [&] { return textToInterval(s); }, describe);
+      check(name + ", read back: encloses them", back.set_contains(x), [&] { return describe() + " read " + hex(back); });
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+#else
+    std::printf("Not Visual C++ for 64-bit ARM: the output of subnormals where GAOL cannot clear FZ is not checked\n");
 #endif
   }
 
@@ -2070,6 +2125,7 @@ int main()
   numbers();
   subnormal_numbers();
   subnormal_output();
+  subnormal_output_flush_not_cleared();
   constants();
   constructors();
   ieee_literals();

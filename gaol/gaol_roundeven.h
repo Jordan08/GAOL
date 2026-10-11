@@ -16,6 +16,7 @@
  * sources call, and this is what they are given there.
  *
  * Copyright (c) 2026 ENSTA, France
+ * Modified by Joran NININ (GAOL v5)
  *
  * Created 2026-09-20 by Jordan NININ
  *------------------------------------------------------------------------------
