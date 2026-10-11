@@ -883,6 +883,7 @@ namespace gaol_core {
     \return true if the parsing was possible and flase otherwise
     
     The trees may be as deep as memory allows (GAOL v5): see expr_eval.
+    std::bad_alloc is thrown where memory runs out.
     */
     //@{
     GAOL_NODISCARD extern GAOL_PUBLIC bool evaluate_left_right(const expression& el, const expression& er,
@@ -895,6 +896,8 @@ namespace gaol_core {
         an interval
         
         \return true if the parsing was possible and flase otherwise
+        
+        As evaluate_left_right(), whatever the depth of the tree (GAOL v5).
         */
         GAOL_NODISCARD extern GAOL_PUBLIC bool evaluate_expr(const expression& e,interval& itv);
         

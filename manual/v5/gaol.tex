@@ -3889,11 +3889,16 @@ appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
 infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}. GAOL~4 wrote the degenerate intervals in that form, and
-the texts it wrote for those whose digits are exact, as \code{<4, 4>}, are
-still read; \code{operator<{}<} writes such an interval \code{[a]}, the
-literal of IEEE 1788-2015 for a point, and any other with its two bounds
-(\pxref{sec:output-format}).
+\code{"<0.1, 0.1>"}. The two doubles are compared by their bits, $-0$ and $+0$
+being the same bound, so that the mode of the processor that reads the
+subnormal numbers as zero (denormals-are-zero) changes nothing:
+\code{"<1e-310, 1e-309>"} throws under it too.\newinvfive{} Compared as
+doubles, which two subnormal numbers are equal as under that mode, they were
+read \itv{10^{-310}}{10^{-309}}. GAOL~4 wrote the degenerate intervals in that
+form, and the texts it wrote for those whose digits are exact, as
+\code{<4, 4>}, are still read; \code{operator<{}<} writes such an interval
+\code{[a]}, the literal of IEEE 1788-2015 for a point, and any other with its
+two bounds (\pxref{sec:output-format}).
 
 \paragraph{Infinities.} An interval literal whose left bound is $+\infty$ or
 whose right bound is $-\infty$ is the empty set, as \code{numsToInterval} of
@@ -3922,10 +3927,29 @@ or more. About 10000 nested parentheses, brackets or signs, and about 5000
 nested calls, are read; a string nested deeper is refused as any string that is
 not an expression, and throws \element{input\_format\_error}.
 
+A \code{std::string}, given to \code{textToInterval()} or read by
+\code{operator>{}>}, is read whole: a NUL character is no character of any
+token, and a string holding one is not an expression.\newinvfive{} The reader
+read it up to the NUL, so that \code{"[1,2]"} followed by a NUL and any text
+was \itv{1}{2}, and a string of $2^{32}+3$ characters was read as its first
+3, as \code{"1+1"} for \code{"1+1+1+\ldots"}: the lexer of flex held the
+length of a string in an \code{int}.
+
 \paragraph{Errors.} A string that is not an expression throws
 \element{input\_format\_error}. An error found anywhere in the string stops the
 reading, and no interval is given: \code{"[nth\_root(8,1.5)]+[1,2]"} throws,
-where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive
+where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive{}
+Where memory runs out, the reading throws \code{std::bad\_alloc}, and frees
+all it allocated.\newinvfive{} flex, which wrote ``out of dynamic memory'' and
+ended the program, and the parser, which read a stack it could not grow as a
+string nested too deep, threw no such exception. Without exceptions, a wrong
+call in a string makes the reading fail, as a syntax error does:
+\code{parse\_interval()} returns \code{false}, and
+\code{gaol::textToInterval()} and \code{operator>{}>} report the error and
+abort, as for any string that is not an expression.\newinvfive{} The error was
+reported, and the program aborted, inside the reader, so that
+\code{gaol\_ieee1788::textToInterval()} could not give the empty set
+(\pxref{sec:ieee1788-text}).
 
 \begin{example}
 interval x = textToInterval("[4, 6*7]");
@@ -4462,7 +4486,12 @@ of their letters.\newinvfive
 \code{pown} and \code{rootn} is an integer. The names of GAOL alone
 (\code{nth\_root}, \code{cbrt}, \code{inverse}, \code{integer}, \code{log1p},
 \code{round\_ties\_to\_even}\ldots) are no functions there, and give the
-empty set, as any string that is no interval. As \code{pow}, the function
+empty set, as any string that is no interval: a wrong call
+(\code{"pown([2,5],2.5)"}, \code{"sin(1,2)"}) and a string holding a NUL
+character included, whether GAOL was configured with exceptions or
+not.\newinvfive{} Without them, a wrong call ended the program. Where memory
+runs out, \code{textToInterval} throws \code{std::bad\_alloc}, which it
+turned into the empty set. As \code{pow}, the function
 \code{textToInterval} is in the namespace \code{gaol} too, where it reads the
 names of GAOL and throws \code{input\_format\_error} for a wrong string: a
 program calls the one of the namespace it opens.

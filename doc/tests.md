@@ -384,7 +384,13 @@ point Q), which `numbers` checks there too.
   compared each number with the doubles around it as doubles, and
   denormals-are-zero reads a subnormal as 0, so that 1e-310 was read as the
   interval from the greatest subnormal to the least normal double, which does
-  not enclose it, and 0 as the greatest subnormal (GAOL v5). Intervals of
+  not enclose it, and 0 as the greatest subnormal (GAOL v5). Under
+  denormals-are-zero, `<a, b>` of two different subnormals, or of 0 and a
+  subnormal (`<1e-310, 1e-309>`, `<0x1p-1074, 0x1p-1073>`), has to be
+  refused, the empty set of `gaol_ieee1788::textToInterval` and the
+  `input_format_error` of `gaol::textToInterval`, and `<a, a>` of a subnormal
+  and `<-0, 0>` read: the reader compared the two bounds as doubles, equal
+  under the mode (GAOL v5, point Q). Intervals of
   subnormals (`[0, 5e-324]`, `[5e-324]`, `[-5e-324, 0]`...) written with 16
   digits under denormals-are-zero have to be read back, the mode restored, as
   intervals enclosing them: `operator<<` compares their bounds by their bits,
@@ -476,7 +482,9 @@ point Q), which `numbers` checks there too.
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
   `pow([-4,-1],2)` being the empty set, and to give the empty set for the
   names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
-  wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5).
+  wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5), with
+  or without exceptions: without them, a wrong call (`pown([2,5],2.5)`,
+  `sin(1,2)`) ended the program (GAOL v5, #98).
 - **`core_math`:** the bounds of the elementary functions against CORE-MATH
   itself. CORE-MATH is correctly rounded in the rounding direction in effect,
   so the tightest bounds of f at a double x are the values it gives rounding
@@ -562,9 +570,9 @@ point Q), which `numbers` checks there too.
   upward from the direction its `get_rounding_mode()` reads, which clang-cl on
   x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
   being below 1/sqrt(x) (GAOL v5).
-- **`expressions`:** `textToInterval("...")` lexes the string, parses it into
-  the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
-  goes through every node of the tree and every way the string can be wrong:
+- **`expressions`:** `textToInterval("...")` lexes the string and parses it,
+  computing each operation and each call as it reads them, so this test goes
+  through every rule of the grammar and every way the string can be wrong:
   the numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
   the strings the parser has to refuse with an exception rather than an
@@ -627,7 +635,8 @@ point Q), which `numbers` checks there too.
   stack is small enough, so a leaf at the bottom of a chain of 20000 nodes
   has to be visited and deleted less than 64 KiB of stack away from the
   function that starts the evaluation and the deletion, where the recursion
-  took 1.9 MB and 640 KB: the address of the frame of the leaf tells it,
+  took 2.2 MB and 1.3 MB (GCC 15.2, x86-64): the address of the frame of the
+  leaf tells it,
   whatever the stack of the program and the size of the frames
   (`__builtin_frame_address`, or `_AddressOfReturnAddress` with Visual C++;
   the check is skipped where the compiler has neither). Random trees of every
@@ -637,7 +646,27 @@ point Q), which `numbers` checks there too.
   nested 9000 levels by parentheses, brackets or signs, or thousands of levels
   by calls, has to be read, and one nested 100000 levels, which overflows the
   10000 entries of the stack of the parser, to be refused with
-  `input_format_error`.
+  `input_format_error`. A sum of 10000 terms has to be read with no more than
+  64 allocations live at once: the parser built a node for each operation,
+  20000 of them live before the evaluation (GAOL v5). A `std::string` holding
+  a NUL character (`"1\0junk"`, `"[1,2]\0"`) has to be no expression for
+  `gaol::textToInterval`, with one string or two, `operator>>` and
+  `gaol_ieee1788::textToInterval`: they read the string up to the NUL, as 1
+  and `[1, 2]` (GAOL v5). Every allocation of a reading has to be able to
+  fail, each in turn: the reading has to throw `std::bad_alloc`, or give the
+  interval where it did without the allocation, and to free all it
+  allocated, over strings with a call, the literals, a number of 20000
+  digits, longer than the buffer of flex, 300 nested parentheses, beyond the
+  stack of the parser kept in the stack of the program, and 300 minus signs,
+  and so do the evaluation and the deletion of a chain of 300 sums. flex
+  ended the program with `exit(2)` where it could not allocate its buffer,
+  the `std::bad_alloc` of the lexer or of an action went through the parser
+  and left the nodes on its stack, a stack of the parser that could not grow
+  gave `input_format_error`, and `gaol_ieee1788::textToInterval` gave the
+  empty set (GAOL v5). The test counts the allocations with a replacement of
+  the global `operator new`, which makes one fail; it says it skips these
+  checks where that replacement does not reach the library (a DLL on
+  Windows).
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`,
   `cos`, `tan`, `atan2` and `pow`, and of `log10` and seven functions
   of Table 10.5, compute with a 128-bit unsigned integer, which Visual C++
