@@ -270,8 +270,17 @@ static interval gaol_value(expr_node *e)
   The exception an action raises (GAOL v5): the action keeps it in the
   context of the reading and aborts, the parser frees the nodes it holds, and
   gaol_parse_string() throws it again. Thrown through the parser, it left them.
+
+  Without exceptions, the action aborts and the reading fails, as for a
+  syntax error (GAOL v5): gaol_ERROR wrote the error and called abort(), so
+  that gaol_ieee1788::textToInterval() ended the program on a wrong call, as
+  pown([2,5],2.5) or sin(1,2), where IEEE 1788-2015 has it give the empty set
+  (12.12.7) as it does for any other string that is no literal. The callers
+  that throw on a syntax error, gaol::textToInterval() and operator>>, still
+  end the program then.
 */
-#define GAOL_PARSING_ERROR(context,excep,msg)                           \
+#if GAOL_EXCEPTIONS_ENABLED
+#  define GAOL_PARSING_ERROR(context,excep,msg)                         \
   do {                                                                  \
     try {                                                               \
       gaol_ERROR(excep,msg);                                            \
@@ -279,6 +288,9 @@ static interval gaol_value(expr_node *e)
       gaol_context(context)->exception = std::current_exception();      \
     }                                                                   \
   } while (0)
+#else
+#  define GAOL_PARSING_ERROR(context,excep,msg) do { } while (0)
+#endif
 
 /*
   1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (GAOL

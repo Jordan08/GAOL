@@ -1018,6 +1018,7 @@ namespace
     };
     for (const auto& r : refusals) {
       bool syntax_error = false, other = false;
+#if GAOL_EXCEPTIONS_ENABLED
       try {
         const interval x = textToInterval(r.text);
         (void)x;
@@ -1026,6 +1027,12 @@ namespace
       } catch (...) {
         other = true;
       }
+#else
+      // Without exceptions, textToInterval() would end the program: the
+      // reader refuses the string as it refuses any syntax error
+      interval x;
+      syntax_error = !parse_interval(r.text.c_str(), x);
+#endif
       check("deep string: 100000 levels are refused with an input_format_error", syntax_error && !other,
             [&] { return std::string(r.name) + (other ? ": another exception" : ": read"); });
     }
