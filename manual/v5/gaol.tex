@@ -3920,12 +3920,17 @@ deleted with one call within another per node: a sum of 100000 terms overflowed
 the stack and crashed the program. Operations are now computed as they are
 read, and the expressions that a program builds through
 \file{gaol/gaol\_expression.h} are evaluated and deleted without recursion too.
+A token, a number, a name or a run of blanks, holds $2^{29}$ characters at
+most, the buffer of the lexer: a longer one throws \code{std::bad\_alloc}.
 The nesting of a string is limited by the stack of the parser, which holds 10000
 entries: an open parenthesis or bracket, or a sign, takes one until the
-expression it opens is complete, and the name and the parenthesis of a call two
-or more. About 10000 nested parentheses, brackets or signs, and about 5000
-nested calls, are read; a string nested deeper is refused as any string that is
-not an expression, and throws \element{input\_format\_error}.
+expression it opens is complete, the name and the parenthesis of a call two,
+and an operand and the operator or the comma after it two, until the operand
+that follows them is read.
+About 10000 nested parentheses, brackets or signs, 5000 nested calls of one
+argument and 3300 levels of \code{1+(1+(\ldots))} are read; a string nested
+deeper is refused as any string that is not an expression, and throws
+\element{input\_format\_error}.
 
 A \code{std::string}, given to \code{textToInterval()} or read by
 \code{operator>{}>}, is read whole: a NUL character is no character of any
@@ -3942,8 +3947,10 @@ where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive{}
 Where memory runs out, the reading throws \code{std::bad\_alloc}, and frees
 all it allocated.\newinvfive{} flex, which wrote ``out of dynamic memory'' and
 ended the program, and the parser, which read a stack it could not grow as a
-string nested too deep, threw no such exception. Without exceptions, a wrong
-call in a string makes the reading fail, as a syntax error does:
+string nested too deep, threw no such exception. Without exceptions, an
+error that the reader finds as it computes, a wrong call, an uncertain number
+as a bound or two different bounds in \code{<a, b>}, makes the reading fail,
+as a syntax error does:
 \code{parse\_interval()} returns \code{false}, and
 \code{gaol::textToInterval()} and \code{operator>{}>} report the error and
 abort, as for any string that is not an expression.\newinvfive{} The error was

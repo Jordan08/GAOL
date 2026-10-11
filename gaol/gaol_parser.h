@@ -101,12 +101,17 @@ namespace gaol {
 
     \note A string may be as long as memory allows (GAOL v5): a sum of 100000
     terms is read in a time proportional to its length, and takes no more of
-    the stack of the program than a sum of two terms. Its nesting is limited by
-    the stack of the parser, which holds 10000 entries: an open parenthesis, an
-    open bracket or a sign takes one until the expression it opens is complete,
-    and a call of a function two or more, so that about 10000 nested
-    parentheses, brackets or signs, and about 5000 nested calls, are read. A
-    string nested deeper is refused, as any string that is no expression.
+    the stack of the program than a sum of two terms. A token, a number, a
+    name or a run of blanks, holds 2^29 characters at most, the buffer of the
+    lexer: a longer one throws std::bad_alloc. The nesting of a string is
+    limited by the stack of the parser, which holds 10000 entries: an open
+    parenthesis, an open bracket or a sign takes one until the expression it
+    opens is complete, the name and the parenthesis of a call two, and an
+    operand and the operator or the comma after it two, until the operand
+    that follows them is read, so that about 10000 nested parentheses,
+    brackets or signs, 5000 nested calls of one argument and 3300 levels of
+    "1+(1+(...))" are read. A string nested deeper is refused, as any string
+    that is no expression.
 
     The readers of a std::string, gaol::textToInterval(),
     gaol_ieee1788::textToInterval() and operator>>, read the whole of it: a

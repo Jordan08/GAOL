@@ -482,9 +482,10 @@ allocate its buffer, and the parser turned a stack it could not grow into an
 A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
 `configure`, `-Denable-exception=false` of meson; see
 [Building GAOL](building.md)) prints a message and aborts instead of throwing.
-The CMake build always throws. The reader of strings is the exception: a
-wrong call in a string (`nth_root(8, 1.5)`, `sin(1, 2)`) makes it fail as a
-syntax error does, so that `parse_interval()` returns false and
+The CMake build always throws. The reader of strings is the exception: an
+error it finds as it computes, a wrong call (`nth_root(8, 1.5)`, `sin(1, 2)`),
+an uncertain number as a bound or two different bounds in `<a, b>`, makes it
+fail as a syntax error does, so that `parse_interval()` returns false and
 `gaol_ieee1788::textToInterval()` the empty set, as IEEE 1788-2015 has it
 (12.12.7), where GAOL ended the program; `gaol::textToInterval()` and
 `operator>>` print a message and abort then, as for any string that is no

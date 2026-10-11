@@ -635,8 +635,8 @@ point Q), which `numbers` checks there too.
   stack is small enough, so a leaf at the bottom of a chain of 20000 nodes
   has to be visited and deleted less than 64 KiB of stack away from the
   function that starts the evaluation and the deletion, where the recursion
-  took 2.2 MB and 1.3 MB (GCC 15.2, x86-64): the address of the frame of the
-  leaf tells it,
+  took 1.9 MB and 0.96 MB (GCC 15.2, x86-64, Release): the address of the
+  frame of the leaf tells it,
   whatever the stack of the program and the size of the frames
   (`__builtin_frame_address`, or `_AddressOfReturnAddress` with Visual C++;
   the check is skipped where the compiler has neither). Random trees of every
@@ -652,21 +652,24 @@ point Q), which `numbers` checks there too.
   a NUL character (`"1\0junk"`, `"[1,2]\0"`) has to be no expression for
   `gaol::textToInterval`, with one string or two, `operator>>` and
   `gaol_ieee1788::textToInterval`: they read the string up to the NUL, as 1
-  and `[1, 2]` (GAOL v5). Every allocation of a reading has to be able to
-  fail, each in turn: the reading has to throw `std::bad_alloc`, or give the
-  interval where it did without the allocation, and to free all it
-  allocated, over strings with a call, the literals, a number of 20000
-  digits, longer than the buffer of flex, 300 nested parentheses, beyond the
-  stack of the parser kept in the stack of the program, and 300 minus signs,
-  and so do the evaluation and the deletion of a chain of 300 sums. flex
-  ended the program with `exit(2)` where it could not allocate its buffer,
-  the `std::bad_alloc` of the lexer or of an action went through the parser
-  and left the nodes on its stack, a stack of the parser that could not grow
-  gave `input_format_error`, and `gaol_ieee1788::textToInterval` gave the
-  empty set (GAOL v5). The test counts the allocations with a replacement of
-  the global `operator new`, which makes one fail; it says it skips these
-  checks where that replacement does not reach the library (a DLL on
-  Windows).
+  and `[1, 2]`, and the message of `gaol::textToInterval` has to write the
+  NUL as `\0`, where it stopped at it (GAOL v5). Without exceptions, the
+  strings that are wrong have to make `parse_interval()` return false, a
+  wrong call and an uncertain number as a bound included, which ended the
+  program inside the reader (GAOL v5, #98). Every allocation of a reading has to
+  be able to fail, each in turn: the reading has to throw `std::bad_alloc`, or
+  give the interval where it did without the allocation, and to free all it
+  allocated, over strings with a call, the literals, a number of 20000 digits,
+  longer than the buffer of flex, 300 nested parentheses, beyond the stack of
+  the parser kept in the stack of the program, and 300 minus signs, and so do
+  the evaluation and the deletion of a chain of 300 sums. flex ended the program
+  with `exit(2)` where it could not allocate its buffer, the `std::bad_alloc` of
+  the lexer or of an action went through the parser and left the nodes on its
+  stack, a stack of the parser that could not grow gave `input_format_error`,
+  and `gaol_ieee1788::textToInterval` gave the empty set (GAOL v5). The test
+  counts the allocations with a replacement of the global `operator new`, which
+  makes one fail; it says it skips these checks where that replacement does not
+  reach the library (a DLL on Windows).
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`,
   `cos`, `tan`, `atan2` and `pow`, and of `log10` and seven functions
   of Table 10.5, compute with a 128-bit unsigned integer, which Visual C++
