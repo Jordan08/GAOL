@@ -293,24 +293,6 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval cosRev(const interval& c) { return ::gaol_core::acos_rel(c, interval::universe()); }
   GAOL_NODISCARD inline interval tanRev(const interval& c, const interval& x) { return ::gaol_core::atan_rel(c, x); }
   GAOL_NODISCARD inline interval tanRev(const interval& c) { return ::gaol_core::atan_rel(c, interval::universe()); }
-  //! atan2Rev1(b, c, x), atan2Rev2(a, c, x): atan2_rel_y(c, b, x), atan2_rel_x(c, a, x), the
-  //! arguments in another order: the y with atan2(y, b) in c, and the x with atan2(a, x) in c (GAOL v5)
-  GAOL_NODISCARD inline interval atan2Rev1(const interval& b, const interval& c, const interval& x)
-  {
-    return ::gaol_core::atan2_rel_y(c, b, x);
-  }
-  GAOL_NODISCARD inline interval atan2Rev1(const interval& b, const interval& c)
-  {
-    return ::gaol_core::atan2_rel_y(c, b, interval::universe());
-  }
-  GAOL_NODISCARD inline interval atan2Rev2(const interval& a, const interval& c, const interval& x)
-  {
-    return ::gaol_core::atan2_rel_x(c, a, x);
-  }
-  GAOL_NODISCARD inline interval atan2Rev2(const interval& a, const interval& c)
-  {
-    return ::gaol_core::atan2_rel_x(c, a, interval::universe());
-  }
   //! coshRev(c, x): acosh_rel(c, x)
   GAOL_NODISCARD inline interval coshRev(const interval& c, const interval& x) { return ::gaol_core::acosh_rel(c, x); }
   GAOL_NODISCARD inline interval coshRev(const interval& c) { return ::gaol_core::acosh_rel(c, interval::universe()); }
@@ -352,26 +334,25 @@ namespace gaol_ieee1788 {
     return ::gaol_core::pow_exponent_rel(c, a, interval::universe());
   }
   /*!
-    atan2Rev1(y, c, x): atan2_rel(c, y, x), the hull of the x in x with
-    atan2(y, x) in c for some y in y; atan2Rev2(x, c, y): atan2_exponent_rel(c, x, y),
-    the hull of the y in y with atan2(y, x) in c for some x in x (GAOL v5).
-    Both reverse atan2(y, x) of this namespace, the atan2 of the standard (Table 9.1)
+    atan2Rev1(x, c, y): atan2_rel_y(c, x, y), the hull of the y in y with
+    atan2(y, x) in c for some x in x; atan2Rev2(y, c, x): atan2_rel_x(c, y, x),
+    the hull of the x in x with atan2(y, x) in c for some y in y.
   */
-  GAOL_NODISCARD inline interval atan2Rev1(const interval& y, const interval& c, const interval& x)
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& x, const interval& c, const interval& y)
   {
-    return ::gaol_core::atan2_rel(c, y, x);
+    return ::gaol_core::atan2_rel_y(c, x, y);
   }
-  GAOL_NODISCARD inline interval atan2Rev1(const interval& y, const interval& c)
+  GAOL_NODISCARD inline interval atan2Rev1(const interval& x, const interval& c)
   {
-    return ::gaol_core::atan2_rel(c, y, interval::universe());
+    return ::gaol_core::atan2_rel_y(c, x, interval::universe());
   }
-  GAOL_NODISCARD inline interval atan2Rev2(const interval& x, const interval& c, const interval& y)
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& y, const interval& c, const interval& x)
   {
-    return ::gaol_core::atan2_exponent_rel(c, x, y);
+    return ::gaol_core::atan2_rel_x(c, y, x);
   }
-  GAOL_NODISCARD inline interval atan2Rev2(const interval& x, const interval& c)
+  GAOL_NODISCARD inline interval atan2Rev2(const interval& y, const interval& c)
   {
-    return ::gaol_core::atan2_exponent_rel(c, x, interval::universe());
+    return ::gaol_core::atan2_rel_x(c, y, interval::universe());
   }
 
   // ----------------------------------------------------------------------

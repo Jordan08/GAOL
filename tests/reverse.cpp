@@ -643,7 +643,7 @@ namespace
         }
       }
     }
-    check("atan2_rel: whether the angle of a sampled point is in c is always decided", undecided == 0,
+    check("atan2_rel_y and atan2_rel_x: whether the angle of a sampled point is in c is always decided", undecided == 0,
           [&] { return std::to_string(undecided) + " points undecided"; });
   }
 }
