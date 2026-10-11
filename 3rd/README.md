@@ -70,13 +70,15 @@ of `pow([x], [0.5])`). With Visual C++, it gives them `NAN` and `INFINITY` read
 from their bits, which the UCRT writes for C as products of `1e+300` that
 `/fp:strict` computes when the program runs, in the rounding direction in
 effect (`-0` and `FLT_MAX` downward and toward zero: `pow` rounded downward was
-`-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). With Visual C++ and
-clang-cl, it gives them for `__builtin_ldexp()` the `gaol_ldexp()` of
-`gaol/gaol_ldexp.h`, x·2<sup>n</sup> rounded once in the direction in effect:
-the `ldexp()` of the UCRT does not round so where the result is subnormal,
-and `erfc`, which rounds its subnormal values with it, was the double below
-`erfc(x)` rounding upward from x = 26.54 on. `tests/core_math.cpp` checks
-all three.
+`-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). With every
+compiler, it gives them for `__builtin_ldexp()` the `gaol_ldexp()` of
+`gaol/gaol_ldexp.h`, x·2<sup>n</sup> rounded once in the direction in effect,
+rather than the `ldexp()` of the C library, which `erfc` rounds its
+subnormal values with: the one of the UCRT of Windows does not round so
+where the result is subnormal, and `erfc` was the double below `erfc(x)`
+rounding upward from x = 26.54 on (Visual C++ and clang-cl); the one of
+macOS gave 0 for 2<sup>−1127</sup> rounded upward. `tests/core_math.cpp`
+checks all three.
 
 On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
 that rounds their doubles, rather than the control word of the x87 unit, which

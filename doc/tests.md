@@ -603,9 +603,9 @@ point Q), which `numbers` checks there too.
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
   x64, which `gaol/gaol_config.h` refuses there, fail 21 and 6 of these checks
   under wine (GAOL v5). The `ldexp()` CORE-MATH rounds the subnormal values
-  of `erfc` with, `gaol_ldexp()` of `gaol/gaol_ldexp.h` with Visual C++ and
-  clang-cl, whose UCRT `ldexp()` does not round in the direction in effect,
-  and the one of the C library elsewhere, has to be x·2<sup>n</sup> rounded
+  of `erfc` with, `gaol_ldexp()` of `gaol/gaol_ldexp.h` with every compiler
+  (the `ldexp()` of the UCRT of Windows and of macOS do not always round in
+  the direction in effect), has to be x·2<sup>n</sup> rounded
   once in the four directions, against the value computed from the bits of
   x with integers: at the halfway points between two subnormals, next to the
   least subnormal and to the least normal double, beyond the largest double,

@@ -309,11 +309,12 @@ namespace
   /*
     The ldexp() CORE-MATH rounds the subnormal values of erfc with (GAOL v5):
     gaol_ldexp() of gaol/gaol_ldexp.h, which gaol/core_math_port.h gives it
-    with Visual C++ and clang-cl, the ldexp() of the UCRT not rounding in the
-    direction in effect there (erfc(0x1.a8b12fc6e4892p+4) was the double below
-    its value, rounding upward), and the ldexp() of the C library elsewhere.
-    Each has to give x * 2^n rounded once in the four directions, computed
-    apart from the bits of x: at the halfway points between two subnormals,
+    with every compiler, the ldexp() of the C library not rounding in the
+    direction in effect everywhere (with the UCRT of Windows,
+    erfc(0x1.a8b12fc6e4892p+4) was the double below its value, rounding
+    upward, and the one of macOS missed up to 22 of these checks). It has to
+    give x * 2^n rounded once in the four directions, computed apart from the
+    bits of x: at the halfway points between two subnormals,
     next to the least subnormal and to the least normal double, where a
     result first rounded and then scaled is rounded twice, across the whole
     range of the exponents, beyond the largest double, and at random pairs.
@@ -360,35 +361,27 @@ namespace
       pairs.push_back({(gen() & 1) ? -x : x, n});
     }
 
-    struct Candidate { const char* name; double (*f)(double, int); };
-    std::vector<Candidate> candidates = {{"gaol_ldexp()", gaol_ldexp}};
-#if !defined(_MSC_VER)
-    // what CORE-MATH calls for __builtin_ldexp() but with Visual C++ and clang-cl
-    candidates.push_back({"the ldexp() of the C library", static_cast<double (*)(double, int)>(std::ldexp)});
-#endif
-    for (const Candidate& c : candidates) {
-      for (const Pair& p : pairs) {
-        for (int d = 0; d < 4; ++d) {
-          volatile double x = p.x;
-          volatile int n = p.n;
-          std::fesetround(directions[d]);
-          const double got = gaol::rnd_keep(c.f(x, n));
-          std::fesetround(FE_UPWARD);
-          const double expected = ldexp_reference(p.x, p.n, directions[d]);
-          check(std::string(c.name) + ": x * 2^n rounded once, in the direction in effect",
-                std::memcmp(&got, &expected, sizeof got) == 0,
-                [&] {
-                  return std::string(c.name) + " of " + show(p.x) + " and " + std::to_string(p.n) + " rounding "
-                       + names[d] + " = " + show(got) + " rather than " + show(expected);
-                });
-        }
+    for (const Pair& p : pairs) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = p.x;
+        volatile int n = p.n;
+        std::fesetround(directions[d]);
+        const double got = gaol::rnd_keep(gaol_ldexp(x, n));
+        std::fesetround(FE_UPWARD);
+        const double expected = ldexp_reference(p.x, p.n, directions[d]);
+        check("gaol_ldexp(): x * 2^n rounded once, in the direction in effect",
+              std::memcmp(&got, &expected, sizeof got) == 0,
+              [&] {
+                return "gaol_ldexp(" + show(p.x) + ", " + std::to_string(p.n) + ") rounding " + names[d] + " = "
+                     + show(got) + " rather than " + show(expected);
+              });
       }
-      for (double x : {0.0, -0.0, inf, -inf}) {
-        volatile double vx = x;
-        const double got = c.f(vx, -2000);
-        check(std::string(c.name) + ": 0 and the infinities unchanged", std::memcmp(&got, &x, sizeof got) == 0,
-              [&] { return show(x) + " gives " + show(got); });
-      }
+    }
+    for (double x : {0.0, -0.0, inf, -inf}) {
+      volatile double vx = x;
+      const double got = gaol_ldexp(vx, -2000);
+      check("gaol_ldexp(): 0 and the infinities unchanged", std::memcmp(&got, &x, sizeof got) == 0,
+            [&] { return show(x) + " gives " + show(got); });
     }
   }
 

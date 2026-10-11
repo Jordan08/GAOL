@@ -11,15 +11,18 @@
  * below its value, and GAOL's interval erfc() did not enclose it (clang-cl of
  * Visual Studio 2022 and 2026, for x64, x86 and ARM64). An ldexp() rounding
  * to nearest or toward zero whatever the direction, given to erfc.c on
- * Linux, gave the same wrong bounds. This function is what
- * gaol/core_math_port.h gives CORE-MATH for __builtin_ldexp() there.
+ * Linux, gave the same wrong bounds. The ldexp() of macOS is wrong too, on
+ * fewer results: 2^-1127 rounded upward was 0. This function is what
+ * gaol/core_math_port.h gives CORE-MATH for __builtin_ldexp(), with every
+ * compiler, so that erfc() depends on no C library.
  *
  * It multiplies x by powers of two, as the scalbn() of musl does: the
  * products before the last one are exact unless their result is subnormal,
  * and n is then left at -54 or below, so that the last product, the only
  * rounding that counts, is below half the least subnormal and rounds as the
- * exact x * 2^n does. The powers are made from their bits, which no rounding
- * direction changes.
+ * exact x * 2^n does. A product before the last one that overflows leaves the
+ * last one beyond the largest double too, where it rounds as x * 2^n does.
+ * The powers are made from their bits, which no rounding direction changes.
  *
  * This header is C, and is included both by gaol/core_math_port.h, for the
  * sources of CORE-MATH, and by tests/core_math.cpp, which checks it in the

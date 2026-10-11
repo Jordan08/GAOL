@@ -23,8 +23,8 @@
 *   rounded, rather than the x87 unit, which the C library may read;
 * - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
 *   direction in effect, rather than the one of the C library;
-* - with Visual C++ and clang-cl, the ldexp() of gaol/gaol_ldexp.h, rounded in
-*   the direction in effect, rather than the one of the UCRT;
+* - the ldexp() of gaol/gaol_ldexp.h, rounded in the direction in effect,
+*   rather than the one of the C library;
 * - silence for the warnings on conversions GAOL's library is compiled with.
 *
 * Copyright (c) 2026 ENSTA, France
@@ -399,21 +399,23 @@ static __forceinline int gaol_mul_overflow_u64(uint64_t a, uint64_t b, uint64_t 
 #endif /* _MSC_VER */
 
 /*---------------------------------------------------------------------------
-ldexp() with Visual C++ and clang-cl
+ldexp(), with every compiler
 
-The ldexp() of the UCRT, which Visual C++ calls and to which clang-cl turns
-__builtin_ldexp(), does not round in the direction in effect where the result
-is subnormal: erfc.c, which rounds its subnormal results with it, gave the
-double below erfc(x) rounding upward, from x = 26.54 on (GAOL v5). The
-function of gaol/gaol_ldexp.h is given instead; the other sources call
-__builtin_ldexp() with exact results only (powers of two).
+erfc.c rounds its subnormal results with __builtin_ldexp(), which compilers
+turn into a call to the ldexp() of the C library, and is correctly rounded
+only if that ldexp() rounds in the direction in effect. Not all do: the UCRT
+of Windows, which Visual C++ and clang-cl call, rounds subnormal results
+otherwise, and erfc(x) was the double below its value rounding upward from
+x = 26.54 on; the C library of macOS gave 0 for 2^-1127 rounded upward, and
+missed 5 (macOS 14 and 15) to 22 (macOS 26) of the checks of
+tests/core_math.cpp (GAOL v5). The function of gaol/gaol_ldexp.h is given
+instead, everywhere, so that erfc() depends on no C library; the other
+sources call __builtin_ldexp() with exact results only (powers of two).
 --------------------------------------------------------------------------*/
 
-#if defined(_MSC_VER)
 #include "gaol/gaol_ldexp.h"
 #undef __builtin_ldexp
 #define __builtin_ldexp(x, n) gaol_ldexp(x, n)
-#endif /* _MSC_VER */
 
 /*---------------------------------------------------------------------------
 The warnings GAOL's library is compiled with, which the sources of
