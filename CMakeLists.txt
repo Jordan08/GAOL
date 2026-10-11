@@ -760,9 +760,12 @@ target_include_directories(gaol_core_math PRIVATE
 # on purpose (GAOL v5): its #pragma STDC FENV_ACCESS, which /fp:strict makes
 # redundant (C4068), the anonymous structures of its unions (C4201), masks
 # written as negative constants (C4245), and the volatile variables it
-# computes for the flags they raise alone (C4189)
+# computes for the flags they raise alone (C4189); and in erfc.c the call of a
+# void function returned from cr_erf_accurate(), void too, which C does not
+# allow but which calls the function and returns all the same (C4098; erf.c
+# calls it without return)
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-  target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189)
+  target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189 /wd4098)
 endif()
 
 if(MSVC)
