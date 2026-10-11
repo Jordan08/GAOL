@@ -235,9 +235,13 @@ namespace
           [&] { return text + " gave an interval"; });
 #else
     // Without exceptions (configure --disable-exceptions, meson
-    // -Denable-exception=false), the string would end the program: not
-    // checked (GAOL v5)
-    (void)text;
+    // -Denable-exception=false), textToInterval() would end the program: the
+    // reader has to refuse the string, a wrong call, an uncertain number as a
+    // bound and <a, b> of two different bounds included, which ended the
+    // program inside it (GAOL v5, #98)
+    interval x;
+    check("expression: a string that is wrong is refused", !parse_interval(text.c_str(), x),
+          [&] { return text + " was read"; });
 #endif
   }
 

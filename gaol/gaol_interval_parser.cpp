@@ -380,7 +380,7 @@ static interval gaol_value(expr_node *e)
     }                                                                   \
   } while (0)
 #else
-#  define GAOL_PARSING_ERROR(context,excep,msg) do { } while (0)
+#  define GAOL_PARSING_ERROR(context,excep,msg) static_cast<void>(context)
 #endif
 
 /*
