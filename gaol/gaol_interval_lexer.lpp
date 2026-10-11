@@ -68,9 +68,13 @@ extern int gaol_read_input(void *context, char *buf, int max_size);
   An error of flex: an allocation that failed, the other errors it reports
   being those of input it does not read here or of states it never reaches.
   flex wrote it and called exit(2), which ended the program: it throws
-  std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5)
+  std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5).
+  The function that throws is in gaol/gaol_interval_parser.ypp, so that the
+  code flex writes after the error is not code that the compiler sees no way
+  to reach (C4702 of Visual C++)
 */
-#define YY_FATAL_ERROR(msg) throw std::bad_alloc()
+extern void gaol_flex_error();
+#define YY_FATAL_ERROR(msg) gaol_flex_error()
 
 // The memory of flex, linked to the context of the reading, which frees what
 // flex leaves when an allocation fails (gaol/gaol_interval_parser.ypp)
