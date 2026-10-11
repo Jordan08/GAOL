@@ -86,6 +86,10 @@ op("pownRev", "pownRev({0}, {1})")
 op("pownRevBin", "pownRev({0}, {1}, {2})")
 op("mulRev", "mulRev({0}, {1})")
 op("mulRevTen", "mulRev({0}, {1}, {2})")  # mulRev(b, c, x)
+# The reverse functions of pow(x, y) (Table 10.1): powRev1(b, c, x), the x
+# of x with x^y in c for some y of b, and powRev2(a, c, x), the y of x with
+# a'^y in c for some a' of a
+op("powRev1 powRev2", "@({0}, {1}, {2})")
 # Two-output division (10.5.5)
 op("mulRevToPair", "mulRevToPair({0}, {1})", "II")
 # Cancellative addition and subtraction (10.5.6), set operations (10.5.7)
@@ -104,8 +108,6 @@ op("equal subset less strictLess precedes strictPrecedes interior disjoint isMem
 # "Not provided")
 NOT_IN_STANDARD = "not an operation of IEEE 1788-2015, which GAOL v5 does not provide"
 NOT_PROVIDED = {
-    "powRev1": "powRev1 (Table 10.1): GAOL v5 has no reverse of pow(x, y)",
-    "powRev2": "powRev2 (Table 10.1): GAOL v5 has no reverse of pow(x, y)",
     "compoundm1": "compoundm1 (Table 10.5): CORE-MATH has none",
     "overlap": "overlap (10.6.4): GAOL v5 has no interval overlapping",
 }
@@ -702,9 +704,33 @@ def accurate(case, got, expected):
     return next_down(lo) <= got[0] and got[1] <= next_up(hi)
 
 
+def reverse_pow(case):
+    """The tightest enclosure of powRev1(b, c, x) or powRev2(a, c, x), the
+    hull of the solutions computed with mpmath at 2000 bits by
+    tests/pow_rel_values.py, which makes the cases of GAOL's own tests of
+    these functions (see doc/tests.md); None for the empty set"""
+    import importlib.util
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "tests", "pow_rel_values.py")
+    spec = importlib.util.spec_from_file_location("pow_rel_values", path)
+    values = importlib.util.module_from_spec(spec)
+    # no __pycache__ left in tests/
+    dont_write_bytecode, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+    try:
+        spec.loader.exec_module(values)
+    finally:
+        sys.dont_write_bytecode = dont_write_bytecode
+    args = [interval_of(lit) for lit in case.inputs]
+    if any(a is None for a in args):
+        return None, True
+    t = values.tightest(1 if case.op == "powRev1" else 2, *args)
+    return (None if t == values.EMPTY else t), True
+
+
 def reference(case):
     """(the tightest result, True) for the operations whose failures need it,
     computed apart from GAOL; (None, False) where none is computed"""
+    if case.op in ("powRev1", "powRev2"):
+        return reverse_pow(case)
     fn = {"sinRev": "sin", "cosRev": "cos", "tanRev": "tan"}.get(case.op.replace("Bin", ""))
     if fn is None:
         return None, False
