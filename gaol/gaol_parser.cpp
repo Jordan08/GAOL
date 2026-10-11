@@ -37,9 +37,9 @@ using std::istream;
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_expr_eval.h"
 
-// The reading of a string by the parser of bison and the lexer of flex
-// (gaol/gaol_interval_parser.ypp)
-extern bool gaol_parse_string(const char* const s, gaol::interval& out,
+// The reading of the n characters at s by the parser of bison and the lexer
+// of flex (gaol/gaol_interval_parser.ypp)
+extern bool gaol_parse_string(const char* const s, std::size_t n, gaol::interval& out,
                               gaol::parsing_names names);
 
 namespace gaol {
@@ -54,7 +54,7 @@ namespace gaol {
   */
   bool parse_interval(const char* const s, interval& out, parsing_names names)
   {
-    return gaol_parse_string(s, out, names);
+    return gaol_parse_string(s, std::strlen(s), out, names);
   }
 
 } // namespace gaol

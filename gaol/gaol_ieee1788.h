@@ -99,17 +99,10 @@ namespace gaol_ieee1788 {
   textToInterval(s): the interval s writes, read with the names of the
   functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
   gaol::textToInterval() reads those of GAOL (GAOL v5); the empty set for a
-  string that is no interval (12.1.3), where GAOL throws
+  string that is no interval (12.12.7), a NUL character included, where GAOL
+  throws
   */
-  GAOL_NODISCARD inline interval textToInterval(const std::string& s)
-  {
-    try {
-      interval x;
-      return ::gaol::parse_interval(s.c_str(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
-    } catch (const std::exception&) {
-      return interval::emptyset();
-    }
-  }
+  GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& s);
   
   // ----------------------------------------------------------------------
   // Forward elementary functions (Table 9.1)

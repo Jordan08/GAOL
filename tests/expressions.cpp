@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <functional>
 #include <random>
 #include <type_traits>
 #include <utility>
@@ -1186,6 +1187,61 @@ namespace
     check("eval_stack: 10000 values pushed on a stack of 4 come out in reverse", in_reverse);
   }
 
+  // A string with its NUL characters written \0, for the messages
+  std::string shown(const std::string& s)
+  {
+    std::string out;
+    for (const char c : s) {
+      out += (c == '\0') ? std::string("\\0") : std::string(1, c);
+    }
+    return out;
+  }
+
+  /* A NUL character in a std::string is no character of any token, and the
+     string is no expression, whatever comes before or after it (GAOL v5).
+     The readers of a std::string gave the parser its c_str(), which the lexer
+     read up to the NUL: "1\0junk" was read as 1, and "[1,2]\0" as [1, 2]. */
+  void nul_characters()
+  {
+    const std::string texts[] = {
+      std::string("1\0junk", 6), std::string("[1,2]\0", 6), std::string("\0", 1),
+      std::string("1+\0" "2", 4), std::string("[1,\0" "2]", 6),
+    };
+    for (const std::string& t : texts) {
+      const interval x = gaol_ieee1788::textToInterval(t);
+      check("NUL character: gaol_ieee1788::textToInterval gives the empty set", x.is_empty(),
+            [&] { return shown(t) + ": " + hex(x); });
+#if GAOL_EXCEPTIONS_ENABLED
+      const auto refused_by = [&](const char* name, const std::function<interval()>& read) {
+        bool threw = false;
+        try {
+          const interval y = read();
+          (void)y;
+        } catch (const input_format_error&) {
+          threw = true;
+        }
+        check(std::string("NUL character: ") + name + " throws input_format_error", threw,
+              [&] { return shown(t); });
+      };
+      refused_by("textToInterval(s)", [&] { return textToInterval(t); });
+      refused_by("textToInterval(s, \"2\") with the NUL on the left",
+                 [&] { return textToInterval(t, "2"); });
+      refused_by("textToInterval(\"0\", s) with the NUL on the right",
+                 [&] { return textToInterval("0", t); });
+      std::istringstream in(t + "\n");
+      interval y(1.0);
+      bool threw = false;
+      try {
+        in >> y;
+      } catch (const input_format_error&) {
+        threw = true;
+      }
+      check("NUL character: operator>> fails, gives the empty set and throws input_format_error",
+            threw && in.fail() && y.is_empty(), [&] { return shown(t) + ": " + hex(y); });
+#endif
+    }
+  }
+
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   /* Strings read by four threads at once, with the names of GAOL and with
@@ -1255,6 +1311,7 @@ int main()
   step("stack_use");         stack_use();
   step("long_strings");      long_strings();
   step("long_built");        long_built();
+  step("nul_characters");    nul_characters();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   step("reading_in_threads"); reading_in_threads();

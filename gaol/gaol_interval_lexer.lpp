@@ -43,7 +43,15 @@ using namespace gaol_core;
 #include "gaol/gaol_exact.h"
 #include "gaol/gaol_fpu.h"
 
-#define YY_NEVER_INTERACTIVE 1
+/*
+  The characters of the string, which the context of the reading gives,
+  max_size at most at a time, and 0 at its end (gaol_read_input() in
+  gaol/gaol_interval_parser.ypp): the string is read up to its length, NUL
+  characters included, which no token holds (GAOL v5)
+*/
+extern int gaol_read_input(void *context, char *buf, int max_size);
+#define YY_INPUT(buf, result, max_size) { (result) = gaol_read_input(yyextra, (buf), (max_size)); }
+
 // The function of a name, in the table of the names the string is read with,
 // which the context of the reading gives (gaol/gaol_interval_parser.ypp); 0
 // for a name that is not in it
@@ -649,6 +657,11 @@ namespace gaol {
    the names of the functions. No yywrap(): a string is read to its end. */
 %option reentrant bison-bridge noyywrap
 
+/* The input is the string given (YY_INPUT), never interactive: flex would
+   test whether stdin is a terminal, by isatty(), for the buffer it creates
+   (GAOL v5) */
+%option never-interactive
+
 DIGIT		[0-9]
 HEXDIGIT	[0-9a-f]
 INT		{DIGIT}+
@@ -696,17 +709,17 @@ SPACE		[ \t\r\n]+
 %%
 
 /*
-  The scanner of a reading of the string s, whose extra data is the context of
-  the reading; 0 if it could not be allocated. gaol_cleanup_parsing() frees it,
-  with its buffer (GAOL v5)
+  The scanner of a reading, whose extra data is the context of the reading,
+  which gives the string: 0 if it could not be allocated. gaol_cleanup_parsing()
+  frees it. Its buffer is allocated when the lexer reads the first token
+  (GAOL v5)
 */
-void *gaol_initialize_parsing(const char *const s, void *context)
+void *gaol_initialize_parsing(void *context)
 {
   yyscan_t scanner;
   if (gaol_lex_init_extra(context, &scanner) != 0) {
     return 0;
   }
-  gaol__scan_string(s, scanner);
   return scanner;
 }
 
