@@ -149,7 +149,10 @@ public:
     TEST_SEQ(3_iv, interval(3.0));
     TEST_SEQ(0_iv, interval(0.0));
     TEST_SEQ(9007199254740993_iv, interval(9007199254740992.0, 9007199254740994.0));
-    TEST_SEQ(123456789012345678901234567890_iv, textToInterval("123456789012345678901234567890"));
+    // An integer that no unsigned long long holds, as a floating literal or as
+    // a string, as Visual C++ needs it (below)
+    TEST_SEQ(123456789012345678901234567890.0_iv, textToInterval("123456789012345678901234567890"));
+    TEST_SEQ("123456789012345678901234567890"_iv, textToInterval("123456789012345678901234567890"));
     TEST_SEQ(0x1p-3_iv, interval(0.125));
     TEST_SEQ(0x1.8p1_iv, interval(3.0));
     TEST_SEQ(0x10_iv, interval(16.0));
@@ -157,9 +160,15 @@ public:
     TEST_SEQ(0b101_iv, interval(5.0));
     TEST_SEQ(1'000'000_iv, interval(1000000.0));
     TEST_SEQ(0xFFFFFFFFFFFFFFFF_iv, interval(0xFFFFFFFFFFFFFFFFULL));
-    // 2^65 - 1, which no unsigned long long holds
+#if !defined(_MSC_VER) || defined(__clang__)
+    // Integers that no unsigned long long holds, 10^29 and 2^65 - 1. Visual
+    // C++ refuses them, with the suffix too (error C2177, "constant too big",
+    // Visual Studio 2022 and 2026), though the raw literal operator receives
+    // the text of the literal rather than its value
+    TEST_SEQ(123456789012345678901234567890_iv, textToInterval("123456789012345678901234567890"));
     const interval big = 0x1FFFFFFFFFFFFFFFF_iv;
     CPPUNIT_ASSERT(big.left() < std::ldexp(1.0, 65) && big.right() >= std::ldexp(1.0, 65));
+#endif
     TEST_SEQ("[1, 2]"_iv, interval(1.0, 2.0));
     TEST_SEQ("1/3"_iv, textToInterval("1/3"));
   }

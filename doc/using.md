@@ -426,7 +426,10 @@ themselves:
   double is. The integers written in hexadecimal, octal and binary are the
   integers they are (`010_iv` is 8), the digit separators of C++14 are left
   out, and `"[1, 2]"_iv` is the interval `textToInterval()` reads in the
-  string.
+  string. Visual C++ refuses an integer that no `unsigned long long` holds,
+  with the suffix too (error C2177, "constant too big"): there it is written
+  as a floating literal, `123456789012345678901234567890.0_iv`, or as a
+  string, `"123456789012345678901234567890"_iv`.
 
 ```cpp
 #include <iostream>

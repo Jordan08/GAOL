@@ -1848,7 +1848,10 @@ hexadecimal floating literals and the decimal integers are read by
 the integers they are; the digit separators of C++14 (\code{1'000\_iv}) are
 left out. A string with the suffix, \code{"[1, 2]"\_iv}, is the interval
 \code{textToInterval()} reads in it, and throws \code{input\_format\_error}
-when it is no interval.
+when it is no interval. Visual C++ refuses an integer that no
+\code{unsigned long long} holds, with the suffix too (error C2177, ``constant
+too big''): there it is written as a floating literal or as a string,
+\code{1e30\_iv} or \code{"1000000000000000000000000000000"\_iv}.
 \begin{example}
 #include <iostream>
 #include <gaol/gaol.h>

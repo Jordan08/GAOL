@@ -17,7 +17,11 @@
  * out. A string literal with the suffix, "[1, 2]"_iv, is the interval
  * textToInterval() reads in it, and throws input_format_error if it is no
  * interval. Nothing is visible without the using-directive: the operators
- * are in gaol::literals only.
+ * are in gaol::literals only. Visual C++ refuses an integer literal that no
+ * unsigned long long holds, with the suffix too (error C2177, "constant too
+ * big"), though the raw operator receives its text: there such an integer is
+ * written as a floating literal (123456789012345678901234567890.0_iv) or as
+ * a string ("123456789012345678901234567890"_iv).
  *
  *   #include <gaol/gaol_literals.h>
  *   using namespace gaol::literals;
