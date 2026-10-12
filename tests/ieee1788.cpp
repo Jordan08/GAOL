@@ -480,7 +480,6 @@ namespace
   {
     using gaol_tests::quotient;
     using gaol_tests::dyadic;
-    const double oo = std::numeric_limits<double>::infinity();
     const auto pair = [](double bl, double bu, double cl, double cu) {
       return mulRevToPair(numsToInterval(bl, bu), numsToInterval(cl, cu));
     };
