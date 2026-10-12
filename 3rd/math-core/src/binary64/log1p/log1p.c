@@ -480,7 +480,7 @@ static double __attribute__((noinline)) as_log1p_refine(double x, double a){
   ln21 = fasttwosum(ln21,ln20, &ln20);
 
   b64u64_u t = {.f = ln21};
-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
+  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){ /* GAOL */
     b64u64_u w = {.f = ln20};
     if((w.u^t.u)>>63)
       t.u--;
