@@ -6,8 +6,7 @@ le mainteneur, comment on valide, teste, commite, pousse, fait passer la CI et
 propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
-État au 4 octobre 2026 : `configure-clean` est au commit `dc036c6`, et toute sa
-CI est verte.
+État au 12 octobre 2026 : `configure-clean` est au commit `c7636d1`.
 
 ## 1. Le contexte
 
@@ -27,10 +26,11 @@ CI est verte.
     `master`, puis l'étiquette `v5.0.0`).
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
-- **L'arbre de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`. Le
-  mainteneur et d'autres agents y travaillent aussi. Des fichiers peuvent y être
-  modifiés sans être à toi ; c'est souvent le cas de `TODO.md`, que le
-  mainteneur enrichit lui-même.
+- **L'arbre de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`.
+  Le mainteneur et d'autres agents y travaillent aussi. Des fichiers peuvent y
+  être modifiés sans être à toi ; c'est souvent le cas de `TODO.md`, que le
+  mainteneur enrichit lui-même. `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`
+  est un autre clone du même dépôt : n'y travaille pas.
 
 ## 2. Les sources de vérité
 
@@ -243,17 +243,18 @@ un est refusée, quel que soit son gain.
 
 | Outil | Version, ou emplacement |
 | --- | --- |
-| GCC | 9.4 (`gcc`, `g++`) |
-| Clang | 18 (`clang-18`, `clang++-18`) |
-| CMake | 4.4 (`~/.local/bin/cmake`) |
-| autoconf, automake, libtool | 2.72, 1.18.1, 2.5.4 (`~/Logiciel/autotools/bin`) |
+| GCC | 15.2 (`gcc`, `g++`) |
+| Clang | 18, 20 et 21 (`clang-18`, `clang++-18`, `clang++-20`, `clang++-21`) |
+| CMake | 4.2 (`cmake`) |
+| autoconf, automake, libtool | 2.72, 1.18.1, 2.5.4 |
 | bison, flex | 3.8.2, 2.6.4 (les versions des fichiers générés commités) |
-| meson, ninja | meson 0.53.2 (le système, la plus ancienne prise en charge), ninja 1.10 |
-| Autres | `pdflatex`, `gcovr`, python3.8 avec mpmath |
+| meson, ninja | 1.10, 1.13 |
+| Autres | `pdflatex` (TeX Live 2025), `gcovr` 7.2, python 3.14 avec mpmath 1.3 |
 
-Une version récente de meson s'installe dans ton scratchpad
-(`pip install --target`), puis se lance avec
-`PYTHONPATH=<dir> python3 -m mesonbuild.mesonmain`.
+Ce sont les outils d'Ubuntu 26.04, tous dans le `PATH` (constaté le 11 octobre
+2026). La machine n'a plus GCC 9, que couvre le job `gcc-9` de `linux.yml`, ni
+meson 0.53.2, la plus ancienne version que le build meson prend en charge, que
+plus rien ne vérifie.
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
@@ -558,16 +559,14 @@ gh issue view 49 --json body --jq .body | diff - new.md   # seul le saut de lign
     `fix-path-core-math`, qui est la seule copie de son travail) ;
   - ne lance pas `git stash` sur ses fichiers.
 
-## 12. Où en est le travail (4 octobre 2026)
+## 12. Où en est le travail (12 octobre 2026)
 
-- **Faits** : les points C, J, K et L ; `make distclean` (#75) ; les constantes
-  de `gaol_port.h` retirées (#77) ; plus de `-lm` explicite (#78) ; les jobs
-  AppleClang et Visual C++ x64 et x86 en `-Werror` et `/WX`.
-- **Inachevés**, en branches « WIP » :
-  - E, `todo-12-long-sums` ;
-  - H, `todo-36-upward-rounding-effects`, en conflit avec `configure-clean`
-    dans `doc/using.md`.
-- **À faire** : A, B, D, F, G, I, M à X, puis Y (la publication de v5.0.0).
+- **Faits** : les points C à E, G, H, J à V ; le détail, avec les pull
+  requests, est dans `TODO.md` (« Fait depuis ») et l'issue #49.
+- **Inachevés** : aucun. La branche « WIP » du point H,
+  `todo-36-upward-rounding-effects`, est restée sans suite : le point a été
+  fait autrement, par #86 et #88.
+- **À faire** : A, B, F, I, W et X, puis Y (la publication de v5.0.0).
   La section « Ordre proposé pour les tâches restantes », à la fin de
   `TODO.md`, donne l'ordre suivi et ses raisons ; les dépendances entre points
   sont écrites dans chaque point. Le mainteneur donne les points un par un
