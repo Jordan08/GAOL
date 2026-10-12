@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `8b57b41` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `c547359` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -281,16 +281,18 @@ régénéré avec bison 3.8.2, celui d'Ubuntu 26.04, par #108 ;
 `parse_interval(nullptr)` reporté (#107) ;
 `process.md` mis à jour par une pull request à part. Les textes pour
 `ChangeLog` et `doc/differences.md` sont dans la description de #105.
-Fusionnés le 12 octobre aussi : #103, qui retire `.continue/rules`, #108, et
-#109, qui met `process.md` à jour (l'arbre `GAOL_V9`, les outils d'Ubuntu
-26.04) ; décidé ensuite : un job de la CI pour meson 0.53.2, la plus ancienne
-version prise en charge, que plus rien ne vérifiait.
+Fusionnés le 12 octobre aussi : #103, qui retire `.continue/rules`, #108, #109,
+qui met `process.md` à jour (l'arbre `GAOL_V9`, les outils d'Ubuntu 26.04), et
+#110, un job de la CI (`meson-oldest` de `build-systems.yml`) pour meson
+0.53.2, la plus ancienne version prise en charge, que plus rien ne vérifiait.
 
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-a-core-math-mingw` : le point A, #111.
+- `process-autoconf-check-branch` : `configure` régénéré par `autoconf` seul
+  dans `process.md`, et `check_branch` qui prend l'arbre courant, #112.
 
 ## Même changement, ou même code
 
@@ -692,7 +694,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108 et #109 après leur fusion).
+  #99, #100, #103, #105, #108, #109 et #110 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
