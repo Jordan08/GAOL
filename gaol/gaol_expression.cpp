@@ -27,9 +27,11 @@
 
 #include <iostream>
 #include <cmath>
+#include <new>
 
 
 #include "gaol/gaol_expression.h"
+#include "gaol/gaol_eval_stack.h"
 #include "gaol/gaol_expr_eval.h"
 
 namespace gaol_core {
@@ -66,6 +68,62 @@ namespace gaol_core {
   const unsigned log2_node::precedence = prec_t::uminus_prec;
   const unsigned sign_node::precedence = prec_t::uminus_prec;
   const unsigned trunc_node::precedence = prec_t::uminus_prec;
+  
+  namespace {
+    /*
+    The nodes that wait to be deleted, 32 of them held without allocating
+    (GAOL v5)
+    */
+    typedef eval_stack<expr_node*, 32> node_list;
+  
+    /*
+    The nodes that wait to be deleted in this thread, while the outermost
+    release_node() of the thread runs (GAOL v5): a pointer to a variable of
+    that call, 0 the rest of the time. A pointer, and not the list itself:
+    a thread-local list would have a destructor, which the main thread runs
+    before those of the static objects of the program, whose expressions
+    are deleted after it. A list for each thread, as the counts of
+    references are not atomic: the trees that two threads delete at once
+    are apart.
+    */
+    thread_local node_list* waiting_nodes = 0;
+  
+    /*
+    Gives up the reference that a destructor holds to its operand e, and
+    deletes e if it was the last one (GAOL v5). The destructor of a node
+    deleted its operands, which deleted theirs, one destructor within
+    another: an expression built by adding 100000 terms, a chain of 100000
+    nodes, overflowed the stack of the program when its last reference was
+    given up. An operand whose last reference is given up while a
+    destructor runs in the thread, so under a release_node() still
+    running, now waits on the list of that call, whose loop deletes it once
+    the destructor that put it there has returned. The stack holds the
+    frames of the outermost call and of one destructor, whatever the depth
+    of the tree, and the heap the nodes not deleted yet. When the list
+    cannot grow, the node is deleted where it is, as it was.
+    */
+    void release_node(expr_node* e)
+    {
+      if (e->dec_refcount() != 0) {
+        return;
+      }
+      if (waiting_nodes != 0) {
+        try {
+          waiting_nodes->push(e);
+        } catch (const std::bad_alloc&) {
+          delete e;
+        }
+        return;
+      }
+      node_list waiting;
+      waiting_nodes = &waiting;
+      delete e;
+      while (!waiting.empty()) {
+        delete waiting.pop();
+      }
+      waiting_nodes = 0;
+    }
+  } // anonymous namespace
   
   /*
   * expression --
@@ -379,12 +437,8 @@ namespace gaol_core {
         
         add_node::~add_node()
         {
-          if (e_left->dec_refcount() == 0) {
-            delete e_left;
-          }
-          if (e_right->dec_refcount() == 0) {
-            delete e_right;
-          }
+          release_node(e_left);
+          release_node(e_right);
           GAOL_DEBUG_VERBOSE(3,std::cout << "add_node destroyed" << std::endl);
         }
         
@@ -419,9 +473,7 @@ namespace gaol_core {
         
         unary_minus_node::~unary_minus_node()
         {
-          if (e_uminus->dec_refcount() == 0) {
-            delete e_uminus;
-          }
+          release_node(e_uminus);
           GAOL_DEBUG_VERBOSE(3,std::cout << "unary_minus_node destroyed" << std::endl);
         }
         
@@ -462,12 +514,8 @@ namespace gaol_core {
           
           sub_node::~sub_node()
           {
-            if (e_left->dec_refcount() == 0) {
-              delete e_left;
-            }
-            if (e_right->dec_refcount() == 0) {
-              delete e_right;
-            }
+            release_node(e_left);
+            release_node(e_right);
             GAOL_DEBUG_VERBOSE(3,std::cout << "sub_node destroyed" << std::endl);
           }
           
@@ -506,12 +554,8 @@ namespace gaol_core {
             
             mult_node::~mult_node()
             {
-              if (e_left->dec_refcount() == 0) {
-                delete e_left;
-              }
-              if (e_right->dec_refcount() == 0) {
-                delete e_right;
-              }
+              release_node(e_left);
+              release_node(e_right);
               GAOL_DEBUG_VERBOSE(3,std::cout << "mult_node destroyed" << std::endl);
             }
             
@@ -550,12 +594,8 @@ namespace gaol_core {
               
               div_node::~div_node()
               {
-                if (e_left->dec_refcount() == 0) {
-                  delete e_left;
-                }
-                if (e_right->dec_refcount() == 0) {
-                  delete e_right;
-                }
+                release_node(e_left);
+                release_node(e_right);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "div_node destroyed" << std::endl);
               }
               
@@ -592,9 +632,7 @@ namespace gaol_core {
               
               pow_node::~pow_node()
               {
-                if (e_pow->dec_refcount() == 0) {
-                  delete e_pow;
-                }
+                release_node(e_pow);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "pow_node destroyed" << std::endl);
               }
               
@@ -631,12 +669,8 @@ namespace gaol_core {
               
               pow_itv_node::~pow_itv_node()
               {
-                if (e_left->dec_refcount() == 0) {
-                  delete e_left;
-                }
-                if (e_right->dec_refcount() == 0) {
-                  delete e_right;
-                }
+                release_node(e_left);
+                release_node(e_right);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "pow_itv_node destroyed" << std::endl);
               }
               
@@ -672,9 +706,7 @@ namespace gaol_core {
               
               nth_root_node::~nth_root_node()
               {
-                if (e_nth_root->dec_refcount() == 0) {
-                  delete e_nth_root;
-                }
+                release_node(e_nth_root);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "nth_root_node destroyed" << std::endl);
               }
               
@@ -707,9 +739,7 @@ namespace gaol_core {
               
               cos_node::~cos_node()
               {
-                if (e_cos->dec_refcount() == 0) {
-                  delete e_cos;
-                }
+                release_node(e_cos);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "cos_node destroyed" << std::endl);
               }
               
@@ -743,9 +773,7 @@ namespace gaol_core {
               
               sin_node::~sin_node()
               {
-                if (e_sin->dec_refcount() == 0) {
-                  delete e_sin;
-                }
+                release_node(e_sin);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "sin_node destroyed" << std::endl);
               }
               
@@ -779,9 +807,7 @@ namespace gaol_core {
               
               tan_node::~tan_node()
               {
-                if (e_tan->dec_refcount() == 0) {
-                  delete e_tan;
-                }
+                release_node(e_tan);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "tan_node destroyed" << std::endl);
               }
               
@@ -817,12 +843,8 @@ namespace gaol_core {
               
               atan2_node::~atan2_node()
               {
-                if (Y->dec_refcount() == 0) {
-                  delete Y;
-                }
-                if (X->dec_refcount() == 0) {
-                  delete X;
-                }
+                release_node(Y);
+                release_node(X);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "atan2_node destroyed" << std::endl);
               }
               
@@ -858,9 +880,7 @@ namespace gaol_core {
               
               acos_node::~acos_node()
               {
-                if (e_acos->dec_refcount() == 0) {
-                  delete e_acos;
-                }
+                release_node(e_acos);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "acos_node destroyed" << std::endl);
               }
               
@@ -894,9 +914,7 @@ namespace gaol_core {
               
               asin_node::~asin_node()
               {
-                if (e_asin->dec_refcount() == 0) {
-                  delete e_asin;
-                }
+                release_node(e_asin);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "asin_node destroyed" << std::endl);
               }
               
@@ -930,9 +948,7 @@ namespace gaol_core {
               
               atan_node::~atan_node()
               {
-                if (e_atan->dec_refcount() == 0) {
-                  delete e_atan;
-                }
+                release_node(e_atan);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "atan_node destroyed" << std::endl);
               }
               
@@ -966,9 +982,7 @@ namespace gaol_core {
               
               cosh_node::~cosh_node()
               {
-                if (e_cosh->dec_refcount() == 0) {
-                  delete e_cosh;
-                }
+                release_node(e_cosh);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "cosh_node destroyed" << std::endl);
               }
               
@@ -1002,9 +1016,7 @@ namespace gaol_core {
               
               sinh_node::~sinh_node()
               {
-                if (e_sinh->dec_refcount() == 0) {
-                  delete e_sinh;
-                }
+                release_node(e_sinh);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "sinh_node destroyed" << std::endl);
               }
               
@@ -1038,9 +1050,7 @@ namespace gaol_core {
               
               tanh_node::~tanh_node()
               {
-                if (e_tanh->dec_refcount() == 0) {
-                  delete e_tanh;
-                }
+                release_node(e_tanh);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "tanh_node destroyed" << std::endl);
               }
               
@@ -1075,9 +1085,7 @@ namespace gaol_core {
               
               acosh_node::~acosh_node()
               {
-                if (e_acosh->dec_refcount() == 0) {
-                  delete e_acosh;
-                }
+                release_node(e_acosh);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "acosh_node destroyed" << std::endl);
               }
               
@@ -1111,9 +1119,7 @@ namespace gaol_core {
               
               asinh_node::~asinh_node()
               {
-                if (e_asinh->dec_refcount() == 0) {
-                  delete e_asinh;
-                }
+                release_node(e_asinh);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "asinh_node destroyed" << std::endl);
               }
               
@@ -1147,9 +1153,7 @@ namespace gaol_core {
               
               atanh_node::~atanh_node()
               {
-                if (e_atanh->dec_refcount() == 0) {
-                  delete e_atanh;
-                }
+                release_node(e_atanh);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "atanh_node destroyed" << std::endl);
               }
               
@@ -1184,9 +1188,7 @@ namespace gaol_core {
               
               exp_node::~exp_node()
               {
-                if (e_exp->dec_refcount() == 0) {
-                  delete e_exp;
-                }
+                release_node(e_exp);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "exp_node destroyed" << std::endl);
               }
               
@@ -1220,9 +1222,7 @@ namespace gaol_core {
               
               log_node::~log_node()
               {
-                if (e_log->dec_refcount() == 0) {
-                  delete e_log;
-                }
+                release_node(e_log);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "log_node destroyed" << std::endl);
               }
               
@@ -1256,9 +1256,7 @@ namespace gaol_core {
               
               exp2_node::~exp2_node()
               {
-                if (e_exp2->dec_refcount() == 0) {
-                  delete e_exp2;
-                }
+                release_node(e_exp2);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "exp2_node destroyed" << std::endl);
               }
               
@@ -1292,9 +1290,7 @@ namespace gaol_core {
               
               log2_node::~log2_node()
               {
-                if (e_log2->dec_refcount() == 0) {
-                  delete e_log2;
-                }
+                release_node(e_log2);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "log2_node destroyed" << std::endl);
               }
               
@@ -1328,9 +1324,7 @@ namespace gaol_core {
               
               sign_node::~sign_node()
               {
-                if (e_sign->dec_refcount() == 0) {
-                  delete e_sign;
-                }
+                release_node(e_sign);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "sign_node destroyed" << std::endl);
               }
               
@@ -1364,9 +1358,7 @@ namespace gaol_core {
               
               trunc_node::~trunc_node()
               {
-                if (e_trunc->dec_refcount() == 0) {
-                  delete e_trunc;
-                }
+                release_node(e_trunc);
                 GAOL_DEBUG_VERBOSE(3,std::cout << "trunc_node destroyed" << std::endl);
               }
               

@@ -351,7 +351,9 @@ standard:
   Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
   `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
   empty set for a string that is no interval, a name of GAOL alone
-  (`nth_root`, `cbrt`, `log1p`...) included. `gaol::textToInterval`, which
+  (`nth_root`, `cbrt`, `log1p`...), a wrong call (`pown([2,5],2.5)`) and a
+  string holding a NUL character included, with or without exceptions; it
+  lets `std::bad_alloc` through. `gaol::textToInterval`, which
   replaces the constructor `interval(const char*)` of GAOL 4, reads the names
   of GAOL and throws: as for `pow`, a program calls the one of the namespace
   it opens.
@@ -654,10 +656,22 @@ explanation, `what()` is `gaol_exception`, never an empty text. A handler of
 and `file()` and `line()`, where GAOL threw the exception; `std::cerr << e`
 writes the three, as `file.cpp, line 12: exception thrown: <explanation>`.
 
+Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
+strings too, where flex ended the program with `exit(2)` when it could not
+allocate its buffer, and the parser turned a stack it could not grow into an
+`input_format_error` (GAOL v5).
+
 A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
 `configure`, `-Denable-exception=false` of meson; see
 [Building GAOL](building.md)) prints a message and aborts instead of throwing.
-The CMake build always throws.
+The CMake build always throws. The reader of strings is the exception: an
+error it finds as it computes, a wrong call (`nth_root(8, 1.5)`, `sin(1, 2)`),
+an uncertain number as a bound or two different bounds in `<a, b>`, makes it
+fail as a syntax error does, so that `parse_interval()` returns false and
+`gaol_ieee1788::textToInterval()` the empty set, as IEEE 1788-2015 has it
+(12.12.7), where GAOL ended the program; `gaol::textToInterval()` and
+`operator>>` print a message and abort then, as for any string that is no
+interval (GAOL v5).
 
 ## The rounding direction
 

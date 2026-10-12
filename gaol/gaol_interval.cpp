@@ -79,6 +79,34 @@ namespace gaol {
   int compare_number_with_double(const char *s, double x);
 }
 
+/*
+  The reading of the n characters at s (gaol/gaol_interval_parser.ypp), which
+  the readers of a std::string call with its length (GAOL v5): they called
+  parse_interval() with its c_str(), which the lexer read up to its first NUL
+  character, so that "1\0junk" was read as 1. A NUL character is no character
+  of any token, and such a string is no expression.
+*/
+extern bool gaol_parse_string(const char* const s, std::size_t n, gaol::interval& out,
+                              gaol::parsing_names names);
+
+namespace {
+  // The string s in an error message, its NUL characters written \0: what()
+  // is a C string, which stopped at the first, so that the message of
+  // "1\0junk" read as a refusal of 1 (GAOL v5)
+  std::string text_in_message(const std::string& s)
+  {
+    std::string text;
+    for (const char c : s) {
+      if (c == '\0') {
+        text += "\\0";
+      } else {
+        text += c;
+      }
+    }
+    return text;
+  }
+}
+
 namespace gaol_core {
 
   // The bounds of pi and pi/2 (gaol/gaol_port.h), and 2^52, from which on the
@@ -796,7 +824,7 @@ namespace gaol_core {
 
     bool read;
     try {
-      read = gaol::parse_interval(buffer.c_str(),I);
+      read = gaol_parse_string(buffer.data(), buffer.size(), I, gaol::parsing_names::gaol);
     } catch (...) { // An error the reader raised as it read the line
       I = interval::emptyset();
       set_failbit(is);
@@ -804,7 +832,7 @@ namespace gaol_core {
     }
     if (!read) {
       std::string err_msg("Syntax error in expression of interval: ");
-      err_msg += buffer;
+      err_msg += text_in_message(buffer);
       I = interval::emptyset();
       set_failbit(is);
       gaol_ERROR(input_format_error,err_msg.c_str());
@@ -5180,6 +5208,32 @@ namespace gaol_ieee1788 {
   }
 
   /*
+    textToInterval(s) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 12.12.7), in
+    the library rather than inline in its header, for the reading of the
+    whole of s, NUL characters included (GAOL v5): the empty set for a string
+    that is no literal, as for one that the reader refuses with an exception of
+    GAOL, input_format_error or invalid_action_error. The other exceptions go
+    through, std::bad_alloc among them: the reader threw it where memory ran
+    out, and textToInterval() turned it into the empty set, the interval of no
+    literal, catching every std::exception.
+  */
+  interval textToInterval(const std::string& s)
+  {
+#if GAOL_EXCEPTIONS_ENABLED
+    try {
+      interval x;
+      return gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
+    } catch (const ::gaol_core::gaol_exception&) {
+      return interval::emptyset();
+    }
+#else
+    // An error of the reader fails the reading, as a syntax error does
+    interval x;
+    return gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
+#endif
+  }
+
+  /*
     intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
     bounds of x rounded outward, [l, r], [a] for a point interval whose double
     the digits write exactly, as [4], or [empty], with the C locale, the flags
@@ -5219,9 +5273,9 @@ namespace gaol {
   interval textToInterval(const std::string& s)
   {
     interval tmp;
-    if (!parse_interval(s.c_str(),tmp)) {
+    if (!gaol_parse_string(s.data(), s.size(), tmp, parsing_names::gaol)) {
       std::string err_msg("Syntax error in interval initialization: ");
-      err_msg += s;
+      err_msg += text_in_message(s);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
     }
@@ -5234,16 +5288,16 @@ namespace gaol {
   interval textToInterval(const std::string& sl, const std::string& sr)
   {
     interval tmpl, tmpr;
-    if (!parse_interval(sl.c_str(),tmpl)) {
+    if (!gaol_parse_string(sl.data(), sl.size(), tmpl, parsing_names::gaol)) {
       std::string err_msg("Syntax error in left bound initialization: ");
-      err_msg += sl;
+      err_msg += text_in_message(sl);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();
     }
-    if (!parse_interval(sr.c_str(),tmpr)) {
+    if (!gaol_parse_string(sr.data(), sr.size(), tmpr, parsing_names::gaol)) {
       std::string err_msg("Syntax error in right bound initialization: ");
-      err_msg += sr;
+      err_msg += text_in_message(sr);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
       return interval::emptyset();

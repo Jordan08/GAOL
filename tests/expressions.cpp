@@ -14,7 +14,14 @@
  * - the operators and the functions, alone and nested;
  * - the strings the parser refuses, which have to raise an exception rather
  *   than give an interval, and what the exceptions of GAOL say (what() and
- *   operator<<).
+ *   operator<<);
+ * - the long and the deeply nested expressions: sums, and products and
+ *   quotients, of 200000 terms read from a string, sums and products of 200000
+ *   terms and differences and quotients of 20000 built in C++, and chains of
+ *   200000 minus signs and 20000 sines, which have to be evaluated and deleted
+ *   whatever their depth, on a stack that does not grow with it, and the
+ *   nesting the reader refuses;
+ * - the NUL characters of a std::string, and the allocations that fail.
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -36,9 +43,84 @@
 
 #include "gaol_tests.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <functional>
+#include <random>
 #include <type_traits>
 #include <utility>
+#include <vector>
+
+#if defined(_MSC_VER)
+#  include <intrin.h>
+#endif
+#include <cstdlib>
+#include <new>
+
+/* The allocations of the program, counted by a replacement of the global
+   operator new and operator delete, and one of them made to fail on purpose
+   (GAOL v5): allocation_failures() below makes each allocation of a reading
+   or an evaluation fail in turn. The replacement reaches the code of GAOL
+   where the library is static, or shared on Linux and macOS, whose loaders
+   bind the operator new of a shared library to that of the program; not with
+   a DLL on Windows, where the test sees it and says it skips the checks. */
+namespace
+{
+  std::size_t allocations_made = 0;    // by operator new, since the program started
+  std::size_t allocations_live = 0;    // made and not deleted yet
+  std::size_t allocations_peak = 0;    // the most live at once
+  std::size_t failing_allocation = 0;  // the number of the one that fails, 0 for none
+
+  void* counted_new(std::size_t size)
+  {
+    ++allocations_made;
+    if (allocations_made == failing_allocation) {
+      throw std::bad_alloc();
+    }
+    void* const p = std::malloc(size == 0 ? 1 : size);
+    if (p == nullptr) {
+      throw std::bad_alloc();
+    }
+    ++allocations_live;
+    allocations_peak = std::max(allocations_peak, allocations_live);
+    return p;
+  }
+
+  void counted_delete(void* p) noexcept
+  {
+    if (p != nullptr) {
+      --allocations_live;
+      std::free(p);
+    }
+  }
+}
+
+void* operator new(std::size_t size) { return counted_new(size); }
+void* operator new[](std::size_t size) { return counted_new(size); }
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept
+{
+  try {
+    return counted_new(size);
+  } catch (...) {
+    return nullptr;
+  }
+}
+void* operator new[](std::size_t size, const std::nothrow_t&) noexcept
+{
+  try {
+    return counted_new(size);
+  } catch (...) {
+    return nullptr;
+  }
+}
+void operator delete(void* p) noexcept { counted_delete(p); }
+void operator delete[](void* p) noexcept { counted_delete(p); }
+void operator delete(void* p, const std::nothrow_t&) noexcept { counted_delete(p); }
+void operator delete[](void* p, const std::nothrow_t&) noexcept { counted_delete(p); }
+#if defined(__cpp_sized_deallocation)
+void operator delete(void* p, std::size_t) noexcept { counted_delete(p); }
+void operator delete[](void* p, std::size_t) noexcept { counted_delete(p); }
+#endif
 
 // Commented out: the tests run no thread (GAOL v5)
 // // std::thread, which libstdc++ has only when built with a thread model
@@ -92,6 +174,9 @@ namespace
   {
     std::fprintf(stderr, "-- %s\n", what);
     std::fflush(stderr);
+    // What the checks of the last part printed, which a crash in this one
+    // would take with the buffer of a pipe (GAOL v5)
+    std::fflush(stdout);
   }
 
   void same(const std::string& text, const interval& expected)
@@ -153,9 +238,13 @@ namespace
           [&] { return text + " gave an interval"; });
 #else
     // Without exceptions (configure --disable-exceptions, meson
-    // -Denable-exception=false), the string would end the program: not
-    // checked (GAOL v5)
-    (void)text;
+    // -Denable-exception=false), textToInterval() would end the program: the
+    // reader has to refuse the string, a wrong call, an uncertain number as a
+    // bound and <a, b> of two different bounds included, which ended the
+    // program inside it (GAOL v5, #98)
+    interval x;
+    check("expression: a string that is wrong is refused", !parse_interval(text.c_str(), x),
+          [&] { return text + " was read"; });
 #endif
   }
 
@@ -720,6 +809,677 @@ namespace
           [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
   }
 
+  /* The long and the deeply nested expressions (GAOL v5)
+
+     A sum of 100000 terms read from a string, and an expression that long
+     built in C++, were trees 100000 nodes deep, whose evaluation and
+     deletion made one call within another per node: the evaluation
+     overflowed the stack of the program, 8 MB with Linux and macOS, and
+     crashed it (the deletion, whose frames are smaller, needs a longer
+     chain). The parser now computes an operation when it reads it, the
+     evaluation and the deletion of a tree take stacks of their own in the
+     heap, and the reader keeps what it reads in a stack of the heap too, of
+     10000 entries: a string nested deeper, with parentheses, signs or calls,
+     is refused. */
+
+  // The operation of the operator op, one of + - * /
+  interval operate(char op, const interval& a, const interval& b)
+  {
+    switch (op) {
+    case '+': return a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    default:  return a / b;
+    }
+  }
+
+  // The expression a op b
+  expression combine(char op, const expression& a, const expression& b)
+  {
+    switch (op) {
+    case '+': return a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    default:  return a / b;
+    }
+  }
+
+  /* "a op b op a op b ...", n terms, the operators in turn those of ops: the
+     operators of one cycle have the same precedence, and group from the left */
+  std::string repeated(int n, const std::string& ops, const std::string& a, const std::string& b)
+  {
+    std::string text;
+    text.reserve(static_cast<std::size_t>(n) * (std::max(a.size(), b.size()) + 1));
+    for (int i = 0; i < n; ++i) {
+      if (i > 0) {
+        text += ops[static_cast<std::size_t>(i - 1) % ops.size()];
+      }
+      text += (i % 2 == 0) ? a : b;
+    }
+    return text;
+  }
+
+  // The same bounds to the bit, the signs of the zeros and the empty set included
+  bool same_bits(const interval& a, const interval& b)
+  {
+    return hex(a) == hex(b);
+  }
+
+  /* Sums and products have to be 200000 terms long to overflow the stack of
+     8 MB of Linux and macOS with a recursion of about 100 bytes for each
+     node; the differences and the quotients, which do not commute, only have
+     to show that the operands are taken in the right order, in fewer */
+  const int long_terms = 200000;
+  const int short_terms = 20000;
+
+  int terms_of(char op)
+  {
+    return (op == '+' || op == '*') ? long_terms : short_terms;
+  }
+
+  // e op= x
+  void update(char op, expression& e, const expression& x)
+  {
+    switch (op) {
+    case '+': e += x; break;
+    case '-': e -= x; break;
+    case '*': e *= x; break;
+    default:  e /= x; break;
+    }
+  }
+
+  /* Chains of operations read from a string: the value is the one of the
+     same operations in C++, grouped from the left as the reader groups them.
+     The long chains are of pi, which the lexer reads in no time: it takes
+     tens of microseconds to read a number when the sanitizers slow it down,
+     as it does the decimals of the short chains, whose operations round. */
+  void long_strings()
+  {
+    struct Chain { const char* ops; const char* a; const char* b; int terms; };
+    const Chain chains[] = {
+      {"+", "pi", "pi", long_terms}, {"*/", "pi", "pi", long_terms}, {"-+", "pi", "pi", short_terms},
+      {"+", "0.1", "0.2", 2000}, {"-+", "0.1", "0.2", 2000}, {"*/", "1.0000001", "0.9999999", 2000},
+    };
+    for (const Chain& c : chains) {
+      const interval ta = textToInterval(c.a), tb = textToInterval(c.b);
+      const std::string ops = c.ops;
+      interval expected = ta;
+      for (int i = 1; i < c.terms; ++i) {
+        expected = operate(ops[static_cast<std::size_t>(i - 1) % ops.size()], expected, (i % 2 == 0) ? ta : tb);
+      }
+      const std::string what = std::string("\"") + c.a + c.ops[0] + c.b + "...\", " + std::to_string(c.terms) + " terms";
+      try {
+        const interval got = textToInterval(repeated(c.terms, ops, c.a, c.b));
+        check("long expression: a long string is read as its operators group them",
+              same_bits(got, expected),
+              [&] { return what + " gave " + hex(got) + " rather than " + hex(expected); });
+      } catch (const std::exception& e) {
+        check("long expression: no exception on a long string", false,
+              [&] { return what + ": " + e.what(); });
+      }
+    }
+  }
+
+  /* The chains built in C++, on the left with the operators that change an
+     expression in place, on the right with the others, then chains of unary
+     operations: the value is the one of the same operations in C++, in the
+     same order. The trees are deleted when they go out of scope, which is a
+     part of the test too. */
+  void long_built()
+  {
+    for (const char op : {'+', '-', '*', '/'}) {
+      const int terms = terms_of(op);
+      // Terms whose sums and products round, and neither overflow nor underflow in 200000 of them
+      const interval t = (op == '+' || op == '-') ? interval(0.1, 0.2) : interval(0.9999999, 1.0000001);
+
+      expression left(t), right(t);
+      interval expected_left = t, expected_right = t;
+      for (int i = 1; i < terms; ++i) {
+        update(op, left, expression(t));
+        expected_left = operate(op, expected_left, t);
+        right = combine(op, expression(t), right);
+        expected_right = operate(op, t, expected_right);
+      }
+      interval got_left, got_right;
+      const bool evaluated_left = evaluate_expr(left, got_left);
+      const bool evaluated_right = evaluate_expr(right, got_right);
+      check("long expression: a chain built on the left has the value of the operations in C++",
+            evaluated_left && same_bits(got_left, expected_left),
+            [&] { return std::string(1, op) + " gave " + hex(got_left) + " rather than " + hex(expected_left); });
+      check("long expression: a chain built on the right has the value of the operations in C++",
+            evaluated_right && same_bits(got_right, expected_right),
+            [&] { return std::string(1, op) + " gave " + hex(got_right) + " rather than " + hex(expected_right); });
+    }
+
+    // Chains of unary operations: minus signs, and sines
+    {
+      const interval t(0.1, 0.2);
+      expression signs(t), sines(t);
+      interval expected_sines = t;
+      for (int i = 0; i < long_terms; ++i) {
+        signs = -signs;
+      }
+      for (int i = 0; i < short_terms; ++i) {
+        sines = sin(sines);
+        expected_sines = sin(expected_sines);
+      }
+      interval got_signs, got_sines;
+      bool evaluated = evaluate_expr(signs, got_signs);
+      check("long expression: 200000 minus signs, an even number, are no sign",
+            evaluated && same_bits(got_signs, t), [&] { return hex(got_signs); });
+      signs = -signs;
+      evaluated = evaluate_expr(signs, got_signs);
+      check("long expression: 200001 minus signs are one",
+            evaluated && same_bits(got_signs, -t), [&] { return hex(got_signs); });
+      evaluated = evaluate_expr(sines, got_sines);
+      check("long expression: a sine of a sine of 20000 sines",
+            evaluated && same_bits(got_sines, expected_sines),
+            [&] { return hex(got_sines) + " rather than " + hex(expected_sines); });
+    }
+  }
+
+  /* What the reader does with a string nested deeper than its stack of 10000
+     entries: it refuses it, as a syntax error, where it read a string 9000
+     deep. The nesting of parentheses, of brackets, of signs and of calls of
+     functions: none is more than a few thousand nodes deep once read, which
+     the evaluation and the deletion of the tree take without recursion. */
+  void deep_strings()
+  {
+    const auto nested = [](int depth, const char* open, const char* inner, const char* close) {
+      std::string text;
+      for (int i = 0; i < depth; ++i) {
+        text += open;
+      }
+      text += inner;
+      for (int i = 0; i < depth; ++i) {
+        text += close;
+      }
+      return text;
+    };
+
+    // Accepted: 9000 levels of parentheses, of brackets and of signs, and thousands of calls
+    same(nested(9000, "(", "1", ")"), interval(1.0));
+    same(nested(9000, "[", "1", "]"), interval(1.0));
+    same(nested(4000, "sin(", "0", ")"), interval(0.0));
+    same(nested(2000, "pow(1,", "1", ")"), interval(1.0));
+    same(nested(9000, "-", "3", ""), interval(3.0));
+    same(nested(8999, "-", "3", ""), interval(-3.0));
+    same(nested(9000, "-", "inf", ""), textToInterval("inf"));
+    same(nested(8999, "-", "inf", ""), textToInterval("-inf"));
+    same("[" + nested(9000, "-", "1", "") + ", 2]", interval(1.0, 2.0));
+    same("[" + nested(9000, "-", "inf", "") + ", 2]", interval::emptyset());
+    same("[" + nested(8999, "-", "inf", "") + ", 2]", interval(-inf, 2.0));
+    same("1+" + nested(9000, "-", "3", "") + "*2", interval(7.0));
+    same(nested(4000, "(", "1", "+1)"), interval(4001.0));
+    // An uncertain number behind thousands of signs is still no bound
+    refused("[" + nested(9000, "-", "3.56?1", "") + ", 5]");
+    refused("[1, " + nested(9001, "-", "3.56?1", "") + "]");
+
+    // Refused as a syntax error, an input_format_error, whatever the depth
+    const struct { const char* name; std::string text; } refusals[] = {
+      {"parentheses", nested(100000, "(", "1", ")")},
+      {"brackets", nested(100000, "[", "1", "]")},
+      {"signs", nested(100000, "-", "1", "")},
+      {"calls", nested(100000, "sin(", "1", ")")},
+      {"nested sums", nested(100000, "(", "1", "+1)")},
+    };
+    for (const auto& r : refusals) {
+      bool syntax_error = false, other = false;
+#if GAOL_EXCEPTIONS_ENABLED
+      try {
+        const interval x = textToInterval(r.text);
+        (void)x;
+      } catch (const input_format_error&) {
+        syntax_error = true;
+      } catch (...) {
+        other = true;
+      }
+#else
+      // Without exceptions, textToInterval() would end the program: the
+      // reader refuses the string as it refuses any syntax error
+      interval x;
+      syntax_error = !parse_interval(r.text.c_str(), x);
+#endif
+      check("deep string: 100000 levels are refused with an input_format_error", syntax_error && !other,
+            [&] { return std::string(r.name) + (other ? ": another exception" : ": read"); });
+    }
+  }
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_TESTS_FRAME_POSITION() reinterpret_cast<std::uintptr_t>(__builtin_frame_address(0))
+#elif defined(_MSC_VER)
+#  define GAOL_TESTS_FRAME_POSITION() reinterpret_cast<std::uintptr_t>(_AddressOfReturnAddress())
+#endif
+
+#ifdef GAOL_TESTS_FRAME_POSITION
+  /* A leaf that notes where the stack of the program is when it is visited
+     by an evaluation and when it is deleted. Under a chain of nodes, the
+     recursion of an evaluation or of a deletion has put a frame on the stack
+     for each node above the leaf: the further the leaf is from where the
+     evaluation or the deletion started, the deeper the recursion.
+     The position is the address of the frame, and not the one of a local
+     variable, which the sanitizers move to a stack of their own. */
+  class probe_leaf : public expr_node
+  {
+    public:
+      explicit probe_leaf(double v) : value_(v) {}
+      ~probe_leaf() override { deleted_at = GAOL_TESTS_FRAME_POSITION(); }
+      expr_node* clone() const override { return new probe_leaf(value_.get_val()); }
+      void accept(expr_visitor& visitor) override
+      {
+        visited_at = GAOL_TESTS_FRAME_POSITION();
+        visitor.visit(&value_);
+      }
+      unsigned int get_precedence() const override { return value_.get_precedence(); }
+      std::ostream& display(std::ostream& os) const override { return value_.display(os); }
+
+      static std::uintptr_t visited_at, deleted_at;
+
+    private:
+      double_node value_;
+  };
+
+  std::uintptr_t probe_leaf::visited_at = 0;
+  std::uintptr_t probe_leaf::deleted_at = 0;
+
+  // The bytes of stack between two positions, whichever way the stack grows
+  std::uintptr_t stack_between(std::uintptr_t a, std::uintptr_t b)
+  {
+    return a > b ? a - b : b - a;
+  }
+#endif
+
+  /* The stack an evaluation and a deletion use does not depend on the depth of
+     the tree: the leaf at the bottom of a chain of 20000 nodes is visited and
+     deleted less than 64 KiB of stack away from the function that starts
+     them, where a recursion needs a frame, 16 bytes at the very least, for
+     each node: 320 KB. Deterministic, whatever the stack of the program and
+     the size of the frames (the sanitizers make them larger), and it fails
+     without crashing, where the chains of 200000 nodes above overflow the
+     stack of 8 MB only. */
+  void stack_use()
+  {
+#ifdef GAOL_TESTS_FRAME_POSITION
+    const int terms = 20000;
+    const std::uintptr_t limit = 64 * 1024;
+    const char* const shapes[] = {"on the left", "on the right", "of minus signs"};
+    const std::uintptr_t here = GAOL_TESTS_FRAME_POSITION();
+    for (int shape = 0; shape < 3; ++shape) {
+      probe_leaf::visited_at = probe_leaf::deleted_at = 0;
+      interval value;
+      bool evaluated = false;
+      {
+        // The leaf is at the bottom: leftmost, rightmost, or under the signs
+        expression e(*new probe_leaf(1.0));
+        for (int i = 1; i < terms; ++i) {
+          if (shape == 0) {
+            e += expression(1.0);
+          } else if (shape == 1) {
+            e = expression(1.0) + e;
+          } else {
+            e = -e;
+          }
+        }
+        evaluated = evaluate_expr(e, value);
+      }
+      const interval expected = (shape < 2) ? interval(static_cast<double>(terms)) : -interval(1.0);
+      check("stack use: the value of a chain of 20000 nodes", evaluated && same_bits(value, expected),
+            [&] { return std::string(shapes[shape]) + ": " + hex(value); });
+      const std::uintptr_t evaluation = stack_between(here, probe_leaf::visited_at);
+      const std::uintptr_t deletion = stack_between(here, probe_leaf::deleted_at);
+      check("stack use: the evaluation of a chain of 20000 nodes takes less than 64 KiB of stack",
+            probe_leaf::visited_at != 0 && evaluation < limit,
+            [&] { return std::string(shapes[shape]) + ": the leaf was visited " + std::to_string(evaluation) + " bytes down"; });
+      check("stack use: the deletion of a chain of 20000 nodes takes less than 64 KiB of stack",
+            probe_leaf::deleted_at != 0 && deletion < limit,
+            [&] { return std::string(shapes[shape]) + ": the leaf was deleted " + std::to_string(deletion) + " bytes down"; });
+    }
+#else
+    std::printf("stack use: no frame address on this compiler: skipped\n");
+#endif
+  }
+
+  // The value of a random expression, computed as the expression is built
+  struct Modeled
+  {
+    expression e;
+    interval v;
+  };
+
+  Modeled random_leaf(std::mt19937& rng)
+  {
+    const double doubles[] = {-2.5, -1.0, -0.5, 0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0};
+    const interval intervals[] = {interval(-1.0, 1.0), interval(0.5, 2.0), interval(-3.0, -1.0),
+                                  interval(0.0, 0.5), interval(1.0, 4.0), interval(-0.5, 0.25)};
+    if (rng() % 2 == 0) {
+      const double d = doubles[rng() % 10];
+      return Modeled{expression(d), interval(d)};
+    }
+    const interval& i = intervals[rng() % 6];
+    return Modeled{expression(i), i};
+  }
+
+  Modeled random_tree(std::mt19937& rng, int depth)
+  {
+    if (depth == 0 || rng() % 6 == 0) {
+      return random_leaf(rng);
+    }
+    const unsigned int kind = static_cast<unsigned int>(rng() % 27);
+    const Modeled a = random_tree(rng, depth - 1);
+    if (kind < 21) {
+      switch (kind) {
+      case 0:  return Modeled{-a.e, -a.v};
+      case 1:  return Modeled{pow(a.e, 3), pow(a.v, 3)};
+      case 2:  return Modeled{nth_root(a.e, 3), nth_root(a.v, 3)};
+      case 3:  return Modeled{cos(a.e), cos(a.v)};
+      case 4:  return Modeled{sin(a.e), sin(a.v)};
+      case 5:  return Modeled{tan(a.e), tan(a.v)};
+      case 6:  return Modeled{acos(a.e), acos(a.v)};
+      case 7:  return Modeled{asin(a.e), asin(a.v)};
+      case 8:  return Modeled{atan(a.e), atan(a.v)};
+      case 9:  return Modeled{cosh(a.e), cosh(a.v)};
+      case 10: return Modeled{sinh(a.e), sinh(a.v)};
+      case 11: return Modeled{tanh(a.e), tanh(a.v)};
+      case 12: return Modeled{acosh(a.e), acosh(a.v)};
+      case 13: return Modeled{asinh(a.e), asinh(a.v)};
+      case 14: return Modeled{atanh(a.e), atanh(a.v)};
+      case 15: return Modeled{exp(a.e), exp(a.v)};
+      case 16: return Modeled{log(a.e), log(a.v)};
+      case 17: return Modeled{exp2(a.e), exp2(a.v)};
+      case 18: return Modeled{log2(a.e), log2(a.v)};
+      case 19: return Modeled{sign(a.e), sign(a.v)};
+      default: return Modeled{trunc(a.e), trunc(a.v)};
+      }
+    }
+    // A quarter of the operations have the same operand twice: a node that two nodes share
+    const Modeled b = (rng() % 4 == 0) ? a : random_tree(rng, depth - 1);
+    switch (kind) {
+    case 21: return Modeled{a.e + b.e, a.v + b.v};
+    case 22: return Modeled{a.e - b.e, a.v - b.v};
+    case 23: return Modeled{a.e * b.e, a.v * b.v};
+    case 24: return Modeled{a.e / b.e, a.v / b.v};
+    case 25: return Modeled{pow(a.e, b.e), pow(a.v, b.v)};
+    default: return Modeled{atan2(a.e, b.e), atan2(a.v, b.v)};
+    }
+  }
+
+  /* The evaluation of a tree takes the operands of each node in the order of
+     the operations, and gives the bounds of the operations in C++: random
+     trees of every node, with shared nodes, whose value is computed as they
+     are built. */
+  void random_trees()
+  {
+    std::mt19937 rng(20260929);
+    for (int i = 0; i < 3000; ++i) {
+      const Modeled m = random_tree(rng, 2 + i % 5);
+      interval got;
+      const bool evaluated = evaluate_expr(m.e, got);
+      check("random expression: the same bounds as the operations of C++", evaluated && same_bits(got, m.v),
+            [&] {
+              std::ostringstream o;
+              o << m.e << " gave " << hex(got) << " rather than " << hex(m.v);
+              return o.str();
+            });
+    }
+  }
+
+  /* An empty expression, at the bottom or beside other operands, is an error
+     that leaves the operands of the other nodes where they are */
+  void null_operands()
+  {
+    const expression none, one(1.0), two(2.0);
+    interval x;
+    check("null operand: the empty expression cannot be evaluated", !evaluate_expr(none, x));
+    check("null operand: nor as the left operand of +", !evaluate_expr(none + one, x));
+    check("null operand: nor as the right operand of *", !evaluate_expr(one * none, x));
+    check("null operand: nor as the operand of a minus sign", !evaluate_expr(-none, x));
+    check("null operand: nor as an argument of a function", !evaluate_expr(atan2(one, none), x));
+    check("null operand: nor deep in a chain", !evaluate_expr(none + one + two + one * two - one / two, x));
+    expression chain = none;
+    for (int i = 0; i < 2000; ++i) {
+      chain = chain + one;
+    }
+    check("null operand: nor at the bottom of a chain of 2000 nodes", !evaluate_expr(chain, x));
+
+    // The same evaluator, after an error, evaluates the next expression
+    expr_eval ev;
+    none.get_root()->accept(ev);
+    check("null operand: the evaluator sets its error", ev.error_occurred());
+    (void)ev.result();
+    ev.reset();
+    (one + two).get_root()->accept(ev);
+    const interval three = ev.result();
+    check("null operand: and evaluates the next expression once reset",
+          !ev.error_occurred() && same_bits(three, interval(3.0)), [&] { return hex(three); });
+  }
+
+  /* The stack of values of an evaluation is a stack that grows: 10000 values
+     pushed on one that holds 4 come out in reverse */
+  void eval_stack_growth()
+  {
+    gaol_core::eval_stack<int, 4> stack;
+    for (int i = 0; i < 10000; ++i) {
+      stack.push(i);
+    }
+    bool in_reverse = true;
+    for (int i = 9999; i >= 0; --i) {
+      in_reverse = (stack.pop() == i) && in_reverse;
+    }
+    check("eval_stack: 10000 values pushed on a stack of 4 come out in reverse", in_reverse);
+  }
+
+  // A string with its NUL characters written \0, for the messages
+  std::string shown(const std::string& s)
+  {
+    std::string out;
+    for (const char c : s) {
+      out += (c == '\0') ? std::string("\\0") : std::string(1, c);
+    }
+    return out;
+  }
+
+  /* A NUL character in a std::string is no character of any token, and the
+     string is no expression, whatever comes before or after it (GAOL v5).
+     The readers of a std::string gave the parser its c_str(), which the lexer
+     read up to the NUL: "1\0junk" was read as 1, and "[1,2]\0" as [1, 2]. */
+  void nul_characters()
+  {
+    const std::string texts[] = {
+      std::string("1\0junk", 6), std::string("[1,2]\0", 6), std::string("\0", 1),
+      std::string("1+\0" "2", 4), std::string("[1,\0" "2]", 6),
+    };
+    for (const std::string& t : texts) {
+      const interval x = gaol_ieee1788::textToInterval(t);
+      check("NUL character: gaol_ieee1788::textToInterval gives the empty set", x.is_empty(),
+            [&] { return shown(t) + ": " + hex(x); });
+#if GAOL_EXCEPTIONS_ENABLED
+      const auto refused_by = [&](const char* name, const std::function<interval()>& read) {
+        bool threw = false;
+        try {
+          const interval y = read();
+          (void)y;
+        } catch (const input_format_error&) {
+          threw = true;
+        }
+        check(std::string("NUL character: ") + name + " throws input_format_error", threw,
+              [&] { return shown(t); });
+      };
+      refused_by("textToInterval(s)", [&] { return textToInterval(t); });
+      // The message writes the whole string, its NUL characters as \0
+      std::string message;
+      try {
+        const interval y = textToInterval(t);
+        (void)y;
+      } catch (const input_format_error& e) {
+        message = e.what();
+      }
+      check("NUL character: the message of textToInterval(s) writes the string, the NUL as \\0",
+            message == "Syntax error in interval initialization: " + shown(t),
+            [&] { return shown(t) + ": " + message; });
+      refused_by("textToInterval(s, \"2\") with the NUL on the left",
+                 [&] { return textToInterval(t, "2"); });
+      refused_by("textToInterval(\"0\", s) with the NUL on the right",
+                 [&] { return textToInterval("0", t); });
+      std::istringstream in(t + "\n");
+      interval y(1.0);
+      bool threw = false;
+      try {
+        in >> y;
+      } catch (const input_format_error&) {
+        threw = true;
+      }
+      check("NUL character: operator>> fails, gives the empty set and throws input_format_error",
+            threw && in.fail() && y.is_empty(), [&] { return shown(t) + ": " + hex(y); });
+#endif
+    }
+  }
+
+  /* The allocations of a reading and of an evaluation that fail (GAOL v5):
+     each in turn, and the operation throws std::bad_alloc, or gives its result
+     where the allocation was not needed, and frees all it allocated. Before:
+     - flex wrote "out of dynamic memory" and called exit(2) where it could
+       not allocate its buffer, which ended the program;
+     - std::bad_alloc thrown by the lexer, or by an action of the parser,
+       went through the parser and left the nodes on its stack;
+     - the parser read a stack that could not grow as a string nested too
+       deep, and threw input_format_error;
+     - gaol_ieee1788::textToInterval() turned std::bad_alloc into the empty
+       set.
+     The count of the allocations live is the same before and after, and the
+     sanitizers of the continuous integration check that too. The strings
+     have a call, a literal of each form, a number of 20000 digits, longer than
+     the 16 KiB buffer of flex, which has to grow, read while the node of 1 is
+     on the stack of the parser, 300 nested parentheses,
+     beyond the 200 entries of the stack of the parser kept in the stack of
+     the program, and 300 minus signs, a chain of nodes deeper than the
+     evaluation goes by recursion (expr_eval::max_depth). */
+  void allocation_failures()
+  {
+    // The allocations of GAOL have to be those of this program
+    const std::size_t before = allocations_made;
+    const interval warm = textToInterval("sin([1,2])+<1,1>");
+    (void)warm;
+    if (allocations_made == before) {
+      std::printf("allocation failures: the allocations of GAOL are not those of this program "
+                  "(a DLL on Windows): skipped\n");
+      return;
+    }
+    /* A long sum is read with no more memory than a short one: each
+       operation is computed when it is read, and the parser holds no node of
+       it. It built one, and a sum of 10000 terms held 20000 nodes before it
+       was evaluated. */
+    {
+      const std::string sum = repeated(10000, "+", "1", "2");
+      const std::size_t base = allocations_live;
+      allocations_peak = base;
+      const interval x = textToInterval(sum);
+      const std::size_t peak = allocations_peak - base;
+      check("long expression: a sum of 10000 terms is read with no more than 64 allocations live at once",
+            peak <= 64 && x.set_eq(interval(15000.0)),
+            [&] { return std::to_string(peak) + " live at once, " + hex(x); });
+    }
+
+    /* The library of C++ has to allocate nothing where nothing may throw.
+       That of Visual C++ which checks its iterators (Debug) allocates in the
+       moves of its containers, which are noexcept: an allocation made to fail
+       there ends the program by std::terminate(), as the test did with Visual
+       Studio Debug for x86, x64 and arm64. Checked on a std::vector and a
+       std::string, which GAOL's reader moves. */
+    {
+      std::vector<int> numbers(1, 0);
+      std::string text(100, 'x');
+      const std::size_t made = allocations_made;
+      std::vector<int> moved_numbers(std::move(numbers));
+      std::string moved_text(std::move(text));
+      if (allocations_made != made) {
+        std::printf("allocation failures: the library of C++ allocates in the moves of its containers, "
+                    "which may not throw (Visual C++ Debug): skipped\n");
+        return;
+      }
+    }
+
+    const std::string digits(20000, '3');
+    const std::string texts[] = {
+      "1+2*sin([1,2])-pi/3", "[1, 2]", "[0.1, ]", "[, -inf]", "<0x1p-3, 0.125>", "3.56?1*2",
+      "nth_root(8, 3)+[empty]", "1+0." + digits, std::string(300, '(') + "1" + std::string(300, ')'),
+      std::string(300, '-') + "[1, 2]", "[" + std::string(299, '-') + "inf, 1]",
+    };
+    for (const std::string& t : texts) {
+      for (int standard = 0; standard < 2; ++standard) {
+        const auto read = [&] { return standard ? gaol_ieee1788::textToInterval(t) : textToInterval(t); };
+        const interval expected = read();
+        const std::string what = std::string(standard ? "gaol_ieee1788::" : "gaol::") + "textToInterval(\""
+                                 + t.substr(0, 40) + (t.size() > 40 ? "...\")" : "\")");
+        bool right = true, freed = true;
+        std::size_t failing = 1, wrong = 0;
+        for (;; ++failing) {
+          const std::size_t live = allocations_live;
+          failing_allocation = allocations_made + failing;
+          bool ran_out = false;
+          interval got;
+          try {
+            got = read();
+          } catch (const std::bad_alloc&) {
+            ran_out = true;
+          } catch (...) {
+            right = false;
+          }
+          const bool failed = allocations_made >= failing_allocation;
+          failing_allocation = 0;
+          if (allocations_live != live) {
+            freed = false;
+            wrong = failing;
+          }
+          if (ran_out != failed || (!ran_out && !got.set_eq(expected)) || !right) {
+            right = false;
+            wrong = failing;
+          }
+          if (!failed || !right || !freed || failing > 5000) {
+            break;
+          }
+        }
+        check("allocation failure: a reading throws std::bad_alloc, or gives the interval", right,
+              [&] { return what + ": allocation " + std::to_string(wrong); });
+        check("allocation failure: a reading frees all it allocated", freed,
+              [&] { return what + ": allocation " + std::to_string(wrong); });
+      }
+    }
+
+    /* The evaluation of a chain of 300 sums, 1 + (1 + (...)), whose values
+       and nodes left to combine fill the stacks of the evaluator, and then
+       its deletion, whose list of the nodes left to delete, as long as the
+       chain, cannot grow: the deletion deletes the node where it is */
+    for (std::size_t failing = 1; failing < 5000; ++failing) {
+      const std::size_t live = allocations_live;
+      bool ran_out = false, right = true, failed = false;
+      {
+        expression e(interval(1.0));
+        for (int i = 0; i < 299; ++i) {
+          e = expression(interval(1.0)) + e;
+        }
+        failing_allocation = allocations_made + failing;
+        interval got;
+        try {
+          right = evaluate_expr(e, got) && got.set_eq(interval(300.0));
+        } catch (const std::bad_alloc&) {
+          ran_out = true;
+        }
+        failed = allocations_made >= failing_allocation;
+        failing_allocation = failed ? 0 : allocations_made + 1;
+      }
+      failing_allocation = 0;
+      // Compared before check(), which allocates the first time it is called with a name
+      const bool freed = (allocations_live == live);
+      check("allocation failure: an evaluation throws std::bad_alloc, or gives the interval",
+            ran_out == failed && (ran_out || right), [&] { return "allocation " + std::to_string(failing); });
+      check("allocation failure: an evaluation and a deletion free all they allocated", freed,
+            [&] { return "allocation " + std::to_string(failing); });
+      if (!failed) {
+        break;
+      }
+    }
+  }
+
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   /* Strings read by four threads at once, with the names of GAOL and with
@@ -780,6 +1540,17 @@ int main()
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();
+  step("eval_stack");        eval_stack_growth();
+  step("null_operands");     null_operands();
+  step("random_trees");      random_trees();
+  step("deep_strings");      deep_strings();
+  // The graceful checks of the stack come before the chains of 200000 nodes,
+  // which crash the program when the stack is used as deep as they are
+  step("stack_use");         stack_use();
+  step("long_strings");      long_strings();
+  step("long_built");        long_built();
+  step("nul_characters");    nul_characters();
+  step("allocation_failures"); allocation_failures();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS
 //   step("reading_in_threads"); reading_in_threads();
