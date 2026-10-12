@@ -110,7 +110,7 @@ static double __attribute__((noinline)) as_sinh_zero(double x){
   double y0 = fasttwosum(x, y1, &y1);
   y1 = fasttwosum(y1, y2, &y2);
   b64u64_u t = {.f = y1};
-  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){ /* GAOL */
     b64u64_u w = {.f = y2};
     if((w.u^t.u)>>63)
       t.u--;
@@ -350,7 +350,7 @@ double cr_sinh(double x){
       th *= __builtin_copysign(1, x);
       tl *= __builtin_copysign(1, x);
       b64u64_u uh = {.f = th}, ul = {.f = tl};
-      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12); /* GAOL */
       th += tl;
       th *= 2;
       th *= sp.f;
@@ -410,7 +410,7 @@ double cr_sinh(double x){
   }
   rh = fasttwosum(rh, rl, &rl);
   b64u64_u uh = {.f = rh}, ul = {.f = rl};
-  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12); /* GAOL */
   rh *= __builtin_copysign(1, x);
   rl *= __builtin_copysign(1, x);
   rh += rl;

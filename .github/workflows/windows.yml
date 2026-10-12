@@ -73,9 +73,9 @@ jobs:
           # and GAOL gives /fp:strict (-frounding-math -ffp-contract=off),
           # /arch:AVX2 on x64, and -msse2 on x86, where clang-cl computes
           # doubles on the x87 unit otherwise, /arch:SSE2 included. On x64 it
-          # defines __x86_64__ and _WIN32 but not __WIN32__, which the sources
-          # of CORE-MATH test to read the rounding direction in cbrt, rsqrt and
-          # asinpi (3rd/README.md, item 7): tests/core_math.cpp checks them.
+          # defines __x86_64__ and _WIN32 but not __WIN32__, which upstream
+          # CORE-MATH tests to read the rounding direction in cbrt, rsqrt and
+          # asinpi (3rd/README.md, item 6): tests/core_math.cpp checks them.
           # gaol/gaol_config.h refuses it without /fp:strict from Clang 16, as
           # it refuses Visual C++, and tests/fp_strict checks both (GAOL v5).
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', toolset: '-T ClangCL', clang_cl: true, arch: x64, config: Release, desc: 'Visual Studio 2022 clang-cl x64 Release' }

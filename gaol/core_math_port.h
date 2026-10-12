@@ -20,8 +20,8 @@
 * - __builtin_roundeven() where the compiler or the math library has not;
 * - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
 *   written on MXCSR, which leave its exception masks alone;
-* - on a 32-bit x86 Windows, the square root of SSE2, rounded in the
-*   direction in effect, rather than the one of the C library;
+* - on 32-bit x86, the square root of SSE2, rounded in the direction in
+*   effect, rather than the one of the C library;
 * - on x86-64, a fegetround() that reads MXCSR, where their doubles are
 *   rounded, rather than the x87 unit, which the C library may read;
 * - what Visual C++ has not of GCC: the builtins the sources call,
@@ -225,7 +225,8 @@ static inline void gaol_fesetexceptflag(const fexcept_t *flagp, int excepts)
 #endif /* a 32-bit x86 Windows */
 
 /*---------------------------------------------------------------------------
-The square root on a 32-bit Windows, which the C library rounds to nearest
+The square root on 32-bit x86, which the C libraries of Windows round to
+nearest
 
 The sources take their square roots with __builtin_sqrt(): pow.c for
 y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
@@ -240,14 +241,25 @@ acospi). pow(x, 0.5) was then below the root rounding upward, and above it
 rounding downward, at subnormal x, and GAOL's upper bound of
 pow([0x0.0000100020002p-1022], 0.5) did not enclose the root
 (tests/core_math.cpp, Visual C++ x86, and MinGW-w64 15 x86 Debug). The
-square root of SSE2 is taken there instead, with every compiler and at
-every optimization level, which rounds in the direction of MXCSR, as every
-other operation on doubles does there (gaol/gaol_config.h refuses an x86
-target that does not compute its doubles with SSE2, and the three builds
-give these sources -msse2 -mfpmath=sse).
+square root of SSE2 is taken instead on every 32-bit x86, with every
+compiler, every C library and at every optimization level, which rounds in
+the direction of MXCSR, as every other operation on doubles does there
+(gaol/gaol_config.h refuses an x86 target that does not compute its doubles
+with SSE2, and the three builds give these sources -msse2 -mfpmath=sse).
+Elsewhere than on Windows, the square root of the C library, fsqrt on the
+x87 unit with glibc and musl, is right as long as the x87 unit rounds as
+MXCSR, which round_upward_if_needed() of gaol/gaol_fpu.h sees to before
+CORE-MATH runs; with SSE2 everywhere, the square roots of CORE-MATH depend
+neither on the C library nor on the x87 unit (GAOL v5, point A.3 of
+TODO.md). On x64 Windows, Visual C++ and clang-cl call the sqrt() of the
+UCRT for the builtin as well (/fp:strict): it rounds in the direction of
+MXCSR there, which tests/core_math.cpp checks in their jobs of the
+continuous integration (pow(x, 0.5) in pow_exact_at_corners(), pow.c
+returning that root for y = 0.5 where its first phase cannot round; rsqrt
+and asinpi correct the root they take, and do not show its rounding).
 --------------------------------------------------------------------------*/
 
-#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
+#if (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
 
 #include <emmintrin.h>
 
@@ -258,7 +270,7 @@ static inline double gaol_sqrt(double x)
 
 #define __builtin_sqrt(x) gaol_sqrt(x)
 
-#endif /* a 32-bit x86 Windows */
+#endif /* 32-bit x86 */
 
 /*---------------------------------------------------------------------------
 fegetround() on x86-64: the direction of the SSE instructions
@@ -275,17 +287,15 @@ predicates of Shewchuk and of Triangle does, then had pow() round its
 subnormal results to nearest: the upper bound was below the exact value for
 about half of the arguments (tests/rounding_direction.cpp).
 
-So the sources of CORE-MATH read the direction from MXCSR here, as the
-get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does, since the
-processor computes their doubles there (with mingw-w64 before 13, whose
-FE_* values it does not know, get_rounding_mode() calls fegetround() too,
-and the one of cbrt.c maps its value to the 0 to 3 it returns, see
-3rd/README.md; from 13 on, mingw-w64 has the values of the UCRT, which it
-knows). The
-rounding field of MXCSR is the same on every x86 processor, but the values
-of FE_UPWARD and FE_DOWNWARD are the ones of the C library (those of
-Windows are not those of glibc, and changed once), which the switch gives
-back whichever they are.
+So the sources of CORE-MATH read the direction from MXCSR here, since the
+processor computes their doubles there, as the get_rounding_mode() of
+cbrt.c, rsqrt.c and asinpi.c does with GCC and Clang, which define
+__x86_64__, whatever values the C library gives FE_* (item 6 of
+3rd/README.md); Visual C++ for x64 defines no __x86_64__, and these call
+fegetround() there too, this one. The rounding field of MXCSR is the same on
+every x86 processor, but the values of FE_UPWARD and FE_DOWNWARD are the
+ones of the C library (those of Windows are not those of glibc, and changed
+once), which the switch gives back whichever they are.
 
 The standard lets fegetround() be a macro, and it is a function in the C
 libraries known here: what the sources call is renamed by a macro of ours,

@@ -81,24 +81,14 @@ inline static unsigned int get_arm_rounding_mode(void)
 static inline int get_rounding_mode (void)
 {
 #if defined(__x86_64__)
-  #if defined(__WIN32__) || defined(__WIN64__) || defined(_WIN32) /* GAOL */
-    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
-    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
-    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
-    // The amount we need to shift changes depending on the value.
-    #if FE_UPWARD == 0x0200
-      return _MM_GET_ROUNDING_MODE()>>5;
-    #elif FE_UPWARD == 0x0100
-      // Lookup table used to eliminate branches.
-      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
-      return lut[_MM_GET_ROUNDING_MODE()>>13];
-    #else
-      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
-      return fegetround();
-    #endif
-  #else
-    return _MM_GET_ROUNDING_MODE()>>3;
-  #endif
+  /* GAOL: the rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward
+     and 3 toward zero, whatever values the C library gives FE_TONEAREST, ...
+     (0x400 for FE_DOWNWARD with GNU libc and mingw-w64 before 13, 0x100 with
+     the UCRT of Windows and later mingw-w64, 1 with newlib; clang-cl and
+     Cygwin define __x86_64__ and not __WIN32__): look them up. Patch 6 of
+     3rd/README.md. */
+  static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO}; /* GAOL */
+  return lut[_MM_GET_ROUNDING_MODE()>>13]; /* GAOL */
 #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
   return get_arm_rounding_mode();
 #else

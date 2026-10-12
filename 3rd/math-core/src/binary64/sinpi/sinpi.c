@@ -96,7 +96,7 @@ static double as_sinpi_zero(double x){
   const double pi0 = 0x1.92p+1, pi1 = 0x1.fb54442d1846ap-11, pi2 = -0x1.d9cceba3f91f2p-65;
   double y0 = pi0*x;
   b64u64_u b = {.f = y0};
-  b.u &= ~0ul>>12;
+  b.u &= ~0ull>>12; /* GAOL */
   b.u += (int64_t)85<<51;
   y0 = (y0 + b.f) - b.f;
   double y0l = __builtin_fma(pi0,x,-y0);
@@ -106,7 +106,7 @@ static double as_sinpi_zero(double x){
   y0 = fasttwosum(y0,y1, &y1);
   y1 = fasttwosum(y1,y2, &y2);
   b64u64_u t = {.f = y1};
-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
+  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){ /* GAOL */
     b64u64_u w = {.f = y2};
     if((w.u^t.u)>>63)
       t.u--;

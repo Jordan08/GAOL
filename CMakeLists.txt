@@ -253,8 +253,9 @@ endif()
 # x87 unit, before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose
 # fma() rounds each of its partial sums to a double (the one of mingw-w64 11,
 # accepted, keeps them in extended precision and passes the tests, though not
-# correctly rounded). On ARM, before 11, not tested. From version 12 on, a
-# toolchain linking the UCRT takes those of ucrtbase.dll, which pass the tests.
+# correctly rounded). On ARM, as on x86-64, before version 12 or linked with
+# msvcrt.dll, GAOL v5 not being tested there. From version 12 on, a toolchain
+# linking the UCRT takes those of ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with

@@ -5,7 +5,8 @@
 # CMake GAOL declares, and as a part of another project, brought in by
 # FetchContent (tests/fetch_content), which builds GAOL as in Release where it
 # gives no build type (tests/release_flags.py, GAOL v5). The test
-# cpack_stale_configure also runs with ccache in CC and Ninja outside PATH.
+# cpack_stale_configure also runs with ccache in CC and Ninja outside PATH, and
+# the tests with the FE_* values of Cygwin given to CORE-MATH (GAOL v5).
 #
 # The runners have no locale writing a decimal comma, which tests/numbers.cpp
 # reads and writes numbers under where there is one, and where there is none it
@@ -445,6 +446,31 @@ jobs:
           print(len(srcs), "sources of CORE-MATH,", len(native), "without the emulation")
           sys.exit(1 if native or not srcs else 0)
           EOF
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Tests (make test)
+        run: cmake --build build --target test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build
+
+  # The FE_* values of Cygwin (newlib: 0 to 3) for the sources of CORE-MATH,
+  # put over those of glibc (.github/scripts/newlib-fe-values.h): Cygwin, which
+  # no job builds, defines __x86_64__ but not __WIN32__, as Linux, and with
+  # upstream's cbrt.c, rsqrt.c and asinpi.c the downward and upward roundings
+  # were taken for toward zero there (tests/core_math.cpp, 3rd/README.md,
+  # item 6). Only the C sources, CORE-MATH's, take the header (GAOL v5)
+  cygwin-fe-values:
+    name: Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh generate
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
+            -DCMAKE_C_FLAGS="-include $PWD/.github/scripts/newlib-fe-values.h"
       - name: Build
         run: cmake --build build -j 4
       - name: Tests (make test)

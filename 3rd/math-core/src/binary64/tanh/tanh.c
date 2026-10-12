@@ -133,7 +133,7 @@ static double __attribute__((noinline)) as_tanh_zero(double x){ // |x|<0.25
     double y0 = fasttwosum(x, y1, &y1);
     y1 = fasttwosum(y1, y2, &y2);
     b64u64_u t = {.f = y1};
-    if (__builtin_expect(!(t.u & (~0ull >> 12)), 0)) {
+    if (__builtin_expect(!(t.u & (~0ull >> 12)), 0)) { /* GAOL */
         b64u64_u w = {.f = y2};
         if ((w.u ^ t.u) >> 63)
             t.u--;
@@ -382,6 +382,6 @@ double cr_tanh(double x){
   rh = fasttwosum(rh, rl, &rl);
   double res = __builtin_copysign(2,x)*rh + __builtin_copysign(2,x)*rl;
   b64u64_u lu = {.f = rl};
-  if(__builtin_expect(((lu.u+32)&(~0ull>>12))<65, 0)) return as_tanh_database(x, res);
+  if(__builtin_expect(((lu.u+32)&(~0ull>>12))<65, 0)) return as_tanh_database(x, res); /* GAOL */
   return res;
 }

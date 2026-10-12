@@ -104,7 +104,7 @@ static double __attribute__((noinline)) as_cosh_zero(double x){
   double y0 = fasttwosum(1.0, y1, &y1);
   y1 = fasttwosum(y1, y2, &y2);
   b64u64_u t = {.f = y1};
-  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){ /* GAOL */
     b64u64_u w = {.f = y2};
     if((w.u^t.u)>>63)
       t.u--;
@@ -112,7 +112,7 @@ static double __attribute__((noinline)) as_cosh_zero(double x){
       t.u++;
     y1 = t.f;
   }
-  if(__builtin_expect((t.u&(~0ull>>12))==(~0ull>>12), 0)) return as_cosh_database(x, y0 + y1);
+  if(__builtin_expect((t.u&(~0ull>>12))==(~0ull>>12), 0)) return as_cosh_database(x, y0 + y1); /* GAOL */
   return y0 + y1;
 }
 
@@ -311,7 +311,7 @@ double cr_cosh(double x){
       th = as_exp_accurate(ax, t, th, tl, &tl);
       th = fasttwosum(th, tl, &tl);
       b64u64_u uh = {.f = th}, ul = {.f = tl};
-      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12); /* GAOL */
       th += tl;
       th *= 2;
       th *= sp.f;
@@ -371,7 +371,7 @@ double cr_cosh(double x){
   }
   rh = fasttwosum(rh, rl, &rl);
   b64u64_u uh = {.f = rh}, ul = {.f = rl};
-  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12); /* GAOL */
   rh += rl;
   if(__builtin_expect(ml<=16 || eh-el>103,0)) return as_cosh_database(x, rh);
   return rh;
