@@ -58,10 +58,9 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   surroundings: the rounding direction left upward for the whole program
   (printf, strtod, lrint and the program's own doubles change), `operator<`
   which is not an ordering (std::sort and std::set misbehave, and can read out
-  of bounds), streams that broke the idioms of iostreams (fixed since, apart
-  from point intervals written `<a, b>`, which the reader refuses), and the
-  missing pieces every algorithm needs: a box type, derivatives, a two-piece
-  division, inflation, bisection at a ratio.
+  of bounds), streams that broke the idioms of iostreams (fixed since), and
+  the missing pieces every algorithm needs: a box type, derivatives, a
+  two-piece division, inflation, bisection at a ratio.
 - **Confirmed bugs**: two give bounds that miss the exact result (`x -= x`,
   `x /= x` and `x %= x` in the FPU build used on ARM and with Visual C++; `pow`
   with a subnormal result when the x87 and SSE rounding directions differ),
@@ -461,14 +460,19 @@ stream's own precision as it was; `std::setw` pads the whole interval.
 at the end of the input it sets `failbit`, so that `while (in >> x)` ends
 there, and a line that is no interval sets `failbit` and throws
 `input_format_error`. Numbers are read with a point whatever the locale, and
-`exact_string()` writes one; the decimal formats of `operator<<` write the
-decimal point of the stream's locale, as for a double, so that a stream with
-a French locale writes `[1,5, 2,5]`, which the reader refuses (number 21).
-One point still breaks the round trip (section 5.2): a point interval is written
-`<0.1, 0.1000000000000001>`, which the reader refuses. (Before the fixes of
-this review, `operator<<` left the stream's precision at 16 and padded the
-`[` only, `while (in >> x)` always ended with an exception, and the reader
-hung under a locale writing a decimal comma.)
+`exact_string()` writes one, as the bounds format of `operator<<`, the
+default, does whatever the locale of the stream: under a French locale,
+`[1.5, 2.5]` is written, and read back. The width and center formats write the
+decimal point of the stream's locale, as for a double (`2 (+/- 0,5)` under a
+French locale), and write no interval literal: the reader refuses
+`2 (+/- 0.5)`, and reads the center alone, `2`, as the point 2, which does not
+enclose [1.5, 2.5]. A point interval is written between brackets too, `[4]`,
+or `[0.1, 0.1000000000000001]` for `interval(0.1)`, its bounds rounded
+outward, which the reader takes: it was written `<0.1, 0.1000000000000001>`,
+which the reader refused (number 12 of section 5.2). (Before the fixes of this
+review, `operator<<` left the stream's precision at 16 and padded the `[`
+only, `while (in >> x)` always ended with an exception, and the reader hung
+under a locale writing a decimal comma.)
 
 ### 2.8 The rounding direction and the rest of the program
 
