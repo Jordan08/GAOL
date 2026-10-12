@@ -113,8 +113,8 @@ static inline int get_rounding_mode (void)
    of the language. A signed value of type i128 is held in a u128 too, in two's
    complement: gaol_u128_imul64(), gaol_u128_of_i64() and gaol_u128_sar() are
    the product, the conversion and the shift right of the signed type. */
-typedef gaol_u128 u128;
-typedef gaol_u128 i128;
+typedef gaol_u128 u128; /* GAOL */
+typedef gaol_u128 i128; /* GAOL */
 
 typedef uint64_t u64;
 typedef int64_t i64;
@@ -265,7 +265,7 @@ static double asinpi_acc(double x){
     /* GAOL: D = dc 2^ss on 128 bits, in two's complement. ss reaches 69 next
        to +-1 (1 - |x| about 2^-40), where shifting the halves by ss and by
        64 - ss was undefined behaviour, which UBSan reported. */
-    u128_u Cm = {.bl = 0, .bh = cm}, D;
+    u128_u Cm = {.bl = 0, .bh = cm}, D; /* GAOL */
     D.a = gaol_u128_shl(gaol_u128_of_i64(dc), ss); /* GAOL */
     Cm.a = gaol_u128_sub(Cm.a, D.a); /* GAOL */
     h = (i64)gaol_u128_lo(gaol_u128_shr(sm2.a, 14)); /* GAOL */

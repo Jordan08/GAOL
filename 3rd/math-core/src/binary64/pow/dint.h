@@ -52,7 +52,7 @@ SOFTWARE.
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the extended-arithmetic functions below call gaol_u128_*()
    rather than the operators of the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 typedef union {
@@ -279,7 +279,7 @@ add_dint (dint64_t *r, const dint64_t *a, const dint64_t *b) {
        is an extra shift at the end (in that case necessarily ex=1). */
   } else {
     C = gaol_u128_add(A, B); /* GAOL */
-    if (gaol_u128_lt(C, A))
+    if (gaol_u128_lt(C, A)) /* GAOL */
     {
       C = gaol_u128_or(gaol_u128_bit(127), gaol_u128_shr(C, 1)); /* GAOL */
       r->ex ++;
@@ -415,7 +415,7 @@ mul_dint (dint64_t *r, const dint64_t *a, const dint64_t *b) {
      bounded by (B-1)^2+2*(B-1) = B^2-1 */
   /* GAOL: the sum of the two high halves can reach 2^65 - 2, so it is added
      on 128 bits, as (m1 >> 64) + (m2 >> 64) was */
-  r->r = gaol_u128_add(r->r, gaol_u128_add(gaol_u128_of(gaol_u128_hi(m1)), gaol_u128_of(gaol_u128_hi(m2))));
+  r->r = gaol_u128_add(r->r, gaol_u128_add(gaol_u128_of(gaol_u128_hi(m1)), gaol_u128_of(gaol_u128_hi(m2)))); /* GAOL */
 
   // Ensure that r->hi starts with a 1
   uint64_t ex = r->hi >> 63;

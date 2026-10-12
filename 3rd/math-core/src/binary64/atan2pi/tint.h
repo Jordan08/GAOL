@@ -33,7 +33,7 @@ SOFTWARE.
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the extended-arithmetic functions below call gaol_u128_*()
    rather than the operators of the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 // the following represent (-1)^sgn*(h/2^64+m/2^128+l/2^192)*2^ex
 // we have either h=m=l=0 to represent +0 or -0
@@ -105,14 +105,14 @@ mul_tint (tint_t *r, const tint_t *a, const tint_t *b)
   u128 rl1 = gaol_u128_mul64(a->h, b->l), rl2 = gaol_u128_mul64(a->m, b->m), rl3 = gaol_u128_mul64(a->l, b->h); /* GAOL */
   uint64_t h, l, cm;
   r->h = gaol_u128_hi(rh); /* GAOL */
-  r->m = gaol_u128_lo(rh); // cast to low 64 bits
+  r->m = gaol_u128_lo(rh); /* GAOL */ // cast to low 64 bits
   // accumulate rm1
-  r->l = gaol_u128_lo(rm1); // cast to low 64 bits
+  r->l = gaol_u128_lo(rm1); /* GAOL */ // cast to low 64 bits
   h = gaol_u128_hi(rm1); /* GAOL */
   r->m += h;
   r->h += r->m < h; // no overflow possible
   // accumulate rm2
-  l = gaol_u128_lo(rm2); // cast to low 64 bits
+  l = gaol_u128_lo(rm2); /* GAOL */ // cast to low 64 bits
   h = gaol_u128_hi(rm2); /* GAOL */
   r->l += l;
   cm = r->l < l; // carry at r->m
@@ -120,7 +120,7 @@ mul_tint (tint_t *r, const tint_t *a, const tint_t *b)
   r->h += r->m < h; // no overflow possible
   // accumulate rl1+rl2+rl3
   rl1 = gaol_u128_add(gaol_u128_add(gaol_u128_of(gaol_u128_hi(rl1)), gaol_u128_of(gaol_u128_hi(rl2))), gaol_u128_of(gaol_u128_hi(rl3))); /* GAOL */
-  l = gaol_u128_lo(rl1); // cast to low 64 bits
+  l = gaol_u128_lo(rl1); /* GAOL */ // cast to low 64 bits
   cm += gaol_u128_hi(rl1); /* GAOL */
   r->l += l;
   cm += r->l < l; // carry at r->m
