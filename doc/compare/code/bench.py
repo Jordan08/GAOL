@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The benchmark of GAOL, libieeep1788, filib++ and Solaris Studio.
+"""The benchmark of GAOL, libieeep1788, filib++, PROFIL/BIAS, Boost.Interval and Solaris Studio.
 
     bench.py data N FILE
         writes N random intervals of each kind the benchmark uses (see
@@ -26,14 +26,14 @@ OPERATIONS = [
     ("sub", "a − b"),
     ("mul", "a × b"),
     ("div", "a / p"),
-    ("sqr", "a² (`sqr`, `x**2` in Fortran)"),
+    ("sqr", "a² (`sqr`, `square` in Boost.Interval, `x**2` in Fortran)"),
     ("sqrt", "√p"),
     ("exp", "exp(a)"),
     ("log", "log(p)"),
     ("sin", "sin(a)"),
     ("cos", "cos(a)"),
-    ("pow_int", "a³ (`pow(x, int)` in GAOL, `pown`, `power(x, int)` in filib++, `x**3`)"),
-    ("pow_real", "p^e (`pow(x, y)`, `x**y`)"),
+    ("pow_int", "a³ (`pow(x, int)` in GAOL and Boost.Interval, `pown`, `power(x, int)` in filib++, `x**3`)"),
+    ("pow_real", "p^e (`pow(x, y)`, `x**y`; exp(e log p) with Boost.Interval, which has no real power)"),
     ("line_arith", "(a + b)(a − b) / p"),
     ("line_trig", "sin(a) cos(b) + a²"),
     ("line_pow", "√p · a³ − exp(b / p)"),
@@ -47,7 +47,8 @@ OPERATIONS = [
 REFERENCE = "gaol5"
 LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"),
              ("gaol5", "GAOL V5.0.0"), ("gaol", "GAOL 4.2.3"),
-             ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90"), ("profil", "PROFIL/BIAS")]
+             ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90"), ("profil", "PROFIL/BIAS"),
+             ("boost", "Boost.Interval")]
 
 
 def data(n, path):

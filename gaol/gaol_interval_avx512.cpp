@@ -64,7 +64,7 @@
  *
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-10-05 by Joran NININ
+ * Created 2026-10-05 by Jordan NININ
  *--------------------------------------------------------------------------*
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.

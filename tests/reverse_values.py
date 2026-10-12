@@ -569,7 +569,7 @@ def interval(a):
         return "E"
     if a == ENTIRE:
         return "W"
-    return "I(%s, %s)" % (double(a[0]), double(a[1]))
+    return "i(%s, %s)" % (double(a[0]), double(a[1]))
 
 
 def main():
@@ -600,18 +600,22 @@ def main():
     print("#define GAOL_TESTS_REVERSE_VALUES_H")
     print("namespace reverse_values")
     print("{")
-    print("  const double inf = gaol_tests::inf;")
-    print("  // An interval of the table: E the empty set, W the whole line")
-    print("  struct I { double l, u; bool empty; I(double a, double b) : l(a), u(b), empty(false) {} "
-          "I(bool e) : l(0.0), u(0.0), empty(e) {} };")
-    print("  const I E(true), W(-inf, inf);")
+    print("  // Constant expressions, which the compiler writes as data rather than")
+    print("  // initializing the table at run time, at length: with this table and")
+    print("  // atan2_rel_values.h initialized at run time, tests/reverse.cpp took GCC 12")
+    print("  // for 32-bit ARM beyond its 3 GB (Debian 12 armhf)")
+    print("  constexpr double inf = std::numeric_limits<double>::infinity();")
+    print("  // An interval of the table: i(l, u), E the empty set, W the whole line")
+    print("  struct I { double l, u; bool empty; };")
+    print("  constexpr I E = { 0.0, 0.0, true }, W = { -inf, inf, false };")
+    print("  constexpr I i(double l, double u) { return I{ l, u, false }; }")
     print("  // f, the IEEE 1788 function: fRev(c, x), mulRev(b, c, x), pownRev(c, x, p);")
     print("  // b is W for the functions other than mulRev, and x when the case does not")
     print("  // give it (x_given false); tightest, the tightest interval enclosing the hull;")
     print("  // accurate, nextOut(tightest(nextOut(c), nextOut(b), nextOut(x))), which the")
     print("  // accurate results are within (12.10.1); from, libieeep1788 or random")
     print("  struct Case { const char* f; I c, b, x; int p; bool x_given; I tightest, accurate; const char* from; };")
-    print("  const Case cases[] = {")
+    print("  constexpr Case cases[] = {")
     for f, c, b, x, p, x_given, t, a, source in table:
         print("    { \"%s\", %s, %s, %s, %d, %s, %s, %s, \"%s\" }," % (
             f, interval(c), interval(b), interval(x), p, "true" if x_given else "false", interval(t), interval(a), source))

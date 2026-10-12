@@ -21,7 +21,7 @@
 
   <long description>
 
-  \author Frederic Goualard, Joran NININ
+  \author Frederic Goualard, Jordan NININ
   \date   2001-10-01
 */
 

@@ -423,13 +423,13 @@ backward operators of IBEX and Codac, which call them:
 | `asin_rel`, `acos_rel`, `atan_rel` | `sinRev`, `cosRev`, `tanRev` | `bwd_sin`, `bwd_cos`, `bwd_tan` | sin, cos, tan |
 | `acosh_rel`, `asinh_rel`, `atanh_rel` | `coshRev`… | `bwd_cosh`… | cosh, sinh, tanh |
 | `invabs_rel` | `absRev` | `bwd_abs` | \|x\| |
+| `atan2_rel_y(θ, x, y)`, `atan2_rel_x(θ, y, x)` (GAOL v5) | `atan2Rev1(x, θ, y)`, `atan2Rev2(y, θ, x)` | `bwd_atan2` | atan2(y, x) |
 | `x &= z - y` | — | `bwd_add` | x + y |
 
 With them, a forward-backward contractor is a dozen lines (07, 08, 09), and
 IBEX's documented results are reproduced. What is missing for Newton-type
 algorithms is the two-piece division `mulRevToPair`, and reverse functions
-for `atan2`, `pow(x, y)`, `max`, `min`, `sign`, `floor` (which IBEX writes
-itself).
+for `pow(x, y)`, `max`, `min`, `sign`, `floor` (which IBEX writes itself).
 
 ### 2.6 Generic code
 

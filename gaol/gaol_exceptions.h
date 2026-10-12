@@ -21,7 +21,7 @@
 
 Exceptions are used only if gaol has been configured with --enable-exceptions
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2002-12-02
 */
 

@@ -23,26 +23,27 @@ library it uses: the other libraries GAOL could be built with are gone (see
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
 | Commit | `6b84457310ad90b644b3335af2faa8c7301e1c47` (25 September 2026) |
 | Taken | the whole tree, without the `.wc` files |
-| Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-six functions below, compiled into libgaol itself |
+| Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-eight functions below, compiled into libgaol itself |
 
 The `.wc` files, which hold the hardest-to-round arguments CORE-MATH checks
 itself against, are 542 of the 555 MB of the upstream tree and are not needed
 to build: they are left out, and the commit above is what to clone to get them.
 
-The thirty-six functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
+The thirty-eight functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
 `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`,
 `acosh` and `atanh`, then `cbrt`, which `nth_root(x, 3)` takes, `exp2`,
 `exp10`, `log2` and `log10`, which IEEE 1788-2015 requires among the forward
-elementary functions (Table 9.1), and the fifteen of its recommended ones
+elementary functions (Table 9.1), the fifteen of its recommended ones
 (Table 10.5) CORE-MATH has: `expm1`, `exp2m1`, `exp10m1`, `log1p`, `log2p1`,
 `log10p1`, `hypot`, `rsqrt`, `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
-`atanpi` and `atan2pi`. The other formats and functions of the tree are kept
-as they are, so that importing a newer CORE-MATH is a plain copy, but nothing
-compiles them.
+`atanpi` and `atan2pi`, and `erf` and `erfc`, the error function and its
+complement, which the standard does not name. The other formats and functions
+of the tree are kept as they are, so that importing a newer CORE-MATH is a
+plain copy, but nothing compiles them.
 
 ### How GAOL builds them
 
-The three builds compile the thirty-six sources into `libgaol` and include
+The three builds compile the thirty-eight sources into `libgaol` and include
 `gaol/core_math_port.h` first in each of them, **by the compiler rather than by
 the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
 never name that header, so that importing a newer CORE-MATH stays a copy. That
@@ -56,11 +57,14 @@ builtin, GCC before 10 among them: `sin.c` calls it without the guard of the
 other sources since its rewrite (upstream commit `6b84457`), and GCC 9.4 did
 not link it,
 and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
-written on MXCSR: `cbrt`, `pow` and `atan2` keep the exception flags around
-their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
-well, which unmasks the exceptions and makes the first comparison of the NaN
-bounds of an empty interval trap. On a 32-bit x86 Windows, with every
-compiler, it gives them too the square root of SSE2 for `__builtin_sqrt()`: the
+written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
+around their work with them, and the ones of mingw-w64 clear the mask bits of
+MXCSR as well, which unmasks the exceptions and makes the first comparison of
+the NaN bounds of an empty interval trap; each `FE_*` flag is mapped to its
+bit of MXCSR, which the values of the UCRT and of mingw-w64 from 13 on are
+not, so that `hypot(3, 4)` left the inexact flag raised. On a 32-bit x86
+Windows, with every compiler, it gives them too the square root of SSE2 for
+`__builtin_sqrt()`: the
 one of the C library, rounded to nearest in every direction, is what Visual C++
 calls for it, and GCC where it does not optimize (`-O0`, the Debug builds) and,
 at `-O2` too, in the accurate phases the sources mark cold (`pow(x, 0.5)` was
@@ -69,8 +73,15 @@ of `pow([x], [0.5])`). With Visual C++, it gives them `NAN` and `INFINITY` read
 from their bits, which the UCRT writes for C as products of `1e+300` that
 `/fp:strict` computes when the program runs, in the rounding direction in
 effect (`-0` and `FLT_MAX` downward and toward zero: `pow` rounded downward was
-`-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). `tests/core_math.cpp`
-checks both.
+`-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). With every
+compiler, it gives them for `__builtin_ldexp()` the `gaol_ldexp()` of
+`gaol/gaol_ldexp.h`, x·2<sup>n</sup> rounded once in the direction in effect,
+rather than the `ldexp()` of the C library, which `erfc` rounds its
+subnormal values with: the one of the UCRT of Windows does not round so
+where the result is subnormal, and `erfc` was the double below `erfc(x)`
+rounding upward from x = 26.54 on (Visual C++ and clang-cl); the one of
+macOS gave 0 for 2<sup>−1127</sup> rounded upward. `tests/core_math.cpp`
+checks the flags, the square root, `NAN` and `INFINITY`, and `gaol_ldexp()`.
 
 On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
 that rounds their doubles, rather than the control word of the x87 unit, which
@@ -99,7 +110,8 @@ kept as a patch to reapply.
    `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`, `hypot`, `rsqrt`
    and `asinpi`. Upstream writes it `unsigned __int128`, or
    `unsigned _BitInt(128)` with Clang 14 and GCC 14: Visual C++ has neither, on
-   no architecture, and neither has GCC for a 32-bit target. In
+   no architecture, and neither has GCC for the 32-bit targets whose ABI has
+   no `_BitInt(128)` (GCC 14 has it for x86). In
    `log/dint.h`, `log10/dint.h`, `log2p1/dint_log2p1.h`, `log10p1/dint.h`,
    `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`, `atan2pi/tint.h`, `sin/sin.c`,
    `cos/cos.c`, `tan/tan.c`, `hypot/hypot.c`, `rsqrt/rsqrt.c` and
@@ -177,8 +189,9 @@ kept as a patch to reapply.
    function computes the `FE_*` value of the direction from MXCSR, for the
    values of glibc, or for those of Windows where `__WIN32__` is defined
    (`FE_UPWARD` 0x200 or 0x100), then maps it to 0 to 3 by a switch; under
-   `__WIN32__` with other values, which are those of mingw-w64 (`FE_UPWARD`
-   0x800, as glibc), it returned `fegetround()` itself, past the switch. In the
+   `__WIN32__` with other values, which are those of mingw-w64 before 13
+   (`FE_UPWARD` 0x800, as glibc; from 13 on, mingw-w64 has those of the UCRT),
+   it returned `fegetround()` itself, past the switch. In the
    directed roundings `off[]` was then read kilobytes beyond its four elements,
    and the seven arguments were rounded toward zero: rounding upward,
    `cr_cbrt(0x1.3a9ccd7f022dbp+0)` was `0x1.1236160ba9b93p+0`, below the cube

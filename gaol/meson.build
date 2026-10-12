@@ -1,5 +1,5 @@
 # Copyright (c) 2026 ENSTA, France
-# Modified by Joran NININ (GAOL v5)
+# Modified by Jordan NININ (GAOL v5)
 # Meson build of GAOL: libgaol
 #
 # Created 2025-11-25 by Raphaël Chenouard
@@ -29,6 +29,10 @@ core_math_functions = [
   # The forward functions IEEE 1788-2015 recommends (Table 10.5) (GAOL v5)
   'expm1', 'exp2m1', 'exp10m1', 'sinpi', 'cospi', 'tanpi', 'acospi', 'atanpi',
   'log1p', 'log2p1', 'log10p1', 'hypot', 'rsqrt', 'asinpi', 'atan2pi',
+
+  # The error function and its complement, which IEEE 1788-2015 does not name
+  # (GAOL v5)
+  'erf', 'erfc',
 ]
 incdir = include_directories(['.', '..', './sysdeps'])
 
@@ -121,6 +125,7 @@ gaol_HEADERS = [
   'gaol_interval_fpu.h',
   'gaol_interval_sse.h',
   'gaol_limits.h',
+  'gaol_literals.h',
   'gaol_parser.h',
   'gaol_port.h',
   'gaol_profile.h',
@@ -137,6 +142,7 @@ EXTRA_DIST = [
   'gaol_init_cleanup.h',
   'gaol_interval_parser.h',
   'gaol_u128.h',
+  'gaol_ldexp.h',
   'sysdeps/gaol_exact_c99.h',
   'sysdeps/gaol_exact_msvc.h',
   's_nextafter.c',

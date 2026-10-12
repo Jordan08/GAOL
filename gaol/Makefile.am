@@ -18,7 +18,7 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base
 # directory of gaol.
 #------------------------------------------------------------------------------
-# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Joran NININ
+# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Jordan NININ
 #------------------------------------------------------------------------------
 
 .PHONY: tags
@@ -74,7 +74,7 @@ library_include_HEADERS = gaol gaol.h gaol_assert.h \
 	gaol_expr_eval.h gaol_expr_visitor.h gaol_expression.h gaol_flags.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
 	gaol_interval.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
-	gaol_parser.h gaol_port.h gaol_profile.h gaol_roundeven.h \
+	gaol_literals.h gaol_parser.h gaol_port.h gaol_profile.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
 
 # Headers of the sources of GAOL, not installed (GAOL v5):
@@ -85,7 +85,7 @@ library_include_HEADERS = gaol gaol.h gaol_assert.h \
 noinst_HEADERS = gaol_core_math.h gaol_exact.h \
 	gaol_init_cleanup.h gaol_interval_parser.h \
 	gaol_u128.h sysdeps/gaol_exact_c99.h sysdeps/gaol_exact_msvc.h \
-	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h
+	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h gaol_ldexp.h
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c

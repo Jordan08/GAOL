@@ -19,7 +19,7 @@
 \file   gaol_common.h
 \brief  Functionalities commonly used
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2001-10-03
 */
 

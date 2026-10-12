@@ -6,8 +6,9 @@
  * The tests check the bounds GAOL computes against the exact results of the
  * operations, independently of GAOL and of the floating-point environment:
  * the exact results are computed with integers, or were computed with 2000
- * bits of precision (tests/elementary_values.py, tests/reverse_values.py), or
- * 5000 (tests/extended_precision_values.py). A bound is right when it is
+ * bits of precision (tests/elementary_values.py, tests/reverse_values.py),
+ * 3000 (tests/atan2_rel_values.py) or 5000
+ * (tests/extended_precision_values.py). A bound is right when it is
  * on the right side of the exact result, and as tight as it can be when no
  * double between it and the exact result is.
  *
