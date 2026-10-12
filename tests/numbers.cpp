@@ -2245,7 +2245,7 @@ int main()
   // stdout where it is a pipe, as under ctest (GAOL v5)
   std::fflush(stdout);
   stream_without_buffer();
-  const int status = summary();
+  const int status = summary() + 1; // Throwaway: fails, so that ctest shows the output
   gaol::cleanup();
   return status;
 }

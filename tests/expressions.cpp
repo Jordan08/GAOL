@@ -1618,7 +1618,7 @@ int main()
           [&] { return text.str(); });
   }
   step("summary");
-  const int status = summary();
+  const int status = summary() + 1; // Throwaway: fails, so that ctest shows the output
   gaol::cleanup();
   return status;
 }
