@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `c547359` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `100b9d9` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -285,72 +285,31 @@ Fusionnés le 12 octobre aussi : #103, qui retire `.continue/rules`, #108, #109,
 qui met `process.md` à jour (l'arbre `GAOL_V9`, les outils d'Ubuntu 26.04), et
 #110, un job de la CI (`meson-oldest` de `build-systems.yml`) pour meson
 0.53.2, la plus ancienne version prise en charge, que plus rien ne vérifiait.
+Fait ensuite, le 12 octobre : le point A (anciens 31, 6, 56, 3 et 47), par #111
+et #113 : le correctif 6 de CORE-MATH en entier dans `cbrt.c`, `rsqrt.c` et
+`asinpi.c`, qui rend Cygwin juste, avec un job de la CI qui donne à CORE-MATH
+les `FE_*` de Cygwin ; les masques de `sinpi.c` et `log1p.c` ;
+`GAOL_RND_MINGW_FENV_ONLY` supprimé ; mingw-w64 pour ARM refusé avant 12 ou
+sans `_UCRT` ; la racine carrée de SSE2 sur tout x86 32 bits ; les commentaires
+du sens d'arrondi ; chaque ligne changée de CORE-MATH marquée `/* GAOL */`
+(#113) ; dans `3rd/README.md`, le correctif 1 étendu à `expm1q.c` et
+`atan2l.c`, le 6 à `powl.c`, et le 4 fait en amont. L'envoi reste reporté (#65,
+#66), le signalement à mingw-w64 aussi (#69), et le `fma()` logiciel de
+`ucrtbase.dll` n'a jamais été vérifié. Décidé à sa fin : `configure` régénéré
+par `autoconf` seul quand seul `configure.ac` change, et `check_branch` qui
+prend l'arbre courant, par #112 ; `atan2l.c` dans le correctif 1, son échec
+dans les arrondis dirigés étant à signaler aux auteurs avec l'envoi. Le défaut
+de `cr_pow` relevé par D.24 (#83) est corrigé en amont par `c01f08c5` : le
+contournement de GAOL pourra tomber au prochain import de CORE-MATH. Les textes
+pour `ChangeLog` et `doc/differences.md` sont dans la description de #111.
 
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-a-core-math-mingw` : le point A, #111.
-- `process-autoconf-check-branch` : `configure` régénéré par `autoconf` seul
-  dans `process.md`, et `check_branch` qui prend l'arbre courant, #112.
+- Aucune.
 
 ## Même changement, ou même code
-
-### A. Le correctif 6 de CORE-MATH, MinGW-w64 et Cygwin (31, 6, 56, 3, 47)
-
-Le correctif 6 en entier (la table) est à la fois la forme décidée pour
-CORE-MATH (31) et la correction de Cygwin (47) ; le `#warning` à taire (6) est
-dans les mêmes fichiers, `cbrt.c`, `rsqrt.c` et `asinpi.c`, et les commentaires
-(56) et la racine carrée de SSE2 (3) dans `gaol/core_math_port.h` et
-`gaol/gaol_fpu.h`. Corriger d'abord `3rd/README.md` ; l'envoi est reporté (#65,
-#66), le signalement à mingw-w64 aussi (#69).
-
-- **31.** **Envoyer à CORE-MATH les correctifs écrits dans
-  [3rd/README.md](3rd/README.md)**, dont la section « Changes to propose
-  upstream » donne six correctifs contre son master `b1a4badf`, vérifiés avec
-  `./check.sh --worst` et `--special` ; la glibc n'a aucun de ces défauts. Rien
-  n'est envoyé. Décidé le 3 octobre : le correctif 6 sous sa forme large (la
-  table), après examen de `binary80/pow/powl.c` ; changer dès maintenant les
-  `sinpi.c` et `log1p.c` embarqués (`/* GAOL */`, comme sinh, cosh et tanh) ;
-  envoyer aussi le patch 7 (`exact_pow()`, #63). Reportés : qui envoie et
-  comment (merge request sur gitlab.inria.fr, ou `git format-patch` à
-  core-math@inria.fr), #65 ; y joindre ou non l'échec du master à `./check.sh
-  --worst --rndd pow` et la borne de `ss` dans `asinpi_acc()`, #66. Corriger
-  d'abord les phrases inexactes de `3rd/README.md` relevées par les relectures
-  de #54, #56 et #59. Décidé le 4 octobre : avant d'envoyer le correctif 1,
-  examiner aussi les masques `~0ul` et `1ul<<52` de `binary80/atan2/atan2l.c`
-  et de `binary128/expm1/expm1q.c`, que GAOL n'utilise pas (`3rd/README.md`
-  dit « were not examined ») : les lire, lancer `./check.sh` là où `long` fait
-  32 bits, et les ajouter au correctif s'ils ont le même défaut.
-- **6.** **Suites de `fegetround()` lu dans MXCSR et du refus de MinGW-w64**
-  (#54, #51). Décidé le 3 octobre : ne pas lire MXCSR sur x86 32 bits avec
-  SSE2 ; supprimer `GAOL_RND_MINGW_FENV_ONLY` (mingw-w64 11 i686 passe ctest
-  sans lui sous wine) ; refuser mingw-w64 ARM64 avant 12 ou sans `_UCRT`, comme
-  sur x86-64 (le refus actuel de mingw-w64 ARM avant 11 y est inclus) ; garder
-  le refus du x86 32 bits avant 11, par version ; taire le `#warning` de
-  `cbrt.c`, `rsqrt.c` et `asinpi.c` (changement `/* GAOL */`) en attendant le
-  point 31. Reporté : signaler à mingw-w64 son `fma()` et son `round()` pour
-  msvcrt (#69). Le `fma()` logiciel de `ucrtbase.dll` n'a jamais été vérifié.
-  Décidé le 4 octobre : le refus garde ses deux limites, un programme qui
-  définit `_UCRT` lui-même en se liant à `msvcrt.dll`, et un instantané git de
-  mingw-w64 qui se dit 12 mais date d'avant le déplacement de `fma.c` et
-  `round.c` ; écrire la seconde dans `gaol/gaol_config.h`, à côté de la
-  première (l. 282-284).
-- **56.** **Les commentaires du sens d'arrondi avec mingw-w64** (suite du
-  point 6, #54) : le commentaire de `round_upward_if_needed()`
-  (`gaol/gaol_fpu.h`, l. 334) dit que l'unité x87 « computes none of GAOL's
-  doubles », ce qui est faux avec mingw-w64 x64, dont `ldexp()` est le `fscale`
-  x87 : écrire « none of GAOL's doubles but exact ones » ; « as the
-  get_rounding_mode() of cbrt.c, rsqrt.c and asinpi.c does »
-  (`gaol/core_math_port.h`, l. 232) ne vaut que pour GCC et Clang, pas pour
-  Visual C++ x64.
-- **3.** **Suites de `pow(x, y)` exact aux coins** (#63). Restent, décidés le
-  3 octobre : la racine carrée de SSE2 sur tout x86 32 bits, et non plus sur
-  Windows 32 bits seulement ; pas de recherche de cas durs pour MinGW-w64 x86
-  avant #63.
-- **47** (une partie). Cygwin x64, hors CI, reste faux (`FE_*` de newlib, pas de
-  `_WIN32`) : décidé le 3 octobre, prendre le correctif 6 de `3rd/README.md` en
-  entier plutôt que refuser Cygwin.
 
 ### B. pow (1, 2, 8, 51, 72, 73, 74)
 
@@ -374,18 +333,19 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
   infinie, ou une base partant de 0 avec un exposant qui n'est pas au-dessus de
   0), deux fois par `nth_root(x, q)` pour q < 0, par `modulo_k_pi()`, et par
   `asinh_rel()` et `atanh_rel()`, qui appellent `asinh()` et `atanh()` après
-  leur propre vérification (relevé par #92, décidé le 6 octobre).
-  Correction : appeler les corps de ces opérations après une seule vérification,
-  comme `tan()` et les puissances négatives ; les corps de `log()`, `exp()` et
-  `*` sans la vérification restent à écrire. `nth_root(I, q)` calcule `|q|`
-  par `-static_cast<long>(q)` pour inclure `INT_MIN`, mais `long` fait aussi
-  32 bits sous MSVC et MinGW : `nth_root(I, INT_MIN)` déclenche alors un
+  leur propre vérification (relevé par #92, décidé le 6 octobre). Correction :
+  appeler les corps de ces opérations après une seule vérification, comme
+  `tan()` et les puissances négatives ; les corps de `log()`, `exp()` et `*`
+  sans la vérification restent à écrire. `nth_root(I, q)` calcule `|q|` par
+  `-static_cast<long>(q)` pour inclure `INT_MIN`, mais `long` fait aussi 32
+  bits sous MSVC et MinGW : `nth_root(I, INT_MIN)` déclenche alors un
   dépassement signé indéfini ; calculer la magnitude sans négation signée et
-  couvrir ce cas dans les tests. Décidé le 3 octobre : les deux,
-  dans cet ordre ; pour `pow`, après le point 3, étendre ensuite l'analyse des
-  coins aux bornes infinies et à une base partant de 0 : plus d'exp(y log x), et
-  des boîtes serrées (aujourd'hui, `pow([4, +oo], 0.5)` vaut [2 − 2^-52, +oo],
-  et d'autres ont des centaines de doubles de trop), avec des tests aux limites.
+  couvrir ce cas dans les tests. Décidé le 3 octobre : les deux, dans cet ordre
+  ; pour `pow`, après le point 3 (fait par #111), étendre ensuite l'analyse des
+  coins aux bornes infinies et à une base partant de 0 : plus d'exp(y log x),
+  et des boîtes serrées (aujourd'hui, `pow([4, +oo], 0.5)` vaut [2 − 2^-52,
+  +oo], et d'autres ont des centaines de doubles de trop), avec des tests aux
+  limites.
   Les outils qui ont vérifié `pow` au point 1 (différentiel entre deux builds,
   table de `pow_on_boxes()`, `checkrows.py` contre mpmath, mutations, temps)
   sont dans `tests/tools/pow/` (#81). Décidé le 4 octobre : ajouter avec ce
@@ -694,7 +654,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108, #109 et #110 après leur fusion).
+  #99, #100, #103, #105, #108, #109, #110, #111, #112 et #113 après leur
+  fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -711,10 +672,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 6 : A ; 8 : B ; 11 : F ; 15 : F ; 18 : F ; 26 : W ;
-28 : X ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 46 : F ;
-47 : A ; 51 : B ; 56 : A ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 70 : I ; 71 : Y ;
-72 : B ; 73 : B ; 74 : B.
+1 : B ; 2 : B ; 8 : B ; 11 : F ; 15 : F ; 18 : F ; 26 : W ; 28 : X ; 32 : Y ;
+33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 46 : F ; 51 : B ; 58 : F ; 59 : F ;
+60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -726,16 +686,15 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    l'échec d'allocation du scanner ; régénérer le parser avec le test de
    `<a, b>` du point Q, puis relire la branche. Le point H est fait (#86),
    hors le 27 et la partie manuel reportée au point I. E est fait par #105.
-3. **Finir les corrections de puissance B.** Faire d'abord A.3, prérequis
-   noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce
+3. **Finir les corrections de puissance B.** A.3, prérequis noté dans B.2,
+   est fait par #111 : faire le travail de B dans l'ordre indiqué par ce
    point. Q est fait par #100.
 4. **Achever les autres corrections mathématiques : M et R.** Garder les
    mesures et les tests avec les changements de bornes concernés. Faits par #89
    et #92.
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
-   Faire F après la régénération du parser ; corriger `3rd/README.md` avant tout
-   envoi amont pour A et valider les plateformes prises en charge. G est fait
-   par #91, N par #94, O par #95.
+   Faire F après la régénération du parser. G est fait par #91, N par #94, O
+   par #95, A par #111 et #113.
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
