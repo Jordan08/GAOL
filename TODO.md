@@ -468,6 +468,25 @@ Décidé le 12 octobre, pour tout le point B :
   de `pow` (2) ; `pown` (8, 72, 73, 74). Les textes du 51 vont avec le code
   qu'ils décrivent.
 
+Décidé aussi le 12 octobre, sur les mesures faites avant le code (clang-18,
+i7-1185G7, GAOL 4.2.3 construit comme dans `doc/compare/code`) :
+
+- **72** : sous le seuil du 73, l'inverse de x^m calculé à partir des
+  produits exacts (h + l), corrigé par `fma` ; `cr_pow` au-dessus.
+- **73** : le seuil se mesure sur cette machine seulement.
+- **`pown` pour les grands |n|** : aucune méthode aux bornes les plus serrées
+  ne bat GAOL 4 au-delà de x^30. x^1000 prend 14,9 ns avec GAOL 4, dont les
+  bornes ont 1 300 à 1 500 doubles de trop, et 62,7 ns aujourd'hui. Un
+  prototype, les produits exacts des deux bornes dans un registre SSE2 avec
+  une borne d'erreur a priori, donne les bornes les plus serrées en 11,7 ns
+  pour x^3 (GAOL 4 : 13,2) et 23,1 ns pour x^1000. L'étude continue, pour
+  raccourcir sa chaîne de dépendances, avant d'écrire `pown`.
+- **`acosh_rel()` et `nth_root_rel()`**, qui vérifient aussi le sens
+  d'arrondi deux fois, sont corrigés dans la première pull request.
+- **`inverse_upward()`**, privé, est donné à `pown` et à `nth_root(I, q)`
+  pour q < 0 par une classe amie, `upward_access`, définie dans
+  `gaol/gaol_interval.cpp` seul.
+
 ## Même fichier de test ou de documentation
 
 ### F. La lecture des nombres et `operator>>` (11, 15, 18, 46, 58, 59, 60, 61)
