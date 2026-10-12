@@ -105,9 +105,9 @@ GNU extensions of C (`atan2` uses inline assembly), not with `-std=c99`.
 ### What differs from upstream
 
 The vendored sources are those of the commit above but for the changes below,
-which are marked in the code: each changed line ends with `/* GAOL */`, or is
-part of a comment beginning with `/* GAOL:`. They are made in the tree rather
-than kept as a patch to reapply.
+which are marked in the code: each changed line carries `/* GAOL */`, at its
+end or before the comment that ends it, or is part of a comment beginning with
+`/* GAOL:`. They are made in the tree rather than kept as a patch to reapply.
 
 1. **The 128-bit integer** of the accurate phases of `log`, `sin`, `cos`, `tan`,
    `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`, `hypot`, `rsqrt`
@@ -333,11 +333,12 @@ comparison rather than by reading:
 
 Copy the upstream tree again without the `.wc` files, then make the eight
 changes above. `git diff` against the previous version shows them: each changed
-line ends with `/* GAOL */` or is part of a comment beginning with `/* GAOL:`,
-and no other line differs. A change upstream has made in the meantime is not
-made again: that of `cospi.c` from commit `b1a4badf` on, and those of the
-[patches below](#changes-to-propose-upstream) once upstream takes them. Patch 4
-is made from commit `19e85418` (5 October 2026) on: `sin.c` then guards its
+line carries `/* GAOL */`, at its end or before the comment that ends it, or is
+part of a comment beginning with `/* GAOL:`, and no other line differs. A
+change upstream has made in the meantime is not made again: that of `cospi.c`
+from commit `b1a4badf` on, and those of the [patches
+below](#changes-to-propose-upstream) once upstream takes them. Patch 4 is made
+from commit `19e85418` (5 October 2026) on: `sin.c` then guards its
 `__builtin_roundeven()` as the other sources do, and no longer needs the
 definition `gaol/core_math_port.h` gives the builtin for GCC before 10, which
 can stay; the one of Windows is still needed.
