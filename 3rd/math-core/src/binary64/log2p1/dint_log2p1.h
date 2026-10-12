@@ -52,7 +52,7 @@ SOFTWARE.
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the extended-arithmetic functions below call gaol_u128_*()
    rather than the operators of the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 typedef union {
   u128 r;

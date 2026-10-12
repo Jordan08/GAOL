@@ -44,7 +44,7 @@ SOFTWARE.
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the code below calls gaol_u128_*() rather than the operators of
    the language, and U128() initialises the tables with the two halves. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 typedef uint64_t u64;
 
@@ -99,9 +99,9 @@ static const uint64_t _T[20] = {
 
 #if GAOL_U128_NATIVE /* GAOL */
 #define U128(l,h) (((u128)h)<<64 | (u128)l) // little endian
-#else
+#else /* GAOL */
 /* GAOL: the two halves, named whatever their order in the structure */
-#define U128(lo,hi) {.l = (lo), .h = (hi)}
+#define U128(lo,hi) {.l = (lo), .h = (hi)} /* GAOL */
 #endif /* GAOL */
 
 /* The following is a degree-7 polynomial with odd coefficients
@@ -138,7 +138,7 @@ static inline u128 mhUU(u128 a, u128 b){
   u128 albh = gaol_u128_mul64(al, bh); /* GAOL */
   /* GAOL: the sum of the two high halves can reach 2^65 - 2, so it is added
      on 128 bits, as (ahbl>>64)+(albh>>64) was */
-  return gaol_u128_add(ahbh, gaol_u128_add(gaol_u128_of(gaol_u128_hi(ahbl)), gaol_u128_of(gaol_u128_hi(albh))));
+  return gaol_u128_add(ahbh, gaol_u128_add(gaol_u128_of(gaol_u128_hi(ahbl)), gaol_u128_of(gaol_u128_hi(albh)))); /* GAOL */
 }
 
 /* Return Sr such that Sr/2^128 approximates sin2pi(r), for 0 <= r < 2^-14,

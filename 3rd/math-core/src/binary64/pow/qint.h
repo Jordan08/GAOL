@@ -52,7 +52,7 @@ SOFTWARE.
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the extended-arithmetic functions below call gaol_u128_*()
    rather than the operators of the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 typedef union {
@@ -286,7 +286,7 @@ add_qint (qint64_t *r, const qint64_t *a, const qint64_t *b) {
     uint64_t chh = gaol_u128_hi(ch), clh = gaol_u128_hi(cl); /* GAOL */
     ex =
       chh ? __builtin_clzll(chh)
-      : 64 + (gaol_u128_lo(ch) ? __builtin_clzll(gaol_u128_lo(ch))
+      : 64 + (gaol_u128_lo(ch) ? __builtin_clzll(gaol_u128_lo(ch)) /* GAOL */
               : 64 + (clh ? __builtin_clzll(clh)
                       : 64 + __builtin_clzll(gaol_u128_lo(cl)))); /* GAOL */
     /* ex < 256 since |A| > |B| */
@@ -339,7 +339,7 @@ add_qint (qint64_t *r, const qint64_t *a, const qint64_t *b) {
         clh = gaol_u128_hi(cl); /* GAOL */
         ex =
           chh ? __builtin_clzll(chh)
-          : 64 + (gaol_u128_lo(ch) ? __builtin_clzll(gaol_u128_lo(ch))
+          : 64 + (gaol_u128_lo(ch) ? __builtin_clzll(gaol_u128_lo(ch)) /* GAOL */
                   : 64 + (clh ? __builtin_clzll(clh)
                           : 64 + __builtin_clzll(gaol_u128_lo(cl)))); /* GAOL */
       }
@@ -359,7 +359,7 @@ add_qint (qint64_t *r, const qint64_t *a, const qint64_t *b) {
     char cy = addu128 (ah, bh, &ch);
 
     if (addu128 (al, bl, &cl)) /* GAOL */
-      cy += !gaol_u128_lo(ch = gaol_u128_add64(ch, 1)) && !gaol_u128_hi(ch);
+      cy += !gaol_u128_lo(ch = gaol_u128_add64(ch, 1)) && !gaol_u128_hi(ch); /* GAOL */
 
     /* 0 <= cy <= 1 */
 
@@ -476,19 +476,19 @@ add_qint_22 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
 // Multiply two dint64_t numbers, with error < 14 ulps
 static inline void
 mul_qint (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 r33 = gaol_u128_mul64(a->hh, b->hh);
+  u128 r33 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
 
-  u128 r32 = gaol_u128_mul64(a->hh, b->hl);
-  u128 r23 = gaol_u128_mul64(a->hl, b->hh);
+  u128 r32 = gaol_u128_mul64(a->hh, b->hl); /* GAOL */
+  u128 r23 = gaol_u128_mul64(a->hl, b->hh); /* GAOL */
 
-  u128 r31 = gaol_u128_mul64(a->hh, b->lh);
-  u128 r13 = gaol_u128_mul64(a->lh, b->hh);
-  u128 r22 = gaol_u128_mul64(a->hl, b->hl);
+  u128 r31 = gaol_u128_mul64(a->hh, b->lh); /* GAOL */
+  u128 r13 = gaol_u128_mul64(a->lh, b->hh); /* GAOL */
+  u128 r22 = gaol_u128_mul64(a->hl, b->hl); /* GAOL */
 
-  u128 r30 = gaol_u128_mul64(a->hh, b->ll);
-  u128 r03 = gaol_u128_mul64(a->ll, b->hh);
-  u128 r21 = gaol_u128_mul64(a->hl, b->lh);
-  u128 r12 = gaol_u128_mul64(a->lh, b->hl);
+  u128 r30 = gaol_u128_mul64(a->hh, b->ll); /* GAOL */
+  u128 r03 = gaol_u128_mul64(a->ll, b->hh); /* GAOL */
+  u128 r21 = gaol_u128_mul64(a->hl, b->lh); /* GAOL */
+  u128 r12 = gaol_u128_mul64(a->lh, b->hl); /* GAOL */
 
   u128 t6, t5, t4, t3;
   u128 c5, c4;
@@ -550,17 +550,17 @@ mul_qint (qint64_t *r, const qint64_t *a, const qint64_t *b) {
    and with error < 6 ulps */
 static inline void
 mul_qint_33 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 r33 = gaol_u128_mul64(a->hh, b->hh);
+  u128 r33 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
 
-  u128 r32 = gaol_u128_mul64(a->hh, b->hl);
-  u128 r23 = gaol_u128_mul64(a->hl, b->hh);
+  u128 r32 = gaol_u128_mul64(a->hh, b->hl); /* GAOL */
+  u128 r23 = gaol_u128_mul64(a->hl, b->hh); /* GAOL */
 
-  u128 r31 = gaol_u128_mul64(a->hh, b->lh);
-  u128 r13 = gaol_u128_mul64(a->lh, b->hh);
-  u128 r22 = gaol_u128_mul64(a->hl, b->hl);
+  u128 r31 = gaol_u128_mul64(a->hh, b->lh); /* GAOL */
+  u128 r13 = gaol_u128_mul64(a->lh, b->hh); /* GAOL */
+  u128 r22 = gaol_u128_mul64(a->hl, b->hl); /* GAOL */
 
-  u128 r21 = gaol_u128_mul64(a->hl, b->lh);
-  u128 r12 = gaol_u128_mul64(a->lh, b->hl);
+  u128 r21 = gaol_u128_mul64(a->hl, b->lh); /* GAOL */
+  u128 r12 = gaol_u128_mul64(a->lh, b->hl); /* GAOL */
 
   u128 t6, t5, t4, t3;
   u128 c5, c4;
@@ -619,13 +619,13 @@ mul_qint_33 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
    and with error < 2 ulps */
 static inline void
 mul_qint_41 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 r33 = gaol_u128_mul64(a->hh, b->hh);
+  u128 r33 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
 
-  u128 r23 = gaol_u128_mul64(a->hl, b->hh);
+  u128 r23 = gaol_u128_mul64(a->hl, b->hh); /* GAOL */
 
-  u128 r13 = gaol_u128_mul64(a->lh, b->hh);
+  u128 r13 = gaol_u128_mul64(a->lh, b->hh); /* GAOL */
 
-  u128 r03 = gaol_u128_mul64(a->ll, b->hh);
+  u128 r03 = gaol_u128_mul64(a->ll, b->hh); /* GAOL */
 
   u128 t6, t5, t4, t3;
   u128 c5, c4;
@@ -676,9 +676,9 @@ mul_qint_41 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
    and the upper limb from b, with no error (exact product) */
 static inline void
 mul_qint_31 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 r33 = gaol_u128_mul64(a->hh, b->hh);
-  u128 r23 = gaol_u128_mul64(a->hl, b->hh);
-  u128 r13 = gaol_u128_mul64(a->lh, b->hh);
+  u128 r33 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
+  u128 r23 = gaol_u128_mul64(a->hl, b->hh); /* GAOL */
+  u128 r13 = gaol_u128_mul64(a->lh, b->hh); /* GAOL */
 
   u128 t6, t5, t4;
   u128 c5;
@@ -725,12 +725,12 @@ mul_qint_31 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
    with no error (exact product) */
 static inline void
 mul_qint_22 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 r33 = gaol_u128_mul64(a->hh, b->hh);
+  u128 r33 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
 
-  u128 r32 = gaol_u128_mul64(a->hh, b->hl);
-  u128 r23 = gaol_u128_mul64(a->hl, b->hh);
+  u128 r32 = gaol_u128_mul64(a->hh, b->hl); /* GAOL */
+  u128 r23 = gaol_u128_mul64(a->hl, b->hh); /* GAOL */
 
-  u128 r22 = gaol_u128_mul64(a->hl, b->hl);
+  u128 r22 = gaol_u128_mul64(a->hl, b->hl); /* GAOL */
 
   u128 t6, t5, t4;
   u128 c5;
@@ -773,8 +773,8 @@ mul_qint_22 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
    upper limb of b, with no error (exact product) */
 static inline void
 mul_qint_21 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 r33 = gaol_u128_mul64(a->hh, b->hh);
-  u128 r23 = gaol_u128_mul64(a->hl, b->hh);
+  u128 r33 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
+  u128 r23 = gaol_u128_mul64(a->hl, b->hh); /* GAOL */
 
   u128 t6 = gaol_u128_add(r33, gaol_u128_shr(r23, 64)); /* GAOL */
 
@@ -803,7 +803,7 @@ mul_qint_21 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
    with no error (exact product) */
 static inline void
 mul_qint_11 (qint64_t *r, const qint64_t *a, const qint64_t *b) {
-  u128 t6 = gaol_u128_mul64(a->hh, b->hh);
+  u128 t6 = gaol_u128_mul64(a->hh, b->hh); /* GAOL */
   uint64_t ex = !gaol_u128_lo(gaol_u128_shr(t6, 127)); /* GAOL */
 
   /* ex can be 0 or 1 */
@@ -837,10 +837,10 @@ static inline void mul_qint_2 (qint64_t *r, int64_t b, const qint64_t *a) {
   c = c << k;
   r->ex -= k;
 
-  u128 t3 = gaol_u128_mul64(a->hh, c);
-  u128 t2 = gaol_u128_mul64(a->hl, c);
-  u128 t1 = gaol_u128_mul64(a->lh, c);
-  u128 t0 = gaol_u128_mul64(a->ll, c);
+  u128 t3 = gaol_u128_mul64(a->hh, c); /* GAOL */
+  u128 t2 = gaol_u128_mul64(a->hl, c); /* GAOL */
+  u128 t1 = gaol_u128_mul64(a->lh, c); /* GAOL */
+  u128 t0 = gaol_u128_mul64(a->ll, c); /* GAOL */
 
   u128 cy;
   u128 t = gaol_u128_shr(t0, 64); /* GAOL */

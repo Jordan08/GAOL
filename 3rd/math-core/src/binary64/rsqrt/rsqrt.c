@@ -112,7 +112,7 @@ static inline int get_rounding_mode (void)
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the code below calls gaol_u128_*() rather than the operators of
    the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 typedef uint64_t u64;
 typedef int64_t i64;
@@ -141,7 +141,7 @@ static double __attribute__((noinline)) as_rsqrt_refine(double rf, double a){
     rrt = gaol_u128_make(t1, t0); /* GAOL */
     i64 s = gaol_u128_hi(rrt)>>63, dd = 1 - 2*s; /* GAOL */
     /* GAOL: ((rt<<1)^(-s)) + s, -s being 0 or all ones, negates rt<<1 when s is 1 */
-    u128 rts = s ? gaol_u128_neg(gaol_u128_shl(rt, 1)) : gaol_u128_shl(rt, 1);
+    u128 rts = s ? gaol_u128_neg(gaol_u128_shl(rt, 1)) : gaol_u128_shl(rt, 1); /* GAOL */
     u128 prrt;
     u64 am2 = am<<1, am20 = -am;
     do {

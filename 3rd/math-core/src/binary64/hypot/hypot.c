@@ -70,7 +70,7 @@ typedef int64_t i64;
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the code below calls gaol_u128_*() rather than the operators of
    the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 typedef union {double f; u64 u;} b64u64_u;
 
 static inline double fasttwosum(double x, double y, double *e){

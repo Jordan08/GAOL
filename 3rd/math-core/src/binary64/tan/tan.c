@@ -46,7 +46,7 @@ SOFTWARE.
    any architecture, and on the 32-bit targets of GCC. Where it is that
    structure, the extended-arithmetic functions below call gaol_u128_*()
    rather than the operators of the language. */
-typedef gaol_u128 u128;
+typedef gaol_u128 u128; /* GAOL */
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 typedef union {
@@ -241,7 +241,7 @@ add_dint (dint64_t *r, const dint64_t *a, const dint64_t *b) {
        is an extra shift at the end (in that case necessarily ex=1). */
   } else {
     C = gaol_u128_add(A, B); /* GAOL */
-    if (gaol_u128_lt(C, A))
+    if (gaol_u128_lt(C, A)) /* GAOL */
     {
       C = gaol_u128_or(gaol_u128_bit(127), gaol_u128_shr(C, 1)); /* GAOL */
       r->ex ++;
@@ -277,7 +277,7 @@ mul_dint (dint64_t *r, const dint64_t *a, const dint64_t *b) {
      bounded by (B-1)^2+2*(B-1) = B^2-1 */
   /* GAOL: the sum of the two high halves can reach 2^65 - 2, so it is added
      on 128 bits, as (m1 >> 64) + (m2 >> 64) was */
-  r->r = gaol_u128_add(r->r, gaol_u128_add(gaol_u128_of(gaol_u128_hi(m1)), gaol_u128_of(gaol_u128_hi(m2))));
+  r->r = gaol_u128_add(r->r, gaol_u128_add(gaol_u128_of(gaol_u128_hi(m1)), gaol_u128_of(gaol_u128_hi(m2)))); /* GAOL */
 
   // Ensure that r->hi starts with a 1
   uint64_t ex = r->hi >> 63;
@@ -1594,17 +1594,17 @@ reduce (dint64_t *X)
   // 0 <= i <= 15
   uint64_t c[5];
   u = gaol_u128_mul64(X->hi, T[i+3]); /* GAOL */ // i+3 <= 18
-  c[0] = gaol_u128_lo(u);
-  c[1] = gaol_u128_hi(u);
+  c[0] = gaol_u128_lo(u); /* GAOL */
+  c[1] = gaol_u128_hi(u); /* GAOL */
   u = gaol_u128_mul64(X->hi, T[i+2]); /* GAOL */
-  c[1] += gaol_u128_lo(u);
-  c[2] = gaol_u128_hi(u) + (c[1] < gaol_u128_lo(u));
+  c[1] += gaol_u128_lo(u); /* GAOL */
+  c[2] = gaol_u128_hi(u) + (c[1] < gaol_u128_lo(u)); /* GAOL */
   u = gaol_u128_mul64(X->hi, T[i+1]); /* GAOL */
-  c[2] += gaol_u128_lo(u);
-  c[3] = gaol_u128_hi(u) + (c[2] < gaol_u128_lo(u));
+  c[2] += gaol_u128_lo(u); /* GAOL */
+  c[3] = gaol_u128_hi(u) + (c[2] < gaol_u128_lo(u)); /* GAOL */
   u = gaol_u128_mul64(X->hi, T[i]); /* GAOL */
-  c[3] += gaol_u128_lo(u);
-  c[4] = gaol_u128_hi(u) + (c[3] < gaol_u128_lo(u));
+  c[3] += gaol_u128_lo(u); /* GAOL */
+  c[4] = gaol_u128_hi(u) + (c[3] < gaol_u128_lo(u)); /* GAOL */
 
   /* up to here, the ignored part hi*(T[i+4]+T[i+5]+...) can contribute by
      less than 2^64 in c[0], thus less than 1 in c[1] */
@@ -1635,11 +1635,11 @@ reduce (dint64_t *X)
     /* we compute an extra term */
     u = gaol_u128_mul64(X->hi, T[i+4]); /* GAOL */ // i+4 <= 19
     const uint64_t uh = gaol_u128_hi(u); /* GAOL */
-    c[0] += uh;
-    c[1] += (c[0] < uh);
-    c[2] += (c[0] < uh) && c[1] == 0;
-    c[3] += (c[0] < uh) && c[1] == 0 && c[2] == 0;
-    c[4] += (c[0] < uh) && c[1] == 0 && c[2] == 0 && c[3] == 0;
+    c[0] += uh; /* GAOL */
+    c[1] += (c[0] < uh); /* GAOL */
+    c[2] += (c[0] < uh) && c[1] == 0; /* GAOL */
+    c[3] += (c[0] < uh) && c[1] == 0 && c[2] == 0; /* GAOL */
+    c[4] += (c[0] < uh) && c[1] == 0 && c[2] == 0 && c[3] == 0; /* GAOL */
     X->hi = (c[3] << g) | (c[2] >> (64 - g));
     X->lo = (c[2] << g) | (c[1] >> (64 - g));
     tiny = (c[1] << g) | (c[0] >> (64 - g));
@@ -1792,14 +1792,14 @@ reduce_fast (double *h, double *l, double x)
         {
           v = gaol_u128_mul64(m, T[2]); /* GAOL */
           u = gaol_u128_mul64(m, T[1]); /* GAOL */
-          c[0] = gaol_u128_lo(u) + gaol_u128_hi(v);
-          c[1] = gaol_u128_hi(u) + (c[0] < gaol_u128_lo(u));
+          c[0] = gaol_u128_lo(u) + gaol_u128_hi(v); /* GAOL */
+          c[1] = gaol_u128_hi(u) + (c[0] < gaol_u128_lo(u)); /* GAOL */
           /* There can be no overflow in (u >> 64) + (c[0] < u) since
              u <= (2^64-1)*T[1] thus (u >> 64) < T[1], and T[1]+1
              does not overflow. */
           u = gaol_u128_mul64(m, T[0]); /* GAOL */
-          c[1] += gaol_u128_lo(u);
-          c[2] = gaol_u128_hi(u) + (c[1] < gaol_u128_lo(u));
+          c[1] += gaol_u128_lo(u); /* GAOL */
+          c[2] = gaol_u128_hi(u) + (c[1] < gaol_u128_lo(u)); /* GAOL */
           /* Up to here, we multiplied exactly m by T[0] and T[1] and
              took into account the upper part of m*T[2]:
              c[2]*2^128+c[1]*2^64+c[0] = m*(T[1]+2^64*T[0])+floor(m*T[2]/2^64)
@@ -1829,16 +1829,16 @@ reduce_fast (double *h, double *l, double x)
           */
           v = gaol_u128_mul64(m, T[i+3]); /* GAOL */
           u = gaol_u128_mul64(m, T[i+2]); /* GAOL */
-          c[0] = gaol_u128_lo(u) + gaol_u128_hi(v);
+          c[0] = gaol_u128_lo(u) + gaol_u128_hi(v); /* GAOL */
           /* There can be no overflow in (u >> 64) + (c[0] < u) since
              u <= (2^64-1)*T[i+2] thus (u >> 64) < T[i+2], and T[i+2]+1
              does not overflow. */
-          c[1] = gaol_u128_hi(u) + (c[0] < gaol_u128_lo(u));
+          c[1] = gaol_u128_hi(u) + (c[0] < gaol_u128_lo(u)); /* GAOL */
           u = gaol_u128_mul64(m, T[i+1]); /* GAOL */
-          c[1] += gaol_u128_lo(u);
-          c[2] = gaol_u128_hi(u) + (c[1] < gaol_u128_lo(u));
+          c[1] += gaol_u128_lo(u); /* GAOL */
+          c[2] = gaol_u128_hi(u) + (c[1] < gaol_u128_lo(u)); /* GAOL */
           u = gaol_u128_mul64(m, T[i]); /* GAOL */
-          c[2] += gaol_u128_lo(u);
+          c[2] += gaol_u128_lo(u); /* GAOL */
           e = 1139 + (i<<6) - e; // 1 <= e <= 64
           /* Like in the previous case, the ignored part due to the
              ignored low part of m*T[i+3], and to the further terms
