@@ -12,8 +12,8 @@ commit `16a2f60`. La procédure en vigueur est [process.md](../../process.md).
   (points P, W, H et X), découpés en sous-fonctions faites chacune dans sa
   branche, puis réunies en une pull request par point. Rien n'en a été fait.
 - `bin/check_branch <branche> [base]` : le contrôle d'une branche avant de la
-  pousser (messages de commit, registres, produits de build, espaces). Son
-  `MAIN` est l'arbre principal de cette machine.
+  pousser (messages de commit, registres, produits de build, espaces). Il se
+  lance depuis l'arbre qui porte la branche, dont il prend la racine.
 - `bin/gcore [-n N] <commande>` : la répartition des 4 cœurs permis entre
   plusieurs agents, par jetons `flock`. Il crée ses verrous dans `../corelocks`,
   à côté de son `bin/` : copie-le dans ton scratchpad avant de t'en servir,
