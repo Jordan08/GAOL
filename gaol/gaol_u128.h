@@ -11,8 +11,10 @@
  *
  * GCC and Clang have a 128-bit integer type on 64-bit targets
  * (`unsigned __int128`), and Clang 14 and GCC 14 have `_BitInt(128)`, which
- * Clang provides on 32-bit targets too. Visual C++ has neither, whatever the
- * architecture, and so has GCC for a 32-bit target: there GAOL computes with
+ * Clang provides on 32-bit targets too, and GCC where the ABI of the target
+ * defines it, as for x86. Visual C++ has neither, whatever the architecture,
+ * and so has GCC for the 32-bit targets whose ABI defines no `_BitInt(128)`:
+ * there GAOL computes with
  * the structure of two 64-bit halves below, and the sources of CORE-MATH call
  * the functions of this header rather than the operators of the language
  * (`#if GAOL_U128_NATIVE` in their extended-arithmetic functions).

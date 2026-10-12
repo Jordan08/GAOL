@@ -57,11 +57,14 @@ builtin, GCC before 10 among them: `sin.c` calls it without the guard of the
 other sources since its rewrite (upstream commit `6b84457`), and GCC 9.4 did
 not link it,
 and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
-written on MXCSR: `cbrt`, `pow` and `atan2` keep the exception flags around
-their work with them, and the ones of mingw-w64 clear the mask bits of MXCSR as
-well, which unmasks the exceptions and makes the first comparison of the NaN
-bounds of an empty interval trap. On a 32-bit x86 Windows, with every
-compiler, it gives them too the square root of SSE2 for `__builtin_sqrt()`: the
+written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
+around their work with them, and the ones of mingw-w64 clear the mask bits of
+MXCSR as well, which unmasks the exceptions and makes the first comparison of
+the NaN bounds of an empty interval trap; each `FE_*` flag is mapped to its
+bit of MXCSR, which the values of the UCRT and of mingw-w64 from 13 on are
+not, so that `hypot(3, 4)` left the inexact flag raised. On a 32-bit x86
+Windows, with every compiler, it gives them too the square root of SSE2 for
+`__builtin_sqrt()`: the
 one of the C library, rounded to nearest in every direction, is what Visual C++
 calls for it, and GCC where it does not optimize (`-O0`, the Debug builds) and,
 at `-O2` too, in the accurate phases the sources mark cold (`pow(x, 0.5)` was
@@ -78,7 +81,7 @@ subnormal values with: the one of the UCRT of Windows does not round so
 where the result is subnormal, and `erfc` was the double below `erfc(x)`
 rounding upward from x = 26.54 on (Visual C++ and clang-cl); the one of
 macOS gave 0 for 2<sup>−1127</sup> rounded upward. `tests/core_math.cpp`
-checks all three.
+checks the flags, the square root, `NAN` and `INFINITY`, and `gaol_ldexp()`.
 
 On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
 that rounds their doubles, rather than the control word of the x87 unit, which
@@ -107,7 +110,8 @@ kept as a patch to reapply.
    `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`, `hypot`, `rsqrt`
    and `asinpi`. Upstream writes it `unsigned __int128`, or
    `unsigned _BitInt(128)` with Clang 14 and GCC 14: Visual C++ has neither, on
-   no architecture, and neither has GCC for a 32-bit target. In
+   no architecture, and neither has GCC for the 32-bit targets whose ABI has
+   no `_BitInt(128)` (GCC 14 has it for x86). In
    `log/dint.h`, `log10/dint.h`, `log2p1/dint_log2p1.h`, `log10p1/dint.h`,
    `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`, `atan2pi/tint.h`, `sin/sin.c`,
    `cos/cos.c`, `tan/tan.c`, `hypot/hypot.c`, `rsqrt/rsqrt.c` and
@@ -185,8 +189,9 @@ kept as a patch to reapply.
    function computes the `FE_*` value of the direction from MXCSR, for the
    values of glibc, or for those of Windows where `__WIN32__` is defined
    (`FE_UPWARD` 0x200 or 0x100), then maps it to 0 to 3 by a switch; under
-   `__WIN32__` with other values, which are those of mingw-w64 (`FE_UPWARD`
-   0x800, as glibc), it returned `fegetround()` itself, past the switch. In the
+   `__WIN32__` with other values, which are those of mingw-w64 before 13
+   (`FE_UPWARD` 0x800, as glibc; from 13 on, mingw-w64 has those of the UCRT),
+   it returned `fegetround()` itself, past the switch. In the
    directed roundings `off[]` was then read kilobytes beyond its four elements,
    and the seven arguments were rounded toward zero: rounding upward,
    `cr_cbrt(0x1.3a9ccd7f022dbp+0)` was `0x1.1236160ba9b93p+0`, below the cube

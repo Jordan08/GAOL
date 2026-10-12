@@ -610,7 +610,12 @@ point Q), which `numbers` checks there too.
   x with integers: at the halfway points between two subnormals, next to the
   least subnormal and to the least normal double, beyond the largest double,
   and at 20 000 random pairs, three in four of them giving subnormals
-  (GAOL v5). `cbrt` is checked in the four rounding directions, and
+  (GAOL v5). Exact results of `hypot`, `pow` and `cbrt` (`hypot(3, 4)`,
+  `pow(9, 0.5)`, `pow(2, -1074)`, `cbrt(27)`...) have to raise no exception
+  flag in the four directions, read in MXCSR on x86: on a 32-bit x86 Windows
+  the `fesetexceptflag()` of `gaol/core_math_port.h` took the `FE_*` values
+  of the UCRT for bits of MXCSR, and left inexact raised (GAOL v5). `cbrt`
+  is checked in the four rounding directions, and
   `nth_root(x, 3)` and `rootn` have to be the tightest enclosures, at the
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its

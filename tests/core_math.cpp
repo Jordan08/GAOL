@@ -385,6 +385,57 @@ namespace
     }
   }
 
+  /*
+    Exact results of CORE-MATH's hypot, pow and cbrt raise no exception flag,
+    in the four rounding directions (GAOL v5). The three keep the flags around
+    their work with fegetexceptflag() and fesetexceptflag(), which
+    gaol/core_math_port.h writes on MXCSR on a 32-bit x86 Windows: taking the
+    FE_* values of the UCRT and of mingw-w64 from 13 on for the bits of MXCSR,
+    it restored other flags than these, and left inexact raised after
+    hypot(3, 4) (simulated on Linux with the values of the UCRT). On x86 the
+    flags read are those of MXCSR, where the doubles are computed, not those of
+    the x87 unit, which a C library may use.
+  */
+  void exact_results_raise_no_flag()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+    struct Exact { const char* name; int f; double x, y, value; };
+    const Exact cases[] = {
+      {"hypot(3, 4)", 0, 3.0, 4.0, 5.0},
+      {"hypot(5, 12)", 0, 5.0, 12.0, 13.0},
+      {"hypot(2^-1074, 0)", 0, 0x1p-1074, 0.0, 0x1p-1074},
+      {"pow(9, 0.5)", 1, 9.0, 0.5, 3.0},
+      {"pow(3, 7)", 1, 3.0, 7.0, 2187.0},
+      {"pow(1.5, 3)", 1, 1.5, 3.0, 3.375},
+      {"pow(1.125, 5)", 1, 1.125, 5.0, 1.802032470703125},
+      {"pow(2, -1074)", 1, 2.0, -1074.0, 0x1p-1074},
+      {"cbrt(27)", 2, 27.0, 0.0, 3.0},
+      {"cbrt(-8)", 2, -8.0, 0.0, -2.0},
+      {"cbrt(2^-1071)", 2, 0x1p-1071, 0.0, 0x1p-357},
+    };
+    for (const Exact& c : cases) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = c.x, y = c.y;
+        std::fesetround(directions[d]);
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const double r = gaol::rnd_keep(c.f == 0 ? gaol_cr_hypot(x, y) : c.f == 1 ? gaol_cr_pow(x, y) : gaol_cr_cbrt(x));
+#if defined(GAOL_TESTS_HAVE_MXCSR)
+        const unsigned int raised = _mm_getcsr() & 0x3du; // IE ZE OE UE PE, not DE
+#else
+        const unsigned int raised = static_cast<unsigned int>(std::fetestexcept(FE_ALL_EXCEPT));
+#endif
+        std::fesetround(FE_UPWARD);
+        check("CORE-MATH's hypot, pow and cbrt: an exact result, and no exception flag",
+              r == c.value && raised == 0,
+              [&] {
+                return std::string(c.name) + " rounding " + names[d] + " = " + show(r) + ", flags "
+                     + std::to_string(raised) + " raised";
+              });
+      }
+    }
+  }
+
   void elementary_functions()
   {
     const std::vector<double> v = arguments();
@@ -1738,6 +1789,7 @@ int main()
   gaol::init();
   c_library_fma_and_round();
   ldexp_of_core_math();
+  exact_results_raise_no_flag();
   elementary_functions();
   exact_values();
   two_arguments();
