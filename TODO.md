@@ -307,7 +307,12 @@ pour `ChangeLog` et `doc/differences.md` sont dans la description de #111.
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-f-number-reading` : le point F, pull request à ouvrir par le
+  mainteneur (le jeton de la session ne peut pas en créer). Une branche
+  jetable, `tmp-f-ci-output`, sert à la vérification unique du 11, puis sera
+  supprimée.
+- `process-two-trees` : `process.md`, `GAOL_V8` et `GAOL_V9` se valent, les
+  outils vus le 12 octobre, les pull requests ouvertes par le mainteneur.
 
 ## Même changement, ou même code
 
@@ -614,6 +619,24 @@ Reporté (#67).
   VNODE-LP. Décidé le 3 octobre : les traits pour YalAA et le backend pour
   VNODE-LP, et non la promotion des en-têtes des exemples.
 
+### Z. `-Wundef` (75)
+
+- **75.** **Les en-têtes installés et les tests sous `-Wundef`** (relevé au
+  point F, décidé le 12 octobre : en faire un point). Un `#if` sur une macro
+  que rien ne définit avertit sous `-Wundef`, et un programme compilé en
+  `-Wundef -Werror` qui inclut GAOL échoue. Les en-têtes publics testent ainsi
+  `GAOL_PRESERVE_ROUNDING` (`gaol/gaol_fpu.h`), `GAOL_DEBUGGING` et
+  `GAOL_VERBOSE_MODE` (`gaol/gaol_common.h`) et `GAOL_WORDS_BIGENDIAN`
+  (`gaol/gaol_port.h`) ; les tests, `GAOL_TESTS_SSE`, indéfinie hors x86
+  (`tests/automatic_cleanup.cpp`, `tests/rounding_direction.cpp`), et
+  `GAOL_PRESERVE_ROUNDING` (`tests/automatic_cleanup.cpp`,
+  `tests/performance.cpp`, `tests/rounding_direction.cpp`). Relevé en
+  préprocessant les tests sans `__SSE2__` sur x86-64 (GCC 13.3) : d'autres
+  macros peuvent apparaître sur d'autres cibles. Correction : `#ifdef`, ou une
+  valeur par défaut de chaque macro, puis `-Wundef` dans
+  `.github/scripts/headers.sh`, qui compile déjà chaque en-tête installé seul
+  en `-Wall -Wextra -Werror`.
+
 ## La version
 
 ### Y. Préparer et publier v5.0.0 (32, 33, 34, 71)
@@ -702,7 +725,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 1 : B ; 2 : B ; 8 : B ; 11 : F ; 15 : F ; 18 : F ; 26 : W ; 28 : X ; 32 : Y ;
 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 46 : F ; 51 : B ; 58 : F ; 59 : F ;
-60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
+60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -726,7 +749,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
-   comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96.
+   comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96. Z
+   (`-Wundef`) peut se faire à tout moment avant Y.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
