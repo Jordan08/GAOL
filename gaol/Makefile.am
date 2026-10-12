@@ -18,7 +18,7 @@
 # Makefile; to generate the actual Makefile, run "./configure" from the base
 # directory of gaol.
 #------------------------------------------------------------------------------
-# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Joran NININ
+# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Jordan NININ
 #------------------------------------------------------------------------------
 
 .PHONY: tags

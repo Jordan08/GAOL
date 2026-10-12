@@ -22,7 +22,7 @@
 Used to avoid havoc if the user forgets to call explicitly gaol::init() 
 and gaol::cleanup.
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2005-05-10
 */
 

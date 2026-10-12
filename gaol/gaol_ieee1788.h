@@ -52,7 +52,7 @@
 * this file.
 *
 * Copyright (c) 2026 ENSTA, France
-* Modified by Joran NININ (GAOL v5)
+* Modified by Jordan NININ (GAOL v5)
 *
 * Created 2026-09-21 by Jordan NININ
 *------------------------------------------------------------------------------

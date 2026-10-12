@@ -10,7 +10,7 @@
 * Copyright (c) 2002-2011 Laboratoire d'Informatique de
 *                         Nantes-Atlantique, France
 * Copyright (c) 2026 ENSTA, France
-* Modified by Joran NININ (GAOL v5)
+* Modified by Jordan NININ (GAOL v5)
 *--------------------------------------------------------------------------
 * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 * COPYING file for information.

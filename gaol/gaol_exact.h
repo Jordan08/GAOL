@@ -25,7 +25,7 @@ any namespace.
 
 <long description>
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2002-12-05
 */
 

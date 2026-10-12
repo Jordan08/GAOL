@@ -10,14 +10,14 @@
 * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
 * COPYING file for information.
 *--------------------------------------------------------------------------
-* By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>, Joran NININ
+* By: Frederic Goualard <Frederic.Goualard@irin.univ-nantes.fr>, Jordan NININ
 *--------------------------------------------------------------------------*/
 
 /*!
 \file   gaol_exact_msvc.h
 \brief  functions get_inexact() and clear_inexact() for Microsoft Visual C++
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2006-03-17
 */
 

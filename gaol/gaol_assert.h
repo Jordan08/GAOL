@@ -22,7 +22,7 @@
 Introduces a mechanism of assertions even if it is not supported by the 
 compiler/library at hand.
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2006-02-21
 */
 

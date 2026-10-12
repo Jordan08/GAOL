@@ -13,7 +13,7 @@
 * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 * COPYING file for information.
 *--------------------------------------------------------------------------
-* By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Joran NININ
+* By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>, Jordan NININ
 *--------------------------------------------------------------------------*/
 
 /*!
@@ -22,7 +22,7 @@
 
 FPU handling through C99 fenv.h facilities
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2010-04-22
 */
 

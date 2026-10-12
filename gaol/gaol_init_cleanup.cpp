@@ -19,7 +19,7 @@
 \file   gaol_init_cleanup.cpp
 \brief  
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2005-05-10
 */
 
