@@ -3923,6 +3923,23 @@ interval nth_root(const interval& I, int q)
     are no doubles: theta <= pi/2 is theta <= half_pi_dn.
   */
 
+  /*
+    x read through a volatile, for an operation that a test leaves out where
+    it would raise an exception flag (GAOL v5): no compiler reads a volatile
+    the program does not, so that the operation stays in the branch the test
+    takes. Clang for 64-bit ARM computed both sides of such tests and chose
+    between them afterwards (fcsel): floor_rel([DBL_MAX], [0, 1]) raised the
+    overflow flag with DBL_MAX + 1 (Clang 18 and 21 at -O3, AppleClang), and
+    atan2_rel_y([0], [3, +oo], [-oo, -0]) the invalid-operation one
+    (AppleClang), where the slope 0 leaves out the product +oo * 0
+    (tests/rounding_direction.cpp, tests/reverse.cpp).
+  */
+  static inline double read_in_branch(double x)
+  {
+    const volatile double v = x;
+    return v;
+  }
+
   // [a, b], or [-b, -a] when negated, a zero bound being +0 (the opposite of
   // a zero bound, and the upper bound -0 of X or Y, gave -0)
   static inline interval signed_interval(bool negated, double a, double b)
@@ -3957,15 +3974,17 @@ interval nth_root(const interval& I, int q)
     if (t_hi == 0.0 && vl > 0.0) { // The half-line v = 0 alone, which the v of V do not reach
       return;
     }
-    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : -((-vl)/t_hi);
-    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY : ((vu == 0.0) ? 0.0 : vu/t_lo);
-    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : -((-ul)*t_lo);
-    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : uu*t_hi);
+    // The slopes read in the branches that divide or multiply by them: 0/0,
+    // +oo/+oo, +oo * 0 and v/0 are left out (see read_in_branch())
+    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : -((-vl)/read_in_branch(t_hi));
+    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY : ((vu == 0.0) ? 0.0 : vu/read_in_branch(t_lo));
+    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : -((-ul)*read_in_branch(t_lo));
+    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : uu*read_in_branch(t_hi));
     if (t_hi_above) {
-      if (u_lo > 0.0 && std::fma(u_lo, t_hi, -vl) == 0.0) {
+      if (u_lo > 0.0 && std::fma(u_lo, read_in_branch(t_hi), -vl) == 0.0) {
         u_lo = previous_float(u_lo);
       }
-      if (v_hi > 0.0 && v_hi < GAOL_INFINITY && std::fma(uu, t_hi, -v_hi) == 0.0) {
+      if (v_hi > 0.0 && v_hi < GAOL_INFINITY && std::fma(uu, read_in_branch(t_hi), -v_hi) == 0.0) {
         v_hi = next_float(v_hi);
       }
     }
@@ -4674,8 +4693,8 @@ interval nth_root(const interval& I, int q)
     rather than computed, DBL_MAX + 1 raising the overflow exception even where
     the result has no infinite bound (floor_rel([DBL_MAX], [0, 1]) is empty),
     and the overflow flag GAOL raises stands for an infinite bound of its
-    result only (doc/using.md). The sum reads floor(sup Z) through a volatile
-    in the branch that tests it, so that no compiler adds 1 before the test:
+    result only (doc/using.md). The sum reads floor(sup Z) in the branch that
+    tests it (read_in_branch()), so that no compiler adds 1 before the test:
     Clang 18 and 21 for 64-bit ARM, at -O3 with -frounding-math, and
     AppleClang computed floor(sup Z) + 1 for every Z, then chose between it
     and +oo with fcsel, and DBL_MAX + 1 raised the overflow flag (GAOL v5,
@@ -4692,8 +4711,7 @@ interval nth_root(const interval& I, int q)
     }
     double end = GAOL_INFINITY;
     if (gaol_detail::quiet_less(last, (std::numeric_limits<double>::max)())) {
-      const volatile double before_end = last;
-      end = before_end + 1.0; // rounded upward
+      end = read_in_branch(last) + 1.0; // rounded upward
     }
     const double xl = X.left(), xu = X.right();
     if (gaol_detail::quiet_greater(first, xu) || gaol_detail::quiet_greater_equal(xl, end)) {
