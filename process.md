@@ -254,7 +254,7 @@ un est refusée, quel que soit son gain.
 Ce sont les outils d'Ubuntu 26.04, tous dans le `PATH` (constaté le 11 octobre
 2026). La machine n'a plus GCC 9, que couvre le job `gcc-9` de `linux.yml`, ni
 meson 0.53.2, la plus ancienne version que le build meson prend en charge, que
-plus rien ne vérifie.
+couvre le job `meson-oldest` de `build-systems.yml` (#110).
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
