@@ -105,8 +105,11 @@ GNU extensions of C (`atan2` uses inline assembly), not with `-std=c99`.
 ### What differs from upstream
 
 The vendored sources are those of the commit above but for the changes below,
-which are marked `/* GAOL */` in the code. They are made in the tree rather than
-kept as a patch to reapply.
+which are marked in the code: a changed line ends with `/* GAOL */`, or comes
+after a `/* GAOL: ... */` comment that says what it changes, as the functions
+of item 1 rewritten on the 128-bit integer do, whose lines are not marked one
+by one (in `cos.c`, `tan.c` and `pow/qint.h` above all). They are made in the
+tree rather than kept as a patch to reapply.
 
 1. **The 128-bit integer** of the accurate phases of `log`, `sin`, `cos`, `tan`,
    `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`, `hypot`, `rsqrt`
@@ -237,8 +240,10 @@ kept as a patch to reapply.
    `nth_root(x, 3)` at the arguments of `wlist`, scaled by powers of 8 and on
    both signs, `asinpi` next to ±1 and `rsqrt` at the successors of the powers
    of 4, against mpmath, in the jobs of MinGW-w64, MSYS2 and clang-cl of the
-   continuous integration; Cygwin, which it does not build, was emulated on
-   Linux (see the patch).
+   continuous integration, and in a job that gives the sources of CORE-MATH
+   the `FE_*` values of Cygwin on Linux (`cygwin-fe-values` of `linux.yml`),
+   Cygwin defining `__x86_64__` but not `__WIN32__` as Linux does: with
+   upstream's three files, 26,558 of its checks fail there.
 
 7. **The exact and midpoint powers of `pow` on 32-bit ARM** in `pow/pow.c`
    (`exact_pow()`). Where its accurate phase cannot round, `pow` computes an
@@ -329,29 +334,30 @@ comparison rather than by reading:
 ### To update CORE-MATH
 
 Copy the upstream tree again without the `.wc` files, then make the eight
-changes above. `git diff` against the previous version shows them: they are
-marked `/* GAOL */`, or are comments beginning with `/* GAOL:`, and no other
-line differs. A change upstream has made in
-the meantime is not made again: that of `cospi.c` from commit `b1a4badf` on,
-and those of the [patches below](#changes-to-propose-upstream) once upstream
-takes them. Patch 4 is made from commit `19e85418` (5 October 2026) on:
-`sin.c` then guards its `__builtin_roundeven()` as the other sources do, and
-no longer needs the definition `gaol/core_math_port.h` gives the builtin for
-GCC before 10, which can stay; the one of Windows is still needed.
+changes above. `git diff` against the previous version shows them: each changed
+line ends with `/* GAOL */`, is part of a `/* GAOL: ... */` comment or comes
+after one that says what it changes (the functions of item 1), and no other
+line differs. A change upstream has made in the meantime is not made again:
+that of `cospi.c` from commit `b1a4badf` on, and those of the [patches
+below](#changes-to-propose-upstream) once upstream takes them. Patch 4 is made
+from commit `19e85418` (5 October 2026) on: `sin.c` then guards its
+`__builtin_roundeven()` as the other sources do, and no longer needs the
+definition `gaol/core_math_port.h` gives the builtin for GCC before 10, which
+can stay; the one of Windows is still needed.
 
 ## Changes to propose upstream
 
 Six of the [changes above](#what-differs-from-upstream) are fixes rather than
 adaptations to GAOL (2 to 7; upstream has made the one of item 3 since), and
 `gaol/core_math_port.h` makes up for a seventh defect, the
-`__builtin_roundeven()` of `sin.c` (see
-[How GAOL builds them](#how-gaol-builds-them)). They are written below as
-patches against upstream master `b1a4badf`, with two more found while
-preparing them or since: the masks of item 2 in other files, `expm1q.c` of
-`binary128` among them, and the rounding direction `pow` reads for its
-subnormal results; patch 6 covers `powl.c` of `binary80` too, which GAOL does
-not build. Through CORE-MATH they would reach glibc too, which takes functions
-from it since version 2.41, so each defect was looked for there as well.
+`__builtin_roundeven()` of `sin.c` (see [How GAOL builds
+them](#how-gaol-builds-them)). They are written below as patches against
+upstream master `b1a4badf`, with two more found while preparing them or since:
+the masks of item 2 in other files, `expm1q.c` of `binary128` and `atan2l.c` of
+`binary80` among them, and the rounding direction `pow` reads for its subnormal
+results; patch 6 covers `powl.c` of `binary80` too, which GAOL does not build.
+Through CORE-MATH they would reach glibc too, which takes functions from it
+since version 2.41, so each defect was looked for there as well.
 
 **Nothing has been sent**, neither to CORE-MATH nor to glibc: sending them is
 for the maintainer of GAOL v5, as said in each part below.
@@ -441,18 +447,20 @@ Windows x64, results are wrong (below), and the patch writes them `ull`.
 only (`~0ul>>12` and `1ul<<52` at line 198, `1ul<<63` at lines 406 and 410):
 it passes `u64` words to `__builtin_addcl()` and `__builtin_subcl()`, which
 GCC 14 refuses for Windows x64 (incompatible pointer types), and keeps 64-bit
-values in `long` variables (lines 196 and 200). With all these written for
-64 bits, it gives the right results to nearest there, but not in the directed
-roundings, for a reason not found; it is left out of the patch, for its
-authors to look at. Neither file compiles for 32-bit x86, where `long` has
-32 bits too, both needing `__int128`.
+values in `long` variables (lines 196 and 200). The patch writes all these for
+64 bits, taking `__builtin_addcll()` and `__builtin_subcll()` on Windows and
+macOS, as `expm1q.c` does, a `u64` for the carry and `int64_t` for the two
+variables: `atan2l` then gives the right results to nearest there, which master
+does not, but not yet in the directed roundings, for a reason not found, which
+is for its authors to look at (below). Neither file compiles for 32-bit x86,
+where `long` has 32 bits too, both needing `__int128`.
 For the authors: at line 753 of `lgamma.c` the masked value goes into an
 `unsigned`, so that the test there sees 32 bits with the patch, as master does
 where `long` has 64 bits, and never 52; if 52 are meant, `ft` wants the type
 `uint64_t`.
 
 The patch, to commit as
-`[binary64,expm1q] do not assume that long has 64 bits`:
+`[binary64,expm1q,atan2l] do not assume that long has 64 bits`:
 
 ```diff
 diff --git a/src/binary128/expm1/expm1q.c b/src/binary128/expm1/expm1q.c
@@ -720,30 +728,87 @@ index 9aea80b6..6b7ae8ee 100644
 +  if(__builtin_expect(((lu.u+32)&(~0ull>>12))<65, 0)) return as_tanh_database(x, res);
    return res;
  }
+diff --git a/src/binary80/atan2/atan2l.c b/src/binary80/atan2/atan2l.c
+index 2a700897..bb3d1f86 100644
+--- a/src/binary80/atan2/atan2l.c
++++ b/src/binary80/atan2/atan2l.c
+@@ -46,6 +46,13 @@ typedef int64_t i64;
+ typedef uint32_t u32;
+ typedef uint64_t u3x64[3];
+
++// __builtin_addcl and __builtin_subcl take unsigned long, which has 32 bits
++// on Windows and is not the type of u64 on macOS (as in binary128/expm1q.c)
++#if (defined(_WIN32) || defined(__APPLE__))
++#define __builtin_addcl __builtin_addcll
++#define __builtin_subcl __builtin_subcll
++#endif
++
+ typedef union {
+   long double f;
+   struct __attribute__((__packed__))
+@@ -167,7 +174,7 @@ static inline u128 mUU(u128 _a, u128 _b, u128 *t){
+   //   a1b0
+   //   a0b1
+   // a1b1
+-  unsigned long c;
++  u64 c;
+   a0b0.b[1] = __builtin_addcl(a0b0.b[1], a1b0.b[0], 0, &c);
+   a1b1.b[0] = __builtin_addcl(a1b1.b[0], a1b0.b[1], c, &c);
+   a1b1.b[1] = __builtin_addcl(a1b1.b[1], 0, c, &c);
+@@ -193,11 +200,11 @@ static inline u128 mhUU(u128 _a, u128 _b){
+
+ // get an approximate reciprocal with about 104 bit precision using double precision initial approximation
+ static inline u128 __attribute__((always_inline)) recipdn(u128 xx0){
+-  long x = xx0>>64;
++  int64_t x = xx0>>64;
+   b64u64_u rd = {1.0/x};
+-  u64 r = (rd.u&(~0ul>>12))|1ul<<52;
++  u64 r = (rd.u&(~0ull>>12))|1ull<<52;
+   r <<= (rd.u>>52)-0x3c2;
+-  long dd = (xx0*r)>>64;
++  int64_t dd = (xx0*r)>>64;
+   u128 R = r;
+   i128 dR = dd*R;
+   R <<= 74;
+@@ -403,11 +410,11 @@ long double as_atan2l_accurate(long double y, long double x) {
+     rnd = (rm == _MM_ROUND_UP)*!ysgn + (rm == _MM_ROUND_DOWN)*!!ysgn;
+   r += rnd;
+   if(__builtin_expect(!(r<<1), 0)){ // here rounding might cross a binade boundary
+-    if(!e && r == (1ul<<63)){ // denormal to normal rounding
++    if(!e && r == (1ull<<63)){ // denormal to normal rounding
+       e = 1;
+     }
+     if( e && r == 0){ // next binade transition for normal numbers
+-      r = 1ul<<63;
++      r = 1ull<<63;
+       ++e;
+     }
+   }
 ```
 
-**How it was checked.** GCC 13 makes the same object code of the nine files
-before and after on x86-64 Linux, where `long` has 64 bits. With MinGW-w64 for
-Windows x64, `sinh`, `cosh`, `tanh`, `sinpi`, `log1p` and `lgamma` compiled
-from master and from the patched tree give the results of x86-64 Linux, bit for
-bit, in the four directions, over the arguments of their `.wc` files and a
-million random ones each. On random arguments, the masks of a 32-bit `long`
-made `sinh`, `cosh` and `tanh` look a hard case up 5, 11 and 1 times in
-4 million calls, against never with 64 bits. `expm1q.c`, compiled from master
-and from the patched tree by mingw-w64 12 (GCC 14, `-mfma`) for Windows x64,
-was checked under wine 10 with MPFR 4.2.2 (`./check.sh --worst expm1q`, the
-test program given a `getline()` and a `strcasestr()`, which mingw-w64 lacks,
-and exception-flag functions that leave the masks alone): master fails at its
-first argument, to nearest, `expm1q(0x1p-10)` coming out with the exponent
-−16382, and the patched file passes the 27,380 arguments of `expm1q.wc` in
-the four directions; on x86-64 Linux (GCC 14) the two make the same object
-code, and both pass. The patched `atan2l.c` described above passes the
-115,945 arguments of `atan2l.wc` to nearest under wine and fails in the
-directed roundings from the first one
-(`cr_atan2l(0x9.24502162d9eap+81, 0x8.c635ce223e078p+49)` is
-`0xd.be93150de036ecap-4` there, about 0.86 rather than π/2), while master
-fails to nearest already; on x86-64 Linux the two make the same object code,
-and both pass in the four directions.
+**How it was checked.** GCC 13 makes the same object code of the nine files of
+`binary64` before and after on x86-64 Linux, where `long` has 64 bits. With
+MinGW-w64 for Windows x64, `sinh`, `cosh`, `tanh`, `sinpi`, `log1p` and
+`lgamma` compiled from master and from the patched tree give the results of
+x86-64 Linux, bit for bit, in the four directions, over the arguments of their
+`.wc` files and a million random ones each. On random arguments, the masks of a
+32-bit `long` made `sinh`, `cosh` and `tanh` look a hard case up 5, 11 and 1
+times in 4 million calls, against never with 64 bits. `expm1q.c`, compiled from
+master and from the patched tree by mingw-w64 12 (GCC 14, `-mfma`) for Windows
+x64, was checked under wine 10 with MPFR 4.2.2 (`./check.sh --worst expm1q`,
+the test program given a `getline()` and a `strcasestr()`, which mingw-w64
+lacks, and exception-flag functions that leave the masks alone): master fails
+at its first argument, to nearest, `expm1q(0x1p-10)` coming out with the
+exponent −16382, and the patched file passes the 27,380 arguments of
+`expm1q.wc` in the four directions; on x86-64 Linux (GCC 14) the two make the
+same object code, and both pass. The patched `atan2l.c` described above passes
+the 115,945 arguments of `atan2l.wc` to nearest under wine and fails in the
+directed roundings from the first one (`cr_atan2l(0x9.24502162d9eap+81,
+0x8.c635ce223e078p+49)` is `0xd.be93150de036ecap-4` there, about 0.86 rather
+than π/2), while master fails to nearest already; on x86-64 Linux the two make
+the same object code (GCC 15 and Clang 18), and both pass in the four
+directions. The directed roundings of `atan2l` with a 32-bit `long` are to be
+pointed out to the authors when the patches are sent (issue #65).
 
 **Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c`,
 `tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `cos.c` and
