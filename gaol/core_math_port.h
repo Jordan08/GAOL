@@ -254,8 +254,9 @@ neither on the C library nor on the x87 unit (GAOL v5, point A.3 of
 TODO.md). On x64 Windows, Visual C++ and clang-cl call the sqrt() of the
 UCRT for the builtin as well (/fp:strict): it rounds in the direction of
 MXCSR there, which tests/core_math.cpp checks in their jobs of the
-continuous integration (rsqrt at the successors of the powers of 4, asinpi
-next to 1).
+continuous integration (pow(x, 0.5) in pow_exact_at_corners(), pow.c
+returning that root for y = 0.5 where its first phase cannot round; rsqrt
+and asinpi correct the root they take, and do not show its rounding).
 --------------------------------------------------------------------------*/
 
 #if (defined(__i386__) || defined(_M_IX86)) && !defined(__x86_64__)
