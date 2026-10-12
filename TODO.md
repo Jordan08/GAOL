@@ -1,13 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `ce64b0b` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `0d56c48` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
 l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64 à
-#70, #80, #98, #104) et les rapports des agents (ce qui en sert encore est dans
-[todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin donne la
-lettre de chaque ancien numéro, et un numéro qui n'y est pas est un point fait.
+#70, #80, #98, #104, #107) et les rapports des agents (ce qui en sert encore
+est dans [todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin
+donne la lettre de chaque ancien numéro, et un numéro qui n'y est pas est un
+point fait.
 
 Les anciens points 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 [examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro n
@@ -260,16 +261,33 @@ précision de `pow` annoncée par `doc/accuracy.md`, le tableau des outils de
 `process.md`) et les textes pour `ChangeLog` et `doc/differences.md` sont dans
 la description de #99.
 
+Fait le 12 octobre aussi : le point E (anciens 12, sa partie de 40 et la partie
+du parser de 45 ; #98), par #105 : chaque opération calculée dès sa lecture,
+l'évaluation et la destruction des expressions par des boucles (une somme de
+100 000 termes débordait la pile), l'imbrication bornée par `YYMAXDEPTH`
+(10 000 entrées, au-delà `input_format_error`) ; un `std::string` lu en entier
+par `YY_INPUT`, un NUL n'étant le caractère d'aucun lexème (une chaîne de plus
+de 2^32 caractères était lue comme ses premiers), et écrit `\0` dans les
+messages d'erreur ; `std::bad_alloc`, et tout libéré, quand flex, bison, le
+lexeur ou une action ne peuvent pas allouer (flex appelait `exit(2)`), que
+`gaol_ieee1788::textToInterval`, passé dans la bibliothèque, laisse passer ;
+sans exceptions, un appel faux qui fait échouer la lecture au lieu d'arrêter le
+programme (#98, fermée) ; `<a, b>` comparé par les bits ; le commentaire
+Doxygen de `parse_interval()` (40). Décidé en fin de travail : `YYMAXDEPTH`
+reste à 10 000 ; `eval_stack` et `expr_eval` ne sont plus copiables ; un
+lexème de plus de 2^29 caractères lève `std::bad_alloc` ; pas de test du temps
+de lecture d'un long lexème (une limite de temps serait fragile) ; le parser
+régénéré avec bison 3.8.2, celui d'Ubuntu 26.04, par #108 ;
+`parse_interval(nullptr)` reporté (#107) ;
+`process.md` mis à jour par une pull request à part. Les textes pour
+`ChangeLog` et `doc/differences.md` sont dans la description de #105.
+Fusionnés le 12 octobre aussi : #103, qui retire `.continue/rules`, et #108.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- **E** (ancien 12), `todo-12-long-sums` (553e649) : inachevé (commits
-  « WIP ») ; restent la fin du travail, son rapport, la relecture, la CI et la
-  pull request.
-- Hors des points, `remove-continue-rules` (#103) : retire `.continue/rules`,
-  une copie de `process.md` que `68ec12c` avait ajoutée (demandé le
-  11 octobre) ; à fusionner.
+- Aucune.
 
 ## Même changement, ou même code
 
@@ -452,54 +470,6 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
   type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
   qui dit [−∞, +∞] pour `gaol::pow`.
 
-### E. Le parser et les longues sommes (12, 40)
-
-La branche `todo-12-long-sums` régénère le parser : elle y corrige aussi le
-test de `<a, b>`, que le point Q (#100) lui a laissé.
-
-- **12.** **Les longues sommes débordent la pile** (revue n° 17) :
-  `textToInterval()` d'une somme de 100 000 termes plante encore, comme les
-  expressions aussi longues construites par l'API (une récursion par nœud dans
-  l'évaluation et la destruction). La correction est dans la branche
-  `todo-12-long-sums`, inachevée : chaque opération calculée dès sa lecture par
-  le parser régénéré, l'évaluation et la destruction des expressions par des
-  boucles, l'imbrication bornée par `YYMAXDEPTH` (au-delà, `input_format_error`)
-  et `operator<<` d'une expression encore récursif (limite documentée). Faire
-  aussi remonter comme `std::bad_alloc` l'échec d'allocation du buffer Flex :
-  `gaol__scan_string()` appelle actuellement `yy_fatal_error()`, qui termine
-  tout le processus par `exit(2)`. Capturer également les `std::bad_alloc` de
-  l'analyse lexicale ou des actions du parser et les faire passer par son abort
-  contrôlé : si elles traversent `yyparse()`, `gaol_parse_string()` détruit le
-  scanner mais les `%destructor` de Bison ne libèrent pas les nœuds encore sur
-  sa pile. Traiter aussi les octets NUL dans les entrées `std::string` et
-  `operator>>` : ils sont tronqués par `yy_scan_string()` (`strlen`), donc une
-  entrée telle que `1\0texte` est acceptée comme `1` au lieu d'être rejetée ;
-  rejeter ces entrées ou transmettre une longueur explicite au scanner. Dans
-  le même parcours, `gaol_ieee1788::textToInterval()` attrape tout
-  `std::exception`, dont `std::bad_alloc`, et transforme ainsi un échec
-  d'allocation en ensemble vide : laisser remonter au moins les erreurs
-  d'allocation. À la régénération, garder le `#pragma` qui fait taire
-  l'avertissement de Clang 18 sur `gaol_nerrs`, que #76 a mis dans
-  `gaol/gaol_interval_parser.ypp` (décidé le 3 octobre).
-- **40** (une partie). Le commentaire Doxygen « Parse a string to create an
-  interval » de `gaol/gaol_parser.h` est placé avant l'énumération et non avant
-  `parse_interval()`, et ne liste que les formats de GAOL 4 (la branche ajoute
-  une note au même commentaire).
-- **Sans exceptions** (#98, reporté par #97 le 6 octobre) :
-  `gaol_ieee1788::textToInterval` rend l'ensemble vide pour un nom inconnu, mais
-  arrête le programme sur un appel faux (`pown([2,5],2.5)`, `sin(1,2)`), refusé
-  dans une action du parser (`gaol_ERROR`, puis `abort()`), alors
-  qu'IEEE 1788-2015 (12.12.7) attend l'ensemble vide. À la régénération du
-  parser, faire échouer l'analyse comme pour une erreur de syntaxe ; les trois
-  appels faux de `tests/ieee1788.cpp` sortiront alors de leur garde
-  `GAOL_EXCEPTIONS_ENABLED`.
-- **45** (la partie du parser, laissée par le point Q, #100). Le parser
-  compare les deux nombres de `<a, b>` comme des doubles
-  (`gaol/gaol_interval_parser.ypp`) : sous denormals-are-zero,
-  `<1e-310, 1e-309>` est lu [1e-310, 1e-309] au lieu d'être refusé. Décidé le
-  6 octobre : les comparer par leurs bits (`gaol_detail::bound_equal()` de
-  `gaol/gaol_port.h`), à la régénération du parser, avec un test sous DAZ.
-
 ## Même fichier de test ou de documentation
 
 ### F. La lecture des nombres et `operator>>` (11, 15, 18, 46, 58, 59, 60, 61)
@@ -514,13 +484,14 @@ conforme à la casse ignorée par le lexeur.
 
 - **11.** **Suites du lecteur sous denormals-are-zero** (#40). Le lecteur est
   juste sous FTZ et DAZ (comparaisons sur les bits), et le point Q (#100) a fait
-  le reste, hors `<a, b>` (point E). Restent : vérifier une fois, avec
-  `ctest -V -R numbers`, si les tests DAZ de `numbers` s'exécutent ou se sautent
-  sur macOS x86_64 sous Rosetta et avec l'UCRT en Release, et, pour FZ posé par
-  `_controlfp_s()` (#100), dans les jobs Visual C++ arm64 ; dans le manuel, la
-  phrase sur ces modes garde sa marque `\newinvfive` (décidé le 3 octobre).
-  Décidé aussi (#40) : faire tourner les tests DAZ de `numbers` sur AArch64 et
-  ARM32 (FPCR, FPSCR), avec l'outil de `tests/gaol_tests.h` venu de #62.
+  le reste, et le point E (#105) `<a, b>` du parser. Restent : vérifier une
+  fois, avec `ctest -V -R numbers`, si les tests DAZ de `numbers` s'exécutent ou
+  se sautent sur macOS x86_64 sous Rosetta et avec l'UCRT en Release, et, pour
+  FZ posé par `_controlfp_s()` (#100), dans les jobs Visual C++ arm64 ; dans le
+  manuel, la phrase sur ces modes garde sa marque `\newinvfive` (décidé le 3
+  octobre). Décidé aussi (#40) : faire tourner les tests DAZ de `numbers` sur
+  AArch64 et ARM32 (FPCR, FPSCR), avec l'outil de `tests/gaol_tests.h` venu de
+  #62.
 - **58.** **Deux restes du lecteur sous DAZ** (suite du point 11, #40) : le
   manuel (`gaol.tex`, l. 3579) écrit `\code{-Ofast}` au lieu de
   `\option{-Ofast}` ; `tests/numbers.cpp` teste `#if GAOL_TESTS_HAVE_MXCSR`
@@ -718,7 +689,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99 et #100 après leur fusion).
+  #99, #100, #103, #105 et #108 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -735,10 +706,10 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 3 : A ; 6 : A ; 8 : B ; 11 : F ; 12 : E ; 15 : F ; 18 : F ;
-26 : W ; 28 : X ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
-40 : E ; 45 : E ; 46 : F ; 47 : A ; 51 : B ; 56 : A ; 58 : F ; 59 : F ;
-60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
+1 : B ; 2 : B ; 3 : A ; 6 : A ; 8 : B ; 11 : F ; 15 : F ; 18 : F ; 26 : W ;
+28 : X ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 46 : F ;
+47 : A ; 51 : B ; 56 : A ; 58 : F ; 59 : F ; 60 : F ; 61 : F ; 70 : I ; 71 : Y ;
+72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -749,7 +720,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 2. **Terminer et fusionner E.** Inclure dans E la gestion récupérable de
    l'échec d'allocation du scanner ; régénérer le parser avec le test de
    `<a, b>` du point Q, puis relire la branche. Le point H est fait (#86),
-   hors le 27 et la partie manuel reportée au point I.
+   hors le 27 et la partie manuel reportée au point I. E est fait par #105.
 3. **Finir les corrections de puissance B.** Faire d'abord A.3, prérequis
    noté dans B.2, puis le travail restant de B dans l'ordre indiqué par ce
    point. Q est fait par #100.
