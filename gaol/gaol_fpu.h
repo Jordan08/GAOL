@@ -352,10 +352,13 @@ namespace gaol_core {
   fegetround() and MXCSR about 80 ns with 32-bit Visual C++, and Clang 18
   reused a single read of MXCSR in a loop that changed the rounding
   direction. On x86-64 the x87 unit may keep another direction without
-  changing GAOL's bounds: it computes none of GAOL's doubles, GAOL sets the
-  direction of both units before the C library reads or writes a number
-  (round_nearest()), and the sources of CORE-MATH, which round some of their
-  results in the direction fegetround() gives, read it from MXCSR there
+  changing GAOL's bounds: it computes none of GAOL's doubles but exact ones
+  and square roots GAOL corrects (the ldexp() of mingw-w64 is the fscale of
+  the x87 unit, which GAOL calls for exact results only, CORE-MATH computing
+  with gaol_ldexp(), and gaol_sqrt_up() makes a bound of the sqrt() of the C
+  library whatever its rounding, GAOL v5), GAOL sets the direction of both units before the C library reads or writes a
+  number (round_nearest()), and the sources of CORE-MATH, which round some of
+  their results in the direction fegetround() gives, read it from MXCSR there
   (gaol/core_math_port.h).
   
   Where GAOL can clear the modes that flush the subnormals to zero

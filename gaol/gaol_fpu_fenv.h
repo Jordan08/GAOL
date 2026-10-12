@@ -37,8 +37,10 @@ instructions, under MXCSR, which kept rounding to nearest. With glibc 2.31
 on x86-64, the x87 control word then read 0x0a7f and fegetround(), which
 reads it, returned FE_UPWARD, while MXCSR was 0x1f80 and 1 + 2^-60 was 1.
 Only the x87 unit has a precision to set, and it computes none of GAOL's
-doubles: gaol_config.h refuses doubles computed on it, and the three builds
-give -msse2 -mfpmath=sse on 32-bit x86.
+doubles but exact ones and square roots GAOL corrects (the ldexp() of
+mingw-w64, fscale, and the sqrt() of the C library, GAOL v5): gaol_config.h
+refuses doubles computed on it, and the three builds give -msse2
+-mfpmath=sse on 32-bit x86.
 
 Since then:
 - get_fpu_cw() and reset_fpu_cw() (below) read and write the rounding
@@ -146,32 +148,18 @@ namespace gaol_core {
   them where they are written and does not move loads and stores across them.
   As with fesetround(), the values computed before a change of direction go
   through rnd_keep() (gaol_fpu.h): GCC does not model the rounding direction.
+  
+  The mingw-w64 of 32-bit x86 before version 12 (MinGW-Builds GCC 12 and 13)
+  had the direction read and written with <fenv.h> only, for a state of
+  their own that fesetround() was thought to keep, which writing the
+  registers directly would leave behind. Their fegetround() reads the x87
+  control word, which is written here as well, and the wrong bounds seen
+  then came from their fma() (gaol/gaol_config.h): with the mingw-w64 11 of
+  Ubuntu, the tests pass with the registers written directly, under wine,
+  and the registers are written so with every mingw-w64 for x86 (GAOL v5,
+  point A.6 of TODO.md).
   */
-  /* The mingw-w64 of a 32-bit target before version 12 (MinGW-Builds GCC 12
-  and 13): there the direction is read and written with <fenv.h> only, as
-  the continuous integration builds and tests them.
-  
-  A 32-bit x86 processor has two rounding directions, the one of the x87 unit
-  and the one of the SSE instructions, and they have to agree: GAOL computes
-  its bounds with SSE, and the elementary functions of CORE-MATH ask
-  fegetround(), which those mingw-w64 answer from the x87 control word
-  (fnstcw), fesetround() writing both. It was thought that they answered from
-  a state of their own, which writing the registers directly would leave
-  behind; the wrong bounds seen then came from their fma() (see
-  gaol/gaol_config.h), and with the mingw-w64 11 of Ubuntu under wine the
-  tests pass with the registers written directly as well.
-  
-  Not on x86-64, where there is one direction and the registers are written
-  directly, which is faster: MinGW-w64 GCC 14 and 15 are tested so. The
-  mingw-w64 whose fma() or round() is wrong are refused in
-  gaol/gaol_config.h. */
-  #if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-  && !defined(__x86_64__) && __MINGW64_VERSION_MAJOR < 12
-  #  define GAOL_RND_MINGW_FENV_ONLY 1
-  #endif
-  
-  #if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__)) \
-  && !defined(GAOL_RND_MINGW_FENV_ONLY)
+  #if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))
   #  define GAOL_RND_X86_REGISTERS 1
   #  include <xmmintrin.h>
   GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
