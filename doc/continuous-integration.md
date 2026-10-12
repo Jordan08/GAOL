@@ -20,7 +20,11 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
   no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
   shared library (`BUILD_SHARED_LIBS`); the test `cpack_stale_configure` also
   runs with `CC="ccache gcc"` and a Ninja outside `PATH`, which it has to pass
-  on to the copies of the tree it configures.
+  on to the copies of the tree it configures; and the tests run with the
+  `FE_*` values of Cygwin (newlib, 0 to 3) put over those of glibc for the
+  sources of CORE-MATH (`.github/scripts/newlib-fe-values.h`), Cygwin, which
+  no job builds, defining `__x86_64__` but not `__WIN32__`, as Linux (see
+  [3rd/README.md](../3rd/README.md), item 6).
 - **Linux containers:**
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;
