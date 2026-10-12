@@ -3,7 +3,8 @@
 # WORK      where the dependencies are downloaded and built, and where the
 #           programs and their outputs go (default: doc/compare/code/work,
 #           ignored by git)
-# PREFIX    where GMP, MPFR, libieeep1788 and GAOL are installed
+# PREFIX    where GMP, MPFR, libieeep1788, GAOL and the headers of
+#           Boost.Interval are installed
 # FILIB_DIR an installed filib++ (include/interval/interval.hpp and
 #           lib/libprim.a); setup.sh builds one under PREFIX otherwise, and
 #           remembers the one it was given in WORK/filib-dir
@@ -53,6 +54,16 @@ GAOL_GOUALARD_PREFIX="$PREFIX/gaol-goualard"
 MATHLIB_VERSION=2.1.1
 MATHLIB_URL=https://frederic.goualard.net/software/mathlib-$MATHLIB_VERSION.tar.gz
 MATHLIB_SHA256=f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281
+# Boost.Interval, of the Boost release BOOST_VERSION (August 2026): header-only,
+# its headers include those of two other modules of Boost, Config and Detail
+# (boost/detail/fenv.hpp), and nothing else; the archives of the three modules
+# at the tag of the release, from GitHub, give them, without the rest of Boost
+BOOST_VERSION=1.92.0
+BOOST_MODULES="interval config detail"
+BOOST_SHA256_interval=8cca133571b9fadb2d9c2e5ae11050ad2be7596851d7569bf32629c193ebbe6b
+BOOST_SHA256_config=b4171037f13373203ba79cbc141d612982052283e696a315185ab5bea46102a0
+BOOST_SHA256_detail=ef9f6184eaad274c1f7e616c3e2b7d9e9b4c12c4b10b67d6d4434fd431c994bc
+BOOST_DIR="$PREFIX/boost"
 
 # The flags of interval arithmetic for GCC (see doc/using.md), and those of
 # the benchmarks. Solaris Studio needs -xia for its interval type.
@@ -83,5 +94,7 @@ filib_libs() { echo "-L$FILIB_DIR/lib -lprim"; }
 # PROFIL/BIAS: its headers are in the include directory itself (Interval.h)
 profil_cflags() { echo "-I$PROFIL_DIR/include"; }
 profil_libs() { echo "-L$PROFIL_DIR/lib -lProfil -lBias -llr"; }
+# Boost.Interval: headers only
+boost_cflags() { echo "-I$BOOST_DIR/include"; }
 
 die() { echo "error: $*" >&2; exit 1; }

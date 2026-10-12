@@ -20,7 +20,7 @@
 \brief  Base classes to represent visitors manipulating interval expressions
 
 
-\author Frederic Goualard, Joran NININ
+\author Frederic Goualard, Jordan NININ
 \date   2001-10-30
 */
 

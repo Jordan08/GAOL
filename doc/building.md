@@ -105,8 +105,8 @@ cmake --build build --target test      # make test with the Makefiles of CMake
 cmake --install build --config Release
 ```
 
-CMake 3.14 or later. The build compiles the thirty-six sources of CORE-MATH into
-`libgaol`, which is static unless `BUILD_SHARED_LIBS` is `ON`: there is
+CMake 3.14 or later. The build compiles the thirty-eight sources of CORE-MATH
+into `libgaol`, which is static unless `BUILD_SHARED_LIBS` is `ON`: there is
 nothing else to build and nothing else to install. The build type is Release
 unless another is given; brought in by a project that gives none
 (`add_subdirectory`, FetchContent), GAOL and CORE-MATH are compiled as in
@@ -181,7 +181,7 @@ make test
 make install
 ```
 
-configure compiles the thirty-six sources of CORE-MATH into `libgaol`
+configure compiles the thirty-eight sources of CORE-MATH into `libgaol`
 (`gaol/Makefile.am`), with the flags it gives GAOL's C code: there is nothing
 else to build, nothing else to install and nothing else to link.
 
@@ -242,7 +242,7 @@ meson test -C build
 meson install -C build
 ```
 
-meson compiles the thirty-six sources of CORE-MATH into `libgaol`
+meson compiles the thirty-eight sources of CORE-MATH into `libgaol`
 (`gaol/meson.build`), as CMake and configure do, and the lexer and the parser
 committed (`gaol/gaol_interval_lexer.cpp`, `gaol/gaol_interval_parser.cpp`):
 neither flex nor bison is needed.
@@ -322,7 +322,7 @@ The three builds have the same targets:
   writes its times into the tables of `doc/compare/performance.md`, with the
   times of the other libraries measured by the last whole run, which
   `doc/compare/code/results.csv` keeps: GAOL 4.2.3, filib++, libieeep1788,
-  PROFIL/BIAS and Solaris Studio are not run (see
+  PROFIL/BIAS, Solaris Studio and Boost.Interval are not run (see
   [doc/compare/code/README.md](compare/code/README.md)). Linux, bash, and Python
   3 with numpy.
 - **`make parser`** regenerates `gaol/gaol_interval_lexer.cpp`,

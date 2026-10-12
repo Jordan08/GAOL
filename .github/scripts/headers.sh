@@ -27,6 +27,10 @@
 #
 # Created 2026-10-04 by Jordan NININ
 set -e
+# sort and comm in one collation, the C one: in fr_FR.UTF-8, the sort and the
+# comm of uutils coreutils (Ubuntu 26.04) did not order the names alike, and
+# comm stopped on "file 1 is not in sorted order" (GAOL v5)
+export LC_ALL=C
 prefix=${1:?the prefix of an installed GAOL}
 cxx=${CXX:-c++}
 pc=$(ls "$prefix"/lib*/pkgconfig/gaol.pc "$prefix"/lib/*/pkgconfig/gaol.pc 2> /dev/null | head -n 1)

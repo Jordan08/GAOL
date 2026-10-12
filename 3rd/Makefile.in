@@ -17,9 +17,9 @@
 #-*-Makefile-*-----------------------------------------------------------------
 # The third-party sources, for the autotools build of GAOL
 #------------------------------------------------------------------------------
-# The sixteen sources of CORE-MATH (3rd/math-core) GAOL bounds its elementary
-# functions with, compiled into a convenience library that gaol/Makefile.am
-# puts into libgaol: nothing is installed from here.
+# The thirty-eight sources of CORE-MATH (3rd/math-core) GAOL bounds its
+# elementary functions with, compiled into a convenience library that
+# gaol/Makefile.am puts into libgaol: nothing is installed from here.
 #
 # They are compiled here rather than from gaol/Makefile.am so that libtool
 # never sees a source under "../", which it does not place in .libs (the link
@@ -164,7 +164,9 @@ am_libgaolcoremath_la_OBJECTS =  \
 	$(CORE_MATH_DIR)/hypot/libgaolcoremath_la-hypot.lo \
 	$(CORE_MATH_DIR)/rsqrt/libgaolcoremath_la-rsqrt.lo \
 	$(CORE_MATH_DIR)/asinpi/libgaolcoremath_la-asinpi.lo \
-	$(CORE_MATH_DIR)/atan2pi/libgaolcoremath_la-atan2pi.lo
+	$(CORE_MATH_DIR)/atan2pi/libgaolcoremath_la-atan2pi.lo \
+	$(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo \
+	$(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo
 libgaolcoremath_la_OBJECTS = $(am_libgaolcoremath_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -205,6 +207,8 @@ am__depfiles_remade =  \
 	$(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo \
 	$(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo \
 	$(CORE_MATH_DIR)/cospi/$(DEPDIR)/libgaolcoremath_la-cospi.Plo \
+	$(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Plo \
+	$(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Plo \
 	$(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo \
 	$(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo \
 	$(CORE_MATH_DIR)/exp10m1/$(DEPDIR)/libgaolcoremath_la-exp10m1.Plo \
@@ -431,7 +435,8 @@ libgaolcoremath_la_SOURCES = \
 	$(CORE_MATH_DIR)/log1p/log1p.c $(CORE_MATH_DIR)/log2p1/log2p1.c \
 	$(CORE_MATH_DIR)/log10p1/log10p1.c $(CORE_MATH_DIR)/hypot/hypot.c \
 	$(CORE_MATH_DIR)/rsqrt/rsqrt.c $(CORE_MATH_DIR)/asinpi/asinpi.c \
-	$(CORE_MATH_DIR)/atan2pi/atan2pi.c
+	$(CORE_MATH_DIR)/atan2pi/atan2pi.c \
+	$(CORE_MATH_DIR)/erf/erf.c $(CORE_MATH_DIR)/erfc/erfc.c
 
 libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # -fno-lto keeps the interprocedural optimization away from these sources, where
@@ -806,6 +811,24 @@ $(CORE_MATH_DIR)/atan2pi/$(DEPDIR)/$(am__dirstamp):
 $(CORE_MATH_DIR)/atan2pi/libgaolcoremath_la-atan2pi.lo:  \
 	$(CORE_MATH_DIR)/atan2pi/$(am__dirstamp) \
 	$(CORE_MATH_DIR)/atan2pi/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/erf/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/erf
+	@: >>$(CORE_MATH_DIR)/erf/$(am__dirstamp)
+$(CORE_MATH_DIR)/erf/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/erf/$(DEPDIR)
+	@: >>$(CORE_MATH_DIR)/erf/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo:  \
+	$(CORE_MATH_DIR)/erf/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/erf/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/erfc/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/erfc
+	@: >>$(CORE_MATH_DIR)/erfc/$(am__dirstamp)
+$(CORE_MATH_DIR)/erfc/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(CORE_MATH_DIR)/erfc/$(DEPDIR)
+	@: >>$(CORE_MATH_DIR)/erfc/$(DEPDIR)/$(am__dirstamp)
+$(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo:  \
+	$(CORE_MATH_DIR)/erfc/$(am__dirstamp) \
+	$(CORE_MATH_DIR)/erfc/$(DEPDIR)/$(am__dirstamp)
 
 libgaolcoremath.la: $(libgaolcoremath_la_OBJECTS) $(libgaolcoremath_la_DEPENDENCIES) $(EXTRA_libgaolcoremath_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libgaolcoremath_la_LINK)  $(libgaolcoremath_la_OBJECTS) $(libgaolcoremath_la_LIBADD) $(LIBS)
@@ -842,6 +865,10 @@ mostlyclean-compile:
 	-rm -f $(CORE_MATH_DIR)/cosh/*.lo
 	-rm -f $(CORE_MATH_DIR)/cospi/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/cospi/*.lo
+	-rm -f $(CORE_MATH_DIR)/erf/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/erf/*.lo
+	-rm -f $(CORE_MATH_DIR)/erfc/*.$(OBJEXT)
+	-rm -f $(CORE_MATH_DIR)/erfc/*.lo
 	-rm -f $(CORE_MATH_DIR)/exp/*.$(OBJEXT)
 	-rm -f $(CORE_MATH_DIR)/exp/*.lo
 	-rm -f $(CORE_MATH_DIR)/exp10/*.$(OBJEXT)
@@ -903,6 +930,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/cospi/$(DEPDIR)/libgaolcoremath_la-cospi.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(CORE_MATH_DIR)/exp10m1/$(DEPDIR)/libgaolcoremath_la-exp10m1.Plo@am__quote@ # am--include-marker
@@ -1207,6 +1236,20 @@ $(CORE_MATH_DIR)/atan2pi/libgaolcoremath_la-atan2pi.lo: $(CORE_MATH_DIR)/atan2pi
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/atan2pi/libgaolcoremath_la-atan2pi.lo `test -f '$(CORE_MATH_DIR)/atan2pi/atan2pi.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/atan2pi/atan2pi.c
 
+$(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo: $(CORE_MATH_DIR)/erf/erf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo -MD -MP -MF $(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Tpo -c -o $(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo `test -f '$(CORE_MATH_DIR)/erf/erf.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/erf/erf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Tpo $(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/erf/erf.c' object='$(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/erf/libgaolcoremath_la-erf.lo `test -f '$(CORE_MATH_DIR)/erf/erf.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/erf/erf.c
+
+$(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo: $(CORE_MATH_DIR)/erfc/erfc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -MT $(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo -MD -MP -MF $(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Tpo -c -o $(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo `test -f '$(CORE_MATH_DIR)/erfc/erfc.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/erfc/erfc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Tpo $(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(CORE_MATH_DIR)/erfc/erfc.c' object='$(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libgaolcoremath_la_CPPFLAGS) $(CPPFLAGS) $(libgaolcoremath_la_CFLAGS) $(CFLAGS) -c -o $(CORE_MATH_DIR)/erfc/libgaolcoremath_la-erfc.lo `test -f '$(CORE_MATH_DIR)/erfc/erfc.c' || echo '$(srcdir)/'`$(CORE_MATH_DIR)/erfc/erfc.c
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -1226,6 +1269,8 @@ clean-libtool:
 	-rm -rf $(CORE_MATH_DIR)/cos/.libs $(CORE_MATH_DIR)/cos/_libs
 	-rm -rf $(CORE_MATH_DIR)/cosh/.libs $(CORE_MATH_DIR)/cosh/_libs
 	-rm -rf $(CORE_MATH_DIR)/cospi/.libs $(CORE_MATH_DIR)/cospi/_libs
+	-rm -rf $(CORE_MATH_DIR)/erf/.libs $(CORE_MATH_DIR)/erf/_libs
+	-rm -rf $(CORE_MATH_DIR)/erfc/.libs $(CORE_MATH_DIR)/erfc/_libs
 	-rm -rf $(CORE_MATH_DIR)/exp/.libs $(CORE_MATH_DIR)/exp/_libs
 	-rm -rf $(CORE_MATH_DIR)/exp10/.libs $(CORE_MATH_DIR)/exp10/_libs
 	-rm -rf $(CORE_MATH_DIR)/exp10m1/.libs $(CORE_MATH_DIR)/exp10m1/_libs
@@ -1360,6 +1405,10 @@ distclean-generic:
 	-$(am__rm_f) $(CORE_MATH_DIR)/cosh/$(am__dirstamp)
 	-$(am__rm_f) $(CORE_MATH_DIR)/cospi/$(DEPDIR)/$(am__dirstamp)
 	-$(am__rm_f) $(CORE_MATH_DIR)/cospi/$(am__dirstamp)
+	-$(am__rm_f) $(CORE_MATH_DIR)/erf/$(DEPDIR)/$(am__dirstamp)
+	-$(am__rm_f) $(CORE_MATH_DIR)/erf/$(am__dirstamp)
+	-$(am__rm_f) $(CORE_MATH_DIR)/erfc/$(DEPDIR)/$(am__dirstamp)
+	-$(am__rm_f) $(CORE_MATH_DIR)/erfc/$(am__dirstamp)
 	-$(am__rm_f) $(CORE_MATH_DIR)/exp/$(DEPDIR)/$(am__dirstamp)
 	-$(am__rm_f) $(CORE_MATH_DIR)/exp/$(am__dirstamp)
 	-$(am__rm_f) $(CORE_MATH_DIR)/exp10/$(DEPDIR)/$(am__dirstamp)
@@ -1427,6 +1476,8 @@ distclean: distclean-am
 	-rm -f $(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo
 	-rm -f $(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo
 	-rm -f $(CORE_MATH_DIR)/cospi/$(DEPDIR)/libgaolcoremath_la-cospi.Plo
+	-rm -f $(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Plo
+	-rm -f $(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Plo
 	-rm -f $(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo
 	-rm -f $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo
 	-rm -f $(CORE_MATH_DIR)/exp10m1/$(DEPDIR)/libgaolcoremath_la-exp10m1.Plo
@@ -1508,6 +1559,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f $(CORE_MATH_DIR)/cos/$(DEPDIR)/libgaolcoremath_la-cos.Plo
 	-rm -f $(CORE_MATH_DIR)/cosh/$(DEPDIR)/libgaolcoremath_la-cosh.Plo
 	-rm -f $(CORE_MATH_DIR)/cospi/$(DEPDIR)/libgaolcoremath_la-cospi.Plo
+	-rm -f $(CORE_MATH_DIR)/erf/$(DEPDIR)/libgaolcoremath_la-erf.Plo
+	-rm -f $(CORE_MATH_DIR)/erfc/$(DEPDIR)/libgaolcoremath_la-erfc.Plo
 	-rm -f $(CORE_MATH_DIR)/exp/$(DEPDIR)/libgaolcoremath_la-exp.Plo
 	-rm -f $(CORE_MATH_DIR)/exp10/$(DEPDIR)/libgaolcoremath_la-exp10.Plo
 	-rm -f $(CORE_MATH_DIR)/exp10m1/$(DEPDIR)/libgaolcoremath_la-exp10m1.Plo

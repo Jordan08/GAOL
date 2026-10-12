@@ -30,3 +30,4 @@ build/*
 */*.libs/
 */*.loTAGS
 */*.loTAGS.tmp
+*/*/build

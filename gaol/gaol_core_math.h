@@ -16,7 +16,7 @@
  * including gaol/core_math_port.h in each of them (`-include`, `/FI`).
  *
  * Copyright (c) 2026 ENSTA, France
- * Modified by Joran NININ (GAOL v5)
+ * Modified by Jordan NININ (GAOL v5)
  *
  * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
@@ -74,6 +74,10 @@ GAOL_CORE_MATH_PUBLIC double gaol_cr_hypot(double x, double y);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_rsqrt(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_asinpi(double x);
 GAOL_CORE_MATH_PUBLIC double gaol_cr_atan2pi(double y, double x);
+/* The error function and its complement, which IEEE 1788-2015 does not name
+   (GAOL v5) */
+GAOL_CORE_MATH_PUBLIC double gaol_cr_erf(double x);
+GAOL_CORE_MATH_PUBLIC double gaol_cr_erfc(double x);
 
 #ifdef __cplusplus
 }

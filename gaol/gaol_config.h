@@ -25,7 +25,7 @@
   compiling gaol with Borland C++ Builder.
 
 
-  \author Frederic Goualard, Joran NININ
+  \author Frederic Goualard, Jordan NININ
   \date   2002-12-03
 */
 

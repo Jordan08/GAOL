@@ -1,11 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `762b106` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `ce64b0b` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
 l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64 à
-#70, #80, #98) et les rapports des agents (ce qui en sert encore est dans
+#70, #80, #98, #104) et les rapports des agents (ce qui en sert encore est dans
 [todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin donne la
 lettre de chaque ancien numéro, et un numéro qui n'y est pas est un point fait.
 
@@ -230,6 +230,36 @@ sous-normale vers l'extérieur (2^-1022 ou 0), ce que `numbers` vérifie sous
 `-fno-signed-zeros` restent seulement documentés. Les textes pour `ChangeLog`
 et `doc/differences.md` sont dans la description de #100.
 
+Fait le 12 octobre : le point P (anciens 25 et 30), par #99 : les outils
+`width_enclosure()`, `inflate()`, `interval::midrad()`, `bisect(ratio)`,
+`is_bisectable()`, `hull()`, `intersect()` et `gaol_ieee1788::mulRevToPair` ;
+le littéral `_iv` de `gaol/gaol_literals.h` ; `erf` et `erfc` ; les
+réciproques `atan2_rel_y` et `atan2_rel_x` (`atan2Rev1`, `atan2Rev2`),
+`pow_rel` et `pow_exponent_rel` (`powRev1`, `powRev2`), `max_rel`, `min_rel`,
+`sign_rel` et `floor_rel` ; dans `doc/compare/`, ITF1788 (7 202 des 9 542 cas
+réussis, aucun bogue), le banc d'essai de Tang et al. (2021), Boost.Interval et
+un test d'encadrement. Décidé pendant le travail, et fait par #99 : `_iv`
+encadre le nombre écrit (opérateur littéral brut), Visual C++ refusant les
+entiers au-delà de 2^64 - 1 (documenté) ; `bisect` lève
+`invalid_action_error` pour un ratio hors de ]0, 1[ ; des deux versions de
+l'ancien 25i, `atan2_rel_y` et `atan2_rel_x` sont gardés ; `gaol_ldexp()`
+(`gaol/gaol_ldexp.h`) remplace pour CORE-MATH, avec tous les compilateurs, le
+`ldexp()` de la bibliothèque C, faux dans les arrondis dirigés avec l'UCRT
+(`erfc` sous-normal) et sous macOS ; C4098 désactivé pour `erfc.c` plutôt que
+de le modifier ; sous Windows 32 bits, `core_math_port.h` traduit chaque
+`FE_*` en son bit de MXCSR (l'UCRT et mingw-w64 13 n'ont pas les valeurs de
+glibc) ; `read_in_branch()` garde dans leur branche les opérations qu'un test
+écarte (Clang et AppleClang pour ARM 64 bits les calculaient avant) ; les
+tables de `tests/reverse.cpp` en données `constexpr` (GCC 12 pour armhf
+manquait de mémoire) ; `headers.sh` en locale C ; « Jordan NININ » au lieu de
+« Joran » dans les 61 fichiers de `68ec12c`. Les brouillons des signalements
+à ITF1788, Boost.Interval et CORE-MATH sont dans l'issue #104, non envoyés.
+Les questions restées ouvertes (l'exception de `bisect`, `010_iv`, la
+politique de Boost, la colonne GAOL v5 de `doc/compare/performance.md`, la
+précision de `pow` annoncée par `doc/accuracy.md`, le tableau des outils de
+`process.md`) et les textes pour `ChangeLog` et `doc/differences.md` sont dans
+la description de #99.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
@@ -237,6 +267,9 @@ Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 - **E** (ancien 12), `todo-12-long-sums` (553e649) : inachevé (commits
   « WIP ») ; restent la fin du travail, son rapport, la relecture, la CI et la
   pull request.
+- Hors des points, `remove-continue-rules` (#103) : retire `.continue/rules`,
+  une copie de `process.md` que `68ec12c` avait ajoutée (demandé le
+  11 octobre) ; à fusionner.
 
 ## Même changement, ou même code
 
@@ -595,26 +628,6 @@ qu'elles l'ont trouvé.
 
 ## Autres points
 
-### P. Les outils et ITF1788 (25, 30)
-
-ITF1788 a des tests pour les fonctions réciproques à ajouter (`mulRevToPair`,
-`powRev1`, `powRev2`, `atan2Rev1`, `atan2Rev2`).
-
-- **25.** **Les outils que chaque algorithme réécrit** : `mulRevToPair` (un
-  `div_rel` en deux morceaux), `inflate`, `bisect(ratio)` et `is_bisectable()`
-  (`split()` coupe au milieu, ±DBL_MAX pour une demi-droite), un constructeur
-  milieu-rayon, `hull()` et `intersect()` comme fonctions, un encadrement de la
-  largeur (`width()` est un majorant), un littéral `_iv` dans un espace de noms
-  `gaol::literals`, `erf` et `erfc` (leurs sources sont dans `3rd/math-core`,
-  mais aucun build ne les compile), et les fonctions réciproques de `atan2`,
-  `pow(x, y)`, `max`, `min`, `sign` et `floor`, qu'IBEX écrit lui-même.
-- **30.** **Des suites de tests et des bancs d'essai où GAOL est absent** :
-  passer ITF1788 (toutes les opérations d'IEEE 1788 ; seuls les cas des
-  fonctions réciproques sont repris, dans `tests/reverse_values.py`) et le banc
-  d'essai de Tang et al. (2021) sur GAOL v5, et ajouter à `doc/compare/`
-  Boost.Interval, la bibliothèque que les utilisateurs prennent d'abord, dont
-  les fonctions élémentaires ne sont pas sûres.
-
 ### W. Des décorations (26)
 
 Reporté (#67).
@@ -704,12 +717,13 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
-  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97 et
-  #100 après leur fusion).
+  #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
+  #99 et #100 après leur fusion).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
-  chacune de #58 et #60 à #63.
+  chacune de #58 et #60 à #63, et dans les messages des commits `a0d3871`,
+  `790ca12` et `f1f4239` de #99, fusionnée sans squash le 12 octobre.
 - **L'issue #49** reste ouverte comme suivi d'ensemble ; les décisions du
   3 octobre et les liens vers les issues #64 à #70 y sont en commentaire, comme
   celles du 4 octobre sur les questions restées ouvertes dans les rapports
@@ -722,9 +736,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 3 : A ; 6 : A ; 8 : B ; 11 : F ; 12 : E ; 15 : F ; 18 : F ;
-25 : P ; 26 : W ; 28 : X ; 30 : P ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-37 : I ; 38 : I ; 40 : E ; 45 : E ; 46 : F ; 47 : A ; 51 : B ; 56 : A ;
-58 : F ; 59 : F ; 60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
+26 : W ; 28 : X ; 31 : A ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
+40 : E ; 45 : E ; 46 : F ; 47 : A ; 51 : B ; 56 : A ; 58 : F ; 59 : F ;
+60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -753,6 +767,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
-8. **Après la version, reprendre les ajouts de portée plus large : P, W et X.**
+8. **Après la version, reprendre les ajouts de portée plus large : W et X.**
    Ils portent surtout sur de nouvelles fonctionnalités ou de nouveaux
-   mécanismes, plutôt que sur les corrections nécessaires à v5.0.0.
+   mécanismes, plutôt que sur les corrections nécessaires à v5.0.0. P est fait
+   par #99.

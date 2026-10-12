@@ -14,7 +14,7 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Joran NININ
+ * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Jordan NININ
  *--------------------------------------------------------------------------*/
 
 /*

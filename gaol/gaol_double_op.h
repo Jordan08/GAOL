@@ -37,7 +37,7 @@ A header of the sources of GAOL, which the builds do not install and no
 installed header includes: the functions *_dn() and *_up() of doubles are
 not part of GAOL's interface, whose operations are on intervals (GAOL v5).
 
-\author Frederic Goualard, Joran NININ, then GAOL v5
+\author Frederic Goualard, Jordan NININ, then GAOL v5
 */
 
 #ifndef GAOL_DOUBLE_OP_H
