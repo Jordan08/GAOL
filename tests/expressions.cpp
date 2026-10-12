@@ -49,6 +49,7 @@
 #include <random>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #if defined(_MSC_VER)
 #  include <intrin.h>
@@ -1376,6 +1377,25 @@ namespace
       check("long expression: a sum of 10000 terms is read with no more than 64 allocations live at once",
             peak <= 64 && x.set_eq(interval(15000.0)),
             [&] { return std::to_string(peak) + " live at once, " + hex(x); });
+    }
+
+    /* The library of C++ has to allocate nothing where nothing may throw.
+       That of Visual C++ which checks its iterators (Debug) allocates in the
+       moves of its containers, which are noexcept: an allocation made to fail
+       there ends the program by std::terminate(), as the test did with Visual
+       Studio Debug for x86, x64 and arm64. Checked on a std::vector and a
+       std::string, which GAOL's reader moves. */
+    {
+      std::vector<int> numbers(1, 0);
+      std::string text(100, 'x');
+      const std::size_t made = allocations_made;
+      std::vector<int> moved_numbers(std::move(numbers));
+      std::string moved_text(std::move(text));
+      if (allocations_made != made) {
+        std::printf("allocation failures: the library of C++ allocates in the moves of its containers, "
+                    "which may not throw (Visual C++ Debug): skipped\n");
+        return;
+      }
     }
 
     const std::string digits(20000, '3');

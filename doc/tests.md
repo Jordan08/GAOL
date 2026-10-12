@@ -669,7 +669,10 @@ point Q), which `numbers` checks there too.
   and `gaol_ieee1788::textToInterval` gave the empty set (GAOL v5). The test
   counts the allocations with a replacement of the global `operator new`, which
   makes one fail; it says it skips these checks where that replacement does not
-  reach the library (a DLL on Windows).
+  reach the library (a DLL on Windows), and where the library of C++ allocates
+  in the moves of its containers, which may not throw, so that a failure there
+  ends the program by `std::terminate()` (Visual C++ Debug, which checks its
+  iterators).
 - **`u128`:** the accurate phases of CORE-MATH's `log`, `sin`,
   `cos`, `tan`, `atan2` and `pow`, and of `log10` and seven functions
   of Table 10.5, compute with a 128-bit unsigned integer, which Visual C++
