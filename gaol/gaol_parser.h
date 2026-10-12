@@ -88,7 +88,8 @@ namespace gaol {
       parsing_names::ieee1788, with their arguments.
 
     Spaces are not significant except in numbers, and the case of letters is
-    ignored: "[Empty]", "SIN(1)" and "1E3" are read.
+    ignored: "[Empty]", "SIN(1)" and "1E3" are read, whatever the locale of
+    the C library (GAOL v5).
 
     \note The out interval is not modified whenever an error occur.
 

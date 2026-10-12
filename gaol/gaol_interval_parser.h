@@ -4,8 +4,6 @@
 
    Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
-   Copyright (c) 2026 ENSTA, France
-   Modified by Jordan NININ (GAOL v5)
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -95,7 +93,7 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 717 "gaol_interval_parser.ypp"
+#line 726 "gaol_interval_parser.ypp"
 
   int i;
   double d;

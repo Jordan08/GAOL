@@ -4128,7 +4128,8 @@ for the intervals between brackets and one for the numbers, and refused
 Spaces, tabs and newlines are not significant except in numbers, and the
 case of letters is ignored, as IEEE 1788-2015 has it for its literals:
 \code{[Empty]}, \code{[1, Inf]}, \code{SIN(1)} and \code{1E3} are
-read.\newinvfive{} The ``$+$'' sign before numbers and \code{inf} is optional.
+read, whatever the locale of the program.\newinvfive{} The ``$+$'' sign
+before numbers and \code{inf} is optional.
 
 \paragraph{Numbers.} A \NT{number} is written in decimal, with an optional point
 and exponent (\code{12}, \code{0.1}, \code{1e-3}), or in hexadecimal, with a

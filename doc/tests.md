@@ -673,8 +673,14 @@ point Q), which `numbers` checks there too.
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
-  first and the right bound of the second. What the exceptions of GAOL say
-  has to be their explanation, or the name of their class where there is none:
+  first and the right bound of the second. The names have to be read in any
+  case of letters under a locale of the C library where `std::tolower('I')` is
+  not `i` too, the Turkish ones of glibc (`tr_TR.UTF-8`, `tr_TR.ISO-8859-9`),
+  where the system has one: the reader compared them by `std::tolower()`, and
+  refused `SIN([0,1])` there (GAOL v5, point F). The check is skipped where
+  the system has no such locale, as on the Ubuntu runners of the continuous
+  integration. What the exceptions of GAOL say has to be their explanation, or
+  the name of their class where there is none:
   the `what()` of a `gaol_exception`, an `input_format_error`, an
   `unavailable_feature_error` and an `invalid_action_error` built with a known
   explanation, without one, with a null pointer (no explanation) and with an

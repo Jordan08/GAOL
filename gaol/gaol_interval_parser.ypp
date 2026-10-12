@@ -36,7 +36,6 @@
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/gaol_parser.h"
 #include "gaol/gaol_port.h"
-#include <cctype>
 
 /*
   The depth of the stack of the parser: the 10000 entries that bison gives it
@@ -515,6 +514,17 @@ static const gaol_function ieee1788_functions[] = {
   GAOL_F2("atan2Pi", ::gaol_ieee1788::atan2Pi),
 };
 
+// The letter c in lower case, if it is an ASCII capital, whatever the locale
+// (GAOL v5): the names are of ASCII letters, which the lexer takes in either
+// case (%option caseless). std::tolower() depended on the locale of the C
+// library, where 'I' need not be 'i': under the Turkish locales of glibc,
+// std::tolower('I') is 'I' (tr_TR.UTF-8) or the dotless i, 0xfd
+// (tr_TR.ISO-8859-9), and "SIN(0)" was refused.
+static char ascii_lower(char c)
+{
+  return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+}
+
 // The function of a name, whatever the case of its letters, in the table of
 // the names the string is read with, which its context gives; 0 for a name
 // that is not in it
@@ -526,8 +536,7 @@ const void *gaol_lookup_function(const char *name, void *context)
                                     : sizeof(gaol_functions)/sizeof(gaol_function);
   for (std::size_t i = 0; i < size; ++i) {
     const char *a = table[i].name, *b = name;
-    while (*a != '\0' && *b != '\0'
-           && std::tolower(static_cast<unsigned char>(*a)) == std::tolower(static_cast<unsigned char>(*b))) {
+    while (*a != '\0' && *b != '\0' && ascii_lower(*a) == ascii_lower(*b)) {
       ++a;
       ++b;
     }
