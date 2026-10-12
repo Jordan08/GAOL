@@ -60,13 +60,6 @@
 #  include <float.h>
 #endif
 
-// The control register of the SSE instructions, where the flush-to-zero and
-// denormals-are-zero modes are set
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
-#  include <xmmintrin.h>
-#  define GAOL_TESTS_HAVE_MXCSR 1
-#endif
-
 using namespace gaol;
 using namespace gaol_tests;
 
@@ -178,63 +171,82 @@ namespace
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
   }
 
-#if GAOL_TESTS_HAVE_MXCSR
-  // The bits of MXCSR that flush the subnormals: flush-to-zero (bit 15), which
-  // flushes the subnormal results of the operations to 0, and
-  // denormals-are-zero (bit 6), which makes the operations and the
-  // comparisons read a subnormal as 0
-  const unsigned int flush_to_zero = 0x8000u, denormals_are_zero = 0x0040u;
-
-  // Sets the bits of MXCSR it is given for its lifetime, and restores them as
-  // it found them afterwards, the rounding direction and the flags being left
-  // alone
+#if GAOL_TESTS_FLUSH
+  // Sets the modes that flush the subnormals to zero of bits, the others
+  // cleared, for its lifetime, and restores them as it found them afterwards,
+  // the rounding direction and the flags being left alone: the bits of the
+  // control register of tests/gaol_tests.h, flush-to-zero and
+  // denormals-are-zero of MXCSR on x86, FZ and FIZ of FPCR on 64-bit ARM, FZ
+  // of FPSCR on 32-bit ARM (GAOL v5)
   class Flushing
   {
     public:
 
       explicit Flushing(unsigned int bits)
-        : bits_(bits), saved_(_mm_getcsr() & bits)
+        : saved_(flush_bits())
       {
-        _mm_setcsr(_mm_getcsr() | bits_);
+        set_flush_bits(bits);
       }
 
       ~Flushing()
       {
-        _mm_setcsr((_mm_getcsr() & ~bits_) | saved_);
+        set_flush_bits(saved_);
       }
 
     private:
 
-      const unsigned int bits_, saved_;
+      const unsigned int saved_;
   };
 
-  // Whether the processor reads a subnormal as 0 with denormals-are-zero: the
-  // least positive double is then not above 0. The result of the comparison is
-  // written to volatile memory before the mode is restored: GCC and Clang do
-  // not model MXCSR, and made the comparison after the destructor of Flushing
-  // otherwise, where the mode is not set anymore.
-  bool honours_denormals_are_zero()
+  // The modes the processor honours, alone and together (flush_modes() of
+  // tests/gaol_tests.h, which names the others on the standard output, once)
+  const std::vector<FlushMode>& honoured_modes()
+  {
+    static const std::vector<FlushMode> modes = flush_modes();
+    return modes;
+  }
+
+  // Whether the modes of bits make the operations and the comparisons read a
+  // subnormal as 0, as denormals-are-zero on x86, and FZ and FIZ on ARM do
+  // (flush-to-zero alone flushes the results): the least positive double is
+  // then not above 0. The result of the comparison is written to volatile
+  // memory before the modes are restored: GCC and Clang do not model the
+  // control register, and made the comparison after the destructor of
+  // Flushing otherwise, where the modes are not set anymore.
+  bool reads_subnormals_as_zero(unsigned int bits)
   {
     volatile double least = std::numeric_limits<double>::denorm_min();
     volatile bool not_above_zero;
     {
-      Flushing flushing(denormals_are_zero);
+      Flushing flushing(bits);
       not_above_zero = !(least > 0.0);
     }
     return not_above_zero;
   }
 
+  // The modes the processor honours that read a subnormal as 0
+  std::vector<FlushMode> zero_reading_modes()
+  {
+    std::vector<FlushMode> modes;
+    for (const FlushMode& m : honoured_modes()) {
+      if (reads_subnormals_as_zero(m.bits)) {
+        modes.push_back(m);
+      }
+    }
+    return modes;
+  }
+
   // Whether the sum 2^-1060 + 0, by which GAOL checks the modes before it
-  // writes, is 0 under denormals-are-zero: GAOL clears the mode only where
-  // it sees it there, and an emulator could honour it in the comparisons and
-  // not in the additions (GAOL v5). The sum goes to volatile memory, as the
+  // writes, is 0 under the modes of bits: GAOL clears them only where it sees
+  // them there, and an emulator could honour them in the comparisons and not
+  // in the additions (GAOL v5). The sum goes to volatile memory, as the
   // comparison above.
-  bool check_sees_denormals_are_zero()
+  bool check_sees(unsigned int bits)
   {
     volatile double subnormal = 8.0947715414629834e-320, zero = 0.0;
     volatile double sum;
     {
-      Flushing flushing(denormals_are_zero);
+      Flushing flushing(bits);
       sum = subnormal + zero;
     }
     return sum == 0.0;
@@ -251,21 +263,21 @@ namespace
     greatest subnormal to the least normal double, which does not enclose it,
     and 0 was equal to every subnormal, and read as the greatest one. The mode
     is set for the reading only, the exact arithmetic of the checks reading
-    doubles as doubles too. x86 only, where MXCSR is: nothing is checked
-    elsewhere, nor where the processor does not honour denormals-are-zero.
+    doubles as doubles too. Each mode the processor honours is set, alone and
+    with the others: flush-to-zero and denormals-are-zero on x86, and on ARM,
+    with GCC and Clang, FZ, which crtfastmath.o sets on ARM Linux, and FIZ
+    (64-bit, Armv8.7), which read a subnormal as 0 too (GAOL v5, point F of
+    TODO.md: the test ran on x86 only). Nothing is checked where the tests
+    cannot set the modes (Visual C++ for ARM), nor with a mode the processor
+    does not honour.
   */
   void subnormal_numbers()
   {
-#if GAOL_TESTS_HAVE_MXCSR
-    if (!honours_denormals_are_zero()) {
-      std::printf("Denormals-are-zero is not honoured: the reading of numbers with it is not checked\n");
+#if GAOL_TESTS_FLUSH
+    if (honoured_modes().empty()) {
+      std::printf("No mode flushing the subnormals to zero is honoured: the reading of numbers with one is not checked\n");
       return;
     }
-    const struct { const char *name; unsigned int bits; } modes[] = {
-      { "flush-to-zero", flush_to_zero },
-      { "denormals-are-zero", denormals_are_zero },
-      { "flush-to-zero and denormals-are-zero", flush_to_zero | denormals_are_zero },
-    };
     // The exact value of the number read, or the exact bounds of the interval
     struct Text { std::string s; Exact lo, hi; };
     const auto number = [](const std::string& s) { return Text{ s, decimal(s), decimal(s) }; };
@@ -308,8 +320,8 @@ namespace
         texts.push_back(number(format("%.1100f", d)));
       }
     }
-    for (const auto& mode : modes) {
-      const std::string name = std::string("textToInterval(number) with ") + mode.name + ": the tightest enclosure";
+    for (const FlushMode& mode : honoured_modes()) {
+      const std::string name = "textToInterval(number) with " + mode.name + ": the tightest enclosure";
       for (const auto& t : texts) {
         const interval r = evaluate(name, [&] { Flushing flushing(mode.bits); return textToInterval(t.s); },
                                     [&] { return t.s.substr(0, 40); });
@@ -318,7 +330,7 @@ namespace
       }
     }
 #else
-    std::printf("No control register of the SSE instructions: the reading of numbers with flush-to-zero and denormals-are-zero is not checked\n");
+    std::printf("The tests cannot set the modes flushing the subnormals to zero: the reading of numbers with them is not checked\n");
 #endif
   }
 
@@ -330,43 +342,22 @@ namespace
     <0x1p-1074, 0x1p-1073> as [2^-1074, 2^-1073], which it refuses without
     the mode. A refused string is the empty set of
     gaol_ieee1788::textToInterval(), with or without exceptions, and the
-    input_format_error of gaol::textToInterval(). x86 only, where MXCSR is.
+    input_format_error of gaol::textToInterval(). With each mode the processor
+    honours that reads a subnormal as 0: denormals-are-zero on x86, FZ and FIZ
+    on ARM (GAOL v5, point F of TODO.md: denormals-are-zero alone, on x86).
   */
   void degenerate_subnormals()
   {
-#if GAOL_TESTS_HAVE_MXCSR
-    if (!honours_denormals_are_zero()) {
-      std::printf("Denormals-are-zero is not honoured: <a, b> of subnormals with it is not checked\n");
+#if GAOL_TESTS_FLUSH
+    const std::vector<FlushMode> modes = zero_reading_modes();
+    if (modes.empty()) {
+      std::printf("No mode reading the subnormals as 0 is honoured: <a, b> of subnormals with one is not checked\n");
       return;
     }
     const char *const refused[] = {
       "<1e-310, 1e-309>", "<0x1p-1074, 0x1p-1073>", "<0, 0x1p-1074>", "<-0x1p-1074, 0x1p-1074>",
       "<0x0.fffffffffffffp-1022, 0x1p-1074>",
     };
-    for (const char *t : refused) {
-      interval read;
-#if GAOL_EXCEPTIONS_ENABLED
-      bool threw = false;
-#endif
-      {
-        Flushing flushing(denormals_are_zero);
-        read = gaol_ieee1788::textToInterval(t);
-#if GAOL_EXCEPTIONS_ENABLED
-        try {
-          const interval x = textToInterval(t);
-          (void)x;
-        } catch (const input_format_error&) {
-          threw = true;
-        }
-#endif
-      }
-      check("<a, b> of two subnormals with denormals-are-zero: refused, as without it", read.is_empty(),
-            [&] { return std::string(t) + ": " + hex(read); });
-#if GAOL_EXCEPTIONS_ENABLED
-      check("<a, b> of two subnormals with denormals-are-zero: input_format_error", threw,
-            [&] { return std::string(t); });
-#endif
-    }
     const double least = std::numeric_limits<double>::denorm_min();
     const struct { const char *text; interval value; } accepted[] = {
       { "<0x1p-1074, 0x1p-1074>", interval(least) },
@@ -374,17 +365,43 @@ namespace
       { "<0x0.fffffffffffffp-1022, 0x0.fffffffffffffp-1022>", interval(0x0.fffffffffffffp-1022) },
       { "<-0, 0>", interval(-0.0, 0.0) },
     };
-    for (const auto& a : accepted) {
-      interval read;
-      {
-        Flushing flushing(denormals_are_zero);
-        read = gaol_ieee1788::textToInterval(a.text);
+    for (const FlushMode& mode : modes) {
+      for (const char *t : refused) {
+        interval read;
+#if GAOL_EXCEPTIONS_ENABLED
+        bool threw = false;
+#endif
+        {
+          Flushing flushing(mode.bits);
+          read = gaol_ieee1788::textToInterval(t);
+#if GAOL_EXCEPTIONS_ENABLED
+          try {
+            const interval x = textToInterval(t);
+            (void)x;
+          } catch (const input_format_error&) {
+            threw = true;
+          }
+#endif
+        }
+        check("<a, b> of two subnormals with " + mode.name + ": refused, as without it", read.is_empty(),
+              [&] { return std::string(t) + ": " + hex(read); });
+#if GAOL_EXCEPTIONS_ENABLED
+        check("<a, b> of two subnormals with " + mode.name + ": input_format_error", threw,
+              [&] { return std::string(t); });
+#endif
       }
-      check("<a, b> of the same subnormal with denormals-are-zero: read", read.set_eq(a.value),
-            [&] { return std::string(a.text) + ": " + hex(read); });
+      for (const auto& a : accepted) {
+        interval read;
+        {
+          Flushing flushing(mode.bits);
+          read = gaol_ieee1788::textToInterval(a.text);
+        }
+        check("<a, b> of the same subnormal with " + mode.name + ": read", read.set_eq(a.value),
+              [&] { return std::string(a.text) + ": " + hex(read); });
+      }
     }
 #else
-    std::printf("No control register of the SSE instructions: <a, b> of subnormals with denormals-are-zero is not checked\n");
+    std::printf("The tests cannot set the modes flushing the subnormals to zero: <a, b> of subnormals with them is not checked\n");
 #endif
   }
 
@@ -394,8 +411,10 @@ namespace
     as intervals enclosing them (GAOL v5). A subnormal then compares equal to
     0: operator<< compared the bounds as doubles, and wrote [0, 5e-324],
     [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
-    or, as the literal [a] of a point, [0]. It compares their bits. x86 only,
-    where MXCSR is.
+    or, as the literal [a] of a point, [0]. It compares their bits. With each
+    mode the processor honours that reads a subnormal as 0, denormals-are-zero
+    on x86, FZ and FIZ on ARM, where GAOL sees it (GAOL v5, point F of
+    TODO.md: denormals-are-zero alone, on x86).
     The text has to be the one written without the mode too: operator<<
     clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
     subnormal bound rounded to nearest, [0, 4.940656458412465e-324] for
@@ -409,14 +428,10 @@ namespace
   */
   void subnormal_output()
   {
-#if GAOL_TESTS_HAVE_MXCSR
-    if (!honours_denormals_are_zero()) {
-      std::printf("Denormals-are-zero is not honoured: the output of subnormals with it is not checked\n");
-      return;
-    }
-    if (!check_sees_denormals_are_zero()) {
-      std::printf("Denormals-are-zero is honoured by the comparisons, not by the sum that GAOL checks it with: "
-                  "the output of subnormals with it is not checked\n");
+#if GAOL_TESTS_FLUSH
+    const std::vector<FlushMode> modes = zero_reading_modes();
+    if (modes.empty()) {
+      std::printf("No mode reading the subnormals as 0 is honoured: the output of subnormals with one is not checked\n");
       return;
     }
     const double least = std::numeric_limits<double>::denorm_min();
@@ -426,25 +441,32 @@ namespace
     const std::streamsize saved_precision = interval::precision();
     interval::format(interval_format::bounds);
     interval::precision(16);
-    for (const interval& x : tiny) {
-      std::ostringstream os;
-      {
-        Flushing flushing(denormals_are_zero);
-        os << x;
+    for (const FlushMode& mode : modes) {
+      if (!check_sees(mode.bits)) {
+        std::printf("%s is honoured by the comparisons, not by the sum that GAOL checks it with: "
+                    "the output of subnormals with it is not checked\n", mode.name.c_str());
+        continue;
       }
-      const std::string s = os.str();
-      std::ostringstream plain;
-      plain << x;
-      check("operator<< of subnormals with denormals-are-zero, as without it", s == plain.str(),
-            [&] { return hex(x) + " written " + s + " rather than " + plain.str(); });
-      const std::string name = "operator<< of subnormals with denormals-are-zero, read back";
-      const interval back = evaluate(name, [&] { return textToInterval(s); }, [&] { return hex(x) + " written " + s; });
-      check(name + ": encloses them", back.set_contains(x), [&] { return hex(x) + " written " + s + " read " + hex(back); });
+      for (const interval& x : tiny) {
+        std::ostringstream os;
+        {
+          Flushing flushing(mode.bits);
+          os << x;
+        }
+        const std::string s = os.str();
+        std::ostringstream plain;
+        plain << x;
+        check("operator<< of subnormals with " + mode.name + ", as without it", s == plain.str(),
+              [&] { return hex(x) + " written " + s + " rather than " + plain.str(); });
+        const std::string name = "operator<< of subnormals with " + mode.name + ", read back";
+        const interval back = evaluate(name, [&] { return textToInterval(s); }, [&] { return hex(x) + " written " + s; });
+        check(name + ": encloses them", back.set_contains(x), [&] { return hex(x) + " written " + s + " read " + hex(back); });
+      }
     }
     interval::precision(saved_precision);
     interval::format(saved_format);
 #else
-    std::printf("No control register of the SSE instructions: the output of subnormals with denormals-are-zero is not checked\n");
+    std::printf("The tests cannot set the modes flushing the subnormals to zero: the output of subnormals with them is not checked\n");
 #endif
   }
 
@@ -2179,6 +2201,9 @@ namespace
     const double in_c = reading_time(slowest);
     std::setlocale(LC_NUMERIC, comma);
     const double in_comma = reading_time(slowest);
+    // The times written under the C locale: std::to_string() writes them as
+    // printf("%f") does, with the decimal comma of that locale ("2,112549 s")
+    std::setlocale(LC_NUMERIC, "C");
     check("textToInterval(long number) under a locale writing a decimal comma: the time of the C locale", in_comma <= 10*in_c + 0.05,
           [&] { return std::string(comma) + ": " + std::to_string(in_comma) + " s, against " + std::to_string(in_c) + " s under the C locale"; });
     std::setlocale(LC_NUMERIC, saved.c_str());
@@ -2206,6 +2231,9 @@ int main()
   long_exponents();
   long_numbers_c_locale();
   comma_locale();
+  // The failures written so far, which a crash would lose in the buffer of
+  // stdout where it is a pipe, as under ctest (GAOL v5)
+  std::fflush(stdout);
   stream_without_buffer();
   const int status = summary();
   gaol::cleanup();
