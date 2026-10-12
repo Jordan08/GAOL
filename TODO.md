@@ -307,12 +307,12 @@ pour `ChangeLog` et `doc/differences.md` sont dans la description de #111.
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-f-number-reading` : le point F, pull request à ouvrir par le
-  mainteneur (le jeton de la session ne peut pas en créer). Une branche
-  jetable, `tmp-f-ci-output`, sert à la vérification unique du 11, puis sera
-  supprimée.
+- `todo-f-number-reading` : le point F, #114 (CI verte). La vérification
+  unique du 11 est faite par #116, jetable, à fermer sans fusion, sa branche
+  `tmp-f-ci-output` étant ensuite supprimée.
 - `process-two-trees` : `process.md`, `GAOL_V8` et `GAOL_V9` se valent, les
-  outils vus le 12 octobre, les pull requests ouvertes par le mainteneur.
+  outils vus le 12 octobre, les pull requests ouvertes par le mainteneur,
+  #115.
 
 ## Même changement, ou même code
 
