@@ -171,13 +171,14 @@ namespace
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
   }
 
-#if GAOL_TESTS_FLUSH
+#if GAOL_TESTS_SET_FLUSH
   // Sets the modes that flush the subnormals to zero of bits, the others
   // cleared, for its lifetime, and restores them as it found them afterwards,
   // the rounding direction and the flags being left alone: the bits of the
   // control register of tests/gaol_tests.h, flush-to-zero and
   // denormals-are-zero of MXCSR on x86, FZ and FIZ of FPCR on 64-bit ARM, FZ
-  // of FPSCR on 32-bit ARM (GAOL v5)
+  // of FPSCR on 32-bit ARM, and FZ through _controlfp_s() with Visual C++ for
+  // 64-bit ARM (GAOL v5)
   class Flushing
   {
     public:
@@ -235,7 +236,9 @@ namespace
     }
     return modes;
   }
+#endif
 
+#if GAOL_TESTS_FLUSH
   // Whether the sum 2^-1060 + 0, by which GAOL checks the modes before it
   // writes, is 0 under the modes of bits: GAOL clears them only where it sees
   // them there, and an emulator could honour them in the comparisons and not
@@ -266,14 +269,15 @@ namespace
     doubles as doubles too. Each mode the processor honours is set, alone and
     with the others: flush-to-zero and denormals-are-zero on x86, and on ARM,
     with GCC and Clang, FZ, which crtfastmath.o sets on ARM Linux, and FIZ
-    (64-bit, Armv8.7), which read a subnormal as 0 too (GAOL v5, point F of
-    TODO.md: the test ran on x86 only). Nothing is checked where the tests
-    cannot set the modes (Visual C++ for ARM), nor with a mode the processor
-    does not honour.
+    (64-bit, Armv8.7), which read a subnormal as 0 too, and FZ with Visual C++
+    for 64-bit ARM, set through _controlfp_s(), which GAOL does not clear
+    there (GAOL v5, point F of TODO.md: the test ran on x86 only). Nothing is
+    checked where the tests cannot set the modes, nor with a mode the
+    processor does not honour.
   */
   void subnormal_numbers()
   {
-#if GAOL_TESTS_FLUSH
+#if GAOL_TESTS_SET_FLUSH
     if (honoured_modes().empty()) {
       std::printf("No mode flushing the subnormals to zero is honoured: the reading of numbers with one is not checked\n");
       return;
@@ -344,11 +348,12 @@ namespace
     gaol_ieee1788::textToInterval(), with or without exceptions, and the
     input_format_error of gaol::textToInterval(). With each mode the processor
     honours that reads a subnormal as 0: denormals-are-zero on x86, FZ and FIZ
-    on ARM (GAOL v5, point F of TODO.md: denormals-are-zero alone, on x86).
+    on ARM, FZ with Visual C++ for 64-bit ARM too (GAOL v5, point F of
+    TODO.md: denormals-are-zero alone, on x86).
   */
   void degenerate_subnormals()
   {
-#if GAOL_TESTS_FLUSH
+#if GAOL_TESTS_SET_FLUSH
     const std::vector<FlushMode> modes = zero_reading_modes();
     if (modes.empty()) {
       std::printf("No mode reading the subnormals as 0 is honoured: <a, b> of subnormals with one is not checked\n");
@@ -414,7 +419,9 @@ namespace
     or, as the literal [a] of a point, [0]. It compares their bits. With each
     mode the processor honours that reads a subnormal as 0, denormals-are-zero
     on x86, FZ and FIZ on ARM, where GAOL sees it (GAOL v5, point F of
-    TODO.md: denormals-are-zero alone, on x86).
+    TODO.md: denormals-are-zero alone, on x86). Not with Visual C++ for 64-bit
+    ARM, where GAOL does not clear the modes, and writes a subnormal bound
+    outward: subnormal_output_flush_not_cleared() below checks it there.
     The text has to be the one written without the mode too: operator<<
     clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
     subnormal bound rounded to nearest, [0, 4.940656458412465e-324] for
@@ -466,7 +473,8 @@ namespace
     interval::precision(saved_precision);
     interval::format(saved_format);
 #else
-    std::printf("The tests cannot set the modes flushing the subnormals to zero: the output of subnormals with them is not checked\n");
+    std::printf("GAOL does not clear the modes flushing the subnormals to zero, or the tests cannot set them: "
+                "the output of subnormals with them, as without them, is not checked\n");
 #endif
   }
 

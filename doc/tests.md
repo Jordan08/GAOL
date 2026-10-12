@@ -397,7 +397,8 @@ point Q), which `numbers` checks there too.
   With each mode flushing the subnormals to zero that the processor honours,
   alone and with the others (flush-to-zero and denormals-are-zero of MXCSR on
   x86, and, with GCC and Clang, FZ and FIZ of FPCR on 64-bit ARM and FZ of
-  FPSCR on 32-bit ARM, GAOL v5, point F), the numbers from 0 to the
+  FPSCR on 32-bit ARM; with Visual C++ for 64-bit ARM, FZ set through
+  `_controlfp_s()`; GAOL v5, point F), the numbers from 0 to the
   least normal double, in decimal and in hexadecimal, alone, in intervals and
   in the uncertain form, have to be read as the tightest intervals enclosing
   them, and the doubles among them, 0 included, as themselves: the reader
