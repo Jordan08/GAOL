@@ -322,8 +322,13 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
 - **Un `Makefile.in`** : `automake <dir>/Makefile` avec automake 1.18.1. Le diff
   de `Makefile.in` ne doit contenir que l'effet de ton changement.
-- **`configure`** : `AUTOHEADER=true autoreconf --force --install`, puis
-  `git checkout -- INSTALL config.guess config.sub` et `rm -f configure~`.
+- **`configure`** : quand seul `configure.ac` change, `autoconf`, qui prend
+  l'`aclocal.m4` du dépôt, puis `rm -f configure~`. Sous Ubuntu 26.04,
+  `autoreconf --force --install` réécrirait aussi `INSTALL`, `config.guess`,
+  `config.sub`, `ltmain.sh` et `m4/libtool.m4`, ces deux derniers avec le
+  libtool de Debian (2.5.4-9), dont les correctifs entreraient dans
+  `configure`. Le diff de `configure` ne doit contenir que l'effet de ton
+  changement.
 - **Le lexer et le parser** : `sh gaol/regenerate_parser.sh`, avec bison 3.8.2
   et flex 2.6.4.
 - Les fichiers du dépôt sont en LF. Seul `manual/v4/relation-cos.tex` est en
@@ -378,7 +383,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
    Corrige ses points bloquants et vérifie-les. La pull request dit ce qu'il a
    trouvé et vérifié.
-8. **Contrôler et commiter.** Lance `check_branch <branche>`
+8. **Contrôler et commiter.** Lance `check_branch <branche>` depuis l'arbre
    (`todo-notes/orchestration/bin/check_branch`, à copier dans ton
    scratchpad). Il vérifie les messages (deux lignes au plus, aucune mention
    de Claude), l'absence des registres, du PDF et des produits de build, et les
