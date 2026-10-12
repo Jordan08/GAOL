@@ -785,13 +785,13 @@ namespace gaol_core {
 
   /*
     Reads an interval from a line, after the blanks that precede it, line ends
-    included, which std::ws skips as the reading of a double does, whatever
-    std::noskipws says (GAOL v5). GAOL read the line where the previous value
-    stopped: over "1.5\n[1, 2]\n", "in >> d >> x" read the empty rest of the
-    first line, and threw input_format_error, as while (in >> x) did over a
-    file ending with an empty line. A blank line is now no line to read, and
-    the intervals around it are read, as two numbers with a blank line
-    between them are.
+    included, which std::ws skips as the reading of a double does, and under
+    std::noskipws too, which keeps a double from skipping them (GAOL v5).
+    GAOL read the line where the previous value stopped: over
+    "1.5\n[1, 2]\n", "in >> d >> x" read the empty rest of the first line,
+    and threw input_format_error, as while (in >> x) did over a file ending
+    with an empty line. A blank line is now no line to read, and the intervals
+    around it are read, as two numbers with a blank line between them are.
 
     Where no line is left, std::getline() fails, which sets failbit: I is left
     as it was and nothing is thrown, as for a double, so that while (is >> x)
@@ -802,14 +802,15 @@ namespace gaol_core {
     input_format_error, or invalid_action_error for a function called with an
     argument it does not take. A program reading on calls is.clear() first.
 
-    std::ws is no extraction: it constructs no sentry, so that it neither
-    flushes the stream tied to is nor looks at the state of is, and libstdc++
-    reads the buffer whatever that state is. Used alone, it would crash on an
-    istream without buffer, consume the blanks of a stream that has failed,
-    and leave a prompt written on cout unflushed until the user had typed the
-    interval. The sentry of any extraction is therefore constructed first,
-    without skipping (std::getline() does the same): it flushes the tied
-    stream, and sets failbit where is is not good.
+    The std::ws of libstdc++ before GCC 12 constructs no sentry (libc++, the
+    library of Visual C++, and libstdc++ from GCC 12 on, construct one): it
+    neither flushes the stream tied to is nor looks at the state of is, and
+    reads the buffer whatever that state is. Used alone, it would crash there
+    on an istream without buffer, consume the blanks of a stream that has
+    failed, and leave a prompt written on cout unflushed until the user had
+    typed the interval. The sentry of any extraction is therefore constructed
+    first, without skipping (std::getline() does the same): it flushes the
+    tied stream, and sets failbit where is is not good.
   */
   istream& operator >>(istream& is, interval& I)
   {

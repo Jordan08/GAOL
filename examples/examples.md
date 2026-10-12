@@ -59,10 +59,9 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   (printf, strtod, lrint and the program's own doubles change), `operator<`
   which is not an ordering (std::sort and std::set misbehave, and can read out
   of bounds), streams that broke the idioms of iostreams (fixed since, apart
-  from point intervals written `<a, b>`, which the reader refuses, and blank
-  lines, which `operator>>` refuses), and the missing
-  pieces every algorithm needs: a box type, derivatives, a two-piece division,
-  inflation, bisection at a ratio.
+  from point intervals written `<a, b>`, which the reader refuses), and the
+  missing pieces every algorithm needs: a box type, derivatives, a two-piece
+  division, inflation, bisection at a ratio.
 - **Confirmed bugs**: two give bounds that miss the exact result (`x -= x`,
   `x /= x` and `x %= x` in the FPU build used on ARM and with Visual C++; `pow`
   with a subnormal result when the x87 and SSE rounding directions differ),
@@ -458,9 +457,9 @@ that the text read back encloses the interval; `exact_string()` (or the hexa
 format) reads back bit for bit. `operator<<` writes with the digits of
 `interval::precision()`, not those of `std::setprecision`, and leaves the
 stream's own precision as it was; `std::setw` pads the whole interval.
-`operator>>` reads one interval per line: at the end of the input it sets
-`failbit`, so that `while (in >> x)` ends there, and a line that is no
-interval, a blank one included, sets `failbit` and throws
+`operator>>` reads one interval per line, the blank lines before it skipped:
+at the end of the input it sets `failbit`, so that `while (in >> x)` ends
+there, and a line that is no interval sets `failbit` and throws
 `input_format_error`. Numbers are read with a point whatever the locale, and
 `exact_string()` writes one; the decimal formats of `operator<<` write the
 decimal point of the stream's locale, as for a double, so that a stream with
@@ -640,7 +639,7 @@ maintainer. Appendix B gives each fix and its test.
 | 11 | `gaol_core::expression` objects created with no argument in two threads crashed within a million iterations: they shared one global node whose reference count was a plain `unsigned`. **Fixed**. | `gaol/gaol_expression.cpp:76` | medium |
 | 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. | `gaol/gaol_interval.cpp:728` | medium |
 | 13 | `operator<<` set the stream's precision to `interval::precision()` and never restored it: after printing an interval, `std::cout << 1.0/3` printed 16 digits, and `std::setw` padded the `[` only. IBEX and Codac both work around it. **Fixed** (`std::setprecision` still does not apply to intervals, by design). | `gaol/gaol_interval.cpp:780` | medium |
-| 14 | `operator>>` read a whole line and threw `input_format_error` at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ended with an exception, and left x empty. **Fixed** at the end of the input, where `failbit` is now set and nothing thrown; a blank line still throws `input_format_error`, `failbit` set. | `gaol/gaol_interval.cpp:556` | medium |
+| 14 | `operator>>` read a whole line and threw `input_format_error` at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ended with an exception, and left x empty. **Fixed** at the end of the input, where `failbit` is now set and nothing thrown, and on a blank line, now skipped as the blanks before a number are. | `gaol/gaol_interval.cpp:556` | medium |
 | 15 | `gaol_exception` does not override `what()`: `catch (const std::exception& e)` prints `std::exception`, and an uncaught error ends with `what(): std::exception`. | `gaol/gaol_exceptions.h:56` | medium |
 | 16 | `gaol::sin(0.5)` (and every function of namespace `gaol` on a double) is ambiguous between the interval and the expression overloads. It compiled with GAOL 4, whose `<gaol/gaol>` did not include `gaol_expression.h`; GAOL v5's includes it through `gaol_ieee1788.h`. | `gaol/gaol_ieee1788.h:70` | low (regression) |
 | 17 | Parsing a sum of 100 000 terms overflows the stack (one frame per term, in the evaluation and the destruction of the tree), and so do expressions built through the public API. | `gaol/gaol_interval_parser.ypp:422` | low |

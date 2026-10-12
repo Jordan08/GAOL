@@ -359,16 +359,18 @@ point Q), which `numbers` checks there too.
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
   `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
   too (GAOL v5). Blank lines have to be skipped, as the blanks before a number
-  are, with or without `std::noskipws`: a file ending with an empty line, an
-  empty line or a line of blanks between two intervals, and `in >> d >> x` over
-  the two lines `1.5` and `[1, 2]` have to read what is there, and to end at the
-  end of the input as `while (in >> d)` does over numbers, on a stream throwing
-  on nothing, on `failbit`, or on `badbit` and `failbit`; an interval written on
-  two lines is still no interval (GAOL v5). The skipping must not replace the
-  checks that open any extraction: a stream that is not good, one without buffer
-  included, is not read and keeps all its text, and the stream tied to the input
-  is flushed before the first character is read, as for a number, so that a
-  prompt shows before the user types (`std::ws` alone does none of this).
+  are, and under `std::noskipws` too, which keeps a number from skipping them:
+  a file ending with an empty line, an empty line or a line of blanks between
+  two intervals, and `in >> d >> x` over the two lines `1.5` and `[1, 2]` have
+  to read what is there, and to end at the end of the input as
+  `while (in >> d)` does over numbers, on a stream throwing on nothing, on
+  `failbit`, or on `badbit` and `failbit`; an interval written on two lines is
+  still no interval (GAOL v5). The skipping must not replace the checks that
+  open any extraction: a stream that is not good, one without buffer included,
+  is not read and keeps all its text, and the stream tied to the input is
+  flushed before the first character is read, as for a number, so that a
+  prompt shows before the user types (the `std::ws` of libstdc++ before GCC 12
+  alone does none of this).
   Numbers with a million zeros after their point and an exponent of 7 digits
   (`0.00…01e1000001`, and in hexadecimal and in the uncertain form)
   have to be read exactly: the exponent was cut at 100000 (GAOL v5).

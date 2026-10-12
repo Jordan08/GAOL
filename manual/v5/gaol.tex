@@ -4034,10 +4034,10 @@ cout << hull(interval(1,2), interval(4,5)) << ' '
 \begin{deffun}{istream\&}{operator>{}>}{(istream\& \var{in}, interval\& I)}
   Reads a line from the input stream \var{in}, and assigns to \var{I} the
   interval it writes. The blanks before the line, the ends of lines included,
-  are skipped first, as before a number: an empty line, or one holding only
-  blanks, is not a line to read, whether \code{std::noskipws} is set or not,
-  and an interval cannot be written on several lines. If the line is
-  syntactically ill-formed, \var{I} is set
+  are skipped first, as before a number, even under \code{std::noskipws},
+  which keeps a number from skipping them: an empty line, or one holding only
+  blanks, is never a line to read. An interval cannot be written on several
+  lines. If the line is syntactically ill-formed, \var{I} is set
   to the empty set, and an \code{input\_format\_error} exception is thrown
   (\pxref{sec:exceptions}) if the library was compiled with exceptions
   enabled (\pxref{sec:configuration}); alternatively, it prints an
@@ -4065,7 +4065,8 @@ std::istringstream in("1.5\n\n[1, 2]\n\n");
 double d;
 interval x;
 in >> d >> x;
-cout << d << ' ' << x << ' ' << (in >> x ? "more" : "end");
+cout << d << ' ' << x << ' ';
+cout << (in >> x ? "more" : "end");
 @outputs^1.5 [1, 2] end~
 \end{example}
 \end{deffun}

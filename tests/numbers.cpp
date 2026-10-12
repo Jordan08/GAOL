@@ -1979,7 +1979,8 @@ namespace
             [&] { return std::string(unread ? "read on after clear(): " : "read or threw: ") + hex(x) + (threw ? ", threw" : ""); });
     }
     // ... and nothing is consumed from its buffer: std::ws reads the buffer whatever the state of
-    // the stream (libstdc++), and would skip the blank lines that the next read then does not find
+    // the stream (libstdc++ before GCC 12), and would skip the blank lines that the next read then
+    // does not find
     for (const std::ios_base::iostate bit : { std::ios_base::failbit, std::ios_base::badbit }) {
       std::istringstream in("\n\n[1, 2]\nrest\n");
       in.setstate(bit);
@@ -2030,8 +2031,9 @@ namespace
     }
   }
 
-  // An istream without buffer, which std::ws would read whatever the state of the stream, and
-  // crash (libstdc++): it is the last test, since a crash ends the program
+  // An istream without buffer, which std::ws would read whatever the state of
+  // the stream, and crash (libstdc++ before GCC 12): it is the last test, since
+  // a crash ends the program
   void stream_without_buffer()
   {
     std::istream in(nullptr);
