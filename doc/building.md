@@ -330,7 +330,7 @@ The three builds have the same targets:
   `gaol/gaol_interval_lexer.lpp` and `gaol/gaol_interval_parser.ypp` with the
   flex and the bison of the system, where the CMake build finds them
   (`find_program`, not required). The three files are committed and no build
-  needs flex nor bison otherwise; flex 2.6.4 and bison 3.5.1 give them again
+  needs flex nor bison otherwise; flex 2.6.4 and bison 3.8.2 give them again
   byte for byte. `sh gaol/regenerate_parser.sh` runs the same commands without
   a build (`FLEX` and `BISON` give other programs).
 

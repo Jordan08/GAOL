@@ -247,7 +247,7 @@ un est refusée, quel que soit son gain.
 | Clang | 18 (`clang-18`, `clang++-18`) |
 | CMake | 4.4 (`~/.local/bin/cmake`) |
 | autoconf, automake, libtool | 2.72, 1.18.1, 2.5.4 (`~/Logiciel/autotools/bin`) |
-| bison, flex | 3.5.1, 2.6.4 (les versions des fichiers générés commités) |
+| bison, flex | 3.8.2, 2.6.4 (les versions des fichiers générés commités) |
 | meson, ninja | meson 0.53.2 (le système, la plus ancienne prise en charge), ninja 1.10 |
 | Autres | `pdflatex`, `gcovr`, python3.8 avec mpmath |
 
@@ -323,7 +323,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
   de `Makefile.in` ne doit contenir que l'effet de ton changement.
 - **`configure`** : `AUTOHEADER=true autoreconf --force --install`, puis
   `git checkout -- INSTALL config.guess config.sub` et `rm -f configure~`.
-- **Le lexer et le parser** : `sh gaol/regenerate_parser.sh`, avec bison 3.5.1
+- **Le lexer et le parser** : `sh gaol/regenerate_parser.sh`, avec bison 3.8.2
   et flex 2.6.4.
 - Les fichiers du dépôt sont en LF. Seul `manual/v4/relation-cos.tex` est en
   CRLF, et `manual/v4` ne se touche pas.
