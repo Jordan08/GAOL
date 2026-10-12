@@ -51,7 +51,8 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
 
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
 Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2, and with meson and
-Visual Studio 2022 and 2026 (x64, x86), run the tests (`make test`,
+Visual Studio 2022 and 2026 (x64, x86), and with meson 0.53.2, the oldest the
+meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
 `ninja test`), and build them again with the
 GAOL they install, which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by

@@ -13,7 +13,8 @@
 # (tests/meson_subproject, GAOL v5). An autotools job (--disable-exceptions)
 # and a meson job (-Denable-exception=false) build GAOL without exceptions,
 # where an error ends the program, and run the examples and the tests, which
-# leave out the checks of an exception there (GAOL v5).
+# leave out the checks of an exception there (GAOL v5). One job builds and
+# tests GAOL with meson 0.53.2, the oldest meson the build takes (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -226,6 +227,41 @@ jobs:
         run: |
           set -o pipefail
           ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # meson 0.53.2, the oldest that the meson build takes, the meson of Ubuntu
+  # 20.04 (doc/building.md), from pipx, as the other jobs take the latest: the
+  # maintainer's machine checked it, as its meson of the system, until it
+  # moved to Ubuntu 26.04 and meson 1.10, and nothing checked it then (GAOL
+  # v5). meson compile needs meson 0.54: ninja builds, as doc/building.md
+  # says. It runs on the Python 3.12 of Ubuntu 24.04 (and on 3.14).
+  meson-oldest:
+    name: Meson 0.53.2, Ubuntu 24.04 x86_64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ ninja-build pipx
+          pipx install meson==0.53.2
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Configure, build and install
+        run: |
+          set -o pipefail
+          test "$(meson --version)" = 0.53.2
+          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true -Dwith-examples=true | tee configure.log
+          ninja -C build-meson
+          meson install -C build-meson
+          grep -qi "elementary functions" configure.log
+      - name: Locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh generate
+      - name: Tests and examples
+        run: meson test -C build-meson --print-errorlogs
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
+      - name: Tests built with the installed GAOL
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
 
   # GAOL as a subproject of a meson project, tests/meson_subproject, which
   # builds tests of tests/ with gaol_dep and checks that their code gets the
