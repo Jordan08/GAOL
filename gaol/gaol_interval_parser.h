@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
    Copyright (c) 2026 ENSTA, France
    Modified by Jordan NININ (GAOL v5)
@@ -18,7 +18,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -33,8 +33,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
 #ifndef YY_GAOL_Y_TAB_H_INCLUDED
 # define YY_GAOL_Y_TAB_H_INCLUDED
@@ -46,27 +47,36 @@
 extern int gaol_debug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    EMPTY_STR = 258,
-    ENTIRE_STR = 259,
-    INFINITY_STR = 260,
-    DMIN_STR = 261,
-    DMAX_STR = 262,
-    PI_STR = 263,
-    FUNCTION_NAME = 264,
-    UNEXPECTED_CHAR = 265,
-    NUMBER = 266,
-    INTERVAL_CST = 267,
-    UNCERTAIN_CST = 268,
-    UMINUS = 269,
-    UPLUS = 270
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    EMPTY_STR = 258,               /* EMPTY_STR  */
+    ENTIRE_STR = 259,              /* ENTIRE_STR  */
+    INFINITY_STR = 260,            /* INFINITY_STR  */
+    DMIN_STR = 261,                /* DMIN_STR  */
+    DMAX_STR = 262,                /* DMAX_STR  */
+    PI_STR = 263,                  /* PI_STR  */
+    FUNCTION_NAME = 264,           /* FUNCTION_NAME  */
+    UNEXPECTED_CHAR = 265,         /* UNEXPECTED_CHAR  */
+    NUMBER = 266,                  /* NUMBER  */
+    INTERVAL_CST = 267,            /* INTERVAL_CST  */
+    UNCERTAIN_CST = 268,           /* UNCERTAIN_CST  */
+    UMINUS = 269,                  /* UMINUS  */
+    UPLUS = 270                    /* UPLUS  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
-/* Tokens.  */
+/* Token kinds.  */
+#define YYEMPTY -2
+#define YYEOF 0
+#define YYerror 256
+#define YYUNDEF 257
 #define EMPTY_STR 258
 #define ENTIRE_STR 259
 #define INFINITY_STR 260
@@ -93,7 +103,7 @@ union YYSTYPE
   expr_node* expr;
   const void* fn;
 
-#line 95 "y.tab.h"
+#line 105 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -103,6 +113,8 @@ typedef union YYSTYPE YYSTYPE;
 
 
 
+
 int gaol_parse (void *scanner, void *context);
+
 
 #endif /* !YY_GAOL_Y_TAB_H_INCLUDED  */
