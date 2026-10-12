@@ -81,24 +81,13 @@ static inline int get_rounding_mode (fexcept_t *flagp)
   unsigned int mode;
 #if defined(__x86_64__)
   *flagp = _mm_getcsr ();
-  #if defined(__WIN32__) || defined(__WIN64__) || defined(_WIN32) /* GAOL */
-    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
-    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
-    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
-    // The amount we need to shift changes depending on the value.
-    #if FE_UPWARD == 0x0200
-      mode = (*flagp & _MM_ROUND_MASK)>>5;
-    #elif FE_UPWARD == 0x0100
-      // Lookup table used to eliminate branches.
-      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
-      mode = lut[(*flagp & _MM_ROUND_MASK)>>13];
-    #else
-      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
-      mode = fegetround(); /* GAOL: mapped to 0..3 by the switch below, not returned */
-    #endif
-  #else
-    mode = (*flagp & _MM_ROUND_MASK)>>3;
-  #endif
+  /* GAOL: the rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward
+     and 3 toward zero, the values this function returns, whatever values the
+     C library gives FE_TONEAREST, ... (0x400 for FE_DOWNWARD with GNU libc
+     and mingw-w64 before 13, 0x100 with the UCRT of Windows and later
+     mingw-w64, 1 with newlib; clang-cl and Cygwin define __x86_64__ and not
+     __WIN32__). Patch 6 of 3rd/README.md. */
+  return (*flagp & _MM_ROUND_MASK)>>13; /* GAOL */
 #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
   fegetexceptflag (flagp, FE_ALL_EXCEPT);
   mode = get_arm_rounding_mode();
