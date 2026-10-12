@@ -352,7 +352,7 @@ def interval(a):
         return "E"
     if a == W:
         return "W"
-    return "I(%s, %s)" % (double(a[0]), double(a[1]))
+    return "i(%s, %s)" % (double(a[0]), double(a[1]))
 
 
 def main():
@@ -367,18 +367,22 @@ def main():
     print("#define GAOL_TESTS_ATAN2_REL_VALUES_H")
     print("namespace atan2_rel_values")
     print("{")
-    print("  const double inf = gaol_tests::inf;")
-    print("  // An interval of the table: E the empty set, W the whole line")
-    print("  struct I { double l, u; bool empty; I(double a, double b) : l(a), u(b), empty(false) {} "
-          "I(bool e) : l(0.0), u(0.0), empty(e) {} };")
-    print("  const I E(true), W(-inf, inf);")
+    print("  // Constant expressions, which the compiler writes as data rather than")
+    print("  // initializing the table at run time, at length: with this table and")
+    print("  // reverse_values.h initialized at run time, tests/reverse.cpp took GCC 12")
+    print("  // for 32-bit ARM beyond its 3 GB (Debian 12 armhf)")
+    print("  constexpr double inf = std::numeric_limits<double>::infinity();")
+    print("  // An interval of the table: i(l, u), E the empty set, W the whole line")
+    print("  struct I { double l, u; bool empty; };")
+    print("  constexpr I E = { 0.0, 0.0, true }, W = { -inf, inf, false };")
+    print("  constexpr I i(double l, double u) { return I{ l, u, false }; }")
     print("  // c, the angles, and the box y x x; the tightest enclosures of the hulls of the")
     print("  // y and of the x of its points (0, 0) left out whose angle is in c,")
     print("  // atan2Rev1(x, c, y) and atan2Rev2(y, c, x), and the bounds of their accurate")
     print("  // results, nextOut(tightest(nextOut(c), nextOut(y), nextOut(x))) (12.10.1);")
     print("  // from, structured or random")
     print("  struct Case { I c, y, x, y_tightest, y_accurate, x_tightest, x_accurate; const char* from; };")
-    print("  const Case cases[] = {")
+    print("  constexpr Case cases[] = {")
     n, nonempty, empty = 0, 0, 0
     for c, y, x, source in cases():
         ty, tx = tightest(c, y, x)
