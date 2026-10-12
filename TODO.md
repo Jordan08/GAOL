@@ -435,6 +435,34 @@ Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
   type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
   qui dit [−∞, +∞] pour `gaol::pow`.
 
+Décidé le 12 octobre, pour tout le point B :
+
+- **Le moins de `if` possible** dans `pow` et `pown`.
+- **Le `pow` de CORE-MATH** (`cr_pow`) partout où il n'est pas encore pris :
+  en binary64, l'amont n'a ni pown, ni rootn, ni compoundn (commit `dc0d7e0`,
+  12 octobre).
+- **Une seule vérification du sens d'arrondi par appel** de `pow` et de
+  `pown`, sous chacune de leurs formes. Pour `pow`, elle vient de l'extension
+  des coins du 2, qui retire exp(y log x) : les corps de `log()`, `exp()` et
+  `*` sans vérification ne sont pas écrits. Un compteur des vérifications,
+  dans les tests, le montre en local ; il est retiré du code poussé.
+- **La norme** : `gaol_ieee1788::pow` et `gaol_ieee1788::pown` suivent
+  IEEE 1788-2015. `gaol::pow` est `gaol_ieee1788::pow`, sauf pour un exposant
+  entier, où il est `gaol_ieee1788::pown` : un type entier, un double entier
+  ou un intervalle dégénéré `[n]`, au-delà des `int` compris (74).
+- **Plus rapide que GAOL 4.2.3** pour chaque forme de puissance, mesuré comme
+  dans `doc/compare/performance.md` (clang-18, sans préservation de
+  l'arrondi), où `pow(x, 3)` prend 21,4 ns contre 13,8. Où le plus serré et
+  la vitesse s'opposent (72, 73), à décider sur ces mesures.
+- **Toutes les configurations de la CI.**
+- **ITF1788 et tang2021 relancés** (`doc/compare/itf1788/run.sh`,
+  `doc/compare/tang2021/run.sh`), et leurs pages mises à jour : 68 cas de
+  `pow` et 15 de `pown` d'ITF1788 n'y sont pas les plus serrés.
+- **Trois pull requests**, dans cet ordre : une vérification par appel (1, et
+  le 2 hors des coins de `pow`, `nth_root(I, INT_MIN)` compris) ; les coins
+  de `pow` (2) ; `pown` (8, 72, 73, 74). Les textes du 51 vont avec le code
+  qu'ils décrivent.
+
 ## Même fichier de test ou de documentation
 
 ### F. La lecture des nombres et `operator>>` (11, 15, 18, 46, 58, 59, 60, 61)
