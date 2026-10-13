@@ -117,6 +117,9 @@ namespace
           negative.left() == -(two53 + 2) && negative.right() == 1.0, [&] { return hex(negative); });
     check("isMember(2^53 + 1, x)", isMember(n, around) && !isMember(n, at) && isMember(3, numsToInterval(1.0, 4.0)));
     const interval two(2.0), x = numsToInterval(-4.0, -1.0), y = numsToInterval(0.25, 0.5);
+    const auto bounds_are = [](const interval& z, double l, double r) {
+      return !z.is_empty() && z.left() == l && z.right() == r;
+    };
     const interval p = pown(two, 3000000000u);
     check("pown([2], 3000000000u) = [DBL_MAX, +oo]", p.left() == dmax && p.right() == oo, [&] { return hex(p); });
     check("pown(x, 3L) and gaol::pow(x, 3L) = [-64, -1]",
@@ -129,10 +132,37 @@ namespace
           [&] { return hex(pown(x, -2L)); });
     check("gaol::pow([2], 3000000000ul) = gaol::pow([2], 3000000000u)",
           gaol::pow(two, 3000000000ul).set_eq(gaol::pow(two, 3000000000u)), [&] { return hex(gaol::pow(two, 3000000000ul)); });
-    check("pown(x, 5e9) and gaol::pow(x, 5e9), beyond the unsigned ints: [-oo, +oo], empty for an empty x",
-          pown(x, 5000000000LL).set_eq(interval::universe()) && gaol::pow(x, -5000000000LL).set_eq(interval::universe())
-          && gaol::pow(interval::emptyset(), 5000000000LL).is_empty(),
-          [&] { return hex(gaol::pow(x, 5000000000LL)); });
+    // Beyond the unsigned ints, pown from CORE-MATH's pow at the corners
+    // (GAOL v5, point 74 of TODO.md: [-oo, +oo]); beyond the long longs, as
+    // for +-(2^63 - 1) or +-(2^63 - 2), of the parity of n, all the powers of
+    // these bases being beyond the doubles there
+    const interval below_one = numsToInterval(-0.5, -0.25), near_one(-0x1.0000000000001p+0);
+    check("pown(x, 5e9) and gaol::pow(x, 5e9), beyond the unsigned ints: pown, empty for an empty x",
+          bounds_are(pown(x, 5000000000LL), 1.0, oo) && bounds_are(gaol::pow(x, -5000000000LL), 0.0, 1.0)
+          && bounds_are(pown(x, 5000000001LL), -oo, -1.0) && bounds_are(pown(below_one, 5000000001LL), -0x1p-1074, -0.0)
+          && gaol::pow(interval::emptyset(), 5000000000LL).is_empty()
+          && pown(numsToInterval(0.0, 0.0), -5000000000LL).is_empty(),
+          [&] { return hex(gaol::pow(x, 5000000000LL)) + " " + hex(gaol::pow(x, -5000000000LL)); });
+    // An n of more than 53 bits that is no double: x^h x^l, n = h + l, h a
+    // double and |l| < 2^11, within three doubles of the tightest bounds
+    // (mpmath, 600 bits), which the bounds have to enclose
+    const auto within_three = [](const interval& z, double l, double r) {
+      return !z.is_empty() && z.left() <= l && z.right() >= r && z.left() >= std::nextafter(std::nextafter(
+             std::nextafter(l, -oo), -oo), -oo) && z.right() <= std::nextafter(std::nextafter(std::nextafter(r, oo), oo), oo);
+    };
+    const interval just_above_one(0x1.0000000000001p+0), just_below_one(0x1.fffffffffffffp-1);
+    check("pown(x, n) beyond 2^53, n no double: within three doubles of the tightest bounds",
+          within_three(pown(just_above_one, 9007199254740993LL), 0x1.d8e64b8d4ddadp+2, 0x1.d8e64b8d4ddaep+2)
+          && within_three(pown(just_above_one, -9007199254740995LL), 0x1.152aaa3bf81c9p-3, 0x1.152aaa3bf81cap-3)
+          && within_three(pown(just_below_one, 4611686018427387905LL), 0x1.44109edb2088ep-739, 0x1.44109edb2088fp-739)
+          && within_three(pown(-just_above_one, 9007199254740993LL), -0x1.d8e64b8d4ddaep+2, -0x1.d8e64b8d4ddadp+2),
+          [&] { return hex(pown(just_above_one, 9007199254740993LL)) + " " + hex(pown(just_below_one, 4611686018427387905LL)); });
+    check("pown(x, n) beyond the long longs: x^(2^64 - 1) as x^(2^63 - 1), x^(2^64 - 2) as x^(2^63 - 2)",
+          bounds_are(pown(near_one, 18446744073709551615ULL), -oo, -dmax)
+          && bounds_are(pown(near_one, 18446744073709551614ULL), dmax, oo)
+          && bounds_are(pown(numsToInterval(-1.0, -1.0), 18446744073709551615ULL), -1.0, -1.0)
+          && bounds_are(pown(below_one, 18446744073709551614ULL), 0.0, 0x1p-1074),
+          [&] { return hex(pown(near_one, 18446744073709551615ULL)); });
     check("pow(y, 2LL) is pow(y, [2])", pow(y, 2LL).set_eq(pow(y, interval(2.0))) && pow(x, 2LL).is_empty(),
           [&] { return hex(pow(y, 2LL)); });
 
@@ -146,7 +176,6 @@ namespace
     // around 8^(-1/q) and 2^(-1/q) for q = 5 10^9 (mpmath, 400 bits)
     const interval c8(2.0, 8.0), m8(-8.0, 8.0);
     const double r8 = 0x1.00000001c9463p+0, r2 = 0x1.00000000986cbp+0;
-    const auto bounds_are = [](const interval& z, double l, double r) { return z.left() == l && z.right() == r; };
     check("rootn(x, 3L), rootn(x, -3LL), gaol::nth_root(x, 3L) and gaol::nth_root(x, 3000000000ul) as for an int",
           rootn(m8, 3L).set_eq(rootn(m8, 3)) && rootn(c8, -3LL).set_eq(rootn(c8, -3))
           && gaol::nth_root(m8, 3L).set_eq(gaol::nth_root(m8, 3))
@@ -185,10 +214,38 @@ namespace
           && bounds_are(rev, r2, r8) && bounds_are(rev_even, -r8, r8) && bounds_are(rev_positive, r2, r8),
           [&] { return hex(rev) + " " + hex(rev_even) + " " + hex(rev_positive); });
     // pown(e, n) of the expressions for an unsigned beyond the ints, which
-    // made [1, 2]^3000000000u [0, 1], converting n to a negative int
+    // made [1, 2]^3000000000u [0, 1], converting n to a negative int: pown,
+    // as for an interval (GAOL v5: [-oo, +oo])
     const interval pown_u = value_of(pown(gaol::expression(numsToInterval(1.0, 2.0)), 3000000000u));
-    check("pown(e, 3000000000u) of an expression: [-oo, +oo]", pown_u.set_eq(interval::universe()),
+    check("pown(e, 3000000000u) of an expression: pown", bounds_are(pown_u, 1.0, oo),
           [&] { return hex(pown_u); });
+  }
+
+  /*
+    x^n for an n of more than 64 bits, an __int128 where it is an integer type
+    (the GNU modes of GCC and Clang): as x^+-(2^63 - 1) or x^+-(2^63 - 2), of
+    the sign and the parity of n (GAOL v5), the powers of every base but 0,
+    +-1 and +-oo being beyond the doubles there
+  */
+  template <class T>
+  void exponents_beyond_64_bits()
+  {
+#if __cplusplus >= 201703L
+    if constexpr (gaol_detail::is_integer<T>::value) {
+      const T odd_n = (static_cast<T>(1) << 100) + 1, even_n = odd_n + 1;
+      const double dmax = std::numeric_limits<double>::max();
+      const struct { const char *name; interval r; double lo, hi; } cases[] = {
+        { "pown([-2], 2^100 + 1)", pown(interval(-2.0), odd_n), -oo, -dmax },
+        { "pown([-2], -(2^100 + 1))", pown(interval(-2.0), -odd_n), -0x1p-1074, -0.0 },
+        { "pown([-0.5], -(2^100 + 2))", pown(interval(-0.5), -even_n), dmax, oo },
+        { "pown([-1, -0.5], 2^100 + 2)", pown(numsToInterval(-1.0, -0.5), even_n), 0.0, 1.0 },
+      };
+      for (const auto& c : cases) {
+        check(std::string(c.name) + " beyond 64 bits", !c.r.is_empty() && c.r.left() == c.lo && c.r.right() == c.hi,
+              [&] { return hex(c.r); });
+      }
+    }
+#endif
   }
 
   void pow_of_the_standard()
@@ -305,8 +362,8 @@ namespace
       {P(0), P(-1), none},
       {I(-1, -0.0), P(0.5), P(0)},
       {I(-2, 0), P(2), P(0), I(0, 4)},
-      {P(0), P(1e10), P(0), all},
-      {P(0), P(-1e10), none, all},
+      {P(0), P(1e10), P(0)},
+      {P(0), P(-1e10), none},
       // a degenerate integer exponent within the ints: pown, on x >= 0 for the standard's pow, on the whole of x for gaol::pow
       {I(2, 3), P(5), I(32, 243)},
       {I(-2, 3), P(3), I(0, 27), I(-8, 27)},
@@ -323,24 +380,30 @@ namespace
       {I(1e-300, 1e300), P(3), I(0, oo)},
       {I(-1, 2), P(2147483647.0), I(0, oo), I(-1, oo)},
       {I(0.5, 1), P(-2147483648.0), I(1, oo)},
-      {I(-2, 3), P(100), I(0, 0x1.69194f299cddcp+158), I(0, 0x1.69194f299cddbp+158)},
-      // an integer exponent beyond the ints: the corners at the bounds of x for the standard's pow, [-oo, +oo] for gaol::pow
-      {I(2, 3), P(1e10), I(0x1.fffffffffffffp+1023, oo), all},
-      {I(0.5, 0.9), P(1e10), I(0, 0x1p-1074), all},
-      {I(2, 3), P(-1e10), I(0, 0x1p-1074), all},
-      {P(1), P(-1e12), P(1), all},
-      {I(-1, 1), P(2147483649.0), I(0, 1), all},
+      {I(-2, 3), P(100), I(0, 0x1.69194f299cddbp+158)},
+      // pown, one double below the tightest lower bound 0x1.ffffffffffffcp-1: (1 + 2^-52)^-2 is within twice the
+      // error bound of pown of it (decided on 13 October 2026, TODO.md B), and the corners would give it
+      {I(0, 0x1.0000000000001p+0), P(-2), I(0x1.ffffffffffffbp-1, oo)},
+      // an integer exponent beyond the ints: the corners at the bounds of x for the standard's pow, pown on the whole
+      // of x for gaol::pow, the same on x >= 0 (GAOL v5: [-oo, +oo])
+      {I(2, 3), P(1e10), I(0x1.fffffffffffffp+1023, oo)},
+      {I(0.5, 0.9), P(1e10), I(0, 0x1p-1074)},
+      {I(2, 3), P(-1e10), I(0, 0x1p-1074)},
+      {P(1), P(-1e12), P(1)},
+      {I(-1, 1), P(2147483649.0), I(0, 1), I(-1, 1)},
       {I(-1, 0.5), P(-2147483649.0), I(0x1.fffffffffffffp+1023, oo), all},
-      {I(0, 2), P(1e10), I(0, oo), all},
-      {I(0, 0.5), P(-1e10), I(0x1.fffffffffffffp+1023, oo), all},
-      {I(2, oo), P(1e10), I(0x1.fffffffffffffp+1023, oo), all},
-      {I(0, oo), P(1e12), I(0, oo), all},
-      {I(1, 2), P(2147483648.0), I(1, oo), all},
-      {I(0, 0x1.00000004p+0), P(2147483649.0), I(0, 0x1.d8e64b8d4ddaep+2), all},
-      {I(0, 0x1.00000004p+0), P(-2147483649.0), I(0x1.152aaa3bf81cbp-3, oo), all},
-      {I(-0.0, 0x1.00000004p+0), P(-2147483649.0), I(0x1.152aaa3bf81cbp-3, oo), all},
-      {I(0x1.fffffff8p-1, oo), P(2147483649.0), I(0x1.152aaa334ec76p-3, oo), all},
-      {I(0x1.fffffff8p-1, oo), P(-2147483649.0), I(0, 0x1.d8e64b9c150d4p+2), all},
+      {I(0, 2), P(1e10), I(0, oo)},
+      {I(0, 0.5), P(-1e10), I(0x1.fffffffffffffp+1023, oo)},
+      {I(2, oo), P(1e10), I(0x1.fffffffffffffp+1023, oo)},
+      {I(0, oo), P(1e12), I(0, oo)},
+      {I(1, 2), P(2147483648.0), I(1, oo)},
+      {I(0, 0x1.00000004p+0), P(2147483649.0), I(0, 0x1.d8e64b8d4ddaep+2)},
+      {I(0, 0x1.00000004p+0), P(-2147483649.0), I(0x1.152aaa3bf81cbp-3, oo)},
+      {I(-0.0, 0x1.00000004p+0), P(-2147483649.0), I(0x1.152aaa3bf81cbp-3, oo)},
+      {I(0x1.fffffff8p-1, oo), P(2147483649.0), I(0x1.152aaa334ec76p-3, oo)},
+      {I(0x1.fffffff8p-1, oo), P(-2147483649.0), I(0, 0x1.d8e64b9c150d4p+2)},
+      {I(-2, -1), P(1e10), none, I(1, oo)},
+      {I(-0x1.00000004p+0, -1), P(2147483649.0), none, I(-0x1.d8e64b8d4ddaep+2, -1)},
       // CORE-MATH's pow at the corners of the box, from a base from 0, a base above 1, below 1, and around 1
       {I(2, 3), P(0.5), I(0x1.6a09e667f3bccp+0, 0x1.bb67ae8584cabp+0)},
       // where the power at a corner is a double, the lower bound is that double
@@ -997,6 +1060,9 @@ int main()
   gaol::init();
   pow_of_the_standard();
   integers();
+#if defined(__SIZEOF_INT128__)
+  exponents_beyond_64_bits<__int128>();
+#endif
   pow_on_boxes();
   gaol_functions();
   names_of_the_standard();

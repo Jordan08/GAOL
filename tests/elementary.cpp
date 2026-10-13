@@ -748,19 +748,33 @@ namespace
 
     // An integer exponent beyond the ints, for which pow(const interval&, int)
     // cannot be called, still takes the integer power rather than the real
-    // one, and gives [-oo,+oo] whatever the base
-    const Empty universe[] = {
-      { "pow([-2,-1],[1e10])", [] { return pow(interval(-2., -1.), interval(1e10)); } },
-      { "pow([-1,-0.5],[2^32+1])", [] { return pow(interval(-1., -0.5), interval(4294967297.0)); } },
-      { "pow([2,3],[2^31]), with a positive base", [] { return pow(interval(2., 3.), interval(2147483648.0)); } },
-      { "pow([0.25,0.5],[-2^31-1]), with a positive base", [] { return pow(interval(0.25, 0.5), interval(-2147483649.0)); } },
-      { "pow([-2,3],1e10)", [] { return pow(interval(-2., 3.), 1e10); } },
-      { "pow([2,3],2^31)", [] { return pow(interval(2., 3.), 2147483648.0); } },
+    // one: pown, from CORE-MATH's pow at the corners of the base, the sign
+    // from the parity of the exponent (GAOL v5, point 74 of TODO.md: [-oo,+oo]
+    // whatever the base). The bounds of the powers near 1 were computed with
+    // mpmath at 600 bits
+    const Equal beyond[] = {
+      { "pow([-2,-1],[1e10])", [] { return pow(interval(-2., -1.), interval(1e10)); }, 1., inf },
+      { "pow([-1,-0.5],[2^32+1])", [] { return pow(interval(-1., -0.5), interval(4294967297.0)); }, -1., -0. },
+      { "pow([2,3],[2^31]), with a positive base", [] { return pow(interval(2., 3.), interval(2147483648.0)); }, std::numeric_limits<double>::max(), inf },
+      { "pow([0.25,0.5],[-2^31-1]), with a positive base", [] { return pow(interval(0.25, 0.5), interval(-2147483649.0)); }, std::numeric_limits<double>::max(), inf },
+      { "pow([-2,3],1e10)", [] { return pow(interval(-2., 3.), 1e10); }, 0., inf },
+      { "pow([2,3],2^31)", [] { return pow(interval(2., 3.), 2147483648.0); }, std::numeric_limits<double>::max(), inf },
+      { "pow([1 + 2^-30],[2^33])", [] { return pow(interval(0x1.00000004p+0), interval(8589934592.0)); },
+        0x1.749ea7bd26dc6p+11, 0x1.749ea7bd26dc7p+11 },
+      { "pow([-1 - 2^-30],[2^33 + 1])", [] { return pow(interval(-0x1.00000004p+0), interval(8589934593.0)); },
+        -0x1.749ea7c2f9571p+11, -0x1.749ea7c2f9570p+11 },
+      { "pow([-1 + 2^-40],-2^41 - 1)", [] { return pow(interval(-0x1.fffffffffep-1), -2199023255553.0); },
+        -0x1.d8e64b8d518cbp+2, -0x1.d8e64b8d518cap+2 },
+      { "pow([0,2],[-1e10]), without x = 0", [] { return pow(interval(0., 2.), interval(-1e10)); }, 0., inf },
     };
-    for (const Empty& u : universe) {
-      const interval r = evaluate(u.name, u.f, [] { return std::string(); });
-      check(std::string(u.name) + ": [-oo,+oo]", r.left() == -inf && r.right() == inf, [&] { return hex(r); });
+    for (const Equal& e : beyond) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": pown, the tightest", !r.is_empty() && r.left() == e.lo && r.right() == e.hi,
+            [&] { return hex(r); });
     }
+    const interval zero_beyond = pow(interval(0.), interval(-1e10));
+    check("pow([0],[-1e10]): empty, 0^n having no value for n < 0", zero_beyond.is_empty(),
+          [&] { return hex(zero_beyond); });
     const interval beyond_empty = pow(interval::emptyset(), interval(1e10));
     check("pow(empty,[1e10]): empty", beyond_empty.is_empty(), [&] { return hex(beyond_empty); });
 
