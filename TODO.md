@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `100b9d9` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `58ed21f` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -303,16 +303,35 @@ de `cr_pow` relevé par D.24 (#83) est corrigé en amont par `c01f08c5` : le
 contournement de GAOL pourra tomber au prochain import de CORE-MATH. Les textes
 pour `ChangeLog` et `doc/differences.md` sont dans la description de #111.
 
+Fait le 13 octobre : le point F (anciens 11, 15, 18, 46, 58, 59, 60 et 61),
+par #114, et `process.md` mis à jour par #115 (`GAOL_V8` et `GAOL_V9` se
+valent ; le mainteneur ouvre les pull requests quand le jeton de `gh` ne le
+peut pas). Les noms de fonctions sont lus quelle que soit la locale, pliés en
+ASCII plutôt que par `std::tolower()`, qui faisait refuser `SIN(...)` sous une
+locale turque de la glibc. Les tests de `numbers` sous les modes qui mettent
+les sous-normaux à zéro tournent aussi sur ARM (FZ et FIZ avec GCC et Clang,
+FZ posé par `_controlfp_s()` avec Visual C++ pour ARM64), et la vérification
+unique du 11, faite par #116 (jetable, fermée), les montre exécutés sous
+Rosetta, avec l'UCRT en Release, sur arm64, sur armhf et avec Visual C++ pour
+ARM64 ; FIZ n'est honoré par aucun runner. Aussi : `\option{-Ofast}` dans le
+manuel, `std::fflush(stdout)` avant le dernier test de `numbers`, son message
+de temps sous la locale C, les commentaires du lexeur, et les textes
+d'`operator>>` (`doc/tests.md`, `examples/examples.md`, le manuel, le
+Doxygen) ; dans `examples/examples.md`, le format bounds qui se relit sous
+toute locale et les points écrits entre crochets. Les anciens 15 et 18
+n'avaient rien à faire (décidé le 3 octobre) ; le 46 reste reporté (#64).
+Décidé pendant le travail : le test turc reste tel quel, et ne tourne dans
+aucun job de la CI, faute de locale turque ; le `.h` du parser régénéré perd
+les deux lignes d'en-tête ajoutées à la main (un `%code requires` exigerait
+Bison 2.4, alors que le `.ypp` reste lisible par Bison 2.3) ; `-Wundef` devient
+le point Z. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
+description de #114.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-f-number-reading` : le point F, #114 (CI verte). La vérification
-  unique du 11 est faite par #116, jetable, à fermer sans fusion, sa branche
-  `tmp-f-ci-output` étant ensuite supprimée.
-- `process-two-trees` : `process.md`, `GAOL_V8` et `GAOL_V9` se valent, les
-  outils vus le 12 octobre, les pull requests ouvertes par le mainteneur,
-  #115.
+- Aucune.
 
 ## Même changement, ou même code
 
@@ -489,83 +508,6 @@ i7-1185G7, GAOL 4.2.3 construit comme dans `doc/compare/code`) :
 
 ## Même fichier de test ou de documentation
 
-### F. La lecture des nombres et `operator>>` (11, 15, 18, 46, 58, 59, 60, 61)
-
-Tous touchent `tests/numbers.cpp`, le lexeur, le parser ou `operator>>` ; la
-syntaxe d'une lecture par mot (46) est reportée (#64). Le parser compare les
-noms de fonctions avec `std::tolower()` dans `gaol_lookup_function()`
-(`gaol/gaol_interval_parser.ypp`) : cette conversion dépend de la locale C et
-peut refuser des noms en majuscules comme `SIN` dans une locale où `I` ne se
-convertit pas en `i` ASCII. Employer un pliage ASCII indépendant de la locale,
-conforme à la casse ignorée par le lexeur.
-
-- **11.** **Suites du lecteur sous denormals-are-zero** (#40). Le lecteur est
-  juste sous FTZ et DAZ (comparaisons sur les bits), et le point Q (#100) a fait
-  le reste, et le point E (#105) `<a, b>` du parser. Restent : vérifier une
-  fois, avec `ctest -V -R numbers`, si les tests DAZ de `numbers` s'exécutent ou
-  se sautent sur macOS x86_64 sous Rosetta et avec l'UCRT en Release, et, pour
-  FZ posé par `_controlfp_s()` (#100), dans les jobs Visual C++ arm64 ; dans le
-  manuel, la phrase sur ces modes garde sa marque `\newinvfive` (décidé le 3
-  octobre). Décidé aussi (#40) : faire tourner les tests DAZ de `numbers` sur
-  AArch64 et ARM32 (FPCR, FPSCR), avec l'outil de `tests/gaol_tests.h` venu de
-  #62.
-- **58.** **Deux restes du lecteur sous DAZ** (suite du point 11, #40) : le
-  manuel (`gaol.tex`, l. 3579) écrit `\code{-Ofast}` au lieu de
-  `\option{-Ofast}` ; `tests/numbers.cpp` teste `#if GAOL_TESTS_HAVE_MXCSR`
-  (l. 176, 238…), macro indéfinie hors x86, qui avertit sous `-Wundef` : écrire
-  `#ifdef`.
-- **15.** **Suites de la lecture des lignes vides par `operator>>`** (#46), qui
-  lit par `std::getline(is >> std::ws, buffer)` : une ligne vide est sautée, et
-  `while (in >> x)` finit sans exception. Sous `exceptions(eofbit)`, un
-  intervalle lu en fin d'entrée lève avec `eofbit` seul (un double reçoit
-  `eofbit | failbit`), et une dernière ligne sans fin de ligne est perdue ;
-  `std::ws` saute `\v` et `\f`, que le lecteur ne prend pas pour des blancs.
-  Décidé le 3 octobre : on garde les deux comportements (le premier est
-  documenté, et le lecteur ne change pas).
-- **59.** **Les textes d'`operator>>`** (suite du point 15, #46) :
-  `doc/differences.md` (l. 402-403) et `examples/examples.md` (l. 62, 459 et
-  634) disent encore qu'une ligne vide fait lever `input_format_error` ; le
-  commentaire d'`operator>>` (`gaol/gaol_interval.cpp`, l. 668, « std::ws is no
-  extraction: it constructs no sentry ») et `doc/tests.md` (l. 259) donnent pour
-  général ce qui est vrai du `std::ws` de libstdc++ 9 et 10 : écrire « le
-  `std::ws` de libstdc++ » ; `doc/tests.md` (l. 250, « with or without
-  `std::noskipws` ») se lit comme si un nombre sautait les blancs sous
-  `noskipws` ; l'exemple du manuel (`gaol.tex`, l. 3501) lit et écrit `x` dans
-  la même expression : en faire deux instructions, et couper en deux la phrase
-  voisine (ligne vide « avec ou sans `std::noskipws` », intervalle sur plusieurs
-  lignes) ; le Doxygen d'`operator>>` (`gaol/gaol_interval.h`) ne dit pas, comme
-  le manuel, qu'avec les exceptions désactivées une ligne refusée écrit un
-  message sur `cerr` et arrête le programme.
-- **60.** **`stream_without_buffer()` en dernier** (#46) : `tests/numbers.cpp`
-  l'appelle en dernier (l. 1891) ; en cas de régression, le programme meurt par
-  SIGSEGV sans afficher les échecs précédents, stdout étant tamponné :
-  `std::fflush(stdout)` avant l'appel.
-- **18.** **Suites de la lecture des longs nombres** (#42). Le texte d'un nombre
-  est analysé une fois : 20 000 caractères se lisent en 0,02 s sous toutes les
-  locales, et l'analyse des chiffres reste quadratique (décision du
-  30 septembre). Décidé le 3 octobre : cette décision vaut aussi pour la forme
-  incertaine, dont les sommes passent par `gaol_decimal_add_sub()`, qui insère
-  en tête d'une `std::string` (100 000 chiffres : 1,1 s, contre 0,46 s) ; on n'y
-  touche pas.
-- **61.** **Les commentaires de la lecture des longs nombres** (suite du
-  point 18, #42) : le commentaire du membre `beyond` de `gaol_number`
-  (`gaol/gaol_interval_lexer.lpp`, l. 216, une ligne de 119 colonnes) laisse
-  croire qu'il est positionné dès que le nombre est sous le plus petit double
-  positif ou au-dessus du plus grand, alors qu'il ne l'est que loin au-delà
-  (10^311 et plus, ou sous 10^-330) : le corriger, au-dessus du membre ; le
-  commentaire de `gaol_enclose_number()` (l. 368-372) dit qu'une lecture sous
-  une locale à virgule prend le temps de la locale C : écrire « à peu près »
-  (rapport mesuré de 1,0 à 1,2) ; dans `tests/numbers.cpp`, le message d'échec
-  du test de temps est construit par `std::to_string` sous la locale à virgule
-  (« 2,112549 s ») : le construire sous la locale C.
-- **46.** **`operator>>` ne relit pas `os << x << ' ' << y`** (suite du
-  point 15) : il lit un intervalle par ligne, et la fin d'un intervalle dans un
-  flux est ambiguë, un intervalle contenant des espaces et la grammaire
-  admettant des littéraux imbriqués et des expressions (`[[1, 2], 3]`, `1 -2`).
-  Il faut d'abord décider de la syntaxe acceptée : un intervalle par ligne (ce
-  qui est documenté), les seuls littéraux lus jusqu'au crochet fermant, ou une
-  fonction à part. Reporté le 3 octobre : issue #64.
-
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
 
 `README.md`, `doc/using.md` et « Common errors » du manuel : les écrire
@@ -674,8 +616,9 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   commits de `configure-clean` du 4 octobre) ;
   `examples/examples.md` (marquer **Fixed** les n° 2, 3, 4, 5, 7, 8, 10, 12,
   15, 16, 19, 20, 21 et 22 de la section 5 et de l'annexe B, le n° 10 comme
-  corrigé par la suppression des constructeurs à partir de chaînes (#30), et la
-  ligne vide du n° 14 ; reprendre ce qu'il dit des points corrigés) ; une seule
+  corrigé par la suppression des constructeurs à partir de chaînes (#30) ;
+  reprendre ce qu'il dit des points corrigés, la ligne vide du n° 14 l'étant
+  par #114) ; une seule
   régénération de `manual/v5/gaol.pdf`, dont la dernière date du 28 septembre,
   après avoir corrigé dans `gaol.tex` les entrées d'index en conflit de
   « canonical interval » et l'`Overfull \hbox` des l. 511-515, et en vérifiant
@@ -724,8 +667,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108, #109, #110, #111, #112 et #113 après leur
-  fusion).
+  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114 et #115
+  après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -742,9 +685,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 8 : B ; 11 : F ; 15 : F ; 18 : F ; 26 : W ; 28 : X ; 32 : Y ;
-33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ; 46 : F ; 51 : B ; 58 : F ; 59 : F ;
-60 : F ; 61 : F ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z.
+1 : B ; 2 : B ; 8 : B ; 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
+37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -763,8 +705,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    mesures et les tests avec les changements de bornes concernés. Faits par #89
    et #92.
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
-   Faire F après la régénération du parser. G est fait par #91, N par #94, O
-   par #95, A par #111 et #113.
+   G est fait par #91, N par #94, O par #95, A par #111 et #113, F par #114.
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
