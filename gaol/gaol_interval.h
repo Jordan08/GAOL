@@ -311,6 +311,11 @@ namespace gaol_detail {
 
 namespace gaol_core {
 
+#if !GAOL_USING_SSE2_INSTRUCTIONS
+  class interval;
+  // rnd_keep() of an FPU interval, a friend of it, defined after it (GAOL v5)
+  GAOL_INLINE interval rnd_keep(const interval& x);
+#endif
 
   class GAOL_PUBLIC interval {
   public:
@@ -799,6 +804,8 @@ namespace gaol_core {
 #else
     double lb_; // The left bound is stored negated
     double rb_;
+    // Copies the two stored bounds as they are (GAOL v5)
+    friend interval rnd_keep(const interval& x);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
     double left_internal() const;
     double right_internal() const;
@@ -822,17 +829,17 @@ namespace gaol_core {
   };
 
   /*
-    rnd_keep() of an SSE2 interval, for GAOL_RND_KEEP() with
-    GAOL_PRESERVE_ROUNDING (GAOL v5): its register through two volatile
-    doubles, as it is, where the template of gaol/gaol_fpu.h copies an
-    interval to volatile memory a byte at a time, which made nth_root(x, -2),
-    asinh(x) and the cube root 15 to 20 ns slower when they kept an interval;
-    and of an __m128d, which the SSE2 operations keep (sqr(), inverse()). The
-    FPU intervals keep the template: built again from their bounds, they went
-    through the constructor, which compares them, and the products with a
-    zero and an infinite bound of tests/rounding_direction.cpp, whose operands
-    gaol::rnd_keep() keeps, raised the invalid-operation flag on macOS arm64
-    with Apple clang.
+    rnd_keep() of an interval, for GAOL_RND_KEEP() with
+    GAOL_PRESERVE_ROUNDING (GAOL v5): its two stored bounds through volatile
+    doubles, as they are, the NaN bounds of the empty set included, where the
+    template of gaol/gaol_fpu.h copies an interval to volatile memory a byte
+    at a time, which made nth_root(x, -2), asinh(x) and the cube root 15 to
+    20 ns slower when they kept an interval; and of an __m128d, which the SSE2
+    operations keep (sqr(), inverse()). The FPU bounds are not given to the
+    constructor, which compares them: built again so, the operands that
+    gaol::rnd_keep() keeps in the products with a zero and an infinite bound
+    of tests/rounding_direction.cpp made them raise the invalid-operation flag
+    on macOS arm64 with Apple clang.
   */
 #if GAOL_USING_SSE2_INSTRUCTIONS
   GAOL_INLINE __m128d rnd_keep(const __m128d& x)
@@ -845,6 +852,15 @@ namespace gaol_core {
   GAOL_INLINE interval rnd_keep(const interval& x)
   {
     return interval(rnd_keep(x.get_xmminterval())); // the lower bound stored negated
+  }
+#else
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    interval r;
+    volatile double lb = x.lb_, rb = x.rb_;
+    r.lb_ = lb;
+    r.rb_ = rb;
+    return r;
   }
 #endif
 
