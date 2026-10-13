@@ -4267,21 +4267,55 @@ interval nth_root(const interval& I, int q)
   }
 
 
+  /*
+    The bodies of acosh(), asinh() and atanh() after their check, for these
+    functions and for acosh_rel(), asinh_rel() and atanh_rel(), which check
+    the direction before them (GAOL v5: the reverse functions called acosh(),
+    asinh() and atanh(), which checked it a second time)
+  */
+  static interval acosh_upward(const interval& I)
+  {
+    const interval J = I &  interval::one_plus_infinity();
+
+    if (J.is_empty()) {
+      return J;
+    }
+    const double l = acosh_lo(J.left()), r = acosh_hi(J.right());
+    return interval(l,r);
+  }
+
+  static interval asinh_upward(const interval& I)
+  {
+    if (I.is_empty()) {
+      return I;
+    }
+    const double l = asinh_lo(I.left()), r = asinh_hi(I.right());
+    return interval(l,r);
+  }
+
+  static interval atanh_upward(const interval& I)
+  {
+    const interval J = I & interval::minus_one_plus_one();
+    // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
+    // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
+    // no point of it, and gives the empty set. The value of CORE-MATH at 1 is
+    // +oo, and the lower bound the double below the value: [1] was [MAX,+oo]
+    // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
+    // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
+    if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
+      return interval::emptyset();
+    }
+    const double l = atanh_lo(J.left()), r = atanh_hi(J.right());
+    return interval(l,r);
+  }
+
   interval acosh(const interval& I)
   {
     // The check before the intersection, as in acos()
     GAOL_RND_ENTER();
-    interval J = I &  interval::one_plus_infinity();
-
-    if (J.is_empty()) {
-      GAOL_RND_LEAVE();
-      return J;
-    }
-
-    double l = acosh_lo(J.left()), r = acosh_hi(J.right());
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-  	GAOL_RND_LEAVE();
-  	return interval(l,r);
+    const interval res = rnd_keep_bounds(acosh_upward(I));
+    GAOL_RND_LEAVE();
+    return res;
   }
 
 
@@ -4293,9 +4327,9 @@ interval nth_root(const interval& I, int q)
     }
 
     GAOL_RND_ENTER();
-    const double l = asinh_lo(I.left()), r = asinh_hi(I.right());
+    const interval res = rnd_keep_bounds(asinh_upward(I));
     GAOL_RND_LEAVE();
-    return interval(l,r);
+    return res;
 
   }
 
@@ -4303,21 +4337,9 @@ interval nth_root(const interval& I, int q)
   {
     // The check before the intersection, as in acos()
     GAOL_RND_ENTER();
-	  interval J = I & interval::minus_one_plus_one();
-    // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
-    // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
-    // no point of it, and gives the empty set. The value of CORE-MATH at 1 is
-    // +oo, and the lower bound the double below the value: [1] was [MAX,+oo]
-    // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
-    // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
-    if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
-      GAOL_RND_LEAVE();
-      return interval::emptyset();
-    }
-    double l = atanh_lo(J.left()), r = atanh_hi(J.right());
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    const interval res = rnd_keep_bounds(atanh_upward(I));
     GAOL_RND_LEAVE();
-    return interval(l,r);
+    return res;
   }
 
   /*
@@ -4554,9 +4576,10 @@ interval nth_root(const interval& I, int q)
   /*
     acosh_rel(), asinh_rel() and atanh_rel() check the rounding direction
     before they compare the bounds of the inverse image with those of I, which
-    acosh(), asinh() and atanh() return with the modes that flush the
+    acosh(), asinh() and atanh() returned with the modes that flush the
     subnormals to zero restored, with GAOL_PRESERVE_ROUNDING (GAOL v5, see
-    gaol/gaol_fpu.h)
+    gaol/gaol_fpu.h). The inverse images are those of the bodies of these
+    functions, which do not check the direction again (GAOL v5)
   */
   static interval acosh_rel_upward(const interval &J, const interval &I)
   {
@@ -4564,7 +4587,7 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
 
-    interval tmp = acosh(J);
+    interval tmp = acosh_upward(J);
 
     if (I.certainly_positive()) {
       return I & tmp;
@@ -4587,7 +4610,7 @@ interval nth_root(const interval& I, int q)
   interval asinh_rel(const interval &J, const interval &I)
   {
     GAOL_RND_ENTER();
-    interval res = asinh(J) & I;
+    interval res = asinh_upward(J) & I;
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -4596,7 +4619,7 @@ interval nth_root(const interval& I, int q)
   interval atanh_rel(const interval &J, const interval &I)
   {
     GAOL_RND_ENTER();
-    interval res = atanh(J) & I;
+    interval res = atanh_upward(J) & I;
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
