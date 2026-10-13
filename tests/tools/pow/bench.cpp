@@ -10,8 +10,9 @@
  * change: the corners of a box with finite bounds (gaol::pow with a
  * non-integer exponent goes through two checks more than
  * gaol_ieee1788::pow), the integer powers, the integer exponents beyond the
- * ints, and exp(y log x), which the boxes with an infinite bound and the
- * bases from 0 with an exponent that is not above 0 take today.
+ * ints, and the boxes with an infinite bound and the bases from 0 with an
+ * exponent that is not above 0, which took exp(y log x) before B.2 and take
+ * the corners and their limits since.
  *
  *   bench [n]
  *
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
   add("gaol::pow(x, 3), x > 0 (pown alone)", pos, [&](const interval& x) { return gaol::pow(x, 3); });
   // An integer exponent beyond the ints
   add("gaol_ieee1788::pow(x, [1e10]), x > 0", pos, [&](const interval& x) { return gaol_ieee1788::pow(x, big); });
-  // exp(y log x), which B.2 replaces by the corners
+  // The boxes that took exp(y log x) before B.2, the corners and their limits since
   add("gaol_ieee1788::pow(x, [0.5,1.5]), x = [a, +oo]", unbounded,
       [&](const interval& x) { return gaol_ieee1788::pow(x, y); });
   add("gaol_ieee1788::pow(x, [-1.5,-0.5]), x = [0, b]", from0,

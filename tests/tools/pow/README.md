@@ -103,8 +103,10 @@ Each line of `diffpow.txt` is a box and its results in hexadecimal, the signs
 of the zeros included. `diffpow.py` exits with 1 when two outputs differ by
 more than the sign of zero bounds, or when a result depends on the rounding
 direction at the call; it prints the first 20 lines that differ (`--show`).
-B.1 must change no line; B.2 changes the lines of the boxes it makes tighter,
-which `compare` lists, and no other.
+B.1 changed no line; B.2 changed the lines of the 2 214 boxes it made
+tighter (an infinite bound, or a base from 0 with an exponent that is not
+above 0), which `compare` lists, and no other: every result it changed is
+inside the former one, and the tightest one against mpmath.
 
 **2. The table of `pow_on_boxes()`.** The expected bounds of the table, then
 those a build computes, both checked against mpmath:
@@ -124,9 +126,7 @@ and the tightest bounds where it is not them (`--quiet`: only those and the
 failures); `--max-distance` changes the limit of one double. `diff` lists the
 boxes whose bounds changed, each bound tighter or looser by so many doubles.
 `cpp --into` writes the table from the results, which `extract` followed by
-`cpp` gives back as it is written (but for `0x1p-2` in the box `{I(0.1, 2),
-I(-2, 0.5)}`, edited by hand for the exact corners of #63, which `cpp` writes
-`0.25`). For new boxes, add lines `X | Y` (or C++ rows to the table, then
+`cpp` gives back as it is written. For new boxes, add lines `X | Y` (or C++ rows to the table, then
 `extract`) and run `evalrows`, which fills in S and H; it also checks that
 `gaol_ieee1788::pow(X, p)` and `gaol::pow(X, p)` give S and H for a degenerate
 Y = [p], as the test does, and exits with 1 where they do not.
@@ -147,7 +147,7 @@ default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
 `core_math` and `other_functions` call `pow` too, and take a few seconds
 more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`.
-A run of the 39 mutants takes about 2 minutes and a half; the arguments
+A run of the 39 mutants takes about 4 minutes (4 jobs); the arguments
 after the options select the mutants whose name contains one of them.
 
 Each mutant is `KILLED` (with the number of failed checks of each name),
@@ -158,17 +158,19 @@ those of the sources, a box the tests lack, or finds none, and the mutant is
 equivalent but not listed as such), `NOT APPLIED` (the text it replaces is not
 in the sources once: the list is out of date) or `COMPILE ERROR`. A mutant
 listed as equivalent can be killed all the same by a test that sees more than
-the bounds: `std-empty-y-unchecked` compares the NaN bounds of an empty
-exponent, which raises FE_INVALID, and `rounding_direction` sees it.
+the bounds, or by a box of one build only: `gaol-infinite-guard-dropped`
+by the exponents [+oo] and [-oo] that `elementary` builds from an SSE2
+register.
 `WORK/mutants/NAME/` keeps the diff, the build log and the outputs of the
 tests and of `diffpow`. The exit status is 1 for a mutant that survives but
 is not listed as equivalent, or that cannot be applied or compiled.
 
 The mutants are the list `MUTANTS` of `mutate.py`, written for the code of
-`configure-clean` on 2026-10-04 and brought up to date with the first pull
-request of B: B.2 edits the code they replace, so their texts and the
-equivalent mutants have to be brought up to date with the change (`--list`
-tells which no longer apply), or another list given with `--mutants FILE`.
+`configure-clean` on 2026-10-04 and brought up to date with the pull
+requests of B (the corners and their limits of B.2 included): a change of
+`pow` that edits the code they replace has to bring their texts and the
+equivalent mutants up to date too (`--list` tells which no longer apply), or
+give another list with `--mutants FILE`.
 
 **4. The timings.** The same program linked with the two builds, run in turn
 on a pinned processor of an idle machine, the best time of each row kept
@@ -185,7 +187,10 @@ done
 
 ## What a passing run looks like
 
-On `configure-clean` at `065191e` (GCC 9.4, x86-64), with the builds above:
+On `configure-clean` at `065191e` (GCC 9.4, x86-64), with the builds above,
+before B.2 (the table had 92 boxes, `mutate.py` 40 mutants); since, the
+table has 114 boxes, all but one the tightest, and the 39 mutants of B.2
+are all killed but 3 equivalent ones:
 
 ```text
 $ python3 tests/tools/pow/diffpow.py run --out /tmp/pow/simd sse=build-sse fpu=build-fpu
@@ -212,9 +217,10 @@ boxes: 92, results: 184, failed: 0; results by distance from the tightest bounds
 
 The five boxes one double from the tightest bounds (`{I(0, 2), I(-1.5,
 -0.5)}`, `{I(1, 3), I(-oo, 2)}`, `{I(0.25, 0.5), I(-oo, -1)}`, `{I(2, 4), I(1,
-oo)}`, `{I(4, oo), P(-0.5)}`, each for both functions) are those computed by
-exp(y log x), which B.2 replaces by the corners: their bounds should become
-the tightest ones `checkrows.py` prints.
+oo)}`, `{I(4, oo), P(-0.5)}`, each for both functions) were those computed by
+exp(y log x), which B.2 replaced by the corners and their limits: their
+bounds are now the tightest ones, as those of the 114 boxes of the table but
+one, an integer power (`{I(-2, 3), P(100)}`, one double above).
 
 ```text
 $ python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants
@@ -227,11 +233,10 @@ mutants: 40 in 143 s; KILLED 33, expected to survive 7
 ```
 
 The exit status is then 0. With `--test ieee1788` alone, two mutants
-survive, which `elementary` kills: `pow_on_boxes()` has no box with an
-empty base and an integer exponent beyond the ints, where `gaol::pow` would
-give [-oo, +oo] without its check of the empty sets, nor a base [1] with an
-exponent that is not a multiple of 2^-10, where the lower bound would be the
-double below 1; `diffpow.py` prints such a box for each.
+survived then, which `elementary` killed: `pow_on_boxes()` had no box with
+an empty base and an integer exponent beyond the ints, nor a base [1] with
+an exponent that is not a multiple of 2^-10; B.2 added both
+(`{none, P(2147483648.0), none}` and `{P(1), P(0.1), P(1)}`).
 
 ```text
 $ taskset -c 2 /tmp/pow/sse/bench
@@ -243,15 +248,18 @@ gaol_ieee1788::pow(x, [0.5,1.5]), x = [a, +oo]      70.43 ns
 ...
 ```
 
-(Intel Core i7-1185G7.) The boxes with an infinite bound or a base from 0,
-which take exp(y log x), cost 70 to 75 ns where two corners cost 90 to 110
-ns: B.2, which takes the corners for them too, is likely to make them slower.
+(Intel Core i7-1185G7.) This run is from before B.2: the boxes with an
+infinite bound or a base from 0 took exp(y log x) then, 70 to 75 ns where
+two corners cost 90 to 110 ns; they take the corners now, where a limit costs
+no call of CORE-MATH.
 
 ## Limits
 
 - The differential test compares builds with each other, not with the exact
   powers: two builds wrong in the same way agree. `checkrows.py` checks the
-  92 boxes of the table only.
+  boxes of a rows file only (the 114 of the table, or those `compare` lists).
+  B.2 changed the bounds of 2 214 boxes of `diffpow`: each is inside the
+  former one, and the tightest against `checkrows.py`.
 - `checkrows.py` computes the powers with 500 bits, and takes an exact power
   within 2^-200 of a double for that double (a power it computes inexactly,
   such as 4^0.5); its model of `gaol::pow` is the one of
@@ -259,8 +267,8 @@ ns: B.2, which takes the corners for them too, is likely to make them slower.
   it does not check the sign of a zero.
 - The rows file and the table do not tell -0 from +0, nor does the test; the
   differential test does.
-- `mutate.py` knows the code of `configure-clean` on 2026-10-04; its texts have
-  to follow the code. It edits one file at a time and runs only the tests
+- `mutate.py` knows the code of the pull requests of B; its texts have to
+  follow the code. It edits one file at a time and runs only the tests
   given; `diffpow` tells an equivalent mutant on its boxes only.
 - `bench.cpp` measures one machine and one compiler; the 2 to 3 % of #37 were
   measured with GCC 9.4 only.
