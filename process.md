@@ -6,7 +6,7 @@ le mainteneur, comment on valide, teste, commite, pousse, fait passer la CI et
 propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
-État au 12 octobre 2026 : `configure-clean` est au commit `c7636d1`.
+État au 13 octobre 2026 : `configure-clean` est au commit `f469c4e`.
 
 ## 1. Le contexte
 
@@ -578,14 +578,17 @@ gh issue view 49 --json body --jq .body | diff - new.md   # seul le saut de lign
     `fix-path-core-math`, qui est la seule copie de son travail) ;
   - ne lance pas `git stash` sur ses fichiers.
 
-## 12. Où en est le travail (12 octobre 2026)
+## 12. Où en est le travail (13 octobre 2026)
 
-- **Faits** : les points C à E, G, H, J à V ; le détail, avec les pull
-  requests, est dans `TODO.md` (« Fait depuis ») et l'issue #49.
+- **Faits** : les points A, C à H, J à V ; le détail, avec les pull
+  requests, est dans `TODO.md` (« Fait depuis ») et l'issue #49. Un audit du
+  13 octobre a vérifié dans `configure-clean` ce que chacun annonce ; ses
+  suites (des commentaires et des textes) sont faites à part.
 - **Inachevés** : aucun. La branche « WIP » du point H,
   `todo-36-upward-rounding-effects`, est restée sans suite : le point a été
   fait autrement, par #86 et #88.
-- **À faire** : A, B, F, I, W et X, puis Y (la publication de v5.0.0).
+- **En cours** : B, par le mainteneur.
+- **À faire** : I et Z, puis Y (la publication de v5.0.0), puis W et X.
   La section « Ordre proposé pour les tâches restantes », à la fin de
   `TODO.md`, donne l'ordre suivi et ses raisons ; les dépendances entre points
   sont écrites dans chaque point. Le mainteneur donne les points un par un
