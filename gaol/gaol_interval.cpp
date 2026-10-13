@@ -2377,11 +2377,19 @@ namespace gaol_core {
     return res;
   }
 
+  // The bodies of nth_root(), sqrt() and sqrt_rel(), defined below, which do
+  // not check the rounding direction again (GAOL v5)
+  static inline interval nth_root_upward(const interval& I, unsigned int n);
+  static inline interval sqrt_upward(const interval& I);
+  static interval sqrt_rel_upward(const interval& J, const interval& I);
+
   /*
     Code inspired by ia_math code by Timothy Hickey. The rounding direction
     is upward, after the check of nth_root_rel(), whose intersections and
     hulls are taken before the modes are restored with
-    GAOL_PRESERVE_ROUNDING (GAOL v5, see gaol/gaol_fpu.h)
+    GAOL_PRESERVE_ROUNDING (GAOL v5, see gaol/gaol_fpu.h); the roots are
+    those of the bodies of sqrt_rel() and nth_root(), which do not check the
+    direction again (GAOL v5: they checked it a second time)
   */
   static interval nth_root_rel_upward(const interval& J, unsigned int n, const interval& I)
   {
@@ -2395,7 +2403,7 @@ namespace gaol_core {
     case 1:
       return J & I;
     case 2:
-      return sqrt_rel(J,I);
+      return sqrt_rel_upward(J,I);
     default:
       break;
     }
@@ -2404,7 +2412,7 @@ namespace gaol_core {
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    const interval tmp = nth_root(J,n);
+    const interval tmp = nth_root_upward(J,n);
     if (odd(n) || tmp.is_empty()) {
       return (tmp & I);
     }
@@ -2645,8 +2653,8 @@ namespace gaol_core {
 
   /*
     The approximations the n-th roots of a >= 0 and b >= 0 start from. Rounding
-    upward, as nth_root(), its only caller, set it: the direction is not
-    checked again here (GAOL v5)
+    upward, as nth_root_upward(), its only caller, takes it after the check of
+    its callers: the direction is not checked again here (GAOL v5)
   */
   static void near_roots(double a, double b, unsigned int n, double& near_a, double& near_b)
   {
@@ -2681,23 +2689,38 @@ namespace gaol_core {
   method then by bisection, which took 179 ns for a cube root against 67 ns
   here, and gave bounds up to 2 doubles from the tightest ones.
 */
+// Inlined by force with GCC and Clang, as cube_root_upward() and cube_root()
+// below
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
 static inline double cube_root_up(double x) // x >= 0
 {
   return gaol_cr_cbrt(x);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
 static inline double cube_root_dn(double x) // x >= 0
 {
   const double u = gaol_cr_cbrt(x);
   return (u * u * u == x) ? u : previous_float(u);
 }
 
-static interval cube_root(const interval& I)
+// The rounding direction being upward already, after the check of cube_root()
+// or of the callers of nth_root_upward() (GAOL v5). Inlined by force with GCC
+// and Clang, as cube_root(), cube_root_up() and cube_root_dn(): Clang 18
+// called cube_root_dn() from nth_root() otherwise, and the cube root of an
+// interval took 40 ns rather than 34 (Intel i7-1185G7)
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
+static inline interval cube_root_upward(const interval& I)
 {
   if (I.is_empty()) {
     return interval::emptyset();
   }
-  GAOL_RND_ENTER();
   const double a = I.left(), b = I.right();
   double lo, hi;
   if (a == -GAOL_INFINITY) {
@@ -2710,10 +2733,55 @@ static interval cube_root(const interval& I)
   } else {
     hi = (b >= 0.0) ? cube_root_up(b) : -cube_root_dn(-b);
   }
-  GAOL_RND_KEEP(lo);
-  GAOL_RND_KEEP(hi);
-  GAOL_RND_LEAVE();
   return interval(lo, hi);
+}
+
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
+static inline interval cube_root(const interval& I)
+{
+  if (I.is_empty()) {
+    return interval::emptyset();
+  }
+  GAOL_RND_ENTER();
+  const interval res = rnd_keep_bounds(cube_root_upward(I));
+  GAOL_RND_LEAVE();
+  return res;
+}
+
+/*
+  The n-th root of I, the rounding direction being upward already: the body
+  of nth_root(), which nth_root(I, q) for q < 0 and nth_root_rel() call after
+  their own check (GAOL v5: they called nth_root(), sqrt() or inverse(), which
+  checked the direction again)
+*/
+static inline interval nth_root_upward(const interval& I, unsigned int n)
+{
+	switch (n) {
+	case 0:
+		return interval::emptyset();
+	case 1:
+		return I;
+	case 2:
+		return sqrt_upward(I);
+	case 3:
+		return cube_root_upward(I);
+	default:
+		break;
+	}
+	const interval J = odd(n) ? I : (I & interval::positive());
+	if (J.is_empty()) {
+		return interval::emptyset();
+	}
+	// The roots of the magnitudes of the bounds, the root of x < 0 being
+	// -(-x)^(1/n)
+	const double a = std::fabs(J.left()), b = std::fabs(J.right());
+	double near_a, near_b;
+	near_roots(a,b,n,near_a,near_b);
+	const double l = (J.left() >= 0.0) ? root_dn(a,near_a,n) : -root_up(a,near_a,n);
+	const double r = (J.right() >= 0.0) ? root_up(b,near_b,n) : -root_dn(b,near_b,n);
+	return interval(l,r);
 }
 
 interval nth_root(const interval& I, unsigned int n)
@@ -2732,22 +2800,9 @@ interval nth_root(const interval& I, unsigned int n)
 	}
 	// The check before the intersection, as in sqrt()
 	GAOL_RND_ENTER();
-	const interval J = odd(n) ? I : (I & interval::positive());
-	if (J.is_empty()) {
-		GAOL_RND_LEAVE();
-		return interval::emptyset();
-	}
-	// The roots of the magnitudes of the bounds, the root of x < 0 being
-	// -(-x)^(1/n)
-	const double a = std::fabs(J.left()), b = std::fabs(J.right());
-	double near_a, near_b;
-	near_roots(a,b,n,near_a,near_b);
-	double l = (J.left() >= 0.0) ? root_dn(a,near_a,n) : -root_up(a,near_a,n);
-	double r = (J.right() >= 0.0) ? root_up(b,near_b,n) : -root_dn(b,near_b,n);
-	GAOL_RND_KEEP(l);
-	GAOL_RND_KEEP(r);
+	const interval res = rnd_keep_bounds(nth_root_upward(I, n));
 	GAOL_RND_LEAVE();
-	return interval(l,r);
+	return res;
 }
 
 /*
@@ -2770,9 +2825,17 @@ interval nth_root(const interval& I, int q)
 		// As rootn(x, 0), which the table leaves out: no value
 		return interval::emptyset();
 	}
-	// -q on a long, INT_MIN having no opposite on an int
-	const unsigned int n = static_cast<unsigned int>(-static_cast<long>(q));
-	return inverse(nth_root(I,n));
+	// |q| without a signed negation: -q overflows an int for INT_MIN, and so
+	// did -static_cast<long>(q) where a long has 32 bits too, with Visual C++,
+	// MinGW-w64 and on 32-bit Linux (GAOL v5)
+	const unsigned int n = 0u - static_cast<unsigned int>(q);
+	// One check, before the root and its inverse, which do not check the
+	// direction again (GAOL v5: the root and inverse() checked it each)
+	GAOL_RND_ENTER();
+	const interval root = nth_root_upward(I, n);
+	const interval res = rnd_keep_bounds(root.is_empty() ? root : upward_access::inverse(root));
+	GAOL_RND_LEAVE();
+	return res;
 }
 
   unsigned long long nb_fp_numbers(double a, double b)
@@ -4984,6 +5047,26 @@ interval nth_root(const interval& I, int q)
   }
 
 
+  // The body of sqrt() after its check, for nth_root(I, -2), which checks the
+  // direction before it (GAOL v5). Inlined by force with GCC
+  // and Clang, so that sqrt() keeps the code it had when it held this body:
+  // Clang 18 called it otherwise
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  static inline interval sqrt_upward(const interval& I)
+  {
+    const interval Ipos = I & interval::positive();
+
+    if (Ipos.is_empty()) {
+      return interval::emptyset();
+    }
+
+    const double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
+    const double r = gaol_sqrt_up(Ipos.right());
+    return interval(l,r);
+  }
+
   interval sqrt(const interval& I)
   {
 #if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
@@ -5005,18 +5088,9 @@ interval nth_root(const interval& I, int q)
     // the check had cleared the mode, made the result empty (GAOL v5, see
     // gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
-    const interval Ipos = I & interval::positive();
-
-    if (Ipos.is_empty()) {
-      GAOL_RND_LEAVE();
-      return interval::emptyset();
-    }
-
-    double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
-    double r = gaol_sqrt_up(Ipos.right());
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    const interval res = rnd_keep_bounds(sqrt_upward(I));
     GAOL_RND_LEAVE();
-    return interval(l,r);
+    return res;
   }
 
 
