@@ -90,4 +90,51 @@
    gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
 #undef GAOL_HAVE_GETRUSAGE
 
+/* The macros above that the build leaves undefined are 0 (GAOL v5, point Z
+   of TODO.md): GAOL's headers read them with #if, which warned under
+   -Wundef, so that a program could not include GAOL under -Wundef -Werror.
+   A program reads them with #if too: #ifdef is now true of each of them.
+   Keep "#  define" indented: .github/audit/probe_build.py reads the lines
+   "#define" of the header, which the 0 would follow where the build writes
+   the 1. */
+#ifndef GAOL_DEBUGGING
+#  define GAOL_DEBUGGING 0
+#endif
+#ifndef GAOL_EXCEPTIONS_ENABLED
+#  define GAOL_EXCEPTIONS_ENABLED 0
+#endif
+#ifndef GAOL_PRESERVE_ROUNDING
+#  define GAOL_PRESERVE_ROUNDING 0
+#endif
+#ifndef GAOL_USING_ASM
+#  define GAOL_USING_ASM 0
+#endif
+#ifndef GAOL_VERBOSE_MODE
+#  define GAOL_VERBOSE_MODE 0
+#endif
+#ifndef GAOL_USING_SSE2_INSTRUCTIONS
+#  define GAOL_USING_SSE2_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_USING_SSE3_INSTRUCTIONS
+#  define GAOL_USING_SSE3_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_HAVE_AVX512_TARGET
+#  define GAOL_HAVE_AVX512_TARGET 0
+#endif
+#ifndef GAOL_PREFER_AVX512
+#  define GAOL_PREFER_AVX512 0
+#endif
+#ifndef GAOL_HAVE_ROUNDING_MATH_OPTION
+#  define GAOL_HAVE_ROUNDING_MATH_OPTION 0
+#endif
+#ifndef GAOL_HAVE_VISIBILITY_OPTIONS
+#  define GAOL_HAVE_VISIBILITY_OPTIONS 0
+#endif
+#ifndef GAOL_HAVE_FENV_H
+#  define GAOL_HAVE_FENV_H 0
+#endif
+#ifndef GAOL_HAVE_GETRUSAGE
+#  define GAOL_HAVE_GETRUSAGE 0
+#endif
+
 #endif /* GAOL_CONFIGURATION_H */

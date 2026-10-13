@@ -342,9 +342,13 @@ configure from `gaol/gaol_configuration.h.in` (written by hand, not by
 autoheader), meson from `gaol/gaol_configuration_meson.h.in`. The three define
 the same macros, those GAOL's sources read, and nothing else; the continuous
 integration checks that they write the same header on each kind of machine
-(`.github/audit`).
+(`.github/audit`). Each macro of the table but the version is 1 where the
+table says, and 0 otherwise (GAOL v5): it was left undefined, so that a
+header reading it with `#if` warned under `-Wundef`, and a program could not
+include GAOL under `-Wundef -Werror`. A program tests these macros with `#if`
+as well: `#ifdef` is now true of each of them.
 
-| Macro | Defined | CMake | configure | meson |
+| Macro | 1 when | CMake | configure | meson |
 |---|---|---|---|---|
 | `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION.txt` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `VERSION.txt`, read when configure runs | `project()` |
 | `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
@@ -355,6 +359,7 @@ integration checks that they write the same header on each kind of machine
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
+| `GAOL_HAVE_AVX512_TARGET` | The library has the AVX-512 path of +, -, *, / and sqrt beside the SSE2 one: the compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")` | checked | checked | checked |
 | `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
@@ -364,7 +369,8 @@ What GAOL needs to know of the processor and the system comes from the
 compiler, in `gaol/gaol_config.h`: `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`,
 `GAOL_IX86_MACOSX` and `GAOL_ARM_MACOSX`, the sizes of the integer types
 (`GAOL_SIZEOF_INT`, `GAOL_SIZEOF_LONG_LONG_INT`, from `<limits.h>`) and the
-order of the bytes (`GAOL_WORDS_BIGENDIAN`). These macros, and the
+order of the bytes (`GAOL_WORDS_BIGENDIAN`), the names of the systems and the
+order of the bytes being 1 or 0 (GAOL v5). These macros, and the
 `GAOL_USING_SSE*` and `GAOL_HAVE_*` of the table, were named without `GAOL_`
 before GAOL v5.
 
