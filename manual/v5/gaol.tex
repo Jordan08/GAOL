@@ -1215,12 +1215,13 @@ check, which clears the modes, or sets them back after them with
 denormals-are-zero with gdtoa (FreeBSD, macOS) and with the Debug runtime of
 Visual C++.
 
-What remains: the reader takes the numbers apart by their bits, whatever the
-modes, but compares the two numbers of \code{<a, b>}, which have to be the
-same double, as doubles, so that under denormals-are-zero
-\code{<1e-310, 1e-309>} is read as $[10^{-310}, 10^{-309}]$ rather than
-refused. The unary minus makes no check either, but it only exchanges the
-stored bounds, which the modes do not change, as they do not change the test
+What remains: the reader, which makes no check of the modes, takes the
+numbers apart by their bits, and compares the two numbers of \code{<a, b>},
+which have to be the same double, by theirs too, so that under
+denormals-are-zero \code{<1e-310, 1e-309>} is refused, as without it
+(\pxref{sec:input-format}). The unary minus makes no check either, but it
+only exchanges the stored bounds, which the modes do not change, as they do
+not change the test
 of the empty set, made before the check of every operation (an operation with
 an empty operand may return before its check, the modes left as it found
 them), nor the test by which \code{hausdorff()} returns $+\infty$ before its

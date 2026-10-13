@@ -973,12 +973,13 @@ subnormal upper bound was written rounded to nearest, below the bound, where
 gdtoa (FreeBSD, macOS) and the Debug runtime of Visual C++ write it 0
 (`tests/rounding_direction.cpp` checks all of them).
 
-What remains: the reader takes the numbers apart by their bits, whatever the
-modes, but compares the two numbers of `<a, b>`, which have to be the same
-double, as doubles, so that under denormals-are-zero `<1e-310, 1e-309>` is
-read as [1e-310, 1e-309] rather than refused. The unary minus makes no check
-either, but it only exchanges the stored bounds, which the modes do not
-change, as they do not change the test of the empty set, made before the check
+What remains: the reader, which makes no check of the modes, takes the
+numbers apart by their bits, and compares the two numbers of `<a, b>`, which
+have to be the same double, by theirs too (GAOL v5), so that under
+denormals-are-zero `<1e-310, 1e-309>` is refused, as without it. The unary
+minus makes no check either, but it only exchanges the stored bounds, which
+the modes do not change, as they do not change the test of the empty set,
+made before the check
 of every operation (an operation with an empty operand may return before its
 check, the modes left as it found them), nor the test by which `hausdorff()`
 returns +oo before its check when a bound is infinite in one of its two

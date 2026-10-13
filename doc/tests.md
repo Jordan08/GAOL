@@ -228,9 +228,9 @@ point Q), which `numbers` checks there too.
   the midpoint of `[3, 100]·2^-1074` was 0 and `[22·2^-1074]` was written
   `[1e-322]` with 1 digit, below its upper bound: with the sources of
   `configure-clean` before point Q, 10 900 of these checks fail. The check of
-  `<a, b>` by the parser, which compares the two numbers as doubles, is left
-  out. A mode the processor keeps without honouring it, as an emulator may,
-  is named and skipped: one that flushes neither the exact subnormal sum
+  `<a, b>` by the parser, which compares the two numbers by their bits, is in
+  `numbers`. A mode the processor keeps without honouring it, as an emulator
+  may, is named and skipped: one that flushes neither the exact subnormal sum
   2^-1060 + 0 nor the inexact product 1e-300·1e-20.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
