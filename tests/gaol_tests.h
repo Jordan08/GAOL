@@ -52,7 +52,12 @@
 // denormals-are-zero of MXCSR on x86 processors, FZ and FIZ of FPCR on 64-bit
 // ARM processors, FZ of FPSCR on 32-bit ARM processors with a floating-point
 // unit (the last two with GCC and Clang, whose asm reads and writes them).
-// GAOL_TESTS_FLUSH is 0 where the tests cannot set them.
+// GAOL_TESTS_FLUSH is 1 there, where GAOL clears the modes too
+// (GAOL_RND_FLUSH_BITS of gaol/gaol_fpu.h), and 0 elsewhere.
+// GAOL_TESTS_SET_FLUSH is 1 where the tests can set the modes: there, and with
+// Visual C++ (and clang-cl) for 64-bit ARM, where they set FZ through
+// _controlfp_s(), and where GAOL does not clear it (GAOL v5, point F of
+// TODO.md).
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_FLUSH 1
@@ -60,6 +65,14 @@
 #  define GAOL_TESTS_FLUSH 1
 #else
 #  define GAOL_TESTS_FLUSH 0
+#endif
+#if defined(_MSC_VER) && defined(_M_ARM64) && !GAOL_TESTS_FLUSH
+#  include <float.h>
+#  define GAOL_TESTS_CONTROLFP_FLUSH 1
+#  define GAOL_TESTS_SET_FLUSH 1
+#else
+#  define GAOL_TESTS_CONTROLFP_FLUSH 0
+#  define GAOL_TESTS_SET_FLUSH GAOL_TESTS_FLUSH
 #endif
 
 #if defined(_MSC_VER) && defined(_DEBUG)
@@ -271,7 +284,7 @@ namespace gaol_tests
     return std::nextafter(x, -inf);
   }
 
-#if GAOL_TESTS_FLUSH
+#if GAOL_TESTS_SET_FLUSH
   //---------------------------------------------------------------------------
   // The modes that flush the subnormals to zero (GAOL v5)
   //---------------------------------------------------------------------------
@@ -280,8 +293,11 @@ namespace gaol_tests
   // which flushes the subnormal results, and denormals-are-zero (bit 6), which
   // reads the subnormal operands as zeros, of MXCSR; FZ (bit 24), which flushes
   // both, and FIZ (bit 0, Armv8.7), which flushes the operands, of FPCR; FZ
-  // (bit 24) of FPSCR
-#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+  // (bit 24) of FPSCR. With _controlfp_s(), the bit of FZ in FPCR stands for
+  // its _DN_FLUSH.
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+  const unsigned int all_flush_bits = 0x1000000u;
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
   const unsigned int all_flush_bits = 0x8040u;
 #  elif defined(__aarch64__)
   const unsigned int all_flush_bits = 0x1000001u;
@@ -292,7 +308,11 @@ namespace gaol_tests
   // The bits of all_flush_bits set in the control register
   inline unsigned int flush_bits()
   {
-#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+    unsigned int control = 0;
+    _controlfp_s(&control, 0, 0);
+    return ((control & _MCW_DN) == _DN_FLUSH) ? all_flush_bits : 0u;
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     return _mm_getcsr() & all_flush_bits;
 #  elif defined(__aarch64__)
     unsigned long long fpcr;
@@ -309,7 +329,10 @@ namespace gaol_tests
   // leaving the rest of the control register alone
   inline void set_flush_bits(unsigned int bits)
   {
-#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+    unsigned int ignored = 0;
+    _controlfp_s(&ignored, ((bits & all_flush_bits) != 0u) ? _DN_FLUSH : _DN_SAVE, _MCW_DN);
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     _mm_setcsr((_mm_getcsr() & ~all_flush_bits) | bits);
 #  elif defined(__aarch64__)
     unsigned long long fpcr;
@@ -355,7 +378,9 @@ namespace gaol_tests
   // the standard output
   inline std::vector<FlushMode> flush_modes()
   {
-#  if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     const std::vector<FlushMode> all = { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
                                          { "flush-to-zero and denormals-are-zero", 0x8040u } };
 #  elif defined(__aarch64__)

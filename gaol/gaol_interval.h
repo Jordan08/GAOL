@@ -1396,12 +1396,15 @@ namespace gaol_core {
     \brief Reads an interval, written on a line, from is
 
     The blanks before the line, line ends included, are skipped as before a
-    number (GAOL v5): an empty line is no line to read. At the end of the
+    number, even under std::noskipws (GAOL v5): an empty line is no line to
+    read. At the end of the
     input, failbit is set, I is left as it was and nothing is thrown, so that
     while (is >> I) ends there; a stream that is not good is not read, and
     loses none of its text. A line that is no interval sets failbit, empties
     I and throws input_format_error (invalid_action_error for a function
-    called with an argument it does not take).
+    called with an argument it does not take); where GAOL is built without
+    exceptions, it writes an error message on std::cerr and aborts the
+    program instead.
   */
   extern GAOL_PUBLIC std::istream& operator>>(std::istream& is,  interval& I);
   /*!

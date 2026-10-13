@@ -259,7 +259,14 @@ namespace {
   struct gaol_number
   {
     bool is_zero;         // v = 0
-    int beyond;           // -1 if v is not 0 and below the least positive double, +1 if above the largest, 0 otherwise
+    // +1 if v is far above the largest double: 10^311 or more; in
+    // hexadecimal, when its leading digit is worth 2^1026 or more (v is then
+    // 2^1026 or more, and every v of 2^1029 or more is so marked). -1 if v is
+    // not 0 and far below the least positive double: below 10^-331; in
+    // hexadecimal, when 2^(k2 + 4 ndigits), above v, is 2^-1081 or less
+    // (every v below 2^-1084 is so marked). 0 otherwise, numbers just beyond
+    // the doubles included, which the comparisons place.
+    int beyond;
     long kb;              // k + k2
     gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
     gaol_natural pow5;    // 5^-k if k < 0, no digit otherwise
@@ -414,8 +421,9 @@ namespace {
     double at a time from it: under a locale writing a decimal comma, where
     strtod("0.1") is 0, it had about 4.6e18 doubles to go through, and the
     reading never ended. The text is taken apart once for all the
-    comparisons, so that the time of a reading under such a locale is that of
-    a reading under the C locale, whatever the length of the number (GAOL v5).
+    comparisons, so that the time of a reading under such a locale is about
+    that of a reading under the C locale, whatever the length of the number
+    (1.0 to 1.2 times as long; GAOL v5).
   */
   bool gaol_enclose_number(const char *s, double& l, double& r)
   {

@@ -26,11 +26,15 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
     `master`, puis l'étiquette `v5.0.0`).
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
-- **L'arbre de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`.
+- **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
+  et `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`, deux clones du même dépôt,
+  qui se valent : travaille dans l'un ou dans l'autre (décidé le 12 octobre).
   Le mainteneur et d'autres agents y travaillent aussi. Des fichiers peuvent y
   être modifiés sans être à toi ; c'est souvent le cas de `TODO.md`, que le
-  mainteneur enrichit lui-même. `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`
-  est un autre clone du même dépôt : n'y travaille pas.
+  mainteneur enrichit lui-même. Avant de créer ta branche, regarde l'état de
+  l'arbre (`git status --short`, `git branch --show-current`) : s'il porte le
+  travail non commité de quelqu'un d'autre, prends l'autre arbre, ou
+  demande.
 
 ## 2. Les sources de vérité
 
@@ -112,10 +116,10 @@ commits.
 
 ### 3.4 Branches et arbre de travail
 
-- Travaille **en local, dans l'arbre principal, sur une nouvelle branche** créée
-  depuis `origin/configure-clean` à jour. Jamais de worktree : le mainteneur l'a
-  demandé le 3 octobre (« met toi en local dans la branche sur laquelle tu
-  travailles »).
+- Travaille **en local, dans `GAOL_V8` ou `GAOL_V9/GAOL` (section 1), sur une
+  nouvelle branche** créée depuis `origin/configure-clean` à jour. Jamais de
+  worktree : le mainteneur l'a demandé le 3 octobre (« met toi en local dans la
+  branche sur laquelle tu travailles »).
 - Noms de branche : `todo-<lettre>-<sujet>` pour un point du TODO
   (`todo-j-headers-werror`, `todo-l-ci-workflows`) ; un nom descriptif pour une
   autre tâche (`autotools-distclean`, `no-explicit-libm`).
@@ -252,7 +256,13 @@ un est refusée, quel que soit son gain.
 | Autres | `pdflatex` (TeX Live 2025), `gcovr` 7.2, python 3.14 avec mpmath 1.3 |
 
 Ce sont les outils d'Ubuntu 26.04, tous dans le `PATH` (constaté le 11 octobre
-2026). La machine n'a plus GCC 9, que couvre le job `gcc-9` de `linux.yml`, ni
+2026). Le 12 octobre, une session sur `GAOL_V8` a trouvé d'autres outils :
+Ubuntu 24.04, GCC 13.3, Clang 18 et 20, CMake 3.28, bison 3.8.2, flex 2.6.4,
+TeX Live 2023 et python 3.12 avec mpmath 1.2, sans autoconf, automake, libtool,
+meson ni ninja (meson et ninja s'installent par `pip` dans un environnement
+virtuel du scratchpad). Vérifie donc les versions au début du travail, et
+écris « Non vérifiable ici » ce que la machine ne permet pas. La machine
+d'Ubuntu 26.04 n'a plus GCC 9, que couvre le job `gcc-9` de `linux.yml`, ni
 meson 0.53.2, la plus ancienne version que le build meson prend en charge, que
 couvre le job `meson-oldest` de `build-systems.yml` (#110).
 
@@ -353,7 +363,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    Une question reportée devient une issue GitHub en français (`gh issue create`),
    citée dans `TODO.md`. Quand le TODO offre des alternatives (« ou... ») que les
    principes tranchent, choisis, et explique ton choix dans la pull request.
-3. **Créer la branche** dans l'arbre principal :
+3. **Créer la branche** dans l'arbre choisi :
 
    ```sh
    git fetch origin && git status --short     # repère ce qui n'est pas à toi
@@ -400,7 +410,11 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    gh pr create --base configure-clean --head <branche> --title "<titre>" --body-file <fichier>
    ```
 
-   La forme du texte est donnée à la section 8.
+   La forme du texte est donnée à la section 8. Le jeton de `gh` peut ne
+   permettre ni de créer une pull request ni de lancer un workflow (HTTP 403,
+   « Resource not accessible by personal access token », le 12 octobre) :
+   pousse alors la branche, et donne au mainteneur le titre et le texte de
+   chaque pull request, une par une ; il les ouvre lui-même.
 10. **Surveiller la CI et corriger** (section 10) jusqu'à ce que tout soit vert.
     Chaque correction est un nouveau commit sur la branche, puis un push.
 11. **Rendre compte** au mainteneur, en français :

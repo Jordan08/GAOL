@@ -4039,10 +4039,10 @@ cout << hull(interval(1,2), interval(4,5)) << ' '
 \begin{deffun}{istream\&}{operator>{}>}{(istream\& \var{in}, interval\& I)}
   Reads a line from the input stream \var{in}, and assigns to \var{I} the
   interval it writes. The blanks before the line, the ends of lines included,
-  are skipped first, as before a number: an empty line, or one holding only
-  blanks, is not a line to read, whether \code{std::noskipws} is set or not,
-  and an interval cannot be written on several lines. If the line is
-  syntactically ill-formed, \var{I} is set
+  are skipped first, as before a number, even under \code{std::noskipws},
+  which keeps a number from skipping them: an empty line, or one holding only
+  blanks, is never a line to read. An interval cannot be written on several
+  lines. If the line is syntactically ill-formed, \var{I} is set
   to the empty set, and an \code{input\_format\_error} exception is thrown
   (\pxref{sec:exceptions}) if the library was compiled with exceptions
   enabled (\pxref{sec:configuration}); alternatively, it prints an
@@ -4070,7 +4070,8 @@ std::istringstream in("1.5\n\n[1, 2]\n\n");
 double d;
 interval x;
 in >> d >> x;
-cout << d << ' ' << x << ' ' << (in >> x ? "more" : "end");
+cout << d << ' ' << x << ' ';
+cout << (in >> x ? "more" : "end");
 @outputs^1.5 [1, 2] end~
 \end{example}
 \end{deffun}
@@ -4133,7 +4134,8 @@ for the intervals between brackets and one for the numbers, and refused
 Spaces, tabs and newlines are not significant except in numbers, and the
 case of letters is ignored, as IEEE 1788-2015 has it for its literals:
 \code{[Empty]}, \code{[1, Inf]}, \code{SIN(1)} and \code{1E3} are
-read.\newinvfive{} The ``$+$'' sign before numbers and \code{inf} is optional.
+read, whatever the locale of the program.\newinvfive{} The ``$+$'' sign
+before numbers and \code{inf} is optional.
 
 \paragraph{Numbers.} A \NT{number} is written in decimal, with an optional point
 and exponent (\code{12}, \code{0.1}, \code{1e-3}), or in hexadecimal, with a
@@ -4148,7 +4150,7 @@ writing a decimal comma included (as \code{setlocale(LC\_ALL, "")} sets under
 a French one).\newinvfive{} GAOL~4 read \code{0.1} as 0 there,
 \code{strtod()} stopping at the point. The modes of the processor that flush
 the subnormal numbers to zero (flush-to-zero and denormals-are-zero, which a
-program linked with \code{-Ofast} has) do not change what a number is read as:
+program linked with \option{-Ofast} has) do not change what a number is read as:
 \code{1e-310} is read as the tightest interval of doubles containing it, and
 \code{0} as 0.\newinvfive{}
 \cindex{number!reading}%
