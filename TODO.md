@@ -599,7 +599,22 @@ Reporté (#67).
   macros peuvent apparaître sur d'autres cibles. Correction : `#ifdef`, ou une
   valeur par défaut de chaque macro, puis `-Wundef` dans
   `.github/scripts/headers.sh`, qui compile déjà chaque en-tête installé seul
-  en `-Wall -Wextra -Werror`.
+  en `-Wall -Wextra -Werror`. Mesuré le 13 octobre (GAOL installé, GCC 13.3,
+  drapeaux de `gaol.pc`) : en SSE2, `GAOL_PRESERVE_ROUNDING`,
+  `GAOL_DEBUGGING`, `GAOL_VERBOSE_MODE` et `GAOL_WORDS_BIGENDIAN` ; en FPU,
+  `GAOL_USING_SSE2_INSTRUCTIONS` en plus ; sur ARM, sans doute aussi
+  `GAOL_RND_SSE_REGISTER`, `GAOL_RND_FPCR_REGISTER`, `GAOL_RND_X86_REGISTERS`
+  et `GAOL_IX86_*` (non compilé ici). Décidé le 13 octobre : chaque macro
+  testée par `#if` dans les en-têtes installés est toujours définie, à 0 ou
+  1, les options par `gaol_configuration.h` dans les trois builds, plutôt que
+  `#if defined(X) && X` ; un `#ifdef GAOL_PRESERVE_ROUNDING` d'un programme,
+  comme celui de l'exemple 13, devient toujours vrai : l'exemple est à
+  changer et `doc/differences.md` le dira. La portée : les en-têtes installés
+  et `-Wundef` dans `headers.sh`, ni les tests ni les `.cpp` de la
+  bibliothèque. Avec Z aussi, une suite de l'audit du 13 octobre :
+  `bisect(ratio)` (#99) compare le ratio par `std::isgreater` et
+  `std::isless`, deux appels à `_dpcomp` sous Visual C++, plutôt que par les
+  `gaol_detail::quiet_*` de #83.
 
 ## La version
 
