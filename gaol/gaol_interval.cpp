@@ -5122,11 +5122,13 @@ interval nth_root(const interval& I, int q)
     strictly between the bounds of a bisectable interval: rounded to nearest,
     it would be l only for an exact midpoint at most half the distance from
     l to the next double. The ratio is compared quietly, a NaN raising no
-    invalid-operation exception before it is refused.
+    invalid-operation exception before it is refused, by the comparisons of
+    gaol_detail, ucomisd in line with Visual C++, where std::isgreater() and
+    std::isless() are calls of _dpcomp() (GAOL v5, point Z of TODO.md).
   */
   std::pair<interval, interval> interval::bisect(double ratio) const
   {
-    if (!(std::isgreater(ratio, 0.0) && std::isless(ratio, 1.0))) {
+    if (!(gaol_detail::quiet_greater(ratio, 0.0) && gaol_detail::quiet_less(ratio, 1.0))) {
       gaol_ERROR(invalid_action_error, "bisect(): the ratio is not in (0, 1)");
     }
     if (is_empty()) {
