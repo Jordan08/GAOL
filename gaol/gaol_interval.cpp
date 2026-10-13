@@ -1681,18 +1681,18 @@ namespace gaol_core {
       A degenerate integer exponent [n] within the ints: x^n on x >= 0, where
       pow and pown agree, pown giving the powers that are doubles exactly, as
       pow_is_double() does at the corners below. Beyond the ints, which pown
-      cannot take, |n| > 2^31, [n] takes the corners below, one for each
-      bound, x^n being monotone in x (GAOL v5: a block of its own took them,
-      with the bounds the corners give since they take the limits): 1 at
-      x = 1, the limit 0 or +oo at x = 0 (+0 or -0) and +oo, with no call of
-      CORE-MATH, whose pow(+0, n) raised the divide-by-zero exception for
-      n < 0 and pow(-0, n) is -oo for an odd n < 0. x^n is a double at 0 and
-      1 only: for another x it is beyond the doubles (2^(k n), for a power of
-      two 2^k, k != 0) or not dyadic (1/m^|n| for n < 0) or above 2^53 (m^n,
-      m >= 3 odd), so that the double below CORE-MATH's value is the tightest
-      lower bound (pow_is_double() tells no such power a double).
-      gaol_pow_hybrid() takes [n] before it comes here: pown on the whole of x
-      within the ints, [-oo,+oo] beyond them.
+      cannot take, n >= 2^31 or n < -2^31, [n] takes the corners below, one
+      for each bound, x^n being monotone in x (GAOL v5: a block of its own
+      took them, with the bounds the corners give since they take the
+      limits): 1 at x = 1, the limit 0 or +oo at x = 0 (+0 or -0) and +oo,
+      with no call of CORE-MATH, whose pow(+0, n) raised the divide-by-zero
+      exception for n < 0 and pow(-0, n) is -oo for an odd n < 0. x^n is a
+      double at 0 and 1 only: for another x it is beyond the doubles (2^(k n),
+      for a power of two 2^k, k != 0) or not dyadic (1/m^|n| for n < 0) or
+      above 2^53 (m^n, m >= 3 odd), so that the double below CORE-MATH's
+      value is the tightest lower bound (pow_is_double() tells no such power
+      a double). gaol_pow_hybrid() takes [n] before it comes here: pown on the
+      whole of x within the ints, [-oo,+oo] beyond them.
     */
     if (y.is_an_int()) {
       return pown_upward(base, static_cast<int>(y.left()));
@@ -1708,10 +1708,9 @@ namespace gaol_core {
       computes in, which gives the upper bound, and the double below it the
       lower one, unless the power is a double, which pow_is_double() proves
       and which is then the lower bound itself: the bounds are the tightest
-      ones, where exp(J*log(I))
-      multiplied the relative width of log(I) by |y log(x)|: pow([2],
-      [1023.5]) was 1425 doubles below and 748 above, and pow([4], 0.5)
-      [2 - 2^-52, 2]. At a corner where x is 0 or +oo or y infinite, the
+      ones, where exp(J*log(I)) multiplied the relative width of log(I) by
+      |y log(x)|: pow([2], [1023.5]) was 1425 doubles below and 748 above,
+      and pow([4], 0.5) [2 - 2^-52, 2]. At a corner where x is 0 or +oo or y infinite, the
       bound is the limit of x^y there, 0 or +oo, or 1 where x = 1 or y = 0
       (pow_lo(), pow_hi()):
       pow([4, +oo], 0.5) is [2, +oo] and pow([0, 2^-1000], [-oo, -1])
@@ -1735,8 +1734,9 @@ namespace gaol_core {
       // (xu, yu). An exponent of the other sign is taken as 0, for which
       // pow_lo() and pow_hi() give 1 with no call of CORE-MATH: one call for
       // each bound where J has one sign, as for the other bases, two where J
-      // holds 0 inside (GAOL v5: four, 134 ns where GAOL 4 took 137, and two
-      // 81 ns, with Clang 18 on an i7-1185G7)
+      // holds 0 inside (GAOL v5: four; gaol::pow([1/b, b], J), b from 1 to 10
+      // and J within [0.5, 2.5], took 134 ns, 137 with GAOL 4, and takes 81,
+      // with Clang 18 on an i7-1185G7)
       const double yu_or_0 = (yu > 0.0) ? yu : 0.0, yl_or_0 = (yl < 0.0) ? yl : 0.0;
       l = minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));
       r = maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));

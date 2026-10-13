@@ -314,7 +314,7 @@ namespace
       {I(-1, 2), P(2147483647.0), I(0, oo), I(-1, oo)},
       {I(0.5, 1), P(-2147483648.0), I(1, oo)},
       {I(-2, 3), P(100), I(0, 0x1.69194f299cddcp+158), I(0, 0x1.69194f299cddbp+158)},
-      // an integer exponent beyond the ints: CORE-MATH's pow at the bounds of x for the standard's pow, [-oo, +oo] for gaol::pow
+      // an integer exponent beyond the ints: the corners at the bounds of x for the standard's pow, [-oo, +oo] for gaol::pow
       {I(2, 3), P(1e10), I(0x1.fffffffffffffp+1023, oo), all},
       {I(0.5, 0.9), P(1e10), I(0, 0x1p-1074), all},
       {I(2, 3), P(-1e10), I(0, 0x1p-1074), all},

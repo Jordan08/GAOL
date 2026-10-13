@@ -132,7 +132,8 @@ MUTANTS = [
     dict(name='std-corner-around-1-upper-b',
          edits=[('r = maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));', 'r = pow_hi(xu, yu_or_0);')]),
     dict(name='std-corner-around-1-no-clamp',
-         edits=[('const double yu_or_0 = (yu > 0.0) ? yu : 0.0, yl_or_0 = (yl < 0.0) ? yl : 0.0;', 'const double yu_or_0 = yu, yl_or_0 = yl;')],
+         edits=[('const double yu_or_0 = (yu > 0.0) ? yu : 0.0, yl_or_0 = (yl < 0.0) ? yl : 0.0;',
+                 'const double yu_or_0 = yu, yl_or_0 = yl;')],
          survives='the four corners, whose least is at most 1 and greatest at least 1, I holding 1: the corner '
                   'of an exponent of the other sign, which the clamp takes as 1, changes neither; two calls of '
                   'CORE-MATH more where J has one sign'),
