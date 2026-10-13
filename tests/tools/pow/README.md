@@ -7,9 +7,11 @@ Part of the [tests](../../../doc/tests.md) of GAOL v5.
 The programs and scripts of this directory check a change of the `pow`
 functions of `gaol/gaol_interval.cpp`: `pow_standard()`, the pow of
 IEEE 1788-2015 (Table 9.1), which `gaol_ieee1788::pow` is, the integer power
-and the [-oo, +oo] beyond the ints that `gaol::pow(x, y)` (`gaol_pow_hybrid()`)
-and `gaol::pow(x, p)` (`gaol_pow_real()`) add to it, and the corners of a box
-(`pow_lo()`, `pow_hi()`, `pow_is_double()`). They were written when the pow of
+that `gaol::pow(x, y)` (`gaol_pow_hybrid()`) and `gaol::pow(x, p)`
+(`gaol_pow_real()`) add to it, the corners of a box (`pow_lo()`, `pow_hi()`,
+`pow_is_double()`), and the integer power itself, `pown` (`pown_products()`,
+`pown_point()`, `pown_upward()` and the powers beyond the ints, GAOL v5,
+point B of `TODO.md`). They were written when the pow of
 the standard was written once (#37), to show that no bound changed and that
 `pow_on_boxes()` of `tests/ieee1788.cpp` fails on a wrong `pow`, and kept for
 the points B.1 and B.2 of `TODO.md`: B.1 removes a check, which must change
@@ -28,7 +30,8 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` at a time (48 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (74 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
 
@@ -138,6 +141,10 @@ python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants --test ieee1788
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF corner gaol-
 python3 tests/tools/pow/mutate.py --list
+# the integer powers: the SSE2 build with FMA, then the FPU one
+T="--test ieee1788 --test elementary --test arithmetic --test rounding_direction --test expressions"
+python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants $T std corner gaol real ieee pown sse-fma
+python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF $T std corner gaol real ieee pown fpu
 ```
 
 The sources are copied to `WORK/src` and built in `WORK/build`; each mutant
@@ -171,6 +178,17 @@ requests of B (the corners and their limits of B.2 included): a change of
 `pow` that edits the code they replace has to bring their texts and the
 equivalent mutants up to date too (`--list` tells which no longer apply), or
 give another list with `--mutants FILE`.
+
+The mutants of the integer power (GAOL v5, the third pull request of B) are
+named `pown-*` where they edit the code of both builds, `sse-fma-*` where
+they edit the two lanes in an SSE2 register, compiled with the SSE2 intervals
+and the FMA instructions only, and `fpu-*` where they edit the pair of
+doubles of the other builds: each family is run in the build that compiles
+it, with the arguments `pown sse-fma` or `pown fpu` (above), a mutant of the
+other family surviving there, not being compiled. The error bound K of the
+exact products itself has no mutant: with K = 0, the bounds are those of
+h + l rounded, tighter where c<sup>n</sup> is within K of a double, and no
+test finds them wrong; `pown_bound.py` checks its proof instead.
 
 **4. The timings.** The same program linked with the two builds, run in turn
 on a pinned processor of an idle machine, the best time of each row kept
