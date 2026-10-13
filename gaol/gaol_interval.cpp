@@ -1726,7 +1726,24 @@ namespace gaol_core {
     */
     const double xl = base.left(), xu = base.right(), yl = y.left(), yu = y.right();
     double l, r;
-    if (xl >= 1.0) {
+    if (yl == yu) {
+      // A degenerate exponent, which [0] and the other integers within the
+      // ints are not here: x^y increases with x for y > 0 and decreases for
+      // y < 0, one corner for each bound whatever the base (GAOL v5:
+      // gaol::pow(x, 0.75) took 109 ns rather than 102, and
+      // gaol_ieee1788::pow(x, [1e10]) 72 rather than 68, the place of the
+      // base about 1 being tested, with Clang 18 on an i7-1185G7)
+      l = pow_lo((yl > 0.0) ? xl : xu, yl);
+      r = pow_hi((yl > 0.0) ? xu : xl, yl);
+    } else if (xl == 0.0 && yl > 0.0) {
+      // A base from 0 and exponents above 0: 0^y = 0 is the least power, and
+      // the greatest is at xu, with yu for xu >= 1 and yl below, one call of
+      // CORE-MATH (GAOL v5: through the corners of a base holding 1, 48 ns
+      // rather than 39 for gaol::pow([0, b], J), b from 1 to 10 and J within
+      // [0.5, 2.5], with Clang 18 on an i7-1185G7)
+      l = 0.0;
+      r = pow_hi(xu, (xu >= 1.0) ? yu : yl);
+    } else if (xl >= 1.0) {
       l = pow_lo((yl >= 0.0) ? xl : xu, yl);
       r = pow_hi((yu >= 0.0) ? xu : xl, yu);
     } else if (xu <= 1.0) {
@@ -1740,11 +1757,19 @@ namespace gaol_core {
       // pow_lo() and pow_hi() give 1 with no call of CORE-MATH: one call for
       // each bound where J has one sign, as for the other bases, two where J
       // holds 0 inside (GAOL v5: four; gaol::pow([1/b, b], J), b from 1 to 10
-      // and J within [0.5, 2.5], took 134 ns, 137 with GAOL 4, and takes 81,
-      // with Clang 18 on an i7-1185G7)
+      // and J within [0.5, 2.5], took 134 ns, 137 with GAOL 4, and takes 84,
+      // with Clang 18 on an i7-1185G7). Where J holds 0 inside and one of the
+      // two corners is a limit, the other is not computed either: the limit
+      // is 0 at (xl, yu) and (xu, yl), where x^y is below 1, which bounds the
+      // box below, and +oo at (xl, yl) and (xu, yu), which bounds it above,
+      // and pow([0, 2], [-1, 1]) takes no call (tested where J holds 0 inside
+      // only: 90 ns rather than 84 for the boxes above, 81 without the test)
       const double yu_or_0 = (yu > 0.0) ? yu : 0.0, yl_or_0 = (yl < 0.0) ? yl : 0.0;
-      l = minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));
-      r = maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));
+      const bool around_0 = yl < 0.0 && yu > 0.0;
+      l = (around_0 && (pow_is_limit(xl, yu) || pow_is_limit(xu, yl)))
+          ? 0.0 : minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));
+      r = (around_0 && (pow_is_limit(xl, yl) || pow_is_limit(xu, yu)))
+          ? GAOL_INFINITY : maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));
     }
     return interval(l,r);
   }
