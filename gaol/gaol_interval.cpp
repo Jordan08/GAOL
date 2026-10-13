@@ -62,6 +62,17 @@
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
+// x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
+#include "gaol/gaol_ldexp.h"
+
+// The FMA instructions on two doubles at once, for the integer powers, where
+// the build has them (GAOL v5, see pown_products())
+#if GAOL_USING_SSE2_INSTRUCTIONS && (defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__)))
+#  define GAOL_POWN_PACKED 1
+#  include <immintrin.h>
+#else
+#  define GAOL_POWN_PACKED 0
+#endif
 
 using std::ostream;
 using std::istream;
@@ -115,10 +126,6 @@ namespace gaol_core {
   using namespace gaol_detail;
   const double two_power_52 = 4503599627370496.0;
 
-  // I^e for a non-empty I and e > 0, defined below: gaol_uipow(), in the
-  // files included here, calls it
-  static interval uipow_nonempty(const interval& I, unsigned int e);
-
 #if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
   // Set by init() (gaol/gaol_common.cpp), from the GAOL_PREFER_AVX512 of the
   // build and the instructions the processor has: +, -, *, / and sqrt take
@@ -137,168 +144,350 @@ namespace gaol_core {
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   /*
-    x^n rounded upward and downward from exact products, x >= 0 and n >= 2, the
-    rounding direction being upward (GAOL v5, issue #7). GAOL rounds each
-    product of its binary exponentiation outward (uipow_rounded()), and x^n is
-    then up to n + 1 doubles from the tightest bound: 2, 3, 5, 6, 8 for n = 3
-    to 7.
+    x^n for an int n, |n| >= 2, with the tightest bounds, from exact
+    products (GAOL v5, points 8, 72 and 73 of TODO.md). GAOL rounded each
+    product of its binary exponentiation outward, and its bounds were up to
+    n + 1 doubles beyond the tightest (32 to 39 at n = 30, 1300 to 1500 at
+    n = 1000); GAOL v5 then kept each power as a double and a rest, rounded
+    downward and upward apart, which cost 41 ns for x^1000 against 9.7 with
+    GAOL 4, and took x^-m as 1/x^m, two roundings, one or two doubles beyond
+    the tightest bound.
 
-    The power is kept as h + l, l being small: a product h*y, rounded upward,
-    is p, and fma(h, y, -p) is the rest h*y - p <= 0, a double, exactly. The
-    upper bound keeps h + l above the power, l <= 0 being rounded upward:
-    (h + l)^2 = p + (h*h - p) + l*(2h + l). The lower bound keeps h - nl below
-    it, nl >= 0 being rounded upward: (h - nl)^2 = p - ((p - h*h) +
-    nl*(2h - nl)). The square of nl raises the lower bound: left out (GAOL
-    v5, review #7 of examples/examples.md), the lower bound of x^n was 8
-    doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
-    2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
-    2^28.
+    The bounds come from two corners c0 and c1 (pown_corners()): x^n is c0^n
+    at its least and c1^n at its greatest. Both powers are computed at once,
+    c0^n in lane 0 and c1^n in lane 1 of an SSE2 register (of a pair of
+    doubles in the other builds, the same operations in the same order), as
+    h + l, h being the power rounded and l a rest: from the highest bit of
+    m = |n| down, a square
+      p = h*h, e = h*h - p, t = 2h + l, l' = l*t + e, h' = p,
+    and, for each bit set, a product by c
+      q = h*c, f = h*c - q, l' = l*c + f, h' = q,
+    e and f being exactly the rests of the products (fma(), the products
+    being normal), and t and l' rounded once each (fma()). The error of
+    h + l is bounded beforehand, relatively: |h + l - c^m| <= K |h| with
+    K = (8 m L + 16) 2^-104, L being the number of bits of m (below). Each
+    bound is then rounded once, upward, the rounding direction being upward
+    throughout:
+      lower bound = -RU(-h + RU(K |h| - l)), upper bound = RU(h + RU(K |h| + l)),
+    the lane 0 holding the opposite of the lower bound, as the SSE2 intervals
+    store it. The bounds are the tightest unless c^m is within 2K of a
+    double, relatively (K is 2^-98 at m = 3, 2^-88 at m = 1000, 2^-65 at
+    m = 2^31 - 1), and then one double beyond: 2^-46 of the bounds at m = 3
+    at random, but a fifth of them where c is within a few doubles of a
+    number whose power is a double (c^m within 8 doubles of 1, m up to 200),
+    c^m being then that close to a double: pow([1 + 2^-52], 3) is
+    [1 + 2^-51, 1 + 2^-50], [1 + 3 2^-52, 1 + 2^-50] being the tightest.
+    Deciding these bounds with CORE-MATH's pow took 55 to 270 ns, these
+    powers being its hard cases, and they are left so (decided on 13 October
+    2026, TODO.md B). They are exact where c^m is a
+    double: every product is exact then (c^k is a double for each k <= m),
+    each rest e and f is +0, and K is taken as 0 where the rests or-ed
+    together are 0 (without that, pown([2, 3], 3) was [8 - 2^-50, 27 +
+    2^-48]).
 
-    The power is only rounded at the end, h + l upward and h - nl downward.
-    The rest of x^k is below (k - 1) 2^-52 x^k; squaring x^k rounds three
-    terms below twice that, the rounding of the rest of p adding 2^-104
-    x^2k at most, and a product by x rounds two, relatively: h + l and h - nl
-    are within (3s + 2m) n 2^-104 of x^n, relatively, s and m being the
-    numbers of squarings and of products by x, 5 log2(n) n 2^-104 at most
-    (about 1.8 log2(n) n 2^-104 found, n up to 2^32 - 1). The bounds
-    are thus the tightest, or one double beyond where the power is within
-    5 log2(n) n 2^-104 of a double, relatively, and exact where the power is
-    a double. false when a product is not finite, or is below 2^-968, its
-    rest being no double then: the rounded products handle these powers, 0
-    included.
+    For n < 0, 1/c^m from h + l: q = 1/h rounded upward, R = 1 - q(h + l) =
+    (1 - q h) - q l, 1 - q h being exact, r = R rounded once, and
+    1/(h + l) = q (1 + R + R^2 + R^3/(1 - R)), which q + q (r + r^2) gives
+    to within the error of r, two roundings and q R^3: K = 2 K_m + 64 2^-104
+    + 2 m^3 2^-156 (below). The result is exact where 1/c^m is a double, r
+    being +0 too. 1/x is inverse() itself, correctly rounded.
+
+    The bound K, with u = 2^-52 and m <= 2^31. A rounding upward is within
+    u|z| of a normal z, and within 2^-1074 of any z, which is u^2/2 of
+    2^-969, below which no power c^k goes here. After j steps (squares and
+    products by c) reaching c^k = X, k u <= 2^-20 and
+      |l| <= b |X|, b = (k - 1) u (1 + 2(k - 1) u),
+      |h + l - X| <= a |X|, a = 3 k j u^2.
+    The first square gives c^2 = h + l exactly, |l| < u|X|. A square takes
+    d = h + l - X to d(2X + d) + l(t - 2h - l) + (l' - l t - e), and a
+    product by c to c d + (l' - l c - f), with |h| <= (1 + a + b)|X|,
+    |e| <= u h^2 and |f| <= u(1 + u)|h c|: the bounds become
+      b' = (1 + u)^2 b (2 + 2a + 3b) + (1 + u) u (1 + a + b)^2 + u^2/2,
+      a' = a(2 + a) + u b (2 + 2a + 3b) + u b' + u^2/2
+    after a square, and
+      b' = (1 + u)(b + u (1 + u)(1 + a + b)) + u^2/2,  a' = a + u b' + u^2/2
+    after a product, about 2b + u = (2k - 1) u and 2a + 4 k u^2, b + u and
+    a + k u^2: below the bounds for 2k and j + 1, for k + 1 and j + 1, by
+    (b + u)^2/4 and 2 k u^2 at least for the terms of second order
+    (tests/tools/pow/pown_bound.py checks it with rationals). With
+    j <= 2(L - 1), |h + l - c^m| <= 6 m (L - 1) u^2 |X|, which is below K|h|,
+    |h| being above (1 - 2^-19)|X|. For n < 0, |R| <= u + |q l| <=
+    m u (1 + 2^-17); the roundings of r, q r and q r (1 + r) are within
+    3 m u^2 (1 + 2^-16)|q| together, q R^3/(1 - R) within 1.0001 m^3 u^3 |q|,
+    and 1/(h + l) within 6 m (L - 1) u^2 (1 + 2^-17)|q| of 1/c^m: below
+    2 K_m |q| for the first and the third, 2 m^3 u^3 |q| for the second, and
+    64 u^2 |q| for the roundings within 2^-1074. A product scaled by 2^-500 in
+    pown_point() rounds its rest l within 2^-1074 too, the power being above
+    1 there.
+
+    Each power c^k stays within [2^-969, 2^961] where |c| is within
+    [pown_least[L], pown_greatest[L]] (c = 0 too for n > 0): the rests are
+    doubles, and q = 1/h is normal, for every m of L bits. Any other corner
+    takes pown_point(), one bound at a time, c^m being computed there with c
+    scaled to [1, 2) and the power kept below 2^501 by powers of two, scaled
+    back at the end, rounded once in the direction of the bound: the same
+    bounds, the tightest, for the powers beyond the doubles and below 2^-968
+    too, and the limits at 0 and at the infinities. No operation computes
+    oo - oo or 0 oo: x^n raises no invalid-operation exception, where the
+    exponentiation from an infinite bound would.
   */
-  // Whether the rest of the product rounded to p is a double for sure: a
-  // multiple of 2^-105 p, it is one from p = 2^-968 on. Not for an infinite p
-  static inline bool is_normal_product(double p)
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_POWN_INLINE __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+#  define GAOL_POWN_INLINE __forceinline
+#else
+#  define GAOL_POWN_INLINE inline
+#endif
+
+  // 2^(-968/2^L) rounded upward and 2^(960/2^L) rounded downward, for the
+  // m of L bits, 2 <= L <= 32 (2^(L-1) <= m < 2^L): |c|^m is then within
+  // [2^-968, 2^960] for |c| within [pown_least[L], pown_greatest[L]]
+  static const double pown_least[33] = {
+    0.0, 0.0, 1.4149498560666738e-73, 3.76158192263132e-37, 6.133173666733497e-19,
+    7.83145814439016e-10, 2.7984742529439433e-05, 0.005290060730222238,
+    0.0727328036735986, 0.26969019943927997, 0.5193170509806895,
+    0.7206365595643129, 0.848903150874299, 0.9213594037476901,
+    0.9598746812723472, 0.979731943580665, 0.9898140954647318,
+    0.9948940121765392, 0.9974437388527432, 0.9987210515718307,
+    0.9993603211914263, 0.999680109430725, 0.9998400419220692,
+    0.9999200177624554, 0.9999600080815509, 0.9999800038408523,
+    0.9999900018704448, 0.9999950009227271, 0.9999975004582398,
+    0.999998750228339, 0.9999993751139743, 0.9999996875569384,
+    0.999999843778457
+  };
+  static const double pown_greatest[33] = {
+    0.0, 0.0, 1.7668470647783843e+72, 1.329227995784916e+36, 1.152921504606847e+18,
+    1073741824.0, 32768.0, 181.01933598375615, 13.454342644059432,
+    3.668016172818685, 1.9152065613971472, 1.3839098819638318,
+    1.1763969916502812, 1.0846183622133092, 1.041450124688316,
+    1.020514637174948, 1.0102052450739643, 1.0050896701657839,
+    1.0025416052043843, 1.0012699961570726, 1.0006347965951776,
+    1.0003173479427303, 1.0001586613846476, 1.000079327545894,
+    1.0000396629863706, 1.0000198312965451, 1.000009915599113,
+    1.0000049577872665, 1.0000024788905608, 1.0000012394445121,
+    1.000000619722064, 1.000000309860984, 1.00000015493048
+  };
+
+  // The number of bits of m >= 1
+  static GAOL_POWN_INLINE unsigned int pown_bit_length(unsigned int m)
   {
-    return p >= std::numeric_limits<double>::min()*18014398509481984.0 /* 2^54 */ && p <= std::numeric_limits<double>::max();
+#if defined(__GNUC__) || defined(__clang__)
+    return 32u - static_cast<unsigned int>(__builtin_clz(m));
+#else
+    unsigned int length = 1u;
+    while (length < 32u && (m >> length) != 0u) {
+      ++length;
+    }
+    return length;
+#endif
   }
 
-  static bool ipow_exact_up(double x, unsigned int n, double& bound)
+  // K for c^m and for c^-m (see above), in the upward rounding: 2^-104 is
+  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47
+  static GAOL_POWN_INLINE double pown_bound(unsigned int m, unsigned int L)
   {
-    unsigned int bit = 1u;
-    while ((n >> 1) >= bit) { // The highest bit of n
-      bit <<= 1;
-    }
-    double h = x, l = 0.0;
-    for (bit >>= 1; bit != 0u; bit >>= 1) {
-      double p = h*h;
-      if (!is_normal_product(p)) {
-	return false;
-      }
-      l = std::fma(h,h,-p) + l*(-(-2.0*h - l)); // (h + l)^2 - p: l <= 0 times 2h + l rounded downward
-      h = p;
-      if (n & bit) {
-	p = h*x;
-	if (!is_normal_product(p)) {
-	  return false;
-	}
-	l = std::fma(h,x,-p) + l*x;
-	h = p;
-      }
-    }
-    bound = h + l;
-    return true;
+    return (8.0*m*L + 16.0)*4.930380657631324e-32;
   }
 
-  static bool ipow_exact_dn(double x, unsigned int n, double& bound)
+  static GAOL_POWN_INLINE double pown_bound_inverse(unsigned int m, unsigned int L)
   {
-    unsigned int bit = 1u;
-    while ((n >> 1) >= bit) {
-      bit <<= 1;
-    }
-    double h = x, nl = 0.0;
-    for (bit >>= 1; bit != 0u; bit >>= 1) {
-      double p = h*h;
-      if (!is_normal_product(p)) {
-	return false;
-      }
-      nl = std::fma(-h,h,p) + nl*(2.0*h - nl); // p - (h - nl)^2 rounded upward, as are 2h - nl and nl*(2h - nl), nl >= 0
-      h = p;
-      if (n & bit) {
-	p = h*x;
-	if (!is_normal_product(p)) {
-	  return false;
-	}
-	nl = std::fma(-h,x,p) + nl*x;
-	h = p;
-      }
-    }
-    bound = maximum(-(-h + nl), 0.0); // h - nl rounded downward
-    return true;
+    const double dm = m;
+    return 2.0*pown_bound(m, L) + 64.0*4.930380657631324e-32 + dm*dm*dm*2.1895288505075267e-47;
   }
+
+  static GAOL_POWN_INLINE std::uint64_t pown_bits_of(double x)
+  {
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
+
+  // The two lanes: an SSE2 register where the FMA instructions are, a pair
+  // of doubles elsewhere; the rests or-ed together
+#if GAOL_POWN_PACKED
+  typedef __m128d pown_lanes;
+  typedef __m128d pown_rests;
+  static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b) { return _mm_mul_pd(a, b); }
+  static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c) { return _mm_fmsub_pd(a, b, c); }
+  static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c) { return _mm_fmadd_pd(a, b, c); }
+  static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b) { return _mm_fmadd_pd(_mm_set1_pd(2.0), a, b); }
+  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e) { return e; }
+  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e) { s = _mm_or_pd(s, e); }
+#else
+  struct pown_lanes { double l0, l1; };
+  struct pown_rests { std::uint64_t l0, l1; };
+  static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b)
+  {
+    const pown_lanes r = { a.l0*b.l0, a.l1*b.l1 };
+    return r;
+  }
+  static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c)
+  {
+    const pown_lanes r = { std::fma(a.l0, b.l0, -c.l0), std::fma(a.l1, b.l1, -c.l1) };
+    return r;
+  }
+  static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c)
+  {
+    const pown_lanes r = { std::fma(a.l0, b.l0, c.l0), std::fma(a.l1, b.l1, c.l1) };
+    return r;
+  }
+  static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b)
+  {
+    const pown_lanes r = { std::fma(2.0, a.l0, b.l0), std::fma(2.0, a.l1, b.l1) };
+    return r;
+  }
+  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e)
+  {
+    const pown_rests s = { pown_bits_of(e.l0), pown_bits_of(e.l1) };
+    return s;
+  }
+  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e)
+  {
+    s.l0 |= pown_bits_of(e.l0);
+    s.l1 |= pown_bits_of(e.l1);
+  }
+#endif
 
   /*
-    I^e for a non-empty I and e > 0, as gaol_pown() and gaol_uipow() call
-    it: from exact products for e > 2, the square being the tightest already,
-    and from the rounded products where a bound is 0 or infinite, or a power
-    is not finite or is below 2^-968. uipow_nonempty_upward() takes the
-    rounding direction to be upward already, as it is in pown_upward(), which
-    gaol_pown(), pow_standard(), gaol_pow_hybrid() and gaol_pow_real() call
-    after their check; uipow_nonempty() checks it, once: the rounded products
-    of the fallback no longer check it again (GAOL v5).
+    c^m as h + l in each lane, m >= 2, and the rests or-ed in s (see above).
+    Inlined by force, so that each constant m of pown_powers() unrolls it:
+    the loop and its tests cost as much as the products for a small m
+    (x^3 took 6.1 ns rather than 4.1 with Clang 18 on an i7-1185G7, in a
+    prototype).
   */
-  /* The bounds of I^e from exact products, e > 2, rounding upward; false
-     where the rounded products are to take (see above). Inlined by force with
-     GCC and Clang in its two callers: called by Clang 18, it made
-     pow([0, b], 3) and pow(x, -3) 1 ns slower (8 % and 5 %) than when
-     uipow_nonempty() held it itself (GAOL v5). */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
-  static inline bool uipow_exact(const interval& I, unsigned int e, double& l, double& r)
+  template <class Lanes, class Rests>
+  static GAOL_POWN_INLINE void pown_products(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
   {
-    const double a = I.left(), b = I.right();
-    double t = 0.0;
-    bool finite;
-    if (a >= 0.0) {
-      finite = ipow_exact_dn(a,e,l) && ipow_exact_up(b,e,r);
-    } else if (b <= 0.0) {
-      if (odd(e)) { // [-|a|^e, -|b|^e]
-	finite = ipow_exact_up(-a,e,t) && ipow_exact_dn(-b,e,r);
-	l = -t;
-	r = -r;
-      } else {
-	finite = ipow_exact_dn(-b,e,l) && ipow_exact_up(-a,e,r);
+    unsigned int bit = (1u << (pown_bit_length(m) - 1u)) >> 1;
+    h = pown_mul(c, c);
+    l = pown_fms(c, c, h); // c^2 = h + l, exactly
+    s = pown_first_rest(l);
+    for (;;) {
+      if ((m & bit) != 0u) {
+        const Lanes q = pown_mul(h, c);
+        const Lanes f = pown_fms(h, c, q);
+        pown_add_rest(s, f);
+        l = pown_fma(l, c, f);
+        h = q;
       }
-    } else if (odd(e)) { // I straddles 0: [-|a|^e, b^e]
-      finite = ipow_exact_up(-a,e,t) && ipow_exact_up(b,e,r);
-      l = -t;
-    } else { // [0, mag(I)^e]
-      finite = ipow_exact_up(maximum(-a,b),e,r);
+      bit >>= 1;
+      if (bit == 0u) {
+        break;
+      }
+      const Lanes p = pown_mul(h, h);
+      const Lanes e = pown_fms(h, h, p);
+      pown_add_rest(s, e);
+      l = pown_fma(l, pown_twice_plus(h, l), e); // 2h + l rounded once, 2h being exact
+      h = p;
     }
-    return finite;
   }
 
-  static interval uipow_nonempty_upward(const interval& I, unsigned int e)
+#define GAOL_POWN_CASE(k) case k: pown_products(c, k##u, h, l, s); break;
+  template <class Lanes, class Rests>
+  static GAOL_POWN_INLINE void pown_powers(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
   {
-    if (e < 3) {
-      return uipow_rounded_upward(I,e);
+    switch (m) {
+      GAOL_POWN_CASE(2) GAOL_POWN_CASE(3) GAOL_POWN_CASE(4) GAOL_POWN_CASE(5)
+      GAOL_POWN_CASE(6) GAOL_POWN_CASE(7) GAOL_POWN_CASE(8) GAOL_POWN_CASE(9)
+      GAOL_POWN_CASE(10) GAOL_POWN_CASE(11) GAOL_POWN_CASE(12) GAOL_POWN_CASE(13)
+      GAOL_POWN_CASE(14) GAOL_POWN_CASE(15) GAOL_POWN_CASE(16) GAOL_POWN_CASE(17)
+      GAOL_POWN_CASE(18) GAOL_POWN_CASE(19) GAOL_POWN_CASE(20) GAOL_POWN_CASE(21)
+      GAOL_POWN_CASE(22) GAOL_POWN_CASE(23) GAOL_POWN_CASE(24) GAOL_POWN_CASE(25)
+      GAOL_POWN_CASE(26) GAOL_POWN_CASE(27) GAOL_POWN_CASE(28) GAOL_POWN_CASE(29)
+      GAOL_POWN_CASE(30) GAOL_POWN_CASE(31) GAOL_POWN_CASE(32)
+    default:
+      pown_products(c, m, h, l, s);
+      break;
     }
-    double l = 0.0, r = 0.0;
-    return uipow_exact(I,e,l,r) ? interval(l,r) : uipow_rounded_upward(I,e);
   }
+#undef GAOL_POWN_CASE
 
-  static interval uipow_nonempty(const interval& I, unsigned int e)
+  /*
+    The bounds of c^n for a double c and an int n, |n| >= 2, the rounding
+    direction being upward: the corners pown_large_upward() does not take at once
+    (see above). 0^n is 0 for n > 0, and +oo for n < 0, -oo at -0 for an odd
+    n, the limit of x^n at 0 on its side; +-oo^n is +-oo for n > 0 and 0 for
+    n < 0. Any other c is |c| = y 2^(e - 1), y in [1, 2), whose power is
+    (h + l) 2^z, the product being scaled by 2^-500 above 2^500: exactly,
+    but for a rest l below 2^-522, rounded within 2^-1074 of it, which the
+    bound K holds. The bounds of y^n, which are within [2^-502, 2^502], are
+    then scaled by 2^z, rounded once in their direction (gaol_ldexp()).
+  */
+  static void pown_point(double c, int n, double& lo, double& hi)
   {
-    // The powers of e < 3 are checked by uipow_rounded(), with
-    // GAOL_RND_ENTER_SSE() in the SSE2 build, which saves and restores the
-    // direction of the SSE instructions only with GAOL_PRESERVE_ROUNDING
-    if (e < 3) {
-      return uipow_rounded(I,e);
+    const unsigned int m = (n > 0) ? static_cast<unsigned int>(n) : 0u - static_cast<unsigned int>(n);
+    const double g = std::fabs(c);
+    if (g == 0.0 || g == GAOL_INFINITY) {
+      lo = hi = ((g == 0.0) == (n < 0)) ? GAOL_INFINITY : 0.0;
+    } else {
+      // 2^500 and 2^-500
+      const double big = 3.273390607896142e+150, small = 3.054936363499605e-151;
+      const unsigned int L = pown_bit_length(m);
+      int ey;
+      const double y = 2.0*std::frexp(g, &ey); // exact
+      --ey;
+      unsigned int bit = (1u << (L - 1u)) >> 1;
+      double h = y*y;
+      double l = std::fma(y, y, -h);
+      std::uint64_t s = pown_bits_of(l);
+      long long z = 2LL*ey;
+      for (;;) {
+        if ((m & bit) != 0u) {
+          const double q = h*y;
+          const double f = std::fma(h, y, -q);
+          s |= pown_bits_of(f);
+          l = std::fma(l, y, f);
+          h = q;
+          z += ey;
+        }
+        if (h > big) {
+          h *= small;
+          l *= small;
+          z += 500;
+        }
+        bit >>= 1;
+        if (bit == 0u) {
+          break;
+        }
+        const double p = h*h;
+        const double e = std::fma(h, h, -p);
+        s |= pown_bits_of(e);
+        l = std::fma(l, std::fma(2.0, h, l), e);
+        h = p;
+        z *= 2;
+        if (h > big) {
+          h *= small;
+          l *= small;
+          z += 500;
+        }
+      }
+      double K;
+      if (n < 0) {
+        const double q = 1.0/h;
+        const double r = std::fma(-q, l, std::fma(-q, h, 1.0));
+        const double qr = q*r;
+        l = std::fma(qr, r, qr);
+        h = q;
+        s |= pown_bits_of(r);
+        z = -z;
+        K = pown_bound_inverse(m, L);
+      } else {
+        K = pown_bound(m, L);
+      }
+      K = (s != 0u) ? K : 0.0;
+      // h > 0: the bound above, and the opposite of the bound below, of y^n,
+      // then scaled
+      const double up = h + std::fma(K, h, l);
+      const double down = -h + std::fma(K, h, -l);
+      const int w = (z > 2200) ? 2200 : ((z < -2200) ? -2200 : static_cast<int>(z));
+      hi = gaol_ldexp(up, w);
+      lo = -gaol_ldexp(down, w);
     }
-    GAOL_RND_ENTER();
-    double l = 0.0, r = 0.0;
-    if (uipow_exact(I,e,l,r)) {
-      GAOL_RND_KEEP(l);
-      GAOL_RND_KEEP(r);
-      GAOL_RND_LEAVE();
-      return interval(l,r);
+    if (std::signbit(c) && (m & 1u) != 0u) {
+      const double t = lo;
+      lo = -hi;
+      hi = -t;
     }
-    interval res = uipow_rounded_upward(I,e);
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
-    return res;
   }
 
 
@@ -1568,76 +1757,279 @@ namespace gaol_core {
   };
 
   /*
-    I^n for an int n, the rounding direction being upward already: the body of
-    gaol_pown(), which pow_standard(), gaol_pow_hybrid() and gaol_pow_real()
-    call after their own check (GAOL v5: they called gaol_pown(), which
-    checked the direction a second time). The empty set is given back as it
-    is, as gaol_uipow() gave it.
-
-    x^-m is 1/x^m, unless x^m overflows: then (1/x)^m (GAOL v5). GAOL computed
-    1/x^m, whose x^m overflowed for some |x| > 1 before the inversion:
-    pow([10],-400) was [0,5.6e-309] rather than [0,2^-1074], and
-    pow([2],-1050) [0,2^-1024] rather than [2^-1050]. 1/x is an interval where
-    I does not straddle 0; where it does, x^-m is [-oo,+oo] for an odd m, and
-    [mag(I)^-m,+oo] for an even m. The powers and the inverses are computed by
-    the bodies of uipow_nonempty() and inverse(), which do not check the
-    direction again, where GAOL called them and gaol_uipow(), which checked it
-    two to five times. Each interval given to inverse_upward() is non-empty: a
-    finite power, [g, g] for g > 0, I. Inlined by force with GCC and Clang,
-    so that gaol_pown() keeps the code it had when it held this body: Clang 18
-    called it otherwise.
+    The corners of x^n on [a, b], |n| >= 2 (see pown_products()): c0, where
+    x^n is the least, and c1, where it is the greatest. x^n increases for an
+    odd n > 0, and decreases on each side of 0 for an odd n < 0; for an even
+    n, it is |x|^n, increasing in |x| for n > 0 and decreasing for n < 0. A
+    corner at 0 for n < 0 is the limit of x^n on the side of 0 x lies on:
+    -oo at -0, +oo at +0 (pown_point()). false where x^n has no value on x,
+    which is [0] for n < 0: 0^n has none (IEEE 1788-2015, Table 9.1).
   */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
+  static GAOL_POWN_INLINE bool pown_corners(double a, double b, bool negative, bool odd_n, double& c0, double& c1)
+  {
+    if (!negative) {
+      if (odd_n) {
+        c0 = a;
+        c1 = b;
+      } else {
+        c0 = (a > 0.0) ? a : ((b < 0.0) ? -b : 0.0);
+        c1 = (-a > b) ? -a : b;
+      }
+    } else if (a > 0.0 || b < 0.0) {
+      if (odd_n) {
+        c0 = b;
+        c1 = a;
+      } else {
+        c0 = (a > 0.0) ? b : -a;
+        c1 = (a > 0.0) ? a : -b;
+      }
+    } else if (a == 0.0 && b == 0.0) {
+      return false;
+    } else if (odd_n) {
+      c0 = (a < 0.0) ? -0.0 : b;
+      c1 = (b > 0.0) ? 0.0 : a;
+    } else {
+      c0 = (-a > b) ? -a : b;
+      c1 = 0.0;
+    }
+    return true;
+  }
+
+  // x^n on [a, b] for |n| >= 2, one bound at a time (pown_point())
+  static interval pown_by_corners(double a, double b, int n)
+  {
+    double c0, c1, lo, hi, other;
+    if (!pown_corners(a, b, n < 0, (n & 1) != 0, c0, c1)) {
+      return interval::emptyset();
+    }
+    pown_point(c0, n, lo, other);
+    pown_point(c1, n, other, hi);
+    return interval(lo, hi);
+  }
+
+  /*
+    I^n for |n| >= 2 and a nonempty I, the rounding direction being upward:
+    both corners at once where they are within the range of pown_least[] and
+    pown_greatest[], and pown_by_corners() otherwise (see pown_products()).
+    Inlined in gaol_pown() alone: its switch over the small exponents is long,
+    and the other callers, five, call pown_large_upward().
+  */
+  static GAOL_POWN_INLINE interval pown_large_inline(const interval& I, int n)
+  {
+    const bool negative = n < 0;
+    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    const unsigned int L = pown_bit_length(m);
+    const double a = I.left(), b = I.right();
+    if (!negative || a > 0.0 || b < 0.0) {
+#if GAOL_POWN_PACKED
+      // (a, b), or (max(a, -b, 0), max(-a, b)) for an even m, and the
+      // other way around for n < 0, with the operations of the register:
+      // Clang calls std::fmax() under -frounding-math
+      const __m128d ab = _mm_set_pd(b, a), nba = _mm_set_pd(-a, -b), zero = _mm_setzero_pd();
+      __m128d c = ((m & 1u) != 0u) ? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);
+      if (negative) {
+        c = _mm_shuffle_pd(c, c, 1);
+      }
+      const __m128d minus_zero = _mm_set1_pd(-0.0);
+      const __m128d g = _mm_andnot_pd(minus_zero, c);
+      __m128d ok = _mm_and_pd(_mm_cmpge_pd(g, _mm_set1_pd(pown_least[L])), _mm_cmple_pd(g, _mm_set1_pd(pown_greatest[L])));
+      if (!negative) {
+        ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));
+      }
+      if (_mm_movemask_pd(ok) == 3) {
+        __m128d h, l, s, K;
+        pown_powers(c, m, h, l, s);
+        if (negative) {
+          const __m128d one = _mm_set1_pd(1.0);
+          const __m128d q = _mm_div_pd(one, h);
+          const __m128d r = _mm_fnmadd_pd(q, l, _mm_fnmadd_pd(q, h, one)); // (1 - q h) - q l
+          const __m128d qr = _mm_mul_pd(q, r);
+          l = _mm_fmadd_pd(qr, r, qr); // q (r + r^2)
+          h = q;
+          s = _mm_or_pd(s, r);
+          K = _mm_set1_pd(pown_bound_inverse(m, L));
+        } else {
+          K = _mm_set1_pd(pown_bound(m, L));
+        }
+        // The rests compared as integers: or-ed together, they may make the
+        // bits of a signaling NaN, which a comparison of doubles would take
+        // for one, raising the invalid-operation exception
+        K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
+        // (-h + RU(K |h| - l), h + RU(K |h| + l)), the lower bound negated
+        const __m128d sign = _mm_set_pd(0.0, -0.0);
+        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, _mm_andnot_pd(minus_zero, h), _mm_xor_pd(l, sign))));
+      }
+#else
+      double c0, c1;
+      (void)pown_corners(a, b, negative, (m & 1u) != 0u, c0, c1);
+      const double least = pown_least[L], greatest = pown_greatest[L];
+      const double g0 = std::fabs(c0), g1 = std::fabs(c1);
+      if (((g0 >= least && g0 <= greatest) || (!negative && g0 == 0.0))
+          && ((g1 >= least && g1 <= greatest) || (!negative && g1 == 0.0))) {
+        const pown_lanes c = { c0, c1 };
+        pown_lanes h, l;
+        pown_rests s;
+        pown_powers(c, m, h, l, s);
+        double K;
+        if (negative) {
+          const double q0 = 1.0/h.l0, q1 = 1.0/h.l1;
+          const double r0 = std::fma(-q0, l.l0, std::fma(-q0, h.l0, 1.0));
+          const double r1 = std::fma(-q1, l.l1, std::fma(-q1, h.l1, 1.0));
+          const double qr0 = q0*r0, qr1 = q1*r1;
+          l.l0 = std::fma(qr0, r0, qr0);
+          l.l1 = std::fma(qr1, r1, qr1);
+          h.l0 = q0;
+          h.l1 = q1;
+          s.l0 |= pown_bits_of(r0);
+          s.l1 |= pown_bits_of(r1);
+          K = pown_bound_inverse(m, L);
+        } else {
+          K = pown_bound(m, L);
+        }
+        const double K0 = (s.l0 != 0u) ? K : 0.0, K1 = (s.l1 != 0u) ? K : 0.0;
+        const double down = -h.l0 + std::fma(K0, std::fabs(h.l0), -l.l0);
+        const double up = h.l1 + std::fma(K1, std::fabs(h.l1), l.l1);
+        return interval(-down, up);
+      }
 #endif
+    }
+    return pown_by_corners(a, b, n);
+  }
+
+  static interval pown_large_upward(const interval& I, int n)
+  {
+    return pown_large_inline(I, n);
+  }
+
+  /*
+    I^n for an int n, the rounding direction being upward already: the body
+    of gaol_pown() and gaol_uipow(), which pow_standard(), gaol_pow_hybrid()
+    and gaol_pow_real() call after their own check (GAOL v5: they called
+    gaol_pown(), which checked the direction a second time). The empty set
+    is given back as it is; x^0 is 1, x^1 x, and x^-1 the inverse, correctly
+    rounded, which takes x^-1 at 0 as IEEE 1788-2015 does (recip, Table 9.1)
+    and as x^n for n < 0 does: [1/b, +oo] for [0, b], [-oo, +oo] for an x
+    holding 0 inside, the empty set for [0]. Any other n takes
+    pown_large_upward(), with the tightest bounds (GAOL v5, see
+    pown_products(): GAOL computed x^-m as 1/x^m, whose x^m overflowed for some
+    |x| > 1 before the inversion: pow([10],-400) was [0,5.6e-309] rather than
+    [0,2^-1074], and pow([2],-1050) [0,2^-1024] rather than [2^-1050]).
+  */
   static inline interval pown_upward(const interval& I, int n)
   {
     if (I.is_empty()) {
       return I;
     }
-    if (n > 0) {
-      return uipow_nonempty_upward(I, static_cast<unsigned int>(n));
-    }
-    if (n == 0) {
+    switch (n) {
+    case 0:
       return interval(1.0);
+    case 1:
+      return I;
+    case -1:
+      return upward_access::inverse(I);
+    default:
+      return pown_large_upward(I, n);
     }
-    const unsigned int m = 0u - static_cast<unsigned int>(n);
-    const double largest = std::numeric_limits<double>::max();
-    const interval res = uipow_nonempty_upward(I,m);
-    if (res.left() >= -largest && res.right() <= largest) {
-      return upward_access::inverse(res);
-    }
-    if (I.left() < 0.0 && I.right() > 0.0) {
-      if (odd(m)) {
-        return interval::universe();
-      }
-      const double g = I.mag();
-      if (g == GAOL_INFINITY) {
-        return interval::positive();
-      }
-      return interval(uipow_nonempty_upward(upward_access::inverse(interval(g)),m).left(),GAOL_INFINITY);
-    }
-    // gaol_uipow() gave the empty set back as it is
-    const interval J = upward_access::inverse(I);
-    return J.is_empty() ? J : uipow_nonempty_upward(J,m);
   }
 
-  // The rounding direction is checked once (GAOL v5): by uipow_nonempty() for
-  // n > 0, which takes the rounded products of n = 1 and 2 under the check of
-  // the SSE instructions alone in the SSE2 build, here for n < 0
-  interval gaol_pown(const interval& I, int n)
+  /*
+    x^n for an integer n beyond the ints (GAOL v5, point 74 of TODO.md):
+    the bounds of c^n at the corners of pown_corners(), from CORE-MATH's pow
+    (pow_lo(), pow_hi()), the tightest, where n is a double, |n| <= 2^53 and
+    beyond as a double; the sign from the parity of n. An integer n of more
+    than 53 bits that is no double is nh + nl, nh being n with the 11 lowest
+    bits of |n| cleared, a double, and nl the rest, below 2^11: c^n is
+    c^nh c^nl, rounded outward, within three doubles of the tightest bounds.
+    gaol::pow(x, n) gave [-oo, +oo] beyond the ints and the unsigned ints,
+    whereas x^n is finite and not trivial for x near 1: pow([1 + 2^-30],
+    2^33), about e^8, is [2980.9579759367944, 2980.9579759367948]. Only
+    x within 2^-43 of 1, 0, 1 and the infinities have a power that is neither
+    0 nor +-oo there, rounded to [0, 2^-1074] or [DBL_MAX, +oo] where it is
+    below the least subnormal or above the largest double.
+  */
+  static void pown_point_beyond(double c, double nh, double nl, bool odd_n, double& lo, double& hi)
   {
+    const double g = std::fabs(c);
+    if (g == 0.0 || g == GAOL_INFINITY) {
+      lo = hi = ((g == 0.0) == (nh < 0.0)) ? GAOL_INFINITY : 0.0;
+    } else {
+      lo = pow_lo(g, nh);
+      hi = pow_hi(g, nh);
+      if (nl != 0.0) {
+        // c^nh and c^nl are on the same side of 1: the product is no 0 oo
+        lo = -((-lo)*pow_lo(g, nl));
+        hi = hi*pow_hi(g, nl);
+      }
+    }
+    if (std::signbit(c) && odd_n) {
+      const double t = lo;
+      lo = -hi;
+      hi = -t;
+    }
+  }
+
+  static interval pown_beyond_upward(const interval& I, double nh, double nl, bool odd_n)
+  {
+    double c0, c1, lo, hi, other;
     if (I.is_empty()) {
       return I;
     }
-    if (n > 0) {
-      return uipow_nonempty(I,static_cast<unsigned int>(n));
+    if (!pown_corners(I.left(), I.right(), nh < 0.0, odd_n, c0, c1)) {
+      return interval::emptyset();
     }
-    if (n == 0) {
-      return interval(1.0);
-    }
+    pown_point_beyond(c0, nh, nl, odd_n, lo, other);
+    pown_point_beyond(c1, nh, nl, odd_n, other, hi);
+    return interval(lo, hi);
+  }
+
+  // A degenerate exponent [d], d an integer beyond the ints: odd only below
+  // 2^53, where the doubles are all even
+  static interval pown_double_upward(const interval& I, double d)
+  {
+    const bool odd_d = std::fabs(d) < 9007199254740992.0 && std::fmod(d, 2.0) != 0.0;
+    return pown_beyond_upward(I, d, 0.0, odd_d);
+  }
+
+  /*
+    One check of the rounding direction for each call (GAOL v5). The body of
+    pown_large_upward() is inlined here, the function of gaol::pow(x, n) and
+    of gaol_ieee1788::pown(x, n): its call took 0.4 to 0.6 ns more for x^3
+    to x^1000 (5.9 ns rather than 5.5 for x^3, with Clang 21 on an
+    i7-1185G7).
+  */
+  interval gaol_pown(const interval& I, int n)
+  {
     GAOL_RND_ENTER();
-    interval res = pown_upward(I, n);
+    interval res = (I.is_empty() || (n >= -1 && n <= 1)) ? pown_upward(I, n) : pown_large_inline(I, n);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  // gaol_pown() within the ints, CORE-MATH's pow beyond them (GAOL v5)
+  interval gaol_uipow(const interval& I, unsigned int e)
+  {
+    GAOL_RND_ENTER();
+    interval res = (e <= static_cast<unsigned int>(INT_MAX)) ? pown_upward(I, static_cast<int>(e))
+      : pown_beyond_upward(I, static_cast<double>(e), 0.0, (e & 1u) != 0u);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  interval gaol_pown_ll(const interval& I, long long n)
+  {
+    GAOL_RND_ENTER();
+    interval res;
+    if (n >= INT_MIN && n <= INT_MAX) {
+      res = pown_upward(I, static_cast<int>(n));
+    } else {
+      // |n| without a signed negation, which overflows at LLONG_MIN
+      const unsigned long long magnitude = (n < 0) ? 0ull - static_cast<unsigned long long>(n) : static_cast<unsigned long long>(n);
+      const unsigned long long high = (magnitude > (1ull << 53)) ? (magnitude & ~2047ull) : magnitude;
+      const double nh = static_cast<double>(high), nl = static_cast<double>(magnitude - high); // exact
+      res = pown_beyond_upward(I, (n < 0) ? -nh : nh, (n < 0) ? -nl : nl, (magnitude & 1u) != 0u);
+    }
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -1652,8 +2044,7 @@ namespace gaol_core {
     pown agree; any other box takes the powers at its corners.
     gaol_ieee1788::pow(x, y) is this function after the check of
     pow_standard(), and gaol_pow_hybrid() calls it for every exponent but a
-    degenerate integer, for which it takes pown on the whole of x within the
-    ints, and [-oo, +oo] beyond them.
+    degenerate integer, for which it takes pown on the whole of x.
   */
   static interval pow_standard_upward(const interval& x, const interval& y)
   {
@@ -1686,8 +2077,8 @@ namespace gaol_core {
     /*
       A degenerate integer exponent [n] within the ints: x^n on x >= 0, where
       pow and pown agree, pown giving the powers that are doubles exactly, as
-      pow_is_double() does at the corners below. Beyond the ints, which pown
-      cannot take, n >= 2^31 or n < -2^31, [n] takes the corners below, one
+      pow_is_double() does at the corners below. Beyond the ints, n >= 2^31 or
+      n < -2^31, [n] takes the corners below, as pown does there, one
       for each bound, x^n being monotone in x (GAOL v5: a block of its own
       took them, with the bounds the corners give since they take the
       limits): 1 at x = 1, the limit 0 or +oo at x = 0 (+0 or -0) and +oo,
@@ -1698,7 +2089,7 @@ namespace gaol_core {
       above 2^53 (m^n, m >= 3 odd), so that the double below CORE-MATH's
       value is the tightest lower bound (pow_is_double() tells no such power
       a double). gaol_pow_hybrid() takes [n] before it comes here: pown on the
-      whole of x within the ints, [-oo,+oo] beyond them.
+      whole of x (pown_double_upward() beyond the ints).
     */
     if (y.is_an_int()) {
       return pown_upward(base, static_cast<int>(y.left()));
@@ -1820,8 +2211,9 @@ namespace gaol_core {
       if (J.is_an_int()) {
         return pown_upward(I,int(J.left()));
       }
-      // An integer beyond the ints, which gaol_pown() cannot take
-      return interval::universe();
+      // An integer beyond the ints: the pown of CORE-MATH's pow (GAOL v5,
+      // point 74 of TODO.md: [-oo, +oo] before)
+      return pown_double_upward(I, J.left());
     }
     return pow_standard_upward(I, J);
   }

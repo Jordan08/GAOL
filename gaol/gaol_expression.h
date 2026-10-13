@@ -1429,10 +1429,11 @@ namespace gaol_core {
           beyond the ints, converted to a negative int, made [0, 1] for [1, 2]^n:
           gaol_pown_exp(e, n) for an n within the ints, and beyond them the
           expression of pow(e, [d]), d being n converted to a double, an integer
-          beyond the ints, for which GAOL's pow gives [-oo, +oo] for a nonempty e,
-          as gaol::pow(x, [n]) of intervals; gaol::pow(x, n) of intervals takes
-          gaol_uipow() within the unsigned ints, which no node of an expression
-          computes
+          beyond the ints, for which GAOL's pow takes pown, as gaol::pow(x, [n])
+          of intervals (GAOL v5: [-oo, +oo] for a nonempty e). d is n rounded
+          above 2^53, where gaol::pow(x, n) of intervals takes n itself
+          (gaol_pown_ll()), and gaol_uipow() within the unsigned ints, which no
+          node of an expression computes
           */
           template <class T, ::gaol_detail::if_integer<T> = 0>
           GAOL_NODISCARD inline const expression pow(const expression& e, T n)

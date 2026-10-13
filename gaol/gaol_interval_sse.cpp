@@ -318,16 +318,14 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 }
 
 /*
-  The powers rounded outward, which pow(x, n) takes for n = 1 and 2, and
-  where the exact products are not taken (a bound 0 or infinite, a power
-  below 2^-968 or beyond the largest double): the binary exponentiation from
-  the lowest bit of n, whose squarings do not wait for the products, as the
-  FPU intervals compute it (gaol_interval_fpu.cpp), product for product, so
-  that both give the same bounds. GAOL multiplied from the highest bit of n
-  here (the code under #if 0 below): the bounds of the SSE2 and the FPU
-  intervals differed for about half of the random intervals with such a
-  power, the two orders being as accurate, and this one is up to about
-  2.5 ns faster (Clang 18, Intel Xeon) (GAOL v5).
+  The powers rounded outward, which sqr() takes (GAOL v5: x^n for n >= 2
+  takes exact products, see pown_products() in gaol_interval.cpp): the binary
+  exponentiation from the lowest bit of n, whose squarings do not wait for
+  the products. GAOL multiplied from the highest bit of n here (the code
+  under #if 0 below), where the FPU intervals multiplied from the lowest:
+  their bounds of x^n differed for about half of the random intervals, the
+  two orders being as accurate, and this one is up to about 2.5 ns faster
+  (Clang 18, Intel Xeon) (GAOL v5).
 */
 #if 1
 	/*
@@ -486,10 +484,10 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
 
   /*
     I^e for a non-empty I and e > 0 from the products rounded outward, the
-    rounding direction being upward already: uipow_nonempty() and
-    uipow_nonempty_upward() call it after their check, and uipow_rounded()
-    below checks the direction for sqr() and the other callers (GAOL v5).
-    Both are inlined by force with GCC and Clang: built with -mfma, Clang 18
+    rounding direction being upward already, and uipow_rounded() below, which
+    checks the direction, for sqr(), with e = 2 (GAOL v5: x^n takes exact
+    products, see pown_products() in gaol_interval.cpp, the SSE2 and the FPU
+    intervals alike). Both are inlined by force with GCC and Clang: built with -mfma, Clang 18
     called uipow_rounded() from sqr() rather than inlining it there with
     e = 2, and sqr() took 13.7 ns rather than 9.7, Shekel 5 of doc/compare
     405 ns rather than 302.
@@ -556,17 +554,6 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
       GAOL_RND_KEEP(res);
       GAOL_RND_LEAVE_SSE();
       return interval(res);
-    }
-
-  interval gaol_uipow(const interval& I, unsigned int e)
-    {
-      if (I.is_empty()) {
-        return I;
-      }
-      if (e == 0) {
-        return interval(1.0);
-      }
-      return uipow_nonempty(I,e);
     }
 
 
