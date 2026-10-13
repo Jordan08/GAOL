@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `58ed21f` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `309a06c` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -327,11 +327,28 @@ Bison 2.4, alors que le `.ypp` reste lisible par Bison 2.3) ; `-Wundef` devient
 le point Z. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #114.
 
+Fait le 13 octobre aussi : la première des trois pull requests du point B
+(l'ancien 1, et l'ancien 2 hors des coins de `pow`), par #117. Une seule
+vérification du sens d'arrondi par appel des puissances entières de `pow`
+(`pown_upward()`), de `nth_root(x, q)` pour q < 0, d'`acosh_rel()`,
+`asinh_rel()`, `atanh_rel()` et `nth_root_rel()`, et de `modulo_k_pi()`, dont
+les quotients par [π] sont calculés sur des doubles ; |q| sans dépassement
+dans `nth_root(I, INT_MIN)` ; le test inutile `at_upper == 1.0` retiré. Décidé
+pendant le travail : la classe amie `upward_access` ; la garde de `[±oo]` de
+`gaol_pow_hybrid()` gardée, avec un test SSE2 ; une seule vérification aussi
+pour `asinh_rel()` et `nth_root_rel()`, malgré 13 à 16 % de temps en plus
+avec Clang 18, sans cause trouvée. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #117.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-b-pow-corners` : le point B, deuxième pull request, #118 (la première,
+  #117, est fusionnée).
+- `audit-doc-fixes` : les suites de l'audit du 13 octobre, qui a vérifié dans
+  `configure-clean` ce qu'annoncent les points faits (le code est là) ; trois
+  commentaires et textes faux et l'état de `process.md` corrigés, #119.
 
 ## Même changement, ou même code
 
@@ -596,7 +613,48 @@ Reporté (#67).
   macros peuvent apparaître sur d'autres cibles. Correction : `#ifdef`, ou une
   valeur par défaut de chaque macro, puis `-Wundef` dans
   `.github/scripts/headers.sh`, qui compile déjà chaque en-tête installé seul
-  en `-Wall -Wextra -Werror`.
+  en `-Wall -Wextra -Werror`. Mesuré le 13 octobre (GAOL installé, GCC 13.3,
+  drapeaux de `gaol.pc`) : en SSE2, `GAOL_PRESERVE_ROUNDING`,
+  `GAOL_DEBUGGING`, `GAOL_VERBOSE_MODE` et `GAOL_WORDS_BIGENDIAN` ; en FPU,
+  `GAOL_USING_SSE2_INSTRUCTIONS` en plus ; sur ARM, sans doute aussi
+  `GAOL_RND_SSE_REGISTER`, `GAOL_RND_FPCR_REGISTER`, `GAOL_RND_X86_REGISTERS`
+  et `GAOL_IX86_*` (non compilé ici). Décidé le 13 octobre : chaque macro
+  testée par `#if` dans les en-têtes installés est toujours définie, à 0 ou
+  1, les options par `gaol_configuration.h` dans les trois builds, plutôt que
+  `#if defined(X) && X` ; un `#ifdef GAOL_PRESERVE_ROUNDING` d'un programme,
+  comme celui de l'exemple 13, devient toujours vrai : l'exemple est à
+  changer et `doc/differences.md` le dira. La portée : les en-têtes installés
+  et `-Wundef` dans `headers.sh`, ni les tests ni les `.cpp` de la
+  bibliothèque. Avec Z aussi, une suite de l'audit du 13 octobre :
+  `bisect(ratio)` (#99) compare le ratio par `std::isgreater` et
+  `std::isless`, deux appels à `_dpcomp` sous Visual C++, plutôt que par les
+  `gaol_detail::quiet_*` de #83.
+
+### AA. Shekel 5, plus lent qu'avec GAOL 4 (76)
+
+- **76.** **Shekel 5 prend moitié plus de temps avec GAOL v5 qu'avec GAOL
+  4.2.3** (relevé au point B, #118, le 13 octobre). Le banc de
+  `doc/compare/performance.md`, relancé ce jour-là pour toutes les
+  bibliothèques (Ubuntu 26.04.1, Clang 18.1.8, `-O3 -mfma`, sur le processeur
+  2), donne 277 ns contre 185. Les opérations dont Shekel 5 est fait coûtent à
+  GAOL v5 10 à 23 % de plus qu'à GAOL 4.2.3 : + et − 2,7 ns contre 2,5, ÷ 9,7
+  contre 8,4, le carré 7,6 contre 6,1. Shekel 5 (`doc/compare/code/bench_ops.h`)
+  en fait 25 soustractions, dont les 20 `x_j - a_ij` d'intervalles dégénérés,
+  20 additions, 20 carrés et 5 divisions de `[1]` : leurs écarts n'expliquent
+  qu'environ 47 des 92 ns.
+  - L'écart précède le point B : `configure-clean` du 12 octobre, avant #117,
+    prend autant (258 ns, contre 249 sur `todo-b-pow-corners`, par le même
+    programme, le même jour).
+  - Le 27 septembre, sous Ubuntu 20.04, l'écart était de 12 % (315 contre
+    280 ns), mais la colonne de GAOL v5 venait alors de `make perf` avec
+    GCC 9.4, et celle de GAOL 4.2.3 de Clang 18.
+
+  À chercher : ce qui coûte plus dans l'expression que dans le banc de chaque
+  opération seule, par exemple la soustraction d'un intervalle dégénéré, la
+  division de `[1]`, ou les dépendances entre les opérations, que le banc
+  d'une opération seule ne crée pas. Mesurer les formes de Shekel 5 une à
+  une, et comparer le code généré à celui de GAOL 4.2.3 (valgrind, `perf`
+  n'étant pas permis sur cette machine). Corriger si la cause est dans GAOL.
 
 ## La version
 
@@ -667,8 +725,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114 et #115
-  après leur fusion, et la jetable de #116).
+  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115 et
+  #117 après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -686,7 +744,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 8 : B ; 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z.
+37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z ;
+76 : AA.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -710,7 +769,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
    comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96. Z
-   (`-Wundef`) peut se faire à tout moment avant Y.
+   (`-Wundef`) et AA (Shekel 5) peuvent se faire à tout moment avant Y.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
