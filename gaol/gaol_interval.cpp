@@ -3830,6 +3830,27 @@ interval nth_root(const interval& I, int q)
   }
 
 
+  /*
+    The bounds of x/[pi] for a finite x, [pi] being [pi_dn, pi_up], rounded
+    upward, for modulo_k_pi(): computed on doubles, as tan() computes those of
+    [x + pi/2]/[pi] (GAOL v5). They are the doubles interval(x) /
+    interval::pi() gave, the stored bounds -x and x being divided by pi_dn
+    above 0 and by pi_up below. A bound 0 of I gives the quotient 0 with its
+    own sign, where interval(x), then the division, gave one each build chose:
+    floor() keeps it, and the comparisons of modulo_k_pi() do not tell -0
+    from +0.
+  */
+  static inline double lower_of_x_over_pi(double x)
+  {
+    const double nl = -x;
+    return -(nl / ((nl > 0.0) ? pi_dn : pi_up));
+  }
+
+  static inline double upper_of_x_over_pi(double x)
+  {
+    return x / ((x > 0.0) ? pi_dn : pi_up);
+  }
+
   /*!
     \brief Angle modulo pi (slower version with integer output)
 
@@ -3853,11 +3874,23 @@ interval nth_root(const interval& I, int q)
       k_left = k_right = GAOL_NAN;
       return 0;
     }
-    interval kl = floor(I.left()/interval::pi());
-    interval kr = floor(I.right()/interval::pi());
-    k_left  = kl.left();
-    k_right = kr.right();
-    return static_cast<unsigned short int>((kl.is_a_double() ? 2 : 0) + (kr.is_a_double() ? 1 : 0));
+    // The only check of the rounding direction (GAOL v5): the quotients are
+    // computed on doubles, where I.left()/interval::pi() and
+    // I.right()/interval::pi() checked it once each. An infinite bound gives
+    // NaN and no flag, as interval(+-oo), which is empty, gave through them
+    GAOL_RND_ENTER();
+    const double a = I.left(), b = I.right();
+    const double dmax = (std::numeric_limits<double>::max)();
+    const bool finite_a = std::fabs(a) <= dmax, finite_b = std::fabs(b) <= dmax;
+    double a_lo = finite_a ? bound_floor(lower_of_x_over_pi(a)) : GAOL_NAN;
+    double a_hi = finite_a ? bound_floor(upper_of_x_over_pi(a)) : GAOL_NAN;
+    double b_lo = finite_b ? bound_floor(lower_of_x_over_pi(b)) : GAOL_NAN;
+    double b_hi = finite_b ? bound_floor(upper_of_x_over_pi(b)) : GAOL_NAN;
+    GAOL_RND_KEEP(a_lo); GAOL_RND_KEEP(a_hi); GAOL_RND_KEEP(b_lo); GAOL_RND_KEEP(b_hi);
+    GAOL_RND_LEAVE();
+    k_left  = a_lo;
+    k_right = b_hi;
+    return static_cast<unsigned short int>(((finite_a && a_lo == a_hi) ? 2 : 0) + ((finite_b && b_lo == b_hi) ? 1 : 0));
   }
 
 
