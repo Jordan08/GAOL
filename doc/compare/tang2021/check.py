@@ -97,11 +97,20 @@ def set_precision(bits):
     DN, UP = CONTEXTS[bits]
 
 
+def div(ctx, x, y):
+    """x / y rounded as ctx says: gmpy2 2.2.1's ctx.div() ignores ctx, and
+    rounds to nearest at the precision of the current context (53 bits)."""
+    with gmpy2.context(ctx):
+        if isinstance(x, type(mpfr())) or isinstance(y, type(mpfr())):
+            return x / y
+        return mpfr(mpq(x, y))
+
+
 def iv(x):
     """x as a pair of mpfr."""
     if isinstance(x, tuple):
         return x
-    return (DN.div(x.numerator, x.denominator), UP.div(x.numerator, x.denominator))
+    return (div(DN, x.numerator, x.denominator), div(UP, x.numerator, x.denominator))
 
 
 def NEG(x):
@@ -141,8 +150,8 @@ def DIV(x, y):
     (a, b), (c, d) = iv(x), iv(y)
     if c <= 0 <= d:
         raise Undecided
-    return (min(DN.div(a, c), DN.div(a, d), DN.div(b, c), DN.div(b, d)),
-            max(UP.div(a, c), UP.div(a, d), UP.div(b, c), UP.div(b, d)))
+    return (min(div(DN, a, c), div(DN, a, d), div(DN, b, c), div(DN, b, d)),
+            max(div(UP, a, c), div(UP, a, d), div(UP, b, c), div(UP, b, d)))
 
 
 def F_sqrt(x):
@@ -410,7 +419,7 @@ def tightest(value):
     """[RD(v), RU(v)] in doubles, or None when the precision does not decide."""
     if not isinstance(value, tuple):
         n, d = value.numerator, value.denominator
-        return D64.div(n, d), U64.div(n, d)
+        return div(D64, n, d), div(U64, n, d)
     a, b = value
     lo, lo2 = D64.plus(a), D64.plus(b)
     hi, hi2 = U64.plus(a), U64.plus(b)
@@ -649,7 +658,7 @@ def selftest(_):
                 lo, hi = f(pair)
             except Undecided:
                 continue
-            for y in (pair[0], pair[1], DN.div(DN.add(pair[0], pair[1]), 2)):
+            for y in (pair[0], pair[1], div(DN, DN.add(pair[0], pair[1]), 2)):
                 if not (mp(lo) <= ref(mp(y)) <= mp(hi)):
                     print('FAIL pair', name, x.hex())
                     failures += 1
@@ -711,6 +720,17 @@ def selftest(_):
     if [int(k) for k in K] != [0, 3]:
         print('FAIL integer division', K)
         failures += 1
+    # the divisions, rounded in their directions (gmpy2 2.2.1's ctx.div() is not)
+    for n, d in ((1, 3), (-2, 7), (3 ** 200 + 1, 5 ** 90)):
+        x = mpq(n, d)
+        lo, hi = iv(x)
+        lo2, hi2 = DIV(iv(mpq(n)), iv(mpq(d)))
+        t = tightest(x)
+        if not (mp(lo) < mp(x) < mp(hi) and mp(lo2) < mp(x) < mp(hi2)) or \
+           not (Fraction(float(t[0])) < Fraction(n, d) < Fraction(float(t[1]))) or \
+           math.nextafter(float(t[0]), math.inf) != float(t[1]):
+            print('FAIL division', n, d, lo, hi, lo2, hi2, t)
+            failures += 1
     print('selftest: %d failures' % failures)
     return failures
 
