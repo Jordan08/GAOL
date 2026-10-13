@@ -170,20 +170,19 @@ namespace gaol_core {
     throughout:
       lower bound = -RU(-h + RU(K |h| - l)), upper bound = RU(h + RU(K |h| + l)),
     the lane 0 holding the opposite of the lower bound, as the SSE2 intervals
-    store it. The bounds are the tightest unless c^m is within 2K of a
-    double, relatively (K is 2^-98 at m = 3, 2^-88 at m = 1000, 2^-65 at
-    m = 2^31 - 1), and then one double beyond: 2^-46 of the bounds at m = 3
-    at random, but a fifth of them where c is within a few doubles of a
-    number whose power is a double (c^m within 8 doubles of 1, m up to 200),
-    c^m being then that close to a double: pow([1 + 2^-52], 3) is
+    store it. The bounds are the tightest, and exact where c^m is a double:
+    every product is exact then (c^k is a double for each k <= m), each rest
+    e and f is +0, and K is taken as 0 where the rests or-ed together are 0
+    (without that, pown([2, 3], 3) was [8 - 2^-50, 27 + 2^-48]). They are one
+    double beyond where c^m is within 2K of a double, relatively (K is 2^-98
+    at m = 3, 2^-88 at m = 1000, 2^-65 at m = 2^31 - 1): 2^-46 of the bounds
+    at m = 3 at random, but a fifth of them where c is within a few doubles
+    of a number whose power is a double (c within 8 doubles of 1, m up to
+    200), c^m being then that close to a double: pow([1 + 2^-52], 3) is
     [1 + 2^-51, 1 + 2^-50], [1 + 3 2^-52, 1 + 2^-50] being the tightest.
     Deciding these bounds with CORE-MATH's pow took 55 to 270 ns, these
-    powers being its hard cases, and they are left so (decided on 13 October
-    2026, TODO.md B). They are exact where c^m is a
-    double: every product is exact then (c^k is a double for each k <= m),
-    each rest e and f is +0, and K is taken as 0 where the rests or-ed
-    together are 0 (without that, pown([2, 3], 3) was [8 - 2^-50, 27 +
-    2^-48]).
+    powers being its hard cases: they are left so (decided on 13 October
+    2026, TODO.md B).
 
     For n < 0, 1/c^m from h + l: q = 1/h rounded upward, R = 1 - q(h + l) =
     (1 - q h) - q l, 1 - q h being exact, r = R rounded once, and
@@ -404,14 +403,15 @@ namespace gaol_core {
 
   /*
     The bounds of c^n for a double c and an int n, |n| >= 2, the rounding
-    direction being upward: the corners pown_large_upward() does not take at once
-    (see above). 0^n is 0 for n > 0, and +oo for n < 0, -oo at -0 for an odd
-    n, the limit of x^n at 0 on its side; +-oo^n is +-oo for n > 0 and 0 for
-    n < 0. Any other c is |c| = y 2^(e - 1), y in [1, 2), whose power is
-    (h + l) 2^z, the product being scaled by 2^-500 above 2^500: exactly,
-    but for a rest l below 2^-522, rounded within 2^-1074 of it, which the
-    bound K holds. The bounds of y^n, which are within [2^-502, 2^502], are
-    then scaled by 2^z, rounded once in their direction (gaol_ldexp()).
+    direction being upward: the corners pown_large_upward() does not take
+    at once (see above). 0^n is 0 for n > 0, and +oo for n < 0, -oo at -0
+    for an odd n, the limit of x^n at 0 on its side; +-oo^n is +-oo for n > 0
+    and 0 for n < 0. Any other c is |c| = y 2^(e - 1), y in [1, 2), whose
+    power is (h + l) 2^z, the product being scaled by 2^-500 above 2^500:
+    exactly, but for a rest l below 2^-522, rounded within 2^-1074 of it,
+    which the bound K holds. The bounds of y^n, which are within
+    [2^-502, 2^502], are then scaled by 2^z, rounded once in their direction
+    (gaol_ldexp()).
   */
   static void pown_point(double c, int n, double& lo, double& hi)
   {
@@ -1942,10 +1942,10 @@ namespace gaol_core {
     c^nh c^nl, rounded outward, within three doubles of the tightest bounds.
     gaol::pow(x, n) gave [-oo, +oo] beyond the ints and the unsigned ints,
     whereas x^n is finite and not trivial for x near 1: pow([1 + 2^-30],
-    2^33), about e^8, is [2980.9579759367944, 2980.9579759367948]. Only
-    x within 2^-43 of 1, 0, 1 and the infinities have a power that is neither
-    0 nor +-oo there, rounded to [0, 2^-1074] or [DBL_MAX, +oo] where it is
-    below the least subnormal or above the largest double.
+    2^33), about e^8, is [2980.9579759367944, 2980.9579759367948]. Beyond
+    2^53, only a base within 2^-43 of 1 or -1 has a power that is neither
+    below the least subnormal nor above the largest double, the others being
+    rounded to [0, 2^-1074] or [DBL_MAX, +oo], with their signs.
   */
   static void pown_point_beyond(double c, double nh, double nl, bool odd_n, double& lo, double& hi)
   {
