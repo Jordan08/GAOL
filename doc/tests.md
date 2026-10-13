@@ -46,6 +46,12 @@ point Q), which `numbers` checks there too.
   and of intervals between them, and powers of two to negative exponents,
   have to be exact, both bounds (GAOL v5: an error bound computed beforehand,
   not left out there, made `pow([2, 3], 3)` [8 - 2^-50, 27 + 2^-48]).
+  x^2 has to be `sqr(x)`, the tightest, over 400 intervals near 1, 3, 0.75
+  and 2^-500, a square having no error bound, and (-c)^n has to be c^n or
+  -c^n, and the bound of a corner the same whether the other corner is
+  computed with it or alone, at 1 088 points near 1, 1.5 and 3, where the
+  power is within the error bound of a double: the lanes take |c|, the
+  products of c and -c rounded upward not being opposite.
   `gaol::pow(x, n)` for an unsigned n has to give what it gives
   for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
   powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
@@ -521,8 +527,9 @@ point Q), which `numbers` checks there too.
   `int` made a tiny one, `gaol::pow(x, 3L)`, which was ambiguous, the cube,
   `pown(x, -2L)` and `gaol::pow(x, -3LL)` the negative powers, and an exponent
   beyond the unsigned ints the power, from CORE-MATH's pow (GAOL v5:
-  [-oo, +oo]): odd and even, within three doubles of the tightest bounds of
-  mpmath beyond 2^53 where it is no double, beyond the long longs as for
+  [-oo, +oo]): odd and even, the tightest bounds of mpmath beyond 2^53 where
+  it is a double, as `gaol::pow(x, [n])`, within three doubles of them where
+  it is none, beyond the long longs as for
   ±(2^63 - 1) or ±(2^63 - 2), and beyond 64 bits for an `__int128` where it
   is an integer type (the GNU modes of GCC and Clang); `rootn()`, `gaol::nth_root()` and
   `pownRev()` with a `long`, `long long`, `unsigned long` or `unsigned long long`
@@ -530,7 +537,9 @@ point Q), which `numbers` checks there too.
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
   `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,
-  its power; `numsToInterval()` and `isMember()` take ±(2^53 + 1)
+  its power, and beyond 2^53 x^n, not the power of a double near n ([-1]
+  for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
+  `numsToInterval()` and `isMember()` take ±(2^53 + 1)
   as the integer it is, and bounds in the wrong order give the empty set;
   the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 117 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what

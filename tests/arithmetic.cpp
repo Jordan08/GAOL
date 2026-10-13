@@ -731,6 +731,47 @@ namespace
         expect(interval(x, 2*x), -n, std::ldexp(v, -n), v);
       }
     }
+    // x^2, one square whose rest is exact: the tightest bounds, those of
+    // sqr(x), near 1 too, where the bound K of the error of the other powers
+    // takes a double more (GAOL v5: pow([1 + 2^-52], 2) was [1 + 2^-52,
+    // 1 + 3 2^-52], [1 + 2^-51, 1 + 3 2^-52] being the tightest)
+    const interval just_above_one(1.0 + 0x1p-52), square = pow(just_above_one, 2);
+    check("pow([1 + 2^-52], 2) = [1 + 2^-51, 1 + 3 2^-52]",
+          square.left() == 1.0 + 0x1p-51 && square.right() == 1.0 + 3*0x1p-52, [&] { return hex(square); });
+    for (int k = 1; k <= 16; ++k) {
+      for (const double c : { 1.0 + k*0x1p-52, 1.0 - k*0x1p-53, 3.0 + k*0x1p-51, 0.75 - k*0x1p-54, 0x1p-500 + k*0x1p-552 }) {
+        for (const interval& x : { interval(c), interval(-c), interval(-c, 2*c), interval(-2*c, c), interval(c, 2*c) }) {
+          const interval r = pow(x, 2), s = sqr(x);
+          check("pow(x, 2) is sqr(x)", !r.is_empty() && r.left() == s.left() && r.right() == s.right(),
+                [&] { return "pow(" + hex(x) + ", 2) = " + hex(r) + ", sqr = " + hex(s); });
+        }
+      }
+    }
+    // The powers of -c, the opposites of those of c for an odd n, and the
+    // bound c^n the same whether the other corner is computed with c, in the
+    // other lane, or alone, being beyond the range of the lanes, as -1e300 is
+    // (pown_point()), where c^n is within the bound K of the error of a
+    // double too: the lanes compute the powers of |c|, whose products rounded
+    // upward are not the opposites of those of -c (pow([-(1 + 2^-51)], 21)
+    // would have the upper bound -0x1.0000000000029p+0 from c itself, rather
+    // than -0x1.000000000002ap+0)
+    for (int k = 1; k <= 16; ++k) {
+      for (const double c : { 1.0 + k*0x1p-52, 1.0 - k*0x1p-53, 1.5 + k*0x1p-52, 3.0 + k*0x1p-51 }) {
+        for (int n : { 3, 4, 5, 7, 9, 13, 21, 31, 33, 63, 101, -2, -3, -5, -21, -33, -64 }) {
+          const interval p = pow(interval(c), n), q = pow(interval(-c), n), w = pow(interval(-1e300, -c), n);
+          // -c gives the upper bound of x^n on [-1e300, -c] where x^n increases there
+          const bool upper = (n > 0) == (n % 2 != 0);
+          const double t = upper ? w.right() : w.left(), u = upper ? q.right() : q.left();
+          check("pow([-c], n): the opposite of pow([c], n) for an odd n, pow([c], n) for an even one, "
+                "and the bound of the corner -c alone",
+                !p.is_empty() && !q.is_empty() && t == u
+                  && ((n % 2 != 0) ? (q.left() == -p.right() && q.right() == -p.left())
+                                   : (q.left() == p.left() && q.right() == p.right())),
+                [&] { return "c = " + hex(c) + ", n = " + std::to_string(n) + ": " + hex(p) + " " + hex(q)
+                             + " " + hex(w); });
+        }
+      }
+    }
   }
 
   /*

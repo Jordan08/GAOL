@@ -345,7 +345,7 @@ inclusion of its exponent: `pow([-4, -1], [2])` is [1, 16], and
 of the standard is. Both give the tightest bounds: the real power from the
 `pow` of CORE-MATH at the corners of the box, the integer power from exact
 products within the ints (one double beyond where the power is closer to a
-double than the bound of their error) and from the `pow` of CORE-MATH beyond
+double than the bound of their error, never for x^2) and from the `pow` of CORE-MATH beyond
 them (see [Accuracy of the operations](accuracy.md)).
 
 The rest of GAOL follows the same split:
@@ -652,12 +652,13 @@ for an even p, in their opposites, and `pow(e, n)`, `pown(e, n)` and
 negative `int`, the first giving a wrong interval ([0.99999999839,
 0.99999999946] for [2, 8], rather than [1.00000000023, 1.00000000069]) and the
 second throwing; `rootn(x, 5000000001LL)` and the powers of expressions cut a
-`long` to an `int`; and `nth_root(e, -2)` took the order 4294967294. `pow(e, n)`
-and `pown(e, n)` of the expressions give [−∞, +∞] for an n beyond the ints,
-where the powers of intervals take the unsigned power up to the unsigned ints,
-which no node of an expression computes; beyond the unsigned ints,
-`nth_root(e, n)` is the root of the interval but where e contains 0, where it
-is wider.
+`long` to an `int`; and `nth_root(e, -2)` took the order 4294967294. Beyond
+the ints, `pow(e, n)` and `pown(e, n)` of the expressions are GAOL's `pow`
+with the exponent [n], the powers of the intervals where n is a double, and
+beyond 2^53 the product of x^h and x^l, n = h + l, h a double and |l| < 2^11,
+no node holding a wider integer: wider than the power of the interval where e
+contains 0; beyond the unsigned ints, `nth_root(e, n)` is the root of the
+interval but where e contains 0, where it is wider.
 
 ## A result thrown away
 

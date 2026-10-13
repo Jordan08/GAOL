@@ -1481,6 +1481,18 @@ namespace gaol_core {
 } // namespace gaol_core
 
 namespace gaol_detail {
+  // n as a long long, for gaol_pown_ll(): beyond the long longs, as
+  // integer_power() below says
+  template <class T>
+  GAOL_INLINE long long integer_as_long_long(T n)
+  {
+    if (integer_fits<long long>(n)) {
+      return static_cast<long long>(n);
+    }
+    const long long beyond = (n % 2 != 0) ? 9223372036854775807LL : 9223372036854775806LL;
+    return integer_is_negative(n) ? -beyond : beyond;
+  }
+
   /*
     I^n for an integer n of a type other than int and unsigned int,
     gaol::pow(I, n) and gaol_ieee1788::pown(x, n) (GAOL v5): pow(x, 5L) and
@@ -1503,11 +1515,7 @@ namespace gaol_detail {
     if (integer_fits<unsigned int>(n)) {
       return gaol_core::gaol_uipow(I, static_cast<unsigned int>(n));
     }
-    if (integer_fits<long long>(n)) {
-      return gaol_core::gaol_pown_ll(I, static_cast<long long>(n));
-    }
-    const long long beyond = (n % 2 != 0) ? 9223372036854775807LL : 9223372036854775806LL;
-    return gaol_core::gaol_pown_ll(I, integer_is_negative(n) ? -beyond : beyond);
+    return gaol_core::gaol_pown_ll(I, integer_as_long_long(n));
   }
 } // namespace gaol_detail
 

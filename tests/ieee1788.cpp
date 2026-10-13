@@ -157,6 +157,19 @@ namespace
           && within_three(pown(just_below_one, 4611686018427387905LL), 0x1.44109edb2088ep-739, 0x1.44109edb2088fp-739)
           && within_three(pown(-just_above_one, 9007199254740993LL), -0x1.d8e64b8d4ddaep+2, -0x1.d8e64b8d4ddadp+2),
           [&] { return hex(pown(just_above_one, 9007199254740993LL)) + " " + hex(pown(just_below_one, 4611686018427387905LL)); });
+    // An n beyond 2^53 that is a double, an even one: CORE-MATH's pow with n,
+    // the tightest bounds, as gaol::pow(x, [n]) (GAOL v5: the 11 lowest bits
+    // of n were split off beyond 2^53, giving x^(2^53 + 2) within three
+    // doubles only)
+    const interval tight_ll = pown(just_above_one, 9007199254740994LL);
+    check("pown(x, n) beyond 2^53, n a double: the tightest bounds, those of gaol::pow(x, [n])",
+          bounds_are(tight_ll, 0x1.d8e64b8d4ddafp+2, 0x1.d8e64b8d4ddb0p+2)
+          && bounds_are(pown(just_above_one, -9007199254740994LL), 0x1.152aaa3bf81cap-3, 0x1.152aaa3bf81cbp-3)
+          && bounds_are(pown(just_above_one, 1152921504606847232LL), 0x1.41c7a8814bf5ap+369, 0x1.41c7a8814bf5bp+369)
+          && bounds_are(pown(-just_above_one, -1152921504606847232LL), 0x1.9755956ad4dd0p-370, 0x1.9755956ad4dd1p-370)
+          && bounds_are(pown(just_below_one, 4611686018427388928LL), 0x1.44109edb20607p-739, 0x1.44109edb20608p-739)
+          && tight_ll.set_eq(gaol::pow(just_above_one, interval(9007199254740994.0))),
+          [&] { return hex(tight_ll) + " " + hex(pown(just_above_one, 1152921504606847232LL)); });
     check("pown(x, n) beyond the long longs: x^(2^64 - 1) as x^(2^63 - 1), x^(2^64 - 2) as x^(2^63 - 2)",
           bounds_are(pown(near_one, 18446744073709551615ULL), -oo, -dmax)
           && bounds_are(pown(near_one, 18446744073709551614ULL), dmax, oo)
@@ -219,6 +232,21 @@ namespace
     const interval pown_u = value_of(pown(gaol::expression(numsToInterval(1.0, 2.0)), 3000000000u));
     check("pown(e, 3000000000u) of an expression: pown", bounds_are(pown_u, 1.0, oo),
           [&] { return hex(pown_u); });
+    // Beyond 2^53, an n that is no double: x^h x^l, n = h + l, h a double and
+    // |l| < 2^11, as gaol_pown_ll() splits n (GAOL v5: [-oo, +oo]), not the
+    // power of the double nearest n, x^(2^53) or x^(2^53 + 2), [1] for
+    // [-1]^(2^53 + 1); an n that is a double, x^n, as for an interval
+    const interval minus_one = value_of(pown(gaol::expression(interval(-1.0)), 9007199254740993LL));
+    const interval minus_one_inverse = value_of(pown(gaol::expression(interval(-1.0)), -9007199254740993LL));
+    const interval split = value_of(pown(gaol::expression(just_above_one), 9007199254740993LL));
+    const interval split_negative = value_of(gaol::pow(gaol::expression(-just_above_one), -9007199254740995LL));
+    const interval whole = value_of(pown(gaol::expression(just_above_one), 9007199254740994LL));
+    check("pown(e, n) and gaol::pow(e, n) of an expression beyond 2^53: x^n, within three doubles",
+          bounds_are(minus_one, -1.0, -1.0) && bounds_are(minus_one_inverse, -1.0, -1.0)
+          && within_three(split, 0x1.d8e64b8d4ddadp+2, 0x1.d8e64b8d4ddaep+2)
+          && within_three(split_negative, -0x1.152aaa3bf81cap-3, -0x1.152aaa3bf81c9p-3)
+          && whole.set_eq(tight_ll),
+          [&] { return hex(minus_one) + " " + hex(minus_one_inverse) + " " + hex(split) + " " + hex(split_negative) + " " + hex(whole); });
   }
 
   /*
@@ -313,13 +341,15 @@ namespace
     The pow of Table 9.1 is written once, in gaol/gaol_interval.cpp:
     gaol_ieee1788::pow(x, y) is that function, and gaol::pow(x, y) calls it for
     every exponent but a degenerate integer, which takes pown on the whole of x,
-    and [-oo, +oo] beyond the ints. Each box below reaches a branch of the
+    beyond the ints too. Each box below reaches a branch of the
     shared function, or of what gaol::pow adds to it, the corners where the
     base is 0 or +oo or the exponent infinite included. The bounds were taken
     from the code, and each was checked against the exact power, computed with
     500 bits by mpmath (tests/tools/pow/checkrows.py): it encloses it, and is
-    the tightest bound, but for the integer power of [-2, 3] x [100] taken on
-    [0, 3], whose upper bound is one double above. They are compared with ==,
+    the tightest bound, but for the integer power [0, 1 + 2^-52]^-2, whose
+    lower bound is one double below, (1 + 2^-52)^-2 being within the bound K
+    of the error of the integer powers of a double (gaol/gaol_interval.cpp).
+    They are compared with ==,
     which does not tell -0 from +0: the sign of a zero bound is not checked.
   */
   void pow_on_boxes()

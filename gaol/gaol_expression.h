@@ -1374,6 +1374,40 @@ namespace gaol_core {
           
         } // namespace gaol_core
         
+        namespace gaol_detail {
+          /*
+          e^n for an integer n of a type other than int, gaol::pow(e, n) and
+          gaol_ieee1788::pown(e, n) (GAOL v5): gaol_pown_exp(e, n) within the
+          ints; beyond them, the expression of pow(e, [n]) where n is a double,
+          for which GAOL's pow takes pown, as gaol::pow(x, [n]) of intervals
+          (GAOL v5: [-oo, +oo] for a nonempty e), and otherwise, |n| > 2^53,
+          the product of pow(e, [h]) and e^l, n = h + l, h being n with the
+          bits below its 53 highest cleared and |l| < 2^11, as gaol_pown_ll()
+          splits n, which is taken beyond the long longs as gaol_pown_ll() takes
+          it. No node holds an integer of more than 32 bits, and a double d near
+          n gives x^d, not x^n: [1] for [-1]^d, where [-1]^(2^53 + 1) is [-1].
+          The two factors are computed apart: within three doubles of the
+          tightest bounds for a point e, as gaol_pown_ll(), and wider than
+          gaol::pow(x, n) of intervals where e holds 0 inside.
+          */
+          template <class T>
+          GAOL_NODISCARD inline const gaol_core::expression integer_power_exp(const gaol_core::expression& e, T n)
+          {
+            if (integer_fits<int>(n)) {
+              return gaol_core::gaol_pown_exp(e, static_cast<int>(n));
+            }
+            const long long ll = integer_as_long_long(n);
+            double below, above;
+            integer_neighbours(ll, below, above);
+            const double h = (ll < 0) ? above : below; // n rounded toward 0
+            if (below == above) {
+              return gaol_core::gaol_pow_exp(e, gaol_core::expression(h));
+            }
+            return gaol_core::gaol_pow_exp(e, gaol_core::expression(h))
+              * gaol_core::gaol_pown_exp(e, static_cast<int>(ll - static_cast<long long>(h)));
+          }
+        } // namespace gaol_detail
+        
         /*
         The expressions in the namespace gaol, as in GAOL 4 (see
         gaol/gaol_interval.h): the classes and the functions building and
@@ -1427,19 +1461,15 @@ namespace gaol_core {
           /*
           pow(e, n) for an integer n of another type (GAOL v5), which an unsigned
           beyond the ints, converted to a negative int, made [0, 1] for [1, 2]^n:
-          gaol_pown_exp(e, n) for an n within the ints, and beyond them the
-          expression of pow(e, [d]), d being n converted to a double, an integer
-          beyond the ints, for which GAOL's pow takes pown, as gaol::pow(x, [n])
-          of intervals (GAOL v5: [-oo, +oo] for a nonempty e). d is n rounded
-          above 2^53, where gaol::pow(x, n) of intervals takes n itself
-          (gaol_pown_ll()), and gaol_uipow() within the unsigned ints, which no
-          node of an expression computes
+          gaol_detail::integer_power_exp(), gaol_pown_exp(e, n) within the ints
+          and pow(e, [n]) beyond them, as gaol::pow(x, n) of intervals, which
+          takes gaol_uipow() within the unsigned ints, the same powers, and
+          gaol_pown_ll() beyond them (the same where n is a double)
           */
           template <class T, ::gaol_detail::if_integer<T> = 0>
           GAOL_NODISCARD inline const expression pow(const expression& e, T n)
           {
-            return ::gaol_detail::integer_fits<int>(n) ? gaol_core::gaol_pown_exp(e, static_cast<int>(n))
-            : gaol_core::gaol_pow_exp(e, expression(static_cast<double>(n)));
+            return ::gaol_detail::integer_power_exp(e, n);
           }
           GAOL_NODISCARD inline const expression pow(const expression& e1, const expression& e2) { return gaol_core::gaol_pow_exp(e1, e2); }
         } // namespace gaol
@@ -1491,9 +1521,7 @@ namespace gaol_core {
           template <class T, ::gaol_detail::if_integer<T> = 0>
           GAOL_NODISCARD inline const ::gaol_core::expression pown(const ::gaol_core::expression& e, T n)
           {
-            return ::gaol_detail::integer_fits<int>(n)
-            ? ::gaol_core::gaol_pown_exp(e, static_cast<int>(n))
-            : ::gaol_core::gaol_pow_exp(e, ::gaol_core::expression(static_cast<double>(n)));
+            return ::gaol_detail::integer_power_exp(e, n);
           }
           GAOL_NODISCARD inline const ::gaol_core::expression pow(const ::gaol_core::expression& e1, const ::gaol_core::expression& e2)
           {

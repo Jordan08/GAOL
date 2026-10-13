@@ -30,7 +30,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (74 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (79 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
@@ -188,7 +188,15 @@ it, with the arguments `pown sse-fma` or `pown fpu` (above), a mutant of the
 other family surviving there, not being compiled. The error bound K of the
 exact products itself has no mutant: with K = 0, the bounds are those of
 h + l rounded, tighter where c<sup>n</sup> is within K of a double, and no
-test finds them wrong; `pown_bound.py` checks its proof instead.
+test finds them wrong; `pown_bound.py` checks its proof instead. Its value 0
+for the squares, whose h + l is exact, has one (`pown-square-bound`), which
+x<sup>2</sup> one double beyond `sqr(x)` near 1 kills. In the FPU build,
+`std-infinite-exponent-unchecked` survives, `diffpow` finding the same
+bounds: the exponents [+oo] and [-oo] that kill it in the SSE2 build are
+built from an SSE2 register, and no FPU interval holds them. On 13 October
+2026 (Clang 21), the SSE2 build killed 64 of its 75 mutants, the 11 others
+being listed as equivalent, and the FPU build 58 of its 70, 11 listed and
+`std-infinite-exponent-unchecked`.
 
 **4. The timings.** The same program linked with the two builds, run in turn
 on a pinned processor of an idle machine, the best time of each row kept
@@ -207,7 +215,7 @@ done
 
 On `configure-clean` at `065191e` (GCC 9.4, x86-64), with the builds above,
 before B.2 (the table had 92 boxes, `mutate.py` 40 mutants); since, the
-table has 114 boxes, all but one the tightest, and the 48 mutants of B.2
+table has 117 boxes, all but one the tightest, and the 48 mutants of B.2
 are all killed but 7 equivalent ones:
 
 ```text
@@ -237,8 +245,11 @@ The five boxes one double from the tightest bounds (`{I(0, 2), I(-1.5,
 -0.5)}`, `{I(1, 3), I(-oo, 2)}`, `{I(0.25, 0.5), I(-oo, -1)}`, `{I(2, 4), I(1,
 oo)}`, `{I(4, oo), P(-0.5)}`, each for both functions) were those computed by
 exp(y log x), which B.2 replaced by the corners and their limits: their
-bounds are now the tightest ones, as those of the 114 boxes of the table but
-one, an integer power (`{I(-2, 3), P(100)}`, one double above).
+bounds are now the tightest ones, as those of the 117 boxes of the table but
+one, an integer power (`{I(0, 0x1.0000000000001p+0), P(-2)}`, one double
+below, (1 + 2<sup>−52</sup>)<sup>−2</sup> being within the bound K of the
+error of the integer powers of a double; `{I(-2, 3), P(100)}`, one double
+above before the third pull request of B, is the tightest now).
 
 ```text
 $ python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants
@@ -285,7 +296,7 @@ called CORE-MATH at once.
 
 - The differential test compares builds with each other, not with the exact
   powers: two builds wrong in the same way agree. `checkrows.py` checks the
-  boxes of a rows file only (the 114 of the table, or those `compare` lists).
+  boxes of a rows file only (the 117 of the table, or those `compare` lists).
   B.2 changed the bounds of 2 214 boxes of `diffpow`: each is inside the
   former one, and the tightest against `checkrows.py`.
 - `checkrows.py` computes the powers with 500 bits, and takes an exact power

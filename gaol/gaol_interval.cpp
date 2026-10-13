@@ -155,20 +155,25 @@ namespace gaol_core {
 
     The bounds come from two corners c0 and c1 (pown_corners()): x^n is c0^n
     at its least and c1^n at its greatest. Both powers are computed at once,
-    c0^n in lane 0 and c1^n in lane 1 of an SSE2 register (of a pair of
+    |c0|^m in lane 0 and |c1|^m in lane 1 of an SSE2 register (of a pair of
     doubles in the other builds, the same operations in the same order), as
-    h + l, h being the power rounded and l a rest: from the highest bit of
-    m = |n| down, a square
+    h + l, h being the power rounded and l a rest, the sign of c being given
+    back to it at the end for an odd m: the products of c and of -c, rounded
+    upward, are not opposite, and the powers of c itself would make
+    pow([-c], n) other than -pow([c], n) where c^n is within K of a double,
+    and other than the bound pown_point() gives from |c|. From the highest
+    bit of m = |n| down, a square
       p = h*h, e = h*h - p, t = 2h + l, l' = l*t + e, h' = p,
-    and, for each bit set, a product by c
-      q = h*c, f = h*c - q, l' = l*c + f, h' = q,
+    and, for each bit set, a product by |c|
+      q = h*|c|, f = h*|c| - q, l' = l*|c| + f, h' = q,
     e and f being exactly the rests of the products (fma(), the products
     being normal), and t and l' rounded once each (fma()). The error of
-    h + l is bounded beforehand, relatively: |h + l - c^m| <= K |h| with
-    K = (8 m L + 16) 2^-104, L being the number of bits of m (below). Each
+    h + l is bounded beforehand, relatively: |h + l - |c|^m| <= K h with
+    K = (8 m L + 16) 2^-104, L being the number of bits of m (below), and
+    K = 0 for m = 2, c^2 being h + l exactly, x^2 the tightest. Each
     bound is then rounded once, upward, the rounding direction being upward
-    throughout:
-      lower bound = -RU(-h + RU(K |h| - l)), upper bound = RU(h + RU(K |h| + l)),
+    throughout, v + w being h + l or -(h + l), of the sign of c^m:
+      lower bound = -RU(-v + RU(K h - w)), upper bound = RU(v + RU(K h + w)),
     the lane 0 holding the opposite of the lower bound, as the SSE2 intervals
     store it. The bounds are the tightest, and exact where c^m is a double:
     every product is exact then (c^k is a double for each k <= m), each rest
@@ -282,16 +287,19 @@ namespace gaol_core {
   }
 
   // K for c^m and for c^-m (see above), in the upward rounding: 2^-104 is
-  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47
+  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47. c^2 is h + l
+  // exactly, one square: K = 0 for it, x^2 being the tightest, sqr(x)
+  // (GAOL v5); c^-2 keeps the K of the inverse, which covers its roundings
   static GAOL_POWN_INLINE double pown_bound(unsigned int m, unsigned int L)
   {
-    return (8.0*m*L + 16.0)*4.930380657631324e-32;
+    return (m == 2u) ? 0.0 : (8.0*m*L + 16.0)*4.930380657631324e-32;
   }
 
   static GAOL_POWN_INLINE double pown_bound_inverse(unsigned int m, unsigned int L)
   {
     const double dm = m;
-    return 2.0*pown_bound(m, L) + 64.0*4.930380657631324e-32 + dm*dm*dm*2.1895288505075267e-47;
+    return 2.0*(8.0*m*L + 16.0)*4.930380657631324e-32 + 64.0*4.930380657631324e-32
+      + dm*dm*dm*2.1895288505075267e-47;
   }
 
   static GAOL_POWN_INLINE std::uint64_t pown_bits_of(double x)
@@ -1838,7 +1846,7 @@ namespace gaol_core {
       }
       if (_mm_movemask_pd(ok) == 3) {
         __m128d h, l, s, K;
-        pown_powers(c, m, h, l, s);
+        pown_powers(g, m, h, l, s);
         if (negative) {
           const __m128d one = _mm_set1_pd(1.0);
           const __m128d q = _mm_div_pd(one, h);
@@ -1855,9 +1863,11 @@ namespace gaol_core {
         // bits of a signaling NaN, which a comparison of doubles would take
         // for one, raising the invalid-operation exception
         K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
-        // (-h + RU(K |h| - l), h + RU(K |h| + l)), the lower bound negated
-        const __m128d sign = _mm_set_pd(0.0, -0.0);
-        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, _mm_andnot_pd(minus_zero, h), _mm_xor_pd(l, sign))));
+        // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
+        // the sign of c for an odd m, the lower bound negated
+        const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
+        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
+        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))));
       }
 #else
       double c0, c1;
@@ -1866,7 +1876,7 @@ namespace gaol_core {
       const double g0 = std::fabs(c0), g1 = std::fabs(c1);
       if (((g0 >= least && g0 <= greatest) || (!negative && g0 == 0.0))
           && ((g1 >= least && g1 <= greatest) || (!negative && g1 == 0.0))) {
-        const pown_lanes c = { c0, c1 };
+        const pown_lanes c = { g0, g1 };
         pown_lanes h, l;
         pown_rests s;
         pown_powers(c, m, h, l, s);
@@ -1887,8 +1897,11 @@ namespace gaol_core {
           K = pown_bound(m, L);
         }
         const double K0 = (s.l0 != 0u) ? K : 0.0, K1 = (s.l1 != 0u) ? K : 0.0;
-        const double down = -h.l0 + std::fma(K0, std::fabs(h.l0), -l.l0);
-        const double up = h.l1 + std::fma(K1, std::fabs(h.l1), l.l1);
+        // the signs of c0^n and c1^n, those of c0 and c1 for an odd m
+        const double t0 = ((m & 1u) != 0u && std::signbit(c0)) ? -1.0 : 1.0;
+        const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;
+        const double down = -t0*h.l0 + std::fma(K0, h.l0, -t0*l.l0);
+        const double up = t1*h.l1 + std::fma(K1, h.l1, t1*l.l1);
         return interval(-down, up);
       }
 #endif
@@ -1937,9 +1950,10 @@ namespace gaol_core {
     the bounds of c^n at the corners of pown_corners(), from CORE-MATH's pow
     (pow_lo(), pow_hi()), the tightest, where n is a double, |n| <= 2^53 and
     beyond as a double; the sign from the parity of n. An integer n of more
-    than 53 bits that is no double is nh + nl, nh being n with the 11 lowest
-    bits of |n| cleared, a double, and nl the rest, below 2^11: c^n is
-    c^nh c^nl, rounded outward, within three doubles of the tightest bounds.
+    than 53 bits that is no double is nh + nl, nh being n with the bits of
+    |n| below its 53 highest cleared, a double, and nl the rest, below 2^11:
+    c^n is c^nh c^nl, rounded outward, within three doubles of the tightest
+    bounds.
     gaol::pow(x, n) gave [-oo, +oo] beyond the ints and the unsigned ints,
     whereas x^n is finite and not trivial for x near 1: pow([1 + 2^-30],
     2^33), about e^8, is [2980.9579759367944, 2980.9579759367948]. Beyond
@@ -2026,7 +2040,13 @@ namespace gaol_core {
     } else {
       // |n| without a signed negation, which overflows at LLONG_MIN
       const unsigned long long magnitude = (n < 0) ? 0ull - static_cast<unsigned long long>(n) : static_cast<unsigned long long>(n);
-      const unsigned long long high = (magnitude > (1ull << 53)) ? (magnitude & ~2047ull) : magnitude;
+      // high: |n| with the bits below its 53 highest cleared, a double, and
+      // nl = 0 where n is one, 2^53 + 2 included
+      int dropped = 0;
+      for (unsigned long long v = magnitude >> 53; v != 0u; v >>= 1) {
+        ++dropped;
+      }
+      const unsigned long long high = (magnitude >> dropped) << dropped;
       const double nh = static_cast<double>(high), nl = static_cast<double>(magnitude - high); // exact
       res = pown_beyond_upward(I, (n < 0) ? -nh : nh, (n < 0) ? -nl : nl, (magnitude & 1u) != 0u);
     }

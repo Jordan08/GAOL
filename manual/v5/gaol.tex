@@ -5033,7 +5033,7 @@ covered.
   \code{floor}, \code{ceil}, \code{integer}, \code{sign}, \code{trunc}, \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}, \code{abs}, \code{min}, \code{max} & tightest, and exact, in every rounding direction\\
   \hline
   \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid required, accurate recommended}}\\
-  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of either sign, or one double beyond where the power is within twice a bound of their error of a double, relatively ($2^{-98}$ for $n=3$, $2^{-62}$ at most), below $2^{-968}$ and beyond the largest double too; exact where the power is a double; the same bounds with the SSE2 and the FPU intervals. Beyond the \code{int}s: tightest where $n$ is a double, within three doubles otherwise\\
+  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of either sign, or one double beyond where the power is within twice a bound of their error of a double, relatively (never for $n=2$, \code{sqr(x)}; $2^{-98}$ for $n=3$, $2^{-62}$ at most), below $2^{-968}$ and beyond the largest double too; exact where the power is a double; the same bounds with the SSE2 and the FPU intervals. Beyond the \code{int}s: tightest where $n$ is a double, within three doubles otherwise\\
   \code{pow(x, y)} (\ieee{pow}) & tightest, at the corners of the box and at their limits where the base is $0$ or $+\infty$ or the exponent infinite\\
   \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & tightest; exact where the value is a double ($\exp(0)$, $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
   \hline

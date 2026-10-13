@@ -728,7 +728,7 @@ namespace
     // [+oo] and [-oo], which no constructor makes, built from an SSE2
     // register, the lower bound stored negated: pow(x, y) has to be empty,
     // such an exponent holding no real number, where a pow() taking it for an
-    // integer beyond the ints would give [-oo,+oo] (GAOL v5: TODO.md B.1 took
+    // integer beyond the ints would give a power of 4 (GAOL v5: TODO.md B.1 took
     // the test of these exponents for one that is never true)
     for (const double d : { inf, -inf }) {
       const interval J(_mm_set_pd(d, -d));
