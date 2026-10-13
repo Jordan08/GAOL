@@ -495,13 +495,16 @@ point Q), which `numbers` checks there too.
   is called unqualified, which compiles only if none of them is ambiguous with
   a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
-  NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power,
+  NaN and beyond-the-ints exponents, and at the exponents [+oo] and [-oo]
+  that only an SSE2 register holds, which give the empty set as for
+  `gaol::pow` (`elementary`, GAOL v5); `pown` and `gaol::pow` the integer power,
   for an exponent of any integer type too (GAOL v5): `pown([2], 3000000000u)`
   is the overflowing power, which the conversion of the exponent to a negative
   `int` made a tiny one, `gaol::pow(x, 3L)`, which was ambiguous, the cube,
   `pown(x, -2L)` and `gaol::pow(x, -3LL)` the negative powers, and an exponent
   beyond the unsigned ints [-oo, +oo]; `rootn()`, `gaol::nth_root()` and
-  `pownRev()` with a `long`, `long long` or `unsigned long` order, and beyond
+  `pownRev()` with a `long`, `long long`, `unsigned long` or `unsigned long long`
+  order, and beyond
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
   `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,

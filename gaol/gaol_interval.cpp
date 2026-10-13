@@ -1656,7 +1656,12 @@ namespace gaol_core {
   */
   static interval pow_standard_upward(const interval& x, const interval& y)
   {
-    if (x.is_empty() || y.is_empty()) {
+    // An exponent [+oo] or [-oo] contains no real number, and gives the empty
+    // set, as the empty one: numsToInterval(l, u) of IEEE 1788-2015 has no
+    // value for l = +oo or u = -oo (10.5.8). The constructors and the
+    // operations make none, but interval(const __m128d&) does, as in
+    // gaol_pow_hybrid() (GAOL v5: gaol_ieee1788::pow([0.5], [+oo]) was [0])
+    if (x.is_empty() || y.is_empty() || !(y.left() < GAOL_INFINITY && y.right() > -GAOL_INFINITY)) {
       return interval::emptyset();
     }
 
