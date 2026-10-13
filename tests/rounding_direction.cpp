@@ -581,6 +581,30 @@ namespace
     return right && pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY))).set_eq(interval(1.0));
   }
 
+  // The operations of products_with_zero_and_infinite_bounds_are_right() that
+  // raise the invalid-operation flag, each run alone, for the message of a
+  // failure: the flag tells that one of them raised it, not which
+  std::string products_raising_invalid()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 3.0, GAOL_INFINITY });
+    std::string raising;
+    for (const interval& x : intervals) {
+      for (const interval& y : intervals) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const interval z = opaque(x)*opaque(y);
+        if (std::fetestexcept(FE_INVALID) != 0) {
+          raising += " " + hex(x) + "*" + hex(y) + " = " + hex(z) + ";";
+        }
+      }
+    }
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval p = pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY)));
+    if (std::fetestexcept(FE_INVALID) != 0) {
+      raising += " pow([1], [1, +oo]) = " + hex(p) + ";";
+    }
+    return raising.empty() ? std::string(" none when run alone") : raising;
+  }
+
   /*
     div_rel(K, J, [-oo, +oo]) for every K and J with bounds in
     {-oo, -2, -0, 0, 4, +oo} (GAOL v5, point D.24): with the SSE2 intervals,
@@ -1893,7 +1917,8 @@ int main()
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = products_with_zero_and_infinite_bounds_are_right();
     const int raised = std::fetestexcept(FE_INVALID);
-    check("the products with a zero and an infinite bound raise no invalid-operation flag", raised == 0);
+    check("the products with a zero and an infinite bound raise no invalid-operation flag", raised == 0,
+          [] { return "raised by" + products_raising_invalid(); });
     check("the products with a zero and an infinite bound are right", right);
   }
   {

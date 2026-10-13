@@ -448,7 +448,6 @@ namespace
   {
     const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
     const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
-    const double inf = GAOL_INFINITY;
     struct Box { const char* name; interval x, y; };
     const Box boxes[] = {
       {"[0, 2]^[-1.5, -0.5]", interval(0.0, 2.0), interval(-1.5, -0.5)},
