@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `fd638df` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `eb51ca3` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -360,13 +360,22 @@ gardé au-delà de 64 bits ; `special_cases.md`, `enclosure.md` et tang2021
 relancés à la fin de B ; Shekel 5 devient le point AA. Les textes pour
 `ChangeLog` et `doc/differences.md` sont dans la description de #118.
 
+Fait le 13 octobre aussi : un audit de ce que `TODO.md` et les descriptions
+des pull requests annoncent pour les points faits (A, C à H, J à V) a vérifié
+que le code de chacun est dans `configure-clean` (`f469c4e`), avec ses tests ;
+ses suites, par #119 : les commentaires du chemin AVX-512 (les modes de flush
+effacés comme par les autres opérations, depuis #100), l'ancien 9 dit
+mesuré, pas démontré, dans le commentaire de `cos_or_sin()` et
+`doc/accuracy.md` (et retiré du commentaire de `tan()`), `<a, b>` comparé par
+ses bits dans `doc/using.md`, le manuel et `doc/tests.md`, et l'état de
+`process.md`. `bisect(ratio)` par les `quiet_*` va au point Z (décidé le
+13 octobre).
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `audit-doc-fixes` : les suites de l'audit du 13 octobre, qui a vérifié dans
-  `configure-clean` ce qu'annoncent les points faits (le code est là) ; trois
-  commentaires et textes faux et l'état de `process.md` corrigés, #119.
+- Aucune.
 
 ## Même changement, ou même code
 
@@ -792,8 +801,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117
-  et #118 après leur fusion, et la jetable de #116).
+  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
+  #118 et #119 après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
