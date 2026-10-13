@@ -541,6 +541,26 @@ i7-1185G7, GAOL 4.2.3 construit comme dans `doc/compare/code`) :
   pour q < 0 par une classe amie, `upward_access`, définie dans
   `gaol/gaol_interval.cpp` seul.
 
+Décidé le 13 octobre, à la fin de l'étude (sur cette machine, Ubuntu 26.04.1,
+sur secteur ; Clang 18 et Clang 21 donnent les mêmes temps à 3 % près, sauf
+`cr_pow`, 18 % plus rapide avec Clang 21) :
+
+- **`pown` dans les `int`** : les bornes les plus serrées pour tout n, par la
+  méthode du prototype (les deux bornes dans un registre SSE2, les produits
+  exacts h + l, une borne d'erreur a priori ; pour n < 0, l'inverse corrigé,
+  et x^-1 par la division). Elle prend la moitié du temps de GAOL 4 jusqu'à
+  |n| = 16 (x^3 : 4,1 ns contre 8,8), moins aux puissances de 2, et 1,1 à
+  1,6 fois son temps au-delà (x^1000 : 14,2 ns contre 9,7), où les bornes de
+  GAOL 4 ont 32 à 1 500 doubles de trop : l'exigence de vitesse n'y est pas
+  tenue. Aucune méthode « à quelques doubles près » ne coûte moins : l'erreur
+  d'une étape est doublée à chaque carré qui suit.
+- **73** : pas de `cr_pow` dans les `int`, pas de seuil (deux appels de
+  `cr_pow` ne battent la méthode qu'au-delà de 2^27 environ avec Clang 21) ;
+  `cr_pow` au-delà des `int` seulement (74).
+- **Les mesures de performance** se font avec Clang 21 : celles de la
+  troisième pull request et `doc/compare/performance.md`, à remesurer avec
+  lui.
+
 ## Même fichier de test ou de documentation
 
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
