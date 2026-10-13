@@ -804,10 +804,18 @@ namespace gaol_core {
     double right_internal() const;
     /*
       inverse() of a non-empty I, the rounding direction being upward already:
-      the body of inverse(), which checks the direction, for gaol_pown(),
-      which checked it before (GAOL v5)
+      the body of inverse(), which checks the direction, for the integer
+      powers and the roots of negative order, which checked it before
+      (GAOL v5)
     */
     static interval inverse_upward(const interval& I);
+    /*
+      Gives inverse_upward() to the functions of gaol/gaol_interval.cpp that
+      check the rounding direction once and take the inverse after it: the
+      integer power of pow() and the roots of negative order, which have no
+      access of their own (GAOL v5). Defined there alone
+    */
+    friend class upward_access;
     static interval_format::format_t output;
     //! Number of digits to display
     static std::streamsize output_precision;
