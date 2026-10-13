@@ -52,8 +52,15 @@ else
   fetch "https://www.mpfr.org/mpfr-$MPFR_VERSION/mpfr-$MPFR_VERSION.tar.xz" \
         "mpfr-$MPFR_VERSION.tar.xz" "$MPFR_SHA256"
   rm -rf "mpfr-$MPFR_VERSION" && tar xf "mpfr-$MPFR_VERSION.tar.xz"
+  # Without the functions of MPFR on __float128, which libieeep1788 does not
+  # call: the configure of MPFR 4.2.1 defines _Float128 as __float128 for a
+  # compiler that does not know the type, which the bits/floatn.h of glibc
+  # 2.43 declares already for Clang, and its test of gmp.h failed on the
+  # conflict ("GMP_NUMB_BITS and sizeof(mp_limb_t) are not consistent", with
+  # Clang 18 on Ubuntu 26.04)
   (cd "mpfr-$MPFR_VERSION" &&
-   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --with-gmp="$PREFIX" --disable-shared --enable-static CC="$CC" CFLAGS="-O3 $FMA_FLAGS" > configure.log &&
+   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --with-gmp="$PREFIX" --disable-shared --enable-static \
+               --disable-float128 CC="$CC" CFLAGS="-O3 $FMA_FLAGS" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
 fi
 
