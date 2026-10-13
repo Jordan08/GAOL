@@ -3785,8 +3785,7 @@ interval nth_root(const interval& I, int q)
       I holds at most one pole (GAOL v5, review #8 of examples/examples.md: the
       test was !(w < pi_up) in GAOL 4, and [-M_PI_2, M_PI_2], of width pi_dn, gave
       [-oo, +oo], as did the intervals whose exact width lies between the
-      double below pi_dn and pi_dn, which round up to it; that the signs
-      of cos at the bounds give the tightest bounds was measured on 29 400 intervals).
+      double below pi_dn and pi_dn, which round up to it).
       Above pi_dn, I may hold two poles, the cosine having the same sign
       at both bounds: [-oo, +oo], the tightest bound but for the intervals
       holding no pole whose exact width is below pi. Also for a NaN width, from
@@ -5033,6 +5032,11 @@ interval nth_root(const interval& I, int q)
     for I narrower than pi, and none or two beyond, which the sign at the
     middle of I tells, each half being narrower than pi. The bounds are then
     within one double of the tightest ones at every magnitude.
+
+    That the test w < pi_dn below gives the tightest bounds was measured,
+    not proved: sin and cos gave the tightest bounds over 29 400 intervals
+    of width about pi whose bounds are next to extrema of sin (GAOL v5, old
+    point 9 of TODO.md, decided on 3 October).
   */
 template<bool sine>
 static inline interval cos_or_sin(double Il, double Ir)
