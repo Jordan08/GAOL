@@ -399,7 +399,9 @@ int main()
   std::cout << "Intervals and the rest of the program: the rounding direction (GAOL v5)\n";
 
   const bool leaves_upward = gaol_leaves_upward();
-#ifdef GAOL_PRESERVE_ROUNDING
+  // GAOL_PRESERVE_ROUNDING is 1 or 0, as every option of
+  // gaol/gaol_configuration.h, which #ifdef no longer tells apart (GAOL v5)
+#if GAOL_PRESERVE_ROUNDING
   const bool built_to_preserve = true;
 #else
   const bool built_to_preserve = false;

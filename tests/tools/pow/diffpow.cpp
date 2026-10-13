@@ -209,12 +209,12 @@ int main(int argc, char **argv)
   const long randoms = (argc > 1) ? std::atol(argv[1]) : 60000;
   gaol::init();
 
-#ifdef GAOL_USING_SSE2_INSTRUCTIONS
+#if GAOL_USING_SSE2_INSTRUCTIONS
   const char *intervals = "SSE2";
 #else
   const char *intervals = "FPU";
 #endif
-#ifdef GAOL_PRESERVE_ROUNDING
+#if GAOL_PRESERVE_ROUNDING
   const char *preserve = " GAOL_PRESERVE_ROUNDING";
 #else
   const char *preserve = "";
