@@ -122,8 +122,9 @@ namespace gaol_core {
 #if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
   // Set by init() (gaol/gaol_common.cpp), from the GAOL_PREFER_AVX512 of the
   // build and the instructions the processor has: +, -, *, / and sqrt take
-  // the AVX-512 path of gaol/gaol_interval_avx512.cpp then, which sets
-  // neither the rounding direction nor the flush-to-zero modes (GAOL v5)
+  // the AVX-512 path of gaol/gaol_interval_avx512.cpp then, which sets no
+  // rounding direction, and clears the flush-to-zero modes as the other
+  // operations do (flush_guard there; GAOL v5, point Q of TODO.md)
   extern bool avx512_arithmetic;
 
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
@@ -3990,8 +3991,7 @@ interval nth_root(const interval& I, int q)
       I holds at most one pole (GAOL v5, review #8 of examples/examples.md: the
       test was !(w < pi_up) in GAOL 4, and [-M_PI_2, M_PI_2], of width pi_dn, gave
       [-oo, +oo], as did the intervals whose exact width lies between the
-      double below pi_dn and pi_dn, which round up to it; that the signs
-      of cos at the bounds give the tightest bounds was measured on 29 400 intervals).
+      double below pi_dn and pi_dn, which round up to it).
       Above pi_dn, I may hold two poles, the cosine having the same sign
       at both bounds: [-oo, +oo], the tightest bound but for the intervals
       holding no pole whose exact width is below pi. Also for a NaN width, from
@@ -5276,6 +5276,11 @@ interval nth_root(const interval& I, int q)
     for I narrower than pi, and none or two beyond, which the sign at the
     middle of I tells, each half being narrower than pi. The bounds are then
     within one double of the tightest ones at every magnitude.
+
+    That the test w < pi_dn below gives the tightest bounds was measured,
+    not proved: sin and cos gave the tightest bounds over 29 400 intervals
+    of width about pi whose bounds are next to extrema of sin (GAOL v5, old
+    point 9 of TODO.md, decided on 3 October).
   */
 template<bool sine>
 static inline interval cos_or_sin(double Il, double Ir)

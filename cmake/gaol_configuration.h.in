@@ -68,8 +68,11 @@
    the AVX-512 instructions (GAOL_PREFER_AVX512, -DGAOL_PREFER_AVX512=ON,
    --enable-prefer-avx512 elsewhere; on by default where
    GAOL_PRESERVE_ROUNDING is, off otherwise): +, -, *, / and sqrt
-   then set neither the rounding direction nor the modes that flush the
-   subnormals to zero, whatever the program left, and raise no exception flag */
+   then set no rounding direction, their instructions carrying theirs and
+   raising no exception flag; they clear the modes that flush the subnormals
+   to zero, with the check of the other operations, which may raise the
+   flags doc/using.md lists, and leave them cleared, or give them back with
+   GAOL_PRESERVE_ROUNDING (GAOL v5, point Q of TODO.md) */
 #cmakedefine GAOL_PREFER_AVX512 1
 /* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
    a double with the minus sign (gaol/gaol_port.h) */
