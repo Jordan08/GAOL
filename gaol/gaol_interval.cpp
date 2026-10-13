@@ -2883,9 +2883,10 @@ interval nth_root(const interval& I, int q)
     gaol_detail::huge_root() of gaol/gaol_interval.h computed it, where 1/|q|
     and the two powers checked it once each): order is the tightest interval
     holding |q|, negative and odd tell the sign and the parity of q, and the
-    inverse of order has positive bounds.
+    inverse of order has positive bounds. Declared in no header, and not
+    exported from a shared library, which is built with hidden visibility.
   */
-  static interval root_of_large_order(const interval& I, const interval& order, bool negative, bool odd)
+  interval root_of_large_order(const interval& I, const interval& order, bool negative, bool odd)
   {
     GAOL_RND_ENTER();
     const interval inverse = upward_access::inverse(order);
