@@ -1407,7 +1407,7 @@ namespace gaol_core {
               * gaol_core::gaol_pown_exp(e, static_cast<int>(ll - static_cast<long long>(h)));
           }
         } // namespace gaol_detail
-        
+
         /*
         The expressions in the namespace gaol, as in GAOL 4 (see
         gaol/gaol_interval.h): the classes and the functions building and
