@@ -560,6 +560,16 @@ sur secteur ; Clang 18 et Clang 21 donnent les mêmes temps à 3 % près, sauf
 - **Les mesures de performance** se font avec Clang 21 : celles de la
   troisième pull request et `doc/compare/performance.md`, à remesurer avec
   lui.
+- **Les deux espaces de noms**, à la fin de la troisième pull request :
+  - `doc/compare` teste GAOL v5 par `gaol_ieee1788` : en plus de `gaol` dans
+    les cas particuliers et l'encadrement, à la place de `gaol` dans les
+    performances (GAOL 4 reste mesuré par son `gaol`) ;
+  - ITF1788 et tang2021 relancés par `gaol_ieee1788` (tang2021 passe
+    aujourd'hui par `gaol::interval`) ;
+  - la documentation (`README.md` et partout où c'est utile) dit les deux
+    espaces de noms : `gaol`, pour rester compatible avec GAOL 4, et
+    `gaol_ieee1788`, pour suivre IEEE 1788-2015 ; la principale différence est
+    dans `pow` et `pown`, avec une partie qui lui est consacrée.
 
 ## Même fichier de test ou de documentation
 
