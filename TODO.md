@@ -616,6 +616,32 @@ Reporté (#67).
   `std::isless`, deux appels à `_dpcomp` sous Visual C++, plutôt que par les
   `gaol_detail::quiet_*` de #83.
 
+### AA. Shekel 5, plus lent qu'avec GAOL 4 (76)
+
+- **76.** **Shekel 5 prend moitié plus de temps avec GAOL v5 qu'avec GAOL
+  4.2.3** (relevé au point B, #118, le 13 octobre). Le banc de
+  `doc/compare/performance.md`, relancé ce jour-là pour toutes les
+  bibliothèques (Ubuntu 26.04.1, Clang 18.1.8, `-O3 -mfma`, sur le processeur
+  2), donne 277 ns contre 185. Les opérations dont Shekel 5 est fait coûtent à
+  GAOL v5 10 à 23 % de plus qu'à GAOL 4.2.3 : + et − 2,7 ns contre 2,5, ÷ 9,7
+  contre 8,4, le carré 7,6 contre 6,1. Shekel 5 (`doc/compare/code/bench_ops.h`)
+  en fait 25 soustractions, dont les 20 `x_j - a_ij` d'intervalles dégénérés,
+  20 additions, 20 carrés et 5 divisions de `[1]` : leurs écarts n'expliquent
+  qu'environ 47 des 92 ns.
+  - L'écart précède le point B : `configure-clean` du 12 octobre, avant #117,
+    prend autant (258 ns, contre 249 sur `todo-b-pow-corners`, par le même
+    programme, le même jour).
+  - Le 27 septembre, sous Ubuntu 20.04, l'écart était de 12 % (315 contre
+    280 ns), mais la colonne de GAOL v5 venait alors de `make perf` avec
+    GCC 9.4, et celle de GAOL 4.2.3 de Clang 18.
+
+  À chercher : ce qui coûte plus dans l'expression que dans le banc de chaque
+  opération seule, par exemple la soustraction d'un intervalle dégénéré, la
+  division de `[1]`, ou les dépendances entre les opérations, que le banc
+  d'une opération seule ne crée pas. Mesurer les formes de Shekel 5 une à
+  une, et comparer le code généré à celui de GAOL 4.2.3 (valgrind, `perf`
+  n'étant pas permis sur cette machine). Corriger si la cause est dans GAOL.
+
 ## La version
 
 ### Y. Préparer et publier v5.0.0 (32, 33, 34, 71)
@@ -704,7 +730,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 8 : B ; 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z.
+37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z ;
+76 : AA.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -728,7 +755,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
    comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96. Z
-   (`-Wundef`) peut se faire à tout moment avant Y.
+   (`-Wundef`) et AA (Shekel 5) peuvent se faire à tout moment avant Y.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
