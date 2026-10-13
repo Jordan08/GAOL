@@ -725,9 +725,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114 et #115
-  après leur fusion, et la jetable de #116). `todo-b-pow-rounding`, de #117,
-  fusionnée le 13 octobre, reste à supprimer.
+  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115 et
+  #117 après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
