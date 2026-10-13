@@ -24,6 +24,7 @@
 #include <cfenv>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <random>
 #include <vector>
 
@@ -241,6 +242,71 @@ namespace
         return arguments() + " = " + hex(y) + ", the hull of the values being within ["
           + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
       });
+    }
+  }
+
+  // modulo_k_pi(I, k_left, k_right) of gaol_core: the floor of each bound of I
+  // divided by [pi], and whether it is one integer, flag 2 for the lower bound
+  // and 1 for the upper one, have to be those that floor(interval(x) /
+  // interval::pi()) gives, which the function computed until it computed its
+  // quotients on doubles after one check of the rounding direction (GAOL v5),
+  // a bound 0 giving a zero of either sign; an infinite bound, whose interval
+  // is empty, gives NaN and no flag. Over the intervals whose bounds are 0,
+  // +-1, +-3, the bounds of pi, the doubles next to 3 pi and 1e6 pi, 2^52,
+  // 1e300, DBL_MAX, subnormals and +-oo, the multiples of pi computed as
+  // [pi] times an integer
+  void modulo_k_pi_values()
+  {
+    const double oo = std::numeric_limits<double>::infinity();
+    std::vector<double> bounds = { 0.0, 1.0, 3.0, 0x1p52, 1e300, std::numeric_limits<double>::max(), oo,
+                                   std::numeric_limits<double>::denorm_min(), 1e-310 };
+    for (const double k : { 1.0, 3.0, 1e6 }) {
+      const interval multiple = interval::pi()*k;
+      bounds.push_back(multiple.left());
+      bounds.push_back(multiple.right());
+      bounds.push_back(std::nextafter(multiple.left(), 0.0));
+      bounds.push_back(std::nextafter(multiple.right(), oo));
+    }
+    const std::size_t positive = bounds.size();
+    for (std::size_t i = 0; i < positive; ++i) {
+      bounds.push_back(-bounds[i]);
+    }
+    std::sort(bounds.begin(), bounds.end());
+    // The floor of x/[pi], and whether it is one integer, as the division of
+    // intervals gives them; NaN and false for an infinite x
+    const auto expected = [](double x, double& k_lower, double& k_upper, bool& one) {
+      if (std::isinf(x)) {
+        k_lower = k_upper = std::numeric_limits<double>::quiet_NaN();
+        one = false;
+        return;
+      }
+      const interval k = floor(interval(x)/interval::pi());
+      k_lower = k.left();
+      k_upper = k.right();
+      one = k.is_a_double();
+    };
+    for (std::size_t i = 0; i < bounds.size(); ++i) {
+      for (std::size_t j = i; j < bounds.size(); ++j) {
+        const double a = bounds[i], b = bounds[j];
+        if (a == b && std::isinf(a)) {
+          continue; // [-oo] and [+oo] are empty
+        }
+        const interval I(a, b);
+        double k_left = 0.0, k_right = 0.0;
+        const unsigned short flags = modulo_k_pi(I, k_left, k_right);
+        double a_lower, a_upper, b_lower, b_upper;
+        bool a_one, b_one;
+        expected(a, a_lower, a_upper, a_one);
+        expected(b, b_lower, b_upper, b_one);
+        const auto same = [](double u, double v) { return (std::isnan(u) && std::isnan(v)) || u == v; };
+        check("modulo_k_pi(I): the floors and the flags of floor(interval(x)/interval::pi())",
+              same(k_left, a_lower) && same(k_right, b_upper) && flags == (a_one ? 2 : 0) + (b_one ? 1 : 0),
+              [&] {
+                return "modulo_k_pi(" + hex(I) + ") = " + std::to_string(flags) + ", " + hex(k_left) + ", "
+                  + hex(k_right) + " rather than " + std::to_string((a_one ? 2 : 0) + (b_one ? 1 : 0)) + ", "
+                  + hex(a_lower) + ", " + hex(b_upper);
+              });
+      }
     }
   }
 
@@ -658,6 +724,20 @@ namespace
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
       check(std::string(e.name) + ": empty", r.is_empty(), [&] { return hex(r); });
     }
+#if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+    // [+oo] and [-oo], which no constructor makes, built from an SSE2
+    // register, the lower bound stored negated: pow(x, y) has to be empty,
+    // such an exponent holding no real number, where a pow() taking it for an
+    // integer beyond the ints would give [-oo,+oo] (GAOL v5: TODO.md B.1 took
+    // the test of these exponents for one that is never true)
+    for (const double d : { inf, -inf }) {
+      const interval J(_mm_set_pd(d, -d));
+      const interval r = pow(interval(4.), J);
+      check("pow([4],J) for J = [+oo] or [-oo] built from an SSE2 register: empty",
+            J.left() == d && J.right() == d && r.is_empty(),
+            [&] { return "J = " + hex(J) + ", pow([4],J) = " + hex(r); });
+    }
+#endif
 
     // An integer exponent beyond the ints, for which pow(const interval&, int)
     // cannot be called, still takes the integer power rather than the real
@@ -882,6 +962,7 @@ int main()
   atan2_of_boxes();
   trigonometric_intervals();
   tan_next_to_two_poles();
+  modulo_k_pi_values();
   powers();
   integer_functions();
   error_functions();

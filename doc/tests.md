@@ -85,7 +85,12 @@ point Q), which `numbers` checks there too.
   intervals whose bounds are next to two consecutive poles, of a width within
   two doubles of the one below π or drawn at random, five of which,
   `[-M_PI_2, M_PI_2]` included, hold no pole and have a width that rounds up to
-  the double below π (GAOL v5). `exp2`, `exp10`, `log2` and `log10` have
+  the double below π (GAOL v5). `modulo_k_pi()` of `gaol_core` has to give
+  the floors of the bounds divided by [π], and whether each is one integer,
+  that `floor(interval(x) / interval::pi())` gives, over the intervals whose
+  bounds are 0, ±1, ±3, multiples of π and their neighbours, 2<sup>52</sup>,
+  10<sup>300</sup>, the largest double, subnormals and ±∞ (GAOL v5: it
+  computes them on doubles). `exp2`, `exp10`, `log2` and `log10` have
   to be the tightest enclosures, and the exact values themselves where they are
   doubles (`exp2` of a whole number, `exp10` of 0 to 22, `log2` of a power of
   two, `log10` of a power of ten up to 10^22). `nth_root(I, q)` has to be an
@@ -109,7 +114,11 @@ point Q), which `numbers` checks there too.
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
-  upward, or as they found it with `GAOL_PRESERVE_ROUNDING`. Products and sums
+  upward, or as they found it with `GAOL_PRESERVE_ROUNDING`: among them the
+  roots of negative order, the integer powers that `pow(x, [n])`,
+  `pow(x, n.0)` and `gaol_ieee1788::pow(x, [n])` take, and `modulo_k_pi()`
+  next to multiples of π, which compute after one check of the direction
+  (GAOL v5). Products and sums
   have to be the tightest enclosures, also when computed in a loop that changes
   the rounding direction before each of them. `pow` with a subnormal result,
   which CORE-MATH rounds by itself in the direction `fegetround()` gives, has to
@@ -455,7 +464,8 @@ point Q), which `numbers` checks there too.
   the order of the standard, `mulRev(b, c, x)` being `div_rel(c, b, x)`; `pow`
   against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
   base, and at integer exponents beyond the ints, where it has to give the
-  tightest bounds and GAOL's own `pow` gives [-oo, +oo] (GAOL v5).
+  tightest bounds and GAOL's own `pow` gives [-oo, +oo], and the empty set
+  for a base with no point in [0, +oo], `pow([-4, -1], [DBL_MAX])` (GAOL v5).
   The reverse functions of max, min, sign and floor (`max_rel`, `min_rel`,
   `sign_rel`, `floor_rel`, GAOL v5) have to be the hulls of their sets, read
   from the definitions of the functions apart from the code: on every interval
@@ -628,8 +638,13 @@ point Q), which `numbers` checks there too.
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its
   `get_rounding_mode()` gave `FE_UPWARD` where 0 to 3 were expected, and the
-  upper bound was below the cube root (GAOL v5). `rsqrt` is checked in the four
-  rounding directions, and has to be the tightest enclosure, at the successors
+  upper bound was below the cube root (GAOL v5). `nth_root(I, q)` for
+  q = `INT_MIN` and `INT_MIN + 1` has to be the inverse of the root of order
+  2<sup>31</sup> and 2<sup>31</sup> − 1, `[1]` at `[1]`, empty at a negative
+  I for the even order and below 0 for the odd one: |q| was −q computed on a
+  `long`, which overflows where a `long` has 32 bits (GAOL v5). `rsqrt` is
+  checked in the four rounding directions, and has to be the tightest
+  enclosure, at the successors
   of the powers of 4, 4<sup>k</sup> (1 + 2<sup>−52</sup>), where 1/sqrt(x) is
   just above the double below 2<sup>−k</sup>, as the series of
   (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them

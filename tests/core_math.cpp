@@ -1119,6 +1119,33 @@ namespace
               });
       }
     }
+    /* The orders INT_MIN, whose opposite is no int, and INT_MIN + 1: |q| is
+       taken without a signed negation (GAOL v5: -static_cast<long>(q)
+       overflowed where a long has 32 bits, with Visual C++, MinGW-w64 and on
+       32-bit Linux). 2^31 is even, 2^31 - 1 odd. */
+    for (const double x : {0.5, 1.0, 2.0, 3.0, 1e300, -2.0}) {
+      for (const int q : {INT_MIN, INT_MIN + 1}) {
+        const unsigned int n = (q == INT_MIN) ? 2147483648u : 2147483647u;
+        const interval dn = nth_root(interval(x, x), q);
+        const interval inv = inverse(nth_root(interval(x, x), n));
+        check("nth_root: the order INT_MIN or INT_MIN + 1 inverts the root of order 2^31 or 2^31 - 1",
+              dn.is_empty() == inv.is_empty()
+                && (dn.is_empty() || (dn.left() == inv.left() && dn.right() == inv.right())),
+              [&] {
+                return "nth_root(" + show(x) + ", " + std::to_string(q) + ")";
+              });
+      }
+    }
+    check("nth_root([1], INT_MIN) = [1]",
+          nth_root(interval(1.0, 1.0), INT_MIN).left() == 1.0
+            && nth_root(interval(1.0, 1.0), INT_MIN).right() == 1.0,
+          [] { return std::string("nth_root([1], INT_MIN)"); });
+    check("nth_root([-2, -1], INT_MIN): empty, the order being even",
+          nth_root(interval(-2.0, -1.0), INT_MIN).is_empty(),
+          [] { return std::string("nth_root([-2, -1], INT_MIN)"); });
+    check("nth_root([-2], INT_MIN + 1) < 0, the order being odd",
+          nth_root(interval(-2.0, -2.0), INT_MIN + 1).right() < 0.0,
+          [] { return std::string("nth_root([-2], INT_MIN + 1)"); });
   }
 
   /*
