@@ -3816,35 +3816,6 @@ interval nth_root(const interval& I, int q)
   }
 
 
-  /*!
-    \brief Angle modulo pi (fast, boolean version)
-
-    Computes k_left and k_right for I=[a,b] such that
-    * a = k_left*\pi + a'  with |a'|<\pi
-    * b = k_right*\pi + b' with |b'|<\pi
-    \return true whevener k_left and k_right could be found and false
-    otherwise.
-    \note if I.left() (resp. I.right()) is very large, there might be
-    more than one integer in I.left()/interval::pi() (resp.
-    I.right()/interval::pi()).
-  */
-  bool fast_modulo_k_pi(const interval &I, double &k_left, double &k_right)
-  {
-    interval kl = floor(I.left()/interval::pi());
-    if (kl.left() != kl.right()) {
-      return false;
-    }
-
-    interval kr = floor(I.right()/interval::pi());
-    if (kr.left() != kr.right()) {
-      return false;
-    }
-    k_left  = kl.left();
-    k_right = kr.right();
-    return true;
-  }
-
-
   /*
     The bounds of x/[pi] for a finite x, [pi] being [pi_dn, pi_up], rounded
     upward, for modulo_k_pi(): computed on doubles, as tan() computes those of
