@@ -88,14 +88,22 @@ FILE = 'gaol/gaol_interval.cpp'
 # corner-upper-no-limit and corner-limit-*; the degenerate exponents beyond
 # the ints take the corners, their block and its mutants (std-beyond-*)
 # gone, and a base holding 1 inside takes an exponent of the other sign as 0
-# (std-corner-around-1-*clamp*).
+# (std-corner-around-1-*clamp*), and its limits where J holds 0 inside
+# (std-corner-around-1-*skip*); a degenerate exponent takes one corner for
+# each bound (std-degenerate-*), a base from 0 with exponents above 0 has a
+# branch again (std-zero-base-*), and an exponent [+oo] or [-oo], which only
+# an SSE2 register holds, gives the empty set (std-infinite-exponent-*).
 MUTANTS = [
     # pow_standard_upward(): the pow of Table 9.1
     dict(name='std-empty-y-unchecked',
-         edits=[('if (x.is_empty() || y.is_empty()) {\n      return interval::emptyset();\n    }\n\n    /*\n'
-                 '      x^y is only real',
-                 'if (x.is_empty()) {\n      return interval::emptyset();\n    }\n\n    /*\n'
-                 '      x^y is only real')]),
+         edits=[('if (x.is_empty() || y.is_empty() || !(y.left() < GAOL_INFINITY',
+                 'if (x.is_empty() || !(y.left() < GAOL_INFINITY')],
+         survives='the NaN bounds of an empty y fail the test of an infinite exponent too, which gives the '
+                  'empty set: the same bounds, but rounding_direction finds the invalid-operation flag that '
+                  'comparing them raises'),
+    dict(name='std-infinite-exponent-unchecked',
+         edits=[('y.is_empty() || !(y.left() < GAOL_INFINITY && y.right() > -GAOL_INFINITY)) {',
+                 'y.is_empty()) {')]),
     dict(name='std-no-cut-to-positive',
          edits=[('const interval base = x & interval::positive();', 'const interval base = x;')]),
     dict(name='std-empty-base-unchecked',
@@ -115,6 +123,21 @@ MUTANTS = [
     dict(name='std-int-within-ints-on-whole-x',
          edits=[('return pown_upward(base, static_cast<int>(y.left()));',
                  'return pown_upward(x, static_cast<int>(y.left()));')]),
+    dict(name='std-degenerate-by-corners',
+         edits=[('if (yl == yu) {', 'if (false) {')],
+         survives='the corners of a degenerate exponent are those of the branch: the one at xl for the lower '
+                  'bound and xu for the upper one for y > 0, and the reverse for y < 0, the clamped exponent 0 of '
+                  'a base holding 1 giving 1, which changes neither'),
+    dict(name='std-degenerate-lower-wrong-monotony',
+         edits=[('l = pow_lo((yl > 0.0) ? xl : xu, yl);', 'l = pow_lo(xl, yl);')]),
+    dict(name='std-degenerate-upper-wrong-monotony',
+         edits=[('r = pow_hi((yl > 0.0) ? xu : xl, yl);', 'r = pow_hi(xu, yl);')]),
+    dict(name='std-zero-base-by-corners',
+         edits=[('if (xl == 0.0 && yl > 0.0) {', 'if (false) {')],
+         survives='the corners give a base from 0 and exponents above 0 the bounds of the branch: the limit 0 '
+                  'at (0, y), and the power at xu with yu for xu >= 1 and yl below'),
+    dict(name='std-zero-base-upper-yu',
+         edits=[('r = pow_hi(xu, (xu >= 1.0) ? yu : yl);', 'r = pow_hi(xu, yu);')]),
     dict(name='std-corner-above-1-lower',
          edits=[('l = pow_lo((yl >= 0.0) ? xl : xu, yl);', 'l = pow_lo(xl, yl);')]),
     dict(name='std-corner-above-1-upper',
@@ -124,13 +147,27 @@ MUTANTS = [
     dict(name='std-corner-below-1-upper',
          edits=[('r = pow_hi((yl >= 0.0) ? xu : xl, yl);', 'r = pow_hi(xu, yl);')]),
     dict(name='std-corner-around-1-lower-a',
-         edits=[('l = minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));', 'l = pow_lo(xl, yu_or_0);')]),
+         edits=[('minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));', 'pow_lo(xl, yu_or_0);')]),
     dict(name='std-corner-around-1-lower-b',
-         edits=[('l = minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));', 'l = pow_lo(xu, yl_or_0);')]),
+         edits=[('minimum(pow_lo(xl, yu_or_0), pow_lo(xu, yl_or_0));', 'pow_lo(xu, yl_or_0);')]),
     dict(name='std-corner-around-1-upper-a',
-         edits=[('r = maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));', 'r = pow_hi(xl, yl_or_0);')]),
+         edits=[('maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));', 'pow_hi(xl, yl_or_0);')]),
     dict(name='std-corner-around-1-upper-b',
-         edits=[('r = maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));', 'r = pow_hi(xu, yu_or_0);')]),
+         edits=[('maximum(pow_hi(xl, yl_or_0), pow_hi(xu, yu_or_0));', 'pow_hi(xu, yu_or_0);')]),
+    dict(name='std-corner-around-1-no-skip',
+         edits=[('const bool around_0 = yl < 0.0 && yu > 0.0;', 'const bool around_0 = false;')],
+         survives='the limit 0 or +oo that bounds the box is also the bound computed at its corner: two calls '
+                  'of CORE-MATH more, the same bounds'),
+    dict(name='std-corner-around-1-lower-skip-always',
+         edits=[('(around_0 && (pow_is_limit(xl, yu) || pow_is_limit(xu, yl)))', 'around_0')]),
+    dict(name='std-corner-around-1-upper-skip-always',
+         edits=[('(around_0 && (pow_is_limit(xl, yl) || pow_is_limit(xu, yu)))', 'around_0')]),
+    dict(name='std-corner-around-1-lower-skip-one-sign',
+         edits=[('(around_0 && (pow_is_limit(xl, yu) || pow_is_limit(xu, yl)))',
+                 '(pow_is_limit(xl, yu) || pow_is_limit(xu, yl))')]),
+    dict(name='std-corner-around-1-upper-skip-one-sign',
+         edits=[('(around_0 && (pow_is_limit(xl, yl) || pow_is_limit(xu, yu)))',
+                 '(pow_is_limit(xl, yl) || pow_is_limit(xu, yu))')]),
     dict(name='std-corner-around-1-no-clamp',
          edits=[('const double yu_or_0 = (yu > 0.0) ? yu : 0.0, yl_or_0 = (yl < 0.0) ? yl : 0.0;',
                  'const double yu_or_0 = yu, yl_or_0 = yl;')],
