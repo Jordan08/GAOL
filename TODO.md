@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `309a06c` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `fd638df` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -340,12 +340,30 @@ pour `asinh_rel()` et `nth_root_rel()`, malgré 13 à 16 % de temps en plus
 avec Clang 18, sans cause trouvée. Les textes pour `ChangeLog` et
 `doc/differences.md` sont dans la description de #117.
 
+Fait le 13 octobre aussi : la deuxième pull request du point B (l'ancien 2,
+les coins de `pow`), par #118. `pow(x, y)` prend les coins de toute boîte, avec
+les limites de x^y, 0 ou +∞, là où la base est 0 ou +∞ ou l'exposant infini,
+au lieu d'exp(y log x) : les bornes les plus étroites partout (les 1347 cas de
+`pow` d'ITF1788), une seule vérification du sens d'arrondi, et plus
+d'exception de division par zéro. Un exposant dégénéré et une base partant de
+0 ont leur branche ; une base autour de 1 prend un coin par borne quand
+l'exposant est d'un seul signe (84 ns au lieu de 134 ; GAOL 4 : 137).
+`gaol_ieee1788::pow` rend le vide pour un exposant `[±oo]`, comme la norme ;
+`nth_root(I, long long)` et `nth_root(I, unsigned long long)` vérifient une
+fois au-delà des `unsigned` ; `GAOL_RND_KEEP()` d'un intervalle passe par ses
+deux bornes ; `fast_modulo_k_pi()` est retirée ; `doc/compare/performance.md`
+est relancé en entier sous Ubuntu 26.04.1 (`setup.sh` : MPFR sans
+`float128`). Décidé pendant le travail : `root_of_large_order()` ni exportée
+ni `static` ; `rnd_keep()` d'un intervalle FPU par une amie ; les 5 ns de plus
+de `gaol_ieee1788::pow(x, [n])` au-delà des `int` acceptés ; `huge_root()`
+gardé au-delà de 64 bits ; `special_cases.md`, `enclosure.md` et tang2021
+relancés à la fin de B ; Shekel 5 devient le point AA. Les textes pour
+`ChangeLog` et `doc/differences.md` sont dans la description de #118.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-b-pow-corners` : le point B, deuxième pull request, #118 (la première,
-  #117, est fusionnée).
 - `audit-doc-fixes` : les suites de l'audit du 13 octobre, qui a vérifié dans
   `configure-clean` ce qu'annoncent les points faits (le code est là) ; trois
   commentaires et textes faux et l'état de `process.md` corrigés, #119.
@@ -643,7 +661,7 @@ Reporté (#67).
   20 additions, 20 carrés et 5 divisions de `[1]` : leurs écarts n'expliquent
   qu'environ 47 des 92 ns.
   - L'écart précède le point B : `configure-clean` du 12 octobre, avant #117,
-    prend autant (258 ns, contre 249 sur `todo-b-pow-corners`, par le même
+    prend autant (258 ns, contre 249 sur la branche de #118, par le même
     programme, le même jour).
   - Le 27 septembre, sous Ubuntu 20.04, l'écart était de 12 % (315 contre
     280 ns), mais la colonne de GAOL v5 venait alors de `make perf` avec
@@ -725,8 +743,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   fusionnées (les fusionnées, les jetables et `fix-path-core-math` l'ont été le
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
-  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115 et
-  #117 après leur fusion, et la jetable de #116).
+  #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117
+  et #118 après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
