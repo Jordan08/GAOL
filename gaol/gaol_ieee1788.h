@@ -265,7 +265,7 @@ namespace gaol_ieee1788 {
   p beyond the ints was converted to a negative int, and threw. For a p
   within the unsigned ints, nth_root_rel(c, p, x); beyond them, the hull of
   the parts of x in the roots of order p of c and, for an even p, in their
-  opposites (gaol_detail::huge_root()), which every x with x^p in c is in
+  opposites (nth_root(c, p)), which every x with x^p in c is in
   */
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, T p)
@@ -276,7 +276,7 @@ namespace gaol_ieee1788 {
     if (::gaol_detail::integer_fits<unsigned int>(p)) {
       return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
     }
-    const interval roots = ::gaol_detail::huge_root(c, p);
+    const interval roots = ::gaol_core::nth_root(c, p);
     return p % 2 == 0 ? (x & roots) | (x & -roots) : x & roots;
   }
   template <class T, ::gaol_detail::if_integer<T> = 0>

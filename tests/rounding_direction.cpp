@@ -1169,7 +1169,8 @@ int main()
           + S(nth_root(-y, -5)) + " " + S(nth_root(y, INT_MIN)); } },
     // An order beyond the ints and the unsigned ints (GAOL v5)
     { "nth_root(x,q) beyond the unsigned ints", [](const interval& x, const interval& y) {
-        return S(nth_root(y, 1LL << 33)) + " " + S(nth_root(-y, (1LL << 33) + 1)) + " " + S(nth_root(x, -(1LL << 33) - 1)); } },
+        return S(nth_root(y, 1LL << 33)) + " " + S(nth_root(-y, (1LL << 33) + 1)) + " " + S(nth_root(x, -(1LL << 33) - 1))
+          + " " + S(nth_root(-y, (1ULL << 34) + 1)); } },
     { "pow(x,[n]), pow(x,n.0) and gaol_ieee1788::pow(x,[n]) for n < 0", [](const interval& x, const interval& y) {
         return S(pow(y, interval(-3.0))) + " " + S(pow(-y, interval(-3.0))) + " " + S(pow(y, -3.0)) + " "
           + S(gaol_ieee1788::pow(y, interval(-3.0))) + " " + S(gaol_ieee1788::pow(x, interval(-2.0))); } },

@@ -162,6 +162,16 @@ namespace
           bounds_are(odd, -r8, r8) && bounds_are(even, 0.0, r8)
           && bounds_are(inverse, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
           [&] { return hex(odd) + " " + hex(even) + " " + hex(inverse); });
+    // The same orders as unsigned long long, which nth_root(I, unsigned long
+    // long) takes, and through the template, with the type of the integer
+    // that holds them, a long on 64-bit Linux and macOS, a long long elsewhere
+    // (GAOL v5)
+    const interval odd_u = gaol::nth_root(m8, 5000000001ULL), even_u = gaol::nth_root(m8, 5000000000ULL);
+    const interval odd_t = gaol::nth_root(m8, 5000000001L), inverse_t = gaol::nth_root(c8, -5000000000L);
+    check("nth_root(x, q) beyond the unsigned ints for an unsigned long long q and through the template",
+          bounds_are(odd_u, -r8, r8) && bounds_are(even_u, 0.0, r8) && bounds_are(odd_t, -r8, r8)
+          && bounds_are(inverse_t, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
+          [&] { return hex(odd_u) + " " + hex(even_u) + " " + hex(odd_t) + " " + hex(inverse_t); });
     bool threw = false;
     try {
       static_cast<void>(pownRev(c8, 0L));

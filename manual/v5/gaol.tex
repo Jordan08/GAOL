@@ -2898,6 +2898,8 @@ cout << pow(interval(0.0), interval(0.0)) << ' '
 \end{deffun}
 
 \deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned int \var{n})}
+\deffunx{interval}{nth\_root}{(const interval\& \var{I}, long long \var{q})}
+\deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned long long \var{q})}
 \begin{deffun}{interval}{nth\_root}{(const interval\& \var{I}, int \var{q})}
   \begin{operation}
     \op{$^{n}\sqrt{I}$}
@@ -2918,7 +2920,9 @@ cout << pow(interval(0.0), interval(0.0)) << ' '
   which \code{nth\_root} was ambiguous, is taken as an \code{int} or an
   \code{unsigned int} where it is one; beyond them, the roots are enclosed
   by \code{pow} with the exponent $1/q$, as an interval, $x^{1/q}$ being
-  within $2^{-21}$ of 1 for every double $x>0$ there.\newinvfive
+  within $2^{-21}$ of 1 for every double $x>0$ there, after one check of the
+  rounding direction for a \code{long long} or an \code{unsigned long long}
+  order.\newinvfive
 \begin{example}
 cout << nth_root(interval(-8,27), 3) << ' '
      << nth_root(interval(-4,16), 2) << ' '

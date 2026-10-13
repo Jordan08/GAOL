@@ -1561,6 +1561,20 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigne
     (0, +oo) for an even one.
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, int q);
+  /*!
+    \brief nth_root(I, q) for a q of type long long or unsigned long long
+    (GAOL v5)
+
+    nth_root(I, int) for a q within the ints, nth_root(I, unsigned int) for
+    one within the unsigned ints; beyond them, the root of order q computed by
+    GAOL's pow with the exponent 1/q, an interval with no integer in it, on
+    the part of I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in
+    [-oo, 0]; for a negative q, 1/x^(1/|q|), which 0 has not. An enclosure of
+    the roots, x^(1/q) being within 2^-21 of 1 for every double x > 0 there,
+    after one check of the rounding direction.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, long long q);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigned long long q);
 
   /*!
     \brief Returns the number of floating-point numbers in [a,b]
@@ -2074,30 +2088,26 @@ GAOL_NODISCARD GAOL_INLINE interval intersect(const interval& a, const interval&
 
 namespace gaol_detail {
   /*
-    The roots of huge_root() below, computed after one check of the rounding
-    direction (GAOL v5): order is the tightest interval holding |q|, negative
-    and odd tell the sign and the parity of q. Not a function for the code
-    using GAOL, which calls nth_root(I, q).
-  */
-  GAOL_NODISCARD extern GAOL_PUBLIC gaol_core::interval root_of_large_order(const gaol_core::interval& I,
-                                                                            const gaol_core::interval& order,
-                                                                            bool negative, bool odd);
-
-  /*
-    The root of order q of I for an integer q beyond the ints and the
-    unsigned ints, nth_root(I, q) for such a q (GAOL v5): I^(1/q) by GAOL's pow,
-    the exponent 1/q being an interval with no integer in it, on the part of
-    I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in [-oo, 0]; for
-    a negative q, 1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int
-    q. pownRev() of gaol_ieee1788 takes it for such a p. The roots are
-    computed in gaol/gaol_interval.cpp, after one check of the rounding
-    direction, where 1/|q| and the two powers checked it once each.
+    The root of order q of I for an integer q beyond 64 bits, which only
+    __int128 gives (GCC and Clang in their GNU modes), nth_root(I, q) for
+    such a q (GAOL v5): I^(1/q) by GAOL's pow, the exponent 1/q being an
+    interval with no integer in it, on the part of I in [0, +oo], and for an
+    odd q -(-x)^(1/q) on its part in [-oo, 0]; for a negative q,
+    1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int q. 1/|q| and
+    the two powers check the rounding direction once each, where
+    nth_root(I, long long) and nth_root(I, unsigned long long) check it once.
   */
   template <class T>
   GAOL_INLINE gaol_core::interval huge_root(const gaol_core::interval& I, T q)
   {
-    const gaol_core::interval order = integer_is_negative(q) ? -gaol_core::interval(q) : gaol_core::interval(q);
-    return root_of_large_order(I, order, integer_is_negative(q), q % 2 != 0);
+    const gaol_core::interval magnitude = integer_is_negative(q) ? -gaol_core::interval(q) : gaol_core::interval(q);
+    const gaol_core::interval inverse = gaol_core::interval(1.0) / magnitude;
+    const gaol_core::interval exponent = integer_is_negative(q) ? -inverse : inverse;
+    const gaol_core::interval roots = gaol_core::gaol_pow_hybrid(I & gaol_core::interval::positive(), exponent);
+    if (q % 2 == 0) {
+      return roots;
+    }
+    return roots | -gaol_core::gaol_pow_hybrid(-(I & gaol_core::interval::negative()), exponent);
   }
 } // namespace gaol_detail
 
@@ -2110,9 +2120,10 @@ namespace gaol_core {
     nth_root(x, 3L) was ambiguous, a long being as far from an int as from an
     unsigned int. nth_root(I, int) for a q within the ints, nth_root(I,
     unsigned int) for one within the unsigned ints, and beyond them the root
-    of order q computed by GAOL's pow with the exponent 1/q, see
-    gaol_detail::huge_root(): an enclosure of the roots, x^(1/q) being within
-    2^-21 of 1 for every double x > 0 there.
+    of order q computed by GAOL's pow with the exponent 1/q, by
+    nth_root(I, long long) and nth_root(I, unsigned long long) within 64
+    bits, and gaol_detail::huge_root() beyond: an enclosure of the roots,
+    x^(1/q) being within 2^-21 of 1 for every double x > 0 there.
   */
   template <class T, gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD GAOL_INLINE interval nth_root(const interval& I, T q)
@@ -2122,6 +2133,12 @@ namespace gaol_core {
     }
     if (gaol_detail::integer_fits<unsigned int>(q)) {
       return nth_root(I, static_cast<unsigned int>(q));
+    }
+    if (gaol_detail::integer_fits<long long>(q)) {
+      return nth_root(I, static_cast<long long>(q));
+    }
+    if (gaol_detail::integer_fits<unsigned long long>(q)) {
+      return nth_root(I, static_cast<unsigned long long>(q));
     }
     return gaol_detail::huge_root(I, q);
   }

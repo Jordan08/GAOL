@@ -2847,6 +2847,47 @@ interval nth_root(const interval& I, int q)
 	return res;
 }
 
+  /*
+    The root of order q of I for a q beyond the ints and the unsigned ints,
+    after one check of the rounding direction (GAOL v5: the template
+    gaol_detail::huge_root() of gaol/gaol_interval.h computed it, where 1/|q|
+    and the two powers checked it once each): order is the tightest interval
+    holding |q|, negative and odd tell the sign and the parity of q, and the
+    inverse of order has positive bounds.
+  */
+  static interval root_of_large_order(const interval& I, const interval& order, bool negative, bool odd)
+  {
+    GAOL_RND_ENTER();
+    const interval inverse = upward_access::inverse(order);
+    const interval exponent = negative ? -inverse : inverse;
+    interval res = pow_hybrid_upward(I & interval::positive(), exponent);
+    if (odd) {
+      res = res | -pow_hybrid_upward(-(I & interval::negative()), exponent);
+    }
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  interval nth_root(const interval& I, long long q)
+  {
+    if (q >= INT_MIN && q <= INT_MAX) {
+      return nth_root(I, static_cast<int>(q));
+    }
+    if (q > 0 && q <= static_cast<long long>(UINT_MAX)) {
+      return nth_root(I, static_cast<unsigned int>(q));
+    }
+    return root_of_large_order(I, (q < 0) ? -interval(q) : interval(q), q < 0, q % 2 != 0);
+  }
+
+  interval nth_root(const interval& I, unsigned long long q)
+  {
+    if (q <= UINT_MAX) {
+      return nth_root(I, static_cast<unsigned int>(q));
+    }
+    return root_of_large_order(I, interval(q), false, q % 2 != 0);
+  }
+
   unsigned long long nb_fp_numbers(double a, double b)
   {
     // a and b compared as bounds, whatever the modes that flush the
@@ -5365,26 +5406,6 @@ static inline interval cos_or_sin(double Il, double Ir)
 
 
 } // namespace gaol_core
-
-namespace gaol_detail {
-  // huge_root() of gaol/gaol_interval.h after its one check (GAOL v5): order
-  // is above 2^31, its inverse an interval of positive bounds
-  gaol_core::interval root_of_large_order(const gaol_core::interval& I, const gaol_core::interval& order,
-                                          bool negative, bool odd)
-  {
-    using gaol_core::interval;
-    GAOL_RND_ENTER();
-    const interval inverse = gaol_core::upward_access::inverse(order);
-    const interval exponent = negative ? -inverse : inverse;
-    interval res = gaol_core::pow_hybrid_upward(I & interval::positive(), exponent);
-    if (odd) {
-      res = res | -gaol_core::pow_hybrid_upward(-(I & interval::negative()), exponent);
-    }
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
-    return res;
-  }
-} // namespace gaol_detail
 
 namespace gaol_ieee1788 {
 
