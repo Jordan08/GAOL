@@ -8,9 +8,11 @@
  * the exact results are computed with integers, or were computed with 2000
  * bits of precision (tests/elementary_values.py, tests/reverse_values.py),
  * 3000 (tests/atan2_rel_values.py) or 5000
- * (tests/extended_precision_values.py). A bound is right when it is
- * on the right side of the exact result, and as tight as it can be when no
- * double between it and the exact result is.
+ * (tests/extended_precision_values.py); the bounds of the table of pow in
+ * tests/ieee1788.cpp, taken from the code, were checked against the powers
+ * computed with 500 bits (tests/tools/pow/checkrows.py). A bound is right
+ * when it is on the right side of the exact result, and as tight as it can
+ * be when no double between it and the exact result is.
  *
  * They follow the tests Codac (https://github.com/codac-team/codac) makes of
  * the rounding of its intervals, which are GAOL's

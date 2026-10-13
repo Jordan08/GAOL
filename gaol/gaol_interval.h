@@ -311,6 +311,11 @@ namespace gaol_detail {
 
 namespace gaol_core {
 
+#if !GAOL_USING_SSE2_INSTRUCTIONS
+  class interval;
+  // rnd_keep() of an FPU interval, a friend of it, defined after it (GAOL v5)
+  GAOL_INLINE interval rnd_keep(const interval& x);
+#endif
 
   class GAOL_PUBLIC interval {
   public:
@@ -799,6 +804,8 @@ namespace gaol_core {
 #else
     double lb_; // The left bound is stored negated
     double rb_;
+    // Copies the two stored bounds as they are (GAOL v5)
+    friend interval rnd_keep(const interval& x);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
     double left_internal() const;
     double right_internal() const;
@@ -820,6 +827,40 @@ namespace gaol_core {
     //! Number of digits to display
     static std::streamsize output_precision;
   };
+
+  /*
+    rnd_keep() of an interval, for GAOL_RND_KEEP() with
+    GAOL_PRESERVE_ROUNDING (GAOL v5): its two stored bounds through volatile
+    doubles, as they are, the NaN bounds of the empty set included, where the
+    template of gaol/gaol_fpu.h copies an interval to volatile memory a byte
+    at a time, which made nth_root(x, -2), asinh(x) and the cube root 15 to
+    20 ns slower when they kept an interval; and of an __m128d, which the SSE2
+    operations keep (sqr(), inverse()). The FPU bounds are copied as they
+    are stored, through a friend, rather than given to the constructor,
+    which compares them.
+  */
+#if GAOL_USING_SSE2_INSTRUCTIONS
+  GAOL_INLINE __m128d rnd_keep(const __m128d& x)
+  {
+    volatile double low = _mm_cvtsd_f64(x);
+    volatile double high = _mm_cvtsd_f64(_mm_unpackhi_pd(x, x));
+    return _mm_set_pd(high, low);
+  }
+
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    return interval(rnd_keep(x.get_xmminterval())); // the lower bound stored negated
+  }
+#else
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    interval r;
+    volatile double lb = x.lb_, rb = x.rb_;
+    r.lb_ = lb;
+    r.rb_ = rb;
+    return r;
+  }
+#endif
 
 
 /* A loop of comparisons of bounds that GCC vectorizes raises the
@@ -1410,13 +1451,16 @@ namespace gaol_core {
     gaol_pown(), the pown of IEEE 1788, which is defined for a
     negative base too, gives x^0 = 1 for any x, 0 included, and has no value
     at 0 for n < 0; for an n beyond the ints, the result is [-oo,+oo]. Any
-    other exponent takes the pow of IEEE 1788, exp(J log(I)) on the part of I
-    in [0,+oo], where 0^y is 0 for y > 0 and has no value for y <= 0:
-    pow([-4,9],[0.5]) is [0,3], pow([0],[0,1]) is [0], and
-    pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5]) are empty. An exponent [+oo] or
-    [-oo] contains no real number, and gives the empty set. The result is thus
-    not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
-    pow([0],[0]) is [1].
+    other exponent takes the pow of IEEE 1788 on the part of I in [0,+oo],
+    where 0^y is 0 for y > 0 and has no value for y <= 0, its tightest
+    bounds: CORE-MATH's pow at the corners of the box, and the limits of x^y,
+    0 or +oo, where the base is 0 or +oo or the exponent infinite (1 for a
+    base 1 or an exponent 0).
+    pow([-4,9],[0.5]) is [0,3], pow([4,+oo],[0.5]) is [2,+oo],
+    pow([0],[0,1]) is [0], and pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5])
+    are empty. An exponent [+oo] or [-oo] contains no real number, and gives
+    the empty set. The result is thus not monotone for the inclusion of J:
+    pow([-4,-1],[2]) is [1,16], and pow([0],[0]) is [1].
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
@@ -1531,6 +1575,20 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigne
     (0, +oo) for an even one.
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, int q);
+  /*!
+    \brief nth_root(I, q) for a q of type long long or unsigned long long
+    (GAOL v5)
+
+    nth_root(I, int) for a q within the ints, nth_root(I, unsigned int) for
+    one within the unsigned ints; beyond them, the root of order q computed by
+    GAOL's pow with the exponent 1/q, an interval with no integer in it, on
+    the part of I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in
+    [-oo, 0]; for a negative q, 1/x^(1/|q|), which 0 has not. An enclosure of
+    the roots, x^(1/q) being within 2^-21 of 1 for every double x > 0 there,
+    after one check of the rounding direction.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, long long q);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigned long long q);
 
   /*!
     \brief Returns the number of floating-point numbers in [a,b]
@@ -2044,12 +2102,14 @@ GAOL_NODISCARD GAOL_INLINE interval intersect(const interval& a, const interval&
 
 namespace gaol_detail {
   /*
-    The root of order q of I for an integer q beyond the ints and the
-    unsigned ints, nth_root(I, q) for such a q (GAOL v5): I^(1/q) by GAOL's pow,
-    the exponent 1/q being an interval with no integer in it, on the part of
-    I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in [-oo, 0]; for
-    a negative q, 1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int
-    q. pownRev() of gaol_ieee1788 takes it for such a p.
+    The root of order q of I for an integer q beyond 64 bits, which only
+    __int128 gives (GCC and Clang in their GNU modes), nth_root(I, q) for
+    such a q (GAOL v5): I^(1/q) by GAOL's pow, the exponent 1/q being an
+    interval with no integer in it, on the part of I in [0, +oo], and for an
+    odd q -(-x)^(1/q) on its part in [-oo, 0]; for a negative q,
+    1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int q. 1/|q| and
+    the two powers check the rounding direction once each, where
+    nth_root(I, long long) and nth_root(I, unsigned long long) check it once.
   */
   template <class T>
   GAOL_INLINE gaol_core::interval huge_root(const gaol_core::interval& I, T q)
@@ -2074,9 +2134,10 @@ namespace gaol_core {
     nth_root(x, 3L) was ambiguous, a long being as far from an int as from an
     unsigned int. nth_root(I, int) for a q within the ints, nth_root(I,
     unsigned int) for one within the unsigned ints, and beyond them the root
-    of order q computed by GAOL's pow with the exponent 1/q, see
-    gaol_detail::huge_root(): an enclosure of the roots, x^(1/q) being within
-    2^-21 of 1 for every double x > 0 there.
+    of order q computed by GAOL's pow with the exponent 1/q, by
+    nth_root(I, long long) and nth_root(I, unsigned long long) within 64
+    bits, and gaol_detail::huge_root() beyond: an enclosure of the roots,
+    x^(1/q) being within 2^-21 of 1 for every double x > 0 there.
   */
   template <class T, gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD GAOL_INLINE interval nth_root(const interval& I, T q)
@@ -2086,6 +2147,12 @@ namespace gaol_core {
     }
     if (gaol_detail::integer_fits<unsigned int>(q)) {
       return nth_root(I, static_cast<unsigned int>(q));
+    }
+    if (gaol_detail::integer_fits<long long>(q)) {
+      return nth_root(I, static_cast<long long>(q));
+    }
+    if (gaol_detail::integer_fits<unsigned long long>(q)) {
+      return nth_root(I, static_cast<unsigned long long>(q));
     }
     return gaol_detail::huge_root(I, q);
   }
@@ -2568,6 +2635,10 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
   and so is textToInterval(s).
 */
 namespace gaol {
+
+  // rnd_keep() of gaol/gaol_fpu.h, with its overloads for intervals above
+  // (GAOL v5)
+  using gaol_core::rnd_keep;
 
   // The type, its output format, and the functions and operators on intervals
   // of GAOL 4

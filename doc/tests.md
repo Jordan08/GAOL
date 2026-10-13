@@ -115,7 +115,8 @@ point Q), which `numbers` checks there too.
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`: among them the
-  roots of negative order, the integer powers that `pow(x, [n])`,
+  roots of negative order and of an order beyond the unsigned ints, the
+  integer powers that `pow(x, [n])`,
   `pow(x, n.0)` and `gaol_ieee1788::pow(x, [n])` take, and `modulo_k_pi()`
   next to multiples of π, which compute after one check of the direction
   (GAOL v5). Products and sums
@@ -202,7 +203,7 @@ point Q), which `numbers` checks there too.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5). Then each of the 85 operations that
+  compared before the check (GAOL v5). Then each of the 96 operations that
   check the rounding direction (the arithmetic, the elementary functions, the
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
@@ -494,24 +495,31 @@ point Q), which `numbers` checks there too.
   is called unqualified, which compiles only if none of them is ambiguous with
   a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
-  NaN and beyond-the-ints exponents; `pown` and `gaol::pow` the integer power,
+  NaN and beyond-the-ints exponents, and at the exponents [+oo] and [-oo]
+  that only an SSE2 register holds, which give the empty set as for
+  `gaol::pow` (`elementary`, GAOL v5); `pown` and `gaol::pow` the integer power,
   for an exponent of any integer type too (GAOL v5): `pown([2], 3000000000u)`
   is the overflowing power, which the conversion of the exponent to a negative
   `int` made a tiny one, `gaol::pow(x, 3L)`, which was ambiguous, the cube,
   `pown(x, -2L)` and `gaol::pow(x, -3LL)` the negative powers, and an exponent
   beyond the unsigned ints [-oo, +oo]; `rootn()`, `gaol::nth_root()` and
-  `pownRev()` with a `long`, `long long` or `unsigned long` order, and beyond
+  `pownRev()` with a `long`, `long long`, `unsigned long` or `unsigned long long`
+  order, and beyond
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
   `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,
   [-oo, +oo]; `numsToInterval()` and `isMember()` take ±(2^53 + 1)
   as the integer it is, and bounds in the wrong order give the empty set;
-  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 92 boxes, each
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 114 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
-  `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints):
-  they have to be bit for bit those the two functions gave when each had its
-  own copy of the pow, each an enclosure of the exact power within one double
-  of the tightest bounds, and the same with the exponent given as a double;
+  `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints), the
+  corners where the base is 0 or +∞ or the exponent infinite included: they
+  have to be the bounds the table gives, taken from the code and each checked
+  against the exact power computed with 500 bits by mpmath
+  (`tests/tools/pow/checkrows.py`), the tightest ones but for the integer
+  power `pow([0, 3], [100])` of the standard's pow, one double above
+  (GAOL v5), compared with `==`, which does not tell −0 from +0, and the
+  same with the exponent given as a double;
   and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
   standard's too. GAOL's functions on intervals and on an interval
   and a number; the functions of C on numbers, by `static_assert`.
@@ -644,7 +652,11 @@ point Q), which `numbers` checks there too.
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its
   `get_rounding_mode()` gave `FE_UPWARD` where 0 to 3 were expected, and the
-  upper bound was below the cube root (GAOL v5). `nth_root(I, q)` for
+  upper bound was below the cube root (GAOL v5). `pow` at the corners
+  where the base is 0 or +∞ or the exponent infinite has to raise neither the
+  divide-by-zero nor the invalid-operation exception, in the four rounding
+  directions: its bounds there are the limits, which no call of CORE-MATH
+  computes (GAOL v5). `nth_root(I, q)` for
   q = `INT_MIN` and `INT_MIN + 1` has to be the inverse of the root of order
   2<sup>31</sup> and 2<sup>31</sup> − 1, `[1]` at `[1]`, empty at a negative
   I for the even order and below 0 for the odd one: |q| was −q computed on a
@@ -1099,10 +1111,10 @@ bounds, the sign of a zero aside. `gen_table.py` and `evalrows` read the table
 of `pow_on_boxes()` in `tests/ieee1788.cpp`, and write it again from the
 bounds of a build. `checkrows.py` checks those bounds against the exact
 powers, computed with 500 bits by mpmath. `mutate.py` builds GAOL with each
-of 40 deliberate errors in `pow`, which `ieee1788` and `elementary` have to
-catch, but for the 7 that give the same bounds, and runs `diffpow` on the
-errors no test catches. `bench.cpp` measures the time per call of each path
-of `pow`.
+of the deliberate errors in `pow` of its list, which `ieee1788` and
+`elementary` have to catch, but for those that give the same bounds, and
+runs `diffpow` on the errors no test catches. `bench.cpp` measures the time
+per call of each path of `pow`.
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
 (`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed

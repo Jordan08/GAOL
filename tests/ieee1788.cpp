@@ -14,10 +14,12 @@
  * Table 9.1 for each, on intervals and on expressions, where GAOL's pow takes
  * pown for an integer exponent: pow(x, 2) is pow(x, [2]), the integer power
  * being pown(x, 2). Their bounds on boxes that reach each branch of the
- * function they share are checked bit for bit. The functions of C on numbers
- * have to remain those of C. intervalToExact() has to be exact_string(), and
- * to leave the global output format alone. The check of it by a second thread
- * writing intervals meanwhile is commented out: the tests run no thread.
+ * function they share are checked, the bounds being the tightest ones that
+ * mpmath gives but for one integer power (see pow_on_boxes()). The functions
+ * of C on numbers have to remain those of C. intervalToExact() has to be
+ * exact_string(), and to leave the global output format alone. The check of
+ * it by a second thread writing intervals meanwhile is commented out: the
+ * tests run no thread.
  * mulRevToPair() has to give the two parts of 10.5.5 in the standard's order.
  *
  * Copyright (c) 2026 ENSTA, France
@@ -160,6 +162,16 @@ namespace
           bounds_are(odd, -r8, r8) && bounds_are(even, 0.0, r8)
           && bounds_are(inverse, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
           [&] { return hex(odd) + " " + hex(even) + " " + hex(inverse); });
+    // The same orders as unsigned long long, which nth_root(I, unsigned long
+    // long) takes, and through the template, with the type of the integer
+    // that holds them, a long on 64-bit Linux and macOS, a long long elsewhere
+    // (GAOL v5)
+    const interval odd_u = gaol::nth_root(m8, 5000000001ULL), even_u = gaol::nth_root(m8, 5000000000ULL);
+    const interval odd_t = gaol::nth_root(m8, 5000000001L), inverse_t = gaol::nth_root(c8, -5000000000L);
+    check("nth_root(x, q) beyond the unsigned ints for an unsigned long long q and through the template",
+          bounds_are(odd_u, -r8, r8) && bounds_are(even_u, 0.0, r8) && bounds_are(odd_t, -r8, r8)
+          && bounds_are(inverse_t, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
+          [&] { return hex(odd_u) + " " + hex(even_u) + " " + hex(odd_t) + " " + hex(inverse_t); });
     bool threw = false;
     try {
       static_cast<void>(pownRev(c8, 0L));
@@ -244,19 +256,14 @@ namespace
     The pow of Table 9.1 is written once, in gaol/gaol_interval.cpp:
     gaol_ieee1788::pow(x, y) is that function, and gaol::pow(x, y) calls it for
     every exponent but a degenerate integer, which takes pown on the whole of x,
-    and [-oo, +oo] beyond the ints. The two were written apart, the first going
-    through the second after checks of its own (x cut to [0, +oo], the empty
-    sets, x = {0}): a check lost from either changes the bounds of a few boxes
-    only, most having the same. Each box below reaches a branch of the shared
-    function, or of what gaol::pow adds to it. The bounds are those the two
-    functions gave before the pow of the standard was written once, bit for bit
-    (as on 70 500 more boxes, under the four rounding directions, with SSE2 and
-    FPU intervals; but for the lower bound of gaol::pow([0], y), y > 0, which
-    was -0 with SSE2 intervals, and is +0 as in gaol_ieee1788::pow, and for a
-    lower bound at a corner where the power is a double, which is that double
-    now and was the double below, as 2^-2 for the box [0.1, 2] x [-2, 0.5]),
-    each checked against the exact power computed with 500 bits (mpmath): it
-    encloses it, within one double of the tightest bound.
+    and [-oo, +oo] beyond the ints. Each box below reaches a branch of the
+    shared function, or of what gaol::pow adds to it, the corners where the
+    base is 0 or +oo or the exponent infinite included. The bounds were taken
+    from the code, and each was checked against the exact power, computed with
+    500 bits by mpmath (tests/tools/pow/checkrows.py): it encloses it, and is
+    the tightest bound, but for the integer power of [-2, 3] x [100] taken on
+    [0, 3], whose upper bound is one double above. They are compared with ==,
+    which does not tell -0 from +0: the sign of a zero bound is not checked.
   */
   void pow_on_boxes()
   {
@@ -276,6 +283,7 @@ namespace
       // an empty base or exponent
       {none, P(2), none},
       {P(2), none, none},
+      {none, P(2147483648.0), none},
       // x < 0: no value for the pow of the standard, pown for a degenerate integer exponent of gaol::pow
       {I(-4, -1), P(0.5), none},
       {I(-4, -1), I(1.5, 2.5), none},
@@ -315,7 +323,8 @@ namespace
       {I(1e-300, 1e300), P(3), I(0, oo)},
       {I(-1, 2), P(2147483647.0), I(0, oo), I(-1, oo)},
       {I(0.5, 1), P(-2147483648.0), I(1, oo)},
-      // an integer exponent beyond the ints: CORE-MATH's pow at the bounds of x for the standard's pow, [-oo, +oo] for gaol::pow
+      {I(-2, 3), P(100), I(0, 0x1.69194f299cddcp+158), I(0, 0x1.69194f299cddbp+158)},
+      // an integer exponent beyond the ints: the corners at the bounds of x for the standard's pow, [-oo, +oo] for gaol::pow
       {I(2, 3), P(1e10), I(0x1.fffffffffffffp+1023, oo), all},
       {I(0.5, 0.9), P(1e10), I(0, 0x1p-1074), all},
       {I(2, 3), P(-1e10), I(0, 0x1p-1074), all},
@@ -349,9 +358,10 @@ namespace
       {I(0.5, 2), I(1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
       {I(0.5, 2), I(-2.5, -1.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
       {I(0.5, 2), I(-1.5, 2.5), I(0x1.6a09e667f3bccp-3, 0x1.6a09e667f3bcdp+2)},
-      {I(0.1, 2), I(-2, 0.5), I(0x1p-2, 100)},
+      {I(0.1, 2), I(-2, 0.5), I(0.25, 100)},
       {I(1, 2), I(-0.5, 1.5), I(0x1.6a09e667f3bccp-1, 0x1.6a09e667f3bcdp+1)},
       {P(1), I(-0.5, 1.5), P(1)},
+      {P(1), P(0.1), P(1)},
       {I(0.3, 1), I(0.5, 1.5), I(0x1.50854f2c3d222p-3, 1)},
       {I(0.3, 3), I(-0.5, 1.5), I(0x1.50854f2c3d222p-3, 0x1.4c8dc2e42398p+2)},
       {I(3, 7), I(1.5, 2.5), I(0x1.4c8dc2e42397fp+2, 0x1.03489be058693p+7)},
@@ -360,19 +370,40 @@ namespace
       {I(2, 3), I(2147483647.0, 2147483649.0), I(0x1.fffffffffffffp+1023, oo)},
       {P(1e-300), P(1.5), I(0, 0x1p-1074)},
       {P(1e300), P(1.5), I(0x1.fffffffffffffp+1023, oo)},
-      // exp(y log(x)), for an infinite bound and for a base from 0 with an exponent that is not above 0
+      // the corners where the base is 0 or +oo or the exponent infinite, the limits of x^y there: an infinite
+      // bound, or a base from 0 with an exponent that is not above 0
       {I(2, oo), I(0.5, 1.5), I(0x1.6a09e667f3bccp+0, oo)},
-      {I(0, 2), I(-1.5, -0.5), I(0x1.6a09e667f3bcbp-2, oo)},
+      {I(0, 2), I(-1.5, -0.5), I(0x1.6a09e667f3bccp-2, oo)},
       {I(0, 1), I(-1, 1), I(0, oo)},
       {I(0, 1), I(0, 2), I(0, 1)},
       {I(0.5, 2), I(0, oo), I(0, oo)},
-      {I(1, 3), I(-oo, 2), I(0, 0x1.2000000000001p+3)},
-      {I(0.25, 0.5), I(-oo, -1), I(0x1.fffffffffffffp+0, oo)},
-      {I(2, 4), I(1, oo), I(0x1.fffffffffffffp+0, oo)},
+      {I(1, 3), I(-oo, 2), I(0, 9)},
+      {I(0.25, 0.5), I(-oo, -1), I(2, oo)},
+      {I(2, 4), I(1, oo), I(2, oo)},
       {I(-oo, oo), P(0.5), I(0, oo)},
       {I(0, oo), I(1, 2), I(0, oo)},
-      {I(4, oo), P(-0.5), I(0, 0x1.0000000000001p-1)},
+      {I(4, oo), P(-0.5), I(0, 0.5)},
       {I(0, 3), P(-0.5), I(0x1.279a74590331cp-1, oo)},
+      // the limits at the corners, each kind (GAOL v5): x^y is 0 or +oo where x is 0 or +oo or y infinite
+      {I(4, oo), P(0.5), I(2, oo)},
+      {I(-oo, 0x1p-1000), I(-oo, -1), I(0x1p+1000, oo)},
+      {I(2, oo), I(-1.5, -0.5), I(0, 0x1.6a09e667f3bcdp-1)},
+      {I(2, oo), I(-1, 0), I(0, 1)},
+      {I(2, 3), I(-oo, -1), I(0, 0.5)},
+      {I(0.25, 0.5), I(1, oo), I(0, 0.5)},
+      {I(0.5, 2), I(-oo, oo), I(0, oo)},
+      {P(1), I(-oo, oo), P(1)},
+      {I(0, oo), I(-oo, oo), I(0, oo)},
+      {I(0.5, oo), I(-oo, -1), I(0, oo)},
+      {I(0.5, oo), P(0.5), I(0x1.6a09e667f3bccp-1, oo)},
+      {I(0.5, oo), I(-2, -0.5), I(0, 4)},
+      {I(0, 3), I(0, 1), I(0, 3)},
+      {I(0, 1), I(-oo, 0), I(1, oo)},
+      {I(0, 0.5), I(-1, 0), I(1, oo)},
+      {I(0, 2), I(-1, 0), I(0.5, oo)},
+      {I(0, 4), P(-0.5), I(0.5, oo)},
+      {I(0, oo), P(-0.5), I(0, oo)},
+      {I(-0.0, 1), I(-1, 1), I(0, oo)},
     };
     const auto same = [](const interval& a, const interval& b) {
       return a.is_empty() ? b.is_empty() : (!b.is_empty() && a.left() == b.left() && a.right() == b.right());

@@ -436,6 +436,47 @@ namespace
     }
   }
 
+  /*
+    pow at the corners where the base is 0 or +oo or the exponent infinite
+    raises neither the divide-by-zero nor the invalid-operation exception, in
+    the four rounding directions (GAOL v5): its bounds there are the limits of
+    x^y, which no call of CORE-MATH computes, where exp(y*log(x)) took log(0),
+    and CORE-MATH's pow(+0, n) for n < 0, with the divide-by-zero exception.
+    The flags read are those of MXCSR on x86, as above.
+  */
+  void pow_limits_raise_no_flag()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+    struct Box { const char* name; interval x, y; };
+    const Box boxes[] = {
+      {"[0, 2]^[-1.5, -0.5]", interval(0.0, 2.0), interval(-1.5, -0.5)},
+      {"[0, 1]^[-oo, 0]", interval(0.0, 1.0), interval(-inf, 0.0)},
+      {"[-0, 1]^[-1, 1]", interval(-0.0, 1.0), interval(-1.0, 1.0)},
+      {"[0, 0.5]^[-1e10]", interval(0.0, 0.5), interval(-1e10)},
+      {"[2, +oo]^[-1.5, -0.5]", interval(2.0, inf), interval(-1.5, -0.5)},
+      {"[0, +oo]^[-oo, +oo]", interval(0.0, inf), interval(-inf, inf)},
+    };
+    for (const Box& b : boxes) {
+      for (int d = 0; d < 4; ++d) {
+        std::fesetround(directions[d]);
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const interval r = gaol::rnd_keep(gaol_ieee1788::pow(b.x, b.y));
+#if defined(GAOL_TESTS_HAVE_MXCSR)
+        const unsigned int raised = _mm_getcsr() & 0x5u; // IE and ZE
+#else
+        const unsigned int raised = static_cast<unsigned int>(std::fetestexcept(FE_DIVBYZERO | FE_INVALID));
+#endif
+        std::fesetround(FE_UPWARD);
+        check("pow at the limits: neither divide-by-zero nor invalid operation", !r.is_empty() && raised == 0,
+              [&] {
+                return std::string(b.name) + " rounding " + names[d] + " = " + hex(r) + ", flags "
+                     + std::to_string(raised) + " raised";
+              });
+      }
+    }
+  }
+
   void elementary_functions()
   {
     const std::vector<double> v = arguments();
@@ -1817,6 +1858,7 @@ int main()
   c_library_fma_and_round();
   ldexp_of_core_math();
   exact_results_raise_no_flag();
+  pow_limits_raise_no_flag();
   elementary_functions();
   exact_values();
   two_arguments();

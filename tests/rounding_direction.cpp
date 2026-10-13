@@ -547,7 +547,14 @@ namespace
   */
   double bound_product(double a, double b)
   {
-    return (a == 0.0 || b == 0.0) ? 0.0 : a*b;
+    // The product is computed on operands that are never 0 and an infinity
+    // (GAOL v5): Apple clang on arm64 computed a*b before the choice, then
+    // chose, and 0*+oo raised the invalid-operation flag in this reference,
+    // which the check below then took for one GAOL had raised, depending on
+    // what was inlined around it
+    const double a1 = (a == 0.0) ? 1.0 : a, b1 = (b == 0.0) ? 1.0 : b;
+    const double p = a1*b1;
+    return (a == 0.0 || b == 0.0) ? 0.0 : p;
   }
 
   // The nonempty intervals with bounds in bounds
@@ -579,6 +586,42 @@ namespace
       }
     }
     return right && pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY))).set_eq(interval(1.0));
+  }
+
+  // The operations of products_with_zero_and_infinite_bounds_are_right() that
+  // raise the invalid-operation flag, each run alone, for the message of a
+  // failure: the flag tells that one of them raised it, not which
+  std::string products_raising_invalid()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 3.0, GAOL_INFINITY });
+    std::string raising;
+    for (const interval& x : intervals) {
+      for (const interval& y : intervals) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const interval z = opaque(x)*opaque(y);
+        if (std::fetestexcept(FE_INVALID) != 0) {
+          raising += " " + hex(x) + "*" + hex(y) + " = " + hex(z) + ";";
+        }
+      }
+    }
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval p = pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY)));
+    if (std::fetestexcept(FE_INVALID) != 0) {
+      raising += " pow([1], [1, +oo]) = " + hex(p) + ";";
+    }
+    // and the reference products of the bounds, which the test computes
+    for (const interval& x : intervals) {
+      for (const interval& y : intervals) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const volatile double q[4] = { bound_product(x.left(), y.left()), bound_product(x.left(), y.right()),
+                                       bound_product(x.right(), y.left()), bound_product(x.right(), y.right()) };
+        static_cast<void>(q);
+        if (std::fetestexcept(FE_INVALID) != 0) {
+          raising += " the reference products of the bounds of " + hex(x) + " and " + hex(y) + ";";
+        }
+      }
+    }
+    return raising.empty() ? std::string(" none when run alone") : raising;
   }
 
   /*
@@ -1143,6 +1186,10 @@ int main()
     { "nth_root(x,q) for q < 0", [](const interval& x, const interval& y) {
         return S(nth_root(y, -1)) + " " + S(nth_root(y, -2)) + " " + S(nth_root(-y, -3)) + " " + S(nth_root(x, -4)) + " "
           + S(nth_root(-y, -5)) + " " + S(nth_root(y, INT_MIN)); } },
+    // An order beyond the ints and the unsigned ints (GAOL v5)
+    { "nth_root(x,q) beyond the unsigned ints", [](const interval& x, const interval& y) {
+        return S(nth_root(y, 1LL << 33)) + " " + S(nth_root(-y, (1LL << 33) + 1)) + " " + S(nth_root(x, -(1LL << 33) - 1))
+          + " " + S(nth_root(-y, (1ULL << 34) + 1)); } },
     { "pow(x,[n]), pow(x,n.0) and gaol_ieee1788::pow(x,[n]) for n < 0", [](const interval& x, const interval& y) {
         return S(pow(y, interval(-3.0))) + " " + S(pow(-y, interval(-3.0))) + " " + S(pow(y, -3.0)) + " "
           + S(gaol_ieee1788::pow(y, interval(-3.0))) + " " + S(gaol_ieee1788::pow(x, interval(-2.0))); } },
@@ -1185,7 +1232,11 @@ int main()
   };
 
   set(directions[0]);
+#if !GAOL_PRESERVE_ROUNDING
+  // The state an operation may leave without GAOL_PRESERVE_ROUNDING, read
+  // only then: GCC 15 refused it as set but not used with -Werror (GAOL v5)
   const State upward = state();
+#endif
 
   for (const Operation& op : operations) {
     const std::string name = op.name;
@@ -1477,6 +1528,7 @@ int main()
       { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
       { "nth_root(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -3); } },
       { "nth_root(x, -5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -5); } },
+      { "nth_root(x, 2^33 + 1)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, (1LL << 33) + 1); } },
       { "pow(x, [-3])", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, interval(-3.0)); } },
       { "pow(x, -3.0)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -3.0); } },
       { "gaol_ieee1788::pow(x, [-3])", 1, [](const interval& x, const interval&, const interval&) { return gaol_ieee1788::pow(x, interval(-3.0)); } },
@@ -1889,7 +1941,8 @@ int main()
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = products_with_zero_and_infinite_bounds_are_right();
     const int raised = std::fetestexcept(FE_INVALID);
-    check("the products with a zero and an infinite bound raise no invalid-operation flag", raised == 0);
+    check("the products with a zero and an infinite bound raise no invalid-operation flag", raised == 0,
+          [] { return "raised by" + products_raising_invalid(); });
     check("the products with a zero and an infinite bound are right", right);
   }
   {

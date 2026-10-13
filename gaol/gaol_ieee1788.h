@@ -147,8 +147,9 @@ namespace gaol_ieee1788 {
   pow there, but for a degenerate integer exponent [n], for which it takes
   pown: the same on x >= 0 for an n within the ints, and [-oo, +oo] beyond
   them, where pown cannot be called. x^n is monotone in x >= 0, so that its
-  bounds there are CORE-MATH's pow at the bounds of x, each one double at
-  most from the tightest one: pow([2, 3], [1e10]) is [DBL_MAX, +oo],
+  bounds there are its tightest bounds at the bounds of x: CORE-MATH's pow,
+  the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
+  pow([2, 3], [1e10]) is [DBL_MAX, +oo],
   pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
   Defined in gaol/gaol_interval.cpp (GAOL v5): the bounds at doubles it
   takes for an integer exponent beyond the ints are not part of GAOL's
@@ -264,7 +265,7 @@ namespace gaol_ieee1788 {
   p beyond the ints was converted to a negative int, and threw. For a p
   within the unsigned ints, nth_root_rel(c, p, x); beyond them, the hull of
   the parts of x in the roots of order p of c and, for an even p, in their
-  opposites (gaol_detail::huge_root()), which every x with x^p in c is in
+  opposites (nth_root(c, p)), which every x with x^p in c is in
   */
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, T p)
@@ -275,7 +276,7 @@ namespace gaol_ieee1788 {
     if (::gaol_detail::integer_fits<unsigned int>(p)) {
       return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
     }
-    const interval roots = ::gaol_detail::huge_root(c, p);
+    const interval roots = ::gaol_core::nth_root(c, p);
     return p % 2 == 0 ? (x & roots) | (x & -roots) : x & roots;
   }
   template <class T, ::gaol_detail::if_integer<T> = 0>

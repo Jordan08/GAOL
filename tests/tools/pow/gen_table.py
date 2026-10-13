@@ -28,7 +28,8 @@
 # extract followed by cpp gives the table back as it is written, which
 # checks both. The table was written so by this script and evalrows from the
 # bounds of the code before the pow of the standard was written once
-# (a2ca992), then edited for the exact corners of #63.
+# (a2ca992), then edited for the exact corners of #63, and written again by
+# them from the code of B.2 (the corners and their limits).
 #---------------------------------------------------------------------------
 # gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 # COPYING file for information.
