@@ -12,7 +12,7 @@ and `gaol::pow(x, p)` (`gaol_pow_real()`) add to it, and the corners of a box
 (`pow_lo()`, `pow_hi()`, `pow_is_double()`). They were written when the pow of
 the standard was written once (#37), to show that no bound changed and that
 `pow_on_boxes()` of `tests/ieee1788.cpp` fails on a wrong `pow`, and kept for
-the points B.1 and B.2 of `TODO.md`: B.1 removes two checks, which must change
+the points B.1 and B.2 of `TODO.md`: B.1 removes a check, which must change
 no bound; B.2 extends the corners to the boxes with an infinite bound and to
 the bases from 0, which changes bounds of `pow_on_boxes()`, to be computed
 again and checked apart from GAOL.
@@ -28,7 +28,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` at a time (40 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` at a time (39 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
 
@@ -147,7 +147,7 @@ default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
 `core_math` and `other_functions` call `pow` too, and take a few seconds
 more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`.
-A run of the 40 mutants takes about 2 minutes and a half; the arguments
+A run of the 39 mutants takes about 2 minutes and a half; the arguments
 after the options select the mutants whose name contains one of them.
 
 Each mutant is `KILLED` (with the number of failed checks of each name),
@@ -165,10 +165,10 @@ tests and of `diffpow`. The exit status is 1 for a mutant that survives but
 is not listed as equivalent, or that cannot be applied or compiled.
 
 The mutants are the list `MUTANTS` of `mutate.py`, written for the code of
-`configure-clean` on 2026-10-04: B.1 and B.2 edit the code they replace, so
-their texts and the equivalent mutants have to be brought up to date with the
-change (`--list` tells which no longer apply), or another list given with
-`--mutants FILE`.
+`configure-clean` on 2026-10-04 and brought up to date with the first pull
+request of B: B.2 edits the code they replace, so their texts and the
+equivalent mutants have to be brought up to date with the change (`--list`
+tells which no longer apply), or another list given with `--mutants FILE`.
 
 **4. The timings.** The same program linked with the two builds, run in turn
 on a pinned processor of an idle machine, the best time of each row kept
