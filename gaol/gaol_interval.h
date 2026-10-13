@@ -822,15 +822,17 @@ namespace gaol_core {
   };
 
   /*
-    rnd_keep() of an interval, for GAOL_RND_KEEP() with
-    GAOL_PRESERVE_ROUNDING (GAOL v5): its two stored bounds through volatile
-    doubles, where the template of gaol/gaol_fpu.h copies an interval to
-    volatile memory a byte at a time, which made nth_root(x, -2), asinh(x)
-    and the cube root 15 to 20 ns slower when they kept an interval. The
-    SSE2 intervals keep their register as it is, and so does rnd_keep() of
-    an __m128d, which the SSE2 operations keep (sqr(), inverse()); the FPU
-    intervals are built again from their bounds, the empty set as the empty
-    set, whose NaN bounds may then change their sign or payload.
+    rnd_keep() of an SSE2 interval, for GAOL_RND_KEEP() with
+    GAOL_PRESERVE_ROUNDING (GAOL v5): its register through two volatile
+    doubles, as it is, where the template of gaol/gaol_fpu.h copies an
+    interval to volatile memory a byte at a time, which made nth_root(x, -2),
+    asinh(x) and the cube root 15 to 20 ns slower when they kept an interval;
+    and of an __m128d, which the SSE2 operations keep (sqr(), inverse()). The
+    FPU intervals keep the template: built again from their bounds, they went
+    through the constructor, which compares them, and the products with a
+    zero and an infinite bound of tests/rounding_direction.cpp, whose operands
+    gaol::rnd_keep() keeps, raised the invalid-operation flag on macOS arm64
+    with Apple clang.
   */
 #if GAOL_USING_SSE2_INSTRUCTIONS
   GAOL_INLINE __m128d rnd_keep(const __m128d& x)
@@ -839,17 +841,12 @@ namespace gaol_core {
     volatile double high = _mm_cvtsd_f64(_mm_unpackhi_pd(x, x));
     return _mm_set_pd(high, low);
   }
-#endif
 
   GAOL_INLINE interval rnd_keep(const interval& x)
   {
-#if GAOL_USING_SSE2_INSTRUCTIONS
     return interval(rnd_keep(x.get_xmminterval())); // the lower bound stored negated
-#else
-    volatile double left = x.left(), right = x.right();
-    return interval(left, right);
-#endif
   }
+#endif
 
 
 /* A loop of comparisons of bounds that GCC vectorizes raises the
