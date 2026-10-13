@@ -28,7 +28,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` at a time (39 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` at a time (37 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
 
@@ -147,7 +147,7 @@ default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
 `core_math` and `other_functions` call `pow` too, and take a few seconds
 more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`.
-A run of the 39 mutants takes about 4 minutes (4 jobs); the arguments
+A run of the 37 mutants takes about 4 minutes (4 jobs); the arguments
 after the options select the mutants whose name contains one of them.
 
 Each mutant is `KILLED` (with the number of failed checks of each name),
@@ -189,7 +189,7 @@ done
 
 On `configure-clean` at `065191e` (GCC 9.4, x86-64), with the builds above,
 before B.2 (the table had 92 boxes, `mutate.py` 40 mutants); since, the
-table has 114 boxes, all but one the tightest, and the 39 mutants of B.2
+table has 114 boxes, all but one the tightest, and the 37 mutants of B.2
 are all killed but 3 equivalent ones:
 
 ```text
@@ -251,7 +251,13 @@ gaol_ieee1788::pow(x, [0.5,1.5]), x = [a, +oo]      70.43 ns
 (Intel Core i7-1185G7.) This run is from before B.2: the boxes with an
 infinite bound or a base from 0 took exp(y log x) then, 70 to 75 ns where
 two corners cost 90 to 110 ns; they take the corners now, where a limit costs
-no call of CORE-MATH.
+no call of CORE-MATH. With B.2, built with Clang 18 (`-falign-functions=64`,
+the best of 8 alternated runs), `gaol_ieee1788::pow(x, [1,+oo])` takes 30 ns
+rather than 80, `x = [0, b]` 60 rather than 69, `x = [a, +oo]` 67 rather
+than 71; a base holding 1 inside takes one corner for each bound where the
+exponent has one sign, rather than two, and `gaol::pow(x, [0.5,1.5])`, x > 0,
+102 ns rather than 115; `gaol_ieee1788::pow(x, [1e10])` takes 69 ns rather
+than 63, `pow_is_double()` being called at its corners.
 
 ## Limits
 
