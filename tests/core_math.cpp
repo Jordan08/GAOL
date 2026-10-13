@@ -992,7 +992,7 @@ namespace
      flush-to-zero on GAOL's bounds are not looked at here. */
   void pow_with_flush_to_zero()
   {
-#if GAOL_TESTS_HAVE_MXCSR
+#ifdef GAOL_TESTS_HAVE_MXCSR
     const unsigned int flush_to_zero = 0x8000u, saved = _mm_getcsr() & flush_to_zero;
     // Whether the processor flushes 1024 2^-1074 to 0. The product is written to volatile memory before
     // the mode is cleared: GCC and Clang, which do not model MXCSR, might compute it afterwards otherwise

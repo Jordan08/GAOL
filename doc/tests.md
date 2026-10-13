@@ -359,16 +359,18 @@ point Q), which `numbers` checks there too.
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
   `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
   too (GAOL v5). Blank lines have to be skipped, as the blanks before a number
-  are, with or without `std::noskipws`: a file ending with an empty line, an
-  empty line or a line of blanks between two intervals, and `in >> d >> x` over
-  the two lines `1.5` and `[1, 2]` have to read what is there, and to end at the
-  end of the input as `while (in >> d)` does over numbers, on a stream throwing
-  on nothing, on `failbit`, or on `badbit` and `failbit`; an interval written on
-  two lines is still no interval (GAOL v5). The skipping must not replace the
-  checks that open any extraction: a stream that is not good, one without buffer
-  included, is not read and keeps all its text, and the stream tied to the input
-  is flushed before the first character is read, as for a number, so that a
-  prompt shows before the user types (`std::ws` alone does none of this).
+  are, and under `std::noskipws` too, which keeps a number from skipping them:
+  a file ending with an empty line, an empty line or a line of blanks between
+  two intervals, and `in >> d >> x` over the two lines `1.5` and `[1, 2]` have
+  to read what is there, and to end at the end of the input as
+  `while (in >> d)` does over numbers, on a stream throwing on nothing, on
+  `failbit`, or on `badbit` and `failbit`; an interval written on two lines is
+  still no interval (GAOL v5). The skipping must not replace the checks that
+  open any extraction: a stream that is not good, one without buffer included,
+  is not read and keeps all its text, and the stream tied to the input is
+  flushed before the first character is read, as for a number, so that a
+  prompt shows before the user types (the `std::ws` of libstdc++ before GCC 12
+  alone does none of this).
   Numbers with a million zeros after their point and an exponent of 7 digits
   (`0.00…01e1000001`, and in hexadecimal and in the uncertain form)
   have to be read exactly: the exponent was cut at 100000 (GAOL v5).
@@ -392,23 +394,27 @@ point Q), which `numbers` checks there too.
   of the continuous integration have no such locale: its Linux
   jobs generate `fr_FR.UTF-8` for the test, and fail if it did
   not check under it (see [Continuous integration](continuous-integration.md)).
-  With flush-to-zero, denormals-are-zero or both set in MXCSR (x86
-  only, and where the processor honours them), the numbers from 0 to the
+  With each mode flushing the subnormals to zero that the processor honours,
+  alone and with the others (flush-to-zero and denormals-are-zero of MXCSR on
+  x86, and, with GCC and Clang, FZ and FIZ of FPCR on 64-bit ARM and FZ of
+  FPSCR on 32-bit ARM; with Visual C++ for 64-bit ARM, FZ set through
+  `_controlfp_s()`; GAOL v5, point F), the numbers from 0 to the
   least normal double, in decimal and in hexadecimal, alone, in intervals and
   in the uncertain form, have to be read as the tightest intervals enclosing
   them, and the doubles among them, 0 included, as themselves: the reader
   compared each number with the doubles around it as doubles, and
   denormals-are-zero reads a subnormal as 0, so that 1e-310 was read as the
   interval from the greatest subnormal to the least normal double, which does
-  not enclose it, and 0 as the greatest subnormal (GAOL v5). Under
-  denormals-are-zero, `<a, b>` of two different subnormals, or of 0 and a
-  subnormal (`<1e-310, 1e-309>`, `<0x1p-1074, 0x1p-1073>`), has to be
+  not enclose it, and 0 as the greatest subnormal (GAOL v5). Under a mode
+  reading the subnormals as 0 (denormals-are-zero, FZ, FIZ), `<a, b>` of two
+  different subnormals, or of 0 and a subnormal (`<1e-310, 1e-309>`,
+  `<0x1p-1074, 0x1p-1073>`), has to be
   refused, the empty set of `gaol_ieee1788::textToInterval` and the
   `input_format_error` of `gaol::textToInterval`, and `<a, a>` of a subnormal
   and `<-0, 0>` read: the reader compared the two bounds as doubles, equal
   under the mode (GAOL v5, point Q). Intervals of
   subnormals (`[0, 5e-324]`, `[5e-324]`, `[-5e-324, 0]`...) written with 16
-  digits under denormals-are-zero have to be read back, the mode restored, as
+  digits under such a mode have to be read back, the mode restored, as
   intervals enclosing them: `operator<<` compares their bounds by their bits,
   and does not write them `[0]` (GAOL v5). The text has to be the one written
   without the mode: `operator<<` clears it before it writes (GAOL v5, point
@@ -673,8 +679,14 @@ point Q), which `numbers` checks there too.
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
-  first and the right bound of the second. What the exceptions of GAOL say
-  has to be their explanation, or the name of their class where there is none:
+  first and the right bound of the second. The names have to be read in any
+  case of letters under a locale of the C library where `std::tolower('I')` is
+  not `i` too, the Turkish ones of glibc (`tr_TR.UTF-8`, `tr_TR.ISO-8859-9`),
+  where the system has one: the reader compared them by `std::tolower()`, and
+  refused `SIN([0,1])` there (GAOL v5, point F). The check is skipped where
+  the system has no such locale, as on the Ubuntu runners of the continuous
+  integration. What the exceptions of GAOL say has to be their explanation, or
+  the name of their class where there is none:
   the `what()` of a `gaol_exception`, an `input_format_error`, an
   `unavailable_feature_error` and an `invalid_action_error` built with a known
   explanation, without one, with a null pointer (no explanation) and with an

@@ -44,6 +44,8 @@
 #include "gaol_tests.h"
 
 #include <algorithm>
+#include <cctype>
+#include <clocale>
 #include <cstdio>
 #include <functional>
 #include <random>
@@ -431,6 +433,59 @@ namespace
     }
     check("gaol::textToInterval throws input_format_error for a name of IEEE 1788-2015 alone", threw);
 #endif
+  }
+
+  /*
+    The names of the functions in any case of letters, under a locale of the
+    C library where std::tolower('I') is not 'i' (GAOL v5): the Turkish
+    locales of glibc, where it is 'I' (tr_TR.UTF-8) or the dotless i, 0xfd
+    (tr_TR.ISO-8859-9), as a program calling setlocale(LC_ALL, "") under
+    LANG=tr_TR.UTF-8 has them. The reader compared the names with those of
+    its tables by std::tolower(), and refused "SIN([0,1])" there, as any name
+    written with a capital I. Read by parse_interval(), which refuses an
+    unknown name without throwing, with or without exceptions. Nothing is
+    checked where the system has no such locale, as on the Ubuntu runners of
+    the continuous integration.
+  */
+  void names_under_turkish_locale()
+  {
+    const char *const current = std::setlocale(LC_CTYPE, nullptr);
+    const std::string saved = (current != nullptr) ? current : "C";
+    const char *turkish = nullptr;
+    for (const char *name : { "tr_TR.UTF-8", "tr_TR.utf8", "tr_TR.ISO-8859-9", "tr_TR.iso88599", "tr_TR.ISO8859-9",
+                              "tr_TR", "Turkish_Turkey.1254", "tr-TR" }) {
+      if (std::setlocale(LC_CTYPE, name) != nullptr && std::tolower('I') != 'i') {
+        turkish = name;
+        break;
+      }
+    }
+    if (turkish == nullptr) {
+      std::setlocale(LC_CTYPE, saved.c_str());
+      std::printf("No locale where std::tolower('I') is not 'i': the names read under such a locale are not checked\n");
+      return;
+    }
+    const interval u(0.0, 1.0), v(1.0, 2.0);
+    const struct { const char *text; parsing_names names; interval value; } calls[] = {
+      { "SIN([0,1])", parsing_names::gaol, sin(u) },
+      { "Sin([0,1])", parsing_names::gaol, sin(u) },
+      { "sin([0,1])", parsing_names::gaol, sin(u) },
+      { "ASINH([0,1])", parsing_names::gaol, asinh(u) },
+      { "LOG1P([0,1])", parsing_names::gaol, log1p(u) },
+      { "SINPI([0,1])", parsing_names::gaol, sinpi(u) },
+      { "MIN([1,2],[0,3])", parsing_names::gaol, min(v, interval(0.0, 3.0)) },
+      { "NTH_ROOT([8,27],3)", parsing_names::gaol, nth_root(interval(8.0, 27.0), 3) },
+      { "SINPI([0,1])", parsing_names::ieee1788, gaol_ieee1788::sinPi(u) },
+      { "ROUNDTIESTOEVEN([1.5,2.5])", parsing_names::ieee1788, gaol_ieee1788::roundTiesToEven(interval(1.5, 2.5)) },
+      { "ROOTN([8,27],3)", parsing_names::ieee1788, gaol_ieee1788::rootn(interval(8.0, 27.0), 3) },
+    };
+    for (const auto& c : calls) {
+      interval x;
+      const bool read = parse_interval(c.text, x, c.names);
+      check("parse_interval: the names in any case of letters under a locale where std::tolower('I') is not 'i'",
+            read && x.left() == c.value.left() && x.right() == c.value.right(),
+            [&] { return std::string(turkish) + ", \"" + c.text + "\": " + (read ? hex(x) : std::string("refused")); });
+    }
+    std::setlocale(LC_CTYPE, saved.c_str());
   }
 
   void wrong_strings()
@@ -1533,6 +1588,7 @@ int main()
   step("numbers");           numbers();
   step("operators");         operators();
   step("functions");         functions();
+  step("names_under_turkish_locale"); names_under_turkish_locale();
   step("wrong_strings");     wrong_strings();
 #if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
