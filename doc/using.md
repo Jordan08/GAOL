@@ -245,8 +245,17 @@ GAOL's type `interval` and its functions are in the namespace `gaol_core`. A
 program names them through one of two namespaces, which `gaol/gaol.h` declares
 and does not open:
 
-- `gaol`, GAOL under its own names;
-- `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (below).
+- `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
+  written for GAOL 4 keeps its names and its results there, its `pow` taking
+  the integer power for an integer exponent, a negative base included;
+- `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015, to follow the
+  standard: its operations have the names, the arguments and the results the
+  standard gives them (below).
+
+The two namespaces hold the same type and compute with the same functions;
+they differ mainly in the power, `pow` and `pown`, to which
+[a section](#the-powers-in-the-two-namespaces) is given below, and in the
+names `textToInterval` reads.
 
 ```cpp
 #include <gaol/gaol.h>
@@ -291,14 +300,71 @@ documenting them (`f_negate()`, `f_negate_simple()`, `gaol_signbit()`,
 `gaol_core::get_rounding()`.
 
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
-base included: `pow(x, n)` for an n of any integer type (see
-[Integers](#integers)), and `pow(x, p)` and `pow(x, y)` for a double p or a
-degenerate interval y that is an integer, one beyond the ints giving
-[−∞, +∞]; any other exponent takes the pow of IEEE 1788-2015. `pow(e, n)` and `pow(e1, e2)` build the expressions of
-`gaol/gaol_expression.h`, computed with the same powers. In `gaol_core`, these
-functions are named apart from `pow`: `gaol_pown()`, `gaol_uipow()`,
-`gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
-`gaol_pow_exp()`, which are not in `gaol`.
+base included, and the pow of IEEE 1788-2015 for any other exponent (see
+[the powers in the two namespaces](#the-powers-in-the-two-namespaces)). In
+`gaol_core`, the functions computing it are named apart from `pow`:
+`gaol_pown()`, `gaol_uipow()`, `gaol_pown_ll()`, `gaol_pow_real()`,
+`gaol_pow_hybrid()`, `gaol_pown_exp()` and `gaol_pow_exp()`, which are not in
+`gaol`.
+
+## The powers in the two namespaces
+
+The power is where `gaol` and `gaol_ieee1788` differ (GAOL v5). IEEE 1788-2015
+has two powers (Table 9.1): pown(x, n), the integer power, for an integer n,
+defined for every x, x^0 being 1 and 0^n having no value for n < 0; and
+pow(x, y), the real power e^(y log x), for an interval y, defined for x > 0,
+and for x = 0 when y > 0. GAOL 4 had a single `pow`, which took the power of
+a negative base, and `gaol` keeps it: its `pow` is a hybrid of the two.
+
+- In `gaol_ieee1788`, `pown(x, n)` is the integer power, for an n of any
+  integer type, and `pow(x, y)` the real power: only the part of x in
+  [0, +∞] counts, whatever y, and `pow(x, p)` with a number p is
+  `pow(x, [p])`, an integer p included, as the standard gives no other
+  meaning to it.
+- In `gaol`, `pow(x, y)` takes the integer power where the exponent is an
+  integer: an integer type n, a double p that is an integer, or a degenerate
+  interval [n] holding an integer, beyond the ints too; any other exponent
+  takes the real power of the standard. There is no `pown` in `gaol`.
+
+| | `gaol` | `gaol_ieee1788` |
+|---|---|---|
+| `pow([-4, -1], 2)`, `pow([-4, -1], [2])` | [1, 16] | ∅ (`pown([-4, -1], 2)` is [1, 16]) |
+| `pow([-2, 3], 3)` | [−8, 27] | [0, 27] |
+| `pow([0], [0])`, `pow([0], 0)` | [1] | ∅ (`pown([0], 0)` is [1]) |
+| `pow([-2, 2], -1)` | [−∞, +∞] | [0.5, +∞] |
+| `pow([-2, -1], [1e10])` | [1, +∞] | ∅ |
+| `pow([-1, 4], 0.5)` | [0, 2] | [0, 2] |
+| `pow([0, 2], -2)` | [0.25, +∞] | [0.25, +∞] |
+| `pow([-4, -1], [1.5, 2.5])` | ∅ | ∅ |
+
+The two agree on x ⊂ [0, +∞] and on every exponent that holds no integer
+alone; they differ where x has a negative part and the exponent is an
+integer, and at 0^0. The `pow` of `gaol` is thus not monotone for the
+inclusion of its exponent: `pow([-4, -1], [2])` is [1, 16], and
+`pow([-4, -1], [1.5, 2.5])`, whose exponent holds [2], is empty; the `pow`
+of the standard is. Both give the tightest bounds: the real power from the
+`pow` of CORE-MATH at the corners of the box, the integer power from exact
+products within the ints (one double beyond where the power is closer to a
+double than the bound of their error) and from the `pow` of CORE-MATH beyond
+them (see [Accuracy of the operations](accuracy.md)).
+
+The rest of GAOL follows the same split:
+
+- the expressions of `gaol/gaol_expression.h`: `pow(e, n)` and
+  `pow(e1, e2)` in `gaol`, the hybrid power; `pown(e, n)` and `pow(e1, e2)` in
+  `gaol_ieee1788`, the two powers of the standard;
+- `textToInterval`: `gaol::textToInterval("pow([-4,-1],2)")` is [1, 16], and
+  `gaol_ieee1788::textToInterval` reads `pow` as the real power, the empty set
+  there, and `pown([-4,-1],2)` as the integer power, a name `gaol` does not
+  read;
+- the reverse functions, which are those of the standard in both namespaces:
+  `pow_rel` and `pow_exponent_rel` (`powRev1` and `powRev2`) reverse the real
+  power, and `nth_root_rel` (`pownRev`) the integer power.
+
+A program written for GAOL 4, or for IBEX and Codac, whose intervals take
+GAOL's `pow`, opens `gaol`; a program that wants the results of the standard,
+or compares GAOL with other libraries of IEEE 1788-2015 (as
+[doc/compare](compare/README.md) does), opens `gaol_ieee1788`.
 
 ## The names of IEEE 1788-2015
 
@@ -326,16 +392,14 @@ gives them (`sin`, `exp`, `sqrt`, `min`...) are the same functions in
 `gaol_ieee1788`. Where the standard and GAOL differ, these names follow the
 standard:
 
-- `pow(x, y)` is the pow of Table 9.1, defined for x > 0, and for x = 0 when
-  y > 0, where the `pow` of `gaol` takes the integer power for an integer
-  exponent, a negative base included: `pow([-4, -1], [2])` is [1, 16] in
-  `gaol` and the empty set in `gaol_ieee1788`. `pow(x, p)` with a number p is
-  `pow(x, [p])`, `pow(x, 2)` included: the power with an integer exponent is
-  `pown(x, n)` in the standard, whose n is an integer rather than an interval.
-  An integer exponent beyond the ints gives the pow of CORE-MATH at the bounds
-  of x, `pow([2, 3], [1e10])` being [DBL_MAX, +∞], where the `pow` of `gaol`
-  gives [−∞, +∞]. `pown(e, n)` and `pow(e1, e2)` build expressions computed
-  with this `pown` and this `pow`, declared with the other expressions by
+- `pow(x, y)` is the pow of Table 9.1, and `pown(x, n)` the integer power
+  (see [the powers in the two namespaces](#the-powers-in-the-two-namespaces)):
+  `pow([-4, -1], [2])` is [1, 16] in `gaol` and the empty set in
+  `gaol_ieee1788`. An integer exponent beyond the ints gives the pow of
+  CORE-MATH at the bounds of x, `pow([2, 3], [1e10])` being [DBL_MAX, +∞], as
+  the `pow` of `gaol` gives on the whole of x (GAOL v5: [−∞, +∞]).
+  `pown(e, n)` and `pow(e1, e2)` build expressions computed with this `pown`
+  and this `pow`, declared with the other expressions by
   `gaol/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
   4. A double converts neither to an interval nor to an expression, their
   constructors from a double (and that of an expression from an interval)
@@ -572,8 +636,13 @@ any integer type: `pow(x, 5L)` did not compile, a `long` being as far from an
 `int` as from an `unsigned` and a `double`, and `pown(x, 3000000000u)`
 converted the exponent to a negative `int`. An exponent within the ints is
 taken as an `int`, one within the unsigned ints as an `unsigned`, and one
-beyond them gives [−∞, +∞] for a nonempty x, as `gaol::pow(x, [n])` does.
-So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the ints and the
+beyond them as a `long long` (`gaol_pown_ll()`), whose power comes from the
+`pow` of CORE-MATH at the bounds of x, as for `gaol::pow(x, [n])` (GAOL v5:
+[−∞, +∞] for a nonempty x): `pow(interval(1 + 0x1p-30), 1LL << 33)`, about
+e^8, is [2980.9579759367944, 2980.9579759367948]. Beyond 64 bits (an
+`__int128`), the exponent is taken as ±(2^63 − 1) or ±(2^63 − 2), of its sign
+and parity, the power of every double but 0, ±1 and ±∞ being beyond the
+doubles there. So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the ints and the
 unsigned ints gives an enclosure of the roots, computed by `pow` with the
 exponent 1/q (x^(1/q) is within 2^−21 of 1 for every double x > 0 there),
 `pownRev(c, x, p)`, which gives the hull of the parts of x in these roots and,

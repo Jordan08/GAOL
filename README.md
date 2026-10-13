@@ -50,12 +50,38 @@ GAOL v5 follows [IEEE 1788-2015](https://doi.org/10.1109/IEEESTD.2015.7140721),
 the standard for interval arithmetic, in the operations GAOL provides: the
 empty set, infinite bounds, the domains of the functions, the comparisons,
 the interval literals, and the accuracy of each operation, which
-[Accuracy of the operations](doc/accuracy.md) documents. The few cases where
-it differs, mostly the `pow(x, y)` of the namespace `gaol`, which takes the
-integer power `pown` for an integer exponent, are listed in
-[the special cases](doc/compare/special_cases.md#what-the-cases-show); the
-namespace `gaol_ieee1788` gives the operations under the names of the standard,
-its `pow` being the standard's (see [Using GAOL](doc/using.md#the-namespaces)).
+[Accuracy of the operations](doc/accuracy.md) documents.
+
+### Two namespaces: `gaol` and `gaol_ieee1788`
+
+A program uses GAOL v5 through one of two namespaces, which hold the same
+`interval` and compute with the same functions:
+
+- `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
+  written for GAOL 4, or for IBEX and Codac, keeps its names and its results;
+- `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (`numsToInterval`,
+  `mulRev`, `sinPi`, `pown`...), to follow the standard.
+
+The main difference between the two is the power. The `pow` of
+`gaol_ieee1788` is the real power of the standard, e^(y log x), defined for
+x > 0 only (and x = 0 when y > 0), and its `pown(x, n)` the integer power;
+the `pow` of `gaol` is GAOL's, which takes the integer power for an integer
+exponent, a negative base included, and the real power otherwise:
+`pow([-4, -1], 2)` is [1, 16] in `gaol` and the empty set in
+`gaol_ieee1788`, where `pown([-4, -1], 2)` is [1, 16]. The other few cases
+where `gaol` differs from the standard are listed in
+[the special cases](doc/compare/special_cases.md#what-the-cases-show), and
+[Using GAOL](doc/using.md#the-powers-in-the-two-namespaces) gives the powers of
+both namespaces side by side.
+
+```cpp
+#include <gaol/gaol.h>
+
+gaol::interval x(-4, -1);
+gaol::interval a = gaol::pow(x, 2);           // [1, 16]
+gaol::interval b = gaol_ieee1788::pow(x, 2);  // the empty set
+gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
+```
 
 ## Quick start
 
