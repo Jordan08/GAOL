@@ -5,8 +5,9 @@
 #   sh .github/scripts/headers.sh <prefix of GAOL>
 #
 # - each header of include/gaol, included alone, compiles with -std=c++11,
-#   the oldest standard GAOL takes, and -Wall -Wextra -Wold-style-cast -Werror
-#   (no cast of C in GAOL's headers, GAOL v5), but those that other headers
+#   the oldest standard GAOL takes, and -Wall -Wextra -Wold-style-cast
+#   -Wundef -Werror (no cast of C in GAOL's headers, GAOL v5, and no #if on a
+#   macro left undefined, point Z of TODO.md), but those that other headers
 #   include in the middle of their own code (gaol_interval_fpu.h and
 #   gaol_interval_sse.h, the inline functions of gaol_interval.h) or with
 #   Visual C++ only (gaol_fpu_msvc.h);
@@ -42,7 +43,7 @@ else
     i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
   esac
 fi
-flags="-std=c++11 $flags -Wall -Wextra -Wold-style-cast -Werror"
+flags="-std=c++11 $flags -Wall -Wextra -Wold-style-cast -Wundef -Werror"
 echo "$cxx $flags"
 work=$(mktemp -d "${TMPDIR:-/tmp}/gaol-headers.XXXXXX")
 trap 'rm -rf "$work"' EXIT INT TERM

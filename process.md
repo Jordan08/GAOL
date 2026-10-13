@@ -187,8 +187,10 @@ un est refusée, quel que soit son gain.
      (`gaol_double_op.h` n'est pas installé).
    - Les intervalles de floats restent désactivés (`GAOL_FLOAT_INTERVALS`).
    - Les macros des en-têtes publics commencent par `GAOL_`, et chaque en-tête
-     installé compile seul en C++11 avec `-Wall -Wextra -Werror`
-     (`.github/scripts/headers.sh`).
+     installé compile seul en C++11 avec `-Wall -Wextra -Wold-style-cast
+     -Wundef -Werror` (`.github/scripts/headers.sh`) : une macro lue par
+     `#if` y est toujours définie (à 0 ou 1 pour les options et les macros
+     de la cible ; point Z).
 8. **CORE-MATH** (`3rd/math-core`) reste aussi proche que possible de l'amont.
    Un changement indispensable y est marqué `/* GAOL */` et décrit dans
    `3rd/README.md`, comme correctif à proposer en amont.

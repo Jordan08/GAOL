@@ -100,7 +100,8 @@ sources of CORE-MATH included, the tests and the examples with
 Visual C++ of Visual Studio 2026 x64 and x86. The first three check the headers
 GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
-`-Wall -Wextra -Wold-style-cast -Werror` (they have no cast of C), but the
+`-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
+nor any `#if` on a macro that may be undefined), but the
 three that other headers include in the middle of their code or for Visual C++
 only, and the macros they define start with `GAOL_` or `gaol_`.
 `-Werror` and `/WX` go to the targets only (`CMAKE_COMPILE_WARNING_AS_ERROR`),
