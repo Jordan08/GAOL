@@ -122,13 +122,12 @@ meson setup build && CPU=2 ninja -C build perf
 ```
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
-libraries, all the operations). The one committed holds a whole run of 27
-September 2026 on the machine of `performance.md` (Clang 18, three rounds,
-`605728e`), not the later run of six rounds that its tables were written
-from: the first `make perf` writes the columns of the other libraries from
-it, within a few per cent of the tables. The rows of Boost.Interval were added
-to it from a run of 6 October 2026 with GAOL v5 alone (`LIBS="gaol5 boost"`),
-on a busy machine: their times are indicative until the next whole run.
+libraries, all the operations). The one committed holds the whole run of 13
+October 2026 that the tables of `performance.md` were written from (Clang 18,
+three rounds, Ubuntu 26.04.1, `641ca81`). Under Ubuntu 20.04, on the same
+processor with the same Clang 18.1.8, every library took about 30 % more
+time: the times of `make perf` compare with those of `results.csv` only on the
+system it was measured on.
 
 ## The files
 

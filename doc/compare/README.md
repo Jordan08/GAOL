@@ -40,26 +40,25 @@ reports.
 | … or another result | 0 | 6 | 67 | 70 | 143 | 64 |
 | Cases it has no operation for | 8 | 0 | 44 | 26 | 65 | 121 |
 | Elementary functions at random points: results missing the value | — | 0 of 1 600 000 | — | — | — | 41 % (27 % with `rounded_transc_std`) |
-| `x + y` | 208 ns | 3.2 ns | 7.8 ns | 24 ns | 22 ns | 18 ns\* |
-| `x * y` | 259 ns | 16 ns | 23 ns | 29 ns | 22 ns | 31 ns\* |
-| `sin(x)` | 8.6 µs | 70 ns | 51 ns | 59 ns | 173 ns | 97 ns\* |
-| `log(x)` | 2.7 µs | 30 ns | 41 ns | 56 ns | 15 ns | 40 ns\* |
-| `pow(x, 3)` | 343 ns | 21 ns | 27 ns | 214 ns | 49 ns | 27 ns\* |
-| Shekel 5 | 14 µs | 310 ns | 602 ns | 2.4 µs | 1.6 µs | 1.3 µs\* |
+| `x + y` | 136 ns | 2.7 ns | 5.6 ns | 18 ns | 15 ns | 13 ns |
+| `x * y` | 174 ns | 12 ns | 17 ns | 21 ns | 15 ns | 21 ns |
+| `sin(x)` | 5.5 µs | 50 ns | 37 ns | 41 ns | 122 ns | 70 ns |
+| `log(x)` | 1.9 µs | 22 ns | 29 ns | 38 ns | 11 ns | 29 ns |
+| `pow(x, 3)` | 240 ns | 14 ns | 19 ns | 146 ns | 35 ns | 20 ns |
+| Shekel 5 | 9.1 µs | 277 ns | 415 ns | 1.7 µs | 1.1 µs | 917 ns |
 
-\* Measured later, on a busy machine: indicative only (see
-[performance](performance.md)).
+The times were measured on 13 October 2026, every library in the same run
+(see [performance](performance.md)).
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
-  as tightly as possible, and is 13 to 138 times slower than GAOL.
+  as tightly as possible, and is 12 to 123 times slower than GAOL.
 - **GAOL** is the fastest on the arithmetic and on most formulas, and gives
   IEEE 1788's result, or an interval enclosing it, in all but 6 special
   cases, all from its hybrid `pow`, which takes `pown` for integer
   exponents. Its elementary functions, CORE-MATH's, give the tightest bounds;
   its exp and log are faster than filib++'s, its sin and cos slower.
 - **filib++** is the fastest on sin and cos, 1.4 to 1.6 times as fast as GAOL,
-  as fast as GAOL on ÷, but 1.5 times as slow on × and 2.3 to 2.4 times on +
-  and −, and its bounds of elementary functions and real powers are up to 36
+  as fast as GAOL on ÷, but 1.3 times as slow on × and 2.1 times on + and −, and its bounds of elementary functions and real powers are up to 36
   doubles wider than the tightest. Its extended mode gives other results than
   IEEE 1788 wherever an infinity or a division by zero is involved, much as
   Solaris Studio: `interval(+∞)` is [MAX, +∞] and `[0] * [1, +∞]` is
@@ -69,10 +68,10 @@ reports.
   has no empty set, and an operation whose argument leaves the domain of the
   function, a division by an interval containing zero included, prints an error
   and aborts the program. Its exponential, logarithm and real power, taken
-  from the libm, are the fastest of the five (15, 15.5 and 47 ns), and so is
-  its square root (5.5 ns); its arithmetic is 6 to 7 times slower than GAOL's
-  on + and −, its sin and cos are the slowest after libieeep1788's (173 and
-  195 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
+  from the libm, are the fastest of the five (10.6, 11.1 and 34 ns), and so is
+  its square root (3.9 ns); its arithmetic is 5.6 times slower than GAOL's on
+  + and −, its sin and cos are the slowest after libieeep1788's (122 and
+  136 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
   than the tightest on average.
 - **Boost.Interval**, the library of Boost, is the interval library C++
   programmers find first. Its arithmetic gave the tightest intervals in the
@@ -81,9 +80,9 @@ reports.
   honour: at the points of the test of enclosure, 41 % of its results miss the
   value of the function, 27 % with its other policy, and `atan([−∞, +∞])`
   misses π/2. With its default checking it has no empty set: an operation that
-  would create one throws an exception. In the same pass of the benchmark, it
-  was 5 times slower than GAOL on + and −, 1.3 to 3.1 times on ×, ÷ and the
-  formulas, 1.1 to 1.4 times on the elementary functions.
+  would create one throws an exception. It is 4.7 times slower than GAOL on +
+  and −, 1.5 to 3.3 times on ×, ÷ and the formulas, 2.9 times on the square
+  root and 1.1 to 1.4 times on the other elementary functions.
 - **Solaris Studio** is 1.2 to 1.4 times as fast as GAOL on sin and cos, but
   slow on integer powers and squares. Its containment sets give other results
   than IEEE 1788 wherever an infinity, a division by zero or an invalid
