@@ -636,21 +636,54 @@ namespace gaol_core {
     return previous_float(pow_rounded_up(x, y));
   }
 
-  // x^y for x > 0: 1 for x = 1 or y = 0, x^y where it is a double
-  // (pow_is_double()), the double below CORE-MATH's value rounded upward
-  // otherwise, and at least 0
+  /*
+    x^y at a corner of a box, x in [0, +oo] and y in [-oo, +oo], rounded
+    downward (pow_lo()) and upward (pow_hi()): 1 for x = 1 or y = 0; the
+    limit of x^y where x is 0 or +oo or y infinite, 0 or +oo, which bounds it
+    both ways, +oo where x > 1 and y > 0 or x < 1 and y < 0, 0 otherwise
+    (GAOL v5: pow(x, y) took exp(y*log(x)) for these boxes, and its bounds
+    were one to hundreds of doubles beyond the tightest ones, and
+    pow_is_double() does not take them: 0 has no odd significand, +oo is
+    read as 2^1024); elsewhere x^y itself where it is a double
+    (pow_is_double()), the double below CORE-MATH's value rounded upward
+    otherwise, and at least 0, for the lower bound, and CORE-MATH's value for
+    the upper one
+  */
+  static inline bool pow_is_limit(double x, double y)
+  {
+    return !(x > 0.0 && x < GAOL_INFINITY && std::fabs(y) < GAOL_INFINITY);
+  }
+
+  static inline double pow_limit(double x, double y)
+  {
+    return ((x > 1.0) == (y > 0.0)) ? GAOL_INFINITY : 0.0;
+  }
+
+  // Whether x^y at a corner is the limit +oo (infinite) or 0, which bounds a
+  // box with no call of CORE-MATH at its other corners (GAOL v5)
+  static inline bool pow_limit_is(double x, double y, bool infinite)
+  {
+    return x != 1.0 && y != 0.0 && pow_is_limit(x, y) && (((x > 1.0) == (y > 0.0)) == infinite);
+  }
+
   static inline double pow_lo(double x, double y)
   {
     double d;
     if (x == 1.0 || y == 0.0) {
       return 1.0;
     }
+    if (pow_is_limit(x, y)) {
+      return pow_limit(x, y);
+    }
     return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);
   }
 
   static inline double pow_hi(double x, double y)
   {
-    return (x == 1.0 || y == 0.0) ? 1.0 : pow_rounded_up(x,y);
+    if (x == 1.0 || y == 0.0) {
+      return 1.0;
+    }
+    return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up(x,y);
   }
 
   static inline double sinh_lo(double x)
@@ -1636,12 +1669,15 @@ namespace gaol_core {
   }
 
   /*
-    The pow of IEEE 1788-2015 (Table 9.1) for an interval exponent, written
-    once (GAOL v5): gaol_ieee1788::pow(x, y) is this function, after the
-    check of pow_standard(), and gaol_pow_hybrid() calls it for every exponent
-    but a degenerate integer, for which it takes pown. This was the second half
-    of gaol_pow_hybrid(), which gaol_ieee1788::pow went through after making
-    its checks again: x cut to [0,+oo], the empty sets, x = {0}.
+    The pow of IEEE 1788-2015 (Table 9.1) for an interval exponent, the
+    rounding direction being upward (GAOL v5): x^y for the x of x in [0, +oo]
+    and the y of y, 0^y being defined for y > 0 only. The base is cut to
+    [0, +oo]; [0] gives [0] or the empty set; a degenerate integer exponent
+    takes the integer power, x^n on x >= 0, where pow and pown agree; any
+    other box takes the powers at its corners. gaol_ieee1788::pow(x, y) is
+    this function after the check of pow_standard(), and gaol_pow_hybrid()
+    calls it for every exponent but a degenerate integer, for which it takes
+    pown on the whole of x within the ints, and [-oo, +oo] beyond them.
   */
   static interval pow_standard_upward(const interval& x, const interval& y)
   {
@@ -1660,8 +1696,8 @@ namespace gaol_core {
       return interval::emptyset();
     }
     // pow(0,y) is 0 for y > 0, and has no value for y <= 0 (Table 9.1, footnote
-    // c), which exp(J*log([0])) does not give, log([0]) being empty. interval(0.0)
-    // rather than interval::zero(), whose lower bound is -0 with SSE2 intervals
+    // c), which the limits at the corners do not give. interval(0.0) rather
+    // than interval::zero(), whose lower bound is -0 with SSE2 intervals
     if (base.right() == 0.0) {
       return y.right() > 0.0 ? interval(0.0) : interval::emptyset();
     }
@@ -1670,72 +1706,68 @@ namespace gaol_core {
       A degenerate integer exponent [n]: x^n on x >= 0, where pow and pown
       agree. Within the ints, pown gives the powers that are doubles exactly,
       as pow_is_double() does at the corners below. Beyond the ints, which pown
-      cannot take, |n| > 2^31: x^n increases with x for n > 0, 0^n being 0, and
-      decreases for n < 0, +oo being its limit at 0; 1^n is 1. A lower bound 0
-      is taken as +0, CORE-MATH's pow(-0, n) being -oo for an odd n < 0. x^n is
-      a double at 0 and 1 only, taken apart here: for another x it is beyond the
-      doubles (2^(k n), for a power of two 2^k, k != 0) or not dyadic (1/m^|n|
-      for n < 0) or above 2^53 (m^n, m >= 3 odd), so that the double below
-      CORE-MATH's value is the tightest lower bound (see pow_is_double()).
-      gaol_pow_hybrid() takes [n] before it comes here: its powers are those of
-      the whole of x, and [-oo,+oo] beyond the ints.
+      cannot take, |n| > 2^31: x^n increases with x for n > 0 and decreases for
+      n < 0, so that each bound is the one corner pow_lo() and pow_hi() take,
+      where the corners below would take two where x holds 1 (GAOL v5): 1 at
+      x = 1, the limit 0 or +oo at x = 0 (+0 or -0) and +oo, with no call of
+      CORE-MATH, whose pow(+0, n) raised the divide-by-zero exception for
+      n < 0 and pow(-0, n) is -oo for an odd n < 0. x^n is a double at 0 and 1
+      only: for another x it is beyond the doubles (2^(k n), for a power of
+      two 2^k, k != 0) or not dyadic (1/m^|n| for n < 0) or above 2^53 (m^n,
+      m >= 3 odd), so that the double below CORE-MATH's value is the tightest
+      lower bound (pow_is_double() tells no such power a double).
+      gaol_pow_hybrid() takes [n] before it comes here: pown on the whole of x
+      within the ints, [-oo,+oo] beyond them.
     */
     const double n = y.left();
     if (n == y.right() && std::floor(n) == n) {
       if (y.is_an_int()) {
         return pown_upward(base, static_cast<int>(n));
       }
-      const double xl = (base.left() == 0.0) ? 0.0 : base.left(), xu = base.right();
-      const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
-      // The bounds of namespace upward, which do not check the rounding
-      // direction again, through pow_rounded_dn() and pow_rounded_up(),
-      // which compute the powers for an n from 2^1014 on themselves (GAOL v5).
-      // pow_rounded_up(1, n) is 1, from CORE-MATH's pow below 2^1014 and
-      // from its own test of x = 1 above: only the lower bound, the double
-      // below that value, takes x = 1 apart
-      const double l = (at_lower == 1.0) ? 1.0 : pow_rounded_dn(at_lower, n);
-      const double r = pow_rounded_up(at_upper, n);
-      return interval((l > 0.0) ? l : 0.0, r);
+      const double xl = base.left(), xu = base.right();
+      return interval(pow_lo((n > 0.0) ? xl : xu, n), pow_hi((n > 0.0) ? xu : xl, n));
     }
 
     /*
-      For a base above 0 and finite bounds, CORE-MATH's pow at the corners of
-      the box (GAOL v5, issue #8): x^y increases with y for x > 1 and decreases
-      for x < 1, increases with x for y > 0 and decreases for y < 0, so that
-      its extrema over I x J are at corners, which the places of the bounds
-      about 1 and 0 give. CORE-MATH's pow is correctly rounded in the upward
-      rounding GAOL computes in, which gives the upper bound, and the double
-      below it the lower one, unless the power is a double, which
-      pow_is_double() proves and which is then the lower bound itself: the
-      bounds are the tightest ones, where exp(J*log(I)) multiplied the relative
-      width of log(I) by |y log(x)|: pow([2], [1023.5]) was 1425 doubles below
-      and 748 above. The lower bound was the double below CORE-MATH's value
-      even where that value is exact: pow([4], 0.5) was [2 - 2^-52, 2].
-      A base from 0, whose powers are from 0 for exponents above 0, takes its
-      upper bound so. The other boxes (a base from 0 with an exponent that is
-      not above 0, an infinite bound) keep exp(J*log(I)), which gives their
-      limits.
+      The corners of the box (GAOL v5, issue #8): x^y increases with y for
+      x > 1 and decreases for x < 1, increases with x for y > 0 and decreases
+      for y < 0, so that its extrema over I x J are at corners, which the
+      places of the bounds about 1 and 0 give: one corner for each bound, two
+      where I holds 1 inside. At a finite corner with x > 0, CORE-MATH's pow
+      is correctly rounded in the upward rounding GAOL computes in, which gives
+      the upper bound, and the double below it the lower one, unless the power
+      is a double, which pow_is_double() proves and which is then the lower
+      bound itself: the bounds are the tightest ones, where exp(J*log(I))
+      multiplied the relative width of log(I) by |y log(x)|: pow([2],
+      [1023.5]) was 1425 doubles below and 748 above, and pow([4], 0.5)
+      [2 - 2^-52, 2]. At a corner where x is 0 or +oo or y infinite, the
+      bound is the limit of x^y there, 0 or +oo, or 1 where x = 1 or y = 0
+      (pow_lo(), pow_hi()):
+      pow([4, +oo], 0.5) is [2, +oo] and pow([0, 2^-1000], [-oo, -1])
+      [2^1000, +oo], where exp(J*log(I)), which these boxes took, gave
+      [2 - 2^-52, +oo] and a lower bound 617 doubles below 2^1000. The limits
+      at x = 0 are those of the x > 0 of the domain where y <= 0, and 0^y = 0
+      itself where y > 0.
     */
     const double xl = base.left(), xu = base.right(), yl = y.left(), yu = y.right();
-    const double dmax = (std::numeric_limits<double>::max)();
-    if (xu <= dmax && yl >= -dmax && yu <= dmax && (xl > 0.0 || yl > 0.0)) {
-      double l, r;
-      if (xl == 0.0) {
-        l = 0.0;
-        r = pow_hi(xu, (xu >= 1.0) ? yu : yl);
-      } else if (xl >= 1.0) {
-        l = pow_lo((yl >= 0.0) ? xl : xu, yl);
-        r = pow_hi((yu >= 0.0) ? xu : xl, yu);
-      } else if (xu <= 1.0) {
-        l = pow_lo((yu >= 0.0) ? xl : xu, yu);
-        r = pow_hi((yl >= 0.0) ? xu : xl, yl);
-      } else {
-        l = minimum(pow_lo(xl, yu), pow_lo(xu, yl));
-        r = maximum(pow_hi(xl, yl), pow_hi(xu, yu));
-      }
-      return interval(l,r);
+    double l, r;
+    if (xl >= 1.0) {
+      l = pow_lo((yl >= 0.0) ? xl : xu, yl);
+      r = pow_hi((yu >= 0.0) ? xu : xl, yu);
+    } else if (xu <= 1.0) {
+      l = pow_lo((yu >= 0.0) ? xl : xu, yu);
+      r = pow_hi((yl >= 0.0) ? xu : xl, yl);
+    } else {
+      // I holds 1 inside: the least of two corners and the greatest of two,
+      // but where one of them is the limit 0, below, or +oo, above, which
+      // bounds the box, the other is not computed: a base from 0 takes one
+      // call of CORE-MATH's pow, as before its limits, 40 ns rather than 80
+      l = (pow_limit_is(xl, yu, false) || pow_limit_is(xu, yl, false))
+          ? 0.0 : minimum(pow_lo(xl, yu), pow_lo(xu, yl));
+      r = (pow_limit_is(xl, yl, true) || pow_limit_is(xu, yu, true))
+          ? GAOL_INFINITY : maximum(pow_hi(xl, yl), pow_hi(xu, yu));
     }
-    return exp(y*log(base));
+    return interval(l,r);
   }
 
   /*
@@ -1743,8 +1775,8 @@ namespace gaol_core {
     before the bounds are compared: with denormals-are-zero, the lower bound
     -5 2^-1074 of x stayed in x & [0, +oo], and pow([-5 2^-1074, 1], [0.5])
     was empty once the check of the corners had cleared the mode (GAOL v5, see
-    gaol/gaol_fpu.h). Its integer powers do not check the direction again
-    (pown_upward()), its exp(y*log(base)) does, for log, * and exp.
+    gaol/gaol_fpu.h). Its integer powers and its corners do not check the
+    direction again (pown_upward(), pow_lo(), pow_hi()).
   */
   static interval pow_standard(const interval& x, const interval& y)
   {

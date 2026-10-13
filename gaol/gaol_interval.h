@@ -1407,13 +1407,16 @@ namespace gaol_core {
     gaol_pown(), the pown of IEEE 1788, which is defined for a
     negative base too, gives x^0 = 1 for any x, 0 included, and has no value
     at 0 for n < 0; for an n beyond the ints, the result is [-oo,+oo]. Any
-    other exponent takes the pow of IEEE 1788, exp(J log(I)) on the part of I
-    in [0,+oo], where 0^y is 0 for y > 0 and has no value for y <= 0:
-    pow([-4,9],[0.5]) is [0,3], pow([0],[0,1]) is [0], and
-    pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5]) are empty. An exponent [+oo] or
-    [-oo] contains no real number, and gives the empty set. The result is thus
-    not monotone for the inclusion of J: pow([-4,-1],[2]) is [1,16], and
-    pow([0],[0]) is [1].
+    other exponent takes the pow of IEEE 1788 on the part of I in [0,+oo],
+    where 0^y is 0 for y > 0 and has no value for y <= 0, its tightest
+    bounds: CORE-MATH's pow at the corners of the box, and the limits of x^y,
+    0 or +oo, where the base is 0 or +oo or the exponent infinite (1 for a
+    base 1 or an exponent 0).
+    pow([-4,9],[0.5]) is [0,3], pow([4,+oo],[0.5]) is [2,+oo],
+    pow([0],[0,1]) is [0], and pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5])
+    are empty. An exponent [+oo] or [-oo] contains no real number, and gives
+    the empty set. The result is thus not monotone for the inclusion of J:
+    pow([-4,-1],[2]) is [1,16], and pow([0],[0]) is [1].
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
