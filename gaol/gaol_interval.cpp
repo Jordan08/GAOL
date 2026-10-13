@@ -1573,26 +1573,6 @@ namespace gaol_core {
   };
 
   /*
-    x kept as GAOL_RND_KEEP() keeps a double, bound by bound, for the
-    functions split into a check and a body that kept the doubles of their
-    bounds before (GAOL v5): GAOL_RND_KEEP() of an interval copies it to
-    volatile memory a byte at a time, which made nth_root(x, -2), asinh(x) and
-    the cube root 15 to 20 ns slower with GAOL_PRESERVE_ROUNDING. Without it,
-    GAOL_RND_KEEP() does nothing, and x is given back as it is.
-  */
-  static inline interval rnd_keep_bounds(const interval& x)
-  {
-#if defined(GAOL_PRESERVE_ROUNDING) && GAOL_PRESERVE_ROUNDING
-    double l = x.left(), r = x.right();
-    GAOL_RND_KEEP(l);
-    GAOL_RND_KEEP(r);
-    return interval(l, r);
-#else
-    return x;
-#endif
-  }
-
-  /*
     I^n for an int n, the rounding direction being upward already: the body of
     gaol_pown(), which pow_standard(), gaol_pow_hybrid() and gaol_pow_real()
     call after their own check (GAOL v5: they called gaol_pown(), which
@@ -2777,7 +2757,8 @@ static inline interval cube_root(const interval& I)
     return interval::emptyset();
   }
   GAOL_RND_ENTER();
-  const interval res = rnd_keep_bounds(cube_root_upward(I));
+  interval res = cube_root_upward(I);
+  GAOL_RND_KEEP(res);
   GAOL_RND_LEAVE();
   return res;
 }
@@ -2832,7 +2813,8 @@ interval nth_root(const interval& I, unsigned int n)
 	}
 	// The check before the intersection, as in sqrt()
 	GAOL_RND_ENTER();
-	const interval res = rnd_keep_bounds(nth_root_upward(I, n));
+	interval res = nth_root_upward(I, n);
+	GAOL_RND_KEEP(res);
 	GAOL_RND_LEAVE();
 	return res;
 }
@@ -2865,7 +2847,8 @@ interval nth_root(const interval& I, int q)
 	// direction again (GAOL v5: the root and inverse() checked it each)
 	GAOL_RND_ENTER();
 	const interval root = nth_root_upward(I, n);
-	const interval res = rnd_keep_bounds(root.is_empty() ? root : upward_access::inverse(root));
+	interval res = root.is_empty() ? root : upward_access::inverse(root);
+	GAOL_RND_KEEP(res);
 	GAOL_RND_LEAVE();
 	return res;
 }
@@ -4378,7 +4361,8 @@ interval nth_root(const interval& I, int q)
   {
     // The check before the intersection, as in acos()
     GAOL_RND_ENTER();
-    const interval res = rnd_keep_bounds(acosh_upward(I));
+    interval res = acosh_upward(I);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
@@ -4392,7 +4376,8 @@ interval nth_root(const interval& I, int q)
     }
 
     GAOL_RND_ENTER();
-    const interval res = rnd_keep_bounds(asinh_upward(I));
+    interval res = asinh_upward(I);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
 
@@ -4402,7 +4387,8 @@ interval nth_root(const interval& I, int q)
   {
     // The check before the intersection, as in acos()
     GAOL_RND_ENTER();
-    const interval res = rnd_keep_bounds(atanh_upward(I));
+    interval res = atanh_upward(I);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
@@ -5176,7 +5162,8 @@ interval nth_root(const interval& I, int q)
     // the check had cleared the mode, made the result empty (GAOL v5, see
     // gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
-    const interval res = rnd_keep_bounds(sqrt_upward(I));
+    interval res = sqrt_upward(I);
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
