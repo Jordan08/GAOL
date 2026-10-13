@@ -1232,7 +1232,11 @@ int main()
   };
 
   set(directions[0]);
+#if !GAOL_PRESERVE_ROUNDING
+  // The state an operation may leave without GAOL_PRESERVE_ROUNDING, read
+  // only then: GCC 15 refused it as set but not used with -Werror (GAOL v5)
   const State upward = state();
+#endif
 
   for (const Operation& op : operations) {
     const std::string name = op.name;
