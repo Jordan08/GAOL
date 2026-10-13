@@ -835,11 +835,9 @@ namespace gaol_core {
     template of gaol/gaol_fpu.h copies an interval to volatile memory a byte
     at a time, which made nth_root(x, -2), asinh(x) and the cube root 15 to
     20 ns slower when they kept an interval; and of an __m128d, which the SSE2
-    operations keep (sqr(), inverse()). The FPU bounds are not given to the
-    constructor, which compares them: built again so, the operands that
-    gaol::rnd_keep() keeps in the products with a zero and an infinite bound
-    of tests/rounding_direction.cpp made them raise the invalid-operation flag
-    on macOS arm64 with Apple clang.
+    operations keep (sqr(), inverse()). The FPU bounds are copied as they
+    are stored, through a friend, rather than given to the constructor,
+    which compares them.
   */
 #if GAOL_USING_SSE2_INSTRUCTIONS
   GAOL_INLINE __m128d rnd_keep(const __m128d& x)
