@@ -375,7 +375,7 @@ ses bits dans `doc/using.md`, le manuel et `doc/tests.md`, et l'état de
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-z-wundef` : le point Z, #120.
 
 ## Même changement, ou même code
 
