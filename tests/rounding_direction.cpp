@@ -1143,6 +1143,9 @@ int main()
     { "nth_root(x,q) for q < 0", [](const interval& x, const interval& y) {
         return S(nth_root(y, -1)) + " " + S(nth_root(y, -2)) + " " + S(nth_root(-y, -3)) + " " + S(nth_root(x, -4)) + " "
           + S(nth_root(-y, -5)) + " " + S(nth_root(y, INT_MIN)); } },
+    // An order beyond the ints and the unsigned ints (GAOL v5)
+    { "nth_root(x,q) beyond the unsigned ints", [](const interval& x, const interval& y) {
+        return S(nth_root(y, 1LL << 33)) + " " + S(nth_root(-y, (1LL << 33) + 1)) + " " + S(nth_root(x, -(1LL << 33) - 1)); } },
     { "pow(x,[n]), pow(x,n.0) and gaol_ieee1788::pow(x,[n]) for n < 0", [](const interval& x, const interval& y) {
         return S(pow(y, interval(-3.0))) + " " + S(pow(-y, interval(-3.0))) + " " + S(pow(y, -3.0)) + " "
           + S(gaol_ieee1788::pow(y, interval(-3.0))) + " " + S(gaol_ieee1788::pow(x, interval(-2.0))); } },
@@ -1477,6 +1480,7 @@ int main()
       { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
       { "nth_root(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -3); } },
       { "nth_root(x, -5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -5); } },
+      { "nth_root(x, 2^33 + 1)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, (1LL << 33) + 1); } },
       { "pow(x, [-3])", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, interval(-3.0)); } },
       { "pow(x, -3.0)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -3.0); } },
       { "gaol_ieee1788::pow(x, [-3])", 1, [](const interval& x, const interval&, const interval&) { return gaol_ieee1788::pow(x, interval(-3.0)); } },

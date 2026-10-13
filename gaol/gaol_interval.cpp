@@ -5372,6 +5372,26 @@ static inline interval cos_or_sin(double Il, double Ir)
 
 } // namespace gaol_core
 
+namespace gaol_detail {
+  // huge_root() of gaol/gaol_interval.h after its one check (GAOL v5): order
+  // is above 2^31, its inverse an interval of positive bounds
+  gaol_core::interval root_of_large_order(const gaol_core::interval& I, const gaol_core::interval& order,
+                                          bool negative, bool odd)
+  {
+    using gaol_core::interval;
+    GAOL_RND_ENTER();
+    const interval inverse = gaol_core::upward_access::inverse(order);
+    const interval exponent = negative ? -inverse : inverse;
+    interval res = gaol_core::pow_hybrid_upward(I & interval::positive(), exponent);
+    if (odd) {
+      res = res | -gaol_core::pow_hybrid_upward(-(I & interval::negative()), exponent);
+    }
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+} // namespace gaol_detail
+
 namespace gaol_ieee1788 {
 
   /*

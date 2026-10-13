@@ -2074,24 +2074,30 @@ GAOL_NODISCARD GAOL_INLINE interval intersect(const interval& a, const interval&
 
 namespace gaol_detail {
   /*
+    The roots of huge_root() below, computed after one check of the rounding
+    direction (GAOL v5): order is the tightest interval holding |q|, negative
+    and odd tell the sign and the parity of q. Not a function for the code
+    using GAOL, which calls nth_root(I, q).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC gaol_core::interval root_of_large_order(const gaol_core::interval& I,
+                                                                            const gaol_core::interval& order,
+                                                                            bool negative, bool odd);
+
+  /*
     The root of order q of I for an integer q beyond the ints and the
     unsigned ints, nth_root(I, q) for such a q (GAOL v5): I^(1/q) by GAOL's pow,
     the exponent 1/q being an interval with no integer in it, on the part of
     I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in [-oo, 0]; for
     a negative q, 1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int
-    q. pownRev() of gaol_ieee1788 takes it for such a p.
+    q. pownRev() of gaol_ieee1788 takes it for such a p. The roots are
+    computed in gaol/gaol_interval.cpp, after one check of the rounding
+    direction, where 1/|q| and the two powers checked it once each.
   */
   template <class T>
   GAOL_INLINE gaol_core::interval huge_root(const gaol_core::interval& I, T q)
   {
-    const gaol_core::interval magnitude = integer_is_negative(q) ? -gaol_core::interval(q) : gaol_core::interval(q);
-    const gaol_core::interval inverse = gaol_core::interval(1.0) / magnitude;
-    const gaol_core::interval exponent = integer_is_negative(q) ? -inverse : inverse;
-    const gaol_core::interval roots = gaol_core::gaol_pow_hybrid(I & gaol_core::interval::positive(), exponent);
-    if (q % 2 == 0) {
-      return roots;
-    }
-    return roots | -gaol_core::gaol_pow_hybrid(-(I & gaol_core::interval::negative()), exponent);
+    const gaol_core::interval order = integer_is_negative(q) ? -gaol_core::interval(q) : gaol_core::interval(q);
+    return root_of_large_order(I, order, integer_is_negative(q), q % 2 != 0);
   }
 } // namespace gaol_detail
 
