@@ -64,14 +64,20 @@ CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance
 
 The tables of [performance.md](../performance.md),
 [special_cases.md](../special_cases.md) and [enclosure.md](../enclosure.md)
-were computed with Clang 18, in a work
-directory of its own (GCC 9.4 gives the same special cases; its timings differ,
-the libraries not being compiled the same way):
+were computed with Clang 21, in a work directory of its own, with four jobs
+(GCC gives the same special cases; its timings differ, the libraries not being
+compiled the same way):
 
 ```bash
-export CC=clang-18 CXX=clang++-18 WORK=$PWD/work/clang
+export CC=clang-21 CXX=clang++-21 WORK=$PWD/work/clang21 JOBS=4
 ./setup.sh && ./run_cases.sh && ./run_enclosure.sh && CPU=2 ./run_bench.sh
 ```
+
+GAOL v5 is measured by the benchmark under the names of IEEE 1788-2015, the
+namespace `gaol_ieee1788` (`pown(x, n)`, and `pow(x, y)` the real power of the
+standard), as the other libraries of the standard are, and GAOL 4.2.3 under
+its own, `gaol`; the special cases and the test of enclosure run GAOL v5 under
+both (see [Using GAOL](../../using.md#the-powers-in-the-two-namespaces)).
 
 `./run_all.sh` runs the four in turn. The scripts rewrite only the tables
 between the `<!-- BEGIN GENERATED TABLES -->` and `<!-- END GENERATED TABLES -->`
@@ -123,11 +129,11 @@ meson setup build && CPU=2 ninja -C build perf
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
 libraries, all the operations). The one committed holds the whole run of 13
-October 2026 that the tables of `performance.md` were written from (Clang 18,
-three rounds, Ubuntu 26.04.1, `641ca81`). Under Ubuntu 20.04, on the same
-processor with the same Clang 18.1.8, every library took about 30 % more
-time: the times of `make perf` compare with those of `results.csv` only on the
-system it was measured on.
+October 2026 that the tables of `performance.md` were written from (Clang
+21.1, three rounds, Ubuntu 26.04.1, `e6646e2`). Under Ubuntu 20.04, on the
+same processor with Clang 18.1.8, every library took about 30 % more time: the
+times of `make perf` compare with those of `results.csv` only on the system
+and with the compiler they were measured with.
 
 ## The files
 
