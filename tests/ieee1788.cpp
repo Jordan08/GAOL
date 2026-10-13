@@ -224,6 +224,11 @@ namespace
           [&] { return hex(small); });
     const interval one = pow(interval(1.0), interval(-1e12));
     check("pow([1], [-1e12]) = [1]", one.set_eq(interval(1.0)), [&] { return hex(one); });
+    // A base with no point in [0, +oo], whose part there is empty: the powers
+    // beyond 2^1014, computed without CORE-MATH, gave [0, 2^-1074] to its NaN
+    // bounds if the empty part were not caught first (GAOL v5)
+    const interval no_base = pow(numsToInterval(-4.0, -1.0), interval(dmax));
+    check("pow([-4, -1], [DBL_MAX]): empty", no_base.is_empty(), [&] { return hex(no_base); });
 
     // The expressions of pow and pown, evaluated: pow(e1, e2) is the pow of
     // the standard, where the node of gaol::pow(e1, e2) computes GAOL's

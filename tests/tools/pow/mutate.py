@@ -76,13 +76,16 @@ CORNERS = 'if (xu <= dmax && yl >= -dmax && yu <= dmax && (xl > 0.0 || yl > 0.0)
 PER_INT = 'if (n == y.right() && std::floor(n) == n) {\n      if (y.is_an_int()) {'
 
 # The mutants of the code of configure-clean on 2026-10-04 (after #61 and
-# #63). Each edit replaces a text that has to be once in the file; survives
-# says why the bounds of an equivalent mutant are those of the sources. B.1
-# of TODO.md removes the code that gaol-infinite-guard-dropped and
-# std-beyond-no-one-upper edit, two equivalent mutants, which then no longer
-# apply; B.2 rewrites the corners and exp(y*log(base)), whose mutants
-# (std-corners-*, std-corner-*, std-exp-log-of-x) have to be written again
-# for the new code, with mutants of what it adds.
+# #63), their texts brought to the code of the first pull request of B (the
+# integer powers in pown_upward(), the bounds in pow_rounded_dn() and
+# pow_rounded_up()). Each edit replaces a text that has to be once in the
+# file; survives says why the bounds of an equivalent mutant are those of the
+# sources. B.1 of TODO.md removed the code that std-beyond-no-one-upper
+# edited, an equivalent mutant, and kept the guard of [+oo] and [-oo], which
+# an exponent built from an SSE2 register reaches; B.2 rewrites the corners
+# and exp(y*log(base)), whose mutants (std-corners-*, std-corner-*,
+# std-exp-log-of-x) have to be written again for the new code, with mutants
+# of what it adds.
 MUTANTS = [
     # pow_standard_upward(): the pow of Table 9.1
     dict(name='std-empty-y-unchecked',
@@ -96,10 +99,7 @@ MUTANTS = [
          edits=[('const interval base = x & interval::positive();', 'const interval base = x;')]),
     dict(name='std-empty-base-unchecked',
          edits=[('if (base.is_empty()) {\n      return interval::emptyset();\n    }\n    // pow(0,y)',
-                 '// pow(0,y)')],
-         survives='an empty base has NaN bounds: base.right() == 0.0 is false, gaol_pown() gives the empty set '
-                  'back, the bounds beyond the ints are NaN, the empty set, the corners are not taken, and '
-                  'exp(y*log(base)) is empty'),
+                 '// pow(0,y)')]),
     dict(name='std-no-zero-case',
          edits=[('if (base.right() == 0.0) {\n      return y.right() > 0.0',
                  'if (false) {\n      return y.right() > 0.0')]),
@@ -114,7 +114,7 @@ MUTANTS = [
     dict(name='std-beyond-ints-dropped',
          edits=[(PER_INT, PER_INT.replace('std::floor(n) == n)', 'std::floor(n) == n && y.is_an_int())'))]),
     dict(name='std-int-within-ints-on-whole-x',
-         edits=[('return gaol_pown(base, static_cast<int>(n));', 'return gaol_pown(x, static_cast<int>(n));')]),
+         edits=[('return pown_upward(base, static_cast<int>(n));', 'return pown_upward(x, static_cast<int>(n));')]),
     dict(name='std-beyond-lower-minus-zero',
          edits=[('const double xl = (base.left() == 0.0) ? 0.0 : base.left(), xu = base.right();',
                  'const double xl = base.left(), xu = base.right();')]),
@@ -122,10 +122,7 @@ MUTANTS = [
          edits=[('const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;',
                  'const double at_lower = xl, at_upper = xu;')]),
     dict(name='std-beyond-no-one-lower',
-         edits=[('(at_lower == 1.0) ? 1.0 : upward::nthroot_dn(at_lower, n)', 'upward::nthroot_dn(at_lower, n)')]),
-    dict(name='std-beyond-no-one-upper',
-         edits=[('(at_upper == 1.0) ? 1.0 : upward::nthroot_up(at_upper, n)', 'upward::nthroot_up(at_upper, n)')],
-         survives='CORE-MATH\'s pow(1, n) is exactly 1 (TODO B.1 removes the check)'),
+         edits=[('(at_lower == 1.0) ? 1.0 : pow_rounded_dn(at_lower, n)', 'pow_rounded_dn(at_lower, n)')]),
     dict(name='std-beyond-lower-not-clamped',
          edits=[('return interval((l > 0.0) ? l : 0.0, r);', 'return interval(l, r);')]),
     dict(name='std-corners-dropped', edits=[(CORNERS, 'if (false) {')]),
@@ -158,14 +155,14 @@ MUTANTS = [
          survives='log cuts x to its domain, (0, +oo], as base is'),
     # pow_lo() and pow_hi(): the bounds at a corner
     dict(name='corner-lower-not-exact',
-         edits=[('return pow_is_double(x, y, d) ? d : maximum(upward::nthroot_dn(x,y), 0.0);',
-                 'return maximum(upward::nthroot_dn(x,y), 0.0);')]),
+         edits=[('return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);',
+                 'return maximum(pow_rounded_dn(x,y), 0.0);')]),
     dict(name='corner-lower-no-one',
          edits=[('if (x == 1.0 || y == 0.0) {\n      return 1.0;\n    }\n    return pow_is_double',
                  'return pow_is_double')]),
     dict(name='corner-upper-no-one',
-         edits=[('return (x == 1.0 || y == 0.0) ? 1.0 : upward::nthroot_up(x,y);',
-                 'return upward::nthroot_up(x,y);')],
+         edits=[('return (x == 1.0 || y == 0.0) ? 1.0 : pow_rounded_up(x,y);',
+                 'return pow_rounded_up(x,y);')],
          survives='CORE-MATH\'s pow(1, y) and pow(x, 0) are exactly 1'),
     dict(name='corner-power-of-two-not-integer',
          edits=[('if (t % 1024 != 0 || t < -1074*1024 || t > 1023*1024) {',
@@ -178,11 +175,12 @@ MUTANTS = [
     dict(name='gaol-infinite-guard-dropped',
          edits=[('if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {',
                  'if (false) {')],
-         survives='unreachable: interval(+oo) and interval(-oo) are the empty set (TODO B.1 removes the check)'),
+         survives='the tests reach it with the SSE2 intervals only (elementary: an exponent [+oo] built from an '
+                  'SSE2 register); interval(+oo) and interval(-oo) are the empty set'),
     dict(name='gaol-no-pown',
-         edits=[('return gaol_pown(I,int(J.left()));', 'return pow_standard_upward(I, J);')]),
+         edits=[('return pown_upward(I,int(J.left()));', 'return pow_standard_upward(I, J);')]),
     dict(name='gaol-pown-on-positive',
-         edits=[('return gaol_pown(I,int(J.left()));', 'return gaol_pown(I & interval::positive(),int(J.left()));')]),
+         edits=[('return pown_upward(I,int(J.left()));', 'return pown_upward(I & interval::positive(),int(J.left()));')]),
     dict(name='gaol-beyond-ints-standard',
          edits=[('return interval::universe();\n    }\n    return pow_standard_upward(I, J);',
                  'return pow_standard_upward(I, J);\n    }\n    return pow_standard_upward(I, J);')]),
@@ -190,7 +188,7 @@ MUTANTS = [
     dict(name='real-non-integer-standard',
          edits=[('res = pow_hybrid_upward(I, interval(p));', 'res = pow_standard_upward(I, interval(p));')]),
     dict(name='real-integer-standard',
-         edits=[('res = gaol_pown(I, static_cast<int>(p));', 'res = pow_standard_upward(I, interval(p));')]),
+         edits=[('res = pown_upward(I, static_cast<int>(p));', 'res = pow_standard_upward(I, interval(p));')]),
     # gaol_ieee1788::pow
     dict(name='ieee-is-gaol',
          edits=[('return ::gaol_core::pow_standard(x, y);', 'return ::gaol_core::gaol_pow_hybrid(x, y);')]),

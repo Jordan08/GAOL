@@ -55,6 +55,7 @@
 #include "gaol_tests.h"
 
 #include <algorithm>
+#include <climits>
 #include <cstring>
 #include <exception>
 #include <functional>
@@ -1136,6 +1137,31 @@ int main()
         return S(atan2_rel_y(x + 2.0, -y, y)) + " " + S(atan2_rel_x(-x - 2.0, -y, -y)) + " " + S(atan2_rel_y(-x, y, -y))
           + " " + S(atan2_rel_x(x - 4.0, -y, -y)) + " " + S(atan2_rel_y(x*0x1p-1070, y, y)); } },
     { "nth_root(x,n) for n >= 4", [](const interval&, const interval& y) { return S(nth_root(y, 4)) + " " + S(nth_root(-y, 5)); } },
+    // The roots of negative order, the integer powers of pow(x, y),
+    // pow(x, double) and gaol_ieee1788::pow, and modulo_k_pi(), which compute
+    // their bounds after one check of the rounding direction (GAOL v5)
+    { "nth_root(x,q) for q < 0", [](const interval& x, const interval& y) {
+        return S(nth_root(y, -1)) + " " + S(nth_root(y, -2)) + " " + S(nth_root(-y, -3)) + " " + S(nth_root(x, -4)) + " "
+          + S(nth_root(-y, -5)) + " " + S(nth_root(y, INT_MIN)); } },
+    { "pow(x,[n]), pow(x,n.0) and gaol_ieee1788::pow(x,[n]) for n < 0", [](const interval& x, const interval& y) {
+        return S(pow(y, interval(-3.0))) + " " + S(pow(-y, interval(-3.0))) + " " + S(pow(y, -3.0)) + " "
+          + S(gaol_ieee1788::pow(y, interval(-3.0))) + " " + S(gaol_ieee1788::pow(x, interval(-2.0))); } },
+    // [a, b], a/pi_up and b/pi_dn being just below 3 and 5: their floors are
+    // 2 and 5 rounding upward, and 3 and 4 downward. modulo_k_pi() is called
+    // on it first, before the operations of intervals of the other operands
+    // set the direction upward
+    { "modulo_k_pi next to multiples of pi", [](const interval& x, const interval& y) {
+        const double a = 0x1.2d97c7f3321d2p+3, b = 0x1.f6a7a2955385dp+3;
+        double k_left = 0.0, k_right = 0.0;
+        std::string s = S(static_cast<int>(modulo_k_pi(interval(a, b), k_left, k_right)));
+        s += " " + S(k_left) + " " + S(k_right);
+        s += " " + S(static_cast<int>(modulo_k_pi(interval(-b, -a), k_left, k_right)));
+        s += " " + S(k_left) + " " + S(k_right);
+        for (const interval& I : { interval::pi()*3.0, x*y*100.0, interval(-1e-310, 1e-300) }) {
+          s += " " + S(static_cast<int>(modulo_k_pi(I, k_left, k_right)));
+          s += " " + S(k_left) + " " + S(k_right);
+        }
+        return s; } },
     { "pow(x,n) from the rounded products", [](const interval&, const interval& y) {
         return S(pow(y*0x1p-330, 3)) + " " + S(pow(interval(0., 1.)*y, 3)) + " " + S(pow(y*1e200, 3)); } },
     { "pow(x,-n) where x^n overflows", [](const interval&, const interval& y) {
@@ -1449,6 +1475,16 @@ int main()
       { "nth_root(x, 4)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 4); } },
       { "nth_root(x, 5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 5); } },
       { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
+      { "nth_root(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -3); } },
+      { "nth_root(x, -5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -5); } },
+      { "pow(x, [-3])", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, interval(-3.0)); } },
+      { "pow(x, -3.0)", 1, [](const interval& x, const interval&, const interval&) { return gaol::pow(x, -3.0); } },
+      { "gaol_ieee1788::pow(x, [-3])", 1, [](const interval& x, const interval&, const interval&) { return gaol_ieee1788::pow(x, interval(-3.0)); } },
+      // The two integers modulo_k_pi() gives, as an interval
+      { "modulo_k_pi(x)", 1, [](const interval& x, const interval&, const interval&) {
+          double k_left = 0.0, k_right = 0.0;
+          modulo_k_pi(x, k_left, k_right);
+          return interval(k_left, k_right); } },
       { "x.mid()", 1, [](const interval& x, const interval&, const interval&) { return x.mid(); } },
       { "x.width()", 1, [](const interval& x, const interval&, const interval&) { return interval(x.width()); } },
       { "x.rad()", 1, [](const interval& x, const interval&, const interval&) { return interval(x.rad()); } },

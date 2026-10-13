@@ -1306,8 +1306,8 @@ interval& interval::operator/=(const interval& I)
 	return *this;
 }
 
-// The branch #else, not compiled, has no inverse_upward(), which gaol_pown()
-// calls (GAOL v5)
+// The branch #else, not compiled, has no inverse_upward(), which the integer
+// powers and nth_root(I, q) for q < 0 call (GAOL v5)
 #define OPT_INV 1
 #if OPT_INV
 // The rounding direction being upward already (see gaol_interval.h)

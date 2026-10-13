@@ -232,9 +232,10 @@ namespace gaol_core {
     it: from exact products for e > 2, the square being the tightest already,
     and from the rounded products where a bound is 0 or infinite, or a power
     is not finite or is below 2^-968. uipow_nonempty_upward() takes the
-    rounding direction to be upward already, as it is in gaol_pown() after its
-    check; uipow_nonempty() checks it, once: the rounded products of the
-    fallback no longer check it again (GAOL v5).
+    rounding direction to be upward already, as it is in pown_upward(), which
+    gaol_pown(), pow_standard(), gaol_pow_hybrid() and gaol_pow_real() call
+    after their check; uipow_nonempty() checks it, once: the rounded products
+    of the fallback no longer check it again (GAOL v5).
   */
   /* The bounds of I^e from exact products, e > 2, rounding upward; false
      where the rounded products are to take (see above). Inlined by force with
@@ -1528,60 +1529,112 @@ namespace gaol_core {
 
 
 
-	interval gaol_pown(const interval& I, int n)
-	{
-		if (I.is_empty()) {
-			return I;
-		}
-		if (n < 0) {
-			/*
-			  x^-m is 1/x^m, unless x^m overflows: then (1/x)^m (GAOL v5).
-			  GAOL computed 1/x^m, whose x^m overflowed for some |x| > 1 before
-			  the inversion: pow([10],-400) was [0,5.6e-309] rather than
-			  [0,2^-1074], and pow([2],-1050) [0,2^-1024] rather than [2^-1050].
-			  1/x is an interval where I does not straddle 0; where it does,
-			  x^-m is [-oo,+oo] for an odd m, and [mag(I)^-m,+oo] for an even m.
+  /*
+    inverse_upward() of gaol/gaol_interval.h, which is private to interval, for
+    pown_upward() and nth_root(I, q) for q < 0: they check the rounding
+    direction once and take the inverse after it, without checking it again as
+    inverse() does (GAOL v5)
+  */
+  class upward_access {
+  public:
+    static interval inverse(const interval& I) { return interval::inverse_upward(I); }
+  };
 
-			  The rounding direction is checked once, here (GAOL v5): the powers
-			  and the inverses are computed by the bodies of uipow_nonempty() and
-			  inverse(), which do not check it again, where GAOL called them and
-			  gaol_uipow(), which checked it two to five times. Each interval
-			  given to inverse_upward() is non-empty: a finite power, [g, g] for
-			  g > 0, I.
-			*/
-			const unsigned int m = 0u - static_cast<unsigned int>(n);
-			const double largest = std::numeric_limits<double>::max();
-			GAOL_RND_ENTER();
-			interval res = uipow_nonempty_upward(I,m);
-			if (res.left() >= -largest && res.right() <= largest) {
-				res = interval::inverse_upward(res);
-			} else if (I.left() < 0.0 && I.right() > 0.0) {
-				if (odd(m)) {
-					res = interval::universe();
-				} else {
-					const double g = I.mag();
-					if (g == GAOL_INFINITY) {
-						res = interval::positive();
-					} else {
-						res = interval(uipow_nonempty_upward(interval::inverse_upward(interval(g)),m).left(),GAOL_INFINITY);
-					}
-				}
-			} else {
-				// gaol_uipow() gave the empty set back as it is
-				const interval J = interval::inverse_upward(I);
-				res = J.is_empty() ? J : uipow_nonempty_upward(J,m);
-			}
-			GAOL_RND_KEEP(res);
-			GAOL_RND_LEAVE();
-			return res;
-		} else {
-			if (n > 0) {
-				return uipow_nonempty(I,static_cast<unsigned int>(n));
-			} else {
-				return interval(1.0);
-			}
-		}
-	}
+  /*
+    x kept as GAOL_RND_KEEP() keeps a double, bound by bound, for the
+    functions split into a check and a body that kept the doubles of their
+    bounds before (GAOL v5): GAOL_RND_KEEP() of an interval copies it to
+    volatile memory a byte at a time, which made nth_root(x, -2), asinh(x) and
+    the cube root 15 to 20 ns slower with GAOL_PRESERVE_ROUNDING. Without it,
+    GAOL_RND_KEEP() does nothing, and x is given back as it is.
+  */
+  static inline interval rnd_keep_bounds(const interval& x)
+  {
+#if defined(GAOL_PRESERVE_ROUNDING) && GAOL_PRESERVE_ROUNDING
+    double l = x.left(), r = x.right();
+    GAOL_RND_KEEP(l);
+    GAOL_RND_KEEP(r);
+    return interval(l, r);
+#else
+    return x;
+#endif
+  }
+
+  /*
+    I^n for an int n, the rounding direction being upward already: the body of
+    gaol_pown(), which pow_standard(), gaol_pow_hybrid() and gaol_pow_real()
+    call after their own check (GAOL v5: they called gaol_pown(), which
+    checked the direction a second time). The empty set is given back as it
+    is, as gaol_uipow() gave it.
+
+    x^-m is 1/x^m, unless x^m overflows: then (1/x)^m (GAOL v5). GAOL computed
+    1/x^m, whose x^m overflowed for some |x| > 1 before the inversion:
+    pow([10],-400) was [0,5.6e-309] rather than [0,2^-1074], and
+    pow([2],-1050) [0,2^-1024] rather than [2^-1050]. 1/x is an interval where
+    I does not straddle 0; where it does, x^-m is [-oo,+oo] for an odd m, and
+    [mag(I)^-m,+oo] for an even m. The powers and the inverses are computed by
+    the bodies of uipow_nonempty() and inverse(), which do not check the
+    direction again, where GAOL called them and gaol_uipow(), which checked it
+    two to five times. Each interval given to inverse_upward() is non-empty: a
+    finite power, [g, g] for g > 0, I. Inlined by force with GCC and Clang,
+    so that gaol_pown() keeps the code it had when it held this body: Clang 18
+    called it otherwise.
+  */
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  static inline interval pown_upward(const interval& I, int n)
+  {
+    if (I.is_empty()) {
+      return I;
+    }
+    if (n > 0) {
+      return uipow_nonempty_upward(I, static_cast<unsigned int>(n));
+    }
+    if (n == 0) {
+      return interval(1.0);
+    }
+    const unsigned int m = 0u - static_cast<unsigned int>(n);
+    const double largest = std::numeric_limits<double>::max();
+    const interval res = uipow_nonempty_upward(I,m);
+    if (res.left() >= -largest && res.right() <= largest) {
+      return upward_access::inverse(res);
+    }
+    if (I.left() < 0.0 && I.right() > 0.0) {
+      if (odd(m)) {
+        return interval::universe();
+      }
+      const double g = I.mag();
+      if (g == GAOL_INFINITY) {
+        return interval::positive();
+      }
+      return interval(uipow_nonempty_upward(upward_access::inverse(interval(g)),m).left(),GAOL_INFINITY);
+    }
+    // gaol_uipow() gave the empty set back as it is
+    const interval J = upward_access::inverse(I);
+    return J.is_empty() ? J : uipow_nonempty_upward(J,m);
+  }
+
+  // The rounding direction is checked once (GAOL v5): by uipow_nonempty() for
+  // n > 0, which takes the rounded products of n = 1 and 2 under the check of
+  // the SSE instructions alone in the SSE2 build, here for n < 0
+  interval gaol_pown(const interval& I, int n)
+  {
+    if (I.is_empty()) {
+      return I;
+    }
+    if (n > 0) {
+      return uipow_nonempty(I,static_cast<unsigned int>(n));
+    }
+    if (n == 0) {
+      return interval(1.0);
+    }
+    GAOL_RND_ENTER();
+    interval res = pown_upward(I, n);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
 
   /*
     The pow of IEEE 1788-2015 (Table 9.1) for an interval exponent, written
@@ -1631,15 +1684,18 @@ namespace gaol_core {
     const double n = y.left();
     if (n == y.right() && std::floor(n) == n) {
       if (y.is_an_int()) {
-        return gaol_pown(base, static_cast<int>(n));
+        return pown_upward(base, static_cast<int>(n));
       }
       const double xl = (base.left() == 0.0) ? 0.0 : base.left(), xu = base.right();
       const double at_lower = (n > 0.0) ? xl : xu, at_upper = (n > 0.0) ? xu : xl;
       // The bounds of namespace upward, which do not check the rounding
       // direction again, through pow_rounded_dn() and pow_rounded_up(),
-      // which compute the powers for an n from 2^1014 on themselves (GAOL v5)
+      // which compute the powers for an n from 2^1014 on themselves (GAOL v5).
+      // pow_rounded_up(1, n) is 1, from CORE-MATH's pow below 2^1014 and
+      // from its own test of x = 1 above: only the lower bound, the double
+      // below that value, takes x = 1 apart
       const double l = (at_lower == 1.0) ? 1.0 : pow_rounded_dn(at_lower, n);
-      const double r = (at_upper == 1.0) ? 1.0 : pow_rounded_up(at_upper, n);
+      const double r = pow_rounded_up(at_upper, n);
       return interval((l > 0.0) ? l : 0.0, r);
     }
 
@@ -1688,8 +1744,8 @@ namespace gaol_core {
     before the bounds are compared: with denormals-are-zero, the lower bound
     -5 2^-1074 of x stayed in x & [0, +oo], and pow([-5 2^-1074, 1], [0.5])
     was empty once the check of the corners had cleared the mode (GAOL v5, see
-    gaol/gaol_fpu.h). Its powers and its exp(y*log(base)) check the
-    direction once more each.
+    gaol/gaol_fpu.h). Its integer powers do not check the direction again
+    (pown_upward()), its exp(y*log(base)) does, for log, * and exp.
   */
   static interval pow_standard(const interval& x, const interval& y)
   {
@@ -1709,7 +1765,10 @@ namespace gaol_core {
       return interval::emptyset();
     }
     // [+oo] and [-oo] contain no real number: numsToInterval(l,u) of IEEE 1788
-    // has no value for l = +oo or u = -oo (10.5.8)
+    // has no value for l = +oo or u = -oo (10.5.8). The constructors and the
+    // operations make none, but interval(const __m128d&) and get_xmminterval()
+    // of the SSE2 intervals do, as in tan() (GAOL v5: kept, TODO.md B.1 having
+    // taken the test for one that is never true)
     if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
@@ -1723,7 +1782,7 @@ namespace gaol_core {
     */
     if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
       if (J.is_an_int()) {
-        return gaol_pown(I,int(J.left()));
+        return pown_upward(I,int(J.left()));
       }
       // An integer beyond the ints, which gaol_pown() cannot take
       return interval::universe();
@@ -1765,7 +1824,7 @@ namespace gaol_core {
     p = rnd_reread(p);
     interval res;
     if (std::floor(p) == p && p >= (std::numeric_limits<int>::min)() && p <= (std::numeric_limits<int>::max)()) {
-      res = gaol_pown(I, static_cast<int>(p));
+      res = pown_upward(I, static_cast<int>(p));
     } else {
       res = pow_hybrid_upward(I, interval(p));
     }
@@ -2319,11 +2378,19 @@ namespace gaol_core {
     return res;
   }
 
+  // The bodies of nth_root(), sqrt() and sqrt_rel(), defined below, which do
+  // not check the rounding direction again (GAOL v5)
+  static inline interval nth_root_upward(const interval& I, unsigned int n);
+  static inline interval sqrt_upward(const interval& I);
+  static interval sqrt_rel_upward(const interval& J, const interval& I);
+
   /*
     Code inspired by ia_math code by Timothy Hickey. The rounding direction
     is upward, after the check of nth_root_rel(), whose intersections and
     hulls are taken before the modes are restored with
-    GAOL_PRESERVE_ROUNDING (GAOL v5, see gaol/gaol_fpu.h)
+    GAOL_PRESERVE_ROUNDING (GAOL v5, see gaol/gaol_fpu.h); the roots are
+    those of the bodies of sqrt_rel() and nth_root(), which do not check the
+    direction again (GAOL v5: they checked it a second time)
   */
   static interval nth_root_rel_upward(const interval& J, unsigned int n, const interval& I)
   {
@@ -2337,7 +2404,7 @@ namespace gaol_core {
     case 1:
       return J & I;
     case 2:
-      return sqrt_rel(J,I);
+      return sqrt_rel_upward(J,I);
     default:
       break;
     }
@@ -2346,7 +2413,7 @@ namespace gaol_core {
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    const interval tmp = nth_root(J,n);
+    const interval tmp = nth_root_upward(J,n);
     if (odd(n) || tmp.is_empty()) {
       return (tmp & I);
     }
@@ -2587,8 +2654,8 @@ namespace gaol_core {
 
   /*
     The approximations the n-th roots of a >= 0 and b >= 0 start from. Rounding
-    upward, as nth_root(), its only caller, set it: the direction is not
-    checked again here (GAOL v5)
+    upward, as nth_root_upward(), its only caller, takes it after the check of
+    its callers: the direction is not checked again here (GAOL v5)
   */
   static void near_roots(double a, double b, unsigned int n, double& near_a, double& near_b)
   {
@@ -2623,23 +2690,38 @@ namespace gaol_core {
   method then by bisection, which took 179 ns for a cube root against 67 ns
   here, and gave bounds up to 2 doubles from the tightest ones.
 */
+// Inlined by force with GCC and Clang, as cube_root_upward() and cube_root()
+// below
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
 static inline double cube_root_up(double x) // x >= 0
 {
   return gaol_cr_cbrt(x);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
 static inline double cube_root_dn(double x) // x >= 0
 {
   const double u = gaol_cr_cbrt(x);
   return (u * u * u == x) ? u : previous_float(u);
 }
 
-static interval cube_root(const interval& I)
+// The rounding direction being upward already, after the check of cube_root()
+// or of the callers of nth_root_upward() (GAOL v5). Inlined by force with GCC
+// and Clang, as cube_root(), cube_root_up() and cube_root_dn(): Clang 18
+// called cube_root_dn() from nth_root() otherwise, and the cube root of an
+// interval took 40 ns rather than 34 (Intel i7-1185G7)
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
+static inline interval cube_root_upward(const interval& I)
 {
   if (I.is_empty()) {
     return interval::emptyset();
   }
-  GAOL_RND_ENTER();
   const double a = I.left(), b = I.right();
   double lo, hi;
   if (a == -GAOL_INFINITY) {
@@ -2652,10 +2734,55 @@ static interval cube_root(const interval& I)
   } else {
     hi = (b >= 0.0) ? cube_root_up(b) : -cube_root_dn(-b);
   }
-  GAOL_RND_KEEP(lo);
-  GAOL_RND_KEEP(hi);
-  GAOL_RND_LEAVE();
   return interval(lo, hi);
+}
+
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((always_inline))
+#endif
+static inline interval cube_root(const interval& I)
+{
+  if (I.is_empty()) {
+    return interval::emptyset();
+  }
+  GAOL_RND_ENTER();
+  const interval res = rnd_keep_bounds(cube_root_upward(I));
+  GAOL_RND_LEAVE();
+  return res;
+}
+
+/*
+  The n-th root of I, the rounding direction being upward already: the body
+  of nth_root(), which nth_root(I, q) for q < 0 and nth_root_rel() call after
+  their own check (GAOL v5: they called nth_root(), sqrt() or inverse(), which
+  checked the direction again)
+*/
+static inline interval nth_root_upward(const interval& I, unsigned int n)
+{
+	switch (n) {
+	case 0:
+		return interval::emptyset();
+	case 1:
+		return I;
+	case 2:
+		return sqrt_upward(I);
+	case 3:
+		return cube_root_upward(I);
+	default:
+		break;
+	}
+	const interval J = odd(n) ? I : (I & interval::positive());
+	if (J.is_empty()) {
+		return interval::emptyset();
+	}
+	// The roots of the magnitudes of the bounds, the root of x < 0 being
+	// -(-x)^(1/n)
+	const double a = std::fabs(J.left()), b = std::fabs(J.right());
+	double near_a, near_b;
+	near_roots(a,b,n,near_a,near_b);
+	const double l = (J.left() >= 0.0) ? root_dn(a,near_a,n) : -root_up(a,near_a,n);
+	const double r = (J.right() >= 0.0) ? root_up(b,near_b,n) : -root_dn(b,near_b,n);
+	return interval(l,r);
 }
 
 interval nth_root(const interval& I, unsigned int n)
@@ -2674,22 +2801,9 @@ interval nth_root(const interval& I, unsigned int n)
 	}
 	// The check before the intersection, as in sqrt()
 	GAOL_RND_ENTER();
-	const interval J = odd(n) ? I : (I & interval::positive());
-	if (J.is_empty()) {
-		GAOL_RND_LEAVE();
-		return interval::emptyset();
-	}
-	// The roots of the magnitudes of the bounds, the root of x < 0 being
-	// -(-x)^(1/n)
-	const double a = std::fabs(J.left()), b = std::fabs(J.right());
-	double near_a, near_b;
-	near_roots(a,b,n,near_a,near_b);
-	double l = (J.left() >= 0.0) ? root_dn(a,near_a,n) : -root_up(a,near_a,n);
-	double r = (J.right() >= 0.0) ? root_up(b,near_b,n) : -root_dn(b,near_b,n);
-	GAOL_RND_KEEP(l);
-	GAOL_RND_KEEP(r);
+	const interval res = rnd_keep_bounds(nth_root_upward(I, n));
 	GAOL_RND_LEAVE();
-	return interval(l,r);
+	return res;
 }
 
 /*
@@ -2712,9 +2826,17 @@ interval nth_root(const interval& I, int q)
 		// As rootn(x, 0), which the table leaves out: no value
 		return interval::emptyset();
 	}
-	// -q on a long, INT_MIN having no opposite on an int
-	const unsigned int n = static_cast<unsigned int>(-static_cast<long>(q));
-	return inverse(nth_root(I,n));
+	// |q| without a signed negation: -q overflows an int for INT_MIN, and so
+	// did -static_cast<long>(q) where a long has 32 bits too, with Visual C++,
+	// MinGW-w64 and on 32-bit Linux (GAOL v5)
+	const unsigned int n = 0u - static_cast<unsigned int>(q);
+	// One check, before the root and its inverse, which do not check the
+	// direction again (GAOL v5: the root and inverse() checked it each)
+	GAOL_RND_ENTER();
+	const interval root = nth_root_upward(I, n);
+	const interval res = rnd_keep_bounds(root.is_empty() ? root : upward_access::inverse(root));
+	GAOL_RND_LEAVE();
+	return res;
 }
 
   unsigned long long nb_fp_numbers(double a, double b)
@@ -3709,6 +3831,27 @@ interval nth_root(const interval& I, int q)
   }
 
 
+  /*
+    The bounds of x/[pi] for a finite x, [pi] being [pi_dn, pi_up], rounded
+    upward, for modulo_k_pi(): computed on doubles, as tan() computes those of
+    [x + pi/2]/[pi] (GAOL v5). They are the doubles interval(x) /
+    interval::pi() gave, the stored bounds -x and x being divided by pi_dn
+    above 0 and by pi_up below. A bound 0 of I gives the quotient 0 with its
+    own sign, where interval(x), then the division, gave one each build chose:
+    floor() keeps it, and the comparisons of modulo_k_pi() do not tell -0
+    from +0.
+  */
+  static inline double lower_of_x_over_pi(double x)
+  {
+    const double nl = -x;
+    return -(nl / ((nl > 0.0) ? pi_dn : pi_up));
+  }
+
+  static inline double upper_of_x_over_pi(double x)
+  {
+    return x / ((x > 0.0) ? pi_dn : pi_up);
+  }
+
   /*!
     \brief Angle modulo pi (slower version with integer output)
 
@@ -3732,11 +3875,23 @@ interval nth_root(const interval& I, int q)
       k_left = k_right = GAOL_NAN;
       return 0;
     }
-    interval kl = floor(I.left()/interval::pi());
-    interval kr = floor(I.right()/interval::pi());
-    k_left  = kl.left();
-    k_right = kr.right();
-    return static_cast<unsigned short int>((kl.is_a_double() ? 2 : 0) + (kr.is_a_double() ? 1 : 0));
+    // The only check of the rounding direction (GAOL v5): the quotients are
+    // computed on doubles, where I.left()/interval::pi() and
+    // I.right()/interval::pi() checked it once each. An infinite bound gives
+    // NaN and no flag, as interval(+-oo), which is empty, gave through them
+    GAOL_RND_ENTER();
+    const double a = I.left(), b = I.right();
+    const double dmax = (std::numeric_limits<double>::max)();
+    const bool finite_a = std::fabs(a) <= dmax, finite_b = std::fabs(b) <= dmax;
+    double a_lo = finite_a ? bound_floor(lower_of_x_over_pi(a)) : GAOL_NAN;
+    double a_hi = finite_a ? bound_floor(upper_of_x_over_pi(a)) : GAOL_NAN;
+    double b_lo = finite_b ? bound_floor(lower_of_x_over_pi(b)) : GAOL_NAN;
+    double b_hi = finite_b ? bound_floor(upper_of_x_over_pi(b)) : GAOL_NAN;
+    GAOL_RND_KEEP(a_lo); GAOL_RND_KEEP(a_hi); GAOL_RND_KEEP(b_lo); GAOL_RND_KEEP(b_hi);
+    GAOL_RND_LEAVE();
+    k_left  = a_lo;
+    k_right = b_hi;
+    return static_cast<unsigned short int>(((finite_a && a_lo == a_hi) ? 2 : 0) + ((finite_b && b_lo == b_hi) ? 1 : 0));
   }
 
 
@@ -4146,21 +4301,55 @@ interval nth_root(const interval& I, int q)
   }
 
 
+  /*
+    The bodies of acosh(), asinh() and atanh() after their check, for these
+    functions and for acosh_rel(), asinh_rel() and atanh_rel(), which check
+    the direction before them (GAOL v5: the reverse functions called acosh(),
+    asinh() and atanh(), which checked it a second time)
+  */
+  static interval acosh_upward(const interval& I)
+  {
+    const interval J = I &  interval::one_plus_infinity();
+
+    if (J.is_empty()) {
+      return J;
+    }
+    const double l = acosh_lo(J.left()), r = acosh_hi(J.right());
+    return interval(l,r);
+  }
+
+  static interval asinh_upward(const interval& I)
+  {
+    if (I.is_empty()) {
+      return I;
+    }
+    const double l = asinh_lo(I.left()), r = asinh_hi(I.right());
+    return interval(l,r);
+  }
+
+  static interval atanh_upward(const interval& I)
+  {
+    const interval J = I & interval::minus_one_plus_one();
+    // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
+    // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
+    // no point of it, and gives the empty set. The value of CORE-MATH at 1 is
+    // +oo, and the lower bound the double below the value: [1] was [MAX,+oo]
+    // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
+    // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
+    if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
+      return interval::emptyset();
+    }
+    const double l = atanh_lo(J.left()), r = atanh_hi(J.right());
+    return interval(l,r);
+  }
+
   interval acosh(const interval& I)
   {
     // The check before the intersection, as in acos()
     GAOL_RND_ENTER();
-    interval J = I &  interval::one_plus_infinity();
-
-    if (J.is_empty()) {
-      GAOL_RND_LEAVE();
-      return J;
-    }
-
-    double l = acosh_lo(J.left()), r = acosh_hi(J.right());
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-  	GAOL_RND_LEAVE();
-  	return interval(l,r);
+    const interval res = rnd_keep_bounds(acosh_upward(I));
+    GAOL_RND_LEAVE();
+    return res;
   }
 
 
@@ -4172,9 +4361,9 @@ interval nth_root(const interval& I, int q)
     }
 
     GAOL_RND_ENTER();
-    const double l = asinh_lo(I.left()), r = asinh_hi(I.right());
+    const interval res = rnd_keep_bounds(asinh_upward(I));
     GAOL_RND_LEAVE();
-    return interval(l,r);
+    return res;
 
   }
 
@@ -4182,21 +4371,9 @@ interval nth_root(const interval& I, int q)
   {
     // The check before the intersection, as in acos()
     GAOL_RND_ENTER();
-	  interval J = I & interval::minus_one_plus_one();
-    // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
-    // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
-    // no point of it, and gives the empty set. The value of CORE-MATH at 1 is
-    // +oo, and the lower bound the double below the value: [1] was [MAX,+oo]
-    // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
-    // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
-    if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
-      GAOL_RND_LEAVE();
-      return interval::emptyset();
-    }
-    double l = atanh_lo(J.left()), r = atanh_hi(J.right());
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    const interval res = rnd_keep_bounds(atanh_upward(I));
     GAOL_RND_LEAVE();
-    return interval(l,r);
+    return res;
   }
 
   /*
@@ -4433,9 +4610,10 @@ interval nth_root(const interval& I, int q)
   /*
     acosh_rel(), asinh_rel() and atanh_rel() check the rounding direction
     before they compare the bounds of the inverse image with those of I, which
-    acosh(), asinh() and atanh() return with the modes that flush the
+    acosh(), asinh() and atanh() returned with the modes that flush the
     subnormals to zero restored, with GAOL_PRESERVE_ROUNDING (GAOL v5, see
-    gaol/gaol_fpu.h)
+    gaol/gaol_fpu.h). The inverse images are those of the bodies of these
+    functions, which do not check the direction again (GAOL v5)
   */
   static interval acosh_rel_upward(const interval &J, const interval &I)
   {
@@ -4443,7 +4621,7 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
 
-    interval tmp = acosh(J);
+    interval tmp = acosh_upward(J);
 
     if (I.certainly_positive()) {
       return I & tmp;
@@ -4466,7 +4644,7 @@ interval nth_root(const interval& I, int q)
   interval asinh_rel(const interval &J, const interval &I)
   {
     GAOL_RND_ENTER();
-    interval res = asinh(J) & I;
+    interval res = asinh_upward(J) & I;
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -4475,7 +4653,7 @@ interval nth_root(const interval& I, int q)
   interval atanh_rel(const interval &J, const interval &I)
   {
     GAOL_RND_ENTER();
-    interval res = atanh(J) & I;
+    interval res = atanh_upward(J) & I;
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -4926,6 +5104,26 @@ interval nth_root(const interval& I, int q)
   }
 
 
+  // The body of sqrt() after its check, for nth_root(I, -2), which checks the
+  // direction before it (GAOL v5). Inlined by force with GCC
+  // and Clang, so that sqrt() keeps the code it had when it held this body:
+  // Clang 18 called it otherwise
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  static inline interval sqrt_upward(const interval& I)
+  {
+    const interval Ipos = I & interval::positive();
+
+    if (Ipos.is_empty()) {
+      return interval::emptyset();
+    }
+
+    const double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
+    const double r = gaol_sqrt_up(Ipos.right());
+    return interval(l,r);
+  }
+
   interval sqrt(const interval& I)
   {
 #if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
@@ -4947,18 +5145,9 @@ interval nth_root(const interval& I, int q)
     // the check had cleared the mode, made the result empty (GAOL v5, see
     // gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
-    const interval Ipos = I & interval::positive();
-
-    if (Ipos.is_empty()) {
-      GAOL_RND_LEAVE();
-      return interval::emptyset();
-    }
-
-    double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
-    double r = gaol_sqrt_up(Ipos.right());
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
+    const interval res = rnd_keep_bounds(sqrt_upward(I));
     GAOL_RND_LEAVE();
-    return interval(l,r);
+    return res;
   }
 
 
