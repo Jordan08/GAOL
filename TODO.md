@@ -331,7 +331,10 @@ description de #114.
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-b-pow-rounding` et `todo-b-pow-corners` : le point B, #117 et #118.
+- `audit-doc-fixes` : les suites de l'audit du 13 octobre, qui a vérifié dans
+  `configure-clean` ce qu'annoncent les points faits (le code est là) ; trois
+  commentaires et textes faux et l'état de `process.md` corrigés, #119.
 
 ## Même changement, ou même code
 
