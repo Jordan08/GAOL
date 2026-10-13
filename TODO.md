@@ -571,6 +571,25 @@ sur secteur ; Clang 18 et Clang 21 donnent les mêmes temps à 3 % près, sauf
     `gaol_ieee1788`, pour suivre IEEE 1788-2015 ; la principale différence est
     dans `pow` et `pown`, avec une partie qui lui est consacrée.
 
+Décidé aussi le 13 octobre, au début de la troisième pull request :
+
+- **74** : la fonction exportée pour un exposant hors des `int` et des
+  `unsigned int` s'appelle `gaol_pown_ll(const interval&, long long)` ;
+  au-delà de 2^63, l'exposant est ramené à ±(2^63 − 1) ou ±(2^63 − 2) selon
+  sa parité, toute puissance y débordant ou s'annulant déjà.
+- **8** : quand une seule borne sort de la plage, l'autre garde la borne la
+  plus serrée (chaque coin hors de la plage est calculé seul, mis à
+  l'échelle, au plus serré lui aussi).
+- **Un double de trop accepté** : la borne d'erreur a priori K de la méthode
+  laisse un double de trop quand x^n est à moins de 2K d'un double. C'est
+  rare au hasard (2^-46 des bornes pour n = 3), mais fréquent pour un x à
+  quelques doubles d'une valeur dont la puissance est exacte : un cinquième
+  des bornes pour x à moins de 8 doubles de 1 et n jusqu'à 200
+  (`pow([1 + 2^-52], 3)` donne [1 + 2^-51, 1 + 2^-50] au lieu de
+  [1 + 3·2^-52, 1 + 2^-50]). Trancher ces cas par `cr_pow` donnait toujours
+  les plus serrées, mais coûtait 55 à 270 ns, ces puissances étant les cas
+  difficiles de CORE-MATH : ce n'est pas fait, et c'est documenté.
+
 ## Même fichier de test ou de documentation
 
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
