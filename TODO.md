@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `58ed21f` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `309a06c` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -327,11 +327,25 @@ Bison 2.4, alors que le `.ypp` reste lisible par Bison 2.3) ; `-Wundef` devient
 le point Z. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #114.
 
+Fait le 13 octobre aussi : la première des trois pull requests du point B
+(l'ancien 1, et l'ancien 2 hors des coins de `pow`), par #117. Une seule
+vérification du sens d'arrondi par appel des puissances entières de `pow`
+(`pown_upward()`), de `nth_root(x, q)` pour q < 0, d'`acosh_rel()`,
+`asinh_rel()`, `atanh_rel()` et `nth_root_rel()`, et de `modulo_k_pi()`, dont
+les quotients par [π] sont calculés sur des doubles ; |q| sans dépassement
+dans `nth_root(I, INT_MIN)` ; le test inutile `at_upper == 1.0` retiré. Décidé
+pendant le travail : la classe amie `upward_access` ; la garde de `[±oo]` de
+`gaol_pow_hybrid()` gardée, avec un test SSE2 ; une seule vérification aussi
+pour `asinh_rel()` et `nth_root_rel()`, malgré 13 à 16 % de temps en plus
+avec Clang 18, sans cause trouvée. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #117.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-b-pow-rounding` et `todo-b-pow-corners` : le point B, #117 et #118.
+- `todo-b-pow-corners` : le point B, deuxième pull request, #118 (la première,
+  #117, est fusionnée).
 - `audit-doc-fixes` : les suites de l'audit du 13 octobre, qui a vérifié dans
   `configure-clean` ce qu'annoncent les points faits (le code est là) ; trois
   commentaires et textes faux et l'état de `process.md` corrigés, #119.
@@ -712,7 +726,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114 et #115
-  après leur fusion, et la jetable de #116).
+  après leur fusion, et la jetable de #116). `todo-b-pow-rounding`, de #117,
+  fusionnée le 13 octobre, reste à supprimer.
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
