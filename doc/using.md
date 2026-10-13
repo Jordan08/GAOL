@@ -829,10 +829,13 @@ direction the instructions carry in themselves (GAOL v5). These operations
 set no rounding direction: the program keeps its own, in the default build
 as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
 integer powers, the elementary functions, the reading of a number — leave it
-upward, as they always do. These operations raise no floating-point
-exception flag of their own, the architecture requiring the exception
-suppression with the embedded rounding. The modes that flush the subnormal
-numbers to zero, which the embedded rounding honours as the other
+upward, as they always do. Their instructions raise no floating-point
+exception flag, the architecture requiring the exception suppression with
+the embedded rounding; the check of the modes below raises those of the
+other operations (see
+[The floating-point exceptions](#the-floating-point-exceptions)). The modes
+that flush the subnormal numbers to zero, which the embedded rounding
+honours as the other
 instructions do (measured on an Intel i7-1185G7: with flush-to-zero set,
 the difference of 3e-308 and 2.9e-308 is 0), are cleared before the
 operation reads a bound when a program or a plug-in has set them, as the

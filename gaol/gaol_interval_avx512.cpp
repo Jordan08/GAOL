@@ -292,10 +292,11 @@
     The AVX-512 path of the operations of the intervals, taken when
     gaol::init() has set avx512_arithmetic (GAOL_PREFER_AVX512 and a
     processor that has the instructions). Each of them rounds every
-    floating-point operation in itself: no rounding direction to set, no
-    exception flag raised; the modes that flush the subnormals to zero,
-    which the embedded rounding honours, are cleared where they are set
-    (flush_guard above). Their results
+    floating-point operation in itself: no rounding direction to set, and
+    no exception flag raised by the instructions; the modes that flush the
+    subnormals to zero, which the embedded rounding honours, are cleared
+    where they are set (flush_guard above), whose check raises the flags of
+    the check of the other operations (doc/using.md). Their results
     are those of the SSE2 path, bit for bit (see the head of this file).
   */
 

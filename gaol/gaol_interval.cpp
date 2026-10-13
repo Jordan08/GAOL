@@ -122,8 +122,9 @@ namespace gaol_core {
 #if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
   // Set by init() (gaol/gaol_common.cpp), from the GAOL_PREFER_AVX512 of the
   // build and the instructions the processor has: +, -, *, / and sqrt take
-  // the AVX-512 path of gaol/gaol_interval_avx512.cpp then, which sets
-  // neither the rounding direction nor the flush-to-zero modes (GAOL v5)
+  // the AVX-512 path of gaol/gaol_interval_avx512.cpp then, which sets no
+  // rounding direction, and clears the flush-to-zero modes as the other
+  // operations do (flush_guard there; GAOL v5, point Q of TODO.md)
   extern bool avx512_arithmetic;
 
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
