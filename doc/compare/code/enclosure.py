@@ -39,7 +39,8 @@ PRECISION = 2000
 # rounded_transc_std, and libm the functions of the C library alone, called
 # with the rounding direction downward for the lower bound and upward for the
 # upper one (pow(x, 3.0) for x³)
-LIBRARIES = [("gaol5", "GAOL v5"), ("boost", "Boost.Interval, `rounded_transc_opp`"),
+LIBRARIES = [("gaol5", "GAOL v5, `gaol`"), ("gaol5std", "GAOL v5, `gaol_ieee1788`"),
+             ("boost", "Boost.Interval, `rounded_transc_opp`"),
              ("boost_std", "Boost.Interval, `rounded_transc_std`"),
              ("libm", "C library, downward and upward")]
 
