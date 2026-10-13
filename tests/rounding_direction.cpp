@@ -547,7 +547,14 @@ namespace
   */
   double bound_product(double a, double b)
   {
-    return (a == 0.0 || b == 0.0) ? 0.0 : a*b;
+    // The product is computed on operands that are never 0 and an infinity
+    // (GAOL v5): Apple clang on arm64 computed a*b before the choice, then
+    // chose, and 0*+oo raised the invalid-operation flag in this reference,
+    // which the check below then took for one GAOL had raised, depending on
+    // what was inlined around it
+    const double a1 = (a == 0.0) ? 1.0 : a, b1 = (b == 0.0) ? 1.0 : b;
+    const double p = a1*b1;
+    return (a == 0.0 || b == 0.0) ? 0.0 : p;
   }
 
   // The nonempty intervals with bounds in bounds
@@ -601,6 +608,18 @@ namespace
     const interval p = pow(opaque(interval(1.0)), opaque(interval(1.0, GAOL_INFINITY)));
     if (std::fetestexcept(FE_INVALID) != 0) {
       raising += " pow([1], [1, +oo]) = " + hex(p) + ";";
+    }
+    // and the reference products of the bounds, which the test computes
+    for (const interval& x : intervals) {
+      for (const interval& y : intervals) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const volatile double q[4] = { bound_product(x.left(), y.left()), bound_product(x.left(), y.right()),
+                                       bound_product(x.right(), y.left()), bound_product(x.right(), y.right()) };
+        static_cast<void>(q);
+        if (std::fetestexcept(FE_INVALID) != 0) {
+          raising += " the reference products of the bounds of " + hex(x) + " and " + hex(y) + ";";
+        }
+      }
     }
     return raising.empty() ? std::string(" none when run alone") : raising;
   }
