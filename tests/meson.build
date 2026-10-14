@@ -34,6 +34,11 @@ if msvc
   # getenv() and sscanf(), which the tests use as the C standard has them
   tests_args += ['-D_CRT_SECURE_NO_WARNINGS']
 endif
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it
+# (GAOL v5)
+if cpp_comp.has_argument('-Wno-psabi')
+  tests_args += ['-Wno-psabi']
+endif
 # Linked with the link option of gaol_dep and gaol.pc (-mno-daz-ftz, where the
 # compiler takes it), as CMake links them (GAOL v5)
 tests_dep = declare_dependency(

@@ -615,6 +615,14 @@ AC_ARG_WITH([tests],
             [with_tests=${withval}],
             [with_tests="no"])
 AM_CONDITIONAL([WITH_TESTS], [test "${with_tests}" = yes])
+# -Wno-psabi for the tests where the compiler takes it, as
+# tests/CMakeLists.txt gives it (GAOL v5)
+GAOL_CHECK_CXX_FLAG([-Wno-psabi], [gaol_cxx_wno_psabi])
+GAOL_TESTS_CXXFLAGS=""
+if test "${gaol_cxx_wno_psabi}" = yes; then
+    GAOL_TESTS_CXXFLAGS="-Wno-psabi"
+fi
+AC_SUBST([GAOL_TESTS_CXXFLAGS])
 
 # --with-examples: the examples of examples/, built by make and run by make
 # check, as WITH_EXAMPLES of CMake and with-examples of meson (GAOL v5)

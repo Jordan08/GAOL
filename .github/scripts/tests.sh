@@ -10,7 +10,8 @@
 # compiled into libgaol itself. The flags of the tests are those of
 # TEST_FLAGS, with which the code using GAOL is compiled (see CMakeLists.txt);
 # on a 32-bit x86 processor, -msse2 -mfpmath=sse too, without which
-# gaol/gaol_config.h refuses to compile.
+# gaol/gaol_config.h refuses to compile; and -Wno-psabi where the compiler
+# takes it, as tests/CMakeLists.txt gives it.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -22,6 +23,12 @@ flags="${TEST_FLAGS:--std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract
 case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it,
+# to every test below, the one built with gaol.pc included (GAOL v5)
+psabi=""
+if echo 'int main() { return 0; }' | ${CXX:-c++} -Werror -Wno-psabi -x c++ -c -o /dev/null - 2>/dev/null; then
+  psabi="-Wno-psabi"
+fi
 if [ "$linking" = shared ]; then
   libs="-L$prefix/lib -lgaol -Wl,-rpath,$prefix/lib"
 else
@@ -32,7 +39,7 @@ status=0
 # expressions: the classes and functions of gaol/gaol_expression.h, which a
 # shared libgaol did not export (GAOL v5)
 for test in arithmetic elementary numbers other_functions reverse rounding_direction expressions; do
-  ${CXX:-c++} $flags -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
+  ${CXX:-c++} $flags $psabi -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
   # The checks that failed, which the last lines do not show
   if ./$test > $test.log 2>&1; then
     tail -1 $test.log
@@ -41,9 +48,10 @@ for test in arithmetic elementary numbers other_functions reverse rounding_direc
     status=1
   fi
 done
-${CXX:-c++} $flags -I"$prefix/include" tests/performance.cpp $libs -o performance
-# The same test built with the flags and libraries of gaol.pc alone, where
-# pkg-config exists (its Cflags carry the flags of interval arithmetic)
+${CXX:-c++} $flags $psabi -I"$prefix/include" tests/performance.cpp $libs -o performance
+# The same test built with the flags and libraries of gaol.pc alone, and
+# -Wno-psabi, where pkg-config exists (its Cflags carry the flags of interval
+# arithmetic)
 if command -v pkg-config > /dev/null; then
   export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
   # -lgaol takes the shared library where there is one: on Windows, its DLL
@@ -55,7 +63,7 @@ if command -v pkg-config > /dev/null; then
     export PATH="$prefix/bin:$prefix/lib:$PATH"
   fi
   echo "pkg-config --cflags --libs gaol: $(pkg-config --cflags --libs gaol)"
-  ${CXX:-c++} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
+  ${CXX:-c++} -std=c++17 -O2 $psabi $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
     -Wl,-rpath,"$prefix/lib" -o rounding_direction_pc
   if ./rounding_direction_pc > rounding_direction_pc.log 2>&1; then
     echo "with pkg-config: $(tail -1 rounding_direction_pc.log)"
