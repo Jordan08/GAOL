@@ -61,8 +61,9 @@ namespace gaol_core {
   
   ipow_up(), ipow_dn(), pow_up() and pow_dn() check the rounding direction
   themselves. No operation of GAOL calls them: the integer powers of
-  intervals take their products from ipow_exact_up() and ipow_exact_dn(),
-  or ipow_hi() and ipow_lo() for the roots (gaol/gaol_interval.cpp).
+  intervals take their bounds from exact products (pown_products()) and
+  from CORE-MATH's pow, the roots their powers from ipow_hi() and ipow_lo()
+  (gaol/gaol_interval.cpp).
   */
   
   GAOL_INLINE double ipow_up(double d, unsigned int n)
