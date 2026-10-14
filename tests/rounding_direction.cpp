@@ -5,7 +5,7 @@
  *
  * GAOL computes its bounds with the rounding direction upward. By default,
  * each operation sets it upward when it is not, and leaves it upward; with
- * GAOL_PRESERVE_ROUNDING defined, each operation also restores the direction
+ * GAOL_PRESERVE_ROUNDING 1, each operation also restores the direction
  * it found (see gaol/gaol_fpu.h).
  *
  * Every operation of GAOL's interface is run on several operands with the

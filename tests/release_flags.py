@@ -6,7 +6,7 @@ Fails unless each command of the compile_commands.json of the build directory
 that compiles a source of GAOL or of CORE-MATH (<sources>/gaol/,
 <sources>/3rd/) optimizes as the release build does (its last -O is -O3, or
 /O2 with Visual C++) and defines NDEBUG, and unless the gaol_configuration.h
-of the build leaves GAOL_DEBUGGING undefined: a project that brings GAOL in
+of the build defines GAOL_DEBUGGING to 0: a project that brings GAOL in
 without choosing a build type, as a CMake project without CMAKE_BUILD_TYPE
 (add_subdirectory, FetchContent) or a meson project in the default build type
 of meson (a subproject), gets GAOL in release, as configure builds it.
@@ -15,8 +15,11 @@ tests/fetch_content (.github/workflows/linux.yml).
 
 With --debug, the other way round, for GAOL_DEBUG of CMake and enable-debug of
 meson: no optimization (no -O, or a last -O0 or /Od), NDEBUG not defined in
-the end (no -DNDEBUG, or a -UNDEBUG after it), and GAOL_DEBUGGING defined, by
-gaol_configuration.h or on the command line.
+the end (no -DNDEBUG, or a -UNDEBUG after it), and GAOL_DEBUGGING defined to
+1, by gaol_configuration.h or on the command line. Each option of
+gaol_configuration.h is defined, to 1 or 0 (GAOL v5, point Z of TODO.md):
+what tells a Debug build is the value 1, which configure writes also in the
+block that gives the options left undefined their 0.
 
 Copyright (c) 2026 ENSTA, France
 
@@ -41,7 +44,7 @@ headers = [os.path.join(d, f) for d, _, files in os.walk(build) for f in files
 header_debugging = False
 for header in headers:
     with open(header) as h:
-        if re.search(r'^\s*#\s*define\s+GAOL_DEBUGGING\b', h.read(), re.M):
+        if re.search(r'^\s*#\s*define\s+GAOL_DEBUGGING\s+1\b', h.read(), re.M):
             header_debugging = True
 checked = 0
 failed = 0

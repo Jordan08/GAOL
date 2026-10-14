@@ -57,7 +57,7 @@
    a program still defining it changes nothing; one defining GAOL_PUBLIC before
    including GAOL replaces it. */
 #ifndef GAOL_PUBLIC
-#  if defined(__GNUC__) && !defined(_MSC_VER) && defined(GAOL_HAVE_VISIBILITY_OPTIONS)
+#  if defined(__GNUC__) && !defined(_MSC_VER) && GAOL_HAVE_VISIBILITY_OPTIONS
 #    define GAOL_PUBLIC __attribute__ ((visibility("default")))
 #  else
 #    define GAOL_PUBLIC
@@ -110,6 +110,20 @@
 /* Define this if your system is an ARM running MacOSX */
 #  define GAOL_ARM_MACOSX 1
 #endif
+/* The three others are 0, as the macros of gaol/gaol_configuration.h, so
+   that #if reads them under -Wundef (GAOL v5, point Z of TODO.md) */
+#ifndef GAOL_IX86_LINUX
+#  define GAOL_IX86_LINUX 0
+#endif
+#ifndef GAOL_AARCH64_LINUX
+#  define GAOL_AARCH64_LINUX 0
+#endif
+#ifndef GAOL_IX86_MACOSX
+#  define GAOL_IX86_MACOSX 0
+#endif
+#ifndef GAOL_ARM_MACOSX
+#  define GAOL_ARM_MACOSX 0
+#endif
 
 #ifndef GAOL_SIZEOF_INT
 #  if UINT_MAX == 0xFFFFFFFFu
@@ -131,6 +145,9 @@
 #if !defined(GAOL_WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
     && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #  define GAOL_WORDS_BIGENDIAN 1
+#endif
+#ifndef GAOL_WORDS_BIGENDIAN
+#  define GAOL_WORDS_BIGENDIAN 0 /* GAOL v5, point Z of TODO.md */
 #endif
 
 /* GAOL_NODISCARD: the attribute on the functions whose result is all they do

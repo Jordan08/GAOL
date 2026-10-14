@@ -52,7 +52,7 @@ test('flags', find_program('python3'),
          meson.current_source_dir()])
 
 # The libraries of GAOL and CORE-MATH compiled as in release, -O3 and NDEBUG,
-# and GAOL_DEBUGGING undefined: before 1.8.4, meson gives a subproject the
+# and GAOL_DEBUGGING 0: before 1.8.4, meson gives a subproject the
 # build type of the project (see meson.build)
 test('release', find_program('python3'),
   args: [files('../release_flags.py'), meson.current_build_dir(),

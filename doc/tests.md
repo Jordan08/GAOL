@@ -1081,7 +1081,7 @@ all the same, and their link the options of its `Libs` (`-mno-daz-ftz`, where
 the compiler takes it), and its test `release` that GAOL is built in release in
 the default build type of meson, debug: `tests/release_flags.py` checks that
 the sources of GAOL and CORE-MATH are compiled with `-O3` and `NDEBUG`, and
-that `GAOL_DEBUGGING` is left undefined. The continuous integration runs it on
+that `GAOL_DEBUGGING` is 0. The continuous integration runs it on
 `tests/fetch_content` configured without a build type too, where CORE-MATH
 was compiled without optimization. With `--debug`, it checks the other way
 round that `GAOL_DEBUG` of CMake and `enable-debug` of meson build GAOL and

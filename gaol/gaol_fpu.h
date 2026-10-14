@@ -41,6 +41,10 @@
 // there, is read and written through their control register: fegetround()
 // may only read the one of the x87 unit (glibc on x86-64)
 #  define GAOL_RND_SSE_REGISTER 1
+#else
+// 0, so that #if reads it under -Wundef, as the other macros of this header
+// (GAOL v5, point Z of TODO.md)
+#  define GAOL_RND_SSE_REGISTER 0
 #endif
 
 /* The modes that flush the subnormal numbers to zero, as bits of the control
@@ -70,6 +74,12 @@ there. */
 #elif defined(__arm__) && defined(__ARM_FP) && defined(__GNUC__)
 #  define GAOL_RND_FPSCR_REGISTER 1
 #  define GAOL_RND_FLUSH_BITS 0x1000000u
+#endif
+#ifndef GAOL_RND_FPCR_REGISTER
+#  define GAOL_RND_FPCR_REGISTER 0
+#endif
+#ifndef GAOL_RND_FPSCR_REGISTER
+#  define GAOL_RND_FPSCR_REGISTER 0
 #endif
 
 /* A compiler barrier: the memory read after it is read after it, and no
@@ -105,6 +115,9 @@ both units. */
 #if defined(__i386__) || defined(_M_IX86)
 #  undef GAOL_RND_PROBE
 #endif
+#ifndef GAOL_RND_PROBE
+#  define GAOL_RND_PROBE 0
+#endif
 
 /*
 The rounding direction of GAOL's operations
@@ -113,7 +126,7 @@ GAOL computes its bounds with the rounding direction upward. Its operations
 start with GAOL_RND_ENTER(), or GAOL_RND_ENTER_SSE() for the ones computed
 with SSE instructions only.
 
-By default (GAOL_PRESERVE_ROUNDING undefined), GAOL_RND_ENTER() sets the
+By default (GAOL_PRESERVE_ROUNDING 0), GAOL_RND_ENTER() sets the
 rounding direction upward when it is not, and the operations leave it
 upward: their bounds are right whatever direction the code using GAOL set,
 for the cost of an addition that shows the direction.
@@ -162,7 +175,7 @@ same bounds, the inner GAOL_RND_LEAVE() setting back the direction upward
 that the inner GAOL_RND_ENTER() found, but it costs an addition, and a save
 and a restore of the direction with GAOL_PRESERVE_ROUNDING.
 
-With GAOL_PRESERVE_ROUNDING defined, the operations also restore the
+With GAOL_PRESERVE_ROUNDING 1, the operations also restore the
 direction they found, and the flush-to-zero modes they cleared, which makes
 the arithmetic operations several times slower.
 

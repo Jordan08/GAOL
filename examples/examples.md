@@ -1043,7 +1043,7 @@ without 0 in x `r /= r` and `r %= r`, each against the exact extremes; on the
 original FPU build, 12 989 of these checks fail.
 
 **2. Flush-to-zero and denormals-are-zero.** In `round_upward_if_needed()`,
-where `GAOL_RND_SSE_REGISTER` is defined, probe with a subnormal, which also
+where `GAOL_RND_SSE_REGISTER` is 1, probe with a subnormal, which also
 shows FTZ and DAZ:
 
 ```cpp

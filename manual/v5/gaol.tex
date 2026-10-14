@@ -5415,8 +5415,10 @@ with CMake, the \option{-{}-enable-debug} option of \cmd{configure}
 (\pxref{sec:configuration}), or \option{-{}-buildtype=debug} with meson, and
 \option{-DGAOL\_DEBUG=ON} with CMake and \option{-Denable-debug=true} with
 meson whatever the build type.\newinvfive{} They define
-\code{GAOL\_DEBUGGING} in \file{gaol/gaol\_configuration.h}: GAOL then
-checks its assertions.
+\code{GAOL\_DEBUGGING} to 1 in \file{gaol/gaol\_configuration.h}, where it
+is 0 otherwise, as every option there, so that it is read with \code{\#if}
+(\code{\#ifdef} is true of it in every build): GAOL then checks its
+assertions.\newinvfive
 
 \begin{deffun}{int}{debug\_level}{}
   Global variable used to remember the current value of the debugging

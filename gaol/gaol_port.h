@@ -65,7 +65,7 @@
 #  include <malloc.h>
 #  define GAOL_MEMALIGN(buf,boundary,size) (!(buf=_aligned_malloc(size,boundary)))
 #  define GAOL_MEMFREE(buf) _aligned_free(buf)
-#elif defined(GAOL_IX86_MACOSX) || defined(GAOL_ARM_MACOSX)
+#elif GAOL_IX86_MACOSX || GAOL_ARM_MACOSX
 // According to man page, Intel/MacOSX's malloc aligns correctly for SSE-related types
 #  include <stdlib.h>
 #  define GAOL_MEMALIGN(buf,boundary,size) (!(buf=malloc(size)))

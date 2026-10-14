@@ -187,6 +187,9 @@ namespace gaol_core {
     #  endif
     _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
   }
+  #else
+  // 0, so that #if reads it under -Wundef (GAOL v5, point Z of TODO.md)
+  #  define GAOL_RND_X86_REGISTERS 0
   #endif
   
   #if GAOL_RND_X86_REGISTERS
