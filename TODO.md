@@ -599,6 +599,19 @@ Décidé aussi le 13 octobre, au début de la troisième pull request :
   les plus serrées, mais coûtait 55 à 270 ns, ces puissances étant les cas
   difficiles de CORE-MATH : ce n'est pas fait, et c'est documenté.
 
+Décidé le 14 octobre, à la fin de la troisième pull request (#121) :
+
+- **Les puissances des expressions au-delà de 2^53**, pour un n qui n'est
+  pas un double, restent le produit `pow(e, [h])·e^l` (n = h + l) : pas de
+  nœud portant un `long long`, qui ajouterait une méthode à `expr_visitor`.
+- **x^(2^31 − 1) à 1,64 fois le temps de GAOL 4.2.3** : accepté.
+- **Le test des exposants de plus de 64 bits** (`__int128`) reste limité
+  aux modes GNU, sans job de CI de plus.
+- **La division par zéro des intervalles SSE2** est corrigée dans #121 :
+  `inverse()` (donc `pow(x, -1)`), `/` et `%` d'un diviseur à borne nulle
+  divisaient la moitié jetée par 0 et levaient l'exception, là où les
+  intervalles FPU ne lèvent rien.
+
 ## Même fichier de test ou de documentation
 
 ### I. La documentation pour l'utilisateur (35, 37, 38, 70)
