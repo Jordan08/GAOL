@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `01a0252` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `42e4735` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -388,246 +388,36 @@ générateur multi-configuration ; `GAOL_SIZEOF_*` laissés à `<limits.h>` ; ni
 les tests ni les `.cpp` de la bibliothèque. Les textes pour `ChangeLog` et
 `doc/differences.md` sont dans la description de #120.
 
+Fait le 14 octobre aussi : la troisième pull request du point B (les anciens 8,
+51, 72, 73 et 74), par #121, qui finit le point B. `pown` donne dans les `int`
+les bornes les plus serrées, de tout signe : les deux coins à la fois, dans les
+deux voies d'un registre SSE2 avec FMA ou d'une paire de doubles, par des
+produits exacts h + l et une borne d'erreur K prouvée d'avance (0 pour x^2, qui
+est `sqr(x)`) ; x^-n par l'inverse corrigé ; les puissances qui sont des
+doubles exactes ; les coins hors de la plage calculés seuls, mis à l'échelle.
+Au-delà des `int`, le `pow` de CORE-MATH aux coins (`gaol_pown_ll()`), et pour
+les expressions `pow(e, [h])·e^l` au-delà de 2^53. x^3 prend 4,9 ns, contre 8,8
+avec GAOL 4.2.3. Aussi : les deux espaces de noms, `gaol` et `gaol_ieee1788`,
+dans `README.md`, `doc/using.md` et le manuel ; `doc/compare`, ITF1788 et
+tang2021 relancés avec Clang 21 sous `gaol_ieee1788` (tous les cas de `pow` et
+de `pown` d'ITF1788 les plus serrés) ; `check.py` et `run.sh` de tang2021
+contournent deux défauts de gmpy2 2.2.1 (`context.div()` arrondi au plus près,
+et les `mpfr` jamais libérés) ; la division et l'inverse SSE2 d'un diviseur à
+borne nulle, et l'inverse FPU sous AppleClang, ne lèvent plus la division par
+zéro. Décidé pendant le travail (13 et 14 octobre) : la méthode du prototype
+P1y pour tout n dans les `int`, `cr_pow` au-delà seulement ; un double de trop
+accepté où x^n est à moins de 2K d'un double ; le nom `gaol_pown_ll` ; la borne
+restée dans la plage gardée la plus serrée ; x^(2^31 − 1) à 1,64 fois le temps
+de GAOL 4.2.3 accepté ; le produit pour les expressions au-delà de 2^53, sans
+nœud `long long` ; le test `__int128` limité aux modes GNU ; les mesures avec
+Clang 21. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
+description de #121.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-b-pown` : la troisième pull request du point B, #121.
-
-## Même changement, ou même code
-
-### B. pow (1, 2, 8, 51, 72, 73, 74)
-
-Tous dans `pow_standard()`, `gaol_pow_hybrid()`, `gaol_pown()` et
-`ipow_exact_dn()` (`gaol/gaol_interval.cpp`), et `integer_power()`
-(`gaol/gaol_interval.h`) pour le 74, avec leurs commentaires et les tests de
-`tests/ieee1788.cpp` et `tests/arithmetic.cpp`.
-
-- **1.** **Suites du pow de la norme écrit une fois** (#37). `pow_standard()`
-  (`gaol/gaol_interval.cpp`) est la seule copie du pow de la table 9.1. Deux
-  vérifications sont inutiles : la garde de l'exposant `[±oo]` de
-  `gaol_pow_hybrid()`, inatteignable, et le cas `at_upper == 1.0` du bloc
-  au-delà des int de `pow_standard()`. Les retirer reprendrait une part des 2 à
-  3 % perdus par `gaol::pow` à exposant non entier (mesurés avec GCC 9.4
-  seulement) ; le `is_empty()` de `gaol_pow_hybrid()` est à garder. Décidé le
-  3 octobre : le bloc au-delà des int et le pown dans les int sur x coupé à [0,
-  +oo] restent dans `pow_standard()`, où `gaol_pow_hybrid()`, qui prend `[n]`
-  avant, ne les atteint jamais, et non dans `gaol_ieee1788::pow`.
-- **2.** **Le sens d'arrondi est encore vérifié plus d'une fois** : trois fois
-  par `pow(x, y)` quand `pow_standard()` passe par exp(y log x) (une borne
-  infinie, ou une base partant de 0 avec un exposant qui n'est pas au-dessus de
-  0), deux fois par `nth_root(x, q)` pour q < 0, par `modulo_k_pi()`, et par
-  `asinh_rel()` et `atanh_rel()`, qui appellent `asinh()` et `atanh()` après
-  leur propre vérification (relevé par #92, décidé le 6 octobre). Correction :
-  appeler les corps de ces opérations après une seule vérification, comme
-  `tan()` et les puissances négatives ; les corps de `log()`, `exp()` et `*`
-  sans la vérification restent à écrire. `nth_root(I, q)` calcule `|q|` par
-  `-static_cast<long>(q)` pour inclure `INT_MIN`, mais `long` fait aussi 32
-  bits sous MSVC et MinGW : `nth_root(I, INT_MIN)` déclenche alors un
-  dépassement signé indéfini ; calculer la magnitude sans négation signée et
-  couvrir ce cas dans les tests. Décidé le 3 octobre : les deux, dans cet ordre
-  ; pour `pow`, après le point 3 (fait par #111), étendre ensuite l'analyse des
-  coins aux bornes infinies et à une base partant de 0 : plus d'exp(y log x),
-  et des boîtes serrées (aujourd'hui, `pow([4, +oo], 0.5)` vaut [2 − 2^-52,
-  +oo], et d'autres ont des centaines de doubles de trop), avec des tests aux
-  limites.
-  Les outils qui ont vérifié `pow` au point 1 (différentiel entre deux builds,
-  table de `pow_on_boxes()`, `checkrows.py` contre mpmath, mutations, temps)
-  sont dans `tests/tools/pow/` (#81). Décidé le 4 octobre : ajouter avec ce
-  changement à `pow_on_boxes()` les boîtes `{none, P(2147483648.0), none}` (le
-  test du vide de `gaol::pow`) et `{P(1), P(0.1), P(1)}` (le coin en 1), que
-  seul `elementary` protège aujourd'hui ; ne pas fixer le signe des zéros de
-  `pow` (décision du 30 septembre) ; à la régénération de la table, la boîte 70
-  s'écrit `0.25`. Les boîtes qui quittent exp(y log x) peuvent devenir plus
-  lentes (70 à 79 ns, contre 90 à 112 ns aux coins), et les mutants des coins de
-  `mutate.py` sont à réécrire.
-- **8.** **`pow(x, n)` pour n grand** (revue n° 7) : dans `ipow_exact_dn()`, la
-  borne inférieure perd le carré du reste (1962 doubles sous la plus serrée pour
-  n = 2^32 − 1), et les builds SSE2 et FPU multiplient les produits arrondis
-  dans des ordres différents, contre « les mêmes bornes sur toutes les
-  machines » de `doc/accuracy.md`. Fait par #61. Une borne nulle, ou une seule
-  borne hors de la plage, envoie les deux bornes aux produits arrondis (jusqu'à
-  10 doubles de trop). Décidé le 3 octobre : rendre `ipow_exact_dn(0)` exact,
-  sans traiter chaque borne à part ; garder l'ancien code SSE2 sous `#if 0` ;
-  garder la garantie 5 n log2(n) 2^-104. `pown([-2, 3], 100)` différait entre
-  SSE2 et FPU avec GCC 9.4 (#37) : à revérifier. Décidé le 4 octobre : avec
-  `ipow_exact_dn(0)`, réécrire la phrase de `doc/accuracy.md` (l. 94) et du
-  manuel (l. 4301) qui dit les deux bornes prises aux produits arrondis
-  « where one is 0 or infinite or its power is below 2^-968 » : elle est
-  approximative pour une puissance paire d'un intervalle qui contient 0, dont
-  la plus petite borne n'est jamais élevée (`pow([-2^-400, 2], 4)` prend les
-  produits exacts).
-- **51.** **Les commentaires et les textes de pow** (suite du point 1, #37) : le
-  commentaire d'en-tête de `pow_standard()` (`gaol/gaol_interval.cpp`) raconte
-  l'histoire (« This was the second half… ») au lieu de dire ce que fait la
-  fonction ; le Doxygen de `gaol_pow_hybrid()` (`gaol/gaol_interval.h`, l. 835)
-  dit la partie standard exp(J log(I)), alors que les bornes finies viennent des
-  coins du `pow` de CORE-MATH ; `doc/tests.md` (l. 187 et 327) et
-  `tests/ieee1788.cpp` (l. 133) disent les bornes vérifiées « bit for bit »,
-  alors que `==` ne distingue pas −0 de +0, et racontent l'histoire : dire
-  plutôt que les littéraux ont été relevés sur l'ancien code et vérifiés avec
-  mpmath à 500 bits, ce que `tests/gaol_tests.h` doit citer aussi.
-- **72.** **`pown(x, n)` pour n < 0 au plus serré, avec le `pow` de
-  CORE-MATH** : `gaol_pown()` calcule x^-m comme 1/x^m (ou (1/x)^m où x^m
-  déborde), soit deux arrondis. Sur 200 000 tirages par plage (x dans
-  [0.5, 2] pour n de −3 à −100, x près de 1 pour n de −10^3 à −10^6), environ
-  la moitié de chaque borne a 1 ou 2 doubles de trop (« within 2 doubles » de
-  `doc/accuracy.md`, l. 93). CORE-MATH n'a ni pown ni rootn en binary64 au
-  commit `6b84457`, mais `cr_pow(x, (double)n)` est un pown pour tout `int` :
-  n est exact en double, et `cr_pow` donne à une base négative le signe de la
-  parité de n (vérifié pour n impair : `cr_pow(-x, n)` vers le haut est
-  l'opposé de `cr_pow(x, n)` vers le bas). Correction : les bornes de
-  `pow_lo()` et `pow_hi()`, comme `pow_standard()` : la valeur de `cr_pow`
-  arrondie vers le haut, et le double au-dessous, sauf où la puissance est un
-  double, ce que `pow_is_double()` prouve déjà pour un exposant entier
-  (k = 0). Le découpage de x selon le signe et le 0 intérieur reste celui de
-  `gaol_pown()`, et une borne 0 est prise à part : `cr_pow(0, n)` vaut +oo
-  pour n < 0 et lève la division par zéro. Coût pour un intervalle (x86-64,
-  GCC, Release, deux appels de `cr_pow` sans `pow_is_double()`) : 55 ns au
-  lieu de 24 pour n = −3, 54 au lieu de 40 pour n = −30, 58 au lieu de 81
-  pour n = −1000. À décider : `cr_pow` pour tout n < 0 (les bornes les plus
-  serrées, deux fois plus lent aux petits |n|), ou seulement au-dessus du
-  seuil du point 73.
-- **73.** **`pown(x, n)` pour n grand avec le `pow` de CORE-MATH** : pour
-  n ≥ 3, les produits exacts de `ipow_exact_up()` et `ipow_exact_dn()`
-  donnent déjà les bornes les plus serrées (aucun écart sur 200 000 tirages
-  par plage pour n de 3 à 10^6 ; un double de trop à 0,003 % des bornes
-  inférieures pour n de 2^28 à 2^31 − 1, x près de 1), mais leur coût croît
-  avec log2(n) : pour un intervalle, 17 ns à n = 3, 54 ns à n = 100, 77 ns à
-  n = 1000, 118 ns à n = 10^5 et 262 ns à n = 2·10^9, contre 51 à 90 ns pour
-  deux appels de `cr_pow`, quel que soit n. Correction : au-dessus d'un seuil
-  à mesurer (vers 100 à 200, sur plusieurs machines), les bornes de `cr_pow`
-  comme au point 72 : plus rapides, toujours les plus serrées, les mêmes sur
-  toutes les machines, sans la garantie 5 n log2(n) 2^-104 ni le repli sur
-  les produits arrondis d'une borne nulle ou hors de la plage ; sous le seuil,
-  les produits exacts. À faire avant la fin du point 8, dont le repli ne
-  resterait que sous le seuil. Réécrire avec les points 72 et 73 la ligne de
-  `pown` de `doc/accuracy.md` (l. 93) et le manuel.
-- **74.** **`pow(x, n)` pour un entier au-delà des 32 bits** : `gaol::pow(x,
-  n)` et `gaol_ieee1788::pown(x, n)` pour un entier hors des `int` et des
-  `unsigned int` (`integer_power()`, `gaol/gaol_interval.h`, l. 1309), et
-  `gaol::pow(x, y)` pour un `[n]` dégénéré entier hors des `int`
-  (`gaol_pow_hybrid()`), donnent [−oo, +oo] ; seul `gaol_ieee1788::pow` les
-  calcule, sur x ≥ 0 (le bloc au-delà des int de `pow_standard()`). x^n y est
-  pourtant fini et non trivial pour x près de 1 : `pow(interval(1 + 2^-30),
-  1LL << 33)`, environ e^8, vaut [−oo, +oo], alors que `cr_pow` donne
-  [2980.9579759367944, 2980.9579759367948]. Correction : pour |n| ≤ 2^53, où
-  n est un double, les bornes de `cr_pow` comme aux points 72 et 73, base
-  négative comprise ; au-delà, où n n'est pas toujours un double, encadrer
-  |x|^n, par exemple par x^h · x^l avec n = h + l, h et l des doubles (à
-  vérifier aux bords de la plage), le signe venant de la parité de n lue sur
-  l'entier. Prolonge le 21, fait par #84, qui a donné `pow(x, n)` pour tout
-  type entier. Réécrire aussi la ligne de `pow` de `doc/accuracy.md` (l. 94),
-  qui dit [−∞, +∞] pour `gaol::pow`.
-
-Décidé le 12 octobre, pour tout le point B :
-
-- **Le moins de `if` possible** dans `pow` et `pown`.
-- **Le `pow` de CORE-MATH** (`cr_pow`) partout où il n'est pas encore pris :
-  en binary64, l'amont n'a ni pown, ni rootn, ni compoundn (commit `dc0d7e0`,
-  12 octobre).
-- **Une seule vérification du sens d'arrondi par appel** de `pow` et de
-  `pown`, sous chacune de leurs formes. Pour `pow`, elle vient de l'extension
-  des coins du 2, qui retire exp(y log x) : les corps de `log()`, `exp()` et
-  `*` sans vérification ne sont pas écrits. Un compteur des vérifications,
-  dans les tests, le montre en local ; il est retiré du code poussé.
-- **La norme** : `gaol_ieee1788::pow` et `gaol_ieee1788::pown` suivent
-  IEEE 1788-2015. `gaol::pow` est `gaol_ieee1788::pow`, sauf pour un exposant
-  entier, où il est `gaol_ieee1788::pown` : un type entier, un double entier
-  ou un intervalle dégénéré `[n]`, au-delà des `int` compris (74).
-- **Plus rapide que GAOL 4.2.3** pour chaque forme de puissance, mesuré comme
-  dans `doc/compare/performance.md` (clang-18, sans préservation de
-  l'arrondi), où `pow(x, 3)` prend 21,4 ns contre 13,8. Où le plus serré et
-  la vitesse s'opposent (72, 73), à décider sur ces mesures.
-- **Toutes les configurations de la CI.**
-- **ITF1788 et tang2021 relancés** (`doc/compare/itf1788/run.sh`,
-  `doc/compare/tang2021/run.sh`), et leurs pages mises à jour : 68 cas de
-  `pow` et 15 de `pown` d'ITF1788 n'y sont pas les plus serrés.
-- **Trois pull requests**, dans cet ordre : une vérification par appel (1, et
-  le 2 hors des coins de `pow`, `nth_root(I, INT_MIN)` compris) ; les coins
-  de `pow` (2) ; `pown` (8, 72, 73, 74). Les textes du 51 vont avec le code
-  qu'ils décrivent.
-
-Décidé aussi le 12 octobre, sur les mesures faites avant le code (clang-18,
-i7-1185G7, GAOL 4.2.3 construit comme dans `doc/compare/code`) :
-
-- **72** : sous le seuil du 73, l'inverse de x^m calculé à partir des
-  produits exacts (h + l), corrigé par `fma` ; `cr_pow` au-dessus.
-- **73** : le seuil se mesure sur cette machine seulement.
-- **`pown` pour les grands |n|** : aucune méthode aux bornes les plus serrées
-  ne bat GAOL 4 au-delà de x^30. x^1000 prend 14,9 ns avec GAOL 4, dont les
-  bornes ont 1 300 à 1 500 doubles de trop, et 62,7 ns aujourd'hui. Un
-  prototype, les produits exacts des deux bornes dans un registre SSE2 avec
-  une borne d'erreur a priori, donne les bornes les plus serrées en 11,7 ns
-  pour x^3 (GAOL 4 : 13,2) et 23,1 ns pour x^1000. L'étude continue, pour
-  raccourcir sa chaîne de dépendances, avant d'écrire `pown`.
-- **`acosh_rel()` et `nth_root_rel()`**, qui vérifient aussi le sens
-  d'arrondi deux fois, sont corrigés dans la première pull request.
-- **`inverse_upward()`**, privé, est donné à `pown` et à `nth_root(I, q)`
-  pour q < 0 par une classe amie, `upward_access`, définie dans
-  `gaol/gaol_interval.cpp` seul.
-
-Décidé le 13 octobre, à la fin de l'étude (sur cette machine, Ubuntu 26.04.1,
-sur secteur ; Clang 18 et Clang 21 donnent les mêmes temps à 3 % près, sauf
-`cr_pow`, 18 % plus rapide avec Clang 21) :
-
-- **`pown` dans les `int`** : les bornes les plus serrées pour tout n, par la
-  méthode du prototype (les deux bornes dans un registre SSE2, les produits
-  exacts h + l, une borne d'erreur a priori ; pour n < 0, l'inverse corrigé,
-  et x^-1 par la division). Elle prend la moitié du temps de GAOL 4 jusqu'à
-  |n| = 16 (x^3 : 4,1 ns contre 8,8), moins aux puissances de 2, et 1,1 à
-  1,6 fois son temps au-delà (x^1000 : 14,2 ns contre 9,7), où les bornes de
-  GAOL 4 ont 32 à 1 500 doubles de trop : l'exigence de vitesse n'y est pas
-  tenue. Aucune méthode « à quelques doubles près » ne coûte moins : l'erreur
-  d'une étape est doublée à chaque carré qui suit.
-- **73** : pas de `cr_pow` dans les `int`, pas de seuil (deux appels de
-  `cr_pow` ne battent la méthode qu'au-delà de 2^27 environ avec Clang 21) ;
-  `cr_pow` au-delà des `int` seulement (74).
-- **Les mesures de performance** se font avec Clang 21 : celles de la
-  troisième pull request et `doc/compare/performance.md`, à remesurer avec
-  lui.
-- **Les deux espaces de noms**, à la fin de la troisième pull request :
-  - `doc/compare` teste GAOL v5 par `gaol_ieee1788` : en plus de `gaol` dans
-    les cas particuliers et l'encadrement, à la place de `gaol` dans les
-    performances (GAOL 4 reste mesuré par son `gaol`) ;
-  - ITF1788 et tang2021 relancés par `gaol_ieee1788` (tang2021 passe
-    aujourd'hui par `gaol::interval`) ;
-  - la documentation (`README.md` et partout où c'est utile) dit les deux
-    espaces de noms : `gaol`, pour rester compatible avec GAOL 4, et
-    `gaol_ieee1788`, pour suivre IEEE 1788-2015 ; la principale différence est
-    dans `pow` et `pown`, avec une partie qui lui est consacrée.
-
-Décidé aussi le 13 octobre, au début de la troisième pull request :
-
-- **74** : la fonction exportée pour un exposant hors des `int` et des
-  `unsigned int` s'appelle `gaol_pown_ll(const interval&, long long)` ;
-  au-delà de 2^63, l'exposant est ramené à ±(2^63 − 1) ou ±(2^63 − 2) selon
-  sa parité, toute puissance y débordant ou s'annulant déjà.
-- **8** : quand une seule borne sort de la plage, l'autre garde la borne la
-  plus serrée (chaque coin hors de la plage est calculé seul, mis à
-  l'échelle, au plus serré lui aussi).
-- **Un double de trop accepté** : la borne d'erreur a priori K de la méthode
-  laisse un double de trop quand x^n est à moins de 2K d'un double. C'est
-  rare au hasard (2^-46 des bornes pour n = 3), mais fréquent pour un x à
-  quelques doubles d'une valeur dont la puissance est exacte : un cinquième
-  des bornes pour x à moins de 8 doubles de 1 et n jusqu'à 200
-  (`pow([1 + 2^-52], 3)` donne [1 + 2^-51, 1 + 2^-50] au lieu de
-  [1 + 3·2^-52, 1 + 2^-50]). Trancher ces cas par `cr_pow` donnait toujours
-  les plus serrées, mais coûtait 55 à 270 ns, ces puissances étant les cas
-  difficiles de CORE-MATH : ce n'est pas fait, et c'est documenté.
-
-Décidé le 14 octobre, à la fin de la troisième pull request (#121) :
-
-- **Les puissances des expressions au-delà de 2^53**, pour un n qui n'est
-  pas un double, restent le produit `pow(e, [h])·e^l` (n = h + l) : pas de
-  nœud portant un `long long`, qui ajouterait une méthode à `expr_visitor`.
-- **x^(2^31 − 1) à 1,64 fois le temps de GAOL 4.2.3** : accepté.
-- **Le test des exposants de plus de 64 bits** (`__int128`) reste limité
-  aux modes GNU, sans job de CI de plus.
-- **La division par zéro des intervalles SSE2** est corrigée dans #121 :
-  `inverse()` (donc `pow(x, -1)`), `/` et `%` d'un diviseur à borne nulle
-  divisaient la moitié jetée par 0 et levaient l'exception, là où les
-  intervalles FPU ne lèvent rien.
+- Aucune.
 
 ## Même fichier de test ou de documentation
 
@@ -867,7 +657,7 @@ faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
-  #118, #119 et #120 après leur fusion, et la jetable de #116).
+  #118, #119, #120 et #121 après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -884,9 +674,8 @@ faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
 
 ## Table des anciens numéros
 
-1 : B ; 2 : B ; 8 : B ; 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ;
-76 : AA.
+26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
+70 : I ; 71 : Y ; 76 : AA.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -899,8 +688,7 @@ faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
    `<a, b>` du point Q, puis relire la branche. Le point H est fait (#86),
    hors le 27 et la partie manuel reportée au point I. E est fait par #105.
 3. **Finir les corrections de puissance B.** A.3, prérequis noté dans B.2,
-   est fait par #111 : faire le travail de B dans l'ordre indiqué par ce
-   point. Q est fait par #100.
+   est fait par #111, et B par #117, #118 et #121. Q est fait par #100.
 4. **Achever les autres corrections mathématiques : M et R.** Garder les
    mesures et les tests avec les changements de bornes concernés. Faits par #89
    et #92.
