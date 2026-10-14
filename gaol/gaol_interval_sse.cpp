@@ -371,8 +371,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       // The AVX-512 path: no rounding direction to set, the flush-to-zero
       // modes cleared where they are set (gaol/gaol_interval_avx512.cpp)
       if (avx512_arithmetic) {
-        xmmbounds = fast_add(xmmbounds, I.xmmbounds);
-        return *this;
+        return fast_add_assign(*this, I.xmmbounds);
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -385,8 +384,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     {
 #if GAOL_HAVE_AVX512_TARGET
       if (avx512_arithmetic) {
-        xmmbounds = fast_sub(xmmbounds, I.xmmbounds);
-        return *this;
+        return fast_sub_assign(*this, I.xmmbounds);
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -406,8 +404,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
 #if GAOL_HAVE_AVX512_TARGET
       if (avx512_arithmetic) {
-        xmmbounds = fast_add(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
-        return *this;
+        return fast_add_assign(*this, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -424,8 +421,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
 #if GAOL_HAVE_AVX512_TARGET
       if (avx512_arithmetic) {
-        xmmbounds = fast_add(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
-        return *this;
+        return fast_add_assign(*this, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -458,8 +454,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           xmmbounds = interval::m128_zero;
           return *this;
         }
-        xmmbounds = fast_mul(xmmbounds, _mm_set_pd(d, -d));
-        return *this;
+        return fast_mul_assign(*this, _mm_set_pd(d, -d));
       }
 #endif
       // The rounding direction checked before d is compared: with the modes
@@ -500,12 +495,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           *this = interval::emptyset();
           return *this;
         }
-        if (bit_negative(d)) {
-          xmmbounds = fast_div_by(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), -d); // <r/(-d), -l/(-d)>
-        } else {
-          xmmbounds = fast_div_by(xmmbounds, d); // <-l/d, r/d>
-        }
-        return *this;
+        return fast_div_assign(*this, d);
       }
 #endif
       // The rounding direction checked before d is compared, as in
@@ -944,8 +934,7 @@ interval& interval::operator/=(const interval& I)
 	/* The AVX-512 path: the quotients by the embedded rounding, the
 	   dispatch by the sign and the magnitude bits (see operator*= above) */
 	if (avx512_arithmetic) {
-		xmmbounds = fast_div(xmmbounds, I.xmmbounds);
-		return *this;
+		return fast_div_assign(*this, I.xmmbounds);
 	}
 #endif
 	GAOL_RND_ENTER_SSE();
