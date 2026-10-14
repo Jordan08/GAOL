@@ -16,7 +16,8 @@ de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 45 à 49, des corrections et des relectures ; 50, d'une décision du 3 octobre ;
 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
 `TODO_mistral.md` ; 72 à 74, d'une comparaison de `pown` avec le `pow` de
-CORE-MATH (5 octobre). Les décisions du 3 octobre sont écrites dans chaque point
+CORE-MATH (5 octobre) ; 77 à 103, de la relecture de `configure-clean` du
+14 octobre. Les décisions du 3 octobre sont écrites dans chaque point
 (« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
 depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
 47, hors Cygwin, resté au point A), par #72 et #73 ; le point L (anciens 29, 43
@@ -430,7 +431,10 @@ Décidé le 6 octobre (#92) : y compléter aussi la phrase de `doc/using.md`
 (l. 445) et du manuel selon laquelle chaque opération laisse le sens d'arrondi
 vers le haut : celles qui rendent avant leur vérification (un opérande vide,
 `hausdorff()` quand une borne n'est infinie que d'un côté) le laissent tel
-qu'elles l'ont trouvé.
+qu'elles l'ont trouvé. La relecture du 14 octobre en ajoute : celles qui
+n'arrondissent rien (`-x`, `abs`, `floor`, `min`, `max`, `invabs_rel`), et
+`nth_root(x, 0)` et `nth_root(x, 1)` ; la phrase est maintenant aux l. 749-750
+de `doc/using.md`.
 
 - **35.** **Un premier programme avant les détails** : `README.md` n'a ni code
   C++ ni renvoi à `examples/`, le premier programme est à la ligne 96 de
@@ -468,6 +472,268 @@ qu'elles l'ont trouvé.
   `TODO_mistral.md`) : décidé le 3 octobre, un site généré depuis `doc/*.md`,
   avec le PDF du manuel, publié par un workflow, sans la référence HTML de
   Doxygen, supprimée par #29.
+
+## Trouvé par la relecture de `configure-clean` du 14 octobre
+
+Relecture de `configure-clean` à `533992f`, le 14 octobre au soir, par six
+relecteurs indépendants : les puissances entières, le `pow` réel et ses
+réciproques, les autres opérations, la lecture et l'écriture, les trois
+builds, la documentation. Chaque défaut ci-dessous a été reproduit par un
+programme, sauf ceux dits non vérifiés, avec les builds CMake SSE2 et FPU
+(GCC 15.2), Clang 18 et 21, et ASan + UBSan. Les références sont calculées à
+part : rationnels exacts, mpmath, MPFR par gmpy2. Aucune borne fausse : sur
+environ 1,3 million de puissances entières, 550 000 `pow` réels, 600 000
+autres opérations et 760 lectures de nombres, tout résultat contient la valeur
+exacte. À faire avant Y ; AF avec le point I, pour ne régénérer le manuel
+qu'une fois.
+
+### AB. Des exceptions flottantes levées à tort (77, 78, 79, 80)
+
+- **77.** **`pow` lève l'exception d'opération invalide près du dépassement de
+  capacité** : `gaol::pow([2], [1023.9999])` a les bornes les plus serrées,
+  mais lève `FE_INVALID`, et un programme qui l'a activée
+  (`feenableexcept(FE_INVALID)`) meurt sur SIGFPE. De même `pow(I, d)`, les
+  puissances entières au-delà des `int` (`gaol_pown_ll()`, par exemple
+  `pow([0x1.000003f82a1fp+0], 3000000001LL)`), `pow_rel` et
+  `pow_exponent_rel` (environ 0,5 % de tirages au hasard), et
+  `textToInterval("pow([2,2],1023.9999)")`, dans les deux espaces de noms et
+  avec tous les builds. La cause est dans CORE-MATH : `exp_1()`
+  (`3rd/math-core/src/binary64/pow/pow.c`, l. 1037-1053) écarte
+  rh > RHO2 = 0x1.62e42e709a95bp+9, mais son k atteint 2^22 dès
+  rh ≥ 709,7826283, et M = 2047 donne 2^1024 = +∞ : la première phase de
+  `cr_pow` calcule alors ∞ − ∞ (l. 1780), avant que la seconde rende la bonne
+  valeur. Les puissances entre 1,797541e308 et 1,797611e308 environ sont
+  touchées. Le `pow.c` de la branche `master` de CORE-MATH a encore ce code le
+  14 octobre. Décidé le 14 octobre : le correctif dans CORE-MATH, passer à
+  la seconde phase quand M atteint 0x7ff (ou abaisser RHO2), ligne marquée
+  `/* GAOL */` et décrite dans `3rd/README.md` comme correctif à proposer en
+  amont (#65), et `pow([2], [1023.9999])` dans `extreme_powers[]` de
+  `tests/rounding_direction.cpp`.
+- **78.** **`cancel_minus` et `cancel_plus` lèvent `FE_INVALID` quand la
+  différence des bornes déborde** : `cancel_minus([DBL_MAX], [-DBL_MAX])`,
+  l'exemple de la note de 12.12.5 d'IEEE 1788-2015, rend bien [DBL_MAX, +∞],
+  mais `two_sum()` (`gaol/gaol_interval.cpp`, l. 4178) calcule ∞ − ∞ avant
+  de traiter la somme infinie ; de même `cancel_plus([DBL_MAX], [DBL_MAX])`.
+  Le test de `tests/rounding_direction.cpp` (l. 2085) ne prend que
+  [DBL_MAX] − [1], qui ne déborde pas. Correction : e = 0 quand la somme est
+  infinie, avant le calcul de ses termes, et [M] − [−M] dans le test.
+- **79.** **`FE_OVERFLOW` levé pour des résultats sans borne infinie** :
+  `sqrt([1, DBL_MAX])` (le produit de vérification u·u = 2^1024),
+  `nth_root([DBL_MAX], 3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`,
+  `div_rel([1], [2^-1074, 1], [1, 2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, et
+  `cos`, `nth_root_rel`, `atan_rel`, `atan2_rel_x` et `atan2_rel_y` dans des
+  tirages au hasard. `doc/using.md` (l. 1170-1172) et le manuel
+  (l. 1361-1363) disent que `FE_OVERFLOW` ou `FE_DIVBYZERO` signalent une
+  borne infinie de l'intervalle. Décidé le 14 octobre : corriger le code, et
+  non les textes ; mettre à l'échelle les vérifications de `sqrt` et des
+  racines, et chercher les autres débordements intermédiaires (`sin`, `cos`,
+  `tan`, `div_rel`, les fonctions `*_rel`), sans calcul qui puisse déborder
+  pour un résultat fini.
+- **80.** **`1/[0, 1]` ne lève plus la division par zéro depuis #121**, mais
+  `doc/using.md` (l. 1077-1078) et le manuel (l. 1252-1254) le donnent encore
+  en exemple avec les intervalles SSE2, contre `doc/using.md`
+  (l. 1153-1159) et `doc/tests.md` (l. 186-190). Correction : garder
+  `log([0, 1])` seul dans l'exemple.
+
+### AC. `nth_root` d'un sous-normal et réciproques de `pow` (81, 82)
+
+- **81.** **`nth_root(x, n)` et `rootn` d'un x sous-normal donnent des bornes
+  très loin des plus serrées** : `nth_root([2^-1074], 33)` est
+  [0x1.5ecf527769956p-33, 0x1.5ecf527771187p-33], et le plus serré
+  [0x1.5ecf52776a115p-33, 0x1.5ecf52776a116p-33] (mpmath à 600 bits) : 1 983
+  doubles sous la borne inférieure, 28 785 au-dessus de la supérieure. On
+  trouve 6,9e8 doubles pour n = 65, 5,9e9 pour n = 2^20 + 1, 68 739 pour
+  x = 2^-1060 et n = 65, et de même avec `rootn(x, q)` pour q < 0.
+  L'encadrement reste juste ; seules les racines d'ordre n ≥ 4 d'un
+  sous-normal sont touchées, et les puissances exactes restent exactes.
+  `doc/accuracy.md` (l. 129, « the tightest or one double beyond, whatever the
+  magnitude of x »), le commentaire de `newton_root()` et
+  `doc/differences.md` (l. 502) promettent le contraire. Cause : les preuves
+  (`ipow_hi()` et `ipow_lo()`, vers la l. 2911 de `gaol/gaol_interval.cpp`,
+  appelées par `is_proved_below_root()` et `is_proved_above_root()`)
+  calculent par exponentiation binaire une puissance intermédiaire
+  sous-normale : pour n = 33 et x = 2^-1074, l^32 ≈ 2^-1040 n'a plus
+  qu'environ 34 bits. Correction : prouver avec une puissance mise à
+  l'échelle, qui ne devient jamais sous-normale, par exemple celle de
+  `pown_point()`, qui ramène déjà c à [1, 2) en gardant l'exposant à part ; ou
+  corriger les textes.
+- **82.** **`pow_rel` et `pow_exponent_rel` (`powRev1`, `powRev2`) n'ont pas
+  la garde de `[±oo]` de `pow`** : `powRev1([+oo], [2], R)` rend
+  [1, 1 + 2^-52], `powRev2([+oo], [2], R)` [0, 2^-1074],
+  `powRev1([2], [+oo], R)` [DBL_MAX, +∞] et `powRev1([-oo], [0, 1], R)`
+  [1, +∞], là où `pow(x, [±oo])` est vide, et ces réciproques avec lui. Ces
+  résultats restent des encadrements, et ces arguments ne se construisent
+  qu'avec `interval(__m128d)`, dans les builds SSE2. Correction : le test
+  `!(l < +oo && u > -oo)` de `pow_standard_upward()` dans
+  `pow_rel_upward()` et `pow_exponent_rel_upward()`.
+
+### AD. La lecture et l'écriture des intervalles (83 à 89)
+
+- **83.** **Un exposant entier hors des `int` est refusé dans un texte** :
+  `gaol::textToInterval("nth_root(8,3000000000)")` lève
+  `invalid_action_error` (« nth_root used with non integral 2nd arg. »), et
+  `gaol_ieee1788::textToInterval` rend l'ensemble vide pour
+  `"rootn(8,3000000000)"` et `"pown([2,3],3000000000)"`, alors que
+  `nth_root(8, 3000000000LL)` et `pow([2, 3], 3000000000LL)` sont calculés
+  depuis #121 ([1.000000000693146, 1.000000000693148] et [DBL_MAX, +∞]).
+  Cause : `gaol_call` (`gaol/gaol_interval_parser.ypp`, l. 567-571) passe
+  par `is_an_int()` (`gaol/gaol_interval.h`, l. 1215), qui exige un `int`.
+  Correction : les surcharges `long long` pour un entier dégénéré hors des
+  `int` (en saturant comme `integer_as_long_long()`), ou la limite dite dans
+  `gaol/gaol_parser.h` et le manuel (l. 4295 et 4932).
+- **84.** **`[l, u]` avec l > u est lu comme un intervalle non vide** quand
+  les deux nombres s'arrondissent au même double ou se chevauchent :
+  `[9007199254740993, 9007199254740992]` donne [2^53], qui ne contient pas
+  2^53 + 1 ; `[0x1.999999999999ap-4, 0.1]` donne [0x1.999999999999ap-4], qui
+  ne contient pas 0,1 ; `[1.00000000000000001, 1]` donne [1] ; dans les deux
+  espaces de noms, alors que `[2, 1]` et `interval(2^53 + 1, 2^53)` sont
+  vides. IEEE 1788-2015 (9.7.4 a et 12.12.7) veut l ≤ u, le vide sinon, et
+  `doc/accuracy.md` (l. 196) promet le plus serré pour ces littéraux.
+  Correction (`gaol_literal`, `gaol/gaol_interval_parser.ypp`, l. 685) :
+  comparer les valeurs exactes des deux nombres quand leurs encadrements se
+  touchent, et rendre le vide si l > u. Décidé le 14 octobre : le vide dans
+  les deux espaces de noms, `gaol::textToInterval` compris, dont le manuel
+  décrit aujourd'hui la lecture borne par borne (à mettre à jour).
+- **85.** **Le plafond de l'exposant déborde un `long` de 32 bits** (Windows,
+  i386, armhf) : `k`, `k2`, `kb`, `exponent` et `q` sont des `long`
+  (`gaol/gaol_interval_lexer.lpp`, l. 282, 324 et 634), mais le plafond
+  dépasse 2^31 − 1 pour un lexème de plus de 536 870 411 caractères, en deçà
+  des 2^29 caractères au-delà desquels le lexeur lève `std::bad_alloc` :
+  `"1e"` suivi de 536,8 millions de 9 serait lu [0, 2^-1074] au lieu de
+  [DBL_MAX, +∞]. Non vérifié, faute de chaîne 32 bits sur la machine.
+  Correction : ces variables en `long long`.
+- **86.** **`_iv` d'un entier hexadécimal, octal ou binaire au-delà de 2^64
+  n'est pas le plus serré** : `0xFFFFFFFFFFFFFFFFF_iv` (2^68 − 1) donne
+  [0x1.fffffffffffffp+67, 0x1.0000000000003p+68], le plus serré finissant à
+  0x1p+68 ; un binaire de 65 uns finit 11 doubles trop haut, l'octal 8^25 − 1
+  à 0x1.0000000000007p+75. `doc/using.md` (l. 488-490), le commentaire de
+  `gaol/gaol_literals.h` et le `\brief` d'`operator""_iv` disent
+  « tightest ». Cause : les chiffres sont ajoutés un à un en arithmétique
+  d'intervalles (l. 83). Correction : écrire les chiffres en texte
+  hexadécimal flottant (`"0x…p0"`, les chiffres octaux ou binaires
+  regroupés), que `textToInterval` lit exactement.
+- **87.** **Un nombre incertain juste après un `+` ou un `-` binaire est
+  refusé** : `10 - 3.56?1` est lu, mais `10-3.56?1`, `10+3.56?1` et
+  `[1,2]+3?` lèvent `input_format_error` (le vide avec `gaol_ieee1788`), le
+  lexeur prenant `-3.56?1` pour un seul lexème (l. 749), alors que le manuel
+  dit que ces littéraux se combinent aux opérateurs dans n'importe quel
+  ordre. À décider : le documenter, ou sortir le signe du lexème en le
+  gardant pour les directions `u` et `d` (`-10?u` est [−10, −9,5]).
+- **88.** **Lire un long nombre prend un temps quadratique en ses chiffres** :
+  `"0."` suivi de n chiffres 3 prend 0,026 s pour n = 20 000, 0,37 s pour
+  80 000 et 4,4 s pour 320 000 (environ 45 s attendues pour un million), et
+  la forme incertaine 2,3 fois plus (`gaol_take_apart`, l. 298 du lexeur, un
+  chiffre à la fois, et `gaol_natural_mul_pow5`). Un texte venu d'ailleurs
+  peut ainsi bloquer un programme. Correction : garder environ 770 chiffres
+  significatifs et un chiffre non nul « collant », aucun double ne séparant
+  alors les deux valeurs, et convertir 9 chiffres par multiplication.
+- **89.** **Le format `agreeing` écrit un intervalle ponctuel comme un nombre
+  nu** : `interval(4.0)` s'écrit `4.000000000000000`, quand le format
+  `bounds` écrit `[4]` ; ni le commentaire d'`interval_format`
+  (`gaol/gaol_interval.h`) ni le manuel (l. 4457) ne le disent. À
+  documenter.
+
+### AE. Les trois builds (90 à 95)
+
+- **90.** **autotools et meson ne vérifient que le compilateur C++ pour Clang
+  sur ARM 32 bits** (`configure.ac`, l. 228-233 ; `meson.build`,
+  l. 214-219), quand CMake vérifie aussi le compilateur C
+  (`CMakeLists.txt`, l. 220). Or CORE-MATH, `gaol_exact.c` et
+  `s_nextafter.c` sont compilés en C, et le `#error` de `gaol/gaol_config.h`
+  n'atteint que le C++ : avec `CC=clang CXX=g++` sur armhf, configure et
+  meson accepteraient, et CORE-MATH, compilé par un Clang qui ignore le sens
+  d'arrondi sur cette cible, donnerait des bornes fausses. La vérification de
+  `-frounding-math` ne regarde que le compilateur C++ dans les trois builds
+  (`CMakeLists.txt`, l. 360 compris). Non vérifiable ici, faute de chaîne
+  ARM. Correction : les deux vérifications avec le compilateur C aussi.
+- **91.** **`tests/refused_options.sh` se dit sauté quand le programme ne
+  compile pas** : il reconnaît GCC ou Clang en prétraitant le source du test
+  avec `-dM -E` (l. 21) ; si les en-têtes de GAOL manquent, g++ n'écrit rien,
+  et le script dit « SKIP: neither GCC nor Clang » (77) au lieu d'échouer
+  (vérifié avec `GAOL_CXXFLAGS="-std=c++17 -frounding-math"`). Correction :
+  `$GAOL_CXX $GAOL_CXXFLAGS -dM -E -x c++ /dev/null`.
+- **92.** **Les sources C n'ont pas les mêmes drapeaux dans les trois
+  builds** : CMake leur donne `-msse2 -msse3 -fvisibility=hidden`
+  (`CMakeLists.txt`, l. 757), autotools et meson au C++ seulement
+  (`configure.ac`, l. 304, 310 et 559 ; `meson.build`, l. 273, 326 et 330) ;
+  `-ffloat-store` va au C et au C++ avec CMake et meson, au C++ seul avec
+  autotools (l. 574) ; le C est gnu99 avec CMake, c99 ou gnu11 avec meson,
+  celui du compilateur avec autotools. Effet visible : les bibliothèques
+  partagées d'autotools et de meson exportent `get_inexact` et
+  `clear_inexact`, pas celle de CMake. `.github/audit` ne compare que les
+  drapeaux de `gaol_interval.cpp`. Correction : les mêmes drapeaux C
+  partout, et un source C dans `probe_build.py`.
+- **93.** **Du code mort exporté sous des noms C génériques** : rien
+  n'appelle `s_nextafter()` (`gaol/s_nextafter.c`, en
+  `visibility("default")`, donc exporté par toute bibliothèque partagée ; son
+  commentaire dit le contraire), ni `get_inexact()` et `clear_inexact()`
+  (`gaol/gaol_exact.c` ; le lexeur inclut `gaol_exact.h` sans s'en servir).
+  `nm -D` des `libgaol.so` d'autotools et de meson montre les trois. À
+  décider : retirer ces fichiers des trois builds, ou cacher ces fonctions.
+- **94.** **Les listes de macros de l'audit ne s'accordent pas** :
+  `.github/audit/compare.py` (l. 25) compare `GAOL_HAVE_AVX512_TARGET` et
+  `GAOL_PREFER_AVX512`, que `make_probe.py` (l. 9-12) ne sonde pas, si bien
+  que la comparaison ne peut jamais différer, et `GAOL_RND_SSE_REGISTER` est
+  sondé sans être comparé. Correction : accorder les deux listes.
+- **95.** **Les détections compilent dans un build et lient dans les
+  autres** : la sonde d'AVX-512 lie avec CMake (l. 663), mais ne fait que
+  compiler avec autotools (l. 351) et meson (l. 356), alors que
+  `__builtin_cpu_supports` demande `__cpu_model` à l'édition de liens ; la
+  sonde de FMA, à l'inverse, ne vérifie que le C++ avec CMake, et le C et le
+  C++ avec édition de liens dans les deux autres. Non vérifié sur une chaîne
+  où le résultat changerait. Correction : lier, et vérifier les deux
+  langages, dans les trois builds.
+
+### AF. Des textes que le code contredit (96 à 103)
+
+À faire avec le point I, pour ne régénérer le manuel qu'une fois.
+
+- **96.** **« tightest » sans la limite acceptée au point B** : le
+  commentaire de `gaol_pown()` (`gaol/gaol_interval.h`, l. 1436-1440) ; le
+  manuel (l. 1494, « Both give the tightest bounds », et l. 5039) ;
+  `doc/accuracy.md`, l. 96, colonne Tightness de `pow(x, y)`, « for any y »
+  (`gaol_ieee1788::pow` d'un exposant entier dégénéré passe par `pown`, et
+  `gaol_ieee1788::pow([0x1.fffffffffffffp+1], [7])` a sa borne inférieure un
+  double sous la plus serrée), et l. 95, colonne Tests, « for all the
+  doubles », quand `tests/arithmetic.cpp` en tire 5 000 ; `doc/using.md`,
+  l. 346-350 (au-delà de 2^53, pour un n qui n'est pas un double, les bornes
+  sont à trois doubles au plus). Y ajouter « or one double beyond where x^n
+  is within 2K of a double », et les trois doubles au-delà de 2^53.
+- **97.** **`doc/accuracy.md`, l. 180, dit `mulRevToPair` absent**, alors
+  qu'il est fourni depuis le point P (`gaol/gaol_ieee1788.h`, l. 482 ;
+  `doc/using.md`, l. 411 ; 172 cas d'ITF1788 réussis) ; et l. 172, `pownRev`
+  est absent « for p < 0 », quand le code et `doc/compare/itf1788.md` disent
+  p ≤ 0.
+- **98.** **`doc/accuracy.md`, l. 95 : `[|x|^−n, +∞]`** où x contient 0 pour
+  un n < 0 pair : le signe de l'exposant est faux (`pow([-3, 2], -2)` est
+  [1/9, +∞], soit 3^-2) ; écrire `[mag(x)^n, +∞]`.
+- **99.** **`doc/tests.md`, l. 37 : « 23 powers »** à une borne 0 ou infinie
+  ou au-delà des doubles, quand `powers_at_special_values()` de
+  `tests/arithmetic.cpp` en a 30 (24, et 6 coins calculés seuls).
+- **100.** **`doc/building.md`, l. 358 : `GAOL_USING_ASM`** serait
+  l'assembleur du « 32-bit x86 Linux and macOS » ; il vaut 1 avec `GAOL_ASM`
+  hors de Visual C++, et le `f_negate` x87 de `gaol/gaol_fpu_fenv.h`
+  (l. 256-262) sert aussi en x86-64, où `GAOL_IX86_LINUX` est défini
+  (`gaol/gaol_config.h`, l. 100).
+- **101.** **`doc/three-builds.md`, l. 44-47 et 97-110** : `pow(x, 3)` en
+  14,5 ns, 21,1 ns sans FMA, et le gain de 1,5 fois de FMA, mesurés avant le
+  point B (`doc/compare/performance.md` donne 6,0 ns). À remesurer avec les
+  temps de Y (33), ou à dater.
+- **102.** **« keeps its names and its results »** (`README.md`, l. 61 ;
+  `doc/using.md`, l. 250 ; le manuel) : les mêmes documents listent des
+  résultats changés depuis GAOL 4 : `pow(I, 2.5)` tronquait l'exposant,
+  `pow([-4, -1], [0.5])` était [−1, 2], et un exposant entier au-delà des
+  `int` donnait [−∞, +∞]. Écrire par exemple « keeps its names and the
+  meaning of its pow ».
+- **103.** **Les chemins AVX-512 et SSE2 diffèrent par le signe d'une borne
+  nulle** : pour x = [+0, −0] et un double d < 0, `x * d` donne [−0, +0] avec
+  AVX-512 et [+0, −0] avec SSE2 (`gaol/gaol_interval_sse.cpp`, l. 668), la
+  seule différence sur 12,2 millions de paires, alors que
+  `gaol/gaol_interval_avx512.cpp` (l. 14-18) et `doc/using.md` (l. 918)
+  promettent les mêmes bornes « bit for bit », signes compris. Vérifié en
+  mettant à vrai `gaol_core::avx512_arithmetic`, un symbole exporté.
+  Correction : multiplier voie par voie dans la branche AVX-512
+  d'`operator*=(double)`, comme le fait SSE2, ou dire l'exception.
 
 ## Autres points
 
@@ -650,6 +916,81 @@ faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
    manuel) avant que tu fusionnes ?
    **Réponse (14 octobre) : non, c'est suffisant.**
 
+## Relecture du 14 octobre 2026 (branche `configure-clean`)
+
+Relecture de `configure-clean` au commit `533992f`, faite le 14 octobre 2026
+après la fusion de #120 (point Z) et #121 (point B, 3/3).
+
+### Vérifié (matrice complète de `process.md` 6.2)
+
+- **CMake SSE2 (GCC 15.2)** : compilation réussie, **57/57 tests** réussis.
+- **CMake FPU (GCC 15.2, `GAOL_SIMD=OFF`)** : compilation réussie, **57/57
+  tests** réussis.
+- **CMake Clang 18** : compilation réussie, **57/57 tests** réussis.
+- **`-Wall -Wextra -Werror`** (GCC et Clang 18) : compilation réussie sans
+  avertissement.
+- **Debug ASan + UBSan** (`-fsanitize=address,undefined`) : 10 tests clés
+  (arithmetic, ieee1788, elementary, expressions, rounding_direction, misc,
+  relations, trigonometric, non_arithmetic, core_math) : **10/10 réussis**.
+  Le test `numbers` non lancé (trop long sous les sanitizers).
+- **Autotools** : `configure --with-tests --with-examples`, `make -j4`,
+  `make check` (**16/16 exemples** réussis), `make install`, `make distclean`
+  (rend l'arbre tel que git l'a).
+- **Meson 1.10** : `meson setup -Dwith-tests=true -Dwith-examples=true`,
+  `meson compile -j4`, `meson test` : **29 réussis, 2 sautés** (`intervalf`,
+  `interval2f`), 0 échec.
+- **GAOL installé (meson, shared)** : `tests.sh` depuis la racine des sources :
+  **5 881 289 vérifications, 0 échec**, avec `pkg-config --cflags --libs gaol`
+  aussi.
+- **En-têtes sous `-Wundef`** : `headers.sh` sur l'installation (GCC) : chaque
+  en-tête installé compile seul avec `-std=c++11 -Wall -Wextra -Wold-style-cast
+  -Wundef -Werror` ; 89 macros, toutes en `GAOL_` ou `gaol_`. Le point Z est
+  bien fait.
+- **Manuel** : `pdflatex` deux fois sur `manual/v5` : **137 pages, 0 erreur**,
+  1 Overfull connu (l. 511-515, à corriger au point Y).
+- **Scripts** :
+  - `pown_bound.py` : 6001 valeurs de k, **0 inégalité échoue**, erreur/K au
+    plus 0,727 pour c^m, 0,474 pour c^-m ;
+  - `checkrows.py` sur la table de `tests/ieee1788.cpp` (117 boîtes) : **234
+    résultats, 0 échec**, 232 à distance 0, 2 à distance 1 (le cas documenté
+    `pow([0, 1+2^-52], -2)`) ;
+  - `mutate.py --list` : 79 mutants listés, avec les survivants attendus
+    marqués.
+- **`TODO.md` à jour** : les commits `2a98ecd` (point Z, #120) et `533992f`
+  (point B, #121) suivent la procédure de `process.md` section 9 : en-tête au
+  commit courant, paragraphe « Fait le 14 octobre », retrait de la section du
+  point, mise à jour de « En cours » (qui devient « Aucune »).
+- **Issue #49 à jour** : « État au 14 octobre 2026 (commit 533992f de
+  `configure-clean`) », #120 et #121 listées dans « Fusionné depuis le
+  30 septembre ».
+- **Branches supprimées** : `todo-b-pown` et `todo-z-wundef` ne sont plus sur
+  GitHub (seules `configure-clean`, `master` et `MATH-CORE` restent).
+- **Aucune PR ouverte** vers `configure-clean`.
+- **CI GitHub** sur `533992f` : **tous les jobs verts** — Linux, macOS, Windows,
+  Linux containers, Autotools and meson : tous `success`.
+
+### Points restants (rappel)
+
+- **I** : la documentation pour l'utilisateur (35, 37, 38, 70).
+- **W** : décorations (26), reporté (#67).
+- **X** : YalAA et VNODE-LP (28).
+- **AA** : Shekel 5 plus lent qu'avec GAOL 4 (76), à chercher.
+- **Y** : préparer et publier v5.0.0 (32, 33, 34, 71), en dernier.
+
+### Questions pour le mainteneur
+
+1. **CC.q1** : la CI sur `configure-clean` (`533992f`) est en cours. Faut-il
+   attendre qu'elle soit verte avant de commencer le point I ?
+   **Réponse (14 octobre) : non, commencer le point I.**
+2. **CC.q2** : le point I (documentation utilisateur) est le prochain selon
+   l'ordre proposé. Faut-il le commencer maintenant, ou attends-tu d'autres
+   relectures (W, X, AA) ?
+   **Réponse (14 octobre) : non, faire juste une relecture complète, lancer
+   tous les tests et les scripts.**
+3. **CC.q3** : les 12 issues ouvertes (#64 à #70, #80, #101, #102, #104, #107,
+   #49) : faut-il en traiter certaines avant le point Y (publication v5.0.0) ?
+   **Réponse (14 octobre) : on verra ça plus tard.**
+
 ## Ménage
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
@@ -675,7 +1016,11 @@ faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
 ## Table des anciens numéros
 
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
-70 : I ; 71 : Y ; 76 : AA.
+70 : I ; 71 : Y ; 76 : AA ; 77 : AB ; 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ;
+82 : AC ; 83 : AD ; 84 : AD ; 85 : AD ; 86 : AD ; 87 : AD ; 88 : AD ;
+89 : AD ; 90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ;
+96 : AF ; 97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ;
+103 : AF.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -698,7 +1043,8 @@ faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
    comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96, Z par
-   #120. AA (Shekel 5) peut se faire à tout moment avant Y.
+   #120. AA (Shekel 5) peut se faire à tout moment avant Y, comme AB à AE,
+   trouvés par la relecture du 14 octobre ; AF se fait avec I.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
