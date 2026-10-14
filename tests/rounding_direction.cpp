@@ -693,6 +693,37 @@ namespace
     return right;
   }
 
+  // The operations of divisions_with_zero_and_infinite_bounds_are_right()
+  // that raise the invalid-operation or the division-by-zero flag, each run
+  // alone, for the message of a failure
+  std::string divisions_raising()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    std::string raising;
+    const auto run = [&raising](const std::string& name, const std::function<interval()>& f) {
+      std::feclearexcept(FE_ALL_EXCEPT);
+      const interval z = f();
+      const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+      if (raised != 0) {
+        raising += " " + name + " = " + hex(z) + ((raised & FE_INVALID) ? " (invalid);" : " (division by zero);");
+      }
+    };
+    for (const interval& j : intervals) {
+      run("inverse(" + hex(j) + ")", [&j] { return inverse(opaque(j)); });
+      run("pow(" + hex(j) + ", -1)", [&j] { return pow(opaque(j), -1); });
+      run("pown(" + hex(j) + ", -1)", [&j] { return gaol_ieee1788::pown(opaque(j), -1); });
+      run("1.0/" + hex(j), [&j] { return 1.0/opaque(j); });
+      for (const interval& k : intervals) {
+        run(hex(k) + "/" + hex(j), [&k, &j] { return opaque(k)/opaque(j); });
+        run(hex(k) + "%" + hex(j), [&k, &j] { return opaque(k)%opaque(j); });
+        if (!k.set_contains(0.0)) {
+          run("div_rel(" + hex(k) + ", " + hex(j) + ", R)", [&k, &j] { return div_rel(opaque(k), opaque(j), interval::universe()); });
+        }
+      }
+    }
+    return raising.empty() ? std::string(" none when run alone") : raising;
+  }
+
   /*
     pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
     pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
@@ -2023,7 +2054,7 @@ int main()
     const volatile bool right = divisions_with_zero_and_infinite_bounds_are_right();
     const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
     check("the divisions and inverses with zero and infinite bounds raise no invalid-operation nor division-by-zero flag",
-          raised == 0, [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
+          raised == 0, [] { return "raised by" + divisions_raising(); });
     check("the divisions and inverses with zero and infinite bounds: the quotients", right);
   }
   for (const EmptyOperand& e : extreme_powers) {
