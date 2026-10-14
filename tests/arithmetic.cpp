@@ -7,14 +7,14 @@
  * exact results: sums, differences, products, quotients, squares and inverses
  * have to be enclosed as tightly as possible, which GAOL does computing with
  * the rounding direction set upward, and so do square roots, which IEEE
- * 1788-2015 requires (12.10.2); integer powers and n-th roots, which GAOL
- * computes in several rounded operations, to be enclosed within a few
- * doubles. Doubles of every magnitude are drawn, subnormal ones and results
- * beyond the largest double included. Integer powers for n up to 2^32 - 1
- * are compared with bounds computed apart with mpmath, and the powers GAOL
- * takes from products rounded outward with the products of the binary
- * exponentiation from the lowest bit of n, which the SSE2 and the FPU
- * intervals both compute. The operators of an interval with a
+ * 1788-2015 requires (12.10.2), and integer powers, of either sign, whose
+ * bounds GAOL v5 computes from exact products (pown_products() of
+ * gaol/gaol_interval.cpp); n-th roots, which GAOL computes in several
+ * rounded operations, to be enclosed within a few doubles. Doubles of every
+ * magnitude are drawn, subnormal ones and results beyond the largest double
+ * included. Integer powers for n up to 2^32 - 1 are compared with bounds
+ * computed apart with mpmath, and the powers that are doubles have to be
+ * exact. The operators of an interval with a
  * double are also compared with the operators with the degenerate interval of
  * the double, on bounds and doubles of special values: zeros of both signs,
  * infinities and NaN. Products of intervals with zero and infinite bounds have
@@ -43,20 +43,15 @@ namespace
   const int nb_random_values = 5000;
 
   // The largest distances from the tightest bounds allowed, in doubles, about
-  // twice those found on the platforms tested. Integer powers are computed
-  // from exact products, rounded once: the tightest bounds, but where the
-  // power is below 2^-968 or overflows, computed by repeated rounded products
-  // then, at most n+1 doubles away (GAOL computed every power so); x^-n is
-  // the inverse of x^n. The n-th roots are powers with a rounded exponent,
-  // whose error grows with |log x|, up to 8 doubles between 2^-30 and 2^30
-  // and 234 over all the doubles. Square roots are the tightest (GAOL's lower
-  // bound was one double below it for half of the doubles)
-  int power_limit(int n, bool tight)
-  {
-    return tight ? 0 : 2*n;
-  }
-
-  const int negative_power_limit = 8;
+  // twice those found on the platforms tested. Integer powers are the
+  // tightest bounds, of either sign, below 2^-968 and beyond the largest
+  // double too (GAOL v5: computed by repeated rounded products there, n + 1
+  // doubles away at most, as GAOL computed every power, and x^-n as the
+  // inverse of x^n, 8 doubles away). The n-th roots are powers with a rounded
+  // exponent, whose error grows with |log x|, up to 8 doubles between 2^-30
+  // and 2^30 and 234 over all the doubles. Square roots are the tightest
+  // (GAOL's lower bound was one double below it for half of the doubles)
+  const int power_limit = 0;
   const int square_root_limit = 0;
   const int root_limit = 2;
 
@@ -132,11 +127,9 @@ namespace
   }
 
   // Operations on doubles, drawn by draw, root_limit being the largest distance
-  // from the tightest bounds allowed for n-th roots, and tight_powers whether
-  // the integer powers have to be the tightest bounds (their products are
-  // exact from 2^-968 up to the overflow)
+  // from the tightest bounds allowed for n-th roots
   template<class Draw>
-  void operations_on_doubles(const std::string& range, Draw draw, int root_limit, bool tight_powers)
+  void operations_on_doubles(const std::string& range, Draw draw, int root_limit)
   {
     const std::string in = " (" + range + ")";
     for (int i = 0; i < nb_random_values; ++i) {
@@ -185,19 +178,20 @@ namespace
         expect_tightest("[a].inverse()" + in, A.inverse(), inv, A, B);
       }
 
-      for (int n = 2; n <= 7; ++n) {
+      // The exponents of the powers unrolled (up to 32), and above
+      for (int n : { 2, 3, 4, 5, 6, 7, 8, 9, 16, 31, 32, 33 }) {
         const Exact p = power(a, n);
         const interval N(n);
-        expect_close("pow([a],n) for n=" + std::to_string(n) + in, pow(A, n), p, p, power_limit(n, tight_powers), A, N);
+        expect_close("pow([a],n) for n=" + std::to_string(n) + in, pow(A, n), p, p, power_limit, A, N);
       }
       if (a != 0.0) {
-        for (int n = 1; n <= 3; ++n) {
+        for (int n : { 1, 2, 3, 4, 7, 16, 33 }) {
           const Dyadic an = dyadic_power(a, n);
           const Exact p = quotient(dyadic(1.0), an);
           const std::string name = "pow([a],-n) for n=" + std::to_string(n) + in;
           // (1/a)^n where a^n is beyond the largest double: GAOL computed
           // 1/a^n, [0, 1/max], wide at that scale
-          expect_close(name, pow(A, -n), p, p, negative_power_limit, A, interval(-n));
+          expect_close(name, pow(A, -n), p, p, power_limit, A, interval(-n));
         }
       }
 
@@ -223,7 +217,7 @@ namespace
 
   // Operations on intervals, whose bounds are drawn by draw
   template<class Draw>
-  void operations_on_intervals(const std::string& range, Draw draw, bool tight_powers)
+  void operations_on_intervals(const std::string& range, Draw draw)
   {
     const std::string in = " (" + range + ")";
     const Exact zero = exact(0.0);
@@ -284,11 +278,37 @@ namespace
 
       const std::vector<Exact> squares = { exact(xl*xl), exact(xh*xh) };
       expect_tightest("sqr([x])" + in, sqr(X), x_has_zero ? zero : min(squares), max(squares), X, Y);
-      for (int n = 2; n <= 5; ++n) {
+      for (int n : { 2, 3, 4, 5, 12, 31 }) {
         const std::vector<Exact> powers = { power(X.left(), n), power(X.right(), n) };
         const Exact lo = (n % 2 == 1) ? powers[0] : (x_has_zero ? zero : min(powers));
         const Exact hi = (n % 2 == 1) ? powers[1] : max(powers);
-        expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit(n, tight_powers), X, interval(n));
+        expect_close("pow([x],n) for n=" + std::to_string(n) + in, pow(X, n), lo, hi, power_limit, X, interval(n));
+      }
+      // x^-n: 1/x^n at the bounds where x does not hold 0, and the limit
+      // +oo or -oo at 0 where it does (pown of IEEE 1788-2015)
+      for (int n : { 1, 2, 3, 6, 17 }) {
+        const interval r = pow(X, -n);
+        const std::string name = "pow([x],-n) for n=" + std::to_string(n) + in;
+        const auto describe = [&] { return "x=" + hex(X) + ": " + hex(r); };
+        const auto inverse_power = [n](double b) { return quotient(dyadic(1.0), dyadic_power(b, n)); };
+        const double l = X.left(), u = X.right();
+        if (!x_has_zero) {
+          const std::vector<Exact> inverses = { inverse_power(l), inverse_power(u) };
+          expect_close(name, r, min(inverses), max(inverses), power_limit, X, interval(-n));
+        } else if (l == 0.0 && u == 0.0) {
+          check(name + ": empty at [0]", r.is_empty(), describe);
+        } else if (n % 2 == 0) {
+          check(name + ": [mag(x)^-n, +oo]", !r.is_empty() && r.right() == inf
+                && is_tightest_lower_bound(r.left(), inverse_power(std::max(-l, u))), describe);
+        } else if (l < 0.0 && u > 0.0) {
+          check(name + ": [-oo, +oo] for 0 inside", !r.is_empty() && r.left() == -inf && r.right() == inf, describe);
+        } else if (l == 0.0) {
+          check(name + ": [b^-n, +oo] for [0, b]", !r.is_empty() && r.right() == inf
+                && is_tightest_lower_bound(r.left(), inverse_power(u)), describe);
+        } else {
+          check(name + ": [-oo, a^-n] for [a, 0]", !r.is_empty() && r.left() == -inf
+                && is_tightest_upper_bound(r.right(), inverse_power(l)), describe);
+        }
       }
 
       // Square roots: the tightest roots of the bounds of [x] & [0, +oo]
@@ -532,11 +552,11 @@ namespace
     }
   }
 
-  // Integer powers from the products rounded outward, which pow(x, n) takes
-  // where a bound is 0 or infinite, or a power is not finite or is below
-  // 2^-968, and negative powers of intervals with a bound 0 (GAOL v5: they
+  // Integer powers at special values: a bound 0 or infinite, a power below
+  // 2^-968 or beyond the largest double, negative powers of intervals with a
+  // bound 0, the corners pown_upward() computes one at a time (GAOL v5: they
   // are computed after the one check of the rounding direction of pow(x, n))
-  void powers_from_the_rounded_products()
+  void powers_at_special_values()
   {
     const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
     const struct { const char *name; interval x; int n; bool empty; double lo, hi; } cases[] = {
@@ -551,11 +571,28 @@ namespace
       { "pow([-2^-400],3)", interval(-0x1p-400), 3, false, -tiny, 0. },
       { "pow([2^-330],3)", interval(0x1p-330), 3, false, 0x1p-990, 0x1p-990 },
       { "pow([1.5 2^-330],3)", interval(0x1.8p-330), 3, false, 0x1.bp-989, 0x1.bp-989 },
+      { "pow([3 2^-358],3), a subnormal", interval(0x1.8p-357), 3, false, 0x1.bp-1070, 0x1.bp-1070 },
+      { "pow([3 2^-360],3), below 2^-1074", interval(0x1.8p-359), 3, false, 0., tiny },
       { "pow([0,+oo],-3)", interval(0., inf), -3, false, 0., inf },
       { "pow([-oo,0],-3)", interval(-inf, 0.), -3, false, -inf, 0. },
       { "pow([0,4],-1)", interval(0., 4.), -1, false, 0.25, inf },
+      { "pow([0,4],-2)", interval(0., 4.), -2, false, 0.0625, inf },
+      { "pow([-2,0],-3)", interval(-2., 0.), -3, false, -inf, -0.125 },
       { "pow([-0,+0],-1): empty", interval(-0., 0.), -1, true, 0., 0. },
+      { "pow([-0,+0],-2): empty", interval(-0., 0.), -2, true, 0., 0. },
       { "pow([-2^-1074],-1)", interval(-tiny), -1, false, -inf, -largest },
+      { "pow([2^-600],-2)", interval(0x1p-600), -2, false, largest, inf },
+      { "pow([2^600],-2)", interval(0x1p600), -2, false, 0., tiny },
+      { "pow([2^500],-2)", interval(0x1p500), -2, false, 0x1p-1000, 0x1p-1000 },
+      // Corners beyond the range of the exponentiation at once, whose powers
+      // are scaled by powers of two as they are computed, near the ends of
+      // the doubles: the tightest bounds (mpmath, 800 bits)
+      { "pow([1.0001],7000000)", interval(1.0001), 7000000, false, 0x1.c8fef87df0888p+1009, 0x1.c8fef87df0889p+1009 },
+      { "pow([1.0001],-7000000)", interval(1.0001), -7000000, false, 0x1.1ecfe92881a5dp-1010, 0x1.1ecfe92881a5ep-1010 },
+      { "pow([0.9999],7000000)", interval(0.9999), 7000000, false, 0x1.0b6c002853dd9p-1010, 0x1.0b6c002853ddap-1010 },
+      { "pow([-1.0001],7000001)", interval(-1.0001), 7000001, false, -0x1.c90aab75f708cp+1009, -0x1.c90aab75f708bp+1009 },
+      { "pow([1.5],1700)", interval(1.5), 1700, false, 0x1.5a63b3b6d05e3p+994, 0x1.5a63b3b6d05e4p+994 },
+      { "pow([1.0001],7100000)", interval(1.0001), 7100000, false, largest, inf },
     };
     for (const auto& c : cases) {
       const interval r = pow(c.x, c.n);
@@ -565,60 +602,43 @@ namespace
     }
   }
 
-  // a*b rounded in the direction given, set for it alone: rnd_keep() before
-  // the direction changes back, as in fused_and_cancellative()
-  double rounded_product(double a, double b, int direction)
-  {
-    const int saved = std::fegetround();
-    std::fesetround(direction);
-    const double p = gaol::rnd_keep(a*b);
-    std::fesetround(saved);
-    return p;
-  }
-
-  // x^n for x >= 0 and n >= 1, each product rounded in the direction given:
-  // the binary exponentiation from the lowest bit of n
-  double rounded_power(double x, unsigned int n, int direction)
-  {
-    double y = 1.0, z = x;
-    for (;;) {
-      if (n % 2u == 1u) {
-        y = rounded_product(y, z, direction);
-        if (n == 1u) {
-          return y;
-        }
-      }
-      n /= 2u;
-      z = rounded_product(z, z, direction);
-    }
-  }
-
   /*
-    The integer powers pow(x, n) takes from the products rounded outward, for
-    n = 1 and 2, and where a bound is 0 or infinite or the power of a bound
-    is below 2^-968 or beyond the largest double: the products of the binary
-    exponentiation from the lowest bit of n, in the SSE2 and the FPU intervals
-    alike, the same bounds on every machine. The SSE2 intervals multiplied
-    from the highest bit of n, and their bounds were not those of the FPU
-    intervals for about half of these intervals (GAOL v5). The reference
-    computes the products apart, each in the rounding direction set for it.
-    The sign of a zero bound is not compared.
+    Integer powers near the ends of the doubles, those of
+    powers_at_special_values() at random: a bound 0 or infinite, or whose
+    power is above 2^1100, below 2^-1000, or from about 2^-1000 to 2^1000,
+    where the corners are computed one at a time, scaled (pown_point() of
+    gaol/gaol_interval.cpp). The bounds have to be the tightest, as
+    elsewhere: GAOL v5 took the products rounded outward there, up to n + 1
+    doubles beyond, and their bounds differed between the SSE2 and the FPU
+    intervals for about half of these intervals, which multiplied them from
+    either end of n.
   */
-  void rounded_powers_as_in_both_builds()
+  void powers_near_the_ends()
   {
     Random random;
     for (int i = 0; i < 4000; ++i) {
-      const unsigned int n = static_cast<unsigned int>(random.integer(1, 60));
-      // Doubles whose n-th power is above 2^1100 (from 2^big on), below
-      // 2^-1000 (below 2^(small + 1)), and from about 2^-1000 to 2^1000,
-      // where the order of the products tells
+      const unsigned int n = static_cast<unsigned int>(random.integer(2, 60));
       const int m = static_cast<int>(n);
       const int big = std::min(1023, 1100/m + 1), small = -(1000/m) - 2;
       const auto huge = [&] { return random.integer(0, 4) == 0 ? inf : random.positive(big, 1023); };
-      const auto tiny = [&] { return random.integer(0, 4) == 0 ? 0.0 : random.positive(-1022, small); };
+      // 0, a subnormal (from its bits), or a normal double whose power is
+      // below 2^-1000
+      const auto tiny = [&] {
+        const int kind = random.integer(0, 5);
+        if (kind == 0) {
+          return 0.0;
+        }
+        if (kind == 1) {
+          const std::uint64_t bits = (random.bits() & 0x000FFFFFFFFFFFFFull) | 1u;
+          double d;
+          std::memcpy(&d, &bits, sizeof d);
+          return d;
+        }
+        return random.positive(-1022, small);
+      };
       const auto any = [&] { return random.positive(-(1000/m), 1000/m); };
       double a = 0.0, b = 0.0;
-      switch (n <= 2u ? 4 : random.integer(0, 3)) {
+      switch (random.integer(0, 3)) {
       case 0: // [tiny, x]
         a = tiny(); b = std::max(a, any());
         break;
@@ -632,49 +652,135 @@ namespace
           a = -huge(); b = random.integer(0, 1) == 0 ? any() : std::max(a, -any());
         }
         break;
-      case 3: // [-tiny, x] for an odd n, whose lower bound is -tiny^n
+      default: // [-tiny, x]
         a = -tiny(); b = any();
         break;
-      default: // n = 1 or 2: any interval
-        a = random.any(); b = random.any();
-        if (b < a) {
-          const double t = a;
-          a = b; b = t;
-        }
-        break;
       }
-      if (n > 2u && n % 2u == 0u && a < 0.0 && b > 0.0 && std::max(-a, b) < std::ldexp(1.0, big)) {
-        continue; // [-tiny, x] for an even n: x^n may come from exact products
+      const interval X(a, b), r = gaol::pow(X, n);
+      // The power of each bound, or its limit, the infinite bounds having
+      // infinite powers
+      const auto bound_power = [&](double v) { return power(v, m); };
+      const bool odd_n = n % 2u == 1u, has_zero = a <= 0.0 && b >= 0.0;
+      bool ok = !r.is_empty();
+      if (ok && odd_n) {
+        ok = (a == -inf ? r.left() == -inf : is_tightest_lower_bound(r.left(), bound_power(a)))
+             && (b == inf ? r.right() == inf : is_tightest_upper_bound(r.right(), bound_power(b)));
+      } else if (ok) {
+        const double mig = has_zero ? 0.0 : std::min(std::fabs(a), std::fabs(b)), mag = std::max(std::fabs(a), std::fabs(b));
+        ok = is_tightest_lower_bound(r.left(), bound_power(mig))
+             && (mag == inf ? r.right() == inf : is_tightest_upper_bound(r.right(), bound_power(mag)));
       }
-      const interval X(a, b);
-      double lo, hi;
-      if (a >= 0.0) {
-        lo = rounded_power(a, n, FE_DOWNWARD);
-        hi = rounded_power(b, n, FE_UPWARD);
-      } else if (b <= 0.0) {
-        lo = (n % 2u == 1u) ? -rounded_power(-a, n, FE_UPWARD) : rounded_power(-b, n, FE_DOWNWARD);
-        hi = (n % 2u == 1u) ? -rounded_power(-b, n, FE_DOWNWARD) : rounded_power(-a, n, FE_UPWARD);
-      } else {
-        lo = (n % 2u == 1u) ? -rounded_power(-a, n, FE_UPWARD) : 0.0;
-        hi = (n % 2u == 1u) ? rounded_power(b, n, FE_UPWARD)
-                            : std::max(rounded_power(-a, n, FE_UPWARD), rounded_power(b, n, FE_UPWARD));
-      }
-      const interval r = gaol::pow(X, n);
-      check("pow(x, n) from the rounded products, from the lowest bit of n",
-            !r.is_empty() && r.left() == lo && r.right() == hi,
-            [&] {
-              return "pow(" + hex(X) + ", " + std::to_string(n) + ") = " + hex(r) + " rather than ["
-                   + hex(lo) + ", " + hex(hi) + "]";
-            });
+      check("pow(x, n) near the ends of the doubles, the tightest", ok,
+            [&] { return "pow(" + hex(X) + ", " + std::to_string(n) + ") = " + hex(r); });
     }
   }
 
   /*
-    Integer powers for large n, whose products are exact: the tightest
-    bounds, each of these powers being more than 70 times 5 n log2(n) 2^-104
-    from a double, relatively (gaol_interval.cpp). The square of the rest
-    carried along was left out of the lower bound (GAOL v5, review #7 of
-    examples/examples.md, ipow_exact_dn()), and the lower bound of x^n was 8
+    The powers that are doubles are exact, both bounds (GAOL v5): the rests
+    of the exact products are all 0 then, and the error bound is left out
+    (pown_products() of gaol/gaol_interval.cpp). Without that, pow([2, 3], 3)
+    was [8 - 2^-50, 27 + 2^-48]. x^n of an integer x is a double while it is
+    below 2^53, and x^-n is one for a power of two x only.
+  */
+  void exact_powers()
+  {
+    const auto expect = [](const interval& x, int n, double lo, double hi) {
+      const interval r = pow(x, n);
+      check("pow(x, n) exact where x^n is a double", !r.is_empty() && r.left() == lo && r.right() == hi,
+            [&] { return "pow(" + hex(x) + ", " + std::to_string(n) + ") = " + hex(r) + " rather than ["
+                         + hex(lo) + ", " + hex(hi) + "]"; });
+    };
+    // p^n computed exactly in doubles, rounded to nearest: false where it is
+    // no double
+    const auto integer_power = [](double p, int n, double& v) {
+      RoundingToNearest nearest;
+      v = 1.0;
+      for (int i = 0; i < n; ++i) {
+        v *= p;
+        if (std::fabs(v) >= 9007199254740992.0) { // 2^53
+          return false;
+        }
+      }
+      return true;
+    };
+    for (int p = -40; p <= 40; ++p) {
+      for (int k = -4; k <= 4; k += 4) {
+        for (int n = 2; n <= 40; ++n) {
+          double v = 0.0, w = 0.0;
+          if (!integer_power(p, n, v) || !integer_power(p + 1, n, w)) {
+            continue;
+          }
+          const double s = std::ldexp(1.0, k), t = std::ldexp(1.0, k*n);
+          expect(interval(p*s), n, v*t, v*t);
+          // [p, p + 1] 2^k: x^n is monotone there unless p < 0 < p + 1
+          const double vl = v*t, wl = w*t;
+          if (n % 2 == 1 || p >= 0) {
+            expect(interval(p*s, (p + 1)*s), n, vl, wl);
+          } else if (p + 1 <= 0) {
+            expect(interval(p*s, (p + 1)*s), n, wl, vl);
+          }
+        }
+      }
+    }
+    // x^-n of a power of two, and of intervals of them
+    for (int k = -60; k <= 60; k += 3) {
+      for (int n = 1; n <= 17; ++n) {
+        const double x = std::ldexp(1.0, k), v = std::ldexp(1.0, -k*n);
+        expect(interval(x), -n, v, v);
+        expect(interval(-x), -n, (n % 2 == 1) ? -v : v, (n % 2 == 1) ? -v : v);
+        expect(interval(x, 2*x), -n, std::ldexp(v, -n), v);
+      }
+    }
+    // x^2, one square whose rest is exact: the tightest bounds, those of
+    // sqr(x), near 1 too, where the bound K of the error of the other powers
+    // takes a double more (GAOL v5: pow([1 + 2^-52], 2) was [1 + 2^-52,
+    // 1 + 3 2^-52], [1 + 2^-51, 1 + 3 2^-52] being the tightest)
+    const interval just_above_one(1.0 + 0x1p-52), square = pow(just_above_one, 2);
+    check("pow([1 + 2^-52], 2) = [1 + 2^-51, 1 + 3 2^-52]",
+          square.left() == 1.0 + 0x1p-51 && square.right() == 1.0 + 3*0x1p-52, [&] { return hex(square); });
+    for (int k = 1; k <= 16; ++k) {
+      for (const double c : { 1.0 + k*0x1p-52, 1.0 - k*0x1p-53, 3.0 + k*0x1p-51, 0.75 - k*0x1p-54, 0x1p-500 + k*0x1p-552 }) {
+        for (const interval& x : { interval(c), interval(-c), interval(-c, 2*c), interval(-2*c, c), interval(c, 2*c) }) {
+          const interval r = pow(x, 2), s = sqr(x);
+          check("pow(x, 2) is sqr(x)", !r.is_empty() && r.left() == s.left() && r.right() == s.right(),
+                [&] { return "pow(" + hex(x) + ", 2) = " + hex(r) + ", sqr = " + hex(s); });
+        }
+      }
+    }
+    // The powers of -c, the opposites of those of c for an odd n, and the
+    // bound c^n the same whether the other corner is computed with c, in the
+    // other lane, or alone, being beyond the range of the lanes, as -1e300 is
+    // (pown_point()), where c^n is within the bound K of the error of a
+    // double too: the lanes compute the powers of |c|, whose products rounded
+    // upward are not the opposites of those of -c (pow([-(1 + 2^-51)], 21)
+    // would have the upper bound -0x1.0000000000029p+0 from c itself, rather
+    // than -0x1.000000000002ap+0)
+    for (int k = 1; k <= 16; ++k) {
+      for (const double c : { 1.0 + k*0x1p-52, 1.0 - k*0x1p-53, 1.5 + k*0x1p-52, 3.0 + k*0x1p-51 }) {
+        for (int n : { 3, 4, 5, 7, 9, 13, 21, 31, 33, 63, 101, -2, -3, -5, -21, -33, -64 }) {
+          const interval p = pow(interval(c), n), q = pow(interval(-c), n), w = pow(interval(-1e300, -c), n);
+          // -c gives the upper bound of x^n on [-1e300, -c] where x^n increases there
+          const bool upper = (n > 0) == (n % 2 != 0);
+          const double t = upper ? w.right() : w.left(), u = upper ? q.right() : q.left();
+          check("pow([-c], n): the opposite of pow([c], n) for an odd n, pow([c], n) for an even one, "
+                "and the bound of the corner -c alone",
+                !p.is_empty() && !q.is_empty() && t == u
+                  && ((n % 2 != 0) ? (q.left() == -p.right() && q.right() == -p.left())
+                                   : (q.left() == p.left() && q.right() == p.right())),
+                [&] { return "c = " + hex(c) + ", n = " + std::to_string(n) + ": " + hex(p) + " " + hex(q)
+                             + " " + hex(w); });
+        }
+      }
+    }
+  }
+
+  /*
+    Integer powers for large n: the tightest bounds, from exact products
+    within the ints, each of these powers being farther from a double than
+    twice the bound K of the error of their products (pown_products() of
+    gaol_interval.cpp), and from CORE-MATH's pow beyond them, for an unsigned
+    n. The square of the rest carried along was left out of the lower bound
+    (GAOL v5, review #7 of examples/examples.md), and the lower bound of x^n was 8
     doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
     2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
     2^28. The bounds are computed apart, with mpmath:
@@ -744,6 +850,22 @@ namespace
     };
     for (const auto& c : intervals) {
       expect("intervals, the tightest", c.x, c.n, gaol::pow(c.x, c.n), c.lo, c.hi);
+    }
+    // x^-n for large n, 1/x^n from h + l corrected to the second order
+    // (GAOL v5): its rest r is about n 2^-52, and the terms of r^2 left out
+    // made the bounds of pow([1.0000001], -2^31 + 1) 718 doubles away
+    const struct { double x; int n; double lo, hi; } negative[] = {
+      { 1.0000001, -2147483647, 0x1.22beec72a0774p-310, 0x1.22beec72a0775p-310 },
+      { 1.0000001, -2147483647 - 1, 0x1.22beea8ad61c3p-310, 0x1.22beea8ad61c4p-310 },
+      { 1.0000001, -1000000007, 0x1.a8c267610691cp-145, 0x1.a8c267610691dp-145 },
+      { 0.9999999, -2147483647, 0x1.c2d297bd940f4p+309, 0x1.c2d297bd940f5p+309 },
+      { 1.0000001, -16777217, 0x1.7e9085a4ba4adp-3, 0x1.7e9085a4ba4aep-3 },
+      { 1.0000001, -268435455, 0x1.3551ae28dc2adp-39, 0x1.3551ae28dc2aep-39 },
+    };
+    for (const auto& c : negative) {
+      const interval x(c.x), r = pow(x, c.n);
+      check("pow(x, n) for large negative n: [x], the tightest", !r.is_empty() && r.left() == c.lo && r.right() == c.hi,
+            [&] { return "pow(" + hex(x) + ", " + std::to_string(c.n) + ") = " + hex(r); });
     }
   }
 
@@ -963,17 +1085,18 @@ int main()
 {
   gaol::init();
   Random random;
-  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); }, 16, true);
-  operations_on_doubles("any doubles", [&] { return random.any(); }, 512, false);
-  operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); }, true);
-  operations_on_intervals("any doubles", [&] { return random.any(); }, false);
+  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); }, 16);
+  operations_on_doubles("any doubles", [&] { return random.any(); }, 512);
+  operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); });
+  operations_on_intervals("any doubles", [&] { return random.any(); });
   divisions_by_zero();
   operations_with_special_doubles();
   products_with_infinite_bounds();
   unsigned_powers();
   negative_powers_at_special_values();
-  powers_from_the_rounded_products();
-  rounded_powers_as_in_both_builds();
+  powers_at_special_values();
+  powers_near_the_ends();
+  exact_powers();
   large_powers();
   roots_at_special_values();
   fused_and_cancellative();

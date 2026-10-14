@@ -25,9 +25,12 @@ if [ "$(cut -d' ' -f1 "$OUT/args.txt" 2>/dev/null)" != "$N" ]; then
   python3 "$CODE_DIR/enclosure.py" data "$N" "$OUT"
 fi
 
-echo "== GAOL"
+echo "== GAOL, gaol and gaol_ieee1788"
 $CXX -std=c++11 -O2 $(gaol_cflags) -I"$CODE_DIR" "$CODE_DIR/enclosure_gaol.cpp" -o "$OUT/enclosure_gaol" $(gaol_libs)
 "$OUT/enclosure_gaol" "$OUT"
+$CXX -std=c++11 -O2 $(gaol_cflags) -DGAOL_ENCLOSURE_IEEE1788 -I"$CODE_DIR" "$CODE_DIR/enclosure_gaol.cpp" \
+     -o "$OUT/enclosure_gaol_ieee1788" $(gaol_libs)
+"$OUT/enclosure_gaol_ieee1788" "$OUT"
 
 echo "== Boost.Interval"
 $CXX -std=c++11 -O2 $FMA_FLAGS $IA_CXXFLAGS $(boost_cflags) -I"$CODE_DIR" "$CODE_DIR/enclosure_boost.cpp" \

@@ -318,16 +318,14 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 }
 
 /*
-  The powers rounded outward, which pow(x, n) takes for n = 1 and 2, and
-  where the exact products are not taken (a bound 0 or infinite, a power
-  below 2^-968 or beyond the largest double): the binary exponentiation from
-  the lowest bit of n, whose squarings do not wait for the products, as the
-  FPU intervals compute it (gaol_interval_fpu.cpp), product for product, so
-  that both give the same bounds. GAOL multiplied from the highest bit of n
-  here (the code under #if 0 below): the bounds of the SSE2 and the FPU
-  intervals differed for about half of the random intervals with such a
-  power, the two orders being as accurate, and this one is up to about
-  2.5 ns faster (Clang 18, Intel Xeon) (GAOL v5).
+  The powers rounded outward, which sqr() takes (GAOL v5: x^n for n >= 2
+  takes exact products, see pown_products() in gaol_interval.cpp): the binary
+  exponentiation from the lowest bit of n, whose squarings do not wait for
+  the products. GAOL multiplied from the highest bit of n here (the code
+  under #if 0 below), where the FPU intervals multiplied from the lowest:
+  their bounds of x^n differed for about half of the random intervals, the
+  two orders being as accurate, and this one is up to about 2.5 ns faster
+  (Clang 18, Intel Xeon) (GAOL v5).
 */
 #if 1
 	/*
@@ -486,10 +484,10 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
 
   /*
     I^e for a non-empty I and e > 0 from the products rounded outward, the
-    rounding direction being upward already: uipow_nonempty() and
-    uipow_nonempty_upward() call it after their check, and uipow_rounded()
-    below checks the direction for sqr() and the other callers (GAOL v5).
-    Both are inlined by force with GCC and Clang: built with -mfma, Clang 18
+    rounding direction being upward already, and uipow_rounded() below, which
+    checks the direction, for sqr(), with e = 2 (GAOL v5: x^n takes exact
+    products, see pown_products() in gaol_interval.cpp, the SSE2 and the FPU
+    intervals alike). Both are inlined by force with GCC and Clang: built with -mfma, Clang 18
     called uipow_rounded() from sqr() rather than inlining it there with
     e = 2, and sqr() took 13.7 ns rather than 9.7, Shekel 5 of doc/compare
     405 ns rather than 302.
@@ -556,17 +554,6 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
       GAOL_RND_KEEP(res);
       GAOL_RND_LEAVE_SSE();
       return interval(res);
-    }
-
-  interval gaol_uipow(const interval& I, unsigned int e)
-    {
-      if (I.is_empty()) {
-        return I;
-      }
-      if (e == 0) {
-        return interval(1.0);
-      }
-      return uipow_nonempty(I,e);
     }
 
 
@@ -1145,6 +1132,15 @@ interval& interval::operator*=(const interval& I)
 #endif
 
 
+/*
+  Where a branch keeps one half of a division, the other half is not
+  computed, as in div_rel(): _mm_div_sd() divides the low halves alone, the
+  kept quotient being moved to the high half where it belongs (GAOL v5). The
+  half thrown away divided a nonzero bound by a zero one (N1 N0, N1 P0,
+  P1 N0, P1 P0), which raised the division-by-zero exception, [1, 2]/[0, 2]
+  among them, where the FPU intervals, which divide the kept bounds alone,
+  raise nothing. operator%=() below does the same.
+*/
 interval& interval::operator/=(const interval& I)
 { // TODO: replace left() and right() by local variable
 	if (is_empty() || I.is_empty()) {
@@ -1170,14 +1166,16 @@ interval& interval::operator/=(const interval& I)
 				if ( I.left() == 0.0 ) { // [I] Z
 					*this = interval::emptyset(); // N1 Z
 				} else {
-					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
+					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
 				}
 			} else { // [I] P or M
 				if ( I.left() < 0.0 ) { // [I] M
 					*this = interval::universe(); // N1 M
 				} else { // [I] P0 or P1
 					if ( I.left() == 0.0 ) { // [I] P0
-						xmmbounds = _mm_move_sd(_mm_div_pd(xmmbounds,I.xmmbounds),interval::m128_infinf);// N1 P0
+						xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,
+						                           _mm_div_sd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
+						                                      _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds))); // N1 P0
 					} else { // [I] P1
 						xmmbounds = _mm_div_pd(xmmbounds,_mm_xor_pd(I.xmmbounds,interval::lbsignmask)); // N1 P1
 					}
@@ -1278,9 +1276,7 @@ interval& interval::operator/=(const interval& I)
 							if ( I.left() == 0.0 ) { // [I] Z
 								*this = interval::emptyset(); // P1 Z
 							} else {
-								xmmbounds = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
-																			  _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
-															   interval::m128_infinf); // P1 N0
+								xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(xmmbounds,I.xmmbounds)); // P1 N0
 							}
 						} else { // [I] P or M
 							if ( I.left() < 0.0 ) { // [I] M
@@ -1288,8 +1284,7 @@ interval& interval::operator/=(const interval& I)
 							} else { // [I] P0 or P1
 								if ( I.left() == 0.0 ) { // [I] P0
 									xmmbounds = _mm_move_sd(interval::m128_infinf,
-														         _mm_div_pd(xmmbounds,
-                                                              _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
+									                        _mm_div_sd(xmmbounds,_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
 								} else { // [I] P1
 									__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
 									xmmbounds = _mm_div_pd(xmmbounds,_mm_shuffle_pd(r1,r1,1));// P1 P1
@@ -1310,14 +1305,20 @@ interval& interval::operator/=(const interval& I)
 // powers and nth_root(I, q) for q < 0 call (GAOL v5)
 #define OPT_INV 1
 #if OPT_INV
-// The rounding direction being upward already (see gaol_interval.h)
+/*
+  The rounding direction being upward already (see gaol_interval.h). A zero
+  bound is divided by 1 rather than 0, its quotient being thrown away: -1/0
+  raised the division-by-zero exception, inverse([0, 2]) and pow([0, 2], -1)
+  among them, where the FPU intervals raise nothing (GAOL v5)
+*/
 interval interval::inverse_upward(const interval& I)
 {
   const __m128d xmmbounds = I.xmmbounds;
   __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == < d, c >
   __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
-  __m128d r3 = _mm_div_pd(interval::m128_minus_one,r2); // r3 == < -1/c, -1/d >
   __m128d r4 = _mm_cmpeq_pd(r2,interval::m128_zero); // r4 == < c==0, d==0 >
+  // r3 == < -1/c, -1/d >, -1 or 1 where c or d is +-0
+  __m128d r3 = _mm_div_pd(interval::m128_minus_one,_mm_or_pd(r2,_mm_and_pd(r4,_mm_set1_pd(1.0))));
   __m128d r5 = _mm_shuffle_pd(r4,r4,1); // r5 == < d==0, c==0 >
   __m128d r6 = _mm_and_pd(r4,r5); // r6 == < c==0 && d==0, c==0 && d==0 >
   __m128d r7 = _mm_and_pd(r6,interval::m128_nan); // < r7 == < (c==0 && d==0) ? NaN : 0, (c==0 && d==0) ? NaN : 0 >
@@ -1412,14 +1413,16 @@ interval interval::inverse() const
 				if ( I.left() == 0.0 ) { // [I] Z
 					*this = interval::emptyset(); // N1 Z
 				} else {
-					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
+					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
 				}
 			} else { // [I] P or M
 				if ( I.left() < 0.0 ) { // [I] M
 					*this = interval::universe(); // N1 M
 				} else { // [I] P0 or P1
 					if ( I.left() == 0.0 ) { // [I] P0
-						xmmbounds = _mm_move_sd(_mm_div_pd(xmmbounds,I.xmmbounds),interval::m128_infinf);// N1 P0
+						xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,
+						                           _mm_div_sd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
+						                                      _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds))); // N1 P0
 					} else { // [I] P1
 						xmmbounds = _mm_div_pd(xmmbounds,_mm_xor_pd(I.xmmbounds,interval::lbsignmask)); // N1 P1
 					}
@@ -1496,9 +1499,7 @@ interval interval::inverse() const
 							if ( I.left() == 0.0 ) { // [I] Z
 								*this = interval::emptyset(); // P1 Z
 							} else {
-								xmmbounds = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
-																			  _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
-															   interval::m128_infinf); // P1 N0
+								xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(xmmbounds,I.xmmbounds)); // P1 N0
 							}
 						} else { // [I] P or M
 							if ( I.left() < 0.0 ) { // [I] M
@@ -1506,8 +1507,7 @@ interval interval::inverse() const
 							} else { // [I] P0 or P1
 								if ( I.left() == 0.0 ) { // [I] P0
 									xmmbounds = _mm_move_sd(interval::m128_infinf,
-														         _mm_div_pd(xmmbounds,
-                                                              _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
+									                        _mm_div_sd(xmmbounds,_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
 								} else { // [I] P1
 									__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
 									xmmbounds = _mm_div_pd(xmmbounds,_mm_shuffle_pd(r1,r1,1));// P1 P1

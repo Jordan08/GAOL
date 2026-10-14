@@ -7,9 +7,14 @@
 #     under $WORK/gaol-<variant> (FORCE_GAOL=1 builds it again after a change);
 #   - builds the benchmark with it, in $WORK/intervals/build-<variant>, with
 #     TEST_SIZE=$N inputs of each expression;
-#   - runs its queries, in $JOBS processes, each on a share of the expressions
-#     (INTERVALS_SHARD), each checked by check.py, and writes the tables of
-#     $WORK/results/<variant>/results.md;
+#   - runs its queries in $SHARDS shares of the expressions (INTERVALS_SHARD,
+#     default 132, one expression each), $JOBS at a time, each checked by a
+#     check.py of its own, and writes the tables of
+#     $WORK/results/<variant>/results.md. gmpy2 2.2.1 under Python 3.14 never
+#     frees an mpfr (32 bytes each): a check.py of every expression reached
+#     24 GB in ten minutes, and the checks of two or four shares at once made
+#     the system kill the session (14 October 2026); one expression stays
+#     within about a gigabyte;
 #   - with SPEED=1, runs its speed test as well (1000 inputs of each expression,
 #     each evaluated 10000 times, by filib's C version and GAOL), into
 #     $WORK/results/<variant>/time.txt and the table of speed.md.
@@ -22,6 +27,7 @@ set -euo pipefail
 source "$(dirname "$0")/env.sh"
 VARIANTS="${VARIANTS:-sse fpu}"
 SPEED="${SPEED:-0}"
+SHARDS="${SHARDS:-132}"
 SUFFIX="${SUFFIX:-}"
 CMAKE="${CMAKE:-cmake}"
 PYTHON="${PYTHON:-python3}"
@@ -71,13 +77,17 @@ for v in $VARIANTS; do
   results="$WORK/results/$name"
   mkdir -p "$results"
   rm -f "$results"/check-*.json "$results"/query-*.log
-  echo "== the queries ($name), checked by $JOBS processes"
+  echo "== the queries ($name), in $SHARDS shares, $JOBS at a time"
   # Run from the build directory, as the benchmark's scripts: it reads ../rational_datas
   pids=()
-  for ((k = 0; k < JOBS; k++)); do
-    (cd "$build" && INTERVALS_SHARD="$k/$JOBS" ./tests/query_bin 2> "$results/query-$k.log" \
+  for ((k = 0; k < SHARDS; k++)); do
+    (cd "$build" && INTERVALS_SHARD="$k/$SHARDS" ./tests/query_bin 2> "$results/query-$k.log" \
        | "$PYTHON" -I "$TANG_DIR/check.py" check --sources "$INTERVALS_DIR" --out "$results/check-$k.json") &
     pids+=($!)
+    if [ "${#pids[@]}" -ge "$JOBS" ]; then
+      wait "${pids[0]}" || die "the queries of $name failed (see $results/query-*.log)"
+      pids=("${pids[@]:1}")
+    fi
   done
   for p in "${pids[@]}"; do wait "$p" || die "the queries of $name failed (see $results/query-*.log)"; done
   "$PYTHON" -I "$TANG_DIR/check.py" report --order "$order" "$results"/check-*.json > "$results/results.md"

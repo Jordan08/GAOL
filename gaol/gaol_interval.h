@@ -1432,17 +1432,31 @@ namespace gaol_core {
   GAOL_NODISCARD extern GAOL_PUBLIC std::string exact_string(const interval& I);
   //! I^2
   GAOL_NODISCARD extern GAOL_PUBLIC   interval sqr(const interval& I);
-  //! I^e for an integer e, gaol::pow(I, e)
+  /*
+    I^e for an integer e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
+    for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
+    are the tightest (GAOL v5), and exact where x^e is a double: from exact
+    products within the ints, from CORE-MATH's pow beyond them, but for an e
+    of more than 53 bits that is no double (gaol_pown_ll()).
+  */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pown(const interval& I, int e);
   /*
-    I^e for an unsigned e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
-    for e = 0 and the empty set for an empty I. Declared here too, and defined
-    out of line with the SSE2 intervals, where it was GAOL_INLINE (GAOL v5): named
-    uipow() then, it was not found and did not link. uipow_upup() and
-    uipow_dnup(), which only computed parts of it on the stored bounds, are no
-    longer declared.
+    I^e for an unsigned e, gaol::pow(I, e): gaol_pown() within the ints, and
+    the pown of CORE-MATH's pow beyond them (GAOL v5). Declared here too, and
+    defined out of line, where it was GAOL_INLINE with the SSE2 intervals
+    (GAOL v5): named uipow() then, it was not found and did not link.
+    uipow_upup() and uipow_dnup(), which only computed parts of it on the
+    stored bounds, are no longer declared.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_uipow(const interval& I, unsigned int e);
+  /*
+    I^e for an e of type long long, gaol::pow(I, e) for an integer type of
+    more than 32 bits (GAOL v5): gaol_pown() within the ints, and beyond them
+    the bounds of CORE-MATH's pow at the corners of I, the tightest where e is
+    a double, |e| <= 2^53 included, and within three doubles of them otherwise,
+    from the powers x^h and x^l, e = h + l, h a double and |l| < 2^11.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pown_ll(const interval& I, long long e);
 
   /*!
     \brief I^J, gaol::pow(I, J) (GAOL v5)
@@ -1450,7 +1464,7 @@ namespace gaol_core {
     A degenerate integer exponent J = [n] always takes the integer power
     gaol_pown(), the pown of IEEE 1788, which is defined for a
     negative base too, gives x^0 = 1 for any x, 0 included, and has no value
-    at 0 for n < 0; for an n beyond the ints, the result is [-oo,+oo]. Any
+    at 0 for n < 0, beyond the ints too (GAOL v5: [-oo,+oo] there). Any
     other exponent takes the pow of IEEE 1788 on the part of I in [0,+oo],
     where 0^y is 0 for y > 0 and has no value for y <= 0, its tightest
     bounds: CORE-MATH's pow at the corners of the box, and the limits of x^y,
@@ -1467,18 +1481,30 @@ namespace gaol_core {
 } // namespace gaol_core
 
 namespace gaol_detail {
+  // n as a long long, for gaol_pown_ll(): beyond the long longs, as
+  // integer_power() below says
+  template <class T>
+  GAOL_INLINE long long integer_as_long_long(T n)
+  {
+    if (integer_fits<long long>(n)) {
+      return static_cast<long long>(n);
+    }
+    const long long beyond = (n % 2 != 0) ? 9223372036854775807LL : 9223372036854775806LL;
+    return integer_is_negative(n) ? -beyond : beyond;
+  }
+
   /*
     I^n for an integer n of a type other than int and unsigned int,
     gaol::pow(I, n) and gaol_ieee1788::pown(x, n) (GAOL v5): pow(x, 5L) and
     pow(x, 5LL) were ambiguous, a long being as far from an int as from an
     unsigned int and a double. gaol_pown() for an n within the ints,
     gaol_uipow() for one within the unsigned ints, as pow(I, int) and
-    pow(I, unsigned int), and beyond them gaol_pow_hybrid() of the
-    degenerate integer exponent [d], d being n converted to a double, an
-    integer beyond the ints as n: [-oo, +oo] for a nonempty I, as
-    gaol_pow_hybrid() gives for such an exponent, which the program would
-    otherwise write. Not interval(n), which is no degenerate exponent where
-    n is no double, and loses the negative bases (pow of IEEE 1788).
+    pow(I, unsigned int), and gaol_pown_ll() within 64 bits (GAOL v5: [-oo,
+    +oo] beyond the unsigned ints). Beyond the long longs, n is taken as
+    +-(2^63 - 1) for an odd n and +-(2^63 - 2) for an even one, the sign of n:
+    x^n is the same, every power of a double other than 0, +-1 and +-oo
+    being below 2^-1074 or above the largest double for |n| >= 2^63
+    ((1 + 2^-52)^(2^63) is e^2048, and (1 - 2^-53)^(2^63) e^-1024).
   */
   template <class T>
   GAOL_INLINE gaol_core::interval integer_power(const gaol_core::interval& I, T n)
@@ -1489,7 +1515,7 @@ namespace gaol_detail {
     if (integer_fits<unsigned int>(n)) {
       return gaol_core::gaol_uipow(I, static_cast<unsigned int>(n));
     }
-    return gaol_core::gaol_pow_hybrid(I, gaol_core::interval(static_cast<double>(n)));
+    return gaol_core::gaol_pown_ll(I, integer_as_long_long(n));
   }
 } // namespace gaol_detail
 
@@ -2611,7 +2637,8 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
   set_rounding(), round_upward_if_needed() and gaol_set_rounding_x86(), which
   GAOL 4.3.2 declared in gaol, get_flush_modes()...), the functions computing
   GAOL's powers, which gaol names pow (gaol_pown(), gaol_uipow(),
-  gaol_pow_real(), gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and
+  gaol_pown_ll(), gaol_pow_real(), gaol_pow_hybrid(), gaol_pown_exp(),
+  gaol_pow_exp()), and
   the other internals, those GAOL 4 declared in gaol too (f_negate(),
   f_negate_simple(), gaol_signbit(), uintdouble, ullidouble, Interval_struct,
   the_null_expr, prec_t, modulo_k_pi(), reset_fpu_cw(), round_downward_sse(),

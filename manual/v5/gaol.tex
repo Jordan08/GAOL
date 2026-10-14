@@ -1343,8 +1343,10 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   \code{K} by an infinite bound of \code{J} in a half of the register it did
   not keep ($K=\itv{2}{+\infty}$ and $J=\itv{-\infty}{2}$), and raised the
   division-by-zero exception where it divided a bound by a zero one there
-  ($K=\itv{-2}{-2}$ and $J=\itv{-2}{0}$). This list is not
-  exhaustive.\newinvfive
+  ($K=\itv{-2}{-2}$ and $J=\itv{-2}{0}$), and so did the division, the
+  relational division and the inverse of a divisor with a zero bound
+  (\code{interval(1,~2)/interval(0,~2)}, \code{inverse(interval(0,~2))},
+  \code{pow(interval(0,~2),~-1)}). This list is not exhaustive.\newinvfive
 \end{itemize}
 
 \noindent
@@ -1391,13 +1393,16 @@ The type \code{interval} of GAOL and its functions are in the namespace
 \file{gaol/gaol.h} declares and does not open:\newinvfive
 
 \begin{itemize}
-\item \code{gaol}, GAOL under its own names, which this manual uses;
+\item \code{gaol}, GAOL under its own names, which this manual uses, to stay
+  compatible with GAOL~4: a program written for GAOL~4 keeps its names and its
+  results there;
 \item \code{gaol\_ieee1788}, GAOL under the names of IEEE 1788-2015
-  (Chapter~\ref{chap:ieee1788}).
+  (Chapter~\ref{chap:ieee1788}), to follow the standard.
 \end{itemize}
 
 \noindent
-The two namespaces hold \code{interval}, and the functions that have the same
+The main difference between the two is the power, \code{pow} and
+\code{pown} (\pxref{sec:pow-namespaces}). The two namespaces hold \code{interval}, and the functions that have the same
 name and the same meaning in both (\code{sin}, \code{exp}, \code{sqrt},
 \code{min}\ldots) are the same functions, those of \code{gaol\_core}.
 \code{pow} and \code{textToInterval} are the ones whose meaning differs: each
@@ -1436,8 +1441,91 @@ GAOL~4 had in \code{gaol} without its manual documenting them: the functions
 The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
 a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
 exponent (\pxref{sec:powers}). In \code{gaol\_core}, its versions are named
-apart: \code{gaol\_pown()}, \code{gaol\_uipow()}, \code{gaol\_pow\_real()},
-\code{gaol\_pow\_hybrid()}, which are not in \code{gaol}.
+apart: \code{gaol\_pown()}, \code{gaol\_uipow()}, \code{gaol\_pown\_ll()},
+\code{gaol\_pow\_real()}, \code{gaol\_pow\_hybrid()}, which are not in
+\code{gaol}.
+
+\section{The powers in the two namespaces}\label{sec:pow-namespaces}
+%%----------------------------------------
+\cindex{pow!in the two namespaces}%
+
+The power is where \code{gaol} and \code{gaol\_ieee1788} differ.\newinvfive{}
+IEEE 1788-2015 has two powers (Table 9.1): \ieee{pown}$(x,n)$, the integer
+power, for an integer $n$, defined for every $x$, $x^0$ being $1$ and $0^n$
+having no value for $n<0$; and \ieee{pow}$(x,y)$, the real power
+$e^{y\log x}$, for an interval $y$, defined for $x>0$, and for $x=0$ when
+$y>0$. GAOL~4 had a single \code{pow}, which took the power of a negative
+base, and \code{gaol} keeps it: its \code{pow} is a hybrid of the two.
+
+\begin{itemize}
+\item In \code{gaol\_ieee1788}, \code{pown(x, n)} is the integer power, for an
+  $n$ of any integer type, and \code{pow(x, y)} the real power: only the part
+  of $x$ in \itv{0}{+\infty} counts, whatever $y$, and \code{pow(x, p)} with a
+  number $p$ is \code{pow(x, [p])}, an integer $p$ included.
+\item In \code{gaol}, \code{pow(x, y)} takes the integer power where the
+  exponent is an integer: an integer type, a double that is an integer, or a
+  degenerate interval \itv{n}{n} holding an integer, beyond the \code{int}s
+  too; any other exponent takes the real power of the standard. There is no
+  \code{pown} in \code{gaol}.
+\end{itemize}
+
+\begin{center}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{lll}
+    \hline
+    & \multicolumn{1}{c}{\code{gaol}} & \multicolumn{1}{c}{\code{gaol\_ieee1788}}\\
+    \hline\hline
+    \code{pow(\itv{-4}{-1}, 2)} & \itv{1}{16} & $\emptyset$ (\code{pown}: \itv{1}{16})\\
+    \code{pow(\itv{-2}{3}, 3)} & \itv{-8}{27} & \itv{0}{27}\\
+    \code{pow(\itv{0}{0}, 0)} & \itv{1}{1} & $\emptyset$ (\code{pown}: \itv{1}{1})\\
+    \code{pow(\itv{-2}{2}, -1)} & \itv{-\infty}{+\infty} & \itv{0.5}{+\infty}\\
+    \code{pow(\itv{-2}{-1}, \itv{10^{10}}{10^{10}})} & \itv{1}{+\infty} & $\emptyset$\\
+    \code{pow(\itv{-1}{4}, 0.5)} & \itv{0}{2} & \itv{0}{2}\\
+    \code{pow(\itv{0}{2}, -2)} & \itv{0.25}{+\infty} & \itv{0.25}{+\infty}\\
+    \hline
+  \end{tabular}
+\end{center}
+
+\noindent
+The two agree on $x\subseteq\itv{0}{+\infty}$ and on every exponent that holds
+no integer alone; they differ where $x$ has a negative part and the exponent is
+an integer, and at $0^0$. The \code{pow} of \code{gaol} is thus not monotone
+for the inclusion of its exponent: \code{pow(\itv{-4}{-1}, \itv{2}{2})} is
+\itv{1}{16}, and \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})}, whose exponent holds
+$2$, is empty; the \code{pow} of the standard is. Both give the tightest bounds
+(Chapter~\ref{chap:accuracy}).
+
+The rest of GAOL follows the same split. The expressions \code{pow(e, n)}
+and \code{pow(e1, e2)} of \code{gaol} are the hybrid power, \code{pown(e, n)}
+and \code{pow(e1, e2)} of \code{gaol\_ieee1788} the two powers of the
+standard. The text \code{"pow([-4,-1],2)"} is read as \itv{1}{16} by the
+\code{textToInterval} of \code{gaol}, and as the empty set by that of
+\code{gaol\_ieee1788}, which reads \code{pow} as the real power and
+\code{"pown([-4,-1],2)"} as the integer power, a name \code{gaol} does not
+read. The reverse functions are those of the standard in both namespaces:
+\code{pow\_rel} and \code{pow\_exponent\_rel} (\ieee{powRev1} and
+\ieee{powRev2}) reverse the real power, and \code{nth\_root\_rel}
+(\ieee{pownRev}) the integer power.
+
+A program written for GAOL~4, or for IBEX and Codac, whose intervals take the
+\code{pow} of GAOL, opens \code{gaol}; a program that wants the results of the
+standard, or compares GAOL with other libraries of IEEE 1788-2015, opens
+\code{gaol\_ieee1788}.
+
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+
+int main(void)
+{
+  gaol::interval x(-4, -1);
+  std::cout << gaol::pow(x, 2) << ' '
+            << gaol_ieee1788::pow(x, 2) << ' '
+            << gaol_ieee1788::pown(x, 2) << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[1, 16] [empty] [1, 16]~
+\end{example}
 
 \section{Common errors}
 %%---------------------
@@ -2856,13 +2944,13 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
     IEEE 1788-2015: \var{I} to the power \var{n}, the negative part of \var{I}
     included, $x^0=1$ for every $x$, 0 included, and no value at 0 for $n<0$;
     so do a double \var{p} and a degenerate interval $\var{J}=\itv{n}{n}$ whose
-    value is an integer within the \code{int}s, an integer beyond them giving
-    \itv{-\infty}{+\infty}; an exponent \var{n} of another integer type
-    (\code{long}, \code{long long}, \code{short}\dots), with which
-    \code{pow} was ambiguous, is taken as an \code{int} within the
-    \code{int}s, as an \code{unsigned int} within those, and beyond them
-    gives \itv{-\infty}{+\infty} for a nonempty \var{I}, as the degenerate
-    interval \itv{n}{n} would;\newinvfive
+    value is an integer, beyond the \code{int}s too;\newinvfive{} an exponent
+    \var{n} of another integer type (\code{long}, \code{long long},
+    \code{short}\dots), with which \code{pow} was ambiguous, gives the same
+    integer power, beyond 64 bits that of $\pm(2^{63}-1)$ or
+    $\pm(2^{63}-2)$, of the sign and the parity of \var{n}, every power of a
+    double but $0$, $\pm1$ and $\pm\infty$ being beyond the doubles
+    there;\newinvfive
   \item any other exponent takes the \emph{real power}, \ieee{pow} of
     IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty}, where $0^y$ is
     $0$ for $y>0$ and has no value for $y\leq0$. An exponent \itv{+\infty}{+\infty}
@@ -2874,9 +2962,14 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
   GAOL~4 truncated a double exponent \var{p}, and computed the powers of a
   negative base on its magnitude.
 
-  The integer powers are computed from exact products, and are the tightest
-  enclosures, or one double beyond where the power is within
-  $5n\log_2n\cdot2^{-104}$ of a double, relatively. The real power takes the
+  The integer powers are computed from exact products within the
+  \code{int}s, $x^{-n}$ included, and are the tightest enclosures, or one
+  double beyond where the power is closer to a double than twice a bound of
+  their error proved beforehand, $2^{-98}$ for $n=3$, $2^{-88}$ for
+  $n=1000$, $2^{-62}$ at most, relatively; they are exact where the power is
+  a double. Beyond the
+  \code{int}s, from the power of CORE-MATH at the bounds of \var{I}, the
+  tightest enclosures where $n$ is a double.\newinvfive{} The real power takes the
   power of CORE-MATH at the corners of the box $I\times J$ where it is the
   least and the greatest: the upper bound is the tightest one, and so is the
   lower bound, which is the power itself where it is a double, as $4^{0.5}$,
@@ -4675,8 +4768,8 @@ The functions of GAOL that have the name and the meaning the standard gives them
   integer that is no double: the power with an integer
   exponent is \code{pown(x, n)} in the standard, whose $n$ is an integer
   rather than an interval. An integer exponent beyond the \code{int}s gives
-  the power of CORE-MATH at the bounds of $x$, where the \code{pow} of
-  \code{gaol} gives \itv{-\infty}{+\infty};
+  the power of CORE-MATH at the bounds of $x$, as the \code{pow} of
+  \code{gaol} does on the whole of $x$;
 \item \code{inf(x)} and \code{sup(x)} are $+\infty$ and $-\infty$ for the empty
   set (Table 10.2), where \code{left()} and \code{right()} are NaN, and
   \code{inf} returns $-0$ for a left bound 0 (12.12.8);
@@ -4942,7 +5035,7 @@ covered.
   \code{floor}, \code{ceil}, \code{integer}, \code{sign}, \code{trunc}, \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}, \code{abs}, \code{min}, \code{max} & tightest, and exact, in every rounding direction\\
   \hline
   \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid required, accurate recommended}}\\
-  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & $n=0$, 1, 2: tightest. $n\geq3$: the tightest bounds, or one double beyond where the power is within $5n\log_2n\cdot2^{-104}$ of a double, relatively; exact where the power is a double; within about $2(n-1)$ doubles below $2^{-968}$, at the overflow and for a bound 0 or infinite, the same bounds with the SSE2 and the FPU intervals. Negative $n$: valid, within 2 doubles where $x^n$ comes from the exact products\\
+  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of either sign, or one double beyond where the power is within twice a bound of their error of a double, relatively (never for $n=2$, \code{sqr(x)}; $2^{-98}$ for $n=3$, $2^{-62}$ at most), below $2^{-968}$ and beyond the largest double too; exact where the power is a double; the same bounds with the SSE2 and the FPU intervals. Beyond the \code{int}s: tightest where $n$ is a double, within three doubles otherwise\\
   \code{pow(x, y)} (\ieee{pow}) & tightest, at the corners of the box and at their limits where the base is $0$ or $+\infty$ or the exponent infinite\\
   \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & tightest; exact where the value is a double ($\exp(0)$, $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
   \hline

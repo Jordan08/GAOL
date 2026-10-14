@@ -227,7 +227,7 @@ index 6edd823..f8f0967 100644
 +
 +// ==================================================================================================================
 +// ==================================================================================================================
-+// GAOL v5: include GAOL (https://github.com/Jordan08/GAOL), when CMake found it (USE_GAOL)
++// GAOL v5: include GAOL (https://github.com/Jordan08/GAOL), when CMake found it (USE_GAOL), under the names of IEEE 1788-2015
 +// GAOL computes with the rounding direction upward, and leaves it upward for the whole
 +// program, from its initialization (before main()) on, unless it is built with
 +// GAOL_PRESERVE_ROUNDING. GAOL_END(), after the lines of GAOL, sets the direction to nearest
@@ -238,14 +238,14 @@ index 6edd823..f8f0967 100644
 +// themselves.
 +#ifdef USE_GAOL
 +#include <gaol/gaol.h>
-+typedef gaol::interval gaol_interval;
++typedef gaol_ieee1788::interval gaol_interval;
 +double lower(const gaol_interval &v)
 +{
-+    return v.left();
++    return gaol_ieee1788::inf(v);
 +}
 +double upper(const gaol_interval &v)
 +{
-+    return v.right();
++    return gaol_ieee1788::sup(v);
 +}
 +#define GAOL_END() gaol::restore_rounding()
 +#define WITH_GAOL(...) __VA_ARGS__

@@ -716,11 +716,13 @@ namespace
       // an unsigned beyond the ints became a negative int, [0, 1] for
       // [1, 2]^3000000000u, nth_root(e, -2) took the order 4294967294, and a
       // long beyond the unsigned ints was reduced modulo 2^32. Beyond them,
-      // the roots of an expression are those of the intervals but where e
-      // contains 0 (see roots_of_expressions())
+      // the powers of an expression are those of the intervals (GAOL v5:
+      // [-oo, +oo]), the exponents being doubles here, and the roots those
+      // of the intervals but where e contains 0 (see roots_of_expressions())
       {pow(x, 3L), pow(interval(1.0, 2.0), 3), "x^3L"},
-      {pow(x, 3000000000u), interval::universe(), "x^3000000000u"},
-      {pow(x, 5000000000LL), interval::universe(), "x^5e9"},
+      {pow(x, 3000000000u), pow(interval(1.0, 2.0), 3000000000u), "x^3000000000u"},
+      {pow(x, 5000000000LL), pow(interval(1.0, 2.0), 5000000000LL), "x^5e9"},
+      {pow(-x, 5000000001LL), pow(interval(-2.0, -1.0), 5000000001LL), "(-x)^(5e9+1)"},
       {nth_root(x, 3L), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3L)"},
       {nth_root(y, -2), interval(1.0) / nth_root(interval(3.0, 4.0), 2u), "nth_root(y,-2)"},
       {nth_root(x, 5000000000LL), nth_root(interval(1.0, 2.0), 5000000000LL), "nth_root(x,5e9)"},

@@ -14,8 +14,9 @@
 #
 # S has to be the pow of IEEE 1788-2015 (Table 9.1): the hull of x^y over the
 # x of X in [0, +oo] and the y of Y, x = 0 taking only y > 0; H the same, but
-# for a degenerate integer exponent Y = [n]: pown(X, n) on the whole of X
-# within the ints, [-oo, +oo] beyond them. For each, the bounds have to enclose
+# for a degenerate integer exponent Y = [n]: pown(X, n) on the whole of X,
+# beyond the ints too (GAOL v5: [-oo, +oo] there before the third pull request
+# of point B). For each, the bounds have to enclose
 # the exact hull, and be at most --max-distance doubles (1 by default) from
 # the tightest ones, the doubles on each side of the exact bounds. Each result
 # is printed with its distances, and the tightest bounds where it is not them;
@@ -191,14 +192,12 @@ def exact_pown(X, n):
 
 
 def exact_gaol(X, Y):
-    """gaol::pow(X, Y): pown for a degenerate integer exponent, [-oo, +oo] beyond the ints, Table 9.1 otherwise"""
+    """gaol::pow(X, Y): pown for a degenerate integer exponent, Table 9.1 otherwise"""
     if X is None or Y is None:
         return None
     yl, yu = Y
     if yl == yu and abs(yl) < INF and yl == int(yl):
-        if -2147483648 <= yl <= 2147483647:
-            return exact_pown(X, int(yl))
-        return (-mpmath.inf, mpmath.inf)
+        return exact_pown(X, int(yl))
     return exact_standard(X, Y)
 
 

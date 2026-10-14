@@ -268,6 +268,7 @@ namespace gaol_names_absent
   template <class T = void> absent clear_flush_to_zero();
   absent gaol_pown(...);
   absent gaol_uipow(...);
+  absent gaol_pown_ll(...);
   absent gaol_pow_real(...);
   absent gaol_pow_hybrid(...);
   absent gaol_pown_exp(...);
@@ -313,6 +314,7 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((clear_flush_to_zero)());
   GAOL_NAMES_ABSENT((gaol_pown)(x(), 3));
   GAOL_NAMES_ABSENT((gaol_uipow)(x(), 3u));
+  GAOL_NAMES_ABSENT((gaol_pown_ll)(x(), 3LL));
   GAOL_NAMES_ABSENT((gaol_pow_real)(x(), 0.5));
   GAOL_NAMES_ABSENT((gaol_pow_hybrid)(x(), x()));
   GAOL_NAMES_ABSENT((gaol_pown_exp)(e(), 3));

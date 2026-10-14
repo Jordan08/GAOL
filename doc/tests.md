@@ -23,24 +23,41 @@ point Q), which `numbers` checks there too.
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
-  be the tightest enclosures, and so do square roots. Integer powers and n-th
-  roots have to be enclosures, within a few doubles, negative powers whose
-  x^n is beyond the largest double included, the odd roots of negative
-  numbers being the opposites of the roots of their magnitudes, and the n-th
-  roots of intervals the roots of their bounds (of their part in `[0, +oo]`
-  for an even n). `pow([10], -400)`, `pow([2], -1050)`, the negative powers of
-  intervals containing 0, and the roots of 0, 1 and −1 have to be the tightest
-  enclosures. `gaol::pow(x, n)` for an unsigned n has to give what it gives
+  be the tightest enclosures, and so do square roots and integer powers, of
+  either sign (GAOL v5): of doubles for n from 2 to 9, 16 and 31 to 33 and
+  for -1 to -4, -7, -16 and -33, of intervals for n from 2 to 5, 12 and 31
+  and for -1 to -3, -6 and -17, x^n beyond the largest double or subnormal
+  included, and for n < 0 the limits where x holds 0: [|x|^n, +oo] for an
+  even n, [-oo, +oo] for an odd n where x holds 0 inside, and the empty set
+  for [0] (GAOL v5: up to 2n doubles beyond the tightest bounds were
+  allowed for n > 0, and 8 for n < 0). N-th roots have to be enclosures, within a few doubles, the odd
+  roots of negative numbers being the opposites of the roots of their
+  magnitudes, and the n-th roots of intervals the roots of their bounds (of
+  their part in `[0, +oo]` for an even n). `pow([10], -400)`,
+  `pow([2], -1050)`, the negative powers of intervals containing 0, 23 powers
+  at a bound 0 or infinite or beyond the doubles, among them powers of corners
+  computed one at a time, scaled (`pow([1.0001], 7000000)`, about
+  9.8·10^303, and its inverse, against mpmath), and the roots of 0, 1 and -1
+  have to be the tightest enclosures; so do x^n over 4 000 intervals near the
+  ends of the doubles, with a bound 0, subnormal or infinite, or a power above
+  2^1100 or below 2^-1000, where GAOL v5 took the products rounded outward,
+  and its SSE2 and FPU intervals gave other bounds for half of them; the
+  powers that are doubles, 8 679 powers of integers times 2^-4, 1 and 2^4
+  and of intervals between them, and powers of two to negative exponents,
+  have to be exact, both bounds (GAOL v5: an error bound computed beforehand,
+  not left out there, made `pow([2, 3], 3)` [8 - 2^-50, 27 + 2^-48]).
+  x^2 has to be `sqr(x)`, the tightest, over 400 intervals near 1, 3, 0.75
+  and 2^-500, a square having no error bound, and (-c)^n has to be c^n or
+  -c^n, and the bound of a corner the same whether the other corner is
+  computed with it or alone, at 1 088 points near 1, 1.5 and 3, where the
+  power is within the error bound of a double: the lanes take |c|, the
+  products of c and -c rounded upward not being opposite.
+  `gaol::pow(x, n)` for an unsigned n has to give what it gives
   for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
   powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
   against bounds computed with mpmath: the lower bound left out the square of
   the rest it carries, and was 1962 doubles below the tightest for
-  `pow([1.0000001], 2^32 − 1)`. Where `pow(x, n)` takes the products rounded
-  outward (n = 1 and 2, a bound 0 or infinite, the power of a bound below
-  2^-968 or beyond the largest double), they have to be those of the binary
-  exponentiation from the lowest bit of n, each rounded in the direction set
-  for it: the SSE2 intervals multiplied from the highest bit, and their bounds
-  were not those of the FPU intervals (GAOL v5). The operators of an interval
+  `pow([1.0000001], 2^32 − 1)`. The operators of an interval
   with a double have to give, on bounds and doubles of special values (zeros of
   both signs, infinities, NaN), the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
@@ -117,7 +134,8 @@ point Q), which `numbers` checks there too.
   upward, or as they found it with `GAOL_PRESERVE_ROUNDING`: among them the
   roots of negative order and of an order beyond the unsigned ints, the
   integer powers that `pow(x, [n])`,
-  `pow(x, n.0)` and `gaol_ieee1788::pow(x, [n])` take, and `modulo_k_pi()`
+  `pow(x, n.0)` and `gaol_ieee1788::pow(x, [n])` take, those of large
+  exponents and beyond the ints, and `modulo_k_pi()`
   next to multiples of π, which compute after one check of the direction
   (GAOL v5). Products and sums
   have to be the tightest enclosures, also when computed in a loop that changes
@@ -163,9 +181,20 @@ point Q), which `numbers` checks there too.
   division-by-zero flag either, nor die with both exceptions enabled, and
   where J does not contain 0, give the extrema of the quotients of the bounds
   (the SSE2 intervals divided +oo by +oo, or a bound by a zero
-  one, in the half of a register they did not keep); 13 powers with an
+  one, in the half of a register they did not keep); and so do, for the same
+  K and J, `K/J`, `K%J`, `1.0/J`, `inverse(J)`, `pow(J, -1)` and
+  `pown(J, -1)`, the inverses being `[1]/J` and the quotients, where K does not
+  contain 0, `div_rel(K, J, [-oo, +oo])` (GAOL v5: the SSE2 intervals divided
+  a bound by a zero one in the half they threw away, `[1, 2]/[0, 2]` and
+  `inverse([0, 2])` raising the division-by-zero flag, where the FPU ones
+  raised none); 13 powers with an
   exponent of extreme magnitude, which have to be the tightest enclosures
-  (CORE-MATH's `pow` compares a NaN it makes on purpose there); and 29 loops
+  (CORE-MATH's `pow` compares a NaN it makes on purpose there); 13 integer
+  powers at the ends of the doubles, an infinite bound, an overflow, 0 for a
+  negative exponent, exponents beyond the ints, which have to be the tightest
+  enclosures, and `pow([5.3, 5.5], 25)`, whose rests of the exact products,
+  or-ed together, made the bits of a signaling NaN, which a comparison of
+  doubles raised the flag for (GAOL v5); and 29 loops
   of 64 relations, constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
   (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
@@ -471,7 +500,8 @@ point Q), which `numbers` checks there too.
   the order of the standard, `mulRev(b, c, x)` being `div_rel(c, b, x)`; `pow`
   against the pow of Table 9.1, which GAOL's own `pow` is not for a negative
   base, and at integer exponents beyond the ints, where it has to give the
-  tightest bounds and GAOL's own `pow` gives [-oo, +oo], and the empty set
+  tightest bounds on x >= 0 and GAOL's own `pow` the integer power on the
+  whole of x, and the empty set
   for a base with no point in [0, +oo], `pow([-4, -1], [DBL_MAX])` (GAOL v5).
   The reverse functions of max, min, sign and floor (`max_rel`, `min_rel`,
   `sign_rel`, `floor_rel`, GAOL v5) have to be the hulls of their sets, read
@@ -502,23 +532,32 @@ point Q), which `numbers` checks there too.
   is the overflowing power, which the conversion of the exponent to a negative
   `int` made a tiny one, `gaol::pow(x, 3L)`, which was ambiguous, the cube,
   `pown(x, -2L)` and `gaol::pow(x, -3LL)` the negative powers, and an exponent
-  beyond the unsigned ints [-oo, +oo]; `rootn()`, `gaol::nth_root()` and
+  beyond the unsigned ints the power, from CORE-MATH's pow (GAOL v5:
+  [-oo, +oo]): odd and even, the tightest bounds of mpmath beyond 2^53 where
+  it is a double, as `gaol::pow(x, [n])`, within three doubles of them where
+  it is none, beyond the long longs as for
+  ±(2^63 - 1) or ±(2^63 - 2), and beyond 64 bits for an `__int128` where it
+  is an integer type (the GNU modes of GCC and Clang); `rootn()`, `gaol::nth_root()` and
   `pownRev()` with a `long`, `long long`, `unsigned long` or `unsigned long long`
   order, and beyond
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
   `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,
-  [-oo, +oo]; `numsToInterval()` and `isMember()` take ±(2^53 + 1)
+  its power, and beyond 2^53 x^n, not the power of a double near n ([-1]
+  for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
+  `numsToInterval()` and `isMember()` take ±(2^53 + 1)
   as the integer it is, and bounds in the wrong order give the empty set;
-  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 114 boxes, each
+  the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 117 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
-  `gaol::pow` adds to it (the integer power, [-oo, +oo] beyond the ints), the
+  `gaol::pow` adds to it (the integer power, beyond the ints too), the
   corners where the base is 0 or +∞ or the exponent infinite included: they
   have to be the bounds the table gives, taken from the code and each checked
   against the exact power computed with 500 bits by mpmath
   (`tests/tools/pow/checkrows.py`), the tightest ones but for the integer
-  power `pow([0, 3], [100])` of the standard's pow, one double above
-  (GAOL v5), compared with `==`, which does not tell −0 from +0, and the
+  power `pow([0, 1 + 2^-52], [-2])`, one double below, (1 + 2^-52)^-2 being
+  within the error bound of the integer power of a double (GAOL v5: the
+  integer power `pow([0, 3], [100])` was one double above), compared with
+  `==`, which does not tell −0 from +0, and the
   same with the exponent given as a double;
   and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
   standard's too. GAOL's functions on intervals and on an interval
@@ -1111,10 +1150,13 @@ bounds, the sign of a zero aside. `gen_table.py` and `evalrows` read the table
 of `pow_on_boxes()` in `tests/ieee1788.cpp`, and write it again from the
 bounds of a build. `checkrows.py` checks those bounds against the exact
 powers, computed with 500 bits by mpmath. `mutate.py` builds GAOL with each
-of the deliberate errors in `pow` of its list, which `ieee1788` and
-`elementary` have to catch, but for those that give the same bounds, and
-runs `diffpow` on the errors no test catches. `bench.cpp` measures the time
-per call of each path of `pow`.
+of the deliberate errors in `pow` and in the integer powers of its list,
+which `ieee1788`, `elementary`, `arithmetic`, `rounding_direction` and
+`expressions` have to catch, but for those that give the same bounds, and
+runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
+rationals the induction that bounds the error of the integer powers
+beforehand (`pown_products()` in `gaol/gaol_interval.cpp`). `bench.cpp`
+measures the time per call of each path of `pow`.
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
 (`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed

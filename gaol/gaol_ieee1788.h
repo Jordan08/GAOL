@@ -35,8 +35,8 @@
 *     for x = 0 when y > 0, [p] being the exponent for a number p, an int
 *     included: the power with an integer exponent is pown(x, p) in the
 *     standard. gaol::pow takes that integer power for an integer exponent,
-*     which is defined for x < 0 too, and gives [-oo, +oo] for an integer
-*     beyond the ints. Neither pow is in gaol_core: each namespace has its own.
+*     which is defined for x < 0 too, beyond the ints as well (GAOL v5).
+*     Neither pow is in gaol_core: each namespace has its own.
 *     pown(e, n) and pow(e1, e2) build expressions (gaol/gaol_expression.h)
 *     computed with the pown and the pow of the standard;
 *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
@@ -136,7 +136,8 @@ namespace gaol_ieee1788 {
   /*!
   pown(x, p) for an integer p of another type (GAOL v5), as gaol::pow(x, p):
   an unsigned p beyond the ints was converted to a negative int, a long one
-  cut to an int; [-oo, +oo] beyond the unsigned ints for a nonempty x
+  cut to an int; gaol_pown_ll() beyond the unsigned ints, where it was
+  [-oo, +oo] for a nonempty x
   */
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pown(const interval& x, T p) { return ::gaol_detail::integer_power(x, p); }
@@ -145,8 +146,8 @@ namespace gaol_ieee1788 {
   pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
   [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is that
   pow there, but for a degenerate integer exponent [n], for which it takes
-  pown: the same on x >= 0 for an n within the ints, and [-oo, +oo] beyond
-  them, where pown cannot be called. x^n is monotone in x >= 0, so that its
+  pown, the same on x >= 0 (GAOL v5: [-oo, +oo] beyond the ints). x^n is
+  monotone in x >= 0, so that its
   bounds there are its tightest bounds at the bounds of x: CORE-MATH's pow,
   the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
   pow([2, 3], [1e10]) is [DBL_MAX, +oo],

@@ -663,6 +663,68 @@ namespace
   }
 
   /*
+    The divisions and the inverses of intervals with zero and infinite bounds
+    (GAOL v5): K/J, K%J, 1.0/J, inverse(J), pow(J, -1) and
+    gaol_ieee1788::pown(J, -1), for every K and J with bounds in {-oo, -2, -0,
+    0, 4, +oo}. With the SSE2 intervals, the branches keeping one half of a
+    quotient divided both halves, and the half thrown away divided a nonzero
+    bound by a zero one, which raised the division-by-zero exception
+    ([1, 2]/[0, 2], inverse([0, 2]), pow([0, 2], -1)), where the FPU intervals
+    raise nothing. The inverses are [1]/J; where K does not contain 0, K/J
+    and K%J are div_rel(K, J, [-oo, +oo]), the hull of the k/j for j != 0,
+    whose halves D.24 made apart.
+  */
+  bool divisions_with_zero_and_infinite_bounds_are_right()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    bool right = true;
+    for (const interval& j : intervals) {
+      const interval inv = interval(1.0)/opaque(j);
+      right = right && inverse(opaque(j)).set_eq(inv) && pow(opaque(j), -1).set_eq(inv)
+        && gaol_ieee1788::pown(opaque(j), -1).set_eq(inv) && (1.0/opaque(j)).set_eq(inv);
+      for (const interval& k : intervals) {
+        const interval q = opaque(k)/opaque(j), r = opaque(k)%opaque(j);
+        if (!k.set_contains(0.0)) {
+          const interval z = div_rel(opaque(k), opaque(j), interval::universe());
+          right = right && q.set_eq(z) && r.set_eq(z);
+        }
+      }
+    }
+    return right;
+  }
+
+  // The operations of divisions_with_zero_and_infinite_bounds_are_right()
+  // that raise the invalid-operation or the division-by-zero flag, each run
+  // alone, for the message of a failure
+  std::string divisions_raising()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    std::string raising;
+    const auto run = [&raising](const std::string& name, const std::function<interval()>& f) {
+      std::feclearexcept(FE_ALL_EXCEPT);
+      const interval z = f();
+      const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+      if (raised != 0) {
+        raising += " " + name + " = " + hex(z) + ((raised & FE_INVALID) ? " (invalid);" : " (division by zero);");
+      }
+    };
+    for (const interval& j : intervals) {
+      run("inverse(" + hex(j) + ")", [&j] { return inverse(opaque(j)); });
+      run("pow(" + hex(j) + ", -1)", [&j] { return pow(opaque(j), -1); });
+      run("pown(" + hex(j) + ", -1)", [&j] { return gaol_ieee1788::pown(opaque(j), -1); });
+      run("1.0/" + hex(j), [&j] { return 1.0/opaque(j); });
+      for (const interval& k : intervals) {
+        run(hex(k) + "/" + hex(j), [&k, &j] { return opaque(k)/opaque(j); });
+        run(hex(k) + "%" + hex(j), [&k, &j] { return opaque(k)%opaque(j); });
+        if (!k.set_contains(0.0)) {
+          run("div_rel(" + hex(k) + ", " + hex(j) + ", R)", [&k, &j] { return div_rel(opaque(k), opaque(j), interval::universe()); });
+        }
+      }
+    }
+    return raising.empty() ? std::string(" none when run alone") : raising;
+  }
+
+  /*
     pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
     pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
     |y| >= 2^1014, and compares the NaN product with <, which raised the
@@ -705,6 +767,35 @@ namespace
         return bounds_are(gaol_ieee1788::pow(make(0.0, 0.5), make(1e308, 1e308)), 0.0, smallest); } },
     { "gaol_ieee1788::pow([0.5, 2], [-1e308])", [] {
         return bounds_are(gaol_ieee1788::pow(make(0.5, 2.0), make(-1e308, -1e308)), 0.0, GAOL_INFINITY); } },
+  };
+
+  /*
+    Integer powers at the ends of the doubles (GAOL v5, points 8, 72, 73 and
+    74 of TODO.md): an infinite bound, a power beyond the largest double or
+    below the least subnormal, 0 for n < 0, and the exponents beyond the ints.
+    The exponentiation of the exact products would compute oo - oo there; it
+    is not run on these corners, which are taken one at a time, scaled. Its
+    rests, or-ed together to tell the exact powers, are compared as
+    integers: as doubles, the bits of [5.3, 5.5]^25 made a signaling NaN, and
+    the comparison raised the invalid-operation exception.
+  */
+  const EmptyOperand integer_powers_at_the_ends[] = {
+    { "pow([2, +oo], 3)", [] { return bounds_are(pow(make(2.0, GAOL_INFINITY), 3), 8.0, GAOL_INFINITY); } },
+    { "pow([-oo, -2], 3)", [] { return bounds_are(pow(make(-GAOL_INFINITY, -2.0), 3), -GAOL_INFINITY, -8.0); } },
+    { "pow([-oo, +oo], 4)", [] { return bounds_are(pow(make(-GAOL_INFINITY, GAOL_INFINITY), 4), 0.0, GAOL_INFINITY); } },
+    { "pow([2, +oo], -2)", [] { return bounds_are(pow(make(2.0, GAOL_INFINITY), -2), 0.0, 0.25); } },
+    { "pow([1e200, 1e201], 3)", [] { return bounds_are(pow(make(1e200, 1e201), 3), largest, GAOL_INFINITY); } },
+    { "pow([1e-200, 2], 3)", [] { return bounds_are(pow(make(1e-200, 2.0), 3), 0.0, 8.0); } },
+    { "pow([1e-200], -3)", [] { return bounds_are(pow(make(1e-200, 1e-200), -3), largest, GAOL_INFINITY); } },
+    { "pow([0, 2], -2)", [] { return bounds_are(pow(make(0.0, 2.0), -2), 0.25, GAOL_INFINITY); } },
+    { "pow([-2, 3], -3)", [] { return bounds_are(pow(make(-2.0, 3.0), -3), -GAOL_INFINITY, GAOL_INFINITY); } },
+    { "pow([5.3, 5.5], 25)", [] {
+        return bounds_are(pow(make(0x1.53904dcdd067fp+2, 0x1.5f7bfe0574cedp+2), 25),
+                          0x1.23b94c6b3ce21p+60, 0x1.5996e94ba6f8fp+61); } },
+    { "pow([2, +oo], 3000000000u)", [] { return bounds_are(gaol::pow(make(2.0, GAOL_INFINITY), 3000000000u), largest, GAOL_INFINITY); } },
+    { "pow([-oo, -0.5], -5e9 - 1)", [] {
+        return bounds_are(gaol::pow(make(-GAOL_INFINITY, -0.5), -5000000001LL), -GAOL_INFINITY, 0.0); } },
+    { "pow([0, 2], [-1e10])", [] { return bounds_are(pow(make(0.0, 2.0), make(-1e10, -1e10)), 0.0, GAOL_INFINITY); } },
   };
 
   /*
@@ -1111,6 +1202,11 @@ int main()
     { "sqr", [](const interval& x, const interval&) { return S(sqr(x)); } },
     { "pow(x,int)", [](const interval&, const interval& y) { return S(pow(y, 3)); } },
     { "pow(x,-int)", [](const interval&, const interval& y) { return S(pow(y, -3)); } },
+    { "pow(x,int) for a large int", [](const interval&, const interval& y) { return S(pow(y, 1000)); } },
+    { "pow(x,-int) for a large int", [](const interval&, const interval& y) { return S(pow(y, -1000)); } },
+    { "pow(x,unsigned) beyond the ints", [](const interval&, const interval& y) { return S(gaol::pow(y, 3000000001u)); } },
+    { "pow(x,long long) beyond 2^53", [](const interval&, const interval& y) { return S(gaol::pow(y, 9007199254740993LL)); } },
+    { "pow(x,[n]) beyond the ints", [](const interval&, const interval& y) { return S(pow(y, interval(-5e9))); } },
     { "pow(x,interval)", [](const interval& x, const interval& y) { return S(pow(y, x)); } },
     { "pow(x,double)", [](const interval&, const interval& y) { return S(pow(y, 2.5)); } },
     { "pow(x,interval) with a negative base", [](const interval&, const interval&) { return S(pow(interval(-4., 9.), interval(0.5))); } },
@@ -1953,6 +2049,14 @@ int main()
           [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
     check("div_rel with zero and infinite bounds: the quotients", right);
   }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = divisions_with_zero_and_infinite_bounds_are_right();
+    const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+    check("the divisions and inverses with zero and infinite bounds raise no invalid-operation nor division-by-zero flag",
+          raised == 0, [] { return "raised by" + divisions_raising(); });
+    check("the divisions and inverses with zero and infinite bounds: the quotients", right);
+  }
   for (const EmptyOperand& e : extreme_powers) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -1960,6 +2064,14 @@ int main()
     check("pow with an exponent of extreme magnitude raises no invalid-operation flag", raised == 0,
           [&] { return std::string(e.name); });
     check("pow with an exponent of extreme magnitude: the tightest enclosure", right, [&] { return std::string(e.name); });
+  }
+  for (const EmptyOperand& e : integer_powers_at_the_ends) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("an integer power at the ends of the doubles raises no invalid-operation flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("an integer power at the ends of the doubles: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
   {
     /* The differences of the bounds of cancel_minus() are computed by TwoSum
@@ -2049,9 +2161,17 @@ int main()
     const Outcome oq = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, quotients_with_zero_and_infinite_bounds_are_right);
     check("div_rel with zero and infinite bounds, FE_INVALID and FE_DIVBYZERO enabled", oq == returned_true,
           [&] { return outcome_text(oq); });
+    const Outcome od = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, divisions_with_zero_and_infinite_bounds_are_right);
+    check("the divisions and inverses with zero and infinite bounds, FE_INVALID and FE_DIVBYZERO enabled",
+          od == returned_true, [&] { return outcome_text(od); });
     for (const EmptyOperand& e : extreme_powers) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    for (const EmptyOperand& e : integer_powers_at_the_ends) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
+      check("an integer power at the ends of the doubles, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
     const Outcome oc = run_with_exceptions_enabled(FE_INVALID, [] {
