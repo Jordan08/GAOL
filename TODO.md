@@ -792,6 +792,74 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   publique, et pas de GitHub Release, l'étiquette suffisant (décidé le
   3 octobre).
 
+## Relecture du 14 octobre 2026 (branche `todo-b-pown`, #121)
+
+Relecture de la branche `todo-b-pown` (troisième pull request du point B, #121),
+faite le 14 octobre 2026. La branche est à `7f31f6b`, 20 commits au-dessus de
+`origin/configure-clean` à `88a0436`, 41 fichiers modifiés.
+
+### Vérifié
+
+- **Compilation** : CMake SSE2 avec GCC 15.2, tests et exemples, réussi ;
+  `-Wall -Wextra -Werror` avec GCC 15.2, réussi.
+- **Tests** : 57 sur 57 réussis (`ctest -j4`), `intervalf` et `interval2f`
+  sautés par construction.
+- **Commits** : auteur et committer `Jordan08 <jordan.ninin@gmail.com>`, pas de
+  `Co-Authored-By`, pas de mention de Claude, sujets en anglais.
+- **Trois builds** : pas de nouveau fichier source, `CMakeLists.txt`,
+  `Makefile.am`, `meson.build` inchangés, pas à mettre à jour.
+- **Documentation** : `README.md`, `doc/using.md`, `doc/accuracy.md`,
+  `doc/tests.md`, `manual/v5/gaol.tex` mis à jour, cohérents avec le code.
+- **Tests** : `tests/arithmetic.cpp`, `tests/ieee1788.cpp`,
+  `tests/elementary.cpp`, `tests/expressions.cpp`, `tests/rounding_direction.cpp`,
+  `tests/misc.cpp` mis à jour, avec des tests de non-régression qui ont des
+  dents (mutants dans `tests/tools/pow/mutate.py`, 79 mutants).
+
+### À faire
+
+- **B.121.1** : merger `origin/configure-clean` dans `todo-b-pown`. Le commit
+  `4d8942a` (« TODO.md: point B, the decisions of 14 October at the end of
+  #121 ») a été poussé sur `origin/configure-clean` le 14 octobre à 11:00, après
+  le dernier merge de la branche (`9a2dcef`, 14 octobre 00:10). La branche est
+  en retard d'un commit sur `TODO.md` : le diff montre une « suppression » de la
+  section « Décidé le 14 octobre », qui n'est que ce retard. **Décidé le
+  14 octobre : attendre**, le merge se fera plus tard.
+
+- **B.121.2** : deux sujets de commit dépassent 100 caractères (la règle dit
+  « sous 100 caractères environ ») :
+  - `80e03ea` : « pown after review: x^2 is sqr(x), lanes on |c|, n split
+    below its ulp, expressions beyond 2^53 as x^h x^l » (105 caractères) ;
+  - `57f2cab` : « doc/compare: GAOL v5 through gaol_ieee1788 in the benchmark,
+    besides gaol in the cases and the enclosure » (104 caractères).
+  **Décidé le 14 octobre : laisser tels quels** (4 à 5 caractères de trop,
+  la règle dit « environ 100 »).
+
+### Non vérifiable ici
+
+- Windows (Visual C++, clang-cl, MinGW-w64, MSYS2), macOS (AppleClang arm64 et
+  x86_64), ARM 32 et 64 bits, ppc64le, s390x, riscv64, Alpine : la CI les
+  couvre.
+- Le test des exposants de plus de 64 bits (`__int128`) ne tourne que dans les
+  modes GNU de GCC et Clang : vérifié à la main par l'auteur de la PR, pas dans
+  la CI (décision du 14 octobre).
+- La matrice complète de `process.md` 6.2 (autotools, meson, FPU, Clang 18,
+  sanitizers, préservation du sens d'arrondi, `headers.sh`, manuel) n'a pas été
+  relancée ici : elle est documentée dans la PR comme faite par l'auteur à
+  `80e03ea`.
+
+### Questions pour le mainteneur
+
+1. **B.121.q1** : faut-il merger `origin/configure-clean` dans `todo-b-pown`
+   maintenant (pour récupérer `4d8942a`), ou attendre que la PR soit relue ?
+   **Réponse (14 octobre) : attendre.**
+2. **B.121.q2** : les deux sujets de commit à 104 et 105 caractères sont-ils
+   acceptables (la règle dit « environ 100 »), ou faut-il les raccourcir ?
+   **Réponse (14 octobre) : laisser tels quels.**
+3. **B.121.q3** : la relecture a porté sur le code à `7f31f6b`. Faut-il que je
+   fasse d'autres vérifications (autotools, meson, FPU, Clang 18, sanitizers,
+   manuel) avant que tu fusionnes ?
+   **Réponse (14 octobre) : non, c'est suffisant.**
+
 ## Ménage
 
 - **Branches à supprimer sur GitHub** : celles d'« En cours », une fois
