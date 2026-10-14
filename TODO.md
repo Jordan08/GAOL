@@ -785,6 +785,20 @@ Reporté (#67).
   une, et comparer le code généré à celui de GAOL 4.2.3 (valgrind, `perf`
   n'étant pas permis sur cette machine). Corriger si la cause est dans GAOL.
 
+  Décidé le 14 octobre, sur #122 (mesuré sur le Xeon E3-1220 v6 seulement) :
+  - à la fusion de #122, AA est fait ;
+  - deux nouveaux points le suivent :
+    - relancer le banc de `doc/compare` sur l'i7-1185G7
+      (`CPU=2 ./run_bench.sh`), puis mettre à jour
+      `doc/compare/performance.md` (Shekel 5 à 282 ns contre 195) et les
+      temps AVX-512 de `doc/using.md` ;
+    - étudier `-mbranches-within-32B-boundaries` pour les builds de GAOL,
+      sur ce Xeon et sur l'i7 : l'erratum des sauts des processeurs
+      Skylake à Comet Lake y déplace une opération jusqu'à 1 ns selon le
+      seul placement du code ;
+  - la phrase « sqr et pown passent par uipow et gardent le comportement
+    actuel » de la décision du 5 octobre (point H) est retirée.
+
 ## La version
 
 ### Y. Préparer et publier v5.0.0 (32, 33, 34, 71)
