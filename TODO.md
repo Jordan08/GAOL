@@ -418,7 +418,7 @@ description de #121.
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-aa-shekel5` : le point AA, #122.
 
 ## Même fichier de test ou de documentation
 
