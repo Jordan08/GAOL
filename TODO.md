@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `eb51ca3` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `01a0252` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -371,11 +371,28 @@ ses bits dans `doc/using.md`, le manuel et `doc/tests.md`, et l'état de
 `process.md`. `bisect(ratio)` par les `quiet_*` va au point Z (décidé le
 13 octobre).
 
+Fait le 14 octobre : le point Z (ancien 75), par #120. Les treize options de
+`gaol/gaol_configuration.h` sont toujours définies, 1 ou 0, dans les trois
+builds, par un même bloc `#ifndef` à la fin des trois gabarits, et les macros
+de la cible (`GAOL_RND_*`, `GAOL_IX86_*`, `GAOL_ARM_MACOSX`,
+`GAOL_WORDS_BIGENDIAN`...) valent 0 là où elles n'étaient pas définies : un
+programme peut inclure GAOL sous `-Wundef -Werror`, ce que `headers.sh`
+vérifie dans les jobs d'avertissements (GCC et Clang sous Linux, AppleClang
+arm64). Les `defined()` et `#ifdef` que cela rendait toujours vrais lisent la
+valeur (`GAOL_PUBLIC`, l'allocation alignée de macOS, l'exemple 13,
+`diffpow.cpp`), et `tests/release_flags.py` lit `GAOL_DEBUGGING 1`.
+`bisect(ratio)` compare le ratio par les `quiet_*` de `gaol_detail`. Décidé
+pendant le travail : le bloc `#ifndef` plutôt que `#cmakedefine01`, qui
+entrait en conflit avec le `-DGAOL_DEBUGGING=1` de CMake en Debug sous un
+générateur multi-configuration ; `GAOL_SIZEOF_*` laissés à `<limits.h>` ; ni
+les tests ni les `.cpp` de la bibliothèque. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #120.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-z-wundef` : le point Z, #120.
+- `todo-b-pown` : la troisième pull request du point B, #121.
 
 ## Même changement, ou même code
 
@@ -686,39 +703,6 @@ Reporté (#67).
   VNODE-LP. Décidé le 3 octobre : les traits pour YalAA et le backend pour
   VNODE-LP, et non la promotion des en-têtes des exemples.
 
-### Z. `-Wundef` (75)
-
-- **75.** **Les en-têtes installés et les tests sous `-Wundef`** (relevé au
-  point F, décidé le 12 octobre : en faire un point). Un `#if` sur une macro
-  que rien ne définit avertit sous `-Wundef`, et un programme compilé en
-  `-Wundef -Werror` qui inclut GAOL échoue. Les en-têtes publics testent ainsi
-  `GAOL_PRESERVE_ROUNDING` (`gaol/gaol_fpu.h`), `GAOL_DEBUGGING` et
-  `GAOL_VERBOSE_MODE` (`gaol/gaol_common.h`) et `GAOL_WORDS_BIGENDIAN`
-  (`gaol/gaol_port.h`) ; les tests, `GAOL_TESTS_SSE`, indéfinie hors x86
-  (`tests/automatic_cleanup.cpp`, `tests/rounding_direction.cpp`), et
-  `GAOL_PRESERVE_ROUNDING` (`tests/automatic_cleanup.cpp`,
-  `tests/performance.cpp`, `tests/rounding_direction.cpp`). Relevé en
-  préprocessant les tests sans `__SSE2__` sur x86-64 (GCC 13.3) : d'autres
-  macros peuvent apparaître sur d'autres cibles. Correction : `#ifdef`, ou une
-  valeur par défaut de chaque macro, puis `-Wundef` dans
-  `.github/scripts/headers.sh`, qui compile déjà chaque en-tête installé seul
-  en `-Wall -Wextra -Werror`. Mesuré le 13 octobre (GAOL installé, GCC 13.3,
-  drapeaux de `gaol.pc`) : en SSE2, `GAOL_PRESERVE_ROUNDING`,
-  `GAOL_DEBUGGING`, `GAOL_VERBOSE_MODE` et `GAOL_WORDS_BIGENDIAN` ; en FPU,
-  `GAOL_USING_SSE2_INSTRUCTIONS` en plus ; sur ARM, sans doute aussi
-  `GAOL_RND_SSE_REGISTER`, `GAOL_RND_FPCR_REGISTER`, `GAOL_RND_X86_REGISTERS`
-  et `GAOL_IX86_*` (non compilé ici). Décidé le 13 octobre : chaque macro
-  testée par `#if` dans les en-têtes installés est toujours définie, à 0 ou
-  1, les options par `gaol_configuration.h` dans les trois builds, plutôt que
-  `#if defined(X) && X` ; un `#ifdef GAOL_PRESERVE_ROUNDING` d'un programme,
-  comme celui de l'exemple 13, devient toujours vrai : l'exemple est à
-  changer et `doc/differences.md` le dira. La portée : les en-têtes installés
-  et `-Wundef` dans `headers.sh`, ni les tests ni les `.cpp` de la
-  bibliothèque. Avec Z aussi, une suite de l'audit du 13 octobre :
-  `bisect(ratio)` (#99) compare le ratio par `std::isgreater` et
-  `std::isless`, deux appels à `_dpcomp` sous Visual C++, plutôt que par les
-  `gaol_detail::quiet_*` de #83.
-
 ### AA. Shekel 5, plus lent qu'avec GAOL 4 (76)
 
 - **76.** **Shekel 5 prend moitié plus de temps avec GAOL v5 qu'avec GAOL
@@ -815,7 +799,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
-  #118 et #119 après leur fusion, et la jetable de #116).
+  #118, #119 et #120 après leur fusion, et la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -833,7 +817,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 ## Table des anciens numéros
 
 1 : B ; 2 : B ; 8 : B ; 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ;
-37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ; 75 : Z ;
+37 : I ; 38 : I ; 51 : B ; 70 : I ; 71 : Y ; 72 : B ; 73 : B ; 74 : B ;
 76 : AA.
 
 ## Ordre proposé pour les tâches restantes
@@ -857,8 +841,8 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
-   comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96. Z
-   (`-Wundef`) et AA (Shekel 5) peuvent se faire à tout moment avant Y.
+   comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96, Z par
+   #120. AA (Shekel 5) peut se faire à tout moment avant Y.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
