@@ -30,7 +30,11 @@ point Q), which `numbers` checks there too.
   included, and for n < 0 the limits where x holds 0: [|x|^n, +oo] for an
   even n, [-oo, +oo] for an odd n where x holds 0 inside, and the empty set
   for [0] (GAOL v5: up to 2n doubles beyond the tightest bounds were
-  allowed for n > 0, and 8 for n < 0). N-th roots have to be enclosures, within a few doubles, the odd
+  allowed for n > 0, and 8 for n < 0). So do the squares of 31 intervals of
+  special bounds, 0 of both signs, infinite, or whose square is below the
+  smallest subnormal or beyond the largest double (GAOL v5, point AA: `sqr()`
+  of the SSE2 intervals computes its one product itself). N-th roots have to
+  be enclosures, within a few doubles, the odd
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
   their part in `[0, +oo]` for an even n). `pow([10], -400)`,

@@ -552,6 +552,59 @@ namespace
     }
   }
 
+  /*
+    Squares at special values: bounds 0 of both signs or infinite, squares
+    below the smallest subnormal or beyond the largest double, in the four
+    cases of the signs of the stored bounds of the SSE2 intervals (I
+    positive, negative, straddling 0, and [0, -0]). sqr() of the SSE2
+    intervals computes its one product itself, where it took the binary
+    exponentiation of the products rounded outward, for e = 2 (GAOL v5,
+    point AA of TODO.md). The bounds are the tightest, worked out by hand.
+  */
+  void squares_at_special_values()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const struct { const char *name; interval x; double lo, hi; } cases[] = {
+      { "sqr([0,2])", interval(0., 2.), 0., 4. },
+      { "sqr([-0,2])", interval(-0., 2.), 0., 4. },
+      { "sqr([-2,0])", interval(-2., 0.), 0., 4. },
+      { "sqr([-2,-0])", interval(-2., -0.), 0., 4. },
+      { "sqr([-3,2])", interval(-3., 2.), 0., 9. },
+      { "sqr([-2,3])", interval(-2., 3.), 0., 9. },
+      { "sqr([2,3])", interval(2., 3.), 4., 9. },
+      { "sqr([-3,-2])", interval(-3., -2.), 4., 9. },
+      { "sqr([0,0])", interval(0., 0.), 0., 0. },
+      { "sqr([-0,0])", interval(-0., 0.), 0., 0. },
+      { "sqr([0,-0])", interval(0., -0.), 0., 0. },
+      { "sqr([-0,-0])", interval(-0., -0.), 0., 0. },
+      { "sqr([1,+oo])", interval(1., inf), 1., inf },
+      { "sqr([-oo,-1])", interval(-inf, -1.), 1., inf },
+      { "sqr([0,+oo])", interval(0., inf), 0., inf },
+      { "sqr([-oo,0])", interval(-inf, 0.), 0., inf },
+      { "sqr([-oo,2])", interval(-inf, 2.), 0., inf },
+      { "sqr([-1,+oo])", interval(-1., inf), 0., inf },
+      { "sqr([-oo,+oo])", interval::universe(), 0., inf },
+      { "sqr([2^-1074])", interval(tiny), 0., tiny },
+      { "sqr([-2^-1074])", interval(-tiny), 0., tiny },
+      { "sqr([-2^-1074,2^-1074])", interval(-tiny, tiny), 0., tiny },
+      { "sqr([2^-600,2^-500])", interval(0x1p-600, 0x1p-500), 0., 0x1p-1000 },
+      { "sqr([3 2^-538]), between two subnormals", interval(0x1.8p-537), 2*tiny, 3*tiny },
+      { "sqr([-3 2^-538])", interval(-0x1.8p-537), 2*tiny, 3*tiny },
+      { "sqr([2^511])", interval(0x1p511), 0x1p1022, 0x1p1022 },
+      { "sqr([2^512])", interval(0x1p512), largest, inf },
+      { "sqr([-largest])", interval(-largest), largest, inf },
+      { "sqr([-largest,1])", interval(-largest, 1.), 0., inf },
+      { "sqr([1 + 2^-52])", interval(1.0 + 0x1p-52), 1.0 + 0x1p-51, 1.0 + 3*0x1p-52 },
+      { "sqr([-(1 + 2^-52),-1])", interval(-(1.0 + 0x1p-52), -1.), 1., 1.0 + 3*0x1p-52 },
+    };
+    for (const auto& c : cases) {
+      const interval r = sqr(c.x);
+      check(std::string(c.name) + ": the tightest", !r.is_empty() && r.left() == c.lo && r.right() == c.hi,
+            [&] { return hex(r); });
+    }
+    check("sqr(empty): empty", sqr(interval::emptyset()).is_empty(), [] { return std::string(); });
+  }
+
   // Integer powers at special values: a bound 0 or infinite, a power below
   // 2^-968 or beyond the largest double, negative powers of intervals with a
   // bound 0, the corners pown_upward() computes one at a time (GAOL v5: they
@@ -1094,6 +1147,7 @@ int main()
   products_with_infinite_bounds();
   unsigned_powers();
   negative_powers_at_special_values();
+  squares_at_special_values();
   powers_at_special_values();
   powers_near_the_ends();
   exact_powers();
