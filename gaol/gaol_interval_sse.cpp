@@ -325,14 +325,14 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   /*
     The square from one product, as the FPU intervals compute it (GAOL v5,
     point AA of TODO.md). It took the binary exponentiation of the products
-    rounded outward, uipow_rounded(I,2), whose first product, by 1, is exact,
-    and gives the same bounds, bit for bit: Clang 18 kept its loop for
-    e = 2, two products and three branches, and sqr() took 4.4 ns rather
-    than 2.6 (gaol_performance, Intel Xeon E3-1220 v6), 9.4 ns rather than
-    7.0 in the benchmark of doc/compare, where GAOL 4.2.3 takes 7.6. sqr()
-    was the last caller of uipow_rounded(), uipow_upup() and uipow_dnup(),
-    gone with it, as from the FPU intervals (x^n takes exact products, see
-    pown_products() in gaol_interval.cpp).
+    rounded outward, uipow_rounded(I,2), whose last product, of 1 by the
+    square, is exact, and gives the same bounds, bit for bit: Clang 18 kept
+    its loop for e = 2, two products and three branches, and sqr() took
+    4.4 ns rather than 2.5 (gaol_performance, Intel Xeon E3-1220 v6), 9.4 ns
+    rather than 7.2 in the benchmark of doc/compare, where GAOL 4.2.3 takes
+    7.6. sqr() was the last caller of uipow_rounded(), uipow_upup() and
+    uipow_dnup(), gone with it, as from the FPU intervals (x^n takes exact
+    products, see pown_products() in gaol_interval.cpp).
   */
   interval sqr(const interval& I)
   {
@@ -371,7 +371,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       // The AVX-512 path: no rounding direction to set, the flush-to-zero
       // modes cleared where they are set (gaol/gaol_interval_avx512.cpp)
       if (avx512_arithmetic) {
-        return fast_add_assign(*this, I.xmmbounds);
+        return fast_add_assign(*this, I);
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -384,7 +384,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     {
 #if GAOL_HAVE_AVX512_TARGET
       if (avx512_arithmetic) {
-        return fast_sub_assign(*this, I.xmmbounds);
+        return fast_sub_assign(*this, I);
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -404,7 +404,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
 #if GAOL_HAVE_AVX512_TARGET
       if (avx512_arithmetic) {
-        return fast_add_assign(*this, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
+        return fast_add_assign(*this, d); // <-l, r> + <-d, d>
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -421,7 +421,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
 #if GAOL_HAVE_AVX512_TARGET
       if (avx512_arithmetic) {
-        return fast_add_assign(*this, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
+        return fast_add_assign(*this, -d); // <-l, r> + <d, -d>
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -454,7 +454,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           xmmbounds = interval::m128_zero;
           return *this;
         }
-        return fast_mul_assign(*this, _mm_set_pd(d, -d));
+        return fast_mul_assign(*this, d);
       }
 #endif
       // The rounding direction checked before d is compared: with the modes
@@ -864,9 +864,11 @@ namespace {
   }
 
   // x *= y for nonempty x and y with an infinite bound, out of operator*=,
-  // where it is rare: operator*= calls it last, as a tail call, and keeps
-  // the code and the stack frame of a function calling none (the SSE2
-  // intervals are compiled by GCC and Clang only)
+  // where it is rare, and its code with it (the SSE2 intervals are compiled
+  // by GCC and Clang only). operator*= calls it last: GCC 13 makes it a
+  // tail call, Clang 18 a call, and both save registers in operator*=,
+  // which also calls fast_mul() on the AVX-512 path (GAOL v5, point AA of
+  // TODO.md)
   __attribute__((noinline, cold)) interval& multiply_with_infinities(interval& x, const interval& y)
   {
     x.get_xmminterval() = product_of_bounds(x.get_xmminterval(), y.get_xmminterval(), products_with_infinities());
@@ -934,7 +936,7 @@ interval& interval::operator/=(const interval& I)
 	/* The AVX-512 path: the quotients by the embedded rounding, the
 	   dispatch by the sign and the magnitude bits (see operator*= above) */
 	if (avx512_arithmetic) {
-		return fast_div_assign(*this, I.xmmbounds);
+		return fast_div_assign(*this, I);
 	}
 #endif
 	GAOL_RND_ENTER_SSE();

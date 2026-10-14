@@ -616,30 +616,34 @@
   }
 
   /*
-    x op= y on the AVX-512 path, y being the stored bounds of the other
-    operand, or the double d: operator+=, operator-= and operator/= of two
-    intervals and the four operators with a double
-    (gaol/gaol_interval_sse.cpp) call them last, as tail calls, and keep on
-    the SSE2 path the code and the stack frame of a function calling none.
-    Called there and followed by the store of their result, fast_add() and
-    the others made Clang 18 save a register and set up a stack frame in
-    these operators, on both paths: x + y took 3.0 ns rather than 2.7 on
-    the SSE2 path, x - y 3.0 rather than 2.5, x / y 7.0 rather than 6.7,
-    x + d 4.0 rather than 3.6, x * d 4.5 rather than 3.8 and x / d 4.5
-    rather than 3.9 (Clang 18, Intel Xeon E3-1220 v6, the library built
-    with -mbranches-within-32B-boundaries, without which the code placement
-    alone moves an operation by up to 1 ns on that processor). With the
-    square of one product (sqr() of gaol/gaol_interval_sse.cpp), Shekel 5
-    takes 274 ns rather than 358 in the benchmark of doc/compare, as with
-    GAOL 4.2.3 (274 ns). operator*= of two intervals keeps the stack frame
-    of its call of multiply_with_infinities(), and its call of fast_mul()
-    (GAOL v5, point AA of TODO.md).
+    x op= y on the AVX-512 path, y being the other interval, or the double
+    d: operator+=, operator-= and operator/= of two intervals and the four
+    operators with a double (gaol/gaol_interval_sse.cpp) call them last, as
+    tail calls, and keep on the SSE2 path the code and the stack frame of a
+    function calling none. Called there and followed by the store of their
+    result, fast_add() and the others made Clang 18 save a register and set
+    up a stack frame in these operators, on both paths: x + y took 3.0 ns
+    rather than 2.5 on the SSE2 path, x - y 3.0 rather than 2.5, x / y 7.0
+    rather than 6.6, x + d 4.0 rather than 3.5, x * d 4.5 rather than 4.0
+    and x / d 4.5 rather than 3.9 (Clang 18, Intel Xeon E3-1220 v6, the
+    library and the program built with -mbranches-within-32B-boundaries,
+    without which the code placement alone moves an operation by up to
+    1 ns on that processor). With the square of one product (sqr() of
+    gaol/gaol_interval_sse.cpp), Shekel 5 takes 263 ns rather than 358 in
+    the benchmark of doc/compare, and GAOL 4.2.3 274 ns. operator*=
+    of two intervals keeps the stack frame of its call of
+    multiply_with_infinities(), and its call of fast_mul() (GAOL v5, point
+    AA of TODO.md).
 
-    Their result goes through opaque(), an empty asm statement, which the
-    compiler does not see through, at no cost: seeing them return their
-    first argument, Clang 18 had the operator return that argument, kept
-    across the call in a saved register, rather than the result of the
-    call, which was then no tail call.
+    They take the other operand by reference, or the double by value, both
+    passed in registers in the calling conventions of x86-64 Linux, macOS
+    and Windows: a __m128d is passed by a hidden reference to a copy in the
+    frame of the caller on Windows (MinGW-w64, MSYS2), where no call taking
+    one can be a tail call. Their result goes through opaque(), an empty asm
+    statement, which the compiler does not see through, at no cost: seeing
+    them return their first argument, Clang 18 had the operator return that
+    argument, kept across the call in a saved register, rather than the
+    result of the call, which was then no tail call.
   */
   GAOL_INLINE interval& opaque(interval& x)
   {
@@ -648,31 +652,39 @@
     return *p;
   }
 
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, __m128d y)
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, const interval& y)
   {
-    x.get_xmminterval() = fast_add(x.get_xmminterval(), y);
+    x.get_xmminterval() = fast_add(x.get_xmminterval(), y.get_xmminterval());
     return opaque(x);
   }
 
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_sub_assign(interval& x, __m128d y)
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_sub_assign(interval& x, const interval& y)
   {
-    x.get_xmminterval() = fast_sub(x.get_xmminterval(), y);
+    x.get_xmminterval() = fast_sub(x.get_xmminterval(), y.get_xmminterval());
     return opaque(x);
   }
 
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_mul_assign(interval& x, __m128d y)
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, const interval& y)
   {
-    x.get_xmminterval() = fast_mul(x.get_xmminterval(), y);
+    x.get_xmminterval() = fast_div(x.get_xmminterval(), y.get_xmminterval());
     return opaque(x);
   }
 
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, __m128d y)
+  // x + [d, d], d finite: <-l, r> + <-d, d>. x - d is x + (-d)
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, double d)
   {
-    x.get_xmminterval() = fast_div(x.get_xmminterval(), y);
+    x.get_xmminterval() = fast_add(x.get_xmminterval(), _mm_set_pd(d, -d));
     return opaque(x);
   }
 
-  // d a nonzero double, finite: the bounds exchanged and d negated for a
+  // x * [d, d], d finite and nonzero, through the dispatch of fast_mul()
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_mul_assign(interval& x, double d)
+  {
+    x.get_xmminterval() = fast_mul(x.get_xmminterval(), _mm_set_pd(d, -d));
+    return opaque(x);
+  }
+
+  // x / d, d finite and nonzero: the bounds exchanged and d negated for a
   // negative one, as operator/=(double) does
   GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, double d)
   {

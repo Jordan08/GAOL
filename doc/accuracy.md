@@ -219,10 +219,11 @@ The bounds of this page are therefore those of every build of GAOL, and
 `tests/core_math.cpp` checks them against CORE-MATH called in the downward and
 the upward rounding, which are the tightest bounds there are.
 
-The SSE2 and the FPU intervals multiply the rounded products of the integer
-powers in the same order, from the lowest bit of n, and give the same bounds
-(GAOL v5: the SSE2 intervals multiplied from the highest bit, and the bounds
-of the two differed for about half of the intervals with a bound 0 or
+The SSE2 and the FPU intervals compute the integer powers with the same
+code, from exact products (`pown_products()` of `gaol/gaol_interval.cpp`), and
+the square from one product per bound, and give the same bounds (GAOL v5: the
+SSE2 intervals multiplied rounded products from the highest bit of n, and the
+bounds of the two differed for about half of the intervals with a bound 0 or
 infinite or whose power is beyond the exact products). The sign of a zero
 bound may differ: `sqr(interval(-2.0, 3.0))` is [−0, 9] with the SSE2
 intervals and [0, 9] with the FPU intervals.
