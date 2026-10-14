@@ -1154,7 +1154,10 @@ bounds.
   bound of `K` by an infinite bound of `J` in a half of the register it did
   not keep (`div_rel([2, +oo], [-oo, 2], I)`), and raised the
   division-by-zero exception where it divided a bound by a zero one there
-  (`div_rel([-2], [-2, 0], I)`). This list is not exhaustive.
+  (`div_rel([-2], [-2, 0], I)`), and so did the division, the relational
+  division and the inverse of a divisor with a zero bound (`[1, 2]/[0, 2]`,
+  `[1, 2]%[-2, 0]`, `inverse([0, 2])`, `pow([0, 2], -1)`). This list is not
+  exhaustive.
 
 An empty operand, and the nonempty operands tested, raising no
 invalid-operation exception therefore does not make that exception safe to

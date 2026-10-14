@@ -1132,6 +1132,15 @@ interval& interval::operator*=(const interval& I)
 #endif
 
 
+/*
+  Where a branch keeps one half of a division, the other half is not
+  computed, as in div_rel(): _mm_div_sd() divides the low halves alone, the
+  kept quotient being moved to the high half where it belongs (GAOL v5). The
+  half thrown away divided a nonzero bound by a zero one (N1 N0, N1 P0,
+  P1 N0, P1 P0), which raised the division-by-zero exception, [1, 2]/[0, 2]
+  among them, where the FPU intervals, which divide the kept bounds alone,
+  raise nothing. operator%=() below does the same.
+*/
 interval& interval::operator/=(const interval& I)
 { // TODO: replace left() and right() by local variable
 	if (is_empty() || I.is_empty()) {
@@ -1157,14 +1166,16 @@ interval& interval::operator/=(const interval& I)
 				if ( I.left() == 0.0 ) { // [I] Z
 					*this = interval::emptyset(); // N1 Z
 				} else {
-					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
+					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
 				}
 			} else { // [I] P or M
 				if ( I.left() < 0.0 ) { // [I] M
 					*this = interval::universe(); // N1 M
 				} else { // [I] P0 or P1
 					if ( I.left() == 0.0 ) { // [I] P0
-						xmmbounds = _mm_move_sd(_mm_div_pd(xmmbounds,I.xmmbounds),interval::m128_infinf);// N1 P0
+						xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,
+						                           _mm_div_sd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
+						                                      _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds))); // N1 P0
 					} else { // [I] P1
 						xmmbounds = _mm_div_pd(xmmbounds,_mm_xor_pd(I.xmmbounds,interval::lbsignmask)); // N1 P1
 					}
@@ -1265,9 +1276,7 @@ interval& interval::operator/=(const interval& I)
 							if ( I.left() == 0.0 ) { // [I] Z
 								*this = interval::emptyset(); // P1 Z
 							} else {
-								xmmbounds = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
-																			  _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
-															   interval::m128_infinf); // P1 N0
+								xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(xmmbounds,I.xmmbounds)); // P1 N0
 							}
 						} else { // [I] P or M
 							if ( I.left() < 0.0 ) { // [I] M
@@ -1275,8 +1284,7 @@ interval& interval::operator/=(const interval& I)
 							} else { // [I] P0 or P1
 								if ( I.left() == 0.0 ) { // [I] P0
 									xmmbounds = _mm_move_sd(interval::m128_infinf,
-														         _mm_div_pd(xmmbounds,
-                                                              _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
+									                        _mm_div_sd(xmmbounds,_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
 								} else { // [I] P1
 									__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
 									xmmbounds = _mm_div_pd(xmmbounds,_mm_shuffle_pd(r1,r1,1));// P1 P1
@@ -1297,14 +1305,20 @@ interval& interval::operator/=(const interval& I)
 // powers and nth_root(I, q) for q < 0 call (GAOL v5)
 #define OPT_INV 1
 #if OPT_INV
-// The rounding direction being upward already (see gaol_interval.h)
+/*
+  The rounding direction being upward already (see gaol_interval.h). A zero
+  bound is divided by 1 rather than 0, its quotient being thrown away: -1/0
+  raised the division-by-zero exception, inverse([0, 2]) and pow([0, 2], -1)
+  among them, where the FPU intervals raise nothing (GAOL v5)
+*/
 interval interval::inverse_upward(const interval& I)
 {
   const __m128d xmmbounds = I.xmmbounds;
   __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == < d, c >
   __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
-  __m128d r3 = _mm_div_pd(interval::m128_minus_one,r2); // r3 == < -1/c, -1/d >
   __m128d r4 = _mm_cmpeq_pd(r2,interval::m128_zero); // r4 == < c==0, d==0 >
+  // r3 == < -1/c, -1/d >, -1 or 1 where c or d is +-0
+  __m128d r3 = _mm_div_pd(interval::m128_minus_one,_mm_or_pd(r2,_mm_and_pd(r4,_mm_set1_pd(1.0))));
   __m128d r5 = _mm_shuffle_pd(r4,r4,1); // r5 == < d==0, c==0 >
   __m128d r6 = _mm_and_pd(r4,r5); // r6 == < c==0 && d==0, c==0 && d==0 >
   __m128d r7 = _mm_and_pd(r6,interval::m128_nan); // < r7 == < (c==0 && d==0) ? NaN : 0, (c==0 && d==0) ? NaN : 0 >
@@ -1399,14 +1413,16 @@ interval interval::inverse() const
 				if ( I.left() == 0.0 ) { // [I] Z
 					*this = interval::emptyset(); // N1 Z
 				} else {
-					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
+					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
 				}
 			} else { // [I] P or M
 				if ( I.left() < 0.0 ) { // [I] M
 					*this = interval::universe(); // N1 M
 				} else { // [I] P0 or P1
 					if ( I.left() == 0.0 ) { // [I] P0
-						xmmbounds = _mm_move_sd(_mm_div_pd(xmmbounds,I.xmmbounds),interval::m128_infinf);// N1 P0
+						xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,
+						                           _mm_div_sd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
+						                                      _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds))); // N1 P0
 					} else { // [I] P1
 						xmmbounds = _mm_div_pd(xmmbounds,_mm_xor_pd(I.xmmbounds,interval::lbsignmask)); // N1 P1
 					}
@@ -1483,9 +1499,7 @@ interval interval::inverse() const
 							if ( I.left() == 0.0 ) { // [I] Z
 								*this = interval::emptyset(); // P1 Z
 							} else {
-								xmmbounds = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
-																			  _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
-															   interval::m128_infinf); // P1 N0
+								xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(xmmbounds,I.xmmbounds)); // P1 N0
 							}
 						} else { // [I] P or M
 							if ( I.left() < 0.0 ) { // [I] M
@@ -1493,8 +1507,7 @@ interval interval::inverse() const
 							} else { // [I] P0 or P1
 								if ( I.left() == 0.0 ) { // [I] P0
 									xmmbounds = _mm_move_sd(interval::m128_infinf,
-														         _mm_div_pd(xmmbounds,
-                                                              _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
+									                        _mm_div_sd(xmmbounds,_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
 								} else { // [I] P1
 									__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
 									xmmbounds = _mm_div_pd(xmmbounds,_mm_shuffle_pd(r1,r1,1));// P1 P1

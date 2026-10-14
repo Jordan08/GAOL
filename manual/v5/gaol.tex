@@ -1343,8 +1343,10 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   \code{K} by an infinite bound of \code{J} in a half of the register it did
   not keep ($K=\itv{2}{+\infty}$ and $J=\itv{-\infty}{2}$), and raised the
   division-by-zero exception where it divided a bound by a zero one there
-  ($K=\itv{-2}{-2}$ and $J=\itv{-2}{0}$). This list is not
-  exhaustive.\newinvfive
+  ($K=\itv{-2}{-2}$ and $J=\itv{-2}{0}$), and so did the division, the
+  relational division and the inverse of a divisor with a zero bound
+  (\code{interval(1,~2)/interval(0,~2)}, \code{inverse(interval(0,~2))},
+  \code{pow(interval(0,~2),~-1)}). This list is not exhaustive.\newinvfive
 \end{itemize}
 
 \noindent

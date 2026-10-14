@@ -181,7 +181,13 @@ point Q), which `numbers` checks there too.
   division-by-zero flag either, nor die with both exceptions enabled, and
   where J does not contain 0, give the extrema of the quotients of the bounds
   (the SSE2 intervals divided +oo by +oo, or a bound by a zero
-  one, in the half of a register they did not keep); 13 powers with an
+  one, in the half of a register they did not keep); and so do, for the same
+  K and J, `K/J`, `K%J`, `1.0/J`, `inverse(J)`, `pow(J, -1)` and
+  `pown(J, -1)`, the inverses being `[1]/J` and the quotients, where K does not
+  contain 0, `div_rel(K, J, [-oo, +oo])` (GAOL v5: the SSE2 intervals divided
+  a bound by a zero one in the half they threw away, `[1, 2]/[0, 2]` and
+  `inverse([0, 2])` raising the division-by-zero flag, where the FPU ones
+  raised none); 13 powers with an
   exponent of extreme magnitude, which have to be the tightest enclosures
   (CORE-MATH's `pow` compares a NaN it makes on purpose there); 13 integer
   powers at the ends of the doubles, an infinite bound, an overflow, 0 for a

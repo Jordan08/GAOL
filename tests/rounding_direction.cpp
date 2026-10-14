@@ -663,6 +663,37 @@ namespace
   }
 
   /*
+    The divisions and the inverses of intervals with zero and infinite bounds
+    (GAOL v5): K/J, K%J, 1.0/J, inverse(J), pow(J, -1) and
+    gaol_ieee1788::pown(J, -1), for every K and J with bounds in {-oo, -2, -0,
+    0, 4, +oo}. With the SSE2 intervals, the branches keeping one half of a
+    quotient divided both halves, and the half thrown away divided a nonzero
+    bound by a zero one, which raised the division-by-zero exception
+    ([1, 2]/[0, 2], inverse([0, 2]), pow([0, 2], -1)), where the FPU intervals
+    raise nothing. The inverses are [1]/J; where K does not contain 0, K/J
+    and K%J are div_rel(K, J, [-oo, +oo]), the hull of the k/j for j != 0,
+    whose halves D.24 made apart.
+  */
+  bool divisions_with_zero_and_infinite_bounds_are_right()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    bool right = true;
+    for (const interval& j : intervals) {
+      const interval inv = interval(1.0)/opaque(j);
+      right = right && inverse(opaque(j)).set_eq(inv) && pow(opaque(j), -1).set_eq(inv)
+        && gaol_ieee1788::pown(opaque(j), -1).set_eq(inv) && (1.0/opaque(j)).set_eq(inv);
+      for (const interval& k : intervals) {
+        const interval q = opaque(k)/opaque(j), r = opaque(k)%opaque(j);
+        if (!k.set_contains(0.0)) {
+          const interval z = div_rel(opaque(k), opaque(j), interval::universe());
+          right = right && q.set_eq(z) && r.set_eq(z);
+        }
+      }
+    }
+    return right;
+  }
+
+  /*
     pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
     pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
     |y| >= 2^1014, and compares the NaN product with <, which raised the
@@ -1987,6 +2018,14 @@ int main()
           [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
     check("div_rel with zero and infinite bounds: the quotients", right);
   }
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = divisions_with_zero_and_infinite_bounds_are_right();
+    const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+    check("the divisions and inverses with zero and infinite bounds raise no invalid-operation nor division-by-zero flag",
+          raised == 0, [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
+    check("the divisions and inverses with zero and infinite bounds: the quotients", right);
+  }
   for (const EmptyOperand& e : extreme_powers) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -2091,6 +2130,9 @@ int main()
     const Outcome oq = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, quotients_with_zero_and_infinite_bounds_are_right);
     check("div_rel with zero and infinite bounds, FE_INVALID and FE_DIVBYZERO enabled", oq == returned_true,
           [&] { return outcome_text(oq); });
+    const Outcome od = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, divisions_with_zero_and_infinite_bounds_are_right);
+    check("the divisions and inverses with zero and infinite bounds, FE_INVALID and FE_DIVBYZERO enabled",
+          od == returned_true, [&] { return outcome_text(od); });
     for (const EmptyOperand& e : extreme_powers) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
