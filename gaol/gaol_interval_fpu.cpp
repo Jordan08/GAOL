@@ -312,14 +312,21 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
 
-  // The rounding direction being upward already (see gaol_interval.h)
+  /*
+    The rounding direction being upward already (see gaol_interval.h). The
+    bound that is 0 in the other branch, I.rb_ for N1 and I.lb_ for P1, is
+    read in its branch (read_in_branch(), gaol/gaol_interval.cpp): AppleClang
+    computed -1/I.rb_ for N0 too, inverse() choosing between the branches
+    afterwards, and inverse([-2, 0]) raised the division-by-zero exception
+    (macOS arm64, GAOL_PRESERVE_ROUNDING; GAOL v5)
+  */
   interval interval::inverse_upward(const interval& I)
   {
     interval res;
     if (I.right() <= 0.0) { // (Z N0 N1)
       if (I.left() < 0) { // (N0 N1)
         if (I.right() < 0) { // N1
-          res.lb_ = (-1.0)/I.rb_;
+          res.lb_ = (-1.0)/read_in_branch(I.rb_);
           res.rb_ = (-1.0)/I.lb_;
         } else { // N0
           res.lb_ = GAOL_INFINITY;
@@ -337,7 +344,7 @@ double hausdorff(const interval &I1, const interval &I2)
           res.rb_ = GAOL_INFINITY;
         } else { // P1
           res.lb_ = (-1.0)/I.rb_;
-          res.rb_ = (-1.0)/I.lb_;
+          res.rb_ = (-1.0)/read_in_branch(I.lb_);
         }
       }
     }

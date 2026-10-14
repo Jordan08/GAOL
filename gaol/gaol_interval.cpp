@@ -126,6 +126,25 @@ namespace gaol_core {
   using namespace gaol_detail;
   const double two_power_52 = 4503599627370496.0;
 
+  /*
+    x read through a volatile, for an operation that a test leaves out where
+    it would raise an exception flag (GAOL v5): no compiler reads a volatile
+    the program does not, so that the operation stays in the branch the test
+    takes. Clang for 64-bit ARM computed both sides of such tests and chose
+    between them afterwards (fcsel): floor_rel([DBL_MAX], [0, 1]) raised the
+    overflow flag with DBL_MAX + 1 (Clang 18 and 21 at -O3, AppleClang),
+    atan2_rel_y([0], [3, +oo], [-oo, -0]) the invalid-operation one
+    (AppleClang), where the slope 0 leaves out the product +oo * 0, and the
+    inverse of the FPU intervals, inverse([-2, 0]), the division-by-zero one
+    with -1/0 (AppleClang, GAOL_PRESERVE_ROUNDING) (tests/rounding_direction.cpp,
+    tests/reverse.cpp).
+  */
+  static inline double read_in_branch(double x)
+  {
+    const volatile double v = x;
+    return v;
+  }
+
 #if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
   // Set by init() (gaol/gaol_common.cpp), from the GAOL_PREFER_AVX512 of the
   // build and the instructions the processor has: +, -, *, / and sqrt take
@@ -4569,23 +4588,6 @@ interval nth_root(const interval& I, int q)
     The bounds of C are compared with the doubles around pi/2 and pi, which
     are no doubles: theta <= pi/2 is theta <= half_pi_dn.
   */
-
-  /*
-    x read through a volatile, for an operation that a test leaves out where
-    it would raise an exception flag (GAOL v5): no compiler reads a volatile
-    the program does not, so that the operation stays in the branch the test
-    takes. Clang for 64-bit ARM computed both sides of such tests and chose
-    between them afterwards (fcsel): floor_rel([DBL_MAX], [0, 1]) raised the
-    overflow flag with DBL_MAX + 1 (Clang 18 and 21 at -O3, AppleClang), and
-    atan2_rel_y([0], [3, +oo], [-oo, -0]) the invalid-operation one
-    (AppleClang), where the slope 0 leaves out the product +oo * 0
-    (tests/rounding_direction.cpp, tests/reverse.cpp).
-  */
-  static inline double read_in_branch(double x)
-  {
-    const volatile double v = x;
-    return v;
-  }
 
   // [a, b], or [-b, -a] when negated, a zero bound being +0 (the opposite of
   // a zero bound, and the upper bound -0 of X or Y, gave -0)
