@@ -341,8 +341,8 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
   libtool de Debian (2.5.4-9), dont les correctifs entreraient dans
   `configure`. Le diff de `configure` ne doit contenir que l'effet de ton
   changement.
-- **Le lexer et le parser** : `sh gaol/regenerate_parser.sh`, avec bison 3.8.2
-  et flex 2.6.4.
+- **Le lexer et le parser** : `sh gaol/parser/regenerate_parser.sh`, avec bison
+  3.8.2 et flex 2.6.4.
 - Les fichiers du dépôt sont en LF. Seul `manual/v4/relation-cos.tex` est en
   CRLF, et `manual/v4` ne se touche pas.
 

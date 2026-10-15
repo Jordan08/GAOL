@@ -1042,6 +1042,11 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   158 s pour `arithmetic` seul sous les sanitizers). Les 10 autres tests clés
   couvrent les chemins modifiés récemment. À relancer complet au point Y si
   besoin.
+- **CC.m3** : `coverage/coverage.html` (rapport gcovr commis) n'a pas été
+  régénéré après le déplacement du parser dans `gaol/parser/` : il faudra le
+  refaire tourner (`cmake --build <build> --target coverage`) au prochain
+  bilan de couverture. Les chemins de `coverage/README.md` ont été mis à jour
+  à la main (les numéros de ligne ne changent pas avec le déplacement).
 
 ### Questions pour le mainteneur
 
@@ -1056,6 +1061,71 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 3. **CC.q3** : les 12 issues ouvertes (#64 à #70, #80, #101, #102, #104, #107,
    #49) : faut-il en traiter certaines avant le point Y (publication v5.0.0) ?
    **Réponse (14 octobre) : on verra ça plus tard.**
+4. **CC.q4** : le déplacement du parser dans `gaol/parser/` (15 octobre)
+   installe les 5 en-têtes publics (`gaol_expression.h`, `gaol_expr_eval.h`,
+   `gaol_expr_visitor.h`, `gaol_eval_stack.h`, `gaol_parser.h`) dans
+   `include/gaol/parser/` : un programme inclut désormais
+   `gaol/parser/gaol_expression.h` et non plus `gaol/gaol_expression.h`.
+   C'est une rupture de l'interface pour les programmes GAOL v5 écrits avant
+   (v5 n'est pas encore publié). Faut-il garder ce sous-répertoire dans le
+   chemin d'installation, ou installer les en-têtes directement dans
+   `include/gaol/` (les sources restant dans `gaol/parser/`) ?
+
+### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
+
+Demandé par le mainteneur le 15 octobre : tout ce qui concerne le parser de
+GAOL et les expressions dans `gaol/parser/` (exemple donné :
+`gaol/gaol_expr_visitor.h`). Fait sur `configure-clean` :
+
+- **13 fichiers déplacés** (`git mv`) : `gaol_expr_visitor.h`,
+  `gaol_expression.h`, `gaol_expression.cpp`, `gaol_expr_eval.h`,
+  `gaol_eval_stack.h`, `gaol_interval_parser.ypp/.cpp/.h`,
+  `gaol_interval_lexer.lpp/.cpp`, `gaol_parser.h`, `gaol_parser.cpp`,
+  `regenerate_parser.sh`.
+- **Includes et commentaires** mis à jour dans les sources (`gaol_common.cpp`,
+  `gaol_interval.cpp`, `gaol_interval.h`, `gaol_common.h`, `gaol_ieee1788.h`,
+  `gaol_exceptions.h`, les fichiers de `gaol/parser/` eux-mêmes) et dans les
+  tests (`misc.cpp`, `debugging.cpp`, `expressions.cpp`, `ieee1788.cpp`).
+- **Les trois builds** : `CMakeLists.txt` (sources, en-têtes installés, cible
+  `parser`), `Makefile.am` de `gaol/` et de la racine (sources, en-têtes
+  installés, cible `parser`), `Makefile.in` régénérés avec automake 1.18.1 ;
+  `meson.build` de `gaol/` et de la racine (sources, en-têtes installés,
+  `run_target('parser')`).
+- **Installation** : les 5 en-têtes publics dans `include/gaol/parser/`
+  (`gaol_interval_parser.h` reste non installé) ; vérifié avec les trois
+  builds. Question CC.q4 sur ce chemin.
+- **Fichiers générés** : `gaol_interval_lexer.cpp`,
+  `gaol_interval_parser.cpp` et `gaol_interval_parser.h` régénérés par
+  `sh gaol/parser/regenerate_parser.sh` (flex 2.6.4, bison 3.8.2) ; la cible
+  `parser` des trois builds donne les mêmes fichiers octet pour octet.
+- **CI et scripts** : `.github/workflows/linux.yml` et `build-systems.yml`
+  (contrôles d'installation), `.github/scripts/headers.sh` (teste chaque
+  en-tête de `include/gaol/parser/` seul), `.github/scripts/tests.sh`,
+  `tests/tools/pow/mutate.py`, `todo-notes/orchestration/bin/check_branch`,
+  `cmake/msvc/unistd.h`.
+- **Documentation** : `doc/using.md`, `doc/building.md`,
+  `doc/differences.md`, `doc/continuous-integration.md`, `doc/tests.md`,
+  `examples/examples.md`, `manual/v5/gaol.tex`, `manual/check_examples.py`,
+  `coverage/README.md`, `process.md`.
+- **Corrigé en cours de route** : `make distclean` laissait le répertoire
+  `gaol/parser/.deps` (les sources du parser étant dans un sous-répertoire,
+  `subdir-objects`) ; `distclean-local` de `gaol/Makefile.am` le supprime
+  maintenant.
+
+Validé (matrice complète de `process.md` 6.2, 2 cœurs) : CMake SSE2, FPU et
+Clang 18, tests et exemples, **57/57 tests** chacun ; `-Wall -Wextra -Werror`
+GCC et Clang 18 sans avertissement ; ASan/UBSan (Debug) **41/41 tests** ;
+autotools `configure`/`make`/`make install`/`make check` (29 réussis, 2
+skippés par construction, 16 exemples), `make distclean` rend l'arbre tel que
+git l'a ; meson `compile`/`install`/`test` (29 réussis, 2 skippés) ; le GAOL
+installé : `tests.sh` shared et static, `pkg-config`, `headers.sh` (GCC et
+Clang, chaque en-tête de `include/gaol/parser/` compilé seul) ; la cible
+`parser` des trois builds régénère les trois fichiers octet pour octet ;
+`find_package` 6/6 ; sous-projet meson 8/8 ; `check_examples.py` 104/104 ;
+l'audit `.github/audit` donne la même configuration aux trois builds ;
+`comma-locale.sh` OK ; le manuel (`pdflatex` deux fois) : zéro erreur, pas de
+nouvel « Overfull » (le paragraphe flex/bison a été restructuré en bloc
+`cmdshell` pour cela).
 
 ## Ménage
 

@@ -56,7 +56,7 @@
 // installed (GAOL v5)
 #include "gaol/gaol_double_op.h"
 #include "gaol/gaol_common.h"
-#include "gaol/gaol_parser.h"
+#include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_ieee1788.h"
@@ -84,14 +84,14 @@ using std::endl;
 
 
 namespace gaol {
-  // Defined in gaol_interval_lexer.lpp, in the namespace of the parser: the
-  // sign of v - x, v being the number s writes, with no sign, compared exactly
-  // with the double x
+  // Defined in gaol/parser/gaol_interval_lexer.lpp, in the namespace of the
+  // parser: the sign of v - x, v being the number s writes, with no sign,
+  // compared exactly with the double x
   int compare_number_with_double(const char *s, double x);
 }
 
 /*
-  The reading of the n characters at s (gaol/gaol_interval_parser.ypp), which
+  The reading of the n characters at s (gaol/parser/gaol_interval_parser.ypp), which
   the readers of a std::string call with its length (GAOL v5): they called
   parse_interval() with its c_str(), which the lexer read up to its first NUL
   character, so that "1\0junk" was read as 1. A NUL character is no character

@@ -29,12 +29,12 @@
 #ifndef GAOL_EXPR_EVAL_H
 #define GAOL_EXPR_EVAL_H
 
-#include "gaol/gaol_eval_stack.h"
+#include "gaol/parser/gaol_eval_stack.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_expression.h"
+#include "gaol/parser/gaol_expression.h"
 
 #include <limits>
-#include "gaol/gaol_expr_visitor.h"
+#include "gaol/parser/gaol_expr_visitor.h"
 
 namespace gaol_core {
   /*!

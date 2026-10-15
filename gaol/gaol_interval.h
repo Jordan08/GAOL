@@ -337,7 +337,7 @@ namespace gaol_core {
 
       Explicit (GAOL v5): a double no longer converts silently to an
       interval, which made gaol::sin(0.5) the sin of [0.5] and, where
-      gaol/gaol_expression.h is included, ambiguous with the sin of an
+      gaol/parser/gaol_expression.h is included, ambiguous with the sin of an
       expression. Assigning a double, &= and |= with one, and the relations
       between an interval and a double have overloads of their own, which
       take interval(d).
@@ -2650,7 +2650,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
 
   A using-declaration names the overloads declared before it: each header
   names in gaol what it declares, at its end (gaol_version.h, gaol_common.h,
-  gaol_port.h, gaol_fpu.h...), and gaol/gaol_expression.h names again the
+  gaol_port.h, gaol_fpu.h...), and gaol/parser/gaol_expression.h names again the
   functions and the operators it overloads for the expressions. A call sin(x)
   on an interval finds by argument-dependent lookup the functions of gaol_core
   only, the namespace where interval is defined, never those of gaol or of

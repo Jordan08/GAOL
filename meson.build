@@ -531,8 +531,8 @@ endif
 
 # make parser, as with CMake and configure: the lexer and the parser
 # regenerated in the sources with the flex and the bison of the system (see
-# gaol/regenerate_parser.sh) (GAOL v5)
-run_target('parser', command: [find_program('sh'), files('gaol/regenerate_parser.sh')])
+# gaol/parser/regenerate_parser.sh) (GAOL v5)
+run_target('parser', command: [find_program('sh'), files('gaol/parser/regenerate_parser.sh')])
 
 if doc
   subdir('manual')

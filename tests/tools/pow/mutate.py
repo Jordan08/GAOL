@@ -281,7 +281,7 @@ MUTANTS = [
          edits=[('return (m == 2u) ? 0.0 : (8.0*m*L + 16.0)*4.930380657631324e-32;',
                  'return (8.0*m*L + 16.0)*4.930380657631324e-32;')]),
     dict(name='pown-expression-beyond-rounded',
-         file='gaol/gaol_expression.h',
+         file='gaol/parser/gaol_expression.h',
          edits=[('            if (below == above) {\n              return gaol_core::gaol_pow_exp(e, gaol_core::expression(h));',
                  '            if (true) {\n              return gaol_core::gaol_pow_exp(e, gaol_core::expression(h));')]),
     dict(name='pown-beyond-even',

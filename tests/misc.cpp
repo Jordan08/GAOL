@@ -2,7 +2,7 @@
 // rather than CppUnit (GAOL v5)
 // The expressions, with their nodes, visitor and evaluator, for the names of
 // the namespace gaol below
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
 #include <istream>
@@ -186,7 +186,7 @@ namespace gaol_names
                 && same<decltype(gaol::operator>>(std::declval<std::istream&>(), std::declval<interval&>())), std::istream&>(),
                 "gaol::operator<<, gaol::operator>> of intervals");
 
-  // The overloads of the expressions, which gaol/gaol_expression.h names
+  // The overloads of the expressions, which gaol/parser/gaol_expression.h names
   // again after gaol/gaol_interval.h did: a using-declaration names those
   // declared before it only
 #define GAOL_NAMES_EXPRESSION(f) static_assert(same<decltype(gaol::f(e())), const expression>(), "gaol::" #f "(e)")

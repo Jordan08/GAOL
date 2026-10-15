@@ -4,8 +4,9 @@
  * Tests of GAOL v5: the intervals built from a string.
  *
  * textToInterval("...") lexes the string, parses it into the tree of
- * gaol/gaol_expression.h, and evaluates that tree (gaol_expr_eval.h,
- * gaol_expr_visitor.h). This test goes through every node of the tree and
+ * gaol/parser/gaol_expression.h, and evaluates that tree
+ * (gaol/parser/gaol_expr_eval.h, gaol/parser/gaol_expr_visitor.h). This test
+ * goes through every node of the tree and
  * every way the string can be wrong, so that the parts of GAOL the other
  * tests never reach are run too:
  *
@@ -35,11 +36,11 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-/* Before gaol/gaol, which gaol_tests.h includes: gaol/gaol_expression.h is
+/* Before gaol/gaol, which gaol_tests.h includes: gaol/parser/gaol_expression.h is
    included here before gaol/gaol_ieee1788.h, and after it in
    tests/ieee1788.cpp, and the functions of gaol_ieee1788 take the overloads
    of the expressions in both orders (GAOL v5) */
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expr_eval.h"
 
 #include "gaol_tests.h"
 
@@ -139,7 +140,7 @@ using namespace gaol_tests;
 namespace
 {
   static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const expression&>())), const expression>::value,
-                "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included before gaol/gaol_ieee1788.h");
+                "gaol_ieee1788::sin of an expression, gaol/parser/gaol_expression.h included before gaol/gaol_ieee1788.h");
 
   /* expression(double) and expression(const interval&) are explicit, as
      interval(double) (GAOL v5): gaol::sin(0.5), which was ambiguous between
@@ -152,12 +153,12 @@ namespace
   static_assert(!std::is_convertible<interval, expression>::value, "an interval does not convert implicitly to an expression");
   static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
                 "expression(d) and expression(x) build the expressions of [d, d] and x");
-  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/gaol_expression.h included");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/parser/gaol_expression.h included");
   // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5, point D.21)
   static_assert(!std::is_convertible<long long, expression>::value && std::is_constructible<expression, long long>::value,
                 "expression(n) builds the expression of interval(n)");
   static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
-                "gaol::sin(x) on an interval is the sin of x, gaol/gaol_expression.h included");
+                "gaol::sin(x) on an interval is the sin of x, gaol/parser/gaol_expression.h included");
 
   /* An empty expression of static storage, which refers to the node of the
      empty expression and is destroyed after main() has called
@@ -665,7 +666,7 @@ namespace
   }
 
   /* The expressions built in C++ rather than read from a string
-     (gaol/gaol_expression.h): every node is built, printed, copied and
+     (gaol/parser/gaol_expression.h): every node is built, printed, copied and
      evaluated, which the strings alone do not reach. */
   void built_expressions()
   {

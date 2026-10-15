@@ -30,25 +30,25 @@
 #include <stdint.h>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_expression.h"
+#include "gaol/parser/gaol_expression.h"
 #include "gaol/gaol_exceptions.h"
 
 
 /*
   The following 'namespace' statement must appear before including
-  gaol/gaol_interval_parser.h
+  gaol/parser/gaol_interval_parser.h
  */
 using namespace gaol;
 using namespace gaol_core;
 
-#include "gaol/gaol_interval_parser.h"
+#include "gaol/parser/gaol_interval_parser.h"
 #include "gaol/gaol_exact.h"
 #include "gaol/gaol_fpu.h"
 
 /*
   The characters of the string, which the context of the reading gives,
   max_size at most at a time, and 0 at its end (gaol_read_input() in
-  gaol/gaol_interval_parser.ypp): the string is read up to its length, NUL
+  gaol/parser/gaol_interval_parser.ypp): the string is read up to its length, NUL
   characters included, which no token holds (GAOL v5)
 */
 extern int gaol_read_input(void *context, char *buf, int max_size);
@@ -69,7 +69,7 @@ extern int gaol_read_input(void *context, char *buf, int max_size);
   being those of input it does not read here or of states it never reaches.
   flex wrote it and called exit(2), which ended the program: it throws
   std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5).
-  The function that throws is in gaol/gaol_interval_parser.ypp, so that the
+  The function that throws is in gaol/parser/gaol_interval_parser.ypp, so that the
   code flex writes after the error is not code that the compiler sees no way
   to reach (C4702 of Visual C++)
 */
@@ -77,7 +77,7 @@ extern void gaol_flex_error();
 #define YY_FATAL_ERROR(msg) gaol_flex_error()
 
 // The memory of flex, linked to the context of the reading, which frees what
-// flex leaves when an allocation fails (gaol/gaol_interval_parser.ypp)
+// flex leaves when an allocation fails (gaol/parser/gaol_interval_parser.ypp)
 extern void *gaol_flex_alloc(void *context, std::size_t size);
 extern void *gaol_flex_realloc(void *context, void *p, std::size_t size);
 extern void gaol_flex_free(void *context, void *p);
@@ -88,7 +88,7 @@ extern void gaol_lexer_failed(void *context);
 #define YY_DECL static int gaol_lex_tokens(YYSTYPE *yylval_param, yyscan_t yyscanner)
 
 // The function of a name, in the table of the names the string is read with,
-// which the context of the reading gives (gaol/gaol_interval_parser.ypp); 0
+// which the context of the reading gives (gaol/parser/gaol_interval_parser.ypp); 0
 // for a name that is not in it
 extern const void *gaol_lookup_function(const char *name, void *context);
 
@@ -696,7 +696,7 @@ namespace gaol {
    in globals, and which gives the value of a token through the pointer the
    pure parser passes it (bison-bridge): each reading of a string has its own
    scanner, and several threads read strings at once (GAOL v5). Its extra data
-   is the context of the reading (gaol/gaol_interval_parser.ypp), which holds
+   is the context of the reading (gaol/parser/gaol_interval_parser.ypp), which holds
    the names of the functions. No yywrap(): a string is read to its end. */
 %option reentrant bison-bridge noyywrap
 
@@ -724,7 +724,7 @@ SPACE		[ \t\r\n]+
 [a-z_][a-z0-9_]*	{ /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
-			     gaol/gaol_interval_parser.ypp): a name that is not in
+			     gaol/parser/gaol_interval_parser.ypp): a name that is not in
 			     it is an error. The names above, which are no
 			     functions, come first (GAOL v5) */
 			  yylval->fn = gaol_lookup_function(yytext, yyextra);

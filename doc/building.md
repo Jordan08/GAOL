@@ -244,8 +244,8 @@ meson install -C build
 
 meson compiles the thirty-eight sources of CORE-MATH into `libgaol`
 (`gaol/meson.build`), as CMake and configure do, and the lexer and the parser
-committed (`gaol/gaol_interval_lexer.cpp`, `gaol/gaol_interval_parser.cpp`):
-neither flex nor bison is needed.
+committed (`gaol/parser/gaol_interval_lexer.cpp`,
+`gaol/parser/gaol_interval_parser.cpp`): neither flex nor bison is needed.
 `meson compile` needs meson 0.54; with an older one, as the meson 0.53 of
 Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 (`-D<option>=<value>`), with their defaults:
@@ -325,14 +325,16 @@ The three builds have the same targets:
   PROFIL/BIAS, Solaris Studio and Boost.Interval are not run (see
   [doc/compare/code/README.md](compare/code/README.md)). Linux, bash, and Python
   3 with numpy.
-- **`make parser`** regenerates `gaol/gaol_interval_lexer.cpp`,
-  `gaol/gaol_interval_parser.cpp` and `gaol/gaol_interval_parser.h` from
-  `gaol/gaol_interval_lexer.lpp` and `gaol/gaol_interval_parser.ypp` with the
-  flex and the bison of the system, where the CMake build finds them
-  (`find_program`, not required). The three files are committed and no build
-  needs flex nor bison otherwise; flex 2.6.4 and bison 3.8.2 give them again
-  byte for byte. `sh gaol/regenerate_parser.sh` runs the same commands without
-  a build (`FLEX` and `BISON` give other programs).
+- **`make parser`** regenerates `gaol/parser/gaol_interval_lexer.cpp`,
+  `gaol/parser/gaol_interval_parser.cpp` and
+  `gaol/parser/gaol_interval_parser.h` from
+  `gaol/parser/gaol_interval_lexer.lpp` and
+  `gaol/parser/gaol_interval_parser.ypp` with the flex and the bison of the
+  system, where the CMake build finds them (`find_program`, not required).
+  The three files are committed and no build needs flex nor bison otherwise;
+  flex 2.6.4 and bison 3.8.2 give them again byte for byte.
+  `sh gaol/parser/regenerate_parser.sh` runs the same commands without a
+  build (`FLEX` and `BISON` give other programs).
 
 ## The configuration of GAOL
 

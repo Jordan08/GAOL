@@ -31,14 +31,14 @@
 
 using std::istream;
 
-#include "gaol/gaol_parser.h"
+#include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expr_eval.h"
 
 // The reading of the n characters at s by the parser of bison and the lexer
-// of flex (gaol/gaol_interval_parser.ypp)
+// of flex (gaol/parser/gaol_interval_parser.ypp)
 extern bool gaol_parse_string(const char* const s, std::size_t n, gaol::interval& out,
                               gaol::parsing_names names);
 

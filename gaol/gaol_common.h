@@ -34,7 +34,7 @@
 #include "gaol/gaol_port.h"
 
 // The commands of GAOL_DEBUG_VERBOSE (below) write on std::cout:
-// gaol/gaol_expression.h did not compile with GAOL_DEBUGGING, which configure
+// gaol/parser/gaol_expression.h did not compile with GAOL_DEBUGGING, which configure
 // --enable-debug defined, without <iostream> (GAOL v5)
 #if GAOL_DEBUGGING
 #  include <iostream>

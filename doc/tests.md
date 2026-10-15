@@ -716,7 +716,7 @@ point Q), which `numbers` checks there too.
   rounding directions have to be consistent with each other, and the bounds of
   GAOL the tightest (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
-  the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
+  the tree of `gaol/parser/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
   the numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
@@ -921,7 +921,7 @@ point Q), which `numbers` checks there too.
   `meson setup --buildtype=debug`), whatever the build: an expression is built
   and evaluated, its nodes calling `GAOL_DEBUG_VERBOSE` (`GAOL_DEBUG` before
   GAOL v5), which has to run its command at the level given to `gaol::init()`
-  and not above. `gaol/gaol_expression.h` did not compile with
+  and not above. `gaol/parser/gaol_expression.h` did not compile with
   `GAOL_DEBUGGING`: its `GAOL_DEBUG_VERBOSE` wrote on `std::cout`, which no
   header included (GAOL v5).
 - **`version_file`** (CMake only: a script of CMake, not a program): the

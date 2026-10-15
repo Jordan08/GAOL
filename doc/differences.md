@@ -95,7 +95,7 @@ where it comes from.
   - **The reader of strings takes the new names.** `gaol::textToInterval("...")`
     reads `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions
     GAOL already had, in the direct grammar and in the tree of
-    `gaol/gaol_expression.h`; `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is
+    `gaol/parser/gaol_expression.h`; `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is
     `nth_root(x, 2)`, so it needs no node of its own, and the four others have
     one each, which `gaol::exp2(expression)` and its companions build from C++
     too. Read from a string, they gave a syntax error before.
@@ -351,7 +351,7 @@ where it comes from.
   are checked with a product rounded the other way rather than a division,
   and `sqrt()` takes the same time as before (9.0 ns on an Intel i7-1185G7,
   GCC 9.4).
-- **Numbers are read exactly** (`gaol/gaol_interval_lexer.lpp`). GAOL read them
+- **Numbers are read exactly** (`gaol/parser/gaol_interval_lexer.lpp`). GAOL read them
   with `strtod()` rounding downward and upward, and relied on the inexact flag.
   The C runtime of Windows and musl on 64-bit ARM processors round to nearest in
   every direction and raise no flag, so `interval("0.1")` did not enclose 1/10
@@ -704,7 +704,7 @@ where it comes from.
   expression, is still `[MAX, +oo]`. The lexer and the parser are regenerated
   with flex 2.6.4 and bison 3.5.1.
 - **The parser frees the nodes of the expressions it reads**
-  (`gaol/gaol_interval_parser.ypp`,
+  (`gaol/parser/gaol_interval_parser.ypp`,
   [issue #4](https://github.com/Jordan08/GAOL/issues/4)).
   - **The leak.** The parser kept a reference to each node, which it did not
     give up when the node went into another one. The nodes of every
@@ -721,10 +721,10 @@ where it comes from.
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
     Both now throw `input_format_error`.
 - **One grammar reads every string as an expression**
-  (`gaol/gaol_interval_parser.ypp`).
+  (`gaol/parser/gaol_interval_parser.ypp`).
   - **Before.** GAOL read a string with two grammars: the numbers, the
     constants and the functions of them built the tree of
-    `gaol/gaol_expression.h`, while the intervals written between brackets,
+    `gaol/parser/gaol_expression.h`, while the intervals written between brackets,
     and the operations on them, were computed at once. Bison chose between the
     two at each token (124 shift/reduce and 14 reduce/reduce conflicts): once
     a number had started the tree, no interval could come, and `1+[1,2]`,
@@ -754,7 +754,7 @@ where it comes from.
 - **The reader of strings knows every function of GAOL, and those of IEEE
   1788-2015 under their names.** The lexer takes a name as a whole and looks it
   up in a table of names, rather than in a token of the grammar for each of the
-  23 functions GAOL read (`gaol/gaol_interval_parser.ypp`).
+  23 functions GAOL read (`gaol/parser/gaol_interval_parser.ypp`).
   - **The names of GAOL.** `gaol::textToInterval()`, which is new, from one
     string or from two, and `operator>>` read all the functions of GAOL on
     intervals: `exp10`, `log10`, `expm1`,
@@ -990,7 +990,7 @@ where it comes from.
     GAOL with `-g`, without optimization nor `NDEBUG`, and has it check its
     assertions (`GAOL_DEBUGGING`). `--enable-debug` added `-g -ansi -Weffc++
     -pedantic` for `g++` alone to the optimizations of `--enable-optimize`,
-    and GAOL did not compile with it: `gaol/gaol_expression.h` wrote on
+    and GAOL did not compile with it: `gaol/parser/gaol_expression.h` wrote on
     `std::cout` in `GAOL_DEBUG` without including `<iostream>`
     (`tests/debugging.cpp`). meson's options `enable-debug` and
     `enable-optimize` are gone: its build type gives both, as CMake's.
@@ -1007,7 +1007,7 @@ where it comes from.
     4 (`check/performances.cpp`) with autotools, and meson had an option
     `check-perf`.
   - **`make parser`** regenerates the lexer and the parser with the flex and
-    the bison of the system, as `gaol/regenerate_parser.sh` does. The rules of
+    the bison of the system, as `gaol/parser/regenerate_parser.sh` does. The rules of
     `gaol/Makefile.am` that ran flex and bison where make found the sources
     newer, and `AC_PROG_YACC`, are gone, and so is the deletion of the lexer
     and the parser by `make maintainer-clean`, which no build could make
@@ -1016,7 +1016,7 @@ where it comes from.
     `libgaol.so.5`, with configure (`libgaol-5.0.so.0` before), meson (no
     version before) and CMake, which builds it with `BUILD_SHARED_LIBS` (a
     static library only before). A shared `libgaol` exports the classes and
-    functions of the expressions (`gaol/gaol_expression.h`), which it did not.
+    functions of the expressions (`gaol/parser/gaol_expression.h`), which it did not.
   - **meson with Visual C++** installs `gaol/gaol_configuration.h` in the
     directory of the headers (in `include/gaol` under the prefix before,
     whatever `includedir`), `gaol_fpu_msvc.h` and the headers of

@@ -29,8 +29,8 @@ else
 fi
 grep -H -E "GAOL_PRESERVE_ROUNDING|GAOL_USING_SSE2_INSTRUCTIONS|GAOL_USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
 status=0
-# expressions: the classes and functions of gaol/gaol_expression.h, which a
-# shared libgaol did not export (GAOL v5)
+# expressions: the classes and functions of gaol/parser/gaol_expression.h, which
+# a shared libgaol did not export (GAOL v5)
 for test in arithmetic elementary numbers other_functions reverse rounding_direction expressions; do
   ${CXX:-c++} $flags -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
   # The checks that failed, which the last lines do not show

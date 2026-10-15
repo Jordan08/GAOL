@@ -29,12 +29,12 @@
 #include <string>
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_expression.h"
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expression.h"
+#include "gaol/parser/gaol_expr_eval.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
-#include "gaol/gaol_parser.h"
+#include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 
 /*
@@ -50,7 +50,7 @@
   its length or its nesting: an operation is computed when it is read
   (gaol_operation()), and the signs, the only tree the parser holds that is
   more than a node deep, are evaluated and deleted without recursion
-  (gaol/gaol_expr_eval.h, gaol/gaol_expression.cpp).
+  (gaol/parser/gaol_expr_eval.h, gaol/parser/gaol_expression.cpp).
 */
 #define YYMAXDEPTH 10000
 
@@ -89,7 +89,7 @@ static gaol_parsing_context *gaol_context(void *context)
 
 /*
   The characters of the string for the lexer, max_size at most at a time,
-  which it asks for as it reads (YY_INPUT, gaol/gaol_interval_lexer.lpp): the
+  which it asks for as it reads (YY_INPUT, gaol/parser/gaol_interval_lexer.lpp): the
   number given, 0 at the end of the string (GAOL v5). GAOL gave the lexer the
   string with yy_scan_string(), which takes its length from strlen() and holds
   it in an int: a std::string holding a NUL character was read up to it, so
@@ -116,7 +116,7 @@ int gaol_read_input(void *context, char *buf, int max_size)
   16 KiB doubled for a token longer, and the stack of its buffers. Where an
   allocation failed, it wrote "out of dynamic memory" and ended the program
   with exit(2). It throws std::bad_alloc now (YY_FATAL_ERROR,
-  gaol/gaol_interval_lexer.lpp), but leaves a block it holds in no variable:
+  gaol/parser/gaol_interval_lexer.lpp), but leaves a block it holds in no variable:
   the state of a buffer whose characters it could not allocate, or the
   characters that a failed realloc() does not free while flex overwrites
   their address. Each block it allocates for a reading is therefore linked to
@@ -237,7 +237,7 @@ static void gaol_parser_free(void *p)
   One grammar, whose every string is an expression (GAOL v5)
 
   GAOL read a string with two grammars: the numbers, the constants and the
-  functions of them built the tree of gaol/gaol_expression.h, while the
+  functions of them built the tree of gaol/parser/gaol_expression.h, while the
   intervals written between brackets, and the operations on them, were
   computed at once. Bison chose between the two at each token (124
   shift/reduce and 14 reduce/reduce conflicts): once a number had started the
@@ -311,7 +311,7 @@ static interval gaol_value(expr_node *e)
 /*
   1 if e is the infinity written inf, -1 if it is -inf, 0 otherwise (GAOL
   v5). An infinity read in an expression is [dmax, +oo] or [-oo, -dmax] (see
-  gaol_expr_eval.h), but a lower bound written inf, or an upper bound written
+  gaol/parser/gaol_expr_eval.h), but a lower bound written inf, or an upper bound written
   -inf, leaves no interval, as numsToInterval of IEEE 1788-2015 (10.5.8): [inf],
   [inf, inf] and [inf,] are the empty set.
 */
@@ -421,7 +421,7 @@ static bool gaol_uncertain_bound(expr_node *e, void *context)
   of an interval and an int, whose second argument has to be an integer. A
   call is computed when it is read, its arguments being computed then too,
   and gives a leaf of the tree, as a literal does: GAOL built a node of
-  gaol/gaol_expression.h for each of its functions, and read no other.
+  gaol/parser/gaol_expression.h for each of its functions, and read no other.
 */
 struct gaol_function {
   const char *name;
@@ -742,7 +742,7 @@ static bool gaol_result(void *context, expr_node *e)
 
 %{
 // The lexer of flex, a reentrant one given the value of the token to set
-// (%option bison-bridge in gaol/gaol_interval_lexer.lpp)
+// (%option bison-bridge in gaol/parser/gaol_interval_lexer.lpp)
 int gaol_lex(YYSTYPE *lval, void *scanner);
 
 /* gaol_parse() counts the syntax errors in yynerrs, which nothing reads:
@@ -837,7 +837,7 @@ void gaol_error_bison(void *, void *context, const char *)
 }
 
 // The scanner of flex for a reading, whose extra data is its context, and
-// its destruction (gaol/gaol_interval_lexer.lpp)
+// its destruction (gaol/parser/gaol_interval_lexer.lpp)
 extern void *gaol_initialize_parsing(void *context);
 extern void gaol_cleanup_parsing(void *scanner);
 
@@ -890,7 +890,7 @@ bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol
   }
   if (context.ok) {
     // The infinities read give [dmax, +oo] and [-oo, -dmax] already
-    // (gaol_expr_eval.h): interval(+oo) and interval(-oo) are the empty set
+    // (gaol/parser/gaol_expr_eval.h): interval(+oo) and interval(-oo) are the empty set
     out = context.result;
   }
   return context.ok;

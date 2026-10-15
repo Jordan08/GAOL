@@ -199,7 +199,7 @@ change with its measures.
     containers, a pipe hiding the failure: they now fail, and print the
     logs.
   - `configure --enable-debug` did not compile: with `GAOL_DEBUGGING`,
-    `gaol/gaol_expression.h` wrote on `std::cout` without `<iostream>`. The
+    `gaol/parser/gaol_expression.h` wrote on `std::cout` without `<iostream>`. The
     Debug jobs of CMake, which now define `GAOL_DEBUGGING` too, and the test
     `debugging` compile that code.
   - `minimum()` and `maximum()` of two zeros of different signs gave +0 and
@@ -207,7 +207,7 @@ change with its measures.
     test of GAOL 4 `float_functions` checks, built with Visual C++ since the
     tests of `check/` are in `tests/`.
   - A shared `libgaol` (configure, meson) did not export the classes and
-    functions of the expressions (`gaol/gaol_expression.h`), and a program
+    functions of the expressions (`gaol/parser/gaol_expression.h`), and a program
     building one did not link with it. The shared library job of CMake and
     the meson jobs, whose tests link with the installed `libgaol.so`, build
     `tests/expressions.cpp`.
