@@ -1047,6 +1047,8 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   refaire tourner (`cmake --build <build> --target coverage`) au prochain
   bilan de couverture. Les chemins de `coverage/README.md` ont été mis à jour
   à la main (les numéros de ligne ne changent pas avec le déplacement).
+  **Réponse (15 octobre) : non, pas tout de suite, le coverage sera généré
+  plus tard.**
 
 ### Questions pour le mainteneur
 
@@ -1070,6 +1072,18 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    (v5 n'est pas encore publié). Faut-il garder ce sous-répertoire dans le
    chemin d'installation, ou installer les en-têtes directement dans
    `include/gaol/` (les sources restant dans `gaol/parser/`) ?
+   **Réponse (15 octobre) : aucun problème, on garde `gaol/parser/`, tant
+   pis pour la rétrocompatibilité. En pratique, `gaol_expression` est utilisé
+   par le parser principalement ; l'objectif de GAOL n'est pas de fournir des
+   expressions mais des intervalles, ça va du moment que `textToInterval`
+   fonctionne à l'installation. Vérifié : un programme qui n'inclut que
+   `<gaol/gaol>` (le parapluie n'inclut pas `gaol/parser/gaol_expression.h`)
+   appelle `gaol::textToInterval("[1, 2]")`, `gaol::textToInterval(
+   "pow([-4, -1], 2)")` (à travers le parser) et
+   `gaol_ieee1788::textToInterval("[3, 4]")` ; compilé et lié avec les GAOL
+   installés des trois builds (meson, CMake, autotools), en shared et en
+   static : `[1, 2]`, `[1, 16]` et `[3, 4]`, comme `doc/using.md` le
+   documente.**
 
 ### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
 
