@@ -1205,15 +1205,30 @@ nouvel « Overfull » (le paragraphe flex/bison a été restructuré en bloc
   ses rapports, relus le 4 octobre, sont retirés de l'arbre (ils restent au
   commit `16a2f60`), et ce qui en sert encore est dans
   `todo-notes/synthese.md`.
-- **`GAOL_ASSERT` reste** (vérifié le 15 octobre, question du mainteneur) :
-  défini dans `gaol/gaol_assert.h`, un en-tête installé et documenté
-  (`doc/using.md` « The headers », le manuel v5 l. 5570), qui vaut
-  `assert(a)` avec `GAOL_DEBUGGING` et rien sinon. Un seul usage dans
-  la bibliothèque : `GAOL_ASSERT(d >= 0.0)` dans `ipow_dn()`
-  (`gaol/gaol_double_op.h:102`, en-tête interne, non installé) ;
-  `tests/debugging.cpp` ne le cite qu'en commentaire (il teste
-  `GAOL_DEBUG_VERBOSE`). Ce n'est pas du code mort : c'est une macro
-  publique, à garder.
+- **`GAOL_ASSERT` supprimé** (décidé le 15 octobre, question du mainteneur) :
+  les deux usages `GAOL_ASSERT(d >= 0.0)` (`ipow_up()` l. 72 et `ipow_dn()`
+  l. 102 de `gaol/gaol_double_op.h`, en-tête interne, non installé) ont été
+  remplacés par `assert` classique, avec `#include <cassert>` ; l'en-tête
+  installé et documenté `gaol/gaol_assert.h` est supprimé des sources et
+  des trois listes d'installation (`CMakeLists.txt`, `gaol/Makefile.am`,
+  `gaol/meson.build`), et ses mentions retirées du manuel v5, de
+  `doc/using.md`, `doc/building.md`, `tests/debugging.cpp`, des trois
+  modèles `gaol_configuration*.h.in` et de `configure.ac`. Sémantique :
+  l'ancien `GAOL_ASSERT(a)` valait `assert(a)` avec `GAOL_DEBUGGING` et
+  rien sinon ; `assert` classique est actif tant que `NDEBUG` n'est pas
+  défini. Équivalent dans les configurations usuelles (Debug : les deux
+  actifs, Release : les deux inactifs) ; `GAOL_DEBUGGING` ne gouverne plus
+  que `GAOL_DEBUG_VERBOSE` (`gaol/gaol_common.h`). Divergence acceptée :
+  `GAOL_DEBUG=ON` en build Release (`NDEBUG` défini, `assert` inactif là où
+  `GAOL_ASSERT` était actif). Vérifié sémantiquement : `ipow_dn(-1.0, 2)`
+  avorte (SIGABRT, « Assertion `d >= 0.0' failed », `gaol_double_op.h:102`)
+  sans `NDEBUG`, n'avorte pas avec `-DNDEBUG`. Les trois systèmes de build
+  passent (CMake Release 57/57, CMake Debug compile avec `GAOL_DEBUGGING`
+  et sans `NDEBUG`, autotools 29 PASS + 2 SKIP + 16 exemples, meson 29 OK +
+  2 skip), l'installation ne contient plus `gaol_assert.h`, les en-têtes
+  installés recompilent un par un (g++ et clang++-18, hors les trois
+  en-têtes qui échouent seuls par conception), et le manuel v5 est
+  reconstruit sans erreur (1 Overfull, comme la baseline).
 
 ## Table des anciens numéros
 
