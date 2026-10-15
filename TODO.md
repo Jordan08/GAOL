@@ -969,6 +969,47 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 - **CI GitHub** sur `533992f` : **tous les jobs verts** — Linux, macOS, Windows,
   Linux containers, Autotools and meson : tous `success`.
 
+### Relecture approfondie du code (PRs récentes)
+
+- **#117 (point B, 1/3)** : bien fait. `pown_upward()` sépare le corps de
+  `gaol_pown()` après une seule vérification ; `upward_access` donne accès à
+  `inverse_upward()` ; `rnd_keep_bounds()` évite la copie octet par octet.
+  `nth_root(I, INT_MIN)` gère `|INT_MIN|` sans dépassement signé.
+  `acosh_rel()`, `asinh_rel()`, `atanh_rel()` et `modulo_k_pi()` ont une
+  seule vérification. Les attributs `always_inline` sont bien placés.
+- **#118 (point B, 2/3)** : bien fait. `pow_lo()` et `pow_hi()` gèrent les
+  limites (0, +∞) aux coins, ce qui évite d'appeler CORE-MATH avec 0 ou ±∞.
+  Un coin par borne pour une base contenant 1. `root_of_large_order()` ni
+  exportée ni `static`. `rnd_keep()` d'un intervalle FPU par une amie.
+- **#119 (suites de l'audit)** : bien fait. Corrections de commentaires et de
+  documentation (chemin AVX-512, ancien 9 dit mesuré, `<a, b>` par les bits).
+- **#120 (point Z)** : bien fait. Les 13 options de `gaol_configuration.h`
+  définies à 0 ou 1 dans les trois builds ; les macros de la cible définies à
+  0 où elles ne l'étaient pas. `headers.sh` vérifie `-Wundef`. `bisect(ratio)`
+  par les `quiet_*` de `gaol_detail`.
+- **#114 (point F)** : bien fait. `ascii_lower()` remplace `std::tolower()`,
+  indépendant de la locale (problème turc documenté et testé). Le lexeur a
+  des commentaires améliorés. Les tests sous FZ/DAZ sont en place.
+- **#105 (point E)** : bien fait. `eval_stack` a une croissance dynamique
+  (heap) avec `std::bad_alloc` en cas de manque de mémoire. Les premiers
+  éléments sont dans la pile (pas d'allocation pour les petites expressions).
+  Le parser gère les longues sommes, NUL et `<a, b>` par les bits.
+
+### Cohérence documentation/code
+
+- `gaol_pown_ll` : documenté dans `doc/using.md`, déclaré dans
+  `gaol_interval.h`, défini dans `gaol_interval.cpp`. OK.
+- `K = 0` pour `m = 2` (x^2 = `sqr(x)`) : documenté dans TODO.md, implémenté
+  ligne 314 de `gaol_interval.cpp`. OK.
+- `ascii_lower` : défini dans `gaol_interval_parser.ypp`, testé dans
+  `tests/expressions.cpp` (`names_under_turkish_locale`). OK.
+- `eval_stack` : utilisé dans `gaol_expr_eval.h`, `std::bad_alloc` dans
+  `gaol_eval_stack.h`. OK.
+- `todo-notes/synthese.md` : 11 sections avec « In `configure-clean`:
+  **no** » — les textes pour `ChangeLog` et `doc/differences.md` ne sont pas
+  encore reportés, ce qui est normal (ils seront repris par la PR de synthèse
+  du point Y).
+
 ### Points restants (rappel)
 
 - **I** : la documentation pour l'utilisateur (35, 37, 38, 70).
@@ -976,6 +1017,17 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 - **X** : YalAA et VNODE-LP (28).
 - **AA** : Shekel 5 plus lent qu'avec GAOL 4 (76), à chercher.
 - **Y** : préparer et publier v5.0.0 (32, 33, 34, 71), en dernier.
+
+### Trouvailles mineures
+
+- **CC.m1** : deux TODO/FIXME anciens dans `gaol/gaol_interval.cpp` (l. 30-31,
+  reliques de GAOL 4 : « Rewrite as many functions as possible to use SIMD
+  instructions », « Use of f_negate deprecates -ffloat-store? »). À nettoyer
+  au point Y (publication v5.0.0), hors sujet pour les points A à Z.
+- **CC.m2** : le test `numbers` n'a pas été lancé sous ASan/UBSan (trop long :
+  158 s pour `arithmetic` seul sous les sanitizers). Les 10 autres tests clés
+  couvrent les chemins modifiés récemment. À relancer complet au point Y si
+  besoin.
 
 ### Questions pour le mainteneur
 
