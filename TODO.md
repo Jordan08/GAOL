@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `42e4735` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `1f9d294` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -414,11 +414,32 @@ nœud `long long` ; le test `__int128` limité aux modes GNU ; les mesures avec
 Clang 21. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #121.
 
+Fait le 15 octobre : le déplacement du parser et des expressions dans
+`gaol/parser/` (13 fichiers, les trois builds, la CI et la documentation ;
+détail dans sa propre section ci-dessous, question CC.q4 répondue) ; le ménage
+du point 93 (`gaol_exact.h`, `gaol_exact.c` et `sysdeps/`, `gaol_flags.h`
+avec `prec_t` déplacé dans `gaol/parser/gaol_expression.h`, `s_nextafter.c`)
+et de `gaol_assert.h` (`GAOL_ASSERT` remplacé par `assert`, détail dans
+« Ménage ») ; les textes qui disaient que les builds Debug vérifient les
+assertions de GAOL avec `GAOL_DEBUGGING` disent maintenant que l'absence de
+`NDEBUG` garde `assert()` actif (`doc/building.md` à trois endroits,
+`doc/three-builds.md`, `doc/differences.md`, le manuel), et `doc/using.md`
+liste `gaol_assert.h` parmi les en-têtes de GAOL 4 retirés. Relecture de la
+branche : audit des fichiers restants de `gaol/` et de `gaol/parser/` (un
+seul sans aucun référenceur, CC.m6), cohérence des trois installations (les
+mêmes 22 en-têtes), des scripts de CI et de `doc/using.md` « The headers » ;
+trouvailles CC.m4 et CC.m5, questions CC.q5 à CC.q7.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
 - `todo-aa-shekel5` : le point AA, #122.
+- `tests-no-psabi` : les tests compilés avec `-Wno-psabi`, #123 (ouverte le
+  15 octobre).
+- Les deux sont derrière `configure-clean` (vérifié le 15 octobre :
+  `check_branch` passe pour chacune, qui prévient de les fusionner avec
+  `configure-clean` avant leur fusion).
 
 ## Même fichier de test ou de documentation
 
@@ -1086,12 +1107,29 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   couvrent les chemins modifiés récemment. À relancer complet au point Y si
   besoin.
 - **CC.m3** : `coverage/coverage.html` (rapport gcovr commis) n'a pas été
-  régénéré après le déplacement du parser dans `gaol/parser/` : il faudra le
-  refaire tourner (`cmake --build <build> --target coverage`) au prochain
-  bilan de couverture. Les chemins de `coverage/README.md` ont été mis à jour
-  à la main (les numéros de ligne ne changent pas avec le déplacement).
+  régénéré après le déplacement du parser dans `gaol/parser/` ni après les
+  suppressions du 15 octobre (`gaol_exact.h`, `gaol_exact.c` et `sysdeps/`,
+  `gaol_flags.h`, `s_nextafter.c`, `gaol_assert.h`) : il cite encore
+  `sysdeps/gaol_exact_c99.h` et `s_nextafter.c`. Il faudra le refaire tourner
+  (`cmake --build <build> --target coverage`) au prochain bilan de
+  couverture. Les chemins de `coverage/README.md` ont été mis à jour à la
+  main (les numéros de ligne ne changent pas avec le déplacement).
   **Réponse (15 octobre) : non, pas tout de suite, le coverage sera généré
   plus tard.**
+- **CC.m4** : avertissement `-Wconversion` de `gaol/gaol_profile.cpp:52` sur
+  armhf, vu dans les journaux de la CI de #123 (qui le laisse tel quel, sans
+  rapport avec sa branche) : `tv_sec` y est un `__time64_t`, et
+  `tv_sec*1000` vers `long` tronque à 32 bits là où `long` en fait 32
+  (dépassement après environ 24,8 jours). `gaol_profile.h` est installé,
+  utilisé par l'exemple 16, testé par `tests/misc.cpp`, documenté (section
+  « Debugging facilities » du manuel).
+- **CC.m5** : `process.md` section 12 (« Où en est le travail ») date du
+  13 octobre : B y est « en cours » (fait par #121) et Z « à faire » (fait
+  par #120) ; AA est en cours (#122) et #123 est ouverte. À remettre à jour.
+- **CC.m6** : `gaol/gaol_generator_mul_i2f.py` est le seul fichier de `gaol/`
+  que rien ne référence (hors `doc/compare/`) : c'est un outil de l'auteur
+  (Goualard, 2010, « No build runs it: it is a tool of the author »), qui
+  écrit les 256 cas de la multiplication de `gaol_interval2f.cpp`.
 
 ### Questions pour le mainteneur
 
@@ -1127,6 +1165,17 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    installés des trois builds (meson, CMake, autotools), en shared et en
    static : `[1, 2]`, `[1, 16]` et `[3, 4]`, comme `doc/using.md` le
    documente.**
+5. **CC.q5** : `gaol/gaol_generator_mul_i2f.py` (CC.m6), outil de l'auteur
+   de 2010 que rien ne référence : le garder tel quel dans `gaol/`, ou le
+   déplacer dans `tests/tools/` avec les autres outils ?
+6. **CC.q6** : l'avertissement `-Wconversion` de `gaol/gaol_profile.cpp:52`
+   sur armhf (CC.m4) : corriger (`long` en un type de 64 bits dans
+   `gaol_profile.h` et `gaol_profile.cpp`, ou un cast explicite), ou laisser
+   tel quel ?
+7. **CC.q7** : l'issue #49 en est à « État au 14 octobre 2026 (commit
+   62dad3a) » : faut-il la mettre à jour pour le 15 octobre (déplacement du
+   parser, suppressions de `gaol_exact.h`, `gaol_flags.h`, `s_nextafter.c`
+   et `gaol_assert.h`) ?
 
 ### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
 
@@ -1150,7 +1199,8 @@ GAOL et les expressions dans `gaol/parser/` (exemple donné :
   `run_target('parser')`).
 - **Installation** : les 5 en-têtes publics dans `include/gaol/parser/`
   (`gaol_interval_parser.h` reste non installé) ; vérifié avec les trois
-  builds. Question CC.q4 sur ce chemin.
+  builds. Question CC.q4 sur ce chemin, **résolue** (réponse ci-dessous :
+  on garde `gaol/parser/`).
 - **Fichiers générés** : `gaol_interval_lexer.cpp`,
   `gaol_interval_parser.cpp` et `gaol_interval_parser.h` régénérés par
   `sh gaol/parser/regenerate_parser.sh` (flex 2.6.4, bison 3.8.2) ; la cible
