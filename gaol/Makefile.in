@@ -163,8 +163,7 @@ am__dirstamp = $(am__leading_dot)dirstamp
 am_libgaol_la_OBJECTS = gaol_interval.lo gaol_profile.lo \
 	gaol_common.lo parser/gaol_parser.lo parser/gaol_expression.lo \
 	parser/gaol_interval_parser.lo parser/gaol_interval_lexer.lo \
-	gaol_port.lo gaol_exceptions.lo gaol_init_cleanup.lo \
-	s_nextafter.lo
+	gaol_port.lo gaol_exceptions.lo gaol_init_cleanup.lo
 libgaol_la_OBJECTS = $(am_libgaol_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -192,30 +191,12 @@ am__depfiles_remade = ./$(DEPDIR)/gaol_common.Plo \
 	./$(DEPDIR)/gaol_exceptions.Plo \
 	./$(DEPDIR)/gaol_init_cleanup.Plo \
 	./$(DEPDIR)/gaol_interval.Plo ./$(DEPDIR)/gaol_port.Plo \
-	./$(DEPDIR)/gaol_profile.Plo ./$(DEPDIR)/s_nextafter.Plo \
+	./$(DEPDIR)/gaol_profile.Plo \
 	parser/$(DEPDIR)/gaol_expression.Plo \
 	parser/$(DEPDIR)/gaol_interval_lexer.Plo \
 	parser/$(DEPDIR)/gaol_interval_parser.Plo \
 	parser/$(DEPDIR)/gaol_parser.Plo
 am__mv = mv -f
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CFLAGS) $(CFLAGS)
-AM_V_CC = $(am__v_CC_@AM_V@)
-am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
-am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 = 
-CCLD = $(CC)
-LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-AM_V_CCLD = $(am__v_CCLD_@AM_V@)
-am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
-am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 = 
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -419,7 +400,7 @@ libgaol_la_SOURCES = \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
-	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c
+	gaol_exceptions.cpp gaol_init_cleanup.cpp
 
 
 # The lexer and the parser, parser/gaol_interval_lexer.cpp,
@@ -448,7 +429,6 @@ library_includedir = $(includedir)/gaol
 # ones (GAOL v5)
 library_include_HEADERS = gaol gaol.h gaol_assert.h \
 	gaol_common.h gaol_config.h gaol_exceptions.h \
-	gaol_flags.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
 	gaol_interval.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
 	gaol_literals.h gaol_port.h gaol_profile.h gaol_roundeven.h \
@@ -479,7 +459,7 @@ all: gaol_configuration.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .cpp .lo .o .obj
+.SUFFIXES: .cpp .lo .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -589,7 +569,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_interval.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_port.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_profile.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/s_nextafter.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_expression.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_interval_lexer.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_interval_parser.Plo@am__quote@ # am--include-marker
@@ -600,30 +579,6 @@ $(am__depfiles_remade):
 	@: >>$@
 
 am--depfiles: $(am__depfiles_remade)
-
-.c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
-@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
-
-.c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
-@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
-
-.c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
-@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -799,7 +754,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
 	-rm -f ./$(DEPDIR)/gaol_port.Plo
 	-rm -f ./$(DEPDIR)/gaol_profile.Plo
-	-rm -f ./$(DEPDIR)/s_nextafter.Plo
 	-rm -f parser/$(DEPDIR)/gaol_expression.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_lexer.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_parser.Plo
@@ -856,7 +810,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
 	-rm -f ./$(DEPDIR)/gaol_port.Plo
 	-rm -f ./$(DEPDIR)/gaol_profile.Plo
-	-rm -f ./$(DEPDIR)/s_nextafter.Plo
 	-rm -f parser/$(DEPDIR)/gaol_expression.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_lexer.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_parser.Plo

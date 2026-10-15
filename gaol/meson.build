@@ -91,7 +91,6 @@ gaol_SOURCES += [
   'gaol_port.cpp',
   'gaol_exceptions.cpp',
   'gaol_init_cleanup.cpp',
-  's_nextafter.c',
   # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
 ]
 
@@ -107,7 +106,6 @@ gaol_HEADERS = [
   'gaol_common.h',
   'gaol_config.h',
   'gaol_exceptions.h',
-  'gaol_flags.h',
   'gaol_fpu.h',
   'gaol_fpu_fenv.h',
   'gaol_fpu_msvc.h',
@@ -143,7 +141,6 @@ EXTRA_DIST = [
   'parser/gaol_interval_parser.h',
   'gaol_u128.h',
   'gaol_ldexp.h',
-  's_nextafter.c',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
   'dllmain.cpp',

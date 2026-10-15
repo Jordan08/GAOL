@@ -43,10 +43,25 @@ cannot be printed.
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_flags.h"
 #include "gaol/parser/gaol_expr_visitor.h"
 
 namespace gaol_core {
+  
+  /*!
+  \brief Type for priority of operators in expressions
+  */
+  class prec_t {
+    public:
+    enum { 
+      null_prec   =  0, // null node
+      plus_prec   =  2, // +, -, 
+      mult_prec   =  5, // *, /
+      uminus_prec =  6, // unary minus, pow, 
+      cst_prec    = 10  // constant, variable, sine, cosine, ...
+    };
+  };
+  // prec_t, which GAOL 4 declared in its namespace gaol too, is not in gaol:
+  // GAOL uses it for itself (see gaol/gaol_interval.h)
   
   /*!
   Use of Interval_struct instead of interval to overcome the fact that a
