@@ -670,6 +670,39 @@ qu'une fois.
   (`gaol/gaol_exact.c` ; le lexeur inclut `gaol_exact.h` sans s'en servir).
   `nm -D` des `libgaol.so` d'autotools et de meson montre les trois. À
   décider : retirer ces fichiers des trois builds, ou cacher ces fonctions.
+  Relevé du 15 octobre (question du mainteneur sur `gaol_exact.h`) : le
+  fichier ne sert plus. Il ne déclare que deux fonctions C
+  (`extern "C"`) : `get_inexact()` et `clear_inexact()`, définitions
+  inline dans `gaol/sysdeps/gaol_exact_c99.h` (fenv) et
+  `gaol_exact_msvc.h` (asm x87) ; `gaol/gaol_exact.c` ne fait
+  qu'inclure l'en-tête et un sysdeps pour les définir dans la
+  bibliothèque. Elles servaient à l'ancien lecteur de nombres (strtod
+  arrondi bas puis haut, le nombre exact distingué par le drapeau
+  inexact) et à `gdtoa`/`dtoa.c` (le commentaire de l'en-tête cite
+  dtoa). La réécriture v5 du lecteur (commit `73af2fe`, « Read numbers
+  exactly whatever the C library... », le nombre est pris par ses bits)
+  et la suppression de gdtoa (commit `520450f`, « Removed use of gdtoa
+  to correct bug #1 ») les ont rendues inutiles. Aujourd'hui aucun
+  appelant nulle part (`grep` sur .c/.h/.cpp/.lpp/.ypp, tests et 3rd
+  compris) ; le seul `#include "gaol/gaol_exact.h"` restant est
+  vestigial (`gaol/parser/gaol_interval_lexer.lpp:45`). Pourtant
+  `gaol_exact.c` est toujours compilé dans libgaol (CMake et meson hors
+  MSVC, autotools inconditionnel) et les deux symboles sont exportés
+  par les bibliothèques partagées d'autotools et meson (`nm -D`), pas
+  celle de CMake (point 92). `gaol/sysdeps/gaol_exact_msvc.h` est mort
+  de naissance : inclus seulement par `gaol_exact.c` sous `_MSC_VER`,
+  et ce source n'est jamais compilé pour MSVC (c'est l'en-tête qui
+  inclut le sysdeps c99, inline, dans le lexeur). L'en-tête n'est pas
+  installée (noinst_HEADERS / EXTRA_DIST, hors GAOL_HEADERS). Si le
+  retrait est décidé, toucher : `gaol/gaol_exact.{h,c}`,
+  `gaol/sysdeps/gaol_exact_{c99,msvc}.h`, l'include du lexeur (.lpp +
+  régénérer le .cpp), `CMakeLists.txt` (GAOL_SOURCES l. 744,
+  commentaires l. 730-731 et 875), `gaol/Makefile.am`
+  (libgaol_la_SOURCES l. 45, noinst_HEADERS l. 95-97), `gaol/meson.build`
+  (gaol_SOURCES l. 100, commentaire l. 97, EXTRA_DIST l. 147-153,
+  commentaire l. 200), `doc/using.md:70`, `doc/differences.md:1025`. La
+  détection `GAOL_HAVE_FENV_H` reste (`gaol_fpu.h` inclut aussi
+  `<fenv.h>`).
 - **94.** **Les listes de macros de l'audit ne s'accordent pas** :
   `.github/audit/compare.py` (l. 25) compare `GAOL_HAVE_AVX512_TARGET` et
   `GAOL_PREFER_AVX512`, que `make_probe.py` (l. 9-12) ne sonde pas, si bien
