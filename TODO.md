@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `3e869cb` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `2ac9d4e` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -1113,11 +1113,14 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 - **CC.m3** : `coverage/coverage.html` (rapport gcovr commis) n'a pas été
   régénéré après le déplacement du parser dans `gaol/parser/` ni après les
   suppressions du 15 octobre (`gaol_exact.h`, `gaol_exact.c` et `sysdeps/`,
-  `gaol_flags.h`, `s_nextafter.c`, `gaol_assert.h`) : il cite encore
+  `gaol_flags.h`, `s_nextafter.c`, `gaol_assert.h`) ni après la scission de
+  `gaol_interval.h`/`.cpp` en `gaol_interval_core.h`/`.cpp` et
+  `gaol_interval.h`/`.cpp` (15 octobre, commit `2ac9d4e`) : il cite encore
   `sysdeps/gaol_exact_c99.h` et `s_nextafter.c`. Il faudra le refaire tourner
   (`cmake --build <build> --target coverage`) au prochain bilan de
   couverture. Les chemins de `coverage/README.md` ont été mis à jour à la
-  main (les numéros de ligne ne changent pas avec le déplacement).
+  main à chaque fois ; après la scission, les compteurs et les numéros de
+  ligne de `gaol_interval_core.cpp`/`.h` ne sont plus à jour.
   **Réponse (15 octobre) : non, pas tout de suite, le coverage sera généré
   plus tard.**
 - **CC.m4** : avertissement `-Wconversion` de `gaol/gaol_profile.cpp:52` sur
@@ -1283,6 +1286,66 @@ autotools `configure`/`make`/`make check` (**29 PASS + 2 SKIP, 16
 aucun des fichiers déplacés), `make distclean` rend l'arbre tel que git l'a ;
 meson **29 OK + 2 skip** ; `headers.sh` OK (88 macros) ; `tests.sh` **0
 échec** (static et pkg-config).
+
+### Scission de `gaol_interval.h`/`.cpp` (15 octobre 2026)
+
+Demandé par le mainteneur le 15 octobre : renommer `gaol_interval.h` en
+`gaol_interval_core.h` et `gaol_interval.cpp` en `gaol_interval_core.cpp`,
+et mettre dans un nouveau `gaol_interval.h` tout ce qui concerne le
+namespace `gaol`, comme le namespace `gaol_ieee1788` est en entier dans
+`gaol_ieee1788.h`. Fait sur `configure-clean` (commit `2ac9d4e`) :
+
+- **`git mv`** : `gaol_interval.h` → `gaol_interval_core.h` (la classe
+  `interval`, les fonctions et `gaol_detail` de `gaol_core`, 2645 lignes)
+  et `gaol_interval.cpp` → `gaol_interval_core.cpp` (leurs définitions,
+  plus celles de `gaol_ieee1788`, 5924 lignes).
+- **Nouveau `gaol_interval.h`** (210 lignes) : le commentaire explicatif
+  et le namespace `gaol` en entier (les using-déclarations, `pow` inline,
+  `textToInterval` déclaré), comme `gaol_ieee1788.h` ; il inclut
+  `gaol_interval_core.h`, et les deux sont installés.
+- **Nouveau `gaol_interval.cpp`** (91 lignes) : les définitions des deux
+  `gaol::textToInterval`, sorties de `gaol_interval_core.cpp`.
+- **`text_in_message()`** : le helper du namespace anonyme de
+  `gaol_interval.cpp`, utilisé par `operator>>` (gaol_core) et par
+  `textToInterval` (gaol), est devenu `gaol_detail::text_in_message()`,
+  inline dans `gaol_interval_core.h` ; les deux `.cpp` l'appellent. La
+  déclaration `extern` de `gaol_parse_string` est dans les deux `.cpp`
+  (définie dans le parser, déclarée dans aucun en-tête).
+- **Les trois builds** : `CMakeLists.txt` (`GAOL_SOURCES`, `GAOL_HEADERS`),
+  `gaol/Makefile.am` (`libgaol_la_SOURCES`, `library_include_HEADERS`) et
+  `Makefile.in` régénéré (automake 1.18.1, le diff n'est que les deux
+  listes), `gaol/meson.build` (`gaol_SOURCES`, `gaol_HEADERS`).
+- **Commentaires et références** mis à jour là où ils citent les anciens
+  chemins : `gaol_ieee1788.h`, `gaol_common.h`, `gaol_fpu.h`,
+  `gaol_fpu_fenv.h`, `gaol_fpu_msvc.h`, `gaol_exceptions.h`,
+  `gaol_port.h`, `gaol_config.h`, `gaol/parser/gaol_expression.h`,
+  `gaol_interval_sse.h` et `gaol_interval_fpu.h` (garde et `#error` :
+  ils sont inclus par `gaol_interval_core.cpp`, la garde vérifie
+  `GAOL_INTERVAL_CORE_H`), `gaol_interval_sse.cpp`,
+  `gaol_interval_fpu.cpp`, `tests/core_math.cpp`, `tests/reverse.cpp`,
+  `tests/rounding_direction.cpp`, `tests/static_initialization.cpp`,
+  `tests/other_functions.cpp`, `tests/tools/pow/mutate.py` (`FILE`, et le
+  mutant de `integer_power` édite `gaol_interval_core.h` maintenant),
+  `pown_bound.py`, `README.md`, `doc/accuracy.md`, `doc/differences.md`,
+  `doc/tests.md`, `examples/examples.md`,
+  `todo-notes/orchestration/points_w4.py` et `coverage/README.md`.
+  Les commentaires qui citent le namespace `gaol` gardent
+  `gaol/gaol_interval.h` ; `doc/compare/*/work/` n'est pas touché (copies
+  figées) ; `doc/differences.md` garde sa phrase sur GAOL 4 (historique).
+- **CC.m3** : les chemins de `coverage/README.md` sont à jour
+  (`gaol_interval_core.cpp`/`.h`), les compteurs et les numéros de ligne ne
+  le sont plus ; le coverage sera régénéré plus tard (réponse du 15
+  octobre).
+
+Validé (2 cœurs) : CMake Release **57/57** sans avertissement, et un
+build avec `-DGAOL_FLOAT_INTERVALS=1` **57/57** (`intervalf` et
+`interval2f` actifs) ; autotools `configure`/`make` (0 avertissement)/
+`make check` (**29 PASS + 2 SKIP, 16 exemples**), `make install` (les
+mêmes **24 en-têtes** que CMake et meson, les deux `gaol_interval*.h`
+compris), `make distclean` rend l'arbre tel que git l'a ; meson **29 OK +
+2 skip** ; `headers.sh` sur l'installation (chaque en-tête compile seul,
+g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
+`tests.sh` **0 échec** (static et pkg-config).
 
 ## Ménage
 
