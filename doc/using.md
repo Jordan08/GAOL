@@ -61,8 +61,7 @@ accepts it: the three builds test the compiler for it with a link.
 
 A program includes `gaol/gaol` (or `gaol/gaol.h`), and
 `gaol/parser/gaol_expression.h` for the expressions, with
-`gaol/parser/gaol_expr_eval.h` to evaluate them, and
-`gaol/gaol_assert.h` for `GAOL_ASSERT`. The three builds install these and the
+`gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
 headers they include, each of which compiles alone but the three that other
 headers include in the middle of their code (`gaol_interval_fpu.h`,
 `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the

@@ -521,9 +521,9 @@ fi
 
 # --enable-debug: GAOL compiled for debugging, as by the Debug build of CMake
 # (CMAKE_BUILD_TYPE=Debug) and meson (--buildtype=debug): -g, no optimization,
-# no NDEBUG, and GAOL_DEBUGGING, with which GAOL checks its assertions
-# (gaol/gaol_assert.h) (GAOL v5). It gave g++ alone -g -ansi -Weffc++
-# -pedantic, on top of the optimizations of --enable-optimize.
+# no NDEBUG (GAOL checks its assertions, with assert), and GAOL_DEBUGGING
+# (GAOL v5). It gave g++ alone -g -ansi -Weffc++ -pedantic, on top of the
+# optimizations of --enable-optimize.
 AC_ARG_ENABLE(debug,
             [AS_HELP_STRING([--enable-debug],
                             [compile GAOL for debugging, as the Debug build of CMake: -g, no optimization, and GAOL checks its assertions (GAOL_DEBUGGING); --enable-optimize is then ignored @<:@default=no@:>@])],

@@ -584,7 +584,7 @@ check_symbol_exists(getrusage "sys/resource.h" GAOL_HAVE_GETRUSAGE)
 # configure and -Denable-exception=false of meson turn off
 set(GAOL_EXCEPTIONS_ENABLED ON)
 
-# The Debug build has GAOL check its assertions (gaol/gaol_assert.h), as
+# The Debug build has GAOL check its assertions (assert), as
 # --enable-debug of configure and --buildtype=debug of meson (GAOL v5). With a
 # generator of several configurations (Visual Studio, Xcode), whose
 # configurations share gaol/gaol_configuration.h, GAOL_DEBUGGING is given to
@@ -862,8 +862,7 @@ install(TARGETS gaol EXPORT gaolTargets
 )
 
 # The headers a program includes, gaol/gaol, gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_expr_eval.h for the expressions, gaol/gaol_assert.h for
-# GAOL_ASSERT (see the manual), and those they include,
+# gaol/parser/gaol_expr_eval.h for the expressions, and those they include,
 # gaol/gaol_fpu_msvc.h for Visual C++ among them: gaol/Makefile.am and
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
@@ -875,7 +874,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # intervals of floats, which only a developer of GAOL compiles (see
 # gaol/gaol_config.h)
 set(GAOL_HEADERS
-  gaol/gaol.h gaol/gaol_assert.h gaol/gaol_common.h
+  gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h

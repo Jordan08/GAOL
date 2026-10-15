@@ -5551,25 +5551,6 @@ GAOL_DEBUG_VERBOSE(2,cout << "Now the value of x is " << x);
 The first message will be displayed whenever the debugging level is at least
 1, and the second one only if it is at least 2.
 
-\begin{defmacroA}{GAOL\_ASSERT}{(\var{cond})}
-Tests whether \var{cond} holds. Aborts with an error message if it is not the
-case. Declared by \file{gaol/gaol\_assert.h}, which \file{gaol/gaol} does not
-include.
-
-This macro defaults to nothing if the library was not configured with the
-debugging facilities.
-\end{defmacroA}
-
-\noindent
-A possible use for this macro is as follows:
-
-\begin{example}
-int x;
-cout << "Give an integer no greater than 5: ";
-cin >> x;
-GAOL_ASSERT(x <= 5);
-\end{example}
-
 \chapter{Profiling}
 %%=================
 

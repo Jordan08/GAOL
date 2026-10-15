@@ -21,8 +21,8 @@
 #mesondefine GAOL_VERSION
 
 /* Defined to 1 by a Debug build (CMAKE_BUILD_TYPE=Debug, configure
-   --enable-debug, meson --buildtype=debug): GAOL checks its assertions
-   (gaol/gaol_assert.h) */
+   --enable-debug, meson --buildtype=debug): GAOL writes its debugging
+   messages (GAOL_DEBUG_VERBOSE) */
 #mesondefine GAOL_DEBUGGING
 
 /* Defined to 1 to raise exceptions instead of aborting: always with CMake,
