@@ -67,8 +67,9 @@ headers include in the middle of their code (`gaol_interval_fpu.h`,
 `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`, `gaol_core_math.h`
-and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing, and
-`gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, are gone. GAOL's headers compile without a warning under
+and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing,
+`gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and `gaol_assert.h`,
+whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
@@ -171,7 +172,7 @@ project leaves the build type to its default, `debug`. meson 1.8.4 and later
 give a subproject its own default build type, and a `--buildtype=debug` asked
 for builds GAOL for debugging. Earlier ones give it the build type of the
 project, which would have built GAOL without optimization, and before 1.8 with
-its assertions: there, where the options are those of `debug`, GAOL compiles
+`GAOL_DEBUGGING`: there, where the options are those of `debug`, GAOL compiles
 its libraries as in `release` all the same, as it cannot tell the default
 from a `--buildtype=debug` asked for: `-Dgaol:enable-debug=true` (or
 `default_options: ['enable-debug=true']` in `subproject()` or `dependency()`)

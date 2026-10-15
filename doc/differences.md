@@ -985,8 +985,8 @@ where it comes from.
     `gaol/gaol_configuration.h.in`, is written by hand.
   - **The Debug build** of each (`CMAKE_BUILD_TYPE=Debug`,
     `configure --enable-debug`, `meson setup --buildtype=debug`) compiles
-    GAOL with `-g`, without optimization nor `NDEBUG`, and has it check its
-    assertions (`GAOL_DEBUGGING`). `--enable-debug` added `-g -ansi -Weffc++
+    GAOL with `-g`, without optimization nor `NDEBUG`, so that `assert()`
+    stays active. `--enable-debug` added `-g -ansi -Weffc++
     -pedantic` for `g++` alone to the optimizations of `--enable-optimize`,
     and GAOL did not compile with it: `gaol/parser/gaol_expression.h` wrote on
     `std::cout` in `GAOL_DEBUG` without including `<iostream>`

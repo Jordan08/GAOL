@@ -5515,8 +5515,8 @@ with CMake, the \option{-{}-enable-debug} option of \cmd{configure}
 meson whatever the build type.\newinvfive{} They define
 \code{GAOL\_DEBUGGING} to 1 in \file{gaol/gaol\_configuration.h}, where it
 is 0 otherwise, as every option there, so that it is read with \code{\#if}
-(\code{\#ifdef} is true of it in every build): GAOL then checks its
-assertions.\newinvfive
+(\code{\#ifdef} is true of it in every build). The Debug builds compile
+without \code{NDEBUG} too, so that \code{assert()} stays active.\newinvfive
 
 \begin{deffun}{int}{debug\_level}{}
   Global variable used to remember the current value of the debugging
