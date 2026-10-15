@@ -290,7 +290,7 @@
    - round() is ceil(x), less 1 when that is more than 1/2 above x, a
      difference computed in doubles, rounded in the direction in effect:
      round(0x1.fffffffffffffp-2) is 1 in every direction but upward, and
-     round_ties_to_away() (gaol_interval.h) calls it in the caller's.
+     round_ties_to_away() (gaol_interval_core.h) calls it in the caller's.
 
    Before version 12 both are in libmingwex, which every program links; from
    12 on, only in the library of msvcrt.dll, which lacks them. A toolchain

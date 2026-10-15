@@ -77,6 +77,7 @@ core_math_lib = static_library(
 gaol_SOURCES = []
 gaol_SOURCES += [
   'gaol_interval.cpp',
+  'gaol_interval_core.cpp',
   'gaol_profile.cpp',
   'gaol_common.cpp',
   'parser/gaol_parser.cpp',
@@ -109,6 +110,7 @@ gaol_HEADERS = [
   'gaol_fpu_msvc.h',
   'gaol_ieee1788.h',
   'gaol_interval.h',
+  'gaol_interval_core.h',
   'gaol_interval_fpu.h',
   'gaol_interval_sse.h',
   'gaol_limits.h',

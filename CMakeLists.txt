@@ -377,7 +377,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (std::fma() in gaol/gaol_interval.cpp, for the
+# them: GAOL's exact products (std::fma() in gaol/gaol_interval_core.cpp, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too
@@ -723,7 +723,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # libgaol
 ################################################################################
 #
-# The sources listed in gaol/meson.build. gaol_interval.cpp includes
+# The sources listed in gaol/meson.build. gaol_interval_core.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
 # GAOL_USING_SSE2_INSTRUCTIONS, and gaol/float/gaol_intervalf.cpp and
 # gaol/float/gaol_interval2f.cpp where a developer of GAOL defines
@@ -734,7 +734,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp gaol_profile.cpp gaol_common.cpp parser/gaol_parser.cpp
+  gaol_interval.cpp gaol_interval_core.cpp gaol_profile.cpp gaol_common.cpp parser/gaol_parser.cpp
   parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
@@ -877,7 +877,7 @@ set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
-  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
+  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_core.h gaol/gaol_interval_fpu.h
   gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_literals.h
   gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)

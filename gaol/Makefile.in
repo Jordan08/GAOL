@@ -160,10 +160,11 @@ am__installdirs = "$(DESTDIR)$(libdir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libgaol_la_DEPENDENCIES = $(top_builddir)/3rd/libgaolcoremath.la
 am__dirstamp = $(am__leading_dot)dirstamp
-am_libgaol_la_OBJECTS = gaol_interval.lo gaol_profile.lo \
-	gaol_common.lo parser/gaol_parser.lo parser/gaol_expression.lo \
-	parser/gaol_interval_parser.lo parser/gaol_interval_lexer.lo \
-	gaol_port.lo gaol_exceptions.lo gaol_init_cleanup.lo
+am_libgaol_la_OBJECTS = gaol_interval.lo gaol_interval_core.lo \
+	gaol_profile.lo gaol_common.lo parser/gaol_parser.lo \
+	parser/gaol_expression.lo parser/gaol_interval_parser.lo \
+	parser/gaol_interval_lexer.lo gaol_port.lo gaol_exceptions.lo \
+	gaol_init_cleanup.lo
 libgaol_la_OBJECTS = $(am_libgaol_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -190,7 +191,8 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/gaol_common.Plo \
 	./$(DEPDIR)/gaol_exceptions.Plo \
 	./$(DEPDIR)/gaol_init_cleanup.Plo \
-	./$(DEPDIR)/gaol_interval.Plo ./$(DEPDIR)/gaol_port.Plo \
+	./$(DEPDIR)/gaol_interval.Plo \
+	./$(DEPDIR)/gaol_interval_core.Plo ./$(DEPDIR)/gaol_port.Plo \
 	./$(DEPDIR)/gaol_profile.Plo \
 	parser/$(DEPDIR)/gaol_expression.Plo \
 	parser/$(DEPDIR)/gaol_interval_lexer.Plo \
@@ -396,7 +398,7 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # GAOL in C++11, as with CMake and meson (see configure.ac)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \
+	gaol_interval.cpp gaol_interval_core.cpp gaol_profile.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
@@ -429,7 +431,7 @@ library_includedir = $(includedir)/gaol
 library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
-	gaol_interval.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
+	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
 	gaol_literals.h gaol_port.h gaol_profile.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
 
@@ -446,7 +448,7 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 # Headers of the sources of GAOL, not installed (GAOL v5):
 # parser/gaol_interval_parser.h, which did not compile when included, the parts
 # of the library, the bounds at doubles, *_dn() and *_up(), which are not part
-# of its interface, and the intervals of floats, which gaol_interval.cpp
+# of its interface, and the intervals of floats, which gaol_interval_core.cpp
 # includes where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol_config.h)
 noinst_HEADERS = gaol_core_math.h \
@@ -567,6 +569,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_exceptions.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_init_cleanup.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_interval.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_interval_core.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_port.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_profile.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_expression.Plo@am__quote@ # am--include-marker
@@ -752,6 +755,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/gaol_exceptions.Plo
 	-rm -f ./$(DEPDIR)/gaol_init_cleanup.Plo
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
+	-rm -f ./$(DEPDIR)/gaol_interval_core.Plo
 	-rm -f ./$(DEPDIR)/gaol_port.Plo
 	-rm -f ./$(DEPDIR)/gaol_profile.Plo
 	-rm -f parser/$(DEPDIR)/gaol_expression.Plo
@@ -808,6 +812,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/gaol_exceptions.Plo
 	-rm -f ./$(DEPDIR)/gaol_init_cleanup.Plo
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
+	-rm -f ./$(DEPDIR)/gaol_interval_core.Plo
 	-rm -f ./$(DEPDIR)/gaol_port.Plo
 	-rm -f ./$(DEPDIR)/gaol_profile.Plo
 	-rm -f parser/$(DEPDIR)/gaol_expression.Plo

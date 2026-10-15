@@ -5,7 +5,7 @@
 Part of the [tests](../../../doc/tests.md) of GAOL v5.
 
 The programs and scripts of this directory check a change of the `pow`
-functions of `gaol/gaol_interval.cpp`: `pow_standard()`, the pow of
+functions of `gaol/gaol_interval_core.cpp`: `pow_standard()`, the pow of
 IEEE 1788-2015 (Table 9.1), which `gaol_ieee1788::pow` is, the integer power
 that `gaol::pow(x, y)` (`gaol_pow_hybrid()`) and `gaol::pow(x, p)`
 (`gaol_pow_real()`) add to it, the corners of a box (`pow_lo()`, `pow_hi()`,
@@ -148,7 +148,7 @@ python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DG
 ```
 
 The sources are copied to `WORK/src` and built in `WORK/build`; each mutant
-edits the copy of `gaol/gaol_interval.cpp`, rebuilds the tests (`--jobs`
+edits the copy of `gaol/gaol_interval_core.cpp`, rebuilds the tests (`--jobs`
 processes, 2 by default) and runs them: `ieee1788` and `elementary` by
 default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,

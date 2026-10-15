@@ -172,7 +172,7 @@ namespace
 // and to be within the tightest enclosure of the solutions in x widened by one
 // double: the tightest result, or that one with a bound of x next to the
 // solutions, which pow_rel() keeps where it is not proved to miss them (see
-// gaol/gaol_interval.h); the standard's names, with and without x, have to
+// gaol/gaol_interval_core.h); the standard's names, with and without x, have to
 // give the same bounds. Then, by sampling: the points (x, y) of random boxes
 // whose power, the pow of the standard on [x] and [y], is within c, which
 // proves x^y in c, have to be in the results, c being made of the powers of

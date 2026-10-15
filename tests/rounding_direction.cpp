@@ -472,7 +472,7 @@ namespace
     // operand is empty where it did not know the answer from operator&= (#60),
     // and on the empty interval alone, as GCC for POWER9 did with xscmpgedp;
     // is_empty() now tells the NaN bounds with std::isunordered() first there
-    // (see gaol/gaol_interval.h). Where the compiler optimizes for size (-Os),
+    // (see gaol/gaol_interval_core.h). Where the compiler optimizes for size (-Os),
     // GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator& or operator&=
     // rather than inlining it, and the choice is then made on is_empty() of an
     // empty interval alone: these choices were not checked there
