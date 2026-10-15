@@ -7,7 +7,7 @@
 
 #if defined(GAOL_FLOAT_INTERVALS)
 
-#include "gaol/gaol_intervalf.h"
+#include "gaol/float/gaol_intervalf.h"
 
 
 class intervalf_test {

@@ -92,7 +92,8 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 noinst_HEADERS = gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	gaol_u128.h \
-	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h gaol_ldexp.h
+	gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
+	gaol_ldexp.h
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c

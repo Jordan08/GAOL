@@ -28,7 +28,7 @@
 #include "gaol_tests.h"
 #ifdef GAOL_FLOAT_INTERVALS
 // Not included by gaol/gaol (see gaol/gaol_config.h)
-#  include "gaol/gaol_intervalf.h"
+#  include "gaol/float/gaol_intervalf.h"
 #endif
 
 #include <algorithm>

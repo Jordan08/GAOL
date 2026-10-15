@@ -725,9 +725,9 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 #
 # The sources listed in gaol/meson.build. gaol_interval.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# GAOL_USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
-# where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
-# gaol/gaol_config.h).
+# GAOL_USING_SSE2_INSTRUCTIONS, and gaol/float/gaol_intervalf.cpp and
+# gaol/float/gaol_interval2f.cpp where a developer of GAOL defines
+# GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
 # C++, always a static one, GAOL's declarations being compiled without

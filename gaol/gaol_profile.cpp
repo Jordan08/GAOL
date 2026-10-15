@@ -49,7 +49,9 @@ namespace gaol_core {
     {
       struct rusage RsrUsage;
       getrusage(RUSAGE_SELF,&RsrUsage);
-      return (RsrUsage.ru_utime.tv_sec*1000 + RsrUsage.ru_utime.tv_usec/1000);
+      // The explicit cast: where long is 32-bit, tv_sec is a 64-bit
+      // __time64_t, and the conversion would warn (-Wconversion)
+      return long(RsrUsage.ru_utime.tv_sec*1000 + RsrUsage.ru_utime.tv_usec/1000);
     }
   } // namespace gaol_core
 

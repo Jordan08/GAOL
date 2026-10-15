@@ -14,14 +14,14 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Jordan NININ
+ * By: Frederic Goualard, Jordan NININ
  *--------------------------------------------------------------------------*/
 
 /*!
   \file   gaol_interval.h
   \brief  The interval class and operators
 
-  \author Goualard Frederic
+  \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
 */
 

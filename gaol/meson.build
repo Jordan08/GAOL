@@ -149,10 +149,10 @@ EXTRA_DIST = [
   # floats, which gaol_interval.cpp includes where a developer of GAOL defines
   # GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
   'gaol_double_op.h',
-  'gaol_intervalf.h',
-  'gaol_intervalf.cpp',
-  'gaol_interval2f.h',
-  'gaol_interval2f.cpp',
+  'float/gaol_intervalf.h',
+  'float/gaol_intervalf.cpp',
+  'float/gaol_interval2f.h',
+  'float/gaol_interval2f.cpp',
 ]
 
 

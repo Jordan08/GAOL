@@ -75,8 +75,9 @@
    GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
    gaol/gaol_interval.cpp then compiles them, gaol::interval2f where SSE3
    instructions are used (GAOL_USING_SSE3_INSTRUCTIONS), and the code using them
-   includes their headers, gaol/gaol_intervalf.h and gaol/gaol_interval2f.h,
-   which the builds do not install and gaol/gaol does not include.
+   includes their headers, gaol/float/gaol_intervalf.h and
+   gaol/float/gaol_interval2f.h, which the builds do not install and
+   gaol/gaol does not include.
    --------------------------------------------------------------------------- */
 
 /* #define GAOL_FLOAT_INTERVALS 1 */

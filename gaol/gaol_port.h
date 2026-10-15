@@ -55,7 +55,8 @@
 // NOTE: GAOL_MEMALIGN() must return null value if no allocation error
 // GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (operator new
 // and operator delete of the SSE2 intervals, gaol_interval_sse.cpp, and of
-// the intervals of floats, gaol_interval2f.cpp): the two have to match.
+// the intervals of floats, gaol/float/gaol_interval2f.cpp): the two have to
+// match.
 // gaol_allocator.h, the allocator of the containers that used them too, is
 // gone (GAOL v5).
 #if defined (__MINGW32__) || defined (_MSC_VER)

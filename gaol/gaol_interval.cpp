@@ -14,7 +14,7 @@
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
  *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>, Jordan NININ
+ * By: Frederic Goualard, Jordan NININ
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -23,7 +23,7 @@
 
   <long description>
 
-  \author Goualard Frederic
+  \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
 */
 
@@ -5984,8 +5984,8 @@ namespace gaol {
   (GAOL v5)
 */
 #ifdef GAOL_FLOAT_INTERVALS
-#  include "gaol/gaol_intervalf.cpp"
+#  include "gaol/float/gaol_intervalf.cpp"
 #  if GAOL_USING_SSE3_INSTRUCTIONS
-#    include "gaol/gaol_interval2f.cpp"
+#    include "gaol/float/gaol_interval2f.cpp"
 #  endif
 #endif // GAOL_FLOAT_INTERVALS
