@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1f9d294` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `3e869cb` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -427,8 +427,12 @@ assertions de GAOL avec `GAOL_DEBUGGING` disent maintenant que l'absence de
 liste `gaol_assert.h` parmi les en-têtes de GAOL 4 retirés. Relecture de la
 branche : audit des fichiers restants de `gaol/` et de `gaol/parser/` (un
 seul sans aucun référenceur, CC.m6), cohérence des trois installations (les
-mêmes 22 en-têtes), des scripts de CI et de `doc/using.md` « The headers » ;
-trouvailles CC.m4 et CC.m5, questions CC.q5 à CC.q7.
+mêmes 23 en-têtes), des scripts de CI et de `doc/using.md` « The headers » ;
+trouvailles CC.m4 et CC.m5, questions CC.q5 à CC.q7. Demandé par le
+mainteneur (réponses CC.q5 à CC.q7) : les intervalles de floats et l'outil
+de l'auteur dans `gaol/float/` (5 fichiers, détail dans sa propre section
+ci-dessous), le cast explicite de `gaol_profile.cpp:52` (CC.m4), et la mise
+à jour de l'issue #49 pour le 15 octobre (faite).
 
 ## En cours
 
@@ -1122,7 +1126,9 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   `tv_sec*1000` vers `long` tronque à 32 bits là où `long` en fait 32
   (dépassement après environ 24,8 jours). `gaol_profile.h` est installé,
   utilisé par l'exemple 16, testé par `tests/misc.cpp`, documenté (section
-  « Debugging facilities » du manuel).
+  « Debugging facilities » du manuel). **Réponse (15 octobre, CC.q6) :
+  corrigé avec un cast explicite** (`return long(...)`, détail dans la
+  section `gaol/float/` ci-dessous).
 - **CC.m5** : `process.md` section 12 (« Où en est le travail ») date du
   13 octobre : B y est « en cours » (fait par #121) et Z « à faire » (fait
   par #120) ; AA est en cours (#122) et #123 est ouverte. À remettre à jour.
@@ -1130,6 +1136,8 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   que rien ne référence (hors `doc/compare/`) : c'est un outil de l'auteur
   (Goualard, 2010, « No build runs it: it is a tool of the author »), qui
   écrit les 256 cas de la multiplication de `gaol_interval2f.cpp`.
+  **Résolu (15 octobre, CC.q5) : déplacé dans `gaol/float/`** (section
+  ci-dessous).
 
 ### Questions pour le mainteneur
 
@@ -1168,14 +1176,21 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 5. **CC.q5** : `gaol/gaol_generator_mul_i2f.py` (CC.m6), outil de l'auteur
    de 2010 que rien ne référence : le garder tel quel dans `gaol/`, ou le
    déplacer dans `tests/tools/` avec les autres outils ?
+   **Réponse (15 octobre) : déplacer ce qui concerne les intervalles de
+   floats dans `gaol/float/` : `gaol_intervalf.*`, `gaol_interval2f.*` et
+   `gaol_generator_mul_i2f.py` — fait (section ci-dessous).**
 6. **CC.q6** : l'avertissement `-Wconversion` de `gaol/gaol_profile.cpp:52`
    sur armhf (CC.m4) : corriger (`long` en un type de 64 bits dans
    `gaol_profile.h` et `gaol_profile.cpp`, ou un cast explicite), ou laisser
    tel quel ?
+   **Réponse (15 octobre) : corrigé avec un cast explicite — fait (section
+   ci-dessous).**
 7. **CC.q7** : l'issue #49 en est à « État au 14 octobre 2026 (commit
    62dad3a) » : faut-il la mettre à jour pour le 15 octobre (déplacement du
    parser, suppressions de `gaol_exact.h`, `gaol_flags.h`, `s_nextafter.c`
    et `gaol_assert.h`) ?
+   **Réponse (15 octobre) : oui — fait (l'issue #49 est à jour au
+   15 octobre).**
 
 ### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
 
@@ -1233,6 +1248,41 @@ l'audit `.github/audit` donne la même configuration aux trois builds ;
 `comma-locale.sh` OK ; le manuel (`pdflatex` deux fois) : zéro erreur, pas de
 nouvel « Overfull » (le paragraphe flex/bison a été restructuré en bloc
 `cmdshell` pour cela).
+
+### Déplacement des intervalles de floats dans `gaol/float/` (15 octobre 2026)
+
+Demandé par le mainteneur le 15 octobre (réponse CC.q5) : ce qui concerne
+les intervalles de floats dans `gaol/float/`. Fait sur `configure-clean` :
+
+- **5 fichiers déplacés** (`git mv`) : `gaol_intervalf.h`,
+  `gaol_intervalf.cpp`, `gaol_interval2f.h`, `gaol_interval2f.cpp` et
+  `gaol_generator_mul_i2f.py` (l'outil de l'auteur de 2010, CC.m6, qui écrit
+  les 256 cas de la multiplication de `gaol_interval2f.cpp`).
+- **Includes et commentaires** mis à jour : `gaol_interval.cpp` (qui inclut
+  les deux `.cpp` sous `GAOL_FLOAT_INTERVALS`), `gaol_config.h` et
+  `gaol_port.h` (commentaires), les trois tests (`tests/intervalf.cpp`,
+  `tests/interval2f.cpp`, `tests/other_functions.cpp`), et les fichiers
+  déplacés eux-mêmes.
+- **Les trois builds** : `gaol/Makefile.am` (`noinst_HEADERS`) et
+  `Makefile.in` régénéré (automake 1.18.1, le diff n'est que la liste) ;
+  `gaol/meson.build` (EXTRA_DIST) ; `CMakeLists.txt` (un commentaire). Aucun
+  des cinq fichiers n'est installé ni distribué (le `.py` n'est dans aucun
+  EXTRA_DIST), comme avant.
+- **Correction en même temps** (CC.q6, CC.m4) : `gaol/gaol_profile.cpp:52`
+  retourne `long(...)` explicitement : sur armhf, `tv_sec` est un
+  `__time64_t` de 64 bits et `long` en fait 32, la conversion avertissait
+  (`-Wconversion`, journaux de la CI de #123). Le comportement est le même.
+  Vérifié en simulant la conversion 64 bits vers 32 (`-m32 -Wconversion`) :
+  l'avertissement est là sans le cast, absent avec.
+
+Validé (2 cœurs) : CMake Release **57/57** sans avertissement, et un build
+avec `-DGAOL_FLOAT_INTERVALS=1` où `intervalf` et `interval2f` ne sont plus
+sautés et passent (**57/57**) — le code déplacé compile et tourne ;
+autotools `configure`/`make`/`make check` (**29 PASS + 2 SKIP, 16
+/exemples**), `make install` (les mêmes **23 en-têtes** que CMake et meson,
+aucun des fichiers déplacés), `make distclean` rend l'arbre tel que git l'a ;
+meson **29 OK + 2 skip** ; `headers.sh` OK (88 macros) ; `tests.sh` **0
+échec** (static et pkg-config).
 
 ## Ménage
 
