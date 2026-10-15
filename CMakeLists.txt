@@ -727,8 +727,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
 # GAOL_USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
 # where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
-# gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
-# gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
+# gaol/gaol_config.h).
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
 # C++, always a static one, GAOL's declarations being compiled without
@@ -740,9 +739,6 @@ set(GAOL_SOURCES
   s_nextafter.c parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
 )
-if(NOT MSVC)
-  list(APPEND GAOL_SOURCES gaol_exact.c)
-endif()
 list(TRANSFORM GAOL_SOURCES PREPEND "gaol/")
 
 # The sources of CORE-MATH, compiled apart and put into libgaol: apart so that
@@ -872,7 +868,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
-# gaol_exact.h and sysdeps/, gaol_core_math.h, gaol_u128.h),
+# gaol_core_math.h, gaol_u128.h),
 # what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
 # core_math_log_dint.h, gaol_ldexp.h), the bounds at doubles, *_dn() and
 # *_up(), which are not part of GAOL's interface (gaol_double_op.h), and the

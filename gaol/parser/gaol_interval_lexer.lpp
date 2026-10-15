@@ -42,7 +42,6 @@ using namespace gaol;
 using namespace gaol_core;
 
 #include "gaol/parser/gaol_interval_parser.h"
-#include "gaol/gaol_exact.h"
 #include "gaol/gaol_fpu.h"
 
 /*

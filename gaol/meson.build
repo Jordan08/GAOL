@@ -34,7 +34,7 @@ core_math_functions = [
   # (GAOL v5)
   'erf', 'erfc',
 ]
-incdir = include_directories(['.', '..', './sysdeps'])
+incdir = include_directories(['.', '..'])
 
 core_math_root = meson.current_source_dir() + '/../3rd/math-core/src/binary64/'
 core_math_sources = []
@@ -94,11 +94,6 @@ gaol_SOURCES += [
   's_nextafter.c',
   # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
 ]
-# Not for Visual C++, for which gaol_exact.h defines get_inexact() and
-# clear_inexact() itself, as CMake leaves it out
-if not msvc
-  gaol_SOURCES += ['gaol_exact.c']
-endif
 
 # The headers a program includes, gaol, gaol/parser/gaol_expression.h and
 # gaol/parser/gaol_expr_eval.h for the expressions, gaol_assert.h for
@@ -144,13 +139,10 @@ EXTRA_DIST = [
   # parser/gaol_interval_parser.h, which did not compile when included, and
   # the parts of the library
   'gaol_core_math.h',
-  'gaol_exact.h',
   'gaol_init_cleanup.h',
   'parser/gaol_interval_parser.h',
   'gaol_u128.h',
   'gaol_ldexp.h',
-  'sysdeps/gaol_exact_c99.h',
-  'sysdeps/gaol_exact_msvc.h',
   's_nextafter.c',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',

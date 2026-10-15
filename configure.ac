@@ -649,7 +649,7 @@ fi
 AM_CONDITIONAL(PDF_TO_LATEX,
                [test "${PDFLATEX}" != "no" -a "$MAKEINDEX" != "no" -a "$BIBTEX" != "no"])
 
-# What GAOL's sources read of the system (gaol/gaol_fpu.h, gaol/gaol_exact.h,
+# What GAOL's sources read of the system (gaol/gaol_fpu.h,
 # gaol/gaol_profile.cpp), as the CMake and the meson builds check it. The
 # checks of headers, functions, types and sizes nothing read are gone, as
 # AC_FUNC_MALLOC and AC_FUNC_REALLOC, which replaced malloc() and realloc()

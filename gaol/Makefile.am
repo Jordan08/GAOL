@@ -41,8 +41,7 @@ libgaol_la_SOURCES = \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
-	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
-    gaol_exact.c
+	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c
 
 
 # The lexer and the parser, parser/gaol_interval_lexer.cpp,
@@ -92,9 +91,9 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 # of its interface, and the intervals of floats, which gaol_interval.cpp
 # includes where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol_config.h)
-noinst_HEADERS = gaol_core_math.h gaol_exact.h \
+noinst_HEADERS = gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
-	gaol_u128.h sysdeps/gaol_exact_c99.h sysdeps/gaol_exact_msvc.h \
+	gaol_u128.h \
 	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h gaol_ldexp.h
 
 tags: TAGS

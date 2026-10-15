@@ -67,9 +67,9 @@ headers they include, each of which compiles alone but the three that other
 headers include in the middle of their code (`gaol_interval_fpu.h`,
 `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
-which did not compile when included, `gaol_init_cleanup.h`, `gaol_exact.h` and
-`sysdeps/`, `gaol_core_math.h` and `gaol_u128.h`; `gaol_parameters.h`, which
-declared nothing, is gone. GAOL's headers compile without a warning under
+which did not compile when included, `gaol_init_cleanup.h`, `gaol_core_math.h`
+and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing, and
+`gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, are gone. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a

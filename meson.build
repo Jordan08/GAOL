@@ -197,7 +197,7 @@ if get_option('enable-verbose-mode')
   conf_data.set('GAOL_VERBOSE_MODE', 1)
 endif
 
-# gaol/gaol_fpu.h and gaol/gaol_exact.h: <fenv.h>; gaol/gaol_profile.cpp:
+# gaol/gaol_fpu.h: <fenv.h>; gaol/gaol_profile.cpp:
 # getrusage() where <sys/resource.h> declares it, clock() otherwise
 if cpp_comp.has_header('fenv.h')
   conf_data.set('GAOL_HAVE_FENV_H', 1)

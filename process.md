@@ -565,8 +565,8 @@ gh issue view 49 --json body --jq .body | diff - new.md   # seul le saut de lign
 - `pkg-config --libs gaol` ne donne pas `-lm` : g++ et clang++ lient eux-mêmes
   la bibliothèque mathématique, que GAOL appelle encore (`<fenv.h>`, `sqrt`,
   `floor`, `fma` sans FMA matériel...). Ne rajoute pas `-lm`.
-- Les en-têtes internes (`gaol_interval_parser.h`, `gaol_exact.h`,
-  `sysdeps/`...) ne sont pas installés, et `gaol/gaol` n'inclut pas
+- Les en-têtes internes (`gaol_interval_parser.h`, `gaol_init_cleanup.h`...)
+  ne sont pas installés, et `gaol/gaol` n'inclut pas
   `gaol_expression.h` : un programme qui construit des expressions l'inclut
   lui-même.
 - Les constantes `double` de `gaol_port.h` ne font plus partie de l'interface.

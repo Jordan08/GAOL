@@ -364,7 +364,7 @@ jobs:
           foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h', 'parser/gaol_expression.h') {
             if (-not (Test-Path "$prefix/include/gaol/$f")) { Write-Output "$f is not installed"; exit 1 }
           }
-          foreach ($f in 'parser/gaol_interval_parser.h', 'gaol_exact.h', 'sysdeps') {
+          foreach ($f in 'parser/gaol_interval_parser.h') {
             if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
       - name: Tests (ninja test, make test of meson)

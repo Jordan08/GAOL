@@ -164,7 +164,7 @@ am_libgaol_la_OBJECTS = gaol_interval.lo gaol_profile.lo \
 	gaol_common.lo parser/gaol_parser.lo parser/gaol_expression.lo \
 	parser/gaol_interval_parser.lo parser/gaol_interval_lexer.lo \
 	gaol_port.lo gaol_exceptions.lo gaol_init_cleanup.lo \
-	s_nextafter.lo gaol_exact.lo
+	s_nextafter.lo
 libgaol_la_OBJECTS = $(am_libgaol_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -189,7 +189,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/gaol_common.Plo \
-	./$(DEPDIR)/gaol_exact.Plo ./$(DEPDIR)/gaol_exceptions.Plo \
+	./$(DEPDIR)/gaol_exceptions.Plo \
 	./$(DEPDIR)/gaol_init_cleanup.Plo \
 	./$(DEPDIR)/gaol_interval.Plo ./$(DEPDIR)/gaol_port.Plo \
 	./$(DEPDIR)/gaol_profile.Plo ./$(DEPDIR)/s_nextafter.Plo \
@@ -419,8 +419,7 @@ libgaol_la_SOURCES = \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
-	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
-    gaol_exact.c
+	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c
 
 
 # The lexer and the parser, parser/gaol_interval_lexer.cpp,
@@ -471,9 +470,9 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 # of its interface, and the intervals of floats, which gaol_interval.cpp
 # includes where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol_config.h)
-noinst_HEADERS = gaol_core_math.h gaol_exact.h \
+noinst_HEADERS = gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
-	gaol_u128.h sysdeps/gaol_exact_c99.h sysdeps/gaol_exact_msvc.h \
+	gaol_u128.h \
 	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h gaol_ldexp.h
 
 all: gaol_configuration.h
@@ -585,7 +584,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_common.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_exact.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_exceptions.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_init_cleanup.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_interval.Plo@am__quote@ # am--include-marker
@@ -796,7 +794,6 @@ clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 
 distclean: distclean-am
 	-rm -f ./$(DEPDIR)/gaol_common.Plo
-	-rm -f ./$(DEPDIR)/gaol_exact.Plo
 	-rm -f ./$(DEPDIR)/gaol_exceptions.Plo
 	-rm -f ./$(DEPDIR)/gaol_init_cleanup.Plo
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
@@ -854,7 +851,6 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/gaol_common.Plo
-	-rm -f ./$(DEPDIR)/gaol_exact.Plo
 	-rm -f ./$(DEPDIR)/gaol_exceptions.Plo
 	-rm -f ./$(DEPDIR)/gaol_init_cleanup.Plo
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo

@@ -140,8 +140,6 @@ where it comes from.
     MinGW. The four headers are gone.
   - `get_fpu_cw()` and `reset_fpu_cw()` save the rounding direction with
     `<fenv.h>` where the control word of `fenv_t` is not known.
-  - Visual C++ gets the `<fenv.h>` version of `get_inexact()` and
-    `clear_inexact()`.
 - **The rounding direction** is set upward by each operation when it is not,
   in every build. Built with CMake, GAOL set it once, in `gaol::init()`, and
   computed in the direction the calling code left: rounding to nearest,
@@ -1019,11 +1017,10 @@ where it comes from.
     functions of the expressions (`gaol/parser/gaol_expression.h`), which it did not.
   - **meson with Visual C++** installs `gaol/gaol_configuration.h` in the
     directory of the headers (in `include/gaol` under the prefix before,
-    whatever `includedir`), `gaol_fpu_msvc.h` and the headers of
-    `gaol/sysdeps`, and builds a static library, as CMake, with
-    `__GAOL_PUBLIC__` defined empty for GAOL and for the code using it; it no
-    longer requires a math library apart, nor compiles `gaol/gaol_exact.c`,
-    and gives `/fp:strict` to CORE-MATH too. `nextafter` and `isnan` are no
+    whatever `includedir`) and `gaol_fpu_msvc.h`, and builds a static
+    library, as CMake, with `__GAOL_PUBLIC__` defined empty for GAOL and for
+    the code using it; it no longer requires a math library apart and gives
+    `/fp:strict` to CORE-MATH too. `nextafter` and `isnan` are no
     longer redefined for Visual C++ (`s_nextafter`, `_isnan`) where the build
     did not define `HAVE_NEXTAFTER` and `HAVE_ISNAN`, which only CMake did.
   - **The version is 5.0.0 everywhere**: configure gave `"5.0.0"`, its quotes
