@@ -439,6 +439,8 @@ ci-dessous), le cast explicite de `gaol_profile.cpp:52` (CC.m4), et la mise
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
 - `todo-aa-shekel5` : le point AA, #122.
+- `tests-no-psabi` : les tests compilés avec `-Wno-psabi`, pour les notes de
+  GCC sur le passage des arguments (ARM, POWER), #123.
 - `tests-no-psabi` : les tests compilés avec `-Wno-psabi`, #123 (ouverte le
   15 octobre).
 - Les deux sont derrière `configure-clean` (vérifié le 15 octobre :
