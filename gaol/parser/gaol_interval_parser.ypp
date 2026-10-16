@@ -34,6 +34,7 @@
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
+#include "gaol/gaol_internal.h"
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 
@@ -836,11 +837,6 @@ void gaol_error_bison(void *, void *context, const char *)
   gaol_context(context)->ok = false; // An error occurred
 }
 
-// The scanner of flex for a reading, whose extra data is its context, and
-// its destruction (gaol/parser/gaol_interval_lexer.lpp)
-extern void *gaol_initialize_parsing(void *context);
-extern void gaol_cleanup_parsing(void *scanner);
-
 /*
   Reads the n characters at s, NUL characters included, with the names of
   functions given: returns true, with out set to the interval read, if they
@@ -849,7 +845,7 @@ extern void gaol_cleanup_parsing(void *scanner);
   stack of the parser could not grow (GAOL v5). Its scanner and its context
   are its own, and several threads call it at once.
 */
-bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol::parsing_names names)
+bool gaol_core::gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol::parsing_names names)
 {
   gaol_parsing_context context;
   context.ok = false;

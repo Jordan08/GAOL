@@ -152,7 +152,7 @@ namespace gaol_ieee1788 {
   the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
   pow([2, 3], [1e10]) is [DBL_MAX, +oo],
   pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
-  Defined in gaol/gaol_interval.cpp (GAOL v5): the bounds at doubles it
+  Defined in gaol/gaol_ieee1788.cpp (GAOL v5): the bounds at doubles it
   takes for an integer exponent beyond the ints are not part of GAOL's
   interface (gaol/gaol_double_op.h).
   */

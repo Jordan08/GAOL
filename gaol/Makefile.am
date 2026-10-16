@@ -37,7 +37,7 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp \
+	gaol_interval.cpp gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
@@ -89,7 +89,7 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 # of its interface, and the intervals of floats, which gaol_interval_core.cpp
 # includes where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol_config.h)
-noinst_HEADERS = gaol_core_math.h \
+noinst_HEADERS = gaol_core_math.h gaol_internal.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	gaol_u128.h \
 	gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
