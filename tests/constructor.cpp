@@ -132,45 +132,35 @@ public:
     TEST_INOUT_EQ("1.0/10.0",textToInterval("[0.1,0.1]","[0.1,0.1]"));
 }
 
-  /* The literal _iv of gaol/gaol_literals.h (GAOL v5): the tightest interval
-     enclosing the number written, not the double the compiler makes of it,
-     read by textToInterval(); the integers written in hexadecimal, octal and
-     binary taken as the integers they are, beyond 64 bits enclosed by the
-     operations of intervals; the digit separators left out; and "..."_iv the
-     interval textToInterval() reads. Its first version gave the points of
-     the doubles 0.1 and 2^53 for 0.1_iv and 9007199254740993_iv, which
-     enclose neither 0.1 nor 2^53 + 1. */
+  /* gaol_detail::literal_interval() of gaol/gaol_literals.h (GAOL v5): the
+     interval enclosing the number that the text of a literal of C++ writes,
+     not the double the compiler makes of it, read by textToInterval(); the
+     integers written in hexadecimal, octal and binary taken as the integers
+     they are, beyond 64 bits enclosed by the operations of intervals; the
+     digit separators left out. Its first version gave the points of the
+     doubles 0.1 and 2^53 for "0.1" and "9007199254740993", which enclose
+     neither 0.1 nor 2^53 + 1. */
   void test_literals() {
-    using namespace gaol::literals;
-    TEST_SEQ(0.1_iv, textToInterval("0.1"));
-    CPPUNIT_ASSERT(!(0.1_iv).is_a_double());
-    TEST_SEQ(1e-3_iv, textToInterval("1e-3"));
-    TEST_SEQ(2.5_iv, interval(2.5));
-    TEST_SEQ(3_iv, interval(3.0));
-    TEST_SEQ(0_iv, interval(0.0));
-    TEST_SEQ(9007199254740993_iv, interval(9007199254740992.0, 9007199254740994.0));
-    // An integer that no unsigned long long holds, as a floating literal or as
-    // a string, as Visual C++ needs it (below)
-    TEST_SEQ(123456789012345678901234567890.0_iv, textToInterval("123456789012345678901234567890"));
-    TEST_SEQ("123456789012345678901234567890"_iv, textToInterval("123456789012345678901234567890"));
-    TEST_SEQ(0x1p-3_iv, interval(0.125));
-    TEST_SEQ(0x1.8p1_iv, interval(3.0));
-    TEST_SEQ(0x10_iv, interval(16.0));
-    TEST_SEQ(010_iv, interval(8.0));
-    TEST_SEQ(0b101_iv, interval(5.0));
-    TEST_SEQ(1'000'000_iv, interval(1000000.0));
-    TEST_SEQ(0xFFFFFFFFFFFFFFFF_iv, interval(0xFFFFFFFFFFFFFFFFULL));
-#if !defined(_MSC_VER) || defined(__clang__)
-    // Integers that no unsigned long long holds, 10^29 and 2^65 - 1. Visual
-    // C++ refuses them, with the suffix too (error C2177, "constant too big",
-    // Visual Studio 2022 and 2026), though the raw literal operator receives
-    // the text of the literal rather than its value
-    TEST_SEQ(123456789012345678901234567890_iv, textToInterval("123456789012345678901234567890"));
-    const interval big = 0x1FFFFFFFFFFFFFFFF_iv;
+    using gaol_detail::literal_interval;
+    TEST_SEQ(literal_interval("0.1"), textToInterval("0.1"));
+    CPPUNIT_ASSERT(!literal_interval("0.1").is_a_double());
+    TEST_SEQ(literal_interval("1e-3"), textToInterval("1e-3"));
+    TEST_SEQ(literal_interval("2.5"), interval(2.5));
+    TEST_SEQ(literal_interval("3"), interval(3.0));
+    TEST_SEQ(literal_interval("0"), interval(0.0));
+    TEST_SEQ(literal_interval("9007199254740993"), interval(9007199254740992.0, 9007199254740994.0));
+    TEST_SEQ(literal_interval("123456789012345678901234567890.0"), textToInterval("123456789012345678901234567890"));
+    TEST_SEQ(literal_interval("123456789012345678901234567890"), textToInterval("123456789012345678901234567890"));
+    TEST_SEQ(literal_interval("0x1p-3"), interval(0.125));
+    TEST_SEQ(literal_interval("0x1.8p1"), interval(3.0));
+    TEST_SEQ(literal_interval("0x10"), interval(16.0));
+    TEST_SEQ(literal_interval("010"), interval(8.0));
+    TEST_SEQ(literal_interval("0b101"), interval(5.0));
+    TEST_SEQ(literal_interval("1'000'000"), interval(1000000.0));
+    TEST_SEQ(literal_interval("0xFFFFFFFFFFFFFFFF"), interval(0xFFFFFFFFFFFFFFFFULL));
+    // An integer that no unsigned long long holds, 2^65 - 1
+    const interval big = literal_interval("0x1FFFFFFFFFFFFFFFF");
     CPPUNIT_ASSERT(big.left() < std::ldexp(1.0, 65) && big.right() >= std::ldexp(1.0, 65));
-#endif
-    TEST_SEQ("[1, 2]"_iv, interval(1.0, 2.0));
-    TEST_SEQ("1/3"_iv, textToInterval("1/3"));
   }
   // <-- End of tests
 };

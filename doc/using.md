@@ -85,9 +85,6 @@ doubles `pi`, `half_pi`, `two_pi`, `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`,
 `ln2_dn`, `ln2_up`, `two_power_51` and `two_power_52` of GAOL 4 are no longer
 declared for the program, which found them with `using namespace gaol`, its own
 `pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`.
-`gaol/gaol_literals.h` holds the literal `_iv` (see
-[Tools of interval algorithms](#tools-of-interval-algorithms)), which a program
-includes itself (GAOL v5).
 
 ## From CMake
 
@@ -494,29 +491,15 @@ themselves:
   x: not for two consecutive doubles, nor for [MAX, +∞].
 - `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
   `gaol` as in `gaol_core`.
-- The literal `_iv` of `gaol/gaol_literals.h`, under
-  `using namespace gaol::literals`: a number written with the suffix is the
-  tightest interval enclosing the number written, `0.1_iv` the interval of the
-  two doubles around the decimal 0.1, as `textToInterval("0.1")`, not the
-  double 0.1, and `9007199254740993_iv` an interval enclosing 2^53 + 1, which no
-  double is. The integers written in hexadecimal, octal and binary are the
-  integers they are (`010_iv` is 8), the digit separators of C++14 are left
-  out, and `"[1, 2]"_iv` is the interval `textToInterval()` reads in the
-  string. Visual C++ refuses an integer that no `unsigned long long` holds,
-  with the suffix too (error C2177, "constant too big"): there it is written
-  as a floating literal, `123456789012345678901234567890.0_iv`, or as a
-  string, `"123456789012345678901234567890"_iv`.
 
 ```cpp
 #include <iostream>
 #include <gaol/gaol.h>
-#include <gaol/gaol_literals.h>
 using namespace gaol;
-using namespace gaol::literals;
 
 int main()
 {
-  const interval x = 0.1_iv;                       // encloses 0.1
+  const interval x = textToInterval("0.1");        // encloses 0.1
   const interval y = interval::midrad(1.0, 1e-20); // [1 - 1e-20, 1 + 1e-20]
   const std::pair<interval, interval> parts = interval(0.0, 1.0).bisect(0.25);
   std::cout << x.width_enclosure() << ' ' << y << ' ' << parts.first << ' '

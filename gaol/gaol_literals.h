@@ -1,34 +1,21 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * The literal _iv of intervals, in the namespace gaol::literals (GAOL v5).
+ * The text of numbers and of intervals that the library reads and writes
+ * (GAOL v5).
  *
- * With using namespace gaol::literals, a number written with the suffix _iv
- * is the tightest interval enclosing the number the program writes, not the
- * double the compiler would make of it: 0.1_iv is the interval of the two
- * doubles around the decimal 0.1, as textToInterval("0.1") is, where
- * interval(0.1) is the point of the double 0.1, which is not 0.1;
- * 9007199254740993_iv encloses 2^53 + 1, which no double is. The literal
- * operator is the raw one, which receives the text of the literal as written
- * rather than its value: decimal and hexadecimal floating literals and
- * decimal integers are read by textToInterval(), the integers written in
- * hexadecimal, octal (010_iv is 8, as 010 is) and binary are taken as the
- * integers they are, and the digit separators of C++14 (1'000_iv) are left
- * out. A string literal with the suffix, "[1, 2]"_iv, is the interval
- * textToInterval() reads in it, and throws input_format_error if it is no
- * interval. Nothing is visible without the using-directive: the operators
- * are in gaol::literals only. Visual C++ refuses an integer literal that no
- * unsigned long long holds, with the suffix too (error C2177, "constant too
- * big"), though the raw operator receives its text: there such an integer is
- * written as a floating literal (123456789012345678901234567890.0_iv) or as
- * a string ("123456789012345678901234567890"_iv).
- *
- *   #include <gaol/gaol_literals.h>
- *   using namespace gaol::literals;
- *   const gaol::interval x = 0.1_iv, y = "[1, 2]"_iv;
- *
- * The operators are written operator""_iv, without a blank before the suffix:
- * C++23 deprecates the form with a blank, and C++11 takes both.
+ * gaol_detail::literal_interval(text) is an interval enclosing the number
+ * that a literal of C++ writes, text being the characters of the literal as
+ * the program writes them, not the double the compiler would make of it:
+ * "0.1" gives the interval of the two doubles around the decimal 0.1, as
+ * textToInterval("0.1") does, where interval(0.1) is the point of the double
+ * 0.1, which is not 0.1, and "9007199254740993" encloses 2^53 + 1, which no
+ * double is. Decimal and hexadecimal floating literals and decimal integers
+ * are read by textToInterval(), the integers written in hexadecimal, octal
+ * ("010" is 8, as 010 is) and binary are taken as the integers they are, and
+ * the digit separators of C++14 ("1'000") are left out.
+ * gaol_core::literal_text(x) is the text that gaol_ieee1788::intervalToText()
+ * writes for x.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -42,7 +29,6 @@
 #define GAOL_LITERALS_H
 
 #include <climits>
-#include <cstddef>
 #include <string>
 
 #include "gaol/gaol_interval.h"
@@ -125,34 +111,5 @@ namespace gaol_detail {
   }
 
 } // namespace gaol_detail
-
-namespace gaol {
-
-  /*!
-    \brief The literal _iv of intervals (GAOL v5): using namespace gaol::literals.
-  */
-  namespace literals {
-
-    /*!
-      \brief A numeric literal with the suffix _iv: the tightest interval
-      enclosing the number written (0.1_iv, 9007199254740993_iv, 0x1p-3_iv).
-    */
-    GAOL_NODISCARD inline ::gaol_core::interval operator""_iv(const char* text)
-    {
-      return ::gaol_detail::literal_interval(text);
-    }
-
-    /*!
-      \brief A string literal with the suffix _iv: the interval
-      textToInterval() reads in it ("[1, 2]"_iv, "1/3"_iv).
-    */
-    GAOL_NODISCARD inline ::gaol_core::interval operator""_iv(const char* text, std::size_t length)
-    {
-      return ::gaol::textToInterval(std::string(text, length));
-    }
-
-  } // namespace literals
-
-} // namespace gaol
 
 #endif /* GAOL_LITERALS_H */

@@ -127,7 +127,7 @@ Every program follows GAOL v5's rules: `#include <gaol/gaol.h>`, no call to
 | File | What it computes | What it shows | After |
 |---|---|---|---|
 | `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `textToInterval("0.1")`; `interval(0, 0)` is zero; `mid()` vs `midpoint()`; no `==`; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
-| `02_decimals_and_rump.cpp` | 0.1 summed ten times; π by Machin; Rump's polynomial | Decimals are not doubles; a raw literal `0.1_iv`; `sqrt(2)` on a number is the C library's; the width as an alarm | Rump 1988, INTLAB demos |
+| `02_decimals_and_rump.cpp` | 0.1 summed ten times; π by Machin; Rump's polynomial | Decimals are not doubles; `sqrt(2)` on a number is the C library's; the width as an alarm | Rump 1988, INTLAB demos |
 | `03_dependency_problem.cpp` | x − x, x(1 − x) three ways, (x − 1)^5, subdivision, Goldstein-Price, rotations | The dependency problem, single-use forms, `sqr` vs `x*x`, linear convergence of subdivision, the wrapping effect | Moore et al. 2009, IBEX lab1, filib++ `horner.cc` |
 | `04_centered_form.cpp` | x cos x and Chebyshev T5, natural and mean-value forms | Automatic differentiation over intervals, quadratic convergence of the centered form, monotonicity test | Codac's `AnalyticFunction`, `02_centered_form` |
 | `05_interval_newton.cpp` | A root of √x + (x+1) cos x; all 7 roots of sin x − x/10; ±√2 | Interval Newton, uniqueness proofs, the extended (two-piece) division, the trap of `f(m)/F'(X)` when 0 ∈ F'(X) | C-XSC `inewton.cpp`, `allzeros.cpp` |
@@ -172,11 +172,10 @@ Three headers are shared:
 
 **02 — Decimals and Rump's example.** `interval(0.1)` is a point that is not
 1/10, and `sqr(interval(0.1))` lies entirely above 1/100 (proved with `>=`);
-`textToInterval("0.1")`, or the three-line raw literal `0.1_iv` built on it, encloses
-1/10. `sqrt(2.0)` is the C library's double, which no longer becomes an
-interval silently (`interval r = sqrt(2.0);` does not compile, `interval(double)`
-being explicit, but `interval r(sqrt(2.0))` does), while `sqrt(interval(2.0))`
-encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
+`textToInterval("0.1")` encloses 1/10. `sqrt(2.0)` is the C library's double,
+which no longer becomes an interval silently (`interval r = sqrt(2.0);` does
+not compile, `interval(double)` being explicit, but `interval r(sqrt(2.0))`
+does), while `sqrt(interval(2.0))` encloses √2. `sin(interval(M_PI))` is certainly positive, which proves that
 `M_PI` is not π. Rump's polynomial at (77617, 33096) gives −1.18·10²¹ in
 doubles, silently wrong, and [−5.9·10²¹, 4.7·10²¹] in intervals, which contains
 the true −0.827396…: the width is the alarm, and more precision (MPFI, Arb) is
@@ -333,7 +332,7 @@ it, and says for each idiom how it reads with GAOL v5.
 | Idiom | With GAOL v5 | Remark |
 |---|---|---|
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
-| A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10. A raw literal `interval operator""_iv(const char* s) { return textToInterval(s); }` makes `0.1_iv` enclose 1/10 (example 02) |
+| A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10 (example 02) |
 | A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
 | Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0` and `T(0)` compile, `=` and the relations taking a double; `max(x, 0)` does not, `interval(double)` being explicit: `max(x, interval(0))` |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
@@ -885,8 +884,7 @@ continuous integration on many platforms.
 To take:
 
 - **Rigorous literals**: `I"0.1"` (Julia), `intval('0.1')` (INTLAB),
-  `interval!("[0.1]")` (inari); in C++, a raw literal `operator""_iv` on
-  `textToInterval()`.
+  `interval!("[0.1]")` (inari); in C++, `textToInterval("0.1")`.
 - **Loud misuse**: Julia flags an interval that met a plain float as "not
   guaranteed", and refuses ambiguous comparisons; Octave warns on
   `interval(2, 1)`; decorations report a domain left.
@@ -951,8 +949,7 @@ To take:
 10. Add the helpers every algorithm writes: `mulRevToPair`/`div_rel_pair`,
     `inflate`, `bisect(ratio)` and `is_bisectable()`, a mid-radius
     constructor, `hull()` and `intersect()` as functions, an enclosure of the
-    width, and the `_iv` literal in a `gaol::literals` namespace; `erf` and
-    `erfc`.
+    width; `erf` and `erfc`.
 11. Remove the global `using` declarations and prefix the macros of the public
     headers; stop installing the internal headers; silence the header warnings
     (a defaulted copy assignment, unnamed unused parameters); restore
