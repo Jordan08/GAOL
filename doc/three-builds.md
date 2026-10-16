@@ -81,8 +81,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
 
 In a Debug build (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
 `meson setup --buildtype=debug`), GAOL is compiled with `-g`, without
-optimization nor `NDEBUG`, and checks its assertions (`GAOL_DEBUGGING`). It was
-`configure --enable-debug` alone that defined `GAOL_DEBUGGING`, adding `-g
+optimization nor `NDEBUG`, so that `assert()` stays active. It was
+`configure --enable-debug` alone that defined `GAOL_DEBUGGING`, which checked
+GAOL's assertions (`GAOL_ASSERT`) in GAOL 4, adding `-g
 -ansi -Weffc++ -pedantic` for `g++` alone to the optimizations of
 `--enable-optimize`; the Debug build of CMake did not define it, and meson
 defined it with its option `enable-debug` (GAOL v5). `GAOL_DEBUG` of CMake and

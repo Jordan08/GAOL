@@ -43,7 +43,7 @@ namespace gaol_core {
   The first SZ elements are held in the stack itself, so that the evaluation
   of a small expression allocates nothing. A stack that is full moves its
   elements to a block of the heap twice as large (GAOL v5): the stack was an
-  array of SZ elements, and the evaluation of gaol/gaol_expr_eval.h now keeps
+  array of SZ elements, and the evaluation of gaol/parser/gaol_expr_eval.h now keeps
   on it the values of the operands not combined yet, as many as the tree is
   deep, where GAOL kept them on the stack of the program.
   

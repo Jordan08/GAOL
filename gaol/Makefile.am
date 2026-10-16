@@ -37,19 +37,20 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \
-	gaol_parser.cpp gaol_expression.cpp \
-	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
-	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
-    gaol_exact.c
+	gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp \
+	parser/gaol_parser.cpp parser/gaol_expression.cpp \
+	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
+	gaol_port.cpp \
+	gaol_exceptions.cpp gaol_init_cleanup.cpp
 
 
-# The lexer and the parser, gaol_interval_lexer.cpp, gaol_interval_parser.cpp
-# and gaol_interval_parser.h, are committed and compiled as the other sources:
-# make parser (../Makefile.am) regenerates them from gaol_interval_lexer.lpp
-# and gaol_interval_parser.ypp with regenerate_parser.sh. The rules .lpp.cpp and
-# .ypp.cpp, which ran flex and bison where make found the sources newer, are
-# gone (GAOL v5).
+# The lexer and the parser, parser/gaol_interval_lexer.cpp,
+# parser/gaol_interval_parser.cpp and parser/gaol_interval_parser.h, are
+# committed and compiled as the other sources: make parser (../Makefile.am)
+# regenerates them from parser/gaol_interval_lexer.lpp and
+# parser/gaol_interval_parser.ypp with parser/regenerate_parser.sh. The rules
+# .lpp.cpp and .ypp.cpp, which ran flex and bison where make found the sources
+# newer, are gone (GAOL v5).
 
 # The elementary functions of CORE-MATH, compiled by 3rd/Makefile.am into a
 # convenience library and put into libgaol here: nothing is linked along with
@@ -64,28 +65,35 @@ libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la
 
 library_includedir=$(includedir)/gaol
 
-# The headers a program includes, gaol, gaol_expression.h and
-# gaol_expr_eval.h for the expressions, gaol_assert.h for GAOL_ASSERT (see the
-# manual), and those they include,
+# The headers a program includes, gaol, and those they include,
 # gaol_fpu_msvc.h for Visual C++ among them: CMake and meson install the same
 # ones (GAOL v5)
-library_include_HEADERS = gaol gaol.h gaol_assert.h \
-	gaol_common.h gaol_config.h gaol_eval_stack.h gaol_exceptions.h \
-	gaol_expr_eval.h gaol_expr_visitor.h gaol_expression.h gaol_flags.h \
+library_include_HEADERS = gaol gaol.h \
+	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
-	gaol_interval.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
-	gaol_literals.h gaol_parser.h gaol_port.h gaol_profile.h gaol_roundeven.h \
+	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
+	gaol_literals.h gaol_port.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
 
+# The headers of the parser of the strings and of the expressions, which a
+# program includes as gaol/parser/gaol_expression.h and
+# gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
+library_parser_includedir = $(includedir)/gaol/parser
+library_parser_include_HEADERS = parser/gaol_eval_stack.h \
+	parser/gaol_expr_eval.h parser/gaol_expr_visitor.h \
+	parser/gaol_expression.h parser/gaol_parser.h
+
 # Headers of the sources of GAOL, not installed (GAOL v5):
-# gaol_interval_parser.h, which did not compile when included, the parts of the
-# library, the bounds at doubles, *_dn() and *_up(), which are not part of its
-# interface, and the intervals of floats, which gaol_interval.cpp includes
-# where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see gaol_config.h)
-noinst_HEADERS = gaol_core_math.h gaol_exact.h \
-	gaol_init_cleanup.h gaol_interval_parser.h \
-	gaol_u128.h sysdeps/gaol_exact_c99.h sysdeps/gaol_exact_msvc.h \
-	gaol_double_op.h gaol_intervalf.h gaol_interval2f.h gaol_ldexp.h
+# parser/gaol_interval_parser.h, which did not compile when included, the parts
+# of the library, the bounds at doubles, *_dn() and *_up(), which are not part
+# of its interface, and the intervals of floats, which gaol_interval_core.cpp
+# includes where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
+# gaol_config.h)
+noinst_HEADERS = gaol_core_math.h \
+	gaol_init_cleanup.h parser/gaol_interval_parser.h \
+	gaol_u128.h \
+	gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
+	gaol_ldexp.h
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c
@@ -98,7 +106,8 @@ install-data-local:
 
 
 # make distclean removes the files of the dependencies one by one and leaves
-# their directories: removed here, so that it gives the sources back as git has
-# them (GAOL v5)
+# their directories, in gaol/ and in gaol/parser/ where the sources of the
+# parser are: removed here, so that it gives the sources back as git has them
+# (GAOL v5)
 distclean-local:
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ./$(DEPDIR) parser/$(DEPDIR)

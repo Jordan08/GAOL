@@ -18,14 +18,14 @@
 *--------------------------------------------------------------------------*/
 
 /*
-This file shall be included by gaol_interval.h only. It must not be included directly
+This file shall be included by gaol_interval_core.cpp only. It must not be included directly
 by any other file.
 This file contains all declarations related to the 'interval' class that consider
 the bounds to be an __m128d variable.
 **/
 
-#ifndef GAOL_INTERVAL_H
-#  error "File gaol_interval_sse.h shall only be included directly by gaol_interval.h"
+#ifndef GAOL_INTERVAL_CORE_H
+#  error "File gaol_interval_sse.h shall only be included directly by gaol_interval_core.cpp"
 #endif
 
 #ifndef GAOL_INTERVAL_SSE_H

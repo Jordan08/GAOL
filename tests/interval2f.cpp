@@ -8,8 +8,8 @@
 
 #if defined(GAOL_FLOAT_INTERVALS) && GAOL_USING_SSE3_INSTRUCTIONS
 
-#include "gaol/gaol_intervalf.h"
-#include "gaol/gaol_interval2f.h"
+#include "gaol/float/gaol_intervalf.h"
+#include "gaol/float/gaol_interval2f.h"
 
 
 class interval2f_test {

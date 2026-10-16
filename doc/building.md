@@ -121,7 +121,7 @@ build type or the configuration (below).
 
 | Option | Default | |
 |---|---|---|
-| `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and GAOL checks its assertions (`GAOL_DEBUGGING`), as `configure --enable-debug` and `meson setup --buildtype=debug` |
+| `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active, as `configure --enable-debug` and `meson setup --buildtype=debug` |
 | `CMAKE_INSTALL_PREFIX` | the system's | Where `cmake --install` puts GAOL |
 | `BUILD_SHARED_LIBS` | `OFF` | `ON` builds the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`), as configure and meson do; always static with Visual C++ |
 | `CMAKE_POSITION_INDEPENDENT_CODE` | `ON` | Compile GAOL as position-independent code (`-fPIC`), which linking them into a shared library needs; a project building GAOL with FetchContent that sets it is followed |
@@ -216,7 +216,7 @@ their defaults:
 | Option | Default | |
 |---|---|---|
 | `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`, for the C++ and C sources alike (GAOL and CORE-MATH), as the Release build of CMake; `--disable-optimize` compiles with `-O` |
-| `--enable-debug` | `no` | The Debug build of CMake: `-g`, no optimization and no `NDEBUG` (`--enable-optimize` is then ignored), and GAOL's assertions (`GAOL_DEBUGGING`); brought into another project with `AC_CONFIG_SUBDIRS`, the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well, where `GAOL_DEBUG` of CMake and `enable-debug` of meson build the libraries alone so |
+| `--enable-debug` | `no` | The Debug build of CMake: `-g`, no optimization and no `NDEBUG` (`--enable-optimize` is then ignored), so that `assert()` stays active; brought into another project with `AC_CONFIG_SUBDIRS`, the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well, where `GAOL_DEBUG` of CMake and `enable-debug` of meson build the libraries alone so |
 | `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `--enable-fma` | `yes` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
@@ -244,15 +244,15 @@ meson install -C build
 
 meson compiles the thirty-eight sources of CORE-MATH into `libgaol`
 (`gaol/meson.build`), as CMake and configure do, and the lexer and the parser
-committed (`gaol/gaol_interval_lexer.cpp`, `gaol/gaol_interval_parser.cpp`):
-neither flex nor bison is needed.
+committed (`gaol/parser/gaol_interval_lexer.cpp`,
+`gaol/parser/gaol_interval_parser.cpp`): neither flex nor bison is needed.
 `meson compile` needs meson 0.54; with an older one, as the meson 0.53 of
 Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 (`-D<option>=<value>`), with their defaults:
 
 | Option | Default | |
 |---|---|---|
-| `buildtype` | `release` | `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and GAOL checks its assertions (`GAOL_DEBUGGING`), as the Debug build of CMake and `configure --enable-debug`. The option `enable-optimize` is gone. Brought in as a subproject, GAOL is built in `release` too where the project leaves the build type to its default (GAOL v5, see [Using GAOL](using.md#from-pkg-config)) |
+| `buildtype` | `release` | `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active, as the Debug build of CMake and `configure --enable-debug`. The option `enable-optimize` is gone. Brought in as a subproject, GAOL is built in `release` too where the project leaves the build type to its default (GAOL v5, see [Using GAOL](using.md#from-pkg-config)) |
 | `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
 | `enable-fma` | `true` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
 | `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
@@ -325,14 +325,16 @@ The three builds have the same targets:
   PROFIL/BIAS, Solaris Studio and Boost.Interval are not run (see
   [doc/compare/code/README.md](compare/code/README.md)). Linux, bash, and Python
   3 with numpy.
-- **`make parser`** regenerates `gaol/gaol_interval_lexer.cpp`,
-  `gaol/gaol_interval_parser.cpp` and `gaol/gaol_interval_parser.h` from
-  `gaol/gaol_interval_lexer.lpp` and `gaol/gaol_interval_parser.ypp` with the
-  flex and the bison of the system, where the CMake build finds them
-  (`find_program`, not required). The three files are committed and no build
-  needs flex nor bison otherwise; flex 2.6.4 and bison 3.8.2 give them again
-  byte for byte. `sh gaol/regenerate_parser.sh` runs the same commands without
-  a build (`FLEX` and `BISON` give other programs).
+- **`make parser`** regenerates `gaol/parser/gaol_interval_lexer.cpp`,
+  `gaol/parser/gaol_interval_parser.cpp` and
+  `gaol/parser/gaol_interval_parser.h` from
+  `gaol/parser/gaol_interval_lexer.lpp` and
+  `gaol/parser/gaol_interval_parser.ypp` with the flex and the bison of the
+  system, where the CMake build finds them (`find_program`, not required).
+  The three files are committed and no build needs flex nor bison otherwise;
+  flex 2.6.4 and bison 3.8.2 give them again byte for byte.
+  `sh gaol/parser/regenerate_parser.sh` runs the same commands without a
+  build (`FLEX` and `BISON` give other programs).
 
 ## The configuration of GAOL
 
@@ -351,7 +353,7 @@ as well: `#ifdef` is now true of each of them.
 | Macro | 1 when | CMake | configure | meson |
 |---|---|---|---|---|
 | `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION.txt` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `VERSION.txt`, read when configure runs | `project()` |
-| `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
+| `GAOL_DEBUGGING` | In a Debug build: `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
 | `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
 | `GAOL_PREFER_AVX512` | +, -, *, / and sqrt take the AVX-512 instructions on a processor that has them | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
@@ -363,7 +365,6 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
-| `GAOL_HAVE_GETRUSAGE` | `<sys/resource.h>` declares `getrusage()`, which `gaol/gaol_profile.cpp` measures the time with (`clock()` otherwise) | checked | checked | checked |
 
 What GAOL needs to know of the processor and the system comes from the
 compiler, in `gaol/gaol_config.h`: `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`,

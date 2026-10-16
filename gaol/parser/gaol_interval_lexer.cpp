@@ -764,25 +764,24 @@ static const flex_int16_t yy_chk[291] =
 #include <stdint.h>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_expression.h"
+#include "gaol/parser/gaol_expression.h"
 #include "gaol/gaol_exceptions.h"
 
 
 /*
   The following 'namespace' statement must appear before including
-  gaol/gaol_interval_parser.h
+  gaol/parser/gaol_interval_parser.h
  */
 using namespace gaol;
 using namespace gaol_core;
 
-#include "gaol/gaol_interval_parser.h"
-#include "gaol/gaol_exact.h"
+#include "gaol/parser/gaol_interval_parser.h"
 #include "gaol/gaol_fpu.h"
 
 /*
   The characters of the string, which the context of the reading gives,
   max_size at most at a time, and 0 at its end (gaol_read_input() in
-  gaol/gaol_interval_parser.ypp): the string is read up to its length, NUL
+  gaol/parser/gaol_interval_parser.ypp): the string is read up to its length, NUL
   characters included, which no token holds (GAOL v5)
 */
 extern int gaol_read_input(void *context, char *buf, int max_size);
@@ -803,7 +802,7 @@ extern int gaol_read_input(void *context, char *buf, int max_size);
   being those of input it does not read here or of states it never reaches.
   flex wrote it and called exit(2), which ended the program: it throws
   std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5).
-  The function that throws is in gaol/gaol_interval_parser.ypp, so that the
+  The function that throws is in gaol/parser/gaol_interval_parser.ypp, so that the
   code flex writes after the error is not code that the compiler sees no way
   to reach (C4702 of Visual C++)
 */
@@ -811,7 +810,7 @@ extern void gaol_flex_error();
 #define YY_FATAL_ERROR(msg) gaol_flex_error()
 
 // The memory of flex, linked to the context of the reading, which frees what
-// flex leaves when an allocation fails (gaol/gaol_interval_parser.ypp)
+// flex leaves when an allocation fails (gaol/parser/gaol_interval_parser.ypp)
 extern void *gaol_flex_alloc(void *context, std::size_t size);
 extern void *gaol_flex_realloc(void *context, void *p, std::size_t size);
 extern void gaol_flex_free(void *context, void *p);
@@ -822,7 +821,7 @@ extern void gaol_lexer_failed(void *context);
 #define YY_DECL static int gaol_lex_tokens(YYSTYPE *yylval_param, yyscan_t yyscanner)
 
 // The function of a name, in the table of the names the string is read with,
-// which the context of the reading gives (gaol/gaol_interval_parser.ypp); 0
+// which the context of the reading gives (gaol/parser/gaol_interval_parser.ypp); 0
 // for a name that is not in it
 extern const void *gaol_lookup_function(const char *name, void *context);
 
@@ -1409,7 +1408,7 @@ namespace gaol {
     return gaol_compare_number(gaol_take_apart(s), x);
   }
 }
-#line 1413 "lex.gaol_.c"
+#line 1412 "lex.gaol_.c"
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
@@ -1421,12 +1420,12 @@ namespace gaol {
    in globals, and which gives the value of a token through the pointer the
    pure parser passes it (bison-bridge): each reading of a string has its own
    scanner, and several threads read strings at once (GAOL v5). Its extra data
-   is the context of the reading (gaol/gaol_interval_parser.ypp), which holds
+   is the context of the reading (gaol/parser/gaol_interval_parser.ypp), which holds
    the names of the functions. No yywrap(): a string is read to its end. */
 /* The input is the string given (YY_INPUT), never interactive: flex would
    test whether stdin is a terminal, by isatty(), for the buffer it creates.
    The memory of flex is that of the reading (GAOL v5) */
-#line 1430 "lex.gaol_.c"
+#line 1429 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1698,10 +1697,10 @@ YY_DECL
 		}
 
 	{
-#line 715 "gaol_interval_lexer.lpp"
+#line 714 "gaol_interval_lexer.lpp"
 
 
-#line 1705 "lex.gaol_.c"
+#line 1704 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1756,46 +1755,46 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 717 "gaol_interval_lexer.lpp"
+#line 716 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 718 "gaol_interval_lexer.lpp"
+#line 717 "gaol_interval_lexer.lpp"
 { return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 719 "gaol_interval_lexer.lpp"
+#line 718 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 720 "gaol_interval_lexer.lpp"
+#line 719 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 721 "gaol_interval_lexer.lpp"
+#line 720 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 722 "gaol_interval_lexer.lpp"
+#line 721 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 723 "gaol_interval_lexer.lpp"
+#line 722 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 724 "gaol_interval_lexer.lpp"
+#line 723 "gaol_interval_lexer.lpp"
 { /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
-			     gaol/gaol_interval_parser.ypp): a name that is not in
+			     gaol/parser/gaol_interval_parser.ypp): a name that is not in
 			     it is an error. The names above, which are no
 			     functions, come first (GAOL v5) */
 			  yylval->fn = gaol_lookup_function(yytext, yyextra);
@@ -1803,97 +1802,97 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 732 "gaol_interval_lexer.lpp"
+#line 731 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 733 "gaol_interval_lexer.lpp"
+#line 732 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 734 "gaol_interval_lexer.lpp"
+#line 733 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 735 "gaol_interval_lexer.lpp"
+#line 734 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 736 "gaol_interval_lexer.lpp"
+#line 735 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 737 "gaol_interval_lexer.lpp"
+#line 736 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 738 "gaol_interval_lexer.lpp"
+#line 737 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 739 "gaol_interval_lexer.lpp"
+#line 738 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 740 "gaol_interval_lexer.lpp"
+#line 739 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 741 "gaol_interval_lexer.lpp"
+#line 740 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 742 "gaol_interval_lexer.lpp"
+#line 741 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 20:
-#line 745 "gaol_interval_lexer.lpp"
+#line 744 "gaol_interval_lexer.lpp"
 case 21:
-#line 746 "gaol_interval_lexer.lpp"
+#line 745 "gaol_interval_lexer.lpp"
 case 22:
-#line 747 "gaol_interval_lexer.lpp"
+#line 746 "gaol_interval_lexer.lpp"
 case 23:
 YY_RULE_SETUP
-#line 747 "gaol_interval_lexer.lpp"
+#line 746 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 748 "gaol_interval_lexer.lpp"
+#line 747 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 749 "gaol_interval_lexer.lpp"
+#line 748 "gaol_interval_lexer.lpp"
 { return gaol_read_uncertain(yytext, yylval); }
 	YY_BREAK
 case 26:
 /* rule 26 can match eol */
 YY_RULE_SETUP
-#line 750 "gaol_interval_lexer.lpp"
+#line 749 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 751 "gaol_interval_lexer.lpp"
+#line 750 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 752 "gaol_interval_lexer.lpp"
+#line 751 "gaol_interval_lexer.lpp"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 1897 "lex.gaol_.c"
+#line 1896 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -3008,7 +3007,7 @@ static int yy_flex_strlen (const char * s , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 752 "gaol_interval_lexer.lpp"
+#line 751 "gaol_interval_lexer.lpp"
 
 
 /*

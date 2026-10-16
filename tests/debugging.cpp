@@ -5,9 +5,9 @@
  *
  * The Debug builds define GAOL_DEBUGGING in gaol/gaol_configuration.h
  * (CMAKE_BUILD_TYPE=Debug, configure --enable-debug, meson
- * --buildtype=debug): GAOL then checks its assertions (GAOL_ASSERT), and
+ * --buildtype=debug): GAOL then checks its assertions (assert), and
  * GAOL_DEBUG_VERBOSE(level, command) runs command where the level given to
- * gaol::init() is level or more. gaol/gaol_expression.h did not compile with
+ * gaol::init() is level or more. gaol/parser/gaol_expression.h did not compile with
  * it: its GAOL_DEBUG_VERBOSE write on std::cout, which no header of GAOL
  * included (configure --enable-debug, the only build that defined it,
  * failed). This test includes GAOL's headers with GAOL_DEBUGGING whatever the
@@ -35,7 +35,7 @@
 #include <sstream>
 #include <string>
 
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expr_eval.h"
 
 using namespace gaol;
 using namespace gaol_tests;

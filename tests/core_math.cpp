@@ -178,9 +178,9 @@ namespace
     CORE-MATH computes with __builtin_fma(), one instruction where the
     compiler has the fused multiply-add instructions (GAOL_FMA) and a call to
     fma() otherwise, as std::fma() is in the exact products of
-    gaol/gaol_interval.cpp: the functions and the bounds are right only if that
+    gaol/gaol_interval_core.cpp: the functions and the bounds are right only if that
     fma() is correctly rounded, in the four rounding directions. round() is
-    roundTiesToAway (round_ties_to_away() of gaol/gaol_interval.h, and pow of
+    roundTiesToAway (round_ties_to_away() of gaol/gaol_interval_core.h, and pow of
     CORE-MATH), which does not depend on the rounding direction.
 
     The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds

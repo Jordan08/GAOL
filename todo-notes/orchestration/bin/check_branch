@@ -25,7 +25,7 @@ if printf '%s\n' "$files" | grep -Ex 'TODO\.md|ChangeLog|doc/differences\.md|man
 if printf '%s\n' "$files" | grep -E '(^|/)(build([-_.][^/]*)?|CMakeFiles|\.deps|\.libs|autom4te\.cache)/|\.(o|lo|a|so|log)$|CMakeCache\.txt|^(nohup|core)$'; then
   echo "FAIL: build products or logs are committed"; fail=1; fi
 # whitespace errors, except in generated files
-if ! git diff --check "$base...$branch" -- . ':!gaol/gaol_interval_lexer.cpp' ':!gaol/gaol_interval_parser.cpp' ':!gaol/gaol_interval_parser.h' ':!configure' ':!*Makefile.in' ':!aclocal.m4' ':!ltmain.sh' ':!m4/*' > /tmp/check_branch_ws.$$ 2>&1; then
+if ! git diff --check "$base...$branch" -- . ':!gaol/parser/gaol_interval_lexer.cpp' ':!gaol/parser/gaol_interval_parser.cpp' ':!gaol/parser/gaol_interval_parser.h' ':!configure' ':!*Makefile.in' ':!aclocal.m4' ':!ltmain.sh' ':!m4/*' > /tmp/check_branch_ws.$$ 2>&1; then
   echo "WARN: whitespace problems (git diff --check):"; head -8 /tmp/check_branch_ws.$$; fi
 rm -f /tmp/check_branch_ws.$$
 [ "$fail" -eq 0 ] && echo "check_branch: OK" || echo "check_branch: FAILED"

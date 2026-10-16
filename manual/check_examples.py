@@ -11,7 +11,7 @@
 #
 # An example holding a main() is compiled as it is. The others are put in a
 # main() of their own, after the headers of GAOL (<gaol/gaol> and
-# <gaol/gaol_expression.h>) and of the standard library they use, with
+# <gaol/parser/gaol_expression.h>) and of the standard library they use, with
 # using namespace std and using namespace gaol, or gaol_ieee1788 in the
 # chapter of its names, which the manual's examples take for granted. In the
 # code, @rem^...~ is the comment it holds; @textasciitilde is a tilde; in an
@@ -64,7 +64,7 @@ PROLOGUE = '''#include <cmath>
 #include <sstream>
 #include <string>
 #include <gaol/gaol>
-#include <gaol/gaol_expression.h>
+#include <gaol/parser/gaol_expression.h>
 using namespace std;
 using namespace {namespace};
 

@@ -43,11 +43,11 @@ not part of GAOL's interface, whose operations are on intervals (GAOL v5).
 #ifndef GAOL_DOUBLE_OP_H
 #define GAOL_DOUBLE_OP_H
 
+#include <cassert>
 #include <cmath>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_fpu.h"
-#include "gaol/gaol_assert.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_core_math.h"
 
@@ -69,7 +69,7 @@ namespace gaol_core {
   GAOL_INLINE double ipow_up(double d, unsigned int n)
   {
     GAOL_RND_ENTER();
-    GAOL_ASSERT(d >= 0.0);
+    assert(d >= 0.0);
     
     double y = 1;
     double z = d;
@@ -99,7 +99,7 @@ namespace gaol_core {
   {
     GAOL_RND_ENTER();
     
-    GAOL_ASSERT(d >= 0.0);
+    assert(d >= 0.0);
     
     double y = 1;
     double z = d;
