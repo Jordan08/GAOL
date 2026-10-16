@@ -797,9 +797,13 @@ qu'une fois.
   seule différence sur 12,2 millions de paires, alors que
   `gaol/gaol_interval_avx512.cpp` (l. 14-18) et `doc/using.md` (l. 918)
   promettent les mêmes bornes « bit for bit », signes compris. Vérifié en
-  mettant à vrai `gaol_core::avx512_arithmetic`, un symbole exporté.
-  Correction : multiplier voie par voie dans la branche AVX-512
-  d'`operator*=(double)`, comme le fait SSE2, ou dire l'exception.
+  mettant à vrai `gaol_core::avx512_arithmetic`, un symbole exporté, que
+  #122 retire : le chemin s'y décide à la configuration
+  (`GAOL_AVX512_ARITHMETIC`). Pour le vérifier après #122, construire avec
+  `-DGAOL_PREFER_AVX512=ON` sur une machine qui a AVX-512 ; les lignes et
+  les commentaires cités changent aussi avec #122. Correction : multiplier
+  voie par voie dans la branche AVX-512 d'`operator*=(double)`, comme le
+  fait SSE2, ou dire l'exception.
 
 ## Autres points
 
