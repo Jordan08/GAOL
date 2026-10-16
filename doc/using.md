@@ -84,7 +84,10 @@ with `_XOPEN_SOURCE` defined again, and `nb_fp_numbers()` returns an
 doubles `pi`, `half_pi`, `two_pi`, `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`,
 `ln2_dn`, `ln2_up`, `two_power_51` and `two_power_52` of GAOL 4 are no longer
 declared for the program, which found them with `using namespace gaol`, its own
-`pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`.
+`pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`,
+and the doubles around π and π/2 are `gaol_pi_dn`, `gaol_pi_up`,
+`gaol_half_pi_dn` and `gaol_half_pi_up`, in `gaol`, `gaol_ieee1788` and
+`gaol_core`.
 
 ## From CMake
 
@@ -283,8 +286,9 @@ the names GAOL 4 had in `gaol` that GAOL v5 still names there (the class
 the operators of intervals, the functions of doubles and the rounding
 direction, `round_downward()`, `round_upward()`, `round_nearest()`,
 `previous_float()`, `next_float()` and `is_finite()`, the version of the
-library, `version_major`, `version_minor`, `version_micro` and `version`...),
-the functions on intervals GAOL v5 adds
+library, `version_major`, `version_minor`, `version_micro` and `version`, and
+the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
+`gaol_half_pi_up`...), the functions on intervals GAOL v5 adds
 (`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. The exceptions (`gaol_exception`,

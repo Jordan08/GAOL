@@ -1100,7 +1100,7 @@ Test (`tests/expressions.cpp`): `interval("2", "1")` stays empty after adding
 Test (`tests/arithmetic.cpp`): `pow([1.0000001], n)` for n = 2²⁸ − 1, 2³¹ − 1
 and 2³² − 1 against the tightest bounds from mpmath.
 
-**8. `tan`.** `const bool narrower_than_pi = (w <= pi_dn);`: w, the width
+**8. `tan`.** `const bool narrower_than_pi = (w <= gaol_pi_dn);`: w, the width
 rounded upward, at most the double below π proves the exact width below π.
 Test (`tests/elementary.cpp`): `tan([-M_PI_2, M_PI_2])` is
 [−0x1.d02967c31cdb5p+53, 0x1.d02967c31cdb5p+53].

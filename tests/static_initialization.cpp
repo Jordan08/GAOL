@@ -11,7 +11,7 @@
  * .ctors from the last object linked to the first: there GAOL's files come
  * first, the bug did not show, and this test passes with or without the fix.
  * GAOL's constants were computed by the dynamic
- * initialization of its files: pi_dn and the other doubles of
+ * initialization of its files: gaol_pi_dn and the other doubles of
  * gaol/gaol_port.h, read from unions, the intervals interval::cst_pi,
  * cst_one... of gaol/gaol_interval_core.cpp, and the masks of the SSE2 operations
  * of gaol/gaol_interval_sse.cpp. A static object computing intervals found
@@ -125,9 +125,10 @@ int main()
 
   // The bounds of pi and pi/2 of gaol/gaol_port.h, written in decimal, are
   // the doubles next to pi and pi/2, which the unions of GAOL 4 wrote in bits
-  using namespace gaol_detail;
-  check("pi_dn and pi_up", pi_dn == 0x1.921fb54442d18p+1 && pi_up == 0x1.921fb54442d19p+1);
-  check("half_pi_dn and half_pi_up", half_pi_dn == 0x1.921fb54442d18p+0 && half_pi_up == 0x1.921fb54442d19p+0);
+  check("gaol_pi_dn and gaol_pi_up",
+        gaol_core::gaol_pi_dn == 0x1.921fb54442d18p+1 && gaol_core::gaol_pi_up == 0x1.921fb54442d19p+1);
+  check("gaol_half_pi_dn and gaol_half_pi_up",
+        gaol_core::gaol_half_pi_dn == 0x1.921fb54442d18p+0 && gaol_core::gaol_half_pi_up == 0x1.921fb54442d19p+0);
 
   const int status = summary();
   gaol::cleanup();

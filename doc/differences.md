@@ -257,9 +257,12 @@ where it comes from.
   rather than [−∞, +∞] and `sin([0, 4])` was [-0, 0], without any warning (25
   of the 45 checks of `tests/static_initialization.cpp` failed with the SSE2
   intervals, 24 with the others).
-  - `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`, `ln2_dn` and `ln2_up`
-    (`gaol/gaol_port.h`) are written in decimal, exactly, rather than read from
-    the unions that give their bits, which is not a constant expression.
+  - `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn`, `gaol_half_pi_up`, `ln2_dn`
+    and `ln2_up` (`gaol/gaol_port.h`) are written in decimal, exactly, rather
+    than read from the unions that give their bits, which is not a constant
+    expression. The four of π and π/2 are in `gaol_core`, under these names
+    (GAOL 4 had them in `gaol` as `pi_dn`...), and `gaol` and `gaol_ieee1788`
+    name them too.
   - `interval::one()`, `pi()`, `universe()` and the other constants of
     intervals build their interval from these doubles, which the compiler
     folds, rather than copy the static intervals `interval::cst_one`,
@@ -814,7 +817,8 @@ where it comes from.
   `NaN_val`, `eval_stack`, `parse_interval()` nor `parsing_names`, which GAOL 4
   had in `gaol`: a program names them in `gaol_core`. `gaol` and
   `gaol_ieee1788` both name `version_major`, `version_minor`, `version_micro`
-  and `version`.
+  and `version`, and `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
+  `gaol_half_pi_up`.
   - **`gaol/gaol.h`** no longer opens `gaol`: a program adds
     `using namespace gaol;` or `using namespace gaol_ieee1788;`, one of the
     two, `pow(x, y)` being ambiguous with both.

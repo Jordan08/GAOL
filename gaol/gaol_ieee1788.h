@@ -85,6 +85,12 @@ namespace gaol_ieee1788 {
   using ::gaol_core::version_micro;
   using ::gaol_core::version;
   
+  //! The doubles around pi and pi/2 (gaol/gaol_port.h)
+  using ::gaol_core::gaol_pi_dn;
+  using ::gaol_core::gaol_pi_up;
+  using ::gaol_core::gaol_half_pi_dn;
+  using ::gaol_core::gaol_half_pi_up;
+  
   /* Each function below calls the operation of GAOL by its full name,
   ::gaol_core::f: inside this namespace an unqualified f would be the
   function of the same name defined here, and call itself. */

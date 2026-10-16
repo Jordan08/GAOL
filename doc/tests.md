@@ -1087,7 +1087,8 @@ point Q), which `numbers` checks there too.
   would be ambiguous. `misc` checks as well that `gaol_ieee1788::operator<<`
   names the output of the intervals and of the expressions, and that `gaol`
   and `gaol_ieee1788` both name `version_major`, `version_minor`,
-  `version_micro` and `version`. The test did not compile
+  `version_micro` and `version`, and `gaol_pi_dn`, `gaol_pi_up`,
+  `gaol_half_pi_dn` and `gaol_half_pi_up`. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
