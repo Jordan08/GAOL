@@ -1019,7 +1019,7 @@ namespace
 #if GAOL_EXCEPTIONS_ENABLED
           try {
             back = gaol::textToInterval(text);
-          } catch (const gaol::input_format_error&) {
+          } catch (const gaol_core::input_format_error&) {
             refused = true;
           }
 #else

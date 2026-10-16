@@ -1501,6 +1501,7 @@ namespace gaol_core {
         #include "gaol/gaol_ieee1788.h"
         
         namespace gaol_ieee1788 {
+          using ::gaol_core::operator<<;
           using ::gaol_core::exp;
           using ::gaol_core::exp2;
           using ::gaol_core::log;

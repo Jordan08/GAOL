@@ -34,11 +34,11 @@
 #include <iosfwd>
 
 /*
-  The parser is in gaol_core, where interval is, and the namespace gaol names
-  it (see the end of this file, and gaol/gaol_interval.h). The code of the
-  parser (gaol/parser/gaol_interval_parser.ypp) opens gaol_core only, and names
-  the functions of the standard in gaol_ieee1788; the pow of GAOL, which no
-  namespace but gaol holds, is gaol_pow_hybrid() there (GAOL v5).
+  The parser is in gaol_core, where interval is, and the namespace gaol does
+  not name it (see gaol/gaol_interval.h): a program calls gaol_core::parse_interval().
+  The code of the parser (gaol/parser/gaol_interval_parser.ypp) opens gaol_core
+  only, and names the functions of the standard in gaol_ieee1788; the pow of
+  GAOL, which no namespace but gaol holds, is gaol_pow_hybrid() there (GAOL v5).
 */
 namespace gaol_core {
 
@@ -153,10 +153,5 @@ namespace gaol_core {
   void gaol_cleanup_parsing(void* scanner);
 
 } // namespace gaol_core
-
-namespace gaol {
-  using gaol_core::parsing_names;
-  using gaol_core::parse_interval;
-} // namespace gaol
 
 #endif /* GAOL_PARSER_H */

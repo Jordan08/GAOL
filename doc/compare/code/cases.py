@@ -920,9 +920,9 @@ static void show(const char *id, F f)
     } else {
       std::printf("%s|I|%a|%a\n", id, r.left(), r.right());
     }
-  } catch (input_format_error&) {
+  } catch (gaol_core::input_format_error&) {
     std::printf("%s|X|exception input_format_error\n", id);
-  } catch (unavailable_feature_error&) {
+  } catch (gaol_core::unavailable_feature_error&) {
     std::printf("%s|X|exception unavailable_feature_error\n", id);
   } catch (std::exception&) {
     std::printf("%s|X|exception\n", id);
@@ -957,9 +957,7 @@ int main()
 '''
 
 GAOLSTD_HEAD = (GAOL_HEAD.replace("computed by GAOL\n", "computed by GAOL under the names of IEEE 1788-2015\n")
-                .replace("using namespace gaol;", "using namespace gaol_ieee1788;")
-                .replace("catch (input_format_error&)", "catch (gaol::input_format_error&)")
-                .replace("catch (unavailable_feature_error&)", "catch (gaol::unavailable_feature_error&)"))
+                .replace("using namespace gaol;", "using namespace gaol_ieee1788;"))
 
 GAOL_TAIL = r'''  gaol::cleanup();
   return 0;

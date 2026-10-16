@@ -292,7 +292,7 @@ namespace
       bool thrown = false;
       try {
         (void)one_two.bisect(ratio);
-      } catch (const invalid_action_error&) {
+      } catch (const gaol_core::invalid_action_error&) {
         thrown = true;
       }
       check("bisect(ratio) for a ratio outside (0, 1): invalid_action_error", thrown, [&] { return hex(ratio); });
@@ -792,6 +792,19 @@ namespace
   {
     namespace std1788 = ::gaol_ieee1788;
     Random random;
+
+    // operator<< is named in the namespace (this file does not include the
+    // expressions, which gaol/parser/gaol_expression.h names there too), and is
+    // that of GAOL: it writes what os << x writes
+    {
+      const interval written(1.5, 2.5);
+      std::ostringstream named, plain;
+      std1788::operator<<(named, written);
+      plain << written;
+      check("gaol_ieee1788::operator<<: writes an interval as operator<< does",
+            !plain.str().empty() && named.str() == plain.str(),
+            [&] { return named.str() + " and " + plain.str(); });
+    }
 
     // <' of Table 10.3: < but for -oo <' -oo and +oo <' +oo
     const auto lt1 = [](double a, double b) { return a < b || (a == b && std::isinf(a)); };

@@ -42,7 +42,7 @@ public:
       	try {
 	  		instr >> I;
 	  		CPPUNIT_FAIL("no exception for [4.5,");
-      	} catch (const input_format_error& e) {
+      	} catch (const gaol_core::input_format_error& e) {
 	  		CPPUNIT_ASSERT(e.explanation().substr(0,26) == "Syntax error in expression");
 		}
 #endif
@@ -56,7 +56,7 @@ public:
       	try {
 	  		instr >> I;
 	  		CPPUNIT_FAIL("no exception for <3, 4>");
-      	} catch (const input_format_error& e) {
+      	} catch (const gaol_core::input_format_error& e) {
 	  		// Two different numbers in a degenerate interval, which the reader
 	  		// refuses as it reads them (GAOL v5)
 	  		CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
@@ -126,7 +126,7 @@ public:
       try {
         instr >> I;
         CPPUNIT_FAIL("no exception for <-inf,-inf>");
-      } catch (const input_format_error& e) {
+      } catch (const gaol_core::input_format_error& e) {
         CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
       }
 #endif
@@ -158,7 +158,7 @@ public:
       try {
         instr >> I;
         CPPUNIT_FAIL("no exception for <inf,inf>");
-      } catch (const input_format_error& e) {
+      } catch (const gaol_core::input_format_error& e) {
         CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
       }
 #endif

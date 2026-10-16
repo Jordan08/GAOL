@@ -32,6 +32,7 @@
 #include <string>
 
 #include "gaol/gaol_interval_core.h"
+#include "gaol/gaol_version.h"
 
 /*
   The namespace gaol: GAOL under its own names (GAOL v5).
@@ -39,32 +40,44 @@
   The type interval and GAOL's functions are in gaol_core, and gaol names them
   one by one, with using-declarations (GAOL v5): gaol::interval and
   gaol::sin(x) are those of gaol_core. gaol holds the names GAOL 4 declared in
-  its namespace gaol that GAOL v5 still has, so that a program written for
-  GAOL 4 compiles, rnd_keep() of GAOL 4.3.2 among them; the functions on
-  intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, erf, fma,
-  cancel_minus, round_ties_to_even...) and the nodes of the expressions it
-  adds; and restore_rounding() and exact_string() of GAOL v5.
-  It does not hold what GAOL's code uses for itself, which stays in gaol_core:
-  the functions saving and setting the rounding direction and the modes
-  flushing the subnormals to zero (rounding_state, get_rounding(),
-  set_rounding(), round_upward_if_needed() and gaol_set_rounding_x86(), which
-  GAOL 4.3.2 declared in gaol, get_flush_modes()...), the functions computing
-  GAOL's powers, which gaol names pow (gaol_pown(), gaol_uipow(),
-  gaol_pown_ll(), gaol_pow_real(), gaol_pow_hybrid(), gaol_pown_exp(),
-  gaol_pow_exp()), and
-  the other internals, those GAOL 4 declared in gaol too (f_negate(),
-  f_negate_simple(), gaol_signbit(), uintdouble, ullidouble, Interval_struct,
-  the_null_expr, prec_t, modulo_k_pi(), reset_fpu_cw(), round_downward_sse(),
-  round_to_nearest_sse() and round_upward_sse(), which its manual did not
-  document) and rnd_reread(), gaol_sign_of(), rounding_guard and
-  gaol_initializer; NaN_val of GAOL 4, which the macro GAOL_NAN names, stays
-  in gaol. gaol took gaol_core whole before (using namespace gaol_core), and
-  a program opening gaol met all of these names.
+  its namespace gaol that GAOL v5 still names there: the type, its output
+  format, the operators and the functions on intervals, the functions of
+  doubles and the rounding direction that a program sets before it computes
+  (previous_float(), next_float(), round_downward(), round_upward(),
+  round_nearest() and is_finite()), the version of the library
+  (version_major, version_minor, version_micro and version), and the names of
+  gaol/gaol_common.h; the
+  functions on intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, erf,
+  fma, cancel_minus, round_ties_to_even...) and the nodes of the expressions
+  it adds; and restore_rounding() and exact_string() of GAOL v5.
+  It does not hold what stays in gaol_core, where a program names it:
+  - what GAOL's code uses for itself: the functions saving and setting the
+    rounding direction and the modes flushing the subnormals to zero
+    (rounding_state, get_rounding(), set_rounding(), round_upward_if_needed()
+    and gaol_set_rounding_x86(), which GAOL 4.3.2 declared in gaol,
+    get_flush_modes()...), the functions computing GAOL's powers, which gaol
+    names pow (gaol_pown(), gaol_uipow(), gaol_pown_ll(), gaol_pow_real(),
+    gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and the other
+    internals, those GAOL 4 declared in gaol too (f_negate(),
+    f_negate_simple(), gaol_signbit(), uintdouble, ullidouble,
+    Interval_struct, the_null_expr, prec_t, modulo_k_pi(), reset_fpu_cw(),
+    round_downward_sse(), round_to_nearest_sse() and round_upward_sse(), which
+    its manual did not document) and rnd_reread(), gaol_sign_of(),
+    rounding_guard and gaol_initializer;
+  - the exceptions (gaol_exception, input_format_error,
+    unavailable_feature_error and invalid_action_error), rnd_keep() of GAOL
+    4.3.2, get_fpu_cw(), NaN_val of GAOL 4, which the macro GAOL_NAN names,
+    eval_stack, and the reader of strings, parse_interval() and
+    parsing_names.
+  gaol took gaol_core whole before (using namespace gaol_core), and a program
+  opening gaol met all of these names.
 
-  A using-declaration names the overloads declared before it: each header
-  names in gaol what it declares, at its end (gaol_version.h, gaol_common.h,
-  gaol_port.h, gaol_fpu.h...), and gaol/parser/gaol_expression.h names again the
-  functions and the operators it overloads for the expressions. A call sin(x)
+  A using-declaration names the overloads declared before it: this file
+  includes gaol/gaol_interval_core.h, which includes the headers of what it
+  names, and names it after them; gaol/gaol_common.h and the headers of the
+  expressions name theirs at their end, and gaol/parser/gaol_expression.h
+  names again the functions and the operators it overloads for the
+  expressions. A call sin(x)
   on an interval finds by argument-dependent lookup the functions of gaol_core
   only, the namespace where interval is defined, never those of gaol or of
   gaol_ieee1788 (gaol/gaol_ieee1788.h): the same functions, whichever
@@ -76,9 +89,20 @@
 */
 namespace gaol {
 
-  // rnd_keep() of gaol/gaol_fpu.h, with its overloads for intervals above
-  // (GAOL v5)
-  using gaol_core::rnd_keep;
+  // The version of the library (gaol/gaol_version.h)
+  using gaol_core::version_major;
+  using gaol_core::version_minor;
+  using gaol_core::version_micro;
+  using gaol_core::version;
+
+  // The functions of doubles and the rounding direction of GAOL 4
+  // (gaol/gaol_fpu_fenv.h or gaol/gaol_fpu_msvc.h, and gaol/gaol_port.h)
+  using gaol_core::previous_float;
+  using gaol_core::next_float;
+  using gaol_core::round_downward;
+  using gaol_core::round_upward;
+  using gaol_core::round_nearest;
+  using gaol_core::is_finite;
 
   // The type, its output format, and the functions and operators on intervals
   // of GAOL 4
