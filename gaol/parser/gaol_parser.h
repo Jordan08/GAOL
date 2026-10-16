@@ -32,6 +32,7 @@
 #include "gaol/gaol_config.h"
 #include <cstddef>
 #include <iosfwd>
+#include <string>
 
 /*
   The parser is in gaol_core, where interval is, and the namespace gaol does
@@ -151,6 +152,15 @@ namespace gaol_core {
   */
   void* gaol_initialize_parsing(void* context);
   void gaol_cleanup_parsing(void* scanner);
+
+  /*
+    The text of x that gaol_ieee1788::intervalToText() returns, an interval
+    literal of IEEE 1788-2015 (12.11), the literal that textToInterval() reads
+    back (GAOL v5). A function of the library for its own files, which it does
+    not export (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the
+    other writers of intervals.
+  */
+  std::string literal_text(const interval& x);
 
 } // namespace gaol_core
 

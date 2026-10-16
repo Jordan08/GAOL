@@ -29,7 +29,7 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
-#include "gaol/gaol_literals.h"
+#include "gaol/parser/gaol_parser.h"
 
 namespace gaol_ieee1788 {
 
@@ -84,8 +84,8 @@ namespace gaol_ieee1788 {
     the locale of a program that sets one, and <4, 4> for the point interval
     4, none of them a literal, and the text changed with the format another
     thread was setting.
-    The writing itself is ::gaol_core::literal_text() (gaol/gaol_literals.h), in
-    gaol/gaol_interval_core.cpp, which holds the writers of intervals.
+    The writing itself is ::gaol_core::literal_text() (gaol/parser/gaol_parser.h),
+    in gaol/gaol_interval_core.cpp, which holds the writers of intervals.
   */
   std::string intervalToText(const interval& x)
   {

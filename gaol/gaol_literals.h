@@ -1,8 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * The text of numbers and of intervals that the library reads and writes
- * (GAOL v5).
+ * The text of numbers that the library reads (GAOL v5).
  *
  * gaol_detail::literal_interval(text) is an interval enclosing the number
  * that a literal of C++ writes, text being the characters of the literal as
@@ -14,8 +13,6 @@
  * are read by textToInterval(), the integers written in hexadecimal, octal
  * ("010" is 8, as 010 is) and binary are taken as the integers they are, and
  * the digit separators of C++14 ("1'000") are left out.
- * gaol_core::literal_text(x) is the text that gaol_ieee1788::intervalToText()
- * writes for x.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -32,19 +29,6 @@
 #include <string>
 
 #include "gaol/gaol_interval.h"
-
-namespace gaol_core {
-
-  /*
-    The text of x that gaol_ieee1788::intervalToText() returns, an interval
-    literal of IEEE 1788-2015 (12.11), the literal that textToInterval() reads
-    back (GAOL v5). A function of the library for its own files, which it does
-    not export (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the
-    other writers of intervals.
-  */
-  std::string literal_text(const interval& x);
-
-} // namespace gaol_core
 
 namespace gaol_detail {
 
