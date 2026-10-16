@@ -19166,7 +19166,7 @@ printf %s "checking whether the compiler takes the AVX-512 instructions in a fun
 #if !defined(__x86_64__)
 #error not x86-64
 #endif
-#if defined(_WIN32) && defined(__GNUC__) && !defined(__clang__)
+#if (defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__)
 #error GCC for Windows does not align the stack for AVX-512
 #endif
 __attribute__((target("avx512f"))) double er_add(double a, double b)
@@ -19209,7 +19209,7 @@ fi
 if test "${prefer_avx512}" = yes; then
     if test "${have_avx512_target}" = no; then
         if test "${prefer_avx512_explicit}" = yes; then
-            as_fn_error $? "--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with Clang, or GCC but for Windows" "$LINENO" 5
+            as_fn_error $? "--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with Clang, or GCC except on Windows (MinGW-w64, Cygwin)" "$LINENO" 5
         fi
         # The default --enable-preserve-rounding derived, and the compiler
         # or the architecture takes no path: the operations keep setting

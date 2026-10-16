@@ -638,13 +638,15 @@ message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_US
 # GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
 # the functions that carry __attribute__((target("avx512f"))), and
 # __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64 only, but
-# GCC for Windows (MinGW-w64), which does not align the stack beyond 16
-# bytes, the 64 of a zmm register spilled there (GCC bug 54412, fixed for GCC
-# 17 only; GAOL_FMA leaves -mfma out with it for the 32 of AVX). The code of
-# the path compiled by its GCC 13 puts no zmm register on the stack, but
-# nothing keeps the compiler from doing it (GAOL v5, point AA of TODO.md).
-# Only
-# the functions of the AVX-512 path of +, -, *, / and sqrt
+# GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
+# beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
+# fixed for GCC 17 only; GAOL_FMA leaves -mfma out with MinGW-w64 GCC for
+# the 32 of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
+# aligned access of a zmm register to the stack, but nothing keeps the
+# compiler from doing it (GAOL v5, point AA of TODO.md). The result is
+# cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
+# build directory configured before that check checks again. Only the
+# functions of the AVX-512 path of +, -, *, / and sqrt
 # (gaol/gaol_interval_avx512.cpp) carry the attribute, and the rest of the
 # library is compiled as without it; the path is compiled in where
 # GAOL_AVX512_ARITHMETIC below is (GAOL v5).
@@ -652,7 +654,7 @@ set(GAOL_HAVE_AVX512_TARGET OFF)
 if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   # The source in a bracket argument: verbatim, no quote to escape
   check_cxx_source_compiles([=[
-    #if defined(_WIN32) && defined(__GNUC__) && !defined(__clang__)
+    #if (defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__)
     #error GCC for Windows does not align the stack for AVX-512
     #endif
     #include <immintrin.h>
@@ -663,14 +665,14 @@ if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
       return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
     }
     int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }]=]
-    GAOL_COMPILER_TAKES_AVX512_TARGET)
-  if(GAOL_COMPILER_TAKES_AVX512_TARGET)
+    GAOL_COMPILER_TAKES_AVX512_PATH)
+  if(GAOL_COMPILER_TAKES_AVX512_PATH)
     set(GAOL_HAVE_AVX512_TARGET ON)
   endif()
 endif()
 if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   if(GAOL_PREFER_AVX512_EXPLICIT)
-    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC but for Windows")
+    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC except on Windows (MinGW-w64, Cygwin)")
   endif()
   # The default GAOL_PRESERVE_ROUNDING derived, and the compiler or the
   # architecture takes no path: the operations keep setting the direction

@@ -79,7 +79,7 @@ namespace gaol_core {
       if (__builtin_cpu_supports("avx512f") == 0) {
         std::fputs("[gaol error]: this GAOL was built for the AVX-512 instructions"
                    " (GAOL_PREFER_AVX512, on by default with GAOL_PRESERVE_ROUNDING),"
-                   " which this processor does not have: build it with"
+                   " which this processor or system does not run: build it with"
                    " -DGAOL_PREFER_AVX512=OFF, --disable-prefer-avx512 or"
                    " -Denable-prefer-avx512=false\n", stderr);
         std::abort();

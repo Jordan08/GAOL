@@ -236,6 +236,12 @@ including its headers, through a library of the program for instance, or, with
 Clang, of an `inline` variable or a static member of a class template, whose
 initialization C++ does not order with the rest of the file.
 
+With the AVX-512 path of `GAOL_PREFER_AVX512` (see
+[The AVX-512 path](#the-avx-512-path)), the initialization stops the program,
+with a message on the standard error, when the processor or the system does
+not run the AVX-512 instructions, even in a program that computes nothing
+(GAOL v5).
+
 The constants of GAOL (π, the masks of its SSE2 operations) are initialized
 when compiling: a static object of the program may compute intervals, before
 the files of GAOL are initialized, which with the static library of the CMake
@@ -925,8 +931,11 @@ is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library
 built with the path then needs a processor with the instructions, and
-`gaol::init()` stops a program run on another one, with a message, before
-its first operation stops on an illegal instruction; one for
+`gaol::init()` stops a program run on another one, with a message, rather
+than letting its first operation stop on an illegal instruction (an
+operation made before GAOL initializes itself, as
+[Initialization and cleanup](#initialization-and-cleanup) describes, still
+does); one for
 any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
 (GAOL v5: `gaol::init()` chose the path as the program ran, and every
 operation tested the flag it set, in the default build too). The

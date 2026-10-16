@@ -55,8 +55,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   that direction, and taken (`GAOL_AVX512_ARITHMETIC`) where the machine
   building runs the instructions, which is checked as for the fused
   multiply-add instructions, the path being left out when cross-compiling:
-  the library then needs a processor with them, and the operations test
-  nothing as they run. No flag to compile,
+  the library then needs a processor with them, which `gaol::init()`
+  checks, and the operations test nothing as they run; never with GCC for
+  Windows (MinGW-w64, Cygwin), which does not align the stack for the
+  AVX-512 registers, as it does not for those of `-mfma`. No flag to compile,
   the path's functions alone carry the target attribute (GAOL v5, see
   [Using GAOL](using.md#the-avx-512-path));
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`

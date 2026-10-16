@@ -337,13 +337,12 @@ endif
 # __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which
 # GCC and Clang on x86-64 do, but GCC for Windows, which does not align the
 # stack for AVX-512 (see CMakeLists.txt): no flag, the attribute is per
-# function. The
-# path is taken where the machine building runs it (GAOL_AVX512_ARITHMETIC
-# below).
+# function. The path is taken where the machine building runs it
+# (GAOL_AVX512_ARITHMETIC below).
 have_avx512_target = false
 if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
   avx512_target_source = '''
-    #if defined(_WIN32) && defined(__GNUC__) && !defined(__clang__)
+    #if (defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__)
     #error GCC for Windows does not align the stack for AVX-512
     #endif
     #include <immintrin.h>
@@ -370,7 +369,7 @@ endif
 # is configured, makes on a machine with the AVX-512 instructions a library
 # that needs them (GAOL v5, point AA of TODO.md)
 if prefer_avx512_requested and not have_avx512_target
-  error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC but for Windows')
+  error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC except on Windows (MinGW-w64, Cygwin)')
 endif
 prefer_avx512 = prefer_avx512_requested or (prefer_avx512_option == 'auto' and preserve_rounding and have_avx512_target)
 if prefer_avx512

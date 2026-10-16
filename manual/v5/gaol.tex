@@ -1744,7 +1744,10 @@ Unless GAOL was built to preserve the rounding direction, the first call notes
 the rounding direction it finds, which \code{cleanup()} sets back, then sets the
 floating-point environment to its default one, then the rounding direction
 towards $+\infty$. In addition, it sets the number of digits to display for
-interval bounds to 16.
+interval bounds to 16. Built with the AVX-512 path of
+\option{GAOL\_PREFER\_AVX512}, the first call stops the program, with a
+message on the standard error, when the processor or the system does not run
+the AVX-512 instructions, even in a program that computes nothing.\newinvfive
 
 Returns \code{true} if the library was not already initialized and \code{false}
 otherwise. After its first call, the function sets the debugging level to its

@@ -279,6 +279,14 @@ https://github.com/Jordan08/GAOL.
 The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
 
+`enable-prefer-avx512` was a boolean, and is a `combo` (GAOL v5): its values
+are the strings `auto`, `true` and `false`, as `-Denable-prefer-avx512=false`
+or `default_options: ['enable-prefer-avx512=false']` writes them, where a
+boolean `true` or `false` in a dictionary of `default_options` is refused. A
+build directory configured with the boolean is configured again with
+`meson setup --wipe`: meson 1.12 refuses to regenerate it, and meson 0.53
+gives the option back its default, `auto`.
+
 `meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
 [The version of GAOL](#the-version-of-gaol)), and twice more for the message
 of a file it refuses: the first of `python3` and `python` that it finds in
@@ -366,7 +374,7 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows, which does not align the stack for the AVX-512 registers (GCC bug 54412) | checked | checked | checked |
+| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412) | checked | checked | checked |
 | `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
