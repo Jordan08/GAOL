@@ -197,13 +197,9 @@ if get_option('enable-verbose-mode')
   conf_data.set('GAOL_VERBOSE_MODE', 1)
 endif
 
-# gaol/gaol_fpu.h: <fenv.h>; gaol/gaol_profile.cpp:
-# getrusage() where <sys/resource.h> declares it, clock() otherwise
+# gaol/gaol_fpu.h: <fenv.h>
 if cpp_comp.has_header('fenv.h')
   conf_data.set('GAOL_HAVE_FENV_H', 1)
-endif
-if cpp_comp.has_function('getrusage', prefix: '#include <sys/resource.h>')
-  conf_data.set('GAOL_HAVE_GETRUSAGE', 1)
 endif
 
 # The compilers CMakeLists.txt and configure refuse, for the same reasons (see

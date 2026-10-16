@@ -83,10 +83,6 @@
 /* Defined to 1 where the compiler has <fenv.h> */
 #mesondefine GAOL_HAVE_FENV_H
 
-/* Defined to 1 where <sys/resource.h> declares getrusage(), which
-   gaol/gaol_profile.cpp measures the time with (clock() otherwise) */
-#mesondefine GAOL_HAVE_GETRUSAGE
-
 /* The macros above that the build leaves undefined are 0 (GAOL v5, point Z
    of TODO.md): GAOL's headers read them with #if, which warned under
    -Wundef, so that a program could not include GAOL under -Wundef -Werror.
@@ -130,8 +126,4 @@
 #ifndef GAOL_HAVE_FENV_H
 #  define GAOL_HAVE_FENV_H 0
 #endif
-#ifndef GAOL_HAVE_GETRUSAGE
-#  define GAOL_HAVE_GETRUSAGE 0
-#endif
-
 #endif /* GAOL_CONFIGURATION_H */

@@ -8,9 +8,9 @@ The line-by-line report is [coverage.html](coverage.html), one page holding its 
 
 | | Lines | Covered | Not run | % | |
 |---|---:|---:|---:|---:|---|
-| **GAOL (`gaol/`)** | 3684 | 3214 | 470 | **87.2** | `█████████████████░░░` |
+| **GAOL (`gaol/`)** | 3653 | 3214 | 439 | **88.0** | `██████████████████░░` |
 
-**The tests run 87.2 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
+**The tests run 88.0 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
 
 Branches: 67.1 % of those of GAOL are taken both ways.
 
@@ -22,7 +22,6 @@ Sorted by coverage, least covered first.
 
 | File | Lines | Covered | % | Branches taken |
 |---|---:|---:|---:|---:|
-| `gaol/gaol_profile.cpp` | 31 | 0 | 0.0 | -- |
 | `gaol/parser/gaol_expr_visitor.h` | 96 | 4 | 4.2 | -- |
 | `gaol/gaol_exceptions.cpp` | 21 | 5 | 23.8 | 16.7 % |
 | `gaol/gaol_common.cpp` | 50 | 37 | 74.0 | 82.4 % |
@@ -49,7 +48,6 @@ Sorted by coverage, least covered first.
 
 ## The lines the tests never run
 
-- `gaol/gaol_profile.cpp`: 57, 60-61, 83, 85-86, 88, 92-95, 98, 100, 109, 111-113, 115, 117-118, 120, 122-124, 126, 128-129, 131, 133, 136, 138
 - `gaol/parser/gaol_expr_visitor.h`: 81-82, 87-176
 - `gaol/gaol_exceptions.cpp`: 42, 44-46, 56, 58, 62, 64, 69, 71, 74, 76-79, 81
 - `gaol/gaol_common.cpp`: 125, 127-128, 130, 132-133, 135, 137-138, 140, 142-143, 160

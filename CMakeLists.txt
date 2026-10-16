@@ -576,10 +576,6 @@ if(NOT GAOL_HAVE_FENV_H)
   message(FATAL_ERROR "GAOL needs <fenv.h>, which this compiler does not provide")
 endif()
 
-# gaol/gaol_profile.cpp measures time with getrusage() where it exists, and with
-# clock() otherwise
-check_symbol_exists(getrusage "sys/resource.h" GAOL_HAVE_GETRUSAGE)
-
 # GAOL raises exceptions to signal errors, which --disable-exceptions of
 # configure and -Denable-exception=false of meson turn off
 set(GAOL_EXCEPTIONS_ENABLED ON)
@@ -734,7 +730,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp gaol_interval_core.cpp gaol_profile.cpp gaol_common.cpp parser/gaol_parser.cpp
+  gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp parser/gaol_parser.cpp
   parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
@@ -879,7 +875,7 @@ set(GAOL_HEADERS
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_core.h gaol/gaol_interval_fpu.h
   gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_literals.h
-  gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_port.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and

@@ -365,7 +365,6 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
-| `GAOL_HAVE_GETRUSAGE` | `<sys/resource.h>` declares `getrusage()`, which `gaol/gaol_profile.cpp` measures the time with (`clock()` otherwise) | checked | checked | checked |
 
 What GAOL needs to know of the processor and the system comes from the
 compiler, in `gaol/gaol_config.h`: `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`,

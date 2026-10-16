@@ -852,6 +852,15 @@ where it comes from.
   direction for the code calling them from outside GAOL are gone, and
   `tests/rounding_direction.cpp` no longer calls them; `gaol_core::upward`,
   which the operations of intervals call, stays.
+- **The timing of GAOL 4 is gone: `gaol/gaol_profile.h` and
+  `gaol/gaol_profile.cpp`.** `gaol/gaol` no longer includes the header, and
+  the three builds neither install it nor compile the source. The class
+  `timepiece` and the functions `get_time()`, `reset_time()`,
+  `elapsed_time()` and `intermediate_elapsed_time()` leave the interface,
+  and so does the macro `GAOL_HAVE_GETRUSAGE` of
+  `gaol/gaol_configuration.h`, which nothing read but
+  `gaol/gaol_profile.cpp`. A program measures the time with the clocks of
+  the C++ standard library, as `examples/16_Goldstein_Price.cpp` does.
 - **The constructor from one string, `interval(const char*)`, is gone.**
   `gaol::textToInterval()` reads the string instead, with the same names of
   functions, and throws the same `input_format_error` for a string that is no

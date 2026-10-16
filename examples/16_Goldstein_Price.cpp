@@ -15,6 +15,7 @@
  * By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
  *--------------------------------------------------------------------------*/
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -74,12 +75,18 @@ int main()
   const interval zero = interval::universe() * interval(0.0, 0.0);
   cout << zero << endl;
   check(zero.set_eq(interval(0.0)), "the whole line times 0 is {0}");
-  reset_time();
+  // The time of the loop, with a clock of the C++ standard library: GAOL
+  // no longer measures the time (gaol_profile.h is gone, GAOL v5)
+  const std::chrono::steady_clock::time_point start =
+    std::chrono::steady_clock::now();
   for (unsigned int i = 0; i < 1000000; ++i) {
     z = goldstein_price(x, y);
   }
+  const long elapsed_ms =
+    std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - start).count();
   cout << "z = " << z << endl;
-  cout << "Elapsed time: " << elapsed_time() << " ms" << endl;
+  cout << "Elapsed time: " << elapsed_ms << " ms" << endl;
 
   // The minimum of f over [-2, 2]^2, f(0, -1) = 3, is where the two factors
   // are 1 and 3: the values on a point are exact, integers

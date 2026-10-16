@@ -37,7 +37,7 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_interval_core.cpp gaol_profile.cpp gaol_common.cpp \
+	gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
@@ -72,7 +72,7 @@ library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
 	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
-	gaol_literals.h gaol_port.h gaol_profile.h gaol_roundeven.h \
+	gaol_literals.h gaol_port.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
 
 # The headers of the parser of the strings and of the expressions, which a

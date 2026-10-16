@@ -52,7 +52,6 @@ namespace gaol_names
   GAOL_NAMES_CLASS(invalid_action_error);
   GAOL_NAMES_CLASS(unavailable_feature_error);
 #endif
-  GAOL_NAMES_CLASS(timepiece);
   GAOL_NAMES_CLASS(expression);
   GAOL_NAMES_CLASS(expr_node);
   GAOL_NAMES_CLASS(expr_visitor);
