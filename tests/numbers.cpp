@@ -14,7 +14,9 @@
  * in the wrong order, and NaN bounds. The interval literals of IEEE 1788-2015
  * (9.7, 12.11) have to be read, whatever the case of their letters: [ ],
  * [empty], [entire], bounds left out or infinite, hexadecimal numbers and the
- * uncertain form 3.56?1.
+ * uncertain form 3.56?1. The numbers in base 16, 8 and 2, 0x10, 0o17 and
+ * 0b101, with or without an exponent, have to be read as the tightest
+ * enclosures too.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -100,6 +102,41 @@ namespace
     power_of_five.sign = 1;
     power_of_five.m = five_k;
     return (k >= 0) ? exact(scaled*power_of_five) : quotient(scaled, power_of_five);
+  }
+
+  /*
+    The exact value of the number s writes in base 16, 8 or 2 (GAOL v5): after
+    0x, 0o or 0b, digits with an optional point, and an optional exponent of 2
+    after a p, as 0xff.8 (255.5), 0o17 (15), 0b101 (5) and 0b1.1p3 (12) are
+  */
+  Exact radix_number(const std::string& s)
+  {
+    const char prefix = static_cast<char>(std::tolower(static_cast<unsigned char>(s[1])));
+    const std::uint64_t base = (prefix == 'x') ? 16 : ((prefix == 'o') ? 8 : 2);
+    const long digit_bits = (prefix == 'x') ? 4 : ((prefix == 'o') ? 3 : 1);
+    Natural n;
+    long e = 0;
+    bool fraction = false;
+    std::size_t i = 2;
+    for (; i < s.size() && s[i] != 'p' && s[i] != 'P'; ++i) {
+      if (s[i] == '.') {
+        fraction = true;
+        continue;
+      }
+      const int c = std::tolower(static_cast<unsigned char>(s[i]));
+      n = n*Natural(base) + Natural(static_cast<std::uint64_t>(c <= '9' ? c - '0' : c - 'a' + 10));
+      if (fraction) {
+        e -= digit_bits;
+      }
+    }
+    if (i < s.size()) {
+      e += std::stol(s.substr(i + 1));
+    }
+    Dyadic d;
+    d.sign = n.is_zero() ? 0 : 1;
+    d.m = n;
+    d.e = e;
+    return exact(d);
   }
 
   void expect_number(const std::string& name, const std::string& s)
@@ -740,6 +777,145 @@ namespace
       const interval u = textToInterval("[" + t + "]");
       check("textToInterval(\"[hexadecimal number]\"): the tightest enclosure",
             is_tightest_enclosure(u, exact(dyadic(x) + half_unit)), [&] { return t + ": " + hex(u); });
+    }
+  }
+
+  // textToInterval(s), or the empty set with a failure of the check when it throws
+  interval read_text(const std::string& s)
+  {
+    return evaluate("textToInterval(number in base 16, 8 or 2)", [&] { return textToInterval(s); },
+                    [&] { return "\"" + s + "\""; });
+  }
+
+  /*
+    The numbers in base 16, 8 and 2 (GAOL v5): 0x10 is 16, 0xff.8 is 255.5,
+    0o17 is 15, 0b101 is 5 and 0b1.1p3 is 12, with an exponent after a p or
+    without. Hexadecimal numbers needed the exponent, and no number in octal
+    or binary was read: the 0 of 0x10, of 0o17 and of 0b101 was a number, and
+    what followed a name that no function has. A number that begins with 0 is
+    still decimal, 010 being 10 as IEEE 1788-2015 (9.7.2) has it: octal
+    numbers are written 0o10, as in Python, and 010 would have been 8 in C.
+  */
+  void radix_numbers()
+  {
+    // Each number is the tightest enclosure of what it writes, which the
+    // test computes from its digits: beyond 2^64, beyond 2^1024 and below
+    // 2^-1074, with leading zeros, and with the case of the letters changed
+    const char *const tightest[] = {
+      "0x0", "0x1", "0x10", "0XFF", "0xff.8", "0x.8", "0x1.", "0x1.8", "0x1p-3", "0x1.8p1", "0xAbC.dEfP-2", "0x00000010",
+      "0x20000000000001", "0xFFFFFFFFFFFFFFFF", "0x1FFFFFFFFFFFFFFFF", "0xFFFFFFFFFFFFFFFFF",
+      "0x123456789abcdef0123456789abcdef", "0x1.00000000000008", "0x1.00000000000007ffffff", "0x1.000000000000080001",
+      "0x1p1023", "0x1p1024", "0x1p-1075", "0x1p100000", "0x1p-100000", "0x0.0000000000001p-1022",
+      "0o0", "0o7", "0o17", "0O777", "0o7.4", "0o.4", "0o17.", "0o17p2", "0O1P-3", "0o00000017", "0o1.7p3",
+      "0o1p-1074", "0o1p-1075", "0o7p-1076", "0o1p1023", "0o1p1024", "0o1p100000", "0o1p-100000",
+      "0b0", "0b1", "0b101", "0B11", "0b1.1", "0b.1", "0b101.", "0b101p2", "0B1P-3", "0b00000101", "0b1.1p3",
+      "0b1p-1074", "0b1p-1075", "0b11p-1076", "0b1p1023", "0b1p1024", "0b1p100000", "0b1p-100000",
+    };
+    // Around 2^53, 2^65 and 1, where a double is a unit of the last place
+    // apart: 2^65 - 1, 2^53 + 1, 1 + 2^-52 (the next double after 1), 1 + 2^-53
+    // (half way to it), and just above and below that
+    const std::string around[] = {
+      "0b" + std::string(65, '1'), "0b1" + std::string(52, '0') + "1", "0b1." + std::string(51, '0') + "1",
+      "0b1." + std::string(52, '0') + "1", "0b1." + std::string(52, '0') + "11", "0b1." + std::string(52, '0') + "01",
+      "0b" + std::string(53, '1'), "0b" + std::string(54, '1'),
+      "0o" + std::string(22, '7'), "0o2" + std::string(17, '0') + "1", "0o1." + std::string(17, '0') + "1",
+      "0o1." + std::string(17, '0') + "4", "0o1." + std::string(17, '0') + "3" + std::string(40, '7'),
+    };
+    const auto expect_radix_number = [](const std::string& s) {
+      const interval r = read_text(s);
+      check("textToInterval(number in base 16, 8 or 2): the tightest enclosure", !r.is_empty() && is_tightest_enclosure(r, radix_number(s)),
+            [&] { return "\"" + s + "\": " + hex(r); });
+    };
+    for (const char *s : tightest) {
+      expect_radix_number(s);
+    }
+    for (const std::string& s : around) {
+      expect_radix_number(s);
+    }
+
+    // Values known apart from the test, so that it does not repeat a mistake
+    // of its own: the doubles themselves
+    const struct { const char *s; double x; } exactly[] = {
+      { "0x10", 16. }, { "0xA", 10. }, { "0xa0", 160. }, { "0xff.8", 255.5 }, { "0x.8", 0.5 }, { "0x1.8", 1.5 },
+      { "0x1p3", 8. }, { "0xFFFFFFFFFFFFF800", 0x1.fffffffffffffp63 },
+      { "0o17", 15. }, { "0O777", 511. }, { "0o7.4", 7.5 }, { "0o.1", 0.125 }, { "0o10p-3", 1. }, { "0o0", 0. },
+      { "0o1p-1074", 0x1p-1074 }, { "0o400000000000000000", 0x1p53 },
+      { "0b101", 5. }, { "0b1.1", 1.5 }, { "0b101p2", 20. }, { "0b.01", 0.25 }, { "0b1p-1074", 0x1p-1074 },
+      { "0b1.0000000000000000000000000000000000000000000000000001", 0x1.0000000000001p0 },
+      // Decimal, as before: a leading 0 does not make an octal number
+      { "010", 10. }, { "0010.5", 10.5 }, { "007", 7. },
+    };
+    for (const auto& c : exactly) {
+      const interval r = read_text(c.s);
+      check("textToInterval(number in base 16, 8 or 2): the double", !r.is_empty() && r.left() == c.x && r.right() == c.x,
+            [&] { return std::string("\"") + c.s + "\": " + hex(r); });
+    }
+
+    // In intervals and in expressions, wherever a number may stand
+    const struct { const char *s; double lo, hi; } composed[] = {
+      { "[0x10]", 16., 16. }, { "[0b11, 0x10]", 3., 16. }, { "[-0x1.8, 0b10]", -1.5, 2. }, { "[0b1,]", 1., inf },
+      { "[0o10, 0x10]", 8., 16. }, { "0o17 + 0x1 + 0b1", 17., 17. }, { "0x10 + 0b101", 21., 21. }, { "-0x10", -16., -16. }, { "0x10/0b100", 4., 4. }, { "0b11*[0x1, 0b10]", 3., 6. },
+      { "[007, 010]", 7., 10. },
+    };
+    for (const auto& c : composed) {
+      const interval r = read_text(c.s);
+      check("textToInterval(numbers in base 16, 8 or 2, in an interval or an expression)",
+            !r.is_empty() && r.left() == c.lo && r.right() == c.hi, [&] { return std::string("\"") + c.s + "\": " + hex(r); });
+    }
+    const interval hexa_ieee = evaluate("gaol_ieee1788::textToInterval(number in base 16, 8 or 2)",
+                                        [] { return gaol_ieee1788::textToInterval("[0o20, 0b101p2]"); }, [] { return "[0o20, 0b101p2]"; });
+    check("gaol_ieee1788::textToInterval reads them too", !hexa_ieee.is_empty() && hexa_ieee.left() == 16. && hexa_ieee.right() == 20.,
+          [&] { return hex(hexa_ieee); });
+
+#if GAOL_EXCEPTIONS_ENABLED
+    // Without exceptions, a text the reader refuses ends the program
+    const char *const invalid[] = { "0x", "0b", "0b2", "0b12", "0b1.1.1", "0x1g", "0xg", "0b1p", "0b1p+", "0x1p", "0x1.p", "[0x10 0x10]",
+                                    "0x1 0x1", "0b1?1", "0b-1", "0x 10", "0b 101", "0o", "0o8", "0o78", "0o1p", "0o1.1.1", "0o 17", "0o-1" };
+    for (const char *s : invalid) {
+      bool threw = false;
+      try {
+        const interval x = textToInterval(s);
+        (void)x;
+      } catch (gaol_core::input_format_error&) {
+        threw = true;
+      } catch (...) {
+      }
+      check("textToInterval(number in base 16, 8 or 2): input_format_error for what is not one", threw, [&] { return std::string(s); });
+    }
+#endif
+
+    // Random integers, written in hexadecimal, octal and binary, are read as
+    // the tightest enclosures of the same number, and so are long ones
+    Random random;
+    for (int i = 0; i < nb_random_values; ++i) {
+      const std::uint64_t n = random.bits() >> random.integer(0, 63);
+      char hexa[32], octa[32];
+      std::snprintf(hexa, sizeof hexa, "0x%llx", static_cast<unsigned long long>(n));
+      std::snprintf(octa, sizeof octa, "0o%llo", static_cast<unsigned long long>(n));
+      std::string bin = "0b";
+      for (int b = 63; b >= 0; --b) {
+        bin += ((n >> b) & 1u) ? '1' : '0';
+      }
+      Dyadic d;
+      d.sign = (n == 0) ? 0 : 1;
+      d.m = Natural(n);
+      for (const std::string& s : { std::string(hexa), std::string(octa), bin }) {
+        const interval r = read_text(s);
+        check("textToInterval(integer in base 16, 8 or 2): the tightest enclosure", is_tightest_enclosure(r, exact(d)),
+              [&] { return s + ": " + hex(r); });
+      }
+      const int base_kind = i % 3; // 0: hexadecimal, 1: octal, 2: binary
+      std::string longer = (base_kind == 0) ? "0x" : ((base_kind == 1) ? "0o" : "0b");
+      const int digits = random.integer(1, 300);
+      for (int j = 0; j < digits; ++j) {
+        longer += "0123456789abcdef"[random.integer(0, (base_kind == 0) ? 15 : ((base_kind == 1) ? 7 : 1))];
+      }
+      if (random.integer(0, 1) == 1) {
+        longer += "p" + std::to_string(random.integer(-1200, 1200));
+      }
+      const interval r = read_text(longer);
+      check("textToInterval(long number in base 16, 8 or 2): the tightest enclosure", is_tightest_enclosure(r, radix_number(longer)),
+            [&] { return longer + ": " + hex(r); });
     }
   }
 
@@ -2231,6 +2407,7 @@ int main()
   constants();
   constructors();
   ieee_literals();
+  radix_numbers();
   expressions();
   hexadecimal_output();
   decimal_output();

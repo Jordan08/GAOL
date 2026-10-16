@@ -330,7 +330,15 @@ point Q), which `numbers` checks there too.
   ambiguous, is gone (GAOL v5). The literals of IEEE 1788-2015
   (`[entire]`, `[ ]`, `[1,]`, `3.56?1`, hexadecimal numbers...) have to be read
   as the tightest intervals enclosing them, whatever the case of their letters,
-  and `[inf]` and the like as the empty set. Expressions read again and again
+  and `[inf]` and the like as the empty set. The numbers in base 16, 8
+  and 2 (`0x10`, `0xff.8`, `0o17`, `0b101`, `0b1.1p3`), with the exponent after
+  the `p` or without, have to be read as the tightest intervals enclosing the number their
+  digits write, which the test computes from the digits: beyond 2^64, around 2^53
+  and 1, beyond the doubles, with leading zeros and with random digits, alone,
+  in intervals, in expressions and by `gaol_ieee1788::textToInterval`; a number
+  that begins with 0 stays decimal (`010` is 10); and `0x`, `0o8`, `0b2`,
+  `0b12` and the like are refused (GAOL v5). The reader took neither a
+  hexadecimal number without exponent nor any number in octal or binary. Expressions read again and again
   have to give the same interval, and those GAOL cannot read or compute
   (`nth_root(8, 1.5)`, `sin(1)+`, `atan2(1)`...) have to throw. Built with
   LeakSanitizer, the tests check that the parser frees the nodes of all of

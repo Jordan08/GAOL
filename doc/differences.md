@@ -691,6 +691,12 @@ where it comes from.
     `GAOL_SET_RELATION`: they gave the possibly relations.
   - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
     compile on intervals.
+- **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
+  `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
+  optional: the hexadecimal number of the standard needs it (9.7.2), which
+  allows a more general syntax (12.11.5). A number that begins with 0 is
+  decimal, as the standard has it: `010` is 10, and octal is written `0o10`,
+  as in Python, rather than `010` as in C.
 - **The interval literals of IEEE 1788-2015** are read (9.7, 12.11), whatever
   the case of their letters (`[Empty]`, `[1, Inf]`): `[ ]`, `[entire]`, the
   bounds left out (`[1,]`, `[,]`), `infinity`, the hexadecimal numbers
