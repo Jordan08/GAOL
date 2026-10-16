@@ -339,7 +339,7 @@ fi
 # (GAOL_AVX512_ARITHMETIC below; GAOL v5).
 AC_ARG_ENABLE(prefer-avx512,
             [AS_HELP_STRING([--enable-prefer-avx512],
-                            [have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, on a processor that has them @<:@default=as preserve-rounding@:>@])],
+                            [have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them; the library then needs a processor with them @<:@default=as preserve-rounding@:>@])],
             [prefer_avx512=${enable_prefer_avx512}; prefer_avx512_explicit=yes],
             [prefer_avx512=${preserve_rounding}; prefer_avx512_explicit=no])
 have_avx512_target=no
@@ -386,6 +386,7 @@ fi
 # the path, and a machine building that runs it, never when cross-compiling.
 # The library then needs a processor with the AVX-512 instructions, and the
 # operations test nothing as they run (GAOL v5)
+avx512_arithmetic=no
 if test "${prefer_avx512}" = yes; then
     AC_LANG_PUSH([C++])
     AC_MSG_CHECKING([whether this machine runs the AVX-512 instructions])
@@ -398,7 +399,7 @@ __attribute__((target("avx512f"))) double er_add(double a, double b)
         _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
 }]], [[volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
 return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1;]])],
-        [avx512_arithmetic=yes], [avx512_arithmetic=no], [avx512_arithmetic=no])
+        [avx512_arithmetic=yes], [avx512_arithmetic=no], [avx512_arithmetic="no, cross-compiling"])
     AC_MSG_RESULT(${avx512_arithmetic})
     AC_LANG_POP([C++])
     if test "${avx512_arithmetic}" = yes; then
@@ -753,6 +754,7 @@ printf "optimize\t\t= $optimize\n"
 printf "debug\t\t\t= $debug\n"
 printf "preserve rounding\t= ${preserve_rounding}\n"
 printf "prefer AVX-512\t\t= ${prefer_avx512}\n"
+printf "AVX-512 path taken\t= ${avx512_arithmetic}\n"
 printf "exceptions\t\t= $exceptions\n"
 printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"

@@ -710,7 +710,7 @@ if(GAOL_PREFER_AVX512 AND GAOL_HAVE_AVX512_TARGET)
     endif()
   endif()
 endif()
-message(STATUS "AVX-512 interval arithmetic compiled in: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}, taken: ${GAOL_AVX512_ARITHMETIC}")
+message(STATUS "AVX-512 interval arithmetic: the compiler takes it: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}, taken: ${GAOL_AVX512_ARITHMETIC}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -987,8 +987,9 @@ endif()
 # ON, the default, only processors with the fused multiply-add instructions
 # run it, and with GAOL_AVX512_ARITHMETIC only those with the AVX-512 ones,
 # so a package for other machines is built with -DGAOL_FMA=OFF and
-# -DGAOL_PREFER_AVX512=OFF (see doc/building.md). Only where GAOL is the project built, not brought in by
-# another (add_subdirectory, FetchContent), whose packages are its own.
+# -DGAOL_PREFER_AVX512=OFF (see doc/building.md). Only where GAOL is the
+# project built, not brought in by another (add_subdirectory, FetchContent),
+# whose packages are its own.
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_PACKAGE_NAME "gaol")
   set(CPACK_PACKAGE_VENDOR "ENSTA")

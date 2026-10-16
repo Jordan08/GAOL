@@ -509,6 +509,14 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   restores the rounding direction it found, rather than leaving it upward
   (\pxref{sec:rounding-direction});
 \cindex{rounding!preserving}%
+\item \option{GAOL\_PREFER\_AVX512}. \code{OFF} by default, and \code{ON}
+  by default with the previous option: the four arithmetic operations and the
+  square root take the AVX-512 instructions, which carry their rounding
+  direction and set none, where the compiler takes them and the machine
+  building runs them, never when cross-compiling. The library then needs a
+  processor with them, as with \option{GAOL\_FMA}, and \code{OFF} builds it
+  for any processor of the architecture (\pxref{sec:rounding-direction});\newinvfive
+\cindex{AVX-512}%
 \item \option{GAOL\_COVERAGE}. \code{OFF} by default: compiles GAOL and its
   tests with the counters of gcov, and adds the target \code{coverage}, which
   runs the tests and writes the report of their coverage (GCC and Clang, with
@@ -559,7 +567,9 @@ CPack makes them from the CMake build, in the directory of the build:
 The packages hold \file{libgaol} as the build compiled it: with
 \option{GAOL\_FMA} \code{ON}, the default, only the processors that have the
 fused multiply-add instructions run it, and \option{-DGAOL\_FMA=OFF} makes
-packages for any processor of the architecture.
+packages for any processor of the architecture. So does
+\option{-DGAOL\_PREFER\_AVX512=OFF} with \option{GAOL\_PRESERVE\_ROUNDING}, on a
+machine that has the AVX-512 instructions.\newinvfive
 
 \section{Building and installing with autotools}\label{sec:configuration}
 %%---------------------------------------------
@@ -624,6 +634,10 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
   restores the rounding direction it found (\pxref{sec:rounding-direction}).
   This option defaults to \code{no};
 \cindex{rounding!preserving}%
+\item \loption{enable-prefer-avx512[=\var{yes/no}]}. The AVX-512 instructions
+  for the four arithmetic operations and the square root, where the machine
+  building runs them, as \option{GAOL\_PREFER\_AVX512}. This option defaults
+  to the value of \loption{enable-preserve-rounding};\newinvfive
 \item \loption{enable-exceptions[=\var{yes/no}]}. If enabled, errors
   are reported by throwing an exception (\pxref{sec:exceptions}); otherwise,
   by calling \code{gaol\_error()}, which prints a message to the standard error
@@ -687,6 +701,7 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \code{enable-asm} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
+    \code{enable-prefer-avx512} & \code{false}, \code{true} with \code{enable-preserve-rounding}, as \option{GAOL\_PREFER\_AVX512}\\
     \code{enable-debug} & \code{false}; builds \file{libgaol} for debugging whatever the build type, as \option{GAOL\_DEBUG}\\
     \code{enable-exception} & \code{true}\\
     \code{with-tests} & \code{false}; builds the unit tests\\
@@ -1090,7 +1105,11 @@ builds GAOL with the option \option{GAOL\_PRESERVE\_ROUNDING} of CMake, which is
 restores the rounding direction it found, which makes the arithmetic
 operations several times slower; it also restores the modes flushing the
 subnormals to zero that the operation cleared (\pxref{sec:ftz}). It is off by
-default in the three builds.
+default in the three builds. With it, \option{GAOL\_PREFER\_AVX512} is on by
+default: where the machine building has the AVX-512 instructions, the four
+arithmetic operations and the square root take them, which carry their
+rounding direction, set none and store none, and the library then needs a
+processor with them.\newinvfive
 
 Without it, the rounding direction stays upward from the initialization of
 GAOL on, for the whole program, and \code{cleanup()} sets back the one that the

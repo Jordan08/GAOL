@@ -353,7 +353,7 @@ if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
     conf_data.set('GAOL_HAVE_AVX512_TARGET', 1)
   endif
 endif
-# The path is taken when enable-prefer-avx512 asks, or when
+# The path is asked for when enable-prefer-avx512 asks, or when
 # enable-preserve-rounding does, which the path relieves of the store of
 # the rounding direction every operation pays, and the compiler takes the
 # path: meson tells an explicit -Denable-prefer-avx512=false from the
@@ -371,8 +371,8 @@ endif
 # path, and a machine building that runs it, never in a cross build. The
 # library then needs a processor with the AVX-512 instructions, and the
 # operations test nothing as they run (GAOL v5)
+avx512_taken = false
 if prefer_avx512
-  avx512_taken = false
   if not meson.is_cross_build()
     avx512_run = cpp_comp.run('''
     #include <immintrin.h>
@@ -581,6 +581,7 @@ summary({
   'Home page': gaol_url,
   'Debug (GAOL_DEBUGGING)': debug,
   'Preserve rounding': preserve_rounding,
+  'AVX-512 path taken': avx512_taken,
   'SSE2 intervals': use_sse2,
   'Fused multiply-add': ' '.join(fma_args),
   'Unit tests': build_tests,
