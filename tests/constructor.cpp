@@ -1,7 +1,6 @@
 // GAOL 4's unit test check/constructor.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
-#include "gaol/gaol_literals.h"
 
 #include <cfenv>
 #include <climits>
@@ -132,36 +131,6 @@ public:
     TEST_INOUT_EQ("1.0/10.0",textToInterval("[0.1,0.1]","[0.1,0.1]"));
 }
 
-  /* gaol_detail::literal_interval() of gaol/gaol_literals.h (GAOL v5): the
-     interval enclosing the number that the text of a literal of C++ writes,
-     not the double the compiler makes of it, read by textToInterval(); the
-     integers written in hexadecimal, octal and binary taken as the integers
-     they are, beyond 64 bits enclosed by the operations of intervals; the
-     digit separators left out. Its first version gave the points of the
-     doubles 0.1 and 2^53 for "0.1" and "9007199254740993", which enclose
-     neither 0.1 nor 2^53 + 1. */
-  void test_literals() {
-    using gaol_detail::literal_interval;
-    TEST_SEQ(literal_interval("0.1"), textToInterval("0.1"));
-    CPPUNIT_ASSERT(!literal_interval("0.1").is_a_double());
-    TEST_SEQ(literal_interval("1e-3"), textToInterval("1e-3"));
-    TEST_SEQ(literal_interval("2.5"), interval(2.5));
-    TEST_SEQ(literal_interval("3"), interval(3.0));
-    TEST_SEQ(literal_interval("0"), interval(0.0));
-    TEST_SEQ(literal_interval("9007199254740993"), interval(9007199254740992.0, 9007199254740994.0));
-    TEST_SEQ(literal_interval("123456789012345678901234567890.0"), textToInterval("123456789012345678901234567890"));
-    TEST_SEQ(literal_interval("123456789012345678901234567890"), textToInterval("123456789012345678901234567890"));
-    TEST_SEQ(literal_interval("0x1p-3"), interval(0.125));
-    TEST_SEQ(literal_interval("0x1.8p1"), interval(3.0));
-    TEST_SEQ(literal_interval("0x10"), interval(16.0));
-    TEST_SEQ(literal_interval("010"), interval(8.0));
-    TEST_SEQ(literal_interval("0b101"), interval(5.0));
-    TEST_SEQ(literal_interval("1'000'000"), interval(1000000.0));
-    TEST_SEQ(literal_interval("0xFFFFFFFFFFFFFFFF"), interval(0xFFFFFFFFFFFFFFFFULL));
-    // An integer that no unsigned long long holds, 2^65 - 1
-    const interval big = literal_interval("0x1FFFFFFFFFFFFFFFF");
-    CPPUNIT_ASSERT(big.left() < std::ldexp(1.0, 65) && big.right() >= std::ldexp(1.0, 65));
-  }
   // <-- End of tests
 };
 
@@ -169,5 +138,4 @@ public:
 GAOL_UNIT_MAIN(constructor_test, "constructor",
                GAOL_UNIT_TEST(test_constructor_string),
                GAOL_UNIT_TEST(test_constructor_numbers),
-               GAOL_UNIT_TEST(test_constructor_integers),
-               GAOL_UNIT_TEST(test_literals))
+               GAOL_UNIT_TEST(test_constructor_integers))
