@@ -1497,11 +1497,12 @@ namespace gaol_core {
 
   /*
     The pow of IEEE 1788-2015 (Table 9.1), after one check of the rounding
-    direction: gaol_ieee1788::pow() is this function (GAOL v5). A function of
-    the library for its own files, which it does not export (GAOL_PUBLIC).
-    Defined in gaol/gaol_interval_core.cpp, with the other powers.
+    direction: gaol_ieee1788::pow() is this function (GAOL v5), the inline
+    function of gaol/gaol_ieee1788.h calling it, so that it is exported
+    (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the other
+    powers.
   */
-  interval pow_standard(const interval &I, const interval &J);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard(const interval &I, const interval &J);
 
 } // namespace gaol_core
 

@@ -160,11 +160,11 @@ namespace gaol_ieee1788 {
   the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
   pow([2, 3], [1e10]) is [DBL_MAX, +oo],
   pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
-  Defined in gaol/gaol_ieee1788.cpp (GAOL v5): the bounds at doubles it
-  takes for an integer exponent beyond the ints are not part of GAOL's
-  interface (gaol/gaol_double_op.h).
+  Calls pow_standard() (GAOL v5), which takes the bounds at doubles for an
+  integer exponent beyond the ints in the library: they are not part of
+  GAOL's interface (gaol/gaol_double_op.h).
   */
-  GAOL_NODISCARD extern GAOL_PUBLIC interval pow(const interval& x, const interval& y);
+  GAOL_NODISCARD inline interval pow(const interval& x, const interval& y) { return ::gaol_core::pow_standard(x, y); }
   /*!
   pow(x, p): pow(x, [p]), the pow of the standard for a double as
   exponent. An integer exponent has its own, pow(x, interval(p)), interval(p)

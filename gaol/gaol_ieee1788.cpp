@@ -17,8 +17,8 @@
 
 /*!
   \file   gaol_ieee1788.cpp
-  \brief  The definitions of the namespace gaol_ieee1788: pow, textToInterval
-          and intervalToText
+  \brief  The definitions of the namespace gaol_ieee1788: textToInterval and
+          intervalToText
 
   \author NININ Jordan
   \date   2026-10-16
@@ -32,18 +32,6 @@
 #include "gaol/parser/gaol_parser.h"
 
 namespace gaol_ieee1788 {
-
-  /*
-    pow(x, y) of IEEE 1788-2015 (gaol/gaol_ieee1788.h), in the library rather
-    than inline in its header, for the bounds at doubles of
-    gaol/gaol_double_op.h, which no installed header includes (GAOL v5): it is
-    pow_standard(), whose body gaol_pow_hybrid() calls too, for every exponent
-    but a degenerate integer
-  */
-  interval pow(const interval& x, const interval& y)
-  {
-    return ::gaol_core::pow_standard(x, y);
-  }
 
   /*
     textToInterval(s) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 12.12.7), in
