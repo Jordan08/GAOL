@@ -82,7 +82,7 @@ int main()
   for (unsigned int i = 0; i < 1000000; ++i) {
     z = goldstein_price(x, y);
   }
-  const long elapsed_ms =
+  const long long elapsed_ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - start).count();
   cout << "z = " << z << endl;
