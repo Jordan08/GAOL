@@ -89,7 +89,7 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 # of its interface, and the intervals of floats, which gaol_interval_core.cpp
 # includes where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
 # gaol_config.h)
-noinst_HEADERS = gaol_core_math.h gaol_internal.h \
+noinst_HEADERS = gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	gaol_u128.h \
 	gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \

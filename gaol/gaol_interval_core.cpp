@@ -57,8 +57,8 @@
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval_core.h"
-// The functions that the files of the library call across one another (GAOL v5)
-#include "gaol/gaol_internal.h"
+// literal_text(), which this file defines
+#include "gaol/gaol_literals.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
@@ -1033,7 +1033,7 @@ namespace gaol_core {
 
     bool read;
     try {
-      read = gaol_parse_string(buffer.data(), buffer.size(), I, gaol::parsing_names::gaol);
+      read = gaol_parse_string(buffer.data(), buffer.size(), I, parsing_names::gaol);
     } catch (...) { // An error the reader raised as it read the line
       I = interval::emptyset();
       set_failbit(is);
@@ -1448,7 +1448,7 @@ namespace gaol_core {
   }
 
   /*
-    The text of x of gaol_ieee1788::intervalToText() (gaol/gaol_internal.h):
+    The text of x of gaol_ieee1788::intervalToText() (gaol/gaol_literals.h):
     the bounds of x as display_bounds() writes them, with the flags a new
     stream starts with, the digits of the intervals and the C locale
   */

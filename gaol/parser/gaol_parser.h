@@ -30,17 +30,19 @@
 #define GAOL_PARSER_H
 
 #include "gaol/gaol_config.h"
+#include <cstddef>
 #include <iosfwd>
 
-namespace gaol_core {
-  class interval;
-}
-
 /*
-  The parser is in the namespace gaol, not in gaol_core: it calls GAOL's
-  functions under their names in gaol, pow being GAOL's pow there (GAOL v5).
+  The parser is in gaol_core, where interval is, and the namespace gaol names
+  it (see the end of this file, and gaol/gaol_interval.h). The code of the
+  parser (gaol/parser/gaol_interval_parser.ypp) opens gaol_core only, and names
+  the functions of the standard in gaol_ieee1788; the pow of GAOL, which no
+  namespace but gaol holds, is gaol_pow_hybrid() there (GAOL v5).
 */
-namespace gaol {
+namespace gaol_core {
+
+  class interval;
 
   /*!
     \brief The names of the functions a string calls (GAOL v5)
@@ -119,9 +121,42 @@ namespace gaol {
     NUL character is no character of any token, and a string holding one is
     no expression (GAOL v5).
   */
-  extern GAOL_PUBLIC bool parse_interval(const char* const s, gaol_core::interval& out,
+  extern GAOL_PUBLIC bool parse_interval(const char* const s, interval& out,
                                          parsing_names names = parsing_names::gaol);
 
+  /*
+    The functions below are the reader's own, which the files of the library
+    call across one another; they are no part of its interface, and the
+    library does not export them (GAOL_PUBLIC).
+
+    The reading of the n characters at s, NUL characters included, with the
+    names of the functions given: true, with out set to the interval read, if
+    they are an expression, and false, with out unchanged, otherwise. It
+    throws again the exception an action or the lexer raised, and
+    std::bad_alloc when the stack of the parser could not grow. Defined in
+    gaol/parser/gaol_interval_parser.ypp, and called by the readers of a
+    std::string (gaol::textToInterval(), gaol_ieee1788::textToInterval(),
+    operator>>) with its length, where parse_interval() reads up to the first
+    NUL character of its argument: a NUL character is no character of any
+    token, and a string holding one is no expression (GAOL v5).
+  */
+  bool gaol_parse_string(const char* const s, std::size_t n, interval& out, parsing_names names);
+
+  /*
+    The scanner of flex for a reading, whose extra data is its context (a
+    gaol_parsing_context of gaol/parser/gaol_interval_parser.ypp), and its
+    destruction: gaol_parse_string() calls them. Defined in
+    gaol/parser/gaol_interval_lexer.lpp. gaol_initialize_parsing() gives 0 if
+    the scanner could not be allocated.
+  */
+  void* gaol_initialize_parsing(void* context);
+  void gaol_cleanup_parsing(void* scanner);
+
+} // namespace gaol_core
+
+namespace gaol {
+  using gaol_core::parsing_names;
+  using gaol_core::parse_interval;
 } // namespace gaol
 
 #endif /* GAOL_PARSER_H */

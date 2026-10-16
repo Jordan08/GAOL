@@ -136,7 +136,6 @@ EXTRA_DIST = [
   # parser/gaol_interval_parser.h, which did not compile when included, and
   # the parts of the library
   'gaol_core_math.h',
-  'gaol_internal.h',
   'gaol_init_cleanup.h',
   'parser/gaol_interval_parser.h',
   'gaol_u128.h',

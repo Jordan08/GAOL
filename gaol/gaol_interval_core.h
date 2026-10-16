@@ -1496,6 +1496,14 @@ namespace gaol_core {
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
+  /*
+    The pow of IEEE 1788-2015 (Table 9.1), after one check of the rounding
+    direction: gaol_ieee1788::pow() is this function (GAOL v5). A function of
+    the library for its own files, which it does not export (GAOL_PUBLIC).
+    Defined in gaol/gaol_interval_core.cpp, with the other powers.
+  */
+  interval pow_standard(const interval &I, const interval &J);
+
 } // namespace gaol_core
 
 namespace gaol_detail {

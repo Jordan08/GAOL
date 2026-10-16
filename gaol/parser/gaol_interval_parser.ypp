@@ -34,7 +34,6 @@
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
-#include "gaol/gaol_internal.h"
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 
@@ -60,7 +59,6 @@
 
 void gaol_error_bison(void *scanner, void *context, const char *msg);
 
-using namespace gaol;
 using namespace gaol_core;
 
 /*
@@ -76,7 +74,7 @@ struct gaol_parsing_context {
   interval result;                // the interval read, if ok is true
   bool ok;                        // the string is an expression, which was read
   std::exception_ptr exception;   // the exception an action or the lexer raised
-  ::gaol::parsing_names names;    // the names of the functions
+  ::gaol_core::parsing_names names;    // the names of the functions
   const char *input;              // the characters the lexer has not read yet
   std::size_t input_left;         // their number, NUL characters included
   bool out_of_memory;             // an allocation of the stack of the parser failed
@@ -531,7 +529,7 @@ static char ascii_lower(char c)
 // that is not in it
 const void *gaol_lookup_function(const char *name, void *context)
 {
-  const bool ieee1788 = (gaol_context(context)->names == ::gaol::parsing_names::ieee1788);
+  const bool ieee1788 = (gaol_context(context)->names == ::gaol_core::parsing_names::ieee1788);
   const gaol_function *table = ieee1788 ? ieee1788_functions : gaol_functions;
   const std::size_t size = ieee1788 ? sizeof(ieee1788_functions)/sizeof(gaol_function)
                                     : sizeof(gaol_functions)/sizeof(gaol_function);
@@ -845,7 +843,7 @@ void gaol_error_bison(void *, void *context, const char *)
   stack of the parser could not grow (GAOL v5). Its scanner and its context
   are its own, and several threads call it at once.
 */
-bool gaol_core::gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol::parsing_names names)
+bool gaol_core::gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol_core::parsing_names names)
 {
   gaol_parsing_context context;
   context.ok = false;

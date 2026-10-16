@@ -28,8 +28,8 @@
 
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_exceptions.h"
-#include "gaol/gaol_internal.h"
 #include "gaol/gaol_ieee1788.h"
+#include "gaol/gaol_literals.h"
 
 namespace gaol_ieee1788 {
 
@@ -60,14 +60,14 @@ namespace gaol_ieee1788 {
 #if GAOL_EXCEPTIONS_ENABLED
     try {
       interval x;
-      return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
+      return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol_core::parsing_names::ieee1788) ? x : interval::emptyset();
     } catch (const ::gaol_core::gaol_exception&) {
       return interval::emptyset();
     }
 #else
     // An error of the reader fails the reading, as a syntax error does
     interval x;
-    return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
+    return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol_core::parsing_names::ieee1788) ? x : interval::emptyset();
 #endif
   }
 
@@ -84,7 +84,7 @@ namespace gaol_ieee1788 {
     the locale of a program that sets one, and <4, 4> for the point interval
     4, none of them a literal, and the text changed with the format another
     thread was setting.
-    The writing itself is ::gaol_core::literal_text(), in
+    The writing itself is ::gaol_core::literal_text() (gaol/gaol_literals.h), in
     gaol/gaol_interval_core.cpp, which holds the writers of intervals.
   */
   std::string intervalToText(const interval& x)
