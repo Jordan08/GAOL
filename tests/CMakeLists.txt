@@ -12,6 +12,19 @@
 # WITH_TESTS builds them (CMakeLists.txt); make test and make check run them,
 # with the label unit.
 #
+# They are compiled with -Wno-psabi where the compiler takes it (GAOL v5).
+# GCC notes each argument whose passing changed in an older GCC: on 32-bit
+# ARM, the iterators of std::vector that the tests and the members of
+# std::vector pass by value (GCC 7.1), and the std::initializer_list that
+# functions of the tests and the constructors of std::vector take (GCC 7.1);
+# on 32-bit and 64-bit ARM and on POWER, std::pair<double, double> in C++17
+# (GCC 10.1). That made about 110 notes in a build of the tests on armhf with
+# GCC 14, about 300 with GCC 12, and 1 or 2 on arm64 and ppc64le, though the
+# tests link with no code those older GCC compiled. The library itself shows
+# none. configure.ac, tests/meson.build, tests/find_package,
+# tests/fetch_content, tests/meson_subproject and .github/scripts/tests.sh
+# give the same option to the tests they compile.
+#
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
@@ -77,10 +90,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND _gaol_type STREQUAL "STATIC_LIBRARY")
   list(APPEND GAOL_TESTS automatic_cleanup)
 endif()
 
+# -Wno-psabi (see above)
+check_cxx_compiler_flag(-Wno-psabi GAOL_COMPILER_TAKES_WNO_PSABI)
+set(GAOL_TESTS_OPTIONS)
+if(GAOL_COMPILER_TAKES_WNO_PSABI)
+  list(APPEND GAOL_TESTS_OPTIONS -Wno-psabi)
+endif()
+
 foreach(test ${GAOL_TESTS})
   add_executable(gaol_test_${test} ${test}.cpp gaol_tests.h)
   target_link_libraries(gaol_test_${test} PRIVATE gaol::gaol)
   set_target_properties(gaol_test_${test} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+  target_compile_options(gaol_test_${test} PRIVATE ${GAOL_TESTS_OPTIONS})
   if(MSVC)
     # getenv() and sscanf(), which the tests use as the C standard has them
     target_compile_definitions(gaol_test_${test} PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -224,6 +245,7 @@ endif()
 add_executable(gaol_performance performance.cpp)
 target_link_libraries(gaol_performance PRIVATE gaol::gaol)
 set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+target_compile_options(gaol_performance PRIVATE ${GAOL_TESTS_OPTIONS})
 
 # The warning for a result thrown away, in each language standard (GAOL v5):
 # [[nodiscard]] is C++17, and gaol::gaol sets no standard, so that a project

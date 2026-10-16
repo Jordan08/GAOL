@@ -5,11 +5,12 @@
 # GAOL, with the flags of interval arithmetic configure gives, in C++17 for the
 # hexadecimal floating literals of the tests (those of gaol_tests.h, which all
 # but u128.cpp include, of the *_values.h, and of several of the programs; see
-# CMakeLists.txt), and linked with the static libgaol just built (-static: a
-# libtool library not installed), and with the link option gaol.pc gives
-# (-mno-daz-ftz, where the compiler takes it), as CMake links them. Exit status
-# 77 is a test skipped (intervalf and interval2f where the intervals of floats
-# are not compiled).
+# CMakeLists.txt), with -Wno-psabi where the compiler takes it
+# (GAOL_TESTS_CXXFLAGS, see CMakeLists.txt), and linked with the static
+# libgaol just built (-static: a libtool library not installed), and with the
+# link option gaol.pc gives (-mno-daz-ftz, where the compiler takes it), as
+# CMake links them. Exit status 77 is a test skipped (intervalf and interval2f
+# where the intervals of floats are not compiled).
 #
 # make perf measures GAOL v5 on the benchmark of doc/compare/performance.md
 # (doc/compare/code/run_perf.sh).
@@ -19,7 +20,7 @@
 # Created 2026-09-27 by Jordan NININ
 
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
-AM_CXXFLAGS = -std=c++17
+AM_CXXFLAGS = -std=c++17 $(GAOL_TESTS_CXXFLAGS)
 AM_LDFLAGS = -static
 LDADD = $(top_builddir)/gaol/libgaol.la $(GAOL_PC_LIBS)
 AM_DEFAULT_SOURCE_EXT = .cpp
