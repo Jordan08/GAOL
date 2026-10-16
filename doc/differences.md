@@ -232,8 +232,9 @@ where it comes from.
     `gaol_core::gaol_initializer`, whose constructor initializes GAOL the first
     time, as `std::ios_base::Init` does the standard streams. GAOL declared
     `gaol_init()` with `__attribute__((constructor))`, for GCC and Clang only:
-    Visual C++ had no automatic initialization (`gaol/dllmain.cpp`, for a DLL,
-    is compiled by none of the builds), and the constructor of the static
+    Visual C++ had no automatic initialization (its `gaol/dllmain.cpp`, for
+    a DLL, was compiled by none of the builds and is gone), and the
+    constructor of the static
     library ran after those of the program (except with MinGW-w64, which runs
     the constructors from the last linked to the first): the static objects of
     the program computing intervals set the rounding direction upward before

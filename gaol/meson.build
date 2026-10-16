@@ -143,7 +143,6 @@ EXTRA_DIST = [
   'gaol_ldexp.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
-  'dllmain.cpp',
   'gaol_interval_sse.cpp',
   'gaol_interval_avx512.cpp',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
