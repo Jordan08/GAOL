@@ -12,7 +12,7 @@
   try {                           \
        interval I = textToInterval(Istr); \
        TEST_EQ(I,Ires);           \
-  } catch (const input_format_error&) {  \
+  } catch (const gaol_core::input_format_error&) {  \
     CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
 
@@ -20,7 +20,7 @@
   try {                           \
        interval I = textToInterval(Istr); \
        TEST_SEQ(I,Ires);          \
-  } catch (const input_format_error&) {  \
+  } catch (const gaol_core::input_format_error&) {  \
     CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
 #else

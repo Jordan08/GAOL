@@ -24,10 +24,11 @@ namespace detail {
   The names of the namespace gaol (GAOL v5), which names those of gaol_core one
   by one rather than taking it whole (see gaol/gaol_interval.h): the names of
   GAOL 4 that Codac and IBEX write gaol::f, the other classes and functions of
-  GAOL 4 (rnd_keep() of GAOL 4.3.2 among them), the functions on intervals
-  GAOL v5 adds, and restore_rounding() and exact_string(), each with the
-  overloads of the expressions where there are some. A name missing does not
-  compile.
+  GAOL 4 that gaol still names, the functions on intervals GAOL v5 adds, and
+  restore_rounding() and exact_string(), each with the overloads of the
+  expressions where there are some. A name missing does not compile. The names
+  that gaol does not hold, and that a program names in gaol_core, are checked
+  absent below.
 */
 namespace gaol_names
 {
@@ -44,19 +45,10 @@ namespace gaol_names
 #define GAOL_NAMES_CLASS(c) static_assert(same<gaol::c, gaol_core::c>(), "gaol::" #c)
   GAOL_NAMES_CLASS(interval);
   GAOL_NAMES_CLASS(interval_format);
-#if GAOL_EXCEPTIONS_ENABLED
-  // The exceptions exist only where GAOL raises them (not with configure
-  // --disable-exceptions nor meson -Denable-exception=false)
-  GAOL_NAMES_CLASS(gaol_exception);
-  GAOL_NAMES_CLASS(input_format_error);
-  GAOL_NAMES_CLASS(invalid_action_error);
-  GAOL_NAMES_CLASS(unavailable_feature_error);
-#endif
   GAOL_NAMES_CLASS(expression);
   GAOL_NAMES_CLASS(expr_node);
   GAOL_NAMES_CLASS(expr_visitor);
   GAOL_NAMES_CLASS(expr_eval);
-  GAOL_NAMES_CLASS(eval_stack<interval>);
   GAOL_NAMES_CLASS(null_node);
   GAOL_NAMES_CLASS(double_node);
   GAOL_NAMES_CLASS(interval_node);
@@ -80,8 +72,13 @@ namespace gaol_names
   GAOL_NAMES_CLASS(lexicographic_less);
 #undef GAOL_NAMES_CLASS
 
-  static_assert(same<decltype(gaol::version), const char *const>() && gaol::version_major == GAOL_MAJOR_VERSION,
+  // The version of the library, in gaol and in gaol_ieee1788 (GAOL v5)
+  static_assert(same<decltype(gaol::version), const char *const>() && gaol::version_major == GAOL_MAJOR_VERSION
+                && gaol::version_minor == GAOL_MINOR_VERSION && gaol::version_micro == GAOL_MICRO_VERSION,
                 "gaol::version, gaol::version_major...");
+  static_assert(same<decltype(gaol_ieee1788::version), const char *const>() && gaol_ieee1788::version_major == GAOL_MAJOR_VERSION
+                && gaol_ieee1788::version_minor == GAOL_MINOR_VERSION && gaol_ieee1788::version_micro == GAOL_MICRO_VERSION,
+                "gaol_ieee1788::version, gaol_ieee1788::version_major...");
 
   // The functions of one interval, of GAOL 4 and of GAOL v5
 #define GAOL_NAMES_UNARY(f) static_assert(same<decltype(gaol::f(x())), interval>(), "gaol::" #f "(x)")
@@ -220,30 +217,25 @@ namespace gaol_names
                 "gaol::atan2(e1, e2), gaol::nth_root(e, n), gaol::pow(e, n), gaol::operator+(e1, e2)...");
   static_assert(same<decltype(gaol::operator<<(out(), e())), std::ostream&>(),
                 "gaol::operator<< of the expressions");
-#if GAOL_EXCEPTIONS_ENABLED
-  static_assert(same<decltype(gaol::operator<<(out(), std::declval<const gaol::gaol_exception&>())), std::ostream&>(),
-                "gaol::operator<< of the exceptions");
-#endif
   static_assert(same<decltype(gaol::evaluate_expr(e(), std::declval<interval&>())), bool>(), "gaol::evaluate_expr");
 
   // The functions of doubles, the initialization and the rounding of GAOL 4,
-  // rnd_keep() of GAOL 4.3.2, and restore_rounding() of GAOL v5
+  // and restore_rounding() of GAOL v5
   static_assert(same<decltype(gaol::next_float(1.0)), double>() && same<decltype(gaol::previous_float(1.0)), double>()
-                && same<decltype(gaol::maximum(1.0, 2.0)), double>() && same<decltype(gaol::minimum(1.0, 2.0)), double>(),
-                "gaol::next_float, gaol::previous_float, gaol::maximum, gaol::minimum");
+                && same<decltype(gaol::maximum(1.0, 2.0)), double>() && same<decltype(gaol::minimum(1.0, 2.0)), double>()
+                && same<decltype(gaol::is_finite(1.0)), int>(),
+                "gaol::next_float, gaol::previous_float, gaol::maximum, gaol::minimum, gaol::is_finite");
   static_assert(same<decltype(gaol::init()), bool>() && same<decltype(gaol::cleanup()), bool>()
                 && same<decltype(gaol::restore_rounding()), void>() && same<decltype(gaol::round_upward()), void>()
-                && same<decltype(gaol::round_downward()), void>() && same<decltype(gaol::round_nearest()), void>()
-                && same<decltype(gaol::rnd_keep(1.0)), double>(),
-                "gaol::init, gaol::round_upward, gaol::restore_rounding, gaol::rnd_keep...");
-  // NaN_val of GAOL 4, which the macro GAOL_NAN names
-  static_assert(same<decltype(gaol::NaN_val), const gaol_core::uintdouble>(), "gaol::NaN_val");
+                && same<decltype(gaol::round_downward()), void>() && same<decltype(gaol::round_nearest()), void>(),
+                "gaol::init, gaol::round_upward, gaol::restore_rounding...");
 }
 
 /*
-  What gaol no longer names: what GAOL's code uses for itself, which stays in
-  gaol_core (GAOL v5). gaol took gaol_core whole before, and these names were
-  found through it. Each is looked for in the namespaces that using namespace
+  What gaol no longer names: what GAOL's code uses for itself, and the
+  exceptions, rnd_keep(), get_fpu_cw(), NaN_val, eval_stack and the reader of
+  strings, which stay in gaol_core (GAOL v5). gaol took gaol_core
+  whole before, and these names were found through it. Each is looked for in the namespaces that using namespace
   gaol (unit_tests.h) opens, along with gaol_names_absent below:
   - a function, without argument-dependent lookup (the name between
     parentheses), which would find the functions of an interval in gaol_core
@@ -274,6 +266,9 @@ namespace gaol_names_absent
   absent gaol_pow_exp(...);
   absent gaol_sign_of(...);
   absent rnd_reread(...);
+  absent rnd_keep(...);
+  template <class T = void> absent get_fpu_cw();
+  absent parse_interval(...);
   // The internals GAOL 4 declared in gaol too, which its manual did not document
   absent f_negate(...);
   absent f_negate_simple(...);
@@ -292,9 +287,17 @@ namespace gaol_names_absent
   using rounding_guard = absent;
   using gaol_initializer = absent;
   constexpr absent _gaol_initializer{};
+  // The exceptions, the reader of strings, the stack of evaluation and NaN_val,
+  // which GAOL 4 declared in gaol and which are in gaol_core only
+  using gaol_exception = absent;
+  using input_format_error = absent;
+  using unavailable_feature_error = absent;
+  using invalid_action_error = absent;
+  using parsing_names = absent;
+  template <class... T> using eval_stack = absent;
+  constexpr absent NaN_val{};
   // For the check that the fallbacks lose to the functions of gaol
   absent next_float(...);
-  absent rnd_keep(...);
   template <class T = void> absent round_upward();
 }
 
@@ -320,6 +323,9 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((gaol_pow_exp)(e(), e()));
   GAOL_NAMES_ABSENT((gaol_sign_of)(1.0));
   GAOL_NAMES_ABSENT((rnd_reread)(1.0));
+  GAOL_NAMES_ABSENT((rnd_keep)(1.0));
+  GAOL_NAMES_ABSENT((get_fpu_cw)());
+  GAOL_NAMES_ABSENT((parse_interval)("1", std::declval<gaol_core::interval&>()));
   GAOL_NAMES_ABSENT((f_negate)(1.0));
   GAOL_NAMES_ABSENT((f_negate_simple)(1.0));
   GAOL_NAMES_ABSENT((gaol_signbit)(1.0));
@@ -334,11 +340,34 @@ namespace gaol_names
                 "uintdouble, ullidouble, Interval_struct, prec_t, the_null_expr: not in gaol");
   static_assert(same<rounding_state, absent>() && same<rounding_guard, absent>() && same<gaol_initializer, absent>(),
                 "rounding_state, rounding_guard, gaol_initializer: not in gaol");
+  static_assert(same<gaol_exception, absent>() && same<input_format_error, absent>()
+                && same<unavailable_feature_error, absent>() && same<invalid_action_error, absent>(),
+                "gaol_exception, input_format_error, unavailable_feature_error, invalid_action_error: not in gaol");
+  static_assert(same<parsing_names, absent>() && same<eval_stack<int>, absent>(),
+                "parsing_names, eval_stack: not in gaol");
+  static_assert(same<decltype(NaN_val), const absent>(), "NaN_val: not in gaol");
   static_assert(same<decltype(_gaol_initializer), const absent>(), "_gaol_initializer: not in gaol");
   // The detection works: the functions of gaol beat the fallbacks
-  static_assert(same<decltype((next_float)(1.0)), double>() && same<decltype((rnd_keep)(1.0)), double>()
-                && same<decltype((round_upward)()), void>(),
-                "(next_float)(1.0), (rnd_keep)(1.0) and (round_upward)() are found in gaol");
+  static_assert(same<decltype((next_float)(1.0)), double>() && same<decltype((round_upward)()), void>(),
+                "(next_float)(1.0) and (round_upward)() are found in gaol");
+}
+
+/*
+  gaol_ieee1788 names the output operator of gaol_core as it names its functions
+  (GAOL v5), for the intervals and, with the headers of the expressions
+  (gaol/parser/gaol_expr_eval.h above), for the expressions: a name missing
+  does not compile.
+*/
+namespace gaol_ieee1788_names
+{
+  static_assert(std::is_same<decltype(gaol_ieee1788::operator<<(std::declval<std::ostream&>(),
+                                                                std::declval<const gaol_core::interval&>())),
+                             std::ostream&>::value,
+                "gaol_ieee1788::operator<< of the intervals");
+  static_assert(std::is_same<decltype(gaol_ieee1788::operator<<(std::declval<std::ostream&>(),
+                                                                std::declval<const gaol_core::expression&>())),
+                             std::ostream&>::value,
+                "gaol_ieee1788::operator<< of the expressions");
 }
 
 /*

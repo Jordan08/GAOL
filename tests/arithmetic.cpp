@@ -975,7 +975,7 @@ namespace
       // and the lower bounds were rounded upward (the continuous integration,
       // armhf and s390x)
       std::fesetround(direction);
-      const double v = gaol::rnd_keep(std::fma(a, b, c));
+      const double v = gaol_core::rnd_keep(std::fma(a, b, c));
       std::fesetround(FE_UPWARD);
       return v;
     };
@@ -1037,7 +1037,7 @@ namespace
         // subtraction after the fesetround() that follows, and rounded it
         // upward (the continuous integration, Ubuntu 22.04)
         std::fesetround(FE_DOWNWARD);
-        const double lo = gaol::rnd_keep(X.left() - Y.left());
+        const double lo = gaol_core::rnd_keep(X.left() - Y.left());
         std::fesetround(FE_UPWARD);
         const double hi = X.right() - Y.right();
         check("cancel_minus: the tightest bounds", got.left() == lo && got.right() == hi,

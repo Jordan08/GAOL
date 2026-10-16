@@ -281,15 +281,23 @@ two namespaces, not both: with both open, `pow(x, y)` is ambiguous, and so is
 standard in `gaol_ieee1788`.
 
 `gaol` names the type and the functions of `gaol_core` one by one (GAOL v5):
-the names GAOL 4 had in `gaol` that GAOL v5 still has (the classes, the
-exceptions, the expressions with their nodes and visitor, the functions and
-the operators of intervals, `round_upward()`, `next_float()`, `version`,
-`NaN_val`..., and `rnd_keep()` of GAOL 4.3.2), the functions on intervals GAOL
-v5 adds
+the names GAOL 4 had in `gaol` that GAOL v5 still names there (the class
+`interval`, the expressions with their nodes and visitor, the functions and
+the operators of intervals, the functions of doubles and the rounding
+direction, `round_downward()`, `round_upward()`, `round_nearest()`,
+`previous_float()`, `next_float()` and `is_finite()`, the version of the
+library, `version_major`, `version_minor`, `version_micro` and `version`...),
+the functions on intervals GAOL v5 adds
 (`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
-`restore_rounding()` and `exact_string()`. What GAOL's code uses for itself is
-in `gaol_core` only, out of the way of the names of a program that opens
+`restore_rounding()` and `exact_string()`. The exceptions (`gaol_exception`,
+`input_format_error`, `invalid_action_error` and `unavailable_feature_error`),
+`rnd_keep()` of GAOL 4.3.2, `get_fpu_cw()`, `NaN_val`, `eval_stack`, and the
+reader of strings, `parse_interval()` and `parsing_names`, are in `gaol_core`
+only, as `catch (const gaol_core::input_format_error&)` or
+`gaol_core::rnd_keep(x)`. `gaol_ieee1788` names the version as `gaol` does.
+What GAOL's code uses for itself is
+in `gaol_core` only too, out of the way of the names of a program that opens
 `gaol`: the functions saving and setting the rounding direction and the
 flush-to-zero modes (`rounding_state`, `get_rounding()`, `set_rounding()`,
 `round_upward_if_needed()` and `gaol_set_rounding_x86()`, which GAOL 4.3.2 had
@@ -697,7 +705,8 @@ do not carry it.
 ## Errors
 
 GAOL reports an error by throwing an exception, of one of the three classes of
-`gaol/gaol_exceptions.h`, which `gaol::` names as it names `interval`:
+`gaol/gaol_exceptions.h`, which are in `gaol_core` (`gaol` does not name them,
+so that a handler writes `catch (const gaol_core::input_format_error& e)`):
 
 - `input_format_error`: a string that is no interval, given to
   `gaol::textToInterval()` or read by `operator>>`;
@@ -874,10 +883,10 @@ What to do:
   example writes such a guard, `nearest_scope`.
 - **Do not count on the compiler** to compute a double where the source code
   does. One that has to be computed on this side of a change of direction is
-  computed from operands read again through `gaol::rnd_keep()`, which writes its
-  argument to volatile memory and returns it: `gaol::rnd_keep(a) /
-  gaol::rnd_keep(b)` after `gaol::cleanup()` is the quotient to nearest with
-  GCC too, where `gaol::rnd_keep(a / b)` may be the one computed before.
+  computed from operands read again through `gaol_core::rnd_keep()`, which writes its
+  argument to volatile memory and returns it: `gaol_core::rnd_keep(a) /
+  gaol_core::rnd_keep(b)` after `gaol::cleanup()` is the quotient to nearest with
+  GCC too, where `gaol_core::rnd_keep(a / b)` may be the one computed before.
 - **Or build GAOL with `GAOL_PRESERVE_ROUNDING`**, and the program keeps its
   own direction: each operation reads it, sets it upward, and sets it back when
   it is done. Nothing else changes: the bounds are the same, and the program

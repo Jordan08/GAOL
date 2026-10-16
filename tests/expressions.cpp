@@ -246,7 +246,7 @@ namespace
     // bound and <a, b> of two different bounds included, which ended the
     // program inside it (GAOL v5, #98)
     interval x;
-    check("expression: a string that is wrong is refused", !parse_interval(text.c_str(), x),
+    check("expression: a string that is wrong is refused", !gaol_core::parse_interval(text.c_str(), x),
           [&] { return text + " was read"; });
 #endif
   }
@@ -429,7 +429,7 @@ namespace
     try {
       const interval z = textToInterval("pown([2,5],5)");
       (void)z;
-    } catch (const input_format_error&) {
+    } catch (const gaol_core::input_format_error&) {
       threw = true;
     }
     check("gaol::textToInterval throws input_format_error for a name of IEEE 1788-2015 alone", threw);
@@ -466,22 +466,22 @@ namespace
       return;
     }
     const interval u(0.0, 1.0), v(1.0, 2.0);
-    const struct { const char *text; parsing_names names; interval value; } calls[] = {
-      { "SIN([0,1])", parsing_names::gaol, sin(u) },
-      { "Sin([0,1])", parsing_names::gaol, sin(u) },
-      { "sin([0,1])", parsing_names::gaol, sin(u) },
-      { "ASINH([0,1])", parsing_names::gaol, asinh(u) },
-      { "LOG1P([0,1])", parsing_names::gaol, log1p(u) },
-      { "SINPI([0,1])", parsing_names::gaol, sinpi(u) },
-      { "MIN([1,2],[0,3])", parsing_names::gaol, min(v, interval(0.0, 3.0)) },
-      { "NTH_ROOT([8,27],3)", parsing_names::gaol, nth_root(interval(8.0, 27.0), 3) },
-      { "SINPI([0,1])", parsing_names::ieee1788, gaol_ieee1788::sinPi(u) },
-      { "ROUNDTIESTOEVEN([1.5,2.5])", parsing_names::ieee1788, gaol_ieee1788::roundTiesToEven(interval(1.5, 2.5)) },
-      { "ROOTN([8,27],3)", parsing_names::ieee1788, gaol_ieee1788::rootn(interval(8.0, 27.0), 3) },
+    const struct { const char *text; gaol_core::parsing_names names; interval value; } calls[] = {
+      { "SIN([0,1])", gaol_core::parsing_names::gaol, sin(u) },
+      { "Sin([0,1])", gaol_core::parsing_names::gaol, sin(u) },
+      { "sin([0,1])", gaol_core::parsing_names::gaol, sin(u) },
+      { "ASINH([0,1])", gaol_core::parsing_names::gaol, asinh(u) },
+      { "LOG1P([0,1])", gaol_core::parsing_names::gaol, log1p(u) },
+      { "SINPI([0,1])", gaol_core::parsing_names::gaol, sinpi(u) },
+      { "MIN([1,2],[0,3])", gaol_core::parsing_names::gaol, min(v, interval(0.0, 3.0)) },
+      { "NTH_ROOT([8,27],3)", gaol_core::parsing_names::gaol, nth_root(interval(8.0, 27.0), 3) },
+      { "SINPI([0,1])", gaol_core::parsing_names::ieee1788, gaol_ieee1788::sinPi(u) },
+      { "ROUNDTIESTOEVEN([1.5,2.5])", gaol_core::parsing_names::ieee1788, gaol_ieee1788::roundTiesToEven(interval(1.5, 2.5)) },
+      { "ROOTN([8,27],3)", gaol_core::parsing_names::ieee1788, gaol_ieee1788::rootn(interval(8.0, 27.0), 3) },
     };
     for (const auto& c : calls) {
       interval x;
-      const bool read = parse_interval(c.text, x, c.names);
+      const bool read = gaol_core::parse_interval(c.text, x, c.names);
       check("parse_interval: the names in any case of letters under a locale where std::tolower('I') is not 'i'",
             read && x.left() == c.value.left() && x.right() == c.value.right(),
             [&] { return std::string(turkish) + ", \"" + c.text + "\": " + (read ? hex(x) : std::string("refused")); });
@@ -595,7 +595,7 @@ namespace
     } catch (const std::exception& e) {
       caught = true;
       what = e.what();
-      if (const gaol_exception* g = dynamic_cast<const gaol_exception*>(&e)) {
+      if (const gaol_core::gaol_exception* g = dynamic_cast<const gaol_core::gaol_exception*>(&e)) {
         from_gaol = true;
         explanation = g->explanation();
       }
@@ -610,10 +610,10 @@ namespace
 
   void exception_messages()
   {
-    says<gaol_exception>("gaol_exception");
-    says<input_format_error>("input_format_error");
-    says<unavailable_feature_error>("unavailable_feature_error");
-    says<invalid_action_error>("invalid_action_error");
+    says<gaol_core::gaol_exception>("gaol_exception");
+    says<gaol_core::input_format_error>("input_format_error");
+    says<gaol_core::unavailable_feature_error>("unavailable_feature_error");
+    says<gaol_core::invalid_action_error>("invalid_action_error");
 
     // What GAOL throws: a string the reader refuses, as it reads it or at its
     // end, a function called with an argument it does not take, and operator>>
@@ -1087,7 +1087,7 @@ namespace
       try {
         const interval x = textToInterval(r.text);
         (void)x;
-      } catch (const input_format_error&) {
+      } catch (const gaol_core::input_format_error&) {
         syntax_error = true;
       } catch (...) {
         other = true;
@@ -1096,7 +1096,7 @@ namespace
       // Without exceptions, textToInterval() would end the program: the
       // reader refuses the string as it refuses any syntax error
       interval x;
-      syntax_error = !parse_interval(r.text.c_str(), x);
+      syntax_error = !gaol_core::parse_interval(r.text.c_str(), x);
 #endif
       check("deep string: 100000 levels are refused with an input_format_error", syntax_error && !other,
             [&] { return std::string(r.name) + (other ? ": another exception" : ": read"); });
@@ -1356,7 +1356,7 @@ namespace
         try {
           const interval y = read();
           (void)y;
-        } catch (const input_format_error&) {
+        } catch (const gaol_core::input_format_error&) {
           threw = true;
         }
         check(std::string("NUL character: ") + name + " throws input_format_error", threw,
@@ -1368,7 +1368,7 @@ namespace
       try {
         const interval y = textToInterval(t);
         (void)y;
-      } catch (const input_format_error& e) {
+      } catch (const gaol_core::input_format_error& e) {
         message = e.what();
       }
       check("NUL character: the message of textToInterval(s) writes the string, the NUL as \\0",
@@ -1383,7 +1383,7 @@ namespace
       bool threw = false;
       try {
         in >> y;
-      } catch (const input_format_error&) {
+      } catch (const gaol_core::input_format_error&) {
         threw = true;
       }
       check("NUL character: operator>> fails, gives the empty set and throws input_format_error",

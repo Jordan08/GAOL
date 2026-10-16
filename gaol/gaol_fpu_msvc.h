@@ -156,15 +156,4 @@ namespace gaol_core {
   
 } // namespace gaol_core
 
-// In the namespace gaol too, as in GAOL 4; not reset_fpu_cw(), f_negate() and
-// the round_*_sse(), which GAOL uses for itself (see gaol/gaol_interval_core.h)
-namespace gaol {
-  using gaol_core::previous_float;
-  using gaol_core::next_float;
-  using gaol_core::round_downward;
-  using gaol_core::round_upward;
-  using gaol_core::round_nearest;
-  using gaol_core::get_fpu_cw;
-} // namespace gaol
-
 #endif /* GAOL_FPU_MSVC_H */

@@ -223,7 +223,7 @@ namespace
         // tests/arithmetic.cpp)
         volatile double a = t.a, b = t.b, c = t.c;
         std::fesetround(directions[d]);
-        const double got = gaol::rnd_keep(std::fma(a, b, c));
+        const double got = gaol_core::rnd_keep(std::fma(a, b, c));
         std::fesetround(FE_UPWARD);
         check("the fma() of the C library: correctly rounded", got == t.rounded[d],
               [&] {
@@ -243,7 +243,7 @@ namespace
       for (int d = 0; d < 4; ++d) {
         volatile double x = v.x;
         std::fesetround(directions[d]);
-        const double got = gaol::rnd_keep(std::round(x));
+        const double got = gaol_core::rnd_keep(std::round(x));
         std::fesetround(FE_UPWARD);
         check("the round() of the C library: the same in every rounding direction", got == v.value,
               [&] {
@@ -366,7 +366,7 @@ namespace
         volatile double x = p.x;
         volatile int n = p.n;
         std::fesetround(directions[d]);
-        const double got = gaol::rnd_keep(gaol_ldexp(x, n));
+        const double got = gaol_core::rnd_keep(gaol_ldexp(x, n));
         std::fesetround(FE_UPWARD);
         const double expected = ldexp_reference(p.x, p.n, directions[d]);
         check("gaol_ldexp(): x * 2^n rounded once, in the direction in effect",
@@ -419,7 +419,7 @@ namespace
         volatile double x = c.x, y = c.y;
         std::fesetround(directions[d]);
         std::feclearexcept(FE_ALL_EXCEPT);
-        const double r = gaol::rnd_keep(c.f == 0 ? gaol_cr_hypot(x, y) : gaol_cr_pow(x, y));
+        const double r = gaol_core::rnd_keep(c.f == 0 ? gaol_cr_hypot(x, y) : gaol_cr_pow(x, y));
 #if defined(GAOL_TESTS_HAVE_MXCSR)
         const unsigned int raised = _mm_getcsr() & 0x3du; // IE ZE OE UE PE, not DE
 #else
@@ -461,7 +461,7 @@ namespace
       for (int d = 0; d < 4; ++d) {
         std::fesetround(directions[d]);
         std::feclearexcept(FE_ALL_EXCEPT);
-        const interval r = gaol::rnd_keep(gaol_ieee1788::pow(b.x, b.y));
+        const interval r = gaol_core::rnd_keep(gaol_ieee1788::pow(b.x, b.y));
 #if defined(GAOL_TESTS_HAVE_MXCSR)
         const unsigned int raised = _mm_getcsr() & 0x5u; // IE and ZE
 #else

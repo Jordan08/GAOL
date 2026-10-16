@@ -19,7 +19,7 @@
 
 /*!
   \file   gaol_interval_core.cpp
-  \brief  The definitions of the intervals: gaol_core, and gaol_ieee1788::pow
+  \brief  The definitions of the intervals: gaol_core
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -57,7 +57,8 @@
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval_core.h"
-#include "gaol/gaol_ieee1788.h"
+// literal_text(), which this file defines
+#include "gaol/gaol_literals.h"
 #include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
@@ -80,23 +81,6 @@ using std::sqrt;
 using std::cout;
 using std::endl;
 
-
-namespace gaol {
-  // Defined in gaol/parser/gaol_interval_lexer.lpp, in the namespace of the
-  // parser: the sign of v - x, v being the number s writes, with no sign,
-  // compared exactly with the double x
-  int compare_number_with_double(const char *s, double x);
-}
-
-/*
-  The reading of the n characters at s (gaol/parser/gaol_interval_parser.ypp), which
-  the readers of a std::string call with its length (GAOL v5): they called
-  parse_interval() with its c_str(), which the lexer read up to its first NUL
-  character, so that "1\0junk" was read as 1. A NUL character is no character
-  of any token, and such a string is no expression.
-*/
-extern bool gaol_parse_string(const char* const s, std::size_t n, gaol::interval& out,
-                              gaol::parsing_names names);
 
 namespace gaol_core {
 
@@ -1049,7 +1033,7 @@ namespace gaol_core {
 
     bool read;
     try {
-      read = gaol_parse_string(buffer.data(), buffer.size(), I, gaol::parsing_names::gaol);
+      read = gaol_parse_string(buffer.data(), buffer.size(), I, parsing_names::gaol);
     } catch (...) { // An error the reader raised as it read the line
       I = interval::emptyset();
       set_failbit(is);
@@ -1077,7 +1061,7 @@ namespace gaol_core {
   {
     for (int moves = 0; moves < 4; ++moves) {
       const std::size_t last = scientific ? text.find_first_of("eE") : text.size(); // One past the mantissa
-      const int sign = gaol::compare_number_with_double(text.c_str(), magnitude);
+      const int sign = gaol_detail::compare_number_with_double(text.c_str(), magnitude);
       if (sign == 0 || (sign > 0) == away) {
         return;
       }
@@ -1461,6 +1445,24 @@ namespace gaol_core {
       }
       out += ']';
     }
+  }
+
+  /*
+    The text of x of gaol_ieee1788::intervalToText() (gaol/gaol_literals.h):
+    the bounds of x as display_bounds() writes them, with the flags a new
+    stream starts with, the digits of the intervals and the C locale
+  */
+  std::string literal_text(const interval& x)
+  {
+    const text_format fmt(std::ios_base::skipws | std::ios_base::dec, interval::precision(), std::locale::classic());
+    std::string out;
+    // The guard, rather than GAOL_RND_ENTER() and GAOL_RND_LEAVE():
+    // display_bounds() allocates, and a failed allocation left the direction
+    // upward, which GAOL_PRESERVE_ROUNDING promises to set back (GAOL v5)
+    const rounding_guard rnd;
+    round_upward_if_needed();
+    display_bounds(x.left(), x.right(), out, fmt);
+    return out;
   }
 
 
@@ -2193,7 +2195,7 @@ namespace gaol_core {
     gaol/gaol_fpu.h). Its integer powers and its corners do not check the
     direction again (pown_upward(), pow_lo(), pow_hi()).
   */
-  static interval pow_standard(const interval& x, const interval& y)
+  interval pow_standard(const interval& x, const interval& y)
   {
     GAOL_RND_ENTER();
     interval res = pow_standard_upward(x, y);
@@ -5838,77 +5840,6 @@ static inline interval cos_or_sin(double Il, double Ir)
 
 
 } // namespace gaol_core
-
-namespace gaol_ieee1788 {
-
-  /*
-    pow(x, y) of IEEE 1788-2015 (gaol/gaol_ieee1788.h), in the library rather
-    than inline in its header, for the bounds at doubles of
-    gaol/gaol_double_op.h, which no installed header includes (GAOL v5): it is
-    pow_standard(), whose body gaol_pow_hybrid() calls too, for every exponent
-    but a degenerate integer
-  */
-  interval pow(const interval& x, const interval& y)
-  {
-    return ::gaol_core::pow_standard(x, y);
-  }
-
-  /*
-    textToInterval(s) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 12.12.7), in
-    the library rather than inline in its header, for the reading of the
-    whole of s, NUL characters included (GAOL v5): the empty set for a string
-    that is no literal, as for one that the reader refuses with an exception of
-    GAOL, input_format_error or invalid_action_error. The other exceptions go
-    through, std::bad_alloc among them: the reader threw it where memory ran
-    out, and textToInterval() turned it into the empty set, the interval of no
-    literal, catching every std::exception.
-  */
-  interval textToInterval(const std::string& s)
-  {
-#if GAOL_EXCEPTIONS_ENABLED
-    try {
-      interval x;
-      return gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
-    } catch (const ::gaol_core::gaol_exception&) {
-      return interval::emptyset();
-    }
-#else
-    // An error of the reader fails the reading, as a syntax error does
-    interval x;
-    return gaol_parse_string(s.data(), s.size(), x, ::gaol::parsing_names::ieee1788) ? x : interval::emptyset();
-#endif
-  }
-
-  /*
-    intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
-    bounds of x rounded outward, [l, r], [a] for a point interval whose double
-    the digits write exactly, as [4], or [empty], with the C locale, the flags
-    a stream starts with and the digits of interval::precision() (16 unless
-    the program sets another), so that the text is a portable literal
-    (12.11.5) whatever the global output format, the flags of a stream and the
-    locale of the program (GAOL v5). It is the text operator<< writes in the
-    bounds format under these settings. GAOL wrote what operator<< writes: the
-    width format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
-    the locale of a program that sets one, and <4, 4> for the point interval
-    4, none of them a literal, and the text changed with the format another
-    thread was setting.
-  */
-  std::string intervalToText(const interval& x)
-  {
-    // The flags a new stream starts with, the digits of the intervals and the C locale
-    const ::gaol_core::text_format fmt(std::ios_base::skipws | std::ios_base::dec, interval::precision(),
-                                       std::locale::classic());
-    std::string out;
-    // The guard, rather than GAOL_RND_ENTER() and GAOL_RND_LEAVE():
-    // display_bounds() allocates, and a failed allocation left the direction
-    // upward, which GAOL_PRESERVE_ROUNDING promises to set back (GAOL v5)
-    const ::gaol_core::rounding_guard rnd;
-    ::gaol_core::round_upward_if_needed();
-    ::gaol_core::display_bounds(x.left(), x.right(), out, fmt);
-    return out;
-  }
-
-} // namespace gaol_ieee1788
 
 /*
   The intervals of floats, gaol::intervalf and gaol::interval2f: unfinished,
