@@ -1194,6 +1194,22 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    et `gaol_assert.h`) ?
    **Réponse (15 octobre) : oui — fait (l'issue #49 est à jour au
    15 octobre).**
+8. **CC.q8** : `gaol/dllmain.cpp` sert-il encore ? Non : aucun des trois
+   builds ne le compile (`CMakeLists.txt` et `gaol/Makefile.am` ne le
+   listent pas ; `gaol/meson.build` seulement dans `EXTRA_DIST`, qui ne
+   compile pas), et il ne serait utile que pour une DLL Visual C++, or
+   la bibliothèque est toujours statique avec MSVC (`CMakeLists.txt:769`,
+   `gaol/meson.build` ; `GAOL_PUBLIC` y est vide, pas de
+   `__declspec(dllexport)`), donc `DllMain` ne serait jamais appelé.
+   L'initialisation et le nettoyage automatiques sont faits par les
+   objets statiques `gaol_core::gaol_initializer` (`gaol/gaol_common.h`)
+   avec tous les compilateurs, MSVC compris (`doc/differences.md`). Il ne
+   compilerait même plus : il appelle `gaol::initialization_process()` et
+   `gaol::cleanup_process()`, qui n'existent plus dans le namespace `gaol`
+   (seulement `gaol_core`, dans `gaol/gaol_init_cleanup.h`, en-tête interne
+   non installé). Hors MSVC, le fichier est vide (tout est sous
+   `#if defined (_MSC_VER)`). **Question (15 octobre) : faut-il le
+   supprimer**, et sa ligne de `EXTRA_DIST` dans `gaol/meson.build` avec ?
 
 ### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
 
