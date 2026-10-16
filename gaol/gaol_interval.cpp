@@ -145,14 +145,11 @@ namespace gaol_core {
     return v;
   }
 
-#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
-  // Set by init() (gaol/gaol_common.cpp), from the GAOL_PREFER_AVX512 of the
-  // build and the instructions the processor has: +, -, *, / and sqrt take
-  // the AVX-512 path of gaol/gaol_interval_avx512.cpp then, which sets no
-  // rounding direction, and clears the flush-to-zero modes as the other
+#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+  // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, / and
+  // sqrt take the AVX-512 path of gaol/gaol_interval_avx512.cpp, which sets
+  // no rounding direction, and clears the flush-to-zero modes as the other
   // operations do (flush_guard there; GAOL v5, point Q of TODO.md)
-  extern bool avx512_arithmetic;
-
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
 #  include "gaol/gaol_interval_avx512.cpp"
 #endif
@@ -5596,13 +5593,13 @@ interval nth_root(const interval& I, int q)
 
   interval sqrt(const interval& I)
   {
-#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
+#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
     /* The AVX-512 path: the roots by the embedded rounding, the part of I
        in [0, +oo] and its emptiness by the sign and the magnitude bits,
        which the denormals-are-zero mode does not change (the SSE2 path
        checks the modes for the intersection, a lower bound -1e-310 having
        been compared equal to 0) */
-    if (avx512_arithmetic && !I.is_empty()) {
+    if (!I.is_empty()) {
       return interval(fast_sqrt(I.get_xmminterval()));
     }
 #endif

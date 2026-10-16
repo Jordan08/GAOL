@@ -135,7 +135,7 @@ build type or the configuration (below).
 | `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
 | `GAOL_DEBUG` | `OFF` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG`, with debugging information and `GAOL_DEBUGGING`, whatever the build type or the configuration, a project bringing GAOL in included, as `enable-debug` of meson and `--enable-debug` of configure. Each configuration keeps its other flags (the C runtime of Visual C++, sanitizers...); the tests and the examples, and the code of that project, keep their build type; there is no target `perf` (GAOL v5) |
 | `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
-| `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, which sets no rounding direction (GAOL v5, see [The rounding direction](using.md#the-avx-512-path)) |
+| `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the compiler takes them and the machine building runs them (not checked when cross-compiling, where the path is left out): the library then needs a processor with them, as with `GAOL_FMA`; `OFF` builds it for any processor of the architecture (GAOL v5, see [The rounding direction](using.md#the-avx-512-path)) |
 
 ### The archive of the sources and the packages
 
@@ -167,7 +167,11 @@ where the Makefile generators ran CPack at once.
 The packages hold `libgaol` as the build compiled it: with `GAOL_FMA` `ON`,
 the default, only the processors that have the fused multiply-add
 instructions run it, and the code using it is compiled with `-mfma`;
-`-DGAOL_FMA=OFF` makes packages for any processor of the architecture.
+`-DGAOL_FMA=OFF` makes packages for any processor of the architecture. So
+does `-DGAOL_PREFER_AVX512=OFF` where `GAOL_PRESERVE_ROUNDING` is `ON`,
+whose default `GAOL_PREFER_AVX512` makes a library that only the
+processors with the AVX-512 instructions run, when the machine building has
+them (GAOL v5).
 `-DCMAKE_INSTALL_PREFIX=/usr` gives the library directory of Debian and Ubuntu
 (`lib/x86_64-linux-gnu`); with another prefix, the `.deb` puts the files in
 `/usr/lib`.
@@ -222,7 +226,7 @@ their defaults:
 | `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
 | `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `--enable-prefer-avx512` | `no`, `yes` with `--enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, as `GAOL_PREFER_AVX512` (GAOL v5) |
+| `--enable-prefer-avx512` | `no`, `yes` with `--enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, where the machine building runs them, as `GAOL_PREFER_AVX512` (GAOL v5) |
 | `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
 | `--with-tests` | `no` | Build the unit tests of `tests/`, which `make test` and `make check` run, as `WITH_TESTS` |
 | `--with-examples` | `no` | Build the examples of `examples/`, which `make check` runs, as `WITH_EXAMPLES` |
@@ -259,7 +263,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `enable-debug` | `false` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG` and with `GAOL_DEBUGGING`, whatever the build type, a subproject included (`-Dgaol:enable-debug=true`), as `GAOL_DEBUG` of CMake and `--enable-debug` of configure; the tests and the examples keep the build type, and there is no target `perf` (GAOL v5: it defined `GAOL_DEBUGGING` alone, and was gone) |
 | `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `enable-prefer-avx512` | `false`, `true` with `enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, on a processor that has them, as `GAOL_PREFER_AVX512`; meson cannot refuse the path under `enable-preserve-rounding`, which `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5) |
+| `enable-prefer-avx512` | `false`, `true` with `enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, where the machine building runs them, as `GAOL_PREFER_AVX512`; meson cannot refuse the path under `enable-preserve-rounding`, which `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5) |
 | `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
 | `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
 | `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
@@ -354,12 +358,13 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_DEBUGGING` | In a Debug build: GAOL checks its assertions (`GAOL_ASSERT`), and `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
 | `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
-| `GAOL_PREFER_AVX512` | +, -, *, / and sqrt take the AVX-512 instructions on a processor that has them | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
+| `GAOL_PREFER_AVX512` | +, -, *, / and sqrt are to take the AVX-512 instructions | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
+| `GAOL_AVX512_ARITHMETIC` | +, -, *, / and sqrt take the AVX-512 instructions: `GAOL_PREFER_AVX512`, `GAOL_HAVE_AVX512_TARGET`, and a machine building that runs them, not when cross-compiling; the library then needs a processor with them (GAOL v5) | checked | checked | checked |
 | `GAOL_USING_ASM` | GAOL's assembly (32-bit x86 Linux and macOS); never with Visual C++ | `GAOL_ASM` (default) | `--enable-asm` (default) | `enable-asm` (default) |
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `GAOL_HAVE_AVX512_TARGET` | The library has the AVX-512 path of +, -, *, / and sqrt beside the SSE2 one: the compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")` | checked | checked | checked |
+| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs | checked | checked | checked |
 | `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |

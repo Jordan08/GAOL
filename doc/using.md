@@ -777,7 +777,7 @@ The rounding direction is the processor's, and the whole program shares it.
 GAOL's results do not depend on it, each operation setting it upward when it is
 not, in every thread, but the doubles the program computes do. Unless GAOL is
 built with `GAOL_PRESERVE_ROUNDING` — or with `GAOL_PREFER_AVX512` on a
-processor that has the AVX-512 instructions, whose arithmetic sets no
+machine that has the AVX-512 instructions, whose arithmetic sets no
 direction (below) — they are rounded upward from GAOL's initialization,
 before `main()`, until `gaol::cleanup()`, and again after each operation of
 GAOL that follows it. The compiler does not undo it: with the
@@ -892,10 +892,11 @@ Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
 `-Denable-prefer-avx512=true`), on by default where the rounding direction
 is preserved, whose every operation of `+`, `-`, `*`, `/` and `sqrt` the
 path relieves of the store of that direction — `--disable-prefer-avx512`
-and `-DGAOL_PREFER_AVX512=OFF` refuse it there —, on a processor that has
-the AVX-512
-instructions, GAOL has `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`, and
-the operations of `+`, `-`, `*` and `/` with a double, computed by the rounding
+and `-DGAOL_PREFER_AVX512=OFF` refuse it there —, on a machine that runs
+the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
+`gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y` and
+`sqrt(x)`, and the operations of `+`, `-`, `*` and `/` with a double,
+computed by the rounding
 direction the instructions carry in themselves (GAOL v5). These operations
 set no rounding direction: the program keeps its own, in the default build
 as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
@@ -917,10 +918,15 @@ computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
 
 The bounds are those of the other path, bit for bit: the rounding rule is
 the same, and the tests of `tests/`, which a job of the continuous
-integration runs with the option on, check it. The library built with the
-option runs on any processor of the architecture: `gaol::init()` takes the
-path only when the processor has the instructions, and the operations are
-those of the default build otherwise. The operations of the path cost more
+integration runs with the option on, check it. The path is decided when GAOL
+is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
+machine building has to run the AVX-512 instructions, a cross-compilation
+leaves the path out, and the operations test nothing as they run. A library
+built with the path then needs a processor with the instructions: one for
+any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
+(GAOL v5: `gaol::init()` chose the path as the program ran, and every
+operation tested the flag it set, in the default build too). The
+operations of the path cost more
 time on a processor that halves its AVX-512 instructions, where they cost
 less on one that does not: on an Intel i7-1185G7 (halved), `x + y` takes
 4.6 ns rather than 3.4 in the default build and `sqrt(x)` 16.6 rather than

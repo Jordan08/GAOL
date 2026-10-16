@@ -31,16 +31,17 @@
  * with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5, point Q of
  * TODO.md).
  *
- * The functions of this file are compiled into the library built for any
- * processor of the architecture, as the SSE2 operations are: only they
- * carry __attribute__((target("avx512f"))), which makes the compiler accept
- * the AVX-512 instructions in them alone, and the code outside them is
- * compiled as before. gaol::init() then takes the AVX-512 path when the
- * program asks for it, with GAOL_PREFER_AVX512, and the processor has the
- * instructions, which __builtin_cpu_supports() tells: +, -, *, / and sqrt
- * never touch the rounding direction on that path, whatever the program
- * left, and clear the modes that flush the subnormals to zero only where
- * they are set, as the other operations do. The divisions and the square roots take
+ * The functions of this file are compiled into the library where
+ * GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
+ * compiler that takes them, and a machine building that runs them. Only
+ * they carry __attribute__((target("avx512f"))), which makes the compiler
+ * accept the AVX-512 instructions in them alone, and the code outside them
+ * is compiled as before; the library then needs a processor with the
+ * instructions. +, -, *, / and sqrt take this path, with no flag to test as
+ * they run (gaol::init() set one, which every operation tested, until point
+ * AA of TODO.md): they never touch the rounding direction, whatever the
+ * program left, and clear the modes that flush the subnormals to zero only
+ * where they are set, as the other operations do. The divisions and the square roots take
  * it too, the embedded rounding of their 512-bit form being slower only
  * on the processors that halve it (the i7-1185G7 measures 6.0 ns against
  * 1.8 for a division, 8.0 against 2.0 for a square root, where an
@@ -289,9 +290,9 @@
 }
 
   /*
-    The AVX-512 path of the operations of the intervals, taken when
-    gaol::init() has set avx512_arithmetic (GAOL_PREFER_AVX512 and a
-    processor that has the instructions). Each of them rounds every
+    The AVX-512 path of the operations of the intervals, taken where
+    GAOL_AVX512_ARITHMETIC is (GAOL_PREFER_AVX512, and a machine building
+    that runs the instructions). Each of them rounds every
     floating-point operation in itself: no rounding direction to set, and
     no exception flag raised by the instructions; the modes that flush the
     subnormals to zero, which the embedded rounding honours, are cleared
@@ -619,21 +620,15 @@
     x op= y on the AVX-512 path, y being the other interval, or the double
     d: operator+=, operator-= and operator/= of two intervals and the four
     operators with a double (gaol/gaol_interval_sse.cpp) call them last, as
-    tail calls, and keep on the SSE2 path the code and the stack frame of a
-    function calling none. Called there and followed by the store of their
-    result, fast_add() and the others made Clang 18 save a register and set
-    up a stack frame in these operators, on both paths: x + y took 3.0 ns
-    rather than 2.5 on the SSE2 path, x - y 3.0 rather than 2.5, x / y 7.0
-    rather than 6.6, x + d 4.0 rather than 3.5, x * d 4.5 rather than 4.0
-    and x / d 4.5 rather than 3.9 (Clang 18, Intel Xeon E3-1220 v6, the
-    library and the program built with -mbranches-within-32B-boundaries,
-    without which the code placement alone moves an operation by up to
-    1 ns on that processor). With the square of one product (sqr() of
-    gaol/gaol_interval_sse.cpp), Shekel 5 takes 263 ns rather than 358 in
-    the benchmark of doc/compare, and GAOL 4.2.3 274 ns. operator*=
-    of two intervals keeps the stack frame of its call of
-    multiply_with_infinities(), and its call of fast_mul() (GAOL v5, point
-    AA of TODO.md).
+    tail calls: past the tests of its operands, each operator is a jump to
+    its function, which saves no register (Clang 18 and GCC 13). Called there
+    and followed by the store of their result, fast_add() and the others
+    made Clang 18 save a register and set up a stack frame in these
+    operators; when gaol::init() chose the path as the program ran, the SSE2
+    path paid that frame too, and x + y took 3.0 ns
+    rather than 2.5 there (Clang 18, Intel Xeon E3-1220 v6, the library and
+    the program built with -mbranches-within-32B-boundaries; GAOL v5, point
+    AA of TODO.md). operator*= of two intervals calls fast_mul() itself.
 
     They take the other operand by reference, or the double by value, both
     passed in registers in the calling conventions of x86-64 Linux, macOS

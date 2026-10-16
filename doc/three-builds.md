@@ -48,15 +48,16 @@ build, and the CMake build follows them, apart from the errors corrected (see
   too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
   `-ffp-contract=off` stays, which forbids the compiler to contract a
   multiplication and an addition into a fused one, as CORE-MATH asks;
-- with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`
-  compiled into the library beside the SSE2 one, taken at run time by
-  `gaol::init()` with `GAOL_PREFER_AVX512`
-  (`--enable-prefer-avx512`, `-Denable-prefer-avx512=true`) on a processor
-  that has the instructions: on by default where the rounding direction is
-  preserved, whose every operation the path relieves of the store of that
-  direction; no flag to compile, the path's functions alone
-  carry the target attribute, and the library runs on any processor of the
-  architecture (GAOL v5, see [Using GAOL](using.md#the-avx-512-path));
+- with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`,
+  asked for by `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
+  `-Denable-prefer-avx512=true`), on by default where the rounding direction
+  is preserved, whose every operation the path relieves of the store of
+  that direction, and taken (`GAOL_AVX512_ARITHMETIC`) where the machine
+  building runs the instructions, never when cross-compiling, as the fused
+  multiply-add instructions are: the library then needs a processor with
+  them, and the operations test nothing as they run. No flag to compile,
+  the path's functions alone carry the target attribute (GAOL v5, see
+  [Using GAOL](using.md#the-avx-512-path));
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
   (SSE3), unfinished, for which no build has an option: only a developer of
   GAOL compiles them, defining `GAOL_FLOAT_INTERVALS` in `gaol/gaol_config.h`;

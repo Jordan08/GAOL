@@ -367,10 +367,12 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
  interval& interval::operator+=(const interval& I)
     {
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
       // The AVX-512 path: no rounding direction to set, the flush-to-zero
-      // modes cleared where they are set (gaol/gaol_interval_avx512.cpp)
-      if (avx512_arithmetic) {
+      // modes cleared where they are set (gaol/gaol_interval_avx512.cpp).
+      // Where GAOL_AVX512_ARITHMETIC is, each operation returns from its
+      // block of that path, and its SSE2 code is never reached
+      {
         return fast_add_assign(*this, I);
       }
 #endif
@@ -382,8 +384,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
   interval& interval::operator-=(const interval& I)
     {
-#if GAOL_HAVE_AVX512_TARGET
-      if (avx512_arithmetic) {
+#if GAOL_AVX512_ARITHMETIC
+      {
         return fast_sub_assign(*this, I);
       }
 #endif
@@ -402,8 +404,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         *this = interval::emptyset();
         return *this;
       }
-#if GAOL_HAVE_AVX512_TARGET
-      if (avx512_arithmetic) {
+#if GAOL_AVX512_ARITHMETIC
+      {
         return fast_add_assign(*this, d); // <-l, r> + <-d, d>
       }
 #endif
@@ -419,8 +421,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         *this = interval::emptyset();
         return *this;
       }
-#if GAOL_HAVE_AVX512_TARGET
-      if (avx512_arithmetic) {
+#if GAOL_AVX512_ARITHMETIC
+      {
         return fast_add_assign(*this, -d); // <-l, r> + <d, -d>
       }
 #endif
@@ -436,7 +438,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         *this = interval::emptyset();
         return *this;
       }
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
       /* The AVX-512 path: the zero and the sign of d read from its bits,
          which the denormals-are-zero mode does not change, where the SSE2
          path checks the modes before comparing d (a subnormal d was 0), and
@@ -448,7 +450,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       // path does: the dispatch would give the signs of its zeros instead,
       // and the guard keeps the modes as the program left them, as the
       // dispatch keeps them
-      if (avx512_arithmetic) {
+      {
         if (bit_zero(d)) {
           const flush_guard flush;
           xmmbounds = interval::m128_zero;
@@ -484,12 +486,12 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         return *this;
       }
 
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
       /* The AVX-512 path: the quotients lane by lane, as the SSE2 path
          divides them, the zero and the sign of d from its bits, the empty
          set of a zero divisor; the modes of the zero case are cleared by
          the guard, which gives them back as the program left them */
-      if (avx512_arithmetic) {
+      {
         if (bit_zero(d)) {
           const flush_guard flush;
           *this = interval::emptyset();
@@ -866,9 +868,8 @@ namespace {
   // x *= y for nonempty x and y with an infinite bound, out of operator*=,
   // where it is rare, and its code with it (the SSE2 intervals are compiled
   // by GCC and Clang only). operator*= calls it last: GCC 13 makes it a
-  // tail call, Clang 18 a call, and both save registers in operator*=,
-  // which also calls fast_mul() on the AVX-512 path (GAOL v5, point AA of
-  // TODO.md)
+  // tail call, and Clang 18 a call, for which operator*= saves a register
+  // (GAOL v5, point AA of TODO.md)
   __attribute__((noinline, cold)) interval& multiply_with_infinities(interval& x, const interval& y)
   {
     x.get_xmminterval() = product_of_bounds(x.get_xmminterval(), y.get_xmminterval(), products_with_infinities());
@@ -883,12 +884,12 @@ interval& interval::operator*=(const interval& I)
 	return *this;
   }
 
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
   /* The AVX-512 path: the products by the embedded rounding, the dispatch
      and the infinite bounds by the sign and the magnitude bits, which the
      denormals-are-zero mode does not change (the SSE2 path checks the
      modes for the comparisons below) */
-  if (avx512_arithmetic) {
+  {
     xmmbounds = fast_mul(xmmbounds, I.xmmbounds);
     return *this;
   }
@@ -932,10 +933,10 @@ interval& interval::operator/=(const interval& I)
 		*this = interval::emptyset();
 		return *this;
 	}
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
 	/* The AVX-512 path: the quotients by the embedded rounding, the
 	   dispatch by the sign and the magnitude bits (see operator*= above) */
-	if (avx512_arithmetic) {
+	{
 		return fast_div_assign(*this, I);
 	}
 #endif

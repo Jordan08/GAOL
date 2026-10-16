@@ -19128,19 +19128,17 @@ printf "%s\n" "#define GAOL_PRESERVE_ROUNDING 1" >>confdefs.h
 
 fi
 # --enable-prefer-avx512: the AVX-512 path of +, -, *, / and sqrt, as
-# CMakeLists.txt and meson.build take it (see CMakeLists.txt). The path is
-# compiled into the library beside the SSE2 one whenever the compiler
-# accepts its instructions in a function with
+# CMakeLists.txt and meson.build take it (see CMakeLists.txt). The compiler
+# has to accept its instructions in a function with
 # __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which GCC
-# and Clang on x86-64 do: no flag, the attribute is per function, and the
-# library runs on any processor of the architecture. gaol::init() takes the
-# path when the program asks for it, and the processor has the instructions:
-# on by default where --enable-preserve-rounding is, the path sparing the
-# store of the rounding direction every operation pays; what the command
-# line gave wins either way, --disable-prefer-avx512 refusing the path
-# under --enable-preserve-rounding. A default the compiler or the
-# architecture cannot take degrades silently, where --enable-prefer-avx512
-# without the path is an error (GAOL v5).
+# and Clang on x86-64 do: no flag, the attribute is per function. On by
+# default where --enable-preserve-rounding is, the path sparing the store of
+# the rounding direction every operation pays; what the command line gave
+# wins either way, --disable-prefer-avx512 refusing the path under
+# --enable-preserve-rounding. A default the compiler or the architecture
+# cannot take degrades silently, where --enable-prefer-avx512 without the
+# path is an error. The path is taken where the machine building runs it
+# (GAOL_AVX512_ARITHMETIC below; GAOL v5).
 # Check whether --enable-prefer-avx512 was given.
 if test ${enable_prefer_avx512+y}
 then :
@@ -19219,6 +19217,72 @@ printf "%s\n" "$as_me: no AVX-512 path of +, -, *, / and sqrt: the operations ke
 
 printf "%s\n" "#define GAOL_PREFER_AVX512 1" >>confdefs.h
 
+    fi
+fi
+# GAOL_AVX512_ARITHMETIC: +, -, *, / and sqrt take the AVX-512 path, as
+# CMakeLists.txt decides it: --enable-prefer-avx512, a compiler that takes
+# the path, and a machine building that runs it, never when cross-compiling.
+# The library then needs a processor with the AVX-512 instructions, and the
+# operations test nothing as they run (GAOL v5)
+if test "${prefer_avx512}" = yes; then
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether this machine runs the AVX-512 instructions" >&5
+printf %s "checking whether this machine runs the AVX-512 instructions... " >&6; }
+    if test "$cross_compiling" = yes
+then :
+  avx512_arithmetic=no
+else case e in #(
+  e) cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <immintrin.h>
+__attribute__((target("avx512f"))) double er_add(double a, double b)
+{
+    const __m512d x = _mm512_set1_pd(a);
+    const __m512d y = _mm512_set1_pd(b);
+    return _mm_cvtsd_f64(_mm512_castpd512_pd128(
+        _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+}
+int
+main (void)
+{
+volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
+return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_run "$LINENO"
+then :
+  avx512_arithmetic=yes
+else case e in #(
+  e) avx512_arithmetic=no ;;
+esac
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext ;;
+esac
+fi
+
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${avx512_arithmetic}" >&5
+printf "%s\n" "${avx512_arithmetic}" >&6; }
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    if test "${avx512_arithmetic}" = yes; then
+
+printf "%s\n" "#define GAOL_AVX512_ARITHMETIC 1" >>confdefs.h
+
+    else
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: the AVX-512 path left out: this machine does not run the AVX-512 instructions, or GAOL is cross-compiled" >&5
+printf "%s\n" "$as_me: the AVX-512 path left out: this machine does not run the AVX-512 instructions, or GAOL is cross-compiled" >&6;}
     fi
 fi
 
