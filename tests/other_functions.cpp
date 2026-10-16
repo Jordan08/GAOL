@@ -28,7 +28,7 @@
 #include "gaol_tests.h"
 #ifdef GAOL_FLOAT_INTERVALS
 // Not included by gaol/gaol (see gaol/gaol_config.h)
-#  include "gaol/gaol_intervalf.h"
+#  include "gaol/float/gaol_intervalf.h"
 #endif
 
 #include <algorithm>
@@ -958,7 +958,7 @@ namespace
     respectively min(x, y), is in Z for some y of Y; sign_rel(Z, X) and
     floor_rel(Z, X) the hull of the x of X whose sign, respectively floor, is
     in Z. Each has to be the tightest enclosure of its set, which is checked
-    apart from the reasoning of gaol/gaol_interval.cpp, from the definition of
+    apart from the reasoning of gaol/gaol_interval_core.cpp, from the definition of
     the set:
      - on every interval whose bounds are among -oo, -2, -1.5, ..., 2, +oo, -0
        and +0, and the empty set (max_rel and min_rel: among -oo, -1, -0.5,

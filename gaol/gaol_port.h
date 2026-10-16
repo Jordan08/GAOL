@@ -55,7 +55,8 @@
 // NOTE: GAOL_MEMALIGN() must return null value if no allocation error
 // GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (operator new
 // and operator delete of the SSE2 intervals, gaol_interval_sse.cpp, and of
-// the intervals of floats, gaol_interval2f.cpp): the two have to match.
+// the intervals of floats, gaol/float/gaol_interval2f.cpp): the two have to
+// match.
 // gaol_allocator.h, the allocator of the containers that used them too, is
 // gone (GAOL v5).
 #if defined (__MINGW32__) || defined (_MSC_VER)
@@ -168,7 +169,7 @@ namespace gaol_core {
 
   /*
     The bounds of pi and pi/2, which interval::pi(), interval::two_pi() and
-    interval::half_pi() give (gaol/gaol_interval.h), written exactly in
+    interval::half_pi() give (gaol/gaol_interval_core.h), written exactly in
     decimal: a literal is converted when compiling, where the unions of GAOL 4
     were read when the program started, by the dynamic initialization of each
     file including this header, and a static object of the program calling
@@ -356,7 +357,7 @@ namespace gaol_detail {
     integers or zeros. No comparison of x as a double: GCC vectorizes the
     loops of floor() into signaling comparisons, which raise the
     invalid-operation exception on the NaN bounds of the empty set (see
-    GAOL_FPU_SCALAR() in gaol/gaol_interval.h).
+    GAOL_FPU_SCALAR() in gaol/gaol_interval_core.h).
   */
   //! Whether x is subnormal, as its bits tell
   GAOL_INLINE bool bound_is_subnormal(double x)
@@ -418,7 +419,7 @@ namespace gaol_core {
 
 // In the namespace gaol too, as in GAOL 4; not f_negate_simple(),
 // gaol_signbit(), ullidouble and uintdouble, which GAOL uses for itself (see
-// gaol/gaol_interval.h)
+// gaol/gaol_interval_core.h)
 namespace gaol {
   using gaol_core::NaN_val;
   using gaol_core::is_finite;

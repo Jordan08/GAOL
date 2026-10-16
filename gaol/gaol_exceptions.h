@@ -142,7 +142,7 @@ namespace gaol_core {
   the syntax.
   
   \see Refer to the documentation of the parser for intervals
-  for the expected syntax (file gaol_interval_parser.ypp)
+  for the expected syntax (file gaol/parser/gaol_interval_parser.ypp)
   */
   class GAOL_PUBLIC input_format_error : public gaol_exception {
     public:
@@ -214,7 +214,7 @@ namespace gaol_core {
   } // namespace gaol_core
   
   // In the namespace gaol too, as in GAOL 4, with the operator<< of the
-  // exceptions (see gaol/gaol_interval.h)
+  // exceptions (see gaol/gaol_interval_core.h)
   namespace gaol {
     using gaol_core::gaol_exception;
     using gaol_core::input_format_error;

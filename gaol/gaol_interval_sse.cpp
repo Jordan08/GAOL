@@ -1091,7 +1091,7 @@ interval& interval::operator/=(const interval& I)
 #define OPT_INV 1
 #if OPT_INV
 /*
-  The rounding direction being upward already (see gaol_interval.h). A zero
+  The rounding direction being upward already (see gaol_interval_core.h). A zero
   bound is divided by 1 rather than 0, its quotient being thrown away: -1/0
   raised the division-by-zero exception, inverse([0, 2]) and pow([0, 2], -1)
   among them, where the FPU intervals raise nothing (GAOL v5)

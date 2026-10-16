@@ -197,13 +197,9 @@ if get_option('enable-verbose-mode')
   conf_data.set('GAOL_VERBOSE_MODE', 1)
 endif
 
-# gaol/gaol_fpu.h and gaol/gaol_exact.h: <fenv.h>; gaol/gaol_profile.cpp:
-# getrusage() where <sys/resource.h> declares it, clock() otherwise
+# gaol/gaol_fpu.h: <fenv.h>
 if cpp_comp.has_header('fenv.h')
   conf_data.set('GAOL_HAVE_FENV_H', 1)
-endif
-if cpp_comp.has_function('getrusage', prefix: '#include <sys/resource.h>')
-  conf_data.set('GAOL_HAVE_GETRUSAGE', 1)
 endif
 
 # The compilers CMakeLists.txt and configure refuse, for the same reasons (see
@@ -560,8 +556,8 @@ endif
 
 # make parser, as with CMake and configure: the lexer and the parser
 # regenerated in the sources with the flex and the bison of the system (see
-# gaol/regenerate_parser.sh) (GAOL v5)
-run_target('parser', command: [find_program('sh'), files('gaol/regenerate_parser.sh')])
+# gaol/parser/regenerate_parser.sh) (GAOL v5)
+run_target('parser', command: [find_program('sh'), files('gaol/parser/regenerate_parser.sh')])
 
 if doc
   subdir('manual')

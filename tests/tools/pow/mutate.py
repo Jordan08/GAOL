@@ -5,7 +5,7 @@
 # Tools of GAOL v5: mutation testing of pow. Each mutant is GAOL with one
 # deliberate error in pow_standard_upward(), pow_hybrid_upward(),
 # gaol_pow_real(), pow_lo(), pow_hi() or gaol_ieee1788::pow
-# (gaol/gaol_interval.cpp); the tests have to fail on it, unless it computes
+# (gaol/gaol_interval_core.cpp); the tests have to fail on it, unless it computes
 # the same bounds (an equivalent mutant, which the list says).
 #
 #     python3 mutate.py [--sources DIR] [--work DIR] [--cmake-option=OPT]...
@@ -44,7 +44,7 @@
 # cannot be applied or compiled.
 #
 # --mutants FILE takes the list from a Python file defining MUTANTS, a list
-# of dict(name=..., edits=[(old, new), ...], file='gaol/gaol_interval.cpp',
+# of dict(name=..., edits=[(old, new), ...], file='gaol/gaol_interval_core.cpp',
 # survives='why it is equivalent'), file and survives being optional; --list
 # prints the mutants and whether they apply to the sources.
 #---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ import build
 import diffpow
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FILE = 'gaol/gaol_interval.cpp'
+FILE = 'gaol/gaol_interval_core.cpp'
 
 # The mutants of the code of configure-clean on 2026-10-04 (after #61 and
 # #63), their texts brought to the code of the pull requests of B: the
@@ -281,7 +281,7 @@ MUTANTS = [
          edits=[('return (m == 2u) ? 0.0 : (8.0*m*L + 16.0)*4.930380657631324e-32;',
                  'return (8.0*m*L + 16.0)*4.930380657631324e-32;')]),
     dict(name='pown-expression-beyond-rounded',
-         file='gaol/gaol_expression.h',
+         file='gaol/parser/gaol_expression.h',
          edits=[('            if (below == above) {\n              return gaol_core::gaol_pow_exp(e, gaol_core::expression(h));',
                  '            if (true) {\n              return gaol_core::gaol_pow_exp(e, gaol_core::expression(h));')]),
     dict(name='pown-beyond-even',
@@ -292,7 +292,7 @@ MUTANTS = [
     dict(name='pown-unsigned-beyond-ints-as-int',
          edits=[('(e <= static_cast<unsigned int>(INT_MAX))', '(true)')]),
     dict(name='pown-beyond-64-bits-parity',
-         file='gaol/gaol_interval.h',
+         file='gaol/gaol_interval_core.h',
          edits=[('(n % 2 != 0) ? 9223372036854775807LL : 9223372036854775806LL',
                  '(n % 2 != 0) ? 9223372036854775806LL : 9223372036854775807LL')]),
     # The SSE2 register, with the FMA instructions

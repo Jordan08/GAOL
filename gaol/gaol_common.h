@@ -34,7 +34,7 @@
 #include "gaol/gaol_port.h"
 
 // The commands of GAOL_DEBUG_VERBOSE (below) write on std::cout:
-// gaol/gaol_expression.h did not compile with GAOL_DEBUGGING, which configure
+// gaol/parser/gaol_expression.h did not compile with GAOL_DEBUGGING, which configure
 // --enable-debug defined, without <iostream> (GAOL v5)
 #if GAOL_DEBUGGING
 #  include <iostream>
@@ -206,7 +206,7 @@ namespace gaol_core {
 } // namespace gaol_core
 
 // In the namespace gaol too, as in GAOL 4, and restore_rounding() of GAOL v5;
-// not gaol_initializer (see gaol/gaol_interval.h)
+// not gaol_initializer (see gaol/gaol_interval_core.h)
 namespace gaol {
   using gaol_core::debug_level;
   using gaol_core::odd;

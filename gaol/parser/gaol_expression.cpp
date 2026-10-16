@@ -30,9 +30,9 @@
 #include <new>
 
 
-#include "gaol/gaol_expression.h"
-#include "gaol/gaol_eval_stack.h"
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expression.h"
+#include "gaol/parser/gaol_eval_stack.h"
+#include "gaol/parser/gaol_expr_eval.h"
 
 namespace gaol_core {
   // Node used for empty expressions to have something to point at

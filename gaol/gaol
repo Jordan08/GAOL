@@ -34,7 +34,6 @@ File to be included by applications that use the gaol library
 #include "gaol/gaol_version.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
-#include "gaol/gaol_profile.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_exceptions.h"
 // The operations of IEEE 1788-2015 under their own names (GAOL v5)

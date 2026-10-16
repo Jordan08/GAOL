@@ -49,12 +49,12 @@ perf:
 	cd tests && $(MAKE) $(AM_MAKEFLAGS) perf
 
 # make parser regenerates the lexer and the parser of the strings,
-# gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and
-# gaol/gaol_interval_parser.h, from gaol/gaol_interval_lexer.lpp and
-# gaol/gaol_interval_parser.ypp, with the flex and the bison of the system
-# (FLEX, BISON). The three files are committed: no build needs flex nor bison
-# otherwise (GAOL v5).
+# gaol/parser/gaol_interval_lexer.cpp, gaol/parser/gaol_interval_parser.cpp and
+# gaol/parser/gaol_interval_parser.h, from gaol/parser/gaol_interval_lexer.lpp
+# and gaol/parser/gaol_interval_parser.ypp, with the flex and the bison of the
+# system (FLEX, BISON). The three files are committed: no build needs flex nor
+# bison otherwise (GAOL v5).
 parser:
-	$(SHELL) $(top_srcdir)/gaol/regenerate_parser.sh
+	$(SHELL) $(top_srcdir)/gaol/parser/regenerate_parser.sh
 
 .PHONY: test perf parser

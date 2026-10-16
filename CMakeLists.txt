@@ -377,7 +377,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (std::fma() in gaol/gaol_interval.cpp, for the
+# them: GAOL's exact products (std::fma() in gaol/gaol_interval_core.cpp, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too
@@ -576,15 +576,11 @@ if(NOT GAOL_HAVE_FENV_H)
   message(FATAL_ERROR "GAOL needs <fenv.h>, which this compiler does not provide")
 endif()
 
-# gaol/gaol_profile.cpp measures time with getrusage() where it exists, and with
-# clock() otherwise
-check_symbol_exists(getrusage "sys/resource.h" GAOL_HAVE_GETRUSAGE)
-
 # GAOL raises exceptions to signal errors, which --disable-exceptions of
 # configure and -Denable-exception=false of meson turn off
 set(GAOL_EXCEPTIONS_ENABLED ON)
 
-# The Debug build has GAOL check its assertions (gaol/gaol_assert.h), as
+# The Debug build has GAOL check its assertions (assert), as
 # --enable-debug of configure and --buildtype=debug of meson (GAOL v5). With a
 # generator of several configurations (Visual Studio, Xcode), whose
 # configurations share gaol/gaol_configuration.h, GAOL_DEBUGGING is given to
@@ -761,26 +757,22 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # libgaol
 ################################################################################
 #
-# The sources listed in gaol/meson.build. gaol_interval.cpp includes
+# The sources listed in gaol/meson.build. gaol_interval_core.cpp includes
 # gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
-# GAOL_USING_SSE2_INSTRUCTIONS, and gaol_intervalf.cpp and gaol_interval2f.cpp
-# where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
-# gaol/gaol_config.h). gaol_exact.c is left out for Visual C++, for which
-# gaol/gaol_exact.h defines get_inexact() and clear_inexact() itself.
+# GAOL_USING_SSE2_INSTRUCTIONS, and gaol/float/gaol_intervalf.cpp and
+# gaol/float/gaol_interval2f.cpp where a developer of GAOL defines
+# GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
 # C++, always a static one, GAOL's declarations being compiled without
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp gaol_profile.cpp gaol_common.cpp gaol_parser.cpp
-  gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
-  s_nextafter.c gaol_interval_lexer.cpp
-  gaol_interval_parser.cpp
+  gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp parser/gaol_parser.cpp
+  parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
+  parser/gaol_interval_lexer.cpp
+  parser/gaol_interval_parser.cpp
 )
-if(NOT MSVC)
-  list(APPEND GAOL_SOURCES gaol_exact.c)
-endif()
 list(TRANSFORM GAOL_SOURCES PREPEND "gaol/")
 
 # The sources of CORE-MATH, compiled apart and put into libgaol: apart so that
@@ -903,33 +895,42 @@ install(TARGETS gaol EXPORT gaolTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# The headers a program includes, gaol/gaol, gaol/gaol_expression.h and
-# gaol/gaol_expr_eval.h for the expressions, gaol/gaol_assert.h for
-# GAOL_ASSERT (see the manual), and those they include,
+# The headers a program includes, gaol/gaol, gaol/parser/gaol_expression.h and
+# gaol/parser/gaol_expr_eval.h for the expressions, and those they include,
 # gaol/gaol_fpu_msvc.h for Visual C++ among them: gaol/Makefile.am and
 # gaol/meson.build install the same ones. Not the headers of the sources of
-# GAOL only (GAOL v5): gaol/gaol_interval_parser.h, which did not compile when
-# included, the parts of the library (gaol_init_cleanup.h, gaol_exact.h and
-# sysdeps/, gaol_core_math.h, gaol_u128.h),
+# GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
+# compile when included, the parts of the library (gaol_init_cleanup.h,
+# gaol_core_math.h, gaol_u128.h),
 # what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
 # core_math_log_dint.h, gaol_ldexp.h), the bounds at doubles, *_dn() and
 # *_up(), which are not part of GAOL's interface (gaol_double_op.h), and the
 # intervals of floats, which only a developer of GAOL compiles (see
 # gaol/gaol_config.h)
 set(GAOL_HEADERS
-  gaol/gaol.h gaol/gaol_assert.h gaol/gaol_common.h
-  gaol/gaol_config.h gaol/gaol_eval_stack.h gaol/gaol_exceptions.h
-  gaol/gaol_expr_eval.h gaol/gaol_expr_visitor.h gaol/gaol_expression.h
-  gaol/gaol_flags.h gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
-  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_fpu.h
+  gaol/gaol.h gaol/gaol_common.h
+  gaol/gaol_config.h gaol/gaol_exceptions.h
+  gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
+  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_core.h gaol/gaol_interval_fpu.h
   gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_literals.h
-  gaol/gaol_parser.h gaol/gaol_port.h gaol/gaol_profile.h gaol/gaol_roundeven.h
+  gaol/gaol_port.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
+# The headers of the parser of the strings and of the expressions, which a
+# program includes as gaol/parser/gaol_expression.h and
+# gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
+set(GAOL_PARSER_HEADERS
+  gaol/parser/gaol_eval_stack.h gaol/parser/gaol_expr_eval.h
+  gaol/parser/gaol_expr_visitor.h gaol/parser/gaol_expression.h
+  gaol/parser/gaol_parser.h)
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}
   "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol
+)
+install(FILES
+  ${GAOL_PARSER_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/parser
 )
 
 set(GAOL_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/gaol)
@@ -1110,20 +1111,21 @@ endif()
 # The lexer and the parser of the strings
 ################################################################################
 #
-# gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and
-# gaol/gaol_interval_parser.h are generated from gaol/gaol_interval_lexer.lpp
-# (flex) and gaol/gaol_interval_parser.ypp (bison) and committed, so that no
+# gaol/parser/gaol_interval_lexer.cpp, gaol/parser/gaol_interval_parser.cpp and
+# gaol/parser/gaol_interval_parser.h are generated from
+# gaol/parser/gaol_interval_lexer.lpp (flex) and
+# gaol/parser/gaol_interval_parser.ypp (bison) and committed, so that no
 # build needs flex or bison. After a change of the .lpp or of the .ypp, the
 # target parser regenerates them in the sources, with the flex and the bison of
 # the system, where both are found (GAOL v5):
 #
 #   cmake --build build --target parser
 #
-# gaol/regenerate_parser.sh runs the same commands without CMake. The committed
-# files were generated by flex 2.6.4 and bison 3.8.2, which give them again
-# byte for byte; the programs write lex.gaol_.c and y.tab.c, the names of the
-# #line directives of the committed files, in a directory of the build. Only
-# where GAOL is the project built, as the targets check and perf.
+# gaol/parser/regenerate_parser.sh runs the same commands without CMake. The
+# committed files were generated by flex 2.6.4 and bison 3.8.2, which give them
+# again byte for byte; the programs write lex.gaol_.c and y.tab.c, the names of
+# the #line directives of the committed files, in a directory of the build.
+# Only where GAOL is the project built, as the targets check and perf.
 
 if(GAOL_IS_TOP_LEVEL)
   find_program(GAOL_FLEX NAMES flex win_flex)
@@ -1132,18 +1134,18 @@ if(GAOL_IS_TOP_LEVEL)
 endif()
 if(GAOL_IS_TOP_LEVEL AND GAOL_FLEX AND GAOL_BISON)
   set(_parser_dir "${CMAKE_CURRENT_BINARY_DIR}/parser")
-  set(_gaol_dir "${CMAKE_CURRENT_SOURCE_DIR}/gaol")
+  set(_gaol_parser_dir "${CMAKE_CURRENT_SOURCE_DIR}/gaol/parser")
   # The directory the commands run in, which has to exist before they run
   file(MAKE_DIRECTORY "${_parser_dir}")
   add_custom_target(parser
-    COMMAND "${CMAKE_COMMAND}" -E copy "${_gaol_dir}/gaol_interval_lexer.lpp" "${_gaol_dir}/gaol_interval_parser.ypp" "${_parser_dir}"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${_gaol_parser_dir}/gaol_interval_lexer.lpp" "${_gaol_parser_dir}/gaol_interval_parser.ypp" "${_parser_dir}"
     COMMAND "${GAOL_FLEX}" -Pgaol_ gaol_interval_lexer.lpp
     COMMAND "${GAOL_BISON}" -y -Wno-yacc -Wno-deprecated -Wno-other -d -p gaol_ gaol_interval_parser.ypp
-    COMMAND "${CMAKE_COMMAND}" -E copy lex.gaol_.c "${_gaol_dir}/gaol_interval_lexer.cpp"
-    COMMAND "${CMAKE_COMMAND}" -E copy y.tab.c "${_gaol_dir}/gaol_interval_parser.cpp"
-    COMMAND "${CMAKE_COMMAND}" -E copy y.tab.h "${_gaol_dir}/gaol_interval_parser.h"
+    COMMAND "${CMAKE_COMMAND}" -E copy lex.gaol_.c "${_gaol_parser_dir}/gaol_interval_lexer.cpp"
+    COMMAND "${CMAKE_COMMAND}" -E copy y.tab.c "${_gaol_parser_dir}/gaol_interval_parser.cpp"
+    COMMAND "${CMAKE_COMMAND}" -E copy y.tab.h "${_gaol_parser_dir}/gaol_interval_parser.h"
     WORKING_DIRECTORY "${_parser_dir}"
-    COMMENT "Regenerating gaol/gaol_interval_lexer.cpp, gaol/gaol_interval_parser.cpp and gaol/gaol_interval_parser.h with ${GAOL_FLEX} and ${GAOL_BISON}"
+    COMMENT "Regenerating gaol/parser/gaol_interval_lexer.cpp, gaol/parser/gaol_interval_parser.cpp and gaol/parser/gaol_interval_parser.h with ${GAOL_FLEX} and ${GAOL_BISON}"
     VERBATIM)
 endif()
 

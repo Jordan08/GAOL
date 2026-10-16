@@ -19,13 +19,13 @@
 *
 * uses GAOL under the names of the standard, without naming gaol: a program
 * opens one of the two namespaces, not both. The type interval and GAOL's
-* functions are in gaol_core (gaol/gaol_interval.h), the only namespace where
+* functions are in gaol_core (gaol/gaol_interval_core.h), the only namespace where
 * argument-dependent lookup looks for a call sin(x) on an interval, so that
 * it finds neither gaol's functions nor these. The functions of GAOL that
 * have the name and the meaning the standard gives them (sin, exp, sqrt,
 * min...) are brought in by using-declarations of those of gaol_core, which
 * name the functions argument-dependent lookup finds too. This file does not
-* include gaol/gaol_expression.h (GAOL v5): a program using the expressions
+* include gaol/parser/gaol_expression.h (GAOL v5): a program using the expressions
 * includes it, as with GAOL 4, and it declares them again for its overloads,
 * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
 * in this namespace.
@@ -37,7 +37,7 @@
 *     standard. gaol::pow takes that integer power for an integer exponent,
 *     which is defined for x < 0 too, beyond the ints as well (GAOL v5).
 *     Neither pow is in gaol_core: each namespace has its own.
-*     pown(e, n) and pow(e1, e2) build expressions (gaol/gaol_expression.h)
+*     pown(e, n) and pow(e1, e2) build expressions (gaol/parser/gaol_expression.h)
 *     computed with the pown and the pow of the standard;
 *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
 *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
@@ -70,7 +70,7 @@
 #include <utility>
 
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_parser.h"
+#include "gaol/parser/gaol_parser.h"
 
 namespace gaol_ieee1788 {
   

@@ -31,7 +31,7 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_common.h"
-#include "gaol/gaol_expression.h"
+#include "gaol/parser/gaol_expression.h"
 #include "gaol/gaol_init_cleanup.h"
 
 #include "gaol/gaol_double_op.h"

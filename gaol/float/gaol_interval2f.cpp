@@ -32,9 +32,9 @@
 
 
 #include "gaol/gaol_port.h"
-#include "gaol/gaol_interval2f.h"
+#include "gaol/float/gaol_interval2f.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_intervalf.h"
+#include "gaol/float/gaol_intervalf.h"
 
 namespace gaol_core {
 

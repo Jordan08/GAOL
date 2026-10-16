@@ -611,7 +611,7 @@ point Q), which `numbers` checks there too.
   independently of GAOL. Computing in the upward direction it keeps, GAOL takes
   the upper bound from CORE-MATH and the double below it as the lower one: its
   bounds have to enclose the tightest ones, to be equal above and within one
-  double below, and to be the tightest ones where `gaol_interval.cpp` gives the
+  double below, and to be the tightest ones where `gaol_interval_core.cpp` gives the
   exact value itself (`log(1)`, `sin(0)`, the bounds of π/2 at `asin(1)`...).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
@@ -721,7 +721,7 @@ point Q), which `numbers` checks there too.
   rounding directions have to be consistent with each other, and the bounds of
   GAOL the tightest (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
-  the tree of `gaol/gaol_expression.h` and evaluates that tree, so this test
+  the tree of `gaol/parser/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
   the numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
@@ -926,7 +926,7 @@ point Q), which `numbers` checks there too.
   `meson setup --buildtype=debug`), whatever the build: an expression is built
   and evaluated, its nodes calling `GAOL_DEBUG_VERBOSE` (`GAOL_DEBUG` before
   GAOL v5), which has to run its command at the level given to `gaol::init()`
-  and not above. `gaol/gaol_expression.h` did not compile with
+  and not above. `gaol/parser/gaol_expression.h` did not compile with
   `GAOL_DEBUGGING`: its `GAOL_DEBUG_VERBOSE` wrote on `std::cout`, which no
   header included (GAOL v5).
 - **`version_file`** (CMake only: a script of CMake, not a program): the
@@ -1146,7 +1146,7 @@ result shows it there (GAOL v5, point Q). It is not a test: the continuous
 integration prints its table in the summary of the jobs.
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
-`gaol/gaol_interval.cpp` (see [its README](../tests/tools/pow/README.md)).
+`gaol/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
 They are not tests either: no build compiles them and no job runs them.
 `diffpow.py` prints the bounds of `gaol_ieee1788::pow` and `gaol::pow` with
 two builds of GAOL, on 70 500 boxes and under the four rounding directions at
@@ -1160,7 +1160,7 @@ which `ieee1788`, `elementary`, `arithmetic`, `rounding_direction` and
 `expressions` have to catch, but for those that give the same bounds, and
 runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
 rationals the induction that bounds the error of the integer powers
-beforehand (`pown_products()` in `gaol/gaol_interval.cpp`). `bench.cpp`
+beforehand (`pown_products()` in `gaol/gaol_interval_core.cpp`). `bench.cpp`
 measures the time per call of each path of `pow`.
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5

@@ -546,9 +546,9 @@ fi
 
 # --enable-debug: GAOL compiled for debugging, as by the Debug build of CMake
 # (CMAKE_BUILD_TYPE=Debug) and meson (--buildtype=debug): -g, no optimization,
-# no NDEBUG, and GAOL_DEBUGGING, with which GAOL checks its assertions
-# (gaol/gaol_assert.h) (GAOL v5). It gave g++ alone -g -ansi -Weffc++
-# -pedantic, on top of the optimizations of --enable-optimize.
+# no NDEBUG (GAOL checks its assertions, with assert), and GAOL_DEBUGGING
+# (GAOL v5). It gave g++ alone -g -ansi -Weffc++ -pedantic, on top of the
+# optimizations of --enable-optimize.
 AC_ARG_ENABLE(debug,
             [AS_HELP_STRING([--enable-debug],
                             [compile GAOL for debugging, as the Debug build of CMake: -g, no optimization, and GAOL checks its assertions (GAOL_DEBUGGING); --enable-optimize is then ignored @<:@default=no@:>@])],
@@ -674,23 +674,15 @@ fi
 AM_CONDITIONAL(PDF_TO_LATEX,
                [test "${PDFLATEX}" != "no" -a "$MAKEINDEX" != "no" -a "$BIBTEX" != "no"])
 
-# What GAOL's sources read of the system (gaol/gaol_fpu.h, gaol/gaol_exact.h,
-# gaol/gaol_profile.cpp), as the CMake and the meson builds check it. The
-# checks of headers, functions, types and sizes nothing read are gone, as
-# AC_FUNC_MALLOC and AC_FUNC_REALLOC, which replaced malloc() and realloc()
-# by rpl_malloc() and rpl_realloc() in a cross-compilation (GAOL v5).
+# What GAOL's sources read of the system (gaol/gaol_fpu.h), as the CMake and
+# the meson builds check it. The checks of headers, functions, types and
+# sizes nothing read are gone, as AC_FUNC_MALLOC and AC_FUNC_REALLOC, which
+# replaced malloc() and realloc() by rpl_malloc() and rpl_realloc() in a
+# cross-compilation (GAOL v5).
 AC_LANG([C++])
 AC_CHECK_HEADER([fenv.h],
                 [AC_DEFINE([GAOL_HAVE_FENV_H],1,[Define to 1 if you have the <fenv.h> header file.])],
                 [], [/* fenv.h alone */])
-AC_MSG_CHECKING([for getrusage in sys/resource.h])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/resource.h>]],
-                                [[struct rusage r; return getrusage(RUSAGE_SELF, &r);]])],
-               [have_getrusage=yes], [have_getrusage=no])
-AC_MSG_RESULT([${have_getrusage}])
-if test "${have_getrusage}" = yes; then
-    AC_DEFINE([GAOL_HAVE_GETRUSAGE],1,[Define to 1 if you have the `getrusage' function in <sys/resource.h>.])
-fi
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where

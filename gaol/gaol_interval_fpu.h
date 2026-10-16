@@ -18,14 +18,14 @@
  *--------------------------------------------------------------------------*/
 
 /*
-    This file shall be included by gaol_interval.h only. It must not be included directly
+    This file shall be included by gaol_interval_core.cpp only. It must not be included directly
         by any other file.
 
     This file contains all declarations related to the 'interval' class that consider
     the bounds to be a pair of 'double' variables.
 */
-#ifndef GAOL_INTERVAL_H
-#  error "File gaol_interval_fpu.h shall only be included directly by gaol_interval.h"
+#ifndef GAOL_INTERVAL_CORE_H
+#  error "File gaol_interval_fpu.h shall only be included directly by gaol_interval_core.cpp"
 #endif
 
 
@@ -118,7 +118,7 @@
   // registers where it if-converts them, and 30% more in a loop of
   // constructions (GCC 9.4, FPU intervals). GCC for 64-bit ARM computed them
   // for every element of a loop of constructions it vectorized, an empty one
-  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval.h),
+  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval_core.h),
   // which keeps GCC from vectorizing that loop. On 32-bit ARM and on POWER9,
   // the quiet first comparison has the form GCC reversed into a signaling one
   // in is_empty(), and the constructor tells NaN bounds as is_empty() does,
@@ -197,7 +197,7 @@
     so made GCC compare its NaN bounds again with vcmpe in the program's
     (empty & x).is_empty() ? a : b, where is_empty() was one quiet
     comparison: is_empty() tells them with std::isunordered() first on 32-bit
-    ARM now, see gaol_interval.h.) The comparisons after it are quiet ones
+    ARM now, see gaol_interval_core.h.) The comparisons after it are quiet ones
     all the same: GCC 9.4 at -O3 computed them before that test, for an empty
     I, in a loop of intersections where it turned the function into
     straight-line code, and compiled plain comparisons with comisd, which

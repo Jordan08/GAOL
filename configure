@@ -19724,9 +19724,9 @@ fi
 
 # --enable-debug: GAOL compiled for debugging, as by the Debug build of CMake
 # (CMAKE_BUILD_TYPE=Debug) and meson (--buildtype=debug): -g, no optimization,
-# no NDEBUG, and GAOL_DEBUGGING, with which GAOL checks its assertions
-# (gaol/gaol_assert.h) (GAOL v5). It gave g++ alone -g -ansi -Weffc++
-# -pedantic, on top of the optimizations of --enable-optimize.
+# no NDEBUG (GAOL checks its assertions, with assert), and GAOL_DEBUGGING
+# (GAOL v5). It gave g++ alone -g -ansi -Weffc++ -pedantic, on top of the
+# optimizations of --enable-optimize.
 # Check whether --enable-debug was given.
 if test ${enable_debug+y}
 then :
@@ -20268,11 +20268,11 @@ else
 fi
 
 
-# What GAOL's sources read of the system (gaol/gaol_fpu.h, gaol/gaol_exact.h,
-# gaol/gaol_profile.cpp), as the CMake and the meson builds check it. The
-# checks of headers, functions, types and sizes nothing read are gone, as
-# AC_FUNC_MALLOC and AC_FUNC_REALLOC, which replaced malloc() and realloc()
-# by rpl_malloc() and rpl_realloc() in a cross-compilation (GAOL v5).
+# What GAOL's sources read of the system (gaol/gaol_fpu.h), as the CMake and
+# the meson builds check it. The checks of headers, functions, types and
+# sizes nothing read are gone, as AC_FUNC_MALLOC and AC_FUNC_REALLOC, which
+# replaced malloc() and realloc() by rpl_malloc() and rpl_realloc() in a
+# cross-compilation (GAOL v5).
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -20288,35 +20288,6 @@ printf "%s\n" "#define GAOL_HAVE_FENV_H 1" >>confdefs.h
 
 fi
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for getrusage in sys/resource.h" >&5
-printf %s "checking for getrusage in sys/resource.h... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/resource.h>
-int
-main (void)
-{
-struct rusage r; return getrusage(RUSAGE_SELF, &r);
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"
-then :
-  have_getrusage=yes
-else case e in #(
-  e) have_getrusage=no ;;
-esac
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${have_getrusage}" >&5
-printf "%s\n" "${have_getrusage}" >&6; }
-if test "${have_getrusage}" = yes; then
-
-printf "%s\n" "#define GAOL_HAVE_GETRUSAGE 1" >>confdefs.h
-
-fi
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where

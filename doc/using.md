@@ -59,16 +59,17 @@ accepts it: the three builds test the compiler for it with a link.
 
 ## The headers
 
-A program includes `gaol/gaol` (or `gaol/gaol.h`), and `gaol/gaol_expression.h`
-for the expressions, with `gaol/gaol_expr_eval.h` to evaluate them, and
-`gaol/gaol_assert.h` for `GAOL_ASSERT`. The three builds install these and the
+A program includes `gaol/gaol` (or `gaol/gaol.h`), and
+`gaol/parser/gaol_expression.h` for the expressions, with
+`gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
 headers they include, each of which compiles alone but the three that other
 headers include in the middle of their code (`gaol_interval_fpu.h`,
 `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
-headers of GAOL's sources (GAOL v5): `gaol_interval_parser.h`, which did not
-compile when included, `gaol_init_cleanup.h`, `gaol_exact.h` and `sysdeps/`,
-`gaol_core_math.h` and `gaol_u128.h`; `gaol_parameters.h`, which declared
-nothing, is gone. GAOL's headers compile without a warning under
+headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
+which did not compile when included, `gaol_init_cleanup.h`, `gaol_core_math.h`
+and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing,
+`gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and `gaol_assert.h`,
+whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
@@ -171,7 +172,7 @@ project leaves the build type to its default, `debug`. meson 1.8.4 and later
 give a subproject its own default build type, and a `--buildtype=debug` asked
 for builds GAOL for debugging. Earlier ones give it the build type of the
 project, which would have built GAOL without optimization, and before 1.8 with
-its assertions: there, where the options are those of `debug`, GAOL compiles
+`GAOL_DEBUGGING`: there, where the options are those of `debug`, GAOL compiles
 its libraries as in `release` all the same, as it cannot tell the default
 from a `--buildtype=debug` asked for: `-Dgaol:enable-debug=true` (or
 `default_options: ['enable-debug=true']` in `subproject()` or `dependency()`)
@@ -225,7 +226,7 @@ the direction back: an operation of GAOL after it sets the direction upward
 again, and **`gaol::restore_rounding()` sets it back as many times as the
 program needs** (GAOL v5). What the initialization allocated is freed by the
 automatic cleanup only, after the static objects are destroyed, so that the
-expressions of `gaol/gaol_expression.h` still alive when the program calls
+expressions of `gaol/parser/gaol_expression.h` still alive when the program calls
 `gaol::cleanup()` remain valid.
 
 The direction set back is the one GAOL found when it initialized itself. It is
@@ -351,7 +352,7 @@ them (see [Accuracy of the operations](accuracy.md)).
 
 The rest of GAOL follows the same split:
 
-- the expressions of `gaol/gaol_expression.h`: `pow(e, n)` and
+- the expressions of `gaol/parser/gaol_expression.h`: `pow(e, n)` and
   `pow(e1, e2)` in `gaol`, the hybrid power; `pown(e, n)` and `pow(e1, e2)` in
   `gaol_ieee1788`, the two powers of the standard;
 - `textToInterval`: `gaol::textToInterval("pow([-4,-1],2)")` is [1, 16], and
@@ -401,11 +402,11 @@ standard:
   the `pow` of `gaol` gives on the whole of x (GAOL v5: [−∞, +∞]).
   `pown(e, n)` and `pow(e1, e2)` build expressions computed with this `pown`
   and this `pow`, declared with the other expressions by
-  `gaol/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
+  `gaol/parser/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
   4. A double converts neither to an interval nor to an expression, their
   constructors from a double (and that of an expression from an interval)
   being explicit: `gaol::sin(0.5)` does not compile, with or without
-  `gaol/gaol_expression.h`, and is written `gaol::sin(interval(0.5))`;
+  `gaol/parser/gaol_expression.h`, and is written `gaol::sin(interval(0.5))`;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
 - `mulRevToPair(b, c)`, the two-output division of 10.5.5, returns the pair

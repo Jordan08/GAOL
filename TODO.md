@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `42e4735` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `a32c4db` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -414,11 +414,36 @@ nœud `long long` ; le test `__int128` limité aux modes GNU ; les mesures avec
 Clang 21. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
 description de #121.
 
+Fait le 15 octobre : le déplacement du parser et des expressions dans
+`gaol/parser/` (13 fichiers, les trois builds, la CI et la documentation ;
+détail dans sa propre section ci-dessous, question CC.q4 répondue) ; le ménage
+du point 93 (`gaol_exact.h`, `gaol_exact.c` et `sysdeps/`, `gaol_flags.h`
+avec `prec_t` déplacé dans `gaol/parser/gaol_expression.h`, `s_nextafter.c`)
+et de `gaol_assert.h` (`GAOL_ASSERT` remplacé par `assert`, détail dans
+« Ménage ») ; les textes qui disaient que les builds Debug vérifient les
+assertions de GAOL avec `GAOL_DEBUGGING` disent maintenant que l'absence de
+`NDEBUG` garde `assert()` actif (`doc/building.md` à trois endroits,
+`doc/three-builds.md`, `doc/differences.md`, le manuel), et `doc/using.md`
+liste `gaol_assert.h` parmi les en-têtes de GAOL 4 retirés. Relecture de la
+branche : audit des fichiers restants de `gaol/` et de `gaol/parser/` (un
+seul sans aucun référenceur, CC.m6), cohérence des trois installations (les
+mêmes 23 en-têtes), des scripts de CI et de `doc/using.md` « The headers » ;
+trouvailles CC.m4 et CC.m5, questions CC.q5 à CC.q7. Demandé par le
+mainteneur (réponses CC.q5 à CC.q7) : les intervalles de floats et l'outil
+de l'auteur dans `gaol/float/` (5 fichiers, détail dans sa propre section
+ci-dessous), le cast explicite de `gaol_profile.cpp:52` (CC.m4), et la mise
+à jour de l'issue #49 pour le 15 octobre (faite).
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- Aucune.
+- `todo-aa-shekel5` : le point AA, #122.
+- `tests-no-psabi` : les tests compilés avec `-Wno-psabi`, #123 (ouverte le
+  15 octobre).
+- Les deux sont derrière `configure-clean` (vérifié le 15 octobre :
+  `check_branch` passe pour chacune, qui prévient de les fusionner avec
+  `configure-clean` avant leur fusion).
 
 ## Même fichier de test ou de documentation
 
@@ -638,8 +663,8 @@ qu'une fois.
 - **90.** **autotools et meson ne vérifient que le compilateur C++ pour Clang
   sur ARM 32 bits** (`configure.ac`, l. 228-233 ; `meson.build`,
   l. 214-219), quand CMake vérifie aussi le compilateur C
-  (`CMakeLists.txt`, l. 220). Or CORE-MATH, `gaol_exact.c` et
-  `s_nextafter.c` sont compilés en C, et le `#error` de `gaol/gaol_config.h`
+  (`CMakeLists.txt`, l. 220). Or CORE-MATH est compilé en C (dans 3rd/,
+  `s_nextafter.c` étant parti), et le `#error` de `gaol/gaol_config.h`
   n'atteint que le C++ : avec `CC=clang CXX=g++` sur armhf, configure et
   meson accepteraient, et CORE-MATH, compilé par un Clang qui ignore le sens
   d'arrondi sur cette cible, donnerait des bornes fausses. La vérification de
@@ -663,13 +688,56 @@ qu'une fois.
   `clear_inexact`, pas celle de CMake. `.github/audit` ne compare que les
   drapeaux de `gaol_interval.cpp`. Correction : les mêmes drapeaux C
   partout, et un source C dans `probe_build.py`.
-- **93.** **Du code mort exporté sous des noms C génériques** : rien
-  n'appelle `s_nextafter()` (`gaol/s_nextafter.c`, en
-  `visibility("default")`, donc exporté par toute bibliothèque partagée ; son
-  commentaire dit le contraire), ni `get_inexact()` et `clear_inexact()`
-  (`gaol/gaol_exact.c` ; le lexeur inclut `gaol_exact.h` sans s'en servir).
-  `nm -D` des `libgaol.so` d'autotools et de meson montre les trois. À
-  décider : retirer ces fichiers des trois builds, ou cacher ces fonctions.
+- **93.** **Du code mort exporté sous des noms C génériques** :
+  **décidé et fait le 15 octobre**, retirés la famille `gaol_exact`
+  et `s_nextafter.c`, dont `nm -D` montrait les trois symboles
+  (`get_inexact`, `clear_inexact`, `s_nextafter`) exportés par les
+  bibliothèques partagées d'autotools et meson, pas celle de CMake
+  (point 92). Aucun appelant : `get_inexact()` et `clear_inexact()`
+  depuis la réécriture v5 du lecteur de nombres (commit `73af2fe`, le
+  nombre est pris par ses bits) et la suppression de gdtoa (commit
+  `520450f`), qui les employaient (strtod arrondi bas puis haut, le
+  nombre exact distingué par le drapeau inexact) ; `s_nextafter()`
+  depuis que le `#define nextafter s_nextafter` de la v4 est parti
+  (son commentaire le disait). Supprimés : `gaol/gaol_exact.{h,c}`,
+  `gaol/sysdeps/gaol_exact_{c99,msvc}.h` (tout `gaol/sysdeps/`
+  disparaît ; `gaol_exact_msvc.h` était mort de naissance, inclus
+  seulement par `gaol_exact.c` sous `_MSC_VER`, jamais compilé pour
+  MSVC) et `gaol/s_nextafter.c`. Retirés aussi : l'include vestigial
+  du lexeur (`gaol/parser/gaol_interval_lexer.lpp:45`, .cpp régénéré,
+  le diff n'étant que la ligne et les `#line`), `CMakeLists.txt`
+  (GAOL_SOURCES et 2 commentaires), `gaol/Makefile.am` (+ `Makefile.in`
+  régénéré, qui perd ses règles C : GAOL n'a plus de source C,
+  CORE-MATH de 3rd/ reste le seul), `gaol/meson.build` (gaol_SOURCES,
+  EXTRA_DIST, `incdir` qui pointait sur `sysdeps/`), `configure.ac`,
+  `meson.build` et `configure` (commentaires), `doc/using.md`,
+  `doc/differences.md` (2 endroits), `coverage/README.md`,
+  `process.md`, et les listes de « pas installés » de
+  `.github/workflows/linux.yml` et `build-systems.yml`. La détection
+  `GAOL_HAVE_FENV_H` reste (`gaol_fpu.h` l'utilise). `nm`/`nm -D` sur
+  les bibliothèques des trois builds : les trois symboles ont disparu,
+  de la statique comme de la partagée. Revalidé le 15 octobre :
+  CMake 57/57, autotools 29 passed + 2 sautés et 16 exemples, meson
+  29 + 2 sautés, sous-projet meson 8/8, find_package 6/6,
+  `make distclean` rend l'arbre, `<gaol/gaol>` seul + `textToInterval`
+  OK sur les installations CMake statique et partagée. Vérifié en
+  même temps, sur la question du mainteneur sur `gaol_flags.h` : il ne
+  déclarait pas des drapeaux IEEE mais `prec_t`, les priorités
+  d'opérateurs, qu'emploie `gaol/parser/gaol_expression.cpp` (les
+  deux autres mentions de `prec_t` sont un commentaire de
+  `gaol/gaol_interval.h` et le test négatif `tests/misc.cpp`, qui
+  vérifie que `gaol::prec_t` n'existe pas : il passe). **Décidé et
+  fait le 15 octobre** : `prec_t` est défini dans
+  `gaol/parser/gaol_expression.h`, qui n'incluait `gaol_flags.h` que
+  pour cela, et `gaol_flags.h` — un en-tête installé — est supprimé
+  des sources et des trois listes d'installation ; les en-têtes
+  installés compilent seuls (`-Wall -Wextra -Wold-style-cast -Wundef`,
+  GCC et Clang 18, sauf `gaol_interval_fpu.h` et `gaol_interval_sse.h`,
+  qui ne compilent pas seuls par conception), et une expression
+  construite avec les en-têtes installés a la priorité
+  `prec_t::plus_prec`. `coverage/coverage.html`, rapport ligne à
+  ligne, cite encore `sysdeps/gaol_exact_c99.h` et `s_nextafter.c` :
+  périmé jusqu'à la cible `coverage` (CC.m3).
 - **94.** **Les listes de macros de l'audit ne s'accordent pas** :
   `.github/audit/compare.py` (l. 25) compare `GAOL_HAVE_AVX512_TARGET` et
   `GAOL_PREFER_AVX512`, que `make_probe.py` (l. 9-12) ne sonde pas, si bien
@@ -784,6 +852,20 @@ Reporté (#67).
   d'une opération seule ne crée pas. Mesurer les formes de Shekel 5 une à
   une, et comparer le code généré à celui de GAOL 4.2.3 (valgrind, `perf`
   n'étant pas permis sur cette machine). Corriger si la cause est dans GAOL.
+
+  Décidé le 14 octobre, sur #122 (mesuré sur le Xeon E3-1220 v6 seulement) :
+  - à la fusion de #122, AA est fait ;
+  - deux nouveaux points le suivent :
+    - relancer le banc de `doc/compare` sur l'i7-1185G7
+      (`CPU=2 ./run_bench.sh`), puis mettre à jour
+      `doc/compare/performance.md` (Shekel 5 à 282 ns contre 195) et les
+      temps AVX-512 de `doc/using.md` ;
+    - étudier `-mbranches-within-32B-boundaries` pour les builds de GAOL,
+      sur ce Xeon et sur l'i7 : l'erratum des sauts des processeurs
+      Skylake à Comet Lake y déplace une opération jusqu'à 1 ns selon le
+      seul placement du code ;
+  - la phrase « sqr et pown passent par uipow et gardent le comportement
+    actuel » de la décision du 5 octobre (point H) est retirée.
 
 ## La version
 
@@ -969,6 +1051,47 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 - **CI GitHub** sur `533992f` : **tous les jobs verts** — Linux, macOS, Windows,
   Linux containers, Autotools and meson : tous `success`.
 
+### Relecture approfondie du code (PRs récentes)
+
+- **#117 (point B, 1/3)** : bien fait. `pown_upward()` sépare le corps de
+  `gaol_pown()` après une seule vérification ; `upward_access` donne accès à
+  `inverse_upward()` ; `rnd_keep_bounds()` évite la copie octet par octet.
+  `nth_root(I, INT_MIN)` gère `|INT_MIN|` sans dépassement signé.
+  `acosh_rel()`, `asinh_rel()`, `atanh_rel()` et `modulo_k_pi()` ont une
+  seule vérification. Les attributs `always_inline` sont bien placés.
+- **#118 (point B, 2/3)** : bien fait. `pow_lo()` et `pow_hi()` gèrent les
+  limites (0, +∞) aux coins, ce qui évite d'appeler CORE-MATH avec 0 ou ±∞.
+  Un coin par borne pour une base contenant 1. `root_of_large_order()` ni
+  exportée ni `static`. `rnd_keep()` d'un intervalle FPU par une amie.
+- **#119 (suites de l'audit)** : bien fait. Corrections de commentaires et de
+  documentation (chemin AVX-512, ancien 9 dit mesuré, `<a, b>` par les bits).
+- **#120 (point Z)** : bien fait. Les 13 options de `gaol_configuration.h`
+  définies à 0 ou 1 dans les trois builds ; les macros de la cible définies à
+  0 où elles ne l'étaient pas. `headers.sh` vérifie `-Wundef`. `bisect(ratio)`
+  par les `quiet_*` de `gaol_detail`.
+- **#114 (point F)** : bien fait. `ascii_lower()` remplace `std::tolower()`,
+  indépendant de la locale (problème turc documenté et testé). Le lexeur a
+  des commentaires améliorés. Les tests sous FZ/DAZ sont en place.
+- **#105 (point E)** : bien fait. `eval_stack` a une croissance dynamique
+  (heap) avec `std::bad_alloc` en cas de manque de mémoire. Les premiers
+  éléments sont dans la pile (pas d'allocation pour les petites expressions).
+  Le parser gère les longues sommes, NUL et `<a, b>` par les bits.
+
+### Cohérence documentation/code
+
+- `gaol_pown_ll` : documenté dans `doc/using.md`, déclaré dans
+  `gaol_interval.h`, défini dans `gaol_interval.cpp`. OK.
+- `K = 0` pour `m = 2` (x^2 = `sqr(x)`) : documenté dans TODO.md, implémenté
+  ligne 314 de `gaol_interval.cpp`. OK.
+- `ascii_lower` : défini dans `gaol_interval_parser.ypp`, testé dans
+  `tests/expressions.cpp` (`names_under_turkish_locale`). OK.
+- `eval_stack` : utilisé dans `gaol_expr_eval.h`, `std::bad_alloc` dans
+  `gaol_eval_stack.h`. OK.
+- `todo-notes/synthese.md` : 11 sections avec « In `configure-clean`:
+  **no** » — les textes pour `ChangeLog` et `doc/differences.md` ne sont pas
+  encore reportés, ce qui est normal (ils seront repris par la PR de synthèse
+  du point Y).
+
 ### Points restants (rappel)
 
 - **I** : la documentation pour l'utilisateur (35, 37, 38, 70).
@@ -976,6 +1099,50 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 - **X** : YalAA et VNODE-LP (28).
 - **AA** : Shekel 5 plus lent qu'avec GAOL 4 (76), à chercher.
 - **Y** : préparer et publier v5.0.0 (32, 33, 34, 71), en dernier.
+
+### Trouvailles mineures
+
+- **CC.m1** : deux TODO/FIXME anciens dans `gaol/gaol_interval.cpp` (l. 30-31,
+  reliques de GAOL 4 : « Rewrite as many functions as possible to use SIMD
+  instructions », « Use of f_negate deprecates -ffloat-store? »). À nettoyer
+  au point Y (publication v5.0.0), hors sujet pour les points A à Z.
+- **CC.m2** : le test `numbers` n'a pas été lancé sous ASan/UBSan (trop long :
+  158 s pour `arithmetic` seul sous les sanitizers). Les 10 autres tests clés
+  couvrent les chemins modifiés récemment. À relancer complet au point Y si
+  besoin.
+- **CC.m3** : `coverage/coverage.html` (rapport gcovr commis) n'a pas été
+  régénéré après le déplacement du parser dans `gaol/parser/` ni après les
+  suppressions du 15 octobre (`gaol_exact.h`, `gaol_exact.c` et `sysdeps/`,
+  `gaol_flags.h`, `s_nextafter.c`, `gaol_assert.h`) ni après la scission de
+  `gaol_interval.h`/`.cpp` en `gaol_interval_core.h`/`.cpp` et
+  `gaol_interval.h`/`.cpp` (15 octobre, commit `2ac9d4e`) : il cite encore
+  `sysdeps/gaol_exact_c99.h` et `s_nextafter.c`. Il faudra le refaire tourner
+  (`cmake --build <build> --target coverage`) au prochain bilan de
+  couverture. Les chemins de `coverage/README.md` ont été mis à jour à la
+  main à chaque fois ; après la scission, les compteurs et les numéros de
+  ligne de `gaol_interval_core.cpp`/`.h` ne sont plus à jour.
+  **Réponse (15 octobre) : non, pas tout de suite, le coverage sera généré
+  plus tard.**
+- **CC.m4** : avertissement `-Wconversion` de `gaol/gaol_profile.cpp:52` sur
+  armhf, vu dans les journaux de la CI de #123 (qui le laisse tel quel, sans
+  rapport avec sa branche) : `tv_sec` y est un `__time64_t`, et
+  `tv_sec*1000` vers `long` tronque à 32 bits là où `long` en fait 32
+  (dépassement après environ 24,8 jours). `gaol_profile.h` est installé,
+  utilisé par l'exemple 16, testé par `tests/misc.cpp`, documenté (section
+  « Debugging facilities » du manuel). **Réponse (15 octobre, CC.q6) :
+  corrigé avec un cast explicite** (`return long(...)`, détail dans la
+  section `gaol/float/` ci-dessous). **Caduc (15 octobre, CC.q9) :
+  `gaol_profile.h` et `gaol_profile.cpp` sont supprimés** (section Ménage
+  ci-dessous).
+- **CC.m5** : `process.md` section 12 (« Où en est le travail ») date du
+  13 octobre : B y est « en cours » (fait par #121) et Z « à faire » (fait
+  par #120) ; AA est en cours (#122) et #123 est ouverte. À remettre à jour.
+- **CC.m6** : `gaol/gaol_generator_mul_i2f.py` est le seul fichier de `gaol/`
+  que rien ne référence (hors `doc/compare/`) : c'est un outil de l'auteur
+  (Goualard, 2010, « No build runs it: it is a tool of the author »), qui
+  écrit les 256 cas de la multiplication de `gaol_interval2f.cpp`.
+  **Résolu (15 octobre, CC.q5) : déplacé dans `gaol/float/`** (section
+  ci-dessous).
 
 ### Questions pour le mainteneur
 
@@ -990,6 +1157,235 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 3. **CC.q3** : les 12 issues ouvertes (#64 à #70, #80, #101, #102, #104, #107,
    #49) : faut-il en traiter certaines avant le point Y (publication v5.0.0) ?
    **Réponse (14 octobre) : on verra ça plus tard.**
+4. **CC.q4** : le déplacement du parser dans `gaol/parser/` (15 octobre)
+   installe les 5 en-têtes publics (`gaol_expression.h`, `gaol_expr_eval.h`,
+   `gaol_expr_visitor.h`, `gaol_eval_stack.h`, `gaol_parser.h`) dans
+   `include/gaol/parser/` : un programme inclut désormais
+   `gaol/parser/gaol_expression.h` et non plus `gaol/gaol_expression.h`.
+   C'est une rupture de l'interface pour les programmes GAOL v5 écrits avant
+   (v5 n'est pas encore publié). Faut-il garder ce sous-répertoire dans le
+   chemin d'installation, ou installer les en-têtes directement dans
+   `include/gaol/` (les sources restant dans `gaol/parser/`) ?
+   **Réponse (15 octobre) : aucun problème, on garde `gaol/parser/`, tant
+   pis pour la rétrocompatibilité. En pratique, `gaol_expression` est utilisé
+   par le parser principalement ; l'objectif de GAOL n'est pas de fournir des
+   expressions mais des intervalles, ça va du moment que `textToInterval`
+   fonctionne à l'installation. Vérifié : un programme qui n'inclut que
+   `<gaol/gaol>` (le parapluie n'inclut pas `gaol/parser/gaol_expression.h`)
+   appelle `gaol::textToInterval("[1, 2]")`, `gaol::textToInterval(
+   "pow([-4, -1], 2)")` (à travers le parser) et
+   `gaol_ieee1788::textToInterval("[3, 4]")` ; compilé et lié avec les GAOL
+   installés des trois builds (meson, CMake, autotools), en shared et en
+   static : `[1, 2]`, `[1, 16]` et `[3, 4]`, comme `doc/using.md` le
+   documente.**
+5. **CC.q5** : `gaol/gaol_generator_mul_i2f.py` (CC.m6), outil de l'auteur
+   de 2010 que rien ne référence : le garder tel quel dans `gaol/`, ou le
+   déplacer dans `tests/tools/` avec les autres outils ?
+   **Réponse (15 octobre) : déplacer ce qui concerne les intervalles de
+   floats dans `gaol/float/` : `gaol_intervalf.*`, `gaol_interval2f.*` et
+   `gaol_generator_mul_i2f.py` — fait (section ci-dessous).**
+6. **CC.q6** : l'avertissement `-Wconversion` de `gaol/gaol_profile.cpp:52`
+   sur armhf (CC.m4) : corriger (`long` en un type de 64 bits dans
+   `gaol_profile.h` et `gaol_profile.cpp`, ou un cast explicite), ou laisser
+   tel quel ?
+   **Réponse (15 octobre) : corrigé avec un cast explicite — fait (section
+   ci-dessous).** **Caduc (15 octobre, CC.q9) : `gaol_profile.cpp` est
+   supprimé** (section Ménage ci-dessous).
+7. **CC.q7** : l'issue #49 en est à « État au 14 octobre 2026 (commit
+   62dad3a) » : faut-il la mettre à jour pour le 15 octobre (déplacement du
+   parser, suppressions de `gaol_exact.h`, `gaol_flags.h`, `s_nextafter.c`
+   et `gaol_assert.h`) ?
+   **Réponse (15 octobre) : oui — fait (l'issue #49 est à jour au
+   15 octobre).**
+8. **CC.q8** : `gaol/dllmain.cpp` sert-il encore ? Non : aucun des trois
+   builds ne le compile (`CMakeLists.txt` et `gaol/Makefile.am` ne le
+   listent pas ; `gaol/meson.build` seulement dans `EXTRA_DIST`, qui ne
+   compile pas), et il ne serait utile que pour une DLL Visual C++, or
+   la bibliothèque est toujours statique avec MSVC (`CMakeLists.txt:769`,
+   `gaol/meson.build` ; `GAOL_PUBLIC` y est vide, pas de
+   `__declspec(dllexport)`), donc `DllMain` ne serait jamais appelé.
+   L'initialisation et le nettoyage automatiques sont faits par les
+   objets statiques `gaol_core::gaol_initializer` (`gaol/gaol_common.h`)
+   avec tous les compilateurs, MSVC compris (`doc/differences.md`). Il ne
+   compilerait même plus : il appelle `gaol::initialization_process()` et
+   `gaol::cleanup_process()`, qui n'existent plus dans le namespace `gaol`
+   (seulement `gaol_core`, dans `gaol/gaol_init_cleanup.h`, en-tête interne
+   non installé). Hors MSVC, le fichier est vide (tout est sous
+   `#if defined (_MSC_VER)`). **Réponse (15 octobre) : oui — supprimé**
+   (`git rm gaol/dllmain.cpp`, sa ligne de `EXTRA_DIST` retirée de
+   `gaol/meson.build`, la phrase de `doc/differences.md` mise à jour ;
+   aucun build ne le compilait, meson reconfiguré et testé : 29 OK +
+   2 skip).
+9. **CC.q9** : `gaol/gaol_profile.h` et `gaol/gaol_profile.cpp` sont-ils
+   encore utilisés ? Oui, dans le dépôt : `examples/16_Goldstein_Price.cpp`
+   (l. 77, 82 : `reset_time()`, `elapsed_time()` pour le temps affiché),
+   `tests/misc.cpp` (l. 55 : `GAOL_NAMES_CLASS(timepiece)`, le nom de GAOL
+   4 dans le namespace `gaol`) et le parapluie `gaol/gaol` (l. 37, qui
+   l'inclut, et les `using` de `gaol` le nomment). La bibliothèque
+   elle-même ne les utilise pas (0.0 % de couverture). **Question
+   (15 octobre) : supprimer quand même**, en réécrivant la mesure de
+   temps de `16_Goldstein_Price` (par `std::chrono` ?) et en retirant la
+   ligne de `tests/misc.cpp` et l'include du parapluie, ou **garder**
+   l'API publique (`timepiece`, `get_time`, `reset_time`, `elapsed_time`,
+   `intermediate_elapsed_time`, `GAOL_PUBLIC`, installée) ?
+   **Réponse (15 octobre) : supprimer — fait** (`git rm` des deux fichiers,
+   l'include retiré du parapluie `gaol/gaol`, la mesure de temps de
+   l'exemple 16 réécrite avec `std::chrono`, la ligne de `tests/misc.cpp`
+   retirée, les trois builds, `doc/building.md`, `coverage/README.md`, le
+   chapitre « Profiling » du manuel v5 et les scripts `.github/audit/` mis
+   à jour ; détail dans la section Ménage ci-dessous).
+
+### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
+
+Demandé par le mainteneur le 15 octobre : tout ce qui concerne le parser de
+GAOL et les expressions dans `gaol/parser/` (exemple donné :
+`gaol/gaol_expr_visitor.h`). Fait sur `configure-clean` :
+
+- **13 fichiers déplacés** (`git mv`) : `gaol_expr_visitor.h`,
+  `gaol_expression.h`, `gaol_expression.cpp`, `gaol_expr_eval.h`,
+  `gaol_eval_stack.h`, `gaol_interval_parser.ypp/.cpp/.h`,
+  `gaol_interval_lexer.lpp/.cpp`, `gaol_parser.h`, `gaol_parser.cpp`,
+  `regenerate_parser.sh`.
+- **Includes et commentaires** mis à jour dans les sources (`gaol_common.cpp`,
+  `gaol_interval.cpp`, `gaol_interval.h`, `gaol_common.h`, `gaol_ieee1788.h`,
+  `gaol_exceptions.h`, les fichiers de `gaol/parser/` eux-mêmes) et dans les
+  tests (`misc.cpp`, `debugging.cpp`, `expressions.cpp`, `ieee1788.cpp`).
+- **Les trois builds** : `CMakeLists.txt` (sources, en-têtes installés, cible
+  `parser`), `Makefile.am` de `gaol/` et de la racine (sources, en-têtes
+  installés, cible `parser`), `Makefile.in` régénérés avec automake 1.18.1 ;
+  `meson.build` de `gaol/` et de la racine (sources, en-têtes installés,
+  `run_target('parser')`).
+- **Installation** : les 5 en-têtes publics dans `include/gaol/parser/`
+  (`gaol_interval_parser.h` reste non installé) ; vérifié avec les trois
+  builds. Question CC.q4 sur ce chemin, **résolue** (réponse ci-dessous :
+  on garde `gaol/parser/`).
+- **Fichiers générés** : `gaol_interval_lexer.cpp`,
+  `gaol_interval_parser.cpp` et `gaol_interval_parser.h` régénérés par
+  `sh gaol/parser/regenerate_parser.sh` (flex 2.6.4, bison 3.8.2) ; la cible
+  `parser` des trois builds donne les mêmes fichiers octet pour octet.
+- **CI et scripts** : `.github/workflows/linux.yml` et `build-systems.yml`
+  (contrôles d'installation), `.github/scripts/headers.sh` (teste chaque
+  en-tête de `include/gaol/parser/` seul), `.github/scripts/tests.sh`,
+  `tests/tools/pow/mutate.py`, `todo-notes/orchestration/bin/check_branch`,
+  `cmake/msvc/unistd.h`.
+- **Documentation** : `doc/using.md`, `doc/building.md`,
+  `doc/differences.md`, `doc/continuous-integration.md`, `doc/tests.md`,
+  `examples/examples.md`, `manual/v5/gaol.tex`, `manual/check_examples.py`,
+  `coverage/README.md`, `process.md`.
+- **Corrigé en cours de route** : `make distclean` laissait le répertoire
+  `gaol/parser/.deps` (les sources du parser étant dans un sous-répertoire,
+  `subdir-objects`) ; `distclean-local` de `gaol/Makefile.am` le supprime
+  maintenant.
+
+Validé (matrice complète de `process.md` 6.2, 2 cœurs) : CMake SSE2, FPU et
+Clang 18, tests et exemples, **57/57 tests** chacun ; `-Wall -Wextra -Werror`
+GCC et Clang 18 sans avertissement ; ASan/UBSan (Debug) **41/41 tests** ;
+autotools `configure`/`make`/`make install`/`make check` (29 réussis, 2
+skippés par construction, 16 exemples), `make distclean` rend l'arbre tel que
+git l'a ; meson `compile`/`install`/`test` (29 réussis, 2 skippés) ; le GAOL
+installé : `tests.sh` shared et static, `pkg-config`, `headers.sh` (GCC et
+Clang, chaque en-tête de `include/gaol/parser/` compilé seul) ; la cible
+`parser` des trois builds régénère les trois fichiers octet pour octet ;
+`find_package` 6/6 ; sous-projet meson 8/8 ; `check_examples.py` 104/104 ;
+l'audit `.github/audit` donne la même configuration aux trois builds ;
+`comma-locale.sh` OK ; le manuel (`pdflatex` deux fois) : zéro erreur, pas de
+nouvel « Overfull » (le paragraphe flex/bison a été restructuré en bloc
+`cmdshell` pour cela).
+
+### Déplacement des intervalles de floats dans `gaol/float/` (15 octobre 2026)
+
+Demandé par le mainteneur le 15 octobre (réponse CC.q5) : ce qui concerne
+les intervalles de floats dans `gaol/float/`. Fait sur `configure-clean` :
+
+- **5 fichiers déplacés** (`git mv`) : `gaol_intervalf.h`,
+  `gaol_intervalf.cpp`, `gaol_interval2f.h`, `gaol_interval2f.cpp` et
+  `gaol_generator_mul_i2f.py` (l'outil de l'auteur de 2010, CC.m6, qui écrit
+  les 256 cas de la multiplication de `gaol_interval2f.cpp`).
+- **Includes et commentaires** mis à jour : `gaol_interval.cpp` (qui inclut
+  les deux `.cpp` sous `GAOL_FLOAT_INTERVALS`), `gaol_config.h` et
+  `gaol_port.h` (commentaires), les trois tests (`tests/intervalf.cpp`,
+  `tests/interval2f.cpp`, `tests/other_functions.cpp`), et les fichiers
+  déplacés eux-mêmes.
+- **Les trois builds** : `gaol/Makefile.am` (`noinst_HEADERS`) et
+  `Makefile.in` régénéré (automake 1.18.1, le diff n'est que la liste) ;
+  `gaol/meson.build` (EXTRA_DIST) ; `CMakeLists.txt` (un commentaire). Aucun
+  des cinq fichiers n'est installé ni distribué (le `.py` n'est dans aucun
+  EXTRA_DIST), comme avant.
+- **Correction en même temps** (CC.q6, CC.m4) : `gaol/gaol_profile.cpp:52`
+  retourne `long(...)` explicitement : sur armhf, `tv_sec` est un
+  `__time64_t` de 64 bits et `long` en fait 32, la conversion avertissait
+  (`-Wconversion`, journaux de la CI de #123). Le comportement est le même.
+  Vérifié en simulant la conversion 64 bits vers 32 (`-m32 -Wconversion`) :
+  l'avertissement est là sans le cast, absent avec.
+
+Validé (2 cœurs) : CMake Release **57/57** sans avertissement, et un build
+avec `-DGAOL_FLOAT_INTERVALS=1` où `intervalf` et `interval2f` ne sont plus
+sautés et passent (**57/57**) — le code déplacé compile et tourne ;
+autotools `configure`/`make`/`make check` (**29 PASS + 2 SKIP, 16
+/exemples**), `make install` (les mêmes **23 en-têtes** que CMake et meson,
+aucun des fichiers déplacés), `make distclean` rend l'arbre tel que git l'a ;
+meson **29 OK + 2 skip** ; `headers.sh` OK (88 macros) ; `tests.sh` **0
+échec** (static et pkg-config).
+
+### Scission de `gaol_interval.h`/`.cpp` (15 octobre 2026)
+
+Demandé par le mainteneur le 15 octobre : renommer `gaol_interval.h` en
+`gaol_interval_core.h` et `gaol_interval.cpp` en `gaol_interval_core.cpp`,
+et mettre dans un nouveau `gaol_interval.h` tout ce qui concerne le
+namespace `gaol`, comme le namespace `gaol_ieee1788` est en entier dans
+`gaol_ieee1788.h`. Fait sur `configure-clean` (commit `2ac9d4e`) :
+
+- **`git mv`** : `gaol_interval.h` → `gaol_interval_core.h` (la classe
+  `interval`, les fonctions et `gaol_detail` de `gaol_core`, 2645 lignes)
+  et `gaol_interval.cpp` → `gaol_interval_core.cpp` (leurs définitions,
+  plus celles de `gaol_ieee1788`, 5924 lignes).
+- **Nouveau `gaol_interval.h`** (210 lignes) : le commentaire explicatif
+  et le namespace `gaol` en entier (les using-déclarations, `pow` inline,
+  `textToInterval` déclaré), comme `gaol_ieee1788.h` ; il inclut
+  `gaol_interval_core.h`, et les deux sont installés.
+- **Nouveau `gaol_interval.cpp`** (91 lignes) : les définitions des deux
+  `gaol::textToInterval`, sorties de `gaol_interval_core.cpp`.
+- **`text_in_message()`** : le helper du namespace anonyme de
+  `gaol_interval.cpp`, utilisé par `operator>>` (gaol_core) et par
+  `textToInterval` (gaol), est devenu `gaol_detail::text_in_message()`,
+  inline dans `gaol_interval_core.h` ; les deux `.cpp` l'appellent. La
+  déclaration `extern` de `gaol_parse_string` est dans les deux `.cpp`
+  (définie dans le parser, déclarée dans aucun en-tête).
+- **Les trois builds** : `CMakeLists.txt` (`GAOL_SOURCES`, `GAOL_HEADERS`),
+  `gaol/Makefile.am` (`libgaol_la_SOURCES`, `library_include_HEADERS`) et
+  `Makefile.in` régénéré (automake 1.18.1, le diff n'est que les deux
+  listes), `gaol/meson.build` (`gaol_SOURCES`, `gaol_HEADERS`).
+- **Commentaires et références** mis à jour là où ils citent les anciens
+  chemins : `gaol_ieee1788.h`, `gaol_common.h`, `gaol_fpu.h`,
+  `gaol_fpu_fenv.h`, `gaol_fpu_msvc.h`, `gaol_exceptions.h`,
+  `gaol_port.h`, `gaol_config.h`, `gaol/parser/gaol_expression.h`,
+  `gaol_interval_sse.h` et `gaol_interval_fpu.h` (garde et `#error` :
+  ils sont inclus par `gaol_interval_core.cpp`, la garde vérifie
+  `GAOL_INTERVAL_CORE_H`), `gaol_interval_sse.cpp`,
+  `gaol_interval_fpu.cpp`, `tests/core_math.cpp`, `tests/reverse.cpp`,
+  `tests/rounding_direction.cpp`, `tests/static_initialization.cpp`,
+  `tests/other_functions.cpp`, `tests/tools/pow/mutate.py` (`FILE`, et le
+  mutant de `integer_power` édite `gaol_interval_core.h` maintenant),
+  `pown_bound.py`, `README.md`, `doc/accuracy.md`, `doc/differences.md`,
+  `doc/tests.md`, `examples/examples.md`,
+  `todo-notes/orchestration/points_w4.py` et `coverage/README.md`.
+  Les commentaires qui citent le namespace `gaol` gardent
+  `gaol/gaol_interval.h` ; `doc/compare/*/work/` n'est pas touché (copies
+  figées) ; `doc/differences.md` garde sa phrase sur GAOL 4 (historique).
+- **CC.m3** : les chemins de `coverage/README.md` sont à jour
+  (`gaol_interval_core.cpp`/`.h`), les compteurs et les numéros de ligne ne
+  le sont plus ; le coverage sera régénéré plus tard (réponse du 15
+  octobre).
+
+Validé (2 cœurs) : CMake Release **57/57** sans avertissement, et un
+build avec `-DGAOL_FLOAT_INTERVALS=1` **57/57** (`intervalf` et
+`interval2f` actifs) ; autotools `configure`/`make` (0 avertissement)/
+`make check` (**29 PASS + 2 SKIP, 16 exemples**), `make install` (les
+mêmes **24 en-têtes** que CMake et meson, les deux `gaol_interval*.h`
+compris), `make distclean` rend l'arbre tel que git l'a ; meson **29 OK +
+2 skip** ; `headers.sh` sur l'installation (chaque en-tête compile seul,
+g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
+`tests.sh` **0 échec** (static et pkg-config).
 
 ## Ménage
 
@@ -1012,6 +1408,72 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   ses rapports, relus le 4 octobre, sont retirés de l'arbre (ils restent au
   commit `16a2f60`), et ce qui en sert encore est dans
   `todo-notes/synthese.md`.
+- **`GAOL_ASSERT` supprimé** (décidé le 15 octobre, question du mainteneur) :
+  les deux usages `GAOL_ASSERT(d >= 0.0)` (`ipow_up()` l. 72 et `ipow_dn()`
+  l. 102 de `gaol/gaol_double_op.h`, en-tête interne, non installé) ont été
+  remplacés par `assert` classique, avec `#include <cassert>` ; l'en-tête
+  installé et documenté `gaol/gaol_assert.h` est supprimé des sources et
+  des trois listes d'installation (`CMakeLists.txt`, `gaol/Makefile.am`,
+  `gaol/meson.build`), et ses mentions retirées du manuel v5, de
+  `doc/using.md`, `doc/building.md`, `tests/debugging.cpp`, des trois
+  modèles `gaol_configuration*.h.in` et de `configure.ac`. Sémantique :
+  l'ancien `GAOL_ASSERT(a)` valait `assert(a)` avec `GAOL_DEBUGGING` et
+  rien sinon ; `assert` classique est actif tant que `NDEBUG` n'est pas
+  défini. Équivalent dans les configurations usuelles (Debug : les deux
+  actifs, Release : les deux inactifs) ; `GAOL_DEBUGGING` ne gouverne plus
+  que `GAOL_DEBUG_VERBOSE` (`gaol/gaol_common.h`). Divergence acceptée :
+  `GAOL_DEBUG=ON` en build Release (`NDEBUG` défini, `assert` inactif là où
+  `GAOL_ASSERT` était actif). Vérifié sémantiquement : `ipow_dn(-1.0, 2)`
+  avorte (SIGABRT, « Assertion `d >= 0.0' failed », `gaol_double_op.h:102`)
+  sans `NDEBUG`, n'avorte pas avec `-DNDEBUG`. Les trois systèmes de build
+  passent (CMake Release 57/57, CMake Debug compile avec `GAOL_DEBUGGING`
+  et sans `NDEBUG`, autotools 29 PASS + 2 SKIP + 16 exemples, meson 29 OK +
+  2 skip), l'installation ne contient plus `gaol_assert.h`, les en-têtes
+  installés recompilent un par un (g++ et clang++-18, hors les trois
+  en-têtes qui échouent seuls par conception), et le manuel v5 est
+  reconstruit sans erreur (1 Overfull, comme la baseline).
+- **`gaol_profile.h` et `gaol_profile.cpp` supprimés** (décidé le 15
+  octobre, CC.q9) : l'en-tête installé déclarait la classe `timepiece` et
+  les fonctions `get_time`, `reset_time`, `elapsed_time` et
+  `intermediate_elapsed_time` (`GAOL_PUBLIC`), le source les définissait
+  avec `getrusage()` ou `clock()` ; la bibliothèque ne les utilisait pas
+  (0.0 % de couverture), et le chapitre « Profiling » du manuel v5 les
+  documentait. `git rm` des deux fichiers, l'include retiré du parapluie
+  `gaol/gaol`, la mesure de temps de `examples/16_Goldstein_Price.cpp`
+  réécrite avec `std::chrono::steady_clock` (même sortie « Elapsed time:
+  X ms »), la ligne `GAOL_NAMES_CLASS(timepiece)` retirée de
+  `tests/misc.cpp`. Les trois builds nettoyés : `gaol_profile` retiré des
+  listes de sources et d'en-têtes de `CMakeLists.txt`, `gaol/Makefile.am`
+  (`Makefile.in` régénéré, automake 1.18.1, le diff n'est que les deux
+  listes) et `gaol/meson.build`, et la macro `GAOL_HAVE_GETRUSAGE` retirée
+  des trois modèles `gaol_configuration*.h.in`, de `configure.ac`
+  (`configure` régénéré, autoconf 2.72, le diff n'est que le test
+  `getrusage`), de `CMakeLists.txt` et de `meson.build` : elle n'avait
+  d'autre utilisateur que `gaol_profile.cpp`, et le mainteneur a demandé
+  de supprimer de l'API publique. `doc/building.md` (ligne du tableau),
+  `.github/audit/compare.py` et `make_probe.py` (listes de macros) mis à
+  jour. `coverage/README.md` édité à la main (les deux lignes de
+  `gaol_profile.cpp` retirées, les totaux ajustés : 3653 lignes, 439 non
+  exécutées, 88.0 %), en attendant la prochaine régénération du coverage.
+  Le chapitre « Profiling » du manuel v5 supprimé en entier (les quatre
+  fonctions, leur exemple, la classe `timepiece` et son exemple) ; une
+  entrée ajoutée à `doc/differences.md`, la phrase historique sur
+  `gaol_profile.cpp` déclarant `getrusage()` gardée. `CC.m4` et `CC.q6`
+  sont caducs. `manual/v4` non touché (figé).
+
+  Validé (2 cœurs) : CMake Release **57/57** sans avertissement, et
+  l'exemple 16 affiche « Elapsed time: 113 ms » ; autotools
+  `configure`/`make` (0 avertissement)/`make check` (**29 PASS + 2 SKIP,
+  16 exemples**), `make install` (**23 en-têtes**, sans `gaol_profile.h`),
+  `make distclean` rend l'arbre tel que git l'a ; meson **29 OK + 2 skip** ;
+  `headers.sh` sur l'installation CMake (chaque en-tête compile seul, g++ et
+  clang++-18, hors les trois qui échouent seuls par conception) ; `tests.sh`
+  **0 échec** (static et pkg-config) ; `check_examples.py` **104/104** ; le
+  manuel v5 reconstruit sans erreur (140 pages, 1 Overfull, comme la
+  baseline, « Profiling » absent de la table des matières) ; les trois
+  installations ont les **mêmes 24 fichiers** (19 dans `gaol/` dont le
+  parapluie, 5 dans `gaol/parser/`) et les mêmes définitions actives de
+  `gaol_configuration.h`.
 
 ## Table des anciens numéros
 

@@ -31,7 +31,7 @@
  *----------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
-#include "gaol/gaol_expr_eval.h"
+#include "gaol/parser/gaol_expr_eval.h"
 
 #include <cctype>
 #include <clocale>
@@ -69,10 +69,10 @@ namespace
   static_assert(std::is_same<decltype(abs(-3)), int>::value, "abs(int) is C's");
 
   /* The functions of gaol_ieee1788 take the overloads of the expressions,
-     gaol/gaol_expression.h being included here after gaol/gaol_ieee1788.h,
+     gaol/parser/gaol_expression.h being included here after gaol/gaol_ieee1788.h,
      and before it in tests/expressions.cpp (GAOL v5) */
   static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const gaol::expression&>())), const gaol::expression>::value,
-                "gaol_ieee1788::sin of an expression, gaol/gaol_expression.h included after gaol/gaol_ieee1788.h");
+                "gaol_ieee1788::sin of an expression, gaol/parser/gaol_expression.h included after gaol/gaol_ieee1788.h");
 
   /* A number converts neither to an interval nor to an expression (GAOL
      v5): min(y, 1.0) or atan2(y, 1.0), which took [1] while it converted,

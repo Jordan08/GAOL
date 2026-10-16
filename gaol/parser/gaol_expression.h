@@ -24,7 +24,7 @@ These classes are used to construct an internal representation of an interval
 obtained from a parsed string.
 
 An expression may be as long as memory allows (GAOL v5): a sum of 100000
-terms, a tree 100000 nodes deep, is evaluated (gaol/gaol_expr_eval.h) and
+terms, a tree 100000 nodes deep, is evaluated (gaol/parser/gaol_expr_eval.h) and
 deleted by loops, with stacks in the heap, and not by one call within another
 per node, which overflowed the stack of the program. Printing an expression
 is still a recursion, once per level of the tree: a tree 100000 levels deep
@@ -43,10 +43,25 @@ cannot be printed.
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/gaol_flags.h"
-#include "gaol/gaol_expr_visitor.h"
+#include "gaol/parser/gaol_expr_visitor.h"
 
 namespace gaol_core {
+  
+  /*!
+  \brief Type for priority of operators in expressions
+  */
+  class prec_t {
+    public:
+    enum { 
+      null_prec   =  0, // null node
+      plus_prec   =  2, // +, -, 
+      mult_prec   =  5, // *, /
+      uminus_prec =  6, // unary minus, pow, 
+      cst_prec    = 10  // constant, variable, sine, cosine, ...
+    };
+  };
+  // prec_t, which GAOL 4 declared in its namespace gaol too, is not in gaol:
+  // GAOL uses it for itself (see gaol/gaol_interval_core.h)
   
   /*!
   Use of Interval_struct instead of interval to overcome the fact that a
@@ -836,7 +851,7 @@ namespace gaol_core {
     GAOL_NODISCARD extern GAOL_PUBLIC const expression exp(const expression& e);
     GAOL_NODISCARD extern GAOL_PUBLIC const expression log(const expression& e);
     /* The functions GAOL v5 adds, which the reader of strings builds too
-    (gaol/gaol_interval_parser.ypp): cbrt(x) is nth_root(x, 3), as sqrt(x) is
+    (gaol/parser/gaol_interval_parser.ypp): cbrt(x) is nth_root(x, 3), as sqrt(x) is
     nth_root(x, 2), so it needs no node of its own */
     GAOL_NODISCARD extern GAOL_PUBLIC const expression exp2(const expression& e);
     GAOL_NODISCARD extern GAOL_PUBLIC const expression log2(const expression& e);
@@ -1411,7 +1426,7 @@ namespace gaol_core {
         /*
         The expressions in the namespace gaol, as in GAOL 4 (see
         gaol/gaol_interval.h): the classes and the functions building and
-        evaluating expressions, the nodes being named by gaol/gaol_expr_visitor.h.
+        evaluating expressions, the nodes being named by gaol/parser/gaol_expr_visitor.h.
         A using-declaration names the overloads declared before it: the functions
         and the operators of intervals that this file overloads for the expressions
         are named again here, after their overloads, so that gaol::sin(e) takes the
