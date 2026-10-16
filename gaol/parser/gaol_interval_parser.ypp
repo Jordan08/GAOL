@@ -31,7 +31,6 @@
 #include "gaol/gaol_interval.h"
 #include "gaol/parser/gaol_expression.h"
 #include "gaol/parser/gaol_expr_eval.h"
-#include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/parser/gaol_parser.h"

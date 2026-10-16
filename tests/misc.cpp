@@ -80,6 +80,16 @@ namespace gaol_names
                 && gaol_ieee1788::version_minor == GAOL_MINOR_VERSION && gaol_ieee1788::version_micro == GAOL_MICRO_VERSION,
                 "gaol_ieee1788::version, gaol_ieee1788::version_major...");
 
+  // The doubles around pi and pi/2 of gaol_core, in gaol and in gaol_ieee1788 (GAOL v5): a using-declaration
+  // names the same object, so that the names compile and are doubles
+  static_assert(same<decltype(gaol::gaol_pi_dn), const double>() && same<decltype(gaol::gaol_pi_up), const double>()
+                && same<decltype(gaol::gaol_half_pi_dn), const double>() && same<decltype(gaol::gaol_half_pi_up), const double>(),
+                "gaol::gaol_pi_dn, gaol::gaol_pi_up, gaol::gaol_half_pi_dn, gaol::gaol_half_pi_up");
+  static_assert(same<decltype(gaol_ieee1788::gaol_pi_dn), const double>() && same<decltype(gaol_ieee1788::gaol_pi_up), const double>()
+                && same<decltype(gaol_ieee1788::gaol_half_pi_dn), const double>()
+                && same<decltype(gaol_ieee1788::gaol_half_pi_up), const double>(),
+                "gaol_ieee1788::gaol_pi_dn, gaol_ieee1788::gaol_pi_up...");
+
   // The functions of one interval, of GAOL 4 and of GAOL v5
 #define GAOL_NAMES_UNARY(f) static_assert(same<decltype(gaol::f(x())), interval>(), "gaol::" #f "(x)")
   GAOL_NAMES_UNARY(abs);

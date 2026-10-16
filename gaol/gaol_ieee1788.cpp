@@ -17,8 +17,8 @@
 
 /*!
   \file   gaol_ieee1788.cpp
-  \brief  The definitions of the namespace gaol_ieee1788: pow, textToInterval
-          and intervalToText
+  \brief  The definitions of the namespace gaol_ieee1788: textToInterval and
+          intervalToText
 
   \author NININ Jordan
   \date   2026-10-16
@@ -29,21 +29,9 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
-#include "gaol/gaol_literals.h"
+#include "gaol/parser/gaol_parser.h"
 
 namespace gaol_ieee1788 {
-
-  /*
-    pow(x, y) of IEEE 1788-2015 (gaol/gaol_ieee1788.h), in the library rather
-    than inline in its header, for the bounds at doubles of
-    gaol/gaol_double_op.h, which no installed header includes (GAOL v5): it is
-    pow_standard(), whose body gaol_pow_hybrid() calls too, for every exponent
-    but a degenerate integer
-  */
-  interval pow(const interval& x, const interval& y)
-  {
-    return ::gaol_core::pow_standard(x, y);
-  }
 
   /*
     textToInterval(s) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 12.12.7), in
@@ -84,8 +72,8 @@ namespace gaol_ieee1788 {
     the locale of a program that sets one, and <4, 4> for the point interval
     4, none of them a literal, and the text changed with the format another
     thread was setting.
-    The writing itself is ::gaol_core::literal_text() (gaol/gaol_literals.h), in
-    gaol/gaol_interval_core.cpp, which holds the writers of intervals.
+    The writing itself is ::gaol_core::literal_text() (gaol/parser/gaol_parser.h),
+    in gaol/gaol_interval_core.cpp, which holds the writers of intervals.
   */
   std::string intervalToText(const interval& x)
   {

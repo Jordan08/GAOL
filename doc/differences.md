@@ -206,15 +206,14 @@ where it comes from.
     upward, which the compilers only showed by warning that `_save_state` was
     set but not used. They are gone since, with the header no longer
     installed (see below).
-  - **`ipow_up()`, `ipow_dn()` and `pow(x, y)` keep their bounds before
-    setting the direction back**, with `GAOL_PRESERVE_ROUNDING`: they set it
-    back without `GAOL_RND_KEEP()`, which the rule of `gaol/gaol_fpu.h` asks
-    of every value computed before and used after, so that GCC, which does
-    not model the rounding direction, could compute them after. No operation
-    of GAOL calls `ipow_up()` nor `ipow_dn()`: compiled in a function of test,
-    GCC 9 and Clang 18 computed the last product before all the same, and
-    `pow(x, y)` gives the same bounds in every rounding direction
-    (`tests/rounding_direction.cpp`).
+  - **`pow(x, y)` keeps its bounds before setting the direction back**, with
+    `GAOL_PRESERVE_ROUNDING`: it set it back without `GAOL_RND_KEEP()`, which
+    the rule of `gaol/gaol_fpu.h` asks of every value computed before and used
+    after, so that GCC, which does not model the rounding direction, could
+    compute them after. `pow(x, y)` gives the same bounds in every rounding
+    direction (`tests/rounding_direction.cpp`). `ipow_up()` and `ipow_dn()`
+    had the same defect, but no operation of GAOL called them: they are gone
+    (see below).
   - **`gaol::cleanup()` sets back the rounding direction** that the first
     `gaol::init()` found, unless it is preserved: GAOL left it upward after
     its use, even after its automatic cleanup when the program ends or the
@@ -258,9 +257,12 @@ where it comes from.
   rather than [−∞, +∞] and `sin([0, 4])` was [-0, 0], without any warning (25
   of the 45 checks of `tests/static_initialization.cpp` failed with the SSE2
   intervals, 24 with the others).
-  - `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`, `ln2_dn` and `ln2_up`
-    (`gaol/gaol_port.h`) are written in decimal, exactly, rather than read from
-    the unions that give their bits, which is not a constant expression.
+  - `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn`, `gaol_half_pi_up`, `ln2_dn`
+    and `ln2_up` (`gaol/gaol_port.h`) are written in decimal, exactly, rather
+    than read from the unions that give their bits, which is not a constant
+    expression. The four of π and π/2 are in `gaol_core`, under these names
+    (GAOL 4 had them in `gaol` as `pi_dn`...), and `gaol` and `gaol_ieee1788`
+    name them too.
   - `interval::one()`, `pi()`, `universe()` and the other constants of
     intervals build their interval from these doubles, which the compiler
     folds, rather than copy the static intervals `interval::cst_one`,
@@ -692,6 +694,12 @@ where it comes from.
     `GAOL_SET_RELATION`: they gave the possibly relations.
   - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
     compile on intervals.
+- **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
+  `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
+  optional: the hexadecimal number of the standard needs it (9.7.2), which
+  allows a more general syntax (12.11.5). A number that begins with 0 is
+  decimal, as the standard has it: `010` is 10, and octal is written `0o10`,
+  as in Python, rather than `010` as in C.
 - **The interval literals of IEEE 1788-2015** are read (9.7, 12.11), whatever
   the case of their letters (`[Empty]`, `[1, Inf]`): `[ ]`, `[entire]`, the
   bounds left out (`[1,]`, `[,]`), `infinity`, the hexadecimal numbers
@@ -809,7 +817,8 @@ where it comes from.
   `NaN_val`, `eval_stack`, `parse_interval()` nor `parsing_names`, which GAOL 4
   had in `gaol`: a program names them in `gaol_core`. `gaol` and
   `gaol_ieee1788` both name `version_major`, `version_minor`, `version_micro`
-  and `version`.
+  and `version`, and `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
+  `gaol_half_pi_up`.
   - **`gaol/gaol.h`** no longer opens `gaol`: a program adds
     `using namespace gaol;` or `using namespace gaol_ieee1788;`, one of the
     two, `pow(x, y)` being ambiguous with both.
@@ -857,7 +866,9 @@ where it comes from.
   `gaol/gaol_ieee1788.h`. The thirty-two functions that checked the rounding
   direction for the code calling them from outside GAOL are gone, and
   `tests/rounding_direction.cpp` no longer calls them; `gaol_core::upward`,
-  which the operations of intervals call, stays.
+  which the operations of intervals call, stays. `ipow_up()`, `ipow_dn()`,
+  `pow_up()` and `pow_dn()`, which no operation of GAOL called, are removed
+  from the header.
 - **The timing of GAOL 4 is gone: `gaol/gaol_profile.h` and
   `gaol/gaol_profile.cpp`.** `gaol/gaol` no longer includes the header, and
   the three builds neither install it nor compile the source. The class

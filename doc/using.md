@@ -84,10 +84,10 @@ with `_XOPEN_SOURCE` defined again, and `nb_fp_numbers()` returns an
 doubles `pi`, `half_pi`, `two_pi`, `pi_dn`, `pi_up`, `half_pi_dn`, `half_pi_up`,
 `ln2_dn`, `ln2_up`, `two_power_51` and `two_power_52` of GAOL 4 are no longer
 declared for the program, which found them with `using namespace gaol`, its own
-`pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`.
-`gaol/gaol_literals.h` holds the literal `_iv` (see
-[Tools of interval algorithms](#tools-of-interval-algorithms)), which a program
-includes itself (GAOL v5).
+`pi` being ambiguous (GAOL v5): the bounds of π are those of `interval::pi()`,
+and the doubles around π and π/2 are `gaol_pi_dn`, `gaol_pi_up`,
+`gaol_half_pi_dn` and `gaol_half_pi_up`, in `gaol`, `gaol_ieee1788` and
+`gaol_core`.
 
 ## From CMake
 
@@ -292,8 +292,9 @@ the names GAOL 4 had in `gaol` that GAOL v5 still names there (the class
 the operators of intervals, the functions of doubles and the rounding
 direction, `round_downward()`, `round_upward()`, `round_nearest()`,
 `previous_float()`, `next_float()` and `is_finite()`, the version of the
-library, `version_major`, `version_minor`, `version_micro` and `version`...),
-the functions on intervals GAOL v5 adds
+library, `version_major`, `version_minor`, `version_micro` and `version`, and
+the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
+`gaol_half_pi_up`...), the functions on intervals GAOL v5 adds
 (`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. The exceptions (`gaol_exception`,
@@ -500,29 +501,15 @@ themselves:
   x: not for two consecutive doubles, nor for [MAX, +∞].
 - `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
   `gaol` as in `gaol_core`.
-- The literal `_iv` of `gaol/gaol_literals.h`, under
-  `using namespace gaol::literals`: a number written with the suffix is the
-  tightest interval enclosing the number written, `0.1_iv` the interval of the
-  two doubles around the decimal 0.1, as `textToInterval("0.1")`, not the
-  double 0.1, and `9007199254740993_iv` an interval enclosing 2^53 + 1, which no
-  double is. The integers written in hexadecimal, octal and binary are the
-  integers they are (`010_iv` is 8), the digit separators of C++14 are left
-  out, and `"[1, 2]"_iv` is the interval `textToInterval()` reads in the
-  string. Visual C++ refuses an integer that no `unsigned long long` holds,
-  with the suffix too (error C2177, "constant too big"): there it is written
-  as a floating literal, `123456789012345678901234567890.0_iv`, or as a
-  string, `"123456789012345678901234567890"_iv`.
 
 ```cpp
 #include <iostream>
 #include <gaol/gaol.h>
-#include <gaol/gaol_literals.h>
 using namespace gaol;
-using namespace gaol::literals;
 
 int main()
 {
-  const interval x = 0.1_iv;                       // encloses 0.1
+  const interval x = textToInterval("0.1");        // encloses 0.1
   const interval y = interval::midrad(1.0, 1e-20); // [1 - 1e-20, 1 + 1e-20]
   const std::pair<interval, interval> parts = interval(0.0, 1.0).bisect(0.25);
   std::cout << x.width_enclosure() << ' ' << y << ' ' << parts.first << ' '

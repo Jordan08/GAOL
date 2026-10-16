@@ -1289,7 +1289,7 @@ int main()
     { "pow(x,[n]), pow(x,n.0) and gaol_ieee1788::pow(x,[n]) for n < 0", [](const interval& x, const interval& y) {
         return S(pow(y, interval(-3.0))) + " " + S(pow(-y, interval(-3.0))) + " " + S(pow(y, -3.0)) + " "
           + S(gaol_ieee1788::pow(y, interval(-3.0))) + " " + S(gaol_ieee1788::pow(x, interval(-2.0))); } },
-    // [a, b], a/pi_up and b/pi_dn being just below 3 and 5: their floors are
+    // [a, b], a/gaol_pi_up and b/gaol_pi_dn being just below 3 and 5: their floors are
     // 2 and 5 rounding upward, and 3 and 4 downward. modulo_k_pi() is called
     // on it first, before the operations of intervals of the other operands
     // set the direction upward

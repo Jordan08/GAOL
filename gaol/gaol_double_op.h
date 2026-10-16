@@ -57,106 +57,6 @@ namespace gaol_core {
   
   
   /*
-  Computes d^n rounded upward with a binary exponentiation algorithm
-  \warning "d" and "n" should be positive
-  
-  ipow_up(), ipow_dn(), pow_up() and pow_dn() check the rounding direction
-  themselves. No operation of GAOL calls them: the integer powers of
-  intervals take their bounds from exact products (pown_products()) and
-  from CORE-MATH's pow, the roots their powers from ipow_hi() and ipow_lo()
-  (gaol/gaol_interval_core.cpp).
-  */
-  
-  GAOL_INLINE double ipow_up(double d, unsigned int n)
-  {
-    GAOL_RND_ENTER();
-    assert(d >= 0.0);
-    
-    double y = 1;
-    double z = d;
-    
-    for (;;) {
-      if (odd(n)) {
-        n >>= 1;
-        y *= z;
-        if (n == 0) {
-          // Computed before the direction is set back (see gaol_fpu.h)
-          GAOL_RND_KEEP(y);
-          GAOL_RND_LEAVE();
-          return y;
-        }
-      } else {
-        n>>=1;
-      }
-      z *= z;
-    }
-  }
-  
-  /*
-  Computes d^n rounded downward with a binary exponentiation algorithm
-  \warning "d" and "n" should be positive
-  */
-  GAOL_INLINE double ipow_dn(double d, unsigned int n)
-  {
-    GAOL_RND_ENTER();
-    
-    assert(d >= 0.0);
-    
-    double y = 1;
-    double z = d;
-    
-    for (;;) {
-      if (odd(n)) {
-        n >>= 1;
-        y = gaol_opposite(gaol_opposite(y)*z);
-        if (n == 0) {
-          // Computed before the direction is set back (see gaol_fpu.h)
-          GAOL_RND_KEEP(y);
-          GAOL_RND_LEAVE();
-          return y;
-        }
-      } else {
-        n>>=1;
-      }
-      z = gaol_opposite(gaol_opposite(z)*z);
-    }
-  }
-  
-  /*!
-  \brief pow() correctly rounded down
-  
-  */
-  GAOL_INLINE double pow_dn(double d, unsigned int e)
-  {
-    if (d >= 0) {
-      return ipow_dn(d,e);
-    } else { // d < 0
-      if (even(e)) {
-        return ipow_dn(gaol_opposite(d),e);
-      } else { // odd(e)
-        return gaol_opposite(ipow_up(gaol_opposite(d),e));
-      }
-    }
-  }
-  
-  /*!
-  \brief pow() correctly rounded up
-  
-  */
-  GAOL_INLINE double pow_up(double d, unsigned int e)
-  {
-    if (d >= 0) {
-      return ipow_up(d,e);
-    } else { // d < 0
-      if (even(e)) {
-        return ipow_up(gaol_opposite(d),e);
-      } else { // odd(e)
-        return gaol_opposite(ipow_dn(gaol_opposite(d),e));
-      }
-    }
-  }
-  
-  /*
   The hyperbolic functions below are those of CORE-MATH (gaol_core_math.h),
   correctly rounded, as the other elementary functions (GAOL v5, issue #1).
   */
@@ -253,18 +153,5 @@ namespace gaol_core {
   } // namespace upward
   
 } // namespace gaol_core
-
-namespace gaol_detail {
-
-  /*
-    The sign of v - x, v being the number s writes, with no sign, and x a
-    double, compared exactly: for the output of intervals
-    (gaol/gaol_interval_core.cpp), whose decimal bounds are rounded outward
-    whatever the C library. Defined in gaol/parser/gaol_interval_lexer.lpp,
-    which reads the numbers.
-  */
-  int compare_number_with_double(const char* s, double x);
-
-} // namespace gaol_detail
 
 #endif /* GAOL_DOUBLE_OP_H */

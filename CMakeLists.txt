@@ -923,7 +923,7 @@ set(GAOL_HEADERS
   gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_core.h gaol/gaol_interval_fpu.h
-  gaol/gaol_interval_sse.h gaol/gaol_limits.h gaol/gaol_literals.h
+  gaol/gaol_interval_sse.h
   gaol/gaol_port.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
 # The headers of the parser of the strings and of the expressions, which a

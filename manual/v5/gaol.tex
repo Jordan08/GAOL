@@ -1960,44 +1960,6 @@ In such a case, you have to read it from a string instead:
 interval x = textToInterval("0.1");
 \end{example}
 
-\cindex{literals}%
-\noindent
-or write it with the suffix \code{\_iv} that the header
-\file{gaol/gaol\_literals.h} declares in the namespace \code{gaol::literals}:
-neither \file{gaol/gaol.h} includes the header nor does
-\code{using namespace gaol;} open the namespace.\newinvfive{} The literal
-operator receives the number as the program writes it, not the double the
-compiler would make of it: \code{0.1\_iv} is the tightest interval enclosing
-the decimal $0.1$, as \code{textToInterval("0.1")} is, and
-\code{9007199254740993\_iv} the one enclosing $2^{53}+1$. The decimal and
-hexadecimal floating literals and the decimal integers are read by
-\code{textToInterval()}; the integers written in hexadecimal, in octal
-(\code{010\_iv} is \itv{8}{8}, as \code{010} is 8) and in binary are taken as
-the integers they are; the digit separators of C++14 (\code{1'000\_iv}) are
-left out. A string with the suffix, \code{"[1, 2]"\_iv}, is the interval
-\code{textToInterval()} reads in it, and throws \code{input\_format\_error}
-when it is no interval. Visual C++ refuses an integer that no
-\code{unsigned long long} holds, with the suffix too (error C2177, ``constant
-too big''): there it is written as a floating literal or as a string,
-\code{1e30\_iv} or \code{"1000000000000000000000000000000"\_iv}.
-\begin{example}
-#include <iostream>
-#include <gaol/gaol.h>
-#include <gaol/gaol_literals.h>
-using namespace gaol::literals;
-
-int main(void)
-{
-  gaol::interval::precision(17);
-  std::cout << 0.1_iv << ' ' << gaol::interval(0.1) << std::endl
-            << 9007199254740993_iv << ' ' << "[1, 2]"_iv << std::endl;
-  gaol::cleanup();
-  return 0;
-}
-@outputs^[0.099999999999999991, 0.10000000000000001] [0.1, 0.10000000000000001]~
-@outputs^[9007199254740992, 9007199254740994] [1, 2]~
-\end{example}
-
 \paragraph{Note.}\label{par:inf_inf_note}
 The degenerate intervals \itv{+\infty}{+\infty} and \itv{-\infty}{-\infty} do
 not exist in GAOL v5.\newinvfive{} IEEE 1788-2015 has no such interval, and its
@@ -4274,8 +4236,13 @@ read, whatever the locale of the program.\newinvfive{} The ``$+$'' sign
 before numbers and \code{inf} is optional.
 
 \paragraph{Numbers.} A \NT{number} is written in decimal, with an optional point
-and exponent (\code{12}, \code{0.1}, \code{1e-3}), or in hexadecimal, with a
-binary exponent (\code{0x1.3p-1}). Numbers are read exactly, whatever their
+and exponent (\code{12}, \code{0.1}, \code{1e-3}), in hexadecimal
+(\code{0x1f}, \code{0x1.3p-1}), in octal (\code{0o17}) or in binary
+(\code{0b101}, \code{0b1.1p3}), the digits after \code{0x}, \code{0o} or
+\code{0b} having an optional point and an optional binary exponent after a
+\code{p}.\newinvfive{} A number that begins with 0 is decimal: \code{010} is 10,
+as IEEE 1788-2015 has it (9.7.2), and octal is written \code{0o10}, as in
+Python. Numbers are read exactly, whatever their
 number of digits: a number that is a double is read as that double, and any
 other one is replaced by the tightest interval of doubles containing
 it.\newinvfive{} GAOL~4 read them with the \code{strtod()} of the C library,

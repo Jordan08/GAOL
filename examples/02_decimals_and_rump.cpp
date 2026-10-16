@@ -15,15 +15,14 @@
  *             + a / (2 b)
  * at (77617, 33096), in the form of E. Loh and G. W. Walster ("Rump's
  * example revisited", Reliable Computing 8, 2002). It shows that a decimal
- * constant has to reach GAOL as text, textToInterval("0.1") or the literal
- * 0.1_iv defined below, and not as a double; that sqrt(2.0) is the C
- * library's function of a double; and that intervals do not make a
- * computation exact, but say how far from exact it may be: doubles give
- * Rump's f with a wrong value and no warning, intervals give an enclosure of
- * the true value that is 10^22 wide, the sign that the computation needs more
- * precision (MPFI, Arb). The references were computed apart with mpmath (50
- * digits), and Rump's true value, -54767/66192, with the rational numbers of
- * Python.
+ * constant has to reach GAOL as text, textToInterval("0.1"), and not as a
+ * double; that sqrt(2.0) is the C library's function of a double; and that
+ * intervals do not make a computation exact, but say how far from exact it
+ * may be: doubles give Rump's f with a wrong value and no warning, intervals
+ * give an enclosure of the true value that is 10^22 wide, the sign that the
+ * computation needs more precision (MPFI, Arb). The references were computed
+ * apart with mpmath (50 digits), and Rump's true value, -54767/66192, with
+ * the rational numbers of Python.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -51,18 +50,6 @@
 using namespace gaol;
 
 namespace {
-
-  /*
-    A decimal literal for intervals, which GAOL does not provide: a raw
-    literal operator receives the characters of the literal as the source
-    writes them, "0.1" for 0.1_iv, before any conversion to double, and
-    textToInterval() encloses the number they write. 0.1_iv reads like a
-    number and holds 1/10.
-  */
-  interval operator""_iv(const char* digits)
-  {
-    return textToInterval(digits);
-  }
 
   bool all_checks_passed = true;
 
@@ -142,10 +129,6 @@ int main()
   // 1 / 10 computed by GAOL's division, a way of its own to enclose 1/10
   check(tenth.set_contains(interval(1.0) / 10.0), "textToInterval(\"0.1\") contains 1/10");
   check(tenth.left() < tenth.right(), "textToInterval(\"0.1\") is not a point");
-  show("0.1_iv: the same interval, written as a number", 0.1_iv);
-  // The parentheses are needed: 0.1_iv.set_eq would be read as one number.
-  // set_eq() is the equality of sets; GAOL has no operator==.
-  check((0.1_iv).set_eq(tenth), "0.1_iv is textToInterval(\"0.1\")");
 
   // ------------------------------------------------------------------------
   std::cout << "\nAdding 0.1 ten times (with doubles: at the end)\n";
@@ -154,7 +137,7 @@ int main()
   interval s_double(0.0), s_tenth(0.0);
   for (int i = 0; i < 10; ++i) {
     s_double += 0.1;  // adds the double 0.1, exactly as interval(0.1) would
-    s_tenth += 0.1_iv;
+    s_tenth += tenth;
   }
 
   // The ten doubles 0.1 add up to 1.000000000000000055..., not to 1. The
@@ -164,8 +147,8 @@ int main()
   show("with s += 0.1 on an interval: encloses 10 x 0.1000000000000000055, and 1 by chance", s_double);
   check(s_double.set_contains(ten_doubles), "the sum of interval(0.1) encloses 10 times the double 0.1");
   check(s_double.set_contains(1.0), "the sum of interval(0.1) contains 1");
-  show("with s += 0.1_iv: contains 1, as it must", s_tenth);
-  check(s_tenth.set_contains(1.0), "the sum of 0.1_iv contains 1");
+  show("with s += textToInterval(\"0.1\"): contains 1, as it must", s_tenth);
+  check(s_tenth.set_contains(1.0), "the sum of textToInterval(\"0.1\") contains 1");
 
   // Squaring shows the difference: the square of the double 0.1 lies above
   // 1/100, and so does the whole interval
@@ -178,8 +161,8 @@ int main()
   // set, which has no element, satisfies every certainly-relation: hence
   // is_empty() first.
   check(!double_square.is_empty() && double_square >= hundredth, "sqr(interval(0.1)) misses 1/100");
-  show("sqr(0.1_iv): contains 1/100", sqr(0.1_iv));
-  check(sqr(0.1_iv).set_contains(hundredth), "sqr(0.1_iv) contains 1/100");
+  show("sqr(textToInterval(\"0.1\")): contains 1/100", sqr(tenth));
+  check(sqr(tenth).set_contains(hundredth), "sqr(textToInterval(\"0.1\")) contains 1/100");
 
   // ------------------------------------------------------------------------
   std::cout << "\nOn a number, sqrt is the C library's\n";

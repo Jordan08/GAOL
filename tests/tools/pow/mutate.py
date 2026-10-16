@@ -241,7 +241,7 @@ MUTANTS = [
          edits=[('res = pown_upward(I, static_cast<int>(p));', 'res = pow_standard_upward(I, interval(p));')]),
     # gaol_ieee1788::pow
     dict(name='ieee-is-gaol',
-         file='gaol/gaol_ieee1788.cpp',
+         file='gaol/gaol_ieee1788.h',
          edits=[('return ::gaol_core::pow_standard(x, y);', 'return ::gaol_core::gaol_pow_hybrid(x, y);')]),
     # The integer powers (point B, third pull request): pown_products(), pown_point(), pown_corners(),
     # pown_upward() and the powers beyond the ints, in both builds (pown-*), and the two lanes of

@@ -113,8 +113,6 @@ gaol_HEADERS = [
   'gaol_interval_core.h',
   'gaol_interval_fpu.h',
   'gaol_interval_sse.h',
-  'gaol_limits.h',
-  'gaol_literals.h',
   'gaol_port.h',
   'gaol_roundeven.h',
   'gaol_version.h',

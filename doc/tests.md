@@ -335,7 +335,15 @@ point Q), which `numbers` checks there too.
   ambiguous, is gone (GAOL v5). The literals of IEEE 1788-2015
   (`[entire]`, `[ ]`, `[1,]`, `3.56?1`, hexadecimal numbers...) have to be read
   as the tightest intervals enclosing them, whatever the case of their letters,
-  and `[inf]` and the like as the empty set. Expressions read again and again
+  and `[inf]` and the like as the empty set. The numbers in base 16, 8
+  and 2 (`0x10`, `0xff.8`, `0o17`, `0b101`, `0b1.1p3`), with the exponent after
+  the `p` or without, have to be read as the tightest intervals enclosing the number their
+  digits write, which the test computes from the digits: beyond 2^64, around 2^53
+  and 1, beyond the doubles, with leading zeros and with random digits, alone,
+  in intervals, in expressions and by `gaol_ieee1788::textToInterval`; a number
+  that begins with 0 stays decimal (`010` is 10); and `0x`, `0o8`, `0b2`,
+  `0b12` and the like are refused (GAOL v5). The reader took neither a
+  hexadecimal number without exponent nor any number in octal or binary. Expressions read again and again
   have to give the same interval, and those GAOL cannot read or compute
   (`nth_root(8, 1.5)`, `sin(1)+`, `atan2(1)`...) have to throw. Built with
   LeakSanitizer, the tests check that the parser frees the nodes of all of
@@ -1054,13 +1062,7 @@ point Q), which `numbers` checks there too.
   operator in both orders, and the relations, `set_contains()` and
   `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to a
   double made wrong; and that an integer that is a double gives what the double
-  gives. `constructor` also checks the literal `_iv` of `gaol/gaol_literals.h`
-  (GAOL v5, point P), which has to enclose the number written rather than
-  the double the compiler makes of it: `0.1_iv` the decimal 0.1,
-  `9007199254740993_iv` 2^53 + 1, an integer of 30 digits, the hexadecimal
-  floating literals; the integers written in hexadecimal, octal (`010_iv` is
-  8) and binary the integers they are, beyond 64 bits too (2^65 − 1); the digit
-  separators left out; and `"[1, 2]"_iv`, `"1/3"_iv` read by `textToInterval()`.
+  gives.
   `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
   a strict total order that puts the empty set first and the intervals by their
   bounds, which `<` is not, being the `strictPrecedes` of IEEE 1788-2015, true
@@ -1090,7 +1092,8 @@ point Q), which `numbers` checks there too.
   would be ambiguous. `misc` checks as well that `gaol_ieee1788::operator<<`
   names the output of the intervals and of the expressions, and that `gaol`
   and `gaol_ieee1788` both name `version_major`, `version_minor`,
-  `version_micro` and `version`. The test did not compile
+  `version_micro` and `version`, and `gaol_pi_dn`, `gaol_pi_up`,
+  `gaol_half_pi_dn` and `gaol_half_pi_up`. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
