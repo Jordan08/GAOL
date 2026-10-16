@@ -9,7 +9,7 @@
  * the rounding direction set upward, and so do square roots, which IEEE
  * 1788-2015 requires (12.10.2), and integer powers, of either sign, whose
  * bounds GAOL v5 computes from exact products (pown_products() of
- * gaol/gaol_interval.cpp); n-th roots, which GAOL computes in several
+ * gaol/gaol_interval_core.cpp); n-th roots, which GAOL computes in several
  * rounded operations, to be enclosed within a few doubles. Doubles of every
  * magnitude are drawn, subnormal ones and results beyond the largest double
  * included. Integer powers for n up to 2^32 - 1 are compared with bounds
@@ -660,7 +660,7 @@ namespace
     powers_at_special_values() at random: a bound 0 or infinite, or whose
     power is above 2^1100, below 2^-1000, or from about 2^-1000 to 2^1000,
     where the corners are computed one at a time, scaled (pown_point() of
-    gaol/gaol_interval.cpp). The bounds have to be the tightest, as
+    gaol/gaol_interval_core.cpp). The bounds have to be the tightest, as
     elsewhere: GAOL v5 took the products rounded outward there, up to n + 1
     doubles beyond, and their bounds differed between the SSE2 and the FPU
     intervals for about half of these intervals, which multiplied them from
@@ -731,9 +731,9 @@ namespace
   /*
     The powers that are doubles are exact, both bounds (GAOL v5): the rests
     of the exact products are all 0 then, and the error bound is left out
-    (pown_products() of gaol/gaol_interval.cpp). Without that, pow([2, 3], 3)
-    was [8 - 2^-50, 27 + 2^-48]. x^n of an integer x is a double while it is
-    below 2^53, and x^-n is one for a power of two x only.
+    (pown_products() of gaol/gaol_interval_core.cpp). Without that,
+    pow([2, 3], 3) was [8 - 2^-50, 27 + 2^-48]. x^n of an integer x is a
+    double while it is below 2^53, and x^-n is one for a power of two x only.
   */
   void exact_powers()
   {
@@ -831,12 +831,12 @@ namespace
     Integer powers for large n: the tightest bounds, from exact products
     within the ints, each of these powers being farther from a double than
     twice the bound K of the error of their products (pown_products() of
-    gaol_interval.cpp), and from CORE-MATH's pow beyond them, for an unsigned
-    n. The square of the rest carried along was left out of the lower bound
-    (GAOL v5, review #7 of examples/examples.md), and the lower bound of x^n was 8
-    doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
-    2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
-    2^28. The bounds are computed apart, with mpmath:
+    gaol_interval_core.cpp), and from CORE-MATH's pow beyond them, for an
+    unsigned n. The square of the rest carried along was left out of the
+    lower bound (GAOL v5, review #7 of examples/examples.md), and the lower
+    bound of x^n was 8 doubles below the tightest for x = 1.0000001 and
+    n = 2^28 - 1, 557 for 2^31 - 1, 1962 for 2^32 - 1, more than one double
+    below for most n above 2^28. The bounds are computed apart, with mpmath:
 
       mpmath.mp.prec = 2000
       v = mpmath.mpf(x) ** n

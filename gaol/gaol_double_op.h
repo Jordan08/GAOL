@@ -30,8 +30,9 @@ in:
 
 - the value at a bound IS the upper bound, with nothing to add;
 - the lower bound is the double below it, which is the tightest one unless
-the exact value is a double, and the operations of gaol/gaol_interval.cpp
-give those exactly (log(1) = 0, sin(0) = 0, asin(1) = the bounds of pi/2...).
+the exact value is a double, and the operations of
+gaol/gaol_interval_core.cpp give those exactly (log(1) = 0, sin(0) = 0,
+asin(1) = the bounds of pi/2...).
 
 A header of the sources of GAOL, which the builds do not install and no
 installed header includes: the functions *_dn() and *_up() of doubles are
@@ -63,7 +64,7 @@ namespace gaol_core {
   themselves. No operation of GAOL calls them: the integer powers of
   intervals take their bounds from exact products (pown_products()) and
   from CORE-MATH's pow, the roots their powers from ipow_hi() and ipow_lo()
-  (gaol/gaol_interval.cpp).
+  (gaol/gaol_interval_core.cpp).
   */
   
   GAOL_INLINE double ipow_up(double d, unsigned int n)

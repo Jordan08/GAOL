@@ -688,7 +688,8 @@ namespace gaol_core {
        the files of GAOL are initialized (GAOL v5). The constants of intervals
        (one(), pi()...) are built by the functions giving them, from doubles
        written in gaol/gaol_port.h, rather than held in static intervals, which
-       only the dynamic initialization of gaol/gaol_interval.cpp computed. */
+       only the dynamic initialization of gaol/gaol_interval.cpp, now
+       gaol/gaol_interval_core.cpp, computed. */
 #if GAOL_USING_SSE2_INSTRUCTIONS
      /// Mask for the sign bit of the left operand of an xmm register
     static const __m128d lbsignmask;
@@ -835,10 +836,10 @@ namespace gaol_core {
     */
     static interval inverse_upward(const interval& I);
     /*
-      Gives inverse_upward() to the functions of gaol/gaol_interval.cpp that
-      check the rounding direction once and take the inverse after it: the
-      integer power of pow() and the roots of negative order, which have no
-      access of their own (GAOL v5). Defined there alone
+      Gives inverse_upward() to the functions of gaol/gaol_interval_core.cpp
+      that check the rounding direction once and take the inverse after it:
+      the integer power of pow() and the roots of negative order, which have
+      no access of their own (GAOL v5). Defined there alone
     */
     friend class upward_access;
     static interval_format::format_t output;

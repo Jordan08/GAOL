@@ -16,7 +16,7 @@
  * bound, and the double below it as the lower one, which is RD(f(x)) unless
  * f(x) is a double: so GAOL's bounds have to enclose the tightest ones, and to
  * be within one double of them below and equal above. Where the operations of
- * gaol/gaol_interval.cpp give the exact value themselves (log(1) = 0,
+ * gaol/gaol_interval_core.cpp give the exact value themselves (log(1) = 0,
  * sin(0) = 0, the bounds of pi/2 at asin(1)...), they are the tightest ones.
  *
  * Each function is tried on the values at the ends of its domain and next to

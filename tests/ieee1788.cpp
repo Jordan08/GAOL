@@ -338,7 +338,7 @@ namespace
   }
 
   /*
-    The pow of Table 9.1 is written once, in gaol/gaol_interval.cpp:
+    The pow of Table 9.1 is written once, in gaol/gaol_interval_core.cpp:
     gaol_ieee1788::pow(x, y) is that function, and gaol::pow(x, y) calls it for
     every exponent but a degenerate integer, which takes pown on the whole of x,
     beyond the ints too. Each box below reaches a branch of the
@@ -348,7 +348,8 @@ namespace
     500 bits by mpmath (tests/tools/pow/checkrows.py): it encloses it, and is
     the tightest bound, but for the integer power [0, 1 + 2^-52]^-2, whose
     lower bound is one double below, (1 + 2^-52)^-2 being within the bound K
-    of the error of the integer powers of a double (gaol/gaol_interval.cpp).
+    of the error of the integer powers of a double
+    (gaol/gaol_interval_core.cpp).
     They are compared with ==,
     which does not tell -0 from +0: the sign of a zero bound is not checked.
   */
