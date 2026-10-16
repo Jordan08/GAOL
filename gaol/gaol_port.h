@@ -30,7 +30,6 @@
 #define GAOL_PORT_H
 
 #include "gaol/gaol_config.h"
-#include "gaol/gaol_limits.h"
 
 #include <cmath>
 #include <cstdint>
