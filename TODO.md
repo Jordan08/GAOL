@@ -1208,8 +1208,23 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    `gaol::cleanup_process()`, qui n'existent plus dans le namespace `gaol`
    (seulement `gaol_core`, dans `gaol/gaol_init_cleanup.h`, en-tête interne
    non installé). Hors MSVC, le fichier est vide (tout est sous
-   `#if defined (_MSC_VER)`). **Question (15 octobre) : faut-il le
-   supprimer**, et sa ligne de `EXTRA_DIST` dans `gaol/meson.build` avec ?
+   `#if defined (_MSC_VER)`). **Réponse (15 octobre) : oui — supprimé**
+   (`git rm gaol/dllmain.cpp`, sa ligne de `EXTRA_DIST` retirée de
+   `gaol/meson.build`, la phrase de `doc/differences.md` mise à jour ;
+   aucun build ne le compilait, meson reconfiguré et testé : 29 OK +
+   2 skip).
+9. **CC.q9** : `gaol/gaol_profile.h` et `gaol/gaol_profile.cpp` sont-ils
+   encore utilisés ? Oui, dans le dépôt : `examples/16_Goldstein_Price.cpp`
+   (l. 77, 82 : `reset_time()`, `elapsed_time()` pour le temps affiché),
+   `tests/misc.cpp` (l. 55 : `GAOL_NAMES_CLASS(timepiece)`, le nom de GAOL
+   4 dans le namespace `gaol`) et le parapluie `gaol/gaol` (l. 37, qui
+   l'inclut, et les `using` de `gaol` le nomment). La bibliothèque
+   elle-même ne les utilise pas (0.0 % de couverture). **Question
+   (15 octobre) : supprimer quand même**, en réécrivant la mesure de
+   temps de `16_Goldstein_Price` (par `std::chrono` ?) et en retirant la
+   ligne de `tests/misc.cpp` et l'include du parapluie, ou **garder**
+   l'API publique (`timepiece`, `get_time`, `reset_time`, `elapsed_time`,
+   `intermediate_elapsed_time`, `GAOL_PUBLIC`, installée) ?
 
 ### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
 
