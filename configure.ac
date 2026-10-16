@@ -329,10 +329,11 @@ fi
 # CMakeLists.txt and meson.build take it (see CMakeLists.txt). The compiler
 # has to accept its instructions in a function with
 # __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which GCC
-# and Clang on x86-64 do: no flag, the attribute is per function. On by
-# default where --enable-preserve-rounding is, the path sparing the store of
-# the rounding direction every operation pays; what the command line gave
-# wins either way, --disable-prefer-avx512 refusing the path under
+# and Clang on x86-64 do, but GCC for Windows, which does not align the stack
+# for AVX-512 (see CMakeLists.txt): no flag, the attribute is per function.
+# On by default where --enable-preserve-rounding is, the path sparing the
+# store of the rounding direction every operation pays; what the command line
+# gave wins either way, --disable-prefer-avx512 refusing the path under
 # --enable-preserve-rounding. A default the compiler or the architecture
 # cannot take degrades silently, where --enable-prefer-avx512 without the
 # path is an error. The path is taken where the machine building runs it
@@ -349,6 +350,9 @@ if test "${using_sse2}" = yes; then
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <immintrin.h>
 #if !defined(__x86_64__)
 #error not x86-64
+#endif
+#if defined(_WIN32) && defined(__GNUC__) && !defined(__clang__)
+#error GCC for Windows does not align the stack for AVX-512
 #endif
 __attribute__((target("avx512f"))) double er_add(double a, double b)
 {
@@ -368,7 +372,7 @@ fi
 if test "${prefer_avx512}" = yes; then
     if test "${have_avx512_target}" = no; then
         if test "${prefer_avx512_explicit}" = yes; then
-            AC_MSG_ERROR([--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with GCC or Clang])
+            AC_MSG_ERROR([--enable-prefer-avx512 takes the SSE2 intervals of x86-64, with Clang, or GCC but for Windows])
         fi
         # The default --enable-preserve-rounding derived, and the compiler
         # or the architecture takes no path: the operations keep setting

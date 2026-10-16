@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <cstdint>
 #include "gaol/gaol_config.h"
@@ -64,6 +65,27 @@ namespace gaol_core {
     if (!_already_initialized) {
       debug_level = dbg_lvl;
       
+      #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+      /* The AVX-512 path, which the configuration took (gaol_configuration.h):
+      on a processor without the instructions, the first operation would stop
+      on an illegal instruction without a word, as on a node of a cluster
+      that has not the processor of the machine that built GAOL, or under
+      valgrind, which does not decode them. Told once here, in C stdio,
+      which the initialization of a static object can use before the
+      streams of C++ are built, and __builtin_cpu_init() first, which
+      __builtin_cpu_supports() needs in a function run before the
+      constructors (GAOL v5, point AA of TODO.md). */
+      __builtin_cpu_init();
+      if (__builtin_cpu_supports("avx512f") == 0) {
+        std::fputs("[gaol error]: this GAOL was built for the AVX-512 instructions"
+                   " (GAOL_PREFER_AVX512, on by default with GAOL_PRESERVE_ROUNDING),"
+                   " which this processor does not have: build it with"
+                   " -DGAOL_PREFER_AVX512=OFF, --disable-prefer-avx512 or"
+                   " -Denable-prefer-avx512=false\n", stderr);
+        std::abort();
+      }
+      #endif
+
       #if !GAOL_PRESERVE_ROUNDING
       _initial_rounding = get_rounding();
       fesetenv(FE_DFL_ENV);

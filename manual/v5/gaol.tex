@@ -701,7 +701,7 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \code{enable-asm} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
-    \code{enable-prefer-avx512} & \code{false}, \code{true} with \code{enable-preserve-rounding}, as \option{GAOL\_PREFER\_AVX512}\\
+    \code{enable-prefer-avx512} & \code{auto}: \code{true} with \code{enable-preserve-rounding}, \code{false} otherwise, as \option{GAOL\_PREFER\_AVX512}\\
     \code{enable-debug} & \code{false}; builds \file{libgaol} for debugging whatever the build type, as \option{GAOL\_DEBUG}\\
     \code{enable-exception} & \code{true}\\
     \code{with-tests} & \code{false}; builds the unit tests\\

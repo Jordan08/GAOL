@@ -892,8 +892,9 @@ What to do:
 Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
 `-Denable-prefer-avx512=true`), on by default where the rounding direction
 is preserved, whose every operation of `+`, `-`, `*`, `/` and `sqrt` the
-path relieves of the store of that direction — `--disable-prefer-avx512`
-and `-DGAOL_PREFER_AVX512=OFF` refuse it there —, on a machine that runs
+path relieves of the store of that direction — `--disable-prefer-avx512`,
+`-DGAOL_PREFER_AVX512=OFF` and `-Denable-prefer-avx512=false` refuse it
+there —, on a machine that runs
 the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
 `gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y` and
 `sqrt(x)`, and the operations of `+`, `-`, `*` and `/` with a double,
@@ -923,7 +924,9 @@ integration runs with the option on, check it. The path is decided when GAOL
 is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library
-built with the path then needs a processor with the instructions: one for
+built with the path then needs a processor with the instructions, and
+`gaol::init()` stops a program run on another one, with a message, before
+its first operation stops on an illegal instruction; one for
 any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
 (GAOL v5: `gaol::init()` chose the path as the program ran, and every
 operation tested the flag it set, in the default build too). The

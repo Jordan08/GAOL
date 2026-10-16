@@ -263,7 +263,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `enable-debug` | `false` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG` and with `GAOL_DEBUGGING`, whatever the build type, a subproject included (`-Dgaol:enable-debug=true`), as `GAOL_DEBUG` of CMake and `--enable-debug` of configure; the tests and the examples keep the build type, and there is no target `perf` (GAOL v5: it defined `GAOL_DEBUGGING` alone, and was gone) |
 | `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `enable-prefer-avx512` | `false`, `true` with `enable-preserve-rounding` | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, where the machine building runs them, as `GAOL_PREFER_AVX512`; meson cannot refuse the path under `enable-preserve-rounding`, which `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5) |
+| `enable-prefer-avx512` | `auto`: `true` with `enable-preserve-rounding`, `false` otherwise | Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, where the machine building runs them, as `GAOL_PREFER_AVX512`; `false` refuses the path under `enable-preserve-rounding`, as `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5: a boolean before, which could not refuse it) |
 | `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
 | `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
 | `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
@@ -366,7 +366,7 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs | checked | checked | checked |
+| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows, which does not align the stack for the AVX-512 registers (GCC bug 54412) | checked | checked | checked |
 | `GAOL_HAVE_ROUNDING_MATH_OPTION` | The compiler takes `-frounding-math` | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |

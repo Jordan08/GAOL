@@ -98,7 +98,9 @@ msvc = cpp_comp.get_argument_syntax() == 'msvc'
 simd = get_option('enable-simd')
 asm = get_option('enable-asm')
 preserve_rounding = get_option('enable-preserve-rounding')
-prefer_avx512_requested = get_option('enable-prefer-avx512')
+# enable-prefer-avx512: auto (the default), true or false (see below)
+prefer_avx512_option = get_option('enable-prefer-avx512')
+prefer_avx512_requested = prefer_avx512_option == 'true'
 exception = get_option('enable-exception')
 # The Debug build, as CMAKE_BUILD_TYPE=Debug and configure --enable-debug:
 # GAOL checks its assertions (GAOL_DEBUGGING). The build type gives it with the
@@ -333,12 +335,17 @@ endif
 # CMakeLists.txt and configure take it (see CMakeLists.txt). The compiler
 # has to accept its instructions in a function with
 # __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which
-# GCC and Clang on x86-64 do: no flag, the attribute is per function. The
+# GCC and Clang on x86-64 do, but GCC for Windows, which does not align the
+# stack for AVX-512 (see CMakeLists.txt): no flag, the attribute is per
+# function. The
 # path is taken where the machine building runs it (GAOL_AVX512_ARITHMETIC
 # below).
 have_avx512_target = false
 if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
   avx512_target_source = '''
+    #if defined(_WIN32) && defined(__GNUC__) && !defined(__clang__)
+    #error GCC for Windows does not align the stack for AVX-512
+    #endif
     #include <immintrin.h>
     __attribute__((target("avx512f"))) double er_add(double a, double b)
     {
@@ -353,16 +360,19 @@ if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
     conf_data.set('GAOL_HAVE_AVX512_TARGET', 1)
   endif
 endif
-# The path is asked for when enable-prefer-avx512 asks, or when
-# enable-preserve-rounding does, which the path relieves of the store of
-# the rounding direction every operation pays, and the compiler takes the
-# path: meson tells an explicit -Denable-prefer-avx512=false from the
-# default one apart no better than any option, and keeps the path where
-# CMake and configure let it go (GAOL v5)
+# The path is asked for when enable-prefer-avx512 is true, or when it is
+# auto, its default, and enable-preserve-rounding is true, which the path
+# relieves of the store of the rounding direction every operation pays, and
+# the compiler takes the path; false refuses it, as -DGAOL_PREFER_AVX512=OFF
+# and --disable-prefer-avx512 do. The option was a boolean, whose false
+# could not be told from the default: under enable-preserve-rounding, meson
+# kept the path where CMake and configure let it go, which, chosen when GAOL
+# is configured, makes on a machine with the AVX-512 instructions a library
+# that needs them (GAOL v5, point AA of TODO.md)
 if prefer_avx512_requested and not have_avx512_target
-  error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang')
+  error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC but for Windows')
 endif
-prefer_avx512 = prefer_avx512_requested or (preserve_rounding and have_avx512_target)
+prefer_avx512 = prefer_avx512_requested or (prefer_avx512_option == 'auto' and preserve_rounding and have_avx512_target)
 if prefer_avx512
   conf_data.set('GAOL_PREFER_AVX512', 1)
 endif
