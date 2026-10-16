@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `2ac9d4e` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `a32c4db` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -1131,7 +1131,9 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   utilisé par l'exemple 16, testé par `tests/misc.cpp`, documenté (section
   « Debugging facilities » du manuel). **Réponse (15 octobre, CC.q6) :
   corrigé avec un cast explicite** (`return long(...)`, détail dans la
-  section `gaol/float/` ci-dessous).
+  section `gaol/float/` ci-dessous). **Caduc (15 octobre, CC.q9) :
+  `gaol_profile.h` et `gaol_profile.cpp` sont supprimés** (section Ménage
+  ci-dessous).
 - **CC.m5** : `process.md` section 12 (« Où en est le travail ») date du
   13 octobre : B y est « en cours » (fait par #121) et Z « à faire » (fait
   par #120) ; AA est en cours (#122) et #123 est ouverte. À remettre à jour.
@@ -1187,7 +1189,8 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    `gaol_profile.h` et `gaol_profile.cpp`, ou un cast explicite), ou laisser
    tel quel ?
    **Réponse (15 octobre) : corrigé avec un cast explicite — fait (section
-   ci-dessous).**
+   ci-dessous).** **Caduc (15 octobre, CC.q9) : `gaol_profile.cpp` est
+   supprimé** (section Ménage ci-dessous).
 7. **CC.q7** : l'issue #49 en est à « État au 14 octobre 2026 (commit
    62dad3a) » : faut-il la mettre à jour pour le 15 octobre (déplacement du
    parser, suppressions de `gaol_exact.h`, `gaol_flags.h`, `s_nextafter.c`
@@ -1225,6 +1228,12 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    ligne de `tests/misc.cpp` et l'include du parapluie, ou **garder**
    l'API publique (`timepiece`, `get_time`, `reset_time`, `elapsed_time`,
    `intermediate_elapsed_time`, `GAOL_PUBLIC`, installée) ?
+   **Réponse (15 octobre) : supprimer — fait** (`git rm` des deux fichiers,
+   l'include retiré du parapluie `gaol/gaol`, la mesure de temps de
+   l'exemple 16 réécrite avec `std::chrono`, la ligne de `tests/misc.cpp`
+   retirée, les trois builds, `doc/building.md`, `coverage/README.md`, le
+   chapitre « Profiling » du manuel v5 et les scripts `.github/audit/` mis
+   à jour ; détail dans la section Ménage ci-dessous).
 
 ### Déplacement du parser et des expressions dans `gaol/parser/` (15 octobre 2026)
 
@@ -1423,6 +1432,48 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
   installés recompilent un par un (g++ et clang++-18, hors les trois
   en-têtes qui échouent seuls par conception), et le manuel v5 est
   reconstruit sans erreur (1 Overfull, comme la baseline).
+- **`gaol_profile.h` et `gaol_profile.cpp` supprimés** (décidé le 15
+  octobre, CC.q9) : l'en-tête installé déclarait la classe `timepiece` et
+  les fonctions `get_time`, `reset_time`, `elapsed_time` et
+  `intermediate_elapsed_time` (`GAOL_PUBLIC`), le source les définissait
+  avec `getrusage()` ou `clock()` ; la bibliothèque ne les utilisait pas
+  (0.0 % de couverture), et le chapitre « Profiling » du manuel v5 les
+  documentait. `git rm` des deux fichiers, l'include retiré du parapluie
+  `gaol/gaol`, la mesure de temps de `examples/16_Goldstein_Price.cpp`
+  réécrite avec `std::chrono::steady_clock` (même sortie « Elapsed time:
+  X ms »), la ligne `GAOL_NAMES_CLASS(timepiece)` retirée de
+  `tests/misc.cpp`. Les trois builds nettoyés : `gaol_profile` retiré des
+  listes de sources et d'en-têtes de `CMakeLists.txt`, `gaol/Makefile.am`
+  (`Makefile.in` régénéré, automake 1.18.1, le diff n'est que les deux
+  listes) et `gaol/meson.build`, et la macro `GAOL_HAVE_GETRUSAGE` retirée
+  des trois modèles `gaol_configuration*.h.in`, de `configure.ac`
+  (`configure` régénéré, autoconf 2.72, le diff n'est que le test
+  `getrusage`), de `CMakeLists.txt` et de `meson.build` : elle n'avait
+  d'autre utilisateur que `gaol_profile.cpp`, et le mainteneur a demandé
+  de supprimer de l'API publique. `doc/building.md` (ligne du tableau),
+  `.github/audit/compare.py` et `make_probe.py` (listes de macros) mis à
+  jour. `coverage/README.md` édité à la main (les deux lignes de
+  `gaol_profile.cpp` retirées, les totaux ajustés : 3653 lignes, 439 non
+  exécutées, 88.0 %), en attendant la prochaine régénération du coverage.
+  Le chapitre « Profiling » du manuel v5 supprimé en entier (les quatre
+  fonctions, leur exemple, la classe `timepiece` et son exemple) ; une
+  entrée ajoutée à `doc/differences.md`, la phrase historique sur
+  `gaol_profile.cpp` déclarant `getrusage()` gardée. `CC.m4` et `CC.q6`
+  sont caducs. `manual/v4` non touché (figé).
+
+  Validé (2 cœurs) : CMake Release **57/57** sans avertissement, et
+  l'exemple 16 affiche « Elapsed time: 113 ms » ; autotools
+  `configure`/`make` (0 avertissement)/`make check` (**29 PASS + 2 SKIP,
+  16 exemples**), `make install` (**23 en-têtes**, sans `gaol_profile.h`),
+  `make distclean` rend l'arbre tel que git l'a ; meson **29 OK + 2 skip** ;
+  `headers.sh` sur l'installation CMake (chaque en-tête compile seul, g++ et
+  clang++-18, hors les trois qui échouent seuls par conception) ; `tests.sh`
+  **0 échec** (static et pkg-config) ; `check_examples.py` **104/104** ; le
+  manuel v5 reconstruit sans erreur (140 pages, 1 Overfull, comme la
+  baseline, « Profiling » absent de la table des matières) ; les trois
+  installations ont les **mêmes 24 fichiers** (19 dans `gaol/` dont le
+  parapluie, 5 dans `gaol/parser/`) et les mêmes définitions actives de
+  `gaol_configuration.h`.
 
 ## Table des anciens numéros
 
