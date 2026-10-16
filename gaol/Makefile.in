@@ -430,7 +430,7 @@ library_includedir = $(includedir)/gaol
 library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
-	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_sse.h gaol_limits.h \
+	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_sse.h \
 	gaol_literals.h gaol_port.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
 

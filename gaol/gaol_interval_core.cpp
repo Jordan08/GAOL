@@ -48,7 +48,6 @@
 #endif
 
 #include "gaol/gaol_config.h"
-#include "gaol/gaol_limits.h"
 #include "gaol/gaol_fpu.h"
 // The bounds at doubles, *_dn() and *_up(): a header of the sources, not
 // installed (GAOL v5)
@@ -59,7 +58,6 @@
 #include "gaol/gaol_interval_core.h"
 // literal_text(), which this file defines
 #include "gaol/gaol_literals.h"
-#include "gaol/gaol_limits.h"
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
 #include "gaol/gaol_ldexp.h"

@@ -17,11 +17,11 @@
 // GAOL 4's unit test check/input_output.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
 
+#include <limits>
 #include <sstream>
 #include <string>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_exceptions.h"
-#include "gaol/gaol_limits.h"
 #include "unit_tests.h"
 
 

@@ -41,7 +41,6 @@
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
-#include "gaol/gaol_limits.h"
 
 #if defined (_MSC_VER)
 #  include <float.h>
