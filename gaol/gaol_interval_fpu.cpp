@@ -19,7 +19,7 @@
 
 /*
     This file is not meant to be compiled. It is only to be included
-        by gaol/gaol_interval.cpp.
+        by gaol/gaol_interval_core.cpp.
 */
 
 
@@ -59,10 +59,10 @@ double hausdorff(const interval &I1, const interval &I2)
 }
 
 /*
-	The integer powers are computed in gaol_interval.cpp, from exact products,
-	the same way as with the SSE2 intervals (GAOL v5, see pown_products()
-	there): the products rounded outward of GAOL 4, uipow_dnup(),
-	uipow_upup() and uipow_rounded(), are gone.
+	The integer powers are computed in gaol_interval_core.cpp, from exact
+	products, the same way as with the SSE2 intervals (GAOL v5, see
+	pown_products() there): the products rounded outward of GAOL 4,
+	uipow_dnup(), uipow_upup() and uipow_rounded(), are gone.
 */
 
   interval& interval::operator+=(const interval& I)

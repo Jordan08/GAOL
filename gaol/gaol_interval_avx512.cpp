@@ -4,7 +4,7 @@
  * The AVX-512 path of the SSE2 intervals (GAOL v5).
  *
  * This file is not meant to be compiled. It is only to be included
- *        by gaol/gaol_interval.cpp, before gaol/gaol_interval_sse.cpp: the
+ *        by gaol/gaol_interval_core.cpp, before gaol/gaol_interval_sse.cpp: the
  *        operations of the SSE2 fragments call the functions of this one.
  *
  * The AVX-512 instructions can carry the rounding direction of a
@@ -570,7 +570,7 @@
 
   /*
     The square root of a nonempty interval, as sqrt() of
-    gaol/gaol_interval.cpp computes it on the SSE2 path: the part of the
+    gaol/gaol_interval_core.cpp computes it on the SSE2 path: the part of the
     interval in [0, +oo] (the lower bound clamped to 0, a -0 kept as the
     root takes it for 0), the root of the lower bound rounded downward and
     the one of the upper bound rounded upward, by the embedded rounding as

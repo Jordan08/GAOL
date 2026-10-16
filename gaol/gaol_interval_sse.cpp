@@ -19,7 +19,7 @@
 
 /*
     This file is not meant to be compiled. It is only to be included
-        by gaol/gaol_interval.cpp.
+        by gaol/gaol_interval_core.cpp.
 */
 
 // TODO: check existence of stdint.h in configure.in
@@ -332,7 +332,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     rather than 7.2 in the benchmark of doc/compare, where GAOL 4.2.3 takes
     7.6. sqr() was the last caller of uipow_rounded(), uipow_upup() and
     uipow_dnup(), gone with it, as from the FPU intervals (x^n takes exact
-    products, see pown_products() in gaol_interval.cpp).
+    products, see pown_products() in gaol_interval_core.cpp).
   */
   interval sqr(const interval& I)
   {
