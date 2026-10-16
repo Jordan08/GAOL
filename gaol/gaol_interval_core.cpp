@@ -2885,10 +2885,10 @@ namespace gaol_core {
 
   /*
     x^n rounded upward and downward, x >= 0 and n > 0, by binary exponentiation,
-    the rounding direction being upward: the products of ipow_up() and
-    ipow_dn() (gaol_double_op.h). x^n is a multiple of each square computed, so
-    that ipow_hi() only overflows where x^n does; ipow_lo() is rounded downward
-    through -((-a)*b) rounded upward, its product being kept negated.
+    the rounding direction being upward. x^n is a multiple of each square
+    computed, so that ipow_hi() only overflows where x^n does; ipow_lo() is
+    rounded downward through -((-a)*b) rounded upward, its product being kept
+    negated.
   */
   static double ipow_hi(double x, unsigned int n)
   {
