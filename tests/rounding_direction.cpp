@@ -275,7 +275,7 @@ namespace
   // their NaN bounds, which is what raises the exception, would never run
   interval opaque(const interval& x)
   {
-    return gaol::rnd_keep(x);
+    return gaol_core::rnd_keep(x);
   }
 
   // An interval computed by make() from operands the compiler does not know
@@ -292,25 +292,25 @@ namespace
   // exception enabled.
   const NamedInterval empty_sets[] = {
     { "interval::emptyset()", [] { return opaque(interval::emptyset()); } },
-    { "interval(3, 2)", [] { return opaque(interval(gaol::rnd_keep(3.0), gaol::rnd_keep(2.0))); } },
-    { "sqrt([-2, -1])", [] { return opaque(sqrt(interval(gaol::rnd_keep(-2.0), gaol::rnd_keep(-1.0)))); } },
-    { "log([-2, -1])", [] { return opaque(log(interval(gaol::rnd_keep(-2.0), gaol::rnd_keep(-1.0)))); } },
+    { "interval(3, 2)", [] { return opaque(interval(gaol_core::rnd_keep(3.0), gaol_core::rnd_keep(2.0))); } },
+    { "sqrt([-2, -1])", [] { return opaque(sqrt(interval(gaol_core::rnd_keep(-2.0), gaol_core::rnd_keep(-1.0)))); } },
+    { "log([-2, -1])", [] { return opaque(log(interval(gaol_core::rnd_keep(-2.0), gaol_core::rnd_keep(-1.0)))); } },
     { "[1, 2] & [3, 4]", [] {
-        return opaque(interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0)) & interval(gaol::rnd_keep(3.0), gaol::rnd_keep(4.0))); } },
+        return opaque(interval(gaol_core::rnd_keep(1.0), gaol_core::rnd_keep(2.0)) & interval(gaol_core::rnd_keep(3.0), gaol_core::rnd_keep(4.0))); } },
     { "[3, 4] & [1, 2]", [] {
-        return opaque(interval(gaol::rnd_keep(3.0), gaol::rnd_keep(4.0)) & interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0))); } },
+        return opaque(interval(gaol_core::rnd_keep(3.0), gaol_core::rnd_keep(4.0)) & interval(gaol_core::rnd_keep(1.0), gaol_core::rnd_keep(2.0))); } },
   };
 
   // The nonempty intervals is_empty() has to tell nonempty as well
   const NamedInterval nonempty_sets[] = {
-    { "[1, 2]", [] { return opaque(interval(gaol::rnd_keep(1.0), gaol::rnd_keep(2.0))); } },
-    { "[1]", [] { return opaque(interval(gaol::rnd_keep(1.0))); } },
+    { "[1, 2]", [] { return opaque(interval(gaol_core::rnd_keep(1.0), gaol_core::rnd_keep(2.0))); } },
+    { "[1]", [] { return opaque(interval(gaol_core::rnd_keep(1.0))); } },
     { "[-oo, +oo]", [] { return opaque(interval::universe()); } },
   };
 
   // The empty set and [-1, 2], operands the compiler knows nothing about
   interval E() { return opaque(interval::emptyset()); }
-  interval X() { return opaque(interval(gaol::rnd_keep(-1.0), gaol::rnd_keep(2.0))); }
+  interval X() { return opaque(interval(gaol_core::rnd_keep(-1.0), gaol_core::rnd_keep(2.0))); }
 
   /*
     The operations of GAOL's interface with an empty operand, each on either
@@ -508,12 +508,12 @@ namespace
     which raised the invalid-operation exception, and so did pow(x, d). Each
     returns whether its result is the one of the empty set.
   */
-  double nan_double() { return gaol::rnd_keep(std::numeric_limits<double>::quiet_NaN()); }
+  double nan_double() { return gaol_core::rnd_keep(std::numeric_limits<double>::quiet_NaN()); }
 
   const EmptyOperand nan_operands[] = {
     { "interval(NAN)", [] { return interval(nan_double()).is_empty(); } },
-    { "interval(NAN, 1)", [] { return interval(nan_double(), gaol::rnd_keep(1.0)).is_empty(); } },
-    { "interval(1, NAN)", [] { return interval(gaol::rnd_keep(1.0), nan_double()).is_empty(); } },
+    { "interval(NAN, 1)", [] { return interval(nan_double(), gaol_core::rnd_keep(1.0)).is_empty(); } },
+    { "interval(1, NAN)", [] { return interval(gaol_core::rnd_keep(1.0), nan_double()).is_empty(); } },
     { "interval(NAN, NAN)", [] { return interval(nan_double(), nan_double()).is_empty(); } },
     { "x = NAN", [] { interval z = X(); z = nan_double(); return z.is_empty(); } },
     { "x += NAN", [] { interval z = X(); z += nan_double(); return z.is_empty(); } },
@@ -747,7 +747,7 @@ namespace
   const double smallest = std::numeric_limits<double>::denorm_min();
 
   // [l, r], an interval the compiler knows nothing about
-  interval make(double l, double r) { return opaque(interval(gaol::rnd_keep(l), gaol::rnd_keep(r))); }
+  interval make(double l, double r) { return opaque(interval(gaol_core::rnd_keep(l), gaol_core::rnd_keep(r))); }
 
   const EmptyOperand extreme_powers[] = {
     { "pow([1, 2], [2^-1074])", [] { return bounds_are(pow(make(1.0, 2.0), make(smallest, smallest)), 1.0, above_one); } },
@@ -755,7 +755,7 @@ namespace
     { "pow([0.5], [1e-300])", [] { return bounds_are(pow(make(0.5, 0.5), make(1e-300, 1e-300)), below_one, 1.0); } },
     { "pow([0.5], [-1e-300])", [] { return bounds_are(pow(make(0.5, 0.5), make(-1e-300, -1e-300)), 1.0, above_one); } },
     { "pow([2, 3], [-2^-1074, 2^-1074])", [] { return bounds_are(pow(make(2.0, 3.0), make(-smallest, smallest)), below_one, above_one); } },
-    { "pow([2], 1e-300)", [] { return bounds_are(pow(make(2.0, 2.0), gaol::rnd_keep(1e-300)), 1.0, above_one); } },
+    { "pow([2], 1e-300)", [] { return bounds_are(pow(make(2.0, 2.0), gaol_core::rnd_keep(1e-300)), 1.0, above_one); } },
     { "pow([1, 2], [1e300, 1e308])", [] { return bounds_are(pow(make(1.0, 2.0), make(1e300, 1e308)), 1.0, GAOL_INFINITY); } },
     { "pow([1.5], [1e300, 1e308])", [] { return bounds_are(pow(make(1.5, 1.5), make(1e300, 1e308)), largest, GAOL_INFINITY); } },
     { "pow([0.5], [1e300, 1e308])", [] { return bounds_are(pow(make(0.5, 0.5), make(1e300, 1e308)), 0.0, smallest); } },
@@ -827,13 +827,13 @@ namespace
   */
   std::vector<HugeInterval> huge_intervals()
   {
-    const double dbl_max = gaol::rnd_keep((std::numeric_limits<double>::max)());
-    const double smallest_subnormal = gaol::rnd_keep(std::numeric_limits<double>::denorm_min());
-    const double two_1023 = gaol::rnd_keep(0x1p1023);
+    const double dbl_max = gaol_core::rnd_keep((std::numeric_limits<double>::max)());
+    const double smallest_subnormal = gaol_core::rnd_keep(std::numeric_limits<double>::denorm_min());
+    const double two_1023 = gaol_core::rnd_keep(0x1p1023);
     std::vector<HugeInterval> intervals;
     intervals.push_back(HugeInterval{ "[DBL_MAX]", dbl_max, dbl_max });
     intervals.push_back(HugeInterval{ "[-DBL_MAX]", -dbl_max, -dbl_max });
-    intervals.push_back(HugeInterval{ "[1e308, DBL_MAX]", gaol::rnd_keep(1e308), dbl_max });
+    intervals.push_back(HugeInterval{ "[1e308, DBL_MAX]", gaol_core::rnd_keep(1e308), dbl_max });
     intervals.push_back(HugeInterval{ "[-DBL_MAX, -2^1023]", -dbl_max, -two_1023 });
     intervals.push_back(HugeInterval{ "[2^-1074, DBL_MAX]", smallest_subnormal, dbl_max });
     return intervals;
@@ -854,7 +854,7 @@ namespace
 
   Midpoints midpoints_of(const HugeInterval& h)
   {
-    const interval x = opaque(interval(gaol::rnd_keep(h.l), gaol::rnd_keep(h.r)));
+    const interval x = opaque(interval(gaol_core::rnd_keep(h.l), gaol_core::rnd_keep(h.r)));
     Midpoints m;
     m.midpoint = x.midpoint();
     m.rad = x.rad();
@@ -886,10 +886,10 @@ namespace
   */
   bool floor_rel_at_dbl_max_is_right()
   {
-    const double dbl_max = gaol::rnd_keep((std::numeric_limits<double>::max)());
-    const interval x = opaque(interval(gaol::rnd_keep(0.0), gaol::rnd_keep(1.0)));
+    const double dbl_max = gaol_core::rnd_keep((std::numeric_limits<double>::max)());
+    const interval x = opaque(interval(gaol_core::rnd_keep(0.0), gaol_core::rnd_keep(1.0)));
     const interval a = floor_rel(opaque(interval(dbl_max)), x);
-    const interval b = floor_rel(opaque(interval(gaol::rnd_keep(0.0), dbl_max)), x);
+    const interval b = floor_rel(opaque(interval(gaol_core::rnd_keep(0.0), dbl_max)), x);
     return a.is_empty() && bounds_are(b, 0.0, 1.0);
   }
 
@@ -2093,7 +2093,7 @@ int main()
   }
   const std::vector<HugeInterval> huge = huge_intervals();
   check("the intervals with a huge bound: the subnormal bound is 2^-1074",
-        huge.back().l == std::ldexp(gaol::rnd_keep(1.0), -1074) && huge.back().r == (std::numeric_limits<double>::max)(),
+        huge.back().l == std::ldexp(gaol_core::rnd_keep(1.0), -1074) && huge.back().r == (std::numeric_limits<double>::max)(),
         [&] { return "[" + hex(huge.back().l) + ", " + hex(huge.back().r) + "]"; });
   std::vector<Midpoints> huge_midpoints;
   for (const HugeInterval& h : huge) {

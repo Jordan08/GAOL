@@ -134,7 +134,6 @@
 
 void gaol_error_bison(void *scanner, void *context, const char *msg);
 
-using namespace gaol;
 using namespace gaol_core;
 
 /*
@@ -150,7 +149,7 @@ struct gaol_parsing_context {
   interval result;                // the interval read, if ok is true
   bool ok;                        // the string is an expression, which was read
   std::exception_ptr exception;   // the exception an action or the lexer raised
-  ::gaol::parsing_names names;    // the names of the functions
+  ::gaol_core::parsing_names names;    // the names of the functions
   const char *input;              // the characters the lexer has not read yet
   std::size_t input_left;         // their number, NUL characters included
   bool out_of_memory;             // an allocation of the stack of the parser failed
@@ -605,7 +604,7 @@ static char ascii_lower(char c)
 // that is not in it
 const void *gaol_lookup_function(const char *name, void *context)
 {
-  const bool ieee1788 = (gaol_context(context)->names == ::gaol::parsing_names::ieee1788);
+  const bool ieee1788 = (gaol_context(context)->names == ::gaol_core::parsing_names::ieee1788);
   const gaol_function *table = ieee1788 ? ieee1788_functions : gaol_functions;
   const std::size_t size = ieee1788 ? sizeof(ieee1788_functions)/sizeof(gaol_function)
                                     : sizeof(gaol_functions)/sizeof(gaol_function);
@@ -797,7 +796,7 @@ static bool gaol_result(void *context, expr_node *e)
   return computed;
 }
 
-#line 801 "y.tab.c"
+#line 800 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -880,7 +879,7 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 726 "gaol_interval_parser.ypp"
+#line 725 "gaol_interval_parser.ypp"
 
   int i;
   double d;
@@ -888,7 +887,7 @@ union YYSTYPE
   expr_node* expr;
   const void* fn;
 
-#line 892 "y.tab.c"
+#line 891 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -944,7 +943,7 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
 
 
 /* Second part of user prologue.  */
-#line 743 "gaol_interval_parser.ypp"
+#line 742 "gaol_interval_parser.ypp"
 
 // The lexer of flex, a reentrant one given the value of the token to set
 // (%option bison-bridge in gaol/parser/gaol_interval_lexer.lpp)
@@ -958,7 +957,7 @@ int gaol_lex(YYSTYPE *lval, void *scanner);
 #  endif
 #endif
 
-#line 962 "y.tab.c"
+#line 961 "y.tab.c"
 
 
 #ifdef short
@@ -1342,10 +1341,10 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   781,   781,   789,   790,   791,   792,   793,   794,   795,
-     796,   797,   798,   799,   800,   801,   802,   803,   804,   805,
-     814,   815,   816,   817,   818,   819,   820,   821,   825,   826,
-     828
+       0,   780,   780,   788,   789,   790,   791,   792,   793,   794,
+     795,   796,   797,   798,   799,   800,   801,   802,   803,   804,
+     813,   814,   815,   816,   817,   818,   819,   820,   824,   825,
+     827
 };
 #endif
 
@@ -1703,21 +1702,21 @@ yydestruct (const char *yymsg,
   switch (yykind)
     {
     case YYSYMBOL_expression: /* expression  */
-#line 770 "gaol_interval_parser.ypp"
+#line 769 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1709 "y.tab.c"
+#line 1708 "y.tab.c"
         break;
 
     case YYSYMBOL_literal: /* literal  */
-#line 770 "gaol_interval_parser.ypp"
+#line 769 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1715 "y.tab.c"
+#line 1714 "y.tab.c"
         break;
 
     case YYSYMBOL_function_call: /* function_call  */
-#line 770 "gaol_interval_parser.ypp"
+#line 769 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1721 "y.tab.c"
+#line 1720 "y.tab.c"
         break;
 
       default:
@@ -1991,181 +1990,181 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* itv_expr: expression  */
-#line 781 "gaol_interval_parser.ypp"
+#line 780 "gaol_interval_parser.ypp"
                                                         { if (!gaol_result(context,(yyvsp[0].expr))) YYABORT; }
-#line 1997 "y.tab.c"
+#line 1996 "y.tab.c"
     break;
 
   case 3: /* expression: NUMBER  */
-#line 789 "gaol_interval_parser.ypp"
+#line 788 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,(yyvsp[0].d))) == 0) YYABORT; }
-#line 2003 "y.tab.c"
+#line 2002 "y.tab.c"
     break;
 
   case 4: /* expression: DMIN_STR  */
-#line 790 "gaol_interval_parser.ypp"
+#line 789 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,std::numeric_limits<double>::min())) == 0) YYABORT; }
-#line 2009 "y.tab.c"
+#line 2008 "y.tab.c"
     break;
 
   case 5: /* expression: DMAX_STR  */
-#line 791 "gaol_interval_parser.ypp"
+#line 790 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,std::numeric_limits<double>::max())) == 0) YYABORT; }
-#line 2015 "y.tab.c"
+#line 2014 "y.tab.c"
     break;
 
   case 6: /* expression: INFINITY_STR  */
-#line 792 "gaol_interval_parser.ypp"
+#line 791 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,GAOL_INFINITY)) == 0) YYABORT; }
-#line 2021 "y.tab.c"
+#line 2020 "y.tab.c"
     break;
 
   case 7: /* expression: PI_STR  */
-#line 793 "gaol_interval_parser.ypp"
+#line 792 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::pi())) == 0) YYABORT; }
-#line 2027 "y.tab.c"
+#line 2026 "y.tab.c"
     break;
 
   case 8: /* expression: INTERVAL_CST  */
-#line 794 "gaol_interval_parser.ypp"
+#line 793 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
-#line 2033 "y.tab.c"
+#line 2032 "y.tab.c"
     break;
 
   case 9: /* expression: UNCERTAIN_CST  */
-#line 795 "gaol_interval_parser.ypp"
+#line 794 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_uncertain_number(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
-#line 2039 "y.tab.c"
+#line 2038 "y.tab.c"
     break;
 
   case 10: /* expression: EMPTY_STR  */
-#line 796 "gaol_interval_parser.ypp"
+#line 795 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
-#line 2045 "y.tab.c"
+#line 2044 "y.tab.c"
     break;
 
   case 11: /* expression: literal  */
-#line 797 "gaol_interval_parser.ypp"
+#line 796 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 2051 "y.tab.c"
+#line 2050 "y.tab.c"
     break;
 
   case 12: /* expression: expression '+' expression  */
-#line 798 "gaol_interval_parser.ypp"
+#line 797 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'+',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2057 "y.tab.c"
+#line 2056 "y.tab.c"
     break;
 
   case 13: /* expression: expression '-' expression  */
-#line 799 "gaol_interval_parser.ypp"
+#line 798 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'-',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2063 "y.tab.c"
+#line 2062 "y.tab.c"
     break;
 
   case 14: /* expression: expression '*' expression  */
-#line 800 "gaol_interval_parser.ypp"
+#line 799 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'*',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2069 "y.tab.c"
+#line 2068 "y.tab.c"
     break;
 
   case 15: /* expression: expression '/' expression  */
-#line 801 "gaol_interval_parser.ypp"
+#line 800 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'/',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2075 "y.tab.c"
+#line 2074 "y.tab.c"
     break;
 
   case 16: /* expression: '-' expression  */
-#line 802 "gaol_interval_parser.ypp"
+#line 801 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_negation(context,(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2081 "y.tab.c"
+#line 2080 "y.tab.c"
     break;
 
   case 17: /* expression: '+' expression  */
-#line 803 "gaol_interval_parser.ypp"
+#line 802 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 2087 "y.tab.c"
+#line 2086 "y.tab.c"
     break;
 
   case 18: /* expression: function_call  */
-#line 804 "gaol_interval_parser.ypp"
+#line 803 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 2093 "y.tab.c"
+#line 2092 "y.tab.c"
     break;
 
   case 19: /* expression: '(' expression ')'  */
-#line 805 "gaol_interval_parser.ypp"
+#line 804 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[-1].expr); }
-#line 2099 "y.tab.c"
+#line 2098 "y.tab.c"
     break;
 
   case 20: /* literal: '[' expression ']'  */
-#line 814 "gaol_interval_parser.ypp"
+#line 813 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_point,(yyvsp[-1].expr),0)) == 0) YYABORT; }
-#line 2105 "y.tab.c"
+#line 2104 "y.tab.c"
     break;
 
   case 21: /* literal: '[' expression ',' expression ']'  */
-#line 815 "gaol_interval_parser.ypp"
+#line 814 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_bounded,(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2111 "y.tab.c"
+#line 2110 "y.tab.c"
     break;
 
   case 22: /* literal: '[' ']'  */
-#line 816 "gaol_interval_parser.ypp"
+#line 815 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
-#line 2117 "y.tab.c"
+#line 2116 "y.tab.c"
     break;
 
   case 23: /* literal: '[' ENTIRE_STR ']'  */
-#line 817 "gaol_interval_parser.ypp"
+#line 816 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::universe())) == 0) YYABORT; }
-#line 2123 "y.tab.c"
+#line 2122 "y.tab.c"
     break;
 
   case 24: /* literal: '[' ',' ']'  */
-#line 818 "gaol_interval_parser.ypp"
+#line 817 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::universe())) == 0) YYABORT; }
-#line 2129 "y.tab.c"
+#line 2128 "y.tab.c"
     break;
 
   case 25: /* literal: '[' expression ',' ']'  */
-#line 819 "gaol_interval_parser.ypp"
+#line 818 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_left_only,(yyvsp[-2].expr),0)) == 0) YYABORT; }
-#line 2135 "y.tab.c"
+#line 2134 "y.tab.c"
     break;
 
   case 26: /* literal: '[' ',' expression ']'  */
-#line 820 "gaol_interval_parser.ypp"
+#line 819 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_right_only,0,(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2141 "y.tab.c"
+#line 2140 "y.tab.c"
     break;
 
   case 27: /* literal: '<' expression ',' expression '>'  */
-#line 821 "gaol_interval_parser.ypp"
+#line 820 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_degenerate,(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2147 "y.tab.c"
+#line 2146 "y.tab.c"
     break;
 
   case 28: /* function_call: FUNCTION_NAME '(' expression ')'  */
-#line 825 "gaol_interval_parser.ypp"
+#line 824 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-3].fn),1,(yyvsp[-1].expr),0,0)) == 0) YYABORT; }
-#line 2153 "y.tab.c"
+#line 2152 "y.tab.c"
     break;
 
   case 29: /* function_call: FUNCTION_NAME '(' expression ',' expression ')'  */
-#line 827 "gaol_interval_parser.ypp"
+#line 826 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-5].fn),2,(yyvsp[-3].expr),(yyvsp[-1].expr),0)) == 0) YYABORT; }
-#line 2159 "y.tab.c"
+#line 2158 "y.tab.c"
     break;
 
   case 30: /* function_call: FUNCTION_NAME '(' expression ',' expression ',' expression ')'  */
-#line 829 "gaol_interval_parser.ypp"
+#line 828 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-7].fn),3,(yyvsp[-5].expr),(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2165 "y.tab.c"
+#line 2164 "y.tab.c"
     break;
 
 
-#line 2169 "y.tab.c"
+#line 2168 "y.tab.c"
 
       default: break;
     }
@@ -2358,18 +2357,13 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 832 "gaol_interval_parser.ypp"
+#line 831 "gaol_interval_parser.ypp"
 
 
 void gaol_error_bison(void *, void *context, const char *)
 {
   gaol_context(context)->ok = false; // An error occurred
 }
-
-// The scanner of flex for a reading, whose extra data is its context, and
-// its destruction (gaol/parser/gaol_interval_lexer.lpp)
-extern void *gaol_initialize_parsing(void *context);
-extern void gaol_cleanup_parsing(void *scanner);
 
 /*
   Reads the n characters at s, NUL characters included, with the names of
@@ -2379,7 +2373,7 @@ extern void gaol_cleanup_parsing(void *scanner);
   stack of the parser could not grow (GAOL v5). Its scanner and its context
   are its own, and several threads call it at once.
 */
-bool gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol::parsing_names names)
+bool gaol_core::gaol_parse_string(const char *const s, std::size_t n, interval& out, ::gaol_core::parsing_names names)
 {
   gaol_parsing_context context;
   context.ok = false;

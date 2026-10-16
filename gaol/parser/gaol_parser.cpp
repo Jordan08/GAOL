@@ -37,12 +37,7 @@ using std::istream;
 #include "gaol/gaol_fpu.h"
 #include "gaol/parser/gaol_expr_eval.h"
 
-// The reading of the n characters at s by the parser of bison and the lexer
-// of flex (gaol/parser/gaol_interval_parser.ypp)
-extern bool gaol_parse_string(const char* const s, std::size_t n, gaol::interval& out,
-                              gaol::parsing_names names);
-
-namespace gaol {
+namespace gaol_core {
 
   /*
     Several threads read strings at once (GAOL v5): the lexer is a reentrant
@@ -57,4 +52,4 @@ namespace gaol {
     return gaol_parse_string(s, std::strlen(s), out, names);
   }
 
-} // namespace gaol
+} // namespace gaol_core

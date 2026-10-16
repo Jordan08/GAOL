@@ -417,12 +417,4 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
-// In the namespace gaol too, as in GAOL 4; not f_negate_simple(),
-// gaol_signbit(), ullidouble and uintdouble, which GAOL uses for itself (see
-// gaol/gaol_interval_core.h)
-namespace gaol {
-  using gaol_core::NaN_val;
-  using gaol_core::is_finite;
-} // namespace gaol
-
 #endif /* GAOL_PORT_H */

@@ -8,7 +8,7 @@
  * [a,] and [,], [entire], [empty], the uncertain form 3.56?1 of Table 12.1)
  * and whole expressions (1/3, sqrt(2), 2*pi), and encloses the real number a
  * text writes: this is how a program brings in a constant or a measurement
- * that no double holds. A malformed text throws gaol::input_format_error,
+ * that no double holds. A malformed text throws gaol_core::input_format_error,
  * where gaol_ieee1788::textToInterval() returns the empty set. A file of
  * intervals is read line by line, each line in a try block, so that one bad
  * line is reported and skipped. Where GAOL is built without exceptions
@@ -175,7 +175,7 @@ namespace {
     try {
       const interval x = gaol::textToInterval("[1, 2");
       std::cout << "  \"[1, 2\" read as " << x << '\n';
-    } catch (const input_format_error& e) {
+    } catch (const gaol_core::input_format_error& e) {
       thrown = true;
       std::cout << "  \"[1, 2\": input_format_error: " << e.explanation() << '\n';
     }
@@ -223,7 +223,7 @@ namespace {
         r &= m;
         ++measurements;
         show(where, m, "read: a bounded interval", m.is_common_interval());
-      } catch (const gaol_exception& e) {
+      } catch (const gaol_core::gaol_exception& e) {
         ++errors;
         std::cout << "  " << std::left << std::setw(29) << where << "skipped: " << e.explanation() << '\n';
       }

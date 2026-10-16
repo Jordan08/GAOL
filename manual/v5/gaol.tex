@@ -1438,21 +1438,32 @@ namespaces, not both: with both open, \code{pow(x,~y)} is ambiguous, and so is
 those of the standard in \code{gaol\_ieee1788} (\pxref{sec:constructors}).
 
 \code{gaol} names the type and the functions of \code{gaol\_core} one by
-one: the names GAOL~4 had in \code{gaol} that GAOL v5 still has (the classes,
-the exceptions, the expressions with their nodes and visitor, the functions
-and the operators of intervals, \code{round\_upward()}, \code{next\_float()},
-\code{version}, \code{NaN\_val}\ldots, and \code{rnd\_keep()} of GAOL~4.3.2), the functions on
+one: the names GAOL~4 had in \code{gaol} that GAOL v5 still names there (the
+class \code{interval}, the expressions with their nodes and visitor, the
+functions and the operators of intervals, the functions of doubles and the
+rounding direction, \code{round\_downward()}, \code{round\_upward()},
+\code{round\_nearest()}, \code{previous\_float()}, \code{next\_float()},
+\code{is\_finite()}, \code{version}\ldots), the functions on
 intervals GAOL v5 adds (\code{exp2}, \code{log2}, \code{hypot}, \code{trunc},
 \code{sinpi}, \code{erf}, \code{fma}, \code{cancel\_minus},
 \code{round\_ties\_to\_even}\ldots{} and the nodes of their expressions),
-\code{restore\_rounding()} and \code{exact\_string()}.\newinvfive{} What
-GAOL's code uses for itself is in
-\code{gaol\_core} only, out of the way of the names of a program that opens
-\code{gaol}: the functions saving and setting the rounding direction and the
-flush-to-zero modes (\code{rounding\_state},
-\code{get\_rounding()}, \code{set\_rounding()},
-\code{round\_upward\_if\_needed()} and \code{gaol\_set\_rounding\_x86()},
-which GAOL~4.3.2 had in \code{gaol}, \code{get\_flush\_modes()}\ldots), the
+\code{restore\_rounding()} and \code{exact\_string()}.\newinvfive
+
+\noindent
+Some names are in \code{gaol\_core} only, and a program names them there:
+\code{gaol\_core::rnd\_keep}, for instance.\newinvfive{} They are the exceptions
+(\code{gaol\_exception}, \code{input\_format\_error},
+\code{invalid\_action\_error} and \code{unavailable\_feature\_error}),
+\code{rnd\_keep()} of GAOL~4.3.2, \code{get\_fpu\_cw()}, \code{NaN\_val},
+\code{eval\_stack}, \code{parse\_interval()} and \code{parsing\_names}.
+
+\noindent
+What GAOL's code uses for itself is in \code{gaol\_core} only too, out of the
+way of the names of a program that opens \code{gaol}: the functions saving and
+setting the rounding direction and the flush-to-zero modes
+(\code{rounding\_state}, \code{get\_rounding()}, \code{set\_rounding()}, and
+\code{round\_upward\_if\_needed()}, with \code{gaol\_set\_rounding\_x86()}, which
+GAOL~4.3.2 had in \code{gaol}, and \code{get\_flush\_modes()}\ldots), the
 functions computing the \code{pow} of \code{gaol} (below), and the internals
 GAOL~4 had in \code{gaol} without its manual documenting them: the functions
 \code{f\_negate()}, \code{f\_negate\_simple()}, \code{gaol\_signbit()},
@@ -5266,7 +5277,8 @@ Sets the rounding direction mode towards $-\infty$.
 
 \begin{deffun}{unsigned short}{get\_fpu\_cw}{(void)}
   Returns the rounding direction, as \code{fegetround()} of \file{<fenv.h>}
-  gives it.
+  gives it. It is in the namespace \code{gaol\_core}, which \code{gaol} does
+  not name.\newinvfive
 \end{deffun}
 
 \begin{deffun}{void}{reset\_fpu\_cw}{(unsigned short \var{st})}
@@ -5285,6 +5297,8 @@ Sets the rounding direction mode towards $-\infty$.
 The library provides four constants to allow programs to determine at runtime with which version
 they are dynamically linked with. The versioning scheme adopted is the one used by the Apache
 Software Foundation described at \url{http://apr.apache.org/versioning.html}.
+They are named by the namespaces \code{gaol} and
+\code{gaol\_ieee1788}.\newinvfive
 
 \begin{defconst}{unsigned int}{version\_major}
   Major version of the library: 5 for GAOL v5.
@@ -5332,6 +5346,10 @@ A program that uses GAOL may report errors in two different ways:
 \item by throwing an exception;
 \item or by printing a message and aborting.
 \end{itemize}
+
+The exception classes below are in the namespace \code{gaol\_core}, which
+\code{gaol} does not name: a handler writes
+\code{gaol\_core::input\_format\_error}, for instance.\newinvfive
 
 The mechanism in use depends on the way the library is configured. If
 you use the option \option{-{}-enable-exceptions=yes}, the default, all errors are
@@ -5387,8 +5405,8 @@ Expands itself into the first two arguments of any constructor for
 
 \begin{example}
 if (@emph^[some condition]~) {
-  throw gaol_exception(GAOL_FILE_POS,
-                       "No additional information");
+  throw gaol_core::gaol_exception(GAOL_FILE_POS,
+                                  "No additional information");
 }
 \end{example}
 \end{defmacro}
@@ -5468,7 +5486,7 @@ The methods of the class are inherited from \code{gaol\_exception}
 \begin{example}
 try {
   interval x = textToInterval("sin(1)+");
-} catch (const gaol::input_format_error& e) {
+} catch (const gaol_core::input_format_error& e) {
   cout << e.explanation();
 }
 @outputs^Syntax error in interval initialization: sin(1)+~

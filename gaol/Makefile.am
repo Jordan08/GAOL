@@ -37,7 +37,7 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp \
+	gaol_interval.cpp gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \

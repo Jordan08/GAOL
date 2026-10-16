@@ -779,8 +779,8 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp gaol_interval_core.cpp gaol_common.cpp parser/gaol_parser.cpp
-  parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
+  gaol_interval.cpp gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp
+  parser/gaol_parser.cpp parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
 )

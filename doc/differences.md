@@ -803,7 +803,13 @@ where it comes from.
   `gaol_core` are named apart: `gaol_pown()`, `gaol_uipow()`,
   `gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
   `gaol_pow_exp()`, and the node of a power of expressions keeps the function
-  that computes it. The parser is in `gaol`, and takes GAOL's `pow`.
+  that computes it. The reader of strings, `parse_interval()` and
+  `parsing_names`, is in `gaol_core`, and its code takes GAOL's `pow`.
+  `gaol` does not name the exceptions, `rnd_keep()`, `get_fpu_cw()`,
+  `NaN_val`, `eval_stack`, `parse_interval()` nor `parsing_names`, which GAOL 4
+  had in `gaol`: a program names them in `gaol_core`. `gaol` and
+  `gaol_ieee1788` both name `version_major`, `version_minor`, `version_micro`
+  and `version`.
   - **`gaol/gaol.h`** no longer opens `gaol`: a program adds
     `using namespace gaol;` or `using namespace gaol_ieee1788;`, one of the
     two, `pow(x, y)` being ambiguous with both.

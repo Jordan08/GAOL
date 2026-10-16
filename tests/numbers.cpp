@@ -383,7 +383,7 @@ namespace
           try {
             const interval x = textToInterval(t);
             (void)x;
-          } catch (const input_format_error&) {
+          } catch (const gaol_core::input_format_error&) {
             threw = true;
           }
 #endif
@@ -716,7 +716,7 @@ namespace
       try {
         const interval x = textToInterval(s);
         (void)x;
-      } catch (input_format_error&) {
+      } catch (gaol_core::input_format_error&) {
         threw = true;
       } catch (...) {
       }
@@ -1368,7 +1368,7 @@ namespace
     try {
       std::rethrow_exception(e);
 #if GAOL_EXCEPTIONS_ENABLED
-    } catch (const input_format_error&) {
+    } catch (const gaol_core::input_format_error&) {
       return "input_format_error";
 #endif
     } catch (const std::ios_base::failure&) {
@@ -1813,7 +1813,7 @@ namespace
       bool threw = false;
       try {
         in >> x;
-      } catch (const input_format_error&) {
+      } catch (const gaol_core::input_format_error&) {
         threw = true;
       }
       check("operator>> of a line that is no interval: failbit, then input_format_error",
@@ -1828,7 +1828,7 @@ namespace
       bool threw = false;
       try {
         in >> x;
-      } catch (const input_format_error&) {
+      } catch (const gaol_core::input_format_error&) {
         threw = true;
       }
       check("operator>> of a line the reader refuses as it reads it: failbit, then input_format_error",
@@ -1844,7 +1844,7 @@ namespace
       bool format_error = false;
       try {
         in >> x;
-      } catch (const input_format_error&) {
+      } catch (const gaol_core::input_format_error&) {
         format_error = true;
       } catch (...) {
       }

@@ -24,7 +24,8 @@
 * it finds neither gaol's functions nor these. The functions of GAOL that
 * have the name and the meaning the standard gives them (sin, exp, sqrt,
 * min...) are brought in by using-declarations of those of gaol_core, which
-* name the functions argument-dependent lookup finds too. This file does not
+* name the functions argument-dependent lookup finds too, and so is the
+* operator<< writing an interval. This file does not
 * include gaol/parser/gaol_expression.h (GAOL v5): a program using the expressions
 * includes it, as with GAOL 4, and it declares them again for its overloads,
 * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
@@ -70,12 +71,19 @@
 #include <utility>
 
 #include "gaol/gaol_interval.h"
+#include "gaol/gaol_version.h"
 #include "gaol/parser/gaol_parser.h"
 
 namespace gaol_ieee1788 {
   
   //! The interval of GAOL, the type of the operations below
   using ::gaol_core::interval;
+  
+  //! The version of the library (gaol/gaol_version.h)
+  using ::gaol_core::version_major;
+  using ::gaol_core::version_minor;
+  using ::gaol_core::version_micro;
+  using ::gaol_core::version;
   
   /* Each function below calls the operation of GAOL by its full name,
   ::gaol_core::f: inside this namespace an unqualified f would be the
@@ -152,7 +160,7 @@ namespace gaol_ieee1788 {
   the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
   pow([2, 3], [1e10]) is [DBL_MAX, +oo],
   pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
-  Defined in gaol/gaol_interval_core.cpp (GAOL v5): the bounds at doubles it
+  Defined in gaol/gaol_ieee1788.cpp (GAOL v5): the bounds at doubles it
   takes for an integer exponent beyond the ints are not part of GAOL's
   interface (gaol/gaol_double_op.h).
   */
@@ -441,6 +449,9 @@ namespace gaol_ieee1788 {
   // ----------------------------------------------------------------------
   // Input and output (Clause 13)
   // ----------------------------------------------------------------------
+  
+  //! operator<<(out, x): the output of an interval in the current output format of GAOL, which is not intervalToText()
+  using ::gaol_core::operator<<;
   
   /*!
   intervalToText(x): the bounds of x rounded outward, "[l, r]", "[a]" for a

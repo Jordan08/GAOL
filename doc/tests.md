@@ -497,7 +497,9 @@ point Q), which `numbers` checks there too.
   `strictly_less`, `is_entire` and `is_common_interval` have to
   give the values of Tables 10.3 and 10.4, and `==` and `!=` must
   not compile on intervals, `certainly_neq()` and the possibly
-  relations being gone. Each name of `gaol_ieee1788` has to be the operation
+  relations being gone. `gaol_ieee1788::operator<<` has to write an interval
+  as `operator<<` does, in a file that does not include the expressions. Each
+  name of `gaol_ieee1788` has to be the operation
   of the standard it names, which a wrong translation would not show at
   compilation: the eight comparisons against the bounds of Table 10.3 and the
   empty cases of Table 10.4, over 20 000 pairs; `inf`, `sup` and the numeric
@@ -1073,15 +1075,22 @@ point Q), which `numbers` checks there too.
   (`gaol::operator+`, `gaol::operator|`, `gaol::round_upward`, `gaol::nth_root`,
   `gaol::div_rel`, `gaol::init`...), the other classes of GAOL 4, the
   functions on intervals GAOL v5 adds and the nodes of their expressions,
-  `restore_rounding()`, `exact_string()`, `rnd_keep()` and `NaN_val`, and
-  the overloads of every function and operator of the expressions; that what
-  GAOL uses for itself is not found through `using namespace gaol`: the
+  `restore_rounding()`, `exact_string()` and `is_finite()`, and
+  the overloads of every function and operator of the expressions; that the
+  exceptions, `rnd_keep()`, `get_fpu_cw()`, `NaN_val`,
+  `eval_stack`, `parse_interval()` and `parsing_names` are not found through
+  `using namespace gaol`, nor what
+  GAOL uses for itself: the
   functions (`get_rounding()`, `get_flush_modes()`, `gaol_pown()`...), their
   name between parentheses so that argument-dependent lookup does not find
   them in `gaol_core`, lose to fallbacks that any function of GAOL
   beats, and the types and the variables (`rounding_state`, `uintdouble`,
-  `the_null_expr`, the internals GAOL 4 had in `gaol` too...) to fallbacks of
-  the same name, with which they would be ambiguous. The test did not compile
+  `the_null_expr`, the internals GAOL 4 had in `gaol` too, the exceptions,
+  `NaN_val`, the version...) to fallbacks of the same name, with which they
+  would be ambiguous. `misc` checks as well that `gaol_ieee1788::operator<<`
+  names the output of the intervals and of the expressions, and that `gaol`
+  and `gaol_ieee1788` both name `version_major`, `version_minor`,
+  `version_micro` and `version`. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an

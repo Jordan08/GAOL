@@ -349,9 +349,8 @@ namespace
     the tightest bound, but for the integer power [0, 1 + 2^-52]^-2, whose
     lower bound is one double below, (1 + 2^-52)^-2 being within the bound K
     of the error of the integer powers of a double
-    (gaol/gaol_interval_core.cpp).
-    They are compared with ==,
-    which does not tell -0 from +0: the sign of a zero bound is not checked.
+    (gaol/gaol_interval_core.cpp). They are compared with ==, which does not
+    tell -0 from +0: the sign of a zero bound is not checked.
   */
   void pow_on_boxes()
   {
@@ -1020,7 +1019,7 @@ namespace
 #if GAOL_EXCEPTIONS_ENABLED
           try {
             back = gaol::textToInterval(text);
-          } catch (const gaol::input_format_error&) {
+          } catch (const gaol_core::input_format_error&) {
             refused = true;
           }
 #else

@@ -32,13 +32,14 @@
 #include "gaol/gaol_interval.h"
 #include "gaol/parser/gaol_expression.h"
 #include "gaol/gaol_exceptions.h"
+#include "gaol/gaol_double_op.h"
+#include "gaol/parser/gaol_parser.h"
 
 
 /*
   The following 'namespace' statement must appear before including
   gaol/parser/gaol_interval_parser.h
  */
-using namespace gaol;
 using namespace gaol_core;
 
 #include "gaol/parser/gaol_interval_parser.h"
@@ -665,11 +666,11 @@ namespace {
 
 }
 
-namespace gaol {
+namespace gaol_detail {
   // The sign of v - x, v being the number s writes, with no sign, and x a
   // double, compared exactly: for the output of intervals
-  // (gaol_interval_core.cpp),
-  // whose decimal bounds are rounded outward whatever the C library
+  // (gaol/gaol_interval_core.cpp), whose decimal bounds are rounded outward
+  // whatever the C library (declared in gaol/gaol_double_op.h)
   int compare_number_with_double(const char *s, double x)
   {
     return gaol_compare_number(gaol_take_apart(s), x);
@@ -757,7 +758,7 @@ SPACE		[ \t\r\n]+
   frees it. Its buffer is allocated when the lexer reads the first token
   (GAOL v5)
 */
-void *gaol_initialize_parsing(void *context)
+void *gaol_core::gaol_initialize_parsing(void *context)
 {
   yyscan_t scanner;
   if (gaol_lex_init_extra(context, &scanner) != 0) {
@@ -766,7 +767,7 @@ void *gaol_initialize_parsing(void *context)
   return scanner;
 }
 
-void gaol_cleanup_parsing(void *scanner)
+void gaol_core::gaol_cleanup_parsing(void *scanner)
 {
   gaol_lex_destroy(scanner);
 }
