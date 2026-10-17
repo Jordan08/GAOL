@@ -687,7 +687,8 @@ namespace gaol_core {
        the files of GAOL are initialized (GAOL v5). The constants of intervals
        (one(), pi()...) are built by the functions giving them, from doubles
        written in gaol/gaol_port.h, rather than held in static intervals, which
-       only the dynamic initialization of gaol/gaol_interval.cpp computed. */
+       only the dynamic initialization of gaol/gaol_interval.cpp, now
+       gaol/gaol_interval_core.cpp, computed. */
 #if GAOL_USING_SSE2_INSTRUCTIONS
      /// Mask for the sign bit of the left operand of an xmm register
     static const __m128d lbsignmask;
@@ -801,7 +802,9 @@ namespace gaol_core {
 
     friend GAOL_PUBLIC interval gaol_uipow(const interval& I, unsigned int e);
     friend GAOL_PUBLIC interval gaol_pown(const interval& I, int e);
+#if !GAOL_USING_SSE2_INSTRUCTIONS
     friend GAOL_PUBLIC interval sqr(const interval& I);
+#endif
     friend GAOL_PUBLIC interval cos(const interval& I);
     friend GAOL_PUBLIC interval sin(const interval& I);
     friend GAOL_PUBLIC interval sqrt(const interval& I);
@@ -834,10 +837,10 @@ namespace gaol_core {
     */
     static interval inverse_upward(const interval& I);
     /*
-      Gives inverse_upward() to the functions of gaol/gaol_interval.cpp that
-      check the rounding direction once and take the inverse after it: the
-      integer power of pow() and the roots of negative order, which have no
-      access of their own (GAOL v5). Defined there alone
+      Gives inverse_upward() to the functions of gaol/gaol_interval_core.cpp
+      that check the rounding direction once and take the inverse after it:
+      the integer power of pow() and the roots of negative order, which have
+      no access of their own (GAOL v5). Defined there alone
     */
     friend class upward_access;
     static interval_format::format_t output;
@@ -1447,8 +1450,10 @@ namespace gaol_core {
     interval::format() sets.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC std::string exact_string(const interval& I);
+#if !GAOL_USING_SSE2_INSTRUCTIONS
   //! I^2
   GAOL_NODISCARD extern GAOL_PUBLIC   interval sqr(const interval& I);
+#endif
   /*
     I^e for an integer e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
     for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
@@ -2095,6 +2100,29 @@ GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
     return interval(n)%=I;
   }
 
+#if GAOL_USING_SSE2_INSTRUCTIONS
+// The bounds in registers, from the operands to the result (see
+// gaol_interval_sse.h, GAOL v5)
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
+  {
+    return interval(add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
+  {
+    return interval(sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
+  {
+    return interval(mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
+  {
+    return interval(div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+#else
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
     return interval(I1) += I2;
@@ -2114,6 +2142,7 @@ GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval
   {
     return interval(I1) /= I2;
   }
+#endif
 
 GAOL_NODISCARD GAOL_INLINE interval operator%(const interval& I1, const interval& I2)
   {

@@ -218,6 +218,53 @@ GAOL_INLINE __m128d& interval::get_xmminterval(void)
   return xmmbounds;
 }
 
+/*
+  The sum, the difference, the product, the quotient and the square of
+  intervals, on their stored bounds (the left one negated), computed by the
+  library: the operators call these functions with the two doubles in a
+  register, which they give back in one, where operator+=() was a function of
+  the library that read and wrote them through memory, the result going back
+  to memory for the operation that followed (GAOL v5, point ZZ of TODO.md).
+  They are not part of the interface. The check of the rounding direction,
+  and the code that depends on it, are in the library, compiled with its
+  flags, not in the code of the program that calls them.
+*/
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d add_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d sub_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d mul_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d div_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d sqr_bounds(__m128d x);
+
+GAOL_INLINE interval& interval::operator+=(const interval& I)
+{
+  xmmbounds = add_bounds(xmmbounds, I.xmmbounds);
+  return *this;
+}
+
+GAOL_INLINE interval& interval::operator-=(const interval& I)
+{
+  xmmbounds = sub_bounds(xmmbounds, I.xmmbounds);
+  return *this;
+}
+
+GAOL_INLINE interval& interval::operator*=(const interval& I)
+{
+  xmmbounds = mul_bounds(xmmbounds, I.xmmbounds);
+  return *this;
+}
+
+GAOL_INLINE interval& interval::operator/=(const interval& I)
+{
+  xmmbounds = div_bounds(xmmbounds, I.xmmbounds);
+  return *this;
+}
+
+//! I^2
+GAOL_NODISCARD GAOL_INLINE interval sqr(const interval& I)
+{
+  return interval(sqr_bounds(I.get_xmminterval()));
+}
+
 
 
 #endif // GAOL_INTERVAL_SSE_H

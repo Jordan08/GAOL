@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <cstdint>
 #include "gaol/gaol_config.h"
@@ -44,15 +45,6 @@ namespace gaol_core {
   
   static bool _already_cleaned = false;
   static bool _already_initialized = false;
-  
-  #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
-  /* Whether +, -, *, / and sqrt take the AVX-512 path of
-  gaol/gaol_interval_avx512.cpp: init() sets it, from the
-  GAOL_PREFER_AVX512 of the build and the instructions the processor
-  has, which __builtin_cpu_supports() tells. The operations read it,
-  nothing else (GAOL v5). */
-  bool avx512_arithmetic = false;
-  #endif
   
   #if !GAOL_PRESERVE_ROUNDING
   /* The rounding direction the first call of init() found, before setting it
@@ -73,6 +65,27 @@ namespace gaol_core {
     if (!_already_initialized) {
       debug_level = dbg_lvl;
       
+      #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+      /* The AVX-512 path, which the configuration took (gaol_configuration.h):
+      on a processor without the instructions, the first operation would stop
+      on an illegal instruction without a word, as on a node of a cluster
+      that has not the processor of the machine that built GAOL, or under
+      valgrind, which does not decode them. Told once here, in C stdio,
+      which the initialization of a static object can use before the
+      streams of C++ are built, and __builtin_cpu_init() first, which
+      __builtin_cpu_supports() needs in a function run before the
+      constructors (GAOL v5, point AA of TODO.md). */
+      __builtin_cpu_init();
+      if (__builtin_cpu_supports("avx512f") == 0) {
+        std::fputs("[gaol error]: this GAOL was built for the AVX-512 instructions"
+                   " (GAOL_PREFER_AVX512, on by default with GAOL_PRESERVE_ROUNDING),"
+                   " which this processor or system does not run: build it with"
+                   " -DGAOL_PREFER_AVX512=OFF, --disable-prefer-avx512 or"
+                   " -Denable-prefer-avx512=false\n", stderr);
+        std::abort();
+      }
+      #endif
+
       #if !GAOL_PRESERVE_ROUNDING
       _initial_rounding = get_rounding();
       fesetenv(FE_DFL_ENV);
@@ -82,13 +95,6 @@ namespace gaol_core {
       #   if GAOL_USING_SSE2_INSTRUCTIONS
       round_upward_sse();
       #   endif
-      #endif
-      #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_HAVE_AVX512_TARGET
-      #  if GAOL_PREFER_AVX512
-      // The AVX-512 path of +, -, *, / and sqrt, when the processor
-      // has the instructions (GAOL v5, gaol/gaol_interval_avx512.cpp)
-      avx512_arithmetic = __builtin_cpu_supports("avx512f") != 0;
-      #  endif
       #endif
       // Not counted: expr_node::inc_refcount() leaves it alone (GAOL v5)
       the_null_expr = new null_node;

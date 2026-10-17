@@ -9,6 +9,12 @@
  * over 1024 operands, as many times as it takes to last 20 ms. The table is
  * written in Markdown. This is not a test: it always succeeds.
  *
+ * The last rows are lines of + - * / alone between 8 or 16 intervals, which
+ * the operations of GAOL v5 take in a register from one to the next (GAOL v5,
+ * point ZZ of TODO.md): 15 additions, 15 additions and subtractions, 7
+ * products, 7 quotients and 13 operations of the four kinds, the time of the
+ * whole line, in nanoseconds, against the same line of doubles.
+ *
  * The constructor, x &= y and the relations compare bounds with the quiet
  * comparisons of <cmath> (std::islessequal(), std::isunordered()...), one
  * instruction each with GCC and Clang on x86 (GAOL v5): their rows show what
@@ -18,7 +24,7 @@
  * flush the subnormals to zero do not change (GAOL v5, point Q of TODO.md).
  *
  * After the table, the time of the check each operation makes, 1 + (2^-1060
- * + 0) == 1, which shows the rounding direction and the modes that flush the
+ * + 0) not above 1, which shows the rounding direction and the modes that flush the
  * subnormals to zero (gaol/gaol_fpu.h), and of the same check made of 2^-60,
  * a normal double: a processor that takes a microcode assist for a subnormal
  * operand or result shows it there, each operation of GAOL paying it (GAOL
@@ -151,6 +157,18 @@ int main()
     W[i] = interval(a[i] - 1e-3*uniform(overlap_generator), a[i] + 5e-4*uniform(overlap_generator));
   }
 
+  // The operands of the lines of the last rows, drawn after the ones above
+  std::vector<interval> V[16];
+  std::vector<double> D[16];
+  for (int k = 0; k < 16; ++k) {
+    V[k].resize(n);
+    D[k].resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      D[k][i] = uniform(generator);
+      V[k][i] = interval(D[k][i], D[k][i] + 1e-3*uniform(generator));
+    }
+  }
+
   struct Row
   {
     const char *operation;
@@ -195,6 +213,37 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = (a[i] <= b[i]) ? 1.0 : 0.0; }, n) },
     { "x.set_contains(y)", nanoseconds_per_operation([&](std::size_t i) { sink = W[i].set_contains(X[i]) ? 1.0 : 0.0; }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = (a[i] <= b[i]) ? 1.0 : 0.0; }, n) },
+    { "line of 15 +", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] + V[1][i] + V[2][i] + V[3][i] + V[4][i] + V[5][i] + V[6][i] + V[7][i]
+                           + V[8][i] + V[9][i] + V[10][i] + V[11][i] + V[12][i] + V[13][i] + V[14][i] + V[15][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] + D[1][i] + D[2][i] + D[3][i] + D[4][i] + D[5][i] + D[6][i] + D[7][i]
+               + D[8][i] + D[9][i] + D[10][i] + D[11][i] + D[12][i] + D[13][i] + D[14][i] + D[15][i]; }, n) },
+    { "line of 15 + and -", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] - V[1][i] + V[2][i] - V[3][i] + V[4][i] - V[5][i] + V[6][i] - V[7][i]
+                           - V[8][i] + V[9][i] - V[10][i] + V[11][i] - V[12][i] + V[13][i] - V[14][i] + V[15][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] - D[1][i] + D[2][i] - D[3][i] + D[4][i] - D[5][i] + D[6][i] - D[7][i]
+               - D[8][i] + D[9][i] - D[10][i] + D[11][i] - D[12][i] + D[13][i] - D[14][i] + D[15][i]; }, n) },
+    { "line of 7 *", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] * V[1][i] * V[2][i] * V[3][i] * V[4][i] * V[5][i] * V[6][i] * V[7][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] * D[1][i] * D[2][i] * D[3][i] * D[4][i] * D[5][i] * D[6][i] * D[7][i]; }, n) },
+    { "line of 7 /", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] / V[1][i] / V[2][i] / V[3][i] / V[4][i] / V[5][i] / V[6][i] / V[7][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] / D[1][i] / D[2][i] / D[3][i] / D[4][i] / D[5][i] / D[6][i] / D[7][i]; }, n) },
+    { "line of 13 + - * /", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = ((((((V[0][i] + V[1][i]) * V[2][i] - V[3][i]) * V[4][i] + V[5][i]) * V[6][i] - V[7][i])
+                             / V[8][i] + V[9][i]) * V[10][i] - V[11][i]) / V[12][i] + V[13][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = ((((((D[0][i] + D[1][i]) * D[2][i] - D[3][i]) * D[4][i] + D[5][i]) * D[6][i] - D[7][i])
+                 / D[8][i] + D[9][i]) * D[10][i] - D[11][i]) / D[12][i] + D[13][i]; }, n) },
   };
 
   std::printf("GAOL performance: %s, rounding direction %s\n\n", platform().c_str(),
@@ -211,10 +260,10 @@ int main()
   }
 
   const double check_subnormal_ns = nanoseconds_per_operation([&](std::size_t) {
-      sink = (1.0 + (check_subnormal + 0.0) == 1.0) ? 1.0 : 0.0; }, n);
+      sink = !(1.0 + (check_subnormal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
   const double check_normal_ns = nanoseconds_per_operation([&](std::size_t) {
-      sink = (1.0 + (check_normal + 0.0) == 1.0) ? 1.0 : 0.0; }, n);
-  std::printf("\nThe check of each operation, 1 + (2^-1060 + 0) == 1: %.2f ns; the same with 2^-60: %.2f ns\n",
+      sink = !(1.0 + (check_normal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
+  std::printf("\nThe check of each operation, 1 + (2^-1060 + 0) not above 1: %.2f ns; the same with 2^-60: %.2f ns\n",
               check_subnormal_ns, check_normal_ns);
 
   gaol::cleanup();

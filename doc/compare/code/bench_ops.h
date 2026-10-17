@@ -93,6 +93,67 @@ void run_all(const Data& d, int repeats, const std::string& only)
 #undef OP
 }
 
+// The long lines (GAOL v5, point ZZ of TODO.md): each is one expression of
+// 7 to 19 operations of + - * / alone, between 8 intervals read from the same
+// arrays as above (A and B in [-10, 10], P in [1, 10], E in [0.5, 2.5], S1 to
+// S4 in [0, 10]), run only where the operations asked name them (see
+// bench.py: LINES). The time of a line is the one of the whole expression,
+// per evaluation.
+template<class T>
+void run_lines(const Data& d, int repeats, const std::string& only)
+{
+  typedef typename T::I I;
+  bool any = false;
+  for (const char *const name : { "sum16", "diff16", "mul8", "mul8_tree", "quot8", "mix13", "mix_tree",
+                                  "pos_sum16", "pos_mul8", "pos_quot8" }) {
+    any = any || selected_exactly(only, name);
+  }
+  if (!any) {
+    return;
+  }
+  const std::size_t n = static_cast<std::size_t>(d.n);
+  std::vector<I> x[8];
+  for (int k = 0; k < 8; ++k) {
+    x[k].reserve(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      x[k].push_back(T::make(d.lo[k][i], d.hi[k][i]));
+    }
+  }
+  std::vector<I> r(n, T::make(0.0, 0.0));
+
+#define LINE(NAME, EXPR)                                                        \
+  if (selected_exactly(only, NAME)) {                                           \
+    bench(T::name, NAME, repeats, [&]() {                                       \
+      for (std::size_t i = 0; i < n; ++i) {                                     \
+        const I& A = x[DATA_A][i]; const I& B = x[DATA_B][i];                   \
+        const I& P = x[DATA_P][i]; const I& E = x[DATA_E][i];                   \
+        const I& S1 = x[DATA_S1][i]; const I& S2 = x[DATA_S2][i];               \
+        const I& S3 = x[DATA_S3][i]; const I& S4 = x[DATA_S4][i];               \
+        r[i] = EXPR;                                                            \
+      }                                                                         \
+    }, r, [](const I& v) { return T::mid(v); }, [](const I& v) { return T::wid(v); }); \
+  }
+
+  // Additions and subtractions, 15 of them, one after the other
+  LINE("sum16", A + B + P + E + S1 + S2 + S3 + S4 + A + B + P + E + S1 + S2 + S3 + S4)
+  LINE("diff16", A - B + P - E + S1 - S2 + S3 - S4 - A + B - P + E - S1 + S2 - S3 + S4)
+  // Products, 7 of them, one after the other and in a tree
+  LINE("mul8", A * B * P * E * S1 * S2 * S3 * S4)
+  LINE("mul8_tree", ((A * B) * (P * E)) * ((S1 * S2) * (S3 * S4)))
+  // Quotients by intervals with no zero, 7 of them, one after the other
+  LINE("quot8", A / P / E / P / E / P / E / P)
+  // The four operations, one after the other (13) and in a tree (19)
+  LINE("mix13", ((((((A + B) * P - E) * S1 + S2) * P - S3) / E + A) * B - S4) / P + E)
+  LINE("mix_tree", ((A + B) * (P - E) + (S1 - S2) * (S3 + S4)) / (P + E)
+                   + ((A - B) * (S1 + S2) - (P * E) / (P + E)) / (E + P))
+  // The same with operands of one sign alone, P and E, where the signs of the
+  // bounds are the same from one evaluation to the next
+  LINE("pos_sum16", P + E + P + E + P + E + P + E + P + E + P + E + P + E + P + E)
+  LINE("pos_mul8", P * E * P * E * P * E * P * E)
+  LINE("pos_quot8", P / E / P / E / P / E / P / E)
+#undef LINE
+}
+
 // The arguments of the programs: the data file, the number of repeats, and
 // the operations to run (all of them when absent)
 template<class T>
@@ -104,6 +165,7 @@ int bench_main(int argc, char *argv[])
   }
   const Data d = load(argv[1]);
   run_all<T>(d, std::atoi(argv[2]), argc > 3 ? argv[3] : "");
+  run_lines<T>(d, std::atoi(argv[2]), argc > 3 ? argv[3] : "");
   return 0;
 }
 

@@ -4,7 +4,7 @@
  * The AVX-512 path of the SSE2 intervals (GAOL v5).
  *
  * This file is not meant to be compiled. It is only to be included
- *        by gaol/gaol_interval.cpp, before gaol/gaol_interval_sse.cpp: the
+ *        by gaol/gaol_interval_core.cpp, before gaol/gaol_interval_sse.cpp: the
  *        operations of the SSE2 fragments call the functions of this one.
  *
  * The AVX-512 instructions can carry the rounding direction of a
@@ -31,16 +31,17 @@
  * with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5, point Q of
  * TODO.md).
  *
- * The functions of this file are compiled into the library built for any
- * processor of the architecture, as the SSE2 operations are: only they
- * carry __attribute__((target("avx512f"))), which makes the compiler accept
- * the AVX-512 instructions in them alone, and the code outside them is
- * compiled as before. gaol::init() then takes the AVX-512 path when the
- * program asks for it, with GAOL_PREFER_AVX512, and the processor has the
- * instructions, which __builtin_cpu_supports() tells: +, -, *, / and sqrt
- * never touch the rounding direction on that path, whatever the program
- * left, and clear the modes that flush the subnormals to zero only where
- * they are set, as the other operations do. The divisions and the square roots take
+ * The functions of this file are compiled into the library where
+ * GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
+ * compiler that takes them, and a machine building that runs them. Only
+ * they carry __attribute__((target("avx512f"))), which makes the compiler
+ * accept the AVX-512 instructions in them alone, and the code outside them
+ * is compiled as before; the library then needs a processor with the
+ * instructions. +, -, *, / and sqrt take this path, with no flag to test as
+ * they run (gaol::init() set one, which every operation tested, until point
+ * AA of TODO.md): they never touch the rounding direction, whatever the
+ * program left, and clear the modes that flush the subnormals to zero only
+ * where they are set, as the other operations do. The divisions and the square roots take
  * it too, the embedded rounding of their 512-bit form being slower only
  * on the processors that halve it (the i7-1185G7 measures 6.0 ns against
  * 1.8 for a division, 8.0 against 2.0 for a square root, where an
@@ -229,6 +230,13 @@
     return bit_negative(high_of(x));
   }
 
+  // The products of the two doubles of a and the two of b, by the embedded
+  // rounding (the upper half of the 512 bits is not used)
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d er_mul2(__m128d a, __m128d b)
+  {
+    return back128(_mm512_mul_round_pd(lo512(a), lo512(b), gaol_er));
+  }
+
   // The product of two doubles by the embedded rounding
   GAOL_AVX512_TARGET GAOL_INLINE double er_mul(double a, double b)
   {
@@ -289,9 +297,9 @@
 }
 
   /*
-    The AVX-512 path of the operations of the intervals, taken when
-    gaol::init() has set avx512_arithmetic (GAOL_PREFER_AVX512 and a
-    processor that has the instructions). Each of them rounds every
+    The AVX-512 path of the operations of the intervals, taken where
+    GAOL_AVX512_ARITHMETIC is (GAOL_PREFER_AVX512, and a machine building
+    that runs the instructions). Each of them rounds every
     floating-point operation in itself: no rounding direction to set, and
     no exception flag raised by the instructions; the modes that flush the
     subnormals to zero, which the embedded rounding honours, are cleared
@@ -430,7 +438,7 @@
 
   /*
     x / y of the stored bounds of two nonempty operands: the dispatch of
-    operator/=() of gaol/gaol_interval_sse.cpp, its comparisons with 0 read
+    divide_general() of gaol/gaol_interval_sse.cpp, its comparisons with 0 read
     from the sign and the magnitude bits (stored_left_below_zero() and
     stored_right_below_zero() above), its divisions by the embedded
     rounding. The cases the dispatch does not divide give the stored bounds
@@ -569,7 +577,7 @@
 
   /*
     The square root of a nonempty interval, as sqrt() of
-    gaol/gaol_interval.cpp computes it on the SSE2 path: the part of the
+    gaol/gaol_interval_core.cpp computes it on the SSE2 path: the part of the
     interval in [0, +oo] (the lower bound clamped to 0, a -0 kept as the
     root takes it for 0), the root of the lower bound rounded downward and
     the one of the upper bound rounded upward, by the embedded rounding as
@@ -613,4 +621,62 @@
   {
     const flush_guard flush;
     return flush_guard::out(sqrt_unguarded(flush_guard::in(x)));
+  }
+
+  /*
+    x op= d on the AVX-512 path, d a double: the four operators with a double
+    (gaol/gaol_interval_sse.cpp) call them last, as tail calls: past the tests of
+    their operand, each operator is a jump to its function, which saves no
+    register (Clang 18 and GCC 13). Called there and followed by the store of
+    their result, fast_add() and the others made Clang 18 save a register and
+    set up a stack frame in these operators, which the SSE2 path paid too when
+    gaol::init() chose the path as the program ran, and x + 4 took 3.0 ns
+    rather than 2.5 there (Clang 18, Intel Xeon E3-1220 v6, the library and
+    the program built with -mbranches-within-32B-boundaries; GAOL v5, point
+    AA of TODO.md). The operations between two intervals are the functions
+    add_bounds() and the others, which the header calls with the bounds in a
+    register (point ZZ of TODO.md).
+
+    They take the double by value, which is passed in a register by the
+    calling conventions of x86-64 Linux, macOS and Windows, where a __m128d
+    is passed by a hidden reference to a copy in the frame of the caller on
+    Windows (MinGW-w64, MSYS2), and no call taking one can be a tail call.
+    Their result goes through opaque(), an empty asm
+    statement, which the compiler does not see through, at no cost: seeing
+    them return their first argument, Clang 18 had the operator return that
+    argument, kept across the call in a saved register, rather than the
+    result of the call, which was then no tail call.
+  */
+  GAOL_INLINE interval& opaque(interval& x)
+  {
+    interval* p = &x;
+    __asm__ ("" : "+r" (p));
+    return *p;
+  }
+
+  // x + [d, d], d finite: <-l, r> + <-d, d>. x - d is x + (-d)
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, double d)
+  {
+    x.get_xmminterval() = fast_add(x.get_xmminterval(), _mm_set_pd(d, -d));
+    return opaque(x);
+  }
+
+  // x * [d, d], d finite and nonzero, through the dispatch of fast_mul()
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_mul_assign(interval& x, double d)
+  {
+    x.get_xmminterval() = fast_mul(x.get_xmminterval(), _mm_set_pd(d, -d));
+    return opaque(x);
+  }
+
+  // x / d, d finite and nonzero: the bounds exchanged and d negated for a
+  // negative one, as operator/=(double) does
+  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, double d)
+  {
+    const __m128d b = x.get_xmminterval();
+    if (bit_negative(d)) {
+      x.get_xmminterval() = fast_div_by(_mm_shuffle_pd(b, b, 1), -d); // <r/(-d), -l/(-d)>
+    } else {
+      x.get_xmminterval() = fast_div_by(b, d); // <-l/d, r/d>
+    }
+    return opaque(x);
   }

@@ -26,9 +26,10 @@ The comparison has three parts:
   function, against mpmath, GAOL under both namespaces.
 - [Performance](performance.md): the time of a million additions,
   subtractions, multiplications, divisions, sines, cosines, powers,
-  one-line combinations, evaluations of Shekel 5 and five-line blocks, GAOL
-  v5 being called under the names of the standard (`gaol_ieee1788`), as the
-  other libraries of IEEE 1788, and GAOL 4.2.3 under its own.
+  one-line combinations, evaluations of Shekel 5 and five-line blocks, and
+  the time of long lines of + − × ÷ between 8 intervals, GAOL v5 being called
+  under the names of the standard (`gaol_ieee1788`), as the other libraries of
+  IEEE 1788, and GAOL 4.2.3 under its own.
 
 GAOL v5 gives its intervals under two namespaces: `gaol`, its own names,
 compatible with GAOL 4, and `gaol_ieee1788`, the names of IEEE 1788-2015. They
@@ -51,18 +52,18 @@ reports.
 | … or another result | 0 | 0; 6 | 67 | 70 | 143 | 64 |
 | Cases it has no operation for | 8 | 0 | 44 | 26 | 65 | 121 |
 | Elementary functions at random points: results missing the value | — | 0 of 1 600 000 | — | — | — | 34 % (20 % with `rounded_transc_std`) |
-| `x + y` | 139 ns | 2.8 ns | 5.2 ns | 18 ns | 15 ns | 13 ns |
-| `x * y` | 170 ns | 11 ns | 13 ns | 21 ns | 16 ns | 23 ns |
-| `sin(x)` | 5.7 µs | 47 ns | 36 ns | 43 ns | 126 ns | 76 ns |
-| `log(x)` | 1.9 µs | 22 ns | 29 ns | 39 ns | 11 ns | 32 ns |
-| `pown(x, 3)` | 263 ns | 6.0 ns | 20 ns | 149 ns | 36 ns | 22 ns |
-| Shekel 5 | 9.5 µs | 282 ns | 417 ns | 1.7 µs | 1.1 µs | 937 ns |
+| `x + y` | 137 ns | 2.2 ns | 5.1 ns | 18 ns | 14 ns | 12 ns |
+| `x * y` | 171 ns | 2.3 ns | 12 ns | 21 ns | 15 ns | 21 ns |
+| `sin(x)` | 5.5 µs | 43 ns | 33 ns | 41 ns | 115 ns | 71 ns |
+| `log(x)` | 1.9 µs | 21 ns | 27 ns | 39 ns | 10 ns | 30 ns |
+| `pown(x, 3)` | 240 ns | 5.1 ns | 18 ns | 145 ns | 35 ns | 20 ns |
+| Shekel 5 | 9.0 µs | 108 ns | 397 ns | 1.7 µs | 1.1 µs | 920 ns |
 
-The times were measured on 13 October 2026, every library in the same run,
+The times were measured on 17 October 2026, every library in the same run,
 compiled by Clang 21.1 (see [performance](performance.md)).
 
 - **libieeep1788** gives the result of IEEE 1788 in every case it can compute,
-  as tightly as possible, and is 11 to 124 times slower than GAOL.
+  as tightly as possible, and is 17 to 135 times slower than GAOL.
 - **GAOL** is the fastest on the arithmetic, the integer power and most
   formulas. Under the names of the standard, `gaol_ieee1788`, it gives IEEE
   1788's result in every special case; under its own, `gaol`, in all but 8,
@@ -71,8 +72,7 @@ compiled by Clang 21.1 (see [performance](performance.md)).
   tightest bounds; its exp and log are faster than filib++'s, its sin and cos
   slower.
 - **filib++** is the fastest on sin and cos, 1.3 to 1.6 times as fast as GAOL,
-  almost as fast as GAOL on ÷ (1.1 times as slow), but 1.2 times as slow on ×
-  and 1.9 times on + and −, and its bounds of elementary functions and real powers are up to 36
+  but 5.3 times as slow on ×, 3.5 times on ÷ and 2.3 times on + and −, and its bounds of elementary functions and real powers are up to 36
   doubles wider than the tightest. Its extended mode gives other results than
   IEEE 1788 wherever an infinity or a division by zero is involved, much as
   Solaris Studio: `interval(+∞)` is [MAX, +∞] and `[0] * [1, +∞]` is
@@ -82,10 +82,10 @@ compiled by Clang 21.1 (see [performance](performance.md)).
   has no empty set, and an operation whose argument leaves the domain of the
   function, a division by an interval containing zero included, prints an error
   and aborts the program. Its exponential, logarithm and real power, taken
-  from the libm, are the fastest of the five (10.6, 11.3 and 35 ns), and so is
-  its square root (3.9 ns); its arithmetic is 5.5 times slower than GAOL's on
-  + and −, its sin and cos are the slowest after libieeep1788's (126 and
-  139 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
+  from the libm, are the fastest of the five (9.9, 10.2 and 34 ns), and so is
+  its square root (3.7 ns); its arithmetic is 6.4 times slower than GAOL's on
+  + and −, its sin and cos are the slowest after libieeep1788's (115 and
+  131 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
   than the tightest on average.
 - **Boost.Interval**, the library of Boost, is the interval library C++
   programmers find first. Its arithmetic gave the tightest intervals in the
@@ -94,11 +94,11 @@ compiled by Clang 21.1 (see [performance](performance.md)).
   honour: at the points of the test of enclosure, 34 % of its results miss the
   value of the function with glibc 2.43, 20 % with its other policy, and
   `atan([−∞, +∞])` misses π/2. With its default checking it has no empty set:
-  an operation that would create one throws an exception. It is 4.6 times
-  slower than GAOL on + and −, 1.5 to 3.3 times on ×, ÷ and the formulas, 3.2
-  times on the square root, 3.6 times on the integer power and 1.2 to 1.6
+  an operation that would create one throws an exception. It is 5.6 times
+  slower than GAOL on + and −, 1.8 to 11 times on ×, ÷ and the formulas, 3.5
+  times on the square root, 3.9 times on the integer power and 1.2 to 1.6
   times on the other elementary functions.
-- **Solaris Studio** is 1.1 to 1.3 times as fast as GAOL on sin and cos, but
+- **Solaris Studio** is 1.0 to 1.3 times as fast as GAOL on sin and cos, but
   slow on integer powers and squares. Its containment sets give other results
   than IEEE 1788 wherever an infinity, a division by zero or an invalid
   argument is involved: `interval(+∞)` is [MAX, +∞], `[1, 2] / [0, 1]` is

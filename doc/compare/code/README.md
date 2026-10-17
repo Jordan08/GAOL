@@ -60,6 +60,7 @@ FILIB_DIR=/path/to/filib ./setup.sh   # once; without FILIB_DIR, it builds filib
 ./run_cases.sh          # the special cases        -> ../special_cases.md
 ./run_enclosure.sh      # the test of enclosure    -> ../enclosure.md
 CPU=2 ./run_bench.sh    # the benchmark, pinned on processor 2 -> ../performance.md
+CPU=2 ./run_lines.sh    # the long lines of + - * /, the same -> the end of ../performance.md
 ```
 
 The tables of [performance.md](../performance.md),
@@ -70,7 +71,7 @@ compiled the same way):
 
 ```bash
 export CC=clang-21 CXX=clang++-21 WORK=$PWD/work/clang21 JOBS=4
-./setup.sh && ./run_cases.sh && ./run_enclosure.sh && CPU=2 ./run_bench.sh
+./setup.sh && ./run_cases.sh && ./run_enclosure.sh && CPU=2 ./run_bench.sh && CPU=2 ./run_lines.sh
 ```
 
 GAOL v5 is measured by the benchmark under the names of IEEE 1788-2015, the
@@ -79,14 +80,16 @@ standard), as the other libraries of the standard are, and GAOL 4.2.3 under
 its own, `gaol`; the special cases and the test of enclosure run GAOL v5 under
 both (see [Using GAOL](../../using.md#the-powers-in-the-two-namespaces)).
 
-`./run_all.sh` runs the four in turn. The scripts rewrite only the tables
+`./run_all.sh` runs the five in turn. The scripts rewrite only the tables
 between the `<!-- BEGIN GENERATED TABLES -->` and `<!-- END GENERATED TABLES -->`
-markers of the reports: the text around them, which comments on the results,
-has to be checked by hand against the new tables.
+markers of the reports (`<!-- BEGIN GENERATED LINES -->` and `<!-- END GENERATED
+LINES -->` for `run_lines.sh`, at the end of `performance.md`): the text around
+them, which comments on the results, has to be checked by hand against the new
+tables.
 
-The benchmark takes about 10 minutes on an Intel Core i7-1185G7,
-libieeep1788 most of it; the machine should do nothing else meanwhile. Its
-variables:
+The benchmark takes about 6 minutes on an Intel Core i7-1185G7,
+libieeep1788 most of it, and the long lines 3 more; the machine should do
+nothing else meanwhile. Their variables:
 
 | Variable | Default | |
 |---|---|---|
@@ -95,6 +98,7 @@ variables:
 | `REPEATS` | `5` | Runs of each operation in a round |
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
+| `LINE_LIST` | all | The same for `run_lines.sh`, the long lines of `bench_ops.h` (`sum16,mul8,mix13...`), which `run_bench.sh` does not run; `LIBS` has no `sun` there |
 | `LIBS` | `double gaol5 gaol filib profil boost sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol` the last GAOL of Frédéric Goualard |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |
@@ -128,9 +132,9 @@ meson setup build && CPU=2 ninja -C build perf
 ```
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
-libraries, all the operations). The one committed holds the whole run of 13
+libraries, all the operations). The one committed holds the whole run of 17
 October 2026 that the tables of `performance.md` were written from (Clang
-21.1, three rounds, Ubuntu 26.04.1, `e6646e2`). Under Ubuntu 20.04, on the
+21.1, three rounds, Ubuntu 26.04.1, `7c1ebb9`), and `results_lines.csv` the one of the long lines, of the same day. Under Ubuntu 20.04, on the
 same processor with Clang 18.1.8, every library took about 30 % more time: the
 times of `make perf` compare with those of `results.csv` only on the system
 and with the compiler they were measured with.
@@ -143,8 +147,10 @@ and with the compiler they were measured with.
 | `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS, GAOL, and Goualard's GAOL with mathlib, and downloads the headers of Boost.Interval; checks `f90 -xia` |
 | `cases.py` | The 288 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
 | `run_cases.sh` | Generates, compiles and runs the six programs of the special cases, and writes their table |
-| `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) |
-| `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations, written once for every C++ library |
+| `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) and those of the long lines (`lines-report`) |
+| `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations and the long lines, written once for every C++ library |
+| `build_benchmarks.sh` | The compilation of the C++ programs and the description of the machine, which `run_bench.sh` and `run_lines.sh` share (sourced) |
+| `run_lines.sh` | Compiles and runs the long lines of + - * / of `bench_ops.h` with the C++ libraries, and writes their tables at the end of `performance.md`; after a whole run, keeps its results in `results_lines.csv` and `machine_lines.txt` |
 | `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_profil.cpp`, `bench_boost.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788, filib++, PROFIL/BIAS and Boost.Interval, and on doubles for reference |
 | `boost_policies.h` | The intervals of Boost.Interval that the benchmark, the special cases and the test of enclosure use, and why |
 | `bench_sun.f90` | The same operations in Fortran, for Solaris Studio |

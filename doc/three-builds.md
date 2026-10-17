@@ -42,21 +42,25 @@ build, and the CMake build follows them, apart from the errors corrected (see
   tests stopped on an illegal instruction.
   GAOL's exact products (`std::fma()`) and CORE-MATH's functions then compute
   `fma()` with one instruction rather than with a call to the math library: on
-  an Intel i7-1185G7 with Clang 18.1, `pow(x, 3)` of an interval took 14.5 ns
-  rather than 21.1, and `sin` and `cos` 2.4 times less, measured in
+  an Intel i7-1185G7 with Clang 21.1, `pow(x, 3)` of an interval takes 5.4 ns
+  rather than 17.4, `sin` 1.3 times less and `cos` 2.5 times less, measured in
   [What the options are worth](#what-the-options-are-worth). The code using GAOL is given the flag
   too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
   `-ffp-contract=off` stays, which forbids the compiler to contract a
   multiplication and an addition into a fused one, as CORE-MATH asks;
-- with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`
-  compiled into the library beside the SSE2 one, taken at run time by
-  `gaol::init()` with `GAOL_PREFER_AVX512`
-  (`--enable-prefer-avx512`, `-Denable-prefer-avx512=true`) on a processor
-  that has the instructions: on by default where the rounding direction is
-  preserved, whose every operation the path relieves of the store of that
-  direction; no flag to compile, the path's functions alone
-  carry the target attribute, and the library runs on any processor of the
-  architecture (GAOL v5, see [Using GAOL](using.md#the-avx-512-path));
+- with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`,
+  asked for by `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
+  `-Denable-prefer-avx512=true`), on by default where the rounding direction
+  is preserved, whose every operation the path relieves of the store of
+  that direction, and taken (`GAOL_AVX512_ARITHMETIC`) where the machine
+  building runs the instructions, which is checked as for the fused
+  multiply-add instructions, the path being left out when cross-compiling:
+  the library then needs a processor with them, which `gaol::init()`
+  checks, and the operations test nothing as they run; never with GCC for
+  Windows (MinGW-w64, Cygwin), which does not align the stack for the
+  AVX-512 registers, as it does not for those of `-mfma`. No flag to compile,
+  the path's functions alone carry the target attribute (GAOL v5, see
+  [Using GAOL](using.md#the-avx-512-path));
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
   (SSE3), unfinished, for which no build has an option: only a developer of
   GAOL compiles them, defining `GAOL_FLOAT_INTERVALS` in `gaol/gaol_config.h`;
@@ -99,34 +103,38 @@ it on each kind of machine.
 
 ## What the options are worth
 
-Measured with `tests/performance.cpp` on an Intel i7-1185G7 with Clang 18.1,
-in nanoseconds per operation, the best of five runs (GAOL v5):
+Measured with `tests/performance.cpp` on an Intel i7-1185G7 with Clang 21.1,
+in nanoseconds per operation, the best of nine runs, each program being run in
+turn with the others (GAOL v5):
 
 | | x + y | x × y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 2.68 | 3.87 | 2.61 | 14.5 | 29.3 | 32.9 | 59.4 | 58.0 |
-| `-DGAOL_FMA=OFF` | 2.54 | 3.92 | 2.94 | 21.1 | 37.9 | 52.6 | 143.4 | 141.4 |
-| `-DGAOL_SIMD=OFF` | 3.15 | 6.27 | 2.85 | 13.9 | 29.2 | 32.3 | 61.1 | 61.3 |
+| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 1.07 | 2.04 | 1.80 | 5.42 | 18.6 | 21.7 | 31.3 | 36.6 |
+| `-DGAOL_FMA=OFF` | 1.14 | 2.06 | 1.81 | 17.4 | 21.6 | 34.5 | 41.4 | 90.3 |
+| `-DGAOL_SIMD=OFF` | 2.30 | 4.32 | 2.46 | 7.65 | 19.9 | 23.6 | 32.8 | 39.0 |
 
 - **The fused multiply-add instructions (`GAOL_FMA`) are worth much more than
-  they were**: sin and cos are **2.4 times faster** with them, log 1.6 times,
-  pow(x, 3) 1.5 times and exp 1.3 times. CORE-MATH computes with
+  they were**: cos is **2.5 times faster** with them, pow(x, 3) 3.2 times, log
+  1.6 times, sin 1.3 times and exp 1.2 times. CORE-MATH computes with
   `__builtin_fma` throughout, which is one instruction where the processor has
   it and a call to the math library where it has not. They are on by default wherever the compiler has a flag for them and the
   machine building runs a program compiled with it. They do nothing for the
   arithmetic, which does not multiply and add in one step.
 - **The SSE2 intervals (`GAOL_SIMD`) pay on the products and the additions**:
-  x × y takes 3.87 ns rather than 6.27, and x + y 2.68 rather than 3.15, the two
+  x × y takes 2.04 ns rather than 4.32, and x + y 1.07 rather than 2.30, the two
   bounds being computed in one instruction. They are on by default on x86
   processors. The elementary functions do not go through them.
 
 ### Interprocedural optimization is not offered
 
-Compiled with it (`-flto`), GAOL's basic operations are two to three times
+Compiled with it (`-flto`), GAOL's basic operations are 1.1 to 1.5 times
 faster where the code using GAOL is compiled with it too — an addition of
-intervals took 0.99 ns rather than 2.68 with Clang 18.1, `sqr(x)` 1.96 rather
-than 2.61 — and the elementary functions are two to three times **slower**: cos
-took 169 ns rather than 58, sin 147 rather than 59, log 61 rather than 33. The
+intervals took 0.73 ns rather than 1.07 with Clang 21.1, `x * y` 1.71 rather
+than 2.04, `sqr(x)` 1.27 rather than 1.80 — and the elementary functions no
+faster, a little **slower**: cos took 39.2 ns rather than 36.6, sin 32.6 rather
+than 31.3, log 22.7 rather than 21.7. With Clang 18.1, before the operators
+took their bounds in a register, the basic operations took two to three times
+less time with it and the elementary functions two to three times more. The
 sources of CORE-MATH are compiled apart, without it, and it reaches them
 through the link all the same.
 
@@ -214,6 +222,13 @@ is not to be compiled with them.
   `-Ofast -fno-fast-math` (bounds with subnormal results under flush-to-zero
   too); with the flags of interval arithmetic given again after the option,
   none.
+
+The probe of the modes is `!(1.0 + (subnormal + 0.0) > 1.0)` since point ZZ of
+`TODO.md`, no longer `== 1.0`: with `-funsafe-math-optimizations`, GCC 15 does
+not rewrite it as `!(subnormal > 0.0)`, and with `-fno-signed-zeros` GCC 15 and
+Clang 21 drop its `+ 0.0` as they did that of the earlier form (GCC 9 to 14
+were not tried with it). The code using GAOL is still not to be compiled with
+these flags.
 
 Two reasons that had GAOL refuse MinGW-w64 are gone with CORE-MATH (GAOL v5):
 the math library of mingw-w64 older than version 12 gave `acosh()` near 1 up

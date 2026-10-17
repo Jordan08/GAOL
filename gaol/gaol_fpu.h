@@ -152,7 +152,9 @@ a bound, the emptiness test aside, whose answer the modes do not change (a
 NaN stays one, and flushing keeps two bounds in their order): its
 bounds are read from memory after the check, which clears the modes with a
 compiler barrier after it (round_upward_if_needed()), and a double it takes
-by value goes through rnd_reread() after the check. With
+by value goes through rnd_reread() after the check; the kernels of the SSE2
+operations, which receive the bounds in a register, pass them through an
+empty asm statement after it (reread_bounds(), gaol_interval_sse.cpp). With
 GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
@@ -414,7 +416,12 @@ namespace gaol_core {
     #if GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
     // 2^-1060, as a literal for the reason of the one of 2^-60 below
     static const volatile double subnormal = 8.0947715414629834e-320;
-    if (1.0 + (subnormal + 0.0) == 1.0) {
+    // Not above 1, rather than == 1: no operand is a NaN, and the compiler
+    // makes one comparison and one branch of it where == takes the three
+    // instructions that tell an unordered result (GAOL v5, point ZZ of
+    // TODO.md). The branch is the unlikely one, so that the code that sets the
+    // direction is out of the way of the one that does not
+    if (GAOL_UNLIKELY(!(1.0 + (subnormal + 0.0) > 1.0))) {
       clear_flush_to_zero();
       round_upward();
       GAOL_RND_BARRIER();
@@ -503,7 +510,7 @@ namespace gaol_core {
   change, in the direction it sets back (see above, and doc/using.md). GCC
   does so even with -frounding-math, and the terms of the TwoSum of the
   differences of the bounds of cancel_minus(), kept this way, are the ones
-  computed to nearest (gaol/gaol_interval.cpp).
+  computed to nearest (gaol/gaol_interval_core.cpp).
   */
   template<class T>
   T rnd_keep(const T& x)

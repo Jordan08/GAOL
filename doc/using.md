@@ -236,6 +236,12 @@ including its headers, through a library of the program for instance, or, with
 Clang, of an `inline` variable or a static member of a class template, whose
 initialization C++ does not order with the rest of the file.
 
+With the AVX-512 path of `GAOL_PREFER_AVX512` (see
+[The AVX-512 path](#the-avx-512-path)), the initialization stops the program,
+with a message on the standard error, when the processor or the system does
+not run the AVX-512 instructions, even in a program that computes nothing
+(GAOL v5).
+
 The constants of GAOL (π, the masks of its SSE2 operations) are initialized
 when compiling: a static object of the program may compute intervals, before
 the files of GAOL are initialized, which with the static library of the CMake
@@ -774,7 +780,7 @@ The rounding direction is the processor's, and the whole program shares it.
 GAOL's results do not depend on it, each operation setting it upward when it is
 not, in every thread, but the doubles the program computes do. Unless GAOL is
 built with `GAOL_PRESERVE_ROUNDING` — or with `GAOL_PREFER_AVX512` on a
-processor that has the AVX-512 instructions, whose arithmetic sets no
+machine that has the AVX-512 instructions, whose arithmetic sets no
 direction (below) — they are rounded upward from GAOL's initialization,
 before `main()`, until `gaol::cleanup()`, and again after each operation of
 GAOL that follows it. The compiler does not undo it: with the
@@ -888,11 +894,13 @@ What to do:
 Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
 `-Denable-prefer-avx512=true`), on by default where the rounding direction
 is preserved, whose every operation of `+`, `-`, `*`, `/` and `sqrt` the
-path relieves of the store of that direction — `--disable-prefer-avx512`
-and `-DGAOL_PREFER_AVX512=OFF` refuse it there —, on a processor that has
-the AVX-512
-instructions, GAOL has `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`, and
-the operations of `+`, `-`, `*` and `/` with a double, computed by the rounding
+path relieves of the store of that direction — `--disable-prefer-avx512`,
+`-DGAOL_PREFER_AVX512=OFF` and `-Denable-prefer-avx512=false` refuse it
+there —, on a machine that runs
+the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
+`gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y` and
+`sqrt(x)`, and the operations of `+`, `-`, `*` and `/` with a double,
+computed by the rounding
 direction the instructions carry in themselves (GAOL v5). These operations
 set no rounding direction: the program keeps its own, in the default build
 as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
@@ -914,17 +922,29 @@ computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
 
 The bounds are those of the other path, bit for bit: the rounding rule is
 the same, and the tests of `tests/`, which a job of the continuous
-integration runs with the option on, check it. The library built with the
-option runs on any processor of the architecture: `gaol::init()` takes the
-path only when the processor has the instructions, and the operations are
-those of the default build otherwise. The operations of the path cost more
+integration runs with the option on, check it. The path is decided when GAOL
+is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
+machine building has to run the AVX-512 instructions, a cross-compilation
+leaves the path out, and the operations test nothing as they run. A library
+built with the path then needs a processor with the instructions, and
+`gaol::init()` stops a program run on another one, with a message, rather
+than letting its first operation stop on an illegal instruction (an
+operation made before GAOL initializes itself, as
+[Initialization and cleanup](#initialization-and-cleanup) describes, still
+does); one for
+any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
+(GAOL v5: `gaol::init()` chose the path as the program ran, and every
+operation tested the flag it set, in the default build too). The
+operations of the path cost more
 time on a processor that halves its AVX-512 instructions, where they cost
-less on one that does not: on an Intel i7-1185G7 (halved), `x + y` takes
-4.6 ns rather than 3.4 in the default build and `sqrt(x)` 16.6 rather than
-8.1, where with `GAOL_PRESERVE_ROUNDING` the same `x + y` takes 5.6 ns
-rather than 12.8; the processors that do not halve them, as the Xeon of
-the continuous integration, are expected to take less. Which of the paths a
-GAOL took, the example 13 tells.
+less on one that does not: on an Intel i7-1185G7 (halved), `x * y` takes
+3.6 ns rather than 2.0 in the default build, `x / y` 3.9 ns rather than 2.3,
+`sqrt(x)` 11.2 rather than 7.0 and `x + y` 1.4 rather than 1.1, where with
+`GAOL_PRESERVE_ROUNDING` the same `x + y` takes 1.4 ns rather than 8.3
+(`gaol_performance`, Clang 21.1, the best of 9 interleaved runs); the
+processors that do not halve them, as the Xeon of the continuous integration,
+are expected to take less. Which of the paths a GAOL took, the example 13
+tells.
 
 ## Flush-to-zero and denormals-are-zero
 
