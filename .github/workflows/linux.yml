@@ -41,6 +41,11 @@ concurrency:
 # ctest, which reads these: four tests at a time, and the output of those that
 # fail (GAOL v5)
 env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
   CTEST_PARALLEL_LEVEL: 4
   CTEST_OUTPUT_ON_FAILURE: 1
 
@@ -531,7 +536,7 @@ jobs:
           print("Coverage of GAOL: %.1f %% of %d lines" % (p, run))
           sys.exit(0 if p >= 80.0 else 1)
           EOF
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage

@@ -40,6 +40,11 @@ concurrency:
 # ctest, which reads these: four tests at a time, and the output of those that
 # fail (GAOL v5)
 env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
   CTEST_PARALLEL_LEVEL: 4
   CTEST_OUTPUT_ON_FAILURE: 1
 
@@ -316,6 +321,8 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
+          # What these jobs check is that GAOL refuses MINGW64, which the action calls deprecated
+          suppress-deprecation-warnings: msystem-mingw64
           install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja ${{ matrix.cfg.packages }}
       - name: The version and the C runtime of mingw-w64, and a build that has to fail
         run: |

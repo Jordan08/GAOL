@@ -36,6 +36,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
   # The flags code using GAOL is compiled with (see CMakeLists.txt); on a
   # 32-bit x86 processor, tests.sh adds -msse2 -mfpmath=sse
   TEST_FLAGS: -std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off
@@ -388,8 +393,12 @@ jobs:
         run: |
           $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
           $lib = Get-ChildItem "$prefix/lib" | Where-Object { $_.Name -match 'gaol\.(lib|a)$' } | Select-Object -First 1
+          # cl takes a file it does not know by its name, libgaol.a with meson, for an
+          # object file, and warns (D9024): the same library, named .lib
+          $gaol_lib = "$env:RUNNER_TEMP/gaol_installed.lib"
+          Copy-Item $lib.FullName $gaol_lib
           # /MD: the C runtime of the DLLs, which meson builds libgaol with
-          cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $lib.FullName /Fe:rounding_direction.exe
+          cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $gaol_lib /Fe:rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
           ./rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
