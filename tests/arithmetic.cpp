@@ -493,6 +493,179 @@ namespace
     }
   }
 
+  // Quotients of intervals whose bounds are zeros of both signs, infinities,
+  // small integers, subnormal and large doubles, by intervals with no zero:
+  // the tightest enclosure of the quotients of the bounds, which the division
+  // of the SSE2 intervals takes from the signs of both operands without a
+  // branch (GAOL v5, point ZZ of TODO.md). An infinite bound over a finite
+  // one is an infinite bound, a finite one over an infinite one is 0, and
+  // the quotient of two infinite bounds, which the limits of the quotients
+  // leave anywhere between the others, counts for none (the divisors with a
+  // zero are the cases of divisions_by_zero())
+  void quotients_at_special_values()
+  {
+    const double subnormal = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double dividends[] = { -inf, -largest, -2., -1., -subnormal, -0., 0., subnormal, 1., 3., largest, inf };
+    const double divisors[] = { -inf, -largest, -3., -1., -subnormal, subnormal, 1., 2., largest, inf };
+    for (double xl : dividends) {
+      for (double xh : dividends) {
+        if (xl > xh || (xl == xh && std::isinf(xl))) {
+          continue;
+        }
+        for (double yl : divisors) {
+          for (double yh : divisors) {
+            if (yl > yh || (yl < 0.0) != (yh < 0.0) || (yl == yh && std::isinf(yl))) {
+              continue;
+            }
+            const interval X(xl, xh), Y(yl, yh);
+            std::vector<Exact> finite;
+            bool minus_inf = false, plus_inf = false;
+            for (double a : { xl, xh }) {
+              for (double b : { yl, yh }) {
+                if (std::isinf(a) && std::isinf(b)) {
+                  continue;
+                }
+                if (std::isinf(a)) {
+                  ((a < 0.0) == (b < 0.0) ? plus_inf : minus_inf) = true;
+                } else if (std::isinf(b)) {
+                  finite.push_back(exact(0.0));
+                } else {
+                  finite.push_back(quotient(dyadic(a), dyadic(b)));
+                }
+              }
+            }
+            const auto check_quotient = [&](const std::string& name, const interval& r) {
+              const auto describe = [&] { return operands(X, Y) + ": " + hex(r); };
+              check(name + " at special values: the lower bound",
+                    !r.is_empty() && (minus_inf ? r.left() == -inf : is_tightest_lower_bound(r.left(), min(finite))), describe);
+              check(name + " at special values: the upper bound",
+                    !r.is_empty() && (plus_inf ? r.right() == inf : is_tightest_upper_bound(r.right(), max(finite))), describe);
+            };
+            check_quotient("[x]/[y]", X / Y);
+            { interval r(X); r /= Y; check_quotient("[x]/=[y]", r); }
+            check_quotient("[x]%[y]", X % Y);
+          }
+        }
+      }
+    }
+  }
+
+  // The rational operations that the lines below are written with
+  Exact operator-(const Exact& a, const Exact& b)
+  {
+    return a + (-b);
+  }
+
+  // b is not 0
+  Exact operator/(const Exact& a, const Exact& b)
+  {
+    return quotient(a.num*b.den, a.den*b.num);
+  }
+
+  /*
+    Lines of + - * / alone between eight operands, written once for the
+    intervals and for the rational numbers: a, b, s1 to s4 of either sign, p
+    and e positive, the divisors (GAOL v5, point ZZ of TODO.md: the same lines
+    as the benchmark of doc/compare)
+  */
+  template<class T> T sum16(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    return a + b + p + e + s1 + s2 + s3 + s4 + a + b + p + e + s1 + s2 + s3 + s4;
+  }
+  template<class T> T diff16(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    return a - b + p - e + s1 - s2 + s3 - s4 - a + b - p + e - s1 + s2 - s3 + s4;
+  }
+  template<class T> T mul8(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    return a * b * p * e * s1 * s2 * s3 * s4;
+  }
+  template<class T> T mul8_tree(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    return ((a * b) * (p * e)) * ((s1 * s2) * (s3 * s4));
+  }
+  template<class T> T quot8(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    (void)b; (void)s1; (void)s2; (void)s3; (void)s4;
+    return a / p / e / p / e / p / e / p;
+  }
+  template<class T> T mix13(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    return ((((((a + b) * p - e) * s1 + s2) * p - s3) / e + a) * b - s4) / p + e;
+  }
+  template<class T> T mix_tree(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    return ((a + b) * (p - e) + (s1 - s2) * (s3 + s4)) / (p + e)
+           + ((a - b) * (s1 + s2) - (p * e) / (p + e)) / (e + p);
+  }
+
+  // The lines of operators on random intervals enclose the line of the
+  // rational numbers computed at a bound of each operand, and the operators
+  // and the compound assignments give the same bounds, line by line
+  void long_lines(Random& random)
+  {
+    for (int i = 0; i < 300; ++i) {
+      interval operands[8];
+      double points[8];
+      for (int k = 0; k < 8; ++k) {
+        const bool positive = (k == 2 || k == 3);
+        const double u = positive ? random.positive(-8, 8) : random(-8, 8);
+        const double v = positive ? random.positive(-8, 8) : random(-8, 8);
+        operands[k] = interval(std::min(u, v), std::max(u, v));
+        points[k] = (random.bits() & 1u) ? operands[k].left() : operands[k].right();
+      }
+      Exact exact_points[8];
+      for (int k = 0; k < 8; ++k) {
+        exact_points[k] = exact(points[k]);
+      }
+      const auto describe = [&] {
+        std::string text;
+        for (int k = 0; k < 8; ++k) {
+          text += (k ? " " : "") + hex(operands[k]);
+        }
+        return text;
+      };
+#define LONG_LINE(NAME)                                                                                  \
+      {                                                                                                  \
+        const interval r = NAME<interval>(operands[0], operands[1], operands[2], operands[3],            \
+                                          operands[4], operands[5], operands[6], operands[7]);           \
+        const Exact v = NAME<Exact>(exact_points[0], exact_points[1], exact_points[2], exact_points[3],  \
+                                    exact_points[4], exact_points[5], exact_points[6], exact_points[7]); \
+        check(#NAME ": encloses the line at a bound of each operand",                                    \
+              !r.is_empty() && compare(r.left(), v) <= 0 && compare(r.right(), v) >= 0, describe);       \
+      }
+      LONG_LINE(sum16)
+      LONG_LINE(diff16)
+      LONG_LINE(mul8)
+      LONG_LINE(mul8_tree)
+      LONG_LINE(quot8)
+      LONG_LINE(mix13)
+      LONG_LINE(mix_tree)
+#undef LONG_LINE
+      // The same additions and products with += and *=, the quotients with /=
+      {
+        const interval *o = operands;
+        interval s(o[0]), d(o[0]), m(o[0]), q(o[0]);
+        for (int k : { 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 }) {
+          s += o[k];
+        }
+        d -= o[1]; d += o[2]; d -= o[3]; d += o[4]; d -= o[5]; d += o[6]; d -= o[7];
+        d -= o[0]; d += o[1]; d -= o[2]; d += o[3]; d -= o[4]; d += o[5]; d -= o[6]; d += o[7];
+        for (int k : { 1, 2, 3, 4, 5, 6, 7 }) {
+          m *= o[k];
+        }
+        q /= o[2]; q /= o[3]; q /= o[2]; q /= o[3]; q /= o[2]; q /= o[3]; q /= o[2];
+        const auto same = [](const interval& x, const interval& y) {
+          return !x.is_empty() && !y.is_empty() && x.left() == y.left() && x.right() == y.right();
+        };
+        check("a line of + with +=: the bounds of the operators", same(s, sum16<interval>(o[0], o[1], o[2], o[3], o[4], o[5], o[6], o[7])), describe);
+        check("a line of + and - with += and -=: the bounds of the operators", same(d, diff16<interval>(o[0], o[1], o[2], o[3], o[4], o[5], o[6], o[7])), describe);
+        check("a line of * with *=: the bounds of the operators", same(m, mul8<interval>(o[0], o[1], o[2], o[3], o[4], o[5], o[6], o[7])), describe);
+        check("a line of / with /=: the bounds of the operators", same(q, quot8<interval>(o[0], o[1], o[2], o[3], o[4], o[5], o[6], o[7])), describe);
+      }
+    }
+  }
+
   // gaol::pow(x, n) for an unsigned n, gaol_uipow(), the pown of IEEE 1788
   // for an unsigned exponent, as for an int n: GAOL declared it public, as
   // uipow(), but defined it GAOL_INLINE with the SSE2 intervals, and a program
@@ -1145,6 +1318,8 @@ int main()
   divisions_by_zero();
   operations_with_special_doubles();
   products_with_infinite_bounds();
+  quotients_at_special_values();
+  long_lines(random);
   unsigned_powers();
   negative_powers_at_special_values();
   squares_at_special_values();
