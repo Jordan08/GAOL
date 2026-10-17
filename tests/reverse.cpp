@@ -296,7 +296,8 @@ namespace
       }
       // c from the powers of two points, or around one, or of the pools
       interval c;
-      const int i = random.integer(0, 23), j = random.integer(0, 23), kind = random.integer(0, 3);
+      const std::size_t i = static_cast<std::size_t>(random.integer(0, 23)), j = static_cast<std::size_t>(random.integer(0, 23));
+      const int kind = random.integer(0, 3);
       if (kind == 0 && !powers[i].is_empty() && !powers[j].is_empty()) {
         c = interval(std::min(powers[i].left(), powers[j].left()), std::max(powers[i].right(), powers[j].right()));
       } else if (kind == 1 && !powers[i].is_empty()) {
@@ -311,7 +312,7 @@ namespace
         continue;
       }
       const interval rx = pow_rel(c, y, a), ry = pow_exponent_rel(c, a, y);
-      for (int p = 0; p < 24; ++p) {
+      for (std::size_t p = 0; p < 24; ++p) {
         if (powers[p].is_empty() || !c.set_contains(powers[p])) {
           continue; // x^y not proved to be in c
         }
