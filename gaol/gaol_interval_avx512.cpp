@@ -34,11 +34,14 @@
  * The functions of this file are compiled into the library where
  * GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
  * compiler that takes them, and a machine building that runs them. Only
- * they carry __attribute__((target("avx512f"))), which makes the compiler
+ * they, and the functions of the integer powers that call theirs
+ * (GAOL_POWN_TARGET), carry __attribute__((target("avx512f"))), which makes the compiler
  * accept the AVX-512 instructions in them alone, and the code outside them
  * is compiled as before; the library then needs a processor with the
- * instructions. +, -, *, / and sqrt take this path, with no flag to test as
- * they run (gaol::init() set one, which every operation tested, until point
+ * instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
+ * integer powers of gaol_pown() (pown_large_er() of
+ * gaol/gaol_interval_core.cpp; GAOL v5, point ZZ of TODO.md), with no flag to
+ * test as they run (gaol::init() set one, which every operation tested, until point
  * AA of TODO.md): they never touch the rounding direction, whatever the
  * program left, and clear the modes that flush the subnormals to zero only
  * where they are set, as the other operations do. The divisions and the square roots take
@@ -46,8 +49,9 @@
  * on the processors that halve it (the i7-1185G7 measures 6.0 ns against
  * 1.8 for a division, 8.0 against 2.0 for a square root, where an
  * addition takes 0.9 against 1.8 and a product 0.8 against 1.9). The
- * operations the path does not take are unchanged: the integer powers, the
- * relational divisions, the reverse functions, the reading of a number,
+ * operations the path does not take are unchanged: the integer powers
+ * beyond the range of their exact products, and the exponents 0, 1 and -1,
+ * the relational divisions, the reverse functions, the reading of a number,
  * which set the direction as they always did.
  *
  * The dispatch of the products and of the divisions below compares the

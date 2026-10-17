@@ -351,6 +351,23 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   }
 
   /*
+    The kernels of the four operations between two intervals, on their stored
+    bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the operators of the
+    header call them (see gaol_interval_sse.h) with the two doubles in a
+    register and have them back in one, where operator+=() read and wrote
+    them through memory, and its result went back to memory for the
+    operation that followed. The check of the rounding direction is theirs:
+    the code that calls them is compiled with the flags of its own program.
+    Where GAOL_AVX512_ARITHMETIC is, they are the functions of
+    gaol_interval_avx512.cpp, and carry its target.
+  */
+#if GAOL_AVX512_ARITHMETIC
+#  define GAOL_BOUNDS_TARGET GAOL_AVX512_TARGET
+#else
+#  define GAOL_BOUNDS_TARGET
+#endif
+
+  /*
     The lanes of the result that the interval straddling zero (movemask 0: the
     left bound stored negated and the right one both not negative) sets to 0:
     its lower bound is 0, where the maximum of the two squares below gives
@@ -375,11 +392,30 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     point ZZ of TODO.md, which made sqr() three times faster). The bounds are
     those of the switch, bit for bit, the sign of the zeros included.
   */
-  __m128d sqr_bounds(__m128d x)
+  GAOL_BOUNDS_TARGET __m128d sqr_bounds(__m128d x)
   {
     if (_mm_movemask_pd(_mm_cmpunord_pd(x, x)) != 0) { // the empty set
       return x;
     }
+#if GAOL_AVX512_ARITHMETIC
+    /*
+      The AVX-512 path: the same two products and the same maximum, the
+      products being those of the embedded rounding, which sets no rounding
+      direction: with GAOL_PRESERVE_ROUNDING, the save and the restore of
+      MXCSR that the path below makes took 6.2 of the 8.1 ns of a square, the
+      two writes of the control register waiting for the operations in flight
+      (an i7-1185G7, Clang 21), as mul_bounds() and div_bounds() are on this
+      path. The bounds are those of the SSE2 path, bit for bit, the sign of
+      the zeros included.
+    */
+    const flush_guard flush;
+    const __m128d xi = flush_guard::in(x);
+    const __m128d s1 = er_mul2(xi, _mm_xor_pd(xi, interval::lbsignmask));
+    const __m128d xs = _mm_shuffle_pd(xi, xi, 1);
+    const __m128d s2 = er_mul2(xs, _mm_xor_pd(xs, interval::lbsignmask));
+    return flush_guard::out(_mm_and_pd(_mm_max_pd(s1, s2),
+                            _mm_load_pd(reinterpret_cast<const double *>(sqr_lanes[_mm_movemask_pd(xi)]))));
+#else
     GAOL_RND_ENTER_SSE();
     x = reread_bounds(x);
     const __m128d s1 = _mm_mul_pd(x, _mm_xor_pd(x, interval::lbsignmask));
@@ -390,25 +426,9 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return res;
+#endif
   }
 
-
-  /*
-    The kernels of the four operations between two intervals, on their stored
-    bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the operators of the
-    header call them (see gaol_interval_sse.h) with the two doubles in a
-    register and have them back in one, where operator+=() read and wrote
-    them through memory, and its result went back to memory for the
-    operation that followed. The check of the rounding direction is theirs:
-    the code that calls them is compiled with the flags of its own program.
-    Where GAOL_AVX512_ARITHMETIC is, they are the functions of
-    gaol_interval_avx512.cpp, and carry its target.
-  */
-#if GAOL_AVX512_ARITHMETIC
-#  define GAOL_BOUNDS_TARGET GAOL_AVX512_TARGET
-#else
-#  define GAOL_BOUNDS_TARGET
-#endif
 
   GAOL_BOUNDS_TARGET __m128d add_bounds(__m128d x, __m128d y)
   {

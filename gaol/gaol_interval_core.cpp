@@ -68,6 +68,15 @@
 #else
 #  define GAOL_POWN_PACKED 0
 #endif
+// The same kernel rounded upward by the embedded rounding of AVX-512, where
+// GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
+// pown_large_er()): it needs the packed kernel, and runs in functions that
+// carry the target of gaol/gaol_interval_avx512.cpp
+#if GAOL_POWN_PACKED && defined(__x86_64__) && GAOL_AVX512_ARITHMETIC
+#  define GAOL_POWN_ER 1
+#else
+#  define GAOL_POWN_ER 0
+#endif
 
 using std::ostream;
 using std::istream;
@@ -217,6 +226,17 @@ namespace gaol_core {
 #else
 #  define GAOL_POWN_INLINE inline
 #endif
+// The functions that inline the operations of pown_er_lanes (and the ones
+// that call them) carry the target of those: the compiler refuses to inline a
+// function of an AVX-512 target into another. The library needs a processor
+// with AVX-512 where GAOL_POWN_ER is, as for the other operations of the path
+#if GAOL_POWN_ER
+#  define GAOL_POWN_TARGET GAOL_AVX512_TARGET
+#  define GAOL_POWN_INLINE_T GAOL_AVX512_TARGET GAOL_POWN_INLINE
+#else
+#  define GAOL_POWN_TARGET
+#  define GAOL_POWN_INLINE_T GAOL_POWN_INLINE
+#endif
 
   // 2^(-968/2^L) rounded upward and 2^(960/2^L) rounded downward, for the
   // m of L bits, 2 <= L <= 32 (2^(L-1) <= m < 2^L): |c|^m is then within
@@ -295,6 +315,56 @@ namespace gaol_core {
   static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b) { return _mm_fmadd_pd(_mm_set1_pd(2.0), a, b); }
   static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e) { return e; }
   static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e) { s = _mm_or_pd(s, e); }
+#  if GAOL_POWN_ER
+  /*
+    The two lanes of the kernel rounded upward by the embedded rounding of
+    AVX-512 (_mm512_*_round_pd on the 512 bits of which the upper ones are not
+    used, as er_mul2() does) rather than by the direction of MXCSR: the same
+    operations in the same order as the ones above, so the same bits, with no
+    write of MXCSR, which cost 3 to 6 ns an operation with
+    GAOL_PRESERVE_ROUNDING. A struct, so that no operation of a register of
+    the other kind is taken for one of this: the compiler refuses it, and
+    would otherwise round it by the direction of MXCSR, which is not upward.
+  */
+  struct pown_er_lanes { __m128d v; };
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_mul(pown_er_lanes a, pown_er_lanes b)
+  {
+    const pown_er_lanes r = { er_mul2(a.v, b.v) };
+    return r;
+  }
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_fms(pown_er_lanes a, pown_er_lanes b, pown_er_lanes c)
+  {
+    const pown_er_lanes r = { back128(_mm512_fmsub_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
+    return r;
+  }
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_fma(pown_er_lanes a, pown_er_lanes b, pown_er_lanes c)
+  {
+    const pown_er_lanes r = { back128(_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
+    return r;
+  }
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_fnmadd(pown_er_lanes a, pown_er_lanes b, pown_er_lanes c)
+  {
+    const pown_er_lanes r = { back128(_mm512_fnmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
+    return r;
+  }
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_twice_plus(pown_er_lanes a, pown_er_lanes b)
+  {
+    const pown_er_lanes r = { back128(_mm512_fmadd_round_pd(_mm512_set1_pd(2.0), lo512(a.v), lo512(b.v), gaol_er)) };
+    return r;
+  }
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_div(pown_er_lanes a, pown_er_lanes b)
+  {
+    const pown_er_lanes r = { back128(_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
+    return r;
+  }
+  static GAOL_POWN_INLINE_T pown_er_lanes pown_add(pown_er_lanes a, pown_er_lanes b)
+  {
+    const pown_er_lanes r = { back128(_mm512_add_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
+    return r;
+  }
+  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_er_lanes e) { return e.v; }
+  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_er_lanes e) { s = _mm_or_pd(s, e.v); }
+#  endif
 #else
   struct pown_lanes { double l0, l1; };
   struct pown_rests { std::uint64_t l0, l1; };
@@ -338,7 +408,7 @@ namespace gaol_core {
     prototype).
   */
   template <class Lanes, class Rests>
-  static GAOL_POWN_INLINE void pown_products(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
+  static GAOL_POWN_INLINE_T void pown_products(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
   {
     unsigned int bit = (1u << (pown_bit_length(m) - 1u)) >> 1;
     h = pown_mul(c, c);
@@ -366,7 +436,7 @@ namespace gaol_core {
 
 #define GAOL_POWN_CASE(k) case k: pown_products(c, k##u, h, l, s); break;
   template <class Lanes, class Rests>
-  static GAOL_POWN_INLINE void pown_powers(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
+  static GAOL_POWN_INLINE_T void pown_powers(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
   {
     switch (m) {
       GAOL_POWN_CASE(2) GAOL_POWN_CASE(3) GAOL_POWN_CASE(4) GAOL_POWN_CASE(5)
@@ -1815,7 +1885,7 @@ namespace gaol_core {
     Inlined in gaol_pown() alone: its switch over the small exponents is long,
     and the other callers, five, call pown_large_upward().
   */
-  static GAOL_POWN_INLINE interval pown_large_inline(const interval& I, int n)
+  static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
   {
     const bool negative = n < 0;
     const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
@@ -1902,7 +1972,77 @@ namespace gaol_core {
     return pown_by_corners(a, b, n);
   }
 
-  static interval pown_large_upward(const interval& I, int n)
+#if GAOL_POWN_ER
+  /*
+    The packed kernel of pown_large_inline(), rounded upward by the embedded
+    rounding (GAOL v5, point ZZ of TODO.md): the same operations in the same
+    order, on pown_er_lanes, so that the bounds are the same bit for bit, and
+    no direction of MXCSR is read or written. With GAOL_PRESERVE_ROUNDING,
+    gaol_pown() saved the direction, set it upward and restored it around the
+    kernel: pown(x, 3) took 19.0 ns, the direction being read and written
+    through the C library and the control word of the x87 unit as well, 8.4
+    ns with the writes of MXCSR alone (GAOL_RND_ENTER_X64()), and takes 6.2
+    with this kernel, against the 5.1 of the direction left upward (an
+    i7-1185G7, Clang 21): the two writes of MXCSR cost 3 to 6 ns, each one
+    waiting for the operations in flight. The function gives false, res left
+    alone, where the corners are not both in the range of pown_least[] and
+    pown_greatest[] (pown_by_corners(), which rounds by the direction, is
+    called then), and for an n < 0 with 0 in I. The bounds a and b of I are
+    read after the clearing of the modes that flush the subnormals to zero
+    (flush_guard), which the embedded rounding honours. res is the stored
+    pair, <-lower, upper>. It repeats the block of pown_large_inline() for
+    the packed kernel, on the other lanes: keep them alike. They give the
+    same bounds on 8.8 million powers (tests/tools/pow/mutate.py has
+    mutants of both).
+  */
+  static GAOL_POWN_INLINE_T bool pown_large_er(double a, double b, int n, __m128d& res)
+  {
+    const bool negative = n < 0;
+    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    const unsigned int L = pown_bit_length(m);
+    if (negative && !(a > 0.0 || b < 0.0)) {
+      return false;
+    }
+    const __m128d ab = _mm_set_pd(b, a), nba = _mm_set_pd(-a, -b), zero = _mm_setzero_pd();
+    __m128d c = ((m & 1u) != 0u) ? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);
+    if (negative) {
+      c = _mm_shuffle_pd(c, c, 1);
+    }
+    const __m128d minus_zero = _mm_set1_pd(-0.0);
+    const __m128d g = _mm_andnot_pd(minus_zero, c);
+    __m128d ok = _mm_and_pd(_mm_cmpge_pd(g, _mm_set1_pd(pown_least[L])), _mm_cmple_pd(g, _mm_set1_pd(pown_greatest[L])));
+    if (!negative) {
+      ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));
+    }
+    if (_mm_movemask_pd(ok) != 3) {
+      return false;
+    }
+    pown_er_lanes h, l;
+    __m128d s, K;
+    const pown_er_lanes gl = { g };
+    pown_powers(gl, m, h, l, s);
+    if (negative) {
+      const pown_er_lanes one = { _mm_set1_pd(1.0) };
+      const pown_er_lanes q = pown_div(one, h);
+      const pown_er_lanes r = pown_fnmadd(q, l, pown_fnmadd(q, h, one)); // (1 - q h) - q l
+      const pown_er_lanes qr = pown_mul(q, r);
+      l = pown_fma(qr, r, qr); // q (r + r^2)
+      h = q;
+      pown_add_rest(s, r);
+      K = _mm_set1_pd(pown_bound_inverse(m, L));
+    } else {
+      K = _mm_set1_pd(pown_bound(m, L));
+    }
+    K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
+    const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
+    const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
+    const pown_er_lanes vs = { _mm_xor_pd(h.v, sign) }, ws = { _mm_xor_pd(l.v, sign) }, Kl = { K };
+    res = pown_add(vs, pown_fma(Kl, h, ws)).v;
+    return true;
+  }
+#endif
+
+  static GAOL_POWN_TARGET interval pown_large_upward(const interval& I, int n)
   {
     return pown_large_inline(I, n);
   }
@@ -2004,21 +2144,35 @@ namespace gaol_core {
     to x^1000 (5.9 ns rather than 5.5 for x^3, with Clang 21 on an
     i7-1185G7).
   */
-  interval gaol_pown(const interval& I, int n)
+  GAOL_POWN_TARGET interval gaol_pown(const interval& I, int n)
   {
-    GAOL_RND_ENTER();
+#if GAOL_POWN_ER
+    // The embedded rounding sets no direction: the modes that flush the
+    // subnormals to zero are cleared for the kernel (flush_guard), the bounds
+    // read after, and the result made before the modes are set back
+    if ((n < -1 || n > 1) && !I.is_empty()) {
+      const flush_guard flush;
+      __m128d stored;
+      if (pown_large_er(flush_guard::in(I.left()), flush_guard::in(I.right()), n, stored)) {
+        return interval(flush_guard::out(stored));
+      }
+    }
+#endif
+    GAOL_RND_ENTER_X64();
     interval res = (I.is_empty() || (n >= -1 && n <= 1)) ? pown_upward(I, n) : pown_large_inline(I, n);
     GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
+    GAOL_RND_LEAVE_X64();
     return res;
   }
 
   // gaol_pown() within the ints, CORE-MATH's pow beyond them (GAOL v5)
   interval gaol_uipow(const interval& I, unsigned int e)
   {
+    if (e <= static_cast<unsigned int>(INT_MAX)) {
+      return gaol_pown(I, static_cast<int>(e));
+    }
     GAOL_RND_ENTER();
-    interval res = (e <= static_cast<unsigned int>(INT_MAX)) ? pown_upward(I, static_cast<int>(e))
-      : pown_beyond_upward(I, static_cast<double>(e), 0.0, (e & 1u) != 0u);
+    interval res = pown_beyond_upward(I, static_cast<double>(e), 0.0, (e & 1u) != 0u);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;

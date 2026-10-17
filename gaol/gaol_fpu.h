@@ -226,6 +226,34 @@ direction when it is preserved.
 #endif // GAOL_PRESERVE_ROUNDING
 
 /*
+GAOL_RND_ENTER_X64() and GAOL_RND_LEAVE_X64(), for the operations whose
+doubles are all computed by SSE instructions and that call nothing reading the
+direction elsewhere than in MXCSR: the integer powers, on x86-64, where the
+doubles are SSE's whatever the compiler, and where the fused multiply-add is
+an instruction (__FMA__, GAOL_FMA) rather than a call of the C library, whose
+way of rounding GAOL does not control. They are GAOL_RND_ENTER_SSE() and
+GAOL_RND_LEAVE_SSE() there, and GAOL_RND_ENTER() and GAOL_RND_LEAVE() anywhere
+else (32-bit x86, where the x87 unit computes doubles too, the FPU
+intervals, a library built without the fused multiply-add).
+
+With GAOL_PRESERVE_ROUNDING, the first two read and write MXCSR once each, the
+others read the direction through fegetround() and set it back through
+fesetround() as well, which write the control word of the x87 unit and MXCSR
+again, and clear the flush-to-zero modes and set the direction upward as two
+separate writes: pown(x, 3) took 19.0 ns with them, 8.4 with the others, and
+5.1 with the direction left upward, the writes of the control registers being
+the difference (an i7-1185G7, Clang 21; GAOL v5, point ZZ of TODO.md,
+doc/compare/performance.md).
+*/
+#if GAOL_USING_SSE2_INSTRUCTIONS && (defined(__x86_64__) || defined(_M_X64)) && defined(__FMA__)
+#  define GAOL_RND_ENTER_X64() GAOL_RND_ENTER_SSE()
+#  define GAOL_RND_LEAVE_X64() GAOL_RND_LEAVE_SSE()
+#else
+#  define GAOL_RND_ENTER_X64() GAOL_RND_ENTER()
+#  define GAOL_RND_LEAVE_X64() GAOL_RND_LEAVE()
+#endif
+
+/*
 GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
 of the mathematical library of an operation, made with the functions of
 gaol::nearest, which need the rounding direction to nearest (GAOL v5):
