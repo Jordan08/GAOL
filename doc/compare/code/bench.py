@@ -11,6 +11,13 @@
     bench.py lines-report RESULTS.csv MACHINE.txt REPORT.md
         writes the tables of the long lines (run_lines.sh) between their own
         markers at the end of REPORT.md
+    bench.py merge OLD.csv NEW.csv OUT.csv
+        writes the rows of OLD.csv that NEW.csv has no row for, then those of
+        NEW.csv (MERGE=1 of run_bench.sh)
+    bench.py merge-machine OLD.txt NEW.txt OUT.txt LIBRARIES DATE
+        writes OLD.txt with the line of each of the LIBRARIES (a list separated
+        by blanks) that NEW.txt has, said measured (again) on DATE, in place of
+        its line, or added after the other lines of GAOL V5.0.0
 """
 
 # Copyright (c) 2026 ENSTA, France
@@ -77,9 +84,43 @@ def line_operations(formula):
 # Frédéric Goualard, which GAOL V5.0.0 continues, run on the same intervals
 REFERENCE = "gaol5"
 LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"),
-             ("gaol5", "GAOL V5.0.0"), ("gaol", "GAOL 4.2.3"),
+             ("gaol5", "GAOL V5.0.0"), ("gaol5p", "GAOL V5.0.0, rounding direction preserved"),
+             ("gaol", "GAOL 4.2.3"),
              ("filib", "filib++"), ("solaris_f90", "Solaris Studio f90"), ("profil", "PROFIL/BIAS"),
              ("boost", "Boost.Interval")]
+# GAOL V5.0.0 built with GAOL_PRESERVE_ROUNDING=ON has a column in the table of
+# the times only, where it stands next to GAOL V5.0.0: its results are the same
+TIME_ONLY = ("gaol5p",)
+
+
+# The line of machine.txt that says how each GAOL of this repository was built
+MACHINE_LINES = {"gaol5": "GAOL V5.0.0:", "gaol5p": "GAOL V5.0.0 preserved:"}
+
+
+def merge(old, new, out):
+    new_rows = [r for r in csv.reader(open(new)) if len(r) == 8]
+    ran = {(r[0].strip(), r[1].strip()) for r in new_rows}
+    kept = [r for r in csv.reader(open(old)) if len(r) == 8 and (r[0].strip(), r[1].strip()) not in ran]
+    with open(out, "w", newline="") as f:
+        csv.writer(f, lineterminator="\n").writerows(kept + new_rows)
+
+
+def merge_machine(old, new, out, libraries, today):
+    fresh = {line.split(":")[0] + ":": line.rstrip("\n") for line in open(new)}
+    lines = [line.rstrip("\n") for line in open(old)]
+    for lib in libraries.split():
+        label = MACHINE_LINES.get(lib)
+        if label is None or label not in fresh:
+            continue
+        if any(l.startswith(label) for l in lines):
+            line = fresh[label] + f" (measured again on {today})"
+            lines = [line if l.startswith(label) else l for l in lines]
+        else:
+            line = fresh[label] + f" (measured on {today})"
+            at = max([i for i, l in enumerate(lines) if l.startswith("GAOL V5.0.0")], default=len(lines) - 1)
+            lines.insert(at + 1, line)
+    with open(out, "w") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 def data(n, path):
@@ -147,17 +188,18 @@ def report(results_path, machine_path, out):
     results = read_results(results_path)
     with open(machine_path) as f:
         machine = f.read().strip()
-    libs = [(key, name) for key, name in LIBRARIES if any(k[0] == key for k in results)]
+    all_libs = [(key, name) for key, name in LIBRARIES if any(k[0] == key for k in results)]
+    libs = [(key, name) for key, name in all_libs if key not in TIME_ONLY]
     ops = [(op, what) for op, what in OPERATIONS if any(k[1] == op for k in results)]
     lines = []
     lines.append("Measured on:\n\n```\n" + machine + "\n```\n\n")
 
     n = max(r["n"] for r in results.values())
-    runs = {key: max((r["repeats"] for k, r in results.items() if k[0] == key), default=0) for key, _ in libs}
+    runs = {key: max((r["repeats"] for k, r in results.items() if k[0] == key), default=0) for key, _ in all_libs}
     rounds = max(r["rounds"] for r in results.values())
     lines.append(f"{n:,}".replace(",", " ") + " operations of each kind, on the same intervals. Each time is "
                  f"the best of {rounds} rounds, each program being run in turn with the others: "
-                 + ", ".join(f"{runs[key]} runs for {name}" for key, name in libs) + " in all.\n\n")
+                 + ", ".join(f"{runs[key]} runs for {name}" for key, name in all_libs) + " in all.\n\n")
 
     lines.append("#### The operations\n\n")
     lines.append("a and b are intervals centred in [−10, 10], p in [1, 10], e in [0.5, 2.5], the arguments of "
@@ -168,16 +210,16 @@ def report(results_path, machine_path, out):
     lines.append("\n")
 
     lines.append("#### Time per operation (nanoseconds)\n\n")
-    head = "| Operation | " + " | ".join(name for _, name in libs)
+    head = "| Operation | " + " | ".join(name for _, name in all_libs)
     reference = REFERENCE if any(k[0] == REFERENCE for k in results) else "gaol"
     reference_name = dict(LIBRARIES)[reference]
-    ratios = [(key, name) for key, name in libs if key not in ("double", reference)]
+    ratios = [(key, name) for key, name in all_libs if key not in ("double", reference)]
     head += "".join(f" | {name} / {reference_name}" for _, name in ratios) + " |\n"
     lines.append(head)
-    lines.append("|---" * (1 + len(libs) + len(ratios)) + "|\n")
+    lines.append("|---" * (1 + len(all_libs) + len(ratios)) + "|\n")
     for op, _ in ops:
         cells = []
-        for key, _ in libs:
+        for key, _ in all_libs:
             r = results.get((key, op))
             cells.append(ns(r["ns"]) if r else "—")
         g = results.get((reference, op))
@@ -186,6 +228,15 @@ def report(results_path, machine_path, out):
             cells.append(ratio(r["ns"], g["ns"]) if r and g else "—")
         lines.append(f"| `{op}` | " + " | ".join(cells) + " |\n")
     lines.append("\n")
+    if any(k[0] == "gaol5p" for k in results):
+        lines.append("GAOL V5.0.0, rounding direction preserved, is the same GAOL built with "
+                     "`GAOL_PRESERVE_ROUNDING=ON`: each operation restores the rounding direction it found, "
+                     "where GAOL V5.0.0 leaves it upward. AVX-512 stays enabled in it: `GAOL_PREFER_AVX512`, "
+                     "which that option turns on by default, is left on, so that `+`, `−`, `×`, `/`, `√`, `sqr` and the "
+                     "integer powers take the AVX-512 instructions, the rounding direction being in the "
+                     "instruction (the machine description above says whether the library took them); the "
+                     "other operations read the direction, set it upward and restore it. Its column is in this table only: "
+                     "its results are those of GAOL V5.0.0.\n\n")
 
     lines.append("#### Total time of the " + f"{n:,}".replace(",", " ") + " operations (seconds)\n\n")
     lines.append("| Operation | " + " | ".join(name for _, name in libs) + " |\n")
@@ -344,5 +395,9 @@ if __name__ == "__main__":
         report(sys.argv[2], sys.argv[3], sys.argv[4])
     elif len(sys.argv) == 5 and sys.argv[1] == "lines-report":
         lines_report(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 5 and sys.argv[1] == "merge":
+        merge(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 7 and sys.argv[1] == "merge-machine":
+        merge_machine(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
     else:
         sys.exit(__doc__)

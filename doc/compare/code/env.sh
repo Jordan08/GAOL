@@ -51,6 +51,10 @@ GAOL_GOUALARD_REPO=https://github.com/goualard-f/GAOL
 GAOL_GOUALARD_COMMIT=cd0ee1a75febab97a7f6c18a03e31780a2717f2c
 GAOL_GOUALARD_VERSION=4.2.3
 GAOL_GOUALARD_PREFIX="$PREFIX/gaol-goualard"
+# GAOL of this repository again, built with GAOL_PRESERVE_ROUNDING=ON, in a
+# prefix of its own: the column "GAOL V5.0.0, rounding direction preserved" of
+# the benchmark (setup.sh)
+GAOL_PRESERVE_PREFIX="$PREFIX/gaol-preserve"
 MATHLIB_VERSION=2.1.1
 MATHLIB_URL=https://frederic.goualard.net/software/mathlib-$MATHLIB_VERSION.tar.gz
 MATHLIB_SHA256=f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281
@@ -82,6 +86,8 @@ export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
 # Compiler flags of GAOL, as installed (gaol.pc), of libieeep1788 and of filib++
 gaol_cflags() { pkg-config --cflags gaol; }
 gaol_libs() { pkg-config --libs gaol; }
+gaol_preserve_cflags() { PKG_CONFIG_PATH="$GAOL_PRESERVE_PREFIX/lib/pkgconfig" pkg-config --cflags gaol; }
+gaol_preserve_libs() { PKG_CONFIG_PATH="$GAOL_PRESERVE_PREFIX/lib/pkgconfig" pkg-config --libs gaol; }
 # Goualard's GAOL installs no gaol.pc: its headers hold the SSE2 and SSE3
 # intervals its configure found, and its library calls mathlib's
 gaol_goualard_cflags() { echo "-I$GAOL_GOUALARD_PREFIX/include $IA_CXXFLAGS -msse2 -msse3 $FMA_FLAGS"; }

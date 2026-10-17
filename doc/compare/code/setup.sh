@@ -5,7 +5,8 @@
 #   - filib++ FILIB_VERSION, unless FILIB_DIR gives an installed one,
 #   - PROFIL/BIAS PROFIL_VERSION, from its site (or the archive PROFIL_TGZ),
 #     built with its x86-64 Linux configuration,
-#   - GAOL, this repository, built with CMake in Release and installed,
+#   - GAOL, this repository, built with CMake in Release and installed, and
+#     again with GAOL_PRESERVE_ROUNDING=ON, in a prefix of its own,
 #   - the last GAOL of Frédéric Goualard, at the commit GAOL_GOUALARD_COMMIT,
 #     with mathlib MATHLIB_VERSION, built with their configure,
 #   - Boost.Interval, of the Boost release BOOST_VERSION, header-only,
@@ -138,6 +139,32 @@ else
         -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" > "$WORK/gaol-configure.log"
   cmake --build "$WORK/gaol-build" -j"$JOBS" > "$WORK/gaol-build.log"
   cmake --install "$WORK/gaol-build" > "$WORK/gaol-install.log"
+fi
+
+## GAOL again, with the rounding direction preserved (GAOL_PRESERVE_ROUNDING=ON),
+## in a prefix of its own: the benchmark has a column for it. GAOL_PREFER_AVX512
+## is left at its default, which is ON with GAOL_PRESERVE_ROUNDING where the
+## compiler takes the AVX-512 instructions and the machine building runs them:
+## +, -, *, / and sqrt then take them, the rounding direction being in the
+## instruction (the library then needs a processor with them)
+if [ -f "$GAOL_PRESERVE_PREFIX/include/gaol/gaol.h" ] && [ -z "${FORCE_GAOL:-}" ]; then
+  echo "== GAOL, rounding direction preserved: already in $GAOL_PRESERVE_PREFIX (FORCE_GAOL=1 to rebuild)"
+else
+  echo "== GAOL, rounding direction preserved ($(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
+  # -U: the default of GAOL_PREFER_AVX512 is derived where the command line says
+  # nothing, but a second configure in the same directory finds the OFF the first one
+  # cached, takes it for the command line's, and leaves the AVX-512 path out
+  cmake -S "$ROOT_DIR" -B "$WORK/gaol-preserve-build" -UGAOL_PREFER_AVX512 -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$GAOL_PRESERVE_PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" -DGAOL_PRESERVE_ROUNDING=ON \
+        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" > "$WORK/gaol-preserve-configure.log"
+  cmake --build "$WORK/gaol-preserve-build" -j"$JOBS" > "$WORK/gaol-preserve-build.log"
+  cmake --install "$WORK/gaol-preserve-build" > "$WORK/gaol-preserve-install.log"
+fi
+if grep -q "^#define GAOL_AVX512_ARITHMETIC 1" "$GAOL_PRESERVE_PREFIX/include/gaol/gaol_configuration.h"; then
+  echo "   the AVX-512 path of + - * / sqrt is on"
+else
+  echo "   note: the AVX-512 path is off here (no AVX-512 compiler or processor): the column of the preserved direction is SSE2's"
 fi
 
 ## The last GAOL of Frédéric Goualard, which GAOL v5 continues, with mathlib,

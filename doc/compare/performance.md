@@ -17,6 +17,7 @@ benchmark again.
 | Library | Compiled with | Operations |
 |---|---|---|
 | GAOL V5.0.0 (this branch) | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by CMake in Release with `-mfma` (`GAOL_FMA`), the sources of CORE-MATH compiled into it, the rounding direction not preserved (`GAOL_PRESERVE_ROUNDING` off, its default) | Called under the names of IEEE 1788-2015, the namespace `gaol_ieee1788` (`pown(x, n)`, `pow(x, y)`), as the other libraries of the standard (GAOL v5); SSE2 operations that are calls into the library, the bounds passed and returned in registers, each kernel checking that the rounding direction is upward and setting it when it is not; **every** elementary function CORE-MATH's, correctly rounded in that direction, so the bounds are the tightest ones and the direction is never switched |
+| GAOL V5.0.0, rounding direction preserved (this branch) | The same, but GAOL built with `GAOL_PRESERVE_ROUNDING=ON`; `GAOL_PREFER_AVX512` left at its default, which is on with that option: **AVX-512 stays enabled** (the library takes the AVX-512 instructions where the compiler has them and the machine building runs them, as this one does) | The same program, in a column of the table of the times only; each operation restores the rounding direction it found instead of leaving it upward; `+`, `−`, `×`, `/`, `√`, `sqr` and the integer powers take the AVX-512 instructions, the rounding direction being in the instruction, so that they set no direction; the other operations read the direction, set it upward and restore it |
 | GAOL 4.2.3 (the last version of Frédéric Goualard) | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by its configure from [his repository](https://github.com/goualard-f/GAOL) (cd0ee1a), static, with the flags of GAOL V5.0.0, which its configure gives to `g++` alone, the rounding direction not preserved, its verbose mode off; [mathlib 2.1.1](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz) from his site, built by Clang 21.1 with `-O3 -mfma -ffp-contract=off` | Called under its own names, `gaol`; inline SSE2 operations, which take the rounding direction upward, as `gaol::init()` sets it, without checking it; elementary functions computed by mathlib, correctly rounded to nearest, then moved one double outward, the rounding direction set to nearest and back upward for each; `pow(x, y)` as exp(y·log(x)) |
 | libieeep1788 | Clang 21.1, `-O3 -mfma`; MPFR 4.2.1 and GMP 6.3.0 built by Clang 21.1 with `-O3 -mfma` | Each bound computed by MPFR, correctly rounded |
 | filib++ | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; filib++ 3.0.2.2, the archive IBEX distributes, built by Clang 21.1 in C++11 with `-O3 -mfma` | `interval<double, native_switched, i_mode_extended_flag>`, as in IBEX: inline operations, the rounding direction set and restored by each; elementary functions of its own |
@@ -30,8 +31,9 @@ The two versions of GAOL are measured side by side: **GAOL V5.0.0**, this
 branch, which bounds every elementary function with CORE-MATH, and **GAOL
 4.2.3**, the last version of Frédéric Goualard, which GAOL V5.0.0 continues
 and which bounds them with mathlib. Both are built without the preservation of
-the rounding direction, the default of GAOL V5.0.0. GAOL V5.0.0 is called
-under the names of IEEE 1788-2015, `gaol_ieee1788`, as the other libraries
+the rounding direction, the default of GAOL V5.0.0; GAOL V5.0.0 built with it,
+AVX-512 left enabled, has a column of its own in the first table. GAOL V5.0.0
+is called under the names of IEEE 1788-2015, `gaol_ieee1788`, as the other libraries
 of the standard are, and GAOL 4.2.3, which has only its own, under `gaol`: of
 the operations here, only the powers have other names there, `pown(x, 3)`
 and the real power `pow(x, y)` of the standard, which are the functions
@@ -113,6 +115,27 @@ libieeep1788's, which did not enclose the exact results; the benchmark now sets
 the direction back after its sums (`code/bench_common.h`). The bounds are the
 tightest, as before: the zero bound of a product or of a quotient may have the
 other sign ([accuracy](../accuracy.md#the-same-bounds-on-every-machine)).
+
+**Preserving the rounding direction** (the column "GAOL V5.0.0, rounding
+direction preserved" of the first table: `GAOL_PRESERVE_ROUNDING=ON`, with
+AVX-512 left enabled, as that option has it by default) leaves the sums and the
+differences as they are, 2.2 ns, and costs 1.5 times on the products and the
+quotients (3.4 and 3.7 ns), 1.6 times on the square root (10.3 ns), 1.1 times
+on `sqr` (2.1 ns against 1.9) and 1.2 times on `pow(x, 3)` (6.3 ns against
+5.1): these operations take the AVX-512 instructions, whose rounding direction
+is in the instruction, and set none, so that nothing is saved and restored.
+The others read the control register of the direction, set it upward and write
+it back, and take 1.2 to 1.7 times longer, the elementary functions. `sqr` and
+the integer powers did too, until point ZZ of `TODO.md`: the two writes of
+the control register, each one waiting for the operations in flight, took 6 ns
+a `sqr` (8.1 ns, 4.4 times) and, with the C library's `fegetround()` and
+`fesetround()` and the writes of the x87 unit's control word as well, 14 ns a
+`pow(x, 3)` (19.0 ns, 3.7 times; 8.4 ns with the writes of the SSE register
+alone, where the machine has no AVX-512). Shekel 5 takes 149 ns against 108,
+still below GAOL 4.2.3's 189, which does not preserve the direction either;
+the square root and the cosine take longer than GAOL 4.2.3's (10.3 ns against
+6.3, 66.0 against 62.8). The results are the same: the sums of the midpoints
+and of the widths of the million results are those of GAOL V5.0.0.
 
 **Arithmetic.** GAOL is the fastest on the four operations: + and − take GAOL
 V5.0.0 2.2 ns (2.4 for GAOL 4.2.3), 2.3 times as fast as filib++ (5.1 ns) and
@@ -226,6 +249,7 @@ C++ compiler:    Ubuntu clang version 21.1.8 (6ubuntu1)
 C++ flags:       -std=c++11 -O3 -DNDEBUG -mfma (GAOL: -frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3 -mfma; libieeep1788, filib++, PROFIL/BIAS and Boost.Interval: -frounding-math -fno-fast-math -ffp-contract=off)
 Fortran:         f90: Sun Fortran 95 8.7 Linux_i386 2014/10/20, flags: -O3 -xia
 GAOL V5.0.0:     the branch of this checkout (v4.3.2-902-g7c1ebb9), CMake Release, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
+GAOL V5.0.0 preserved: the same, built with GAOL_PRESERVE_ROUNDING=ON, the rounding direction restored after each operation, AVX-512 path of + - * / sqrt sqr and pown on, the AVX-512 instructions with the rounding direction in them (GAOL_PREFER_AVX512 left at its default) (measured again on 2026-10-17)
 GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://github.com/goualard-f/GAOL), its configure, the rounding direction not preserved, mathlib 2.1.1
 libieeep1788:    1f10b89, MPFR 4.2.1, GMP 6.3.0
 filib++:         3.0.2.2, interval<double, native_switched, i_mode_extended_flag>
@@ -233,7 +257,7 @@ PROFIL/BIAS:     2.0.8, x86-64-Linux-compat-gcc configuration, built by clang-21
 Boost.Interval:  Boost 1.92.0, interval<double> with save_state<rounded_transc_opp<double> > and checking_strict<double>, the elementary functions of the C library, glibc 2.43
 ```
 
-1 000 000 operations of each kind, on the same intervals. Each time is the best of 3 rounds, each program being run in turn with the others: 15 runs for double (reference), 3 runs for libieeep1788, 15 runs for GAOL V5.0.0, 15 runs for GAOL 4.2.3, 15 runs for filib++, 15 runs for Solaris Studio f90, 15 runs for PROFIL/BIAS, 15 runs for Boost.Interval in all.
+1 000 000 operations of each kind, on the same intervals. Each time is the best of 3 rounds, each program being run in turn with the others: 15 runs for double (reference), 3 runs for libieeep1788, 15 runs for GAOL V5.0.0, 15 runs for GAOL V5.0.0, rounding direction preserved, 15 runs for GAOL 4.2.3, 15 runs for filib++, 15 runs for Solaris Studio f90, 15 runs for PROFIL/BIAS, 15 runs for Boost.Interval in all.
 
 #### The operations
 
@@ -261,25 +285,27 @@ a and b are intervals centred in [−10, 10], p in [1, 10], e in [0.5, 2.5], the
 
 #### Time per operation (nanoseconds)
 
-| Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.2.3 | filib++ | Solaris Studio f90 | PROFIL/BIAS | Boost.Interval | libieeep1788 / GAOL V5.0.0 | GAOL 4.2.3 / GAOL V5.0.0 | filib++ / GAOL V5.0.0 | Solaris Studio f90 / GAOL V5.0.0 | PROFIL/BIAS / GAOL V5.0.0 | Boost.Interval / GAOL V5.0.0 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `add` | 0.96 | 137 | 2.23 | 2.38 | 5.10 | 17.6 | 14.2 | 12.4 | 61.4 | 1.1 | 2.3 | 7.9 | 6.4 | 5.6 |
-| `sub` | 0.92 | 138 | 2.21 | 2.40 | 5.12 | 17.6 | 14.3 | 12.3 | 62.5 | 1.1 | 2.3 | 8.0 | 6.5 | 5.6 |
-| `mul` | 0.90 | 171 | 2.30 | 10.0 | 12.1 | 21.3 | 14.7 | 21.5 | 74.6 | 4.4 | 5.3 | 9.3 | 6.4 | 9.3 |
-| `div` | 0.91 | 171 | 2.52 | 7.50 | 8.70 | 20.3 | 14.4 | 18.9 | 68.1 | 3.0 | 3.5 | 8.1 | 5.7 | 7.5 |
-| `sqr` | 0.59 | 88.4 | 1.87 | 5.81 | 8.25 | 55.5 | 18.5 | 16.2 | 47.3 | 3.1 | 4.4 | 29.7 | 9.9 | 8.7 |
-| `sqrt` | 1.30 | 107 | 6.30 | 6.26 | 13.4 | 26.6 | 3.73 | 22.3 | 17.0 | 1.0 | 2.1 | 4.2 | 0.6 | 3.5 |
-| `exp` | 3.44 | 1 491 | 18.3 | 35.1 | 30.1 | 38.0 | 9.87 | 29.8 | 81.4 | 1.9 | 1.6 | 2.1 | 0.5 | 1.6 |
-| `log` | 3.32 | 1 919 | 20.9 | 46.8 | 26.6 | 38.5 | 10.2 | 29.9 | 92.0 | 2.2 | 1.3 | 1.8 | 0.5 | 1.4 |
-| `sin` | 13.4 | 5 472 | 43.2 | 68.0 | 33.4 | 41.5 | 115 | 71.2 | 127 | 1.6 | 0.8 | 1.0 | 2.7 | 1.6 |
-| `cos` | 12.0 | 4 890 | 54.0 | 62.8 | 33.9 | 42.7 | 131 | 65.7 | 90.6 | 1.2 | 0.6 | 0.8 | 2.4 | 1.2 |
-| `pow_int` | 13.0 | 240 | 5.12 | 9.07 | 17.8 | 145 | 35.1 | 19.9 | 46.8 | 1.8 | 3.5 | 28.4 | 6.9 | 3.9 |
-| `pow_real` | 10.3 | 6 517 | 48.2 | 89.9 | 64.5 | 125 | 33.6 | 73.2 | 135 | 1.9 | 1.3 | 2.6 | 0.7 | 1.5 |
-| `line_arith` | 1.14 | 655 | 5.61 | 18.7 | 27.4 | 61.6 | 63.1 | 61.7 | 117 | 3.3 | 4.9 | 11.0 | 11.2 | 11.0 |
-| `line_trig` | 25.8 | 10 920 | 102 | 148 | 90.8 | 166 | 311 | 187 | 107 | 1.5 | 0.9 | 1.6 | 3.1 | 1.8 |
-| `line_pow` | 19.4 | 2 401 | 38.1 | 61.0 | 81.9 | 253 | 92.6 | 115 | 63.1 | 1.6 | 2.2 | 6.7 | 2.4 | 3.0 |
-| `shekel5` | 2.43 | 8 993 | 108 | 189 | 397 | 1 720 | 1 093 | 920 | 83.4 | 1.7 | 3.7 | 15.9 | 10.1 | 8.5 |
-| `block5` | 44.5 | 13 823 | 155 | 229 | 197 | 464 | 427 | 343 | 89.4 | 1.5 | 1.3 | 3.0 | 2.8 | 2.2 |
+| Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL V5.0.0, rounding direction preserved | GAOL 4.2.3 | filib++ | Solaris Studio f90 | PROFIL/BIAS | Boost.Interval | libieeep1788 / GAOL V5.0.0 | GAOL V5.0.0, rounding direction preserved / GAOL V5.0.0 | GAOL 4.2.3 / GAOL V5.0.0 | filib++ / GAOL V5.0.0 | Solaris Studio f90 / GAOL V5.0.0 | PROFIL/BIAS / GAOL V5.0.0 | Boost.Interval / GAOL V5.0.0 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `add` | 0.96 | 137 | 2.23 | 2.17 | 2.38 | 5.10 | 17.6 | 14.2 | 12.4 | 61.4 | 1.0 | 1.1 | 2.3 | 7.9 | 6.4 | 5.6 |
+| `sub` | 0.92 | 138 | 2.21 | 2.18 | 2.40 | 5.12 | 17.6 | 14.3 | 12.3 | 62.5 | 1.0 | 1.1 | 2.3 | 8.0 | 6.5 | 5.6 |
+| `mul` | 0.90 | 171 | 2.30 | 3.41 | 10.0 | 12.1 | 21.3 | 14.7 | 21.5 | 74.6 | 1.5 | 4.4 | 5.3 | 9.3 | 6.4 | 9.3 |
+| `div` | 0.91 | 171 | 2.52 | 3.67 | 7.50 | 8.70 | 20.3 | 14.4 | 18.9 | 68.1 | 1.5 | 3.0 | 3.5 | 8.1 | 5.7 | 7.5 |
+| `sqr` | 0.59 | 88.4 | 1.87 | 2.07 | 5.81 | 8.25 | 55.5 | 18.5 | 16.2 | 47.3 | 1.1 | 3.1 | 4.4 | 29.7 | 9.9 | 8.7 |
+| `sqrt` | 1.30 | 107 | 6.30 | 10.3 | 6.26 | 13.4 | 26.6 | 3.73 | 22.3 | 17.0 | 1.6 | 1.0 | 2.1 | 4.2 | 0.6 | 3.5 |
+| `exp` | 3.44 | 1 491 | 18.3 | 31.8 | 35.1 | 30.1 | 38.0 | 9.87 | 29.8 | 81.4 | 1.7 | 1.9 | 1.6 | 2.1 | 0.5 | 1.6 |
+| `log` | 3.32 | 1 919 | 20.9 | 29.4 | 46.8 | 26.6 | 38.5 | 10.2 | 29.9 | 92.0 | 1.4 | 2.2 | 1.3 | 1.8 | 0.5 | 1.4 |
+| `sin` | 13.4 | 5 472 | 43.2 | 56.6 | 68.0 | 33.4 | 41.5 | 115 | 71.2 | 127 | 1.3 | 1.6 | 0.8 | 1.0 | 2.7 | 1.6 |
+| `cos` | 12.0 | 4 890 | 54.0 | 66.0 | 62.8 | 33.9 | 42.7 | 131 | 65.7 | 90.6 | 1.2 | 1.2 | 0.6 | 0.8 | 2.4 | 1.2 |
+| `pow_int` | 13.0 | 240 | 5.12 | 6.28 | 9.07 | 17.8 | 145 | 35.1 | 19.9 | 46.8 | 1.2 | 1.8 | 3.5 | 28.4 | 6.9 | 3.9 |
+| `pow_real` | 10.3 | 6 517 | 48.2 | 60.8 | 89.9 | 64.5 | 125 | 33.6 | 73.2 | 135 | 1.3 | 1.9 | 1.3 | 2.6 | 0.7 | 1.5 |
+| `line_arith` | 1.14 | 655 | 5.61 | 8.36 | 18.7 | 27.4 | 61.6 | 63.1 | 61.7 | 117 | 1.5 | 3.3 | 4.9 | 11.0 | 11.2 | 11.0 |
+| `line_trig` | 25.8 | 10 920 | 102 | 131 | 148 | 90.8 | 166 | 311 | 187 | 107 | 1.3 | 1.5 | 0.9 | 1.6 | 3.1 | 1.8 |
+| `line_pow` | 19.4 | 2 401 | 38.1 | 51.1 | 61.0 | 81.9 | 253 | 92.6 | 115 | 63.1 | 1.3 | 1.6 | 2.2 | 6.7 | 2.4 | 3.0 |
+| `shekel5` | 2.43 | 8 993 | 108 | 149 | 189 | 397 | 1 720 | 1 093 | 920 | 83.4 | 1.4 | 1.7 | 3.7 | 15.9 | 10.1 | 8.5 |
+| `block5` | 44.5 | 13 823 | 155 | 196 | 229 | 197 | 464 | 427 | 343 | 89.4 | 1.3 | 1.5 | 1.3 | 3.0 | 2.8 | 2.2 |
+
+GAOL V5.0.0, rounding direction preserved, is the same GAOL built with `GAOL_PRESERVE_ROUNDING=ON`: each operation restores the rounding direction it found, where GAOL V5.0.0 leaves it upward. AVX-512 stays enabled in it: `GAOL_PREFER_AVX512`, which that option turns on by default, is left on, so that `+`, `−`, `×`, `/`, `√`, `sqr` and the integer powers take the AVX-512 instructions, the rounding direction being in the instruction (the machine description above says whether the library took them); the other operations read the direction, set it upward and restore it. Its column is in this table only: its results are those of GAOL V5.0.0.
 
 #### Total time of the 1 000 000 operations (seconds)
 

@@ -7,15 +7,18 @@
 #
 # Created 2026-10-17 by Jordan NININ
 
-# bench_double, bench_gaol5 (the GAOL of this repository), bench_gaol (the last
-# GAOL of Frédéric Goualard), bench_p1788, bench_filib, bench_profil and
-# bench_boost
+# bench_double, bench_gaol5 (the GAOL of this repository), bench_gaol5p (the
+# same, built with GAOL_PRESERVE_ROUNDING=ON), bench_gaol (the last GAOL of
+# Frédéric Goualard), bench_p1788, bench_filib, bench_profil and bench_boost
 compile_cpp_benchmarks() {
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS -I"$CODE_DIR" "$CODE_DIR/bench_double.cpp" -o "$OUT/bench_double"
-# The same source for the two GAOL: this repository's, under the name gaol5,
-# and Goualard's last one, under the name gaol
+# The same source for the three GAOL: this repository's, under the name gaol5,
+# this repository's with the rounding direction preserved, under the name
+# gaol5p, and Goualard's last one, under the name gaol
 $CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_cflags) -DGAOL_BENCH_NAME='"gaol5"' -I"$CODE_DIR" \
      "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol5" $(gaol_libs)
+$CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_preserve_cflags) -DGAOL_BENCH_NAME='"gaol5p"' -I"$CODE_DIR" \
+     "$CODE_DIR/bench_gaol.cpp" -o "$OUT/bench_gaol5p" $(gaol_preserve_libs)
 $CXX -std=c++11 $CXXFLAGS_BENCH $(gaol_goualard_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_gaol.cpp" \
      -o "$OUT/bench_gaol" $(gaol_goualard_libs)
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS $IA_CXXFLAGS $(p1788_cflags) -I"$CODE_DIR" "$CODE_DIR/bench_p1788.cpp" \
@@ -41,6 +44,11 @@ machine_description() {
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
   git -C "$ROOT_DIR" diff --quiet HEAD -- . ':!doc' 2>/dev/null || gaol_commit="$gaol_commit-dirty"
   echo "GAOL V5.0.0:     the branch of this checkout ($gaol_commit), CMake Release, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved"
+  # The AVX-512 path of + - * / sqrt, which the library takes by default with the direction preserved where it can
+  avx512="off, the SSE2 instructions"
+  grep -q "^#define GAOL_AVX512_ARITHMETIC 1" "$GAOL_PRESERVE_PREFIX/include/gaol/gaol_configuration.h" 2>/dev/null \
+    && avx512="on, the AVX-512 instructions with the rounding direction in them"
+  echo "GAOL V5.0.0 preserved: the same, built with GAOL_PRESERVE_ROUNDING=ON, the rounding direction restored after each operation, AVX-512 path of + - * / sqrt sqr and pown $avx512 (GAOL_PREFER_AVX512 left at its default)"
   echo "GAOL $GAOL_GOUALARD_VERSION:      the last version of Frédéric Goualard (${GAOL_GOUALARD_COMMIT:0:7} of $GAOL_GOUALARD_REPO), its configure, the rounding direction not preserved, mathlib $MATHLIB_VERSION"
   echo "libieeep1788:    ${P1788_COMMIT:0:7}, MPFR $(grep -m1 '#define MPFR_VERSION_STRING' "$PREFIX/include/mpfr.h" 2>/dev/null | cut -d'"' -f2), GMP $(grep -m1 -E '^#define __GNU_MP_VERSION ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_MINOR ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}').$(grep -m1 -E '^#define __GNU_MP_VERSION_PATCHLEVEL ' "$PREFIX/include/gmp.h" 2>/dev/null | awk '{print $3}')"
   echo "filib++:         $FILIB_VERSION, interval<double, native_switched, i_mode_extended_flag>"

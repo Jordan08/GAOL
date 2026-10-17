@@ -29,8 +29,11 @@ distributes, unless `FILIB_DIR` gives an installed filib++, PROFIL/BIAS 2.0.8
 from its site (or from the archive `PROFIL_TGZ` gives), built with its
 configuration `x86-64-Linux-compat-gcc`, its `gcc` replaced by `CC` and `CXX`,
 and checked with `make check`, GAOL from this repository, built with CMake
-in Release and installed, and the last GAOL of Frédéric Goualard (4.2.3, the
-master branch of his repository) with
+in Release and installed, and again with `GAOL_PRESERVE_ROUNDING=ON` in a
+prefix of its own (`work/prefix/gaol-preserve`; AVX-512 is left enabled, which
+that option turns on by default where the compiler and the machine have it:
+`setup.sh` says whether the library took it), and the last GAOL of Frédéric
+Goualard (4.2.3, the master branch of his repository) with
 [mathlib 2.1.1](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
 from his site, built with their configure, without the preservation of the
 rounding direction, as GAOL v5, and with the flags GAOL v5 is built with,
@@ -99,7 +102,8 @@ nothing else meanwhile. Their variables:
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
 | `LINE_LIST` | all | The same for `run_lines.sh`, the long lines of `bench_ops.h` (`sum16,mul8,mix13...`), which `run_bench.sh` does not run; `LIBS` has no `sun` there |
-| `LIBS` | `double gaol5 gaol filib profil boost sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol` the last GAOL of Frédéric Goualard |
+| `LIBS` | `double gaol5 gaol5p gaol filib profil boost sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol5p` the same built with `GAOL_PRESERVE_ROUNDING=ON` (a column of the table of the times only), `gaol` the last GAOL of Frédéric Goualard |
+| `MERGE` | | `1`: the times of what ran (`LIBS`, `OPS`) replace their rows of `results.csv`, the other rows being kept, and the report is written from all of them, as `make perf` does for GAOL v5: `MERGE=1 LIBS=gaol5p CPU=2 ./run_bench.sh` measures the preserved direction alone |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |
 | `CXXFLAGS_BENCH`, `F90FLAGS_BENCH` | `-O3 -DNDEBUG`, `-O3 -xia` | Their flags |
