@@ -45,6 +45,15 @@
 #define GAOL_ERRNO errno
 #define GAOL_INLINE inline
 
+/* GAOL_UNLIKELY(condition): a condition the compiler is told is rarely true,
+   so that it puts the code it guards out of the way of the one that is
+   usually run (GAOL v5) */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_UNLIKELY(condition) __builtin_expect(!!(condition), 0)
+#else
+#  define GAOL_UNLIKELY(condition) (condition)
+#endif
+
 /* GAOL_PUBLIC: what GAOL's public declarations carry, __GAOL_PUBLIC__ in
    GAOL 4 (GAOL v5). With GCC and Clang, the default visibility where the
    library is compiled with -fvisibility=hidden (GAOL_HAVE_VISIBILITY_OPTIONS),

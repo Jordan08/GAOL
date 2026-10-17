@@ -414,7 +414,12 @@ namespace gaol_core {
     #if GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
     // 2^-1060, as a literal for the reason of the one of 2^-60 below
     static const volatile double subnormal = 8.0947715414629834e-320;
-    if (1.0 + (subnormal + 0.0) == 1.0) {
+    // Not above 1, rather than == 1: no operand is a NaN, and the compiler
+    // makes one comparison and one branch of it where == takes the three
+    // instructions that tell an unordered result (GAOL v5, point ZZ of
+    // TODO.md). The branch is the unlikely one, so that the code that sets the
+    // direction is out of the way of the one that does not
+    if (GAOL_UNLIKELY(!(1.0 + (subnormal + 0.0) > 1.0))) {
       clear_flush_to_zero();
       round_upward();
       GAOL_RND_BARRIER();
