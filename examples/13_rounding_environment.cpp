@@ -406,23 +406,24 @@ int main()
 #else
   const bool built_to_preserve = false;
 #endif
-  /* The AVX-512 path of +, -, *, / and sqrt (GAOL_PREFER_AVX512, on a
-     processor that has the instructions): it sets no direction, and the
-     probe's division leaves the one the program set. The other operations
-     leave the direction upward, as in the default build */
+  /* The AVX-512 path of +, -, *, / and sqrt (GAOL_AVX512_ARITHMETIC:
+     GAOL_PREFER_AVX512, and a machine building that runs the instructions):
+     it sets no direction, and the probe's division leaves the one the
+     program set. The other operations leave the direction upward, as in the
+     default build */
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS \
-    && defined(GAOL_HAVE_AVX512_TARGET) && GAOL_HAVE_AVX512_TARGET && GAOL_PREFER_AVX512
-  const bool embedded_arithmetic = __builtin_cpu_supports("avx512f") != 0;
+    && defined(GAOL_AVX512_ARITHMETIC) && GAOL_AVX512_ARITHMETIC
+  const bool embedded_arithmetic = true;
 #else
   const bool embedded_arithmetic = false;
 #endif
   std::cout << (leaves_upward ? "This GAOL leaves the direction upward after its operations (the default build)\n"
                               : embedded_arithmetic
-                                  ? "This GAOL's +, -, *, / and sqrt set no rounding direction (GAOL_PREFER_AVX512);\n"
+                                  ? "This GAOL's +, -, *, / and sqrt set no rounding direction (GAOL_AVX512_ARITHMETIC);\n"
                                     "the other operations leave it upward\n"
                                   : "This GAOL restores the direction after each operation (GAOL_PRESERVE_ROUNDING)\n");
   check(leaves_upward == (!built_to_preserve && !embedded_arithmetic),
-        "the behaviour agrees with GAOL_PRESERVE_ROUNDING and GAOL_PREFER_AVX512 in gaol_configuration.h");
+        "the behaviour agrees with GAOL_PRESERVE_ROUNDING and GAOL_AVX512_ARITHMETIC in gaol_configuration.h");
 
   // ------------------------------------------------------------------------
   std::cout << "1. The program's own doubles in main(): as it runs, then in a nearest_scope\n";

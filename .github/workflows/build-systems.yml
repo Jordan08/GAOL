@@ -211,6 +211,16 @@ jobs:
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      # enable-prefer-avx512=false refuses the AVX-512 path where
+      # enable-preserve-rounding asks for it by default: the option was a
+      # boolean, whose false meson could not tell from the default, and a
+      # library built so on a runner with the AVX-512 instructions needed them
+      # (GAOL v5, point AA of TODO.md)
+      - name: enable-prefer-avx512=false refuses the AVX-512 path
+        if: contains(matrix.cfg.options, '-Denable-preserve-rounding=true')
+        run: |
+          meson setup build-no-avx512 -Denable-preserve-rounding=true -Denable-prefer-avx512=false
+          ! grep -E "^#define GAOL_(PREFER_AVX512|AVX512_ARITHMETIC) 1" build-no-avx512/gaol/gaol_configuration.h
       - name: Locale writing a decimal comma
         if: runner.os == 'Linux'
         run: sh .github/scripts/comma-locale.sh generate

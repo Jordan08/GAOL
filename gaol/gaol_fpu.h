@@ -503,7 +503,7 @@ namespace gaol_core {
   change, in the direction it sets back (see above, and doc/using.md). GCC
   does so even with -frounding-math, and the terms of the TwoSum of the
   differences of the bounds of cancel_minus(), kept this way, are the ones
-  computed to nearest (gaol/gaol_interval.cpp).
+  computed to nearest (gaol/gaol_interval_core.cpp).
   */
   template<class T>
   T rnd_keep(const T& x)

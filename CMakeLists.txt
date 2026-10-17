@@ -165,12 +165,12 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 
 option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
-# GAOL_PREFER_AVX512, whether gaol::init() takes the AVX-512 path of +, -,
-# *, / and sqrt on a processor that has the instructions (see the detection
-# below). ON by default where GAOL_PRESERVE_ROUNDING is: the path spares the
-# store of the rounding direction every operation pays, which is what
-# GAOL_PRESERVE_ROUNDING is about. What the command line gave wins either
-# way: -DGAOL_PREFER_AVX512=OFF refuses the path under
+# GAOL_PREFER_AVX512, whether +, -, *, / and sqrt take the AVX-512 path,
+# where the compiler takes it and the machine building runs it
+# (GAOL_AVX512_ARITHMETIC below). ON by default where GAOL_PRESERVE_ROUNDING
+# is: the path spares the store of the rounding direction every operation
+# pays, which is what GAOL_PRESERVE_ROUNDING is about. What the command line
+# gave wins either way: -DGAOL_PREFER_AVX512=OFF refuses the path under
 # GAOL_PRESERVE_ROUNDING, as -DGAOL_PREFER_AVX512=ON takes it without it.
 # The default derives at every configure where the command line said
 # nothing, from GAOL_PRESERVE_ROUNDING above (GAOL v5).
@@ -179,7 +179,7 @@ if(DEFINED GAOL_PREFER_AVX512)
 else()
   set(GAOL_PREFER_AVX512_EXPLICIT OFF)
 endif()
-option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, on a processor that has them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)" OFF)
+option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)" OFF)
 if(NOT GAOL_PREFER_AVX512_EXPLICIT AND GAOL_PRESERVE_ROUNDING)
   set(GAOL_PREFER_AVX512 ON)
 endif()
@@ -637,17 +637,26 @@ message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_US
 
 # GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
 # the functions that carry __attribute__((target("avx512f"))), and
-# __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64 only. The
-# library is then compiled with the AVX-512 path of +, -, *, / and sqrt
-# (gaol/gaol_interval_avx512.cpp) beside the SSE2 one, for any processor of
-# the architecture: only the functions of the path carry the attribute, and
-# gaol::init() takes it when the program asks for it, with GAOL_PREFER_AVX512,
-# and the processor has the instructions. Nothing of the rest is compiled
-# otherwise (GAOL v5).
+# __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64 only, but
+# GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
+# beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
+# fixed for GCC 17 only; GAOL_FMA leaves -mfma out with MinGW-w64 GCC for
+# the 32 of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
+# aligned access of a zmm register to the stack, but nothing keeps the
+# compiler from doing it (GAOL v5, point AA of TODO.md). The result is
+# cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
+# build directory configured before that check checks again. Only the
+# functions of the AVX-512 path of +, -, *, / and sqrt
+# (gaol/gaol_interval_avx512.cpp) carry the attribute, and the rest of the
+# library is compiled as without it; the path is compiled in where
+# GAOL_AVX512_ARITHMETIC below is (GAOL v5).
 set(GAOL_HAVE_AVX512_TARGET OFF)
 if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   # The source in a bracket argument: verbatim, no quote to escape
   check_cxx_source_compiles([=[
+    #if (defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__)
+    #error GCC for Windows does not align the stack for AVX-512
+    #endif
     #include <immintrin.h>
     __attribute__((target("avx512f"))) double er_add(double a, double b)
     {
@@ -656,14 +665,14 @@ if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
       return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
     }
     int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }]=]
-    GAOL_COMPILER_TAKES_AVX512_TARGET)
-  if(GAOL_COMPILER_TAKES_AVX512_TARGET)
+    GAOL_COMPILER_TAKES_AVX512_PATH)
+  if(GAOL_COMPILER_TAKES_AVX512_PATH)
     set(GAOL_HAVE_AVX512_TARGET ON)
   endif()
 endif()
 if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   if(GAOL_PREFER_AVX512_EXPLICIT)
-    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with GCC or Clang")
+    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC except on Windows (MinGW-w64, Cygwin)")
   endif()
   # The default GAOL_PRESERVE_ROUNDING derived, and the compiler or the
   # architecture takes no path: the operations keep setting the direction
@@ -672,7 +681,47 @@ if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   message(STATUS "GAOL_PREFER_AVX512, from GAOL_PRESERVE_ROUNDING: no AVX-512 path here, the operations keep setting the direction upward")
   set(GAOL_PREFER_AVX512 OFF)
 endif()
-message(STATUS "AVX-512 interval arithmetic compiled in: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}")
+# GAOL_AVX512_ARITHMETIC: +, -, *, / and sqrt take the AVX-512 path, which
+# is decided here: GAOL_PREFER_AVX512 asks for it, the compiler takes the
+# path, and the machine building runs it, as GAOL_FMA checks it for the fused
+# multiply-add (never when cross-compiling). The operations then are that
+# path alone, and the SSE2 one otherwise, with no flag to test as they run.
+# gaol::init() chose the path, and every operation tested the flag it set,
+# in the default build too, though only GAOL_PREFER_AVX512 could make it
+# true: without the test, the line (a + b) * (a - b) / p of the benchmark of
+# doc/compare takes 25.9 ns rather than 26.3 in the default build, Shekel 5
+# 259 ns rather than 263 (Clang 18, Intel Xeon E3-1220 v6, the library and
+# the program built with -mbranches-within-32B-boundaries; GAOL v5, point AA
+# of TODO.md). A library so built needs a processor with the AVX-512
+# instructions, as one built with GAOL_FMA needs FMA: -DGAOL_PREFER_AVX512=OFF
+# builds it for any processor of the architecture.
+set(GAOL_AVX512_ARITHMETIC OFF)
+if(GAOL_PREFER_AVX512 AND GAOL_HAVE_AVX512_TARGET)
+  if(CMAKE_CROSSCOMPILING)
+    message(STATUS "GAOL_PREFER_AVX512: cross-compiling, the AVX-512 path left out")
+  else()
+    check_cxx_source_runs([=[
+      #include <immintrin.h>
+      __attribute__((target("avx512f"))) double er_add(double a, double b)
+      {
+        const __m512d x = _mm512_set1_pd(a);
+        const __m512d y = _mm512_set1_pd(b);
+        return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+      }
+      int main()
+      {
+        volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
+        return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1;
+      }]=]
+      GAOL_MACHINE_RUNS_AVX512)
+    if(GAOL_MACHINE_RUNS_AVX512)
+      set(GAOL_AVX512_ARITHMETIC ON)
+    else()
+      message(STATUS "GAOL_PREFER_AVX512: this machine does not run the AVX-512 instructions, the AVX-512 path left out")
+    endif()
+  endif()
+endif()
+message(STATUS "AVX-512 interval arithmetic: the compiler takes it: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}, taken: ${GAOL_AVX512_ARITHMETIC}")
 
 # GAOL_USING_ASM, as configure defines it by default: the assembly of
 # gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
@@ -947,9 +996,11 @@ endif()
 # from a clean checkout, its untracked files and those of the builds left
 # out below. The packages hold libgaol as the build compiled it: with GAOL_FMA
 # ON, the default, only processors with the fused multiply-add instructions
-# run it, so a package for other machines is built with -DGAOL_FMA=OFF (see
-# doc/building.md). Only where GAOL is the project built, not brought in by
-# another (add_subdirectory, FetchContent), whose packages are its own.
+# run it, and with GAOL_AVX512_ARITHMETIC only those with the AVX-512 ones,
+# so a package for other machines is built with -DGAOL_FMA=OFF and
+# -DGAOL_PREFER_AVX512=OFF (see doc/building.md). Only where GAOL is the
+# project built, not brought in by another (add_subdirectory, FetchContent),
+# whose packages are its own.
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_PACKAGE_NAME "gaol")
   set(CPACK_PACKAGE_VENDOR "ENSTA")
