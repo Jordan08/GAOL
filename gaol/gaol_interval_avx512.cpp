@@ -291,11 +291,13 @@
   // the SSE2 path is
   GAOL_AVX512_TARGET GAOL_INLINE double er_sqrt_up(double b)
   {
-    return low_of(back128(_mm512_sqrt_round_pd(_mm512_set1_pd(b), gaol_er)));
+    const __m128d v = _mm_set_sd(b);
+    return low_of(_mm_sqrt_round_sd(v, v, gaol_er));
   }
   GAOL_AVX512_TARGET GAOL_INLINE double er_sqrt_down(double b)
   {
-    return low_of(back128(_mm512_sqrt_round_pd(_mm512_set1_pd(b), gaol_er_down)));
+    const __m128d v = _mm_set_sd(b);
+    return low_of(_mm_sqrt_round_sd(v, v, gaol_er_down));
   }
 
 }
