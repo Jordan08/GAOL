@@ -744,11 +744,14 @@ static bool gaol_result(void *context, expr_node *e)
 int gaol_lex(YYSTYPE *lval, void *scanner);
 
 /* gaol_parse() counts the syntax errors in yynerrs, which nothing reads:
-   Clang warned that the variable is set but not used (GAOL v5) */
+   Clang warned that the variable is set but not used (GAOL v5), and so did GCC
+   with -Wall (the continuous integration, MSYS2 and macOS) */
 #if defined(__clang__) && defined(__has_warning)
 #  if __has_warning("-Wunused-but-set-variable")
 #    pragma clang diagnostic ignored "-Wunused-but-set-variable"
 #  endif
+#elif defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 %}
 
