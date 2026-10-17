@@ -33,7 +33,8 @@
 #define GAOL_INTERVAL_FPU_H
 
     // Built from constants rather than copied from static intervals, which
-    // the dynamic initialization of gaol/gaol_interval.cpp computed after the
+    // the dynamic initialization of gaol/gaol_interval.cpp (now
+    // gaol/gaol_interval_core.cpp) computed after the
     // static objects of a program linked with the static library GAOL, except
     // with MinGW-w64 (GAOL v5)
     GAOL_INLINE interval interval::zero(void)

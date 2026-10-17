@@ -9,7 +9,7 @@
  * the rounding direction set upward, and so do square roots, which IEEE
  * 1788-2015 requires (12.10.2), and integer powers, of either sign, whose
  * bounds GAOL v5 computes from exact products (pown_products() of
- * gaol/gaol_interval.cpp); n-th roots, which GAOL computes in several
+ * gaol/gaol_interval_core.cpp); n-th roots, which GAOL computes in several
  * rounded operations, to be enclosed within a few doubles. Doubles of every
  * magnitude are drawn, subnormal ones and results beyond the largest double
  * included. Integer powers for n up to 2^32 - 1 are compared with bounds
@@ -552,6 +552,59 @@ namespace
     }
   }
 
+  /*
+    Squares at special values: bounds 0 of both signs or infinite, squares
+    below the smallest subnormal or beyond the largest double, in the four
+    cases of the signs of the stored bounds of the SSE2 intervals (I
+    positive, negative, straddling 0, and [0, -0]). sqr() of the SSE2
+    intervals computes its one product itself, where it took the binary
+    exponentiation of the products rounded outward, for e = 2 (GAOL v5,
+    point AA of TODO.md). The bounds are the tightest, worked out by hand.
+  */
+  void squares_at_special_values()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const struct { const char *name; interval x; double lo, hi; } cases[] = {
+      { "sqr([0,2])", interval(0., 2.), 0., 4. },
+      { "sqr([-0,2])", interval(-0., 2.), 0., 4. },
+      { "sqr([-2,0])", interval(-2., 0.), 0., 4. },
+      { "sqr([-2,-0])", interval(-2., -0.), 0., 4. },
+      { "sqr([-3,2])", interval(-3., 2.), 0., 9. },
+      { "sqr([-2,3])", interval(-2., 3.), 0., 9. },
+      { "sqr([2,3])", interval(2., 3.), 4., 9. },
+      { "sqr([-3,-2])", interval(-3., -2.), 4., 9. },
+      { "sqr([0,0])", interval(0., 0.), 0., 0. },
+      { "sqr([-0,0])", interval(-0., 0.), 0., 0. },
+      { "sqr([0,-0])", interval(0., -0.), 0., 0. },
+      { "sqr([-0,-0])", interval(-0., -0.), 0., 0. },
+      { "sqr([1,+oo])", interval(1., inf), 1., inf },
+      { "sqr([-oo,-1])", interval(-inf, -1.), 1., inf },
+      { "sqr([0,+oo])", interval(0., inf), 0., inf },
+      { "sqr([-oo,0])", interval(-inf, 0.), 0., inf },
+      { "sqr([-oo,2])", interval(-inf, 2.), 0., inf },
+      { "sqr([-1,+oo])", interval(-1., inf), 0., inf },
+      { "sqr([-oo,+oo])", interval::universe(), 0., inf },
+      { "sqr([2^-1074])", interval(tiny), 0., tiny },
+      { "sqr([-2^-1074])", interval(-tiny), 0., tiny },
+      { "sqr([-2^-1074,2^-1074])", interval(-tiny, tiny), 0., tiny },
+      { "sqr([2^-600,2^-500])", interval(0x1p-600, 0x1p-500), 0., 0x1p-1000 },
+      { "sqr([3 2^-538]), between two subnormals", interval(0x1.8p-537), 2*tiny, 3*tiny },
+      { "sqr([-3 2^-538])", interval(-0x1.8p-537), 2*tiny, 3*tiny },
+      { "sqr([2^511])", interval(0x1p511), 0x1p1022, 0x1p1022 },
+      { "sqr([2^512])", interval(0x1p512), largest, inf },
+      { "sqr([-largest])", interval(-largest), largest, inf },
+      { "sqr([-largest,1])", interval(-largest, 1.), 0., inf },
+      { "sqr([1 + 2^-52])", interval(1.0 + 0x1p-52), 1.0 + 0x1p-51, 1.0 + 3*0x1p-52 },
+      { "sqr([-(1 + 2^-52),-1])", interval(-(1.0 + 0x1p-52), -1.), 1., 1.0 + 3*0x1p-52 },
+    };
+    for (const auto& c : cases) {
+      const interval r = sqr(c.x);
+      check(std::string(c.name) + ": the tightest", !r.is_empty() && r.left() == c.lo && r.right() == c.hi,
+            [&] { return hex(r); });
+    }
+    check("sqr(empty): empty", sqr(interval::emptyset()).is_empty(), [] { return std::string(); });
+  }
+
   // Integer powers at special values: a bound 0 or infinite, a power below
   // 2^-968 or beyond the largest double, negative powers of intervals with a
   // bound 0, the corners pown_upward() computes one at a time (GAOL v5: they
@@ -607,7 +660,7 @@ namespace
     powers_at_special_values() at random: a bound 0 or infinite, or whose
     power is above 2^1100, below 2^-1000, or from about 2^-1000 to 2^1000,
     where the corners are computed one at a time, scaled (pown_point() of
-    gaol/gaol_interval.cpp). The bounds have to be the tightest, as
+    gaol/gaol_interval_core.cpp). The bounds have to be the tightest, as
     elsewhere: GAOL v5 took the products rounded outward there, up to n + 1
     doubles beyond, and their bounds differed between the SSE2 and the FPU
     intervals for about half of these intervals, which multiplied them from
@@ -678,9 +731,9 @@ namespace
   /*
     The powers that are doubles are exact, both bounds (GAOL v5): the rests
     of the exact products are all 0 then, and the error bound is left out
-    (pown_products() of gaol/gaol_interval.cpp). Without that, pow([2, 3], 3)
-    was [8 - 2^-50, 27 + 2^-48]. x^n of an integer x is a double while it is
-    below 2^53, and x^-n is one for a power of two x only.
+    (pown_products() of gaol/gaol_interval_core.cpp). Without that,
+    pow([2, 3], 3) was [8 - 2^-50, 27 + 2^-48]. x^n of an integer x is a
+    double while it is below 2^53, and x^-n is one for a power of two x only.
   */
   void exact_powers()
   {
@@ -778,12 +831,12 @@ namespace
     Integer powers for large n: the tightest bounds, from exact products
     within the ints, each of these powers being farther from a double than
     twice the bound K of the error of their products (pown_products() of
-    gaol_interval.cpp), and from CORE-MATH's pow beyond them, for an unsigned
-    n. The square of the rest carried along was left out of the lower bound
-    (GAOL v5, review #7 of examples/examples.md), and the lower bound of x^n was 8
-    doubles below the tightest for x = 1.0000001 and n = 2^28 - 1, 557 for
-    2^31 - 1, 1962 for 2^32 - 1, more than one double below for most n above
-    2^28. The bounds are computed apart, with mpmath:
+    gaol_interval_core.cpp), and from CORE-MATH's pow beyond them, for an
+    unsigned n. The square of the rest carried along was left out of the
+    lower bound (GAOL v5, review #7 of examples/examples.md), and the lower
+    bound of x^n was 8 doubles below the tightest for x = 1.0000001 and
+    n = 2^28 - 1, 557 for 2^31 - 1, 1962 for 2^32 - 1, more than one double
+    below for most n above 2^28. The bounds are computed apart, with mpmath:
 
       mpmath.mp.prec = 2000
       v = mpmath.mpf(x) ** n
@@ -1094,6 +1147,7 @@ int main()
   products_with_infinite_bounds();
   unsigned_powers();
   negative_powers_at_special_values();
+  squares_at_special_values();
   powers_at_special_values();
   powers_near_the_ends();
   exact_powers();

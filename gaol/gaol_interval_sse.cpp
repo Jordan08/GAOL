@@ -19,7 +19,7 @@
 
 /*
     This file is not meant to be compiled. It is only to be included
-        by gaol/gaol_interval.cpp.
+        by gaol/gaol_interval_core.cpp.
 */
 
 // TODO: check existence of stdint.h in configure.in
@@ -317,269 +317,63 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   return res;
 }
 
-/*
-  The powers rounded outward, which sqr() takes (GAOL v5: x^n for n >= 2
-  takes exact products, see pown_products() in gaol_interval.cpp): the binary
-  exponentiation from the lowest bit of n, whose squarings do not wait for
-  the products. GAOL multiplied from the highest bit of n here (the code
-  under #if 0 below), where the FPU intervals multiplied from the lowest:
-  their bounds of x^n differed for about half of the random intervals, the
-  two orders being as accurate, and this one is up to about 2.5 ns faster
-  (Clang 18, Intel Xeon) (GAOL v5).
-*/
-#if 1
-	/*
-		uipow_dnup --
-		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), -rnddn(a^n)> 
-	*/
-   GAOL_INLINE __m128d uipow_dnup(const __m128d& I, unsigned int n)
-    { // On input, n is assumed to be non-null
-      //__m128d _mm_lbsignmask = _mm_set_pd(0.0,-0.0);
-
-      __m128d y = _mm_set_pd(1.0,-1.0);
-      __m128d z = _mm_xor_pd(I,interval::lbsignmask);
-      for (;;) {
-		if (odd(n)) {
-			y = _mm_xor_pd(y,interval::lbsignmask);
-	  		y = _mm_mul_pd(y,z);
-	  		if (n==1) { // On input, n is assumed to be non-null
-	    		return y;
-	  		}
-		}
-		n >>= 1;
-		__m128d z2 = _mm_xor_pd(z,interval::lbsignmask);
-		z = _mm_mul_pd(z,z2);
-      }
-    }
-
-	/*
-		uipow_upup --
-		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), rndup(a^n)> 
-	*/
-  GAOL_INLINE __m128d uipow_upup(const __m128d& I, unsigned int n)
-    {
-      __m128d y = _mm_set_pd(1.0,1.0);
-      __m128d z = I;
-      for (;;) {
-		if (odd(n)) {
-	  		y = _mm_mul_pd(y,z);
-	  		if (n==1) { // On input, n is assumed to be non-null
-	    		return y;
-	  		}
-		}
-		n >>= 1;
-		z = _mm_mul_pd(z,z);
-      }
-    }
-
-#endif
-
-#if 0
-/*
-  Returns the position of the Most Significant bit.
-  Algorithm from: Bit Twiddling Hacks
-        (http://graphics.stanford.edu/~seander/bithacks.html)
-  NOTE: v should be different from 0 
-  */
-unsigned char MSB_position(uint32_t v)
-{
-    static const unsigned char MultiplyDeBruijnBitPosition[32] =
-    {
-        0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-        8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-    };
-
-    v |= v >> 1; // first round down to one less than a power of 2
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-
-    return MultiplyDeBruijnBitPosition[(uint32_t)(v * 0x07C4ACDDU) >> 27];
-}
-
-/*
-  Reverses the chain bit of v
-  Algorithm adapted from: Bit Twiddling Hacks
-        (http://graphics.stanford.edu/~seander/bithacks.html)
-*/
-GAOL_INLINE uint32_t reverse_bits(uint32_t v)
-{
-    static const unsigned char reverse_lookup[] =
-    {
-     0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0,
-     0x08, 0x88, 0x48, 0xC8, 0x28, 0xA8, 0x68, 0xE8, 0x18, 0x98, 0x58, 0xD8, 0x38, 0xB8, 0x78, 0xF8,
-     0x04, 0x84, 0x44, 0xC4, 0x24, 0xA4, 0x64, 0xE4, 0x14, 0x94, 0x54, 0xD4, 0x34, 0xB4, 0x74, 0xF4,
-     0x0C, 0x8C, 0x4C, 0xCC, 0x2C, 0xAC, 0x6C, 0xEC, 0x1C, 0x9C, 0x5C, 0xDC, 0x3C, 0xBC, 0x7C, 0xFC,
-     0x02, 0x82, 0x42, 0xC2, 0x22, 0xA2, 0x62, 0xE2, 0x12, 0x92, 0x52, 0xD2, 0x32, 0xB2, 0x72, 0xF2,
-     0x0A, 0x8A, 0x4A, 0xCA, 0x2A, 0xAA, 0x6A, 0xEA, 0x1A, 0x9A, 0x5A, 0xDA, 0x3A, 0xBA, 0x7A, 0xFA,
-     0x06, 0x86, 0x46, 0xC6, 0x26, 0xA6, 0x66, 0xE6, 0x16, 0x96, 0x56, 0xD6, 0x36, 0xB6, 0x76, 0xF6,
-     0x0E, 0x8E, 0x4E, 0xCE, 0x2E, 0xAE, 0x6E, 0xEE, 0x1E, 0x9E, 0x5E, 0xDE, 0x3E, 0xBE, 0x7E, 0xFE,
-     0x01, 0x81, 0x41, 0xC1, 0x21, 0xA1, 0x61, 0xE1, 0x11, 0x91, 0x51, 0xD1, 0x31, 0xB1, 0x71, 0xF1,
-     0x09, 0x89, 0x49, 0xC9, 0x29, 0xA9, 0x69, 0xE9, 0x19, 0x99, 0x59, 0xD9, 0x39, 0xB9, 0x79, 0xF9,
-     0x05, 0x85, 0x45, 0xC5, 0x25, 0xA5, 0x65, 0xE5, 0x15, 0x95, 0x55, 0xD5, 0x35, 0xB5, 0x75, 0xF5,
-     0x0D, 0x8D, 0x4D, 0xCD, 0x2D, 0xAD, 0x6D, 0xED, 0x1D, 0x9D, 0x5D, 0xDD, 0x3D, 0xBD, 0x7D, 0xFD,
-     0x03, 0x83, 0x43, 0xC3, 0x23, 0xA3, 0x63, 0xE3, 0x13, 0x93, 0x53, 0xD3, 0x33, 0xB3, 0x73, 0xF3,
-     0x0B, 0x8B, 0x4B, 0xCB, 0x2B, 0xAB, 0x6B, 0xEB, 0x1B, 0x9B, 0x5B, 0xDB, 0x3B, 0xBB, 0x7B, 0xFB,
-     0x07, 0x87, 0x47, 0xC7, 0x27, 0xA7, 0x67, 0xE7, 0x17, 0x97, 0x57, 0xD7, 0x37, 0xB7, 0x77, 0xF7,
-     0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF
-    };
-    static const int Mod37BitPosition[] = // map a bit value mod 37 to its position
-    {
-     32, 0, 1, 26, 2, 23, 27, 0, 3, 16, 24, 30, 28, 11, 0, 13, 4,
-     7, 17, 0, 25, 22, 31, 15, 29, 10, 12, 6, 0, 21, 14, 9, 5,
-     20, 8, 19, 18
-    };
-
-    uint32_t res =  (static_cast<uint32_t>(reverse_lookup[v & 0xff]) << 24) |
-                    (static_cast<uint32_t>(reverse_lookup[(v >> 8) & 0xff]) << 16) |
-                    (static_cast<uint32_t>(reverse_lookup[(v >> 16) & 0xff]) << 8) |
-                    static_cast<uint32_t>(reverse_lookup[(v >> 24) & 0xff]);
-
-    return res >> Mod37BitPosition[(-res & res) % 37];
-}
-
-	/*
-		uipow_dnup --
-		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), -rnddn(a^n)> 
-	*/
-  GAOL_INLINE __m128d uipow_dnup(const __m128d& I, unsigned int n)
-    { // n assumed to be different from 0
-		__m128d res = _mm_xor_pd(I,interval::lbsignmask);
-		unsigned char cpt = MSB_position(n);
-		n = reverse_bits(n) >> 1;
-		while (cpt > 0) {
-			__m128d res2 = _mm_xor_pd(res,interval::lbsignmask);
-			res = _mm_mul_pd(res,res2);
-			if (odd(n)) {
-				res = _mm_mul_pd(res,I);
-			}
-			n >>= 1;
-			--cpt;
-		}
-		return res;
-    }
-
-	/*
-		uipow_upup --
-		Given I=<b,a> with a>=0 and b>=0, computes <rndup(b^n), rndup(a^n)> 
-	*/
-  GAOL_INLINE __m128d uipow_upup(const __m128d& I, unsigned int n)
-    { // n assumed to be different from 0
-     	__m128d res = I;
-		unsigned char cpt = MSB_position(n);
-		n = reverse_bits(n) >> 1;
-
-		while (cpt > 0) {
-			res = _mm_mul_pd(res,res);
-			if (odd(n)) {
-				res = _mm_mul_pd(res,I);
-			}
-			n >>= 1;
-			--cpt;
-		}
-		return res;
-	}
-#endif
-
-  /*
-    I^e for a non-empty I and e > 0 from the products rounded outward, the
-    rounding direction being upward already, and uipow_rounded() below, which
-    checks the direction, for sqr(), with e = 2 (GAOL v5: x^n takes exact
-    products, see pown_products() in gaol_interval.cpp, the SSE2 and the FPU
-    intervals alike). Both are inlined by force with GCC and Clang: built with -mfma, Clang 18
-    called uipow_rounded() from sqr() rather than inlining it there with
-    e = 2, and sqr() took 13.7 ns rather than 9.7, Shekel 5 of doc/compare
-    405 ns rather than 302.
-  */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
-  static GAOL_INLINE interval uipow_rounded_upward(const interval& I, unsigned int e)
-    {
-      __m128d res;
-      __m128d Ix = I.get_xmminterval();
-
-      int signI = _mm_movemask_pd(Ix);
-      switch (signI) { // Remember that the sign of the left bound is negated
-      case 0: // 00: I.straddles_zero()
-	{
-	  res = uipow_upup(Ix,e);
-	  if (!odd(e)) {
-	    __m128d res2 = _mm_shuffle_pd(res,res,1);
-	    __m128d res3 = _mm_max_pd(res,res2);
-	    res = _mm_and_pd(res3,interval::m128d_02mask);
-	    //res = interval(0.0,fmax(-res.left(),res.right()));
-	  }
-	  break;
-	}
-      case 1: // 01: I.positive()
-	{
-	  Ix = _mm_xor_pd(Ix,interval::lbsignmask); // Make both stored bounds positive 
-	  res = uipow_dnup(Ix,e);
-	  break;
-	}
-      case 2: // 10: I.negative()
-	{
-	  Ix = _mm_shuffle_pd(Ix,Ix,1);
-	  Ix = _mm_xor_pd(Ix,interval::lbsignmask); // Make both stored bounds positive 
-	  res = uipow_dnup(Ix,e);
-	  if (odd(e)) {
-	    //res = -res;
-	    res = _mm_shuffle_pd(res,res,1);
-	  }
-	  break;
-	}
-      case 3: // 11: I=[0, -0] (empty intervals have been filtered already)
-	{
-	  //res = interval(0.0);
-	  res = _mm_set_pd(0.0,-0.0);
-	  break;
-	}
-	  default: // This case should never be attained
-		res= _mm_set_pd(-1.0,1.0);  // Just to keep the compiler happy.
-      
-      }
-      return interval(res);
-    }
-
-  // uipow_rounded_upward(), after a check of the rounding direction
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
-  static GAOL_INLINE interval uipow_rounded(const interval& I, unsigned int e)
-    {
-      GAOL_RND_ENTER_SSE();
-      __m128d res = uipow_rounded_upward(I,e).get_xmminterval();
-      GAOL_RND_KEEP(res);
-      GAOL_RND_LEAVE_SSE();
-      return interval(res);
-    }
-
-
   interval interval::operator-() const
   {
     return interval(_mm_shuffle_pd(xmmbounds,xmmbounds,_MM_SHUFFLE2(0,1)));
   }
 
+  /*
+    The square from one product, as the FPU intervals compute it (GAOL v5,
+    point AA of TODO.md). It took the binary exponentiation of the products
+    rounded outward, uipow_rounded(I,2), whose last product, of 1 by the
+    square, is exact, and gives the same bounds, bit for bit: Clang 18 kept
+    its loop for e = 2, two products and three branches, and sqr() took
+    4.4 ns rather than 2.5 (gaol_performance, Intel Xeon E3-1220 v6), 9.4 ns
+    rather than 7.2 in the benchmark of doc/compare, where GAOL 4.2.3 takes
+    7.6. sqr() was the last caller of uipow_rounded(), uipow_upup() and
+    uipow_dnup(), gone with it, as from the FPU intervals (x^n takes exact
+    products, see pown_products() in gaol_interval_core.cpp).
+  */
   interval sqr(const interval& I)
   {
     if (I.is_empty()) {
         return I;
-    } else {
-        return uipow_rounded(I,2);
     }
+    GAOL_RND_ENTER_SSE();
+    __m128d Ix = I.get_xmminterval();
+    __m128d res;
+    switch (_mm_movemask_pd(Ix)) { // Remember that the sign of the left bound is negated
+    case 0: // 00: I.straddles_zero(), <0, max(rndup(l^2), rndup(r^2))>
+      {
+	__m128d sq = _mm_mul_pd(Ix,Ix);
+	res = _mm_and_pd(_mm_max_pd(sq,_mm_shuffle_pd(sq,sq,1)),interval::m128d_02mask);
+	break;
+      }
+    case 1: // 01: I.positive(), <-rnddn(l^2), rndup(r^2)>
+      res = _mm_mul_pd(Ix,_mm_xor_pd(Ix,interval::lbsignmask));
+      break;
+    case 2: // 10: I.negative(), <-rnddn(r^2), rndup(l^2)>
+      Ix = _mm_shuffle_pd(Ix,Ix,1);
+      res = _mm_mul_pd(Ix,_mm_xor_pd(Ix,interval::lbsignmask));
+      break;
+    default: // 11: I=[0, -0] (empty intervals have been filtered already)
+      res = _mm_set_pd(0.0,-0.0);
+    }
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE_SSE();
+    return interval(res);
   }
 
 
  interval& interval::operator+=(const interval& I)
     {
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
       // The AVX-512 path: no rounding direction to set, the flush-to-zero
-      // modes cleared where they are set (gaol/gaol_interval_avx512.cpp)
-      if (avx512_arithmetic) {
-        xmmbounds = fast_add(xmmbounds, I.xmmbounds);
-        return *this;
+      // modes cleared where they are set (gaol/gaol_interval_avx512.cpp).
+      // Where GAOL_AVX512_ARITHMETIC is, each operation returns from its
+      // block of that path, and its SSE2 code is never reached
+      {
+        return fast_add_assign(*this, I);
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -590,10 +384,9 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
 
   interval& interval::operator-=(const interval& I)
     {
-#if GAOL_HAVE_AVX512_TARGET
-      if (avx512_arithmetic) {
-        xmmbounds = fast_sub(xmmbounds, I.xmmbounds);
-        return *this;
+#if GAOL_AVX512_ARITHMETIC
+      {
+        return fast_sub_assign(*this, I);
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -611,10 +404,9 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
-#if GAOL_HAVE_AVX512_TARGET
-      if (avx512_arithmetic) {
-        xmmbounds = fast_add(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
-        return *this;
+#if GAOL_AVX512_ARITHMETIC
+      {
+        return fast_add_assign(*this, d); // <-l, r> + <-d, d>
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -629,10 +421,9 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
-#if GAOL_HAVE_AVX512_TARGET
-      if (avx512_arithmetic) {
-        xmmbounds = fast_add(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
-        return *this;
+#if GAOL_AVX512_ARITHMETIC
+      {
+        return fast_add_assign(*this, -d); // <-l, r> + <d, -d>
       }
 #endif
       GAOL_RND_ENTER_SSE();
@@ -647,7 +438,7 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         *this = interval::emptyset();
         return *this;
       }
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
       /* The AVX-512 path: the zero and the sign of d read from its bits,
          which the denormals-are-zero mode does not change, where the SSE2
          path checks the modes before comparing d (a subnormal d was 0), and
@@ -659,14 +450,13 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
       // path does: the dispatch would give the signs of its zeros instead,
       // and the guard keeps the modes as the program left them, as the
       // dispatch keeps them
-      if (avx512_arithmetic) {
+      {
         if (bit_zero(d)) {
           const flush_guard flush;
           xmmbounds = interval::m128_zero;
           return *this;
         }
-        xmmbounds = fast_mul(xmmbounds, _mm_set_pd(d, -d));
-        return *this;
+        return fast_mul_assign(*this, d);
       }
 #endif
       // The rounding direction checked before d is compared: with the modes
@@ -696,23 +486,18 @@ GAOL_INLINE uint32_t reverse_bits(uint32_t v)
         return *this;
       }
 
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
       /* The AVX-512 path: the quotients lane by lane, as the SSE2 path
          divides them, the zero and the sign of d from its bits, the empty
          set of a zero divisor; the modes of the zero case are cleared by
          the guard, which gives them back as the program left them */
-      if (avx512_arithmetic) {
+      {
         if (bit_zero(d)) {
           const flush_guard flush;
           *this = interval::emptyset();
           return *this;
         }
-        if (bit_negative(d)) {
-          xmmbounds = fast_div_by(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), -d); // <r/(-d), -l/(-d)>
-        } else {
-          xmmbounds = fast_div_by(xmmbounds, d); // <-l/d, r/d>
-        }
-        return *this;
+        return fast_div_assign(*this, d);
       }
 #endif
       // The rounding direction checked before d is compared, as in
@@ -1081,9 +866,10 @@ namespace {
   }
 
   // x *= y for nonempty x and y with an infinite bound, out of operator*=,
-  // where it is rare: operator*= calls it last, as a tail call, and keeps
-  // the code and the stack frame of a function calling none (the SSE2
-  // intervals are compiled by GCC and Clang only)
+  // where it is rare, and its code with it (the SSE2 intervals are compiled
+  // by GCC and Clang only). operator*= calls it last: GCC 13 makes it a
+  // tail call, and Clang 18 a call, for which operator*= saves a register
+  // (GAOL v5, point AA of TODO.md)
   __attribute__((noinline, cold)) interval& multiply_with_infinities(interval& x, const interval& y)
   {
     x.get_xmminterval() = product_of_bounds(x.get_xmminterval(), y.get_xmminterval(), products_with_infinities());
@@ -1098,12 +884,12 @@ interval& interval::operator*=(const interval& I)
 	return *this;
   }
 
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
   /* The AVX-512 path: the products by the embedded rounding, the dispatch
      and the infinite bounds by the sign and the magnitude bits, which the
      denormals-are-zero mode does not change (the SSE2 path checks the
      modes for the comparisons below) */
-  if (avx512_arithmetic) {
+  {
     xmmbounds = fast_mul(xmmbounds, I.xmmbounds);
     return *this;
   }
@@ -1147,12 +933,11 @@ interval& interval::operator/=(const interval& I)
 		*this = interval::emptyset();
 		return *this;
 	}
-#if GAOL_HAVE_AVX512_TARGET
+#if GAOL_AVX512_ARITHMETIC
 	/* The AVX-512 path: the quotients by the embedded rounding, the
 	   dispatch by the sign and the magnitude bits (see operator*= above) */
-	if (avx512_arithmetic) {
-		xmmbounds = fast_div(xmmbounds, I.xmmbounds);
-		return *this;
+	{
+		return fast_div_assign(*this, I);
 	}
 #endif
 	GAOL_RND_ENTER_SSE();

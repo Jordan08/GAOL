@@ -73,7 +73,7 @@
    nothing: GAOL leaves them out, and none of its three builds has an option
    to compile them (GAOL v5). A developer of GAOL working on them defines
    GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
-   gaol/gaol_interval.cpp then compiles them, gaol::interval2f where SSE3
+   gaol/gaol_interval_core.cpp then compiles them, gaol::interval2f where SSE3
    instructions are used (GAOL_USING_SSE3_INSTRUCTIONS), and the code using them
    includes their headers, gaol/float/gaol_intervalf.h and
    gaol/float/gaol_interval2f.h, which the builds do not install and
