@@ -42,8 +42,8 @@ build, and the CMake build follows them, apart from the errors corrected (see
   tests stopped on an illegal instruction.
   GAOL's exact products (`std::fma()`) and CORE-MATH's functions then compute
   `fma()` with one instruction rather than with a call to the math library: on
-  an Intel i7-1185G7 with Clang 18.1, `pow(x, 3)` of an interval took 14.5 ns
-  rather than 21.1, and `sin` and `cos` 2.4 times less, measured in
+  an Intel i7-1185G7 with Clang 21.1, `pow(x, 3)` of an interval takes 5.6 ns
+  rather than 17.1, `sin` 1.4 times less and `cos` 2.5 times less, measured in
   [What the options are worth](#what-the-options-are-worth). The code using GAOL is given the flag
   too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
   `-ffp-contract=off` stays, which forbids the compiler to contract a
@@ -103,36 +103,39 @@ it on each kind of machine.
 
 ## What the options are worth
 
-Measured with `tests/performance.cpp` on an Intel i7-1185G7 with Clang 18.1,
-in nanoseconds per operation, the best of five runs (GAOL v5):
+Measured with `tests/performance.cpp` on an Intel i7-1185G7 with Clang 21.1,
+in nanoseconds per operation, the best of nine runs, each program being run in
+turn with the others (GAOL v5):
 
 | | x + y | x × y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 2.68 | 3.87 | 2.61 | 14.5 | 29.3 | 32.9 | 59.4 | 58.0 |
-| `-DGAOL_FMA=OFF` | 2.54 | 3.92 | 2.94 | 21.1 | 37.9 | 52.6 | 143.4 | 141.4 |
-| `-DGAOL_SIMD=OFF` | 3.15 | 6.27 | 2.85 | 13.9 | 29.2 | 32.3 | 61.1 | 61.3 |
+| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 1.83 | 2.93 | 2.00 | 5.58 | 18.9 | 21.9 | 29.7 | 36.6 |
+| `-DGAOL_FMA=OFF` | 1.74 | 2.96 | 1.84 | 17.1 | 21.2 | 34.8 | 42.6 | 89.9 |
+| `-DGAOL_SIMD=OFF` | 2.10 | 4.32 | 2.30 | 7.07 | 18.4 | 21.2 | 30.1 | 37.3 |
 
 - **The fused multiply-add instructions (`GAOL_FMA`) are worth much more than
-  they were**: sin and cos are **2.4 times faster** with them, log 1.6 times,
-  pow(x, 3) 1.5 times and exp 1.3 times. CORE-MATH computes with
+  they were**: cos is **2.5 times faster** with them, pow(x, 3) 3.1 times, log
+  1.6 times, sin 1.4 times and exp 1.1 times. CORE-MATH computes with
   `__builtin_fma` throughout, which is one instruction where the processor has
   it and a call to the math library where it has not. They are on by default wherever the compiler has a flag for them and the
   machine building runs a program compiled with it. They do nothing for the
   arithmetic, which does not multiply and add in one step.
 - **The SSE2 intervals (`GAOL_SIMD`) pay on the products and the additions**:
-  x × y takes 3.87 ns rather than 6.27, and x + y 2.68 rather than 3.15, the two
+  x × y takes 2.93 ns rather than 4.32, and x + y 1.83 rather than 2.10, the two
   bounds being computed in one instruction. They are on by default on x86
   processors. The elementary functions do not go through them.
 
 ### Interprocedural optimization is not offered
 
-Compiled with it (`-flto`), GAOL's basic operations are two to three times
-faster where the code using GAOL is compiled with it too — an addition of
-intervals took 0.99 ns rather than 2.68 with Clang 18.1, `sqr(x)` 1.96 rather
-than 2.61 — and the elementary functions are two to three times **slower**: cos
-took 169 ns rather than 58, sin 147 rather than 59, log 61 rather than 33. The
-sources of CORE-MATH are compiled apart, without it, and it reaches them
-through the link all the same.
+Compiled with it (`-flto`), GAOL's additions and subtractions are more than
+twice as fast where the code using GAOL is compiled with it too, its square
+1.7 times and its product 1.4 times — an addition of intervals took 0.81 ns
+rather than 1.83 with Clang 21.1, `sqr(x)` 1.18 rather than 2.00, `x * y` 2.12
+rather than 2.93 — and the elementary functions no faster, a little
+**slower**: cos took 40.1 ns rather than 36.6, sin 31.5 rather than 29.7, log
+23.2 rather than 21.9 (with Clang 18.1 they had taken two to three times as
+long). The sources of CORE-MATH are compiled apart, without it, and it reaches
+them through the link all the same.
 
 Worse, with **GCC** it breaks the bounds: GAOL then fails
 `tests/rounding_direction.cpp`, which checks that an operation gives the same

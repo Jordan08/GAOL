@@ -42,23 +42,27 @@ built and run again for this table with **Clang 21.1** — GMP, MPFR,
 libieeep1788, filib++ (from the archive IBEX distributes) and PROFIL/BIAS as
 well as the two GAOL — so that one compiler answers for every C and C++
 library here. Only Solaris Studio keeps its own, by nature. Every library was
-measured in the same run, on 13 October 2026, the machine running Ubuntu
-26.04.1 (the tables before, of the same day, were measured with Clang 18.1).
+measured in the same run, on 17 October 2026, the machine running Ubuntu
+26.04.1 (the tables before, of 13 October, were measured on the same processor
+with the same Clang 21.1: the other libraries took between 5 % less and 16 %
+more time then than in this run, GAOL V5.0.0 9 to 34 % more, its square, its
+additions and subtractions and the flag its operations tested for the AVX-512
+path having changed since).
 
 **What GAOL V5.0.0 changes.** The elementary functions, which mathlib used to
 bound, are faster, and so is the integer power:
 
 | | GAOL V5.0.0 | GAOL 4.2.3 | |
 |---|---:|---:|---|
-| `log` | 22.3 ns | 51.0 ns | 2.3 times faster |
-| `exp` | 21.4 | 38.9 | 1.8 |
-| `pow(x, 3)` | 5.99 | 9.96 | 1.7 |
-| `pow(x, y)` | 57.7 | 95.7 | 1.7 |
-| `sin` | 47.1 | 72.7 | 1.5 |
-| line of sin and cos | 130 | 159 | 1.2 |
-| line of powers | 58.9 | 69.6 | 1.2 |
-| five-line block | 207 | 245 | 1.2 |
-| `cos` | 59.4 | 67.1 | 1.1 |
+| `log` | 19.7 ns | 46.8 ns | 2.4 times faster |
+| `pow(x, y)` | 47.4 | 90.2 | 1.9 |
+| `exp` | 18.6 | 34.7 | 1.9 |
+| `pow(x, 3)` | 5.34 | 9.06 | 1.7 |
+| `sin` | 42.9 | 67.7 | 1.6 |
+| line of sin and cos | 119 | 147 | 1.2 |
+| five-line block | 190 | 224 | 1.2 |
+| `cos` | 54.4 | 63.1 | 1.2 |
+| line of powers | 53.7 | 61.7 | 1.1 |
 
 Two things go at once with mathlib: the outward move of each bound, and the
 two changes of rounding direction each function made, to nearest before
@@ -72,16 +76,16 @@ seventeen operations** (excess 0.0e+00), where GAOL 4.2.3 is wider on the
 square root, `exp`, `log`, `sin`, `cos`, both powers and the lines that use
 them.
 
-The arithmetic costs GAOL V5.0.0 more: + and − take 2.8 ns against 2.6, ×
-11.2 against 11.1 and ÷ 8.8 against 8.0, the square 7.6 against 6.2, the
-square root 7.8 against 6.3, the arithmetic line 23.8 against 20.1, and
-Shekel 5 282 ns against 195, half as much again, which the costs of its 20
-squares, 45 additions and subtractions and 5 divisions do not account for
-(point AA of `TODO.md`). What GAOL V5.0.0 does more there: each operation
-checks that the rounding direction is upward, with an addition, and sets it
-when it is not, where GAOL 4.2.3 takes it upward on trust; and the square
-root is the tightest interval whatever the rounding of the C library's
-`sqrt`, where GAOL 4.2.3's is wider (excess 1.4e-14). The check is what a
+The arithmetic costs GAOL V5.0.0 about what it costs GAOL 4.2.3: + and −
+take 2.3 and 2.4 ns against 2.4 and 2.3, × 10.3 against 10.3 and ÷ 7.9
+against 7.7, the square 6.2 against 5.9, and the arithmetic line 19.6 against
+18.9. The square root takes 6.9 ns against 5.9, and Shekel 5 210 ns against
+170, a quarter more, of which the costs of its 20 squares, 45 additions and
+subtractions and 5 divisions explain about 7 ns of the 40. What GAOL V5.0.0
+does more there: each operation checks that the rounding direction is upward,
+with an addition, and sets it when it is not, where GAOL 4.2.3 takes it upward
+on trust; and the square root is the tightest interval whatever the rounding
+of the C library's `sqrt`, where GAOL 4.2.3's is wider (excess 1.4e-14). The check is what a
 program needs that changes the rounding direction: the benchmark sums the
 results rounding to nearest, and GAOL 4.2.3's own `midpoint()` leaves the
 direction to nearest. Left so, the operations of GAOL 4.2.3 timed next gave
@@ -89,62 +93,64 @@ bounds narrower than libieeep1788's, which did not enclose the exact results;
 the benchmark now sets the direction back after its sums
 (`code/bench_common.h`).
 
-**Arithmetic.** GAOL is the fastest on + and −, 2.8 ns for GAOL V5.0.0 (2.6
-and 2.5 for GAOL 4.2.3), 1.9 times as fast as filib++ (5.2 ns) and 5.5 to 6.4
-times as fast as PROFIL/BIAS (15 ns) and Solaris Studio (17.6 ns); × and ÷
-take GAOL V5.0.0 11.2 and 8.8 ns, against 13.3 and 9.8 ns for filib++, 15.4 to
-15.8 ns for PROFIL/BIAS and 20 to 21 ns for Solaris Studio. An addition of
-intervals costs GAOL V5.0.0 2.8 times an addition of doubles: two additions,
+**Arithmetic.** GAOL is the fastest on + and −, 2.3 and 2.4 ns for GAOL V5.0.0
+(2.4 and 2.3 for GAOL 4.2.3), 2.0 to 2.2 times as fast as filib++ (5.1 and
+4.9 ns) and 6.3 to 7.6 times as fast as PROFIL/BIAS (15 ns) and Solaris Studio
+(17.6 and 17.8 ns); × and ÷ take GAOL V5.0.0 10.3 and 7.9 ns, against 12.3 and
+8.8 ns for filib++, 15.4 ns for PROFIL/BIAS and 20 to 21 ns for Solaris Studio.
+An addition of intervals costs GAOL V5.0.0 2.4 times an addition of doubles:
+two additions,
 and the check that the rounding direction is upward, where filib++ sets the
 rounding direction and restores it, and PROFIL/BIAS calls a function of BIAS
 that sets it downward, then upward, then back to nearest — which is why its
 four arithmetic operations all take about the same time. The integer power
-`pown(x, 3)` takes GAOL V5.0.0 6.0 ns and GAOL 4.2.3 10.0 ns: filib++'s
-`power(x, 3)` takes 20 ns, Boost.Interval's 22 ns, PROFIL/BIAS's 36 ns and
-Solaris Studio's `x**3` 149 ns; `sqr` takes GAOL V5.0.0 7.6 ns, against 9.2
-for filib++, 19.7 for PROFIL/BIAS and 56 for Solaris Studio.
+`pown(x, 3)` takes GAOL V5.0.0 5.3 ns and GAOL 4.2.3 9.1 ns: filib++'s
+`power(x, 3)` takes 18 ns, Boost.Interval's 20 ns, PROFIL/BIAS's 35 ns and
+Solaris Studio's `x**3` 145 ns; `sqr` takes GAOL V5.0.0 6.2 ns, against 8.2
+for filib++, 19.6 for PROFIL/BIAS and 56 for Solaris Studio.
 
 **Elementary functions.** PROFIL/BIAS is the fastest on the square root
-(3.9 ns), exp (10.6 ns), log (11.3 ns) and the real power `pow(x, y)` (35 ns),
+(3.9 ns), exp (10.6 ns), log (11.5 ns) and the real power `pow(x, y)` (34 ns),
 which it computes from the libm of the system, moved outward, without correct
 rounding: its bounds are among the widest (below), and its sin and cos,
 computed by its own argument reduction, are the slowest after libieeep1788's,
-126 and 139 ns. GAOL V5.0.0 comes next on exp and log, 21 and 22 ns — faster
-than Boost.Interval (31 and 32 ns), filib++ (33 and 29 ns) and Solaris Studio
-(39 ns each) — with **correctly rounded** values, where the others are not.
-filib++ is the fastest on sin and cos (35.5 and 37.4 ns) with its own
-polynomials, then Solaris Studio (43 and 46 ns), then GAOL V5.0.0 (47 and
-59 ns): GAOL pays there for correct rounding over the whole range, and for
+123 and 138 ns. GAOL V5.0.0 comes next on exp and log, 19 and 20 ns — faster
+than Boost.Interval (30 ns each), filib++ (30 and 27 ns) and Solaris Studio
+(39 and 38 ns) — with **correctly rounded** values, where the others are not.
+filib++ is the fastest on sin and cos (33.1 and 34.1 ns) with its own
+polynomials, then Solaris Studio (41 and 43 ns), then GAOL V5.0.0 (43 and
+54 ns): GAOL pays there for correct rounding over the whole range, and for
 dividing the bounds by an interval enclosing π to find where the function is
 monotonic, asking CORE-MATH for the signs of the derivative where the division
 cannot tell ([issue #6](https://github.com/Jordan08/GAOL/issues/6)). GAOL
 V5.0.0's sin became faster than its cos when CORE-MATH rewrote `sin.c`
-(upstream 6b84457). On `pow(x, y)` GAOL V5.0.0 takes 58 ns, against 70 for
-filib++, 77 for Boost.Interval, 96 for GAOL 4.2.3 and 125 for Solaris Studio.
+(upstream 6b84457). On `pow(x, y)` GAOL V5.0.0 takes 47 ns, against 66 for
+filib++, 73 for Boost.Interval, 90 for GAOL 4.2.3 and 125 for Solaris Studio.
 
-**Formulas.** GAOL is the fastest on the arithmetic line (23.8 ns for GAOL
-V5.0.0 and 20.1 for GAOL 4.2.3, against 30 for filib++ and about 61 to 64 for
-Solaris Studio, PROFIL/BIAS and Boost.Interval), on the line of powers (59 and
-70 ns, against 91 for filib++, 93 for PROFIL/BIAS and 257 for Solaris Studio)
-and on Shekel 5 (282 and 195 ns, against 417, 1 723 and 1 105: Shekel 5 is 20
-squares, 45 additions and subtractions and 5 divisions, and its squares cost
+**Formulas.** GAOL is the fastest on the arithmetic line (19.6 ns for GAOL
+V5.0.0 and 18.9 for GAOL 4.2.3, against 30 for filib++ and about 62 to 64 for
+Solaris Studio, PROFIL/BIAS and Boost.Interval), on the line of powers (54 and
+62 ns, against 88 for filib++, 93 for PROFIL/BIAS and 254 for Solaris Studio)
+and on Shekel 5 (210 and 170 ns, against 416 for filib++, 921 for
+Boost.Interval, 1 085 for PROFIL/BIAS and 1 720 for Solaris Studio: Shekel 5 is
+20 squares, 45 additions and subtractions and 5 divisions, and its squares cost
 Solaris Studio 56 ns each and PROFIL/BIAS 20). GAOL V5.0.0 alone is the
-fastest on the five-line block (207 ns, against 213 for filib++, 245 for GAOL
-4.2.3, 450 for PROFIL/BIAS and 463 for Solaris Studio). filib++ is the fastest
-on the line of sin and cos (97.5 ns, against 130 for GAOL V5.0.0, 159 for GAOL
-4.2.3, 166 for Solaris Studio and 309 for PROFIL/BIAS), where its sin and cos
+fastest on the five-line block (190 ns, against 215 for filib++, 224 for GAOL
+4.2.3, 433 for PROFIL/BIAS and 464 for Solaris Studio). filib++ is the fastest
+on the line of sin and cos (98.5 ns, against 119 for GAOL V5.0.0, 147 for GAOL
+4.2.3, 166 for Solaris Studio and 310 for PROFIL/BIAS), where its sin and cos
 weigh most.
 
-**libieeep1788** is 11 to 124 times slower than GAOL V5.0.0: every bound is an
+**libieeep1788** is 14 to 138 times slower than GAOL V5.0.0: every bound is an
 MPFR computation, about 140 ns for an addition and 5 to 7 µs for sin, cos and
 the real power. Its own README warns that its focus is correctness, not speed.
-GAOL V5.0.0 now gives **the same bounds as it does**, tightest everywhere, 11
-to 124 times faster.
+GAOL V5.0.0 now gives **the same bounds as it does**, tightest everywhere, 14
+to 138 times faster.
 
-**Boost.Interval** is slower than GAOL V5.0.0 on every operation: 4.6 to 4.7
-times on + and −, 2.0 to 3.6 times on ×, ÷, the square, the square root and the
-integer power, 1.2 to 1.6 times on exp, log, sin, cos and the real power, 2.7
-times on the arithmetic line and 3.3 times on Shekel 5. Each of its
+**Boost.Interval** is slower than GAOL V5.0.0 on every operation: 5.3 to 5.5
+times on + and −, 2.1 to 3.7 times on ×, ÷, the square, the square root and the
+integer power, 1.2 to 1.6 times on exp, log, sin, cos and the real power, 3.1
+times on the arithmetic line and 4.4 times on Shekel 5. Each of its
 operations reads the rounding direction (`fegetround`), sets it upward
 (`fesetround`) and, at its end, sets the one it read back: two changes of
 direction where GAOL checks the direction and changes nothing. Its elementary
@@ -176,7 +182,7 @@ the intervals are the same, but its `Mid` computes inf + (sup − inf)/2
 **rounded upward**, one double above the midpoint for 4 % of the sums of the
 benchmark, where the others round to nearest.
 
-The timings were measured on a laptop, on 13 October 2026, each time being the
+The timings were measured on a laptop, on 17 October 2026, each time being the
 best of the runs of three rounds, each program being run in turn with the
 others, on a processor of its own (`taskset -c 2`). libieeep1788's times, from
 a single run of each operation in each round, are the least steady. Solaris
@@ -190,13 +196,13 @@ compiler inlines GAOL's, filib++'s and Boost.Interval's.
 Measured on:
 
 ```
-Date:            2026-10-13
+Date:            2026-10-17
 Processor:       11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz (taskset -c 2)
 System:          Linux 7.0.0-38-generic, Ubuntu 26.04.1 LTS
 C++ compiler:    Ubuntu clang version 21.1.8 (6ubuntu1)
 C++ flags:       -std=c++11 -O3 -DNDEBUG -mfma (GAOL: -frounding-math -fno-fast-math -ffp-contract=off -msse2 -msse3 -mfma; libieeep1788, filib++, PROFIL/BIAS and Boost.Interval: -frounding-math -fno-fast-math -ffp-contract=off)
 Fortran:         f90: Sun Fortran 95 8.7 Linux_i386 2014/10/20, flags: -O3 -xia
-GAOL V5.0.0:     the branch of this checkout (v4.3.2-804-ge6646e2), CMake Release, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
+GAOL V5.0.0:     the branch of this checkout (v4.3.2-897-g7716fec), CMake Release, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
 GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://github.com/goualard-f/GAOL), its configure, the rounding direction not preserved, mathlib 2.1.1
 libieeep1788:    1f10b89, MPFR 4.2.1, GMP 6.3.0
 filib++:         3.0.2.2, interval<double, native_switched, i_mode_extended_flag>
@@ -234,45 +240,45 @@ a and b are intervals centred in [−10, 10], p in [1, 10], e in [0.5, 2.5], the
 
 | Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.2.3 | filib++ | Solaris Studio f90 | PROFIL/BIAS | Boost.Interval | libieeep1788 / GAOL V5.0.0 | GAOL 4.2.3 / GAOL V5.0.0 | filib++ / GAOL V5.0.0 | Solaris Studio f90 / GAOL V5.0.0 | PROFIL/BIAS / GAOL V5.0.0 | Boost.Interval / GAOL V5.0.0 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `add` | 1.00 | 139 | 2.77 | 2.56 | 5.24 | 17.6 | 15.2 | 12.7 | 50.1 | 0.9 | 1.9 | 6.4 | 5.5 | 4.6 |
-| `sub` | 0.94 | 141 | 2.74 | 2.53 | 5.20 | 17.6 | 15.2 | 12.9 | 51.4 | 0.9 | 1.9 | 6.4 | 5.5 | 4.7 |
-| `mul` | 0.91 | 170 | 11.2 | 11.1 | 13.3 | 21.3 | 15.8 | 22.9 | 15.2 | 1.0 | 1.2 | 1.9 | 1.4 | 2.0 |
-| `div` | 0.92 | 172 | 8.81 | 8.03 | 9.76 | 19.9 | 15.4 | 21.3 | 19.5 | 0.9 | 1.1 | 2.3 | 1.8 | 2.4 |
-| `sqr` | 0.59 | 87.5 | 7.64 | 6.20 | 9.18 | 56.3 | 19.7 | 18.5 | 11.5 | 0.8 | 1.2 | 7.4 | 2.6 | 2.4 |
-| `sqrt` | 1.53 | 99.7 | 7.76 | 6.31 | 15.3 | 27.1 | 3.90 | 25.2 | 12.9 | 0.8 | 2.0 | 3.5 | 0.5 | 3.2 |
-| `exp` | 4.00 | 1 507 | 21.4 | 38.9 | 33.3 | 39.1 | 10.6 | 31.3 | 70.4 | 1.8 | 1.6 | 1.8 | 0.5 | 1.5 |
-| `log` | 3.79 | 1 944 | 22.3 | 51.0 | 28.8 | 38.8 | 11.3 | 32.3 | 87.4 | 2.3 | 1.3 | 1.7 | 0.5 | 1.4 |
-| `sin` | 15.4 | 5 657 | 47.1 | 72.7 | 35.5 | 43.1 | 126 | 75.6 | 120 | 1.5 | 0.8 | 0.9 | 2.7 | 1.6 |
-| `cos` | 13.9 | 5 247 | 59.4 | 67.1 | 37.4 | 45.8 | 139 | 72.2 | 88.3 | 1.1 | 0.6 | 0.8 | 2.3 | 1.2 |
-| `pow_int` | 14.6 | 263 | 5.99 | 9.96 | 19.8 | 149 | 35.7 | 21.6 | 43.9 | 1.7 | 3.3 | 24.8 | 6.0 | 3.6 |
-| `pow_real` | 11.9 | 7 168 | 57.7 | 95.7 | 70.2 | 125 | 34.6 | 77.2 | 124 | 1.7 | 1.2 | 2.2 | 0.6 | 1.3 |
-| `line_arith` | 1.22 | 725 | 23.8 | 20.1 | 29.6 | 61.2 | 64.2 | 64.4 | 30.5 | 0.8 | 1.2 | 2.6 | 2.7 | 2.7 |
-| `line_trig` | 29.8 | 11 731 | 130 | 159 | 97.5 | 166 | 309 | 196 | 90.4 | 1.2 | 0.8 | 1.3 | 2.4 | 1.5 |
-| `line_pow` | 21.9 | 2 471 | 58.9 | 69.6 | 91.2 | 257 | 92.6 | 121 | 42.0 | 1.2 | 1.5 | 4.4 | 1.6 | 2.1 |
-| `shekel5` | 2.60 | 9 475 | 282 | 195 | 417 | 1 723 | 1 105 | 937 | 33.6 | 0.7 | 1.5 | 6.1 | 3.9 | 3.3 |
-| `block5` | 49.4 | 14 653 | 207 | 245 | 213 | 463 | 450 | 343 | 70.9 | 1.2 | 1.0 | 2.2 | 2.2 | 1.7 |
+| `add` | 0.98 | 135 | 2.31 | 2.39 | 5.11 | 17.6 | 15.3 | 12.7 | 58.4 | 1.0 | 2.2 | 7.6 | 6.6 | 5.5 |
+| `sub` | 0.91 | 143 | 2.38 | 2.32 | 4.87 | 17.8 | 15.1 | 12.5 | 59.9 | 1.0 | 2.0 | 7.5 | 6.3 | 5.3 |
+| `mul` | 0.90 | 175 | 10.3 | 10.3 | 12.3 | 21.4 | 15.4 | 22.0 | 17.0 | 1.0 | 1.2 | 2.1 | 1.5 | 2.1 |
+| `div` | 0.89 | 171 | 7.88 | 7.67 | 8.76 | 19.9 | 15.4 | 19.2 | 21.7 | 1.0 | 1.1 | 2.5 | 2.0 | 2.4 |
+| `sqr` | 0.61 | 88.9 | 6.20 | 5.88 | 8.22 | 55.5 | 19.6 | 16.6 | 14.3 | 0.9 | 1.3 | 9.0 | 3.2 | 2.7 |
+| `sqrt` | 1.35 | 98.5 | 6.85 | 5.95 | 13.4 | 26.6 | 3.95 | 22.8 | 14.4 | 0.9 | 2.0 | 3.9 | 0.6 | 3.3 |
+| `exp` | 3.46 | 1 489 | 18.6 | 34.7 | 30.4 | 38.9 | 10.6 | 29.8 | 80.2 | 1.9 | 1.6 | 2.1 | 0.6 | 1.6 |
+| `log` | 3.65 | 1 930 | 19.7 | 46.8 | 26.7 | 37.9 | 11.5 | 29.8 | 97.9 | 2.4 | 1.4 | 1.9 | 0.6 | 1.5 |
+| `sin` | 13.9 | 5 549 | 42.9 | 67.7 | 33.1 | 41.4 | 123 | 69.2 | 129 | 1.6 | 0.8 | 1.0 | 2.9 | 1.6 |
+| `cos` | 12.4 | 4 942 | 54.4 | 63.1 | 34.1 | 43.1 | 138 | 64.7 | 90.8 | 1.2 | 0.6 | 0.8 | 2.5 | 1.2 |
+| `pow_int` | 13.5 | 243 | 5.34 | 9.06 | 18.0 | 145 | 34.9 | 19.8 | 45.5 | 1.7 | 3.4 | 27.2 | 6.5 | 3.7 |
+| `pow_real` | 10.5 | 6 547 | 47.4 | 90.2 | 66.0 | 125 | 34.4 | 73.3 | 138 | 1.9 | 1.4 | 2.6 | 0.7 | 1.5 |
+| `line_arith` | 1.15 | 656 | 19.6 | 18.9 | 29.7 | 61.5 | 64.4 | 61.7 | 33.4 | 1.0 | 1.5 | 3.1 | 3.3 | 3.1 |
+| `line_trig` | 25.8 | 11 091 | 119 | 147 | 98.5 | 166 | 310 | 187 | 93.1 | 1.2 | 0.8 | 1.4 | 2.6 | 1.6 |
+| `line_pow` | 19.4 | 2 589 | 53.7 | 61.7 | 88.2 | 254 | 92.6 | 116 | 48.2 | 1.1 | 1.6 | 4.7 | 1.7 | 2.2 |
+| `shekel5` | 2.38 | 9 075 | 210 | 170 | 416 | 1 720 | 1 085 | 921 | 43.1 | 0.8 | 2.0 | 8.2 | 5.2 | 4.4 |
+| `block5` | 44.2 | 13 981 | 190 | 224 | 215 | 464 | 433 | 343 | 73.7 | 1.2 | 1.1 | 2.4 | 2.3 | 1.8 |
 
 #### Total time of the 1 000 000 operations (seconds)
 
 | Operation | double (reference) | libieeep1788 | GAOL V5.0.0 | GAOL 4.2.3 | filib++ | Solaris Studio f90 | PROFIL/BIAS | Boost.Interval |
 |---|---|---|---|---|---|---|---|---|
-| `add` | 0.001 | 0.139 | 0.003 | 0.003 | 0.005 | 0.018 | 0.015 | 0.013 |
-| `sub` | 0.001 | 0.141 | 0.003 | 0.003 | 0.005 | 0.018 | 0.015 | 0.013 |
-| `mul` | 0.001 | 0.170 | 0.011 | 0.011 | 0.013 | 0.021 | 0.016 | 0.023 |
-| `div` | 0.001 | 0.172 | 0.009 | 0.008 | 0.010 | 0.020 | 0.015 | 0.021 |
-| `sqr` | 0.001 | 0.087 | 0.008 | 0.006 | 0.009 | 0.056 | 0.020 | 0.018 |
-| `sqrt` | 0.002 | 0.100 | 0.008 | 0.006 | 0.015 | 0.027 | 0.004 | 0.025 |
-| `exp` | 0.004 | 1.507 | 0.021 | 0.039 | 0.033 | 0.039 | 0.011 | 0.031 |
-| `log` | 0.004 | 1.944 | 0.022 | 0.051 | 0.029 | 0.039 | 0.011 | 0.032 |
-| `sin` | 0.015 | 5.657 | 0.047 | 0.073 | 0.036 | 0.043 | 0.126 | 0.076 |
-| `cos` | 0.014 | 5.247 | 0.059 | 0.067 | 0.037 | 0.046 | 0.139 | 0.072 |
-| `pow_int` | 0.015 | 0.263 | 0.006 | 0.010 | 0.020 | 0.149 | 0.036 | 0.022 |
-| `pow_real` | 0.012 | 7.168 | 0.058 | 0.096 | 0.070 | 0.125 | 0.035 | 0.077 |
-| `line_arith` | 0.001 | 0.725 | 0.024 | 0.020 | 0.030 | 0.061 | 0.064 | 0.064 |
-| `line_trig` | 0.030 | 11.731 | 0.130 | 0.159 | 0.097 | 0.166 | 0.309 | 0.196 |
-| `line_pow` | 0.022 | 2.471 | 0.059 | 0.070 | 0.091 | 0.257 | 0.093 | 0.121 |
-| `shekel5` | 0.003 | 9.475 | 0.282 | 0.195 | 0.417 | 1.723 | 1.105 | 0.937 |
-| `block5` | 0.049 | 14.653 | 0.207 | 0.245 | 0.213 | 0.463 | 0.450 | 0.343 |
+| `add` | 0.001 | 0.135 | 0.002 | 0.002 | 0.005 | 0.018 | 0.015 | 0.013 |
+| `sub` | 0.001 | 0.143 | 0.002 | 0.002 | 0.005 | 0.018 | 0.015 | 0.013 |
+| `mul` | 0.001 | 0.175 | 0.010 | 0.010 | 0.012 | 0.021 | 0.015 | 0.022 |
+| `div` | 0.001 | 0.171 | 0.008 | 0.008 | 0.009 | 0.020 | 0.015 | 0.019 |
+| `sqr` | 0.001 | 0.089 | 0.006 | 0.006 | 0.008 | 0.056 | 0.020 | 0.017 |
+| `sqrt` | 0.001 | 0.099 | 0.007 | 0.006 | 0.013 | 0.027 | 0.004 | 0.023 |
+| `exp` | 0.003 | 1.489 | 0.019 | 0.035 | 0.030 | 0.039 | 0.011 | 0.030 |
+| `log` | 0.004 | 1.930 | 0.020 | 0.047 | 0.027 | 0.038 | 0.011 | 0.030 |
+| `sin` | 0.014 | 5.549 | 0.043 | 0.068 | 0.033 | 0.041 | 0.123 | 0.069 |
+| `cos` | 0.012 | 4.942 | 0.054 | 0.063 | 0.034 | 0.043 | 0.138 | 0.065 |
+| `pow_int` | 0.013 | 0.243 | 0.005 | 0.009 | 0.018 | 0.145 | 0.035 | 0.020 |
+| `pow_real` | 0.010 | 6.547 | 0.047 | 0.090 | 0.066 | 0.125 | 0.034 | 0.073 |
+| `line_arith` | 0.001 | 0.656 | 0.020 | 0.019 | 0.030 | 0.061 | 0.064 | 0.062 |
+| `line_trig` | 0.026 | 11.091 | 0.119 | 0.147 | 0.099 | 0.166 | 0.310 | 0.187 |
+| `line_pow` | 0.019 | 2.589 | 0.054 | 0.062 | 0.088 | 0.254 | 0.093 | 0.116 |
+| `shekel5` | 0.002 | 9.075 | 0.210 | 0.170 | 0.416 | 1.720 | 1.085 | 0.921 |
+| `block5` | 0.044 | 13.981 | 0.190 | 0.224 | 0.215 | 0.464 | 0.433 | 0.343 |
 
 #### Same results?
 

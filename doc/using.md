@@ -937,12 +937,14 @@ any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
 operation tested the flag it set, in the default build too). The
 operations of the path cost more
 time on a processor that halves its AVX-512 instructions, where they cost
-less on one that does not: on an Intel i7-1185G7 (halved), `x + y` takes
-4.6 ns rather than 3.4 in the default build and `sqrt(x)` 16.6 rather than
-8.1, where with `GAOL_PRESERVE_ROUNDING` the same `x + y` takes 5.6 ns
-rather than 12.8; the processors that do not halve them, as the Xeon of
-the continuous integration, are expected to take less. Which of the paths a
-GAOL took, the example 13 tells.
+less on one that does not: on an Intel i7-1185G7 (halved), `x * y` takes
+4.8 ns rather than 2.9 in the default build, `x / y` 5.3 ns rather than 4.5
+and `sqrt(x)` 11.2 rather than 6.6, and `x + y` as long (1.8 ns), where with
+`GAOL_PRESERVE_ROUNDING` the same `x + y` takes 2.2 ns rather than 8.1
+(`gaol_performance`, Clang 21.1, the best of 9 interleaved runs); the
+processors that do not halve them, as the Xeon of the continuous integration,
+are expected to take less. Which of the paths a GAOL took, the example 13
+tells.
 
 ## Flush-to-zero and denormals-are-zero
 

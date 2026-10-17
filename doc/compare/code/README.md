@@ -84,7 +84,7 @@ between the `<!-- BEGIN GENERATED TABLES -->` and `<!-- END GENERATED TABLES -->
 markers of the reports: the text around them, which comments on the results,
 has to be checked by hand against the new tables.
 
-The benchmark takes about 10 minutes on an Intel Core i7-1185G7,
+The benchmark takes about 6 minutes on an Intel Core i7-1185G7,
 libieeep1788 most of it; the machine should do nothing else meanwhile. Its
 variables:
 
@@ -128,9 +128,9 @@ meson setup build && CPU=2 ninja -C build perf
 ```
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
-libraries, all the operations). The one committed holds the whole run of 13
+libraries, all the operations). The one committed holds the whole run of 17
 October 2026 that the tables of `performance.md` were written from (Clang
-21.1, three rounds, Ubuntu 26.04.1, `e6646e2`). Under Ubuntu 20.04, on the
+21.1, three rounds, Ubuntu 26.04.1, `7716fec`). Under Ubuntu 20.04, on the
 same processor with Clang 18.1.8, every library took about 30 % more time: the
 times of `make perf` compare with those of `results.csv` only on the system
 and with the compiler they were measured with.

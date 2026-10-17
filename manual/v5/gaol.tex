@@ -492,8 +492,8 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   needs a processor with them (on x86, Intel Haswell and AMD Piledriver,
   2012--2013, and later), and the code using GAOL is given the flag too;
   \code{OFF} builds GAOL for any processor of the architecture. The elementary
-  functions are much faster with them: \code{sin} and \code{cos} 2.4 times,
-  \code{log} 1.6 times (Intel i7-1185G7, Clang~18.1);
+  functions are much faster with them: \code{cos} 2.5 times, \code{log} 1.6
+  times, \code{sin} 1.4 times (Intel i7-1185G7, Clang~21.1);
 \cindex{fused multiply-add}%
 \item \option{GAOL\_ASM}. \code{ON} by default: GAOL's assembly code, where it
   has some (\code{GAOL\_USING\_ASM});
