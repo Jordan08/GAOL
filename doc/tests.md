@@ -34,7 +34,7 @@ point Q), which `numbers` checks there too.
   special bounds, 0 of both signs, infinite, or whose square is below the
   smallest subnormal or beyond the largest double (GAOL v5, point AA: `sqr()`
   of the SSE2 intervals computes its one product itself), and the quotients
-  of 10 dividends by 10 divisors with no zero, 0 of both signs, infinite,
+  of 12 dividends by 10 divisors with no zero, 0 of both signs, infinite,
   subnormal or large ones, which the SSE2 intervals compute without a branch
   (GAOL v5, point ZZ). Seven long lines of + - * / alone, between eight
   intervals of either sign, have to enclose the same line of rational numbers
@@ -1159,7 +1159,7 @@ with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
 compare equal, by their bits (GAOL v5, point Q), and of the same operations on
 doubles, and, in its last rows, of lines of 15 additions, 15 additions and
 subtractions, 7 products, 7 quotients and 13 operations of the four kinds
-between 16 intervals (GAOL v5, point ZZ). After the table, it prints the time of
+between 8 and 16 intervals (GAOL v5, point ZZ). After the table, it prints the time of
 the check each operation makes, 1 + (2^-1060 + 0) not above 1, and of the same
 check made of 2^-60, a normal
 double: a processor that takes a microcode assist for a subnormal operand or

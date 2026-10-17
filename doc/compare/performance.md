@@ -16,7 +16,7 @@ benchmark again.
 
 | Library | Compiled with | Operations |
 |---|---|---|
-| GAOL V5.0.0 (this branch) | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by CMake in Release with `-mfma` (`GAOL_FMA`), the sources of CORE-MATH compiled into it, the rounding direction not preserved (`GAOL_PRESERVE_ROUNDING` off, its default) | Called under the names of IEEE 1788-2015, the namespace `gaol_ieee1788` (`pown(x, n)`, `pow(x, y)`), as the other libraries of the standard (GAOL v5); inline SSE2 operations, each checking that the rounding direction is upward and setting it when it is not; **every** elementary function CORE-MATH's, correctly rounded in that direction, so the bounds are the tightest ones and the direction is never switched |
+| GAOL V5.0.0 (this branch) | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by CMake in Release with `-mfma` (`GAOL_FMA`), the sources of CORE-MATH compiled into it, the rounding direction not preserved (`GAOL_PRESERVE_ROUNDING` off, its default) | Called under the names of IEEE 1788-2015, the namespace `gaol_ieee1788` (`pown(x, n)`, `pow(x, y)`), as the other libraries of the standard (GAOL v5); SSE2 operations that are calls into the library, the bounds passed and returned in registers, each kernel checking that the rounding direction is upward and setting it when it is not; **every** elementary function CORE-MATH's, correctly rounded in that direction, so the bounds are the tightest ones and the direction is never switched |
 | GAOL 4.2.3 (the last version of Frédéric Goualard) | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; GAOL built by its configure from [his repository](https://github.com/goualard-f/GAOL) (cd0ee1a), static, with the flags of GAOL V5.0.0, which its configure gives to `g++` alone, the rounding direction not preserved, its verbose mode off; [mathlib 2.1.1](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz) from his site, built by Clang 21.1 with `-O3 -mfma -ffp-contract=off` | Called under its own names, `gaol`; inline SSE2 operations, which take the rounding direction upward, as `gaol::init()` sets it, without checking it; elementary functions computed by mathlib, correctly rounded to nearest, then moved one double outward, the rounding direction set to nearest and back upward for each; `pow(x, y)` as exp(y·log(x)) |
 | libieeep1788 | Clang 21.1, `-O3 -mfma`; MPFR 4.2.1 and GMP 6.3.0 built by Clang 21.1 with `-O3 -mfma` | Each bound computed by MPFR, correctly rounded |
 | filib++ | Clang 21.1, `-O3 -mfma`, the flags of interval arithmetic; filib++ 3.0.2.2, the archive IBEX distributes, built by Clang 21.1 in C++11 with `-O3 -mfma` | `interval<double, native_switched, i_mode_extended_flag>`, as in IBEX: inline operations, the rounding direction set and restored by each; elementary functions of its own |
@@ -132,7 +132,7 @@ for filib++, 16 for Boost.Interval, 18 for PROFIL/BIAS and 56 for Solaris
 Studio.
 
 **Elementary functions.** PROFIL/BIAS is the fastest on the square root
-(3.7 ns), exp (9.9 ns), log (10.3 ns) and the real power `pow(x, y)` (34 ns),
+(3.7 ns), exp (9.9 ns), log (10.2 ns) and the real power `pow(x, y)` (34 ns),
 which it computes from the libm of the system, moved outward, without correct
 rounding: its bounds are among the widest (below), and its sin and cos,
 computed by its own argument reduction, are the slowest after libieeep1788's,
@@ -152,7 +152,7 @@ filib++, 73 for Boost.Interval, 90 for GAOL 4.2.3 and 125 for Solaris Studio.
 **Formulas.** GAOL is the fastest on the arithmetic line (5.6 ns for GAOL
 V5.0.0 and 18.7 for GAOL 4.2.3, against 27 for filib++ and 62 to 63 for
 Solaris Studio, PROFIL/BIAS and Boost.Interval), on the line of powers (38 and
-61 ns, against 82 for filib++, 93 for PROFIL/BIAS and 254 for Solaris Studio)
+61 ns, against 82 for filib++, 93 for PROFIL/BIAS and 253 for Solaris Studio)
 and on Shekel 5 (108 and 189 ns, against 397 for filib++, 920 for
 Boost.Interval, 1 093 for PROFIL/BIAS and 1 720 for Solaris Studio: Shekel 5 is
 20 squares, 45 additions and subtractions and 5 divisions, and its squares cost
@@ -170,8 +170,8 @@ GAOL V5.0.0 now gives **the same bounds as it does**, tightest everywhere, 17
 to 135 times faster.
 
 **Boost.Interval** is slower than GAOL V5.0.0 on every operation: 5.6 times
-on + and −, 3.5 to 9.4 times on ×, ÷, the square, the square root and the
-integer power, 1.2 to 1.7 times on exp, log, sin, cos and the real power, 11
+on + and −, 3.5 to 9.3 times on ×, ÷, the square, the square root and the
+integer power, 1.2 to 1.6 times on exp, log, sin, cos and the real power, 11
 times on the arithmetic line and 8.5 times on Shekel 5. Each of its
 operations reads the rounding direction (`fegetround`), sets it upward
 (`fesetround`) and, at its end, sets the one it read back: two changes of
@@ -208,8 +208,9 @@ The timings were measured on a laptop, on 17 October 2026, each time being the
 best of the runs of three rounds, each program being run in turn with the
 others, on a processor of its own (`taskset -c 2`). libieeep1788's times, from
 a single run of each operation in each round, are the least steady. Solaris
-Studio's and PROFIL/BIAS's operations are calls into libraries, where the
-compiler inlines GAOL's, filib++'s and Boost.Interval's.
+Studio's and PROFIL/BIAS's operations are calls into libraries, as GAOL
+V5.0.0's `+`, `-`, `*`, `/` and `sqr` are (the bounds in registers), where the
+compiler inlines GAOL 4.2.3's, filib++'s and Boost.Interval's.
 
 ## The timings
 
@@ -435,9 +436,9 @@ The sum of the midpoints of the results, relative to libieeep1788's, and the mea
 line, and faster than GAOL 4.2.3 on all ten, 1.06 to 2.1 times as fast: a line
 of 15 additions takes 22.8 ns, 1.5 ns an addition, against 27.5 ns (1.8 ns),
 and a line of 7 products 17.9 ns (2.6 ns a product) against 30.9 ns (4.4 ns); the
-quotients, 20.6 ns for 7 (2.9 ns each) against 34.0 ns (4.9 ns), and the lines
-that mix the four operations, `mix13` and `mix_tree`, 23.0 and 34.7 ns
-against 47.6 and 64.7 ns, gain 1.7 to 2.1 times. The three lines of intervals
+quotients, 20.6 ns for 7 (2.9 ns each) against 34.0 ns (4.9 ns), 1.7 times as
+fast, and the lines that mix the four operations, `mix13` and `mix_tree`, 23.0
+and 34.7 ns against 47.6 and 64.7 ns, 2.1 and 1.9 times. The three lines of intervals
 of one sign are where GAOL 4.2.3 comes nearest, on the additions and the
 products, 1.06 times as fast as it, 23.1 ns against 24.5 ns and 17.8 ns against
 18.9 ns: with the signs the same from one evaluation to the next, its

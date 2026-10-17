@@ -9,7 +9,7 @@
 #                 time of all being kept (default 3)
 # REPEATS         runs of each line in a round (default 5)
 # P1788_REPEATS   the same for libieeep1788, far slower (default 1)
-# LINES           a comma-separated list of lines (default: all of them, see
+# LINE_LIST       a comma-separated list of lines (default: all of them, see
 #                 bench_ops.h)
 # CPU             a processor to run the programs on, with taskset
 # LIBS            the libraries to run (default: "double gaol5 gaol filib
@@ -27,7 +27,7 @@ ROUNDS="${ROUNDS:-3}"
 REPEATS="${REPEATS:-5}"
 P1788_REPEATS="${P1788_REPEATS:-1}"
 ALL_LINES="sum16,diff16,mul8,mul8_tree,quot8,mix13,mix_tree,pos_sum16,pos_mul8,pos_quot8"
-LINES="${LINES:-$ALL_LINES}"
+LINE_LIST="${LINE_LIST:-$ALL_LINES}"
 CPU="${CPU:-}"
 LIBS="${LIBS:-double gaol5 gaol filib profil boost p1788}"
 OUT="$WORK/lines"
@@ -55,13 +55,13 @@ for round in $(seq "$ROUNDS"); do
   for lib in $LIBS; do
     echo "== round $round/$ROUNDS: $lib"
     case "$lib" in
-      double) run "$OUT/bench_double" "$DATA" "$REPEATS" "$LINES" ;;
-      gaol) run "$OUT/bench_gaol" "$DATA" "$REPEATS" "$LINES" ;;
-      gaol5) run "$OUT/bench_gaol5" "$DATA" "$REPEATS" "$LINES" ;;
-      p1788) run "$OUT/bench_p1788" "$DATA" "$P1788_REPEATS" "$LINES" ;;
-      filib) run "$OUT/bench_filib" "$DATA" "$REPEATS" "$LINES" ;;
-      profil) run "$OUT/bench_profil" "$DATA" "$REPEATS" "$LINES" ;;
-      boost) run "$OUT/bench_boost" "$DATA" "$REPEATS" "$LINES" ;;
+      double) run "$OUT/bench_double" "$DATA" "$REPEATS" "$LINE_LIST" ;;
+      gaol) run "$OUT/bench_gaol" "$DATA" "$REPEATS" "$LINE_LIST" ;;
+      gaol5) run "$OUT/bench_gaol5" "$DATA" "$REPEATS" "$LINE_LIST" ;;
+      p1788) run "$OUT/bench_p1788" "$DATA" "$P1788_REPEATS" "$LINE_LIST" ;;
+      filib) run "$OUT/bench_filib" "$DATA" "$REPEATS" "$LINE_LIST" ;;
+      profil) run "$OUT/bench_profil" "$DATA" "$REPEATS" "$LINE_LIST" ;;
+      boost) run "$OUT/bench_boost" "$DATA" "$REPEATS" "$LINE_LIST" ;;
       *) die "unknown library $lib" ;;
     esac | tee -a "$RESULTS"
   done
@@ -72,7 +72,7 @@ machine_description > "$OUT/machine.txt"
 python3 "$CODE_DIR/bench.py" lines-report "$RESULTS" "$OUT/machine.txt" "$REPORT"
 echo "== tables written to $REPORT"
 # The results of a whole run, as run_bench.sh keeps its own
-if [ "$LINES" = "$ALL_LINES" ] && [ "$LIBS" = "double gaol5 gaol filib profil boost p1788" ]; then
+if [ "$LINE_LIST" = "$ALL_LINES" ] && [ "$LIBS" = "double gaol5 gaol filib profil boost p1788" ]; then
   cp "$RESULTS" "$CODE_DIR/results_lines.csv"
   cp "$OUT/machine.txt" "$CODE_DIR/machine_lines.txt"
   echo "== results kept in $CODE_DIR/results_lines.csv and machine_lines.txt"

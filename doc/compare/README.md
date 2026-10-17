@@ -82,7 +82,7 @@ compiled by Clang 21.1 (see [performance](performance.md)).
   has no empty set, and an operation whose argument leaves the domain of the
   function, a division by an interval containing zero included, prints an error
   and aborts the program. Its exponential, logarithm and real power, taken
-  from the libm, are the fastest of the five (9.9, 10.3 and 34 ns), and so is
+  from the libm, are the fastest of the five (9.9, 10.2 and 34 ns), and so is
   its square root (3.7 ns); its arithmetic is 6.4 times slower than GAOL's on
   + and −, its sin and cos are the slowest after libieeep1788's (115 and
   131 ns), and its integer power, computed as exp(n log x), is 1.1e−05 wider
@@ -96,7 +96,7 @@ compiled by Clang 21.1 (see [performance](performance.md)).
   `atan([−∞, +∞])` misses π/2. With its default checking it has no empty set:
   an operation that would create one throws an exception. It is 5.6 times
   slower than GAOL on + and −, 1.8 to 11 times on ×, ÷ and the formulas, 3.5
-  times on the square root, 3.9 times on the integer power and 1.2 to 1.7
+  times on the square root, 3.9 times on the integer power and 1.2 to 1.6
   times on the other elementary functions.
 - **Solaris Studio** is 1.0 to 1.3 times as fast as GAOL on sin and cos, but
   slow on integer powers and squares. Its containment sets give other results

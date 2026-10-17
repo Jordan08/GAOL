@@ -98,7 +98,7 @@ nothing else meanwhile. Their variables:
 | `REPEATS` | `5` | Runs of each operation in a round |
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
-| `LINES` | all | The same for `run_lines.sh`, the long lines of `bench_ops.h` (`sum16,mul8,mix13...`), which `run_bench.sh` does not run; `LIBS` has no `sun` there |
+| `LINE_LIST` | all | The same for `run_lines.sh`, the long lines of `bench_ops.h` (`sum16,mul8,mix13...`), which `run_bench.sh` does not run; `LIBS` has no `sun` there |
 | `LIBS` | `double gaol5 gaol filib profil boost sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol` the last GAOL of Frédéric Goualard |
 | `CPU` | | Processor to run on (`taskset -c`) |
 | `CXX`, `CC`, `F90` | `g++`, `gcc`, `f90` | Compilers, the same for `setup.sh` and the other scripts |

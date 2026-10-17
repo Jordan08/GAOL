@@ -230,7 +230,7 @@ def report(results_path, machine_path, out):
     if BEGIN in content and END in content:
         head, rest = content.split(BEGIN, 1)
         tail = rest.split(END, 1)[1]
-        content = head + block + tail.lstrip("\n")
+        content = head + block + ("\n" + tail.lstrip("\n") if tail.strip() else "")
     else:
         content = block
     with open(out, "w") as f:
@@ -330,7 +330,7 @@ def lines_report(results_path, machine_path, out):
     if BEGIN_LINES in content and END_LINES in content:
         head, rest = content.split(BEGIN_LINES, 1)
         tail = rest.split(END_LINES, 1)[1]
-        content = head + block + tail.lstrip("\n")
+        content = head + block + ("\n" + tail.lstrip("\n") if tail.strip() else "")
     else:
         content = content.rstrip("\n") + "\n\n## Long lines of arithmetic operators\n\n" + block
     with open(out, "w") as f:
