@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `a32c4db` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `2f020ea` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -434,14 +434,22 @@ de l'auteur dans `gaol/float/` (5 fichiers, détail dans sa propre section
 ci-dessous), le cast explicite de `gaol_profile.cpp:52` (CC.m4), et la mise
 à jour de l'issue #49 pour le 15 octobre (faite).
 
+Fait le 16 octobre : les tests compilés avec `-Wno-psabi` là où le
+compilateur l'accepte, par #123, dans les trois builds, les trois projets de
+test et `.github/scripts/tests.sh`. Les notes de GCC sur le passage des
+arguments (« parameter passing for argument of type ... changed in GCC ... »),
+une centaine à trois cents par build sur armhf et une ou deux sur aarch64 et
+ppc64le, ne remplissent plus les journaux de la CI. Ni la bibliothèque, ni
+`gaol.pc`, ni les exemples ne reçoivent l'option. Décidé pendant le travail :
+l'option plutôt que les tests en C++14, qui n'enlève pas les notes d'armhf.
+Rien pour `ChangeLog` ni `doc/differences.md` (description de #123).
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-aa-shekel5` : le point AA, #122.
-- `tests-no-psabi` : les tests compilés avec `-Wno-psabi`, #123 (ouverte le
-  15 octobre).
-- Les deux ont fusionné `configure-clean` à 51dafa8 le 16 octobre.
+- `todo-aa-shekel5` : le point AA, #122, qui a fusionné `configure-clean` à
+  2f020ea (la fusion de #123) le 17 octobre.
 
 ## Même fichier de test ou de documentation
 
@@ -1138,7 +1146,8 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   ci-dessous).
 - **CC.m5** : `process.md` section 12 (« Où en est le travail ») date du
   13 octobre : B y est « en cours » (fait par #121) et Z « à faire » (fait
-  par #120) ; AA est en cours (#122) et #123 est ouverte. À remettre à jour.
+  par #120) ; AA est en cours (#122) et #123 est fusionnée. À remettre à
+  jour.
 - **CC.m6** : `gaol/gaol_generator_mul_i2f.py` est le seul fichier de `gaol/`
   que rien ne référence (hors `doc/compare/`) : c'est un outil de l'auteur
   (Goualard, 2010, « No build runs it: it is a tool of the author »), qui
@@ -1397,6 +1406,8 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
   #118, #119, #120 et #121 après leur fusion, et la jetable de #116).
+  `tests-no-psabi`, de #123, fusionnée le 16 octobre, reste sur GitHub ; sa
+  branche locale est supprimée.
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
