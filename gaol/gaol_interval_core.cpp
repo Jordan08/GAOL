@@ -1981,7 +1981,7 @@ namespace gaol_core {
     gaol_pown() saved the direction, set it upward and restored it around the
     kernel: pown(x, 3) took 19.0 ns, the direction being read and written
     through the C library and the control word of the x87 unit as well, 8.4
-    ns with the writes of MXCSR alone (GAOL_RND_ENTER_X64()), and takes 6.2
+    ns with the writes of MXCSR alone (see gaol/gaol_fpu.h), and takes 6.2
     with this kernel, against the 5.1 of the direction left upward (an
     i7-1185G7, Clang 21): the two writes of MXCSR cost 3 to 6 ns, each one
     waiting for the operations in flight. The function gives false, res left
@@ -2158,10 +2158,10 @@ namespace gaol_core {
       }
     }
 #endif
-    GAOL_RND_ENTER_X64();
+    GAOL_RND_ENTER();
     interval res = (I.is_empty() || (n >= -1 && n <= 1)) ? pown_upward(I, n) : pown_large_inline(I, n);
     GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE_X64();
+    GAOL_RND_LEAVE();
     return res;
   }
 
