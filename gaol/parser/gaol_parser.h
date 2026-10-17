@@ -32,6 +32,7 @@
 #include "gaol/gaol_config.h"
 #include <cstddef>
 #include <iosfwd>
+#include <string>
 
 /*
   The parser is in gaol_core, where interval is, and the namespace gaol does
@@ -72,10 +73,14 @@ namespace gaol_core {
     formats n, [n], [l, r], [l, +inf], [-inf, r] and [empty], and expressions
     of numbers only.
 
-    - A number is decimal ("12", "0.1", ".12e3") or hexadecimal, with a
-      binary exponent ("0x1.3p-1"). A number that is a double is read as that
-      double, any other one as the tightest interval of doubles containing
-      it, whatever its digits and the locale of the program: "0.1" is
+    - A number is decimal ("12", "0.1", ".12e3"), hexadecimal ("0x1f",
+      "0x1.3p-1"), octal ("0o17") or binary ("0b101", "0b1.1p3"), the last
+      three with an optional point and an optional binary exponent after a p
+      (GAOL v5). A number that begins with 0 is decimal, "010" being 10, as
+      IEEE 1788-2015 has it (9.7.2): octal is written 0o10, as in Python. A
+      number that is a double is read as that double, any other
+      one as the tightest interval of doubles containing it, whatever its
+      digits and the locale of the program: "0.1" is
       [0.09999999...,0.100...01].
     - The constants are pi, inf (or infinity), dmin and dmax, the least
       positive normal double and the largest double. inf alone is
@@ -152,6 +157,28 @@ namespace gaol_core {
   void* gaol_initialize_parsing(void* context);
   void gaol_cleanup_parsing(void* scanner);
 
+  /*
+    The text of x that gaol_ieee1788::intervalToText() returns, an interval
+    literal of IEEE 1788-2015 (12.11), the literal that textToInterval() reads
+    back (GAOL v5). A function of the library for its own files, which it does
+    not export (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the
+    other writers of intervals.
+  */
+  std::string literal_text(const interval& x);
+
 } // namespace gaol_core
+
+namespace gaol_detail {
+
+  /*
+    The sign of v - x, v being the number s writes, with no sign, and x a
+    double, compared exactly: for the output of intervals
+    (gaol/gaol_interval_core.cpp), whose decimal bounds are rounded outward
+    whatever the C library. Defined in gaol/parser/gaol_interval_lexer.lpp,
+    which reads the numbers (GAOL v5).
+  */
+  int compare_number_with_double(const char* s, double x);
+
+} // namespace gaol_detail
 
 #endif /* GAOL_PARSER_H */

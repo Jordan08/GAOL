@@ -45,8 +45,9 @@
   doubles and the rounding direction that a program sets before it computes
   (previous_float(), next_float(), round_downward(), round_upward(),
   round_nearest() and is_finite()), the version of the library
-  (version_major, version_minor, version_micro and version), and the names of
-  gaol/gaol_common.h; the
+  (version_major, version_minor, version_micro and version), the doubles
+  around pi and pi/2 (gaol_pi_dn, gaol_pi_up, gaol_half_pi_dn and
+  gaol_half_pi_up, GAOL v5), and the names of gaol/gaol_common.h; the
   functions on intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, erf,
   fma, cancel_minus, round_ties_to_even...) and the nodes of the expressions
   it adds; and restore_rounding() and exact_string() of GAOL v5.
@@ -94,6 +95,12 @@ namespace gaol {
   using gaol_core::version_minor;
   using gaol_core::version_micro;
   using gaol_core::version;
+
+  // The doubles around pi and pi/2 (gaol/gaol_port.h)
+  using gaol_core::gaol_pi_dn;
+  using gaol_core::gaol_pi_up;
+  using gaol_core::gaol_half_pi_dn;
+  using gaol_core::gaol_half_pi_up;
 
   // The functions of doubles and the rounding direction of GAOL 4
   // (gaol/gaol_fpu_fenv.h or gaol/gaol_fpu_msvc.h, and gaol/gaol_port.h)

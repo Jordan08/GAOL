@@ -172,27 +172,18 @@ namespace gaol_core {
     decimal: a literal is converted when compiling, where the unions of GAOL 4
     were read when the program started, by the dynamic initialization of each
     file including this header, and a static object of the program calling
-    GAOL before found them 0 (tests/static_initialization.cpp). In their own
-    namespace (GAOL v5): GAOL 4 declared these doubles in the namespace of
-    GAOL, with two_pi, pi, half_pi, ln2_dn, ln2_up, two_power_51 and
-    two_power_52, which met the names of the program that opened it, a pi of
-    its own being ambiguous. The manual of GAOL v5 no longer documents them.
-    That namespace, gaol_detail, holds what GAOL's headers define for their
-    own use; it is a namespace of its own, not gaol_core::detail, which the
-    namespace gaol took whole: a program with a namespace detail of its own
-    writing using namespace gaol; found two, and detail::f() did not compile
-    ("reference to 'detail' is ambiguous", GAOL v5 before its release).
+    GAOL before found them 0 (tests/static_initialization.cpp). In gaol_core,
+    which the namespace gaol does not take whole, under names with the prefix
+    gaol_ (GAOL v5): GAOL 4 declared these doubles in the namespace of GAOL,
+    as pi_dn, pi_up, half_pi_dn and half_pi_up, with two_pi, pi, half_pi,
+    ln2_dn, ln2_up, two_power_51 and two_power_52, which met the names of the
+    program that opened it, a pi of its own being ambiguous. The manual of
+    GAOL v5 no longer documents them.
   */
-} // namespace gaol_core
-
-namespace gaol_detail {
-  const double pi_dn = 3.141592653589793115997963468544185161590576171875;
-  const double pi_up = 3.141592653589793560087173318606801331043243408203125;
-  const double half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
-  const double half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
-} // namespace gaol_detail
-
-namespace gaol_core {
+  const double gaol_pi_dn = 3.141592653589793115997963468544185161590576171875;
+  const double gaol_pi_up = 3.141592653589793560087173318606801331043243408203125;
+  const double gaol_half_pi_dn = 1.5707963267948965579989817342720925807952880859375;
+  const double gaol_half_pi_up = 1.5707963267948967800435866593034006655216217041015625;
 
   /*
     The quiet comparisons of <cmath>, false for a NaN operand, which they
@@ -211,6 +202,11 @@ namespace gaol_core {
     _mm_ucomile_sd() and _mm_ucomieq_sd() are true for them with GCC 9.4,
     which reads the flags ucomisd sets without its parity flag. Elsewhere they
     are those of <cmath>.
+    They are in gaol_detail, which holds what GAOL's headers define for their
+    own use; it is a namespace of its own, not gaol_core::detail, which the
+    namespace gaol took whole: a program with a namespace detail of its own
+    writing using namespace gaol; found two, and detail::f() did not compile
+    ("reference to 'detail' is ambiguous", GAOL v5 before its release).
   */
 } // namespace gaol_core
 

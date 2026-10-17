@@ -1498,11 +1498,12 @@ namespace gaol_core {
 
   /*
     The pow of IEEE 1788-2015 (Table 9.1), after one check of the rounding
-    direction: gaol_ieee1788::pow() is this function (GAOL v5). A function of
-    the library for its own files, which it does not export (GAOL_PUBLIC).
-    Defined in gaol/gaol_interval_core.cpp, with the other powers.
+    direction: gaol_ieee1788::pow() is this function (GAOL v5), the inline
+    function of gaol/gaol_ieee1788.h calling it, so that it is exported
+    (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the other
+    powers.
   */
-  interval pow_standard(const interval &I, const interval &J);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard(const interval &I, const interval &J);
 
 } // namespace gaol_core
 
@@ -2624,17 +2625,17 @@ GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
 
    GAOL_INLINE interval interval::pi(void)
 	{
-		return interval(gaol_detail::pi_dn, gaol_detail::pi_up);
+		return interval(gaol_pi_dn, gaol_pi_up);
 	}
 
    GAOL_INLINE interval interval::two_pi(void)
 	{
-		return interval(2.0*gaol_detail::pi_dn, 2.0*gaol_detail::pi_up); // No rounding when multiplying by 2
+		return interval(2.0*gaol_pi_dn, 2.0*gaol_pi_up); // No rounding when multiplying by 2
 	}
 
    GAOL_INLINE interval interval::half_pi(void)
 	{
-		return interval(gaol_detail::half_pi_dn, gaol_detail::half_pi_up);
+		return interval(gaol_half_pi_dn, gaol_half_pi_up);
 	}
 
    GAOL_INLINE interval interval::one_plus_infinity(void)

@@ -56,8 +56,6 @@
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_interval_core.h"
-// literal_text(), which this file defines
-#include "gaol/gaol_literals.h"
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
 #include "gaol/gaol_ldexp.h"
@@ -82,9 +80,8 @@ using std::endl;
 
 namespace gaol_core {
 
-  // The bounds of pi and pi/2 (gaol/gaol_port.h), and 2^52, from which on the
-  // doubles are integers, which gaol_port.h declared for the code using GAOL
-  // too (GAOL v5)
+  // The names of gaol_detail, and 2^52, from which on the doubles are
+  // integers, which gaol_port.h declared for the code using GAOL too (GAOL v5)
   using namespace gaol_detail;
   const double two_power_52 = 4503599627370496.0;
 
@@ -570,22 +567,22 @@ namespace gaol_core {
 
   static double asin_lo(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_dn : ((x == -1.0) ? -half_pi_up : upward::asin_dn(x)));
+    return (x == 0.0) ? 0.0 : ((x == 1.0) ? gaol_half_pi_dn : ((x == -1.0) ? -gaol_half_pi_up : upward::asin_dn(x)));
   }
 
   static double asin_hi(double x)
   {
-    return (x == 0.0) ? 0.0 : ((x == 1.0) ? half_pi_up : ((x == -1.0) ? -half_pi_dn : upward::asin_up(x)));
+    return (x == 0.0) ? 0.0 : ((x == 1.0) ? gaol_half_pi_up : ((x == -1.0) ? -gaol_half_pi_dn : upward::asin_up(x)));
   }
 
   static double acos_lo(double x)
   {
-    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_dn : ((x == -1.0) ? pi_dn : upward::acos_dn(x)));
+    return (x == 1.0) ? 0.0 : ((x == 0.0) ? gaol_half_pi_dn : ((x == -1.0) ? gaol_pi_dn : upward::acos_dn(x)));
   }
 
   static double acos_hi(double x)
   {
-    return (x == 1.0) ? 0.0 : ((x == 0.0) ? half_pi_up : ((x == -1.0) ? pi_up : upward::acos_up(x)));
+    return (x == 1.0) ? 0.0 : ((x == 0.0) ? gaol_half_pi_up : ((x == -1.0) ? gaol_pi_up : upward::acos_up(x)));
   }
 
   // pi/4 is half of pi/2, exactly
@@ -597,7 +594,7 @@ namespace gaol_core {
     const double a = std::fabs(x);
     if (a == 1.0 || a == GAOL_INFINITY) {
       const double b = (a == 1.0) ? 0.5 : 1.0;
-      return (x > 0.0) ? half_pi_dn*b : -half_pi_up*b;
+      return (x > 0.0) ? gaol_half_pi_dn*b : -gaol_half_pi_up*b;
     }
     return upward::atan_dn(x);
   }
@@ -610,7 +607,7 @@ namespace gaol_core {
     const double a = std::fabs(x);
     if (a == 1.0 || a == GAOL_INFINITY) {
       const double b = (a == 1.0) ? 0.5 : 1.0;
-      return (x > 0.0) ? half_pi_up*b : -half_pi_dn*b;
+      return (x > 0.0) ? gaol_half_pi_up*b : -gaol_half_pi_dn*b;
     }
     return upward::atan_up(x);
   }
@@ -625,35 +622,35 @@ namespace gaol_core {
   static double atan2_lo(double y, double x)
   {
     if (y == 0.0 || x == GAOL_INFINITY) {
-      return (x > 0.0) ? 0.0 : pi_dn;
+      return (x > 0.0) ? 0.0 : gaol_pi_dn;
     }
     if (x == 0.0 || std::fabs(y) == GAOL_INFINITY) {
-      return (y > 0.0) ? half_pi_dn : -half_pi_up;
+      return (y > 0.0) ? gaol_half_pi_dn : -gaol_half_pi_up;
     }
     if (x == -GAOL_INFINITY) {
-      return (y > 0.0) ? pi_dn : -pi_up;
+      return (y > 0.0) ? gaol_pi_dn : -gaol_pi_up;
     }
     if (x == std::fabs(y)) {
-      return (y > 0.0) ? half_pi_dn*0.5 : -half_pi_up*0.5;
+      return (y > 0.0) ? gaol_half_pi_dn*0.5 : -gaol_half_pi_up*0.5;
     }
-    return maximum(upward::atan2_dn(y,x), -pi_up);
+    return maximum(upward::atan2_dn(y,x), -gaol_pi_up);
   }
 
   static double atan2_hi(double y, double x)
   {
     if (y == 0.0 || x == GAOL_INFINITY) {
-      return (x > 0.0) ? 0.0 : pi_up;
+      return (x > 0.0) ? 0.0 : gaol_pi_up;
     }
     if (x == 0.0 || std::fabs(y) == GAOL_INFINITY) {
-      return (y > 0.0) ? half_pi_up : -half_pi_dn;
+      return (y > 0.0) ? gaol_half_pi_up : -gaol_half_pi_dn;
     }
     if (x == -GAOL_INFINITY) {
-      return (y > 0.0) ? pi_up : -pi_dn;
+      return (y > 0.0) ? gaol_pi_up : -gaol_pi_dn;
     }
     if (x == std::fabs(y)) {
-      return (y > 0.0) ? half_pi_up*0.5 : -half_pi_dn*0.5;
+      return (y > 0.0) ? gaol_half_pi_up*0.5 : -gaol_half_pi_dn*0.5;
     }
-    return minimum(upward::atan2_up(y,x), pi_up);
+    return minimum(upward::atan2_up(y,x), gaol_pi_up);
   }
 
   // x > 0 finite as m 2^e, m an odd integer, read from the bits of x (in
@@ -1443,7 +1440,7 @@ namespace gaol_core {
   }
 
   /*
-    The text of x of gaol_ieee1788::intervalToText() (gaol/gaol_literals.h):
+    The text of x of gaol_ieee1788::intervalToText() (gaol/parser/gaol_parser.h):
     the bounds of x as display_bounds() writes them, with the flags a new
     stream starts with, the digits of the intervals and the C locale
   */
@@ -2882,10 +2879,10 @@ namespace gaol_core {
 
   /*
     x^n rounded upward and downward, x >= 0 and n > 0, by binary exponentiation,
-    the rounding direction being upward: the products of ipow_up() and
-    ipow_dn() (gaol_double_op.h). x^n is a multiple of each square computed, so
-    that ipow_hi() only overflows where x^n does; ipow_lo() is rounded downward
-    through -((-a)*b) rounded upward, its product being kept negated.
+    the rounding direction being upward. x^n is a multiple of each square
+    computed, so that ipow_hi() only overflows where x^n does; ipow_lo() is
+    rounded downward through -((-a)*b) rounded upward, its product being kept
+    negated.
   */
   static double ipow_hi(double x, unsigned int n)
   {
@@ -4292,11 +4289,11 @@ interval nth_root(const interval& I, int q)
 
 
   /*
-    The bounds of x/[pi] for a finite x, [pi] being [pi_dn, pi_up], rounded
+    The bounds of x/[pi] for a finite x, [pi] being [gaol_pi_dn, gaol_pi_up], rounded
     upward, for modulo_k_pi(): computed on doubles, as tan() computes those of
     [x + pi/2]/[pi] (GAOL v5). They are the doubles interval(x) /
-    interval::pi() gave, the stored bounds -x and x being divided by pi_dn
-    above 0 and by pi_up below. A bound 0 of I gives the quotient 0 with its
+    interval::pi() gave, the stored bounds -x and x being divided by gaol_pi_dn
+    above 0 and by gaol_pi_up below. A bound 0 of I gives the quotient 0 with its
     own sign, where interval(x), then the division, gave one each build chose:
     floor() keeps it, and the comparisons of modulo_k_pi() do not tell -0
     from +0.
@@ -4304,12 +4301,12 @@ interval nth_root(const interval& I, int q)
   static inline double lower_of_x_over_pi(double x)
   {
     const double nl = -x;
-    return -(nl / ((nl > 0.0) ? pi_dn : pi_up));
+    return -(nl / ((nl > 0.0) ? gaol_pi_dn : gaol_pi_up));
   }
 
   static inline double upper_of_x_over_pi(double x)
   {
-    return x / ((x > 0.0) ? pi_dn : pi_up);
+    return x / ((x > 0.0) ? gaol_pi_dn : gaol_pi_up);
   }
 
   /*!
@@ -4356,14 +4353,14 @@ interval nth_root(const interval& I, int q)
 
 
   /*
-    The bounds of [x + pi/2]/[pi] for a finite x, [pi] being [pi_dn, pi_up],
+    The bounds of [x + pi/2]/[pi] for a finite x, [pi] being [gaol_pi_dn, gaol_pi_up],
     rounded upward, as tan() needs them: computed on doubles rather than with
     the operations of intervals, which checked the rounding direction once more
     each, after the check of tan() (GAOL v5). They are the doubles
     interval(x) + interval::half_pi() and operator/=(interval) give, in the two
-    builds: the stored bounds of the sum are nl = (-x) + (-half_pi_dn) and
-    nr = x + half_pi_up, and the division by an interval above 0 divides a
-    stored bound above 0 by pi_dn and one below 0 by pi_up. A stored bound 0
+    builds: the stored bounds of the sum are nl = (-x) + (-gaol_half_pi_dn) and
+    nr = x + gaol_half_pi_up, and the division by an interval above 0 divides a
+    stored bound above 0 by gaol_pi_dn and one below 0 by gaol_pi_up. A stored bound 0
     stays 0, with a sign that may differ from the one of the operations of
     intervals (+0 or -0 for the lower bound, whose stored value the builds set
     each their own way); tan() only takes floor() and ceil() of these bounds
@@ -4371,14 +4368,14 @@ interval nth_root(const interval& I, int q)
   */
   static inline double lower_of_x_plus_half_pi_over_pi(double x)
   {
-    const double nl = (-x) + (-half_pi_dn);
-    return -(nl / ((nl > 0.0) ? pi_dn : pi_up));
+    const double nl = (-x) + (-gaol_half_pi_dn);
+    return -(nl / ((nl > 0.0) ? gaol_pi_dn : gaol_pi_up));
   }
 
   static inline double upper_of_x_plus_half_pi_over_pi(double x)
   {
-    const double nr = x + half_pi_up;
-    return nr / ((nr > 0.0) ? pi_dn : pi_up);
+    const double nr = x + gaol_half_pi_up;
+    return nr / ((nr > 0.0) ? gaol_pi_dn : gaol_pi_up);
   }
 
   interval tan(const interval& I)
@@ -4395,19 +4392,19 @@ interval nth_root(const interval& I, int q)
     const double l = I.left(), r = I.right();
     /*
       The width of I, rounded upward as width() does: the exact width is at
-      most w, and w <= pi_dn, the double below pi, proves it below pi, so that
+      most w, and w <= gaol_pi_dn, the double below pi, proves it below pi, so that
       I holds at most one pole (GAOL v5, review #8 of examples/examples.md: the
-      test was !(w < pi_up) in GAOL 4, and [-M_PI_2, M_PI_2], of width pi_dn, gave
+      test was !(w < gaol_pi_up) in GAOL 4, and [-M_PI_2, M_PI_2], of width gaol_pi_dn, gave
       [-oo, +oo], as did the intervals whose exact width lies between the
-      double below pi_dn and pi_dn, which round up to it).
-      Above pi_dn, I may hold two poles, the cosine having the same sign
+      double below gaol_pi_dn and gaol_pi_dn, which round up to it).
+      Above gaol_pi_dn, I may hold two poles, the cosine having the same sign
       at both bounds: [-oo, +oo], the tightest bound but for the intervals
       holding no pole whose exact width is below pi. Also for a NaN width, from
       [+oo, +oo] or [-oo, -oo] built from SSE2 registers, which the
       constructors refuse: GAOL gave [-oo, +oo] for them too
     */
     const double w = r - l;
-    if (!(w <= pi_dn)) {
+    if (!(w <= gaol_pi_dn)) {
       GAOL_RND_LEAVE();
       return interval::universe();
     }
@@ -4420,12 +4417,12 @@ interval nth_root(const interval& I, int q)
       upper bound of A and the lower bound of B. When the quotients cannot
       tell, a bound of I being within about |x| 2^-52 of a pole, or beyond
       2^52, the signs of the cosine at the bounds do (GAOL v5, issue #6,
-      see cos_or_sin()): I being narrower than pi, as w <= pi_dn shows, there
+      see cos_or_sin()): I being narrower than pi, as w <= gaol_pi_dn shows, there
       is a pole within I exactly when they differ. GAOL gave [-oo, +oo] then,
       as for the double below pi/2, whose tangent is 0x1.9153d9443ed0bp+51, and
       for every interval beyond 2^52.
     */
-    // l and r are finite, w being at most pi_dn
+    // l and r are finite, w being at most gaol_pi_dn
     const double A_left = lower_of_x_plus_half_pi_over_pi(l), A_right = upper_of_x_plus_half_pi_over_pi(l),
       B_left = lower_of_x_plus_half_pi_over_pi(r), B_right = upper_of_x_plus_half_pi_over_pi(r);
     bool no_pole = (std::floor(A_left) == std::floor(B_right));
@@ -4517,7 +4514,7 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
     if (yl < 0.0 && yu >= 0.0 && xl < 0.0) {
-      return interval(-pi_up, pi_up);
+      return interval(-gaol_pi_up, gaol_pi_up);
     }
     double l, r;
     if (yl >= 0.0) { // Upper half-plane: the angle decreases with x
@@ -4532,7 +4529,7 @@ interval nth_root(const interval& I, int q)
       r = atan2_hi((xu > 0.0) ? yu : yl, xu);
     } else { // yl < 0 <= yu, in the right half-plane
       l = atan2_lo(yl, xl);
-      r = (yu == 0.0) ? ((xu == 0.0) ? -half_pi_dn : 0.0) : atan2_hi(yu, xl);
+      r = (yu == 0.0) ? ((xu == 0.0) ? -gaol_half_pi_dn : 0.0) : atan2_hi(yu, xl);
     }
     return interval(l,r);
   }
@@ -4563,7 +4560,7 @@ interval nth_root(const interval& I, int q)
     axes have the slopes 0 and +oo exactly. Rounding the lower slope downward
     and the upper one upward widens the cone, which keeps every point of it.
     The bounds of C are compared with the doubles around pi/2 and pi, which
-    are no doubles: theta <= pi/2 is theta <= half_pi_dn.
+    are no doubles: theta <= pi/2 is theta <= gaol_half_pi_dn.
   */
 
   // [a, b], or [-b, -a] when negated, a zero bound being +0 (the opposite of
@@ -4649,31 +4646,31 @@ interval nth_root(const interval& I, int q)
     const double xp_l = (xl > 0.0) ? xl : 0.0, xn_l = (xu < 0.0) ? -xu : 0.0;
     const double yp_l = (yl > 0.0) ? yl : 0.0, yn_l = (yu < 0.0) ? -yu : 0.0;
     // [0, pi/2]: (u, v) = (x, y), phi = theta
-    if (xu >= 0.0 && yu >= 0.0 && cu >= 0.0 && cl <= half_pi_dn) {
+    if (xu >= 0.0 && yu >= 0.0 && cu >= 0.0 && cl <= gaol_half_pi_dn) {
       bool above = false;
       const double t_lo = (cl <= 0.0) ? 0.0 : tan_lo(cl);
-      const double t_hi = (cu >= half_pi_up) ? GAOL_INFINITY : upper_slope(cu, above);
+      const double t_hi = (cu >= gaol_half_pi_up) ? GAOL_INFINITY : upper_slope(cu, above);
       atan2_rel_piece(xp_l, xu, yp_l, yu, t_lo, t_hi, above, false, false, false, Xr, Yr);
     }
     // [pi/2, pi]: (u, v) = (-x, y), phi = pi - theta, whose slope is -tan(theta)
-    if (xl <= 0.0 && yu >= 0.0 && cu >= half_pi_up && cl <= pi_dn) {
-      const double t_lo = (cu >= pi_up) ? 0.0 : -tan_hi(cu);
-      const double t_hi = (cl <= half_pi_dn) ? GAOL_INFINITY : -tan_lo(cl);
+    if (xl <= 0.0 && yu >= 0.0 && cu >= gaol_half_pi_up && cl <= gaol_pi_dn) {
+      const double t_lo = (cu >= gaol_pi_up) ? 0.0 : -tan_hi(cu);
+      const double t_hi = (cl <= gaol_half_pi_dn) ? GAOL_INFINITY : -tan_lo(cl);
       atan2_rel_piece(xn_l, -xl, yp_l, yu, t_lo, t_hi, false, false, true, false, Xr, Yr);
     }
     // (-pi, -pi/2]: (u, v) = (-x, -y), phi = theta + pi, whose slope is
     // tan(theta); -pi is no angle, the half-line y = 0, x < 0 having the angle pi
-    if (xl <= 0.0 && yl <= 0.0 && cu >= -pi_dn && cl <= -half_pi_up) {
-      const double t_lo = (cl <= -pi_up) ? 0.0 : tan_lo(cl);
-      const double t_hi = (cu >= -half_pi_dn) ? GAOL_INFINITY : tan_hi(cu);
+    if (xl <= 0.0 && yl <= 0.0 && cu >= -gaol_pi_dn && cl <= -gaol_half_pi_up) {
+      const double t_lo = (cl <= -gaol_pi_up) ? 0.0 : tan_lo(cl);
+      const double t_hi = (cu >= -gaol_half_pi_dn) ? GAOL_INFINITY : tan_hi(cu);
       atan2_rel_piece(xn_l, -xl, yn_l, -yl, t_lo, t_hi, false, true, true, true, Xr, Yr);
     }
     // [-pi/2, 0]: (u, v) = (x, -y), phi = -theta, whose slope is -tan(theta),
     // tan(-theta)
-    if (xu >= 0.0 && yl <= 0.0 && cu >= -half_pi_dn && cl <= 0.0) {
+    if (xu >= 0.0 && yl <= 0.0 && cu >= -gaol_half_pi_dn && cl <= 0.0) {
       bool above = false;
       const double t_lo = (cu >= 0.0) ? 0.0 : -tan_hi(cu);
-      const double t_hi = (cl <= -half_pi_up) ? GAOL_INFINITY : upper_slope(-cl, above);
+      const double t_hi = (cl <= -gaol_half_pi_up) ? GAOL_INFINITY : upper_slope(-cl, above);
       atan2_rel_piece(xp_l, xu, yn_l, -yl, t_lo, t_hi, above, false, false, true, Xr, Yr);
     }
   }
@@ -4886,7 +4883,7 @@ interval nth_root(const interval& I, int q)
     doubles, rounded outward. The bounds of X are added to e + k pi_lo, and
     the sums to p, rounded once at the magnitude of the result: adding X to
     k pi rounded would round twice, and the bounds could be two doubles from
-    the tightest. GAOL computed k [pi_dn, pi_up] + X, whose width, k 2^-51,
+    the tightest. GAOL computed k [gaol_pi_dn, gaol_pi_up] + X, whose width, k 2^-51,
     the relational functions took on: their bounds were up to
     2^-49 max(1, |x|) from the values they had to keep. The rounding
     direction is upward.
@@ -4894,11 +4891,11 @@ interval nth_root(const interval& I, int q)
   static interval k_pi_plus(double k, const interval& X)
   {
     // 0x1.1a62633145c06p-53 and 0x1.1a62633145c07p-53, the doubles around
-    // pi - pi_dn = 1.2246467991473531772e-16
+    // pi - gaol_pi_dn = 1.2246467991473531772e-16
     static const double pi_lo_dn = std::ldexp(4967757600021510.0,-105);
     static const double pi_lo_up = std::ldexp(4967757600021511.0,-105);
-    const double p = k*pi_dn;
-    const double e = std::fma(k,pi_dn,-p);
+    const double p = k*gaol_pi_dn;
+    const double e = std::fma(k,gaol_pi_dn,-p);
     // The products of k with the doubles around pi_lo, rounded outward
     const double below = (k >= 0.0) ? pi_lo_dn : pi_lo_up, above = (k >= 0.0) ? pi_lo_up : pi_lo_dn;
     const double lo_lo = -((-k)*below), lo_hi = k*above;
@@ -4912,8 +4909,8 @@ interval nth_root(const interval& I, int q)
     magnitude at most 2^52, rounded upward: the doubles operator/=(interval)
     and operator+=(double) give, in the two builds, computed on doubles. The
     division of interval(x), whose stored bounds are -x and x, by
-    [pi_dn, pi_up] divides a stored bound above 0 by pi_dn and one below 0 by
-    pi_up, and gives interval::zero() for x = 0. The stored bounds of
+    [gaol_pi_dn, gaol_pi_up] divides a stored bound above 0 by gaol_pi_dn and one below 0 by
+    gaol_pi_up, and gives interval::zero() for x = 0. The stored bounds of
     interval::zero() are -0 and +0 in the FPU build, +0 and +0 in the SSE2
     build, and the sign of the zero reaches the bounds of acos_rel() through
     k_pi_plus(): they are taken from interval::zero(), -left() being the
@@ -4921,13 +4918,13 @@ interval nth_root(const interval& I, int q)
   */
   static inline double lower_of_x_over_pi_plus(double x, double shift)
   {
-    const double nl = (x == 0.0) ? -interval::zero().left() : (-x) / ((x < 0.0) ? pi_dn : pi_up);
+    const double nl = (x == 0.0) ? -interval::zero().left() : (-x) / ((x < 0.0) ? gaol_pi_dn : gaol_pi_up);
     return -(nl - shift);
   }
 
   static inline double upper_of_x_over_pi_plus(double x, double shift)
   {
-    const double nr = (x == 0.0) ? interval::zero().right() : x / ((x > 0.0) ? pi_dn : pi_up);
+    const double nr = (x == 0.0) ? interval::zero().right() : x / ((x > 0.0) ? gaol_pi_dn : gaol_pi_up);
     return nr + shift;
   }
 
@@ -5670,7 +5667,7 @@ interval nth_root(const interval& I, int q)
     middle of I tells, each half being narrower than pi. The bounds are then
     within one double of the tightest ones at every magnitude.
 
-    That the test w < pi_dn below gives the tightest bounds was measured,
+    That the test w < gaol_pi_dn below gives the tightest bounds was measured,
     not proved: sin and cos gave the tightest bounds over 29 400 intervals
     of width about pi whose bounds are next to extrema of sin (GAOL v5, old
     point 9 of TODO.md, decided on 3 October).
@@ -5692,14 +5689,14 @@ static inline interval cos_or_sin(double Il, double Ir)
   
   // a <= Ileft/pi, b >= Iright/pi
   if (Ileft >= 0) {
-    a = -(Il/pi_up);
-    b = Ir/pi_dn;
+    a = -(Il/gaol_pi_up);
+    b = Ir/gaol_pi_dn;
   } else {
-    a = -(Il/pi_dn);
+    a = -(Il/gaol_pi_dn);
     if (Iright > 0) {
-      b = Ir/pi_dn;
+      b = Ir/gaol_pi_dn;
     } else {
-      b = Ir/pi_up;
+      b = Ir/gaol_pi_up;
     }
   }
   if (sine) {
@@ -5728,18 +5725,18 @@ static inline interval cos_or_sin(double Il, double Ir)
     // The width of I, rounded upward: both extrema from 2 pi on, or for
     // infinite bounds
     const double w = Ir + Il;
-    if (!(w < 2.0*pi_dn)) {
+    if (!(w < 2.0*gaol_pi_dn)) {
       GAOL_RND_LEAVE();
       return interval::minus_one_plus_one();
     }
     // a_in >= Ileft/pi and b_in <= Iright/pi, minus 1/2 for the sine
     double a_in, b_in;
     if (Ileft >= 0) {
-      a_in = Ileft/pi_dn;
-      b_in = -((-Ir)/pi_up);
+      a_in = Ileft/gaol_pi_dn;
+      b_in = -((-Ir)/gaol_pi_up);
     } else {
-      a_in = Ileft/pi_up;
-      b_in = (Iright > 0) ? -((-Ir)/pi_up) : -((-Ir)/pi_dn);
+      a_in = Ileft/gaol_pi_up;
+      b_in = (Iright > 0) ? -((-Ir)/gaol_pi_up) : -((-Ir)/gaol_pi_dn);
     }
     if (sine) {
       a_in = a_in - 0.5;
@@ -5747,7 +5744,7 @@ static inline interval cos_or_sin(double Il, double Ir)
     }
     // The halves of I, for the sign at its middle
     const double middle = 0.5*Ileft + 0.5*Iright;
-    const bool narrow_halves = (middle + Il < pi_dn) && (Ir - middle < pi_dn);
+    const bool narrow_halves = (middle + Il < gaol_pi_dn) && (Ir - middle < gaol_pi_dn);
     const bool sure = (std::floor(a_in) == m && std::ceil(b_in) == n);
     if (sure && nm != 2.0) { // Both extrema
       GAOL_RND_LEAVE();
@@ -5772,7 +5769,7 @@ static inline interval cos_or_sin(double Il, double Ir)
         }
         if (sl != sr) {
             extremum = sl; // Increasing then decreasing: a maximum
-        } else if (w < pi_dn|| (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
+        } else if (w < gaol_pi_dn|| (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
             extremum = 0;
         } else {
             extremum = 2;

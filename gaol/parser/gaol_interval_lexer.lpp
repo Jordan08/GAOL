@@ -242,11 +242,11 @@ namespace {
 
   /*
     A number v, as the rules below match numbers (decimal digits with an
-    optional point and exponent, or, after 0x, hexadecimal digits with an
-    optional point and a binary exponent), taken apart once to be compared
-    with doubles (GAOL v5): gaol_enclose_number() compares a number with up to
-    about 125 of them, and each comparison read the text again, in a time
-    quadratic in its length. It took 2.5 s for 20000 characters under a locale
+    optional point and exponent, or, after 0x, 0o or 0b, hexadecimal, octal or
+    binary digits with an optional point and a binary exponent), taken apart
+    once to be compared with doubles (GAOL v5): gaol_enclose_number() compares a
+    number with up to about 125 of them, and each comparison read the text
+    again, in a time quadratic in its length. It took 2.5 s for 20000 characters under a locale
     writing a decimal comma, where strtod() is far from the number, against
     0.08 s under the C locale, which needs two comparisons; both now take
     about 0.03 s (Intel i7-1185G7, GCC 9.4).
@@ -259,13 +259,14 @@ namespace {
   struct gaol_number
   {
     bool is_zero;         // v = 0
-    // +1 if v is far above the largest double: 10^311 or more; in
-    // hexadecimal, when its leading digit is worth 2^1026 or more (v is then
-    // 2^1026 or more, and every v of 2^1029 or more is so marked). -1 if v is
-    // not 0 and far below the least positive double: below 10^-331; in
-    // hexadecimal, when 2^(k2 + 4 ndigits), above v, is 2^-1081 or less
-    // (every v below 2^-1084 is so marked). 0 otherwise, numbers just beyond
-    // the doubles included, which the comparisons place.
+    // +1 if v is far above the largest double: 10^311 or more; in base 16, 8
+    // or 2, when its leading digit is worth 2^1026 or more (v is then 2^1026
+    // or more, and every v of 2^(1025 + b) or more is so marked, b being the 4,
+    // 3 or 1 bits of a digit). -1 if v is not 0 and far below the least
+    // positive double: below 10^-331; in base 16, 8 or 2, when 2^(k2 + b
+    // ndigits), above v, is 2^-1081 or less (every v below 2^(-1080 - b) is so
+    // marked). 0 otherwise, numbers just beyond the doubles included, which the
+    // comparisons place.
     int beyond;
     long kb;              // k + k2
     gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
@@ -282,12 +283,18 @@ namespace {
     long k = 0, k2 = 0, ndigits = 0;
     const long long exponent_bound = gaol_exponent_bound(s);
     const bool hexadecimal = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'));
-    const uint32_t base = hexadecimal ? 16 : 10;
-    if (hexadecimal) {
+    const bool octal = (s[0] == '0' && (s[1] == 'o' || s[1] == 'O'));
+    const bool binary = (s[0] == '0' && (s[1] == 'b' || s[1] == 'B'));
+    // A number in base 16, 8 or 2 has a binary exponent, after a p, and each
+    // of its digits after the point is worth 4, 3 or 1 bits
+    const bool power_of_two = hexadecimal || octal || binary;
+    const long digit_bits = hexadecimal ? 4 : (octal ? 3 : 1);
+    const uint32_t base = hexadecimal ? 16 : (octal ? 8 : (binary ? 2 : 10));
+    if (power_of_two) {
       s += 2;
     }
     bool fraction = false;
-    for (; *s != '\0' && (hexadecimal ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
+    for (; *s != '\0' && (power_of_two ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
       if (*s == '.') {
         fraction = true;
         continue;
@@ -299,8 +306,8 @@ namespace {
         ++ndigits;
       }
       if (fraction) {
-        if (hexadecimal) {
-          k2 -= 4;
+        if (power_of_two) {
+          k2 -= digit_bits;
         } else {
           --k;
         }
@@ -321,7 +328,7 @@ namespace {
       if (e > exponent_bound) {
         e = exponent_bound;
       }
-      (hexadecimal ? k2 : k) += static_cast<long>(negative ? -e : e);
+      (power_of_two ? k2 : k) += static_cast<long>(negative ? -e : e);
     }
 
     gaol_number v;
@@ -330,13 +337,13 @@ namespace {
       return v;
     }
     // 10^(k+ndigits-1) <= v < 10^(k+ndigits), respectively
-    // 2^(k2+4(ndigits-1)) <= v < 2^(k2+4 ndigits), far above the largest
-    // double or below the least positive one
-    if (hexadecimal ? k2 + 4*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
+    // 2^(k2+b(ndigits-1)) <= v < 2^(k2+b ndigits), b being 4, 3 or 1, far above
+    // the largest double or below the least positive one
+    if (power_of_two ? k2 + digit_bits*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
       v.beyond = 1;
       return v;
     }
-    if (hexadecimal ? k2 + 4*ndigits < -1080 : k + ndigits < -330) {
+    if (power_of_two ? k2 + digit_bits*ndigits < -1080 : k + ndigits < -330) {
       v.beyond = -1;
       return v;
     }
@@ -670,7 +677,7 @@ namespace gaol_detail {
   // The sign of v - x, v being the number s writes, with no sign, and x a
   // double, compared exactly: for the output of intervals
   // (gaol/gaol_interval_core.cpp), whose decimal bounds are rounded outward
-  // whatever the C library (declared in gaol/gaol_double_op.h)
+  // whatever the C library (declared in gaol/parser/gaol_parser.h)
   int compare_number_with_double(const char *s, double x)
   {
     return gaol_compare_number(gaol_take_apart(s), x);
@@ -708,6 +715,8 @@ namespace gaol_detail {
 
 DIGIT		[0-9]
 HEXDIGIT	[0-9a-f]
+OCTDIGIT	[0-7]
+BINDIGIT	[01]
 INT		{DIGIT}+
 E 		e[+-]?{DIGIT}+
 DECSIGNIFICAND	{DIGIT}*"."{DIGIT}+|{DIGIT}+"."?
@@ -746,7 +755,9 @@ SPACE		[ \t\r\n]+
 {DIGIT}+{E} |
 {DIGIT}*"."{DIGIT}+({E})? |
 {DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(yytext, yylval); }
-0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)p[+-]?{DIGIT}+	{ return gaol_read_number(yytext, yylval); }
+0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval); }
+0o({OCTDIGIT}*"."{OCTDIGIT}+|{OCTDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval); }
+0b({BINDIGIT}*"."{BINDIGIT}+|{BINDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval); }
 [+-]?({DECSIGNIFICAND})"?"({DIGIT}+|"?")?[du]?({E})?	{ return gaol_read_uncertain(yytext, yylval); }
 {SPACE}		{  }
 .		{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }

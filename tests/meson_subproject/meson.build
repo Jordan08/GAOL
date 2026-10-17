@@ -34,10 +34,18 @@ add_test_setup('meson_subproject', is_default: true)
 
 gaol_dep = subproject('gaol').get_variable('gaol_dep')
 
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it
+# (GAOL v5)
+tests_args = []
+if meson.get_compiler('cpp').has_argument('-Wno-psabi')
+  tests_args += ['-Wno-psabi']
+endif
+
 foreach t : ['arithmetic', 'elementary', 'rounding_direction', 'numbers',
              'other_functions', 'reverse']
   exe = executable('gaol_test_' + t, '../' + t + '.cpp',
     dependencies: gaol_dep,
+    cpp_args: tests_args,
     override_options: ['cpp_std=c++17'])
   test(t, exe, timeout: 300)
 endforeach

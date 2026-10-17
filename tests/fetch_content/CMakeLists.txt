@@ -56,10 +56,18 @@ target_link_libraries(gaol_test_shared PRIVATE gaol::gaol)
 
 enable_testing()
 
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it
+# (GAOL v5)
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-psabi GAOL_COMPILER_TAKES_WNO_PSABI)
+
 foreach(test arithmetic elementary rounding_direction numbers other_functions reverse)
   add_executable(gaol_test_${test} ../${test}.cpp)
   target_link_libraries(gaol_test_${test} PRIVATE gaol::gaol)
   set_target_properties(gaol_test_${test} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+  if(GAOL_COMPILER_TAKES_WNO_PSABI)
+    target_compile_options(gaol_test_${test} PRIVATE -Wno-psabi)
+  endif()
   if(MSVC)
     # getenv() and sscanf(), which the tests use as the C standard has them
     target_compile_definitions(gaol_test_${test} PRIVATE _CRT_SECURE_NO_WARNINGS)
