@@ -251,7 +251,9 @@
    subnormal == 0.0, so that an operation does not set the rounding direction
    upward again after the code using GAOL left it elsewhere, and width() is
    below the exact width; -fno-signed-zeros, with which GCC and Clang drop the
-   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5);
+   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5; the
+   probe is now !(1.0 + (subnormal + 0.0) > 1.0), which GCC 15 does not
+   rewrite with -funsafe-math-optimizations, see doc/three-builds.md);
    -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
    the empty interval what -ffinite-math-only does; and -ffast-math or -Ofast
    followed by -fno-fast-math with Clang, which leaves -frounding-math off

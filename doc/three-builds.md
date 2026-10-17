@@ -223,6 +223,13 @@ is not to be compiled with them.
   too); with the flags of interval arithmetic given again after the option,
   none.
 
+The probe of the modes is `!(1.0 + (subnormal + 0.0) > 1.0)` since point ZZ of
+`TODO.md`, no longer `== 1.0`: with `-funsafe-math-optimizations`, GCC 15 does
+not rewrite it as `!(subnormal > 0.0)`, and with `-fno-signed-zeros` GCC 15 and
+Clang 21 drop its `+ 0.0` as they did that of the earlier form (GCC 9 to 14
+were not tried with it). The code using GAOL is still not to be compiled with
+these flags.
+
 Two reasons that had GAOL refuse MinGW-w64 are gone with CORE-MATH (GAOL v5):
 the math library of mingw-w64 older than version 12 gave `acosh()` near 1 up
 to 25 million doubles away from the exact value, and the `fesetround()` of

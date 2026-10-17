@@ -335,6 +335,22 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     products, see pown_products() in gaol_interval_core.cpp).
   */
   /*
+    The two stored bounds x of an operand, read again after the check of the
+    rounding direction: the empty asm statement keeps its place after the
+    check, and gives x back in the register it is in, at no cost, so that no
+    compiler computes with it, or compares it, before the check has set the
+    direction and cleared the modes that flush the subnormals to zero. The
+    kernels take their operands in registers, where the operators read them
+    from memory behind the barrier of the check (see rnd_reread() of
+    gaol/gaol_fpu.h, for a double; GAOL v5, point ZZ of TODO.md)
+  */
+  GAOL_INLINE __m128d reread_bounds(__m128d x)
+  {
+    __asm__ __volatile__ ("" : "+x" (x));
+    return x;
+  }
+
+  /*
     The lanes of the result that the interval straddling zero (movemask 0: the
     left bound stored negated and the right one both not negative) sets to 0:
     its lower bound is 0, where the maximum of the two squares below gives
@@ -365,6 +381,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       return x;
     }
     GAOL_RND_ENTER_SSE();
+    x = reread_bounds(x);
     const __m128d s1 = _mm_mul_pd(x, _mm_xor_pd(x, interval::lbsignmask));
     const __m128d xs = _mm_shuffle_pd(x, x, 1);
     const __m128d s2 = _mm_mul_pd(xs, _mm_xor_pd(xs, interval::lbsignmask));
@@ -399,7 +416,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     return fast_add(x, y);
 #else
     GAOL_RND_ENTER_SSE();
-    __m128d res = _mm_add_pd(x, y);
+    const __m128d xx = reread_bounds(x), yy = reread_bounds(y);
+    __m128d res = _mm_add_pd(xx, yy);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return res;
@@ -412,7 +430,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     return fast_sub(x, y);
 #else
     GAOL_RND_ENTER_SSE();
-    __m128d res = _mm_add_pd(x, _mm_shuffle_pd(y, y, _MM_SHUFFLE2(0,1)));
+    const __m128d xx = reread_bounds(x), yy = reread_bounds(y);
+    __m128d res = _mm_add_pd(xx, _mm_shuffle_pd(yy, yy, _MM_SHUFFLE2(0,1)));
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return res;
@@ -961,6 +980,8 @@ GAOL_BOUNDS_TARGET __m128d mul_bounds(__m128d x, __m128d y)
     return mul_special(x, y);
   }
   GAOL_RND_ENTER_SSE();
+  x = reread_bounds(x);
+  y = reread_bounds(y);
   const __m128d yc = _mm_xor_pd(y, interval::lbsignmask);                          // <c, d>
   const __m128d yd = _mm_shuffle_pd(yc, yc, 1);                                    // <d, c>
   const __m128d xo = _mm_xor_pd(_mm_shuffle_pd(x, x, 1), interval::lbrbsignmask);  // <-r, l>
@@ -1194,6 +1215,8 @@ GAOL_BOUNDS_TARGET __m128d div_bounds(__m128d x, __m128d y)
     return interval::emptyset().get_xmminterval();
   }
   GAOL_RND_ENTER_SSE();
+  x = reread_bounds(x);
+  y = reread_bounds(y);
   // y has no zero where a bound of it is negative and not -0 (a lower bound 0
   // is stored as -0): its sign bit is set, and it is not 0. Told after the
   // check of the modes, a subnormal divisor being 0 with denormals-are-zero

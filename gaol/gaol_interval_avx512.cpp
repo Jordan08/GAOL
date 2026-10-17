@@ -438,7 +438,7 @@
 
   /*
     x / y of the stored bounds of two nonempty operands: the dispatch of
-    operator/=() of gaol/gaol_interval_sse.cpp, its comparisons with 0 read
+    divide_general() of gaol/gaol_interval_sse.cpp, its comparisons with 0 read
     from the sign and the magnitude bits (stored_left_below_zero() and
     stored_right_below_zero() above), its divisions by the embedded
     rounding. The cases the dispatch does not divide give the stored bounds

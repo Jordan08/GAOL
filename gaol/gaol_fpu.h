@@ -152,7 +152,9 @@ a bound, the emptiness test aside, whose answer the modes do not change (a
 NaN stays one, and flushing keeps two bounds in their order): its
 bounds are read from memory after the check, which clears the modes with a
 compiler barrier after it (round_upward_if_needed()), and a double it takes
-by value goes through rnd_reread() after the check. With
+by value goes through rnd_reread() after the check; the kernels of the SSE2
+operations, which receive the bounds in a register, pass them through an
+empty asm statement after it (reread_bounds(), gaol_interval_sse.cpp). With
 GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
