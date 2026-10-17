@@ -227,4 +227,10 @@ products from the highest bit of n, and the bounds of the two differed for
 about half of the intervals with a bound 0 or infinite or whose power is
 beyond the exact products). The sign of a zero
 bound may differ: `sqr(interval(-2.0, 3.0))` is [−0, 9] with the SSE2
-intervals and [0, 9] with the FPU intervals.
+intervals and [0, 9] with the FPU intervals. So may the sign of a zero bound of
+a product or of a quotient: the SSE2 intervals take the larger of four
+products and the quotient of the corners their signs choose, with no
+branch (GAOL v5), where GAOL 4 chose one product by the signs of the bounds,
+and `[-1, 0] * [-1, 0]` has the lower bound +0 where it had −0. The two
+paths of the SSE2 intervals, with and without `GAOL_PREFER_AVX512`, give the
+same bits.

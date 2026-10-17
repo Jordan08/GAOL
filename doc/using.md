@@ -938,9 +938,9 @@ operation tested the flag it set, in the default build too). The
 operations of the path cost more
 time on a processor that halves its AVX-512 instructions, where they cost
 less on one that does not: on an Intel i7-1185G7 (halved), `x * y` takes
-4.8 ns rather than 2.9 in the default build, `x / y` 5.3 ns rather than 4.5
-and `sqrt(x)` 11.2 rather than 6.6, and `x + y` as long (1.8 ns), where with
-`GAOL_PRESERVE_ROUNDING` the same `x + y` takes 2.2 ns rather than 8.1
+3.6 ns rather than 2.0 in the default build, `x / y` 3.9 ns rather than 2.3,
+`sqrt(x)` 11.2 rather than 7.0 and `x + y` 1.4 rather than 1.1, where with
+`GAOL_PRESERVE_ROUNDING` the same `x + y` takes 1.4 ns rather than 8.3
 (`gaol_performance`, Clang 21.1, the best of 9 interleaved runs); the
 processors that do not halve them, as the Xeon of the continuous integration,
 are expected to take less. Which of the paths a GAOL took, the example 13
